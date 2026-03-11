@@ -81,7 +81,6 @@ export function renderLocationPanel(
 	const gridItems = [
 		createCompactInfoCard('Country', locationInfo?.countryCode || '—'),
 		createCompactInfoCard('Region', locationInfo?.regionCode || '—'),
-		createCompactInfoCard('Jurisdiction', locationInfo?.jurisdiction || '—'),
 		createCompactInfoCard(
 			'Language',
 			translationConfig?.defaultLanguage || '—'
@@ -103,16 +102,6 @@ export function renderLocationPanel(
 		columns: 3,
 		children: gridItems,
 	});
-
-	container.appendChild(locationGrid);
-
-	container.appendChild(
-		createActivePolicySummarySection({
-			policy: activePolicy,
-			policyDecision,
-			policySnapshotToken: initData?.policySnapshotToken,
-		})
-	);
 
 	const initialDraft = getDraftFromOverrides(overrides);
 	let appliedOverrides = normalizeOverrideDraft(initialDraft);
@@ -211,6 +200,15 @@ export function renderLocationPanel(
 	});
 
 	container.appendChild(overrideSection);
+	container.appendChild(locationGrid);
+
+	container.appendChild(
+		createActivePolicySummarySection({
+			policy: activePolicy,
+			policyDecision,
+			policySnapshotToken: initData?.policySnapshotToken,
+		})
+	);
 
 	countryField.control.addEventListener('change', updateFormState);
 	regionField.control.addEventListener('input', updateFormState);
@@ -514,10 +512,9 @@ function createActivePolicySummarySection(options: {
 		| {
 				policyId: string;
 				fingerprint: string;
-				matchedBy: 'region' | 'country' | 'jurisdiction' | 'default';
+				matchedBy: 'region' | 'country' | 'default';
 				country: string | null;
 				region: string | null;
-				jurisdiction: string;
 		  }
 		| undefined;
 	policySnapshotToken: string | undefined;

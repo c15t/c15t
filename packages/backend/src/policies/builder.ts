@@ -2,7 +2,6 @@ import { compactDefined, dedupeTrimmedStrings } from '@c15t/schema';
 import type {
 	PolicyConfig,
 	PolicyModel,
-	PolicyPack,
 	PolicyScopeMode,
 	PolicyUiMode,
 	PolicyUiSurfaceConfig,
@@ -144,7 +143,7 @@ export function buildPolicyConfig(input: PolicyBuilderInput): PolicyConfig {
  *
  * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
  */
-export function buildPolicyPack(inputs: PolicyBuilderInput[]): PolicyPack {
+export function buildPolicyPack(inputs: PolicyBuilderInput[]): PolicyConfig[] {
 	return inputs.map((input) => buildPolicyConfig(input));
 }
 
@@ -166,7 +165,7 @@ export function buildPolicyPack(inputs: PolicyBuilderInput[]): PolicyPack {
 export function buildPolicyPackWithDefault(
 	inputs: PolicyBuilderInput[],
 	defaultPolicy?: PolicyBuilderInput
-): PolicyPack {
+): PolicyConfig[] {
 	const pack = buildPolicyPack(inputs);
 	const hasDefault = pack.some((policy) => policy.match.isDefault);
 
@@ -208,7 +207,7 @@ export function buildPolicyPackWithDefault(
  *
  * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
  */
-export function composePacks(...packs: PolicyPack[]): PolicyPack {
+export function composePacks(...packs: PolicyConfig[][]): PolicyConfig[] {
 	const seen = new Set<string>();
 	const result: PolicyConfig[] = [];
 

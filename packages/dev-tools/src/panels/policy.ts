@@ -4,25 +4,13 @@
  */
 
 import type { ConsentStoreState } from 'c15t';
-import {
-	createButton,
-	createDisconnectedState,
-	createSection,
-} from '../components/ui';
-import { clearElement, div, input, select, span } from '../core/renderer';
+import { createDisconnectedState, createSection } from '../components/ui';
+import { clearElement, div, span } from '../core/renderer';
 import componentStyles from '../styles/components.module.css';
 import { formatInitSource } from '../utils/init-source';
 
-interface PolicySimulationPayload {
-	country?: string;
-	region?: string;
-	language?: string;
-}
-
 export interface PolicyPanelOptions {
 	getState: () => ConsentStoreState | null;
-	onRunSimulation?: (payload: PolicySimulationPayload) => void | Promise<void>;
-	onResetSimulation?: () => void | Promise<void>;
 }
 
 /**
@@ -32,7 +20,7 @@ export function renderPolicyPanel(
 	container: HTMLElement,
 	options: PolicyPanelOptions
 ): void {
-	const { getState, onRunSimulation, onResetSimulation } = options;
+	const { getState } = options;
 	clearElement(container);
 
 	const state = getState();
@@ -49,10 +37,18 @@ export function renderPolicyPanel(
 		state.initDataSourceDetail
 	);
 
+	// Match trace — always shown
+	container.appendChild(
+		createMatchTraceSection({
+			policyDecision,
+			policyId: activePolicy?.id ?? policyDecision?.policyId,
+		})
+	);
+
 	if (!activePolicy && !policyDecision) {
 		container.appendChild(
 			createSection({
-				title: 'Policy Pack',
+				title: 'Policy',
 				children: [
 					div({
 						style: {
@@ -62,176 +58,259 @@ export function renderPolicyPanel(
 						},
 						text: 'No active policy matched for this request.',
 					}),
-					span({
-						className: componentStyles.overrideHint,
-						text: `Init Source: ${initSource}`,
-					}),
+					createHint(`Init Source: ${initSource}`),
 				],
 			})
 		);
-	} else {
-		const cards = [
-			createCompactInfoCard(
-				'Policy ID',
-				activePolicy?.id ?? policyDecision?.policyId ?? '—'
-			),
-			createCompactInfoCard('Matched By', policyDecision?.matchedBy ?? '—'),
-			createCompactInfoCard(
-				'Fingerprint',
-				formatShortFingerprint(policyDecision?.fingerprint)
-			),
-			createCompactInfoCard('Model', getModelLabel(activePolicy?.model)),
-			createCompactInfoCard(
-				'Scope Mode',
-				getScopeModeLabel(
-					activePolicy?.consent?.scopeMode ?? state.policyScopeMode
-				)
-			),
-			createCompactInfoCard(
-				'Category Scope',
-				formatCategoryScope(
-					state.policyCategories ?? activePolicy?.consent?.categories
-				)
-			),
-			createCompactInfoCard(
-				'Preselected',
-				formatCategoryScope(activePolicy?.consent?.preselectedCategories)
-			),
-			createCompactInfoCard('UI Mode', activePolicy?.ui?.mode ?? '—'),
-			createCompactInfoCard(
-				'Banner Actions',
-				formatPolicyActions(
-					activePolicy?.ui?.banner?.allowedActions ??
-						state.policyBanner.allowedActions
-				)
-			),
-			createCompactInfoCard(
-				'Banner Primary',
-				activePolicy?.ui?.banner?.primaryAction ??
-					state.policyBanner.primaryAction ??
-					'—'
-			),
-			createCompactInfoCard(
-				'Banner Order',
-				formatPolicyActions(
-					activePolicy?.ui?.banner?.actionOrder ??
-						state.policyBanner.actionOrder ??
-						null
-				)
-			),
-			createCompactInfoCard(
-				'Banner Layout',
-				activePolicy?.ui?.banner?.actionLayout ??
-					state.policyBanner.actionLayout ??
-					'—'
-			),
-			createCompactInfoCard(
-				'Banner Profile',
-				activePolicy?.ui?.banner?.uiProfile ??
-					state.policyBanner.uiProfile ??
-					'—'
-			),
-			createCompactInfoCard(
-				'Banner Scroll Lock',
-				formatPolicyScrollLock(
-					activePolicy?.ui?.banner?.scrollLock ?? state.policyBanner.scrollLock
-				)
-			),
-			createCompactInfoCard(
-				'Dialog Actions',
-				formatPolicyActions(
-					activePolicy?.ui?.dialog?.allowedActions ??
-						state.policyDialog.allowedActions
-				)
-			),
-			createCompactInfoCard(
-				'Dialog Primary',
-				activePolicy?.ui?.dialog?.primaryAction ??
-					state.policyDialog.primaryAction ??
-					'—'
-			),
-			createCompactInfoCard(
-				'Dialog Order',
-				formatPolicyActions(
-					activePolicy?.ui?.dialog?.actionOrder ??
-						state.policyDialog.actionOrder ??
-						null
-				)
-			),
-			createCompactInfoCard(
-				'Dialog Layout',
-				activePolicy?.ui?.dialog?.actionLayout ??
-					state.policyDialog.actionLayout ??
-					'—'
-			),
-			createCompactInfoCard(
-				'Dialog Profile',
-				activePolicy?.ui?.dialog?.uiProfile ??
-					state.policyDialog.uiProfile ??
-					'—'
-			),
-			createCompactInfoCard(
-				'Dialog Scroll Lock',
-				formatPolicyScrollLock(
-					activePolicy?.ui?.dialog?.scrollLock ?? state.policyDialog.scrollLock
-				)
-			),
-			createCompactInfoCard(
-				'I18n Profile',
-				activePolicy?.i18n?.messageProfile ??
-					activePolicy?.i18n?.language ??
-					'—'
-			),
-			createCompactInfoCard(
-				'Expiry',
-				typeof activePolicy?.consent?.expiryDays === 'number'
-					? `${activePolicy.consent.expiryDays} days`
-					: '—'
-			),
-			createCompactInfoCard('Proof', formatProofSummary(activePolicy?.proof)),
-			createCompactInfoCard(
-				'Snapshot Token',
-				initData?.policySnapshotToken ? 'present' : 'missing'
-			),
-			createCompactInfoCard('Init Source', initSource),
-		];
-
-		container.appendChild(
-			createSection({
-				title: 'Policy Pack',
-				children: [
-					div({
-						style: {
-							display: 'grid',
-							gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-							gap: 'var(--c15t-space-sm, 0.5rem)',
-						},
-						children: cards,
-					}),
-					span({
-						className: componentStyles.overrideHint,
-						text: 'Source: /init runtime policy + store-normalized policy fields.',
-					}),
-				],
-			})
-		);
+		return;
 	}
 
+	// Core policy identity
 	container.appendChild(
-		createReasonTraceSection({
-			policyDecision,
-			jurisdiction: initData?.jurisdiction ?? null,
-			policyId: activePolicy?.id ?? policyDecision?.policyId,
+		createSection({
+			title: 'Policy',
+			children: [
+				createGrid(3, [
+					createCard('ID', activePolicy?.id ?? policyDecision?.policyId ?? '—'),
+					createCard('Model', getModelLabel(activePolicy?.model)),
+					createCard(
+						'Scope',
+						getScopeModeLabel(
+							activePolicy?.consent?.scopeMode ?? state.policyScopeMode
+						)
+					),
+					createCard(
+						'Categories',
+						formatList(
+							state.policyCategories ?? activePolicy?.consent?.categories
+						)
+					),
+					createCard(
+						'Preselected',
+						formatList(activePolicy?.consent?.preselectedCategories)
+					),
+					createCard(
+						'Expiry',
+						typeof activePolicy?.consent?.expiryDays === 'number'
+							? `${activePolicy.consent.expiryDays}d`
+							: '—'
+					),
+				]),
+				createHint(
+					`${initSource} · ${formatFingerprint(policyDecision?.fingerprint)}`
+				),
+			],
 		})
 	);
+
+	// UI surfaces — only if there's a UI mode set
+	const uiMode = activePolicy?.ui?.mode;
+	if (uiMode && uiMode !== 'none') {
+		const bannerCards = buildSurfaceCards(
+			'Banner',
+			activePolicy?.ui?.banner,
+			state.policyBanner
+		);
+		const dialogCards = buildSurfaceCards(
+			'Dialog',
+			activePolicy?.ui?.dialog,
+			state.policyDialog
+		);
+
+		if (bannerCards.length > 0 || dialogCards.length > 0) {
+			container.appendChild(
+				createSection({
+					title: `UI · ${uiMode}`,
+					children: [createGrid(3, [...bannerCards, ...dialogCards])],
+				})
+			);
+		}
+	}
+
+	// Proof & snapshot — compact row
+	const proofLabel = formatProofSummary(activePolicy?.proof);
+	const snapshotLabel = initData?.policySnapshotToken ? 'present' : 'missing';
 	container.appendChild(
-		createSimulationSection({
-			overrides: state.overrides,
-			onRunSimulation,
-			onResetSimulation,
+		createSection({
+			title: 'Proof & Snapshot',
+			children: [
+				createGrid(3, [
+					createCard('Proof', proofLabel),
+					createCard('Snapshot', snapshotLabel),
+					createCard(
+						'I18n',
+						activePolicy?.i18n?.messageProfile ??
+							activePolicy?.i18n?.language ??
+							'—'
+					),
+				]),
+			],
 		})
 	);
 }
+
+// ---------------------------------------------------------------------------
+// UI surface helpers
+// ---------------------------------------------------------------------------
+
+interface SurfaceState {
+	allowedActions?: string[] | null;
+	primaryAction?: string | null;
+	actionOrder?: string[] | null;
+	actionLayout?: string | null;
+	uiProfile?: string | null;
+	scrollLock?: boolean | null;
+}
+
+function buildSurfaceCards(
+	prefix: string,
+	policySurface: SurfaceState | undefined,
+	storeSurface: SurfaceState
+): HTMLElement[] {
+	const actions = formatList(
+		policySurface?.allowedActions ?? storeSurface.allowedActions
+	);
+	const primary =
+		policySurface?.primaryAction ?? storeSurface.primaryAction ?? null;
+	const layout =
+		policySurface?.actionLayout ?? storeSurface.actionLayout ?? null;
+	const profile = policySurface?.uiProfile ?? storeSurface.uiProfile ?? null;
+	const scrollLock =
+		policySurface?.scrollLock ?? storeSurface.scrollLock ?? null;
+
+	// Skip entirely if nothing is configured
+	if (
+		actions === '—' &&
+		!primary &&
+		!layout &&
+		!profile &&
+		scrollLock === null
+	) {
+		return [];
+	}
+
+	const cards: HTMLElement[] = [createCard(`${prefix} Actions`, actions)];
+
+	if (primary) {
+		cards.push(createCard(`${prefix} Primary`, primary));
+	}
+	if (layout) {
+		cards.push(createCard(`${prefix} Layout`, layout));
+	}
+	if (profile) {
+		cards.push(createCard(`${prefix} Profile`, profile));
+	}
+	if (scrollLock !== null) {
+		cards.push(createCard(`${prefix} Scroll Lock`, scrollLock ? 'on' : 'off'));
+	}
+
+	return cards;
+}
+
+// ---------------------------------------------------------------------------
+// Match trace
+// ---------------------------------------------------------------------------
+
+function createMatchTraceSection(options: {
+	policyDecision:
+		| {
+				policyId: string;
+				matchedBy: 'region' | 'country' | 'default';
+				country: string | null;
+				region: string | null;
+		  }
+		| undefined;
+	policyId: string | undefined;
+}): HTMLElement {
+	const { policyDecision, policyId } = options;
+	const entries = buildTraceEntries(policyDecision, policyId);
+
+	return createSection({
+		title: 'Match Trace',
+		children: [
+			div({
+				style: {
+					display: 'grid',
+					gridTemplateColumns: '1fr',
+					gap: '4px',
+				},
+				children: entries.map((entry) =>
+					div({
+						className: componentStyles.gridCard ?? '',
+						style: {
+							padding: '6px 10px',
+							display: 'flex',
+							alignItems: 'center',
+							justifyContent: 'space-between',
+							gap: '10px',
+						},
+						children: [
+							span({
+								style: {
+									fontSize: 'var(--c15t-devtools-font-size-xs)',
+									color: 'var(--c15t-text-muted)',
+									fontFamily: 'ui-monospace, monospace',
+								},
+								text: entry.step,
+							}),
+							span({
+								style: {
+									fontSize: 'var(--c15t-devtools-font-size-xs)',
+									fontFamily: 'ui-monospace, monospace',
+								},
+								text: entry.result,
+							}),
+						],
+					})
+				),
+			}),
+			createHint('region → country → default · Simulate via Location tab'),
+		],
+	});
+}
+
+function buildTraceEntries(
+	decision:
+		| {
+				policyId: string;
+				matchedBy: 'region' | 'country' | 'default';
+				country: string | null;
+				region: string | null;
+		  }
+		| undefined,
+	policyId: string | undefined
+): Array<{ step: string; result: string }> {
+	if (!decision) {
+		return [{ step: 'decision metadata', result: 'UNAVAILABLE' }];
+	}
+
+	const country = decision.country ?? 'n/a';
+	const regionKey =
+		decision.country && decision.region
+			? `${decision.country}-${decision.region}`
+			: 'n/a';
+	const resolved = policyId ?? decision.policyId ?? 'unknown';
+	const matched = decision.matchedBy;
+
+	return [
+		{
+			step: `region(${regionKey})`,
+			result: matched === 'region' ? `MATCH → ${resolved}` : 'MISS',
+		},
+		{
+			step: `country(${country})`,
+			result: matched === 'country' ? `MATCH → ${resolved}` : 'MISS',
+		},
+		{
+			step: `default(fallback)`,
+			result: matched === 'default' ? `MATCH → ${resolved}` : 'SKIPPED',
+		},
+	];
+}
+
+// ---------------------------------------------------------------------------
+// Formatters
+// ---------------------------------------------------------------------------
 
 function getModelLabel(model: string | undefined): string {
 	switch (model) {
@@ -251,34 +330,20 @@ function getScopeModeLabel(mode: string | null | undefined): string {
 		case 'strict':
 			return 'Strict';
 		case 'permissive':
-			return 'Unmanaged';
+			return 'Permissive';
 		default:
 			return '—';
 	}
 }
 
-function formatPolicyActions(actions: string[] | null | undefined): string {
-	if (!actions || actions.length === 0) {
+function formatList(items: string[] | null | undefined): string {
+	if (!items || items.length === 0) {
 		return '—';
 	}
-	return actions.join(', ');
-}
-
-function formatCategoryScope(categories: string[] | null | undefined): string {
-	if (!categories || categories.length === 0) {
-		return '—';
+	if (items.includes('*')) {
+		return '* (all)';
 	}
-	if (categories.includes('*')) {
-		return '*';
-	}
-	return categories.join(', ');
-}
-
-function formatPolicyScrollLock(value: boolean | null | undefined): string {
-	if (value == null) {
-		return '—';
-	}
-	return value ? 'on' : 'off';
+	return items.join(', ');
 }
 
 function formatProofSummary(
@@ -293,317 +358,28 @@ function formatProofSummary(
 	if (!proof) {
 		return '—';
 	}
-	return `IP:${proof.storeIp ? 'on' : 'off'} UA:${proof.storeUserAgent ? 'on' : 'off'} Lang:${proof.storeLanguage ? 'on' : 'off'}`;
+	const parts: string[] = [];
+	if (proof.storeIp) parts.push('IP');
+	if (proof.storeUserAgent) parts.push('UA');
+	if (proof.storeLanguage) parts.push('Lang');
+	return parts.length > 0 ? parts.join(', ') : 'none';
 }
 
-function formatShortFingerprint(fingerprint: string | undefined): string {
+function formatFingerprint(fingerprint: string | undefined): string {
 	if (!fingerprint) {
-		return '—';
+		return 'no fingerprint';
 	}
-	if (fingerprint.length <= 18) {
+	if (fingerprint.length <= 12) {
 		return fingerprint;
 	}
-	return `${fingerprint.slice(0, 10)}…${fingerprint.slice(-6)}`;
+	return `${fingerprint.slice(0, 8)}…${fingerprint.slice(-4)}`;
 }
 
-function createReasonTraceSection(options: {
-	policyDecision:
-		| {
-				policyId: string;
-				matchedBy: 'region' | 'country' | 'jurisdiction' | 'default';
-				country: string | null;
-				region: string | null;
-				jurisdiction: string;
-		  }
-		| undefined;
-	jurisdiction: string | null;
-	policyId: string | undefined;
-}): HTMLElement {
-	const { policyDecision, jurisdiction, policyId } = options;
-	const traceEntries = buildReasonTraceEntries({
-		policyDecision,
-		jurisdiction,
-		policyId,
-	});
+// ---------------------------------------------------------------------------
+// Shared UI primitives
+// ---------------------------------------------------------------------------
 
-	return createSection({
-		title: 'Policy Reason Trace',
-		children: [
-			div({
-				style: {
-					display: 'grid',
-					gridTemplateColumns: '1fr',
-					gap: '6px',
-				},
-				children: traceEntries.map((entry) =>
-					div({
-						className: componentStyles.gridCard ?? '',
-						style: {
-							padding: '8px 10px',
-							display: 'flex',
-							alignItems: 'center',
-							justifyContent: 'space-between',
-							gap: '10px',
-						},
-						children: [
-							span({
-								style: {
-									fontSize: 'var(--c15t-devtools-font-size-sm)',
-									color: 'var(--c15t-text-muted)',
-									fontFamily: 'ui-monospace, monospace',
-								},
-								text: entry.step,
-							}),
-							span({
-								style: {
-									fontSize: 'var(--c15t-devtools-font-size-xs)',
-									fontWeight: '600',
-									fontFamily: 'ui-monospace, monospace',
-								},
-								text: entry.result,
-							}),
-						],
-					})
-				),
-			}),
-			span({
-				className: componentStyles.overrideHint,
-				text: 'Trace order is fixed: region -> country -> jurisdiction -> default.',
-			}),
-		],
-	});
-}
-
-function buildReasonTraceEntries(options: {
-	policyDecision:
-		| {
-				policyId: string;
-				matchedBy: 'region' | 'country' | 'jurisdiction' | 'default';
-				country: string | null;
-				region: string | null;
-				jurisdiction: string;
-		  }
-		| undefined;
-	jurisdiction: string | null;
-	policyId: string | undefined;
-}): Array<{ step: string; result: string }> {
-	const { policyDecision, jurisdiction, policyId } = options;
-	if (!policyDecision) {
-		return [
-			{
-				step: 'decision metadata',
-				result: 'UNAVAILABLE',
-			},
-		];
-	}
-
-	const country = policyDecision.country ?? 'n/a';
-	const region = policyDecision.region ?? 'n/a';
-	const regionKey =
-		policyDecision.country && policyDecision.region
-			? `${policyDecision.country}-${policyDecision.region}`
-			: 'n/a';
-	const effectiveJurisdiction =
-		policyDecision.jurisdiction ?? jurisdiction ?? 'n/a';
-	const resolvedPolicy = policyId ?? policyDecision.policyId ?? 'unknown';
-	const matchedBy = policyDecision.matchedBy;
-
-	const didMatch = (step: typeof matchedBy): boolean => matchedBy === step;
-
-	return [
-		{
-			step: `region(${regionKey})`,
-			result: didMatch('region') ? `MATCH -> ${resolvedPolicy}` : 'MISS',
-		},
-		{
-			step: `country(${country})`,
-			result: didMatch('country') ? `MATCH -> ${resolvedPolicy}` : 'MISS',
-		},
-		{
-			step: `jurisdiction(${effectiveJurisdiction})`,
-			result: didMatch('jurisdiction') ? `MATCH -> ${resolvedPolicy}` : 'MISS',
-		},
-		{
-			step: `default(fallback)`,
-			result: didMatch('default') ? `MATCH -> ${resolvedPolicy}` : 'SKIPPED',
-		},
-	];
-}
-
-function createSimulationSection(options: {
-	overrides: ConsentStoreState['overrides'];
-	onRunSimulation?: (payload: PolicySimulationPayload) => void | Promise<void>;
-	onResetSimulation?: () => void | Promise<void>;
-}): HTMLElement {
-	const { overrides, onRunSimulation, onResetSimulation } = options;
-
-	const countryField = select({
-		className:
-			`${componentStyles.input ?? ''} ${componentStyles.inputSmall ?? ''}`.trim(),
-		options: COUNTRY_OPTIONS,
-		selectedValue: overrides?.country ?? '',
-	});
-
-	const regionField = input({
-		className:
-			`${componentStyles.input ?? ''} ${componentStyles.inputSmall ?? ''}`.trim(),
-		placeholder: 'e.g., CA, NY, BE',
-		value: overrides?.region ?? '',
-	}) as HTMLInputElement;
-
-	const languageField = input({
-		className:
-			`${componentStyles.input ?? ''} ${componentStyles.inputSmall ?? ''}`.trim(),
-		placeholder: 'e.g., en, de, fr',
-		value: overrides?.language ?? '',
-	}) as HTMLInputElement;
-
-	const status = span({
-		className: componentStyles.overrideHint,
-		text: 'Run simulation to apply temporary overrides + refetch /init.',
-	});
-
-	const runButton = createButton({
-		text: 'Run Simulation',
-		variant: 'primary',
-		small: true,
-		onClick: () => {
-			void runSimulation();
-		},
-	});
-
-	const resetButton = createButton({
-		text: 'Reset',
-		small: true,
-		onClick: () => {
-			void resetSimulation();
-		},
-	});
-
-	async function runSimulation(): Promise<void> {
-		if (!onRunSimulation) {
-			status.textContent = 'Simulation action is unavailable.';
-			return;
-		}
-
-		runButton.disabled = true;
-		resetButton.disabled = true;
-		status.textContent = 'Simulating...';
-
-		const payload: PolicySimulationPayload = {
-			country: normalizeAlphaCode(countryField.value),
-			region: normalizeAlphaCode(regionField.value),
-			language: normalizeLanguageCode(languageField.value),
-		};
-
-		try {
-			await onRunSimulation(payload);
-			status.textContent = hasSimulationPayload(payload)
-				? 'Simulation applied. Policy tab now reflects the simulated /init result.'
-				: 'Simulation ran with no overrides.';
-		} catch {
-			status.textContent = 'Simulation failed. Check network/backend logs.';
-		} finally {
-			runButton.disabled = false;
-			resetButton.disabled = false;
-		}
-	}
-
-	async function resetSimulation(): Promise<void> {
-		if (!onResetSimulation) {
-			status.textContent = 'Reset action is unavailable.';
-			return;
-		}
-
-		runButton.disabled = true;
-		resetButton.disabled = true;
-		status.textContent = 'Resetting simulation...';
-		try {
-			await onResetSimulation();
-			countryField.value = '';
-			regionField.value = '';
-			languageField.value = '';
-			status.textContent = 'Simulation reset. Runtime overrides cleared.';
-		} catch {
-			status.textContent = 'Reset failed. Check network/backend logs.';
-		} finally {
-			runButton.disabled = false;
-			resetButton.disabled = false;
-		}
-	}
-
-	return createSection({
-		title: 'Policy Simulation',
-		children: [
-			div({
-				style: {
-					display: 'grid',
-					gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-					gap: '8px',
-				},
-				children: [
-					createSimulationField('Country', countryField),
-					createSimulationField('Region', regionField),
-					createSimulationField('Language', languageField),
-				],
-			}),
-			div({
-				className: componentStyles.overrideActionButtons,
-				children: [runButton, resetButton],
-			}),
-			status,
-		],
-	});
-}
-
-function createSimulationField(
-	labelText: string,
-	control: HTMLElement
-): HTMLElement {
-	return div({
-		className: componentStyles.overrideField,
-		children: [
-			span({
-				className: componentStyles.overrideLabel,
-				text: labelText,
-			}),
-			control,
-		],
-	});
-}
-
-function normalizeAlphaCode(value: string): string | undefined {
-	const normalized = value.trim().toUpperCase();
-	return normalized || undefined;
-}
-
-function normalizeLanguageCode(value: string): string | undefined {
-	const normalized = value.trim();
-	return normalized || undefined;
-}
-
-function hasSimulationPayload(payload: PolicySimulationPayload): boolean {
-	return Boolean(payload.country || payload.region || payload.language);
-}
-
-const COUNTRY_OPTIONS = [
-	{ value: '', label: '-- Select --' },
-	{ value: 'US', label: 'US - United States' },
-	{ value: 'CA', label: 'CA - Canada' },
-	{ value: 'GB', label: 'GB - United Kingdom' },
-	{ value: 'DE', label: 'DE - Germany' },
-	{ value: 'FR', label: 'FR - France' },
-	{ value: 'IT', label: 'IT - Italy' },
-	{ value: 'ES', label: 'ES - Spain' },
-	{ value: 'NL', label: 'NL - Netherlands' },
-	{ value: 'BE', label: 'BE - Belgium' },
-	{ value: 'AU', label: 'AU - Australia' },
-	{ value: 'JP', label: 'JP - Japan' },
-	{ value: 'BR', label: 'BR - Brazil' },
-	{ value: 'IN', label: 'IN - India' },
-];
-
-function createCompactInfoCard(label: string, value: string): HTMLElement {
+function createCard(label: string, value: string): HTMLElement {
 	return div({
 		className: componentStyles.gridCard ?? '',
 		style: {
@@ -630,5 +406,23 @@ function createCompactInfoCard(label: string, value: string): HTMLElement {
 				text: value,
 			}),
 		],
+	});
+}
+
+function createGrid(columns: number, children: HTMLElement[]): HTMLElement {
+	return div({
+		style: {
+			display: 'grid',
+			gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+			gap: 'var(--c15t-space-sm, 0.5rem)',
+		},
+		children,
+	});
+}
+
+function createHint(text: string): HTMLElement {
+	return span({
+		className: componentStyles.overrideHint,
+		text,
 	});
 }

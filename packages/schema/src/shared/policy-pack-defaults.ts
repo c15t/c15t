@@ -1,4 +1,4 @@
-import type { PolicyConfig, PolicyPack } from './policy-runtime';
+import type { PolicyConfig } from './policy-runtime';
 import { policyMatchers } from './policy-runtime';
 
 /**

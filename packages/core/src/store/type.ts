@@ -6,7 +6,7 @@
 import type {
 	Branding,
 	InitOutput,
-	PolicyPack,
+	PolicyConfig,
 	PolicyScopeMode,
 	PolicyUiAction,
 	PolicyUiActionLayout,
@@ -111,13 +111,13 @@ export interface PolicySurfaceState {
 export type OfflinePolicyConfig = {
 	/**
 	 * Backend-compatible policy pack resolved in offline mode using
-	 * region > country > jurisdiction > default precedence.
+	 * region > country > default precedence.
 	 *
 	 * @remarks
-	 * Mirrors the backend's `policyPacks` field. Use this for policy
-	 * packs from `policyBuilder.createPack*()` or preset helpers.
+	 * Mirrors the backend's `policyPacks` field. Use this with
+	 * `policyPackPresets` helpers or custom `PolicyConfig[]` arrays.
 	 */
-	policyPacks?: PolicyPack;
+	policyPacks?: PolicyConfig[];
 
 	/**
 	 * Synthetic runtime policy returned by offline mode init.

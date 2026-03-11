@@ -5,6 +5,7 @@ import {
 	type GlobalVendorList,
 	type NonIABVendor,
 	type PolicyConfig,
+	/** @deprecated Use `PolicyConfig[]` instead */
 	type PolicyPack,
 } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
@@ -390,7 +391,7 @@ export interface C15TOptions {
 	 *
 	 * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
 	 */
-	policyPacks?: PolicyPack;
+	policyPacks?: PolicyConfig[];
 
 	/**
 	 * Select which branding to show in the consent banner.

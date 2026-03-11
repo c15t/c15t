@@ -23,6 +23,16 @@ export interface PolicySnapshotUiSurface {
 	scrollLock?: PolicyUiSurfaceConfig['scrollLock'];
 }
 
+/**
+ * JWT payload for a policy snapshot token.
+ *
+ * @remarks
+ * Fields are intentionally flattened from the nested `ResolvedPolicy` structure
+ * to keep the JWT compact. For example, `scopeMode` maps to
+ * `ResolvedPolicy.consent.scopeMode` and `uiMode` maps to
+ * `ResolvedPolicy.ui.mode`. The post handler reconstructs the nested shape
+ * when verifying the token.
+ */
 export interface PolicySnapshotPayload extends JWTPayload {
 	iss: string;
 	aud: string;

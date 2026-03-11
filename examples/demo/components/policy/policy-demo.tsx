@@ -71,14 +71,12 @@ const locationPresets: LocationPreset[] = [
 const offlinePolicies = [
 	{
 		id: 'fr_iab',
-		name: 'France (IAB)',
 		match: { countries: ['FR'] },
 		consent: { model: 'iab' as const, expiryDays: 180, categories: ['*'] },
 		proof: { storeIp: true, storeUserAgent: true, storeLanguage: true },
 	},
 	{
 		id: 'de_strict',
-		name: 'Germany (Strict)',
 		match: { countries: ['DE'] },
 		consent: {
 			model: 'opt-in' as const,

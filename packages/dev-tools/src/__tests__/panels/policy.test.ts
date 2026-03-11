@@ -1,5 +1,5 @@
 import type { ConsentStoreState } from 'c15t';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { renderPolicyPanel } from '../../panels/policy';
 
 function createBaseState(
@@ -9,22 +9,8 @@ function createBaseState(
 		lastBannerFetchData: null,
 		policyCategories: null,
 		policyScopeMode: null,
-		policyBanner: {
-			allowedActions: null,
-			primaryAction: null,
-			actionOrder: null,
-			actionLayout: null,
-			uiProfile: null,
-			scrollLock: null,
-		},
-		policyDialog: {
-			allowedActions: null,
-			primaryAction: null,
-			actionOrder: null,
-			actionLayout: null,
-			uiProfile: null,
-			scrollLock: null,
-		},
+		policyBanner: {},
+		policyDialog: {},
 		initDataSource: null,
 		initDataSourceDetail: null,
 		...overrides,
@@ -38,37 +24,25 @@ describe('policy panel', () => {
 		container = document.createElement('div');
 	});
 
-	it('renders detailed policy diagnostics when policy exists', () => {
+	it('renders policy diagnostics grouped into sections', () => {
 		const state = createBaseState({
 			policyCategories: ['necessary', 'measurement'],
 			policyScopeMode: 'permissive',
 			policyBanner: {
 				allowedActions: ['accept', 'reject'],
 				primaryAction: 'accept',
-				actionOrder: ['reject', 'accept'],
-				actionLayout: 'inline',
-				uiProfile: 'balanced',
-				scrollLock: true,
 			},
 			initDataSource: 'backend-cache-hit',
 			initDataSourceDetail: 'x-vercel-cache=HIT',
 			lastBannerFetchData: {
 				jurisdiction: 'CCPA',
-				location: {
-					countryCode: 'US',
-					regionCode: 'CA',
-				},
-				translations: {
-					language: 'en',
-					translations: {},
-				},
+				location: { countryCode: 'US', regionCode: 'CA' },
+				translations: { language: 'en', translations: {} },
 				branding: 'c15t',
 				policy: {
 					id: 'policy_us_ca',
 					model: 'opt-in',
-					i18n: {
-						messageProfile: 'us_ca',
-					},
+					i18n: { messageProfile: 'us_ca' },
 					consent: {
 						scopeMode: 'permissive',
 						expiryDays: 365,
@@ -80,10 +54,7 @@ describe('policy panel', () => {
 						banner: {
 							allowedActions: ['accept', 'reject'],
 							primaryAction: 'accept',
-							actionOrder: ['reject', 'accept'],
 							actionLayout: 'inline',
-							uiProfile: 'balanced',
-							scrollLock: true,
 						},
 					},
 					proof: {
@@ -107,28 +78,33 @@ describe('policy panel', () => {
 
 		renderPolicyPanel(container, { getState: () => state });
 
-		expect(container.textContent).toContain('Policy Pack');
-		expect(container.textContent).toContain('Policy Reason Trace');
-		expect(container.textContent).toContain('region(US-CA)');
-		expect(container.textContent).toContain('MATCH -> policy_us_ca');
-		expect(container.textContent).toContain('policy_us_ca');
-		expect(container.textContent).toContain('region');
-		expect(container.textContent).toContain('Unmanaged');
-		expect(container.textContent).toContain('necessary, measurement');
-		expect(container.textContent).toContain('measurement');
-		expect(container.textContent).toContain('accept, reject');
-		expect(container.textContent).toContain('reject, accept');
-		expect(container.textContent).toContain('inline');
-		expect(container.textContent).toContain('balanced');
-		expect(container.textContent).toContain('on');
-		expect(container.textContent).toContain('us_ca');
-		expect(container.textContent).toContain('365 days');
-		expect(container.textContent).toContain('IP:on UA:on Lang:off');
-		expect(container.textContent).toContain('present');
-		expect(container.textContent).toContain(
-			'Backend (Cache Hit) [x-vercel-cache=HIT]'
-		);
-		expect(container.textContent).toContain('Policy Simulation');
+		const text = container.textContent ?? '';
+
+		// Match trace section
+		expect(text).toContain('Match Trace');
+		expect(text).toContain('region(US-CA)');
+		expect(text).toContain('MATCH');
+		expect(text).toContain('Location tab');
+
+		// Policy section — core identity
+		expect(text).toContain('policy_us_ca');
+		expect(text).toContain('Opt-In');
+		expect(text).toContain('Permissive');
+		expect(text).toContain('necessary, measurement');
+		expect(text).toContain('365d');
+
+		// UI section — only shown because mode is 'banner'
+		expect(text).toContain('UI');
+		expect(text).toContain('accept, reject');
+		expect(text).toContain('inline');
+
+		// Proof & snapshot
+		expect(text).toContain('IP, UA');
+		expect(text).toContain('present');
+		expect(text).toContain('us_ca');
+
+		// No simulation section
+		expect(text).not.toContain('Simulation');
 	});
 
 	it('shows empty state when no policy is active', () => {
@@ -144,62 +120,43 @@ describe('policy panel', () => {
 
 		renderPolicyPanel(container, { getState: () => state });
 
-		expect(container.textContent).toContain('Policy Pack');
 		expect(container.textContent).toContain(
 			'No active policy matched for this request.'
 		);
-		expect(container.textContent).toContain('Init Source: Offline Fallback');
-		expect(container.textContent).toContain('decision metadata');
 		expect(container.textContent).toContain('UNAVAILABLE');
 	});
 
-	it('runs policy simulation callback from panel controls', () => {
+	it('hides UI section when ui mode is none', () => {
 		const state = createBaseState({
-			overrides: {
-				country: 'CA',
-				region: 'ON',
-				language: 'fr',
-			},
 			lastBannerFetchData: {
-				jurisdiction: 'CCPA',
-				location: { countryCode: 'CA', regionCode: 'ON' },
-				translations: { language: 'fr', translations: {} },
+				jurisdiction: 'NONE',
+				location: { countryCode: 'US', regionCode: null },
+				translations: { language: 'en', translations: {} },
 				branding: 'c15t',
-				policyDecision: {
-					policyId: 'policy_ca',
-					fingerprint: 'fp',
-					matchedBy: 'country',
-					country: 'CA',
-					region: null,
-					jurisdiction: 'CCPA',
-				},
 				policy: {
-					id: 'policy_ca',
-					model: 'opt-in',
+					id: 'world_no_banner',
+					model: 'none',
+					consent: {},
+					ui: { mode: 'none' },
+				},
+				policyDecision: {
+					policyId: 'world_no_banner',
+					fingerprint: 'abc',
+					matchedBy: 'default',
+					country: 'US',
+					region: null,
+					jurisdiction: 'NONE',
 				},
 			} as unknown as ConsentStoreState['lastBannerFetchData'],
 		});
 
-		const onRunSimulation = vi.fn().mockResolvedValue(undefined);
+		renderPolicyPanel(container, { getState: () => state });
 
-		renderPolicyPanel(container, {
-			getState: () => state,
-			onRunSimulation,
-		});
-
-		const runButton = [...container.querySelectorAll('button')].find(
-			(button) => button.textContent?.includes('Run Simulation') ?? false
-		);
-		if (!runButton) {
-			throw new Error('Run Simulation button not found');
-		}
-
-		runButton.click();
-
-		expect(onRunSimulation).toHaveBeenCalledWith({
-			country: 'CA',
-			region: 'ON',
-			language: 'fr',
-		});
+		const text = container.textContent ?? '';
+		expect(text).toContain('world_no_banner');
+		expect(text).toContain('None');
+		// UI section should not appear for mode: 'none'
+		expect(text).not.toContain('Banner Actions');
+		expect(text).not.toContain('Dialog Actions');
 	});
 });

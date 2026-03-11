@@ -112,11 +112,8 @@ export interface PolicyConfig {
 }
 
 /**
- * Ordered collection of policies resolved with first-match-wins semantics.
- *
- * @remarks
- * On the backend this is configured via `policyPacks`; in frontend offline
- * mode it is provided via `offlinePolicy.policyPacks`.
+ * @deprecated Use `PolicyConfig[]` directly instead. This alias will be
+ * removed in a future version.
  */
 export type PolicyPack = PolicyConfig[];
 
@@ -476,6 +473,33 @@ function collectPolicyErrors(
 		errors.push(
 			`Policy '${iabWithPreselectedCategories.id}' uses consent.model="iab" and cannot define consent.preselectedCategories.`
 		);
+	}
+
+	for (const [index, policy] of policies.entries()) {
+		const label = policyLabel(policy, index);
+		for (const surfaceName of ['banner', 'dialog'] as const) {
+			const surface = policy.ui?.[surfaceName];
+			if (!surface) {
+				continue;
+			}
+			const allowed = surface.allowedActions;
+			if (allowed && allowed.length > 0) {
+				if (surface.primaryAction && !allowed.includes(surface.primaryAction)) {
+					errors.push(
+						`Policy ${label} ui.${surfaceName}.primaryAction '${surface.primaryAction}' is not in allowedActions [${allowed.join(', ')}].`
+					);
+				}
+				if (surface.actionOrder) {
+					for (const action of surface.actionOrder) {
+						if (!allowed.includes(action)) {
+							errors.push(
+								`Policy ${label} ui.${surfaceName}.actionOrder contains '${action}' which is not in allowedActions [${allowed.join(', ')}].`
+							);
+						}
+					}
+				}
+			}
+		}
 	}
 
 	const idToIndex = new Map<string, number>();

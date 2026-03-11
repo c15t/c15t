@@ -19,7 +19,7 @@ export type {
 	ListSubjectsQuery,
 	PatchSubjectFullInput,
 	PatchSubjectOutput,
-	PolicyPack,
+	PolicyConfig,
 	PolicyPackPresets,
 	PostSubjectInput,
 	PostSubjectOutput,

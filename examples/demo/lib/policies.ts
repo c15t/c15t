@@ -4,6 +4,7 @@ import {
 	policyPackPresets,
 } from '@c15t/backend';
 import type { Translations } from '@c15t/translations';
+import { translations } from '@c15t/translations/en';
 
 type PolicyConfig = Parameters<typeof inspectPolicies>[0][number];
 
@@ -21,13 +22,7 @@ type I18nMessageProfiles = Record<
 
 export const demoI18nMessages: I18nMessageProfiles = {
 	default: {
-		en: {
-			cookieBanner: {
-				title: 'Privacy settings',
-				description:
-					'This default policy does not require a consent banner for this region.',
-			},
-		},
+		en: translations,
 	},
 	eu: {
 		en: {
