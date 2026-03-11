@@ -102,7 +102,7 @@ The builder normalizes matcher input into the `PolicyConfig` shape and strips em
 <Tabs items={['Simplified', 'Sequence Diagram']}>
   <Tab value="Simplified">
     1. **`GET /init` arrives** — c15t reads geo from request headers (country, region, jurisdiction)
-    2. **Resolve policy** — walks the pack in priority order: region → country → default
+    2. **Resolve policy** — walks the pack in priority order: region → country → fallback (geo failure) → default
     3. **Compute fingerprint** — generates a stable SHA-256 hash of the resolved policy
     4. **Sign snapshot** — if `policySnapshot.signingKey` is configured, issues a JWT containing the decision
     5. **Return response** — sends `policy`, `policyDecision`, and optional `policySnapshotToken` to the client
@@ -152,12 +152,14 @@ Backend resolution order is fixed:
 
 1. **Region** — most specific (e.g., US-CA, CA-QC)
 2. **Country** — (e.g., US, DE, JP)
-3. **Default** — fallback for unmatched traffic
+3. **Fallback** — safety net when geo-location fails (no country detected). Only checked when `countryCode` is `null`.
+4. **Default** — catch-all for known locations that don't match any specific policy
 
 Within the same matcher type, first match wins by array order. c15t also enforces:
 
 - Unique policy IDs
 - At most one default policy
+- At most one fallback policy
 - `iab.enabled: true` when any policy uses `model: 'iab'`
 - No custom `ui.*` overrides for IAB policies
 
@@ -191,14 +193,16 @@ if (result.warnings.length > 0) {
 Common errors caught:
 
 - Multiple default policies
+- Multiple fallback policies
 - IAB policies without `iab.enabled: true`
 - IAB policies with custom `ui.*` overrides or `preselectedCategories`
 - Duplicate or missing policy IDs
-- Policies with no matchers and not marked as default
+- Policies with no matchers and not marked as default or fallback
 
 Common warnings:
 
 - No default policy configured
+- No fallback policy configured (geo-location failures will have no active policy)
 - Overlapping country or region matchers across policies
 
 ## Translation Profiles

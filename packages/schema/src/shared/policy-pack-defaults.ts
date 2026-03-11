@@ -46,7 +46,10 @@ function europePolicy(mode: EuropePolicyMode): PolicyConfig {
 	const isIab = mode === 'iab';
 	return {
 		id: isIab ? 'europe_iab' : 'europe_opt_in',
-		match: policyMatchers.iab(),
+		match: policyMatchers.merge(
+			policyMatchers.iab(),
+			policyMatchers.fallback()
+		),
 		consent: {
 			model: mode,
 			expiryDays: 365,

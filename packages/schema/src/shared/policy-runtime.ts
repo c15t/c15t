@@ -54,7 +54,8 @@ export interface PolicyUiSurfaceConfig {
  *
  * 1. region
  * 2. country
- * 3. default
+ * 3. fallback (only when geo-location is unknown)
+ * 4. default
  *
  * Within the same matcher type, first match wins by array order.
  *
@@ -67,6 +68,7 @@ export interface PolicyConfig {
 		regions?: Array<{ country: string; region: string }>;
 		countries?: string[];
 		isDefault?: boolean;
+		fallback?: boolean;
 	};
 	i18n?: {
 		language?: string;
@@ -249,6 +251,9 @@ function applyPolicyMatchFragment(
 	if (match.isDefault) {
 		merged.isDefault = true;
 	}
+	if (match.fallback) {
+		merged.fallback = true;
+	}
 	if (match.countries?.length) {
 		merged.countries = mergeCountries(merged.countries, match.countries);
 	}
@@ -269,6 +274,10 @@ function applyPolicyMatchFragment(
 export const policyMatchers = {
 	default(): PolicyMatch {
 		return { isDefault: true };
+	},
+
+	fallback(): PolicyMatch {
+		return { fallback: true };
 	},
 
 	countries(countries: string[]): PolicyMatch {
@@ -328,6 +337,7 @@ type CompiledPolicyResolver = {
 	regions: Map<string, PolicyConfig>;
 	countries: Map<string, PolicyConfig>;
 	defaultPolicy?: PolicyConfig;
+	fallbackPolicy?: PolicyConfig;
 };
 
 const compiledPolicyResolverCache = new WeakMap<
@@ -446,6 +456,11 @@ function collectPolicyErrors(
 		errors.push('Only one default policy is allowed');
 	}
 
+	const fallbacks = policies.filter((policy) => policy.match.fallback);
+	if (fallbacks.length > 1) {
+		errors.push('Only one fallback policy is allowed');
+	}
+
 	const usesIabModel = policies.some(
 		(policy) => policy.consent?.model === 'iab'
 	);
@@ -521,7 +536,11 @@ function collectPolicyErrors(
 			idToIndex.set(id, index);
 		}
 
-		if (!policy.match.isDefault && !hasExplicitMatchers(policy)) {
+		if (
+			!policy.match.isDefault &&
+			!policy.match.fallback &&
+			!hasExplicitMatchers(policy)
+		) {
 			errors.push(
 				`Policy '${id}' has no matcher. Add countries or regions, or set match.isDefault=true.`
 			);
@@ -541,6 +560,13 @@ function collectPolicyWarnings(policies: PolicyConfig[]): string[] {
 	if (defaults.length === 0) {
 		warnings.add(
 			'No default policy configured. Requests that do not match region/country will have no active policy.'
+		);
+	}
+
+	const fallbacks = policies.filter((policy) => policy.match.fallback);
+	if (fallbacks.length === 0) {
+		warnings.add(
+			'No fallback policy configured. If geo-location fails, no policy will apply. Mark a strict policy with match.fallback=true.'
 		);
 	}
 
@@ -799,6 +825,10 @@ function compilePolicyResolver(
 		if (!compiled.defaultPolicy && policy.match.isDefault === true) {
 			compiled.defaultPolicy = policy;
 		}
+
+		if (!compiled.fallbackPolicy && policy.match.fallback === true) {
+			compiled.fallbackPolicy = policy;
+		}
 	}
 
 	return compiled;
@@ -840,6 +870,12 @@ function resolveIndexedPolicyMatch(params: {
 		}
 	}
 
+	// Fallback — only when location is unknown (geo-headers missing)
+	if (!countryCode && compiled.fallbackPolicy) {
+		return { policy: compiled.fallbackPolicy, matchedBy: 'fallback' };
+	}
+
+	// Default catch-all
 	if (compiled.defaultPolicy) {
 		return { policy: compiled.defaultPolicy, matchedBy: 'default' };
 	}
@@ -909,7 +945,12 @@ export async function resolvePolicyDecision(params: {
 	jurisdiction: JurisdictionCode;
 	iabEnabled?: boolean;
 }): Promise<ResolvedPolicyDecision | undefined> {
-	const parsedPolicies = parseOptionalPolicyConfigs(params.policies);
+	let parsedPolicies: PolicyConfig[] | undefined;
+	try {
+		parsedPolicies = parseOptionalPolicyConfigs(params.policies);
+	} catch {
+		return undefined;
+	}
 
 	if (!parsedPolicies || parsedPolicies.length === 0) {
 		return undefined;

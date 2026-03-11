@@ -512,7 +512,7 @@ function createActivePolicySummarySection(options: {
 		| {
 				policyId: string;
 				fingerprint: string;
-				matchedBy: 'region' | 'country' | 'default';
+				matchedBy: 'region' | 'country' | 'default' | 'fallback';
 				country: string | null;
 				region: string | null;
 		  }

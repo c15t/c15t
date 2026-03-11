@@ -124,6 +124,7 @@ export const policyMatchedBySchema = v.picklist([
 	'region',
 	'country',
 	'default',
+	'fallback',
 ]);
 
 /**

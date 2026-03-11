@@ -47,6 +47,7 @@ export const policyConfigSchema = v.object({
 		),
 		countries: v.optional(v.array(v.string())),
 		isDefault: v.optional(v.boolean()),
+		fallback: v.optional(v.boolean()),
 	}),
 	i18n: v.optional(
 		v.object({

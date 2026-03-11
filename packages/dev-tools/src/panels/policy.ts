@@ -215,7 +215,7 @@ function createMatchTraceSection(options: {
 	policyDecision:
 		| {
 				policyId: string;
-				matchedBy: 'region' | 'country' | 'default';
+				matchedBy: 'region' | 'country' | 'default' | 'fallback';
 				country: string | null;
 				region: string | null;
 		  }
@@ -264,7 +264,9 @@ function createMatchTraceSection(options: {
 					})
 				),
 			}),
-			createHint('region → country → default · Simulate via Location tab'),
+			createHint(
+				'region → country → default · fallback on geo failure · Simulate via Location tab'
+			),
 		],
 	});
 }
@@ -273,7 +275,7 @@ function buildTraceEntries(
 	decision:
 		| {
 				policyId: string;
-				matchedBy: 'region' | 'country' | 'default';
+				matchedBy: 'region' | 'country' | 'default' | 'fallback';
 				country: string | null;
 				region: string | null;
 		  }
@@ -302,7 +304,11 @@ function buildTraceEntries(
 			result: matched === 'country' ? `MATCH → ${resolved}` : 'MISS',
 		},
 		{
-			step: `default(fallback)`,
+			step: 'fallback(geo-fail)',
+			result: matched === 'fallback' ? `MATCH → ${resolved}` : 'SKIPPED',
+		},
+		{
+			step: 'default(catch-all)',
 			result: matched === 'default' ? `MATCH → ${resolved}` : 'SKIPPED',
 		},
 	];

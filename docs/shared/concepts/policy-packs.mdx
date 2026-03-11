@@ -31,8 +31,8 @@
 
   | Preset | Model | UI | Matches |
   |--------|-------|----|---------|
-  | `europeOptIn()` | `opt-in` | banner | EEA + UK countries |
-  | `europeIab()` | `iab` | banner | EEA + UK countries (TCF 2.3) |
+  | `europeOptIn()` | `opt-in` | banner | EEA + UK countries + geo fallback |
+  | `europeIab()` | `iab` | banner | EEA + UK countries + geo fallback (TCF 2.3) |
   | `californiaOptOut()` | `opt-out` | none | US-CA region |
   | `quebecOptIn()` | `opt-in` | banner | CA-QC region |
   | `worldNoBanner()` | `none` | none | default fallback |
@@ -61,13 +61,16 @@
 
   1. **Match by region** — checks for a policy targeting the specific region (e.g., US-CA, CA-QC)
   2. **Match by country** — if no region match, checks for a country-level policy (e.g., US, DE)
-  3. **Fall back to default** — if nothing matches, uses the policy marked as the default
-  4. **No match, no default** — resolves to no-banner mode (silent, no consent UI)
+  3. **Fallback (geo failure)** — if geo-location failed (no country detected), uses the policy marked with `match.fallback`
+  4. **Fall back to default** — if nothing matches, uses the policy marked as the default
+  5. **No match, no default** — resolves to no-banner mode (silent, no consent UI)
 
   Within the same matcher type, the first policy in the array wins. Pack order matters when two policies target the same country or region.
 
+  The **fallback** step is distinct from **default**: `isDefault` is a catch-all for known locations that don't match any specific policy ("rest of world"), while `fallback` is a safety net for unknown locations when geo-headers are missing ("assume strictest"). The `europeOptIn()` and `europeIab()` presets include `fallback: true` by default so EU-level consent applies when geo fails.
+
   <Callout type="warning">
-    Only one default policy is allowed. Use `inspectPolicies()` to surface overlapping matchers and other warnings before deployment.
+    Only one default and one fallback policy are allowed. Use `inspectPolicies()` to surface overlapping matchers and other warnings before deployment.
   </Callout>
 </section>
 
@@ -175,6 +178,7 @@
   - **Keep packs small.** A handful of regional policies is better than dozens of tiny fragments.
   - **Think risk, not geography.** Geography is just a matcher — the real question is what consent behavior each region needs.
   - **Always include a default.** Unless "no banner for unmatched traffic" is intentional.
+  - **Set a fallback for geo failures.** Mark your strictest policy with `match.fallback=true` so users in unknown locations still see a consent banner. The `europeOptIn()` and `europeIab()` presets do this automatically.
   - **Keep policy IDs stable.** They appear in debugging output, snapshots, and audit records.
   - **Use `inspectPolicies()` before deploying.** It catches overlapping matchers, missing defaults, and IAB misconfigurations.
 </section>
