@@ -1,7 +1,7 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="overview">
-  When the consent provider mounts, it creates a cached consent runtime, reads any stored consent from the browser, fetches jurisdiction and translation data (via SSR or API), determines the applicable consent model, and decides whether to show the banner. This entire sequence completes before the first meaningful consent-aware render.
+  When the consent provider mounts, it creates a cached consent runtime, reads any stored consent from the browser, fetches the resolved policy from the backend (or uses SSR/offline data), and decides whether to show the banner. This entire sequence completes before the first meaningful consent-aware render.
 </section>
 
 <section id="flow-diagram">
@@ -10,12 +10,12 @@
   <Tabs items={['Simplified', 'Sequence Diagram']}>
     <Tab value="Simplified">
       1. **Provider mounts** — creates (or retrieves from cache) a consent runtime and store
-      2. **Check stored consent** — reads existing consent from cookies / localStorage; if found, the banner stays hidden
-      3. **Fetch init data** — calls the backend `GET /init` (or uses SSR data) for jurisdiction, location, and translations
-      4. **Resolve consent model** — maps jurisdiction to `opt-in`, `opt-out`, `iab`, or `null`
-      5. **Decide banner visibility** — shows the banner only if no prior consent exists and a regulation applies
+      2. **Check stored consent** — reads existing consent from cookies / localStorage; if found and the policy fingerprint hasn't changed, the banner stays hidden
+      3. **Fetch init data** — calls the backend `GET /init` (or uses SSR/offline data) for the resolved policy, location, and translations
+      4. **Apply resolved policy** — the backend resolves the policy from your [policy pack](/docs/frameworks/react/concepts/policy-packs) based on visitor geo (region → country → fallback → default). The response includes the consent model, categories, UI mode, and a material fingerprint. If no policy pack is configured, the legacy jurisdiction-to-model mapping is used instead.
+      5. **Decide banner visibility** — shows the banner only if no prior consent exists, the resolved policy requires it (`ui.mode` is `banner` or `dialog`), or the policy fingerprint changed since last consent
       6. **Gating enforced** — scripts, iframes, and network requests tagged with a consent category are blocked until that category is granted
-      7. **User interacts** — choices are persisted to storage, synced to the backend, and blocked scripts/iframes load immediately after consent is granted
+      7. **User interacts** — choices are persisted to storage, synced to the backend (with `policySnapshotToken` if configured), and blocked scripts/iframes load immediately after consent is granted
     </Tab>
 
     <Tab value="Sequence Diagram">
@@ -47,18 +47,19 @@
               Store->>Store: tryUseSSRData()
           else No SSR data
               Store->>API: GET /init
-              API-->>Store: jurisdiction, location, translations
+              API-->>Store: policy, policyDecision, location, translations
           end
 
-          Store->>Store: determineModel(jurisdiction)
-          Store->>Store: Set activeUI, auto-grant if opt-out/null
+          Store->>Store: Apply resolved policy (model, categories, ui.mode)
+          Store->>Store: Check fingerprint change → re-prompt if needed
+          Store->>Store: Set activeUI, auto-grant if opt-out/none
 
-          alt User has no prior consent
-              UI->>UI: Banner appears
+          alt User has no prior consent or policy changed
+              UI->>UI: Banner / Dialog appears (per policy ui.mode)
               UI->>Store: saveConsents({ type })
-              Store->>Storage: Persist consent + subjectId
+              Store->>Storage: Persist consent + subjectId + fingerprint
               Store->>Scripts: updateScripts(), updateIframes(), updateNetwork()
-              Store->>API: POST /subjects (non-blocking)
+              Store->>API: POST /subjects + policySnapshotToken (non-blocking)
           end
       ```
     </Tab>
@@ -68,13 +69,15 @@
 <section id="how-it-works">
   ## How It Works
 
-  **Mount** — When the provider renders, it creates (or retrieves from cache) a consent runtime and store. Any existing consent is read from localStorage/cookies immediately. If consent already exists, the banner stays hidden and gating rules apply right away. See [Client Modes](/docs/frameworks/react/concepts/client-modes) for how the mode affects runtime creation.
+  **Mount** — When the provider renders, it creates (or retrieves from cache) a consent runtime and store. Any existing consent is read from localStorage/cookies immediately. If consent already exists and the policy fingerprint matches, the banner stays hidden and gating rules apply right away. See [Client Modes](/docs/frameworks/react/concepts/client-modes) for how the mode affects runtime creation.
 
-  **Init** — The store fetches jurisdiction, location, and translation data. In `c15t` mode this calls `GET /init` on your backend; in `offline` mode it uses hardcoded defaults. If SSR data was passed to the provider, the network fetch is skipped entirely. See [Server-Side Utilities](/docs/frameworks/react/server-side) for SSR setup.
+  **Init** — The store fetches the resolved policy, location, and translation data. In hosted mode this calls `GET /init` on your backend; in offline mode it resolves from `offlinePolicy.policyPacks` locally. If SSR data was passed to the provider, the network fetch is skipped entirely. See [Server-Side Utilities](/docs/frameworks/react/server-side) for SSR setup.
 
-  **Model resolution** — The jurisdiction from the init response is mapped to a consent model: `opt-in` (GDPR and similar), `opt-out` (CCPA), `iab` (TCF 2.3), or `null` (no regulation). For `opt-out` and `null` models, all categories are auto-granted — unless the resolved policy has `consent.gpc: true` and the browser sends a Global Privacy Control signal, in which case `marketing` and `measurement` are denied. See [Consent Models](/docs/frameworks/react/concepts/consent-models) for the full jurisdiction-to-model mapping.
+  **Policy resolution** — When [policy packs](/docs/frameworks/react/concepts/policy-packs) are configured, the backend resolves the right policy for the visitor based on their geo-location (region → country → fallback → default). The resolved policy determines the consent model (`opt-in`, `opt-out`, `iab`, or `none`), which categories are in scope, and what UI to show. For `opt-out` and `none` models, all categories are auto-granted — unless the resolved policy has `consent.gpc: true` and the browser sends a Global Privacy Control signal, in which case `marketing` and `measurement` are denied. If no policy pack is configured, the legacy jurisdiction-to-model mapping is used instead. See [Consent Models](/docs/frameworks/react/concepts/consent-models) for details.
 
-  **Save** — When the user interacts with the banner or dialog, their choices are persisted to localStorage/cookies and synced to the backend. Script, iframe, and network gating rules update immediately based on the new consent state. See the [Script Loader](/docs/frameworks/react/script-loader), [Iframe Blocking](/docs/frameworks/react/iframe-blocking), and [Network Blocker](/docs/frameworks/react/network-blocker) guides for gating details.
+  **Re-prompting** — If the resolved policy's material fingerprint differs from the fingerprint stored with the user's last consent, the banner is shown again. This happens automatically when you change consent-affecting fields (model, categories, scope mode, allowed actions). Presentation-only changes do not trigger re-prompts. See [Policy Packs — Re-Prompting](/docs/frameworks/react/concepts/policy-packs#re-prompting) for details.
+
+  **Save** — When the user interacts with the banner or dialog, their choices are persisted to localStorage/cookies and synced to the backend (along with the `policySnapshotToken` if snapshot signing is configured). Script, iframe, and network gating rules update immediately based on the new consent state. See the [Script Loader](/docs/frameworks/react/script-loader), [Iframe Blocking](/docs/frameworks/react/iframe-blocking), and [Network Blocker](/docs/frameworks/react/network-blocker) guides for gating details.
 
   **Revocation** — If a user revokes a previously granted category, the page reloads by default to ensure a clean execution environment. The API sync is deferred to the fresh page load. See [Cookie Management](/docs/frameworks/react/concepts/cookie-management) for revocation and persistence details.
 </section>
@@ -82,13 +85,13 @@
 <section id="banner-visibility">
   ## When Does the Banner Show?
 
-  The banner appears when all three conditions are true:
+  The banner appears when any of these conditions are true:
 
-  1. **No existing consent** — the user has never consented (or their consent was cleared)
-  2. **A regulation applies** — the resolved model is `opt-in` or `iab` (not `null` or `opt-out`)
+  1. **No existing consent** — the user has never consented (or their consent was cleared), **and** the resolved policy requires a UI (`ui.mode` is `banner` or `dialog`, or the model is `opt-in` or `iab`)
+  2. **Policy changed** — the material policy fingerprint differs from the fingerprint stored with the user's last consent (re-prompting)
   3. **Storage is accessible** — the browser allows localStorage (not blocked in private mode)
 
-  If the model is `null` (no regulation detected) or `opt-out`, consents are auto-granted and the banner never appears. See [Consent Models](/docs/frameworks/react/concepts/consent-models) for which jurisdictions map to which models.
+  If the resolved model is `none` or `opt-out` (and `ui.mode` is `none`), consents are auto-granted and the banner never appears. See [Consent Models](/docs/frameworks/react/concepts/consent-models) and [Policy Packs](/docs/frameworks/react/concepts/policy-packs) for details.
 </section>
 
 <section id="debugging">
@@ -99,8 +102,10 @@
   | Step | DevTools Panel | Callback | What to check |
   |---|---|---|---|
   | Init / SSR hydration | Location | `onBannerFetched` | jurisdiction, countryCode, regionCode populated? |
-  | Model resolution | Location | `onBannerFetched` | `model` value in store matches expected jurisdiction |
-  | Banner visibility | Consents | — | `activeUI` in store state; `consentInfo` null? |
+  | Policy resolution | Policy | `onBannerFetched` | `policyId`, `matchedBy`, `fingerprint` in policyDecision |
+  | Model resolution | Location | `onBannerFetched` | `model` value matches the resolved policy |
+  | Banner visibility | Consents | — | `activeUI` in store state; does policy `ui.mode` require it? |
+  | Re-prompting | Policy | — | Fingerprint mismatch between stored and resolved policy? |
   | Consent save | Consents + Events | `onConsentSet` | `preferences` object in callback payload |
   | Script loading | Scripts | `onConsentSet` | Script IDs and their load/blocked status |
   | Reload on revocation | Events | `onBeforeConsentRevocationReload` | Fires before reload; check localStorage for `c15t:pending-consent-sync` |
