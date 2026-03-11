@@ -476,3 +476,591 @@ describe('inspectPolicies validation', () => {
 		).toBe(false);
 	});
 });
+
+describe('edge cases', () => {
+	// -------------------------------------------------------------------------
+	// Empty / missing policy ID
+	// -------------------------------------------------------------------------
+
+	it('errors on empty-string policy ID', () => {
+		const result = inspectPolicies([
+			{
+				id: '',
+				match: { isDefault: true },
+				consent: { model: 'none' },
+			},
+		]);
+
+		expect(
+			result.errors.some((e) => e.includes('missing a non-empty id'))
+		).toBe(true);
+	});
+
+	it('errors on whitespace-only policy ID', () => {
+		const result = inspectPolicies([
+			{
+				id: '   ',
+				match: { isDefault: true },
+				consent: { model: 'none' },
+			},
+		]);
+
+		expect(
+			result.errors.some((e) => e.includes('missing a non-empty id'))
+		).toBe(true);
+	});
+
+	it('errors on duplicate policy IDs', () => {
+		const result = inspectPolicies([
+			{
+				id: 'same_id',
+				match: policyMatchers.countries(['DE']),
+				consent: { model: 'opt-in' },
+			},
+			{
+				id: 'same_id',
+				match: policyMatchers.countries(['FR']),
+				consent: { model: 'opt-in' },
+			},
+		]);
+
+		expect(result.errors.some((e) => e.includes('Duplicate id'))).toBe(true);
+	});
+
+	// -------------------------------------------------------------------------
+	// No-matcher validation
+	// -------------------------------------------------------------------------
+
+	it('errors on policy with no matcher and not default/fallback', () => {
+		const result = inspectPolicies([
+			{
+				id: 'orphan',
+				match: {},
+				consent: { model: 'opt-in' },
+			},
+		]);
+
+		expect(result.errors.some((e) => e.includes('no matcher'))).toBe(true);
+	});
+
+	// -------------------------------------------------------------------------
+	// Resolution returns undefined when nothing matches
+	// -------------------------------------------------------------------------
+
+	it('returns undefined when no policy matches and no default exists', async () => {
+		const result = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'eu',
+					match: policyMatchers.countries(['DE']),
+					consent: { model: 'opt-in' },
+				},
+			],
+			countryCode: 'US',
+			regionCode: null,
+			jurisdiction: 'NONE',
+		});
+
+		expect(result).toBeUndefined();
+	});
+
+	it('returns undefined for undefined policies input', async () => {
+		const result = await resolvePolicyDecision({
+			policies: undefined,
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+		});
+
+		expect(result).toBeUndefined();
+	});
+
+	it('returns undefined for empty policies array', async () => {
+		const result = await resolvePolicyDecision({
+			policies: [],
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+		});
+
+		expect(result).toBeUndefined();
+	});
+
+	// -------------------------------------------------------------------------
+	// Case insensitivity in matching
+	// -------------------------------------------------------------------------
+
+	it('matches country codes case-insensitively', async () => {
+		const result = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'eu',
+					match: policyMatchers.countries(['de']),
+					consent: { model: 'opt-in' },
+				},
+			],
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+		});
+
+		expect(result?.policy.id).toBe('eu');
+		expect(result?.matchedBy).toBe('country');
+	});
+
+	it('matches region codes case-insensitively', async () => {
+		const result = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'ca',
+					match: policyMatchers.regions([{ country: 'us', region: 'ca' }]),
+					consent: { model: 'opt-out' },
+				},
+			],
+			countryCode: 'US',
+			regionCode: 'CA',
+			jurisdiction: 'CCPA',
+		});
+
+		expect(result?.policy.id).toBe('ca');
+		expect(result?.matchedBy).toBe('region');
+	});
+
+	// -------------------------------------------------------------------------
+	// First-match-wins by array order
+	// -------------------------------------------------------------------------
+
+	it('first match wins when multiple policies match the same country', async () => {
+		const result = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'first',
+					match: policyMatchers.countries(['DE']),
+					consent: { model: 'opt-in' },
+				},
+				{
+					id: 'second',
+					match: policyMatchers.countries(['DE']),
+					consent: { model: 'opt-out' },
+				},
+			],
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+		});
+
+		expect(result?.policy.id).toBe('first');
+	});
+
+	// -------------------------------------------------------------------------
+	// Overlapping matcher warnings
+	// -------------------------------------------------------------------------
+
+	it('warns on overlapping country matchers', () => {
+		const result = inspectPolicies([
+			{
+				id: 'policy_a',
+				match: policyMatchers.countries(['DE', 'FR']),
+				consent: { model: 'opt-in' },
+			},
+			{
+				id: 'policy_b',
+				match: policyMatchers.countries(['DE']),
+				consent: { model: 'opt-out' },
+			},
+			{
+				id: 'default',
+				match: policyMatchers.default(),
+				consent: { model: 'none' },
+			},
+		]);
+
+		expect(
+			result.warnings.some((w) => w.includes('DE') && w.includes('multiple'))
+		).toBe(true);
+	});
+
+	it('warns on overlapping region matchers', () => {
+		const result = inspectPolicies([
+			{
+				id: 'policy_a',
+				match: policyMatchers.regions([{ country: 'US', region: 'CA' }]),
+				consent: { model: 'opt-in' },
+			},
+			{
+				id: 'policy_b',
+				match: policyMatchers.regions([{ country: 'US', region: 'CA' }]),
+				consent: { model: 'opt-out' },
+			},
+			{
+				id: 'default',
+				match: policyMatchers.default(),
+				consent: { model: 'none' },
+			},
+		]);
+
+		expect(
+			result.warnings.some((w) => w.includes('US-CA') && w.includes('multiple'))
+		).toBe(true);
+	});
+
+	it('warns when default policy also has explicit matchers', () => {
+		const result = inspectPolicies([
+			{
+				id: 'confused',
+				match: { isDefault: true, countries: ['DE'] },
+				consent: { model: 'opt-in' },
+			},
+		]);
+
+		expect(
+			result.warnings.some(
+				(w) => w.includes('default') && w.includes('explicit matchers')
+			)
+		).toBe(true);
+	});
+
+	// -------------------------------------------------------------------------
+	// IAB validation
+	// -------------------------------------------------------------------------
+
+	it('errors on IAB model without iab.enabled', () => {
+		const result = inspectPolicies(
+			[
+				{
+					id: 'iab_eu',
+					match: policyMatchers.countries(['DE']),
+					consent: { model: 'iab' },
+				},
+			],
+			{ iabEnabled: false }
+		);
+
+		expect(result.errors.some((e) => e.includes('iab.enabled'))).toBe(true);
+	});
+
+	it('errors on IAB policy with UI overrides', () => {
+		const result = inspectPolicies(
+			[
+				{
+					id: 'iab_eu',
+					match: policyMatchers.countries(['DE']),
+					consent: { model: 'iab' },
+					ui: {
+						mode: 'banner',
+						banner: {
+							allowedActions: ['accept', 'reject'],
+						},
+					},
+				},
+			],
+			{ iabEnabled: true }
+		);
+
+		expect(
+			result.errors.some((e) => e.includes('iab') && e.includes('ui'))
+		).toBe(true);
+	});
+
+	it('errors on IAB policy with preselectedCategories', () => {
+		const result = inspectPolicies(
+			[
+				{
+					id: 'iab_eu',
+					match: policyMatchers.countries(['DE']),
+					consent: { model: 'iab', preselectedCategories: ['marketing'] },
+				},
+			],
+			{ iabEnabled: true }
+		);
+
+		expect(
+			result.errors.some(
+				(e) => e.includes('iab') && e.includes('preselectedCategories')
+			)
+		).toBe(true);
+	});
+
+	// -------------------------------------------------------------------------
+	// Parse errors (invalid input to inspectPolicies / resolvePolicyDecision)
+	// -------------------------------------------------------------------------
+
+	it('inspectPolicies returns parse errors for completely invalid input', () => {
+		const result = inspectPolicies('not an array');
+
+		expect(result.errors.length).toBeGreaterThan(0);
+		expect(result.warnings).toEqual([]);
+	});
+
+	it('inspectPolicies returns parse errors for invalid policy objects', () => {
+		const result = inspectPolicies([{ invalid: true }]);
+
+		expect(result.errors.length).toBeGreaterThan(0);
+	});
+
+	it('resolvePolicyDecision returns undefined for invalid policy input', async () => {
+		const result = await resolvePolicyDecision({
+			policies: 'garbage',
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+		});
+
+		expect(result).toBeUndefined();
+	});
+
+	// -------------------------------------------------------------------------
+	// Normalization edge cases
+	// -------------------------------------------------------------------------
+
+	it('IAB model forces categories to wildcard', async () => {
+		const result = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'iab_eu',
+					match: policyMatchers.countries(['DE']),
+					consent: { model: 'iab', categories: ['necessary', 'marketing'] },
+				},
+			],
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+			iabEnabled: true,
+		});
+
+		expect(result?.policy.consent?.categories).toEqual(['*']);
+	});
+
+	it('IAB model strips UI config from resolved policy', async () => {
+		const result = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'iab_eu',
+					match: policyMatchers.countries(['DE']),
+					consent: { model: 'iab' },
+				},
+			],
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+			iabEnabled: true,
+		});
+
+		expect(result?.policy.ui).toBeUndefined();
+	});
+
+	// -------------------------------------------------------------------------
+	// Matcher merge helper
+	// -------------------------------------------------------------------------
+
+	it('policyMatchers.merge combines countries and regions', () => {
+		const merged = policyMatchers.merge(
+			policyMatchers.countries(['DE', 'FR']),
+			policyMatchers.regions([{ country: 'US', region: 'CA' }])
+		);
+
+		expect(merged.countries).toEqual(['DE', 'FR']);
+		expect(merged.regions).toEqual([{ country: 'US', region: 'CA' }]);
+	});
+
+	it('policyMatchers.merge propagates fallback flag', () => {
+		const merged = policyMatchers.merge(
+			policyMatchers.eea(),
+			policyMatchers.fallback()
+		);
+
+		expect(merged.fallback).toBe(true);
+		expect(merged.countries?.length).toBeGreaterThan(0);
+	});
+
+	it('policyMatchers.merge propagates isDefault flag', () => {
+		const merged = policyMatchers.merge(
+			policyMatchers.countries(['JP']),
+			policyMatchers.default()
+		);
+
+		expect(merged.isDefault).toBe(true);
+		expect(merged.countries).toEqual(['JP']);
+	});
+
+	it('policyMatchers.merge deduplicates countries', () => {
+		const merged = policyMatchers.merge(
+			policyMatchers.countries(['DE', 'FR']),
+			policyMatchers.countries(['FR', 'IT'])
+		);
+
+		expect(merged.countries).toEqual(['DE', 'FR', 'IT']);
+	});
+
+	it('policyMatchers.merge deduplicates regions', () => {
+		const merged = policyMatchers.merge(
+			policyMatchers.regions([{ country: 'US', region: 'CA' }]),
+			policyMatchers.regions([
+				{ country: 'US', region: 'CA' },
+				{ country: 'CA', region: 'QC' },
+			])
+		);
+
+		expect(merged.regions).toEqual([
+			{ country: 'US', region: 'CA' },
+			{ country: 'CA', region: 'QC' },
+		]);
+	});
+
+	// -------------------------------------------------------------------------
+	// Region takes priority over country
+	// -------------------------------------------------------------------------
+
+	it('region match takes priority over country match on the same request', async () => {
+		const result = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'us_ca',
+					match: policyMatchers.regions([{ country: 'US', region: 'CA' }]),
+					consent: { model: 'opt-in' },
+				},
+				{
+					id: 'us',
+					match: policyMatchers.countries(['US']),
+					consent: { model: 'opt-out' },
+				},
+			],
+			countryCode: 'US',
+			regionCode: 'CA',
+			jurisdiction: 'CCPA',
+		});
+
+		expect(result?.policy.id).toBe('us_ca');
+		expect(result?.matchedBy).toBe('region');
+	});
+
+	// -------------------------------------------------------------------------
+	// Multiple defaults
+	// -------------------------------------------------------------------------
+
+	it('errors on multiple default policies', () => {
+		const result = inspectPolicies([
+			{
+				id: 'default1',
+				match: { isDefault: true },
+				consent: { model: 'none' },
+			},
+			{
+				id: 'default2',
+				match: { isDefault: true },
+				consent: { model: 'opt-out' },
+			},
+		]);
+
+		expect(result.errors.some((e) => e.includes('Only one default'))).toBe(
+			true
+		);
+	});
+
+	// -------------------------------------------------------------------------
+	// Dialog surface validation
+	// -------------------------------------------------------------------------
+
+	it('errors when dialog primaryAction is not in allowedActions', () => {
+		const result = inspectPolicies([
+			{
+				id: 'test',
+				match: { isDefault: true },
+				consent: { model: 'opt-in' },
+				ui: {
+					mode: 'dialog',
+					dialog: {
+						allowedActions: ['accept', 'reject'],
+						primaryAction: 'customize',
+					},
+				},
+			},
+		]);
+
+		expect(
+			result.errors.some(
+				(e) => e.includes('dialog') && e.includes('primaryAction')
+			)
+		).toBe(true);
+	});
+
+	// -------------------------------------------------------------------------
+	// Fingerprint stability with normalization
+	// -------------------------------------------------------------------------
+
+	it('produces identical fingerprints regardless of country code casing in match', async () => {
+		const policyLower = [
+			{
+				id: 'eu',
+				match: policyMatchers.countries(['de']),
+				consent: {
+					model: 'opt-in' as const,
+					categories: ['necessary'],
+				},
+			},
+		];
+		const policyUpper = [
+			{
+				id: 'eu',
+				match: policyMatchers.countries(['DE']),
+				consent: {
+					model: 'opt-in' as const,
+					categories: ['necessary'],
+				},
+			},
+		];
+
+		const resultLower = await resolvePolicyDecision({
+			policies: policyLower,
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+		});
+		const resultUpper = await resolvePolicyDecision({
+			policies: policyUpper,
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+		});
+
+		expect(resultLower?.fingerprint).toBe(resultUpper?.fingerprint);
+	});
+
+	// -------------------------------------------------------------------------
+	// GPC in resolved policy
+	// -------------------------------------------------------------------------
+
+	it('gpc defaults to undefined when not specified', async () => {
+		const result = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'basic',
+					match: policyMatchers.default(),
+					consent: { model: 'opt-in' },
+				},
+			],
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+		});
+
+		expect(result?.policy.consent?.gpc).toBeUndefined();
+	});
+
+	it('gpc=false is preserved in resolved policy', async () => {
+		const result = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'eu',
+					match: policyMatchers.default(),
+					consent: { model: 'opt-in', gpc: false },
+				},
+			],
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+		});
+
+		expect(result?.policy.consent?.gpc).toBe(false);
+	});
+});
