@@ -26,15 +26,31 @@ Default to using Bun instead of Node.js.
 
 ## Testing
 
-Use `bun test` to run tests.
+Use `vitest` to run tests. Each package has its own `vitest.config.ts`. Import test utilities from `vitest`, not `bun:test`.
+
+```sh
+# Run tests for a specific package
+bunx vitest run packages/backend/
+bunx vitest run packages/schema/
+
+# Run a specific test file
+bunx vitest run packages/backend/src/routes/policy-packs-e2e.test.ts
+
+# Watch mode
+bunx vitest packages/backend/
+```
 
 ```ts#index.test.ts
-import { test, expect } from "bun:test";
+import { describe, expect, it, vi } from "vitest";
 
-test("hello world", () => {
-  expect(1).toBe(1);
+describe("example", () => {
+  it("works", () => {
+    expect(1).toBe(1);
+  });
 });
 ```
+
+**Important:** Use `vitest` APIs (`vi.fn()`, `vi.mock()`, `vi.hoisted()`, `vi.mocked()`, `vi.useFakeTimers()`, `vi.setSystemTime()`) — these are NOT available in `bun test`.
 
 ## Frontend
 
