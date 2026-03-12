@@ -15,7 +15,7 @@
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
-		"@vitest/ui": "4.0.8",
+		"@vitest/ui": "4.0.18",
 		"jsdom": "^26.1.0"
 	}
 }
