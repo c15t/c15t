@@ -42,11 +42,10 @@
 		"view-report": "turbo run view-report"
 	},
 	"overrides": {
-		"cross-spawn": ">=6.0.6",
-		"typeorm": ">=0.3.26",
 		"@modelcontextprotocol/sdk": "^1.27.1",
 		"ajv": "^8.18.0",
 		"body-parser": "^2.2.2",
+		"cross-spawn": ">=6.0.6",
 		"diff": "^8.0.3",
 		"fast-xml-parser": "^5.5.3",
 		"glob": "^13.0.6",
@@ -58,6 +57,7 @@
 		"qs": "^6.15.0",
 		"rollup": "^4.59.0",
 		"tmp": "^0.2.5",
+		"typeorm": ">=0.3.26",
 		"undici": "^6.23.0",
 		"vite": "7.1.11"
 	},
