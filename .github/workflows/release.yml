@@ -6,6 +6,7 @@ on:
     branches:
       - main # Matches your config.json baseBranch
       - canary # Canary releases
+      - 2.0.0 # RC pre-releases
 
 # Prevent multiple concurrent release workflows
 concurrency: ${{ github.workflow }}-${{ github.ref }}
@@ -17,7 +18,7 @@ permissions:
 
 jobs:
   release:
-    name: Release ${{ github.ref == 'refs/heads/canary' && 'Canary' || '' }}
+    name: Release ${{ github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
     runs-on: ubuntu-latest
 
     if: github.repository == 'c15t/c15t'
@@ -65,9 +66,24 @@ jobs:
           # Enable npm provenance (automatic with trusted publishing, but explicit for compatibility)
           NPM_CONFIG_PROVENANCE: "true"
 
+      # RC release: Publish pre-release versions from 2.0.0 branch
+      - name: Publish RC pre-release
+        if: github.ref == 'refs/heads/2.0.0'
+        id: changesets-rc
+        uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
+        with:
+          version: bun run version
+          publish: bun run release:rc
+          commit: "chore: version rc packages"
+          title: "chore: version rc packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
+
       # Regular release: Create Release Pull Request or Publish to npm
       - name: Create Release Pull Request or Publish to npm
-        if: github.ref != 'refs/heads/canary'
+        if: github.ref != 'refs/heads/canary' && github.ref != 'refs/heads/2.0.0'
         id: changesets-production
         uses: changesets/action@e0145edc7d9d8679003495b11f87bd8ef63c0cba # v1
         with:
