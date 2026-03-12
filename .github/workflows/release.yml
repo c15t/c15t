@@ -35,7 +35,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: 1.3.6
+          bun-version: latest
 
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
@@ -44,7 +44,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile || bun install # Fallback until this branch has bun.lock
+        run: bun install --frozen-lockfile # Use frozen lockfile for reliability in CI
 
       # Ensure npm 11.5.1+ for trusted publishing (OIDC)
       - name: Update npm for trusted publishing
