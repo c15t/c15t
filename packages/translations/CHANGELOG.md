@@ -1,5 +1,11 @@
 # @c15t/translations
 
+## 1.8.4
+
+### Patch Changes
+
+- 8defcd9: Update direct and transitive dependencies to address known vulnerabilities and keep runtime/tooling packages current.
+
 ## 1.8.0
 
 ### Minor Changes
