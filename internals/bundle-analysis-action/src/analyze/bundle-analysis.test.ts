@@ -11,6 +11,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	analyzeBundles,
+	analyzeTransitiveImpact,
 	type BundleStats,
 	calculateTotalDiffPercent,
 	compareBundles,
@@ -18,6 +19,7 @@ import {
 	formatBytes,
 	generateMarkdownReport,
 	type PackageBundleData,
+	type TransitiveBundleData,
 	writeReport,
 } from './bundle-analysis';
 
@@ -386,6 +388,38 @@ describe('bundle-analysis', () => {
 			expect(result).toContain('20.00%');
 		});
 
+		it('should include transitive impact section when provided', () => {
+			const packages: PackageBundleData[] = [
+				{
+					packageName: 'core',
+					baseBundles: [],
+					currentBundles: [],
+					diffs: { added: [], removed: [], changed: [] },
+					totalBaseSize: 1024,
+					totalCurrentSize: 2048,
+					totalDiff: 1024,
+					totalDiffPercent: 100,
+				},
+			];
+			const transitive: TransitiveBundleData[] = [
+				{
+					rootPackage: 'c15t',
+					includedPackageDirs: ['backend', 'core', 'translations'],
+					totalBaseSize: 3072,
+					totalCurrentSize: 4096,
+					totalDiff: 1024,
+					totalDiffPercent: 33.3333,
+				},
+			];
+
+			const result = generateMarkdownReport(packages, transitive);
+
+			expect(result).toContain('## Effective Transitive Impact');
+			expect(result).toContain('`c15t`');
+			expect(result).toContain('`backend`, `core`, `translations`');
+			expect(result).toContain('33.33%');
+		});
+
 		it('should skip packages with no changes', () => {
 			const packages: PackageBundleData[] = [
 				{
@@ -514,6 +548,230 @@ describe('bundle-analysis', () => {
 
 			const result = await analyzeBundles('/base', '/current', 'packages');
 			expect(result).toEqual([]);
+		});
+	});
+
+	describe('analyzeTransitiveImpact', () => {
+		it('should compute transitive totals for selected roots', () => {
+			vi.mocked(existsSync).mockImplementation((path: PathLike) =>
+				String(path).includes('packages')
+			);
+
+			vi.mocked(readdirSync).mockImplementation((path: PathLike) => {
+				const pathStr = String(path);
+				if (pathStr.endsWith('packages')) {
+					return [
+						'core',
+						'react',
+						'backend',
+						'translations',
+					] as unknown as ReturnType<typeof readdirSync>;
+				}
+				return [] as unknown as ReturnType<typeof readdirSync>;
+			});
+
+			vi.mocked(statSync).mockReturnValue({
+				isDirectory: () => true,
+			} as unknown as ReturnType<typeof statSync>);
+
+			vi.mocked(readFileSync).mockImplementation(
+				(path: PathOrFileDescriptor) => {
+					const pathStr = String(path);
+					if (pathStr.endsWith('/packages/core/package.json')) {
+						return JSON.stringify({
+							name: 'c15t',
+							dependencies: {
+								'@c15t/backend': 'workspace:*',
+								'@c15t/translations': 'workspace:*',
+							},
+						});
+					}
+					if (pathStr.endsWith('/packages/react/package.json')) {
+						return JSON.stringify({
+							name: '@c15t/react',
+							dependencies: {
+								c15t: 'workspace:*',
+							},
+						});
+					}
+					if (pathStr.endsWith('/packages/backend/package.json')) {
+						return JSON.stringify({
+							name: '@c15t/backend',
+						});
+					}
+					if (pathStr.endsWith('/packages/translations/package.json')) {
+						return JSON.stringify({
+							name: '@c15t/translations',
+						});
+					}
+					return JSON.stringify({});
+				}
+			);
+
+			const packages: PackageBundleData[] = [
+				{
+					packageName: 'core',
+					baseBundles: [],
+					currentBundles: [],
+					diffs: { added: [], removed: [], changed: [] },
+					totalBaseSize: 100,
+					totalCurrentSize: 140,
+					totalDiff: 40,
+					totalDiffPercent: 40,
+				},
+				{
+					packageName: 'react',
+					baseBundles: [],
+					currentBundles: [],
+					diffs: { added: [], removed: [], changed: [] },
+					totalBaseSize: 200,
+					totalCurrentSize: 260,
+					totalDiff: 60,
+					totalDiffPercent: 30,
+				},
+				{
+					packageName: 'backend',
+					baseBundles: [],
+					currentBundles: [],
+					diffs: { added: [], removed: [], changed: [] },
+					totalBaseSize: 300,
+					totalCurrentSize: 330,
+					totalDiff: 30,
+					totalDiffPercent: 10,
+				},
+				{
+					packageName: 'translations',
+					baseBundles: [],
+					currentBundles: [],
+					diffs: { added: [], removed: [], changed: [] },
+					totalBaseSize: 50,
+					totalCurrentSize: 60,
+					totalDiff: 10,
+					totalDiffPercent: 20,
+				},
+			];
+
+			const result = analyzeTransitiveImpact(packages, '/repo', 'packages', [
+				'@c15t/react',
+				'c15t',
+			]);
+
+			expect(result).toHaveLength(2);
+			expect(result[0]).toMatchObject({
+				rootPackage: '@c15t/react',
+				includedPackageDirs: ['backend', 'core', 'react', 'translations'],
+				totalBaseSize: 650,
+				totalCurrentSize: 790,
+				totalDiff: 140,
+			});
+			expect(result[1]).toMatchObject({
+				rootPackage: 'c15t',
+				includedPackageDirs: ['backend', 'core', 'translations'],
+				totalBaseSize: 450,
+				totalCurrentSize: 530,
+				totalDiff: 80,
+			});
+		});
+
+		it('should include packages from base graph when dependencies were removed', () => {
+			vi.mocked(existsSync).mockImplementation((path: PathLike) =>
+				String(path).includes('packages')
+			);
+			vi.mocked(readdirSync).mockImplementation((path: PathLike) => {
+				const pathStr = String(path);
+				if (pathStr.endsWith('packages')) {
+					return ['core', 'backend', 'schema'] as unknown as ReturnType<
+						typeof readdirSync
+					>;
+				}
+				return [] as unknown as ReturnType<typeof readdirSync>;
+			});
+			vi.mocked(statSync).mockReturnValue({
+				isDirectory: () => true,
+			} as unknown as ReturnType<typeof statSync>);
+			vi.mocked(readFileSync).mockImplementation(
+				(path: PathOrFileDescriptor) => {
+					const pathStr = String(path);
+					if (pathStr.includes('/base/')) {
+						if (pathStr.endsWith('/packages/core/package.json')) {
+							return JSON.stringify({
+								name: 'c15t',
+								dependencies: {
+									'@c15t/backend': 'workspace:*',
+									'@c15t/schema': 'workspace:*',
+								},
+							});
+						}
+					}
+					if (pathStr.includes('/current/')) {
+						if (pathStr.endsWith('/packages/core/package.json')) {
+							return JSON.stringify({
+								name: 'c15t',
+								dependencies: {
+									'@c15t/backend': 'workspace:*',
+								},
+							});
+						}
+					}
+					if (pathStr.endsWith('/packages/backend/package.json')) {
+						return JSON.stringify({ name: '@c15t/backend' });
+					}
+					if (pathStr.endsWith('/packages/schema/package.json')) {
+						return JSON.stringify({ name: '@c15t/schema' });
+					}
+					return JSON.stringify({});
+				}
+			);
+
+			const packages: PackageBundleData[] = [
+				{
+					packageName: 'core',
+					baseBundles: [],
+					currentBundles: [],
+					diffs: { added: [], removed: [], changed: [] },
+					totalBaseSize: 100,
+					totalCurrentSize: 110,
+					totalDiff: 10,
+					totalDiffPercent: 10,
+				},
+				{
+					packageName: 'backend',
+					baseBundles: [],
+					currentBundles: [],
+					diffs: { added: [], removed: [], changed: [] },
+					totalBaseSize: 80,
+					totalCurrentSize: 90,
+					totalDiff: 10,
+					totalDiffPercent: 12.5,
+				},
+				{
+					packageName: 'schema',
+					baseBundles: [],
+					currentBundles: [],
+					diffs: { added: [], removed: [], changed: [] },
+					totalBaseSize: 60,
+					totalCurrentSize: 0,
+					totalDiff: -60,
+					totalDiffPercent: -100,
+				},
+			];
+
+			const result = analyzeTransitiveImpact(
+				packages,
+				'/current',
+				'packages',
+				['c15t'],
+				'/base'
+			);
+
+			expect(result).toHaveLength(1);
+			expect(result[0]).toMatchObject({
+				rootPackage: 'c15t',
+				includedPackageDirs: ['backend', 'core', 'schema'],
+				totalBaseSize: 240,
+				totalCurrentSize: 200,
+				totalDiff: -40,
+			});
 		});
 	});
 

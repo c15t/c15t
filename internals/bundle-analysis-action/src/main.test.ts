@@ -5,13 +5,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PackageBundleData } from './analyze/bundle-analysis';
 import {
 	analyzeBundles,
+	analyzeTransitiveImpact,
 	calculateTotalDiffPercent,
 	writeReport,
 } from './analyze/bundle-analysis';
 import {
 	baseDir,
 	currentDir,
-	failOnIncrease,
 	githubToken,
 	header,
 	packagesDir,
@@ -19,6 +19,7 @@ import {
 	repo,
 	skipComment,
 	threshold,
+	transitiveRoots,
 } from './config/inputs';
 import { ensureComment } from './github/pr-comment';
 
@@ -29,6 +30,7 @@ vi.mock('node:fs', () => ({
 	readFileSync: vi.fn(),
 }));
 vi.mock('./analyze/bundle-analysis', () => ({
+	analyzeTransitiveImpact: vi.fn(),
 	analyzeBundles: vi.fn(),
 	calculateTotalDiffPercent: vi.fn(),
 	writeReport: vi.fn(),
@@ -44,6 +46,7 @@ vi.mock('./config/inputs', () => ({
 	skipComment: false,
 	failOnIncrease: false,
 	threshold: 10,
+	transitiveRoots: ['c15t', '@c15t/react'],
 }));
 vi.mock('./github/pr-comment', () => ({
 	ensureComment: vi.fn(),
@@ -89,19 +92,38 @@ describe('main', () => {
 	describe('bundle analysis workflow', () => {
 		it('should analyze bundles and generate report', async () => {
 			vi.mocked(analyzeBundles).mockResolvedValue(mockPackages);
+			vi.mocked(analyzeTransitiveImpact).mockReturnValue([]);
 			vi.mocked(calculateTotalDiffPercent).mockReturnValue(10);
 
 			await analyzeBundles(baseDir, currentDir, packagesDir);
+			analyzeTransitiveImpact(
+				mockPackages,
+				currentDir,
+				packagesDir,
+				transitiveRoots,
+				baseDir
+			);
 			const totalDiffPercent = calculateTotalDiffPercent(mockPackages);
-			writeReport(mockPackages, 'bundle-diff.md');
+			writeReport(mockPackages, 'bundle-diff.md', []);
 
 			expect(analyzeBundles).toHaveBeenCalledWith(
 				baseDir,
 				currentDir,
 				packagesDir
 			);
+			expect(analyzeTransitiveImpact).toHaveBeenCalledWith(
+				mockPackages,
+				currentDir,
+				packagesDir,
+				transitiveRoots,
+				baseDir
+			);
 			expect(calculateTotalDiffPercent).toHaveBeenCalledWith(mockPackages);
-			expect(writeReport).toHaveBeenCalledWith(mockPackages, 'bundle-diff.md');
+			expect(writeReport).toHaveBeenCalledWith(
+				mockPackages,
+				'bundle-diff.md',
+				[]
+			);
 			expect(totalDiffPercent).toBe(10);
 		});
 

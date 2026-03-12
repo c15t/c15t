@@ -40,6 +40,20 @@ export interface PackageBundleData {
 	totalDiffPercent: number;
 }
 
+export interface TransitiveBundleData {
+	rootPackage: string;
+	includedPackageDirs: string[];
+	totalBaseSize: number;
+	totalCurrentSize: number;
+	totalDiff: number;
+	totalDiffPercent: number;
+}
+
+interface WorkspacePackageNode {
+	dirName: string;
+	dependencies: string[];
+}
+
 async function findRsdoctorDataFiles(dir: string): Promise<string[]> {
 	const files: string[] = [];
 	if (!existsSync(dir)) {
@@ -263,7 +277,190 @@ function getChangeEmoji(diffPercent: number): string {
 	return '⚪';
 }
 
-export function generateMarkdownReport(packages: PackageBundleData[]): string {
+function parseWorkspaceDependencyName(version: string): string | undefined {
+	if (!version.startsWith('workspace:')) {
+		return undefined;
+	}
+
+	const specifier = version.slice('workspace:'.length).trim();
+	// Ignore wildcard/version/path specifiers (e.g. workspace:*, workspace:^1.0.0, workspace:../pkg)
+	if (
+		specifier === '' ||
+		specifier === '*' ||
+		specifier.startsWith('^') ||
+		specifier.startsWith('~') ||
+		specifier.startsWith('.') ||
+		specifier.startsWith('/') ||
+		specifier.startsWith('>') ||
+		specifier.startsWith('<') ||
+		specifier.startsWith('=')
+	) {
+		return undefined;
+	}
+
+	// Matches `workspace:pkg` and `workspace:pkg@range`
+	const match = specifier.match(/^(@[^/]+\/[^@/]+|[^@/][^@/]*)(?:@.+)?$/);
+	if (!match) {
+		return undefined;
+	}
+
+	return match[1];
+}
+
+function buildWorkspaceGraph(
+	repoDir: string,
+	packagesDir: string
+): Map<string, WorkspacePackageNode> {
+	const graph = new Map<string, WorkspacePackageNode>();
+	const packagesRoot = join(repoDir, packagesDir);
+
+	if (!existsSync(packagesRoot)) {
+		return graph;
+	}
+
+	const packageFolders = readdirSync(packagesRoot).filter((entry) =>
+		statSync(join(packagesRoot, entry)).isDirectory()
+	);
+
+	for (const folder of packageFolders) {
+		const manifestPath = join(packagesRoot, folder, 'package.json');
+		if (!existsSync(manifestPath)) {
+			continue;
+		}
+
+		try {
+			const content = readFileSync(manifestPath, 'utf-8');
+			const manifest = JSON.parse(content) as {
+				name?: string;
+				dependencies?: Record<string, string>;
+				optionalDependencies?: Record<string, string>;
+			};
+			if (!manifest.name) {
+				continue;
+			}
+
+			const allDeps = {
+				...(manifest.dependencies || {}),
+				...(manifest.optionalDependencies || {}),
+			};
+			const workspaceDeps: string[] = [];
+			for (const [depName, depVersion] of Object.entries(allDeps)) {
+				const explicitDep = parseWorkspaceDependencyName(depVersion);
+				if (explicitDep) {
+					workspaceDeps.push(explicitDep);
+				} else if (depVersion.startsWith('workspace:')) {
+					workspaceDeps.push(depName);
+				}
+			}
+
+			graph.set(manifest.name, {
+				dirName: folder,
+				dependencies: workspaceDeps,
+			});
+		} catch (error) {
+			console.error(`Failed to parse ${manifestPath}:`, error);
+		}
+	}
+
+	return graph;
+}
+
+function collectTransitivePackageDirs(
+	graph: Map<string, WorkspacePackageNode>,
+	rootPackage: string
+): string[] {
+	if (!graph.has(rootPackage)) {
+		return [];
+	}
+
+	const queue = [rootPackage];
+	const visited = new Set<string>();
+	const dirNames = new Set<string>();
+
+	while (queue.length > 0) {
+		const pkgName = queue.shift();
+		if (!pkgName || visited.has(pkgName)) {
+			continue;
+		}
+		visited.add(pkgName);
+
+		const node = graph.get(pkgName);
+		if (!node) {
+			continue;
+		}
+
+		dirNames.add(node.dirName);
+		for (const dep of node.dependencies) {
+			if (!visited.has(dep)) {
+				queue.push(dep);
+			}
+		}
+	}
+
+	return Array.from(dirNames).sort((a, b) => a.localeCompare(b));
+}
+
+/**
+ * Analyze effective bundle impact including transitive workspace dependencies.
+ *
+ * Uses workspace dependency closure for selected roots and sums matching package bundle totals.
+ * If both `baseDir` and `currentDir` are provided, closure is computed from the union of both
+ * graphs so dependency adds/removals are reflected in totals.
+ */
+export function analyzeTransitiveImpact(
+	packages: PackageBundleData[],
+	currentDir: string,
+	packagesDir = 'packages',
+	roots: string[] = ['c15t', '@c15t/react'],
+	baseDir?: string
+): TransitiveBundleData[] {
+	if (roots.length === 0) {
+		return [];
+	}
+
+	const currentGraph = buildWorkspaceGraph(currentDir, packagesDir);
+	const baseGraph =
+		baseDir && baseDir !== currentDir
+			? buildWorkspaceGraph(baseDir, packagesDir)
+			: currentGraph;
+	const packageByDir = new Map(packages.map((pkg) => [pkg.packageName, pkg]));
+	const normalizedRoots = Array.from(
+		new Set(roots.map((root) => root.trim()).filter(Boolean))
+	);
+
+	return normalizedRoots.map((rootPackage) => {
+		const currentDirs = collectTransitivePackageDirs(currentGraph, rootPackage);
+		const baseDirs = collectTransitivePackageDirs(baseGraph, rootPackage);
+		const includedPackageDirs = Array.from(
+			new Set([...currentDirs, ...baseDirs])
+		).sort((a, b) => a.localeCompare(b));
+		const totalBaseSize = includedPackageDirs.reduce(
+			(sum, dir) => sum + (packageByDir.get(dir)?.totalBaseSize || 0),
+			0
+		);
+		const totalCurrentSize = includedPackageDirs.reduce(
+			(sum, dir) => sum + (packageByDir.get(dir)?.totalCurrentSize || 0),
+			0
+		);
+		const totalDiff = totalCurrentSize - totalBaseSize;
+		const totalDiffPercent =
+			totalBaseSize > 0 ? (totalDiff / totalBaseSize) * 100 : 0;
+
+		return {
+			rootPackage,
+			includedPackageDirs,
+			totalBaseSize,
+			totalCurrentSize,
+			totalDiff,
+			totalDiffPercent,
+		};
+	});
+}
+
+export function generateMarkdownReport(
+	packages: PackageBundleData[],
+	transitive: TransitiveBundleData[] = []
+): string {
 	let markdown = '# 📦 Bundle Size Analysis\n\n';
 
 	if (packages.length === 0) {
@@ -280,6 +477,26 @@ export function generateMarkdownReport(packages: PackageBundleData[]): string {
 		const sign = pkg.totalDiff >= 0 ? '+' : '';
 		const emoji = getChangeEmoji(pkg.totalDiffPercent);
 		markdown += `| ${emoji} \`${pkg.packageName}\` | ${formatBytes(pkg.totalBaseSize)} | ${formatBytes(pkg.totalCurrentSize)} | ${sign}${formatBytes(pkg.totalDiff)} | ${sign}${pkg.totalDiffPercent.toFixed(2)}% |\n`;
+	}
+
+	if (transitive.length > 0) {
+		markdown += '\n## Effective Transitive Impact\n\n';
+		markdown +=
+			'Includes workspace dependency closure for selected root packages.\n\n';
+		markdown +=
+			'| Root Package | Included Packages | Base Size | Current Size | Change | % Change |\n';
+		markdown +=
+			'|--------------|-------------------|-----------|--------------|--------|----------|\n';
+
+		for (const entry of transitive) {
+			const sign = entry.totalDiff >= 0 ? '+' : '';
+			const emoji = getChangeEmoji(entry.totalDiffPercent);
+			const included =
+				entry.includedPackageDirs.length > 0
+					? entry.includedPackageDirs.map((pkg) => `\`${pkg}\``).join(', ')
+					: 'not found';
+			markdown += `| ${emoji} \`${entry.rootPackage}\` | ${included} | ${formatBytes(entry.totalBaseSize)} | ${formatBytes(entry.totalCurrentSize)} | ${sign}${formatBytes(entry.totalDiff)} | ${sign}${entry.totalDiffPercent.toFixed(2)}% |\n`;
+		}
 	}
 
 	// Detailed changes per package (collapsible)
@@ -371,10 +588,11 @@ export async function analyzeBundles(
  */
 export function writeReport(
 	packages: PackageBundleData[],
-	outputPath: string
+	outputPath: string,
+	transitive: TransitiveBundleData[] = []
 ): void {
 	try {
-		const report = generateMarkdownReport(packages);
+		const report = generateMarkdownReport(packages, transitive);
 		writeFileSync(outputPath, report, 'utf-8');
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);

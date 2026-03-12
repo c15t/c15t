@@ -37,6 +37,10 @@ inputs:
     description: "Percentage threshold for significant bundle size increase"
     default: "10"
     required: false
+  transitive_roots:
+    description: "Comma-separated package names to report transitive workspace impact for"
+    default: "c15t,@c15t/react"
+    required: false
 
 outputs:
   report_path:
