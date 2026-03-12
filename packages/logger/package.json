@@ -28,8 +28,8 @@
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
-		"fmt": "pnpm biome format --write . && biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "pnpm biome lint ./src",
+		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
+		"lint": "bun biome lint ./src",
 		"test": "vitest run --passWithNoTests",
 		"test:watch": "vitest"
 	},
