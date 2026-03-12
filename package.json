@@ -25,14 +25,15 @@
 		"lint": "turbo lint",
 		"lint:docs": "pnpm remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
 		"lint:fix": "turbo lint -- --write",
-		"release": "pnpm build && pnpm run resolve-workspace-deps && changeset publish",
-		"release:canary": "pnpm build && pnpm run resolve-workspace-deps && changeset publish --tag canary",
+		"release": "bun run build && bun run resolve-workspace-deps && changeset publish",
+		"release:canary": "bun run build && bun run resolve-workspace-deps && changeset publish --tag canary",
+		"release:rc": "bun run build && bun run resolve-workspace-deps && changeset publish",
 		"resolve-workspace-deps": "tsx scripts/resolve-workspace-deps.ts",
 		"setup:docs": "tsx scripts/setup-docs.ts",
 		"test": "turbo test",
 		"vercel-build": "tsx scripts/setup-docs.ts --vercel",
-		"version": "changeset version && pnpm install --lockfile-only",
-		"version:canary": "changeset version --snapshot canary && pnpm install --lockfile-only",
+		"version": "changeset version && bun install",
+		"version:canary": "changeset version --snapshot canary && bun install",
 		"version:prerelease": "changeset pre enter canary",
 		"version:prerelease:exit": "changeset pre exit",
 		"view-report": "turbo run view-report"
@@ -73,10 +74,13 @@
 	"engines": {
 		"node": ">=18.17.0"
 	},
-	"pnpm": {
-		"overrides": {
-			"cross-spawn": ">=6.0.6",
-			"typeorm": ">=0.3.26"
-		}
-	}
+	"overrides": {
+		"cross-spawn": ">=6.0.6",
+		"typeorm": ">=0.3.26"
+	},
+	"workspaces": [
+		"configs/*",
+		"packages/**",
+		"internals/**"
+	]
 }
