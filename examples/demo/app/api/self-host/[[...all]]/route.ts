@@ -40,6 +40,8 @@ const handler = c15tInstance({
 	tenantId: 'ins_1',
 	branding: 'c15t',
 	i18n: {
+		defaultProfile: 'default',
+		fallbackLanguage: 'en',
 		messages: demoI18nMessages,
 	},
 	policyPacks: demoPolicies,
@@ -80,6 +82,9 @@ const handler = c15tInstance({
 			230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244,
 			245, 246, 247, 248, 249, 250,
 		],
+		customVendors: [
+			
+		]
 	},
 });
 

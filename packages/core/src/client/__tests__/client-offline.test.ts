@@ -73,6 +73,148 @@ describe('Offline Client Tests', () => {
 		expect(response.data?.location?.regionCode).toBe('BE');
 	});
 
+	it('should keep offline language selection within configured translations', async () => {
+		const client = configureConsentManager({
+			mode: 'offline',
+			store: {
+				initialTranslationConfig: {
+					defaultLanguage: 'fr',
+					translations: {
+						fr: {
+							cookieBanner: {
+								title: 'Titre FR',
+							},
+						},
+					},
+				},
+			},
+		});
+
+		const response = await client.init({
+			headers: {
+				'accept-language': 'zh-CN,zh;q=0.9',
+			},
+		});
+
+		expect(response.ok).toBe(true);
+		expect(response.data?.translations.language).toBe('fr');
+		expect(response.data?.translations.translations.cookieBanner.title).toBe(
+			'Titre FR'
+		);
+	});
+
+	it('should resolve offline policy profile languages with hosted parity', async () => {
+		const client = configureConsentManager({
+			mode: 'offline',
+			store: {
+				offlinePolicy: {
+					i18n: {
+						defaultProfile: 'default',
+						fallbackLanguage: 'en',
+						messages: {
+							default: {
+								en: { cookieBanner: { title: 'Default EN Title' } },
+								es: { cookieBanner: { title: 'Default ES Title' } },
+								pt: { cookieBanner: { title: 'Default PT Title' } },
+							},
+							eu: {
+								en: { cookieBanner: { title: 'EU EN Title' } },
+								fr: { cookieBanner: { title: 'EU FR Title' } },
+								de: { cookieBanner: { title: 'EU DE Title' } },
+							},
+						},
+					},
+					policyPacks: [
+						{
+							id: 'eu',
+							match: { countries: ['DE', 'FR', 'GB'] },
+							i18n: { messageProfile: 'eu' },
+							consent: { model: 'opt-in' },
+							ui: { mode: 'banner' },
+						},
+						{
+							id: 'default_world',
+							match: { isDefault: true },
+							consent: { model: 'none' },
+							ui: { mode: 'none' },
+						},
+					],
+				},
+			},
+		});
+
+		const zhResponse = await client.init({
+			headers: {
+				'x-c15t-country': 'DE',
+				'accept-language': 'zh-CN,zh;q=0.9',
+			},
+		});
+
+		expect(zhResponse.ok).toBe(true);
+		expect(zhResponse.data?.translations.language).toBe('en');
+		expect(zhResponse.data?.translations.translations.cookieBanner.title).toBe(
+			'EU EN Title'
+		);
+
+		const esResponse = await client.init({
+			headers: {
+				'x-c15t-country': 'DE',
+				'accept-language': 'es-ES,es;q=0.9',
+			},
+		});
+
+		expect(esResponse.ok).toBe(true);
+		expect(esResponse.data?.translations.language).toBe('en');
+		expect(esResponse.data?.translations.translations.cookieBanner.title).toBe(
+			'EU EN Title'
+		);
+	});
+
+	it('should honor offline policy fallbackLanguage inside the active profile', async () => {
+		const client = configureConsentManager({
+			mode: 'offline',
+			store: {
+				offlinePolicy: {
+					i18n: {
+						defaultProfile: 'default',
+						fallbackLanguage: 'fr',
+						messages: {
+							default: {
+								en: { cookieBanner: { title: 'Default EN Title' } },
+							},
+							eu: {
+								en: { cookieBanner: { title: 'EU EN Title' } },
+								fr: { cookieBanner: { title: 'EU FR Title' } },
+							},
+						},
+					},
+					policyPacks: [
+						{
+							id: 'eu',
+							match: { countries: ['DE'] },
+							i18n: { messageProfile: 'eu' },
+							consent: { model: 'opt-in' },
+							ui: { mode: 'banner' },
+						},
+					],
+				},
+			},
+		});
+
+		const response = await client.init({
+			headers: {
+				'x-c15t-country': 'DE',
+				'accept-language': 'zh-CN,zh;q=0.9',
+			},
+		});
+
+		expect(response.ok).toBe(true);
+		expect(response.data?.translations.language).toBe('fr');
+		expect(response.data?.translations.translations.cookieBanner.title).toBe(
+			'EU FR Title'
+		);
+	});
+
 	it('should include configured offline policy payload in init response', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',

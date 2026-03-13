@@ -255,6 +255,20 @@ export interface I18nOptions {
 	 * @default "default"
 	 */
 	defaultProfile?: string;
+
+	/**
+	 * Fallback language used when the requested language is not configured in the
+	 * active profile.
+	 *
+	 * @remarks
+	 * This does not expand the active profile's allowed languages. If the
+	 * configured fallback is not present in the active profile, c15t falls back
+	 * to English when available, otherwise to the first configured language in
+	 * that profile.
+	 *
+	 * @default "en"
+	 */
+	fallbackLanguage?: string;
 }
 
 // Re-export canonical policy types from @c15t/schema

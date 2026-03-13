@@ -3,10 +3,9 @@ import {
 	policyMatchers,
 	policyPackPresets,
 } from '@c15t/backend';
+import type { PolicyConfig } from '@c15t/backend/types';
 import type { Translations } from '@c15t/translations';
 import { translations } from '@c15t/translations/en';
-
-type PolicyConfig = Parameters<typeof inspectPolicies>[0][number];
 
 export const DEMO_POLICY_SNAPSHOT_KEY =
 	process.env.C15T_POLICY_SNAPSHOT_KEY ?? 'demo-policy-snapshot-key';
@@ -23,6 +22,20 @@ type I18nMessageProfiles = Record<
 export const demoI18nMessages: I18nMessageProfiles = {
 	default: {
 		en: translations,
+		es: {
+			cookieBanner: {
+				title: 'Tus opciones de privacidad',
+				description:
+					'Usamos cookies para mejorar el sitio. Puedes aceptar o ajustar tu configuracion en cualquier momento.',
+			},
+		},
+		pt: {
+			cookieBanner: {
+				title: 'As suas escolhas de privacidade',
+				description:
+					'Usamos cookies para melhorar o site. Pode aceitar ou ajustar as suas definicoes a qualquer momento.',
+			},
+		},
 	},
 	eu: {
 		en: {
@@ -39,13 +52,34 @@ export const demoI18nMessages: I18nMessageProfiles = {
 					'Optionale Cookies werden nur mit deiner Einwilligung verwendet.',
 			},
 		},
+		fr: {
+			cookieBanner: {
+				title: 'Consentement RGPD',
+				description:
+					'Nous utilisons uniquement des cookies facultatifs avec votre consentement.',
+			},
+		},
 	},
 	fr: {
+		en: {
+			cookieBanner: {
+				title: 'France IAB Preferences',
+				description:
+					'You can accept, reject, or customize IAB purposes for advertising and measurement.',
+			},
+		},
 		fr: {
 			cookieBanner: {
 				title: 'Paramètres de confidentialité (IAB)',
 				description:
 					'Vous pouvez accepter, refuser ou personnaliser les finalités IAB.',
+			},
+		},
+		de: {
+			cookieBanner: {
+				title: 'Datenschutzeinstellungen (IAB)',
+				description:
+					'Sie konnen IAB-Zwecke akzeptieren, ablehnen oder individuell anpassen.',
 			},
 		},
 	},
@@ -64,7 +98,6 @@ export const demoPolicies: PolicyConfig[] = [
 	// priority over the preset EU opt-in for France specifically.
 	{
 		id: 'fr_iab',
-		name: 'France (IAB)',
 		match: { countries: ['FR'] },
 		i18n: { messageProfile: 'fr' },
 		consent: {
@@ -84,7 +117,6 @@ export const demoPolicies: PolicyConfig[] = [
 	// categories, compact UI profile with customize as the primary action.
 	{
 		id: 'de_strict',
-		name: 'Germany (Strict)',
 		match: { countries: ['DE'] },
 		i18n: { messageProfile: 'eu' },
 		consent: {
@@ -114,7 +146,10 @@ export const demoPolicies: PolicyConfig[] = [
 	},
 
 	// ── Presets ────────────────────────────────────────────────────────────
-	policyPackPresets.europeOptIn(),
+	{
+		...policyPackPresets.europeOptIn(),
+		i18n: { messageProfile: 'eu' },
+	},
 	policyPackPresets.californiaOptOut(),
 	policyPackPresets.worldNoBanner(),
 ];

@@ -239,6 +239,46 @@ const c15t = c15tInstance({
 
 `i18n.language` can also force a concrete language for a policy when needed.
 
+When `i18n.messages` is configured, c15t keeps language selection inside the
+languages defined for the active `messageProfile`.
+Built-in translations still provide the base strings for the selected language,
+but they no longer introduce additional locales beyond the ones you configured.
+
+This means `messageProfile` controls both:
+
+1. the policy-specific wording
+2. the allowed language set for that policy
+
+`defaultProfile` is only used when a policy does not set `messageProfile`.
+`fallbackLanguage` controls which language inside the active profile is used
+when the requested language is unavailable.
+
+For example:
+
+```ts
+i18n: {
+  defaultProfile: 'default',
+  fallbackLanguage: 'en',
+  messages: {
+    default: {
+      en: { cookieBanner: { title: 'Privacy choices' } },
+      es: { cookieBanner: { title: 'Tus opciones de privacidad' } },
+      pt: { cookieBanner: { title: 'As suas escolhas de privacidade' } },
+    },
+    eu: {
+      en: { cookieBanner: { title: 'EU GDPR Consent' } },
+      fr: { cookieBanner: { title: 'Consentement RGPD' } },
+      de: { cookieBanner: { title: 'GDPR-Einwilligung' } },
+    },
+  },
+}
+```
+
+For a policy with `i18n: { messageProfile: 'eu' }`, visitors can resolve to
+`en`, `fr`, or `de`, but not to `es`, `pt`, or an unconfigured locale like
+`zh`. If the browser asks for `zh`, c15t falls back to `fallbackLanguage`
+inside the `eu` profile, which would be `en` in this example.
+
 ## Snapshot Tokens
 
 When `policySnapshot.signingKey` is configured, `/init` returns a signed JWT alongside the resolved policy. The token contains the full policy decision metadata (fingerprint, matched geo, consent model) and is validated on `POST /subjects` to ensure the consent write matches the original `/init` decision.

@@ -53,7 +53,13 @@
 <section id="auto-detection">
   ## Automatic Language Detection
 
-  By default, c15t detects the browser's language (`navigator.language`) and selects the closest matching translation. If no match is found, it falls back to `locale` (or `'en'`).
+  By default, c15t detects the browser's language (`navigator.language`) and selects the closest matching translation. If custom `messages` are configured, fallback stays within your configured languages before using `locale` (or `'en'`) as the preferred fallback language.
+
+  When backend policy packs use `i18n.messageProfile`, the active language pool comes only from that resolved profile.
+
+  Example: if your Europe profile defines `en`, `fr`, and `de`, and your default profile defines `en`, `es`, and `pt`, a Europe visitor can resolve to `en`, `fr`, or `de`, but not `es`, `pt`, or `zh`.
+
+  Use backend `i18n.fallbackLanguage` to choose which configured language a profile should fall back to when the browser asks for an unsupported locale.
 
   Disable auto-detection to always use `locale`:
 
@@ -64,6 +70,8 @@
     messages: { ... },
   }
   ```
+
+  If you need a policy to always use one specific language regardless of browser preference, set `policy.i18n.language` on the backend policy pack.
 
   ## Custom Consent Type Labels
 

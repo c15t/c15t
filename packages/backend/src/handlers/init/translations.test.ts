@@ -51,7 +51,7 @@ describe('showBanner > getTranslationsData', () => {
 		expect(translations.cookieBanner.description).toBeDefined();
 	});
 
-	it('should not merge custom translations for a different language', () => {
+	it('should stay within configured custom languages when the browser language is unavailable', () => {
 		const customTranslations = {
 			de: {
 				cookieBanner: {
@@ -63,9 +63,9 @@ describe('showBanner > getTranslationsData', () => {
 			'en-US,en;q=0.9',
 			customTranslations
 		);
-		expect(language).toBe('en');
+		expect(language).toBe('de');
 		expect(translations.cookieBanner.title).toBe(
-			baseTranslations.en.cookieBanner.title
+			'Meine benutzerdefinierte Cookie-Überschrift'
 		);
 	});
 
@@ -166,6 +166,87 @@ describe('showBanner > getTranslationsData', () => {
 
 		expect(language).toBe('en');
 		expect(translations.cookieBanner.title).toBe('FL EN Title');
+	});
+
+	it('should keep policy language selection within configured profile languages', () => {
+		const { language, translations } = getTranslationsData(
+			'zh-CN,zh;q=0.9',
+			undefined,
+			{
+				i18n: {
+					messages: {
+						default: {
+							en: { cookieBanner: { title: 'Default EN Title' } },
+							es: { cookieBanner: { title: 'Default ES Title' } },
+						},
+						eu: {
+							en: { cookieBanner: { title: 'EU EN Title' } },
+							fr: { cookieBanner: { title: 'EU FR Title' } },
+						},
+					},
+				},
+				policyI18n: {
+					messageProfile: 'eu',
+				},
+			}
+		);
+
+		expect(language).toBe('en');
+		expect(translations.cookieBanner.title).toBe('EU EN Title');
+	});
+
+	it('should not expand a policy profile with default profile languages', () => {
+		const { language, translations } = getTranslationsData(
+			'es-ES,es;q=0.9',
+			undefined,
+			{
+				i18n: {
+					messages: {
+						default: {
+							en: { cookieBanner: { title: 'Default EN Title' } },
+							es: { cookieBanner: { title: 'Default ES Title' } },
+						},
+						eu: {
+							en: { cookieBanner: { title: 'EU EN Title' } },
+							fr: { cookieBanner: { title: 'EU FR Title' } },
+						},
+					},
+				},
+				policyI18n: {
+					messageProfile: 'eu',
+				},
+			}
+		);
+
+		expect(language).toBe('en');
+		expect(translations.cookieBanner.title).toBe('EU EN Title');
+	});
+
+	it('should use fallbackLanguage within the active profile', () => {
+		const { language, translations } = getTranslationsData(
+			'zh-CN,zh;q=0.9',
+			undefined,
+			{
+				i18n: {
+					fallbackLanguage: 'fr',
+					messages: {
+						default: {
+							en: { cookieBanner: { title: 'Default EN Title' } },
+						},
+						eu: {
+							en: { cookieBanner: { title: 'EU EN Title' } },
+							fr: { cookieBanner: { title: 'EU FR Title' } },
+						},
+					},
+				},
+				policyI18n: {
+					messageProfile: 'eu',
+				},
+			}
+		);
+
+		expect(language).toBe('fr');
+		expect(translations.cookieBanner.title).toBe('EU FR Title');
 	});
 
 	it('should fallback to default profile language when profile is missing', () => {

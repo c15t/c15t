@@ -122,6 +122,42 @@
   // US-CA → us_ca (region match wins)
   // US-NY → us (country match)
   ```
+
+  **Different wording per region** — use `i18n.messageProfile` to vary copy without changing the consent model:
+
+  ```ts
+  const c15t = c15tInstance({
+    i18n: {
+      defaultProfile: 'default',
+      fallbackLanguage: 'en',
+      messages: {
+        default: {
+          en: { cookieBanner: { title: 'Privacy choices' } },
+          es: { cookieBanner: { title: 'Tus opciones de privacidad' } },
+        },
+        eu: {
+          en: { cookieBanner: { title: 'EU GDPR Consent' } },
+          fr: { cookieBanner: { title: 'Consentement RGPD' } },
+          de: { cookieBanner: { title: 'GDPR-Einwilligung' } },
+        },
+      },
+    },
+    policyPacks: [
+      {
+        id: 'eu',
+        match: { countries: ['DE', 'FR', 'IT'] },
+        i18n: { messageProfile: 'eu' },
+        consent: { model: 'opt-in' },
+        ui: { mode: 'banner' },
+      },
+    ],
+  });
+  ```
+
+  In that setup, the `eu` policy uses only the `eu` language set. So Europe can
+  resolve to `en`, `fr`, or `de`, but not to `es` or any other locale defined
+  only in `default`. If the browser asks for an unsupported locale, c15t falls
+  back to `fallbackLanguage` within the `eu` profile.
 </section>
 
 <section id="re-prompting">

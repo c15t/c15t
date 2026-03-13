@@ -13,6 +13,7 @@ import {
 import { Cloud, Globe, Laptop, MapPin, RotateCcw } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
+import { demoI18nMessages } from '../../lib/policies';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -29,6 +30,11 @@ type LocationPreset = {
 	country: string;
 	region?: string;
 	description: string;
+};
+
+type DemoLanguageOption = {
+	label: string;
+	value?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -64,6 +70,21 @@ const locationPresets: LocationPreset[] = [
 	},
 ];
 
+const demoLanguageOptions: DemoLanguageOption[] = [
+	{ label: 'Auto' },
+	{ label: 'English', value: 'en' },
+	{ label: 'French', value: 'fr' },
+	{ label: 'German', value: 'de' },
+	{ label: 'Spanish', value: 'es' },
+	{ label: 'Portuguese', value: 'pt' },
+	{ label: 'Chinese', value: 'zh' },
+];
+
+function getAllowedLanguagesForProfile(profile?: string): string[] {
+	const activeProfile = profile ?? 'default';
+	return Object.keys(demoI18nMessages[activeProfile] ?? {}).sort();
+}
+
 // ---------------------------------------------------------------------------
 // Offline policy pack (same shape as the backend config in lib/policies.ts)
 // ---------------------------------------------------------------------------
@@ -72,12 +93,14 @@ const offlinePolicies = [
 	{
 		id: 'fr_iab',
 		match: { countries: ['FR'] },
+		i18n: { messageProfile: 'fr' },
 		consent: { model: 'iab' as const, expiryDays: 180, categories: ['*'] },
 		proof: { storeIp: true, storeUserAgent: true, storeLanguage: true },
 	},
 	{
 		id: 'de_strict',
 		match: { countries: ['DE'] },
+		i18n: { messageProfile: 'eu' },
 		consent: {
 			model: 'opt-in' as const,
 			expiryDays: 365,
@@ -107,7 +130,10 @@ const offlinePolicies = [
 		},
 		proof: { storeIp: true, storeUserAgent: true, storeLanguage: true },
 	},
-	policyPackPresets.europeOptIn(),
+	{
+		...policyPackPresets.europeOptIn(),
+		i18n: { messageProfile: 'eu' },
+	},
 	policyPackPresets.californiaOptOut(),
 	policyPackPresets.worldNoBanner(),
 ];
@@ -155,11 +181,25 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 		policyScopeMode,
 		resetConsents,
 		setActiveUI,
+		setLanguage,
+		setOverrides,
+		overrides,
+		translationConfig,
 		initDataSource,
 	} = useConsentManager();
 
 	const policy = lastBannerFetchData?.policy;
 	const policyDecision = lastBannerFetchData?.policyDecision;
+	const activeProfile = policy?.i18n?.messageProfile ?? 'default';
+	const allowedLanguages =
+		demoMode === 'hosted' || policy?.i18n?.messageProfile
+			? getAllowedLanguagesForProfile(policy?.i18n?.messageProfile)
+			: Object.keys(translationConfig.translations);
+	const requestedLanguage = overrides?.language ?? 'auto';
+	const resolvedLanguage =
+		lastBannerFetchData?.translations.language ??
+		translationConfig.defaultLanguage ??
+		'en';
 
 	return (
 		<div className="space-y-4">
@@ -212,6 +252,61 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 					<p className="font-mono text-sm">
 						{policyCategories?.length ? policyCategories.join(', ') : 'all'}
 					</p>
+				</div>
+				<div>
+					<span className="text-muted-foreground text-xs">Message Profile</span>
+					<p className="font-mono text-sm">{activeProfile}</p>
+				</div>
+				<div>
+					<span className="text-muted-foreground text-xs">Language</span>
+					<p className="font-mono text-sm">
+						{resolvedLanguage}
+						{requestedLanguage !== 'auto'
+							? ` (requested ${requestedLanguage})`
+							: ' (auto)'}
+					</p>
+				</div>
+			</div>
+
+			<div className="space-y-2 rounded-lg border bg-muted/30 p-3">
+				<div className="flex items-center justify-between gap-3">
+					<div>
+						<p className="text-sm font-medium">Language fallback test</p>
+						<p className="text-muted-foreground text-xs">
+							Hosted and offline policy-pack modes now use the same
+							profile-aware i18n rules. Try Chinese on a Europe location to
+							verify it falls back inside that profile instead of expanding to
+							another locale.
+						</p>
+					</div>
+					<Badge variant="outline" className="font-mono text-xs">
+						allowed: {allowedLanguages.join(', ')}
+					</Badge>
+				</div>
+
+				<div className="flex flex-wrap gap-2">
+					{demoLanguageOptions.map((option) => {
+						const isActive =
+							(option.value ?? 'auto') ===
+							(overrides?.language ?? 'auto');
+						return (
+							<Button
+								key={option.label}
+								variant={isActive ? 'default' : 'outline'}
+								size="sm"
+								onClick={() => {
+									if (!option.value) {
+										void setOverrides({ language: undefined });
+										return;
+									}
+
+									void setLanguage(option.value);
+								}}
+							>
+								{option.label}
+							</Button>
+						);
+					})}
 				</div>
 			</div>
 
@@ -327,8 +422,8 @@ export function PolicyDemo() {
 					</h1>
 					<p className="mt-2 text-muted-foreground">
 						See how c15t resolves different consent experiences based on visitor
-						location. Pick a region below to see the resolved policy and consent
-						UI.
+						location. In hosted mode you can also force request languages to see
+						which locales each policy profile will actually return.
 					</p>
 				</div>
 
@@ -456,7 +551,14 @@ export function PolicyDemo() {
 								}
 							: {
 									mode: 'offline',
-									offlinePolicy: { policyPacks: offlinePolicies },
+									offlinePolicy: {
+										i18n: {
+											defaultProfile: 'default',
+											fallbackLanguage: 'en',
+											messages: demoI18nMessages,
+										},
+										policyPacks: offlinePolicies,
+									},
 									consentCategories: categories,
 									iab,
 									overrides,

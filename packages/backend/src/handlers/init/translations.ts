@@ -20,13 +20,8 @@ interface TranslationResolutionOptions {
 }
 
 interface TranslationCandidate {
-	profile: string;
 	language: string;
-	reason:
-		| 'profile_language'
-		| 'profile_english'
-		| 'default_language'
-		| 'default_english';
+	reason: 'profile_language' | 'profile_fallback';
 }
 
 const DEFAULT_PROFILE = 'default';
@@ -98,42 +93,84 @@ function normalizeProfiles(params: {
 }
 
 function buildCandidates(input: {
-	profile: string;
-	defaultProfile: string;
 	language: string;
+	fallbackLanguage: string;
 }): TranslationCandidate[] {
 	const raw: TranslationCandidate[] = [
 		{
-			profile: input.profile,
 			language: input.language,
 			reason: 'profile_language',
 		},
 		{
-			profile: input.profile,
-			language: 'en',
-			reason: 'profile_english',
-		},
-		{
-			profile: input.defaultProfile,
-			language: input.language,
-			reason: 'default_language',
-		},
-		{
-			profile: input.defaultProfile,
-			language: 'en',
-			reason: 'default_english',
+			language: input.fallbackLanguage,
+			reason: 'profile_fallback',
 		},
 	];
 
 	const dedupe = new Set<string>();
 	return raw.filter((candidate) => {
-		const key = `${candidate.profile}:${candidate.language}`;
+		const key = candidate.language;
 		if (dedupe.has(key)) {
 			return false;
 		}
 		dedupe.add(key);
 		return true;
 	});
+}
+
+function getProfileLanguages(
+	profiles: I18nMessageProfiles,
+	profile: string
+): string[] {
+	return Object.keys(profiles[profile] ?? {}).sort();
+}
+
+function getSelectableLanguages(input: {
+	profiles: I18nMessageProfiles;
+	profile: string;
+}): string[] {
+	return getProfileLanguages(input.profiles, input.profile);
+}
+
+function resolveFallbackLanguage(input: {
+	profileLanguages: string[];
+	configuredFallbackLanguage?: string;
+}): string {
+	const configuredFallbackLanguage =
+		normalizeLanguage(input.configuredFallbackLanguage) ?? 'en';
+
+	if (input.profileLanguages.includes(configuredFallbackLanguage)) {
+		return configuredFallbackLanguage;
+	}
+
+	if (input.profileLanguages.includes('en')) {
+		return 'en';
+	}
+
+	return input.profileLanguages[0] ?? configuredFallbackLanguage;
+}
+
+function resolveActiveProfile(input: {
+	profiles: I18nMessageProfiles;
+	defaultProfile: string;
+	policyProfile?: string;
+	logger?: LoggerLike;
+}): string {
+	const requestedProfile = input.policyProfile ?? input.defaultProfile;
+
+	if (input.profiles[requestedProfile]) {
+		return requestedProfile;
+	}
+
+	if (input.policyProfile) {
+		warnOnce(
+			input.logger,
+			`i18n.profile.missing:${requestedProfile}`,
+			`Policy i18n profile '${requestedProfile}' does not exist. Falling back to default profile '${input.defaultProfile}'.`
+		);
+	}
+
+	return input.defaultProfile;
 }
 
 export function listProfiles(options: {
@@ -185,12 +222,19 @@ export function validateMessages(options: {
 			continue;
 		}
 
-		const profile = policy.i18n.messageProfile ?? defaultProfile;
+		const profile = resolveActiveProfile({
+			profiles,
+			defaultProfile,
+			policyProfile: policy.i18n.messageProfile,
+		});
 		const language = normalizeLanguage(policy.i18n.language);
 
-		if (policy.i18n.messageProfile && !profiles[profile]) {
+		if (
+			policy.i18n.messageProfile &&
+			!profiles[policy.i18n.messageProfile]
+		) {
 			errors.push(
-				`Policy '${policy.id}' references missing i18n profile '${profile}'.`
+				`Policy '${policy.id}' references missing i18n profile '${policy.i18n.messageProfile}'.`
 			);
 		}
 
@@ -204,15 +248,21 @@ export function validateMessages(options: {
 			continue;
 		}
 
+		const fallbackLanguage =
+			profileNames.length > 0
+				? resolveFallbackLanguage({
+						profileLanguages: getProfileLanguages(profiles, profile),
+						configuredFallbackLanguage: options.i18n?.fallbackLanguage,
+					})
+				: 'en';
 		const hasProfileLanguage =
-			!!profiles[profile]?.[language] || !!profiles[profile]?.en;
-		const hasDefaultLanguage =
-			!!profiles[defaultProfile]?.[language] || !!profiles[defaultProfile]?.en;
-		const hasBaseLanguage = isSupportedBaseLanguage(language);
+			!!profiles[profile]?.[language] || !!profiles[profile]?.[fallbackLanguage];
+		const hasBaseLanguage =
+			profileNames.length === 0 && isSupportedBaseLanguage(language);
 
-		if (!hasProfileLanguage && !hasDefaultLanguage && !hasBaseLanguage) {
+		if (!hasProfileLanguage && !hasBaseLanguage) {
 			errors.push(
-				`Policy '${policy.id}' i18n language '${language}' has no configured translation in profile '${profile}' or default profile '${defaultProfile}', and no base translation exists.`
+				`Policy '${policy.id}' i18n language '${language}' has no configured translation in profile '${profile}', and no configured fallback exists.`
 			);
 		}
 	}
@@ -230,9 +280,7 @@ export function validateMessages(options: {
  *
  * Fallback order:
  * 1) profile + language
- * 2) profile + en
- * 3) default profile + language
- * 4) default profile + en
+ * 2) profile + fallback language
  */
 export function getTranslationsData(
 	acceptLanguage: string | null,
@@ -245,50 +293,54 @@ export function getTranslationsData(
 		logger: options?.logger,
 	});
 	const defaultProfile = options?.i18n?.defaultProfile ?? DEFAULT_PROFILE;
-	const profile = options?.policyI18n?.messageProfile ?? defaultProfile;
+	const profile = resolveActiveProfile({
+		profiles,
+		defaultProfile,
+		policyProfile: options?.policyI18n?.messageProfile,
+		logger: options?.logger,
+	});
 
-	if (options?.policyI18n?.messageProfile && !profiles[profile]) {
-		warnOnce(
-			options.logger,
-			`i18n.profile.missing:${profile}`,
-			`Policy i18n profile '${profile}' does not exist. Falling back to default profile '${defaultProfile}'.`
-		);
-	}
-
-	const configuredLanguages = [
-		...new Set([
-			...Object.keys(baseTranslations),
-			...Object.values(profiles).flatMap((messages) => Object.keys(messages)),
-		]),
-	];
+	const configuredLanguages =
+		Object.keys(profiles).length > 0
+			? getSelectableLanguages({
+					profiles,
+					profile,
+				})
+			: Object.keys(baseTranslations);
+	const fallbackLanguage =
+		Object.keys(profiles).length > 0
+			? resolveFallbackLanguage({
+					profileLanguages: getProfileLanguages(profiles, profile),
+					configuredFallbackLanguage: options?.i18n?.fallbackLanguage,
+				})
+			: normalizeLanguage(options?.i18n?.fallbackLanguage) ?? 'en';
 
 	const policyLanguage = normalizeLanguage(options?.policyI18n?.language);
 	const requestedLanguage =
 		policyLanguage ??
 		selectLanguage(configuredLanguages, {
 			header: acceptLanguage,
-			fallback: 'en',
+			fallback: fallbackLanguage,
 		});
 
 	const candidates = buildCandidates({
-		profile,
-		defaultProfile,
 		language: requestedLanguage,
+		fallbackLanguage,
 	});
 
 	const selectedCandidate = candidates.find(
-		(candidate) => !!profiles[candidate.profile]?.[candidate.language]
+		(candidate) => !!profiles[profile]?.[candidate.language]
 	);
 
 	if (selectedCandidate && selectedCandidate.reason !== 'profile_language') {
 		warnOnce(
 			options?.logger,
-			`i18n.fallback:${profile}:${requestedLanguage}:${selectedCandidate.profile}:${selectedCandidate.language}`,
+			`i18n.fallback:${profile}:${requestedLanguage}:${selectedCandidate.language}`,
 			`Policy translation fallback used (${selectedCandidate.reason}).`,
 			{
 				requestedProfile: profile,
 				requestedLanguage,
-				resolvedProfile: selectedCandidate.profile,
+				resolvedProfile: profile,
 				resolvedLanguage: selectedCandidate.language,
 			}
 		);
@@ -308,7 +360,7 @@ export function getTranslationsData(
 		? baseTranslations[language]
 		: baseTranslations.en;
 	const custom = selectedCandidate
-		? profiles[selectedCandidate.profile]?.[selectedCandidate.language]
+		? profiles[profile]?.[selectedCandidate.language]
 		: undefined;
 	const translations = custom ? deepMergeTranslations(base, custom) : base;
 

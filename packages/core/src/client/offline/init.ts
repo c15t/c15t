@@ -1,11 +1,11 @@
 import { resolvePolicyDecision } from '@c15t/schema/types';
 import {
 	deepMergeTranslations,
-	enTranslations,
 	selectLanguage,
 	type TranslationConfig,
 	type Translations,
 } from '@c15t/translations';
+import { baseTranslations } from '@c15t/translations/all';
 import { checkJurisdiction } from '../../libs/jurisdiction';
 import type { OfflinePolicyConfig } from '../../store/type';
 import { defaultTranslationConfig } from '../../translations';
@@ -18,6 +18,122 @@ import {
 import type { FetchOptions, ResponseContext } from '../types';
 import type { IABFallbackConfig } from './types';
 import { createResponseContext } from './utils';
+
+type SupportedBaseLanguage = keyof typeof baseTranslations;
+
+const DEFAULT_PROFILE = 'default';
+
+function isSupportedBaseLanguage(lang: string): lang is SupportedBaseLanguage {
+	return lang in baseTranslations;
+}
+
+function normalizeLanguage(
+	value: string | null | undefined
+): string | undefined {
+	if (!value) {
+		return undefined;
+	}
+
+	const normalized = value.split(',')[0]?.split(';')[0]?.trim().toLowerCase();
+	if (!normalized) {
+		return undefined;
+	}
+
+	return normalized.split('-')[0] ?? undefined;
+}
+
+function getProfileLanguages(
+	profiles: Record<string, Record<string, Partial<Translations>>>,
+	profile: string
+): string[] {
+	return Object.keys(profiles[profile] ?? {}).sort();
+}
+
+function resolveActiveProfile(input: {
+	profiles: Record<string, Record<string, Partial<Translations>>>;
+	defaultProfile: string;
+	policyProfile?: string;
+}): string {
+	const requestedProfile = input.policyProfile ?? input.defaultProfile;
+	return input.profiles[requestedProfile] ? requestedProfile : input.defaultProfile;
+}
+
+function resolveProfileFallbackLanguage(input: {
+	profileLanguages: string[];
+	configuredFallbackLanguage?: string;
+}): string {
+	const configuredFallbackLanguage =
+		normalizeLanguage(input.configuredFallbackLanguage) ?? 'en';
+
+	if (input.profileLanguages.includes(configuredFallbackLanguage)) {
+		return configuredFallbackLanguage;
+	}
+
+	if (input.profileLanguages.includes('en')) {
+		return 'en';
+	}
+
+	return input.profileLanguages[0] ?? configuredFallbackLanguage;
+}
+
+function resolveOfflinePolicyTranslations(input: {
+	acceptLanguage: string | null;
+	i18n: NonNullable<OfflinePolicyConfig['i18n']>;
+	policyI18n?: {
+		language?: string;
+		messageProfile?: string;
+	};
+}): { language: string; translations: Translations } {
+	const profiles = input.i18n.messages ?? {};
+	const defaultProfile = input.i18n.defaultProfile ?? DEFAULT_PROFILE;
+	const profile = resolveActiveProfile({
+		profiles,
+		defaultProfile,
+		policyProfile: input.policyI18n?.messageProfile,
+	});
+	const profileLanguages = getProfileLanguages(profiles, profile);
+	const fallbackLanguage = resolveProfileFallbackLanguage({
+		profileLanguages,
+		configuredFallbackLanguage: input.i18n.fallbackLanguage,
+	});
+	const policyLanguage = normalizeLanguage(input.policyI18n?.language);
+	const requestedLanguage =
+		policyLanguage ??
+		selectLanguage(profileLanguages, {
+			header: input.acceptLanguage,
+			fallback: fallbackLanguage,
+		});
+	const resolvedLanguage = profiles[profile]?.[requestedLanguage]
+		? requestedLanguage
+		: fallbackLanguage;
+	const base = isSupportedBaseLanguage(resolvedLanguage)
+		? baseTranslations[resolvedLanguage]
+		: baseTranslations.en;
+	const custom = profiles[profile]?.[resolvedLanguage];
+
+	return {
+		language: resolvedLanguage,
+		translations: custom ? deepMergeTranslations(base, custom) : base,
+	};
+}
+
+function resolveConfiguredFallbackLanguage(
+	translations: Record<string, Partial<Translations>>,
+	defaultLanguage?: string
+): string {
+	const configuredLanguages = Object.keys(translations).sort();
+	const normalizedDefault = defaultLanguage?.toLowerCase();
+
+	if (normalizedDefault && configuredLanguages.includes(normalizedDefault)) {
+		return normalizedDefault;
+	}
+
+	if (configuredLanguages.includes('en')) {
+		return 'en';
+	}
+
+	return configuredLanguages[0] ?? 'en';
+}
 
 /**
  * Checks if a consent banner should be shown.
@@ -33,55 +149,8 @@ export async function init(
 	const country = options?.headers?.['x-c15t-country'] ?? 'GB';
 	const region = options?.headers?.['x-c15t-region'] ?? null;
 
-	let language: string;
-	let translationsForLanguage: Translations;
-
 	const headerLanguage =
 		(options?.headers?.['accept-language'] as string | undefined) ?? null;
-
-	// When a custom translation config is provided (via store options),
-	// prefer its languages while always falling back to English strings.
-	if (
-		initialTranslationConfig?.translations &&
-		Object.keys(initialTranslationConfig.translations).length > 0
-	) {
-		const customTranslations = initialTranslationConfig.translations as Record<
-			string,
-			Partial<Translations>
-		>;
-
-		const availableLanguages = Array.from(
-			new Set(['en', ...Object.keys(customTranslations)])
-		);
-
-		const fallbackLanguage = initialTranslationConfig.defaultLanguage ?? 'en';
-
-		language = selectLanguage(availableLanguages, {
-			header: headerLanguage,
-			fallback: fallbackLanguage,
-		});
-
-		const customForLanguage = customTranslations[language] ?? {};
-		translationsForLanguage = deepMergeTranslations(
-			enTranslations,
-			customForLanguage as Partial<Translations>
-		);
-	} else {
-		// Fallback to the built-in default translation config (English only)
-		const availableLanguages = Object.keys(
-			defaultTranslationConfig.translations
-		);
-		const fallbackLanguage = defaultTranslationConfig.defaultLanguage ?? 'en';
-
-		language = selectLanguage(availableLanguages, {
-			header: headerLanguage,
-			fallback: fallbackLanguage,
-		});
-
-		translationsForLanguage = defaultTranslationConfig.translations[
-			language as keyof typeof defaultTranslationConfig.translations
-		] as Translations;
-	}
 
 	const jurisdictionCode = checkJurisdiction(country, region);
 	const configuredPolicies = policyConfig?.policyPacks;
@@ -123,6 +192,64 @@ export async function init(
 					}
 				: undefined),
 	};
+
+	let language: string;
+	let translationsForLanguage: Translations;
+
+	if (
+		policyConfig?.i18n?.messages &&
+		Object.keys(policyConfig.i18n.messages).length > 0
+	) {
+		const resolvedTranslations = resolveOfflinePolicyTranslations({
+			acceptLanguage: headerLanguage,
+			i18n: policyConfig.i18n,
+			policyI18n: resolvedPolicyConfig.policy?.i18n,
+		});
+		language = resolvedTranslations.language;
+		translationsForLanguage = resolvedTranslations.translations;
+	} else if (
+		initialTranslationConfig?.translations &&
+		Object.keys(initialTranslationConfig.translations).length > 0
+	) {
+		const customTranslations = initialTranslationConfig.translations as Record<
+			string,
+			Partial<Translations>
+		>;
+
+		const availableLanguages = Object.keys(customTranslations);
+		const fallbackLanguage = resolveConfiguredFallbackLanguage(
+			customTranslations,
+			initialTranslationConfig.defaultLanguage
+		);
+
+		language = selectLanguage(availableLanguages, {
+			header: headerLanguage,
+			fallback: fallbackLanguage,
+		});
+
+		const base = isSupportedBaseLanguage(language)
+			? baseTranslations[language]
+			: baseTranslations.en;
+		const customForLanguage = customTranslations[language] ?? {};
+		translationsForLanguage = deepMergeTranslations(
+			base,
+			customForLanguage as Partial<Translations>
+		);
+	} else {
+		const availableLanguages = Object.keys(
+			defaultTranslationConfig.translations
+		);
+		const fallbackLanguage = defaultTranslationConfig.defaultLanguage ?? 'en';
+
+		language = selectLanguage(availableLanguages, {
+			header: headerLanguage,
+			fallback: fallbackLanguage,
+		});
+
+		translationsForLanguage = defaultTranslationConfig.translations[
+			language as keyof typeof defaultTranslationConfig.translations
+		] as Translations;
+	}
 
 	// Get GVL for IAB mode.
 	// If a synthetic offline policy is provided, only fetch GVL when policy model is iab.

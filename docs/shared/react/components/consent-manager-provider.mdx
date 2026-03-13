@@ -113,10 +113,24 @@
     options={{
       mode: 'offline',
       offlinePolicy: {
+        i18n: {
+          defaultProfile: 'default',
+          fallbackLanguage: 'en',
+          messages: {
+            default: {
+              en: { cookieBanner: { title: 'Privacy choices' } },
+            },
+            qc: {
+              en: { cookieBanner: { title: 'Quebec Privacy Settings' } },
+              fr: { cookieBanner: { title: 'Paramètres de confidentialité du Québec' } },
+            },
+          },
+        },
         policyPacks: [
           {
             id: 'qc_opt_in',
             match: { regions: [{ country: 'CA', region: 'QC' }] },
+            i18n: { messageProfile: 'qc' },
             consent: { model: 'opt-in', expiryDays: 365 },
             ui: { mode: 'banner' },
           },
@@ -139,6 +153,7 @@
   Notes:
 
   - `offlinePolicy` is only used in `offline` mode.
+  - `offlinePolicy.i18n` lets offline mode mirror hosted `messageProfile` and `fallbackLanguage` behavior.
   - Omitting `offlinePolicy.policyPacks` uses the built-in synthetic opt-in fallback banner.
   - `offlinePolicy: { policyPacks: [] }` is explicit no-banner mode.
   - In hosted mode, backend `policyPacks` remain the source of truth — frontend offline policies never override a live backend decision.

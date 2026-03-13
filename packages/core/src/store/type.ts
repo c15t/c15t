@@ -34,6 +34,7 @@ import type {
 	LocationInfo,
 	Overrides,
 	TranslationConfig,
+	Translations,
 	User,
 } from '../types';
 
@@ -109,6 +110,34 @@ export interface PolicySurfaceState {
  * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
  */
 export type OfflinePolicyConfig = {
+	/**
+	 * Backend-like i18n configuration for offline policy previews.
+	 *
+	 * @remarks
+	 * This mirrors the backend's policy-pack translation model so offline mode
+	 * can resolve `messageProfile` and `fallbackLanguage` the same way as hosted
+	 * mode.
+	 */
+	i18n?: {
+		/**
+		 * Translation catalogs keyed by profile, then by language.
+		 */
+		messages?: Record<string, Record<string, Partial<Translations>>>;
+
+		/**
+		 * Fallback profile used when a policy does not provide `messageProfile`.
+		 * @default "default"
+		 */
+		defaultProfile?: string;
+
+		/**
+		 * Fallback language used when the requested language is not configured in
+		 * the active profile.
+		 * @default "en"
+		 */
+		fallbackLanguage?: string;
+	};
+
 	/**
 	 * Backend-compatible policy pack resolved in offline mode using
 	 * region > country > default precedence.
