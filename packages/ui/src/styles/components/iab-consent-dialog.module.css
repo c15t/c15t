@@ -774,6 +774,10 @@
 		color: var(--iab-cd-text-color-dark);
 	}
 
+	.specialPurposesContent {
+		padding: 0.75rem;
+	}
+
 	.infoIcon {
 		width: 0.875rem;
 		height: 0.875rem;
