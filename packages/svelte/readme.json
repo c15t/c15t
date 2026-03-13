@@ -1,0 +1,36 @@
+{
+	"title": "@c15t/svelte: Svelte Consent Components",
+	"description": "Developer-first CMP for Svelte: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization",
+	"features": [
+		"Works with Svelte 5",
+		"Headless and fully customizable UI components",
+		"Automatic GDPR compliance",
+		"Minimal configuration with TypeScript-first design",
+		"Comprehensive Consent Management Platform (CMP)",
+		"Flexible Cookie Banner and Preference Center components",
+		"Built-in internationalization support",
+		"Seamless consent storage and tracking"
+	],
+	"prerequisites": [
+		"Svelte 5 or later",
+		"Node.js 18.17.0 or later",
+		"A hosted [c15t instance](https://consent.io) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)"
+	],
+	"manualInstallation": [
+		"",
+		"```bash\npnpm add @c15t/svelte\n```",
+		"",
+		"To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/svelte/quickstart#manual-setup)."
+	],
+	"usage": [
+		"Wrap your app with `ConsentManagerProvider`",
+		"Add `ConsentBanner` and consent management components",
+		"Customise styling and behaviour to fit your app",
+		"For full implementation details, see the [Svelte quickstart docs](https://c15t.com/docs/frameworks/svelte/quickstart)",
+
+		"```svelte\n<!-- +layout.svelte -->\n<script>\n  import { ConsentManagerProvider, ConsentBanner } from '@c15t/svelte'\n</script>\n\n<ConsentManagerProvider>\n  <slot />\n  <ConsentBanner />\n</ConsentManagerProvider>\n```"
+	],
+	"docsLink": "https://c15t.com/docs/frameworks/svelte/quickstart",
+	"quickStartLink": "https://c15t.com/docs/frameworks/svelte/quickstart",
+	"showCLIGeneration": true
+}
