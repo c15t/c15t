@@ -1588,9 +1588,14 @@ describe('saveConsents', () => {
 				expect.any(String)
 			);
 
-			const storedData = JSON.parse(
-				(mockLocalStorage.setItem as ReturnType<typeof vi.fn>).mock.calls[0][1]
+			// Find the pending sync call (not the saveConsentToStorage call)
+			const pendingSyncCall = (
+				mockLocalStorage.setItem as ReturnType<typeof vi.fn>
+			).mock.calls.find(
+				(call: unknown[]) => call[0] === PENDING_CONSENT_SYNC_KEY
 			);
+			expect(pendingSyncCall).toBeDefined();
+			const storedData = JSON.parse(pendingSyncCall![1]);
 			expect(storedData.uiSource).toBe('dialog');
 		});
 

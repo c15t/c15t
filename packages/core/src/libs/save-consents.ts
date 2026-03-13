@@ -2,6 +2,7 @@ import type { StoreApi } from 'zustand';
 import type { ConsentStoreState } from '~/store/type';
 import type { ConsentManagerInterface } from '../client/client-interface';
 import type { ConsentInfo, ConsentState, ConsentType } from '../types';
+import { saveConsentToStorage } from './cookie';
 import { generateSubjectId } from './generate-subject-id';
 import { sanitizeSubjectIdentifiers } from './sanitize-subject-identifiers';
 
@@ -166,9 +167,15 @@ export async function saveConsents({
 		consentTypes
 	);
 
+	const newConsentInfo: ConsentInfo = {
+		time: givenAt,
+		subjectId,
+		externalId,
+		identityProvider,
+	};
+
 	// Immediately update the UI state to close banners/dialogs
 	// This makes the interface feel more responsive
-	// This also persists the consent to localStorage/cookies
 	set({
 		consents: newConsents,
 		selectedConsents: newConsents,
@@ -178,6 +185,23 @@ export async function saveConsents({
 
 	// If consent was revoked and reload is enabled, store pending sync and reload
 	if (needsReload) {
+		// Persist consent to localStorage/cookies BEFORE reloading so the
+		// store loads the correct (revoked) data on the next page load.
+		// Without this, getStoredConsent() would return stale accept data.
+		try {
+			saveConsentToStorage(
+				{
+					consents: newConsents,
+					consentInfo: newConsentInfo,
+				},
+				undefined,
+				get().storageConfig
+			);
+		} catch {
+			// Storage write may fail; consent is still persisted
+			// via the pending sync key below
+		}
+
 		// Store pending sync data for API call after reload
 		const pendingSync: PendingConsentSync = {
 			type,
@@ -199,7 +223,7 @@ export async function saveConsents({
 			);
 		} catch {
 			// localStorage might be unavailable, continue with reload anyway
-			// Consent is already persisted via the store's set() call
+			// Consent is already persisted via saveConsentToStorage above
 		}
 
 		// Trigger callback before reload

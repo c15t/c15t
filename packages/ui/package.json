@@ -30,8 +30,7 @@
 		},
 		"./styles/*.module.css": {
 			"types": "./src/styles/css-module.d.ts",
-			"import": "./dist/styles/*.module.js",
-			"require": "./dist/styles/*.module.cjs"
+			"default": "./dist/styles/*.module.css"
 		},
 		"./styles/*": "./dist/styles/*",
 		".": {
@@ -50,7 +49,7 @@
 		"!src/styles/**/*.test.ts"
 	],
 	"scripts": {
-		"build": "rslib build",
+		"build": "rslib build && bun run scripts/copy-css.ts",
 		"dev": "rslib build",
 		"fmt": "bun biome format --write .",
 		"lint": "bun biome lint ./src",
