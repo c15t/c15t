@@ -5,13 +5,7 @@ import type { InitResponse } from '../client-interface';
 type InitFallbackPolicy = NonNullable<InitResponse['policy']>;
 
 export function resolveNoPolicyFallback(): InitFallbackPolicy {
-	return {
-		id: 'no_banner',
-		model: 'none',
-		ui: {
-			mode: 'none',
-		},
-	};
+	return policyDefaults.offlineNoBanner();
 }
 
 interface ResolveFallbackPolicyOptions {
