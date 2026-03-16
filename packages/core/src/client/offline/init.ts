@@ -1,4 +1,4 @@
-import { resolvePolicyDecision } from '@c15t/schema/types';
+import { resolvePolicyDecision, validatePolicies } from '@c15t/schema/types';
 import {
 	deepMergeTranslations,
 	selectLanguage,
@@ -161,6 +161,12 @@ export async function init(
 	const jurisdictionCode = checkJurisdiction(country, region);
 	const configuredPolicies = policyConfig?.policyPacks;
 	const hasExplicitPolicies = policyConfig?.policyPacks !== undefined;
+
+	if (configuredPolicies && configuredPolicies.length > 0) {
+		validatePolicies(configuredPolicies, {
+			iabEnabled: iabConfig?.enabled === true,
+		});
+	}
 
 	const resolvedPolicyDecision =
 		configuredPolicies && configuredPolicies.length > 0
