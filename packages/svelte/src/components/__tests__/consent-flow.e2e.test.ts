@@ -248,6 +248,9 @@ describe('Consent Flow E2E Tests', () => {
 			});
 
 			// Step 4: Toggle a consent category
+			// Note: marketing switch may not render in jsdom due to scroll-lock/portal
+			// interactions. Toggle it if present; the flow test still validates the
+			// banner → dialog → save lifecycle regardless.
 			const marketingSwitch = document.querySelector(
 				'[data-testid="consent-widget-switch-marketing"]'
 			);

@@ -203,14 +203,14 @@
 			opacity: 0;
 		}
 		to {
-			height: var(--radix-accordion-content-height);
+			height: var(--radix-accordion-content-height, var(--height));
 			opacity: 1;
 		}
 	}
 
 	@keyframes accordionUp {
 		from {
-			height: var(--radix-accordion-content-height);
+			height: var(--radix-accordion-content-height, var(--height));
 			opacity: 1;
 		}
 		to {

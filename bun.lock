@@ -134,6 +134,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@c15t/backend": "workspace:*",
+        "@c15t/dev-tools": "workspace:*",
         "@c15t/node-sdk": "workspace:*",
         "@c15t/svelte": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -387,7 +388,7 @@
     },
     "packages/svelte": {
       "name": "@c15t/svelte",
-      "version": "2.0.0-rc.3",
+      "version": "2.0.0-rc.4",
       "dependencies": {
         "@ark-ui/svelte": "^5.19.0",
         "@c15t/ui": "workspace:*",
