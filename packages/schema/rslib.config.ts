@@ -7,6 +7,13 @@ export default defineConfig({
 			index: ['./src/index.ts'],
 			types: ['./src/types.ts'],
 		},
+		exclude: [
+			'**/__tests__/**',
+			'**/*.test.ts',
+			'**/*.test.tsx',
+			'**/*.spec.ts',
+			'**/*.spec.tsx',
+		],
 	},
 	lib: [
 		{
