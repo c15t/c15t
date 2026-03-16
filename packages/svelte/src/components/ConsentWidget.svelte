@@ -1,14 +1,20 @@
 <script lang="ts">
 	import { Accordion } from '@ark-ui/svelte/accordion';
 	import { Switch } from '@ark-ui/svelte/switch';
-	import { switchVariants } from '@c15t/ui/styles/primitives';
+	import { accordionVariants, switchVariants } from '@c15t/ui/styles/primitives';
 	import styles from '@c15t/ui/styles/components/consent-widget.module.js';
-	import { resolveTranslations } from '@c15t/ui/utils';
+	import dialogStyles from '@c15t/ui/styles/components/consent-dialog.module.js';
+	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
+	import type { AllConsentNames } from 'c15t';
 	import { defaultTranslationConfig } from 'c15t';
 	import { getConsentContext, getThemeContext, getTrackingContext, setTrackingContext } from '../context.svelte';
+	import { resolveComponentStyles } from '../utils';
 	import ConsentButton from './ConsentButton.svelte';
+	import C15TIcon from './icons/C15TIcon.svelte';
+	import ConsentIconOnly from './icons/ConsentIconOnly.svelte';
 
 	const sw = switchVariants();
+	const av = accordionVariants();
 
 	let {
 		hideBranding = true,
@@ -34,6 +40,10 @@
 		)
 	);
 
+	const textDirection = $derived(
+		getTextDirection(consent.state.translationConfig?.defaultLanguage)
+	);
+
 	const displayedConsents = $derived(
 		consent.state.consentTypes.filter((ct) =>
 			consent.state.consentCategories.includes(ct.name)
@@ -45,15 +55,46 @@
 	function toggleConsent(name: string, checked: boolean) {
 		consent.state.setSelectedConsent(name as any, checked);
 	}
+
+	function formatConsentName(name: AllConsentNames): string {
+		return (name as string)
+			.replace(/_/g, ' ')
+			.replace(/\b\w/g, (c: string) => c.toUpperCase());
+	}
+
+	// Per-element theme key resolution
+	const widgetRootStyle = $derived(
+		resolveComponentStyles('consentWidget', theme.theme, { className, noStyle }, noStyle)
+	);
+
+	const footerStyle = $derived(
+		resolveComponentStyles('consentWidgetFooter', theme.theme, { baseClassName: styles.footer, noStyle }, noStyle)
+	);
+
+	const footerGroupStyle = $derived(
+		resolveComponentStyles('consentWidgetFooter', theme.theme, { baseClassName: styles.footerGroup, noStyle }, noStyle)
+	);
+
+	// Branding
+	const branding = $derived(consent.state.branding);
+	const showBranding = $derived(!hideBranding && branding !== 'none');
+	const brandingHref = $derived.by(() => {
+		const refParam =
+			typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
+		return branding === 'consent'
+			? `https://consent.io${refParam}`
+			: `https://c15t.com${refParam}`;
+	});
 </script>
 
 <div
-	class={noStyle ? className : `${styles.root || ''} ${className || ''}`}
+	class={noStyle ? className : `${widgetRootStyle.className || ''} ${styles.root || ''} ${className || ''}`}
+	dir={textDirection}
 	data-testid="consent-widget"
 >
 	<!-- Accordion: consent type list -->
 	<Accordion.Root
-		class={noStyle ? '' : styles.accordion || ''}
+		class={noStyle ? '' : [av.root(), styles.accordion].filter(Boolean).join(' ')}
 		multiple
 		bind:value={openItems}
 		data-testid="consent-widget-accordion"
@@ -66,18 +107,16 @@
 			{@const isDisabled = consentType.disabled ?? false}
 
 			<Accordion.Item
-				class={noStyle ? '' : styles.accordionItem || ''}
+				class={noStyle ? '' : av.item({ class: styles.accordionItem })}
 				value={consentType.name}
 				data-testid={`consent-widget-item-${consentType.name}`}
 			>
 				<div class={noStyle ? '' : styles.accordionTrigger || ''}>
 					<Accordion.ItemTrigger
-						class={noStyle ? '' : styles.accordionTriggerInner || ''}
+						class={noStyle ? '' : av.trigger({ class: styles.accordionTriggerInner })}
 						data-testid={`consent-widget-trigger-${consentType.name}`}
 					>
-						<Accordion.ItemIndicator
-							class={noStyle ? '' : styles.accordionArrow || ''}
-						>
+						<span class={noStyle ? '' : av.arrowOpen({ class: styles.accordionArrowIcon })}>
 							<svg
 								width="16"
 								height="16"
@@ -88,10 +127,24 @@
 								stroke-linecap="round"
 								stroke-linejoin="round"
 							>
-								<polyline points="6 9 12 15 18 9"></polyline>
+								<path d="M5 12h14M12 5v14" />
 							</svg>
-						</Accordion.ItemIndicator>
-						<span>{consentType.name}</span>
+						</span>
+						<span class={noStyle ? '' : av.arrowClose({ class: styles.accordionArrowIcon })}>
+							<svg
+								width="16"
+								height="16"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<path d="M5 12h14" />
+							</svg>
+						</span>
+						{translations.consentTypes[consentType.name]?.title ?? formatConsentName(consentType.name)}
 					</Accordion.ItemTrigger>
 
 					<!-- Toggle switch -->
@@ -110,10 +163,12 @@
 				</div>
 
 				<Accordion.ItemContent
-					class={noStyle ? '' : styles.accordionContent || ''}
+					class={noStyle ? '' : av.content({ class: styles.accordionContent })}
 					data-testid={`consent-widget-content-${consentType.name}`}
 				>
-					<p>{consentType.description ?? ''}</p>
+					<div class={noStyle ? '' : av.contentInner()}>
+						<p>{translations.consentTypes[consentType.name]?.description ?? consentType.description ?? ''}</p>
+					</div>
 				</Accordion.ItemContent>
 			</Accordion.Item>
 		{/each}
@@ -121,13 +176,14 @@
 
 	<!-- Footer with action buttons -->
 	<div
-		class={noStyle ? '' : styles.footer || ''}
+		class={noStyle ? '' : footerStyle.className || ''}
 		data-testid="consent-widget-footer"
 	>
-		<div class={noStyle ? '' : styles.footerGroup || ''}>
+		<div class={noStyle ? '' : footerGroupStyle.className || ''}>
 			<ConsentButton
 				action="reject-consent"
 				variant="neutral"
+				closeConsentBanner
 				closeConsentDialog
 				data-testid="consent-widget-reject-button"
 			>
@@ -138,6 +194,7 @@
 			<ConsentButton
 				action="accept-consent"
 				variant="neutral"
+				closeConsentBanner
 				closeConsentDialog
 				data-testid="consent-widget-accept-all-button"
 			>
@@ -157,4 +214,25 @@
 			{/snippet}
 		</ConsentButton>
 	</div>
+
+	<!-- Branding -->
+	{#if showBranding}
+		<div
+			class={noStyle ? '' : dialogStyles.footer || ''}
+			data-testid="consent-widget-branding"
+		>
+			<a
+				dir="ltr"
+				class={noStyle ? '' : dialogStyles.branding || ''}
+				href={brandingHref}
+			>
+				Secured by
+				{#if branding === 'consent'}
+					<ConsentIconOnly class={dialogStyles.brandingConsent || ''} />
+				{:else}
+					<C15TIcon class={dialogStyles.brandingC15T || ''} />
+				{/if}
+			</a>
+		</div>
+	{/if}
 </div>

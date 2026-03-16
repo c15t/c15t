@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/svelte",
-	"version": "2.0.0-rc.3",
+	"version": "2.0.0-rc.4",
 	"description": "Developer-first CMP for Svelte: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization",
 	"keywords": [
 		"svelte",
@@ -35,6 +35,11 @@
 			"types": "./dist/headless.d.ts",
 			"svelte": "./dist/headless.js",
 			"default": "./dist/headless.js"
+		},
+		"./server": {
+			"types": "./dist/server/index.d.ts",
+			"import": "./dist/server/index.js",
+			"default": "./dist/server/index.js"
 		},
 		"./vite": {
 			"types": "./dist/vite-plugin.d.ts",
