@@ -94,8 +94,6 @@ export const postSubjectOutputSchema = v.object({
 	domainId: v.string(),
 	domain: v.string(),
 	type: policyTypeSchema,
-	status: v.string(),
-	recordId: v.string(),
 	metadata: v.optional(v.record(v.string(), v.unknown())),
 	appliedPreferences: v.optional(v.record(v.string(), v.boolean())),
 	uiSource: v.optional(v.string()),

@@ -174,9 +174,9 @@ describe('resolvePolicyDecision', () => {
 					ui: {
 						mode: 'banner',
 						banner: {
-							allowedActions: ['accept', 'reject'],
-							primaryAction: 'customize',
-							actionOrder: ['customize', 'reject', 'accept', 'reject'],
+							allowedActions: ['accept', 'reject', 'accept'],
+							primaryAction: 'reject',
+							actionOrder: ['reject', 'accept', 'reject'],
 							actionLayout: 'inline',
 							uiProfile: 'balanced',
 							scrollLock: true,
@@ -197,7 +197,7 @@ describe('resolvePolicyDecision', () => {
 			'reject',
 			'accept',
 		]);
-		expect(result?.policy.ui?.banner?.primaryAction).toBe('accept');
+		expect(result?.policy.ui?.banner?.primaryAction).toBe('reject');
 		expect(result?.policy.ui?.banner?.actionLayout).toBe('inline');
 		expect(result?.policy.ui?.banner?.uiProfile).toBe('balanced');
 		expect(result?.policy.ui?.banner?.scrollLock).toBe(true);
@@ -337,6 +337,46 @@ describe('validatePolicies', () => {
 			)
 		).toThrow(
 			'Policy \'gdpr_iab\' uses consent.model="iab" and cannot define ui.* overrides. IAB banner/dialog controls are fixed by TCF mode.'
+		);
+	});
+
+	it('throws when primaryAction is not in allowedActions', () => {
+		expect(() =>
+			validatePolicies([
+				{
+					id: 'policy_ui',
+					match: { countries: ['US'] },
+					consent: { model: 'opt-in' },
+					ui: {
+						banner: {
+							allowedActions: ['accept', 'reject'],
+							primaryAction: 'customize',
+						},
+					},
+				},
+			])
+		).toThrow(
+			"Policy 'policy_ui' ui.banner.primaryAction 'customize' is not in allowedActions [accept, reject]."
+		);
+	});
+
+	it('throws when actionOrder contains actions not in allowedActions', () => {
+		expect(() =>
+			validatePolicies([
+				{
+					id: 'policy_ui',
+					match: { countries: ['US'] },
+					consent: { model: 'opt-in' },
+					ui: {
+						banner: {
+							allowedActions: ['accept', 'reject'],
+							actionOrder: ['customize', 'accept'],
+						},
+					},
+				},
+			])
+		).toThrow(
+			"Policy 'policy_ui' ui.banner.actionOrder contains 'customize' which is not in allowedActions [accept, reject]."
 		);
 	});
 
