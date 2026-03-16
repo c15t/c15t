@@ -41,15 +41,19 @@
   offlinePolicy: {
     i18n: {
       defaultProfile: 'default',
-      fallbackLanguage: 'en',
       messages: {
         default: {
-          en: { cookieBanner: { title: 'Privacy choices' } },
+          translations: {
+            en: { cookieBanner: { title: 'Privacy choices' } },
+          },
         },
         eu: {
-          en: { cookieBanner: { title: 'EU GDPR Consent' } },
-          fr: { cookieBanner: { title: 'Consentement RGPD' } },
-          de: { cookieBanner: { title: 'GDPR-Einwilligung' } },
+          fallbackLanguage: 'en',
+          translations: {
+            en: { cookieBanner: { title: 'EU GDPR Consent' } },
+            fr: { cookieBanner: { title: 'Consentement RGPD' } },
+            de: { cookieBanner: { title: 'GDPR-Einwilligung' } },
+          },
         },
       },
     },
@@ -88,14 +92,18 @@
       offlinePolicy: {
         i18n: {
           defaultProfile: 'default',
-          fallbackLanguage: 'en',
           messages: {
             default: {
-              en: { cookieBanner: { title: 'Privacy choices' } },
+              translations: {
+                en: { cookieBanner: { title: 'Privacy choices' } },
+              },
             },
             qc: {
-              en: { cookieBanner: { title: 'Quebec Privacy Settings' } },
-              fr: { cookieBanner: { title: 'Paramètres de confidentialité du Québec' } },
+              fallbackLanguage: 'fr',
+              translations: {
+                en: { cookieBanner: { title: 'Quebec Privacy Settings' } },
+                fr: { cookieBanner: { title: 'Paramètres de confidentialité du Québec' } },
+              },
             },
           },
         },
@@ -123,7 +131,7 @@
   With that setup, offline mode resolves language the same way as hosted mode:
 
   - the active policy profile defines the allowed language set
-  - `fallbackLanguage` stays inside that profile
+  - each profile can define its own `fallbackLanguage`
   - built-in translations only fill missing keys for the selected language
 </section>
 

@@ -129,16 +129,20 @@
   const c15t = c15tInstance({
     i18n: {
       defaultProfile: 'default',
-      fallbackLanguage: 'en',
       messages: {
         default: {
-          en: { cookieBanner: { title: 'Privacy choices' } },
-          es: { cookieBanner: { title: 'Tus opciones de privacidad' } },
+          translations: {
+            en: { cookieBanner: { title: 'Privacy choices' } },
+            es: { cookieBanner: { title: 'Tus opciones de privacidad' } },
+          },
         },
         eu: {
-          en: { cookieBanner: { title: 'EU GDPR Consent' } },
-          fr: { cookieBanner: { title: 'Consentement RGPD' } },
-          de: { cookieBanner: { title: 'GDPR-Einwilligung' } },
+          fallbackLanguage: 'en',
+          translations: {
+            en: { cookieBanner: { title: 'EU GDPR Consent' } },
+            fr: { cookieBanner: { title: 'Consentement RGPD' } },
+            de: { cookieBanner: { title: 'GDPR-Einwilligung' } },
+          },
         },
       },
     },
@@ -157,7 +161,7 @@
   In that setup, the `eu` policy uses only the `eu` language set. So Europe can
   resolve to `en`, `fr`, or `de`, but not to `es` or any other locale defined
   only in `default`. If the browser asks for an unsupported locale, c15t falls
-  back to `fallbackLanguage` within the `eu` profile.
+  back to the `eu` profile's `fallbackLanguage`.
 </section>
 
 <section id="re-prompting">

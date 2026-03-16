@@ -115,27 +115,34 @@ export type OfflinePolicyConfig = {
 	 *
 	 * @remarks
 	 * This mirrors the backend's policy-pack translation model so offline mode
-	 * can resolve `messageProfile` and `fallbackLanguage` the same way as hosted
-	 * mode.
+	 * can resolve `messageProfile` the same way as hosted mode.
 	 */
 	i18n?: {
 		/**
-		 * Translation catalogs keyed by profile, then by language.
+		 * Translation catalogs keyed by profile.
 		 */
-		messages?: Record<string, Record<string, Partial<Translations>>>;
+		messages?: Record<
+			string,
+			{
+				/**
+				 * Fallback language used when the requested language is not configured
+				 * in this profile.
+				 * @default "en"
+				 */
+				fallbackLanguage?: string;
+
+				/**
+				 * Translation overrides keyed by language code.
+				 */
+				translations: Record<string, Partial<Translations>>;
+			}
+		>;
 
 		/**
 		 * Fallback profile used when a policy does not provide `messageProfile`.
 		 * @default "default"
 		 */
 		defaultProfile?: string;
-
-		/**
-		 * Fallback language used when the requested language is not configured in
-		 * the active profile.
-		 * @default "en"
-		 */
-		fallbackLanguage?: string;
 	};
 
 	/**

@@ -1,9 +1,21 @@
 import { resolvePolicyDecision as resolveSharedPolicyDecision } from '@c15t/schema/types';
+import type { Translations } from '@c15t/translations';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchMock, mockLocalStorage } from '../../../vitest.setup';
 import { STORAGE_KEY_V2 } from '../../store/initial-state';
 import { configureConsentManager } from '../client-factory';
 import { OfflineClient } from '../offline';
+
+function profile(translations: Record<string, Partial<Translations>>) {
+	return { translations };
+}
+
+function profileWithFallback(
+	fallbackLanguage: string,
+	translations: Record<string, Partial<Translations>>
+) {
+	return { fallbackLanguage, translations };
+}
 
 describe('Offline Client Tests', () => {
 	beforeEach(() => {
@@ -110,18 +122,17 @@ describe('Offline Client Tests', () => {
 				offlinePolicy: {
 					i18n: {
 						defaultProfile: 'default',
-						fallbackLanguage: 'en',
 						messages: {
-							default: {
+							default: profile({
 								en: { cookieBanner: { title: 'Default EN Title' } },
 								es: { cookieBanner: { title: 'Default ES Title' } },
 								pt: { cookieBanner: { title: 'Default PT Title' } },
-							},
-							eu: {
+							}),
+							eu: profile({
 								en: { cookieBanner: { title: 'EU EN Title' } },
 								fr: { cookieBanner: { title: 'EU FR Title' } },
 								de: { cookieBanner: { title: 'EU DE Title' } },
-							},
+							}),
 						},
 					},
 					policyPacks: [
@@ -177,15 +188,14 @@ describe('Offline Client Tests', () => {
 				offlinePolicy: {
 					i18n: {
 						defaultProfile: 'default',
-						fallbackLanguage: 'fr',
 						messages: {
-							default: {
+							default: profile({
 								en: { cookieBanner: { title: 'Default EN Title' } },
-							},
-							eu: {
+							}),
+							eu: profileWithFallback('fr', {
 								en: { cookieBanner: { title: 'EU EN Title' } },
 								fr: { cookieBanner: { title: 'EU FR Title' } },
-							},
+							}),
 						},
 					},
 					policyPacks: [

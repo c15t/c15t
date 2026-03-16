@@ -59,7 +59,7 @@
 
   Example: if your Europe profile defines `en`, `fr`, and `de`, and your default profile defines `en`, `es`, and `pt`, a Europe visitor can resolve to `en`, `fr`, or `de`, but not `es`, `pt`, or `zh`.
 
-  Use backend `i18n.fallbackLanguage` to choose which configured language a profile should fall back to when the browser asks for an unsupported locale.
+  Use profile-local `fallbackLanguage` inside backend `i18n.messages` to choose which configured language a policy profile should fall back to when the browser asks for an unsupported locale.
 
   Disable auto-detection to always use `locale`:
 

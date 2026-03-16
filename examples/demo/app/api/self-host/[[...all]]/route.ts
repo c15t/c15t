@@ -41,7 +41,6 @@ const handler = c15tInstance({
 	branding: 'c15t',
 	i18n: {
 		defaultProfile: 'default',
-		fallbackLanguage: 'en',
 		messages: demoI18nMessages,
 	},
 	policyPacks: demoPolicies,
@@ -83,8 +82,17 @@ const handler = c15tInstance({
 			245, 246, 247, 248, 249, 250,
 		],
 		customVendors: [
-			
-		]
+			{
+				id: 'demo-analytics',
+				name: 'Demo Analytics',
+				privacyPolicyUrl: 'https://example.com/privacy',
+				purposes: [1, 8],
+				dataCategories: [1, 2],
+				usesCookies: true,
+				cookieMaxAgeSeconds: 31536000,
+				usesNonCookieAccess: false,
+			},
+		],
 	},
 });
 

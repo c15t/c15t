@@ -16,70 +16,79 @@ export const DEMO_POLICY_SNAPSHOT_KEY =
 
 type I18nMessageProfiles = Record<
 	string,
-	Record<string, Partial<Translations>>
+	{
+		fallbackLanguage?: string;
+		translations: Record<string, Partial<Translations>>;
+	}
 >;
 
 export const demoI18nMessages: I18nMessageProfiles = {
 	default: {
-		en: translations,
-		es: {
-			cookieBanner: {
-				title: 'Tus opciones de privacidad',
-				description:
-					'Usamos cookies para mejorar el sitio. Puedes aceptar o ajustar tu configuracion en cualquier momento.',
+		translations: {
+			en: translations,
+			es: {
+				cookieBanner: {
+					title: 'Tus opciones de privacidad',
+					description:
+						'Usamos cookies para mejorar el sitio. Puedes aceptar o ajustar tu configuracion en cualquier momento.',
+				},
 			},
-		},
-		pt: {
-			cookieBanner: {
-				title: 'As suas escolhas de privacidade',
-				description:
-					'Usamos cookies para melhorar o site. Pode aceitar ou ajustar as suas definicoes a qualquer momento.',
+			pt: {
+				cookieBanner: {
+					title: 'As suas escolhas de privacidade',
+					description:
+						'Usamos cookies para melhorar o site. Pode aceitar ou ajustar as suas definicoes a qualquer momento.',
+				},
 			},
 		},
 	},
 	eu: {
-		en: {
-			cookieBanner: {
-				title: 'EU GDPR Consent',
-				description:
-					'We only use optional cookies with your consent. You can change settings anytime.',
+		translations: {
+			en: {
+				cookieBanner: {
+					title: 'EU GDPR Consent',
+					description:
+						'We only use optional cookies with your consent. You can change settings anytime.',
+				},
 			},
-		},
-		de: {
-			cookieBanner: {
-				title: 'GDPR-Einwilligung',
-				description:
-					'Optionale Cookies werden nur mit deiner Einwilligung verwendet.',
+			de: {
+				cookieBanner: {
+					title: 'GDPR-Einwilligung',
+					description:
+						'Optionale Cookies werden nur mit deiner Einwilligung verwendet.',
+				},
 			},
-		},
-		fr: {
-			cookieBanner: {
-				title: 'Consentement RGPD',
-				description:
-					'Nous utilisons uniquement des cookies facultatifs avec votre consentement.',
+			fr: {
+				cookieBanner: {
+					title: 'Consentement RGPD',
+					description:
+						'Nous utilisons uniquement des cookies facultatifs avec votre consentement.',
+				},
 			},
 		},
 	},
 	fr: {
-		en: {
-			cookieBanner: {
-				title: 'France IAB Preferences',
-				description:
-					'You can accept, reject, or customize IAB purposes for advertising and measurement.',
+		translations: {
+			en: {
+				cookieBanner: {
+					title: 'France IAB Preferences',
+					description:
+						'You can accept, reject, or customize IAB purposes for advertising and measurement.',
+				},
 			},
-		},
-		fr: {
-			cookieBanner: {
-				title: 'Paramètres de confidentialité (IAB)',
-				description:
-					'Vous pouvez accepter, refuser ou personnaliser les finalités IAB.',
+			fr: {
+				cookieBanner: {
+					title: 'Paramètres de confidentialité (IAB)',
+					description:
+						'Vous pouvez accepter, refuser ou personnaliser les finalités IAB.',
+				},
 			},
-		},
-		de: {
-			cookieBanner: {
-				title: 'Datenschutzeinstellungen (IAB)',
-				description:
-					'Sie konnen IAB-Zwecke akzeptieren, ablehnen oder individuell anpassen.',
+			de: {
+				cookieBanner: {
+					title: 'Datenschutzeinstellungen (IAB)',
+					description:
+						'Sie konnen IAB-Zwecke akzeptieren, ablehnen oder individuell anpassen.',
+				},
 			},
 		},
 	},

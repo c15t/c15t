@@ -20,6 +20,9 @@ import type { IABFallbackConfig } from './types';
 import { createResponseContext } from './utils';
 
 type SupportedBaseLanguage = keyof typeof baseTranslations;
+type OfflineI18nProfile = NonNullable<
+	NonNullable<OfflinePolicyConfig['i18n']>['messages']
+>[string];
 
 const DEFAULT_PROFILE = 'default';
 
@@ -43,37 +46,41 @@ function normalizeLanguage(
 }
 
 function getProfileLanguages(
-	profiles: Record<string, Record<string, Partial<Translations>>>,
+	profiles: Record<string, OfflineI18nProfile>,
 	profile: string
 ): string[] {
-	return Object.keys(profiles[profile] ?? {}).sort();
+	return Object.keys(profiles[profile]?.translations ?? {}).sort();
 }
 
 function resolveActiveProfile(input: {
-	profiles: Record<string, Record<string, Partial<Translations>>>;
+	profiles: Record<string, OfflineI18nProfile>;
 	defaultProfile: string;
 	policyProfile?: string;
 }): string {
 	const requestedProfile = input.policyProfile ?? input.defaultProfile;
-	return input.profiles[requestedProfile] ? requestedProfile : input.defaultProfile;
+	return input.profiles[requestedProfile]
+		? requestedProfile
+		: input.defaultProfile;
 }
 
 function resolveProfileFallbackLanguage(input: {
-	profileLanguages: string[];
-	configuredFallbackLanguage?: string;
+	profile?: OfflineI18nProfile;
 }): string {
 	const configuredFallbackLanguage =
-		normalizeLanguage(input.configuredFallbackLanguage) ?? 'en';
+		normalizeLanguage(input.profile?.fallbackLanguage) ?? 'en';
+	const profileLanguages = Object.keys(
+		input.profile?.translations ?? {}
+	).sort();
 
-	if (input.profileLanguages.includes(configuredFallbackLanguage)) {
+	if (profileLanguages.includes(configuredFallbackLanguage)) {
 		return configuredFallbackLanguage;
 	}
 
-	if (input.profileLanguages.includes('en')) {
+	if (profileLanguages.includes('en')) {
 		return 'en';
 	}
 
-	return input.profileLanguages[0] ?? configuredFallbackLanguage;
+	return profileLanguages[0] ?? configuredFallbackLanguage;
 }
 
 function resolveOfflinePolicyTranslations(input: {
@@ -93,8 +100,7 @@ function resolveOfflinePolicyTranslations(input: {
 	});
 	const profileLanguages = getProfileLanguages(profiles, profile);
 	const fallbackLanguage = resolveProfileFallbackLanguage({
-		profileLanguages,
-		configuredFallbackLanguage: input.i18n.fallbackLanguage,
+		profile: profiles[profile],
 	});
 	const policyLanguage = normalizeLanguage(input.policyI18n?.language);
 	const requestedLanguage =
@@ -103,13 +109,13 @@ function resolveOfflinePolicyTranslations(input: {
 			header: input.acceptLanguage,
 			fallback: fallbackLanguage,
 		});
-	const resolvedLanguage = profiles[profile]?.[requestedLanguage]
+	const resolvedLanguage = profiles[profile]?.translations[requestedLanguage]
 		? requestedLanguage
 		: fallbackLanguage;
 	const base = isSupportedBaseLanguage(resolvedLanguage)
 		? baseTranslations[resolvedLanguage]
 		: baseTranslations.en;
-	const custom = profiles[profile]?.[resolvedLanguage];
+	const custom = profiles[profile]?.translations[resolvedLanguage];
 
 	return {
 		language: resolvedLanguage,

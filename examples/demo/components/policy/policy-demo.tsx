@@ -82,7 +82,9 @@ const demoLanguageOptions: DemoLanguageOption[] = [
 
 function getAllowedLanguagesForProfile(profile?: string): string[] {
 	const activeProfile = profile ?? 'default';
-	return Object.keys(demoI18nMessages[activeProfile] ?? {}).sort();
+	return Object.keys(
+		demoI18nMessages[activeProfile]?.translations ?? {}
+	).sort();
 }
 
 // ---------------------------------------------------------------------------
@@ -191,10 +193,9 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 	const policy = lastBannerFetchData?.policy;
 	const policyDecision = lastBannerFetchData?.policyDecision;
 	const activeProfile = policy?.i18n?.messageProfile ?? 'default';
-	const allowedLanguages =
-		demoMode === 'hosted' || policy?.i18n?.messageProfile
-			? getAllowedLanguagesForProfile(policy?.i18n?.messageProfile)
-			: Object.keys(translationConfig.translations);
+	const allowedLanguages = getAllowedLanguagesForProfile(
+		policy?.i18n?.messageProfile
+	);
 	const requestedLanguage = overrides?.language ?? 'auto';
 	const resolvedLanguage =
 		lastBannerFetchData?.translations.language ??
@@ -287,8 +288,7 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 				<div className="flex flex-wrap gap-2">
 					{demoLanguageOptions.map((option) => {
 						const isActive =
-							(option.value ?? 'auto') ===
-							(overrides?.language ?? 'auto');
+							(option.value ?? 'auto') === (overrides?.language ?? 'auto');
 						return (
 							<Button
 								key={option.label}
@@ -422,8 +422,8 @@ export function PolicyDemo() {
 					</h1>
 					<p className="mt-2 text-muted-foreground">
 						See how c15t resolves different consent experiences based on visitor
-						location. In hosted mode you can also force request languages to see
-						which locales each policy profile will actually return.
+						location. Force request languages below to see which locales each
+						policy profile will actually return.
 					</p>
 				</div>
 
@@ -554,7 +554,6 @@ export function PolicyDemo() {
 									offlinePolicy: {
 										i18n: {
 											defaultProfile: 'default',
-											fallbackLanguage: 'en',
 											messages: demoI18nMessages,
 										},
 										policyPacks: offlinePolicies,

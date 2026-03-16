@@ -1,3 +1,4 @@
+import type { Translations } from '@c15t/translations';
 import { baseTranslations } from '@c15t/translations/all';
 import { describe, expect, it } from 'vitest';
 import {
@@ -5,6 +6,17 @@ import {
 	listProfiles,
 	validateMessages,
 } from './translations';
+
+function profile(translations: Record<string, Partial<Translations>>) {
+	return { translations };
+}
+
+function profileWithFallback(
+	fallbackLanguage: string,
+	translations: Record<string, Partial<Translations>>
+) {
+	return { fallbackLanguage, translations };
+}
 
 describe('showBanner > getTranslationsData', () => {
 	it("should return 'en' translations when Accept-Language is null", () => {
@@ -127,13 +139,13 @@ describe('showBanner > getTranslationsData', () => {
 		const { language, translations } = getTranslationsData(null, undefined, {
 			i18n: {
 				messages: {
-					default: {
+					default: profile({
 						en: { cookieBanner: { title: 'Default EN Title' } },
-					},
-					us_ca: {
+					}),
+					us_ca: profile({
 						en: { cookieBanner: { title: 'CA EN Title' } },
 						de: { cookieBanner: { title: 'CA DE Title' } },
-					},
+					}),
 				},
 			},
 			policyI18n: {
@@ -150,12 +162,12 @@ describe('showBanner > getTranslationsData', () => {
 		const { language, translations } = getTranslationsData(null, undefined, {
 			i18n: {
 				messages: {
-					default: {
+					default: profile({
 						en: { cookieBanner: { title: 'Default EN Title' } },
-					},
-					us_fl: {
+					}),
+					us_fl: profile({
 						en: { cookieBanner: { title: 'FL EN Title' } },
-					},
+					}),
 				},
 			},
 			policyI18n: {
@@ -175,14 +187,14 @@ describe('showBanner > getTranslationsData', () => {
 			{
 				i18n: {
 					messages: {
-						default: {
+						default: profile({
 							en: { cookieBanner: { title: 'Default EN Title' } },
 							es: { cookieBanner: { title: 'Default ES Title' } },
-						},
-						eu: {
+						}),
+						eu: profile({
 							en: { cookieBanner: { title: 'EU EN Title' } },
 							fr: { cookieBanner: { title: 'EU FR Title' } },
-						},
+						}),
 					},
 				},
 				policyI18n: {
@@ -202,14 +214,14 @@ describe('showBanner > getTranslationsData', () => {
 			{
 				i18n: {
 					messages: {
-						default: {
+						default: profile({
 							en: { cookieBanner: { title: 'Default EN Title' } },
 							es: { cookieBanner: { title: 'Default ES Title' } },
-						},
-						eu: {
+						}),
+						eu: profile({
 							en: { cookieBanner: { title: 'EU EN Title' } },
 							fr: { cookieBanner: { title: 'EU FR Title' } },
-						},
+						}),
 					},
 				},
 				policyI18n: {
@@ -222,21 +234,20 @@ describe('showBanner > getTranslationsData', () => {
 		expect(translations.cookieBanner.title).toBe('EU EN Title');
 	});
 
-	it('should use fallbackLanguage within the active profile', () => {
+	it('should use a profile-local fallbackLanguage within the active profile', () => {
 		const { language, translations } = getTranslationsData(
 			'zh-CN,zh;q=0.9',
 			undefined,
 			{
 				i18n: {
-					fallbackLanguage: 'fr',
 					messages: {
-						default: {
+						default: profile({
 							en: { cookieBanner: { title: 'Default EN Title' } },
-						},
-						eu: {
+						}),
+						eu: profileWithFallback('fr', {
 							en: { cookieBanner: { title: 'EU EN Title' } },
 							fr: { cookieBanner: { title: 'EU FR Title' } },
-						},
+						}),
 					},
 				},
 				policyI18n: {
@@ -253,10 +264,10 @@ describe('showBanner > getTranslationsData', () => {
 		const { language, translations } = getTranslationsData(null, undefined, {
 			i18n: {
 				messages: {
-					default: {
+					default: profile({
 						de: { cookieBanner: { title: 'Default DE Title' } },
 						en: { cookieBanner: { title: 'Default EN Title' } },
-					},
+					}),
 				},
 			},
 			policyI18n: {
@@ -273,8 +284,8 @@ describe('showBanner > getTranslationsData', () => {
 		const profiles = listProfiles({
 			i18n: {
 				messages: {
-					us_ca: { en: {} },
-					default: { en: {} },
+					us_ca: profile({ en: {} }),
+					default: profile({ en: {} }),
 				},
 			},
 		});
@@ -286,7 +297,7 @@ describe('showBanner > getTranslationsData', () => {
 		const result = validateMessages({
 			i18n: {
 				messages: {
-					default: { en: {} },
+					default: profile({ en: {} }),
 				},
 			},
 			policies: [

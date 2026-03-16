@@ -229,10 +229,27 @@ export interface IABOptions {
 
 type FumaDBSchema = InferFumaDB<typeof DB>['schemas'];
 
-export type I18nMessageProfiles = Record<
-	string,
-	Record<string, Partial<Translations>>
->;
+export interface I18nMessageProfile {
+	/**
+	 * Fallback language used when the requested language is not configured in
+	 * this profile.
+	 *
+	 * @remarks
+	 * This does not expand the profile's allowed languages. If the configured
+	 * fallback is not present in the profile, c15t falls back to English when
+	 * available, otherwise to the first configured language in the profile.
+	 *
+	 * @default "en"
+	 */
+	fallbackLanguage?: string;
+
+	/**
+	 * Translation overrides keyed by language code.
+	 */
+	translations: Record<string, Partial<Translations>>;
+}
+
+export type I18nMessageProfiles = Record<string, I18nMessageProfile>;
 
 export interface I18nOptions {
 	/**
@@ -242,8 +259,13 @@ export interface I18nOptions {
 	 * ```ts
 	 * i18n: {
 	 *   messages: {
-	 *     default: { en: { cookieBanner: { title: '...' } } },
-	 *     us_ca: { en: { cookieBanner: { title: '...' } } },
+	 *     default: {
+	 *       translations: { en: { cookieBanner: { title: '...' } } },
+	 *     },
+	 *     us_ca: {
+	 *       fallbackLanguage: 'en',
+	 *       translations: { en: { cookieBanner: { title: '...' } } },
+	 *     },
 	 *   }
 	 * }
 	 * ```
@@ -255,20 +277,6 @@ export interface I18nOptions {
 	 * @default "default"
 	 */
 	defaultProfile?: string;
-
-	/**
-	 * Fallback language used when the requested language is not configured in the
-	 * active profile.
-	 *
-	 * @remarks
-	 * This does not expand the active profile's allowed languages. If the
-	 * configured fallback is not present in the active profile, c15t falls back
-	 * to English when available, otherwise to the first configured language in
-	 * that profile.
-	 *
-	 * @default "en"
-	 */
-	fallbackLanguage?: string;
 }
 
 // Re-export canonical policy types from @c15t/schema

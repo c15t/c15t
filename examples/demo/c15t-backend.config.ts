@@ -13,7 +13,6 @@ export default defineConfig({
 	trustedOrigins: ['localhost', 'vercel.app'],
 	i18n: {
 		defaultProfile: 'default',
-		fallbackLanguage: 'en',
 		messages: demoI18nMessages,
 	},
 	policyPacks: demoPolicies,

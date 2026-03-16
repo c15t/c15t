@@ -5,7 +5,12 @@ import {
 	type Translations,
 } from '@c15t/translations';
 import { baseTranslations } from '@c15t/translations/all';
-import type { C15TOptions, I18nMessageProfiles, PolicyConfig } from '~/types';
+import type {
+	C15TOptions,
+	I18nMessageProfile,
+	I18nMessageProfiles,
+	PolicyConfig,
+} from '~/types';
 
 type SupportedBaseLanguage = keyof typeof baseTranslations;
 
@@ -86,7 +91,11 @@ function normalizeProfiles(params: {
 			'i18n.customTranslations.deprecated',
 			'`customTranslations` is deprecated. Use `i18n.messages` instead.'
 		);
-		return { [DEFAULT_PROFILE]: legacy };
+		return {
+			[DEFAULT_PROFILE]: {
+				translations: legacy,
+			},
+		};
 	}
 
 	return {};
@@ -122,7 +131,7 @@ function getProfileLanguages(
 	profiles: I18nMessageProfiles,
 	profile: string
 ): string[] {
-	return Object.keys(profiles[profile] ?? {}).sort();
+	return Object.keys(profiles[profile]?.translations ?? {}).sort();
 }
 
 function getSelectableLanguages(input: {
@@ -133,21 +142,23 @@ function getSelectableLanguages(input: {
 }
 
 function resolveFallbackLanguage(input: {
-	profileLanguages: string[];
-	configuredFallbackLanguage?: string;
+	profile?: I18nMessageProfile;
 }): string {
 	const configuredFallbackLanguage =
-		normalizeLanguage(input.configuredFallbackLanguage) ?? 'en';
+		normalizeLanguage(input.profile?.fallbackLanguage) ?? 'en';
+	const profileLanguages = Object.keys(
+		input.profile?.translations ?? {}
+	).sort();
 
-	if (input.profileLanguages.includes(configuredFallbackLanguage)) {
+	if (profileLanguages.includes(configuredFallbackLanguage)) {
 		return configuredFallbackLanguage;
 	}
 
-	if (input.profileLanguages.includes('en')) {
+	if (profileLanguages.includes('en')) {
 		return 'en';
 	}
 
-	return input.profileLanguages[0] ?? configuredFallbackLanguage;
+	return profileLanguages[0] ?? configuredFallbackLanguage;
 }
 
 function resolveActiveProfile(input: {
@@ -229,10 +240,7 @@ export function validateMessages(options: {
 		});
 		const language = normalizeLanguage(policy.i18n.language);
 
-		if (
-			policy.i18n.messageProfile &&
-			!profiles[policy.i18n.messageProfile]
-		) {
+		if (policy.i18n.messageProfile && !profiles[policy.i18n.messageProfile]) {
 			errors.push(
 				`Policy '${policy.id}' references missing i18n profile '${policy.i18n.messageProfile}'.`
 			);
@@ -250,13 +258,11 @@ export function validateMessages(options: {
 
 		const fallbackLanguage =
 			profileNames.length > 0
-				? resolveFallbackLanguage({
-						profileLanguages: getProfileLanguages(profiles, profile),
-						configuredFallbackLanguage: options.i18n?.fallbackLanguage,
-					})
+				? resolveFallbackLanguage({ profile: profiles[profile] })
 				: 'en';
 		const hasProfileLanguage =
-			!!profiles[profile]?.[language] || !!profiles[profile]?.[fallbackLanguage];
+			!!profiles[profile]?.translations[language] ||
+			!!profiles[profile]?.translations[fallbackLanguage];
 		const hasBaseLanguage =
 			profileNames.length === 0 && isSupportedBaseLanguage(language);
 
@@ -309,11 +315,8 @@ export function getTranslationsData(
 			: Object.keys(baseTranslations);
 	const fallbackLanguage =
 		Object.keys(profiles).length > 0
-			? resolveFallbackLanguage({
-					profileLanguages: getProfileLanguages(profiles, profile),
-					configuredFallbackLanguage: options?.i18n?.fallbackLanguage,
-				})
-			: normalizeLanguage(options?.i18n?.fallbackLanguage) ?? 'en';
+			? resolveFallbackLanguage({ profile: profiles[profile] })
+			: 'en';
 
 	const policyLanguage = normalizeLanguage(options?.policyI18n?.language);
 	const requestedLanguage =
@@ -329,7 +332,7 @@ export function getTranslationsData(
 	});
 
 	const selectedCandidate = candidates.find(
-		(candidate) => !!profiles[profile]?.[candidate.language]
+		(candidate) => !!profiles[profile]?.translations[candidate.language]
 	);
 
 	if (selectedCandidate && selectedCandidate.reason !== 'profile_language') {
@@ -360,7 +363,7 @@ export function getTranslationsData(
 		? baseTranslations[language]
 		: baseTranslations.en;
 	const custom = selectedCandidate
-		? profiles[profile]?.[selectedCandidate.language]
+		? profiles[profile]?.translations[selectedCandidate.language]
 		: undefined;
 	const translations = custom ? deepMergeTranslations(base, custom) : base;
 
