@@ -932,8 +932,9 @@ export function validatePolicies(
  * Resolves the active policy for a single request.
  *
  * @remarks
- * Returns `undefined` when no pack is configured or no configured policy
- * matches the request and no default is present.
+ * Returns `undefined` when no pack is configured, when the configured pack is
+ * invalid, or when no configured policy matches the request and no default is
+ * present.
  *
  * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
  * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
@@ -942,12 +943,20 @@ export async function resolvePolicyDecision(params: {
 	policies?: unknown;
 	countryCode: string | null;
 	regionCode: string | null;
-	jurisdiction: JurisdictionCode;
+	jurisdiction?: JurisdictionCode;
 	iabEnabled?: boolean;
 }): Promise<ResolvedPolicyDecision | undefined> {
 	let parsedPolicies: PolicyConfig[] | undefined;
 	try {
 		parsedPolicies = parseOptionalPolicyConfigs(params.policies);
+		if (parsedPolicies && parsedPolicies.length > 0) {
+			validatePolicies(
+				parsedPolicies,
+				params.iabEnabled === undefined
+					? undefined
+					: { iabEnabled: params.iabEnabled }
+			);
+		}
 	} catch {
 		return undefined;
 	}
@@ -955,13 +964,6 @@ export async function resolvePolicyDecision(params: {
 	if (!parsedPolicies || parsedPolicies.length === 0) {
 		return undefined;
 	}
-
-	validatePolicies(
-		parsedPolicies,
-		params.iabEnabled === undefined
-			? undefined
-			: { iabEnabled: params.iabEnabled }
-	);
 
 	const countryCode = normalizeCountryCode(params.countryCode);
 	const regionCode = normalizeRegionCode(params.regionCode);

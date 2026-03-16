@@ -809,6 +809,44 @@ describe('edge cases', () => {
 		expect(result).toBeUndefined();
 	});
 
+	it('resolvePolicyDecision returns undefined for semantically invalid policies', async () => {
+		const result = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'same_id',
+					match: policyMatchers.countries(['DE']),
+					consent: { model: 'opt-in' },
+				},
+				{
+					id: 'same_id',
+					match: policyMatchers.countries(['FR']),
+					consent: { model: 'opt-in' },
+				},
+			],
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+		});
+
+		expect(result).toBeUndefined();
+	});
+
+	it('resolvePolicyDecision does not require jurisdiction', async () => {
+		const result = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'eu',
+					match: policyMatchers.countries(['DE']),
+					consent: { model: 'opt-in' },
+				},
+			],
+			countryCode: 'DE',
+			regionCode: null,
+		});
+
+		expect(result?.policy.id).toBe('eu');
+	});
+
 	// -------------------------------------------------------------------------
 	// Normalization edge cases
 	// -------------------------------------------------------------------------

@@ -588,7 +588,14 @@ describe('updateStore - policy purpose/category restrictions', () => {
 					uiProfile: 'balanced',
 					scrollLock: false,
 				},
-				policyBanner: {},
+				policyBanner: {
+					allowedActions: undefined,
+					primaryAction: undefined,
+					actionOrder: undefined,
+					actionLayout: undefined,
+					uiProfile: undefined,
+					scrollLock: undefined,
+				},
 			})
 		);
 	});

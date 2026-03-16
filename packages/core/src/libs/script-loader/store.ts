@@ -167,11 +167,29 @@ export function createScriptManager(
 		 */
 		reloadScript: (scriptId: string) => {
 			const state = getState();
+			const iabConsent = state.iab?.config.enabled
+				? {
+						vendorConsents: state.iab.vendorConsents,
+						vendorLegitimateInterests: state.iab.vendorLegitimateInterests,
+						purposeConsents: state.iab.purposeConsents,
+						purposeLegitimateInterests: state.iab.purposeLegitimateInterests,
+						specialFeatureOptIns: state.iab.specialFeatureOptIns,
+					}
+				: undefined;
+			const runtimeConsents = applyPolicyScopeForRuntimeGating(
+				state.consents,
+				state.policyCategories,
+				state.policyScopeMode
+			);
 			return reloadScript(
 				scriptId,
 				state.scripts,
-				state.consents,
-				state.scriptIdMap
+				runtimeConsents,
+				state.scriptIdMap,
+				{
+					model: state.model,
+					iabConsent,
+				}
 			);
 		},
 
