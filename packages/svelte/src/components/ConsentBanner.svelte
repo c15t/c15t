@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Model } from 'c15t';
+	import type { Model, LegalLinks as LegalLinksType } from 'c15t';
 	import { onMount } from 'svelte';
 	import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 	import { resolveTranslations } from '@c15t/ui/utils';
@@ -11,6 +11,7 @@
 	import { focusTrap } from '../actions/focus-trap';
 	import { scrollLock } from '../actions/scroll-lock';
 	import ConsentButton from './ConsentButton.svelte';
+	import InlineLegalLinks from './InlineLegalLinks.svelte';
 	import Overlay from './Overlay.svelte';
 
 	/**
@@ -34,6 +35,7 @@
 		rejectButtonText,
 		customizeButtonText,
 		acceptButtonText,
+		legalLinks,
 		layout = DEFAULT_LAYOUT,
 		primaryButton = 'customize',
 		models = ['opt-in'] as Model[],
@@ -49,6 +51,7 @@
 		rejectButtonText?: string;
 		customizeButtonText?: string;
 		acceptButtonText?: string;
+		legalLinks?: (keyof LegalLinksType)[] | null;
 		layout?: ConsentBannerLayout;
 		primaryButton?: ConsentBannerButton | ConsentBannerButton[];
 		models?: Model[];
@@ -107,7 +110,7 @@
 		}
 	});
 
-	// Styling
+	// Styling - per-element theme key resolution matching React
 	const rootStyle = $derived(
 		resolveComponentStyles(
 			'consentBanner',
@@ -122,6 +125,30 @@
 			},
 			noStyle
 		)
+	);
+
+	const cardStyle = $derived(
+		resolveComponentStyles('consentBannerCard', theme.theme, { baseClassName: styles.card, noStyle }, noStyle)
+	);
+
+	const headerStyle = $derived(
+		resolveComponentStyles('consentBannerHeader', theme.theme, { baseClassName: styles.header, noStyle }, noStyle)
+	);
+
+	const titleStyle = $derived(
+		resolveComponentStyles('consentBannerTitle', theme.theme, { baseClassName: styles.title, noStyle }, noStyle)
+	);
+
+	const descriptionStyle = $derived(
+		resolveComponentStyles('consentBannerDescription', theme.theme, { baseClassName: styles.description, noStyle }, noStyle)
+	);
+
+	const footerStyle = $derived(
+		resolveComponentStyles('consentBannerFooter', theme.theme, { baseClassName: styles.footer, noStyle }, noStyle)
+	);
+
+	const footerSubGroupStyle = $derived(
+		resolveComponentStyles('consentBannerFooterSubGroup', theme.theme, { baseClassName: styles.footerSubGroup, noStyle }, noStyle)
 	);
 
 	const finalClassName = $derived(
@@ -164,28 +191,34 @@
 			use:scrollLock={shouldScrollLock}
 		>
 			<div
-				class={noStyle ? '' : styles.card}
+				class={noStyle ? '' : cardStyle.className || ''}
+				tabindex={0}
 				data-testid="consent-banner-card"
 				role={shouldTrapFocus ? 'dialog' : undefined}
 				aria-modal={shouldTrapFocus ? 'true' : undefined}
 				aria-label={resolvedTitle}
 			>
-				<div class={noStyle ? '' : styles.header} data-testid="consent-banner-header">
-					<div class={noStyle ? '' : styles.title} data-testid="consent-banner-title">
+				<div class={noStyle ? '' : headerStyle.className || ''} data-testid="consent-banner-header">
+					<div class={noStyle ? '' : titleStyle.className || ''} data-testid="consent-banner-title">
 						{resolvedTitle}
 					</div>
 					<div
-						class={noStyle ? '' : styles.description}
+						class={noStyle ? '' : descriptionStyle.className || ''}
 						data-testid="consent-banner-description"
 					>
 						{resolvedDescription}
+						<InlineLegalLinks
+							links={legalLinks}
+							themeKey="consentBannerDescription"
+							testIdPrefix="consent-banner-legal-link"
+						/>
 					</div>
 				</div>
-				<div class={noStyle ? '' : styles.footer} data-testid="consent-banner-footer">
+				<div class={noStyle ? '' : footerStyle.className || ''} data-testid="consent-banner-footer">
 					{#each layout as item, index}
 						{#if Array.isArray(item)}
 							<div
-								class={noStyle ? '' : styles.footerSubGroup}
+								class={noStyle ? '' : footerSubGroupStyle.className || ''}
 								data-testid="consent-banner-footer-sub-group"
 							>
 								{#each item as buttonType}

@@ -7,11 +7,22 @@
 		IABConsentBanner,
 		IABConsentDialog,
 	} from '@c15t/svelte';
+	import { createDevTools, type DevToolsInstance } from '@c15t/dev-tools';
 	import { baseTranslations } from '@c15t/translations/all';
 	import { themePresetStore } from '$lib/consent-manager/theme-store.svelte';
+	import { onMount } from 'svelte';
 	import '../app.css';
 
 	let { children } = $props();
+	let devtools: DevToolsInstance | null = null;
+
+	onMount(() => {
+		devtools = createDevTools({ position: 'bottom-right' });
+		return () => {
+			devtools?.destroy();
+			devtools = null;
+		};
+	});
 
 	const activeTheme = $derived.by(() => {
 		if (!themePresetStore.mounted) return undefined;
