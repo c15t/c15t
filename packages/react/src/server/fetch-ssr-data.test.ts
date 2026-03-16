@@ -9,8 +9,17 @@ function createRequestHeaders(): Headers {
 	return headers;
 }
 
+function createResponse(payload: unknown) {
+	return {
+		ok: true,
+		headers: new Headers(),
+		json: vi.fn().mockResolvedValue(payload),
+	} as unknown as Response;
+}
+
 describe('fetchSSRData', () => {
 	afterEach(() => {
+		vi.restoreAllMocks();
 		vi.unstubAllGlobals();
 	});
 
@@ -80,5 +89,70 @@ describe('fetchSSRData', () => {
 			isHit: false,
 			detail: 'x-vercel-cache=MISS',
 		});
+	});
+
+	it('runs independent fetches for concurrent calls', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(createResponse({ gvl: null, categories: [] }));
+		vi.stubGlobal('fetch', fetchMock);
+
+		const headers = createRequestHeaders();
+
+		await Promise.all([
+			fetchSSRData({
+				backendURL: 'https://consent.example.com/api/c15t',
+				headers,
+			}),
+			fetchSSRData({
+				backendURL: 'https://consent.example.com/api/c15t',
+				headers,
+			}),
+		]);
+
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+
+	it('returns init data when backend responds with success', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(createResponse({ gvl: null, categories: [] }));
+		vi.stubGlobal('fetch', fetchMock);
+
+		const headers = createRequestHeaders();
+
+		const result = await fetchSSRData({
+			backendURL: 'https://consent.example.com/api/c15t',
+			headers,
+		});
+
+		expect(result).toMatchObject({
+			init: { gvl: null, categories: [] },
+			gvl: null,
+		});
+		expect(result?.metadata).toEqual({
+			cache: {
+				isHit: false,
+				detail: null,
+			},
+			requestDurationMs: expect.any(Number),
+		});
+	});
+
+	it('returns undefined when backend responds with non-ok status', async () => {
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: false,
+			status: 500,
+		} as Response);
+		vi.stubGlobal('fetch', fetchMock);
+
+		const headers = createRequestHeaders();
+
+		const result = await fetchSSRData({
+			backendURL: 'https://consent.example.com/api/c15t',
+			headers,
+		});
+
+		expect(result).toBeUndefined();
 	});
 });

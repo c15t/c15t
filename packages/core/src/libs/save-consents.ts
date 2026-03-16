@@ -6,6 +6,7 @@ import type { ConsentInfo, ConsentState, ConsentType } from '../types';
 import { saveConsentToStorage } from './cookie';
 import { generateSubjectId } from './generate-subject-id';
 import { applyPolicyPurposeAllowlist, getEffectivePolicy } from './policy';
+import { sanitizeSubjectIdentifiers } from './sanitize-subject-identifiers';
 
 /**
  * Storage key for pending consent sync after page reload.
@@ -153,9 +154,24 @@ export async function saveConsents({
 	}
 
 	// Use pending externalId from store or from user prop
-	const externalId = get().consentInfo?.externalId || get().user?.id;
+	const storedIdentifiers = sanitizeSubjectIdentifiers({
+		externalId: get().consentInfo?.externalId,
+		identityProvider: get().consentInfo?.identityProvider,
+	});
+	const userIdentifiers = sanitizeSubjectIdentifiers({
+		externalId: get().user?.id,
+		identityProvider: get().user?.identityProvider,
+	});
+	const externalId = storedIdentifiers.externalId ?? userIdentifiers.externalId;
 	const identityProvider =
-		get().consentInfo?.identityProvider || get().user?.identityProvider;
+		storedIdentifiers.identityProvider ?? userIdentifiers.identityProvider;
+	const nextConsentInfo: ConsentInfo = {
+		time: givenAt,
+		subjectId,
+		materialPolicyFingerprint,
+		...(externalId ? { externalId } : {}),
+		...(identityProvider ? { identityProvider } : {}),
+	};
 
 	// Check if we need to reload the page due to consent revocation
 	const needsReload = shouldReloadOnConsentChange(
@@ -173,25 +189,13 @@ export async function saveConsents({
 		consents: effectiveConsents,
 		selectedConsents: effectiveConsents,
 		activeUI: 'none' as const,
-		consentInfo: {
-			time: givenAt,
-			subjectId,
-			externalId,
-			identityProvider,
-			materialPolicyFingerprint,
-		},
+		consentInfo: nextConsentInfo,
 	});
 
 	saveConsentToStorage(
 		{
 			consents: effectiveConsents,
-			consentInfo: {
-				time: givenAt,
-				subjectId,
-				externalId,
-				identityProvider,
-				materialPolicyFingerprint,
-			},
+			consentInfo: nextConsentInfo,
 		},
 		undefined,
 		get().storageConfig
@@ -203,8 +207,6 @@ export async function saveConsents({
 		const pendingSync: PendingConsentSync = {
 			type,
 			subjectId,
-			externalId,
-			identityProvider,
 			preferences: effectiveConsents,
 			givenAt,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
@@ -212,6 +214,8 @@ export async function saveConsents({
 			domain: window.location.hostname,
 			uiSource: options?.uiSource ?? 'api',
 			policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
+			...(externalId ? { externalId } : {}),
+			...(identityProvider ? { identityProvider } : {}),
 		};
 
 		try {
@@ -256,14 +260,14 @@ export async function saveConsents({
 			domain: window.location.hostname,
 			preferences: effectiveConsents,
 			subjectId,
-			externalSubjectId: String(externalId),
-			identityProvider,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model ?? undefined,
 			givenAt,
 			uiSource: options?.uiSource ?? 'api',
 			consentAction: type,
 			policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
+			...(externalId ? { externalSubjectId: externalId } : {}),
+			...(identityProvider ? { identityProvider } : {}),
 		},
 	});
 

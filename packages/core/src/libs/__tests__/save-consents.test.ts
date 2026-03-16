@@ -906,6 +906,110 @@ describe('saveConsents', () => {
 			});
 		});
 
+		it('should omit invalid optional identifiers from the request body', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {
+					onConsentSet: vi.fn(),
+					onError: vi.fn(),
+				},
+				consentCategories: [
+					'necessary',
+					'functionality',
+					'measurement',
+					'experience',
+					'marketing',
+				],
+				updateScripts: updateScriptsMock,
+				updateIframeConsents: updateIframeConsentsMock,
+				updateNetworkBlockerConsents: updateNetworkBlockerConsentsMock,
+				consents: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				selectedConsents: {
+					necessary: true,
+					functionality: true,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: 'Necessary cookies',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'functionality',
+						defaultValue: false,
+						description: 'Functionality cookies',
+						disabled: false,
+						display: true,
+						gdprType: 2,
+					},
+					{
+						name: 'measurement',
+						defaultValue: false,
+						description: 'Measurement cookies',
+						disabled: false,
+						display: true,
+						gdprType: 4,
+					},
+					{
+						name: 'experience',
+						defaultValue: false,
+						description: 'Experience cookies',
+						disabled: false,
+						display: true,
+						gdprType: 3,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: 'Marketing cookies',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				reloadOnConsentRevoked: false,
+				consentInfo: {
+					time: Date.now(),
+					subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+					externalId: 'undefined',
+					identityProvider: null,
+				},
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			const callBody = (mockManager.setConsent as ReturnType<typeof vi.fn>).mock
+				.calls[0][0].body;
+
+			expect(callBody.externalSubjectId).toBeUndefined();
+			expect(callBody.identityProvider).toBeUndefined();
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					consentInfo: {
+						time: expect.any(Number),
+						subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+					},
+				})
+			);
+		});
+
 		it('should handle API success correctly', async () => {
 			mockManager.setConsent = vi.fn().mockResolvedValue({ ok: true });
 
@@ -1661,6 +1765,68 @@ describe('saveConsents', () => {
 			).mock.calls.find(([key]) => key === PENDING_CONSENT_SYNC_KEY);
 			const storedData = JSON.parse(String(pendingSyncCall?.[1]));
 			expect(storedData.uiSource).toBe('dialog');
+		});
+
+		it('should omit invalid optional identifiers from pending sync data', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {
+					onConsentSet: vi.fn(),
+					onBeforeConsentRevocationReload: vi.fn(),
+				},
+				consentCategories: ['necessary', 'marketing'],
+				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
+				consents: {
+					necessary: true,
+					marketing: true,
+				},
+				selectedConsents: {
+					necessary: true,
+					marketing: false,
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: 'Necessary',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: 'Marketing',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				consentInfo: {
+					time: Date.now(),
+					subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+					externalId: 'undefined',
+					identityProvider: null,
+				},
+				reloadOnConsentRevoked: true,
+				locationInfo: { jurisdiction: 'GDPR' },
+				model: 'opt-in',
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			const storedData = JSON.parse(
+				(mockLocalStorage.setItem as ReturnType<typeof vi.fn>).mock.calls[0][1]
+			);
+
+			expect(storedData.externalId).toBeUndefined();
+			expect(storedData.identityProvider).toBeUndefined();
 		});
 
 		it('should NOT call API when reload is triggered', async () => {

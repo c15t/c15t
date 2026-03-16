@@ -1,7 +1,14 @@
-import { fetchSSRData } from '@c15t/react/server';
+import {
+	createSSRInitCacheKey,
+	fetchSSRData,
+	normalizeBackendURL,
+} from '@c15t/react/server';
 import type { SSRInitialData } from 'c15t';
+import { unstable_cache } from 'next/cache';
 import { headers as nextHeaders } from 'next/headers';
 import type { FetchInitialDataOptions } from '~/types';
+
+const DEFAULT_REVALIDATE_SECONDS = 1;
 
 /**
  * Fetches initial consent data on the server for SSR hydration.
@@ -30,12 +37,40 @@ import type { FetchInitialDataOptions } from '~/types';
 export async function fetchInitialData(
 	options: FetchInitialDataOptions
 ): Promise<SSRInitialData | undefined> {
-	// Get Next.js headers
 	const headers = await nextHeaders();
+	const normalizedURL = normalizeBackendURL(options.backendURL, headers);
+	if (!normalizedURL) {
+		return undefined;
+	}
 
-	// Delegate to framework-agnostic implementation
-	return fetchSSRData({
-		...options,
+	const revalidateSeconds = options.nextCache?.revalidateSeconds;
+	if (revalidateSeconds === false) {
+		return fetchSSRData({
+			...options,
+			backendURL: normalizedURL,
+			headers,
+		});
+	}
+
+	const cacheKey = createSSRInitCacheKey({
+		normalizedURL,
 		headers,
+		overrides: options.overrides,
 	});
+	const cacheTTL = revalidateSeconds ?? DEFAULT_REVALIDATE_SECONDS;
+
+	const cachedFetch = unstable_cache(
+		() =>
+			fetchSSRData({
+				...options,
+				backendURL: normalizedURL,
+				headers,
+			}),
+		['c15t:nextjs:fetchInitialData', cacheKey],
+		{
+			revalidate: cacheTTL,
+		}
+	);
+
+	return cachedFetch();
 }

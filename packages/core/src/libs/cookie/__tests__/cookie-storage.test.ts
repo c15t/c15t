@@ -192,6 +192,44 @@ describe('Cookie Storage', () => {
 				'a'.repeat(64)
 			);
 		});
+
+		it('should not persist nullish optional subject identifiers', () => {
+			const consentData = {
+				consents: { necessary: true },
+				consentInfo: {
+					time: Date.now(),
+					subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+					externalId: 'undefined',
+					identityProvider: null,
+				},
+			};
+
+			saveConsentToStorage(consentData);
+
+			const storedInLS = window.localStorage.getItem(STORAGE_KEY_V2);
+			expect(storedInLS).toBeTruthy();
+			expect(JSON.parse(storedInLS || '{}')).toEqual({
+				consents: { necessary: true },
+				consentInfo: {
+					time: consentData.consentInfo.time,
+					subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+				},
+			});
+
+			const cookieValue =
+				document.cookie.split(`${STORAGE_KEY_V2}=`)[1]?.split(';')[0] || '';
+			expect(cookieValue).not.toContain('i.eid');
+			expect(cookieValue).not.toContain('i.idp');
+
+			const retrieved = getConsentFromStorage<{
+				consents: Partial<ConsentState>;
+				consentInfo: ConsentInfo;
+			}>();
+			expect(retrieved?.consentInfo).toEqual({
+				time: consentData.consentInfo.time,
+				subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+			});
+		});
 	});
 
 	describe('getConsentFromStorage', () => {
