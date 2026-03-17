@@ -1,29 +1,32 @@
 <script lang="ts">
-	import { getConsentContext } from '../context.svelte';
-	import C15TIcon from './icons/C15TIcon.svelte';
-	import ConsentIconOnly from './icons/ConsentIconOnly.svelte';
+import { getConsentContext } from '../context.svelte';
+import C15TIcon from './icons/C15TIcon.svelte';
+import ConsentIconOnly from './icons/ConsentIconOnly.svelte';
 
-	let {
-		hideBranding = false,
-		noStyle = false,
-		class: className,
-		iconClass,
-	}: {
-		hideBranding?: boolean;
-		noStyle?: boolean;
-		class?: string;
-		iconClass?: { consent?: string; c15t?: string };
-	} = $props();
+let {
+	hideBranding = false,
+	noStyle = false,
+	class: className,
+	iconClass,
+}: {
+	hideBranding?: boolean;
+	noStyle?: boolean;
+	class?: string;
+	iconClass?: { consent?: string; c15t?: string };
+} = $props();
 
-	const consent = getConsentContext();
+const consent = getConsentContext();
 
-	const branding = $derived(consent.state.branding);
-	const showBranding = $derived(!hideBranding && branding !== 'none');
-	const brandingHref = $derived.by(() => {
-		const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-		const refParam = `?ref=${encodeURIComponent(hostname)}`;
-		return branding === 'consent' ? `https://consent.io${refParam}` : `https://c15t.com${refParam}`;
-	});
+const branding = $derived(consent.state.branding);
+const showBranding = $derived(!hideBranding && branding !== 'none');
+const brandingHref = $derived.by(() => {
+	const hostname =
+		typeof window !== 'undefined' ? window.location.hostname : '';
+	const refParam = `?ref=${encodeURIComponent(hostname)}`;
+	return branding === 'consent'
+		? `https://consent.io${refParam}`
+		: `https://c15t.com${refParam}`;
+});
 </script>
 
 {#if showBranding}
