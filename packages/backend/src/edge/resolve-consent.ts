@@ -10,8 +10,8 @@
 
 import type { Logger } from '@c15t/logger';
 import type { ResolvedPolicy } from '@c15t/schema/types';
-import { getJurisdiction, getLocation } from '~/handlers/init/geo';
-import { resolvePolicyDecision } from '~/handlers/init/policy';
+import { checkJurisdiction } from '~/handlers/init/geo';
+import { resolvePolicySync } from '~/handlers/init/policy';
 import type { C15TEdgeOptions } from './types';
 
 /**
@@ -51,6 +51,25 @@ export interface ResolvedConsent {
 	showBanner: boolean;
 	/** Whether the GPC (Global Privacy Control) signal is active. */
 	gpc: boolean;
+}
+
+function getLocationFromHeaders(headers: Headers): {
+	countryCode: string | null;
+	regionCode: string | null;
+} {
+	const countryCode =
+		headers.get('x-c15t-country') ??
+		headers.get('cf-ipcountry') ??
+		headers.get('x-vercel-ip-country') ??
+		headers.get('x-amz-cf-ipcountry') ??
+		headers.get('x-country-code');
+
+	const regionCode =
+		headers.get('x-c15t-region') ??
+		headers.get('x-vercel-ip-country-region') ??
+		headers.get('x-region-code');
+
+	return { countryCode, regionCode };
 }
 
 function resolveNoPolicyFallback(): ResolvedPolicy {
@@ -117,6 +136,8 @@ function resolveDefaultConsent(
 /**
  * Resolves consent policy and default category states from a request.
  *
+ * Fully synchronous — no async, no fetch calls, no crypto.
+ *
  * This is a lightweight alternative to `c15tEdgeInit` for enterprise
  * customers who manage their own consent cookie. It returns the resolved
  * policy and default consent state without translations, GVL, branding,
@@ -124,18 +145,12 @@ function resolveDefaultConsent(
  *
  * @experimental This API may change in future versions.
  *
- * @remarks
- * Currently async because the underlying `resolvePolicyDecision` computes
- * a SHA-256 fingerprint (via `crypto.subtle`) that this function discards.
- * There are no fetch calls. A future version will expose a sync policy
- * matcher from `@c15t/schema` to make this fully synchronous.
- *
  * @example
  * ```ts
  * import { resolveConsent } from '@c15t/backend/edge';
  *
- * export async function middleware(request: Request) {
- *   const consent = await resolveConsent(request, {
+ * export function middleware(request: Request) {
+ *   const consent = resolveConsent(request, {
  *     policyPacks: [
  *       { id: 'eu', match: { countries: ['DE', 'FR'] }, consent: { model: 'opt-in', categories: ['necessary', 'marketing', 'measurement'] }, ui: { mode: 'banner' } },
  *       { id: 'us', match: { isDefault: true }, consent: { model: 'opt-out', categories: ['necessary', 'marketing', 'measurement'] }, ui: { mode: 'banner' } },
@@ -150,29 +165,33 @@ function resolveDefaultConsent(
  * }
  * ```
  */
-export async function resolveConsent(
+export function resolveConsent(
 	request: Request,
 	options: C15TConsentResolverOptions,
 	logger?: Logger
-): Promise<ResolvedConsent> {
-	const location = await getLocation(request, options);
-	const jurisdiction = getJurisdiction(location, options);
+): ResolvedConsent {
+	const location = options.disableGeoLocation
+		? { countryCode: null, regionCode: null }
+		: getLocationFromHeaders(request.headers);
+	const jurisdiction = options.disableGeoLocation
+		? 'GDPR'
+		: checkJurisdiction(location.countryCode, location.regionCode);
 	const gpc = request.headers.get('sec-gpc') === '1';
 
 	const hasExplicitPolicyPack = options.policyPacks !== undefined;
 	const isExplicitEmptyPolicyPack =
 		hasExplicitPolicyPack && (options.policyPacks?.length ?? 0) === 0;
 
-	const policyDecision = isExplicitEmptyPolicyPack
+	const policyMatch = isExplicitEmptyPolicyPack
 		? undefined
-		: await resolvePolicyDecision({
+		: resolvePolicySync({
 				policies: options.policyPacks,
 				countryCode: location.countryCode,
 				regionCode: location.regionCode,
 				jurisdiction,
 			});
 
-	if (hasExplicitPolicyPack && !isExplicitEmptyPolicyPack && !policyDecision) {
+	if (hasExplicitPolicyPack && !isExplicitEmptyPolicyPack && !policyMatch) {
 		logger?.warn('Policy packs configured but no policy matched', {
 			country: location.countryCode,
 			region: location.regionCode,
@@ -180,7 +199,7 @@ export async function resolveConsent(
 	}
 
 	const resolvedPolicy = hasExplicitPolicyPack
-		? (policyDecision?.policy ?? resolveNoPolicyFallback())
+		? (policyMatch?.policy ?? resolveNoPolicyFallback())
 		: resolveNoPolicyFallback();
 
 	const model = resolvedPolicy.model;

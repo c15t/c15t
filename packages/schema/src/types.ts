@@ -107,6 +107,7 @@ export type {
 	PolicyUiSurfaceConfig,
 	PolicyValidationResult,
 	ResolvedPolicyDecision,
+	ResolvedPolicyMatch,
 } from './shared/policy-runtime';
 export {
 	EEA_COUNTRY_CODES,
@@ -115,6 +116,7 @@ export {
 	POLICY_MATCH_DATASET_VERSION,
 	policyMatchers,
 	resolvePolicyDecision,
+	resolvePolicySync,
 	UK_COUNTRY_CODES,
 	validatePolicies,
 } from './shared/policy-runtime';
