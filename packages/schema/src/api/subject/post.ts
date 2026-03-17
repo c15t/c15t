@@ -44,6 +44,8 @@ const baseSubjectConsentSchema = v.object({
 	uiSource: v.optional(v.string()),
 	/** Consent action type (e.g., 'all', 'necessary', 'custom') */
 	consentAction: v.optional(v.string()),
+	/** Signed policy snapshot token from /init for consistency/auditability */
+	policySnapshotToken: v.optional(v.string()),
 });
 
 /**
@@ -92,9 +94,8 @@ export const postSubjectOutputSchema = v.object({
 	domainId: v.string(),
 	domain: v.string(),
 	type: policyTypeSchema,
-	status: v.string(),
-	recordId: v.string(),
 	metadata: v.optional(v.record(v.string(), v.unknown())),
+	appliedPreferences: v.optional(v.record(v.string(), v.boolean())),
 	uiSource: v.optional(v.string()),
 	givenAt: v.date(),
 });

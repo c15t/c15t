@@ -1,0 +1,181 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  Policy packs configure how c15t handles regional consent — which model (opt-in, opt-out, none), which categories, and what UI to show. The backend resolves the right policy automatically based on the visitor's location.
+
+  **For most apps, you just need a `ConsentManagerProvider` pointing at your backend with presets configured there.** The frontend receives the resolved policy via the `/init` response — no client-side policy config required.
+
+  When a backend isn't available — local development, static previews, Storybook, or as a resilience fallback — you can pass policies directly to the provider via `offlinePolicy.policyPacks` and c15t resolves them locally.
+
+  <Callout type="info">
+    For QA and testing, use the [c15t DevTools](/docs/frameworks/react/dev-tools) to simulate different regions and policy responses against your real backend, rather than switching to offline mode.
+  </Callout>
+</section>
+
+<section id="defaults">
+  ## Hosted Mode (Recommended)
+
+  When using consent.io or a self-hosted backend, the provider connects automatically. No policy configuration is needed on the frontend:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      backendURL: 'https://your-instance.c15t.dev',
+    }}
+  >
+    <ConsentBanner />
+    <ConsentDialog />
+    {children}
+  </ConsentManagerProvider>
+  ```
+
+  The backend resolves the correct policy based on the visitor's geo data and returns it in the `/init` response. Configure your presets on the backend side.
+
+  ## Offline Presets (Fallback)
+
+  When no backend is available, pass presets directly to the provider:
+
+  ```tsx
+  import { policyPackPresets } from '@c15t/react';
+
+  offlinePolicy: {
+    i18n: {
+      defaultProfile: 'default',
+      messages: {
+        default: {
+          translations: {
+            en: { cookieBanner: { title: 'Privacy choices' } },
+          },
+        },
+        eu: {
+          fallbackLanguage: 'en',
+          translations: {
+            en: { cookieBanner: { title: 'EU GDPR Consent' } },
+            fr: { cookieBanner: { title: 'Consentement RGPD' } },
+            de: { cookieBanner: { title: 'GDPR-Einwilligung' } },
+          },
+        },
+      },
+    },
+    policyPacks: [
+      {
+        ...policyPackPresets.europeOptIn(),
+        i18n: { messageProfile: 'eu' },
+      },
+      policyPackPresets.californiaOptOut(),
+      policyPackPresets.worldNoBanner(),
+    ],
+  }
+  ```
+
+  Available presets:
+
+  | Preset | Model | Matches |
+  |--------|-------|---------|
+  | `europeOptIn()` | `opt-in` | EEA + UK countries + geo fallback |
+  | `europeIab()` | `iab` | EEA + UK countries + geo fallback (TCF 2.3) |
+  | `californiaOptOut()` | `opt-out` | US-CA region |
+  | `quebecOptIn()` | `opt-in` | CA-QC region |
+  | `worldNoBanner()` | `none` | default fallback |
+</section>
+
+<section id="provider-shape">
+  ## Provider Shape
+
+  Configure packs through `offlinePolicy.policyPacks`. Add `offlinePolicy.i18n`
+  when you want offline mode to mirror hosted policy-profile language behavior:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      mode: 'offline',
+      offlinePolicy: {
+        i18n: {
+          defaultProfile: 'default',
+          messages: {
+            default: {
+              translations: {
+                en: { cookieBanner: { title: 'Privacy choices' } },
+              },
+            },
+            qc: {
+              fallbackLanguage: 'fr',
+              translations: {
+                en: { cookieBanner: { title: 'Quebec Privacy Settings' } },
+                fr: { cookieBanner: { title: 'Paramètres de confidentialité du Québec' } },
+              },
+            },
+          },
+        },
+        policyPacks: [
+          {
+            id: 'qc_opt_in',
+            match: { regions: [{ country: 'CA', region: 'QC' }] },
+            i18n: { messageProfile: 'qc' },
+            consent: { model: 'opt-in', expiryDays: 365 },
+            ui: { mode: 'banner' },
+          },
+          {
+            id: 'default',
+            match: { isDefault: true },
+            consent: { model: 'none' },
+            ui: { mode: 'none' },
+          },
+        ],
+      },
+      overrides: { country: 'CA', region: 'QC' },
+    }}
+  >
+  ```
+
+  With that setup, offline mode resolves language the same way as hosted mode:
+
+  - the active policy profile defines the allowed language set
+  - each profile can define its own `fallbackLanguage`
+  - built-in translations only fill missing keys for the selected language
+</section>
+
+<section id="fallback-behavior">
+  ## Fallback Behavior
+
+  | Configuration | Result |
+  |--------------|--------|
+  | `offlinePolicy.policyPacks` omitted | Synthetic opt-in fallback banner (so local dev works out of the box) |
+  | `offlinePolicy: { policyPacks: [] }` | Explicit no-banner mode |
+  | Non-empty pack, no match, no default | Explicit no-banner mode |
+
+  Omitting the option gives you a usable local default. Providing it tells c15t you want policy-driven behavior exactly as configured.
+</section>
+
+<section id="qa-and-debugging">
+  ## QA and Debugging
+
+  The best way to test regional consent behavior is with the [c15t DevTools](/docs/frameworks/react/dev-tools). The DevTools Policy panel lets you simulate different countries, regions, and GPC signals against your real backend — no code changes needed.
+
+  For deeper inspection:
+
+  - Read `policy` and `policyDecision` from `useConsentManager()` to see the resolved config
+  - Open the DevTools Policy panel to inspect matcher resolution and fingerprints
+  - Compare your frontend preview with the backend `/init` response before shipping
+
+  If you need fully deterministic resolution without a backend (e.g., in automated tests or Storybook), pair `offlinePolicy.policyPacks` with `overrides`:
+
+  ```tsx
+  options={{
+    mode: 'offline',
+    offlinePolicy: {
+      policyPacks: [
+        policyPackPresets.europeOptIn(),
+        policyPackPresets.californiaOptOut(),
+        policyPackPresets.worldNoBanner(),
+      ],
+    },
+    overrides: {
+      country: 'US',
+      region: 'CA',
+      language: 'en-US',
+      gpc: true, // Simulate Global Privacy Control
+    },
+  }}
+  ```
+</section>

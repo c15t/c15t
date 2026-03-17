@@ -25,7 +25,7 @@
   ```tsx
   <ConsentManagerProvider
     options={{
-      mode: 'offline',
+      backendURL: 'https://your-instance.c15t.dev',
       legalLinks: {
         privacyPolicy: {
           href: '/privacy',
@@ -63,7 +63,7 @@
   ```tsx
   <ConsentManagerProvider
     options={{
-      mode: 'offline',
+      backendURL: 'https://your-instance.c15t.dev',
       overrides: {
         country: 'DE',
         region: 'BY',
@@ -78,7 +78,7 @@
   ```tsx
   <ConsentManagerProvider
     options={{
-      mode: 'offline',
+      backendURL: 'https://your-instance.c15t.dev',
       overrides: {
         gpc: true,
       },
@@ -89,6 +89,80 @@
   <Callout type="warning">
     Treat overrides as an environment/testing tool. Avoid hard-coding production overrides unless that behavior is intentional for your deployment.
   </Callout>
+</section>
+
+<section id="policy-packs">
+  ## Policy Packs
+
+  In hosted mode (recommended), the backend resolves the correct policy automatically — no frontend policy config needed:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      backendURL: 'https://your-instance.c15t.dev',
+    }}
+  >
+  ```
+
+  ### Fallback: Offline Policies
+
+  When no backend is available, `ConsentManagerProvider` accepts `offlinePolicy.policyPacks` for local policy resolution:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      mode: 'offline',
+      offlinePolicy: {
+        i18n: {
+          defaultProfile: 'default',
+          messages: {
+            default: {
+              translations: {
+                en: { cookieBanner: { title: 'Privacy choices' } },
+              },
+            },
+            qc: {
+              fallbackLanguage: 'fr',
+              translations: {
+                en: { cookieBanner: { title: 'Quebec Privacy Settings' } },
+                fr: { cookieBanner: { title: 'Paramètres de confidentialité du Québec' } },
+              },
+            },
+          },
+        },
+        policyPacks: [
+          {
+            id: 'qc_opt_in',
+            match: { regions: [{ country: 'CA', region: 'QC' }] },
+            i18n: { messageProfile: 'qc' },
+            consent: { model: 'opt-in', expiryDays: 365 },
+            ui: { mode: 'banner' },
+          },
+          {
+            id: 'default_world',
+            match: { isDefault: true },
+            consent: { model: 'none' },
+            ui: { mode: 'none' },
+          },
+        ],
+      },
+      overrides: {
+        country: 'CA',
+        region: 'QC',
+      },
+    }}
+  >
+  ```
+
+  Notes:
+
+  - `offlinePolicy` is only used in `offline` mode.
+  - `offlinePolicy.i18n` lets offline mode mirror hosted `messageProfile` and profile-local `fallbackLanguage` behavior.
+  - Omitting `offlinePolicy.policyPacks` uses the built-in synthetic opt-in fallback banner.
+  - `offlinePolicy: { policyPacks: [] }` is explicit no-banner mode.
+  - In hosted mode, backend `policyPacks` remain the source of truth — frontend offline policies never override a live backend decision.
+
+  Read the full guide at [Policy Packs](/docs/frameworks/react/policy-packs) and the conceptual model at [Policy Packs Concept](/docs/frameworks/react/concepts/policy-packs).
 </section>
 
 <section id="props">

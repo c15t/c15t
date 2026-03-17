@@ -1,6 +1,7 @@
 import * as v from 'valibot';
 
 export const policyTypeSchema = v.picklist([
+	// Deprecated in 2.0 RC. Runtime banner behavior should use backend policies.
 	'cookie_banner',
 	'privacy_policy',
 	'dpa',

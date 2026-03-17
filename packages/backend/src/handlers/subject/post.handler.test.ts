@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { postSubjectHandler } from './post.handler';
+import { resolvePolicyDecision } from '~/handlers/init/policy';
+import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
+import {
+	buildRuntimeDecisionDedupeKey,
+	postSubjectHandler,
+} from './post.handler';
 
 vi.mock('~/utils/metrics', () => ({
 	getMetrics: vi.fn(() => ({
@@ -11,6 +16,14 @@ vi.mock('~/utils/metrics', () => ({
 
 vi.mock('~/db/registry/utils', () => ({
 	generateUniqueId: vi.fn().mockResolvedValue('con_new'),
+}));
+
+vi.mock('~/handlers/init/policy', () => ({
+	resolvePolicyDecision: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('~/handlers/policy/snapshot', () => ({
+	verifyPolicySnapshotToken: vi.fn().mockResolvedValue(null),
 }));
 
 const GIVEN_AT = 1700000000000;
@@ -39,17 +52,23 @@ function createMockRegistry() {
 }
 
 function createMockDb(findFirstResult: unknown = null) {
+	const tx = {
+		findFirst: vi.fn().mockResolvedValue(null),
+		create: vi.fn().mockImplementation(async (table: string) => {
+			if (table === 'runtimePolicyDecision') {
+				return { id: 'rpd_1' };
+			}
+			return {
+				id: 'con_new',
+				givenAt: GIVEN_AT_DATE,
+			};
+		}),
+	};
+
 	return {
 		findFirst: vi.fn().mockResolvedValue(findFirstResult),
-		transaction: vi.fn(async (fn: (tx: unknown) => unknown) => {
-			const tx = {
-				create: vi.fn().mockResolvedValue({
-					id: 'con_new',
-					givenAt: GIVEN_AT_DATE,
-				}),
-			};
-			return fn(tx);
-		}),
+		transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(tx)),
+		__tx: tx,
 	};
 }
 
@@ -67,6 +86,9 @@ function createMockContext(db: unknown, registry: unknown) {
 		logger,
 		ipAddress: '127.0.0.1',
 		userAgent: 'TestAgent/1.0',
+		iab: undefined,
+		policySnapshot: undefined,
+		tenantId: undefined,
 	};
 
 	let jsonData: unknown;
@@ -82,11 +104,64 @@ function createMockContext(db: unknown, registry: unknown) {
 		}),
 		req: {
 			json: vi.fn().mockResolvedValue(baseInput),
+			raw: new Request('https://c15t.local/subjects', {
+				headers: {
+					'accept-language': 'en-US',
+				},
+			}),
 		},
 		getJsonData: () => jsonData,
 		_ctx: ctx,
 	};
 }
+
+describe('buildRuntimeDecisionDedupeKey', () => {
+	it('changes when the rendered language changes', () => {
+		const english = buildRuntimeDecisionDedupeKey({
+			tenantId: 'ins_123',
+			fingerprint: 'a'.repeat(64),
+			matchedBy: 'country',
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+			language: 'en',
+		});
+		const german = buildRuntimeDecisionDedupeKey({
+			tenantId: 'ins_123',
+			fingerprint: 'a'.repeat(64),
+			matchedBy: 'country',
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+			language: 'de',
+		});
+
+		expect(english).not.toBe(german);
+	});
+
+	it('stays stable for the same rendered language', () => {
+		const first = buildRuntimeDecisionDedupeKey({
+			tenantId: 'ins_123',
+			fingerprint: 'a'.repeat(64),
+			matchedBy: 'country',
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+			language: 'en',
+		});
+		const second = buildRuntimeDecisionDedupeKey({
+			tenantId: 'ins_123',
+			fingerprint: 'a'.repeat(64),
+			matchedBy: 'country',
+			countryCode: 'DE',
+			regionCode: null,
+			jurisdiction: 'GDPR',
+			language: 'en',
+		});
+
+		expect(first).toBe(second);
+	});
+});
 
 describe('postSubjectHandler idempotency', () => {
 	afterEach(() => {
@@ -290,5 +365,369 @@ describe('postSubjectHandler idempotency', () => {
 		expect(mockMetrics.recordConsentCreated).not.toHaveBeenCalled();
 		expect(mockMetrics.recordConsentAccepted).not.toHaveBeenCalled();
 		expect(mockMetrics.recordConsentRejected).not.toHaveBeenCalled();
+	});
+});
+
+describe('postSubjectHandler policy purpose enforcement', () => {
+	afterEach(() => {
+		vi.clearAllMocks();
+		vi.restoreAllMocks();
+	});
+
+	it('rejects preferences that include disallowed categories', async () => {
+		vi.mocked(resolvePolicyDecision).mockResolvedValue({
+			policy: {
+				id: 'policy_restrictive',
+				model: 'opt-in',
+				consent: { scopeMode: 'strict', categories: ['measurement'] },
+			},
+			matchedBy: 'country',
+			fingerprint: 'a'.repeat(64),
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			preferences: {
+				measurement: true,
+				marketing: true,
+			},
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 400,
+			message: 'Preferences include categories not allowed by policy',
+		});
+
+		expect(registry.findOrCreateConsentPurposeByCode).not.toHaveBeenCalled();
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('passes top-level iabEnabled into write-time policy resolution', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.iab = { enabled: false };
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(resolvePolicyDecision).toHaveBeenCalledWith(
+			expect.objectContaining({
+				iabEnabled: false,
+			})
+		);
+	});
+
+	it('rejects /subjects writes when policy resolution fails IAB validation', async () => {
+		vi.mocked(resolvePolicyDecision).mockRejectedValueOnce(
+			new Error(
+				'Policies using consent.model="iab" require top-level iab.enabled=true'
+			)
+		);
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.iab = { enabled: false };
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 500,
+		});
+
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('ignores out-of-scope categories when scopeMode is permissive', async () => {
+		vi.mocked(resolvePolicyDecision).mockResolvedValue({
+			policy: {
+				id: 'policy_unmanaged',
+				model: 'opt-in',
+				consent: { scopeMode: 'permissive', categories: ['measurement'] },
+			},
+			matchedBy: 'country',
+			fingerprint: 'u'.repeat(64),
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		registry.findOrCreateConsentPurposeByCode = vi
+			.fn()
+			.mockImplementation(async (code: string) => ({ id: `pur_${code}` }));
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			preferences: {
+				measurement: true,
+				marketing: true,
+			},
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledTimes(1);
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledWith(
+			'measurement'
+		);
+		expect(db.transaction).toHaveBeenCalled();
+		expect(
+			(
+				mockCtx.getJsonData() as {
+					appliedPreferences?: Record<string, boolean>;
+				}
+			).appliedPreferences
+		).toEqual({
+			measurement: true,
+		});
+	});
+
+	it('allows all purposes when policy uses wildcard scope', async () => {
+		vi.mocked(resolvePolicyDecision).mockResolvedValue({
+			policy: {
+				id: 'policy_iab',
+				model: 'iab',
+				consent: { categories: ['*'] },
+			},
+			matchedBy: 'country',
+			fingerprint: 'b'.repeat(64),
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		registry.findOrCreateConsentPurposeByCode = vi
+			.fn()
+			.mockImplementation(async (code: string) => ({ id: `pur_${code}` }));
+
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			preferences: {
+				measurement: true,
+				marketing: true,
+				functionality: false,
+			},
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledTimes(2);
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledWith(
+			'measurement'
+		);
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledWith(
+			'marketing'
+		);
+		expect(db.transaction).toHaveBeenCalled();
+	});
+
+	it('prioritizes valid snapshot wildcard scope over restrictive write-time policy', async () => {
+		vi.mocked(resolvePolicyDecision).mockRejectedValue(
+			new Error(
+				'Policies using consent.model="iab" require top-level iab.enabled=true'
+			)
+		);
+		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue({
+			iss: 'c15t',
+			aud: 'c15t-policy-snapshot',
+			sub: 'policy_iab_snapshot',
+			policyId: 'policy_iab_snapshot',
+			fingerprint: 'd'.repeat(64),
+			matchedBy: 'country',
+			country: 'FR',
+			region: null,
+			jurisdiction: 'GDPR',
+			model: 'iab',
+			categories: ['*'],
+			iat: 1,
+			exp: 9_999_999_999,
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		registry.findOrCreateConsentPurposeByCode = vi
+			.fn()
+			.mockImplementation(async (code: string) => ({ id: `pur_${code}` }));
+
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			preferences: {
+				measurement: true,
+				marketing: true,
+			},
+			policySnapshotToken: 'snapshot-token',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(db.transaction).toHaveBeenCalled();
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledTimes(2);
+		expect(resolvePolicyDecision).not.toHaveBeenCalled();
+	});
+
+	it('persists runtime policy i18n and preselected categories from write-time fallback', async () => {
+		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue(null);
+		vi.mocked(resolvePolicyDecision).mockResolvedValue({
+			policy: {
+				id: 'policy_localized',
+				model: 'opt-in',
+				i18n: {
+					language: 'en',
+					messageProfile: 'us_ca',
+				},
+				consent: {
+					categories: ['measurement', 'marketing'],
+					preselectedCategories: ['measurement'],
+				},
+				proof: {
+					storeIp: true,
+					storeUserAgent: true,
+					storeLanguage: false,
+				},
+			},
+			matchedBy: 'country',
+			fingerprint: 'e'.repeat(64),
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.raw = new Request('https://c15t.local/subjects', {
+			headers: {
+				'accept-language': 'en-US',
+			},
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'runtimePolicyDecision',
+			expect.objectContaining({
+				language: 'en',
+				policyI18n: {
+					json: {
+						language: 'en',
+						messageProfile: 'us_ca',
+					},
+				},
+				preselectedCategories: {
+					json: ['measurement'],
+				},
+			})
+		);
+	});
+
+	it('persists runtime policy i18n and preselected categories from a valid snapshot', async () => {
+		vi.mocked(resolvePolicyDecision).mockResolvedValue({
+			policy: {
+				id: 'policy_restrictive',
+				model: 'opt-in',
+				consent: { categories: ['measurement'] },
+			},
+			matchedBy: 'country',
+			fingerprint: 'f'.repeat(64),
+		});
+		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue({
+			iss: 'c15t',
+			aud: 'c15t-policy-snapshot',
+			sub: 'policy_snapshot_localized',
+			policyId: 'policy_snapshot_localized',
+			fingerprint: 'g'.repeat(64),
+			matchedBy: 'country',
+			country: 'FR',
+			region: null,
+			jurisdiction: 'GDPR',
+			language: 'fr',
+			model: 'opt-in',
+			policyI18n: {
+				language: 'fr',
+				messageProfile: 'fr',
+			},
+			categories: ['measurement', 'marketing'],
+			preselectedCategories: ['measurement'],
+			iat: 1,
+			exp: 9_999_999_999,
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.policySnapshot = { signingKey: 'test-signing-key' };
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			policySnapshotToken: 'snapshot-token',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'runtimePolicyDecision',
+			expect.objectContaining({
+				language: 'fr',
+				bannerUi: undefined,
+				policyI18n: {
+					json: {
+						language: 'fr',
+						messageProfile: 'fr',
+					},
+				},
+				preselectedCategories: {
+					json: ['measurement'],
+				},
+			})
+		);
+	});
+
+	it('persists runtime policy scrollLock in audit records', async () => {
+		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue(null);
+		vi.mocked(resolvePolicyDecision).mockResolvedValue({
+			policy: {
+				id: 'policy_scroll_lock',
+				model: 'opt-in',
+				ui: {
+					mode: 'banner',
+					banner: {
+						scrollLock: true,
+					},
+					dialog: {
+						scrollLock: false,
+					},
+				},
+			},
+			matchedBy: 'country',
+			fingerprint: 'h'.repeat(64),
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'runtimePolicyDecision',
+			expect.objectContaining({
+				bannerUi: {
+					json: {
+						scrollLock: true,
+					},
+				},
+				dialogUi: {
+					json: {
+						scrollLock: false,
+					},
+				},
+			})
+		);
 	});
 });

@@ -3,7 +3,7 @@
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 import * as Button from '~/components/shared/ui/button';
-import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useHeadlessIABConsentUI } from '~/hooks/use-headless-iab-consent-ui';
 import { useStyles } from '~/hooks/use-styles';
 import { useGVLData } from '../hooks/use-gvl-data';
 import { useIABTranslations } from '../use-iab-translations';
@@ -24,25 +24,20 @@ const IABConsentDialogFooter = forwardRef<
 	HTMLDivElement,
 	IABConsentDialogFooterProps
 >(({ children, className, ...props }, ref) => {
-	const { iab: iabState, setActiveUI } = useConsentManager();
+	const { performDialogAction } = useHeadlessIABConsentUI();
 	const iabTranslations = useIABTranslations();
 	const { isLoading } = useGVLData();
 
 	const handleAcceptAll = () => {
-		iabState?.acceptAll();
-		iabState?.save();
-		setActiveUI('none');
+		void performDialogAction('accept');
 	};
 
 	const handleRejectAll = () => {
-		iabState?.rejectAll();
-		iabState?.save();
-		setActiveUI('none');
+		void performDialogAction('reject');
 	};
 
 	const handleSave = () => {
-		iabState?.save();
-		setActiveUI('none');
+		void performDialogAction('customize');
 	};
 
 	const themedStyle = useStyles('iabConsentDialogFooter', {

@@ -39,3 +39,61 @@ export {
 	nonIABVendorConsentSchema,
 	nonIABVendorSchema,
 } from './non-iab-vendor';
+export {
+	type PolicyDefaults,
+	policyDefaults,
+} from './policy-defaults';
+export {
+	createDeterministicFingerprint,
+	createDeterministicFingerprintSync,
+	createMaterialPolicyFingerprint,
+	createPolicyFingerprint,
+	hashSha256Hex,
+	stableStringify,
+} from './policy-fingerprint';
+export {
+	type EuropePolicyMode,
+	type PolicyPackPresets,
+	policyPackPresets,
+} from './policy-pack-defaults';
+export {
+	EEA_COUNTRY_CODES,
+	EU_COUNTRY_CODES,
+	type FingerprintHashStrategy,
+	inspectPolicies,
+	POLICY_MATCH_DATASET_VERSION,
+	type PolicyConfig,
+	type PolicyMatch,
+	type PolicyMatchedBy,
+	type PolicyModel,
+	type PolicyPack,
+	type PolicyScopeMode,
+	type PolicyUiAction,
+	type PolicyUiActionLayout,
+	type PolicyUiMode,
+	type PolicyUiProfile,
+	type PolicyUiSurfaceConfig,
+	type PolicyValidationResult,
+	policyMatchers,
+	type ResolvedPolicyDecision,
+	resolvePolicyDecision,
+	UK_COUNTRY_CODES,
+	validatePolicies,
+} from './policy-runtime';
+export {
+	policyConfigArraySchema,
+	policyConfigSchema,
+	policyModelSchema,
+	policyScopeModeSchema,
+	policyUiActionLayoutSchema,
+	policyUiActionSchema,
+	policyUiModeSchema,
+	policyUiProfileSchema,
+	policyUiSurfaceConfigSchema,
+} from './policy-schema';
+export {
+	compactDefined,
+	dedupeDefinedValues,
+	dedupeTrimmedStrings,
+	hasRealPolicyUiHints,
+} from './policy-utils';

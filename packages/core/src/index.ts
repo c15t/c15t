@@ -5,9 +5,11 @@
  * GDPR-compliant consent management.
  */
 
+export { policyPackPresets } from '@c15t/schema';
 // Export schema types directly for new code
 export type {
 	Branding,
+	EuropePolicyMode,
 	GetSubjectInput,
 	GetSubjectOutput,
 	GlobalVendorList,
@@ -17,6 +19,8 @@ export type {
 	ListSubjectsQuery,
 	PatchSubjectFullInput,
 	PatchSubjectOutput,
+	PolicyConfig,
+	PolicyPackPresets,
 	PostSubjectInput,
 	PostSubjectOutput,
 } from '@c15t/schema/types';
@@ -61,7 +65,7 @@ export {
 	generateSubjectId,
 	isValidSubjectId,
 } from './libs/generate-subject-id';
-export type { HasCondition } from './libs/has';
+export type { HasCondition, HasOptions } from './libs/has';
 export { has } from './libs/has';
 export type { IABConfig } from './libs/iab-tcf/types';
 export {
@@ -70,6 +74,14 @@ export {
 	type IframeBlockerConfig,
 } from './libs/iframe-blocker';
 export type { NetworkBlockerConfig } from './libs/network-blocker';
+export {
+	applyPolicyScopeForRuntimeGating,
+	filterConsentCategoriesByPolicy,
+	getEffectivePolicy,
+	type PolicyUIState,
+	type PolicyValidationIssue,
+	validateUIAgainstPolicy,
+} from './libs/policy';
 // Export script loader
 export {
 	getLoadedScriptIds,
@@ -91,7 +103,16 @@ export { createConsentManagerStore } from './store';
 export type {
 	ActiveUI,
 	ConsentStoreState,
+	InitDataSource,
+	OfflinePolicyConfig,
+	PolicyScopeMode,
+	PolicySurfaceState,
+	PolicyUiAction,
+	PolicyUiActionLayout,
+	PolicyUiProfile,
+	PolicyUiSurfaceConfig,
 	SSRInitialData,
+	SSRInitRequestMetadata,
 	StoreOptions,
 } from './store/type';
 // Export default translation config

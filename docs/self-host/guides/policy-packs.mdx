@@ -1,0 +1,396 @@
+---
+title: Policy Packs
+description: Configure regional policy packs on the backend and return deterministic runtime policy decisions from /init.
+---
+
+Policy packs are the backend source of truth for regional consent behavior. You pass them to `c15tInstance({ policyPacks })`, and c15t resolves a normalized runtime policy for each `/init` request based on the visitor's location.
+
+## Why Backend Packs
+
+- Resolve policies from real request geo data (country/region) — no client-side guessing
+- Centralize consent behavior for all clients (web, mobile, SDK)
+- Issue signed `policySnapshotToken` values so later consent writes stay aligned with the original decision
+- Return explainability metadata (`policyDecision`) for audit and debugging
+- Keep frontend packages thin by pushing legal/regional logic to one place
+
+## Quickstart
+
+```ts title="lib/c15t.ts"
+import { c15tInstance, policyPackPresets } from '@c15t/backend';
+
+export const c15t = c15tInstance({
+  adapter,
+  trustedOrigins: ['https://app.example.com'],
+  policyPacks: [
+    policyPackPresets.europeOptIn(),
+    policyPackPresets.californiaOptOut(),
+    policyPackPresets.worldNoBanner(),
+  ],
+});
+```
+
+That gives you Europe opt-in, California opt-out, and silent everywhere else — with zero custom config.
+
+## Custom Pack
+
+For full control, define your own policies:
+
+```ts title="lib/c15t.ts"
+import {
+  c15tInstance,
+  EEA_COUNTRY_CODES,
+  policyBuilder,
+  UK_COUNTRY_CODES,
+} from '@c15t/backend';
+
+export const c15t = c15tInstance({
+  adapter,
+  trustedOrigins: ['https://app.example.com'],
+  policyPacks: policyBuilder.createPackWithDefault(
+    [
+      {
+        id: 'eu_opt_in',
+        countries: [...EEA_COUNTRY_CODES, ...UK_COUNTRY_CODES],
+        model: 'opt-in',
+        expiryDays: 365,
+        scopeMode: 'strict',
+        categories: ['necessary', 'measurement', 'marketing'],
+        preselectedCategories: ['necessary'],
+        uiMode: 'banner',
+        banner: {
+          allowedActions: ['accept', 'reject', 'customize'],
+          primaryAction: 'customize',
+          uiProfile: 'compact',
+        },
+        dialog: {
+          allowedActions: ['accept', 'reject', 'customize'],
+        },
+        i18n: { messageProfile: 'eu' },
+        proof: { storeIp: true, storeUserAgent: true, storeLanguage: true },
+      },
+      {
+        id: 'ca_opt_out',
+        regions: [{ country: 'US', region: 'CA' }],
+        model: 'opt-out',
+        expiryDays: 365,
+        uiMode: 'none',
+      },
+    ],
+    {
+      id: 'default_world',
+      model: 'none',
+      uiMode: 'none',
+    }
+  ),
+});
+```
+
+## Builder Helpers
+
+The backend exports three helpers for assembling packs:
+
+| Helper | Purpose |
+|--------|---------|
+| `policyBuilder.create()` | Build a single `PolicyConfig` |
+| `policyBuilder.createPack()` | Build an ordered array of policies |
+| `policyBuilder.createPackWithDefault()` | Build a pack with a guaranteed default fallback |
+
+The builder normalizes matcher input into the `PolicyConfig` shape and strips empty fields from the final payload. You can also use the raw `PolicyConfig` objects directly — the builder is a convenience, not a requirement.
+
+## Resolution Flow
+
+<Tabs items={['Simplified', 'Sequence Diagram']}>
+  <Tab value="Simplified">
+    1. **`GET /init` arrives** — c15t reads geo from request headers (country, region, jurisdiction)
+    2. **Resolve policy** — walks the pack in priority order: region → country → fallback (geo failure) → default
+    3. **Compute fingerprint** — generates a stable SHA-256 hash of the resolved policy
+    4. **Sign snapshot** — if `policySnapshot.signingKey` is configured, issues a JWT containing the decision
+    5. **Return response** — sends `policy`, `policyDecision`, and optional `policySnapshotToken` to the client
+    6. **Consent write** — when the user consents, `POST /subjects` validates the snapshot token and creates the consent record linked to the runtime policy decision
+  </Tab>
+
+  <Tab value="Sequence Diagram">
+    ```mermaid
+    sequenceDiagram
+        participant Client as Client
+        participant Init as GET /init
+        participant Resolver as Policy Resolver
+        participant DB as Database
+        participant Subjects as POST /subjects
+
+        Client->>Init: Request (geo headers)
+        Init->>Resolver: resolvePolicyDecision(pack, geo)
+        Resolver-->>Init: ResolvedPolicy + fingerprint
+
+        opt policySnapshot.signingKey configured
+            Init->>Init: Sign JWT (policySnapshotToken)
+        end
+
+        Init-->>Client: policy + policyDecision + token
+
+        Note over Client: User interacts with consent UI
+
+        Client->>Subjects: Consent + policySnapshotToken
+        Subjects->>Subjects: Verify JWT signature + expiry
+
+        alt Valid snapshot token
+            Subjects->>Subjects: Use token's policy decision
+        else Invalid or missing token
+            Subjects->>Resolver: Write-time resolvePolicyDecision()
+        end
+
+        Subjects->>DB: findOrCreate runtimePolicyDecision (deduped)
+        Subjects->>DB: Create consent record
+        Subjects-->>Client: Consent response
+    ```
+  </Tab>
+</Tabs>
+
+## Matching Rules
+
+Backend resolution order is fixed:
+
+1. **Region** — most specific (e.g., US-CA, CA-QC)
+2. **Country** — (e.g., US, DE, JP)
+3. **Fallback** — safety net when geo-location fails (no country detected). Only checked when `countryCode` is `null`.
+4. **Default** — catch-all for known locations that don't match any specific policy
+
+Within the same matcher type, first match wins by array order. c15t also enforces:
+
+- Unique policy IDs
+- At most one default policy
+- At most one fallback policy
+- `iab.enabled: true` when any policy uses `model: 'iab'`
+- No custom `ui.*` overrides for IAB policies
+
+Use `inspectPolicies()` to surface overlapping matchers and other warnings before deployment.
+
+## Validating Your Pack
+
+`inspectPolicies()` checks your policy pack for errors and warnings before deployment:
+
+```ts title="scripts/validate-policies.ts"
+import { inspectPolicies, policyPackPresets } from '@c15t/backend';
+
+const pack = [
+  policyPackPresets.europeOptIn(),
+  policyPackPresets.californiaOptOut(),
+  policyPackPresets.worldNoBanner(),
+];
+
+const result = inspectPolicies(pack, { iabEnabled: false });
+
+if (result.errors.length > 0) {
+  console.error('Policy errors:', result.errors);
+  process.exit(1);
+}
+
+if (result.warnings.length > 0) {
+  console.warn('Policy warnings:', result.warnings);
+}
+```
+
+Common errors caught:
+
+- Multiple default policies
+- Multiple fallback policies
+- IAB policies without `iab.enabled: true`
+- IAB policies with custom `ui.*` overrides or `preselectedCategories`
+- Duplicate or missing policy IDs
+- Policies with no matchers and not marked as default or fallback
+
+Common warnings:
+
+- No default policy configured
+- No fallback policy configured (geo-location failures will have no active policy)
+- Overlapping country or region matchers across policies
+
+## Translation Profiles
+
+Policies integrate with backend i18n profiles through `i18n.messageProfile`:
+
+```ts
+const c15t = c15tInstance({
+  adapter,
+  trustedOrigins: ['https://app.example.com'],
+  i18n: {
+    defaultProfile: 'default',
+    messages: {
+      default: {
+        translations: {
+          en: { cookieBanner: { title: 'We use cookies' } },
+        },
+      },
+      eu: {
+        translations: {
+          en: { cookieBanner: { title: 'We use cookies for consented purposes only' } },
+          de: { cookieBanner: { title: 'Wir verwenden Cookies nur für genehmigte Zwecke' } },
+        },
+      },
+    },
+  },
+  policyPacks: [
+    {
+      id: 'eu',
+      match: { countries: ['DE', 'FR', 'IT'] },
+      consent: { model: 'opt-in' },
+      i18n: { messageProfile: 'eu' },
+      ui: { mode: 'banner' },
+    },
+  ],
+});
+```
+
+`i18n.language` can also force a concrete language for a policy when needed.
+
+When `i18n.messages` is configured, c15t keeps language selection inside the
+languages defined for the active `messageProfile`.
+Built-in translations still provide the base strings for the selected language,
+but they no longer introduce additional locales beyond the ones you configured.
+
+This means `messageProfile` controls both:
+
+1. the policy-specific wording
+2. the allowed language set for that policy
+
+`defaultProfile` is only used when a policy does not set `messageProfile`.
+Each profile can optionally define its own `fallbackLanguage` for unsupported
+browser locales. If omitted, c15t falls back to English when available,
+otherwise to the first configured language in that profile.
+
+For example:
+
+```ts
+i18n: {
+  defaultProfile: 'default',
+  messages: {
+    default: {
+      translations: {
+        en: { cookieBanner: { title: 'Privacy choices' } },
+        es: { cookieBanner: { title: 'Tus opciones de privacidad' } },
+        pt: { cookieBanner: { title: 'As suas escolhas de privacidade' } },
+      },
+    },
+    eu: {
+      fallbackLanguage: 'en',
+      translations: {
+        en: { cookieBanner: { title: 'EU GDPR Consent' } },
+        fr: { cookieBanner: { title: 'Consentement RGPD' } },
+        de: { cookieBanner: { title: 'GDPR-Einwilligung' } },
+      },
+    },
+  },
+}
+```
+
+For a policy with `i18n: { messageProfile: 'eu' }`, visitors can resolve to
+`en`, `fr`, or `de`, but not to `es`, `pt`, or an unconfigured locale like
+`zh`. If the browser asks for `zh`, c15t falls back to the `eu` profile's
+`fallbackLanguage`, which would be `en` in this example.
+
+## Snapshot Tokens
+
+When `policySnapshot.signingKey` is configured, `/init` returns a signed JWT alongside the resolved policy. The token contains the full policy decision metadata (fingerprint, matched geo, consent model) and is validated on `POST /subjects` to ensure the consent write matches the original `/init` decision.
+
+```ts
+const c15t = c15tInstance({
+  adapter,
+  trustedOrigins: ['https://app.example.com'],
+  policySnapshot: {
+    signingKey: process.env.POLICY_SNAPSHOT_KEY,
+    ttlSeconds: 1800, // 30 minutes (default)
+  },
+  policyPacks: [...],
+});
+```
+
+This prevents race conditions where the policy pack changes between `/init` and the consent write.
+
+## Global Privacy Control (GPC)
+
+Each policy can opt in to respecting the [Global Privacy Control](https://globalprivacycontrol.org/) signal via `consent.gpc`:
+
+```ts
+{
+  id: 'california',
+  match: { regions: [{ country: 'US', region: 'CA' }] },
+  consent: { model: 'opt-out', gpc: true },
+}
+```
+
+When `gpc: true` and the visitor's browser sends a GPC signal (`Sec-GPC: 1`), `marketing` and `measurement` categories are automatically denied during auto-granting — honoring the user's opt-out preference.
+
+When `gpc` is `false` or omitted, the GPC signal is ignored for that policy. This is the right default for GDPR policies where consent is already opt-in and GPC is redundant.
+
+The `californiaOptIn()` and `californiaOptOut()` presets set `gpc: true` by default. The Europe presets omit it.
+
+## Scope Mode
+
+Each policy can set `consent.scopeMode` to control how out-of-scope categories are handled:
+
+- **`strict`** — categories not listed in the policy's `consent.categories` are rejected. Use this for GDPR where only explicitly scoped categories should be collected.
+- **`permissive`** — categories not listed in the policy are allowed through. Use this for regions with lighter requirements where you don't want to block unrecognized categories.
+
+```ts
+{
+  id: 'eu',
+  match: { countries: ['DE'] },
+  consent: {
+    model: 'opt-in',
+    scopeMode: 'strict',
+    categories: ['necessary', 'measurement', 'marketing'],
+  },
+}
+```
+
+When omitted, scope mode defaults to `permissive`.
+
+## Fallback Matcher
+
+The `match.fallback` flag provides a safety net when geo-location fails — when CDN headers are missing and `countryCode` is `null`. This is distinct from `match.isDefault`:
+
+- **`isDefault`** — catch-all for **known** locations that don't match any specific policy ("rest of world")
+- **`fallback`** — safety net for **unknown** locations when geo fails ("assume strictest")
+
+```ts
+{
+  id: 'strict_fallback',
+  match: { fallback: true, countries: [...EEA_COUNTRY_CODES] },
+  consent: { model: 'opt-in' },
+  ui: { mode: 'banner' },
+}
+```
+
+The fallback is only checked when `countryCode` is `null`. When geo works normally, resolution skips fallback entirely and uses the standard region → country → default flow.
+
+The `europeOptIn()` and `europeIab()` presets include `fallback: true` by default, so EU-level consent applies automatically when geo headers are missing or when `disableGeoLocation` is enabled.
+
+<Callout type="info">
+  At most one fallback policy is allowed. Use `inspectPolicies()` to verify — it warns when no fallback is configured and errors when multiple are defined.
+</Callout>
+
+## Edge Cases
+
+| Configuration | Result |
+|--------------|--------|
+| `policyPacks` omitted | **Deprecated** — legacy mode with no runtime policy in `/init` response. Will require `policyPacks` in 2.0 GA. |
+| `policyPacks: []` | Explicit no-banner mode |
+| Non-empty pack, no match, no default | Implicit no-banner mode |
+
+<Callout type="warning">
+  Omitting `policyPacks` entirely is deprecated and will be removed in 2.0 GA. Set `policyPacks: []` explicitly if you want no-banner behavior.
+</Callout>
+
+For most production deployments, include both a default and a fallback policy so all traffic resolves deterministically.
+
+## Frontend Alignment
+
+If you also use offline previews on the frontend:
+
+- Keep the backend pack canonical — it resolves from real geo data
+- Mirror it in frontend `offlinePolicy.policyPacks` only for local development, tests, or static demos
+- Validate the frontend preview against a real `/init` response before shipping
+
+<Callout type="info">
+  Frontend usage is documented in the [React guide](/docs/frameworks/react/policy-packs), [Next.js guide](/docs/frameworks/next/policy-packs), and [JavaScript guide](/docs/frameworks/javascript/policy-packs).
+</Callout>

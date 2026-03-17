@@ -30,6 +30,10 @@ export default defineConfig({
 		target: 'web',
 		cleanDistPath: true,
 	},
+	performance: {
+		// Temporary workaround for rspack persistent-cache panics in local builds.
+		buildCache: false,
+	},
 	plugins: [pluginReact()],
 	tools: {
 		rspack: {

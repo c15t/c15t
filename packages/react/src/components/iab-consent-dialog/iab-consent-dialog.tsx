@@ -28,6 +28,7 @@ import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
+import { useHeadlessIABConsentUI } from '~/hooks/use-headless-iab-consent-ui';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import { IABConsentDialogOverlay } from './atoms/overlay';
@@ -126,7 +127,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	open,
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
-	scrollLock: localScrollLock = true,
+	scrollLock: localScrollLock,
 	trapFocus: localTrapFocus = true,
 	hideBranding,
 	showTrigger = false,
@@ -137,10 +138,13 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const {
 		iab: iabState,
 		activeUI,
-		setActiveUI,
+		policyDialog,
 		translationConfig,
 		model,
 	} = useConsentManager();
+	const { closeUI, openDialog, performDialogAction } =
+		useHeadlessIABConsentUI();
+	const resolvedScrollLock = localScrollLock ?? policyDialog.scrollLock ?? true;
 
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 	const cardRef = useRef<HTMLDivElement>(null);
@@ -163,7 +167,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const config = useComponentConfig({
 		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
-		scrollLock: localScrollLock,
+		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
 
@@ -479,30 +483,25 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	);
 
 	const handleAcceptAll = () => {
-		iabState?.acceptAll();
-		iabState?.save();
-		setActiveUI('none');
+		void performDialogAction('accept');
 	};
 
 	const handleRejectAll = () => {
-		iabState?.rejectAll();
-		iabState?.save();
-		setActiveUI('none');
+		void performDialogAction('reject');
 	};
 
 	const handleSave = () => {
-		iabState?.save();
-		setActiveUI('none');
+		void performDialogAction('customize');
 	};
 
 	const handleClose = () => {
-		setActiveUI('none');
+		closeUI();
 	};
 
 	const handleVendorClick = (vendorId: VendorId) => {
 		setSelectedVendorId(vendorId);
 		setActiveTab('vendors');
-		iabState?.setPreferenceCenterTab('vendors');
+		openDialog({ tab: 'vendors' });
 	};
 
 	// Focus trap
@@ -623,9 +622,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 				previousHeightRef.current = contentRef.current.offsetHeight;
 			}
 			setActiveTab(tab);
-			iabState?.setPreferenceCenterTab(tab);
+			openDialog({ tab });
 		},
-		[iabState]
+		[openDialog]
 	);
 
 	// Don't render if not mounted, no IAB state, or IAB is disabled (e.g., server returned null GVL)

@@ -46,6 +46,8 @@ export const translations: CompleteTranslations = {
 	frame: {
 		title: 'Derbyn caniatâd {category} i weld y cynnwys hwn.',
 		actionButton: 'Galluogi caniatâd {category}',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Polisi preifatrwydd',

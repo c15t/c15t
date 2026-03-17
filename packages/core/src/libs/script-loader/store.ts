@@ -1,6 +1,6 @@
 import type { ConsentStoreState } from '../../store/type';
-import type { AllConsentNames } from '../../types';
 import { extractConsentNamesFromCondition } from '../has';
+import { applyPolicyScopeForRuntimeGating } from '../policy';
 import {
 	getLoadedScriptIds,
 	isScriptLoaded,
@@ -34,7 +34,15 @@ export function createScriptManager(
 	setState: (partial: Partial<ConsentStoreState>) => void
 ) {
 	const updateScriptsFn = () => {
-		const { scripts, consents, scriptIdMap, model, iab } = getState();
+		const {
+			scripts,
+			consents,
+			scriptIdMap,
+			model,
+			iab,
+			policyCategories,
+			policyScopeMode,
+		} = getState();
 		const iabConsent = iab?.config.enabled
 			? {
 					vendorConsents: iab.vendorConsents,
@@ -45,7 +53,13 @@ export function createScriptManager(
 				}
 			: undefined;
 
-		const result = updateScripts(scripts, consents, scriptIdMap, {
+		const runtimeConsents = applyPolicyScopeForRuntimeGating(
+			consents,
+			policyCategories,
+			policyScopeMode
+		);
+
+		const result = updateScripts(scripts, runtimeConsents, scriptIdMap, {
 			model,
 			iabConsent,
 		});
@@ -98,17 +112,11 @@ export function createScriptManager(
 				extractConsentNamesFromCondition(script.category)
 			);
 
-			const allCategoriesSet = new Set<AllConsentNames>([
-				...state.consentCategories,
-				...newCategories,
-			]);
-			const allCategories = Array.from(allCategoriesSet);
-
 			setState({
 				scripts: [...state.scripts, ...scripts],
 				scriptIdMap: newScriptIdMap,
-				consentCategories: allCategories,
 			});
+			getState().updateConsentCategories(newCategories);
 
 			updateScriptsFn();
 		},
@@ -159,11 +167,29 @@ export function createScriptManager(
 		 */
 		reloadScript: (scriptId: string) => {
 			const state = getState();
+			const iabConsent = state.iab?.config.enabled
+				? {
+						vendorConsents: state.iab.vendorConsents,
+						vendorLegitimateInterests: state.iab.vendorLegitimateInterests,
+						purposeConsents: state.iab.purposeConsents,
+						purposeLegitimateInterests: state.iab.purposeLegitimateInterests,
+						specialFeatureOptIns: state.iab.specialFeatureOptIns,
+					}
+				: undefined;
+			const runtimeConsents = applyPolicyScopeForRuntimeGating(
+				state.consents,
+				state.policyCategories,
+				state.policyScopeMode
+			);
 			return reloadScript(
 				scriptId,
 				state.scripts,
-				state.consents,
-				state.scriptIdMap
+				runtimeConsents,
+				state.scriptIdMap,
+				{
+					model: state.model,
+					iabConsent,
+				}
 			);
 		},
 

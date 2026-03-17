@@ -3,6 +3,11 @@ import { extractRelevantHeaders } from './headers';
 import { normalizeBackendURL } from './normalize-url';
 import type { FetchSSRDataOptions } from './types';
 
+interface SSRFetchResult {
+	init?: InitOutput;
+	metadata?: SSRInitialData['metadata'];
+}
+
 /**
  * Performs the init fetch request.
  * All async work (header resolution) should be done before calling this.
@@ -12,28 +17,47 @@ function performInitFetch(
 	normalizedURL: string,
 	relevantHeaders: Record<string, string>,
 	debug?: boolean
-): Promise<InitOutput | undefined> {
-	const startTime = debug ? performance.now() : 0;
+): Promise<SSRFetchResult> {
+	const startTime = getNowMs();
 
 	return fetch(`${normalizedURL}/init`, {
 		method: 'GET',
 		headers: relevantHeaders,
 	})
 		.then((response) => {
+			const requestDurationMs = Math.max(0, Math.round(getNowMs() - startTime));
+			const cache = inspectCacheHeaders(response.headers);
+			const metadata: SSRInitialData['metadata'] = {
+				requestDurationMs,
+				cache,
+			};
+
 			if (response.ok) {
-				return response.json() as Promise<InitOutput>;
+				return response.json().then((init) => ({
+					init: init as InitOutput,
+					metadata,
+				}));
 			}
 			if (debug) {
 				console.log(
 					`[c15t/server] SSR fetch failed with status: ${response.status}`
 				);
+				if (cache.detail) {
+					console.log(`[c15t/server] SSR cache status: ${cache.detail}`);
+				}
 			}
-			return undefined;
+			return { metadata };
 		})
-		.then((result) => {
-			if (debug && result) {
-				const elapsed = Math.round(performance.now() - startTime);
-				console.log(`[c15t/server] SSR fetch succeeded in ${elapsed}ms`);
+		.then((result: SSRFetchResult) => {
+			if (debug && result.init) {
+				console.log(
+					`[c15t/server] SSR fetch succeeded in ${result.metadata?.requestDurationMs ?? 0}ms`
+				);
+				if (result.metadata?.cache?.detail) {
+					console.log(
+						`[c15t/server] SSR cache status: ${result.metadata.cache.detail}`
+					);
+				}
 			}
 			return result;
 		})
@@ -43,8 +67,60 @@ function performInitFetch(
 					error instanceof Error ? error.message : 'Unknown error';
 				console.log(`[c15t/server] SSR fetch error: ${message}`);
 			}
-			return undefined;
+			return {};
 		});
+}
+
+function getNowMs(): number {
+	if (
+		typeof performance !== 'undefined' &&
+		typeof performance.now === 'function'
+	) {
+		return performance.now();
+	}
+	return Date.now();
+}
+
+function inspectCacheHeaders(headers: Headers): {
+	isHit: boolean;
+	detail: string | null;
+} {
+	const cacheHeaders = [
+		'x-vercel-cache',
+		'cf-cache-status',
+		'x-cache',
+		'cache-status',
+	] as const;
+
+	let headerDetail: string | null = null;
+	let headerIndicatesHit = false;
+
+	for (const headerName of cacheHeaders) {
+		const headerValue = headers.get(headerName);
+		if (!headerValue) {
+			continue;
+		}
+
+		headerDetail = `${headerName}=${headerValue}`;
+		headerIndicatesHit = /\b(hit|stale|revalidated|updating)\b/i.test(
+			headerValue
+		);
+		break;
+	}
+
+	const ageHeader = headers.get('age');
+	const ageValue = ageHeader ? Number.parseInt(ageHeader, 10) : Number.NaN;
+	const ageIndicatesCache = Number.isFinite(ageValue) && ageValue > 0;
+	const ageDetail = ageIndicatesCache ? `age=${ageValue}` : null;
+	const detail =
+		headerDetail && ageDetail
+			? `${headerDetail}, ${ageDetail}`
+			: (headerDetail ?? ageDetail);
+
+	return {
+		isHit: headerIndicatesHit || ageIndicatesCache,
+		detail,
+	};
 }
 
 /**
@@ -159,7 +235,8 @@ export async function fetchSSRData(
 	}
 
 	// Fetch init data (GVL is included in response when server has it configured)
-	const init = await performInitFetch(normalizedURL, initHeaders, debug);
+	const initResult = await performInitFetch(normalizedURL, initHeaders, debug);
+	const init = initResult.init;
 
 	if (!init) {
 		if (debug) {
@@ -169,5 +246,5 @@ export async function fetchSSRData(
 	}
 
 	// GVL is now part of the init response
-	return { init, gvl: init.gvl };
+	return { init, gvl: init.gvl, metadata: initResult.metadata };
 }

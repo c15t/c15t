@@ -112,6 +112,38 @@ export function ConsentManagerProvider({
 		return unsubscribe;
 	}, [consentStore]);
 
+	// Keep runtime geo/language overrides in sync even when a cached runtime/store is reused.
+	useEffect(() => {
+		if (!consentStore) {
+			return;
+		}
+
+		const currentOverrides = consentStore.getState().overrides ?? {};
+		const nextOverrides = options.overrides ?? {};
+		const hasDiff =
+			currentOverrides.country !== nextOverrides.country ||
+			currentOverrides.region !== nextOverrides.region ||
+			currentOverrides.language !== nextOverrides.language ||
+			currentOverrides.gpc !== nextOverrides.gpc;
+
+		if (!hasDiff) {
+			return;
+		}
+
+		void consentStore.getState().setOverrides({
+			country: nextOverrides.country,
+			region: nextOverrides.region,
+			language: nextOverrides.language,
+			gpc: nextOverrides.gpc,
+		});
+	}, [
+		consentStore,
+		options.overrides?.country,
+		options.overrides?.region,
+		options.overrides?.language,
+		options.overrides?.gpc,
+	]);
+
 	// Create theme context value
 	const themeContextValue = useMemo(() => {
 		const {

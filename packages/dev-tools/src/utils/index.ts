@@ -3,6 +3,7 @@
  * Shared utility functions
  */
 
+export { formatInitSource } from './init-source';
 export {
 	detectPreferenceTrigger,
 	getPreferenceCenterOpener,

@@ -5,13 +5,33 @@
  */
 
 import { initOutputSchema } from '@c15t/schema';
+import type { ResolvedPolicy } from '@c15t/schema/types';
 import { Hono } from 'hono';
 import { describeRoute, resolver } from 'hono-openapi';
 import { createGVLResolver } from '~/cache/gvl-resolver';
 import { getJurisdiction, getLocation } from '~/handlers/init/geo';
 import { getTranslationsData } from '~/handlers/init/translations';
+import { createPolicySnapshotToken } from '~/handlers/policy/snapshot';
 import type { C15TContext, C15TOptions } from '~/types';
 import { getMetrics } from '~/utils/metrics';
+import { resolvePolicyDecision } from '../handlers/init/policy';
+
+function stripIabTranslations(
+	translations: Record<string, unknown>
+): Record<string, unknown> {
+	const { iab: _iab, ...rest } = translations;
+	return rest;
+}
+
+function resolveNoPolicyFallback(): ResolvedPolicy {
+	return {
+		id: 'no_banner',
+		model: 'none',
+		ui: {
+			mode: 'none',
+		},
+	};
+}
 
 /**
  * Creates the init route handler
@@ -29,7 +49,7 @@ export const createInitRoute = (options: C15TOptions) => {
 - **Location** – User's location (null if geo-location is disabled)
 - **Translations** – Consent manager copy (from \`Accept-Language\` header)
 - **Branding** – Configured branding key
-- **GVL** – Global Vendor List when enabled
+- **GVL** – Global Vendor List when IAB is active for the request
 
 Use for geo-targeted consent banners and regional compliance.`,
 			tags: ['Init'],
@@ -46,6 +66,7 @@ Use for geo-targeted consent banners and regional compliance.`,
 			},
 		}),
 		async (c) => {
+			const ctx = c.get('c15tContext');
 			const request = c.req.raw;
 
 			// Get accept-language header
@@ -54,29 +75,101 @@ Use for geo-targeted consent banners and regional compliance.`,
 			// Get location and jurisdiction
 			const location = await getLocation(request, options);
 			const jurisdiction = getJurisdiction(location, options);
+			const hasExplicitPolicyPack = options.policyPacks !== undefined;
+			const isExplicitEmptyPolicyPack =
+				hasExplicitPolicyPack && (options.policyPacks?.length ?? 0) === 0;
+			const policyDecision = isExplicitEmptyPolicyPack
+				? undefined
+				: await resolvePolicyDecision({
+						policies: options.policyPacks,
+						countryCode: location.countryCode,
+						regionCode: location.regionCode,
+						jurisdiction,
+						iabEnabled: options.iab?.enabled === true,
+					});
+			if (
+				hasExplicitPolicyPack &&
+				!isExplicitEmptyPolicyPack &&
+				!policyDecision
+			) {
+				ctx?.logger?.warn('Policy packs configured but no policy matched', {
+					country: location.countryCode,
+					region: location.regionCode,
+				});
+			}
+			const resolvedPolicy = hasExplicitPolicyPack
+				? (policyDecision?.policy ?? resolveNoPolicyFallback())
+				: undefined;
+			const iabOptions = options.iab;
+			const shouldIncludeIabPayload =
+				iabOptions?.enabled === true &&
+				(!hasExplicitPolicyPack || resolvedPolicy?.model === 'iab');
 
 			// Get translations
 			const translationsResult = getTranslationsData(
 				acceptLanguage,
-				options.customTranslations
+				options.customTranslations,
+				{
+					i18n: options.i18n,
+					policyI18n: resolvedPolicy?.i18n,
+					logger: ctx?.logger,
+				}
 			);
+			const responseTranslations = shouldIncludeIabPayload
+				? translationsResult
+				: {
+						...translationsResult,
+						translations: stripIabTranslations(
+							translationsResult.translations as unknown as Record<
+								string,
+								unknown
+							>
+						),
+					};
 
-			// Get GVL if enabled
+			// Get GVL only when IAB is active for this request
 			let gvl = null;
-			if (options.iab?.enabled) {
+			if (shouldIncludeIabPayload && iabOptions) {
 				const language = translationsResult.language.split('-')[0] || 'en';
 				const gvlResolver = createGVLResolver({
 					appName: options.appName || 'c15t',
-					bundled: options.iab.bundled,
+					bundled: iabOptions.bundled,
 					cacheAdapter: options.cache?.adapter,
-					vendorIds: options.iab.vendorIds,
-					endpoint: options.iab.endpoint,
+					vendorIds: iabOptions.vendorIds,
+					endpoint: iabOptions.endpoint,
 				});
 				gvl = await gvlResolver.get(language);
 			}
 
 			// Get custom vendors if configured
-			const customVendors = options.iab?.customVendors;
+			const customVendors = shouldIncludeIabPayload
+				? iabOptions?.customVendors
+				: undefined;
+			const snapshot = policyDecision
+				? await createPolicySnapshotToken({
+						options: options.policySnapshot,
+						tenantId: options.tenantId,
+						policyId: policyDecision.policy.id,
+						fingerprint: policyDecision.fingerprint,
+						matchedBy: policyDecision.matchedBy,
+						country: location?.countryCode ?? null,
+						region: location?.regionCode ?? null,
+						jurisdiction,
+						language: translationsResult.language,
+						model: policyDecision.policy.model,
+						policyI18n: policyDecision.policy.i18n,
+						expiryDays: policyDecision.policy.consent?.expiryDays,
+						scopeMode: policyDecision.policy.consent?.scopeMode,
+						uiMode: policyDecision.policy.ui?.mode,
+						bannerUi: policyDecision.policy.ui?.banner,
+						dialogUi: policyDecision.policy.ui?.dialog,
+						categories: policyDecision.policy.consent?.categories,
+						preselectedCategories:
+							policyDecision.policy.consent?.preselectedCategories,
+						gpc: policyDecision.policy.consent?.gpc,
+						proofConfig: policyDecision.policy.proof,
+					})
+				: undefined;
 
 			// Record init metric
 			const gpc = request.headers.get('sec-gpc') === '1';
@@ -90,13 +183,32 @@ Use for geo-targeted consent banners and regional compliance.`,
 			return c.json({
 				jurisdiction,
 				location,
-				translations: translationsResult,
+				translations: responseTranslations,
 				branding: options.branding || 'c15t',
-				gvl,
-				customVendors,
-				...(options.iab?.cmpId != null && {
-					cmpId: options.iab.cmpId,
+				...(shouldIncludeIabPayload && {
+					gvl,
+					customVendors,
 				}),
+				...(resolvedPolicy && {
+					policy: resolvedPolicy,
+				}),
+				...(policyDecision && {
+					policyDecision: {
+						policyId: policyDecision.policy.id,
+						fingerprint: policyDecision.fingerprint,
+						matchedBy: policyDecision.matchedBy,
+						country: location.countryCode,
+						region: location.regionCode,
+						jurisdiction,
+					},
+				}),
+				...(snapshot?.token && {
+					policySnapshotToken: snapshot.token,
+				}),
+				...(shouldIncludeIabPayload &&
+					iabOptions?.cmpId != null && {
+						cmpId: iabOptions.cmpId,
+					}),
 			});
 		}
 	);

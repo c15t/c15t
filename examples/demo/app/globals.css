@@ -73,8 +73,8 @@
 
 @theme inline {
 	/* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
-	--font-sans: "Geist", "Geist Fallback";
-	--font-mono: "Geist Mono", "Geist Mono Fallback";
+	--font-sans: var(--font-geist-sans);
+	--font-mono: var(--font-geist-mono);
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
 	--color-card: var(--card);

@@ -7,6 +7,8 @@
  * @packageDocumentation
  */
 
+import type { ResponseContext } from '../../client/types';
+import type { InitDataSource, SSRInitialData } from '../../store/type';
 import { sanitizeSubjectIdentifiers } from '../sanitize-subject-identifiers';
 import {
 	PENDING_CONSENT_SYNC_KEY,
@@ -18,6 +20,11 @@ import { checkLocalStorageAccess } from './utils';
 
 // Re-export types for external use
 export type { ConsentBannerResponse, InitConsentManagerConfig } from './types';
+
+interface InitSourceMetadata {
+	initDataSource: InitDataSource;
+	initDataSourceDetail: string | null;
+}
 
 /**
  * Initializes the consent manager by fetching jurisdiction, location,
@@ -97,7 +104,11 @@ async function tryUseSSRData(
 	const data = await ssrData;
 
 	if (data?.init) {
-		await updateStore(data.init, config, true, data.gvl);
+		const initSourceMetadata = inferSSRInitSourceMetadata(data);
+		await updateStore(data.init, config, true, data.gvl, {
+			initDataSource: initSourceMetadata.initDataSource,
+			initDataSourceDetail: initSourceMetadata.initDataSourceDetail,
+		});
 		set({ ssrDataUsed: true, ssrSkippedReason: null });
 		return data.init;
 	}
@@ -121,13 +132,13 @@ async function fetchFromAPI(
 	manager: InitConsentManagerConfig['manager'],
 	callbacks: ReturnType<InitConsentManagerConfig['get']>['callbacks']
 ): Promise<ConsentBannerResponse | undefined> {
-	const { set } = config;
+	const { set, get } = config;
 
 	try {
 		const { language, country, region } = config.get().overrides ?? {};
 
 		// Fetch init data (GVL is included in response when server has it configured)
-		const { data, error } = await manager.init({
+		const initContext = (await manager.init({
 			headers: {
 				...(language && { 'accept-language': language }),
 				...(country && { 'x-c15t-country': country }),
@@ -140,11 +151,17 @@ async function fetchFromAPI(
 						});
 					}
 				: undefined,
-		});
+		})) as ResponseContext<ConsentBannerResponse>;
+		const { data, error } = initContext;
 
 		if (error || !data) {
 			throw new Error(`Failed to fetch consent banner info: ${error?.message}`);
 		}
+
+		const initSourceMetadata = inferInitSourceMetadata(
+			initContext,
+			get().config.mode
+		);
 
 		// Update store with GVL from response (if available)
 		// If GVL is missing from 200 response, store-updater will override IAB to disabled
@@ -152,7 +169,8 @@ async function fetchFromAPI(
 			data,
 			config,
 			hasLocalStorageAccess,
-			data.gvl ?? undefined
+			data.gvl ?? undefined,
+			initSourceMetadata
 		);
 
 		return data as ConsentBannerResponse;
@@ -169,6 +187,120 @@ async function fetchFromAPI(
 
 		return undefined;
 	}
+}
+
+function inferInitSourceMetadata(
+	initContext: Pick<ResponseContext<ConsentBannerResponse>, 'response'> | null,
+	mode: string
+): InitSourceMetadata {
+	const response = initContext?.response ?? null;
+	if (response) {
+		const cache = inspectBackendCache(response.headers);
+		if (cache.isCacheHit) {
+			return {
+				initDataSource: 'backend-cache-hit',
+				initDataSourceDetail: cache.detail,
+			};
+		}
+		return {
+			initDataSource: 'backend',
+			initDataSourceDetail: cache.detail,
+		};
+	}
+
+	if (mode === 'offline') {
+		return { initDataSource: 'offline-mode', initDataSourceDetail: null };
+	}
+	if (mode === 'custom') {
+		return { initDataSource: 'custom', initDataSourceDetail: null };
+	}
+	if (mode === 'hosted' || mode === 'c15t') {
+		return { initDataSource: 'offline-fallback', initDataSourceDetail: null };
+	}
+
+	return { initDataSource: 'backend', initDataSourceDetail: null };
+}
+
+function inferSSRInitSourceMetadata(data: SSRInitialData): InitSourceMetadata {
+	const cache = data.metadata?.cache;
+	const requestDurationMs = data.metadata?.requestDurationMs;
+	const detailParts: string[] = ['via=ssr'];
+
+	if (cache?.detail) {
+		detailParts.push(cache.detail);
+	}
+	if (
+		typeof requestDurationMs === 'number' &&
+		Number.isFinite(requestDurationMs)
+	) {
+		detailParts.push(
+			`duration=${Math.max(0, Math.round(requestDurationMs))}ms`
+		);
+	}
+
+	const detail = detailParts.length > 0 ? detailParts.join(', ') : null;
+
+	if (cache?.isHit === true) {
+		return {
+			initDataSource: 'backend-cache-hit',
+			initDataSourceDetail: detail,
+		};
+	}
+
+	if (cache) {
+		return {
+			initDataSource: 'backend',
+			initDataSourceDetail: detail,
+		};
+	}
+
+	return {
+		initDataSource: 'ssr',
+		initDataSourceDetail: detail,
+	};
+}
+
+function inspectBackendCache(headers: Headers): {
+	isCacheHit: boolean;
+	detail: string | null;
+} {
+	const cacheHeaders = [
+		'x-vercel-cache',
+		'cf-cache-status',
+		'x-cache',
+		'cache-status',
+	] as const;
+
+	let headerDetail: string | null = null;
+	let headerIndicatesHit = false;
+
+	for (const headerName of cacheHeaders) {
+		const headerValue = headers.get(headerName);
+		if (!headerValue) {
+			continue;
+		}
+
+		headerDetail = `${headerName}=${headerValue}`;
+		headerIndicatesHit = /\b(hit|stale|revalidated|updating)\b/i.test(
+			headerValue
+		);
+		break;
+	}
+
+	const ageHeader = headers.get('age');
+	const ageValue = ageHeader ? Number.parseInt(ageHeader, 10) : Number.NaN;
+	const ageIndicatesCache = Number.isFinite(ageValue) && ageValue > 0;
+	const ageDetail = ageIndicatesCache ? `age=${ageValue}` : null;
+
+	const detail =
+		headerDetail && ageDetail
+			? `${headerDetail}, ${ageDetail}`
+			: (headerDetail ?? ageDetail);
+
+	return {
+		isCacheHit: headerIndicatesHit || ageIndicatesCache,
+		detail,
+	};
 }
 
 /**
@@ -213,6 +345,7 @@ function processPendingConsentSync(
 					jurisdictionModel: data.jurisdictionModel ?? undefined,
 					givenAt: data.givenAt,
 					uiSource: data.uiSource ?? 'api',
+					policySnapshotToken: data.policySnapshotToken,
 					...(externalSubjectId ? { externalSubjectId } : {}),
 					...(identityProvider ? { identityProvider } : {}),
 				},

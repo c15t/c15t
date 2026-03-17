@@ -15,9 +15,11 @@ const { consentStore } = getOrCreateConsentRuntime({
   backendURL: 'https://your-instance.c15t.dev',
 });
 
-// Check the current model
-const { model } = consentStore.getState();
+const { model, policy } = consentStore.getState();
 console.log('Current consent model:', model ?? 'detecting...');
+if (policy) {
+  console.log('From policy:', policy.id);
+}
 
 // React to model changes
 consentStore.subscribe((state, prevState) => {
@@ -31,7 +33,7 @@ consentStore.subscribe((state, prevState) => {
 
 <import src="../../../shared/concepts/consent-models.mdx#jurisdiction-mapping" />
 
-Override the detected jurisdiction for testing or manual configuration:
+Override the detected jurisdiction for testing:
 
 ```ts
 const state = consentStore.getState();
@@ -42,3 +44,7 @@ await state.setOverrides({ country: 'DE' });
 // Test as California visitor
 await state.setOverrides({ country: 'US', region: 'CA' });
 ```
+
+<Callout type="info">
+  For full control over which model applies where — plus UI customization, category scoping, and re-prompting — see [Policy Packs](/docs/frameworks/javascript/concepts/policy-packs).
+</Callout>

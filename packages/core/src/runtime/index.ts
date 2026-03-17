@@ -44,6 +44,9 @@ export type ConsentRuntimeOptions = ConsentManagerOptions &
 		 */
 		translations?: Partial<TranslationConfig>;
 		consentCategories?: AllConsentNames[];
+		/**
+		 * Enables verbose runtime diagnostics.
+		 */
 		debug?: boolean;
 	};
 
@@ -65,6 +68,7 @@ function generateRuntimeCacheKey(options: {
 	storageConfig?: ConsentRuntimeOptions['storageConfig'];
 	defaultLanguage?: string;
 	languageSetKey?: string;
+	offlinePolicyKey?: string;
 	enabled?: boolean;
 }): string {
 	const enabledKey = options.enabled === false ? 'disabled' : 'enabled';
@@ -79,6 +83,7 @@ function generateRuntimeCacheKey(options: {
 		options.storageConfig?.storageKey ?? 'default',
 		options.defaultLanguage ?? 'default',
 		options.languageSetKey ?? 'default',
+		options.offlinePolicyKey ?? 'default',
 		enabledKey,
 	];
 
@@ -105,6 +110,7 @@ export function getOrCreateConsentRuntime(
 		storageConfig,
 		enabled,
 		iab,
+		offlinePolicy,
 		consentCategories,
 		debug,
 		headers: _unusedHeaders,
@@ -141,6 +147,8 @@ export function getOrCreateConsentRuntime(
 		? Object.keys(normalizedI18nConfig.messages).sort()
 		: [];
 	const resolvedIab = iab ?? storeWithoutTranslationInputs.iab;
+	const resolvedOfflinePolicy =
+		offlinePolicy ?? storeWithoutTranslationInputs.offlinePolicy;
 	const resolvedStorageConfig =
 		storageConfig ?? storeWithoutTranslationInputs.storageConfig;
 	const resolvedEnabled = enabled ?? storeWithoutTranslationInputs.enabled;
@@ -156,6 +164,9 @@ export function getOrCreateConsentRuntime(
 			normalizedLanguageSet.length > 0
 				? normalizedLanguageSet.join(',')
 				: undefined,
+		offlinePolicyKey: resolvedOfflinePolicy
+			? JSON.stringify(resolvedOfflinePolicy)
+			: undefined,
 		enabled: resolvedEnabled,
 	});
 
@@ -165,6 +176,7 @@ export function getOrCreateConsentRuntime(
 			...storeWithoutTranslationInputs,
 			initialTranslationConfig: normalizedInitialTranslationConfig,
 			iab: resolvedIab,
+			offlinePolicy: resolvedOfflinePolicy,
 		};
 
 		if (mode === 'offline') {
@@ -208,6 +220,7 @@ export function getOrCreateConsentRuntime(
 			...cleanStoreOptionOverrides,
 			...storeWithoutTranslationInputs,
 			iab: resolvedIab,
+			offlinePolicy: resolvedOfflinePolicy,
 			storageConfig: resolvedStorageConfig,
 			enabled: resolvedEnabled,
 			initialTranslationConfig: normalizedInitialTranslationConfig,

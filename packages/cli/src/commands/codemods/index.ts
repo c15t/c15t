@@ -5,6 +5,7 @@ import { runComponentRenamesCodemod } from './component-renames';
 import { runGdprTypesToConsentCategoriesCodemod } from './gdpr-types-to-consent-categories';
 import { runIgnoreGeoLocationToOverridesCodemod } from './ignore-geo-location-to-overrides';
 import { runC15tModeToHostedCodemod } from './mode-c15t-to-hosted';
+import { runOfflineAddPolicyPacksCodemod } from './offline-add-policy-packs';
 import { runReactOptionsToTopLevelCodemod } from './react-options-to-top-level';
 import { runTrackingBlockerToNetworkBlockerCodemod } from './tracking-blocker-to-network-blocker';
 import { runTranslationsToI18nCodemod } from './translations-to-i18n';
@@ -154,6 +155,23 @@ const codemods: CodemodDefinition[] = [
 		run: async (context, dryRun) => {
 			const { projectRoot } = context;
 			const result = await runC15tModeToHostedCodemod({
+				projectRoot,
+				dryRun,
+			});
+			logCodemodResult(context, result, dryRun);
+		},
+		versioning: {
+			fromRange: '<2.0.0',
+			toRange: '>=2.0.0',
+		},
+	},
+	{
+		id: 'offline-add-policy-packs',
+		label: 'offline mode -> add policy packs',
+		hint: 'Adds starter policyPackPresets to offline configs missing policies.',
+		run: async (context, dryRun) => {
+			const { projectRoot } = context;
+			const result = await runOfflineAddPolicyPacksCodemod({
 				projectRoot,
 				dryRun,
 			});

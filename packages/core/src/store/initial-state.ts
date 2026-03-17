@@ -122,6 +122,12 @@ export const initialState: StoreRuntimeState = {
 	scriptIdMap: {},
 
 	model: 'opt-in',
+	policyBanner: {},
+	policyDialog: {},
+	policyCategories: null,
+	policyScopeMode: null,
+	initDataSource: null,
+	initDataSourceDetail: null,
 
 	/** IAB TCF state (null when not configured) */
 	iab: null,

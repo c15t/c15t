@@ -218,6 +218,9 @@ export const defaultIABOptions: ConsentManagerOptions = {
 		cmpVersion: 1,
 		gvl: mockGVL, // Pre-loaded GVL - skips network fetch
 	},
+	offlinePolicy: {
+		policy: { id: 'iab_default', model: 'iab' },
+	},
 };
 
 /**

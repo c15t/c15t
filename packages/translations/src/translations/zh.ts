@@ -41,6 +41,8 @@ export const translations: CompleteTranslations = {
 	frame: {
 		title: '接受 {category} 以查看此内容。',
 		actionButton: '启用 {category} 同意',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: '隐私政策',

@@ -46,6 +46,8 @@ export const translations: CompleteTranslations = {
 	frame: {
 		title: "Aċċetta l-kunsens ta' {category} biex tara dan il-kontenut.",
 		actionButton: "Attiva l-kunsens ta' {category}",
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Politika tal-Privatezza',

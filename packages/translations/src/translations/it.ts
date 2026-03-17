@@ -46,6 +46,8 @@ export const translations: CompleteTranslations = {
 	frame: {
 		title: 'Accetta {category} per visualizzare questo contenuto',
 		actionButton: 'Abilita consenso {category}',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Informativa sulla Privacy',

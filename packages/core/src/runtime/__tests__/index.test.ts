@@ -74,7 +74,7 @@ describe('runtime', () => {
 		const result = getOrCreateConsentRuntime(options, pkgInfo);
 
 		expect(result.cacheKey).toBe(
-			'hosted:default:none:default:default:default:enabled'
+			'hosted:default:none:default:default:default:default:enabled'
 		);
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -267,7 +267,7 @@ describe('runtime', () => {
 		});
 
 		expect(result.cacheKey).toBe(
-			'hosted:default:none:default:default:default:enabled'
+			'hosted:default:none:default:default:default:default:enabled'
 		);
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({

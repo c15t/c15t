@@ -20,6 +20,8 @@ describe('Script Manager Store Integration', () => {
 		loadedScripts: {} as Record<string, boolean>,
 		scriptIdMap: {} as Record<string, string>,
 		consents: sampleConsents,
+		policyCategories: null,
+		policyScopeMode: null,
 	} as ConsentStoreState;
 
 	const getState = vi.fn(() => mockState as ConsentStoreState);
@@ -53,6 +55,9 @@ describe('Script Manager Store Integration', () => {
 		mockState.scripts = [];
 		mockState.loadedScripts = {};
 		mockState.scriptIdMap = {};
+		mockState.consents = { ...sampleConsents };
+		mockState.policyCategories = null;
+		mockState.policyScopeMode = null;
 		vi.clearAllMocks();
 		clearAllScripts();
 
@@ -214,6 +219,27 @@ describe('Script Manager Store Integration', () => {
 			expect(result).toBe(true);
 
 			// Should have created a new script element
+			expect(document.createElement).toHaveBeenCalledTimes(1);
+			expect(document.head.appendChild).toHaveBeenCalledTimes(1);
+		});
+
+		it('should apply permissive policy scope before reloading', () => {
+			mockState.scripts = [...scripts];
+			mockState.consents = {
+				...sampleConsents,
+				marketing: false,
+			};
+			mockState.policyCategories = ['necessary'];
+			mockState.policyScopeMode = 'permissive';
+
+			const scriptManager = createScriptManager(getState, setState);
+
+			vi.spyOn(document, 'createElement').mockClear();
+			vi.spyOn(document.head, 'appendChild').mockClear();
+
+			const result = scriptManager.reloadScript('marketing-script');
+
+			expect(result).toBe(true);
 			expect(document.createElement).toHaveBeenCalledTimes(1);
 			expect(document.head.appendChild).toHaveBeenCalledTimes(1);
 		});

@@ -166,7 +166,14 @@ export function saveConsentToStorage(
 	const mergedData = {
 		...existing,
 		...data,
-		consentInfo: sanitizeConsentInfo(data.consentInfo),
+		consentInfo: sanitizeConsentInfo(
+			data.consentInfo || existing?.consentInfo
+				? {
+						...(existing?.consentInfo ?? {}),
+						...(data.consentInfo ?? {}),
+					}
+				: undefined
+		),
 		iabCustomVendorConsents:
 			data.iabCustomVendorConsents ?? existing?.iabCustomVendorConsents,
 		iabCustomVendorLegitimateInterests:

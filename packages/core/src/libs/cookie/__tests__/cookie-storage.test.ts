@@ -168,6 +168,31 @@ describe('Cookie Storage', () => {
 			consoleWarnSpy.mockRestore();
 		});
 
+		it('should preserve the stored material policy fingerprint when later writes omit it', () => {
+			const originalData = {
+				consents: { necessary: true, measurement: true },
+				consentInfo: {
+					time: 1_700_000_000_000,
+					subjectId: 'sub_existing',
+					materialPolicyFingerprint: 'a'.repeat(64),
+				},
+			};
+
+			saveConsentToStorage(originalData);
+			saveConsentToStorage({
+				consents: { necessary: true, measurement: false },
+				consentInfo: {
+					time: 1_700_000_000_100,
+					subjectId: 'sub_existing',
+				},
+			});
+
+			const retrieved = getConsentFromStorage<typeof originalData>();
+			expect(retrieved?.consentInfo?.materialPolicyFingerprint).toBe(
+				'a'.repeat(64)
+			);
+		});
+
 		it('should not persist nullish optional subject identifiers', () => {
 			const consentData = {
 				consents: { necessary: true },

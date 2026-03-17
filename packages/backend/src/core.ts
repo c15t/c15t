@@ -365,5 +365,22 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 };
 
 export { defineConfig } from './define-config';
+export type { PolicyValidationResult } from './handlers/init/policy';
+export { inspectPolicies } from './handlers/init/policy';
+export type { PolicyBuilderInput } from './policies/builder';
+export { policyBuilder } from './policies/builder';
+export type {
+	EuropePolicyMode,
+	PolicyPackPresets,
+} from './policies/defaults';
+export { policyPackPresets } from './policies/defaults';
+export type { PolicyMatch } from './policies/matchers';
+export {
+	EEA_COUNTRY_CODES,
+	EU_COUNTRY_CODES,
+	POLICY_MATCH_DATASET_VERSION,
+	policyMatchers,
+	UK_COUNTRY_CODES,
+} from './policies/matchers';
 export type { C15TContext, C15TOptions } from './types';
 export { version } from './version';

@@ -42,6 +42,7 @@ function isDevToolsTab(value: unknown): value is DevToolsTab {
 	return (
 		value === 'consents' ||
 		value === 'location' ||
+		value === 'policy' ||
 		value === 'scripts' ||
 		value === 'iab' ||
 		value === 'events' ||
@@ -90,6 +91,7 @@ export type DevToolsPosition =
 export type DevToolsTab =
 	| 'consents'
 	| 'location'
+	| 'policy'
 	| 'scripts'
 	| 'iab'
 	| 'events'

@@ -4,18 +4,29 @@
  * @packageDocumentation
  */
 
+import { createMaterialPolicyFingerprint } from '@c15t/schema';
 import type { JurisdictionCode } from '@c15t/schema/types';
 import {
 	prepareTranslationConfig,
 	type TranslationInputConfig,
 } from '@c15t/translations';
 import type { ConsentStoreState } from '../../store/type';
-import type { ConsentState } from '../../types/compliance';
+import { allConsentNames, type ConsentState } from '../../types';
 import type { GlobalVendorList } from '../../types/iab-tcf';
+import { deleteConsentFromStorage, saveConsentToStorage } from '../cookie';
 import { determineModel } from '../determine-model';
 import { hasGlobalPrivacyControlSignal } from '../global-privacy-control';
+import {
+	applyPolicyPurposeAllowlist,
+	filterConsentCategoriesByPolicy,
+} from '../policy';
 import { initializeIABMode } from './iab-initializer';
 import type { ConsentBannerResponse, InitConsentManagerConfig } from './types';
+
+interface InitSourceMetadata {
+	initDataSource: ConsentStoreState['initDataSource'];
+	initDataSourceDetail?: string | null;
+}
 
 /**
  * Calculates auto-granted consents based on consent model and GPC signal.
@@ -56,11 +67,24 @@ function computeAutoGrantInfo(
 	jurisdiction: JurisdictionCode | null,
 	iabEnabled: boolean | undefined,
 	consentInfo: ConsentStoreState['consentInfo'],
-	gpcOverride?: boolean
+	policyModel?: 'opt-in' | 'opt-out' | 'none' | 'iab',
+	gpcOverride?: boolean,
+	policyGpc?: boolean
 ) {
-	const consentModel = determineModel(jurisdiction, iabEnabled);
-	const hasGpcSignal =
-		gpcOverride !== undefined ? gpcOverride : hasGlobalPrivacyControlSignal();
+	const consentModel =
+		policyModel === 'none'
+			? null
+			: (policyModel ?? determineModel(jurisdiction, iabEnabled));
+
+	// When a policy is active, defer to its `respectGpc` flag.
+	// When no policy is configured (policyGpc is undefined),
+	// fall back to the legacy behaviour which always checks the signal.
+	const shouldCheckGpc = policyGpc !== undefined ? policyGpc : true;
+	const hasGpcSignal = shouldCheckGpc
+		? gpcOverride !== undefined
+			? gpcOverride
+			: hasGlobalPrivacyControlSignal()
+		: false;
 
 	// Auto-grant only when no regulation applies and no existing consent
 	const shouldAutoGrantConsents =
@@ -86,10 +110,11 @@ function computeAutoGrantInfo(
 function buildStoreUpdate(
 	data: ConsentBannerResponse,
 	config: InitConsentManagerConfig,
-	effectiveIABEnabled: boolean | undefined
+	effectiveIABEnabled: boolean | undefined,
+	initSourceMetadata?: InitSourceMetadata
 ): Partial<ConsentStoreState> {
 	const { get, initialTranslationConfig } = config;
-	const { consentInfo } = get();
+	const { consentInfo, consentTypes } = get();
 	const { translations, location } = data;
 
 	// Compute auto-grant info using effective IAB enabled state
@@ -98,7 +123,9 @@ function buildStoreUpdate(
 		(data.jurisdiction as JurisdictionCode) ?? null,
 		effectiveIABEnabled,
 		consentInfo,
-		config.get().overrides?.gpc
+		data.policy?.model,
+		config.get().overrides?.gpc,
+		data.policy?.consent?.gpc
 	);
 
 	// Build base update
@@ -113,17 +140,102 @@ function buildStoreUpdate(
 			regionCode: location?.regionCode ?? null,
 			jurisdiction: data.jurisdiction ?? null,
 		},
+		policyBanner: {
+			allowedActions: data.policy?.ui?.banner?.allowedActions,
+			primaryAction: data.policy?.ui?.banner?.primaryAction,
+			actionOrder: data.policy?.ui?.banner?.actionOrder,
+			actionLayout: data.policy?.ui?.banner?.actionLayout,
+			uiProfile: data.policy?.ui?.banner?.uiProfile,
+			scrollLock: data.policy?.ui?.banner?.scrollLock,
+		},
+		policyDialog: {
+			allowedActions: data.policy?.ui?.dialog?.allowedActions,
+			primaryAction: data.policy?.ui?.dialog?.primaryAction,
+			actionOrder: data.policy?.ui?.dialog?.actionOrder,
+			actionLayout: data.policy?.ui?.dialog?.actionLayout,
+			uiProfile: data.policy?.ui?.dialog?.uiProfile,
+			scrollLock: data.policy?.ui?.dialog?.scrollLock,
+		},
+		policyCategories: data.policy?.consent?.categories ?? null,
+		policyScopeMode: data.policy?.consent?.scopeMode ?? null,
+		initDataSource: initSourceMetadata?.initDataSource ?? null,
+		initDataSourceDetail: initSourceMetadata?.initDataSourceDetail ?? null,
 	};
 
 	// Show banner if no existing consent and regulation applies
 	if (consentInfo === null) {
-		update.activeUI = consentModel ? 'banner' : 'none';
+		if (data.policy?.ui?.mode) {
+			update.activeUI = data.policy.ui.mode;
+		} else {
+			update.activeUI = consentModel ? 'banner' : 'none';
+		}
 	}
 
 	// Auto-grant consents if applicable
 	if (autoGrantedConsents) {
 		update.consents = autoGrantedConsents;
 		update.selectedConsents = autoGrantedConsents;
+	}
+
+	// Apply policy-driven purpose/category restrictions for non-wildcard scope.
+	// Out-of-policy categories are treated as out-of-scope (hidden + forced false),
+	// not as granted consent.
+	const policyCategories = data.policy?.consent?.categories;
+	const hasPolicyCategoryAllowlist =
+		Array.isArray(policyCategories) &&
+		policyCategories.length > 0 &&
+		!policyCategories.includes('*');
+	if (hasPolicyCategoryAllowlist) {
+		const uniqueAllowedCategories = filterConsentCategoriesByPolicy(
+			allConsentNames,
+			policyCategories
+		);
+
+		update.consentCategories = uniqueAllowedCategories;
+		update.consents = applyPolicyPurposeAllowlist(
+			update.consents ?? get().consents,
+			uniqueAllowedCategories
+		);
+		update.selectedConsents = applyPolicyPurposeAllowlist(
+			update.selectedConsents ?? get().selectedConsents,
+			uniqueAllowedCategories
+		);
+	}
+
+	const preselectedCategories = data.policy?.consent?.preselectedCategories;
+	const shouldApplyPreselectedCategories =
+		consentInfo === null &&
+		!autoGrantedConsents &&
+		Array.isArray(preselectedCategories) &&
+		preselectedCategories.length > 0;
+	if (shouldApplyPreselectedCategories) {
+		const preselectedScope = hasPolicyCategoryAllowlist
+			? filterConsentCategoriesByPolicy(allConsentNames, policyCategories)
+			: allConsentNames;
+		const allowedPreselectedCategories = filterConsentCategoriesByPolicy(
+			preselectedScope,
+			preselectedCategories
+		);
+		const preselectedSet = new Set(allowedPreselectedCategories);
+		const selectedConsentBaseline =
+			update.selectedConsents ?? get().selectedConsents;
+
+		update.selectedConsents =
+			consentTypes.length > 0
+				? consentTypes.reduce((acc, consent) => {
+						acc[consent.name] =
+							consent.disabled === true
+								? consent.defaultValue
+								: preselectedSet.has(consent.name);
+						return acc;
+					}, {} as ConsentState)
+				: (Object.fromEntries(
+						Object.keys(selectedConsentBaseline).map((category) => [
+							category,
+							category === 'necessary' ||
+								preselectedSet.has(category as keyof ConsentState),
+						])
+					) as ConsentState);
 	}
 
 	// Prepare translation config
@@ -188,6 +300,15 @@ function triggerCallbacks(
 	}
 }
 
+function getDefaultConsents(
+	consentTypes: ConsentStoreState['consentTypes']
+): ConsentState {
+	return consentTypes.reduce((acc, consent) => {
+		acc[consent.name] = consent.defaultValue;
+		return acc;
+	}, {} as ConsentState);
+}
+
 /**
  * Updates the store with consent banner data.
  *
@@ -210,9 +331,47 @@ export async function updateStore(
 	data: ConsentBannerResponse,
 	config: InitConsentManagerConfig,
 	_hasLocalStorageAccess: boolean,
-	prefetchedGVL?: GlobalVendorList | null
+	prefetchedGVL?: GlobalVendorList | null,
+	initSourceMetadata?: InitSourceMetadata
 ): Promise<void> {
 	const { set, get } = config;
+	const initialState = get();
+	const currentPolicyFingerprint = data.policy
+		? await createMaterialPolicyFingerprint(data.policy)
+		: undefined;
+
+	if (initialState.consentInfo && currentPolicyFingerprint) {
+		const storedPolicyFingerprint =
+			initialState.consentInfo.materialPolicyFingerprint;
+
+		if (
+			storedPolicyFingerprint &&
+			storedPolicyFingerprint !== currentPolicyFingerprint
+		) {
+			const resetConsents = getDefaultConsents(initialState.consentTypes);
+			deleteConsentFromStorage(undefined, initialState.storageConfig);
+			set({
+				consents: resetConsents,
+				selectedConsents: resetConsents,
+				consentInfo: null,
+			});
+		} else if (!storedPolicyFingerprint) {
+			const updatedConsentInfo = {
+				...initialState.consentInfo,
+				materialPolicyFingerprint: currentPolicyFingerprint,
+			};
+			saveConsentToStorage(
+				{
+					consents: initialState.consents,
+					consentInfo: updatedConsentInfo,
+				},
+				undefined,
+				initialState.storageConfig
+			);
+			set({ consentInfo: updatedConsentInfo });
+		}
+	}
+
 	const { consentInfo } = get();
 
 	// Lazily create the IAB manager when iabConfig is provided
@@ -240,11 +399,18 @@ export async function updateStore(
 		(data.jurisdiction as JurisdictionCode) ?? null,
 		effectiveIABEnabled,
 		consentInfo,
-		get().overrides?.gpc
+		data.policy?.model,
+		get().overrides?.gpc,
+		data.policy?.consent?.gpc
 	);
 
 	// Build and apply store update (pass effectiveIABEnabled so model is correctly set)
-	const storeUpdate = buildStoreUpdate(data, config, effectiveIABEnabled);
+	const storeUpdate = buildStoreUpdate(
+		data,
+		config,
+		effectiveIABEnabled,
+		initSourceMetadata
+	);
 
 	// If server disabled GVL, update the IAB config in the store
 	if (serverDisabledGVL && iab) {

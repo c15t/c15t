@@ -1,7 +1,9 @@
+import { validateMessages } from '~/handlers/init/translations';
 import type { C15TContext, C15TOptions } from '~/types';
 import { createRegistry } from './db/registry';
 import { DB } from './db/schema';
 import { withTenantScope } from './db/tenant-scope';
+import { inspectPolicies } from './handlers/init/policy';
 import {
 	createTelemetryOptions,
 	isTelemetryEnabled,
@@ -70,6 +72,36 @@ export const init = (options: C15TOptions): C15TContext => {
 
 	// Destructure ipAddress config to avoid type conflict with C15TContext.ipAddress (resolved string)
 	const { ipAddress: _ipAddressConfig, ...baseOptions } = options;
+
+	const i18nValidation = validateMessages({
+		i18n: options.i18n,
+		customTranslations: options.customTranslations,
+		policies: options.policyPacks,
+	});
+
+	for (const warning of i18nValidation.warnings) {
+		logger.warn(`i18n: ${warning}`);
+	}
+
+	if (i18nValidation.errors.length > 0) {
+		throw new Error(
+			`Invalid i18n configuration:\n${i18nValidation.errors
+				.map((error) => `- ${error}`)
+				.join('\n')}`
+		);
+	}
+
+	const policyValidation = inspectPolicies(options.policyPacks ?? [], {
+		iabEnabled: options.iab?.enabled === true,
+	});
+
+	for (const warning of policyValidation.warnings) {
+		logger.warn(`policyPacks: ${warning}`);
+	}
+
+	if (policyValidation.errors.length > 0) {
+		throw new Error(policyValidation.errors[0]);
+	}
 
 	const context: C15TContext = {
 		...baseOptions,

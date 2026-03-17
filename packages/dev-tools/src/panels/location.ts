@@ -19,6 +19,7 @@ import {
 	span,
 } from '../core/renderer';
 import componentStyles from '../styles/components.module.css';
+import { formatInitSource } from '../utils/init-source';
 
 interface OverridePayload {
 	country?: string;
@@ -68,16 +69,23 @@ export function renderLocationPanel(
 	const locationInfo = state.locationInfo;
 	const overrides = state.overrides;
 	const translationConfig = state.translationConfig;
+	const initData = state.lastBannerFetchData;
+	const activePolicy = initData?.policy;
+	const policyDecision = initData?.policyDecision;
+	const initSource = formatInitSource(
+		state.initDataSource,
+		state.initDataSourceDetail
+	);
 
 	// Current location as a compact grid
 	const gridItems = [
 		createCompactInfoCard('Country', locationInfo?.countryCode || '—'),
 		createCompactInfoCard('Region', locationInfo?.regionCode || '—'),
-		createCompactInfoCard('Jurisdiction', locationInfo?.jurisdiction || '—'),
 		createCompactInfoCard(
 			'Language',
 			translationConfig?.defaultLanguage || '—'
 		),
+		createCompactInfoCard('Init Source', initSource),
 	];
 
 	// Add GPC status - shows effective state (override takes precedence)
@@ -94,8 +102,6 @@ export function renderLocationPanel(
 		columns: 3,
 		children: gridItems,
 	});
-
-	container.appendChild(locationGrid);
 
 	const initialDraft = getDraftFromOverrides(overrides);
 	let appliedOverrides = normalizeOverrideDraft(initialDraft);
@@ -194,6 +200,15 @@ export function renderLocationPanel(
 	});
 
 	container.appendChild(overrideSection);
+	container.appendChild(locationGrid);
+
+	container.appendChild(
+		createActivePolicySummarySection({
+			policy: activePolicy,
+			policyDecision,
+			policySnapshotToken: initData?.policySnapshotToken,
+		})
+	);
 
 	countryField.control.addEventListener('change', updateFormState);
 	regionField.control.addEventListener('input', updateFormState);
@@ -487,6 +502,72 @@ function getModelLabel(model: string | undefined): string {
 	}
 }
 
+function createActivePolicySummarySection(options: {
+	policy:
+		| {
+				id: string;
+		  }
+		| undefined;
+	policyDecision:
+		| {
+				policyId: string;
+				fingerprint: string;
+				matchedBy: 'region' | 'country' | 'default' | 'fallback';
+				country: string | null;
+				region: string | null;
+		  }
+		| undefined;
+	policySnapshotToken: string | undefined;
+}): HTMLElement {
+	const { policy, policyDecision, policySnapshotToken } = options;
+
+	if (!policy && !policyDecision) {
+		return createSection({
+			title: 'Active Policy',
+			children: [
+				div({
+					style: {
+						padding: '10px 12px',
+						fontSize: 'var(--c15t-devtools-font-size-sm)',
+						color: 'var(--c15t-text-muted)',
+					},
+					text: 'No active policy matched.',
+				}),
+			],
+		});
+	}
+
+	const cards = [
+		createCompactInfoCard(
+			'Policy ID',
+			policy?.id ?? policyDecision?.policyId ?? '—'
+		),
+		createCompactInfoCard('Matched By', policyDecision?.matchedBy ?? '—'),
+		createCompactInfoCard(
+			'Snapshot Token',
+			policySnapshotToken ? 'present' : 'missing'
+		),
+	];
+
+	return createSection({
+		title: 'Active Policy',
+		children: [
+			div({
+				style: {
+					display: 'grid',
+					gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+					gap: 'var(--c15t-space-sm, 0.5rem)',
+				},
+				children: cards,
+			}),
+			span({
+				className: componentStyles.overrideHint,
+				text: 'Open the Policy tab for full policy-pack diagnostics.',
+			}),
+		],
+	});
+}
+
 /**
  * Creates a compact info card for grid layouts
  */
@@ -494,11 +575,11 @@ function createCompactInfoCard(label: string, value: string): HTMLElement {
 	return div({
 		className: componentStyles.gridCard ?? '',
 		style: {
-			padding: '6px 8px',
+			padding: '8px 10px',
 			minHeight: 'auto',
 			flexDirection: 'column',
 			alignItems: 'flex-start',
-			gap: '1px',
+			gap: '2px',
 		},
 		children: [
 			span({

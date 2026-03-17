@@ -1,8 +1,11 @@
+import { createMaterialPolicyFingerprint } from '@c15t/schema';
 import type { StoreApi } from 'zustand';
 import type { ConsentStoreState } from '~/store/type';
 import type { ConsentManagerInterface } from '../client/client-interface';
 import type { ConsentInfo, ConsentState, ConsentType } from '../types';
+import { saveConsentToStorage } from './cookie';
 import { generateSubjectId } from './generate-subject-id';
+import { applyPolicyPurposeAllowlist, getEffectivePolicy } from './policy';
 import { sanitizeSubjectIdentifiers } from './sanitize-subject-identifiers';
 
 /**
@@ -25,6 +28,7 @@ export interface PendingConsentSync {
 	jurisdictionModel?: string | null;
 	domain: string;
 	uiSource?: string;
+	policySnapshotToken?: string;
 }
 
 interface SaveConsentsProps {
@@ -104,6 +108,7 @@ export async function saveConsents({
 		model,
 		consentInfo,
 		reloadOnConsentRevoked,
+		lastBannerFetchData,
 	} = get();
 
 	// Store previous consents for revocation detection
@@ -131,6 +136,16 @@ export async function saveConsents({
 		}
 	}
 
+	const policyCategories =
+		getEffectivePolicy(lastBannerFetchData)?.consent?.categories;
+	const effectiveConsents = applyPolicyPurposeAllowlist(
+		newConsents,
+		policyCategories
+	);
+	const materialPolicyFingerprint = lastBannerFetchData?.policy
+		? await createMaterialPolicyFingerprint(lastBannerFetchData.policy)
+		: undefined;
+
 	// Get or generate subjectId
 	// If we have a subjectId from previous consent, reuse it
 	let subjectId = consentInfo?.subjectId;
@@ -153,6 +168,7 @@ export async function saveConsents({
 	const nextConsentInfo: ConsentInfo = {
 		time: givenAt,
 		subjectId,
+		materialPolicyFingerprint,
 		...(externalId ? { externalId } : {}),
 		...(identityProvider ? { identityProvider } : {}),
 	};
@@ -160,7 +176,7 @@ export async function saveConsents({
 	// Check if we need to reload the page due to consent revocation
 	const needsReload = shouldReloadOnConsentChange(
 		previousConsents,
-		newConsents,
+		effectiveConsents,
 		previousConsentInfo,
 		reloadOnConsentRevoked,
 		consentTypes
@@ -170,11 +186,20 @@ export async function saveConsents({
 	// This makes the interface feel more responsive
 	// This also persists the consent to localStorage/cookies
 	set({
-		consents: newConsents,
-		selectedConsents: newConsents,
+		consents: effectiveConsents,
+		selectedConsents: effectiveConsents,
 		activeUI: 'none' as const,
 		consentInfo: nextConsentInfo,
 	});
+
+	saveConsentToStorage(
+		{
+			consents: effectiveConsents,
+			consentInfo: nextConsentInfo,
+		},
+		undefined,
+		get().storageConfig
+	);
 
 	// If consent was revoked and reload is enabled, store pending sync and reload
 	if (needsReload) {
@@ -182,12 +207,13 @@ export async function saveConsents({
 		const pendingSync: PendingConsentSync = {
 			type,
 			subjectId,
-			preferences: newConsents,
+			preferences: effectiveConsents,
 			givenAt,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model,
 			domain: window.location.hostname,
 			uiSource: options?.uiSource ?? 'api',
+			policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
 			...(externalId ? { externalId } : {}),
 			...(identityProvider ? { identityProvider } : {}),
 		};
@@ -204,10 +230,10 @@ export async function saveConsents({
 
 		// Trigger callback before reload
 		callbacks.onConsentSet?.({
-			preferences: newConsents,
+			preferences: effectiveConsents,
 		});
 		callbacks.onBeforeConsentRevocationReload?.({
-			preferences: newConsents,
+			preferences: effectiveConsents,
 		});
 
 		// Reload the page to ensure complete cleanup of third-party scripts
@@ -224,7 +250,7 @@ export async function saveConsents({
 	updateNetworkBlockerConsents();
 
 	callbacks.onConsentSet?.({
-		preferences: newConsents,
+		preferences: effectiveConsents,
 	});
 
 	// Send consent to API in the background - the UI is already updated
@@ -232,13 +258,14 @@ export async function saveConsents({
 		body: {
 			type: 'cookie_banner',
 			domain: window.location.hostname,
-			preferences: newConsents,
+			preferences: effectiveConsents,
 			subjectId,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model ?? undefined,
 			givenAt,
 			uiSource: options?.uiSource ?? 'api',
 			consentAction: type,
+			policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
 			...(externalId ? { externalSubjectId: externalId } : {}),
 			...(identityProvider ? { identityProvider } : {}),
 		},

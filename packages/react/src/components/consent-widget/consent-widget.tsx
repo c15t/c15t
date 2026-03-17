@@ -1,7 +1,13 @@
 'use client';
 
+import styles from '@c15t/ui/styles/components/consent-widget.module.js';
 import { useState } from 'react';
+import {
+	type HeadlessConsentDialogAction,
+	useHeadlessConsentUI,
+} from '~/hooks/use-headless-consent-ui';
 import { useTheme } from '~/hooks/use-theme';
+import { cnExt as cn } from '~/utils/cn';
 import { ConsentDialogFooter } from '../consent-dialog/atoms/card';
 import {
 	ConsentWidgetAccordion,
@@ -27,6 +33,7 @@ export const ConsentWidget = ({
 	...props
 }: ConsentWidgetProps) => {
 	const [openItems, setOpenItems] = useState<string[]>([]);
+	const { dialog } = useHeadlessConsentUI();
 
 	// Get global theme context
 	const globalTheme = useTheme();
@@ -39,6 +46,27 @@ export const ConsentWidget = ({
 		...props,
 	};
 
+	const actionGroups = dialog.actionGroups;
+	const shouldFillActions = dialog.shouldFillActions;
+
+	const renderAction = (
+		action: HeadlessConsentDialogAction,
+		className?: string
+	) => {
+		switch (action) {
+			case 'accept':
+				return (
+					<ConsentWidgetAcceptAllButton key="accept" className={className} />
+				);
+			case 'reject':
+				return <ConsentWidgetRejectButton key="reject" className={className} />;
+			case 'customize':
+				return (
+					<ConsentWidgetSaveButton key="customize" className={className} />
+				);
+		}
+	};
+
 	return (
 		<ConsentWidgetRoot {...mergedProps}>
 			<ConsentWidgetAccordion
@@ -48,12 +76,23 @@ export const ConsentWidget = ({
 			>
 				<ConsentWidgetAccordionItems />
 			</ConsentWidgetAccordion>
-			<ConsentWidgetFooter>
-				<ConsentWidgetFooterSubGroup themeKey="consentWidgetFooter">
-					<ConsentWidgetRejectButton />
-					<ConsentWidgetAcceptAllButton />
-				</ConsentWidgetFooterSubGroup>
-				<ConsentWidgetSaveButton />
+			<ConsentWidgetFooter
+				className={cn(shouldFillActions && styles.footerFill)}
+			>
+				{actionGroups.map((group, index) => (
+					<ConsentWidgetFooterSubGroup
+						key={`group-${group.join('-') || index}`}
+						themeKey="consentWidgetFooter"
+						className={cn(shouldFillActions && styles.footerGroupFill)}
+					>
+						{group.map((action) =>
+							renderAction(
+								action,
+								shouldFillActions ? styles.actionButtonFill : undefined
+							)
+						)}
+					</ConsentWidgetFooterSubGroup>
+				))}
 			</ConsentWidgetFooter>
 			<ConsentDialogFooter
 				themeKey="consentWidgetBranding"

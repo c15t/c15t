@@ -1,0 +1,224 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="overview">
+  Different countries need different consent experiences. Policy packs let you define those rules once — c15t picks the right one automatically based on where the visitor is.
+
+  A policy pack is an ordered array of policies. Each policy targets a region or country and controls the consent model, which categories are in scope, what UI is shown, and how consent is recorded.
+
+  There are three ways to configure policy packs:
+
+  1. **consent.io (recommended)** — use [consent.io](https://consent.io) as your hosted backend. Configure packs visually in the dashboard or via API — no code changes required. Works with any frontend, including static sites.
+  2. **Self-hosted backend** — define packs in code via `policyPacks` and resolve them from real request geo data. Full control over policy logic and storage.
+  3. **Offline fallback** — pass the same policy shapes to the frontend via `offlinePolicy.policyPacks`. Used as a resilience fallback when the backend is unreachable, or for quick local experimentation and demos.
+
+  In both hosted and self-hosted modes, the **backend is always the source of truth**. Offline packs never override a live backend decision.
+</section>
+
+<section id="quickstart">
+  ## Quickstart
+
+  The fastest way to get started is with the built-in presets:
+
+  ```ts
+  import { policyPackPresets } from 'c15t';
+
+  const policies = [
+    policyPackPresets.europeOptIn(),    // GDPR opt-in banner
+    policyPackPresets.californiaOptOut(), // CCPA opt-out banner
+    policyPackPresets.worldNoBanner(),          // No banner elsewhere
+  ];
+  ```
+
+  | Preset | Model | UI | Matches |
+  |--------|-------|----|---------|
+  | `europeOptIn()` | `opt-in` | banner | EEA + UK countries + geo fallback |
+  | `europeIab()` | `iab` | banner | EEA + UK countries + geo fallback (TCF 2.3) |
+  | `californiaOptOut()` | `opt-out` | none | US-CA region |
+  | `quebecOptIn()` | `opt-in` | banner | CA-QC region |
+  | `worldNoBanner()` | `none` | none | default fallback |
+
+  Most apps only need these presets — pick the ones that match your regions, pass them to your backend config or provider, and you're done. Customize individual fields or write fully custom policies when you need more control.
+</section>
+
+<section id="what-users-see">
+  ## What Users See
+
+  Each policy combination produces a different consent experience:
+
+  | Policy Config | User Experience |
+  |--------------|-----------------|
+  | `model: 'opt-in'`, `ui.mode: 'banner'` | Banner appears, nothing loads until the user consents |
+  | `model: 'opt-out'`, `ui.mode: 'none'` | No banner, everything loads immediately — user opts out via a "Do Not Sell" link |
+  | `model: 'none'`, `ui.mode: 'none'` | No banner, all categories auto-granted silently |
+  | `model: 'opt-in'`, `ui.mode: 'dialog'` | Full-screen dialog, nothing loads until the user consents |
+  | `model: 'iab'`, `ui.mode: 'banner'` | IAB TCF 2.3 banner with vendor-level controls |
+</section>
+
+<section id="resolution-flow">
+  ## How Policy Resolution Works
+
+  When a visitor arrives, c15t walks the policy pack in priority order:
+
+  1. **Match by region** — checks for a policy targeting the specific region (e.g., US-CA, CA-QC)
+  2. **Match by country** — if no region match, checks for a country-level policy (e.g., US, DE)
+  3. **Fallback (geo failure)** — if geo-location failed (no country detected), uses the policy marked with `match.fallback`
+  4. **Fall back to default** — if nothing matches, uses the policy marked as the default
+  5. **No match, no default** — resolves to no-banner mode (silent, no consent UI)
+
+  Within the same matcher type, the first policy in the array wins. Pack order matters when two policies target the same country or region.
+
+  The **fallback** step is distinct from **default**: `isDefault` is a catch-all for known locations that don't match any specific policy ("rest of world"), while `fallback` is a safety net for unknown locations when geo-headers are missing ("assume strictest"). The `europeOptIn()` and `europeIab()` presets include `fallback: true` by default so EU-level consent applies when geo fails.
+
+  <Callout type="warning">
+    Only one default and one fallback policy are allowed. Use `inspectPolicies()` to surface overlapping matchers and other warnings before deployment.
+  </Callout>
+</section>
+
+<section id="common-patterns">
+  ## Common Patterns
+
+  **The 80% case** — strict in Europe, light in California, silent everywhere else:
+
+  ```ts
+  const policies = [
+    {
+      id: 'eu',
+      match: { countries: ['DE', 'FR', 'IT'] },
+      consent: { model: 'opt-in', categories: ['necessary', 'measurement', 'marketing'] },
+      ui: { mode: 'banner' },
+    },
+    {
+      id: 'ca',
+      match: { regions: [{ country: 'US', region: 'CA' }] },
+      consent: { model: 'opt-out', gpc: true },
+      ui: { mode: 'none' },
+    },
+    {
+      id: 'default',
+      match: { isDefault: true },
+      consent: { model: 'none' },
+      ui: { mode: 'none' },
+    },
+  ];
+  ```
+
+  **Region overrides country** — stricter rules for California than the rest of the US:
+
+  ```ts
+  const policies = [
+    {
+      id: 'us_ca',
+      match: { regions: [{ country: 'US', region: 'CA' }] },
+      consent: { model: 'opt-in', scopeMode: 'strict' },
+      ui: { mode: 'banner' },
+    },
+    {
+      id: 'us',
+      match: { countries: ['US'] },
+      consent: { model: 'opt-out' },
+      ui: { mode: 'banner' },
+    },
+  ];
+  // US-CA → us_ca (region match wins)
+  // US-NY → us (country match)
+  ```
+
+  **Different wording per region** — use `i18n.messageProfile` to vary copy without changing the consent model:
+
+  ```ts
+  const c15t = c15tInstance({
+    i18n: {
+      defaultProfile: 'default',
+      messages: {
+        default: {
+          translations: {
+            en: { cookieBanner: { title: 'Privacy choices' } },
+            es: { cookieBanner: { title: 'Tus opciones de privacidad' } },
+          },
+        },
+        eu: {
+          fallbackLanguage: 'en',
+          translations: {
+            en: { cookieBanner: { title: 'EU GDPR Consent' } },
+            fr: { cookieBanner: { title: 'Consentement RGPD' } },
+            de: { cookieBanner: { title: 'GDPR-Einwilligung' } },
+          },
+        },
+      },
+    },
+    policyPacks: [
+      {
+        id: 'eu',
+        match: { countries: ['DE', 'FR', 'IT'] },
+        i18n: { messageProfile: 'eu' },
+        consent: { model: 'opt-in' },
+        ui: { mode: 'banner' },
+      },
+    ],
+  });
+  ```
+
+  In that setup, the `eu` policy uses only the `eu` language set. So Europe can
+  resolve to `en`, `fr`, or `de`, but not to `es` or any other locale defined
+  only in `default`. If the browser asks for an unsupported locale, c15t falls
+  back to the `eu` profile's `fallbackLanguage`.
+</section>
+
+<section id="re-prompting">
+  ## Re-Prompting on Policy Change
+
+  When you change a policy in a way that affects consent semantics — like adding a category, changing the consent model, or modifying allowed actions — c15t automatically re-prompts returning users.
+
+  This works through the **material policy fingerprint**: a hash of only the consent-affecting fields (model, categories, scope, allowed actions, proof settings). Presentation-only changes like copy, layout, or scroll lock do not trigger re-prompts.
+
+  | Change | Re-prompts? |
+  |--------|------------|
+  | Add a consent category | Yes |
+  | Change `model` from `opt-out` to `opt-in` | Yes |
+  | Remove an `allowedAction` | Yes |
+  | Change `uiProfile` or `actionLayout` | No |
+  | Update translation copy | No |
+  | Change `scrollLock` | No |
+</section>
+
+<section id="gpc">
+  ## Global Privacy Control (GPC)
+
+  Each policy can opt in to respecting the [Global Privacy Control](https://globalprivacycontrol.org/) signal via `consent.gpc`:
+
+  ```ts
+  {
+    id: 'california',
+    match: { regions: [{ country: 'US', region: 'CA' }] },
+    consent: { model: 'opt-out', gpc: true },
+  }
+  ```
+
+  When `gpc: true` and the visitor's browser sends a GPC signal (`Sec-GPC: 1` header or `navigator.globalPrivacyControl`), `marketing` and `measurement` categories are automatically denied during auto-granting — honoring the user's opt-out preference.
+
+  When `gpc` is `false` or omitted, the GPC signal is ignored for that policy. This is the right default for GDPR/EEA policies where consent is already opt-in and GPC is redundant.
+
+  | Preset | `gpc` | Why |
+  |--------|-------|-----|
+  | `californiaOptIn()` | `true` | CCPA recognizes GPC as a legal opt-out |
+  | `californiaOptOut()` | `true` | CCPA recognizes GPC as a legal opt-out |
+  | `europeOptIn()` | — | GDPR already requires opt-in |
+  | `europeIab()` | — | TCF handles consent signals |
+  | `worldNoBanner()` | — | No regulation applies |
+
+  <Callout type="info">
+    The `overrides.gpc` option on the provider and the DevTools GPC toggle still work as a manual override for testing — they force the GPC signal on or off regardless of policy settings.
+  </Callout>
+</section>
+
+<section id="design-guidelines">
+  ## Design Guidelines
+
+  - **Start from presets.** Use `policyPackPresets` to get running, then customize for your needs.
+  - **Keep packs small.** A handful of regional policies is better than dozens of tiny fragments.
+  - **Think risk, not geography.** Geography is just a matcher — the real question is what consent behavior each region needs.
+  - **Always include a default.** Unless "no banner for unmatched traffic" is intentional.
+  - **Set a fallback for geo failures.** Mark your strictest policy with `match.fallback=true` so users in unknown locations still see a consent banner. The `europeOptIn()` and `europeIab()` presets do this automatically.
+  - **Keep policy IDs stable.** They appear in debugging output, snapshots, and audit records.
+  - **Use `inspectPolicies()` before deploying.** It catches overlapping matchers, missing defaults, and IAB misconfigurations.
+</section>

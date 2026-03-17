@@ -4,6 +4,7 @@ import type { GlobalVendorList } from '../../types';
 import type { NonIABVendor } from '../../types/non-iab-vendor';
 import { saveConsentToStorage } from '../cookie';
 import { generateSubjectId } from '../generate-subject-id';
+import { applyPolicyPurposeAllowlist, getEffectivePolicy } from '../policy';
 import { CMP_ID, CMP_VERSION } from './cmp-defaults';
 import type { IABActions, IABConfig, IABManager, IABState } from './types';
 
@@ -246,6 +247,13 @@ export function createIABActions(
 
 			// Map IAB consents to c15t consents
 			const c15tConsents = iabPurposesToC15tConsents(purposeConsents);
+			const policyCategories = getEffectivePolicy(
+				getState().lastBannerFetchData
+			)?.consent?.categories;
+			const effectiveConsents = applyPolicyPurposeAllowlist(
+				c15tConsents,
+				policyCategories
+			);
 
 			const givenAt = Date.now();
 
@@ -263,8 +271,8 @@ export function createIABActions(
 
 			// Update core consent state
 			setState({
-				consents: c15tConsents,
-				selectedConsents: c15tConsents,
+				consents: effectiveConsents,
+				selectedConsents: effectiveConsents,
 				activeUI: 'none' as const,
 				consentInfo: {
 					time: givenAt,
@@ -290,7 +298,7 @@ export function createIABActions(
 
 			saveConsentToStorage(
 				{
-					consents: c15tConsents,
+					consents: effectiveConsents,
 					consentInfo: {
 						time: givenAt,
 						subjectId,
@@ -314,7 +322,7 @@ export function createIABActions(
 					givenAt,
 					type: 'cookie_banner',
 					domain: typeof window !== 'undefined' ? window.location.hostname : '',
-					preferences: c15tConsents,
+					preferences: effectiveConsents,
 					externalSubjectId: user?.id,
 					identityProvider: user?.identityProvider,
 					tcString,

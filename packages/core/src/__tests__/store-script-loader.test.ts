@@ -293,6 +293,26 @@ describe('Store Script Loader Integration', () => {
 			expect(loadedIds).toContain('necessary-script');
 			expect(loadedIds).not.toContain('marketing-script');
 		});
+
+		it('should load out-of-policy category scripts as permissive', () => {
+			const store = createTestStore({
+				necessary: true,
+				marketing: false,
+				functionality: false,
+				measurement: true,
+				experience: false,
+			});
+
+			store.setState({
+				policyCategories: ['necessary', 'measurement'],
+				policyScopeMode: 'permissive',
+			});
+
+			store.getState().setScripts([scripts[1]]);
+
+			expect(store.getState().isScriptLoaded('marketing-script')).toBe(true);
+			expect(store.getState().loadedScripts['marketing-script']).toBe(true);
+		});
 	});
 
 	describe('Script Loading with Consent Changes', () => {

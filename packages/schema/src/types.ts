@@ -21,6 +21,8 @@ export type {
 export type {
 	InitOutput,
 	LocationResponse,
+	PolicyDecision,
+	ResolvedPolicy,
 	TranslationsResponse,
 } from './api/init';
 // API types - Meta
@@ -48,6 +50,7 @@ export type {
 	ConsentPurpose,
 	Domain,
 	PolicyType,
+	RuntimePolicyDecision,
 	Subject,
 } from './domain';
 
@@ -73,6 +76,48 @@ export type {
 	NonIABVendor,
 	NonIABVendorConsent,
 } from './shared/non-iab-vendor';
+export {
+	type PolicyDefaults,
+	policyDefaults,
+} from './shared/policy-defaults';
+export {
+	createDeterministicFingerprint,
+	createDeterministicFingerprintSync,
+	createPolicyFingerprint,
+	hashSha256Hex,
+	stableStringify,
+} from './shared/policy-fingerprint';
+export type {
+	EuropePolicyMode,
+	PolicyPackPresets,
+} from './shared/policy-pack-defaults';
+export { policyPackPresets } from './shared/policy-pack-defaults';
+export type {
+	FingerprintHashStrategy,
+	PolicyConfig,
+	PolicyMatch,
+	PolicyMatchedBy,
+	PolicyModel,
+	PolicyPack,
+	PolicyScopeMode,
+	PolicyUiAction,
+	PolicyUiActionLayout,
+	PolicyUiMode,
+	PolicyUiProfile,
+	PolicyUiSurfaceConfig,
+	PolicyValidationResult,
+	ResolvedPolicyDecision,
+} from './shared/policy-runtime';
+export {
+	EEA_COUNTRY_CODES,
+	EU_COUNTRY_CODES,
+	inspectPolicies,
+	POLICY_MATCH_DATASET_VERSION,
+	policyMatchers,
+	resolvePolicyDecision,
+	UK_COUNTRY_CODES,
+	validatePolicies,
+} from './shared/policy-runtime';
 
 // Re-export constants for runtime checks (no Zod involved)
 export { brandingValues, jurisdictionCodes };

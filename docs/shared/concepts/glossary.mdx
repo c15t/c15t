@@ -17,7 +17,7 @@
   | Term | Definition |
   |---|---|
   | `jurisdiction` | A privacy regulation code (e.g., `GDPR`, `CCPA`, `PIPEDA`, `QC_LAW25`) detected from the user's geolocation. Maps to a consent model. See [Consent Models](/docs/frameworks/react/concepts/consent-models) for the full mapping table. |
-  | GPC | Global Privacy Control — a browser signal (`Sec-GPC: 1`) indicating the user opts out of data sale/sharing. Honored automatically in opt-out jurisdictions. |
+  | GPC | Global Privacy Control — a browser signal (`Sec-GPC: 1`) indicating the user opts out of data sale/sharing. Honored when a policy sets `consent.gpc: true` (enabled by default in California presets). |
   | TCF | IAB Transparency and Consent Framework (v2.3) — a standard for programmatic advertising consent in GDPR jurisdictions. See [IAB TCF](/docs/frameworks/react/iab/overview). |
   | GVL | Global Vendor List — an IAB-maintained registry of ad-tech vendors and their declared purposes, used by the TCF consent flow. |
 </section>

@@ -6,10 +6,18 @@
  * Implements an accessible, customizable banner following GDPR requirements.
  */
 
+import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 import { type FC, Fragment, type ReactNode } from 'react';
+import {
+	type PolicyUiAction,
+	shouldFillPolicyActions,
+} from '~/components/shared/libs/policy-actions';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { useComponentConfig } from '~/hooks/use-component-config';
+import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useHeadlessConsentUI } from '~/hooks/use-headless-consent-ui';
 import { useTranslations } from '~/hooks/use-translations';
+import { cnExt as cn } from '~/utils/cn';
 import { ConsentBannerRoot } from './atoms/root';
 import {
 	ConsentBannerAcceptButton,
@@ -180,31 +188,61 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	customizeButtonText,
 	acceptButtonText,
 	legalLinks,
-	layout = DEFAULT_LAYOUT,
+	layout,
 	primaryButton = 'customize',
 	models,
 	uiSource,
 }) => {
 	const { cookieBanner: consentBanner } = useTranslations();
+	const { banner } = useHeadlessConsentUI();
+	const { policyBanner } = useConsentManager();
+	const resolvedScrollLock =
+		localScrollLock ?? policyBanner.scrollLock ?? false;
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
 		noStyle: localNoStyle,
 		disableAnimation: localDisableAnimation,
-		scrollLock: localScrollLock,
+		scrollLock: resolvedScrollLock,
 		trapFocus: localTrapFocus,
 	});
 
-	const renderButton = (type: ConsentBannerButton) => {
-		const isPrimary = Array.isArray(primaryButton)
-			? primaryButton.includes(type)
-			: type === primaryButton;
+	const orderedActions = banner.orderedActions;
+	const allowedActions = new Set(orderedActions);
+	const effectivePrimaryButton = banner.primaryAction ?? primaryButton;
+	const resolvedLayout: ConsentBannerLayout =
+		layout ?? (banner.hasPolicyHints ? banner.actionGroups : DEFAULT_LAYOUT);
+	const activeGroups = resolvedLayout
+		.map((item) =>
+			Array.isArray(item)
+				? item.filter((action): action is PolicyUiAction =>
+						allowedActions.has(action)
+					)
+				: allowedActions.has(item)
+					? [item]
+					: []
+		)
+		.filter((group) => group.length > 0);
+	const shouldFillActions = shouldFillPolicyActions({
+		uiProfile: banner.uiProfile,
+		actionGroups: activeGroups,
+	});
+
+	const renderButton = (type: ConsentBannerButton, className?: string) => {
+		if (!allowedActions.has(type)) {
+			return null;
+		}
+
+		const isPrimary = Array.isArray(effectivePrimaryButton)
+			? effectivePrimaryButton.includes(type)
+			: type === effectivePrimaryButton;
 
 		switch (type) {
 			case 'reject':
 				return (
 					<ConsentBannerRejectButton
 						variant={isPrimary ? 'primary' : 'neutral'}
+						className={className}
 						data-testid="consent-banner-reject-button"
 					>
 						{rejectButtonText}
@@ -214,6 +252,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 				return (
 					<ConsentBannerAcceptButton
 						variant={isPrimary ? 'primary' : 'neutral'}
+						className={className}
 						data-testid="consent-banner-accept-button"
 					>
 						{acceptButtonText}
@@ -223,6 +262,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 				return (
 					<ConsentBannerCustomizeButton
 						variant={isPrimary ? 'primary' : 'neutral'}
+						className={className}
 						data-testid="consent-banner-customize-button"
 					>
 						{customizeButtonText}
@@ -243,21 +283,49 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 							{description}
 						</ConsentBannerDescription>
 					</ConsentBannerHeader>
-					<ConsentBannerFooter>
-						{layout.map((item, index) => {
+					<ConsentBannerFooter
+						className={cn(shouldFillActions && styles.footerFill)}
+					>
+						{resolvedLayout.map((item, index) => {
 							if (Array.isArray(item)) {
+								const filteredItems = item.filter((subItem) =>
+									allowedActions.has(subItem)
+								);
+								if (filteredItems.length === 0) {
+									return null;
+								}
 								const groupKey = item.join('-');
 								return (
 									<ConsentBannerFooterSubGroup
 										key={groupKey ? `group-${groupKey}` : `group-${index}`}
+										className={cn(
+											shouldFillActions && styles.footerSubGroupFill
+										)}
 									>
-										{item.map((subItem) => (
-											<Fragment key={subItem}>{renderButton(subItem)}</Fragment>
+										{filteredItems.map((subItem) => (
+											<Fragment key={subItem}>
+												{renderButton(
+													subItem,
+													shouldFillActions
+														? styles.actionButtonFill
+														: undefined
+												)}
+											</Fragment>
 										))}
 									</ConsentBannerFooterSubGroup>
 								);
 							}
-							return <Fragment key={item}>{renderButton(item)}</Fragment>;
+							if (!allowedActions.has(item)) {
+								return null;
+							}
+							return (
+								<Fragment key={item}>
+									{renderButton(
+										item,
+										shouldFillActions ? styles.actionButtonFill : undefined
+									)}
+								</Fragment>
+							);
 						})}
 					</ConsentBannerFooter>
 				</ConsentBannerCard>

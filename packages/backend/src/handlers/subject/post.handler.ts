@@ -8,9 +8,142 @@ import type { PostSubjectInput } from '@c15t/schema';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { generateUniqueId } from '~/db/registry/utils';
+import { getJurisdiction, getLocation } from '~/handlers/init/geo';
+import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
 import type { C15TContext } from '~/types';
 import { extractErrorMessage } from '~/utils/extract-error-message';
 import { getMetrics } from '~/utils/metrics';
+import { resolvePolicyDecision } from '../init/policy';
+
+export function buildRuntimeDecisionDedupeKey(input: {
+	tenantId?: string;
+	fingerprint: string;
+	matchedBy: string;
+	countryCode: string | null;
+	regionCode: string | null;
+	jurisdiction: string;
+	language?: string;
+}): string {
+	return [
+		input.tenantId ?? 'default',
+		input.fingerprint,
+		input.matchedBy,
+		input.countryCode ?? 'none',
+		input.regionCode ?? 'none',
+		input.jurisdiction,
+		input.language ?? 'none',
+	].join('|');
+}
+
+/**
+ * Builds the runtime decision payload from either a verified snapshot token
+ * or a freshly resolved policy decision.
+ *
+ * @returns The decision payload for audit storage, or `undefined` when
+ *          no policy information is available.
+ */
+function buildDecisionPayload(params: {
+	tenantId?: string;
+	snapshot: {
+		valid: boolean;
+		payload: NonNullable<Awaited<ReturnType<typeof verifyPolicySnapshotToken>>>;
+	} | null;
+	decision: Awaited<ReturnType<typeof resolvePolicyDecision>> | undefined;
+	location: { countryCode: string | null; regionCode: string | null };
+	jurisdiction: string;
+	language: string | undefined;
+	proofConfig:
+		| { storeIp?: boolean; storeUserAgent?: boolean; storeLanguage?: boolean }
+		| undefined;
+}) {
+	const {
+		tenantId,
+		snapshot,
+		decision,
+		location,
+		jurisdiction,
+		language,
+		proofConfig,
+	} = params;
+
+	if (snapshot?.valid && snapshot.payload) {
+		const sp = snapshot.payload;
+		return {
+			tenantId,
+			policyId: sp.policyId,
+			fingerprint: sp.fingerprint,
+			matchedBy: sp.matchedBy,
+			countryCode: sp.country,
+			regionCode: sp.region,
+			jurisdiction: sp.jurisdiction,
+			language: sp.language,
+			model: sp.model,
+			policyI18n: sp.policyI18n,
+			uiMode: sp.uiMode,
+			bannerUi: sp.bannerUi,
+			dialogUi: sp.dialogUi,
+			categories: sp.categories,
+			preselectedCategories: sp.preselectedCategories,
+			proofConfig: sp.proofConfig,
+			dedupeKey: buildRuntimeDecisionDedupeKey({
+				tenantId,
+				fingerprint: sp.fingerprint,
+				matchedBy: sp.matchedBy,
+				countryCode: sp.country,
+				regionCode: sp.region,
+				jurisdiction: sp.jurisdiction,
+				language: sp.language,
+			}),
+			source: 'snapshot_token' as const,
+		};
+	}
+
+	if (decision) {
+		return {
+			tenantId,
+			policyId: decision.policy.id,
+			fingerprint: decision.fingerprint,
+			matchedBy: decision.matchedBy,
+			countryCode: location.countryCode,
+			regionCode: location.regionCode,
+			jurisdiction,
+			language,
+			model: decision.policy.model,
+			policyI18n: decision.policy.i18n,
+			uiMode: decision.policy.ui?.mode,
+			bannerUi: decision.policy.ui?.banner,
+			dialogUi: decision.policy.ui?.dialog,
+			categories: decision.policy.consent?.categories,
+			preselectedCategories: decision.policy.consent?.preselectedCategories,
+			proofConfig,
+			dedupeKey: buildRuntimeDecisionDedupeKey({
+				tenantId,
+				fingerprint: decision.fingerprint,
+				matchedBy: decision.matchedBy,
+				countryCode: location.countryCode,
+				regionCode: location.regionCode,
+				jurisdiction,
+				language,
+			}),
+			source: 'write_time_fallback' as const,
+		};
+	}
+
+	return undefined;
+}
+
+function parseLanguageFromHeader(header: string | null): string | undefined {
+	if (!header) {
+		return undefined;
+	}
+
+	const firstLanguage = header.split(',')[0]?.split(';')[0]?.trim();
+	if (!firstLanguage) {
+		return undefined;
+	}
+
+	return firstLanguage.split('-')[0]?.toLowerCase();
+}
 
 /**
  * Handles the creation of a new consent record for a subject.
@@ -44,14 +177,6 @@ export const postSubjectHandler = async (c: Context) => {
 	const rawConsentAction =
 		'consentAction' in input ? input.consentAction : undefined;
 	let derivedConsentAction: string | undefined;
-	if (rawConsentAction === 'all') {
-		derivedConsentAction = 'accept_all';
-	} else if (rawConsentAction === 'necessary') {
-		derivedConsentAction =
-			input.jurisdictionModel === 'opt-out' ? 'opt_out' : 'reject_all';
-	} else if (rawConsentAction === 'custom') {
-		derivedConsentAction = 'custom';
-	}
 
 	logger.debug('Request parameters', {
 		type,
@@ -62,6 +187,71 @@ export const postSubjectHandler = async (c: Context) => {
 	});
 
 	try {
+		if (type === 'cookie_banner') {
+			logger.warn(
+				'`cookie_banner` policy type is deprecated in 2.0 RC and will be removed in 2.0 GA. Use backend runtime `policyPacks` for banner behavior.'
+			);
+		}
+
+		const request = c.req.raw ?? new Request('https://c15t.local/subjects');
+		const acceptLanguage = request.headers.get('accept-language');
+		const requestLanguage = parseLanguageFromHeader(acceptLanguage);
+		const location = await getLocation(request, ctx);
+		const resolvedJurisdiction = getJurisdiction(location, ctx);
+		const snapshotPayload = await verifyPolicySnapshotToken({
+			token: input.policySnapshotToken,
+			options: ctx.policySnapshot,
+			tenantId: ctx.tenantId,
+		});
+		const hasValidSnapshot = !!snapshotPayload;
+		const resolvedPolicyDecision = hasValidSnapshot
+			? undefined
+			: await resolvePolicyDecision({
+					policies: ctx.policyPacks,
+					countryCode: location.countryCode,
+					regionCode: location.regionCode,
+					jurisdiction: resolvedJurisdiction,
+					iabEnabled: ctx.iab?.enabled === true,
+				});
+		const effectivePolicy =
+			hasValidSnapshot && snapshotPayload
+				? {
+						id: snapshotPayload.policyId,
+						model: snapshotPayload.model,
+						i18n: snapshotPayload.policyI18n,
+						consent: {
+							expiryDays: snapshotPayload.expiryDays,
+							scopeMode: snapshotPayload.scopeMode,
+							categories: snapshotPayload.categories,
+							preselectedCategories: snapshotPayload.preselectedCategories,
+							gpc: snapshotPayload.gpc,
+						},
+						ui: {
+							mode: snapshotPayload.uiMode,
+							banner: snapshotPayload.bannerUi,
+							dialog: snapshotPayload.dialogUi,
+						},
+						proof: snapshotPayload.proofConfig,
+					}
+				: resolvedPolicyDecision?.policy;
+
+		const effectiveModel =
+			effectivePolicy?.model ??
+			(input.jurisdictionModel === 'opt-in' ||
+			input.jurisdictionModel === 'opt-out' ||
+			input.jurisdictionModel === 'iab'
+				? input.jurisdictionModel
+				: undefined);
+
+		if (rawConsentAction === 'all') {
+			derivedConsentAction = 'accept_all';
+		} else if (rawConsentAction === 'necessary') {
+			derivedConsentAction =
+				effectiveModel === 'opt-out' ? 'opt_out' : 'reject_all';
+		} else if (rawConsentAction === 'custom') {
+			derivedConsentAction = 'custom';
+		}
+
 		// Find or create subject with the client-provided ID
 		const subject = await registry.findOrCreateSubject({
 			subjectId,
@@ -90,6 +280,7 @@ export const postSubjectHandler = async (c: Context) => {
 
 		let policyId: string | undefined;
 		let purposeIds: string[] = [];
+		let appliedPreferences: Record<string, boolean> | undefined;
 
 		const inputPolicyId =
 			'policyId' in input ? (input.policyId as string | undefined) : undefined;
@@ -123,15 +314,45 @@ export const postSubjectHandler = async (c: Context) => {
 
 		// Handle purposes if they exist
 		if (preferences) {
-			const consentedPurposes = Object.entries(preferences)
+			const allowedCategories = effectivePolicy?.consent?.categories;
+			const effectiveScopeMode =
+				effectivePolicy?.consent?.scopeMode ?? 'permissive';
+			const hasWildcardCategoryScope =
+				allowedCategories?.includes('*') === true;
+			const appliedPreferenceEntries = Object.entries(preferences);
+			let filteredAppliedPreferenceEntries = appliedPreferenceEntries;
+
+			if (
+				allowedCategories &&
+				allowedCategories.length > 0 &&
+				!hasWildcardCategoryScope
+			) {
+				const disallowed = appliedPreferenceEntries
+					.map(([purpose]) => purpose)
+					.filter((purpose) => !allowedCategories.includes(purpose));
+				filteredAppliedPreferenceEntries = appliedPreferenceEntries.filter(
+					([purpose]) => allowedCategories.includes(purpose)
+				);
+				if (disallowed.length > 0 && effectiveScopeMode === 'strict') {
+					throw new HTTPException(400, {
+						message: 'Preferences include categories not allowed by policy',
+						cause: { code: 'PURPOSE_NOT_ALLOWED', disallowed },
+					});
+				}
+			}
+
+			appliedPreferences = Object.fromEntries(filteredAppliedPreferenceEntries);
+			const filteredConsentedPurposeCodes = filteredAppliedPreferenceEntries
 				.filter(([_, isConsented]) => isConsented)
 				.map(([purposeCode]) => purposeCode);
 
-			logger.debug('Consented purposes', { consentedPurposes });
+			logger.debug('Consented purposes', {
+				consentedPurposes: filteredConsentedPurposeCodes,
+			});
 
 			// Batch fetch all existing purposes
 			const purposesRaw = await Promise.all(
-				consentedPurposes.map((purposeCode) =>
+				filteredConsentedPurposeCodes.map((purposeCode) =>
 					registry.findOrCreateConsentPurposeByCode(purposeCode)
 				)
 			);
@@ -145,12 +366,54 @@ export const postSubjectHandler = async (c: Context) => {
 			if (purposes.length === 0) {
 				logger.warn(
 					'No valid purpose IDs found after filtering. Using empty list.',
-					{ consentedPurposes }
+					{ consentedPurposes: filteredConsentedPurposeCodes }
 				);
 			}
 
 			purposeIds = purposes;
 		}
+
+		const expiryDays = effectivePolicy?.consent?.expiryDays;
+		const validUntil =
+			typeof expiryDays === 'number' && Number.isFinite(expiryDays)
+				? new Date(givenAt.getTime() + Math.max(0, expiryDays) * 86_400_000)
+				: undefined;
+
+		const proofConfig = effectivePolicy?.proof;
+		const shouldStoreIp = proofConfig?.storeIp ?? true;
+		const shouldStoreUserAgent = proofConfig?.storeUserAgent ?? true;
+		const shouldStoreLanguage = proofConfig?.storeLanguage ?? false;
+		const effectiveLanguage =
+			(snapshotPayload?.language && hasValidSnapshot
+				? snapshotPayload.language
+				: requestLanguage) ?? undefined;
+
+		const metadataWithPolicy = {
+			...(metadata ?? {}),
+			...(shouldStoreLanguage && effectiveLanguage
+				? { policyLanguage: effectiveLanguage }
+				: {}),
+		};
+		const effectiveJurisdiction =
+			hasValidSnapshot && snapshotPayload
+				? snapshotPayload.jurisdiction
+				: resolvedJurisdiction;
+
+		const decisionPayload = buildDecisionPayload({
+			tenantId: ctx.tenantId,
+			snapshot:
+				hasValidSnapshot && snapshotPayload
+					? { valid: true, payload: snapshotPayload }
+					: null,
+			decision: resolvedPolicyDecision,
+			location: {
+				countryCode: location.countryCode,
+				regionCode: location.regionCode,
+			},
+			jurisdiction: resolvedJurisdiction,
+			language: effectiveLanguage,
+			proofConfig,
+		});
 
 		// Check for duplicate consent (idempotency)
 		const existingConsent = await db.findFirst('consent', {
@@ -174,6 +437,7 @@ export const postSubjectHandler = async (c: Context) => {
 				domain: domainRecord.name,
 				type,
 				metadata,
+				appliedPreferences,
 				uiSource: input.uiSource,
 				givenAt: existingConsent.givenAt,
 			});
@@ -187,6 +451,51 @@ export const postSubjectHandler = async (c: Context) => {
 				purposeIds,
 			});
 
+			const runtimePolicyDecision = decisionPayload
+				? ((await tx.findFirst('runtimePolicyDecision', {
+						where: (b) => b('dedupeKey', '=', decisionPayload.dedupeKey),
+					})) ??
+					(await tx
+						.create('runtimePolicyDecision', {
+							id: `rpd_${crypto.randomUUID().replaceAll('-', '')}`,
+							tenantId: decisionPayload.tenantId,
+							policyId: decisionPayload.policyId,
+							fingerprint: decisionPayload.fingerprint,
+							matchedBy: decisionPayload.matchedBy,
+							countryCode: decisionPayload.countryCode,
+							regionCode: decisionPayload.regionCode,
+							jurisdiction: decisionPayload.jurisdiction,
+							language: decisionPayload.language,
+							model: decisionPayload.model,
+							policyI18n: decisionPayload.policyI18n
+								? { json: decisionPayload.policyI18n }
+								: undefined,
+							uiMode: decisionPayload.uiMode,
+							bannerUi: decisionPayload.bannerUi
+								? { json: decisionPayload.bannerUi }
+								: undefined,
+							dialogUi: decisionPayload.dialogUi
+								? { json: decisionPayload.dialogUi }
+								: undefined,
+							categories: decisionPayload.categories
+								? { json: decisionPayload.categories }
+								: undefined,
+							preselectedCategories: decisionPayload.preselectedCategories
+								? { json: decisionPayload.preselectedCategories }
+								: undefined,
+							proofConfig: decisionPayload.proofConfig
+								? { json: decisionPayload.proofConfig }
+								: undefined,
+							dedupeKey: decisionPayload.dedupeKey,
+						})
+						.catch(async () =>
+							// Race: another request may have inserted the same dedupeKey
+							tx.findFirst('runtimePolicyDecision', {
+								where: (b) => b('dedupeKey', '=', decisionPayload.dedupeKey),
+							})
+						)))
+				: undefined;
+
 			// Always create a new consent record (append-only)
 			const consentRecord = await tx.create('consent', {
 				id: await generateUniqueId(tx, 'consent', ctx),
@@ -194,15 +503,21 @@ export const postSubjectHandler = async (c: Context) => {
 				domainId: domainRecord.id,
 				policyId,
 				purposeIds: { json: purposeIds },
-				metadata: metadata ? { json: metadata } : undefined,
-				ipAddress: ctx.ipAddress,
-				userAgent: ctx.userAgent,
-				jurisdiction: input.jurisdiction,
-				jurisdictionModel: input.jurisdictionModel,
+				metadata:
+					Object.keys(metadataWithPolicy).length > 0
+						? { json: metadataWithPolicy }
+						: undefined,
+				ipAddress: shouldStoreIp ? ctx.ipAddress : null,
+				userAgent: shouldStoreUserAgent ? ctx.userAgent : null,
+				jurisdiction: effectiveJurisdiction,
+				jurisdictionModel: effectiveModel,
 				tcString: input.tcString,
 				uiSource: input.uiSource,
 				consentAction: derivedConsentAction,
 				givenAt,
+				validUntil,
+				runtimePolicyDecisionId: runtimePolicyDecision?.id,
+				runtimePolicySource: decisionPayload?.source,
 			});
 
 			logger.debug('Created consent', { consentRecord: consentRecord.id });
@@ -226,7 +541,7 @@ export const postSubjectHandler = async (c: Context) => {
 		// Record telemetry metrics
 		const metrics = getMetrics();
 		if (metrics) {
-			const jurisdiction = input.jurisdiction;
+			const jurisdiction = effectiveJurisdiction;
 			metrics.recordConsentCreated({ type, jurisdiction });
 
 			// Determine accepted vs rejected based on preferences
@@ -247,6 +562,7 @@ export const postSubjectHandler = async (c: Context) => {
 			domain: domainRecord.name,
 			type,
 			metadata,
+			appliedPreferences,
 			uiSource: input.uiSource,
 			givenAt: result.consent.givenAt,
 		});

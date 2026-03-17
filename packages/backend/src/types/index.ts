@@ -4,6 +4,9 @@ import {
 	brandingValues,
 	type GlobalVendorList,
 	type NonIABVendor,
+	type PolicyConfig,
+	/** @deprecated Use `PolicyConfig[]` instead */
+	type PolicyPack,
 } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
 import type { Meter, Tracer } from '@opentelemetry/api';
@@ -11,6 +14,7 @@ import type { FumaDB, InferFumaDB } from 'fumadb';
 import type { CacheAdapter } from '../cache/types';
 import type { createRegistry } from '../db/registry';
 import type { DB, LatestDB } from '../db/schema';
+import type { JurisdictionCode } from './api';
 
 export * from './api';
 
@@ -160,7 +164,9 @@ export interface CacheOptions {
 export interface IABOptions {
 	/**
 	 * Enable IAB TCF support.
-	 * When false or not provided, /init returns gvl: null.
+	 * When false or not provided, /init does not include IAB payload fields.
+	 * When true, /init includes IAB payload only when IAB is active for the
+	 * resolved request policy (or when no policies are configured).
 	 */
 	enabled: true;
 
@@ -222,6 +228,98 @@ export interface IABOptions {
 }
 
 type FumaDBSchema = InferFumaDB<typeof DB>['schemas'];
+
+export interface I18nMessageProfile {
+	/**
+	 * Fallback language used when the requested language is not configured in
+	 * this profile.
+	 *
+	 * @remarks
+	 * This does not expand the profile's allowed languages. If the configured
+	 * fallback is not present in the profile, c15t falls back to English when
+	 * available, otherwise to the first configured language in the profile.
+	 *
+	 * @default "en"
+	 */
+	fallbackLanguage?: string;
+
+	/**
+	 * Translation overrides keyed by language code.
+	 */
+	translations: Record<string, Partial<Translations>>;
+}
+
+export type I18nMessageProfiles = Record<string, I18nMessageProfile>;
+
+export interface I18nOptions {
+	/**
+	 * Named translation catalogs grouped by profile.
+	 *
+	 * @example
+	 * ```ts
+	 * i18n: {
+	 *   messages: {
+	 *     default: {
+	 *       translations: { en: { cookieBanner: { title: '...' } } },
+	 *     },
+	 *     us_ca: {
+	 *       fallbackLanguage: 'en',
+	 *       translations: { en: { cookieBanner: { title: '...' } } },
+	 *     },
+	 *   }
+	 * }
+	 * ```
+	 */
+	messages?: I18nMessageProfiles;
+
+	/**
+	 * Fallback profile used when a policy does not provide `messageProfile`.
+	 * @default "default"
+	 */
+	defaultProfile?: string;
+}
+
+// Re-export canonical policy types from @c15t/schema
+export type {
+	PolicyConfig,
+	PolicyModel,
+	PolicyPack,
+	PolicyScopeMode,
+	PolicyUiAction,
+	PolicyUiActionLayout,
+	PolicyUiMode,
+	PolicyUiProfile,
+	PolicyUiSurfaceConfig,
+} from '@c15t/schema/types';
+
+export interface PolicySnapshotOptions {
+	/**
+	 * Secret used for signing and verifying policy snapshot tokens.
+	 */
+	signingKey: string;
+	/**
+	 * JWT issuer claim for snapshot tokens.
+	 * @default "c15t"
+	 */
+	issuer?: string;
+	/**
+	 * JWT audience claim for snapshot tokens.
+	 * When omitted, c15t derives a default snapshot audience and scopes it per tenant.
+	 */
+	audience?: string;
+	/**
+	 * Snapshot token lifetime in seconds.
+	 * @default 1800 (30 minutes)
+	 */
+	ttlSeconds?: number;
+}
+
+export interface BackgroundOptions {
+	/**
+	 * Executes non-critical tasks after the response path has completed.
+	 */
+	run: (task: () => Promise<void>) => void;
+}
 
 export interface C15TOptions {
 	/**
@@ -288,6 +386,8 @@ export interface C15TOptions {
 	/**
 	 * Override base translations.
 	 *
+	 * @deprecated Use `i18n.messages` instead. This alias is kept for compatibility.
+	 *
 	 * @example
 	 * ```ts
 	 * {
@@ -297,6 +397,23 @@ export interface C15TOptions {
 	 * ```
 	 */
 	customTranslations?: Record<string, Partial<Translations>>;
+
+	/**
+	 * Internationalization message profiles used by runtime policies.
+	 */
+	i18n?: I18nOptions;
+
+	/**
+	 * Runtime regional policy pack resolved per request.
+	 *
+	 * @remarks
+	 * Omit this field to keep legacy non-policy behavior. Pass `[]` to force
+	 * explicit no-banner mode. In production, prefer including a default policy
+	 * so unmatched traffic still resolves deterministically.
+	 *
+	 * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+	 */
+	policyPacks?: PolicyConfig[];
 
 	/**
 	 * Select which branding to show in the consent banner.
@@ -355,12 +472,22 @@ export interface C15TOptions {
 	 * @see {@link https://v2.c15t.com/docs/self-host/guides/iab-tcf}
 	 */
 	iab?: IABOptions;
+
+	/**
+	 * Optional signed policy snapshots used to keep /init and /subjects consistent.
+	 */
+	policySnapshot?: PolicySnapshotOptions;
+
+	/**
+	 * Optional background task runner for non-critical side effects.
+	 */
+	background?: BackgroundOptions;
 }
 
 export interface C15TContext
 	extends Omit<
 		C15TOptions,
-		'ipAddress' | 'adapter' | 'logger' | 'tablePrefix' | 'tenantId'
+		'ipAddress' | 'adapter' | 'logger' | 'tablePrefix'
 	> {
 	appName: string;
 	logger: ReturnType<typeof createLogger>;

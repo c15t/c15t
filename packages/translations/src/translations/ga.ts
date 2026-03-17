@@ -46,6 +46,8 @@ export const translations: CompleteTranslations = {
 	frame: {
 		title: 'Glac le toiliú {category} chun an t-ábhar seo a fheiceáil.',
 		actionButton: 'Cumasaigh toiliú {category}',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Beartas Príobháideachta',

@@ -1,0 +1,209 @@
+---
+title: Building Headless Components
+description: Build policy-aware custom consent components in Next.js using the headless hooks and policy-pack tooling.
+---
+
+<import src="../../shared/react/guides/building-headless-components.mdx#intro" />
+
+<import src="../../shared/react/guides/building-headless-components.mdx#what-you-get" />
+
+## Provider Setup for Local Policy Testing
+
+```tsx title="components/consent-manager/provider.tsx"
+'use client';
+
+import type { ReactNode } from 'react';
+import {
+  ConsentManagerProvider,
+  policyPackPresets,
+} from '@c15t/nextjs';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'offline',
+        offlinePolicy: {
+          policyPacks: [
+            policyPackPresets.californiaOptOut(),
+            policyPackPresets.europeOptIn(),
+            policyPackPresets.worldNoBanner(),
+          ],
+        },
+        overrides: {
+          country: 'GB',
+        },
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+## Policy-Aware Banner Example
+
+```tsx title="components/consent-manager/custom-banner.tsx"
+'use client';
+
+import { useHeadlessConsentUI, useTranslations } from '@c15t/nextjs/headless';
+
+export function CustomConsentBanner() {
+  const { banner, openDialog, performAction } = useHeadlessConsentUI();
+  const translations = useTranslations();
+
+  if (!banner.isVisible) return null;
+
+  return (
+    <aside className="rounded-xl border bg-white p-6 shadow-lg">
+      <h2 className="text-lg font-semibold">{translations.cookieBanner.title}</h2>
+      <p className="mt-2 text-sm text-gray-600">
+        {translations.cookieBanner.description}
+      </p>
+
+      <div className="mt-4 space-y-2">
+        {banner.actionGroups.map((group, index) => (
+          <div key={`${group.join('-')}-${index}`} className="flex gap-2">
+            {group.map((action) => (
+              <button
+                key={action}
+                type="button"
+                className={action === banner.primaryAction ? 'btn-primary' : 'btn-secondary'}
+                onClick={() => {
+                  if (action === 'customize') {
+                    openDialog();
+                    return;
+                  }
+                  void performAction(action, { surface: 'banner' });
+                }}
+              >
+                {action === 'accept'
+                  ? translations.common.acceptAll
+                  : action === 'reject'
+                    ? translations.common.rejectAll
+                    : translations.common.customize}
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
+    </aside>
+  );
+}
+```
+
+## Category List That Respects the Resolved Policy
+
+```tsx title="components/consent-manager/custom-dialog.tsx"
+'use client';
+
+import {
+  useConsentManager,
+  useHeadlessConsentUI,
+  useTranslations,
+} from '@c15t/nextjs/headless';
+
+export function CustomConsentDialog() {
+  const { dialog, performDialogAction, saveCustomPreferences } = useHeadlessConsentUI();
+  const {
+    consentTypes,
+    consentCategories,
+    consents,
+    selectedConsents,
+    setSelectedConsent,
+  } = useConsentManager();
+  const translations = useTranslations();
+
+  if (!dialog.isVisible) return null;
+
+  const displayedTypes = consentTypes.filter(
+    (type) => type.display && consentCategories.includes(type.name)
+  );
+
+  return (
+    <section className="rounded-xl border bg-white p-6 shadow-xl">
+      <h2 className="text-lg font-semibold">
+        {translations.consentManagerDialog.title}
+      </h2>
+
+      <div className="mt-4 space-y-3">
+        {displayedTypes.map((type) => (
+          <label key={type.name} className="flex items-start justify-between gap-4">
+            <div>
+              <p className="font-medium">
+                {translations.consentTypes[type.name]?.title ?? type.name}
+              </p>
+              <p className="text-sm text-gray-600">{type.description}</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={selectedConsents[type.name] ?? consents[type.name] ?? false}
+              disabled={type.disabled}
+              onChange={(event) =>
+                setSelectedConsent(type.name, event.target.checked)
+              }
+            />
+          </label>
+        ))}
+      </div>
+
+      <div className="mt-4 flex gap-2">
+        {dialog.orderedActions.map((action) => (
+          <button
+            key={action}
+            type="button"
+            onClick={() => {
+              if (action === 'customize') {
+                void saveCustomPreferences();
+                return;
+              }
+              void performDialogAction(action);
+            }}
+          >
+            {action === 'accept'
+              ? translations.common.acceptAll
+              : action === 'reject'
+                ? translations.common.rejectAll
+                : translations.common.save}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+```
+
+<import src="../../shared/react/guides/building-headless-components.mdx#checklist" />
+
+## Test Custom UI Against the Resolved Policy
+
+```ts
+import {
+  getEffectivePolicy,
+  type PolicyUIState,
+  validateUIAgainstPolicy,
+} from 'c15t';
+
+const policy = getEffectivePolicy(initData);
+
+const dialogState: PolicyUIState = {
+  mode: 'dialog',
+  actions: ['accept', 'reject', 'customize'],
+  layout: 'split',
+  uiProfile: 'compact',
+  scrollLock: true,
+};
+
+const issues = validateUIAgainstPolicy({
+  policy,
+  state: dialogState,
+});
+
+expect(issues).toEqual([]);
+```
+
+<import src="../../shared/react/guides/building-headless-components.mdx#validation" />
+
+<Callout type="info">
+  Pair this with [Policy Packs](/docs/frameworks/next/policy-packs) when you want to exercise multiple regional UI states locally before wiring a live backend.
+</Callout>

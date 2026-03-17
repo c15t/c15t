@@ -80,6 +80,51 @@ consentStore.subscribe((state, prevState) => {
 });
 ```
 
+## Building Policy-Aware UI
+
+If you use policy packs, your custom UI should render from the resolved runtime policy instead of hard-coding a fixed banner shape.
+
+That matters when different visitors may resolve to different experiences, for example:
+
+- a banner in one region and no banner in another
+- different action sets such as accept/customize without reject
+- different category scopes depending on the active policy
+
+You can preview that locally with `offlinePolicy.policyPacks`:
+
+```ts
+import { getOrCreateConsentRuntime, policyPackPresets } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'offline',
+  offlinePolicy: {
+    policyPacks: [
+      policyPackPresets.californiaOptOut(),
+      policyPackPresets.europeOptIn(),
+      policyPackPresets.worldNoBanner(),
+    ],
+  },
+  overrides: {
+    country: 'US',
+    region: 'CA',
+  },
+});
+
+const state = consentStore.getState();
+console.log(state.policy?.id, state.policyDecision?.matchedBy);
+```
+
+When building custom UI, prefer these runtime values:
+
+- `activeUI` to decide whether to show banner, dialog, or nothing
+- `policy` to inspect the resolved mode and UI hints
+- `policyDecision` to debug why a policy was selected
+- `consentCategories` to decide which categories should render
+
+<Callout type="info">
+  See [Policy Packs](/docs/frameworks/javascript/policy-packs) for offline preview setup and [Policy Packs Concept](/docs/frameworks/javascript/concepts/policy-packs) for matcher precedence and fallback behavior.
+</Callout>
+
 ## Key Store Properties for UI
 
 | Property | Type | Use |
@@ -100,6 +145,44 @@ consentStore.subscribe((state, prevState) => {
 | `setConsent` | `(name, value) => void` | Set + auto-save a single category |
 | `setActiveUI` | `(ui: 'none' \| 'banner' \| 'dialog', options?) => void` | Show/hide the banner or dialog |
 | `getDisplayedConsents` | `() => ConsentType[]` | Get visible consent categories |
+
+## Validating Custom UI Against the Resolved Policy
+
+If you're building a reusable headless component library or framework wrapper, test your rendered UI against the resolved policy shape.
+
+```ts
+import {
+  getEffectivePolicy,
+  type PolicyUIState,
+  validateUIAgainstPolicy,
+} from 'c15t';
+
+const policy = getEffectivePolicy(initData);
+
+const bannerState: PolicyUIState = {
+  mode: 'banner',
+  actions: ['accept', 'reject', 'customize'],
+  layout: 'split',
+  uiProfile: 'compact',
+  scrollLock: false,
+};
+
+const issues = validateUIAgainstPolicy({
+  policy,
+  state: bannerState,
+});
+
+if (issues.length > 0) {
+  console.warn('UI does not match policy:', issues);
+}
+```
+
+This catches mismatches such as:
+
+- rendering actions the policy does not allow
+- rendering the wrong action order
+- using the wrong layout or UI profile
+- showing banner/dialog UI that does not match the resolved mode
 
 ## Using `@c15t/ui` for Theming
 

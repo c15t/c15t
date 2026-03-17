@@ -1,10 +1,24 @@
-import { enTranslations } from '@c15t/translations';
 import type { InitResponse } from '../client-interface';
+import {
+	buildFallbackInitData,
+	resolveFallbackPolicy,
+} from '../shared/init-fallback';
 import type { FetchOptions, ResponseContext } from '../types';
 import { API_ENDPOINTS } from '../types';
 import type { FetcherContext } from './fetcher';
 import { createResponseContext, fetcher } from './fetcher';
 import type { IABFallbackConfig } from './types';
+
+async function createFallbackContext(
+	options: FetchOptions<InitResponse> | undefined,
+	data: InitResponse
+): Promise<ResponseContext<InitResponse>> {
+	const response = createResponseContext<InitResponse>(true, data, null, null);
+	if (options?.onSuccess) {
+		await options.onSuccess(response);
+	}
+	return response;
+}
 
 /**
  * Provides offline mode fallback for showConsentBanner API.
@@ -28,32 +42,14 @@ export async function offlineFallbackForConsentBanner(
 		}
 	}
 
-	// Create a simulated response similar to what the API would return
-	const response = createResponseContext<InitResponse>(
-		true, // Mark as successful even though we're in fallback mode
-		{
-			jurisdiction: 'NONE', // We don't know the jurisdiction in offline mode
-			location: {
-				countryCode: null,
-				regionCode: null,
-			},
-			translations: {
-				language: 'en',
-				translations: enTranslations,
-			},
-			branding: 'c15t',
-			gvl,
-		},
-		null,
-		null
-	);
+	const fallbackData = buildFallbackInitData({
+		countryCode: options?.headers?.['x-c15t-country'] ?? null,
+		regionCode: options?.headers?.['x-c15t-region'] ?? null,
+		gvl,
+		policy: resolveFallbackPolicy({}),
+	});
 
-	// Call success callback if provided
-	if (options?.onSuccess) {
-		await options.onSuccess(response);
-	}
-
-	return response;
+	return createFallbackContext(options, fallbackData);
 }
 
 /**

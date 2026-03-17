@@ -9,15 +9,35 @@ import {
 	IABConsentBanner,
 	IABConsentDialog,
 } from '@c15t/react';
-import { baseTranslations } from '@c15t/translations/all';
+import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useThemePreset } from './theme-switcher';
+
+const SEARCH_CHANGE_EVENT = 'c15t:search-change';
 
 /**
  * Props for the ConsentManager component
  */
 interface ConsentManagerProps {
 	children: ReactNode;
+}
+
+function resolveGeoOverrides(
+	search: string
+): { country?: string; region?: string } | undefined {
+	const searchParams = new URLSearchParams(search);
+	const queryCountry = searchParams.get('country');
+	const queryRegion = searchParams.get('region');
+
+	if (!queryCountry && !queryRegion) {
+		return undefined;
+	}
+
+	return {
+		...(queryCountry ? { country: queryCountry.toUpperCase() } : {}),
+		...(queryRegion ? { region: queryRegion.toUpperCase() } : {}),
+	};
 }
 
 /**
@@ -60,6 +80,74 @@ interface ConsentManagerProps {
  */
 export function ConsentManager({ children }: ConsentManagerProps) {
 	const { theme, mounted } = useThemePreset();
+	const pathname = usePathname();
+	const [search, setSearch] = useState(() =>
+		typeof window === 'undefined' ? '' : window.location.search
+	);
+	const [geoOverrides, setGeoOverrides] = useState<
+		{ country?: string; region?: string } | undefined
+	>(() =>
+		typeof window === 'undefined'
+			? undefined
+			: resolveGeoOverrides(window.location.search)
+	);
+
+	useEffect(() => {
+		if (typeof window === 'undefined') {
+			return;
+		}
+
+		const syncSearch = () => {
+			// Defer the state update so it never runs inside useInsertionEffect
+			// (triggered when Next.js router calls history.pushState/replaceState).
+			queueMicrotask(() => {
+				setSearch((currentSearch) => {
+					const nextSearch = window.location.search;
+					return currentSearch === nextSearch ? currentSearch : nextSearch;
+				});
+			});
+		};
+
+		const originalPushState = window.history.pushState;
+		const originalReplaceState = window.history.replaceState;
+		const notifySearchChange = () => {
+			window.dispatchEvent(new Event(SEARCH_CHANGE_EVENT));
+		};
+
+		window.history.pushState = function pushState(...args) {
+			originalPushState.apply(this, args);
+			notifySearchChange();
+		};
+
+		window.history.replaceState = function replaceState(...args) {
+			originalReplaceState.apply(this, args);
+			notifySearchChange();
+		};
+
+		syncSearch();
+		window.addEventListener('popstate', syncSearch);
+		window.addEventListener(SEARCH_CHANGE_EVENT, syncSearch);
+
+		return () => {
+			window.history.pushState = originalPushState;
+			window.history.replaceState = originalReplaceState;
+			window.removeEventListener('popstate', syncSearch);
+			window.removeEventListener(SEARCH_CHANGE_EVENT, syncSearch);
+		};
+	}, []);
+
+	useEffect(() => {
+		const nextOverrides = resolveGeoOverrides(search);
+		setGeoOverrides((currentOverrides) => {
+			if (
+				currentOverrides?.country === nextOverrides?.country &&
+				currentOverrides?.region === nextOverrides?.region
+			) {
+				return currentOverrides;
+			}
+			return nextOverrides;
+		});
+	}, [search]);
 
 	// Use default theme during SSR/hydration to avoid mismatch, then switch to user preference
 	const activeTheme = mounted ? theme : undefined;
@@ -78,6 +166,9 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 				},
 			}
 		: activeTheme;
+	const isHeadlessPolicyTab =
+		pathname === '/policy' &&
+		new URLSearchParams(search).get('tab') === 'headless';
 
 	return (
 		<ConsentManagerProvider
@@ -86,7 +177,13 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 				// backendURL: 'https://instance-worker-test.consent-ef4.workers.dev/',
 				// backendURL: 'https://minecraft-europe-hypixel.c15t.xyz',
 				backendURL: '/api/self-host',
-				consentCategories: ['necessary', 'marketing', 'measurement'],
+				consentCategories: [
+					'necessary',
+					'functionality',
+					'experience',
+					'marketing',
+					'measurement',
+				],
 				iab: {
 					enabled: true,
 					customVendors: [
@@ -134,33 +231,18 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 					id: '123',
 					identityProvider: 'custom',
 				},
-				i18n: {
-					messages: {
-						zh: {
-							...baseTranslations.zh,
-						},
-						en: {
-							...baseTranslations.en,
-						},
-						fr: {
-							...baseTranslations.fr,
-						},
-						de: {
-							...baseTranslations.de,
-						},
-					},
-				},
-				overrides: {
-					country: 'CA',
-					region: 'QC',
-				},
+				overrides: geoOverrides,
 			}}
 		>
-			<ConsentBanner />
-			<IABConsentBanner />
-			<IABConsentDialog />
-			<ConsentDialogTrigger />
-			<ConsentDialog />
+			{!isHeadlessPolicyTab ? (
+				<>
+					<ConsentBanner />
+					<IABConsentBanner />
+					<IABConsentDialog />
+					<ConsentDialogTrigger />
+					<ConsentDialog />
+				</>
+			) : null}
 			<DevTools />
 			{children}
 		</ConsentManagerProvider>

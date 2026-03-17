@@ -3,7 +3,16 @@
  * Defines the core types and interfaces for the consent management store.
  */
 
-import type { Branding, InitOutput } from '@c15t/schema/types';
+import type {
+	Branding,
+	InitOutput,
+	PolicyConfig,
+	PolicyScopeMode,
+	PolicyUiAction,
+	PolicyUiActionLayout,
+	PolicyUiProfile,
+	PolicyUiSurfaceConfig,
+} from '@c15t/schema/types';
 import type { Model } from '~/libs/determine-model';
 import type { StorageConfig } from '../libs/cookie';
 import type { HasCondition } from '../libs/has';
@@ -25,6 +34,7 @@ import type {
 	LocationInfo,
 	Overrides,
 	TranslationConfig,
+	Translations,
 	User,
 } from '../types';
 
@@ -43,13 +53,162 @@ export type { IABActions, IABManager, IABState } from '../libs/iab-tcf/types';
  */
 export type ActiveUI = 'none' | 'banner' | 'dialog';
 
+// Re-export canonical policy types from @c15t/schema
+export type {
+	PolicyUiAction,
+	PolicyUiActionLayout,
+	PolicyUiProfile,
+	PolicyUiSurfaceConfig,
+	PolicyScopeMode,
+};
+export type InitDataSource =
+	| 'ssr'
+	| 'backend'
+	| 'backend-cache-hit'
+	| 'offline-fallback'
+	| 'offline-mode'
+	| 'custom';
+
+/**
+ * Policy-driven UI hints for a single consent surface (banner or dialog).
+ *
+ * @remarks
+ * These values are populated from `/init` response policy data and drive
+ * the headless consent UI hooks.
+ *
+ * @public
+ */
+export interface PolicySurfaceState {
+	/** Allowed actions for this surface derived from backend runtime policy. */
+	allowedActions?: PolicyUiAction[];
+	/** Preferred primary action hint from backend runtime policy. */
+	primaryAction?: PolicyUiAction;
+	/** Explicit action order hint from backend runtime policy. */
+	actionOrder?: PolicyUiAction[];
+	/** Action layout hint from backend runtime policy. */
+	actionLayout?: PolicyUiActionLayout;
+	/** Presentation profile hint from backend runtime policy. */
+	uiProfile?: PolicyUiProfile;
+	/** Scroll lock hint from backend runtime policy. */
+	scrollLock?: boolean;
+}
+
+/**
+ * Offline policy preview payload for the headless runtime.
+ *
+ * @remarks
+ * Use this in `mode: 'offline'` to preview backend-like policy behavior
+ * without a live `/init` endpoint.
+ *
+ * The runtime supports two levels of control:
+ *
+ * - `policyPacks`: provide a backend-compatible policy pack and let c15t
+ *   resolve it locally
+ * - `policy` / `policyDecision`: inject a fully synthetic resolved result
+ *
+ * @see {@link https://v2.c15t.com/docs/frameworks/javascript/policy-packs}
+ * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
+ */
+export type OfflinePolicyConfig = {
+	/**
+	 * Backend-like i18n configuration for offline policy previews.
+	 *
+	 * @remarks
+	 * This mirrors the backend's policy-pack translation model so offline mode
+	 * can resolve `messageProfile` the same way as hosted mode.
+	 */
+	i18n?: {
+		/**
+		 * Translation catalogs keyed by profile.
+		 */
+		messages?: Record<
+			string,
+			{
+				/**
+				 * Fallback language used when the requested language is not configured
+				 * in this profile.
+				 * @default "en"
+				 */
+				fallbackLanguage?: string;
+
+				/**
+				 * Translation overrides keyed by language code.
+				 */
+				translations: Record<string, Partial<Translations>>;
+			}
+		>;
+
+		/**
+		 * Fallback profile used when a policy does not provide `messageProfile`.
+		 * @default "default"
+		 */
+		defaultProfile?: string;
+	};
+
+	/**
+	 * Backend-compatible policy pack resolved in offline mode using
+	 * region > country > default precedence.
+	 *
+	 * @remarks
+	 * Mirrors the backend's `policyPacks` field. Use this with
+	 * `policyPackPresets` helpers or custom `PolicyConfig[]` arrays.
+	 */
+	policyPacks?: PolicyConfig[];
+
+	/**
+	 * Synthetic runtime policy returned by offline mode init.
+	 *
+	 * @remarks
+	 * Useful for local UI previews where no backend `/init` endpoint is available.
+	 */
+	policy?: InitOutput['policy'];
+
+	/**
+	 * Optional explainability metadata for the synthetic policy decision.
+	 */
+	policyDecision?: InitOutput['policyDecision'];
+
+	/**
+	 * Optional synthetic policy snapshot token.
+	 */
+	policySnapshotToken?: InitOutput['policySnapshotToken'];
+};
+
+/**
+ * SSR transport metadata for the `/init` request that produced {@link SSRInitialData}.
+ *
+ * @public
+ */
+export interface SSRInitRequestMetadata {
+	/**
+	 * End-to-end request duration in milliseconds (server-side measurement).
+	 */
+	requestDurationMs?: number;
+
+	/**
+	 * Cache diagnostics extracted from response headers.
+	 */
+	cache?: {
+		/**
+		 * Whether the `/init` response appears to be served from cache.
+		 */
+		isHit: boolean;
+
+		/**
+		 * Human-readable cache detail (for example, `x-vercel-cache=HIT, age=12`).
+		 */
+		detail: string | null;
+	};
+}
+
 /**
  * Initial data structure for SSR prefetching.
  *
  * @remarks
  * When using frameworks like Next.js, init data can be prefetched
  * on the server and passed to the client. GVL is included in the
- * init response when the server has it configured.
+ * init response when IAB is active for the resolved request policy
+ * (or for legacy setups without backend policies).
  *
  * @public
  */
@@ -61,13 +220,18 @@ export interface SSRInitialData {
 
 	/**
 	 * Global Vendor List data for IAB TCF mode.
-	 * - `undefined` means IAB is not enabled on server or GVL wasn't configured
+	 * - `undefined` means IAB is not active for the request or not enabled on server
 	 * - `null` means the user is in a non-IAB region (204 response from gvl.consent.io)
 	 * - `GlobalVendorList` contains the vendor list data from init response
 	 *
 	 * Note: When init returns 200 without gvl, client IAB settings are overridden to disabled.
 	 */
 	gvl?: GlobalVendorList | null;
+
+	/**
+	 * Optional metadata for debugging SSR transport behavior.
+	 */
+	metadata?: SSRInitRequestMetadata;
 }
 
 /**
@@ -316,6 +480,19 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	iab?: IABConfig;
 
 	/**
+	 * Offline-mode policy payload override.
+	 *
+	 * @remarks
+	 * When `mode: 'offline'`, this payload is merged into the offline `init`
+	 * response so policy-driven banner/dialog behavior can be previewed locally.
+	 *
+	 * Ignored in hosted/custom modes.
+	 *
+	 * @see {@link https://v2.c15t.com/docs/frameworks/javascript/policy-packs}
+	 */
+	offlinePolicy?: OfflinePolicyConfig;
+
+	/**
 	 * Callbacks for the consent manager.
 	 *
 	 * @see https://c15t.com/docs/frameworks/react/callbacks
@@ -424,6 +601,41 @@ export interface StoreRuntimeState extends StoreConfig {
 	 * - 'iab' - IAB TCF 2.3 mode for programmatic advertising compliance. (GDPR jurisdictions only)
 	 */
 	model: Model;
+
+	/** Policy-driven UI hints for the consent banner surface. */
+	policyBanner: PolicySurfaceState;
+
+	/** Policy-driven UI hints for the consent dialog surface. */
+	policyDialog: PolicySurfaceState;
+
+	/**
+	 * Active runtime policy category scope from `/init`.
+	 *
+	 * @remarks
+	 * Used to keep client-side category discovery (scripts/iframes) aligned with
+	 * backend policy restrictions after initialization.
+	 */
+	policyCategories: string[] | null;
+
+	/**
+	 * Runtime policy scope mode from `/init`.
+	 * Controls whether out-of-scope categories are treated as permissive at runtime.
+	 */
+	policyScopeMode: PolicyScopeMode | null;
+
+	/**
+	 * Source that provided the most recent `/init` payload used to hydrate runtime state.
+	 *
+	 * @remarks
+	 * This is useful for diagnostics and for authoring policy conditions around backend
+	 * availability/cache behavior without relying on volatile dimensions.
+	 */
+	initDataSource: InitDataSource | null;
+
+	/**
+	 * Optional source detail for diagnostics (for example, cache header values).
+	 */
+	initDataSourceDetail: string | null;
 
 	/**
 	 * IAB TCF 2.3 state and actions (null when not configured or not in IAB mode).

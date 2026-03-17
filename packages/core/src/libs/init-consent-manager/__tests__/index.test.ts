@@ -31,6 +31,7 @@ describe('initConsentManager', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		window.localStorage.clear();
 
 		mockGet = vi.fn();
 		mockSet = vi.fn();
@@ -96,6 +97,57 @@ describe('initConsentManager', () => {
 	});
 
 	describe('Initial data handling', () => {
+		it('should replay pending consent sync with policy snapshot token', async () => {
+			window.localStorage.setItem(
+				'c15t:pending-consent-sync',
+				JSON.stringify({
+					type: 'custom',
+					subjectId: 'existing-subject',
+					preferences: {
+						necessary: true,
+						functionality: false,
+						experience: false,
+						marketing: false,
+						measurement: false,
+					},
+					givenAt: 1_746_000_000_000,
+					jurisdiction: 'GDPR',
+					jurisdictionModel: 'opt-in',
+					domain: 'example.com',
+					uiSource: 'dialog',
+					policySnapshotToken: 'snapshot-token-123',
+				})
+			);
+
+			mockManager = createMockConsentManager({
+				setConsent: vi.fn().mockResolvedValue({
+					ok: true,
+					data: undefined,
+					error: null,
+				}),
+				init: vi.fn().mockResolvedValue({
+					data: createMockConsentBannerResponse(),
+					error: null,
+				}),
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(mockManager.setConsent).toHaveBeenCalledWith({
+				body: expect.objectContaining({
+					policySnapshotToken: 'snapshot-token-123',
+					uiSource: 'dialog',
+				}),
+			});
+			expect(
+				window.localStorage.getItem('c15t:pending-consent-sync')
+			).toBeNull();
+		});
+
 		it('should use initial data when provided and valid', async () => {
 			const mockResponse = createMockConsentBannerResponse();
 			const ssrData = Promise.resolve({
@@ -188,6 +240,146 @@ describe('initConsentManager', () => {
 
 			expect(result).toEqual(apiResponse);
 			expect(mockManager.init).toHaveBeenCalled();
+		});
+
+		it('reopens consent UI when the active material policy fingerprint changes', async () => {
+			const mockResponse = createMockConsentBannerResponse({
+				policy: {
+					id: 'policy_runtime_gdpr',
+					model: 'opt-in',
+					consent: {
+						expiryDays: 365,
+						scopeMode: 'strict',
+						categories: ['necessary', 'measurement'],
+					},
+					ui: {
+						mode: 'banner',
+						banner: {
+							allowedActions: ['accept', 'reject'],
+							primaryAction: 'accept',
+							actionOrder: ['accept', 'reject'],
+						},
+					},
+				},
+			});
+			let state = createMockStoreState({
+				consents: {
+					necessary: true,
+					functionality: false,
+					experience: false,
+					marketing: false,
+					measurement: true,
+				},
+				selectedConsents: {
+					necessary: true,
+					functionality: false,
+					experience: false,
+					marketing: false,
+					measurement: true,
+				},
+				consentInfo: {
+					time: 1_700_000_000_000,
+					subjectId: 'sub_existing',
+					materialPolicyFingerprint: 'f'.repeat(64),
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: '',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'measurement',
+						defaultValue: false,
+						description: '',
+						disabled: false,
+						display: true,
+						gdprType: 4,
+					},
+				],
+			});
+			storeGet = (() => state) as StoreApi<ConsentStoreState>['getState'];
+			storeSet = ((update) => {
+				state = {
+					...state,
+					...(typeof update === 'function' ? update(state) : update),
+				};
+			}) as StoreApi<ConsentStoreState>['setState'];
+
+			mockManager = createMockConsentManager({
+				init: vi.fn().mockResolvedValue({
+					data: mockResponse,
+					error: null,
+				}),
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(state.consentInfo).toBeNull();
+			expect(state.activeUI).toBe('banner');
+			expect(state.consents.necessary).toBe(true);
+			expect(state.consents.measurement).toBe(false);
+		});
+
+		it('seeds the current material policy fingerprint for existing consent without reopening UI', async () => {
+			const mockResponse = createMockConsentBannerResponse({
+				policy: {
+					id: 'policy_runtime_gdpr',
+					model: 'opt-in',
+					consent: {
+						expiryDays: 365,
+						scopeMode: 'strict',
+						categories: ['necessary', 'measurement'],
+					},
+					ui: {
+						mode: 'banner',
+						banner: {
+							allowedActions: ['accept', 'reject'],
+							primaryAction: 'accept',
+							actionOrder: ['accept', 'reject'],
+						},
+					},
+				},
+			});
+			let state = createMockStoreState({
+				consentInfo: {
+					time: 1_700_000_000_000,
+					subjectId: 'sub_existing',
+				},
+				activeUI: 'none',
+			});
+			storeGet = (() => state) as StoreApi<ConsentStoreState>['getState'];
+			storeSet = ((update) => {
+				state = {
+					...state,
+					...(typeof update === 'function' ? update(state) : update),
+				};
+			}) as StoreApi<ConsentStoreState>['setState'];
+
+			mockManager = createMockConsentManager({
+				init: vi.fn().mockResolvedValue({
+					data: mockResponse,
+					error: null,
+				}),
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(state.consentInfo?.materialPolicyFingerprint).toMatch(
+				/^[a-f0-9]{64}$/
+			);
+			expect(state.activeUI).toBe('none');
 		});
 
 		it('should pass overrides as headers to init', async () => {
@@ -335,6 +527,155 @@ describe('initConsentManager', () => {
 	});
 
 	describe('Store updates', () => {
+		it('stores init source as ssr when SSR prefetched data is used', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			const ssrData = Promise.resolve({
+				init: mockResponse,
+				gvl: undefined,
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+				ssrData,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					initDataSource: 'ssr',
+					initDataSourceDetail: 'via=ssr',
+				})
+			);
+		});
+
+		it('maps SSR cache metadata to backend-cache-hit source', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			const ssrData = Promise.resolve({
+				init: mockResponse,
+				gvl: undefined,
+				metadata: {
+					requestDurationMs: 42,
+					cache: {
+						isHit: true,
+						detail: 'x-vercel-cache=HIT, age=12',
+					},
+				},
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+				ssrData,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					initDataSource: 'backend-cache-hit',
+					initDataSourceDetail:
+						'via=ssr, x-vercel-cache=HIT, age=12, duration=42ms',
+				})
+			);
+		});
+
+		it('stores backend-cache-hit source from cache headers', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			mockManager.init = vi.fn().mockResolvedValue({
+				data: mockResponse,
+				error: null,
+				response: new Response(JSON.stringify(mockResponse), {
+					status: 200,
+					headers: {
+						'content-type': 'application/json',
+						'x-vercel-cache': 'HIT',
+					},
+				}),
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					initDataSource: 'backend-cache-hit',
+					initDataSourceDetail: 'x-vercel-cache=HIT',
+				})
+			);
+		});
+
+		it('stores offline-fallback source for hosted mode with null response', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			mockState.config.mode = 'hosted';
+			mockManager.init = vi.fn().mockResolvedValue({
+				data: mockResponse,
+				error: null,
+				response: null,
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					initDataSource: 'offline-fallback',
+					initDataSourceDetail: null,
+				})
+			);
+		});
+
+		it('stores offline-mode source for offline client mode', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			mockState.config.mode = 'offline';
+			mockManager.init = vi.fn().mockResolvedValue({
+				data: mockResponse,
+				error: null,
+				response: null,
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					initDataSource: 'offline-mode',
+					initDataSourceDetail: null,
+				})
+			);
+		});
+
+		it('stores custom source for custom client mode', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			mockState.config.mode = 'custom';
+			mockManager.init = vi.fn().mockResolvedValue({
+				data: mockResponse,
+				error: null,
+				response: null,
+			});
+
+			await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					initDataSource: 'custom',
+					initDataSourceDetail: null,
+				})
+			);
+		});
+
 		it('should update store with consent banner data', async () => {
 			const mockResponse = createMockConsentBannerResponse();
 
