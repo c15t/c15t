@@ -241,9 +241,7 @@
 								closeConsentBanner
 								data-testid="consent-banner-reject-button"
 							>
-								{#snippet children()}
-									{resolvedRejectText}
-								{/snippet}
+								{resolvedRejectText}
 							</ConsentButton>
 						{:else if buttonType === 'accept'}
 							<ConsentButton
@@ -252,9 +250,7 @@
 								closeConsentBanner
 								data-testid="consent-banner-accept-button"
 							>
-								{#snippet children()}
-									{resolvedAcceptText}
-								{/snippet}
+								{resolvedAcceptText}
 							</ConsentButton>
 						{:else if buttonType === 'customize'}
 							<ConsentButton
@@ -262,20 +258,18 @@
 								variant={isPrimary('customize') ? 'primary' : 'neutral'}
 								data-testid="consent-banner-customize-button"
 							>
-								{#snippet children()}
-									{resolvedCustomizeText}
-								{/snippet}
+								{resolvedCustomizeText}
 							</ConsentButton>
 						{/if}
 					{/snippet}
 
-					{#each layout as item, index}
+					{#each layout as item (item)}
 						{#if Array.isArray(item)}
 							<div
 								class={noStyle ? '' : footerSubGroupStyle.className || ''}
 								data-testid="consent-banner-footer-sub-group"
 							>
-								{#each item as buttonType}
+								{#each item as buttonType (buttonType)}
 									{@render renderButton(buttonType)}
 								{/each}
 							</div>

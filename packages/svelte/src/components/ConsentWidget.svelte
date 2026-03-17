@@ -87,7 +87,7 @@
 		bind:value={openItems}
 		data-testid="consent-widget-accordion"
 	>
-		{#each displayedConsents as consentType}
+		{#each displayedConsents as consentType (consentType.name)}
 			{@const isChecked =
 				consent.state.selectedConsents?.[consentType.name] ??
 				consent.state.consents[consentType.name] ??
@@ -175,9 +175,7 @@
 				closeConsentDialog
 				data-testid="consent-widget-reject-button"
 			>
-				{#snippet children()}
-					{translations.common.rejectAll}
-				{/snippet}
+				{translations.common.rejectAll}
 			</ConsentButton>
 			<ConsentButton
 				action="accept-consent"
@@ -186,9 +184,7 @@
 				closeConsentDialog
 				data-testid="consent-widget-accept-all-button"
 			>
-				{#snippet children()}
-					{translations.common.acceptAll}
-				{/snippet}
+				{translations.common.acceptAll}
 			</ConsentButton>
 		</div>
 		<ConsentButton
@@ -197,9 +193,7 @@
 			closeConsentDialog
 			data-testid="consent-widget-save-button"
 		>
-			{#snippet children()}
-				{translations.common.save}
-			{/snippet}
+			{translations.common.save}
 		</ConsentButton>
 	</div>
 

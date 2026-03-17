@@ -5,6 +5,7 @@
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 	import type { GlobalVendorList } from 'c15t';
 	import { untrack } from 'svelte';
+	import { SvelteSet, SvelteMap } from 'svelte/reactivity';
 	import type {
 		ProcessedPurpose,
 		ProcessedVendor,
@@ -53,7 +54,7 @@
 	} = $props();
 
 	let searchTerm = $state('');
-	let expandedVendors = $state(new Set<VendorId>());
+	let expandedVendors = new SvelteSet<VendorId>();
 
 	// Map IAB vendors
 	const iabVendors = $derived.by((): ProcessedVendor[] => {
@@ -121,7 +122,7 @@
 		if (selectedVendorId !== null) {
 			const id = selectedVendorId;
 			untrack(() => {
-				expandedVendors = new Set(expandedVendors).add(id);
+				expandedVendors.add(id);
 			});
 			const timer = setTimeout(() => {
 				const element = document.getElementById(`vendor-${String(id)}`);
@@ -150,25 +151,19 @@
 	);
 
 	function handleVendorOpenChange(vendorId: VendorId, open: boolean) {
-		const newSet = new Set(expandedVendors);
 		if (open) {
-			newSet.add(vendorId);
+			expandedVendors.add(vendorId);
 		} else {
-			newSet.delete(vendorId);
+			expandedVendors.delete(vendorId);
 		}
-		expandedVendors = newSet;
 	}
 
 	// Precompute vendor lookup maps once (O(V+P)) instead of per-vendor-per-render (O(V×P)).
-	const vendorMap = $derived(
-		new Map(vendors.map((v) => [String(v.id), v]))
-	);
-
 	type VendorPurposeEntry = ProcessedPurpose & { usesLegitimateInterest: boolean };
 	type SimpleEntry = { id: number; name: string; description: string };
 
 	const vendorPurposesMap = $derived.by(() => {
-		const map = new Map<string, VendorPurposeEntry[]>();
+		const map = new SvelteMap<string, VendorPurposeEntry[]>();
 		for (const vendor of vendors) {
 			const key = String(vendor.id);
 			const matched = purposes
@@ -185,7 +180,7 @@
 	});
 
 	const vendorSpecialPurposesMap = $derived.by(() => {
-		const map = new Map<string, SimpleEntry[]>();
+		const map = new SvelteMap<string, SimpleEntry[]>();
 		if (!vendorData) return map;
 		for (const vendor of vendors) {
 			const entries = vendor.specialPurposes
@@ -198,7 +193,7 @@
 	});
 
 	const vendorSpecialFeaturesMap = $derived.by(() => {
-		const map = new Map<string, SimpleEntry[]>();
+		const map = new SvelteMap<string, SimpleEntry[]>();
 		if (!vendorData) return map;
 		for (const vendor of vendors) {
 			const entries = vendor.specialFeatures
@@ -211,7 +206,7 @@
 	});
 
 	const vendorFeaturesMap = $derived.by(() => {
-		const map = new Map<string, SimpleEntry[]>();
+		const map = new SvelteMap<string, SimpleEntry[]>();
 		if (!vendorData) return map;
 		for (const vendor of vendors) {
 			const entries = (vendor.features || [])
@@ -494,7 +489,7 @@
 										{iabT.preferenceCenter.vendorList.dataCategories} ({vendor.dataDeclaration.length})
 									</h4>
 									<ul class={noStyle ? '' : styles.vendorPurposesItems || ''}>
-										{#each vendor.dataDeclaration as categoryId}
+										{#each vendor.dataDeclaration as categoryId (categoryId)}
 											{@const category = vendorData?.dataCategories?.[categoryId]}
 											<li
 												class={noStyle ? '' : styles.vendorPurposeItem || ''}

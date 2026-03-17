@@ -24,10 +24,13 @@ function createConfigWithIABOverrides(
 			en: {
 				...defaultEn,
 				iab: {
-					...(defaultEn as any).iab,
+					...((defaultEn as Record<string, unknown>).iab as Record<
+						string,
+						unknown
+					>),
 					...iabOverrides,
 				},
-			} as any,
+			} as TranslationConfig['translations'][string],
 		},
 		defaultLanguage: 'en',
 	};

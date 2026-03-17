@@ -54,8 +54,8 @@
 
 {#if linkEntries.length > 0}
 	<span>
-		{' '}
-		{#each linkEntries as [type, link], index}
+		&nbsp;
+		{#each linkEntries as [type, link], index (type)}
 			{#if link}
 				<span>
 					<a
@@ -67,7 +67,7 @@
 					>
 						{link.label ?? (translations.legalLinks as Record<string, string>)?.[type as string] ?? type}{index < linkEntries.length - 1 ? ',' : ''}
 					</a>
-					{#if index < linkEntries.length - 1}{' '}{/if}
+					{#if index < linkEntries.length - 1}&nbsp;{/if}
 				</span>
 			{/if}
 		{/each}

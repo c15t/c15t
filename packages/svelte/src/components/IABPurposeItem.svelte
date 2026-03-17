@@ -218,7 +218,7 @@
 				</Collapsible.Trigger>
 				<Collapsible.Content>
 					<ul class={noStyle ? '' : styles.examplesList || ''}>
-						{#each purpose.illustrations as illustration}
+						{#each purpose.illustrations as illustration (illustration)}
 							<li>{illustration}</li>
 						{/each}
 					</ul>

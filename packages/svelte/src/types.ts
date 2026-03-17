@@ -3,7 +3,7 @@ import type { BaseConsentManagerOptions, UIOptions } from '@c15t/ui/theme';
 /**
  * Svelte-specific configuration options.
  */
-export interface SvelteUIOptions extends UIOptions {}
+export type SvelteUIOptions = UIOptions;
 
 /**
  * Extended configuration options for the Svelte consent manager.
