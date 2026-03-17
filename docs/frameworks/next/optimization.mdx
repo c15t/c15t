@@ -1,0 +1,139 @@
+---
+title: Optimization
+description: Improve c15t startup performance in Next.js with rewrites, static prefetching, and rendering tradeoffs.
+lastModified: 2026-03-11
+---
+
+Use this guide when you care about banner visibility speed, route static-ness, and reducing backend round-trip cost.
+
+## 1) Prefer Same-Origin Rewrites
+
+Proxy c15t requests through your Next.js app so the browser calls your own origin instead of a third-party domain.
+
+```ts title="next.config.ts"
+import type { NextConfig } from 'next';
+
+const config: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: '/api/c15t/:path*',
+        destination: `${process.env.NEXT_PUBLIC_C15T_URL}/:path*`,
+      },
+    ];
+  },
+};
+
+export default config;
+```
+
+Then use:
+
+```tsx
+<ConsentManagerProvider options={{ backendURL: '/api/c15t', mode: 'hosted' }}>
+```
+
+Why this helps:
+
+- Same-origin requests avoid extra DNS/TLS setup in many deployments
+- Ad blockers are less likely to block your init endpoint
+- You can change backend infrastructure without touching client code
+
+<Callout type="info">
+  Set `NEXT_PUBLIC_C15T_URL` in `.env` to your backend URL, for example `https://your-instance.c15t.dev`.
+</Callout>
+
+<Callout type="warn">
+  Use rewrites for browser-side calls (`ConsentManagerProvider`, `PrefetchC15T`). For server-side `fetchInitialData()`, prefer a direct backend URL (for example `https://your-instance.c15t.dev`) to avoid an extra server proxy hop.
+</Callout>
+
+## 2) Pick The Right Data Strategy
+
+| Goal | Strategy | Tradeoff |
+|------|----------|----------|
+| Keep routes fully static | `PrefetchC15T` + `getPrefetchedInitialData()` | Still client-side fetch, but starts earlier |
+| Fastest first banner on dynamic routes | `fetchInitialData()` in a Server Component (do not await) | Route becomes dynamic because of `next/headers` |
+| Simplest setup | Client-only init (no prefetch) | Banner appears later on slow networks |
+
+### Static Routes: Start Fetch Early In The Browser
+
+Use `PrefetchC15T` in your layout and consume the same Promise in the provider.
+
+```tsx title="app/layout.tsx"
+import { PrefetchC15T } from '@c15t/nextjs';
+import { ConsentManager } from '@/components/consent-manager';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <PrefetchC15T
+          backendURL="/api/c15t"
+          overrides={{ country: 'DE', region: 'BE', language: 'de' }}
+        />
+      </head>
+      <body>
+        <ConsentManager>{children}</ConsentManager>
+      </body>
+    </html>
+  );
+}
+```
+
+```tsx title="components/consent-manager/provider.tsx"
+'use client';
+
+import {
+  ConsentManagerProvider,
+  ConsentBanner,
+  ConsentDialog,
+  getPrefetchedInitialData,
+} from '@c15t/nextjs';
+
+export default function ConsentManagerClient({ children }: { children: React.ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: '/api/c15t',
+        ssrData: getPrefetchedInitialData({
+          backendURL: '/api/c15t',
+          overrides: { country: 'DE', region: 'BE', language: 'de' },
+        }),
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<Callout type="info">
+  `PrefetchC15T` uses Next.js `beforeInteractive` script loading, so the `/init` request can start before hydration. In App Router streaming output, this may appear as Next.js script bootstrap data (for example `self.__next_s.push(...)`) instead of a literal `<head><script>` tag.
+</Callout>
+
+<Callout type="info">
+  If you use `overrides` or custom `credentials` in `PrefetchC15T`, pass the same values to `getPrefetchedInitialData(...)` so it resolves the matching prefetched request.
+</Callout>
+
+## 3) Keep The Provider Mounted Across Navigation
+
+Mount `ConsentManager` at the app root layout so route transitions do not remount the consent provider.
+
+Why this helps:
+
+- Avoids re-running init work on client-side navigation
+- Prevents extra callback churn from remount cycles
+- Keeps banner/dialog state stable between route transitions
+
+## 4) Reduce Network And UI Overhead
+
+- If you must use a cross-origin backend URL, add preconnect:
+
+```tsx title="app/layout.tsx"
+<head>
+  <link rel="preconnect" href="https://your-instance.c15t.dev" crossOrigin="" />
+</head>
+```

@@ -31,6 +31,10 @@ const ssrData = fetchInitialData({
   **Do not `await`** `fetchInitialData()` in Server Components. Pass the Promise directly to your client component so Next.js can stream the page while the consent data loads in parallel.
 </Callout>
 
+<Callout type="info">
+  Need fully static routes? Use `PrefetchC15T` in your layout and `getPrefetchedInitialData()` in your client provider instead of `fetchInitialData()`. See [Optimization](/docs/frameworks/next/optimization).
+</Callout>
+
 ### How Streaming Works
 
 The diagram below shows how the prefetch avoids blocking the page render. The server fires the `/init` request and immediately starts streaming HTML — the resolved consent data is sent as a later chunk once the backend responds.
