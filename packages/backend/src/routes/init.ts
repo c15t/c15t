@@ -87,7 +87,11 @@ Use for geo-targeted consent banners and regional compliance.`,
 						jurisdiction,
 						iabEnabled: options.iab?.enabled === true,
 					});
-			if (hasExplicitPolicyPack && !policyDecision) {
+			if (
+				hasExplicitPolicyPack &&
+				!isExplicitEmptyPolicyPack &&
+				!policyDecision
+			) {
 				ctx?.logger?.warn('Policy packs configured but no policy matched', {
 					country: location.countryCode,
 					region: location.regionCode,

@@ -301,7 +301,12 @@ function buildTraceEntries(
 		},
 		{
 			step: `country(${country})`,
-			result: matched === 'country' ? `MATCH → ${resolved}` : 'MISS',
+			result:
+				matched === 'country'
+					? `MATCH → ${resolved}`
+					: matched === 'region'
+						? 'SKIPPED'
+						: 'MISS',
 		},
 		{
 			step: 'fallback(geo-fail)',
