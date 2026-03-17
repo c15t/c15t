@@ -1,90 +1,102 @@
 <script lang="ts">
-	import { Collapsible } from '@ark-ui/svelte/collapsible';
-	import { Switch } from '@ark-ui/svelte/switch';
-	import { switchVariants } from '@c15t/ui/styles/primitives';
-	import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
-	import type { ProcessedPurpose, VendorId } from '../iab-types';
-	import type { IABTranslations } from '../iab-translations';
-	import ChevronRightIcon from './icons/ChevronRightIcon.svelte';
-	import LockIcon from './icons/LockIcon.svelte';
-	import LegitimateInterestIcon from './icons/LegitimateInterestIcon.svelte';
-	import GlobeIcon from './icons/GlobeIcon.svelte';
+import { Collapsible } from '@ark-ui/svelte/collapsible';
+import { Switch } from '@ark-ui/svelte/switch';
+import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import { switchVariants } from '@c15t/ui/styles/primitives';
+import type { IABTranslations } from '../iab-translations';
+import type { ProcessedPurpose, VendorId } from '../iab-types';
+import ChevronRightIcon from './icons/ChevronRightIcon.svelte';
+import GlobeIcon from './icons/GlobeIcon.svelte';
+import LegitimateInterestIcon from './icons/LegitimateInterestIcon.svelte';
+import LockIcon from './icons/LockIcon.svelte';
 
-	const sw = switchVariants();
-	const swSmall = switchVariants({ size: 'small' });
+const sw = switchVariants();
+const swSmall = switchVariants({ size: 'small' });
 
-	let {
-		purpose,
-		isEnabled,
-		onToggle,
-		vendorConsents,
-		onVendorToggle,
-		onVendorClick,
-		isLocked = false,
-		vendorLegitimateInterests = {},
-		onVendorLegitimateInterestToggle,
-		purposeLegitimateInterests = {},
-		onPurposeLegitimateInterestToggle,
-		noStyle = false,
-		iabT,
-	}: {
-		purpose: ProcessedPurpose;
-		isEnabled: boolean;
-		onToggle: (value: boolean) => void;
-		vendorConsents: Record<string, boolean>;
-		onVendorToggle: (vendorId: VendorId, value: boolean) => void;
-		onVendorClick: (vendorId: VendorId) => void;
-		isLocked?: boolean;
-		vendorLegitimateInterests?: Record<string, boolean>;
-		onVendorLegitimateInterestToggle?: (vendorId: VendorId, value: boolean) => void;
-		purposeLegitimateInterests?: Record<number, boolean>;
-		onPurposeLegitimateInterestToggle?: (purposeId: number, value: boolean) => void;
-		noStyle?: boolean;
-		iabT: IABTranslations;
-	} = $props();
+let {
+	purpose,
+	isEnabled,
+	onToggle,
+	vendorConsents,
+	onVendorToggle,
+	onVendorClick,
+	isLocked = false,
+	vendorLegitimateInterests = {},
+	onVendorLegitimateInterestToggle,
+	purposeLegitimateInterests = {},
+	onPurposeLegitimateInterestToggle,
+	noStyle = false,
+	iabT,
+}: {
+	purpose: ProcessedPurpose;
+	isEnabled: boolean;
+	onToggle: (value: boolean) => void;
+	vendorConsents: Record<string, boolean>;
+	onVendorToggle: (vendorId: VendorId, value: boolean) => void;
+	onVendorClick: (vendorId: VendorId) => void;
+	isLocked?: boolean;
+	vendorLegitimateInterests?: Record<string, boolean>;
+	onVendorLegitimateInterestToggle?: (
+		vendorId: VendorId,
+		value: boolean
+	) => void;
+	purposeLegitimateInterests?: Record<number, boolean>;
+	onPurposeLegitimateInterestToggle?: (
+		purposeId: number,
+		value: boolean
+	) => void;
+	noStyle?: boolean;
+	iabT: IABTranslations;
+} = $props();
 
-	let isExpanded = $state(false);
-	let showExamples = $state(false);
-	let showVendors = $state(false);
+let isExpanded = $state(false);
+let showExamples = $state(false);
+let showVendors = $state(false);
 
-	const legIntVendors = $derived(purpose.vendors.filter((v) => v.usesLegitimateInterest));
-	const consentVendors = $derived(purpose.vendors.filter((v) => !v.usesLegitimateInterest));
+const legIntVendors = $derived(
+	purpose.vendors.filter((v) => v.usesLegitimateInterest)
+);
+const consentVendors = $derived(
+	purpose.vendors.filter((v) => !v.usesLegitimateInterest)
+);
 
-	function getVendorConsent(vendorId: VendorId): boolean {
-		return vendorConsents[String(vendorId)] ?? false;
-	}
+function getVendorConsent(vendorId: VendorId): boolean {
+	return vendorConsents[String(vendorId)] ?? false;
+}
 
-	function getVendorLegitimateInterest(vendorId: VendorId): boolean {
-		return vendorLegitimateInterests[String(vendorId)] ?? true;
-	}
+function getVendorLegitimateInterest(vendorId: VendorId): boolean {
+	return vendorLegitimateInterests[String(vendorId)] ?? true;
+}
 
-	// Check if purpose-level LI is allowed (not objected)
-	const isPurposeLIAllowed = $derived(purposeLegitimateInterests[purpose.id] ?? true);
+// Check if purpose-level LI is allowed (not objected)
+const isPurposeLIAllowed = $derived(
+	purposeLegitimateInterests[purpose.id] ?? true
+);
 
-	// Handler for purpose-level LI objection
-	function handlePurposeLIObjection() {
-		const newValue = !isPurposeLIAllowed;
-		onPurposeLegitimateInterestToggle?.(purpose.id, newValue);
-		if (onVendorLegitimateInterestToggle) {
-			for (const vendor of legIntVendors) {
-				onVendorLegitimateInterestToggle(vendor.id, newValue);
-			}
+// Handler for purpose-level LI objection
+function handlePurposeLIObjection() {
+	const newValue = !isPurposeLIAllowed;
+	onPurposeLegitimateInterestToggle?.(purpose.id, newValue);
+	if (onVendorLegitimateInterestToggle) {
+		for (const vendor of legIntVendors) {
+			onVendorLegitimateInterestToggle(vendor.id, newValue);
 		}
 	}
+}
 
-	// Separate IAB and custom vendors
-	const iabConsentVendors = $derived(consentVendors.filter((v) => !v.isCustom));
-	const customConsentVendors = $derived(consentVendors.filter((v) => v.isCustom));
-	const iabLegIntVendors = $derived(legIntVendors.filter((v) => !v.isCustom));
-	const customLegIntVendors = $derived(legIntVendors.filter((v) => v.isCustom));
+// Separate IAB and custom vendors
+const iabConsentVendors = $derived(consentVendors.filter((v) => !v.isCustom));
+const customConsentVendors = $derived(consentVendors.filter((v) => v.isCustom));
+const iabLegIntVendors = $derived(legIntVendors.filter((v) => !v.isCustom));
+const customLegIntVendors = $derived(legIntVendors.filter((v) => v.isCustom));
 
-	// Handle purpose toggle - also toggles all consent-based vendors
-	function handlePurposeToggle(value: boolean) {
-		onToggle(value);
-		for (const vendor of consentVendors) {
-			onVendorToggle(vendor.id, value);
-		}
+// Handle purpose toggle - also toggles all consent-based vendors
+function handlePurposeToggle(value: boolean) {
+	onToggle(value);
+	for (const vendor of consentVendors) {
+		onVendorToggle(vendor.id, value);
 	}
+}
 </script>
 
 <Collapsible.Root

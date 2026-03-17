@@ -29,7 +29,6 @@
 	"license": "GPL-3.0-only",
 	"sideEffects": false,
 	"type": "module",
-	"svelte": "./dist/index.js",
 	"exports": {
 		"./headless": {
 			"types": "./dist/headless.d.ts",
@@ -53,6 +52,7 @@
 		}
 	},
 	"main": "./dist/index.js",
+	"svelte": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"files": [
 		"dist"

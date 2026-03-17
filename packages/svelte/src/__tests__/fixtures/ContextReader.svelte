@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { resolveTranslations } from '@c15t/ui/utils';
-	import { defaultTranslationConfig } from 'c15t';
-	import { getConsentContext, getThemeContext } from '../../context.svelte';
+import { resolveTranslations } from '@c15t/ui/utils';
+import { defaultTranslationConfig } from 'c15t';
+import { getConsentContext, getThemeContext } from '../../context.svelte';
 
-	const consent = getConsentContext();
-	const theme = getThemeContext();
+const consent = getConsentContext();
+const theme = getThemeContext();
 
-	const translations = $derived(
-		resolveTranslations(consent.state.translationConfig, defaultTranslationConfig),
-	);
+const translations = $derived(
+	resolveTranslations(consent.state.translationConfig, defaultTranslationConfig)
+);
 </script>
 
 <div data-testid="has-manager">{Boolean(consent.manager).toString()}</div>

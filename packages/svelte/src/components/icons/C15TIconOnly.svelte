@@ -1,15 +1,15 @@
 <script lang="ts">
-	let {
-		title = 'c15t',
-		titleId = 'c15t-icon',
-		class: className,
-		...restProps
-	}: {
-		title?: string;
-		titleId?: string;
-		class?: string;
-		[key: string]: unknown;
-	} = $props();
+let {
+	title = 'c15t',
+	titleId = 'c15t-icon',
+	class: className,
+	...restProps
+}: {
+	title?: string;
+	titleId?: string;
+	class?: string;
+	[key: string]: unknown;
+} = $props();
 </script>
 
 <svg

@@ -1,86 +1,95 @@
 <script lang="ts">
-	import { Accordion } from '@ark-ui/svelte/accordion';
-	import { Switch } from '@ark-ui/svelte/switch';
-	import { accordionVariants, switchVariants } from '@c15t/ui/styles/primitives';
-	import styles from '@c15t/ui/styles/components/consent-widget.module.js';
-	import dialogStyles from '@c15t/ui/styles/components/consent-dialog.module.js';
-	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
-	import type { AllConsentNames } from 'c15t';
-	import { defaultTranslationConfig } from 'c15t';
-	import {
-		getConsentContext,
-		getThemeContext,
-		getTrackingContext,
-		setTrackingContext,
-	} from '../context.svelte';
-	import { resolveComponentStyles } from '../utils';
-	import ConsentButton from './ConsentButton.svelte';
-	import Branding from './Branding.svelte';
+import { Accordion } from '@ark-ui/svelte/accordion';
+import { Switch } from '@ark-ui/svelte/switch';
+import dialogStyles from '@c15t/ui/styles/components/consent-dialog.module.js';
+import styles from '@c15t/ui/styles/components/consent-widget.module.js';
+import { accordionVariants, switchVariants } from '@c15t/ui/styles/primitives';
+import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
+import type { AllConsentNames } from 'c15t';
+import { defaultTranslationConfig } from 'c15t';
+import {
+	getConsentContext,
+	getThemeContext,
+	getTrackingContext,
+	setTrackingContext,
+} from '../context.svelte';
+import { resolveComponentStyles } from '../utils';
+import Branding from './Branding.svelte';
+import ConsentButton from './ConsentButton.svelte';
 
-	const sw = switchVariants();
-	const av = accordionVariants();
+const sw = switchVariants();
+const av = accordionVariants();
 
-	let {
-		hideBranding = true,
-		noStyle: localNoStyle,
-		class: className,
-	}: {
-		hideBranding?: boolean;
-		noStyle?: boolean;
-		class?: string;
-	} = $props();
+let {
+	hideBranding = true,
+	noStyle: localNoStyle,
+	class: className,
+}: {
+	hideBranding?: boolean;
+	noStyle?: boolean;
+	class?: string;
+} = $props();
 
-	const consent = getConsentContext();
-	const theme = getThemeContext();
-	const parentTracking = getTrackingContext();
-	setTrackingContext({ uiSource: parentTracking.uiSource ?? 'widget' });
+const consent = getConsentContext();
+const theme = getThemeContext();
+const parentTracking = getTrackingContext();
+setTrackingContext({ uiSource: parentTracking.uiSource ?? 'widget' });
 
-	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
+const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 
-	const translations = $derived(
-		resolveTranslations(consent.state.translationConfig, defaultTranslationConfig),
-	);
+const translations = $derived(
+	resolveTranslations(consent.state.translationConfig, defaultTranslationConfig)
+);
 
-	const textDirection = $derived(
-		getTextDirection(consent.state.translationConfig?.defaultLanguage),
-	);
+const textDirection = $derived(
+	getTextDirection(consent.state.translationConfig?.defaultLanguage)
+);
 
-	const displayedConsents = $derived(
-		consent.state.consentTypes.filter((ct) => consent.state.consentCategories.includes(ct.name)),
-	);
+const displayedConsents = $derived(
+	consent.state.consentTypes.filter((ct) =>
+		consent.state.consentCategories.includes(ct.name)
+	)
+);
 
-	let openItems = $state<string[]>([]);
+let openItems = $state<string[]>([]);
 
-	function toggleConsent(name: string, checked: boolean) {
-		consent.state.setSelectedConsent(name as AllConsentNames, checked);
-	}
+function toggleConsent(name: string, checked: boolean) {
+	consent.state.setSelectedConsent(name as AllConsentNames, checked);
+}
 
-	function formatConsentName(name: AllConsentNames): string {
-		return (name as string).replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
-	}
+function formatConsentName(name: AllConsentNames): string {
+	return (name as string)
+		.replace(/_/g, ' ')
+		.replace(/\b\w/g, (c: string) => c.toUpperCase());
+}
 
-	// Per-element theme key resolution
-	const widgetRootStyle = $derived(
-		resolveComponentStyles('consentWidget', theme.theme, { className, noStyle }, noStyle),
-	);
+// Per-element theme key resolution
+const widgetRootStyle = $derived(
+	resolveComponentStyles(
+		'consentWidget',
+		theme.theme,
+		{ className, noStyle },
+		noStyle
+	)
+);
 
-	const footerStyle = $derived(
-		resolveComponentStyles(
-			'consentWidgetFooter',
-			theme.theme,
-			{ baseClassName: styles.footer, noStyle },
-			noStyle,
-		),
-	);
+const footerStyle = $derived(
+	resolveComponentStyles(
+		'consentWidgetFooter',
+		theme.theme,
+		{ baseClassName: styles.footer, noStyle },
+		noStyle
+	)
+);
 
-	const footerGroupStyle = $derived(
-		resolveComponentStyles(
-			'consentWidgetFooter',
-			theme.theme,
-			{ baseClassName: styles.footerGroup, noStyle },
-			noStyle,
-		),
-	);
+const footerGroupStyle = $derived(
+	resolveComponentStyles(
+		'consentWidgetFooter',
+		theme.theme,
+		{ baseClassName: styles.footerGroup, noStyle },
+		noStyle
+	)
+);
 </script>
 
 <div

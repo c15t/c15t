@@ -1,15 +1,15 @@
 <script lang="ts">
-	let {
-		class: className,
-		'aria-hidden': ariaHidden,
-		'aria-label': ariaLabel,
-		...rest
-	}: {
-		class?: string;
-		'aria-hidden'?: boolean;
-		'aria-label'?: string;
-		[key: string]: unknown;
-	} = $props();
+let {
+	class: className,
+	'aria-hidden': ariaHidden,
+	'aria-label': ariaLabel,
+	...rest
+}: {
+	class?: string;
+	'aria-hidden'?: boolean;
+	'aria-label'?: string;
+	[key: string]: unknown;
+} = $props();
 </script>
 
 <svg

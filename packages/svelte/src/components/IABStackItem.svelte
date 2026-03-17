@@ -1,62 +1,72 @@
 <script lang="ts">
-	import { Collapsible } from '@ark-ui/svelte/collapsible';
-	import { Switch } from '@ark-ui/svelte/switch';
-	import { switchVariants } from '@c15t/ui/styles/primitives';
-	import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
-	import type { ProcessedStack, VendorId } from '../iab-types';
-	import type { IABTranslations } from '../iab-translations';
-	import IABPurposeItem from './IABPurposeItem.svelte';
-	import ChevronRightIcon from './icons/ChevronRightIcon.svelte';
+import { Collapsible } from '@ark-ui/svelte/collapsible';
+import { Switch } from '@ark-ui/svelte/switch';
+import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import { switchVariants } from '@c15t/ui/styles/primitives';
+import type { IABTranslations } from '../iab-translations';
+import type { ProcessedStack, VendorId } from '../iab-types';
+import IABPurposeItem from './IABPurposeItem.svelte';
+import ChevronRightIcon from './icons/ChevronRightIcon.svelte';
 
-	const sw = switchVariants();
+const sw = switchVariants();
 
-	let {
-		stack,
-		consents,
-		onToggle,
-		vendorConsents,
-		onVendorToggle,
-		onVendorClick,
-		vendorLegitimateInterests = {},
-		onVendorLegitimateInterestToggle,
-		purposeLegitimateInterests = {},
-		onPurposeLegitimateInterestToggle,
-		noStyle = false,
-		iabT,
-	}: {
-		stack: ProcessedStack;
-		consents: Record<number, boolean>;
-		onToggle: (purposeId: number, value: boolean) => void;
-		vendorConsents: Record<string, boolean>;
-		onVendorToggle: (vendorId: VendorId, value: boolean) => void;
-		onVendorClick: (vendorId: VendorId) => void;
-		vendorLegitimateInterests?: Record<string, boolean>;
-		onVendorLegitimateInterestToggle?: (vendorId: VendorId, value: boolean) => void;
-		purposeLegitimateInterests?: Record<number, boolean>;
-		onPurposeLegitimateInterestToggle?: (purposeId: number, value: boolean) => void;
-		noStyle?: boolean;
-		iabT: IABTranslations;
-	} = $props();
+let {
+	stack,
+	consents,
+	onToggle,
+	vendorConsents,
+	onVendorToggle,
+	onVendorClick,
+	vendorLegitimateInterests = {},
+	onVendorLegitimateInterestToggle,
+	purposeLegitimateInterests = {},
+	onPurposeLegitimateInterestToggle,
+	noStyle = false,
+	iabT,
+}: {
+	stack: ProcessedStack;
+	consents: Record<number, boolean>;
+	onToggle: (purposeId: number, value: boolean) => void;
+	vendorConsents: Record<string, boolean>;
+	onVendorToggle: (vendorId: VendorId, value: boolean) => void;
+	onVendorClick: (vendorId: VendorId) => void;
+	vendorLegitimateInterests?: Record<string, boolean>;
+	onVendorLegitimateInterestToggle?: (
+		vendorId: VendorId,
+		value: boolean
+	) => void;
+	purposeLegitimateInterests?: Record<number, boolean>;
+	onPurposeLegitimateInterestToggle?: (
+		purposeId: number,
+		value: boolean
+	) => void;
+	noStyle?: boolean;
+	iabT: IABTranslations;
+} = $props();
 
-	let isExpanded = $state(false);
+let isExpanded = $state(false);
 
-	const allEnabled = $derived(stack.purposes.every((p) => consents[p.id] ?? false));
-	const someEnabled = $derived(stack.purposes.some((p) => consents[p.id] ?? false) && !allEnabled);
+const allEnabled = $derived(
+	stack.purposes.every((p) => consents[p.id] ?? false)
+);
+const someEnabled = $derived(
+	stack.purposes.some((p) => consents[p.id] ?? false) && !allEnabled
+);
 
-	function handleStackToggle(value: boolean) {
-		for (const purpose of stack.purposes) {
-			onToggle(purpose.id, value);
-			for (const vendor of purpose.vendors) {
-				if (!vendor.usesLegitimateInterest) {
-					onVendorToggle(vendor.id, value);
-				}
+function handleStackToggle(value: boolean) {
+	for (const purpose of stack.purposes) {
+		onToggle(purpose.id, value);
+		for (const vendor of purpose.vendors) {
+			if (!vendor.usesLegitimateInterest) {
+				onVendorToggle(vendor.id, value);
 			}
 		}
 	}
+}
 
-	const totalVendors = $derived(
-		new Set(stack.purposes.flatMap((p) => p.vendors.map((v) => v.id))).size,
-	);
+const totalVendors = $derived(
+	new Set(stack.purposes.flatMap((p) => p.vendors.map((v) => v.id))).size
+);
 </script>
 
 <Collapsible.Root
