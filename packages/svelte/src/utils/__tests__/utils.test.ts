@@ -4,6 +4,7 @@
  * Mirrors: packages/react/src/hooks/__tests__/use-styles.test.tsx
  */
 
+import type { AllThemeKeys, Theme } from '@c15t/ui/theme';
 import { describe, expect, test } from 'vitest';
 import {
 	defaultTheme,
@@ -22,7 +23,7 @@ describe('Utils', () => {
 	describe('resolveComponentStyles', () => {
 		test('returns component styles when no theme is provided', () => {
 			const result = resolveComponentStyles(
-				'dialogCard' as any,
+				'dialogCard' as AllThemeKeys,
 				undefined,
 				{
 					className: 'component-class',
@@ -46,8 +47,8 @@ describe('Utils', () => {
 			};
 
 			const result = resolveComponentStyles(
-				'dialogCard' as any,
-				theme as any,
+				'dialogCard' as AllThemeKeys,
+				theme as Theme,
 				{
 					className: 'component-class',
 					style: { backgroundColor: 'red' },
@@ -73,8 +74,8 @@ describe('Utils', () => {
 			};
 
 			const result = resolveComponentStyles(
-				'dialogCard' as any,
-				theme as any,
+				'dialogCard' as AllThemeKeys,
+				theme as Theme,
 				'component-class',
 				false
 			);
@@ -85,7 +86,7 @@ describe('Utils', () => {
 
 		test('should respect noStyle flag', () => {
 			const result = resolveComponentStyles(
-				'dialogCard' as any,
+				'dialogCard' as AllThemeKeys,
 				undefined,
 				{
 					baseClassName: 'base-class-to-remove',
@@ -104,7 +105,7 @@ describe('Utils', () => {
 
 	describe('generateThemeCSS', () => {
 		test('should generate CSS string from theme', () => {
-			const css = generateThemeCSS(defaultTheme as any);
+			const css = generateThemeCSS(defaultTheme as Theme);
 			expect(typeof css).toBe('string');
 		});
 	});
