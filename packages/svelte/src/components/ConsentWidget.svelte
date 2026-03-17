@@ -10,8 +10,7 @@
 	import { getConsentContext, getThemeContext, getTrackingContext, setTrackingContext } from '../context.svelte';
 	import { resolveComponentStyles } from '../utils';
 	import ConsentButton from './ConsentButton.svelte';
-	import C15TIcon from './icons/C15TIcon.svelte';
-	import ConsentIconOnly from './icons/ConsentIconOnly.svelte';
+	import Branding from './Branding.svelte';
 
 	const sw = switchVariants();
 	const av = accordionVariants();
@@ -53,7 +52,7 @@
 	let openItems = $state<string[]>([]);
 
 	function toggleConsent(name: string, checked: boolean) {
-		consent.state.setSelectedConsent(name as any, checked);
+		consent.state.setSelectedConsent(name as AllConsentNames, checked);
 	}
 
 	function formatConsentName(name: AllConsentNames): string {
@@ -74,17 +73,6 @@
 	const footerGroupStyle = $derived(
 		resolveComponentStyles('consentWidgetFooter', theme.theme, { baseClassName: styles.footerGroup, noStyle }, noStyle)
 	);
-
-	// Branding
-	const branding = $derived(consent.state.branding);
-	const showBranding = $derived(!hideBranding && branding !== 'none');
-	const brandingHref = $derived.by(() => {
-		const refParam =
-			typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
-		return branding === 'consent'
-			? `https://consent.io${refParam}`
-			: `https://c15t.com${refParam}`;
-	});
 </script>
 
 <div
@@ -216,23 +204,15 @@
 	</div>
 
 	<!-- Branding -->
-	{#if showBranding}
-		<div
-			class={noStyle ? '' : dialogStyles.footer || ''}
-			data-testid="consent-widget-branding"
-		>
-			<a
-				dir="ltr"
-				class={noStyle ? '' : dialogStyles.branding || ''}
-				href={brandingHref}
-			>
-				Secured by
-				{#if branding === 'consent'}
-					<ConsentIconOnly class={dialogStyles.brandingConsent || ''} />
-				{:else}
-					<C15TIcon class={dialogStyles.brandingC15T || ''} />
-				{/if}
-			</a>
-		</div>
-	{/if}
+	<div
+		class={noStyle ? '' : dialogStyles.footer || ''}
+		data-testid="consent-widget-branding"
+	>
+		<Branding
+			{hideBranding}
+			{noStyle}
+			class={dialogStyles.branding || ''}
+			iconClass={{ consent: dialogStyles.brandingConsent || '', c15t: dialogStyles.brandingC15T || '' }}
+		/>
+	</div>
 </div>

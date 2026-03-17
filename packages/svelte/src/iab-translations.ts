@@ -63,11 +63,17 @@ export interface IABTranslations {
 			usesCookies: string;
 			nonCookieAccess: string;
 			maxAge: string;
+			maxAgeRefreshes: string;
 			retention: string;
+			retainedDays: string;
 			legitimateInterest: string;
 			privacyPolicy: string;
 			storageDisclosure: string;
 			requiredNotice: string;
+			noVendorsFound: string;
+			partnerCount: string;
+			partnerSingular: string;
+			partnerPlural: string;
 		};
 		footer: {
 			consentStorage: string;

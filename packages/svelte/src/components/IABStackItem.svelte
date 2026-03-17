@@ -6,6 +6,7 @@
 	import type { ProcessedStack, VendorId } from '../iab-types';
 	import type { IABTranslations } from '../iab-translations';
 	import IABPurposeItem from './IABPurposeItem.svelte';
+	import ChevronRightIcon from './icons/ChevronRightIcon.svelte';
 
 	const sw = switchVariants();
 
@@ -78,30 +79,24 @@
 			class={noStyle ? '' : styles.stackTrigger || ''}
 		>
 			<Collapsible.Indicator class={noStyle ? '' : styles.purposeArrow || ''}>
-				<svg
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-				>
-					<path d="M9 5l7 7-7 7" />
-				</svg>
+				<ChevronRightIcon aria-hidden={true} />
 			</Collapsible.Indicator>
 			<div class={noStyle ? '' : styles.stackInfo || ''}>
 				<h3 class={noStyle ? '' : styles.stackName || ''}>{stack.name}</h3>
 				{#if !isExpanded}
 					<p class={noStyle ? '' : styles.stackMeta || ''}>
 						{totalVendors}
-						{totalVendors === 1 ? 'partner' : 'partners'}
+						{totalVendors === 1 ? iabT.preferenceCenter.vendorList.partnerSingular : iabT.preferenceCenter.vendorList.partnerPlural}
 					</p>
 				{/if}
 			</div>
 		</Collapsible.Trigger>
 		<div class={noStyle ? '' : styles.stackControls || ''}>
 			{#if someEnabled}
+				<span class="sr-only">{'Partially enabled'}</span>
 				<div
 					class={noStyle ? '' : styles.partialIndicator || ''}
-					title="Partially enabled"
+					aria-hidden={true}
 				></div>
 			{/if}
 			<Switch.Root
@@ -122,7 +117,7 @@
 			<p>{stack.description}</p>
 			<p class={noStyle ? '' : styles.stackMeta || ''}>
 				{totalVendors}
-				{totalVendors === 1 ? 'partner' : 'partners'}
+				{totalVendors === 1 ? iabT.preferenceCenter.vendorList.partnerSingular : iabT.preferenceCenter.vendorList.partnerPlural}
 			</p>
 		</div>
 		<div class={noStyle ? '' : styles.stackContent || ''}>

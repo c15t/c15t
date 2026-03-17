@@ -4,6 +4,7 @@
 	import { switchVariants } from '@c15t/ui/styles/primitives';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 	import type { GlobalVendorList } from 'c15t';
+	import { untrack } from 'svelte';
 	import type {
 		ProcessedPurpose,
 		ProcessedVendor,
@@ -11,6 +12,14 @@
 		NonIABVendor,
 	} from '../iab-types';
 	import type { IABTranslations } from '../iab-translations';
+	import CloseIcon from './icons/CloseIcon.svelte';
+	import SearchIcon from './icons/SearchIcon.svelte';
+	import LayersIcon from './icons/LayersIcon.svelte';
+	import LegitimateInterestIcon from './icons/LegitimateInterestIcon.svelte';
+	import ChevronDownIcon from './icons/ChevronDownIcon.svelte';
+	import ExternalLinkIcon from './icons/ExternalLinkIcon.svelte';
+	import LockIcon from './icons/LockIcon.svelte';
+	import GlobeIcon from './icons/GlobeIcon.svelte';
 
 	const sw = switchVariants();
 
@@ -105,16 +114,20 @@
 		)
 	);
 
-	// Scroll to selected vendor
+	// Scroll to selected vendor.
+	// Uses untrack for expandedVendors write to avoid reactive cycle,
+	// and cleans up the timeout if selectedVendorId changes rapidly.
 	$effect(() => {
 		if (selectedVendorId !== null) {
-			expandedVendors = new Set(expandedVendors).add(selectedVendorId);
-			setTimeout(() => {
-				const element = document.getElementById(
-					`vendor-${String(selectedVendorId)}`
-				);
+			const id = selectedVendorId;
+			untrack(() => {
+				expandedVendors = new Set(expandedVendors).add(id);
+			});
+			const timer = setTimeout(() => {
+				const element = document.getElementById(`vendor-${String(id)}`);
 				element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 			}, 100);
+			return () => clearTimeout(timer);
 		}
 	});
 
@@ -146,60 +159,84 @@
 		expandedVendors = newSet;
 	}
 
-	function getVendorPurposes(vendorId: VendorId) {
-		const vendor = vendors.find(
-			(v) => String(v.id) === String(vendorId)
-		);
-		if (!vendor) return [];
+	// Precompute vendor lookup maps once (O(V+P)) instead of per-vendor-per-render (O(V×P)).
+	const vendorMap = $derived(
+		new Map(vendors.map((v) => [String(v.id), v]))
+	);
 
-		return purposes
-			.filter((purpose) =>
-				purpose.vendors.some(
-					(v) => String(v.id) === String(vendorId)
+	type VendorPurposeEntry = ProcessedPurpose & { usesLegitimateInterest: boolean };
+	type SimpleEntry = { id: number; name: string; description: string };
+
+	const vendorPurposesMap = $derived.by(() => {
+		const map = new Map<string, VendorPurposeEntry[]>();
+		for (const vendor of vendors) {
+			const key = String(vendor.id);
+			const matched = purposes
+				.filter((purpose) =>
+					purpose.vendors.some((v) => String(v.id) === key)
 				)
-			)
-			.map((purpose) => ({
-				...purpose,
-				usesLegitimateInterest: vendor.legIntPurposes.includes(
-					purpose.id
-				),
-			}));
+				.map((purpose) => ({
+					...purpose,
+					usesLegitimateInterest: vendor.legIntPurposes.includes(purpose.id),
+				}));
+			map.set(key, matched);
+		}
+		return map;
+	});
+
+	const vendorSpecialPurposesMap = $derived.by(() => {
+		const map = new Map<string, SimpleEntry[]>();
+		if (!vendorData) return map;
+		for (const vendor of vendors) {
+			const entries = vendor.specialPurposes
+				.map((id) => vendorData.specialPurposes[id])
+				.filter((sp): sp is NonNullable<typeof sp> => sp != null)
+				.map((sp) => ({ id: sp.id, name: sp.name, description: sp.description }));
+			map.set(String(vendor.id), entries);
+		}
+		return map;
+	});
+
+	const vendorSpecialFeaturesMap = $derived.by(() => {
+		const map = new Map<string, SimpleEntry[]>();
+		if (!vendorData) return map;
+		for (const vendor of vendors) {
+			const entries = vendor.specialFeatures
+				.map((id) => vendorData.specialFeatures[id])
+				.filter((sf): sf is NonNullable<typeof sf> => sf != null)
+				.map((sf) => ({ id: sf.id, name: sf.name, description: sf.description }));
+			map.set(String(vendor.id), entries);
+		}
+		return map;
+	});
+
+	const vendorFeaturesMap = $derived.by(() => {
+		const map = new Map<string, SimpleEntry[]>();
+		if (!vendorData) return map;
+		for (const vendor of vendors) {
+			const entries = (vendor.features || [])
+				.map((id) => vendorData.features[id])
+				.filter((f): f is NonNullable<typeof f> => f != null)
+				.map((f) => ({ id: f.id, name: f.name, description: f.description }));
+			map.set(String(vendor.id), entries);
+		}
+		return map;
+	});
+
+	function getVendorPurposes(vendorId: VendorId) {
+		return vendorPurposesMap.get(String(vendorId)) ?? [];
 	}
 
 	function getVendorSpecialPurposes(vendorId: VendorId) {
-		const vendor = vendors.find(
-			(v) => String(v.id) === String(vendorId)
-		);
-		if (!vendor || !vendorData) return [];
-
-		return vendor.specialPurposes
-			.map((id) => vendorData.specialPurposes[id])
-			.filter((sp): sp is NonNullable<typeof sp> => sp != null)
-			.map((sp) => ({ id: sp.id, name: sp.name, description: sp.description }));
+		return vendorSpecialPurposesMap.get(String(vendorId)) ?? [];
 	}
 
 	function getVendorSpecialFeatures(vendorId: VendorId) {
-		const vendor = vendors.find(
-			(v) => String(v.id) === String(vendorId)
-		);
-		if (!vendor || !vendorData) return [];
-
-		return vendor.specialFeatures
-			.map((id) => vendorData.specialFeatures[id])
-			.filter((sf): sf is NonNullable<typeof sf> => sf != null)
-			.map((sf) => ({ id: sf.id, name: sf.name, description: sf.description }));
+		return vendorSpecialFeaturesMap.get(String(vendorId)) ?? [];
 	}
 
 	function getVendorFeatures(vendorId: VendorId) {
-		const vendor = vendors.find(
-			(v) => String(v.id) === String(vendorId)
-		);
-		if (!vendor || !vendorData) return [];
-
-		return (vendor.features || [])
-			.map((id) => vendorData.features[id])
-			.filter((f): f is NonNullable<typeof f> => f != null)
-			.map((f) => ({ id: f.id, name: f.name, description: f.description }));
+		return vendorFeaturesMap.get(String(vendorId)) ?? [];
 	}
 
 	function getMaxAgeText(vendor: ProcessedVendor): string | null {
@@ -209,7 +246,7 @@
 			String(Math.floor(vendor.cookieMaxAgeSeconds / 86400))
 		);
 		if (vendor.cookieRefresh) {
-			text = `${text} (refreshes)`;
+			text = `${text} ${iabT.preferenceCenter.vendorList.maxAgeRefreshes}`;
 		}
 		return text;
 	}
@@ -226,32 +263,20 @@
 				onclick={onClearSelection}
 				class={noStyle ? '' : styles.clearSelectionButton || ''}
 			>
-				<svg
+				<CloseIcon
 					class={noStyle ? '' : styles.clearIcon || ''}
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-				>
-					<line x1="18" y1="6" x2="6" y2="18" />
-					<line x1="6" y1="6" x2="18" y2="18" />
-				</svg>
+					aria-hidden={true}
+				/>
 				{iabT.common.clearSelection}
 			</button>
 		</div>
 	{:else}
 		<div class={noStyle ? '' : styles.vendorListHeader || ''}>
 			<div class={noStyle ? '' : styles.searchContainer || ''}>
-				<svg
+				<SearchIcon
 					class={noStyle ? '' : styles.searchIcon || ''}
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-				>
-					<circle cx="11" cy="11" r="8" />
-					<line x1="21" y1="21" x2="16.65" y2="16.65" />
-				</svg>
+					aria-hidden={true}
+				/>
 				<input
 					type="text"
 					placeholder={iabT.preferenceCenter.vendorList.search}
@@ -272,17 +297,10 @@
 		<div class={noStyle ? '' : styles.vendorSection || ''}>
 			<div class={noStyle ? '' : styles.iabVendorSectionHeader || ''}>
 				<h3 class={noStyle ? '' : styles.vendorSectionHeading || ''}>
-					<svg
+					<LayersIcon
 						class={noStyle ? '' : styles.vendorSectionIcon || ''}
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-					>
-						<path d="M12 2L2 7l10 5 10-5-10-5z" />
-						<path d="M2 17l10 5 10-5" />
-						<path d="M2 12l10 5 10-5" />
-					</svg>
+						aria-hidden={true}
+					/>
 					{iabT.preferenceCenter.vendorList.iabVendorsHeading} ({filteredIABVendors.length})
 				</h3>
 				<p class={noStyle ? '' : styles.iabVendorNotice || ''}>
@@ -326,30 +344,20 @@
 										</span>
 										{#if legIntCount > 0}
 											<span class={noStyle ? '' : styles.vendorListLIBadge || ''}>
-												<svg
+												<LegitimateInterestIcon
 													width="10"
 													height="10"
-													viewBox="0 0 24 24"
-													fill="none"
-													stroke="currentColor"
-													stroke-width="2"
-												>
-													<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
-												</svg>
+													aria-hidden={true}
+												/>
 												{legIntCount} {iabT.preferenceCenter.vendorList.legitimateInterest}
 											</span>
 										{/if}
 									</div>
 								</div>
 								<Collapsible.Indicator class={noStyle ? '' : styles.purposeArrow || ''}>
-									<svg
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<path d="M19 9l-7 7-7-7" />
-									</svg>
+									<ChevronDownIcon
+										aria-hidden={true}
+									/>
 								</Collapsible.Indicator>
 							</Collapsible.Trigger>
 							<Switch.Root
@@ -373,11 +381,7 @@
 									rel="noopener noreferrer"
 									class={noStyle ? '' : styles.vendorLink || ''}
 								>
-									<svg class={noStyle ? '' : styles.vendorLinkIcon || ''} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-										<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-										<polyline points="15 3 21 3 21 9" />
-										<line x1="10" y1="14" x2="21" y2="3" />
-									</svg>
+									<ExternalLinkIcon class={noStyle ? '' : styles.vendorLinkIcon || ''} />
 									{iabT.preferenceCenter.vendorList.privacyPolicy}
 								</a>
 								{#if vendor.legitimateInterestUrl}
@@ -387,11 +391,7 @@
 										rel="noopener noreferrer"
 										class={noStyle ? '' : styles.vendorLink || ''}
 									>
-										<svg class={noStyle ? '' : styles.vendorLinkIcon || ''} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-											<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-											<polyline points="15 3 21 3 21 9" />
-											<line x1="10" y1="14" x2="21" y2="3" />
-										</svg>
+										<ExternalLinkIcon class={noStyle ? '' : styles.vendorLinkIcon || ''} />
 										{iabT.preferenceCenter.purposeItem.legitimateInterest}
 									</a>
 								{/if}
@@ -402,11 +402,7 @@
 										rel="noopener noreferrer"
 										class={noStyle ? '' : styles.vendorLink || ''}
 									>
-										<svg class={noStyle ? '' : styles.vendorLinkIcon || ''} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-											<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-											<polyline points="15 3 21 3 21 9" />
-											<line x1="10" y1="14" x2="21" y2="3" />
-										</svg>
+										<ExternalLinkIcon class={noStyle ? '' : styles.vendorLinkIcon || ''} />
 										{iabT.preferenceCenter.vendorList.storageDisclosure}
 									</a>
 								{/if}
@@ -450,15 +446,13 @@
 													{purpose.name}
 													{#if retentionDays}
 														<span class={noStyle ? '' : styles.vendorRetention || ''}>
-															(Retained: {retentionDays}d)
+															({iabT.preferenceCenter.vendorList.retainedDays.replace('{days}', String(retentionDays))})
 														</span>
 													{/if}
 												</span>
 												{#if purpose.usesLegitimateInterest}
 													<span class={noStyle ? '' : styles.vendorListLIBadge || ''}>
-														<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-															<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
-														</svg>
+														<LegitimateInterestIcon width="10" height="10" />
 														{iabT.preferenceCenter.vendorList.legitimateInterest}
 													</span>
 												{/if}
@@ -473,9 +467,7 @@
 								<div class={noStyle ? '' : styles.vendorLISection || ''}>
 									<div class={noStyle ? '' : styles.vendorLISectionHeader || ''}>
 										<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
-											<svg class={noStyle ? '' : styles.legitimateInterestIcon || ''} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-												<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
-											</svg>
+											<LegitimateInterestIcon class={noStyle ? '' : styles.legitimateInterestIcon || ''} />
 											{iabT.preferenceCenter.purposeItem.legitimateInterest}
 										</h4>
 										<button
@@ -519,19 +511,11 @@
 							{#if vendorSpecialPurposes.length > 0}
 								<div class={noStyle ? '' : styles.vendorPurposesList || ''}>
 									<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
-										<svg
+										<LockIcon
 											aria-label={iabT.preferenceCenter.vendorList.specialPurposes}
 											role="img"
 											class={noStyle ? '' : styles.legitimateInterestIcon || ''}
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2"
-										>
-											<title>{iabT.preferenceCenter.vendorList.specialPurposes}</title>
-											<rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-											<path d="M7 11V7a5 5 0 0 1 10 0v4" />
-										</svg>
+										/>
 										{iabT.preferenceCenter.vendorList.specialPurposes} ({vendorSpecialPurposes.length})
 									</h4>
 									<ul class={noStyle ? '' : styles.vendorPurposesItems || ''}>
@@ -542,7 +526,7 @@
 													{sp.name}
 													{#if retentionDays}
 														<span class={noStyle ? '' : styles.vendorRetention || ''}>
-															(Retained: {retentionDays}d)
+															({iabT.preferenceCenter.vendorList.retainedDays.replace('{days}', String(retentionDays))})
 														</span>
 													{/if}
 												</span>
@@ -598,17 +582,10 @@
 		<div class={noStyle ? '' : styles.vendorSection || ''}>
 			<div class={noStyle ? '' : styles.customVendorSectionHeader || ''}>
 				<h3 class={noStyle ? '' : styles.vendorSectionHeading || ''}>
-					<svg
+					<GlobeIcon
 						class={noStyle ? '' : styles.vendorSectionIcon || ''}
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-					>
-						<circle cx="12" cy="12" r="10" />
-						<line x1="2" y1="12" x2="22" y2="12" />
-						<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-					</svg>
+						aria-hidden={true}
+					/>
 					{iabT.preferenceCenter.vendorList.customVendorsHeading} ({filteredCustomVendors.length})
 				</h3>
 				<p class={noStyle ? '' : styles.customVendorNotice || ''}>
@@ -638,29 +615,16 @@
 								<div class={noStyle ? '' : styles.vendorListInfo || ''}>
 									<h3 class={noStyle ? '' : styles.vendorListName || ''}>
 										{vendor.name}
-										<svg
+										<GlobeIcon
 											class={noStyle ? '' : styles.customVendorIcon || ''}
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2"
 											aria-label={iabT.common.customPartner}
-										>
-											<circle cx="12" cy="12" r="10" />
-											<line x1="2" y1="12" x2="22" y2="12" />
-											<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-										</svg>
+										/>
 									</h3>
 								</div>
 								<Collapsible.Indicator class={noStyle ? '' : styles.purposeArrow || ''}>
-									<svg
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-									>
-										<path d="M19 9l-7 7-7-7" />
-									</svg>
+									<ChevronDownIcon
+										aria-hidden={true}
+									/>
 								</Collapsible.Indicator>
 							</Collapsible.Trigger>
 							<Switch.Root
@@ -683,11 +647,7 @@
 									rel="noopener noreferrer"
 									class={noStyle ? '' : styles.vendorLink || ''}
 								>
-									<svg class={noStyle ? '' : styles.vendorLinkIcon || ''} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-										<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-										<polyline points="15 3 21 3 21 9" />
-										<line x1="10" y1="14" x2="21" y2="3" />
-									</svg>
+									<ExternalLinkIcon class={noStyle ? '' : styles.vendorLinkIcon || ''} />
 									{iabT.preferenceCenter.vendorList.privacyPolicy}
 								</a>
 							</div>
@@ -723,9 +683,7 @@
 								<div class={noStyle ? '' : styles.vendorLISection || ''}>
 									<div class={noStyle ? '' : styles.vendorLISectionHeader || ''}>
 										<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
-											<svg class={noStyle ? '' : styles.legitimateInterestIcon || ''} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-												<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
-											</svg>
+											<LegitimateInterestIcon class={noStyle ? '' : styles.legitimateInterestIcon || ''} />
 											{iabT.preferenceCenter.purposeItem.legitimateInterest}
 										</h4>
 										<button
@@ -780,7 +738,7 @@
 	{#if filteredVendors.length === 0}
 		<div class={noStyle ? '' : styles.emptyState || ''}>
 			<p class={noStyle ? '' : styles.emptyStateText || ''}>
-				No vendors found matching "{searchTerm}"
+				{iabT.preferenceCenter.vendorList.noVendorsFound.replace('{searchTerm}', searchTerm)}
 			</p>
 		</div>
 	{/if}

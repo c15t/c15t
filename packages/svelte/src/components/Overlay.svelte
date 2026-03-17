@@ -17,12 +17,12 @@
 	const styles = $derived(variant === 'dialog' ? dialogStyles : bannerStyles);
 
 	const themeKey = $derived(
-		variant === 'dialog' ? 'consentDialogOverlay' : 'consentBannerOverlay'
+		variant === 'dialog' ? 'consentDialogOverlay' as const : 'consentBannerOverlay' as const
 	);
 
 	const themeStyle = $derived(
 		resolveComponentStyles(
-			themeKey as any,
+			themeKey,
 			theme.theme,
 			{ baseClassName: styles.overlay },
 			theme.noStyle

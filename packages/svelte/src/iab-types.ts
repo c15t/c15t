@@ -333,3 +333,96 @@ export function processGVLData(
 		standalonePurposes: finalStandalonePurposes,
 	};
 }
+
+/**
+ * Compute display items for the IAB consent banner.
+ * Uses a greedy set-cover approach to group purposes into stacks,
+ * then lists remaining standalone purposes and special features.
+ */
+export function getIABBannerDisplayItems(
+	gvl: GlobalVendorList,
+	maxItems = 5
+): { displayed: string[]; remainingCount: number } {
+	const purposesWithVendors = Object.entries(gvl.purposes)
+		.filter(([id]) =>
+			Object.values(gvl.vendors).some(
+				(vendor) =>
+					vendor.purposes?.includes(Number(id)) ||
+					vendor.legIntPurposes?.includes(Number(id))
+			)
+		)
+		.map(([id, purpose]) => ({ id: Number(id), name: purpose.name }));
+
+	// Purpose 1 is always standalone per IAB TCF spec
+	const STANDALONE_PURPOSE_ID = 1;
+	const standalonePurpose = purposesWithVendors.find(
+		(p) => p.id === STANDALONE_PURPOSE_ID
+	);
+	const otherPurposes = purposesWithVendors.filter(
+		(p) => p.id !== STANDALONE_PURPOSE_ID
+	);
+	const otherPurposeIds = new Set(otherPurposes.map((p) => p.id));
+
+	// Score stacks by coverage
+	const gvlStacks = gvl.stacks || {};
+	const stackScores: Array<{
+		name: string;
+		coveredPurposeIds: number[];
+		score: number;
+	}> = [];
+
+	for (const [, stack] of Object.entries(gvlStacks)) {
+		const coveredIds = stack.purposes.filter((pid) => otherPurposeIds.has(pid));
+		if (coveredIds.length >= 2) {
+			stackScores.push({
+				name: stack.name,
+				coveredPurposeIds: coveredIds,
+				score: coveredIds.length,
+			});
+		}
+	}
+
+	stackScores.sort((a, b) => b.score - a.score);
+
+	// Greedily select stacks
+	const selectedStacks: string[] = [];
+	const assignedPurposeIds = new Set<number>();
+
+	for (const { name, coveredPurposeIds: covered } of stackScores) {
+		const unassignedInStack = covered.filter(
+			(pid) => !assignedPurposeIds.has(pid)
+		);
+		if (unassignedInStack.length >= 2) {
+			selectedStacks.push(name);
+			for (const pid of unassignedInStack) {
+				assignedPurposeIds.add(pid);
+			}
+		}
+	}
+
+	// Purposes not assigned to any stack become standalone
+	const uncoveredPurposes = otherPurposes.filter(
+		(p) => !assignedPurposeIds.has(p.id)
+	);
+
+	// Special features with vendors
+	const specialFeaturesWithVendors = Object.entries(gvl.specialFeatures || {})
+		.filter(([id]) =>
+			Object.values(gvl.vendors).some((vendor) =>
+				vendor.specialFeatures?.includes(Number(id))
+			)
+		)
+		.map(([, feature]) => feature.name);
+
+	// Build final list
+	const items: string[] = [];
+	if (standalonePurpose) items.push(standalonePurpose.name);
+	for (const stackName of selectedStacks) items.push(stackName);
+	for (const purpose of uncoveredPurposes) items.push(purpose.name);
+	for (const featureName of specialFeaturesWithVendors) items.push(featureName);
+
+	const displayed = items.slice(0, maxItems);
+	const remainingCount = Math.max(0, items.length - maxItems);
+
+	return { displayed, remainingCount };
+}

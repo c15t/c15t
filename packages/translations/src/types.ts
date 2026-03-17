@@ -124,14 +124,24 @@ export interface IABPreferenceCenterTranslations {
 		 * Use {days} placeholder for max age in days.
 		 */
 		maxAge: string;
+		/** Suffix shown when cookie max age refreshes. */
+		maxAgeRefreshes?: string;
 		/**
 		 * Use {days} placeholder for retention in days.
 		 */
 		retention: string;
+		/** Use {days} placeholder. Shown per-purpose/special-purpose. */
+		retainedDays?: string;
 		legitimateInterest: string;
 		privacyPolicy: string;
 		storageDisclosure: string;
 		requiredNotice: string;
+		/** Use {searchTerm} placeholder. */
+		noVendorsFound?: string;
+		/** Use {count} placeholder for partner count. */
+		partnerCount?: string;
+		partnerSingular?: string;
+		partnerPlural?: string;
 	};
 	footer: {
 		consentStorage: string;

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import legalLinkStyles from '@c15t/ui/styles/primitives/legal-links.module.js';
+	import type { AllThemeKeys } from '@c15t/ui/theme';
 	import type { LegalLinks as LegalLinksType } from 'c15t';
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { resolveComponentStyles } from '../utils';
@@ -8,11 +9,11 @@
 
 	let {
 		links,
-		themeKey = 'consentBannerDescription',
+		themeKey = 'consentBannerDescription' as AllThemeKeys,
 		testIdPrefix,
 	}: {
 		links?: (keyof LegalLinksType)[] | null;
-		themeKey?: string;
+		themeKey?: AllThemeKeys;
 		testIdPrefix?: string;
 	} = $props();
 
@@ -39,7 +40,7 @@
 
 	const linkStyle = $derived(
 		resolveComponentStyles(
-			themeKey as any,
+			themeKey,
 			theme.theme,
 			{ baseClassName: legalLinkStyles.legalLink },
 			noStyle
