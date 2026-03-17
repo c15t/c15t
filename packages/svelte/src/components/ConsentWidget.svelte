@@ -7,7 +7,12 @@
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 	import type { AllConsentNames } from 'c15t';
 	import { defaultTranslationConfig } from 'c15t';
-	import { getConsentContext, getThemeContext, getTrackingContext, setTrackingContext } from '../context.svelte';
+	import {
+		getConsentContext,
+		getThemeContext,
+		getTrackingContext,
+		setTrackingContext,
+	} from '../context.svelte';
 	import { resolveComponentStyles } from '../utils';
 	import ConsentButton from './ConsentButton.svelte';
 	import Branding from './Branding.svelte';
@@ -33,20 +38,15 @@
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 
 	const translations = $derived(
-		resolveTranslations(
-			consent.state.translationConfig,
-			defaultTranslationConfig
-		)
+		resolveTranslations(consent.state.translationConfig, defaultTranslationConfig),
 	);
 
 	const textDirection = $derived(
-		getTextDirection(consent.state.translationConfig?.defaultLanguage)
+		getTextDirection(consent.state.translationConfig?.defaultLanguage),
 	);
 
 	const displayedConsents = $derived(
-		consent.state.consentTypes.filter((ct) =>
-			consent.state.consentCategories.includes(ct.name)
-		)
+		consent.state.consentTypes.filter((ct) => consent.state.consentCategories.includes(ct.name)),
 	);
 
 	let openItems = $state<string[]>([]);
@@ -56,27 +56,37 @@
 	}
 
 	function formatConsentName(name: AllConsentNames): string {
-		return (name as string)
-			.replace(/_/g, ' ')
-			.replace(/\b\w/g, (c: string) => c.toUpperCase());
+		return (name as string).replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
 	}
 
 	// Per-element theme key resolution
 	const widgetRootStyle = $derived(
-		resolveComponentStyles('consentWidget', theme.theme, { className, noStyle }, noStyle)
+		resolveComponentStyles('consentWidget', theme.theme, { className, noStyle }, noStyle),
 	);
 
 	const footerStyle = $derived(
-		resolveComponentStyles('consentWidgetFooter', theme.theme, { baseClassName: styles.footer, noStyle }, noStyle)
+		resolveComponentStyles(
+			'consentWidgetFooter',
+			theme.theme,
+			{ baseClassName: styles.footer, noStyle },
+			noStyle,
+		),
 	);
 
 	const footerGroupStyle = $derived(
-		resolveComponentStyles('consentWidgetFooter', theme.theme, { baseClassName: styles.footerGroup, noStyle }, noStyle)
+		resolveComponentStyles(
+			'consentWidgetFooter',
+			theme.theme,
+			{ baseClassName: styles.footerGroup, noStyle },
+			noStyle,
+		),
 	);
 </script>
 
 <div
-	class={noStyle ? className : `${widgetRootStyle.className || ''} ${styles.root || ''} ${className || ''}`}
+	class={noStyle
+		? className
+		: `${widgetRootStyle.className || ''} ${styles.root || ''} ${className || ''}`}
 	dir={textDirection}
 	data-testid="consent-widget"
 >
@@ -132,7 +142,8 @@
 								<path d="M5 12h14" />
 							</svg>
 						</span>
-						{translations.consentTypes[consentType.name]?.title ?? formatConsentName(consentType.name)}
+						{translations.consentTypes[consentType.name]?.title ??
+							formatConsentName(consentType.name)}
 					</Accordion.ItemTrigger>
 
 					<!-- Toggle switch -->
@@ -155,7 +166,11 @@
 					data-testid={`consent-widget-content-${consentType.name}`}
 				>
 					<div class={noStyle ? '' : av.contentInner()}>
-						<p>{translations.consentTypes[consentType.name]?.description ?? consentType.description ?? ''}</p>
+						<p>
+							{translations.consentTypes[consentType.name]?.description ??
+								consentType.description ??
+								''}
+						</p>
 					</div>
 				</Accordion.ItemContent>
 			</Accordion.Item>
@@ -163,10 +178,7 @@
 	</Accordion.Root>
 
 	<!-- Footer with action buttons -->
-	<div
-		class={noStyle ? '' : footerStyle.className || ''}
-		data-testid="consent-widget-footer"
-	>
+	<div class={noStyle ? '' : footerStyle.className || ''} data-testid="consent-widget-footer">
 		<div class={noStyle ? '' : footerGroupStyle.className || ''}>
 			<ConsentButton
 				action="reject-consent"
@@ -198,15 +210,15 @@
 	</div>
 
 	<!-- Branding -->
-	<div
-		class={noStyle ? '' : dialogStyles.footer || ''}
-		data-testid="consent-widget-branding"
-	>
+	<div class={noStyle ? '' : dialogStyles.footer || ''} data-testid="consent-widget-branding">
 		<Branding
 			{hideBranding}
 			{noStyle}
 			class={dialogStyles.branding || ''}
-			iconClass={{ consent: dialogStyles.brandingConsent || '', c15t: dialogStyles.brandingC15T || '' }}
+			iconClass={{
+				consent: dialogStyles.brandingConsent || '',
+				c15t: dialogStyles.brandingC15T || '',
+			}}
 		/>
 	</div>
 </div>

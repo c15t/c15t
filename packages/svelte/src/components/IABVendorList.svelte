@@ -6,12 +6,7 @@
 	import type { GlobalVendorList } from 'c15t';
 	import { untrack } from 'svelte';
 	import { SvelteSet, SvelteMap } from 'svelte/reactivity';
-	import type {
-		ProcessedPurpose,
-		ProcessedVendor,
-		VendorId,
-		NonIABVendor,
-	} from '../iab-types';
+	import type { ProcessedPurpose, ProcessedVendor, VendorId, NonIABVendor } from '../iab-types';
 	import type { IABTranslations } from '../iab-translations';
 	import CloseIcon from './icons/CloseIcon.svelte';
 	import SearchIcon from './icons/SearchIcon.svelte';
@@ -45,10 +40,7 @@
 		onClearSelection: () => void;
 		customVendors?: NonIABVendor[];
 		vendorLegitimateInterests?: Record<string, boolean>;
-		onVendorLegitimateInterestToggle?: (
-			vendorId: VendorId,
-			value: boolean
-		) => void;
+		onVendorLegitimateInterestToggle?: (vendorId: VendorId, value: boolean) => void;
 		noStyle?: boolean;
 		iabT: IABTranslations;
 	} = $props();
@@ -62,11 +54,9 @@
 		return Object.entries(vendorData.vendors).map(([id, vendor]) => ({
 			id: Number(id),
 			name: vendor.name,
-			policyUrl:
-				(vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
+			policyUrl: (vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
 			usesNonCookieAccess: vendor.usesNonCookieAccess,
-			deviceStorageDisclosureUrl:
-				vendor.deviceStorageDisclosureUrl ?? null,
+			deviceStorageDisclosureUrl: vendor.deviceStorageDisclosureUrl ?? null,
 			usesCookies: vendor.usesCookies,
 			cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
 			cookieRefresh: vendor.cookieRefresh,
@@ -76,12 +66,9 @@
 			purposes: vendor.purposes || [],
 			legIntPurposes: vendor.legIntPurposes || [],
 			isCustom: false,
-			legitimateInterestUrl:
-				vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
+			legitimateInterestUrl: vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
 			dataRetention: vendor.dataRetention,
-			dataDeclaration:
-				(vendor as unknown as { dataDeclaration?: number[] })
-					.dataDeclaration || [],
+			dataDeclaration: (vendor as unknown as { dataDeclaration?: number[] }).dataDeclaration || [],
 		}));
 	});
 
@@ -105,14 +92,12 @@
 			legitimateInterestUrl: null,
 			dataRetention: undefined,
 			dataDeclaration: cv.dataCategories || [],
-		}))
+		})),
 	);
 
 	// Combine and sort all vendors
 	const vendors = $derived(
-		[...iabVendors, ...mappedCustomVendors].sort((a, b) =>
-			a.name.localeCompare(b.name)
-		)
+		[...iabVendors, ...mappedCustomVendors].sort((a, b) => a.name.localeCompare(b.name)),
 	);
 
 	// Scroll to selected vendor.
@@ -134,21 +119,13 @@
 
 	const filteredVendors = $derived.by(() => {
 		if (selectedVendorId !== null) {
-			return vendors.filter(
-				(v) => String(v.id) === String(selectedVendorId)
-			);
+			return vendors.filter((v) => String(v.id) === String(selectedVendorId));
 		}
-		return vendors.filter((vendor) =>
-			vendor.name.toLowerCase().includes(searchTerm.toLowerCase())
-		);
+		return vendors.filter((vendor) => vendor.name.toLowerCase().includes(searchTerm.toLowerCase()));
 	});
 
-	const filteredIABVendors = $derived(
-		filteredVendors.filter((v) => !v.isCustom)
-	);
-	const filteredCustomVendors = $derived(
-		filteredVendors.filter((v) => v.isCustom)
-	);
+	const filteredIABVendors = $derived(filteredVendors.filter((v) => !v.isCustom));
+	const filteredCustomVendors = $derived(filteredVendors.filter((v) => v.isCustom));
 
 	function handleVendorOpenChange(vendorId: VendorId, open: boolean) {
 		if (open) {
@@ -167,9 +144,7 @@
 		for (const vendor of vendors) {
 			const key = String(vendor.id);
 			const matched = purposes
-				.filter((purpose) =>
-					purpose.vendors.some((v) => String(v.id) === key)
-				)
+				.filter((purpose) => purpose.vendors.some((v) => String(v.id) === key))
 				.map((purpose) => ({
 					...purpose,
 					usesLegitimateInterest: vendor.legIntPurposes.includes(purpose.id),
@@ -238,7 +213,7 @@
 		if (!vendor.cookieMaxAgeSeconds) return null;
 		let text = iabT.preferenceCenter.vendorList.maxAge.replace(
 			'{days}',
-			String(Math.floor(vendor.cookieMaxAgeSeconds / 86400))
+			String(Math.floor(vendor.cookieMaxAgeSeconds / 86400)),
 		);
 		if (vendor.cookieRefresh) {
 			text = `${text} ${iabT.preferenceCenter.vendorList.maxAgeRefreshes}`;
@@ -258,20 +233,14 @@
 				onclick={onClearSelection}
 				class={noStyle ? '' : styles.clearSelectionButton || ''}
 			>
-				<CloseIcon
-					class={noStyle ? '' : styles.clearIcon || ''}
-					aria-hidden={true}
-				/>
+				<CloseIcon class={noStyle ? '' : styles.clearIcon || ''} aria-hidden={true} />
 				{iabT.common.clearSelection}
 			</button>
 		</div>
 	{:else}
 		<div class={noStyle ? '' : styles.vendorListHeader || ''}>
 			<div class={noStyle ? '' : styles.searchContainer || ''}>
-				<SearchIcon
-					class={noStyle ? '' : styles.searchIcon || ''}
-					aria-hidden={true}
-				/>
+				<SearchIcon class={noStyle ? '' : styles.searchIcon || ''} aria-hidden={true} />
 				<input
 					type="text"
 					placeholder={iabT.preferenceCenter.vendorList.search}
@@ -292,10 +261,7 @@
 		<div class={noStyle ? '' : styles.vendorSection || ''}>
 			<div class={noStyle ? '' : styles.iabVendorSectionHeader || ''}>
 				<h3 class={noStyle ? '' : styles.vendorSectionHeading || ''}>
-					<LayersIcon
-						class={noStyle ? '' : styles.vendorSectionIcon || ''}
-						aria-hidden={true}
-					/>
+					<LayersIcon class={noStyle ? '' : styles.vendorSectionIcon || ''} aria-hidden={true} />
 					{iabT.preferenceCenter.vendorList.iabVendorsHeading} ({filteredIABVendors.length})
 				</h3>
 				<p class={noStyle ? '' : styles.iabVendorNotice || ''}>
@@ -324,9 +290,7 @@
 							: `${styles.vendorListItem || ''} ${vendor.isCustom ? styles.customVendorItem || '' : ''}`}
 					>
 						<div class={noStyle ? '' : styles.vendorListItemHeader || ''}>
-							<Collapsible.Trigger
-								class={noStyle ? '' : styles.vendorListTrigger || ''}
-							>
+							<Collapsible.Trigger class={noStyle ? '' : styles.vendorListTrigger || ''}>
 								<div class={noStyle ? '' : styles.vendorListInfo || ''}>
 									<h3 class={noStyle ? '' : styles.vendorListName || ''}>
 										{vendor.name}
@@ -335,24 +299,22 @@
 										<span class={noStyle ? '' : styles.vendorListMetaText || ''}>
 											{vendorPurposes.length} purpose{vendorPurposes.length !== 1 ? 's' : ''}
 											{#if vendorSpecialPurposes.length > 0}, {vendorSpecialPurposes.length} special{/if}
-											{#if vendorSpecialFeatures.length > 0}, {vendorSpecialFeatures.length} feature{vendorSpecialFeatures.length !== 1 ? 's' : ''}{/if}
+											{#if vendorSpecialFeatures.length > 0}, {vendorSpecialFeatures.length} feature{vendorSpecialFeatures.length !==
+												1
+													? 's'
+													: ''}{/if}
 										</span>
 										{#if legIntCount > 0}
 											<span class={noStyle ? '' : styles.vendorListLIBadge || ''}>
-												<LegitimateInterestIcon
-													width="10"
-													height="10"
-													aria-hidden={true}
-												/>
-												{legIntCount} {iabT.preferenceCenter.vendorList.legitimateInterest}
+												<LegitimateInterestIcon width="10" height="10" aria-hidden={true} />
+												{legIntCount}
+												{iabT.preferenceCenter.vendorList.legitimateInterest}
 											</span>
 										{/if}
 									</div>
 								</div>
 								<Collapsible.Indicator class={noStyle ? '' : styles.purposeArrow || ''}>
-									<ChevronDownIcon
-										aria-hidden={true}
-									/>
+									<ChevronDownIcon aria-hidden={true} />
 								</Collapsible.Indicator>
 							</Collapsible.Trigger>
 							<Switch.Root
@@ -422,7 +384,10 @@
 								{/if}
 								{#if standardRetentionDays}
 									<span class={noStyle ? '' : styles.vendorBadge || ''}>
-										{iabT.preferenceCenter.vendorList.retention.replace('{days}', String(standardRetentionDays))}
+										{iabT.preferenceCenter.vendorList.retention.replace(
+											'{days}',
+											String(standardRetentionDays),
+										)}
 									</span>
 								{/if}
 							</div>
@@ -435,13 +400,22 @@
 									</h4>
 									<ul class={noStyle ? '' : styles.vendorPurposesItems || ''}>
 										{#each vendorPurposes as purpose (purpose.id)}
-											{@const retentionDays = vendor.dataRetention?.purposes?.[purpose.id] ?? vendor.dataRetention?.stdRetention}
-											<li class={noStyle ? '' : `${styles.vendorPurposeItem || ''} ${purpose.usesLegitimateInterest ? styles.vendorPurposeItemLI || '' : ''}`}>
+											{@const retentionDays =
+												vendor.dataRetention?.purposes?.[purpose.id] ??
+												vendor.dataRetention?.stdRetention}
+											<li
+												class={noStyle
+													? ''
+													: `${styles.vendorPurposeItem || ''} ${purpose.usesLegitimateInterest ? styles.vendorPurposeItemLI || '' : ''}`}
+											>
 												<span>
 													{purpose.name}
 													{#if retentionDays}
 														<span class={noStyle ? '' : styles.vendorRetention || ''}>
-															({iabT.preferenceCenter.vendorList.retainedDays.replace('{days}', String(retentionDays))})
+															({iabT.preferenceCenter.vendorList.retainedDays.replace(
+																'{days}',
+																String(retentionDays),
+															)})
 														</span>
 													{/if}
 												</span>
@@ -462,13 +436,18 @@
 								<div class={noStyle ? '' : styles.vendorLISection || ''}>
 									<div class={noStyle ? '' : styles.vendorLISectionHeader || ''}>
 										<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
-											<LegitimateInterestIcon class={noStyle ? '' : styles.legitimateInterestIcon || ''} />
+											<LegitimateInterestIcon
+												class={noStyle ? '' : styles.legitimateInterestIcon || ''}
+											/>
 											{iabT.preferenceCenter.purposeItem.legitimateInterest}
 										</h4>
 										<button
 											type="button"
-											onclick={() => onVendorLegitimateInterestToggle?.(vendor.id, !isLegitimateInterestAllowed)}
-											class={noStyle ? '' : `${styles.objectButton || ''} ${!isLegitimateInterestAllowed ? styles.objectButtonActive || '' : ''}`}
+											onclick={() =>
+												onVendorLegitimateInterestToggle?.(vendor.id, !isLegitimateInterestAllowed)}
+											class={noStyle
+												? ''
+												: `${styles.objectButton || ''} ${!isLegitimateInterestAllowed ? styles.objectButtonActive || '' : ''}`}
 											aria-pressed={!isLegitimateInterestAllowed}
 										>
 											{isLegitimateInterestAllowed
@@ -486,7 +465,8 @@
 							{#if vendor.dataDeclaration && vendor.dataDeclaration.length > 0}
 								<div class={noStyle ? '' : styles.vendorPurposesList || ''}>
 									<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
-										{iabT.preferenceCenter.vendorList.dataCategories} ({vendor.dataDeclaration.length})
+										{iabT.preferenceCenter.vendorList.dataCategories} ({vendor.dataDeclaration
+											.length})
 									</h4>
 									<ul class={noStyle ? '' : styles.vendorPurposesItems || ''}>
 										{#each vendor.dataDeclaration as categoryId (categoryId)}
@@ -515,13 +495,18 @@
 									</h4>
 									<ul class={noStyle ? '' : styles.vendorPurposesItems || ''}>
 										{#each vendorSpecialPurposes as sp (sp.id)}
-											{@const retentionDays = vendor.dataRetention?.specialPurposes?.[sp.id] ?? vendor.dataRetention?.stdRetention}
+											{@const retentionDays =
+												vendor.dataRetention?.specialPurposes?.[sp.id] ??
+												vendor.dataRetention?.stdRetention}
 											<li class={noStyle ? '' : styles.vendorPurposeItem || ''}>
 												<span>
 													{sp.name}
 													{#if retentionDays}
 														<span class={noStyle ? '' : styles.vendorRetention || ''}>
-															({iabT.preferenceCenter.vendorList.retainedDays.replace('{days}', String(retentionDays))})
+															({iabT.preferenceCenter.vendorList.retainedDays.replace(
+																'{days}',
+																String(retentionDays),
+															)})
 														</span>
 													{/if}
 												</span>
@@ -577,10 +562,7 @@
 		<div class={noStyle ? '' : styles.vendorSection || ''}>
 			<div class={noStyle ? '' : styles.customVendorSectionHeader || ''}>
 				<h3 class={noStyle ? '' : styles.vendorSectionHeading || ''}>
-					<GlobeIcon
-						class={noStyle ? '' : styles.vendorSectionIcon || ''}
-						aria-hidden={true}
-					/>
+					<GlobeIcon class={noStyle ? '' : styles.vendorSectionIcon || ''} aria-hidden={true} />
 					{iabT.preferenceCenter.vendorList.customVendorsHeading} ({filteredCustomVendors.length})
 				</h3>
 				<p class={noStyle ? '' : styles.customVendorNotice || ''}>
@@ -604,9 +586,7 @@
 						class={noStyle ? '' : `${styles.vendorListItem || ''} ${styles.customVendorItem || ''}`}
 					>
 						<div class={noStyle ? '' : styles.vendorListItemHeader || ''}>
-							<Collapsible.Trigger
-								class={noStyle ? '' : styles.vendorListTrigger || ''}
-							>
+							<Collapsible.Trigger class={noStyle ? '' : styles.vendorListTrigger || ''}>
 								<div class={noStyle ? '' : styles.vendorListInfo || ''}>
 									<h3 class={noStyle ? '' : styles.vendorListName || ''}>
 										{vendor.name}
@@ -617,9 +597,7 @@
 									</h3>
 								</div>
 								<Collapsible.Indicator class={noStyle ? '' : styles.purposeArrow || ''}>
-									<ChevronDownIcon
-										aria-hidden={true}
-									/>
+									<ChevronDownIcon aria-hidden={true} />
 								</Collapsible.Indicator>
 							</Collapsible.Trigger>
 							<Switch.Root
@@ -649,10 +627,14 @@
 
 							<div class={noStyle ? '' : styles.vendorBadges || ''}>
 								{#if vendor.usesCookies}
-									<span class={noStyle ? '' : styles.vendorBadge || ''}>{iabT.preferenceCenter.vendorList.usesCookies}</span>
+									<span class={noStyle ? '' : styles.vendorBadge || ''}
+										>{iabT.preferenceCenter.vendorList.usesCookies}</span
+									>
 								{/if}
 								{#if vendor.usesNonCookieAccess}
-									<span class={noStyle ? '' : styles.vendorBadge || ''}>{iabT.preferenceCenter.vendorList.nonCookieAccess}</span>
+									<span class={noStyle ? '' : styles.vendorBadge || ''}
+										>{iabT.preferenceCenter.vendorList.nonCookieAccess}</span
+									>
 								{/if}
 								{#if maxAgeText}
 									<span class={noStyle ? '' : styles.vendorBadge || ''}>{maxAgeText}</span>
@@ -678,13 +660,18 @@
 								<div class={noStyle ? '' : styles.vendorLISection || ''}>
 									<div class={noStyle ? '' : styles.vendorLISectionHeader || ''}>
 										<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
-											<LegitimateInterestIcon class={noStyle ? '' : styles.legitimateInterestIcon || ''} />
+											<LegitimateInterestIcon
+												class={noStyle ? '' : styles.legitimateInterestIcon || ''}
+											/>
 											{iabT.preferenceCenter.purposeItem.legitimateInterest}
 										</h4>
 										<button
 											type="button"
-											onclick={() => onVendorLegitimateInterestToggle?.(vendor.id, !isLegitimateInterestAllowed)}
-											class={noStyle ? '' : `${styles.objectButton || ''} ${!isLegitimateInterestAllowed ? styles.objectButtonActive || '' : ''}`}
+											onclick={() =>
+												onVendorLegitimateInterestToggle?.(vendor.id, !isLegitimateInterestAllowed)}
+											class={noStyle
+												? ''
+												: `${styles.objectButton || ''} ${!isLegitimateInterestAllowed ? styles.objectButtonActive || '' : ''}`}
 											aria-pressed={!isLegitimateInterestAllowed}
 										>
 											{isLegitimateInterestAllowed

@@ -41,18 +41,16 @@
 	const iabState = $derived(consent.state.iab);
 
 	// Translations
-	const iabT = $derived(
-		getIABTranslations(consent.state.translationConfig)
-	);
+	const iabT = $derived(getIABTranslations(consent.state.translationConfig));
 	const textDirection = $derived(
-		getTextDirection(consent.state.translationConfig?.defaultLanguage)
+		getTextDirection(consent.state.translationConfig?.defaultLanguage),
 	);
 
 	// Open state
 	const isOpen = $derived(
 		models.includes(consent.state.model) &&
 			(openProp ?? consent.state.activeUI === 'dialog') &&
-			iabState?.config.enabled === true
+			iabState?.config.enabled === true,
 	);
 
 	// Tab state
@@ -118,17 +116,11 @@
 		iabState?.setVendorConsent(vendorId, value);
 	}
 
-	function handleVendorLegitimateInterestToggle(
-		vendorId: VendorId,
-		value: boolean
-	) {
+	function handleVendorLegitimateInterestToggle(vendorId: VendorId, value: boolean) {
 		iabState?.setVendorLegitimateInterest(vendorId, value);
 	}
 
-	function handlePurposeLegitimateInterestToggle(
-		purposeId: number,
-		value: boolean
-	) {
+	function handlePurposeLegitimateInterestToggle(purposeId: number, value: boolean) {
 		iabState?.setPurposeLegitimateInterest(purposeId, value);
 	}
 
@@ -154,7 +146,6 @@
 		activeTab = 'vendors';
 		iabState?.setPreferenceCenterTab('vendors');
 	}
-
 </script>
 
 <Dialog.Root
@@ -177,9 +168,7 @@
 			data-testid="iab-consent-dialog-root"
 		>
 			<Dialog.Content
-				class={noStyle
-					? className || ''
-					: `${styles.card || ''} ${className || ''}`}
+				class={noStyle ? className || '' : `${styles.card || ''} ${className || ''}`}
 				dir={textDirection}
 				data-testid="iab-consent-dialog-card"
 			>
@@ -193,15 +182,8 @@
 							{iabT.preferenceCenter.description}
 						</Dialog.Description>
 					</div>
-					<Dialog.CloseTrigger
-						class={noStyle ? '' : styles.closeButton || ''}
-						aria-label="Close"
-					>
-						<CloseIcon
-							width="16"
-							height="16"
-							aria-hidden={true}
-						/>
+					<Dialog.CloseTrigger class={noStyle ? '' : styles.closeButton || ''} aria-label="Close">
+						<CloseIcon width="16" height="16" aria-hidden={true} />
 					</Dialog.CloseTrigger>
 				</div>
 
@@ -212,10 +194,7 @@
 					class={noStyle ? '' : styles.tabsContainer || ''}
 				>
 					<Tabs.List class={noStyle ? '' : styles.tabsList || ''}>
-						<Tabs.Trigger
-							value="purposes"
-							class={noStyle ? '' : styles.tabButton || ''}
-						>
+						<Tabs.Trigger value="purposes" class={noStyle ? '' : styles.tabButton || ''}>
 							{iabT.preferenceCenter.tabs.purposes}
 							{#if !isLoading && gvlData}
 								({gvlData.purposes.length +
@@ -224,10 +203,7 @@
 									gvlData.features.length})
 							{/if}
 						</Tabs.Trigger>
-						<Tabs.Trigger
-							value="vendors"
-							class={noStyle ? '' : styles.tabButton || ''}
-						>
+						<Tabs.Trigger value="vendors" class={noStyle ? '' : styles.tabButton || ''}>
 							{iabT.preferenceCenter.tabs.vendors}
 							{#if !isLoading}
 								({totalVendors})
@@ -236,10 +212,7 @@
 					</Tabs.List>
 
 					<!-- Purposes Tab Content -->
-					<Tabs.Content
-						value="purposes"
-						class={noStyle ? '' : styles.content || ''}
-					>
+					<Tabs.Content value="purposes" class={noStyle ? '' : styles.content || ''}>
 						{#if isLoading}
 							<div class={noStyle ? '' : styles.loadingContainer || ''}>
 								<div class={noStyle ? '' : styles.loadingSpinner || ''}></div>
@@ -253,8 +226,7 @@
 								<IABPurposeItem
 									{purpose}
 									isEnabled={iabState.purposeConsents[purpose.id] ?? false}
-									onToggle={(value) =>
-										handlePurposeToggle(purpose.id, value)}
+									onToggle={(value) => handlePurposeToggle(purpose.id, value)}
 									vendorConsents={iabState.vendorConsents}
 									onVendorToggle={handleVendorToggle}
 									onVendorClick={handleVendorClick}
@@ -295,10 +267,8 @@
 										illustrations: feature.illustrations,
 										vendors: feature.vendors,
 									}}
-									isEnabled={iabState.specialFeatureOptIns[feature.id] ??
-										false}
-									onToggle={(value) =>
-										handleSpecialFeatureToggle(feature.id, value)}
+									isEnabled={iabState.specialFeatureOptIns[feature.id] ?? false}
+									onToggle={(value) => handleSpecialFeatureToggle(feature.id, value)}
 									vendorConsents={iabState.vendorConsents}
 									onVendorToggle={handleVendorToggle}
 									onVendorClick={handleVendorClick}
@@ -313,29 +283,15 @@
 							{#if gvlData.specialPurposes.length > 0 || gvlData.features.length > 0}
 								<Collapsible.Root
 									bind:open={specialPurposesExpanded}
-									class={noStyle
-										? ''
-										: styles.specialPurposesSection || ''}
+									class={noStyle ? '' : styles.specialPurposesSection || ''}
 								>
-									<div
-										class={noStyle
-											? ''
-											: styles.specialPurposesHeader || ''}
-									>
-										<Collapsible.Trigger
-											class={noStyle ? '' : styles.purposeTrigger || ''}
-										>
+									<div class={noStyle ? '' : styles.specialPurposesHeader || ''}>
+										<Collapsible.Trigger class={noStyle ? '' : styles.purposeTrigger || ''}>
 											<Collapsible.Indicator class={noStyle ? '' : styles.purposeArrow || ''}>
-												<ChevronRightIcon
-													aria-hidden={true}
-												/>
+												<ChevronRightIcon aria-hidden={true} />
 											</Collapsible.Indicator>
 											<div class={noStyle ? '' : styles.purposeInfo || ''}>
-												<h3
-													class={noStyle
-														? ''
-														: styles.specialPurposesTitle || ''}
-												>
+												<h3 class={noStyle ? '' : styles.specialPurposesTitle || ''}>
 													{iabT.preferenceCenter.specialPurposes.title}
 													<LockIcon
 														class={noStyle ? '' : styles.lockIcon || ''}
@@ -343,14 +299,16 @@
 													/>
 												</h3>
 												<p class={noStyle ? '' : styles.purposeMeta || ''}>
-													{specialSectionPartnerCount} {specialSectionPartnerCount === 1 ? iabT.preferenceCenter.vendorList.partnerSingular : iabT.preferenceCenter.vendorList.partnerPlural}
+													{specialSectionPartnerCount}
+													{specialSectionPartnerCount === 1
+														? iabT.preferenceCenter.vendorList.partnerSingular
+														: iabT.preferenceCenter.vendorList.partnerPlural}
 												</p>
 											</div>
 										</Collapsible.Trigger>
 										<InfoIcon
 											class={noStyle ? '' : styles.infoIcon || ''}
-											aria-label={iabT.preferenceCenter.specialPurposes
-												.tooltip}
+											aria-label={iabT.preferenceCenter.specialPurposes.tooltip}
 										/>
 									</div>
 
@@ -406,10 +364,7 @@
 					</Tabs.Content>
 
 					<!-- Vendors Tab Content -->
-					<Tabs.Content
-						value="vendors"
-						class={noStyle ? '' : styles.content || ''}
-					>
+					<Tabs.Content value="vendors" class={noStyle ? '' : styles.content || ''}>
 						{#if iabState}
 							<IABVendorList
 								vendorData={iabState.gvl}

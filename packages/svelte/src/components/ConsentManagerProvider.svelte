@@ -3,14 +3,8 @@
 	import { onDestroy, onMount, untrack } from 'svelte';
 	import { generateThemeCSS } from '@c15t/ui/theme';
 	import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
-	import {
-		type ConsentStoreState,
-		getOrCreateConsentRuntime,
-	} from 'c15t';
-	import {
-		setConsentContext,
-		setThemeContext,
-	} from '../context.svelte';
+	import { type ConsentStoreState, getOrCreateConsentRuntime } from 'c15t';
+	import { setConsentContext, setThemeContext } from '../context.svelte';
 	import type { ConsentManagerOptions } from '../types';
 	import { defaultTheme } from '../utils';
 	import { version } from '../version';
@@ -28,7 +22,7 @@
 	// so it's safe to call with the initial options snapshot.
 	// untrack() signals that we intentionally only read the initial value.
 	const { consentManager, consentStore } = untrack(() =>
-		getOrCreateConsentRuntime(options, { pkg: '@c15t/svelte', version })
+		getOrCreateConsentRuntime(options, { pkg: '@c15t/svelte', version }),
 	);
 
 	// Initialise from current store snapshot, then subscribe for updates.
@@ -69,9 +63,7 @@
 	});
 
 	// Set up theme
-	const mergedTheme = $derived(
-		deepMerge(defaultTheme, options.theme ?? {})
-	);
+	const mergedTheme = $derived(deepMerge(defaultTheme, options.theme ?? {}));
 
 	setThemeContext({
 		get theme() {
