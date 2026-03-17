@@ -85,6 +85,8 @@ export function c15tEdgeInit(
 			});
 		} catch (error) {
 			logger.error('Edge init handler error', error);
+			const errorHeaders = new Headers({ 'content-type': 'application/json' });
+			applyCorsHeaders(errorHeaders, request, options.trustedOrigins, logger);
 			return new Response(
 				JSON.stringify({
 					code: 'INTERNAL_SERVER_ERROR',
@@ -93,7 +95,7 @@ export function c15tEdgeInit(
 				}),
 				{
 					status: 500,
-					headers: { 'content-type': 'application/json' },
+					headers: errorHeaders,
 				}
 			);
 		}

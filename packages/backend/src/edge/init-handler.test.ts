@@ -168,6 +168,7 @@ describe('c15tEdgeInit', () => {
 		const response = await handler(
 			makeRequest('/', {
 				headers: {
+					origin: 'https://myapp.com',
 					'x-c15t-country': 'DE',
 					'accept-language': 'en',
 				},
@@ -177,6 +178,9 @@ describe('c15tEdgeInit', () => {
 		expect(response.status).toBe(500);
 		const body = await response.json();
 		expect(body.code).toBe('INTERNAL_SERVER_ERROR');
+		expect(response.headers.get('access-control-allow-origin')).toBe(
+			'https://myapp.com'
+		);
 
 		mockResolveInitPayload.mockReset();
 	});
