@@ -147,6 +147,18 @@ async function runIteration(browser, route) {
 		};
 	});
 
+	const navTiming = await page.evaluate(() => {
+		const nav = performance.getEntriesByType('navigation')[0];
+		if (!nav) {
+			return null;
+		}
+
+		return {
+			domContentLoaded: nav.domContentLoadedEventEnd,
+			loadEvent: nav.loadEventEnd,
+		};
+	});
+
 	const beforeNavUrl = page.url();
 	await page.click('#soft-nav-link');
 	await page.waitForURL((url) => url.toString() !== beforeNavUrl);
@@ -183,8 +195,11 @@ async function runIteration(browser, route) {
 	return {
 		bannerVisibleMs: initial.bannerVisibleMs,
 		onBannerFetchedMs: initial.onBannerFetchedMs,
+		initFetchStartMs: initTiming?.startTime ?? null,
 		initFetchMs: initTiming?.duration ?? null,
 		initFetchEndMs: initTiming?.responseEnd ?? null,
+		domContentLoadedMs: navTiming?.domContentLoaded ?? null,
+		loadEventMs: navTiming?.loadEvent ?? null,
 		fetchedToVisibleMs:
 			Number.isFinite(initial.onBannerFetchedMs) &&
 			Number.isFinite(initial.bannerVisibleMs)
@@ -260,7 +275,7 @@ async function runBenchmarks() {
 				const sample = await runIteration(browser, route);
 				samples.push(sample);
 				process.stdout.write(
-					`[${route.name}] iteration ${i + 1}/${ITERATIONS}: banner=${sample.bannerVisibleMs.toFixed(1)}ms, initFetch=${formatMaybeMs(sample.initFetchMs)}, fetched->visible=${formatMaybeMs(sample.fetchedToVisibleMs)}, initReq(load/soft/reload)=${sample.initRequestsAfterLoad}/${sample.initRequestsAfterSoftNav}/${sample.initRequestsAfterReload}\n`
+					`[${route.name}] iteration ${i + 1}/${ITERATIONS}: banner=${sample.bannerVisibleMs.toFixed(1)}ms, initStart=${formatMaybeMs(sample.initFetchStartMs)}, initFetch=${formatMaybeMs(sample.initFetchMs)}, fetched->visible=${formatMaybeMs(sample.fetchedToVisibleMs)}, initReq(load/soft/reload)=${sample.initRequestsAfterLoad}/${sample.initRequestsAfterSoftNav}/${sample.initRequestsAfterReload}\n`
 				);
 			}
 
@@ -268,7 +283,14 @@ async function runBenchmarks() {
 			const onBannerFetchedMsValues = samples.map(
 				(sample) => sample.onBannerFetchedMs
 			);
+			const initFetchStartMsValues = samples.map(
+				(sample) => sample.initFetchStartMs
+			);
 			const initFetchMsValues = samples.map((sample) => sample.initFetchMs);
+			const domContentLoadedValues = samples.map(
+				(sample) => sample.domContentLoadedMs
+			);
+			const loadEventValues = samples.map((sample) => sample.loadEventMs);
 			const fetchedToVisibleValues = samples.map(
 				(sample) => sample.fetchedToVisibleMs
 			);
@@ -298,7 +320,10 @@ async function runBenchmarks() {
 				iterations: samples.length,
 				banner: summarizeMs(bannerValues),
 				avgOnBannerFetchedMs: averageDefined(onBannerFetchedMsValues),
+				avgInitFetchStartMs: averageDefined(initFetchStartMsValues),
 				avgInitFetchMs: averageDefined(initFetchMsValues),
+				avgDomContentLoadedMs: averageDefined(domContentLoadedValues),
+				avgLoadEventMs: averageDefined(loadEventValues),
 				avgFetchedToVisibleMs: averageDefined(fetchedToVisibleValues),
 				avgInitEndToFetchedMs: averageDefined(initEndToFetchedValues),
 				avgOnBannerFetchedInitial: Number(
@@ -337,7 +362,10 @@ async function runBenchmarks() {
 				medianBannerMs: entry.banner.median,
 				p95BannerMs: entry.banner.p95,
 				medianDiffVsClientPct: medianDiffVsClient,
+				avgInitFetchStartMs: entry.avgInitFetchStartMs,
 				avgInitFetchMs: entry.avgInitFetchMs,
+				avgDomContentLoadedMs: entry.avgDomContentLoadedMs,
+				avgLoadEventMs: entry.avgLoadEventMs,
 				avgOnBannerFetchedMs: entry.avgOnBannerFetchedMs,
 				avgInitEndToFetchedMs: entry.avgInitEndToFetchedMs,
 				avgFetchedToVisibleMs: entry.avgFetchedToVisibleMs,
