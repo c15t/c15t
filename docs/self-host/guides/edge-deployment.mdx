@@ -179,6 +179,76 @@ Edge isolates have short-lived memory. The in-memory GVL cache resets on each co
 - **Bundle GVL translations** using `iab.bundled` to avoid fetch latency entirely
 - **Use an external cache** (Upstash Redis, Cloudflare KV) via the `cache.adapter` option to share cached data across isolates — see the [Caching guide](/docs/self-host/guides/caching) for setup
 
+## Custom consent cookie (`resolveConsent`) {#resolve-consent}
+
+<Callout type="info">
+  **Experimental** — this API may change in future versions.
+</Callout>
+
+If you manage your own consent cookie and just need to know **which categories to load** for a given visitor, use `resolveConsent` instead of `c15tEdgeInit`. It's a lightweight, fully synchronous function that returns the matched policy and default consent state — no translations, GVL, branding, or snapshot tokens.
+
+```ts title="middleware.ts"
+import { resolveConsent } from '@c15t/backend/edge';
+
+const policyPacks = [
+  {
+    id: 'eu_gdpr',
+    match: { countries: ['DE', 'FR', 'IT', 'ES'] },
+    consent: {
+      model: 'opt-in',
+      categories: ['necessary', 'marketing', 'measurement'],
+    },
+    ui: { mode: 'banner' },
+  },
+  {
+    id: 'us_default',
+    match: { isDefault: true },
+    consent: {
+      model: 'opt-out',
+      categories: ['necessary', 'marketing', 'measurement'],
+      gpc: true,
+    },
+    ui: { mode: 'banner' },
+  },
+];
+
+export function middleware(request: Request) {
+  const consent = resolveConsent(request, { policyPacks });
+
+  // consent.model       → "opt-in" | "opt-out" | "none" | "iab"
+  // consent.showBanner  → true
+  // consent.jurisdiction → "GDPR"
+  // consent.gpc         → false
+  // consent.defaults    → {
+  //   necessary:   { granted: true,  required: true  },
+  //   marketing:   { granted: false, required: false },
+  //   measurement: { granted: false, required: false },
+  // }
+
+  // Read your own cookie, merge with consent.defaults,
+  // decide which scripts/tags to load
+}
+```
+
+### Default consent by model
+
+| Model | `necessary` | Other categories | Notes |
+|-------|-------------|-----------------|-------|
+| `opt-in` | granted, required | **not granted** | Unless listed in `preselectedCategories` |
+| `opt-out` | granted, required | **granted** | GPC signal can override `marketing`/`measurement` to not granted |
+| `none` | granted, required | **granted** | No banner shown |
+
+### `resolveConsent` vs `c15tEdgeInit`
+
+| | `resolveConsent` | `c15tEdgeInit` |
+|---|---|---|
+| **Use case** | Custom consent cookie | Drop-in `/init` replacement |
+| **Sync** | Yes | No (async — signs JWT, fetches GVL) |
+| **Returns** | Policy + default consent state | Full `/init` JSON payload |
+| **CORS** | Not handled (your middleware) | Built-in |
+| **Translations** | Not included | Included |
+| **Snapshot token** | Not included | Included |
+
 ## What stays on the origin
 
 Only `/init` moves to the edge. These endpoints still require the origin server:
