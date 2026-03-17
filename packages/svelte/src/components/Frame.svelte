@@ -31,13 +31,19 @@
 	const hasConsent = $derived(consent.state.consents[category] ?? false);
 
 	const translations = $derived(
-		resolveTranslations(consent.state.translationConfig, defaultTranslationConfig)
+		resolveTranslations(consent.state.translationConfig, defaultTranslationConfig),
 	);
 	const frameTitle = $derived(
-		(translations.frame?.title ?? 'Accept {category} consent to view this content.').replace('{category}', category as string)
+		(translations.frame?.title ?? 'Accept {category} consent to view this content.').replace(
+			'{category}',
+			category as string,
+		),
 	);
 	const frameActionButton = $derived(
-		(translations.frame?.actionButton ?? 'Enable {category} consent').replace('{category}', category as string)
+		(translations.frame?.actionButton ?? 'Enable {category} consent').replace(
+			'{category}',
+			category as string,
+		),
 	);
 
 	let isMounted = $state(false);

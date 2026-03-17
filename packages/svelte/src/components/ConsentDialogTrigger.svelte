@@ -92,7 +92,7 @@
 	const dragStyle = $derived(
 		dragState.isDragging
 			? `transform: translate(${dragState.currentX - dragState.startX}px, ${dragState.currentY - dragState.startY}px); transition: none;`
-			: ''
+			: '',
 	);
 
 	function updateCorner(newCorner: CornerPosition) {
@@ -161,7 +161,9 @@
 
 			if (newCorner !== corner) {
 				isSnapping = true;
-				setTimeout(() => { isSnapping = false; }, 300);
+				setTimeout(() => {
+					isSnapping = false;
+				}, 300);
 				updateCorner(newCorner);
 			}
 		}
@@ -203,7 +205,7 @@
 					className,
 				]
 					.filter(Boolean)
-					.join(' ')
+					.join(' '),
 	);
 </script>
 

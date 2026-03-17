@@ -12,11 +12,7 @@
 	// the dialog mounts (establishing Ark's focus trap), so they don't compete.
 	import { portal } from '../actions/portal';
 	import { scrollLock } from '../actions/scroll-lock';
-	import {
-		getConsentContext,
-		getThemeContext,
-		setTrackingContext,
-	} from '../context.svelte';
+	import { getConsentContext, getThemeContext, setTrackingContext } from '../context.svelte';
 	import { useBannerVisibility } from '../use-banner-visibility.svelte';
 	import { resolveComponentStyles } from '../utils';
 	import ConsentButton from './ConsentButton.svelte';
@@ -74,28 +70,26 @@
 	});
 
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
-	const disableAnimation = $derived(
-		localDisableAnimation ?? theme.disableAnimation ?? false
-	);
+	const disableAnimation = $derived(localDisableAnimation ?? theme.disableAnimation ?? false);
 	const shouldTrapFocus = $derived(localTrapFocus ?? theme.trapFocus ?? true);
 	const shouldScrollLock = $derived(localScrollLock ?? theme.scrollLock ?? false);
 
 	// Translations
 	const translations = $derived(
-		resolveTranslations(consent.state.translationConfig, defaultTranslationConfig)
+		resolveTranslations(consent.state.translationConfig, defaultTranslationConfig),
 	);
 	const textDirection = $derived(
-		getTextDirection(consent.state.translationConfig?.defaultLanguage)
+		getTextDirection(consent.state.translationConfig?.defaultLanguage),
 	);
 
 	// Visibility logic
 	const shouldShowBanner = $derived(
-		consent.state.activeUI === 'banner' && models.includes(consent.state.model)
+		consent.state.activeUI === 'banner' && models.includes(consent.state.model),
 	);
 
 	const visibility = useBannerVisibility(
 		() => shouldShowBanner,
-		() => disableAnimation
+		() => disableAnimation,
 	);
 
 	// Styling - per-element theme key resolution matching React
@@ -111,8 +105,8 @@
 				className,
 				noStyle,
 			},
-			noStyle
-		)
+			noStyle,
+		),
 	);
 
 	const cardStyle = $derived(
@@ -120,8 +114,8 @@
 			'consentBannerCard',
 			theme.theme,
 			{ baseClassName: styles.card, noStyle },
-			noStyle
-		)
+			noStyle,
+		),
 	);
 
 	const headerStyle = $derived(
@@ -129,8 +123,8 @@
 			'consentBannerHeader',
 			theme.theme,
 			{ baseClassName: styles.header, noStyle },
-			noStyle
-		)
+			noStyle,
+		),
 	);
 
 	const titleStyle = $derived(
@@ -138,8 +132,8 @@
 			'consentBannerTitle',
 			theme.theme,
 			{ baseClassName: styles.title, noStyle },
-			noStyle
-		)
+			noStyle,
+		),
 	);
 
 	const descriptionStyle = $derived(
@@ -147,8 +141,8 @@
 			'consentBannerDescription',
 			theme.theme,
 			{ baseClassName: styles.description, noStyle },
-			noStyle
-		)
+			noStyle,
+		),
 	);
 
 	const footerStyle = $derived(
@@ -156,8 +150,8 @@
 			'consentBannerFooter',
 			theme.theme,
 			{ baseClassName: styles.footer, noStyle },
-			noStyle
-		)
+			noStyle,
+		),
 	);
 
 	const footerSubGroupStyle = $derived(
@@ -165,37 +159,27 @@
 			'consentBannerFooterSubGroup',
 			theme.theme,
 			{ baseClassName: styles.footerSubGroup, noStyle },
-			noStyle
-		)
+			noStyle,
+		),
 	);
 
 	const finalClassName = $derived(
 		noStyle
 			? rootStyle.className || ''
-			: `${rootStyle.className || ''} ${visibility.isVisible ? styles.bannerVisible : styles.bannerHidden}`
+			: `${rootStyle.className || ''} ${visibility.isVisible ? styles.bannerVisible : styles.bannerHidden}`,
 	);
 
 	// Button helpers
 	function isPrimary(type: ConsentBannerButton): boolean {
-		return Array.isArray(primaryButton)
-			? primaryButton.includes(type)
-			: type === primaryButton;
+		return Array.isArray(primaryButton) ? primaryButton.includes(type) : type === primaryButton;
 	}
 
 	// Resolved texts
 	const resolvedTitle = $derived(title ?? translations.cookieBanner.title);
-	const resolvedDescription = $derived(
-		description ?? translations.cookieBanner.description
-	);
-	const resolvedRejectText = $derived(
-		rejectButtonText ?? translations.common.rejectAll
-	);
-	const resolvedAcceptText = $derived(
-		acceptButtonText ?? translations.common.acceptAll
-	);
-	const resolvedCustomizeText = $derived(
-		customizeButtonText ?? translations.common.customize
-	);
+	const resolvedDescription = $derived(description ?? translations.cookieBanner.description);
+	const resolvedRejectText = $derived(rejectButtonText ?? translations.common.rejectAll);
+	const resolvedAcceptText = $derived(acceptButtonText ?? translations.common.acceptAll);
+	const resolvedCustomizeText = $derived(customizeButtonText ?? translations.common.customize);
 </script>
 
 {#if visibility.isMounted && visibility.shouldRender}

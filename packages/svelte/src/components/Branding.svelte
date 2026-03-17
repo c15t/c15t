@@ -22,9 +22,7 @@
 	const brandingHref = $derived.by(() => {
 		const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
 		const refParam = `?ref=${encodeURIComponent(hostname)}`;
-		return branding === 'consent'
-			? `https://consent.io${refParam}`
-			: `https://c15t.com${refParam}`;
+		return branding === 'consent' ? `https://consent.io${refParam}` : `https://c15t.com${refParam}`;
 	});
 </script>
 

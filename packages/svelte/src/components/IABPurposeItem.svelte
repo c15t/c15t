@@ -36,15 +36,9 @@
 		onVendorClick: (vendorId: VendorId) => void;
 		isLocked?: boolean;
 		vendorLegitimateInterests?: Record<string, boolean>;
-		onVendorLegitimateInterestToggle?: (
-			vendorId: VendorId,
-			value: boolean
-		) => void;
+		onVendorLegitimateInterestToggle?: (vendorId: VendorId, value: boolean) => void;
 		purposeLegitimateInterests?: Record<number, boolean>;
-		onPurposeLegitimateInterestToggle?: (
-			purposeId: number,
-			value: boolean
-		) => void;
+		onPurposeLegitimateInterestToggle?: (purposeId: number, value: boolean) => void;
 		noStyle?: boolean;
 		iabT: IABTranslations;
 	} = $props();
@@ -53,12 +47,8 @@
 	let showExamples = $state(false);
 	let showVendors = $state(false);
 
-	const legIntVendors = $derived(
-		purpose.vendors.filter((v) => v.usesLegitimateInterest)
-	);
-	const consentVendors = $derived(
-		purpose.vendors.filter((v) => !v.usesLegitimateInterest)
-	);
+	const legIntVendors = $derived(purpose.vendors.filter((v) => v.usesLegitimateInterest));
+	const consentVendors = $derived(purpose.vendors.filter((v) => !v.usesLegitimateInterest));
 
 	function getVendorConsent(vendorId: VendorId): boolean {
 		return vendorConsents[String(vendorId)] ?? false;
@@ -69,9 +59,7 @@
 	}
 
 	// Check if purpose-level LI is allowed (not objected)
-	const isPurposeLIAllowed = $derived(
-		purposeLegitimateInterests[purpose.id] ?? true
-	);
+	const isPurposeLIAllowed = $derived(purposeLegitimateInterests[purpose.id] ?? true);
 
 	// Handler for purpose-level LI objection
 	function handlePurposeLIObjection() {
@@ -85,18 +73,10 @@
 	}
 
 	// Separate IAB and custom vendors
-	const iabConsentVendors = $derived(
-		consentVendors.filter((v) => !v.isCustom)
-	);
-	const customConsentVendors = $derived(
-		consentVendors.filter((v) => v.isCustom)
-	);
-	const iabLegIntVendors = $derived(
-		legIntVendors.filter((v) => !v.isCustom)
-	);
-	const customLegIntVendors = $derived(
-		legIntVendors.filter((v) => v.isCustom)
-	);
+	const iabConsentVendors = $derived(consentVendors.filter((v) => !v.isCustom));
+	const customConsentVendors = $derived(consentVendors.filter((v) => v.isCustom));
+	const iabLegIntVendors = $derived(legIntVendors.filter((v) => !v.isCustom));
+	const customLegIntVendors = $derived(legIntVendors.filter((v) => v.isCustom));
 
 	// Handle purpose toggle - also toggles all consent-based vendors
 	function handlePurposeToggle(value: boolean) {
@@ -113,9 +93,7 @@
 	data-testid={`purpose-item-${purpose.id}`}
 >
 	<div class={noStyle ? '' : styles.purposeHeader || ''}>
-		<Collapsible.Trigger
-			class={noStyle ? '' : styles.purposeTrigger || ''}
-		>
+		<Collapsible.Trigger class={noStyle ? '' : styles.purposeTrigger || ''}>
 			<Collapsible.Indicator class={noStyle ? '' : styles.purposeArrow || ''}>
 				<ChevronRightIcon aria-hidden={true} />
 			</Collapsible.Indicator>
@@ -129,15 +107,18 @@
 				<p class={noStyle ? '' : styles.purposeMeta || ''}>
 					{iabT.preferenceCenter.purposeItem.partners.replace(
 						'{count}',
-						String(purpose.vendors.length)
+						String(purpose.vendors.length),
 					)}
 				</p>
 				{#if legIntVendors.length > 0}
 					<div class={noStyle ? '' : styles.legitimateInterestBadge || ''}>
-						<LegitimateInterestIcon class={noStyle ? '' : styles.legitimateInterestIcon || ''} aria-hidden={true} />
+						<LegitimateInterestIcon
+							class={noStyle ? '' : styles.legitimateInterestIcon || ''}
+							aria-hidden={true}
+						/>
 						{iabT.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
 							'{count}',
-							String(legIntVendors.length)
+							String(legIntVendors.length),
 						)}
 					</div>
 				{/if}
@@ -166,11 +147,14 @@
 			<div class={noStyle ? '' : styles.purposeLISection || ''}>
 				<div class={noStyle ? '' : styles.purposeLISectionHeader || ''}>
 					<div class={noStyle ? '' : styles.purposeLIInfo || ''}>
-						<LegitimateInterestIcon class={noStyle ? '' : styles.legitimateInterestIcon || ''} aria-hidden={true} />
+						<LegitimateInterestIcon
+							class={noStyle ? '' : styles.legitimateInterestIcon || ''}
+							aria-hidden={true}
+						/>
 						<span>
 							{iabT.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
 								'{count}',
-								String(legIntVendors.length)
+								String(legIntVendors.length),
 							)}
 						</span>
 					</div>
@@ -196,10 +180,13 @@
 		<!-- Legacy badge when no toggle handler -->
 		{#if legIntVendors.length > 0 && !onPurposeLegitimateInterestToggle}
 			<div class={noStyle ? '' : styles.legitimateInterestBadge || ''}>
-				<LegitimateInterestIcon class={noStyle ? '' : styles.legitimateInterestIcon || ''} aria-hidden={true} />
+				<LegitimateInterestIcon
+					class={noStyle ? '' : styles.legitimateInterestIcon || ''}
+					aria-hidden={true}
+				/>
 				{iabT.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
 					'{count}',
-					String(legIntVendors.length)
+					String(legIntVendors.length),
 				)}
 			</div>
 		{/if}
@@ -207,14 +194,11 @@
 		<!-- Illustrations / Examples -->
 		{#if purpose.illustrations && purpose.illustrations.length > 0}
 			<Collapsible.Root bind:open={showExamples}>
-				<Collapsible.Trigger
-					class={noStyle ? '' : styles.examplesToggle || ''}
-				>
+				<Collapsible.Trigger class={noStyle ? '' : styles.examplesToggle || ''}>
 					<Collapsible.Indicator>
 						<ChevronRightIcon width="12" height="12" aria-hidden={true} />
 					</Collapsible.Indicator>
-					{iabT.preferenceCenter.purposeItem.examples} ({purpose
-						.illustrations.length})
+					{iabT.preferenceCenter.purposeItem.examples} ({purpose.illustrations.length})
 				</Collapsible.Trigger>
 				<Collapsible.Content>
 					<ul class={noStyle ? '' : styles.examplesList || ''}>
@@ -228,14 +212,11 @@
 
 		<!-- Vendor list within purpose -->
 		<Collapsible.Root bind:open={showVendors}>
-			<Collapsible.Trigger
-				class={noStyle ? '' : styles.vendorsToggle || ''}
-			>
+			<Collapsible.Trigger class={noStyle ? '' : styles.vendorsToggle || ''}>
 				<Collapsible.Indicator>
 					<ChevronRightIcon width="12" height="12" aria-hidden={true} />
 				</Collapsible.Indicator>
-				{iabT.preferenceCenter.purposeItem.partnersUsingPurpose} ({purpose
-					.vendors.length})
+				{iabT.preferenceCenter.purposeItem.partnersUsingPurpose} ({purpose.vendors.length})
 			</Collapsible.Trigger>
 			<Collapsible.Content>
 				<div class={noStyle ? '' : styles.vendorSection || ''}>
@@ -289,7 +270,10 @@
 								? ''
 								: `${styles.vendorSectionTitle || ''} ${styles.vendorSectionTitleLI || ''}`}
 						>
-							<LegitimateInterestIcon class={noStyle ? '' : styles.legitimateInterestIcon || ''} aria-hidden={true} />
+							<LegitimateInterestIcon
+								class={noStyle ? '' : styles.legitimateInterestIcon || ''}
+								aria-hidden={true}
+							/>
 							{iabT.preferenceCenter.purposeItem.legitimateInterest} ({iabLegIntVendors.length})
 						</h5>
 						<p class={noStyle ? '' : styles.liExplanation || ''}>
@@ -298,13 +282,8 @@
 						{#each iabLegIntVendors as vendor (vendor.id)}
 							{@const isConsented = getVendorConsent(vendor.id)}
 							{@const isLIAllowed = getVendorLegitimateInterest(vendor.id)}
-							{@const showLIControl =
-								!!onVendorLegitimateInterestToggle}
-							<div
-								class={noStyle
-									? ''
-									: `${styles.vendorRow || ''} ${styles.vendorRowLI || ''}`}
-							>
+							{@const showLIControl = !!onVendorLegitimateInterestToggle}
+							<div class={noStyle ? '' : `${styles.vendorRow || ''} ${styles.vendorRowLI || ''}`}>
 								<div class={noStyle ? '' : styles.vendorInfo || ''}>
 									<button
 										type="button"
@@ -331,11 +310,7 @@
 								{#if showLIControl}
 									<button
 										type="button"
-										onclick={() =>
-											onVendorLegitimateInterestToggle?.(
-												vendor.id,
-												!isLIAllowed
-											)}
+										onclick={() => onVendorLegitimateInterestToggle?.(vendor.id, !isLIAllowed)}
 										class={noStyle
 											? ''
 											: `${styles.objectButton || ''} ${!isLIAllowed ? styles.objectButtonActive || '' : ''}`}
@@ -363,17 +338,12 @@
 
 					<!-- Custom Vendors -->
 					{#if customConsentVendors.length > 0 || customLegIntVendors.length > 0}
-						<div
-							class={noStyle
-								? ''
-								: styles.customVendorPurposeSection || ''}
-						>
-							<h5
-								class={noStyle
-									? ''
-									: styles.vendorSectionTitleCustom || ''}
-							>
-								<GlobeIcon class={noStyle ? '' : styles.legitimateInterestIcon || ''} aria-hidden={true} />
+						<div class={noStyle ? '' : styles.customVendorPurposeSection || ''}>
+							<h5 class={noStyle ? '' : styles.vendorSectionTitleCustom || ''}>
+								<GlobeIcon
+									class={noStyle ? '' : styles.legitimateInterestIcon || ''}
+									aria-hidden={true}
+								/>
 								{iabT.preferenceCenter.vendorList.customVendorsHeading} ({customConsentVendors.length +
 									customLegIntVendors.length})
 							</h5>
@@ -387,7 +357,10 @@
 											class={noStyle ? '' : styles.vendorName || ''}
 										>
 											<span>{vendor.name}</span>
-											<GlobeIcon class={noStyle ? '' : styles.customVendorIcon || ''} aria-label={iabT.common.customPartner} />
+											<GlobeIcon
+												class={noStyle ? '' : styles.customVendorIcon || ''}
+												aria-label={iabT.common.customPartner}
+											/>
 										</button>
 									</div>
 									<Switch.Root
@@ -404,16 +377,9 @@
 							{/each}
 							{#each customLegIntVendors as vendor (vendor.id)}
 								{@const isConsented = getVendorConsent(vendor.id)}
-								{@const isLIAllowed = getVendorLegitimateInterest(
-									vendor.id
-								)}
-								{@const showLIControl =
-									!!onVendorLegitimateInterestToggle}
-								<div
-									class={noStyle
-										? ''
-										: `${styles.vendorRow || ''} ${styles.vendorRowLI || ''}`}
-								>
+								{@const isLIAllowed = getVendorLegitimateInterest(vendor.id)}
+								{@const showLIControl = !!onVendorLegitimateInterestToggle}
+								<div class={noStyle ? '' : `${styles.vendorRow || ''} ${styles.vendorRowLI || ''}`}>
 									<div class={noStyle ? '' : styles.vendorInfo || ''}>
 										<button
 											type="button"
@@ -421,17 +387,16 @@
 											class={noStyle ? '' : styles.vendorName || ''}
 										>
 											<span>{vendor.name}</span>
-											<GlobeIcon class={noStyle ? '' : styles.customVendorIcon || ''} aria-label={iabT.common.customPartner} />
+											<GlobeIcon
+												class={noStyle ? '' : styles.customVendorIcon || ''}
+												aria-label={iabT.common.customPartner}
+											/>
 										</button>
 									</div>
 									{#if showLIControl}
 										<button
 											type="button"
-											onclick={() =>
-												onVendorLegitimateInterestToggle?.(
-													vendor.id,
-													!isLIAllowed
-												)}
+											onclick={() => onVendorLegitimateInterestToggle?.(vendor.id, !isLIAllowed)}
 											class={noStyle
 												? ''
 												: `${styles.objectButton || ''} ${!isLIAllowed ? styles.objectButtonActive || '' : ''}`}
@@ -448,9 +413,7 @@
 											class={noStyle ? '' : swSmall.root()}
 										>
 											<Switch.Control class={noStyle ? '' : swSmall.track()}>
-												<Switch.Thumb
-													class={noStyle ? '' : swSmall.thumb()}
-												/>
+												<Switch.Thumb class={noStyle ? '' : swSmall.thumb()} />
 											</Switch.Control>
 											<Switch.HiddenInput />
 										</Switch.Root>

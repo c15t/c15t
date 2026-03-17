@@ -46,20 +46,13 @@
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 
 	const defaultThemeKey = $derived(
-		variant === 'primary' ? ('buttonPrimary' as const) : ('buttonSecondary' as const)
+		variant === 'primary' ? ('buttonPrimary' as const) : ('buttonSecondary' as const),
 	);
 
-	const variantClasses = $derived(
-		noStyle ? '' : buttonVariants({ variant, mode, size }).root()
-	);
+	const variantClasses = $derived(noStyle ? '' : buttonVariants({ variant, mode, size }).root());
 
 	const buttonStyle = $derived(
-		resolveComponentStyles(
-			defaultThemeKey,
-			theme.theme,
-			{ className, noStyle },
-			noStyle
-		)
+		resolveComponentStyles(defaultThemeKey, theme.theme, { className, noStyle }, noStyle),
 	);
 
 	function handleClick(e: MouseEvent) {
