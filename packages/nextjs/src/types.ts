@@ -1,5 +1,6 @@
 import type { ConsentManagerProviderProps } from '@c15t/react';
 import type { FetchSSRDataOptionsBase } from '@c15t/react/server';
+import type { Overrides } from 'c15t';
 
 export type InitialDataPromise = NonNullable<
 	ConsentManagerProviderProps['options']['store']
@@ -13,6 +14,35 @@ export interface NextCacheOptions {
 	 * @default 1
 	 */
 	revalidateSeconds?: number | false;
+}
+
+export interface BrowserInitialDataOptions {
+	/**
+	 * Backend URL used for fetching `/init`.
+	 * Accepts absolute URLs or same-origin paths like `/api/c15t`.
+	 */
+	backendURL: string;
+
+	/**
+	 * Optional request-level overrides for prefetching init data.
+	 */
+	overrides?: Pick<Overrides, 'country' | 'region' | 'language'>;
+
+	/**
+	 * Fetch credentials mode.
+	 *
+	 * @default 'include'
+	 */
+	credentials?: RequestCredentials;
+}
+
+export interface PrefetchC15TProps extends BrowserInitialDataOptions {
+	/**
+	 * Optional script element ID.
+	 *
+	 * @default 'c15t-initial-data-prefetch'
+	 */
+	id?: string;
 }
 
 /**
