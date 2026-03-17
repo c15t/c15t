@@ -13,7 +13,7 @@ import {
 } from '~/handlers/init/resolve-init';
 import { validateMessages } from '~/handlers/init/translations';
 import { isOriginTrusted } from '~/middleware/cors/is-origin-trusted';
-import type { C15TEdgeInitOptions } from './types';
+import type { C15TEdgeOptions } from './types';
 
 export type { InitPayload };
 
@@ -27,9 +27,9 @@ export type { InitPayload };
  * @example
  * ```ts
  * // middleware.ts (Vercel Edge)
- * import { createEdgeInitHandler } from '@c15t/backend/edge';
+ * import { c15tEdgeInit } from '@c15t/backend/edge';
  *
- * const initHandler = createEdgeInitHandler({
+ * const initHandler = c15tEdgeInit({
  *   trustedOrigins: ['https://myapp.com'],
  *   policyPacks: [
  *     { id: 'eu', match: { countries: ['DE', 'FR'] }, consent: { model: 'opt-in' }, ui: { mode: 'banner' } },
@@ -45,8 +45,8 @@ export type { InitPayload };
  * }
  * ```
  */
-export function createEdgeInitHandler(
-	options: C15TEdgeInitOptions
+export function c15tEdgeInit(
+	options: C15TEdgeOptions
 ): (request: Request) => Promise<Response> {
 	// Construction-time validation (same checks the full init performs)
 	const logger: Logger = createLogger(options.logger);

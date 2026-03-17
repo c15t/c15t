@@ -1,3 +1,3 @@
 export type { InitPayload } from './init-handler';
-export { createEdgeInitHandler } from './init-handler';
-export type { C15TEdgeInitOptions } from './types';
+export { c15tEdgeInit } from './init-handler';
+export type { C15TEdgeOptions } from './types';

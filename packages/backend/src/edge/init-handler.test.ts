@@ -1,7 +1,7 @@
 import type { GlobalVendorList } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createEdgeInitHandler } from './init-handler';
-import type { C15TEdgeInitOptions } from './types';
+import { c15tEdgeInit } from './init-handler';
+import type { C15TEdgeOptions } from './types';
 
 const { mockGVLGet, mockResolveInitPayload } = vi.hoisted(() => {
 	return {
@@ -45,7 +45,7 @@ const mockGVL: GlobalVendorList = {
 	stacks: {},
 };
 
-const baseOptions: C15TEdgeInitOptions = {
+const baseOptions: C15TEdgeOptions = {
 	trustedOrigins: ['https://myapp.com'],
 	policyPacks: [
 		{
@@ -61,7 +61,7 @@ function makeRequest(path: string, init?: RequestInit): Request {
 	return new Request(`http://localhost${path}`, init);
 }
 
-describe('createEdgeInitHandler', () => {
+describe('c15tEdgeInit', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		mockGVLGet.mockResolvedValue(mockGVL);
@@ -72,7 +72,7 @@ describe('createEdgeInitHandler', () => {
 	});
 
 	it('works without a database adapter', async () => {
-		const handler = createEdgeInitHandler(baseOptions);
+		const handler = c15tEdgeInit(baseOptions);
 		const response = await handler(
 			makeRequest('/', {
 				headers: {
@@ -90,7 +90,7 @@ describe('createEdgeInitHandler', () => {
 	});
 
 	it('returns 204 for CORS preflight', async () => {
-		const handler = createEdgeInitHandler(baseOptions);
+		const handler = c15tEdgeInit(baseOptions);
 		const response = await handler(
 			makeRequest('/', {
 				method: 'OPTIONS',
@@ -110,7 +110,7 @@ describe('createEdgeInitHandler', () => {
 	});
 
 	it('sets CORS headers for trusted origin', async () => {
-		const handler = createEdgeInitHandler(baseOptions);
+		const handler = c15tEdgeInit(baseOptions);
 		const response = await handler(
 			makeRequest('/', {
 				headers: {
@@ -129,7 +129,7 @@ describe('createEdgeInitHandler', () => {
 	});
 
 	it('omits CORS headers for untrusted origin', async () => {
-		const handler = createEdgeInitHandler(baseOptions);
+		const handler = c15tEdgeInit(baseOptions);
 		const response = await handler(
 			makeRequest('/', {
 				headers: {
@@ -145,7 +145,7 @@ describe('createEdgeInitHandler', () => {
 	});
 
 	it('omits CORS headers when no origin header is present', async () => {
-		const handler = createEdgeInitHandler(baseOptions);
+		const handler = c15tEdgeInit(baseOptions);
 		const response = await handler(
 			makeRequest('/', {
 				headers: {
@@ -164,7 +164,7 @@ describe('createEdgeInitHandler', () => {
 			throw new Error('Something broke');
 		});
 
-		const handler = createEdgeInitHandler(baseOptions);
+		const handler = c15tEdgeInit(baseOptions);
 		const response = await handler(
 			makeRequest('/', {
 				headers: {
@@ -182,7 +182,7 @@ describe('createEdgeInitHandler', () => {
 	});
 
 	it('returns no-banner policy for unmatched regions', async () => {
-		const handler = createEdgeInitHandler(baseOptions);
+		const handler = c15tEdgeInit(baseOptions);
 		const response = await handler(
 			makeRequest('/', {
 				headers: {
@@ -199,7 +199,7 @@ describe('createEdgeInitHandler', () => {
 	});
 
 	it('returns content-type application/json', async () => {
-		const handler = createEdgeInitHandler(baseOptions);
+		const handler = c15tEdgeInit(baseOptions);
 		const response = await handler(
 			makeRequest('/', {
 				headers: {

@@ -12,7 +12,7 @@ import type { C15TOptions } from '~/types';
  * This is a strict subset of {@link C15TOptions} containing only the fields
  * needed for consent policy resolution — no database adapter required.
  */
-export type C15TEdgeInitOptions = Pick<
+export type C15TEdgeOptions = Pick<
 	C15TOptions,
 	| 'appName'
 	| 'tenantId'

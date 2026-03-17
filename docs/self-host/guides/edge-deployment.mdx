@@ -7,7 +7,7 @@ The `/init` endpoint determines consent policy from geo headers, resolves transl
 
 ```
 Standard:  Browser → Origin (single region)  → c15tInstance(/init) → Response
-Edge:      Browser → Edge   (nearest PoP)    → edgeInitHandler     → Response
+Edge:      Browser → Edge   (nearest PoP)    → c15tEdgeInit        → Response
 ```
 
 ## When to use this
@@ -27,7 +27,7 @@ You do **not** need this if:
 Keep your policy configuration in a shared file so both the edge handler and origin handler stay in sync:
 
 ```ts title="lib/consent-config.ts"
-import type { C15TEdgeInitOptions } from '@c15t/backend/edge';
+import type { C15TEdgeOptions } from '@c15t/backend/edge';
 
 export const consentConfig = {
   trustedOrigins: ['https://myapp.com'],
@@ -48,7 +48,7 @@ export const consentConfig = {
   policySnapshot: {
     signingKey: process.env.SNAPSHOT_KEY!,
   },
-} satisfies C15TEdgeInitOptions;
+} satisfies C15TEdgeOptions;
 ```
 
 ### 2. Create edge middleware
@@ -58,10 +58,10 @@ export const consentConfig = {
 <Tab value="Vercel Middleware">
 
 ```ts title="middleware.ts"
-import { createEdgeInitHandler } from '@c15t/backend/edge';
+import { c15tEdgeInit } from '@c15t/backend/edge';
 import { consentConfig } from './lib/consent-config';
 
-const initHandler = createEdgeInitHandler(consentConfig);
+const initHandler = c15tEdgeInit(consentConfig);
 
 export async function middleware(request: Request) {
   const url = new URL(request.url);
@@ -80,10 +80,10 @@ export const config = {
 <Tab value="Cloudflare Workers">
 
 ```ts title="worker.ts"
-import { createEdgeInitHandler } from '@c15t/backend/edge';
+import { c15tEdgeInit } from '@c15t/backend/edge';
 import { consentConfig } from './lib/consent-config';
 
-const initHandler = createEdgeInitHandler(consentConfig);
+const initHandler = c15tEdgeInit(consentConfig);
 
 export default {
   async fetch(request: Request) {
@@ -102,10 +102,10 @@ export default {
 <Tab value="Deno Deploy">
 
 ```ts title="main.ts"
-import { createEdgeInitHandler } from '@c15t/backend/edge';
+import { c15tEdgeInit } from '@c15t/backend/edge';
 import { consentConfig } from './lib/consent-config.ts';
 
-const initHandler = createEdgeInitHandler(consentConfig);
+const initHandler = c15tEdgeInit(consentConfig);
 
 Deno.serve(async (request) => {
   const url = new URL(request.url);
@@ -138,7 +138,7 @@ export const { GET, POST } = c15t;
 
 ## Configuration
 
-`createEdgeInitHandler` accepts `C15TEdgeInitOptions` — the same fields as `c15tInstance` minus the database-related options (`adapter`, `tablePrefix`, `basePath`, `openapi`, `ipAddress`, `apiKeys`, `background`).
+`c15tEdgeInit` accepts `C15TEdgeOptions` — the same fields as `c15tInstance` minus the database-related options (`adapter`, `tablePrefix`, `basePath`, `openapi`, `ipAddress`, `apiKeys`, `background`).
 
 | Option | Required | Description |
 |--------|----------|-------------|
