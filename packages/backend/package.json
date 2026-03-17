@@ -92,6 +92,11 @@
 			"types": "./dist/cache/index.d.ts",
 			"import": "./dist/cache.js",
 			"require": "./dist/cache.cjs"
+		},
+		"./edge": {
+			"types": "./dist/edge/index.d.ts",
+			"import": "./dist/edge.js",
+			"require": "./dist/edge.cjs"
 		}
 	},
 	"main": "./dist/core.cjs",

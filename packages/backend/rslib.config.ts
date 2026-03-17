@@ -60,6 +60,7 @@ export default defineConfig({
 			'define-config': ['./src/define-config.ts'],
 			'types/index': ['./src/types/index.ts'],
 			cache: ['./src/cache/index.ts'],
+			edge: ['./src/edge/index.ts'],
 		},
 	},
 	lib: [
