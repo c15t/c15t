@@ -51,11 +51,21 @@ export function c15tEdgeInit(
 	// Construction-time validation (same checks the full init performs)
 	const logger: Logger = createLogger(options.logger);
 
-	validateMessages({
+	const validation = validateMessages({
 		customTranslations: options.customTranslations,
 		i18n: options.i18n,
 		policies: options.policyPacks,
 	});
+
+	if (validation.errors.length > 0) {
+		throw new Error(
+			`Edge init validation failed: ${validation.errors.join(', ')}`
+		);
+	}
+
+	for (const warning of validation.warnings) {
+		logger.warn(warning);
+	}
 
 	if (options.policyPacks) {
 		inspectPolicies(options.policyPacks, {
