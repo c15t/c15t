@@ -6,7 +6,16 @@ const HOST = '127.0.0.1';
 const PORT = 4301;
 const BASE_URL = `http://${HOST}:${PORT}`;
 const BENCHMARK_INIT_REQUEST_PREFIX = `${BASE_URL}/api/pigeon/init`;
-const ITERATIONS = Number(process.env.BENCH_ITERATIONS ?? 5);
+const ITERATIONS = (() => {
+	const raw = process.env.BENCH_ITERATIONS ?? '5';
+	const parsed = Number(raw);
+	if (!Number.isFinite(parsed) || parsed <= 0 || !Number.isInteger(parsed)) {
+		throw new Error(
+			`Invalid BENCH_ITERATIONS: ${raw}. Expected a positive integer.`
+		);
+	}
+	return parsed;
+})();
 const STARTUP_TIMEOUT_MS = 120_000;
 const NEXT_MODE = process.env.BENCH_NEXT_MODE ?? 'dev';
 const BENCH_HEADED =
