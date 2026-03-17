@@ -10,15 +10,16 @@
 
 export * from '@c15t/react';
 export {
-	C15tPrefetch,
+	buildPrefetchScript,
 	ensurePrefetchedInitialData,
 	getPrefetchedInitialData,
-} from './libs/browser-initial-data';
+	type PrefetchOptions,
+} from 'c15t';
+export { C15tPrefetch } from './libs/browser-initial-data';
 export { fetchInitialData } from './libs/initial-data';
 export type {
 	C15tPrefetchProps,
 	ConsentManagerProps,
 	FetchInitialDataOptions,
 	InitialDataPromise,
-	PrefetchOptions,
 } from './types';
