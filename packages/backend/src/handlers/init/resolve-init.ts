@@ -7,8 +7,8 @@
 import type { Logger } from '@c15t/logger';
 import type { ResolvedPolicy } from '@c15t/schema/types';
 import { createGVLResolver } from '~/cache/gvl-resolver';
+import type { C15TEdgeOptions } from '~/edge/types';
 import { createPolicySnapshotToken } from '~/handlers/policy/snapshot';
-import type { C15TOptions } from '~/types';
 import { getMetrics } from '~/utils/metrics';
 import { getJurisdiction, getLocation } from './geo';
 import { resolvePolicyDecision } from './policy';
@@ -16,23 +16,9 @@ import { getTranslationsData } from './translations';
 
 /**
  * Subset of C15TOptions needed by the init resolver.
- * This is the same set used by the edge handler.
+ * Derived from {@link C15TEdgeOptions} minus `logger` (passed separately).
  */
-export type InitResolverOptions = Pick<
-	C15TOptions,
-	| 'appName'
-	| 'tenantId'
-	| 'trustedOrigins'
-	| 'disableGeoLocation'
-	| 'customTranslations'
-	| 'i18n'
-	| 'policyPacks'
-	| 'branding'
-	| 'iab'
-	| 'cache'
-	| 'policySnapshot'
-	| 'telemetry'
->;
+export type InitResolverOptions = Omit<C15TEdgeOptions, 'logger'>;
 
 /** The JSON-serializable payload returned by /init. */
 export interface InitPayload {
