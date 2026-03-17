@@ -5,11 +5,7 @@
 	import { focusTrap } from '../actions/focus-trap';
 	import { portal } from '../actions/portal';
 	import { scrollLock } from '../actions/scroll-lock';
-	import {
-		getConsentContext,
-		getThemeContext,
-		setTrackingContext,
-	} from '../context.svelte';
+	import { getConsentContext, getThemeContext, setTrackingContext } from '../context.svelte';
 	import { getIABTranslations } from '../iab-translations';
 	import { getIABBannerDisplayItems } from '../iab-types';
 	import { useBannerVisibility } from '../use-banner-visibility.svelte';
@@ -45,9 +41,7 @@
 	});
 
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
-	const disableAnimation = $derived(
-		localDisableAnimation ?? theme.disableAnimation ?? false
-	);
+	const disableAnimation = $derived(localDisableAnimation ?? theme.disableAnimation ?? false);
 	const shouldTrapFocus = $derived(localTrapFocus ?? theme.trapFocus ?? true);
 	const shouldScrollLock = $derived(localScrollLock ?? theme.scrollLock ?? false);
 
@@ -57,19 +51,19 @@
 	// Translations
 	const iabT = $derived(getIABTranslations(consent.state.translationConfig));
 	const textDirection = $derived(
-		getTextDirection(consent.state.translationConfig?.defaultLanguage)
+		getTextDirection(consent.state.translationConfig?.defaultLanguage),
 	);
 
 	// Visibility logic
 	const shouldShowBanner = $derived(
 		consent.state.activeUI === 'banner' &&
 			models.includes(consent.state.model) &&
-			iabState?.config.enabled === true
+			iabState?.config.enabled === true,
 	);
 
 	const visibility = useBannerVisibility(
 		() => shouldShowBanner,
-		() => disableAnimation
+		() => disableAnimation,
 	);
 
 	// Vendor count from GVL + custom vendors
@@ -129,22 +123,22 @@
 				className,
 				noStyle,
 			},
-			noStyle
-		)
+			noStyle,
+		),
 	);
 
 	const finalClassName = $derived(
 		noStyle
 			? rootStyle.className || ''
-			: `${rootStyle.className || ''} ${visibility.isVisible ? styles.bannerVisible : styles.bannerHidden}`
+			: `${rootStyle.className || ''} ${visibility.isVisible ? styles.bannerVisible : styles.bannerHidden}`,
 	);
 
 	// Resolved texts
 	const descriptionText = $derived(
-		iabT.banner.description.replace('{partnerCount}', String(vendorCount))
+		iabT.banner.description.replace('{partnerCount}', String(vendorCount)),
 	);
 	const partnersLinkText = $derived(
-		iabT.banner.partnersLink.replace('{count}', String(vendorCount))
+		iabT.banner.partnersLink.replace('{count}', String(vendorCount)),
 	);
 	const scopeNotice = $derived(iabT.banner.scopeServiceSpecific);
 
@@ -171,10 +165,7 @@
 				aria-label={iabT.banner.title}
 			>
 				<!-- Header -->
-				<div
-					class={noStyle ? '' : styles.header}
-					data-testid="iab-consent-banner-header"
-				>
+				<div class={noStyle ? '' : styles.header} data-testid="iab-consent-banner-header">
 					<h2 class={noStyle ? '' : styles.title}>{iabT.banner.title}</h2>
 					<p class={noStyle ? '' : styles.description}>
 						{descriptionParts[0]}<button
@@ -191,10 +182,7 @@
 						{/each}
 						{#if displayItems.remainingCount > 0}
 							<li class={noStyle ? '' : styles.purposeMore}>
-								{iabT.banner.andMore.replace(
-									'{count}',
-									String(displayItems.remainingCount)
-								)}
+								{iabT.banner.andMore.replace('{count}', String(displayItems.remainingCount))}
 							</li>
 						{/if}
 					</ul>
@@ -205,10 +193,7 @@
 				</div>
 
 				<!-- Footer with buttons -->
-				<div
-					class={noStyle ? '' : styles.footer}
-					data-testid="iab-consent-banner-footer"
-				>
+				<div class={noStyle ? '' : styles.footer} data-testid="iab-consent-banner-footer">
 					<div class={noStyle ? '' : styles.footerButtonGroup}>
 						<button
 							type="button"

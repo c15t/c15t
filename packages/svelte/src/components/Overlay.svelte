@@ -17,22 +17,17 @@
 	const styles = $derived(variant === 'dialog' ? dialogStyles : bannerStyles);
 
 	const themeKey = $derived(
-		variant === 'dialog' ? 'consentDialogOverlay' as const : 'consentBannerOverlay' as const
+		variant === 'dialog' ? ('consentDialogOverlay' as const) : ('consentBannerOverlay' as const),
 	);
 
 	const themeStyle = $derived(
-		resolveComponentStyles(
-			themeKey,
-			theme.theme,
-			{ baseClassName: styles.overlay },
-			theme.noStyle
-		)
+		resolveComponentStyles(themeKey, theme.theme, { baseClassName: styles.overlay }, theme.noStyle),
 	);
 
 	const className = $derived(
 		theme.noStyle
 			? themeStyle.className || ''
-			: `${themeStyle.className || ''} ${visible ? styles.overlayVisible : styles.overlayHidden}`
+			: `${themeStyle.className || ''} ${visible ? styles.overlayVisible : styles.overlayHidden}`,
 	);
 </script>
 

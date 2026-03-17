@@ -23,7 +23,7 @@
 	const noStyle = $derived(theme.noStyle ?? false);
 
 	const translations = $derived(
-		resolveTranslations(consent.state.translationConfig, defaultTranslationConfig)
+		resolveTranslations(consent.state.translationConfig, defaultTranslationConfig),
 	);
 
 	const filteredLinks = $derived.by(() => {
@@ -33,7 +33,7 @@
 		const allLinks = consent.state.legalLinks;
 		if (!allLinks) return null;
 		const entries = Object.entries(allLinks).filter(([key]) =>
-			links.includes(key as keyof LegalLinksType)
+			links.includes(key as keyof LegalLinksType),
 		);
 		return entries.length > 0 ? (Object.fromEntries(entries) as LegalLinksType) : null;
 	});
@@ -43,12 +43,17 @@
 			themeKey,
 			theme.theme,
 			{ baseClassName: legalLinkStyles.legalLink },
-			noStyle
-		)
+			noStyle,
+		),
 	);
 
 	const linkEntries = $derived(
-		filteredLinks ? (Object.entries(filteredLinks) as [keyof LegalLinksType, LegalLinksType[keyof LegalLinksType]][]) : []
+		filteredLinks
+			? (Object.entries(filteredLinks) as [
+					keyof LegalLinksType,
+					LegalLinksType[keyof LegalLinksType],
+				][])
+			: [],
 	);
 </script>
 
@@ -65,7 +70,9 @@
 						class={linkStyle.className || ''}
 						data-testid={testIdPrefix ? `${testIdPrefix}-${type}` : undefined}
 					>
-						{link.label ?? (translations.legalLinks as Record<string, string>)?.[type as string] ?? type}{index < linkEntries.length - 1 ? ',' : ''}
+						{link.label ??
+							(translations.legalLinks as Record<string, string>)?.[type as string] ??
+							type}{index < linkEntries.length - 1 ? ',' : ''}
 					</a>
 					{#if index < linkEntries.length - 1}&nbsp;{/if}
 				</span>

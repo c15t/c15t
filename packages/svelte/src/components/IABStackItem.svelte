@@ -31,27 +31,17 @@
 		onVendorToggle: (vendorId: VendorId, value: boolean) => void;
 		onVendorClick: (vendorId: VendorId) => void;
 		vendorLegitimateInterests?: Record<string, boolean>;
-		onVendorLegitimateInterestToggle?: (
-			vendorId: VendorId,
-			value: boolean
-		) => void;
+		onVendorLegitimateInterestToggle?: (vendorId: VendorId, value: boolean) => void;
 		purposeLegitimateInterests?: Record<number, boolean>;
-		onPurposeLegitimateInterestToggle?: (
-			purposeId: number,
-			value: boolean
-		) => void;
+		onPurposeLegitimateInterestToggle?: (purposeId: number, value: boolean) => void;
 		noStyle?: boolean;
 		iabT: IABTranslations;
 	} = $props();
 
 	let isExpanded = $state(false);
 
-	const allEnabled = $derived(
-		stack.purposes.every((p) => consents[p.id] ?? false)
-	);
-	const someEnabled = $derived(
-		stack.purposes.some((p) => consents[p.id] ?? false) && !allEnabled
-	);
+	const allEnabled = $derived(stack.purposes.every((p) => consents[p.id] ?? false));
+	const someEnabled = $derived(stack.purposes.some((p) => consents[p.id] ?? false) && !allEnabled);
 
 	function handleStackToggle(value: boolean) {
 		for (const purpose of stack.purposes) {
@@ -65,7 +55,7 @@
 	}
 
 	const totalVendors = $derived(
-		new Set(stack.purposes.flatMap((p) => p.vendors.map((v) => v.id))).size
+		new Set(stack.purposes.flatMap((p) => p.vendors.map((v) => v.id))).size,
 	);
 </script>
 
@@ -75,9 +65,7 @@
 	data-testid={`stack-item-${stack.id}`}
 >
 	<div class={noStyle ? '' : styles.stackHeader || ''}>
-		<Collapsible.Trigger
-			class={noStyle ? '' : styles.stackTrigger || ''}
-		>
+		<Collapsible.Trigger class={noStyle ? '' : styles.stackTrigger || ''}>
 			<Collapsible.Indicator class={noStyle ? '' : styles.purposeArrow || ''}>
 				<ChevronRightIcon aria-hidden={true} />
 			</Collapsible.Indicator>
@@ -86,7 +74,9 @@
 				{#if !isExpanded}
 					<p class={noStyle ? '' : styles.stackMeta || ''}>
 						{totalVendors}
-						{totalVendors === 1 ? iabT.preferenceCenter.vendorList.partnerSingular : iabT.preferenceCenter.vendorList.partnerPlural}
+						{totalVendors === 1
+							? iabT.preferenceCenter.vendorList.partnerSingular
+							: iabT.preferenceCenter.vendorList.partnerPlural}
 					</p>
 				{/if}
 			</div>
@@ -94,10 +84,7 @@
 		<div class={noStyle ? '' : styles.stackControls || ''}>
 			{#if someEnabled}
 				<span class="sr-only">Partially enabled</span>
-				<div
-					class={noStyle ? '' : styles.partialIndicator || ''}
-					aria-hidden={true}
-				></div>
+				<div class={noStyle ? '' : styles.partialIndicator || ''} aria-hidden={true}></div>
 			{/if}
 			<Switch.Root
 				checked={allEnabled}
@@ -117,7 +104,9 @@
 			<p>{stack.description}</p>
 			<p class={noStyle ? '' : styles.stackMeta || ''}>
 				{totalVendors}
-				{totalVendors === 1 ? iabT.preferenceCenter.vendorList.partnerSingular : iabT.preferenceCenter.vendorList.partnerPlural}
+				{totalVendors === 1
+					? iabT.preferenceCenter.vendorList.partnerSingular
+					: iabT.preferenceCenter.vendorList.partnerPlural}
 			</p>
 		</div>
 		<div class={noStyle ? '' : styles.stackContent || ''}>
