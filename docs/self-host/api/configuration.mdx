@@ -42,6 +42,12 @@ interface C15TInstance {
 }
 ```
 
+## Edge Init Options
+
+`createEdgeInitHandler()` from `@c15t/backend/edge` accepts a subset of `C15TOptions` — only the fields needed for consent policy resolution without a database. See the [Edge Deployment guide](/docs/self-host/guides/edge-deployment) for usage.
+
+<AutoTypeTable path="./packages/backend/src/edge/types.ts" name="C15TEdgeInitOptions" />
+
 ## defineConfig Helper
 
 For type-safe configuration in a separate file:
