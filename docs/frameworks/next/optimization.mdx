@@ -1,7 +1,7 @@
 ---
 title: Optimization
 description: Improve c15t startup performance in Next.js with rewrites, static prefetching, and rendering tradeoffs.
-lastModified: 2026-03-11
+lastModified: 2026-03-17
 ---
 
 Use this guide when you care about banner visibility speed, route static-ness, and reducing backend round-trip cost.
@@ -44,30 +44,37 @@ Why this helps:
 </Callout>
 
 <Callout type="warn">
-  Use rewrites for browser-side calls (`ConsentManagerProvider`, `PrefetchC15T`). For server-side `fetchInitialData()`, prefer a direct backend URL (for example `https://your-instance.c15t.dev`) to avoid an extra server proxy hop.
+  Use rewrites for browser-side calls (`ConsentManagerProvider`, `C15tPrefetch`). For server-side `fetchInitialData()`, prefer a direct backend URL (for example `https://your-instance.c15t.dev`) to avoid an extra server proxy hop.
 </Callout>
 
 ## 2) Pick The Right Data Strategy
 
 | Goal | Strategy | Tradeoff |
 |------|----------|----------|
-| Keep routes fully static | `PrefetchC15T` + `getPrefetchedInitialData()` | Still client-side fetch, but starts earlier |
+| Keep routes fully static | `C15tPrefetch` + `getPrefetchedInitialData()` | Still client-side fetch, but starts earlier |
 | Fastest first banner on dynamic routes | `fetchInitialData()` in a Server Component (do not await) | Route becomes dynamic because of `next/headers` |
 | Simplest setup | Client-only init (no prefetch) | Banner appears later on slow networks |
 
+In production benchmarks with a same-origin rewrite, prefetching strategies show measurable improvement over client-only init:
+
+| Strategy | Banner speed vs client-only |
+|----------|-----------------------------|
+| Browser prefetch (`C15tPrefetch`) | ~1.5x faster |
+| Server prefetch (`fetchInitialData`) | ~1.5x faster |
+
 ### Static Routes: Start Fetch Early In The Browser
 
-Use `PrefetchC15T` in your layout and consume the same Promise in the provider.
+Use `C15tPrefetch` in your layout and consume the same Promise in the provider.
 
 ```tsx title="app/layout.tsx"
-import { PrefetchC15T } from '@c15t/nextjs';
+import { C15tPrefetch } from '@c15t/nextjs';
 import { ConsentManager } from '@/components/consent-manager';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
-        <PrefetchC15T
+        <C15tPrefetch
           backendURL="/api/c15t"
           overrides={{ country: 'DE', region: 'BE', language: 'de' }}
         />
@@ -111,11 +118,11 @@ export default function ConsentManagerClient({ children }: { children: React.Rea
 ```
 
 <Callout type="info">
-  `PrefetchC15T` uses Next.js `beforeInteractive` script loading, so the `/init` request can start before hydration. In App Router streaming output, this may appear as Next.js script bootstrap data (for example `self.__next_s.push(...)`) instead of a literal `<head><script>` tag.
+  `C15tPrefetch` uses Next.js `beforeInteractive` script loading, so the `/init` request can start before hydration. In App Router streaming output, this may appear as Next.js script bootstrap data (for example `self.__next_s.push(...)`) instead of a literal `<head><script>` tag.
 </Callout>
 
 <Callout type="info">
-  If you use `overrides` or custom `credentials` in `PrefetchC15T`, pass the same values to `getPrefetchedInitialData(...)` so it resolves the matching prefetched request.
+  If you use `overrides` or custom `credentials` in `C15tPrefetch`, pass the same values to `getPrefetchedInitialData(...)` so it resolves the matching prefetched request.
 </Callout>
 
 ## 3) Keep The Provider Mounted Across Navigation
@@ -134,8 +141,8 @@ The default motion tokens are tuned for speed-first product UI:
 
 | Token | Duration | Used for |
 |-------|----------|----------|
-| `fast` | 80ms | Card scale, button hover, micro-interactions |
-| `normal` | 150ms | Banner slide, overlay fade, accordion |
+| `fast` | 80ms | Banner slide + overlay, card scale, button hover, widget entry/exit |
+| `normal` | 150ms | Accordion, switch toggle |
 | `slow` | 200ms | Dialog trigger snap, tab indicator |
 
 These defaults follow the principle that product UI should be fast and purposeful — animations exist for spatial continuity, not decoration. In benchmarks, animation duration contributes a constant floor to "data fetched → banner visible" timing. The default tokens sit at the lower end of standard UI ranges (80-200ms) to minimize that floor.

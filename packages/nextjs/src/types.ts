@@ -16,7 +16,7 @@ export interface NextCacheOptions {
 	revalidateSeconds?: number | false;
 }
 
-export interface BrowserInitialDataOptions {
+export interface PrefetchOptions {
 	/**
 	 * Backend URL used for fetching `/init`.
 	 * Accepts absolute URLs or same-origin paths like `/api/c15t`.
@@ -36,7 +36,7 @@ export interface BrowserInitialDataOptions {
 	credentials?: RequestCredentials;
 }
 
-export interface PrefetchC15TProps extends BrowserInitialDataOptions {
+export interface C15tPrefetchProps extends PrefetchOptions {
 	/**
 	 * Optional script element ID.
 	 *

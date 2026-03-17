@@ -1,6 +1,6 @@
 import type { InitOutput, SSRInitialData } from 'c15t';
 import Script from 'next/script';
-import type { BrowserInitialDataOptions, PrefetchC15TProps } from '~/types';
+import type { C15tPrefetchProps, PrefetchOptions } from '~/types';
 
 const WINDOW_PROMISE_KEY = '__c15tInitialDataPromise';
 const WINDOW_PROMISES_KEY = '__c15tInitialDataPromises';
@@ -21,9 +21,7 @@ function buildInitURL(backendURL: string): string {
 	return `${normalizedBackendURL}/init`;
 }
 
-function buildInitHeaders(
-	options: BrowserInitialDataOptions
-): Record<string, string> {
+function buildInitHeaders(options: PrefetchOptions): Record<string, string> {
 	const headers: Record<string, string> = {};
 	const { overrides } = options;
 
@@ -62,9 +60,7 @@ function buildPrefetchCacheKey(options: {
 	return `${options.url}|${options.credentials}|${sortedHeaders}`;
 }
 
-function buildPrefetchConfig(
-	options: BrowserInitialDataOptions
-): PrefetchConfig {
+function buildPrefetchConfig(options: PrefetchOptions): PrefetchConfig {
 	const url = buildInitURL(options.backendURL);
 	const credentials = options.credentials ?? 'include';
 	const headers = buildInitHeaders(options);
@@ -118,7 +114,7 @@ function createPrefetchPromise(config: PrefetchConfig): PrefetchPromise {
 		.catch(() => undefined);
 }
 
-function buildPrefetchScript(options: BrowserInitialDataOptions): string {
+function buildPrefetchScript(options: PrefetchOptions): string {
 	const payload = buildPrefetchConfig(options);
 
 	const json = JSON.stringify(payload).replace(/</g, '\\u003c');
@@ -156,15 +152,15 @@ function buildPrefetchScript(options: BrowserInitialDataOptions): string {
  * Reads the browser-prefetched initial data Promise, if it exists.
  *
  * @param options - Optional prefetch options. Provide the same options used
- * with `PrefetchC15T` or `prefetchInitialData` to resolve the matching entry.
+ * with `C15tPrefetch` or `ensurePrefetchedInitialData` to resolve the matching entry.
  * @returns The existing prefetch Promise or `undefined` when not available.
  */
 export function getPrefetchedInitialData(): PrefetchPromise | undefined;
 export function getPrefetchedInitialData(
-	options: BrowserInitialDataOptions
+	options: PrefetchOptions
 ): PrefetchPromise | undefined;
 export function getPrefetchedInitialData(
-	options?: BrowserInitialDataOptions
+	options?: PrefetchOptions
 ): PrefetchPromise | undefined {
 	const browserWindow = getBrowserWindow();
 	if (!browserWindow) {
@@ -190,8 +186,8 @@ export function getPrefetchedInitialData(
  *
  * @returns A shared Promise that resolves to the same shape as `fetchInitialData()`.
  */
-export function prefetchInitialData(
-	options: BrowserInitialDataOptions
+export function ensurePrefetchedInitialData(
+	options: PrefetchOptions
 ): PrefetchPromise | undefined {
 	const browserWindow = getBrowserWindow();
 	if (!browserWindow) {
@@ -217,12 +213,12 @@ export function prefetchInitialData(
  *
  * @remarks
  * Use in `app/layout.tsx` for static routes. Pair with
- * `getPrefetchedInitialData()` or `prefetchInitialData()` in your client provider.
+ * `getPrefetchedInitialData()` or `ensurePrefetchedInitialData()` in your client provider.
  */
-export function PrefetchC15T({
+export function C15tPrefetch({
 	id = DEFAULT_SCRIPT_ID,
 	...options
-}: PrefetchC15TProps) {
+}: C15tPrefetchProps) {
 	return (
 		<Script id={id} strategy="beforeInteractive">
 			{buildPrefetchScript(options)}
