@@ -1,140 +1,150 @@
 <script lang="ts">
-	import { Dialog } from '@ark-ui/svelte/dialog';
-	import { Portal } from '@ark-ui/svelte/portal';
-	import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
-	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
-	import type { Model, LegalLinks as LegalLinksType } from 'c15t';
-	import { defaultTranslationConfig } from 'c15t';
-	import { getConsentContext, getThemeContext, setTrackingContext } from '../context.svelte';
-	import { resolveComponentStyles } from '../utils';
-	import ConsentWidget from './ConsentWidget.svelte';
-	import ConsentDialogTrigger from './ConsentDialogTrigger.svelte';
-	import InlineLegalLinks from './InlineLegalLinks.svelte';
-	import Branding from './Branding.svelte';
+import { Dialog } from '@ark-ui/svelte/dialog';
+import { Portal } from '@ark-ui/svelte/portal';
+import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
+import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
+import type { LegalLinks as LegalLinksType, Model } from 'c15t';
+import { defaultTranslationConfig } from 'c15t';
+import {
+	getConsentContext,
+	getThemeContext,
+	setTrackingContext,
+} from '../context.svelte';
+import { resolveComponentStyles } from '../utils';
+import Branding from './Branding.svelte';
+import ConsentDialogTrigger from './ConsentDialogTrigger.svelte';
+import ConsentWidget from './ConsentWidget.svelte';
+import InlineLegalLinks from './InlineLegalLinks.svelte';
 
-	type ConsentDialogTriggerProps = {
-		defaultPosition?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
-		persistPosition?: boolean;
-		showWhen?: 'always' | 'after-consent' | 'never';
-		size?: 'sm' | 'md' | 'lg';
-		ariaLabel?: string;
-		noStyle?: boolean;
-		class?: string;
-	};
+type ConsentDialogTriggerProps = {
+	defaultPosition?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+	persistPosition?: boolean;
+	showWhen?: 'always' | 'after-consent' | 'never';
+	size?: 'sm' | 'md' | 'lg';
+	ariaLabel?: string;
+	noStyle?: boolean;
+	class?: string;
+};
 
-	const {
-		open: openProp,
-		noStyle: localNoStyle,
-		hideBranding,
-		legalLinks,
-		showTrigger = false,
-		models = ['opt-in', 'opt-out'] as Model[],
-		class: className,
-	}: {
-		open?: boolean;
-		noStyle?: boolean;
-		hideBranding?: boolean;
-		legalLinks?: (keyof LegalLinksType)[] | null;
-		showTrigger?: boolean | ConsentDialogTriggerProps;
-		models?: Model[];
-		class?: string;
-	} = $props();
+const {
+	open: openProp,
+	noStyle: localNoStyle,
+	hideBranding,
+	legalLinks,
+	showTrigger = false,
+	models = ['opt-in', 'opt-out'] as Model[],
+	class: className,
+}: {
+	open?: boolean;
+	noStyle?: boolean;
+	hideBranding?: boolean;
+	legalLinks?: (keyof LegalLinksType)[] | null;
+	showTrigger?: boolean | ConsentDialogTriggerProps;
+	models?: Model[];
+	class?: string;
+} = $props();
 
-	const consent = getConsentContext();
-	const theme = getThemeContext();
-	setTrackingContext({
-		get uiSource() {
-			return 'dialog';
-		},
-	});
+const consent = getConsentContext();
+const theme = getThemeContext();
+setTrackingContext({
+	get uiSource() {
+		return 'dialog';
+	},
+});
 
-	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
-	const disableAnimation = $derived(theme.disableAnimation ?? false);
+const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
+const disableAnimation = $derived(theme.disableAnimation ?? false);
 
-	// Translations
-	const translations = $derived(
-		resolveTranslations(consent.state.translationConfig, defaultTranslationConfig),
-	);
-	const textDirection = $derived(
-		getTextDirection(consent.state.translationConfig?.defaultLanguage),
-	);
+// Translations
+const translations = $derived(
+	resolveTranslations(consent.state.translationConfig, defaultTranslationConfig)
+);
+const textDirection = $derived(
+	getTextDirection(consent.state.translationConfig?.defaultLanguage)
+);
 
-	// Open state
-	const isOpen = $derived(
-		models.includes(consent.state.model) && (openProp ?? consent.state.activeUI === 'dialog'),
-	);
+// Open state
+const isOpen = $derived(
+	models.includes(consent.state.model) &&
+		(openProp ?? consent.state.activeUI === 'dialog')
+);
 
-	// Per-element theme key styling
-	const rootStyle = $derived(
-		resolveComponentStyles('consentDialog', theme.theme, { className, noStyle }, noStyle),
-	);
+// Per-element theme key styling
+const rootStyle = $derived(
+	resolveComponentStyles(
+		'consentDialog',
+		theme.theme,
+		{ className, noStyle },
+		noStyle
+	)
+);
 
-	const cardStyle = $derived(
-		resolveComponentStyles(
-			'consentDialogCard',
-			theme.theme,
-			{ baseClassName: styles.card, noStyle },
-			noStyle,
-		),
-	);
+const cardStyle = $derived(
+	resolveComponentStyles(
+		'consentDialogCard',
+		theme.theme,
+		{ baseClassName: styles.card, noStyle },
+		noStyle
+	)
+);
 
-	const headerStyle = $derived(
-		resolveComponentStyles(
-			'consentDialogHeader',
-			theme.theme,
-			{ baseClassName: styles.header, noStyle },
-			noStyle,
-		),
-	);
+const headerStyle = $derived(
+	resolveComponentStyles(
+		'consentDialogHeader',
+		theme.theme,
+		{ baseClassName: styles.header, noStyle },
+		noStyle
+	)
+);
 
-	const titleStyle = $derived(
-		resolveComponentStyles(
-			'consentDialogTitle',
-			theme.theme,
-			{ baseClassName: styles.title, noStyle },
-			noStyle,
-		),
-	);
+const titleStyle = $derived(
+	resolveComponentStyles(
+		'consentDialogTitle',
+		theme.theme,
+		{ baseClassName: styles.title, noStyle },
+		noStyle
+	)
+);
 
-	const descriptionStyle = $derived(
-		resolveComponentStyles(
-			'consentDialogDescription',
-			theme.theme,
-			{ baseClassName: styles.description, noStyle },
-			noStyle,
-		),
-	);
+const descriptionStyle = $derived(
+	resolveComponentStyles(
+		'consentDialogDescription',
+		theme.theme,
+		{ baseClassName: styles.description, noStyle },
+		noStyle
+	)
+);
 
-	const contentStyle = $derived(
-		resolveComponentStyles(
-			'consentDialogContent',
-			theme.theme,
-			{ baseClassName: styles.content, noStyle },
-			noStyle,
-		),
-	);
+const contentStyle = $derived(
+	resolveComponentStyles(
+		'consentDialogContent',
+		theme.theme,
+		{ baseClassName: styles.content, noStyle },
+		noStyle
+	)
+);
 
-	const footerStyle = $derived(
-		resolveComponentStyles(
-			'consentDialogFooter',
-			theme.theme,
-			{ baseClassName: styles.footer, noStyle },
-			noStyle,
-		),
-	);
+const footerStyle = $derived(
+	resolveComponentStyles(
+		'consentDialogFooter',
+		theme.theme,
+		{ baseClassName: styles.footer, noStyle },
+		noStyle
+	)
+);
 
-	// Trigger props
-	const triggerProps = $derived.by(() => {
-		if (showTrigger === true) return {};
-		if (showTrigger === false) return null;
-		return showTrigger;
-	});
+// Trigger props
+const triggerProps = $derived.by(() => {
+	if (showTrigger === true) return {};
+	if (showTrigger === false) return null;
+	return showTrigger;
+});
 
-	function handleOpenChange(details: { open: boolean }) {
-		if (!details.open) {
-			consent.state.setActiveUI('none');
-		}
+function handleOpenChange(details: { open: boolean }) {
+	if (!details.open) {
+		consent.state.setActiveUI('none');
 	}
+}
 </script>
 
 {#if triggerProps}

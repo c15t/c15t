@@ -1,76 +1,80 @@
 <script lang="ts">
-	import type { AllConsentNames } from 'c15t';
-	import { defaultTranslationConfig } from 'c15t';
-	import type { Snippet } from 'svelte';
-	import { onMount, untrack } from 'svelte';
-	import styles from '@c15t/ui/styles/components/frame.module.js';
-	import { buttonVariants } from '@c15t/ui/styles/primitives';
-	import { resolveTranslations } from '@c15t/ui/utils';
-	import { getConsentContext, getThemeContext } from '../context.svelte';
+import styles from '@c15t/ui/styles/components/frame.module.js';
+import { buttonVariants } from '@c15t/ui/styles/primitives';
+import { resolveTranslations } from '@c15t/ui/utils';
+import type { AllConsentNames } from 'c15t';
+import { defaultTranslationConfig } from 'c15t';
+import type { Snippet } from 'svelte';
+import { onMount, untrack } from 'svelte';
+import { getConsentContext, getThemeContext } from '../context.svelte';
 
-	const btn = buttonVariants({ variant: 'primary', mode: 'stroke', size: 'small' });
+const btn = buttonVariants({
+	variant: 'primary',
+	mode: 'stroke',
+	size: 'small',
+});
 
-	let {
-		category,
-		children,
-		placeholder,
-		noStyle: localNoStyle,
-		class: className,
-	}: {
-		category: AllConsentNames;
-		children?: Snippet;
-		placeholder?: Snippet;
-		noStyle?: boolean;
-		class?: string;
-	} = $props();
+let {
+	category,
+	children,
+	placeholder,
+	noStyle: localNoStyle,
+	class: className,
+}: {
+	category: AllConsentNames;
+	children?: Snippet;
+	placeholder?: Snippet;
+	noStyle?: boolean;
+	class?: string;
+} = $props();
 
-	const consent = getConsentContext();
-	const theme = getThemeContext();
+const consent = getConsentContext();
+const theme = getThemeContext();
 
-	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
-	const hasConsent = $derived(consent.state.consents[category] ?? false);
+const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
+const hasConsent = $derived(consent.state.consents[category] ?? false);
 
-	const translations = $derived(
-		resolveTranslations(consent.state.translationConfig, defaultTranslationConfig),
-	);
-	const frameTitle = $derived(
-		(translations.frame?.title ?? 'Accept {category} consent to view this content.').replace(
-			'{category}',
-			category as string,
-		),
-	);
-	const frameActionButton = $derived(
-		(translations.frame?.actionButton ?? 'Enable {category} consent').replace(
-			'{category}',
-			category as string,
-		),
-	);
+const translations = $derived(
+	resolveTranslations(consent.state.translationConfig, defaultTranslationConfig)
+);
+const frameTitle = $derived(
+	(
+		translations.frame?.title ??
+		'Accept {category} consent to view this content.'
+	).replace('{category}', category as string)
+);
+const frameActionButton = $derived(
+	(translations.frame?.actionButton ?? 'Enable {category} consent').replace(
+		'{category}',
+		category as string
+	)
+);
 
-	let isMounted = $state(false);
-	let isReady = $state(false);
+let isMounted = $state(false);
+let isReady = $state(false);
 
-	onMount(() => {
-		isMounted = true;
-		requestAnimationFrame(() => {
-			isReady = true;
-		});
+onMount(() => {
+	isMounted = true;
+	requestAnimationFrame(() => {
+		isReady = true;
 	});
+});
 
-	// Register category reactively so prop changes and concurrent mounts
-	// always read the latest consentCategories from the store.
-	$effect(() => {
-		const cat = category;
-		untrack(() => {
-			const categories = consent.state.consentCategories;
-			if (!categories.includes(cat)) {
-				consent.state.updateConsentCategories([...categories, cat]);
-			}
-		});
+// Register category reactively so prop changes and concurrent mounts
+// always read the latest consentCategories from the store.
+$effect(() => {
+	const cat = category;
+	untrack(() => {
+		const categories = consent.state.consentCategories;
+		if (!categories.includes(cat)) {
+			consent.state.updateConsentCategories([...categories, cat]);
+		}
 	});
+});
 
-	function openDialog() {
-		consent.state.setActiveUI('dialog');
-	}
+function openDialog() {
+	consent.state.setActiveUI('dialog');
+}
 </script>
 
 <div class={className}>
