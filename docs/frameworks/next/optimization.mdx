@@ -128,7 +128,21 @@ Why this helps:
 - Prevents extra callback churn from remount cycles
 - Keeps banner/dialog state stable between route transitions
 
-## 4) Reduce Network And UI Overhead
+## 4) Animation Performance
+
+The default motion tokens are tuned for speed-first product UI:
+
+| Token | Duration | Used for |
+|-------|----------|----------|
+| `fast` | 80ms | Card scale, button hover, micro-interactions |
+| `normal` | 150ms | Banner slide, overlay fade, accordion |
+| `slow` | 200ms | Dialog trigger snap, tab indicator |
+
+These defaults follow the principle that product UI should be fast and purposeful — animations exist for spatial continuity, not decoration. In benchmarks, animation duration contributes a constant floor to "data fetched → banner visible" timing. The default tokens sit at the lower end of standard UI ranges (80-200ms) to minimize that floor.
+
+To customize motion durations and easing, see [Styling](/docs/frameworks/next/styling/overview).
+
+## 5) Reduce Network Overhead
 
 - If you must use a cross-origin backend URL, add preconnect:
 
