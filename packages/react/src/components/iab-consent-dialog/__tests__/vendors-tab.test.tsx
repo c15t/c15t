@@ -155,6 +155,10 @@ const defaultIABOptions: ConsentManagerOptions = {
 		enabled: true,
 		cmpId: 160,
 		cmpVersion: 1,
+		gvl: mockGVL,
+	},
+	offlinePolicy: {
+		policy: { id: 'iab_test', model: 'iab' },
 	},
 };
 

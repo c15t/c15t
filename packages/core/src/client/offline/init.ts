@@ -264,16 +264,14 @@ export async function init(
 	}
 
 	// Get GVL for IAB mode.
-	// If a synthetic offline policy is provided, only fetch GVL when policy model is iab.
-	// Priority: 1) Pre-loaded from config, 2) Fetch from external endpoint
+	// Priority: 1) Pre-loaded from config (always honoured when provided),
+	// 2) Fetch from external endpoint (only when policy model is iab)
 	let gvl = null;
-	const shouldResolveIab =
-		iabConfig?.enabled && resolvedPolicyConfig.policy?.model === 'iab';
-	if (shouldResolveIab) {
+	if (iabConfig?.enabled) {
 		if (iabConfig.gvl) {
-			// Use pre-loaded GVL from config (testing/SSR)
+			// Pre-loaded GVL always used when explicitly provided (testing/SSR)
 			gvl = iabConfig.gvl;
-		} else {
+		} else if (resolvedPolicyConfig.policy?.model === 'iab') {
 			try {
 				const { fetchGVL } = await import('../../libs/iab-tcf/fetch-gvl');
 				gvl = await fetchGVL(iabConfig.vendorIds);
