@@ -1,15 +1,24 @@
 <script lang="ts">
-	import type { Model, LegalLinks as LegalLinksType } from 'c15t';
-	import { onMount } from 'svelte';
 	import styles from '@c15t/ui/styles/components/consent-banner.module.js';
-	import { resolveTranslations } from '@c15t/ui/utils';
+	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
+	import type { LegalLinks as LegalLinksType, Model } from 'c15t';
 	import { defaultTranslationConfig } from 'c15t';
-	import { getTextDirection } from '@c15t/ui/utils';
-	import { getConsentContext, getThemeContext, setTrackingContext } from '../context.svelte';
-	import { resolveComponentStyles } from '../utils';
-	import { portal } from '../actions/portal';
 	import { focusTrap } from '../actions/focus-trap';
+	// Banner uses custom portal/focus-trap/scroll-lock actions (not Ark UI's built-in)
+	// because the banner is not an Ark Dialog - it's a simpler container that
+	// conditionally acts as a dialog. The ConsentDialog uses Ark's Dialog which
+	// includes its own focus trap and scroll prevention. When transitioning from
+	// banner to dialog, the banner unmounts (removing its focus trap) before
+	// the dialog mounts (establishing Ark's focus trap), so they don't compete.
+	import { portal } from '../actions/portal';
 	import { scrollLock } from '../actions/scroll-lock';
+	import {
+		getConsentContext,
+		getThemeContext,
+		setTrackingContext,
+	} from '../context.svelte';
+	import { useBannerVisibility } from '../use-banner-visibility.svelte';
+	import { resolveComponentStyles } from '../utils';
 	import ConsentButton from './ConsentButton.svelte';
 	import InlineLegalLinks from './InlineLegalLinks.svelte';
 	import Overlay from './Overlay.svelte';
@@ -20,10 +29,7 @@
 	type ConsentBannerButton = 'reject' | 'accept' | 'customize';
 	type ConsentBannerLayout = (ConsentBannerButton | ConsentBannerButton[])[];
 
-	const DEFAULT_LAYOUT: ConsentBannerLayout = [
-		['reject', 'accept'],
-		'customize',
-	];
+	const DEFAULT_LAYOUT: ConsentBannerLayout = [['reject', 'accept'], 'customize'];
 
 	let {
 		noStyle: localNoStyle,
@@ -61,7 +67,11 @@
 
 	const consent = getConsentContext();
 	const theme = getThemeContext();
-	setTrackingContext({ get uiSource() { return uiSource; } });
+	setTrackingContext({
+		get uiSource() {
+			return uiSource;
+		},
+	});
 
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 	const disableAnimation = $derived(
@@ -72,10 +82,7 @@
 
 	// Translations
 	const translations = $derived(
-		resolveTranslations(
-			consent.state.translationConfig,
-			defaultTranslationConfig
-		)
+		resolveTranslations(consent.state.translationConfig, defaultTranslationConfig)
 	);
 	const textDirection = $derived(
 		getTextDirection(consent.state.translationConfig?.defaultLanguage)
@@ -86,29 +93,10 @@
 		consent.state.activeUI === 'banner' && models.includes(consent.state.model)
 	);
 
-	let isVisible = $state(false);
-	let isMounted = $state(false);
-
-	onMount(() => {
-		isMounted = true;
-	});
-
-	$effect(() => {
-		if (shouldShowBanner) {
-			const timer = setTimeout(() => {
-				isVisible = true;
-			}, 10);
-			return () => clearTimeout(timer);
-		}
-		if (disableAnimation) {
-			isVisible = false;
-		} else {
-			const timer = setTimeout(() => {
-				isVisible = false;
-			}, 200);
-			return () => clearTimeout(timer);
-		}
-	});
+	const visibility = useBannerVisibility(
+		() => shouldShowBanner,
+		() => disableAnimation
+	);
 
 	// Styling - per-element theme key resolution matching React
 	const rootStyle = $derived(
@@ -128,33 +116,63 @@
 	);
 
 	const cardStyle = $derived(
-		resolveComponentStyles('consentBannerCard', theme.theme, { baseClassName: styles.card, noStyle }, noStyle)
+		resolveComponentStyles(
+			'consentBannerCard',
+			theme.theme,
+			{ baseClassName: styles.card, noStyle },
+			noStyle
+		)
 	);
 
 	const headerStyle = $derived(
-		resolveComponentStyles('consentBannerHeader', theme.theme, { baseClassName: styles.header, noStyle }, noStyle)
+		resolveComponentStyles(
+			'consentBannerHeader',
+			theme.theme,
+			{ baseClassName: styles.header, noStyle },
+			noStyle
+		)
 	);
 
 	const titleStyle = $derived(
-		resolveComponentStyles('consentBannerTitle', theme.theme, { baseClassName: styles.title, noStyle }, noStyle)
+		resolveComponentStyles(
+			'consentBannerTitle',
+			theme.theme,
+			{ baseClassName: styles.title, noStyle },
+			noStyle
+		)
 	);
 
 	const descriptionStyle = $derived(
-		resolveComponentStyles('consentBannerDescription', theme.theme, { baseClassName: styles.description, noStyle }, noStyle)
+		resolveComponentStyles(
+			'consentBannerDescription',
+			theme.theme,
+			{ baseClassName: styles.description, noStyle },
+			noStyle
+		)
 	);
 
 	const footerStyle = $derived(
-		resolveComponentStyles('consentBannerFooter', theme.theme, { baseClassName: styles.footer, noStyle }, noStyle)
+		resolveComponentStyles(
+			'consentBannerFooter',
+			theme.theme,
+			{ baseClassName: styles.footer, noStyle },
+			noStyle
+		)
 	);
 
 	const footerSubGroupStyle = $derived(
-		resolveComponentStyles('consentBannerFooterSubGroup', theme.theme, { baseClassName: styles.footerSubGroup, noStyle }, noStyle)
+		resolveComponentStyles(
+			'consentBannerFooterSubGroup',
+			theme.theme,
+			{ baseClassName: styles.footerSubGroup, noStyle },
+			noStyle
+		)
 	);
 
 	const finalClassName = $derived(
 		noStyle
 			? rootStyle.className || ''
-			: `${rootStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`
+			: `${rootStyle.className || ''} ${visibility.isVisible ? styles.bannerVisible : styles.bannerHidden}`
 	);
 
 	// Button helpers
@@ -180,10 +198,11 @@
 	);
 </script>
 
-{#if isMounted && shouldShowBanner}
+{#if visibility.isMounted && visibility.shouldRender}
 	<div use:portal>
-		<Overlay visible={isVisible} />
+		<Overlay visible={visibility.isVisible} />
 		<div
+			bind:this={visibility.bannerEl}
 			class={finalClassName}
 			dir={textDirection}
 			data-testid="consent-banner-root"
@@ -192,7 +211,6 @@
 		>
 			<div
 				class={noStyle ? '' : cardStyle.className || ''}
-				tabindex={0}
 				data-testid="consent-banner-card"
 				role={shouldTrapFocus ? 'dialog' : undefined}
 				aria-modal={shouldTrapFocus ? 'true' : undefined}
@@ -215,6 +233,42 @@
 					</div>
 				</div>
 				<div class={noStyle ? '' : footerStyle.className || ''} data-testid="consent-banner-footer">
+					{#snippet renderButton(buttonType: ConsentBannerButton)}
+						{#if buttonType === 'reject'}
+							<ConsentButton
+								action="reject-consent"
+								variant={isPrimary('reject') ? 'primary' : 'neutral'}
+								closeConsentBanner
+								data-testid="consent-banner-reject-button"
+							>
+								{#snippet children()}
+									{resolvedRejectText}
+								{/snippet}
+							</ConsentButton>
+						{:else if buttonType === 'accept'}
+							<ConsentButton
+								action="accept-consent"
+								variant={isPrimary('accept') ? 'primary' : 'neutral'}
+								closeConsentBanner
+								data-testid="consent-banner-accept-button"
+							>
+								{#snippet children()}
+									{resolvedAcceptText}
+								{/snippet}
+							</ConsentButton>
+						{:else if buttonType === 'customize'}
+							<ConsentButton
+								action="open-consent-dialog"
+								variant={isPrimary('customize') ? 'primary' : 'neutral'}
+								data-testid="consent-banner-customize-button"
+							>
+								{#snippet children()}
+									{resolvedCustomizeText}
+								{/snippet}
+							</ConsentButton>
+						{/if}
+					{/snippet}
+
 					{#each layout as item, index}
 						{#if Array.isArray(item)}
 							<div
@@ -222,75 +276,11 @@
 								data-testid="consent-banner-footer-sub-group"
 							>
 								{#each item as buttonType}
-									{#if buttonType === 'reject'}
-										<ConsentButton
-											action="reject-consent"
-											variant={isPrimary('reject') ? 'primary' : 'neutral'}
-											closeConsentBanner
-											data-testid="consent-banner-reject-button"
-										>
-											{#snippet children()}
-												{resolvedRejectText}
-											{/snippet}
-										</ConsentButton>
-									{:else if buttonType === 'accept'}
-										<ConsentButton
-											action="accept-consent"
-											variant={isPrimary('accept') ? 'primary' : 'neutral'}
-											closeConsentBanner
-											data-testid="consent-banner-accept-button"
-										>
-											{#snippet children()}
-												{resolvedAcceptText}
-											{/snippet}
-										</ConsentButton>
-									{:else if buttonType === 'customize'}
-										<ConsentButton
-											action="open-consent-dialog"
-											variant={isPrimary('customize') ? 'primary' : 'neutral'}
-											data-testid="consent-banner-customize-button"
-										>
-											{#snippet children()}
-												{resolvedCustomizeText}
-											{/snippet}
-										</ConsentButton>
-									{/if}
+									{@render renderButton(buttonType)}
 								{/each}
 							</div>
 						{:else}
-							{#if item === 'reject'}
-								<ConsentButton
-									action="reject-consent"
-									variant={isPrimary('reject') ? 'primary' : 'neutral'}
-									closeConsentBanner
-									data-testid="consent-banner-reject-button"
-								>
-									{#snippet children()}
-										{resolvedRejectText}
-									{/snippet}
-								</ConsentButton>
-							{:else if item === 'accept'}
-								<ConsentButton
-									action="accept-consent"
-									variant={isPrimary('accept') ? 'primary' : 'neutral'}
-									closeConsentBanner
-									data-testid="consent-banner-accept-button"
-								>
-									{#snippet children()}
-										{resolvedAcceptText}
-									{/snippet}
-								</ConsentButton>
-							{:else if item === 'customize'}
-								<ConsentButton
-									action="open-consent-dialog"
-									variant={isPrimary('customize') ? 'primary' : 'neutral'}
-									data-testid="consent-banner-customize-button"
-								>
-									{#snippet children()}
-										{resolvedCustomizeText}
-									{/snippet}
-								</ConsentButton>
-							{/if}
+							{@render renderButton(item)}
 						{/if}
 					{/each}
 				</div>

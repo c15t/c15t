@@ -69,11 +69,13 @@ describe('activeUI Transitions E2E Tests', () => {
 			expect(dialog).toBeInTheDocument();
 		});
 
-		// Banner should be gone
-		const banner = document.querySelector(
-			'[data-testid="consent-banner-root"]'
-		);
-		expect(banner).not.toBeInTheDocument();
+		// Banner should be gone (waits for exit animation to complete)
+		await waitFor(() => {
+			const banner = document.querySelector(
+				'[data-testid="consent-banner-root"]'
+			);
+			expect(banner).not.toBeInTheDocument();
+		});
 	});
 
 	test('save from dialog hides all UI', async () => {

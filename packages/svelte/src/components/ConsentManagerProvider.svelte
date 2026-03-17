@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { untrack } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import { generateThemeCSS } from '@c15t/ui/theme';
 	import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
 	import {
@@ -31,6 +31,9 @@
 		getOrCreateConsentRuntime(options, { pkg: '@c15t/svelte', version })
 	);
 
+	// Initialise from current store snapshot, then subscribe for updates.
+	// No isFirstCall guard needed — setting the same value is a no-op,
+	// and skipping would discard legitimate updates during HMR re-runs.
 	let consentState = $state<ConsentStoreState>(consentStore.getState());
 
 	$effect(() => {
@@ -49,6 +52,22 @@
 		manager: consentManager,
 	});
 
+	// Detect OS prefers-reduced-motion for accessibility.
+	// Falls back to false during SSR, then updates reactively on the client.
+	let prefersReducedMotion = $state(false);
+
+	onMount(() => {
+		if (typeof window === 'undefined' || !window.matchMedia) return;
+		const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+		prefersReducedMotion = mediaQuery.matches;
+
+		const handler = (e: MediaQueryListEvent) => {
+			prefersReducedMotion = e.matches;
+		};
+		mediaQuery.addEventListener('change', handler);
+		return () => mediaQuery.removeEventListener('change', handler);
+	});
+
 	// Set up theme
 	const mergedTheme = $derived(
 		deepMerge(defaultTheme, options.theme ?? {})
@@ -62,7 +81,8 @@
 			return options.noStyle;
 		},
 		get disableAnimation() {
-			return options.disableAnimation;
+			// Auto-disable animations if OS preference is set, unless explicitly overridden
+			return options.disableAnimation ?? prefersReducedMotion;
 		},
 		get trapFocus() {
 			return options.trapFocus ?? true;
@@ -77,19 +97,32 @@
 
 	const themeCSS = $derived(generateThemeCSS(mergedTheme));
 
-	// Inject theme CSS safely via textContent (immune to XSS)
+	// Inject theme CSS safely via textContent (immune to XSS).
+	// The $effect only updates textContent on theme changes — no remove/re-add cycle.
+	// Cleanup happens once on component destroy via onDestroy.
+	let themeStyleEl: HTMLStyleElement | null = null;
+	let ownedStyleEl = false;
+
 	$effect(() => {
 		if (!themeCSS) return;
-		let style = document.getElementById('c15t-theme') as HTMLStyleElement | null;
-		if (!style) {
-			style = document.createElement('style');
-			style.id = 'c15t-theme';
-			document.head.appendChild(style);
+		if (!themeStyleEl) {
+			themeStyleEl = document.getElementById('c15t-theme') as HTMLStyleElement | null;
+			if (!themeStyleEl) {
+				themeStyleEl = document.createElement('style');
+				themeStyleEl.id = 'c15t-theme';
+				document.head.appendChild(themeStyleEl);
+				ownedStyleEl = true;
+			}
 		}
-		style.textContent = themeCSS;
-		return () => {
-			style?.remove();
-		};
+		themeStyleEl.textContent = themeCSS;
+	});
+
+	onDestroy(() => {
+		if (ownedStyleEl && themeStyleEl) {
+			themeStyleEl.remove();
+			themeStyleEl = null;
+			ownedStyleEl = false;
+		}
 	});
 
 	// Set up color scheme

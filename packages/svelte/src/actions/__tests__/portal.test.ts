@@ -50,13 +50,18 @@ describe('portal action', () => {
 		document.body.removeChild(target);
 	});
 
-	test('should return undefined when target selector does not match', () => {
+	test('should return action object even when target selector does not match', () => {
 		const node = document.createElement('div');
 		node.textContent = 'Content';
 
 		const result = portal(node, '#nonexistent');
 
-		expect(result).toBeUndefined();
+		// Portal now always returns {update, destroy} for proper lifecycle handling
+		expect(result).toBeDefined();
+		expect(result.destroy).toBeInstanceOf(Function);
+		expect(result.update).toBeInstanceOf(Function);
+		// Node should not have been moved
+		expect(document.body.contains(node)).toBe(false);
 	});
 
 	test('should remove element on destroy', () => {

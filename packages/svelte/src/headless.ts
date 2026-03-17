@@ -13,16 +13,20 @@ export { portal } from './actions/portal';
 export { scrollLock } from './actions/scroll-lock';
 // Provider (still needed for headless mode)
 export { default as ConsentManagerProvider } from './components/ConsentManagerProvider.svelte';
+// Components (useful for headless custom UIs)
+export { default as InlineLegalLinks } from './components/InlineLegalLinks.svelte';
 // Context (primary API for headless usage)
 export {
 	type ConsentContextValue,
 	getConsentContext,
+	getConsentManager,
 	getThemeContext,
 	type ThemeContextValue,
 } from './context.svelte';
 // IAB types and utilities (for headless/custom IAB UI)
 export { getIABTranslations, type IABTranslations } from './iab-translations';
 export {
+	getIABBannerDisplayItems,
 	type ProcessedFeature,
 	type ProcessedGVLData,
 	type ProcessedPurpose,

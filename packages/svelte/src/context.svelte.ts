@@ -15,6 +15,12 @@ const TRACKING_CONTEXT_KEY = Symbol('c15t-tracking');
 
 /**
  * The consent context value shared through the component tree.
+ *
+ * `state` is provided via a getter in ConsentManagerProvider, so it always
+ * reflects the latest store snapshot. Methods on ConsentStoreState (e.g.
+ * setActiveUI, saveConsents, setSelectedConsent) are stable references
+ * bound to the store instance — they do not change between state updates,
+ * so it is safe to call them through `consent.state.methodName(...)`.
  */
 export interface ConsentContextValue {
 	readonly state: ConsentStoreState;
@@ -61,6 +67,58 @@ export function getConsentContext(): ConsentContextValue {
 	}
 
 	return context;
+}
+
+/**
+ * Flat accessor for consent state and manager.
+ *
+ * Svelte equivalent of React's `useConsentManager()`. Returns an object
+ * with getters that always reflect the latest consent state snapshot,
+ * plus the consent manager instance.
+ *
+ * @example
+ * ```svelte
+ * <script>
+ *   const consent = getConsentManager();
+ *   // Access state reactively via getters
+ *   $: console.log(consent.activeUI, consent.consents);
+ *   // Call methods directly
+ *   consent.setActiveUI('dialog');
+ * </script>
+ * ```
+ */
+export function getConsentManager(): ConsentStoreState & {
+	manager: ConsentManagerInterface | null;
+} {
+	const ctx = getConsentContext();
+
+	return new Proxy(
+		{} as ConsentStoreState & { manager: ConsentManagerInterface | null },
+		{
+			get(_target, prop) {
+				if (prop === 'manager') return ctx.manager;
+				return (ctx.state as unknown as Record<string | symbol, unknown>)[prop];
+			},
+			set(_target, prop) {
+				throw new Error(
+					`[c15t] consent.${String(prop)} is read-only. Use state methods like setActiveUI() instead.`
+				);
+			},
+			has(_target, prop) {
+				if (prop === 'manager') return true;
+				return prop in ctx.state;
+			},
+			ownKeys() {
+				return [...Object.keys(ctx.state), 'manager'];
+			},
+			getOwnPropertyDescriptor(_target, prop) {
+				if (prop === 'manager' || prop in ctx.state) {
+					return { configurable: true, enumerable: true, writable: false };
+				}
+				return undefined;
+			},
+		}
+	);
 }
 
 /**

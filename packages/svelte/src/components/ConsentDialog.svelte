@@ -10,8 +10,7 @@ import { resolveComponentStyles } from '../utils';
 import ConsentWidget from './ConsentWidget.svelte';
 import ConsentDialogTrigger from './ConsentDialogTrigger.svelte';
 import InlineLegalLinks from './InlineLegalLinks.svelte';
-import C15TIcon from './icons/C15TIcon.svelte';
-import ConsentIconOnly from './icons/ConsentIconOnly.svelte';
+import Branding from './Branding.svelte';
 
 type ConsentDialogTriggerProps = {
 	defaultPosition?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
@@ -43,7 +42,11 @@ const {
 
 const consent = getConsentContext();
 const theme = getThemeContext();
-setTrackingContext({ uiSource: 'dialog' });
+setTrackingContext({
+	get uiSource() {
+		return 'dialog';
+	},
+});
 
 const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 const disableAnimation = $derived(theme.disableAnimation ?? false);
@@ -90,17 +93,6 @@ const contentStyle = $derived(
 const footerStyle = $derived(
 	resolveComponentStyles('consentDialogFooter', theme.theme, { baseClassName: styles.footer, noStyle }, noStyle)
 );
-
-// Branding
-const branding = $derived(consent.state.branding);
-const showBranding = $derived(!hideBranding && branding !== 'none');
-const brandingHref = $derived.by(() => {
-	const refParam =
-		typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
-	return branding === 'consent'
-		? `https://consent.io${refParam}`
-		: `https://c15t.com${refParam}`;
-});
 
 // Trigger props
 const triggerProps = $derived.by(() => {
@@ -185,20 +177,12 @@ function handleOpenChange(details: { open: boolean }) {
 						class={noStyle ? '' : footerStyle.className || ''}
 						data-testid="consent-dialog-footer"
 					>
-						{#if showBranding}
-							<a
-								dir="ltr"
-								class={noStyle ? '' : styles.branding || ''}
-								href={brandingHref}
-							>
-								Secured by
-								{#if branding === 'consent'}
-									<ConsentIconOnly class={styles.brandingConsent || ''} />
-								{:else}
-									<C15TIcon class={styles.brandingC15T || ''} />
-								{/if}
-							</a>
-						{/if}
+						<Branding
+							{hideBranding}
+							{noStyle}
+							class={styles.branding || ''}
+							iconClass={{ consent: styles.brandingConsent || '', c15t: styles.brandingC15T || '' }}
+						/>
 					</div>
 				</div>
 			</Dialog.Content>

@@ -34,10 +34,7 @@ export { scrollLock } from './actions/scroll-lock';
 export { default as ConsentBanner } from './components/ConsentBanner.svelte';
 export { default as ConsentButton } from './components/ConsentButton.svelte';
 export { default as ConsentDialog } from './components/ConsentDialog.svelte';
-export {
-	default as ConsentDialogLink,
-	default as ConsentPreferencesLink,
-} from './components/ConsentDialogLink.svelte';
+export { default as ConsentDialogLink } from './components/ConsentDialogLink.svelte';
 export { default as ConsentDialogTrigger } from './components/ConsentDialogTrigger.svelte';
 // Components
 export { default as ConsentManagerProvider } from './components/ConsentManagerProvider.svelte';
@@ -51,6 +48,7 @@ export {
 	type ConsentContextValue,
 	type ConsentTrackingValue,
 	getConsentContext,
+	getConsentManager,
 	getThemeContext,
 	getTrackingContext,
 	type ThemeContextValue,
