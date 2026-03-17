@@ -154,8 +154,29 @@ async function runIteration(browser, route) {
 		}
 
 		return {
+			responseEnd: nav.responseEnd,
 			domContentLoaded: nav.domContentLoadedEventEnd,
 			loadEvent: nav.loadEventEnd,
+		};
+	});
+
+	const scriptTiming = await page.evaluate(() => {
+		const scripts = performance
+			.getEntriesByType('resource')
+			.filter((entry) => entry.initiatorType === 'script');
+		if (scripts.length === 0) {
+			return null;
+		}
+
+		const sorted = [...scripts].sort((a, b) => a.startTime - b.startTime);
+		const first = sorted[0];
+		const last = sorted[sorted.length - 1];
+
+		return {
+			firstScriptStartMs: first.startTime,
+			firstScriptEndMs: first.responseEnd,
+			lastScriptEndMs: last.responseEnd,
+			scriptCount: scripts.length,
 		};
 	});
 
@@ -195,6 +216,11 @@ async function runIteration(browser, route) {
 	return {
 		bannerVisibleMs: initial.bannerVisibleMs,
 		onBannerFetchedMs: initial.onBannerFetchedMs,
+		htmlResponseEndMs: navTiming?.responseEnd ?? null,
+		firstScriptStartMs: scriptTiming?.firstScriptStartMs ?? null,
+		firstScriptEndMs: scriptTiming?.firstScriptEndMs ?? null,
+		lastScriptEndMs: scriptTiming?.lastScriptEndMs ?? null,
+		scriptCount: scriptTiming?.scriptCount ?? 0,
 		initFetchStartMs: initTiming?.startTime ?? null,
 		initFetchMs: initTiming?.duration ?? null,
 		initFetchEndMs: initTiming?.responseEnd ?? null,
@@ -275,13 +301,22 @@ async function runBenchmarks() {
 				const sample = await runIteration(browser, route);
 				samples.push(sample);
 				process.stdout.write(
-					`[${route.name}] iteration ${i + 1}/${ITERATIONS}: banner=${sample.bannerVisibleMs.toFixed(1)}ms, initStart=${formatMaybeMs(sample.initFetchStartMs)}, initFetch=${formatMaybeMs(sample.initFetchMs)}, fetched->visible=${formatMaybeMs(sample.fetchedToVisibleMs)}, initReq(load/soft/reload)=${sample.initRequestsAfterLoad}/${sample.initRequestsAfterSoftNav}/${sample.initRequestsAfterReload}\n`
+					`[${route.name}] iteration ${i + 1}/${ITERATIONS}: banner=${sample.bannerVisibleMs.toFixed(1)}ms, html=${formatMaybeMs(sample.htmlResponseEndMs)}, scripts=${formatMaybeMs(sample.firstScriptStartMs)}-${formatMaybeMs(sample.lastScriptEndMs)} (${sample.scriptCount}), initStart=${formatMaybeMs(sample.initFetchStartMs)}, initFetch=${formatMaybeMs(sample.initFetchMs)}, fetched->visible=${formatMaybeMs(sample.fetchedToVisibleMs)}\n`
 				);
 			}
 
 			const bannerValues = samples.map((sample) => sample.bannerVisibleMs);
 			const onBannerFetchedMsValues = samples.map(
 				(sample) => sample.onBannerFetchedMs
+			);
+			const htmlResponseEndValues = samples.map(
+				(sample) => sample.htmlResponseEndMs
+			);
+			const firstScriptStartValues = samples.map(
+				(sample) => sample.firstScriptStartMs
+			);
+			const lastScriptEndValues = samples.map(
+				(sample) => sample.lastScriptEndMs
 			);
 			const initFetchStartMsValues = samples.map(
 				(sample) => sample.initFetchStartMs
@@ -319,6 +354,9 @@ async function runBenchmarks() {
 				route: route.name,
 				iterations: samples.length,
 				banner: summarizeMs(bannerValues),
+				avgHtmlResponseEndMs: averageDefined(htmlResponseEndValues),
+				avgFirstScriptStartMs: averageDefined(firstScriptStartValues),
+				avgLastScriptEndMs: averageDefined(lastScriptEndValues),
 				avgOnBannerFetchedMs: averageDefined(onBannerFetchedMsValues),
 				avgInitFetchStartMs: averageDefined(initFetchStartMsValues),
 				avgInitFetchMs: averageDefined(initFetchMsValues),
@@ -362,6 +400,9 @@ async function runBenchmarks() {
 				medianBannerMs: entry.banner.median,
 				p95BannerMs: entry.banner.p95,
 				medianDiffVsClientPct: medianDiffVsClient,
+				avgHtmlResponseEndMs: entry.avgHtmlResponseEndMs,
+				avgFirstScriptStartMs: entry.avgFirstScriptStartMs,
+				avgLastScriptEndMs: entry.avgLastScriptEndMs,
 				avgInitFetchStartMs: entry.avgInitFetchStartMs,
 				avgInitFetchMs: entry.avgInitFetchMs,
 				avgDomContentLoadedMs: entry.avgDomContentLoadedMs,

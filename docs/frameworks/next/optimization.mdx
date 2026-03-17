@@ -57,10 +57,11 @@ Why this helps:
 
 In production benchmarks with a same-origin rewrite, prefetching strategies show measurable improvement over client-only init:
 
-| Strategy | Banner speed vs client-only |
-|----------|-----------------------------|
-| Browser prefetch (`C15tPrefetch`) | ~1.5x faster |
-| Server prefetch (`fetchInitialData`) | ~1.5x faster |
+| Strategy | Scripts loaded | Data request starts | Banner visible |
+|----------|----------------|---------------------|----------------|
+| Client-only (no prefetch) | baseline | baseline | baseline |
+| Browser prefetch (`C15tPrefetch`) | ~1.3x faster | ~2.4x earlier | ~1.2x faster |
+| Server prefetch (`fetchInitialData`) | ~2x faster | before page loads | ~1.6x faster |
 
 ### Static Routes: Start Fetch Early In The Browser
 

@@ -5,7 +5,7 @@ const config: NextConfig = {
 		return [
 			{
 				source: '/api/pigeon/:path*',
-				destination: 'https://inth-status-europe-pigeon.c15t.ai/:path*',
+				destination: 'https://inth-status-europe-pigeon.c15t.dev/:path*',
 			},
 		];
 	},
