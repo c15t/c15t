@@ -9,7 +9,7 @@
 		persistPosition as persistToStorage,
 	} from '@c15t/ui/utils';
 	import { onMount, untrack } from 'svelte';
-	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { getConsentContext } from '../context.svelte';
 	import { portal } from '../actions/portal';
 	import C15TIconOnly from './icons/C15TIconOnly.svelte';
 	import ConsentIconOnly from './icons/ConsentIconOnly.svelte';
@@ -39,7 +39,6 @@
 	} = $props();
 
 	const consent = getConsentContext();
-	const theme = getThemeContext();
 
 	let isMounted = $state(false);
 	let corner: CornerPosition = $state(untrack(() => defaultPosition));

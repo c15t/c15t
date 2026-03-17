@@ -542,10 +542,12 @@ describe('processGVLData', () => {
 						purposes: [2],
 					}),
 				},
-				specialPurposes: undefined as any,
-				specialFeatures: undefined as any,
-				features: undefined as any,
-				stacks: undefined as any,
+				specialPurposes:
+					undefined as unknown as GlobalVendorList['specialPurposes'],
+				specialFeatures:
+					undefined as unknown as GlobalVendorList['specialFeatures'],
+				features: undefined as unknown as GlobalVendorList['features'],
+				stacks: undefined as unknown as GlobalVendorList['stacks'],
 			});
 
 			// Should not throw
@@ -570,7 +572,7 @@ describe('processGVLData', () => {
 							{
 								legIntClaim: 'https://example.com/legit-interest',
 							},
-						] as any,
+						] as unknown as GlobalVendorList['vendors'][string]['urls'],
 					}),
 				},
 			});

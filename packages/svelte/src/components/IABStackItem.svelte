@@ -93,7 +93,7 @@
 		</Collapsible.Trigger>
 		<div class={noStyle ? '' : styles.stackControls || ''}>
 			{#if someEnabled}
-				<span class="sr-only">{'Partially enabled'}</span>
+				<span class="sr-only">Partially enabled</span>
 				<div
 					class={noStyle ? '' : styles.partialIndicator || ''}
 					aria-hidden={true}

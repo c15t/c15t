@@ -186,7 +186,7 @@
 						</button>{descriptionParts[1] ?? ''}
 					</p>
 					<ul class={noStyle ? '' : styles.purposeList}>
-						{#each displayItems.displayed as name}
+						{#each displayItems.displayed as name (name)}
 							<li>{name}</li>
 						{/each}
 						{#if displayItems.remainingCount > 0}

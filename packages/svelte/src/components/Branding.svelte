@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { getConsentContext } from '../context.svelte';
 	import C15TIcon from './icons/C15TIcon.svelte';
 	import ConsentIconOnly from './icons/ConsentIconOnly.svelte';
 
