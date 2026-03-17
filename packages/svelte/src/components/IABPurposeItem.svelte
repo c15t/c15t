@@ -5,6 +5,10 @@
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 	import type { ProcessedPurpose, VendorId } from '../iab-types';
 	import type { IABTranslations } from '../iab-translations';
+	import ChevronRightIcon from './icons/ChevronRightIcon.svelte';
+	import LockIcon from './icons/LockIcon.svelte';
+	import LegitimateInterestIcon from './icons/LegitimateInterestIcon.svelte';
+	import GlobeIcon from './icons/GlobeIcon.svelte';
 
 	const sw = switchVariants();
 	const swSmall = switchVariants({ size: 'small' });
@@ -113,29 +117,13 @@
 			class={noStyle ? '' : styles.purposeTrigger || ''}
 		>
 			<Collapsible.Indicator class={noStyle ? '' : styles.purposeArrow || ''}>
-				<svg
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-				>
-					<path d="M9 5l7 7-7 7" />
-				</svg>
+				<ChevronRightIcon aria-hidden={true} />
 			</Collapsible.Indicator>
 			<div class={noStyle ? '' : styles.purposeInfo || ''}>
 				<h3 class={noStyle ? '' : styles.purposeName || ''}>
 					{purpose.name}
 					{#if isLocked}
-						<svg
-							class={noStyle ? '' : styles.lockIcon || ''}
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-						>
-							<rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-							<path d="M7 11V7a5 5 0 0 1 10 0v4" />
-						</svg>
+						<LockIcon class={noStyle ? '' : styles.lockIcon || ''} aria-hidden={true} />
 					{/if}
 				</h3>
 				<p class={noStyle ? '' : styles.purposeMeta || ''}>
@@ -146,17 +134,7 @@
 				</p>
 				{#if legIntVendors.length > 0}
 					<div class={noStyle ? '' : styles.legitimateInterestBadge || ''}>
-						<svg
-							class={noStyle ? '' : styles.legitimateInterestIcon || ''}
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-						>
-							<path
-								d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"
-							/>
-						</svg>
+						<LegitimateInterestIcon class={noStyle ? '' : styles.legitimateInterestIcon || ''} aria-hidden={true} />
 						{iabT.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
 							'{count}',
 							String(legIntVendors.length)
@@ -188,17 +166,7 @@
 			<div class={noStyle ? '' : styles.purposeLISection || ''}>
 				<div class={noStyle ? '' : styles.purposeLISectionHeader || ''}>
 					<div class={noStyle ? '' : styles.purposeLIInfo || ''}>
-						<svg
-							class={noStyle ? '' : styles.legitimateInterestIcon || ''}
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-						>
-							<path
-								d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"
-							/>
-						</svg>
+						<LegitimateInterestIcon class={noStyle ? '' : styles.legitimateInterestIcon || ''} aria-hidden={true} />
 						<span>
 							{iabT.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
 								'{count}',
@@ -228,17 +196,7 @@
 		<!-- Legacy badge when no toggle handler -->
 		{#if legIntVendors.length > 0 && !onPurposeLegitimateInterestToggle}
 			<div class={noStyle ? '' : styles.legitimateInterestBadge || ''}>
-				<svg
-					class={noStyle ? '' : styles.legitimateInterestIcon || ''}
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-				>
-					<path
-						d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"
-					/>
-				</svg>
+				<LegitimateInterestIcon class={noStyle ? '' : styles.legitimateInterestIcon || ''} aria-hidden={true} />
 				{iabT.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
 					'{count}',
 					String(legIntVendors.length)
@@ -253,16 +211,7 @@
 					class={noStyle ? '' : styles.examplesToggle || ''}
 				>
 					<Collapsible.Indicator>
-						<svg
-							width="12"
-							height="12"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-						>
-							<path d="M9 5l7 7-7 7" />
-						</svg>
+						<ChevronRightIcon width="12" height="12" aria-hidden={true} />
 					</Collapsible.Indicator>
 					{iabT.preferenceCenter.purposeItem.examples} ({purpose
 						.illustrations.length})
@@ -283,16 +232,7 @@
 				class={noStyle ? '' : styles.vendorsToggle || ''}
 			>
 				<Collapsible.Indicator>
-					<svg
-						width="12"
-						height="12"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-					>
-						<path d="M9 5l7 7-7 7" />
-					</svg>
+					<ChevronRightIcon width="12" height="12" aria-hidden={true} />
 				</Collapsible.Indicator>
 				{iabT.preferenceCenter.purposeItem.partnersUsingPurpose} ({purpose
 					.vendors.length})
@@ -349,17 +289,7 @@
 								? ''
 								: `${styles.vendorSectionTitle || ''} ${styles.vendorSectionTitleLI || ''}`}
 						>
-							<svg
-								class={noStyle ? '' : styles.legitimateInterestIcon || ''}
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-							>
-								<path
-									d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07"
-								/>
-							</svg>
+							<LegitimateInterestIcon class={noStyle ? '' : styles.legitimateInterestIcon || ''} aria-hidden={true} />
 							{iabT.preferenceCenter.purposeItem.legitimateInterest} ({iabLegIntVendors.length})
 						</h5>
 						<p class={noStyle ? '' : styles.liExplanation || ''}>
@@ -443,19 +373,7 @@
 									? ''
 									: styles.vendorSectionTitleCustom || ''}
 							>
-								<svg
-									class={noStyle ? '' : styles.legitimateInterestIcon || ''}
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-								>
-									<circle cx="12" cy="12" r="10" />
-									<line x1="2" y1="12" x2="22" y2="12" />
-									<path
-										d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
-									/>
-								</svg>
+								<GlobeIcon class={noStyle ? '' : styles.legitimateInterestIcon || ''} aria-hidden={true} />
 								{iabT.preferenceCenter.vendorList.customVendorsHeading} ({customConsentVendors.length +
 									customLegIntVendors.length})
 							</h5>
@@ -469,22 +387,7 @@
 											class={noStyle ? '' : styles.vendorName || ''}
 										>
 											<span>{vendor.name}</span>
-											<svg
-												class={noStyle
-													? ''
-													: styles.customVendorIcon || ''}
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												stroke-width="2"
-												aria-label={iabT.common.customPartner}
-											>
-												<circle cx="12" cy="12" r="10" />
-												<line x1="2" y1="12" x2="22" y2="12" />
-												<path
-													d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
-												/>
-											</svg>
+											<GlobeIcon class={noStyle ? '' : styles.customVendorIcon || ''} aria-label={iabT.common.customPartner} />
 										</button>
 									</div>
 									<Switch.Root
@@ -518,22 +421,7 @@
 											class={noStyle ? '' : styles.vendorName || ''}
 										>
 											<span>{vendor.name}</span>
-											<svg
-												class={noStyle
-													? ''
-													: styles.customVendorIcon || ''}
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												stroke-width="2"
-												aria-label={iabT.common.customPartner}
-											>
-												<circle cx="12" cy="12" r="10" />
-												<line x1="2" y1="12" x2="22" y2="12" />
-												<path
-													d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
-												/>
-											</svg>
+											<GlobeIcon class={noStyle ? '' : styles.customVendorIcon || ''} aria-label={iabT.common.customPartner} />
 										</button>
 									</div>
 									{#if showLIControl}

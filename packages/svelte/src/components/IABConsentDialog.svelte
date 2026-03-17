@@ -12,8 +12,11 @@
 	import IABPurposeItem from './IABPurposeItem.svelte';
 	import IABStackItem from './IABStackItem.svelte';
 	import IABVendorList from './IABVendorList.svelte';
-	import ConsentIconOnly from './icons/ConsentIconOnly.svelte';
-	import C15TIcon from './icons/C15TIcon.svelte';
+	import Branding from './Branding.svelte';
+	import CloseIcon from './icons/CloseIcon.svelte';
+	import ChevronRightIcon from './icons/ChevronRightIcon.svelte';
+	import LockIcon from './icons/LockIcon.svelte';
+	import InfoIcon from './icons/InfoIcon.svelte';
 
 	let {
 		open: openProp,
@@ -80,6 +83,15 @@
 
 	const isLoading = $derived(iabState?.isLoadingGVL || !iabState?.gvl);
 
+	// Partner count for special purposes + features section
+	const specialSectionPartnerCount = $derived.by(() => {
+		if (!gvlData) return 0;
+		return new Set([
+			...gvlData.specialPurposes.flatMap((sp) => sp.vendors.map((v) => v.id)),
+			...gvlData.features.flatMap((f) => f.vendors.map((v) => v.id)),
+		]).size;
+	});
+
 	// Handlers
 	function handleOpenChange(details: { open: boolean }) {
 		if (!details.open) {
@@ -143,18 +155,6 @@
 		iabState?.setPreferenceCenterTab('vendors');
 	}
 
-	// Branding
-	const branding = $derived(consent.state.branding);
-	const showBranding = $derived(!hideBranding && branding !== 'none');
-	const brandingHref = $derived.by(() => {
-		const refParam =
-			typeof window !== 'undefined'
-				? `?ref=${window.location.hostname}`
-				: '';
-		return branding === 'consent'
-			? `https://consent.io${refParam}`
-			: `https://c15t.com${refParam}`;
-	});
 </script>
 
 <Dialog.Root
@@ -170,7 +170,7 @@
 	<Portal>
 		<Dialog.Backdrop
 			class={noStyle ? '' : styles.overlay || ''}
-			data-testid="consent-overlay"
+			data-testid="consent-dialog-overlay"
 		/>
 		<Dialog.Positioner
 			class={noStyle ? '' : styles.root || ''}
@@ -195,18 +195,13 @@
 					</div>
 					<Dialog.CloseTrigger
 						class={noStyle ? '' : styles.closeButton || ''}
+						aria-label="Close"
 					>
-						<svg
+						<CloseIcon
 							width="16"
 							height="16"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-						>
-							<line x1="18" y1="6" x2="6" y2="18" />
-							<line x1="6" y1="6" x2="18" y2="18" />
-						</svg>
+							aria-hidden={true}
+						/>
 					</Dialog.CloseTrigger>
 				</div>
 
@@ -331,14 +326,9 @@
 											class={noStyle ? '' : styles.purposeTrigger || ''}
 										>
 											<Collapsible.Indicator class={noStyle ? '' : styles.purposeArrow || ''}>
-												<svg
-													viewBox="0 0 24 24"
-													fill="none"
-													stroke="currentColor"
-													stroke-width="2"
-												>
-													<path d="M9 5l7 7-7 7" />
-												</svg>
+												<ChevronRightIcon
+													aria-hidden={true}
+												/>
 											</Collapsible.Indicator>
 											<div class={noStyle ? '' : styles.purposeInfo || ''}>
 												<h3
@@ -347,49 +337,21 @@
 														: styles.specialPurposesTitle || ''}
 												>
 													{iabT.preferenceCenter.specialPurposes.title}
-													<svg
+													<LockIcon
 														class={noStyle ? '' : styles.lockIcon || ''}
-														viewBox="0 0 24 24"
-														fill="none"
-														stroke="currentColor"
-														stroke-width="2"
-													>
-														<rect
-															x="3"
-															y="11"
-															width="18"
-															height="11"
-															rx="2"
-															ry="2"
-														/>
-														<path d="M7 11V7a5 5 0 0 1 10 0v4" />
-													</svg>
+														aria-hidden={true}
+													/>
 												</h3>
 												<p class={noStyle ? '' : styles.purposeMeta || ''}>
-													{new Set([
-														...gvlData.specialPurposes.flatMap((sp) =>
-															sp.vendors.map((v) => v.id)
-														),
-														...gvlData.features.flatMap((f) =>
-															f.vendors.map((v) => v.id)
-														),
-													]).size} partners
+													{specialSectionPartnerCount} {specialSectionPartnerCount === 1 ? iabT.preferenceCenter.vendorList.partnerSingular : iabT.preferenceCenter.vendorList.partnerPlural}
 												</p>
 											</div>
 										</Collapsible.Trigger>
-										<svg
+										<InfoIcon
 											class={noStyle ? '' : styles.infoIcon || ''}
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="2"
 											aria-label={iabT.preferenceCenter.specialPurposes
 												.tooltip}
-										>
-											<circle cx="12" cy="12" r="10" />
-											<line x1="12" y1="16" x2="12" y2="12" />
-											<line x1="12" y1="8" x2="12.01" y2="8" />
-										</svg>
+										/>
 									</div>
 
 									<Collapsible.Content>
@@ -500,21 +462,13 @@
 				</div>
 
 				<!-- Branding -->
-				{#if showBranding}
-					<div class={noStyle ? '' : styles.branding || ''}>
-						<a
-							dir="ltr"
-							href={brandingHref}
-						>
-							Secured by
-								{#if branding === 'consent'}
-									<ConsentIconOnly class={styles.brandingConsent || ''} />
-								{:else}
-									<C15TIcon class={styles.brandingC15T || ''} />
-								{/if}
-						</a>
-					</div>
-				{/if}
+				<div class={noStyle ? '' : styles.branding || ''}>
+					<Branding
+						{hideBranding}
+						{noStyle}
+						iconClass={{ consent: styles.brandingConsent || '', c15t: styles.brandingC15T || '' }}
+					/>
+				</div>
 			</Dialog.Content>
 		</Dialog.Positioner>
 	</Portal>

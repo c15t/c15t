@@ -109,11 +109,17 @@ export const translations: CompleteTranslations = {
 				usesCookies: 'Uses Cookies',
 				nonCookieAccess: 'Non-Cookie Access',
 				maxAge: 'Max Age: {days}d',
+				maxAgeRefreshes: '(refreshes)',
 				retention: 'Retention: {days}d',
+				retainedDays: 'Retained: {days}d',
 				legitimateInterest: 'Leg. Interest',
 				privacyPolicy: 'Privacy Policy',
 				storageDisclosure: 'Storage Disclosure',
 				requiredNotice: 'Required for site functionality, cannot be disabled',
+				noVendorsFound: 'No vendors found matching "{searchTerm}"',
+				partnerCount: '{count} partners',
+				partnerSingular: 'partner',
+				partnerPlural: 'partners',
 			},
 			footer: {
 				consentStorage:

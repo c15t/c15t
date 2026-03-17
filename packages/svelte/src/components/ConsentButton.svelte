@@ -46,7 +46,7 @@
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 
 	const defaultThemeKey = $derived(
-		variant === 'primary' ? 'buttonPrimary' : 'buttonSecondary'
+		variant === 'primary' ? ('buttonPrimary' as const) : ('buttonSecondary' as const)
 	);
 
 	const variantClasses = $derived(
@@ -55,7 +55,7 @@
 
 	const buttonStyle = $derived(
 		resolveComponentStyles(
-			defaultThemeKey as any,
+			defaultThemeKey,
 			theme.theme,
 			{ className, noStyle },
 			noStyle
@@ -91,7 +91,8 @@
 					break;
 				case 'set-consent':
 					if (!category) {
-						throw new Error('Category is required for set-consent action');
+						console.error('[c15t] Category is required for set-consent action');
+						return;
 					}
 					state.setConsent(category, true);
 					break;
