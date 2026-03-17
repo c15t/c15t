@@ -122,6 +122,14 @@ function resolveDefaultConsent(
  * policy and default consent state without translations, GVL, branding,
  * or snapshot tokens.
  *
+ * @experimental This API may change in future versions.
+ *
+ * @remarks
+ * Currently async because the underlying `resolvePolicyDecision` computes
+ * a SHA-256 fingerprint (via `crypto.subtle`) that this function discards.
+ * There are no fetch calls. A future version will expose a sync policy
+ * matcher from `@c15t/schema` to make this fully synchronous.
+ *
  * @example
  * ```ts
  * import { resolveConsent } from '@c15t/backend/edge';
