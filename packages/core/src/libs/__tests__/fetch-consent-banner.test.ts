@@ -403,24 +403,28 @@ describe('fetchConsentBannerInfo', () => {
 				location: { countryCode: 'US', regionCode: 'CA' },
 			});
 
-			mockManager.showConsentBanner = vi.fn().mockResolvedValue({
-				data: apiResponse,
-				error: null,
-			});
+			try {
+				mockManager.showConsentBanner = vi.fn().mockResolvedValue({
+					data: apiResponse,
+					error: null,
+				});
 
-			const result = await fetchConsentBannerInfo({
-				manager: mockManager,
-				get: mockGet,
-				set: mockSet,
-				initialData,
-			});
+				const result = await fetchConsentBannerInfo({
+					manager: mockManager,
+					get: mockGet,
+					set: mockSet,
+					initialData,
+				});
 
-			expect(result).toEqual(apiResponse);
-			expect(mockManager.showConsentBanner).toHaveBeenCalled();
-			expect(warnSpy).toHaveBeenCalledWith(
-				'Failed to use initial consent banner data:',
-				expect.any(Error)
-			);
+				expect(result).toEqual(apiResponse);
+				expect(mockManager.showConsentBanner).toHaveBeenCalled();
+				expect(warnSpy).toHaveBeenCalledWith(
+					'Failed to use initial consent banner data:',
+					expect.any(Error)
+				);
+			} finally {
+				warnSpy.mockRestore();
+			}
 		});
 	});
 
@@ -757,8 +761,8 @@ describe('fetchConsentBannerInfo', () => {
 
 		it('should not set translation config when translations are missing', async () => {
 			// Create a response without translations field
-			const { translations, ...mockResponseWithoutTranslations } =
-				createMockConsentBannerResponse();
+			const mockResponseWithoutTranslations = createMockConsentBannerResponse();
+			delete mockResponseWithoutTranslations.translations;
 
 			mockManager.showConsentBanner = vi.fn().mockResolvedValue({
 				data: mockResponseWithoutTranslations,

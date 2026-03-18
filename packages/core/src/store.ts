@@ -797,6 +797,19 @@ export const createConsentManagerStore = (
 		// biome-ignore lint/suspicious/noExplicitAny: its okay
 		(window as any)[namespace] = store;
 
+		const hadConsentInfoBeforeFetch = store.getState().consentInfo !== null;
+		let bannerHydratedSynchronously = false;
+		if (enabled) {
+			store.getState().fetchConsentBannerInfo();
+			bannerHydratedSynchronously = store.getState().hasFetchedBanner;
+		}
+
+		const didAutoGrantSynchronously =
+			bannerHydratedSynchronously &&
+			!hadConsentInfoBeforeFetch &&
+			store.getState().lastBannerFetchData?.jurisdiction?.code === 'NONE' &&
+			!store.getState().lastBannerFetchData?.showConsentBanner;
+
 		if (options.unstable_googleTagManager) {
 			try {
 				setupGTM({
@@ -807,20 +820,18 @@ export const createConsentManagerStore = (
 				console.error('Failed to setup Google Tag Manager:', e);
 			}
 		}
-		// When the store is initialized, call the onConsentSet callback with the initial consent state
-		store
-			.getState()
-			.callbacks.onConsentSet?.({ preferences: store.getState().consents });
+		// When the store is initialized, call the onConsentSet callback with the
+		// initial consent state unless synchronous hydration already emitted the
+		// auto-granted callback with the resolved consent state.
+		if (!didAutoGrantSynchronously) {
+			store
+				.getState()
+				.callbacks.onConsentSet?.({ preferences: store.getState().consents });
+		}
 
 		// Identify the user if an external ID is provided
 		if (options.user) {
 			store.getState().identifyUser(options.user);
-		}
-
-		let bannerHydratedSynchronously = false;
-		if (enabled) {
-			store.getState().fetchConsentBannerInfo();
-			bannerHydratedSynchronously = store.getState().hasFetchedBanner;
 		}
 
 		// Update based on the initial consent state unless initial data already
