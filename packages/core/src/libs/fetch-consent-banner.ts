@@ -15,17 +15,30 @@ import { hasGlobalPrivacyControlSignal } from './global-privacy-control';
 import type { createTrackingBlocker } from './tracking-blocker';
 
 type ConsentBannerResponse = ContractsOutputs['consent']['showBanner'];
+type InitialConsentBannerData =
+	| ConsentBannerResponse
+	| Promise<ConsentBannerResponse | undefined>
+	| undefined;
 
 /**
  * Configuration for fetching consent banner information
  */
 interface FetchConsentBannerConfig {
 	manager: ConsentManagerInterface;
-	initialData?: Promise<ContractsOutputs['consent']['showBanner'] | undefined>;
+	initialData?: InitialConsentBannerData;
 	initialTranslationConfig?: Partial<TranslationConfig>;
 	get: StoreApi<PrivacyConsentState>['getState'];
 	set: StoreApi<PrivacyConsentState>['setState'];
 	trackingBlocker?: ReturnType<typeof createTrackingBlocker> | null;
+}
+
+function isPromiseLike<T>(value: Promise<T> | T): value is Promise<T> {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		'then' in value &&
+		typeof value.then === 'function'
+	);
 }
 
 /**
@@ -189,12 +202,18 @@ export async function fetchConsentBannerInfo(
 
 	// If there is any overrides we skip the initial data
 	if (initialData && !get().overrides) {
-		const showConsentBanner = await initialData;
+		try {
+			const showConsentBanner = isPromiseLike(initialData)
+				? await initialData
+				: initialData;
 
-		// Ensures the promise has the expected data
-		if (showConsentBanner) {
-			updateStore(showConsentBanner, config, true);
-			return showConsentBanner;
+			// Ensures the initial data has the expected shape
+			if (showConsentBanner) {
+				updateStore(showConsentBanner, config, true);
+				return showConsentBanner;
+			}
+		} catch (error) {
+			console.warn('Failed to use initial consent banner data:', error);
 		}
 	}
 

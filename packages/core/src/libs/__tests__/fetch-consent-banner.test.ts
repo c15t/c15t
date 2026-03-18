@@ -254,6 +254,20 @@ describe('fetchConsentBannerInfo', () => {
 	});
 
 	describe('Initial data handling', () => {
+		it('should use resolved initial data when provided', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+
+			const result = await fetchConsentBannerInfo({
+				manager: mockManager,
+				get: mockGet,
+				set: mockSet,
+				initialData: mockResponse,
+			});
+
+			expect(result).toEqual(mockResponse);
+			expect(mockManager.showConsentBanner).not.toHaveBeenCalled();
+		});
+
 		it('should use initial data when provided and valid', async () => {
 			const mockResponse = createMockConsentBannerResponse();
 			const initialData = Promise.resolve(mockResponse);
@@ -382,27 +396,32 @@ describe('fetchConsentBannerInfo', () => {
 			});
 		});
 
-		// it('should handle rejected initial data promise', async () => {
-		// 	// Mock console.error to prevent test output noise
-		// 	const originalConsoleError = console.error;
-		// 	console.error = vi.fn();
+		it('should fall back to the API when initial data promise rejects', async () => {
+			const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			const initialData = Promise.reject(new Error('Initial data failed'));
+			const apiResponse = createMockConsentBannerResponse({
+				location: { countryCode: 'US', regionCode: 'CA' },
+			});
 
-		// 	// Create a rejected promise
-		// 	const initialData = Promise.reject(new Error('Initial data failed'));
+			mockManager.showConsentBanner = vi.fn().mockResolvedValue({
+				data: apiResponse,
+				error: null,
+			});
 
-		// 	// Use vitest's async matcher
-		// 	await expect(
-		// 		fetchConsentBannerInfo({
-		// 			manager: mockManager,
-		// 			get: mockGet,
-		// 			set: mockSet,
-		// 			initialData,
-		// 		})
-		// 	).rejects.toThrow('Initial data failed');
+			const result = await fetchConsentBannerInfo({
+				manager: mockManager,
+				get: mockGet,
+				set: mockSet,
+				initialData,
+			});
 
-		// 	// Restore console.error
-		// 	console.error = originalConsoleError;
-		// });
+			expect(result).toEqual(apiResponse);
+			expect(mockManager.showConsentBanner).toHaveBeenCalled();
+			expect(warnSpy).toHaveBeenCalledWith(
+				'Failed to use initial consent banner data:',
+				expect.any(Error)
+			);
+		});
 	});
 
 	describe('API call handling', () => {

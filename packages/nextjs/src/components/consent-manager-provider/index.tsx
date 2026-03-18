@@ -7,11 +7,11 @@ import type {
 import { enrichOptions } from './utils/enrich-options';
 import { getC15TInitialData } from './utils/initial-data';
 
-export function ConsentManagerProvider({
+export async function ConsentManagerProvider({
 	children,
 	options,
 }: AppDirectoryConsentManagerProviderProps) {
-	let initialDataPromise: InitialDataPromise;
+	let initialData: InitialDataPromise;
 
 	// Initial data is only required for c15t mode
 	switch (options.mode) {
@@ -21,7 +21,7 @@ export function ConsentManagerProvider({
 			}
 
 			// In c15t mode, overrides are sent with the fetch request
-			initialDataPromise = getC15TInitialData(
+			initialData = await getC15TInitialData(
 				options.backendURL,
 				headers(),
 				options.overrides
@@ -29,7 +29,7 @@ export function ConsentManagerProvider({
 			break;
 		}
 		default:
-			initialDataPromise = undefined;
+			initialData = undefined;
 	}
 
 	// enrichOptions handles the overrides logic:
@@ -40,7 +40,7 @@ export function ConsentManagerProvider({
 		<ClientConsentManagerProvider
 			options={enrichOptions({
 				options,
-				initialData: initialDataPromise,
+				initialData,
 				usingAppDir: true,
 			})}
 		>

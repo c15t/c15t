@@ -60,6 +60,12 @@ interface StoredConsent {
 	consentInfo: ConsentInfo | null;
 }
 
+type InitialConsentBannerData = ContractsOutputs['consent']['showBanner'];
+type InitialConsentBannerDataSource =
+	| InitialConsentBannerData
+	| Promise<InitialConsentBannerData | undefined>
+	| undefined;
+
 /**
  * Retrieves stored consent data from localStorage or cookie.
  *
@@ -198,8 +204,9 @@ export interface StoreOptions {
 	 * If showConsentBanner is fetched prior to the store being created, you can pass the initial data here.
 	 *
 	 * This is useful for server-side rendering (SSR) such as in @c15t/nextjs.
+	 * You can pass either the resolved banner response or a promise that resolves to it.
 	 */
-	_initialData?: Promise<ContractsOutputs['consent']['showBanner'] | undefined>;
+	_initialData?: InitialConsentBannerDataSource;
 
 	/**
 	 * Callbacks for the consent manager.
@@ -810,12 +817,17 @@ export const createConsentManagerStore = (
 			store.getState().identifyUser(options.user);
 		}
 
-		// Update based on the initial consent state
-		trackingBlocker?.updateConsents(store.getState().consents);
-		store.getState().updateScripts();
-
+		let bannerHydratedSynchronously = false;
 		if (enabled) {
 			store.getState().fetchConsentBannerInfo();
+			bannerHydratedSynchronously = store.getState().hasFetchedBanner;
+		}
+
+		// Update based on the initial consent state unless initial data already
+		// updated the store synchronously during fetchConsentBannerInfo().
+		if (!bannerHydratedSynchronously) {
+			trackingBlocker?.updateConsents(store.getState().consents);
+			store.getState().updateScripts();
 		}
 	}
 
