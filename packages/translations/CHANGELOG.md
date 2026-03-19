@@ -1,5 +1,11 @@
 # @c15t/translations
 
+## 1.8.6-canary-20260319154256
+
+### Patch Changes
+
+- 9ebffe1: Update direct and transitive dependencies to address known vulnerabilities and keep runtime/tooling packages current.
+
 ## 1.8.5
 
 ### Patch Changes
