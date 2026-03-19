@@ -1,5 +1,6 @@
 import type { ConsentManagerProviderProps } from '@c15t/react';
 import type { FetchSSRDataOptionsBase } from '@c15t/react/server';
+import type { PrefetchOptions } from 'c15t';
 
 export type InitialDataPromise = NonNullable<
 	ConsentManagerProviderProps['options']['store']
@@ -13,6 +14,15 @@ export interface NextCacheOptions {
 	 * @default 1
 	 */
 	revalidateSeconds?: number | false;
+}
+
+export interface C15tPrefetchProps extends PrefetchOptions {
+	/**
+	 * Optional script element ID.
+	 *
+	 * @default 'c15t-initial-data-prefetch'
+	 */
+	id?: string;
 }
 
 /**

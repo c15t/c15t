@@ -1,0 +1,133 @@
+---
+title: Optimization
+description: Improve c15t startup performance in Next.js with rewrites, static prefetching, and rendering tradeoffs.
+lastModified: 2026-03-17
+---
+
+<import src="../../shared/react/guides/optimization.mdx#intro" />
+
+## 1) Prefer Same-Origin Rewrites
+
+Proxy c15t requests through your Next.js app so the browser calls your own origin instead of a third-party domain.
+
+```ts title="next.config.ts"
+import type { NextConfig } from 'next';
+
+const config: NextConfig = {
+  async rewrites() {
+    return [
+      {
+        source: '/api/c15t/:path*',
+        destination: `${process.env.NEXT_PUBLIC_C15T_URL}/:path*`,
+      },
+    ];
+  },
+};
+
+export default config;
+```
+
+Then use:
+
+```tsx
+<ConsentManagerProvider options={{ backendURL: '/api/c15t', mode: 'hosted' }}>
+```
+
+<import src="../../shared/react/guides/optimization.mdx#rewrites-why" />
+
+<Callout type="info">
+  Set `NEXT_PUBLIC_C15T_URL` in `.env` to your backend URL, for example `https://your-instance.c15t.dev`.
+</Callout>
+
+<Callout type="warn">
+  Use rewrites for browser-side calls (`ConsentManagerProvider`, `C15tPrefetch`). For server-side `fetchInitialData()`, prefer a direct backend URL (for example `https://your-instance.c15t.dev`) to avoid an extra server proxy hop.
+</Callout>
+
+## 2) Pick The Right Data Strategy
+
+| Goal | Strategy | Tradeoff |
+|------|----------|----------|
+| Keep routes fully static | `C15tPrefetch` + `getPrefetchedInitialData()` | Still client-side fetch, but starts earlier |
+| Fastest first banner on dynamic routes | `fetchInitialData()` in a Server Component (do not await) | Route becomes dynamic because of `next/headers` |
+| Simplest setup | Client-only init (no prefetch) | Banner appears later on slow networks |
+
+<import src="../../shared/react/guides/optimization.mdx#benchmark" />
+
+### Static Routes: Start Fetch Early In The Browser
+
+Use `C15tPrefetch` in your layout and consume the same Promise in the provider.
+
+```tsx title="app/layout.tsx"
+import { C15tPrefetch } from '@c15t/nextjs';
+import { ConsentManager } from '@/components/consent-manager';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <head>
+        <C15tPrefetch
+          backendURL="/api/c15t"
+          overrides={{ country: 'DE', region: 'BE', language: 'de' }}
+        />
+      </head>
+      <body>
+        <ConsentManager>{children}</ConsentManager>
+      </body>
+    </html>
+  );
+}
+```
+
+```tsx title="components/consent-manager/provider.tsx"
+'use client';
+
+import {
+  ConsentManagerProvider,
+  ConsentBanner,
+  ConsentDialog,
+  getPrefetchedInitialData,
+} from '@c15t/nextjs';
+
+export default function ConsentManagerClient({ children }: { children: React.ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: '/api/c15t',
+        ssrData: getPrefetchedInitialData({
+          backendURL: '/api/c15t',
+          overrides: { country: 'DE', region: 'BE', language: 'de' },
+        }),
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<Callout type="info">
+  `C15tPrefetch` uses Next.js `beforeInteractive` script loading, so the `/init` request can start before hydration. In App Router streaming output, this may appear as Next.js script bootstrap data (for example `self.__next_s.push(...)`) instead of a literal `<head><script>` tag.
+</Callout>
+
+<Callout type="info">
+  If you use `overrides` or custom `credentials` in `C15tPrefetch`, pass the same values to `getPrefetchedInitialData(...)` so it resolves the matching prefetched request.
+</Callout>
+
+<import src="../../shared/react/guides/optimization.mdx#keep-mounted" />
+
+<import src="../../shared/react/guides/optimization.mdx#animation" />
+
+To customize motion durations and easing, see [Styling](/docs/frameworks/next/styling/overview).
+
+## Reduce Network Overhead
+
+<import src="../../shared/react/guides/optimization.mdx#preconnect" />
+
+```tsx title="app/layout.tsx"
+<head>
+  <link rel="preconnect" href="https://your-instance.c15t.dev" crossOrigin="" />
+</head>
+```
