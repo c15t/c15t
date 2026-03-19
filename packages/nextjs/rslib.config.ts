@@ -6,7 +6,7 @@ import {
 	standardSourceEntries,
 } from '../shared/rslib-utils';
 
-const externals = ['next', 'next/headers', 'react', 'react-dom'];
+const externals = ['next', 'next/headers', 'next/script', 'react', 'react-dom'];
 
 export default defineConfig({
 	source: {
