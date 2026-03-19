@@ -1,5 +1,26 @@
 # c15t
 
+## 1.8.5
+
+### Patch Changes
+
+- be4e218: Republish patch release to fix workspace dependency protocol resolution during publish.
+
+  Published package manifests now resolve `workspace:*` references to concrete semver ranges before release.
+
+- Updated dependencies [be4e218]
+  - @c15t/backend@1.8.5
+  - @c15t/translations@1.8.5
+
+## 1.8.4
+
+### Patch Changes
+
+- 8defcd9: Update direct and transitive dependencies to address known vulnerabilities and keep runtime/tooling packages current.
+- Updated dependencies [8defcd9]
+  - @c15t/backend@1.8.4
+  - @c15t/translations@1.8.4
+
 ## 1.8.3
 
 ### Patch Changes
