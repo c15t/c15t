@@ -17,6 +17,7 @@ Edge:      Browser → Edge   (nearest PoP)    → c15tEdgeInit        → Respo
 - You already use edge middleware for other purposes (auth, redirects, A/B testing)
 
 You do **not** need this if:
+
 - Your origin is already multi-region or on a platform like Cloudflare Workers
 - Consent banner latency is not a concern for your use case
 
@@ -54,70 +55,62 @@ export const consentConfig = {
 ### 2. Create edge middleware
 
 <Tabs groupId="runtime" items={['Vercel Middleware', 'Cloudflare Workers', 'Deno Deploy']}>
+  <Tab value="Vercel Middleware">
+    ```ts title="middleware.ts"
+    import { c15tEdgeInit } from '@c15t/backend/edge';
+    import { consentConfig } from './lib/consent-config';
 
-<Tab value="Vercel Middleware">
+    const initHandler = c15tEdgeInit(consentConfig);
 
-```ts title="middleware.ts"
-import { c15tEdgeInit } from '@c15t/backend/edge';
-import { consentConfig } from './lib/consent-config';
-
-const initHandler = c15tEdgeInit(consentConfig);
-
-export async function middleware(request: Request) {
-  const url = new URL(request.url);
-  if (url.pathname === '/api/c15t/init') {
-    return initHandler(request);
-  }
-}
-
-export const config = {
-  matcher: '/api/c15t/init',
-};
-```
-
-</Tab>
-
-<Tab value="Cloudflare Workers">
-
-```ts title="worker.ts"
-import { c15tEdgeInit } from '@c15t/backend/edge';
-import { consentConfig } from './lib/consent-config';
-
-const initHandler = c15tEdgeInit(consentConfig);
-
-export default {
-  async fetch(request: Request) {
-    const url = new URL(request.url);
-    if (url.pathname === '/api/c15t/init') {
-      return initHandler(request);
+    export async function middleware(request: Request) {
+      const url = new URL(request.url);
+      if (url.pathname === '/api/c15t/init') {
+        return initHandler(request);
+      }
     }
-    // Forward other requests to origin
-    return fetch(request);
-  },
-};
-```
 
-</Tab>
+    export const config = {
+      matcher: '/api/c15t/init',
+    };
+    ```
+  </Tab>
 
-<Tab value="Deno Deploy">
+  <Tab value="Cloudflare Workers">
+    ```ts title="worker.ts"
+    import { c15tEdgeInit } from '@c15t/backend/edge';
+    import { consentConfig } from './lib/consent-config';
 
-```ts title="main.ts"
-import { c15tEdgeInit } from '@c15t/backend/edge';
-import { consentConfig } from './lib/consent-config.ts';
+    const initHandler = c15tEdgeInit(consentConfig);
 
-const initHandler = c15tEdgeInit(consentConfig);
+    export default {
+      async fetch(request: Request) {
+        const url = new URL(request.url);
+        if (url.pathname === '/api/c15t/init') {
+          return initHandler(request);
+        }
+        // Forward other requests to origin
+        return fetch(request);
+      },
+    };
+    ```
+  </Tab>
 
-Deno.serve(async (request) => {
-  const url = new URL(request.url);
-  if (url.pathname === '/api/c15t/init') {
-    return initHandler(request);
-  }
-  return new Response('Not found', { status: 404 });
-});
-```
+  <Tab value="Deno Deploy">
+    ```ts title="main.ts"
+    import { c15tEdgeInit } from '@c15t/backend/edge';
+    import { consentConfig } from './lib/consent-config.ts';
 
-</Tab>
+    const initHandler = c15tEdgeInit(consentConfig);
 
+    Deno.serve(async (request) => {
+      const url = new URL(request.url);
+      if (url.pathname === '/api/c15t/init') {
+        return initHandler(request);
+      }
+      return new Response('Not found', { status: 404 });
+    });
+    ```
+  </Tab>
 </Tabs>
 
 ### 3. Keep your origin handler unchanged
@@ -164,7 +157,7 @@ export const { GET, POST } = c15t;
 The edge handler:
 
 1. **Reads geo headers** — Vercel sets `x-vercel-ip-country` and `x-vercel-ip-country-region` automatically. Cloudflare sets `cf-ipcountry`. The handler checks all common provider headers.
-2. **Resolves jurisdiction** — Maps the country/region to a jurisdiction code (GDPR, CCPA, UK_GDPR, etc.)
+2. **Resolves jurisdiction** — Maps the country/region to a jurisdiction code (GDPR, CCPA, UK\_GDPR, etc.)
 3. **Matches a policy pack** — Finds the first matching policy for the visitor's location
 4. **Resolves translations** — Picks the right language from `Accept-Language` and your i18n config
 5. **Signs a snapshot token** — Creates a JWT proving which policy was served (if `policySnapshot` is configured)
@@ -179,7 +172,7 @@ Edge isolates have short-lived memory. The in-memory GVL cache resets on each co
 - **Bundle GVL translations** using `iab.bundled` to avoid fetch latency entirely
 - **Use an external cache** (Upstash Redis, Cloudflare KV) via the `cache.adapter` option to share cached data across isolates — see the [Caching guide](/docs/self-host/guides/caching) for setup
 
-## Custom consent cookie — resolveConsent {#resolve-consent}
+## Custom consent cookie — resolveConsent
 
 <Callout type="info">
   **Experimental** — this API may change in future versions.
