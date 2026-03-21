@@ -25,7 +25,7 @@ Prebuilt script integrations for c15t, providing ready-to-use consent-aware anal
 - Prebuilt script snippets for popular analytics and marketing tools
 - Easy integration with c15t's script loader
 - Configuration options for each supported vendor
-- Supported vendors include Google Tag Manager, Meta Pixel, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, and X Pixel
+- Supported vendors include Google Tag Manager, Meta Pixel, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, and Reddit Pixel
 
 ## Documentation
 
@@ -41,6 +41,7 @@ For further information, guides, and examples visit the [reference documentation
 - [LinkedIn Insights](https://c15t.link/linkedin-insights)
 - [Microsoft UET](https://c15t.link/microsoft-uet)
 - [X Pixel](https://c15t.link/x-pixel)
+- [Reddit Pixel](https://c15t.link/reddit-pixel)
 
 ## Support
 
