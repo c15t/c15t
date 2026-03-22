@@ -1,0 +1,22 @@
+{
+	"name": "@c15t/storybook-svelte",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"storybook": "portless run --name storybook-svelte sh -c 'storybook dev --port \"$PORT\" --host \"$HOST\"'",
+		"build": "storybook build"
+	},
+	"dependencies": {
+		"@c15t/ui": "workspace:*",
+		"@c15t/framework-svelte": "workspace:*",
+		"svelte": "^5.22.6"
+	},
+	"devDependencies": {
+		"@sveltejs/vite-plugin-svelte": "^6.2.4",
+		"@storybook/addon-a11y": "10.3.1",
+		"@storybook/svelte-vite": "10.3.1",
+		"storybook": "10.3.1",
+		"typescript": "5.9.3",
+		"vite": "7.3.1"
+	}
+}

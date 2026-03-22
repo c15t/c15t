@@ -1,0 +1,21 @@
+{
+	"name": "@c15t/framework-solid",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"build": "tsc --noEmit",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@c15t/ui": "workspace:*",
+		"solid-js": "^1.9.5"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"typescript": "5.9.3",
+		"vitest": "4.0.15"
+	}
+}

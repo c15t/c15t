@@ -1,0 +1,14 @@
+{
+	"baseline": {
+		"entry": "radix-baseline",
+		"gzipBytes": 27613,
+		"minifiedBytes": 89726
+	},
+	"c15t": {
+		"entry": "c15t-primitives",
+		"gzipBytes": 15738,
+		"minifiedBytes": 56210
+	},
+	"deltaBytes": -33516,
+	"deltaGzipBytes": -11875
+}
