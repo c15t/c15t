@@ -902,4 +902,46 @@ describe('Collapsible', () => {
 			).toBe('true');
 		});
 	});
+
+	test('should keep structural collapse behavior in noStyle mode', async () => {
+		render(
+			<ThemeWrapper>
+				<CollapsibleRoot defaultOpen={false} noStyle>
+					<CollapsibleTrigger noStyle>Toggle details</CollapsibleTrigger>
+					<CollapsibleContent noStyle innerClassName="custom-inner">
+						<button type="button">Hidden action</button>
+					</CollapsibleContent>
+				</CollapsibleRoot>
+			</ThemeWrapper>
+		);
+
+		const trigger = document.querySelector('[data-slot="collapsible-trigger"]');
+		const content = document.querySelector('[data-slot="collapsible-content"]');
+		const viewport = document.querySelector(
+			'[data-slot="collapsible-content-viewport"]'
+		);
+		const inner = document.querySelector('.custom-inner');
+
+		expect(trigger).toBeInstanceOf(HTMLElement);
+		expect(content).toBeInTheDocument();
+		expect(viewport).toBeInTheDocument();
+		expect(inner).toBeInTheDocument();
+		expect(content?.getAttribute('aria-hidden')).toBe('true');
+		expect(content?.className).toBeTruthy();
+		expect(viewport?.className).toBeTruthy();
+
+		if (!trigger) {
+			throw new Error('Expected collapsible trigger to exist');
+		}
+
+		await userEvent.click(trigger);
+		await vi.waitFor(() => {
+			expect(trigger.getAttribute('aria-expanded')).toBe('true');
+			expect(
+				document
+					.querySelector('[data-slot="collapsible-content"]')
+					?.getAttribute('aria-hidden')
+			).toBe('false');
+		});
+	});
 });

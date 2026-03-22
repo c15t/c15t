@@ -178,9 +178,7 @@ const CollapsibleContent = forwardRef<HTMLDivElement, CollapsibleContentProps>(
 				ref={forwardedRef}
 				aria-hidden={!open}
 				aria-labelledby={triggerId}
-				className={
-					finalNoStyle ? className : variants.content({ class: className })
-				}
+				className={variants.content({ class: className })}
 				data-slot="collapsible-content"
 				data-state={getCollapsibleState(open)}
 				id={contentId}
@@ -188,20 +186,10 @@ const CollapsibleContent = forwardRef<HTMLDivElement, CollapsibleContentProps>(
 				{...rest}
 			>
 				<div
-					className={
-						finalNoStyle
-							? undefined
-							: variants.contentViewport({ class: undefined })
-					}
+					className={variants.contentViewport({ class: undefined })}
 					data-slot="collapsible-content-viewport"
 				>
-					<div
-						className={
-							finalNoStyle
-								? innerClassName
-								: variants.contentInner({ class: innerClassName })
-						}
-					>
+					<div className={variants.contentInner({ class: innerClassName })}>
 						{children}
 					</div>
 				</div>
