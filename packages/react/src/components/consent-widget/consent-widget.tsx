@@ -2,6 +2,7 @@
 
 import styles from '@c15t/ui/styles/components/consent-widget.module.js';
 import { useState } from 'react';
+import type { AccordionRootProps } from '~/components/shared/ui/accordion';
 import {
 	type HeadlessConsentDialogAction,
 	useHeadlessConsentUI,
@@ -88,7 +89,9 @@ export const ConsentWidget = ({
 			<ConsentWidgetAccordion
 				type="multiple"
 				value={openItems}
-				onValueChange={setOpenItems}
+				onValueChange={(value: NonNullable<AccordionRootProps['value']>) => {
+					setOpenItems(Array.isArray(value) ? value : [value]);
+				}}
 			>
 				<ConsentWidgetAccordionItems />
 			</ConsentWidgetAccordion>

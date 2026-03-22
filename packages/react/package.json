@@ -33,6 +33,16 @@
 	"exports": {
 		"./styles.css": "./dist/styles.css",
 		"./iab/styles.css": "./dist/iab/styles.css",
+		"./primitives": {
+			"types": "./dist/primitives.d.ts",
+			"import": "./dist/primitives.js",
+			"require": "./dist/primitives.cjs"
+		},
+		"./primitives/*": {
+			"types": "./dist/primitives/*.d.ts",
+			"import": "./dist/primitives/*.js",
+			"require": "./dist/primitives/*.cjs"
+		},
 		"./server": {
 			"types": "./dist-types/server/index.d.ts",
 			"import": "./dist/server/index.js",
@@ -149,9 +159,6 @@
 	],
 	"dependencies": {
 		"@c15t/ui": "workspace:*",
-		"@radix-ui/react-accordion": "1.2.12",
-		"@radix-ui/react-slot": "1.2.4",
-		"@radix-ui/react-switch": "1.2.6",
 		"c15t": "workspace:*",
 		"clsx": "2.1.1"
 	},

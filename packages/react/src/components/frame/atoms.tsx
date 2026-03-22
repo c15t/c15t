@@ -31,7 +31,8 @@ const FrameTitle = forwardRef<
 		category && frame?.title
 			? frame.title.replace(
 					'{category}',
-					consentTypes?.[category]?.title ?? category
+					consentTypes?.[category as keyof typeof consentTypes]?.title ??
+						category
 				)
 			: undefined;
 

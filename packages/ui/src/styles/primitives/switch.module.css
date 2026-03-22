@@ -9,7 +9,10 @@
 	/* Thumb sizes */
 	--switch-thumb-size: 0.75rem;
 	--switch-thumb-size-disabled: 0.625rem;
-	--switch-thumb-translate: 0.75rem;
+	--switch-thumb-translate: calc(
+		var(--switch-width) - var(--switch-thumb-size) - 2 *
+			var(--switch-padding)
+	);
 
 	/* Colors */
 	--switch-background-color: var(--c15t-switch-track);
@@ -212,6 +215,28 @@
 
 	.root[data-state="checked"] .thumb-disabled {
 		transform: translateX(var(--switch-thumb-translate));
+	}
+
+	.root-small {
+		--switch-height: 1rem;
+		--switch-width: 1.75rem;
+		--switch-padding: 0.125rem;
+		--switch-thumb-size: 0.625rem;
+		--switch-thumb-size-disabled: 0.5rem;
+		--switch-thumb-translate: calc(
+			var(--switch-width) - var(--switch-thumb-size) - 2 *
+				var(--switch-padding)
+		);
+	}
+
+	.track-small {
+		width: calc(var(--switch-width) - 2 * var(--switch-padding));
+		height: calc(var(--switch-height) - 2 * var(--switch-padding));
+	}
+
+	.thumb-small {
+		width: var(--switch-thumb-size);
+		height: var(--switch-thumb-size);
 	}
 
 	.root:focus-visible {

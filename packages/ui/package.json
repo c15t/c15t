@@ -13,6 +13,21 @@
 	"exports": {
 		"./styles.css": "./dist/styles.css",
 		"./iab/styles.css": "./dist/iab/styles.css",
+		"./primitives": {
+			"types": "./dist/primitives/index.d.ts",
+			"import": "./dist/primitives/index.js",
+			"require": "./dist/primitives/index.cjs"
+		},
+		"./primitives/data-state": {
+			"types": "./dist/primitives/data-state.d.ts",
+			"import": "./dist/primitives/data-state.js",
+			"require": "./dist/primitives/data-state.cjs"
+		},
+		"./primitives/*": {
+			"types": "./dist/primitives/*/index.d.ts",
+			"import": "./dist/primitives/*/index.js",
+			"require": "./dist/primitives/*/index.cjs"
+		},
 		"./theme": {
 			"types": "./dist-types/theme/index.d.ts",
 			"import": "./dist/theme/index.js",
@@ -27,6 +42,26 @@
 			"types": "./dist-types/styles/primitives/index.d.ts",
 			"import": "./dist/styles/primitives/index.js",
 			"require": "./dist/styles/primitives/index.cjs"
+		},
+		"./styles/primitives/*": {
+			"types": "./dist/styles/primitives/*.d.ts",
+			"import": "./dist/styles/primitives/*.js",
+			"require": "./dist/styles/primitives/*.cjs"
+		},
+		"./styles/primitives/*.module.js": {
+			"types": "./src/styles/css-module.d.ts",
+			"import": "./dist/styles/primitives/*.module.js",
+			"require": "./dist/styles/primitives/*.module.cjs"
+		},
+		"./styles/primitives/*.module.css": {
+			"types": "./src/styles/css-module.d.ts",
+			"import": "./dist/styles/primitives/*.module.js",
+			"require": "./dist/styles/primitives/*.module.cjs"
+		},
+		"./utils/*": {
+			"types": "./dist/utils/*.d.ts",
+			"import": "./dist/utils/*.js",
+			"require": "./dist/utils/*.cjs"
 		},
 		"./styles/*.module.js": {
 			"types": "./src/styles/css-module.d.ts",
@@ -47,6 +82,7 @@
 	"files": [
 		"dist",
 		"dist-types",
+		"src/primitives",
 		"src/styles",
 		"!src/styles/**/__tests__/**",
 		"!src/styles/**/*.test.ts"

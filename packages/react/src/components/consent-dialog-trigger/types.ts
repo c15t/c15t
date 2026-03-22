@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 
-import type { CornerPosition } from '@c15t/ui/utils';
+import type { CornerPosition } from '@c15t/ui/utils/trigger-utils';
 import type { ReactNode } from 'react';
 
 /**

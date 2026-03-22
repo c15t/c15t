@@ -2,61 +2,25 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import {
-	createContext,
 	forwardRef,
 	type HTMLAttributes,
 	type ReactNode,
-	useContext,
-	useState,
+	useMemo,
 } from 'react';
+import * as Tabs from '~/components/shared/ui/tabs';
 import { useGVLData } from '../hooks/use-gvl-data';
 import { useIABTranslations } from '../use-iab-translations';
 
-/**
- * Tab state context for managing active tab.
- */
-interface TabsContextValue {
-	activeTab: 'purposes' | 'vendors';
-	setActiveTab: (tab: 'purposes' | 'vendors') => void;
-}
-
-const TabsContext = createContext<TabsContextValue | null>(null);
-
-/**
- * Hook to access tabs context.
- */
-export function useTabsContext() {
-	const context = useContext(TabsContext);
-	if (!context) {
-		throw new Error('Tab components must be used within IABConsentDialogTabs');
-	}
-	return context;
-}
-
-interface IABConsentDialogTabsProps extends HTMLAttributes<HTMLDivElement> {
+interface IABConsentDialogTabsProps
+	extends Omit<HTMLAttributes<HTMLDivElement>, 'defaultValue' | 'onChange'> {
 	children?: ReactNode;
-	/**
-	 * Default active tab.
-	 * @default 'purposes'
-	 */
 	defaultTab?: 'purposes' | 'vendors';
 }
 
-/**
- * Tabs container component for the IAB Consent Dialog.
- *
- * @remarks
- * Provides tab state context and renders the tab list.
- *
- * @public
- */
 const IABConsentDialogTabs = forwardRef<
 	HTMLDivElement,
 	IABConsentDialogTabsProps
 >(({ children, defaultTab = 'purposes', className, ...props }, ref) => {
-	const [activeTab, setActiveTab] = useState<'purposes' | 'vendors'>(
-		defaultTab
-	);
 	const iabTranslations = useIABTranslations();
 	const {
 		purposes,
@@ -66,81 +30,76 @@ const IABConsentDialogTabs = forwardRef<
 		totalVendors,
 		isLoading,
 	} = useGVLData();
-
-	const containerClassName = className
-		? `${styles.tabsContainer} ${className}`
-		: styles.tabsContainer;
+	const purposeCount = useMemo(
+		() =>
+			purposes.length +
+			specialPurposes.length +
+			specialFeatures.length +
+			features.length,
+		[
+			features.length,
+			purposes.length,
+			specialFeatures.length,
+			specialPurposes.length,
+		]
+	);
 
 	return (
-		<TabsContext.Provider value={{ activeTab, setActiveTab }}>
+		<Tabs.Root
+			ref={ref}
+			className={
+				className
+					? `${styles.tabsContainer} ${className}`
+					: styles.tabsContainer
+			}
+			defaultValue={defaultTab}
+			{...props}
+		>
 			{children ? (
-				<div ref={ref} className={containerClassName} {...props}>
-					{children}
-				</div>
+				children
 			) : (
-				<div ref={ref} className={containerClassName} {...props}>
-					<div className={styles.tabsList}>
-						<button
-							type="button"
-							onClick={() => setActiveTab('purposes')}
-							className={styles.tabButton}
-							data-state={activeTab === 'purposes' ? 'active' : 'inactive'}
-						>
-							{iabTranslations.preferenceCenter.tabs.purposes}
-							{!isLoading &&
-								` (${purposes.length + specialPurposes.length + specialFeatures.length + features.length})`}
-						</button>
-						<button
-							type="button"
-							onClick={() => setActiveTab('vendors')}
-							className={styles.tabButton}
-							data-state={activeTab === 'vendors' ? 'active' : 'inactive'}
-						>
-							{iabTranslations.preferenceCenter.tabs.vendors}
-							{!isLoading && ` (${totalVendors})`}
-						</button>
-					</div>
-				</div>
+				<Tabs.List className={styles.tabsList} noStyle>
+					<Tabs.Trigger className={styles.tabButton} noStyle value="purposes">
+						{iabTranslations.preferenceCenter.tabs.purposes}
+						{!isLoading && ` (${purposeCount})`}
+					</Tabs.Trigger>
+					<Tabs.Trigger className={styles.tabButton} noStyle value="vendors">
+						{iabTranslations.preferenceCenter.tabs.vendors}
+						{!isLoading && ` (${totalVendors})`}
+					</Tabs.Trigger>
+				</Tabs.List>
 			)}
-		</TabsContext.Provider>
+		</Tabs.Root>
 	);
 });
 
 IABConsentDialogTabs.displayName = 'IABConsentDialogTabs';
 
-/**
- * Tab button component.
- */
 interface IABConsentDialogTabButtonProps
 	extends HTMLAttributes<HTMLButtonElement> {
-	tab: 'purposes' | 'vendors';
 	children: ReactNode;
+	tab: 'purposes' | 'vendors';
 }
 
 const IABConsentDialogTabButton = forwardRef<
 	HTMLButtonElement,
 	IABConsentDialogTabButtonProps
 >(({ tab, children, className, ...props }, ref) => {
-	const { activeTab, setActiveTab } = useTabsContext();
-
-	const buttonClassName = className
-		? `${styles.tabButton} ${className}`
-		: styles.tabButton;
-
 	return (
-		<button
+		<Tabs.Trigger
 			ref={ref}
-			type="button"
-			onClick={() => setActiveTab(tab)}
-			className={buttonClassName}
-			data-state={activeTab === tab ? 'active' : 'inactive'}
-			{...props}
+			className={
+				className ? `${styles.tabButton} ${className}` : styles.tabButton
+			}
+			noStyle
+			value={tab}
+			{...(props as Omit<IABConsentDialogTabButtonProps, 'tab'>)}
 		>
 			{children}
-		</button>
+		</Tabs.Trigger>
 	);
 });
 
 IABConsentDialogTabButton.displayName = 'IABConsentDialogTabButton';
 
-export { IABConsentDialogTabButton, IABConsentDialogTabs, TabsContext };
+export { IABConsentDialogTabButton, IABConsentDialogTabs };

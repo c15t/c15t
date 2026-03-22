@@ -4,8 +4,7 @@ import {
 	type ButtonVariant,
 	type ButtonVariantsProps,
 	buttonVariants,
-} from '@c15t/ui/styles/primitives';
-import { Slot } from '@radix-ui/react-slot';
+} from '@c15t/ui/styles/primitives/button';
 import {
 	type ButtonHTMLAttributes,
 	type ElementType,
@@ -15,6 +14,7 @@ import {
 } from 'react';
 import type { PolymorphicComponentProps } from '../../libs/polymorphic';
 import { recursiveCloneChildren } from '../../libs/recursive-clone-children';
+import { Slot } from '../../libs/slot';
 
 // Re-export types for convenience
 export type { ButtonMode, ButtonSize, ButtonVariant, ButtonVariantsProps };

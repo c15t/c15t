@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
@@ -16,7 +16,28 @@ import {
 	Trigger as AccordionTrigger,
 } from '../accordion/accordion';
 import { Root as Button, Icon as ButtonIcon } from '../button/button';
+import {
+	Content as CollapsibleContent,
+	Root as CollapsibleRoot,
+	Trigger as CollapsibleTrigger,
+} from '../collapsible/collapsible';
+import {
+	Close as DialogClose,
+	Content as DialogContent,
+	Description as DialogDescription,
+	Overlay as DialogOverlay,
+	Portal as DialogPortal,
+	Root as DialogRoot,
+	Title as DialogTitle,
+	Trigger as DialogTrigger,
+} from '../dialog/dialog';
 import { Root as Switch } from '../switch/switch';
+import {
+	Content as TabsContent,
+	List as TabsList,
+	Root as TabsRoot,
+	Trigger as TabsTrigger,
+} from '../tabs/tabs';
 
 // Wrapper to provide theme context for accordion tests
 const ThemeWrapper = ({ children }: { children: ReactNode }) => (
@@ -154,7 +175,26 @@ describe('Button', () => {
 			);
 
 			const button = document.querySelector('button');
-			await userEvent.click(button!);
+			expect(button).toBeInstanceOf(HTMLElement);
+			if (!button) {
+				throw new Error('Expected button to exist');
+			}
+			await userEvent.click(button);
+			expect(handleClick).toHaveBeenCalledTimes(1);
+		});
+
+		test('should preserve native keyboard activation', async () => {
+			const handleClick = vi.fn();
+			render(<Button onClick={handleClick}>Keyboard</Button>);
+
+			const button = document.querySelector('button');
+			expect(button).toBeInstanceOf(HTMLElement);
+			if (!button) {
+				throw new Error('Expected button to exist');
+			}
+
+			button.focus();
+			await userEvent.keyboard('{Enter}');
 			expect(handleClick).toHaveBeenCalledTimes(1);
 		});
 	});
@@ -288,7 +328,11 @@ describe('Switch', () => {
 			);
 
 			const switchEl = document.querySelector('[role="switch"]');
-			await userEvent.click(switchEl!);
+			expect(switchEl).toBeInstanceOf(HTMLElement);
+			if (!switchEl) {
+				throw new Error('Expected switch to exist');
+			}
+			await userEvent.click(switchEl);
 			expect(handleChange).toHaveBeenCalledWith(true);
 		});
 
@@ -305,8 +349,27 @@ describe('Switch', () => {
 			);
 
 			const switchEl = document.querySelector('[role="switch"]');
-			await userEvent.click(switchEl!);
+			expect(switchEl).toBeInstanceOf(HTMLElement);
+			if (!switchEl) {
+				throw new Error('Expected switch to exist');
+			}
+			await userEvent.click(switchEl);
 			expect(handleChange).toHaveBeenCalledWith(false);
+		});
+
+		test('should toggle on Enter key', async () => {
+			const handleChange = vi.fn();
+			render(<Switch onCheckedChange={handleChange} />);
+
+			const switchEl = document.querySelector('[role="switch"]');
+			expect(switchEl).toBeInstanceOf(HTMLElement);
+			if (!switchEl) {
+				throw new Error('Expected switch to exist');
+			}
+
+			switchEl.focus();
+			await userEvent.keyboard('{Enter}');
+			expect(handleChange).toHaveBeenCalledWith(true);
 		});
 	});
 
@@ -366,7 +429,7 @@ describe('Accordion', () => {
 			await vi.waitFor(
 				() => {
 					const triggers = document.querySelectorAll(
-						'[data-radix-collection-item]'
+						'[data-slot="accordion-trigger"]'
 					);
 					expect(triggers.length).toBe(2);
 				},
@@ -400,7 +463,11 @@ describe('Accordion', () => {
 			);
 
 			const trigger = document.querySelector('button');
-			await userEvent.click(trigger!);
+			expect(trigger).toBeInstanceOf(HTMLElement);
+			if (!trigger) {
+				throw new Error('Expected accordion trigger to exist');
+			}
+			await userEvent.click(trigger);
 
 			await vi.waitFor(
 				() => {
@@ -426,7 +493,12 @@ describe('Accordion', () => {
 
 			// Click the second item
 			const triggers = document.querySelectorAll('button');
-			await userEvent.click(triggers[1]!);
+			const secondTrigger = triggers.item(1);
+			expect(secondTrigger).toBeInstanceOf(HTMLElement);
+			if (!secondTrigger) {
+				throw new Error('Expected second accordion trigger to exist');
+			}
+			await userEvent.click(secondTrigger);
 
 			// First item should now be closed, second should be open
 			await vi.waitFor(
@@ -484,7 +556,12 @@ describe('Accordion', () => {
 
 			// Click both triggers, waiting for state to settle between clicks
 			const triggers = document.querySelectorAll('button');
-			await userEvent.click(triggers[0]!);
+			const firstTrigger = triggers.item(0);
+			expect(firstTrigger).toBeInstanceOf(HTMLElement);
+			if (!firstTrigger) {
+				throw new Error('Expected first accordion trigger to exist');
+			}
+			await userEvent.click(firstTrigger);
 			await vi.waitFor(
 				() => {
 					expect(
@@ -494,7 +571,12 @@ describe('Accordion', () => {
 				{ timeout: 3000 }
 			);
 
-			await userEvent.click(triggers[1]!);
+			const secondTrigger = triggers.item(1);
+			expect(secondTrigger).toBeInstanceOf(HTMLElement);
+			if (!secondTrigger) {
+				throw new Error('Expected second accordion trigger to exist');
+			}
+			await userEvent.click(secondTrigger);
 
 			// Both should be open
 			await vi.waitFor(
@@ -561,7 +643,11 @@ describe('Accordion', () => {
 
 			// Query fresh reference right before clicking to avoid stale node
 			const trigger = document.querySelector('button[aria-expanded="false"]');
-			await userEvent.click(trigger!);
+			expect(trigger).toBeInstanceOf(HTMLElement);
+			if (!trigger) {
+				throw new Error('Expected closed accordion trigger to exist');
+			}
+			await userEvent.click(trigger);
 
 			await vi.waitFor(
 				() => {
@@ -572,6 +658,248 @@ describe('Accordion', () => {
 				},
 				{ timeout: 3000 }
 			);
+		});
+
+		test('should support keyboard activation', async () => {
+			render(<TestAccordion />);
+
+			const trigger = document.querySelector('button');
+			expect(trigger).toBeInstanceOf(HTMLElement);
+			if (!trigger) {
+				throw new Error('Expected accordion trigger to exist');
+			}
+
+			trigger.focus();
+			await userEvent.keyboard('{Enter}');
+
+			await vi.waitFor(
+				() => {
+					expect(trigger.getAttribute('aria-expanded')).toBe('true');
+				},
+				{ timeout: 3000 }
+			);
+		});
+	});
+});
+
+describe('Dialog', () => {
+	const TestDialog = ({
+		initialFocusRef,
+		onOpenChange,
+	}: {
+		initialFocusRef?: RefObject<HTMLElement | null>;
+		onOpenChange?: (open: boolean) => void;
+	}) => (
+		<DialogRoot onOpenChange={onOpenChange}>
+			<DialogTrigger>Open dialog</DialogTrigger>
+			<DialogPortal>
+				<DialogOverlay />
+				<DialogContent initialFocusRef={initialFocusRef}>
+					<DialogTitle>Settings</DialogTitle>
+					<DialogDescription>Manage privacy settings</DialogDescription>
+					<button type="button" ref={initialFocusRef as never}>
+						Primary action
+					</button>
+					<DialogClose>Close</DialogClose>
+				</DialogContent>
+			</DialogPortal>
+		</DialogRoot>
+	);
+
+	test('should open and close with accessible semantics', async () => {
+		render(<TestDialog />);
+
+		const trigger = document.querySelector('[data-slot="dialog-trigger"]');
+		expect(trigger).toBeInstanceOf(HTMLElement);
+		if (!trigger) {
+			throw new Error('Expected dialog trigger to exist');
+		}
+		await userEvent.click(trigger);
+
+		await vi.waitFor(() => {
+			const dialog = document.querySelector('[role="dialog"]');
+			expect(dialog).toBeInTheDocument();
+			expect(dialog?.getAttribute('aria-labelledby')).toBeTruthy();
+			expect(dialog?.getAttribute('aria-describedby')).toBeTruthy();
+			expect(dialog?.getAttribute('aria-modal')).toBe('true');
+		});
+
+		const closeButton = document.querySelector('[data-slot="dialog-close"]');
+		expect(closeButton).toBeInstanceOf(HTMLElement);
+		if (!closeButton) {
+			throw new Error('Expected dialog close button to exist');
+		}
+		await userEvent.click(closeButton);
+
+		await vi.waitFor(() => {
+			expect(document.querySelector('[role="dialog"]')).not.toBeInTheDocument();
+		});
+	});
+
+	test('should close on Escape and restore focus to the trigger', async () => {
+		render(<TestDialog />);
+
+		const trigger = document.querySelector('[data-slot="dialog-trigger"]');
+		expect(trigger).toBeInstanceOf(HTMLElement);
+		if (!trigger) {
+			throw new Error('Expected dialog trigger to exist');
+		}
+
+		trigger.focus();
+		await userEvent.click(trigger);
+
+		const dialog = document.querySelector('[role="dialog"]');
+		expect(dialog).toBeInstanceOf(HTMLElement);
+		if (!dialog) {
+			throw new Error('Expected dialog to exist');
+		}
+
+		await userEvent.keyboard('{Escape}');
+
+		await vi.waitFor(() => {
+			expect(document.querySelector('[role="dialog"]')).not.toBeInTheDocument();
+			expect(document.activeElement).toBe(trigger);
+		});
+	});
+
+	test('should move focus to initialFocusRef when opened', async () => {
+		const initialFocusRef = { current: null as HTMLButtonElement | null };
+		render(<TestDialog initialFocusRef={initialFocusRef} />);
+
+		const trigger = document.querySelector('[data-slot="dialog-trigger"]');
+		expect(trigger).toBeInstanceOf(HTMLElement);
+		if (!trigger) {
+			throw new Error('Expected dialog trigger to exist');
+		}
+
+		await userEvent.click(trigger);
+
+		await vi.waitFor(() => {
+			expect(initialFocusRef.current).toBeInstanceOf(HTMLElement);
+			expect(document.activeElement).toBe(initialFocusRef.current);
+		});
+	});
+});
+
+describe('Tabs', () => {
+	test('should render tabs with correct semantics', async () => {
+		render(
+			<ThemeWrapper>
+				<TabsRoot defaultValue="overview">
+					<TabsList>
+						<TabsTrigger value="overview">Overview</TabsTrigger>
+						<TabsTrigger value="vendors">Vendors</TabsTrigger>
+					</TabsList>
+					<TabsContent value="overview">Overview panel</TabsContent>
+					<TabsContent value="vendors">Vendors panel</TabsContent>
+				</TabsRoot>
+			</ThemeWrapper>
+		);
+
+		await vi.waitFor(() => {
+			const tablist = document.querySelector('[role="tablist"]');
+			const tabs = document.querySelectorAll('[role="tab"]');
+			const panel = document.querySelector('[role="tabpanel"]');
+			expect(tablist).toBeInTheDocument();
+			expect(tabs.length).toBe(2);
+			expect(panel).toBeInTheDocument();
+		});
+	});
+
+	test('should switch tabs on click and keyboard navigation', async () => {
+		render(
+			<ThemeWrapper>
+				<TabsRoot defaultValue="overview">
+					<TabsList>
+						<TabsTrigger value="overview">Overview</TabsTrigger>
+						<TabsTrigger value="vendors">Vendors</TabsTrigger>
+					</TabsList>
+					<TabsContent value="overview">Overview panel</TabsContent>
+					<TabsContent value="vendors">Vendors panel</TabsContent>
+				</TabsRoot>
+			</ThemeWrapper>
+		);
+
+		const triggers = document.querySelectorAll('[role="tab"]');
+		const overview = triggers.item(0);
+		const vendors = triggers.item(1);
+		expect(overview).toBeInstanceOf(HTMLElement);
+		expect(vendors).toBeInstanceOf(HTMLElement);
+		if (!overview || !vendors) {
+			throw new Error('Expected tab triggers to exist');
+		}
+
+		await userEvent.click(vendors);
+		await vi.waitFor(() => {
+			expect(vendors.getAttribute('aria-selected')).toBe('true');
+			expect(
+				document.querySelector('[role="tabpanel"]')?.textContent
+			).toContain('Vendors panel');
+		});
+
+		vendors.focus();
+		await userEvent.keyboard('{ArrowLeft}');
+		await vi.waitFor(() => {
+			expect(overview.getAttribute('aria-selected')).toBe('true');
+			expect(document.activeElement).toBe(overview);
+		});
+	});
+});
+
+describe('Collapsible', () => {
+	test('should expose trigger and content relationships', async () => {
+		render(
+			<ThemeWrapper>
+				<CollapsibleRoot defaultOpen={false}>
+					<CollapsibleTrigger>Toggle details</CollapsibleTrigger>
+					<CollapsibleContent>Hidden details</CollapsibleContent>
+				</CollapsibleRoot>
+			</ThemeWrapper>
+		);
+
+		const trigger = document.querySelector('[data-slot="collapsible-trigger"]');
+		const content = document.querySelector('[data-slot="collapsible-content"]');
+		expect(trigger?.getAttribute('aria-controls')).toBeTruthy();
+		expect(trigger?.getAttribute('aria-expanded')).toBe('false');
+		expect(content?.getAttribute('aria-hidden')).toBe('true');
+	});
+
+	test('should open and close without focus leaks', async () => {
+		render(
+			<ThemeWrapper>
+				<CollapsibleRoot defaultOpen={false}>
+					<CollapsibleTrigger>Toggle details</CollapsibleTrigger>
+					<CollapsibleContent>
+						<button type="button">Nested action</button>
+					</CollapsibleContent>
+				</CollapsibleRoot>
+			</ThemeWrapper>
+		);
+
+		const trigger = document.querySelector('[data-slot="collapsible-trigger"]');
+		expect(trigger).toBeInstanceOf(HTMLElement);
+		if (!trigger) {
+			throw new Error('Expected collapsible trigger to exist');
+		}
+
+		await userEvent.click(trigger);
+		await vi.waitFor(() => {
+			expect(trigger.getAttribute('aria-expanded')).toBe('true');
+			expect(
+				document
+					.querySelector('[data-slot="collapsible-content"]')
+					?.getAttribute('aria-hidden')
+			).toBe('false');
+		});
+
+		await userEvent.click(trigger);
+		await vi.waitFor(() => {
+			expect(trigger.getAttribute('aria-expanded')).toBe('false');
+			expect(
+				document
+					.querySelector('[data-slot="collapsible-content"]')
+					?.getAttribute('aria-hidden')
+			).toBe('true');
 		});
 	});
 });
