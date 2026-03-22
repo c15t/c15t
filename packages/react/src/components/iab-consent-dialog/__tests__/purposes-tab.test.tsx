@@ -6,6 +6,7 @@
 
 import { iab } from '@c15t/iab';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import {
 	ConsentManagerProvider,
@@ -272,6 +273,44 @@ describe('Purposes Tab - Consent', () => {
 			},
 			{ timeout: 3000 }
 		);
+	});
+
+	test('should keep purpose details collapsed until expanded', async () => {
+		render(
+			<ConsentManagerProvider options={defaultIABOptions}>
+				<IABConsentDialog open />
+			</ConsentManagerProvider>
+		);
+
+		const purposeTrigger = await vi.waitFor(
+			() =>
+				Array.from(
+					document.querySelectorAll<HTMLButtonElement>(
+						'[data-testid="iab-consent-dialog-root"] [data-slot="collapsible-trigger"]'
+					)
+				).find((button) => button.textContent?.includes('Store and/or access')),
+			{ timeout: 3000 }
+		);
+
+		expect(purposeTrigger).toBeDefined();
+		if (!purposeTrigger) {
+			throw new Error('Expected purpose trigger to exist');
+		}
+
+		const purposeItem = purposeTrigger.closest(
+			'[data-testid^="purpose-item-"]'
+		);
+		const content = purposeItem?.querySelector(
+			'[data-slot="collapsible-content"]'
+		);
+
+		expect(content?.getAttribute('aria-hidden')).toBe('true');
+
+		await userEvent.click(purposeTrigger);
+
+		await vi.waitFor(() => {
+			expect(content?.getAttribute('aria-hidden')).toBe('false');
+		});
 	});
 });
 

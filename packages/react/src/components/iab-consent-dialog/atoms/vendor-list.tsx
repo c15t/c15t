@@ -432,10 +432,14 @@ export const VendorList: FC<VendorListProps> = ({
 							)}
 						</svg>
 					</button>
-					<Switch.Root
-						checked={vendorConsents[vendorKey] ?? false}
-						onCheckedChange={(value) => onVendorToggle(vendor.id, value)}
-					/>
+					<div className={styles.vendorConsentControl}>
+						<Switch.Root
+							aria-label={`Consent for ${vendor.name}`}
+							className={styles.vendorConsentSwitch}
+							checked={vendorConsents[vendorKey] ?? false}
+							onCheckedChange={(value) => onVendorToggle(vendor.id, value)}
+						/>
+					</div>
 				</div>
 
 				<Collapsible.Root noStyle open={isExpanded}>

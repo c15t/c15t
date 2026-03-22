@@ -592,7 +592,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 
 				// Animate to new height
 				content.style.transition =
-					'height 250ms cubic-bezier(0.33, 1, 0.68, 1)';
+					'height 180ms cubic-bezier(0.33, 1, 0.68, 1)';
 				content.style.height = `${newHeight}px`;
 
 				const handleTransitionEnd = (e: TransitionEvent) => {
@@ -684,6 +684,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					</div>
 
 					<Tabs.Root
+						className={styles.body}
 						noStyle
 						onValueChange={(value) =>
 							handleTabChange(value as 'purposes' | 'vendors')
@@ -728,7 +729,12 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 								</div>
 							) : (
 								<>
-									<Tabs.Content forceMount noStyle value="purposes">
+									<Tabs.Content
+										className={styles.tabPanel}
+										forceMount
+										noStyle
+										value="purposes"
+									>
 										{/* Standalone purposes */}
 										{standalonePurposes.map((purpose) => (
 											<PurposeItem
@@ -943,7 +949,12 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 											</p>
 										</div>
 									</Tabs.Content>
-									<Tabs.Content forceMount noStyle value="vendors">
+									<Tabs.Content
+										className={styles.tabPanel}
+										forceMount
+										noStyle
+										value="vendors"
+									>
 										<VendorList
 											vendorData={iabState.gvl}
 											purposes={purposes}
