@@ -3,9 +3,9 @@ import { mockGVL } from '../../../packages/react/src/components/iab/__tests__/fi
 import {
 	type ConsentManagerOptions,
 	ConsentManagerProvider,
-	defaultTranslationConfig,
 } from '../../../packages/react/src/index';
 import { clearConsentRuntimeCache } from '../../../packages/react/src/providers/consent-manager-provider';
+import { enTranslations } from '../../../packages/translations/src';
 
 type ConsentRecord = Record<string, boolean>;
 
@@ -61,7 +61,7 @@ export const defaultConsentOptions: ConsentManagerOptions = {
 	mode: 'offline',
 	translations: {
 		language: 'en',
-		translations: defaultTranslationConfig.translations.en,
+		translations: enTranslations,
 	},
 };
 

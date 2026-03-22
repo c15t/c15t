@@ -33,12 +33,14 @@ export const TabAndExpansionFlow: Story = {
 	play: async () => {
 		const body = within(document.body);
 		await userEvent.click(await body.findByRole('tab', { name: /vendors/i }));
-		await userEvent.click(await body.findByRole('tab', { name: /purposes/i }));
-
-		const expandButtons = body.getAllByRole('button');
-		if (expandButtons.length > 0) {
-			await userEvent.click(expandButtons[0]);
+		const vendorTrigger = body
+			.getAllByRole('button')
+			.find((button) => button.className.includes('vendorListTrigger'));
+		await expect(vendorTrigger).toBeDefined();
+		if (vendorTrigger) {
+			await userEvent.click(vendorTrigger);
 		}
+		await userEvent.click(await body.findByRole('tab', { name: /purposes/i }));
 
 		await expect(
 			body.getByTestId('iab-consent-dialog-root')
