@@ -2,7 +2,7 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { type FC, useState } from 'react';
-import { AnimatedCollapse } from '~/components/shared/ui/animated-collapse';
+import * as Collapsible from '~/components/shared/ui/collapsible';
 import * as Switch from '~/components/shared/ui/switch';
 import type { ProcessedStack, VendorId } from '../types';
 import { PurposeItem } from './purpose-item';
@@ -67,13 +67,15 @@ export const StackItem: FC<StackItemProps> = ({
 	).size;
 
 	return (
-		<div className={styles.stackItem} data-testid={`stack-item-${stack.id}`}>
+		<Collapsible.Root
+			className={styles.stackItem}
+			data-testid={`stack-item-${stack.id}`}
+			noStyle
+			onOpenChange={setIsExpanded}
+			open={isExpanded}
+		>
 			<div className={styles.stackHeader}>
-				<button
-					type="button"
-					onClick={() => setIsExpanded(!isExpanded)}
-					className={styles.stackTrigger}
-				>
+				<Collapsible.Trigger className={styles.stackTrigger} noStyle>
 					<svg
 						className={styles.purposeArrow}
 						viewBox="0 0 24 24"
@@ -95,7 +97,7 @@ export const StackItem: FC<StackItemProps> = ({
 							</p>
 						)}
 					</div>
-				</button>
+				</Collapsible.Trigger>
 				<div className={styles.stackControls}>
 					{someEnabled && (
 						<div
@@ -109,7 +111,7 @@ export const StackItem: FC<StackItemProps> = ({
 					/>
 				</div>
 			</div>
-			<AnimatedCollapse isOpen={isExpanded}>
+			<Collapsible.Content noStyle>
 				<div className={styles.stackDescription}>
 					<p>{stack.description}</p>
 					<p className={styles.stackMeta}>
@@ -137,7 +139,7 @@ export const StackItem: FC<StackItemProps> = ({
 						/>
 					))}
 				</div>
-			</AnimatedCollapse>
-		</div>
+			</Collapsible.Content>
+		</Collapsible.Root>
 	);
 };

@@ -2,7 +2,7 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { type FC, useState } from 'react';
-import { AnimatedCollapse } from '~/components/shared/ui/animated-collapse';
+import * as Collapsible from '~/components/shared/ui/collapsible';
 import * as Switch from '~/components/shared/ui/switch';
 import type { ProcessedPurpose, ProcessedVendor, VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
@@ -91,16 +91,15 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 	};
 
 	return (
-		<div
+		<Collapsible.Root
 			className={styles.purposeItem}
 			data-testid={`purpose-item-${purpose.id}`}
+			noStyle
+			onOpenChange={setIsExpanded}
+			open={isExpanded}
 		>
 			<div className={styles.purposeHeader}>
-				<button
-					type="button"
-					onClick={() => setIsExpanded(!isExpanded)}
-					className={styles.purposeTrigger}
-				>
+				<Collapsible.Trigger className={styles.purposeTrigger} noStyle>
 					<svg
 						className={styles.purposeArrow}
 						viewBox="0 0 24 24"
@@ -154,7 +153,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 							</div>
 						)}
 					</div>
-				</button>
+				</Collapsible.Trigger>
 				<Switch.Root
 					checked={isEnabled}
 					onCheckedChange={handlePurposeToggle}
@@ -162,74 +161,74 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 				/>
 			</div>
 
-			<AnimatedCollapse isOpen={isExpanded}>
-				<div className={styles.purposeContent}>
-					<p className={styles.purposeDescription}>{purpose.description}</p>
+			<Collapsible.Content innerClassName={styles.purposeContent} noStyle>
+				<p className={styles.purposeDescription}>{purpose.description}</p>
 
-					{/* Purpose-level Legitimate Interest Objection */}
-					{legIntVendors.length > 0 && onPurposeLegitimateInterestToggle && (
-						<div className={styles.purposeLISection}>
-							<div className={styles.purposeLISectionHeader}>
-								<div className={styles.purposeLIInfo}>
-									<svg
-										className={styles.legitimateInterestIcon}
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										strokeWidth="2"
-									>
-										<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
-									</svg>
-									<span>
-										{iab.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
-											'{count}',
-											String(legIntVendors.length)
-										)}
-									</span>
-								</div>
-								<button
-									type="button"
-									onClick={handlePurposeLIObjection}
-									className={`${styles.objectButton} ${!isPurposeLIAllowed ? styles.objectButtonActive : ''}`}
-									aria-pressed={!isPurposeLIAllowed}
+				{/* Purpose-level Legitimate Interest Objection */}
+				{legIntVendors.length > 0 && onPurposeLegitimateInterestToggle && (
+					<div className={styles.purposeLISection}>
+						<div className={styles.purposeLISectionHeader}>
+							<div className={styles.purposeLIInfo}>
+								<svg
+									className={styles.legitimateInterestIcon}
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
 								>
-									{isPurposeLIAllowed
-										? iab.preferenceCenter.purposeItem.objectButton
-										: iab.preferenceCenter.purposeItem.objected}
-								</button>
+									<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
+								</svg>
+								<span>
+									{iab.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
+										'{count}',
+										String(legIntVendors.length)
+									)}
+								</span>
 							</div>
-							<p className={styles.liExplanation}>
-								{iab.preferenceCenter.purposeItem.rightToObject}
-							</p>
-						</div>
-					)}
-
-					{/* Legacy badge for when there's no toggle handler */}
-					{legIntVendors.length > 0 && !onPurposeLegitimateInterestToggle && (
-						<div className={styles.legitimateInterestBadge}>
-							<svg
-								className={styles.legitimateInterestIcon}
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-							>
-								<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
-							</svg>
-							{iab.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
-								'{count}',
-								String(legIntVendors.length)
-							)}
-						</div>
-					)}
-
-					{purpose.illustrations && purpose.illustrations.length > 0 && (
-						<div>
 							<button
 								type="button"
-								onClick={() => setShowExamples(!showExamples)}
-								className={styles.examplesToggle}
+								onClick={handlePurposeLIObjection}
+								className={`${styles.objectButton} ${!isPurposeLIAllowed ? styles.objectButtonActive : ''}`}
+								aria-pressed={!isPurposeLIAllowed}
 							>
+								{isPurposeLIAllowed
+									? iab.preferenceCenter.purposeItem.objectButton
+									: iab.preferenceCenter.purposeItem.objected}
+							</button>
+						</div>
+						<p className={styles.liExplanation}>
+							{iab.preferenceCenter.purposeItem.rightToObject}
+						</p>
+					</div>
+				)}
+
+				{/* Legacy badge for when there's no toggle handler */}
+				{legIntVendors.length > 0 && !onPurposeLegitimateInterestToggle && (
+					<div className={styles.legitimateInterestBadge}>
+						<svg
+							className={styles.legitimateInterestIcon}
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+						>
+							<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
+						</svg>
+						{iab.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
+							'{count}',
+							String(legIntVendors.length)
+						)}
+					</div>
+				)}
+
+				{purpose.illustrations && purpose.illustrations.length > 0 && (
+					<div>
+						<Collapsible.Root
+							noStyle
+							onOpenChange={setShowExamples}
+							open={showExamples}
+						>
+							<Collapsible.Trigger className={styles.examplesToggle} noStyle>
 								<svg
 									style={{ width: '0.75rem', height: '0.75rem' }}
 									viewBox="0 0 24 24"
@@ -245,23 +244,25 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 								</svg>
 								{iab.preferenceCenter.purposeItem.examples} (
 								{purpose.illustrations.length})
-							</button>
-							<AnimatedCollapse isOpen={showExamples}>
+							</Collapsible.Trigger>
+							<Collapsible.Content noStyle>
 								<ul className={styles.examplesList}>
 									{purpose.illustrations.map((illustration, index) => (
 										<li key={index}>{illustration}</li>
 									))}
 								</ul>
-							</AnimatedCollapse>
-						</div>
-					)}
+							</Collapsible.Content>
+						</Collapsible.Root>
+					</div>
+				)}
 
-					<div>
-						<button
-							type="button"
-							onClick={() => setShowVendors(!showVendors)}
-							className={styles.vendorsToggle}
-						>
+				<div>
+					<Collapsible.Root
+						noStyle
+						onOpenChange={setShowVendors}
+						open={showVendors}
+					>
+						<Collapsible.Trigger className={styles.vendorsToggle} noStyle>
 							<svg
 								style={{ width: '0.75rem', height: '0.75rem' }}
 								viewBox="0 0 24 24"
@@ -277,131 +278,122 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 							</svg>
 							{iab.preferenceCenter.purposeItem.partnersUsingPurpose} (
 							{purpose.vendors.length})
-						</button>
-						<AnimatedCollapse isOpen={showVendors}>
-							<div className={styles.vendorSection}>
-								{/* IAB Consent Vendors */}
-								{iabConsentVendors.length > 0 && (
-									<>
-										<h5 className={styles.vendorSectionTitle}>
-											{iab.preferenceCenter.purposeItem.withYourPermission} (
-											{iabConsentVendors.length})
-										</h5>
-										{iabConsentVendors.map((vendor) => (
-											<VendorRow
-												key={vendor.id}
-												vendor={vendor}
-												isConsented={getVendorConsent(vendor.id)}
-												onToggle={(value) => onVendorToggle(vendor.id, value)}
-												onClick={() => onVendorClick(vendor.id)}
-											/>
-										))}
-									</>
-								)}
-								{/* IAB Legitimate Interest Vendors */}
-								{iabLegIntVendors.length > 0 && (
-									<>
-										<h5
-											className={`${styles.vendorSectionTitle} ${styles.vendorSectionTitleLI}`}
+						</Collapsible.Trigger>
+						<Collapsible.Content innerClassName={styles.vendorSection} noStyle>
+							{/* IAB Consent Vendors */}
+							{iabConsentVendors.length > 0 && (
+								<>
+									<h5 className={styles.vendorSectionTitle}>
+										{iab.preferenceCenter.purposeItem.withYourPermission} (
+										{iabConsentVendors.length})
+									</h5>
+									{iabConsentVendors.map((vendor) => (
+										<VendorRow
+											key={vendor.id}
+											vendor={vendor}
+											isConsented={getVendorConsent(vendor.id)}
+											onToggle={(value) => onVendorToggle(vendor.id, value)}
+											onClick={() => onVendorClick(vendor.id)}
+										/>
+									))}
+								</>
+							)}
+							{/* IAB Legitimate Interest Vendors */}
+							{iabLegIntVendors.length > 0 && (
+								<>
+									<h5
+										className={`${styles.vendorSectionTitle} ${styles.vendorSectionTitleLI}`}
+									>
+										<svg
+											style={{ width: '0.75rem', height: '0.75rem' }}
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2"
 										>
-											<svg
-												style={{ width: '0.75rem', height: '0.75rem' }}
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												strokeWidth="2"
-											>
-												<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
-											</svg>
-											{iab.preferenceCenter.purposeItem.legitimateInterest} (
-											{iabLegIntVendors.length})
-										</h5>
-										<p className={styles.liExplanation}>
-											{iab.preferenceCenter.purposeItem.rightToObject}
-										</p>
-										{iabLegIntVendors.map((vendor) => (
-											<VendorRow
-												key={vendor.id}
-												vendor={vendor}
-												isConsented={getVendorConsent(vendor.id)}
-												onToggle={(value) => onVendorToggle(vendor.id, value)}
-												onClick={() => onVendorClick(vendor.id)}
-												isLegitimateInterest
-												isLegitimateInterestAllowed={getVendorLegitimateInterest(
-													vendor.id
-												)}
-												onLegitimateInterestToggle={
-													onVendorLegitimateInterestToggle
-														? (value) =>
-																onVendorLegitimateInterestToggle(
-																	vendor.id,
-																	value
-																)
-														: undefined
-												}
-											/>
-										))}
-									</>
-								)}
-								{/* Custom Vendors */}
-								{(customConsentVendors.length > 0 ||
-									customLegIntVendors.length > 0) && (
-									<div className={styles.customVendorPurposeSection}>
-										<h5 className={styles.vendorSectionTitleCustom}>
-											<svg
-												style={{ width: '0.75rem', height: '0.75rem' }}
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												strokeWidth="2"
-											>
-												<circle cx="12" cy="12" r="10" />
-												<line x1="2" y1="12" x2="22" y2="12" />
-												<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-											</svg>
-											{iab.preferenceCenter.vendorList.customVendorsHeading} (
-											{customConsentVendors.length + customLegIntVendors.length}
-											)
-										</h5>
-										{customConsentVendors.map((vendor) => (
-											<VendorRow
-												key={vendor.id}
-												vendor={vendor}
-												isConsented={getVendorConsent(vendor.id)}
-												onToggle={(value) => onVendorToggle(vendor.id, value)}
-												onClick={() => onVendorClick(vendor.id)}
-											/>
-										))}
-										{customLegIntVendors.map((vendor) => (
-											<VendorRow
-												key={vendor.id}
-												vendor={vendor}
-												isConsented={getVendorConsent(vendor.id)}
-												onToggle={(value) => onVendorToggle(vendor.id, value)}
-												onClick={() => onVendorClick(vendor.id)}
-												isLegitimateInterest
-												isLegitimateInterestAllowed={getVendorLegitimateInterest(
-													vendor.id
-												)}
-												onLegitimateInterestToggle={
-													onVendorLegitimateInterestToggle
-														? (value) =>
-																onVendorLegitimateInterestToggle(
-																	vendor.id,
-																	value
-																)
-														: undefined
-												}
-											/>
-										))}
-									</div>
-								)}
-							</div>
-						</AnimatedCollapse>
-					</div>
+											<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
+										</svg>
+										{iab.preferenceCenter.purposeItem.legitimateInterest} (
+										{iabLegIntVendors.length})
+									</h5>
+									<p className={styles.liExplanation}>
+										{iab.preferenceCenter.purposeItem.rightToObject}
+									</p>
+									{iabLegIntVendors.map((vendor) => (
+										<VendorRow
+											key={vendor.id}
+											vendor={vendor}
+											isConsented={getVendorConsent(vendor.id)}
+											onToggle={(value) => onVendorToggle(vendor.id, value)}
+											onClick={() => onVendorClick(vendor.id)}
+											isLegitimateInterest
+											isLegitimateInterestAllowed={getVendorLegitimateInterest(
+												vendor.id
+											)}
+											onLegitimateInterestToggle={
+												onVendorLegitimateInterestToggle
+													? (value) =>
+															onVendorLegitimateInterestToggle(vendor.id, value)
+													: undefined
+											}
+										/>
+									))}
+								</>
+							)}
+							{/* Custom Vendors */}
+							{(customConsentVendors.length > 0 ||
+								customLegIntVendors.length > 0) && (
+								<div className={styles.customVendorPurposeSection}>
+									<h5 className={styles.vendorSectionTitleCustom}>
+										<svg
+											style={{ width: '0.75rem', height: '0.75rem' }}
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2"
+										>
+											<circle cx="12" cy="12" r="10" />
+											<line x1="2" y1="12" x2="22" y2="12" />
+											<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+										</svg>
+										{iab.preferenceCenter.vendorList.customVendorsHeading} (
+										{customConsentVendors.length + customLegIntVendors.length})
+									</h5>
+									{customConsentVendors.map((vendor) => (
+										<VendorRow
+											key={vendor.id}
+											vendor={vendor}
+											isConsented={getVendorConsent(vendor.id)}
+											onToggle={(value) => onVendorToggle(vendor.id, value)}
+											onClick={() => onVendorClick(vendor.id)}
+										/>
+									))}
+									{customLegIntVendors.map((vendor) => (
+										<VendorRow
+											key={vendor.id}
+											vendor={vendor}
+											isConsented={getVendorConsent(vendor.id)}
+											onToggle={(value) => onVendorToggle(vendor.id, value)}
+											onClick={() => onVendorClick(vendor.id)}
+											isLegitimateInterest
+											isLegitimateInterestAllowed={getVendorLegitimateInterest(
+												vendor.id
+											)}
+											onLegitimateInterestToggle={
+												onVendorLegitimateInterestToggle
+													? (value) =>
+															onVendorLegitimateInterestToggle(vendor.id, value)
+													: undefined
+											}
+										/>
+									))}
+								</div>
+							)}
+						</Collapsible.Content>
+					</Collapsible.Root>
 				</div>
-			</AnimatedCollapse>
-		</div>
+			</Collapsible.Content>
+		</Collapsible.Root>
 	);
 };
 

@@ -24,6 +24,7 @@ import {
 	type ConsentDialogTriggerProps,
 } from '~/components/consent-dialog-trigger';
 import * as Button from '~/components/shared/ui/button';
+import * as Tabs from '~/components/shared/ui/tabs';
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
@@ -682,277 +683,287 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 						</button>
 					</div>
 
-					{/* Segmented Control Tabs */}
-					<div className={styles.tabsContainer}>
-						<div className={styles.tabsList} role="tablist">
-							<button
-								type="button"
-								role="tab"
-								aria-selected={activeTab === 'purposes'}
-								onClick={() => handleTabChange('purposes')}
-								className={styles.tabButton}
-								data-state={activeTab === 'purposes' ? 'active' : 'inactive'}
-							>
-								{iabTranslations.preferenceCenter.tabs.purposes}
-								{!isLoading &&
-									` (${purposes.length + specialPurposes.length + specialFeatures.length + features.length})`}
-							</button>
-							<button
-								type="button"
-								role="tab"
-								aria-selected={activeTab === 'vendors'}
-								onClick={() => handleTabChange('vendors')}
-								className={styles.tabButton}
-								data-state={activeTab === 'vendors' ? 'active' : 'inactive'}
-							>
-								{iabTranslations.preferenceCenter.tabs.vendors}
-								{!isLoading && ` (${totalVendors})`}
-							</button>
-							{/* Sliding indicator */}
-							<div
-								className={styles.tabIndicator}
-								data-active-tab={activeTab}
-								aria-hidden="true"
-							/>
+					<Tabs.Root
+						noStyle
+						onValueChange={(value) =>
+							handleTabChange(value as 'purposes' | 'vendors')
+						}
+						value={activeTab}
+					>
+						{/* Segmented Control Tabs */}
+						<div className={styles.tabsContainer}>
+							<Tabs.List className={styles.tabsList} noStyle>
+								<Tabs.Trigger
+									className={styles.tabButton}
+									noStyle
+									value="purposes"
+								>
+									{iabTranslations.preferenceCenter.tabs.purposes}
+									{!isLoading &&
+										` (${purposes.length + specialPurposes.length + specialFeatures.length + features.length})`}
+								</Tabs.Trigger>
+								<Tabs.Trigger
+									className={styles.tabButton}
+									noStyle
+									value="vendors"
+								>
+									{iabTranslations.preferenceCenter.tabs.vendors}
+									{!isLoading && ` (${totalVendors})`}
+								</Tabs.Trigger>
+								<div
+									aria-hidden="true"
+									className={styles.tabIndicator}
+									data-active-tab={activeTab}
+								/>
+							</Tabs.List>
 						</div>
-					</div>
 
-					{/* Content */}
-					{/* Content */}
-					<div ref={contentRef} className={styles.content}>
-						{isLoading ? (
-							<div className={styles.loadingContainer}>
-								<div className={styles.loadingSpinner} />
-								<p className={styles.loadingText}>
-									{iabTranslations.common.loading}
-								</p>
-							</div>
-						) : activeTab === 'purposes' ? (
-							<>
-								{/* Standalone purposes */}
-								{standalonePurposes.map((purpose) => (
-									<PurposeItem
-										key={purpose.id}
-										purpose={purpose}
-										isEnabled={iabState.purposeConsents[purpose.id] ?? false}
-										onToggle={(value) => handlePurposeToggle(purpose.id, value)}
-										vendorConsents={iabState.vendorConsents}
-										onVendorToggle={handleVendorToggle}
-										onVendorClick={handleVendorClick}
-										vendorLegitimateInterests={
-											iabState.vendorLegitimateInterests
-										}
-										onVendorLegitimateInterestToggle={
-											handleVendorLegitimateInterestToggle
-										}
-										purposeLegitimateInterests={
-											iabState.purposeLegitimateInterests
-										}
-										onPurposeLegitimateInterestToggle={
-											handlePurposeLegitimateInterestToggle
-										}
-									/>
-								))}
-
-								{/* Stacks */}
-								{stacks.map((stack) => (
-									<StackItem
-										key={stack.id}
-										stack={stack}
-										consents={iabState.purposeConsents}
-										onToggle={handlePurposeToggle}
-										vendorConsents={iabState.vendorConsents}
-										onVendorToggle={handleVendorToggle}
-										onVendorClick={handleVendorClick}
-										vendorLegitimateInterests={
-											iabState.vendorLegitimateInterests
-										}
-										onVendorLegitimateInterestToggle={
-											handleVendorLegitimateInterestToggle
-										}
-										purposeLegitimateInterests={
-											iabState.purposeLegitimateInterests
-										}
-										onPurposeLegitimateInterestToggle={
-											handlePurposeLegitimateInterestToggle
-										}
-									/>
-								))}
-
-								{/* Special Features */}
-								{specialFeatures.map((feature) => (
-									<PurposeItem
-										key={`feature-${feature.id}`}
-										purpose={{
-											id: feature.id,
-											name: feature.name,
-											description: feature.description,
-											illustrations: feature.illustrations,
-											vendors: feature.vendors,
-										}}
-										isEnabled={
-											iabState.specialFeatureOptIns[feature.id] ?? false
-										}
-										onToggle={(value) =>
-											handleSpecialFeatureToggle(feature.id, value)
-										}
-										vendorConsents={iabState.vendorConsents}
-										onVendorToggle={handleVendorToggle}
-										onVendorClick={handleVendorClick}
-										vendorLegitimateInterests={
-											iabState.vendorLegitimateInterests
-										}
-										onVendorLegitimateInterestToggle={
-											handleVendorLegitimateInterestToggle
-										}
-									/>
-								))}
-
-								{/* Essential Functions: Special Purposes + Features (locked) */}
-								{(specialPurposes.length > 0 || features.length > 0) && (
-									<div className={styles.specialPurposesSection}>
-										<div className={styles.specialPurposesHeader}>
-											<button
-												type="button"
-												onClick={() =>
-													setSpecialPurposesExpanded(!specialPurposesExpanded)
+						<div ref={contentRef} className={styles.content}>
+							{isLoading ? (
+								<div className={styles.loadingContainer}>
+									<div className={styles.loadingSpinner} />
+									<p className={styles.loadingText}>
+										{iabTranslations.common.loading}
+									</p>
+								</div>
+							) : (
+								<>
+									<Tabs.Content forceMount noStyle value="purposes">
+										{/* Standalone purposes */}
+										{standalonePurposes.map((purpose) => (
+											<PurposeItem
+												key={purpose.id}
+												purpose={purpose}
+												isEnabled={
+													iabState.purposeConsents[purpose.id] ?? false
 												}
-												className={styles.purposeTrigger}
-											>
-												<svg
-													className={styles.purposeArrow}
-													viewBox="0 0 24 24"
-													fill="none"
-													stroke="currentColor"
-													strokeWidth="2"
-												>
-													{specialPurposesExpanded ? (
-														<path d="M19 9l-7 7-7-7" />
-													) : (
-														<path d="M9 5l7 7-7 7" />
-													)}
-												</svg>
-												<div className={styles.purposeInfo}>
-													<h3 className={styles.specialPurposesTitle}>
-														{
-															iabTranslations.preferenceCenter.specialPurposes
-																.title
+												onToggle={(value) =>
+													handlePurposeToggle(purpose.id, value)
+												}
+												vendorConsents={iabState.vendorConsents}
+												onVendorToggle={handleVendorToggle}
+												onVendorClick={handleVendorClick}
+												vendorLegitimateInterests={
+													iabState.vendorLegitimateInterests
+												}
+												onVendorLegitimateInterestToggle={
+													handleVendorLegitimateInterestToggle
+												}
+												purposeLegitimateInterests={
+													iabState.purposeLegitimateInterests
+												}
+												onPurposeLegitimateInterestToggle={
+													handlePurposeLegitimateInterestToggle
+												}
+											/>
+										))}
+
+										{/* Stacks */}
+										{stacks.map((stack) => (
+											<StackItem
+												key={stack.id}
+												stack={stack}
+												consents={iabState.purposeConsents}
+												onToggle={handlePurposeToggle}
+												vendorConsents={iabState.vendorConsents}
+												onVendorToggle={handleVendorToggle}
+												onVendorClick={handleVendorClick}
+												vendorLegitimateInterests={
+													iabState.vendorLegitimateInterests
+												}
+												onVendorLegitimateInterestToggle={
+													handleVendorLegitimateInterestToggle
+												}
+												purposeLegitimateInterests={
+													iabState.purposeLegitimateInterests
+												}
+												onPurposeLegitimateInterestToggle={
+													handlePurposeLegitimateInterestToggle
+												}
+											/>
+										))}
+
+										{/* Special Features */}
+										{specialFeatures.map((feature) => (
+											<PurposeItem
+												key={`feature-${feature.id}`}
+												purpose={{
+													id: feature.id,
+													name: feature.name,
+													description: feature.description,
+													illustrations: feature.illustrations,
+													vendors: feature.vendors,
+												}}
+												isEnabled={
+													iabState.specialFeatureOptIns[feature.id] ?? false
+												}
+												onToggle={(value) =>
+													handleSpecialFeatureToggle(feature.id, value)
+												}
+												vendorConsents={iabState.vendorConsents}
+												onVendorToggle={handleVendorToggle}
+												onVendorClick={handleVendorClick}
+												vendorLegitimateInterests={
+													iabState.vendorLegitimateInterests
+												}
+												onVendorLegitimateInterestToggle={
+													handleVendorLegitimateInterestToggle
+												}
+											/>
+										))}
+
+										{/* Essential Functions: Special Purposes + Features (locked) */}
+										{(specialPurposes.length > 0 || features.length > 0) && (
+											<div className={styles.specialPurposesSection}>
+												<div className={styles.specialPurposesHeader}>
+													<button
+														type="button"
+														onClick={() =>
+															setSpecialPurposesExpanded(
+																!specialPurposesExpanded
+															)
 														}
+														className={styles.purposeTrigger}
+													>
 														<svg
-															className={styles.lockIcon}
+															className={styles.purposeArrow}
 															viewBox="0 0 24 24"
 															fill="none"
 															stroke="currentColor"
 															strokeWidth="2"
 														>
-															<rect
-																x="3"
-																y="11"
-																width="18"
-																height="11"
-																rx="2"
-																ry="2"
-															/>
-															<path d="M7 11V7a5 5 0 0 1 10 0v4" />
+															{specialPurposesExpanded ? (
+																<path d="M19 9l-7 7-7-7" />
+															) : (
+																<path d="M9 5l7 7-7 7" />
+															)}
 														</svg>
-													</h3>
-													<p className={styles.purposeMeta}>
-														{
-															new Set([
-																...specialPurposes.flatMap((sp) =>
-																	sp.vendors.map((v) => v.id)
-																),
-																...features.flatMap((f) =>
-																	f.vendors.map((v) => v.id)
-																),
-															]).size
-														}{' '}
-														partners
-													</p>
+														<div className={styles.purposeInfo}>
+															<h3 className={styles.specialPurposesTitle}>
+																{
+																	iabTranslations.preferenceCenter
+																		.specialPurposes.title
+																}
+																<svg
+																	className={styles.lockIcon}
+																	viewBox="0 0 24 24"
+																	fill="none"
+																	stroke="currentColor"
+																	strokeWidth="2"
+																>
+																	<rect
+																		x="3"
+																		y="11"
+																		width="18"
+																		height="11"
+																		rx="2"
+																		ry="2"
+																	/>
+																	<path d="M7 11V7a5 5 0 0 1 10 0v4" />
+																</svg>
+															</h3>
+															<p className={styles.purposeMeta}>
+																{
+																	new Set([
+																		...specialPurposes.flatMap((sp) =>
+																			sp.vendors.map((v) => v.id)
+																		),
+																		...features.flatMap((f) =>
+																			f.vendors.map((v) => v.id)
+																		),
+																	]).size
+																}{' '}
+																partners
+															</p>
+														</div>
+													</button>
+													<div style={{ position: 'relative' }}>
+														<svg
+															className={styles.infoIcon}
+															viewBox="0 0 24 24"
+															fill="none"
+															stroke="currentColor"
+															strokeWidth="2"
+															aria-label={
+																iabTranslations.preferenceCenter.specialPurposes
+																	.tooltip
+															}
+														>
+															<circle cx="12" cy="12" r="10" />
+															<line x1="12" y1="16" x2="12" y2="12" />
+															<line x1="12" y1="8" x2="12.01" y2="8" />
+														</svg>
+													</div>
 												</div>
-											</button>
-											<div style={{ position: 'relative' }}>
-												<svg
-													className={styles.infoIcon}
-													viewBox="0 0 24 24"
-													fill="none"
-													stroke="currentColor"
-													strokeWidth="2"
-													aria-label={
-														iabTranslations.preferenceCenter.specialPurposes
-															.tooltip
-													}
-												>
-													<circle cx="12" cy="12" r="10" />
-													<line x1="12" y1="16" x2="12" y2="12" />
-													<line x1="12" y1="8" x2="12.01" y2="8" />
-												</svg>
-											</div>
-										</div>
 
-										{specialPurposesExpanded && (
-											<div style={{ padding: '0.75rem' }}>
-												{/* Special Purposes */}
-												{specialPurposes.map((purpose) => (
-													<PurposeItem
-														key={`special-${purpose.id}`}
-														purpose={purpose}
-														isEnabled={true}
-														onToggle={() => {}}
-														vendorConsents={iabState.vendorConsents}
-														onVendorToggle={handleVendorToggle}
-														onVendorClick={handleVendorClick}
-														isLocked={true}
-													/>
-												))}
+												{specialPurposesExpanded && (
+													<div style={{ padding: '0.75rem' }}>
+														{/* Special Purposes */}
+														{specialPurposes.map((purpose) => (
+															<PurposeItem
+																key={`special-${purpose.id}`}
+																purpose={purpose}
+																isEnabled={true}
+																onToggle={() => {}}
+																vendorConsents={iabState.vendorConsents}
+																onVendorToggle={handleVendorToggle}
+																onVendorClick={handleVendorClick}
+																isLocked={true}
+															/>
+														))}
 
-												{/* Features */}
-												{features.map((feature) => (
-													<PurposeItem
-														key={`feature-${feature.id}`}
-														purpose={{
-															id: feature.id,
-															name: feature.name,
-															description: feature.description,
-															illustrations: feature.illustrations,
-															vendors: feature.vendors,
-														}}
-														isEnabled={true}
-														onToggle={() => {}}
-														vendorConsents={iabState.vendorConsents}
-														onVendorToggle={handleVendorToggle}
-														onVendorClick={handleVendorClick}
-														isLocked={true}
-													/>
-												))}
+														{/* Features */}
+														{features.map((feature) => (
+															<PurposeItem
+																key={`feature-${feature.id}`}
+																purpose={{
+																	id: feature.id,
+																	name: feature.name,
+																	description: feature.description,
+																	illustrations: feature.illustrations,
+																	vendors: feature.vendors,
+																}}
+																isEnabled={true}
+																onToggle={() => {}}
+																vendorConsents={iabState.vendorConsents}
+																onVendorToggle={handleVendorToggle}
+																onVendorClick={handleVendorClick}
+																isLocked={true}
+															/>
+														))}
+													</div>
+												)}
 											</div>
 										)}
-									</div>
-								)}
 
-								{/* Consent storage notice */}
-								<div className={styles.consentNotice}>
-									<p className={styles.consentNoticeText}>
-										{iabTranslations.preferenceCenter.footer.consentStorage}
-									</p>
-								</div>
-							</>
-						) : (
-							<VendorList
-								vendorData={iabState.gvl}
-								purposes={purposes}
-								vendorConsents={iabState.vendorConsents}
-								onVendorToggle={handleVendorToggle}
-								selectedVendorId={selectedVendorId}
-								onClearSelection={() => setSelectedVendorId(null)}
-								customVendors={iabState.nonIABVendors}
-								vendorLegitimateInterests={iabState.vendorLegitimateInterests}
-								onVendorLegitimateInterestToggle={
-									handleVendorLegitimateInterestToggle
-								}
-							/>
-						)}
-					</div>
+										{/* Consent storage notice */}
+										<div className={styles.consentNotice}>
+											<p className={styles.consentNoticeText}>
+												{iabTranslations.preferenceCenter.footer.consentStorage}
+											</p>
+										</div>
+									</Tabs.Content>
+									<Tabs.Content forceMount noStyle value="vendors">
+										<VendorList
+											vendorData={iabState.gvl}
+											purposes={purposes}
+											vendorConsents={iabState.vendorConsents}
+											onVendorToggle={handleVendorToggle}
+											selectedVendorId={selectedVendorId}
+											onClearSelection={() => setSelectedVendorId(null)}
+											customVendors={iabState.nonIABVendors}
+											vendorLegitimateInterests={
+												iabState.vendorLegitimateInterests
+											}
+											onVendorLegitimateInterestToggle={
+												handleVendorLegitimateInterestToggle
+											}
+										/>
+									</Tabs.Content>
+								</>
+							)}
+						</div>
+					</Tabs.Root>
 
 					{/* Footer */}
 					<div className={styles.footer}>
