@@ -21,6 +21,13 @@ const config: StorybookConfig = {
 						),
 					},
 					{
+						find: /^@c15t\/react$/,
+						replacement: path.resolve(
+							storybookDir,
+							'../../../packages/react/src/index.ts'
+						),
+					},
+					{
 						find: /^~\/(.*)$/,
 						replacement: path.resolve(
 							storybookDir,
@@ -112,10 +119,31 @@ const config: StorybookConfig = {
 						),
 					},
 					{
+						find: /^@c15t\/ui\/styles\/components\/(.*)\.module\.js$/,
+						replacement: path.resolve(
+							storybookDir,
+							'../../../packages/ui/src/styles/components/$1.module.css'
+						),
+					},
+					{
 						find: '@c15t/ui/utils/dom',
 						replacement: path.resolve(
 							storybookDir,
 							'../../../packages/ui/src/utils/dom.ts'
+						),
+					},
+					{
+						find: '@c15t/translations/all',
+						replacement: path.resolve(
+							storybookDir,
+							'../../../packages/translations/src/all.ts'
+						),
+					},
+					{
+						find: /^@c15t\/translations$/,
+						replacement: path.resolve(
+							storybookDir,
+							'../../../packages/translations/src/index.ts'
 						),
 					},
 				],

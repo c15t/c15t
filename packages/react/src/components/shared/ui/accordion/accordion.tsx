@@ -319,6 +319,7 @@ function AccordionArrow({
 	closeIcon = {
 		Element: LucideIcon({ title: 'Close', iconPath: <path d="M5 12h14" /> }),
 	},
+	className,
 	noStyle,
 	openIcon = {
 		Element: LucideIcon({
@@ -339,6 +340,7 @@ function AccordionArrow({
 
 	return (
 		<span
+			className={className}
 			data-slot="accordion-arrow"
 			style={{
 				alignItems: 'center',
@@ -349,20 +351,19 @@ function AccordionArrow({
 				position: 'relative',
 				width: '1.25rem',
 			}}
+			{...rest}
 		>
 			<openIcon.Element
 				aria-hidden="true"
 				className={openClassName}
 				data-slot="accordion-arrow-open"
 				data-state={itemContext.open ? 'open' : 'closed'}
-				{...rest}
 			/>
 			<closeIcon.Element
 				aria-hidden="true"
 				className={closeClassName}
 				data-slot="accordion-arrow-close"
 				data-state={itemContext.open ? 'open' : 'closed'}
-				{...rest}
 			/>
 		</span>
 	);
