@@ -52,6 +52,12 @@ export {
 	stableStringify,
 } from './policy-fingerprint';
 export {
+	type PolicyI18nMessageProfileLike,
+	type PolicyI18nValidationOptions,
+	type PolicyI18nValidationResult,
+	validatePolicyI18nConfig,
+} from './policy-i18n-validation';
+export {
 	type EuropePolicyMode,
 	type PolicyPackPresets,
 	policyPackPresets,

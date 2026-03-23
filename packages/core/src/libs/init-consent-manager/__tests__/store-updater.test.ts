@@ -143,6 +143,38 @@ describe('updateStore - cmpId merging', () => {
 		// Should not have set iab since no server cmpId and no GVL disabled
 		expect(iabUpdate).toBeUndefined();
 	});
+
+	it('should disable client IAB config when the response has no GVL', async () => {
+		const consoleWarnSpy = vi
+			.spyOn(console, 'warn')
+			.mockImplementation(() => {});
+		const data = createMockConsentBannerResponse({
+			jurisdiction: 'GDPR',
+			gvl: null,
+		});
+
+		const config = {
+			get: mockGet,
+			set: mockSet,
+			manager: {} as InitConsentManagerConfig['manager'],
+			initialTranslationConfig: undefined,
+		};
+
+		await updateStore(data, config, true, data.gvl);
+
+		expect(consoleWarnSpy).toHaveBeenCalledWith(
+			'IAB mode disabled: Server returned 200 without GVL. Client IAB settings overridden.'
+		);
+		expect(mockSet).toHaveBeenCalledWith(
+			expect.objectContaining({
+				iab: expect.objectContaining({
+					config: expect.objectContaining({
+						enabled: false,
+					}),
+				}),
+			})
+		);
+	});
 });
 
 describe('updateStore - GPC override', () => {

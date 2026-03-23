@@ -23,7 +23,10 @@ vi.mock('~/handlers/init/policy', () => ({
 }));
 
 vi.mock('~/handlers/policy/snapshot', () => ({
-	verifyPolicySnapshotToken: vi.fn().mockResolvedValue(null),
+	verifyPolicySnapshotToken: vi.fn().mockResolvedValue({
+		valid: false,
+		reason: 'missing',
+	}),
 }));
 
 const GIVEN_AT = 1700000000000;
@@ -422,6 +425,135 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 		);
 	});
 
+	it('rejects missing policy snapshot tokens when reject mode is active', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.policySnapshot = {
+			signingKey: 'test-signing-key',
+		};
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 409,
+			message: 'Policy snapshot token is required',
+			cause: {
+				code: 'POLICY_SNAPSHOT_REQUIRED',
+			},
+		});
+
+		expect(resolvePolicyDecision).not.toHaveBeenCalled();
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('rejects invalid policy snapshot tokens when reject mode is active', async () => {
+		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue({
+			valid: false,
+			reason: 'invalid',
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.policySnapshot = {
+			signingKey: 'test-signing-key',
+		};
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			policySnapshotToken: 'snapshot-token',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 409,
+			message: 'Policy snapshot token is invalid',
+			cause: {
+				code: 'POLICY_SNAPSHOT_INVALID',
+			},
+		});
+
+		expect(resolvePolicyDecision).not.toHaveBeenCalled();
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('rejects expired policy snapshot tokens when reject mode is active', async () => {
+		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue({
+			valid: false,
+			reason: 'expired',
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.policySnapshot = {
+			signingKey: 'test-signing-key',
+		};
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			policySnapshotToken: 'snapshot-token',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 409,
+			message: 'Policy snapshot token has expired',
+			cause: {
+				code: 'POLICY_SNAPSHOT_EXPIRED',
+			},
+		});
+
+		expect(resolvePolicyDecision).not.toHaveBeenCalled();
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('falls back to the current policy decision when resolve_current mode is active', async () => {
+		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue({
+			valid: false,
+			reason: 'invalid',
+		});
+		vi.mocked(resolvePolicyDecision).mockResolvedValue({
+			policy: {
+				id: 'policy_current',
+				model: 'opt-in',
+				consent: { categories: ['measurement'] },
+			},
+			matchedBy: 'country',
+			fingerprint: 'r'.repeat(64),
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.policySnapshot = {
+			signingKey: 'test-signing-key',
+			onValidationFailure: 'resolve_current',
+		};
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			preferences: {
+				measurement: true,
+			},
+			policySnapshotToken: 'snapshot-token',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(resolvePolicyDecision).toHaveBeenCalled();
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'runtimePolicyDecision',
+			expect.objectContaining({
+				fingerprint: 'r'.repeat(64),
+			})
+		);
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'consent',
+			expect.objectContaining({
+				runtimePolicySource: 'write_time_fallback',
+			})
+		);
+	});
+
 	it('rejects /subjects writes when policy resolution fails IAB validation', async () => {
 		vi.mocked(resolvePolicyDecision).mockRejectedValueOnce(
 			new Error(
@@ -533,19 +665,22 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 			)
 		);
 		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue({
-			iss: 'c15t',
-			aud: 'c15t-policy-snapshot',
-			sub: 'policy_iab_snapshot',
-			policyId: 'policy_iab_snapshot',
-			fingerprint: 'd'.repeat(64),
-			matchedBy: 'country',
-			country: 'FR',
-			region: null,
-			jurisdiction: 'GDPR',
-			model: 'iab',
-			categories: ['*'],
-			iat: 1,
-			exp: 9_999_999_999,
+			valid: true,
+			payload: {
+				iss: 'c15t',
+				aud: 'c15t-policy-snapshot',
+				sub: 'policy_iab_snapshot',
+				policyId: 'policy_iab_snapshot',
+				fingerprint: 'd'.repeat(64),
+				matchedBy: 'country',
+				country: 'FR',
+				region: null,
+				jurisdiction: 'GDPR',
+				model: 'iab',
+				categories: ['*'],
+				iat: 1,
+				exp: 9_999_999_999,
+			},
 		});
 
 		const db = createMockDb(null);
@@ -573,7 +708,10 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 	});
 
 	it('persists runtime policy i18n and preselected categories from write-time fallback', async () => {
-		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue(null);
+		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue({
+			valid: false,
+			reason: 'missing',
+		});
 		vi.mocked(resolvePolicyDecision).mockResolvedValue({
 			policy: {
 				id: 'policy_localized',
@@ -636,25 +774,28 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 			fingerprint: 'f'.repeat(64),
 		});
 		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue({
-			iss: 'c15t',
-			aud: 'c15t-policy-snapshot',
-			sub: 'policy_snapshot_localized',
-			policyId: 'policy_snapshot_localized',
-			fingerprint: 'g'.repeat(64),
-			matchedBy: 'country',
-			country: 'FR',
-			region: null,
-			jurisdiction: 'GDPR',
-			language: 'fr',
-			model: 'opt-in',
-			policyI18n: {
+			valid: true,
+			payload: {
+				iss: 'c15t',
+				aud: 'c15t-policy-snapshot',
+				sub: 'policy_snapshot_localized',
+				policyId: 'policy_snapshot_localized',
+				fingerprint: 'g'.repeat(64),
+				matchedBy: 'country',
+				country: 'FR',
+				region: null,
+				jurisdiction: 'GDPR',
 				language: 'fr',
-				messageProfile: 'fr',
+				model: 'opt-in',
+				policyI18n: {
+					language: 'fr',
+					messageProfile: 'fr',
+				},
+				categories: ['measurement', 'marketing'],
+				preselectedCategories: ['measurement'],
+				iat: 1,
+				exp: 9_999_999_999,
 			},
-			categories: ['measurement', 'marketing'],
-			preselectedCategories: ['measurement'],
-			iat: 1,
-			exp: 9_999_999_999,
 		});
 
 		const db = createMockDb(null);
@@ -688,7 +829,10 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 	});
 
 	it('persists runtime policy scrollLock in audit records', async () => {
-		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue(null);
+		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue({
+			valid: false,
+			reason: 'missing',
+		});
 		vi.mocked(resolvePolicyDecision).mockResolvedValue({
 			policy: {
 				id: 'policy_scroll_lock',

@@ -16,7 +16,7 @@ export interface OfflineClientOptions {
 	 *
 	 * @remarks
 	 * Supports either:
-	 * - A backend-compatible policy pack (`policies`) resolved offline
+	 * - A backend-compatible policy pack (`policyPacks`) resolved offline
 	 * - A fully synthetic resolved policy payload for UI previewing
 	 */
 	policyConfig?: OfflinePolicyConfig;

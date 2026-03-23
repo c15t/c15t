@@ -96,6 +96,8 @@ To create & update the database you can use the migrator which is included in th
 
 <PackageCommandTabs command="@c15t/cli@rc" />
 
+If you are enabling policy-pack runtime audit storage, also apply the runtime policy decision migration described in the [Policy Packs guide](/docs/self-host/guides/policy-packs). That migration adds the `runtimePolicyDecision` table plus consent linkage columns used by signed snapshots and write-time audit records.
+
 ## Table Prefix
 
 If you share a database with other applications, use `tablePrefix` to namespace the c15t tables:
@@ -118,6 +120,7 @@ The backend creates and manages these tables:
 | --- | --- |
 | `subject` | Consent subjects (users/devices). Tracks identification status and external IDs. |
 | `consent` | Append-only consent records. Stores preferences, jurisdiction, IP, and timestamps. |
+| `runtimePolicyDecision` | Resolved runtime policy evidence linked from consent rows when policy packs are active. |
 | `domain` | Domain/website configuration for multi-domain setups. |
 | `consent_policy` | Versioned consent policies. |
 | `consent_purpose` | Maps consent purposes to categories. |

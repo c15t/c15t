@@ -236,21 +236,24 @@ describe('policy packs E2E: init → resolve → snapshot round-trip', () => {
 			options: { signingKey: SIGNING_KEY },
 		});
 
-		expect(payload).toBeDefined();
-		expect(payload?.policyId).toBe('eu_opt_in');
-		expect(payload?.fingerprint).toBe(body.policyDecision?.fingerprint);
-		expect(payload?.matchedBy).toBe('country');
-		expect(payload?.country).toBe('DE');
-		expect(payload?.jurisdiction).toBe('GDPR');
-		expect(payload?.model).toBe('opt-in');
-		expect(payload?.scopeMode).toBe('strict');
-		expect(payload?.categories).toEqual([
+		expect(payload.valid).toBe(true);
+		if (!payload.valid) {
+			throw new Error('Expected valid snapshot payload');
+		}
+		expect(payload.payload.policyId).toBe('eu_opt_in');
+		expect(payload.payload.fingerprint).toBe(body.policyDecision?.fingerprint);
+		expect(payload.payload.matchedBy).toBe('country');
+		expect(payload.payload.country).toBe('DE');
+		expect(payload.payload.jurisdiction).toBe('GDPR');
+		expect(payload.payload.model).toBe('opt-in');
+		expect(payload.payload.scopeMode).toBe('strict');
+		expect(payload.payload.categories).toEqual([
 			'necessary',
 			'measurement',
 			'marketing',
 		]);
-		expect(payload?.gpc).toBe(false);
-		expect(payload?.proofConfig).toEqual({
+		expect(payload.payload.gpc).toBe(false);
+		expect(payload.payload.proofConfig).toEqual({
 			storeIp: true,
 			storeUserAgent: true,
 			storeLanguage: true,
@@ -266,9 +269,13 @@ describe('policy packs E2E: init → resolve → snapshot round-trip', () => {
 			options: { signingKey: SIGNING_KEY },
 		});
 
-		expect(payload?.matchedBy).toBe('fallback');
-		expect(payload?.policyId).toBe('eu_opt_in');
-		expect(payload?.country).toBeNull();
+		expect(payload.valid).toBe(true);
+		if (!payload.valid) {
+			throw new Error('Expected valid snapshot payload');
+		}
+		expect(payload.payload.matchedBy).toBe('fallback');
+		expect(payload.payload.policyId).toBe('eu_opt_in');
+		expect(payload.payload.country).toBeNull();
 	});
 
 	it('does not produce a snapshot token when signingKey is not configured', async () => {
@@ -343,7 +350,11 @@ describe('policy packs E2E: init → resolve → snapshot round-trip', () => {
 			options: { signingKey: SIGNING_KEY },
 		});
 
-		expect(payload?.gpc).toBe(true);
+		expect(payload.valid).toBe(true);
+		if (!payload.valid) {
+			throw new Error('Expected valid snapshot payload');
+		}
+		expect(payload.payload.gpc).toBe(true);
 	});
 
 	// -------------------------------------------------------------------------

@@ -5,6 +5,17 @@ import {
 } from './snapshot';
 
 describe('policy snapshot token', () => {
+	it('returns missing when the token is absent', async () => {
+		const verified = await verifyPolicySnapshotToken({
+			options: { signingKey: 'test-signing-key' },
+		});
+
+		expect(verified).toEqual({
+			valid: false,
+			reason: 'missing',
+		});
+	});
+
 	it('creates and verifies a valid token', async () => {
 		const tokenResult = await createPolicySnapshotToken({
 			options: { signingKey: 'test-signing-key', ttlSeconds: 60 },
@@ -48,24 +59,28 @@ describe('policy snapshot token', () => {
 			tenantId: 'ins_123',
 		});
 
-		expect(payload?.iss).toBe('c15t');
-		expect(payload?.aud).toBe('c15t-policy-snapshot:ins_123');
-		expect(payload?.sub).toBe('policy_default');
-		expect(payload?.policyId).toBe('policy_default');
-		expect(payload?.matchedBy).toBe('country');
-		expect(payload?.country).toBe('US');
-		expect(payload?.region).toBe('CA');
-		expect(payload?.policyI18n).toEqual({
+		expect(payload.valid).toBe(true);
+		if (!payload.valid) {
+			throw new Error('Expected valid snapshot payload');
+		}
+		expect(payload.payload.iss).toBe('c15t');
+		expect(payload.payload.aud).toBe('c15t-policy-snapshot:ins_123');
+		expect(payload.payload.sub).toBe('policy_default');
+		expect(payload.payload.policyId).toBe('policy_default');
+		expect(payload.payload.matchedBy).toBe('country');
+		expect(payload.payload.country).toBe('US');
+		expect(payload.payload.region).toBe('CA');
+		expect(payload.payload.policyI18n).toEqual({
 			language: 'en',
 			messageProfile: 'us_ca',
 		});
-		expect(payload?.scopeMode).toBe('strict');
-		expect(payload?.categories).toEqual(['analytics', 'marketing']);
-		expect(payload?.preselectedCategories).toEqual(['analytics']);
-		expect(payload?.bannerUi?.actionLayout).toBe('inline');
-		expect(payload?.bannerUi?.uiProfile).toBe('strict');
-		expect(payload?.bannerUi?.scrollLock).toBe(true);
-		expect(payload?.bannerUi?.actionOrder).toEqual([
+		expect(payload.payload.scopeMode).toBe('strict');
+		expect(payload.payload.categories).toEqual(['analytics', 'marketing']);
+		expect(payload.payload.preselectedCategories).toEqual(['analytics']);
+		expect(payload.payload.bannerUi?.actionLayout).toBe('inline');
+		expect(payload.payload.bannerUi?.uiProfile).toBe('strict');
+		expect(payload.payload.bannerUi?.scrollLock).toBe(true);
+		expect(payload.payload.bannerUi?.actionOrder).toEqual([
 			'accept',
 			'reject',
 			'customize',
@@ -92,7 +107,10 @@ describe('policy snapshot token', () => {
 			options: { signingKey: 'test-signing-key' },
 		});
 
-		expect(verified).toBeNull();
+		expect(verified).toEqual({
+			valid: false,
+			reason: 'invalid',
+		});
 	});
 
 	it('rejects expired tokens', async () => {
@@ -112,7 +130,10 @@ describe('policy snapshot token', () => {
 			options: { signingKey: 'test-signing-key' },
 		});
 
-		expect(verified).toBeNull();
+		expect(verified).toEqual({
+			valid: false,
+			reason: 'expired',
+		});
 	});
 
 	it('rejects tokens when the tenant context does not match', async () => {
@@ -134,7 +155,10 @@ describe('policy snapshot token', () => {
 			tenantId: 'ins_456',
 		});
 
-		expect(verified).toBeNull();
+		expect(verified).toEqual({
+			valid: false,
+			reason: 'invalid',
+		});
 	});
 
 	it('rejects tenant-scoped tokens when no tenant context is provided', async () => {
@@ -155,7 +179,10 @@ describe('policy snapshot token', () => {
 			options: { signingKey: 'test-signing-key' },
 		});
 
-		expect(verified).toBeNull();
+		expect(verified).toEqual({
+			valid: false,
+			reason: 'invalid',
+		});
 	});
 
 	it('supports custom issuer and audience claims', async () => {
@@ -186,7 +213,11 @@ describe('policy snapshot token', () => {
 			tenantId: 'ins_123',
 		});
 
-		expect(verified?.iss).toBe('consent.example.com');
-		expect(verified?.aud).toBe('policy-snapshot-api');
+		expect(verified.valid).toBe(true);
+		if (!verified.valid) {
+			throw new Error('Expected valid snapshot payload');
+		}
+		expect(verified.payload.iss).toBe('consent.example.com');
+		expect(verified.payload.aud).toBe('policy-snapshot-api');
 	});
 });

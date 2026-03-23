@@ -298,6 +298,11 @@ export interface PolicySnapshotOptions {
 	 */
 	signingKey: string;
 	/**
+	 * How writes should behave when snapshot validation fails.
+	 * @default "reject"
+	 */
+	onValidationFailure?: 'reject' | 'resolve_current';
+	/**
 	 * JWT issuer claim for snapshot tokens.
 	 * @default "c15t"
 	 */

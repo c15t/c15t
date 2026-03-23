@@ -1,4 +1,8 @@
-import { resolvePolicyDecision, validatePolicies } from '@c15t/schema/types';
+import {
+	resolvePolicyDecision,
+	validatePolicies,
+	validatePolicyI18nConfig,
+} from '@c15t/schema/types';
 import {
 	deepMergeTranslations,
 	selectLanguage,
@@ -161,6 +165,22 @@ export async function init(
 	const jurisdictionCode = checkJurisdiction(country, region);
 	const configuredPolicies = policyConfig?.policyPacks;
 	const hasExplicitPolicies = policyConfig?.policyPacks !== undefined;
+	const i18nValidation = validatePolicyI18nConfig({
+		i18n: policyConfig?.i18n,
+		policies: configuredPolicies,
+	});
+
+	for (const warning of i18nValidation.warnings) {
+		console.warn(`[c15t] offlinePolicy.i18n: ${warning}`);
+	}
+
+	if (i18nValidation.errors.length > 0) {
+		throw new Error(
+			`Invalid offlinePolicy.i18n configuration:\n${i18nValidation.errors
+				.map((error) => `- ${error}`)
+				.join('\n')}`
+		);
+	}
 
 	if (configuredPolicies && configuredPolicies.length > 0) {
 		validatePolicies(configuredPolicies, {
@@ -267,11 +287,11 @@ export async function init(
 	// Priority: 1) Pre-loaded from config (always honoured when provided),
 	// 2) Fetch from external endpoint (only when policy model is iab)
 	let gvl = null;
-	if (iabConfig?.enabled) {
+	if (iabConfig?.enabled && resolvedPolicyConfig.policy?.model === 'iab') {
 		if (iabConfig.gvl) {
 			// Pre-loaded GVL always used when explicitly provided (testing/SSR)
 			gvl = iabConfig.gvl;
-		} else if (resolvedPolicyConfig.policy?.model === 'iab') {
+		} else {
 			try {
 				const { fetchGVL } = await import('../../libs/iab-tcf/fetch-gvl');
 				gvl = await fetchGVL(iabConfig.vendorIds);

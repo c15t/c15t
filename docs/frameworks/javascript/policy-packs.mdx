@@ -95,9 +95,11 @@ const runtime = getOrCreateConsentRuntime({
 
 | Configuration | Result |
 |--------------|--------|
-| `offlinePolicy.policyPacks` omitted | Synthetic opt-in fallback banner (local dev works out of the box) |
+| `offlinePolicy.policyPacks` omitted | Synthetic opt-in fallback banner (also used for hosted network fallback) |
 | `offlinePolicy: { policyPacks: [] }` | Explicit no-banner mode |
 | Non-empty pack, no match, no default | Explicit no-banner mode |
+
+The omitted-config fallback is intentionally conservative: if the backend is unreachable or a local preview forgets to pass `offlinePolicy`, c15t still shows an opt-in banner instead of silently dropping consent UI.
 
 ## When to Use Offline Mode
 

@@ -9,7 +9,10 @@ import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { generateUniqueId } from '~/db/registry/utils';
 import { getJurisdiction, getLocation } from '~/handlers/init/geo';
-import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
+import {
+	type PolicySnapshotVerificationFailureReason,
+	verifyPolicySnapshotToken,
+} from '~/handlers/policy/snapshot';
 import type { C15TContext } from '~/types';
 import { extractErrorMessage } from '~/utils/extract-error-message';
 import { getMetrics } from '~/utils/metrics';
@@ -45,8 +48,13 @@ export function buildRuntimeDecisionDedupeKey(input: {
 function buildDecisionPayload(params: {
 	tenantId?: string;
 	snapshot: {
-		valid: boolean;
-		payload: NonNullable<Awaited<ReturnType<typeof verifyPolicySnapshotToken>>>;
+		valid: true;
+		payload: NonNullable<
+			Extract<
+				Awaited<ReturnType<typeof verifyPolicySnapshotToken>>,
+				{ valid: true }
+			>['payload']
+		>;
 	} | null;
 	decision: Awaited<ReturnType<typeof resolvePolicyDecision>> | undefined;
 	location: { countryCode: string | null; regionCode: string | null };
@@ -145,6 +153,35 @@ function parseLanguageFromHeader(header: string | null): string | undefined {
 	return firstLanguage.split('-')[0]?.toLowerCase();
 }
 
+function resolveSnapshotFailureMode(
+	ctx: C15TContext
+): 'reject' | 'resolve_current' {
+	return ctx.policySnapshot?.onValidationFailure ?? 'reject';
+}
+
+function buildSnapshotHttpException(
+	reason: PolicySnapshotVerificationFailureReason
+): HTTPException {
+	switch (reason) {
+		case 'missing':
+			return new HTTPException(409, {
+				message: 'Policy snapshot token is required',
+				cause: { code: 'POLICY_SNAPSHOT_REQUIRED' },
+			});
+		case 'expired':
+			return new HTTPException(409, {
+				message: 'Policy snapshot token has expired',
+				cause: { code: 'POLICY_SNAPSHOT_EXPIRED' },
+			});
+		case 'malformed':
+		case 'invalid':
+			return new HTTPException(409, {
+				message: 'Policy snapshot token is invalid',
+				cause: { code: 'POLICY_SNAPSHOT_INVALID' },
+			});
+	}
+}
+
 /**
  * Handles the creation of a new consent record for a subject.
  *
@@ -198,12 +235,21 @@ export const postSubjectHandler = async (c: Context) => {
 		const requestLanguage = parseLanguageFromHeader(acceptLanguage);
 		const location = await getLocation(request, ctx);
 		const resolvedJurisdiction = getJurisdiction(location, ctx);
-		const snapshotPayload = await verifyPolicySnapshotToken({
+		const snapshotVerification = await verifyPolicySnapshotToken({
 			token: input.policySnapshotToken,
 			options: ctx.policySnapshot,
 			tenantId: ctx.tenantId,
 		});
-		const hasValidSnapshot = !!snapshotPayload;
+		const hasValidSnapshot = snapshotVerification.valid;
+		const snapshotPayload = snapshotVerification.valid
+			? snapshotVerification.payload
+			: null;
+		const shouldRequireSnapshot =
+			!!ctx.policySnapshot?.signingKey &&
+			resolveSnapshotFailureMode(ctx) === 'reject';
+		if (!hasValidSnapshot && shouldRequireSnapshot) {
+			throw buildSnapshotHttpException(snapshotVerification.reason);
+		}
 		const resolvedPolicyDecision = hasValidSnapshot
 			? undefined
 			: await resolvePolicyDecision({

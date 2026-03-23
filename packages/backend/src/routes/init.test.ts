@@ -363,10 +363,14 @@ describe('createInitRoute IAB policy gating', () => {
 		});
 
 		expect(response.status).toBe(200);
-		expect(payload?.policyI18n).toEqual({
+		expect(payload.valid).toBe(true);
+		if (!payload.valid) {
+			throw new Error('Expected valid snapshot payload');
+		}
+		expect(payload.payload.policyI18n).toEqual({
 			language: 'de',
 			messageProfile: 'eu_gdpr',
 		});
-		expect(payload?.preselectedCategories).toEqual(['measurement']);
+		expect(payload.payload.preselectedCategories).toEqual(['measurement']);
 	});
 });

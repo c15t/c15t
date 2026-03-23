@@ -432,6 +432,139 @@ describe('Offline Client Tests', () => {
 		expect(response.data?.policy?.ui?.mode).toBe('banner');
 	});
 
+	it('should not include preloaded GVL when the resolved offline policy is not iab', async () => {
+		const client = configureConsentManager({
+			mode: 'offline',
+			store: {
+				iab: {
+					enabled: true,
+					gvl: {
+						vendors: {},
+					} as never,
+				},
+				offlinePolicy: {
+					policyPacks: [
+						{
+							id: 'us_opt_in',
+							match: { countries: ['US'] },
+							consent: { model: 'opt-in' },
+							ui: { mode: 'banner' },
+						},
+					],
+				},
+			},
+		});
+
+		const response = await client.init({
+			headers: { 'x-c15t-country': 'US' },
+		});
+
+		expect(response.ok).toBe(true);
+		expect(response.data?.policy?.model).toBe('opt-in');
+		expect(response.data?.gvl).toBeNull();
+	});
+
+	it('should preserve preloaded GVL when the resolved offline policy is iab', async () => {
+		const preloadedGVL = {
+			vendors: {},
+		} as never;
+		const client = configureConsentManager({
+			mode: 'offline',
+			store: {
+				iab: {
+					enabled: true,
+					gvl: preloadedGVL,
+				},
+				offlinePolicy: {
+					policyPacks: [
+						{
+							id: 'de_iab',
+							match: { countries: ['DE'] },
+							consent: { model: 'iab', categories: ['*'] },
+						},
+					],
+				},
+			},
+		});
+
+		const response = await client.init({
+			headers: { 'x-c15t-country': 'DE' },
+		});
+
+		expect(response.ok).toBe(true);
+		expect(response.data?.policy?.model).toBe('iab');
+		expect(response.data?.gvl).toBe(preloadedGVL);
+	});
+
+	it('should reject offline policy i18n profiles that do not exist', async () => {
+		const client = configureConsentManager({
+			mode: 'offline',
+			store: {
+				offlinePolicy: {
+					i18n: {
+						defaultProfile: 'default',
+						messages: {
+							default: profile({
+								en: { cookieBanner: { title: 'Default EN Title' } },
+							}),
+						},
+					},
+					policyPacks: [
+						{
+							id: 'eu',
+							match: { countries: ['DE'] },
+							i18n: { messageProfile: 'missing' },
+							consent: { model: 'opt-in' },
+							ui: { mode: 'banner' },
+						},
+					],
+				},
+			},
+		});
+
+		await expect(
+			client.init({
+				headers: { 'x-c15t-country': 'DE' },
+			})
+		).rejects.toThrow("Policy 'eu' references missing i18n profile 'missing'.");
+	});
+
+	it('should reject offline policy i18n languages without configured translations', async () => {
+		const client = configureConsentManager({
+			mode: 'offline',
+			store: {
+				offlinePolicy: {
+					i18n: {
+						defaultProfile: 'default',
+						messages: {
+							default: profile({
+								en: { cookieBanner: { title: 'Default EN Title' } },
+							}),
+							empty: profile({}),
+						},
+					},
+					policyPacks: [
+						{
+							id: 'de',
+							match: { countries: ['DE'] },
+							i18n: { language: 'fr', messageProfile: 'empty' },
+							consent: { model: 'opt-in' },
+							ui: { mode: 'banner' },
+						},
+					],
+				},
+			},
+		});
+
+		await expect(
+			client.init({
+				headers: { 'x-c15t-country': 'DE' },
+			})
+		).rejects.toThrow(
+			"Policy 'de' i18n language 'fr' has no configured translation"
+		);
+	});
+
 	it('should handle language header', async () => {
 		const client = configureConsentManager({
 			mode: 'offline',

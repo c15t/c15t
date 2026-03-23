@@ -46,6 +46,33 @@ describe('Hosted Client Offline Fallback Tests', () => {
 		expect(response.data?.policy?.model).toBe('opt-in');
 	});
 
+	it('should not attach GVL to hosted offline fallback when the fallback policy is not iab', async () => {
+		fetchMock.mockImplementation(() =>
+			Promise.reject(new Error('Network error'))
+		);
+
+		const client = configureConsentManager({
+			mode: 'hosted',
+			backendURL: '/api/c15t',
+			retryConfig: {
+				maxRetries: 0,
+				retryOnNetworkError: false,
+			},
+			store: {
+				iab: {
+					enabled: true,
+					vendorIds: [1],
+				},
+			},
+		});
+
+		const response = await client.init();
+
+		expect(response.ok).toBe(true);
+		expect(response.data?.policy?.id).toBe('offline_opt_in_banner');
+		expect(response.data?.gvl).toBeNull();
+	});
+
 	it('should use offline fallback for setConsent on API failure', async () => {
 		// Mock a failed API response
 		fetchMock.mockImplementation(() =>
