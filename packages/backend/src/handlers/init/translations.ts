@@ -1,3 +1,4 @@
+import { validatePolicyI18nConfig } from '@c15t/schema/types';
 import {
 	type CompleteTranslations,
 	deepMergeTranslations,
@@ -204,80 +205,11 @@ export function validateMessages(options: {
 	errors: string[];
 	warnings: string[];
 } {
-	const profiles = normalizeProfiles({
+	return validatePolicyI18nConfig({
 		customTranslations: options.customTranslations,
 		i18n: options.i18n,
+		policies: options.policies,
 	});
-	const profileNames = Object.keys(profiles);
-	const defaultProfile = options.i18n?.defaultProfile ?? DEFAULT_PROFILE;
-	const errors: string[] = [];
-	const warnings: string[] = [];
-
-	if (
-		options.customTranslations &&
-		Object.keys(options.customTranslations).length > 0
-	) {
-		warnings.push(
-			'`customTranslations` is deprecated. Migrate to `i18n.messages`.'
-		);
-	}
-
-	if (profileNames.length > 0 && !profiles[defaultProfile]) {
-		warnings.push(
-			`Default i18n profile '${defaultProfile}' is not configured. Fallbacks may skip expected default profile behavior.`
-		);
-	}
-
-	for (const policy of options.policies ?? []) {
-		if (!policy.i18n) {
-			continue;
-		}
-
-		const profile = resolveActiveProfile({
-			profiles,
-			defaultProfile,
-			policyProfile: policy.i18n.messageProfile,
-		});
-		const language = normalizeLanguage(policy.i18n.language);
-
-		if (policy.i18n.messageProfile && !profiles[policy.i18n.messageProfile]) {
-			errors.push(
-				`Policy '${policy.id}' references missing i18n profile '${policy.i18n.messageProfile}'.`
-			);
-		}
-
-		if (!policy.i18n.messageProfile && !policy.i18n.language) {
-			warnings.push(
-				`Policy '${policy.id}' defines i18n without language or messageProfile. Runtime will use request language + default profile.`
-			);
-		}
-
-		if (!language) {
-			continue;
-		}
-
-		const fallbackLanguage =
-			profileNames.length > 0
-				? resolveFallbackLanguage({ profile: profiles[profile] })
-				: 'en';
-		const hasProfileLanguage =
-			!!profiles[profile]?.translations[language] ||
-			!!profiles[profile]?.translations[fallbackLanguage];
-		const hasBaseLanguage =
-			profileNames.length === 0 && isSupportedBaseLanguage(language);
-
-		if (!hasProfileLanguage && !hasBaseLanguage) {
-			errors.push(
-				`Policy '${policy.id}' i18n language '${language}' has no configured translation in profile '${profile}', and no configured fallback exists.`
-			);
-		}
-	}
-
-	return {
-		profiles: profileNames.sort(),
-		errors,
-		warnings,
-	};
 }
 
 /**

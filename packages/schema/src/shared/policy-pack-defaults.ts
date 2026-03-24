@@ -1,4 +1,4 @@
-import type { PolicyConfig } from './policy-runtime';
+import type { PolicyConfig, PolicyUiSurfaceConfig } from './policy-runtime';
 import { policyMatchers } from './policy-runtime';
 
 /**
@@ -8,8 +8,29 @@ import { policyMatchers } from './policy-runtime';
  */
 export type EuropePolicyMode = 'opt-in' | 'iab';
 
+function createSplitRowUiProfile(): PolicyUiSurfaceConfig {
+	return {
+		allowedActions: ['accept', 'reject', 'customize'],
+		layout: [['reject', 'accept'], 'customize'],
+		direction: 'row',
+		primaryAction: 'customize',
+		uiProfile: 'compact',
+	};
+}
+
 function californiaPolicy(mode: 'opt-in' | 'opt-out'): PolicyConfig {
 	const isOptOut = mode === 'opt-out';
+	let ui: PolicyConfig['ui'];
+
+	if (isOptOut) {
+		ui = { mode: 'none' };
+	} else {
+		ui = {
+			mode: 'banner',
+			banner: createSplitRowUiProfile(),
+			dialog: createSplitRowUiProfile(),
+		};
+	}
 
 	return {
 		id: isOptOut ? 'california_opt_out' : 'california_opt_in',
@@ -19,21 +40,7 @@ function californiaPolicy(mode: 'opt-in' | 'opt-out'): PolicyConfig {
 			expiryDays: 365,
 			gpc: true,
 		},
-		ui: isOptOut
-			? { mode: 'none' }
-			: {
-					mode: 'banner',
-					banner: {
-						allowedActions: ['accept', 'reject', 'customize'],
-						primaryAction: 'customize',
-						uiProfile: 'compact',
-					},
-					dialog: {
-						allowedActions: ['accept', 'reject', 'customize'],
-						primaryAction: 'customize',
-						uiProfile: 'compact',
-					},
-				},
+		ui,
 		proof: {
 			storeIp: true,
 			storeUserAgent: true,
@@ -44,7 +51,7 @@ function californiaPolicy(mode: 'opt-in' | 'opt-out'): PolicyConfig {
 
 function europePolicy(mode: EuropePolicyMode): PolicyConfig {
 	const isIab = mode === 'iab';
-	return {
+	const policy: PolicyConfig = {
 		id: isIab ? 'europe_iab' : 'europe_opt_in',
 		match: policyMatchers.merge(
 			policyMatchers.iab(),
@@ -55,29 +62,22 @@ function europePolicy(mode: EuropePolicyMode): PolicyConfig {
 			expiryDays: 365,
 			...(isIab ? { categories: ['*'] } : {}),
 		},
-		...(!isIab
-			? {
-					ui: {
-						mode: 'banner' as const,
-						banner: {
-							allowedActions: ['accept', 'reject', 'customize'],
-							primaryAction: 'customize',
-							uiProfile: 'compact',
-						},
-						dialog: {
-							allowedActions: ['accept', 'reject', 'customize'],
-							primaryAction: 'customize',
-							uiProfile: 'compact',
-						},
-					},
-				}
-			: {}),
 		proof: {
 			storeIp: true,
 			storeUserAgent: true,
 			storeLanguage: true,
 		},
 	};
+
+	if (!isIab) {
+		policy.ui = {
+			mode: 'banner',
+			banner: createSplitRowUiProfile(),
+			dialog: createSplitRowUiProfile(),
+		};
+	}
+
+	return policy;
 }
 
 function worldNoBannerPolicy(): PolicyConfig {
@@ -104,16 +104,8 @@ function quebecPolicy(): PolicyConfig {
 		},
 		ui: {
 			mode: 'banner',
-			banner: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				primaryAction: 'customize',
-				uiProfile: 'compact',
-			},
-			dialog: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				primaryAction: 'customize',
-				uiProfile: 'compact',
-			},
+			banner: createSplitRowUiProfile(),
+			dialog: createSplitRowUiProfile(),
 		},
 		proof: {
 			storeIp: true,

@@ -158,7 +158,7 @@
 
   - `offlinePolicy` is only used in `offline` mode.
   - `offlinePolicy.i18n` lets offline mode mirror hosted `messageProfile` and profile-local `fallbackLanguage` behavior.
-  - Omitting `offlinePolicy.policyPacks` uses the built-in synthetic opt-in fallback banner.
+  - Omitting `offlinePolicy.policyPacks` uses the built-in synthetic opt-in fallback banner. Hosted network fallback uses the same opt-in banner.
   - `offlinePolicy: { policyPacks: [] }` is explicit no-banner mode.
   - In hosted mode, backend `policyPacks` remain the source of truth — frontend offline policies never override a live backend decision.
 

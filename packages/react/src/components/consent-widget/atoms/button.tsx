@@ -19,9 +19,9 @@ const ConsentWidgetAcceptAllButton = forwardRef<
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
-			mode="stroke"
 			size="small"
 			action="accept-consent"
+			consentAction="accept"
 			{...props}
 			themeKey="buttonSecondary"
 			data-testid="consent-widget-footer-accept-button"
@@ -42,6 +42,7 @@ const ConsentWidgetCustomizeButton = forwardRef<
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
 			action="open-consent-dialog"
+			consentAction="customize"
 			{...props}
 			themeKey="buttonSecondary"
 			data-testid="consent-widget-footer-customize-button"
@@ -60,7 +61,7 @@ const ConsentWidgetSaveButton = forwardRef<
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
 			action="custom-consent"
-			variant="primary"
+			consentAction="customize"
 			closeConsentDialog
 			{...props}
 			themeKey="buttonPrimary"
@@ -87,9 +88,9 @@ const ConsentWidgetRejectButton = forwardRef<
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
-			mode="stroke"
 			size="small"
 			action="reject-consent"
+			consentAction="reject"
 			{...props}
 			themeKey="buttonSecondary"
 			data-testid="consent-widget-reject-button"

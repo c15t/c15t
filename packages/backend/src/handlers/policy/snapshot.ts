@@ -1,6 +1,7 @@
 import {
 	type JWTHeaderParameters,
 	type JWTPayload,
+	errors as joseErrors,
 	jwtVerify,
 	SignJWT,
 } from 'jose';
@@ -14,11 +15,27 @@ import type {
 } from '~/types';
 import type { PolicyMatchedBy } from '../init/policy';
 
+export type PolicySnapshotVerificationFailureReason =
+	| 'missing'
+	| 'malformed'
+	| 'expired'
+	| 'invalid';
+
+export type PolicySnapshotVerificationResult =
+	| {
+			valid: true;
+			payload: PolicySnapshotPayload;
+	  }
+	| {
+			valid: false;
+			reason: PolicySnapshotVerificationFailureReason;
+	  };
+
 export interface PolicySnapshotUiSurface {
 	allowedActions?: PolicyUiSurfaceConfig['allowedActions'];
 	primaryAction?: PolicyUiSurfaceConfig['primaryAction'];
-	actionOrder?: PolicyUiSurfaceConfig['actionOrder'];
-	actionLayout?: PolicyUiSurfaceConfig['actionLayout'];
+	layout?: PolicyUiSurfaceConfig['layout'];
+	direction?: PolicyUiSurfaceConfig['direction'];
 	uiProfile?: PolicyUiSurfaceConfig['uiProfile'];
 	scrollLock?: PolicyUiSurfaceConfig['scrollLock'];
 }
@@ -203,14 +220,27 @@ export async function verifyPolicySnapshotToken(params: {
 	token?: string;
 	options?: PolicySnapshotOptions;
 	tenantId?: string;
-}): Promise<PolicySnapshotPayload | null> {
+}): Promise<PolicySnapshotVerificationResult> {
 	const { token, options, tenantId } = params;
-	if (!token || !options?.signingKey) {
-		return null;
+	if (!options?.signingKey) {
+		return {
+			valid: false,
+			reason: 'missing',
+		};
+	}
+
+	if (!token) {
+		return {
+			valid: false,
+			reason: 'missing',
+		};
 	}
 
 	if (token.split('.').length !== 3) {
-		return null;
+		return {
+			valid: false,
+			reason: 'malformed',
+		};
 	}
 
 	try {
@@ -224,19 +254,43 @@ export async function verifyPolicySnapshotToken(params: {
 		);
 		const header = protectedHeader as Partial<JwtHeader>;
 		if (header.alg !== 'HS256' || header.typ !== 'JWT') {
-			return null;
+			return {
+				valid: false,
+				reason: 'invalid',
+			};
 		}
 		if (!isPolicySnapshotPayload(payload)) {
-			return null;
+			return {
+				valid: false,
+				reason: 'invalid',
+			};
 		}
 		if (payload.sub !== payload.policyId) {
-			return null;
+			return {
+				valid: false,
+				reason: 'invalid',
+			};
 		}
 		if ((tenantId ?? undefined) !== (payload.tenantId ?? undefined)) {
-			return null;
+			return {
+				valid: false,
+				reason: 'invalid',
+			};
 		}
-		return payload;
-	} catch {
-		return null;
+		return {
+			valid: true,
+			payload,
+		};
+	} catch (error) {
+		if (error instanceof joseErrors.JWTExpired) {
+			return {
+				valid: false,
+				reason: 'expired',
+			};
+		}
+		return {
+			valid: false,
+			reason: 'invalid',
+		};
 	}
 }

@@ -135,7 +135,7 @@ The dev-tools panel now includes a full **match trace** showing the resolution p
 
 ### Snapshot Tokens
 
-When `policySnapshot.signingKey` is configured, `/init` returns a signed JWT alongside the resolved policy. The token is validated on `POST /subjects` to ensure the consent write matches the original `/init` decision — preventing race conditions when policy packs change between requests.
+When `policySnapshot.signingKey` is configured, `/init` returns a signed JWT alongside the resolved policy. By default, invalid, expired, or missing snapshot tokens now cause `POST /subjects` to return `409 Conflict`. Deployments that prefer availability can opt into `policySnapshot.onValidationFailure = 'resolve_current'` to fall back to current write-time resolution instead.
 
 ### CLI Improvements
 

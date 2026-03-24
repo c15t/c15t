@@ -1,6 +1,8 @@
 import type {
 	InitOutput,
 	PolicyUiAction,
+	PolicyUiActionDirection,
+	PolicyUiActionGroup,
 	PolicyUiMode,
 } from '@c15t/schema/types';
 import type { ConsentState } from '../types/compliance';
@@ -11,7 +13,8 @@ type ResolvedPolicy = InitOutput['policy'];
 export interface PolicyUIState {
 	mode: PolicyUiMode;
 	actions: PolicyUiAction[];
-	layout?: 'split' | 'inline';
+	layout?: PolicyUiActionGroup[];
+	direction?: PolicyUiActionDirection;
 	uiProfile?: 'balanced' | 'compact' | 'strict';
 	scrollLock?: boolean;
 }
@@ -20,8 +23,8 @@ export interface PolicyValidationIssue {
 	code:
 		| 'mode_mismatch'
 		| 'action_not_allowed'
-		| 'action_order_mismatch'
-		| 'layout_mismatch'
+		| 'group_layout_mismatch'
+		| 'direction_mismatch'
 		| 'ui_profile_mismatch'
 		| 'scroll_lock_mismatch';
 	message: string;
@@ -29,6 +32,14 @@ export interface PolicyValidationIssue {
 
 function isConsentCategory(value: string): value is AllConsentNames {
 	return allConsentNames.includes(value as AllConsentNames);
+}
+
+function flattenLayout(layout?: PolicyUiActionGroup[]): PolicyUiAction[] {
+	if (!layout) {
+		return [];
+	}
+
+	return layout.flatMap((group) => (Array.isArray(group) ? group : [group]));
 }
 
 /**
@@ -186,23 +197,23 @@ export function validateUIAgainstPolicy(params: {
 		}
 	}
 
-	const actionOrder = surfacePolicy?.actionOrder;
-	if (actionOrder && actionOrder.length > 0) {
-		const expected = [...new Set(actionOrder)];
+	const expectedLayout = surfacePolicy?.layout;
+	if (expectedLayout && expectedLayout.length > 0) {
+		const expected = flattenLayout(expectedLayout);
 		const actual = state.actions.filter((action) => expected.includes(action));
 		if (expected.join('|') !== actual.join('|')) {
 			issues.push({
-				code: 'action_order_mismatch',
-				message: `UI action order "${actual.join(', ')}" does not match policy action order "${expected.join(', ')}".`,
+				code: 'group_layout_mismatch',
+				message: `UI action order "${actual.join(', ')}" does not match policy layout "${expected.join(', ')}".`,
 			});
 		}
 	}
 
-	if (surfacePolicy?.actionLayout && state.layout) {
-		if (surfacePolicy.actionLayout !== state.layout) {
+	if (surfacePolicy?.direction && state.direction) {
+		if (surfacePolicy.direction !== state.direction) {
 			issues.push({
-				code: 'layout_mismatch',
-				message: `UI action layout "${state.layout}" does not match policy action layout "${surfacePolicy.actionLayout}".`,
+				code: 'direction_mismatch',
+				message: `UI action direction "${state.direction}" does not match policy action direction "${surfacePolicy.direction}".`,
 			});
 		}
 	}

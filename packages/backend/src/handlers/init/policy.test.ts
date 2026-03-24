@@ -176,8 +176,8 @@ describe('resolvePolicyDecision', () => {
 						banner: {
 							allowedActions: ['accept', 'reject', 'accept'],
 							primaryAction: 'reject',
-							actionOrder: ['reject', 'accept', 'reject'],
-							actionLayout: 'inline',
+							layout: [['reject', 'accept']],
+							direction: 'row',
 							uiProfile: 'balanced',
 							scrollLock: true,
 						},
@@ -193,12 +193,9 @@ describe('resolvePolicyDecision', () => {
 			'accept',
 			'reject',
 		]);
-		expect(result?.policy.ui?.banner?.actionOrder).toEqual([
-			'reject',
-			'accept',
-		]);
+		expect(result?.policy.ui?.banner?.layout).toEqual([['reject', 'accept']]);
 		expect(result?.policy.ui?.banner?.primaryAction).toBe('reject');
-		expect(result?.policy.ui?.banner?.actionLayout).toBe('inline');
+		expect(result?.policy.ui?.banner?.direction).toBe('row');
 		expect(result?.policy.ui?.banner?.uiProfile).toBe('balanced');
 		expect(result?.policy.ui?.banner?.scrollLock).toBe(true);
 	});
@@ -215,15 +212,15 @@ describe('resolvePolicyDecision', () => {
 						banner: {
 							allowedActions: ['accept', 'customize'],
 							primaryAction: 'customize',
-							actionOrder: ['customize', 'accept'],
-							actionLayout: 'inline',
+							layout: [['customize', 'accept']],
+							direction: 'row',
 							uiProfile: 'balanced',
 						},
 						dialog: {
 							allowedActions: ['accept', 'reject', 'customize'],
 							primaryAction: 'reject',
-							actionOrder: ['reject', 'accept', 'customize'],
-							actionLayout: 'split',
+							layout: [['reject', 'accept'], 'customize'],
+							direction: 'row',
 							uiProfile: 'strict',
 						},
 					},
@@ -360,7 +357,7 @@ describe('validatePolicies', () => {
 		);
 	});
 
-	it('throws when actionOrder contains actions not in allowedActions', () => {
+	it('throws when layout contains actions not in allowedActions', () => {
 		expect(() =>
 			validatePolicies([
 				{
@@ -370,13 +367,13 @@ describe('validatePolicies', () => {
 					ui: {
 						banner: {
 							allowedActions: ['accept', 'reject'],
-							actionOrder: ['customize', 'accept'],
+							layout: [['customize', 'accept']],
 						},
 					},
 				},
 			])
 		).toThrow(
-			"Policy 'policy_ui' ui.banner.actionOrder contains 'customize' which is not in allowedActions [accept, reject]."
+			"Policy 'policy_ui' ui.banner.layout contains 'customize' which is not in allowedActions [accept, reject]."
 		);
 	});
 

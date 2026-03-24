@@ -143,6 +143,38 @@ describe('updateStore - cmpId merging', () => {
 		// Should not have set iab since no server cmpId and no GVL disabled
 		expect(iabUpdate).toBeUndefined();
 	});
+
+	it('should disable client IAB config when the response has no GVL', async () => {
+		const consoleWarnSpy = vi
+			.spyOn(console, 'warn')
+			.mockImplementation(() => {});
+		const data = createMockConsentBannerResponse({
+			jurisdiction: 'GDPR',
+			gvl: null,
+		});
+
+		const config = {
+			get: mockGet,
+			set: mockSet,
+			manager: {} as InitConsentManagerConfig['manager'],
+			initialTranslationConfig: undefined,
+		};
+
+		await updateStore(data, config, true, data.gvl);
+
+		expect(consoleWarnSpy).toHaveBeenCalledWith(
+			'IAB mode disabled: Server returned 200 without GVL. Client IAB settings overridden.'
+		);
+		expect(mockSet).toHaveBeenCalledWith(
+			expect.objectContaining({
+				iab: expect.objectContaining({
+					config: expect.objectContaining({
+						enabled: false,
+					}),
+				}),
+			})
+		);
+	});
 });
 
 describe('updateStore - GPC override', () => {
@@ -507,8 +539,8 @@ describe('updateStore - policy purpose/category restrictions', () => {
 					banner: {
 						allowedActions: ['accept', 'reject'],
 						primaryAction: 'accept',
-						actionOrder: ['reject', 'accept'],
-						actionLayout: 'inline',
+						layout: [['reject', 'accept']],
+						direction: 'row',
 						uiProfile: 'balanced',
 						scrollLock: true,
 					},
@@ -535,8 +567,8 @@ describe('updateStore - policy purpose/category restrictions', () => {
 				policyBanner: {
 					allowedActions: ['accept', 'reject'],
 					primaryAction: 'accept',
-					actionOrder: ['reject', 'accept'],
-					actionLayout: 'inline',
+					layout: [['reject', 'accept']],
+					direction: 'row',
 					uiProfile: 'balanced',
 					scrollLock: true,
 				},
@@ -555,8 +587,8 @@ describe('updateStore - policy purpose/category restrictions', () => {
 					dialog: {
 						allowedActions: ['customize'],
 						primaryAction: 'customize',
-						actionOrder: ['customize'],
-						actionLayout: 'inline',
+						layout: [['customize']],
+						direction: 'row',
 						uiProfile: 'balanced',
 						scrollLock: false,
 					},
@@ -583,16 +615,16 @@ describe('updateStore - policy purpose/category restrictions', () => {
 				policyDialog: {
 					allowedActions: ['customize'],
 					primaryAction: 'customize',
-					actionOrder: ['customize'],
-					actionLayout: 'inline',
+					layout: [['customize']],
+					direction: 'row',
 					uiProfile: 'balanced',
 					scrollLock: false,
 				},
 				policyBanner: {
 					allowedActions: undefined,
 					primaryAction: undefined,
-					actionOrder: undefined,
-					actionLayout: undefined,
+					layout: undefined,
+					direction: undefined,
 					uiProfile: undefined,
 					scrollLock: undefined,
 				},

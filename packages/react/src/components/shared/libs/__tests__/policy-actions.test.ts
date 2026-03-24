@@ -2,24 +2,36 @@ import { describe, expect, it } from 'vitest';
 import {
 	hasPolicyHints,
 	resolvePolicyActionGroups,
-	resolvePolicyActionOrder,
+	resolvePolicyAllowedActions,
+	resolvePolicyDirection,
+	resolvePolicyOrderedActions,
 	resolvePolicyPrimaryAction,
 	resolvePolicyUiProfile,
 	shouldFillPolicyActions,
 } from '../policy-actions';
 
-describe('resolvePolicyActionOrder', () => {
-	it('uses policy order and appends missing allowed actions', () => {
-		const actions = resolvePolicyActionOrder({
+describe('resolvePolicyAllowedActions', () => {
+	it('uses configured allowed actions', () => {
+		const actions = resolvePolicyAllowedActions({
 			allowedActions: ['accept', 'reject'],
-			actionOrder: ['reject'],
 		});
 
-		expect(actions).toEqual(['reject', 'accept']);
+		expect(actions).toEqual(['accept', 'reject']);
 	});
 
 	it('falls back to default actions when policy actions are absent', () => {
-		const actions = resolvePolicyActionOrder({});
+		const actions = resolvePolicyAllowedActions({});
+		expect(actions).toEqual(['reject', 'accept', 'customize']);
+	});
+});
+
+describe('resolvePolicyOrderedActions', () => {
+	it('uses grouped layout ordering', () => {
+		const actions = resolvePolicyOrderedActions({
+			allowedActions: ['accept', 'reject', 'customize'],
+			layout: [['reject', 'accept'], 'customize'],
+		});
+
 		expect(actions).toEqual(['reject', 'accept', 'customize']);
 	});
 });
@@ -48,7 +60,7 @@ describe('hasPolicyHints', () => {
 		expect(
 			hasPolicyHints({
 				allowedActions: [],
-				actionOrder: [],
+				layout: [],
 			})
 		).toBe(false);
 	});
@@ -63,31 +75,40 @@ describe('hasPolicyHints', () => {
 });
 
 describe('resolvePolicyActionGroups', () => {
-	it('returns a single group for inline layout', () => {
+	it('returns a single group when layout is omitted', () => {
 		const groups = resolvePolicyActionGroups({
-			orderedActions: ['customize', 'accept', 'reject'],
-			layout: 'inline',
+			allowedActions: ['customize', 'accept', 'reject'],
 		});
 
 		expect(groups).toEqual([['customize', 'accept', 'reject']]);
 	});
 
-	it('returns split groups for default split layout', () => {
+	it('returns grouped row layout', () => {
 		const groups = resolvePolicyActionGroups({
-			orderedActions: ['reject', 'accept', 'customize'],
-			layout: 'split',
+			allowedActions: ['reject', 'accept', 'customize'],
+			layout: [['reject', 'accept'], 'customize'],
 		});
 
 		expect(groups).toEqual([['reject', 'accept'], ['customize']]);
 	});
 
-	it('isolates customize first when split layout starts with customize', () => {
+	it('supports split stack layouts', () => {
 		const groups = resolvePolicyActionGroups({
-			orderedActions: ['customize', 'reject', 'accept'],
-			layout: 'split',
+			allowedActions: ['customize', 'reject', 'accept'],
+			layout: ['customize', ['reject', 'accept']],
 		});
 
 		expect(groups).toEqual([['customize'], ['reject', 'accept']]);
+	});
+});
+
+describe('resolvePolicyDirection', () => {
+	it('defaults to row', () => {
+		expect(resolvePolicyDirection(undefined)).toBe('row');
+	});
+
+	it('returns column unchanged', () => {
+		expect(resolvePolicyDirection('column')).toBe('column');
 	});
 });
 
@@ -108,6 +129,7 @@ describe('shouldFillPolicyActions', () => {
 			shouldFillPolicyActions({
 				uiProfile: 'strict',
 				actionGroups: [['customize']],
+				direction: 'row',
 			})
 		).toBe(true);
 	});
@@ -117,6 +139,7 @@ describe('shouldFillPolicyActions', () => {
 			shouldFillPolicyActions({
 				uiProfile: 'balanced',
 				actionGroups: [['accept', 'reject']],
+				direction: 'row',
 			})
 		).toBe(true);
 	});
@@ -126,15 +149,27 @@ describe('shouldFillPolicyActions', () => {
 			shouldFillPolicyActions({
 				uiProfile: 'balanced',
 				actionGroups: [['customize'], ['accept', 'reject']],
+				direction: 'row',
 			})
 		).toBe(true);
 	});
 
-	it('does not fill for balanced with 3 actions inline', () => {
+	it('fills for balanced with 3 actions in a column layout', () => {
 		expect(
 			shouldFillPolicyActions({
 				uiProfile: 'balanced',
 				actionGroups: [['customize', 'accept', 'reject']],
+				direction: 'column',
+			})
+		).toBe(true);
+	});
+
+	it('does not fill for balanced with 3 actions in one row group', () => {
+		expect(
+			shouldFillPolicyActions({
+				uiProfile: 'balanced',
+				actionGroups: [['customize', 'accept', 'reject']],
+				direction: 'row',
 			})
 		).toBe(false);
 	});
@@ -144,6 +179,7 @@ describe('shouldFillPolicyActions', () => {
 			shouldFillPolicyActions({
 				uiProfile: 'compact',
 				actionGroups: [['customize']],
+				direction: 'row',
 			})
 		).toBe(false);
 	});

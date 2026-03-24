@@ -4,7 +4,7 @@ import {
 } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
-import { type InitPayload, resolveInitPayload } from './resolve-init';
+import { resolveInitPayload } from './resolve-init';
 
 const { mockCreateGVLResolver, mockGVLGet } = vi.hoisted(() => {
 	return {
@@ -179,8 +179,8 @@ describe('resolveInitPayload', () => {
 					banner: {
 						allowedActions: ['accept', 'reject'] as const,
 						primaryAction: 'accept' as const,
-						actionOrder: ['accept', 'reject'] as const,
-						actionLayout: 'inline' as const,
+						layout: [['accept', 'reject']] as const,
+						direction: 'row' as const,
 						uiProfile: 'balanced' as const,
 						scrollLock: true,
 					},
@@ -247,11 +247,17 @@ describe('resolveInitPayload', () => {
 			token: payload.policySnapshotToken,
 			options: { signingKey: 'test-signing-key' },
 		});
-		expect(snapshotPayload?.policyI18n).toEqual({
+		expect(snapshotPayload.valid).toBe(true);
+		if (!snapshotPayload.valid) {
+			throw new Error('Expected valid snapshot payload');
+		}
+		expect(snapshotPayload.payload.policyI18n).toEqual({
 			language: 'de',
 			messageProfile: 'eu_gdpr',
 		});
-		expect(snapshotPayload?.preselectedCategories).toEqual(['measurement']);
+		expect(snapshotPayload.payload.preselectedCategories).toEqual([
+			'measurement',
+		]);
 	});
 
 	it('defaults to GDPR jurisdiction when geo-location is disabled', async () => {

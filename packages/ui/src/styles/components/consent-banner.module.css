@@ -259,7 +259,15 @@
 		flex-direction: column;
 	}
 
+	.footerColumn {
+		flex-direction: column;
+	}
+
 	.footerSubGroupFill {
+		width: 100%;
+	}
+
+	.footerSubGroupColumn {
 		width: 100%;
 	}
 

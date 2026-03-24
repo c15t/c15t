@@ -24,10 +24,15 @@ export const runtimePolicyDecisionSchema = v.object({
 				v.array(v.picklist(['accept', 'reject', 'customize']))
 			),
 			primaryAction: v.nullish(v.picklist(['accept', 'reject', 'customize'])),
-			actionOrder: v.nullish(
-				v.array(v.picklist(['accept', 'reject', 'customize']))
+			layout: v.nullish(
+				v.array(
+					v.union([
+						v.picklist(['accept', 'reject', 'customize']),
+						v.array(v.picklist(['accept', 'reject', 'customize'])),
+					])
+				)
 			),
-			actionLayout: v.nullish(v.picklist(['split', 'inline'])),
+			direction: v.nullish(v.picklist(['row', 'column'])),
 			uiProfile: v.nullish(v.picklist(['balanced', 'compact', 'strict'])),
 			scrollLock: v.nullish(v.boolean()),
 		})
@@ -38,10 +43,15 @@ export const runtimePolicyDecisionSchema = v.object({
 				v.array(v.picklist(['accept', 'reject', 'customize']))
 			),
 			primaryAction: v.nullish(v.picklist(['accept', 'reject', 'customize'])),
-			actionOrder: v.nullish(
-				v.array(v.picklist(['accept', 'reject', 'customize']))
+			layout: v.nullish(
+				v.array(
+					v.union([
+						v.picklist(['accept', 'reject', 'customize']),
+						v.array(v.picklist(['accept', 'reject', 'customize'])),
+					])
+				)
 			),
-			actionLayout: v.nullish(v.picklist(['split', 'inline'])),
+			direction: v.nullish(v.picklist(['row', 'column'])),
 			uiProfile: v.nullish(v.picklist(['balanced', 'compact', 'strict'])),
 			scrollLock: v.nullish(v.boolean()),
 		})

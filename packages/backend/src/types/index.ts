@@ -286,7 +286,8 @@ export type {
 	PolicyPack,
 	PolicyScopeMode,
 	PolicyUiAction,
-	PolicyUiActionLayout,
+	PolicyUiActionDirection,
+	PolicyUiActionGroup,
 	PolicyUiMode,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
@@ -297,6 +298,11 @@ export interface PolicySnapshotOptions {
 	 * Secret used for signing and verifying policy snapshot tokens.
 	 */
 	signingKey: string;
+	/**
+	 * How writes should behave when snapshot validation fails.
+	 * @default "reject"
+	 */
+	onValidationFailure?: 'reject' | 'resolve_current';
 	/**
 	 * JWT issuer claim for snapshot tokens.
 	 * @default "c15t"

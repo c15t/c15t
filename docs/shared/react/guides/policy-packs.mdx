@@ -140,11 +140,11 @@
 
   | Configuration | Result |
   |--------------|--------|
-  | `offlinePolicy.policyPacks` omitted | Synthetic opt-in fallback banner (so local dev works out of the box) |
+  | `offlinePolicy.policyPacks` omitted | Synthetic opt-in fallback banner (also used for hosted network fallback) |
   | `offlinePolicy: { policyPacks: [] }` | Explicit no-banner mode |
   | Non-empty pack, no match, no default | Explicit no-banner mode |
 
-  Omitting the option gives you a usable local default. Providing it tells c15t you want policy-driven behavior exactly as configured.
+  Omitting the option gives you a safe opt-in default for local development and outage scenarios. Providing it tells c15t you want policy-driven behavior exactly as configured.
 </section>
 
 <section id="qa-and-debugging">

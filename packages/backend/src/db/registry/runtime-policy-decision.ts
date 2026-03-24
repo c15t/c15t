@@ -4,8 +4,10 @@ import type { Registry } from './types';
 interface RuntimePolicyDecisionUiSurface {
 	allowedActions?: Array<'accept' | 'reject' | 'customize'>;
 	primaryAction?: 'accept' | 'reject' | 'customize';
-	actionOrder?: Array<'accept' | 'reject' | 'customize'>;
-	actionLayout?: 'split' | 'inline';
+	layout?: Array<
+		'accept' | 'reject' | 'customize' | Array<'accept' | 'reject' | 'customize'>
+	>;
+	direction?: 'row' | 'column';
 	uiProfile?: 'balanced' | 'compact' | 'strict';
 	scrollLock?: boolean;
 }
