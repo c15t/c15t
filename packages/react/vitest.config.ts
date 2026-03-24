@@ -40,6 +40,10 @@ export default mergeConfig(
 					__dirname,
 					'../ui/src/primitives/collapsible/index.ts'
 				),
+				'@c15t/ui/primitives/preference-item': resolve(
+					__dirname,
+					'../ui/src/primitives/preference-item/index.ts'
+				),
 				'@c15t/ui/primitives/tabs': resolve(
 					__dirname,
 					'../ui/src/primitives/tabs/index.ts'
@@ -47,6 +51,10 @@ export default mergeConfig(
 				'@c15t/ui/styles/primitives/collapsible': resolve(
 					__dirname,
 					'../ui/src/styles/primitives/collapsible.ts'
+				),
+				'@c15t/ui/styles/primitives/preference-item': resolve(
+					__dirname,
+					'../ui/src/styles/primitives/preference-item.ts'
 				),
 				'@c15t/ui/styles/primitives/tabs': resolve(
 					__dirname,

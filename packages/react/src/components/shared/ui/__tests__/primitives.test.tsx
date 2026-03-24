@@ -31,6 +31,16 @@ import {
 	Title as DialogTitle,
 	Trigger as DialogTrigger,
 } from '../dialog/dialog';
+import {
+	Content as PreferenceItemContent,
+	Control as PreferenceItemControl,
+	Header as PreferenceItemHeader,
+	Leading as PreferenceItemLeading,
+	Meta as PreferenceItemMeta,
+	Root as PreferenceItemRoot,
+	Title as PreferenceItemTitle,
+	Trigger as PreferenceItemTrigger,
+} from '../preference-item/preference-item';
 import { Root as Switch } from '../switch/switch';
 import {
 	Content as TabsContent,
@@ -943,5 +953,115 @@ describe('Collapsible', () => {
 					?.getAttribute('aria-hidden')
 			).toBe('false');
 		});
+	});
+});
+
+describe('PreferenceItem', () => {
+	test('should expose trigger and content relationships', async () => {
+		render(
+			<ThemeWrapper>
+				<PreferenceItemRoot defaultOpen={false}>
+					<PreferenceItemTrigger>Toggle details</PreferenceItemTrigger>
+					<PreferenceItemContent>Hidden details</PreferenceItemContent>
+				</PreferenceItemRoot>
+			</ThemeWrapper>
+		);
+
+		const trigger = document.querySelector(
+			'[data-slot="preference-item-trigger"]'
+		);
+		const content = document.querySelector(
+			'[data-slot="preference-item-content"]'
+		);
+		expect(trigger?.getAttribute('aria-controls')).toBeTruthy();
+		expect(trigger?.getAttribute('aria-expanded')).toBe('false');
+		expect(content?.getAttribute('aria-hidden')).toBe('true');
+	});
+
+	test('should toggle from the trigger without the control toggling disclosure', async () => {
+		const handleCheckedChange = vi.fn();
+
+		render(
+			<ThemeWrapper>
+				<PreferenceItemRoot defaultOpen={false}>
+					<PreferenceItemTrigger>
+						<PreferenceItemLeading>+</PreferenceItemLeading>
+						<PreferenceItemHeader>
+							<PreferenceItemTitle>Measurement cookies</PreferenceItemTitle>
+							<PreferenceItemMeta>3 partners</PreferenceItemMeta>
+						</PreferenceItemHeader>
+					</PreferenceItemTrigger>
+					<PreferenceItemControl>
+						<Switch onCheckedChange={handleCheckedChange} />
+					</PreferenceItemControl>
+					<PreferenceItemContent>Disclosure content</PreferenceItemContent>
+				</PreferenceItemRoot>
+			</ThemeWrapper>
+		);
+
+		const trigger = document.querySelector(
+			'[data-slot="preference-item-trigger"]'
+		);
+		const controlSwitch = document.querySelector('[role="switch"]');
+		const content = document.querySelector(
+			'[data-slot="preference-item-content"]'
+		);
+
+		expect(trigger).toBeInstanceOf(HTMLElement);
+		expect(controlSwitch).toBeInstanceOf(HTMLElement);
+
+		if (!trigger || !controlSwitch) {
+			throw new Error('Expected disclosure item trigger and switch to exist');
+		}
+
+		await userEvent.click(trigger);
+		await vi.waitFor(() => {
+			expect(trigger.getAttribute('aria-expanded')).toBe('true');
+			expect(content?.getAttribute('aria-hidden')).toBe('false');
+		});
+
+		await userEvent.click(controlSwitch);
+		await vi.waitFor(() => {
+			expect(handleCheckedChange).toHaveBeenCalledTimes(1);
+			expect(trigger.getAttribute('aria-expanded')).toBe('true');
+			expect(content?.getAttribute('aria-hidden')).toBe('false');
+		});
+	});
+
+	test('should preserve structural content classes in noStyle mode', async () => {
+		render(
+			<ThemeWrapper>
+				<PreferenceItemRoot defaultOpen={false} noStyle className="custom-root">
+					<PreferenceItemTrigger noStyle className="custom-trigger">
+						Disclosure row
+					</PreferenceItemTrigger>
+					<PreferenceItemContent
+						noStyle
+						className="custom-content"
+						innerClassName="custom-inner"
+					>
+						Hidden content
+					</PreferenceItemContent>
+				</PreferenceItemRoot>
+			</ThemeWrapper>
+		);
+
+		const root = document.querySelector('.custom-root');
+		const trigger = document.querySelector('.custom-trigger');
+		const content = document.querySelector(
+			'[data-slot="preference-item-content"]'
+		);
+		const viewport = document.querySelector(
+			'[data-slot="preference-item-content-viewport"]'
+		);
+		const inner = document.querySelector('.custom-inner');
+
+		expect(root?.className).toBe('custom-root');
+		expect(trigger?.className).toBe('custom-trigger');
+		expect(content).toBeInTheDocument();
+		expect(viewport).toBeInTheDocument();
+		expect(inner).toBeInTheDocument();
+		expect(content?.className).toContain('custom-content');
+		expect(content?.getAttribute('aria-hidden')).toBe('true');
 	});
 });

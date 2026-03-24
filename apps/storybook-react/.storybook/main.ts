@@ -56,6 +56,13 @@ const config: StorybookConfig = {
 						),
 					},
 					{
+						find: '@c15t/ui/primitives/preference-item',
+						replacement: path.resolve(
+							storybookDir,
+							'../../../packages/ui/src/primitives/preference-item/index.ts'
+						),
+					},
+					{
 						find: '@c15t/ui/primitives/dialog',
 						replacement: path.resolve(
 							storybookDir,
@@ -88,6 +95,13 @@ const config: StorybookConfig = {
 						replacement: path.resolve(
 							storybookDir,
 							'../../../packages/ui/src/styles/primitives/collapsible.ts'
+						),
+					},
+					{
+						find: '@c15t/ui/styles/primitives/preference-item',
+						replacement: path.resolve(
+							storybookDir,
+							'../../../packages/ui/src/styles/primitives/preference-item.ts'
 						),
 					},
 					{

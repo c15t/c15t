@@ -6,11 +6,13 @@ import {
 	getDataDisabled,
 	getDialogState,
 	getNextTabValue,
+	getPreferenceItemState,
 	getSwitchState,
 	getTabPanelState,
 	getTabState,
 	toggleAccordionValue,
 	toggleCollapsibleValue,
+	togglePreferenceItemValue,
 	toggleSwitchValue,
 } from '~/primitives';
 
@@ -51,6 +53,12 @@ describe('primitives helpers', () => {
 		expect(getCollapsibleState(true)).toBe('open');
 		expect(getCollapsibleState(false)).toBe('closed');
 		expect(toggleCollapsibleValue(false)).toBe(true);
+	});
+
+	test('preference item helpers expose expected attributes', () => {
+		expect(getPreferenceItemState(true)).toBe('open');
+		expect(getPreferenceItemState(false)).toBe('closed');
+		expect(togglePreferenceItemValue(false)).toBe(true);
 	});
 
 	test('tabs helpers derive state and keyboard navigation', () => {

@@ -47,6 +47,10 @@ export {
 	type CollapsibleVariantsProps,
 	collapsibleVariants,
 } from './collapsible';
+export {
+	type PreferenceItemVariantsProps,
+	preferenceItemVariants,
+} from './preference-item';
 // Switch exports
 export {
 	type SwitchCSSVariables,
