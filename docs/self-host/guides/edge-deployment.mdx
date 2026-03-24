@@ -1,0 +1,253 @@
+---
+title: Edge Deployment
+description: Run consent policy resolution at the edge for faster initial banner loads.
+---
+
+The `/init` endpoint determines consent policy from geo headers, resolves translations, and optionally fetches the GVL. None of this requires a database. The `@c15t/backend/edge` export lets you run this logic in edge runtimes (Vercel Middleware, Cloudflare Workers, Deno Deploy) so the consent banner resolves from the nearest PoP instead of round-tripping to your origin.
+
+```
+Standard:  Browser → Origin (single region)  → c15tInstance(/init) → Response
+Edge:      Browser → Edge   (nearest PoP)    → c15tEdgeInit        → Response
+```
+
+## When to use this
+
+- Your origin server is in a single region and users are globally distributed
+- You want the consent banner to appear as fast as possible (edge latency is typically 10-50ms vs 100-300ms to origin)
+- You already use edge middleware for other purposes (auth, redirects, A/B testing)
+
+You do **not** need this if:
+
+- Your origin is already multi-region or on a platform like Cloudflare Workers
+- Consent banner latency is not a concern for your use case
+
+## Setup
+
+### 1. Extract shared config
+
+Keep your policy configuration in a shared file so both the edge handler and origin handler stay in sync:
+
+```ts title="lib/consent-config.ts"
+import type { C15TEdgeOptions } from '@c15t/backend/edge';
+
+export const consentConfig = {
+  trustedOrigins: ['https://myapp.com'],
+  policyPacks: [
+    {
+      id: 'eu_gdpr',
+      match: { countries: ['DE', 'FR', 'IT', 'ES', 'NL', 'PL'] },
+      consent: { model: 'opt-in' },
+      ui: { mode: 'banner' },
+    },
+    {
+      id: 'us_ca',
+      match: { regions: [{ country: 'US', region: 'CA' }] },
+      consent: { model: 'opt-out' },
+      ui: { mode: 'banner' },
+    },
+  ],
+  policySnapshot: {
+    signingKey: process.env.SNAPSHOT_KEY!,
+  },
+} satisfies C15TEdgeOptions;
+```
+
+### 2. Create edge middleware
+
+<Tabs groupId="runtime" items={['Vercel Middleware', 'Cloudflare Workers', 'Deno Deploy']}>
+  <Tab value="Vercel Middleware">
+    ```ts title="middleware.ts"
+    import { c15tEdgeInit } from '@c15t/backend/edge';
+    import { consentConfig } from './lib/consent-config';
+
+    const initHandler = c15tEdgeInit(consentConfig);
+
+    export async function middleware(request: Request) {
+      const url = new URL(request.url);
+      if (url.pathname === '/api/c15t/init') {
+        return initHandler(request);
+      }
+    }
+
+    export const config = {
+      matcher: '/api/c15t/init',
+    };
+    ```
+  </Tab>
+
+  <Tab value="Cloudflare Workers">
+    ```ts title="worker.ts"
+    import { c15tEdgeInit } from '@c15t/backend/edge';
+    import { consentConfig } from './lib/consent-config';
+
+    const initHandler = c15tEdgeInit(consentConfig);
+
+    export default {
+      async fetch(request: Request) {
+        const url = new URL(request.url);
+        if (url.pathname === '/api/c15t/init') {
+          return initHandler(request);
+        }
+        // Forward other requests to origin
+        return fetch(request);
+      },
+    };
+    ```
+  </Tab>
+
+  <Tab value="Deno Deploy">
+    ```ts title="main.ts"
+    import { c15tEdgeInit } from '@c15t/backend/edge';
+    import { consentConfig } from './lib/consent-config.ts';
+
+    const initHandler = c15tEdgeInit(consentConfig);
+
+    Deno.serve(async (request) => {
+      const url = new URL(request.url);
+      if (url.pathname === '/api/c15t/init') {
+        return initHandler(request);
+      }
+      return new Response('Not found', { status: 404 });
+    });
+    ```
+  </Tab>
+</Tabs>
+
+### 3. Keep your origin handler unchanged
+
+The origin API route still handles all database-dependent endpoints (`/subjects`, `/consents`, `/status`). The only difference is that `/init` requests no longer reach the origin — they're intercepted at the edge.
+
+```ts title="app/api/c15t/[[...path]]/route.ts"
+import { c15tInstance } from '@c15t/backend';
+import { consentConfig } from '@/lib/consent-config';
+
+const c15t = c15tInstance({
+  adapter: yourDbAdapter,
+  ...consentConfig,
+});
+
+export const { GET, POST } = c15t;
+```
+
+## Configuration
+
+`c15tEdgeInit` accepts `C15TEdgeOptions` — the same fields as `c15tInstance` minus the database-related options (`adapter`, `tablePrefix`, `basePath`, `openapi`, `ipAddress`, `apiKeys`, `background`).
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `trustedOrigins` | Yes | Allowed CORS origins — must match your origin handler |
+| `policyPacks` | No | Regional policy configuration |
+| `policySnapshot` | No | Signing key for policy snapshot tokens |
+| `iab` | No | IAB TCF configuration |
+| `i18n` | No | Translation profiles |
+| `branding` | No | Banner branding (default: `"c15t"`) |
+| `appName` | No | Application name (default: `"c15t"`) |
+| `tenantId` | No | Tenant ID for multi-tenant deployments |
+| `cache` | No | External cache adapter for GVL |
+| `disableGeoLocation` | No | Disable geo-location detection |
+| `telemetry` | No | OpenTelemetry configuration |
+| `logger` | No | Logger configuration |
+
+<Callout type="warn">
+  The edge handler and origin handler must share the same `policyPacks`, `policySnapshot`, `trustedOrigins`, `iab`, and `i18n` configuration. If they diverge, `/init` will return policies that don't match what the database endpoints expect. Use a shared config file as shown above.
+</Callout>
+
+## How it works
+
+The edge handler:
+
+1. **Reads geo headers** — Vercel sets `x-vercel-ip-country` and `x-vercel-ip-country-region` automatically. Cloudflare sets `cf-ipcountry`. The handler checks all common provider headers.
+2. **Resolves jurisdiction** — Maps the country/region to a jurisdiction code (GDPR, CCPA, UK\_GDPR, etc.)
+3. **Matches a policy pack** — Finds the first matching policy for the visitor's location
+4. **Resolves translations** — Picks the right language from `Accept-Language` and your i18n config
+5. **Signs a snapshot token** — Creates a JWT proving which policy was served (if `policySnapshot` is configured)
+6. **Handles CORS** — Validates the `Origin` header against `trustedOrigins` and sets appropriate headers
+
+All of this uses the same functions as the full `c15tInstance` — the edge handler is not a reimplementation, it's the same code without the database layer.
+
+## Caching considerations
+
+Edge isolates have short-lived memory. The in-memory GVL cache resets on each cold start. For production:
+
+- **Bundle GVL translations** using `iab.bundled` to avoid fetch latency entirely
+- **Use an external cache** (Upstash Redis, Cloudflare KV) via the `cache.adapter` option to share cached data across isolates — see the [Caching guide](/docs/self-host/guides/caching) for setup
+
+## Custom consent cookie — resolveConsent
+
+<Callout type="info">
+  **Experimental** — this API may change in future versions.
+</Callout>
+
+If you manage your own consent cookie and just need to know **which categories to load** for a given visitor, use `resolveConsent` instead of `c15tEdgeInit`. It's a lightweight, fully synchronous function that returns the matched policy and default consent state — no translations, GVL, branding, or snapshot tokens.
+
+```ts title="middleware.ts"
+import { resolveConsent } from '@c15t/backend/edge';
+
+const policyPacks = [
+  {
+    id: 'eu_gdpr',
+    match: { countries: ['DE', 'FR', 'IT', 'ES'] },
+    consent: {
+      model: 'opt-in',
+      categories: ['necessary', 'marketing', 'measurement'],
+    },
+    ui: { mode: 'banner' },
+  },
+  {
+    id: 'us_default',
+    match: { isDefault: true },
+    consent: {
+      model: 'opt-out',
+      categories: ['necessary', 'marketing', 'measurement'],
+      gpc: true,
+    },
+    ui: { mode: 'banner' },
+  },
+];
+
+export function middleware(request: Request) {
+  const consent = resolveConsent(request, { policyPacks });
+
+  // consent.model       → "opt-in" | "opt-out" | "none" | "iab"
+  // consent.showBanner  → true
+  // consent.jurisdiction → "GDPR"
+  // consent.gpc         → false
+  // consent.defaults    → {
+  //   necessary:   { granted: true,  required: true  },
+  //   marketing:   { granted: false, required: false },
+  //   measurement: { granted: false, required: false },
+  // }
+
+  // Read your own cookie, merge with consent.defaults,
+  // decide which scripts/tags to load
+}
+```
+
+### Default consent by model
+
+| Model | `necessary` | Other categories | Notes |
+|-------|-------------|-----------------|-------|
+| `opt-in` | granted, required | **not granted** | Unless listed in `preselectedCategories` |
+| `opt-out` | granted, required | **granted** | GPC signal can override `marketing`/`measurement` to not granted |
+| `none` | granted, required | **granted** | No banner shown |
+
+### `resolveConsent` vs `c15tEdgeInit`
+
+| | `resolveConsent` | `c15tEdgeInit` |
+|---|---|---|
+| **Use case** | Custom consent cookie | Drop-in `/init` replacement |
+| **Sync** | Yes | No (async — signs JWT, fetches GVL) |
+| **Returns** | Policy + default consent state | Full `/init` JSON payload |
+| **CORS** | Not handled (your middleware) | Built-in |
+| **Translations** | Not included | Included |
+| **Snapshot token** | Not included | Included |
+
+## What stays on the origin
+
+Only `/init` moves to the edge. These endpoints still require the origin server:
+
+- `POST /subjects` — creates/updates consent subjects (needs DB)
+- `POST /consents` — records consent decisions (needs DB)
+- `GET /status` — checks current consent status (needs DB)
+
+The edge handler is a single-purpose optimization for the one endpoint that doesn't need persistent storage.

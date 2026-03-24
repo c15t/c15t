@@ -17,7 +17,7 @@
 			"dependsOn": ["transit"]
 		},
 		"check-types": {
-			"dependsOn": ["^build"]
+			"dependsOn": ["build", "^build"]
 		},
 		"dev": {
 			"dependsOn": ["^dev"],
