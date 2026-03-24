@@ -60,16 +60,16 @@ describe('useHeadlessConsentUI', () => {
 			policyBanner: {
 				allowedActions: ['accept', 'reject'],
 				primaryAction: 'accept',
-				actionOrder: ['reject', 'accept'],
-				actionLayout: 'inline',
+				layout: [['reject', 'accept']],
+				direction: 'row',
 				uiProfile: 'balanced',
 				scrollLock: true,
 			},
 			policyDialog: {
 				allowedActions: ['reject', 'accept', 'customize'],
 				primaryAction: 'customize',
-				actionOrder: ['customize', 'reject', 'accept'],
-				actionLayout: 'split',
+				layout: ['customize', ['reject', 'accept']],
+				direction: 'row',
 				uiProfile: 'strict',
 				scrollLock: false,
 			},
@@ -182,7 +182,7 @@ describe('useHeadlessConsentUI', () => {
 		const state = createMockState({
 			policyBanner: {
 				allowedActions: [],
-				actionOrder: [],
+				layout: [],
 			},
 			policyDialog: {
 				scrollLock: false,

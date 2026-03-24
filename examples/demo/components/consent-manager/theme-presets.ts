@@ -6,6 +6,14 @@ import type { Theme } from '@c15t/react';
  * Uses standard CSS (no Tailwind dependency).
  */
 export const minimalTheme: Theme = {
+	consentActions: {
+		default: {
+			mode: 'stroke',
+		},
+		customize: {
+			variant: 'primary',
+		},
+	},
 	colors: {
 		primary: '#18181b',
 		primaryHover: '#27272a',
@@ -101,6 +109,14 @@ export const minimalTheme: Theme = {
  * Uses standard CSS (no Tailwind dependency).
  */
 export const darkTheme: Theme = {
+	consentActions: {
+		default: {
+			mode: 'stroke',
+		},
+		customize: {
+			variant: 'primary',
+		},
+	},
 	colors: {
 		// Define dark colors as the default 'colors' to enforce dark mode
 		primary: '#ffffff',
@@ -182,6 +198,14 @@ export const darkTheme: Theme = {
  * Full width bottom banner with cleaner, corporate aesthetic.
  */
 export const fullTheme: Theme = {
+	consentActions: {
+		default: {
+			mode: 'stroke',
+		},
+		customize: {
+			variant: 'primary',
+		},
+	},
 	colors: {
 		primary: '#000000',
 		primaryHover: '#333333',

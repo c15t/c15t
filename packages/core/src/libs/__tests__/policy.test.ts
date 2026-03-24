@@ -36,28 +36,29 @@ describe('validateUIAgainstPolicy', () => {
 		expect(issues[0]?.code).toBe('mode_mismatch');
 	});
 
-	it('returns violations when action order/layout do not match policy', () => {
+	it('returns violations when grouped layout/direction do not match policy', () => {
 		const issues = validateUIAgainstPolicy({
 			policy: {
 				id: 'policy_2',
 				model: 'opt-in',
 				ui: {
 					banner: {
-						actionOrder: ['accept', 'reject', 'customize'],
-						actionLayout: 'inline',
+						layout: [['accept', 'reject', 'customize']],
+						direction: 'row',
 					},
 				},
 			},
 			state: {
 				mode: 'banner',
 				actions: ['reject', 'accept', 'customize'],
-				layout: 'split',
+				layout: ['reject', ['accept', 'customize']],
+				direction: 'column',
 			},
 		});
 
 		expect(issues).toHaveLength(2);
-		expect(issues[0]?.code).toBe('action_order_mismatch');
-		expect(issues[1]?.code).toBe('layout_mismatch');
+		expect(issues[0]?.code).toBe('group_layout_mismatch');
+		expect(issues[1]?.code).toBe('direction_mismatch');
 	});
 
 	it('returns violation when UI profile does not match policy', () => {

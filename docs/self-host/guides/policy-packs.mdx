@@ -312,20 +312,6 @@ Validation modes:
 
 Use `reject` when you want `/subjects` to preserve the original decision exactly. Use `resolve_current` only if your deployment prefers accepting writes even when the original snapshot cannot be verified.
 
-## Database Migration
-
-Policy-pack audit storage adds runtime decision evidence to the database:
-
-- `runtimePolicyDecision` table
-- `consent.runtimePolicyDecisionId`
-- `consent.runtimePolicySource`
-
-Apply the required database changes before enabling policy-pack audit persistence in production. The example SQL migration lives in the repo at `examples/demo/migrations/2026-03-02-runtime-policies.sql`.
-
-If you use table prefixes or a non-default schema, adjust the identifiers before running it.
-
-Without these columns, the backend cannot persist runtime policy decision evidence for consent writes.
-
 ## Global Privacy Control (GPC)
 
 Each policy can opt in to respecting the [Global Privacy Control](https://globalprivacycontrol.org/) signal via `consent.gpc`:

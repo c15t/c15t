@@ -156,8 +156,8 @@ export function renderPolicyPanel(
 interface SurfaceState {
 	allowedActions?: string[] | null;
 	primaryAction?: string | null;
-	actionOrder?: string[] | null;
-	actionLayout?: string | null;
+	layout?: Array<string | string[]> | null;
+	direction?: string | null;
 	uiProfile?: string | null;
 	scrollLock?: boolean | null;
 }
@@ -172,8 +172,8 @@ function buildSurfaceCards(
 	);
 	const primary =
 		policySurface?.primaryAction ?? storeSurface.primaryAction ?? null;
-	const layout =
-		policySurface?.actionLayout ?? storeSurface.actionLayout ?? null;
+	const layout = policySurface?.layout ?? storeSurface.layout ?? null;
+	const direction = policySurface?.direction ?? storeSurface.direction ?? null;
 	const profile = policySurface?.uiProfile ?? storeSurface.uiProfile ?? null;
 	const scrollLock =
 		policySurface?.scrollLock ?? storeSurface.scrollLock ?? null;
@@ -183,6 +183,7 @@ function buildSurfaceCards(
 		actions === '—' &&
 		!primary &&
 		!layout &&
+		!direction &&
 		!profile &&
 		scrollLock === null
 	) {
@@ -195,7 +196,21 @@ function buildSurfaceCards(
 		cards.push(createCard(`${prefix} Primary`, primary));
 	}
 	if (layout) {
-		cards.push(createCard(`${prefix} Layout`, layout));
+		cards.push(
+			createCard(
+				`${prefix} Layout`,
+				Array.isArray(layout)
+					? layout
+							.map((group) =>
+								Array.isArray(group) ? `[${group.join(', ')}]` : group
+							)
+							.join(' / ')
+					: layout
+			)
+		);
+	}
+	if (direction) {
+		cards.push(createCard(`${prefix} Direction`, direction));
 	}
 	if (profile) {
 		cards.push(createCard(`${prefix} Profile`, profile));

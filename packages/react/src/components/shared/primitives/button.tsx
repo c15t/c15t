@@ -18,7 +18,44 @@ import type { ConsentButtonElement, ConsentButtonProps } from './button.types';
  * Props that should be filtered out before spreading to the DOM element.
  * These are custom props used for component logic that are not valid HTML attributes.
  */
-const NON_DOM_PROPS = ['primary', 'secondary', 'neutral'] as const;
+const NON_DOM_PROPS = [
+	'primary',
+	'secondary',
+	'neutral',
+	'consentAction',
+	'isPrimary',
+] as const;
+
+type ConsentActionThemeKey = 'accept' | 'reject' | 'customize';
+
+function resolveConsentButtonStyle(params: {
+	consentAction?: ConsentActionThemeKey;
+	isPrimary?: boolean;
+	theme?: ReturnType<typeof useTheme>['theme'];
+	variant?: ButtonVariantsProps['variant'];
+	mode?: ButtonVariantsProps['mode'];
+}) {
+	if (params.variant || params.mode) {
+		return {
+			variant: params.variant ?? 'neutral',
+			mode: params.mode ?? 'stroke',
+		};
+	}
+
+	const defaultStyle = params.isPrimary
+		? { variant: 'primary' as const, mode: 'stroke' as const }
+		: { variant: 'neutral' as const, mode: 'stroke' as const };
+	const themedDefault = params.theme?.consentActions?.default ?? {};
+	const themedAction = params.consentAction
+		? params.theme?.consentActions?.[params.consentAction]
+		: undefined;
+
+	return {
+		variant:
+			themedAction?.variant ?? themedDefault.variant ?? defaultStyle.variant,
+		mode: themedAction?.mode ?? themedDefault.mode ?? defaultStyle.mode,
+	};
+}
 
 /**
  * Button component that allows users to reject non-essential cookies.
@@ -39,6 +76,8 @@ export const ConsentButton = forwardRef<
 	ConsentButtonElement,
 	ConsentButtonProps &
 		ButtonVariantsProps & {
+			consentAction?: ConsentActionThemeKey;
+			isPrimary?: boolean;
 			action:
 				| 'accept-consent'
 				| 'reject-consent'
@@ -59,9 +98,11 @@ export const ConsentButton = forwardRef<
 			action,
 			themeKey,
 			baseClassName,
-			variant = 'neutral',
-			mode = 'stroke',
+			variant,
+			mode,
 			size = 'small',
+			consentAction,
+			isPrimary,
 			onClick: forwardedOnClick,
 			closeConsentBanner = false,
 			closeConsentDialog = false,
@@ -72,10 +113,19 @@ export const ConsentButton = forwardRef<
 	) => {
 		const { saveConsents, setActiveUI, setConsent } = useConsentManager();
 		const { uiSource } = useConsentTracking();
-		const { noStyle: contextNoStyle } = useTheme();
+		const { noStyle: contextNoStyle, theme } = useTheme();
+		const resolvedButtonStyle = resolveConsentButtonStyle({
+			consentAction,
+			isPrimary,
+			theme,
+			variant,
+			mode,
+		});
 
 		const defaultThemeKey =
-			variant === 'primary' ? 'buttonPrimary' : 'buttonSecondary';
+			resolvedButtonStyle.variant === 'primary'
+				? 'buttonPrimary'
+				: 'buttonSecondary';
 
 		const buttonStyle = useStyles(
 			(themeKey as AllThemeKeys) ?? defaultThemeKey,
@@ -83,8 +133,8 @@ export const ConsentButton = forwardRef<
 				baseClassName: [
 					!(contextNoStyle || noStyle) &&
 						Button.buttonVariants({
-							variant,
-							mode,
+							variant: resolvedButtonStyle.variant,
+							mode: resolvedButtonStyle.mode,
 							size,
 						}).root(),
 				],

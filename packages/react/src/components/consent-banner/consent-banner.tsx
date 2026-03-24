@@ -10,6 +10,7 @@ import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 import { type FC, Fragment, type ReactNode } from 'react';
 import {
 	type PolicyUiAction,
+	type PolicyUiActionDirection,
 	shouldFillPolicyActions,
 } from '~/components/shared/libs/policy-actions';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
@@ -158,6 +159,13 @@ export interface ConsentBannerProps {
 	layout?: ConsentBannerLayout;
 
 	/**
+	 * Defines how footer button groups flow.
+	 *
+	 * @defaultValue 'row'
+	 */
+	direction?: PolicyUiActionDirection;
+
+	/**
 	 * Specifies which button(s) should be highlighted as the primary action.
 	 *
 	 * @defaultValue 'customize'
@@ -189,6 +197,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	acceptButtonText,
 	legalLinks,
 	layout,
+	direction,
 	primaryButton = 'customize',
 	models,
 	uiSource,
@@ -212,6 +221,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	const effectivePrimaryButton = banner.primaryAction ?? primaryButton;
 	const resolvedLayout: ConsentBannerLayout =
 		layout ?? (banner.hasPolicyHints ? banner.actionGroups : DEFAULT_LAYOUT);
+	const resolvedDirection = direction ?? banner.direction ?? 'row';
 	const activeGroups = resolvedLayout
 		.map((item) =>
 			Array.isArray(item)
@@ -226,6 +236,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	const shouldFillActions = shouldFillPolicyActions({
 		uiProfile: banner.uiProfile,
 		actionGroups: activeGroups,
+		direction: resolvedDirection,
 	});
 
 	const renderButton = (type: ConsentBannerButton, className?: string) => {
@@ -241,7 +252,8 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 			case 'reject':
 				return (
 					<ConsentBannerRejectButton
-						variant={isPrimary ? 'primary' : 'neutral'}
+						consentAction="reject"
+						isPrimary={isPrimary}
 						className={className}
 						data-testid="consent-banner-reject-button"
 					>
@@ -251,7 +263,8 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 			case 'accept':
 				return (
 					<ConsentBannerAcceptButton
-						variant={isPrimary ? 'primary' : 'neutral'}
+						consentAction="accept"
+						isPrimary={isPrimary}
 						className={className}
 						data-testid="consent-banner-accept-button"
 					>
@@ -261,7 +274,8 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 			case 'customize':
 				return (
 					<ConsentBannerCustomizeButton
-						variant={isPrimary ? 'primary' : 'neutral'}
+						consentAction="customize"
+						isPrimary={isPrimary}
 						className={className}
 						data-testid="consent-banner-customize-button"
 					>
@@ -284,7 +298,10 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 						</ConsentBannerDescription>
 					</ConsentBannerHeader>
 					<ConsentBannerFooter
-						className={cn(shouldFillActions && styles.footerFill)}
+						className={cn(
+							shouldFillActions && styles.footerFill,
+							resolvedDirection === 'column' && styles.footerColumn
+						)}
 					>
 						{resolvedLayout.map((item, index) => {
 							if (Array.isArray(item)) {
@@ -299,7 +316,9 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 									<ConsentBannerFooterSubGroup
 										key={groupKey ? `group-${groupKey}` : `group-${index}`}
 										className={cn(
-											shouldFillActions && styles.footerSubGroupFill
+											shouldFillActions && styles.footerSubGroupFill,
+											resolvedDirection === 'column' &&
+												styles.footerSubGroupColumn
 										)}
 									>
 										{filteredItems.map((subItem) => (

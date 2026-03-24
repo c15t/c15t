@@ -1,4 +1,4 @@
-import type { PolicyConfig } from './policy-runtime';
+import type { PolicyConfig, PolicyUiSurfaceConfig } from './policy-runtime';
 import { policyMatchers } from './policy-runtime';
 
 /**
@@ -7,6 +7,16 @@ import { policyMatchers } from './policy-runtime';
  * @see {@link https://v2.c15t.com/docs/frameworks/react/policy-packs}
  */
 export type EuropePolicyMode = 'opt-in' | 'iab';
+
+function createSplitRowUiProfile(): PolicyUiSurfaceConfig {
+	return {
+		allowedActions: ['accept', 'reject', 'customize'],
+		layout: [['reject', 'accept'], 'customize'],
+		direction: 'row',
+		primaryAction: 'customize',
+		uiProfile: 'compact',
+	};
+}
 
 function californiaPolicy(mode: 'opt-in' | 'opt-out'): PolicyConfig {
 	const isOptOut = mode === 'opt-out';
@@ -23,16 +33,8 @@ function californiaPolicy(mode: 'opt-in' | 'opt-out'): PolicyConfig {
 			? { mode: 'none' }
 			: {
 					mode: 'banner',
-					banner: {
-						allowedActions: ['accept', 'reject', 'customize'],
-						primaryAction: 'customize',
-						uiProfile: 'compact',
-					},
-					dialog: {
-						allowedActions: ['accept', 'reject', 'customize'],
-						primaryAction: 'customize',
-						uiProfile: 'compact',
-					},
+					banner: createSplitRowUiProfile(),
+					dialog: createSplitRowUiProfile(),
 				},
 		proof: {
 			storeIp: true,
@@ -59,16 +61,8 @@ function europePolicy(mode: EuropePolicyMode): PolicyConfig {
 			? {
 					ui: {
 						mode: 'banner' as const,
-						banner: {
-							allowedActions: ['accept', 'reject', 'customize'],
-							primaryAction: 'customize',
-							uiProfile: 'compact',
-						},
-						dialog: {
-							allowedActions: ['accept', 'reject', 'customize'],
-							primaryAction: 'customize',
-							uiProfile: 'compact',
-						},
+						banner: createSplitRowUiProfile(),
+						dialog: createSplitRowUiProfile(),
 					},
 				}
 			: {}),
@@ -104,16 +98,8 @@ function quebecPolicy(): PolicyConfig {
 		},
 		ui: {
 			mode: 'banner',
-			banner: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				primaryAction: 'customize',
-				uiProfile: 'compact',
-			},
-			dialog: {
-				allowedActions: ['accept', 'reject', 'customize'],
-				primaryAction: 'customize',
-				uiProfile: 'compact',
-			},
+			banner: createSplitRowUiProfile(),
+			dialog: createSplitRowUiProfile(),
 		},
 		proof: {
 			storeIp: true,

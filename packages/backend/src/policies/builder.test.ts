@@ -19,8 +19,8 @@ describe('buildPolicyConfig', () => {
 			banner: {
 				allowedActions: ['accept', 'reject', 'accept'],
 				primaryAction: 'reject',
-				actionOrder: ['reject', 'accept', 'reject'],
-				actionLayout: 'inline',
+				layout: [['reject', 'accept']],
+				direction: 'row',
 				uiProfile: 'balanced',
 				scrollLock: true,
 			},
@@ -44,8 +44,8 @@ describe('buildPolicyConfig', () => {
 				banner: {
 					allowedActions: ['accept', 'reject'],
 					primaryAction: 'reject',
-					actionOrder: ['reject', 'accept'],
-					actionLayout: 'inline',
+					layout: [['reject', 'accept']],
+					direction: 'row',
 					uiProfile: 'balanced',
 					scrollLock: true,
 				},

@@ -3,9 +3,11 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"dev": "next dev -H myapp.local",
+		"dev": "PORTLESS_HTTPS=1 portless run --name pigeon-post next dev",
+		"dev:localhost": "next dev",
 		"build": "next build",
-		"start": "next start",
+		"start": "PORTLESS_HTTPS=1 portless run --name pigeon-post next start",
+		"start:localhost": "next start",
 		"fmt": "biome format --write"
 	},
 	"dependencies": {

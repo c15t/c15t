@@ -478,6 +478,25 @@ export interface Theme {
 	shadows?: ShadowTokens;
 	/** Animation and transition timing. */
 	motion?: MotionTokens;
+	/** Semantic button styling for consent actions. */
+	consentActions?: {
+		default?: {
+			variant?: 'primary' | 'neutral';
+			mode?: 'filled' | 'stroke' | 'lighter' | 'ghost';
+		};
+		accept?: {
+			variant?: 'primary' | 'neutral';
+			mode?: 'filled' | 'stroke' | 'lighter' | 'ghost';
+		};
+		reject?: {
+			variant?: 'primary' | 'neutral';
+			mode?: 'filled' | 'stroke' | 'lighter' | 'ghost';
+		};
+		customize?: {
+			variant?: 'primary' | 'neutral';
+			mode?: 'filled' | 'stroke' | 'lighter' | 'ghost';
+		};
+	};
 	/** Component-specific style overrides. */
 	slots?: ComponentSlots;
 }

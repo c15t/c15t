@@ -77,6 +77,7 @@ export const defaultTheme: Required<Omit<Theme, 'slots'>> = {
 		md: '0 4px 12px hsla(0, 0%, 0%, 0.08)',
 		lg: '0 8px 24px hsla(0, 0%, 0%, 0.12)',
 	},
+	consentActions: {},
 	motion: {
 		duration: {
 			fast: '100ms',

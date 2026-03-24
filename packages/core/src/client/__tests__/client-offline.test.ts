@@ -244,8 +244,8 @@ describe('Offline Client Tests', () => {
 							banner: {
 								allowedActions: ['accept', 'reject'],
 								primaryAction: 'accept',
-								actionOrder: ['accept', 'reject'],
-								actionLayout: 'inline',
+								layout: [['accept', 'reject']],
+								direction: 'row',
 								uiProfile: 'balanced',
 								scrollLock: true,
 							},

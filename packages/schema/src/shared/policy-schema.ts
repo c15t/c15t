@@ -17,7 +17,11 @@ export const policyUiActionSchema = v.picklist([
 	'customize',
 ]);
 
-export const policyUiActionLayoutSchema = v.picklist(['split', 'inline']);
+export const policyUiActionDirectionSchema = v.picklist(['row', 'column']);
+export const policyUiActionGroupSchema = v.union([
+	policyUiActionSchema,
+	v.array(policyUiActionSchema),
+]);
 
 export const policyUiProfileSchema = v.picklist([
 	'balanced',
@@ -28,8 +32,8 @@ export const policyUiProfileSchema = v.picklist([
 export const policyUiSurfaceConfigSchema = v.object({
 	allowedActions: v.optional(v.array(policyUiActionSchema)),
 	primaryAction: v.optional(policyUiActionSchema),
-	actionOrder: v.optional(v.array(policyUiActionSchema)),
-	actionLayout: v.optional(policyUiActionLayoutSchema),
+	layout: v.optional(v.array(policyUiActionGroupSchema)),
+	direction: v.optional(policyUiActionDirectionSchema),
 	uiProfile: v.optional(policyUiProfileSchema),
 	scrollLock: v.optional(v.boolean()),
 });

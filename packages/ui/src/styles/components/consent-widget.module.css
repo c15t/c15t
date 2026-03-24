@@ -171,7 +171,15 @@
 		flex-direction: column;
 	}
 
+	.footerColumn {
+		flex-direction: column;
+	}
+
 	.footerGroupFill {
+		width: 100%;
+	}
+
+	.footerGroupColumn {
 		width: 100%;
 	}
 

@@ -83,10 +83,8 @@ function compactUiSurface(
 			| PolicyUiSurfaceConfig['allowedActions']
 			| undefined,
 		primaryAction: value.primaryAction,
-		actionOrder: dedupeTrimmedStrings(value.actionOrder) as
-			| PolicyUiSurfaceConfig['actionOrder']
-			| undefined,
-		actionLayout: value.actionLayout,
+		layout: value.layout,
+		direction: value.direction,
 		uiProfile: value.uiProfile,
 		scrollLock: value.scrollLock,
 	});

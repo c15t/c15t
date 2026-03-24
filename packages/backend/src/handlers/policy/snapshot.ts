@@ -34,8 +34,8 @@ export type PolicySnapshotVerificationResult =
 export interface PolicySnapshotUiSurface {
 	allowedActions?: PolicyUiSurfaceConfig['allowedActions'];
 	primaryAction?: PolicyUiSurfaceConfig['primaryAction'];
-	actionOrder?: PolicyUiSurfaceConfig['actionOrder'];
-	actionLayout?: PolicyUiSurfaceConfig['actionLayout'];
+	layout?: PolicyUiSurfaceConfig['layout'];
+	direction?: PolicyUiSurfaceConfig['direction'];
 	uiProfile?: PolicyUiSurfaceConfig['uiProfile'];
 	scrollLock?: PolicyUiSurfaceConfig['scrollLock'];
 }

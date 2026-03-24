@@ -38,6 +38,22 @@
   | `worldNoBanner()` | `none` | none | default fallback |
 
   Most apps only need these presets — pick the ones that match your regions, pass them to your backend config or provider, and you're done. Customize individual fields or write fully custom policies when you need more control.
+
+  For banner/dialog actions, policy packs can also control grouped button arrangement:
+
+  ```ts
+  ui: {
+    mode: 'banner',
+    banner: {
+      allowedActions: ['reject', 'accept', 'customize'],
+      layout: [['reject', 'accept'], 'customize'],
+      direction: 'row',
+      primaryAction: 'customize',
+    },
+  }
+  ```
+
+  That expresses arrangement only. Button appearance like `stroke`, `filled`, or `ghost` lives in the UI theme.
 </section>
 
 <section id="what-users-see">
@@ -169,14 +185,14 @@
 
   When you change a policy in a way that affects consent semantics — like adding a category, changing the consent model, or modifying allowed actions — c15t automatically re-prompts returning users.
 
-  This works through the **material policy fingerprint**: a hash of only the consent-affecting fields (model, categories, scope, allowed actions, proof settings). Presentation-only changes like copy, layout, or scroll lock do not trigger re-prompts.
+  This works through the **material policy fingerprint**: a hash of only the consent-affecting fields (model, categories, scope, allowed actions, grouped action layout, direction, proof settings). Presentation-only changes like copy, button styling, or scroll lock do not trigger re-prompts.
 
   | Change | Re-prompts? |
   |--------|------------|
   | Add a consent category | Yes |
   | Change `model` from `opt-out` to `opt-in` | Yes |
   | Remove an `allowedAction` | Yes |
-  | Change `uiProfile` or `actionLayout` | No |
+  | Change `uiProfile` or button styling | No |
   | Update translation copy | No |
   | Change `scrollLock` | No |
 </section>

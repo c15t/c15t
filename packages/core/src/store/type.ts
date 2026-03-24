@@ -9,7 +9,8 @@ import type {
 	PolicyConfig,
 	PolicyScopeMode,
 	PolicyUiAction,
-	PolicyUiActionLayout,
+	PolicyUiActionDirection,
+	PolicyUiActionGroup,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
 } from '@c15t/schema/types';
@@ -56,7 +57,8 @@ export type ActiveUI = 'none' | 'banner' | 'dialog';
 // Re-export canonical policy types from @c15t/schema
 export type {
 	PolicyUiAction,
-	PolicyUiActionLayout,
+	PolicyUiActionDirection,
+	PolicyUiActionGroup,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
 	PolicyScopeMode,
@@ -83,10 +85,10 @@ export interface PolicySurfaceState {
 	allowedActions?: PolicyUiAction[];
 	/** Preferred primary action hint from backend runtime policy. */
 	primaryAction?: PolicyUiAction;
-	/** Explicit action order hint from backend runtime policy. */
-	actionOrder?: PolicyUiAction[];
-	/** Action layout hint from backend runtime policy. */
-	actionLayout?: PolicyUiActionLayout;
+	/** Explicit grouped action layout hint from backend runtime policy. */
+	layout?: PolicyUiActionGroup[];
+	/** Direction hint for the grouped action layout. */
+	direction?: PolicyUiActionDirection;
 	/** Presentation profile hint from backend runtime policy. */
 	uiProfile?: PolicyUiProfile;
 	/** Scroll lock hint from backend runtime policy. */

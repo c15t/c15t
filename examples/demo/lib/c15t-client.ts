@@ -24,5 +24,9 @@ import { c15tClient } from '@c15t/node-sdk';
  * Uses C15T_API_URL environment variable, defaulting to the local self-host API.
  */
 export const consentClient = c15tClient({
-	baseUrl: process.env.C15T_API_URL || 'http://localhost:3000/api/self-host',
+	baseUrl:
+		process.env.C15T_API_URL ||
+		(process.env.PORTLESS_HTTPS
+			? 'https://pigeon-post.localhost/api/self-host'
+			: 'http://pigeon-post.localhost:1355/api/self-host'),
 });

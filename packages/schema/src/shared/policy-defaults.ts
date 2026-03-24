@@ -1,6 +1,11 @@
 import type { ResolvedPolicy } from '~/api/init';
+import type { PolicyUiActionGroup } from './policy-runtime';
 
-const DEFAULT_ACTIONS = ['accept', 'reject', 'customize'] as const;
+const DEFAULT_ACTIONS = ['reject', 'accept', 'customize'] as const;
+const DEFAULT_LAYOUT: PolicyUiActionGroup[] = [
+	['reject', 'accept'],
+	'customize',
+];
 
 function offlineOptInBannerPolicy(): ResolvedPolicy {
 	return {
@@ -16,15 +21,15 @@ function offlineOptInBannerPolicy(): ResolvedPolicy {
 			banner: {
 				allowedActions: [...DEFAULT_ACTIONS],
 				primaryAction: 'customize',
-				actionOrder: [...DEFAULT_ACTIONS],
-				actionLayout: 'inline',
+				layout: DEFAULT_LAYOUT,
+				direction: 'row',
 				uiProfile: 'balanced',
 			},
 			dialog: {
 				allowedActions: [...DEFAULT_ACTIONS],
-				primaryAction: 'accept',
-				actionOrder: [...DEFAULT_ACTIONS],
-				actionLayout: 'split',
+				primaryAction: 'customize',
+				layout: DEFAULT_LAYOUT,
+				direction: 'row',
 				uiProfile: 'balanced',
 			},
 		},

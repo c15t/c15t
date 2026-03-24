@@ -21,7 +21,8 @@ export type PolicyModel = 'opt-in' | 'opt-out' | 'none' | 'iab';
 export type PolicyScopeMode = 'strict' | 'permissive';
 export type PolicyUiMode = 'none' | 'banner' | 'dialog';
 export type PolicyUiAction = 'accept' | 'reject' | 'customize';
-export type PolicyUiActionLayout = 'split' | 'inline';
+export type PolicyUiActionDirection = 'row' | 'column';
+export type PolicyUiActionGroup = PolicyUiAction | PolicyUiAction[];
 export type PolicyUiProfile = 'balanced' | 'compact' | 'strict';
 
 /**
@@ -36,8 +37,8 @@ export type PolicyUiProfile = 'balanced' | 'compact' | 'strict';
 export interface PolicyUiSurfaceConfig {
 	allowedActions?: PolicyUiAction[];
 	primaryAction?: PolicyUiAction;
-	actionOrder?: PolicyUiAction[];
-	actionLayout?: PolicyUiActionLayout;
+	layout?: PolicyUiActionGroup[];
+	direction?: PolicyUiActionDirection;
 	uiProfile?: PolicyUiProfile;
 	scrollLock?: boolean;
 }
@@ -504,13 +505,43 @@ function collectPolicyErrors(
 						`Policy ${label} ui.${surfaceName}.primaryAction '${surface.primaryAction}' is not in allowedActions [${allowed.join(', ')}].`
 					);
 				}
-				if (surface.actionOrder) {
-					for (const action of surface.actionOrder) {
-						if (!allowed.includes(action)) {
+			}
+
+			const layout = surface.layout;
+			if (layout) {
+				const seen = new Set<PolicyUiAction>();
+				const effectiveActions = allowed
+					? new Set<PolicyUiAction>(allowed)
+					: undefined;
+				for (const group of layout) {
+					const actions = Array.isArray(group) ? group : [group];
+					if (actions.length === 0) {
+						errors.push(
+							`Policy ${label} ui.${surfaceName}.layout contains an empty action group.`
+						);
+						continue;
+					}
+					for (const action of actions) {
+						if (effectiveActions && !effectiveActions.has(action)) {
 							errors.push(
-								`Policy ${label} ui.${surfaceName}.actionOrder contains '${action}' which is not in allowedActions [${allowed.join(', ')}].`
+								`Policy ${label} ui.${surfaceName}.layout contains '${action}' which is not in allowedActions [${allowed?.join(', ')}].`
 							);
 						}
+						if (seen.has(action)) {
+							errors.push(
+								`Policy ${label} ui.${surfaceName}.layout contains duplicate action '${action}'.`
+							);
+						}
+						seen.add(action);
+					}
+				}
+
+				if (allowed && seen.size !== allowed.length) {
+					const missing = allowed.filter((action) => !seen.has(action));
+					if (missing.length > 0) {
+						errors.push(
+							`Policy ${label} ui.${surfaceName}.layout must include every allowed action. Missing [${missing.join(', ')}].`
+						);
 					}
 				}
 			}
@@ -702,30 +733,62 @@ function normalizeAllowedActions(
 	return dedupeDefinedValues(surface?.allowedActions);
 }
 
-function normalizeActionOrder(
-	surface: PolicyUiSurfaceConfig | undefined,
-	allowedActions?: PolicyUiAction[]
+function flattenActionGroups(
+	layout?: PolicyUiAction[][]
 ): PolicyUiAction[] | undefined {
-	const order = surface?.actionOrder;
-	const normalized = dedupeDefinedValues(order);
-	if (!normalized) {
+	if (!layout || layout.length === 0) {
 		return undefined;
 	}
 
-	if (!allowedActions || allowedActions.length === 0) {
-		return normalized;
+	return layout.flat();
+}
+
+function normalizeActionGroups(
+	surface: PolicyUiSurfaceConfig | undefined,
+	allowedActions?: PolicyUiAction[]
+): PolicyUiAction[][] | undefined {
+	const layout = surface?.layout;
+	if (!layout || layout.length === 0) {
+		return allowedActions && allowedActions.length > 0
+			? [allowedActions]
+			: undefined;
 	}
 
-	const allowedSet = new Set(allowedActions);
-	const filtered = normalized.filter((action) => allowedSet.has(action));
+	const allowedSet =
+		allowedActions && allowedActions.length > 0
+			? new Set<PolicyUiAction>(allowedActions)
+			: undefined;
+	const groups: PolicyUiAction[][] = [];
+	const seen = new Set<PolicyUiAction>();
 
-	for (const action of allowedActions) {
-		if (!filtered.includes(action)) {
-			filtered.push(action);
+	for (const group of layout) {
+		const actions = dedupeDefinedValues(Array.isArray(group) ? group : [group]);
+		if (!actions || actions.length === 0) {
+			continue;
+		}
+
+		const normalizedGroup = actions.filter((action) => {
+			if (seen.has(action)) {
+				return false;
+			}
+			if (allowedSet && !allowedSet.has(action)) {
+				return false;
+			}
+
+			seen.add(action);
+			return true;
+		});
+
+		if (normalizedGroup.length > 0) {
+			groups.push(normalizedGroup);
 		}
 	}
 
-	return filtered.length > 0 ? filtered : undefined;
+	if (groups.length === 0) {
+		return undefined;
+	}
+
+	return groups;
 }
 
 function normalizePrimaryAction(
@@ -746,13 +809,11 @@ function normalizePrimaryAction(
 	return primaryAction;
 }
 
-function normalizeActionLayout(
+function normalizeDirection(
 	surface?: PolicyUiSurfaceConfig
-): PolicyUiActionLayout | undefined {
-	const actionLayout = surface?.actionLayout;
-	return actionLayout === 'split' || actionLayout === 'inline'
-		? actionLayout
-		: undefined;
+): PolicyUiActionDirection | undefined {
+	const direction = surface?.direction;
+	return direction === 'row' || direction === 'column' ? direction : undefined;
 }
 
 function normalizeUiProfile(
@@ -782,12 +843,13 @@ function normalizeUiSurface(
 	}
 
 	const allowedActions = normalizeAllowedActions(surface);
-	const actionOrder = normalizeActionOrder(surface, allowedActions);
+	const layout = normalizeActionGroups(surface, allowedActions);
+	const flattenedActions = flattenActionGroups(layout) ?? allowedActions;
 	const normalized = {
 		allowedActions,
-		primaryAction: normalizePrimaryAction(surface, allowedActions),
-		actionOrder,
-		actionLayout: normalizeActionLayout(surface),
+		primaryAction: normalizePrimaryAction(surface, flattenedActions),
+		layout,
+		direction: normalizeDirection(surface),
 		uiProfile: normalizeUiProfile(surface),
 		scrollLock: normalizeScrollLock(surface),
 	};

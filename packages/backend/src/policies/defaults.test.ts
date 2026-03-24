@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { policyPackPresets } from './defaults';
 
+const EXPECTED_SPLIT_ROW_LAYOUT = [['reject', 'accept'], 'customize'];
+
 describe('policyPackPresets templates', () => {
 	it('returns europe opt-in and iab templates', () => {
 		const optIn = policyPackPresets.europeOptIn();
 		const iab = policyPackPresets.europeIab();
 
 		expect(optIn.consent?.model).toBe('opt-in');
+		expect(optIn.ui?.banner?.layout).toEqual(EXPECTED_SPLIT_ROW_LAYOUT);
+		expect(optIn.ui?.banner?.direction).toBe('row');
+		expect(optIn.ui?.dialog?.layout).toEqual(EXPECTED_SPLIT_ROW_LAYOUT);
+		expect(optIn.ui?.dialog?.direction).toBe('row');
 		expect(iab.consent?.model).toBe('iab');
 		expect(iab.match.countries).toEqual([
 			'AT',
@@ -51,6 +57,10 @@ describe('policyPackPresets templates', () => {
 		expect(optOut.consent?.model).toBe('opt-out');
 		expect(optIn.match.regions).toEqual([{ country: 'US', region: 'CA' }]);
 		expect(optIn.ui?.banner?.uiProfile).toBe('compact');
+		expect(optIn.ui?.banner?.layout).toEqual(EXPECTED_SPLIT_ROW_LAYOUT);
+		expect(optIn.ui?.banner?.direction).toBe('row');
+		expect(optIn.ui?.dialog?.layout).toEqual(EXPECTED_SPLIT_ROW_LAYOUT);
+		expect(optIn.ui?.dialog?.direction).toBe('row');
 		expect(optOut.ui?.mode).toBe('none');
 	});
 
@@ -60,6 +70,10 @@ describe('policyPackPresets templates', () => {
 		expect(policy.consent?.model).toBe('opt-in');
 		expect(policy.match.regions).toEqual([{ country: 'CA', region: 'QC' }]);
 		expect(policy.ui?.banner?.uiProfile).toBe('compact');
+		expect(policy.ui?.banner?.layout).toEqual(EXPECTED_SPLIT_ROW_LAYOUT);
+		expect(policy.ui?.banner?.direction).toBe('row');
+		expect(policy.ui?.dialog?.layout).toEqual(EXPECTED_SPLIT_ROW_LAYOUT);
+		expect(policy.ui?.dialog?.direction).toBe('row');
 	});
 
 	it('returns world no-banner default template', () => {

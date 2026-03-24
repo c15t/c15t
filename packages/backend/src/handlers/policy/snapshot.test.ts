@@ -37,8 +37,8 @@ describe('policy snapshot token', () => {
 			bannerUi: {
 				allowedActions: ['accept', 'reject', 'customize'],
 				primaryAction: 'accept',
-				actionOrder: ['accept', 'reject', 'customize'],
-				actionLayout: 'inline',
+				layout: [['accept', 'reject', 'customize']],
+				direction: 'row',
 				uiProfile: 'strict',
 				scrollLock: true,
 			},
@@ -77,13 +77,11 @@ describe('policy snapshot token', () => {
 		expect(payload.payload.scopeMode).toBe('strict');
 		expect(payload.payload.categories).toEqual(['analytics', 'marketing']);
 		expect(payload.payload.preselectedCategories).toEqual(['analytics']);
-		expect(payload.payload.bannerUi?.actionLayout).toBe('inline');
+		expect(payload.payload.bannerUi?.direction).toBe('row');
 		expect(payload.payload.bannerUi?.uiProfile).toBe('strict');
 		expect(payload.payload.bannerUi?.scrollLock).toBe(true);
-		expect(payload.payload.bannerUi?.actionOrder).toEqual([
-			'accept',
-			'reject',
-			'customize',
+		expect(payload.payload.bannerUi?.layout).toEqual([
+			['accept', 'reject', 'customize'],
 		]);
 	});
 

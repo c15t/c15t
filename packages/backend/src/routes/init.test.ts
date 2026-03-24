@@ -43,8 +43,8 @@ interface InitTestResponseBody {
 		ui?: {
 			mode?: string;
 			banner?: {
-				actionOrder?: string[];
-				actionLayout?: string;
+				layout?: Array<string | string[]>;
+				direction?: string;
 				uiProfile?: string;
 				scrollLock?: boolean;
 			};
@@ -108,8 +108,8 @@ describe('createInitRoute IAB policy gating', () => {
 							mode: 'banner',
 							banner: {
 								allowedActions: ['accept', 'reject'],
-								actionOrder: ['reject', 'accept'],
-								actionLayout: 'inline',
+								layout: [['reject', 'accept']],
+								direction: 'row',
 								uiProfile: 'balanced',
 								scrollLock: true,
 							},
@@ -130,8 +130,8 @@ describe('createInitRoute IAB policy gating', () => {
 
 		expect(response.status).toBe(200);
 		expect(body.policy?.model).toBe('opt-in');
-		expect(body.policy?.ui?.banner?.actionOrder).toEqual(['reject', 'accept']);
-		expect(body.policy?.ui?.banner?.actionLayout).toBe('inline');
+		expect(body.policy?.ui?.banner?.layout).toEqual([['reject', 'accept']]);
+		expect(body.policy?.ui?.banner?.direction).toBe('row');
 		expect(body.policy?.ui?.banner?.uiProfile).toBe('balanced');
 		expect(body.policy?.ui?.banner?.scrollLock).toBe(true);
 		expect(body.gvl).toBeUndefined();
@@ -284,8 +284,8 @@ describe('createInitRoute IAB policy gating', () => {
 					banner: {
 						allowedActions: ['accept', 'reject'] as const,
 						primaryAction: 'accept' as const,
-						actionOrder: ['accept', 'reject'] as const,
-						actionLayout: 'inline' as const,
+						layout: [['accept', 'reject']] as const,
+						direction: 'row' as const,
 						uiProfile: 'balanced' as const,
 						scrollLock: true,
 					},
