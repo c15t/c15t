@@ -14,7 +14,10 @@ import {
 import { Cloud, Globe, Laptop, MapPin, RotateCcw } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
-import { demoI18nMessages } from '../../lib/policies';
+import {
+	DEFAULT_DEMO_POLICY_EXAMPLE,
+	demoI18nMessages,
+} from '../../lib/policies';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
