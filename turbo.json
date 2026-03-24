@@ -8,6 +8,50 @@
 			"outputs": [".next/**", "!.next/cache/**", "dist/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
+		"c15t#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"../../docs/**",
+				"../../scripts/agent-docs/**"
+			],
+			"outputs": ["dist/**"],
+			"env": ["WITH_RSDOCTOR"]
+		},
+		"@c15t/react#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"../../docs/**",
+				"../../scripts/agent-docs/**"
+			],
+			"outputs": ["dist/**"],
+			"env": ["WITH_RSDOCTOR"]
+		},
+		"@c15t/nextjs#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"../../docs/**",
+				"../../scripts/agent-docs/**"
+			],
+			"outputs": ["dist/**"],
+			"env": ["WITH_RSDOCTOR"]
+		},
+		"@c15t/backend#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"../../docs/**",
+				"../../scripts/agent-docs/**"
+			],
+			"outputs": ["dist/**"],
+			"env": ["WITH_RSDOCTOR"]
+		},
 		"fmt": {
 			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc", "**/biome.json"],
 			"outputs": []

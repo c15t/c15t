@@ -15,6 +15,7 @@ import 'dotenv/config';
 import open from 'open';
 import color from 'picocolors';
 import { showHelpMenu } from './actions/show-help-menu';
+import { agentsCommand } from './commands/agents';
 import { codemodsCommand } from './commands/codemods';
 import { generate } from './commands/generate';
 import { selfHost } from './commands/self-host';
@@ -40,6 +41,7 @@ const commands: CliCommand[] = [
 		description: 'Set up c15t in your project.',
 		action: (context) => generate(context),
 	},
+	agentsCommand,
 	codemodsCommand,
 	{
 		name: 'skills',

@@ -1,0 +1,18 @@
+{
+	"c15t": {
+		"pageCount": 31,
+		"totalBytes": 142729
+	},
+	"@c15t/react": {
+		"pageCount": 58,
+		"totalBytes": 196787
+	},
+	"@c15t/nextjs": {
+		"pageCount": 58,
+		"totalBytes": 199748
+	},
+	"@c15t/backend": {
+		"pageCount": 9,
+		"totalBytes": 42943
+	}
+}

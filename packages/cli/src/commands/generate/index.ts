@@ -17,11 +17,17 @@
  */
 
 import type { CliCommand, CliContext } from '~/context/types';
+import { discoverInstalledAgentPackages } from '~/lib/agents/discover-packages';
 import { runGenerateMachine } from '~/machines/generate/runner';
-import type { StorageMode } from '../../constants';
+import { STORAGE_MODES, type StorageMode } from '../../constants';
+import { runAgentsCommand } from '../agents';
 
 function normalizeModeArg(mode?: StorageMode): StorageMode | undefined {
-	return mode;
+	if (!mode || mode.startsWith('-')) {
+		return undefined;
+	}
+	const validModes = new Set(Object.values(STORAGE_MODES));
+	return validModes.has(mode) ? mode : undefined;
 }
 
 /**
@@ -57,6 +63,35 @@ async function generateAction(context: CliContext): Promise<void> {
 			// Just exit with error code
 			if (result.errors.length > 0) {
 				process.exitCode = 1;
+			}
+			return;
+		}
+
+		const shouldForceAgents = commandArgs.includes('--agents');
+		const shouldSkipAgents = commandArgs.includes('--no-agents');
+		const isNonInteractive = flags.y === true || process.env.CI === 'true';
+
+		if (shouldSkipAgents) {
+			return;
+		}
+
+		const installed = discoverInstalledAgentPackages(context.projectRoot);
+		if (installed.length === 0) {
+			return;
+		}
+
+		if (shouldForceAgents) {
+			await runAgentsCommand(context);
+			return;
+		}
+
+		if (!isNonInteractive) {
+			const confirmed = await context.confirm(
+				'Generate AGENTS.md from the installed c15t package docs?',
+				true
+			);
+			if (confirmed) {
+				await runAgentsCommand(context);
 			}
 		}
 	} catch (error) {

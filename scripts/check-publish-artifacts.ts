@@ -2,6 +2,10 @@
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import {
+	checkPackedAgentDocs,
+	supportedAgentDocsPackages,
+} from './agent-docs/check-budgets';
 
 type PackedFile = {
 	path: string;
@@ -59,7 +63,13 @@ function runPack(packageDir: string): PackResult {
 	}
 
 	const stdout = new TextDecoder().decode(proc.stdout).trim();
-	const parsed = JSON.parse(stdout) as PackResult[];
+	const jsonStart = stdout.indexOf('[\n  {');
+	const jsonEnd = stdout.lastIndexOf('\n]');
+	const jsonPayload =
+		jsonStart >= 0 && jsonEnd >= jsonStart
+			? stdout.slice(jsonStart, jsonEnd + 2)
+			: stdout;
+	const parsed = JSON.parse(jsonPayload) as PackResult[];
 	if (!Array.isArray(parsed) || parsed.length === 0) {
 		throw new Error(`Unexpected npm pack output in ${packageDir}: ${stdout}`);
 	}
@@ -113,6 +123,11 @@ const offenders: Array<{
 	version: string;
 	files: Array<{ path: string; size: number; reason: string }>;
 }> = [];
+const agentDocOffenders: Array<{
+	packageName: string;
+	version: string;
+	issues: string[];
+}> = [];
 
 let checkedPackages = 0;
 
@@ -140,9 +155,20 @@ for (const packageDir of packageDirs) {
 			files: blockedFiles,
 		});
 	}
+
+	if (supportedAgentDocsPackages().includes(packed.name)) {
+		const result = checkPackedAgentDocs(packed.name, packed.files);
+		if (result.issues.length > 0) {
+			agentDocOffenders.push({
+				packageName: packed.name,
+				version: packed.version,
+				issues: result.issues,
+			});
+		}
+	}
 }
 
-if (offenders.length === 0) {
+if (offenders.length === 0 && agentDocOffenders.length === 0) {
 	console.log(
 		`Publish artifact guard passed. Checked ${checkedPackages} packages.`
 	);
@@ -154,6 +180,13 @@ for (const offender of offenders) {
 	console.error(`\n- ${offender.packageName}@${offender.version}`);
 	for (const file of offender.files) {
 		console.error(`  - ${file.path} (${file.size} bytes) [${file.reason}]`);
+	}
+}
+
+for (const offender of agentDocOffenders) {
+	console.error(`\n- ${offender.packageName}@${offender.version}`);
+	for (const issue of offender.issues) {
+		console.error(`  - ${issue}`);
 	}
 }
 

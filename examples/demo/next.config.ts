@@ -1,6 +1,14 @@
 import type { NextConfig } from 'next';
 
 const config: NextConfig = {
+	turbopack: {
+		rules: {
+			'*.md': {
+				loaders: ['./loaders/raw-markdown-loader.js'],
+				as: '*.js',
+			},
+		},
+	},
 	async rewrites() {
 		return [
 			// {

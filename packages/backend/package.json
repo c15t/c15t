@@ -97,14 +97,20 @@
 	"main": "./dist/core.cjs",
 	"module": "./dist/core.js",
 	"types": "./dist/core.d.ts",
+	"files": [
+		"dist",
+		"README.md"
+	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build",
+		"build": "bun prebuild && rslib build && bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/backend",
+		"build:agent-docs": "bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/backend",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "bun prebuild && rslib build",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"knip": "knip",
 		"lint": "bun biome lint ./src",
+		"prepack": "cd ../.. && bunx turbo run build --filter=@c15t/backend",
 		"start": "node dist/server.cjs",
 		"test": "bun prebuild && vitest run",
 		"test:watch": "bun prebuild && vitest"

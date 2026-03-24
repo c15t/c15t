@@ -2,6 +2,7 @@
  * Command exports
  */
 
+export { agentsCommand, runAgentsCommand } from './agents';
 // Auth commands
 export { authCommands, loginCommand, logoutCommand } from './auth';
 // Codemods
