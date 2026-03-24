@@ -2,7 +2,7 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { type FC, useState } from 'react';
-import * as Collapsible from '~/components/shared/ui/collapsible';
+import * as PreferenceItem from '~/components/shared/ui/preference-item';
 import * as Switch from '~/components/shared/ui/switch';
 import type { ProcessedStack, VendorId } from '../types';
 import { PurposeItem } from './purpose-item';
@@ -67,7 +67,7 @@ export const StackItem: FC<StackItemProps> = ({
 	).size;
 
 	return (
-		<Collapsible.Root
+		<PreferenceItem.Root
 			className={styles.stackItem}
 			data-testid={`stack-item-${stack.id}`}
 			noStyle
@@ -75,30 +75,32 @@ export const StackItem: FC<StackItemProps> = ({
 			open={isExpanded}
 		>
 			<div className={styles.stackHeader}>
-				<Collapsible.Trigger className={styles.stackTrigger} noStyle>
-					<svg
-						className={styles.purposeArrow}
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-					>
-						{isExpanded ? (
-							<path d="M19 9l-7 7-7-7" />
-						) : (
-							<path d="M9 5l7 7-7 7" />
-						)}
-					</svg>
-					<div className={styles.stackInfo}>
-						<h3 className={styles.stackName}>{stack.name}</h3>
-						{!isExpanded && (
-							<p className={styles.stackMeta}>
-								{totalVendors} {totalVendors === 1 ? 'partner' : 'partners'}
-							</p>
-						)}
-					</div>
-				</Collapsible.Trigger>
-				<div className={styles.stackControls}>
+				<PreferenceItem.Trigger className={styles.stackTrigger} noStyle>
+					<PreferenceItem.Leading noStyle>
+						<svg
+							className={styles.purposeArrow}
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+						>
+							{isExpanded ? (
+								<path d="M19 9l-7 7-7-7" />
+							) : (
+								<path d="M9 5l7 7-7 7" />
+							)}
+						</svg>
+					</PreferenceItem.Leading>
+					<PreferenceItem.Header className={styles.stackInfo} noStyle>
+						<PreferenceItem.Title className={styles.stackName} noStyle>
+							{stack.name}
+						</PreferenceItem.Title>
+						<PreferenceItem.Meta className={styles.stackMeta} noStyle>
+							{totalVendors} {totalVendors === 1 ? 'partner' : 'partners'}
+						</PreferenceItem.Meta>
+					</PreferenceItem.Header>
+				</PreferenceItem.Trigger>
+				<PreferenceItem.Control className={styles.stackControls} noStyle>
 					{someEnabled && (
 						<div
 							className={styles.partialIndicator}
@@ -109,14 +111,11 @@ export const StackItem: FC<StackItemProps> = ({
 						checked={allEnabled}
 						onCheckedChange={handleStackToggle}
 					/>
-				</div>
+				</PreferenceItem.Control>
 			</div>
-			<Collapsible.Content noStyle>
+			<PreferenceItem.Content noStyle>
 				<div className={styles.stackDescription}>
 					<p>{stack.description}</p>
-					<p className={styles.stackMeta}>
-						{totalVendors} {totalVendors === 1 ? 'partner' : 'partners'}
-					</p>
 				</div>
 				<div className={styles.stackContent}>
 					{stack.purposes.map((purpose) => (
@@ -139,7 +138,7 @@ export const StackItem: FC<StackItemProps> = ({
 						/>
 					))}
 				</div>
-			</Collapsible.Content>
-		</Collapsible.Root>
+			</PreferenceItem.Content>
+		</PreferenceItem.Root>
 	);
 };

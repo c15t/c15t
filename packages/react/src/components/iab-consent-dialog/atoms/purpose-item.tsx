@@ -2,7 +2,7 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { type FC, useState } from 'react';
-import * as Collapsible from '~/components/shared/ui/collapsible';
+import * as PreferenceItem from '~/components/shared/ui/preference-item';
 import * as Switch from '~/components/shared/ui/switch';
 import type { ProcessedPurpose, ProcessedVendor, VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
@@ -91,7 +91,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 	};
 
 	return (
-		<Collapsible.Root
+		<PreferenceItem.Root
 			className={styles.purposeItem}
 			data-testid={`purpose-item-${purpose.id}`}
 			noStyle
@@ -99,22 +99,24 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 			open={isExpanded}
 		>
 			<div className={styles.purposeHeader}>
-				<Collapsible.Trigger className={styles.purposeTrigger} noStyle>
-					<svg
-						className={styles.purposeArrow}
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-					>
-						{isExpanded ? (
-							<path d="M19 9l-7 7-7-7" />
-						) : (
-							<path d="M9 5l7 7-7 7" />
-						)}
-					</svg>
-					<div className={styles.purposeInfo}>
-						<h3 className={styles.purposeName}>
+				<PreferenceItem.Trigger className={styles.purposeTrigger} noStyle>
+					<PreferenceItem.Leading noStyle>
+						<svg
+							className={styles.purposeArrow}
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+						>
+							{isExpanded ? (
+								<path d="M19 9l-7 7-7-7" />
+							) : (
+								<path d="M9 5l7 7-7 7" />
+							)}
+						</svg>
+					</PreferenceItem.Leading>
+					<PreferenceItem.Header className={styles.purposeInfo} noStyle>
+						<PreferenceItem.Title className={styles.purposeName} noStyle>
 							{purpose.name}
 							{isLocked && (
 								<svg
@@ -128,15 +130,18 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 									<path d="M7 11V7a5 5 0 0 1 10 0v4" />
 								</svg>
 							)}
-						</h3>
-						<p className={styles.purposeMeta}>
+						</PreferenceItem.Title>
+						<PreferenceItem.Meta className={styles.purposeMeta} noStyle>
 							{iab.preferenceCenter.purposeItem.partners.replace(
 								'{count}',
 								String(purpose.vendors.length)
 							)}
-						</p>
+						</PreferenceItem.Meta>
 						{legIntVendors.length > 0 && (
-							<div className={styles.legitimateInterestBadge}>
+							<PreferenceItem.Auxiliary
+								className={styles.legitimateInterestBadge}
+								noStyle
+							>
 								<svg
 									className={styles.legitimateInterestIcon}
 									viewBox="0 0 24 24"
@@ -150,18 +155,20 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 									'{count}',
 									String(legIntVendors.length)
 								)}
-							</div>
+							</PreferenceItem.Auxiliary>
 						)}
-					</div>
-				</Collapsible.Trigger>
-				<Switch.Root
-					checked={isEnabled}
-					onCheckedChange={handlePurposeToggle}
-					disabled={isLocked}
-				/>
+					</PreferenceItem.Header>
+				</PreferenceItem.Trigger>
+				<PreferenceItem.Control noStyle>
+					<Switch.Root
+						checked={isEnabled}
+						onCheckedChange={handlePurposeToggle}
+						disabled={isLocked}
+					/>
+				</PreferenceItem.Control>
 			</div>
 
-			<Collapsible.Content innerClassName={styles.purposeContent} noStyle>
+			<PreferenceItem.Content innerClassName={styles.purposeContent} noStyle>
 				<p className={styles.purposeDescription}>{purpose.description}</p>
 
 				{/* Purpose-level Legitimate Interest Objection */}
@@ -223,12 +230,12 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 
 				{purpose.illustrations && purpose.illustrations.length > 0 && (
 					<div>
-						<Collapsible.Root
+						<PreferenceItem.Root
 							noStyle
 							onOpenChange={setShowExamples}
 							open={showExamples}
 						>
-							<Collapsible.Trigger className={styles.examplesToggle} noStyle>
+							<PreferenceItem.Trigger className={styles.examplesToggle} noStyle>
 								<svg
 									style={{ width: '0.75rem', height: '0.75rem' }}
 									viewBox="0 0 24 24"
@@ -244,25 +251,25 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 								</svg>
 								{iab.preferenceCenter.purposeItem.examples} (
 								{purpose.illustrations.length})
-							</Collapsible.Trigger>
-							<Collapsible.Content noStyle>
+							</PreferenceItem.Trigger>
+							<PreferenceItem.Content noStyle>
 								<ul className={styles.examplesList}>
 									{purpose.illustrations.map((illustration, index) => (
 										<li key={index}>{illustration}</li>
 									))}
 								</ul>
-							</Collapsible.Content>
-						</Collapsible.Root>
+							</PreferenceItem.Content>
+						</PreferenceItem.Root>
 					</div>
 				)}
 
 				<div>
-					<Collapsible.Root
+					<PreferenceItem.Root
 						noStyle
 						onOpenChange={setShowVendors}
 						open={showVendors}
 					>
-						<Collapsible.Trigger className={styles.vendorsToggle} noStyle>
+						<PreferenceItem.Trigger className={styles.vendorsToggle} noStyle>
 							<svg
 								style={{ width: '0.75rem', height: '0.75rem' }}
 								viewBox="0 0 24 24"
@@ -278,8 +285,11 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 							</svg>
 							{iab.preferenceCenter.purposeItem.partnersUsingPurpose} (
 							{purpose.vendors.length})
-						</Collapsible.Trigger>
-						<Collapsible.Content innerClassName={styles.vendorSection} noStyle>
+						</PreferenceItem.Trigger>
+						<PreferenceItem.Content
+							innerClassName={styles.vendorSection}
+							noStyle
+						>
 							{/* IAB Consent Vendors */}
 							{iabConsentVendors.length > 0 && (
 								<>
@@ -389,11 +399,11 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 									))}
 								</div>
 							)}
-						</Collapsible.Content>
-					</Collapsible.Root>
+						</PreferenceItem.Content>
+					</PreferenceItem.Root>
 				</div>
-			</Collapsible.Content>
-		</Collapsible.Root>
+			</PreferenceItem.Content>
+		</PreferenceItem.Root>
 	);
 };
 

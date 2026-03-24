@@ -330,7 +330,7 @@ describe('Vendors Tab - Per-Vendor Consent', () => {
 		}
 
 		const content = vendorHeader.querySelector(
-			'[data-slot="collapsible-content"]'
+			'[data-slot="preference-item-content"]'
 		);
 		expect(content?.getAttribute('aria-hidden')).toBe('true');
 

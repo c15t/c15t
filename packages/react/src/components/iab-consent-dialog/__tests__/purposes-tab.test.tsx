@@ -286,7 +286,7 @@ describe('Purposes Tab - Consent', () => {
 			() =>
 				Array.from(
 					document.querySelectorAll<HTMLButtonElement>(
-						'[data-testid="iab-consent-dialog-root"] [data-slot="collapsible-trigger"]'
+						'[data-testid="iab-consent-dialog-root"] [data-slot="preference-item-trigger"]'
 					)
 				).find((button) => button.textContent?.includes('Store and/or access')),
 			{ timeout: 3000 }
@@ -301,7 +301,7 @@ describe('Purposes Tab - Consent', () => {
 			'[data-testid^="purpose-item-"]'
 		);
 		const content = purposeItem?.querySelector(
-			'[data-slot="collapsible-content"]'
+			'[data-slot="preference-item-content"]'
 		);
 
 		expect(content?.getAttribute('aria-hidden')).toBe('true');
