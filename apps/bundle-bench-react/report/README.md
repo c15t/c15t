@@ -1,32 +1,46 @@
-# React primitive bundle comparison
+# Consent surface bundle comparison: current vs `2.0.0`
 
-This benchmark compares a Radix-based entry against the c15t-owned React primitives using the same representative primitive set: button, switch, accordion, and dialog.
+This benchmark compares the current shipped React consent surfaces against the historical `origin/2.0.0` consent surfaces.
 
 Current result:
-c15t is smaller than the Radix baseline by 33,516 minified bytes and 11,875 gzip bytes.
+The current surfaces are smaller than the `2.0.0` baseline by 50,594 total bytes and 12,987 total gzip bytes.
 
 Methodology:
 - Both entries are bundled with `Bun.build` in browser mode with minification enabled.
-- The report measures the generated JavaScript bundle, not emitted CSS assets.
-- The Radix baseline uses real Radix dialog, switch, accordion, and slot primitives.
-- The c15t entry uses tree-shakeable `@c15t/react/primitives/*` subpath imports.
+- The current entry renders the public `ConsentBanner` and `ConsentDialog` components from the current branch.
+- The baseline entry is built from a real `git worktree` checked out at `origin/2.0.0`.
+- The report measures emitted JavaScript and CSS assets separately and as a combined total.
+- This is a historical product-surface comparison, not an isolated primitive-only benchmark.
+- The `2.0.0` baseline emits no standalone CSS asset in this build path; its styling cost is carried in JavaScript.
 
 Regenerate:
-Run `bun run bundle-bench` inside `apps/bundle-bench-react` to rebuild both entries and rewrite this report.
+Run `bun run bundle-bench` inside `apps/bundle-bench-react` to rebuild the current entry, create or reuse the `origin/2.0.0` worktree baseline, and rewrite this report.
 
 ```json
 {
   "baseline": {
-    "entry": "radix-baseline",
-    "gzipBytes": 27613,
-    "minifiedBytes": 89726
+    "entry": "2.0.0-consent-surfaces",
+    "cssBytes": 0,
+    "cssGzipBytes": 0,
+    "jsBytes": 1036730,
+    "jsGzipBytes": 295395,
+    "totalBytes": 1036730,
+    "totalGzipBytes": 295395
   },
-  "c15t": {
-    "entry": "c15t-primitives",
-    "gzipBytes": 15738,
-    "minifiedBytes": 56210
+  "current": {
+    "entry": "current-consent-surfaces",
+    "cssBytes": 17878,
+    "cssGzipBytes": 2591,
+    "jsBytes": 968258,
+    "jsGzipBytes": 279817,
+    "totalBytes": 986136,
+    "totalGzipBytes": 282408
   },
-  "deltaBytes": -33516,
-  "deltaGzipBytes": -11875
+  "deltaCssBytes": 17878,
+  "deltaCssGzipBytes": 2591,
+  "deltaJsBytes": -68472,
+  "deltaJsGzipBytes": -15578,
+  "deltaTotalBytes": -50594,
+  "deltaTotalGzipBytes": -12987
 }
 ```
