@@ -4,11 +4,13 @@ import type {
 	JurisdictionCode as SharedJurisdictionCode,
 	PolicyConfig as SharedPolicyConfig,
 	ResolvedPolicyDecision as SharedResolvedPolicyDecision,
+	ResolvedPolicyMatch as SharedResolvedPolicyMatch,
 	ResolvedPolicy as SharedResolvedRuntimePolicy,
 } from '@c15t/schema/types';
 import {
 	inspectPolicies as inspectPoliciesShared,
 	resolvePolicyDecision as resolvePolicyDecisionShared,
+	resolvePolicySync as resolvePolicySyncShared,
 	validatePolicies as validatePoliciesShared,
 } from '@c15t/schema/types';
 import type {
@@ -19,6 +21,7 @@ import type {
 export type { PolicyMatchedBy, PolicyValidationResult };
 export type ResolvedRuntimePolicy = SharedResolvedRuntimePolicy;
 export type ResolvedPolicyDecision = SharedResolvedPolicyDecision;
+export type ResolvedPolicyMatch = SharedResolvedPolicyMatch;
 
 export function inspectPolicies(
 	policies: unknown,
@@ -48,4 +51,20 @@ export async function resolvePolicyDecision(params: {
 		jurisdiction: params.jurisdiction as SharedJurisdictionCode | undefined,
 		iabEnabled: params.iabEnabled,
 	}) as Promise<ResolvedPolicyDecision | undefined>;
+}
+
+export function resolvePolicySync(params: {
+	policies?: unknown;
+	countryCode: string | null;
+	regionCode: string | null;
+	jurisdiction?: BackendJurisdictionCode;
+	iabEnabled?: boolean;
+}): ResolvedPolicyMatch | undefined {
+	return resolvePolicySyncShared({
+		policies: params.policies,
+		countryCode: params.countryCode,
+		regionCode: params.regionCode,
+		jurisdiction: params.jurisdiction as SharedJurisdictionCode | undefined,
+		iabEnabled: params.iabEnabled,
+	}) as ResolvedPolicyMatch | undefined;
 }

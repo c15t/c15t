@@ -145,6 +145,15 @@ export interface ResolvedPolicyDecision {
 }
 
 /**
+ * Same as {@link ResolvedPolicyDecision} but without the fingerprint.
+ * Returned by the synchronous {@link resolvePolicySync}.
+ */
+export interface ResolvedPolicyMatch {
+	policy: ResolvedPolicy;
+	matchedBy: PolicyMatchedBy;
+}
+
+/**
  * Validation report for a policy pack.
  *
  * @remarks
@@ -1047,5 +1056,59 @@ export async function resolvePolicyDecision(params: {
 		policy,
 		matchedBy: matchedPolicy.matchedBy,
 		fingerprint,
+	};
+}
+
+/**
+ * Synchronous variant of {@link resolvePolicyDecision} that skips fingerprint
+ * computation. Use this when you only need the resolved policy and match
+ * metadata but not the cryptographic fingerprint.
+ *
+ * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
+ */
+export function resolvePolicySync(params: {
+	policies?: unknown;
+	countryCode: string | null;
+	regionCode: string | null;
+	jurisdiction?: JurisdictionCode;
+	iabEnabled?: boolean;
+}): ResolvedPolicyMatch | undefined {
+	let parsedPolicies: PolicyConfig[] | undefined;
+	try {
+		parsedPolicies = parseOptionalPolicyConfigs(params.policies);
+		if (parsedPolicies && parsedPolicies.length > 0) {
+			validatePolicies(
+				parsedPolicies,
+				params.iabEnabled === undefined
+					? undefined
+					: { iabEnabled: params.iabEnabled }
+			);
+		}
+	} catch {
+		return undefined;
+	}
+
+	if (!parsedPolicies || parsedPolicies.length === 0) {
+		return undefined;
+	}
+
+	const countryCode = normalizeCountryCode(params.countryCode);
+	const regionCode = normalizeRegionCode(params.regionCode);
+
+	const matchedPolicy = resolveIndexedPolicyMatch({
+		compiled: getCompiledPolicyResolver(parsedPolicies),
+		countryCode,
+		regionCode,
+	});
+
+	if (!matchedPolicy) {
+		return undefined;
+	}
+
+	const policy = mapPolicy(matchedPolicy.policy);
+
+	return {
+		policy,
+		matchedBy: matchedPolicy.matchedBy,
 	};
 }

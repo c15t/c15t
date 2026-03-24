@@ -5,6 +5,7 @@
 		"--- Guides ---",
 		"./guides/database-setup",
 		"./guides/framework-integration",
+		"./guides/edge-deployment",
 		"./guides/caching",
 		"./guides/iab-tcf",
 		"./guides/policy-packs",
