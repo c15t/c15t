@@ -33,7 +33,7 @@ export const ConsentWidget = ({
 	trapFocus: localTrapFocus,
 	...props
 }: ConsentWidgetProps) => {
-	const [openItems, setOpenItems] = useState<string[]>([]);
+	const [openItem, setOpenItem] = useState('');
 	const { dialog } = useHeadlessConsentUI();
 
 	// Get global theme context
@@ -87,10 +87,10 @@ export const ConsentWidget = ({
 	return (
 		<ConsentWidgetRoot {...mergedProps}>
 			<ConsentWidgetAccordion
-				type="multiple"
-				value={openItems}
+				type="single"
+				value={openItem}
 				onValueChange={(value: NonNullable<AccordionRootProps['value']>) => {
-					setOpenItems(Array.isArray(value) ? value : [value]);
+					setOpenItem(Array.isArray(value) ? (value[0] ?? '') : (value ?? ''));
 				}}
 			>
 				<ConsentWidgetAccordionItems />

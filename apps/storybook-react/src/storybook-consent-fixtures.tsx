@@ -65,6 +65,24 @@ export const defaultConsentOptions: ConsentManagerOptions = {
 	},
 };
 
+export const editableConsentOptions: Partial<ConsentManagerOptions> = {
+	consentCategories: [
+		'necessary',
+		'functionality',
+		'measurement',
+		'experience',
+		'marketing',
+	],
+};
+
+export const editableStoredConsent: ConsentRecord = {
+	necessary: true,
+	measurement: false,
+	marketing: false,
+	functionality: false,
+	experience: false,
+};
+
 export const defaultIABOptions: ConsentManagerOptions = {
 	...defaultConsentOptions,
 	iab: {

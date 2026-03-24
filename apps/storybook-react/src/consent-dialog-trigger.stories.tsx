@@ -5,7 +5,11 @@ import {
 	ConsentDialog,
 	ConsentDialogTrigger,
 } from '../../../packages/react/src/index';
-import { StorybookConsentProvider } from './storybook-consent-fixtures';
+import {
+	editableConsentOptions,
+	editableStoredConsent,
+	StorybookConsentProvider,
+} from './storybook-consent-fixtures';
 
 const meta = {
 	component: ConsentDialogTrigger,
@@ -22,7 +26,8 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
 	render: () => (
 		<StorybookConsentProvider
-			storedConsent={{ necessary: true, marketing: true }}
+			options={editableConsentOptions}
+			storedConsent={editableStoredConsent}
 		>
 			<ConsentDialog />
 			<ConsentDialogTrigger showWhen="always" />
@@ -46,7 +51,10 @@ export const Mobile: Story = {
 		},
 	},
 	render: () => (
-		<StorybookConsentProvider storedConsent={{ necessary: true }}>
+		<StorybookConsentProvider
+			options={editableConsentOptions}
+			storedConsent={editableStoredConsent}
+		>
 			<ConsentDialog />
 			<ConsentDialogTrigger
 				defaultPosition="bottom-left"

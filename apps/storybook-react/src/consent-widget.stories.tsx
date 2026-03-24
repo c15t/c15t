@@ -2,7 +2,11 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import React from 'react';
 import { expect, userEvent, within } from 'storybook/test';
 import { ConsentWidget } from '../../../packages/react/src/index';
-import { StorybookConsentProvider } from './storybook-consent-fixtures';
+import {
+	editableConsentOptions,
+	editableStoredConsent,
+	StorybookConsentProvider,
+} from './storybook-consent-fixtures';
 
 const meta = {
 	component: ConsentWidget,
@@ -18,7 +22,10 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
 	render: () => (
-		<StorybookConsentProvider>
+		<StorybookConsentProvider
+			options={editableConsentOptions}
+			storedConsent={editableStoredConsent}
+		>
 			<div style={{ width: '32rem' }}>
 				<ConsentWidget />
 			</div>
@@ -28,7 +35,10 @@ export const Default: Story = {
 
 export const ExpandedCategories: Story = {
 	render: () => (
-		<StorybookConsentProvider>
+		<StorybookConsentProvider
+			options={editableConsentOptions}
+			storedConsent={editableStoredConsent}
+		>
 			<div style={{ width: '32rem' }}>
 				<ConsentWidget />
 			</div>
@@ -36,9 +46,25 @@ export const ExpandedCategories: Story = {
 	),
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement);
-		const buttons = canvas.getAllByRole('button');
-		await userEvent.click(buttons[0]);
-		await userEvent.click(buttons[1]);
-		await expect(canvas.getByText(/strictly required/i)).toBeInTheDocument();
+		const functionalityTrigger = await canvas.findByTestId(
+			'consent-widget-accordion-trigger-functionality'
+		);
+		const analyticsTrigger = await canvas.findByTestId(
+			'consent-widget-accordion-trigger-measurement'
+		);
+		const functionalityContent = await canvas.findByTestId(
+			'consent-widget-accordion-content-functionality'
+		);
+		const analyticsContent = await canvas.findByTestId(
+			'consent-widget-accordion-content-measurement'
+		);
+
+		await userEvent.click(functionalityTrigger);
+		await expect(functionalityContent).toHaveAttribute('data-state', 'open');
+		await expect(analyticsContent).toHaveAttribute('data-state', 'closed');
+
+		await userEvent.click(analyticsTrigger);
+		await expect(functionalityContent).toHaveAttribute('data-state', 'closed');
+		await expect(analyticsContent).toHaveAttribute('data-state', 'open');
 	},
 };

@@ -5,7 +5,11 @@ import {
 	ConsentDialog,
 	ConsentDialogLink,
 } from '../../../packages/react/src/index';
-import { StorybookConsentProvider } from './storybook-consent-fixtures';
+import {
+	editableConsentOptions,
+	editableStoredConsent,
+	StorybookConsentProvider,
+} from './storybook-consent-fixtures';
 
 const meta = {
 	component: ConsentDialogLink,
@@ -21,7 +25,10 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
 	render: () => (
-		<StorybookConsentProvider storedConsent={{ necessary: true }}>
+		<StorybookConsentProvider
+			options={editableConsentOptions}
+			storedConsent={editableStoredConsent}
+		>
 			<div style={{ padding: '2rem' }}>
 				<ConsentDialogLink noStyle={false}>
 					Privacy preferences

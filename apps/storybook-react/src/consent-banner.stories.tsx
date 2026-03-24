@@ -5,7 +5,11 @@ import {
 	ConsentBanner,
 	ConsentDialog,
 } from '../../../packages/react/src/index';
-import { StorybookConsentProvider } from './storybook-consent-fixtures';
+import {
+	editableConsentOptions,
+	editableStoredConsent,
+	StorybookConsentProvider,
+} from './storybook-consent-fixtures';
 
 const meta = {
 	component: ConsentBanner,
@@ -21,7 +25,10 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
 	render: () => (
-		<StorybookConsentProvider>
+		<StorybookConsentProvider
+			options={editableConsentOptions}
+			storedConsent={editableStoredConsent}
+		>
 			<ConsentBanner />
 		</StorybookConsentProvider>
 	),
@@ -29,7 +36,10 @@ export const Default: Story = {
 
 export const BannerToDialogFlow: Story = {
 	render: () => (
-		<StorybookConsentProvider>
+		<StorybookConsentProvider
+			options={editableConsentOptions}
+			storedConsent={editableStoredConsent}
+		>
 			<ConsentBanner />
 			<ConsentDialog />
 		</StorybookConsentProvider>
