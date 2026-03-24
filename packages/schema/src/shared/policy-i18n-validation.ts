@@ -167,6 +167,17 @@ export function validatePolicyI18nConfig(
 			);
 		}
 
+		const activeProfile = profiles[profile];
+		const hasProfileTranslations =
+			!!activeProfile &&
+			Object.keys(activeProfile.translations ?? {}).length > 0;
+
+		if (policy.i18n.messageProfile && !hasProfileTranslations) {
+			errors.push(
+				`Policy '${policy.id}' references i18n profile '${policy.i18n.messageProfile}' with no configured translations.`
+			);
+		}
+
 		if (!policy.i18n.messageProfile && !policy.i18n.language) {
 			warnings.push(
 				`Policy '${policy.id}' defines i18n without language or messageProfile. Runtime will use request language + default profile.`
@@ -179,11 +190,11 @@ export function validatePolicyI18nConfig(
 
 		const fallbackLanguage =
 			profileNames.length > 0
-				? resolveFallbackLanguage({ profile: profiles[profile] })
+				? resolveFallbackLanguage({ profile: activeProfile })
 				: 'en';
 		const hasProfileLanguage =
-			!!profiles[profile]?.translations[language] ||
-			!!profiles[profile]?.translations[fallbackLanguage];
+			!!activeProfile?.translations[language] ||
+			!!activeProfile?.translations[fallbackLanguage];
 		const hasBaseLanguage =
 			profileNames.length === 0 && SUPPORTED_BASE_LANGUAGES.has(language);
 

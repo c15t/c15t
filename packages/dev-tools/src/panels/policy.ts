@@ -167,12 +167,20 @@ function buildSurfaceCards(
 	policySurface: SurfaceState | undefined,
 	storeSurface: SurfaceState
 ): HTMLElement[] {
+	const policyLayout =
+		Array.isArray(policySurface?.layout) && policySurface.layout.length === 0
+			? null
+			: (policySurface?.layout ?? null);
+	const storeLayout =
+		Array.isArray(storeSurface.layout) && storeSurface.layout.length === 0
+			? null
+			: (storeSurface.layout ?? null);
 	const actions = formatList(
 		policySurface?.allowedActions ?? storeSurface.allowedActions
 	);
 	const primary =
 		policySurface?.primaryAction ?? storeSurface.primaryAction ?? null;
-	const layout = policySurface?.layout ?? storeSurface.layout ?? null;
+	const layout = policyLayout ?? storeLayout;
 	const direction = policySurface?.direction ?? storeSurface.direction ?? null;
 	const profile = policySurface?.uiProfile ?? storeSurface.uiProfile ?? null;
 	const scrollLock =

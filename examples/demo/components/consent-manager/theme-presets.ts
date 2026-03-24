@@ -301,7 +301,6 @@ export const fullTheme: Theme = {
 				width: 'auto',
 				margin: '0',
 				display: 'flex',
-				flexDirection: 'column', // Vertical buttons
 				gap: '0.75rem',
 				alignItems: 'stretch', // Full width buttons
 				minWidth: '240px',
@@ -312,7 +311,6 @@ export const fullTheme: Theme = {
 		consentBannerFooterSubGroup: {
 			style: {
 				display: 'flex',
-				flexDirection: 'column', // Stack subgroup buttons too
 				gap: '0.75rem',
 			},
 		},

@@ -433,6 +433,11 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 		lastBannerFetchData?.translations.language ??
 		translationConfig.defaultLanguage ??
 		'en';
+	let layoutText = 'default';
+
+	if (bannerUi?.layout) {
+		layoutText = JSON.stringify(bannerUi.layout);
+	}
 
 	return (
 		<div className="space-y-4">
@@ -488,9 +493,7 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 				</div>
 				<div>
 					<span className="text-muted-foreground text-xs">Action Layout</span>
-					<p className="font-mono text-sm">
-						{bannerUi?.layout ? JSON.stringify(bannerUi.layout) : 'default'}
-					</p>
+					<p className="font-mono text-sm">{layoutText}</p>
 				</div>
 				<div>
 					<span className="text-muted-foreground text-xs">Direction</span>
@@ -636,15 +639,36 @@ export function PolicyDemo() {
 		[router, pathname]
 	);
 
-	const activePreset = useMemo(
+	const matchingPreset = useMemo(
 		() =>
-			locationPresets.find((preset) => preset.id === example) ??
 			locationPresets.find(
 				(p) =>
 					p.country === normalizedCountry &&
 					(p.region ?? '') === normalizedRegion
 			),
-		[example, normalizedCountry, normalizedRegion]
+		[normalizedCountry, normalizedRegion]
+	);
+
+	const resolvedExample = useMemo(() => {
+		if (Object.hasOwn(offlinePoliciesByExample, example)) {
+			return example;
+		}
+
+		if (
+			matchingPreset &&
+			Object.hasOwn(offlinePoliciesByExample, matchingPreset.id)
+		) {
+			return matchingPreset.id;
+		}
+
+		return DEFAULT_DEMO_POLICY_EXAMPLE;
+	}, [example, matchingPreset]);
+
+	const activePreset = useMemo(
+		() =>
+			locationPresets.find((preset) => preset.id === resolvedExample) ??
+			matchingPreset,
+		[resolvedExample, matchingPreset]
 	);
 
 	const selectLocation = (preset: LocationPreset) => {
@@ -826,7 +850,7 @@ export function PolicyDemo() {
 						demoMode === 'hosted'
 							? {
 									mode: 'c15t',
-									backendURL: `/api/self-host?example=${example}`,
+									backendURL: `/api/self-host?example=${resolvedExample}`,
 									consentCategories: categories,
 									iab,
 									overrides,
@@ -839,9 +863,7 @@ export function PolicyDemo() {
 											defaultProfile: 'default',
 											messages: demoI18nMessages,
 										},
-										policyPacks:
-											offlinePoliciesByExample[example] ??
-											offlinePoliciesByExample['custom-de-strict'],
+										policyPacks: offlinePoliciesByExample[resolvedExample],
 									},
 									consentCategories: categories,
 									iab,

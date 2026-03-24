@@ -20,6 +20,17 @@ function createSplitRowUiProfile(): PolicyUiSurfaceConfig {
 
 function californiaPolicy(mode: 'opt-in' | 'opt-out'): PolicyConfig {
 	const isOptOut = mode === 'opt-out';
+	let ui: PolicyConfig['ui'];
+
+	if (isOptOut) {
+		ui = { mode: 'none' };
+	} else {
+		ui = {
+			mode: 'banner',
+			banner: createSplitRowUiProfile(),
+			dialog: createSplitRowUiProfile(),
+		};
+	}
 
 	return {
 		id: isOptOut ? 'california_opt_out' : 'california_opt_in',
@@ -29,13 +40,7 @@ function californiaPolicy(mode: 'opt-in' | 'opt-out'): PolicyConfig {
 			expiryDays: 365,
 			gpc: true,
 		},
-		ui: isOptOut
-			? { mode: 'none' }
-			: {
-					mode: 'banner',
-					banner: createSplitRowUiProfile(),
-					dialog: createSplitRowUiProfile(),
-				},
+		ui,
 		proof: {
 			storeIp: true,
 			storeUserAgent: true,
@@ -46,7 +51,7 @@ function californiaPolicy(mode: 'opt-in' | 'opt-out'): PolicyConfig {
 
 function europePolicy(mode: EuropePolicyMode): PolicyConfig {
 	const isIab = mode === 'iab';
-	return {
+	const policy: PolicyConfig = {
 		id: isIab ? 'europe_iab' : 'europe_opt_in',
 		match: policyMatchers.merge(
 			policyMatchers.iab(),
@@ -57,21 +62,22 @@ function europePolicy(mode: EuropePolicyMode): PolicyConfig {
 			expiryDays: 365,
 			...(isIab ? { categories: ['*'] } : {}),
 		},
-		...(!isIab
-			? {
-					ui: {
-						mode: 'banner' as const,
-						banner: createSplitRowUiProfile(),
-						dialog: createSplitRowUiProfile(),
-					},
-				}
-			: {}),
 		proof: {
 			storeIp: true,
 			storeUserAgent: true,
 			storeLanguage: true,
 		},
 	};
+
+	if (!isIab) {
+		policy.ui = {
+			mode: 'banner',
+			banner: createSplitRowUiProfile(),
+			dialog: createSplitRowUiProfile(),
+		};
+	}
+
+	return policy;
 }
 
 function worldNoBannerPolicy(): PolicyConfig {

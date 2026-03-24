@@ -90,7 +90,9 @@ function createMockContext(db: unknown, registry: unknown) {
 		ipAddress: '127.0.0.1',
 		userAgent: 'TestAgent/1.0',
 		iab: undefined,
-		policySnapshot: undefined,
+		policySnapshot: {
+			onValidationFailure: 'reject' as const,
+		},
 		tenantId: undefined,
 	};
 

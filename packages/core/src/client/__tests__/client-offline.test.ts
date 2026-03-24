@@ -282,6 +282,10 @@ describe('Offline Client Tests', () => {
 			'measurement',
 		]);
 		expect(response.data?.policy?.ui?.mode).toBe('banner');
+		expect(response.data?.policy?.ui?.banner?.layout).toEqual([
+			['accept', 'reject'],
+		]);
+		expect(response.data?.policy?.ui?.banner?.direction).toBe('row');
 		expect(response.data?.policy?.ui?.banner?.scrollLock).toBe(true);
 		expect(response.data?.policyDecision?.matchedBy).toBe('region');
 		expect(response.data?.policySnapshotToken).toBe('offline-preview-token');
@@ -305,7 +309,13 @@ describe('Offline Client Tests', () => {
 				id: 'policy_region_us_ca',
 				match: { regions: [{ country: 'US', region: 'CA' }] },
 				consent: { model: 'opt-in' as const },
-				ui: { mode: 'dialog' as const },
+				ui: {
+					mode: 'dialog' as const,
+					dialog: {
+						layout: [['reject', 'accept'], 'customize'],
+						direction: 'row' as const,
+					},
+				},
 			},
 		];
 		const client = configureConsentManager({
@@ -332,6 +342,11 @@ describe('Offline Client Tests', () => {
 
 		expect(response.ok).toBe(true);
 		expect(response.data?.policy?.id).toBe('policy_region_us_ca');
+		expect(response.data?.policy?.ui?.dialog?.layout).toEqual([
+			['reject', 'accept'],
+			['customize'],
+		]);
+		expect(response.data?.policy?.ui?.dialog?.direction).toBe('row');
 		expect(response.data?.policyDecision?.matchedBy).toBe('region');
 		expect(response.data?.policyDecision?.jurisdiction).toBe('NONE');
 		expect(response.data?.policyDecision?.fingerprint).toBe(

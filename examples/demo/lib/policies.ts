@@ -304,21 +304,23 @@ const worldFallbackPolicy = policyPackPresets.worldNoBanner();
 export function getDemoPolicies(
 	example = DEFAULT_DEMO_POLICY_EXAMPLE
 ): PolicyConfig[] {
-	if (example in customDemoPolicies) {
-		return [
-			customDemoPolicies[example as keyof typeof customDemoPolicies],
-			worldFallbackPolicy,
-		];
+	let selectedPolicy: PolicyConfig;
+
+	if (Object.hasOwn(customDemoPolicies, example)) {
+		selectedPolicy =
+			customDemoPolicies[example as keyof typeof customDemoPolicies];
+	} else if (Object.hasOwn(presetDemoPolicies, example)) {
+		selectedPolicy =
+			presetDemoPolicies[example as keyof typeof presetDemoPolicies];
+	} else {
+		selectedPolicy = customDemoPolicies[DEFAULT_DEMO_POLICY_EXAMPLE];
 	}
 
-	if (example in presetDemoPolicies) {
-		return [
-			presetDemoPolicies[example as keyof typeof presetDemoPolicies],
-			worldFallbackPolicy,
-		];
+	if (selectedPolicy.match?.isDefault) {
+		return [selectedPolicy];
 	}
 
-	return [customDemoPolicies[DEFAULT_DEMO_POLICY_EXAMPLE], worldFallbackPolicy];
+	return [selectedPolicy, worldFallbackPolicy];
 }
 
 export const demoPolicies: PolicyConfig[] = [

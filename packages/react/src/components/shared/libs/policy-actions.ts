@@ -110,7 +110,11 @@ export function resolvePolicyPrimaryAction(params: {
 export function resolvePolicyDirection(
 	direction?: PolicyUiActionDirection
 ): PolicyUiActionDirection {
-	return direction === 'column' ? 'column' : 'row';
+	if (direction === 'column') {
+		return 'column';
+	}
+
+	return 'row';
 }
 
 export function resolvePolicyUiProfile(

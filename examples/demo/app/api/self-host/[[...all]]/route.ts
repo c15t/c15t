@@ -34,6 +34,21 @@ export const tursoDb = kyselyAdapter({
 });
 
 function createDemoHandler(example = DEFAULT_DEMO_POLICY_EXAMPLE) {
+	let cacheConfig:
+		| {
+				adapter: ReturnType<typeof createUpstashRedisAdapter>;
+		  }
+		| undefined;
+
+	if (process.env.REDIS_URL && process.env.REDIS_TOKEN) {
+		cacheConfig = {
+			adapter: createUpstashRedisAdapter({
+				url: process.env.REDIS_URL,
+				token: process.env.REDIS_TOKEN,
+			}),
+		};
+	}
+
 	return c15tInstance({
 		appName: 'c15t-self-host',
 		basePath: '/api/self-host',
@@ -53,15 +68,7 @@ function createDemoHandler(example = DEFAULT_DEMO_POLICY_EXAMPLE) {
 		openapi: {
 			enabled: true,
 		},
-		cache:
-			process.env.REDIS_URL && process.env.REDIS_TOKEN
-				? {
-						adapter: createUpstashRedisAdapter({
-							url: process.env.REDIS_URL,
-							token: process.env.REDIS_TOKEN,
-						}),
-					}
-				: undefined,
+		cache: cacheConfig,
 		iab: {
 			enabled: true,
 			cmpId: 10,

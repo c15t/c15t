@@ -213,6 +213,80 @@ describe('resolvePolicyDecision', () => {
 		);
 	});
 
+	it('changes the material policy fingerprint when banner layout changes', async () => {
+		const basePolicy: Parameters<typeof createMaterialPolicyFingerprint>[0] = {
+			id: 'policy_runtime_us_ca',
+			model: 'opt-in',
+			consent: {
+				expiryDays: 365,
+				scopeMode: 'strict',
+				categories: ['necessary', 'measurement'],
+			},
+			ui: {
+				mode: 'banner',
+				banner: {
+					allowedActions: ['accept', 'reject', 'customize'],
+					primaryAction: 'accept',
+					layout: [['accept', 'reject'], 'customize'],
+					direction: 'row',
+				},
+			},
+		};
+
+		const changedPolicy: Parameters<typeof createMaterialPolicyFingerprint>[0] =
+			{
+				...basePolicy,
+				ui: {
+					mode: 'banner',
+					banner: {
+						...(basePolicy.ui?.banner ?? {}),
+						layout: [['accept', 'reject', 'customize']],
+					},
+				},
+			};
+
+		await expect(createMaterialPolicyFingerprint(basePolicy)).resolves.not.toBe(
+			await createMaterialPolicyFingerprint(changedPolicy)
+		);
+	});
+
+	it('changes the material policy fingerprint when banner direction changes', async () => {
+		const basePolicy: Parameters<typeof createMaterialPolicyFingerprint>[0] = {
+			id: 'policy_runtime_us_ca',
+			model: 'opt-in',
+			consent: {
+				expiryDays: 365,
+				scopeMode: 'strict',
+				categories: ['necessary', 'measurement'],
+			},
+			ui: {
+				mode: 'banner',
+				banner: {
+					allowedActions: ['accept', 'reject'],
+					primaryAction: 'accept',
+					layout: [['accept', 'reject']],
+					direction: 'row',
+				},
+			},
+		};
+
+		const changedPolicy: Parameters<typeof createMaterialPolicyFingerprint>[0] =
+			{
+				...basePolicy,
+				ui: {
+					mode: 'banner',
+					banner: {
+						...(basePolicy.ui?.banner ?? {}),
+						direction: 'column',
+					},
+				},
+			};
+
+		await expect(createMaterialPolicyFingerprint(basePolicy)).resolves.not.toBe(
+			await createMaterialPolicyFingerprint(changedPolicy)
+		);
+	});
+
 	it('changes the material policy fingerprint when consent semantics change', async () => {
 		const basePolicy: Parameters<typeof createMaterialPolicyFingerprint>[0] = {
 			id: 'policy_runtime_us_ca',

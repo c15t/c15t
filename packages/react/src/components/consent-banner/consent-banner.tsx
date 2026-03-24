@@ -282,6 +282,10 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 						{customizeButtonText}
 					</ConsentBannerCustomizeButton>
 				);
+			default: {
+				const _exhaustive: never = type;
+				throw new Error(`Unhandled consent banner button type: ${_exhaustive}`);
+			}
 		}
 	};
 

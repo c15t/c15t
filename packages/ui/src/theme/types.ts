@@ -1,3 +1,5 @@
+import type { ClassValue } from 'clsx';
+
 /**
  * Generic CSS properties record.
  * @public
@@ -28,7 +30,7 @@ export type ClassNameStyle<VariableMap = Record<string, string | number>> = {
 	/** If true, the component will not apply its default internal styles. */
 	noStyle?: boolean;
 	/** @internal Used to pass default class names to the component. */
-	baseClassName?: any;
+	baseClassName?: ClassValue;
 };
 
 /**
@@ -209,6 +211,11 @@ export interface MotionTokens {
 	 * @default 'cubic-bezier(0.34, 1.56, 0.64, 1)'
 	 */
 	easingSpring?: string;
+}
+
+export interface ConsentActionStyle {
+	variant?: 'primary' | 'neutral';
+	mode?: 'filled' | 'stroke' | 'lighter' | 'ghost';
 }
 
 /**
@@ -480,22 +487,10 @@ export interface Theme {
 	motion?: MotionTokens;
 	/** Semantic button styling for consent actions. */
 	consentActions?: {
-		default?: {
-			variant?: 'primary' | 'neutral';
-			mode?: 'filled' | 'stroke' | 'lighter' | 'ghost';
-		};
-		accept?: {
-			variant?: 'primary' | 'neutral';
-			mode?: 'filled' | 'stroke' | 'lighter' | 'ghost';
-		};
-		reject?: {
-			variant?: 'primary' | 'neutral';
-			mode?: 'filled' | 'stroke' | 'lighter' | 'ghost';
-		};
-		customize?: {
-			variant?: 'primary' | 'neutral';
-			mode?: 'filled' | 'stroke' | 'lighter' | 'ghost';
-		};
+		default?: ConsentActionStyle;
+		accept?: ConsentActionStyle;
+		reject?: ConsentActionStyle;
+		customize?: ConsentActionStyle;
 	};
 	/** Component-specific style overrides. */
 	slots?: ComponentSlots;

@@ -28,6 +28,23 @@ const NON_DOM_PROPS = [
 
 type ConsentActionThemeKey = 'accept' | 'reject' | 'customize';
 
+/**
+ * Resolves the final variant and mode for a consent button.
+ *
+ * @param params.consentAction Semantic consent action key.
+ * @param params.isPrimary Whether the action is primary in the current UI.
+ * @param params.theme Active theme containing `consentActions` overrides.
+ * @param params.variant Explicit `ButtonVariantsProps['variant']` override.
+ * @param params.mode Explicit `ButtonVariantsProps['mode']` override.
+ * @returns The resolved `{ variant, mode }` pair for the button.
+ *
+ * @remarks
+ * Resolution order:
+ * 1. Explicit `variant` / `mode` props
+ * 2. `theme.consentActions[consentAction]`
+ * 3. `theme.consentActions.default`
+ * 4. Hardcoded fallback based on `isPrimary`
+ */
 function resolveConsentButtonStyle(params: {
 	consentAction?: ConsentActionThemeKey;
 	isPrimary?: boolean;

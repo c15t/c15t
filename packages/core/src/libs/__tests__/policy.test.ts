@@ -57,8 +57,10 @@ describe('validateUIAgainstPolicy', () => {
 		});
 
 		expect(issues).toHaveLength(2);
-		expect(issues[0]?.code).toBe('group_layout_mismatch');
-		expect(issues[1]?.code).toBe('direction_mismatch');
+		const codes = issues.map((issue) => issue.code).sort();
+		expect(codes).toEqual(
+			expect.arrayContaining(['direction_mismatch', 'group_layout_mismatch'])
+		);
 	});
 
 	it('returns violation when UI profile does not match policy', () => {

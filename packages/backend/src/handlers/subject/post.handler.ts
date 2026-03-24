@@ -179,6 +179,12 @@ function buildSnapshotHttpException(
 				message: 'Policy snapshot token is invalid',
 				cause: { code: 'POLICY_SNAPSHOT_INVALID' },
 			});
+		default: {
+			const _exhaustive: never = reason;
+			throw new Error(
+				`Unhandled policy snapshot verification failure reason: ${_exhaustive}`
+			);
+		}
 	}
 }
 
