@@ -2,6 +2,7 @@
 	"title": "React",
 	"pages": [
 		"quickstart",
+		"optimization",
 		"--- Concepts ---",
 		"./concepts/initialization-flow",
 		"./concepts/client-modes",

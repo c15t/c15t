@@ -27,7 +27,7 @@
 	--cdt-offset: var(--c15t-space-md, 20px);
 	--cdt-transition-duration: var(--c15t-motion-duration, 200ms);
 	--cdt-transition-easing: var(--c15t-motion-easing, ease-out);
-	--cdt-snap-duration: var(--c15t-motion-duration-slow, 300ms);
+	--cdt-snap-duration: var(--c15t-motion-duration-slow, 200ms);
 	/* ease-in-out-quart: best for on-screen movement */
 	--cdt-snap-easing: var(
 		--c15t-motion-easing-smooth,

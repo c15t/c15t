@@ -1,0 +1,53 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  Use this guide when you care about banner visibility speed, route static-ness, and reducing backend round-trip cost.
+</section>
+
+<section id="rewrites-why">
+  Why this helps:
+
+  - Same-origin requests avoid extra DNS/TLS setup in many deployments
+  - Ad blockers are less likely to block your init endpoint
+  - You can change backend infrastructure without touching client code
+</section>
+
+<section id="benchmark">
+  In production benchmarks with a same-origin rewrite, prefetching strategies show measurable improvement over client-only init:
+
+  | Strategy | Scripts loaded | Data request starts | Banner visible |
+  |----------|----------------|---------------------|----------------|
+  | Client-only (no prefetch) | baseline | baseline | baseline |
+  | Browser prefetch | ~1.3x faster | ~2.6x earlier | ~1.25x faster |
+  | Server prefetch | ~2x faster | before page loads | ~1.9x faster |
+</section>
+
+<section id="keep-mounted">
+  ## Keep The Provider Mounted Across Navigation
+
+  Mount the consent provider at the app root so route transitions do not remount it.
+
+  Why this helps:
+
+  - Avoids re-running init work on client-side navigation
+  - Prevents extra callback churn from remount cycles
+  - Keeps banner/dialog state stable between route transitions
+</section>
+
+<section id="animation">
+  ## Animation Performance
+
+  The default motion tokens are tuned for speed-first product UI:
+
+  | Token | Duration | Used for |
+  |-------|----------|----------|
+  | `fast` | 80ms | Banner slide + overlay, card scale, button hover, widget entry/exit |
+  | `normal` | 150ms | Accordion, switch toggle |
+  | `slow` | 200ms | Dialog trigger snap, tab indicator |
+
+  These defaults follow the principle that product UI should be fast and purposeful — animations exist for spatial continuity, not decoration. In benchmarks, animation duration contributes a constant floor to "data fetched → banner visible" timing. The default tokens sit at the lower end of standard UI ranges (80-200ms) to minimize that floor.
+</section>
+
+<section id="preconnect">
+  If you must use a cross-origin backend URL, add preconnect so the browser starts DNS/TLS early:
+</section>

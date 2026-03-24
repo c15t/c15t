@@ -55,7 +55,7 @@
 	--consent-dialog-border-style: solid;
 
 	/* Animation */
-	--consent-dialog-animation-duration: 200ms;
+	--consent-dialog-animation-duration: var(--c15t-duration-normal);
 	--consent-dialog-animation-timing: ease-out;
 
 	/* Branding */

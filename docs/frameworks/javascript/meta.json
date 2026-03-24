@@ -2,6 +2,7 @@
 	"title": "JavaScript",
 	"pages": [
 		"quickstart",
+		"optimization",
 		"--- Concepts ---",
 		"./concepts/initialization-flow",
 		"./concepts/client-modes",

@@ -11,7 +11,7 @@
 	--iab-consent-banner-max-width: 560px;
 
 	/* Animation variables */
-	--iab-consent-banner-animation-duration: var(--c15t-duration-normal);
+	--iab-consent-banner-animation-duration: var(--c15t-duration-fast);
 	--iab-consent-banner-animation-timing: var(--c15t-easing);
 	--iab-consent-banner-entry-animation: iabConsentBannerEnter
 		var(--c15t-duration-fast) var(--c15t-easing);
