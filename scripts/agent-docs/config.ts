@@ -6,8 +6,10 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-export const ROOT_DIR = resolve(import.meta.dir, '..', '..');
+const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
+export const ROOT_DIR = resolve(SCRIPT_DIR, '..', '..');
 export const DOCS_DIR = join(ROOT_DIR, 'docs');
 export const PACKAGES_DIR = join(ROOT_DIR, 'packages');
 
@@ -241,8 +243,13 @@ function resolveMetaEntry(
 	const [prefix, ...rest] = normalized.split('/');
 	const remainder = rest.join('/');
 	const aliasRoot = config.pageAliases?.[prefix];
-	const sourceDir = aliasRoot ?? join(config.frameworkRoot, prefix);
-	const sourcePath = join(sourceDir, `${remainder}.mdx`);
+	const frameworkPath = join(config.frameworkRoot, prefix, `${remainder}.mdx`);
+	const aliasPath = aliasRoot ? join(aliasRoot, `${remainder}.mdx`) : null;
+	const sourcePath = existsSync(frameworkPath)
+		? frameworkPath
+		: aliasPath && existsSync(aliasPath)
+			? aliasPath
+			: frameworkPath;
 	return {
 		sourcePath,
 		outputPath: `${normalized}.md`,

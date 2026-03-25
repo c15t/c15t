@@ -41,7 +41,7 @@ export async function runAgentsCommand(
 	}
 
 	upsertAgentsMd(agentsPath, managedBlock);
-	logger.success(`Updated AGENTS.md with c15t agent rules.`);
+	logger.success('Updated AGENTS.md with c15t agent rules.');
 	logger.message('');
 	logger.message('Included c15t package docs:');
 	for (const pkg of installed) {
