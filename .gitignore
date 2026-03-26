@@ -32,6 +32,7 @@ coverage
 out/
 build
 dist
+dist-types
 
 
 # Debug
