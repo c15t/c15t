@@ -89,8 +89,13 @@ function getBlockedReason(path: string): string | null {
 		}
 	}
 
-	if (path.startsWith('dist-types/') && path.endsWith('.d.ts.map')) {
-		return 'declaration source map in published declarations';
+	if (path.startsWith('dist-types/')) {
+		if (path.endsWith('.d.ts.map')) {
+			return 'declaration source map in published declarations';
+		}
+		if (!path.endsWith('.d.ts')) {
+			return 'non-declaration file in published declarations';
+		}
 	}
 
 	// @c15t/ui intentionally publishes src/styles, so guard that surface too.
