@@ -13,11 +13,13 @@
 	"exports": "./dist/index.mjs",
 	"main": "./dist/index.mjs",
 	"module": "dist/index.mjs",
+	"types": "./dist-types/index.d.ts",
 	"bin": {
 		"cli": "dist/index.mjs"
 	},
 	"files": [
-		"dist"
+		"dist",
+		"dist-types"
 	],
 	"scripts": {
 		"build": "rslib build",

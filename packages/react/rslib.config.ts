@@ -16,12 +16,14 @@ export default defineConfig({
 	lib: [
 		{
 			bundle: false,
-			dts: true,
+			dts: {
+				distPath: './dist-types',
+			},
 			format: 'esm',
 		},
 		{
 			bundle: false,
-			dts: true,
+			dts: false,
 			format: 'cjs',
 		},
 	],
