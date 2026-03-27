@@ -18,7 +18,9 @@ export default defineConfig({
 	lib: [
 		{
 			bundle: false,
-			dts: true,
+			dts: {
+				distPath: './dist-types',
+			},
 			format: 'esm',
 			output: {
 				externals,
@@ -26,7 +28,7 @@ export default defineConfig({
 		},
 		{
 			bundle: false,
-			dts: true,
+			dts: false,
 			format: 'cjs',
 			output: {
 				externals,

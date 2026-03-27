@@ -4,6 +4,10 @@
 		"moduleResolution": "bundler",
 		"baseUrl": ".",
 		"paths": {
+			"@c15t/translations": ["../translations/dist-types/index.d.ts"],
+			"@c15t/translations/*": ["../translations/dist-types/*"],
+			"c15t": ["../core/dist-types/index.d.ts"],
+			"c15t/*": ["../core/dist-types/*"],
 			"~/*": ["./src/*"]
 		}
 	},

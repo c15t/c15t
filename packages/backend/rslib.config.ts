@@ -65,7 +65,9 @@ export default defineConfig({
 	},
 	lib: [
 		{
-			dts: true,
+			dts: {
+				distPath: './dist-types',
+			},
 			bundle: true,
 			format: 'esm',
 			output: {
@@ -73,7 +75,7 @@ export default defineConfig({
 			},
 		},
 		{
-			dts: true,
+			dts: false,
 			bundle: true,
 			format: 'cjs',
 			output: {

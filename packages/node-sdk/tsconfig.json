@@ -3,6 +3,8 @@
 	"compilerOptions": {
 		"baseUrl": ".",
 		"paths": {
+			"@c15t/schema": ["../schema/dist-types/index.d.ts"],
+			"@c15t/schema/*": ["../schema/dist-types/*"],
 			"~/*": ["./src/*"]
 		}
 	},

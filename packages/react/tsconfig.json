@@ -5,6 +5,13 @@
 		"baseUrl": ".",
 		"types": ["@vitest/browser/matchers"],
 		"paths": {
+			"@c15t/ui/styles/primitives": [
+				"../ui/dist-types/styles/primitives/index.d.ts"
+			],
+			"@c15t/ui/theme": ["../ui/dist-types/theme/index.d.ts"],
+			"@c15t/ui/utils": ["../ui/dist-types/utils/index.d.ts"],
+			"c15t": ["../core/dist-types/index.d.ts"],
+			"c15t/*": ["../core/dist-types/*"],
 			"~/*": ["./src/*"]
 		}
 	},

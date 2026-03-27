@@ -18,11 +18,13 @@ export default defineConfig({
 	},
 	lib: [
 		{
-			dts: true,
+			dts: {
+				distPath: './dist-types',
+			},
 			format: 'esm',
 		},
 		{
-			dts: true,
+			dts: false,
 			format: 'cjs',
 		},
 	],

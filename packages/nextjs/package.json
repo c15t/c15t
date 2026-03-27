@@ -31,26 +31,27 @@
 	"type": "module",
 	"exports": {
 		"./headless": {
-			"types": "./dist/headless.d.ts",
+			"types": "./dist-types/headless.d.ts",
 			"import": "./dist/headless.js",
 			"require": "./dist/headless.cjs"
 		},
 		"./components/consent-dialog-link": {
-			"types": "./dist/index.d.ts",
+			"types": "./dist-types/index.d.ts",
 			"import": "./client/components/consent-dialog-link.js",
 			"require": "./dist/index.cjs"
 		},
 		".": {
-			"types": "./dist/index.d.ts",
+			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
 		}
 	},
 	"main": "./dist/index.js",
 	"module": "./dist/index.mjs",
-	"types": "./dist/index.d.ts",
+	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",
+		"dist-types",
 		"client"
 	],
 	"scripts": {

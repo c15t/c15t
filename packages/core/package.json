@@ -30,14 +30,18 @@
 	"type": "module",
 	"exports": {
 		".": {
-			"types": "./dist/index.d.ts",
+			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
 		}
 	},
 	"main": "dist/index.cjs",
 	"module": "dist/index.js",
-	"types": "dist/index.d.ts",
+	"types": "./dist-types/index.d.ts",
+	"files": [
+		"dist",
+		"dist-types"
+	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "bun prebuild && rslib build",
