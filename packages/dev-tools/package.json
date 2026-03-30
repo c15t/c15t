@@ -35,9 +35,10 @@
 		"dist-types"
 	],
 	"scripts": {
-		"build": "rslib build",
-		"check-types": "tsc --noEmit",
-		"dev": "rslib build --watch",
+		"prebuild": "genversion --esm --semi src/version.ts",
+		"build": "bun prebuild && rslib build",
+		"check-types": "bun prebuild && tsc --noEmit",
+		"dev": "bun prebuild && rslib build --watch",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src"
 	},
