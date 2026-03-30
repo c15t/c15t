@@ -4,27 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { ROOT_DIR } from './config';
 import { convertMdxFile } from './convert';
 import { generatePackageDocs } from './generate-package-docs';
-import { remarkCalloutToMarkdown } from './mdx-components/components/callout/callout.remark';
-import { remarkCardsToMarkdown } from './mdx-components/components/card/remark-cards';
-import { remarkPackageCommandTabsToMarkdown } from './mdx-components/components/code-blocks/package-command-tabs.remark';
-import { remarkMermaidToMarkdown } from './mdx-components/components/mermaid/mermaid.remark';
-import { remarkStepsToMarkdown } from './mdx-components/components/steps/steps.remark';
-import { remarkTabsToMarkdown } from './mdx-components/components/tabs/tabs.remark';
-import { remarkTypeTableToMarkdown } from './mdx-components/components/type-table/type-table.remark';
-import { remarkInclude } from './remark-include';
-import { remarkUnwrapSections } from './remark-unwrap-sections';
+import { createAgentDocsRemarkPlugins } from './remark-pipeline';
 
-const remarkPlugins = [
-	remarkInclude,
-	remarkUnwrapSections,
-	remarkCalloutToMarkdown,
-	remarkCardsToMarkdown,
-	remarkMermaidToMarkdown,
-	remarkPackageCommandTabsToMarkdown,
-	remarkStepsToMarkdown,
-	remarkTabsToMarkdown,
-	[remarkTypeTableToMarkdown, { basePath: ROOT_DIR }],
-];
+const remarkPlugins = createAgentDocsRemarkPlugins();
 
 describe('convertMdxFile', () => {
 	it('prefers framework wrapper pages and merges imported shared sections', async () => {
@@ -86,15 +68,7 @@ describe('convertMdxFile', () => {
 	it('generates backend configuration docs with headed nested sections and valid links', async () => {
 		await generatePackageDocs('@c15t/backend');
 		const markdown = readFileSync(
-			join(
-				ROOT_DIR,
-				'packages',
-				'backend',
-				'dist',
-				'docs',
-				'api',
-				'configuration.md'
-			),
+			join(ROOT_DIR, 'packages', 'backend', 'docs', 'api', 'configuration.md'),
 			'utf8'
 		);
 
@@ -127,7 +101,6 @@ describe('convertMdxFile', () => {
 				ROOT_DIR,
 				'packages',
 				'core',
-				'dist',
 				'docs',
 				'integrations',
 				'meta-pixel.md'
@@ -150,7 +123,7 @@ describe('convertMdxFile', () => {
 	it('preserves full nested descriptions and cleans mermaid line breaks', async () => {
 		await generatePackageDocs('@c15t/nextjs');
 		const markdown = readFileSync(
-			join(ROOT_DIR, 'packages', 'nextjs', 'dist', 'docs', 'server-side.md'),
+			join(ROOT_DIR, 'packages', 'nextjs', 'docs', 'server-side.md'),
 			'utf8'
 		);
 
