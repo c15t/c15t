@@ -56,7 +56,7 @@ runs:
     - name: Run bundle analysis
       shell: bash
       working-directory: ${{ github.action_path }}
-      run: bunx tsx "$GITHUB_ACTION_PATH/src/main.ts"
+      run: node "$GITHUB_ACTION_PATH/dist/index.js"
       env:
         INPUT_BASE_DIR: ${{ inputs.base_dir }}
         INPUT_CURRENT_DIR: ${{ inputs.current_dir }}
