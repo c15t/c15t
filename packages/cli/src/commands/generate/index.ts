@@ -17,10 +17,8 @@
  */
 
 import type { CliCommand, CliContext } from '~/context/types';
-import { discoverInstalledAgentPackages } from '~/lib/agents/discover-packages';
 import { runGenerateMachine } from '~/machines/generate/runner';
 import { STORAGE_MODES, type StorageMode } from '../../constants';
-import { runAgentsCommand } from '../agents';
 
 function normalizeModeArg(mode?: StorageMode): StorageMode | undefined {
 	if (!mode || mode.startsWith('-')) {
@@ -65,34 +63,6 @@ async function generateAction(context: CliContext): Promise<void> {
 				process.exitCode = 1;
 			}
 			return;
-		}
-
-		const shouldForceAgents = commandArgs.includes('--agents');
-		const shouldSkipAgents = commandArgs.includes('--no-agents');
-		const isNonInteractive = flags.y === true || process.env.CI === 'true';
-
-		if (shouldSkipAgents) {
-			return;
-		}
-
-		const installed = discoverInstalledAgentPackages(context.projectRoot);
-		if (installed.length === 0) {
-			return;
-		}
-
-		if (shouldForceAgents) {
-			await runAgentsCommand(context);
-			return;
-		}
-
-		if (!isNonInteractive) {
-			const confirmed = await context.confirm(
-				'Generate AGENTS.md from the installed c15t package docs?',
-				true
-			);
-			if (confirmed) {
-				await runAgentsCommand(context);
-			}
 		}
 	} catch (error) {
 		logger.error(

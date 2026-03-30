@@ -26,7 +26,7 @@ CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a prefer
 - Database Migrations: Simplified database schema updates
 - Multi-Framework Support: Works seamlessly across different web frameworks
 - Interactive CLI: User-friendly command-line interface with guided workflows
-- AGENTS.md Generation: Build package-aware agent guidance from installed c15t docs
+- Agent Skills: Install reusable c15t agent skills for AI tooling
 - GitHub Integration: Easy way to star and support the project
 - Documentation Access: Quick access to project documentation
 
@@ -57,7 +57,7 @@ The CLI will:
 ## Usage
 
 1. Run `@c15t/cli setup` to create initial configuration
-2. Run `@c15t/cli agents` to generate AGENTS.md from installed c15t package docs
+2. Use the docs bundled in installed c15t packages under `docs/` for local agent context
 3. Customize consent settings in generated files
 4. Integrate with your web application
 5. Use `@c15t/cli self-host migrate` for self-hosted database schema updates
@@ -65,7 +65,6 @@ The CLI will:
 ## Available Commands
 
 - `setup`: Set up c15t in your project
-- `agents`: Generate or update AGENTS.md using installed c15t package docs
 - `codemods`: Run migration codemods (for example `translations -> i18n`)
 - `self-host`: Self-hosted workflow commands (currently database migrations)
 - `skills`: Install c15t agent skills for AI-assisted development
@@ -87,19 +86,15 @@ Preview changes without writing files:
 c15t codemods --dry-run
 ```
 
-### AGENTS.md
+### Bundled Docs
 
-Generate AGENTS.md from the docs bundled inside the installed c15t packages:
+Supported c15t packages now include local docs inside the installed package:
 
-```bash
-c15t agents
+```text
+node_modules/<package>/docs/
 ```
 
-Check whether the managed c15t AGENTS.md block is up to date:
-
-```bash
-c15t agents --check
-```
+These docs are version-matched to the installed package and can be used as local agent context alongside c15t skills.
 
 ## Global Flags
 

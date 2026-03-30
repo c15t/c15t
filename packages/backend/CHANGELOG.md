@@ -1,5 +1,9 @@
 # @c15t/backend
 
+## Unreleased
+
+- Bundle version-matched docs in the published package under `docs/**` for local developer and agent reference.
+
 ## 2.0.0-rc.4
 
 ### Patch Changes

@@ -1,7 +1,13 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import JSON5 from 'json5';
-import type { Heading, RootContent, Table } from 'mdast';
+import type {
+	Heading,
+	Parent,
+	PhrasingContent,
+	RootContent,
+	Table,
+} from 'mdast';
 import type { MdxJsxFlowElement, MdxJsxTextElement } from 'mdast-util-mdx';
 import * as ts from 'typescript';
 import { u } from 'unist-builder';
@@ -9,10 +15,13 @@ import {
 	createHeading,
 	createInlineCode,
 	createJsxComponentProcessor,
+	createLink,
+	createListItem,
 	createParagraph,
 	createTable,
 	createTableRow,
 	createText,
+	createUnorderedList,
 	getAttributeValue,
 	hasName,
 	type MdxNode,
@@ -202,6 +211,21 @@ type ParsedProperty = {
 	property: ObjectType;
 };
 
+type NestedSectionTracker = {
+	seenKeys: Set<string>;
+	explicitTypeNames: Set<string>;
+};
+
+type DetailParts = {
+	inline: string;
+	bullets: string[];
+};
+
+type JSDocSeeInfo = {
+	url?: string;
+	label?: string;
+};
+
 /**
  * Parse a JavaScript object literal from an MDX attribute value expression.
  * This handles the type object that gets passed to the TypeTable component.
@@ -242,46 +266,137 @@ function parseTypeObject(
 
 // Use shared createTableCell and createTableRow functions from remark-libs
 
+function getNodeText(
+	value: ObjectType['description'] | ObjectType['typeDescription']
+) {
+	if (!value) {
+		return '';
+	}
+	return typeof value === 'string' ? value : String(value);
+}
+
+function splitDetailParts(value: string | null | undefined): DetailParts {
+	if (!value) {
+		return { inline: '-', bullets: [] };
+	}
+
+	const normalized = value
+		.replace(/&#xA;/g, '\n')
+		.replace(/\r\n/g, '\n')
+		.trim();
+	const lines = normalized
+		.split('\n')
+		.map((line) => line.trim())
+		.filter(Boolean);
+	if (lines.length === 0) {
+		return { inline: '-', bullets: [] };
+	}
+
+	const bulletLines = lines.filter((line) => /^[-*]\s+/.test(line));
+	const nonBulletLines = lines.filter((line) => !/^[-*]\s+/.test(line));
+	const summaryLines = nonBulletLines.filter(
+		(line) =>
+			!/:\s*$/.test(line) &&
+			!/^example use cases:?$/i.test(line) &&
+			!/^this is useful for:?$/i.test(line) &&
+			!/^use ['"`]/i.test(line)
+	);
+	const summary = normalizeWhitespace(summaryLines.join(' '));
+
+	if (bulletLines.length === 0) {
+		return { inline: normalizeWhitespace(normalized), bullets: [] };
+	}
+
+	const bulletItems = bulletLines.map((line) =>
+		normalizeWhitespace(line.replace(/^[-*]\s+/, ''))
+	);
+	const shortBullets =
+		bulletItems.length <= 4 && bulletItems.every((item) => item.length <= 60);
+
+	if (shortBullets) {
+		const prefix = summary.length > 0 ? `${summary} Options:` : 'Options:';
+		return {
+			inline: normalizeWhitespace(`${prefix} ${bulletItems.join('; ')}`),
+			bullets: [],
+		};
+	}
+
+	const optionBullets = bulletItems.filter((item) =>
+		/^(['"`].+['"`]|\d+):/.test(item)
+	);
+
+	if (
+		optionBullets.length > 0 &&
+		optionBullets.length <= 3 &&
+		optionBullets.every((item) => item.length <= 80)
+	) {
+		const prefix = summary.length > 0 ? `${summary} Options:` : 'Options:';
+		return {
+			inline: normalizeWhitespace(`${prefix} ${optionBullets.join('; ')}`),
+			bullets: bulletItems.filter((item) => !optionBullets.includes(item)),
+		};
+	}
+
+	return {
+		inline: summary.length > 0 ? summary : (bulletItems[0] ?? '-'),
+		bullets: summary.length > 0 ? bulletItems : bulletItems.slice(1),
+	};
+}
+
 function formatPropertyDescription(property: ObjectType): string {
 	const parts: string[] = [];
 
 	if (property.description) {
-		const desc =
-			typeof property.description === 'string'
-				? property.description
-				: String(property.description);
-		parts.push(desc);
+		parts.push(getNodeText(property.description));
 	}
 
 	if (property.typeDescription) {
-		const typeDesc =
-			typeof property.typeDescription === 'string'
-				? property.typeDescription
-				: String(property.typeDescription);
-		parts.push(`(${typeDesc})`);
+		parts.push(getNodeText(property.typeDescription));
 	}
 
-	return compactTableText(parts.join(' ').trim()) || '-';
+	return splitDetailParts(parts.join('\n').trim()).inline || '-';
 }
 
-function formatPropertyType(property: ObjectType): string {
-	let type = property.type;
-
-	if (property.typeDescriptionLink) {
-		type = `[${type}](${property.typeDescriptionLink})`;
+function normalizeLinkTarget(url: string): string {
+	if (url.startsWith('http://') || url.startsWith('https://')) {
+		return url;
 	}
+	if (url.startsWith('//')) {
+		return `https:${url}`;
+	}
+	if (url.startsWith('://')) {
+		return `https${url}`;
+	}
+	if (url.startsWith('/')) {
+		return `https://v2.c15t.com${url}`;
+	}
+	return url;
+}
+
+function formatPropertyType(property: ObjectType): string | PhrasingContent[] {
+	let type = property.type;
 
 	if (property.deprecated) {
 		type = `~~${type}~~ (deprecated)`;
 	}
 
-	return compactTableText(type) || '-';
+	const compactType = summarizeTypeLabel(type, property) || '-';
+	if (property.typeDescriptionLink) {
+		return [
+			createLink(
+				normalizeLinkTarget(property.typeDescriptionLink),
+				compactType
+			),
+		];
+	}
+
+	return compactType;
 }
 
 function formatPropertyDefault(property: ObjectType): string {
-	return compactTableText(
+	return splitDetailParts(
 		property.default === '' ? '-' : (property.default ?? '-')
-	);
+	).inline;
 }
 
 function formatPropertyRequired(property: ObjectType): string {
@@ -289,16 +404,104 @@ function formatPropertyRequired(property: ObjectType): string {
 }
 
 function compactTableText(value: string | null | undefined) {
-	if (!value) {
-		return '-';
+	return splitDetailParts(value).inline;
+}
+
+function normalizeTypeName(type: string): string | null {
+	const normalized = normalizeWhitespace(type)
+		.replace(/\s*\|\s*undefined/g, '')
+		.replace(/\s*\|\s*null/g, '')
+		.replace(/\[\]$/, '')
+		.trim();
+
+	const wrappedMatch = normalized.match(
+		/^(?:Partial|Readonly|Required|Pick|Omit)<(.+)>$/
+	);
+	if (wrappedMatch?.[1]) {
+		return normalizeTypeName(wrappedMatch[1]);
 	}
 
+	const typeNameMatch = normalized.match(/[A-Z][A-Za-z0-9_]+$/);
+	return typeNameMatch?.[0] ?? null;
+}
+
+function summarizeTypeLabel(type: string, property?: ObjectType): string {
+	const normalized = normalizeWhitespace(type);
+	const compact = compactTableText(type);
+	const namedType = normalizeTypeName(normalized);
+
+	if (namedType) {
+		const suffixes: string[] = [];
+		if (/\|\s*undefined/.test(normalized)) {
+			suffixes.push('undefined');
+		}
+		if (/\|\s*null/.test(normalized)) {
+			suffixes.push('null');
+		}
+		const suffixText = suffixes.length > 0 ? ` | ${suffixes.join(' | ')}` : '';
+		return `${namedType}${suffixText}`;
+	}
+
+	const isLargeAnonymousType =
+		normalized.length > 80 ||
+		(normalized.includes('{') && (normalized.match(/;/g) ?? []).length >= 2);
+
+	if (property?.nestedProperties || isLargeAnonymousType) {
+		const arrayPrefix =
+			/^(?:ReadonlyArray|Array)</.test(normalized) ||
+			/\[\](?:\s*\|\s*(?:undefined|null))*$/.test(normalized)
+				? 'Array<Object>'
+				: 'Object';
+		const suffixes: string[] = [];
+		if (/\|\s*undefined/.test(normalized)) {
+			suffixes.push('undefined');
+		}
+		if (/\|\s*null/.test(normalized)) {
+			suffixes.push('null');
+		}
+		const suffixText = suffixes.length > 0 ? ` | ${suffixes.join(' | ')}` : '';
+		return `${arrayPrefix}${suffixText}`;
+	}
+
+	return compact;
+}
+
+function getPreviousHeading(parent: Parent, index: number): Heading | null {
+	for (let current = index - 1; current >= 0; current -= 1) {
+		const sibling = parent.children[current];
+		if (!sibling) {
+			continue;
+		}
+		if (sibling.type === 'heading') {
+			return sibling;
+		}
+		if (sibling.type !== 'definition') {
+			break;
+		}
+	}
+	return null;
+}
+
+function getHeadingText(heading: Heading): string {
 	return normalizeWhitespace(
-		value
-			.replace(/&#xA;/g, '\n')
-			.replace(/\r\n/g, '\n')
-			.replace(/\n\s*[-*]\s+/g, '; ')
-			.replace(/\n+/g, ' ')
+		heading.children
+			.map((child) => ('value' in child ? String(child.value) : ''))
+			.join('')
+	);
+}
+
+function shouldEmitHeading(
+	parent: Parent | undefined,
+	index: number | undefined,
+	headingText: string | null
+): boolean {
+	if (!parent || typeof index !== 'number' || !headingText) {
+		return true;
+	}
+	const previousHeading = getPreviousHeading(parent, index);
+	return (
+		!previousHeading ||
+		getHeadingText(previousHeading) !== normalizeWhitespace(headingText)
 	);
 }
 
@@ -404,7 +607,7 @@ function extractJSDocDefault(node: ts.Node): string {
 	return '';
 }
 
-function extractJSDocSee(node: ts.Node): string {
+function extractJSDocSee(node: ts.Node): JSDocSeeInfo | null {
 	const jsDocTags = ts.getJSDocTags(node);
 	for (const tag of jsDocTags) {
 		if (tag.tagName && tag.tagName.text === 'see') {
@@ -432,13 +635,23 @@ function extractJSDocSee(node: ts.Node): string {
 
 			const result = parts.join('').trim();
 			if (result) {
-				// Strip c15t.com origin so links work on localhost / preview / prod.
-				// External URLs (e.g. MDN, GitHub) are kept as-is.
-				return result.replace(/^https?:\/\/(?:www\.)?c15t\.com/, '');
+				const match = result.match(
+					/^(https?:\/\/\S+|:\/\/\S+|\/\/\S+|\/\S+)(?:\s*-\s*|\s+)?(.*)$/
+				);
+				if (!match) {
+					return { label: result };
+				}
+
+				const [, rawUrl, rawLabel] = match;
+				const url = rawUrl
+					? rawUrl.replace(/^https?:\/\/(?:www\.)?c15t\.com/, '')
+					: undefined;
+				const label = rawLabel?.trim() || undefined;
+				return { url, label };
 			}
 		}
 	}
-	return '';
+	return null;
 }
 
 // Built-in Object prototype methods that should be filtered out of nested properties
@@ -669,7 +882,7 @@ function extractPropertyInfo(
 	const defaultValue = extractJSDocDefault(property);
 
 	// Try to get @see link from JSDoc tags
-	const seeLink = extractJSDocSee(property);
+	const seeInfo = extractJSDocSee(property);
 
 	// Resolve nested properties (1 level deep) for referenced types
 	const nestedProperties = resolveNestedProperties(
@@ -685,7 +898,14 @@ function extractPropertyInfo(
 		required: !isOptional,
 		default: defaultValue,
 		nestedProperties,
-		typeDescriptionLink: seeLink || undefined,
+		typeDescription:
+			seeInfo?.url && seeInfo.label
+				? `See ${seeInfo.label}: ${normalizeLinkTarget(seeInfo.url)}`
+				: undefined,
+		typeDescriptionLink:
+			seeInfo?.url && !seeInfo.label
+				? normalizeLinkTarget(seeInfo.url)
+				: undefined,
 	};
 }
 
@@ -1025,46 +1245,69 @@ function createAutoTypeTable(
 	return createTable(headers, rows, align);
 }
 
-function truncateToFirstSentence(
-	description: string | import('react').ReactNode | undefined
-): string | undefined {
-	if (!description || typeof description !== 'string') return undefined;
-	// Match the first sentence ending with . ! or ? followed by whitespace or end-of-string
-	const match = description.match(/^[^.!?\n]*[.!?]/);
-	return match ? match[0] : description;
+function nestedSectionKey(propertyName: string, property: ObjectType): string {
+	return `${propertyName}::${property.type}`;
 }
 
 function appendNestedTypeSections(
 	properties: ParsedProperty[],
 	content: RootContent[],
-	options: TypeTableOptions
+	options: TypeTableOptions,
+	tracker: NestedSectionTracker
 ): void {
 	for (const { name, property } of properties) {
 		if (!property.nestedProperties) continue;
 		const nestedEntries = Object.entries(property.nestedProperties);
 		if (nestedEntries.length === 0) continue;
+		const explicitTypeName = normalizeTypeName(property.type);
+		if (explicitTypeName && tracker.explicitTypeNames.has(explicitTypeName)) {
+			continue;
+		}
+		const sectionKey = nestedSectionKey(name, property);
+		if (tracker.seenKeys.has(sectionKey)) {
+			continue;
+		}
+		tracker.seenKeys.add(sectionKey);
 
-		// Build heading: `propertyName` TypeName
-		// Strip trailing [] for the sub-table heading type name
-		const typeName = property.type.replace(/\[\]$/, '');
+		const typeName = normalizeTypeName(property.type);
 		const heading: Heading = {
 			type: 'heading',
 			depth: (TABLE_HEADING_DEPTH + 1) as 4,
-			children: [createInlineCode(name), createText(` ${typeName}`)],
+			children:
+				typeName && typeName !== '-'
+					? [createInlineCode(name), createText(` ${typeName}`)]
+					: [createInlineCode(name)],
 		};
 		content.push(heading);
+
+		const detail = splitDetailParts(getNodeText(property.description));
+		const nestedDescription = detail.inline;
+		if (nestedDescription && nestedDescription !== '-') {
+			content.push(createParagraph(nestedDescription));
+		}
+		if (detail.bullets.length > 0) {
+			content.push(
+				createUnorderedList(
+					detail.bullets.map((bullet) =>
+						createListItem([createParagraph(bullet)])
+					),
+					false
+				)
+			);
+		}
+		const typeDetail = splitDetailParts(getNodeText(property.typeDescription));
+		if (typeDetail.inline && typeDetail.inline !== '-') {
+			content.push(createParagraph(typeDetail.inline));
+		}
 
 		const nestedProperties: ParsedProperty[] = nestedEntries.map(
 			([nestedName, nestedProp]) => ({
 				name: nestedName,
-				property: {
-					...nestedProp,
-					// Truncate to first sentence to keep nested tables concise for LLM consumption
-					description: truncateToFirstSentence(nestedProp.description),
-				},
+				property: nestedProp,
 			})
 		);
 		content.push(createAutoTypeTable(nestedProperties, options));
+		appendNestedTypeSections(nestedProperties, content, options, tracker);
 	}
 }
 
@@ -1083,7 +1326,10 @@ function addOptionalContent(
 
 function processAutoTypeTableNode(
 	node: MdxNode,
-	options: TypeTableOptions
+	options: TypeTableOptions,
+	tracker: NestedSectionTracker,
+	index?: number,
+	parent?: Parent
 ): RootContent[] {
 	const title =
 		normalizeWhitespace(getAttributeValue(node, 'title') ?? '') || null;
@@ -1094,6 +1340,22 @@ function processAutoTypeTableNode(
 
 	const content: RootContent[] = [];
 	addOptionalContent(content, title, description);
+	const previousHeading =
+		parent && typeof index === 'number'
+			? getPreviousHeading(parent, index)
+			: null;
+	if (
+		!title &&
+		shouldEmitHeading(parent, index, autoTypeName) &&
+		!(
+			previousHeading &&
+			getHeadingText(previousHeading) === 'Options' &&
+			previousHeading.depth === TABLE_HEADING_DEPTH &&
+			autoTypeName.endsWith('Options')
+		)
+	) {
+		content.push(createHeading(TABLE_HEADING_DEPTH, autoTypeName));
+	}
 
 	// Try to extract the actual type information from the TypeScript file
 	const overrideBasePath =
@@ -1116,7 +1378,7 @@ function processAutoTypeTableNode(
 		if (properties.length > 0) {
 			const table = createAutoTypeTable(properties, options);
 			content.push(table);
-			appendNestedTypeSections(properties, content, options);
+			appendNestedTypeSections(properties, content, options, tracker);
 		}
 	} else {
 		// Fallback to simple info table if extraction failed
@@ -1153,7 +1415,10 @@ function isValidTableNode(
 
 function processTypeTableNode(
 	node: MdxNode,
-	options: TypeTableOptions
+	options: TypeTableOptions,
+	tracker: NestedSectionTracker,
+	index?: number,
+	parent?: Parent
 ): RootContent[] {
 	const {
 		includeDescriptions = true,
@@ -1168,7 +1433,7 @@ function processTypeTableNode(
 
 	// Handle AutoTypeTable components separately
 	if (hasName(node, 'AutoTypeTable')) {
-		return processAutoTypeTableNode(node, options);
+		return processAutoTypeTableNode(node, options, tracker, index, parent);
 	}
 
 	// Handle regular TypeTable components
@@ -1241,7 +1506,7 @@ function processTypeTableNode(
 
 	const content: RootContent[] = [];
 
-	if (title) {
+	if (title && shouldEmitHeading(parent, index, title)) {
 		content.push(createHeading(TABLE_HEADING_DEPTH, title));
 	}
 
@@ -1250,7 +1515,7 @@ function processTypeTableNode(
 	}
 
 	content.push(table);
-	appendNestedTypeSections(properties, content, options);
+	appendNestedTypeSections(properties, content, options, tracker);
 
 	return content;
 }
@@ -1266,10 +1531,38 @@ export const remarkTypeTableToMarkdown = (
 	};
 	const resolved = { ...defaults, ...opts };
 
-	return createJsxComponentProcessor(['TypeTable', 'AutoTypeTable'], (node) => {
-		if (hasName(node, 'AutoTypeTable')) {
-			return processAutoTypeTableNode(node, resolved);
+	return (tree: import('mdast').Root) => {
+		const explicitTypeNames = new Set<string>();
+		for (const child of tree.children) {
+			if (
+				(child.type === 'mdxJsxFlowElement' ||
+					child.type === 'mdxJsxTextElement') &&
+				hasName(child, 'AutoTypeTable')
+			) {
+				const explicitName = getAttributeValue(child, 'name');
+				if (explicitName) {
+					explicitTypeNames.add(explicitName);
+				}
+			}
 		}
-		return processTypeTableNode(node, resolved);
-	});
+		const tracker: NestedSectionTracker = {
+			seenKeys: new Set<string>(),
+			explicitTypeNames,
+		};
+		return createJsxComponentProcessor(
+			['TypeTable', 'AutoTypeTable'],
+			(node, index, parent) => {
+				if (hasName(node, 'AutoTypeTable')) {
+					return processAutoTypeTableNode(
+						node,
+						resolved,
+						tracker,
+						index,
+						parent
+					);
+				}
+				return processTypeTableNode(node, resolved, tracker, index, parent);
+			}
+		)(tree);
+	};
 };

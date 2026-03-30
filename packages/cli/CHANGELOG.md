@@ -1,5 +1,9 @@
 # @c15t/cli
 
+## Unreleased
+
+- Bundle version-matched c15t docs in the published packages under `docs/**` and remove CLI `AGENTS.md` generation. Use the bundled docs directly together with c15t agent skills.
+
 ## 2.0.0-rc.4
 
 ### Patch Changes

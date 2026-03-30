@@ -16,6 +16,7 @@ const TRAILING_BACKTICK_LINE = /\n\s*`$/; // newline then a lone backtick
 const TRAILING_WHITESPACE = /[ \t]+$/; // trailing spaces/tabs on a line
 const LEADING_BLANK_LINES = /^\s*\n+/; // one or more blank lines at start
 const TRAILING_BLANK_LINES = /\n+\s*$/; // one or more blank lines at end
+const HTML_BREAK = /<br\s*\/?>/gi;
 
 function cleanMermaidSource(raw: string): string {
 	// Step 1: Normalize CRLF to LF
@@ -23,6 +24,9 @@ function cleanMermaidSource(raw: string): string {
 
 	// Step 2: Convert escaped newlines
 	s = s.replace(ESCAPED_NL, '\n');
+
+	// Step 2.5: Convert HTML line breaks to plain text separators for readability
+	s = s.replace(HTML_BREAK, ' / ');
 
 	// Step 3: Strip only outer blank lines (not leading spaces)
 	s = s.replace(LEADING_BLANK_LINES, '').replace(TRAILING_BLANK_LINES, '');

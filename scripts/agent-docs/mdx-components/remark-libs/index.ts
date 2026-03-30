@@ -6,6 +6,8 @@ export { hasName } from './guards';
 export {
 	createHeading,
 	createInlineCode,
+	createLink,
+	createListItem,
 	createOrderedList,
 	createParagraph,
 	createStrong,
@@ -13,6 +15,7 @@ export {
 	createTable,
 	createTableRow,
 	createText,
+	createUnorderedList,
 } from './node-creators';
 export {
 	extractNodeText,

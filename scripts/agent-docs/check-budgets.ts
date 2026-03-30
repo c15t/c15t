@@ -34,9 +34,7 @@ export function checkPackedAgentDocs(
 	files: PackedFile[]
 ): AgentDocsCheckResult {
 	const issues: string[] = [];
-	const relevantFiles = files.filter((file) =>
-		file.path.startsWith('dist/docs/')
-	);
+	const relevantFiles = files.filter((file) => file.path.startsWith('docs/'));
 	const expectedPaths = expectedAgentDocPaths(packageName);
 
 	for (const expectedPath of expectedPaths) {

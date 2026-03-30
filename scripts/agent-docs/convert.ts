@@ -8,6 +8,8 @@ const FRONTMATTER_REGEX = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/;
 const HEADING_REGEX = /^#\s+(.+)$/m;
 const YAML_QUOTE_REGEX = /["\\]/g;
 const TABLE_DIVIDER_REGEX = /^:?-{2,}:?$/;
+const MERMAID_FENCE_REGEX = /```mermaid\n([\s\S]*?)\n```/g;
+const HTML_BREAK_REGEX = /<br\s*\/?>/gi;
 
 let cachedProcessor: ReturnType<typeof remark> | null = null;
 let cachedPluginIds: unknown[] = [];
@@ -142,6 +144,17 @@ function compactMarkdownTables(markdown: string) {
 	return compacted.join('\n');
 }
 
+function compactMermaidBlocks(markdown: string) {
+	return markdown.replace(MERMAID_FENCE_REGEX, (block, body: string) => {
+		const compactBody = body
+			.split('\n')
+			.map((line) => line.replace(HTML_BREAK_REGEX, ' - '))
+			.map((line) => line.replace(/,\s+-\s+/g, ' - '))
+			.join('\n');
+		return `\`\`\`mermaid\n${compactBody}\n\`\`\``;
+	});
+}
+
 export async function convertMdxFile(
 	sourcePath: string,
 	remarkPlugins: unknown[] = []
@@ -162,7 +175,9 @@ export async function convertMdxFile(
 		path: sourcePath,
 	});
 
-	const markdown = compactMarkdownTables(String(processed));
+	const markdown = compactMermaidBlocks(
+		compactMarkdownTables(String(processed))
+	);
 	const resolvedFrontmatter =
 		frontmatter.trim().length > 0
 			? frontmatter

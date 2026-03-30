@@ -292,11 +292,17 @@ export function resolvePackagePages(packageName: string) {
 }
 
 export function getAgentDocsDir(packageName: string) {
-	return join(getAgentPackageConfig(packageName).packageDir, 'dist', 'docs');
+	return join(getAgentPackageConfig(packageName).packageDir, 'docs');
 }
 
 export function ensureCleanAgentDocsDir(packageName: string) {
 	const docsDir = getAgentDocsDir(packageName);
+	const legacyDocsDir = join(
+		getAgentPackageConfig(packageName).packageDir,
+		'dist',
+		'docs'
+	);
+	rmSync(legacyDocsDir, { recursive: true, force: true });
 	rmSync(docsDir, { recursive: true, force: true });
 	mkdirSync(docsDir, { recursive: true });
 }
@@ -366,9 +372,7 @@ export function deriveTopicTags(entry: string, sourcePath: string): string[] {
 
 export function expectedAgentDocPaths(packageName: string) {
 	return new Set(
-		resolvePackagePages(packageName).map(
-			(page) => `dist/docs/${page.outputPath}`
-		)
+		resolvePackagePages(packageName).map((page) => `docs/${page.outputPath}`)
 	);
 }
 

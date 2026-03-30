@@ -2,6 +2,7 @@ import type {
 	BlockContent,
 	DefinitionContent,
 	Heading,
+	Link,
 	List,
 	ListItem,
 	Paragraph,
@@ -33,6 +34,20 @@ export function createStrong(text: string): Strong {
  */
 export function createInlineCode(value: string): PhrasingContent {
 	return { type: 'inlineCode', value };
+}
+
+/**
+ * Create a link node
+ */
+export function createLink(
+	url: string,
+	content: string | PhrasingContent[]
+): Link {
+	return {
+		type: 'link',
+		url,
+		children: typeof content === 'string' ? [createText(content)] : content,
+	};
 }
 
 /**

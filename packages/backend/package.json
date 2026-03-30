@@ -99,6 +99,7 @@
 	"types": "./dist/core.d.ts",
 	"files": [
 		"dist",
+		"docs",
 		"README.md"
 	],
 	"scripts": {

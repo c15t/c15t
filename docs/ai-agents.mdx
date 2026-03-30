@@ -1,31 +1,25 @@
 ---
 title: AI Agents
-description: Integrate c15t with AI coding assistants using AGENTS.md or agent skills. Give agents version-matched local docs for consent management, banners, script loading, callbacks, and integrations.
+description: Integrate c15t with AI coding assistants using the docs bundled in each package and c15t agent skills. Give agents version-matched local docs for consent management, banners, script loading, callbacks, and integrations.
 lastModified: 2026-03-24
 ---
 
-## AGENTS.md
+## Bundled Docs
 
-Use the c15t CLI to generate an `AGENTS.md` file in your app from the docs bundled in the installed c15t packages.
+Every supported c15t package now ships docs inside the installed package itself.
 
-### Installation
+### Where to find them
 
-Generate or update the file:
+- `node_modules/c15t/docs/`
+- `node_modules/@c15t/react/docs/`
+- `node_modules/@c15t/nextjs/docs/`
+- `node_modules/@c15t/backend/docs/`
 
-<PackageCommandTabs command="@c15t/cli@rc agents" />
+These docs are version-matched to the exact c15t package version in your project, including generated reference content like prop and type tables.
 
-### What it does
+### Why use them
 
-- Scans the installed c15t packages in your app
-- Reads the packaged docs inside `node_modules/<package>/dist/docs/`
-- Writes managed c15t-specific guidance into `AGENTS.md`
-- Adds rules for concrete workflows such as consent management, cookie banners, consent dialogs, preference centers, script loading, callbacks, and integrations like Google Tag Manager
-
-### Why use it
-
-The generated `AGENTS.md` is local, version-matched, and package-aware. Agents can read the exact docs that ship with the installed c15t version instead of relying on stale model knowledge.
-
-If your app uses multiple c15t packages, the generated file includes a block for each relevant package.
+If your app uses multiple c15t packages, use the docs from each relevant installed package instead of relying on stale model knowledge.
 
 ### Agent philosophy
 
@@ -65,7 +59,7 @@ Or directly:
 
 ## When to use which
 
-Use `AGENTS.md` when:
+Use bundled docs when:
 
 - Your agent can read files in the local project
 - You want version-matched docs from the installed c15t packages
