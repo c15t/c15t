@@ -37,11 +37,16 @@ bench('resetConsents', () => {
 	store.getState().resetConsents();
 });
 
-bench('setActiveUI', () => {
+bench('setShowPopup', () => {
 	const store = createConsentManagerStore(manager);
-	store.getState().setActiveUI('banner', { force: true });
-	store.getState().setActiveUI('dialog');
-	store.getState().setActiveUI('none');
+	store.getState().setShowPopup(true);
+	store.getState().setShowPopup(false);
+});
+
+bench('setIsPrivacyDialogOpen', () => {
+	const store = createConsentManagerStore(manager);
+	store.getState().setIsPrivacyDialogOpen(true);
+	store.getState().setIsPrivacyDialogOpen(false);
 });
 
 await run();

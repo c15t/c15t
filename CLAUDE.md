@@ -26,31 +26,15 @@ Default to using Bun instead of Node.js.
 
 ## Testing
 
-Use `vitest` to run tests. Each package has its own `vitest.config.ts`. Import test utilities from `vitest`, not `bun:test`.
-
-```sh
-# Run tests for a specific package
-bunx vitest run packages/backend/
-bunx vitest run packages/schema/
-
-# Run a specific test file
-bunx vitest run packages/backend/src/routes/policy-packs-e2e.test.ts
-
-# Watch mode
-bunx vitest packages/backend/
-```
+Use `bun test` to run tests.
 
 ```ts#index.test.ts
-import { describe, expect, it, vi } from "vitest";
+import { test, expect } from "bun:test";
 
-describe("example", () => {
-  it("works", () => {
-    expect(1).toBe(1);
-  });
+test("hello world", () => {
+  expect(1).toBe(1);
 });
 ```
-
-**Important:** Use `vitest` APIs (`vi.fn()`, `vi.mock()`, `vi.hoisted()`, `vi.mocked()`, `vi.useFakeTimers()`, `vi.setSystemTime()`) — these are NOT available in `bun test`.
 
 ## Frontend
 
@@ -125,19 +109,3 @@ bun --hot ./index.ts
 ```
 
 For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
-
-## Project-Specific Conventions
-
-### Package Names
-- The core package is `c15t` (NOT `@c15t/core`)
-- All other packages use the `@c15t/` scope:
-  - `@c15t/react`
-  - `@c15t/nextjs`
-  - `@c15t/backend`
-  - `@c15t/node-sdk`
-  - `@c15t/cli`
-  - `@c15t/ui`
-  - `@c15t/schema`
-  - `@c15t/logger`
-  - `@c15t/translations`
-  - `@c15t/dev-tools`

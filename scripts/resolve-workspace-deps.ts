@@ -1,49 +1,95 @@
+#!/usr/bin/env tsx
+
 /**
  * Resolves `workspace:*`, `workspace:^`, and `workspace:~` protocols
- * in all package.json files before publishing to npm.
+ * in workspace package manifests before publishing to npm.
  *
- * changesets + npm publish doesn't resolve these — only pnpm does natively.
- * This script bridges that gap for bun/npm-based publish flows.
+ * changesets + npm publish doesn't resolve these automatically.
  */
 
-import { readdir } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(import.meta.dirname, '..');
+type PackageJson = {
+	name?: string;
+	version?: string;
+	private?: boolean;
+	dependencies?: Record<string, string>;
+	devDependencies?: Record<string, string>;
+	peerDependencies?: Record<string, string>;
+	optionalDependencies?: Record<string, string>;
+};
 
-async function getWorkspacePackages(): Promise<Map<string, string>> {
-	const packages = new Map<string, string>();
+type WorkspacePackage = {
+	path: string;
+	manifest: PackageJson;
+};
 
-	const dirs = ['packages', 'configs', 'internals'];
-	for (const dir of dirs) {
-		const dirPath = path.join(ROOT, dir);
-		let entries: string[];
-		try {
-			entries = await readdir(dirPath);
-		} catch {
-			continue;
-		}
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const WORKSPACE_DIRS = ['packages', 'configs', 'internals'];
+const DEP_FIELDS = [
+	'dependencies',
+	'devDependencies',
+	'peerDependencies',
+	'optionalDependencies',
+] as const;
 
-		for (const entry of entries) {
-			const pkgJsonPath = path.join(dirPath, entry, 'package.json');
-			const file = Bun.file(pkgJsonPath);
-			if (await file.exists()) {
-				const pkg = await file.json();
-				if (pkg.name && pkg.version) {
-					packages.set(pkg.name, pkg.version);
-				}
-			}
+async function listDirs(dirPath: string): Promise<string[]> {
+	try {
+		const entries = await readdir(dirPath, { withFileTypes: true });
+		return entries
+			.filter((entry) => entry.isDirectory())
+			.map((entry) => entry.name);
+	} catch {
+		return [];
+	}
+}
+
+async function readPackageJson(
+	packageJsonPath: string
+): Promise<PackageJson | null> {
+	try {
+		const raw = await readFile(packageJsonPath, 'utf8');
+		return JSON.parse(raw) as PackageJson;
+	} catch {
+		return null;
+	}
+}
+
+async function getWorkspacePackages(): Promise<WorkspacePackage[]> {
+	const workspacePackages: WorkspacePackage[] = [];
+
+	for (const workspaceDir of WORKSPACE_DIRS) {
+		const workspaceDirPath = path.join(ROOT, workspaceDir);
+		const subDirs = await listDirs(workspaceDirPath);
+
+		for (const subDir of subDirs) {
+			const packageJsonPath = path.join(
+				workspaceDirPath,
+				subDir,
+				'package.json'
+			);
+			const manifest = await readPackageJson(packageJsonPath);
+			if (!manifest?.name) continue;
+
+			workspacePackages.push({
+				path: packageJsonPath,
+				manifest,
+			});
 		}
 	}
 
-	// Also check root-level example packages (if any are publishable)
-	const rootPkgPath = path.join(ROOT, 'package.json');
-	const rootPkg = await Bun.file(rootPkgPath).json();
-	if (rootPkg.name && !rootPkg.private) {
-		packages.set(rootPkg.name, rootPkg.version);
+	const rootManifestPath = path.join(ROOT, 'package.json');
+	const rootManifest = await readPackageJson(rootManifestPath);
+	if (rootManifest?.name && !rootManifest.private) {
+		workspacePackages.push({
+			path: rootManifestPath,
+			manifest: rootManifest,
+		});
 	}
 
-	return packages;
+	return workspacePackages;
 }
 
 function resolveWorkspaceProtocol(
@@ -59,91 +105,74 @@ function resolveWorkspaceProtocol(
 	if (value === 'workspace:~') {
 		return `~${resolvedVersion}`;
 	}
-	// workspace:^1.0.0 -> ^1.0.0
 	if (value.startsWith('workspace:')) {
 		return value.replace('workspace:', '');
 	}
 	return value;
 }
 
-async function resolveAllPackages() {
+async function resolveAllWorkspaceDependencies() {
 	const workspacePackages = await getWorkspacePackages();
-	console.log(
-		`Found ${workspacePackages.size} workspace packages:`,
-		Object.fromEntries(workspacePackages)
-	);
+	const versionByPackageName = new Map<string, string>();
 
-	const depFields = [
-		'dependencies',
-		'devDependencies',
-		'peerDependencies',
-		'optionalDependencies',
-	] as const;
+	for (const pkg of workspacePackages) {
+		if (pkg.manifest.name && pkg.manifest.version) {
+			versionByPackageName.set(pkg.manifest.name, pkg.manifest.version);
+		}
+	}
+
+	console.log(
+		`Found ${versionByPackageName.size} workspace packages:`,
+		Object.fromEntries(versionByPackageName)
+	);
 
 	let totalResolved = 0;
 
-	for (const [pkgName, _version] of workspacePackages) {
-		// Find the package.json for this package
-		const dirs = ['packages', 'configs', 'internals'];
-		for (const dir of dirs) {
-			const dirPath = path.join(ROOT, dir);
-			let entries: string[];
-			try {
-				entries = await readdir(dirPath);
-			} catch {
-				continue;
-			}
+	for (const pkg of workspacePackages) {
+		let modified = false;
 
-			for (const entry of entries) {
-				const pkgJsonPath = path.join(dirPath, entry, 'package.json');
-				const file = Bun.file(pkgJsonPath);
-				if (!(await file.exists())) continue;
+		for (const field of DEP_FIELDS) {
+			const deps = pkg.manifest[field];
+			if (!deps) continue;
 
-				const pkg = await file.json();
-				if (pkg.name !== pkgName) continue;
+			for (const [depName, depRange] of Object.entries(deps)) {
+				if (!depRange.startsWith('workspace:')) continue;
 
-				let modified = false;
-				for (const field of depFields) {
-					const deps = pkg[field];
-					if (!deps) continue;
-
-					for (const [depName, depValue] of Object.entries(deps)) {
-						if (
-							typeof depValue === 'string' &&
-							depValue.startsWith('workspace:')
-						) {
-							const resolvedVersion = workspacePackages.get(depName);
-							if (resolvedVersion) {
-								const resolved = resolveWorkspaceProtocol(
-									depValue,
-									resolvedVersion
-								);
-								deps[depName] = resolved;
-								console.log(
-									`  ${pkg.name}: ${depName} ${depValue} -> ${resolved}`
-								);
-								modified = true;
-								totalResolved++;
-							} else {
-								console.warn(
-									`  ${pkg.name}: ${depName} ${depValue} -> NOT FOUND in workspace`
-								);
-							}
-						}
-					}
+				const resolvedVersion = versionByPackageName.get(depName);
+				if (!resolvedVersion) {
+					console.warn(
+						`  ${pkg.manifest.name}: ${depName} ${depRange} -> NOT FOUND in workspace`
+					);
+					continue;
 				}
 
-				if (modified) {
-					await Bun.write(pkgJsonPath, `${JSON.stringify(pkg, null, '\t')}\n`);
+				const resolvedRange = resolveWorkspaceProtocol(
+					depRange,
+					resolvedVersion
+				);
+				if (resolvedRange !== depRange) {
+					deps[depName] = resolvedRange;
+					console.log(
+						`  ${pkg.manifest.name}: ${depName} ${depRange} -> ${resolvedRange}`
+					);
+					modified = true;
+					totalResolved += 1;
 				}
 			}
+		}
+
+		if (modified) {
+			await writeFile(
+				pkg.path,
+				`${JSON.stringify(pkg.manifest, null, '\t')}\n`
+			);
 		}
 	}
 
 	console.log(`\nResolved ${totalResolved} workspace: references.`);
 }
 
-resolveAllPackages().catch((err) => {
-	console.error('Failed to resolve workspace dependencies:', err);
+resolveAllWorkspaceDependencies().catch((error) => {
+	console.error('Failed to resolve workspace dependencies:', error);
 	process.exit(1);
 });

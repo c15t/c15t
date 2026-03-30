@@ -55,7 +55,7 @@ runs:
   steps:
     - name: Run bundle analysis
       shell: bash
-      working-directory: ${{ github.workspace }}
+      working-directory: ${{ github.action_path }}
       run: bunx tsx "$GITHUB_ACTION_PATH/src/main.ts"
       env:
         INPUT_BASE_DIR: ${{ inputs.base_dir }}
@@ -67,4 +67,3 @@ runs:
         INPUT_FAIL_ON_INCREASE: ${{ inputs.fail_on_increase }}
         INPUT_PACKAGES_DIR: ${{ inputs.packages_dir }}
         INPUT_THRESHOLD: ${{ inputs.threshold }}
-        INPUT_TRANSITIVE_ROOTS: ${{ inputs.transitive_roots }}

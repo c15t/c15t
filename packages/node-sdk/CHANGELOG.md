@@ -1,30 +1,23 @@
 # @c15t/node-sdk
 
-## 2.0.0-rc.2
+## 1.8.5
 
 ### Patch Changes
 
-- Updated dependencies [408df0e]
-  - @c15t/schema@2.0.0-rc.2
+- be4e218: Republish patch release to fix workspace dependency protocol resolution during publish.
 
-## 2.0.0-rc.1
+  Published package manifests now resolve `workspace:*` references to concrete semver ranges before release.
 
-### Patch Changes
+- Updated dependencies [be4e218]
+  - @c15t/backend@1.8.5
 
-- 0bc4f86: fixed workspace resolving
-- Updated dependencies [0bc4f86]
-  - @c15t/schema@2.0.0-rc.1
-
-## 2.0.0-rc.0
-
-### Major Changes
-
-- 126a78b: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+## 1.8.4
 
 ### Patch Changes
 
-- Updated dependencies [126a78b]
-  - @c15t/schema@2.0.0-rc.0
+- 8defcd9: Update direct and transitive dependencies to address known vulnerabilities and keep runtime/tooling packages current.
+- Updated dependencies [8defcd9]
+  - @c15t/backend@1.8.4
 
 ## 1.8.0
 

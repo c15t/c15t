@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/dev-tools",
-	"version": "2.0.0-rc.4",
-	"description": "Developer tools for debugging and inspecting c15t consent management state.",
+	"version": "1.8.5",
+	"description": "A collection of developer tools and utilities for the c15t ecosystem, currently under active development.",
 	"homepage": "https://c15t.com",
 	"repository": {
 		"type": "git",
@@ -10,35 +10,15 @@
 	},
 	"license": "GPL-3.0-only",
 	"type": "module",
-	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
-		},
-		"./react": {
-			"types": "./dist/react.d.ts",
-			"import": "./dist/react.js",
-			"require": "./dist/react.cjs"
-		},
-		"./tanstack": {
-			"types": "./dist/tanstack.d.ts",
-			"import": "./dist/tanstack.js",
-			"require": "./dist/tanstack.cjs"
-		}
-	},
 	"main": "dist/index.cjs",
 	"module": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"scripts": {
-		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build",
-		"check-types": "bun prebuild && tsc --noEmit",
-		"dev": "bun prebuild && rslib build --watch",
+		"build": "rslib build",
+		"check-types": "tsc --noEmit",
+		"dev": "rslib build --watch",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./src",
-		"test": "bun prebuild && vitest run",
-		"test:watch": "bun prebuild && vitest"
+		"lint": "bun biome lint ./src"
 	},
 	"browserslist": [
 		">0.2%",
@@ -46,30 +26,31 @@
 		"not op_mini all"
 	],
 	"dependencies": {
-		"@c15t/ui": "workspace:*",
+		"@radix-ui/react-accordion": "1.2.12",
+		"@radix-ui/react-scroll-area": "^1.2.10",
+		"@radix-ui/react-slot": "1.2.4",
+		"@radix-ui/react-switch": "1.1.4",
+		"@radix-ui/react-tooltip": "^1.2.8",
 		"c15t": "workspace:*",
-		"zustand": "^5.0.8"
+		"class-variance-authority": "^0.7.1",
+		"clsx": "2.1.1",
+		"lucide-react": "^0.487.0",
+		"motion": "^12.6.5",
+		"react-draggable": "^4.4.6",
+		"tailwind-merge": "3.2.0",
+		"tsc-alias": "^1.8.16",
+		"usehooks-ts": "^3.1.1",
+		"zustand": "^5.0.11"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
-		"@types/react": "19.2.10",
-		"@types/react-dom": "19.2.3",
-		"genversion": "3.2.0",
-		"jsdom": "27.2.0",
-		"postcss": "8.5.6",
-		"vitest": "4.0.15"
+		"@types/react": "19.2.0",
+		"@types/react-dom": "19.2.0",
+		"postcss": "^8.5.8"
 	},
 	"peerDependencies": {
-		"react": "^18.0.0 || ^19.0.0",
-		"react-dom": "^18.0.0 || ^19.0.0"
-	},
-	"peerDependenciesMeta": {
-		"react": {
-			"optional": true
-		},
-		"react-dom": {
-			"optional": true
-		}
+		"react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
+		"react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
 	},
 	"publishConfig": {
 		"access": "public"

@@ -59,7 +59,7 @@ jobs:
 
           # Output as JSON array
           if [ -n "$PUBLISHED_PACKAGES" ]; then
-            PACKAGE_ARRAY=$(printf '%s\n' $PUBLISHED_PACKAGES | grep -v '^$' | jq -R . | jq -sc .)
+            PACKAGE_ARRAY=$(echo $PUBLISHED_PACKAGES | tr ' ' '\n' | jq -R . | jq -s .)
             echo "packages=$PACKAGE_ARRAY" >> $GITHUB_OUTPUT
             echo "Changed packages: $PACKAGE_ARRAY"
           else
@@ -90,11 +90,11 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: 1.3.6
+          bun-version: latest
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: 1.3.6
+          bun-version: latest
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

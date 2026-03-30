@@ -1,59 +1,23 @@
 # @c15t/dev-tools
 
-## 2.0.0-rc.4
+## 1.8.5
 
 ### Patch Changes
 
-- 088db0f: feat(dev-tools): ui improvements
-- Updated dependencies [29819bc]
-  - c15t@2.0.0-rc.4
-  - @c15t/ui@2.0.0-rc.4
+- be4e218: Republish patch release to fix workspace dependency protocol resolution during publish.
 
-## 2.0.0-rc.3
+  Published package manifests now resolve `workspace:*` references to concrete semver ranges before release.
 
-### Patch Changes
+- Updated dependencies [be4e218]
+  - c15t@1.8.5
 
-- 1c813bc: feat(dev-tools): add GPC to dev-tools with an override
-- 829e507: feat(dev-tools): add persisted overrides and improve debugging with resilient reconnects, richer events, interactive IAB controls, and better script/network diagnostics
-- Updated dependencies [de6dd82]
-- Updated dependencies [1c813bc]
-- Updated dependencies [0f10f3e]
-  - @c15t/ui@2.0.0-rc.3
-  - c15t@2.0.0-rc.3
-
-## 2.0.0-rc.2
+## 1.8.4
 
 ### Patch Changes
 
-- 732d44f: feat(dev-tools): add DevTools export
-  feat(cli): add support for file structures like [locale]
-  feat(cli): add c15t/skills
-- Updated dependencies [408df0e]
-- Updated dependencies [e6bc5db]
-- Updated dependencies [684bf2a]
-  - c15t@2.0.0-rc.2
-  - @c15t/ui@2.0.0-rc.2
-
-## 2.0.0-rc.1
-
-### Patch Changes
-
-- 0bc4f86: fixed workspace resolving
-- Updated dependencies [0bc4f86]
-  - c15t@2.0.0-rc.1
-  - @c15t/ui@2.0.0-rc.1
-
-## 2.0.0-rc.0
-
-### Major Changes
-
-- 126a78b: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
-
-### Patch Changes
-
-- Updated dependencies [126a78b]
-  - c15t@2.0.0-rc.0
-  - @c15t/ui@2.0.0-rc.0
+- 8defcd9: Update direct and transitive dependencies to address known vulnerabilities and keep runtime/tooling packages current.
+- Updated dependencies [8defcd9]
+  - c15t@1.8.4
 
 ## 1.8.3
 
