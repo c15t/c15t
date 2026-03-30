@@ -23,16 +23,16 @@ function createBaseState(
 		policyBanner: {
 			allowedActions: null,
 			primaryAction: null,
-			actionOrder: null,
-			actionLayout: null,
+			layout: null,
+			direction: null,
 			uiProfile: null,
 			scrollLock: null,
 		},
 		policyDialog: {
 			allowedActions: null,
 			primaryAction: null,
-			actionOrder: null,
-			actionLayout: null,
+			layout: null,
+			direction: null,
 			uiProfile: null,
 			scrollLock: null,
 		},
@@ -56,8 +56,8 @@ describe('location panel', () => {
 			policyBanner: {
 				allowedActions: ['accept', 'reject'],
 				primaryAction: 'accept',
-				actionOrder: ['reject', 'accept'],
-				actionLayout: 'inline',
+				layout: [['reject', 'accept']],
+				direction: 'row',
 				uiProfile: null,
 				scrollLock: null,
 			},
@@ -90,8 +90,8 @@ describe('location panel', () => {
 						banner: {
 							allowedActions: ['accept', 'reject'],
 							primaryAction: 'accept',
-							actionOrder: ['reject', 'accept'],
-							actionLayout: 'inline',
+							layout: [['reject', 'accept']],
+							direction: 'row',
 						},
 					},
 					proof: {

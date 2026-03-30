@@ -1,7 +1,7 @@
 ---
 title: Quickstart
 description: Add consent management to your Next.js app in under 5 minutes.
-lastModified: 2026-02-11
+lastModified: 2026-03-11
 availableIn:
   - framework: 'javascript'
     url: '/docs/frameworks/javascript/quickstart'
@@ -28,36 +28,9 @@ availableIn:
   </Step>
 
   <Step>
-    ### Optional: Configure Next.js rewrites
+    ### Create `ConsentManager` components
 
-    Proxy API requests through your Next.js server. This can prevent ad blockers from blocking requests to your c15t backend.
-
-    ```ts title="next.config.ts"
-    import type { NextConfig } from 'next';
-
-    const config: NextConfig = {
-      async rewrites() {
-        return [
-          {
-            source: '/api/c15t/:path*',
-            destination: `${process.env.NEXT_PUBLIC_C15T_URL}/:path*`,
-          },
-        ];
-      },
-    };
-
-    export default config;
-    ```
-
-    <Callout type="info">
-      Set `NEXT_PUBLIC_C15T_URL` in your `.env` file to point to your c15t backend (e.g., `https://your-instance.c15t.dev`).
-    </Callout>
-  </Step>
-
-  <Step>
-    ### Create a client provider component
-
-    Create a `'use client'` component that accepts an `ssrData` prop. This initializes the consent store and makes consent state available to all child components.
+    Create a provider component with the consent UI and a wrapper that re-exports it. This initializes the consent store and makes consent state available to all child components.
 
     ```tsx title="components/consent-manager/provider.tsx"
     'use client';
@@ -68,15 +41,13 @@ availableIn:
       ConsentBanner,
       ConsentDialog,
     } from '@c15t/nextjs';
-    import type { ConsentManagerProps } from '@c15t/nextjs';
 
-    export default function ConsentManagerClient({ children, ssrData }: ConsentManagerProps) {
+    export default function ConsentManagerClient({ children }: { children: ReactNode }) {
       return (
         <ConsentManagerProvider
           options={{
             mode: 'hosted',
-            backendURL: '/api/c15t',
-            ssrData,
+            backendURL: 'https://your-instance.c15t.dev',
             consentCategories: ['necessary', 'measurement', 'marketing'],
             // Shows banner during development. Remove for production.
             overrides: { country: 'DE' },
@@ -90,38 +61,24 @@ availableIn:
     }
     ```
 
+    ```tsx title="components/consent-manager/index.tsx"
+    import type { ReactNode } from 'react';
+    import ConsentManagerProvider from './provider';
+
+    export function ConsentManager({ children }: { children: ReactNode }) {
+      return <ConsentManagerProvider>{children}</ConsentManagerProvider>;
+    }
+    ```
+
     <Callout type="warn">
       Don't have a backend yet? You can use `mode: 'offline'` for local-only consent storage, but review the [browser-only storage consequences](/docs/frameworks/next/concepts/client-modes#offline-mode) before choosing it for production.
     </Callout>
   </Step>
 
   <Step>
-    ### Optional: SSR Initial Data (App Directory)
+    ### Mount `ConsentManager` at the app root
 
-    In a server component wrapping the provider, call `fetchInitialData` to pre-fetch consent data. **Do not `await`** the call — pass the Promise directly to the client component so Next.js can stream the response while data loads.
-    By prefetching the data on the server the banner can appear visually sooner, however this can increase TTFB if your app is fully client-side rendered.
-
-    ```tsx title="components/consent-manager/index.tsx"
-    import { fetchInitialData } from '@c15t/nextjs';
-    import type { ReactNode } from 'react';
-    import ConsentManagerProvider from './provider';
-
-    export function ConsentManager({ children }: { children: ReactNode }) {
-      const ssrData = fetchInitialData({
-        backendURL: '/api/c15t',
-        // Shows banner during development. Remove for production.
-        overrides: { country: 'DE' },
-      });
-
-      return (
-        <ConsentManagerProvider ssrData={ssrData}>
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-
-    Then use it in your layout:
+    Wrap your app tree with `ConsentManager` so all routes/components can access consent state.
 
     ```tsx title="app/layout.tsx"
     import { ConsentManager } from '@/components/consent-manager';
@@ -130,18 +87,12 @@ availableIn:
       return (
         <html lang="en">
           <body>
-            <ConsentManager>
-              {children}
-            </ConsentManager>
+            <ConsentManager>{children}</ConsentManager>
           </body>
         </html>
       );
     }
     ```
-
-    <Callout type="warn">
-      Do **not** `await fetchInitialData()` in the Server Component. Passing the unresolved Promise lets Next.js stream the page while the consent data loads in parallel.
-    </Callout>
   </Step>
 
   <Step>
@@ -154,6 +105,10 @@ availableIn:
     3. After accepting or rejecting, the banner dismisses and your choice persists across page reloads
   </Step>
 </Steps>
+
+<Callout type="info">
+  Want better performance and static-route support? See [Optimization](/docs/frameworks/next/optimization) for rewrites, prefetching, and network tuning. If you want server-side data prefetching, see [Server-Side Data Fetching](/docs/frameworks/next/server-side).
+</Callout>
 
 ## Optional: Add DevTools
 
@@ -191,6 +146,8 @@ See [AI Agents](/docs/ai-agents) for bundled package docs and agent skills.
 ## Next steps
 
 <Cards className="not-prose grid gap-4 grid-cols-1 sm:grid-cols-2">
+  <Card variant="interactive" title="Optimization" description="Improve banner visibility and lower latency with rewrites, browser prefetch, and SSR tradeoffs." href="/docs/frameworks/next/optimization" />
+
   <Card variant="interactive" title="Script Loader" description="Gate third-party scripts like Google Analytics and Meta Pixel behind consent." href="/docs/frameworks/next/script-loader" />
 
   <Card variant="interactive" title="Styling" description="Customize colors, typography, spacing, and individual component slots." href="/docs/frameworks/next/styling/overview" />

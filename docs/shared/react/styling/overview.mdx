@@ -80,6 +80,22 @@
   options={{ theme: { slots: { buttonPrimary: 'rounded-full', buttonSecondary: 'rounded-full' } } }}
   ```
 
+  ### Change consent action button styles semantically
+
+  ```tsx
+  options={{
+    theme: {
+      consentActions: {
+        default: { mode: 'stroke' },
+        accept: { variant: 'primary', mode: 'stroke' },
+        customize: { variant: 'neutral', mode: 'ghost' },
+      },
+    },
+  }}
+  ```
+
+  Use `theme.consentActions` when you want to change the stock banner/dialog button treatment without rewriting the component layout. Policy packs still control action arrangement and primary-action hints. The theme controls whether those actions render as `stroke`, `filled`, `ghost`, or `lighter`.
+
   ### Enable dark mode safely
 
   ```tsx

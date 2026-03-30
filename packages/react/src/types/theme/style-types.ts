@@ -60,6 +60,8 @@ export interface ExtendThemeKeys<VariableMap = Record<string, string | number>>
  * @public
  */
 export interface Theme extends Omit<BaseTheme, 'slots'> {
+	/** Semantic button styling for consent actions. */
+	consentActions?: BaseTheme['consentActions'];
 	/** Component-specific style overrides. */
 	slots?: BaseTheme['slots'];
 }

@@ -86,10 +86,26 @@ function runPack(packageDir: string): PackResult {
 function getBlockedReason(path: string): string | null {
 	// Most accidental publish bloat in this repo comes from built output.
 	if (path.startsWith('dist/')) {
+		if (path.endsWith('.d.ts.map')) {
+			return 'declaration source map in runtime dist';
+		}
+		if (path.endsWith('.d.ts')) {
+			return 'declaration file in runtime dist';
+		}
+
 		for (const rule of distBlockedPathPatterns) {
 			if (rule.pattern.test(path)) {
 				return rule.reason;
 			}
+		}
+	}
+
+	if (path.startsWith('dist-types/')) {
+		if (path.endsWith('.d.ts.map')) {
+			return 'declaration source map in published declarations';
+		}
+		if (!path.endsWith('.d.ts')) {
+			return 'non-declaration file in published declarations';
 		}
 	}
 

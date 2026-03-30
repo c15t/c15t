@@ -27,9 +27,12 @@ This demo includes OpenTelemetry instrumentation that sends traces and metrics t
 4. **Run the App**
 
    ```bash
+   npm install -g portless
    bun install
    bun run dev
    ```
+
+   The demo now runs through Portless and will open on a stable named local URL such as `https://pigeon-post.localhost`.
 
 5. **View Telemetry in Axiom**
 

@@ -54,7 +54,8 @@ describe('policy panel', () => {
 						banner: {
 							allowedActions: ['accept', 'reject'],
 							primaryAction: 'accept',
-							actionLayout: 'inline',
+							layout: [['accept', 'reject']],
+							direction: 'row',
 						},
 					},
 					proof: {
@@ -96,7 +97,8 @@ describe('policy panel', () => {
 		// UI section — only shown because mode is 'banner'
 		expect(text).toContain('UI');
 		expect(text).toContain('accept, reject');
-		expect(text).toContain('inline');
+		expect(text).toContain('[accept, reject]');
+		expect(text).toContain('row');
 
 		// Proof & snapshot
 		expect(text).toContain('IP, UA');

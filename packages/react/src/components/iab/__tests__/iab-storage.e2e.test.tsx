@@ -178,6 +178,15 @@ describe('IAB Storage E2E Tests', () => {
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 			const afterTime = Date.now();
 
+			await vi.waitFor(
+				() => {
+					const c = getStoredConsent();
+					expect(c?.consentInfo?.time).toBeDefined();
+					return c;
+				},
+				{ timeout: 2000 }
+			);
+
 			const consent = getStoredConsent();
 			expect(consent?.consentInfo?.time).toBeDefined();
 			expect(consent?.consentInfo?.time).toBeGreaterThanOrEqual(
@@ -246,7 +255,12 @@ describe('IAB Storage E2E Tests', () => {
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Should use euconsent-v2 key (IAB standard)
-			expect(window.localStorage.getItem('euconsent-v2')).not.toBeNull();
+			await vi.waitFor(
+				() => {
+					expect(window.localStorage.getItem('euconsent-v2')).not.toBeNull();
+				},
+				{ timeout: 2000 }
+			);
 		});
 	});
 });

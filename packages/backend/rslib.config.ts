@@ -60,11 +60,14 @@ export default defineConfig({
 			'define-config': ['./src/define-config.ts'],
 			'types/index': ['./src/types/index.ts'],
 			cache: ['./src/cache/index.ts'],
+			edge: ['./src/edge/index.ts'],
 		},
 	},
 	lib: [
 		{
-			dts: true,
+			dts: {
+				distPath: './dist-types',
+			},
 			bundle: true,
 			format: 'esm',
 			output: {
@@ -72,7 +75,7 @@ export default defineConfig({
 			},
 		},
 		{
-			dts: true,
+			dts: false,
 			bundle: true,
 			format: 'cjs',
 			output: {

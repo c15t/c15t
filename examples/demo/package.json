@@ -3,10 +3,19 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"dev": "next dev -H myapp.local",
+		"dev": "PORTLESS_HTTPS=1 portless run --name pigeon-post next dev",
+		"dev:localhost": "next dev",
 		"build": "next build",
-		"start": "next start",
-		"fmt": "biome format --write"
+		"start": "PORTLESS_HTTPS=1 portless run --name pigeon-post next start",
+		"start:localhost": "next start",
+		"fmt": "biome format --write",
+		"benchmark:banner": "node ./scripts/benchmark-banner.mjs",
+		"benchmark:banner:prod": "BENCH_NEXT_MODE=prod node ./scripts/benchmark-banner.mjs",
+		"benchmark:banner:prod:fast": "BENCH_NEXT_MODE=prod BENCH_ANIMATION_MODE=fast node ./scripts/benchmark-banner.mjs",
+		"benchmark:banner:prod:off": "BENCH_NEXT_MODE=prod BENCH_ANIMATION_MODE=off node ./scripts/benchmark-banner.mjs",
+		"benchmark:banner:prod:headed": "BENCH_NEXT_MODE=prod BENCH_HEADED=1 node ./scripts/benchmark-banner.mjs",
+		"benchmark:banner:prod:headed:fast": "BENCH_NEXT_MODE=prod BENCH_HEADED=1 BENCH_ANIMATION_MODE=fast node ./scripts/benchmark-banner.mjs",
+		"benchmark:banner:prod:headed:off": "BENCH_NEXT_MODE=prod BENCH_HEADED=1 BENCH_ANIMATION_MODE=off node ./scripts/benchmark-banner.mjs"
 	},
 	"dependencies": {
 		"@biomejs/biome": "^2.3.8",

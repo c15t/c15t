@@ -52,6 +52,12 @@ export {
 	stableStringify,
 } from './policy-fingerprint';
 export {
+	type PolicyI18nMessageProfileLike,
+	type PolicyI18nValidationOptions,
+	type PolicyI18nValidationResult,
+	validatePolicyI18nConfig,
+} from './policy-i18n-validation';
+export {
 	type EuropePolicyMode,
 	type PolicyPackPresets,
 	policyPackPresets,
@@ -69,7 +75,8 @@ export {
 	type PolicyPack,
 	type PolicyScopeMode,
 	type PolicyUiAction,
-	type PolicyUiActionLayout,
+	type PolicyUiActionDirection,
+	type PolicyUiActionGroup,
 	type PolicyUiMode,
 	type PolicyUiProfile,
 	type PolicyUiSurfaceConfig,
@@ -85,7 +92,8 @@ export {
 	policyConfigSchema,
 	policyModelSchema,
 	policyScopeModeSchema,
-	policyUiActionLayoutSchema,
+	policyUiActionDirectionSchema,
+	policyUiActionGroupSchema,
 	policyUiActionSchema,
 	policyUiModeSchema,
 	policyUiProfileSchema,

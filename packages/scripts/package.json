@@ -13,13 +13,14 @@
 	"type": "module",
 	"exports": {
 		"./*": {
-			"types": "./dist/*.d.ts",
+			"types": "./dist-types/*.d.ts",
 			"import": "./dist/*.js",
 			"require": "./dist/*.cjs"
 		}
 	},
 	"files": [
-		"dist"
+		"dist",
+		"dist-types"
 	],
 	"scripts": {
 		"build": "rslib build",

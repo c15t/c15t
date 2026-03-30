@@ -1,13 +1,15 @@
 import type {
 	PolicyUiAction,
-	PolicyUiActionLayout,
+	PolicyUiActionDirection,
+	PolicyUiActionGroup,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
 } from 'c15t';
 
 export type {
 	PolicyUiAction,
-	PolicyUiActionLayout,
+	PolicyUiActionDirection,
+	PolicyUiActionGroup,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
 };
@@ -26,25 +28,70 @@ function dedupeActions(actions?: PolicyUiAction[]): PolicyUiAction[] {
 	return [...new Set(actions)];
 }
 
-export function resolvePolicyActionOrder(params: {
+export function resolvePolicyAllowedActions(params: {
 	allowedActions?: PolicyUiAction[];
-	actionOrder?: PolicyUiAction[];
 }): PolicyUiAction[] {
 	const allowed = dedupeActions(params.allowedActions);
-	const normalizedAllowed =
-		allowed.length > 0 ? allowed : [...DEFAULT_POLICY_ACTIONS];
-	const allowedSet = new Set(normalizedAllowed);
-	const ordered = dedupeActions(params.actionOrder).filter((action) =>
-		allowedSet.has(action)
-	);
+	return allowed.length > 0 ? allowed : [...DEFAULT_POLICY_ACTIONS];
+}
 
-	for (const action of normalizedAllowed) {
-		if (!ordered.includes(action)) {
-			ordered.push(action);
+export function flattenPolicyActionGroups(
+	layout?: PolicyUiActionGroup[]
+): PolicyUiAction[] {
+	if (!layout || layout.length === 0) {
+		return [];
+	}
+
+	return layout.flatMap((group) => (Array.isArray(group) ? group : [group]));
+}
+
+export function resolvePolicyActionGroups(params: {
+	allowedActions: PolicyUiAction[];
+	layout?: PolicyUiActionGroup[];
+}): PolicyUiAction[][] {
+	const allowedActions = dedupeActions(params.allowedActions);
+	if (allowedActions.length === 0) {
+		return [];
+	}
+
+	if (!params.layout || params.layout.length === 0) {
+		return [[...allowedActions]];
+	}
+
+	const allowedSet = new Set(allowedActions);
+	const groups: PolicyUiAction[][] = [];
+	const seen = new Set<PolicyUiAction>();
+
+	for (const group of params.layout) {
+		const actions = dedupeActions(
+			Array.isArray(group) ? group : [group]
+		).filter((action) => {
+			if (!allowedSet.has(action) || seen.has(action)) {
+				return false;
+			}
+
+			seen.add(action);
+			return true;
+		});
+
+		if (actions.length > 0) {
+			groups.push(actions);
 		}
 	}
 
-	return ordered;
+	return groups.length > 0 ? groups : [[...allowedActions]];
+}
+
+export function resolvePolicyOrderedActions(params: {
+	allowedActions: PolicyUiAction[];
+	layout?: PolicyUiActionGroup[];
+}): PolicyUiAction[] {
+	return flattenPolicyActionGroups(
+		resolvePolicyActionGroups({
+			allowedActions: params.allowedActions,
+			layout: params.layout,
+		})
+	);
 }
 
 export function resolvePolicyPrimaryAction(params: {
@@ -60,6 +107,16 @@ export function resolvePolicyPrimaryAction(params: {
 		: params.orderedActions[0];
 }
 
+export function resolvePolicyDirection(
+	direction?: PolicyUiActionDirection
+): PolicyUiActionDirection {
+	if (direction === 'column') {
+		return 'column';
+	}
+
+	return 'row';
+}
+
 export function resolvePolicyUiProfile(
 	profile?: PolicyUiProfile
 ): PolicyUiProfile {
@@ -73,15 +130,17 @@ export function resolvePolicyUiProfile(
 export function shouldFillPolicyActions(params: {
 	uiProfile?: PolicyUiProfile;
 	actionGroups: PolicyUiAction[][];
+	direction?: PolicyUiActionDirection;
 }): boolean {
 	const effectiveUiProfile = resolvePolicyUiProfile(params.uiProfile);
 	const actionCount = new Set(params.actionGroups.flat()).size;
-	const layout = params.actionGroups.length > 1 ? 'split' : 'inline';
+	const isSplitLayout = params.actionGroups.length > 1;
+	const isColumn = params.direction === 'column';
 
 	return (
 		effectiveUiProfile === 'strict' ||
 		(effectiveUiProfile === 'balanced' &&
-			(actionCount <= 2 || (actionCount === 3 && layout === 'split')))
+			(actionCount <= 2 || (actionCount === 3 && (isSplitLayout || isColumn))))
 	);
 }
 
@@ -97,30 +156,4 @@ export function hasPolicyHints(surface?: PolicyUiSurfaceConfig): boolean {
 
 		return value !== undefined;
 	});
-}
-
-export function resolvePolicyActionGroups(params: {
-	orderedActions: PolicyUiAction[];
-	layout?: PolicyUiActionLayout;
-}): PolicyUiAction[][] {
-	const actions = params.orderedActions;
-	if (actions.length === 0) {
-		return [];
-	}
-
-	if (params.layout === 'inline') {
-		return [actions];
-	}
-
-	if (actions.length <= 2) {
-		return [actions];
-	}
-
-	// UX rule: when customize is first in split mode with 3 actions,
-	// keep customize isolated and group reject/accept together.
-	if (actions.length === 3 && actions[0] === 'customize') {
-		return [[actions[0]], actions.slice(1)];
-	}
-
-	return [actions.slice(0, 2), actions.slice(2)];
 }

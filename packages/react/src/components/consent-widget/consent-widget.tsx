@@ -48,21 +48,37 @@ export const ConsentWidget = ({
 
 	const actionGroups = dialog.actionGroups;
 	const shouldFillActions = dialog.shouldFillActions;
+	const direction = dialog.direction;
 
 	const renderAction = (
 		action: HeadlessConsentDialogAction,
+		isPrimary: boolean,
 		className?: string
 	) => {
 		switch (action) {
 			case 'accept':
 				return (
-					<ConsentWidgetAcceptAllButton key="accept" className={className} />
+					<ConsentWidgetAcceptAllButton
+						key="accept"
+						isPrimary={isPrimary}
+						className={className}
+					/>
 				);
 			case 'reject':
-				return <ConsentWidgetRejectButton key="reject" className={className} />;
+				return (
+					<ConsentWidgetRejectButton
+						key="reject"
+						isPrimary={isPrimary}
+						className={className}
+					/>
+				);
 			case 'customize':
 				return (
-					<ConsentWidgetSaveButton key="customize" className={className} />
+					<ConsentWidgetSaveButton
+						key="customize"
+						isPrimary={isPrimary}
+						className={className}
+					/>
 				);
 		}
 	};
@@ -77,17 +93,24 @@ export const ConsentWidget = ({
 				<ConsentWidgetAccordionItems />
 			</ConsentWidgetAccordion>
 			<ConsentWidgetFooter
-				className={cn(shouldFillActions && styles.footerFill)}
+				className={cn(
+					shouldFillActions && styles.footerFill,
+					direction === 'column' && styles.footerColumn
+				)}
 			>
 				{actionGroups.map((group, index) => (
 					<ConsentWidgetFooterSubGroup
 						key={`group-${group.join('-') || index}`}
 						themeKey="consentWidgetFooter"
-						className={cn(shouldFillActions && styles.footerGroupFill)}
+						className={cn(
+							shouldFillActions && styles.footerGroupFill,
+							direction === 'column' && styles.footerGroupColumn
+						)}
 					>
 						{group.map((action) =>
 							renderAction(
 								action,
+								action === dialog.primaryAction,
 								shouldFillActions ? styles.actionButtonFill : undefined
 							)
 						)}

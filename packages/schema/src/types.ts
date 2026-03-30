@@ -88,6 +88,12 @@ export {
 	stableStringify,
 } from './shared/policy-fingerprint';
 export type {
+	PolicyI18nMessageProfileLike,
+	PolicyI18nValidationOptions,
+	PolicyI18nValidationResult,
+} from './shared/policy-i18n-validation';
+export { validatePolicyI18nConfig } from './shared/policy-i18n-validation';
+export type {
 	EuropePolicyMode,
 	PolicyPackPresets,
 } from './shared/policy-pack-defaults';
@@ -101,12 +107,14 @@ export type {
 	PolicyPack,
 	PolicyScopeMode,
 	PolicyUiAction,
-	PolicyUiActionLayout,
+	PolicyUiActionDirection,
+	PolicyUiActionGroup,
 	PolicyUiMode,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
 	PolicyValidationResult,
 	ResolvedPolicyDecision,
+	ResolvedPolicyMatch,
 } from './shared/policy-runtime';
 export {
 	EEA_COUNTRY_CODES,
@@ -115,6 +123,7 @@ export {
 	POLICY_MATCH_DATASET_VERSION,
 	policyMatchers,
 	resolvePolicyDecision,
+	resolvePolicySync,
 	UK_COUNTRY_CODES,
 	validatePolicies,
 } from './shared/policy-runtime';

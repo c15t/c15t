@@ -30,10 +30,12 @@ export async function offlineFallbackForConsentBanner(
 	options?: FetchOptions<InitResponse>,
 	iabConfig?: IABFallbackConfig
 ): Promise<ResponseContext<InitResponse>> {
+	const fallbackPolicy = resolveFallbackPolicy({});
+
 	// Fetch GVL from external endpoint in offline/fallback mode
-	// Only when IAB is enabled on the client
+	// Only when IAB is enabled on the client and the fallback policy is IAB.
 	let gvl = null;
-	if (iabConfig?.enabled) {
+	if (iabConfig?.enabled && fallbackPolicy.model === 'iab') {
 		try {
 			const { fetchGVL } = await import('../../libs/iab-tcf/fetch-gvl');
 			gvl = await fetchGVL(iabConfig.vendorIds);
@@ -46,7 +48,7 @@ export async function offlineFallbackForConsentBanner(
 		countryCode: options?.headers?.['x-c15t-country'] ?? null,
 		regionCode: options?.headers?.['x-c15t-region'] ?? null,
 		gvl,
-		policy: resolveFallbackPolicy({}),
+		policy: fallbackPolicy,
 	});
 
 	return createFallbackContext(options, fallbackData);

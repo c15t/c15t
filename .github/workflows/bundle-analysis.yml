@@ -33,17 +33,14 @@ jobs:
         id: build-base
         timeout-minutes: 5
         run: |
-          if [ -f bun.lock ] || [ -f bun.lockb ]; then
-            bun install --frozen-lockfile || bun install
-            WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*" || true
-          elif [ -f pnpm-lock.yaml ]; then
-            corepack enable
-            pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
-            WITH_RSDOCTOR=1 pnpm exec turbo run build --filter="./packages/*" || true
-          else
+          if [ ! -f bun.lock ] && [ ! -f bun.lockb ]; then
             echo "No supported lockfile found for base branch"
             exit 1
           fi
+
+          bun install --frozen-lockfile || bun install
+          WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*" || true
+
           mkdir -p .bundle-base
           # Copy rsdoctor data files
           find packages -name "rsdoctor-data.json" -exec cp --parents {} .bundle-base/ \; || true
@@ -60,17 +57,13 @@ jobs:
         id: build-current
         timeout-minutes: 5
         run: |
-          if [ -f bun.lock ] || [ -f bun.lockb ]; then
-            bun install --frozen-lockfile --ignore-scripts || bun install --ignore-scripts
-            WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*"
-          elif [ -f pnpm-lock.yaml ]; then
-            corepack enable
-            pnpm install --frozen-lockfile --ignore-scripts || pnpm install --no-frozen-lockfile --ignore-scripts
-            WITH_RSDOCTOR=1 pnpm exec turbo run build --filter="./packages/*"
-          else
+          if [ ! -f bun.lock ] && [ ! -f bun.lockb ]; then
             echo "No supported lockfile found for current branch"
             exit 1
           fi
+
+          bun install --frozen-lockfile --ignore-scripts || bun install --ignore-scripts
+          WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*"
 
       # Step 5: Run bundle analysis (generate report only, no comment posting)
       - name: 📊 Analyze bundle differences

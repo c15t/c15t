@@ -9,17 +9,17 @@
 	"type": "module",
 	"exports": {
 		"./theme": {
-			"types": "./dist/theme/index.d.ts",
+			"types": "./dist-types/theme/index.d.ts",
 			"import": "./dist/theme/index.js",
 			"require": "./dist/theme/index.cjs"
 		},
 		"./utils": {
-			"types": "./dist/utils/index.d.ts",
+			"types": "./dist-types/utils/index.d.ts",
 			"import": "./dist/utils/index.js",
 			"require": "./dist/utils/index.cjs"
 		},
 		"./styles/primitives": {
-			"types": "./dist/styles/primitives/index.d.ts",
+			"types": "./dist-types/styles/primitives/index.d.ts",
 			"import": "./dist/styles/primitives/index.js",
 			"require": "./dist/styles/primitives/index.cjs"
 		},
@@ -35,16 +35,17 @@
 		},
 		"./styles/*": "./dist/styles/*",
 		".": {
-			"types": "./dist/index.d.ts",
+			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
 		}
 	},
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.js",
-	"types": "./dist/index.d.ts",
+	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",
+		"dist-types",
 		"src/styles",
 		"!src/styles/**/__tests__/**",
 		"!src/styles/**/*.test.ts"

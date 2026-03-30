@@ -1,0 +1,91 @@
+---
+title: Optimization
+description: Improve c15t startup performance in React with prefetching, proxy rewrites, and rendering tradeoffs.
+lastModified: 2026-03-17
+---
+
+<import src="../../shared/react/guides/optimization.mdx#intro" />
+
+## 1) Prefer Same-Origin Proxy
+
+Proxy c15t requests through your app server so the browser calls your own origin instead of a third-party domain.
+
+How you configure this depends on your framework — Vite has `server.proxy`, Remix has resource routes, and most deployment platforms support rewrite rules.
+
+Then use:
+
+```tsx
+<ConsentManagerProvider options={{ backendURL: '/api/c15t', mode: 'hosted' }}>
+```
+
+<import src="../../shared/react/guides/optimization.mdx#rewrites-why" />
+
+## 2) Prefetch Init Data Early
+
+Use `buildPrefetchScript()` from the `c15t` core package to start the `/init` request before your app hydrates. Inject the script as early as possible in your HTML `<head>`.
+
+<import src="../../shared/react/guides/optimization.mdx#benchmark" />
+
+### Inline Script Prefetch
+
+```tsx
+import { buildPrefetchScript } from 'c15t';
+
+const prefetchScript = buildPrefetchScript({
+  backendURL: '/api/c15t',
+});
+
+// In your HTML template or root component:
+<head>
+  <script dangerouslySetInnerHTML={{ __html: prefetchScript }} />
+</head>
+```
+
+Then consume the prefetched data in your provider:
+
+```tsx
+import {
+  ConsentManagerProvider,
+  ConsentBanner,
+  ConsentDialog,
+} from '@c15t/react';
+import { getPrefetchedInitialData } from 'c15t';
+
+export default function App({ children }: { children: React.ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: '/api/c15t',
+        ssrData: getPrefetchedInitialData({
+          backendURL: '/api/c15t',
+        }),
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<Callout type="info">
+  If you use `overrides` or custom `credentials` in `buildPrefetchScript`, pass the same values to `getPrefetchedInitialData(...)` so it resolves the matching prefetched request.
+</Callout>
+
+<import src="../../shared/react/guides/optimization.mdx#keep-mounted" />
+
+<import src="../../shared/react/guides/optimization.mdx#animation" />
+
+To customize motion durations and easing, see [Styling](/docs/frameworks/react/styling/overview).
+
+## Reduce Network Overhead
+
+<import src="../../shared/react/guides/optimization.mdx#preconnect" />
+
+```tsx
+<head>
+  <link rel="preconnect" href="https://your-instance.c15t.dev" crossOrigin="" />
+</head>
+```

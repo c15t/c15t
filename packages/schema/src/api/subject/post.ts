@@ -125,6 +125,15 @@ export const postSubjectErrorSchemas = {
 	policyCreationFailed: v.object({
 		type: v.string(),
 	}),
+	policySnapshotRequired: v.object({
+		code: v.literal('POLICY_SNAPSHOT_REQUIRED'),
+	}),
+	policySnapshotInvalid: v.object({
+		code: v.literal('POLICY_SNAPSHOT_INVALID'),
+	}),
+	policySnapshotExpired: v.object({
+		code: v.literal('POLICY_SNAPSHOT_EXPIRED'),
+	}),
 	purposeCreationFailed: v.object({
 		purposeCode: v.string(),
 	}),

@@ -82,6 +82,13 @@ export {
 	type PolicyValidationIssue,
 	validateUIAgainstPolicy,
 } from './libs/policy';
+export type { PrefetchOptions } from './libs/prefetch';
+// Export prefetch utilities
+export {
+	buildPrefetchScript,
+	ensurePrefetchedInitialData,
+	getPrefetchedInitialData,
+} from './libs/prefetch';
 // Export script loader
 export {
 	getLoadedScriptIds,
@@ -108,7 +115,8 @@ export type {
 	PolicyScopeMode,
 	PolicySurfaceState,
 	PolicyUiAction,
-	PolicyUiActionLayout,
+	PolicyUiActionDirection,
+	PolicyUiActionGroup,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
 	SSRInitialData,

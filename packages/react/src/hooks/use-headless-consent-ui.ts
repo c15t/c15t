@@ -4,11 +4,14 @@ import { useCallback, useMemo } from 'react';
 import {
 	hasPolicyHints,
 	type PolicyUiAction,
-	type PolicyUiActionLayout,
+	type PolicyUiActionDirection,
+	type PolicyUiActionGroup,
 	type PolicyUiProfile,
 	type PolicyUiSurfaceConfig,
 	resolvePolicyActionGroups,
-	resolvePolicyActionOrder,
+	resolvePolicyAllowedActions,
+	resolvePolicyDirection,
+	resolvePolicyOrderedActions,
 	resolvePolicyPrimaryAction,
 	shouldFillPolicyActions,
 } from '~/components/shared/libs/policy-actions';
@@ -27,7 +30,8 @@ export interface HeadlessConsentSurfaceState<
 	orderedActions: TAction[];
 	actionGroups: TAction[][];
 	primaryAction?: TAction;
-	actionLayout?: PolicyUiActionLayout;
+	layout?: PolicyUiActionGroup[];
+	direction: PolicyUiActionDirection;
 	uiProfile?: PolicyUiProfile;
 	scrollLock?: boolean;
 	hasPolicyHints: boolean;
@@ -76,16 +80,16 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 		policyBanner: {
 			allowedActions: policyBannerAllowedActions,
 			primaryAction: policyBannerPrimaryAction,
-			actionOrder: policyBannerActionOrder,
-			actionLayout: policyBannerActionLayout,
+			layout: policyBannerLayout,
+			direction: policyBannerDirection,
 			uiProfile: policyBannerUiProfile,
 			scrollLock: policyBannerScrollLock,
 		},
 		policyDialog: {
 			allowedActions: policyDialogAllowedActions,
 			primaryAction: policyDialogPrimaryAction,
-			actionOrder: policyDialogActionOrder,
-			actionLayout: policyDialogActionLayout,
+			layout: policyDialogLayout,
+			direction: policyDialogDirection,
 			uiProfile: policyDialogUiProfile,
 			scrollLock: policyDialogScrollLock,
 		},
@@ -97,15 +101,15 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 		() => ({
 			allowedActions: policyBannerAllowedActions,
 			primaryAction: policyBannerPrimaryAction,
-			actionOrder: policyBannerActionOrder,
-			actionLayout: policyBannerActionLayout,
+			layout: policyBannerLayout,
+			direction: policyBannerDirection,
 			uiProfile: policyBannerUiProfile,
 			scrollLock: policyBannerScrollLock,
 		}),
 		[
-			policyBannerActionLayout,
-			policyBannerActionOrder,
 			policyBannerAllowedActions,
+			policyBannerDirection,
+			policyBannerLayout,
 			policyBannerPrimaryAction,
 			policyBannerUiProfile,
 			policyBannerScrollLock,
@@ -116,15 +120,15 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 		() => ({
 			allowedActions: policyDialogAllowedActions,
 			primaryAction: policyDialogPrimaryAction,
-			actionOrder: policyDialogActionOrder,
-			actionLayout: policyDialogActionLayout,
+			layout: policyDialogLayout,
+			direction: policyDialogDirection,
 			uiProfile: policyDialogUiProfile,
 			scrollLock: policyDialogScrollLock,
 		}),
 		[
-			policyDialogActionLayout,
-			policyDialogActionOrder,
 			policyDialogAllowedActions,
+			policyDialogDirection,
+			policyDialogLayout,
 			policyDialogPrimaryAction,
 			policyDialogUiProfile,
 			policyDialogScrollLock,
@@ -132,18 +136,18 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 	);
 
 	const banner = useMemo<HeadlessConsentBannerState>(() => {
-		const allowedActions = resolvePolicyActionOrder({
+		const allowedActions = resolvePolicyAllowedActions({
 			allowedActions: policyBannerAllowedActions,
 		});
-		const orderedActions = resolvePolicyActionOrder({
-			allowedActions,
-			actionOrder: policyBannerActionOrder,
-		});
-
 		const actionGroups = resolvePolicyActionGroups({
-			orderedActions,
-			layout: policyBannerActionLayout ?? 'split',
+			allowedActions,
+			layout: policyBannerLayout,
 		});
+		const orderedActions = resolvePolicyOrderedActions({
+			allowedActions,
+			layout: policyBannerLayout,
+		});
+		const direction = resolvePolicyDirection(policyBannerDirection);
 
 		return {
 			allowedActions,
@@ -153,21 +157,23 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 				orderedActions,
 				primaryAction: policyBannerPrimaryAction,
 			}),
-			actionLayout: policyBannerActionLayout,
+			layout: policyBannerLayout,
+			direction,
 			uiProfile: policyBannerUiProfile,
 			scrollLock: policyBannerScrollLock,
 			hasPolicyHints: hasPolicyHints(bannerPolicyHints),
 			shouldFillActions: shouldFillPolicyActions({
 				uiProfile: policyBannerUiProfile,
 				actionGroups,
+				direction,
 			}),
 			isVisible: activeUI === 'banner',
 		};
 	}, [
 		activeUI,
-		policyBannerActionLayout,
-		policyBannerActionOrder,
 		policyBannerAllowedActions,
+		policyBannerDirection,
+		policyBannerLayout,
 		policyBannerPrimaryAction,
 		policyBannerUiProfile,
 		policyBannerScrollLock,
@@ -175,18 +181,18 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 	]);
 
 	const dialog = useMemo<HeadlessConsentDialogState>(() => {
-		const allowedActions = resolvePolicyActionOrder({
+		const allowedActions = resolvePolicyAllowedActions({
 			allowedActions: policyDialogAllowedActions,
 		});
-		const orderedActions = resolvePolicyActionOrder({
-			allowedActions,
-			actionOrder: policyDialogActionOrder,
-		});
-
 		const actionGroups = resolvePolicyActionGroups({
-			orderedActions,
-			layout: policyDialogActionLayout ?? 'split',
+			allowedActions,
+			layout: policyDialogLayout,
 		});
+		const orderedActions = resolvePolicyOrderedActions({
+			allowedActions,
+			layout: policyDialogLayout,
+		});
+		const direction = resolvePolicyDirection(policyDialogDirection);
 
 		return {
 			allowedActions,
@@ -196,21 +202,23 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 				orderedActions,
 				primaryAction: policyDialogPrimaryAction,
 			}),
-			actionLayout: policyDialogActionLayout,
+			layout: policyDialogLayout,
+			direction,
 			uiProfile: policyDialogUiProfile,
 			scrollLock: policyDialogScrollLock,
 			hasPolicyHints: hasPolicyHints(dialogPolicyHints),
 			shouldFillActions: shouldFillPolicyActions({
 				uiProfile: policyDialogUiProfile,
 				actionGroups,
+				direction,
 			}),
 			isVisible: activeUI === 'dialog',
 		};
 	}, [
 		activeUI,
-		policyDialogActionLayout,
-		policyDialogActionOrder,
 		policyDialogAllowedActions,
+		policyDialogDirection,
+		policyDialogLayout,
 		policyDialogPrimaryAction,
 		policyDialogUiProfile,
 		policyDialogScrollLock,

@@ -276,14 +276,16 @@ function createMaterialPolicyFingerprintInput(policy: ResolvedPolicy) {
 						? {
 								allowedActions: policy.ui.banner.allowedActions,
 								primaryAction: policy.ui.banner.primaryAction,
-								actionOrder: policy.ui.banner.actionOrder,
+								layout: policy.ui.banner.layout,
+								direction: policy.ui.banner.direction,
 							}
 						: undefined,
 					dialog: policy.ui.dialog
 						? {
 								allowedActions: policy.ui.dialog.allowedActions,
 								primaryAction: policy.ui.dialog.primaryAction,
-								actionOrder: policy.ui.dialog.actionOrder,
+								layout: policy.ui.dialog.layout,
+								direction: policy.ui.dialog.direction,
 							}
 						: undefined,
 				}

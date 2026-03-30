@@ -12,7 +12,7 @@ import {
 const originalCrypto = globalThis.crypto;
 
 const longPolicyLikeJson =
-	'{"consent":{"categories":["necessary","measurement"],"expiryDays":365,"scopeMode":"strict"},"id":"policy_runtime_us_ca","model":"opt-in","ui":{"banner":{"actionLayout":"inline","actionOrder":["accept","reject"],"allowedActions":["accept","reject"],"primaryAction":"accept","scrollLock":true,"uiProfile":"balanced"},"mode":"banner"}}';
+	'{"consent":{"categories":["necessary","measurement"],"expiryDays":365,"scopeMode":"strict"},"id":"policy_runtime_us_ca","model":"opt-in","ui":{"banner":{"allowedActions":["accept","reject"],"direction":"row","layout":[["accept","reject"]],"primaryAction":"accept","scrollLock":true,"uiProfile":"balanced"},"mode":"banner"}}';
 
 const goldenVectors = [
 	{
@@ -31,7 +31,7 @@ const goldenVectors = [
 		label: 'long policy-like json',
 		input: longPolicyLikeJson,
 		expected:
-			'8c405bf9f6e15ebff1236fe0338be1831c802752bc18f933c6f76d0637da6a8b',
+			'eae11b445c1f61bdc4f398a34e484570e56d43818c9ecc5cb9a95ebf4082bad6',
 	},
 ] as const;
 
@@ -100,8 +100,8 @@ describe('resolvePolicyDecision', () => {
 						banner: {
 							allowedActions: ['accept', 'reject'],
 							primaryAction: 'accept',
-							actionOrder: ['accept', 'reject'],
-							actionLayout: 'inline',
+							layout: [['accept', 'reject']],
+							direction: 'row',
 							uiProfile: 'balanced',
 							scrollLock: true,
 						},
@@ -140,8 +140,8 @@ describe('resolvePolicyDecision', () => {
 				banner: {
 					allowedActions: ['accept', 'reject'],
 					primaryAction: 'accept',
-					actionOrder: ['accept', 'reject'],
-					actionLayout: 'inline',
+					layout: [['accept', 'reject']],
+					direction: 'row',
 					uiProfile: 'balanced',
 					scrollLock: true,
 				},
@@ -178,8 +178,8 @@ describe('resolvePolicyDecision', () => {
 				banner: {
 					allowedActions: ['accept', 'reject'],
 					primaryAction: 'accept',
-					actionOrder: ['accept', 'reject'],
-					actionLayout: 'inline',
+					layout: [['accept', 'reject']],
+					direction: 'row',
 					uiProfile: 'balanced',
 					scrollLock: true,
 				},
@@ -200,8 +200,8 @@ describe('resolvePolicyDecision', () => {
 				banner: {
 					allowedActions: ['accept', 'reject'],
 					primaryAction: 'accept',
-					actionOrder: ['accept', 'reject'],
-					actionLayout: 'split',
+					layout: [['accept', 'reject']],
+					direction: 'row',
 					uiProfile: 'strict',
 					scrollLock: false,
 				},
@@ -210,6 +210,80 @@ describe('resolvePolicyDecision', () => {
 
 		await expect(createMaterialPolicyFingerprint(basePolicy)).resolves.toBe(
 			await createMaterialPolicyFingerprint(presentationVariant)
+		);
+	});
+
+	it('changes the material policy fingerprint when banner layout changes', async () => {
+		const basePolicy: Parameters<typeof createMaterialPolicyFingerprint>[0] = {
+			id: 'policy_runtime_us_ca',
+			model: 'opt-in',
+			consent: {
+				expiryDays: 365,
+				scopeMode: 'strict',
+				categories: ['necessary', 'measurement'],
+			},
+			ui: {
+				mode: 'banner',
+				banner: {
+					allowedActions: ['accept', 'reject', 'customize'],
+					primaryAction: 'accept',
+					layout: [['accept', 'reject'], 'customize'],
+					direction: 'row',
+				},
+			},
+		};
+
+		const changedPolicy: Parameters<typeof createMaterialPolicyFingerprint>[0] =
+			{
+				...basePolicy,
+				ui: {
+					mode: 'banner',
+					banner: {
+						...(basePolicy.ui?.banner ?? {}),
+						layout: [['accept', 'reject', 'customize']],
+					},
+				},
+			};
+
+		await expect(createMaterialPolicyFingerprint(basePolicy)).resolves.not.toBe(
+			await createMaterialPolicyFingerprint(changedPolicy)
+		);
+	});
+
+	it('changes the material policy fingerprint when banner direction changes', async () => {
+		const basePolicy: Parameters<typeof createMaterialPolicyFingerprint>[0] = {
+			id: 'policy_runtime_us_ca',
+			model: 'opt-in',
+			consent: {
+				expiryDays: 365,
+				scopeMode: 'strict',
+				categories: ['necessary', 'measurement'],
+			},
+			ui: {
+				mode: 'banner',
+				banner: {
+					allowedActions: ['accept', 'reject'],
+					primaryAction: 'accept',
+					layout: [['accept', 'reject']],
+					direction: 'row',
+				},
+			},
+		};
+
+		const changedPolicy: Parameters<typeof createMaterialPolicyFingerprint>[0] =
+			{
+				...basePolicy,
+				ui: {
+					mode: 'banner',
+					banner: {
+						...(basePolicy.ui?.banner ?? {}),
+						direction: 'column',
+					},
+				},
+			};
+
+		await expect(createMaterialPolicyFingerprint(basePolicy)).resolves.not.toBe(
+			await createMaterialPolicyFingerprint(changedPolicy)
 		);
 	});
 
@@ -227,7 +301,8 @@ describe('resolvePolicyDecision', () => {
 				banner: {
 					allowedActions: ['accept', 'reject'],
 					primaryAction: 'accept',
-					actionOrder: ['accept', 'reject'],
+					layout: [['accept', 'reject']],
+					direction: 'row',
 				},
 			},
 			proof: {
@@ -367,7 +442,7 @@ describe('inspectPolicies validation', () => {
 		expect(result.errors.some((e) => e.includes('primaryAction'))).toBe(true);
 	});
 
-	it('errors when actionOrder contains actions not in allowedActions', () => {
+	it('errors when layout contains actions not in allowedActions', () => {
 		const result = inspectPolicies([
 			{
 				id: 'test',
@@ -377,7 +452,7 @@ describe('inspectPolicies validation', () => {
 					mode: 'banner',
 					banner: {
 						allowedActions: ['accept', 'reject'],
-						actionOrder: ['accept', 'customize'],
+						layout: [['accept', 'customize']],
 					},
 				},
 			},
@@ -385,9 +460,7 @@ describe('inspectPolicies validation', () => {
 
 		expect(result.errors.length).toBeGreaterThan(0);
 		expect(
-			result.errors.some(
-				(e) => e.includes('actionOrder') && e.includes('customize')
-			)
+			result.errors.some((e) => e.includes('layout') && e.includes('customize'))
 		).toBe(true);
 	});
 

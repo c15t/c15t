@@ -77,11 +77,12 @@ export const defaultTheme: Required<Omit<Theme, 'slots'>> = {
 		md: '0 4px 12px hsla(0, 0%, 0%, 0.08)',
 		lg: '0 8px 24px hsla(0, 0%, 0%, 0.12)',
 	},
+	consentActions: {},
 	motion: {
 		duration: {
-			fast: '100ms',
-			normal: '200ms',
-			slow: '300ms',
+			fast: '80ms',
+			normal: '150ms',
+			slow: '200ms',
 		},
 		easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
 		// ease-out-cubic: fast start, smooth end - ideal for enter/exit

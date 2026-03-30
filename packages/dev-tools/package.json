@@ -10,9 +10,30 @@
 	},
 	"license": "GPL-3.0-only",
 	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist-types/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		},
+		"./react": {
+			"types": "./dist-types/react.d.ts",
+			"import": "./dist/react.js",
+			"require": "./dist/react.cjs"
+		},
+		"./tanstack": {
+			"types": "./dist-types/tanstack.d.ts",
+			"import": "./dist/tanstack.js",
+			"require": "./dist/tanstack.cjs"
+		}
+	},
 	"main": "dist/index.cjs",
 	"module": "dist/index.js",
-	"types": "dist/index.d.ts",
+	"types": "./dist-types/index.d.ts",
+	"files": [
+		"dist",
+		"dist-types"
+	],
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",

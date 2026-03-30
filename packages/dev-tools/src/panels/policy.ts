@@ -156,8 +156,8 @@ export function renderPolicyPanel(
 interface SurfaceState {
 	allowedActions?: string[] | null;
 	primaryAction?: string | null;
-	actionOrder?: string[] | null;
-	actionLayout?: string | null;
+	layout?: Array<string | string[]> | null;
+	direction?: string | null;
 	uiProfile?: string | null;
 	scrollLock?: boolean | null;
 }
@@ -167,13 +167,21 @@ function buildSurfaceCards(
 	policySurface: SurfaceState | undefined,
 	storeSurface: SurfaceState
 ): HTMLElement[] {
+	const policyLayout =
+		Array.isArray(policySurface?.layout) && policySurface.layout.length === 0
+			? null
+			: (policySurface?.layout ?? null);
+	const storeLayout =
+		Array.isArray(storeSurface.layout) && storeSurface.layout.length === 0
+			? null
+			: (storeSurface.layout ?? null);
 	const actions = formatList(
 		policySurface?.allowedActions ?? storeSurface.allowedActions
 	);
 	const primary =
 		policySurface?.primaryAction ?? storeSurface.primaryAction ?? null;
-	const layout =
-		policySurface?.actionLayout ?? storeSurface.actionLayout ?? null;
+	const layout = policyLayout ?? storeLayout;
+	const direction = policySurface?.direction ?? storeSurface.direction ?? null;
 	const profile = policySurface?.uiProfile ?? storeSurface.uiProfile ?? null;
 	const scrollLock =
 		policySurface?.scrollLock ?? storeSurface.scrollLock ?? null;
@@ -183,6 +191,7 @@ function buildSurfaceCards(
 		actions === '—' &&
 		!primary &&
 		!layout &&
+		!direction &&
 		!profile &&
 		scrollLock === null
 	) {
@@ -195,7 +204,21 @@ function buildSurfaceCards(
 		cards.push(createCard(`${prefix} Primary`, primary));
 	}
 	if (layout) {
-		cards.push(createCard(`${prefix} Layout`, layout));
+		cards.push(
+			createCard(
+				`${prefix} Layout`,
+				Array.isArray(layout)
+					? layout
+							.map((group) =>
+								Array.isArray(group) ? `[${group.join(', ')}]` : group
+							)
+							.join(' / ')
+					: layout
+			)
+		);
+	}
+	if (direction) {
+		cards.push(createCard(`${prefix} Direction`, direction));
 	}
 	if (profile) {
 		cards.push(createCard(`${prefix} Profile`, profile));

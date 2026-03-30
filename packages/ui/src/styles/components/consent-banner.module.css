@@ -11,7 +11,7 @@
 	--consent-banner-max-width: 440px;
 
 	/* Animation variables */
-	--consent-banner-animation-duration: var(--c15t-duration-normal);
+	--consent-banner-animation-duration: var(--c15t-duration-fast);
 	--consent-banner-animation-timing: var(--c15t-easing);
 	--consent-banner-entry-animation: enter var(--c15t-duration-fast)
 		var(--c15t-easing);
@@ -259,7 +259,15 @@
 		flex-direction: column;
 	}
 
+	.footerColumn {
+		flex-direction: column;
+	}
+
 	.footerSubGroupFill {
+		width: 100%;
+	}
+
+	.footerSubGroupColumn {
 		width: 100%;
 	}
 

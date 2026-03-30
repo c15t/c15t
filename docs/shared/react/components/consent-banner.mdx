@@ -34,13 +34,44 @@
   <ConsentBanner layout={['accept', ['reject', 'customize']]} />
   ```
 
+  To stack groups vertically, pair the same grouped layout with `direction="column"`:
+
+  ```tsx
+  <ConsentBanner
+    layout={['customize', ['reject', 'accept']]}
+    direction="column"
+  />
+  ```
+
   ## Policy-Driven UI Profile
 
   When using backend runtime policies, `policy.ui.uiProfile` can control banner action presentation:
 
   - `compact` — default desktop sizing
-  - `balanced` — auto-fills buttons for 1-action, 2-action, and 3-action split layouts
+  - `balanced` — auto-fills compact and grouped layouts with moderate emphasis
   - `strict` — always fills action controls for explicit, high-clarity layouts
+
+  ## Theme-Level Button Styling
+
+  Use the provider `theme` prop to control how stock consent actions look:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      theme: {
+        consentActions: {
+          default: { mode: 'stroke' },
+          accept: { variant: 'primary', mode: 'stroke' },
+          customize: { variant: 'neutral', mode: 'ghost' },
+        },
+      },
+    }}
+  >
+    <ConsentBanner />
+  </ConsentManagerProvider>
+  ```
+
+  Policy packs control grouping, ordering, and direction. The theme controls button appearance.
 
   ### Primary Button
 
