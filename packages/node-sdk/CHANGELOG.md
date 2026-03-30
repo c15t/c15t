@@ -1,5 +1,23 @@
 # @c15t/node-sdk
 
+## 2.0.0-rc.5
+
+### Patch Changes
+
+- e79f840: Separate published declaration files from runtime bundles to improve Vite compatibility
+
+  - Move generated `.d.ts` files out of `dist/` into `dist-types/` across published packages
+  - Stop emitting declaration maps in shared TypeScript config so `.d.ts.map` files are no longer published
+  - Emit declarations only once per package to avoid unstable output when both `esm` and `cjs` builds write types
+  - Update package `types` metadata, publish file lists, Turbo outputs, and publish artifact checks for the new layout
+  - Verify the package layout works in Vite 7 without `optimizeDeps.exclude` workarounds for `c15t` and `@c15t/react`
+
+- Updated dependencies [021ac99]
+- Updated dependencies [cfe1b2e]
+- Updated dependencies [e79f840]
+- Updated dependencies [372cf92]
+  - @c15t/backend@2.0.0-rc.5
+
 ## 1.8.5
 
 ### Patch Changes

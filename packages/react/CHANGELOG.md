@@ -1,5 +1,31 @@
 # @c15t/react
 
+## 2.0.0-rc.5
+
+### Patch Changes
+
+- 021ac99: Bundle version-matched docs inside published c15t packages under `docs/**` for local agent and developer reference.
+
+  Remove CLI `AGENTS.md` generation. Use the bundled package docs directly alongside c15t agent skills.
+
+- e79f840: Separate published declaration files from runtime bundles to improve Vite compatibility
+
+  - Move generated `.d.ts` files out of `dist/` into `dist-types/` across published packages
+  - Stop emitting declaration maps in shared TypeScript config so `.d.ts.map` files are no longer published
+  - Emit declarations only once per package to avoid unstable output when both `esm` and `cjs` builds write types
+  - Update package `types` metadata, publish file lists, Turbo outputs, and publish artifact checks for the new layout
+  - Verify the package layout works in Vite 7 without `optimizeDeps.exclude` workarounds for `c15t` and `@c15t/react`
+
+- Updated dependencies [021ac99]
+- Updated dependencies [5f30a3b]
+- Updated dependencies [58fb392]
+- Updated dependencies [e79f840]
+- Updated dependencies [58fb392]
+- Updated dependencies [60a51f1]
+- Updated dependencies [372cf92]
+  - c15t@2.0.0-rc.5
+  - @c15t/ui@2.0.0-rc.5
+
 ## Unreleased
 
 - Bundle version-matched docs in the published package under `docs/**` for local developer and agent reference.

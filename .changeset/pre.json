@@ -19,24 +19,36 @@
 		"@c15t/schema": "1.8.0",
 		"@c15t/scripts": "1.0.1",
 		"@c15t/translations": "1.8.0",
-		"@c15t/ui": "1.0.0"
+		"@c15t/ui": "1.0.0",
+		"c15t-v1-codemod-fixture": "1.0.0"
 	},
 	"changesets": [
 		"beige-memes-run",
 		"big-memes-lead",
 		"bold-sites-hunt",
+		"bright-cars-rest",
+		"bright-stars-prefetch",
 		"common-pots-tease",
+		"edge-init-handler",
 		"fair-steaks-rush",
+		"flat-rivers-act",
 		"fresh-bottles-bake",
 		"fresh-mirrors-drop",
+		"green-walls-care",
 		"happy-impalas-move",
 		"late-pandas-turn",
 		"legal-plums-hug",
+		"nervous-kiwis-fix",
+		"olive-buckets-share",
+		"plenty-clocks-tap",
 		"pretty-cooks-write",
 		"puny-loops-smile",
 		"shy-cycles-call",
 		"silent-spies-work",
 		"slow-mugs-fold",
-		"thirty-oranges-teach"
+		"soft-pandas-wait",
+		"tall-toes-dance",
+		"thirty-oranges-teach",
+		"warm-foxes-glow"
 	]
 }
