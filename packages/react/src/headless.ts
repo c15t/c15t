@@ -35,15 +35,8 @@ export {
 	type UseHeadlessConsentUIResult,
 	useHeadlessConsentUI,
 } from './hooks/use-headless-consent-ui';
-export {
-	type HeadlessIABBannerAction,
-	type HeadlessIABBannerState,
-	type HeadlessIABDialogAction,
-	type HeadlessIABDialogState,
-	type HeadlessIABPreferenceTab,
-	type UseHeadlessIABConsentUIResult,
-	useHeadlessIABConsentUI,
-} from './hooks/use-headless-iab-consent-ui';
+// IAB headless hook — moved to @c15t/react/iab subpath.
+// Import from '@c15t/react/iab' instead of '@c15t/react/headless'.
 export { useTranslations } from './hooks/use-translations';
 export { ConsentManagerProvider } from './providers/consent-manager-provider';
 

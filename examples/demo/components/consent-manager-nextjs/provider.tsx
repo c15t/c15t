@@ -5,9 +5,8 @@ import {
 	ConsentDialog,
 	ConsentDialogTrigger,
 	ConsentManagerProvider,
-	IABConsentBanner,
-	IABConsentDialog,
 } from '@c15t/nextjs';
+import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
 import CookieBanner from './cookie-banner';
 
 export default function ({ children }: ConsentManagerProps) {

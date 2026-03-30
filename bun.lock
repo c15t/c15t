@@ -64,6 +64,7 @@
         "@c15t/backend": "workspace:*",
         "@c15t/cli": "workspace:*",
         "@c15t/dev-tools": "workspace:*",
+        "@c15t/iab": "workspace:*",
         "@c15t/nextjs": "workspace:*",
         "@c15t/node-sdk": "workspace:*",
         "@c15t/react": "workspace:*",
@@ -175,7 +176,7 @@
     },
     "packages/backend": {
       "name": "@c15t/backend",
-      "version": "2.0.0-rc.4",
+      "version": "2.0.0-rc.5",
       "dependencies": {
         "@c15t/logger": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -209,7 +210,7 @@
     },
     "packages/cli": {
       "name": "@c15t/cli",
-      "version": "2.0.0-rc.4",
+      "version": "2.0.0-rc.5",
       "bin": {
         "cli": "dist/index.mjs",
       },
@@ -248,11 +249,10 @@
     },
     "packages/core": {
       "name": "c15t",
-      "version": "2.0.0-rc.4",
+      "version": "2.0.0-rc.5",
       "dependencies": {
         "@c15t/schema": "workspace:*",
         "@c15t/translations": "workspace:*",
-        "@iabtechlabtcf/core": "^1.5.20",
         "zustand": "5.0.9",
       },
       "devDependencies": {
@@ -264,7 +264,7 @@
     },
     "packages/dev-tools": {
       "name": "@c15t/dev-tools",
-      "version": "1.8.5",
+      "version": "2.0.0-rc.5",
       "dependencies": {
         "@radix-ui/react-accordion": "1.2.12",
         "@radix-ui/react-scroll-area": "^1.2.10",
@@ -293,9 +293,23 @@
         "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
       },
     },
+    "packages/iab": {
+      "name": "@c15t/iab",
+      "version": "2.0.0-rc.4",
+      "dependencies": {
+        "@c15t/schema": "workspace:*",
+        "@iabtechlabtcf/core": "^1.5.20",
+        "c15t": "workspace:*",
+      },
+      "devDependencies": {
+        "@c15t/typescript-config": "workspace:*",
+        "@c15t/vitest-config": "workspace:*",
+        "genversion": "3.2.0",
+      },
+    },
     "packages/logger": {
       "name": "@c15t/logger",
-      "version": "1.0.1",
+      "version": "1.0.2-rc.0",
       "dependencies": {
         "chalk": "^5.4.1",
         "neverthrow": "^8.2.0",
@@ -308,7 +322,7 @@
     },
     "packages/nextjs": {
       "name": "@c15t/nextjs",
-      "version": "2.0.0-rc.4",
+      "version": "2.0.0-rc.5",
       "dependencies": {
         "@c15t/react": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -329,7 +343,7 @@
     },
     "packages/node-sdk": {
       "name": "@c15t/node-sdk",
-      "version": "1.8.5",
+      "version": "2.0.0-rc.5",
       "dependencies": {
         "@c15t/backend": "workspace:*",
         "@orpc/client": "1.13.6",
@@ -353,7 +367,7 @@
     },
     "packages/react": {
       "name": "@c15t/react",
-      "version": "2.0.0-rc.4",
+      "version": "2.0.0-rc.5",
       "dependencies": {
         "@c15t/ui": "workspace:*",
         "@radix-ui/react-accordion": "1.2.12",
@@ -376,7 +390,7 @@
     },
     "packages/schema": {
       "name": "@c15t/schema",
-      "version": "2.0.0-rc.2",
+      "version": "2.0.0-rc.3",
       "dependencies": {
         "valibot": "1.2.0",
       },
@@ -387,7 +401,7 @@
     },
     "packages/scripts": {
       "name": "@c15t/scripts",
-      "version": "1.0.1",
+      "version": "1.0.2-rc.0",
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
@@ -396,7 +410,7 @@
     },
     "packages/translations": {
       "name": "@c15t/translations",
-      "version": "1.8.5",
+      "version": "2.0.0-rc.5",
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
@@ -405,7 +419,7 @@
     },
     "packages/ui": {
       "name": "@c15t/ui",
-      "version": "2.0.0-rc.4",
+      "version": "2.0.0-rc.5",
       "dependencies": {
         "@c15t/translations": "workspace:*",
         "c15t": "workspace:*",
@@ -548,6 +562,8 @@
     "@c15t/cli": ["@c15t/cli@workspace:packages/cli"],
 
     "@c15t/dev-tools": ["@c15t/dev-tools@workspace:packages/dev-tools"],
+
+    "@c15t/iab": ["@c15t/iab@workspace:packages/iab"],
 
     "@c15t/logger": ["@c15t/logger@workspace:packages/logger"],
 
@@ -4338,8 +4354,6 @@
     "pigeon-post/@types/react": ["@types/react@19.2.10", "", { "dependencies": { "csstype": "^3.2.2" } }, "sha512-WPigyYuGhgZ/cTPRXB2EwUw+XvsRA3GqHlsP4qteqrnnjDrApbS7MxcGr/hke5iUoeB7E/gQtrs9I37zAJ0Vjw=="],
 
     "pigeon-post/lucide-react": ["lucide-react@0.454.0", "", { "peerDependencies": { "react": "^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0-rc" } }, "sha512-hw7zMDwykCLnEzgncEEjHeA6+45aeEzRYuKHuyRSOPkhko+J3ySGjGIzu+mmMfDFG1vazHepMaYFYHbTFAZAAQ=="],
-
-    "pigeon-post/postcss": ["postcss@8.5.6", "", { "dependencies": { "nanoid": "^3.3.11", "picocolors": "^1.1.1", "source-map-js": "^1.2.1" } }, "sha512-3Ybi1tAuwAP9s0r1UQ2J4n5Y0G05bJkpUIO0/bI9MhwmD70S5aTWbXGBwxHrelT+XM1k6dM0pk+SwNkpTRN7Pg=="],
 
     "pigeon-post/react": ["react@19.2.0", "", {}, "sha512-tmbWg6W31tQLeB5cdIBOicJDJRR2KzXsV7uSK9iNfLWQ5bIZfxuPEHp7M8wiHyHnn0DD1i7w3Zmin0FtkrwoCQ=="],
 
