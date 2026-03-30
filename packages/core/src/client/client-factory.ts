@@ -450,6 +450,7 @@ export function configureConsentManager(
 							enabled: iabConfig.enabled,
 							vendorIds: iabConfig.vendors,
 							gvl: iabConfig.gvl,
+							_module: iabConfig._module,
 						}
 					: undefined,
 				policyConfig
@@ -471,6 +472,7 @@ export function configureConsentManager(
 							enabled: iabConfig.enabled,
 							vendorIds: iabConfig.vendors,
 							gvl: iabConfig.gvl,
+							_module: iabConfig._module,
 						}
 					: undefined,
 			});

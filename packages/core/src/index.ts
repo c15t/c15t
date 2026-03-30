@@ -67,7 +67,16 @@ export {
 } from './libs/generate-subject-id';
 export type { HasCondition, HasOptions } from './libs/has';
 export { has } from './libs/has';
-export type { IABConfig } from './libs/iab-tcf/types';
+export type {
+	CMPApi,
+	CMPApiConfig,
+	FetchGVLResult,
+	IABActions,
+	IABConfig,
+	IABManager,
+	IABModule,
+	IABState,
+} from './libs/iab-tcf/types';
 export {
 	createIframeBlocker,
 	type IframeBlocker,
@@ -75,6 +84,7 @@ export {
 } from './libs/iframe-blocker';
 export type { NetworkBlockerConfig } from './libs/network-blocker';
 export {
+	applyPolicyPurposeAllowlist,
 	applyPolicyScopeForRuntimeGating,
 	filterConsentCategoriesByPolicy,
 	getEffectivePolicy,

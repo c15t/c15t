@@ -226,6 +226,44 @@ export interface CMPApi {
 }
 
 /**
+ * Contract for the IAB addon module.
+ *
+ * @remarks
+ * Injected via `iab()` from `@c15t/iab`. Core never imports IAB runtime
+ * code directly — it calls these methods through the injected module.
+ *
+ * @public
+ */
+export interface IABModule {
+	/** Creates the IAB manager instance for the store. */
+	createIABManager: (
+		config: IABConfig,
+		get: () => import('../../store/type').ConsentStoreState,
+		set: (
+			partial: Partial<import('../../store/type').ConsentStoreState>
+		) => void,
+		manager: import('../../client/client-interface').ConsentManagerInterface
+	) => IABManager;
+
+	/** Initializes IAB mode (stub, GVL, CMP API). */
+	initializeIABMode: (
+		config: IABConfig,
+		storeAccess: {
+			get: () => import('../../store/type').ConsentStoreState;
+			set: (
+				partial: Partial<import('../../store/type').ConsentStoreState>
+			) => void;
+		},
+		prefetchedGVL?: import('../../types/iab-tcf').GlobalVendorList | null
+	) => Promise<void>;
+
+	/** Fetches the Global Vendor List. Used by client fallback paths. */
+	fetchGVL?: (
+		vendorIds?: number[]
+	) => Promise<import('../../types/iab-tcf').GlobalVendorList | null>;
+}
+
+/**
  * IAB configuration for the consent manager store.
  *
  * @public
@@ -242,6 +280,17 @@ export interface IABConfig {
 	 * Note: Only works in 'hosted' client mode (legacy alias: 'c15t') because it requires a backend.
 	 */
 	enabled: boolean;
+
+	/**
+	 * IAB runtime module injected by `@c15t/iab`.
+	 *
+	 * @remarks
+	 * This is set automatically by the `iab()` factory from `@c15t/iab`.
+	 * Do not set this manually — use `iab({ ... })` instead.
+	 *
+	 * @internal
+	 */
+	_module?: IABModule;
 
 	/**
 	 * CMP ID registered with IAB Europe.

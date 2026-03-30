@@ -40,7 +40,15 @@ import type {
 } from '../types';
 
 // Re-export IAB types for external consumers
-export type { IABActions, IABManager, IABState } from '../libs/iab-tcf/types';
+export type {
+	CMPApi,
+	CMPApiConfig,
+	FetchGVLResult,
+	IABActions,
+	IABManager,
+	IABModule,
+	IABState,
+} from '../libs/iab-tcf/types';
 
 /**
  * Describes which consent UI component should currently be visible.

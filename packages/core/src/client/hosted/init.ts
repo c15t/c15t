@@ -34,11 +34,14 @@ export async function offlineFallbackForConsentBanner(
 
 	// Fetch GVL from external endpoint in offline/fallback mode
 	// Only when IAB is enabled on the client and the fallback policy is IAB.
+	// Uses the injected IAB module's fetchGVL if available.
 	let gvl = null;
 	if (iabConfig?.enabled && fallbackPolicy.model === 'iab') {
 		try {
-			const { fetchGVL } = await import('../../libs/iab-tcf/fetch-gvl');
-			gvl = await fetchGVL(iabConfig.vendorIds);
+			const fetchGVL = iabConfig._module?.fetchGVL;
+			if (fetchGVL) {
+				gvl = await fetchGVL(iabConfig.vendorIds);
+			}
 		} catch (error) {
 			console.warn('Failed to fetch GVL in offline fallback:', error);
 		}

@@ -293,8 +293,10 @@ export async function init(
 			gvl = iabConfig.gvl;
 		} else {
 			try {
-				const { fetchGVL } = await import('../../libs/iab-tcf/fetch-gvl');
-				gvl = await fetchGVL(iabConfig.vendorIds);
+				const fetchGVL = iabConfig._module?.fetchGVL;
+				if (fetchGVL) {
+					gvl = await fetchGVL(iabConfig.vendorIds);
+				}
 			} catch (error) {
 				console.warn('Failed to fetch GVL in offline mode:', error);
 			}
