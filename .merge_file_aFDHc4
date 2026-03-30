@@ -1,0 +1,30 @@
+{
+	"name": "@c15t/bundle-analysis-action",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Analyze bundle size differences using rsdoctor and comment on PRs",
+	"author": "c15t",
+	"license": "MIT",
+	"main": "dist/index.js",
+	"engines": {
+		"node": ">=18"
+	},
+	"scripts": {
+		"build": "ncc build src/main.ts -o dist -m",
+		"check-types": "tsc --noEmit",
+		"test": "vitest run",
+		"fmt": "pnpm biome format --write . && pnpm biome check --formatter-enabled=false --linter-enabled=false --write",
+		"lint": "pnpm biome lint ./src"
+	},
+	"dependencies": {
+		"@actions/core": "^1.11.1",
+		"@actions/github": "^6.0.1",
+		"@actions/glob": "^0.5.0"
+	},
+	"devDependencies": {
+		"@types/node": "^24.3.0",
+		"@vercel/ncc": "^0.38.3",
+		"tsx": "^4.19.3",
+		"vitest": "^4.0.8"
+	}
+}

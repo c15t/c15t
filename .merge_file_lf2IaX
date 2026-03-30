@@ -1,0 +1,64 @@
+{
+	"name": "@c15t/cli",
+	"version": "2.0.0-rc.4",
+	"description": "CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a preferences centre, generate types and config, and run migration tooling for self-hosted deployments.",
+	"homepage": "https://v2.c15t.com",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/cli"
+	},
+	"license": "GPL-3.0-only",
+	"type": "module",
+	"exports": "./dist/index.mjs",
+	"main": "./dist/index.mjs",
+	"module": "dist/index.mjs",
+	"bin": {
+		"cli": "dist/index.mjs"
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "rslib build",
+		"check-types": "tsc --noEmit",
+		"dev": "rslib build",
+		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
+		"knip": "knip",
+		"lint": "bun biome lint ./src",
+		"start": "node ./dist/index.mjs",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"dependencies": {
+		"@c15t/backend": "workspace:*",
+		"@c15t/logger": "workspace:*",
+		"@clack/prompts": "0.11.0",
+		"@modelcontextprotocol/sdk": "^1.0.0",
+		"c12": "3.3.2",
+		"dotenv": "17.2.3",
+		"figlet": "1.9.4",
+		"fs-extra": "11.3.2",
+		"open": "11.0.0",
+		"package-manager-detector": "1.6.0",
+		"picocolors": "1.1.1",
+		"posthog-node": "5.17.0",
+		"ts-morph": "27.0.2",
+		"xstate": "^5.26.0",
+		"zod": "4.1.13"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"@types/figlet": "1.7.0",
+		"@types/fs-extra": "11.0.4",
+		"@types/prettier": "^3.0.0",
+		"prettier": "^3.8.1"
+	},
+	"publishConfig": {
+		"access": "public",
+		"executableFiles": [
+			"./dist/index.mjs"
+		]
+	}
+}

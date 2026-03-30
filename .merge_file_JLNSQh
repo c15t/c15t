@@ -1,53 +1,25 @@
 # @c15t/cli
 
-## Unreleased
-
-- Bundle version-matched c15t docs in the published packages under `docs/**` for local developer and agent reference. Use the bundled docs directly together with c15t agent skills.
-
-## 2.0.0-rc.4
+## 1.8.5
 
 ### Patch Changes
 
-- Updated dependencies [4c8435c]
-  - @c15t/backend@2.0.0-rc.4
+- be4e218: Republish patch release to fix workspace dependency protocol resolution during publish.
 
-## 2.0.0-rc.3
+  Published package manifests now resolve `workspace:*` references to concrete semver ranges before release.
 
-### Patch Changes
+- Updated dependencies [be4e218]
+  - @c15t/backend@1.8.5
+  - @c15t/react@1.8.5
 
-- Updated dependencies [0a18fb6]
-  - @c15t/backend@2.0.0-rc.3
-
-## 2.0.0-rc.2
+## 1.8.4
 
 ### Patch Changes
 
-- 732d44f: feat(dev-tools): add DevTools export
-  feat(cli): add support for file structures like [locale]
-  feat(cli): add c15t/skills
-- Updated dependencies [408df0e]
-  - @c15t/backend@2.0.0-rc.2
-
-## 2.0.0-rc.1
-
-### Patch Changes
-
-- 0bc4f86: fixed workspace resolving
-- Updated dependencies [0bc4f86]
-  - @c15t/backend@2.0.0-rc.1
-  - @c15t/logger@2.0.0-rc.1
-
-## 2.0.0-rc.0
-
-### Major Changes
-
-- 126a78b: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
-
-### Patch Changes
-
-- Updated dependencies [126a78b]
-  - @c15t/backend@2.0.0-rc.0
-  - @c15t/logger@2.0.0-rc.0
+- 8defcd9: Update direct and transitive dependencies to address known vulnerabilities and keep runtime/tooling packages current.
+- Updated dependencies [8defcd9]
+  - @c15t/backend@1.8.4
+  - @c15t/react@1.8.4
 
 ## 1.8.3
 
@@ -84,7 +56,7 @@
   - fix(react): Frame component CSS overriding
   - fix(react): Legal links using the asChild slot causing multi-child error
 
-  https://v2.c15t.com/changelog/2025-12-12-v1.8.2
+  https://c15t.com/changelog/2025-12-12-v1.8.2
 
 - Updated dependencies [2ce4d5a]
   - @c15t/react@1.8.2
@@ -167,7 +139,7 @@
 
 ### Minor Changes
 
-- aa16d03: You can find the full changelog at https://v2.c15t.com/changelog/2025-10-11-v1.7.0
+- aa16d03: You can find the full changelog at https://c15t.com/changelog/2025-10-11-v1.7.0
 
 ### Patch Changes
 
@@ -209,7 +181,7 @@
 
 ### Minor Changes
 
-- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://v2.c15t.com/changelog/2025-09-08-v1.6.0).
+- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://c15t.com/changelog/2025-09-08-v1.6.0).
 
 ### Patch Changes
 

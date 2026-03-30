@@ -1,0 +1,49 @@
+name: autofix.ci
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Check out code
+        uses: actions/checkout@v4
+
+      # Setup pnpm and Node.js, caching pnpm store
+      - name: 🅿️ Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: 🟢 Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22 # Or your preferred Node.js version
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install
+
+      # Cache Biome for faster formatting
+      - name: ⚡ Cache Biome
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/biome
+          key: ${{ runner.os }}-biome-${{ hashFiles('**/biome.json') }}
+          restore-keys: |
+            ${{ runner.os }}-biome-
+
+      - name: ✨ Format code
+        run: pnpm fmt
+
+      - name: 📦 Format package.json
+        run: npx --yes sort-package-json "package.json" "packages/*/package.json"
+
+      - name: 📚 Format Docs 
+        run: pnpm fmt:docs
+
+      - uses: autofix-ci/action@ff86a557419858bb967097bfc916833f5647fa8c

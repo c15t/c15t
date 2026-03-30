@@ -30,6 +30,7 @@ This RC introduces **policy packs** — the biggest addition since the v2 rewrit
 - [CLI consent.io integration](#cli-improvements) and new v1→v2 codemods
 - [Dev-tools policy panel](#dev-tools-policy-panel) for inspecting match resolution in real time
 - [Naming & DX improvements](#naming--dx-improvements) across hosted/offline modes, i18n, and legal links
+- [Bundled package docs](#bundled-package-docs) for version-matched local reference in `node_modules`
 
 ## New Features
 
@@ -143,6 +144,17 @@ When `policySnapshot.signingKey` is configured, `/init` returns a signed JWT alo
 - **New v1→v2 codemods** — automated migration for renamed APIs and imports
 - **Improved file structure support** — handles `[locale]` directory patterns
 - **Removed redundant preflight checks** for faster setup
+
+### Bundled Package Docs
+
+The four main c15t packages now ship version-matched Markdown docs inside the installed package itself:
+
+- `node_modules/c15t/docs/`
+- `node_modules/@c15t/react/docs/`
+- `node_modules/@c15t/nextjs/docs/`
+- `node_modules/@c15t/backend/docs/`
+
+This includes generated reference material like prop and type tables, so local AI tools and developers can read the docs for the exact installed package version instead of relying on stale external docs or model knowledge.
 
 ## Improvements
 
