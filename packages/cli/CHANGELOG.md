@@ -1,5 +1,35 @@
 # @c15t/cli
 
+## 2.0.0-rc.5
+
+### Patch Changes
+
+- 021ac99: Bundle version-matched docs inside published c15t packages under `docs/**` for local agent and developer reference.
+
+  Remove CLI `AGENTS.md` generation. Use the bundled package docs directly alongside c15t agent skills.
+
+- 57eef9f: feat(cli): consent.io integration
+  feat(cli): remove redundent preflight checks
+- 58fb392: Rename translation-facing APIs from `translations` to `i18n` across runtime types and helpers.
+  Add CLI migration codemods to update existing projects to the new naming.
+- 1c1b2d8: feat(cli): add more codemods for v1 -> v2
+- e79f840: Separate published declaration files from runtime bundles to improve Vite compatibility
+
+  - Move generated `.d.ts` files out of `dist/` into `dist-types/` across published packages
+  - Stop emitting declaration maps in shared TypeScript config so `.d.ts.map` files are no longer published
+  - Emit declarations only once per package to avoid unstable output when both `esm` and `cjs` builds write types
+  - Update package `types` metadata, publish file lists, Turbo outputs, and publish artifact checks for the new layout
+  - Verify the package layout works in Vite 7 without `optimizeDeps.exclude` workarounds for `c15t` and `@c15t/react`
+
+- 58fb392: Rename `c15t` mode references to `hosted` in core runtime and CLI generate flows.
+  Add migration codemods and template updates for the hosted vs offline terminology.
+- Updated dependencies [021ac99]
+- Updated dependencies [cfe1b2e]
+- Updated dependencies [e79f840]
+- Updated dependencies [372cf92]
+  - @c15t/backend@2.0.0-rc.5
+  - @c15t/logger@1.0.2-rc.0
+
 ## Unreleased
 
 - Bundle version-matched c15t docs in the published packages under `docs/**` for local developer and agent reference. Use the bundled docs directly together with c15t agent skills.

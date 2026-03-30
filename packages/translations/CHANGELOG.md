@@ -1,5 +1,19 @@
 # @c15t/translations
 
+## 2.0.0-rc.5
+
+### Patch Changes
+
+- 58fb392: Rename translation-facing APIs from `translations` to `i18n` across runtime types and helpers.
+  Add CLI migration codemods to update existing projects to the new naming.
+- e79f840: Separate published declaration files from runtime bundles to improve Vite compatibility
+
+  - Move generated `.d.ts` files out of `dist/` into `dist-types/` across published packages
+  - Stop emitting declaration maps in shared TypeScript config so `.d.ts.map` files are no longer published
+  - Emit declarations only once per package to avoid unstable output when both `esm` and `cjs` builds write types
+  - Update package `types` metadata, publish file lists, Turbo outputs, and publish artifact checks for the new layout
+  - Verify the package layout works in Vite 7 without `optimizeDeps.exclude` workarounds for `c15t` and `@c15t/react`
+
 ## 1.8.5
 
 ### Patch Changes

@@ -1,5 +1,38 @@
 # @c15t/dev-tools
 
+## 2.0.0-rc.5
+
+### Patch Changes
+
+- e79f840: Separate published declaration files from runtime bundles to improve Vite compatibility
+
+  - Move generated `.d.ts` files out of `dist/` into `dist-types/` across published packages
+  - Stop emitting declaration maps in shared TypeScript config so `.d.ts.map` files are no longer published
+  - Emit declarations only once per package to avoid unstable output when both `esm` and `cjs` builds write types
+  - Update package `types` metadata, publish file lists, Turbo outputs, and publish artifact checks for the new layout
+  - Verify the package layout works in Vite 7 without `optimizeDeps.exclude` workarounds for `c15t` and `@c15t/react`
+
+- 372cf92: feat(policy): add policy packs for declarative regional consent resolution
+
+  Policy packs let you define regional consent rules once — c15t resolves the right policy automatically based on visitor location. Resolution follows fixed priority: region → country → fallback → default.
+
+  - Built-in presets: `europeOptIn()`, `europeIab()`, `californiaOptOut()`, `californiaOptIn()`, `quebecOptIn()`, `worldNoBanner()`
+  - Per-policy GPC support via `consent.gpc` field
+  - Fallback policies (`match.fallback`) as a safety net when geo-location headers are missing
+  - Material policy fingerprints for automatic re-prompting when consent semantics change
+  - Policy validation with `inspectPolicies()` for catching misconfigurations before deployment
+  - Snapshot tokens (signed JWT) for write-time consistency between `/init` and consent writes
+  - Dev-tools match trace panel showing full resolution path
+
+- Updated dependencies [021ac99]
+- Updated dependencies [5f30a3b]
+- Updated dependencies [58fb392]
+- Updated dependencies [e79f840]
+- Updated dependencies [58fb392]
+- Updated dependencies [60a51f1]
+- Updated dependencies [372cf92]
+  - c15t@2.0.0-rc.5
+
 ## 1.8.5
 
 ### Patch Changes

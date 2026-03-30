@@ -1,5 +1,53 @@
 # c15t
 
+## 2.0.0-rc.5
+
+### Minor Changes
+
+- 372cf92: feat(policy): add policy packs for declarative regional consent resolution
+
+  Policy packs let you define regional consent rules once — c15t resolves the right policy automatically based on visitor location. Resolution follows fixed priority: region → country → fallback → default.
+
+  - Built-in presets: `europeOptIn()`, `europeIab()`, `californiaOptOut()`, `californiaOptIn()`, `quebecOptIn()`, `worldNoBanner()`
+  - Per-policy GPC support via `consent.gpc` field
+  - Fallback policies (`match.fallback`) as a safety net when geo-location headers are missing
+  - Material policy fingerprints for automatic re-prompting when consent semantics change
+  - Policy validation with `inspectPolicies()` for catching misconfigurations before deployment
+  - Snapshot tokens (signed JWT) for write-time consistency between `/init` and consent writes
+  - Dev-tools match trace panel showing full resolution path
+
+### Patch Changes
+
+- 021ac99: Bundle version-matched docs inside published c15t packages under `docs/**` for local agent and developer reference.
+
+  Remove CLI `AGENTS.md` generation. Use the bundled package docs directly alongside c15t agent skills.
+
+- 5f30a3b: Add browser prefetch utilities for faster consent banner visibility
+
+  - New `buildPrefetchScript()` and `getPrefetchedInitialData()` in `c15t` core to start the `/init` request before framework hydration
+  - New `C15tPrefetch` component in `@c15t/nextjs` using `next/script` with `beforeInteractive` strategy for static-route-compatible prefetching
+  - Tuned default motion tokens (fast: 80ms, normal: 150ms, slow: 200ms) and replaced hardcoded CSS durations with theme variables
+
+- 58fb392: Rename translation-facing APIs from `translations` to `i18n` across runtime types and helpers.
+  Add CLI migration codemods to update existing projects to the new naming.
+- e79f840: Separate published declaration files from runtime bundles to improve Vite compatibility
+
+  - Move generated `.d.ts` files out of `dist/` into `dist-types/` across published packages
+  - Stop emitting declaration maps in shared TypeScript config so `.d.ts.map` files are no longer published
+  - Emit declarations only once per package to avoid unstable output when both `esm` and `cjs` builds write types
+  - Update package `types` metadata, publish file lists, Turbo outputs, and publish artifact checks for the new layout
+  - Verify the package layout works in Vite 7 without `optimizeDeps.exclude` workarounds for `c15t` and `@c15t/react`
+
+- 58fb392: Rename `c15t` mode references to `hosted` in core runtime and CLI generate flows.
+  Add migration codemods and template updates for the hosted vs offline terminology.
+- 60a51f1: fix: omit invalid optional subject identifiers when saving consent
+- Updated dependencies [cfe1b2e]
+- Updated dependencies [58fb392]
+- Updated dependencies [e79f840]
+- Updated dependencies [372cf92]
+  - @c15t/schema@2.0.0-rc.3
+  - @c15t/translations@2.0.0-rc.5
+
 ## Unreleased
 
 - Bundle version-matched docs in the published package under `docs/**` for local developer and agent reference.
