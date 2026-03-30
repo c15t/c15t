@@ -36,6 +36,7 @@ packages/core/docs
 packages/react/docs
 packages/nextjs/docs
 packages/backend/docs
+.merge_file_*
 
 
 # Debug
