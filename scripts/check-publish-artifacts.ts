@@ -131,14 +131,38 @@ function collectMarkdownFiles(dir: string): string[] {
 	return result;
 }
 
+function validateRelativeMarkdownLinks(
+	content: string,
+	rel: string,
+	availableRelativePaths: Set<string>,
+	issues: string[]
+) {
+	const linkPattern = /\[[^\]]+\]\((\.\/[^)]+)\)/g;
+	for (const match of content.matchAll(linkPattern)) {
+		const target = match[1]?.replace(/^\.\//, '');
+		if (!target) {
+			continue;
+		}
+		if (!availableRelativePaths.has(target)) {
+			issues.push(`broken relative docs link in ${rel}: ${target}`);
+		}
+	}
+}
+
 function scanAgentDocsContent(packageDir: string): string[] {
 	const issues: string[] = [];
 	const docsDir = join(packageDir, 'docs');
 	const markdownFiles = collectMarkdownFiles(docsDir);
+	const availableRelativePaths = new Set(
+		markdownFiles.map((filePath) =>
+			filePath.slice(docsDir.length + 1).replaceAll('\\', '/')
+		)
+	);
 
 	for (const filePath of markdownFiles) {
 		const rel = filePath.slice(packageDir.length + 1).replaceAll('\\', '/');
 		const content = readFileSync(filePath, 'utf8');
+		const docsRel = rel.slice('docs/'.length);
 
 		if (
 			/\\\[[^\]]+\\\]\(:\/\//.test(content) ||
@@ -151,6 +175,17 @@ function scanAgentDocsContent(packageDir: string): string[] {
 		}
 		if (content.includes('&#xA;')) {
 			issues.push(`escaped newline entity found in ${rel}`);
+		}
+		if (rel === 'docs/README.md') {
+			if (!content.includes('## Start Here')) {
+				issues.push('missing Start Here section in docs/README.md');
+			}
+			if (!content.includes('## Workflow Rules')) {
+				issues.push('missing Workflow Rules section in docs/README.md');
+			}
+			if (content.includes('dist/docs/')) {
+				issues.push('stale dist/docs reference found in docs/README.md');
+			}
 		}
 		if (/^#### `[^`]+` \{.+$/m.test(content)) {
 			issues.push(`oversized anonymous object heading found in ${rel}`);
@@ -210,6 +245,13 @@ function scanAgentDocsContent(packageDir: string): string[] {
 				break;
 			}
 		}
+
+		validateRelativeMarkdownLinks(
+			content,
+			docsRel,
+			availableRelativePaths,
+			issues
+		);
 	}
 
 	return issues;

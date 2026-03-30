@@ -137,4 +137,58 @@ describe('convertMdxFile', () => {
 			'### Options\n\n### FetchInitialDataOptions'
 		);
 	}, 20000);
+
+	it('generates package README files with workflow rules and valid links', async () => {
+		await generatePackageDocs('c15t');
+		await generatePackageDocs('@c15t/react');
+		await generatePackageDocs('@c15t/nextjs');
+		await generatePackageDocs('@c15t/backend');
+
+		const coreReadme = readFileSync(
+			join(ROOT_DIR, 'packages', 'core', 'docs', 'README.md'),
+			'utf8'
+		);
+		expect(coreReadme).toContain('# c15t JavaScript Docs');
+		expect(coreReadme).toContain('## Start Here');
+		expect(coreReadme).toContain('## Workflow Rules');
+		expect(coreReadme).toContain('### Scripts & Integrations');
+		expect(coreReadme).toContain('`@c15t/scripts/*`');
+		expect(coreReadme).toContain('[Meta Pixel](./integrations/meta-pixel.md)');
+		expect(coreReadme).toContain(
+			'[Google Tag Manager](./integrations/google-tag-manager.md)'
+		);
+
+		const reactReadme = readFileSync(
+			join(ROOT_DIR, 'packages', 'react', 'docs', 'README.md'),
+			'utf8'
+		);
+		expect(reactReadme).toContain('### Styling');
+		expect(reactReadme).toContain('Prefer design tokens first.');
+		expect(reactReadme).toContain(
+			'If tokens are not enough, use component slots.'
+		);
+		expect(reactReadme).toContain('[Overview](./styling/overview.md)');
+		expect(reactReadme).toContain('[Tokens](./styling/tokens.md)');
+		expect(reactReadme).toContain('[Slots](./styling/slots.md)');
+
+		const nextReadme = readFileSync(
+			join(ROOT_DIR, 'packages', 'nextjs', 'docs', 'README.md'),
+			'utf8'
+		);
+		expect(nextReadme).toContain('### Server-Side Setup');
+		expect(nextReadme).toContain('[Quickstart](./quickstart.md)');
+		expect(nextReadme).toContain('[Server Side](./server-side.md)');
+
+		const backendReadme = readFileSync(
+			join(ROOT_DIR, 'packages', 'backend', 'docs', 'README.md'),
+			'utf8'
+		);
+		expect(backendReadme).toContain('### Database & Initial Setup');
+		expect(backendReadme).toContain('### Policy Packs & Regional Behavior');
+		expect(backendReadme).toContain(
+			'[Database Setup](./guides/database-setup.md)'
+		);
+		expect(backendReadme).toContain('[Policy Packs](./guides/policy-packs.md)');
+		expect(backendReadme).toContain('[Configuration](./api/configuration.md)');
+	}, 20000);
 });

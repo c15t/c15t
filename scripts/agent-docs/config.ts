@@ -371,9 +371,12 @@ export function deriveTopicTags(entry: string, sourcePath: string): string[] {
 }
 
 export function expectedAgentDocPaths(packageName: string) {
-	return new Set(
-		resolvePackagePages(packageName).map((page) => `docs/${page.outputPath}`)
-	);
+	return new Set([
+		'docs/README.md',
+		...resolvePackagePages(packageName).map(
+			(page) => `docs/${page.outputPath}`
+		),
+	]);
 }
 
 export function removeIfMissing(filePath: string) {

@@ -10,10 +10,12 @@ Every supported c15t package now ships docs inside the installed package itself.
 
 ### Where to find them
 
-- `node_modules/c15t/docs/`
-- `node_modules/@c15t/react/docs/`
-- `node_modules/@c15t/nextjs/docs/`
-- `node_modules/@c15t/backend/docs/`
+- `node_modules/c15t/docs/README.md`
+- `node_modules/@c15t/react/docs/README.md`
+- `node_modules/@c15t/nextjs/docs/README.md`
+- `node_modules/@c15t/backend/docs/README.md`
+
+Start with the package `README.md`, then follow its linked pages for the relevant workflow.
 
 These docs are version-matched to the exact c15t package version in your project, including generated reference content like prop and type tables.
 
@@ -63,14 +65,15 @@ Use bundled docs when:
 
 - Your agent can read files in the local project
 - You want version-matched docs from the installed c15t packages
+- You want a package-local README that tells the agent which detailed docs to read first
 - You want concrete guidance for consent management, cookie banners, consent dialogs, preference centers, script loading, callbacks, and integrations
 
 Use agent skills when:
 
 - Your tool supports the skills ecosystem
-- You want reusable workflows and tool-specific guidance
+- You want reusable workflows and tool-specific guidance that can point back to the installed package README files
 
 Use both when:
 
 - Your tool supports both local file context and skills
-- You want local docs plus reusable setup and configuration help
+- You want local package docs plus reusable setup and configuration help
