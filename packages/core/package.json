@@ -40,16 +40,21 @@
 	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",
-		"dist-types"
+		"dist-types",
+		"docs",
+		"README.md",
+		"CHANGELOG.md"
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build",
+		"build": "bun prebuild && rslib build && bun ../../scripts/agent-docs/generate-package-docs.ts c15t",
+		"build:agent-docs": "bun ../../scripts/agent-docs/generate-package-docs.ts c15t",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"check-types:test": "tsc -p tsconfig.test.json",
 		"dev": "bun prebuild && rslib build",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
+		"prepack": "cd ../.. && bunx turbo run build --filter=c15t",
 		"test": "bun prebuild && vitest run",
 		"test:watch": "bun prebuild && vitest"
 	},

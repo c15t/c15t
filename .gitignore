@@ -32,6 +32,11 @@ coverage
 out/
 build
 dist
+packages/core/docs
+packages/react/docs
+packages/nextjs/docs
+packages/backend/docs
+.merge_file_*
 dist-types
 
 

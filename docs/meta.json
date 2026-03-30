@@ -4,7 +4,7 @@
 		"integrations",
 		"self-host",
 		"--- OSS ---",
-		"./ai-tools",
+		"./ai-agents",
 		"./oss/contributing",
 		"./oss/license",
 		"./oss/why-open-source",

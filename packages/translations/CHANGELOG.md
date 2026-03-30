@@ -1,22 +1,18 @@
 # @c15t/translations
 
-## 2.0.0-rc.4
+## 1.8.5
 
 ### Patch Changes
 
-- 06ee724: Update Lithuanian translations to use `Rinktis` instead of `Tinkinti` for the customize action label.
+- be4e218: Republish patch release to fix workspace dependency protocol resolution during publish.
 
-## 2.0.0-rc.1
+  Published package manifests now resolve `workspace:*` references to concrete semver ranges before release.
+
+## 1.8.4
 
 ### Patch Changes
 
-- 0bc4f86: fixed workspace resolving
-
-## 2.0.0-rc.0
-
-### Major Changes
-
-- 126a78b: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+- 8defcd9: Update direct and transitive dependencies to address known vulnerabilities and keep runtime/tooling packages current.
 
 ## 1.8.0
 

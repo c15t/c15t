@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/logger",
-	"version": "2.0.0-rc.1",
+	"version": "1.0.1",
 	"description": "Logger for c15t.",
 	"homepage": "https://c15t.com/",
 	"repository": {
@@ -28,7 +28,7 @@
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
-		"dev": "rslib build",
+		"dev": "rslib build --watch",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run --passWithNoTests",
@@ -40,8 +40,9 @@
 		"not op_mini all"
 	],
 	"dependencies": {
-		"chalk": "5.6.2",
-		"picocolors": "1.1.1"
+		"chalk": "^5.4.1",
+		"neverthrow": "^8.2.0",
+		"picocolors": "^1.1.1"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

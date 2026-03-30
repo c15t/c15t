@@ -51,16 +51,19 @@
 	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",
+		"docs",
 		"dist-types",
 		"client"
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build",
+		"build": "bun prebuild && rslib build && bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/nextjs",
+		"build:agent-docs": "bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/nextjs",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "bun prebuild && rslib build",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
+		"prepack": "cd ../.. && bunx turbo run build --filter=@c15t/nextjs",
 		"test": "bun prebuild && vitest run --passWithNoTests",
 		"test:watch": "bun prebuild && vitest --passWithNoTests"
 	},

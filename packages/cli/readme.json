@@ -6,6 +6,7 @@
 		"Database Migrations: Simplified database schema updates",
 		"Multi-Framework Support: Works seamlessly across different web frameworks",
 		"Interactive CLI: User-friendly command-line interface with guided workflows",
+		"Agent Skills: Install reusable c15t agent skills for AI tooling",
 		"GitHub Integration: Easy way to star and support the project",
 		"Documentation Access: Quick access to project documentation"
 	],
@@ -15,6 +16,7 @@
 	],
 	"usage": [
 		"Run `@c15t/cli setup` to create initial configuration",
+		"Use the docs bundled in installed c15t packages under `docs/` for local agent context",
 		"Customize consent settings in generated files",
 		"Integrate with your web application",
 		"Use `@c15t/cli self-host migrate` for self-hosted database schema updates"

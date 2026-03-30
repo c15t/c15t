@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/translations",
-	"version": "2.0.0-rc.4",
+	"version": "1.8.5",
 	"description": "Translation utils for c15t, providing type-safe internationalization support.",
 	"homepage": "https://c15t.com/docs/frameworks/react/hooks/use-translations",
 	"repository": {
@@ -38,7 +38,7 @@
 	"scripts": {
 		"build": "rslib build",
 		"check-types": "tsc --noEmit",
-		"dev": "rslib build",
+		"dev": "rslib build --watch",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"generate:i18n": "lingo.dev i18n",
 		"lint": "bun biome lint ./src",
@@ -53,7 +53,7 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"lingo.dev": "0.117.10"
+		"lingo.dev": "^0.133.2"
 	},
 	"publishConfig": {
 		"access": "public"

@@ -18,10 +18,14 @@
 
 import type { CliCommand, CliContext } from '~/context/types';
 import { runGenerateMachine } from '~/machines/generate/runner';
-import type { StorageMode } from '../../constants';
+import { STORAGE_MODES, type StorageMode } from '../../constants';
 
 function normalizeModeArg(mode?: StorageMode): StorageMode | undefined {
-	return mode;
+	if (!mode || mode.startsWith('-')) {
+		return undefined;
+	}
+	const validModes = new Set(Object.values(STORAGE_MODES));
+	return validModes.has(mode) ? mode : undefined;
 }
 
 /**
@@ -58,6 +62,7 @@ async function generateAction(context: CliContext): Promise<void> {
 			if (result.errors.length > 0) {
 				process.exitCode = 1;
 			}
+			return;
 		}
 	} catch (error) {
 		logger.error(

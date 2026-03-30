@@ -1,0 +1,79 @@
+---
+title: AI Agents
+description: Integrate c15t with AI coding assistants using the docs bundled in each package and c15t agent skills. Give agents version-matched local docs for consent management, banners, script loading, callbacks, and integrations.
+lastModified: 2026-03-24
+---
+
+## Bundled Docs
+
+Every supported c15t package now ships docs inside the installed package itself.
+
+### Where to find them
+
+- `node_modules/c15t/docs/README.md`
+- `node_modules/@c15t/react/docs/README.md`
+- `node_modules/@c15t/nextjs/docs/README.md`
+- `node_modules/@c15t/backend/docs/README.md`
+
+Start with the package `README.md`, then follow its linked pages for the relevant workflow.
+
+These docs are version-matched to the exact c15t package version in your project, including generated reference content like prop and type tables.
+
+### Why use them
+
+If your app uses multiple c15t packages, use the docs from each relevant installed package instead of relying on stale model knowledge.
+
+### Agent philosophy
+
+When an AI tool is helping with c15t behavior, it should read the installed c15t docs first and use model knowledge second. That keeps consent flows, script gating, banner behavior, and integrations aligned with the exact version you have installed.
+
+***
+
+## Agent Skills
+
+c15t publishes agent skills that give AI coding assistants deep knowledge of c15t's APIs, components, and configuration. Skills are reusable workflows and tool-specific guidance, not version-matched local docs.
+
+### Installation
+
+Via the c15t CLI:
+
+<PackageCommandTabs command="@c15t/cli@rc install-skills" />
+
+Or directly:
+
+<PackageCommandTabs command="skills add c15t/skills" />
+
+### What skills provide
+
+- **Styling customization** — theme presets, CSS variables, component slot styling
+- **Internationalization** — translation setup, locale routing integration
+- **Script management** — configuring third-party scripts with consent categories
+- **Component setup** — ConsentBanner, ConsentDialog, provider configuration
+
+### Supported tools
+
+- Claude Code
+- Cursor
+- GitHub Copilot (via `.github/skills`)
+- Any agent that supports the skills format
+
+***
+
+## When to use which
+
+Use bundled docs when:
+
+- Your agent can read files in the local project
+- You want version-matched docs from the installed c15t packages
+- You want a package-local README that tells the agent which detailed docs to read first
+- You want concrete guidance for consent management, cookie banners, consent dialogs, preference centers, script loading, callbacks, and integrations
+
+Use agent skills when:
+
+- Your tool supports the skills ecosystem
+- You want reusable workflows and tool-specific guidance that can point back to the installed package README files
+
+Use both when:
+
+- Your tool supports both local file context and skills
+- You want local package docs plus reusable setup and configuration help

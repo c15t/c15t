@@ -26,6 +26,7 @@ CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a prefer
 - Database Migrations: Simplified database schema updates
 - Multi-Framework Support: Works seamlessly across different web frameworks
 - Interactive CLI: User-friendly command-line interface with guided workflows
+- Agent Skills: Install reusable c15t agent skills for AI tooling
 - GitHub Integration: Easy way to star and support the project
 - Documentation Access: Quick access to project documentation
 
@@ -56,9 +57,10 @@ The CLI will:
 ## Usage
 
 1. Run `@c15t/cli setup` to create initial configuration
-2. Customize consent settings in generated files
-3. Integrate with your web application
-4. Use `@c15t/cli self-host migrate` for self-hosted database schema updates
+2. Use the docs bundled in installed c15t packages under `docs/` for local agent context
+3. Customize consent settings in generated files
+4. Integrate with your web application
+5. Use `@c15t/cli self-host migrate` for self-hosted database schema updates
 
 ## Available Commands
 
@@ -83,6 +85,16 @@ Preview changes without writing files:
 ```bash
 c15t codemods --dry-run
 ```
+
+### Bundled Docs
+
+Supported c15t packages now include local docs inside the installed package:
+
+```text
+node_modules/<package>/docs/
+```
+
+These docs are version-matched to the installed package and can be used as local agent context alongside c15t skills.
 
 ## Global Flags
 
