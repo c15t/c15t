@@ -1,5 +1,6 @@
 'use client';
 
+import { iab } from '@c15t/iab';
 import type { ConsentManagerProps } from '@c15t/nextjs';
 import {
 	ConsentDialog,
@@ -16,8 +17,7 @@ export default function ({ children }: ConsentManagerProps) {
 				mode: 'c15t',
 				backendURL: '/api/self-host',
 				consentCategories: ['necessary', 'marketing', 'measurement'],
-				iab: {
-					enabled: false,
+				iab: iab({
 					cmpId: 2,
 					customVendors: [
 						{
@@ -33,7 +33,7 @@ export default function ({ children }: ConsentManagerProps) {
 							// legIntPurposes: [1, 8],
 						},
 					],
-				},
+				}),
 				scripts: [
 					{
 						id: 'example-analytics-iab',
