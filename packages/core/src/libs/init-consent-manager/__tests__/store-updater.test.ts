@@ -18,21 +18,13 @@ vi.mock('../../global-privacy-control', () => ({
 	hasGlobalPrivacyControlSignal: vi.fn().mockReturnValue(false),
 }));
 
-// Mock IAB initializer to prevent actual initialization
-vi.mock('../iab-initializer', () => ({
-	initializeIABMode: vi.fn().mockResolvedValue(undefined),
-}));
-
 describe('updateStore - cmpId merging', () => {
 	let mockGet: ReturnType<typeof vi.fn>;
 	let mockSet: ReturnType<typeof vi.fn>;
 	let mockState: ReturnType<typeof createMockStoreState>;
 
-	beforeEach(async () => {
+	beforeEach(() => {
 		vi.clearAllMocks();
-		// Re-apply mockResolvedValue after clearAllMocks
-		const { initializeIABMode } = await import('../iab-initializer');
-		vi.mocked(initializeIABMode).mockResolvedValue(undefined);
 
 		mockState = createMockStoreState({
 			iab: {
@@ -182,10 +174,8 @@ describe('updateStore - GPC override', () => {
 	let mockSet: ReturnType<typeof vi.fn>;
 	let mockState: ReturnType<typeof createMockStoreState>;
 
-	beforeEach(async () => {
+	beforeEach(() => {
 		vi.clearAllMocks();
-		const { initializeIABMode } = await import('../iab-initializer');
-		vi.mocked(initializeIABMode).mockResolvedValue(undefined);
 		vi.mocked(hasGlobalPrivacyControlSignal).mockReturnValue(false);
 	});
 
