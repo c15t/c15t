@@ -1,8 +1,6 @@
-import * as v from 'valibot';
 import type { PolicyDecision, ResolvedPolicy } from '~/api/init';
 import type { jurisdictionCodes } from './constants';
 import { createPolicyFingerprint } from './policy-fingerprint';
-import { policyConfigArraySchema } from './policy-schema';
 import {
 	compactDefined,
 	dedupeDefinedValues,
@@ -651,50 +649,19 @@ function collectPolicyWarnings(policies: PolicyConfig[]): string[] {
 	return [...warnings];
 }
 
-function formatPolicyParseIssues(issues: unknown[]): string[] {
-	return issues.map((issue, index) => {
-		if (!issue || typeof issue !== 'object') {
-			return `Policy config is invalid at issue ${index + 1}.`;
-		}
-
-		const issueRecord = issue as {
-			message?: unknown;
-			path?: Array<{ key?: unknown }>;
-		};
-		const message =
-			typeof issueRecord.message === 'string'
-				? issueRecord.message
-				: 'Invalid policy config value.';
-		const path =
-			Array.isArray(issueRecord.path) && issueRecord.path.length > 0
-				? issueRecord.path
-						.map((segment) =>
-							typeof segment.key === 'string' || typeof segment.key === 'number'
-								? String(segment.key)
-								: null
-						)
-						.filter((segment): segment is string => segment !== null)
-						.join('.')
-				: '';
-
-		return path ? `${path}: ${message}` : message;
-	});
-}
-
 function parsePolicyConfigs(
 	policies: unknown
 ): { ok: true; output: PolicyConfig[] } | { ok: false; errors: string[] } {
-	const result = v.safeParse(policyConfigArraySchema, policies);
-	if (result.success) {
+	if (!Array.isArray(policies)) {
 		return {
-			ok: true,
-			output: result.output as PolicyConfig[],
+			ok: false,
+			errors: ['Policy config must be an array of policy objects.'],
 		};
 	}
 
 	return {
-		ok: false,
-		errors: formatPolicyParseIssues(result.issues),
+		ok: true,
+		output: policies as PolicyConfig[],
 	};
 }
 
