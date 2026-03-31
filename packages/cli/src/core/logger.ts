@@ -151,7 +151,6 @@ export function createCliLogger(level: LogLevel = 'info'): CliLogger {
 		},
 
 		note(content: string, title?: string): void {
-			// @ts-expect-error - p.note accepts format option but types don't include it
 			p.note(content, title, {
 				format: (line: string) => line,
 			});

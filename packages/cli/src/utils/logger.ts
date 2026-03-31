@@ -128,7 +128,6 @@ export const createCliLogger = (level: LogLevel): CliLogger => {
 		const messageStr = typeof message === 'string' ? message : String(message);
 		const title =
 			args.length > 0 && typeof args[0] === 'string' ? args[0] : undefined;
-		//@ts-expect-error
 		p.note(messageStr, title, {
 			format: (line: string) => line,
 		});

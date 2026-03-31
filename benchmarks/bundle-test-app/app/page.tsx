@@ -18,7 +18,7 @@ export default function HomePage() {
 					<Link href="/headless">/headless</Link> - Headless only (custom UI)
 				</li>
 				<li>
-					<Link href="/banner-only">/banner-only</Link> - Just CookieBanner
+					<Link href="/banner-only">/banner-only</Link> - Just ConsentBanner
 				</li>
 				<li>
 					<Link href="/core-only">/core-only</Link> - Vanilla JS core only

@@ -9,6 +9,7 @@
 		"resolveJsonModule": true,
 		"types": ["node"],
 		"noEmit": true,
+		"rootDir": "src",
 		"forceConsistentCasingInFileNames": true,
 		"isolatedModules": true,
 		"verbatimModuleSyntax": true,
