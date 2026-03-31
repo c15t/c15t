@@ -1,14 +1,14 @@
 'use client';
 
 import { DevTools } from '@c15t/dev-tools/react';
+import { iab } from '@c15t/iab';
 import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentDialogTrigger,
 	ConsentManagerProvider,
-	IABConsentBanner,
-	IABConsentDialog,
 } from '@c15t/react';
+import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -176,7 +176,8 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 				mode: 'c15t',
 				// backendURL: 'https://instance-worker-test.consent-ef4.workers.dev/',
 				// backendURL: 'https://minecraft-europe-hypixel.c15t.xyz',
-				backendURL: '/api/self-host',
+				// backendURL: '/api/self-host',
+				backendURL: 'https://minecraft-eu-west-1-mewwing.c15t.xyz/',
 				consentCategories: [
 					'necessary',
 					'functionality',
@@ -184,8 +185,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 					'marketing',
 					'measurement',
 				],
-				iab: {
-					enabled: true,
+				iab: iab({
 					customVendors: [
 						{
 							id: 'internal-analytics',
@@ -200,7 +200,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 							// legIntPurposes: [1, 8],
 						},
 					],
-				},
+				}),
 				scripts: [
 					{
 						id: 'example-analytics-iab',

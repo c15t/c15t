@@ -1,3 +1,4 @@
+import { DevTools } from '@c15t/dev-tools/react';
 import { Analytics } from '@vercel/analytics/next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import type React from 'react';
@@ -34,6 +35,7 @@ export default function RootLayout({
 			{/* <body className={`font-sans antialiased ${spaceGrotesk.variable} ${inter.variable} ${dmSans.variable}`}> */}
 			<body className={`font-sans antialiased`}>
 				<ConsentManager>
+					<DevTools />
 					{children}
 					<Analytics />
 				</ConsentManager>

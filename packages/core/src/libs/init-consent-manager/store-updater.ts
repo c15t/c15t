@@ -20,7 +20,6 @@ import {
 	applyPolicyPurposeAllowlist,
 	filterConsentCategoriesByPolicy,
 } from '../policy';
-import { initializeIABMode } from './iab-initializer';
 import type { ConsentBannerResponse, InitConsentManagerConfig } from './types';
 
 interface InitSourceMetadata {
@@ -374,12 +373,26 @@ export async function updateStore(
 
 	const { consentInfo } = get();
 
-	// Lazily create the IAB manager when iabConfig is provided
+	// Lazily create the IAB manager when iabConfig is provided.
+	// The _module is injected by @c15t/iab's iab() factory — core never imports IAB runtime.
 	let iab = get().iab;
 	if (config.iabConfig && !iab) {
-		const { createIABManager } = await import('../iab-tcf/store');
-		iab = createIABManager(config.iabConfig, get, set, config.manager);
-		set({ iab });
+		const iabModule = config.iabConfig._module;
+		if (!iabModule) {
+			console.error(
+				'[c15t] IAB config provided without IAB module. ' +
+					'Install @c15t/iab and use the iab() wrapper: ' +
+					'`import { iab } from "@c15t/iab"; iab({ cmpId: ... })`'
+			);
+		} else {
+			iab = iabModule.createIABManager(
+				config.iabConfig,
+				get,
+				set,
+				config.manager
+			);
+			set({ iab });
+		}
 	}
 
 	// Check if client has IAB enabled but server didn't provide GVL
@@ -462,10 +475,13 @@ export async function updateStore(
 		};
 
 		// Non-blocking initialization - errors are handled within initializeIABMode
-		initializeIABMode(mergedConfig, { set, get }, prefetchedGVL).catch(
-			(err) => {
-				console.error('Failed to initialize IAB mode in updateStore:', err);
-			}
-		);
+		const iabModule = config.iabConfig?._module;
+		if (iabModule) {
+			iabModule
+				.initializeIABMode(mergedConfig, { set, get }, prefetchedGVL)
+				.catch((err) => {
+					console.error('Failed to initialize IAB mode in updateStore:', err);
+				});
+		}
 	}
 }

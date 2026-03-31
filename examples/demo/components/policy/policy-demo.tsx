@@ -1,16 +1,16 @@
 'use client';
 
+import { iab } from '@c15t/iab';
 import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentDialogTrigger,
 	ConsentManagerProvider,
-	IABConsentBanner,
-	IABConsentDialog,
 	policyPackPresets,
 	type Theme,
 	useConsentManager,
 } from '@c15t/react';
+import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
 import { Cloud, Globe, Laptop, MapPin, RotateCcw } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
@@ -689,8 +689,7 @@ export function PolicyDemo() {
 	const categories: Array<
 		'necessary' | 'functionality' | 'measurement' | 'marketing'
 	> = ['necessary', 'functionality', 'measurement', 'marketing'];
-	const iab = {
-		enabled: true,
+	const iabConfig = iab({
 		customVendors: [
 			{
 				id: 'demo-analytics',
@@ -703,7 +702,7 @@ export function PolicyDemo() {
 				usesNonCookieAccess: false,
 			},
 		],
-	};
+	});
 
 	return (
 		<main className="min-h-screen bg-muted/30 py-12">
@@ -855,7 +854,7 @@ export function PolicyDemo() {
 									mode: 'c15t',
 									backendURL: `/api/self-host?example=${resolvedExample}`,
 									consentCategories: categories,
-									iab,
+									iab: iabConfig,
 									overrides,
 									theme: policyDemoTheme,
 								}
@@ -869,7 +868,7 @@ export function PolicyDemo() {
 										policyPacks: offlinePoliciesByExample[resolvedExample],
 									},
 									consentCategories: categories,
-									iab,
+									iab: iabConfig,
 									overrides,
 									theme: policyDemoTheme,
 								}

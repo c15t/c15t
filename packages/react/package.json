@@ -84,15 +84,10 @@
 			"import": "./client/components/frame.js",
 			"require": "./dist/components/frame/index.cjs"
 		},
-		"./components/iab-consent-banner": {
-			"types": "./dist-types/components/iab-consent-banner/index.d.ts",
-			"import": "./client/components/iab-consent-banner.js",
-			"require": "./dist/components/iab-consent-banner/index.cjs"
-		},
-		"./components/iab-consent-dialog": {
-			"types": "./dist-types/components/iab-consent-dialog/index.d.ts",
-			"import": "./client/components/iab-consent-dialog.js",
-			"require": "./dist/components/iab-consent-dialog/index.cjs"
+		"./iab": {
+			"types": "./dist-types/iab.d.ts",
+			"import": "./dist/iab.js",
+			"require": "./dist/iab.cjs"
 		},
 		"./hooks": {
 			"types": "./dist-types/hooks/index.d.ts",

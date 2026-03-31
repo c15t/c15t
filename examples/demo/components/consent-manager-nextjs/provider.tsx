@@ -5,50 +5,19 @@ import {
 	ConsentDialog,
 	ConsentDialogTrigger,
 	ConsentManagerProvider,
-	IABConsentBanner,
-	IABConsentDialog,
 } from '@c15t/nextjs';
 import CookieBanner from './cookie-banner';
 
-export default function ({ children }: ConsentManagerProps) {
+const BACKEND_URL = 'https://minecraft-eu-west-1-mewwing.c15t.xyz';
+
+export default function ({ children, ssrData }: ConsentManagerProps) {
 	return (
 		<ConsentManagerProvider
 			options={{
 				mode: 'c15t',
-				backendURL: '/api/self-host',
+				backendURL: BACKEND_URL,
+				ssrData,
 				consentCategories: ['necessary', 'marketing', 'measurement'],
-				iab: {
-					enabled: false,
-					cmpId: 2,
-					customVendors: [
-						{
-							id: 'internal-analytics',
-							name: 'Example Analytics',
-							privacyPolicyUrl: 'https://www.google.com',
-							purposes: [1, 8],
-							dataCategories: [1, 2, 6, 8],
-							usesCookies: true,
-							cookieMaxAgeSeconds: 31536000,
-							usesNonCookieAccess: true,
-							specialFeatures: [1, 2],
-							// legIntPurposes: [1, 8],
-						},
-					],
-				},
-				scripts: [
-					{
-						id: 'example-analytics-iab',
-						src: 'https://www.example.com/analytics.js',
-						category: 'measurement',
-						vendorId: 1,
-					},
-					{
-						id: 'example-analytics-custom',
-						src: 'https://www.example.com/custom-analytics.js',
-						category: 'measurement',
-						vendorId: 'internal-analytics',
-					},
-				],
 				storageConfig: {
 					crossSubdomain: true,
 				},
@@ -60,16 +29,10 @@ export default function ({ children }: ConsentManagerProps) {
 						href: '/legal/terms-of-service',
 					},
 				},
-				user: {
-					id: '123',
-					identityProvider: 'custom',
-				},
 			}}
 		>
 			<CookieBanner />
 			<ConsentDialog />
-			<IABConsentBanner />
-			<IABConsentDialog />
 			<ConsentDialogTrigger />
 			{children}
 		</ConsentManagerProvider>

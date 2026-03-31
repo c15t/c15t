@@ -100,9 +100,6 @@ export function BenchmarkConsentProvider({
 			ssrData: resolvedSSRData,
 			theme: getBenchmarkTheme(animationMode),
 			consentCategories: BENCHMARK_CONSENT_CATEGORIES,
-			iab: {
-				enabled: false,
-			},
 			callbacks: createBenchmarkCallbacks(variant),
 			legalLinks: {
 				privacyPolicy: { href: '/benchmark' },

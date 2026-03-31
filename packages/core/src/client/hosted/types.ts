@@ -1,3 +1,4 @@
+import type { IABModule } from '../../libs/iab-tcf/types';
 import type { GlobalVendorList } from '../../types/iab-tcf';
 
 /**
@@ -19,6 +20,12 @@ export interface IABFallbackConfig {
 	 * When provided, skips network fetch entirely.
 	 */
 	gvl?: GlobalVendorList;
+
+	/**
+	 * Injected IAB module for GVL fetching.
+	 * @internal
+	 */
+	_module?: IABModule;
 }
 
 /**
