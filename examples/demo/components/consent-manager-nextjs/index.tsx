@@ -16,7 +16,7 @@ import ConsentManagerProvider from './provider';
 export function ConsentManager({ children }: { children: ReactNode }) {
 	// We don't need to await this as c15t awaits this promise later when needed
 	const ssrData = fetchInitialData({
-		backendURL: '/api/self-host',
+		backendURL: 'https://minecraft-eu-west-1-mewwing.c15t.xyz',
 	});
 
 	return (
