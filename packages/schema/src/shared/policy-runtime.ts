@@ -659,6 +659,20 @@ function parsePolicyConfigs(
 		};
 	}
 
+	const errors: string[] = [];
+	for (let i = 0; i < policies.length; i++) {
+		const p = policies[i];
+		if (!p || typeof p !== 'object' || !('match' in p) || !p.match) {
+			errors.push(
+				`Policy at index ${i} is invalid: missing required 'match' property.`
+			);
+		}
+	}
+
+	if (errors.length > 0) {
+		return { ok: false, errors };
+	}
+
 	return {
 		ok: true,
 		output: policies as PolicyConfig[],

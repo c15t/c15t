@@ -44,32 +44,25 @@ afterEach(() => {
 });
 
 describe('hashSha256Hex', () => {
-	it.each(
-		goldenVectors
-	)('computes the expected sha256 for $label using the pure-js reference path', async ({
+	it.each(goldenVectors)('computes the expected sha256 for $label', async ({
 		input,
 		expected,
 	}) => {
-		await expect(hashSha256Hex(input, 'pure-js')).resolves.toBe(expected);
+		await expect(hashSha256Hex(input)).resolves.toBe(expected);
 	});
 
-	it('matches across node, webcrypto, and pure-js hash strategies', async () => {
+	it('produces consistent hashes with crypto.subtle available', async () => {
 		Object.defineProperty(globalThis, 'crypto', {
 			value: webcrypto,
 			configurable: true,
 			writable: true,
 		});
 
-		const nodeHash = await hashSha256Hex(longPolicyLikeJson, 'node');
-		const webcryptoHash = await hashSha256Hex(longPolicyLikeJson, 'webcrypto');
-		const pureJsHash = await hashSha256Hex(longPolicyLikeJson, 'pure-js');
-
-		expect(nodeHash).toBe(webcryptoHash);
-		expect(nodeHash).toBe(pureJsHash);
-		expect(nodeHash).toBe(goldenVectors[2].expected);
+		const hash = await hashSha256Hex(longPolicyLikeJson);
+		expect(hash).toBe(goldenVectors[2].expected);
 	});
 
-	it('does not throw in auto mode when globalThis.crypto is unavailable', async () => {
+	it('falls back to pure-JS when globalThis.crypto is unavailable', async () => {
 		Object.defineProperty(globalThis, 'crypto', {
 			value: undefined,
 			configurable: true,
@@ -148,16 +141,8 @@ describe('resolvePolicyDecision', () => {
 			},
 		};
 
-		const nodeFingerprint = await createPolicyFingerprint(policy, 'node');
-		const webcryptoFingerprint = await createPolicyFingerprint(
-			policy,
-			'webcrypto'
-		);
-		const pureJsFingerprint = await createPolicyFingerprint(policy, 'pure-js');
-
-		expect(nodeFingerprint).toBe(webcryptoFingerprint);
-		expect(nodeFingerprint).toBe(pureJsFingerprint);
-		expect(nodeFingerprint).toBe(goldenVectors[2].expected);
+		const fingerprint = await createPolicyFingerprint(policy);
+		expect(fingerprint).toBe(goldenVectors[2].expected);
 	});
 
 	it('ignores presentation-only fields in the material policy fingerprint', async () => {
