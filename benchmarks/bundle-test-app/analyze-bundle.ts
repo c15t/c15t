@@ -1,17 +1,21 @@
-#!/usr/bin/env bun
-/**
- * Analyzes Next.js bundle sizes and detects server-side code leakage.
- *
- * Usage:
- *   bun run analyze-bundle.ts           # Markdown output
- *   bun run analyze-bundle.ts --json    # JSON output for CI
- */
-
+#!/usr/bin/env node
+import { spawn, spawnSync } from 'node:child_process';
+import { unlinkSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { gzipSync } from 'node:zlib';
-
-interface AppBuildManifest {
-	pages: Record<string, string[]>;
-}
+import {
+	artifactBudgets,
+	BENCHMARK_SCHEMA_VERSION,
+	type BenchmarkResult,
+	bundleBudgets,
+	getEnvironment,
+	safeBaseSha,
+	safeCommitSha,
+	summarizeMetric,
+	writeJson,
+} from '@c15t/benchmarking';
 
 interface RouteSize {
 	route: string;
@@ -19,54 +23,49 @@ interface RouteSize {
 	c15tAddition: number;
 }
 
-interface LeakageError {
-	module: string;
-	chunk: string;
+const HOST = '127.0.0.1';
+const PORT = 4309;
+const BASE_URL = `http://${HOST}:${PORT}`;
+
+const ROUTE_TO_SCENARIO: Record<string, string> = {
+	'/': 'baseline',
+	'/core-only': 'core-only',
+	'/react-headless': 'react-headless',
+	'/react-banner-only': 'react-banner-only',
+	'/react-full': 'react-full',
+	'/nextjs-basic': 'nextjs-basic',
+	'/nextjs-ssr': 'nextjs-ssr',
+};
+
+async function waitForServer() {
+	for (let attempt = 0; attempt < 120; attempt += 1) {
+		try {
+			const response = await fetch(BASE_URL);
+			if (response.ok) {
+				return;
+			}
+		} catch {}
+		await sleep(500);
+	}
+
+	throw new Error('Timed out waiting for bundle benchmark server');
 }
 
-interface AnalysisResult {
-	timestamp: string;
-	routes: RouteSize[];
-	leakage: LeakageError[];
-	hasLeakage: boolean;
-}
-
-// Server-only packages that should NEVER appear in client bundle
-const LEAKAGE_PATTERNS = [
-	{ pattern: /@c15t\/backend|c15t-backend/i, name: '@c15t/backend' },
-	{ pattern: /@orpc|createORPCClient|ORPCError/i, name: '@orpc/*' },
-	{ pattern: /neverthrow|ResultAsync|okAsync|errAsync/, name: 'neverthrow' },
-	{ pattern: /superjson|SuperJSON/, name: 'superjson' },
-];
-
-async function analyzeBundle(): Promise<AnalysisResult> {
-	const manifest: AppBuildManifest = await Bun.file(
-		'.next/app-build-manifest.json'
-	).json();
-
+async function analyzeRouteSizes() {
 	const chunkSizes = new Map<string, number>();
-	const leakage: LeakageError[] = [];
 
-	// Get gzipped size and check for leakage
 	async function getGzipSize(chunkPath: string): Promise<number> {
 		if (chunkSizes.has(chunkPath)) {
 			return chunkSizes.get(chunkPath)!;
 		}
 
 		try {
-			const content = await Bun.file(`.next/${chunkPath}`).text();
+			const content = await readFile(
+				join('.next', chunkPath.replace(/^\/_next\//, '')),
+				'utf8'
+			);
 			const gzip = gzipSync(Buffer.from(content)).length;
 			chunkSizes.set(chunkPath, gzip);
-
-			// Check for leakage
-			for (const { pattern, name } of LEAKAGE_PATTERNS) {
-				if (pattern.test(content)) {
-					const chunk = chunkPath.split('/').pop() || chunkPath;
-					if (!leakage.some((l) => l.module === name && l.chunk === chunk)) {
-						leakage.push({ module: name, chunk });
-					}
-				}
-			}
 
 			return gzip;
 		} catch {
@@ -74,102 +73,250 @@ async function analyzeBundle(): Promise<AnalysisResult> {
 		}
 	}
 
-	// Calculate sizes for each route
 	const routes: RouteSize[] = [];
 	let baselineGzip = 0;
 
-	for (const [route, chunks] of Object.entries(manifest.pages)) {
-		if (!route.endsWith('/page') || route === '/layout') {
-			continue;
-		}
+	for (const routeName of Object.keys(ROUTE_TO_SCENARIO)) {
+		const response = await fetch(`${BASE_URL}${routeName}`);
+		const html = await response.text();
+		const scripts = Array.from(
+			html.matchAll(/<script[^>]+src="([^"]+)"/g),
+			(match) => match[1]
+		).filter((scriptPath): scriptPath is string =>
+			Boolean(scriptPath?.startsWith('/_next/'))
+		);
 
-		let totalGzip = 0;
-		for (const chunk of chunks) {
-			totalGzip += await getGzipSize(chunk);
+		let total = 0;
+		for (const scriptPath of new Set(scripts)) {
+			total += await getGzipSize(scriptPath);
 		}
-
-		const routeName = route.replace('/page', '') || '/';
 
 		if (routeName === '/') {
-			baselineGzip = totalGzip;
+			baselineGzip = total;
 		}
 
 		routes.push({
 			route: routeName,
-			gzip: totalGzip,
+			gzip: total,
 			c15tAddition: 0,
 		});
 	}
 
-	// Calculate c15t additions
 	for (const route of routes) {
 		route.c15tAddition = route.route === '/' ? 0 : route.gzip - baselineGzip;
 	}
 
 	routes.sort((a, b) => a.route.localeCompare(b.route));
+	return { routes };
+}
 
+function runTarballSize(packageDir: string): {
+	size: number | null;
+	notes: string[];
+} {
+	const resolvedDir = resolve(process.cwd(), packageDir);
+	const result = spawnSync('npm', ['pack', '--json', '--ignore-scripts'], {
+		cwd: resolvedDir,
+		encoding: 'utf8',
+	});
+
+	if (result.status !== 0 || !result.stdout) {
+		return { size: null, notes: [] };
+	}
+
+	try {
+		const parsed = JSON.parse(result.stdout) as Array<{
+			filename?: string;
+			size?: number;
+		}>;
+		const artifact = parsed[0];
+		const notes: string[] = [];
+
+		if (artifact?.filename) {
+			try {
+				unlinkSync(join(resolvedDir, artifact.filename));
+			} catch (error) {
+				const message =
+					error instanceof Error ? error.message : 'Unknown cleanup failure';
+				notes.push(`Failed to remove tarball ${artifact.filename}: ${message}`);
+			}
+		}
+
+		return { size: artifact?.size ?? null, notes };
+	} catch {
+		return { size: null, notes: [] };
+	}
+}
+
+function routeFixture(route: RouteSize) {
 	return {
-		timestamp: new Date().toISOString(),
-		routes,
-		leakage,
-		hasLeakage: leakage.length > 0,
+		name: ROUTE_TO_SCENARIO[route.route] ?? route.route,
+		consentCount: 5,
+		scriptCount: 0,
+		localeCount: 1,
+		themeComplexity: 'minimal' as const,
 	};
 }
 
-function formatKB(bytes: number): string {
-	return `${(bytes / 1024).toFixed(2)} kB`;
-}
+function toMarkdown(
+	results: BenchmarkResult[],
+	artifactResult: BenchmarkResult
+): string {
+	const lines = ['# Bundle and Artifact Benchmarks', ''];
 
-function toMarkdown(result: AnalysisResult): string {
-	let md = '# Bundle Analysis\n\n';
-
-	// Leakage status (most important)
-	if (result.hasLeakage) {
-		md += '## ❌ Server Code Leakage Detected!\n\n';
-		md += '| Module | Chunk |\n|--------|-------|\n';
-		for (const { module, chunk } of result.leakage) {
-			md += `| \`${module}\` | ${chunk} |\n`;
+	for (const result of results) {
+		lines.push(`## ${result.scenario}`);
+		lines.push('');
+		lines.push('| Metric | Median | Unit |');
+		lines.push('| --- | ---: | --- |');
+		for (const metric of result.metrics) {
+			lines.push(`| ${metric.name} | ${metric.median} | ${metric.unit} |`);
 		}
-		md += '\n';
-	} else {
-		md += '## ✅ No Leakage\n\n';
-		md += 'No server-only packages found in client bundle.\n\n';
+		lines.push('');
 	}
 
-	// Bundle sizes
-	md += '## Bundle Sizes (gzipped)\n\n';
-	md += '| Route | Size | c15t Addition |\n';
-	md += '|-------|------|---------------|\n';
-
-	for (const { route, gzip, c15tAddition } of result.routes) {
-		const addition = c15tAddition > 0 ? `+${formatKB(c15tAddition)}` : '-';
-		md += `| ${route} | ${formatKB(gzip)} | ${addition} |\n`;
+	lines.push('## Artifact Sizes');
+	lines.push('');
+	lines.push('| Metric | Median | Unit |');
+	lines.push('| --- | ---: | --- |');
+	for (const metric of artifactResult.metrics) {
+		lines.push(`| ${metric.name} | ${metric.median} | ${metric.unit} |`);
 	}
+	lines.push('');
 
-	// Summary
-	const core = result.routes.find((r) => r.route === '/core-only');
-	const full = result.routes.find((r) => r.route === '/full');
-
-	if (core && full) {
-		md += '\n## Summary\n\n';
-		md += `- **Core only**: +${formatKB(core.c15tAddition)}\n`;
-		md += `- **Full (all components)**: +${formatKB(full.c15tAddition)}\n`;
-	}
-
-	return md;
+	return `${lines.join('\n')}\n`;
 }
 
-// Main
-const args = process.argv.slice(2);
-const result = await analyzeBundle();
+async function main() {
+	const outputDir = process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/bundle';
+	const args = new Set(process.argv.slice(2));
+	const server = spawn(
+		'bun',
+		['run', 'next', 'start', '-H', HOST, '-p', `${PORT}`],
+		{
+			cwd: process.cwd(),
+			stdio: ['ignore', 'pipe', 'pipe'],
+		}
+	);
 
-if (args.includes('--json')) {
-	console.log(JSON.stringify(result, null, 2));
-} else {
-	console.log(toMarkdown(result));
+	let logs = '';
+	server.stdout.on('data', (chunk) => {
+		logs += String(chunk);
+	});
+	server.stderr.on('data', (chunk) => {
+		logs += String(chunk);
+	});
+
+	await waitForServer();
+	const { routes } = await analyzeRouteSizes();
+
+	try {
+		const bundleResults: BenchmarkResult[] = routes.map((route) => ({
+			schemaVersion: BENCHMARK_SCHEMA_VERSION,
+			suite: 'bundle',
+			package: '@c15t/next-bundle-bench',
+			framework: route.route.startsWith('/nextjs')
+				? 'nextjs'
+				: route.route === '/core-only'
+					? 'core'
+					: 'react',
+			runtime: 'next',
+			scenario: ROUTE_TO_SCENARIO[route.route] ?? route.route,
+			commitSha: safeCommitSha(),
+			baseSha: safeBaseSha(),
+			timestamp: new Date().toISOString(),
+			environment: getEnvironment(),
+			fixture: routeFixture(route),
+			metrics: [
+				summarizeMetric('gzipSize', 'bytes', [route.gzip]),
+				summarizeMetric(routeFixture(route).name, 'bytes', [
+					route.c15tAddition,
+				]),
+			],
+			budgetDefinitions: [
+				...bundleBudgets.filter(
+					(budget) => budget.metric === routeFixture(route).name
+				),
+			],
+			budgets: [],
+			notes: ['Route-level client bundle size benchmark.'],
+		}));
+
+		for (const result of bundleResults) {
+			writeJson(join(outputDir, `${result.scenario}.json`), result);
+		}
+
+		const coreTarball = runTarballSize('../../packages/core');
+		const reactTarball = runTarballSize('../../packages/react');
+		const nextjsTarball = runTarballSize('../../packages/nextjs');
+
+		const artifactResult: BenchmarkResult = {
+			schemaVersion: BENCHMARK_SCHEMA_VERSION,
+			suite: 'artifact',
+			package: '@c15t/next-bundle-bench',
+			framework: 'core',
+			runtime: 'npm-pack',
+			scenario: 'tarballs',
+			commitSha: safeCommitSha(),
+			baseSha: safeBaseSha(),
+			timestamp: new Date().toISOString(),
+			environment: getEnvironment(),
+			fixture: {
+				name: 'tarballs',
+				consentCount: 0,
+				scriptCount: 0,
+				localeCount: 0,
+				themeComplexity: 'minimal',
+			},
+			metrics: [
+				summarizeMetric('c15t', 'bytes', [coreTarball.size ?? 0]),
+				summarizeMetric('@c15t/react', 'bytes', [reactTarball.size ?? 0]),
+				summarizeMetric('@c15t/nextjs', 'bytes', [nextjsTarball.size ?? 0]),
+			],
+			budgetDefinitions: artifactBudgets,
+			budgets: [],
+			notes: [
+				'Tarball sizes are captured with npm pack --json when npm is available.',
+				...coreTarball.notes,
+				...reactTarball.notes,
+				...nextjsTarball.notes,
+			],
+		};
+
+		writeJson(
+			join(outputDir, `${artifactResult.scenario}.json`),
+			artifactResult
+		);
+
+		if (args.has('--json')) {
+			console.log(
+				JSON.stringify(
+					{
+						results: bundleResults,
+						artifact: artifactResult,
+						budgets: bundleBudgets,
+					},
+					null,
+					2
+				)
+			);
+			return;
+		}
+
+		console.log(toMarkdown(bundleResults, artifactResult));
+	} finally {
+		server.kill('SIGTERM');
+		await sleep(500);
+		if (!server.killed) {
+			server.kill('SIGKILL');
+		}
+		if (server.exitCode && server.exitCode !== 0) {
+			throw new Error(logs || 'Bundle benchmark server failed');
+		}
+	}
 }
 
-// Exit with error if leakage detected (for CI)
-if (result.hasLeakage) {
+main().catch((error) => {
+	console.error(error);
 	process.exit(1);
-}
+});

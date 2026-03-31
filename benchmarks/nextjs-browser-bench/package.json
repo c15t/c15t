@@ -1,0 +1,25 @@
+{
+	"name": "@c15t/nextjs-browser-bench",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "next dev",
+		"build": "next build",
+		"start": "next start",
+		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/browser-runtime/nextjs bunx tsx scripts/run-bench.ts",
+		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/browser-runtime/nextjs bunx tsx scripts/run-bench.ts",
+		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/browser-runtime/nextjs bunx tsx scripts/run-bench.ts"
+	},
+	"dependencies": {
+		"@c15t/benchmarking": "workspace:*",
+		"@c15t/nextjs": "workspace:*",
+		"c15t": "workspace:*",
+		"next": "16.1.4",
+		"react": "19.2.3",
+		"react-dom": "19.2.3"
+	},
+	"devDependencies": {
+		"playwright": "1.57.0",
+		"typescript": "5.8.3"
+	}
+}
