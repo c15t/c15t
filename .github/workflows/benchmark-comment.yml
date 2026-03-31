@@ -1,0 +1,78 @@
+name: Benchmark Comment
+
+on:
+  workflow_run:
+    workflows: ['Benchmark Regression']
+    types: [completed]
+
+jobs:
+  comment:
+    name: Post Benchmark Report
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Download benchmark artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-regression-result
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: ./benchmark-artifacts
+
+      - name: Post or update PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const prPath = path.join('./benchmark-artifacts', 'metadata', 'pr-number');
+            const reportPath = path.join('./benchmark-artifacts', 'compare', 'comparison.md');
+
+            if (!fs.existsSync(prPath) || !fs.existsSync(reportPath)) {
+              core.info('Benchmark artifact is incomplete, skipping comment.');
+              return;
+            }
+
+            const prNumber = parseInt(fs.readFileSync(prPath, 'utf8').trim(), 10);
+            if (!prNumber || Number.isNaN(prNumber)) {
+              core.info('Invalid PR number, skipping comment.');
+              return;
+            }
+
+            const report = fs.readFileSync(reportPath, 'utf8').trim();
+            if (!report) {
+              core.info('Benchmark report is empty, skipping comment.');
+              return;
+            }
+
+            const header = '<!-- benchmark-regression -->';
+            const body = `${header}\n${report}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              ...context.repo,
+              issue_number: prNumber,
+            });
+
+            const existing = comments.find((comment) => comment.body?.includes(header));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: existing.id,
+                body,
+              });
+              core.info(`Updated benchmark comment on PR #${prNumber}`);
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: prNumber,
+              body,
+            });
+            core.info(`Posted benchmark comment on PR #${prNumber}`);

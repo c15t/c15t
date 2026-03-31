@@ -1,76 +1,91 @@
-# Performance Benchmarks
+# c15t Benchmarks
 
-This folder contains performance measurement tools for c15t and @c15t/react.
+This directory contains the internal benchmark platform for `c15t`, `@c15t/react`, and `@c15t/nextjs`.
 
-## Structure
+## Suites
 
-```
-benchmarks/
-├── README.md           # This file
-├── package.json        # Shared dependencies (mitata)
-├── BASELINE.md         # Recorded baseline measurements
-├── bundle-test-app/    # Next.js app for bundle analysis
-└── micro/              # mitata microbenchmarks
-```
+- `core-benchmarks`
+  Measures framework-agnostic runtime work such as store creation, `has()`, cookie round-trips, init, repeat-visitor init, and script updates.
+- `bundle-test-app`
+  Builds a dedicated Next app and records route-level client script size plus publish tarball sizes for `c15t`, `@c15t/react`, and `@c15t/nextjs`.
+- `react-browser-bench`
+  Runs Playwright against a React-flavoured benchmark app with local deterministic API routes.
+- `nextjs-browser-bench`
+  Runs Playwright against a Next integration benchmark app covering client, prefetch, SSR, and repeat-visitor paths.
+- `script-lifecycle-bench`
+  Runs deterministic local script lifecycle flows for load, unload, reload, callback-only, `alwaysLoad`, and `persistAfterConsentRevoked` behavior.
+- `shared`
+  Shared schema, fixtures, budgets, comparison logic, and report formatting.
 
-## Bundle Analysis
+## Outputs
 
-Analyze how c15t packages tree-shake when consumed by a Next.js app.
+Benchmark tasks write machine-readable JSON to:
 
-### Automated Analysis (CI-friendly)
+- `.benchmarks/current/**`
+- `.benchmarks/head/**`
+- `.benchmarks/nightly/**`
+- `.benchmarks/compare/**`
 
-```bash
-cd benchmarks/bundle-test-app
+`bun run bench:compare` compares base vs head artifacts and emits:
 
-# Markdown report (human-readable)
-bun run build && bun run analyze:md
+- `.benchmarks/compare/comparison.json`
+- `.benchmarks/compare/comparison.md`
 
-# JSON output (machine-readable, for CI)
-bun run build && bun run analyze:json > bundle-sizes.json
+`.benchmarks/` is gitignored so local and CI benchmark artifacts do not dirty the worktree.
 
-# One command for CI
-bun run analyze:ci
-```
+## Fixture Model
 
-### Interactive Treemap
+Shared fixtures live in `shared/src/fixtures.ts`.
 
-For detailed visual analysis:
+- `tiny`, `small`, `medium`, `large`, `xlarge` scale translation payload, script volume, and UI complexity.
+- c15t currently exposes five built-in consent categories, so larger fixtures scale primarily via translation/script complexity rather than additional category names.
+- `core-benchmarks` measures script-manager reconciliation speed only. It does not measure remote third-party script latency.
+- Browser startup benches expose app-startup script waterfall metrics, not CDN speed for third-party scripts.
+- `script-lifecycle-bench` is the source of truth for actual load/unload/reload consent flow timings.
 
-```bash
-bun run analyze  # Opens interactive treemap in browser
-```
+## Still Unbenchmarked
 
-### Import Scenarios
+The current platform still leaves a few areas intentionally out of scope:
 
-The bundle test app includes multiple pages testing different import patterns:
+- IAB-gated script lifecycle scenarios
+- Remote CDN latency and real third-party network variance
+- Memory and retained-heap behavior after repeated mount/unmount cycles
+- Artifact file-count and brotli-size reporting
+- Per-framework script lifecycle hosts for Vue, Svelte, and Solid
 
-- `/full` - All components (CookieBanner + ConsentManagerDialog)
-- `/headless` - Headless mode (custom UI)
-- `/banner-only` - Just the CookieBanner
-- `/core-only` - Vanilla JS core without React
+## Framework Adapter Contract
 
-## Microbenchmarks
+Future framework benchmark apps should follow the same shape as the React and Next apps.
 
-Runtime performance benchmarks using mitata.
+Each framework benchmark app should provide:
 
-```bash
-# Run all microbenchmarks
-bun run benchmarks/micro/*.bench.ts
+- routes or pages for `headless`, `full-ui`, `repeat-visitor`, and `vanilla-core`
+- `client`, `ssr`, and `prefetch` routes where the framework supports them
+- a browser-exposed benchmark object with normalized timing and lifecycle fields
+- local deterministic init/subject endpoints or equivalent local fixtures
+- mount/render/update probes suitable for that framework runtime
 
-# Run specific benchmark
-bun run benchmarks/micro/store.bench.ts
-```
+Normalized benchmark state should include:
 
-### Available Benchmarks
+- `scenario`
+- `bannerReadyMs`
+- `bannerVisibleMs`
+- `mountCount`
+- `renderCount` or equivalent reactive update count
+- interaction timings
+- request counts
+- error count if the framework-specific harness exposes it
 
-| File | What It Measures |
-|------|------------------|
-| `store.bench.ts` | Store creation, getState(), saveConsents() |
-| `has-condition.bench.ts` | Condition logic: single, AND, OR, NOT, nested |
-| `translations.bench.ts` | Translation merging and config preparation |
-| `cookie.bench.ts` | Cookie serialization pipeline |
-| `script-loader.bench.ts` | Script loader operations |
+## CI
 
-## Recording Baseline
+- `benchmark-regression.yml`
+  Runs on performance-sensitive PRs and on pushes to `main` and `canary`.
+- `benchmark-comment.yml`
+  Posts a sticky PR comment from regression artifacts.
+- `benchmark-nightly.yml`
+  Stores nightly raw benchmark artifacts for trend inspection.
 
-After running benchmarks, update `BASELINE.md` with the results for comparison against future versions.
+The current rollout is report-first. Hard failures can be enabled by setting the repository variable `C15T_BENCHMARK_ENFORCE=true`.
+
+Bundle benchmarks protect route-level client JavaScript size. Artifact benchmarks protect publish-size growth for the shipped packages.
+IAB-gated script lifecycle coverage is intentionally not included in v1 of the script lifecycle suite.
