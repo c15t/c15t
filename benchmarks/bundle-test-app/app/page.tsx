@@ -12,16 +12,25 @@ export default function HomePage() {
 			<h2>Test Pages</h2>
 			<ul style={{ lineHeight: 2 }}>
 				<li>
-					<Link href="/full">/full</Link> - Full import (all components)
+					<Link href="/react-full">/react-full</Link> - Full React import
 				</li>
 				<li>
-					<Link href="/headless">/headless</Link> - Headless only (custom UI)
+					<Link href="/react-headless">/react-headless</Link> - Headless React
+					import
 				</li>
 				<li>
-					<Link href="/banner-only">/banner-only</Link> - Just ConsentBanner
+					<Link href="/react-banner-only">/react-banner-only</Link> - React
+					banner only
 				</li>
 				<li>
 					<Link href="/core-only">/core-only</Link> - Vanilla JS core only
+				</li>
+				<li>
+					<Link href="/nextjs-basic">/nextjs-basic</Link> - Next.js provider and
+					banner
+				</li>
+				<li>
+					<Link href="/nextjs-ssr">/nextjs-ssr</Link> - Next.js SSR data path
 				</li>
 			</ul>
 		</main>

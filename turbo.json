@@ -76,6 +76,21 @@
 				"coverage/html/**"
 			]
 		},
+		"bench": {
+			"dependsOn": ["build", "^build"],
+			"cache": false,
+			"outputs": [".benchmarks/**"]
+		},
+		"bench:ci": {
+			"dependsOn": ["build", "^build"],
+			"cache": false,
+			"outputs": [".benchmarks/**"]
+		},
+		"bench:nightly": {
+			"dependsOn": ["build", "^build"],
+			"cache": false,
+			"outputs": [".benchmarks/**"]
+		},
 		"@c15t/scripts#test": {
 			"dependsOn": ["build", "^build", "transit", "@c15t/vitest-config#build"],
 			"outputs": [

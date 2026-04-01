@@ -1,0 +1,18 @@
+{
+	"name": "@c15t/core-benchmarks",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "echo 'core benchmarks are source-only'",
+		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/core-runtime bunx tsx src/run.ts",
+		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/core-runtime bunx tsx src/run.ts",
+		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/core-runtime bunx tsx src/run.ts"
+	},
+	"dependencies": {
+		"@c15t/benchmarking": "workspace:*",
+		"c15t": "workspace:*"
+	},
+	"devDependencies": {
+		"typescript": "5.8.3"
+	}
+}
