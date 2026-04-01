@@ -154,6 +154,7 @@
 	"devDependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/iab": "workspace:*",
+		"@iabtechlabtcf/core": "^1.5.20",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"genversion": "3.2.0",
