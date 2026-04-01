@@ -70,19 +70,25 @@ const IAB_COMPONENTS = ['iab-consent-banner', 'iab-consent-dialog'];
  * References CSS custom properties set by the component styles in @layer c15t.
  */
 function generatePreflightShield(): string {
+	// The shield uses [class*="c15t-ui-"] at specificity (0,1,0) which beats:
+	//   - Tailwind's `* { padding: 0 }` at (0,0,0)
+	//   - Tailwind's `button { background: transparent }` at (0,0,1)
+	// And ties with Tailwind utilities like `.text-blue-500` at (0,1,0),
+	// but the shield comes first in source order so utilities win.
 	return `/*! c15t preflight shield */
-button:where([class*="c15t-ui-"]),
-[role="switch"]:where([class*="c15t-ui-"]) {
+[class*="c15t-ui-"] {
+  padding: var(--_c15t-padding, 0);
+  margin: var(--_c15t-margin, 0);
+  border: var(--_c15t-border, 0 solid);
+  border-radius: var(--_c15t-radius, 0);
   background-color: var(--_c15t-bg, transparent);
   color: var(--_c15t-color, inherit);
-  padding: var(--_c15t-padding, 0);
-  border: var(--_c15t-border, none);
-  border-radius: var(--_c15t-radius, 0);
   font-family: var(--_c15t-font, inherit);
   font-size: var(--_c15t-font-size, inherit);
   font-weight: var(--_c15t-font-weight, inherit);
   line-height: var(--_c15t-line-height, inherit);
-  cursor: var(--_c15t-cursor, default);
+  cursor: var(--_c15t-cursor, auto);
+  box-shadow: var(--_c15t-shadow, none);
 }`;
 }
 
@@ -116,6 +122,60 @@ function wrapWithWhere(css: string): string {
 	return css.replace(/\.c15t-ui-[a-zA-Z0-9_-]+/g, ':where($&)');
 }
 
+/**
+ * Inject `--_c15t-*` bridge custom property declarations into CSS rules.
+ *
+ * For every property the preflight shield reads (padding, background-color, etc.),
+ * if a component rule sets that property, we also set the corresponding bridge
+ * custom property so the unlayered shield can read it.
+ *
+ * This avoids manually adding bridge props to every source CSS module.
+ */
+const BRIDGE_MAP: Record<string, string> = {
+	padding: '--_c15t-padding',
+	'padding-top': '--_c15t-padding', // partial — shield uses shorthand
+	'padding-left': '--_c15t-padding',
+	'background-color': '--_c15t-bg',
+	background: '--_c15t-bg',
+	color: '--_c15t-color',
+	'border-radius': '--_c15t-radius',
+	border: '--_c15t-border',
+	'font-family': '--_c15t-font',
+	'font-size': '--_c15t-font-size',
+	'font-weight': '--_c15t-font-weight',
+	'line-height': '--_c15t-line-height',
+	cursor: '--_c15t-cursor',
+	'box-shadow': '--_c15t-shadow',
+};
+
+function injectBridgeProperties(css: string): string {
+	// Match CSS declaration blocks: selector { ... }
+	// For each property in the block, if it maps to a bridge var, add the bridge declaration
+	return css.replace(
+		/(:where\([^)]+\)(?:[^{]*?))\{([^}]+)\}/g,
+		(match, selector, body) => {
+			const bridgeDecls: string[] = [];
+			const seen = new Set<string>();
+
+			for (const [prop, bridgeVar] of Object.entries(BRIDGE_MAP)) {
+				// Check if this property is set in the body (not as part of a var name)
+				const propRegex = new RegExp(
+					`(?:^|;)\\s*${prop.replace('-', '\\-')}\\s*:([^;]+)`,
+					'i'
+				);
+				const propMatch = body.match(propRegex);
+				if (propMatch && !seen.has(bridgeVar)) {
+					seen.add(bridgeVar);
+					bridgeDecls.push(`${bridgeVar}:${propMatch[1].trim()}`);
+				}
+			}
+
+			if (bridgeDecls.length === 0) return match;
+			return `${selector}{${bridgeDecls.join(';')};${body}}`;
+		}
+	);
+}
+
 function concatCss(primitives: string[], components: string[]): string {
 	const rootBlocks: string[] = [];
 	const layerBlocks: string[] = [];
@@ -144,10 +204,10 @@ function concatCss(primitives: string[], components: string[]): string {
 			rootBlocks.push(outsideLayer);
 		}
 
-		// Component rules go in @layer c15t with :where() wrapping
+		// Component rules go in @layer c15t with :where() wrapping + bridge props
 		if (insideLayer.trim()) {
 			layerBlocks.push(`/* ${mod.dir}/${mod.name} */`);
-			layerBlocks.push(wrapWithWhere(insideLayer));
+			layerBlocks.push(injectBridgeProperties(wrapWithWhere(insideLayer)));
 		}
 	}
 
