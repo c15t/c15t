@@ -7,6 +7,7 @@
  * @packageDocumentation
  */
 
+import { iab } from '@c15t/iab';
 import { vi } from 'vitest';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
 import { mockGVL } from './fixtures/mock-consent-state';
@@ -212,12 +213,11 @@ export async function removeCMPEventListener(
  */
 export const defaultIABOptions: ConsentManagerOptions = {
 	mode: 'offline',
-	iab: {
-		enabled: true,
+	iab: iab({
 		cmpId: 160,
 		cmpVersion: 1,
 		gvl: mockGVL, // Pre-loaded GVL - skips network fetch
-	},
+	}),
 	offlinePolicy: {
 		policy: { id: 'iab_default', model: 'iab' },
 	},

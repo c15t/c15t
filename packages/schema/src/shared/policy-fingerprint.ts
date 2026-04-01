@@ -1,5 +1,6 @@
 import type { ResolvedPolicy } from '~/api/init';
 
+/** @deprecated Strategy selection removed — uses crypto.subtle (async) or pure-JS (sync) */
 export type FingerprintHashStrategy = 'auto' | 'node' | 'webcrypto' | 'pure-js';
 
 export function stableStringify(value: unknown): string {
@@ -23,102 +24,23 @@ export function stableStringify(value: unknown): string {
 		.join(',')}}`;
 }
 
-type SubtleCryptoLike = {
-	digest(
-		algorithm: AlgorithmIdentifier,
-		data: BufferSource
-	): Promise<ArrayBuffer>;
-};
-
-type CreateHashLike = (algorithm: string) => {
-	update(
-		data: string,
-		inputEncoding?: string
-	): {
-		digest(encoding: 'hex'): string;
-	};
-};
-
-let subtleCryptoPromise: Promise<SubtleCryptoLike | null> | undefined;
-let nodeCreateHashPromise: Promise<CreateHashLike | null> | undefined;
-
-function isBunRuntime(): boolean {
-	return (
-		typeof Bun !== 'undefined' ||
-		(typeof process !== 'undefined' &&
-			typeof process.versions === 'object' &&
-			Boolean(process.versions?.bun))
-	);
-}
-
-function isNodeHashRuntime(): boolean {
-	return (
-		typeof process !== 'undefined' &&
-		typeof process.versions === 'object' &&
-		Boolean(process.versions?.node) &&
-		!isBunRuntime()
-	);
-}
-
-async function getNodeCreateHash(): Promise<CreateHashLike | null> {
-	if (!isNodeHashRuntime()) {
-		return null;
+export async function hashSha256Hex(input: string): Promise<string> {
+	const subtle = globalThis.crypto?.subtle;
+	if (subtle) {
+		const data = new TextEncoder().encode(input);
+		const hash = await subtle.digest('SHA-256', data);
+		return Array.from(new Uint8Array(hash))
+			.map((byte) => byte.toString(16).padStart(2, '0'))
+			.join('');
 	}
-
-	nodeCreateHashPromise ??= (async () => {
-		try {
-			const { createHash } = await import('node:crypto');
-			return createHash;
-		} catch {
-			return null;
-		}
-	})();
-
-	return nodeCreateHashPromise;
-}
-
-async function getSubtleCrypto(): Promise<SubtleCryptoLike | null> {
-	const availableSubtle = globalThis.crypto?.subtle;
-	if (availableSubtle) {
-		return availableSubtle;
-	}
-
-	subtleCryptoPromise ??= (async () => {
-		try {
-			const { webcrypto } = await import('node:crypto');
-			return webcrypto.subtle;
-		} catch {
-			return null;
-		}
-	})();
-
-	return subtleCryptoPromise;
-}
-
-function rightRotate(value: number, shift: number): number {
-	return (value >>> shift) | (value << (32 - shift));
+	return sha256HexPureJs(input);
 }
 
 function sha256HexPureJs(input: string): string {
-	const bytes = new TextEncoder().encode(input);
-	const bitLength = bytes.length * 8;
-	const paddedLength = (((bytes.length + 9 + 63) >> 6) << 6) >>> 0;
-	const padded = new Uint8Array(paddedLength);
-	padded.set(bytes);
-	padded[bytes.length] = 0x80;
+	const data = new TextEncoder().encode(input);
 
-	const view = new DataView(padded.buffer);
-	const highBits = Math.floor(bitLength / 2 ** 32);
-	const lowBits = bitLength >>> 0;
-	view.setUint32(paddedLength - 8, highBits, false);
-	view.setUint32(paddedLength - 4, lowBits, false);
-
-	const initialHash = new Uint32Array([
-		0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
-		0x1f83d9ab, 0x5be0cd19,
-	]);
-
-	const roundConstants = new Uint32Array([
+	// SHA-256 constants
+	const K = new Uint32Array([
 		0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
 		0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
 		0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
@@ -132,111 +54,64 @@ function sha256HexPureJs(input: string): string {
 		0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 	]);
 
-	const words = new Uint32Array(64);
+	const bitLen = data.length * 8;
+	const padLen = (((data.length + 9 + 63) >> 6) << 6) >>> 0;
+	const padded = new Uint8Array(padLen);
+	padded.set(data);
+	padded[data.length] = 0x80;
+	const view = new DataView(padded.buffer);
+	view.setUint32(padLen - 8, Math.floor(bitLen / 2 ** 32), false);
+	view.setUint32(padLen - 4, bitLen >>> 0, false);
 
-	for (let offset = 0; offset < paddedLength; offset += 64) {
-		for (let index = 0; index < 16; index += 1) {
-			words[index] = view.getUint32(offset + index * 4, false);
+	const H = new Uint32Array([
+		0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
+		0x1f83d9ab, 0x5be0cd19,
+	]);
+	const W = new Uint32Array(64);
+	const r = (v: number, s: number) => (v >>> s) | (v << (32 - s));
+
+	for (let off = 0; off < padLen; off += 64) {
+		for (let i = 0; i < 16; i++) W[i] = view.getUint32(off + i * 4, false);
+		for (let i = 16; i < 64; i++) {
+			const s0 = r(W[i - 15]!, 7) ^ r(W[i - 15]!, 18) ^ (W[i - 15]! >>> 3);
+			const s1 = r(W[i - 2]!, 17) ^ r(W[i - 2]!, 19) ^ (W[i - 2]! >>> 10);
+			W[i] = (W[i - 16]! + s0 + W[i - 7]! + s1) >>> 0;
 		}
-
-		for (let index = 16; index < 64; index += 1) {
-			const word15 = words[index - 15]!;
-			const word2 = words[index - 2]!;
-			const word16 = words[index - 16]!;
-			const word7 = words[index - 7]!;
-			const s0 =
-				rightRotate(word15, 7) ^ rightRotate(word15, 18) ^ (word15 >>> 3);
-			const s1 =
-				rightRotate(word2, 17) ^ rightRotate(word2, 19) ^ (word2 >>> 10);
-			words[index] = (word16 + s0 + word7 + s1) >>> 0;
-		}
-
-		let a = initialHash[0]!;
-		let b = initialHash[1]!;
-		let c = initialHash[2]!;
-		let d = initialHash[3]!;
-		let e = initialHash[4]!;
-		let f = initialHash[5]!;
-		let g = initialHash[6]!;
-		let h = initialHash[7]!;
-
-		for (let index = 0; index < 64; index += 1) {
-			const sigma1 =
-				rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25);
-			const choice = (e & f) ^ (~e & g);
-			const temp1 =
-				(h + sigma1 + choice + roundConstants[index]! + words[index]!) >>> 0;
-			const sigma0 =
-				rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22);
-			const majority = (a & b) ^ (a & c) ^ (b & c);
-			const temp2 = (sigma0 + majority) >>> 0;
-
+		let [a, b, c, d, e, f, g, h] = H;
+		for (let i = 0; i < 64; i++) {
+			const t1 =
+				(h! +
+					(r(e!, 6) ^ r(e!, 11) ^ r(e!, 25)) +
+					((e! & f!) ^ (~e! & g!)) +
+					K[i]! +
+					W[i]!) >>>
+				0;
+			const t2 =
+				((r(a!, 2) ^ r(a!, 13) ^ r(a!, 22)) +
+					((a! & b!) ^ (a! & c!) ^ (b! & c!))) >>>
+				0;
 			h = g;
 			g = f;
 			f = e;
-			e = (d + temp1) >>> 0;
+			e = (d! + t1) >>> 0;
 			d = c;
 			c = b;
 			b = a;
-			a = (temp1 + temp2) >>> 0;
+			a = (t1 + t2) >>> 0;
 		}
-
-		initialHash[0] = (initialHash[0]! + a) >>> 0;
-		initialHash[1] = (initialHash[1]! + b) >>> 0;
-		initialHash[2] = (initialHash[2]! + c) >>> 0;
-		initialHash[3] = (initialHash[3]! + d) >>> 0;
-		initialHash[4] = (initialHash[4]! + e) >>> 0;
-		initialHash[5] = (initialHash[5]! + f) >>> 0;
-		initialHash[6] = (initialHash[6]! + g) >>> 0;
-		initialHash[7] = (initialHash[7]! + h) >>> 0;
+		H[0] = (H[0]! + a!) >>> 0;
+		H[1] = (H[1]! + b!) >>> 0;
+		H[2] = (H[2]! + c!) >>> 0;
+		H[3] = (H[3]! + d!) >>> 0;
+		H[4] = (H[4]! + e!) >>> 0;
+		H[5] = (H[5]! + f!) >>> 0;
+		H[6] = (H[6]! + g!) >>> 0;
+		H[7] = (H[7]! + h!) >>> 0;
 	}
 
-	return Array.from(initialHash)
-		.map((word) => word.toString(16).padStart(8, '0'))
+	return Array.from(H)
+		.map((w) => w.toString(16).padStart(8, '0'))
 		.join('');
-}
-
-async function sha256HexNode(input: string): Promise<string | null> {
-	const createHash = await getNodeCreateHash();
-	if (!createHash) {
-		return null;
-	}
-
-	return createHash('sha256').update(input, 'utf8').digest('hex');
-}
-
-async function sha256HexWebCrypto(input: string): Promise<string | null> {
-	const data = new TextEncoder().encode(input);
-	const subtle = await getSubtleCrypto();
-	if (!subtle) {
-		return null;
-	}
-
-	const hash = await subtle.digest('SHA-256', data);
-	return Array.from(new Uint8Array(hash))
-		.map((byte) => byte.toString(16).padStart(2, '0'))
-		.join('');
-}
-
-export async function hashSha256Hex(
-	input: string,
-	strategy: FingerprintHashStrategy = 'auto'
-): Promise<string> {
-	switch (strategy) {
-		case 'node':
-			return (await sha256HexNode(input)) ?? sha256HexPureJs(input);
-		case 'webcrypto':
-			return (await sha256HexWebCrypto(input)) ?? sha256HexPureJs(input);
-		case 'pure-js':
-			return sha256HexPureJs(input);
-		case 'auto':
-		default:
-			return (
-				(await sha256HexNode(input)) ??
-				(await sha256HexWebCrypto(input)) ??
-				sha256HexPureJs(input)
-			);
-	}
 }
 
 export function createDeterministicFingerprintSync(value: unknown): string {
@@ -244,17 +119,15 @@ export function createDeterministicFingerprintSync(value: unknown): string {
 }
 
 export async function createDeterministicFingerprint(
-	value: unknown,
-	strategy: FingerprintHashStrategy = 'auto'
+	value: unknown
 ): Promise<string> {
-	return hashSha256Hex(stableStringify(value), strategy);
+	return hashSha256Hex(stableStringify(value));
 }
 
 export async function createPolicyFingerprint(
-	policy: ResolvedPolicy,
-	strategy: FingerprintHashStrategy = 'auto'
+	policy: ResolvedPolicy
 ): Promise<string> {
-	return createDeterministicFingerprint(policy, strategy);
+	return createDeterministicFingerprint(policy);
 }
 
 function createMaterialPolicyFingerprintInput(policy: ResolvedPolicy) {
@@ -301,11 +174,9 @@ function createMaterialPolicyFingerprintInput(policy: ResolvedPolicy) {
 }
 
 export async function createMaterialPolicyFingerprint(
-	policy: ResolvedPolicy,
-	strategy: FingerprintHashStrategy = 'auto'
+	policy: ResolvedPolicy
 ): Promise<string> {
 	return createDeterministicFingerprint(
-		createMaterialPolicyFingerprintInput(policy),
-		strategy
+		createMaterialPolicyFingerprintInput(policy)
 	);
 }

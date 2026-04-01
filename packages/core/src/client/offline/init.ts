@@ -5,11 +5,11 @@ import {
 } from '@c15t/schema/types';
 import {
 	deepMergeTranslations,
+	enTranslations,
 	selectLanguage,
 	type TranslationConfig,
 	type Translations,
 } from '@c15t/translations';
-import { baseTranslations } from '@c15t/translations/all';
 import { checkJurisdiction } from '../../libs/jurisdiction';
 import type { OfflinePolicyConfig } from '../../store/type';
 import { defaultTranslationConfig } from '../../translations';
@@ -23,16 +23,11 @@ import type { FetchOptions, ResponseContext } from '../types';
 import type { IABFallbackConfig } from './types';
 import { createResponseContext } from './utils';
 
-type SupportedBaseLanguage = keyof typeof baseTranslations;
 type OfflineI18nProfile = NonNullable<
 	NonNullable<OfflinePolicyConfig['i18n']>['messages']
 >[string];
 
 const DEFAULT_PROFILE = 'default';
-
-function isSupportedBaseLanguage(lang: string): lang is SupportedBaseLanguage {
-	return lang in baseTranslations;
-}
 
 function normalizeLanguage(
 	value: string | null | undefined
@@ -116,9 +111,7 @@ function resolveOfflinePolicyTranslations(input: {
 	const resolvedLanguage = profiles[profile]?.translations[requestedLanguage]
 		? requestedLanguage
 		: fallbackLanguage;
-	const base = isSupportedBaseLanguage(resolvedLanguage)
-		? baseTranslations[resolvedLanguage]
-		: baseTranslations.en;
+	const base = enTranslations;
 	const custom = profiles[profile]?.translations[resolvedLanguage];
 
 	return {
@@ -259,9 +252,7 @@ export async function init(
 			fallback: fallbackLanguage,
 		});
 
-		const base = isSupportedBaseLanguage(language)
-			? baseTranslations[language]
-			: baseTranslations.en;
+		const base = enTranslations;
 		const customForLanguage = customTranslations[language] ?? {};
 		translationsForLanguage = deepMergeTranslations(
 			base,
