@@ -9,4 +9,4 @@ export const consentPurposeTable = table('consentPurpose', {
 	tenantId: column('tenantId', 'string').nullable(),
 });
 
-export { consentPurposeSchema, type ConsentPurpose };
+export { type ConsentPurpose, consentPurposeSchema };

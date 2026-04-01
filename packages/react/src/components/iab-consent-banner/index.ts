@@ -100,7 +100,6 @@ const IABConsentBanner = Object.assign(IABConsentBannerComponent, {
 
 // Export the main component as both default and named export
 export default IABConsentBanner;
-export { IABConsentBanner, type IABConsentBannerProps };
 
 // Export individual components for direct usage
 export {
@@ -114,3 +113,4 @@ export { IABConsentBannerHeader } from './atoms/header';
 export { IABConsentBannerOverlay } from './atoms/overlay';
 export { IABConsentBannerRoot } from './atoms/root';
 export { IABConsentBannerTitle } from './atoms/title';
+export { IABConsentBanner, type IABConsentBannerProps };

@@ -71,4 +71,4 @@ FrameRoot.displayName = 'FrameRoot';
 FrameTitle.displayName = 'FrameTitle';
 FrameButton.displayName = 'FrameButton';
 
-export { FrameRoot, FrameTitle, FrameButton };
+export { FrameButton, FrameRoot, FrameTitle };

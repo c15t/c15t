@@ -17,4 +17,4 @@ export const consentTable = table('consent', {
 	isActive: column('isActive', 'bool').defaultTo$(() => true),
 });
 
-export { consentSchema, type Consent };
+export { type Consent, consentSchema };

@@ -10,4 +10,4 @@ export const subjectTable = table('subject', {
 	tenantId: column('tenantId', 'string').nullable(),
 });
 
-export { subjectSchema, type Subject };
+export { type Subject, subjectSchema };

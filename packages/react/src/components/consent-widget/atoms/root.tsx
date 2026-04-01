@@ -152,4 +152,4 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 
 const Root = ConsentWidgetRoot;
 
-export { Root, ConsentWidgetRoot };
+export { ConsentWidgetRoot, Root };

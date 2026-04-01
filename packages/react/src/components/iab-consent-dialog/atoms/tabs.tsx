@@ -143,4 +143,4 @@ const IABConsentDialogTabButton = forwardRef<
 
 IABConsentDialogTabButton.displayName = 'IABConsentDialogTabButton';
 
-export { IABConsentDialogTabs, IABConsentDialogTabButton, TabsContext };
+export { IABConsentDialogTabButton, IABConsentDialogTabs, TabsContext };

@@ -282,11 +282,11 @@ const AccordionContent = forwardRef<
 AccordionContent.displayName = ACCORDION_CONTENT_NAME;
 
 export {
-	AccordionRoot as Root,
-	AccordionHeader as Header,
-	AccordionItem as Item,
-	AccordionTrigger as Trigger,
-	AccordionIcon as Icon,
 	AccordionArrow as Arrow,
 	AccordionContent as Content,
+	AccordionHeader as Header,
+	AccordionIcon as Icon,
+	AccordionItem as Item,
+	AccordionRoot as Root,
+	AccordionTrigger as Trigger,
 };

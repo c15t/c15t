@@ -145,17 +145,17 @@ export const ConsentDialogTrigger = Object.assign(
 	}
 ) as ConsentDialogTriggerCompound;
 
-// Re-export atom components for direct imports
-export {
-	TriggerRoot,
-	TriggerButton,
-	TriggerIcon,
-	TriggerText,
-	useTriggerContext,
-};
 export type {
-	TriggerRootProps,
 	TriggerButtonProps,
 	TriggerIconProps,
+	TriggerRootProps,
 	TriggerTextProps,
+};
+// Re-export atom components for direct imports
+export {
+	TriggerButton,
+	TriggerIcon,
+	TriggerRoot,
+	TriggerText,
+	useTriggerContext,
 };

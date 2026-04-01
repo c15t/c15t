@@ -109,11 +109,11 @@ const RejectButton = ConsentWidgetRejectButton;
 
 export {
 	AcceptAllButton,
-	CustomizeButton,
-	SaveButton,
-	RejectButton,
 	ConsentWidgetAcceptAllButton,
 	ConsentWidgetCustomizeButton,
-	ConsentWidgetSaveButton,
 	ConsentWidgetRejectButton,
+	ConsentWidgetSaveButton,
+	CustomizeButton,
+	RejectButton,
+	SaveButton,
 };

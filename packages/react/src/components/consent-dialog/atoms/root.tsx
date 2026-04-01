@@ -244,4 +244,4 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 
 const Root = ConsentDialogRoot;
 
-export { Root, ConsentDialogRoot };
+export { ConsentDialogRoot, Root };

@@ -99,5 +99,5 @@ const baseTranslations = {
  */
 type BaseTranslations = typeof baseTranslations;
 
-export { baseTranslations };
 export type { BaseTranslations };
+export { baseTranslations };

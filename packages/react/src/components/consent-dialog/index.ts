@@ -110,7 +110,6 @@ const ConsentDialog = Object.assign(ConsentDialogComponent, {
 
 // Export the main component as both default and named export
 export default ConsentDialog;
-export { ConsentDialog };
 
 // Export individual components for backward compatibility
 export {
@@ -127,6 +126,6 @@ export {
 	HeaderDescription,
 	HeaderTitle,
 } from './atoms/card';
-
 export { ConsentDialogOverlay, Overlay } from './atoms/overlay';
 export { ConsentDialogRoot, Root } from './atoms/root';
+export { ConsentDialog };

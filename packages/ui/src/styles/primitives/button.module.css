@@ -51,14 +51,14 @@
 	--button-font-size: var(--c15t-font-size-sm);
 	--button-line-height: var(--c15t-line-height-tight);
 	--button-transition:
-		opacity var(--c15t-duration-fast) var(--c15t-easing), transform
-		var(--c15t-duration-fast) var(--c15t-easing);
+		opacity var(--c15t-duration-fast) var(--c15t-easing),
+		transform var(--c15t-duration-fast) var(--c15t-easing);
 	--button-hover-transition-color: background-color var(--c15t-duration-fast)
 		var(--c15t-easing);
 	--button-hover-transition-full:
-		background-color var(--c15t-duration-fast) var(--c15t-easing), box-shadow
-		var(--c15t-duration-fast) var(--c15t-easing), color
-		var(--c15t-duration-fast) var(--c15t-easing);
+		background-color var(--c15t-duration-fast) var(--c15t-easing),
+		box-shadow var(--c15t-duration-fast) var(--c15t-easing),
+		color var(--c15t-duration-fast) var(--c15t-easing);
 	--button-cursor: pointer;
 
 	/* Shadows */
