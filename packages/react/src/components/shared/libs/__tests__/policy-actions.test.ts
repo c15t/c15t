@@ -5,7 +5,7 @@ import {
 	resolvePolicyAllowedActions,
 	resolvePolicyDirection,
 	resolvePolicyOrderedActions,
-	resolvePolicyPrimaryAction,
+	resolvePolicyPrimaryActions,
 	resolvePolicyUiProfile,
 	shouldFillPolicyActions,
 } from '../policy-actions';
@@ -36,22 +36,52 @@ describe('resolvePolicyOrderedActions', () => {
 	});
 });
 
-describe('resolvePolicyPrimaryAction', () => {
-	it('returns undefined when no policy primary action is set', () => {
-		const primary = resolvePolicyPrimaryAction({
-			orderedActions: ['accept', 'reject'],
+describe('resolvePolicyPrimaryActions', () => {
+	it('defaults to customize when no policy primary actions are set', () => {
+		const primary = resolvePolicyPrimaryActions({
+			orderedActions: ['reject', 'accept', 'customize'],
 		});
 
-		expect(primary).toBeUndefined();
+		expect(primary).toEqual(['customize']);
 	});
 
-	it('returns fallback when policy primary is not part of ordered actions', () => {
-		const primary = resolvePolicyPrimaryAction({
+	it('returns empty array when customize is unavailable and no policy primary actions are set', () => {
+		const primary = resolvePolicyPrimaryActions({
 			orderedActions: ['accept', 'reject'],
-			primaryAction: 'customize',
 		});
 
-		expect(primary).toBe('accept');
+		expect(primary).toEqual([]);
+	});
+
+	it('preserves multiple policy primary actions that are part of ordered actions', () => {
+		const primary = resolvePolicyPrimaryActions({
+			orderedActions: ['reject', 'accept', 'customize'],
+			primaryActions: ['accept', 'customize'],
+		});
+
+		expect(primary).toEqual(['accept', 'customize']);
+	});
+
+	it('preserves explicit customize primary actions', () => {
+		const primary = resolvePolicyPrimaryActions({
+			orderedActions: ['reject', 'accept', 'customize'],
+			primaryActions: ['customize'],
+		});
+
+		expect(primary).toEqual(['customize']);
+	});
+
+	it('falls back to customize when configured primary actions are invalid', () => {
+		const primary = resolvePolicyPrimaryActions({
+			orderedActions: ['reject', 'accept', 'customize'],
+			primaryActions: ['missing'] as unknown as (
+				| 'accept'
+				| 'reject'
+				| 'customize'
+			)[],
+		});
+
+		expect(primary).toEqual(['customize']);
 	});
 });
 

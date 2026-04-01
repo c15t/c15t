@@ -20,14 +20,14 @@ function offlineOptInBannerPolicy(): ResolvedPolicy {
 			mode: 'banner',
 			banner: {
 				allowedActions: [...DEFAULT_ACTIONS],
-				primaryAction: 'customize',
+				primaryActions: ['customize'],
 				layout: DEFAULT_LAYOUT,
 				direction: 'row',
 				uiProfile: 'balanced',
 			},
 			dialog: {
 				allowedActions: [...DEFAULT_ACTIONS],
-				primaryAction: 'customize',
+				primaryActions: ['customize'],
 				layout: DEFAULT_LAYOUT,
 				direction: 'row',
 				uiProfile: 'balanced',

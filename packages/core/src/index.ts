@@ -5,7 +5,6 @@
  * GDPR-compliant consent management.
  */
 
-export { policyPackPresets } from '@c15t/schema';
 // Export schema types directly for new code
 export type {
 	Branding,
@@ -24,6 +23,7 @@ export type {
 	PostSubjectInput,
 	PostSubjectOutput,
 } from '@c15t/schema/types';
+export { policyPackPresets } from '@c15t/schema/types';
 export type {
 	CommonTranslations,
 	ConsentManagerDialogTranslations,

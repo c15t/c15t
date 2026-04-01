@@ -94,17 +94,22 @@ export function resolvePolicyOrderedActions(params: {
 	);
 }
 
-export function resolvePolicyPrimaryAction(params: {
+export function resolvePolicyPrimaryActions(params: {
 	orderedActions: PolicyUiAction[];
-	primaryAction?: PolicyUiAction;
-}): PolicyUiAction | undefined {
-	if (!params.primaryAction) {
-		return undefined;
+	primaryActions?: PolicyUiAction[];
+}): PolicyUiAction[] {
+	const defaultPrimary = params.orderedActions.includes('customize')
+		? (['customize'] satisfies PolicyUiAction[])
+		: [];
+
+	if (!params.primaryActions || params.primaryActions.length === 0) {
+		return defaultPrimary;
 	}
 
-	return params.orderedActions.includes(params.primaryAction)
-		? params.primaryAction
-		: params.orderedActions[0];
+	const filtered = params.primaryActions.filter((a) =>
+		params.orderedActions.includes(a)
+	);
+	return filtered.length > 0 ? filtered : defaultPrimary;
 }
 
 export function resolvePolicyDirection(

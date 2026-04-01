@@ -12,7 +12,7 @@ import {
 	resolvePolicyAllowedActions,
 	resolvePolicyDirection,
 	resolvePolicyOrderedActions,
-	resolvePolicyPrimaryAction,
+	resolvePolicyPrimaryActions,
 	shouldFillPolicyActions,
 } from '~/components/shared/libs/policy-actions';
 import { useConsentManager } from './use-consent-manager';
@@ -29,7 +29,7 @@ export interface HeadlessConsentSurfaceState<
 	allowedActions: TAction[];
 	orderedActions: TAction[];
 	actionGroups: TAction[][];
-	primaryAction?: TAction;
+	primaryActions: TAction[];
 	layout?: PolicyUiActionGroup[];
 	direction: PolicyUiActionDirection;
 	uiProfile?: PolicyUiProfile;
@@ -79,7 +79,7 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 		activeUI,
 		policyBanner: {
 			allowedActions: policyBannerAllowedActions,
-			primaryAction: policyBannerPrimaryAction,
+			primaryActions: policyBannerPrimaryActions,
 			layout: policyBannerLayout,
 			direction: policyBannerDirection,
 			uiProfile: policyBannerUiProfile,
@@ -87,7 +87,7 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 		},
 		policyDialog: {
 			allowedActions: policyDialogAllowedActions,
-			primaryAction: policyDialogPrimaryAction,
+			primaryActions: policyDialogPrimaryActions,
 			layout: policyDialogLayout,
 			direction: policyDialogDirection,
 			uiProfile: policyDialogUiProfile,
@@ -100,7 +100,7 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 	const bannerPolicyHints = useMemo<PolicyUiSurfaceConfig>(
 		() => ({
 			allowedActions: policyBannerAllowedActions,
-			primaryAction: policyBannerPrimaryAction,
+			primaryActions: policyBannerPrimaryActions,
 			layout: policyBannerLayout,
 			direction: policyBannerDirection,
 			uiProfile: policyBannerUiProfile,
@@ -110,7 +110,7 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 			policyBannerAllowedActions,
 			policyBannerDirection,
 			policyBannerLayout,
-			policyBannerPrimaryAction,
+			policyBannerPrimaryActions,
 			policyBannerUiProfile,
 			policyBannerScrollLock,
 		]
@@ -119,7 +119,7 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 	const dialogPolicyHints = useMemo<PolicyUiSurfaceConfig>(
 		() => ({
 			allowedActions: policyDialogAllowedActions,
-			primaryAction: policyDialogPrimaryAction,
+			primaryActions: policyDialogPrimaryActions,
 			layout: policyDialogLayout,
 			direction: policyDialogDirection,
 			uiProfile: policyDialogUiProfile,
@@ -129,7 +129,7 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 			policyDialogAllowedActions,
 			policyDialogDirection,
 			policyDialogLayout,
-			policyDialogPrimaryAction,
+			policyDialogPrimaryActions,
 			policyDialogUiProfile,
 			policyDialogScrollLock,
 		]
@@ -153,9 +153,9 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 			allowedActions,
 			orderedActions,
 			actionGroups,
-			primaryAction: resolvePolicyPrimaryAction({
+			primaryActions: resolvePolicyPrimaryActions({
 				orderedActions,
-				primaryAction: policyBannerPrimaryAction,
+				primaryActions: policyBannerPrimaryActions,
 			}),
 			layout: policyBannerLayout,
 			direction,
@@ -174,7 +174,7 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 		policyBannerAllowedActions,
 		policyBannerDirection,
 		policyBannerLayout,
-		policyBannerPrimaryAction,
+		policyBannerPrimaryActions,
 		policyBannerUiProfile,
 		policyBannerScrollLock,
 		bannerPolicyHints,
@@ -198,9 +198,9 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 			allowedActions,
 			orderedActions,
 			actionGroups,
-			primaryAction: resolvePolicyPrimaryAction({
+			primaryActions: resolvePolicyPrimaryActions({
 				orderedActions,
-				primaryAction: policyDialogPrimaryAction,
+				primaryActions: policyDialogPrimaryActions,
 			}),
 			layout: policyDialogLayout,
 			direction,
@@ -219,7 +219,7 @@ export function useHeadlessConsentUI(): UseHeadlessConsentUIResult {
 		policyDialogAllowedActions,
 		policyDialogDirection,
 		policyDialogLayout,
-		policyDialogPrimaryAction,
+		policyDialogPrimaryActions,
 		policyDialogUiProfile,
 		policyDialogScrollLock,
 		dialogPolicyHints,

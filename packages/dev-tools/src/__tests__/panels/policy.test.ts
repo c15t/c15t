@@ -30,7 +30,7 @@ describe('policy panel', () => {
 			policyScopeMode: 'permissive',
 			policyBanner: {
 				allowedActions: ['accept', 'reject'],
-				primaryAction: 'accept',
+				primaryActions: ['accept'],
 			},
 			initDataSource: 'backend-cache-hit',
 			initDataSourceDetail: 'x-vercel-cache=HIT',
@@ -53,7 +53,7 @@ describe('policy panel', () => {
 						mode: 'banner',
 						banner: {
 							allowedActions: ['accept', 'reject'],
-							primaryAction: 'accept',
+							primaryActions: ['accept'],
 							layout: [['accept', 'reject']],
 							direction: 'row',
 						},

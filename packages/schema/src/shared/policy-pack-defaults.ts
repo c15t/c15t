@@ -13,7 +13,7 @@ function createSplitRowUiProfile(): PolicyUiSurfaceConfig {
 		allowedActions: ['accept', 'reject', 'customize'],
 		layout: [['reject', 'accept'], 'customize'],
 		direction: 'row',
-		primaryAction: 'customize',
+		primaryActions: ['customize'],
 		uiProfile: 'compact',
 	};
 }

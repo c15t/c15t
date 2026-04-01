@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 
-import { createMaterialPolicyFingerprint } from '@c15t/schema';
 import type { JurisdictionCode } from '@c15t/schema/types';
+import { createMaterialPolicyFingerprint } from '@c15t/schema/types';
 import {
 	prepareTranslationConfig,
 	type TranslationInputConfig,
@@ -141,7 +141,7 @@ function buildStoreUpdate(
 		},
 		policyBanner: {
 			allowedActions: data.policy?.ui?.banner?.allowedActions,
-			primaryAction: data.policy?.ui?.banner?.primaryAction,
+			primaryActions: data.policy?.ui?.banner?.primaryActions,
 			layout: data.policy?.ui?.banner?.layout,
 			direction: data.policy?.ui?.banner?.direction,
 			uiProfile: data.policy?.ui?.banner?.uiProfile,
@@ -149,7 +149,7 @@ function buildStoreUpdate(
 		},
 		policyDialog: {
 			allowedActions: data.policy?.ui?.dialog?.allowedActions,
-			primaryAction: data.policy?.ui?.dialog?.primaryAction,
+			primaryActions: data.policy?.ui?.dialog?.primaryActions,
 			layout: data.policy?.ui?.dialog?.layout,
 			direction: data.policy?.ui?.dialog?.direction,
 			uiProfile: data.policy?.ui?.dialog?.uiProfile,

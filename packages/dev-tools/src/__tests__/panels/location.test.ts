@@ -22,7 +22,7 @@ function createBaseState(
 		policyScopeMode: null,
 		policyBanner: {
 			allowedActions: null,
-			primaryAction: null,
+			primaryActions: null,
 			layout: null,
 			direction: null,
 			uiProfile: null,
@@ -30,7 +30,7 @@ function createBaseState(
 		},
 		policyDialog: {
 			allowedActions: null,
-			primaryAction: null,
+			primaryActions: null,
 			layout: null,
 			direction: null,
 			uiProfile: null,
@@ -55,7 +55,7 @@ describe('location panel', () => {
 			policyScopeMode: 'permissive',
 			policyBanner: {
 				allowedActions: ['accept', 'reject'],
-				primaryAction: 'accept',
+				primaryActions: ['accept'],
 				layout: [['reject', 'accept']],
 				direction: 'row',
 				uiProfile: null,
@@ -89,7 +89,7 @@ describe('location panel', () => {
 						mode: 'banner',
 						banner: {
 							allowedActions: ['accept', 'reject'],
-							primaryAction: 'accept',
+							primaryActions: ['accept'],
 							layout: [['reject', 'accept']],
 							direction: 'row',
 						},

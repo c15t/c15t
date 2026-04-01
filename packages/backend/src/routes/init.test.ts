@@ -283,7 +283,7 @@ describe('createInitRoute IAB policy gating', () => {
 					mode: 'banner' as const,
 					banner: {
 						allowedActions: ['accept', 'reject'] as const,
-						primaryAction: 'accept' as const,
+						primaryActions: ['accept'] as const,
 						layout: [['accept', 'reject']] as const,
 						direction: 'row' as const,
 						uiProfile: 'balanced' as const,

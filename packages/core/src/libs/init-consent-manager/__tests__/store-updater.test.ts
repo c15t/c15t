@@ -528,7 +528,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 				ui: {
 					banner: {
 						allowedActions: ['accept', 'reject'],
-						primaryAction: 'accept',
+						primaryActions: ['accept'],
 						layout: [['reject', 'accept']],
 						direction: 'row',
 						uiProfile: 'balanced',
@@ -556,7 +556,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 			expect.objectContaining({
 				policyBanner: {
 					allowedActions: ['accept', 'reject'],
-					primaryAction: 'accept',
+					primaryActions: ['accept'],
 					layout: [['reject', 'accept']],
 					direction: 'row',
 					uiProfile: 'balanced',
@@ -576,7 +576,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 					mode: 'dialog',
 					dialog: {
 						allowedActions: ['customize'],
-						primaryAction: 'customize',
+						primaryActions: ['customize'],
 						layout: [['customize']],
 						direction: 'row',
 						uiProfile: 'balanced',
@@ -604,7 +604,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 			expect.objectContaining({
 				policyDialog: {
 					allowedActions: ['customize'],
-					primaryAction: 'customize',
+					primaryActions: ['customize'],
 					layout: [['customize']],
 					direction: 'row',
 					uiProfile: 'balanced',
@@ -612,7 +612,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 				},
 				policyBanner: {
 					allowedActions: undefined,
-					primaryAction: undefined,
+					primaryActions: undefined,
 					layout: undefined,
 					direction: undefined,
 					uiProfile: undefined,

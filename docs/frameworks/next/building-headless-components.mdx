@@ -68,7 +68,7 @@ export function CustomConsentBanner() {
               <button
                 key={action}
                 type="button"
-                className={action === banner.primaryAction ? 'btn-primary' : 'btn-secondary'}
+                className={banner.primaryActions.includes(action) ? 'btn-primary' : 'btn-secondary'}
                 onClick={() => {
                   if (action === 'customize') {
                     openDialog();

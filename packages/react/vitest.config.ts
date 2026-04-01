@@ -23,11 +23,11 @@ export default mergeConfig(
 				// imports natively. rslib emits webpack-style chunks that Vite's
 				// browser bundler cannot analyse.
 				c15t: resolve(__dirname, '../core/src/index.ts'),
-				// Core source lazy-imports @iabtechlabtcf/core which is only
-				// installed in the core package's node_modules.
+				// @c15t/iab depends on @iabtechlabtcf/core which is only
+				// installed in the iab package's node_modules.
 				'@iabtechlabtcf/core': resolve(
 					__dirname,
-					'../../node_modules/.bun/node_modules/@iabtechlabtcf/core'
+					'../iab/node_modules/@iabtechlabtcf/core'
 				),
 				'@c15t/iab': resolve(__dirname, '../iab/src/index.ts'),
 				react: resolve(__dirname, './node_modules/react'),

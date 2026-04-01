@@ -164,7 +164,7 @@ describe('resolvePolicyDecision', () => {
 		]);
 	});
 
-	it('normalizes UI action order and primary action against allowed actions', async () => {
+	it('normalizes UI action order and primary actions against allowed actions', async () => {
 		const result = await resolvePolicyDecision({
 			policies: [
 				{
@@ -175,7 +175,7 @@ describe('resolvePolicyDecision', () => {
 						mode: 'banner',
 						banner: {
 							allowedActions: ['accept', 'reject', 'accept'],
-							primaryAction: 'reject',
+							primaryActions: ['reject'],
 							layout: [['reject', 'accept']],
 							direction: 'row',
 							uiProfile: 'balanced',
@@ -194,7 +194,7 @@ describe('resolvePolicyDecision', () => {
 			'reject',
 		]);
 		expect(result?.policy.ui?.banner?.layout).toEqual([['reject', 'accept']]);
-		expect(result?.policy.ui?.banner?.primaryAction).toBe('reject');
+		expect(result?.policy.ui?.banner?.primaryActions).toEqual(['reject']);
 		expect(result?.policy.ui?.banner?.direction).toBe('row');
 		expect(result?.policy.ui?.banner?.uiProfile).toBe('balanced');
 		expect(result?.policy.ui?.banner?.scrollLock).toBe(true);
@@ -211,14 +211,14 @@ describe('resolvePolicyDecision', () => {
 						mode: 'banner',
 						banner: {
 							allowedActions: ['accept', 'customize'],
-							primaryAction: 'customize',
+							primaryActions: ['customize'],
 							layout: [['customize', 'accept']],
 							direction: 'row',
 							uiProfile: 'balanced',
 						},
 						dialog: {
 							allowedActions: ['accept', 'reject', 'customize'],
-							primaryAction: 'reject',
+							primaryActions: ['reject'],
 							layout: [['reject', 'accept'], 'customize'],
 							direction: 'row',
 							uiProfile: 'strict',
@@ -240,7 +240,7 @@ describe('resolvePolicyDecision', () => {
 			'reject',
 			'customize',
 		]);
-		expect(result?.policy.ui?.dialog?.primaryAction).toBe('reject');
+		expect(result?.policy.ui?.dialog?.primaryActions).toEqual(['reject']);
 		expect(result?.policy.ui?.dialog?.uiProfile).toBe('strict');
 	});
 
@@ -337,7 +337,7 @@ describe('validatePolicies', () => {
 		);
 	});
 
-	it('throws when primaryAction is not in allowedActions', () => {
+	it('throws when primaryActions are not in allowedActions', () => {
 		expect(() =>
 			validatePolicies([
 				{
@@ -347,13 +347,13 @@ describe('validatePolicies', () => {
 					ui: {
 						banner: {
 							allowedActions: ['accept', 'reject'],
-							primaryAction: 'customize',
+							primaryActions: ['customize'],
 						},
 					},
 				},
 			])
 		).toThrow(
-			"Policy 'policy_ui' ui.banner.primaryAction 'customize' is not in allowedActions [accept, reject]."
+			"Policy 'policy_ui' ui.banner.primaryActions 'customize' is not in allowedActions [accept, reject]."
 		);
 	});
 

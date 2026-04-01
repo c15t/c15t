@@ -3,7 +3,7 @@ import type { Registry } from './types';
 
 interface RuntimePolicyDecisionUiSurface {
 	allowedActions?: Array<'accept' | 'reject' | 'customize'>;
-	primaryAction?: 'accept' | 'reject' | 'customize';
+	primaryActions?: Array<'accept' | 'reject' | 'customize'>;
 	layout?: Array<
 		'accept' | 'reject' | 'customize' | Array<'accept' | 'reject' | 'customize'>
 	>;
