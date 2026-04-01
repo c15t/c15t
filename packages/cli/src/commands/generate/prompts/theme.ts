@@ -109,17 +109,20 @@ export function generateThemeConfig(theme: ThemeId): string {
 /**
  * Generate CSS import for theme
  */
-export function getThemeCssImport(theme: ThemeId): string | null {
+export function getThemeCssImport(
+	theme: ThemeId,
+	framework?: 'react' | 'nextjs'
+): string | null {
+	const pkg = framework === 'nextjs' ? '@c15t/nextjs' : '@c15t/react';
+
 	switch (theme) {
 		case 'default':
-			return '@c15t/react/styles/default.css';
 		case 'minimal':
-			return '@c15t/react/styles/minimal.css';
 		case 'system':
-			return '@c15t/react/styles/system.css';
+			return `${pkg}/styles.css`;
 		case 'none':
 			return null;
 		default:
-			return '@c15t/react/styles/default.css';
+			return `${pkg}/styles.css`;
 	}
 }

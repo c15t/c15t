@@ -27,9 +27,13 @@
 		"directory": "packages/nextjs"
 	},
 	"license": "GPL-3.0-only",
-	"sideEffects": false,
+	"sideEffects": [
+		"**/*.css"
+	],
 	"type": "module",
 	"exports": {
+		"./styles.css": "./dist/styles.css",
+		"./iab/styles.css": "./dist/iab/styles.css",
 		"./headless": {
 			"types": "./dist-types/headless.d.ts",
 			"import": "./dist/headless.js",

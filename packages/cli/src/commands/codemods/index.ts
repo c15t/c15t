@@ -1,6 +1,7 @@
 import * as p from '@clack/prompts';
 import type { CliCommand, CliContext } from '~/context/types';
 import { runActiveUiApiCodemod } from './active-ui-api';
+import { runAddStylesheetImportsCodemod } from './add-stylesheet-imports';
 import { runComponentRenamesCodemod } from './component-renames';
 import { runGdprTypesToConsentCategoriesCodemod } from './gdpr-types-to-consent-categories';
 import { runIgnoreGeoLocationToOverridesCodemod } from './ignore-geo-location-to-overrides';
@@ -223,6 +224,23 @@ const codemods: CodemodDefinition[] = [
 		run: async (context, dryRun) => {
 			const { projectRoot } = context;
 			const result = await runTranslationsToI18nCodemod({
+				projectRoot,
+				dryRun,
+			});
+			logCodemodResult(context, result, dryRun);
+		},
+		versioning: {
+			fromRange: '<2.0.0',
+			toRange: '>=2.0.0',
+		},
+	},
+	{
+		id: 'add-stylesheet-imports',
+		label: 'add stylesheet imports for prebuilt UI',
+		hint: 'Adds @c15t/react/styles.css or @c15t/nextjs/styles.css imports for styled components.',
+		run: async (context, dryRun) => {
+			const { projectRoot } = context;
+			const result = await runAddStylesheetImportsCodemod({
 				projectRoot,
 				dryRun,
 			});

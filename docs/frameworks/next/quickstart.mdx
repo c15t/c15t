@@ -28,6 +28,20 @@ availableIn:
   </Step>
 
   <Step>
+    ### Import styles
+
+    Import the prebuilt component stylesheet in your root layout. This is required for styled components to render correctly.
+
+    ```tsx title="app/layout.tsx"
+    import '@c15t/nextjs/styles.css';
+    ```
+
+    <Callout type="info">
+      If you are using the headless API or fully custom styling, you can skip this import.
+    </Callout>
+  </Step>
+
+  <Step>
     ### Create `ConsentManager` components
 
     Create a provider component with the consent UI and a wrapper that re-exports it. This initializes the consent store and makes consent state available to all child components.

@@ -26,9 +26,13 @@
 		"directory": "packages/react"
 	},
 	"license": "GPL-3.0-only",
-	"sideEffects": false,
+	"sideEffects": [
+		"**/*.css"
+	],
 	"type": "module",
 	"exports": {
+		"./styles.css": "./dist/styles.css",
+		"./iab/styles.css": "./dist/iab/styles.css",
 		"./server": {
 			"types": "./dist-types/server/index.d.ts",
 			"import": "./dist/server/index.js",

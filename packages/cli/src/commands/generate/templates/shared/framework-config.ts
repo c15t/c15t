@@ -13,6 +13,10 @@ export interface FrameworkConfig {
 	docsSlug: string;
 	envVarPrefix: string;
 	hasSSRProps: boolean;
+	/** CSS stylesheet import path for prebuilt (styled) components, or null for unstyled. */
+	stylesheetImport: string | null;
+	/** CSS stylesheet import path for IAB components, or null if IAB is not applicable. */
+	iabStylesheetImport: string | null;
 }
 
 export const NEXTJS_CONFIG: FrameworkConfig = {
@@ -24,6 +28,8 @@ export const NEXTJS_CONFIG: FrameworkConfig = {
 	docsSlug: 'nextjs',
 	envVarPrefix: 'NEXT_PUBLIC',
 	hasSSRProps: true,
+	stylesheetImport: '@c15t/nextjs/styles.css',
+	iabStylesheetImport: '@c15t/nextjs/iab/styles.css',
 };
 
 export const REACT_CONFIG: FrameworkConfig = {
@@ -35,4 +41,6 @@ export const REACT_CONFIG: FrameworkConfig = {
 	docsSlug: 'react',
 	envVarPrefix: '',
 	hasSSRProps: false,
+	stylesheetImport: '@c15t/react/styles.css',
+	iabStylesheetImport: '@c15t/react/iab/styles.css',
 };
