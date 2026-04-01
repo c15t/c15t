@@ -92,17 +92,6 @@
 @layer components {
 	/* Base Button Styles */
 	.button {
-		/* Bridge custom properties for preflight shield */
-		--_c15t-color: var(--button-text);
-		--_c15t-border: var(--button-border-width) var(--button-border-style)
-			var(--button-border-color);
-		--_c15t-radius: var(--button-border-radius);
-		--_c15t-font: var(--button-font);
-		--_c15t-font-size: var(--button-font-size);
-		--_c15t-font-weight: var(--button-font-weight);
-		--_c15t-line-height: var(--button-line-height);
-		--_c15t-cursor: var(--button-cursor);
-
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
@@ -146,28 +135,24 @@
 
 	/* Size Variants */
 	.button-medium {
-		--_c15t-padding: 0.625rem 1rem;
 		padding: 0.625rem 1rem;
 		font-size: var(--button-font-size);
 		line-height: var(--button-line-height);
 	}
 
 	.button-small {
-		--_c15t-padding: 0.5rem 0.75rem;
 		padding: 0.5rem 0.75rem;
 		font-size: var(--button-font-size);
 		line-height: var(--button-line-height);
 	}
 
 	.button-xsmall {
-		--_c15t-padding: 0.375rem 0.625rem;
 		padding: 0.375rem 0.625rem;
 		font-size: var(--button-font-size);
 		line-height: var(--button-line-height);
 	}
 
 	.button-xxsmall {
-		--_c15t-padding: 0.25rem 0.5rem;
 		padding: 0.25rem 0.5rem;
 		font-size: var(--button-font-size);
 		line-height: var(--button-line-height);
@@ -175,8 +160,6 @@
 
 	/* Primary Button Variants */
 	.button-primary-filled {
-		--_c15t-bg: var(--button-primary);
-		--_c15t-color: var(--button-background-color);
 		background-color: var(--button-primary);
 		color: var(--button-background-color);
 	}
@@ -201,8 +184,6 @@
 	}
 
 	.button-primary-stroke {
-		--_c15t-bg: var(--button-background-color);
-		--_c15t-color: var(--button-primary);
 		background-color: var(--button-background-color);
 		color: var(--button-primary);
 		box-shadow: var(--button-shadow-primary);
@@ -282,8 +263,6 @@
 
 	/* Neutral Button Variants */
 	.button-neutral-filled {
-		--_c15t-bg: var(--button-neutral);
-		--_c15t-color: var(--button-background-color);
 		background-color: var(--button-neutral);
 		color: var(--button-background-color);
 	}
@@ -310,7 +289,6 @@
 	}
 
 	.button-neutral-stroke {
-		--_c15t-bg: var(--button-background-color);
 		background-color: var(--button-background-color);
 		box-shadow: var(--button-shadow-neutral);
 	}

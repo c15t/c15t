@@ -1,0 +1,6 @@
+/* Custom CSS class to verify user overrides work without Tailwind */
+.custom-title-override {
+	color: #0066cc;
+	font-weight: 800;
+	text-decoration: underline;
+}

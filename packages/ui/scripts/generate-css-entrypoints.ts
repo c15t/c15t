@@ -2,10 +2,13 @@
  * Post-build script for @c15t/ui:
  * 1. Renames `*_module.css` files to `*.module.css` (rslib emits underscores)
  * 2. Fixes `_module.css` references in `.module.js` and `.module.cjs` files
- * 3. Generates aggregated CSS entrypoints by concatenating CSS content:
- *    - Strips @layer wrappers so styles are unlayered (matching injectStyles baseline)
- *    - c15t class selectors at (0,1,0) beat Tailwind preflight resets at (0,0,0)/(0,0,1)
- *    - For Tailwind slot overrides, use noStyle mode or the style prop
+ * 3. Generates aggregated CSS entrypoints:
+ *    - :root custom property blocks stay unlayered
+ *    - Component rules are wrapped in `@layer c15t`
+ *    - Tailwind 4 users declare layer order: `@layer theme, base, components, c15t, utilities;`
+ *      so c15t > preflight (base) and utilities > c15t — clean overrides, no !important
+ *    - Tailwind 3 users can import the same stylesheet, provided their app keeps
+ *      Tailwind directives in its own global CSS and scans c15t package sources
  */
 import {
 	mkdirSync,
@@ -33,16 +36,32 @@ for (const dir of CSS_DIRS) {
 	}
 }
 
-// ── Step 2: Fix _module.css references in JS files ────────────────────
+// ── Step 2: Fix _module.css references and strip bare CSS imports ─────
+// The bare `import"./foo.module.css"` side-effect imports are redundant:
+// - Class names are hardcoded in the JS (rslib resolves them at build time)
+// - Styles are loaded via the aggregated entrypoint (styles.css / iab/styles.css)
+// Removing them keeps the package CSS contract centered on the aggregated
+// entrypoints and avoids relying on host bundlers to process module CSS from
+// node_modules.
 for (const dir of CSS_DIRS) {
 	for (const file of readdirSync(dir)) {
 		if (file.endsWith('.module.js') || file.endsWith('.module.cjs')) {
 			const filePath = join(dir, file);
 			let content = readFileSync(filePath, 'utf-8');
+			// Fix underscore naming
 			if (content.includes('_module.css')) {
 				content = content.replace(/_module\.css/g, '.module.css');
-				writeFileSync(filePath, content);
 			}
+			// Strip bare CSS side-effect imports: import"./foo.module.css"; or require("./foo.module.css");
+			content = content.replace(
+				/import\s*["'][^"']+\.module\.css["']\s*;?/g,
+				''
+			);
+			content = content.replace(
+				/require\(["'][^"']+\.module\.css["']\)\s*;?/g,
+				''
+			);
+			writeFileSync(filePath, content);
 		}
 	}
 }
@@ -62,18 +81,40 @@ const NON_IAB_COMPONENTS = [
 const IAB_COMPONENTS = ['iab-consent-banner', 'iab-consent-dialog'];
 
 /**
- * Strip `@layer components { ... }` wrappers, keeping inner content unlayered.
- *
- * The style-loader (injectStyles: true baseline) also strips @layer wrappers.
- * Unlayered c15t selectors at (0,1,0) beat Tailwind preflight resets:
- *   .c15t-ui-button-xxx (0,1,0) > button (0,0,1) > * (0,0,0)
+ * Split a CSS module file into :root variable blocks (unlayered)
+ * and component rules (from inside @layer components).
  */
-function stripLayerWrappers(css: string): string {
-	return css.replace(/@layer\s+components\s*\{([\s\S]+)\}\s*$/, '$1');
+function splitModuleCss(css: string): {
+	rootVars: string;
+	componentRules: string;
+} {
+	// Extract all :root { ... } blocks (they live outside @layer)
+	const rootBlocks: string[] = [];
+	const rootRegex = /:root\s*\{[^}]+\}/g;
+	let match: RegExpExecArray | null;
+	while ((match = rootRegex.exec(css)) !== null) {
+		rootBlocks.push(match[0]);
+	}
+
+	// Extract the content inside @layer components { ... }
+	const layerMatch = css.match(/@layer\s+components\s*\{([\s\S]+)\}\s*$/);
+	const componentRules = layerMatch ? layerMatch[1].trim() : '';
+
+	return {
+		rootVars: rootBlocks.join('\n'),
+		componentRules,
+	};
 }
 
-function concatCss(primitives: string[], components: string[]): string {
-	const parts: string[] = [];
+/**
+ * Collect :root vars and component rules from module CSS files.
+ */
+function collectCssParts(
+	primitives: string[],
+	components: string[]
+): { rootParts: string[]; ruleParts: string[] } {
+	const rootParts: string[] = [];
+	const ruleParts: string[] = [];
 
 	for (const name of primitives) {
 		const filePath = join(
@@ -82,8 +123,12 @@ function concatCss(primitives: string[], components: string[]): string {
 			'primitives',
 			`${name}.module.css`
 		);
-		parts.push(`/* primitives/${name} */`);
-		parts.push(stripLayerWrappers(readFileSync(filePath, 'utf-8')));
+		const { rootVars, componentRules } = splitModuleCss(
+			readFileSync(filePath, 'utf-8')
+		);
+		if (rootVars) rootParts.push(`/* primitives/${name} vars */\n${rootVars}`);
+		if (componentRules)
+			ruleParts.push(`/* primitives/${name} */\n${componentRules}`);
 	}
 
 	for (const name of components) {
@@ -93,21 +138,52 @@ function concatCss(primitives: string[], components: string[]): string {
 			'components',
 			`${name}.module.css`
 		);
-		parts.push(`/* components/${name} */`);
-		parts.push(stripLayerWrappers(readFileSync(filePath, 'utf-8')));
+		const { rootVars, componentRules } = splitModuleCss(
+			readFileSync(filePath, 'utf-8')
+		);
+		if (rootVars) rootParts.push(`/* components/${name} vars */\n${rootVars}`);
+		if (componentRules)
+			ruleParts.push(`/* components/${name} */\n${componentRules}`);
 	}
 
-	return parts.join('\n');
+	return { rootParts, ruleParts };
 }
 
-// dist/styles.css (non-IAB)
-const nonIabCss = concatCss(NON_IAB_PRIMITIVES, NON_IAB_COMPONENTS);
-writeFileSync(join(DIST_DIR, 'styles.css'), nonIabCss + '\n');
+/**
+ * Generate layered CSS: component rules wrapped in @layer c15t.
+ * Use with Tailwind 4 — declare layer order: @layer theme, base, components, c15t, utilities;
+ */
+function buildLayeredCss(rootParts: string[], ruleParts: string[]): string {
+	const parts: string[] = [];
+	if (rootParts.length) {
+		parts.push(rootParts.join('\n\n'));
+	}
+	if (ruleParts.length) {
+		parts.push(
+			`@layer c15t {\n${ruleParts.map((r) => `  ${r}`).join('\n\n')}\n}`
+		);
+	}
+	return parts.join('\n\n');
+}
 
-// dist/iab/styles.css (self-contained IAB)
-const iabCss = concatCss(NON_IAB_PRIMITIVES, IAB_COMPONENTS);
+// ── Non-IAB entrypoints ─────────────────────────────────────────────
+const nonIab = collectCssParts(NON_IAB_PRIMITIVES, NON_IAB_COMPONENTS);
+
+// dist/styles.css — @layer c15t (default, for Tailwind 4 + native CSS layers)
+writeFileSync(
+	join(DIST_DIR, 'styles.css'),
+	buildLayeredCss(nonIab.rootParts, nonIab.ruleParts) + '\n'
+);
+
+// ── IAB entrypoints ─────────────────────────────────────────────────
+const iab = collectCssParts(NON_IAB_PRIMITIVES, IAB_COMPONENTS);
 const iabDir = join(DIST_DIR, 'iab');
 mkdirSync(iabDir, { recursive: true });
-writeFileSync(join(iabDir, 'styles.css'), iabCss + '\n');
+
+// dist/iab/styles.css — @layer c15t
+writeFileSync(
+	join(iabDir, 'styles.css'),
+	buildLayeredCss(iab.rootParts, iab.ruleParts) + '\n'
+);
 
 console.log('Generated dist/styles.css and dist/iab/styles.css');

@@ -37,13 +37,6 @@
 @layer components {
 	/* Root switch wrapper */
 	.root {
-		/* Bridge custom properties for preflight shield */
-		--_c15t-bg: transparent;
-		--_c15t-padding: var(--switch-padding);
-		--_c15t-border: 0;
-		--_c15t-radius: 9999px;
-		--_c15t-cursor: default;
-
 		display: block;
 		height: var(--switch-height);
 		width: var(--switch-width);

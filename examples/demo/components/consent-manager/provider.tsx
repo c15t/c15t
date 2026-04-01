@@ -156,6 +156,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 				...activeTheme,
 				slots: {
 					...activeTheme.slots,
+					consentBannerTitle: 'text-red-500',
 					iabBanner: {
 						style: {
 							inset: 0,
