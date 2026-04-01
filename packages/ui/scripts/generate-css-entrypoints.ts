@@ -4,6 +4,8 @@
  * 2. Fixes `_module.css` references in `.module.js` and `.module.cjs` files
  * 3. Generates aggregated CSS entrypoints by concatenating CSS content
  *    (NOT @import — Turbopack silently drops .module.css imports from node_modules)
+ * 4. Strips @layer wrappers so styles are unlayered (matches injectStyles behavior;
+ *    layered c15t styles lose to Tailwind's unlayered preflight reset)
  */
 import {
 	mkdirSync,
@@ -64,6 +66,20 @@ const NON_IAB_COMPONENTS = [
 
 const IAB_COMPONENTS = ['iab-consent-banner', 'iab-consent-dialog'];
 
+/**
+ * Strip `@layer components { ... }` wrappers, keeping inner content.
+ *
+ * The CSS module source files use `@layer components` but the aggregated
+ * stylesheet must be unlayered so it isn't overridden by Tailwind's
+ * unlayered preflight reset. This matches the behavior of injectStyles
+ * where the style-loader also strips @layer wrappers.
+ */
+function stripLayerWrappers(css: string): string {
+	// Match @layer components{...} — the closing brace is the LAST one
+	// since @layer wraps the entire rule block. We use a greedy match.
+	return css.replace(/@layer\s+components\s*\{([\s\S]+)\}\s*$/, '$1');
+}
+
 function concatCss(primitives: string[], components: string[]): string {
 	const parts: string[] = [];
 
@@ -75,7 +91,7 @@ function concatCss(primitives: string[], components: string[]): string {
 			`${name}.module.css`
 		);
 		parts.push(`/* primitives/${name} */`);
-		parts.push(readFileSync(filePath, 'utf-8'));
+		parts.push(stripLayerWrappers(readFileSync(filePath, 'utf-8')));
 	}
 
 	for (const name of components) {
@@ -86,7 +102,7 @@ function concatCss(primitives: string[], components: string[]): string {
 			`${name}.module.css`
 		);
 		parts.push(`/* components/${name} */`);
-		parts.push(readFileSync(filePath, 'utf-8'));
+		parts.push(stripLayerWrappers(readFileSync(filePath, 'utf-8')));
 	}
 
 	return parts.join('\n');
