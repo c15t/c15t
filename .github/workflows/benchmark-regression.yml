@@ -108,13 +108,21 @@ jobs:
           mkdir -p .perf/metadata
           echo "${{ github.event.pull_request.number }}" > .perf/metadata/pr-number
 
+      - name: Debug perf directory contents
+        if: github.event_name == 'pull_request'
+        run: ls -la .perf/ && find .perf -type f | head -20 || echo "No .perf directory found"
+
       - name: Upload regression artifacts
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-regression-result
-          path: .perf/
-          if-no-files-found: error
+          path: |
+            .perf/base/
+            .perf/head/
+            .perf/compare/
+            .perf/metadata/
+          if-no-files-found: warn
           retention-days: 3
 
       - name: Upload push artifacts
