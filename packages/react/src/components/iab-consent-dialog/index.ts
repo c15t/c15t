@@ -100,7 +100,6 @@ const IABConsentDialog = Object.assign(IABConsentDialogComponent, {
 
 // Export the main component as both default and named export
 export default IABConsentDialog;
-export { IABConsentDialog, type IABConsentDialogProps };
 
 // Export individual components for direct usage
 export { IABConsentDialogCard } from './atoms/card';
@@ -118,7 +117,6 @@ export {
 export { VendorList } from './atoms/vendor-list';
 // Export hooks
 export { type GVLData, useGVLData } from './hooks/use-gvl-data';
-
 // Export types
 export type {
 	ProcessedPurpose,
@@ -126,3 +124,4 @@ export type {
 	ProcessedStack,
 	ProcessedVendor,
 } from './types';
+export { IABConsentDialog, type IABConsentDialogProps };

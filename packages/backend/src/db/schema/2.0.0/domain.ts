@@ -9,4 +9,4 @@ export const domainTable = table('domain', {
 	tenantId: column('tenantId', 'string').nullable(),
 });
 
-export { domainSchema, type Domain };
+export { type Domain, domainSchema };

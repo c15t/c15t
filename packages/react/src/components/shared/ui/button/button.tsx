@@ -171,4 +171,4 @@ ButtonIcon.displayName = BUTTON_ICON_NAME;
  * Export the compound components
  * @public
  */
-export { ButtonRoot as Root, ButtonIcon as Icon };
+export { ButtonIcon as Icon, ButtonRoot as Root };

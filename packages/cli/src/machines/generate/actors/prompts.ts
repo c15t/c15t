@@ -329,7 +329,7 @@ async function createInstanceInteractively(
 	const slugInput = await p.text({
 		message: 'New instance slug:',
 		placeholder: 'my-app',
-		validate: (value) => validateInstanceName(value.trim()),
+		validate: (value) => validateInstanceName(value?.trim() ?? ''),
 	});
 
 	if (isCancel(slugInput)) {

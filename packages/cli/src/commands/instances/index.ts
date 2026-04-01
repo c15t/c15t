@@ -258,7 +258,7 @@ async function createAction(context: CliContext): Promise<void> {
 			const result = await p.text({
 				message: 'Instance slug:',
 				placeholder: 'my-app',
-				validate: (value) => validateInstanceName(value.trim()),
+				validate: (value) => validateInstanceName(value?.trim() ?? ''),
 			});
 
 			if (p.isCancel(result)) {
@@ -434,4 +434,4 @@ export const instancesCommand: CliCommand = {
 	],
 };
 
-export { listAction, selectAction, createAction };
+export { createAction, listAction, selectAction };

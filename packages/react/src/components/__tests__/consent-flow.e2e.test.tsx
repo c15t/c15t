@@ -252,6 +252,21 @@ describe('Consent Flow E2E Tests', () => {
 
 	describe('Preference Center Trigger', () => {
 		test('should show trigger after consent given when showWhen is always', async () => {
+			const consentData = {
+				consents: {
+					necessary: true,
+					functionality: true,
+					marketing: true,
+					measurement: true,
+					experience: true,
+				},
+				consentInfo: {
+					time: Date.now(),
+					type: 'accept-all',
+				},
+			};
+			window.localStorage.setItem('c15t', JSON.stringify(consentData));
+
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
 					<ConsentDialogTrigger showWhen="always" />

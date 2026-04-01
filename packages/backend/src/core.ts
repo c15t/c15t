@@ -232,9 +232,7 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 		app.get(
 			openApiConfig.docsPath,
 			apiReference({
-				spec: {
-					url: publicSpecUrl,
-				},
+				url: publicSpecUrl,
 				pageTitle: `${options.appName || 'c15t API'} Documentation`,
 			})
 		);

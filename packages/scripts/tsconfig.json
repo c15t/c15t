@@ -1,8 +1,8 @@
 {
 	"extends": "@c15t/typescript-config/base.json",
 	"compilerOptions": {
+		"rootDir": "src",
 		"moduleResolution": "bundler",
-		"baseUrl": ".",
 		"types": ["@vitest/browser/matchers"],
 		"paths": {
 			"c15t": ["../core/dist-types/index.d.ts"],

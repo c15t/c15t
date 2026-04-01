@@ -11,12 +11,12 @@
 		"bench:script-loader": "bun run micro/script-loader.bench.ts"
 	},
 	"dependencies": {
-		"mitata": "^1.0.10",
+		"mitata": "^1.0.34",
 		"c15t": "workspace:*",
 		"@c15t/react": "workspace:*",
 		"@c15t/translations": "workspace:*"
 	},
 	"devDependencies": {
-		"typescript": "5.8.3"
+		"typescript": "6.0.2"
 	}
 }

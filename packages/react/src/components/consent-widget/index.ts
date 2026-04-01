@@ -119,7 +119,6 @@ const ConsentWidget = Object.assign(ConsentWidgetComponent, {
 
 // Export the main component as both default and named export
 export default ConsentWidget;
-export { ConsentWidget };
 
 // Export individual components for backward compatibility
 export {
@@ -160,3 +159,4 @@ export {
 	ConsentWidgetRoot,
 	Root,
 } from './atoms/root';
+export { ConsentWidget };

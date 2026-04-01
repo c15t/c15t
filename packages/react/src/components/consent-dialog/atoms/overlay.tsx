@@ -125,4 +125,4 @@ const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 
 const Overlay = ConsentDialogOverlay;
 
-export { Overlay, ConsentDialogOverlay };
+export { ConsentDialogOverlay, Overlay };

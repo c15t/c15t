@@ -18,10 +18,10 @@ export const consentPolicyTable = table('consentPolicy', {
 
 // Re-export for backward compatibility
 export {
-	consentPolicySchema,
-	policyTypeSchema,
 	type ConsentPolicy,
+	consentPolicySchema,
 	type PolicyType,
+	policyTypeSchema,
 };
 
 // Backward compatible alias

@@ -18,11 +18,18 @@ import type {
 } from '@c15t/schema/types';
 import type { FetchOptions, ResponseContext } from './types';
 
-export type { PostSubjectInput, PostSubjectOutput };
-export type { GetSubjectInput, GetSubjectOutput };
-export type { PatchSubjectFullInput, PatchSubjectOutput };
-export type { ListSubjectsQuery, ListSubjectsOutput };
-export type { CheckConsentQuery, CheckConsentOutput };
+export type {
+	CheckConsentOutput,
+	CheckConsentQuery,
+	GetSubjectInput,
+	GetSubjectOutput,
+	ListSubjectsOutput,
+	ListSubjectsQuery,
+	PatchSubjectFullInput,
+	PatchSubjectOutput,
+	PostSubjectInput,
+	PostSubjectOutput,
+};
 
 /**
  * Request body for setConsent.

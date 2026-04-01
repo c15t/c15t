@@ -33,6 +33,13 @@ export const patchSubjectHandler = async (c: Context) => {
 	}>();
 	const { externalId, identityProvider = 'external' } = body;
 
+	if (!subjectId) {
+		throw new HTTPException(400, {
+			message: 'Subject ID is required',
+			cause: { code: 'SUBJECT_ID_REQUIRED' },
+		});
+	}
+
 	logger.debug('Request parameters', {
 		subjectId,
 		externalId,

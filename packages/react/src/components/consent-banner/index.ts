@@ -122,12 +122,6 @@ const ConsentBanner = Object.assign(ConsentBannerComponent, {
 
 // Export the main component as both default and named export
 export default ConsentBanner;
-export {
-	ConsentBanner,
-	type ConsentBannerButton,
-	type ConsentBannerLayout,
-	type ConsentBannerProps,
-};
 
 // Export individual components for backward compatibility
 export { ConsentBannerOverlay, Overlay } from './atoms/overlay';
@@ -152,3 +146,9 @@ export {
 	RejectButton,
 	Title,
 } from './components';
+export {
+	ConsentBanner,
+	type ConsentBannerButton,
+	type ConsentBannerLayout,
+	type ConsentBannerProps,
+};

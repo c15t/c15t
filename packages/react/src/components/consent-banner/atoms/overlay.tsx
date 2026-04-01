@@ -118,4 +118,4 @@ const ConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 
 const Overlay = ConsentBannerOverlay;
 
-export { Overlay, ConsentBannerOverlay };
+export { ConsentBannerOverlay, Overlay };
