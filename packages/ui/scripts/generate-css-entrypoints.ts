@@ -2,10 +2,10 @@
  * Post-build script for @c15t/ui:
  * 1. Renames `*_module.css` files to `*.module.css` (rslib emits underscores)
  * 2. Fixes `_module.css` references in `.module.js` and `.module.cjs` files
- * 3. Generates aggregated CSS entrypoints by concatenating CSS content
- *    (NOT @import — Turbopack silently drops .module.css imports from node_modules)
- * 4. Strips @layer wrappers so styles are unlayered (matches injectStyles behavior;
- *    layered c15t styles lose to Tailwind's unlayered preflight reset)
+ * 3. Generates aggregated CSS entrypoints with:
+ *    - Preflight shield (unlayered) — prevents Tailwind/normalize from resetting c15t buttons
+ *    - :root variables (unlayered) — design tokens
+ *    - @layer c15t { :where()-wrapped component styles } — low specificity so user classes win
  */
 import {
 	mkdirSync,
@@ -47,12 +47,7 @@ for (const dir of CSS_DIRS) {
 	}
 }
 
-// ── Step 3: Generate aggregated CSS entrypoints (concatenated) ────────
-//
-// We concatenate CSS content instead of using @import because:
-// - Turbopack/Next.js silently ignores .module.css imports from node_modules
-// - @import chains through package exports are fragile across bundlers
-// - A single file avoids waterfall requests in non-bundled environments
+// ── Step 3: Generate aggregated CSS entrypoints ───────────────────────
 
 const NON_IAB_PRIMITIVES = ['button', 'switch', 'accordion', 'legal-links'];
 
@@ -67,47 +62,96 @@ const NON_IAB_COMPONENTS = [
 const IAB_COMPONENTS = ['iab-consent-banner', 'iab-consent-dialog'];
 
 /**
- * Strip `@layer components { ... }` wrappers, keeping inner content.
+ * Preflight shield — unlayered CSS that prevents Tailwind/normalize resets
+ * from breaking c15t interactive elements.
  *
- * The CSS module source files use `@layer components` but the aggregated
- * stylesheet must be unlayered because Tailwind 4's preflight (button reset,
- * universal box-sizing) is compiled as unlayered by Turbopack/Next.js.
- * In the CSS cascade, unlayered rules always beat layered rules regardless
- * of specificity — so any @layer on c15t styles would lose to the preflight.
- *
- * This matches the baseline behavior where the style-loader also strips
- * @layer wrappers when injecting via <style> tags.
+ * Uses `button:where([class*="c15t-ui-"])` at specificity (0,0,1) which
+ * ties with Tailwind's `button` reset and wins by source order.
+ * References CSS custom properties set by the component styles in @layer c15t.
  */
-function stripLayerWrappers(css: string): string {
-	return css.replace(/@layer\s+components\s*\{([\s\S]+)\}\s*$/, '$1');
+function generatePreflightShield(): string {
+	return `/*! c15t preflight shield */
+button:where([class*="c15t-ui-"]),
+[role="switch"]:where([class*="c15t-ui-"]) {
+  background-color: var(--_c15t-bg, transparent);
+  color: var(--_c15t-color, inherit);
+  padding: var(--_c15t-padding, 0);
+  border: var(--_c15t-border, none);
+  border-radius: var(--_c15t-radius, 0);
+  font-family: var(--_c15t-font, inherit);
+  font-size: var(--_c15t-font-size, inherit);
+  font-weight: var(--_c15t-font-weight, inherit);
+  line-height: var(--_c15t-line-height, inherit);
+  cursor: var(--_c15t-cursor, default);
+}`;
+}
+
+/**
+ * Split CSS into content outside @layer components (`:root` vars, `@media`)
+ * and content inside the layer (component rules).
+ */
+function splitLayerContent(css: string): {
+	outsideLayer: string;
+	insideLayer: string;
+} {
+	const layerMatch = css.match(/@layer\s+components\s*\{([\s\S]+)\}\s*$/);
+	if (!layerMatch || layerMatch.index === undefined) {
+		return { outsideLayer: '', insideLayer: css };
+	}
+
+	const insideLayer = layerMatch[1];
+	const outsideLayer = css.slice(0, layerMatch.index);
+	return { outsideLayer, insideLayer };
+}
+
+/**
+ * Wrap `.c15t-ui-*` class selectors with `:where()` to reduce specificity
+ * to (0,0,0). This ensures any user class (Tailwind utilities, custom classes)
+ * at specificity (0,1,0) overrides c15t defaults without `!important`.
+ *
+ * Only matches `.c15t-ui-` prefixed classes — leaves `.c15t-dark`, `.c15t-theme-root`,
+ * keyframe names, and CSS custom properties untouched.
+ */
+function wrapWithWhere(css: string): string {
+	return css.replace(/\.c15t-ui-[a-zA-Z0-9_-]+/g, ':where($&)');
 }
 
 function concatCss(primitives: string[], components: string[]): string {
-	const parts: string[] = [];
+	const rootBlocks: string[] = [];
+	const layerBlocks: string[] = [];
 
-	for (const name of primitives) {
+	// Preflight shield (unlayered)
+	rootBlocks.push(generatePreflightShield());
+
+	const allModules = [
+		...primitives.map((n) => ({ name: n, dir: 'primitives' })),
+		...components.map((n) => ({ name: n, dir: 'components' })),
+	];
+
+	for (const mod of allModules) {
 		const filePath = join(
 			DIST_DIR,
 			'styles',
-			'primitives',
-			`${name}.module.css`
+			mod.dir,
+			`${mod.name}.module.css`
 		);
-		parts.push(`/* primitives/${name} */`);
-		parts.push(stripLayerWrappers(readFileSync(filePath, 'utf-8')));
+		const css = readFileSync(filePath, 'utf-8');
+		const { outsideLayer, insideLayer } = splitLayerContent(css);
+
+		// :root variable blocks stay unlayered
+		if (outsideLayer.trim()) {
+			rootBlocks.push(`/* ${mod.dir}/${mod.name} vars */`);
+			rootBlocks.push(outsideLayer);
+		}
+
+		// Component rules go in @layer c15t with :where() wrapping
+		if (insideLayer.trim()) {
+			layerBlocks.push(`/* ${mod.dir}/${mod.name} */`);
+			layerBlocks.push(wrapWithWhere(insideLayer));
+		}
 	}
 
-	for (const name of components) {
-		const filePath = join(
-			DIST_DIR,
-			'styles',
-			'components',
-			`${name}.module.css`
-		);
-		parts.push(`/* components/${name} */`);
-		parts.push(stripLayerWrappers(readFileSync(filePath, 'utf-8')));
-	}
-
-	return parts.join('\n');
+	return [...rootBlocks, '@layer c15t {', ...layerBlocks, '}'].join('\n');
 }
 
 // dist/styles.css (non-IAB)
