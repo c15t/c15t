@@ -75,25 +75,30 @@ function generatePreflightShield(): string {
 	//   - Tailwind's `button { background: transparent }` at (0,0,1)
 	// And ties with Tailwind utilities like `.text-blue-500` at (0,1,0),
 	// but the shield comes first in source order so utilities win.
-	// Fallbacks use `revert-layer` which reverts to the @layer c15t value.
-	// If the component in @layer c15t sets the property, that value applies.
-	// If not, `revert-layer` falls through to the user-agent default.
-	// This prevents the shield from interfering with elements that don't
-	// set a particular bridge property.
+	// The shield ONLY counters the specific Tailwind preflight resets:
+	//   * { padding: 0; margin: 0; border: 0 solid; }
+	//   button { background-color: transparent; }
+	//
+	// We target only these properties and use `revert-layer` as fallback
+	// so elements that don't set bridge props fall through to @layer c15t.
+	// We do NOT shield background-color, color, border-radius, font, etc.
+	// on all elements — those aren't touched by the universal * reset.
 	return `/*! c15t preflight shield */
 [class*="c15t-ui-"] {
   padding: var(--_c15t-padding, revert-layer);
   margin: var(--_c15t-margin, revert-layer);
   border: var(--_c15t-border, revert-layer);
-  border-radius: var(--_c15t-radius, revert-layer);
+}
+button[class*="c15t-ui-"],
+[role="switch"][class*="c15t-ui-"] {
   background-color: var(--_c15t-bg, revert-layer);
   color: var(--_c15t-color, revert-layer);
+  border-radius: var(--_c15t-radius, revert-layer);
   font-family: var(--_c15t-font, revert-layer);
   font-size: var(--_c15t-font-size, revert-layer);
   font-weight: var(--_c15t-font-weight, revert-layer);
   line-height: var(--_c15t-line-height, revert-layer);
   cursor: var(--_c15t-cursor, revert-layer);
-  box-shadow: var(--_c15t-shadow, revert-layer);
 }`;
 }
 
