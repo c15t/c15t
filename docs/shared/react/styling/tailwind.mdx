@@ -7,14 +7,7 @@
 
   ### Tailwind v4
 
-  Declare the `c15t` layer before your Tailwind import so utility classes can override c15t defaults:
-
-  ```css title="app/globals.css"
-  @layer c15t;
-  @import "tailwindcss";
-  ```
-
-  Tailwind v4 automatically scans your source files — no content config needed.
+  No additional configuration needed. Tailwind v4 automatically scans your source files.
 
   ### Tailwind v3
 
@@ -27,13 +20,6 @@
       './node_modules/@c15t/react/**/*.{js,mjs}',
     ],
   };
-  ```
-
-  Import the c15t stylesheet before your Tailwind CSS so utility classes take priority:
-
-  ```tsx title="src/main.tsx"
-  import '@c15t/react/styles.css';
-  import './globals.css'; // Tailwind
   ```
 </section>
 

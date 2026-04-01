@@ -151,13 +151,21 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 
 	// Use default theme during SSR/hydration to avoid mismatch, then switch to user preference
 	const activeTheme = mounted ? theme : undefined;
-	const centeredIabTheme = {
-		...activeTheme,
-		slots: {
-			...activeTheme?.slots,
-			consentBannerTitle: 'text-blue-500',
-		},
-	};
+	const centeredIabTheme = activeTheme
+		? {
+				...activeTheme,
+				slots: {
+					...activeTheme.slots,
+					iabBanner: {
+						style: {
+							inset: 0,
+							alignItems: 'center',
+							justifyContent: 'end',
+						},
+					},
+				},
+			}
+		: activeTheme;
 
 	const isHeadlessPolicyTab =
 		pathname === '/policy' &&
