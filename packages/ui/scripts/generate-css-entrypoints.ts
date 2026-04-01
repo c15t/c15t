@@ -70,13 +70,15 @@ const IAB_COMPONENTS = ['iab-consent-banner', 'iab-consent-dialog'];
  * Strip `@layer components { ... }` wrappers, keeping inner content.
  *
  * The CSS module source files use `@layer components` but the aggregated
- * stylesheet must be unlayered so it isn't overridden by Tailwind's
- * unlayered preflight reset. This matches the behavior of injectStyles
- * where the style-loader also strips @layer wrappers.
+ * stylesheet must be unlayered because Tailwind 4's preflight (button reset,
+ * universal box-sizing) is compiled as unlayered by Turbopack/Next.js.
+ * In the CSS cascade, unlayered rules always beat layered rules regardless
+ * of specificity — so any @layer on c15t styles would lose to the preflight.
+ *
+ * This matches the baseline behavior where the style-loader also strips
+ * @layer wrappers when injecting via <style> tags.
  */
 function stripLayerWrappers(css: string): string {
-	// Match @layer components{...} — the closing brace is the LAST one
-	// since @layer wraps the entire rule block. We use a greedy match.
 	return css.replace(/@layer\s+components\s*\{([\s\S]+)\}\s*$/, '$1');
 }
 
