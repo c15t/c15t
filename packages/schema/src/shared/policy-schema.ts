@@ -31,7 +31,7 @@ export const policyUiProfileSchema = v.picklist([
 
 export const policyUiSurfaceConfigSchema = v.object({
 	allowedActions: v.optional(v.array(policyUiActionSchema)),
-	primaryAction: v.optional(policyUiActionSchema),
+	primaryActions: v.optional(v.array(policyUiActionSchema)),
 	layout: v.optional(v.array(policyUiActionGroupSchema)),
 	direction: v.optional(policyUiActionDirectionSchema),
 	uiProfile: v.optional(policyUiProfileSchema),

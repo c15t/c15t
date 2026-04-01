@@ -155,7 +155,7 @@ export function renderPolicyPanel(
 
 interface SurfaceState {
 	allowedActions?: string[] | null;
-	primaryAction?: string | null;
+	primaryActions?: string[] | null;
 	layout?: Array<string | string[]> | null;
 	direction?: string | null;
 	uiProfile?: string | null;
@@ -179,7 +179,7 @@ function buildSurfaceCards(
 		policySurface?.allowedActions ?? storeSurface.allowedActions
 	);
 	const primary =
-		policySurface?.primaryAction ?? storeSurface.primaryAction ?? null;
+		policySurface?.primaryActions ?? storeSurface.primaryActions ?? null;
 	const layout = policyLayout ?? storeLayout;
 	const direction = policySurface?.direction ?? storeSurface.direction ?? null;
 	const profile = policySurface?.uiProfile ?? storeSurface.uiProfile ?? null;
@@ -189,7 +189,7 @@ function buildSurfaceCards(
 	// Skip entirely if nothing is configured
 	if (
 		actions === '—' &&
-		!primary &&
+		(!primary || primary.length === 0) &&
 		!layout &&
 		!direction &&
 		!profile &&
@@ -200,8 +200,8 @@ function buildSurfaceCards(
 
 	const cards: HTMLElement[] = [createCard(`${prefix} Actions`, actions)];
 
-	if (primary) {
-		cards.push(createCard(`${prefix} Primary`, primary));
+	if (primary && primary.length > 0) {
+		cards.push(createCard(`${prefix} Primary`, primary.join(', ')));
 	}
 	if (layout) {
 		cards.push(

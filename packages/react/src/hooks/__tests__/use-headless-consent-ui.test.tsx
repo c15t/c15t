@@ -59,7 +59,7 @@ describe('useHeadlessConsentUI', () => {
 			activeUI: 'banner',
 			policyBanner: {
 				allowedActions: ['accept', 'reject'],
-				primaryAction: 'accept',
+				primaryActions: ['accept'],
 				layout: [['reject', 'accept']],
 				direction: 'row',
 				uiProfile: 'balanced',
@@ -67,7 +67,7 @@ describe('useHeadlessConsentUI', () => {
 			},
 			policyDialog: {
 				allowedActions: ['reject', 'accept', 'customize'],
-				primaryAction: 'customize',
+				primaryActions: ['customize'],
 				layout: ['customize', ['reject', 'accept']],
 				direction: 'row',
 				uiProfile: 'strict',
@@ -81,7 +81,7 @@ describe('useHeadlessConsentUI', () => {
 
 		expect(result.current.banner.allowedActions).toEqual(['accept', 'reject']);
 		expect(result.current.banner.orderedActions).toEqual(['reject', 'accept']);
-		expect(result.current.banner.primaryAction).toBe('accept');
+		expect(result.current.banner.primaryActions).toEqual(['accept']);
 		expect(result.current.banner.actionGroups).toEqual([['reject', 'accept']]);
 		expect(result.current.banner.scrollLock).toBe(true);
 		expect(result.current.banner.hasPolicyHints).toBe(true);
@@ -97,7 +97,7 @@ describe('useHeadlessConsentUI', () => {
 			'reject',
 			'accept',
 		]);
-		expect(result.current.dialog.primaryAction).toBe('customize');
+		expect(result.current.dialog.primaryActions).toEqual(['customize']);
 		expect(result.current.dialog.actionGroups).toEqual([
 			['customize'],
 			['reject', 'accept'],

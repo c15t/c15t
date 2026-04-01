@@ -84,7 +84,7 @@ export function createMockStoreState(
 		model: null,
 		policyBanner: {
 			allowedActions: null,
-			primaryAction: null,
+			primaryActions: null,
 			layout: null,
 			direction: null,
 			uiProfile: null,
@@ -92,7 +92,7 @@ export function createMockStoreState(
 		},
 		policyDialog: {
 			allowedActions: null,
-			primaryAction: null,
+			primaryActions: null,
 			layout: null,
 			direction: null,
 			uiProfile: null,

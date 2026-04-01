@@ -34,7 +34,7 @@ export type PolicyUiProfile = 'balanced' | 'compact' | 'strict';
  */
 export interface PolicyUiSurfaceConfig {
 	allowedActions?: PolicyUiAction[];
-	primaryAction?: PolicyUiAction;
+	primaryActions?: PolicyUiAction[];
 	layout?: PolicyUiActionGroup[];
 	direction?: PolicyUiActionDirection;
 	uiProfile?: PolicyUiProfile;
@@ -507,10 +507,14 @@ function collectPolicyErrors(
 			}
 			const allowed = surface.allowedActions;
 			if (allowed && allowed.length > 0) {
-				if (surface.primaryAction && !allowed.includes(surface.primaryAction)) {
-					errors.push(
-						`Policy ${label} ui.${surfaceName}.primaryAction '${surface.primaryAction}' is not in allowedActions [${allowed.join(', ')}].`
-					);
+				if (surface.primaryActions && surface.primaryActions.length > 0) {
+					for (const pa of surface.primaryActions) {
+						if (!allowed.includes(pa)) {
+							errors.push(
+								`Policy ${label} ui.${surfaceName}.primaryActions '${pa}' is not in allowedActions [${allowed.join(', ')}].`
+							);
+						}
+					}
 				}
 			}
 
@@ -781,22 +785,21 @@ function normalizeActionGroups(
 	return groups;
 }
 
-function normalizePrimaryAction(
+function normalizePrimaryActions(
 	surface: PolicyUiSurfaceConfig | undefined,
 	allowedActions?: PolicyUiAction[]
-): PolicyUiAction | undefined {
-	const primaryAction = surface?.primaryAction;
-	if (!primaryAction) {
+): PolicyUiAction[] | undefined {
+	const primaryActions = surface?.primaryActions;
+	if (!primaryActions || primaryActions.length === 0) {
 		return undefined;
 	}
 
 	if (allowedActions && allowedActions.length > 0) {
-		return allowedActions.includes(primaryAction)
-			? primaryAction
-			: allowedActions[0];
+		const filtered = primaryActions.filter((a) => allowedActions.includes(a));
+		return filtered.length > 0 ? filtered : undefined;
 	}
 
-	return primaryAction;
+	return primaryActions;
 }
 
 function normalizeDirection(
@@ -837,7 +840,7 @@ function normalizeUiSurface(
 	const flattenedActions = flattenActionGroups(layout) ?? allowedActions;
 	const normalized = {
 		allowedActions,
-		primaryAction: normalizePrimaryAction(surface, flattenedActions),
+		primaryActions: normalizePrimaryActions(surface, flattenedActions),
 		layout,
 		direction: normalizeDirection(surface),
 		uiProfile: normalizeUiProfile(surface),

@@ -23,7 +23,9 @@ export const runtimePolicyDecisionSchema = v.object({
 			allowedActions: v.nullish(
 				v.array(v.picklist(['accept', 'reject', 'customize']))
 			),
-			primaryAction: v.nullish(v.picklist(['accept', 'reject', 'customize'])),
+			primaryActions: v.nullish(
+				v.array(v.picklist(['accept', 'reject', 'customize']))
+			),
 			layout: v.nullish(
 				v.array(
 					v.union([
@@ -42,7 +44,9 @@ export const runtimePolicyDecisionSchema = v.object({
 			allowedActions: v.nullish(
 				v.array(v.picklist(['accept', 'reject', 'customize']))
 			),
-			primaryAction: v.nullish(v.picklist(['accept', 'reject', 'customize'])),
+			primaryActions: v.nullish(
+				v.array(v.picklist(['accept', 'reject', 'customize']))
+			),
 			layout: v.nullish(
 				v.array(
 					v.union([

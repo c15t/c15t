@@ -82,7 +82,7 @@ function compactUiSurface(
 		allowedActions: dedupeTrimmedStrings(value.allowedActions) as
 			| PolicyUiSurfaceConfig['allowedActions']
 			| undefined,
-		primaryAction: value.primaryAction,
+		primaryActions: value.primaryActions,
 		layout: value.layout,
 		direction: value.direction,
 		uiProfile: value.uiProfile,

@@ -12,7 +12,7 @@ import {
 const originalCrypto = globalThis.crypto;
 
 const longPolicyLikeJson =
-	'{"consent":{"categories":["necessary","measurement"],"expiryDays":365,"scopeMode":"strict"},"id":"policy_runtime_us_ca","model":"opt-in","ui":{"banner":{"allowedActions":["accept","reject"],"direction":"row","layout":[["accept","reject"]],"primaryAction":"accept","scrollLock":true,"uiProfile":"balanced"},"mode":"banner"}}';
+	'{"consent":{"categories":["necessary","measurement"],"expiryDays":365,"scopeMode":"strict"},"id":"policy_runtime_us_ca","model":"opt-in","ui":{"banner":{"allowedActions":["accept","reject"],"direction":"row","layout":[["accept","reject"]],"primaryActions":["accept"],"scrollLock":true,"uiProfile":"balanced"},"mode":"banner"}}';
 
 const goldenVectors = [
 	{
@@ -31,7 +31,7 @@ const goldenVectors = [
 		label: 'long policy-like json',
 		input: longPolicyLikeJson,
 		expected:
-			'eae11b445c1f61bdc4f398a34e484570e56d43818c9ecc5cb9a95ebf4082bad6',
+			'bea550f2f6980f42116a90db2160985178f75ef96d08331a1147530524abbbc2',
 	},
 ] as const;
 
@@ -92,7 +92,7 @@ describe('resolvePolicyDecision', () => {
 						mode: 'banner',
 						banner: {
 							allowedActions: ['accept', 'reject'],
-							primaryAction: 'accept',
+							primaryActions: ['accept'],
 							layout: [['accept', 'reject']],
 							direction: 'row',
 							uiProfile: 'balanced',
@@ -132,7 +132,7 @@ describe('resolvePolicyDecision', () => {
 				mode: 'banner',
 				banner: {
 					allowedActions: ['accept', 'reject'],
-					primaryAction: 'accept',
+					primaryActions: ['accept'],
 					layout: [['accept', 'reject']],
 					direction: 'row',
 					uiProfile: 'balanced',
@@ -162,7 +162,7 @@ describe('resolvePolicyDecision', () => {
 				mode: 'banner',
 				banner: {
 					allowedActions: ['accept', 'reject'],
-					primaryAction: 'accept',
+					primaryActions: ['accept'],
 					layout: [['accept', 'reject']],
 					direction: 'row',
 					uiProfile: 'balanced',
@@ -184,7 +184,7 @@ describe('resolvePolicyDecision', () => {
 				mode: 'banner',
 				banner: {
 					allowedActions: ['accept', 'reject'],
-					primaryAction: 'accept',
+					primaryActions: ['accept'],
 					layout: [['accept', 'reject']],
 					direction: 'row',
 					uiProfile: 'strict',
@@ -211,7 +211,7 @@ describe('resolvePolicyDecision', () => {
 				mode: 'banner',
 				banner: {
 					allowedActions: ['accept', 'reject', 'customize'],
-					primaryAction: 'accept',
+					primaryActions: ['accept'],
 					layout: [['accept', 'reject'], 'customize'],
 					direction: 'row',
 				},
@@ -248,7 +248,7 @@ describe('resolvePolicyDecision', () => {
 				mode: 'banner',
 				banner: {
 					allowedActions: ['accept', 'reject'],
-					primaryAction: 'accept',
+					primaryActions: ['accept'],
 					layout: [['accept', 'reject']],
 					direction: 'row',
 				},
@@ -285,7 +285,7 @@ describe('resolvePolicyDecision', () => {
 				mode: 'banner',
 				banner: {
 					allowedActions: ['accept', 'reject'],
-					primaryAction: 'accept',
+					primaryActions: ['accept'],
 					layout: [['accept', 'reject']],
 					direction: 'row',
 				},
@@ -407,7 +407,7 @@ describe('fallback policy resolution', () => {
 });
 
 describe('inspectPolicies validation', () => {
-	it('errors when primaryAction is not in allowedActions', () => {
+	it('errors when primaryActions is not in allowedActions', () => {
 		const result = inspectPolicies([
 			{
 				id: 'test',
@@ -417,14 +417,14 @@ describe('inspectPolicies validation', () => {
 					mode: 'banner',
 					banner: {
 						allowedActions: ['accept', 'reject'],
-						primaryAction: 'customize',
+						primaryActions: ['customize'],
 					},
 				},
 			},
 		]);
 
 		expect(result.errors.length).toBeGreaterThan(0);
-		expect(result.errors.some((e) => e.includes('primaryAction'))).toBe(true);
+		expect(result.errors.some((e) => e.includes('primaryActions'))).toBe(true);
 	});
 
 	it('errors when layout contains actions not in allowedActions', () => {
@@ -449,7 +449,7 @@ describe('inspectPolicies validation', () => {
 		).toBe(true);
 	});
 
-	it('passes when primaryAction is in allowedActions', () => {
+	it('passes when primaryActions is in allowedActions', () => {
 		const result = inspectPolicies([
 			{
 				id: 'test',
@@ -459,14 +459,14 @@ describe('inspectPolicies validation', () => {
 					mode: 'banner',
 					banner: {
 						allowedActions: ['accept', 'reject'],
-						primaryAction: 'accept',
+						primaryActions: ['accept'],
 					},
 				},
 			},
 		]);
 
 		expect(
-			result.errors.filter((e) => e.includes('primaryAction')).length
+			result.errors.filter((e) => e.includes('primaryActions')).length
 		).toBe(0);
 	});
 
@@ -1057,7 +1057,7 @@ describe('edge cases', () => {
 	// Dialog surface validation
 	// -------------------------------------------------------------------------
 
-	it('errors when dialog primaryAction is not in allowedActions', () => {
+	it('errors when dialog primaryActions is not in allowedActions', () => {
 		const result = inspectPolicies([
 			{
 				id: 'test',
@@ -1067,7 +1067,7 @@ describe('edge cases', () => {
 					mode: 'dialog',
 					dialog: {
 						allowedActions: ['accept', 'reject'],
-						primaryAction: 'customize',
+						primaryActions: ['customize'],
 					},
 				},
 			},
@@ -1075,7 +1075,7 @@ describe('edge cases', () => {
 
 		expect(
 			result.errors.some(
-				(e) => e.includes('dialog') && e.includes('primaryAction')
+				(e) => e.includes('dialog') && e.includes('primaryActions')
 			)
 		).toBe(true);
 	});

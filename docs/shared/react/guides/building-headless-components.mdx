@@ -5,7 +5,7 @@
 
   The headless stack is:
 
-  - `useHeadlessConsentUI()` for policy-aware banner/dialog actions, ordering, layout, and primary action hints
+  - `useHeadlessConsentUI()` for policy-aware banner/dialog actions, ordering, layout, and primary actions hints
   - `useConsentManager()` for runtime state, categories, selected consent state, and policy metadata
   - `useTranslations()` for the resolved copy
   - `offlinePolicy.policyPacks` for offline previews that behave like backend policy resolution
@@ -26,7 +26,7 @@
   - the order those actions should render in
   - grouped actions from policy `layout`
   - layout `direction` (`row` or `column`)
-  - the primary action
+  - the primary actions
   - UI profile and scroll-lock hints
   - whether the banner or dialog should currently be visible
 
@@ -40,7 +40,7 @@
 
   - `activeUI` or `banner.isVisible` / `dialog.isVisible` for visibility
   - `allowedActions`, `orderedActions`, or `actionGroups` instead of hard-coding buttons
-  - `primaryAction` for visual emphasis
+  - `primaryActions` for visual emphasis
   - `consentCategories` when deciding which category toggles to render
   - `policyDecision` when you want to debug why a specific UI state was chosen
 
