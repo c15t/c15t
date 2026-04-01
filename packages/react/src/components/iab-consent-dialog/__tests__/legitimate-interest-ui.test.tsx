@@ -4,6 +4,7 @@
  * Tests for legitimate interest UI behavior in IAB Consent Dialog.
  */
 
+import { iab } from '@c15t/iab';
 import { userEvent } from '@vitest/browser/context';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -210,12 +211,11 @@ globalThis.fetch = vi.fn(() =>
 
 const defaultIABOptions: ConsentManagerOptions = {
 	mode: 'offline',
-	iab: {
-		enabled: true,
+	iab: iab({
 		cmpId: 160,
 		cmpVersion: 1,
 		gvl: mockGVL,
-	},
+	}),
 	offlinePolicy: {
 		policy: { id: 'iab_test', model: 'iab' },
 	},
