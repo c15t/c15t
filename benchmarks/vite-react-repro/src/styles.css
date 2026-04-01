@@ -1,0 +1,66 @@
+:root {
+	color: #111827;
+	background: #f8fafc;
+	font-family:
+		"IBM Plex Sans",
+		"Segoe UI",
+		sans-serif;
+	line-height: 1.5;
+	font-weight: 400;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	min-width: 320px;
+	min-height: 100vh;
+	background:
+		radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 30%),
+		linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+}
+
+#root {
+	min-height: 100vh;
+}
+
+.app-shell {
+	display: grid;
+	place-items: center;
+	min-height: 100vh;
+	padding: 32px;
+}
+
+.copy {
+	max-width: 720px;
+	padding: 28px;
+	border: 1px solid rgba(148, 163, 184, 0.35);
+	border-radius: 24px;
+	background: rgba(255, 255, 255, 0.72);
+	box-shadow: 0 24px 64px rgba(15, 23, 42, 0.08);
+	backdrop-filter: blur(16px);
+}
+
+.eyebrow {
+	margin: 0 0 12px;
+	font-size: 0.8rem;
+	font-weight: 700;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: #1d4ed8;
+}
+
+h1 {
+	margin: 0 0 12px;
+	font-size: clamp(2rem, 4vw, 3.5rem);
+	line-height: 0.95;
+	letter-spacing: -0.04em;
+}
+
+p {
+	margin: 0;
+	max-width: 60ch;
+	color: #334155;
+}

@@ -63,6 +63,7 @@ version.ts
 i18n.cache
 
 .test-apps/
+.benchmarks/
 
 # CLI persisted generate state
 .c15t-state.json

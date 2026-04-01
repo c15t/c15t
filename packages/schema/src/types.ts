@@ -83,6 +83,7 @@ export {
 export {
 	createDeterministicFingerprint,
 	createDeterministicFingerprintSync,
+	createMaterialPolicyFingerprint,
 	createPolicyFingerprint,
 	hashSha256Hex,
 	stableStringify,

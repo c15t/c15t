@@ -4,8 +4,8 @@
  * @packageDocumentation
  */
 
-import { createMaterialPolicyFingerprint } from '@c15t/schema';
 import type { JurisdictionCode } from '@c15t/schema/types';
+import { createMaterialPolicyFingerprint } from '@c15t/schema/types';
 import {
 	prepareTranslationConfig,
 	type TranslationInputConfig,
