@@ -324,4 +324,4 @@ export {
 } from '../utils/preference-trigger';
 
 // Export icon constants for use in other components
-export { DEVTOOLS_ICON, PREFERENCES_ICON, EYE_ICON };
+export { DEVTOOLS_ICON, EYE_ICON, PREFERENCES_ICON };

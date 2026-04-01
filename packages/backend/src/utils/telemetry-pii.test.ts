@@ -53,9 +53,9 @@ const PII_PATTERNS = [
 
 // ── Provider setup ──────────────────────────────────────────────────────
 const exporter = new InMemorySpanExporter();
-const provider = new BasicTracerProvider();
-provider.addSpanProcessor(new SimpleSpanProcessor(exporter));
-provider.register();
+const provider = new BasicTracerProvider({
+	spanProcessors: [new SimpleSpanProcessor(exporter)],
+});
 
 const tracer = provider.getTracer('pii-test');
 

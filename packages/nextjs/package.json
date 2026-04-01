@@ -81,7 +81,7 @@
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"genversion": "3.2.0",
-		"typescript": "5.9.3"
+		"typescript": "6.0.2"
 	},
 	"peerDependencies": {
 		"next": "^16.0.0 || ^15.0.0 || ^14.0.0 || ^13.0.0",

@@ -8,6 +8,14 @@ export default mergeConfig(
 	baseConfig,
 	defineConfig({
 		plugins: [react()],
+		optimizeDeps: {
+			exclude: [
+				'@rsdoctor/rspack-plugin',
+				'@rsdoctor/core',
+				'@rspack/resolver',
+				'@rspack/resolver-binding-wasm32-wasi',
+			],
+		},
 		resolve: {
 			alias: {
 				'~': resolve(__dirname, './src'),
@@ -21,6 +29,7 @@ export default mergeConfig(
 					__dirname,
 					'../iab/node_modules/@iabtechlabtcf/core'
 				),
+				'@c15t/iab': resolve(__dirname, '../iab/src/index.ts'),
 				react: resolve(__dirname, './node_modules/react'),
 				'react-dom': resolve(__dirname, './node_modules/react-dom'),
 			},

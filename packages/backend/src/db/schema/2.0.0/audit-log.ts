@@ -15,4 +15,4 @@ export const auditLogTable = table('auditLog', {
 	tenantId: column('tenantId', 'string').nullable(),
 });
 
-export { auditLogSchema, type AuditLog };
+export { type AuditLog, auditLogSchema };

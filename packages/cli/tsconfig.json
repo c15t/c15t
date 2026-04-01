@@ -1,7 +1,7 @@
 {
 	"extends": "@c15t/typescript-config/node.json",
 	"compilerOptions": {
-		"baseUrl": ".",
+		"rootDir": "src",
 		"lib": ["esnext"],
 		"paths": {
 			"@c15t/backend": ["../backend/dist-types/core.d.ts"],

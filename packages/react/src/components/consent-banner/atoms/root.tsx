@@ -359,4 +359,4 @@ ConsentBannerRootChildren.displayName = 'ConsentBannerRootChildren';
 
 const Root = ConsentBannerRoot;
 
-export { Root, ConsentBannerRoot };
+export { ConsentBannerRoot, Root };
