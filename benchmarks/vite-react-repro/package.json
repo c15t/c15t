@@ -5,7 +5,10 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "vite build",
-		"preview": "vite preview"
+		"preview": "vite preview",
+		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/first-paint bun run scripts/run-first-paint-bench.ts",
+		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/first-paint bun run scripts/run-first-paint-bench.ts",
+		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/first-paint bun run scripts/run-first-paint-bench.ts"
 	},
 	"dependencies": {
 		"@c15t/react": "workspace:*",
@@ -13,7 +16,9 @@
 		"react-dom": "19.2.0"
 	},
 	"devDependencies": {
+		"@c15t/benchmarking": "workspace:*",
 		"@vitejs/plugin-react": "5.1.0",
+		"playwright": "1.58.2",
 		"rollup-plugin-visualizer": "7.0.1",
 		"typescript": "5.9.3",
 		"vite": "7.1.12"
