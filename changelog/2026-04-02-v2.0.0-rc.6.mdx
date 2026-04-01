@@ -15,14 +15,14 @@ breaking: false
 authors: [KayleeWilliams]
 ---
 
-This RC focuses on shipped-surface cleanup and developer ergonomics rather than brand-new UI components. Client bundles are smaller, IAB support is now modular for teams that need it, policy UI surfaces can express richer primary action layouts, and the packaging/toolchain work around stylesheets, docs, and build artifacts is much cleaner.
+This RC focuses on shipped-surface cleanup and developer ergonomics rather than brand-new UI components. Client bundles are smaller, IAB support is now modular for teams that need it, policy UI surfaces can express richer primary action layouts, and the packaging/toolchain work around stylesheets, docs, and build artifacts is much cleaner. Prebuilt UI styles also move onto explicit stylesheet entrypoints, which cuts down on JS-driven style loading and keeps more styling work on the CSS path.
 
 ## Highlights
 
 - Smaller client bundles by tree-shaking translations and schema-heavy dependencies out of the main client path
 - IAB support extracted into `@c15t/iab`, so non-IAB users no longer ship IAB runtime code by default
 - Policies now support `primaryActions` arrays for more flexible banner and dialog layouts
-- Prebuilt UI now ships explicit stylesheet entrypoints such as `@c15t/react/styles.css` and `@c15t/nextjs/styles.css`
+- Prebuilt UI now ships explicit stylesheet entrypoints such as `@c15t/react/styles.css` and `@c15t/nextjs/styles.css`, reducing JS-side style loading overhead
 - Toolchain and release housekeeping landed alongside the feature work, including dependency refreshes, bundled docs, and cleaner publish artifacts
 
 ## Smaller Client Bundles
@@ -70,10 +70,14 @@ The important behavior change is mostly about flexibility rather than migration 
 This RC also tightens up the package surface around styles, docs, and release tooling.
 
 - Prebuilt React and Next.js UI now ship explicit stylesheet entrypoints including `styles.css` and `iab/styles.css`
-- `@c15t/ui` publishes stylesheet assets directly instead of relying on JS-driven style inclusion behavior
+- `@c15t/ui` publishes stylesheet assets directly instead of relying on JS-driven style inclusion behavior, which reduces unnecessary client-side JS work for prebuilt UI consumers
 - Tailwind guidance is now aligned around explicit host-app stylesheet imports for Tailwind 3 and Tailwind 4
 - Package docs are bundled with published packages, and declaration output continues moving out of runtime bundle trees for cleaner consumption by tools and bundlers
 - Dependency refreshes, benchmark workflows, and RC housekeeping landed as part of the same release stream
+
+For teams using the prebuilt UI, this means styles are now loaded from actual stylesheet entrypoints instead of piggybacking on component JS modules. That keeps the styling contract more explicit, improves bundler predictability, and shifts more work off the runtime JavaScript path.
+
+In our simulated mobile benchmark, this reduced main-thread impact by about `14ms`. That matters because there is less JavaScript competing during startup, styles can apply earlier through the normal CSS path, and the browser has a little more room to initialize consent UI and related scripts on slower devices.
 
 ## Learn more
 
