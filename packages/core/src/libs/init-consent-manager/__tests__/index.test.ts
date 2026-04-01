@@ -256,7 +256,7 @@ describe('initConsentManager', () => {
 						mode: 'banner',
 						banner: {
 							allowedActions: ['accept', 'reject'],
-							primaryAction: 'accept',
+							primaryActions: ['accept'],
 							layout: [['accept', 'reject']],
 							direction: 'row',
 						},
@@ -343,7 +343,7 @@ describe('initConsentManager', () => {
 						mode: 'banner',
 						banner: {
 							allowedActions: ['accept', 'reject'],
-							primaryAction: 'accept',
+							primaryActions: ['accept'],
 							layout: [['accept', 'reject']],
 							direction: 'row',
 						},

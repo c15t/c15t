@@ -495,7 +495,7 @@ describe('saveConsents', () => {
 							mode: 'banner',
 							banner: {
 								allowedActions: ['accept', 'reject'],
-								primaryAction: 'accept',
+								primaryActions: ['accept'],
 								layout: [['accept', 'reject']],
 								direction: 'row',
 							},

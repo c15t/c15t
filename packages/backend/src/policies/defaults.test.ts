@@ -10,8 +10,10 @@ describe('policyPackPresets templates', () => {
 
 		expect(optIn.consent?.model).toBe('opt-in');
 		expect(optIn.ui?.banner?.layout).toEqual(EXPECTED_SPLIT_ROW_LAYOUT);
+		expect(optIn.ui?.banner?.primaryActions).toEqual(['customize']);
 		expect(optIn.ui?.banner?.direction).toBe('row');
 		expect(optIn.ui?.dialog?.layout).toEqual(EXPECTED_SPLIT_ROW_LAYOUT);
+		expect(optIn.ui?.dialog?.primaryActions).toEqual(['customize']);
 		expect(optIn.ui?.dialog?.direction).toBe('row');
 		expect(iab.consent?.model).toBe('iab');
 		expect(iab.match.countries).toEqual([
@@ -58,8 +60,10 @@ describe('policyPackPresets templates', () => {
 		expect(optIn.match.regions).toEqual([{ country: 'US', region: 'CA' }]);
 		expect(optIn.ui?.banner?.uiProfile).toBe('compact');
 		expect(optIn.ui?.banner?.layout).toEqual(EXPECTED_SPLIT_ROW_LAYOUT);
+		expect(optIn.ui?.banner?.primaryActions).toEqual(['customize']);
 		expect(optIn.ui?.banner?.direction).toBe('row');
 		expect(optIn.ui?.dialog?.layout).toEqual(EXPECTED_SPLIT_ROW_LAYOUT);
+		expect(optIn.ui?.dialog?.primaryActions).toEqual(['customize']);
 		expect(optIn.ui?.dialog?.direction).toBe('row');
 		expect(optOut.ui?.mode).toBe('none');
 	});
@@ -71,8 +75,10 @@ describe('policyPackPresets templates', () => {
 		expect(policy.match.regions).toEqual([{ country: 'CA', region: 'QC' }]);
 		expect(policy.ui?.banner?.uiProfile).toBe('compact');
 		expect(policy.ui?.banner?.layout).toEqual(EXPECTED_SPLIT_ROW_LAYOUT);
+		expect(policy.ui?.banner?.primaryActions).toEqual(['customize']);
 		expect(policy.ui?.banner?.direction).toBe('row');
 		expect(policy.ui?.dialog?.layout).toEqual(EXPECTED_SPLIT_ROW_LAYOUT);
+		expect(policy.ui?.dialog?.primaryActions).toEqual(['customize']);
 		expect(policy.ui?.dialog?.direction).toBe('row');
 	});
 

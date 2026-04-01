@@ -110,7 +110,7 @@ export const ConsentWidget = ({
 						{group.map((action) =>
 							renderAction(
 								action,
-								action === dialog.primaryAction,
+								dialog.primaryActions.includes(action),
 								shouldFillActions ? styles.actionButtonFill : undefined
 							)
 						)}

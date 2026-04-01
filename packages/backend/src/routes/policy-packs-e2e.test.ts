@@ -37,7 +37,7 @@ const EU_POLICY = {
 		mode: 'banner' as const,
 		banner: {
 			allowedActions: ['accept', 'reject', 'customize'] as const,
-			primaryAction: 'customize' as const,
+			primaryActions: ['accept', 'customize'] as const,
 		},
 	},
 	proof: {

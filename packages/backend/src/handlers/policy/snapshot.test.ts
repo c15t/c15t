@@ -36,7 +36,7 @@ describe('policy snapshot token', () => {
 			uiMode: 'banner',
 			bannerUi: {
 				allowedActions: ['accept', 'reject', 'customize'],
-				primaryAction: 'accept',
+				primaryActions: ['accept'],
 				layout: [['accept', 'reject', 'customize']],
 				direction: 'row',
 				uiProfile: 'strict',

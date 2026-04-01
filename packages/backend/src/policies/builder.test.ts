@@ -18,7 +18,7 @@ describe('buildPolicyConfig', () => {
 			uiMode: 'banner',
 			banner: {
 				allowedActions: ['accept', 'reject', 'accept'],
-				primaryAction: 'reject',
+				primaryActions: ['reject'],
 				layout: [['reject', 'accept']],
 				direction: 'row',
 				uiProfile: 'balanced',
@@ -43,7 +43,7 @@ describe('buildPolicyConfig', () => {
 				mode: 'banner',
 				banner: {
 					allowedActions: ['accept', 'reject'],
-					primaryAction: 'reject',
+					primaryActions: ['reject'],
 					layout: [['reject', 'accept']],
 					direction: 'row',
 					uiProfile: 'balanced',

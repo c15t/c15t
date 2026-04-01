@@ -91,8 +91,8 @@ export type InitDataSource =
 export interface PolicySurfaceState {
 	/** Allowed actions for this surface derived from backend runtime policy. */
 	allowedActions?: PolicyUiAction[];
-	/** Preferred primary action hint from backend runtime policy. */
-	primaryAction?: PolicyUiAction;
+	/** Preferred primary action hints from backend runtime policy. */
+	primaryActions?: PolicyUiAction[];
 	/** Explicit grouped action layout hint from backend runtime policy. */
 	layout?: PolicyUiActionGroup[];
 	/** Direction hint for the grouped action layout. */

@@ -218,7 +218,8 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 
 	const orderedActions = banner.orderedActions;
 	const allowedActions = new Set(orderedActions);
-	const effectivePrimaryButton = banner.primaryAction ?? primaryButton;
+	const effectivePrimaryButton =
+		banner.primaryActions.length > 0 ? banner.primaryActions : primaryButton;
 	const resolvedLayout: ConsentBannerLayout =
 		layout ?? (banner.hasPolicyHints ? banner.actionGroups : DEFAULT_LAYOUT);
 	const resolvedDirection = direction ?? banner.direction ?? 'row';
