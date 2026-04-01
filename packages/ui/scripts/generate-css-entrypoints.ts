@@ -2,7 +2,8 @@
  * Post-build script for @c15t/ui:
  * 1. Renames `*_module.css` files to `*.module.css` (rslib emits underscores)
  * 2. Fixes `_module.css` references in `.module.js` and `.module.cjs` files
- * 3. Generates aggregated CSS entrypoints: dist/styles.css and dist/iab/styles.css
+ * 3. Generates aggregated CSS entrypoints by concatenating CSS content
+ *    (NOT @import — Turbopack silently drops .module.css imports from node_modules)
  */
 import {
 	mkdirSync,
@@ -44,7 +45,12 @@ for (const dir of CSS_DIRS) {
 	}
 }
 
-// ── Step 3: Generate aggregated CSS entrypoints ───────────────────────
+// ── Step 3: Generate aggregated CSS entrypoints (concatenated) ────────
+//
+// We concatenate CSS content instead of using @import because:
+// - Turbopack/Next.js silently ignores .module.css imports from node_modules
+// - @import chains through package exports are fragile across bundlers
+// - A single file avoids waterfall requests in non-bundled environments
 
 const NON_IAB_PRIMITIVES = ['button', 'switch', 'accordion', 'legal-links'];
 
@@ -58,30 +64,40 @@ const NON_IAB_COMPONENTS = [
 
 const IAB_COMPONENTS = ['iab-consent-banner', 'iab-consent-dialog'];
 
-function generateImports(
-	primitives: string[],
-	components: string[],
-	basePath: string
-): string {
-	const lines: string[] = [];
+function concatCss(primitives: string[], components: string[]): string {
+	const parts: string[] = [];
 
 	for (const name of primitives) {
-		lines.push(`@import "${basePath}styles/primitives/${name}.module.css";`);
+		const filePath = join(
+			DIST_DIR,
+			'styles',
+			'primitives',
+			`${name}.module.css`
+		);
+		parts.push(`/* primitives/${name} */`);
+		parts.push(readFileSync(filePath, 'utf-8'));
 	}
 
 	for (const name of components) {
-		lines.push(`@import "${basePath}styles/components/${name}.module.css";`);
+		const filePath = join(
+			DIST_DIR,
+			'styles',
+			'components',
+			`${name}.module.css`
+		);
+		parts.push(`/* components/${name} */`);
+		parts.push(readFileSync(filePath, 'utf-8'));
 	}
 
-	return lines.join('\n');
+	return parts.join('\n');
 }
 
 // dist/styles.css (non-IAB)
-const nonIabCss = generateImports(NON_IAB_PRIMITIVES, NON_IAB_COMPONENTS, './');
+const nonIabCss = concatCss(NON_IAB_PRIMITIVES, NON_IAB_COMPONENTS);
 writeFileSync(join(DIST_DIR, 'styles.css'), nonIabCss + '\n');
 
 // dist/iab/styles.css (self-contained IAB)
-const iabCss = generateImports(NON_IAB_PRIMITIVES, IAB_COMPONENTS, '../');
+const iabCss = concatCss(NON_IAB_PRIMITIVES, IAB_COMPONENTS);
 const iabDir = join(DIST_DIR, 'iab');
 mkdirSync(iabDir, { recursive: true });
 writeFileSync(join(iabDir, 'styles.css'), iabCss + '\n');
