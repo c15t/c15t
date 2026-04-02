@@ -6,6 +6,12 @@ on:
   pull_request:
     types: [opened, synchronize]
 
+env:
+  # Do not pass Turbo remote-cache creds when running untrusted PR code (same-repo
+  # PRs still execute arbitrary branch code). Fork PRs already omit repo secrets.
+  TURBO_TOKEN: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TEAM }}
+
 jobs:
   lint_and_check:
     name: 🧹 Lint & Type Check
@@ -14,9 +20,6 @@ jobs:
       contents: read # Needed for checkout
       checks: write # Needed for reviewdog to post results
       pull-requests: write # Needed for reviewdog github-pr-review reporter (optional)
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@v4
@@ -46,9 +49,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read # Needed for checkout
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@v4
@@ -72,9 +72,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read # Needed for checkout
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@v4
