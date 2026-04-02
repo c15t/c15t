@@ -1,5 +1,13 @@
 # @c15t/node-sdk
 
+## 2.0.0-rc.6
+
+### Patch Changes
+
+- Updated dependencies [bb3ab0f]
+- Updated dependencies [1a724fc]
+  - @c15t/backend@2.0.0-rc.6
+
 ## 2.0.0-rc.5
 
 ### Patch Changes
