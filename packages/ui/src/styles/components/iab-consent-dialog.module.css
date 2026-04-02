@@ -707,20 +707,20 @@
 		background-color: var(--iab-cd-primary-color);
 	}
 
-.stackDescription {
-	font-size: 0.75rem;
-	color: var(--iab-cd-text-muted-color);
-	margin: 0 0 0 1.5rem;
-	padding-bottom: 0.75rem;
-}
+	.stackDescription {
+		font-size: 0.75rem;
+		color: var(--iab-cd-text-muted-color);
+		margin: 0 0 0 1.5rem;
+		padding-bottom: 0.75rem;
+	}
 
-.stackDescription p {
-	margin: 0;
-}
+	.stackDescription p {
+		margin: 0;
+	}
 
-.stackDescription p + p {
-	margin-top: 0.25rem;
-}
+	.stackDescription p + p {
+		margin-top: 0.25rem;
+	}
 
 	:global(.c15t-dark) .stackDescription {
 		color: var(--iab-cd-text-muted-color-dark);

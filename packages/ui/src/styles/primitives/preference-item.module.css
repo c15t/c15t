@@ -87,11 +87,11 @@
 			var(--preference-item-ease);
 	}
 
-	.content[data-state='open'] {
+	.content[data-state="open"] {
 		grid-template-rows: 1fr;
 	}
 
-	.content[data-state='closed'] {
+	.content[data-state="closed"] {
 		pointer-events: none;
 	}
 

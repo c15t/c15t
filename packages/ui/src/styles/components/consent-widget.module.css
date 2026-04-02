@@ -374,7 +374,8 @@
 		padding-top: 0;
 		padding-inline-end: var(--consent-widget-accordion-padding);
 		padding-inline-start: calc(
-			var(--consent-widget-accordion-icon-size) + var(--consent-widget-gap)
+			var(--consent-widget-accordion-icon-size) +
+			var(--consent-widget-gap)
 		);
 	}
 

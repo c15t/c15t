@@ -10,8 +10,10 @@
 	--switch-thumb-size: 0.75rem;
 	--switch-thumb-size-disabled: 0.625rem;
 	--switch-thumb-translate: calc(
-		var(--switch-width) - var(--switch-thumb-size) - 2 *
-			var(--switch-padding)
+		var(--switch-width) -
+		var(--switch-thumb-size) -
+		2 *
+		var(--switch-padding)
 	);
 
 	/* Colors */
@@ -224,8 +226,10 @@
 		--switch-thumb-size: 0.625rem;
 		--switch-thumb-size-disabled: 0.5rem;
 		--switch-thumb-translate: calc(
-			var(--switch-width) - var(--switch-thumb-size) - 2 *
-				var(--switch-padding)
+			var(--switch-width) -
+			var(--switch-thumb-size) -
+			2 *
+			var(--switch-padding)
 		);
 	}
 
