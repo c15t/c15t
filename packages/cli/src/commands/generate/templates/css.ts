@@ -39,8 +39,11 @@ export async function updateTailwindCss(
 			await fs.access(filePath);
 			const content = await fs.readFile(filePath, 'utf-8');
 
-			// Check if it already has the v3 pattern or at least the @layer base, components
-			if (content.includes('@layer base, components;')) {
+			// Check if it already has the v3 layer contract we need for c15t + Tailwind 3
+			if (
+				content.includes('@layer base, components, c15t;') ||
+				content.includes('@layer base, components;')
+			) {
 				return { updated: false, filePath };
 			}
 
@@ -65,8 +68,8 @@ export async function updateTailwindCss(
 					);
 				}
 
-				if (!newContent.includes('@layer base, components;')) {
-					newContent = `@layer base, components;\n\n${newContent}`;
+				if (!newContent.includes('@layer base, components, c15t;')) {
+					newContent = `@layer base, components, c15t;\n\n${newContent}`;
 				}
 
 				await fs.writeFile(filePath, newContent, 'utf-8');

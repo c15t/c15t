@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
 const config: NextConfig = {
+	allowedDevOrigins: ['css-module-strategy.pigeon-post.localhost'],
 	async rewrites() {
 		return [
 			{

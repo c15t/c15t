@@ -1,0 +1,10 @@
+/**
+ * @c15t/react — IAB TCF component styles.
+ *
+ * Import this stylesheet when using IAB consent components.
+ * Self-contained — includes shared primitives, no need for base styles.
+ *
+ * Usage:
+ *   import '@c15t/react/iab/styles.css';
+ */
+@import "@c15t/ui/iab/styles.css";

@@ -1,0 +1,8 @@
+@layer base, components, c15t;
+
+@layer base {
+	@tailwind base;
+}
+
+@tailwind components;
+@tailwind utilities;

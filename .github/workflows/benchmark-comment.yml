@@ -44,6 +44,16 @@ jobs:
               return;
             }
 
+            // Cross-validate artifact PR number against workflow_run metadata
+            const runPRs = context.payload.workflow_run.pull_requests;
+            if (runPRs && runPRs.length > 0) {
+              const expectedPR = runPRs[0].number;
+              if (prNumber !== expectedPR) {
+                core.setFailed(`Artifact PR number (${prNumber}) does not match workflow_run PR (${expectedPR})`);
+                return;
+              }
+            }
+
             const report = fs.readFileSync(reportPath, 'utf8').trim();
             if (!report) {
               core.info('Benchmark report is empty, skipping comment.');

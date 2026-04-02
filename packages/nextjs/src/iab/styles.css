@@ -1,0 +1,10 @@
+/**
+ * @c15t/nextjs — IAB TCF component styles.
+ *
+ * Import this stylesheet when using IAB consent components in Next.js.
+ * Self-contained — includes shared primitives, no need for base styles.
+ *
+ * Usage:
+ *   import '@c15t/nextjs/iab/styles.css';
+ */
+@import "@c15t/react/iab/styles.css";

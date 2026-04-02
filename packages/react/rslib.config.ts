@@ -35,7 +35,7 @@ export default defineConfig({
 			localIdentName: 'c15t-[local]-[hash:base64:5]',
 			exportLocalsConvention: 'camelCase',
 		},
-		injectStyles: true,
+		injectStyles: false,
 		minify: {
 			css: true,
 		},

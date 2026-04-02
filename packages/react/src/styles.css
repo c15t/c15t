@@ -1,0 +1,10 @@
+/**
+ * @c15t/react — Non-IAB prebuilt component styles.
+ *
+ * Import this stylesheet once at the root of your application
+ * when using prebuilt (styled) consent components.
+ *
+ * Usage:
+ *   import '@c15t/react/styles.css';
+ */
+@import "@c15t/ui/styles.css";

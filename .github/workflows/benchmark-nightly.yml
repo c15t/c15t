@@ -11,9 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -25,16 +22,19 @@ jobs:
         with:
           bun-version: 1.3.6
 
-      - name: Install Playwright Chromium
-        run: bunx playwright install --with-deps chromium
-
       - name: Install dependencies
-        run: bun install --frozen-lockfile || bun install
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium chromium-headless-shell
 
       - name: Clean benchmark output
         run: rm -rf .benchmarks
 
       - name: Run nightly benchmark suite
+        env:
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         run: bun run bench:nightly
 
       - name: Upload nightly artifacts
