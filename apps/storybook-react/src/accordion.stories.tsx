@@ -1,4 +1,8 @@
 import { Accordion } from '@c15t/react/primitives';
+import {
+	multipleModeToggle,
+	singleModeToggle,
+} from '@c15t/storybook-tests/play/accordion';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type React from 'react';
 import { enTranslations } from '../../../packages/translations/src';
@@ -32,6 +36,7 @@ const MinusIcon = ({ className, ...props }: StoryIconProps) => (
 );
 
 export const Single: Story = {
+	play: singleModeToggle,
 	render: () => (
 		<div style={{ display: 'grid', gap: '0.75rem', width: '28rem' }}>
 			<Accordion.Root type="single" collapsible defaultValue="purpose-1">
@@ -65,6 +70,7 @@ export const Single: Story = {
 };
 
 export const Multiple: Story = {
+	play: multipleModeToggle,
 	render: () => (
 		<div style={{ display: 'grid', gap: '0.75rem', width: '28rem' }}>
 			<Accordion.Root type="multiple" defaultValue={['purpose-1', 'purpose-2']}>

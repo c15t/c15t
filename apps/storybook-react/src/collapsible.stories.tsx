@@ -1,4 +1,8 @@
 import { Collapsible } from '@c15t/react/primitives';
+import {
+	startsClosedByDefault,
+	toggleOpenClose,
+} from '@c15t/storybook-tests/play/collapsible';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type React from 'react';
 import { enTranslations } from '../../../packages/translations/src';
@@ -35,6 +39,7 @@ const triggerStyle: React.CSSProperties = {
 };
 
 export const Default: Story = {
+	play: toggleOpenClose,
 	render: () => (
 		<Collapsible.Root defaultOpen>
 			<div style={cardStyle}>
@@ -51,6 +56,7 @@ export const Default: Story = {
 };
 
 export const ClosedByDefault: Story = {
+	play: startsClosedByDefault,
 	render: () => (
 		<Collapsible.Root defaultOpen={false}>
 			<div style={cardStyle}>

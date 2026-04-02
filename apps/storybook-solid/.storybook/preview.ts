@@ -2,9 +2,7 @@ import {
 	defaultTheme,
 	generateThemeCSS,
 } from '../../../packages/ui/src/theme/utils';
-import '../../../packages/ui/src/styles/primitives/accordion.module.css';
-import '../../../packages/ui/src/styles/primitives/button.module.css';
-import '../../../packages/ui/src/styles/primitives/switch.module.css';
+import '../../../packages/ui/dist/styles.css';
 import type { Preview } from 'storybook-solidjs-vite';
 
 const storybookThemeStyleId = 'c15t-storybook-theme';

@@ -1,5 +1,5 @@
+import { linkOpensDialog } from '@c15t/storybook-tests/play/consent-dialog-link';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
 import {
 	ConsentDialog,
 	ConsentDialogLink,
@@ -36,15 +36,5 @@ export const Default: Story = {
 			</div>
 		</StorybookConsentProvider>
 	),
-	play: async ({ canvasElement }) => {
-		const canvas = within(canvasElement);
-		await userEvent.tab();
-		await expect(
-			canvas.getByRole('button', { name: /privacy preferences/i })
-		).toHaveFocus();
-		await userEvent.keyboard('{Enter}');
-		await expect(
-			await within(document.body).findByTestId('consent-dialog-root')
-		).toBeInTheDocument();
-	},
+	play: linkOpensDialog,
 };

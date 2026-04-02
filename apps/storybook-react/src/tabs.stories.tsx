@@ -1,4 +1,8 @@
 import { Tabs } from '@c15t/react/primitives';
+import {
+	keyboardNavigation,
+	tabSwitching,
+} from '@c15t/storybook-tests/play/tabs';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type React from 'react';
 import { useState } from 'react';
@@ -25,6 +29,7 @@ const panelStyle: React.CSSProperties = {
 };
 
 export const Default: Story = {
+	play: tabSwitching,
 	render: () => (
 		<Tabs.Root defaultValue="overview">
 			<Tabs.List>
@@ -49,6 +54,28 @@ export const Default: Story = {
 				<p style={{ margin: 0 }}>
 					Keyboard navigation supports arrow keys, Home, and End.
 				</p>
+			</Tabs.Content>
+		</Tabs.Root>
+	),
+};
+
+export const KeyboardNavigation: Story = {
+	play: keyboardNavigation,
+	render: () => (
+		<Tabs.Root defaultValue="overview">
+			<Tabs.List>
+				<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+				<Tabs.Trigger value="vendors">Vendors</Tabs.Trigger>
+				<Tabs.Trigger value="storage">Storage</Tabs.Trigger>
+			</Tabs.List>
+			<Tabs.Content style={panelStyle} value="overview">
+				<strong>Overview</strong>
+			</Tabs.Content>
+			<Tabs.Content style={panelStyle} value="vendors">
+				<strong>Vendors</strong>
+			</Tabs.Content>
+			<Tabs.Content style={panelStyle} value="storage">
+				<strong>Storage</strong>
 			</Tabs.Content>
 		</Tabs.Root>
 	),

@@ -1,4 +1,8 @@
 import { PreferenceItem, Switch } from '@c15t/react/primitives';
+import {
+	switchIndependentOfTrigger,
+	triggerExpandsContent,
+} from '@c15t/storybook-tests/play/preference-item';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type React from 'react';
 import { useState } from 'react';
@@ -98,6 +102,7 @@ function PreferenceItemCard({
 }
 
 export const TriggerOnly: Story = {
+	play: triggerExpandsContent,
 	render: () => (
 		<PreferenceItemCard
 			description={consentTypes.necessary.description}
@@ -108,6 +113,7 @@ export const TriggerOnly: Story = {
 };
 
 export const WithTrailingSwitch: Story = {
+	play: switchIndependentOfTrigger,
 	render: () => (
 		<PreferenceItemCard
 			defaultChecked={true}

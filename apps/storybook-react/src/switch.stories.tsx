@@ -1,4 +1,8 @@
 import { Switch } from '@c15t/react/primitives';
+import {
+	controlledToggle,
+	toggleOnOff,
+} from '@c15t/storybook-tests/play/switch';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { enTranslations } from '../../../packages/translations/src';
@@ -48,7 +52,9 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Playground: Story = {};
+export const Playground: Story = {
+	play: toggleOnOff,
+};
 
 export const Checked: Story = {
 	args: {
@@ -57,6 +63,7 @@ export const Checked: Story = {
 };
 
 export const Controlled: Story = {
+	play: controlledToggle,
 	render: (args) => {
 		const Demo = () => {
 			const [checked, setChecked] = useState(true);

@@ -1,5 +1,5 @@
+import { saveFlow } from '@c15t/storybook-tests/play/consent-dialog';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -43,17 +43,5 @@ export const SaveFlow: Story = {
 			<ConsentDialog />
 		</StorybookConsentProvider>
 	),
-	play: async () => {
-		const body = within(document.body);
-		await userEvent.click(
-			await body.findByTestId('consent-banner-customize-button')
-		);
-		await userEvent.click(
-			await body.findByTestId('consent-widget-footer-save-button')
-		);
-
-		await expect(
-			body.queryByTestId('consent-dialog-root')
-		).not.toBeInTheDocument();
-	},
+	play: saveFlow,
 };

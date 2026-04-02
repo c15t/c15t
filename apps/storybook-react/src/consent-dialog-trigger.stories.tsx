@@ -1,5 +1,5 @@
+import { triggerOpensDialog } from '@c15t/storybook-tests/play/consent-dialog-trigger';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
 import {
 	ConsentDialog,
 	ConsentDialogTrigger,
@@ -32,15 +32,7 @@ export const Default: Story = {
 			<ConsentDialogTrigger showWhen="always" />
 		</StorybookConsentProvider>
 	),
-	play: async () => {
-		const body = within(document.body);
-		await userEvent.click(
-			await body.findByRole('button', { name: /open privacy settings/i })
-		);
-		await expect(
-			await body.findByTestId('consent-dialog-root')
-		).toBeInTheDocument();
-	},
+	play: triggerOpensDialog,
 };
 
 export const Mobile: Story = {

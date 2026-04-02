@@ -4,6 +4,8 @@ import type { StorybookConfig } from '@storybook/react-vite';
 import { mergeConfig } from 'vite';
 
 const storybookDir = path.dirname(fileURLToPath(import.meta.url));
+const ui = (...segments: string[]) =>
+	path.resolve(storybookDir, '../../../packages/ui/src', ...segments);
 
 const config: StorybookConfig = {
 	addons: ['@storybook/addon-a11y'],
@@ -27,6 +29,13 @@ const config: StorybookConfig = {
 			resolve: {
 				alias: [
 					{
+						find: /^@c15t\/storybook-tests\/(.*)$/,
+						replacement: path.resolve(
+							storybookDir,
+							'../../../internals/storybook-tests/src/$1'
+						),
+					},
+					{
 						find: '@c15t/react/primitives',
 						replacement: path.resolve(
 							storybookDir,
@@ -47,117 +56,42 @@ const config: StorybookConfig = {
 							'../../../packages/react/src/$1'
 						),
 					},
+					// @c15t/ui — resolve all subpath imports to source
 					{
-						find: '@c15t/ui/theme',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/theme/index.ts'
-						),
+						find: /^@c15t\/ui\/primitives\/data-state$/,
+						replacement: ui('primitives', 'data-state.ts'),
 					},
 					{
-						find: '@c15t/ui/primitives/accordion',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/primitives/accordion/index.ts'
-						),
+						find: /^@c15t\/ui\/primitives\/(.+)$/,
+						replacement: ui('primitives', '$1', 'index.ts'),
 					},
 					{
-						find: '@c15t/ui/primitives/collapsible',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/primitives/collapsible/index.ts'
-						),
+						find: /^@c15t\/ui\/primitives$/,
+						replacement: ui('primitives', 'index.ts'),
 					},
 					{
-						find: '@c15t/ui/primitives/preference-item',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/primitives/preference-item/index.ts'
-						),
+						find: /^@c15t\/ui\/styles\/primitives\/(.+)\.module\.js$/,
+						replacement: ui('styles', 'primitives', '$1.module.css'),
 					},
 					{
-						find: '@c15t/ui/primitives/dialog',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/primitives/dialog/index.ts'
-						),
+						find: /^@c15t\/ui\/styles\/primitives\/(.+)$/,
+						replacement: ui('styles', 'primitives', '$1.ts'),
 					},
 					{
-						find: '@c15t/ui/primitives/tabs',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/primitives/tabs/index.ts'
-						),
-					},
-					{
-						find: '@c15t/ui/primitives/switch',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/primitives/switch/index.ts'
-						),
-					},
-					{
-						find: '@c15t/ui/primitives/data-state',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/primitives/data-state.ts'
-						),
-					},
-					{
-						find: '@c15t/ui/styles/primitives/collapsible',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/styles/primitives/collapsible.ts'
-						),
-					},
-					{
-						find: '@c15t/ui/styles/primitives/preference-item',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/styles/primitives/preference-item.ts'
-						),
-					},
-					{
-						find: '@c15t/ui/styles/primitives/button',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/styles/primitives/button.ts'
-						),
-					},
-					{
-						find: '@c15t/ui/styles/primitives/accordion',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/styles/primitives/accordion.ts'
-						),
-					},
-					{
-						find: '@c15t/ui/styles/primitives/switch',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/styles/primitives/switch.ts'
-						),
-					},
-					{
-						find: '@c15t/ui/styles/primitives/tabs',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/styles/primitives/tabs.ts'
-						),
+						find: /^@c15t\/ui\/styles\/primitives$/,
+						replacement: ui('styles', 'primitives', 'index.ts'),
 					},
 					{
 						find: /^@c15t\/ui\/styles\/components\/(.*)\.module\.js$/,
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/styles/components/$1.module.css'
-						),
+						replacement: ui('styles', 'components', '$1.module.css'),
 					},
 					{
-						find: '@c15t/ui/utils/dom',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/ui/src/utils/dom.ts'
-						),
+						find: /^@c15t\/ui\/theme$/,
+						replacement: ui('theme', 'index.ts'),
+					},
+					{
+						find: /^@c15t\/ui\/utils\/(.+)$/,
+						replacement: ui('utils', '$1.ts'),
 					},
 					{
 						find: '@c15t/translations/all',

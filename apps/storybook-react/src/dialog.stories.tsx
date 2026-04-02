@@ -1,4 +1,5 @@
 import { Button, Dialog, Switch } from '@c15t/react/primitives';
+import { openAndClose } from '@c15t/storybook-tests/play/dialog';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type React from 'react';
 import { useState } from 'react';
@@ -59,6 +60,7 @@ const footerStyle: React.CSSProperties = {
 };
 
 export const Default: Story = {
+	play: openAndClose,
 	render: () => (
 		<Dialog.Root>
 			<div style={triggerWrapStyle}>

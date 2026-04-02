@@ -68,3 +68,8 @@ i18n.cache
 
 # CLI persisted generate state
 .c15t-state.json
+.gstack/
+
+# Storybook build output
+storybook-static/
+debug-storybook.log

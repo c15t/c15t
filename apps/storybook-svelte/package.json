@@ -9,6 +9,7 @@
 	"dependencies": {
 		"@c15t/ui": "workspace:*",
 		"@c15t/framework-svelte": "workspace:*",
+		"@c15t/storybook-tests": "workspace:*",
 		"svelte": "^5.22.6"
 	},
 	"devDependencies": {

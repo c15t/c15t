@@ -1,5 +1,5 @@
+import { customizeFlow } from '@c15t/storybook-tests/play/iab-consent-banner';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
 import {
 	IABConsentBanner,
 	IABConsentDialog,
@@ -33,13 +33,5 @@ export const CustomizeFlow: Story = {
 			<IABConsentDialog />
 		</StorybookIABProvider>
 	),
-	play: async () => {
-		const body = within(document.body);
-		await userEvent.click(
-			await body.findByTestId('iab-consent-banner-customize-button')
-		);
-		await expect(
-			await body.findByTestId('iab-consent-dialog-root')
-		).toBeInTheDocument();
-	},
+	play: customizeFlow,
 };

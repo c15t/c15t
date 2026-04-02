@@ -84,6 +84,10 @@
 				"coverage/html/**"
 			]
 		},
+		"test-storybook": {
+			"dependsOn": ["build", "^build"],
+			"outputs": []
+		},
 		"bench": {
 			"dependsOn": ["build", "^build"],
 			"cache": false,

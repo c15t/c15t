@@ -1,0 +1,33 @@
+import { buttonRenders } from '@c15t/storybook-tests/play/button';
+import type { Meta, StoryObj } from '@storybook/svelte-vite';
+import ButtonAllModesDemo from './ButtonAllModesDemo.svelte';
+import ButtonDemo from './ButtonDemo.svelte';
+
+const meta = {
+	component: ButtonDemo,
+	parameters: {
+		layout: 'centered',
+	},
+	title: 'Primitives/Button',
+} satisfies Meta<ButtonDemo>;
+
+export default meta;
+
+type Story = StoryObj<typeof meta>;
+
+export const Playground: Story = {
+	play: buttonRenders,
+};
+
+export const NeutralGhost: Story = {
+	args: {
+		label: 'Secondary action',
+		mode: 'ghost',
+		variant: 'neutral',
+	},
+};
+
+export const AllModes: Story = {
+	// @ts-expect-error -- different component for this story
+	component: ButtonAllModesDemo,
+};

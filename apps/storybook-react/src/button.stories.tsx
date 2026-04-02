@@ -1,4 +1,5 @@
 import { Button } from '@c15t/react/primitives';
+import { buttonRenders } from '@c15t/storybook-tests/play/button';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 const meta = {
@@ -33,7 +34,9 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Playground: Story = {};
+export const Playground: Story = {
+	play: buttonRenders,
+};
 
 export const WithIcon: Story = {
 	render: (args) => (

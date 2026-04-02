@@ -1,5 +1,5 @@
+import { bannerToDialogFlow } from '@c15t/storybook-tests/play/consent-banner';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, userEvent, within } from 'storybook/test';
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -36,14 +36,5 @@ export const BannerToDialogFlow: Story = {
 			<ConsentDialog />
 		</StorybookConsentProvider>
 	),
-	play: async () => {
-		const body = within(document.body);
-		await userEvent.click(
-			await body.findByTestId('consent-banner-customize-button')
-		);
-
-		await expect(
-			await body.findByTestId('consent-dialog-root')
-		).toBeInTheDocument();
-	},
+	play: bannerToDialogFlow,
 };
