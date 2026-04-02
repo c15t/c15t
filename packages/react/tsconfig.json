@@ -11,11 +11,13 @@
 			"@c15t/ui/styles/primitives/*": [
 				"../ui/dist-types/styles/primitives/*.d.ts"
 			],
-			"@c15t/ui/primitives": ["../ui/src/primitives/index.ts"],
-			"@c15t/ui/primitives/data-state": ["../ui/src/primitives/data-state.ts"],
+			"@c15t/ui/primitives": ["../ui/dist-types/primitives/index.d.ts"],
+			"@c15t/ui/primitives/data-state": [
+				"../ui/dist-types/primitives/data-state.d.ts"
+			],
 			"@c15t/ui/primitives/*": [
-				"../ui/src/primitives/*/index.ts",
-				"../ui/src/primitives/*.ts"
+				"../ui/dist-types/primitives/*/index.d.ts",
+				"../ui/dist-types/primitives/*.d.ts"
 			],
 			"@c15t/ui/theme": ["../ui/dist-types/theme/index.d.ts"],
 			"@c15t/ui/utils": ["../ui/dist-types/utils/index.d.ts"],
