@@ -1,6 +1,6 @@
 import { Accordion } from '@c15t/react/primitives';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import React from 'react';
+import type React from 'react';
 import { enTranslations } from '../../../packages/translations/src';
 
 const meta = {

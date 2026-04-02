@@ -236,6 +236,7 @@ export const ConsentButton = forwardRef<
 		return (
 			<Comp
 				ref={ref}
+				type={asChild ? undefined : 'button'}
 				{...buttonStyleProps}
 				onClick={buttonClick}
 				{...domProps}

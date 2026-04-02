@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import React from 'react';
 import { expect, userEvent, within } from 'storybook/test';
 import {
 	ConsentBanner,
@@ -7,7 +6,6 @@ import {
 } from '../../../packages/react/src/index';
 import {
 	editableConsentOptions,
-	editableStoredConsent,
 	StorybookConsentProvider,
 } from './storybook-consent-fixtures';
 
@@ -25,10 +23,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
 	render: () => (
-		<StorybookConsentProvider
-			options={editableConsentOptions}
-			storedConsent={editableStoredConsent}
-		>
+		<StorybookConsentProvider options={editableConsentOptions}>
 			<ConsentBanner />
 		</StorybookConsentProvider>
 	),
@@ -36,10 +31,7 @@ export const Default: Story = {
 
 export const BannerToDialogFlow: Story = {
 	render: () => (
-		<StorybookConsentProvider
-			options={editableConsentOptions}
-			storedConsent={editableStoredConsent}
-		>
+		<StorybookConsentProvider options={editableConsentOptions}>
 			<ConsentBanner />
 			<ConsentDialog />
 		</StorybookConsentProvider>

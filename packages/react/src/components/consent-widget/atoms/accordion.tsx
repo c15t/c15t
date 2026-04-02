@@ -161,6 +161,10 @@ const ConsentWidgetAccordionItems = () => {
 
 				<PreferenceItem.Control className={styles.switch} noStyle>
 					<ConsentWidgetSwitch
+						aria-label={
+							consentTypes[consent.name]?.title ??
+							formatConsentName(consent.name)
+						}
 						checked={selectedConsents[consent.name]}
 						onCheckedChange={(checked) =>
 							handleConsentChange(consent.name, checked)

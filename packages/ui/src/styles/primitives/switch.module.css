@@ -245,11 +245,15 @@
 
 	.root:focus-visible {
 		outline: none;
-		box-shadow: var(--switch-focus-shadow);
 	}
 
-	:global(.c15t-dark) .root:focus-visible {
-		box-shadow: var(--switch-focus-shadow-dark);
+	.root:focus-visible .track {
+		outline: 2px solid var(--switch-focus-ring);
+		outline-offset: 2px;
+	}
+
+	:global(.c15t-dark) .root:focus-visible .track {
+		outline-color: var(--switch-focus-ring-dark);
 	}
 
 	/* Reduced motion preference */

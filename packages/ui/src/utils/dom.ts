@@ -144,22 +144,19 @@ export function setupScrollLock() {
 export function setupFocusTrap(container: HTMLElement) {
 	const previousFocus = document.activeElement as HTMLElement;
 
-	// Get all focusable elements within the container
-	const focusableElements = getFocusableElements(container);
-
-	// Focus the first element if available
-	if (focusableElements.length > 0) {
-		setTimeout(() => {
-			focusableElements[0]?.focus();
-		}, 0);
-	} else if (container.tabIndex !== -1) {
-		// If no focusable elements, focus the container itself
+	// Focus the container itself so the user can read the content first,
+	// then Tab into interactive elements (links, then buttons).
+	// This avoids biasing initial focus toward a specific action button.
+	if (container.tabIndex < 0) {
+		container.tabIndex = -1;
+	}
+	setTimeout(() => {
 		try {
 			container.focus();
 		} catch {
 			// Silently handle focus errors
 		}
-	}
+	}, 0);
 
 	// Tab key event handler
 	const handleKeyDown = (e: KeyboardEvent) => {

@@ -205,7 +205,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 							{...rest}
 							{...themedStyle}
 							className={themedStyle.className}
-							aria-labelledby="privacy-settings-title"
+							aria-labelledby="consent-dialog-title"
 							tabIndex={-1}
 							dir={textDirection}
 							data-testid="consent-dialog-root"

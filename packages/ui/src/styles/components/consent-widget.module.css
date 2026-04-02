@@ -285,9 +285,18 @@
 		overflow: visible;
 	}
 
-	/* Add focus styles to accordionItem when accordionTriggerInner is focused */
+	/* Focus ring on the whole card when trigger is focused */
+	.accordionTriggerInner:focus-visible {
+		outline: none;
+	}
+
 	.accordionItem:has(.accordionTriggerInner:focus-visible) {
-		box-shadow: 0 0 0 2px var(--consent-widget-accordion-focus-ring);
+		outline: 2px solid var(--consent-widget-accordion-focus-ring);
+		outline-offset: -1px;
+	}
+
+	:global(.c15t-dark) .accordionItem:has(.accordionTriggerInner:focus-visible) {
+		outline-color: var(--consent-widget-accordion-focus-ring-dark);
 	}
 
 	:global(.c15t-dark) .accordionItem {

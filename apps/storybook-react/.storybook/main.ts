@@ -11,6 +11,19 @@ const config: StorybookConfig = {
 	stories: ['../src/**/*.stories.@(ts|tsx)'],
 	viteFinal: async (config) =>
 		mergeConfig(config, {
+			esbuild: {
+				jsx: 'automatic',
+				jsxImportSource: 'react',
+			},
+			optimizeDeps: {
+				include: [
+					'react',
+					'react-dom',
+					'react/jsx-runtime',
+					'react/jsx-dev-runtime',
+					'react-dom/client',
+				],
+			},
 			resolve: {
 				alias: [
 					{

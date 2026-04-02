@@ -32,6 +32,7 @@ import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useHeadlessIABConsentUI } from '~/hooks/use-headless-iab-consent-ui';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useTextDirection } from '~/hooks/use-text-direction';
+import { useTranslations } from '~/hooks/use-translations';
 import { IABConsentDialogOverlay } from './atoms/overlay';
 import { PurposeItem } from './atoms/purpose-item';
 import { StackItem } from './atoms/stack-item';
@@ -136,6 +137,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	uiSource: _uiSource,
 }) => {
 	const iabTranslations = useIABTranslations();
+	const { common } = useTranslations();
 	const {
 		iab: iabState,
 		activeUI,
@@ -668,7 +670,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 							type="button"
 							onClick={handleClose}
 							className={styles.closeButton}
-							aria-label="Close"
+							aria-label={common.close}
 						>
 							<svg
 								style={{ width: '1rem', height: '1rem' }}

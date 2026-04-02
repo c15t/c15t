@@ -1,6 +1,7 @@
 import { PreferenceItem, Switch } from '@c15t/react/primitives';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { enTranslations } from '../../../packages/translations/src';
 
 const meta = {

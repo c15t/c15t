@@ -30,7 +30,7 @@
 		"ci:publish": "bunx changeset tag && bun publish",
 		"ci:version": "bun changeset version",
 		"clear-cache": "bun scripts/clear-rslib-cache.ts",
-		"dev": "turbo watch dev --concurrency=15 --filter=!./examples/**",
+		"dev": "turbo watch dev --concurrency=15 --filter=!./examples/** --filter=!./benchmarks/** --filter=!./apps/**",
 		"fmt": "turbo run fmt",
 		"fmt:docs": "bunx remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
 		"generate:readmes": "tsx scripts/generate-readme.ts",

@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import React from 'react';
 import { expect, userEvent, within } from 'storybook/test';
-import { IABConsentDialog } from '../../../packages/react/src/index';
+import { IABConsentDialog } from '../../../packages/react/src/iab';
 import { StorybookIABProvider } from './storybook-consent-fixtures';
 
 const meta = {
