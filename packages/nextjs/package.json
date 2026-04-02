@@ -51,7 +51,7 @@
 		}
 	},
 	"main": "./dist/index.js",
-	"module": "./dist/index.mjs",
+	"module": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",

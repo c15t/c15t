@@ -68,23 +68,48 @@ for (const dir of CSS_DIRS) {
 
 // ── Step 3: Generate aggregated CSS entrypoints ───────────────────────
 
-const NON_IAB_PRIMITIVES = ['button', 'switch', 'accordion', 'legal-links'];
+const IAB_PREFIX = 'iab-';
 
-const NON_IAB_COMPONENTS = [
-	'consent-banner',
-	'consent-dialog',
-	'consent-dialog-trigger',
-	'consent-widget',
-	'frame',
-];
+function discoverModuleNames(dir: string): string[] {
+	return readdirSync(dir)
+		.filter((f) => f.endsWith('.module.css'))
+		.map((f) => f.replace('.module.css', ''))
+		.sort();
+}
 
-const IAB_COMPONENTS = ['iab-consent-banner', 'iab-consent-dialog'];
+const PRIMITIVES_DIR = join(DIST_DIR, 'styles', 'primitives');
+const COMPONENTS_DIR = join(DIST_DIR, 'styles', 'components');
+
+const NON_IAB_PRIMITIVES = discoverModuleNames(PRIMITIVES_DIR);
+const allComponents = discoverModuleNames(COMPONENTS_DIR);
+const NON_IAB_COMPONENTS = allComponents.filter(
+	(c) => !c.startsWith(IAB_PREFIX)
+);
+const IAB_COMPONENTS = allComponents.filter((c) => c.startsWith(IAB_PREFIX));
+
+if (NON_IAB_PRIMITIVES.length === 0) {
+	throw new Error(
+		'generate-css-entrypoints: no primitives found in dist/styles/primitives/'
+	);
+}
+if (NON_IAB_COMPONENTS.length === 0) {
+	throw new Error(
+		'generate-css-entrypoints: no components found in dist/styles/components/'
+	);
+}
 
 /**
  * Split a CSS module file into :root variable blocks (unlayered)
  * and component rules (from inside @layer components).
+ *
+ * Some module CSS files (e.g. consent-dialog-trigger) inline variables
+ * directly into selectors without :root blocks or @layer wrappers — these
+ * are treated as flat component rules.
  */
-function splitModuleCss(css: string): {
+function splitModuleCss(
+	css: string,
+	fileName?: string
+): {
 	rootVars: string;
 	componentRules: string;
 } {
@@ -98,7 +123,22 @@ function splitModuleCss(css: string): {
 
 	// Extract the content inside @layer components { ... }
 	const layerMatch = css.match(/@layer\s+components\s*\{([\s\S]+)\}\s*$/);
-	const componentRules = layerMatch ? layerMatch[1].trim() : '';
+	let componentRules = layerMatch ? layerMatch[1].trim() : '';
+
+	// If there's no @layer wrapper but the file has selectors (not just :root),
+	// treat the entire file as flat component rules.
+	if (!componentRules && css.length > 100 && rootBlocks.length === 0) {
+		componentRules = css.trim();
+	}
+
+	// Warn only if a file has :root blocks but no @layer component rules —
+	// that could indicate a parsing issue.
+	if (!componentRules && rootBlocks.length > 0 && css.length > 100) {
+		const label = fileName ?? 'unknown';
+		console.warn(
+			`⚠ ${label}: has :root blocks but no @layer components rules (${css.length} chars)`
+		);
+	}
 
 	return {
 		rootVars: rootBlocks.join('\n'),
@@ -124,7 +164,8 @@ function collectCssParts(
 			`${name}.module.css`
 		);
 		const { rootVars, componentRules } = splitModuleCss(
-			readFileSync(filePath, 'utf-8')
+			readFileSync(filePath, 'utf-8'),
+			`primitives/${name}.module.css`
 		);
 		if (rootVars) rootParts.push(`/* primitives/${name} vars */\n${rootVars}`);
 		if (componentRules)
@@ -139,7 +180,8 @@ function collectCssParts(
 			`${name}.module.css`
 		);
 		const { rootVars, componentRules } = splitModuleCss(
-			readFileSync(filePath, 'utf-8')
+			readFileSync(filePath, 'utf-8'),
+			`components/${name}.module.css`
 		);
 		if (rootVars) rootParts.push(`/* components/${name} vars */\n${rootVars}`);
 		if (componentRules)
@@ -169,6 +211,12 @@ function buildLayeredCss(rootParts: string[], ruleParts: string[]): string {
 // ── Non-IAB entrypoints ─────────────────────────────────────────────
 const nonIab = collectCssParts(NON_IAB_PRIMITIVES, NON_IAB_COMPONENTS);
 
+if (nonIab.ruleParts.length === 0) {
+	throw new Error(
+		'generate-css-entrypoints: no component rules collected for styles.css — output would contain only :root variables'
+	);
+}
+
 // dist/styles.css — @layer c15t (default, for Tailwind 4 + native CSS layers)
 writeFileSync(
 	join(DIST_DIR, 'styles.css'),
@@ -179,6 +227,12 @@ writeFileSync(
 const iab = collectCssParts(NON_IAB_PRIMITIVES, IAB_COMPONENTS);
 const iabDir = join(DIST_DIR, 'iab');
 mkdirSync(iabDir, { recursive: true });
+
+if (IAB_COMPONENTS.length > 0 && iab.ruleParts.length === 0) {
+	throw new Error(
+		'generate-css-entrypoints: no component rules collected for iab/styles.css — output would contain only :root variables'
+	);
+}
 
 // dist/iab/styles.css — @layer c15t
 writeFileSync(
