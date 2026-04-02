@@ -93,7 +93,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: 🎭 Install Playwright browsers
-        run: bunx playwright install --with-deps chromium
+        run: bunx playwright install --with-deps chromium chromium-headless-shell
 
       - name: 🧪 Run Tests
         run: bun turbo run test

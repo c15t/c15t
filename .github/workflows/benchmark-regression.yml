@@ -55,7 +55,7 @@ jobs:
         run: bun install --frozen-lockfile || bun install
 
       - name: Install Playwright Chromium
-        run: bunx playwright install --with-deps chromium
+        run: bunx playwright install --with-deps chromium chromium-headless-shell
 
       - name: Clean benchmark output
         run: rm -rf .benchmarks .perf
@@ -81,7 +81,7 @@ jobs:
 
       - name: Reinstall Playwright Chromium for PR branch
         if: github.event_name == 'pull_request'
-        run: bunx playwright install --with-deps chromium
+        run: bunx playwright install --with-deps chromium chromium-headless-shell
 
       - name: Run head benchmark suite
         if: github.event_name == 'pull_request'
