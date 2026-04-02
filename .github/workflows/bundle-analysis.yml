@@ -12,9 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       # Step 1: Checkout BASE repository first so setup/build uses trusted workflow code.
       - name: ⬇️ Check out base repository
@@ -32,13 +29,16 @@ jobs:
       - name: 🏗️ Build base branch
         id: build-base
         timeout-minutes: 5
+        env:
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         run: |
           if [ ! -f bun.lock ] && [ ! -f bun.lockb ]; then
             echo "No supported lockfile found for base branch"
             exit 1
           fi
 
-          bun install --frozen-lockfile || bun install
+          bun install --frozen-lockfile
           WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*" || true
 
           mkdir -p .bundle-base
@@ -57,16 +57,21 @@ jobs:
       - name: 🏗️ Build current branch
         id: build-current
         timeout-minutes: 5
+        env:
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         run: |
           if [ ! -f bun.lock ] && [ ! -f bun.lockb ]; then
             echo "No supported lockfile found for current branch"
             exit 1
           fi
 
-          bun install --frozen-lockfile --ignore-scripts || bun install --ignore-scripts
+          bun install --frozen-lockfile --ignore-scripts
           WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*"
 
       # Step 5: Run bundle analysis (generate report only, no comment posting)
+      # NOTE: This step runs the local composite action from PR code.
+      # TURBO secrets are NOT in scope here — only github.token (read-only).
       - name: 📊 Analyze bundle differences
         uses: ./internals/bundle-analysis-action
         with:
@@ -80,9 +85,11 @@ jobs:
       # Step 6: Save PR number and report for the comment workflow
       - name: 💾 Save PR metadata
         if: github.event_name == 'pull_request_target'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           mkdir -p ./bundle-artifacts
-          echo "${{ github.event.pull_request.number }}" > ./bundle-artifacts/pr-number
+          echo "$PR_NUMBER" > ./bundle-artifacts/pr-number
           cp bundle-diff.md ./bundle-artifacts/bundle-diff.md 2>/dev/null || echo "No bundle changes detected." > ./bundle-artifacts/bundle-diff.md
 
       - name: 📤 Upload bundle analysis artifacts
