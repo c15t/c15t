@@ -2,11 +2,19 @@
 	--collapsible-duration: var(--c15t-duration-normal);
 	--collapsible-ease: var(--c15t-easing);
 	--collapsible-content-color: var(--c15t-text-muted);
+	--collapsible-gap: 0;
 }
 
 @layer components {
 	.root {
+		display: grid;
+		row-gap: var(--collapsible-gap);
+		transition: row-gap var(--collapsible-duration) var(--collapsible-ease);
 		width: 100%;
+	}
+
+	.root[data-state="closed"] {
+		row-gap: 0;
 	}
 
 	.trigger {
@@ -63,6 +71,7 @@
 	}
 
 	@media (prefers-reduced-motion: reduce) {
+		.root,
 		.content,
 		.contentInner {
 			transition: none;

@@ -21,14 +21,13 @@ type Story = StoryObj<typeof meta>;
 
 const { consentTypes } = enTranslations;
 
-const cardStyle: React.CSSProperties = {
+const rootStyle: React.CSSProperties = {
+	'--collapsible-gap': '0.75rem',
 	border: '1px solid var(--c15t-border)',
 	borderRadius: 'var(--c15t-radius-md)',
-	display: 'grid',
-	gap: '0.75rem',
 	padding: '1rem',
 	width: '32rem',
-};
+} as React.CSSProperties;
 
 const triggerStyle: React.CSSProperties = {
 	alignItems: 'center',
@@ -41,16 +40,14 @@ const triggerStyle: React.CSSProperties = {
 export const Default: Story = {
 	play: toggleOpenClose,
 	render: () => (
-		<Collapsible.Root defaultOpen>
-			<div style={cardStyle}>
-				<Collapsible.Trigger style={triggerStyle}>
-					<span>{consentTypes.measurement.title}</span>
-					<span aria-hidden="true">+</span>
-				</Collapsible.Trigger>
-				<Collapsible.Content>
-					<p style={{ margin: 0 }}>{consentTypes.measurement.description}</p>
-				</Collapsible.Content>
-			</div>
+		<Collapsible.Root defaultOpen style={rootStyle}>
+			<Collapsible.Trigger style={triggerStyle}>
+				<span>{consentTypes.measurement.title}</span>
+				<span aria-hidden="true">+</span>
+			</Collapsible.Trigger>
+			<Collapsible.Content>
+				<p style={{ margin: 0 }}>{consentTypes.measurement.description}</p>
+			</Collapsible.Content>
 		</Collapsible.Root>
 	),
 };
@@ -58,16 +55,14 @@ export const Default: Story = {
 export const ClosedByDefault: Story = {
 	play: startsClosedByDefault,
 	render: () => (
-		<Collapsible.Root defaultOpen={false}>
-			<div style={cardStyle}>
-				<Collapsible.Trigger style={triggerStyle}>
-					<span>{consentTypes.functionality.title}</span>
-					<span aria-hidden="true">+</span>
-				</Collapsible.Trigger>
-				<Collapsible.Content>
-					<p style={{ margin: 0 }}>{consentTypes.functionality.description}</p>
-				</Collapsible.Content>
-			</div>
+		<Collapsible.Root defaultOpen={false} style={rootStyle}>
+			<Collapsible.Trigger style={triggerStyle}>
+				<span>{consentTypes.functionality.title}</span>
+				<span aria-hidden="true">+</span>
+			</Collapsible.Trigger>
+			<Collapsible.Content>
+				<p style={{ margin: 0 }}>{consentTypes.functionality.description}</p>
+			</Collapsible.Content>
 		</Collapsible.Root>
 	),
 };

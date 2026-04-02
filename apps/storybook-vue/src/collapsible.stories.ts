@@ -38,12 +38,14 @@ export const Default: Story = {
 				rootClass: variants.root(),
 				triggerClass: variants.trigger(),
 				contentClass: variants.content(),
+				contentViewportClass: variants.contentViewport(),
+				contentInnerClass: variants.contentInner(),
 				title: consentTypes.measurement.title,
 				description: consentTypes.measurement.description,
 			};
 		},
 		template: `
-			<div :class="rootClass" style="border:1px solid var(--c15t-border);border-radius:var(--c15t-radius-md);display:grid;gap:0.75rem;padding:1rem;width:32rem">
+			<div :class="rootClass" :data-state="openState" style="--collapsible-gap:0.75rem;border:1px solid var(--c15t-border);border-radius:var(--c15t-radius-md);padding:1rem;width:32rem">
 				<button
 					:class="triggerClass"
 					type="button"
@@ -53,8 +55,12 @@ export const Default: Story = {
 					<span>{{ title }}</span>
 					<span aria-hidden="true">+</span>
 				</button>
-				<div :class="contentClass" :data-state="openState" v-show="open">
-					<p style="margin:0">{{ description }}</p>
+				<div :class="contentClass" :data-state="openState">
+					<div :class="contentViewportClass">
+						<div :class="contentInnerClass">
+							<p style="margin:0">{{ description }}</p>
+						</div>
+					</div>
 				</div>
 			</div>
 		`,
@@ -77,12 +83,14 @@ export const ClosedByDefault: Story = {
 				rootClass: variants.root(),
 				triggerClass: variants.trigger(),
 				contentClass: variants.content(),
+				contentViewportClass: variants.contentViewport(),
+				contentInnerClass: variants.contentInner(),
 				title: consentTypes.functionality.title,
 				description: consentTypes.functionality.description,
 			};
 		},
 		template: `
-			<div :class="rootClass" style="border:1px solid var(--c15t-border);border-radius:var(--c15t-radius-md);display:grid;gap:0.75rem;padding:1rem;width:32rem">
+			<div :class="rootClass" :data-state="openState" style="--collapsible-gap:0.75rem;border:1px solid var(--c15t-border);border-radius:var(--c15t-radius-md);padding:1rem;width:32rem">
 				<button
 					:class="triggerClass"
 					type="button"
@@ -92,8 +100,12 @@ export const ClosedByDefault: Story = {
 					<span>{{ title }}</span>
 					<span aria-hidden="true">+</span>
 				</button>
-				<div :class="contentClass" :data-state="openState" v-show="open">
-					<p style="margin:0">{{ description }}</p>
+				<div :class="contentClass" :data-state="openState">
+					<div :class="contentViewportClass">
+						<div :class="contentInnerClass">
+							<p style="margin:0">{{ description }}</p>
+						</div>
+					</div>
 				</div>
 			</div>
 		`,
