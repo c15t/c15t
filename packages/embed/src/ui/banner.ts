@@ -16,7 +16,7 @@ export interface BannerTranslations {
 const DEFAULT_TRANSLATIONS: BannerTranslations = {
 	title: 'We value your privacy',
 	description:
-		'We use cookies and similar technologies to help personalize content, tailor and measure ads, and provide a better experience. By clicking "Accept All", you consent to this use.',
+		'This site uses cookies to improve your browsing experience, analyze site traffic, and show personalized content.',
 	acceptAll: 'Accept All',
 	rejectAll: 'Reject All',
 	customize: 'Customize',
@@ -202,21 +202,20 @@ const BANNER_CSS = `
   --c15t-switch-thumb: hsl(0, 0%, 100%);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --c15t-primary: hsl(228, 100%, 70%);
-    --c15t-primary-hover: hsl(228, 100%, 65%);
-    --c15t-surface: hsl(0, 0%, 7%);
-    --c15t-surface-hover: hsl(0, 0%, 10%);
-    --c15t-border: hsl(0, 0%, 20%);
-    --c15t-text: hsl(0, 0%, 93%);
-    --c15t-text-muted: hsl(0, 0%, 60%);
-    --c15t-overlay: hsla(0, 0%, 0%, 0.7);
-    --c15t-switch-track: hsl(0, 0%, 25%);
-    --c15t-switch-track-active: hsl(228, 100%, 70%);
-    --c15t-switch-thumb: hsl(0, 0%, 93%);
-    --c15t-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -4px rgba(0,0,0,0.3);
-  }
+/* Dark mode: only when .c15t-dark class is explicitly set (matches React behavior) */
+.c15t-dark {
+  --c15t-primary: hsl(228, 100%, 70%);
+  --c15t-primary-hover: hsl(228, 100%, 65%);
+  --c15t-surface: hsl(0, 0%, 7%);
+  --c15t-surface-hover: hsl(0, 0%, 10%);
+  --c15t-border: hsl(0, 0%, 20%);
+  --c15t-text: hsl(0, 0%, 93%);
+  --c15t-text-muted: hsl(0, 0%, 60%);
+  --c15t-overlay: hsla(0, 0%, 0%, 0.7);
+  --c15t-switch-track: hsl(0, 0%, 25%);
+  --c15t-switch-track-active: hsl(228, 100%, 70%);
+  --c15t-switch-thumb: hsl(0, 0%, 93%);
+  --c15t-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -4px rgba(0,0,0,0.3);
 }
 
 /* ── Banner layout (matches consent-banner.module.css) ── */
