@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>c15t Embed Playground</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      line-height: 1.6;
+    }
+    .container { max-width: 800px; margin: 0 auto; padding: 2rem; }
+    h1 { margin-bottom: 0.5rem; }
+    .subtitle { color: #666; margin-bottom: 2rem; }
+    .card {
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .card h2 { font-size: 1.125rem; margin-bottom: 0.75rem; }
+    .card p { color: #666; font-size: 0.875rem; margin-bottom: 1rem; }
+    pre {
+      background: #1a1a1a;
+      color: #e5e5e5;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+    }
+    code { font-family: ui-monospace, 'SF Mono', monospace; }
+    .controls {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      border: 1px solid #e5e5e5;
+      border-radius: 0.375rem;
+      background: white;
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    button:hover { background: #f5f5f5; }
+    button.primary { background: #4361ee; color: white; border-color: #4361ee; }
+    #console-output {
+      background: #1a1a1a;
+      color: #4ade80;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      font-family: ui-monospace, 'SF Mono', monospace;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      min-height: 120px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-yellow { background: #fef3c7; color: #92400e; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    nav { display: flex; gap: 1rem; margin-bottom: 2rem; }
+    nav a { color: #4361ee; text-decoration: none; font-size: 0.875rem; }
+    nav a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>c15t Embed Playground</h1>
+    <p class="subtitle">Test the embed script in prestyled and headless modes</p>
+
+    <nav>
+      <a href="index.html">Prestyled</a>
+      <a href="headless.html">Headless</a>
+      <a href="custom-elements.html">Custom Elements</a>
+      <a href="dark.html">Dark Theme</a>
+    </nav>
+
+    <!-- Prestyled mode -->
+    <div class="card">
+      <h2>Prestyled Mode <span class="badge badge-green">Default</span></h2>
+      <p>The embed script renders its own consent banner and dialog. Most CMS users use this.</p>
+      <pre><code>&lt;script src="c15t.js" data-backend="http://localhost:3000" data-debug="true"&gt;&lt;/script&gt;</code></pre>
+    </div>
+
+    <div class="card">
+      <h2>Headless API</h2>
+      <p>The <code>window.c15t</code> API is always available, even in prestyled mode.</p>
+      <div class="controls">
+        <button onclick="logConsents()">getConsents()</button>
+        <button onclick="logCategories()">getCategories()</button>
+        <button onclick="showBanner()">showBanner()</button>
+        <button onclick="showDialog()">showDialog()</button>
+        <button onclick="hideUI()">hideUI()</button>
+        <button class="primary" onclick="acceptAll()">saveConsents('all')</button>
+        <button onclick="rejectAll()">saveConsents('necessary')</button>
+        <button onclick="clearStorage()">Clear Storage</button>
+      </div>
+      <div id="console-output">// Click a button to test the API...</div>
+    </div>
+
+    <div class="card">
+      <h2>Script Gating Test</h2>
+      <p>These scripts are gated by consent category:</p>
+
+      <c15t-script category="measurement" src="https://example.com/analytics.js" id="test-analytics">
+      </c15t-script>
+
+      <c15t-script category="marketing" src="https://example.com/ads.js" id="test-ads">
+      </c15t-script>
+
+      <div id="script-status" style="margin-top: 0.5rem; font-size: 0.8125rem; color: #666;">
+        Waiting for consent...
+      </div>
+    </div>
+  </div>
+
+  <!-- Load the embed script -->
+  <script src="../../packages/embed/dist/c15t.js" data-backend="http://localhost:3000" data-debug="true"></script>
+
+  <script>
+    const output = document.getElementById('console-output');
+
+    function log(msg) {
+      const line = document.createElement('div');
+      line.textContent = `> ${typeof msg === 'object' ? JSON.stringify(msg, null, 2) : msg}`;
+      output.appendChild(line);
+      output.scrollTop = output.scrollHeight;
+    }
+
+    // Listen for consent events
+    if (window.c15t) {
+      window.c15t.on('ready', (state) => log('Event: ready — ' + JSON.stringify(state)));
+      window.c15t.on('consent', (consents) => log('Event: consent — ' + JSON.stringify(consents)));
+    } else {
+      log('window.c15t not yet available (embed may still be loading)');
+      // Retry after a tick
+      setTimeout(() => {
+        if (window.c15t) {
+          window.c15t.on('ready', (state) => log('Event: ready — ' + JSON.stringify(state)));
+          window.c15t.on('consent', (consents) => log('Event: consent — ' + JSON.stringify(consents)));
+          log('window.c15t connected');
+        }
+      }, 100);
+    }
+
+    function logConsents() { log(window.c15t?.getConsents() ?? 'c15t not ready'); }
+    function logCategories() { log(window.c15t?.getCategories() ?? 'c15t not ready'); }
+    function showBanner() { window.c15t?.showBanner(); log('showBanner()'); }
+    function showDialog() { window.c15t?.showDialog(); log('showDialog()'); }
+    function hideUI() { window.c15t?.hideUI(); log('hideUI()'); }
+    function acceptAll() { window.c15t?.saveConsents('all'); log('saveConsents("all")'); }
+    function rejectAll() { window.c15t?.saveConsents('necessary'); log('saveConsents("necessary")'); }
+    function clearStorage() {
+      localStorage.removeItem('c15t');
+      document.cookie = 'c15t=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+      log('Storage cleared — reload to see banner again');
+    }
+  </script>
+</body>
+</html>
