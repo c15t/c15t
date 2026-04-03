@@ -317,6 +317,7 @@
 		width: 100%;
 		box-sizing: border-box;
 		padding: var(--consent-widget-accordion-padding);
+		border-radius: var(--consent-widget-accordion-radius);
 		color: var(--consent-widget-accordion-text-color);
 		background-color: transparent;
 		transition: background-color var(--consent-widget-accordion-duration)
