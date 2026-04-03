@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { buttonVariants } from '@c15t/framework-svelte';
+	import { buttonVariants } from '@c15t/svelte';
 
 	interface Props {
 		label?: string;

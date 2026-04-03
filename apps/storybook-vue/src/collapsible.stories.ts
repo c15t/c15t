@@ -1,8 +1,8 @@
-import { collapsibleVariants, getOpenState } from '@c15t/framework-vue';
 import {
 	startsClosedByDefault,
 	toggleOpenClose,
 } from '@c15t/storybook-tests/play/collapsible';
+import { collapsibleVariants, getOpenState } from '@c15t/vue';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import { computed, ref } from 'vue';
 import { enTranslations } from '../../../packages/translations/src';

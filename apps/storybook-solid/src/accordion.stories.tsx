@@ -2,7 +2,7 @@ import {
 	accordionVariants,
 	getAccordionItemState,
 	toggleAccordionValue,
-} from '@c15t/framework-solid';
+} from '@c15t/solid';
 import {
 	multipleModeToggle,
 	singleModeToggle,

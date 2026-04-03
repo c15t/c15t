@@ -1,4 +1,4 @@
-import { collapsibleVariants, getOpenState } from '@c15t/framework-solid';
+import { collapsibleVariants, getOpenState } from '@c15t/solid';
 import {
 	startsClosedByDefault,
 	toggleOpenClose,

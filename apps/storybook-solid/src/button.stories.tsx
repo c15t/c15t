@@ -1,4 +1,4 @@
-import { buttonVariants } from '@c15t/framework-solid';
+import { buttonVariants } from '@c15t/solid';
 import { buttonRenders } from '@c15t/storybook-tests/play/button';
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 

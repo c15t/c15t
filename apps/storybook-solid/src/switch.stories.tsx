@@ -1,8 +1,4 @@
-import {
-	getSwitchState,
-	switchVariants,
-	toggleSwitchValue,
-} from '@c15t/framework-solid';
+import { getSwitchState, switchVariants, toggleSwitchValue } from '@c15t/solid';
 import {
 	controlledToggle,
 	toggleOnOff,

@@ -3,7 +3,7 @@
 		accordionVariants,
 		getAccordionItemState,
 		toggleAccordionValue,
-	} from '@c15t/framework-svelte';
+	} from '@c15t/svelte';
 
 	interface Props {
 		introTitle?: string;

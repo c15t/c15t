@@ -23,10 +23,10 @@ const config: StorybookConfig = {
 						),
 					},
 					{
-						find: /^@c15t\/framework-vue$/,
+						find: /^@c15t\/vue$/,
 						replacement: path.resolve(
 							storybookDir,
-							'../../../packages/framework-vue/src/index.ts'
+							'../../../packages/vue/src/index.ts'
 						),
 					},
 					// @c15t/ui — resolve all subpath imports to source

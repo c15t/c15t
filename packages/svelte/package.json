@@ -1,5 +1,5 @@
 {
-	"name": "@c15t/framework-svelte",
+	"name": "@c15t/svelte",
 	"private": true,
 	"type": "module",
 	"exports": {

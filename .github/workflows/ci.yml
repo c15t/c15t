@@ -111,3 +111,51 @@ jobs:
           retention-days: 7
           # Optional: Handle case where no files are found gracefully
           if-no-files-found: warn # 'warn', 'error', or 'ignore'
+
+  test_storybook:
+    name: 🎭 Storybook Tests
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        storybook:
+          - storybook-react
+          - storybook-solid
+          - storybook-svelte
+          - storybook-vue
+    steps:
+      - name: ⬇️ Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 🟢 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: 🎭 Install Playwright browsers
+        run: bunx playwright install --with-deps chromium
+
+      - name: 🏗️ Build storybook
+        env:
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+        run: bun turbo run build --filter="./apps/${{ matrix.storybook }}"
+
+      - name: 🧪 Run storybook tests
+        run: |
+          cd apps/${{ matrix.storybook }}
+          bunx http-server storybook-static -p 6006 -s &
+          SERVER_PID=$!
+          bunx wait-on tcp:127.0.0.1:6006 --timeout 30000
+          STORYBOOK_URL=http://127.0.0.1:6006 bun run test-storybook
+          EXIT=$?
+          kill $SERVER_PID 2>/dev/null || true
+          exit $EXIT

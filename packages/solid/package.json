@@ -1,5 +1,5 @@
 {
-	"name": "@c15t/framework-vue",
+	"name": "@c15t/solid",
 	"private": true,
 	"type": "module",
 	"exports": {
@@ -11,7 +11,7 @@
 	},
 	"dependencies": {
 		"@c15t/ui": "workspace:*",
-		"vue": "^3.5.13"
+		"solid-js": "^1.9.5"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

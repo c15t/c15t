@@ -23,10 +23,10 @@ const config: StorybookConfig = {
 						),
 					},
 					{
-						find: /^@c15t\/framework-solid$/,
+						find: /^@c15t\/solid$/,
 						replacement: path.resolve(
 							storybookDir,
-							'../../../packages/framework-solid/src/index.ts'
+							'../../../packages/solid/src/index.ts'
 						),
 					},
 					{

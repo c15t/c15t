@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { collapsibleVariants, getOpenState } from '@c15t/framework-svelte';
+	import { collapsibleVariants, getOpenState } from '@c15t/svelte';
 
 	interface Props {
 		defaultOpen?: boolean;

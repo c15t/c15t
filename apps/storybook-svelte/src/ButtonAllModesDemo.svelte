@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { buttonVariants } from '@c15t/framework-svelte';
+	import { buttonVariants } from '@c15t/svelte';
 
 	const primaryFilled = buttonVariants({ variant: 'primary', mode: 'filled' });
 	const neutralFilled = buttonVariants({ variant: 'neutral', mode: 'filled' });

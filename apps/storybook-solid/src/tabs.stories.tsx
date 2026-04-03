@@ -1,4 +1,4 @@
-import { tabsVariants } from '@c15t/framework-solid';
+import { tabsVariants } from '@c15t/solid';
 import {
 	keyboardNavigation,
 	tabSwitching,

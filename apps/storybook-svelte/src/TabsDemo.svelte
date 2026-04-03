@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tabsVariants, getNextTabValue } from '@c15t/framework-svelte';
+	import { tabsVariants, getNextTabValue } from '@c15t/svelte';
 
 	interface Props {
 		overviewDescription?: string;

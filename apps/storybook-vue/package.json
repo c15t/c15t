@@ -4,16 +4,18 @@
 	"type": "module",
 	"scripts": {
 		"storybook": "portless run --name storybook-vue sh -c 'storybook dev --port \"$PORT\" --host \"$HOST\"'",
-		"build": "storybook build"
+		"build": "storybook build",
+		"test-storybook": "test-storybook --url ${STORYBOOK_URL:-http://127.0.0.1:6006}"
 	},
 	"dependencies": {
 		"@c15t/ui": "workspace:*",
-		"@c15t/framework-vue": "workspace:*",
+		"@c15t/vue": "workspace:*",
 		"@c15t/storybook-tests": "workspace:*",
 		"vue": "^3.5.13"
 	},
 	"devDependencies": {
 		"@storybook/addon-a11y": "10.3.1",
+		"@storybook/test-runner": "^0.24.3",
 		"@storybook/vue3-vite": "10.3.1",
 		"storybook": "10.3.1",
 		"typescript": "5.9.3",

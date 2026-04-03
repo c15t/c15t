@@ -3,6 +3,7 @@
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import {
 	getPreferenceItemState,
+	PREFERENCE_ITEM_INTERNAL_SLOTS,
 	PREFERENCE_ITEM_SLOTS,
 	togglePreferenceItemValue,
 } from '@c15t/ui/primitives/preference-item';
@@ -292,11 +293,11 @@ const PreferenceItemContent = forwardRef<
 		>
 			<div
 				className={variants.contentViewport()}
-				data-slot={PREFERENCE_ITEM_SLOTS.contentViewport}
+				data-slot={PREFERENCE_ITEM_INTERNAL_SLOTS.contentViewport}
 			>
 				<div
 					className={variants.contentInner({ class: innerClassName })}
-					data-slot={PREFERENCE_ITEM_SLOTS.contentInner}
+					data-slot={PREFERENCE_ITEM_INTERNAL_SLOTS.contentInner}
 				>
 					{children}
 				</div>

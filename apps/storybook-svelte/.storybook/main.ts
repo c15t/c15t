@@ -30,10 +30,10 @@ const config: StorybookConfig = {
 						),
 					},
 					{
-						find: /^@c15t\/framework-svelte$/,
+						find: /^@c15t\/svelte$/,
 						replacement: path.resolve(
 							storybookDir,
-							'../../../packages/framework-svelte/src/index.ts'
+							'../../../packages/svelte/src/index.ts'
 						),
 					},
 					{

@@ -1,8 +1,8 @@
-import { getNextTabValue, tabsVariants } from '@c15t/framework-vue';
 import {
 	keyboardNavigation,
 	tabSwitching,
 } from '@c15t/storybook-tests/play/tabs';
+import { getNextTabValue, tabsVariants } from '@c15t/vue';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import { computed, nextTick, ref } from 'vue';
 
