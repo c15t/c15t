@@ -27,12 +27,12 @@ export interface DialogTranslations {
 }
 
 const DEFAULT_TRANSLATIONS: DialogTranslations = {
-	title: 'Manage your privacy settings',
+	title: 'Privacy Settings',
 	description:
-		'Choose which cookies and tracking technologies you allow. You can change your preferences at any time.',
+		'Customize your privacy settings here. You can choose which types of cookies and tracking technologies you allow.',
 	acceptAll: 'Accept All',
 	rejectAll: 'Reject All',
-	save: 'Save Preferences',
+	save: 'Save Settings',
 };
 
 /**

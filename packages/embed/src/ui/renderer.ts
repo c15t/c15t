@@ -48,8 +48,12 @@ function hideBanner(): void {
 function showDialog(store: ConsentStore): void {
 	if (dialogInstance) return;
 
-	dialogInstance = createDialog(store);
-	document.body.appendChild(dialogInstance.element);
+	try {
+		dialogInstance = createDialog(store);
+		document.body.appendChild(dialogInstance.element);
+	} catch (e) {
+		console.error('[c15t] Failed to create consent dialog:', e);
+	}
 }
 
 function hideDialog(): void {
