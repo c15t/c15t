@@ -48,7 +48,7 @@
 <body>
   <div class="container">
     <h1>c15t Embed — Headless Mode</h1>
-    <p class="subtitle">No prestyled UI — build your own with the <code>window.c15t</code> API</p>
+    <p class="subtitle">No prestyled UI — build your own with the <code>window.c15tStore</code> API</p>
 
     <nav>
       <a href="index.html">Prestyled</a>
@@ -61,11 +61,11 @@
       <h2>Headless Mode <span class="badge badge-yellow">Custom UI</span></h2>
       <p>
         With <code>data-headless="true"</code>, the embed skips rendering its own UI.
-        The site builds a custom banner using the <code>window.c15t</code> API — like Zed does.
+        The site builds a custom banner using the <code>window.c15tStore</code> API — like Zed does.
       </p>
       <pre><code>&lt;script src="c15t.js" data-backend="..." data-headless="true"&gt;&lt;/script&gt;
 &lt;script&gt;
-  window.c15t.on('ready', () =&gt; {
+  window.c15tStore.on('ready', () =&gt; {
     showMyCustomBanner();
   });
 &lt;/script&gt;</code></pre>
@@ -81,8 +81,8 @@
   <div class="custom-banner" id="my-banner">
     <p>This site uses cookies. We respect your privacy.</p>
     <div class="buttons">
-      <button class="btn-reject" onclick="window.c15t?.saveConsents('necessary')">Decline</button>
-      <button class="btn-accept" onclick="window.c15t?.saveConsents('all')">Accept</button>
+      <button class="btn-reject" onclick="window.c15tStore?.saveConsents('necessary')">Decline</button>
+      <button class="btn-accept" onclick="window.c15tStore?.saveConsents('all')">Accept</button>
     </div>
   </div>
 
@@ -92,12 +92,12 @@
   <script>
     // Wait for the API to be available, then show our custom banner
     function init() {
-      if (!window.c15t) {
+      if (!window.c15tStore) {
         setTimeout(init, 50);
         return;
       }
 
-      const consents = window.c15t.getConsents();
+      const consents = window.c15tStore.getConsents();
       const hasConsented = Object.values(consents).some(v => v === true && v !== undefined);
 
       // Only show banner if no prior consent
@@ -106,7 +106,7 @@
       }
 
       // Hide banner when consent is saved
-      window.c15t.on('consent', () => {
+      window.c15tStore.on('consent', () => {
         document.getElementById('my-banner').classList.remove('visible');
       });
     }

@@ -1,5 +1,5 @@
 /**
- * Headless API — exposed on `window.c15t` for custom builders.
+ * Headless API — exposed on `window.c15tStoreStore` for custom builders.
  *
  * Provides a simple imperative API over the consent runtime store
  * for developers who want to build their own consent UI (like Zed).
@@ -8,13 +8,13 @@
  * ```html
  * <script src="c15t.js" data-backend="..." data-headless="true"></script>
  * <script>
- *   window.c15t.on('ready', (state) => {
- *     console.log('Categories:', window.c15t.getCategories());
+ *   window.c15tStore.on('ready', (state) => {
+ *     console.log('Categories:', window.c15tStore.getCategories());
  *     // Build your own UI here
  *   });
  *
  *   // Later, when user consents:
- *   window.c15t.saveConsents('all');
+ *   window.c15tStore.saveConsents('all');
  * </script>
  * ```
  */
@@ -66,7 +66,7 @@ export interface C15tHeadlessAPI {
 
 declare global {
 	interface Window {
-		c15t?: C15tHeadlessAPI;
+		c15tStore?: C15tHeadlessAPI;
 	}
 }
 
@@ -172,10 +172,10 @@ export function createHeadlessAPI(store: ConsentStore): C15tHeadlessAPI {
 }
 
 /**
- * Mount the headless API on `window.c15t`.
+ * Mount the headless API on `window.c15tStore`.
  */
 export function mountHeadlessAPI(store: ConsentStore): C15tHeadlessAPI {
 	const api = createHeadlessAPI(store);
-	window.c15t = api;
+	window.c15tStore = api;
 	return api;
 }

@@ -12,7 +12,7 @@
  * ```html
  * <script src="c15t.js" data-backend="https://your-c15t.com" data-headless="true"></script>
  * <script>
- *   window.c15t.on('ready', () => { /* build your own UI *\/ });
+ *   window.c15tStore.on('ready', () => { /* build your own UI *\/ });
  * </script>
  * ```
  */
@@ -64,7 +64,7 @@ async function boot(config: NonNullable<ReturnType<typeof parseEmbedConfig>>) {
 
 	if (config.debug) {
 		console.log(
-			`[c15t] Headless API mounted on window.c15t${config.headless ? ' (headless mode)' : ''}`
+			`[c15t] Headless API mounted on window.c15tStore${config.headless ? ' (headless mode)' : ''}`
 		);
 	}
 

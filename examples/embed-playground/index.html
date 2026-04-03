@@ -96,7 +96,7 @@
 
     <div class="card">
       <h2>Headless API</h2>
-      <p>The <code>window.c15t</code> API is always available, even in prestyled mode.</p>
+      <p>The <code>window.c15tStore</code> API is always available, even in prestyled mode.</p>
       <div class="controls">
         <button onclick="logConsents()">getConsents()</button>
         <button onclick="logCategories()">getCategories()</button>
@@ -140,28 +140,28 @@
     }
 
     // Listen for consent events
-    if (window.c15t) {
-      window.c15t.on('ready', (state) => log('Event: ready — ' + JSON.stringify(state)));
-      window.c15t.on('consent', (consents) => log('Event: consent — ' + JSON.stringify(consents)));
+    if (window.c15tStore) {
+      window.c15tStore.on('ready', (state) => log('Event: ready — ' + JSON.stringify(state)));
+      window.c15tStore.on('consent', (consents) => log('Event: consent — ' + JSON.stringify(consents)));
     } else {
-      log('window.c15t not yet available (embed may still be loading)');
+      log('window.c15tStore not yet available (embed may still be loading)');
       // Retry after a tick
       setTimeout(() => {
-        if (window.c15t) {
-          window.c15t.on('ready', (state) => log('Event: ready — ' + JSON.stringify(state)));
-          window.c15t.on('consent', (consents) => log('Event: consent — ' + JSON.stringify(consents)));
-          log('window.c15t connected');
+        if (window.c15tStore) {
+          window.c15tStore.on('ready', (state) => log('Event: ready — ' + JSON.stringify(state)));
+          window.c15tStore.on('consent', (consents) => log('Event: consent — ' + JSON.stringify(consents)));
+          log('window.c15tStore connected');
         }
       }, 100);
     }
 
-    function logConsents() { log(window.c15t?.getConsents() ?? 'c15t not ready'); }
-    function logCategories() { log(window.c15t?.getCategories() ?? 'c15t not ready'); }
-    function showBanner() { window.c15t?.showBanner(); log('showBanner()'); }
-    function showDialog() { window.c15t?.showDialog(); log('showDialog()'); }
-    function hideUI() { window.c15t?.hideUI(); log('hideUI()'); }
-    function acceptAll() { window.c15t?.saveConsents('all'); log('saveConsents("all")'); }
-    function rejectAll() { window.c15t?.saveConsents('necessary'); log('saveConsents("necessary")'); }
+    function logConsents() { log(window.c15tStore?.getConsents() ?? 'c15t not ready'); }
+    function logCategories() { log(window.c15tStore?.getCategories() ?? 'c15t not ready'); }
+    function showBanner() { window.c15tStore?.showBanner(); log('showBanner()'); }
+    function showDialog() { window.c15tStore?.showDialog(); log('showDialog()'); }
+    function hideUI() { window.c15tStore?.hideUI(); log('hideUI()'); }
+    function acceptAll() { window.c15tStore?.saveConsents('all'); log('saveConsents("all")'); }
+    function rejectAll() { window.c15tStore?.saveConsents('necessary'); log('saveConsents("necessary")'); }
     function clearStorage() {
       localStorage.removeItem('c15t');
       document.cookie = 'c15t=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';

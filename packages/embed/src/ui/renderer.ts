@@ -83,13 +83,21 @@ function extractTranslations(state: ReturnType<ConsentStore['getState']>) {
 		string,
 		Record<string, string> | undefined
 	>;
-	return {
-		title: translations.cookieBanner?.title,
-		description: translations.cookieBanner?.description,
-		acceptAll: translations.common?.acceptAll,
-		rejectAll: translations.common?.rejectAll,
-		customize: translations.common?.customize,
-	};
+
+	// Only include defined values — undefined would override defaults in the banner
+	const result: Record<string, string> = {};
+	if (translations.cookieBanner?.title)
+		result.title = translations.cookieBanner.title;
+	if (translations.cookieBanner?.description)
+		result.description = translations.cookieBanner.description;
+	if (translations.common?.acceptAll)
+		result.acceptAll = translations.common.acceptAll;
+	if (translations.common?.rejectAll)
+		result.rejectAll = translations.common.rejectAll;
+	if (translations.common?.customize)
+		result.customize = translations.common.customize;
+
+	return Object.keys(result).length > 0 ? result : undefined;
 }
 
 /**
