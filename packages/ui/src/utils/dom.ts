@@ -109,7 +109,13 @@ export function getFocusableElements(container: HTMLElement): HTMLElement[] {
 	].join(',');
 
 	return Array.from(container.querySelectorAll<HTMLElement>(selector)).filter(
-		(el) => el.offsetWidth > 0 && el.offsetHeight > 0
+		(el) => {
+			if (typeof el.checkVisibility === 'function') {
+				return el.checkVisibility({ checkVisibilityCSS: true });
+			}
+			// Fallback for environments without checkVisibility (JSDOM, older browsers)
+			return el.offsetWidth > 0 || el.offsetHeight > 0;
+		}
 	);
 }
 
