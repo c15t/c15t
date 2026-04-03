@@ -35,10 +35,7 @@ export const Default: Story = {
 
 export const SaveFlow: Story = {
 	render: () => (
-		<StorybookConsentProvider
-			options={editableConsentOptions}
-			storedConsent={editableStoredConsent}
-		>
+		<StorybookConsentProvider options={editableConsentOptions}>
 			<ConsentBanner />
 			<ConsentDialog />
 		</StorybookConsentProvider>

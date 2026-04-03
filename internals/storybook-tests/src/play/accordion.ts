@@ -1,4 +1,4 @@
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 import type { PlayFunction } from 'storybook/types';
 
 function getAccordionItem(trigger: HTMLElement | null) {
@@ -40,21 +40,27 @@ export const singleModeToggle: PlayFunction = async ({ canvasElement }) => {
 	assertMountedAccordionContent(canvasElement, triggers.length);
 
 	// First trigger's content should be open by default (defaultValue)
-	await expect(firstItem).toHaveAttribute('data-state', 'open');
-	await expect(firstContent).toHaveAttribute('data-state', 'open');
-	await expect(secondContent).toHaveAttribute('data-state', 'closed');
+	await waitFor(() => {
+		expect(firstItem).toHaveAttribute('data-state', 'open');
+		expect(firstContent).toHaveAttribute('data-state', 'open');
+		expect(secondContent).toHaveAttribute('data-state', 'closed');
+	});
 
 	// Click second trigger — it opens, first closes
 	await userEvent.click(triggers[1]!);
-	await expect(firstItem).toHaveAttribute('data-state', 'closed');
-	await expect(firstContent).toHaveAttribute('data-state', 'closed');
-	await expect(secondItem).toHaveAttribute('data-state', 'open');
-	await expect(secondContent).toHaveAttribute('data-state', 'open');
+	await waitFor(() => {
+		expect(firstItem).toHaveAttribute('data-state', 'closed');
+		expect(firstContent).toHaveAttribute('data-state', 'closed');
+		expect(secondItem).toHaveAttribute('data-state', 'open');
+		expect(secondContent).toHaveAttribute('data-state', 'open');
+	});
 
 	// Click second trigger again — it collapses (collapsible mode)
 	await userEvent.click(triggers[1]!);
-	await expect(secondItem).toHaveAttribute('data-state', 'closed');
-	await expect(secondContent).toHaveAttribute('data-state', 'closed');
+	await waitFor(() => {
+		expect(secondItem).toHaveAttribute('data-state', 'closed');
+		expect(secondContent).toHaveAttribute('data-state', 'closed');
+	});
 };
 
 /**
@@ -71,15 +77,19 @@ export const multipleModeToggle: PlayFunction = async ({ canvasElement }) => {
 	assertMountedAccordionContent(canvasElement, triggers.length);
 
 	// Both should be open by default (defaultValue includes both)
-	await expect(firstItem).toHaveAttribute('data-state', 'open');
-	await expect(firstContent).toHaveAttribute('data-state', 'open');
-	await expect(secondItem).toHaveAttribute('data-state', 'open');
-	await expect(secondContent).toHaveAttribute('data-state', 'open');
+	await waitFor(() => {
+		expect(firstItem).toHaveAttribute('data-state', 'open');
+		expect(firstContent).toHaveAttribute('data-state', 'open');
+		expect(secondItem).toHaveAttribute('data-state', 'open');
+		expect(secondContent).toHaveAttribute('data-state', 'open');
+	});
 
 	// Close first — second stays open
 	await userEvent.click(triggers[0]!);
-	await expect(firstItem).toHaveAttribute('data-state', 'closed');
-	await expect(firstContent).toHaveAttribute('data-state', 'closed');
-	await expect(secondItem).toHaveAttribute('data-state', 'open');
-	await expect(secondContent).toHaveAttribute('data-state', 'open');
+	await waitFor(() => {
+		expect(firstItem).toHaveAttribute('data-state', 'closed');
+		expect(firstContent).toHaveAttribute('data-state', 'closed');
+		expect(secondItem).toHaveAttribute('data-state', 'open');
+		expect(secondContent).toHaveAttribute('data-state', 'open');
+	});
 };

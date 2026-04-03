@@ -43,9 +43,10 @@ export const Default: Story = {
 					key: event.key,
 				});
 				if (next !== activeTab.value) {
+					const currentEl = event.currentTarget as HTMLElement;
 					activeTab.value = next;
 					nextTick(() => {
-						const target = (event.currentTarget as HTMLElement)
+						const target = currentEl
 							?.closest('[role="tablist"]')
 							?.querySelector(
 								`[role="tab"][data-value="${next}"]`
@@ -139,9 +140,10 @@ export const KeyboardNavigation: Story = {
 					key: event.key,
 				});
 				if (next !== activeTab.value) {
+					const currentEl = event.currentTarget as HTMLElement;
 					activeTab.value = next;
 					nextTick(() => {
-						const target = (event.currentTarget as HTMLElement)
+						const target = currentEl
 							?.closest('[role="tablist"]')
 							?.querySelector(
 								`[role="tab"][data-value="${next}"]`

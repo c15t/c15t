@@ -1,4 +1,4 @@
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 import type { PlayFunction } from 'storybook/types';
 
 /**
@@ -9,18 +9,24 @@ export const toggleOnOff: PlayFunction = async ({ canvasElement }) => {
 	const switchEl = canvas.getByRole('switch');
 
 	// Should start unchecked
-	await expect(switchEl).toHaveAttribute('aria-checked', 'false');
-	await expect(switchEl).toHaveAttribute('data-state', 'unchecked');
+	await waitFor(() => {
+		expect(switchEl).toHaveAttribute('aria-checked', 'false');
+		expect(switchEl).toHaveAttribute('data-state', 'unchecked');
+	});
 
 	// Click to check
 	await userEvent.click(switchEl);
-	await expect(switchEl).toHaveAttribute('aria-checked', 'true');
-	await expect(switchEl).toHaveAttribute('data-state', 'checked');
+	await waitFor(() => {
+		expect(switchEl).toHaveAttribute('aria-checked', 'true');
+		expect(switchEl).toHaveAttribute('data-state', 'checked');
+	});
 
 	// Click to uncheck
 	await userEvent.click(switchEl);
-	await expect(switchEl).toHaveAttribute('aria-checked', 'false');
-	await expect(switchEl).toHaveAttribute('data-state', 'unchecked');
+	await waitFor(() => {
+		expect(switchEl).toHaveAttribute('aria-checked', 'false');
+		expect(switchEl).toHaveAttribute('data-state', 'unchecked');
+	});
 };
 
 /**
@@ -31,9 +37,13 @@ export const controlledToggle: PlayFunction = async ({ canvasElement }) => {
 	const switchEl = canvas.getByRole('switch');
 
 	// Should start checked (controlled stories typically default to checked)
-	await expect(switchEl).toHaveAttribute('aria-checked', 'true');
+	await waitFor(() => {
+		expect(switchEl).toHaveAttribute('aria-checked', 'true');
+	});
 
 	// Click to uncheck
 	await userEvent.click(switchEl);
-	await expect(switchEl).toHaveAttribute('aria-checked', 'false');
+	await waitFor(() => {
+		expect(switchEl).toHaveAttribute('aria-checked', 'false');
+	});
 };

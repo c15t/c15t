@@ -83,7 +83,17 @@ type ButtonRootProps = ButtonSharedProps &
  */
 const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
 	(
-		{ children, variant, mode, size, asChild, className, noStyle, ...rest },
+		{
+			children,
+			variant,
+			mode,
+			size,
+			asChild,
+			className,
+			noStyle,
+			type = 'button',
+			...rest
+		},
 		forwardedRef
 	) => {
 		const uniqueId = useId();
@@ -115,7 +125,12 @@ const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
 		);
 
 		return (
-			<Component ref={forwardedRef} className={finalClassName} {...rest}>
+			<Component
+				ref={forwardedRef}
+				className={finalClassName}
+				type={type}
+				{...rest}
+			>
 				{extendedChildren}
 			</Component>
 		);

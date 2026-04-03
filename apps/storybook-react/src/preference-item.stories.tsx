@@ -84,6 +84,7 @@ function PreferenceItemCard({
 					{withSwitch ? (
 						<PreferenceItem.Control>
 							<Switch.Root
+								aria-label={typeof title === 'string' ? title : 'Toggle'}
 								checked={checked}
 								disabled={disabled}
 								onCheckedChange={setChecked}

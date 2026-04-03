@@ -60,6 +60,7 @@ function TabsDemo(props: { tabs?: Tab[] }) {
 		if (nextIndex !== undefined) {
 			e.preventDefault();
 			const nextValue = tabValues[nextIndex]!;
+			setActive(nextValue);
 			const tabList = e.currentTarget as HTMLElement;
 			const nextTab = tabList.querySelector(
 				`[data-value="${nextValue}"]`
@@ -163,6 +164,7 @@ export const Controlled: Story = {
 			if (nextIndex !== undefined) {
 				e.preventDefault();
 				const nextValue = tabValues[nextIndex]!;
+				setValue(nextValue);
 				const tabList = e.currentTarget as HTMLElement;
 				const nextTab = tabList.querySelector(
 					`[data-value="${nextValue}"]`
