@@ -92,6 +92,17 @@ export {
 	type PolicyValidationIssue,
 	validateUIAgainstPolicy,
 } from './libs/policy';
+export {
+	flattenPolicyActionGroups,
+	hasPolicyHints,
+	resolvePolicyActionGroups,
+	resolvePolicyAllowedActions,
+	resolvePolicyDirection,
+	resolvePolicyOrderedActions,
+	resolvePolicyPrimaryActions,
+	resolvePolicyUiProfile,
+	shouldFillPolicyActions,
+} from './libs/policy-actions';
 export type { PrefetchOptions } from './libs/prefetch';
 // Export prefetch utilities
 export {
