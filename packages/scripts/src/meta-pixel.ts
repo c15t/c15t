@@ -1,4 +1,6 @@
 import type { Script } from 'c15t';
+import { applyScriptOverrides, resolveManifest } from './resolve';
+import type { VendorManifest } from './types';
 
 /**
  * Represents the `contents` array object property.
@@ -135,6 +137,50 @@ declare global {
 	}
 }
 
+/**
+ * Meta Pixel vendor manifest.
+ *
+ * The Meta Pixel uses an inline bootstrap script (standard Meta implementation)
+ * and provides a consent API via `fbq('consent', 'grant'|'revoke')`.
+ */
+export const metaPixelManifest = {
+	vendor: 'meta-pixel',
+	category: 'marketing',
+	persistAfterConsentRevoked: true,
+	install: [
+		{
+			type: 'inlineScript',
+			code: `
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'{{scriptSrc}}');
+fbq('consent', 'grant');
+fbq('init', '{{pixelId}}');
+fbq('track', 'PageView');
+			`.trim(),
+		},
+	],
+	onConsentGranted: [
+		{
+			type: 'callGlobal',
+			global: 'fbq',
+			args: ['consent', 'grant'],
+		},
+	],
+	onConsentDenied: [
+		{
+			type: 'callGlobal',
+			global: 'fbq',
+			args: ['consent', 'revoke'],
+		},
+	],
+} as const satisfies VendorManifest;
+
 export interface MetaPixelOptions {
 	/**
 	 * Your Meta Pixel ID
@@ -172,38 +218,12 @@ export interface MetaPixelOptions {
  * @see {@link https://developers.facebook.com/docs/meta-pixel/get-started} Meta Pixel documentation
  */
 export function metaPixel({ pixelId, script }: MetaPixelOptions): Script {
-	return {
-		id: script?.id ?? 'meta-pixel',
-		category: script?.category ?? 'marketing',
-		textContent: `
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'${script?.src ?? 'https://connect.facebook.net/en_US/fbevents.js'}');
-fbq('consent', 'grant');
-fbq('init', '${pixelId}');
-fbq('track', 'PageView');
-		`.trim(),
-		// This is a persistent script because it has an API to manage the consent state
-		persistAfterConsentRevoked: true,
+	const resolved = resolveManifest(metaPixelManifest, {
+		pixelId,
+		scriptSrc: script?.src ?? 'https://connect.facebook.net/en_US/fbevents.js',
+	});
 
-		onConsentChange: ({ consents, ...rest }) => {
-			// Update Meta Pixel consent based on current consent state
-			if (consents.marketing) {
-				window.fbq('consent', 'grant');
-			} else {
-				window.fbq('consent', 'revoke');
-			}
-
-			if (script?.onConsentChange) {
-				script.onConsentChange({ consents, ...rest });
-			}
-		},
-	};
+	return script ? applyScriptOverrides(resolved, script) : resolved;
 }
 
 /**

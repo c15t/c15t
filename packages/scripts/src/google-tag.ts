@@ -1,9 +1,6 @@
 import type { AllConsentNames, Script } from 'c15t';
-
-import {
-	DEFAULT_GTM_CONSENT_CONFIG,
-	mapConsentStateToGTM,
-} from './google-tag-manager';
+import { applyScriptOverrides, resolveManifest } from './resolve';
+import type { VendorManifest } from './types';
 
 // Extended Window interface to include gtag specific properties
 declare global {
@@ -12,6 +9,43 @@ declare global {
 		gtag: (...args: unknown[]) => void;
 	}
 }
+
+/**
+ * Google Tag (gtag.js) vendor manifest.
+ *
+ * Similar to GTM but for direct Google product integration (Analytics, Ads, Floodlight).
+ * Uses the same Consent Mode v2 mapping.
+ */
+export const gtagManifest = {
+	vendor: 'gtag',
+	category: 'measurement', // overridden by user's category option
+	alwaysLoad: true,
+	persistAfterConsentRevoked: true,
+	install: [
+		{
+			type: 'inlineScript',
+			code: `
+window.dataLayer = window.dataLayer || [];
+window.gtag = function gtag() { window.dataLayer.push(arguments); };
+window.gtag('js', new Date());
+window.gtag('config', '{{id}}');
+			`.trim(),
+		},
+		{
+			type: 'loadScript',
+			src: 'https://www.googletagmanager.com/gtag/js?id={{id}}',
+			async: true,
+		},
+	],
+	consentMapping: {
+		necessary: ['security_storage'],
+		functionality: ['functionality_storage'],
+		measurement: ['analytics_storage'],
+		marketing: ['ad_storage', 'ad_user_data', 'ad_personalization'],
+		experience: ['personalization_storage'],
+	},
+	consentSignal: 'gtag',
+} as const satisfies VendorManifest;
 
 export interface GtagOptions {
 	/**
@@ -46,57 +80,12 @@ export interface GtagOptions {
  * @returns The Google Tag Manager script.
  */
 export function gtag({ id, script, category }: GtagOptions): Script {
-	return {
-		...script,
-		id: script?.id ? script.id : 'gtag',
-		src: script?.src
-			? script.src
-			: `https://www.googletagmanager.com/gtag/js?id=${id}`,
-		category: category,
-		async: script?.async ?? true,
-		persistAfterConsentRevoked: true,
-		alwaysLoad: true,
-		onBeforeLoad: ({ consents, elementId, ...rest }) => {
-			let gtmConsent = DEFAULT_GTM_CONSENT_CONFIG;
+	const resolved = resolveManifest(gtagManifest, { id });
 
-			if (consents) {
-				gtmConsent = mapConsentStateToGTM(consents);
-			}
+	// Override category from user option
+	resolved.category = category;
 
-			const setupScript = document.createElement('script');
-
-			setupScript.id = `${elementId}-init`;
-
-			setupScript.textContent = `
-    window.dataLayer = window.dataLayer || [];
-    window.gtag = function gtag() {
-      window.dataLayer.push(arguments);
-    };
-    window.gtag('consent', 'default', {
-      ...${JSON.stringify(gtmConsent)},
-    });
- 		window.gtag('js', new Date());
-		window.gtag('config', '${id}');
-  `;
-
-			if (!document.head) {
-				throw new Error('Document head is not available for script injection');
-			}
-
-			document.head.appendChild(setupScript);
-
-			if (script?.onBeforeLoad) {
-				script.onBeforeLoad({ consents, elementId, ...rest });
-			}
-		},
-		onConsentChange(args) {
-			if (window.gtag) {
-				window.gtag('consent', 'update', mapConsentStateToGTM(args.consents));
-			}
-
-			if (script?.onConsentChange) {
-				script.onConsentChange(args);
-			}
-		},
-	};
+	return script
+		? applyScriptOverrides(resolved, script as Partial<Script>)
+		: resolved;
 }

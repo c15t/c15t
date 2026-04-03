@@ -1,4 +1,6 @@
 import type { Script } from 'c15t';
+import { applyScriptOverrides, resolveManifest } from './resolve';
+import type { VendorManifest } from './types';
 
 // Extended Window interface to include microsoft uet specific properties
 declare global {
@@ -6,6 +8,67 @@ declare global {
 		uetq: unknown[] | undefined;
 	}
 }
+
+/**
+ * Microsoft UET vendor manifest.
+ *
+ * Uses an inline bootstrap script and manages consent via the UET push API:
+ * `window.uetq.push('consent', 'default'|'update', { ad_storage: 'granted'|'denied' })`
+ */
+export const microsoftUetManifest = {
+	vendor: 'microsoft-uet',
+	category: 'marketing',
+	install: [
+		{
+			type: 'inlineScript',
+			code: `
+(function(w,d,t,r,u)
+{
+    var f,n,i;
+    w[u]=w[u]||[],f=function()
+    {
+        var o={ti:"{{id}}", enableAutoSpaTracking: true};
+        o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")
+    },
+    n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function()
+    {
+        var s=this.readyState;
+        s&&s!=="loaded"&&s!=="complete"||(f(),n.onload=n.onreadystatechange=null)
+    },
+    i=d.getElementsByTagName(t)[0],i.parentNode.insertBefore(n,i)
+})
+(window,document,"script","{{scriptSrc}}","uetq");
+			`.trim(),
+		},
+	],
+	afterLoad: [
+		{
+			type: 'inlineScript',
+			code: `
+window.uetq = window.uetq || [];
+window.uetq.push('consent', 'default', { ad_storage: 'granted' });
+			`.trim(),
+		},
+	],
+	onConsentGranted: [
+		{
+			type: 'inlineScript',
+			code: `
+window.uetq = window.uetq || [];
+window.uetq.push('consent', 'update', { ad_storage: 'granted' });
+			`.trim(),
+		},
+	],
+	onConsentDenied: [
+		{
+			type: 'inlineScript',
+			code: `
+window.uetq = window.uetq || [];
+window.uetq.push('consent', 'update', { ad_storage: 'denied' });
+			`.trim(),
+		},
+	],
+} as const satisfies VendorManifest;
 
 export interface MicrosoftUetOptions {
 	/**
@@ -42,70 +105,10 @@ export interface MicrosoftUetOptions {
  * @see https://learn.microsoft.com/en-us/advertising/guides/universal-event-tracking?view=bingads-13
  */
 export function microsoftUet({ id, script }: MicrosoftUetOptions): Script {
-	const category = script?.category ?? 'marketing';
+	const resolved = resolveManifest(microsoftUetManifest, {
+		id,
+		scriptSrc: script?.src ?? '//bat.bing.com/bat.js',
+	});
 
-	return {
-		id: script?.id ?? 'microsoft-uet',
-		category,
-		textContent: `
-    (function(w,d,t,r,u)
-    {
-        var f,n,i;
-        w[u]=w[u]||[],f=function()
-        {
-            var o={ti:"${id}", enableAutoSpaTracking: true};
-            o.q=w[u],w[u]=new UET(o),w[u].push("pageLoad")
-        },
-        n=d.createElement(t),n.src=r,n.async=1,n.onload=n.onreadystatechange=function()
-        {
-            var s=this.readyState;
-            s&&s!=="loaded"&&s!=="complete"||(f(),n.onload=n.onreadystatechange=null)
-        },
-        i=d.getElementsByTagName(t)[0],i.parentNode.insertBefore(n,i)
-    })
-    (window,document,"script","${script?.src ?? '//bat.bing.com/bat.js'}","uetq");
-		`.trim(),
-		onLoad: (rest) => {
-			if (!document.head) {
-				throw new Error('Document head is not available for script injection');
-			}
-
-			const existingElement = document.getElementById(
-				`${rest.elementId}-default`
-			);
-
-			if (existingElement) {
-				// Element already exists, just update consent
-				window.uetq = window.uetq || [];
-				window.uetq.push('consent', 'update', {
-					ad_storage: 'granted',
-				});
-			} else {
-				// Create and append the consent script
-				const defaultConsentScript = document.createElement('script');
-				defaultConsentScript.id = `${rest.elementId}-default`;
-				defaultConsentScript.textContent = `
-					window.uetq = window.uetq || [];
-					window.uetq.push('consent', 'default', {
-						ad_storage: 'granted',
-					});
-				`;
-				document.head.appendChild(defaultConsentScript);
-			}
-
-			if (script?.onLoad) {
-				script.onLoad(rest);
-			}
-		},
-		onConsentChange({ consents, ...rest }) {
-			// Update Microsoft UET consent based on current consent state
-			window.uetq?.push('consent', 'update', {
-				ad_storage: consents.marketing ? 'granted' : 'denied',
-			});
-
-			if (script?.onConsentChange) {
-				script.onConsentChange({ consents, ...rest });
-			}
-		},
-	};
+	return script ? applyScriptOverrides(resolved, script) : resolved;
 }

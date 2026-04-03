@@ -1,4 +1,6 @@
 import type { Script } from 'c15t';
+import { applyScriptOverrides, resolveManifest } from './resolve';
+import type { VendorManifest } from './types';
 
 export interface XPixelContent {
 	/**
@@ -90,6 +92,28 @@ declare global {
 	}
 }
 
+/**
+ * X (Twitter) Pixel vendor manifest.
+ *
+ * Uses an inline bootstrap script to load the X tracking pixel.
+ * No consent API — the script simply loads or doesn't based on consent.
+ */
+export const xPixelManifest = {
+	vendor: 'x-pixel',
+	category: 'marketing',
+	install: [
+		{
+			type: 'inlineScript',
+			code: `
+!function(e,t,n,s,u,a){e.twq||(s=e.twq=function(){s.exe?s.exe.apply(s,arguments):s.queue.push(arguments);
+},s.version='1.1',s.queue=[],u=t.createElement(n),u.async=!0,u.src='{{scriptSrc}}',
+a=t.getElementsByTagName(n)[0],a.parentNode.insertBefore(u,a))}(window,document,'script');
+twq('config','{{pixelId}}');
+			`.trim(),
+		},
+	],
+} as const satisfies VendorManifest;
+
 export interface XPixelOptions {
 	/**
 	 * Your X Pixel ID
@@ -125,16 +149,12 @@ export interface XPixelOptions {
  * @see {@link https://ads.twitter.com/help/article/x-pixel} X Pixel documentation
  */
 export function xPixel({ pixelId, script }: XPixelOptions): Script {
-	return {
-		id: script?.id ?? 'x-pixel',
-		category: script?.category ?? 'marketing',
-		textContent: `
-!function(e,t,n,s,u,a){e.twq||(s=e.twq=function(){s.exe?s.exe.apply(s,arguments):s.queue.push(arguments);
-},s.version='1.1',s.queue=[],u=t.createElement(n),u.async=!0,u.src='${script?.src ?? 'https://static.ads-twitter.com/uwt.js'}',
-a=t.getElementsByTagName(n)[0],a.parentNode.insertBefore(u,a))}(window,document,'script');
-twq('config','${pixelId}');
-		`.trim(),
-	};
+	const resolved = resolveManifest(xPixelManifest, {
+		pixelId,
+		scriptSrc: script?.src ?? 'https://static.ads-twitter.com/uwt.js',
+	});
+
+	return script ? applyScriptOverrides(resolved, script) : resolved;
 }
 
 /**

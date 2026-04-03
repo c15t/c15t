@@ -1,4 +1,6 @@
-import type { AllConsentNames, ConsentState, Script } from 'c15t';
+import type { Script } from 'c15t';
+import { applyScriptOverrides, resolveManifest } from './resolve';
+import type { VendorManifest } from './types';
 
 // Extended Window interface to include GTM-specific properties
 declare global {
@@ -8,64 +10,49 @@ declare global {
 	}
 }
 
-// GTM-specific consent configuration matching Google's consent mode API
-interface GTMConsentConfiguration {
-	ad_storage: 'granted' | 'denied';
-	ad_personalization: 'granted' | 'denied';
-	ad_user_data: 'granted' | 'denied';
-	analytics_storage: 'granted' | 'denied';
-	personalization_storage: 'granted' | 'denied';
-	functionality_storage: 'granted' | 'denied';
-	security_storage: 'granted' | 'denied';
-}
-
-// Default GTM consent configuration that denies all tracking
-export const DEFAULT_GTM_CONSENT_CONFIG: GTMConsentConfiguration = {
-	functionality_storage: 'denied',
-	security_storage: 'denied',
-	analytics_storage: 'denied',
-	ad_storage: 'denied',
-	ad_user_data: 'denied',
-	ad_personalization: 'denied',
-	personalization_storage: 'denied',
-} as const;
-
-const CONSENT_STATE_TO_GTM_MAPPING: Record<
-	AllConsentNames,
-	(keyof GTMConsentConfiguration)[]
-> = {
-	necessary: ['security_storage'],
-	functionality: ['functionality_storage'],
-	measurement: ['analytics_storage'],
-	marketing: ['ad_storage', 'ad_user_data', 'ad_personalization'],
-	experience: ['personalization_storage'],
-} as const;
-
 /**
- * Converts ConsentState to GTM consent configuration
+ * Google Tag Manager vendor manifest.
  *
- * @param consentState - The application's consent state
- * @returns GTM-compatible consent configuration
- *
- * @see {@link CONSENT_STATE_TO_GTM_MAPPING} for the mapping logic
+ * Defines GTM as a declarative integration:
+ * - Initializes dataLayer and gtag function before the container loads
+ * - Maps c15t consent categories to Google Consent Mode v2 types
+ * - Signals consent state via `gtag('consent', 'default'|'update', ...)`
  */
-export function mapConsentStateToGTM(
-	consentState: ConsentState
-): GTMConsentConfiguration {
-	const gtmConfig: GTMConsentConfiguration = { ...DEFAULT_GTM_CONSENT_CONFIG };
-
-	// Map each consent type to its corresponding GTM consent categories
-	for (const consentType of Object.keys(consentState) as AllConsentNames[]) {
-		const isGranted = consentState[consentType];
-		const gtmConsentTypes = CONSENT_STATE_TO_GTM_MAPPING[consentType];
-
-		for (const gtmType of gtmConsentTypes) {
-			gtmConfig[gtmType] = isGranted ? 'granted' : 'denied';
-		}
-	}
-
-	return gtmConfig;
-}
+export const googleTagManagerManifest = {
+	vendor: 'google-tag-manager',
+	category: 'necessary',
+	alwaysLoad: true,
+	install: [
+		{
+			type: 'inlineScript',
+			code: `
+window.dataLayer = window.dataLayer || [];
+window.gtag = function gtag() { window.dataLayer.push(arguments); };
+window.dataLayer.push({ 'gtm.start': Date.now(), event: 'gtm.js' });
+			`.trim(),
+		},
+		{
+			type: 'loadScript',
+			src: 'https://www.googletagmanager.com/gtm.js?id={{id}}',
+			async: true,
+		},
+	],
+	onConsentChange: [
+		{
+			type: 'callGlobal',
+			global: 'gtag',
+			args: ['event', '{{updateEventName}}'],
+		},
+	],
+	consentMapping: {
+		necessary: ['security_storage'],
+		functionality: ['functionality_storage'],
+		measurement: ['analytics_storage'],
+		marketing: ['ad_storage', 'ad_user_data', 'ad_personalization'],
+		experience: ['personalization_storage'],
+	},
+	consentSignal: 'gtag',
+} as const satisfies VendorManifest;
 
 export interface GoogleTagManagerOptions {
 	/**
@@ -75,11 +62,10 @@ export interface GoogleTagManagerOptions {
 	id: string;
 
 	/**
-	 * Update Event Name
-	 * A custom event name used as a trigger to load your script once the consent has been updated.
+	 * Custom event name fired after consent updates.
+	 * Can be used as a trigger in GTM to load scripts once consent is updated.
 	 *
 	 * @default 'consent-update'
-	 * @example 'consent-update'
 	 */
 	updateEventName?: string;
 
@@ -109,62 +95,66 @@ export function googleTagManager({
 	script,
 	updateEventName,
 }: GoogleTagManagerOptions): Script {
-	return {
-		...script,
-		id: script?.id ? script.id : 'google-tag-manager',
-		src: script?.src
-			? script.src
-			: `https://www.googletagmanager.com/gtm.js?id=${id}`,
-		category: script?.category ?? 'necessary',
-		async: script?.async ?? true,
-		alwaysLoad: true,
+	const resolved = resolveManifest(googleTagManagerManifest, {
+		id,
+		updateEventName: updateEventName ?? 'consent-update',
+	});
 
-		/**
-		 * Instead of adding another script for the script loader, we will manage it internally for this script.
-		 * This ensures the initialisation is done before the script is loaded.
-		 */
-		onBeforeLoad: ({ consents, elementId, ...rest }) => {
-			const gtmConsent = consents
-				? mapConsentStateToGTM(consents)
-				: DEFAULT_GTM_CONSENT_CONFIG;
+	return script ? applyScriptOverrides(resolved, script) : resolved;
+}
 
-			const setupScript = document.createElement('script');
+// Re-export consent mapping utilities for use by google-tag.ts
+export {
+	/** @deprecated Use `googleTagManagerManifest.consentMapping` instead */
+	DEFAULT_GTM_CONSENT_CONFIG,
+	/** @deprecated Use `resolveManifest` with a `consentMapping` instead */
+	mapConsentStateToGTM,
+};
 
-			setupScript.id = `${elementId}-init`;
+// Legacy types kept for backward compatibility
+import type { AllConsentNames, ConsentState } from 'c15t';
 
-			setupScript.textContent = `
-    window.dataLayer = window.dataLayer || [];
-    window.gtag = function gtag() {
-      window.dataLayer.push(arguments);
-    };
-    window.gtag('consent', 'default', {
-      ...${JSON.stringify(gtmConsent)},
-    });
-    window.dataLayer.push({
-      'gtm.start': Date.now(),
-      event: 'gtm.js',
-    });
-  `;
+interface GTMConsentConfiguration {
+	ad_storage: 'granted' | 'denied';
+	ad_personalization: 'granted' | 'denied';
+	ad_user_data: 'granted' | 'denied';
+	analytics_storage: 'granted' | 'denied';
+	personalization_storage: 'granted' | 'denied';
+	functionality_storage: 'granted' | 'denied';
+	security_storage: 'granted' | 'denied';
+}
 
-			if (!document.head) {
-				throw new Error('Document head is not available for script injection');
-			}
+const DEFAULT_GTM_CONSENT_CONFIG: GTMConsentConfiguration = {
+	functionality_storage: 'denied',
+	security_storage: 'denied',
+	analytics_storage: 'denied',
+	ad_storage: 'denied',
+	ad_user_data: 'denied',
+	ad_personalization: 'denied',
+	personalization_storage: 'denied',
+} as const;
 
-			document.head.appendChild(setupScript);
+const CONSENT_STATE_TO_GTM_MAPPING: Record<
+	AllConsentNames,
+	(keyof GTMConsentConfiguration)[]
+> = {
+	necessary: ['security_storage'],
+	functionality: ['functionality_storage'],
+	measurement: ['analytics_storage'],
+	marketing: ['ad_storage', 'ad_user_data', 'ad_personalization'],
+	experience: ['personalization_storage'],
+} as const;
 
-			if (script?.onBeforeLoad) {
-				script.onBeforeLoad({ consents, elementId, ...rest });
-			}
-		},
-		onConsentChange({ consents, ...rest }) {
-			if (window.gtag) {
-				window.gtag('consent', 'update', mapConsentStateToGTM(consents));
-				window.gtag('event', updateEventName ?? 'consent-update');
-			}
-
-			if (script?.onConsentChange) {
-				script.onConsentChange({ consents, ...rest });
-			}
-		},
-	};
+function mapConsentStateToGTM(
+	consentState: ConsentState
+): GTMConsentConfiguration {
+	const gtmConfig: GTMConsentConfiguration = { ...DEFAULT_GTM_CONSENT_CONFIG };
+	for (const consentType of Object.keys(consentState) as AllConsentNames[]) {
+		const isGranted = consentState[consentType];
+		const gtmConsentTypes = CONSENT_STATE_TO_GTM_MAPPING[consentType];
+		for (const gtmType of gtmConsentTypes) {
+			gtmConfig[gtmType] = isGranted ? 'granted' : 'denied';
+		}
+	}
+	return gtmConfig;
 }

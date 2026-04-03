@@ -1,4 +1,6 @@
 import type { Script } from 'c15t';
+import { applyScriptOverrides, resolveManifest } from './resolve';
+import type { VendorManifest } from './types';
 
 declare global {
 	interface Window {
@@ -27,6 +29,41 @@ declare global {
 		};
 	}
 }
+
+/**
+ * DataBuddy vendor manifest.
+ *
+ * DataBuddy always loads but controls tracking via its `options.disabled` flag.
+ * Config is seeded via `window.databuddyConfig` before the script loads.
+ */
+export const databuddyManifest = {
+	vendor: 'databuddy',
+	category: 'measurement',
+	alwaysLoad: true,
+	install: [
+		{
+			type: 'loadScript',
+			src: '{{scriptUrl}}',
+			async: true,
+			attributes: {
+				crossorigin: 'anonymous',
+				'data-client-id': '{{clientId}}',
+			},
+		},
+	],
+	onConsentGranted: [
+		{
+			type: 'inlineScript',
+			code: 'if (window.databuddy && window.databuddy.options.disabled) { window.databuddy.options.disabled = false; }',
+		},
+	],
+	onConsentDenied: [
+		{
+			type: 'inlineScript',
+			code: 'if (window.databuddy && !window.databuddy.options.disabled) { window.databuddy.options.disabled = true; }',
+		},
+	],
+} as const satisfies VendorManifest;
 
 export interface DatabuddyConsentOptions {
 	/**
@@ -73,23 +110,16 @@ export interface DatabuddyConsentOptions {
  *    in the correct state. The Databuddy script reads this configuration object on initialization.
  *
  * 2. **On Script Load** (`onLoad`): After Databuddy has initialized, verifies that
- *    `window.databuddy.options.disabled` matches the current consent state by calling
- *    `handleConsentOpt()`.
+ *    `window.databuddy.options.disabled` matches the current consent state.
  *
  * 3. **On Consent Change** (`onConsentChange`): Dynamically toggles `window.databuddy.options.disabled`
  *    to enable tracking when consent is granted or disable tracking when consent is revoked.
- *    This ensures real-time compliance with user preferences.
  *
  * The script always loads (`alwaysLoad: true`) but tracking is controlled via the `disabled` flag,
  * allowing Databuddy to remain present in the DOM while respecting consent boundaries.
  *
  * @param options - Configuration for the Databuddy consent script
  * @returns The Databuddy script configuration object for c15t's script loader
- *
- * @throws This function does not throw errors directly. However, network failures or script
- * loading errors may cause the Databuddy script to fail silently without initializing
- * `window.databuddy`. The lifecycle callbacks handle these cases gracefully by checking for
- * the presence of `window.databuddy` before attempting to modify its state.
  *
  * @example
  * ```ts
@@ -100,8 +130,6 @@ export interface DatabuddyConsentOptions {
  *   scripts: [
  *     databuddy({
  *       clientId: 'db_1234567890abcdef',
- *       // scriptUrl: 'https://cdn.databuddy.cc/databuddy.js', // Optional, defaults to cdn.databuddy.cc
- *       // apiUrl: 'https://basket.databuddy.cc', // Optional, defaults to basket.databuddy.cc
  *       options: {
  *         trackScreenViews: true,
  *         trackOutgoingLinks: true,
@@ -114,60 +142,43 @@ export interface DatabuddyConsentOptions {
  * ```
  */
 export function databuddy(options: DatabuddyConsentOptions): Script {
-	const { script } = options;
+	const scriptUrl =
+		options.scriptUrl ?? 'https://cdn.databuddy.cc/databuddy.js';
 
-	const handleConsentOpt = (hasConsent: boolean) => {
-		if (!window.databuddy) {
-			return;
-		}
+	const resolved = resolveManifest(databuddyManifest, {
+		clientId: options.clientId,
+		scriptUrl,
+	});
 
-		// Update the disabled state based on consent
-		if (hasConsent && window.databuddy.options.disabled) {
-			window.databuddy.options.disabled = false;
-		} else if (!hasConsent && !window.databuddy.options.disabled) {
-			window.databuddy.options.disabled = true;
+	// Add data-api-url attribute if provided
+	if (options.apiUrl && resolved.attributes) {
+		resolved.attributes['data-api-url'] = options.apiUrl;
+	}
+
+	// DataBuddy needs to seed window.databuddyConfig before the script loads
+	// and sync the disabled state on load — this requires imperative callbacks
+	resolved.onBeforeLoad = (info) => {
+		if (!window.databuddyConfig) {
+			window.databuddyConfig = {
+				clientId: options.clientId,
+				...(options.apiUrl ? { apiUrl: options.apiUrl } : {}),
+				...(options.options || {}),
+				disabled: !info.hasConsent,
+			};
 		}
 	};
 
-	return {
-		id: script?.id ?? 'databuddy',
-		category: script?.category ?? 'measurement',
-		src: options.scriptUrl ?? 'https://cdn.databuddy.cc/databuddy.js',
-		async: true,
-		attributes: {
-			crossorigin: 'anonymous',
-			'data-client-id': options.clientId,
-			...(options.apiUrl ? { 'data-api-url': options.apiUrl } : {}),
-		},
-		alwaysLoad: true,
-		onBeforeLoad: ({ hasConsent, ...rest }) => {
-			// Initialize Databuddy config before the script loads
-			// The script reads from window.databuddyConfig and data attributes
-			if (!window.databuddyConfig) {
-				window.databuddyConfig = {
-					clientId: options.clientId,
-					...(options.apiUrl ? { apiUrl: options.apiUrl } : {}),
-					...(options.options || {}),
-					// Set initial disabled state based on consent (overrides user options)
-					disabled: !hasConsent,
-				};
+	resolved.onLoad = (info) => {
+		if (window.databuddy) {
+			if (info.hasConsent && window.databuddy.options.disabled) {
+				window.databuddy.options.disabled = false;
+			} else if (!info.hasConsent && !window.databuddy.options.disabled) {
+				window.databuddy.options.disabled = true;
 			}
-
-			script?.onBeforeLoad?.({ hasConsent, ...rest });
-		},
-		onLoad: ({ hasConsent, ...rest }) => {
-			// Databuddy should be initialized automatically via the script
-			// Handle consent state once the script is loaded
-			if (window.databuddy) {
-				handleConsentOpt(hasConsent);
-			}
-
-			script?.onLoad?.({ hasConsent, ...rest });
-		},
-		onConsentChange: ({ hasConsent, ...rest }) => {
-			handleConsentOpt(hasConsent);
-
-			script?.onConsentChange?.({ hasConsent, ...rest });
-		},
+		}
 	};
+
+	return options.script
+		? applyScriptOverrides(resolved, options.script)
+		: resolved;
 }
