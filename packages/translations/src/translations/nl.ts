@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		rejectAll: 'Alles weigeren',
 		customize: 'Aanpassen',
 		save: 'Instellingen opslaan',
+		close: 'Sluiten',
 	},
 	cookieBanner: {
 		title: 'Wij hechten waarde aan uw privacy',

@@ -187,6 +187,49 @@ function toMarkdown(
 	return `${lines.join('\n')}\n`;
 }
 
+async function stopServer(
+	server: ReturnType<typeof spawn>,
+	logs: string
+): Promise<void> {
+	const waitForExit = () =>
+		new Promise<{ code: number | null; signal: NodeJS.Signals | null }>(
+			(resolve) => {
+				server.once('exit', (code, signal) => resolve({ code, signal }));
+			}
+		);
+
+	let result =
+		server.exitCode !== null || server.signalCode !== null
+			? {
+					code: server.exitCode,
+					signal: server.signalCode,
+				}
+			: null;
+
+	if (result === null) {
+		const exitPromise = waitForExit();
+
+		server.kill('SIGTERM');
+
+		result = await Promise.race([exitPromise, sleep(5_000).then(() => null)]);
+
+		if (result === null) {
+			server.kill('SIGKILL');
+			result = await exitPromise;
+		}
+	}
+
+	const expectedShutdown =
+		result.code === 0 ||
+		result.code === 143 ||
+		result.signal === 'SIGTERM' ||
+		result.signal === 'SIGKILL';
+
+	if (!expectedShutdown) {
+		throw new Error(logs || 'Bundle benchmark server failed');
+	}
+}
+
 async function main() {
 	const outputDir = process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/bundle';
 	const args = new Set(process.argv.slice(2));
@@ -305,14 +348,7 @@ async function main() {
 
 		console.log(toMarkdown(bundleResults, artifactResult));
 	} finally {
-		server.kill('SIGTERM');
-		await sleep(500);
-		if (!server.killed) {
-			server.kill('SIGKILL');
-		}
-		if (server.exitCode && server.exitCode !== 0) {
-			throw new Error(logs || 'Bundle benchmark server failed');
-		}
+		await stopServer(server, logs);
 	}
 }
 

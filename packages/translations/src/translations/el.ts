@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		rejectAll: 'Απόρριψη όλων',
 		customize: 'Προσαρμογή',
 		save: 'Αποθήκευση ρυθμίσεων',
+		close: 'Κλείσιμο',
 	},
 	cookieBanner: {
 		title: 'Εκτιμούμε το απόρρητό σας',

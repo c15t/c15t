@@ -14,17 +14,17 @@
 		"./styles.css": "./dist/styles.css",
 		"./iab/styles.css": "./dist/iab/styles.css",
 		"./primitives": {
-			"types": "./dist/primitives/index.d.ts",
+			"types": "./dist-types/primitives/index.d.ts",
 			"import": "./dist/primitives/index.js",
 			"require": "./dist/primitives/index.cjs"
 		},
 		"./primitives/data-state": {
-			"types": "./dist/primitives/data-state.d.ts",
+			"types": "./dist-types/primitives/data-state.d.ts",
 			"import": "./dist/primitives/data-state.js",
 			"require": "./dist/primitives/data-state.cjs"
 		},
 		"./primitives/*": {
-			"types": "./dist/primitives/*/index.d.ts",
+			"types": "./dist-types/primitives/*/index.d.ts",
 			"import": "./dist/primitives/*/index.js",
 			"require": "./dist/primitives/*/index.cjs"
 		},
@@ -59,7 +59,7 @@
 			"require": "./dist/styles/primitives/*.module.cjs"
 		},
 		"./utils/*": {
-			"types": "./dist/utils/*.d.ts",
+			"types": "./dist-types/utils/*.d.ts",
 			"import": "./dist/utils/*.js",
 			"require": "./dist/utils/*.cjs"
 		},

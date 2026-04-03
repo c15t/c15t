@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		rejectAll: 'Irrifjuta kollox',
 		customize: 'Personalizza',
 		save: 'Issejvja s-settings',
+		close: 'Agħlaq',
 	},
 	cookieBanner: {
 		title: 'Napprezzaw il-privatezza tiegħek',

@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		rejectAll: 'Hafna öllu',
 		customize: 'Sérsníða',
 		save: 'Vista stillingar',
+		close: 'Loka',
 	},
 	cookieBanner: {
 		title: 'Við metum friðhelgi þína',

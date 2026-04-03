@@ -62,7 +62,6 @@ export {
 	switchVariants,
 } from './switch';
 export {
-	type TabsOrientation,
 	type TabsVariantsProps,
 	tabsVariants,
 } from './tabs';

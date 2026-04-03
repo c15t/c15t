@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		rejectAll: 'All refuséieren',
 		customize: 'Upassen',
 		save: 'Astellunge späicheren',
+		close: 'Zoumaachen',
 	},
 	cookieBanner: {
 		title: 'Mir schätzen Är Privatsphär',

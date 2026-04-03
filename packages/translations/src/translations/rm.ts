@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		rejectAll: 'Refusar tut',
 		customize: 'Persunalisar',
 		save: 'Memorisar las configuraziuns',
+		close: 'Serrar',
 	},
 	cookieBanner: {
 		title: 'Nus stimain vossa sfera privata',
