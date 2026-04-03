@@ -232,7 +232,9 @@
 	}
 
 	.card {
+		box-sizing: border-box;
 		width: min(100%, var(--consent-dialog-max-width));
+		max-height: 100%;
 		margin: 0 auto;
 		border-radius: var(--consent-dialog-card-radius);
 		border: var(--consent-dialog-border-width)
@@ -240,6 +242,8 @@
 		background-color: var(--consent-dialog-background-color);
 		color: var(--consent-dialog-foreground-color);
 		box-shadow: var(--consent-dialog-card-shadow);
+		display: flex;
+		flex-direction: column;
 		overflow: hidden;
 	}
 
@@ -252,6 +256,7 @@
 	.header {
 		display: flex;
 		flex-direction: column;
+		flex-shrink: 0;
 		padding: var(--consent-dialog-card-padding);
 		gap: var(--consent-dialog-header-gap);
 	}
@@ -282,11 +287,15 @@
 		padding: var(--consent-dialog-card-padding);
 		padding-top: 0;
 		gap: var(--consent-dialog-content-gap);
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
 	}
 
 	.footer {
 		display: flex;
 		flex-direction: column;
+		flex-shrink: 0;
 		align-items: center;
 		justify-content: center;
 		gap: var(--consent-dialog-footer-gap);
