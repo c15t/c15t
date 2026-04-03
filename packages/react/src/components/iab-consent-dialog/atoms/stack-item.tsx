@@ -108,6 +108,7 @@ export const StackItem: FC<StackItemProps> = ({
 						/>
 					)}
 					<Switch.Root
+						aria-label={stack.name}
 						checked={allEnabled}
 						onCheckedChange={handleStackToggle}
 					/>

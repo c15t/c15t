@@ -38,10 +38,9 @@ export const Checked: Story = {
 
 export const Controlled: Story = {
 	args: {
+		defaultChecked: true,
 		label: consentTypes.functionality.title,
 	},
-	// @ts-expect-error -- different component for this story
-	component: SwitchControlledDemo,
 	play: controlledToggle,
 };
 

@@ -24,10 +24,7 @@ export default mergeConfig(
 				// browser bundler cannot analyse.
 				c15t: resolve(__dirname, '../core/src/index.ts'),
 				'@c15t/schema': resolve(__dirname, '../schema/src/index.ts'),
-				'@c15t/schema/types': resolve(
-					__dirname,
-					'../schema/src/types/index.ts'
-				),
+				'@c15t/schema/types': resolve(__dirname, '../schema/src/types.ts'),
 				'@c15t/translations': resolve(
 					__dirname,
 					'../translations/src/index.ts'

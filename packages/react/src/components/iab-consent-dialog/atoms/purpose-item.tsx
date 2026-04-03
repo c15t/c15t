@@ -161,6 +161,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 				</PreferenceItem.Trigger>
 				<PreferenceItem.Control noStyle>
 					<Switch.Root
+						aria-label={purpose.name}
 						checked={isEnabled}
 						onCheckedChange={handlePurposeToggle}
 						disabled={isLocked}
@@ -488,7 +489,11 @@ const VendorRow: FC<VendorRowProps> = ({
 				</button>
 			) : (
 				<div style={{ transform: 'scale(0.75)' }}>
-					<Switch.Root checked={isConsented} onCheckedChange={onToggle} />
+					<Switch.Root
+						aria-label={vendor.name}
+						checked={isConsented}
+						onCheckedChange={onToggle}
+					/>
 				</div>
 			)}
 		</div>

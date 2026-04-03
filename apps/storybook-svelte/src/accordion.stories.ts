@@ -38,9 +38,9 @@ export const Multiple: Story = {
 		item1Description: consentTypes.marketing.description,
 		item2Title: consentTypes.functionality.title,
 		item2Description: consentTypes.functionality.description,
+		type: 'multiple',
+		initialValue: ['purpose-1', 'purpose-2'],
 	},
-	// @ts-expect-error -- different component for this story
-	component: AccordionMultipleDemo,
 	play: multipleModeToggle,
 };
 
