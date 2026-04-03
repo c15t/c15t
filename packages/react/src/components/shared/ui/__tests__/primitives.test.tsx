@@ -867,11 +867,17 @@ describe('Collapsible', () => {
 			</ThemeWrapper>
 		);
 
-		const trigger = document.querySelector('[data-slot="collapsible-trigger"]');
-		const content = document.querySelector('[data-slot="collapsible-content"]');
-		expect(trigger?.getAttribute('aria-controls')).toBeTruthy();
-		expect(trigger?.getAttribute('aria-expanded')).toBe('false');
-		expect(content?.getAttribute('aria-hidden')).toBe('true');
+		await vi.waitFor(() => {
+			const trigger = document.querySelector(
+				'[data-slot="collapsible-trigger"]'
+			);
+			const content = document.querySelector(
+				'[data-slot="collapsible-content"]'
+			);
+			expect(trigger?.getAttribute('aria-controls')).toBeTruthy();
+			expect(trigger?.getAttribute('aria-expanded')).toBe('false');
+			expect(content?.getAttribute('aria-hidden')).toBe('true');
+		});
 	});
 
 	test('should open and close without focus leaks', async () => {
@@ -886,8 +892,11 @@ describe('Collapsible', () => {
 			</ThemeWrapper>
 		);
 
-		const trigger = document.querySelector('[data-slot="collapsible-trigger"]');
-		expect(trigger).toBeInstanceOf(HTMLElement);
+		let trigger: Element | null = null;
+		await vi.waitFor(() => {
+			trigger = document.querySelector('[data-slot="collapsible-trigger"]');
+			expect(trigger).toBeInstanceOf(HTMLElement);
+		});
 		if (!trigger) {
 			throw new Error('Expected collapsible trigger to exist');
 		}
@@ -967,15 +976,17 @@ describe('PreferenceItem', () => {
 			</ThemeWrapper>
 		);
 
-		const trigger = document.querySelector(
-			'[data-slot="preference-item-trigger"]'
-		);
-		const content = document.querySelector(
-			'[data-slot="preference-item-content"]'
-		);
-		expect(trigger?.getAttribute('aria-controls')).toBeTruthy();
-		expect(trigger?.getAttribute('aria-expanded')).toBe('false');
-		expect(content?.getAttribute('aria-hidden')).toBe('true');
+		await vi.waitFor(() => {
+			const trigger = document.querySelector(
+				'[data-slot="preference-item-trigger"]'
+			);
+			const content = document.querySelector(
+				'[data-slot="preference-item-content"]'
+			);
+			expect(trigger?.getAttribute('aria-controls')).toBeTruthy();
+			expect(trigger?.getAttribute('aria-expanded')).toBe('false');
+			expect(content?.getAttribute('aria-hidden')).toBe('true');
+		});
 	});
 
 	test('should toggle from the trigger without the control toggling disclosure', async () => {
@@ -999,16 +1010,17 @@ describe('PreferenceItem', () => {
 			</ThemeWrapper>
 		);
 
-		const trigger = document.querySelector(
-			'[data-slot="preference-item-trigger"]'
-		);
-		const controlSwitch = document.querySelector('[role="switch"]');
-		const content = document.querySelector(
-			'[data-slot="preference-item-content"]'
-		);
+		let trigger: Element | null = null;
+		let controlSwitch: Element | null = null;
+		let content: Element | null = null;
 
-		expect(trigger).toBeInstanceOf(HTMLElement);
-		expect(controlSwitch).toBeInstanceOf(HTMLElement);
+		await vi.waitFor(() => {
+			trigger = document.querySelector('[data-slot="preference-item-trigger"]');
+			controlSwitch = document.querySelector('[role="switch"]');
+			content = document.querySelector('[data-slot="preference-item-content"]');
+			expect(trigger).toBeInstanceOf(HTMLElement);
+			expect(controlSwitch).toBeInstanceOf(HTMLElement);
+		});
 
 		if (!trigger || !controlSwitch) {
 			throw new Error('Expected disclosure item trigger and switch to exist');
@@ -1046,22 +1058,24 @@ describe('PreferenceItem', () => {
 			</ThemeWrapper>
 		);
 
-		const root = document.querySelector('.custom-root');
-		const trigger = document.querySelector('.custom-trigger');
-		const content = document.querySelector(
-			'[data-slot="preference-item-content"]'
-		);
-		const viewport = document.querySelector(
-			'[data-slot="preference-item-content-viewport"]'
-		);
-		const inner = document.querySelector('.custom-inner');
+		await vi.waitFor(() => {
+			const root = document.querySelector('.custom-root');
+			const trigger = document.querySelector('.custom-trigger');
+			const content = document.querySelector(
+				'[data-slot="preference-item-content"]'
+			);
+			const viewport = document.querySelector(
+				'[data-slot="preference-item-content-viewport"]'
+			);
+			const inner = document.querySelector('.custom-inner');
 
-		expect(root?.className).toBe('custom-root');
-		expect(trigger?.className).toBe('custom-trigger');
-		expect(content).toBeInTheDocument();
-		expect(viewport).toBeInTheDocument();
-		expect(inner).toBeInTheDocument();
-		expect(content?.className).toContain('custom-content');
-		expect(content?.getAttribute('aria-hidden')).toBe('true');
+			expect(root?.className).toBe('custom-root');
+			expect(trigger?.className).toBe('custom-trigger');
+			expect(content).toBeInTheDocument();
+			expect(viewport).toBeInTheDocument();
+			expect(inner).toBeInTheDocument();
+			expect(content?.className).toContain('custom-content');
+			expect(content?.getAttribute('aria-hidden')).toBe('true');
+		});
 	});
 });
