@@ -297,36 +297,32 @@ describe('Vendors Tab - Per-Vendor Consent', () => {
 		);
 
 		const vendorsTab = await vi.waitFor(
-			() =>
-				Array.from(
+			() => {
+				const el = Array.from(
 					document.querySelectorAll<HTMLButtonElement>('[role="tab"]')
 				).find((button) =>
 					button.textContent?.toLowerCase().includes('vendor')
-				),
-			{ timeout: 3000 }
+				);
+				expect(el).toBeDefined();
+				return el!;
+			},
+			{ timeout: 5000 }
 		);
-
-		expect(vendorsTab).toBeDefined();
-		if (!vendorsTab) {
-			throw new Error('Expected vendors tab to exist');
-		}
 
 		await userEvent.click(vendorsTab);
 
 		const vendorHeader = await vi.waitFor(
-			() =>
-				Array.from(
+			() => {
+				const el = Array.from(
 					document.querySelectorAll<HTMLElement>('[id^="vendor-"]')
 				).find((element) =>
 					element.textContent?.includes('Exponential Interactive')
-				),
-			{ timeout: 3000 }
+				);
+				expect(el).toBeDefined();
+				return el!;
+			},
+			{ timeout: 5000 }
 		);
-
-		expect(vendorHeader).toBeDefined();
-		if (!vendorHeader) {
-			throw new Error('Expected vendor item to exist');
-		}
 
 		const content = vendorHeader.querySelector(
 			'[data-slot="preference-item-content"]'
@@ -347,7 +343,7 @@ describe('Vendors Tab - Per-Vendor Consent', () => {
 		});
 
 		const expandTrigger = vendorHeader.querySelector(
-			'.vendorListTrigger'
+			'[data-slot="preference-item-trigger"]'
 		) as HTMLElement | null;
 		expect(expandTrigger).toBeInstanceOf(HTMLElement);
 		if (!expandTrigger) {

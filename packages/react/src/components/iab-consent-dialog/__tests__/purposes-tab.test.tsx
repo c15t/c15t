@@ -283,19 +283,17 @@ describe('Purposes Tab - Consent', () => {
 		);
 
 		const purposeTrigger = await vi.waitFor(
-			() =>
-				Array.from(
+			() => {
+				const el = Array.from(
 					document.querySelectorAll<HTMLButtonElement>(
 						'[data-testid="iab-consent-dialog-root"] [data-slot="preference-item-trigger"]'
 					)
-				).find((button) => button.textContent?.includes('Store and/or access')),
-			{ timeout: 3000 }
+				).find((button) => button.textContent?.includes('Store and/or access'));
+				expect(el).toBeDefined();
+				return el!;
+			},
+			{ timeout: 5000 }
 		);
-
-		expect(purposeTrigger).toBeDefined();
-		if (!purposeTrigger) {
-			throw new Error('Expected purpose trigger to exist');
-		}
 
 		const purposeItem = purposeTrigger.closest(
 			'[data-testid^="purpose-item-"]'
