@@ -2,16 +2,25 @@
  * c15t Embed Script
  *
  * Self-executing entry point for CMS platforms (Framer, WordPress, Webflow).
- * Paste a single script tag and get consent management:
  *
+ * Prestyled mode (default):
  * ```html
- * <script src="https://consent.io/c15t.js" data-backend="https://your-c15t.com"></script>
+ * <script src="c15t.js" data-backend="https://your-c15t.com"></script>
+ * ```
+ *
+ * Headless mode (for custom UI builders):
+ * ```html
+ * <script src="c15t.js" data-backend="https://your-c15t.com" data-headless="true"></script>
+ * <script>
+ *   window.c15t.on('ready', () => { /* build your own UI *\/ });
+ * </script>
  * ```
  */
 
 import { getOrCreateConsentRuntime } from 'c15t';
 import { parseEmbedConfig } from './config';
 import { registerCustomElement } from './custom-element';
+import { mountHeadlessAPI } from './headless';
 import { observeDOM, scanDOM } from './scanner';
 import { createUIRenderer } from './ui/renderer';
 
@@ -50,10 +59,21 @@ async function boot(config: NonNullable<ReturnType<typeof parseEmbedConfig>>) {
 		{ pkg: '@c15t/embed', version: '0.0.1' }
 	);
 
-	// ─── Step 4: Set up the UI renderer ───────────────────────────────────────
-	createUIRenderer(consentStore);
+	// ─── Step 4: Mount headless API (always available) ────────────────────────
+	mountHeadlessAPI(consentStore);
 
-	// ─── Step 5: Watch for dynamically added scripts ──────────────────────────
+	if (config.debug) {
+		console.log(
+			`[c15t] Headless API mounted on window.c15t${config.headless ? ' (headless mode)' : ''}`
+		);
+	}
+
+	// ─── Step 5: Set up UI (skip in headless mode) ────────────────────────────
+	if (!config.headless) {
+		createUIRenderer(consentStore);
+	}
+
+	// ─── Step 6: Watch for dynamically added scripts ──────────────────────────
 	observeDOM((newScripts) => {
 		const state = consentStore.getState();
 		const existingIds = new Set(state.scripts.map((s) => s.id));
