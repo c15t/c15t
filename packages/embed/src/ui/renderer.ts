@@ -11,6 +11,7 @@ type ConsentStore = ConsentRuntimeResult['consentStore'];
 
 let bannerEl: HTMLElement | null = null;
 let dialogInstance: { element: HTMLElement; destroy: () => void } | null = null;
+let isCreatingDialog = false;
 
 function showBanner(store: ConsentStore): void {
 	if (bannerEl) return;
@@ -46,13 +47,16 @@ function hideBanner(): void {
 }
 
 function showDialog(store: ConsentStore): void {
-	if (dialogInstance) return;
+	if (dialogInstance || isCreatingDialog) return;
+	isCreatingDialog = true;
 
 	try {
 		dialogInstance = createDialog(store);
 		document.body.appendChild(dialogInstance.element);
 	} catch (e) {
 		console.error('[c15t] Failed to create consent dialog:', e);
+	} finally {
+		isCreatingDialog = false;
 	}
 }
 
