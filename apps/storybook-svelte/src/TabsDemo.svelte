@@ -60,6 +60,7 @@
 				role="tab"
 				type="button"
 				aria-selected={String(activeTab === tab)}
+				data-state={activeTab === tab ? 'active' : 'inactive'}
 				data-value={tab}
 				tabindex={activeTab === tab ? 0 : -1}
 				onclick={() => { activeTab = tab; }}

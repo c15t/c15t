@@ -56,6 +56,7 @@ export const Single: Story = {
 				itemClass: variants.item(),
 				triggerClass: variants.trigger(),
 				contentClass: variants.content(),
+				contentInnerClass: variants.contentInner(),
 				necessaryTitle: consentTypes.necessary.title,
 				necessaryDesc: consentTypes.necessary.description,
 				measurementTitle: consentTypes.measurement.title,
@@ -65,22 +66,26 @@ export const Single: Story = {
 		template: `
 			<div style="display:grid;gap:0.75rem;width:28rem">
 				<div :class="rootClass">
-					<div :class="itemClass" :data-state="itemState('purpose-1')">
+					<div :class="itemClass" data-slot="accordion-item" :data-state="itemState('purpose-1')">
 						<button :class="triggerClass" type="button" @click="toggleItem('purpose-1')">
 							<span>{{ necessaryTitle }}</span>
 							<span aria-hidden="true">{{ itemOpen('purpose-1') ? '-' : '+' }}</span>
 						</button>
-						<div :class="contentClass" :data-state="itemState('purpose-1')" v-show="itemOpen('purpose-1')">
-							{{ necessaryDesc }}
+						<div :class="contentClass" data-slot="accordion-content" :data-state="itemState('purpose-1')">
+							<div data-slot="accordion-content-viewport">
+								<div :class="contentInnerClass">{{ necessaryDesc }}</div>
+							</div>
 						</div>
 					</div>
-					<div :class="itemClass" :data-state="itemState('purpose-2')">
+					<div :class="itemClass" data-slot="accordion-item" :data-state="itemState('purpose-2')">
 						<button :class="triggerClass" type="button" @click="toggleItem('purpose-2')">
 							<span>{{ measurementTitle }}</span>
 							<span aria-hidden="true">{{ itemOpen('purpose-2') ? '-' : '+' }}</span>
 						</button>
-						<div :class="contentClass" :data-state="itemState('purpose-2')" v-show="itemOpen('purpose-2')">
-							{{ measurementDesc }}
+						<div :class="contentClass" data-slot="accordion-content" :data-state="itemState('purpose-2')">
+							<div data-slot="accordion-content-viewport">
+								<div :class="contentInnerClass">{{ measurementDesc }}</div>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -117,6 +122,7 @@ export const Multiple: Story = {
 				itemClass: variants.item(),
 				triggerClass: variants.trigger(),
 				contentClass: variants.content(),
+				contentInnerClass: variants.contentInner(),
 				marketingTitle: consentTypes.marketing.title,
 				marketingDesc: consentTypes.marketing.description,
 				functionalityTitle: consentTypes.functionality.title,
@@ -126,22 +132,26 @@ export const Multiple: Story = {
 		template: `
 			<div style="display:grid;gap:0.75rem;width:28rem">
 				<div :class="rootClass">
-					<div :class="itemClass" :data-state="itemState('purpose-1')">
+					<div :class="itemClass" data-slot="accordion-item" :data-state="itemState('purpose-1')">
 						<button :class="triggerClass" type="button" @click="toggleItem('purpose-1')">
 							<span>{{ marketingTitle }}</span>
 							<span aria-hidden="true">{{ itemOpen('purpose-1') ? '-' : '+' }}</span>
 						</button>
-						<div :class="contentClass" :data-state="itemState('purpose-1')" v-show="itemOpen('purpose-1')">
-							{{ marketingDesc }}
+						<div :class="contentClass" data-slot="accordion-content" :data-state="itemState('purpose-1')">
+							<div data-slot="accordion-content-viewport">
+								<div :class="contentInnerClass">{{ marketingDesc }}</div>
+							</div>
 						</div>
 					</div>
-					<div :class="itemClass" :data-state="itemState('purpose-2')">
+					<div :class="itemClass" data-slot="accordion-item" :data-state="itemState('purpose-2')">
 						<button :class="triggerClass" type="button" @click="toggleItem('purpose-2')">
 							<span>{{ functionalityTitle }}</span>
 							<span aria-hidden="true">{{ itemOpen('purpose-2') ? '-' : '+' }}</span>
 						</button>
-						<div :class="contentClass" :data-state="itemState('purpose-2')" v-show="itemOpen('purpose-2')">
-							{{ functionalityDesc }}
+						<div :class="contentClass" data-slot="accordion-content" :data-state="itemState('purpose-2')">
+							<div data-slot="accordion-content-viewport">
+								<div :class="contentInnerClass">{{ functionalityDesc }}</div>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -178,6 +188,7 @@ export const WithIntroduction: Story = {
 				itemClass: variants.item(),
 				triggerClass: variants.trigger(),
 				contentClass: variants.content(),
+				contentInnerClass: variants.contentInner(),
 				dialogTitle: consentManagerDialog.title,
 				dialogDesc: consentManagerDialog.description,
 				necessaryTitle: consentTypes.necessary.title,
@@ -193,22 +204,26 @@ export const WithIntroduction: Story = {
 					<p style="color:var(--c15t-text-muted);margin:0">{{ dialogDesc }}</p>
 				</div>
 				<div :class="rootClass">
-					<div :class="itemClass" :data-state="itemState('purpose-1')">
+					<div :class="itemClass" data-slot="accordion-item" :data-state="itemState('purpose-1')">
 						<button :class="triggerClass" type="button" @click="toggleItem('purpose-1')">
 							<span>{{ necessaryTitle }}</span>
 							<span aria-hidden="true">{{ itemOpen('purpose-1') ? '-' : '+' }}</span>
 						</button>
-						<div :class="contentClass" :data-state="itemState('purpose-1')" v-show="itemOpen('purpose-1')">
-							{{ necessaryDesc }}
+						<div :class="contentClass" data-slot="accordion-content" :data-state="itemState('purpose-1')">
+							<div data-slot="accordion-content-viewport">
+								<div :class="contentInnerClass">{{ necessaryDesc }}</div>
+							</div>
 						</div>
 					</div>
-					<div :class="itemClass" :data-state="itemState('purpose-2')">
+					<div :class="itemClass" data-slot="accordion-item" :data-state="itemState('purpose-2')">
 						<button :class="triggerClass" type="button" @click="toggleItem('purpose-2')">
 							<span>{{ measurementTitle }}</span>
 							<span aria-hidden="true">{{ itemOpen('purpose-2') ? '-' : '+' }}</span>
 						</button>
-						<div :class="contentClass" :data-state="itemState('purpose-2')" v-show="itemOpen('purpose-2')">
-							{{ measurementDesc }}
+						<div :class="contentClass" data-slot="accordion-content" :data-state="itemState('purpose-2')">
+							<div data-slot="accordion-content-viewport">
+								<div :class="contentInnerClass">{{ measurementDesc }}</div>
+							</div>
 						</div>
 					</div>
 				</div>

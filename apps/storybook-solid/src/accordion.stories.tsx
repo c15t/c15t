@@ -7,7 +7,7 @@ import {
 	multipleModeToggle,
 	singleModeToggle,
 } from '@c15t/storybook-tests/play/accordion';
-import { createSignal, For, Show } from 'solid-js';
+import { createSignal, For } from 'solid-js';
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 import { enTranslations } from '../../../packages/translations/src';
 
@@ -34,47 +34,47 @@ function AccordionDemo(props: AccordionDemoProps) {
 			style={{ display: 'grid', gap: '0.75rem', width: '28rem' }}
 		>
 			<For each={props.items}>
-				{(item) => (
-					<div
-						class={classes.item()}
-						data-state={getAccordionItemState(props.type, value(), item.value)}
-					>
-						<button
-							class={classes.trigger()}
-							type="button"
-							onClick={() =>
-								setValue(
-									toggleAccordionValue({
-										type: props.type,
-										value: value(),
-										itemValue: item.value,
-										collapsible: props.collapsible,
-									})
-								)
-							}
+				{(item) => {
+					const itemState = () =>
+						getAccordionItemState(props.type, value(), item.value);
+
+					return (
+						<div
+							class={classes.item()}
+							data-slot="accordion-item"
+							data-state={itemState()}
 						>
-							<span>{item.title}</span>
-							<span aria-hidden="true">+</span>
-						</button>
-						<Show
-							when={
-								getAccordionItemState(props.type, value(), item.value) ===
-								'open'
-							}
-						>
+							<button
+								class={classes.trigger()}
+								type="button"
+								onClick={() =>
+									setValue(
+										toggleAccordionValue({
+											type: props.type,
+											value: value(),
+											itemValue: item.value,
+											collapsible: props.collapsible,
+										})
+									)
+								}
+							>
+								<span>{item.title}</span>
+								<span aria-hidden="true">
+									{itemState() === 'open' ? '-' : '+'}
+								</span>
+							</button>
 							<div
 								class={classes.content()}
-								data-state={getAccordionItemState(
-									props.type,
-									value(),
-									item.value
-								)}
+								data-slot="accordion-content"
+								data-state={itemState()}
 							>
-								{item.content}
+								<div data-slot="accordion-content-viewport">
+									<div class={classes.contentInner()}>{item.content}</div>
+								</div>
 							</div>
-						</Show>
-					</div>
-				)}
+						</div>
+					);
+				}}
 			</For>
 		</div>
 	);

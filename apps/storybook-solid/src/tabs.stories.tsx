@@ -78,6 +78,7 @@ function TabsDemo(props: { tabs?: Tab[] }) {
 							role="tab"
 							type="button"
 							aria-selected={String(active() === tab.value)}
+							data-state={active() === tab.value ? 'active' : 'inactive'}
 							data-value={tab.value}
 							tabIndex={active() === tab.value ? 0 : -1}
 							onClick={() => setActive(tab.value)}
@@ -178,6 +179,7 @@ export const Controlled: Story = {
 						role="tab"
 						type="button"
 						aria-selected={String(value() === 'overview')}
+						data-state={value() === 'overview' ? 'active' : 'inactive'}
 						data-value="overview"
 						tabIndex={value() === 'overview' ? 0 : -1}
 						onClick={() => setValue('overview')}
@@ -189,6 +191,7 @@ export const Controlled: Story = {
 						role="tab"
 						type="button"
 						aria-selected={String(value() === 'vendors')}
+						data-state={value() === 'vendors' ? 'active' : 'inactive'}
 						data-value="vendors"
 						tabIndex={value() === 'vendors' ? 0 : -1}
 						onClick={() => setValue('vendors')}

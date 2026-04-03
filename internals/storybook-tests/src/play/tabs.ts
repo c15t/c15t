@@ -10,12 +10,16 @@ export const tabSwitching: PlayFunction = async ({ canvasElement }) => {
 
 	// First tab should be selected by default
 	await expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+	await expect(tabs[0]).toHaveAttribute('data-state', 'active');
 	await expect(tabs[1]).toHaveAttribute('aria-selected', 'false');
+	await expect(tabs[1]).toHaveAttribute('data-state', 'inactive');
 
 	// Click second tab
 	await userEvent.click(tabs[1]!);
 	await expect(tabs[0]).toHaveAttribute('aria-selected', 'false');
+	await expect(tabs[0]).toHaveAttribute('data-state', 'inactive');
 	await expect(tabs[1]).toHaveAttribute('aria-selected', 'true');
+	await expect(tabs[1]).toHaveAttribute('data-state', 'active');
 
 	// Verify only active panel is visible
 	const panels = canvas.getAllByRole('tabpanel');

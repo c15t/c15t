@@ -33,7 +33,7 @@
 		<p style="color:var(--c15t-text-muted);margin:0;">{introDescription}</p>
 	</div>
 	<div class={classes.root()}>
-		<div class={classes.item()} data-state={getAccordionItemState('single', value, 'purpose-1')}>
+		<div class={classes.item()} data-slot="accordion-item" data-state={getAccordionItemState('single', value, 'purpose-1')}>
 			<button
 				class={classes.trigger()}
 				type="button"
@@ -49,15 +49,15 @@
 				<span>{item1Title}</span>
 				<span aria-hidden="true">{getAccordionItemState('single', value, 'purpose-1') === 'open' ? '-' : '+'}</span>
 			</button>
-			<div class={classes.content()} data-state={getAccordionItemState('single', value, 'purpose-1')}>
-				{#if getAccordionItemState('single', value, 'purpose-1') === 'open'}
+			<div class={classes.content()} data-slot="accordion-content" data-state={getAccordionItemState('single', value, 'purpose-1')}>
+				<div data-slot="accordion-content-viewport">
 					<div class={classes.contentInner()}>
 						<p style="margin:0;">{item1Description}</p>
 					</div>
-				{/if}
+				</div>
 			</div>
 		</div>
-		<div class={classes.item()} data-state={getAccordionItemState('single', value, 'purpose-2')}>
+		<div class={classes.item()} data-slot="accordion-item" data-state={getAccordionItemState('single', value, 'purpose-2')}>
 			<button
 				class={classes.trigger()}
 				type="button"
@@ -73,12 +73,12 @@
 				<span>{item2Title}</span>
 				<span aria-hidden="true">{getAccordionItemState('single', value, 'purpose-2') === 'open' ? '-' : '+'}</span>
 			</button>
-			<div class={classes.content()} data-state={getAccordionItemState('single', value, 'purpose-2')}>
-				{#if getAccordionItemState('single', value, 'purpose-2') === 'open'}
+			<div class={classes.content()} data-slot="accordion-content" data-state={getAccordionItemState('single', value, 'purpose-2')}>
+				<div data-slot="accordion-content-viewport">
 					<div class={classes.contentInner()}>
 						<p style="margin:0;">{item2Description}</p>
 					</div>
-				{/if}
+				</div>
 			</div>
 		</div>
 	</div>
