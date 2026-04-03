@@ -73,6 +73,7 @@
 
 @layer components {
 	.root {
+		box-sizing: border-box;
 		isolation: isolate;
 		font-family: var(--consent-dialog-font-family);
 		line-height: var(--consent-dialog-line-height);

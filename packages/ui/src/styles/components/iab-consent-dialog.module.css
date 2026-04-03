@@ -46,6 +46,7 @@
 @layer components {
 	/* Root container */
 	.root {
+		box-sizing: border-box;
 		isolation: isolate;
 		font-family: var(--iab-cd-font-family);
 		line-height: var(--iab-cd-line-height);
