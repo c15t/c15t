@@ -7,7 +7,7 @@
 	},
 	"scripts": {
 		"build": "tsc --noEmit",
-		"test": "vitest run"
+		"test": "vitest run --passWithNoTests"
 	},
 	"dependencies": {
 		"@c15t/ui": "workspace:*",
