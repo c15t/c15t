@@ -44,7 +44,7 @@
 	/* Layout */
 	--consent-dialog-card-radius: var(--c15t-radius-lg);
 	--consent-dialog-max-width: 28rem;
-	--consent-dialog-height: 80%;
+	--consent-dialog-height: 100%;
 	--consent-dialog-z-index: 999999999;
 	--consent-dialog-overlay-z-index: 999999998;
 
@@ -142,6 +142,9 @@
 
 	.container {
 		width: 100%;
+		max-height: 100%;
+		display: flex;
+		flex-direction: column;
 	}
 
 	.branding {
