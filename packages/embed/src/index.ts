@@ -12,7 +12,11 @@
  * ```html
  * <script src="c15t.js" data-backend="https://your-c15t.com" data-headless="true"></script>
  * <script>
- *   window.c15tStore.on('ready', () => { /* build your own UI *\/ });
+ *   // The raw Zustand store is on window.c15tStore (set by core):
+ *   window.c15tStore.getState().saveConsents('all');
+ *
+ *   // Convenience event API (added by embed):
+ *   window.c15tStore.c15t.on('consent', (consents) => { ... });
  * </script>
  * ```
  */
@@ -20,7 +24,7 @@
 import { getOrCreateConsentRuntime } from 'c15t';
 import { parseEmbedConfig } from './config';
 import { registerCustomElement } from './custom-element';
-import { mountHeadlessAPI } from './headless';
+import { attachEmbedAPI } from './headless';
 import { observeDOM, scanDOM } from './scanner';
 import { createUIRenderer } from './ui/renderer';
 
@@ -47,6 +51,7 @@ async function boot(config: NonNullable<ReturnType<typeof parseEmbedConfig>>) {
 	// ─── Step 3: Create the consent runtime ───────────────────────────────────
 	// This fires /init immediately (parallel with DOM setup),
 	// reads stored consent, and loads consented scripts.
+	// The core store automatically mounts on window.c15tStore.
 	const { consentStore } = getOrCreateConsentRuntime(
 		{
 			mode: config.mode,
@@ -59,12 +64,13 @@ async function boot(config: NonNullable<ReturnType<typeof parseEmbedConfig>>) {
 		{ pkg: '@c15t/embed', version: '0.0.1' }
 	);
 
-	// ─── Step 4: Mount headless API (always available) ────────────────────────
-	mountHeadlessAPI(consentStore);
+	// ─── Step 4: Attach embed convenience API ─────────────────────────────────
+	// Adds event helpers on window.c15tStore.c15t (does NOT overwrite the store)
+	attachEmbedAPI(consentStore);
 
 	if (config.debug) {
 		console.log(
-			`[c15t] Headless API mounted on window.c15tStore${config.headless ? ' (headless mode)' : ''}`
+			`[c15t] Store available on window.c15tStore${config.headless ? ' (headless mode)' : ''}`
 		);
 	}
 

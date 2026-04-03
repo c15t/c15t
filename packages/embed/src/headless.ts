@@ -1,20 +1,21 @@
 /**
- * Headless API — exposed on `window.c15tStoreStore` for custom builders.
+ * Headless convenience API — mounted on `window.c15tStore.c15t` alongside
+ * the existing Zustand store that core already places on `window.c15tStore`.
  *
- * Provides a simple imperative API over the consent runtime store
- * for developers who want to build their own consent UI (like Zed).
+ * The raw Zustand store (`window.c15tStore.getState()`, `.subscribe()`) is
+ * always available. This module adds a simpler event-based layer for embed
+ * users who don't want to deal with Zustand directly.
  *
  * @example
  * ```html
  * <script src="c15t.js" data-backend="..." data-headless="true"></script>
  * <script>
- *   window.c15tStore.on('ready', (state) => {
- *     console.log('Categories:', window.c15tStore.getCategories());
- *     // Build your own UI here
- *   });
+ *   // Raw store (always available — set by c15t core):
+ *   const state = window.c15tStore.getState();
+ *   state.saveConsents('all');
  *
- *   // Later, when user consents:
- *   window.c15tStore.saveConsents('all');
+ *   // Convenience API (added by embed):
+ *   window.c15tStore.c15t.on('consent', (consents) => { ... });
  * </script>
  * ```
  */
@@ -24,53 +25,28 @@ import type { ConsentRuntimeResult } from 'c15t';
 type ConsentStore = ConsentRuntimeResult['consentStore'];
 type Listener = (...args: unknown[]) => void;
 
-export interface C15tHeadlessAPI {
-	/** Get current saved consent state */
-	getConsents(): Record<string, boolean>;
-
-	/** Get available consent categories with their metadata */
-	getCategories(): Array<{
-		name: string;
-		title: string;
-		description: string;
-		disabled: boolean;
-	}>;
-
-	/**
-	 * Save consent preferences.
-	 * - `'all'` — enable all consents
-	 * - `'necessary'` — only necessary consents
-	 * - `'custom'` + preferences object — specific choices
-	 */
-	saveConsents(
-		type: 'all' | 'necessary' | 'custom',
-		preferences?: Record<string, boolean>
-	): void;
-
-	/** Show the consent banner */
-	showBanner(): void;
-
-	/** Show the consent dialog (preferences) */
-	showDialog(): void;
-
-	/** Hide all consent UI */
-	hideUI(): void;
-
+export interface C15tEmbedAPI {
 	/**
 	 * Subscribe to events.
 	 * - `'ready'` — runtime initialized, consent state available
 	 * - `'consent'` — consent state changed
 	 */
 	on(event: 'ready' | 'consent', callback: Listener): () => void;
+
+	/** Get consent categories with their display metadata */
+	getCategories(): Array<{
+		name: string;
+		title: string;
+		description: string;
+		disabled: boolean;
+	}>;
 }
 
-declare global {
-	interface Window {
-		c15tStore?: C15tHeadlessAPI;
-	}
-}
-
-export function createHeadlessAPI(store: ConsentStore): C15tHeadlessAPI {
+/**
+ * Creates the embed convenience API and attaches it to the existing store
+ * as `store.c15t`. Does NOT overwrite `window.c15tStore`.
+ */
+export function attachEmbedAPI(store: ConsentStore): C15tEmbedAPI {
 	const listeners: Record<string, Set<Listener>> = {
 		ready: new Set(),
 		consent: new Set(),
@@ -78,7 +54,7 @@ export function createHeadlessAPI(store: ConsentStore): C15tHeadlessAPI {
 
 	let readyFired = false;
 
-	// Subscribe to consent changes
+	// Subscribe to store changes for event dispatching
 	store.subscribe((state, prevState) => {
 		// Fire ready once when init completes
 		if (!readyFired && state.consentInfo !== null) {
@@ -104,49 +80,7 @@ export function createHeadlessAPI(store: ConsentStore): C15tHeadlessAPI {
 		}
 	});
 
-	const api: C15tHeadlessAPI = {
-		getConsents() {
-			return { ...store.getState().consents };
-		},
-
-		getCategories() {
-			const state = store.getState();
-			return state.consentTypes.map((ct) => ({
-				name: ct.name,
-				title: ct.title ?? ct.name,
-				description: ct.description ?? '',
-				disabled: ct.disabled ?? false,
-			}));
-		},
-
-		saveConsents(type, preferences) {
-			const state = store.getState();
-			if (type === 'custom' && preferences) {
-				// Set each preference before saving
-				for (const [name, value] of Object.entries(preferences)) {
-					state.setSelectedConsent(
-						name as Parameters<typeof state.setSelectedConsent>[0],
-						value
-					);
-				}
-				state.saveConsents('custom');
-			} else {
-				state.saveConsents(type as 'all' | 'necessary');
-			}
-		},
-
-		showBanner() {
-			store.getState().setActiveUI('banner', { force: true });
-		},
-
-		showDialog() {
-			store.getState().setActiveUI('dialog');
-		},
-
-		hideUI() {
-			store.getState().setActiveUI('none');
-		},
-
+	const api: C15tEmbedAPI = {
 		on(event, callback) {
 			const set = listeners[event];
 			if (!set) return () => {};
@@ -166,16 +100,21 @@ export function createHeadlessAPI(store: ConsentStore): C15tHeadlessAPI {
 				set.delete(callback);
 			};
 		},
+
+		getCategories() {
+			const state = store.getState();
+			return state.consentTypes.map((ct) => ({
+				name: ct.name,
+				title: ct.title ?? ct.name,
+				description: ct.description ?? '',
+				disabled: ct.disabled ?? false,
+			}));
+		},
 	};
 
-	return api;
-}
+	// Attach to the existing store object (don't overwrite it)
+	// biome-ignore lint/suspicious/noExplicitAny: extending the store object
+	(store as any).c15t = api;
 
-/**
- * Mount the headless API on `window.c15tStore`.
- */
-export function mountHeadlessAPI(store: ConsentStore): C15tHeadlessAPI {
-	const api = createHeadlessAPI(store);
-	window.c15tStore = api;
 	return api;
 }

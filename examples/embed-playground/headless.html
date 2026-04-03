@@ -81,8 +81,8 @@
   <div class="custom-banner" id="my-banner">
     <p>This site uses cookies. We respect your privacy.</p>
     <div class="buttons">
-      <button class="btn-reject" onclick="window.c15tStore?.saveConsents('necessary')">Decline</button>
-      <button class="btn-accept" onclick="window.c15tStore?.saveConsents('all')">Accept</button>
+      <button class="btn-reject" onclick="window.c15tStore?.getState()?.saveConsents('necessary')">Decline</button>
+      <button class="btn-accept" onclick="window.c15tStore?.getState()?.saveConsents('all')">Accept</button>
     </div>
   </div>
 
@@ -90,23 +90,24 @@
   <script src="../../packages/embed/dist/c15t.js" data-backend="http://localhost:3000" data-headless="true" data-debug="true"></script>
 
   <script>
-    // Wait for the API to be available, then show our custom banner
+    // Wait for the store to be available, then show our custom banner
     function init() {
       if (!window.c15tStore) {
         setTimeout(init, 50);
         return;
       }
 
-      const consents = window.c15tStore.getConsents();
-      const hasConsented = Object.values(consents).some(v => v === true && v !== undefined);
+      const store = window.c15tStore;
+      const consents = store.getState().consents;
+      const hasConsented = Object.values(consents).some(v => v === true);
 
       // Only show banner if no prior consent
       if (!hasConsented || !consents.necessary) {
         document.getElementById('my-banner').classList.add('visible');
       }
 
-      // Hide banner when consent is saved
-      window.c15tStore.on('consent', () => {
+      // Hide banner when consent is saved (using the embed convenience API)
+      store.c15t.on('consent', () => {
         document.getElementById('my-banner').classList.remove('visible');
       });
     }

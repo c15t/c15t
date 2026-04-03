@@ -4,24 +4,13 @@
  */
 
 import type { ConsentRuntimeResult } from 'c15t';
-import { createBanner } from './banner';
+import { animateBannerOut, createBanner } from './banner';
 import { createDialog } from './dialog';
-import { injectThemeCSS } from './theme';
 
 type ConsentStore = ConsentRuntimeResult['consentStore'];
 
 let bannerEl: HTMLElement | null = null;
 let dialogInstance: { element: HTMLElement; destroy: () => void } | null = null;
-let containerEl: HTMLElement | null = null;
-
-function getContainer(): HTMLElement {
-	if (!containerEl) {
-		containerEl = document.createElement('div');
-		containerEl.id = 'c15t-embed-root';
-		document.body.appendChild(containerEl);
-	}
-	return containerEl;
-}
 
 function showBanner(store: ConsentStore): void {
 	if (bannerEl) return;
@@ -44,21 +33,16 @@ function showBanner(store: ConsentStore): void {
 		translations
 	);
 
-	getContainer().appendChild(bannerEl);
+	document.body.appendChild(bannerEl);
 }
 
 function hideBanner(): void {
 	if (!bannerEl) return;
 
-	bannerEl.style.animation =
-		'c15t-fade-out var(--c15t-duration-fast, 150ms) var(--c15t-easing, ease) forwards';
-
 	const el = bannerEl;
 	bannerEl = null;
 
-	setTimeout(() => {
-		el.remove();
-	}, 200);
+	animateBannerOut(el, () => el.remove());
 }
 
 function showDialog(store: ConsentStore): void {
@@ -105,8 +89,6 @@ function extractTranslations(state: ReturnType<ConsentStore['getState']>) {
  * and shows/hides the banner/dialog based on `activeUI` state.
  */
 export function createUIRenderer(store: ConsentStore): void {
-	injectThemeCSS();
-
 	store.subscribe((state) => {
 		switch (state.activeUI) {
 			case 'banner':

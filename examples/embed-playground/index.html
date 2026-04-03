@@ -139,29 +139,28 @@
       output.scrollTop = output.scrollHeight;
     }
 
-    // Listen for consent events
-    if (window.c15tStore) {
-      window.c15tStore.on('ready', (state) => log('Event: ready — ' + JSON.stringify(state)));
-      window.c15tStore.on('consent', (consents) => log('Event: consent — ' + JSON.stringify(consents)));
-    } else {
-      log('window.c15tStore not yet available (embed may still be loading)');
-      // Retry after a tick
-      setTimeout(() => {
-        if (window.c15tStore) {
-          window.c15tStore.on('ready', (state) => log('Event: ready — ' + JSON.stringify(state)));
-          window.c15tStore.on('consent', (consents) => log('Event: consent — ' + JSON.stringify(consents)));
-          log('window.c15tStore connected');
-        }
-      }, 100);
+    // The raw Zustand store is on window.c15tStore (set by c15t core)
+    // The embed adds convenience event API on window.c15tStore.c15t
+    function waitForStore(cb) {
+      if (window.c15tStore) { cb(); return; }
+      log('Waiting for store...');
+      setTimeout(() => waitForStore(cb), 50);
     }
 
-    function logConsents() { log(window.c15tStore?.getConsents() ?? 'c15t not ready'); }
-    function logCategories() { log(window.c15tStore?.getCategories() ?? 'c15t not ready'); }
-    function showBanner() { window.c15tStore?.showBanner(); log('showBanner()'); }
-    function showDialog() { window.c15tStore?.showDialog(); log('showDialog()'); }
-    function hideUI() { window.c15tStore?.hideUI(); log('hideUI()'); }
-    function acceptAll() { window.c15tStore?.saveConsents('all'); log('saveConsents("all")'); }
-    function rejectAll() { window.c15tStore?.saveConsents('necessary'); log('saveConsents("necessary")'); }
+    waitForStore(() => {
+      const store = window.c15tStore;
+      log('Store connected: window.c15tStore');
+      store.c15t.on('ready', (state) => log('Event: ready — ' + JSON.stringify(state)));
+      store.c15t.on('consent', (consents) => log('Event: consent — ' + JSON.stringify(consents)));
+    });
+
+    function logConsents() { log(window.c15tStore?.getState()?.consents ?? 'not ready'); }
+    function logCategories() { log(window.c15tStore?.c15t?.getCategories() ?? 'not ready'); }
+    function showBanner() { window.c15tStore?.getState()?.setActiveUI('banner', { force: true }); log('showBanner()'); }
+    function showDialog() { window.c15tStore?.getState()?.setActiveUI('dialog'); log('showDialog()'); }
+    function hideUI() { window.c15tStore?.getState()?.setActiveUI('none'); log('hideUI()'); }
+    function acceptAll() { window.c15tStore?.getState()?.saveConsents('all'); log('saveConsents("all")'); }
+    function rejectAll() { window.c15tStore?.getState()?.saveConsents('necessary'); log('saveConsents("necessary")'); }
     function clearStorage() {
       localStorage.removeItem('c15t');
       document.cookie = 'c15t=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
