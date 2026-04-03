@@ -534,6 +534,21 @@
         "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",
       },
     },
+    "packages/embed": {
+      "name": "@c15t/embed",
+      "version": "0.0.1",
+      "dependencies": {
+        "@c15t/schema": "workspace:*",
+        "@c15t/scripts": "workspace:*",
+        "@c15t/translations": "workspace:*",
+        "@c15t/ui": "workspace:*",
+        "c15t": "workspace:*",
+      },
+      "devDependencies": {
+        "@c15t/typescript-config": "workspace:*",
+        "@rsbuild/core": "1.7.5",
+      },
+    },
     "packages/iab": {
       "name": "@c15t/iab",
       "version": "2.0.0-rc.5",
@@ -890,6 +905,8 @@
     "@c15t/core-benchmarks": ["@c15t/core-benchmarks@workspace:benchmarks/core-benchmarks"],
 
     "@c15t/dev-tools": ["@c15t/dev-tools@workspace:packages/dev-tools"],
+
+    "@c15t/embed": ["@c15t/embed@workspace:packages/embed"],
 
     "@c15t/iab": ["@c15t/iab@workspace:packages/iab"],
 

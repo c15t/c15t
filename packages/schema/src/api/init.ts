@@ -218,6 +218,102 @@ export const initOutputSchema = v.object({
 	 * Present when backend policy snapshots are configured.
 	 */
 	policySnapshotToken: v.optional(v.string()),
+	/**
+	 * Server-driven script manifests for the embed path.
+	 * Present when the requesting domain has scripts configured in the dashboard.
+	 * The embed runtime resolves these into Script objects via `resolveManifest()`.
+	 */
+	scripts: v.optional(
+		v.array(
+			v.object({
+				id: v.string(),
+				/** Built-in vendor name (maps to a pre-built manifest) */
+				vendor: v.optional(v.string()),
+				/** Vendor-specific configuration values */
+				vendorConfig: v.optional(v.record(v.string(), v.unknown())),
+				/** External script URL (for custom/non-vendor scripts) */
+				src: v.optional(v.string()),
+				/** Inline JavaScript (for custom/non-vendor scripts) */
+				textContent: v.optional(v.string()),
+				/** Consent category required */
+				category: v.string(),
+				/** Install steps */
+				install: v.optional(
+					v.array(
+						v.object({
+							type: v.picklist([
+								'loadScript',
+								'setGlobal',
+								'callGlobal',
+								'pushToDataLayer',
+								'inlineScript',
+							]),
+							/** Additional step-specific fields */
+							src: v.optional(v.string()),
+							name: v.optional(v.string()),
+							global: v.optional(v.string()),
+							method: v.optional(v.string()),
+							code: v.optional(v.string()),
+							value: v.optional(v.unknown()),
+							args: v.optional(v.array(v.unknown())),
+							data: v.optional(v.record(v.string(), v.unknown())),
+							async: v.optional(v.boolean()),
+							defer: v.optional(v.boolean()),
+							attributes: v.optional(v.record(v.string(), v.string())),
+						})
+					)
+				),
+				onConsentGranted: v.optional(
+					v.array(
+						v.object({
+							type: v.picklist([
+								'loadScript',
+								'setGlobal',
+								'callGlobal',
+								'pushToDataLayer',
+								'inlineScript',
+							]),
+							src: v.optional(v.string()),
+							name: v.optional(v.string()),
+							global: v.optional(v.string()),
+							method: v.optional(v.string()),
+							code: v.optional(v.string()),
+							value: v.optional(v.unknown()),
+							args: v.optional(v.array(v.unknown())),
+							data: v.optional(v.record(v.string(), v.unknown())),
+						})
+					)
+				),
+				onConsentDenied: v.optional(
+					v.array(
+						v.object({
+							type: v.picklist([
+								'loadScript',
+								'setGlobal',
+								'callGlobal',
+								'pushToDataLayer',
+								'inlineScript',
+							]),
+							src: v.optional(v.string()),
+							name: v.optional(v.string()),
+							global: v.optional(v.string()),
+							method: v.optional(v.string()),
+							code: v.optional(v.string()),
+							value: v.optional(v.unknown()),
+							args: v.optional(v.array(v.unknown())),
+							data: v.optional(v.record(v.string(), v.unknown())),
+						})
+					)
+				),
+				/** Maps c15t consent categories to vendor consent type names */
+				consentMapping: v.optional(v.record(v.string(), v.array(v.string()))),
+				/** How to signal consent state to the vendor */
+				consentSignal: v.optional(v.picklist(['gtag'])),
+				alwaysLoad: v.optional(v.boolean()),
+				persistAfterConsentRevoked: v.optional(v.boolean()),
+			})
+		)
+	),
 });
 
 export type InitOutput = v.InferOutput<typeof initOutputSchema>;

@@ -1,0 +1,14 @@
+{
+	"extends": "@c15t/typescript-config/base.json",
+	"compilerOptions": {
+		"rootDir": "src",
+		"moduleResolution": "bundler",
+		"paths": {
+			"c15t": ["../core/dist-types/index.d.ts"],
+			"c15t/*": ["../core/dist-types/*"],
+			"~/*": ["./src/*"]
+		}
+	},
+	"include": ["src"],
+	"exclude": ["node_modules"]
+}
