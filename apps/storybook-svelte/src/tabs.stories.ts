@@ -3,6 +3,7 @@ import {
 	tabSwitching,
 } from '@c15t/storybook-tests/play/tabs';
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
+import TabsControlledDemo from './TabsControlledDemo.svelte';
 import TabsDemo from './TabsDemo.svelte';
 
 const meta = {
@@ -23,4 +24,9 @@ export const Default: Story = {
 
 export const KeyboardNavigation: Story = {
 	play: keyboardNavigation,
+};
+
+export const Controlled: Story = {
+	// @ts-expect-error -- different component for this story
+	component: TabsControlledDemo,
 };

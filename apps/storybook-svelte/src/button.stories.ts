@@ -2,6 +2,7 @@ import { buttonRenders } from '@c15t/storybook-tests/play/button';
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
 import ButtonAllModesDemo from './ButtonAllModesDemo.svelte';
 import ButtonDemo from './ButtonDemo.svelte';
+import ButtonWithIconDemo from './ButtonWithIconDemo.svelte';
 
 const meta = {
 	component: ButtonDemo,
@@ -17,6 +18,11 @@ type Story = StoryObj<typeof meta>;
 
 export const Playground: Story = {
 	play: buttonRenders,
+};
+
+export const WithIcon: Story = {
+	// @ts-expect-error -- different component for this story
+	component: ButtonWithIconDemo,
 };
 
 export const NeutralGhost: Story = {

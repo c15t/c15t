@@ -32,6 +32,23 @@ export const Playground: Story = {
 	play: buttonRenders,
 };
 
+export const WithIcon: Story = {
+	render: () => {
+		const classes = buttonVariants({
+			variant: 'primary',
+			mode: 'filled',
+			size: 'medium',
+		});
+
+		return (
+			<button class={classes.root()} type="button">
+				<span class={classes.icon()}>+</span>
+				Open preferences
+			</button>
+		);
+	},
+};
+
 export const NeutralGhost: Story = {
 	render: () => {
 		const classes = buttonVariants({

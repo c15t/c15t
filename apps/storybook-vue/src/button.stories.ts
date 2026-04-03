@@ -27,6 +27,21 @@ export const Playground: Story = {
 	}),
 };
 
+export const WithIcon: Story = {
+	render: () => ({
+		setup() {
+			const classes = buttonVariants({ variant: 'primary', mode: 'filled' });
+			return { rootClass: classes.root(), iconClass: classes.icon() };
+		},
+		template: `
+			<button :class="rootClass" type="button">
+				<span :class="iconClass">+</span>
+				Open preferences
+			</button>
+		`,
+	}),
+};
+
 export const NeutralGhost: Story = {
 	render: () => ({
 		setup() {
