@@ -78,8 +78,12 @@ export function createDialog(store: ConsentStore): {
 	root.setAttribute('open', '');
 
 	// ─── Overlay ──────────────────────────────────────────────────────────
+	// The dialog root is position:fixed, so the overlay uses position:absolute
+	// within it (not fixed, which would escape the dialog's stacking context)
 	const overlay = document.createElement('div');
 	overlay.className = `${d.overlay} ${d.overlayVisible}`;
+	overlay.style.position = 'absolute';
+	overlay.style.zIndex = '0';
 
 	// ─── Container ────────────────────────────────────────────────────────
 	const container = document.createElement('div');
@@ -318,9 +322,15 @@ export function createDialog(store: ConsentStore): {
 	container.appendChild(card);
 	root.append(overlay, container);
 
-	// Close on overlay click
+	// Close on overlay click (but not when clicking inside the card)
 	overlay.addEventListener('click', () => {
 		store.getState().setActiveUI('none');
+	});
+	card.addEventListener('click', (e) => {
+		e.stopPropagation();
+	});
+	container.addEventListener('click', (e) => {
+		e.stopPropagation();
 	});
 
 	const onKeyDown = (e: KeyboardEvent) => {
