@@ -38,7 +38,9 @@ const DEP_FIELDS = [
 async function listDirs(dirPath: string): Promise<string[]> {
 	try {
 		const entries = await readdir(dirPath, { withFileTypes: true });
-		return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+		return entries
+			.filter((entry) => entry.isDirectory())
+			.map((entry) => entry.name);
 	} catch {
 		return [];
 	}
@@ -63,7 +65,11 @@ async function getWorkspacePackages(): Promise<WorkspacePackage[]> {
 		const subDirs = await listDirs(workspaceDirPath);
 
 		for (const subDir of subDirs) {
-			const packageJsonPath = path.join(workspaceDirPath, subDir, 'package.json');
+			const packageJsonPath = path.join(
+				workspaceDirPath,
+				subDir,
+				'package.json'
+			);
 			const manifest = await readPackageJson(packageJsonPath);
 			if (!manifest?.name) continue;
 
@@ -140,7 +146,10 @@ async function resolveAllWorkspaceDependencies() {
 					continue;
 				}
 
-				const resolvedRange = resolveWorkspaceProtocol(depRange, resolvedVersion);
+				const resolvedRange = resolveWorkspaceProtocol(
+					depRange,
+					resolvedVersion
+				);
 				if (resolvedRange !== depRange) {
 					deps[depName] = resolvedRange;
 					console.log(
@@ -153,7 +162,10 @@ async function resolveAllWorkspaceDependencies() {
 		}
 
 		if (modified) {
-			await writeFile(pkg.path, `${JSON.stringify(pkg.manifest, null, '\t')}\n`);
+			await writeFile(
+				pkg.path,
+				`${JSON.stringify(pkg.manifest, null, '\t')}\n`
+			);
 		}
 	}
 

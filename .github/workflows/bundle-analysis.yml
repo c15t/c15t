@@ -6,6 +6,10 @@ on:
   push:
     branches: ['main', 'canary']
 
+env:
+  TURBO_TOKEN: ${{ github.event_name == 'pull_request_target' && '' || secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ github.event_name == 'pull_request_target' && '' || secrets.TURBO_TEAM }}
+
 jobs:
   bundle-analysis:
     name: 📦 Bundle Size Analysis
@@ -27,9 +31,6 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       # Step 1: Checkout BASE repository (trusted code from main repo)
       - name: ⬇️ Check out base repository
@@ -82,9 +83,9 @@ jobs:
           # Copy rsdoctor data files
           find packages -name "rsdoctor-data.json" -exec cp --parents {} .bundle-base/ \; || true
 
-      # Step 3: Checkout PR code (untrusted) - only for PR events
-      # SECURITY: We checkout PR code after setting up environment from trusted base code
-      # The checkout action handles authentication securely for fork PRs
+      # Step 3: Checkout PR head (untrusted) after trusted base setup.
+      # pull_request_target exposes repo secrets to the workflow; TURBO_* is cleared
+      # in workflow env for this event while PR code runs.
       - name: ⬇️ Check out PR code
         if: github.event_name == 'pull_request_target'
         uses: actions/checkout@v4
