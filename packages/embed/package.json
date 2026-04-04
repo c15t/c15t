@@ -5,8 +5,8 @@
 	"description": "Standalone embed script for c15t consent management on CMS platforms.",
 	"type": "module",
 	"scripts": {
-		"build": "bunx esbuild src/index.ts --bundle --outfile=dist/c15t.js --format=iife --target=es2020 --platform=browser --minify --conditions=import",
-		"dev": "bunx esbuild src/index.ts --bundle --outfile=dist/c15t.js --format=iife --target=es2020 --platform=browser --conditions=import --watch",
+		"build": "bunx esbuild src/index.ts --bundle --outfile=dist/c15t.js --format=iife --target=es2020 --platform=browser --minify --conditions=import --loader:.module.css=text",
+		"dev": "bunx esbuild src/index.ts --bundle --outfile=dist/c15t.js --format=iife --target=es2020 --platform=browser --conditions=import --loader:.module.css=text --watch",
 		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
