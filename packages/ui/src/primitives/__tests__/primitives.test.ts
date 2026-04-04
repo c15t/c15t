@@ -63,22 +63,219 @@ describe('primitives helpers', () => {
 
 	test('tabs helpers derive state and keyboard navigation', () => {
 		expect(getTabState(true)).toBe('active');
+		expect(getTabState(false)).toBe('inactive');
+		expect(getTabPanelState(true)).toBe('active');
 		expect(getTabPanelState(false)).toBe('inactive');
-		expect(
-			getNextTabValue({
-				currentValue: 'one',
-				key: 'ArrowRight',
-				orientation: 'horizontal',
-				triggerValues: ['one', 'two', 'three'],
-			})
-		).toBe('two');
-		expect(
-			getNextTabValue({
-				currentValue: 'three',
-				key: 'ArrowDown',
-				orientation: 'vertical',
-				triggerValues: ['one', 'two', 'three'],
-			})
-		).toBe('one');
+	});
+
+	describe('getNextTabValue', () => {
+		const triggerValues = ['one', 'two', 'three'];
+
+		test('ArrowRight moves forward in horizontal mode', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'one',
+					key: 'ArrowRight',
+					orientation: 'horizontal',
+					triggerValues,
+				})
+			).toBe('two');
+		});
+
+		test('ArrowLeft moves backward in horizontal mode', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'two',
+					key: 'ArrowLeft',
+					orientation: 'horizontal',
+					triggerValues,
+				})
+			).toBe('one');
+		});
+
+		test('ArrowDown moves forward in vertical mode', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'one',
+					key: 'ArrowDown',
+					orientation: 'vertical',
+					triggerValues,
+				})
+			).toBe('two');
+		});
+
+		test('ArrowUp moves backward in vertical mode', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'two',
+					key: 'ArrowUp',
+					orientation: 'vertical',
+					triggerValues,
+				})
+			).toBe('one');
+		});
+
+		test('Home returns first tab', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'three',
+					key: 'Home',
+					orientation: 'horizontal',
+					triggerValues,
+				})
+			).toBe('one');
+		});
+
+		test('End returns last tab', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'one',
+					key: 'End',
+					orientation: 'horizontal',
+					triggerValues,
+				})
+			).toBe('three');
+		});
+
+		test('loop enabled: ArrowRight on last wraps to first', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'three',
+					key: 'ArrowRight',
+					loop: true,
+					orientation: 'horizontal',
+					triggerValues,
+				})
+			).toBe('one');
+		});
+
+		test('loop enabled: ArrowLeft on first wraps to last', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'one',
+					key: 'ArrowLeft',
+					loop: true,
+					orientation: 'horizontal',
+					triggerValues,
+				})
+			).toBe('three');
+		});
+
+		test('loop disabled: ArrowRight on last stays', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'three',
+					key: 'ArrowRight',
+					loop: false,
+					orientation: 'horizontal',
+					triggerValues,
+				})
+			).toBe('three');
+		});
+
+		test('loop disabled: ArrowLeft on first stays', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'one',
+					key: 'ArrowLeft',
+					loop: false,
+					orientation: 'horizontal',
+					triggerValues,
+				})
+			).toBe('one');
+		});
+
+		test('wrong-axis keys are ignored in horizontal mode', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'one',
+					key: 'ArrowUp',
+					orientation: 'horizontal',
+					triggerValues,
+				})
+			).toBe('one');
+			expect(
+				getNextTabValue({
+					currentValue: 'one',
+					key: 'ArrowDown',
+					orientation: 'horizontal',
+					triggerValues,
+				})
+			).toBe('one');
+		});
+
+		test('wrong-axis keys are ignored in vertical mode', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'one',
+					key: 'ArrowLeft',
+					orientation: 'vertical',
+					triggerValues,
+				})
+			).toBe('one');
+			expect(
+				getNextTabValue({
+					currentValue: 'one',
+					key: 'ArrowRight',
+					orientation: 'vertical',
+					triggerValues,
+				})
+			).toBe('one');
+		});
+
+		test('unrecognized key returns current value', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'one',
+					key: 'Enter',
+					orientation: 'horizontal',
+					triggerValues,
+				})
+			).toBe('one');
+		});
+
+		test('currentValue not in list returns current value', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'missing',
+					key: 'ArrowRight',
+					orientation: 'horizontal',
+					triggerValues,
+				})
+			).toBe('missing');
+		});
+
+		test('single tab: navigation returns same value', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'only',
+					key: 'ArrowRight',
+					loop: true,
+					orientation: 'horizontal',
+					triggerValues: ['only'],
+				})
+			).toBe('only');
+		});
+
+		test('vertical loop wraps correctly', () => {
+			expect(
+				getNextTabValue({
+					currentValue: 'three',
+					key: 'ArrowDown',
+					loop: true,
+					orientation: 'vertical',
+					triggerValues,
+				})
+			).toBe('one');
+			expect(
+				getNextTabValue({
+					currentValue: 'one',
+					key: 'ArrowUp',
+					loop: true,
+					orientation: 'vertical',
+					triggerValues,
+				})
+			).toBe('three');
+		});
 	});
 });

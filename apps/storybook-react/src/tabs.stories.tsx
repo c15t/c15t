@@ -1,6 +1,9 @@
 import { Tabs } from '@c15t/react/primitives';
 import {
+	arrowLeftNavigation,
+	homeAndEndKeys,
 	keyboardNavigation,
+	tabKeySkipsInactiveTabs,
 	tabSwitching,
 } from '@c15t/storybook-tests/play/tabs';
 import type { Meta, StoryObj } from '@storybook/react-vite';
@@ -61,6 +64,72 @@ export const Default: Story = {
 
 export const KeyboardNavigation: Story = {
 	play: keyboardNavigation,
+	render: () => (
+		<Tabs.Root defaultValue="overview">
+			<Tabs.List>
+				<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+				<Tabs.Trigger value="vendors">Vendors</Tabs.Trigger>
+				<Tabs.Trigger value="storage">Storage</Tabs.Trigger>
+			</Tabs.List>
+			<Tabs.Content style={panelStyle} value="overview">
+				<strong>Overview</strong>
+			</Tabs.Content>
+			<Tabs.Content style={panelStyle} value="vendors">
+				<strong>Vendors</strong>
+			</Tabs.Content>
+			<Tabs.Content style={panelStyle} value="storage">
+				<strong>Storage</strong>
+			</Tabs.Content>
+		</Tabs.Root>
+	),
+};
+
+export const ArrowLeftNavigation: Story = {
+	play: arrowLeftNavigation,
+	render: () => (
+		<Tabs.Root defaultValue="overview">
+			<Tabs.List>
+				<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+				<Tabs.Trigger value="vendors">Vendors</Tabs.Trigger>
+				<Tabs.Trigger value="storage">Storage</Tabs.Trigger>
+			</Tabs.List>
+			<Tabs.Content style={panelStyle} value="overview">
+				<strong>Overview</strong>
+			</Tabs.Content>
+			<Tabs.Content style={panelStyle} value="vendors">
+				<strong>Vendors</strong>
+			</Tabs.Content>
+			<Tabs.Content style={panelStyle} value="storage">
+				<strong>Storage</strong>
+			</Tabs.Content>
+		</Tabs.Root>
+	),
+};
+
+export const HomeAndEndKeys: Story = {
+	play: homeAndEndKeys,
+	render: () => (
+		<Tabs.Root defaultValue="overview">
+			<Tabs.List>
+				<Tabs.Trigger value="overview">Overview</Tabs.Trigger>
+				<Tabs.Trigger value="vendors">Vendors</Tabs.Trigger>
+				<Tabs.Trigger value="storage">Storage</Tabs.Trigger>
+			</Tabs.List>
+			<Tabs.Content style={panelStyle} value="overview">
+				<strong>Overview</strong>
+			</Tabs.Content>
+			<Tabs.Content style={panelStyle} value="vendors">
+				<strong>Vendors</strong>
+			</Tabs.Content>
+			<Tabs.Content style={panelStyle} value="storage">
+				<strong>Storage</strong>
+			</Tabs.Content>
+		</Tabs.Root>
+	),
+};
+
+export const TabKeySkipsInactiveTabs: Story = {
+	play: tabKeySkipsInactiveTabs,
 	render: () => (
 		<Tabs.Root defaultValue="overview">
 			<Tabs.List>

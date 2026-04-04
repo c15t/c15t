@@ -175,15 +175,41 @@ describe('getFocusableElements', () => {
 	test('excludes elements with tabindex=-1', () => {
 		container.innerHTML = `
 			<button id="focusable">Focusable</button>
-			<button tabindex="-1">Not focusable</button>
+			<button id="not-focusable" tabindex="-1">Not focusable</button>
 		`;
 		const focusableButton = container.querySelector(
 			'#focusable'
 		) as HTMLElement;
+		const notFocusableButton = container.querySelector(
+			'#not-focusable'
+		) as HTMLElement;
 		makeVisible(focusableButton);
+		makeVisible(notFocusableButton);
 		const elements = getFocusableElements(container);
 		expect(elements).toHaveLength(1);
 		expect(elements[0]?.id).toBe('focusable');
+	});
+
+	test('excludes tabindex=-1 buttons in roving tabindex pattern (tabs)', () => {
+		container.innerHTML = `
+			<button id="active-tab" tabindex="0" role="tab">Tab 1</button>
+			<button id="inactive-tab-1" tabindex="-1" role="tab">Tab 2</button>
+			<button id="inactive-tab-2" tabindex="-1" role="tab">Tab 3</button>
+			<div id="panel" tabindex="0" role="tabpanel">Content</div>
+		`;
+		const activeTab = container.querySelector('#active-tab') as HTMLElement;
+		const inactiveTab1 = container.querySelector(
+			'#inactive-tab-1'
+		) as HTMLElement;
+		const inactiveTab2 = container.querySelector(
+			'#inactive-tab-2'
+		) as HTMLElement;
+		const panel = container.querySelector('#panel') as HTMLElement;
+		[activeTab, inactiveTab1, inactiveTab2, panel].forEach(makeVisible);
+		const elements = getFocusableElements(container);
+		expect(elements).toHaveLength(2);
+		expect(elements[0]?.id).toBe('active-tab');
+		expect(elements[1]?.id).toBe('panel');
 	});
 
 	test('includes elements with positive tabindex when visible', () => {
