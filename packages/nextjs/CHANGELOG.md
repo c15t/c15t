@@ -1,5 +1,11 @@
 # @c15t/nextjs
 
+## 1.8.6
+
+### Patch Changes
+
+- @c15t/react@1.8.6
+
 ## 1.8.5
 
 ### Patch Changes

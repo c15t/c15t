@@ -1,5 +1,11 @@
 # @c15t/backend
 
+## 1.8.6
+
+### Patch Changes
+
+- f4448ea: fix: bump @orpc/\* to 1.13.13 and kysely to 0.28.15 to resolve npm audit vulnerabilities
+
 ## 1.8.5
 
 ### Patch Changes
