@@ -14,6 +14,7 @@
   - Update package `types` metadata, publish file lists, Turbo outputs, and publish artifact checks for the new layout
   - Verify the package layout works in Vite 7 without `optimizeDeps.exclude` workarounds for `c15t` and `@c15t/react`
 
+
 ## 1.8.5
 
 ### Patch Changes
