@@ -1,0 +1,2 @@
+# Override root gitignore — compiled action must be committed
+!dist/

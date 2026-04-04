@@ -2,6 +2,7 @@ pre-commit:
   commands:
     check:
       glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}"
+      exclude: "**/dist/**"
       run: bunx @biomejs/biome check --write --formatter-enabled=true --linter-enabled=false --assist-enabled=true {staged_files}
       stage_fixed: true
       env:
