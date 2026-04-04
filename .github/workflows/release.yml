@@ -46,10 +46,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile # Use frozen lockfile for reliability in CI
 
-      # Ensure npm 11.5.1+ for trusted publishing (OIDC)
-      - name: Update npm for trusted publishing
-        run: npm install -g npm@latest
-
       # Canary release: Create and publish snapshot release
       - name: Create and publish canary snapshot release
         if: github.ref == 'refs/heads/canary'
