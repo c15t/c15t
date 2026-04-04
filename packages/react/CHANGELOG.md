@@ -1,5 +1,12 @@
 # @c15t/react
 
+## 1.8.6
+
+### Patch Changes
+
+- Updated dependencies [f4448ea]
+  - c15t@1.8.6
+
 ## 1.8.5
 
 ### Patch Changes
