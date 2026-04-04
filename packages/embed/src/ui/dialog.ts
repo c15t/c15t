@@ -158,7 +158,8 @@ export function createDialog(store: ConsentStore): {
 		const headerEl = document.createElement('header');
 		const titleH3 = document.createElement('h3');
 		titleH3.className = w.accordionTitle;
-		titleH3.textContent = cat.title ?? cat.name;
+		titleH3.textContent =
+			cat.title ?? cat.name.charAt(0).toUpperCase() + cat.name.slice(1);
 		headerEl.appendChild(titleH3);
 
 		triggerInner.append(arrow, headerEl);
@@ -168,6 +169,7 @@ export function createDialog(store: ConsentStore): {
 		switchContainer.className = w.switch;
 		switchContainer.dataset.slot = 'preference-item-control';
 
+		const isDisabled = isNecessary || (cat.disabled ?? false);
 		const switchBtn = document.createElement('button');
 		switchBtn.type = 'button';
 		switchBtn.setAttribute('role', 'switch');
@@ -175,18 +177,23 @@ export function createDialog(store: ConsentStore): {
 			state.selectedConsents[cat.name as keyof typeof state.selectedConsents] ??
 			isNecessary;
 		switchBtn.setAttribute('aria-checked', String(isChecked));
-		switchBtn.className = sw.root;
+		switchBtn.className = `${sw.root}${isDisabled ? ` ${sw.rootSmall || ''}` : ''}`;
 		switchBtn.dataset.testid = `consent-widget-switch-${cat.name}`;
-		switchBtn.disabled = isNecessary || (cat.disabled ?? false);
+		if (isDisabled) switchBtn.dataset.disabled = '';
+
+		// Structure: root > track > thumb (matches @c15t/ui switch)
+		const switchTrack = document.createElement('span');
+		switchTrack.className = `${sw.track}${isDisabled ? ` ${sw.trackDisabled}` : ''}`;
 
 		const switchThumb = document.createElement('span');
-		switchThumb.className = sw.thumb;
-		switchBtn.appendChild(switchThumb);
+		switchThumb.className = `${sw.thumb}${isDisabled ? ` ${sw.thumbDisabled}` : ''}`;
 
-		// Update switch visual state
+		switchTrack.appendChild(switchThumb);
+		switchBtn.appendChild(switchTrack);
+
+		// Update switch visual state via data-state attribute
 		const updateSwitchState = (checked: boolean) => {
 			switchBtn.setAttribute('aria-checked', String(checked));
-			// The CSS uses data attributes for state — we toggle a class
 			if (checked) {
 				switchBtn.dataset.state = 'checked';
 			} else {
@@ -196,7 +203,7 @@ export function createDialog(store: ConsentStore): {
 		updateSwitchState(isChecked);
 
 		switchBtn.addEventListener('click', () => {
-			if (switchBtn.disabled) return;
+			if (isDisabled) return;
 			const newChecked = switchBtn.getAttribute('aria-checked') !== 'true';
 			updateSwitchState(newChecked);
 			state.setSelectedConsent(
