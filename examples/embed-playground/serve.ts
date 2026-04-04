@@ -13,12 +13,16 @@ Bun.serve({
 		const url = new URL(req.url);
 		let path = url.pathname;
 
-		// Serve embed dist files
+		// Serve embed dist files (JS and CSS)
 		if (path.startsWith('/packages/embed/dist/')) {
 			const file = Bun.file(`../../${path}`);
 			if (await file.exists()) {
+				const ext = path.split('.').pop();
 				return new Response(file, {
-					headers: { 'Content-Type': 'application/javascript' },
+					headers: {
+						'Content-Type':
+							ext === 'css' ? 'text/css' : 'application/javascript',
+					},
 				});
 			}
 		}
