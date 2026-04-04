@@ -14,7 +14,7 @@ import type {
 	OperandValueExpressionOrList,
 } from 'node_modules/kysely/dist/esm/parser/binary-operation-parser';
 import type { InsertExpression } from 'node_modules/kysely/dist/esm/parser/insert-values-parser';
-import type { TableReference } from 'node_modules/kysely/dist/esm/parser/table-parser';
+import type { SimpleTableReference } from 'node_modules/kysely/dist/esm/parser/table-parser';
 import superjson from 'superjson';
 import {
 	type EntityInput,
@@ -303,8 +303,8 @@ const createEntityTransformer = (
 	 */
 	function getEntityName<EntityType extends EntityName>(
 		model: EntityType
-	): TableReference<Database> {
-		return schema[model].entityName as TableReference<Database>;
+	): SimpleTableReference<Database> {
+		return schema[model].entityName as SimpleTableReference<Database>;
 	}
 
 	return {
@@ -563,7 +563,7 @@ const createEntityTransformer = (
 				>;
 
 				res = (await db
-					.selectFrom(getEntityName(model))
+					.selectFrom(getEntityName(model) as unknown as keyof Database)
 					.selectAll()
 					.where((eb) =>
 						eb(
