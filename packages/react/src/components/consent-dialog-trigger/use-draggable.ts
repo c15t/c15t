@@ -15,7 +15,7 @@ import {
 	type DragState,
 	getPersistedPosition,
 	persistPosition as persistToStorage,
-} from '@c15t/ui/utils';
+} from '@c15t/ui/utils/trigger-utils';
 import { useCallback, useRef, useState } from 'react';
 
 /**
@@ -161,7 +161,7 @@ export function useDraggable(
 
 	// Handle pointer move - update position
 	const handlePointerMove = useCallback((e: React.PointerEvent) => {
-		setDragState((prev) => {
+		setDragState((prev: DragState) => {
 			if (!prev.isDragging) {
 				return prev;
 			}
@@ -188,7 +188,7 @@ export function useDraggable(
 				elementRef.current.releasePointerCapture(e.pointerId);
 			}
 
-			setDragState((prev) => {
+			setDragState((prev: DragState) => {
 				if (!prev.isDragging) {
 					return prev;
 				}

@@ -8,7 +8,7 @@
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
 import { forwardRef, type ReactNode } from 'react';
-import type { TriggerSize } from '../types';
+import type { CornerPosition, TriggerSize } from '../types';
 import { useTriggerContext } from './root';
 
 /**
@@ -19,7 +19,7 @@ const cornerClassMap = {
 	'bottom-left': styles.bottomLeft,
 	'top-right': styles.topRight,
 	'top-left': styles.topLeft,
-} as const;
+} as const satisfies Record<CornerPosition, string | undefined>;
 
 /**
  * Maps size to CSS class name.

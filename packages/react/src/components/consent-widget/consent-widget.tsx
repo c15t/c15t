@@ -2,6 +2,7 @@
 
 import styles from '@c15t/ui/styles/components/consent-widget.module.js';
 import { useState } from 'react';
+import type { AccordionRootProps } from '~/components/shared/ui/accordion';
 import {
 	type HeadlessConsentDialogAction,
 	useHeadlessConsentUI,
@@ -32,7 +33,7 @@ export const ConsentWidget = ({
 	trapFocus: localTrapFocus,
 	...props
 }: ConsentWidgetProps) => {
-	const [openItems, setOpenItems] = useState<string[]>([]);
+	const [openItem, setOpenItem] = useState('');
 	const { dialog } = useHeadlessConsentUI();
 
 	// Get global theme context
@@ -86,9 +87,11 @@ export const ConsentWidget = ({
 	return (
 		<ConsentWidgetRoot {...mergedProps}>
 			<ConsentWidgetAccordion
-				type="multiple"
-				value={openItems}
-				onValueChange={setOpenItems}
+				type="single"
+				value={openItem}
+				onValueChange={(value: NonNullable<AccordionRootProps['value']>) => {
+					setOpenItem(Array.isArray(value) ? (value[0] ?? '') : (value ?? ''));
+				}}
 			>
 				<ConsentWidgetAccordionItems />
 			</ConsentWidgetAccordion>

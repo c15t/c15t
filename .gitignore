@@ -38,6 +38,7 @@ packages/nextjs/docs
 packages/backend/docs
 .merge_file_*
 dist-types
+apps/bundle-bench-react/.bundle-bench-dist/
 
 
 # Debug
@@ -67,3 +68,8 @@ i18n.cache
 
 # CLI persisted generate state
 .c15t-state.json
+.gstack/
+
+# Storybook build output
+storybook-static/
+debug-storybook.log

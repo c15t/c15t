@@ -112,6 +112,8 @@ const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 
 	return (
 		<div
+			role="presentation"
+			aria-hidden="true"
 			style={
 				typeof style === 'object' && 'style' in style
 					? { ...theme.style, ...style.style }

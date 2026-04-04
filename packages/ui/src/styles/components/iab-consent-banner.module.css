@@ -54,6 +54,7 @@
 
 @layer components {
 	.root {
+		box-sizing: border-box;
 		padding: 1rem;
 		display: flex;
 		justify-content: center;

@@ -173,6 +173,7 @@ const ConsentBannerCard = forwardRef<
 	Omit<BoxProps, 'themeKey'>
 >(({ children, ...props }, ref) => {
 	const { trapFocus } = useTheme();
+	const { cookieBanner } = useTranslations();
 	const localRef = useRef<HTMLDivElement>(null);
 	const cardRef = (ref || localRef) as RefObject<HTMLElement>;
 
@@ -187,7 +188,7 @@ const ConsentBannerCard = forwardRef<
 			baseClassName={styles.card}
 			data-testid="consent-banner-card"
 			themeKey="consentBannerCard"
-			aria-label={props['aria-label'] || 'Consent Banner'}
+			aria-label={props['aria-label'] || cookieBanner.title}
 			aria-modal={shouldTrapFocus ? 'true' : undefined}
 			role={shouldTrapFocus ? 'dialog' : undefined}
 			{...props}

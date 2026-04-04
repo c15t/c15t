@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		rejectAll: 'Diúltaigh do Gach Rud',
 		customize: 'Saincheap',
 		save: 'Sábháil Socruithe',
+		close: 'Dún',
 	},
 	cookieBanner: {
 		title: 'Tugaimid luach do do phríobháideachas',

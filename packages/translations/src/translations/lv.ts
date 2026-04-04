@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		rejectAll: 'Noraidīt visu',
 		customize: 'Pielāgot',
 		save: 'Saglabāt iestatījumus',
+		close: 'Aizvērt',
 	},
 	cookieBanner: {
 		title: 'Mēs novērtējam jūsu privātumu',

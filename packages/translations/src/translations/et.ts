@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		rejectAll: 'Keeldu kõigist',
 		customize: 'Kohanda',
 		save: 'Salvesta seaded',
+		close: 'Sulge',
 	},
 	cookieBanner: {
 		title: 'Hindame teie privaatsust',

@@ -1,0 +1,60 @@
+:root {
+	--tabs-list-background: var(--c15t-surface);
+	--tabs-list-border: var(--c15t-border);
+	--tabs-trigger-color: var(--c15t-text-muted);
+	--tabs-trigger-active-color: var(--c15t-text);
+	--tabs-trigger-active-background: var(--c15t-surface-hover);
+	--tabs-focus-ring: var(--c15t-primary);
+}
+
+@layer components {
+	.root {
+		display: grid;
+		gap: 1rem;
+		width: 100%;
+	}
+
+	.list {
+		align-items: center;
+		background: var(--tabs-list-background);
+		border: 1px solid var(--tabs-list-border);
+		border-radius: var(--c15t-radius-md);
+		display: inline-grid;
+		gap: 0.25rem;
+		grid-auto-flow: column;
+		padding: 0.25rem;
+		width: fit-content;
+	}
+
+	.list-vertical {
+		grid-auto-flow: row;
+	}
+
+	.trigger {
+		background: none;
+		border: 0;
+		border-radius: calc(var(--c15t-radius-md) - 0.25rem);
+		color: var(--tabs-trigger-color);
+		cursor: pointer;
+		font: inherit;
+		font-weight: 500;
+		padding: 0.625rem 0.875rem;
+		transition:
+			background-color var(--c15t-duration-fast) ease,
+			color var(--c15t-duration-fast) ease;
+	}
+
+	.trigger[data-state="active"] {
+		background: var(--tabs-trigger-active-background);
+		color: var(--tabs-trigger-active-color);
+	}
+
+	.trigger:focus-visible {
+		outline: 2px solid var(--tabs-focus-ring);
+		outline-offset: 2px;
+	}
+
+	.content {
+		color: var(--c15t-text);
+	}
+}

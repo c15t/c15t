@@ -1,0 +1,24 @@
+{
+	"name": "@c15t/storybook-solid",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"storybook": "portless run --name storybook-solid sh -c 'storybook dev --port \"$PORT\" --host \"$HOST\"'",
+		"build": "storybook build",
+		"test-storybook": "test-storybook --url ${STORYBOOK_URL:-http://127.0.0.1:6006}"
+	},
+	"dependencies": {
+		"@c15t/ui": "workspace:*",
+		"@c15t/solid": "workspace:*",
+		"@c15t/storybook-tests": "workspace:*",
+		"solid-js": "^1.9.5"
+	},
+	"devDependencies": {
+		"@storybook/addon-a11y": "10.3.1",
+		"@storybook/test-runner": "^0.24.3",
+		"storybook": "10.3.1",
+		"storybook-solidjs-vite": "10.0.11",
+		"typescript": "5.9.3",
+		"vite": "7.3.1"
+	}
+}

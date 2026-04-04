@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		rejectAll: 'Respinge toate',
 		customize: 'Personalizează',
 		save: 'Salvează setările',
+		close: 'Închide',
 	},
 	cookieBanner: {
 		title: 'Prețuim confidențialitatea ta',
