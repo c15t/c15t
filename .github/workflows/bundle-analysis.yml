@@ -51,6 +51,8 @@ jobs:
       - name: 🅿️ Setup pnpm
         if: steps.detect-pm.outputs.pm == 'pnpm'
         uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
       - name: 🟢 Setup Node.js
         if: steps.detect-pm.outputs.pm == 'pnpm'

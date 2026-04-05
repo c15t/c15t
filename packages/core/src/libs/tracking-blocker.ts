@@ -210,7 +210,18 @@ export function createTrackingBlocker(
 			};
 			// Preserve properties from original fetch (e.g., preconnect in Bun)
 			Object.setPrototypeOf(newFetch, originalFetch);
-			Object.assign(newFetch, originalFetch);
+			for (const key of Object.getOwnPropertyNames(originalFetch)) {
+				const desc = Object.getOwnPropertyDescriptor(originalFetch, key);
+				if (desc && desc.writable !== false && desc.configurable !== false) {
+					try {
+						(newFetch as Record<string, unknown>)[key] = (
+							originalFetch as Record<string, unknown>
+						)[key];
+					} catch {
+						// Skip non-writable properties (e.g., test mock properties)
+					}
+				}
+			}
 			window.fetch = newFetch as typeof window.fetch;
 		}
 
