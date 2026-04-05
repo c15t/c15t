@@ -59,7 +59,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
-          # Enable npm provenance (automatic with trusted publishing, but explicit for compatibility)
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
 
       # RC release: Publish pre-release versions from 2.0.0 branch
@@ -75,6 +75,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
 
       # Regular release: Create Release Pull Request or Publish to npm
@@ -92,8 +93,10 @@ jobs:
         env:
           # GITHUB_TOKEN is used by the action to create PRs, releases, comments
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # NPM_TOKEN is used by 'changeset publish' (called via 'bun run release')
-          NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }} # MUST be set in repo secrets
+          # NPM_TOKEN is used by changesets action to create ~/.npmrc
+          NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
+          # NODE_AUTH_TOKEN is used by actions/setup-node's .npmrc (takes precedence via NPM_CONFIG_USERCONFIG)
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
           # Enable npm provenance (automatic with trusted publishing, but explicit for compatibility)
           NPM_CONFIG_PROVENANCE: "true"
 
