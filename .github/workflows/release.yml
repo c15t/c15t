@@ -43,6 +43,14 @@ jobs:
           node-version: 22
           registry-url: 'https://registry.npmjs.org'
 
+      # Upgrade npm for trusted publishing (OIDC provenance requires npm 11+).
+      # Node.js 22.22.2's bundled npm has a missing promise-retry module that
+      # breaks `npm install -g`, so we install it first as a workaround.
+      - name: Upgrade npm for provenance publishing
+        run: |
+          npm install -g promise-retry 2>/dev/null || true
+          npm install -g npm@latest
+
       - name: Install dependencies
         run: bun install --frozen-lockfile # Use frozen lockfile for reliability in CI
 
