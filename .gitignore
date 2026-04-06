@@ -32,7 +32,7 @@ coverage
 out/
 build
 dist
-
+!internals/bundle-analysis-action/dist
 
 # Debug
 npm-debug.log*
