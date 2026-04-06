@@ -6,14 +6,14 @@
 	"type": "module",
 	"scripts": {
 		"build": "bun build.ts && bun src/ui/strip-layers.ts",
-		"dev": "bun build.ts --watch",
 		"check-types": "tsc --noEmit",
+		"dev": "bun build.ts --watch",
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},
 	"dependencies": {
-		"c15t": "workspace:*",
-		"@c15t/ui": "workspace:*"
+		"@c15t/ui": "workspace:*",
+		"c15t": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
