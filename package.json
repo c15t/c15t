@@ -41,7 +41,7 @@
 		"lint:fix": "turbo run lint -- --write",
 		"release": "bun run build && bun run check:publish-artifacts && bun scripts/resolve-workspace-deps.ts && changeset publish",
 		"release:canary": "bun run build && bun run check:publish-artifacts && bun scripts/resolve-workspace-deps.ts && changeset publish --tag canary",
-		"release:rc": "bun run build && bun run check:publish-artifacts && bun scripts/resolve-workspace-deps.ts && changeset publish",
+		"release:rc": "bun run build:libs && bun run check:publish-artifacts && bun scripts/resolve-workspace-deps.ts && changeset publish",
 		"setup:docs": "tsx scripts/setup-docs.ts",
 		"test": "turbo run test",
 		"vercel-build": "tsx scripts/setup-docs.ts --vercel",
