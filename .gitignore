@@ -32,6 +32,7 @@ coverage
 out/
 build
 dist
+!internals/bundle-analysis-action/dist
 packages/core/docs
 packages/react/docs
 packages/nextjs/docs
