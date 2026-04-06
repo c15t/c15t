@@ -57,6 +57,8 @@ const DEFAULT_DOMAIN_CONSENT_MAP: Record<string, AllConsentNames> = {
 	'business.tiktok.com': 'marketing',
 	'ads.pinterest.com': 'marketing',
 	'log.pinterest.com': 'marketing',
+	'www.redditstatic.com': 'marketing',
+	'alb.reddit.com': 'marketing',
 	'ads-twitter.com': 'marketing',
 	'static.ads-twitter.com': 'marketing',
 	'advertising.twitter.com': 'marketing',
