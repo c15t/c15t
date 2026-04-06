@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>c15t Embed — Script Manifest Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #1a1a1a; line-height: 1.6; }
+    .container { max-width: 800px; margin: 0 auto; padding: 2rem; }
+    h1 { margin-bottom: 0.5rem; }
+    .subtitle { color: #666; margin-bottom: 2rem; }
+    .card { background: white; border: 1px solid #e5e5e5; border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .card h2 { font-size: 1.125rem; margin-bottom: 0.75rem; }
+    .card p { color: #666; font-size: 0.875rem; margin-bottom: 1rem; }
+    nav { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+    nav a { color: #4361ee; text-decoration: none; font-size: 0.875rem; }
+    nav a:hover { text-decoration: underline; }
+    .badge { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 500; }
+    .badge-purple { background: #ede9fe; color: #5b21b6; }
+    pre { background: #1a1a1a; color: #e5e5e5; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.8125rem; line-height: 1.5; }
+    code { font-family: ui-monospace, 'SF Mono', monospace; }
+    #log {
+      background: #1a1a1a; color: #4ade80; padding: 1rem; border-radius: 0.5rem;
+      font-family: ui-monospace, 'SF Mono', monospace; font-size: 0.8125rem;
+      line-height: 1.5; min-height: 200px; max-height: 400px; overflow-y: auto;
+    }
+    .script-row {
+      display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0;
+      border-bottom: 1px solid #f0f0f0; font-size: 0.875rem;
+    }
+    .script-row:last-child { border-bottom: none; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-blocked { background: #ef4444; }
+    .dot-loaded { background: #22c55e; }
+    .dot-pending { background: #f59e0b; }
+    .controls { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    button {
+      padding: 0.5rem 1rem; border: 1px solid #e5e5e5; border-radius: 0.375rem;
+      background: white; cursor: pointer; font-size: 0.875rem;
+    }
+    button:hover { background: #f5f5f5; }
+    button.primary { background: #4361ee; color: white; border-color: #4361ee; }
+    .global-check { font-family: ui-monospace, 'SF Mono', monospace; font-size: 0.8125rem; color: #666; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>c15t Embed — Script Manifests</h1>
+    <p class="subtitle">Test real vendor manifests via <code>window.c15t.resolveManifest()</code></p>
+
+    <nav>
+      <a href="index.html">Prestyled</a>
+      <a href="headless.html">Headless</a>
+      <a href="custom-elements.html">Custom Elements</a>
+      <a href="dark.html">Dark Theme</a>
+      <a href="scripts.html">Script Manifests</a>
+    </nav>
+
+    <div class="card">
+      <h2>Registered Scripts <span class="badge badge-purple">Via resolveManifest</span></h2>
+      <p>
+        These use the actual <code>VendorManifest</code> definitions from <code>@c15t/scripts</code>,
+        resolved via <code>window.c15t.resolveManifest(manifest, config)</code>.
+        The full manifest pipeline is tested: template interpolation, consent signaling,
+        lifecycle callbacks, and script loading.
+      </p>
+      <div id="script-status"></div>
+      <div id="global-checks" class="global-check"></div>
+    </div>
+
+    <div class="card">
+      <h2>Controls</h2>
+      <div class="controls">
+        <button class="primary" onclick="grantAll()">Accept All</button>
+        <button onclick="grantMeasurement()">Grant Measurement</button>
+        <button onclick="grantMarketing()">Grant Marketing</button>
+        <button onclick="revokeAll()">Reject All</button>
+        <button onclick="showBanner()">Show Banner</button>
+        <button onclick="showDialog()">Show Dialog</button>
+        <button onclick="checkGlobals()">Check Globals</button>
+        <button onclick="clearAndReload()">Clear & Reload</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Event Log</h2>
+      <div id="log">// Waiting for embed to initialize...</div>
+    </div>
+  </div>
+
+  <!-- Load the embed script -->
+  <script src="/c15t.js" data-backend="/api/c15t" data-debug="true"></script>
+
+  <script>
+    const logEl = document.getElementById('log');
+    const statusEl = document.getElementById('script-status');
+    const globalsEl = document.getElementById('global-checks');
+
+    function log(msg, color = '#4ade80') {
+      const line = document.createElement('div');
+      line.style.color = color;
+      const ts = new Date().toLocaleTimeString('en', { hour12: false, fractionalSecondDigits: 3 });
+      line.textContent = `[${ts}] ${msg}`;
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    // ─── Real vendor manifests ────────────────────────────────────────────
+    // These mirror the actual manifest definitions from @c15t/scripts.
+    // The embed bundles resolveManifest() so we can compile them at runtime.
+
+    const manifests = [
+      {
+        // Google Tag Manager — alwaysLoad, consent signaling via gtag()
+        manifest: {
+          vendor: 'google-tag-manager',
+          category: 'necessary',
+          alwaysLoad: true,
+          install: [
+            {
+              type: 'inlineScript',
+              code: "window.dataLayer = window.dataLayer || []; window.gtag = function gtag() { window.dataLayer.push(arguments); }; window.dataLayer.push({ 'gtm.start': Date.now(), event: 'gtm.js' });",
+            },
+            {
+              type: 'loadScript',
+              src: 'https://www.googletagmanager.com/gtm.js?id={{id}}',
+              async: true,
+            },
+          ],
+          onConsentChange: [
+            { type: 'callGlobal', global: 'gtag', args: ['event', '{{updateEventName}}'] },
+          ],
+          consentMapping: {
+            necessary: ['security_storage'],
+            functionality: ['functionality_storage'],
+            measurement: ['analytics_storage'],
+            marketing: ['ad_storage', 'ad_user_data', 'ad_personalization'],
+            experience: ['personalization_storage'],
+          },
+          consentSignal: 'gtag',
+        },
+        config: {
+          id: 'GTM-TESTXXX',
+          updateEventName: 'c15t_consent_update',
+        },
+      },
+      {
+        // Meta Pixel — marketing category, persists after revocation
+        manifest: {
+          vendor: 'meta-pixel',
+          category: 'marketing',
+          persistAfterConsentRevoked: true,
+          install: [
+            {
+              type: 'inlineScript',
+              code: "!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js'); fbq('init', '{{pixelId}}');",
+            },
+          ],
+          onConsentGranted: [
+            { type: 'callGlobal', global: 'fbq', args: ['consent', 'grant'] },
+          ],
+          onConsentDenied: [
+            { type: 'callGlobal', global: 'fbq', args: ['consent', 'revoke'] },
+          ],
+        },
+        config: {
+          pixelId: '1234567890',
+        },
+      },
+      {
+        // Simple analytics script — measurement category, no external deps
+        manifest: {
+          vendor: 'test-analytics',
+          category: 'measurement',
+          install: [
+            {
+              type: 'setGlobal',
+              name: '__c15t_analytics',
+              value: { initialized: true, events: [] },
+            },
+            {
+              type: 'inlineScript',
+              code: "console.log('[test-analytics] Script loaded and tracking');",
+            },
+          ],
+          onConsentGranted: [
+            {
+              type: 'callGlobal',
+              global: 'console',
+              method: 'log',
+              args: ['[test-analytics] Consent granted — tracking enabled'],
+            },
+          ],
+          onConsentDenied: [
+            {
+              type: 'callGlobal',
+              global: 'console',
+              method: 'log',
+              args: ['[test-analytics] Consent denied — tracking paused'],
+            },
+          ],
+        },
+        config: {},
+      },
+    ];
+
+    // ─── Register scripts once the store is ready ─────────────────────────
+    window.c15tReady.then((store) => {
+      log('Store ready — resolving manifests');
+
+      const resolvedScripts = manifests.map(({ manifest, config }) => {
+        const script = window.c15t.resolveManifest(manifest, config);
+        log(`  Resolved: ${script.id} (${script.category}) → src: ${script.src || 'inline'}`, '#60a5fa');
+        return script;
+      });
+
+      const state = store.getState();
+      const existing = state.scripts || [];
+      state.setScripts([...existing, ...resolvedScripts]);
+
+      log(`Registered ${resolvedScripts.length} scripts via resolveManifest()`);
+      log(`Current consents: ${JSON.stringify(state.consents)}`);
+
+      // Subscribe to updates
+      store.subscribe((state, prev) => {
+        if (state.consents !== prev.consents) {
+          log(`Consent changed: ${JSON.stringify(state.consents)}`, '#fbbf24');
+        }
+        updateStatus(store);
+      });
+
+      updateStatus(store);
+    });
+
+    function updateStatus(store) {
+      const state = store.getState();
+      const scripts = state.scripts || [];
+      const consents = state.consents || {};
+
+      statusEl.innerHTML = '';
+      for (const s of scripts) {
+        const hasConsent = s.alwaysLoad || consents[s.category] === true;
+
+        const row = document.createElement('div');
+        row.className = 'script-row';
+
+        const dot = document.createElement('div');
+        dot.className = `dot ${hasConsent ? 'dot-loaded' : 'dot-blocked'}`;
+
+        const flags = [];
+        if (s.alwaysLoad) flags.push('alwaysLoad');
+        if (s.persistAfterConsentRevoked) flags.push('persist');
+        const flagStr = flags.length ? ` [${flags.join(', ')}]` : '';
+
+        const label = document.createElement('span');
+        label.textContent = `${s.id} (${s.category}) — ${hasConsent ? 'ACTIVE' : 'BLOCKED'}${flagStr}`;
+        if (s.src) {
+          const srcSpan = document.createElement('span');
+          srcSpan.style.color = '#999';
+          srcSpan.textContent = ` → ${s.src}`;
+          label.appendChild(srcSpan);
+        }
+
+        row.append(dot, label);
+        statusEl.appendChild(row);
+      }
+    }
+
+    function checkGlobals() {
+      const checks = [
+        ['window.dataLayer', window.dataLayer],
+        ['window.gtag', window.gtag],
+        ['window.fbq', window.fbq],
+        ['window.__c15t_analytics', window.__c15t_analytics],
+      ];
+
+      globalsEl.innerHTML = '';
+      for (const [name, val] of checks) {
+        const exists = val !== undefined;
+        const detail = exists
+          ? (typeof val === 'function' ? 'function' : JSON.stringify(val).slice(0, 80))
+          : 'undefined';
+        const line = document.createElement('div');
+        line.textContent = `${exists ? '✓' : '✗'} ${name}: ${detail}`;
+        line.style.color = exists ? '#22c55e' : '#666';
+        globalsEl.appendChild(line);
+      }
+
+      // Check dataLayer contents
+      if (window.dataLayer) {
+        log(`dataLayer has ${window.dataLayer.length} entries`, '#a78bfa');
+        for (const entry of window.dataLayer.slice(-5)) {
+          log(`  → ${JSON.stringify(entry)}`, '#a78bfa');
+        }
+      }
+    }
+
+    // ─── Control functions ────────────────────────────────────────────────
+    function grantAll() {
+      window.c15tStore?.getState()?.saveConsents('all');
+      log('saveConsents("all")');
+      setTimeout(() => { updateStatus(window.c15tStore); checkGlobals(); }, 300);
+    }
+    function grantMeasurement() {
+      const state = window.c15tStore?.getState();
+      state?.setSelectedConsent?.('measurement', true);
+      state?.saveConsents('custom');
+      log('Granted measurement only');
+      setTimeout(() => { updateStatus(window.c15tStore); checkGlobals(); }, 300);
+    }
+    function grantMarketing() {
+      const state = window.c15tStore?.getState();
+      state?.setSelectedConsent?.('marketing', true);
+      state?.saveConsents('custom');
+      log('Granted marketing only');
+      setTimeout(() => { updateStatus(window.c15tStore); checkGlobals(); }, 300);
+    }
+    function revokeAll() {
+      window.c15tStore?.getState()?.saveConsents('necessary');
+      log('saveConsents("necessary") — revoked non-essential');
+      setTimeout(() => { updateStatus(window.c15tStore); checkGlobals(); }, 300);
+    }
+    function showBanner() {
+      window.c15tStore?.getState()?.setActiveUI('banner', { force: true });
+    }
+    function showDialog() {
+      window.c15tStore?.getState()?.setActiveUI('dialog');
+    }
+    function clearAndReload() {
+      localStorage.removeItem('c15t');
+      document.cookie = 'c15t=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+      location.reload();
+    }
+  </script>
+</body>
+</html>

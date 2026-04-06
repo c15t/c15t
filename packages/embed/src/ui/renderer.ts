@@ -3,7 +3,8 @@
  * by subscribing to the Zustand vanilla store.
  */
 
-import type { ConsentRuntimeResult } from 'c15t';
+import type { ConsentRuntimeResult } from 'c15t/runtime';
+import { setupFocusTrap, setupScrollLock } from '../../../ui/src/utils/dom';
 import { animateBannerOut, createBanner } from './banner';
 import { createDialog } from './dialog';
 
@@ -12,6 +13,7 @@ type ConsentStore = ConsentRuntimeResult['consentStore'];
 let bannerEl: HTMLElement | null = null;
 let dialogInstance: { element: HTMLElement; destroy: () => void } | null = null;
 let isCreatingDialog = false;
+let bannerCleanup: (() => void)[] = [];
 
 function showBanner(store: ConsentStore): void {
 	if (bannerEl) return;
@@ -19,26 +21,35 @@ function showBanner(store: ConsentStore): void {
 	const state = store.getState();
 	const translations = extractTranslations(state);
 
-	bannerEl = createBanner(
-		{
-			onAcceptAll: () => {
-				store.getState().saveConsents('all');
-			},
-			onRejectAll: () => {
-				store.getState().saveConsents('necessary');
-			},
-			onCustomize: () => {
-				store.getState().setActiveUI('dialog');
-			},
-		},
-		translations
-	);
+	try {
+		bannerEl = createBanner(store, translations);
+		document.body.appendChild(bannerEl);
 
-	document.body.appendChild(bannerEl);
+		// Focus trap: cycle Tab within the banner card
+		const card = bannerEl.querySelector('[data-testid="consent-banner-card"]');
+		if (card instanceof HTMLElement) {
+			const cleanupTrap = setupFocusTrap(card);
+			bannerCleanup.push(cleanupTrap);
+		}
+
+		// Scroll lock if policy requires it
+		if (state.policyBanner?.scrollLock) {
+			const cleanupScroll = setupScrollLock();
+			bannerCleanup.push(cleanupScroll);
+		}
+	} catch (e) {
+		console.error('[c15t] Failed to create consent banner:', e);
+	}
 }
 
 function hideBanner(): void {
 	if (!bannerEl) return;
+
+	// Clean up focus trap and scroll lock
+	for (const cleanup of bannerCleanup) {
+		cleanup();
+	}
+	bannerCleanup = [];
 
 	const el = bannerEl;
 	bannerEl = null;

@@ -5,18 +5,21 @@
 	"description": "Standalone embed script for c15t consent management on CMS platforms.",
 	"type": "module",
 	"scripts": {
-		"build": "bunx esbuild src/index.ts --bundle --outfile=dist/c15t.js --format=iife --target=es2020 --platform=browser --minify --conditions=import && bun src/ui/strip-layers.ts",
-		"dev": "bunx esbuild src/index.ts --bundle --outfile=dist/c15t.js --format=iife --target=es2020 --platform=browser --conditions=import --watch",
-		"check-types": "tsc --noEmit"
+		"build": "bun build.ts && bun src/ui/strip-layers.ts",
+		"dev": "bun build.ts --watch",
+		"check-types": "tsc --noEmit",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"dependencies": {
 		"c15t": "workspace:*",
-		"@c15t/ui": "workspace:*",
-		"@c15t/scripts": "workspace:*",
-		"@c15t/schema": "workspace:*",
-		"@c15t/translations": "workspace:*"
+		"@c15t/ui": "workspace:*"
 	},
 	"devDependencies": {
-		"@c15t/typescript-config": "workspace:*"
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"@vitest/browser-playwright": "latest",
+		"esbuild": "^0.28.0",
+		"vitest": "latest"
 	}
 }

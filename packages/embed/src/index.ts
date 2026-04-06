@@ -12,21 +12,29 @@
  * ```html
  * <script src="c15t.js" data-backend="https://your-c15t.com" data-headless="true"></script>
  * <script>
- *   // The raw Zustand store is on window.c15tStore (set by core):
- *   window.c15tStore.getState().saveConsents('all');
- *
- *   // Convenience event API (added by embed):
- *   window.c15tStore.c15t.on('consent', (consents) => { ... });
+ *   // Wait for the store to be ready, then interact with it directly:
+ *   const store = await window.c15tReady;
+ *   store.getState().saveConsents('all');
+ *   store.subscribe((state) => console.log(state.consents));
  * </script>
  * ```
  */
 
-import { getOrCreateConsentRuntime } from 'c15t';
+import { resolveManifest } from '@c15t/scripts/resolve';
+import { getOrCreateConsentRuntime } from 'c15t/runtime';
 import { parseEmbedConfig } from './config';
 import { registerCustomElement } from './custom-element';
-import { attachEmbedAPI } from './headless';
+import { setupReadyPromise } from './headless';
 import { observeDOM, scanDOM } from './scanner';
 import { createUIRenderer } from './ui/renderer';
+import { setNoStyleMode } from './ui/styles';
+
+// Expose resolveManifest globally so pages can register vendor manifests
+// without needing a build step:
+//   const script = window.c15t.resolveManifest(manifest, { id: 'GTM-XXX' });
+//   (await window.c15tReady).getState().setScripts([script]);
+// biome-ignore lint/suspicious/noExplicitAny: global API
+(window as any).c15t = { resolveManifest };
 
 // ─── Step 0: Capture script element synchronously ───────────────────────────
 const config = parseEmbedConfig();
@@ -36,8 +44,9 @@ if (config) {
 }
 
 async function boot(config: NonNullable<ReturnType<typeof parseEmbedConfig>>) {
-	// ─── Step 1: Register custom element ──────────────────────────────────────
+	// ─── Step 1: Register custom element & apply config ──────────────────────
 	registerCustomElement();
+	if (config.noStyle) setNoStyleMode(true);
 
 	// ─── Step 2: Scan DOM for consent-gated scripts ───────────────────────────
 	const scannedScripts = scanDOM();
@@ -64,13 +73,14 @@ async function boot(config: NonNullable<ReturnType<typeof parseEmbedConfig>>) {
 		{ pkg: '@c15t/embed', version: '0.0.1' }
 	);
 
-	// ─── Step 4: Attach embed convenience API ─────────────────────────────────
-	// Adds event helpers on window.c15tStore.c15t (does NOT overwrite the store)
-	attachEmbedAPI(consentStore);
+	// ─── Step 4: Set up window.c15tReady promise ──────────────────────────────
+	// Resolves with the store once /init completes. The raw Zustand store is
+	// also available immediately on window.c15tStore (set by core).
+	setupReadyPromise(consentStore);
 
 	if (config.debug) {
 		console.log(
-			`[c15t] Store available on window.c15tStore${config.headless ? ' (headless mode)' : ''}`
+			`[c15t] Store on window.c15tStore, await window.c15tReady for init${config.headless ? ' (headless mode)' : ''}`
 		);
 	}
 

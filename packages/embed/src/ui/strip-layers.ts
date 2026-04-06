@@ -14,6 +14,7 @@ const files = [
 	`${uiDist}/components/consent-widget.module.css`,
 	`${uiDist}/primitives/button.module.css`,
 	`${uiDist}/primitives/switch.module.css`,
+	`${uiDist}/primitives/legal-links.module.css`,
 ];
 
 let css = '';

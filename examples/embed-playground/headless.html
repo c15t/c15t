@@ -55,6 +55,7 @@
       <a href="headless.html">Headless</a>
       <a href="custom-elements.html">Custom Elements</a>
       <a href="dark.html">Dark Theme</a>
+      <a href="scripts.html">Script Manifests</a>
     </nav>
 
     <div class="card">
@@ -65,8 +66,10 @@
       </p>
       <pre><code>&lt;script src="c15t.js" data-backend="..." data-headless="true"&gt;&lt;/script&gt;
 &lt;script&gt;
-  window.c15tStore.on('ready', () =&gt; {
-    showMyCustomBanner();
+  const store = await window.c15tReady;
+  showMyCustomBanner();
+  store.subscribe((state, prev) =&gt; {
+    if (state.consents !== prev.consents) hideMyBanner();
   });
 &lt;/script&gt;</code></pre>
     </div>
@@ -87,17 +90,11 @@
   </div>
 
   <!-- Headless mode: no prestyled UI -->
-  <script src="../../packages/embed/dist/c15t.js" data-backend="http://localhost:3000" data-headless="true" data-debug="true"></script>
+  <script src="/c15t.js" data-backend="/api/c15t" data-headless="true" data-debug="true"></script>
 
   <script>
-    // Wait for the store to be available, then show our custom banner
-    function init() {
-      if (!window.c15tStore) {
-        setTimeout(init, 50);
-        return;
-      }
-
-      const store = window.c15tStore;
+    // window.c15tReady resolves once the runtime is initialized
+    window.c15tReady.then((store) => {
       const consents = store.getState().consents;
       const hasConsented = Object.values(consents).some(v => v === true);
 
@@ -106,13 +103,13 @@
         document.getElementById('my-banner').classList.add('visible');
       }
 
-      // Hide banner when consent is saved (using the embed convenience API)
-      store.c15t.on('consent', () => {
-        document.getElementById('my-banner').classList.remove('visible');
+      // Hide banner when consent is saved
+      store.subscribe((state, prev) => {
+        if (state.consents !== prev.consents) {
+          document.getElementById('my-banner').classList.remove('visible');
+        }
       });
-    }
-
-    init();
+    });
   </script>
 </body>
 </html>

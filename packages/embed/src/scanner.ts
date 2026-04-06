@@ -1,4 +1,4 @@
-import type { Script } from 'c15t';
+import type { Script } from 'c15t/script-loader';
 
 /**
  * Scans the DOM for `<c15t-script>` custom elements and returns Script objects.

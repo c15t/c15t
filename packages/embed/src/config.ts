@@ -17,8 +17,10 @@ export interface EmbedConfig {
 	mode: 'hosted' | 'offline';
 	/** Enable debug logging */
 	debug: boolean;
-	/** Headless mode — skip UI rendering, only expose window.c15t API */
+	/** Headless mode — skip UI rendering, only expose the store API */
 	headless: boolean;
+	/** No style mode — render DOM structure without injecting CSS */
+	noStyle: boolean;
 }
 
 /**
@@ -49,5 +51,6 @@ export function parseEmbedConfig(): EmbedConfig | null {
 		mode: (scriptEl.dataset.mode as 'hosted' | 'offline') || 'hosted',
 		debug: scriptEl.dataset.debug === 'true',
 		headless: scriptEl.dataset.headless === 'true',
+		noStyle: scriptEl.dataset.noStyle === 'true',
 	};
 }

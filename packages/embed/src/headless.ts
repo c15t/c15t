@@ -1,120 +1,67 @@
 /**
- * Headless convenience API — mounted on `window.c15tStore.c15t` alongside
- * the existing Zustand store that core already places on `window.c15tStore`.
+ * Headless API for the embed script.
  *
- * The raw Zustand store (`window.c15tStore.getState()`, `.subscribe()`) is
- * always available. This module adds a simpler event-based layer for embed
- * users who don't want to deal with Zustand directly.
+ * Provides `window.c15tReady` — a Promise that resolves with the Zustand
+ * store once the runtime is initialized. This is the recommended way to
+ * interact with c15t from plain JavaScript.
  *
  * @example
  * ```html
  * <script src="c15t.js" data-backend="..." data-headless="true"></script>
  * <script>
- *   // Raw store (always available — set by c15t core):
- *   const state = window.c15tStore.getState();
- *   state.saveConsents('all');
+ *   // Wait for the runtime to initialize
+ *   const store = await window.c15tReady;
  *
- *   // Convenience API (added by embed):
- *   window.c15tStore.c15t.on('consent', (consents) => { ... });
+ *   // Read consent state
+ *   console.log(store.getState().consents);
+ *
+ *   // Subscribe to changes
+ *   store.subscribe((state) => console.log(state.consents));
+ *
+ *   // Save consent
+ *   store.getState().saveConsents('all');
+ *
+ *   // Show UI
+ *   store.getState().setActiveUI('dialog');
  * </script>
  * ```
  */
 
-import type { ConsentRuntimeResult } from 'c15t';
+import type { ConsentRuntimeResult } from 'c15t/runtime';
 
 type ConsentStore = ConsentRuntimeResult['consentStore'];
-type Listener = (...args: unknown[]) => void;
 
-export interface C15tEmbedAPI {
-	/**
-	 * Subscribe to events.
-	 * - `'ready'` — runtime initialized, consent state available
-	 * - `'consent'` — consent state changed
-	 */
-	on(event: 'ready' | 'consent', callback: Listener): () => void;
-
-	/** Get consent categories with their display metadata */
-	getCategories(): Array<{
-		name: string;
-		title: string;
-		description: string;
-		disabled: boolean;
-	}>;
-}
+let resolveReady: ((store: ConsentStore) => void) | null = null;
 
 /**
- * Creates the embed convenience API and attaches it to the existing store
- * as `store.c15t`. Does NOT overwrite `window.c15tStore`.
+ * Creates `window.c15tReady` — a Promise that resolves once the consent
+ * runtime has initialized (i.e. the /init response has been processed).
+ *
+ * If the store is already initialized when called, resolves immediately.
  */
-export function attachEmbedAPI(store: ConsentStore): C15tEmbedAPI {
-	const listeners: Record<string, Set<Listener>> = {
-		ready: new Set(),
-		consent: new Set(),
-	};
-
-	let readyFired = false;
-
-	// Subscribe to store changes for event dispatching
-	store.subscribe((state, prevState) => {
-		// Fire ready once when init completes
-		if (!readyFired && state.consentInfo !== null) {
-			readyFired = true;
-			for (const cb of listeners.ready) {
-				try {
-					cb(state.consents);
-				} catch (_e) {
-					/* user callback error */
-				}
-			}
-		}
-
-		// Fire consent change
-		if (state.consents !== prevState.consents) {
-			for (const cb of listeners.consent) {
-				try {
-					cb(state.consents);
-				} catch (_e) {
-					/* user callback error */
-				}
-			}
-		}
+export function setupReadyPromise(store: ConsentStore): void {
+	// Create the promise on window immediately so scripts can await it
+	const promise = new Promise<ConsentStore>((resolve) => {
+		resolveReady = resolve;
 	});
 
-	const api: C15tEmbedAPI = {
-		on(event, callback) {
-			const set = listeners[event];
-			if (!set) return () => {};
+	// biome-ignore lint/suspicious/noExplicitAny: extending window
+	(window as any).c15tReady = promise;
 
-			set.add(callback);
+	// Check if already initialized
+	const state = store.getState();
+	if (state.consentInfo !== null) {
+		resolveReady?.(store);
+		resolveReady = null;
+		return;
+	}
 
-			// If subscribing to 'ready' after it already fired, call immediately
-			if (event === 'ready' && readyFired) {
-				try {
-					callback(store.getState().consents);
-				} catch (_e) {
-					/* user callback error */
-				}
-			}
-
-			return () => {
-				set.delete(callback);
-			};
-		},
-
-		getCategories() {
-			const state = store.getState();
-			return state.consentTypes.map((ct) => ({
-				name: ct.name,
-				title: ct.title ?? ct.name,
-				description: ct.description ?? '',
-				disabled: ct.disabled ?? false,
-			}));
-		},
-	};
-
-	// Attach to the existing store object (don't overwrite it)
-	// biome-ignore lint/suspicious/noExplicitAny: extending the store object
-	(store as any).c15t = api;
-
-	return api;
+	// Subscribe and resolve when init completes
+	const unsub = store.subscribe((state) => {
+		if (state.consentInfo !== null && resolveReady) {
+			resolveReady(store);
+			resolveReady = null;
+			unsub();
+		}
+	});
 }

@@ -15,8 +15,9 @@ import widgetClasses from '../../../ui/dist/styles/components/consent-widget.mod
 // @ts-expect-error - direct dist path import
 import buttonClasses from '../../../ui/dist/styles/primitives/button.module.js';
 // @ts-expect-error - direct dist path import
+import legalLinksClasses from '../../../ui/dist/styles/primitives/legal-links.module.js';
+// @ts-expect-error - direct dist path import
 import switchClasses from '../../../ui/dist/styles/primitives/switch.module.js';
-// @ts-expect-error - direct source path import
 import { defaultTheme, generateThemeCSS } from '../../../ui/src/theme/utils';
 
 export const bannerStyles = bannerClasses as Record<string, string>;
@@ -24,8 +25,15 @@ export const dialogStyles = dialogClasses as Record<string, string>;
 export const widgetStyles = widgetClasses as Record<string, string>;
 export const buttonStyles = buttonClasses as Record<string, string>;
 export const switchStyles = switchClasses as Record<string, string>;
+export const legalLinksStyles = legalLinksClasses as Record<string, string>;
 
 let injected = false;
+let noStyleMode = false;
+
+/** Enable noStyle mode — prevents CSS injection while keeping DOM structure */
+export function setNoStyleMode(enabled: boolean): void {
+	noStyleMode = enabled;
+}
 
 /**
  * Injects c15t CSS into the page:
@@ -33,9 +41,10 @@ let injected = false;
  * 2. A tiny <style> tag for theme variables (from defaultTheme)
  *
  * The CSS URL is derived from the embed script's own URL (sibling file).
+ * Skipped in noStyle mode.
  */
 export function injectC15tCSS(): void {
-	if (injected) return;
+	if (injected || noStyleMode) return;
 	injected = true;
 
 	// Inject the component CSS via <link> — loaded as a separate cacheable file
@@ -51,11 +60,12 @@ export function injectC15tCSS(): void {
 		document.head.appendChild(link);
 	}
 
-	// Inject theme variables as a tiny inline <style> (~1KB)
-	// These are the --c15t-* CSS variables that the component CSS references
+	// Inject theme variables + scoped reset as a tiny inline <style>
 	const themeCSS = generateThemeCSS(defaultTheme);
 	const style = document.createElement('style');
 	style.id = 'c15t-embed-theme';
-	style.textContent = themeCSS;
+	// Scoped box-sizing reset for c15t elements — CMS sites may not have
+	// a global reset, causing buttons/switches to overflow their dimensions.
+	style.textContent = `[data-testid^="consent-"] *, [data-testid^="consent-"] *::before, [data-testid^="consent-"] *::after { box-sizing: border-box; }\n${themeCSS}`;
 	document.head.appendChild(style);
 }

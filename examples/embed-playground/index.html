@@ -85,18 +85,19 @@
       <a href="headless.html">Headless</a>
       <a href="custom-elements.html">Custom Elements</a>
       <a href="dark.html">Dark Theme</a>
+      <a href="scripts.html">Script Manifests</a>
     </nav>
 
     <!-- Prestyled mode -->
     <div class="card">
       <h2>Prestyled Mode <span class="badge badge-green">Default</span></h2>
       <p>The embed script renders its own consent banner and dialog. Most CMS users use this.</p>
-      <pre><code>&lt;script src="c15t.js" data-backend="http://localhost:3000" data-debug="true"&gt;&lt;/script&gt;</code></pre>
+      <pre><code>&lt;script src="https://cdn.c15t.com/c15t.js" data-backend="https://your-site.com/api/c15t"&gt;&lt;/script&gt;</code></pre>
     </div>
 
     <div class="card">
-      <h2>Headless API</h2>
-      <p>The <code>window.c15tStore</code> API is always available, even in prestyled mode.</p>
+      <h2>Store API</h2>
+      <p>The <code>window.c15tStore</code> Zustand store and <code>window.c15tReady</code> promise are always available.</p>
       <div class="controls">
         <button onclick="logConsents()">getConsents()</button>
         <button onclick="logCategories()">getCategories()</button>
@@ -126,8 +127,8 @@
     </div>
   </div>
 
-  <!-- Load the embed script -->
-  <script src="../../packages/embed/dist/c15t.js" data-backend="http://localhost:3000" data-debug="true"></script>
+  <!-- Load the embed script (served by dev server at /c15t.js, backend proxied at /api/) -->
+  <script src="/c15t.js" data-backend="/api/c15t" data-debug="true"></script>
 
   <script>
     const output = document.getElementById('console-output');
@@ -139,23 +140,26 @@
       output.scrollTop = output.scrollHeight;
     }
 
-    // The raw Zustand store is on window.c15tStore (set by c15t core)
-    // The embed adds convenience event API on window.c15tStore.c15t
-    function waitForStore(cb) {
-      if (window.c15tStore) { cb(); return; }
-      log('Waiting for store...');
-      setTimeout(() => waitForStore(cb), 50);
-    }
+    // window.c15tReady is a Promise that resolves with the Zustand store
+    // once the consent runtime is initialized.
+    // window.c15tStore is also available immediately (set by core).
+    window.c15tReady.then((store) => {
+      log('Ready! Store initialized.');
+      log(store.getState().consents);
 
-    waitForStore(() => {
-      const store = window.c15tStore;
-      log('Store connected: window.c15tStore');
-      store.c15t.on('ready', (state) => log('Event: ready — ' + JSON.stringify(state)));
-      store.c15t.on('consent', (consents) => log('Event: consent — ' + JSON.stringify(consents)));
+      // Subscribe to consent changes
+      store.subscribe((state, prev) => {
+        if (state.consents !== prev.consents) {
+          log('Consent changed: ' + JSON.stringify(state.consents));
+        }
+      });
     });
 
     function logConsents() { log(window.c15tStore?.getState()?.consents ?? 'not ready'); }
-    function logCategories() { log(window.c15tStore?.c15t?.getCategories() ?? 'not ready'); }
+    function logCategories() {
+      const types = window.c15tStore?.getState()?.consentTypes;
+      log(types?.map(t => ({ name: t.name, title: t.title })) ?? 'not ready');
+    }
     function showBanner() { window.c15tStore?.getState()?.setActiveUI('banner', { force: true }); log('showBanner()'); }
     function showDialog() { window.c15tStore?.getState()?.setActiveUI('dialog'); log('showDialog()'); }
     function hideUI() { window.c15tStore?.getState()?.setActiveUI('none'); log('hideUI()'); }
