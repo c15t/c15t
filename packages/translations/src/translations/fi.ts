@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		rejectAll: 'Hylkää kaikki',
 		customize: 'Mukauta',
 		save: 'Tallenna asetukset',
+		close: 'Sulje',
 	},
 	cookieBanner: {
 		title: 'Arvostamme yksityisyyttäsi',

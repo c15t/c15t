@@ -213,7 +213,7 @@
 			var(--button-primary) 10%,
 			transparent
 		);
-		color: var(--button-primary);
+		color: color-mix(in srgb, var(--button-primary) 85%, black);
 	}
 
 	:global(.c15t-dark) .button-primary-lighter {

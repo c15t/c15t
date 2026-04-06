@@ -15,6 +15,7 @@ const PRIMITIVE_CSS_MODULES = [
 	'accordion',
 	'button',
 	'legal-links',
+	'preference-item',
 	'switch',
 ] as const;
 

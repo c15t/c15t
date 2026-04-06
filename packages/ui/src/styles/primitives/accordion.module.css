@@ -57,24 +57,24 @@
 
 	.item:is(:hover, [data-state="open"]) {
 		background-color: var(--accordion-background-hover);
-		box-shadow: inset 0 0 0 1px transparent;
+		box-shadow: inset 0 0 0 1px var(--accordion-border-color);
 	}
 
 	:global(.c15t-dark) .item:is(:hover, [data-state="open"]) {
 		background-color: var(--accordion-background-hover-dark);
-		box-shadow: inset 0 0 0 1px transparent;
+		box-shadow: inset 0 0 0 1px var(--accordion-border-color-dark);
 	}
 
 	/* Focus styles for item */
 	.item:focus-within:not(:has(.triggerInner:focus-visible)) {
 		background-color: var(--accordion-background-hover);
-		box-shadow: inset 0 0 0 1px transparent;
+		box-shadow: inset 0 0 0 1px var(--accordion-border-color);
 	}
 
 	:global(.c15t-dark)
 		.item:focus-within:not(:has(.triggerInner:focus-visible)) {
 		background-color: var(--accordion-background-hover-dark);
-		box-shadow: inset 0 0 0 1px transparent;
+		box-shadow: inset 0 0 0 1px var(--accordion-border-color-dark);
 	}
 
 	.item:has(.triggerInner:focus-visible) {
@@ -95,13 +95,13 @@
 	}
 
 	.triggerInner {
-		display: grid;
-		grid-template-columns: auto 1fr;
+		display: flex;
 		align-items: center;
 		gap: 0.625rem;
-		width: 90%;
-		margin: calc(-1 * var(--accordion-padding));
-		padding: var(--accordion-padding);
+		justify-content: flex-start;
+		width: 100%;
+		margin: 0;
+		padding: 0;
 		font-size: 0.875rem;
 		line-height: 1.25rem;
 		letter-spacing: -0.006em;
@@ -115,6 +115,10 @@
 		position: relative;
 		z-index: 1;
 		touch-action: manipulation;
+	}
+
+	.triggerInner [data-slot="accordion-arrow"] {
+		margin-inline-start: auto;
 	}
 
 	:global(.c15t-dark) .triggerInner {
@@ -138,6 +142,7 @@
 
 	.arrowOpen,
 	.arrowClose {
+		display: block;
 		width: var(--accordion-icon-size);
 		height: var(--accordion-icon-size);
 		transition: color var(--accordion-duration) var(--accordion-ease);
@@ -178,53 +183,24 @@
 	}
 
 	.content {
+		display: grid;
+		grid-template-rows: 0fr;
 		overflow: hidden;
-	}
-
-	/*
-	 * Accordion height animation using Radix UI's CSS variable approach.
-	 *
-	 * Note: Animating `height` triggers layout recalculation, which is less
-	 * performant than transform/opacity-only animations. However, this is
-	 * the standard pattern for Radix Accordion and provides the best UX for
-	 * content that needs to smoothly expand/collapse.
-	 *
-	 * Alternatives considered:
-	 * - CSS Grid (grid-template-rows: 0fr -> 1fr): More performant but requires
-	 *   different HTML structure and doesn't work well with Radix's approach.
-	 * - max-height: Less precise timing and can feel sluggish.
-	 *
-	 * The prefers-reduced-motion query below disables these animations for
-	 * users who prefer reduced motion.
-	 */
-	@keyframes accordionDown {
-		from {
-			height: 0;
-			opacity: 0;
-		}
-		to {
-			height: var(--radix-accordion-content-height);
-			opacity: 1;
-		}
-	}
-
-	@keyframes accordionUp {
-		from {
-			height: var(--radix-accordion-content-height);
-			opacity: 1;
-		}
-		to {
-			height: 0;
-			opacity: 0;
-		}
+		transition: grid-template-rows var(--accordion-duration)
+			var(--accordion-ease);
 	}
 
 	.content[data-state="open"] {
-		animation: accordionDown var(--accordion-duration) var(--accordion-ease);
+		grid-template-rows: 1fr;
 	}
 
 	.content[data-state="closed"] {
-		animation: accordionUp var(--accordion-duration) var(--accordion-ease);
+		pointer-events: none;
+	}
+
+	.content > [data-slot="accordion-content-viewport"] {
+		min-height: 0;
+		overflow: hidden;
 	}
 
 	.contentInner {
@@ -232,6 +208,18 @@
 		line-height: 1.25rem;
 		letter-spacing: -0.006em;
 		color: var(--accordion-content-color);
+		padding-top: 0.75rem;
+		opacity: 1;
+		transform: translateY(0);
+		transition:
+			opacity calc(var(--accordion-duration) * 0.35) ease-out,
+			transform calc(var(--accordion-duration) * 0.35) ease-out;
+		will-change: opacity, transform;
+	}
+
+	.content[data-state="closed"] .contentInner {
+		opacity: 0;
+		transform: translateY(-0.125rem);
 	}
 
 	:global(.c15t-dark) .contentInner {
@@ -241,14 +229,10 @@
 	/* Reduced motion preference */
 	@media (prefers-reduced-motion: reduce) {
 		.item,
+		.content,
 		.arrowOpen,
 		.arrowClose {
 			transition: none;
-		}
-
-		.content[data-state="open"],
-		.content[data-state="closed"] {
-			animation: none;
 		}
 	}
 

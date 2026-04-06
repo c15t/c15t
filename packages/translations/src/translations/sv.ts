@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		rejectAll: 'Avvisa alla',
 		customize: 'Anpassa',
 		save: 'Spara inställningar',
+		close: 'Stäng',
 	},
 	cookieBanner: {
 		title: 'Vi värdesätter din integritet',

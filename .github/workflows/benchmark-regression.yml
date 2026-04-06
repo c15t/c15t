@@ -46,7 +46,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: 1.3.6
+          bun-version: "1.3.11"
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -58,13 +58,15 @@ jobs:
         run: rm -rf .benchmarks .perf
 
       - name: Run base benchmark suite
+        id: run-base-bench
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
         env:
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         run: bun run bench:ci
 
       - name: Save base results
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.run-base-bench.outcome == 'success'
         run: |
           mkdir -p .perf
           mv .benchmarks/head .perf/base
@@ -85,25 +87,35 @@ jobs:
 
       - name: Run head benchmark suite
         if: github.event_name == 'pull_request'
+        id: run-head-bench
         env:
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         run: bun run bench:ci
 
       - name: Save head results
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.run-head-bench.outcome == 'success'
         run: |
           mkdir -p .perf
           mv .benchmarks/head .perf/head
 
       - name: Compare benchmark reports
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.run-base-bench.outcome == 'success' && steps.run-head-bench.outcome == 'success'
         env:
           BENCHMARK_BASE_DIR: .perf/base
           BENCHMARK_HEAD_DIR: .perf/head
           BENCHMARK_COMPARE_DIR: .perf/compare
           BENCHMARK_ENFORCE: ${{ vars.C15T_BENCHMARK_ENFORCE || 'false' }}
         run: bun run bench:compare
+
+      - name: Note skipped base comparison
+        if: github.event_name == 'pull_request' && steps.run-base-bench.outcome != 'success'
+        run: |
+          mkdir -p .perf/compare
+          cat <<'EOF' > .perf/compare/summary.md
+          Base benchmark suite failed on the target branch, so regression comparison was skipped for this PR run.
+          Head benchmark results were still collected from the PR branch.
+          EOF
 
       - name: Save PR metadata
         if: github.event_name == 'pull_request'

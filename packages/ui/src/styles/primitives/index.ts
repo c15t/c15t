@@ -43,6 +43,14 @@ export {
 	type ButtonVariantsProps,
 	buttonVariants,
 } from './button';
+export {
+	type CollapsibleVariantsProps,
+	collapsibleVariants,
+} from './collapsible';
+export {
+	type PreferenceItemVariantsProps,
+	preferenceItemVariants,
+} from './preference-item';
 // Switch exports
 export {
 	type SwitchCSSVariables,
@@ -53,3 +61,7 @@ export {
 	type SwitchVariantsProps,
 	switchVariants,
 } from './switch';
+export {
+	type TabsVariantsProps,
+	tabsVariants,
+} from './tabs';

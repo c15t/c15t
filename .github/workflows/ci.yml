@@ -1,4 +1,4 @@
-name: CI
+name: Lint, Build & Test
 
 on:
   push:
@@ -6,27 +6,67 @@ on:
   pull_request:
     types: [opened, synchronize]
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  lint_and_check:
-    name: 🧹 Lint & Type Check
+  changes:
+    name: 🔍 Detect Changes
     runs-on: ubuntu-latest
     permissions:
-      contents: read # Needed for checkout
-      checks: write # Needed for reviewdog to post results
-      pull-requests: write # Needed for reviewdog github-pr-review reporter (optional)
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+      storybook: ${{ steps.filter.outputs.storybook }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'packages/**'
+              - 'apps/**'
+              - 'internals/**'
+              - 'configs/**'
+              - 'examples/**'
+              - 'turbo.json'
+              - 'package.json'
+              - 'bun.lock'
+              - 'biome.jsonc'
+              - 'tsconfig.json'
+              - '.github/workflows/ci.yml'
+              - '.github/actions/**'
+            storybook:
+              - 'packages/ui/**'
+              - 'packages/react/**'
+              - 'packages/solid/**'
+              - 'packages/svelte/**'
+              - 'packages/vue/**'
+              - 'packages/core/**'
+              - 'packages/translations/**'
+              - 'apps/storybook-*/**'
+              - 'internals/storybook-tests/**'
+
+  lint_and_check:
+    name: 🧹 Lint & Type Check
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: 🟢 Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
-      - name: 📦 Install dependencies
-        run: bun install --frozen-lockfile
+      - name: 📦 Setup & Install
+        uses: ./.github/actions/setup
 
       - name: 👀 Type Check
         env:
@@ -38,27 +78,24 @@ jobs:
         uses: mongolyy/reviewdog-action-biome@v2.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: github-pr-check # Report results as checks
-          level: warning               # Report errors
+          reporter: github-pr-check
+          level: warning
 
   build:
     name: 🏗️ Build Packages
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: read # Needed for checkout
+      contents: read
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: 🟢 Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
-      - name: 📦 Install dependencies
-        run: bun install --frozen-lockfile
+      - name: 📦 Setup & Install
+        uses: ./.github/actions/setup
 
       - name: 🏗️ Build
         env:
@@ -71,26 +108,21 @@ jobs:
 
   test:
     name: 🧪 Run Tests & Coverage
-    needs: build # Run only after build succeeds
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: read # Needed for checkout
+      contents: read
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: 🟢 Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: 📦 Setup & Install
+        uses: ./.github/actions/setup
         with:
-          bun-version: latest
-
-      - name: 📦 Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: 🎭 Install Playwright browsers
-        run: bunx playwright install --with-deps chromium chromium-headless-shell
+          playwright: "true"
 
       - name: 🧪 Run Tests
         env:
@@ -101,13 +133,54 @@ jobs:
       - name: ⬆️ Upload Individual Coverage Reports
         uses: actions/upload-artifact@v4
         with:
-          name: individual-coverage-data # Artifact containing all raw reports
+          name: individual-coverage-data
           path: |
             packages/*/coverage/coverage-summary.json
             packages/*/coverage/coverage-final.json
             apps/*/coverage/coverage-summary.json
             apps/*/coverage/coverage-final.json
-            # Add other potential locations if necessary
           retention-days: 7
-          # Optional: Handle case where no files are found gracefully
-          if-no-files-found: warn # 'warn', 'error', or 'ignore'
+          if-no-files-found: warn
+
+  test_storybook:
+    name: 🎭 Storybook Tests
+    needs: changes
+    if: needs.changes.outputs.storybook == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        storybook:
+          - storybook-react
+          - storybook-solid
+          - storybook-svelte
+          - storybook-vue
+    steps:
+      - name: ⬇️ Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 📦 Setup & Install
+        uses: ./.github/actions/setup
+        with:
+          playwright: "true"
+
+      - name: 🏗️ Build storybook
+        env:
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+        run: bun turbo run build --filter="./apps/${{ matrix.storybook }}"
+
+      - name: 🧪 Run storybook tests
+        run: |
+          cd apps/${{ matrix.storybook }}
+          bunx http-server storybook-static -p 6006 -s &
+          SERVER_PID=$!
+          bunx wait-on tcp:127.0.0.1:6006 --timeout 30000
+          STORYBOOK_URL=http://127.0.0.1:6006 bun run test-storybook
+          EXIT=$?
+          kill $SERVER_PID 2>/dev/null || true
+          exit $EXIT

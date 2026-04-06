@@ -88,6 +88,7 @@ const ConsentDialogHeaderTitle = forwardRef<
 			baseClassName={styles.title}
 			themeKey="consentDialogTitle"
 			{...props}
+			id="consent-dialog-title"
 			data-testid="consent-dialog-title"
 		>
 			{children ?? consentDialog.title}

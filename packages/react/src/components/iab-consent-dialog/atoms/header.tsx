@@ -4,6 +4,7 @@ import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { forwardRef, type ReactNode } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
+import { useTranslations } from '~/hooks/use-translations';
 import { useIABTranslations } from '../use-iab-translations';
 
 interface IABConsentDialogHeaderProps {
@@ -45,6 +46,7 @@ const IABConsentDialogHeader = forwardRef<
 	) => {
 		const { setActiveUI } = useConsentManager();
 		const iabTranslations = useIABTranslations();
+		const { common } = useTranslations();
 
 		const handleClose = () => {
 			setActiveUI('none');
@@ -74,7 +76,7 @@ const IABConsentDialogHeader = forwardRef<
 								type="button"
 								onClick={handleClose}
 								className={styles.closeButton}
-								aria-label="Close"
+								aria-label={common.close}
 							>
 								<svg
 									style={{ width: '1rem', height: '1rem' }}
