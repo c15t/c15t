@@ -1,0 +1,86 @@
+---
+title: "v2.0.0-rc.7 — Theming Fixes, Simpler Tailwind Setup, and Cross-Environment CSS Review"
+version: "2.0.0-rc.7"
+date: 2026-04-08
+description: "Release candidate focused on fixing theming regressions in the prebuilt UI, simplifying the Tailwind setup contract, and adding better manual coverage for CSS behavior across Tailwind 3, Tailwind 4, and plain CSS."
+tags:
+  - release
+  - rc
+  - react
+  - nextjs
+  - tailwind
+  - styling
+type: release
+breaking: false
+authors: [KayleeWilliams]
+---
+
+`v2.0.0-rc.7` is a cleanup release aimed at styling correctness rather than new surface area. The main focus is fixing the theming regressions that showed up in `rc.6`, tightening the contract around how c15t styles interact with Tailwind, and improving the manual review workflow for cross-environment CSS behavior before the final 2.0 release.
+
+## Highlights
+
+- Fixed slot theming regressions in the React prebuilt UI
+- Simplified the Tailwind setup contract to match the actual shipped `@layer components` behavior
+- Added a manual CSS matrix harness to compare Tailwind 3, Tailwind 4, and plain CSS side by side
+- Strengthened regression coverage for slot styling, switch tokens, and packaging/tooling edge cases
+
+## Fixed Theming Regressions
+
+The biggest user-facing fixes in `rc.7` are around per-slot theming.
+
+### Slot `noStyle` no longer leaks to the DOM
+
+Resolved slot metadata is now sanitized before it reaches rendered DOM elements, so internal flags such as `noStyle` are consumed by c15t instead of being forwarded as invalid HTML attributes.
+
+### Slot `style` now applies on the documented surfaces
+
+Inline styles provided through slot objects now apply correctly on the rendered elements, including the `consentWidgetAccordion` path that was previously documented but not fully wired.
+
+### Switch track tokens now win correctly
+
+`switchTrack` and `switchTrackActive` theme tokens now resolve from the rendered component subtree instead of losing to the shared module defaults. This makes provider-level and scoped theme overrides behave predictably without requiring `!important`.
+
+### Shared adapter guardrail in `@c15t/ui`
+
+`@c15t/ui` now exports a small DOM prop sanitizing helper so future framework adapters can safely bind resolved slot styles without reintroducing these same issues.
+
+## Tailwind Setup Is Simpler
+
+This RC also removes the stale idea that c15t needs its own dedicated Tailwind layer contract.
+
+The shipped component CSS already lands in Tailwind's `components` layer, so the docs and templates now reflect that reality:
+
+- **Tailwind 4**: import Tailwind normally, with no extra `c15t` layer declaration
+- **Tailwind 3**: keep the wrapped `@tailwind base` pattern, but standardize on `@layer base, components, utilities;`
+
+This cleanup affects the public setup guidance in the React and Next.js docs as well as the CLI Tailwind CSS template helper used during setup.
+
+## Better CSS Review Before Release
+
+To make styling regressions easier to catch, the repo now includes a manual CSS matrix harness under `benchmarks/`.
+
+It renders the same consent scenarios across:
+
+- Tailwind 3
+- Tailwind 4
+- plain CSS
+
+The preview shell shows those environments side by side so complex styling cases can be checked visually before release work lands. This is intentionally a manual review tool for now, not a CI gate.
+
+## Improvements
+
+- The demo theme showcase now includes regression-focused previews for the fixed theming contract
+- Added browser/render-path regression tests for slot props and switch token styling
+- Added CLI coverage for the new Tailwind CSS template contract
+- Fixed CI issues around preview workflow outputs, benchmark config typing, and CSS test path resolution
+
+## Learn more
+
+- [#697](https://github.com/c15t/c15t/pull/697) — fix RC theming regressions, clean up Tailwind setup guidance, and add the CSS matrix harness
+
+## Notes
+
+- There are no planned breaking changes in `v2.0.0-rc.7`
+- This release is scheduled for **April 8, 2026**
+
+<ContributorBlock usernames={["KayleeWilliams"]} title="Thank you to our contributors" />
