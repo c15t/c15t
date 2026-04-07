@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { readdir } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { Project } from 'ts-morph';
 
@@ -104,6 +104,35 @@ type DetectionResult = {
 	usesIabUi: boolean;
 	headlessOnly: boolean;
 };
+
+async function detectTailwindVersion(
+	projectRoot: string
+): Promise<string | null> {
+	const packageJsonPath = join(projectRoot, 'package.json');
+	if (!existsSync(packageJsonPath)) {
+		return null;
+	}
+
+	try {
+		const content = await readFile(packageJsonPath, 'utf-8');
+		const parsed = JSON.parse(content) as {
+			dependencies?: Record<string, string>;
+			devDependencies?: Record<string, string>;
+		};
+
+		return (
+			parsed.dependencies?.tailwindcss ??
+			parsed.devDependencies?.tailwindcss ??
+			null
+		);
+	} catch {
+		return null;
+	}
+}
+
+function isTailwindV3(version: string | null): boolean {
+	return version != null && /^(?:\^|~)?3/.test(version);
+}
 
 async function collectSourceFiles(rootDir: string): Promise<string[]> {
 	const files: string[] = [];
@@ -319,6 +348,29 @@ function addCssImport(
 	return true;
 }
 
+function replaceCssImport(
+	project: Project,
+	filePath: string,
+	fromPath: string,
+	toPath: string
+): boolean {
+	const sourceFile = project.addSourceFileAtPathIfExists(filePath);
+	if (!sourceFile) {
+		return false;
+	}
+
+	const importDeclaration = sourceFile
+		.getImportDeclarations()
+		.find((importDecl) => importDecl.getModuleSpecifierValue() === fromPath);
+
+	if (!importDeclaration) {
+		return false;
+	}
+
+	importDeclaration.setModuleSpecifier(toPath);
+	return true;
+}
+
 /**
  * Runs the add-stylesheet-imports codemod across project source files.
  *
@@ -407,14 +459,40 @@ export async function runAddStylesheetImportsCodemod(
 
 	// Phase 3: Add CSS imports
 	const pkg = detection.framework === 'nextjs' ? '@c15t/nextjs' : '@c15t/react';
+	const tailwindVersion = await detectTailwindVersion(options.projectRoot);
+	const baseStylesheet = isTailwindV3(tailwindVersion)
+		? `${pkg}/styles.tw3.css`
+		: `${pkg}/styles.css`;
+	const iabStylesheet = isTailwindV3(tailwindVersion)
+		? `${pkg}/iab/styles.tw3.css`
+		: `${pkg}/iab/styles.css`;
 	const operations: number[] = [];
 	const summaries: string[] = [];
 
 	try {
 		// Add base stylesheet if styled UI is used (not just IAB)
 		if (detection.usesStyledUi) {
-			const baseCss = `${pkg}/styles.css`;
-			if (!hasCssImport(project, entrypoint, baseCss)) {
+			const baseCss = baseStylesheet;
+			const fallbackBaseCss = baseCss.endsWith('.tw3.css')
+				? `${pkg}/styles.css`
+				: `${pkg}/styles.tw3.css`;
+			if (
+				!hasCssImport(project, entrypoint, baseCss) &&
+				hasCssImport(project, entrypoint, fallbackBaseCss)
+			) {
+				const replaced = replaceCssImport(
+					project,
+					entrypoint,
+					fallbackBaseCss,
+					baseCss
+				);
+				if (replaced) {
+					operations.push(1);
+					summaries.push(
+						`replaced import '${fallbackBaseCss}' with '${baseCss}'`
+					);
+				}
+			} else if (!hasCssImport(project, entrypoint, baseCss)) {
 				const added = addCssImport(project, entrypoint, baseCss);
 				if (added) {
 					operations.push(1);
@@ -425,8 +503,27 @@ export async function runAddStylesheetImportsCodemod(
 
 		// Add IAB stylesheet if IAB UI is used
 		if (detection.usesIabUi) {
-			const iabCss = `${pkg}/iab/styles.css`;
-			if (!hasCssImport(project, entrypoint, iabCss)) {
+			const iabCss = iabStylesheet;
+			const fallbackIabCss = iabCss.endsWith('.tw3.css')
+				? `${pkg}/iab/styles.css`
+				: `${pkg}/iab/styles.tw3.css`;
+			if (
+				!hasCssImport(project, entrypoint, iabCss) &&
+				hasCssImport(project, entrypoint, fallbackIabCss)
+			) {
+				const replaced = replaceCssImport(
+					project,
+					entrypoint,
+					fallbackIabCss,
+					iabCss
+				);
+				if (replaced) {
+					operations.push(1);
+					summaries.push(
+						`replaced import '${fallbackIabCss}' with '${iabCss}'`
+					);
+				}
+			} else if (!hasCssImport(project, entrypoint, iabCss)) {
 				const added = addCssImport(project, entrypoint, iabCss);
 				if (added) {
 					operations.push(1);

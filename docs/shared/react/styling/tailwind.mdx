@@ -25,29 +25,22 @@
 
   ### Tailwind v3
 
-  Keep Tailwind's directives in your app stylesheet, but wrap `@tailwind base` in a native `base` layer so c15t's emitted `@layer components` rules sit above Preflight while utilities stay last:
+  Import the Tailwind 3-compatible c15t stylesheet before your app Tailwind globals, then keep your standard Tailwind directives in the app stylesheet:
 
-  ```css title="app/globals.css"
-  @layer base, components, utilities;
-
-  @layer base {
-    @tailwind base;
-  }
-
-  @tailwind components;
-  @tailwind utilities;
+  ```tsx title="app/layout.tsx"
+  import '@c15t/react/styles.tw3.css';
+  import './globals.css';
   ```
 
-  Then add c15t's component paths to your `content` array:
+  ```tsx title="app/layout.tsx"
+  import '@c15t/nextjs/styles.tw3.css';
+  import './globals.css';
+  ```
 
-  ```js title="tailwind.config.js"
-  module.exports = {
-    content: [
-      './src/**/*.{js,ts,jsx,tsx}',
-      './node_modules/@c15t/react/**/*.{js,mjs}',
-      './node_modules/@c15t/nextjs/**/*.{js,mjs}',
-    ],
-  };
+  ```css title="app/globals.css"
+  @tailwind base;
+  @tailwind components;
+  @tailwind utilities;
   ```
 </section>
 

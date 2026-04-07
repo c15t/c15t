@@ -12,7 +12,7 @@ export const cssLayerEnvironments: CssLayerEnvironment[] = [
 		label: 'Tailwind 3',
 		port: 3121,
 		description:
-			'Next.js + Tailwind CSS 3 using the base/components/utilities layering pattern.',
+			'Next.js + Tailwind CSS 3 using the dedicated c15t Tailwind 3 stylesheet entrypoint.',
 	},
 	{
 		id: 'tw4',

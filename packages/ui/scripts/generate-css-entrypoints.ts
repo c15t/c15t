@@ -4,9 +4,10 @@
  * 2. Fixes `_module.css` references in `.module.js` and `.module.cjs` files
  * 3. Generates aggregated CSS entrypoints:
  *    - :root custom property blocks stay unlayered
- *    - Component rules are wrapped in `@layer components` for Tailwind 4
- *    - Tailwind 3 users can import the same stylesheet, provided their app keeps
- *      Tailwind directives in its own global CSS and scans c15t package sources
+ *    - `styles.css` / `iab/styles.css` wrap component rules in `@layer components`
+ *      for Tailwind 4 and native CSS layer consumers
+ *    - `styles.tw3.css` / `iab/styles.tw3.css` emit the same component rules flat
+ *      for Tailwind 3, which cannot import a standalone layered stylesheet from JS
  */
 import {
 	mkdirSync,
@@ -206,6 +207,22 @@ function buildLayeredCss(rootParts: string[], ruleParts: string[]): string {
 	return parts.join('\n\n');
 }
 
+/**
+ * Generate flat CSS: component rules are emitted without any layer wrapper.
+ * Use with Tailwind 3, where the stylesheet is typically imported from JS and
+ * must not rely on a colocated `@tailwind components` directive.
+ */
+function buildFlatCss(rootParts: string[], ruleParts: string[]): string {
+	const parts: string[] = [];
+	if (rootParts.length) {
+		parts.push(rootParts.join('\n\n'));
+	}
+	if (ruleParts.length) {
+		parts.push(ruleParts.join('\n\n'));
+	}
+	return parts.join('\n\n');
+}
+
 // ── Non-IAB entrypoints ─────────────────────────────────────────────
 const nonIab = collectCssParts(NON_IAB_PRIMITIVES, NON_IAB_COMPONENTS);
 
@@ -219,6 +236,12 @@ if (nonIab.ruleParts.length === 0) {
 writeFileSync(
 	join(DIST_DIR, 'styles.css'),
 	buildLayeredCss(nonIab.rootParts, nonIab.ruleParts) + '\n'
+);
+
+// dist/styles.tw3.css — flat rules (for Tailwind 3 layout imports)
+writeFileSync(
+	join(DIST_DIR, 'styles.tw3.css'),
+	buildFlatCss(nonIab.rootParts, nonIab.ruleParts) + '\n'
 );
 
 // ── IAB entrypoints ─────────────────────────────────────────────────
@@ -238,4 +261,12 @@ writeFileSync(
 	buildLayeredCss(iab.rootParts, iab.ruleParts) + '\n'
 );
 
-console.log('Generated dist/styles.css and dist/iab/styles.css');
+// dist/iab/styles.tw3.css — flat rules (for Tailwind 3 layout imports)
+writeFileSync(
+	join(iabDir, 'styles.tw3.css'),
+	buildFlatCss(iab.rootParts, iab.ruleParts) + '\n'
+);
+
+console.log(
+	'Generated dist/styles.css, dist/styles.tw3.css, dist/iab/styles.css, and dist/iab/styles.tw3.css'
+);
