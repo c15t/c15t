@@ -417,7 +417,7 @@
     },
     "packages/backend": {
       "name": "@c15t/backend",
-      "version": "2.0.0-rc.5",
+      "version": "2.0.0-rc.6",
       "dependencies": {
         "@c15t/logger": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -451,7 +451,7 @@
     },
     "packages/cli": {
       "name": "@c15t/cli",
-      "version": "2.0.0-rc.5",
+      "version": "2.0.0-rc.6",
       "bin": {
         "cli": "dist/index.mjs",
       },
@@ -490,7 +490,7 @@
     },
     "packages/core": {
       "name": "c15t",
-      "version": "2.0.0-rc.5",
+      "version": "2.0.0-rc.6",
       "dependencies": {
         "@c15t/schema": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -505,7 +505,7 @@
     },
     "packages/dev-tools": {
       "name": "@c15t/dev-tools",
-      "version": "2.0.0-rc.5",
+      "version": "2.0.0-rc.6",
       "dependencies": {
         "@radix-ui/react-accordion": "1.2.12",
         "@radix-ui/react-scroll-area": "^1.2.10",
@@ -536,7 +536,7 @@
     },
     "packages/iab": {
       "name": "@c15t/iab",
-      "version": "2.0.0-rc.5",
+      "version": "2.0.0-rc.6",
       "dependencies": {
         "@c15t/schema": "workspace:*",
         "@iabtechlabtcf/core": "^1.5.21",
@@ -563,14 +563,13 @@
     },
     "packages/nextjs": {
       "name": "@c15t/nextjs",
-      "version": "2.0.0-rc.5",
+      "version": "2.0.0-rc.6",
       "dependencies": {
         "@c15t/react": "workspace:*",
         "@c15t/translations": "workspace:*",
         "c15t": "workspace:*",
       },
       "devDependencies": {
-        "@c15t/backend": "workspace:*",
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
         "genversion": "3.2.0",
@@ -584,7 +583,7 @@
     },
     "packages/node-sdk": {
       "name": "@c15t/node-sdk",
-      "version": "2.0.0-rc.5",
+      "version": "2.0.0-rc.6",
       "dependencies": {
         "@c15t/backend": "workspace:*",
         "@orpc/client": "1.13.13",
@@ -608,7 +607,7 @@
     },
     "packages/react": {
       "name": "@c15t/react",
-      "version": "2.0.0-rc.5",
+      "version": "2.0.0-rc.6",
       "dependencies": {
         "@c15t/ui": "workspace:*",
         "c15t": "workspace:*",
@@ -630,7 +629,7 @@
     },
     "packages/schema": {
       "name": "@c15t/schema",
-      "version": "2.0.0-rc.3",
+      "version": "2.0.0-rc.4",
       "dependencies": {
         "valibot": "1.3.1",
       },
@@ -683,7 +682,7 @@
     },
     "packages/ui": {
       "name": "@c15t/ui",
-      "version": "2.0.0-rc.5",
+      "version": "2.0.0-rc.6",
       "dependencies": {
         "@c15t/translations": "workspace:*",
         "c15t": "workspace:*",
