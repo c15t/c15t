@@ -27,6 +27,28 @@ If your app uses multiple c15t packages, use the docs from each relevant install
 
 When an AI tool is helping with c15t behavior, it should read the installed c15t docs first and use model knowledge second. That keeps consent flows, script gating, banner behavior, and integrations aligned with the exact version you have installed.
 
+### Customization ladder for agents
+
+When an agent is working on consent UI, it should choose the lowest-power tool that solves the task:
+
+1. Start with the pre-built component and its existing props or provider options
+2. Use `theme` tokens for semantic visual changes
+3. Use `theme.slots` for targeted styling of specific parts
+4. Use CSS variables or className-level overrides only when integrating with external styles
+5. Use compound components only when the markup order must change
+6. Use `noStyle` only when c15t structure is still correct but all styling must be replaced
+7. Use headless hooks only when markup and behavior both need to be rebuilt
+
+For common tasks:
+
+- Banner footer background -> `theme.colors.surfaceHover`
+- Banner card background -> `theme.colors.surface`
+- Banner card/footer/title tweaks -> banner slots
+- Stock action styling -> `theme.consentActions`
+- Copy changes -> `ConsentManagerProvider.options.i18n`
+
+If a token appears not to work, the agent should verify the token-to-component mapping before suggesting CSS overrides, `!important`, `noStyle`, or headless mode.
+
 ***
 
 ## Agent Skills
@@ -45,7 +67,7 @@ Or directly:
 
 ### What skills provide
 
-- **Styling customization** — theme presets, CSS variables, component slot styling
+- **Styling customization** — strict escalation guidance across props, tokens, slots, CSS variables, compound components, `noStyle`, and headless
 - **Internationalization** — translation setup, locale routing integration
 - **Script management** — configuring third-party scripts with consent categories
 - **Component setup** — ConsentBanner, ConsentDialog, provider configuration
@@ -77,3 +99,4 @@ Use both when:
 
 - Your tool supports both local file context and skills
 - You want local package docs plus reusable setup and configuration help
+- You want the bundled package docs as the source of truth plus a reusable decision tree for customization

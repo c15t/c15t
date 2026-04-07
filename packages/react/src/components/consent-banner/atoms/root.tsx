@@ -94,25 +94,56 @@ interface ConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
  * Basic usage:
  * ```tsx
  * <ConsentBanner.Root>
- *   <ConsentBanner.Content>
- *     {Banner content}
- *   </ConsentBanner.Content>
+ *   <ConsentBanner.Card>
+ *     <ConsentBanner.Header>
+ *       <ConsentBanner.Title />
+ *       <ConsentBanner.Description />
+ *     </ConsentBanner.Header>
+ *     <ConsentBanner.Footer>
+ *       <ConsentBanner.CustomizeButton />
+ *       <ConsentBanner.FooterSubGroup>
+ *         <ConsentBanner.RejectButton />
+ *         <ConsentBanner.AcceptButton />
+ *       </ConsentBanner.FooterSubGroup>
+ *     </ConsentBanner.Footer>
+ *   </ConsentBanner.Card>
  * </ConsentBanner.Root>
  * ```
  *
  * @example
- * With custom styling:
+ * Preferred styling with provider theme tokens and slots:
  * ```tsx
- * <ConsentBanner.Root
- *   styles={{
- *     root: "fixed bottom-0 w-full bg-white ",
- *     content: "max-w-4xl mx-auto p-4",
- *     title: "text-xl font-bold",
- *     description: "mt-2 text-gray-600"
+ * <ConsentManagerProvider
+ *   options={{
+ *     theme: {
+ *       colors: {
+ *         surface: '#fffdf8',
+ *         surfaceHover: '#f6f3ee',
+ *       },
+ *       slots: {
+ *         consentBannerCard: 'rounded-3xl shadow-xl',
+ *         consentBannerFooter: 'border-t border-black/10 px-6',
+ *         consentBannerTitle: 'tracking-tight',
+ *       },
+ *     },
  *   }}
  * >
- *   { Banner content}
- * </ConsentBanner.Root>
+ *   <ConsentBanner.Root>
+ *     <ConsentBanner.Card>
+ *       <ConsentBanner.Header>
+ *         <ConsentBanner.Title />
+ *         <ConsentBanner.Description />
+ *       </ConsentBanner.Header>
+ *       <ConsentBanner.Footer>
+ *         <ConsentBanner.CustomizeButton />
+ *         <ConsentBanner.FooterSubGroup>
+ *           <ConsentBanner.RejectButton />
+ *           <ConsentBanner.AcceptButton />
+ *         </ConsentBanner.FooterSubGroup>
+ *       </ConsentBanner.Footer>
+ *     </ConsentBanner.Card>
+ *   </ConsentBanner.Root>
+ * </ConsentManagerProvider>
  * ```
  *
  * @public

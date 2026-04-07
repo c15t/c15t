@@ -3,11 +3,12 @@
 <section id="intro">
   c15t's headless mode means using the hooks (`useConsentManager`, `useTranslations`, etc.) without any pre-built UI components. This gives you complete control over the consent experience.
 
-  There are three levels of customization:
+  Before you go headless, walk the customization ladder in order:
 
-  1. **Props** - Use pre-built components with custom text and configuration
-  2. **noStyle** - Use pre-built components with their structure but strip all styles
-  3. **Headless** - Use only hooks and build the entire UI yourself
+  1. **Pre-built components** - Use provider options, component props, tokens, slots, and `theme.consentActions`
+  2. **Compound components** - Rearrange c15t primitives when the markup order must change
+  3. **`noStyle`** - Keep c15t structure but replace its styling
+  4. **Headless** - Use only hooks and build the entire UI yourself
 
   ## When to Go Headless
 
@@ -17,8 +18,14 @@
   - You need a consent flow that doesn't fit the banner/dialog pattern
   - You want to embed consent choices inline rather than as overlays
 
-  Use `noStyle` instead when:
+  Use a lower-power tool instead when:
 
-  - The component structure works but the styling doesn't
-  - You want to apply your own CSS/Tailwind without fighting defaults
+  - The component structure works but the styling doesn't -> use tokens, slots, or `noStyle`
+  - You only need to rearrange existing c15t parts -> use compound components
+  - You want to change copy -> use `ConsentManagerProvider.options.i18n`
+  - You only need to restyle stock actions -> use `theme.consentActions`
+
+  <Callout type="warning">
+    Headless mode is not the first answer for pure theming. If you are still trying to debug why a banner footer color did not change, stay in the styling system and verify the token-to-component mapping before you rebuild the UI.
+  </Callout>
 </section>
