@@ -1,8 +1,15 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, test } from 'vitest';
 
+const packageRoot = existsSync(
+	resolve(process.cwd(), 'src/styles/primitives/switch.module.css')
+)
+	? process.cwd()
+	: resolve(process.cwd(), 'packages/ui');
+
 const switchCss = readFileSync(
-	new URL('../switch.module.css', import.meta.url),
+	resolve(packageRoot, 'src/styles/primitives/switch.module.css'),
 	'utf8'
 );
 
