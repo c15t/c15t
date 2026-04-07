@@ -42,6 +42,7 @@ export async function updateTailwindCss(
 			// Check if it already has the v3 layer contract we need for c15t + Tailwind 3
 			if (
 				content.includes('@layer base, components, c15t;') ||
+				content.includes('@layer base, components, utilities;') ||
 				content.includes('@layer base, components;')
 			) {
 				return { updated: false, filePath };
@@ -68,8 +69,11 @@ export async function updateTailwindCss(
 					);
 				}
 
-				if (!newContent.includes('@layer base, components, c15t;')) {
-					newContent = `@layer base, components, c15t;\n\n${newContent}`;
+				if (
+					!newContent.includes('@layer base, components, utilities;') &&
+					!newContent.includes('@layer base, components, c15t;')
+				) {
+					newContent = `@layer base, components, utilities;\n\n${newContent}`;
 				}
 
 				await fs.writeFile(filePath, newContent, 'utf-8');

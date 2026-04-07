@@ -4,9 +4,7 @@
  * 2. Fixes `_module.css` references in `.module.js` and `.module.cjs` files
  * 3. Generates aggregated CSS entrypoints:
  *    - :root custom property blocks stay unlayered
- *    - Component rules are wrapped in `@layer c15t`
- *    - Tailwind 4 users declare layer order: `@layer theme, base, components, c15t, utilities;`
- *      so c15t > preflight (base) and utilities > c15t — clean overrides, no !important
+ *    - Component rules are wrapped in `@layer components` for Tailwind 4
  *    - Tailwind 3 users can import the same stylesheet, provided their app keeps
  *      Tailwind directives in its own global CSS and scans c15t package sources
  */
@@ -192,8 +190,8 @@ function collectCssParts(
 }
 
 /**
- * Generate layered CSS: component rules wrapped in @layer c15t.
- * Use with Tailwind 4 — declare layer order: @layer theme, base, components, c15t, utilities;
+ * Generate layered CSS: component rules wrapped in @layer components.
+ * Use with Tailwind 4 — import Tailwind normally; c15t joins the components layer automatically.
  */
 function buildLayeredCss(rootParts: string[], ruleParts: string[]): string {
 	const parts: string[] = [];
@@ -202,7 +200,7 @@ function buildLayeredCss(rootParts: string[], ruleParts: string[]): string {
 	}
 	if (ruleParts.length) {
 		parts.push(
-			`@layer c15t {\n${ruleParts.map((r) => `  ${r}`).join('\n\n')}\n}`
+			`@layer components {\n${ruleParts.map((r) => `  ${r}`).join('\n\n')}\n}`
 		);
 	}
 	return parts.join('\n\n');
@@ -217,7 +215,7 @@ if (nonIab.ruleParts.length === 0) {
 	);
 }
 
-// dist/styles.css — @layer c15t (default, for Tailwind 4 + native CSS layers)
+// dist/styles.css — @layer components (default, for Tailwind 4 + native CSS layers)
 writeFileSync(
 	join(DIST_DIR, 'styles.css'),
 	buildLayeredCss(nonIab.rootParts, nonIab.ruleParts) + '\n'
@@ -234,7 +232,7 @@ if (IAB_COMPONENTS.length > 0 && iab.ruleParts.length === 0) {
 	);
 }
 
-// dist/iab/styles.css — @layer c15t
+// dist/iab/styles.css — @layer components
 writeFileSync(
 	join(iabDir, 'styles.css'),
 	buildLayeredCss(iab.rootParts, iab.ruleParts) + '\n'

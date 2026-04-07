@@ -17,19 +17,18 @@
 
   ### Tailwind v4
 
-  Tailwind v4 automatically scans your source files. Declare c15t's layer order once in your global CSS so utilities stay last:
+  Tailwind v4 automatically scans your source files. Import Tailwind normally. c15t component styles join Tailwind's `components` layer automatically, so no extra c15t-specific layer declaration is needed:
 
   ```css
-  @layer theme, base, components, c15t, utilities;
   @import "tailwindcss";
   ```
 
   ### Tailwind v3
 
-  Keep Tailwind's directives in your app stylesheet, but wrap `@tailwind base` in a native `base` layer so c15t's `@layer c15t` rules can sit above Preflight:
+  Keep Tailwind's directives in your app stylesheet, but wrap `@tailwind base` in a native `base` layer so c15t's emitted `@layer components` rules sit above Preflight while utilities stay last:
 
   ```css title="app/globals.css"
-  @layer base, components, c15t;
+  @layer base, components, utilities;
 
   @layer base {
     @tailwind base;

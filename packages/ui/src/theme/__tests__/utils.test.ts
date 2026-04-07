@@ -59,6 +59,18 @@ describe('themeToVars', () => {
 		expect(vars['--c15t-surface']).toBe('#ffffff');
 	});
 
+	test('converts switch color tokens to CSS variables', () => {
+		const theme: Theme = {
+			colors: {
+				switchTrack: '#123456',
+				switchTrackActive: '#654321',
+			},
+		};
+		const vars = themeToVars(theme);
+		expect(vars['--c15t-switch-track']).toBe('#123456');
+		expect(vars['--c15t-switch-track-active']).toBe('#654321');
+	});
+
 	test('converts typography tokens to CSS variables', () => {
 		const theme: Theme = {
 			typography: {
@@ -205,6 +217,18 @@ describe('generateThemeCSS', () => {
 		};
 		const css = generateThemeCSS(theme);
 		expect(css).toContain('--c15t-primary: #ff0000');
+	});
+
+	test('includes switch token variables in generated CSS', () => {
+		const theme: Theme = {
+			colors: {
+				switchTrack: '#123456',
+				switchTrackActive: '#654321',
+			},
+		};
+		const css = generateThemeCSS(theme);
+		expect(css).toContain('--c15t-switch-track: #123456');
+		expect(css).toContain('--c15t-switch-track-active: #654321');
 	});
 
 	test('includes dark mode selector', () => {

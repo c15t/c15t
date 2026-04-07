@@ -57,7 +57,9 @@
 		"dist",
 		"docs",
 		"dist-types",
-		"client"
+		"client",
+		"src/styles.css",
+		"src/iab/styles.css"
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
