@@ -5,20 +5,6 @@
 </section>
 
 <section id="customization">
-  ## Customizing Content
-
-  Override the default title, description, and button labels:
-
-  ```tsx
-  <ConsentBanner
-    title="We value your privacy"
-    description="We use cookies to enhance your browsing experience and analyze site traffic."
-    acceptButtonText="Accept all"
-    rejectButtonText="Reject all"
-    customizeButtonText="Manage preferences"
-  />
-  ```
-
   ## Button Layout
 
   The `layout` prop controls button arrangement. Each item is either a button ID or an array of button IDs (which groups them together):
@@ -73,6 +59,38 @@
 
   Policy packs control grouping, ordering, and direction. The theme controls button appearance.
 
+  ## Styling First
+
+  <Callout type="info">
+    For pure theming, stay inside the pre-built banner. Start with layout props, `theme.consentActions`, design tokens, and `theme.slots` before reaching for compound components. See [Styling Overview](/docs/frameworks/react/styling/overview).
+  </Callout>
+
+  The stock banner maps common visual changes to the theme system:
+
+  - Card background -> `theme.colors.surface`
+  - Footer background -> `theme.colors.surfaceHover`
+  - Card, footer, and title tweaks -> `theme.slots.consentBannerCard`, `consentBannerFooter`, and `consentBannerTitle`
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      theme: {
+        colors: {
+          surface: '#fffdf8',
+          surfaceHover: '#f6f3ee',
+        },
+        slots: {
+          consentBannerCard: 'rounded-[28px] shadow-xl',
+          consentBannerFooter: 'border-t border-black/10 px-6',
+          consentBannerTitle: 'tracking-tight',
+        },
+      },
+    }}
+  >
+    <ConsentBanner />
+  </ConsentManagerProvider>
+  ```
+
   ### Primary Button
 
   Highlight specific button(s) as the primary action:
@@ -104,9 +122,40 @@
     Legal link URLs are configured in the `ConsentManagerProvider` options via the `legalLinks` prop, not on the banner itself.
   </Callout>
 
-  ## Compound Components
+  ## Customizing Copy
 
-  Build fully custom banner layouts using sub-components:
+  Prefer provider `i18n` when you want to rename the stock banner content:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      i18n: {
+        locale: 'en',
+        messages: {
+          en: {
+            cookieBanner: {
+              title: 'We value your privacy',
+              description: 'We use cookies to improve the site and measure performance.',
+            },
+            common: {
+              acceptAll: 'Accept all',
+              rejectAll: 'Reject all',
+              customize: 'Manage preferences',
+            },
+          },
+        },
+      },
+    }}
+  >
+    <ConsentBanner />
+  </ConsentManagerProvider>
+  ```
+
+  Direct text props such as `title`, `description`, and `acceptButtonText` are still supported for one-off overrides, but `i18n` is the preferred path for copy changes.
+
+  ## Advanced: Compound Components
+
+  Use compound components only when the stock banner structure is no longer enough and you need to rearrange existing c15t primitives:
 
   ```tsx
   <ConsentBanner.Root>
@@ -130,7 +179,7 @@
   - `ConsentBanner.Root` — Outermost container, provides theme context
   - `ConsentBanner.Card` — Main content card with optional focus trapping
   - `ConsentBanner.Header` — Contains title and description
-  - `ConsentBanner.Title` — Heading, defaults to translation `consentBanner.title`
+  - `ConsentBanner.Title` — Heading, defaults to translation `cookieBanner.title`
   - `ConsentBanner.Description` — Description text, supports `legalLinks` prop
   - `ConsentBanner.Footer` — Action buttons container
   - `ConsentBanner.FooterSubGroup` — Groups related buttons together
@@ -138,6 +187,8 @@
   - `ConsentBanner.CustomizeButton` — Opens the consent dialog
   - `ConsentBanner.AcceptButton` — Accepts all consent
   - `ConsentBanner.Overlay` — Optional backdrop overlay
+
+  If you only need styling changes, stay with tokens and slots instead of rebuilding the banner layout.
 </section>
 
 <section id="props">

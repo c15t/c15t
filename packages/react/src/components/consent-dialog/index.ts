@@ -64,30 +64,51 @@ export interface ConsentDialogCompoundComponent extends FC<ConsentDialogProps> {
  * - Provides an accessible modal interface for consent customization
  * - Implements smooth enter/exit animations
  * - Manages proper focus handling
- * - Supports theme customization
+ * - Supports theme customization through provider tokens and slots
  * - Handles client-side portal rendering
+ * - Exposes compound primitives for advanced markup changes
  *
  * @example
+ * Basic usage:
  * ```tsx
- * <ConsentDialog
- *   theme={customTheme}
- *   disableAnimation={false}
- *   noStyle={false}
- * />
+ * <ConsentDialog />
  * ```
  *
  * @example
+ * Preferred customization with stock structure:
+ * ```tsx
+ * <ConsentManagerProvider
+ *   options={{
+ *     theme: {
+ *       slots: {
+ *         consentDialogCard: 'rounded-3xl shadow-xl',
+ *         consentDialogFooter: 'border-t border-black/10',
+ *       },
+ *     },
+ *   }}
+ * >
+ *   <ConsentDialog hideBranding showTrigger />
+ * </ConsentManagerProvider>
+ * ```
+ *
+ * @example
+ * Advanced custom markup with compound components:
  * ```tsx
  * <ConsentDialog.Root>
  *   <ConsentDialog.Card>
  *     <ConsentDialog.Header>
- *       <ConsentDialog.HeaderTitle>Consent Manager</ConsentDialog.HeaderTitle>
+ *       <ConsentDialog.HeaderTitle />
+ *       <ConsentDialog.HeaderDescription />
  *     </ConsentDialog.Header>
+ *     <ConsentDialog.Content>
+ *       <ConsentWidget />
+ *     </ConsentDialog.Content>
+ *     <ConsentDialog.Footer />
  *   </ConsentDialog.Card>
  * </ConsentDialog.Root>
  * ```
  *
- * Note: Next.js Server Components do not support compound components. Ensure you add 'use client' to the file.
+ * Note: Next.js Server Components do not support compound components. Ensure you add `'use client'` to the file.
  *
  * @public
  */

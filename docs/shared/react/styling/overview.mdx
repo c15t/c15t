@@ -1,30 +1,56 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-  c15t's theming system gives you multiple levels of control, from high-level design tokens to complete style removal.
+  c15t's theming system gives you multiple levels of control, but most customization should stay inside the pre-built components.
 
-  The flow:
+  Start with the lowest-power tool that solves the problem:
 
-  1. **Define** tokens (colors, spacing, radius, etc.) in JavaScript
-  2. Tokens are **injected** as CSS custom properties (`--c15t-*`) at runtime
-  3. Components **consume** these variables in their default styles
-  4. You **override** at any level: tokens, slots, CSS variables, or raw classNames
+  1. **Pre-built component APIs** — provider options and component props such as `layout`, `direction`, `primaryButton`, `legalLinks`, and `theme.consentActions`
+  2. **Design tokens** — global colors, typography, spacing, radius, shadows, and motion
+  3. **Slots** — targeted styling for specific parts such as the banner card, footer, or title
+  4. **CSS variables or className-level overrides** — when you need to integrate with external CSS systems
+  5. **Compound components** — when you must rearrange markup while still using c15t primitives
+  6. **`noStyle`** — when you want c15t structure but you need to own all visual styling
+  7. **Headless** — when you want fully custom markup and behavior
+
+  Keep styling and escalation as separate decisions:
+
+  - If you are still using the stock banner, dialog, or widget, stay with props, tokens, and slots.
+  - Escalate to compound components, `noStyle`, or headless only when the structure or behavior itself must change.
 
   ## Styling Approaches
 
   | Approach | Control | Use When |
   |----------|---------|----------|
+  | **Component and provider APIs** | High | Reordering actions, changing button emphasis, configuring links, hiding branding, changing copy via `i18n` |
   | **Tokens** | High | Changing global colors, typography, spacing, radius, shadows, or motion |
-  | **Slots** | Medium | Targeting specific component parts (e.g., the banner title, dialog footer) |
-  | **CSS Variables** | Medium | Overriding `--c15t-*` variables from external CSS |
-  | **className** | Medium | Passing class names to components or slots |
-  | **noStyle** | Full | Removing all default styles, building from scratch |
+  | **Slots** | Medium | Targeting specific component parts (for example `consentBannerFooter` or `consentDialogCard`) |
+  | **CSS variables / className** | Medium | Integrating with an existing stylesheet or utility classes after tokens and slots |
+  | **Compound components** | Structure | Rearranging existing c15t primitives without going fully custom |
+  | **noStyle** | Full visuals | Keeping c15t structure but replacing all visual defaults |
+  | **Headless** | Full | Replacing both markup and behavior |
 </section>
 
 <section id="styling-paths-to-api">
-  ## Styling Paths
+  ## Styling Inside Pre-Built Components
 
-  ### 1. Design tokens
+  Start here before you consider compound components or headless mode.
+
+  ### 1. Provider and component configuration
+
+  Use the stock APIs first:
+
+  - `layout`, `direction`, and `primaryButton` for banner action arrangement
+  - `legalLinks` for link visibility
+  - `hideBranding` and `showTrigger` for dialog and widget behavior
+  - `theme.consentActions` for stock banner and dialog button treatment
+  - `i18n` on `ConsentManagerProvider` for copy changes
+
+  ```tsx
+  <ConsentBanner layout={['customize', ['reject', 'accept']]} primaryButton="accept" />
+  ```
+
+  ### 2. Design tokens
 
   Set global values for colors, typography, spacing, radius, shadows, and motion:
 
@@ -32,55 +58,140 @@
   options={{ theme: { colors: { primary: '#6366f1' } } }}
   ```
 
-  ### 2. Component slots
+  Use tokens first when the change is semantic:
+
+  - Banner card background -> `theme.colors.surface`
+  - Banner footer background -> `theme.colors.surfaceHover`
+  - Shared copy color -> `theme.colors.text` and `theme.colors.textMuted`
+
+  ```tsx
+  options={{
+    theme: {
+      colors: {
+        surface: '#ffffff',
+        surfaceHover: '#f6f3ee',
+      },
+    },
+  }}
+  ```
+
+  ### 3. Component slots
 
   Target specific component parts via the `slots` object:
 
   ```tsx
-  options={{ theme: { slots: { consentBannerTitle: 'text-2xl font-bold' } } }}
+  options={{
+    theme: {
+      slots: {
+        consentBannerCard: 'rounded-[28px] shadow-xl',
+        consentBannerFooter: 'border-t border-black/10',
+        consentBannerTitle: 'tracking-tight',
+      },
+    },
+  }}
   ```
 
-  ### 3. CSS variables
+  Use slots when the component part is right but the local styling needs adjustment.
 
-  Override `--c15t-*` custom properties in your stylesheet.
+  ### 4. CSS variables and className-level overrides
 
-  ### 4. className prop
+  Override `--c15t-*` custom properties in your stylesheet or attach classes through slots when your app styling is driven externally.
 
-  Pass className directly to components:
+  Reach for this after tokens and slots, not before.
 
   ```tsx
-  <ConsentBanner className="my-custom-banner" />
+  options={{
+    theme: {
+      slots: {
+        consentBannerFooter: 'bg-[var(--banner-footer)]',
+      },
+    },
+  }}
   ```
 
-  ### 5. noStyle prop
+  ## Escalating Beyond Pre-Built Components
 
-  Strip all default styles and build from scratch (best paired with [Headless Mode](../headless)):
+  Only move up this ladder when the lower rung cannot satisfy the request.
+
+  ### 5. Compound components
+
+  Use compound components when you need to rearrange existing c15t primitives:
+
+  ```tsx
+  <ConsentBanner.Root>
+    <ConsentBanner.Card>
+      <ConsentBanner.Header>
+        <ConsentBanner.Title />
+        <ConsentBanner.Description />
+      </ConsentBanner.Header>
+      <ConsentBanner.Footer>
+        <ConsentBanner.CustomizeButton />
+        <ConsentBanner.FooterSubGroup>
+          <ConsentBanner.RejectButton />
+          <ConsentBanner.AcceptButton />
+        </ConsentBanner.FooterSubGroup>
+      </ConsentBanner.Footer>
+    </ConsentBanner.Card>
+  </ConsentBanner.Root>
+  ```
+
+  ### 6. `noStyle`
+
+  Use `noStyle` only when the c15t structure is still correct but you want to replace all visual defaults:
 
   ```tsx
   <ConsentBanner noStyle />
   ```
 
+  ### 7. Headless
+
+  Go headless only when you are replacing both markup and behavior. For that path, continue to [Headless Mode](../headless).
+
   ## Common Styling Tasks
 
-  ### Change brand color globally
+  ### Change the banner footer background
 
   ```tsx
-  options={{ theme: { colors: { primary: '#0ea5e9', primaryHover: '#0284c7' } } }}
+  options={{
+    theme: {
+      colors: {
+        surfaceHover: '#f6f3ee',
+      },
+    },
+  }}
   ```
 
-  ### Make the banner card more compact
+  Use `theme.colors.surfaceHover` before trying raw CSS.
+
+  ### Change the banner card background
 
   ```tsx
-  options={{ theme: { spacing: { md: '0.75rem', lg: '1rem' } } }}
+  options={{
+    theme: {
+      colors: {
+        surface: '#fffdf8',
+      },
+    },
+  }}
   ```
 
-  ### Round primary/secondary buttons
+  Use `theme.colors.surface` before overriding banner CSS variables directly.
+
+  ### Tweak the banner card, footer, or title styling without changing markup
 
   ```tsx
-  options={{ theme: { slots: { buttonPrimary: 'rounded-full', buttonSecondary: 'rounded-full' } } }}
+  options={{
+    theme: {
+      slots: {
+        consentBannerCard: 'rounded-[28px] shadow-xl',
+        consentBannerFooter: 'border-t border-black/10 px-6',
+        consentBannerTitle: 'text-xl tracking-tight',
+      },
+    },
+  }}
   ```
 
-  ### Change consent action button styles semantically
+  ### Change stock consent action button styles semantically
 
   ```tsx
   options={{
@@ -96,6 +207,29 @@
 
   Use `theme.consentActions` when you want to change the stock banner/dialog button treatment without rewriting the component layout. Policy packs still control action arrangement and primary-action hints. The theme controls whether those actions render as `stroke`, `filled`, `ghost`, or `lighter`.
 
+  ### Change banner copy without replacing the component
+
+  ```tsx
+  options={{
+    i18n: {
+      locale: 'en',
+      messages: {
+        en: {
+          cookieBanner: {
+            title: 'We value your privacy',
+            description: 'We use cookies to improve the site and measure performance.',
+          },
+          common: {
+            acceptAll: 'Accept all',
+            rejectAll: 'Reject all',
+            customize: 'Manage preferences',
+          },
+        },
+      },
+    },
+  }}
+  ```
+
   ### Enable dark mode safely
 
   ```tsx
@@ -108,8 +242,14 @@
   }}
   ```
 
+  <Callout type="info">
+    If a token change does not show up where you expect, check how that component maps tokens to CSS variables before escalating. For example, the stock banner footer background comes from `colors.surfaceHover`, not a separate footer token.
+  </Callout>
+
   <Callout type="warning">
-    - `noStyle: true` removes layout and visual defaults. Use it only when you want full control.
+    - Do not jump to CSS overrides or `!important` because a token did not appear to work at first glance.
+    - `noStyle: true` removes layout and visual defaults. Treat it as an advanced opt-out, not a normal theming step.
+    - Headless mode is for replacing markup and behavior, not for styling-only requests.
     - Use either tokens/slots or raw CSS variable overrides intentionally to avoid conflicting style sources.
     - For dark mode, c15t supports `.dark` and `.c15t-dark`.
   </Callout>

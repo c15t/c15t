@@ -32,9 +32,37 @@
   <ConsentDialog hideBranding />
   ```
 
-  ## Compound Components
+  ## Styling First
 
-  Build fully custom dialog layouts using sub-components:
+  <Callout type="info">
+    If you are only changing visuals, stay with the stock dialog and use the theme system first. Start with tokens and slots such as `consentDialogCard`, `consentDialogHeader`, and `consentDialogFooter`. See [Styling Overview](/docs/frameworks/react/styling/overview).
+  </Callout>
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      theme: {
+        colors: {
+          surface: '#fffdf8',
+          surfaceHover: '#f6f3ee',
+        },
+        slots: {
+          consentDialogCard: 'rounded-[32px] shadow-xl',
+          consentDialogHeader: 'gap-3',
+          consentDialogFooter: 'border-t border-black/10 px-6',
+        },
+      },
+    }}
+  >
+    <ConsentDialog />
+  </ConsentManagerProvider>
+  ```
+
+  Dialog copy should be changed through `ConsentManagerProvider.options.i18n`, not by rebuilding the dialog structure.
+
+  ## Advanced: Compound Components
+
+  Use compound components only when you need custom dialog markup while still keeping c15t primitives:
 
   ```tsx
   <ConsentDialog.Root>
@@ -68,6 +96,8 @@
     <ConsentDialog.ConsentCustomizationCard />
   </ConsentDialog.Root>
   ```
+
+  If the stock dialog structure still works, prefer tokens, slots, and provider configuration instead.
 </section>
 
 <section id="props">
