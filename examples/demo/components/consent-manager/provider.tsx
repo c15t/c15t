@@ -171,6 +171,16 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 	const isHeadlessPolicyTab =
 		pathname === '/policy' &&
 		new URLSearchParams(search).get('tab') === 'headless';
+	const isPolicyActionsDemo = pathname === '/policy-actions';
+
+	if (isPolicyActionsDemo) {
+		return (
+			<>
+				{children}
+				<DevTools />
+			</>
+		);
+	}
 
 	return (
 		<ConsentManagerProvider
@@ -236,7 +246,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 				overrides: geoOverrides,
 			}}
 		>
-			{!isHeadlessPolicyTab ? (
+			{!isHeadlessPolicyTab && !isPolicyActionsDemo ? (
 				<>
 					<ConsentBanner />
 					<IABConsentBanner />

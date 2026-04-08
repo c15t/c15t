@@ -30,6 +30,7 @@ import {
 import { Footer, FooterSubGroup } from './atoms/footer';
 import { Root } from './atoms/root';
 import { ConsentWidget as ConsentWidgetComponent } from './consent-widget';
+import { PolicyActions } from './policy-actions';
 import type { ConsentWidgetProps } from './types';
 
 export type { ConsentWidgetProps };
@@ -59,6 +60,7 @@ export interface ConsentWidgetCompoundComponent extends FC<ConsentWidgetProps> {
 	SaveButton: typeof SaveButton;
 	RejectButton: typeof RejectButton;
 	// Footer components
+	PolicyActions: typeof PolicyActions;
 	Footer: typeof Footer;
 	FooterSubGroup: typeof FooterSubGroup;
 }
@@ -113,6 +115,7 @@ const ConsentWidget = Object.assign(ConsentWidgetComponent, {
 	SaveButton,
 	RejectButton,
 	// Footer components
+	PolicyActions,
 	Footer,
 	FooterSubGroup,
 }) as ConsentWidgetCompoundComponent;
@@ -159,4 +162,10 @@ export {
 	ConsentWidgetRoot,
 	Root,
 } from './atoms/root';
+export {
+	type ConsentWidgetPolicyActionRenderProps,
+	ConsentWidgetPolicyActions,
+	type ConsentWidgetPolicyActionsProps,
+	PolicyActions,
+} from './policy-actions';
 export { ConsentWidget };

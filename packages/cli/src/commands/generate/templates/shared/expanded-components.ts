@@ -110,14 +110,16 @@ export function generateExpandedConsentDialogTemplate(
 ): string {
 	return `'use client';
 
-import { ConsentWidget } from '${framework.importSource}';
-import { ConsentDialog } from '${framework.consentDialogImport}';
+import { useState } from 'react';
+import { ConsentDialog, ConsentWidget } from '${framework.consentDialogImport}';
 
 /**
  * Consent dialog using compound components.
  * @see https://v2.c15t.com/docs/frameworks/${framework.docsSlug}/components/consent-dialog
  */
 export default function () {
+	const [openItem, setOpenItem] = useState('');
+
 	return (
 		<ConsentDialog.Root>
 			<ConsentDialog.Card>
@@ -126,7 +128,19 @@ export default function () {
 					<ConsentDialog.HeaderDescription />
 				</ConsentDialog.Header>
 				<ConsentDialog.Content>
-					<ConsentWidget />
+					<ConsentWidget.Root>
+						<ConsentWidget.Accordion
+							type="single"
+							value={openItem}
+							onValueChange={(value) => {
+								setOpenItem(Array.isArray(value) ? (value[0] ?? '') : (value ?? ''));
+							}}
+						>
+							<ConsentWidget.AccordionItems />
+						</ConsentWidget.Accordion>
+						{/* Pass renderAction to customize mapping. Stock c15t buttons render by default. */}
+						<ConsentWidget.PolicyActions />
+					</ConsentWidget.Root>
 				</ConsentDialog.Content>
 				<ConsentDialog.Footer />
 			</ConsentDialog.Card>
@@ -163,13 +177,8 @@ export default function () {
 						legalLinks={['privacyPolicy', 'termsOfService']}
 					/>
 				</ConsentBanner.Header>
-				<ConsentBanner.Footer>
-					<ConsentBanner.FooterSubGroup>
-						<ConsentBanner.RejectButton />
-						<ConsentBanner.AcceptButton />
-					</ConsentBanner.FooterSubGroup>
-					<ConsentBanner.CustomizeButton />
-				</ConsentBanner.Footer>
+				{/* Pass renderAction to customize mapping. Stock c15t buttons render by default. */}
+				<ConsentBanner.PolicyActions />
 			</ConsentBanner.Card>
 		</ConsentBanner.Root>
 	);

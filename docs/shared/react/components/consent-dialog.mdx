@@ -34,7 +34,7 @@
 
   ## Compound Components
 
-  Build fully custom dialog layouts using sub-components:
+  Build fully custom dialog layouts using sub-components while keeping policy-aware footer actions:
 
   ```tsx
   <ConsentDialog.Root>
@@ -45,7 +45,12 @@
         <ConsentDialog.HeaderDescription />
       </ConsentDialog.Header>
       <ConsentDialog.Content>
-        <ConsentWidget />
+        <ConsentWidget.Root>
+          <ConsentWidget.Accordion type="single">
+            <ConsentWidget.AccordionItems />
+          </ConsentWidget.Accordion>
+          <ConsentWidget.PolicyActions />
+        </ConsentWidget.Root>
       </ConsentDialog.Content>
       <ConsentDialog.Footer />
     </ConsentDialog.Card>
@@ -60,6 +65,7 @@
   - `ConsentDialog.Content` — Main content area (typically contains `ConsentWidget`)
   - `ConsentDialog.Footer` — Footer with optional branding (`hideBranding` prop)
   - `ConsentDialog.Overlay` — Backdrop overlay
+  - `ConsentWidget.PolicyActions` — Renders policy-aware grouped dialog actions
 
   For a quick pre-composed layout, use the shorthand card:
 
@@ -68,6 +74,10 @@
     <ConsentDialog.ConsentCustomizationCard />
   </ConsentDialog.Root>
   ```
+
+  `ConsentWidget.PolicyActions` uses stock c15t widget buttons and translations by default. Pass `renderAction` only when you need to customize the action mapping, and return stock widget button compounds if you want to preserve built-in behavior and copy.
+
+  For fully manual control over dialog action rendering, use `useHeadlessConsentUI()` and map `dialog.actionGroups` yourself.
 </section>
 
 <section id="props">

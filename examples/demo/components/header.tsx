@@ -50,6 +50,12 @@ export function Header() {
 						>
 							Policy Packs
 						</a>
+						<a
+							href="/policy-actions"
+							className="text-muted-foreground text-sm transition-colors hover:text-foreground"
+						>
+							Compound DX
+						</a>
 					</nav>
 
 					<div className="flex items-center gap-4">

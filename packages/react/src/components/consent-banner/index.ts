@@ -30,6 +30,7 @@ import {
 	type ConsentBannerLayout,
 	type ConsentBannerProps,
 } from './consent-banner';
+import { PolicyActions } from './policy-actions';
 
 /**
  * This interface extends the base ConsentBanner component with additional sub-components
@@ -41,6 +42,7 @@ export interface ConsentBannerCompoundComponent extends FC<ConsentBannerProps> {
 	Header: typeof Header;
 	Title: typeof Title;
 	Description: typeof Description;
+	PolicyActions: typeof PolicyActions;
 	Footer: typeof Footer;
 	FooterSubGroup: typeof FooterSubGroup;
 	RejectButton: typeof RejectButton;
@@ -109,6 +111,7 @@ const ConsentBanner = Object.assign(ConsentBannerComponent, {
 	Header,
 	Title,
 	Description,
+	PolicyActions,
 	Footer,
 	FooterSubGroup,
 	RejectButton,
@@ -146,6 +149,12 @@ export {
 	RejectButton,
 	Title,
 } from './components';
+export {
+	type ConsentBannerPolicyActionRenderProps,
+	ConsentBannerPolicyActions,
+	type ConsentBannerPolicyActionsProps,
+	PolicyActions,
+} from './policy-actions';
 export {
 	ConsentBanner,
 	type ConsentBannerButton,

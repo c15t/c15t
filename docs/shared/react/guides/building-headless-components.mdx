@@ -1,14 +1,23 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-  Building headless components is easier now because c15t exposes policy-aware primitives instead of forcing you to reconstruct banner rules by hand.
+  Building custom consent UI is easier now because c15t exposes multiple layers of policy-aware primitives instead of forcing you to reconstruct banner rules by hand.
 
-  The headless stack is:
+  The layering is:
+
+  - stock component props for the shortest path
+  - `ConsentBanner.PolicyActions` and `ConsentWidget.PolicyActions` for custom structure with policy-aware actions
+  - `useHeadlessConsentUI()` for fully manual action rendering and non-standard controls
+
+  The headless stack underneath that is:
 
   - `useHeadlessConsentUI()` for policy-aware banner/dialog actions, ordering, layout, and primary actions hints
+  - `@c15t/ui/utils` for the pure policy-action helpers that framework packages build on
   - `useConsentManager()` for runtime state, categories, selected consent state, and policy metadata
   - `useTranslations()` for the resolved copy
   - `offlinePolicy.policyPacks` for offline previews that behave like backend policy resolution
+
+  The split is intentional: `@c15t/ui` owns pure policy-action resolution, while the framework hooks own visibility, consent mutations, and reactive state.
 
   <Callout type="info">
     This guide is about building your own components while still respecting resolved policy-pack behavior. For the general headless overview, see [Headless Mode](/docs/frameworks/react/headless).
@@ -31,6 +40,8 @@
   - whether the banner or dialog should currently be visible
 
   That means your component mostly focuses on markup and design-system concerns instead of re-implementing policy interpretation.
+
+  For most compound-component layouts, start with `ConsentBanner.PolicyActions` or `ConsentWidget.PolicyActions`. They render stock c15t buttons and translations by default, and `renderAction` is only needed when you want to override the action mapping. Reach for manual `actionGroups` mapping when you need action rendering that no longer fits the stock button compounds.
 </section>
 
 <section id="checklist">
@@ -39,7 +50,7 @@
   When you build custom banner or dialog components, make sure they use:
 
   - `activeUI` or `banner.isVisible` / `dialog.isVisible` for visibility
-  - `allowedActions`, `orderedActions`, or `actionGroups` instead of hard-coding buttons
+  - `allowedActions`, `actionGroups`, and `primaryActions` instead of hard-coding buttons
   - `primaryActions` for visual emphasis
   - `consentCategories` when deciding which category toggles to render
   - `policyDecision` when you want to debug why a specific UI state was chosen

@@ -7,4 +7,4 @@
  * Usage:
  *   import '@c15t/react/styles.css';
  */
-@import "@c15t/ui/styles.css";
+@import "../../ui/styles.css";
