@@ -17,38 +17,30 @@
 
   ### Tailwind v4
 
-  Tailwind v4 automatically scans your source files. Declare c15t's layer order once in your global CSS so utilities stay last:
+  Tailwind v4 automatically scans your source files. Import Tailwind normally. c15t component styles join Tailwind's `components` layer automatically, so no extra c15t-specific layer declaration is needed:
 
   ```css
-  @layer theme, base, components, c15t, utilities;
   @import "tailwindcss";
   ```
 
   ### Tailwind v3
 
-  Keep Tailwind's directives in your app stylesheet, but wrap `@tailwind base` in a native `base` layer so c15t's `@layer c15t` rules can sit above Preflight:
+  Import the Tailwind 3-compatible c15t stylesheet before your app Tailwind globals, then keep your standard Tailwind directives in the app stylesheet:
 
-  ```css title="app/globals.css"
-  @layer base, components, c15t;
-
-  @layer base {
-    @tailwind base;
-  }
-
-  @tailwind components;
-  @tailwind utilities;
+  ```tsx title="app/layout.tsx"
+  import '@c15t/react/styles.tw3.css';
+  import './globals.css';
   ```
 
-  Then add c15t's component paths to your `content` array:
+  ```tsx title="app/layout.tsx"
+  import '@c15t/nextjs/styles.tw3.css';
+  import './globals.css';
+  ```
 
-  ```js title="tailwind.config.js"
-  module.exports = {
-    content: [
-      './src/**/*.{js,ts,jsx,tsx}',
-      './node_modules/@c15t/react/**/*.{js,mjs}',
-      './node_modules/@c15t/nextjs/**/*.{js,mjs}',
-    ],
-  };
+  ```css title="app/globals.css"
+  @tailwind base;
+  @tailwind components;
+  @tailwind utilities;
   ```
 </section>
 

@@ -237,7 +237,7 @@ const codemods: CodemodDefinition[] = [
 	{
 		id: 'add-stylesheet-imports',
 		label: 'add stylesheet imports for prebuilt UI',
-		hint: 'Adds @c15t/react/styles.css or @c15t/nextjs/styles.css imports for styled components.',
+		hint: 'Adds the correct c15t stylesheet import for styled components, including the Tailwind 3 entrypoint when needed.',
 		run: async (context, dryRun) => {
 			const { projectRoot } = context;
 			const result = await runAddStylesheetImportsCodemod({

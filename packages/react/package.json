@@ -32,7 +32,9 @@
 	"type": "module",
 	"exports": {
 		"./styles.css": "./dist/styles.css",
+		"./styles.tw3.css": "./src/styles.tw3.css",
 		"./iab/styles.css": "./dist/iab/styles.css",
+		"./iab/styles.tw3.css": "./src/iab/styles.tw3.css",
 		"./primitives": {
 			"types": "./dist/primitives.d.ts",
 			"import": "./dist/primitives.js",
@@ -137,6 +139,8 @@
 		"docs",
 		"dist-types",
 		"client",
+		"src/styles.tw3.css",
+		"src/iab/styles.tw3.css",
 		"!dist/mockServiceWorker.js"
 	],
 	"scripts": {

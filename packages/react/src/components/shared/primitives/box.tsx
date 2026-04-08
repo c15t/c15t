@@ -1,5 +1,6 @@
 'use client';
 
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, type HTMLAttributes } from 'react';
 
 import { Slot } from '~/components/shared/libs/slot';
@@ -67,9 +68,10 @@ export const Box = forwardRef<HTMLDivElement, BoxProps>(
 			style,
 			noStyle,
 		});
+		const domStyleProps = sanitizeDOMStyleProps(descriptionStyle);
 
 		const Comp = asChild ? Slot : 'div';
-		return <Comp ref={ref} {...props} {...descriptionStyle} />;
+		return <Comp ref={ref} {...props} {...domStyleProps} />;
 	}
 );
 

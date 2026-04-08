@@ -1,6 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import {
 	type CSSProperties,
 	type FC,
@@ -171,6 +172,7 @@ const IABConsentBannerRootChildren = forwardRef<
 		const finalClassName = noStyle
 			? contentStyle.className || ''
 			: `${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`;
+		const domStyleProps = sanitizeDOMStyleProps(contentStyle);
 
 		if (!shouldShowBanner) {
 			return null;
@@ -182,7 +184,7 @@ const IABConsentBannerRootChildren = forwardRef<
 				<div
 					ref={ref}
 					{...props}
-					{...contentStyle}
+					{...domStyleProps}
 					className={finalClassName}
 					data-testid="iab-consent-banner-root"
 					dir={textDirection}

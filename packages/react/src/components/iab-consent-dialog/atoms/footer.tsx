@@ -1,6 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 import * as Button from '~/components/shared/ui/button';
 import { useHeadlessIABConsentUI } from '~/hooks/use-headless-iab-consent-ui';
@@ -44,9 +45,10 @@ const IABConsentDialogFooter = forwardRef<
 		baseClassName: styles.footer,
 		className,
 	});
+	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	return (
-		<div ref={ref} {...themedStyle} {...props}>
+		<div ref={ref} {...domStyleProps} {...props}>
 			{children ? (
 				children
 			) : (

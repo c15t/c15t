@@ -59,7 +59,7 @@ jobs:
 
           # Output as JSON array
           if [ -n "$PUBLISHED_PACKAGES" ]; then
-            PACKAGE_ARRAY=$(echo $PUBLISHED_PACKAGES | tr ' ' '\n' | jq -R . | jq -s .)
+            PACKAGE_ARRAY=$(printf '%s' "$PUBLISHED_PACKAGES" | xargs -n1 | jq -R . | jq -cs .)
             echo "packages=$PACKAGE_ARRAY" >> $GITHUB_OUTPUT
             echo "Changed packages: $PACKAGE_ARRAY"
           else
