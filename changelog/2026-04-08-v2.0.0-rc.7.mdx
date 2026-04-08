@@ -1,8 +1,8 @@
 ---
-title: "v2.0.0-rc.7 — Theming Fixes, Simpler Tailwind Setup, and Cross-Environment CSS Review"
+title: "v2.0.0-rc.7 — Theming Fixes, Simpler Tailwind Setup, and Clearer Customization Guidance"
 version: "2.0.0-rc.7"
 date: 2026-04-08
-description: "Release candidate focused on fixing theming regressions in the prebuilt UI, simplifying the Tailwind setup contract, and adding better manual coverage for CSS behavior across Tailwind 3, Tailwind 4, and plain CSS."
+description: "Release candidate focused on fixing theming regressions in the prebuilt UI, simplifying the Tailwind setup contract, clarifying the recommended customization ladder, and adding better manual coverage for CSS behavior across Tailwind 3, Tailwind 4, and plain CSS."
 tags:
   - release
   - rc
@@ -15,12 +15,13 @@ breaking: false
 authors: [KayleeWilliams]
 ---
 
-`v2.0.0-rc.7` is a cleanup release aimed at styling correctness rather than new surface area. The main focus is fixing the theming regressions that showed up in `rc.6`, tightening the contract around how c15t styles interact with Tailwind, and improving the manual review workflow for cross-environment CSS behavior before the final 2.0 release.
+`v2.0.0-rc.7` is a cleanup release aimed at styling correctness and clearer implementation guidance rather than new surface area. The main focus is fixing the theming regressions that showed up in `rc.6`, tightening the contract around how c15t styles interact with Tailwind, clarifying the customization ladder across the docs, and improving the manual review workflow for cross-environment CSS behavior before the final 2.0 release.
 
 ## Highlights
 
 - Fixed slot theming regressions in the React prebuilt UI
 - Simplified the Tailwind setup contract to match the actual shipped `@layer components` behavior
+- Clarified the recommended customization ladder across the AI agent docs plus the React and Next.js component guides
 - Added a manual CSS matrix harness to compare Tailwind 3, Tailwind 4, and plain CSS side by side
 - Strengthened regression coverage for slot styling, switch tokens, and packaging/tooling edge cases
 
@@ -55,6 +56,19 @@ The shipped component CSS already lands in Tailwind's `components` layer, so the
 
 This cleanup affects the public setup guidance in the React and Next.js docs as well as the CLI Tailwind CSS template helper used during setup.
 
+## Clearer Customization Guidance
+
+`rc.7` also tightens the guidance around how teams should customize the shipped UI.
+
+The docs, AI-agent guidance, and React compound-component examples now push the same escalation path:
+
+- start with the stock component and provider options
+- use theme tokens and slots for styling changes
+- reach for compound components only when markup really needs to change
+- use `noStyle` or headless mode only when the stock structure is no longer the right fit
+
+This matters because the `rc.6` theming regressions showed that users were hitting advanced escape hatches too early. `rc.7` fixes the broken slot behavior and also makes the recommended path much harder to misread.
+
 ## Better CSS Review Before Release
 
 To make styling regressions easier to catch, the repo now includes a manual CSS matrix harness under `benchmarks/`.
@@ -72,11 +86,13 @@ The preview shell shows those environments side by side so complex styling cases
 - The demo theme showcase now includes regression-focused previews for the fixed theming contract
 - Added browser/render-path regression tests for slot props and switch token styling
 - Added CLI coverage for the new Tailwind CSS template contract
+- Refreshed the bundled guidance for agents and the React/Next.js docs so customization advice matches the shipped component model
 - Fixed CI issues around preview workflow outputs, benchmark config typing, and CSS test path resolution
 
 ## Learn more
 
 - [#697](https://github.com/c15t/c15t/pull/697) — fix RC theming regressions, clean up Tailwind setup guidance, and add the CSS matrix harness
+- [#699](https://github.com/c15t/c15t/pull/699) — clarify the customization ladder across AI agent docs, React/Next.js guides, and component examples
 
 ## Notes
 
