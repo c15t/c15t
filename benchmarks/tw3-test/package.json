@@ -2,12 +2,13 @@
 	"name": "@c15t/tw3-css-test",
 	"private": true,
 	"scripts": {
-		"dev": "next dev --port 3011",
+		"dev": "next dev --port 3121",
 		"build": "next build",
-		"start": "next start --port 3011",
+		"start": "next start --port 3121",
 		"verify:tailwind-override": "node scripts/verify-tailwind-override.mjs"
 	},
 	"dependencies": {
+		"@c15t/benchmarking": "workspace:*",
 		"@c15t/react": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
 		"next": "15.3.3",
@@ -20,6 +21,7 @@
 		"@types/react-dom": "19.2.3",
 		"autoprefixer": "10.4.21",
 		"postcss": "8.5.4",
+		"postcss-import": "^16.1.1",
 		"tailwindcss": "3.4.17",
 		"typescript": "5.8.3"
 	}

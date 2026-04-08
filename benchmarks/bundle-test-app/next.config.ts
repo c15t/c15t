@@ -1,7 +1,6 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import bundleAnalyzer from '@next/bundle-analyzer';
-import type { NextConfig } from 'next';
 
 const projectDir = dirname(fileURLToPath(import.meta.url));
 const monorepoRoot = resolve(projectDir, '../..');
@@ -11,7 +10,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 	openAnalyzer: true,
 });
 
-const config: NextConfig = {
+const config = {
 	transpilePackages: ['@c15t/benchmarking'],
 	turbopack: {
 		root: monorepoRoot,

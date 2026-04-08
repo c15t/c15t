@@ -223,7 +223,7 @@ const theme = {
 `@c15t/ui` exports DOM utilities for working with class names and styles:
 
 ```ts
-import { cn } from '@c15t/ui/utils';
+import { cn, resolveStyles, sanitizeDOMStyleProps } from '@c15t/ui/utils';
 
 // Merge class names conditionally
 const className = cn(
@@ -231,7 +231,12 @@ const className = cn(
   isVisible && 'consent-banner--visible',
   isDark && 'consent-banner--dark'
 );
+
+// Strip internal style metadata before binding to DOM
+const domProps = sanitizeDOMStyleProps(resolveStyles('consentBannerCard', theme));
 ```
+
+When building framework adapters, treat `noStyle` as internal control flow only. Always sanitize resolved slot styles before binding them to DOM elements, and prefer subtree-inherited CSS variables over hard-coded `:root` assumptions for token-driven primitives like switches.
 
 ### CSS Primitives
 

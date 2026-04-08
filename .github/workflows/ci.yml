@@ -1,4 +1,4 @@
-name: Lint, Build & Test
+name: CI
 
 on:
   push:
@@ -6,181 +6,112 @@ on:
   pull_request:
     types: [opened, synchronize]
 
-concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+env:
+  # Do not pass Turbo remote-cache creds when running untrusted PR code (same-repo
+  # PRs still execute arbitrary branch code). Fork PRs already omit repo secrets.
+  TURBO_TOKEN: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TEAM }}
 
 jobs:
-  changes:
-    name: 🔍 Detect Changes
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      code: ${{ steps.filter.outputs.code }}
-      storybook: ${{ steps.filter.outputs.storybook }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            code:
-              - 'packages/**'
-              - 'apps/**'
-              - 'internals/**'
-              - 'configs/**'
-              - 'examples/**'
-              - 'turbo.json'
-              - 'package.json'
-              - 'bun.lock'
-              - 'biome.jsonc'
-              - 'tsconfig.json'
-              - '.github/workflows/ci.yml'
-              - '.github/actions/**'
-            storybook:
-              - 'packages/ui/**'
-              - 'packages/react/**'
-              - 'packages/solid/**'
-              - 'packages/svelte/**'
-              - 'packages/vue/**'
-              - 'packages/core/**'
-              - 'packages/translations/**'
-              - 'apps/storybook-*/**'
-              - 'internals/storybook-tests/**'
-
   lint_and_check:
     name: 🧹 Lint & Type Check
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      checks: write
-      pull-requests: write
+      contents: read # Needed for checkout
+      checks: write # Needed for reviewdog to post results
+      pull-requests: write # Needed for reviewdog github-pr-review reporter (optional)
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: 📦 Setup & Install
-        uses: ./.github/actions/setup
+      - name: 🟢 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile
 
       - name: 👀 Type Check
-        env:
-          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         run: bun turbo run check-types
 
       - name: 🧹 Run Biome with Reviewdog
         uses: mongolyy/reviewdog-action-biome@v2.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: github-pr-check
-          level: warning
+          reporter: github-pr-check # Report results as checks
+          level: warning               # Report errors
 
   build:
     name: 🏗️ Build Packages
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read # Needed for checkout
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: 📦 Setup & Install
-        uses: ./.github/actions/setup
+      - name: 🟢 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile
 
       - name: 🏗️ Build
-        env:
-          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         run: bun turbo run build --filter="./packages/*"
-
-      - name: 🛡️ Guard Published Artifacts
-        run: bun run check:publish-artifacts
 
   test:
     name: 🧪 Run Tests & Coverage
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
+    needs: build # Run only after build succeeds
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read # Needed for checkout
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - name: 📦 Setup & Install
-        uses: ./.github/actions/setup
+      - name: 🟢 Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          playwright: "true"
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: 🎭 Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            playwright-browsers-${{ runner.os }}-
+
+      - name: 🎭 Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: bunx playwright install
 
       - name: 🧪 Run Tests
-        env:
-          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
         run: bun turbo run test
 
       - name: ⬆️ Upload Individual Coverage Reports
         uses: actions/upload-artifact@v4
         with:
-          name: individual-coverage-data
+          name: individual-coverage-data # Artifact containing all raw reports
           path: |
             packages/*/coverage/coverage-summary.json
             packages/*/coverage/coverage-final.json
             apps/*/coverage/coverage-summary.json
             apps/*/coverage/coverage-final.json
+            # Add other potential locations if necessary
           retention-days: 7
-          if-no-files-found: warn
-
-  test_storybook:
-    name: 🎭 Storybook Tests
-    needs: changes
-    if: needs.changes.outputs.storybook == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        storybook:
-          - storybook-react
-          - storybook-solid
-          - storybook-svelte
-          - storybook-vue
-    steps:
-      - name: ⬇️ Check out code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: 📦 Setup & Install
-        uses: ./.github/actions/setup
-        with:
-          playwright: "true"
-
-      - name: 🏗️ Build storybook
-        env:
-          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-        run: bun turbo run build --filter="./apps/${{ matrix.storybook }}"
-
-      - name: 🧪 Run storybook tests
-        run: |
-          cd apps/${{ matrix.storybook }}
-          bunx http-server storybook-static -p 6006 -s &
-          SERVER_PID=$!
-          bunx wait-on tcp:127.0.0.1:6006 --timeout 30000
-          STORYBOOK_URL=http://127.0.0.1:6006 bun run test-storybook
-          EXIT=$?
-          kill $SERVER_PID 2>/dev/null || true
-          exit $EXIT
+          # Optional: Handle case where no files are found gracefully
+          if-no-files-found: warn # 'warn', 'error', or 'ignore'

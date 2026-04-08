@@ -1,6 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 import { useStyles } from '~/hooks/use-styles';
 
@@ -24,11 +25,12 @@ const IABConsentBannerFooter = forwardRef<
 		baseClassName: styles.footer,
 		className,
 	});
+	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	return (
 		<div
 			ref={ref}
-			{...themedStyle}
+			{...domStyleProps}
 			data-testid="iab-consent-banner-footer"
 			{...props}
 		>

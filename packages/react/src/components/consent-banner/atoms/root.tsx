@@ -1,6 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import {
 	type CSSProperties,
 	type FC,
@@ -363,6 +364,7 @@ const ConsentBannerRootChildren = forwardRef<
 		const finalClassName = noStyle
 			? contentStyle.className || ''
 			: `${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`;
+		const domStyleProps = sanitizeDOMStyleProps(contentStyle);
 
 		// Only render when the banner should be shown
 		return shouldShowBanner
@@ -372,7 +374,7 @@ const ConsentBannerRootChildren = forwardRef<
 						<div
 							ref={ref}
 							{...props}
-							{...contentStyle}
+							{...domStyleProps}
 							className={finalClassName}
 							data-testid="consent-banner-root"
 							dir={textDirection}
