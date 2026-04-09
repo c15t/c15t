@@ -23,7 +23,7 @@ const { consentManager, consentStore } = getOrCreateConsentRuntime({
 
 ## Subscribe to State Changes
 
-The store is a [Zustand vanilla store](https://zustand.docs.pmnd.rs/guides/extracting-actions) — use `subscribe()` to react to consent changes and `getState()` to read the current state:
+The store is a [Zustand vanilla store](https://zustand.docs.pmnd.rs/guides/extracting-actions). Use `subscribe()` for UI and general state updates, `subscribeToConsentChanges()` for change-only consent integrations, and `getState()` to read the current state:
 
 ```ts
 // React to every state change
@@ -31,6 +31,13 @@ consentStore.subscribe((state) => {
   console.log('Consent state:', state.consents);
   console.log('Show banner?', state.activeUI === 'banner');
 });
+
+// React only to real saved preference changes
+consentStore
+  .getState()
+  .subscribeToConsentChanges(({ allowedCategories, deniedCategories }) => {
+    analytics.syncConsent({ allowedCategories, deniedCategories });
+  });
 
 // Read current state at any time
 const state = consentStore.getState();

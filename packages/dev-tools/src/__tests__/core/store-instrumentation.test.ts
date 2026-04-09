@@ -9,6 +9,7 @@ function createMockStore(): StoreApi<ConsentStoreState> {
 		callbacks: {
 			onBannerFetched: undefined,
 			onConsentSet: undefined,
+			onConsentChanged: undefined,
 			onError: undefined,
 			onBeforeConsentRevocationReload: undefined,
 		},
@@ -77,6 +78,35 @@ describe('store instrumentation', () => {
 			| undefined;
 		restoredConsentSet?.({ preferences: { necessary: true } });
 		expect(originalConsentSet).toHaveBeenCalledTimes(3);
+	});
+
+	it('logs onConsentChanged as consent_save and restores originals', () => {
+		const store = createMockStore();
+		const originalConsentChanged = vi.fn();
+		store.getState().setCallback('onConsentChanged', originalConsentChanged);
+
+		const events: string[] = [];
+		const cleanup = registerStoreInstrumentation({
+			namespace: 'testStore-consent-changed',
+			store,
+			onEvent: (event) => events.push(event.type),
+		});
+
+		const wrappedConsentChanged = store.getState().callbacks.onConsentChanged as
+			| ((payload: unknown) => void)
+			| undefined;
+		wrappedConsentChanged?.({
+			allowedCategories: ['necessary', 'measurement'],
+		});
+
+		expect(events).toEqual(['consent_save']);
+		expect(originalConsentChanged).toHaveBeenCalledTimes(1);
+
+		cleanup();
+		const restoredConsentChanged = store.getState().callbacks
+			.onConsentChanged as ((payload: unknown) => void) | undefined;
+		restoredConsentChanged?.({ allowedCategories: ['necessary'] });
+		expect(originalConsentChanged).toHaveBeenCalledTimes(2);
 	});
 
 	it('wraps and restores network blocker callback', () => {

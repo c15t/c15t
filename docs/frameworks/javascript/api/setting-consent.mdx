@@ -26,7 +26,7 @@ await state.saveConsents('custom');
 | `'necessary'` | Sets only `necessary` to `true`, all others to `false`, and saves |
 | `'custom'` | Saves the current `selectedConsents` as the final `consents` |
 
-After saving, the store syncs with the backend (in c15t or custom mode), stores the consent in a cookie, and triggers the `onConsentSet` callback.
+After saving, the store syncs with the backend (in c15t or custom mode), stores the consent in a cookie, always triggers `onConsentSet`, and triggers `onConsentChanged` only if the saved preferences actually changed.
 
 ## `setConsent(name, value)`
 
@@ -41,6 +41,8 @@ state.setConsent('measurement', true);
 // Revoke marketing consent (saves immediately)
 state.setConsent('marketing', false);
 ```
+
+`setConsent()` uses the same save pipeline as `saveConsents()`, so the same callback rules apply.
 
 ## `setSelectedConsent(name, value)`
 
@@ -74,6 +76,8 @@ state.resetConsents();
 // To show the banner again after resetting, call setActiveUI manually
 consentStore.getState().setActiveUI('banner', { force: true });
 ```
+
+`resetConsents()` clears stored consent, but it does not emit `onConsentChanged`.
 
 ## Full Preference Dialog Flow
 

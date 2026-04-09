@@ -97,7 +97,7 @@
 <section id="debugging">
   ## Debugging the Lifecycle
 
-  Use the DevTools panel and callbacks to inspect each step of the initialization flow:
+  Use the DevTools panel and callbacks to inspect each step of the initialization flow. `onConsentSet` is the broad lifecycle signal; `onConsentChanged` and `subscribeToConsentChanges()` are the change-only signals for explicit post-init saves.
 
   | Step | DevTools Panel | Callback | What to check |
   |---|---|---|---|
@@ -107,6 +107,7 @@
   | Banner visibility | Consents | — | `activeUI` in store state; does policy `ui.mode` require it? |
   | Re-prompting | Policy | — | Fingerprint mismatch between stored and resolved policy? |
   | Consent save | Consents + Events | `onConsentSet` | `preferences` object in callback payload |
+  | Change-only integrations | Events | `onConsentChanged` or `subscribeToConsentChanges()` | `allowedCategories`, `deniedCategories`, and previous values only when a real save changed preferences |
   | Script loading | Scripts | `onConsentSet` | Script IDs and their load/blocked status |
   | Reload on revocation | Events | `onBeforeConsentRevocationReload` | Fires before reload; check localStorage for `c15t:pending-consent-sync` |
   | Deferred sync | Events | `onError` (if sync fails) | After reload, check Events panel for successful API call |

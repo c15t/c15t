@@ -20,7 +20,10 @@ const { consentManager, consentStore, cacheKey } = getOrCreateConsentRuntime({
     { id: 'analytics', src: 'https://cdn.example.com/analytics.js', category: 'measurement' },
   ],
   callbacks: {
-    onConsentSet: ({ preferences }) => console.log('Consent:', preferences),
+    onConsentChanged: ({ allowedCategories, deniedCategories }) => {
+      console.log('Allowed:', allowedCategories);
+      console.log('Denied:', deniedCategories);
+    },
   },
   debug: true,
 });
@@ -47,7 +50,9 @@ const manager = configureConsentManager({
 const store = createConsentManagerStore(manager, {
   initialConsentCategories: ['necessary', 'measurement'],
   scripts: [{ id: 'analytics', src: '...', category: 'measurement' }],
-  callbacks: { onConsentSet: ({ preferences }) => console.log(preferences) },
+  callbacks: {
+    onConsentChanged: ({ allowedCategories }) => console.log(allowedCategories),
+  },
 });
 ```
 
@@ -154,6 +159,8 @@ state.hasFetchedBanner   // true (init complete)
 
 ### Subscribing to Changes
 
+Use `subscribe()` for UI state and other broad store updates:
+
 ```ts
 // Subscribe to all state changes
 const unsubscribe = consentStore.subscribe((state, prevState) => {
@@ -162,14 +169,30 @@ const unsubscribe = consentStore.subscribe((state, prevState) => {
 
 // React to specific changes by comparing with previous state
 consentStore.subscribe((state, prevState) => {
-  if (state.consents !== prevState.consents) {
-    console.log('Consents changed:', state.consents);
+  if (state.activeUI !== prevState.activeUI) {
+    console.log('Visible UI changed:', state.activeUI);
   }
 });
 
 // Unsubscribe when done
 unsubscribe();
 ```
+
+Use `subscribeToConsentChanges()` when you only want real saved preference changes:
+
+```ts
+const unsubscribeConsentChanges = consentStore
+  .getState()
+  .subscribeToConsentChanges(({ allowedCategories, deniedCategories }) => {
+    analytics.syncConsent({ allowedCategories, deniedCategories });
+  });
+
+unsubscribeConsentChanges();
+```
+
+<Callout type="info">
+  Prefer `subscribeToConsentChanges()` or `onConsentChanged` for analytics SDKs and consent-mode integrations. Raw `consentStore.subscribe()` fires for every store update, including UI-only changes.
+</Callout>
 
 ### Window Namespace
 

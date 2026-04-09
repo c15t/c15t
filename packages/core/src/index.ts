@@ -135,7 +135,14 @@ export type {
 } from './store/type';
 // Export default translation config
 export { defaultTranslationConfig } from './translations';
-export type { Callback, Callbacks } from './types/callbacks';
+export type {
+	Callback,
+	Callbacks,
+	OnBannerFetchedPayload,
+	OnConsentChangedPayload,
+	OnConsentSetPayload,
+	OnErrorPayload,
+} from './types/callbacks';
 export type {
 	ConsentBannerResponse,
 	ConsentState,
