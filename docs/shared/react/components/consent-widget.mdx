@@ -87,7 +87,7 @@
   `renderAction` is optional. Return the stock button compounds when you want custom mapping while preserving built-in c15t behavior and copy:
 
   ```tsx
-<ConsentWidget.PolicyActions
+  <ConsentWidget.PolicyActions
   renderAction={(action, props) => {
     const { key, ...buttonProps } = props
 
@@ -100,7 +100,7 @@
           return <ConsentWidget.SaveButton key={key} {...buttonProps} />
     }
   }}
-/>
+  />
   ```
 
   Use `useTranslations()` only when you are replacing the button markup entirely:

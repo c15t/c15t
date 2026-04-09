@@ -214,7 +214,7 @@
   `renderAction` is optional. When you want custom mapping but still want the built-in c15t button behavior and copy, return the stock button compounds:
 
   ```tsx
-<ConsentBanner.PolicyActions
+  <ConsentBanner.PolicyActions
   renderAction={(action, props) => {
     const { key, ...buttonProps } = props
 
@@ -227,7 +227,7 @@
           return <ConsentBanner.CustomizeButton key={key} {...buttonProps} />
     }
   }}
-/>
+  />
   ```
 
   Use `useTranslations()` only when you are replacing the button markup entirely:
