@@ -1,5 +1,6 @@
-@layer theme, base, components, c15t, utilities;
+@layer theme, base, components, utilities;
 @import "tailwindcss";
+@import "@c15t/nextjs/styles.css";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
