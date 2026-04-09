@@ -2,7 +2,12 @@ import { createMaterialPolicyFingerprint } from '@c15t/schema/types';
 import type { StoreApi } from 'zustand';
 import type { ConsentStoreState } from '~/store/type';
 import type { ConsentManagerInterface } from '../client/client-interface';
-import type { ConsentInfo, ConsentState, ConsentType } from '../types';
+import type {
+	ConsentInfo,
+	ConsentState,
+	ConsentType,
+	OnConsentChangedPayload,
+} from '../types';
 import { saveConsentToStorage } from './cookie';
 import { generateSubjectId } from './generate-subject-id';
 import { applyPolicyPurposeAllowlist, getEffectivePolicy } from './policy';
@@ -37,6 +42,7 @@ interface SaveConsentsProps {
 	get: StoreApi<ConsentStoreState>['getState'];
 	set: StoreApi<ConsentStoreState>['setState'];
 	options?: { uiSource?: string };
+	emitConsentChanged?: (payload: OnConsentChangedPayload) => void;
 }
 
 /**
@@ -88,12 +94,51 @@ function shouldReloadOnConsentChange(
 	return wasAnyConsentRevoked;
 }
 
+function haveConsentsChanged(
+	previousConsents: ConsentState,
+	nextConsents: ConsentState,
+	consentTypes: ConsentType[]
+): boolean {
+	return consentTypes.some(
+		(consentType) =>
+			previousConsents[consentType.name] !== nextConsents[consentType.name]
+	);
+}
+
+function getConsentCategoryLists(
+	consents: ConsentState,
+	consentCategories: ConsentStoreState['consentCategories'],
+	consentTypes: ConsentType[]
+): Pick<OnConsentChangedPayload, 'allowedCategories' | 'deniedCategories'> {
+	const activeCategories = new Set(consentCategories);
+	const allowedCategories: ConsentType['name'][] = [];
+	const deniedCategories: ConsentType['name'][] = [];
+
+	for (const consentType of consentTypes) {
+		if (!activeCategories.has(consentType.name)) {
+			continue;
+		}
+
+		if (consents[consentType.name]) {
+			allowedCategories.push(consentType.name);
+		} else {
+			deniedCategories.push(consentType.name);
+		}
+	}
+
+	return {
+		allowedCategories,
+		deniedCategories,
+	};
+}
+
 export async function saveConsents({
 	manager,
 	type,
 	get,
 	set,
 	options,
+	emitConsentChanged,
 }: SaveConsentsProps) {
 	const {
 		callbacks,
@@ -142,6 +187,32 @@ export async function saveConsents({
 		newConsents,
 		policyCategories
 	);
+	const didChange = haveConsentsChanged(
+		previousConsents,
+		effectiveConsents,
+		consentTypes
+	);
+	const nextConsentCategoryLists = getConsentCategoryLists(
+		effectiveConsents,
+		consentCategories,
+		consentTypes
+	);
+	const previousConsentCategoryLists = getConsentCategoryLists(
+		previousConsents,
+		consentCategories,
+		consentTypes
+	);
+	const consentChangedPayload: OnConsentChangedPayload | null = didChange
+		? {
+				preferences: effectiveConsents,
+				previousPreferences: previousConsents,
+				allowedCategories: nextConsentCategoryLists.allowedCategories,
+				deniedCategories: nextConsentCategoryLists.deniedCategories,
+				previousAllowedCategories:
+					previousConsentCategoryLists.allowedCategories,
+				previousDeniedCategories: previousConsentCategoryLists.deniedCategories,
+			}
+		: null;
 	const materialPolicyFingerprint = lastBannerFetchData?.policy
 		? await createMaterialPolicyFingerprint(lastBannerFetchData.policy)
 		: undefined;
@@ -232,6 +303,9 @@ export async function saveConsents({
 		callbacks.onConsentSet?.({
 			preferences: effectiveConsents,
 		});
+		if (consentChangedPayload) {
+			emitConsentChanged?.(consentChangedPayload);
+		}
 		callbacks.onBeforeConsentRevocationReload?.({
 			preferences: effectiveConsents,
 		});
@@ -252,6 +326,9 @@ export async function saveConsents({
 	callbacks.onConsentSet?.({
 		preferences: effectiveConsents,
 	});
+	if (consentChangedPayload) {
+		emitConsentChanged?.(consentChangedPayload);
+	}
 
 	// Send consent to API in the background - the UI is already updated
 	const consent = await manager.setConsent({

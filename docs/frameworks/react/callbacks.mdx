@@ -5,6 +5,10 @@ description: React to consent lifecycle events - initialization, consent changes
 
 <import src="../../shared/react/guides/callbacks.mdx#intro" />
 
+<Callout type="info">
+  `subscribeToConsentChanges()` is the recommended API for analytics SDKs and consent-mode integrations. It only emits future saves that actually changed persisted preferences.
+</Callout>
+
 ## Configuration
 
 ```tsx
@@ -24,8 +28,10 @@ export function ConsentManager({ children }: { children: ReactNode }) {
             console.log('Language:', translations.language);
           },
           onConsentSet: ({ preferences }) => {
-            // Fire analytics event
-            analytics.track('consent_updated', { preferences });
+            console.log('Consent lifecycle event:', preferences);
+          },
+          onConsentChanged: ({ allowedCategories, deniedCategories }) => {
+            analytics.syncConsent({ allowedCategories, deniedCategories });
           },
           onError: ({ error }) => {
             errorReporter.captureMessage(error);
@@ -45,7 +51,28 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 
 <import src="../../shared/react/guides/callbacks.mdx#callback-reference" />
 
-## Dynamic Registration
+## Change-Only Subscriptions
+
+Use `subscribeToConsentChanges()` when you want a stable listener for real preference changes after mount:
+
+```tsx
+import { useEffect } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+function ConsentAnalytics() {
+  const { subscribeToConsentChanges } = useConsentManager();
+
+  useEffect(() => {
+    return subscribeToConsentChanges(({ allowedCategories, deniedCategories }) => {
+      analytics.syncConsent({ allowedCategories, deniedCategories });
+    });
+  }, [subscribeToConsentChanges]);
+
+  return null;
+}
+```
+
+## Runtime Callback Registration
 
 Register or update callbacks at runtime using `setCallback()`:
 
@@ -57,11 +84,16 @@ function ConsentAnalytics() {
   const { setCallback } = useConsentManager();
 
   useEffect(() => {
+    setCallback('onBannerFetched', ({ jurisdiction, location }) => {
+      console.log('Resolved init data:', { jurisdiction, location });
+    });
+
     setCallback('onConsentSet', ({ preferences }) => {
-      analytics.track('consent_changed', preferences);
+      console.log('Broad consent lifecycle event:', preferences);
     });
 
     return () => {
+      setCallback('onBannerFetched', undefined);
       setCallback('onConsentSet', undefined);
     };
   }, [setCallback]);
@@ -69,3 +101,5 @@ function ConsentAnalytics() {
   return null;
 }
 ```
+
+`setCallback('onConsentSet', ...)` immediately replays the current consent state. For change-only logic, prefer `subscribeToConsentChanges()` or `onConsentChanged`.

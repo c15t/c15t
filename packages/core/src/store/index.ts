@@ -25,7 +25,12 @@ import { createNetworkBlockerManager } from '../libs/network-blocker/store';
 import { filterConsentCategoriesByPolicy } from '../libs/policy';
 import { saveConsents } from '../libs/save-consents';
 import { createScriptManager } from '../libs/script-loader';
-import type { TranslationConfig, User } from '../types';
+import type {
+	Callback,
+	OnConsentChangedPayload,
+	TranslationConfig,
+	User,
+} from '../types';
 import type { Callbacks } from '../types/callbacks';
 import type { ConsentBannerResponse, ConsentState } from '../types/compliance';
 import {
@@ -165,6 +170,7 @@ export const createConsentManagerStore = (
 
 	// Load initial state from localStorage if available
 	const storedConsent = getStoredConsent(options.storageConfig);
+	const consentChangeListeners = new Set<Callback<OnConsentChangedPayload>>();
 
 	const store = createStore<ConsentStoreState>((set, get) => ({
 		...initialState,
@@ -234,6 +240,13 @@ export const createConsentManagerStore = (
 				get,
 				set,
 				options,
+				emitConsentChanged: (payload) => {
+					get().callbacks.onConsentChanged?.(payload);
+
+					for (const listener of consentChangeListeners) {
+						listener(payload);
+					}
+				},
 			}),
 
 		setConsent: (name, value) => {
@@ -327,6 +340,13 @@ export const createConsentManagerStore = (
 					},
 				});
 			}
+		},
+		subscribeToConsentChanges: (listener) => {
+			consentChangeListeners.add(listener);
+
+			return () => {
+				consentChangeListeners.delete(listener);
+			};
 		},
 		setLocationInfo: (location) => set({ locationInfo: location }),
 

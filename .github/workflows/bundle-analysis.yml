@@ -15,9 +15,9 @@ jobs:
     name: 📦 Bundle Size Analysis
     runs-on: ubuntu-latest
     # SECURITY: Using pull_request_target with safe checkout pattern
-    # This pattern is recommended by GitHub for workflows that need to:
-    # - Analyze untrusted PR code (for bundle size comparison)
-    # - Post comments on fork PRs (requires write permissions)
+    # This pattern is recommended by GitHub for workflows that need to analyze
+    # untrusted PR code safely while keeping comment posting in a separate
+    # trusted workflow.
     #
     # Security mitigations:
     # 1. Checkout BASE repository first (trusted code from main repo)
@@ -30,7 +30,6 @@ jobs:
     # for bundle analysis. The risk is mitigated by the checkout order and token scoping.
     permissions:
       contents: read
-      pull-requests: write
     steps:
       # Step 1: Checkout BASE repository (trusted code from main repo)
       - name: ⬇️ Check out base repository
@@ -102,31 +101,43 @@ jobs:
         timeout-minutes: 5
         run: |
           if [ -f bun.lock ] || [ -f bun.lockb ]; then
-            bun install --frozen-lockfile || bun install
+            bun install --frozen-lockfile --ignore-scripts || bun install --ignore-scripts
             WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*"
           elif [ -f pnpm-lock.yaml ]; then
-            pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
+            pnpm install --frozen-lockfile --ignore-scripts || pnpm install --no-frozen-lockfile --ignore-scripts
             WITH_RSDOCTOR=1 pnpm exec turbo run build --filter="./packages/*"
           else
             echo "No supported lockfile found for current branch"
             exit 1
           fi
 
+      - name: 🛠️ Build bundle analysis action
+        run: bun turbo run build --filter=@c15t/bundle-analysis-action
+
+      # Step 5: Run bundle analysis (generate report only, no comment posting)
       - name: 📊 Analyze bundle differences
         uses: ./internals/bundle-analysis-action
         with:
           base_dir: .bundle-base
           current_dir: .
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ github.token }}
           pr_number: ${{ github.event.pull_request.number }}
-          skip_comment: false
+          skip_comment: true
           fail_on_increase: false
 
-      - name: 📤 Upload bundle diff report
-        if: always()
+      # Step 6: Save PR number and report for the comment workflow
+      - name: 💾 Save PR metadata
+        if: github.event_name == 'pull_request_target'
+        run: |
+          mkdir -p ./bundle-artifacts
+          echo "${{ github.event.pull_request.number }}" > ./bundle-artifacts/pr-number
+          cp bundle-diff.md ./bundle-artifacts/bundle-diff.md 2>/dev/null || echo "No bundle changes detected." > ./bundle-artifacts/bundle-diff.md
+
+      - name: 📤 Upload bundle analysis artifacts
+        if: github.event_name == 'pull_request_target'
         uses: actions/upload-artifact@v4
         with:
-          name: bundle-diff-report
-          path: bundle-diff.md
+          name: bundle-analysis-result
+          path: ./bundle-artifacts/
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 1

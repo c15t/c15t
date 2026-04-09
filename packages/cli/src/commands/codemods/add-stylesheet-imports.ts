@@ -2,6 +2,10 @@ import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { Project } from 'ts-morph';
+import {
+	ensureGlobalCssStylesheetImports,
+	formatSearchedCssPaths,
+} from '../shared/stylesheets';
 
 const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const IGNORED_DIRS = new Set([
@@ -128,10 +132,6 @@ async function detectTailwindVersion(
 	} catch {
 		return null;
 	}
-}
-
-function isTailwindV3(version: string | null): boolean {
-	return version != null && /^(?:\^|~)?3/.test(version);
 }
 
 async function collectSourceFiles(rootDir: string): Promise<string[]> {
@@ -289,86 +289,31 @@ function findEntrypoint(
 	return null;
 }
 
-/**
- * Checks whether a specific CSS import already exists in a source file.
- */
-function hasCssImport(
+const FRAMEWORK_STYLESHEET_IMPORT_RE =
+	/^@c15t\/(?:react|nextjs)(?:\/iab)?\/styles(?:\.tw3)?\.css$/;
+
+function removeFrameworkStylesheetImports(
 	project: Project,
-	filePath: string,
-	cssImportPath: string
-): boolean {
+	filePath: string
+): string[] {
 	const sourceFile = project.addSourceFileAtPathIfExists(filePath);
 	if (!sourceFile) {
-		return false;
+		return [];
 	}
 
-	const importDeclarations = sourceFile.getImportDeclarations();
-	return importDeclarations.some(
-		(importDecl) => importDecl.getModuleSpecifierValue() === cssImportPath
-	);
-}
+	const removedImports: string[] = [];
 
-/**
- * Adds a CSS import statement at the top of the file (after existing imports).
- */
-function addCssImport(
-	project: Project,
-	filePath: string,
-	cssImportPath: string
-): boolean {
-	const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-	if (!sourceFile) {
-		return false;
-	}
-
-	// Check if it already exists
-	const importDeclarations = sourceFile.getImportDeclarations();
-	const alreadyExists = importDeclarations.some(
-		(importDecl) => importDecl.getModuleSpecifierValue() === cssImportPath
-	);
-
-	if (alreadyExists) {
-		return false;
-	}
-
-	// Find the last import declaration to insert after it
-	if (importDeclarations.length > 0) {
-		const lastImport = importDeclarations[importDeclarations.length - 1];
-		if (lastImport) {
-			sourceFile.insertStatements(
-				lastImport.getChildIndex() + 1,
-				`import '${cssImportPath}';`
-			);
+	for (const importDeclaration of sourceFile.getImportDeclarations()) {
+		const moduleSpecifier = importDeclaration.getModuleSpecifierValue();
+		if (!FRAMEWORK_STYLESHEET_IMPORT_RE.test(moduleSpecifier)) {
+			continue;
 		}
-	} else {
-		// No existing imports; add at the top
-		sourceFile.insertStatements(0, `import '${cssImportPath}';`);
+
+		removedImports.push(moduleSpecifier);
+		importDeclaration.remove();
 	}
 
-	return true;
-}
-
-function replaceCssImport(
-	project: Project,
-	filePath: string,
-	fromPath: string,
-	toPath: string
-): boolean {
-	const sourceFile = project.addSourceFileAtPathIfExists(filePath);
-	if (!sourceFile) {
-		return false;
-	}
-
-	const importDeclaration = sourceFile
-		.getImportDeclarations()
-		.find((importDecl) => importDecl.getModuleSpecifierValue() === fromPath);
-
-	if (!importDeclaration) {
-		return false;
-	}
-
-	importDeclaration.setModuleSpecifier(toPath);
-	return true;
+	return removedImports;
 }
 
 /**
@@ -460,91 +405,61 @@ export async function runAddStylesheetImportsCodemod(
 	// Phase 3: Add CSS imports
 	const pkg = detection.framework === 'nextjs' ? '@c15t/nextjs' : '@c15t/react';
 	const tailwindVersion = await detectTailwindVersion(options.projectRoot);
-	const baseStylesheet = isTailwindV3(tailwindVersion)
-		? `${pkg}/styles.tw3.css`
-		: `${pkg}/styles.css`;
-	const iabStylesheet = isTailwindV3(tailwindVersion)
-		? `${pkg}/iab/styles.tw3.css`
-		: `${pkg}/iab/styles.css`;
-	const operations: number[] = [];
-	const summaries: string[] = [];
 
 	try {
-		// Add base stylesheet if styled UI is used (not just IAB)
-		if (detection.usesStyledUi) {
-			const baseCss = baseStylesheet;
-			const fallbackBaseCss = baseCss.endsWith('.tw3.css')
-				? `${pkg}/styles.css`
-				: `${pkg}/styles.tw3.css`;
-			if (
-				!hasCssImport(project, entrypoint, baseCss) &&
-				hasCssImport(project, entrypoint, fallbackBaseCss)
-			) {
-				const replaced = replaceCssImport(
-					project,
-					entrypoint,
-					fallbackBaseCss,
-					baseCss
-				);
-				if (replaced) {
-					operations.push(1);
-					summaries.push(
-						`replaced import '${fallbackBaseCss}' with '${baseCss}'`
-					);
-				}
-			} else if (!hasCssImport(project, entrypoint, baseCss)) {
-				const added = addCssImport(project, entrypoint, baseCss);
-				if (added) {
-					operations.push(1);
-					summaries.push(`added import '${baseCss}'`);
-				}
-			}
-		}
+		const stylesheetResult = await ensureGlobalCssStylesheetImports({
+			projectRoot: options.projectRoot,
+			packageName: pkg,
+			tailwindVersion,
+			entrypointPath: entrypoint,
+			includeBase: detection.usesStyledUi || detection.usesIabUi,
+			includeIab: detection.usesIabUi,
+			dryRun: options.dryRun,
+		});
 
-		// Add IAB stylesheet if IAB UI is used
-		if (detection.usesIabUi) {
-			const iabCss = iabStylesheet;
-			const fallbackIabCss = iabCss.endsWith('.tw3.css')
-				? `${pkg}/iab/styles.css`
-				: `${pkg}/iab/styles.tw3.css`;
-			if (
-				!hasCssImport(project, entrypoint, iabCss) &&
-				hasCssImport(project, entrypoint, fallbackIabCss)
-			) {
-				const replaced = replaceCssImport(
-					project,
-					entrypoint,
-					fallbackIabCss,
-					iabCss
-				);
-				if (replaced) {
-					operations.push(1);
-					summaries.push(
-						`replaced import '${fallbackIabCss}' with '${iabCss}'`
-					);
-				}
-			} else if (!hasCssImport(project, entrypoint, iabCss)) {
-				const added = addCssImport(project, entrypoint, iabCss);
-				if (added) {
-					operations.push(1);
-					summaries.push(`added import '${iabCss}'`);
-				}
-			}
-		}
-
-		if (operations.length > 0) {
-			changedFiles.push({
-				filePath: entrypoint,
-				operations: operations.length,
-				summaries,
+		if (!stylesheetResult.filePath) {
+			errors.push({
+				filePath: options.projectRoot,
+				error: `No suitable global CSS entrypoint found. Checked: ${formatSearchedCssPaths(
+					options.projectRoot,
+					stylesheetResult.searchedPaths
+				)}`,
 			});
+			return {
+				totalFiles: filePaths.length,
+				changedFiles,
+				errors,
+			};
+		}
 
-			if (!options.dryRun) {
-				const sourceFile = project.getSourceFile(entrypoint);
-				if (sourceFile) {
-					await sourceFile.save();
-				}
+		if (stylesheetResult.updated) {
+			changedFiles.push({
+				filePath: stylesheetResult.filePath,
+				operations: stylesheetResult.changes.length,
+				summaries: stylesheetResult.changes,
+			});
+		}
+
+		for (const filePath of filePaths) {
+			const removedImports = removeFrameworkStylesheetImports(
+				project,
+				filePath
+			);
+			if (removedImports.length === 0) {
+				continue;
 			}
+
+			changedFiles.push({
+				filePath,
+				operations: removedImports.length,
+				summaries: removedImports.map(
+					(importPath) => `removed JS import '${importPath}'`
+				),
+			});
+		}
+
+		if (!options.dryRun) {
+			await project.save();
 		}
 	} catch (error) {
 		errors.push({

@@ -6,9 +6,13 @@ description: Run consent policy resolution at the edge for faster initial banner
 The `/init` endpoint determines consent policy from geo headers, resolves translations, and optionally fetches the GVL. None of this requires a database. The `@c15t/backend/edge` export lets you run this logic in edge runtimes (Vercel Middleware, Cloudflare Workers, Deno Deploy) so the consent banner resolves from the nearest PoP instead of round-tripping to your origin.
 
 ```
-Standard:  Browser → Origin (single region)  → c15tInstance(/init) → Response
-Edge:      Browser → Edge   (nearest PoP)    → c15tEdgeInit        → Response
+Standard:  Browser → Origin (single region)  → c15tInstance(/init)         → Response
+Edge:      Browser → Edge   (nearest PoP)    → unstable_c15tEdgeInit       → Response
 ```
+
+<Callout type="warn">
+  The edge runtime exports in `@c15t/backend/edge` are unstable in `2.0`. Use the `unstable_`-prefixed callables and expect API changes or removal in a future release.
+</Callout>
 
 ## When to use this
 
@@ -57,10 +61,10 @@ export const consentConfig = {
 <Tabs groupId="runtime" items={['Vercel Middleware', 'Cloudflare Workers', 'Deno Deploy']}>
   <Tab value="Vercel Middleware">
     ```ts title="middleware.ts"
-    import { c15tEdgeInit } from '@c15t/backend/edge';
+    import { unstable_c15tEdgeInit } from '@c15t/backend/edge';
     import { consentConfig } from './lib/consent-config';
 
-    const initHandler = c15tEdgeInit(consentConfig);
+    const initHandler = unstable_c15tEdgeInit(consentConfig);
 
     export async function middleware(request: Request) {
       const url = new URL(request.url);
@@ -77,10 +81,10 @@ export const consentConfig = {
 
   <Tab value="Cloudflare Workers">
     ```ts title="worker.ts"
-    import { c15tEdgeInit } from '@c15t/backend/edge';
+    import { unstable_c15tEdgeInit } from '@c15t/backend/edge';
     import { consentConfig } from './lib/consent-config';
 
-    const initHandler = c15tEdgeInit(consentConfig);
+    const initHandler = unstable_c15tEdgeInit(consentConfig);
 
     export default {
       async fetch(request: Request) {
@@ -97,10 +101,10 @@ export const consentConfig = {
 
   <Tab value="Deno Deploy">
     ```ts title="main.ts"
-    import { c15tEdgeInit } from '@c15t/backend/edge';
+    import { unstable_c15tEdgeInit } from '@c15t/backend/edge';
     import { consentConfig } from './lib/consent-config.ts';
 
-    const initHandler = c15tEdgeInit(consentConfig);
+    const initHandler = unstable_c15tEdgeInit(consentConfig);
 
     Deno.serve(async (request) => {
       const url = new URL(request.url);
@@ -131,7 +135,7 @@ export const { GET, POST } = c15t;
 
 ## Configuration
 
-`c15tEdgeInit` accepts `C15TEdgeOptions` — the same fields as `c15tInstance` minus the database-related options (`adapter`, `tablePrefix`, `basePath`, `openapi`, `ipAddress`, `apiKeys`, `background`).
+`unstable_c15tEdgeInit` accepts `C15TEdgeOptions` — the same fields as `c15tInstance` minus the database-related options (`adapter`, `tablePrefix`, `basePath`, `openapi`, `ipAddress`, `apiKeys`, `background`).
 
 | Option | Required | Description |
 |--------|----------|-------------|
@@ -172,16 +176,16 @@ Edge isolates have short-lived memory. The in-memory GVL cache resets on each co
 - **Bundle GVL translations** using `iab.bundled` to avoid fetch latency entirely
 - **Use an external cache** (Upstash Redis, Cloudflare KV) via the `cache.adapter` option to share cached data across isolates — see the [Caching guide](/docs/self-host/guides/caching) for setup
 
-## Custom consent cookie — resolveConsent
+## Custom consent cookie — unstable\_resolveConsent
 
 <Callout type="info">
   **Experimental** — this API may change in future versions.
 </Callout>
 
-If you manage your own consent cookie and just need to know **which categories to load** for a given visitor, use `resolveConsent` instead of `c15tEdgeInit`. It's a lightweight, fully synchronous function that returns the matched policy and default consent state — no translations, GVL, branding, or snapshot tokens.
+If you manage your own consent cookie and just need to know **which categories to load** for a given visitor, use `unstable_resolveConsent` instead of `unstable_c15tEdgeInit`. It's a lightweight, fully synchronous function that returns the matched policy and default consent state — no translations, GVL, branding, or snapshot tokens.
 
 ```ts title="middleware.ts"
-import { resolveConsent } from '@c15t/backend/edge';
+import { unstable_resolveConsent } from '@c15t/backend/edge';
 
 const policyPacks = [
   {
@@ -206,7 +210,7 @@ const policyPacks = [
 ];
 
 export function middleware(request: Request) {
-  const consent = resolveConsent(request, { policyPacks });
+  const consent = unstable_resolveConsent(request, { policyPacks });
 
   // consent.model       → "opt-in" | "opt-out" | "none" | "iab"
   // consent.showBanner  → true
@@ -231,9 +235,9 @@ export function middleware(request: Request) {
 | `opt-out` | granted, required | **granted** | GPC signal can override `marketing`/`measurement` to not granted |
 | `none` | granted, required | **granted** | No banner shown |
 
-### `resolveConsent` vs `c15tEdgeInit`
+### `unstable_resolveConsent` vs `unstable_c15tEdgeInit`
 
-| | `resolveConsent` | `c15tEdgeInit` |
+| | `unstable_resolveConsent` | `unstable_c15tEdgeInit` |
 |---|---|---|
 | **Use case** | Custom consent cookie | Drop-in `/init` replacement |
 | **Sync** | Yes | No (async — signs JWT, fetches GVL) |

@@ -1,5 +1,6 @@
 @tailwind base;
 @tailwind components;
+@import "@c15t/nextjs/styles.tw3.css";
 @tailwind utilities;
 
 :root {
