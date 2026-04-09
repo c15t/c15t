@@ -60,6 +60,8 @@
 		"docs",
 		"dist-types",
 		"client",
+		"styles.css",
+		"iab/styles.css",
 		"src/styles.css",
 		"src/styles.tw3.css",
 		"src/iab/styles.css",

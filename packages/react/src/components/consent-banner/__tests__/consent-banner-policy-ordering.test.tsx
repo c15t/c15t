@@ -168,4 +168,37 @@ describe('ConsentBanner policy ordering', () => {
 			document.querySelector('[data-testid="consent-banner-customize-button"]')
 		).not.toBeInTheDocument();
 	});
+
+	test('keeps the default layout when policy has hints but no policy layout', async () => {
+		renderBanner(
+			{},
+			{
+				policyBanner: {
+					allowedActions: ['reject', 'accept', 'customize'],
+					primaryActions: ['accept'],
+					direction: 'row',
+					scrollLock: true,
+				},
+			}
+		);
+
+		await waitForBanner();
+
+		const footerGroups = Array.from(
+			document.querySelectorAll(
+				'[data-testid="consent-banner-footer-sub-group"]'
+			)
+		).map((group) =>
+			Array.from(group.querySelectorAll<HTMLButtonElement>('button')).map(
+				(button) => button.dataset.testid
+			)
+		);
+
+		expect(footerGroups).toEqual([
+			['consent-banner-reject-button', 'consent-banner-accept-button'],
+		]);
+		expect(
+			document.querySelector('[data-testid="consent-banner-customize-button"]')
+		).toBeInTheDocument();
+	});
 });

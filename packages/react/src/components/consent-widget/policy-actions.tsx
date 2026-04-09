@@ -1,13 +1,15 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/consent-widget.module.js';
-import { Fragment, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import {
 	type HeadlessConsentDialogAction,
 	useHeadlessConsentUI,
 } from '~/hooks/use-headless-consent-ui';
-import type { CSSPropertiesWithVars, CSSVariables } from '~/types/theme';
-import { cnExt as cn } from '~/utils/cn';
+import {
+	type PolicyActionRenderProps,
+	PolicyActionsRenderer,
+} from '../shared/policy-actions';
 import {
 	ConsentWidgetAcceptAllButton,
 	ConsentWidgetRejectButton,
@@ -18,11 +20,8 @@ import {
 	ConsentWidgetFooterSubGroup,
 } from './atoms/footer';
 
-export interface ConsentWidgetPolicyActionRenderProps {
-	key: string;
-	isPrimary: boolean;
-	style?: CSSPropertiesWithVars<CSSVariables>;
-}
+export interface ConsentWidgetPolicyActionRenderProps
+	extends PolicyActionRenderProps<HeadlessConsentDialogAction> {}
 
 export interface ConsentWidgetPolicyActionsProps {
 	renderAction?: (
@@ -35,13 +34,14 @@ function renderDefaultAction(
 	action: HeadlessConsentDialogAction,
 	props: ConsentWidgetPolicyActionRenderProps
 ) {
-	const { key, ...buttonProps } = props;
+	const { key, consentAction, ...buttonProps } = props;
 
 	switch (action) {
 		case 'accept':
 			return (
 				<ConsentWidgetAcceptAllButton
 					key={key}
+					consentAction={consentAction}
 					data-testid="consent-widget-footer-accept-button"
 					{...buttonProps}
 				/>
@@ -50,6 +50,7 @@ function renderDefaultAction(
 			return (
 				<ConsentWidgetRejectButton
 					key={key}
+					consentAction={consentAction}
 					data-testid="consent-widget-reject-button"
 					{...buttonProps}
 				/>
@@ -58,10 +59,15 @@ function renderDefaultAction(
 			return (
 				<ConsentWidgetSaveButton
 					key={key}
+					consentAction={consentAction}
 					data-testid="consent-widget-footer-save-button"
 					{...buttonProps}
 				/>
 			);
+		default: {
+			const _exhaustive: never = action;
+			throw new Error(`Unhandled consent widget action: ${_exhaustive}`);
+		}
 	}
 }
 
@@ -69,49 +75,21 @@ export function ConsentWidgetPolicyActions({
 	renderAction,
 }: ConsentWidgetPolicyActionsProps) {
 	const { dialog } = useHeadlessConsentUI();
-	const shouldFillActions = dialog.shouldFillActions;
-	const isColumn = dialog.direction === 'column';
-	const actionStyle = shouldFillActions
-		? ({
-				width: '100%',
-				flex: 1,
-			} satisfies CSSPropertiesWithVars<CSSVariables>)
-		: undefined;
 
 	return (
-		<ConsentWidgetFooter
-			className={cn(
-				shouldFillActions && styles.footerFill,
-				isColumn && styles.footerColumn
-			)}
-		>
-			{dialog.actionGroups.map((group, groupIndex) => (
-				<ConsentWidgetFooterSubGroup
-					key={`group-${group.join('-') || groupIndex}`}
-					themeKey="consentWidgetFooter"
-					className={cn(
-						shouldFillActions && styles.footerGroupFill,
-						isColumn && styles.footerGroupColumn
-					)}
-				>
-					{group.map((action) => {
-						const itemKey = `action-${action}`;
-						const renderProps: ConsentWidgetPolicyActionRenderProps = {
-							key: itemKey,
-							isPrimary: dialog.primaryActions.includes(action),
-							style: actionStyle,
-						};
-
-						return (
-							<Fragment key={itemKey}>
-								{renderAction?.(action, renderProps) ??
-									renderDefaultAction(action, renderProps)}
-							</Fragment>
-						);
-					})}
-				</ConsentWidgetFooterSubGroup>
-			))}
-		</ConsentWidgetFooter>
+		<PolicyActionsRenderer
+			state={dialog}
+			Footer={ConsentWidgetFooter}
+			FooterSubGroup={ConsentWidgetFooterSubGroup}
+			classNames={{
+				footerFill: styles.footerFill,
+				footerColumn: styles.footerColumn,
+				footerSubGroupFill: styles.footerSubGroupFill,
+				footerSubGroupColumn: styles.footerSubGroupColumn,
+			}}
+			renderAction={renderAction}
+			renderDefaultAction={renderDefaultAction}
+		/>
 	);
 }
 

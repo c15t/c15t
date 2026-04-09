@@ -1,13 +1,15 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
-import { Fragment, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import {
 	type HeadlessConsentBannerAction,
 	useHeadlessConsentUI,
 } from '~/hooks/use-headless-consent-ui';
-import type { CSSPropertiesWithVars, CSSVariables } from '~/types/theme';
-import { cnExt as cn } from '~/utils/cn';
+import {
+	type PolicyActionRenderProps,
+	PolicyActionsRenderer,
+} from '../shared/policy-actions';
 import {
 	ConsentBannerAcceptButton,
 	ConsentBannerCustomizeButton,
@@ -16,11 +18,8 @@ import {
 	ConsentBannerRejectButton,
 } from './components';
 
-export interface ConsentBannerPolicyActionRenderProps {
-	key: string;
-	isPrimary: boolean;
-	style?: CSSPropertiesWithVars<CSSVariables>;
-}
+export interface ConsentBannerPolicyActionRenderProps
+	extends PolicyActionRenderProps<HeadlessConsentBannerAction> {}
 
 export interface ConsentBannerPolicyActionsProps {
 	renderAction?: (
@@ -33,14 +32,14 @@ function renderDefaultAction(
 	action: HeadlessConsentBannerAction,
 	props: ConsentBannerPolicyActionRenderProps
 ) {
-	const { key, ...buttonProps } = props;
+	const { key, consentAction, ...buttonProps } = props;
 
 	switch (action) {
 		case 'accept':
 			return (
 				<ConsentBannerAcceptButton
 					key={key}
-					consentAction="accept"
+					consentAction={consentAction}
 					data-testid="consent-banner-accept-button"
 					{...buttonProps}
 				/>
@@ -49,7 +48,7 @@ function renderDefaultAction(
 			return (
 				<ConsentBannerRejectButton
 					key={key}
-					consentAction="reject"
+					consentAction={consentAction}
 					data-testid="consent-banner-reject-button"
 					{...buttonProps}
 				/>
@@ -58,11 +57,15 @@ function renderDefaultAction(
 			return (
 				<ConsentBannerCustomizeButton
 					key={key}
-					consentAction="customize"
+					consentAction={consentAction}
 					data-testid="consent-banner-customize-button"
 					{...buttonProps}
 				/>
 			);
+		default: {
+			const _exhaustive: never = action;
+			throw new Error(`Unhandled consent banner action: ${_exhaustive}`);
+		}
 	}
 }
 
@@ -70,48 +73,21 @@ export function ConsentBannerPolicyActions({
 	renderAction,
 }: ConsentBannerPolicyActionsProps) {
 	const { banner } = useHeadlessConsentUI();
-	const shouldFillActions = banner.shouldFillActions;
-	const isColumn = banner.direction === 'column';
-	const actionStyle = shouldFillActions
-		? ({
-				width: '100%',
-				flex: 1,
-			} satisfies CSSPropertiesWithVars<CSSVariables>)
-		: undefined;
 
 	return (
-		<ConsentBannerFooter
-			className={cn(
-				shouldFillActions && styles.footerFill,
-				isColumn && styles.footerColumn
-			)}
-		>
-			{banner.actionGroups.map((group, groupIndex) => (
-				<ConsentBannerFooterSubGroup
-					key={`group-${group.join('-') || groupIndex}`}
-					className={cn(
-						shouldFillActions && styles.footerSubGroupFill,
-						isColumn && styles.footerSubGroupColumn
-					)}
-				>
-					{group.map((action) => {
-						const itemKey = `action-${action}`;
-						const renderProps: ConsentBannerPolicyActionRenderProps = {
-							key: itemKey,
-							isPrimary: banner.primaryActions.includes(action),
-							style: actionStyle,
-						};
-
-						return (
-							<Fragment key={itemKey}>
-								{renderAction?.(action, renderProps) ??
-									renderDefaultAction(action, renderProps)}
-							</Fragment>
-						);
-					})}
-				</ConsentBannerFooterSubGroup>
-			))}
-		</ConsentBannerFooter>
+		<PolicyActionsRenderer
+			state={banner}
+			Footer={ConsentBannerFooter}
+			FooterSubGroup={ConsentBannerFooterSubGroup}
+			classNames={{
+				footerFill: styles.footerFill,
+				footerColumn: styles.footerColumn,
+				footerSubGroupFill: styles.footerSubGroupFill,
+				footerSubGroupColumn: styles.footerSubGroupColumn,
+			}}
+			renderAction={renderAction}
+			renderDefaultAction={renderDefaultAction}
+		/>
 	);
 }
 

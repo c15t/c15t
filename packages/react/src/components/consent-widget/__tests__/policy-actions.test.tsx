@@ -80,6 +80,7 @@ async function renderPolicyActions(
 						<button
 							key={props.key}
 							data-testid={`widget-action-${action}`}
+							data-consent-action={props.consentAction}
 							data-primary={String(props.isPrimary)}
 							data-style={props.style ? 'styled' : 'plain'}
 							type="button"
@@ -141,6 +142,17 @@ describe('ConsentWidget.PolicyActions', () => {
 		expect(
 			document.querySelector('[data-testid="widget-action-accept"]')
 		).toHaveAttribute('data-primary', 'false');
+	});
+
+	test('passes consentAction to custom renderers', async () => {
+		await renderPolicyActions();
+
+		expect(
+			document.querySelector('[data-testid="widget-action-accept"]')
+		).toHaveAttribute('data-consent-action', 'accept');
+		expect(
+			document.querySelector('[data-testid="widget-action-customize"]')
+		).toHaveAttribute('data-consent-action', 'customize');
 	});
 
 	test('filters disallowed actions', async () => {

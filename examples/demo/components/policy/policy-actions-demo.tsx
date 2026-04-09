@@ -436,7 +436,7 @@ function PolicyActionsDemoContent() {
 								<CardTitle>Custom mapping with stock c15t buttons</CardTitle>
 								<CardDescription>
 									This path keeps built-in consent behavior and copy while
-									leting you intercept the mapping seam with `renderAction`.
+									letting you intercept the mapping seam with `renderAction`.
 								</CardDescription>
 							</CardHeader>
 							<CardContent>
