@@ -22,12 +22,19 @@ export const googleTagManagerManifest = {
 	vendor: 'google-tag-manager',
 	category: 'necessary',
 	alwaysLoad: true,
-	install: [
+	bootstrap: [
 		{
 			type: 'inlineScript',
 			code: `
 window.dataLayer = window.dataLayer || [];
 window.gtag = function gtag() { window.dataLayer.push(arguments); };
+			`.trim(),
+		},
+	],
+	install: [
+		{
+			type: 'inlineScript',
+			code: `
 window.dataLayer.push({ 'gtm.start': Date.now(), event: 'gtm.js' });
 			`.trim(),
 		},

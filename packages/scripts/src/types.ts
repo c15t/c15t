@@ -73,14 +73,8 @@ export type ConsentSignalType = 'gtag';
 /**
  * A declarative definition of a vendor integration.
  *
- * Manifests are the single source of truth for how a vendor's scripts
- * are loaded and how consent state is communicated. They work across
- * all c15t deployment paths:
- *
- * - **Bundled**: `resolveManifest()` compiles the manifest into a `Script`
- *   object with real callbacks at import time.
- * - **Embed**: The manifest JSON is served via `/init` and resolved at runtime.
- * - **Dashboard**: The manifest is what the dashboard stores and serves.
+ * Manifests are the source definition that the scripts engine compiles into a
+ * serializable resolved manifest and then converts into a runtime `Script`.
  */
 export interface VendorManifest {
 	/** Unique vendor identifier (used as Script.id) */
@@ -94,6 +88,14 @@ export interface VendorManifest {
 
 	/** Keep script in DOM after consent revocation (vendor has a consent API) */
 	persistAfterConsentRevoked?: boolean;
+
+	/**
+	 * Steps that must execute before default consent signaling.
+	 *
+	 * This is primarily used for integrations such as Google tags where a stub
+	 * global must exist before calling the vendor's consent API.
+	 */
+	bootstrap?: ManifestStep[];
 
 	/**
 	 * Steps to execute when installing the vendor.
@@ -141,6 +143,29 @@ export interface VendorManifest {
 	consentSignal?: ConsentSignalType;
 
 	/** Target global for consent signaling (defaults based on signal type) */
+	consentSignalTarget?: string;
+}
+
+/**
+ * Internal transport-ready manifest shape produced by the compile phase.
+ *
+ * Contains only serializable data and no runtime callbacks.
+ */
+export interface ResolvedManifest {
+	vendor: string;
+	category: AllConsentNames | string;
+	alwaysLoad?: boolean;
+	persistAfterConsentRevoked?: boolean;
+	bootstrapSteps: ManifestStep[];
+	setupSteps: ManifestStep[];
+	loadScript?: LoadScriptStep;
+	textContent?: string;
+	afterLoadSteps: ManifestStep[];
+	onConsentChangeSteps: ManifestStep[];
+	onConsentGrantedSteps: ManifestStep[];
+	onConsentDeniedSteps: ManifestStep[];
+	consentMapping?: Record<string, string[]>;
+	consentSignal?: ConsentSignalType;
 	consentSignalTarget?: string;
 }
 
