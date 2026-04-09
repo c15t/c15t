@@ -133,6 +133,12 @@ export const createConsentManagerStore = (
 	manager: ConsentManagerInterface,
 	options: StoreOptions = {}
 ) => {
+	const internalOptions = options as StoreOptions & {
+		__internal?: {
+			backendURL?: string;
+			requestCredentials?: RequestCredentials;
+		};
+	};
 	const {
 		namespace = 'c15tStore',
 		// Extract options that shouldn't be spread directly into state
@@ -328,6 +334,8 @@ export const createConsentManagerStore = (
 			initConsentManager({
 				manager,
 				ssrData: options.ssrData,
+				backendURL: internalOptions.__internal?.backendURL,
+				requestCredentials: internalOptions.__internal?.requestCredentials,
 				initialTranslationConfig: normalizedInitialTranslationConfig,
 				iabConfig: iab as IABConfig | undefined,
 				get,
@@ -423,6 +431,8 @@ export const createConsentManagerStore = (
 
 			return await initConsentManager({
 				manager,
+				backendURL: internalOptions.__internal?.backendURL,
+				requestCredentials: internalOptions.__internal?.requestCredentials,
 				initialTranslationConfig: normalizedInitialTranslationConfig,
 				get,
 				set,

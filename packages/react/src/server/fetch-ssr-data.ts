@@ -8,6 +8,23 @@ interface SSRFetchResult {
 	metadata?: SSRInitialData['metadata'];
 }
 
+function buildRequestContext(options: {
+	backendURL: string;
+	headers: Record<string, string>;
+	overrides?: FetchSSRDataOptions['overrides'];
+}): NonNullable<SSRInitialData['metadata']>['requestContext'] {
+	return {
+		backendURL: options.backendURL,
+		country:
+			options.overrides?.country ?? options.headers['x-c15t-country'] ?? null,
+		region:
+			options.overrides?.region ?? options.headers['x-c15t-region'] ?? null,
+		language:
+			options.overrides?.language ?? options.headers['accept-language'] ?? null,
+		gpc: options.headers['sec-gpc'] === '1',
+	};
+}
+
 /**
  * Performs the init fetch request.
  * All async work (header resolution) should be done before calling this.
@@ -16,6 +33,7 @@ interface SSRFetchResult {
 function performInitFetch(
 	normalizedURL: string,
 	relevantHeaders: Record<string, string>,
+	requestContext: NonNullable<SSRInitialData['metadata']>['requestContext'],
 	debug?: boolean
 ): Promise<SSRFetchResult> {
 	const startTime = getNowMs();
@@ -28,6 +46,7 @@ function performInitFetch(
 			const requestDurationMs = Math.max(0, Math.round(getNowMs() - startTime));
 			const cache = inspectCacheHeaders(response.headers);
 			const metadata: SSRInitialData['metadata'] = {
+				requestContext,
 				requestDurationMs,
 				cache,
 			};
@@ -235,7 +254,16 @@ export async function fetchSSRData(
 	}
 
 	// Fetch init data (GVL is included in response when server has it configured)
-	const initResult = await performInitFetch(normalizedURL, initHeaders, debug);
+	const initResult = await performInitFetch(
+		normalizedURL,
+		initHeaders,
+		buildRequestContext({
+			backendURL: normalizedURL,
+			headers: initHeaders,
+			overrides,
+		}),
+		debug
+	);
 	const init = initResult.init;
 
 	if (!init) {

@@ -9,6 +9,10 @@
 
 import type { ResponseContext } from '../../client/types';
 import type { InitDataSource, SSRInitialData } from '../../store/type';
+import {
+	createRuntimeRequestContextMatcher,
+	matchesStoredRequestContext,
+} from '../request-context';
 import { sanitizeSubjectIdentifiers } from '../sanitize-subject-identifiers';
 import {
 	PENDING_CONSENT_SYNC_KEY,
@@ -24,6 +28,27 @@ export type { ConsentBannerResponse, InitConsentManagerConfig } from './types';
 interface InitSourceMetadata {
 	initDataSource: InitDataSource;
 	initDataSourceDetail: string | null;
+}
+
+function shouldReuseSSRData(
+	config: InitConsentManagerConfig,
+	data: SSRInitialData
+): boolean {
+	const requestContext = data.metadata?.requestContext;
+	if (!requestContext || !config.backendURL) {
+		return true;
+	}
+
+	const matcher = createRuntimeRequestContextMatcher({
+		backendURL: config.backendURL,
+		overrides: config.get().overrides,
+		credentials: config.requestCredentials,
+	});
+	if (!matcher) {
+		return true;
+	}
+
+	return matchesStoredRequestContext(requestContext, matcher);
 }
 
 /**
@@ -93,15 +118,19 @@ export async function initConsentManager(
 async function tryUseSSRData(
 	config: InitConsentManagerConfig
 ): Promise<ConsentBannerResponse | undefined> {
-	const { ssrData, get, set } = config;
+	const { ssrData, set } = config;
 
-	// Skip SSR data if overrides are present (need fresh fetch)
-	if (!ssrData || get().overrides) {
+	if (!ssrData) {
 		set({ ssrDataUsed: false, ssrSkippedReason: 'no_data' });
 		return undefined;
 	}
 
 	const data = await ssrData;
+
+	if (data?.init && !shouldReuseSSRData(config, data)) {
+		set({ ssrDataUsed: false, ssrSkippedReason: 'context_mismatch' });
+		return undefined;
+	}
 
 	if (data?.init) {
 		const initSourceMetadata = inferSSRInitSourceMetadata(data);

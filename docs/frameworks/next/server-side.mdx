@@ -32,7 +32,7 @@ const ssrData = fetchInitialData({
 </Callout>
 
 <Callout type="info">
-  Need fully static routes? Use `C15tPrefetch` in your layout and `getPrefetchedInitialData()` in your client provider instead of `fetchInitialData()`. See [Optimization](/docs/frameworks/next/optimization).
+  Need fully static routes? Use `C15tPrefetch` in your layout. Matching prefetched data is consumed automatically by the runtime instead of using `fetchInitialData()`. See [Optimization](/docs/frameworks/next/optimization).
 </Callout>
 
 ### How Streaming Works

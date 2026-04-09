@@ -47,7 +47,7 @@ Then use:
 
 | Goal | Strategy | Tradeoff |
 |------|----------|----------|
-| Keep routes fully static | `C15tPrefetch` + `getPrefetchedInitialData()` | Still client-side fetch, but starts earlier |
+| Keep routes fully static | `C15tPrefetch` | Still client-side fetch, but starts earlier |
 | Fastest first banner on dynamic routes | `fetchInitialData()` in a Server Component (do not await) | Route becomes dynamic because of `next/headers` |
 | Simplest setup | Client-only init (no prefetch) | Banner appears later on slow networks |
 
@@ -55,7 +55,7 @@ Then use:
 
 ### Static Routes: Start Fetch Early In The Browser
 
-Use `C15tPrefetch` in your layout and consume the same Promise in the provider.
+Use `C15tPrefetch` in your layout. Matching prefetched data is consumed automatically by the runtime during first store initialization.
 
 ```tsx title="app/layout.tsx"
 import { C15tPrefetch } from '@c15t/nextjs';
@@ -85,7 +85,6 @@ import {
   ConsentManagerProvider,
   ConsentBanner,
   ConsentDialog,
-  getPrefetchedInitialData,
 } from '@c15t/nextjs';
 
 export default function ConsentManagerClient({ children }: { children: React.ReactNode }) {
@@ -94,10 +93,7 @@ export default function ConsentManagerClient({ children }: { children: React.Rea
       options={{
         mode: 'hosted',
         backendURL: '/api/c15t',
-        ssrData: getPrefetchedInitialData({
-          backendURL: '/api/c15t',
-          overrides: { country: 'DE', region: 'BE', language: 'de' },
-        }),
+        overrides: { country: 'DE', region: 'BE', language: 'de' },
       }}
     >
       <ConsentBanner />
@@ -113,7 +109,7 @@ export default function ConsentManagerClient({ children }: { children: React.Rea
 </Callout>
 
 <Callout type="info">
-  If you use `overrides` or custom `credentials` in `C15tPrefetch`, pass the same values to `getPrefetchedInitialData(...)` so it resolves the matching prefetched request.
+  If `overrides.gpc` conflicts with the browser's ambient GPC signal, the prefetched entry is not reused and c15t falls back to a normal client `/init`.
 </Callout>
 
 <import src="../../shared/react/guides/optimization.mdx#keep-mounted" />

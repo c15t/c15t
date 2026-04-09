@@ -4,11 +4,9 @@ import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentManagerProvider,
-	getPrefetchedInitialData,
 	type InitialDataPromise,
 } from '@c15t/nextjs';
 import type { ReactNode } from 'react';
-import { useMemo } from 'react';
 import { NextjsBenchmarkProbe } from './probe';
 import { getState, type NextjsBenchScenario } from './state';
 
@@ -21,22 +19,12 @@ export function NextjsBenchmarkProvider({
 	scenario: NextjsBenchScenario;
 	ssrData?: InitialDataPromise;
 }) {
-	const resolvedSSRData = useMemo(() => {
-		if (scenario === 'prefetch') {
-			return getPrefetchedInitialData({
-				backendURL: '/api/bench-consent',
-			});
-		}
-
-		return ssrData;
-	}, [scenario, ssrData]);
-
 	return (
 		<ConsentManagerProvider
 			options={{
 				mode: 'c15t',
 				backendURL: '/api/bench-consent',
-				ssrData: resolvedSSRData,
+				ssrData: scenario === 'prefetch' ? undefined : ssrData,
 				callbacks: {
 					onBannerFetched() {
 						const state = getState(scenario);

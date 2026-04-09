@@ -209,17 +209,60 @@ describe('initConsentManager', () => {
 			expect(mockManager.init).toHaveBeenCalled();
 		});
 
-		it('should skip initial data when overrides are present', async () => {
+		it('reuses initial data when overrides match the stored request context', async () => {
 			const mockResponse = createMockConsentBannerResponse();
 			const ssrData = Promise.resolve({
 				init: mockResponse,
 				gvl: undefined,
+				metadata: {
+					requestContext: {
+						backendURL: `${window.location.origin}/api/c15t`,
+						country: 'DE',
+						region: 'BE',
+						language: 'de',
+						gpc: false,
+					},
+				},
 			});
 
 			mockState.overrides = {
 				country: 'DE',
 				region: 'BE',
 				language: 'de',
+			};
+
+			const result = await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+				ssrData,
+				backendURL: '/api/c15t',
+			});
+
+			expect(result).toEqual(mockResponse);
+			expect(mockManager.init).not.toHaveBeenCalled();
+		});
+
+		it('falls back to API when overrides mismatch the stored request context', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			const ssrData = Promise.resolve({
+				init: mockResponse,
+				gvl: undefined,
+				metadata: {
+					requestContext: {
+						backendURL: `${window.location.origin}/api/c15t`,
+						country: 'DE',
+						region: 'BE',
+						language: 'de',
+						gpc: false,
+					},
+				},
+			});
+
+			mockState.overrides = {
+				country: 'DE',
+				region: 'BE',
+				language: 'fr',
 			};
 
 			const apiResponse = createMockConsentBannerResponse({
@@ -236,10 +279,58 @@ describe('initConsentManager', () => {
 				get: storeGet,
 				set: storeSet,
 				ssrData,
+				backendURL: '/api/c15t',
 			});
 
 			expect(result).toEqual(apiResponse);
 			expect(mockManager.init).toHaveBeenCalled();
+			expect(mockSet).toHaveBeenCalledWith({
+				ssrDataUsed: false,
+				ssrSkippedReason: 'context_mismatch',
+			});
+		});
+
+		it('falls back to API when GPC mismatches the stored request context', async () => {
+			const mockResponse = createMockConsentBannerResponse();
+			const ssrData = Promise.resolve({
+				init: mockResponse,
+				gvl: undefined,
+				metadata: {
+					requestContext: {
+						backendURL: `${window.location.origin}/api/c15t`,
+						country: null,
+						region: null,
+						language: null,
+						gpc: false,
+					},
+				},
+			});
+
+			mockState.overrides = {
+				gpc: true,
+			};
+
+			const apiResponse = createMockConsentBannerResponse();
+
+			mockManager.init = vi.fn().mockResolvedValue({
+				data: apiResponse,
+				error: null,
+			});
+
+			const result = await initConsentManager({
+				manager: mockManager,
+				get: storeGet,
+				set: storeSet,
+				ssrData,
+				backendURL: '/api/c15t',
+			});
+
+			expect(result).toEqual(apiResponse);
+			expect(mockManager.init).toHaveBeenCalled();
+			expect(mockSet).toHaveBeenCalledWith({
+				ssrDataUsed: false,
+				ssrSkippedReason: 'context_mismatch',
+			});
 		});
 
 		it('reopens consent UI when the active material policy fingerprint changes', async () => {

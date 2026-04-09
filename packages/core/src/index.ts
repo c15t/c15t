@@ -94,11 +94,7 @@ export {
 } from './libs/policy';
 export type { PrefetchOptions } from './libs/prefetch';
 // Export prefetch utilities
-export {
-	buildPrefetchScript,
-	ensurePrefetchedInitialData,
-	getPrefetchedInitialData,
-} from './libs/prefetch';
+export { buildPrefetchScript } from './libs/prefetch';
 // Export script loader
 export {
 	getLoadedScriptIds,
@@ -130,7 +126,9 @@ export type {
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
 	SSRInitialData,
+	SSRInitRequestContext,
 	SSRInitRequestMetadata,
+	SSRSkippedReason,
 	StoreOptions,
 } from './store/type';
 // Export default translation config
