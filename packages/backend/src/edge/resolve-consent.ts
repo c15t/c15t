@@ -138,19 +138,19 @@ function resolveDefaultConsent(
  *
  * Fully synchronous — no async, no fetch calls, no crypto.
  *
- * This is a lightweight alternative to `c15tEdgeInit` for enterprise
+ * This is a lightweight alternative to `unstable_c15tEdgeInit` for enterprise
  * customers who manage their own consent cookie. It returns the resolved
  * policy and default consent state without translations, GVL, branding,
  * or snapshot tokens.
  *
- * @experimental This API may change in future versions.
+ * @experimental This API is unstable in 2.0 and may change or be removed.
  *
  * @example
  * ```ts
- * import { resolveConsent } from '@c15t/backend/edge';
+ * import { unstable_resolveConsent } from '@c15t/backend/edge';
  *
  * export function middleware(request: Request) {
- *   const consent = resolveConsent(request, {
+ *   const consent = unstable_resolveConsent(request, {
  *     policyPacks: [
  *       { id: 'eu', match: { countries: ['DE', 'FR'] }, consent: { model: 'opt-in', categories: ['necessary', 'marketing', 'measurement'] }, ui: { mode: 'banner' } },
  *       { id: 'us', match: { isDefault: true }, consent: { model: 'opt-out', categories: ['necessary', 'marketing', 'measurement'] }, ui: { mode: 'banner' } },
@@ -165,7 +165,7 @@ function resolveDefaultConsent(
  * }
  * ```
  */
-export function resolveConsent(
+export function unstable_resolveConsent(
 	request: Request,
 	options: C15TConsentResolverOptions,
 	logger?: Logger

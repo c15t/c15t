@@ -24,12 +24,14 @@ export type { InitPayload };
  * It has no dependency on Hono or any database adapter, making it suitable for
  * edge runtimes such as Vercel Middleware, Cloudflare Workers, or Deno Deploy.
  *
+ * @experimental This API is unstable in 2.0 and may change or be removed.
+ *
  * @example
  * ```ts
  * // middleware.ts (Vercel Edge)
- * import { c15tEdgeInit } from '@c15t/backend/edge';
+ * import { unstable_c15tEdgeInit } from '@c15t/backend/edge';
  *
- * const initHandler = c15tEdgeInit({
+ * const initHandler = unstable_c15tEdgeInit({
  *   trustedOrigins: ['https://myapp.com'],
  *   policyPacks: [
  *     { id: 'eu', match: { countries: ['DE', 'FR'] }, consent: { model: 'opt-in' }, ui: { mode: 'banner' } },
@@ -45,7 +47,7 @@ export type { InitPayload };
  * }
  * ```
  */
-export function c15tEdgeInit(
+export function unstable_c15tEdgeInit(
 	options: C15TEdgeOptions
 ): (request: Request) => Promise<Response> {
 	// Construction-time validation (same checks the full init performs)
