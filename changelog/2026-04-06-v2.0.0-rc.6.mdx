@@ -1,0 +1,129 @@
+---
+title: "v2.0.0-rc.6 — Smaller Client Bundles, Modular IAB, UI Primitives, and Flexible Policy Actions"
+version: "2.0.0-rc.6"
+date: 2026-04-06
+description: "Release candidate focused on smaller client bundles, extracted IAB support, shared UI primitives with framework adapters, flexible policy action layouts, and cleaner package styling/toolchain boundaries."
+tags:
+  - release
+  - rc
+  - react
+  - nextjs
+  - backend
+  - tailwind
+  - primitives
+type: release
+breaking: false
+authors: [KayleeWilliams]
+---
+
+This RC focuses on shipped-surface cleanup and developer ergonomics rather than brand-new UI components. Client bundles are smaller, IAB support is now modular for teams that need it, policy UI surfaces can express richer primary action layouts, and the packaging/toolchain work around stylesheets, docs, and build artifacts is much cleaner. Prebuilt UI styles also move onto explicit stylesheet entrypoints, which cuts down on JS-driven style loading and keeps more styling work on the CSS path.
+
+## Highlights
+
+- Smaller client bundles by tree-shaking translations and schema-heavy dependencies out of the main client path
+- IAB support extracted into `@c15t/iab`, so non-IAB users no longer ship IAB runtime code by default
+- Policies now support `primaryActions` arrays for more flexible banner and dialog layouts
+- Prebuilt UI now ships explicit stylesheet entrypoints such as `@c15t/react/styles.css` and `@c15t/nextjs/styles.css`, reducing JS-side style loading overhead
+- Shared UI primitives (`@c15t/ui/primitives`) power all interactive components with framework-agnostic state logic, keyboard navigation, and CSS variant generators
+- Framework adapter packages (`@c15t/solid`, `@c15t/vue`, `@c15t/svelte`) provide shared primitives and styles for non-React frameworks
+- Toolchain and release housekeeping landed alongside the feature work, including dependency refreshes, bundled docs, and cleaner publish artifacts
+
+## Smaller Client Bundles
+
+The biggest user-facing win in `rc.6` is bundle reduction in the standard client path.
+
+| Metric | Before | After | Change |
+| --- | --- | --- | --- |
+| Client bundle (raw) | ~644 KB | ~464.5 KB | **-180 KB** |
+| Client bundle (gzip) | ~180 KB | ~130.5 KB | **-50 KB** |
+
+This came from three main changes:
+
+- The offline client no longer pulls in all bundled locales by default when it only needs English as the base fallback
+- Client-facing imports no longer drag Valibot and the full schema bundle into the main runtime path
+- SHA-256 hashing was simplified so browser builds no longer need the old `node:crypto` fallback path
+
+Together, those changes make the default install noticeably lighter without changing the public consent flow API.
+
+## Modular IAB Support
+
+IAB TCF support now lives in a dedicated addon package: `@c15t/iab`.
+
+That means teams who do not enable IAB no longer pay for the IAB runtime in their default bundle, while teams that do need it get a cleaner integration model:
+
+```tsx
+import { iab } from '@c15t/iab';
+import { IABConsentBanner } from '@c15t/react/iab';
+```
+
+For non-IAB users, this extraction also reduced shipped code further, cutting about `12.9 KB` gzip from the previous non-IAB path.
+
+## More Flexible Policy Actions
+
+Policies now normalize around `primaryActions` instead of a single `primaryAction` field. That makes it possible to express multi-primary layouts when a policy opts into them, while keeping shipped defaults predictable.
+
+The important behavior change is mostly about flexibility rather than migration pressure:
+
+- custom policies can emphasize more than one action where appropriate
+- headless and prebuilt UI now consume the same normalized action shape
+- shipped presets and offline defaults still keep `customize` as the default emphasized action
+
+## Packaging and Toolchain Cleanup
+
+This RC also tightens up the package surface around styles, docs, and release tooling.
+
+- Prebuilt React and Next.js UI now ship explicit stylesheet entrypoints including `styles.css` and `iab/styles.css`
+- `@c15t/ui` publishes stylesheet assets directly instead of relying on JS-driven style inclusion behavior, which reduces unnecessary client-side JS work for prebuilt UI consumers
+- Tailwind guidance is now aligned around explicit host-app stylesheet imports for Tailwind 3 and Tailwind 4
+- Package docs are bundled with published packages, and declaration output continues moving out of runtime bundle trees for cleaner consumption by tools and bundlers
+- Dependency refreshes, benchmark workflows, and RC housekeeping landed as part of the same release stream
+
+For teams using the prebuilt UI, this means styles are now loaded from actual stylesheet entrypoints instead of piggybacking on component JS modules. That keeps the styling contract more explicit, improves bundler predictability, and shifts more work off the runtime JavaScript path.
+
+In our simulated mobile benchmark, this reduced main-thread impact by about `14ms`. That matters because there is less JavaScript competing during startup, styles can apply earlier through the normal CSS path, and the browser has a little more room to initialize consent UI and related scripts on slower devices.
+
+## Shared UI Primitives and Framework Adapters
+
+This RC introduces a shared primitive runtime at `@c15t/ui/primitives` that extracts framework-agnostic state management, keyboard navigation, and toggle logic from React components into pure TypeScript utilities. Seven primitives are available: accordion, button, collapsible, dialog, switch, tabs, and preference-item.
+
+The new **PreferenceItem** primitive unifies three previously distinct expandable-row patterns (Radix Accordion in the consent widget, custom button + AnimatedCollapse in the IAB dialog, and manual state management for nested collapsibles) into a single composable compound component with semantic slots for trigger, header, meta, auxiliary, and control regions.
+
+Framework adapter packages — `@c15t/solid`, `@c15t/vue`, and `@c15t/svelte` — re-export the shared primitives and CSS variant generators. Each framework has its own storybook with shared interaction tests that validate the same DOM contract (`data-state`, `data-slot`, ARIA attributes) across all frameworks.
+
+**Bundle impact (consent surfaces vs 2.0.0 baseline):**
+
+| Metric | 2.0.0 | Current | Change |
+| --- | --- | --- | --- |
+| JS (raw) | 1,012 KB | 946 KB | **-66 KB (-6.6%)** |
+| JS (gzip) | 288 KB | 273 KB | **-15 KB (-5.3%)** |
+| CSS (raw) | 0 KB | 17 KB | +17 KB |
+| CSS (gzip) | 0 KB | 2.5 KB | +2.5 KB |
+| **Total (gzip)** | **288 KB** | **276 KB** | **-13 KB (-4.4%)** |
+
+The CSS increase reflects styles moving from runtime `createElement("style")` calls to static stylesheet entrypoints, which is a net win for main-thread performance.
+
+**Runtime performance (react-browser-bench, full-ui scenario):**
+
+| Metric | Before | After | Change |
+| --- | --- | --- | --- |
+| useTheme calls per load | 35 | 23 | **-35%** |
+| useTheme total time | 0.10 ms | 0.02 ms | **-80%** |
+| useTheme avg per call | 3 μs | 0.8 μs | **-73%** |
+
+The `useTheme()` hook — called by every component in the tree — now memoizes its deep merge so it only recomputes when theme context actually changes. The focus trap utility (`@c15t/ui/utils/dom`) also replaced `offsetWidth`/`offsetHeight` visibility checks (which force synchronous layout recalculation on every Tab keypress) with the `checkVisibility()` API. Both optimizations live in the shared layer and benefit all frameworks equally.
+
+## Learn more
+
+For implementation details and follow-up discussion, see the linked pull requests.
+
+- [#672](https://github.com/c15t/c15t/pull/672) — tree-shake translations and Valibot from the client bundle
+- [#668](https://github.com/c15t/c15t/pull/668) — extract IAB support into `@c15t/iab`
+- [#674](https://github.com/c15t/c15t/pull/674) — support `primaryActions` arrays in policies
+- [#670](https://github.com/c15t/c15t/pull/670) — update Zustand, TypeScript 6, benchmarks, docs, and related RC/toolchain work
+
+## Notes
+
+- There are no headline breaking changes in this release candidate.
+- The largest migration-sensitive change in this RC is the modular IAB packaging split for teams using IAB features.
+
+<ContributorBlock usernames={["KayleeWilliams"]} title="Thank you to our contributors" />

@@ -1,5 +1,95 @@
 # @c15t/react
 
+## 2.0.0-rc.7
+
+### Patch Changes
+
+- ec30bd1: feat(primitives): shared UI primitive runtime, framework adapters, and runtime performance
+
+  - Extract seven framework-agnostic primitives into `@c15t/ui/primitives`: accordion, button, collapsible, dialog, switch, tabs, and preference-item
+  - Add `PreferenceItem` compound component that unifies three separate expandable-row patterns (Radix Accordion, custom button + AnimatedCollapse, manual state) into a single composable primitive with semantic slots
+  - Publish framework adapter packages (`@c15t/solid`, `@c15t/vue`, `@c15t/svelte`) re-exporting shared primitives and CSS variant generators
+  - Add cross-framework storybooks with shared play-function interaction tests and CI test-runner integration
+
+  **Mobile viewport fixes:**
+
+  - Add `box-sizing: border-box` to all fixed-position consent roots (banner, dialog, IAB variants) — prevents horizontal overflow on narrow viewports
+  - Constrain dialog card with `max-height: 100%` and scrollable content area — prevents title/description from being pushed off-screen on small devices
+
+  **Runtime performance (react-browser-bench, full-ui scenario):**
+
+  - Memoize `useTheme()` deep merge with `useMemo` — reduces calls from 35 to 23 (-35%), total time from 0.10 ms to 0.02 ms (-80%)
+  - Replace `offsetWidth`/`offsetHeight` visibility checks in focus trap with `checkVisibility()` API — eliminates forced synchronous layout on every Tab keypress
+  - Both optimizations are in `@c15t/ui` and benefit all frameworks equally
+
+- Updated dependencies [ec30bd1]
+  - @c15t/ui@2.0.0-rc.7
+
+## 2.0.0-rc.6
+
+### Minor Changes
+
+- e08e52c: feat: Extract IAB TCF to `@c15t/iab` addon package
+
+  IAB TCF 2.3 support is now an opt-in addon. Non-IAB users no longer pay for IAB code in their bundle.
+
+  **Breaking changes:**
+
+  - `IABConsentBanner`, `IABConsentDialog`, and `useHeadlessIABConsentUI` are no longer exported from `@c15t/react`. Import from `@c15t/react/iab` instead.
+  - IAB config now requires the `iab()` wrapper from `@c15t/iab` instead of a plain `{ enabled: true, ... }` object.
+
+  **Migration:**
+
+  ```tsx
+  // Before
+  import { IABConsentBanner, IABConsentDialog } from '@c15t/react';
+  <ConsentManagerProvider options={{ iab: { enabled: true, cmpId: 28 } }}>
+
+  // After
+  import { iab } from '@c15t/iab';
+  import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
+  <ConsentManagerProvider options={{ iab: iab({ cmpId: 28 }) }}>
+  ```
+
+  **Bundle impact for non-IAB users:**
+
+  - Core bundle: -3.0 KB gzip (-9.2%)
+  - Lazy chunks eliminated: -9.9 KB gzip
+  - Total: -12.9 KB gzip (-30%)
+  - `@iabtechlabtcf/core` removed from core dependencies
+
+### Patch Changes
+
+- 5c8ee05: feat(styles): ship explicit stylesheet entrypoints for prebuilt UI
+
+  - Publish explicit `styles.css` and `iab/styles.css` entrypoints for prebuilt UI in `@c15t/ui`, `@c15t/react`, and `@c15t/nextjs`
+  - Update docs and CLI setup so stylesheet imports and Tailwind host-app configuration are explicit
+  - Support the documented Tailwind 3 and Tailwind 4 layering model without requiring `!important`
+  - Add automated first-paint CDP benchmark (`benchmarks/vite-react-repro/scripts/run-first-paint-bench.ts`)
+
+  **Bundle impact (vite-react-repro):**
+
+  - JS: 435.5 KB → 361.0 KB (-74.5 KB raw, -13.4 KB gzip / -11%)
+  - CSS: 0.8 KB → 49.2 KB (moved from JS to CSS — net gzip saving: -6.5 KB / -5%)
+  - `createElement("style")` runtime calls: eliminated
+  - JS heap: -143 KB (-8%)
+
+  **Main-thread impact (6x CPU throttle, 3 runs × 60 samples):**
+
+  - JS evaluation: 64.5 ms → 53.1 ms (-11.4 ms / -17.7%)
+  - Total → first paint: 87.8 ms → 76.5 ms (-11.3 ms / -12.9%)
+
+- 1a724fc: fix(policy-packs): support multiple primary actions while keeping customize as the default primary action
+
+  Expose `primaryActions` consistently across schema, backend, core, React, and dev-tools. Built-in preset and offline default policies keep `customize` as the default primary action, while custom policies can now mark multiple actions as primary.
+
+- Updated dependencies [e08e52c]
+- Updated dependencies [5c8ee05]
+- Updated dependencies [bb3ab0f]
+- Updated dependencies [1a724fc]
+  - c15t@2.0.0-rc.6
+  - @c15t/ui@2.0.0-rc.6
+
 ## 2.0.0-rc.5
 
 ### Patch Changes

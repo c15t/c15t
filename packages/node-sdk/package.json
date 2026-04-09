@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/node-sdk",
-	"version": "2.0.0-rc.5",
+	"version": "2.0.0-rc.6",
 	"description": "Official Node.js SDK for c15t. Connects to the Consent Engine to read and write consent records and preferences. TypeScript-first, simple APIs, built-in auth and retries.",
 	"keywords": [
 		"react",
@@ -58,22 +58,22 @@
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
-		"@orpc/client": "1.13.6",
-		"@orpc/contract": "1.13.6",
-		"@orpc/openapi-client": "^1.13.6",
-		"@orpc/server": "1.13.6"
+		"@orpc/client": "1.13.13",
+		"@orpc/contract": "1.13.13",
+		"@orpc/openapi-client": "^1.13.13",
+		"@orpc/server": "1.13.13"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"@electric-sql/pglite": "0.2.17",
+		"@electric-sql/pglite": "0.4.2",
 		"@libsql/kysely-libsql": "^0.4.1",
 		"@types/better-sqlite3": "^7.6.13",
 		"@types/express": "^5.0.6",
-		"@types/node": "20.14.15",
-		"@types/pg": "8.11.15",
+		"@types/node": "25.5.0",
+		"@types/pg": "8.20.0",
 		"kysely-pglite": "^0.6.1",
-		"msw": "^2.7.6",
-		"typescript": "^5.8.3"
+		"msw": "^2.12.14",
+		"typescript": "^6.0.2"
 	}
 }

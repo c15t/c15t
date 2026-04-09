@@ -1,11 +1,22 @@
 import type { ResolvedPolicy } from '~/api/init';
-import type { PolicyUiActionGroup } from './policy-runtime';
+import type {
+	PolicyUiActionGroup,
+	PolicyUiSurfaceConfig,
+} from './policy-runtime';
 
-const DEFAULT_ACTIONS = ['reject', 'accept', 'customize'] as const;
-const DEFAULT_LAYOUT: PolicyUiActionGroup[] = [
-	['reject', 'accept'],
-	'customize',
-];
+/**
+ * Shared compact UI profile — identical to the europeOptIn policy-pack preset
+ * so that offline mode and hosted mode produce the same banner/dialog layout.
+ */
+function createCompactUiProfile(): PolicyUiSurfaceConfig {
+	return {
+		allowedActions: ['accept', 'reject', 'customize'],
+		layout: [['reject', 'accept'], 'customize'] as PolicyUiActionGroup[],
+		direction: 'row',
+		primaryActions: ['customize'],
+		uiProfile: 'compact',
+	};
+}
 
 function offlineOptInBannerPolicy(): ResolvedPolicy {
 	return {
@@ -13,25 +24,11 @@ function offlineOptInBannerPolicy(): ResolvedPolicy {
 		model: 'opt-in',
 		consent: {
 			expiryDays: 365,
-			scopeMode: 'permissive',
-			categories: ['*'],
 		},
 		ui: {
 			mode: 'banner',
-			banner: {
-				allowedActions: [...DEFAULT_ACTIONS],
-				primaryActions: ['customize'],
-				layout: DEFAULT_LAYOUT,
-				direction: 'row',
-				uiProfile: 'balanced',
-			},
-			dialog: {
-				allowedActions: [...DEFAULT_ACTIONS],
-				primaryActions: ['customize'],
-				layout: DEFAULT_LAYOUT,
-				direction: 'row',
-				uiProfile: 'balanced',
-			},
+			banner: createCompactUiProfile(),
+			dialog: createCompactUiProfile(),
 		},
 	};
 }

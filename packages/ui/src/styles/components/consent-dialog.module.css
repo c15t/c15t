@@ -44,7 +44,7 @@
 	/* Layout */
 	--consent-dialog-card-radius: var(--c15t-radius-lg);
 	--consent-dialog-max-width: 28rem;
-	--consent-dialog-height: 80%;
+	--consent-dialog-height: 100%;
 	--consent-dialog-z-index: 999999999;
 	--consent-dialog-overlay-z-index: 999999998;
 
@@ -73,6 +73,7 @@
 
 @layer components {
 	.root {
+		box-sizing: border-box;
 		isolation: isolate;
 		font-family: var(--consent-dialog-font-family);
 		line-height: var(--consent-dialog-line-height);
@@ -141,6 +142,9 @@
 
 	.container {
 		width: 100%;
+		max-height: 100%;
+		display: flex;
+		flex-direction: column;
 	}
 
 	.branding {
@@ -231,7 +235,9 @@
 	}
 
 	.card {
+		box-sizing: border-box;
 		width: min(100%, var(--consent-dialog-max-width));
+		max-height: 100%;
 		margin: 0 auto;
 		border-radius: var(--consent-dialog-card-radius);
 		border: var(--consent-dialog-border-width)
@@ -239,6 +245,8 @@
 		background-color: var(--consent-dialog-background-color);
 		color: var(--consent-dialog-foreground-color);
 		box-shadow: var(--consent-dialog-card-shadow);
+		display: flex;
+		flex-direction: column;
 		overflow: hidden;
 	}
 
@@ -251,6 +259,7 @@
 	.header {
 		display: flex;
 		flex-direction: column;
+		flex-shrink: 0;
 		padding: var(--consent-dialog-card-padding);
 		gap: var(--consent-dialog-header-gap);
 	}
@@ -281,11 +290,15 @@
 		padding: var(--consent-dialog-card-padding);
 		padding-top: 0;
 		gap: var(--consent-dialog-content-gap);
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
 	}
 
 	.footer {
 		display: flex;
 		flex-direction: column;
+		flex-shrink: 0;
 		align-items: center;
 		justify-content: center;
 		gap: var(--consent-dialog-footer-gap);

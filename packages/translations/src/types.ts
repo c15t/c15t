@@ -10,6 +10,7 @@ export interface CommonTranslations {
 	rejectAll: string;
 	customize: string;
 	save: string;
+	close: string;
 }
 
 export interface LegalLinksTranslations {

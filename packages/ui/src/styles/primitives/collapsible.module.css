@@ -1,0 +1,80 @@
+:root {
+	--collapsible-duration: var(--c15t-duration-normal);
+	--collapsible-ease: var(--c15t-easing);
+	--collapsible-content-color: var(--c15t-text-muted);
+	--collapsible-gap: 0;
+}
+
+@layer components {
+	.root {
+		display: grid;
+		row-gap: var(--collapsible-gap);
+		transition: row-gap var(--collapsible-duration) var(--collapsible-ease);
+		width: 100%;
+	}
+
+	.root[data-state="closed"] {
+		row-gap: 0;
+	}
+
+	.trigger {
+		align-items: center;
+		background: none;
+		border: 0;
+		color: var(--c15t-text);
+		cursor: pointer;
+		display: inline-flex;
+		gap: 0.5rem;
+		padding: 0;
+		text-align: left;
+	}
+
+	.trigger:focus-visible {
+		outline: 2px solid var(--c15t-primary);
+		outline-offset: 2px;
+	}
+
+	.content {
+		display: grid;
+		grid-template-rows: 0fr;
+		overflow: hidden;
+		transition: grid-template-rows var(--collapsible-duration)
+			var(--collapsible-ease);
+	}
+
+	.content[data-state="open"] {
+		grid-template-rows: 1fr;
+	}
+
+	.content[data-state="closed"] {
+		pointer-events: none;
+	}
+
+	.contentViewport {
+		min-height: 0;
+		overflow: hidden;
+	}
+
+	.contentInner {
+		color: var(--collapsible-content-color);
+		opacity: 1;
+		transform: translateY(0);
+		transition:
+			opacity calc(var(--collapsible-duration) * 0.35) ease-out,
+			transform calc(var(--collapsible-duration) * 0.35) ease-out;
+		will-change: opacity, transform;
+	}
+
+	.content[data-state="closed"] .contentInner {
+		opacity: 0;
+		transform: translateY(-0.125rem);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.root,
+		.content,
+		.contentInner {
+			transition: none;
+		}
+	}
+}

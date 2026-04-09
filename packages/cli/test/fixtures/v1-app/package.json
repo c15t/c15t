@@ -3,6 +3,6 @@
 	"private": true,
 	"version": "1.0.0",
 	"dependencies": {
-		"@c15t/react": "1.8.0"
+		"@c15t/react": "1.8.5"
 	}
 }

@@ -26,4 +26,4 @@ export const runtimePolicyDecisionTable = table('runtimePolicyDecision', {
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
 });
 
-export { runtimePolicyDecisionSchema, type RuntimePolicyDecision };
+export { type RuntimePolicyDecision, runtimePolicyDecisionSchema };

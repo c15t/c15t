@@ -68,6 +68,14 @@
 			"cache": false,
 			"persistent": false
 		},
+		"storybook": {
+			"cache": false,
+			"persistent": true
+		},
+		"bundle-bench": {
+			"dependsOn": ["^build"],
+			"outputs": ["report/**", "dist/**"]
+		},
 		"test": {
 			"dependsOn": ["build", "^build", "transit", "@c15t/vitest-config#build"],
 			"outputs": [
@@ -75,6 +83,10 @@
 				"coverage/coverage-final.json",
 				"coverage/html/**"
 			]
+		},
+		"test-storybook": {
+			"dependsOn": ["build", "^build"],
+			"outputs": []
 		},
 		"bench": {
 			"dependsOn": ["build", "^build"],

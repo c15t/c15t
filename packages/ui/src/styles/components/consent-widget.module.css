@@ -36,7 +36,8 @@
 		var(--c15t-easing);
 
 	/* Accordion (Inherit from shared accordion tokens) */
-	--consent-widget-accordion-padding: var(--c15t-space-md);
+	--consent-widget-accordion-padding: var(--c15t-space-sm);
+	--consent-widget-accordion-stack-gap: 0.75rem;
 	--consent-widget-accordion-radius: var(--c15t-radius-md);
 	--consent-widget-accordion-duration: var(--c15t-duration-normal);
 	--consent-widget-accordion-ease: var(--c15t-easing);
@@ -279,13 +280,23 @@
 		border-radius: var(--consent-widget-accordion-radius);
 		border: 1px solid var(--consent-widget-accordion-border-color);
 		background-color: var(--consent-widget-accordion-background-color);
+		padding: 0;
 		position: relative;
 		overflow: visible;
 	}
 
-	/* Add focus styles to accordionItem when accordionTriggerInner is focused */
+	/* Focus ring on the whole card when trigger is focused */
+	.accordionTriggerInner:focus-visible {
+		outline: none;
+	}
+
 	.accordionItem:has(.accordionTriggerInner:focus-visible) {
-		box-shadow: 0 0 0 2px var(--consent-widget-accordion-focus-ring);
+		outline: 2px solid var(--consent-widget-accordion-focus-ring);
+		outline-offset: -1px;
+	}
+
+	:global(.c15t-dark) .accordionItem:has(.accordionTriggerInner:focus-visible) {
+		outline-color: var(--consent-widget-accordion-focus-ring-dark);
 	}
 
 	:global(.c15t-dark) .accordionItem {
@@ -293,12 +304,20 @@
 		background-color: var(--consent-widget-accordion-background-color-dark);
 	}
 
+	.accordionList {
+		display: grid;
+		gap: var(--consent-widget-accordion-stack-gap);
+	}
+
 	.accordionTrigger {
-		display: flex;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
 		align-items: center;
-		justify-content: space-between;
+		gap: var(--consent-widget-gap);
 		width: 100%;
-		/* padding: var(--consent-widget-accordion-padding); */
+		box-sizing: border-box;
+		padding: var(--consent-widget-accordion-padding);
+		border-radius: var(--consent-widget-accordion-radius);
 		color: var(--consent-widget-accordion-text-color);
 		background-color: transparent;
 		transition: background-color var(--consent-widget-accordion-duration)
@@ -318,21 +337,71 @@
 	}
 
 	.accordionTriggerInner {
+		appearance: none;
 		display: flex;
 		align-items: center;
 		gap: var(--consent-widget-gap);
+		flex: 1 1 auto;
+		align-self: stretch;
+		min-width: 0;
+		min-height: calc(var(--consent-widget-accordion-icon-size) + 0.25rem);
 		font-size: var(--consent-widget-title-size);
-		font-weight: var(--consent-widget-title-weight);
+		line-height: var(--c15t-line-height-tight);
+		font-weight: var(--c15t-font-weight-regular);
 		position: relative;
 		border-radius: var(--consent-widget-accordion-radius);
+		width: 100%;
+		padding: 0;
+		border: 0;
+		background: none;
+		text-align: left;
+		color: inherit;
+		cursor: pointer;
+	}
+
+	.accordionTriggerInner [data-slot="preference-item-leading"] {
+		margin-inline-start: 0;
+		margin-inline-end: 0;
+	}
+
+	.accordionTitle {
+		margin: 0;
+		font: inherit;
+		font-weight: inherit;
+		line-height: inherit;
+		letter-spacing: inherit;
+		color: inherit;
 	}
 
 	.accordionContent {
-		padding: var(--consent-widget-gap) var(--consent-widget-accordion-padding)
-			var(--consent-widget-gap) 0;
+		padding: 0;
 		color: var(--consent-widget-accordion-content-color);
 		font-size: 0.875rem;
 		line-height: 1.5;
+	}
+
+	.accordionContent > [data-slot="preference-item-content-viewport"] {
+		padding-top: 0;
+		padding-inline-end: var(--consent-widget-accordion-padding);
+		padding-inline-start: calc(
+			var(--consent-widget-accordion-icon-size) +
+			var(--consent-widget-gap)
+		);
+	}
+
+	.accordionContent[data-state="open"]
+		> [data-slot="preference-item-content-viewport"] {
+		padding-top: 0;
+		padding-bottom: var(--consent-widget-accordion-padding);
+	}
+
+	.accordionContent[data-state="closed"]
+		> [data-slot="preference-item-content-viewport"] {
+		padding-bottom: 0;
+	}
+
+	.accordionContent > [data-slot="preference-item-content-viewport"] > div {
+		padding-top: 0;
 	}
 
 	:global(.c15t-dark) .accordionContent {
@@ -357,7 +426,11 @@
 
 	/* Switch styles - layout only, colors handled by switch primitive */
 	.switch {
+		align-self: center;
 		cursor: pointer;
+		flex-shrink: 0;
+		position: relative;
+		top: -1px;
 	}
 
 	/* Reduced motion preference */

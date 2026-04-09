@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/nextjs",
-	"version": "2.0.0-rc.5",
+	"version": "2.0.0-rc.7",
 	"description": "Developer-first CMP for Next.js: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization.",
 	"keywords": [
 		"nextjs",
@@ -27,9 +27,15 @@
 		"directory": "packages/nextjs"
 	},
 	"license": "GPL-3.0-only",
-	"sideEffects": false,
+	"sideEffects": [
+		"**/*.css"
+	],
 	"type": "module",
 	"exports": {
+		"./styles.css": "./dist/styles.css",
+		"./styles.tw3.css": "./src/styles.tw3.css",
+		"./iab/styles.css": "./dist/iab/styles.css",
+		"./iab/styles.tw3.css": "./src/iab/styles.tw3.css",
 		"./headless": {
 			"types": "./dist-types/headless.d.ts",
 			"import": "./dist/headless.js",
@@ -47,13 +53,17 @@
 		}
 	},
 	"main": "./dist/index.js",
-	"module": "./dist/index.mjs",
+	"module": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",
 		"docs",
 		"dist-types",
-		"client"
+		"client",
+		"src/styles.css",
+		"src/styles.tw3.css",
+		"src/iab/styles.css",
+		"src/iab/styles.tw3.css"
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
@@ -73,11 +83,10 @@
 		"c15t": "workspace:*"
 	},
 	"devDependencies": {
-		"@c15t/backend": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"genversion": "3.2.0",
-		"typescript": "5.9.3"
+		"typescript": "6.0.2"
 	},
 	"peerDependencies": {
 		"next": "^16.0.0 || ^15.0.0 || ^14.0.0 || ^13.0.0",

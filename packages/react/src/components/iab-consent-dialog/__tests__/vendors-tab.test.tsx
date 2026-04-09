@@ -5,8 +5,8 @@
  */
 
 import { iab } from '@c15t/iab';
-import { userEvent } from '@vitest/browser/context';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import {
 	ConsentManagerProvider,
@@ -287,6 +287,74 @@ describe('Vendors Tab - Per-Vendor Consent', () => {
 		);
 		// Tab should exist - actual vendor content depends on GVL load
 		expect(vendorsTab).toBeDefined();
+	});
+
+	test('should keep vendor details collapsed until expanded and allow consent toggle separately', async () => {
+		render(
+			<ConsentManagerProvider options={defaultIABOptions}>
+				<IABConsentDialog open />
+			</ConsentManagerProvider>
+		);
+
+		const vendorsTab = await vi.waitFor(
+			() => {
+				const el = Array.from(
+					document.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+				).find((button) =>
+					button.textContent?.toLowerCase().includes('vendor')
+				);
+				expect(el).toBeDefined();
+				return el!;
+			},
+			{ timeout: 5000 }
+		);
+
+		await userEvent.click(vendorsTab);
+
+		const vendorHeader = await vi.waitFor(
+			() => {
+				const el = Array.from(
+					document.querySelectorAll<HTMLElement>('[id^="vendor-"]')
+				).find((element) =>
+					element.textContent?.includes('Exponential Interactive')
+				);
+				expect(el).toBeDefined();
+				return el!;
+			},
+			{ timeout: 5000 }
+		);
+
+		const content = vendorHeader.querySelector(
+			'[data-slot="preference-item-content"]'
+		);
+		expect(content?.getAttribute('aria-hidden')).toBe('true');
+
+		const consentSwitch = vendorHeader.querySelector('[role="switch"]');
+		expect(consentSwitch).toBeInstanceOf(HTMLElement);
+		if (!consentSwitch) {
+			throw new Error('Expected vendor switch to exist');
+		}
+
+		await userEvent.click(consentSwitch);
+
+		await vi.waitFor(() => {
+			expect(consentSwitch.getAttribute('aria-checked')).toBe('true');
+			expect(content?.getAttribute('aria-hidden')).toBe('true');
+		});
+
+		const expandTrigger = vendorHeader.querySelector(
+			'[data-slot="preference-item-trigger"]'
+		) as HTMLElement | null;
+		expect(expandTrigger).toBeInstanceOf(HTMLElement);
+		if (!expandTrigger) {
+			throw new Error('Expected vendor expand trigger to exist');
+		}
+
+		await userEvent.click(expandTrigger);
+
+		await vi.waitFor(() => {
+			expect(content?.getAttribute('aria-hidden')).toBe('false');
+		});
 	});
 });
 

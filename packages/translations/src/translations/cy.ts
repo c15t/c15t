@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		rejectAll: 'Gwrthod pob un',
 		customize: 'Addasu',
 		save: 'Cadw gosodiadau',
+		close: 'Cau',
 	},
 	cookieBanner: {
 		title: 'Rydym yn gwerthfawrogi eich preifatrwydd',

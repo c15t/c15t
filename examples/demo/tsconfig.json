@@ -1,12 +1,13 @@
 {
 	"compilerOptions": {
 		"target": "ES2017",
-		"lib": ["dom", "dom.iterable", "esnext"],
+		"lib": ["dom", "esnext"],
 		"allowJs": true,
 		"skipLibCheck": true,
 		"strict": false,
 		"noEmit": true,
 		"incremental": true,
+		"types": ["node"],
 		"module": "esnext",
 		"esModuleInterop": true,
 		"moduleResolution": "bundler",

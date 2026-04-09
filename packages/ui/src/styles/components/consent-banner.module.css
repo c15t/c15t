@@ -52,6 +52,7 @@
 
 @layer components {
 	.root {
+		box-sizing: border-box;
 		padding: 1rem;
 		flex-direction: column;
 		width: 100%;

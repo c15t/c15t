@@ -1,20 +1,19 @@
+import { getDataDisabled } from '@c15t/ui/primitives/data-state';
+import { getSwitchState, toggleSwitchValue } from '@c15t/ui/primitives/switch';
 import {
 	type SwitchSize,
 	type SwitchVariantsProps,
 	switchVariants,
-} from '@c15t/ui/styles/primitives';
-import * as SwitchPrimitives from '@radix-ui/react-switch';
+} from '@c15t/ui/styles/primitives/switch';
 import {
-	type ComponentPropsWithoutRef,
-	type ComponentRef,
+	type ButtonHTMLAttributes,
 	forwardRef,
+	type KeyboardEvent,
 } from 'react';
+import { useControllableState } from '~/components/shared/libs/use-controllable-state';
 import type { AllThemeKeys, ThemeValue } from '~/types/theme';
 
-// Re-export types for convenience
 export type { SwitchSize, SwitchVariantsProps };
-
-// Re-export the helper function
 export { switchVariants };
 
 export type SwitchStylesKeys = {
@@ -23,78 +22,94 @@ export type SwitchStylesKeys = {
 	'switch.track': ThemeValue;
 };
 
-/**
- * Props for the Switch component.
- * Extends Radix Switch primitive props with variant support.
- *
- * @public
- */
 export interface SwitchProps
-	extends ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>,
+	extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange' | 'size'>,
 		SwitchVariantsProps {
-	/**
-	 * When true, removes default styles.
-	 */
+	checked?: boolean;
+	defaultChecked?: boolean;
 	noStyle?: boolean;
-	/**
-	 * Theme key for custom theming.
-	 */
+	onCheckedChange?: (checked: boolean) => void;
+	size?: SwitchSize;
 	themeKey?: AllThemeKeys;
 }
 
-/**
- * Switch component with explicit variant support.
- *
- * @remarks
- * A toggle switch component built on Radix UI primitives with
- * explicit size variants for type-safe styling.
- *
- * @example
- * ```tsx
- * <Switch size="small" />
- * <Switch size="medium" checked={isEnabled} onCheckedChange={setIsEnabled} />
- * ```
- *
- * @public
- */
-const Switch = forwardRef<
-	ComponentRef<typeof SwitchPrimitives.Root>,
-	SwitchProps
->(
+const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 	(
-		{ className, disabled, size = 'medium', noStyle, ...rest },
+		{
+			checked,
+			className,
+			defaultChecked = false,
+			disabled,
+			noStyle,
+			onCheckedChange,
+			onClick,
+			onKeyDown,
+			size = 'medium',
+			type = 'button',
+			...rest
+		},
 		forwardedRef
 	) => {
 		const variants = switchVariants({ size });
+		const [isChecked, setIsChecked] = useControllableState({
+			defaultValue: defaultChecked,
+			onChange: onCheckedChange,
+			value: checked,
+		});
 
 		const rootClassName = noStyle
 			? className
-			: variants.root({ class: className });
-
+			: variants.root({ class: className, disabled });
 		const thumbClassName = noStyle ? undefined : variants.thumb({ disabled });
-
 		const trackClassName = noStyle ? undefined : variants.track({ disabled });
+		const dataState = getSwitchState(isChecked);
+		const dataDisabled = getDataDisabled(disabled);
+
+		const toggle = () => {
+			if (disabled) {
+				return;
+			}
+
+			setIsChecked(toggleSwitchValue(isChecked));
+		};
+
+		const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
+			toggle();
+			onClick?.(event);
+		};
+
+		const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+			if (event.key === 'Enter') {
+				event.preventDefault();
+				toggle();
+			}
+
+			onKeyDown?.(event);
+		};
 
 		return (
-			<SwitchPrimitives.Root
+			<button
 				ref={forwardedRef}
-				disabled={disabled}
+				aria-checked={isChecked}
 				className={rootClassName}
+				data-disabled={dataDisabled}
+				data-slot="switch"
+				data-state={dataState}
+				disabled={disabled}
+				onClick={handleClick}
+				onKeyDown={handleKeyDown}
+				role="switch"
+				type={type}
 				{...rest}
 			>
-				<span className={trackClassName}>
-					<SwitchPrimitives.Thumb
-						className={thumbClassName}
-						style={{
-							['--mask' as string]:
-								'radial-gradient(circle farthest-side at 50% 50%, #0000 1.95px, #000 2.05px 100%) 50% 50%/100% 100% no-repeat',
-						}}
-					/>
+				<span className={trackClassName} data-slot="switch-track">
+					<span className={thumbClassName} data-slot="switch-thumb" />
 				</span>
-			</SwitchPrimitives.Root>
+			</button>
 		);
 	}
 );
-Switch.displayName = SwitchPrimitives.Root.displayName;
+
+Switch.displayName = 'SwitchRoot';
 
 export { Switch as Root };

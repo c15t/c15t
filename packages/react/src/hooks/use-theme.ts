@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext } from 'react';
+import { useContext, useMemo } from 'react';
 import { GlobalThemeContext, LocalThemeContext } from '~/context/theme-context';
 
 /**
@@ -74,7 +74,8 @@ export const useTheme = () => {
 	}
 
 	// Deep merge the entire context, with local taking precedence
-	const context = deepMerge(globalContext, localContext || null);
-
-	return context;
+	return useMemo(
+		() => deepMerge(globalContext, localContext || null),
+		[globalContext, localContext]
+	);
 };

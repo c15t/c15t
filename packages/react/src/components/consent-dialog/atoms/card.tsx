@@ -88,6 +88,7 @@ const ConsentDialogHeaderTitle = forwardRef<
 			baseClassName={styles.title}
 			themeKey="consentDialogTitle"
 			{...props}
+			id="consent-dialog-title"
 			data-testid="consent-dialog-title"
 		>
 			{children ?? consentDialog.title}
@@ -281,16 +282,16 @@ const Footer = ConsentDialogFooter;
 
 export {
 	Card,
-	Header,
-	HeaderTitle,
-	HeaderDescription,
-	Content,
-	Footer,
 	ConsentCustomizationCard,
+	ConsentDialogCard,
+	ConsentDialogContent,
 	ConsentDialogFooter,
 	ConsentDialogHeader,
-	ConsentDialogHeaderTitle,
 	ConsentDialogHeaderDescription,
-	ConsentDialogContent,
-	ConsentDialogCard,
+	ConsentDialogHeaderTitle,
+	Content,
+	Footer,
+	Header,
+	HeaderDescription,
+	HeaderTitle,
 };

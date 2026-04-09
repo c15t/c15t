@@ -1,5 +1,19 @@
 # @c15t/dev-tools
 
+## 2.0.0-rc.6
+
+### Patch Changes
+
+- bb3ab0f: chore: update dependencies, including zustand and typescript
+- 1a724fc: fix(policy-packs): support multiple primary actions while keeping customize as the default primary action
+
+  Expose `primaryActions` consistently across schema, backend, core, React, and dev-tools. Built-in preset and offline default policies keep `customize` as the default primary action, while custom policies can now mark multiple actions as primary.
+
+- Updated dependencies [e08e52c]
+- Updated dependencies [bb3ab0f]
+- Updated dependencies [1a724fc]
+  - c15t@2.0.0-rc.6
+
 ## 2.0.0-rc.5
 
 ### Patch Changes

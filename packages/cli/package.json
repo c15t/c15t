@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/cli",
-	"version": "2.0.0-rc.5",
+	"version": "2.0.0-rc.6",
 	"description": "CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a preferences centre, generate types and config, and run migration tooling for self-hosted deployments.",
 	"homepage": "https://v2.c15t.com",
 	"repository": {
@@ -35,19 +35,19 @@
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/logger": "workspace:*",
-		"@clack/prompts": "0.11.0",
-		"@modelcontextprotocol/sdk": "^1.0.0",
-		"c12": "3.3.2",
-		"dotenv": "17.2.3",
-		"figlet": "1.9.4",
-		"fs-extra": "11.3.2",
+		"@clack/prompts": "1.1.0",
+		"@modelcontextprotocol/sdk": "^1.29.0",
+		"c12": "3.3.3",
+		"dotenv": "17.3.1",
+		"figlet": "1.11.0",
+		"fs-extra": "11.3.4",
 		"open": "11.0.0",
 		"package-manager-detector": "1.6.0",
 		"picocolors": "1.1.1",
-		"posthog-node": "5.17.0",
+		"posthog-node": "5.28.9",
 		"ts-morph": "27.0.2",
-		"xstate": "^5.26.0",
-		"zod": "4.1.13"
+		"xstate": "^5.30.0",
+		"zod": "4.3.6"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

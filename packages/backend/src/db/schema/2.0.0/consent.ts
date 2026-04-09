@@ -32,4 +32,4 @@ export const consentTable = table('consent', {
 	tenantId: column('tenantId', 'string').nullable(),
 });
 
-export { consentSchema, type Consent };
+export { type Consent, consentSchema };

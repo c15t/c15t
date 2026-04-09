@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/schema",
-	"version": "2.0.0-rc.3",
+	"version": "2.0.0-rc.4",
 	"description": "Framework-agnostic Valibot schemas and TypeScript types for c15t consent management",
 	"keywords": [
 		"consent",
@@ -54,7 +54,7 @@
 		"not op_mini all"
 	],
 	"dependencies": {
-		"valibot": "1.2.0"
+		"valibot": "1.3.1"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

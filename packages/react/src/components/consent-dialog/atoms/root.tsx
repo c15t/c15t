@@ -8,6 +8,7 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -183,6 +184,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 		style: style as CSSPropertiesWithVars<Record<string, never>>,
 		noStyle,
 	});
+	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	const contextValue: ThemeContextValue = {
 		disableAnimation,
@@ -203,9 +205,9 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 						<dialog
 							ref={dialogRef}
 							{...rest}
-							{...themedStyle}
+							{...domStyleProps}
 							className={themedStyle.className}
-							aria-labelledby="privacy-settings-title"
+							aria-labelledby="consent-dialog-title"
 							tabIndex={-1}
 							dir={textDirection}
 							data-testid="consent-dialog-root"
@@ -244,4 +246,4 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 
 const Root = ConsentDialogRoot;
 
-export { Root, ConsentDialogRoot };
+export { ConsentDialogRoot, Root };

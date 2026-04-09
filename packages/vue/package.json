@@ -1,0 +1,21 @@
+{
+	"name": "@c15t/vue",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"build": "tsc --noEmit",
+		"test": "vitest run --passWithNoTests"
+	},
+	"dependencies": {
+		"@c15t/ui": "workspace:*",
+		"vue": "^3.5.13"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"typescript": "5.9.3",
+		"vitest": "4.0.15"
+	}
+}

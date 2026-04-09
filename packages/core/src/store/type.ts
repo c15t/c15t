@@ -65,12 +65,12 @@ export type ActiveUI = 'none' | 'banner' | 'dialog';
 
 // Re-export canonical policy types from @c15t/schema
 export type {
+	PolicyScopeMode,
 	PolicyUiAction,
 	PolicyUiActionDirection,
 	PolicyUiActionGroup,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
-	PolicyScopeMode,
 };
 export type InitDataSource =
 	| 'ssr'

@@ -1,0 +1,398 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+	color-scheme: light;
+	font-family:
+		'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont,
+		sans-serif;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	min-height: 100%;
+}
+
+body {
+	background:
+		radial-gradient(circle at top, rgba(255, 247, 237, 0.65), transparent 38%),
+		linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+	color: #0f172a;
+}
+
+a {
+	color: inherit;
+}
+
+code {
+	font-family:
+		'SFMono-Regular', ui-monospace, 'SFMono-Regular', 'Cascadia Code', Consolas,
+		monospace;
+}
+
+.css-layer-home,
+.css-layer-shell {
+	width: min(1120px, calc(100% - 3rem));
+	margin: 0 auto;
+}
+
+.css-layer-home {
+	padding: 3.5rem 0 5rem;
+}
+
+.css-layer-home-copy,
+.css-layer-copy,
+.css-layer-checklist {
+	border: 1px solid rgba(148, 163, 184, 0.25);
+	border-radius: 1.5rem;
+	background: rgba(255, 255, 255, 0.82);
+	box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
+	backdrop-filter: blur(14px);
+}
+
+.css-layer-home-copy {
+	padding: 1.75rem;
+}
+
+.css-layer-home-eyebrow,
+.css-layer-eyebrow,
+.css-layer-checklist-label,
+.css-layer-highlight-label,
+.css-layer-stage-label {
+	margin: 0;
+	font-size: 0.76rem;
+	font-weight: 700;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: #475569;
+}
+
+.css-layer-home-title,
+.css-layer-title {
+	margin: 0.8rem 0 0;
+	font-size: clamp(2.2rem, 4vw, 3.6rem);
+	line-height: 0.95;
+	letter-spacing: -0.05em;
+}
+
+.css-layer-home-description,
+.css-layer-description {
+	margin: 1rem 0 0;
+	max-width: 52rem;
+	font-size: 1rem;
+	line-height: 1.8;
+	color: #475569;
+}
+
+.css-layer-home-list {
+	display: grid;
+	gap: 1rem;
+	margin: 2rem 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.css-layer-home-link {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	align-items: center;
+	justify-content: space-between;
+	padding: 1rem 1.25rem;
+	border: 1px solid rgba(148, 163, 184, 0.28);
+	border-radius: 1.25rem;
+	background: rgba(255, 255, 255, 0.88);
+	text-decoration: none;
+	box-shadow: 0 18px 50px rgba(15, 23, 42, 0.06);
+}
+
+.css-layer-page {
+	min-height: 100vh;
+}
+
+.css-layer-preview-page {
+	min-height: 100vh;
+	padding: 0;
+}
+
+.css-layer-shell {
+	padding: 3rem 0 5rem;
+}
+
+.css-layer-hero {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: 1.5rem;
+	align-items: start;
+}
+
+.css-layer-copy,
+.css-layer-checklist {
+	padding: 1.6rem;
+}
+
+.css-layer-highlights {
+	display: grid;
+	gap: 0.85rem;
+	margin-top: 1.5rem;
+}
+
+.css-layer-highlight {
+	padding: 0.95rem 1rem;
+	border-radius: 1rem;
+	background: rgba(248, 250, 252, 0.92);
+	border: 1px solid rgba(203, 213, 225, 0.65);
+}
+
+.css-layer-highlight-value,
+.css-layer-checklist-items {
+	margin: 0.45rem 0 0;
+	font-size: 0.95rem;
+	line-height: 1.65;
+	color: #334155;
+}
+
+.css-layer-checklist-items {
+	padding-left: 1.2rem;
+}
+
+.css-layer-stage {
+	position: relative;
+	margin-top: 1.5rem;
+	border: 1px solid rgba(148, 163, 184, 0.24);
+	border-radius: 2rem;
+	overflow: hidden;
+	isolation: isolate;
+}
+
+.css-layer-stage-banner {
+	min-height: 28rem;
+}
+
+.css-layer-stage-dialog {
+	min-height: 44rem;
+}
+
+.css-layer-stage-grid {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	opacity: 0.16;
+}
+
+.css-layer-stage-grid span {
+	border-left: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.css-layer-stage-copy {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	padding: 1.4rem;
+}
+
+.css-layer-preview-stage {
+	position: relative;
+	min-height: 100vh;
+	margin: 0;
+	border: 0;
+	border-radius: 0;
+	overflow: hidden;
+	isolation: isolate;
+}
+
+.css-layer-preview-stage-banner {
+	min-height: 100vh;
+}
+
+.css-layer-preview-stage-dialog {
+	min-height: 100vh;
+}
+
+.css-layer-stage-route {
+	margin: 0;
+	font-size: 0.95rem;
+	color: #64748b;
+}
+
+.css-layer-relay-banner-shell {
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	padding: 1rem;
+	position: fixed;
+	left: 0;
+	bottom: 0;
+	z-index: 999999998;
+}
+
+.css-layer-relay-card {
+	width: min(100%, 440px);
+	overflow: hidden;
+}
+
+.css-layer-relay-card,
+.css-layer-relay-dialog-card {
+	border: 4px solid rgba(15, 23, 42, 0.9);
+	border-radius: 2rem;
+	background-color: rgba(255, 255, 255, 0.96);
+	background-image: linear-gradient(
+		180deg,
+		rgba(255, 255, 255, 0.98),
+		rgba(248, 250, 252, 0.98)
+	);
+	box-shadow: 0 28px 90px rgba(15, 23, 42, 0.28);
+	backdrop-filter: blur(10px);
+}
+
+.css-layer-relay-header,
+.css-layer-relay-dialog-header {
+	gap: 1.25rem;
+	padding: 1rem;
+}
+
+.css-layer-relay-header {
+	max-width: 44rem;
+}
+
+.css-layer-relay-title,
+.css-layer-relay-dialog-title {
+	margin: 0;
+	color: #020617;
+	font-weight: 900;
+	letter-spacing: -0.05em;
+	line-height: 0.95;
+}
+
+.css-layer-relay-title {
+	font-size: 1.9rem;
+}
+
+.css-layer-relay-dialog-title {
+	font-size: 1.85rem;
+}
+
+.css-layer-relay-description,
+.css-layer-relay-dialog-description {
+	color: #475569;
+	font-size: 0.98rem;
+	line-height: 1.75rem;
+}
+
+.css-layer-relay-description a,
+.css-layer-relay-dialog-description a {
+	color: #0369a1;
+	font-weight: 600;
+	text-decoration: underline;
+	text-decoration-thickness: 1.5px;
+	text-underline-offset: 0.24em;
+}
+
+.css-layer-relay-footer,
+.css-layer-relay-dialog-footer {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 1rem;
+	border-top: 1px solid rgba(203, 213, 225, 0.8);
+	padding-top: 1.25rem;
+	padding: 1.25rem;
+	background: #fff1dc;
+}
+
+.css-layer-relay-footer-group {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	gap: 0.75rem;
+}
+
+.css-layer-relay-footer-group:first-child .css-layer-relay-button-primary {
+	width: 100%;
+}
+
+.css-layer-relay-footer-group:last-child .css-layer-relay-button-secondary {
+	width: 100%;
+}
+
+.css-layer-relay-button-primary,
+.css-layer-relay-button-secondary {
+	border-radius: 999px;
+	padding: 0.75rem 1.5rem;
+	font-size: 0.875rem;
+	font-weight: 600;
+	letter-spacing: 0.02em;
+}
+
+.css-layer-relay-button-primary {
+	background-color: #020617;
+	color: #ffffff;
+}
+
+.css-layer-relay-button-secondary {
+	border: 1px solid #cbd5e1;
+	background-color: #ffffff;
+	color: #0f172a;
+}
+
+.css-layer-relay-widget {
+	border: 1px solid rgba(226, 232, 240, 0.9);
+	border-radius: 1.5rem;
+	background: rgba(255, 255, 255, 0.7);
+	padding: 0.5rem;
+	backdrop-filter: blur(10px);
+}
+
+.css-layer-relay-accordion {
+	border: 1px solid #e2e8f0;
+	border-radius: 1.4rem;
+	background: rgba(255, 255, 255, 0.9);
+	padding: 0.5rem;
+	box-shadow: 0 10px 35px rgba(15, 23, 42, 0.08);
+}
+
+@media (min-width: 1024px) {
+	.css-layer-hero {
+		grid-template-columns: minmax(0, 1.2fr) 22rem;
+	}
+
+	.css-layer-highlights {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+@media (min-width: 640px) {
+	.css-layer-relay-banner-shell {
+		width: auto;
+		padding: 1.5rem;
+	}
+
+	.css-layer-relay-header,
+	.css-layer-relay-dialog-header {
+		padding: 1.5rem;
+	}
+
+	.css-layer-relay-footer,
+	.css-layer-relay-dialog-footer {
+		flex-direction: row;
+		align-items: center;
+	}
+
+	.css-layer-relay-footer-group {
+		flex-direction: row;
+		width: auto;
+	}
+
+	.css-layer-relay-footer-group:last-child .css-layer-relay-button-secondary {
+		width: auto;
+	}
+}

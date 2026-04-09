@@ -2,6 +2,7 @@ import { DevTools } from '@c15t/dev-tools/react';
 import { Analytics } from '@vercel/analytics/next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import type React from 'react';
+import '@c15t/nextjs/styles.css';
 import '../globals.css';
 import { ConsentManager } from '../../components/consent-manager-nextjs';
 

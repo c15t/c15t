@@ -1,6 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import {
 	forwardRef,
 	type HTMLAttributes,
@@ -35,11 +36,12 @@ const IABConsentBannerCard = forwardRef<
 		baseClassName: styles.card,
 		className,
 	});
+	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	return (
 		<div
 			ref={ref}
-			{...themedStyle}
+			{...domStyleProps}
 			tabIndex={0}
 			role="dialog"
 			aria-modal={trapFocus ? 'true' : undefined}

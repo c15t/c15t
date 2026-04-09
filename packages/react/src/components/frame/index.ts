@@ -30,6 +30,6 @@ const Frame = Object.assign(FrameComponent, {
 	Button: atoms.FrameButton,
 }) as FrameCompoundComponent;
 
-export { Frame };
 export { FrameButton, FrameRoot, FrameTitle } from './atoms';
 export type { FrameCompoundComponent, FrameProps } from './types';
+export { Frame };

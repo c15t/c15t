@@ -99,17 +99,23 @@ export function setupTextDirection(language?: string) {
  */
 export function getFocusableElements(container: HTMLElement): HTMLElement[] {
 	const selector = [
-		'a[href]:not([disabled])',
-		'button:not([disabled])',
-		'textarea:not([disabled])',
-		'input:not([disabled])',
-		'select:not([disabled])',
-		'[contenteditable]',
+		'a[href]:not([disabled]):not([tabindex="-1"])',
+		'button:not([disabled]):not([tabindex="-1"])',
+		'textarea:not([disabled]):not([tabindex="-1"])',
+		'input:not([disabled]):not([tabindex="-1"])',
+		'select:not([disabled]):not([tabindex="-1"])',
+		'[contenteditable]:not([tabindex="-1"])',
 		'[tabindex]:not([tabindex="-1"])',
 	].join(',');
 
 	return Array.from(container.querySelectorAll<HTMLElement>(selector)).filter(
-		(el) => el.offsetWidth > 0 && el.offsetHeight > 0
+		(el) => {
+			if (typeof el.checkVisibility === 'function') {
+				return el.checkVisibility({ checkVisibilityCSS: true });
+			}
+			// Fallback for environments without checkVisibility (JSDOM, older browsers)
+			return el.offsetWidth > 0 || el.offsetHeight > 0;
+		}
 	);
 }
 
@@ -144,22 +150,19 @@ export function setupScrollLock() {
 export function setupFocusTrap(container: HTMLElement) {
 	const previousFocus = document.activeElement as HTMLElement;
 
-	// Get all focusable elements within the container
-	const focusableElements = getFocusableElements(container);
-
-	// Focus the first element if available
-	if (focusableElements.length > 0) {
-		setTimeout(() => {
-			focusableElements[0]?.focus();
-		}, 0);
-	} else if (container.tabIndex !== -1) {
-		// If no focusable elements, focus the container itself
+	// Focus the container itself so the user can read the content first,
+	// then Tab into interactive elements (links, then buttons).
+	// This avoids biasing initial focus toward a specific action button.
+	if (container.tabIndex < 0) {
+		container.tabIndex = -1;
+	}
+	setTimeout(() => {
 		try {
 			container.focus();
 		} catch {
 			// Silently handle focus errors
 		}
-	}
+	}, 0);
 
 	// Tab key event handler
 	const handleKeyDown = (e: KeyboardEvent) => {

@@ -69,11 +69,11 @@ export interface ConsentWidgetCompoundComponent extends FC<ConsentWidgetProps> {
  *
  * @remarks
  * Key features:
- * - Implements compound component pattern for flexible composition
  * - Manages consent state and user interactions
  * - Provides accessible controls for consent management
- * - Supports comprehensive theming
+ * - Supports comprehensive theming with tokens and slots
  * - Handles accordion state management
+ * - Exposes compound primitives for advanced layout changes
  *
  * @example
  * Basic usage:
@@ -84,15 +84,32 @@ export interface ConsentWidgetCompoundComponent extends FC<ConsentWidgetProps> {
  * ```
  *
  * @example
- * Compound components:
+ * Preferred stock customization with theme slots:
+ * ```tsx
+ * <ConsentManagerProvider
+ *   options={{
+ *     theme: {
+ *       slots: {
+ *         consentWidgetAccordion: 'rounded-3xl border border-black/10',
+ *         consentWidgetFooter: 'border-t border-black/10',
+ *       },
+ *     },
+ *   }}
+ * >
+ *   <ConsentWidget hideBranding />
+ * </ConsentManagerProvider>
+ * ```
+ *
+ * @example
+ * Advanced compound components:
  * ```tsx
  * <ConsentWidget.Root>
  *   <ConsentWidget.Accordion>
  *     <ConsentWidget.AccordionItems />
- *    </ConsentWidget.Accordion>
- *  </ConsentWidget.Root>
+ *   </ConsentWidget.Accordion>
+ * </ConsentWidget.Root>
  * ```
- * Note: Next.js Server Components do not support compound components. Ensure you add 'use client' to the file.
+ * Note: Next.js Server Components do not support compound components. Ensure you add `'use client'` to the file.
  *
  */
 const ConsentWidget = Object.assign(ConsentWidgetComponent, {
@@ -119,7 +136,6 @@ const ConsentWidget = Object.assign(ConsentWidgetComponent, {
 
 // Export the main component as both default and named export
 export default ConsentWidget;
-export { ConsentWidget };
 
 // Export individual components for backward compatibility
 export {
@@ -160,3 +176,4 @@ export {
 	ConsentWidgetRoot,
 	Root,
 } from './atoms/root';
+export { ConsentWidget };

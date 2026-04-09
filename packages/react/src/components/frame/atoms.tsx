@@ -31,7 +31,8 @@ const FrameTitle = forwardRef<
 		category && frame?.title
 			? frame.title.replace(
 					'{category}',
-					consentTypes?.[category]?.title ?? category
+					consentTypes?.[category as keyof typeof consentTypes]?.title ??
+						category
 				)
 			: undefined;
 
@@ -71,4 +72,4 @@ FrameRoot.displayName = 'FrameRoot';
 FrameTitle.displayName = 'FrameTitle';
 FrameButton.displayName = 'FrameButton';
 
-export { FrameRoot, FrameTitle, FrameButton };
+export { FrameButton, FrameRoot, FrameTitle };

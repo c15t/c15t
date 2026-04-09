@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		rejectAll: '全部拒绝',
 		customize: '自定义设置',
 		save: '保存设置',
+		close: '关闭',
 	},
 	cookieBanner: {
 		title: '我们重视您的隐私',

@@ -28,6 +28,13 @@ export const getSubjectHandler = async (c: Context) => {
 	const type = c.req.query('type');
 	const typeFilter = type?.split(',').map((t) => t.trim()) || [];
 
+	if (!subjectId) {
+		throw new HTTPException(400, {
+			message: 'Subject ID is required',
+			cause: { code: 'SUBJECT_ID_REQUIRED' },
+		});
+	}
+
 	logger.debug('Request parameters', { subjectId, typeFilter });
 
 	try {

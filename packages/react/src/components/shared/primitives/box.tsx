@@ -1,8 +1,9 @@
 'use client';
 
-import { Slot } from '@radix-ui/react-slot';
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, type HTMLAttributes } from 'react';
 
+import { Slot } from '~/components/shared/libs/slot';
 import { useStyles } from '~/hooks/use-styles';
 import type { AllThemeKeys, ExtendThemeKeys } from '~/types/theme';
 
@@ -67,9 +68,10 @@ export const Box = forwardRef<HTMLDivElement, BoxProps>(
 			style,
 			noStyle,
 		});
+		const domStyleProps = sanitizeDOMStyleProps(descriptionStyle);
 
 		const Comp = asChild ? Slot : 'div';
-		return <Comp ref={ref} {...props} {...descriptionStyle} />;
+		return <Comp ref={ref} {...props} {...domStyleProps} />;
 	}
 );
 

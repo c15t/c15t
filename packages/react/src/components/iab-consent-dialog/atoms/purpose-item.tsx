@@ -2,7 +2,7 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { type FC, useState } from 'react';
-import { AnimatedCollapse } from '~/components/shared/ui/animated-collapse';
+import * as PreferenceItem from '~/components/shared/ui/preference-item';
 import * as Switch from '~/components/shared/ui/switch';
 import type { ProcessedPurpose, ProcessedVendor, VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
@@ -91,31 +91,32 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 	};
 
 	return (
-		<div
+		<PreferenceItem.Root
 			className={styles.purposeItem}
 			data-testid={`purpose-item-${purpose.id}`}
+			noStyle
+			onOpenChange={setIsExpanded}
+			open={isExpanded}
 		>
 			<div className={styles.purposeHeader}>
-				<button
-					type="button"
-					onClick={() => setIsExpanded(!isExpanded)}
-					className={styles.purposeTrigger}
-				>
-					<svg
-						className={styles.purposeArrow}
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-					>
-						{isExpanded ? (
-							<path d="M19 9l-7 7-7-7" />
-						) : (
-							<path d="M9 5l7 7-7 7" />
-						)}
-					</svg>
-					<div className={styles.purposeInfo}>
-						<h3 className={styles.purposeName}>
+				<PreferenceItem.Trigger className={styles.purposeTrigger} noStyle>
+					<PreferenceItem.Leading noStyle>
+						<svg
+							className={styles.purposeArrow}
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+						>
+							{isExpanded ? (
+								<path d="M19 9l-7 7-7-7" />
+							) : (
+								<path d="M9 5l7 7-7 7" />
+							)}
+						</svg>
+					</PreferenceItem.Leading>
+					<PreferenceItem.Header className={styles.purposeInfo} noStyle>
+						<PreferenceItem.Title className={styles.purposeName} noStyle>
 							{purpose.name}
 							{isLocked && (
 								<svg
@@ -129,15 +130,18 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 									<path d="M7 11V7a5 5 0 0 1 10 0v4" />
 								</svg>
 							)}
-						</h3>
-						<p className={styles.purposeMeta}>
+						</PreferenceItem.Title>
+						<PreferenceItem.Meta className={styles.purposeMeta} noStyle>
 							{iab.preferenceCenter.purposeItem.partners.replace(
 								'{count}',
 								String(purpose.vendors.length)
 							)}
-						</p>
+						</PreferenceItem.Meta>
 						{legIntVendors.length > 0 && (
-							<div className={styles.legitimateInterestBadge}>
+							<PreferenceItem.Auxiliary
+								className={styles.legitimateInterestBadge}
+								noStyle
+							>
 								<svg
 									className={styles.legitimateInterestIcon}
 									viewBox="0 0 24 24"
@@ -151,85 +155,88 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 									'{count}',
 									String(legIntVendors.length)
 								)}
-							</div>
+							</PreferenceItem.Auxiliary>
 						)}
-					</div>
-				</button>
-				<Switch.Root
-					checked={isEnabled}
-					onCheckedChange={handlePurposeToggle}
-					disabled={isLocked}
-				/>
+					</PreferenceItem.Header>
+				</PreferenceItem.Trigger>
+				<PreferenceItem.Control noStyle>
+					<Switch.Root
+						aria-label={purpose.name}
+						checked={isEnabled}
+						onCheckedChange={handlePurposeToggle}
+						disabled={isLocked}
+					/>
+				</PreferenceItem.Control>
 			</div>
 
-			<AnimatedCollapse isOpen={isExpanded}>
-				<div className={styles.purposeContent}>
-					<p className={styles.purposeDescription}>{purpose.description}</p>
+			<PreferenceItem.Content innerClassName={styles.purposeContent} noStyle>
+				<p className={styles.purposeDescription}>{purpose.description}</p>
 
-					{/* Purpose-level Legitimate Interest Objection */}
-					{legIntVendors.length > 0 && onPurposeLegitimateInterestToggle && (
-						<div className={styles.purposeLISection}>
-							<div className={styles.purposeLISectionHeader}>
-								<div className={styles.purposeLIInfo}>
-									<svg
-										className={styles.legitimateInterestIcon}
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										strokeWidth="2"
-									>
-										<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
-									</svg>
-									<span>
-										{iab.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
-											'{count}',
-											String(legIntVendors.length)
-										)}
-									</span>
-								</div>
-								<button
-									type="button"
-									onClick={handlePurposeLIObjection}
-									className={`${styles.objectButton} ${!isPurposeLIAllowed ? styles.objectButtonActive : ''}`}
-									aria-pressed={!isPurposeLIAllowed}
+				{/* Purpose-level Legitimate Interest Objection */}
+				{legIntVendors.length > 0 && onPurposeLegitimateInterestToggle && (
+					<div className={styles.purposeLISection}>
+						<div className={styles.purposeLISectionHeader}>
+							<div className={styles.purposeLIInfo}>
+								<svg
+									className={styles.legitimateInterestIcon}
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									strokeWidth="2"
 								>
-									{isPurposeLIAllowed
-										? iab.preferenceCenter.purposeItem.objectButton
-										: iab.preferenceCenter.purposeItem.objected}
-								</button>
+									<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
+								</svg>
+								<span>
+									{iab.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
+										'{count}',
+										String(legIntVendors.length)
+									)}
+								</span>
 							</div>
-							<p className={styles.liExplanation}>
-								{iab.preferenceCenter.purposeItem.rightToObject}
-							</p>
-						</div>
-					)}
-
-					{/* Legacy badge for when there's no toggle handler */}
-					{legIntVendors.length > 0 && !onPurposeLegitimateInterestToggle && (
-						<div className={styles.legitimateInterestBadge}>
-							<svg
-								className={styles.legitimateInterestIcon}
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								strokeWidth="2"
-							>
-								<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
-							</svg>
-							{iab.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
-								'{count}',
-								String(legIntVendors.length)
-							)}
-						</div>
-					)}
-
-					{purpose.illustrations && purpose.illustrations.length > 0 && (
-						<div>
 							<button
 								type="button"
-								onClick={() => setShowExamples(!showExamples)}
-								className={styles.examplesToggle}
+								onClick={handlePurposeLIObjection}
+								className={`${styles.objectButton} ${!isPurposeLIAllowed ? styles.objectButtonActive : ''}`}
+								aria-pressed={!isPurposeLIAllowed}
 							>
+								{isPurposeLIAllowed
+									? iab.preferenceCenter.purposeItem.objectButton
+									: iab.preferenceCenter.purposeItem.objected}
+							</button>
+						</div>
+						<p className={styles.liExplanation}>
+							{iab.preferenceCenter.purposeItem.rightToObject}
+						</p>
+					</div>
+				)}
+
+				{/* Legacy badge for when there's no toggle handler */}
+				{legIntVendors.length > 0 && !onPurposeLegitimateInterestToggle && (
+					<div className={styles.legitimateInterestBadge}>
+						<svg
+							className={styles.legitimateInterestIcon}
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+						>
+							<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
+						</svg>
+						{iab.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
+							'{count}',
+							String(legIntVendors.length)
+						)}
+					</div>
+				)}
+
+				{purpose.illustrations && purpose.illustrations.length > 0 && (
+					<div>
+						<PreferenceItem.Root
+							noStyle
+							onOpenChange={setShowExamples}
+							open={showExamples}
+						>
+							<PreferenceItem.Trigger className={styles.examplesToggle} noStyle>
 								<svg
 									style={{ width: '0.75rem', height: '0.75rem' }}
 									viewBox="0 0 24 24"
@@ -245,23 +252,25 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 								</svg>
 								{iab.preferenceCenter.purposeItem.examples} (
 								{purpose.illustrations.length})
-							</button>
-							<AnimatedCollapse isOpen={showExamples}>
+							</PreferenceItem.Trigger>
+							<PreferenceItem.Content noStyle>
 								<ul className={styles.examplesList}>
 									{purpose.illustrations.map((illustration, index) => (
 										<li key={index}>{illustration}</li>
 									))}
 								</ul>
-							</AnimatedCollapse>
-						</div>
-					)}
+							</PreferenceItem.Content>
+						</PreferenceItem.Root>
+					</div>
+				)}
 
-					<div>
-						<button
-							type="button"
-							onClick={() => setShowVendors(!showVendors)}
-							className={styles.vendorsToggle}
-						>
+				<div>
+					<PreferenceItem.Root
+						noStyle
+						onOpenChange={setShowVendors}
+						open={showVendors}
+					>
+						<PreferenceItem.Trigger className={styles.vendorsToggle} noStyle>
 							<svg
 								style={{ width: '0.75rem', height: '0.75rem' }}
 								viewBox="0 0 24 24"
@@ -277,131 +286,125 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 							</svg>
 							{iab.preferenceCenter.purposeItem.partnersUsingPurpose} (
 							{purpose.vendors.length})
-						</button>
-						<AnimatedCollapse isOpen={showVendors}>
-							<div className={styles.vendorSection}>
-								{/* IAB Consent Vendors */}
-								{iabConsentVendors.length > 0 && (
-									<>
-										<h5 className={styles.vendorSectionTitle}>
-											{iab.preferenceCenter.purposeItem.withYourPermission} (
-											{iabConsentVendors.length})
-										</h5>
-										{iabConsentVendors.map((vendor) => (
-											<VendorRow
-												key={vendor.id}
-												vendor={vendor}
-												isConsented={getVendorConsent(vendor.id)}
-												onToggle={(value) => onVendorToggle(vendor.id, value)}
-												onClick={() => onVendorClick(vendor.id)}
-											/>
-										))}
-									</>
-								)}
-								{/* IAB Legitimate Interest Vendors */}
-								{iabLegIntVendors.length > 0 && (
-									<>
-										<h5
-											className={`${styles.vendorSectionTitle} ${styles.vendorSectionTitleLI}`}
+						</PreferenceItem.Trigger>
+						<PreferenceItem.Content
+							innerClassName={styles.vendorSection}
+							noStyle
+						>
+							{/* IAB Consent Vendors */}
+							{iabConsentVendors.length > 0 && (
+								<>
+									<h5 className={styles.vendorSectionTitle}>
+										{iab.preferenceCenter.purposeItem.withYourPermission} (
+										{iabConsentVendors.length})
+									</h5>
+									{iabConsentVendors.map((vendor) => (
+										<VendorRow
+											key={vendor.id}
+											vendor={vendor}
+											isConsented={getVendorConsent(vendor.id)}
+											onToggle={(value) => onVendorToggle(vendor.id, value)}
+											onClick={() => onVendorClick(vendor.id)}
+										/>
+									))}
+								</>
+							)}
+							{/* IAB Legitimate Interest Vendors */}
+							{iabLegIntVendors.length > 0 && (
+								<>
+									<h5
+										className={`${styles.vendorSectionTitle} ${styles.vendorSectionTitleLI}`}
+									>
+										<svg
+											style={{ width: '0.75rem', height: '0.75rem' }}
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2"
 										>
-											<svg
-												style={{ width: '0.75rem', height: '0.75rem' }}
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												strokeWidth="2"
-											>
-												<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
-											</svg>
-											{iab.preferenceCenter.purposeItem.legitimateInterest} (
-											{iabLegIntVendors.length})
-										</h5>
-										<p className={styles.liExplanation}>
-											{iab.preferenceCenter.purposeItem.rightToObject}
-										</p>
-										{iabLegIntVendors.map((vendor) => (
-											<VendorRow
-												key={vendor.id}
-												vendor={vendor}
-												isConsented={getVendorConsent(vendor.id)}
-												onToggle={(value) => onVendorToggle(vendor.id, value)}
-												onClick={() => onVendorClick(vendor.id)}
-												isLegitimateInterest
-												isLegitimateInterestAllowed={getVendorLegitimateInterest(
-													vendor.id
-												)}
-												onLegitimateInterestToggle={
-													onVendorLegitimateInterestToggle
-														? (value) =>
-																onVendorLegitimateInterestToggle(
-																	vendor.id,
-																	value
-																)
-														: undefined
-												}
-											/>
-										))}
-									</>
-								)}
-								{/* Custom Vendors */}
-								{(customConsentVendors.length > 0 ||
-									customLegIntVendors.length > 0) && (
-									<div className={styles.customVendorPurposeSection}>
-										<h5 className={styles.vendorSectionTitleCustom}>
-											<svg
-												style={{ width: '0.75rem', height: '0.75rem' }}
-												viewBox="0 0 24 24"
-												fill="none"
-												stroke="currentColor"
-												strokeWidth="2"
-											>
-												<circle cx="12" cy="12" r="10" />
-												<line x1="2" y1="12" x2="22" y2="12" />
-												<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-											</svg>
-											{iab.preferenceCenter.vendorList.customVendorsHeading} (
-											{customConsentVendors.length + customLegIntVendors.length}
-											)
-										</h5>
-										{customConsentVendors.map((vendor) => (
-											<VendorRow
-												key={vendor.id}
-												vendor={vendor}
-												isConsented={getVendorConsent(vendor.id)}
-												onToggle={(value) => onVendorToggle(vendor.id, value)}
-												onClick={() => onVendorClick(vendor.id)}
-											/>
-										))}
-										{customLegIntVendors.map((vendor) => (
-											<VendorRow
-												key={vendor.id}
-												vendor={vendor}
-												isConsented={getVendorConsent(vendor.id)}
-												onToggle={(value) => onVendorToggle(vendor.id, value)}
-												onClick={() => onVendorClick(vendor.id)}
-												isLegitimateInterest
-												isLegitimateInterestAllowed={getVendorLegitimateInterest(
-													vendor.id
-												)}
-												onLegitimateInterestToggle={
-													onVendorLegitimateInterestToggle
-														? (value) =>
-																onVendorLegitimateInterestToggle(
-																	vendor.id,
-																	value
-																)
-														: undefined
-												}
-											/>
-										))}
-									</div>
-								)}
-							</div>
-						</AnimatedCollapse>
-					</div>
+											<path d="M12 3v18M3 12h18M4.93 4.93l14.14 14.14M19.07 4.93L4.93 19.07" />
+										</svg>
+										{iab.preferenceCenter.purposeItem.legitimateInterest} (
+										{iabLegIntVendors.length})
+									</h5>
+									<p className={styles.liExplanation}>
+										{iab.preferenceCenter.purposeItem.rightToObject}
+									</p>
+									{iabLegIntVendors.map((vendor) => (
+										<VendorRow
+											key={vendor.id}
+											vendor={vendor}
+											isConsented={getVendorConsent(vendor.id)}
+											onToggle={(value) => onVendorToggle(vendor.id, value)}
+											onClick={() => onVendorClick(vendor.id)}
+											isLegitimateInterest
+											isLegitimateInterestAllowed={getVendorLegitimateInterest(
+												vendor.id
+											)}
+											onLegitimateInterestToggle={
+												onVendorLegitimateInterestToggle
+													? (value) =>
+															onVendorLegitimateInterestToggle(vendor.id, value)
+													: undefined
+											}
+										/>
+									))}
+								</>
+							)}
+							{/* Custom Vendors */}
+							{(customConsentVendors.length > 0 ||
+								customLegIntVendors.length > 0) && (
+								<div className={styles.customVendorPurposeSection}>
+									<h5 className={styles.vendorSectionTitleCustom}>
+										<svg
+											style={{ width: '0.75rem', height: '0.75rem' }}
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2"
+										>
+											<circle cx="12" cy="12" r="10" />
+											<line x1="2" y1="12" x2="22" y2="12" />
+											<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+										</svg>
+										{iab.preferenceCenter.vendorList.customVendorsHeading} (
+										{customConsentVendors.length + customLegIntVendors.length})
+									</h5>
+									{customConsentVendors.map((vendor) => (
+										<VendorRow
+											key={vendor.id}
+											vendor={vendor}
+											isConsented={getVendorConsent(vendor.id)}
+											onToggle={(value) => onVendorToggle(vendor.id, value)}
+											onClick={() => onVendorClick(vendor.id)}
+										/>
+									))}
+									{customLegIntVendors.map((vendor) => (
+										<VendorRow
+											key={vendor.id}
+											vendor={vendor}
+											isConsented={getVendorConsent(vendor.id)}
+											onToggle={(value) => onVendorToggle(vendor.id, value)}
+											onClick={() => onVendorClick(vendor.id)}
+											isLegitimateInterest
+											isLegitimateInterestAllowed={getVendorLegitimateInterest(
+												vendor.id
+											)}
+											onLegitimateInterestToggle={
+												onVendorLegitimateInterestToggle
+													? (value) =>
+															onVendorLegitimateInterestToggle(vendor.id, value)
+													: undefined
+											}
+										/>
+									))}
+								</div>
+							)}
+						</PreferenceItem.Content>
+					</PreferenceItem.Root>
 				</div>
-			</AnimatedCollapse>
-		</div>
+			</PreferenceItem.Content>
+		</PreferenceItem.Root>
 	);
 };
 
@@ -486,7 +489,11 @@ const VendorRow: FC<VendorRowProps> = ({
 				</button>
 			) : (
 				<div style={{ transform: 'scale(0.75)' }}>
-					<Switch.Root checked={isConsented} onCheckedChange={onToggle} />
+					<Switch.Root
+						aria-label={vendor.name}
+						checked={isConsented}
+						onCheckedChange={onToggle}
+					/>
 				</div>
 			)}
 		</div>

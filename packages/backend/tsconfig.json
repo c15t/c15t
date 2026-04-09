@@ -1,7 +1,7 @@
 {
 	"extends": "@c15t/typescript-config/node.json",
 	"compilerOptions": {
-		"baseUrl": ".",
+		"rootDir": "src",
 		"paths": {
 			"@c15t/logger": ["../logger/dist-types/index.d.ts"],
 			"@c15t/logger/*": ["../logger/dist-types/*"],

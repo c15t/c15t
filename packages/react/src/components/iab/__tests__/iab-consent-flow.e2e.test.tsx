@@ -79,11 +79,13 @@ describe('IAB Consent Flow E2E Tests', () => {
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// Check TC data
-			const tcData = await getCMPTCData();
-
-			// All purposes should have consent
-			expect(tcData.purpose.consents[1]).toBe(true);
+			await vi.waitFor(
+				async () => {
+					const tcData = await getCMPTCData();
+					expect(tcData.purpose.consents[1]).toBe(true);
+				},
+				{ timeout: 2000 }
+			);
 		});
 	});
 
@@ -104,9 +106,14 @@ describe('IAB Consent Flow E2E Tests', () => {
 			await userEvent.click(rejectButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			const consent = getStoredConsent();
-			expect(consent).toBeDefined();
-			expect(consent?.consents?.necessary).toBe(true);
+			await vi.waitFor(
+				() => {
+					const consent = getStoredConsent();
+					expect(consent).toBeDefined();
+					expect(consent?.consents?.necessary).toBe(true);
+				},
+				{ timeout: 2000 }
+			);
 		});
 	});
 
@@ -199,10 +206,14 @@ describe('IAB Consent Flow E2E Tests', () => {
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// Verify localStorage has consent
-			const consent = getStoredConsent();
-			expect(consent).toBeDefined();
-			expect(consent?.consents).toBeDefined();
+			await vi.waitFor(
+				() => {
+					const consent = getStoredConsent();
+					expect(consent).toBeDefined();
+					expect(consent?.consents).toBeDefined();
+				},
+				{ timeout: 2000 }
+			);
 		});
 
 		test('TC String should be stored', async () => {

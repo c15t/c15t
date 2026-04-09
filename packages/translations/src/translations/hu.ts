@@ -5,6 +5,7 @@ export const translations: CompleteTranslations = {
 		rejectAll: 'Összes elutasítása',
 		customize: 'Testreszabás',
 		save: 'Beállítások mentése',
+		close: 'Bezárás',
 	},
 	cookieBanner: {
 		title: 'Értékeljük az adatvédelmet',

@@ -5,6 +5,9 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./budgets": "./src/budgets.ts",
+		"./css-layer-runtime": "./src/css-layer-runtime.tsx",
+		"./css-layer-scenarios": "./src/css-layer-scenarios.ts",
+		"./css-layer-types": "./src/css-layer-types.ts",
 		"./fixtures": "./src/fixtures.ts",
 		"./reporting": "./src/reporting.ts",
 		"./schema": "./src/schema.ts",
@@ -17,7 +20,9 @@
 		"bench:nightly": "echo 'no-op'"
 	},
 	"dependencies": {
-		"@c15t/translations": "workspace:*"
+		"@c15t/react": "workspace:*",
+		"@c15t/translations": "workspace:*",
+		"react": "19.2.3"
 	},
 	"devDependencies": {
 		"typescript": "5.8.3"

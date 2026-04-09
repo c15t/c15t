@@ -1,6 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { type FC, type ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
@@ -116,6 +117,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 					: styles.dialogHidden
 		),
 	});
+	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	const dialogContent = (
 		<ConsentTrackingContext.Provider
@@ -124,7 +126,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 			<LocalThemeContext.Provider value={contextValue}>
 				<IABConsentDialogOverlay isOpen={isOpen} />
 				<div
-					{...themedStyle}
+					{...domStyleProps}
 					data-testid="iab-consent-dialog-root"
 					dir={textDirection}
 				>

@@ -117,8 +117,8 @@ export function C15TDevTools({
 	return null;
 }
 
-export { C15TDevTools as DevTools };
+export type { DevToolsPosition, DevToolsTab } from './core/state-manager';
 
 // Re-export types
-export type { DevToolsOptions, DevToolsInstance };
-export type { DevToolsPosition, DevToolsTab } from './core/state-manager';
+export type { DevToolsInstance, DevToolsOptions };
+export { C15TDevTools as DevTools };

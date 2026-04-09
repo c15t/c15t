@@ -5,21 +5,42 @@
 
   ## Setup
 
+  Import the standard c15t stylesheet once at the root of your app:
+
+  ```tsx
+  // React
+  import '@c15t/react/styles.css';
+
+  // Next.js
+  import '@c15t/nextjs/styles.css';
+  ```
+
   ### Tailwind v4
 
-  No additional configuration needed. Tailwind v4 automatically scans your source files.
+  Tailwind v4 automatically scans your source files. Import Tailwind normally. c15t component styles join Tailwind's `components` layer automatically, so no extra c15t-specific layer declaration is needed:
+
+  ```css
+  @import "tailwindcss";
+  ```
 
   ### Tailwind v3
 
-  Add c15t's component paths to your `content` array:
+  Import the Tailwind 3-compatible c15t stylesheet before your app Tailwind globals, then keep your standard Tailwind directives in the app stylesheet:
 
-  ```js title="tailwind.config.js"
-  module.exports = {
-    content: [
-      './src/**/*.{js,ts,jsx,tsx}',
-      './node_modules/@c15t/react/**/*.{js,mjs}',
-    ],
-  };
+  ```tsx title="app/layout.tsx"
+  import '@c15t/react/styles.tw3.css';
+  import './globals.css';
+  ```
+
+  ```tsx title="app/layout.tsx"
+  import '@c15t/nextjs/styles.tw3.css';
+  import './globals.css';
+  ```
+
+  ```css title="app/globals.css"
+  @tailwind base;
+  @tailwind components;
+  @tailwind utilities;
   ```
 </section>
 

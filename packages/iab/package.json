@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/iab",
-	"version": "2.0.0-rc.5",
+	"version": "2.0.0-rc.6",
 	"description": "IAB TCF 2.3 and GPP addon for c15t — opt-in compliance protocol support for programmatic advertising",
 	"keywords": [
 		"iab",
@@ -52,7 +52,7 @@
 	},
 	"dependencies": {
 		"@c15t/schema": "workspace:*",
-		"@iabtechlabtcf/core": "^1.5.20",
+		"@iabtechlabtcf/core": "^1.5.21",
 		"c15t": "workspace:*"
 	},
 	"devDependencies": {

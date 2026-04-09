@@ -130,7 +130,12 @@ describe('IAB Storage E2E Tests', () => {
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// After action
-			expect(getStoredConsent()).not.toBeNull();
+			await vi.waitFor(
+				() => {
+					expect(getStoredConsent()).not.toBeNull();
+				},
+				{ timeout: 2000 }
+			);
 		});
 
 		test('should update storage when Reject All clicked', async () => {
@@ -152,10 +157,14 @@ describe('IAB Storage E2E Tests', () => {
 			await userEvent.click(rejectButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// After action
-			const consent = getStoredConsent();
-			expect(consent).not.toBeNull();
-			expect(consent?.consents?.necessary).toBe(true);
+			await vi.waitFor(
+				() => {
+					const consent = getStoredConsent();
+					expect(consent).not.toBeNull();
+					expect(consent?.consents?.necessary).toBe(true);
+				},
+				{ timeout: 2000 }
+			);
 		});
 	});
 
@@ -211,9 +220,14 @@ describe('IAB Storage E2E Tests', () => {
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			const consent = getStoredConsent();
-			expect(consent?.consentInfo?.subjectId).toBeDefined();
-			expect(typeof consent?.consentInfo?.subjectId).toBe('string');
+			await vi.waitFor(
+				() => {
+					const consent = getStoredConsent();
+					expect(consent?.consentInfo?.subjectId).toBeDefined();
+					expect(typeof consent?.consentInfo?.subjectId).toBe('string');
+				},
+				{ timeout: 2000 }
+			);
 		});
 	});
 

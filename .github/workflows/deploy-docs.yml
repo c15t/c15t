@@ -25,10 +25,16 @@ permissions: {}
 jobs:
   # ============================================================================
   # PREVIEW DEPLOYMENTS (for PRs)
+  # pull_request_target has access to secrets; only same-repo PRs auto-trigger so
+  # fork PRs cannot drive repository-dispatch with arbitrary head SHAs. Fork
+  # previews: use workflow_dispatch → preview with the PR number (maintainers).
   # ============================================================================
   trigger-preview:
     name: 🔍 Trigger Preview
-    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: 📤 Trigger docs preview
@@ -54,7 +60,10 @@ jobs:
 
   notify-close:
     name: 🧹 Notify PR Closed
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: 📤 Notify docs repo of PR close
