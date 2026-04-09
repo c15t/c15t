@@ -63,6 +63,13 @@ The CLI will:
 pnpm add @c15t/nextjs
 ```
 
+Then add the prebuilt stylesheet to your app-level CSS entrypoint:
+
+```css
+/* app/globals.css */
+@import "@c15t/nextjs/styles.css";
+```
+
 To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/nextjs/quickstart#manual-setup).
 
 ## Usage
