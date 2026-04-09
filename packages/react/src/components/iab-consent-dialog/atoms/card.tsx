@@ -1,6 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import {
 	forwardRef,
 	type HTMLAttributes,
@@ -58,11 +59,12 @@ const IABConsentDialogCard = forwardRef<
 		),
 		className,
 	});
+	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	return (
 		<div
 			ref={ref}
-			{...themedStyle}
+			{...domStyleProps}
 			role="dialog"
 			aria-modal={trapFocus ? 'true' : undefined}
 			aria-label={iabTranslations.preferenceCenter.title}

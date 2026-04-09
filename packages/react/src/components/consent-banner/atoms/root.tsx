@@ -1,6 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import {
 	type CSSProperties,
 	type FC,
@@ -94,25 +95,56 @@ interface ConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
  * Basic usage:
  * ```tsx
  * <ConsentBanner.Root>
- *   <ConsentBanner.Content>
- *     {Banner content}
- *   </ConsentBanner.Content>
+ *   <ConsentBanner.Card>
+ *     <ConsentBanner.Header>
+ *       <ConsentBanner.Title />
+ *       <ConsentBanner.Description />
+ *     </ConsentBanner.Header>
+ *     <ConsentBanner.Footer>
+ *       <ConsentBanner.CustomizeButton />
+ *       <ConsentBanner.FooterSubGroup>
+ *         <ConsentBanner.RejectButton />
+ *         <ConsentBanner.AcceptButton />
+ *       </ConsentBanner.FooterSubGroup>
+ *     </ConsentBanner.Footer>
+ *   </ConsentBanner.Card>
  * </ConsentBanner.Root>
  * ```
  *
  * @example
- * With custom styling:
+ * Preferred styling with provider theme tokens and slots:
  * ```tsx
- * <ConsentBanner.Root
- *   styles={{
- *     root: "fixed bottom-0 w-full bg-white ",
- *     content: "max-w-4xl mx-auto p-4",
- *     title: "text-xl font-bold",
- *     description: "mt-2 text-gray-600"
+ * <ConsentManagerProvider
+ *   options={{
+ *     theme: {
+ *       colors: {
+ *         surface: '#fffdf8',
+ *         surfaceHover: '#f6f3ee',
+ *       },
+ *       slots: {
+ *         consentBannerCard: 'rounded-3xl shadow-xl',
+ *         consentBannerFooter: 'border-t border-black/10 px-6',
+ *         consentBannerTitle: 'tracking-tight',
+ *       },
+ *     },
  *   }}
  * >
- *   { Banner content}
- * </ConsentBanner.Root>
+ *   <ConsentBanner.Root>
+ *     <ConsentBanner.Card>
+ *       <ConsentBanner.Header>
+ *         <ConsentBanner.Title />
+ *         <ConsentBanner.Description />
+ *       </ConsentBanner.Header>
+ *       <ConsentBanner.Footer>
+ *         <ConsentBanner.CustomizeButton />
+ *         <ConsentBanner.FooterSubGroup>
+ *           <ConsentBanner.RejectButton />
+ *           <ConsentBanner.AcceptButton />
+ *         </ConsentBanner.FooterSubGroup>
+ *       </ConsentBanner.Footer>
+ *     </ConsentBanner.Card>
+ *   </ConsentBanner.Root>
+ * </ConsentManagerProvider>
  * ```
  *
  * @public
@@ -332,6 +364,7 @@ const ConsentBannerRootChildren = forwardRef<
 		const finalClassName = noStyle
 			? contentStyle.className || ''
 			: `${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`;
+		const domStyleProps = sanitizeDOMStyleProps(contentStyle);
 
 		// Only render when the banner should be shown
 		return shouldShowBanner
@@ -341,7 +374,7 @@ const ConsentBannerRootChildren = forwardRef<
 						<div
 							ref={ref}
 							{...props}
-							{...contentStyle}
+							{...domStyleProps}
 							className={finalClassName}
 							data-testid="consent-banner-root"
 							dir={textDirection}

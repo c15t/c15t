@@ -23,37 +23,5 @@
 		"c15t-v1-codemod-fixture": "1.0.0",
 		"@c15t/iab": "2.0.0-rc.5"
 	},
-	"changesets": [
-		"beige-memes-run",
-		"big-memes-lead",
-		"bold-sites-hunt",
-		"bright-cars-rest",
-		"bright-stars-prefetch",
-		"common-pots-tease",
-		"edge-init-handler",
-		"extract-iab-addon",
-		"fair-rivers-sing",
-		"fair-steaks-rush",
-		"flat-rivers-act",
-		"fresh-bottles-bake",
-		"fresh-mirrors-drop",
-		"funny-frogs-tan",
-		"green-walls-care",
-		"happy-impalas-move",
-		"late-pandas-turn",
-		"legal-plums-hug",
-		"nervous-kiwis-fix",
-		"olive-buckets-share",
-		"plenty-clocks-tap",
-		"pretty-cooks-write",
-		"puny-loops-smile",
-		"shy-cycles-call",
-		"silent-spies-work",
-		"slow-mugs-fold",
-		"soft-pandas-wait",
-		"tall-toes-dance",
-		"thirty-oranges-teach",
-		"tidy-buses-drum",
-		"warm-foxes-glow"
-	]
+	"changesets": ["swift-foxes-leap", "tidy-phones-dance"]
 }

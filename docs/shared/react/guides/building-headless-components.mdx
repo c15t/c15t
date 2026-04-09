@@ -9,6 +9,10 @@
   - `ConsentBanner.PolicyActions` and `ConsentWidget.PolicyActions` for custom structure with policy-aware actions
   - `useHeadlessConsentUI()` for fully manual action rendering and non-standard controls
 
+  <Callout type="warning">
+    Headless is the last step in the customization ladder. Use this guide only when pre-built components, tokens, slots, compound components, and `noStyle` are no longer sufficient.
+  </Callout>
+
   The headless stack underneath that is:
 
   - `useHeadlessConsentUI()` for policy-aware banner/dialog actions, ordering, layout, and primary actions hints
@@ -20,8 +24,22 @@
   The split is intentional: `@c15t/ui` owns pure policy-action resolution, while the framework hooks own visibility, consent mutations, and reactive state.
 
   <Callout type="info">
-    This guide is about building your own components while still respecting resolved policy-pack behavior. For the general headless overview, see [Headless Mode](/docs/frameworks/react/headless).
+    This guide is about building your own components while still respecting resolved policy-pack behavior. For the general headless overview, see [Headless Mode](./headless).
   </Callout>
+</section>
+
+<section id="before-you-build">
+  ## Before You Build Headless UI
+
+  Do not use headless mode for problems that are still inside the stock component model:
+
+  - Use `layout`, `direction`, `primaryButton`, and `legalLinks` before you rebuild banner markup
+  - Use `theme.consentActions` before you swap out stock actions
+  - Use tokens such as `colors.surface` and `colors.surfaceHover` before raw CSS overrides
+  - Use slots such as `consentBannerCard`, `consentBannerFooter`, and `consentDialogCard` before compound components
+  - Use `ConsentManagerProvider.options.i18n` before rebuilding UI just to change text
+
+  A good rule: if the stock banner or dialog structure is still correct, you probably do not need headless mode.
 </section>
 
 <section id="what-you-get">
@@ -42,6 +60,19 @@
   That means your component mostly focuses on markup and design-system concerns instead of re-implementing policy interpretation.
 
   For most compound-component layouts, start with `ConsentBanner.PolicyActions` or `ConsentWidget.PolicyActions`. They render stock c15t buttons and translations by default, and `renderAction` is only needed when you want to override the action mapping. Reach for manual `actionGroups` mapping when you need action rendering that no longer fits the stock button compounds.
+</section>
+
+<section id="not-for-styling">
+  ## What Headless Is Not For
+
+  Headless mode is not the recommended path for:
+
+  - changing the banner footer background
+  - rounding the stock banner card
+  - restyling stock banner or dialog buttons
+  - changing consent copy
+
+  Those should stay in the pre-built stack with tokens, slots, `theme.consentActions`, and provider `i18n`.
 </section>
 
 <section id="checklist">

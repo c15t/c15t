@@ -4,6 +4,7 @@ const config: NextConfig = {
 	allowedDevOrigins: [
 		'css-module-strategy.pigeon-post.localhost',
 		'*.pigeon-post.localhost',
+		'theme-rc-bugs.pigeon-post.localhost',
 	],
 	async rewrites() {
 		return [

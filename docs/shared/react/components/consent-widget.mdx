@@ -20,9 +20,37 @@
 
   Each consent category is rendered as an expandable accordion item. Clicking the category header expands it to show a description and any associated services. Users can toggle individual categories on or off using the switch control. The `necessary` category is always enabled and cannot be toggled.
 
-  ## Compound Components
+  ## Styling First
 
-  Build fully custom widget layouts using sub-components while keeping policy-aware action grouping:
+  <Callout type="info">
+    Most widget customization should stay in the stock component. Use theme tokens and slots such as `consentWidgetAccordion`, `consentWidgetFooter`, and `toggle` before reaching for compound components. See [Styling Overview](/docs/frameworks/react/styling/overview).
+  </Callout>
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      theme: {
+        colors: {
+          surface: '#fffdf8',
+          surfaceHover: '#f6f3ee',
+        },
+        slots: {
+          consentWidgetAccordion: 'rounded-3xl border border-black/10',
+          consentWidgetFooter: 'border-t border-black/10 px-6',
+          toggle: 'shadow-sm',
+        },
+      },
+    }}
+  >
+    <ConsentWidget />
+  </ConsentManagerProvider>
+  ```
+
+  Widget copy should be changed through `ConsentManagerProvider.options.i18n` so the inline UI stays aligned with the rest of the consent experience.
+
+  ## Advanced: Compound Components
+
+  Use compound components only when you need to rearrange the widget's existing primitives while keeping policy-aware action grouping:
 
   ```tsx
   <ConsentWidget.Root>
@@ -105,6 +133,8 @@
   ```
 
   For a fixed footer layout, render `ConsentWidget.Footer` and `ConsentWidget.FooterSubGroup` manually instead of using `ConsentWidget.PolicyActions`.
+
+  If the stock widget structure is already correct, stay with tokens and slots instead of rebuilding the layout.
 </section>
 
 <section id="props">

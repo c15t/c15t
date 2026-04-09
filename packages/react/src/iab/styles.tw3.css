@@ -1,0 +1,10 @@
+/**
+ * @c15t/react/iab — Tailwind 3-compatible IAB component styles.
+ *
+ * Import this stylesheet before your app Tailwind globals so utility classes
+ * can come after the c15t base rules.
+ *
+ * Usage:
+ *   import '@c15t/react/iab/styles.tw3.css';
+ */
+@import "@c15t/ui/iab/styles.tw3.css";
