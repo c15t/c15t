@@ -513,6 +513,177 @@ describe('Consent Store', () => {
 			});
 		});
 
+		it('should not replay onConsentChanged when registered with setCallback', () => {
+			const store = createConsentManagerStore(mockManager);
+			const mockCallback = vi.fn();
+
+			store.getState().setCallback('onConsentChanged', mockCallback);
+
+			expect(mockCallback).not.toHaveBeenCalled();
+		});
+
+		it('should not call provided onConsentChanged during store creation', () => {
+			const mockOnConsentChanged = vi.fn();
+
+			createConsentManagerStore(mockManager, {
+				callbacks: {
+					onConsentChanged: mockOnConsentChanged,
+				},
+			});
+
+			expect(mockOnConsentChanged).not.toHaveBeenCalled();
+		});
+
+		it('should invoke onConsentChanged for future changed saves after setCallback', async () => {
+			const store = createConsentManagerStore(mockManager, {
+				reloadOnConsentRevoked: false,
+			});
+			const mockOnConsentChanged = vi.fn();
+
+			store.setState({
+				consentCategories: ['necessary', 'marketing'],
+				consentInfo: {
+					time: Date.now(),
+					type: 'custom',
+					subjectId: 'test-subject',
+				},
+				isLoadingConsentInfo: false,
+			});
+
+			store.getState().setCallback('onConsentChanged', mockOnConsentChanged);
+			store.getState().setConsent('marketing', true);
+			await new Promise((resolve) => setTimeout(resolve, 100));
+
+			expect(mockOnConsentChanged).toHaveBeenCalledTimes(1);
+			expect(mockOnConsentChanged).toHaveBeenCalledWith({
+				preferences: expect.objectContaining({
+					necessary: true,
+					marketing: true,
+				}),
+				previousPreferences: expect.objectContaining({
+					necessary: true,
+					marketing: false,
+				}),
+				allowedCategories: ['necessary', 'marketing'],
+				deniedCategories: [],
+				previousAllowedCategories: ['necessary'],
+				previousDeniedCategories: ['marketing'],
+			});
+		});
+
+		it('should notify subscribeToConsentChanges listeners exactly once per real change', async () => {
+			const store = createConsentManagerStore(mockManager, {
+				reloadOnConsentRevoked: false,
+			});
+			const listener = vi.fn();
+
+			store.setState({
+				consentCategories: ['necessary', 'marketing'],
+				consentInfo: {
+					time: Date.now(),
+					type: 'custom',
+					subjectId: 'test-subject',
+				},
+				isLoadingConsentInfo: false,
+			});
+
+			const unsubscribe = store.getState().subscribeToConsentChanges(listener);
+
+			store.getState().setConsent('marketing', true);
+			await new Promise((resolve) => setTimeout(resolve, 100));
+
+			expect(listener).toHaveBeenCalledTimes(1);
+			expect(listener).toHaveBeenCalledWith({
+				preferences: expect.objectContaining({
+					necessary: true,
+					marketing: true,
+				}),
+				previousPreferences: expect.objectContaining({
+					necessary: true,
+					marketing: false,
+				}),
+				allowedCategories: ['necessary', 'marketing'],
+				deniedCategories: [],
+				previousAllowedCategories: ['necessary'],
+				previousDeniedCategories: ['marketing'],
+			});
+
+			unsubscribe();
+			store.getState().setConsent('functionality', true);
+			await new Promise((resolve) => setTimeout(resolve, 100));
+
+			expect(listener).toHaveBeenCalledTimes(1);
+		});
+
+		it('should notify multiple subscribeToConsentChanges listeners once per change', async () => {
+			const store = createConsentManagerStore(mockManager, {
+				reloadOnConsentRevoked: false,
+			});
+			const firstListener = vi.fn();
+			const secondListener = vi.fn();
+
+			store.setState({
+				consentCategories: ['necessary', 'marketing'],
+				consentInfo: {
+					time: Date.now(),
+					type: 'custom',
+					subjectId: 'test-subject',
+				},
+				isLoadingConsentInfo: false,
+			});
+
+			store.getState().subscribeToConsentChanges(firstListener);
+			store.getState().subscribeToConsentChanges(secondListener);
+
+			store.getState().setConsent('marketing', true);
+			await new Promise((resolve) => setTimeout(resolve, 100));
+
+			expect(firstListener).toHaveBeenCalledTimes(1);
+			expect(secondListener).toHaveBeenCalledTimes(1);
+			expect(firstListener).toHaveBeenCalledWith(
+				secondListener.mock.calls[0]?.[0]
+			);
+		});
+
+		it('should not notify subscribeToConsentChanges for unchanged explicit saves', async () => {
+			const store = createConsentManagerStore(mockManager, {
+				reloadOnConsentRevoked: false,
+			});
+			const listener = vi.fn();
+
+			store.setState({
+				consentCategories: ['necessary', 'marketing'],
+				consentInfo: {
+					time: Date.now(),
+					type: 'custom',
+					subjectId: 'test-subject',
+				},
+				selectedConsents: {
+					necessary: true,
+					functionality: false,
+					experience: false,
+					marketing: false,
+					measurement: false,
+				},
+				isLoadingConsentInfo: false,
+			});
+
+			store.getState().subscribeToConsentChanges(listener);
+			await store.getState().saveConsents('custom');
+
+			expect(listener).not.toHaveBeenCalled();
+		});
+
+		it('should not notify subscribeToConsentChanges for resetConsents', () => {
+			const store = createConsentManagerStore(mockManager);
+			const listener = vi.fn();
+
+			store.getState().subscribeToConsentChanges(listener);
+			store.getState().resetConsents();
+
+			expect(listener).not.toHaveBeenCalled();
+		});
+
 		it('should replay missed onBannerFetched callback if banner was already fetched', () => {
 			const store = createConsentManagerStore(mockManager);
 

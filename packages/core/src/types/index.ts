@@ -5,7 +5,14 @@
  * GDPR-compliant consent management.
  */
 
-export type { Callback, Callbacks } from './callbacks';
+export type {
+	Callback,
+	Callbacks,
+	OnBannerFetchedPayload,
+	OnConsentChangedPayload,
+	OnConsentSetPayload,
+	OnErrorPayload,
+} from './callbacks';
 
 export type {
 	ConsentBannerResponse,

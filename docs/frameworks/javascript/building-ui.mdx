@@ -61,7 +61,7 @@ consentStore.subscribe((state) => {
 
 ## Reactive State Subscriptions
 
-The store fires on every state change. Compare with the previous state to react only to specific changes:
+The store fires on every state change. Compare with the previous state to react only to specific UI changes:
 
 ```ts
 consentStore.subscribe((state, prevState) => {
@@ -73,11 +73,18 @@ consentStore.subscribe((state, prevState) => {
       state.activeUI === 'dialog' ? 'block' : 'none';
   }
 
-  // React to consent changes
-  if (state.consents !== prevState.consents) {
-    console.log('Consent state updated:', state.consents);
-  }
+  // React to other UI-level state changes here
 });
+```
+
+For analytics SDKs or consent-mode integrations, use `subscribeToConsentChanges()` instead of diffing `consentStore.subscribe()` manually:
+
+```ts
+consentStore
+  .getState()
+  .subscribeToConsentChanges(({ allowedCategories, deniedCategories }) => {
+    analytics.syncConsent({ allowedCategories, deniedCategories });
+  });
 ```
 
 ## Building Policy-Aware UI
