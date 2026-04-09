@@ -57,10 +57,12 @@ function createMockState(
 	} as unknown as ConsentStoreState;
 }
 
-function renderPolicyActions(stateOverrides: Partial<ConsentStoreState> = {}) {
+async function renderPolicyActions(
+	stateOverrides: Partial<ConsentStoreState> = {}
+) {
 	const state = createMockState(stateOverrides);
 
-	render(
+	await render(
 		<GlobalThemeContext.Provider value={{ noStyle: false }}>
 			<ConsentStateContext.Provider
 				value={{
@@ -91,12 +93,12 @@ function renderPolicyActions(stateOverrides: Partial<ConsentStoreState> = {}) {
 	);
 }
 
-function renderDefaultPolicyActions(
+async function renderDefaultPolicyActions(
 	stateOverrides: Partial<ConsentStoreState> = {}
 ) {
 	const state = createMockState(stateOverrides);
 
-	render(
+	await render(
 		<GlobalThemeContext.Provider value={{ noStyle: false }}>
 			<ConsentStateContext.Provider
 				value={{
@@ -116,8 +118,8 @@ function renderDefaultPolicyActions(
 }
 
 describe('ConsentWidget.PolicyActions', () => {
-	test('renders policy group ordering', () => {
-		renderPolicyActions();
+	test('renders policy group ordering', async () => {
+		await renderPolicyActions();
 
 		const actions = Array.from(
 			document.querySelectorAll<HTMLElement>('[data-testid^="widget-action-"]')
@@ -130,8 +132,8 @@ describe('ConsentWidget.PolicyActions', () => {
 		]);
 	});
 
-	test('passes primary action state to custom renderers', () => {
-		renderPolicyActions();
+	test('passes primary action state to custom renderers', async () => {
+		await renderPolicyActions();
 
 		expect(
 			document.querySelector('[data-testid="widget-action-customize"]')
@@ -141,8 +143,8 @@ describe('ConsentWidget.PolicyActions', () => {
 		).toHaveAttribute('data-primary', 'false');
 	});
 
-	test('filters disallowed actions', () => {
-		renderPolicyActions({
+	test('filters disallowed actions', async () => {
+		await renderPolicyActions({
 			policyDialog: {
 				allowedActions: ['reject', 'customize'],
 				primaryActions: ['customize'],
@@ -162,8 +164,8 @@ describe('ConsentWidget.PolicyActions', () => {
 		).not.toBeInTheDocument();
 	});
 
-	test('applies stacked and fill layout behavior', () => {
-		renderPolicyActions({
+	test('applies stacked and fill layout behavior', async () => {
+		await renderPolicyActions({
 			policyDialog: {
 				allowedActions: ['reject', 'accept', 'customize'],
 				primaryActions: ['customize'],
@@ -191,8 +193,8 @@ describe('ConsentWidget.PolicyActions', () => {
 		).toHaveAttribute('data-style', 'styled');
 	});
 
-	test('renders stock widget buttons with default translations when renderAction is omitted', () => {
-		renderDefaultPolicyActions();
+	test('renders stock widget buttons with default translations when renderAction is omitted', async () => {
+		await renderDefaultPolicyActions();
 
 		expect(
 			document.querySelector(
