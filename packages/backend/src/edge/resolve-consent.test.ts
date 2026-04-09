@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveConsent } from './resolve-consent';
+import { unstable_resolveConsent } from './resolve-consent';
 
 function makeRequest(headers: Record<string, string>): Request {
 	return new Request('http://localhost/', { headers });
@@ -36,11 +36,14 @@ const policyPacks = [
 	},
 ];
 
-describe('resolveConsent', () => {
+describe('unstable_resolveConsent', () => {
 	it('is synchronous', () => {
-		const result = resolveConsent(makeRequest({ 'x-c15t-country': 'DE' }), {
-			policyPacks,
-		});
+		const result = unstable_resolveConsent(
+			makeRequest({ 'x-c15t-country': 'DE' }),
+			{
+				policyPacks,
+			}
+		);
 
 		// Not a Promise — direct value
 		expect(result).not.toBeInstanceOf(Promise);
@@ -48,9 +51,12 @@ describe('resolveConsent', () => {
 	});
 
 	it('resolves opt-in defaults for EU visitor', () => {
-		const result = resolveConsent(makeRequest({ 'x-c15t-country': 'DE' }), {
-			policyPacks,
-		});
+		const result = unstable_resolveConsent(
+			makeRequest({ 'x-c15t-country': 'DE' }),
+			{
+				policyPacks,
+			}
+		);
 
 		expect(result.jurisdiction).toBe('GDPR');
 		expect(result.model).toBe('opt-in');
@@ -65,7 +71,7 @@ describe('resolveConsent', () => {
 	});
 
 	it('resolves opt-out defaults for US-CA visitor', () => {
-		const result = resolveConsent(
+		const result = unstable_resolveConsent(
 			makeRequest({ 'x-c15t-country': 'US', 'x-c15t-region': 'CA' }),
 			{ policyPacks }
 		);
@@ -82,9 +88,12 @@ describe('resolveConsent', () => {
 	});
 
 	it('resolves no-banner defaults for unmatched visitor with default policy', () => {
-		const result = resolveConsent(makeRequest({ 'x-c15t-country': 'JP' }), {
-			policyPacks,
-		});
+		const result = unstable_resolveConsent(
+			makeRequest({ 'x-c15t-country': 'JP' }),
+			{
+				policyPacks,
+			}
+		);
 
 		expect(result.model).toBe('none');
 		expect(result.policyId).toBe('us_default');
@@ -97,7 +106,7 @@ describe('resolveConsent', () => {
 	});
 
 	it('respects GPC signal for opt-out policies', () => {
-		const result = resolveConsent(
+		const result = unstable_resolveConsent(
 			makeRequest({
 				'x-c15t-country': 'US',
 				'x-c15t-region': 'CA',
@@ -122,7 +131,7 @@ describe('resolveConsent', () => {
 	});
 
 	it('ignores GPC for opt-in policies', () => {
-		const result = resolveConsent(
+		const result = unstable_resolveConsent(
 			makeRequest({
 				'x-c15t-country': 'DE',
 				'sec-gpc': '1',
@@ -139,20 +148,23 @@ describe('resolveConsent', () => {
 	});
 
 	it('handles preselected categories in opt-in mode', () => {
-		const result = resolveConsent(makeRequest({ 'x-c15t-country': 'DE' }), {
-			policyPacks: [
-				{
-					id: 'eu_preselect',
-					match: { countries: ['DE'] },
-					consent: {
-						model: 'opt-in',
-						categories: ['necessary', 'marketing', 'measurement'],
-						preselectedCategories: ['measurement'],
+		const result = unstable_resolveConsent(
+			makeRequest({ 'x-c15t-country': 'DE' }),
+			{
+				policyPacks: [
+					{
+						id: 'eu_preselect',
+						match: { countries: ['DE'] },
+						consent: {
+							model: 'opt-in',
+							categories: ['necessary', 'marketing', 'measurement'],
+							preselectedCategories: ['measurement'],
+						},
+						ui: { mode: 'banner' },
 					},
-					ui: { mode: 'banner' },
-				},
-			],
-		});
+				],
+			}
+		);
 
 		expect(result.defaults).toEqual({
 			necessary: { granted: true, required: true },
@@ -162,7 +174,10 @@ describe('resolveConsent', () => {
 	});
 
 	it('returns no-banner fallback when no policies configured', () => {
-		const result = resolveConsent(makeRequest({ 'x-c15t-country': 'DE' }), {});
+		const result = unstable_resolveConsent(
+			makeRequest({ 'x-c15t-country': 'DE' }),
+			{}
+		);
 
 		expect(result.model).toBe('none');
 		expect(result.showBanner).toBe(false);
@@ -170,16 +185,19 @@ describe('resolveConsent', () => {
 	});
 
 	it('returns no-banner fallback for explicit empty policyPacks', () => {
-		const result = resolveConsent(makeRequest({ 'x-c15t-country': 'DE' }), {
-			policyPacks: [],
-		});
+		const result = unstable_resolveConsent(
+			makeRequest({ 'x-c15t-country': 'DE' }),
+			{
+				policyPacks: [],
+			}
+		);
 
 		expect(result.model).toBe('none');
 		expect(result.showBanner).toBe(false);
 	});
 
 	it('defaults to GDPR when geo-location is disabled', () => {
-		const result = resolveConsent(makeRequest({}), {
+		const result = unstable_resolveConsent(makeRequest({}), {
 			policyPacks,
 			disableGeoLocation: true,
 		});
@@ -192,7 +210,7 @@ describe('resolveConsent', () => {
 	});
 
 	it('reports location data', () => {
-		const result = resolveConsent(
+		const result = unstable_resolveConsent(
 			makeRequest({
 				'x-c15t-country': 'US',
 				'x-c15t-region': 'CA',
