@@ -2,9 +2,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import type React from 'react';
-import '../globals.css'; // Must be first — declares @layer order for Tailwind 4 + c15t
-import '@c15t/nextjs/styles.css';
-import '@c15t/nextjs/iab/styles.css';
+import '../globals.css';
 import { ConsentManager } from '../../components/consent-manager/provider';
 
 const geist = Geist({

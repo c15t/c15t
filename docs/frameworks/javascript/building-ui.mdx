@@ -254,10 +254,10 @@ const sw = switchVariants({ size: 'medium' });
 toggleEl.className = sw.root();
 ```
 
-These functions return CSS module class name generators. To apply the associated styles, import the stylesheet at the root of your application:
+These functions return CSS module class name generators. To apply the associated styles, import the stylesheet from your app-level CSS entrypoint:
 
-```ts
-import '@c15t/ui/styles.css';
+```css title="src/index.css"
+@import "@c15t/ui/styles.css";
 ```
 
 ## Building a Framework Library

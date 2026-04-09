@@ -1,10 +1,13 @@
 /**
  * @c15t/nextjs — Tailwind 3-compatible prebuilt component styles.
  *
- * Import this stylesheet before your app Tailwind globals so utility classes
- * can come after the c15t base rules.
+ * Import this stylesheet in the same global CSS entrypoint as Tailwind 3,
+ * after `@tailwind components;` and before `@tailwind utilities;`.
  *
- * Usage:
- *   import '@c15t/nextjs/styles.tw3.css';
+ * Usage (app/globals.css):
+ *   @tailwind base;
+ *   @tailwind components;
+ *   @import "@c15t/nextjs/styles.tw3.css";
+ *   @tailwind utilities;
  */
 @import "@c15t/react/styles.tw3.css";

@@ -1,49 +1,28 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import {
+	type EnsureGlobalCssStylesheetImportsResult,
+	ensureGlobalCssStylesheetImports,
+	type StyledPackageName,
+} from '../../shared/stylesheets';
 
-/**
- * Patterns for common CSS files that might contain Tailwind directives
- */
-const CSS_PATTERNS = [
-	'app/globals.css',
-	'src/app/globals.css',
-	'app/global.css',
-	'src/app/global.css',
-	'styles/globals.css',
-	'src/styles/globals.css',
-	'styles/global.css',
-	'src/styles/global.css',
-	'src/index.css',
-	'src/App.css',
-];
+export interface UpdateAppStylesheetImportsOptions {
+	projectRoot: string;
+	packageName: Exclude<StyledPackageName, '@c15t/ui'>;
+	tailwindVersion: string | null;
+	entrypointPath?: string | null;
+	dryRun?: boolean;
+	includeIab?: boolean;
+}
 
-/**
- * Updates the project's CSS file for Tailwind v3 compatibility if needed
- *
- * @param projectRoot - The root directory of the project
- * @param tailwindVersion - The detected Tailwind version
- * @returns Object indicating if the update was successful and the file path
- */
-export async function updateTailwindCss(
-	projectRoot: string,
-	tailwindVersion: string | null
-): Promise<{ updated: boolean; filePath: string | null }> {
-	// Tailwind v3 no longer needs a CSS rewrite. Styled installs use the
-	// dedicated styles.tw3.css entrypoint, and standard Tailwind directives can
-	// remain unchanged in the app stylesheet.
-	if (!tailwindVersion || !tailwindVersion.match(/^(?:\^|~)?3/)) {
-		return { updated: false, filePath: null };
-	}
-
-	for (const pattern of CSS_PATTERNS) {
-		const filePath = path.join(projectRoot, pattern);
-		try {
-			await fs.access(filePath);
-			return { updated: false, filePath };
-		} catch {
-			// File doesn't exist, try next pattern
-		}
-	}
-
-	return { updated: false, filePath: null };
+export async function updateAppStylesheetImports(
+	options: UpdateAppStylesheetImportsOptions
+): Promise<EnsureGlobalCssStylesheetImportsResult> {
+	return ensureGlobalCssStylesheetImports({
+		projectRoot: options.projectRoot,
+		packageName: options.packageName,
+		tailwindVersion: options.tailwindVersion,
+		entrypointPath: options.entrypointPath,
+		includeBase: true,
+		includeIab: options.includeIab ?? false,
+		dryRun: options.dryRun,
+	});
 }
