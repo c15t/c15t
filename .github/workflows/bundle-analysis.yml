@@ -66,6 +66,9 @@ jobs:
           bun install --frozen-lockfile --ignore-scripts || bun install --ignore-scripts
           WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*"
 
+      - name: 🛠️ Build bundle analysis action
+        run: bun turbo run build --filter=@c15t/bundle-analysis-action
+
       # Step 5: Run bundle analysis (generate report only, no comment posting)
       - name: 📊 Analyze bundle differences
         uses: ./internals/bundle-analysis-action
