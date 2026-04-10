@@ -1,0 +1,27 @@
+{
+	"name": "@c15t/tw4-css-test",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "next dev --port 3122",
+		"build": "next build",
+		"start": "next start --port 3122"
+	},
+	"dependencies": {
+		"@c15t/benchmarking": "workspace:*",
+		"@c15t/nextjs": "workspace:*",
+		"@c15t/react": "workspace:*",
+		"next": "15.3.3",
+		"react": "19.2.3",
+		"react-dom": "19.2.3"
+	},
+	"devDependencies": {
+		"@tailwindcss/postcss": "^4.2.2",
+		"@types/node": "22.14.1",
+		"@types/react": "19.2.3",
+		"@types/react-dom": "19.2.3",
+		"postcss": "^8.5.8",
+		"tailwindcss": "^4.2.2",
+		"typescript": "5.8.3"
+	}
+}

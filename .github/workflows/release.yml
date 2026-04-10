@@ -35,7 +35,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: "1.3.11"
+          bun-version: latest
 
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
@@ -43,12 +43,16 @@ jobs:
           node-version: 22
           registry-url: 'https://registry.npmjs.org'
 
+      # Upgrade npm for trusted publishing (OIDC provenance requires npm 11+).
+      # Node.js 22.22.2's bundled npm has a missing promise-retry module that
+      # breaks `npm install -g`, so we install it first as a workaround.
+      - name: Upgrade npm for provenance publishing
+        run: |
+          npm install -g promise-retry 2>/dev/null || true
+          npm install -g npm@latest
+
       - name: Install dependencies
         run: bun install --frozen-lockfile # Use frozen lockfile for reliability in CI
-
-      # Ensure npm 11.5.1+ for trusted publishing (OIDC)
-      - name: Update npm for trusted publishing
-        run: npm install -g npm@latest
 
       # Canary release: Create and publish snapshot release
       - name: Create and publish canary snapshot release
@@ -63,7 +67,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
-          # Enable npm provenance (automatic with trusted publishing, but explicit for compatibility)
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
 
       # RC release: Publish pre-release versions from 2.0.0 branch
@@ -79,6 +83,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
 
       # Regular release: Create Release Pull Request or Publish to npm
@@ -96,8 +101,10 @@ jobs:
         env:
           # GITHUB_TOKEN is used by the action to create PRs, releases, comments
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # NPM_TOKEN is used by 'changeset publish' (called via 'bun run release')
-          NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }} # MUST be set in repo secrets
+          # NPM_TOKEN is used by changesets action to create ~/.npmrc
+          NPM_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
+          # NODE_AUTH_TOKEN is used by actions/setup-node's .npmrc (takes precedence via NPM_CONFIG_USERCONFIG)
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_RELEASE_TOKEN }}
           # Enable npm provenance (automatic with trusted publishing, but explicit for compatibility)
           NPM_CONFIG_PROVENANCE: "true"
 

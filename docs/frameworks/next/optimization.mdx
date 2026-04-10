@@ -1,7 +1,7 @@
 ---
 title: Optimization
 description: Improve c15t startup performance in Next.js with rewrites, static prefetching, and rendering tradeoffs.
-lastModified: 2026-03-17
+lastModified: 2026-04-09
 ---
 
 <import src="../../shared/react/guides/optimization.mdx#intro" />
@@ -47,15 +47,80 @@ Then use:
 
 | Goal | Strategy | Tradeoff |
 |------|----------|----------|
-| Keep routes fully static | `C15tPrefetch` + `getPrefetchedInitialData()` | Still client-side fetch, but starts earlier |
+| Keep routes fully static | `C15tPrefetch` | Still client-side fetch, but starts earlier |
 | Fastest first banner on dynamic routes | `fetchInitialData()` in a Server Component (do not await) | Route becomes dynamic because of `next/headers` |
 | Simplest setup | Client-only init (no prefetch) | Banner appears later on slow networks |
 
 <import src="../../shared/react/guides/optimization.mdx#benchmark" />
 
+### Dynamic Routes: Fetch On The Server And Stream
+
+Use `fetchInitialData()` in a Server Component when you want the fastest first banner and can accept the route becoming dynamic.
+
+```tsx title="app/layout.tsx"
+import { fetchInitialData } from '@c15t/nextjs';
+import ConsentManager from '@/components/consent-manager';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const ssrData = fetchInitialData({
+    backendURL: process.env.NEXT_PUBLIC_C15T_URL!,
+  });
+
+  return (
+    <html lang="en">
+      <body>
+        <ConsentManager ssrData={ssrData}>{children}</ConsentManager>
+      </body>
+    </html>
+  );
+}
+```
+
+```tsx title="components/consent-manager/provider.tsx"
+'use client';
+
+import { type ReactNode } from 'react';
+import {
+  ConsentManagerProvider,
+  ConsentBanner,
+  ConsentDialog,
+  type InitialDataPromise,
+} from '@c15t/nextjs';
+
+export default function ConsentManager({
+  children,
+  ssrData,
+}: {
+  children: ReactNode;
+  ssrData?: InitialDataPromise;
+}) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: '/api/c15t',
+        store: { ssrData },
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<Callout type="warn">
+  Do not `await` `fetchInitialData()`. Pass the unresolved Promise to the provider so Next.js can stream the route while `/init` runs in parallel.
+</Callout>
+
+<Callout type="info">
+  For `fetchInitialData()`, prefer a direct backend URL such as `https://your-instance.c15t.dev` instead of a rewrite to avoid an extra server-side proxy hop. See [Server-Side Data Fetching](/docs/frameworks/next/server-side) for the full flow.
+</Callout>
+
 ### Static Routes: Start Fetch Early In The Browser
 
-Use `C15tPrefetch` in your layout and consume the same Promise in the provider.
+Use `C15tPrefetch` in your layout. Matching prefetched data is consumed automatically by the runtime during first store initialization.
 
 ```tsx title="app/layout.tsx"
 import { C15tPrefetch } from '@c15t/nextjs';
@@ -85,7 +150,6 @@ import {
   ConsentManagerProvider,
   ConsentBanner,
   ConsentDialog,
-  getPrefetchedInitialData,
 } from '@c15t/nextjs';
 
 export default function ConsentManagerClient({ children }: { children: React.ReactNode }) {
@@ -94,10 +158,7 @@ export default function ConsentManagerClient({ children }: { children: React.Rea
       options={{
         mode: 'hosted',
         backendURL: '/api/c15t',
-        ssrData: getPrefetchedInitialData({
-          backendURL: '/api/c15t',
-          overrides: { country: 'DE', region: 'BE', language: 'de' },
-        }),
+        overrides: { country: 'DE', region: 'BE', language: 'de' },
       }}
     >
       <ConsentBanner />
@@ -113,7 +174,7 @@ export default function ConsentManagerClient({ children }: { children: React.Rea
 </Callout>
 
 <Callout type="info">
-  If you use `overrides` or custom `credentials` in `C15tPrefetch`, pass the same values to `getPrefetchedInitialData(...)` so it resolves the matching prefetched request.
+  If `overrides.gpc` conflicts with the browser's ambient GPC signal, the prefetched entry is not reused and c15t falls back to a normal client `/init`.
 </Callout>
 
 <import src="../../shared/react/guides/optimization.mdx#keep-mounted" />

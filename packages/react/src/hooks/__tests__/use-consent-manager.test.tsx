@@ -129,6 +129,28 @@ describe('useConsentManager', () => {
 		expect(result.current.manager).toBeDefined();
 	});
 
+	test('exposes a stable subscribeToConsentChanges function across rerenders', async () => {
+		const { result, rerender } = await renderHook(() => useConsentManager(), {
+			wrapper: ({ children }) => (
+				<ConsentManagerProvider
+					options={{
+						mode: 'offline',
+						noStyle: false,
+					}}
+				>
+					{children}
+				</ConsentManagerProvider>
+			),
+		});
+
+		const firstSubscribe = result.current.subscribeToConsentChanges;
+
+		rerender();
+
+		expect(typeof result.current.subscribeToConsentChanges).toBe('function');
+		expect(result.current.subscribeToConsentChanges).toBe(firstSubscribe);
+	});
+
 	test('applies policy scope mode in has()', async () => {
 		const state = {
 			consents: {

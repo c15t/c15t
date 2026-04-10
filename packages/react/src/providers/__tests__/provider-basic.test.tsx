@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { ConsentManagerProvider } from '~/index';
+import { clearConsentRuntimeCache } from '../consent-manager-provider';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -11,6 +12,7 @@ window.fetch = mockFetch;
 describe('ConsentManagerProvider Basic Request Behavior', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
+		clearConsentRuntimeCache();
 		// Set up fake timers for timer-related tests
 		vi.useFakeTimers();
 
@@ -37,6 +39,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 	afterEach(() => {
 		vi.clearAllMocks();
+		clearConsentRuntimeCache();
 		// Restore real timers after each test
 		vi.useRealTimers();
 	});
@@ -229,6 +232,83 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		expect(getByTestId('policy-probe')).toHaveTextContent('"model":"opt-out"');
 		expect(getByTestId('policy-probe')).toHaveTextContent(
 			'"activeUI":"banner"'
+		);
+	});
+
+	it('should update callback props on cached runtimes without replaying stale handlers', async () => {
+		const firstOnConsentChanged = vi.fn();
+		const secondOnConsentChanged = vi.fn();
+		let consentManager: ReturnType<typeof useConsentManager> | null = null;
+
+		const Probe = () => {
+			consentManager = useConsentManager();
+			return <div>Probe</div>;
+		};
+
+		const { rerender } = await render(
+			<ConsentManagerProvider
+				options={{
+					mode: 'offline',
+					callbacks: {
+						onConsentChanged: firstOnConsentChanged,
+					},
+					consentCategories: ['necessary', 'measurement'],
+					offlinePolicy: {
+						policy: {
+							model: 'opt-in',
+							consent: {
+								categories: ['necessary', 'measurement'],
+							},
+							ui: {
+								mode: 'banner',
+							},
+						},
+					},
+				}}
+			>
+				<Probe />
+			</ConsentManagerProvider>
+		);
+
+		await vi.runAllTimersAsync();
+
+		rerender(
+			<ConsentManagerProvider
+				options={{
+					mode: 'offline',
+					callbacks: {
+						onConsentChanged: secondOnConsentChanged,
+					},
+					consentCategories: ['necessary', 'measurement'],
+					offlinePolicy: {
+						policy: {
+							model: 'opt-in',
+							consent: {
+								categories: ['necessary', 'measurement'],
+							},
+							ui: {
+								mode: 'banner',
+							},
+						},
+					},
+				}}
+			>
+				<Probe />
+			</ConsentManagerProvider>
+		);
+
+		await vi.runAllTimersAsync();
+
+		consentManager?.setConsent('measurement', true);
+		await vi.runAllTimersAsync();
+
+		expect(firstOnConsentChanged).not.toHaveBeenCalled();
+		expect(secondOnConsentChanged).toHaveBeenCalledTimes(1);
+		expect(secondOnConsentChanged).toHaveBeenCalledWith(
+			expect.objectContaining({
+				allowedCategories: ['necessary', 'measurement'],
+				previousAllowedCategories: ['necessary'],
+			})
 		);
 	});
 });

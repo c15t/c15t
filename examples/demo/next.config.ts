@@ -1,7 +1,13 @@
 import type { NextConfig } from 'next';
 
 const config: NextConfig = {
-	allowedDevOrigins: ['css-module-strategy.pigeon-post.localhost'],
+	allowedDevOrigins: [
+		'pigeon-post.localhost',
+		'*.pigeon-post.localhost',
+		'css-module-strategy.pigeon-post.localhost',
+		'*.pigeon-post.localhost',
+		'theme-rc-bugs.pigeon-post.localhost',
+	],
 	async rewrites() {
 		return [
 			{

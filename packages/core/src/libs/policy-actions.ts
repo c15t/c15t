@@ -116,8 +116,8 @@ export function resolvePolicyPrimaryActions(params: {
 		return defaultPrimary;
 	}
 
-	const filtered = params.primaryActions.filter((a) =>
-		params.orderedActions.includes(a)
+	const filtered = params.primaryActions.filter((action) =>
+		params.orderedActions.includes(action)
 	);
 	return filtered.length > 0 ? filtered : defaultPrimary;
 }

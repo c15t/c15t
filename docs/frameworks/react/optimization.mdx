@@ -41,7 +41,7 @@ const prefetchScript = buildPrefetchScript({
 </head>
 ```
 
-Then consume the prefetched data in your provider:
+Then initialize your provider normally. Matching prefetched data is consumed automatically by the runtime during first store initialization:
 
 ```tsx
 import {
@@ -49,7 +49,6 @@ import {
   ConsentBanner,
   ConsentDialog,
 } from '@c15t/react';
-import { getPrefetchedInitialData } from 'c15t';
 
 export default function App({ children }: { children: React.ReactNode }) {
   return (
@@ -57,9 +56,6 @@ export default function App({ children }: { children: React.ReactNode }) {
       options={{
         mode: 'hosted',
         backendURL: '/api/c15t',
-        ssrData: getPrefetchedInitialData({
-          backendURL: '/api/c15t',
-        }),
       }}
     >
       <ConsentBanner />
@@ -71,7 +67,7 @@ export default function App({ children }: { children: React.ReactNode }) {
 ```
 
 <Callout type="info">
-  If you use `overrides` or custom `credentials` in `buildPrefetchScript`, pass the same values to `getPrefetchedInitialData(...)` so it resolves the matching prefetched request.
+  If `overrides.gpc` conflicts with the browser's ambient GPC signal, the prefetched entry is not reused and c15t falls back to a normal client `/init`.
 </Callout>
 
 <import src="../../shared/react/guides/optimization.mdx#keep-mounted" />

@@ -25,10 +25,16 @@ permissions: {}
 jobs:
   # ============================================================================
   # PREVIEW DEPLOYMENTS (for PRs)
+  # pull_request_target has access to secrets; only same-repo PRs auto-trigger so
+  # fork PRs cannot drive repository-dispatch with arbitrary head SHAs. Fork
+  # previews: use workflow_dispatch → preview with the PR number (maintainers).
   # ============================================================================
   trigger-preview:
     name: 🔍 Trigger Preview
-    if: github.event_name == 'pull_request_target' && github.event.action != 'closed'
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: 📤 Trigger docs preview
@@ -37,13 +43,13 @@ jobs:
           token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
           repository: ${{ secrets.DOCS_REPO }}
           event-type: docs-preview
-          client-payload: >-
+          client-payload: |
             {
-              "pr_number": ${{ github.event.pull_request.number }},
-              "branch": ${{ toJSON(github.head_ref) }},
-              "repo": ${{ toJSON(github.repository) }},
-              "sha": ${{ toJSON(github.event.pull_request.head.sha) }},
-              "action": ${{ toJSON(github.event.action) }}
+              "pr_number": "${{ github.event.pull_request.number }}",
+              "branch": "${{ github.head_ref }}",
+              "repo": "${{ github.repository }}",
+              "sha": "${{ github.event.pull_request.head.sha }}",
+              "action": "${{ github.event.action }}"
             }
 
       - name: 📝 Summary
@@ -54,7 +60,10 @@ jobs:
 
   notify-close:
     name: 🧹 Notify PR Closed
-    if: github.event_name == 'pull_request_target' && github.event.action == 'closed'
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: 📤 Notify docs repo of PR close
@@ -63,12 +72,12 @@ jobs:
           token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
           repository: ${{ secrets.DOCS_REPO }}
           event-type: docs-preview
-          client-payload: >-
+          client-payload: |
             {
-              "pr_number": ${{ github.event.pull_request.number }},
-              "branch": ${{ toJSON(github.head_ref) }},
-              "repo": ${{ toJSON(github.repository) }},
-              "sha": ${{ toJSON(github.event.pull_request.head.sha) }},
+              "pr_number": "${{ github.event.pull_request.number }}",
+              "branch": "${{ github.head_ref }}",
+              "repo": "${{ github.repository }}",
+              "sha": "${{ github.event.pull_request.head.sha }}",
               "action": "closed"
             }
 
@@ -92,13 +101,13 @@ jobs:
               core.setFailed('PR number is required for preview deployment');
               return;
             }
-
+            
             const { data: pr } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: parseInt(prNumber)
             });
-
+            
             core.setOutput('pr_number', pr.number);
             core.setOutput('branch', pr.head.ref);
             core.setOutput('sha', pr.head.sha);

@@ -1,10 +1,10 @@
 /**
  * @c15t/nextjs — Non-IAB prebuilt component styles.
  *
- * Import this stylesheet once in your root layout when using
+ * Import this stylesheet once from your app-level CSS entrypoint when using
  * prebuilt (styled) consent components.
  *
- * Usage:
- *   import '@c15t/nextjs/styles.css';
+ * Usage (app/globals.css):
+ *   @import "@c15t/nextjs/styles.css";
  */
-@import "@c15t/react/styles.css";
+@import "../../react/styles.css";

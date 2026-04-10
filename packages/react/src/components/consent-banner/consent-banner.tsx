@@ -7,12 +7,12 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
-import { type FC, Fragment, type ReactNode } from 'react';
 import {
 	type PolicyUiAction,
 	type PolicyUiActionDirection,
 	shouldFillPolicyActions,
-} from '~/components/shared/libs/policy-actions';
+} from '@c15t/ui/utils';
+import { type FC, Fragment, type ReactNode } from 'react';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
@@ -221,7 +221,8 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	const effectivePrimaryButton =
 		banner.primaryActions.length > 0 ? banner.primaryActions : primaryButton;
 	const resolvedLayout: ConsentBannerLayout =
-		layout ?? (banner.hasPolicyHints ? banner.actionGroups : DEFAULT_LAYOUT);
+		layout ??
+		((banner.layout?.length ?? 0) > 0 ? banner.actionGroups : DEFAULT_LAYOUT);
 	const resolvedDirection = direction ?? banner.direction ?? 'row';
 	const activeGroups = resolvedLayout
 		.map((item) =>

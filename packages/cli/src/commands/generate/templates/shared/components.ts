@@ -24,7 +24,7 @@ interface GenerateConsentComponentOptions {
 	defaultExport?: boolean;
 	/** Whether to add ssrData prop passed inside options object (App Dir client with SSR) */
 	ssrDataOption?: boolean;
-	/** Whether to add geo override for development (shows banner in non-EU countries) */
+	/** Whether to add geo override for development */
 	includeOverrides?: boolean;
 	/** Whether to add c15t DevTools component */
 	enableDevTools?: boolean;
@@ -95,9 +95,7 @@ export function generateConsentComponent({
 	// Build the full options object
 	const ssrDataLine = ssrDataOption ? '\n\t\t\t\tssrData,' : '';
 	const themeLine = includeTheme ? '\n\t\t\t\ttheme,' : '';
-	const overridesLine = includeOverrides
-		? `\n\t\t\t\t// Shows banner during development. Remove for production.\n\t\t\t\toverrides: { country: 'DE' },`
-		: '';
+	const overridesLine = '';
 
 	const fullOptionsText = `{
 			${optionsText}${ssrDataLine}${themeLine}

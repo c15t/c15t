@@ -1,6 +1,5 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
 import {
 	hasPolicyHints,
 	type PolicyUiAction,
@@ -14,7 +13,8 @@ import {
 	resolvePolicyOrderedActions,
 	resolvePolicyPrimaryActions,
 	shouldFillPolicyActions,
-} from '~/components/shared/libs/policy-actions';
+} from '@c15t/ui/utils';
+import { useCallback, useMemo } from 'react';
 import { useConsentManager } from './use-consent-manager';
 
 export type HeadlessConsentSurface = 'banner' | 'dialog';

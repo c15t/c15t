@@ -1,0 +1,14 @@
+/**
+ * @c15t/nextjs/iab — Tailwind 3-compatible IAB component styles.
+ *
+ * Add this stylesheet to the same global CSS entrypoint as your base c15t styles.
+ * Do not import either stylesheet from JS/TSX files.
+ *
+ * Usage (app/globals.css):
+ *   @tailwind base;
+ *   @tailwind components;
+ *   @import "@c15t/nextjs/styles.tw3.css";
+ *   @import "@c15t/nextjs/iab/styles.tw3.css";
+ *   @tailwind utilities;
+ */
+@import "@c15t/react/iab/styles.tw3.css";

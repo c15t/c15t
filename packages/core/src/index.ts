@@ -105,11 +105,7 @@ export {
 } from './libs/policy-actions';
 export type { PrefetchOptions } from './libs/prefetch';
 // Export prefetch utilities
-export {
-	buildPrefetchScript,
-	ensurePrefetchedInitialData,
-	getPrefetchedInitialData,
-} from './libs/prefetch';
+export { buildPrefetchScript } from './libs/prefetch';
 // Export script loader
 export {
 	emitScriptDebugEvent,
@@ -150,12 +146,21 @@ export type {
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
 	SSRInitialData,
+	SSRInitRequestContext,
 	SSRInitRequestMetadata,
+	SSRSkippedReason,
 	StoreOptions,
 } from './store/type';
 // Export default translation config
 export { defaultTranslationConfig } from './translations';
-export type { Callback, Callbacks } from './types/callbacks';
+export type {
+	Callback,
+	Callbacks,
+	OnBannerFetchedPayload,
+	OnConsentChangedPayload,
+	OnConsentSetPayload,
+	OnErrorPayload,
+} from './types/callbacks';
 export type {
 	ConsentBannerResponse,
 	ConsentState,

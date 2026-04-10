@@ -7,13 +7,17 @@ description: Implement IAB Transparency & Consent Framework 2.3 compliance for p
 
 ## Quick Setup
 
+If you use the prebuilt styled IAB UI, import the IAB stylesheet alongside the base stylesheet in your global CSS entrypoint:
+
+```css title="src/app/globals.css"
+@import "@c15t/nextjs/styles.css";
+@import "@c15t/nextjs/iab/styles.css";
+```
+
 ```tsx
 import { type ReactNode } from 'react';
-import {
-  ConsentManagerProvider,
-  IABConsentBanner,
-  IABConsentDialog,
-} from '@c15t/nextjs';
+import { ConsentManagerProvider } from '@c15t/nextjs';
+import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
   return (

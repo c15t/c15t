@@ -4,6 +4,7 @@ import { generateThemeCSS } from '@c15t/ui/theme';
 import { deepMerge } from '@c15t/ui/utils';
 import {
 	clearConsentRuntimeCache as baseClearCache,
+	type Callbacks,
 	type ConsentStoreState,
 	getOrCreateConsentRuntime,
 } from 'c15t';
@@ -30,6 +31,24 @@ import { version } from '../version';
  */
 export function clearConsentRuntimeCache(): void {
 	baseClearCache();
+}
+
+const CALLBACK_KEYS = [
+	'onBannerFetched',
+	'onConsentSet',
+	'onConsentChanged',
+	'onError',
+	'onBeforeConsentRevocationReload',
+] as const;
+
+function pickCallbackProps(callbacks?: Callbacks): Callbacks {
+	return {
+		onBannerFetched: callbacks?.onBannerFetched,
+		onConsentSet: callbacks?.onConsentSet,
+		onConsentChanged: callbacks?.onConsentChanged,
+		onError: callbacks?.onError,
+		onBeforeConsentRevocationReload: callbacks?.onBeforeConsentRevocationReload,
+	};
 }
 
 /**
@@ -82,6 +101,9 @@ export function ConsentManagerProvider({
 
 	// Track if we've initialized to avoid redundant state updates during hydration
 	const initializedRef = useRef(false);
+	const appliedCallbacksRef = useRef<Callbacks>(
+		pickCallbackProps(options.callbacks)
+	);
 
 	// Set up subscription immediately and separately from initialization
 	useEffect(() => {
@@ -142,6 +164,37 @@ export function ConsentManagerProvider({
 		options.overrides?.region,
 		options.overrides?.language,
 		options.overrides?.gpc,
+	]);
+
+	useEffect(() => {
+		if (!consentStore) {
+			return;
+		}
+
+		const nextCallbacks = pickCallbackProps(options.callbacks);
+		const previousCallbacks = appliedCallbacksRef.current;
+		const hasDiff = CALLBACK_KEYS.some(
+			(key) => previousCallbacks[key] !== nextCallbacks[key]
+		);
+
+		if (!hasDiff) {
+			return;
+		}
+
+		consentStore.setState((currentState) => ({
+			callbacks: {
+				...currentState.callbacks,
+				...nextCallbacks,
+			},
+		}));
+		appliedCallbacksRef.current = nextCallbacks;
+	}, [
+		consentStore,
+		options.callbacks?.onBannerFetched,
+		options.callbacks?.onConsentSet,
+		options.callbacks?.onConsentChanged,
+		options.callbacks?.onError,
+		options.callbacks?.onBeforeConsentRevocationReload,
 	]);
 
 	// Create theme context value

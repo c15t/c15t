@@ -4,7 +4,6 @@ import {
 	type AllConsentNames,
 	ConsentBanner,
 	ConsentManagerProvider,
-	getPrefetchedInitialData,
 	type InitialDataPromise,
 } from '@c15t/nextjs';
 import type { ReactNode } from 'react';
@@ -81,23 +80,11 @@ export function BenchmarkConsentProvider({
 		}
 	}, []);
 
-	const resolvedSSRData = useMemo(() => {
-		if (variant === 'prefetch') {
-			return (
-				getPrefetchedInitialData({
-					backendURL: BENCHMARK_BACKEND_URL,
-				}) ?? ssrData
-			);
-		}
-
-		return ssrData;
-	}, [ssrData, variant]);
-
 	const options = useMemo(
 		() => ({
 			mode: 'c15t' as const,
 			backendURL: BENCHMARK_BACKEND_URL,
-			ssrData: resolvedSSRData,
+			ssrData: variant === 'prefetch' ? undefined : ssrData,
 			theme: getBenchmarkTheme(animationMode),
 			consentCategories: BENCHMARK_CONSENT_CATEGORIES,
 			callbacks: createBenchmarkCallbacks(variant),
@@ -106,7 +93,7 @@ export function BenchmarkConsentProvider({
 				termsOfService: { href: '/benchmark' },
 			},
 		}),
-		[animationMode, resolvedSSRData, variant]
+		[animationMode, ssrData, variant]
 	);
 
 	return (

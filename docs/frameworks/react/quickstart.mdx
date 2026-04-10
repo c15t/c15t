@@ -30,14 +30,16 @@ availableIn:
   <Step>
     ### Import styles
 
-    Import the prebuilt component stylesheet at the root of your application. This is required for styled components to render correctly.
+    Import the prebuilt component stylesheet in your app-level CSS entrypoint. This is required for styled components to render correctly.
 
-    ```tsx title="src/main.tsx"
-    import '@c15t/react/styles.css';
+    ```css title="src/index.css"
+    @import "@c15t/react/styles.css";
     ```
 
+    <import src="../../shared/react/styling/stylesheet-entrypoint.mdx#why-global-css" />
+
     <Callout type="info">
-      If you are using the headless API or fully custom styling, you can skip this import.
+      If you are using the headless API or fully custom styling, you can skip this import. `src/main.tsx` should keep importing `./index.css` as usual.
     </Callout>
   </Step>
 

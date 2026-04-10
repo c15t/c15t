@@ -11,6 +11,7 @@ interface InstrumentationEntry {
 	originalCallbacks: {
 		onBannerFetched?: unknown;
 		onConsentSet?: unknown;
+		onConsentChanged?: unknown;
 		onError?: unknown;
 		onBeforeConsentRevocationReload?: unknown;
 	};
@@ -107,6 +108,12 @@ function restoreInstrumentation(entry: InstrumentationEntry): void {
 			| undefined
 	);
 	state.setCallback(
+		'onConsentChanged',
+		entry.originalCallbacks.onConsentChanged as
+			| ConsentStoreState['callbacks']['onConsentChanged']
+			| undefined
+	);
+	state.setCallback(
 		'onError',
 		entry.originalCallbacks.onError as
 			| ConsentStoreState['callbacks']['onError']
@@ -172,6 +179,19 @@ function createInstrumentationEntry(
 		});
 		if (typeof entry.originalCallbacks.onConsentSet === 'function') {
 			(entry.originalCallbacks.onConsentSet as (event: unknown) => void)(
+				payload
+			);
+		}
+	});
+
+	store.getState().setCallback('onConsentChanged', (payload: unknown) => {
+		emitEvent(entry, {
+			type: 'consent_save',
+			message: 'Consent preferences changed',
+			data: payload as Record<string, unknown>,
+		});
+		if (typeof entry.originalCallbacks.onConsentChanged === 'function') {
+			(entry.originalCallbacks.onConsentChanged as (event: unknown) => void)(
 				payload
 			);
 		}

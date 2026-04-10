@@ -24,6 +24,12 @@ export interface InitConsentManagerConfig {
 	/** SSR-prefetched data (init + optional GVL) */
 	ssrData?: Promise<SSRInitialData | undefined>;
 
+	/** Canonical backend URL for hosted-mode request matching */
+	backendURL?: string;
+
+	/** Effective client credentials mode for hosted-mode request matching */
+	requestCredentials?: RequestCredentials;
+
 	/** Initial translation configuration to merge with server response */
 	initialTranslationConfig?: Partial<TranslationConfig>;
 

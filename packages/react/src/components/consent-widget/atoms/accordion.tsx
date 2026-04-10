@@ -55,7 +55,8 @@ const ConsentWidgetAccordionContent = PreferenceItem.Content;
 const ConsentWidgetAccordionArrow = PreferenceItem.Leading;
 const ConsentWidgetSwitch = RadixSwitch.Root;
 
-type ConsentWidgetAccordionProps = {
+type ConsentWidgetAccordionProps = Omit<BoxProps, 'themeKey'> & {
+	'data-testid'?: string;
 	children: ReactNode;
 	onValueChange?: (value: string | string[]) => void;
 	type?: 'multiple' | 'single';
@@ -63,10 +64,15 @@ type ConsentWidgetAccordionProps = {
 };
 
 const ConsentWidgetAccordion = ({
+	'data-testid': dataTestId,
 	children,
+	className,
+	noStyle,
 	onValueChange,
+	style,
 	type = 'multiple',
 	value,
+	...props
 }: ConsentWidgetAccordionProps) => {
 	const openValues = Array.isArray(value) ? value : value ? [value] : [];
 
@@ -90,7 +96,17 @@ const ConsentWidgetAccordion = ({
 		<ConsentWidgetAccordionContext.Provider
 			value={{ onToggleItem, openValues }}
 		>
-			<div className={styles.accordionList}>{children}</div>
+			<Box
+				className={className}
+				data-testid={dataTestId ?? 'consent-widget-accordion'}
+				noStyle={noStyle}
+				style={style}
+				themeKey="consentWidgetAccordion"
+				baseClassName={styles.accordionList}
+				{...props}
+			>
+				{children}
+			</Box>
 		</ConsentWidgetAccordionContext.Provider>
 	);
 };

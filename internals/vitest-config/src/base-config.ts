@@ -32,7 +32,15 @@ export const baseConfig = defineConfig({
 			reportsDirectory: './coverage', // Output to ./coverage
 			// Include covered and uncovered files matching this pattern
 			// If not set, only files loaded during test run will be included
-			include: ['**/*.{ts,tsx,js,jsx}', '!**/*.d.ts', '!**/node_modules/**'],
+			include: [
+				'**/*.{ts,tsx,js,jsx}',
+				'!**/*.d.ts',
+				'!**/node_modules/**',
+				'!**/dist/**',
+				'!**/dist-types/**',
+				'!**/storybook-static/**',
+				'!**/coverage/**',
+			],
 		},
 	},
 });

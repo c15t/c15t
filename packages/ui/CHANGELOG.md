@@ -1,5 +1,55 @@
 # @c15t/ui
 
+## 2.0.0-rc.7
+
+### Minor Changes
+
+- ec30bd1: feat(primitives): shared UI primitive runtime, framework adapters, and runtime performance
+
+  - Extract seven framework-agnostic primitives into `@c15t/ui/primitives`: accordion, button, collapsible, dialog, switch, tabs, and preference-item
+  - Add `PreferenceItem` compound component that unifies three separate expandable-row patterns (Radix Accordion, custom button + AnimatedCollapse, manual state) into a single composable primitive with semantic slots
+  - Publish framework adapter packages (`@c15t/solid`, `@c15t/vue`, `@c15t/svelte`) re-exporting shared primitives and CSS variant generators
+  - Add cross-framework storybooks with shared play-function interaction tests and CI test-runner integration
+
+  **Mobile viewport fixes:**
+
+  - Add `box-sizing: border-box` to all fixed-position consent roots (banner, dialog, IAB variants) — prevents horizontal overflow on narrow viewports
+  - Constrain dialog card with `max-height: 100%` and scrollable content area — prevents title/description from being pushed off-screen on small devices
+
+  **Runtime performance (react-browser-bench, full-ui scenario):**
+
+  - Memoize `useTheme()` deep merge with `useMemo` — reduces calls from 35 to 23 (-35%), total time from 0.10 ms to 0.02 ms (-80%)
+  - Replace `offsetWidth`/`offsetHeight` visibility checks in focus trap with `checkVisibility()` API — eliminates forced synchronous layout on every Tab keypress
+  - Both optimizations are in `@c15t/ui` and benefit all frameworks equally
+
+## 2.0.0-rc.6
+
+### Patch Changes
+
+- 5c8ee05: feat(styles): ship explicit stylesheet entrypoints for prebuilt UI
+
+  - Publish explicit `styles.css` and `iab/styles.css` entrypoints for prebuilt UI in `@c15t/ui`, `@c15t/react`, and `@c15t/nextjs`
+  - Update docs and CLI setup so stylesheet imports and Tailwind host-app configuration are explicit
+  - Support the documented Tailwind 3 and Tailwind 4 layering model without requiring `!important`
+  - Add automated first-paint CDP benchmark (`benchmarks/vite-react-repro/scripts/run-first-paint-bench.ts`)
+
+  **Bundle impact (vite-react-repro):**
+
+  - JS: 435.5 KB → 361.0 KB (-74.5 KB raw, -13.4 KB gzip / -11%)
+  - CSS: 0.8 KB → 49.2 KB (moved from JS to CSS — net gzip saving: -6.5 KB / -5%)
+  - `createElement("style")` runtime calls: eliminated
+  - JS heap: -143 KB (-8%)
+
+  **Main-thread impact (6x CPU throttle, 3 runs × 60 samples):**
+
+  - JS evaluation: 64.5 ms → 53.1 ms (-11.4 ms / -17.7%)
+  - Total → first paint: 87.8 ms → 76.5 ms (-11.3 ms / -12.9%)
+
+- Updated dependencies [e08e52c]
+- Updated dependencies [bb3ab0f]
+- Updated dependencies [1a724fc]
+  - c15t@2.0.0-rc.6
+
 ## 2.0.0-rc.5
 
 ### Patch Changes
