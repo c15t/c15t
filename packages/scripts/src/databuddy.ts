@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { applyScriptOverrides, resolveManifest } from './resolve';
-import type { VendorManifest } from './types';
+import { resolveManifest } from './resolve';
+import { type VendorManifest, vendorManifestContract } from './types';
 
 declare global {
 	interface Window {
@@ -37,6 +37,7 @@ declare global {
  * Config is seeded via `window.databuddyConfig` before the script loads.
  */
 export const databuddyManifest = {
+	...vendorManifestContract,
 	vendor: 'databuddy',
 	category: 'measurement',
 	alwaysLoad: true,
@@ -48,19 +49,52 @@ export const databuddyManifest = {
 			attributes: {
 				crossorigin: 'anonymous',
 				'data-client-id': '{{clientId}}',
+				'data-api-url': '{{apiUrl}}',
 			},
+		},
+	],
+	onBeforeLoadGranted: [
+		{
+			type: 'setGlobal',
+			name: 'databuddyConfig',
+			value: '{{configWhenGranted}}',
+			ifUndefined: true,
+		},
+	],
+	onBeforeLoadDenied: [
+		{
+			type: 'setGlobal',
+			name: 'databuddyConfig',
+			value: '{{configWhenDenied}}',
+			ifUndefined: true,
+		},
+	],
+	onLoadGranted: [
+		{
+			type: 'setGlobalPath',
+			path: ['databuddy', 'options', 'disabled'],
+			value: false,
+		},
+	],
+	onLoadDenied: [
+		{
+			type: 'setGlobalPath',
+			path: ['databuddy', 'options', 'disabled'],
+			value: true,
 		},
 	],
 	onConsentGranted: [
 		{
-			type: 'inlineScript',
-			code: 'if (window.databuddy && window.databuddy.options.disabled) { window.databuddy.options.disabled = false; }',
+			type: 'setGlobalPath',
+			path: ['databuddy', 'options', 'disabled'],
+			value: false,
 		},
 	],
 	onConsentDenied: [
 		{
-			type: 'inlineScript',
-			code: 'if (window.databuddy && !window.databuddy.options.disabled) { window.databuddy.options.disabled = true; }',
+			type: 'setGlobalPath',
+			path: ['databuddy', 'options', 'disabled'],
+			value: true,
 		},
 	],
 } as const satisfies VendorManifest;
@@ -83,40 +117,19 @@ export interface DatabuddyConsentOptions {
 	 */
 	scriptUrl?: string;
 
-	/**
-	 * Additional configuration options for Databuddy.
-	 * @example { trackScreenViews: true, trackOutgoingLinks: true }
-	 */
-	options?: Record<string, unknown>;
+	/** Databuddy config object to seed when consent is granted at load time. */
+	configWhenGranted: Record<string, unknown>;
 
-	/**
-	 * Override or extend the default script values.
-	 *
-	 * Default values:
-	 * - `id`: 'databuddy'
-	 * - `category`: 'measurement'
-	 */
-	script?: Partial<Script>;
+	/** Databuddy config object to seed when consent is denied at load time. */
+	configWhenDenied: Record<string, unknown>;
 }
 
 /**
- * Loads the Databuddy script and manages consent state through a comprehensive lifecycle.
+ * Loads the Databuddy script and manages consent state declaratively via the manifest runtime.
  *
- * This function orchestrates consent-aware analytics by coordinating between c15t's consent
- * state and Databuddy's tracking behavior. The consent management lifecycle works as follows:
- *
- * 1. **Before Script Load** (`onBeforeLoad`): Seeds `window.databuddyConfig` with the client
- *    configuration, including setting `disabled: !hasConsent` to ensure Databuddy initializes
- *    in the correct state. The Databuddy script reads this configuration object on initialization.
- *
- * 2. **On Script Load** (`onLoad`): After Databuddy has initialized, verifies that
- *    `window.databuddy.options.disabled` matches the current consent state.
- *
- * 3. **On Consent Change** (`onConsentChange`): Dynamically toggles `window.databuddy.options.disabled`
- *    to enable tracking when consent is granted or disable tracking when consent is revoked.
- *
- * The script always loads (`alwaysLoad: true`) but tracking is controlled via the `disabled` flag,
- * allowing Databuddy to remain present in the DOM while respecting consent boundaries.
+ * The script always loads (`alwaysLoad: true`) but tracking is controlled via the `disabled`
+ * flag on Databuddy's global config/runtime objects, allowing the vendor to stay present in
+ * the DOM while respecting consent boundaries.
  *
  * @param options - Configuration for the Databuddy consent script
  * @returns The Databuddy script configuration object for c15t's script loader
@@ -130,11 +143,17 @@ export interface DatabuddyConsentOptions {
  *   scripts: [
  *     databuddy({
  *       clientId: 'db_1234567890abcdef',
- *       options: {
+ *       configWhenGranted: {
+ *         clientId: 'db_1234567890abcdef',
  *         trackScreenViews: true,
  *         trackOutgoingLinks: true,
  *         trackPerformance: true,
  *         samplingRate: 1.0,
+ *         disabled: false,
+ *       },
+ *       configWhenDenied: {
+ *         clientId: 'db_1234567890abcdef',
+ *         disabled: true,
  *       },
  *     }),
  *   ],
@@ -142,43 +161,13 @@ export interface DatabuddyConsentOptions {
  * ```
  */
 export function databuddy(options: DatabuddyConsentOptions): Script {
-	const scriptUrl =
-		options.scriptUrl ?? 'https://cdn.databuddy.cc/databuddy.js';
-
 	const resolved = resolveManifest(databuddyManifest, {
 		clientId: options.clientId,
-		scriptUrl,
+		apiUrl: options.apiUrl,
+		configWhenGranted: options.configWhenGranted,
+		configWhenDenied: options.configWhenDenied,
+		scriptUrl: options.scriptUrl ?? 'https://cdn.databuddy.cc/databuddy.js',
 	});
 
-	// Add data-api-url attribute if provided
-	if (options.apiUrl && resolved.attributes) {
-		resolved.attributes['data-api-url'] = options.apiUrl;
-	}
-
-	// DataBuddy needs to seed window.databuddyConfig before the script loads
-	// and sync the disabled state on load — this requires imperative callbacks
-	resolved.onBeforeLoad = (info) => {
-		if (!window.databuddyConfig) {
-			window.databuddyConfig = {
-				clientId: options.clientId,
-				...(options.apiUrl ? { apiUrl: options.apiUrl } : {}),
-				...(options.options || {}),
-				disabled: !info.hasConsent,
-			};
-		}
-	};
-
-	resolved.onLoad = (info) => {
-		if (window.databuddy) {
-			if (info.hasConsent && window.databuddy.options.disabled) {
-				window.databuddy.options.disabled = false;
-			} else if (!info.hasConsent && !window.databuddy.options.disabled) {
-				window.databuddy.options.disabled = true;
-			}
-		}
-	};
-
-	return options.script
-		? applyScriptOverrides(resolved, options.script)
-		: resolved;
+	return resolved;
 }

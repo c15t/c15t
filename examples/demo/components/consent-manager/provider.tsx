@@ -9,6 +9,9 @@ import {
 	ConsentManagerProvider,
 } from '@c15t/react';
 import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
+import { databuddy } from '@c15t/scripts/databuddy';
+import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+import { xPixel } from '@c15t/scripts/x-pixel';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -216,6 +219,23 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 						category: 'measurement',
 						vendorId: 'internal-analytics',
 					},
+					databuddy({
+						clientId: '13a29940-fa67-4036-9970-cc9f8d869ae',
+						configWhenGranted: {
+							clientId: '13a29940-fa67-4036-9970-cc9f8d869ae',
+							disabled: false,
+						},
+						configWhenDenied: {
+							clientId: '13a29940-fa67-4036-9970-cc9f8d869ae',
+							disabled: true,
+						},
+					}),
+					xPixel({
+						pixelId: 'qvfsy',
+					}),
+					googleTagManager({
+						id: 'GTM-WL5L8NW7',
+					}),
 				],
 				storageConfig: {
 					crossSubdomain: true,

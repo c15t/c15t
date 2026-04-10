@@ -13,31 +13,15 @@ type TestGlobal = typeof globalThis & Record<string, unknown>;
 
 function setupMockBrowser() {
 	const globalRef = globalThis as TestGlobal;
-	const appendedNodes: Array<Record<string, unknown>> = [];
 	const scriptAnchor = {
 		parentNode: {
-			insertBefore: vi.fn((node: Record<string, unknown>) => {
-				appendedNodes.push(node);
-				return node;
-			}),
+			insertBefore: vi.fn((node: Record<string, unknown>) => node),
 		},
 	};
 
 	const document = {
 		head: {
-			appendChild: vi.fn((node: Record<string, unknown>) => {
-				appendedNodes.push(node);
-				if (
-					typeof node.textContent === 'string' &&
-					node.textContent.length > 0
-				) {
-					new Function('window', 'document', node.textContent)(
-						globalRef.window,
-						globalRef.document
-					);
-				}
-				return node;
-			}),
+			appendChild: vi.fn((node: Record<string, unknown>) => node),
 		},
 		createElement: vi.fn((_tag: string) => ({
 			textContent: '',
@@ -50,8 +34,6 @@ function setupMockBrowser() {
 
 	vi.stubGlobal('window', globalRef as unknown as Window & typeof globalThis);
 	vi.stubGlobal('document', document as unknown as Document);
-
-	return { appendedNodes };
 }
 
 describe('built-in script helpers', () => {
@@ -108,10 +90,7 @@ describe('built-in script helpers', () => {
 					category: 'marketing',
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: true,
-					textContentIncludes: [
-						'https://connect.facebook.net/en_US/fbevents.js',
-						"fbq('init', '123456')",
-					],
+					src: 'https://connect.facebook.net/en_US/fbevents.js',
 				},
 			},
 			{
@@ -122,10 +101,7 @@ describe('built-in script helpers', () => {
 					category: 'marketing',
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: true,
-					textContentIncludes: [
-						'https://analytics.tiktok.com/i18n/pixel/events.js',
-						"ttq.load('tt-123')",
-					],
+					src: 'https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=tt-123&lib=ttq',
 				},
 			},
 			{
@@ -136,10 +112,7 @@ describe('built-in script helpers', () => {
 					category: 'marketing',
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: undefined,
-					textContentIncludes: [
-						'_linkedin_partner_id = "987654";',
-						'https://snap.licdn.com/li.lms-analytics/insight.min.js',
-					],
+					src: 'https://snap.licdn.com/li.lms-analytics/insight.min.js',
 				},
 			},
 			{
@@ -150,7 +123,7 @@ describe('built-in script helpers', () => {
 					category: 'marketing',
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: undefined,
-					textContentIncludes: ['ti:"uet-123"', '//bat.bing.com/bat.js'],
+					src: '//bat.bing.com/bat.js',
 				},
 			},
 			{
@@ -161,10 +134,7 @@ describe('built-in script helpers', () => {
 					category: 'marketing',
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: undefined,
-					textContentIncludes: [
-						'https://static.ads-twitter.com/uwt.js',
-						"twq('config','tw-123')",
-					],
+					src: 'https://static.ads-twitter.com/uwt.js',
 				},
 			},
 		];
@@ -182,12 +152,6 @@ describe('built-in script helpers', () => {
 			);
 			if ('src' in helper.expected) {
 				expect(helper.script.src, helper.name).toBe(helper.expected.src);
-			}
-			if ('textContentIncludes' in helper.expected) {
-				expect(helper.script.textContent, helper.name).toBeTypeOf('string');
-				for (const needle of helper.expected.textContentIncludes ?? []) {
-					expect(helper.script.textContent, helper.name).toContain(needle);
-				}
 			}
 		}
 	});
@@ -225,6 +189,7 @@ describe('built-in script helpers', () => {
 			},
 		]);
 		expect(dataLayer[1]).toMatchObject({ event: 'gtm.js' });
+		expect(document.head.appendChild).not.toHaveBeenCalled();
 	});
 
 	it('runs gtag consent defaults before config calls', () => {
@@ -264,6 +229,7 @@ describe('built-in script helpers', () => {
 			'config',
 			'G-ORDER',
 		]);
+		expect(document.head.appendChild).not.toHaveBeenCalled();
 	});
 
 	it('keeps PostHog init options as an object and syncs consent state', () => {
@@ -281,8 +247,11 @@ describe('built-in script helpers', () => {
 		const script = posthog({
 			id: 'phc_123',
 			apiHost: 'https://eu.i.posthog.com',
-			defaults: '2025-05-24',
-			options: {
+			scriptUrl: 'https://eu-assets.i.posthog.com/static/array.js',
+			initOptions: {
+				api_host: 'https://eu.i.posthog.com',
+				ui_host: 'https://eu.i.posthog.com',
+				autocapture: false,
 				person_profiles: 'identified_only',
 				cookieless_mode: 'on_reject',
 			},
@@ -316,15 +285,39 @@ describe('built-in script helpers', () => {
 			cookieless_mode: 'on_reject',
 		});
 		expect(optOut).toHaveBeenCalledTimes(1);
+
+		script.onConsentChange?.({
+			id: script.id,
+			elementId: script.id,
+			hasConsent: true,
+			consents: {
+				necessary: true,
+				functionality: false,
+				measurement: true,
+				marketing: false,
+				experience: false,
+			},
+		});
+
+		expect(optIn).toHaveBeenCalledTimes(1);
 	});
 
-	it('preserves DataBuddy imperative config seeding and sync behavior', () => {
+	it('preserves DataBuddy config seeding and sync behavior', () => {
 		const globalRef = globalThis as TestGlobal;
 		const script = databuddy({
 			clientId: 'db_123',
 			apiUrl: 'https://basket.databuddy.cc',
-			options: {
+			configWhenGranted: {
+				clientId: 'db_123',
+				apiUrl: 'https://basket.databuddy.cc',
 				trackScreenViews: true,
+				disabled: false,
+			},
+			configWhenDenied: {
+				clientId: 'db_123',
+				apiUrl: 'https://basket.databuddy.cc',
+				trackScreenViews: true,
+				disabled: true,
 			},
 		});
 
@@ -384,5 +377,23 @@ describe('built-in script helpers', () => {
 			(globalRef.databuddy as { options: { disabled: boolean } }).options
 				.disabled
 		).toBe(false);
+
+		script.onConsentChange?.({
+			id: script.id,
+			elementId: script.id,
+			hasConsent: false,
+			consents: {
+				necessary: true,
+				functionality: false,
+				measurement: false,
+				marketing: false,
+				experience: false,
+			},
+		});
+
+		expect(
+			(globalRef.databuddy as { options: { disabled: boolean } }).options
+				.disabled
+		).toBe(true);
 	});
 });

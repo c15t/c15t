@@ -1,4 +1,21 @@
-import type { AllConsentNames, Script } from 'c15t';
+import type { AllConsentNames, HasCondition } from 'c15t';
+
+export const VENDOR_MANIFEST_KIND = 'c15t.vendor-manifest';
+export const VENDOR_MANIFEST_SCHEMA_VERSION = 1;
+export const vendorManifestContract = {
+	kind: VENDOR_MANIFEST_KIND,
+	schemaVersion: VENDOR_MANIFEST_SCHEMA_VERSION,
+} as const;
+
+export interface ManifestContract {
+	kind: typeof VENDOR_MANIFEST_KIND;
+	schemaVersion: typeof VENDOR_MANIFEST_SCHEMA_VERSION;
+}
+
+type ManifestInterpolationToken = `{{${string}}}`;
+type ManifestCategoryCondition = HasCondition<
+	AllConsentNames | ManifestInterpolationToken
+>;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Manifest Step Types — individual operations the runtime can execute
@@ -16,13 +33,64 @@ export interface SetGlobalStep {
 	type: 'setGlobal';
 	/** Global variable name (e.g. 'dataLayer') */
 	name: string;
-	/** Value to assign. Arrays and objects are shallow-cloned on execution. */
+	/** Value to assign. Arrays and objects are recursively cloned on execution. */
 	value: unknown;
 	/**
 	 * Only set the global if it's not already defined.
 	 * Mirrors the common `window.x = window.x || value` pattern.
 	 * @default true
 	 */
+	ifUndefined?: boolean;
+}
+
+export interface DefineQueueFunctionStep {
+	type: 'defineQueueFunction';
+	/** Global function name (e.g. 'gtag') */
+	name: string;
+	/** Global array name that receives queued calls (e.g. 'dataLayer') */
+	queue: string;
+	/**
+	 * Only define the function if it is not already present.
+	 * @default true
+	 */
+	ifUndefined?: boolean;
+	/**
+	 * Whether queued calls should store the `arguments` object or a copied array.
+	 * @default 'arguments'
+	 */
+	pushStyle?: 'arguments' | 'array';
+}
+
+export interface DefineStubFunctionStep {
+	type: 'defineStubFunction';
+	/** Global function name (e.g. 'fbq', 'twq', 'lintrk') */
+	name: string;
+	/**
+	 * Queue storage location:
+	 * - `global` pushes into another global array (e.g. `dataLayer`)
+	 * - `property` pushes into a property on the stub function itself (e.g. `fbq.queue`)
+	 */
+	queue:
+		| { global: string; property?: never }
+		| { global?: never; property: string };
+	/**
+	 * If present, calls `stub[dispatchProperty](...args)` when available instead of queueing.
+	 * Mirrors vendor APIs like Meta Pixel's `callMethod`.
+	 */
+	dispatchProperty?: string;
+	/**
+	 * How queued values should be stored.
+	 * - `'arguments'` => push the `arguments` object
+	 * - `'array'` => push a copied array of arguments
+	 */
+	queueFormat?: 'arguments' | 'array';
+	/** Additional globals that should reference the same stub */
+	aliases?: string[];
+	/** Properties on the stub that should reference the stub itself (e.g. `push`) */
+	selfReferences?: string[];
+	/** Additional scalar/object properties assigned to the stub */
+	properties?: Record<string, unknown>;
+	/** Only define the stub if not already present. */
 	ifUndefined?: boolean;
 }
 
@@ -36,24 +104,77 @@ export interface CallGlobalStep {
 	args?: unknown[];
 }
 
-export interface PushToDataLayerStep {
-	type: 'pushToDataLayer';
-	/** Data object to push to window.dataLayer */
-	data: Record<string, unknown>;
+export interface PushToQueueStep {
+	type: 'pushToQueue';
+	/** Global array name that receives queued values (e.g. 'dataLayer') */
+	queue: string;
+	/** Value to push onto the queue */
+	value: unknown;
 }
 
-export interface InlineScriptStep {
-	type: 'inlineScript';
-	/** JavaScript code to execute via a dynamically created script element */
-	code: string;
+export interface SetGlobalPathStep {
+	type: 'setGlobalPath';
+	/** Path segments under window (e.g. ['databuddy', 'options', 'disabled']) */
+	path: string[];
+	/** Value to assign at the target path */
+	value: unknown;
+}
+
+export interface DefineQueueMethodsStep {
+	type: 'defineQueueMethods';
+	/** Global array/object name that owns the queue methods */
+	target: string;
+	/** Method names to attach */
+	methods: string[];
+	/** Optional queue location. Defaults to the target itself. */
+	queue?:
+		| { global: string; property?: never }
+		| { global?: never; property: string };
+}
+
+export interface DefineGlobalMethodsStep {
+	type: 'defineGlobalMethods';
+	/** Global object name to receive the methods */
+	target: string;
+	methods: Array<
+		| {
+				name: string;
+				behavior: 'noop';
+		  }
+		| {
+				name: string;
+				behavior: 'return';
+				value: unknown;
+		  }
+	>;
+}
+
+export interface ConstructGlobalStep {
+	type: 'constructGlobal';
+	/** Global constructor name (e.g. `UET`) */
+	constructor: string;
+	/** Global name to assign the constructed instance to */
+	assignTo: string;
+	/** Constructor args */
+	args?: unknown[];
+	/**
+	 * Copies the current `window[assignTo]` value into the first constructor arg object
+	 * under this property before constructing.
+	 */
+	copyAssignedValueToArgProperty?: string;
 }
 
 export type ManifestStep =
 	| LoadScriptStep
 	| SetGlobalStep
+	| DefineQueueFunctionStep
+	| DefineStubFunctionStep
 	| CallGlobalStep
-	| PushToDataLayerStep
-	| InlineScriptStep;
+	| PushToQueueStep
+	| SetGlobalPathStep
+	| DefineQueueMethodsStep
+	| DefineGlobalMethodsStep
+	| ConstructGlobalStep;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Consent Signal — how to communicate consent state to the vendor
@@ -76,18 +197,24 @@ export type ConsentSignalType = 'gtag';
  * Manifests are the source definition that the scripts engine compiles into a
  * serializable resolved manifest and then converts into a runtime `Script`.
  */
-export interface VendorManifest {
+export interface VendorManifest extends ManifestContract {
+	/** Manifest contract identifier. */
+	kind: typeof VENDOR_MANIFEST_KIND;
+
+	/** Manifest schema version. */
+	schemaVersion: typeof VENDOR_MANIFEST_SCHEMA_VERSION;
+
 	/** Unique vendor identifier (used as Script.id) */
 	vendor: string;
 
-	/** Consent category required to load this vendor */
-	category: AllConsentNames | string;
+	/** Consent category or condition required to load this vendor */
+	category: ManifestCategoryCondition;
 
 	/** Load regardless of consent state (vendor manages its own consent internally) */
-	alwaysLoad?: boolean;
+	alwaysLoad?: boolean | string;
 
 	/** Keep script in DOM after consent revocation (vendor has a consent API) */
-	persistAfterConsentRevoked?: boolean;
+	persistAfterConsentRevoked?: boolean | string;
 
 	/**
 	 * Steps that must execute before default consent signaling.
@@ -102,13 +229,24 @@ export interface VendorManifest {
 	 *
 	 * The resolver extracts the script source from these steps:
 	 * - If a `loadScript` step exists, its `src` becomes `Script.src`
-	 * - If no `loadScript` exists, `inlineScript` steps become `Script.textContent`
-	 * - All other steps run as part of `onBeforeLoad`
+	 * - All non-`loadScript` steps run as part of `onBeforeLoad`
 	 */
 	install: ManifestStep[];
 
 	/** Steps to execute after the main script loads */
 	afterLoad?: ManifestStep[];
+
+	/** Steps to execute before load when the vendor has consent */
+	onBeforeLoadGranted?: ManifestStep[];
+
+	/** Steps to execute before load when the vendor does not have consent */
+	onBeforeLoadDenied?: ManifestStep[];
+
+	/** Steps to execute after load when the vendor has consent */
+	onLoadGranted?: ManifestStep[];
+
+	/** Steps to execute after load when the vendor does not have consent */
+	onLoadDenied?: ManifestStep[];
 
 	/** Steps to run on any consent state change */
 	onConsentChange?: ManifestStep[];
@@ -151,28 +289,23 @@ export interface VendorManifest {
  *
  * Contains only serializable data and no runtime callbacks.
  */
-export interface ResolvedManifest {
+export interface ResolvedManifest extends ManifestContract {
 	vendor: string;
-	category: AllConsentNames | string;
+	category: HasCondition<AllConsentNames>;
 	alwaysLoad?: boolean;
 	persistAfterConsentRevoked?: boolean;
 	bootstrapSteps: ManifestStep[];
 	setupSteps: ManifestStep[];
 	loadScript?: LoadScriptStep;
-	textContent?: string;
 	afterLoadSteps: ManifestStep[];
+	onBeforeLoadGrantedSteps: ManifestStep[];
+	onBeforeLoadDeniedSteps: ManifestStep[];
+	onLoadGrantedSteps: ManifestStep[];
+	onLoadDeniedSteps: ManifestStep[];
 	onConsentChangeSteps: ManifestStep[];
 	onConsentGrantedSteps: ManifestStep[];
 	onConsentDeniedSteps: ManifestStep[];
 	consentMapping?: Record<string, string[]>;
 	consentSignal?: ConsentSignalType;
 	consentSignalTarget?: string;
-}
-
-/**
- * Options accepted by typed vendor helpers alongside the manifest config.
- * Allows users to override any Script property for customization.
- */
-export interface VendorScriptOverrides {
-	script?: Partial<Script>;
 }

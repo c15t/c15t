@@ -109,7 +109,8 @@ export interface EventLogEntry {
 		| 'error'
 		| 'info'
 		| 'network'
-		| 'iab';
+		| 'iab'
+		| 'script';
 	message: string;
 	timestamp: number;
 	data?: Record<string, unknown>;

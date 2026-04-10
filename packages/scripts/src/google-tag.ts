@@ -1,6 +1,6 @@
 import type { AllConsentNames, Script } from 'c15t';
-import { applyScriptOverrides, resolveManifest } from './resolve';
-import type { VendorManifest } from './types';
+import { resolveManifest } from './resolve';
+import { type VendorManifest, vendorManifestContract } from './types';
 
 // Extended Window interface to include gtag specific properties
 declare global {
@@ -17,26 +17,35 @@ declare global {
  * Uses the same Consent Mode v2 mapping.
  */
 export const gtagManifest = {
+	...vendorManifestContract,
 	vendor: 'gtag',
-	category: 'measurement', // overridden by user's category option
+	category: '{{category}}',
 	alwaysLoad: true,
 	persistAfterConsentRevoked: true,
 	bootstrap: [
 		{
-			type: 'inlineScript',
-			code: `
-window.dataLayer = window.dataLayer || [];
-window.gtag = function gtag() { window.dataLayer.push(arguments); };
-			`.trim(),
+			type: 'setGlobal',
+			name: 'dataLayer',
+			value: [],
+			ifUndefined: true,
+		},
+		{
+			type: 'defineQueueFunction',
+			name: 'gtag',
+			queue: 'dataLayer',
+			ifUndefined: true,
 		},
 	],
 	install: [
 		{
-			type: 'inlineScript',
-			code: `
-window.gtag('js', new Date());
-window.gtag('config', '{{id}}');
-			`.trim(),
+			type: 'callGlobal',
+			global: 'gtag',
+			args: ['js', '{{loadTime}}'],
+		},
+		{
+			type: 'callGlobal',
+			global: 'gtag',
+			args: ['config', '{{id}}'],
 		},
 		{
 			type: 'loadScript',
@@ -83,17 +92,6 @@ export interface GtagOptions {
 	 * ```
 	 */
 	consentMapping?: Record<string, string[]>;
-
-	/**
-	 * Override or extend the default script values.
-	 *
-	 * Default values:
-	 * - `id`: 'gtag'
-	 * - `src`: `https://www.googletagmanager.com/gtag/js?id=${id}`
-	 * - `async`: true
-	 * - `alwaysLoad`: true
-	 */
-	script?: Partial<Omit<Script, 'category'>>;
 }
 
 /**
@@ -103,22 +101,16 @@ export interface GtagOptions {
  * @param options - The options for the gtag script.
  * @returns The Google Tag Manager script.
  */
-export function gtag({
-	id,
-	script,
-	category,
-	consentMapping,
-}: GtagOptions): Script {
+export function gtag({ id, category, consentMapping }: GtagOptions): Script {
 	const manifest = consentMapping
 		? { ...gtagManifest, consentMapping }
 		: gtagManifest;
 
-	const resolved = resolveManifest(manifest, { id });
+	const resolved = resolveManifest(manifest, {
+		id,
+		category,
+		loadTime: new Date(),
+	});
 
-	// Override category from user option
-	resolved.category = category;
-
-	return script
-		? applyScriptOverrides(resolved, script as Partial<Script>)
-		: resolved;
+	return resolved;
 }

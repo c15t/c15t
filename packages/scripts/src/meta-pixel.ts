@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { applyScriptOverrides, resolveManifest } from './resolve';
-import type { VendorManifest } from './types';
+import { resolveManifest } from './resolve';
+import { type VendorManifest, vendorManifestContract } from './types';
 
 /**
  * Represents the `contents` array object property.
@@ -140,29 +140,51 @@ declare global {
 /**
  * Meta Pixel vendor manifest.
  *
- * The Meta Pixel uses an inline bootstrap script (standard Meta implementation)
- * and provides a consent API via `fbq('consent', 'grant'|'revoke')`.
+ * The Meta Pixel uses structured bootstrap steps to define the standard `fbq`
+ * stub and provides a consent API via `fbq('consent', 'grant'|'revoke')`.
  */
 export const metaPixelManifest = {
+	...vendorManifestContract,
 	vendor: 'meta-pixel',
 	category: 'marketing',
 	persistAfterConsentRevoked: true,
+	bootstrap: [
+		{
+			type: 'defineStubFunction',
+			name: 'fbq',
+			queue: {
+				property: 'queue',
+			},
+			dispatchProperty: 'callMethod',
+			selfReferences: ['push'],
+			aliases: ['_fbq'],
+			properties: {
+				loaded: true,
+				version: '2.0',
+			},
+			ifUndefined: true,
+		},
+	],
 	install: [
 		{
-			type: 'inlineScript',
-			code: `
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'{{scriptSrc}}');
-fbq('consent', 'grant');
-fbq('init', '{{pixelId}}');
-fbq('track', 'PageView');
-			`.trim(),
+			type: 'callGlobal',
+			global: 'fbq',
+			args: ['consent', 'grant'],
+		},
+		{
+			type: 'callGlobal',
+			global: 'fbq',
+			args: ['init', '{{pixelId}}'],
+		},
+		{
+			type: 'callGlobal',
+			global: 'fbq',
+			args: ['track', 'PageView'],
+		},
+		{
+			type: 'loadScript',
+			src: '{{scriptSrc}}',
+			async: true,
 		},
 	],
 	onConsentGranted: [
@@ -188,22 +210,15 @@ export interface MetaPixelOptions {
 	 */
 	pixelId: string;
 
-	/**
-	 * Override or extend the default script values.
-	 *
-	 * Default values:
-	 * - `id`: 'meta-pixel'
-	 * - `src`: `https://connect.facebook.net/en_US/fbevents.js`
-	 * - `category`: 'marketing'
-	 */
-	script?: Partial<Script>;
+	/** Meta Pixel loader URL. */
+	scriptSrc?: string;
 }
 
 /**
- * Creates a Meta Pixel script with inline JavaScript code.
+ * Creates a Meta Pixel script.
  *
- * This script uses textContent to inject the Meta Pixel tracking code directly
- * into the page, which is the recommended approach for Meta Pixel implementation.
+ * The manifest defines a structured `fbq` stub plus the external loader URL,
+ * avoiding raw inline vendor snippets in the manifest payload.
  *
  * @param options - The options for the Meta Pixel script
  * @returns The Meta Pixel script configuration
@@ -217,13 +232,13 @@ export interface MetaPixelOptions {
  *
  * @see {@link https://developers.facebook.com/docs/meta-pixel/get-started} Meta Pixel documentation
  */
-export function metaPixel({ pixelId, script }: MetaPixelOptions): Script {
+export function metaPixel({ pixelId, scriptSrc }: MetaPixelOptions): Script {
 	const resolved = resolveManifest(metaPixelManifest, {
 		pixelId,
-		scriptSrc: script?.src ?? 'https://connect.facebook.net/en_US/fbevents.js',
+		scriptSrc: scriptSrc ?? 'https://connect.facebook.net/en_US/fbevents.js',
 	});
 
-	return script ? applyScriptOverrides(resolved, script) : resolved;
+	return resolved;
 }
 
 /**

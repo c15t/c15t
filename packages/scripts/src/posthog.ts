@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { applyScriptOverrides, resolveManifest } from './resolve';
-import type { VendorManifest } from './types';
+import { resolveManifest } from './resolve';
+import { type VendorManifest, vendorManifestContract } from './types';
 
 declare global {
 	interface Window {
@@ -28,23 +28,33 @@ declare global {
  * The script always loads, and consent is toggled via the PostHog API.
  */
 export const posthogManifest = {
+	...vendorManifestContract,
 	vendor: 'posthog',
 	category: 'measurement',
 	alwaysLoad: true,
-	install: [
+	bootstrap: [
 		{
-			type: 'inlineScript',
-			code: `
-if (!window.posthog) {
-	window.posthog = {
-		init: function(){},
-		opt_in_capturing: function(){},
-		opt_out_capturing: function(){},
-		get_explicit_consent_status: function(){ return 'pending'; }
-	};
-}
-			`.trim(),
+			type: 'setGlobal',
+			name: 'posthog',
+			value: {},
+			ifUndefined: true,
 		},
+		{
+			type: 'defineGlobalMethods',
+			target: 'posthog',
+			methods: [
+				{ name: 'init', behavior: 'noop' },
+				{ name: 'opt_in_capturing', behavior: 'noop' },
+				{ name: 'opt_out_capturing', behavior: 'noop' },
+				{
+					name: 'get_explicit_consent_status',
+					behavior: 'return',
+					value: 'pending',
+				},
+			],
+		},
+	],
+	install: [
 		{
 			type: 'loadScript',
 			src: '{{scriptUrl}}',
@@ -62,6 +72,20 @@ if (!window.posthog) {
 			global: 'posthog',
 			method: 'init',
 			args: ['{{id}}', '{{initOptions}}'],
+		},
+	],
+	onLoadGranted: [
+		{
+			type: 'callGlobal',
+			global: 'posthog',
+			method: 'opt_in_capturing',
+		},
+	],
+	onLoadDenied: [
+		{
+			type: 'callGlobal',
+			global: 'posthog',
+			method: 'opt_out_capturing',
 		},
 	],
 	onConsentGranted: [
@@ -92,25 +116,11 @@ export interface PosthogConsentOptions {
 	 */
 	apiHost: string;
 
-	/**
-	 * The defaults for the posthog script.
-	 */
-	defaults: string;
+	/** The PostHog array loader URL. */
+	scriptUrl: string;
 
-	/**
-	 * Other optional options for the posthog script.
-	 * @example { person_profiles: 'identified_only' }
-	 */
-	options: Record<string, unknown>;
-
-	/**
-	 * Override or extend the default script values.
-	 *
-	 * Default values:
-	 * - `id`: 'posthog-consent'
-	 * - `category`: 'measurement'
-	 */
-	script?: Partial<Script>;
+	/** PostHog init options passed to `posthog.init(...)`. */
+	initOptions: Record<string, unknown>;
 }
 
 /**
@@ -122,54 +132,12 @@ export interface PosthogConsentOptions {
  * @returns The Posthog script
  */
 export function posthog(options: PosthogConsentOptions): Script {
-	const apiHost = options.apiHost;
-	const assetsHost = apiHost.replace('.i.posthog.com', '-assets.i.posthog.com');
-	const scriptUrl = `${assetsHost}/static/array.js`;
-
-	const initOptions = {
-		api_host: apiHost,
-		ui_host: apiHost,
-		autocapture: false,
-		...(options.options || {}),
-	};
-
 	const resolved = resolveManifest(posthogManifest, {
 		id: options.id,
-		apiHost,
-		scriptUrl,
-		// The initOptions object is passed as a pre-built object rather than template vars
-		// because it contains dynamic user options that can't be expressed as simple strings
-		initOptions,
+		apiHost: options.apiHost,
+		scriptUrl: options.scriptUrl,
+		initOptions: options.initOptions,
 	});
 
-	// PostHog's afterLoad needs special handling:
-	// The manifest's callGlobal for 'init' receives the initOptions as a string '{{initOptions}}'
-	// but we need it as an object. Override onLoad to handle this properly.
-	resolved.onLoad = (info) => {
-		if (window.posthog && typeof window.posthog.init === 'function') {
-			window.posthog.init(options.id, initOptions);
-
-			// Sync consent state after init
-			const posthogConsent = window.posthog.get_explicit_consent_status();
-			if (info.hasConsent && posthogConsent !== 'granted') {
-				window.posthog.opt_in_capturing();
-			} else if (!info.hasConsent && posthogConsent !== 'denied') {
-				window.posthog.opt_out_capturing();
-			}
-		}
-	};
-
-	// PostHog's consent change also checks current status to avoid redundant calls
-	resolved.onConsentChange = (info) => {
-		const posthogConsent = window.posthog.get_explicit_consent_status();
-		if (info.hasConsent && posthogConsent !== 'granted') {
-			window.posthog.opt_in_capturing();
-		} else if (!info.hasConsent && posthogConsent !== 'denied') {
-			window.posthog.opt_out_capturing();
-		}
-	};
-
-	return options.script
-		? applyScriptOverrides(resolved, options.script)
-		: resolved;
+	return resolved;
 }

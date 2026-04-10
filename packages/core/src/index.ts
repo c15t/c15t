@@ -112,10 +112,19 @@ export {
 } from './libs/prefetch';
 // Export script loader
 export {
+	emitScriptDebugEvent,
 	getLoadedScriptIds,
 	isScriptLoaded,
 	loadScripts,
 	type Script,
+	type ScriptDebugAction,
+	type ScriptDebugEvent,
+	type ScriptDebugEventInput,
+	type ScriptDebugListener,
+	type ScriptDebugScope,
+	type ScriptDebugSource,
+	type ScriptLifecycleCallback,
+	subscribeToScriptDebugEvents,
 	unloadScripts,
 	updateScripts,
 } from './libs/script-loader';

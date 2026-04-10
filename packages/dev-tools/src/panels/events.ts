@@ -13,7 +13,7 @@ export interface EventsPanelOptions {
 	onClear: () => void;
 }
 
-type EventFilter = 'all' | 'error' | 'consent' | 'network' | 'iab';
+type EventFilter = 'all' | 'error' | 'consent' | 'network' | 'iab' | 'script';
 
 interface EventsPanelState {
 	activeFilter: EventFilter;
@@ -188,6 +188,7 @@ const EVENT_FILTERS: EventFilter[] = [
 	'consent',
 	'network',
 	'iab',
+	'script',
 ];
 
 function createFilterButton(
@@ -219,6 +220,9 @@ function matchesFilter(event: EventLogEntry, filter: EventFilter): boolean {
 	}
 	if (filter === 'network') {
 		return event.type === 'network';
+	}
+	if (filter === 'script') {
+		return event.type === 'script';
 	}
 	return event.type === 'iab';
 }

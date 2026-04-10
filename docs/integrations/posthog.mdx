@@ -97,8 +97,13 @@ By default c15t will always load the script regardless of consent. This is becau
     posthog({
       id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
       apiHost: 'https://eu.i.posthog.com',
-      defaults: '2025-05-24',
-      options: { person_profiles: 'identified_only' }
+      scriptUrl: 'https://eu-assets.i.posthog.com/static/array.js',
+      initOptions: {
+        api_host: 'https://eu.i.posthog.com',
+        ui_host: 'https://eu.i.posthog.com',
+        autocapture: false,
+        person_profiles: 'identified_only',
+      }
     })
     ```
   </Step>

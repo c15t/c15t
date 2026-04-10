@@ -14,9 +14,24 @@ export {
 	unloadScripts,
 	updateScripts,
 } from './core';
+export {
+	emitScriptDebugEvent,
+	subscribeToScriptDebugEvents,
+} from './debug';
 // Re-export store integration
 export { createScriptManager } from './store';
 // Re-export types
-export type { Script, ScriptCallbackInfo, ScriptUpdateResult } from './types';
+export type {
+	Script,
+	ScriptCallbackInfo,
+	ScriptDebugAction,
+	ScriptDebugEvent,
+	ScriptDebugEventInput,
+	ScriptDebugListener,
+	ScriptDebugScope,
+	ScriptDebugSource,
+	ScriptLifecycleCallback,
+	ScriptUpdateResult,
+} from './types';
 // Re-export utility functions
 export { generateRandomScriptId } from './utils';

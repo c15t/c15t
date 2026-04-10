@@ -1,10 +1,10 @@
 import type {
-	InlineScriptStep,
 	LoadScriptStep,
 	ManifestStep,
 	ResolvedManifest,
 	VendorManifest,
 } from '../types';
+import { VENDOR_MANIFEST_KIND, VENDOR_MANIFEST_SCHEMA_VERSION } from '../types';
 
 const EXACT_PLACEHOLDER_PATTERN = /^\{\{([A-Za-z0-9_]+)\}\}$/;
 const PLACEHOLDER_PATTERN = /\{\{([A-Za-z0-9_]+)\}\}/g;
@@ -74,7 +74,10 @@ export function interpolateValue(
 	if (value !== null && typeof value === 'object') {
 		const result: Record<string, unknown> = {};
 		for (const [key, nestedValue] of Object.entries(value)) {
-			result[key] = interpolateValue(nestedValue, config);
+			const interpolated = interpolateValue(nestedValue, config);
+			if (interpolated !== undefined) {
+				result[key] = interpolated;
+			}
 		}
 		return result;
 	}
@@ -96,7 +99,6 @@ function interpolateSteps(
 function extractInstallArtifacts(install: ManifestStep[]): {
 	loadScript?: LoadScriptStep;
 	setupSteps: ManifestStep[];
-	textContent?: string;
 } {
 	const loadScriptSteps = install.filter(
 		(step): step is LoadScriptStep => step.type === 'loadScript'
@@ -115,38 +117,72 @@ function extractInstallArtifacts(install: ManifestStep[]): {
 		};
 	}
 
-	const inlineSteps = install.filter(
-		(step): step is InlineScriptStep => step.type === 'inlineScript'
-	);
-
 	return {
-		setupSteps: install.filter((step) => step.type !== 'inlineScript'),
-		textContent:
-			inlineSteps.length > 0
-				? inlineSteps.map((step) => step.code).join('\n')
-				: undefined,
+		setupSteps: install,
 	};
+}
+
+function validateManifestContract(manifest: VendorManifest): void {
+	if (manifest.kind !== VENDOR_MANIFEST_KIND) {
+		throw new Error(
+			`Unsupported manifest kind '${String(
+				manifest.kind
+			)}'. Expected '${VENDOR_MANIFEST_KIND}'.`
+		);
+	}
+
+	if (manifest.schemaVersion !== VENDOR_MANIFEST_SCHEMA_VERSION) {
+		throw new Error(
+			`Unsupported manifest schema version '${String(
+				manifest.schemaVersion
+			)}'. Expected '${VENDOR_MANIFEST_SCHEMA_VERSION}'.`
+		);
+	}
 }
 
 export function compileManifest(
 	manifest: VendorManifest,
 	config: Record<string, unknown> = {}
 ): ResolvedManifest {
+	validateManifestContract(manifest);
+
 	const bootstrapSteps = interpolateSteps(manifest.bootstrap, config);
 	const install = interpolateSteps(manifest.install, config);
-	const { loadScript, setupSteps, textContent } =
-		extractInstallArtifacts(install);
+	const { loadScript, setupSteps } = extractInstallArtifacts(install);
 
 	return {
+		kind: manifest.kind,
+		schemaVersion: manifest.schemaVersion,
 		vendor: manifest.vendor,
-		category: manifest.category,
-		alwaysLoad: manifest.alwaysLoad,
-		persistAfterConsentRevoked: manifest.persistAfterConsentRevoked,
+		category: interpolateValue(
+			manifest.category,
+			config
+		) as ResolvedManifest['category'],
+		alwaysLoad:
+			manifest.alwaysLoad === undefined
+				? undefined
+				: (interpolateValue(manifest.alwaysLoad, config) as boolean),
+		persistAfterConsentRevoked:
+			manifest.persistAfterConsentRevoked === undefined
+				? undefined
+				: (interpolateValue(
+						manifest.persistAfterConsentRevoked,
+						config
+					) as boolean),
 		bootstrapSteps,
 		setupSteps,
 		loadScript,
-		textContent,
 		afterLoadSteps: interpolateSteps(manifest.afterLoad, config),
+		onBeforeLoadGrantedSteps: interpolateSteps(
+			manifest.onBeforeLoadGranted,
+			config
+		),
+		onBeforeLoadDeniedSteps: interpolateSteps(
+			manifest.onBeforeLoadDenied,
+			config
+		),
+		onLoadGrantedSteps: interpolateSteps(manifest.onLoadGranted, config),
+		onLoadDeniedSteps: interpolateSteps(manifest.onLoadDenied, config),
 		onConsentChangeSteps: interpolateSteps(manifest.onConsentChange, config),
 		onConsentGrantedSteps: interpolateSteps(manifest.onConsentGranted, config),
 		onConsentDeniedSteps: interpolateSteps(manifest.onConsentDenied, config),

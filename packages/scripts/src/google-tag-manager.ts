@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { applyScriptOverrides, resolveManifest } from './resolve';
-import type { VendorManifest } from './types';
+import { resolveManifest } from './resolve';
+import { type VendorManifest, vendorManifestContract } from './types';
 
 // Extended Window interface to include GTM-specific properties
 declare global {
@@ -19,24 +19,32 @@ declare global {
  * - Signals consent state via `gtag('consent', 'default'|'update', ...)`
  */
 export const googleTagManagerManifest = {
+	...vendorManifestContract,
 	vendor: 'google-tag-manager',
 	category: 'necessary',
 	alwaysLoad: true,
 	bootstrap: [
 		{
-			type: 'inlineScript',
-			code: `
-window.dataLayer = window.dataLayer || [];
-window.gtag = function gtag() { window.dataLayer.push(arguments); };
-			`.trim(),
+			type: 'setGlobal',
+			name: 'dataLayer',
+			value: [],
+			ifUndefined: true,
+		},
+		{
+			type: 'defineQueueFunction',
+			name: 'gtag',
+			queue: 'dataLayer',
+			ifUndefined: true,
 		},
 	],
 	install: [
 		{
-			type: 'inlineScript',
-			code: `
-window.dataLayer.push({ 'gtm.start': Date.now(), event: 'gtm.js' });
-			`.trim(),
+			type: 'pushToQueue',
+			queue: 'dataLayer',
+			value: {
+				'gtm.start': '{{loadTime}}',
+				event: 'gtm.js',
+			},
 		},
 		{
 			type: 'loadScript',
@@ -92,18 +100,6 @@ export interface GoogleTagManagerOptions {
 	 * ```
 	 */
 	consentMapping?: Record<string, string[]>;
-
-	/**
-	 * Override or extend the default script values.
-	 *
-	 * Default values:
-	 * - `id`: 'google-tag-manager'
-	 * - `src`: `https://www.googletagmanager.com/gtm.js?id=${id}`
-	 * - `category`: 'necessary' (You control what scripts get loaded via Google Tag Manager)
-	 * - `alwaysLoad`: true
-	 * - `async`: true
-	 */
-	script?: Partial<Script>;
 }
 
 /**
@@ -116,7 +112,6 @@ export interface GoogleTagManagerOptions {
  */
 export function googleTagManager({
 	id,
-	script,
 	updateEventName,
 	consentMapping,
 }: GoogleTagManagerOptions): Script {
@@ -126,8 +121,9 @@ export function googleTagManager({
 
 	const resolved = resolveManifest(manifest, {
 		id,
+		loadTime: Date.now(),
 		updateEventName: updateEventName ?? 'consent-update',
 	});
 
-	return script ? applyScriptOverrides(resolved, script) : resolved;
+	return resolved;
 }

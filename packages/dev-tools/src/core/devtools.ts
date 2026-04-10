@@ -3,7 +3,11 @@
  * Orchestrates all components and state
  */
 
-import type { ConsentStoreState } from 'c15t';
+import {
+	type ConsentStoreState,
+	type ScriptDebugEvent,
+	subscribeToScriptDebugEvents,
+} from 'c15t';
 import { createPanel, type PanelInstance } from '../components/panel';
 import { createTabs, type TabsInstance } from '../components/tabs';
 import {
@@ -174,6 +178,30 @@ function createStateCopy(state: ConsentStoreState): Record<string, unknown> {
 	};
 }
 
+function scriptDebugEventToLogEntry(event: ScriptDebugEvent): {
+	type: 'script';
+	message: string;
+	data: Record<string, unknown>;
+} {
+	return {
+		type: 'script',
+		message: event.message,
+		data: {
+			source: event.source,
+			scope: event.scope,
+			action: event.action,
+			scriptId: event.scriptId,
+			elementId: event.elementId,
+			hasConsent: event.hasConsent,
+			callback: event.callback,
+			phase: event.phase,
+			stepType: event.stepType,
+			stepIndex: event.stepIndex,
+			...(event.data ?? {}),
+		},
+	};
+}
+
 /**
  * DevTools configuration options
  */
@@ -235,6 +263,7 @@ export function createDevTools(
 		isOpen: defaultOpen,
 	});
 	let detachInstrumentation: (() => void) | null = null;
+	let detachScriptDebug: (() => void) | null = null;
 
 	// Create store connector
 	const storeConnector = createStoreConnector({
@@ -247,6 +276,10 @@ export function createDevTools(
 				onEvent: (event) => {
 					stateManager.addEvent(event);
 				},
+			});
+			detachScriptDebug?.();
+			detachScriptDebug = subscribeToScriptDebugEvents((event) => {
+				stateManager.addEvent(scriptDebugEventToLogEntry(event));
 			});
 
 			stateManager.setConnected(true);
@@ -295,6 +328,8 @@ export function createDevTools(
 			stateManager.setConnected(false);
 			detachInstrumentation?.();
 			detachInstrumentation = null;
+			detachScriptDebug?.();
+			detachScriptDebug = null;
 			stateManager.addEvent({
 				type: 'error',
 				message: 'Disconnected from c15tStore',
@@ -419,6 +454,8 @@ export function createDevTools(
 		destroy: () => {
 			detachInstrumentation?.();
 			detachInstrumentation = null;
+			detachScriptDebug?.();
+			detachScriptDebug = null;
 
 			panelHeightAnimator.destroy();
 			tabsInstance?.destroy();
@@ -453,6 +490,7 @@ export function createDevToolsPanel(options: {
 } {
 	const { namespace = 'c15tStore' } = options;
 	let detachInstrumentation: (() => void) | null = null;
+	let detachScriptDebug: (() => void) | null = null;
 
 	// Create state manager without floating button behavior
 	const stateManager = createStateManager({
@@ -468,6 +506,10 @@ export function createDevToolsPanel(options: {
 				namespace,
 				store,
 				onEvent: (event) => stateManager.addEvent(event),
+			});
+			detachScriptDebug?.();
+			detachScriptDebug = subscribeToScriptDebugEvents((event) => {
+				stateManager.addEvent(scriptDebugEventToLogEntry(event));
 			});
 			stateManager.setConnected(true);
 
@@ -490,6 +532,8 @@ export function createDevToolsPanel(options: {
 			stateManager.setConnected(false);
 			detachInstrumentation?.();
 			detachInstrumentation = null;
+			detachScriptDebug?.();
+			detachScriptDebug = null;
 		},
 	});
 	const panelRenderer = createPanelRenderer({
@@ -606,6 +650,8 @@ export function createDevToolsPanel(options: {
 		destroy: () => {
 			detachInstrumentation?.();
 			detachInstrumentation = null;
+			detachScriptDebug?.();
+			detachScriptDebug = null;
 
 			unsubscribe();
 			tabsInstance?.destroy();

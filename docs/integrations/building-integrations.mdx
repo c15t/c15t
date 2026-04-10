@@ -1,0 +1,228 @@
+---
+title: Build a Custom Script Integration
+description: Learn when to use a raw Script, when to build a reusable manifest-backed integration, and how to debug and test custom consent-aware scripts in c15t.
+lastModified: 2026-04-10
+---
+
+If you cannot find a prebuilt integration in [`@c15t/scripts`](/docs/integrations), you have two good options:
+
+1. Build a one-off `Script` object directly in your app.
+2. Build a reusable manifest-backed integration helper.
+
+Use the first option for app-specific scripts. Use the second option when you want something reusable, testable, and aligned with c15t's manifest system.
+
+## Choose the Right Level
+
+### One-off app script
+
+Use a raw `Script` when:
+
+- the integration is only used in one app
+- the vendor setup is small
+- you do not need to publish or share the helper
+
+```ts
+import type { Script } from 'c15t';
+
+export function acmeAnalytics(siteId: string): Script {
+  return {
+    id: 'acme-analytics',
+    src: `https://cdn.acme.com/analytics.js?site=${siteId}`,
+    category: 'measurement',
+    onBeforeLoad: () => {
+      window.acmeQueue = window.acmeQueue || [];
+    },
+    onConsentChange: ({ hasConsent }) => {
+      window.acme?.setConsent(hasConsent);
+    },
+  };
+}
+```
+
+### Reusable manifest-backed integration
+
+Use a manifest-backed helper when:
+
+- you want to contribute to `@c15t/scripts`
+- you want the integration to be reusable across apps
+- you need structured startup/setup phases
+- you want compatibility with c15t's server-side support for script loading
+
+Manifest integrations should be declarative, serializable, and built from structured steps rather than raw inline JavaScript strings.
+
+## Manifest Contract
+
+Every reusable manifest carries two contract fields:
+
+- `kind`: identifies the payload as a c15t vendor manifest
+- `schemaVersion`: identifies which manifest schema the runtime should compile
+
+Use `vendorManifestContract` so helpers stay aligned with the runtime's current contract:
+
+```ts
+const acmeManifest = {
+  ...vendorManifestContract,
+  vendor: 'acme-analytics',
+  // ...
+} as const satisfies VendorManifest;
+```
+
+If manifests are sent from a server later, these fields are how the client can validate that it knows how to interpret the payload before executing anything.
+
+## Manifest Mental Model
+
+The manifest runtime executes a script in ordered phases:
+
+- `bootstrap`: globals or stubs that must exist before anything else
+- `install`: startup steps plus a single `loadScript`
+- `afterLoad`: work that should run after the external script loads
+- `onBeforeLoadGranted` / `onBeforeLoadDenied`: initial consent-specific setup
+- `onLoadGranted` / `onLoadDenied`: post-load consent-specific setup
+- `onConsentChange`: runs on every consent update
+- `onConsentGranted` / `onConsentDenied`: branch-specific consent updates
+
+For vendors with explicit consent APIs, you can also use:
+
+- `consentMapping`
+- `consentSignal`
+- `consentSignalTarget`
+
+That is how the Google integrations map c15t consent categories to Consent Mode v2 and inject `default` and `update` signals in the correct phase order.
+
+`category` supports the same consent condition model as a plain `Script`, so manifests can represent simple or nested rules such as:
+
+```ts
+category: { and: ['measurement', { not: 'marketing' }] }
+```
+
+## Structured Steps
+
+Prefer structured steps over raw script text. The current manifest DSL supports patterns like:
+
+- `setGlobal`
+- `setGlobalPath`
+- `defineQueueFunction`
+- `defineStubFunction`
+- `pushToQueue`
+- `callGlobal`
+- `defineQueueMethods`
+- `defineGlobalMethods`
+- `constructGlobal`
+- `loadScript`
+
+These steps are easier to validate, test, debug, and eventually transport from the server.
+
+## Example Manifest Integration
+
+If you are building a reusable helper, the pattern looks like this:
+
+```ts
+import type { Script } from 'c15t';
+import { resolveManifest } from '@c15t/scripts/resolve';
+import {
+  vendorManifestContract,
+  type VendorManifest,
+} from '@c15t/scripts/types';
+
+const acmeManifest = {
+  ...vendorManifestContract,
+  vendor: 'acme-analytics',
+  category: 'measurement',
+  bootstrap: [
+    {
+      type: 'setGlobal',
+      name: 'acmeQueue',
+      value: [],
+      ifUndefined: true,
+    },
+    {
+      type: 'defineQueueFunction',
+      name: 'acme',
+      queue: 'acmeQueue',
+      ifUndefined: true,
+    },
+  ],
+  install: [
+    {
+      type: 'callGlobal',
+      global: 'acme',
+      args: ['init', '{{siteId}}'],
+    },
+    {
+      type: 'loadScript',
+      src: 'https://cdn.acme.com/analytics.js?site={{siteId}}',
+      async: true,
+    },
+  ],
+  onConsentGranted: [
+    {
+      type: 'callGlobal',
+      global: 'acme',
+      args: ['consent', true],
+    },
+  ],
+  onConsentDenied: [
+    {
+      type: 'callGlobal',
+      global: 'acme',
+      args: ['consent', false],
+    },
+  ],
+} as const satisfies VendorManifest;
+
+export function acmeAnalytics(siteId: string): Script {
+  return resolveManifest(acmeManifest, { siteId });
+}
+```
+
+## Design Guidelines
+
+When building an integration, prefer these rules:
+
+- Keep helper logic thin. Put behavior in the manifest, not in post-resolution callback mutation.
+- Keep manifests serializable. Avoid helper-only runtime branches where possible.
+- Use explicit config inputs. Avoid generic override bags when a named option is clearer.
+- Use `alwaysLoad` only when the vendor truly manages its own consent correctly.
+- Use `persistAfterConsentRevoked` only when the vendor exposes a real consent toggle and does not need a full reload.
+- Keep vendor-specific naming out of the core DSL when a generic step can express it.
+
+## Testing Checklist
+
+At minimum, test these flows:
+
+1. Initial page load with consent denied.
+2. Initial page load with consent granted.
+3. Consent granted after the script was previously denied.
+4. Consent revoked after the script was previously active.
+5. Existing script element reuse if the script persists after revocation.
+6. Error handling if the vendor global or loader is missing.
+
+If you are contributing to `@c15t/scripts`, add focused engine/helper tests similar to the existing tests in `packages/scripts/src/engine.test.ts` and `packages/scripts/src/helpers.test.ts`.
+
+## Debugging
+
+Use `@c15t/dev-tools` while implementing and testing integrations.
+
+The scripts panel now shows:
+
+- whether a script is loaded, pending, or blocked
+- grouped activity for `onBeforeLoad`, `onLoad`, and `onConsentChange`
+- manifest phase activity such as `bootstrap`, `consent-default`, `setup`, and `afterLoad`
+
+The events panel also records script lifecycle and manifest step events, which is useful when a vendor reads consent too early or a startup step runs in the wrong order.
+
+## When to Stop and Use a Plain Script
+
+Not every integration needs a reusable manifest helper.
+
+If the vendor snippet is tiny, unique to one app, or mostly static, a plain `Script` object in your runtime options is usually the simpler choice. Reach for the manifest system when you need reuse, consistency, structured startup behavior, or a path to server-driven manifests.
+
+## Reference Types
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+
+### VendorManifest
+
+<AutoTypeTable path="./packages/scripts/src/types.ts" name="VendorManifest" />
