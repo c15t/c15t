@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ConsentRuntimeOptions } from '../index';
 import { clearConsentRuntimeCache, getOrCreateConsentRuntime } from '../index';
 
 const configureConsentManagerMock = vi.fn();
 const createConsentManagerStoreMock = vi.fn();
+const getMatchingPrefetchedInitialDataMock = vi.fn();
 
 vi.mock('../../client', () => ({
 	configureConsentManager: (options: unknown) =>
@@ -16,6 +17,11 @@ vi.mock('../../store', () => ({
 		createConsentManagerStoreMock(manager, options),
 }));
 
+vi.mock('../../libs/prefetch/prefetch', () => ({
+	getMatchingPrefetchedInitialData: (options: unknown) =>
+		getMatchingPrefetchedInitialDataMock(options),
+}));
+
 describe('runtime', () => {
 	let managerCount = 0;
 	let storeCount = 0;
@@ -25,6 +31,7 @@ describe('runtime', () => {
 		storeCount = 0;
 		vi.clearAllMocks();
 		clearConsentRuntimeCache();
+		getMatchingPrefetchedInitialDataMock.mockReset();
 
 		configureConsentManagerMock.mockImplementation(() => ({
 			id: `manager-${++managerCount}`,
@@ -32,6 +39,10 @@ describe('runtime', () => {
 		createConsentManagerStoreMock.mockImplementation(() => ({
 			id: `store-${++storeCount}`,
 		}));
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
 	});
 
 	it('reuses runtime instances for the same cache key', () => {
@@ -89,6 +100,10 @@ describe('runtime', () => {
 					pkg: '@c15t/react',
 					version: '2.0.0',
 					mode: 'hosted',
+					meta: {
+						backendURL: '/api/c15t',
+						requestCredentials: 'include',
+					},
 				},
 			})
 		);
@@ -282,5 +297,92 @@ describe('runtime', () => {
 				}),
 			})
 		);
+	});
+
+	it('uses matching browser-prefetched data on first hosted initialization', () => {
+		const prefetchedData = Promise.resolve(undefined);
+		getMatchingPrefetchedInitialDataMock.mockReturnValue(prefetchedData);
+		vi.stubGlobal('window', {} as Window);
+
+		getOrCreateConsentRuntime(
+			{
+				mode: 'hosted',
+				backendURL: '/api/c15t',
+			} as ConsentRuntimeOptions,
+			{
+				pkg: '@c15t/react',
+				version: '2.0.0',
+			}
+		);
+
+		expect(getMatchingPrefetchedInitialDataMock).toHaveBeenCalledWith({
+			backendURL: '/api/c15t',
+			overrides: undefined,
+			credentials: 'include',
+		});
+		expect(createConsentManagerStoreMock).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({
+				ssrData: prefetchedData,
+				__internal: {
+					backendURL: '/api/c15t',
+					requestCredentials: 'include',
+				},
+			})
+		);
+	});
+
+	it('prefers explicit ssrData over browser-prefetched data', () => {
+		const explicitSSRData = Promise.resolve(undefined);
+		getMatchingPrefetchedInitialDataMock.mockReturnValue(
+			Promise.resolve(undefined)
+		);
+		vi.stubGlobal('window', {} as Window);
+
+		getOrCreateConsentRuntime(
+			{
+				mode: 'hosted',
+				backendURL: '/api/c15t',
+				ssrData: explicitSSRData,
+			} as ConsentRuntimeOptions,
+			{
+				pkg: '@c15t/react',
+				version: '2.0.0',
+			}
+		);
+
+		expect(getMatchingPrefetchedInitialDataMock).not.toHaveBeenCalled();
+		expect(createConsentManagerStoreMock).toHaveBeenCalledWith(
+			expect.anything(),
+			expect.objectContaining({
+				ssrData: explicitSSRData,
+			})
+		);
+	});
+
+	it('does not adopt newly available prefetched data once a store is cached', () => {
+		vi.stubGlobal('window', {} as Window);
+
+		const options = {
+			mode: 'hosted',
+			backendURL: '/api/c15t',
+		} as ConsentRuntimeOptions;
+		const pkgInfo = {
+			pkg: '@c15t/react',
+			version: '2.0.0',
+		};
+
+		getMatchingPrefetchedInitialDataMock.mockReturnValueOnce(undefined);
+		const first = getOrCreateConsentRuntime(options, pkgInfo);
+
+		const laterPrefetchedData = Promise.resolve(undefined);
+		getMatchingPrefetchedInitialDataMock.mockReturnValueOnce(
+			laterPrefetchedData
+		);
+		const second = getOrCreateConsentRuntime(options, pkgInfo);
+
+		expect(first.consentStore).toBe(second.consentStore);
+		expect(getMatchingPrefetchedInitialDataMock).toHaveBeenCalledTimes(1);
+		expect(createConsentManagerStoreMock).toHaveBeenCalledTimes(1);
 	});
 });

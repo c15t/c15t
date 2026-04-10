@@ -9,12 +9,7 @@
  */
 
 export * from '@c15t/react';
-export {
-	buildPrefetchScript,
-	ensurePrefetchedInitialData,
-	getPrefetchedInitialData,
-	type PrefetchOptions,
-} from 'c15t';
+export { buildPrefetchScript, type PrefetchOptions } from 'c15t';
 export { C15tPrefetch } from './libs/browser-initial-data';
 export { fetchInitialData } from './libs/initial-data';
 export type {

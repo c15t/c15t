@@ -2,6 +2,8 @@ import type { NextConfig } from 'next';
 
 const config: NextConfig = {
 	allowedDevOrigins: [
+		'pigeon-post.localhost',
+		'*.pigeon-post.localhost',
 		'css-module-strategy.pigeon-post.localhost',
 		'theme-rc-bugs.pigeon-post.localhost',
 	],

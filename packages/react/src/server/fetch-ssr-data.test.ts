@@ -55,6 +55,13 @@ describe('fetchSSRData', () => {
 			isHit: true,
 			detail: 'x-vercel-cache=HIT, age=10',
 		});
+		expect(result?.metadata?.requestContext).toEqual({
+			backendURL: 'https://example.com/api/c15t',
+			country: 'US',
+			region: null,
+			language: null,
+			gpc: false,
+		});
 		expect(typeof result?.metadata?.requestDurationMs).toBe('number');
 		expect(result?.metadata?.requestDurationMs).toBeGreaterThanOrEqual(0);
 	});
@@ -131,11 +138,54 @@ describe('fetchSSRData', () => {
 			gvl: null,
 		});
 		expect(result?.metadata).toEqual({
+			requestContext: {
+				backendURL: 'https://consent.example.com/api/c15t',
+				country: 'US',
+				region: null,
+				language: null,
+				gpc: false,
+			},
 			cache: {
 				isHit: false,
 				detail: null,
 			},
 			requestDurationMs: expect.any(Number),
+		});
+	});
+
+	it('records overrides and gpc in request-context metadata', async () => {
+		const headers = createRequestHeaders();
+		headers.set('accept-language', 'en-GB');
+		headers.set('sec-gpc', '1');
+
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue(
+				new Response(JSON.stringify({ gvl: null, categories: [] }), {
+					status: 200,
+					headers: {
+						'content-type': 'application/json',
+					},
+				})
+			)
+		);
+
+		const result = await fetchSSRData({
+			backendURL: '/api/c15t',
+			headers,
+			overrides: {
+				country: 'DE',
+				region: 'BE',
+				language: 'de',
+			},
+		});
+
+		expect(result?.metadata?.requestContext).toEqual({
+			backendURL: 'https://example.com/api/c15t',
+			country: 'DE',
+			region: 'BE',
+			language: 'de',
+			gpc: true,
 		});
 	});
 

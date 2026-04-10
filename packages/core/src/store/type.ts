@@ -192,6 +192,11 @@ export type OfflinePolicyConfig = {
  */
 export interface SSRInitRequestMetadata {
 	/**
+	 * Effective request inputs used to fetch `/init`.
+	 */
+	requestContext?: SSRInitRequestContext;
+
+	/**
 	 * End-to-end request duration in milliseconds (server-side measurement).
 	 */
 	requestDurationMs?: number;
@@ -211,6 +216,49 @@ export interface SSRInitRequestMetadata {
 		detail: string | null;
 	};
 }
+
+/**
+ * Effective request inputs used to fetch `/init`.
+ *
+ * @public
+ */
+export interface SSRInitRequestContext {
+	/**
+	 * Canonical absolute backend URL without a trailing slash.
+	 */
+	backendURL: string;
+
+	/**
+	 * Explicit country override used for the request, if any.
+	 */
+	country: string | null;
+
+	/**
+	 * Explicit region override used for the request, if any.
+	 */
+	region: string | null;
+
+	/**
+	 * Explicit language override used for the request, if any.
+	 */
+	language: string | null;
+
+	/**
+	 * Effective GPC signal used for the request.
+	 */
+	gpc: boolean;
+
+	/**
+	 * Fetch credentials mode for browser-prefetched requests.
+	 */
+	credentials?: RequestCredentials;
+}
+
+export type SSRSkippedReason =
+	| 'no_data'
+	| 'fetch_failed'
+	| 'context_mismatch'
+	| null;
 
 /**
  * Initial data structure for SSR prefetching.
@@ -688,8 +736,9 @@ export interface StoreRuntimeState extends StoreConfig {
 	 * - `null` if SSR data was used successfully
 	 * - `'no_data'` if no SSR data was provided
 	 * - `'fetch_failed'` if SSR data was provided but the fetch returned no data
+	 * - `'context_mismatch'` if SSR data did not match the current runtime request context
 	 */
-	ssrSkippedReason: 'no_data' | 'fetch_failed' | null;
+	ssrSkippedReason: SSRSkippedReason;
 }
 
 /**

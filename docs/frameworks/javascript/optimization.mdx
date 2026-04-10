@@ -36,25 +36,21 @@ const script = buildPrefetchScript({
 // Inject `script` into a <script> tag in your HTML <head>
 ```
 
-Then retrieve the prefetched data when creating the store:
+Then create the store normally. Matching prefetched data is consumed automatically by the runtime during first store initialization:
 
 ```ts
 import {
   createConsentManagerStore,
-  getPrefetchedInitialData,
 } from 'c15t';
 
 const store = createConsentManagerStore({
   mode: 'hosted',
   backendURL: '/api/c15t',
-  ssrData: getPrefetchedInitialData({
-    backendURL: '/api/c15t',
-  }),
 });
 ```
 
 <Callout type="info">
-  If you use `overrides` or custom `credentials` in `buildPrefetchScript`, pass the same values to `getPrefetchedInitialData(...)` so it resolves the matching prefetched request.
+  If `overrides.gpc` conflicts with the browser's ambient GPC signal, the prefetched entry is not reused and c15t falls back to a normal client `/init`.
 </Callout>
 
 <import src="../../shared/react/guides/optimization.mdx#animation" />

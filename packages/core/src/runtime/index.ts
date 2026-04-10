@@ -9,6 +9,7 @@ import {
 	clearClientRegistry,
 	configureConsentManager,
 } from '../client';
+import { getMatchingPrefetchedInitialData } from '../libs/prefetch/prefetch';
 import { createConsentManagerStore } from '../store';
 import type { StoreOptions } from '../store/type';
 import type { AllConsentNames, TranslationConfig } from '../types';
@@ -100,6 +101,12 @@ export function getOrCreateConsentRuntime(
 		retryConfig?: unknown;
 		endpointHandlers?: unknown;
 	};
+	type InternalStoreOptions = StoreOptions & {
+		__internal?: {
+			backendURL?: string;
+			requestCredentials?: RequestCredentials;
+		};
+	};
 
 	const {
 		mode,
@@ -123,12 +130,16 @@ export function getOrCreateConsentRuntime(
 	const {
 		initialI18nConfig: _unusedTopLevelInitialI18nConfig,
 		initialTranslationConfig: _unusedTopLevelInitialTranslationConfig,
+		ssrData: topLevelSSRData,
+		config: topLevelConfig,
 		...cleanStoreOptionOverrides
 	} = storeOptionOverrides as Partial<StoreOptions>;
 
 	const {
 		initialI18nConfig: _unusedStoreInitialI18nConfig,
 		initialTranslationConfig: _unusedStoreInitialTranslationConfig,
+		ssrData: storeSSRData,
+		config: storeConfig,
 		...storeWithoutTranslationInputs
 	} = store ?? {};
 
@@ -152,6 +163,8 @@ export function getOrCreateConsentRuntime(
 	const resolvedStorageConfig =
 		storageConfig ?? storeWithoutTranslationInputs.storageConfig;
 	const resolvedEnabled = enabled ?? storeWithoutTranslationInputs.enabled;
+	const resolvedBackendURL = backendURL || DEFAULT_BACKEND_URL;
+	const explicitSSRData = topLevelSSRData ?? storeSSRData;
 
 	const cacheKey = generateRuntimeCacheKey({
 		mode,
@@ -210,12 +223,34 @@ export function getOrCreateConsentRuntime(
 		const normalizedMode = normalizeRuntimeMode(
 			mode as RuntimeMode | undefined
 		);
+		const userConfig = storeConfig ?? topLevelConfig;
+		const autoPrefetchedSSRData =
+			normalizedMode === 'hosted' &&
+			typeof window !== 'undefined' &&
+			!explicitSSRData
+				? getMatchingPrefetchedInitialData({
+						backendURL: resolvedBackendURL,
+						overrides: options.overrides,
+						credentials: 'include',
+					})
+				: undefined;
+		const resolvedSSRData = explicitSSRData ?? autoPrefetchedSSRData;
 
 		consentStore = createConsentManagerStore(consentManager, {
 			config: {
+				...(userConfig ?? {}),
 				pkg: pkgInfo?.pkg || 'c15t',
 				version: pkgInfo?.version || version,
 				mode: normalizedMode,
+				meta: {
+					...(userConfig?.meta ?? {}),
+					...(normalizedMode === 'hosted'
+						? {
+								backendURL: resolvedBackendURL,
+								requestCredentials: 'include',
+							}
+						: {}),
+				},
 			},
 			...cleanStoreOptionOverrides,
 			...storeWithoutTranslationInputs,
@@ -225,8 +260,16 @@ export function getOrCreateConsentRuntime(
 			enabled: resolvedEnabled,
 			initialTranslationConfig: normalizedInitialTranslationConfig,
 			initialConsentCategories: consentCategories,
+			ssrData: resolvedSSRData,
 			debug,
-		});
+			__internal:
+				normalizedMode === 'hosted'
+					? {
+							backendURL: resolvedBackendURL,
+							requestCredentials: 'include',
+						}
+					: undefined,
+		} as InternalStoreOptions);
 
 		storeCache.set(cacheKey, consentStore);
 	}
