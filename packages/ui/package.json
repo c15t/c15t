@@ -84,6 +84,8 @@
 	"files": [
 		"dist",
 		"dist-types",
+		"styles.css",
+		"iab/styles.css",
 		"src/primitives",
 		"src/styles",
 		"!src/styles/**/__tests__/**",

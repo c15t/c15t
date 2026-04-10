@@ -7,4 +7,4 @@
  * Usage (app/globals.css):
  *   @import "@c15t/nextjs/styles.css";
  */
-@import "@c15t/react/styles.css";
+@import "../../react/styles.css";

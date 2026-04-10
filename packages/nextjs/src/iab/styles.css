@@ -9,4 +9,4 @@
  *   @import "@c15t/nextjs/styles.css";
  *   @import "@c15t/nextjs/iab/styles.css";
  */
-@import "@c15t/react/iab/styles.css";
+@import "../../../react/iab/styles.css";

@@ -60,6 +60,14 @@ for (const dir of CSS_DIRS) {
 				/require\(["'][^"']+\.module\.css["']\)\s*;?/g,
 				''
 			);
+			// rslib emits CJS CSS modules as:
+			// const external_x = require("./file.module.css"), local = {...}
+			// After stripping the require side effect, normalize the dangling
+			// declaration back to a valid const initializer list.
+			content = content.replace(
+				/const\s+external_[A-Za-z0-9_]+\s*=\s*,\s*/g,
+				'const '
+			);
 			writeFileSync(filePath, content);
 		}
 	}
@@ -115,9 +123,10 @@ function splitModuleCss(
 	// Extract all :root { ... } blocks (they live outside @layer)
 	const rootBlocks: string[] = [];
 	const rootRegex = /:root\s*\{[^}]+\}/g;
-	let match: RegExpExecArray | null;
-	while ((match = rootRegex.exec(css)) !== null) {
+	let match = rootRegex.exec(css);
+	while (match !== null) {
 		rootBlocks.push(match[0]);
+		match = rootRegex.exec(css);
 	}
 
 	// Extract the content inside @layer components { ... }
@@ -235,13 +244,13 @@ if (nonIab.ruleParts.length === 0) {
 // dist/styles.css — @layer components (default, for Tailwind 4 + native CSS layers)
 writeFileSync(
 	join(DIST_DIR, 'styles.css'),
-	buildLayeredCss(nonIab.rootParts, nonIab.ruleParts) + '\n'
+	`${buildLayeredCss(nonIab.rootParts, nonIab.ruleParts)}\n`
 );
 
 // dist/styles.tw3.css — flat rules (for Tailwind 3 layout imports)
 writeFileSync(
 	join(DIST_DIR, 'styles.tw3.css'),
-	buildFlatCss(nonIab.rootParts, nonIab.ruleParts) + '\n'
+	`${buildFlatCss(nonIab.rootParts, nonIab.ruleParts)}\n`
 );
 
 // ── IAB entrypoints ─────────────────────────────────────────────────
@@ -258,13 +267,13 @@ if (IAB_COMPONENTS.length > 0 && iab.ruleParts.length === 0) {
 // dist/iab/styles.css — @layer components
 writeFileSync(
 	join(iabDir, 'styles.css'),
-	buildLayeredCss(iab.rootParts, iab.ruleParts) + '\n'
+	`${buildLayeredCss(iab.rootParts, iab.ruleParts)}\n`
 );
 
 // dist/iab/styles.tw3.css — flat rules (for Tailwind 3 layout imports)
 writeFileSync(
 	join(iabDir, 'styles.tw3.css'),
-	buildFlatCss(iab.rootParts, iab.ruleParts) + '\n'
+	`${buildFlatCss(iab.rootParts, iab.ruleParts)}\n`
 );
 
 console.log(

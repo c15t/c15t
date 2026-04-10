@@ -16,7 +16,7 @@ export default mergeConfig(
 					__dirname,
 					'../translations/src/all.ts'
 				),
-				c15t: resolve(__dirname, '../core/src/index.ts'),
+				c15t: resolve(__dirname, '../core/dist/index.js'),
 			},
 		},
 		test: {

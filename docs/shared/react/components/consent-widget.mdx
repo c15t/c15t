@@ -50,20 +50,14 @@
 
   ## Advanced: Compound Components
 
-  Use compound components only when you need to rearrange the widget's existing primitives:
+  Use compound components only when you need to rearrange the widget's existing primitives while keeping policy-aware action grouping:
 
   ```tsx
   <ConsentWidget.Root>
     <ConsentWidget.Accordion type="multiple">
       <ConsentWidget.AccordionItems />
     </ConsentWidget.Accordion>
-    <ConsentWidget.Footer>
-      <ConsentWidget.FooterSubGroup>
-        <ConsentWidget.RejectButton />
-        <ConsentWidget.AcceptAllButton />
-      </ConsentWidget.FooterSubGroup>
-      <ConsentWidget.SaveButton />
-    </ConsentWidget.Footer>
+    <ConsentWidget.PolicyActions />
   </ConsentWidget.Root>
   ```
 
@@ -75,11 +69,70 @@
   - `ConsentWidget.AccordionContent` — Collapsible content area
   - `ConsentWidget.AccordionArrow` — Expand/collapse indicator
   - `ConsentWidget.Switch` — Category toggle switch
+  - `ConsentWidget.PolicyActions` — Renders grouped policy-aware actions
   - `ConsentWidget.Footer` — Footer container
   - `ConsentWidget.FooterSubGroup` — Groups related buttons
   - `ConsentWidget.AcceptAllButton` — Accepts all consent
   - `ConsentWidget.RejectButton` — Rejects all consent
   - `ConsentWidget.SaveButton` — Saves custom selections
+
+  ## Using `renderAction` with c15t Defaults
+
+  `ConsentWidget.PolicyActions` renders stock c15t buttons and translations by default.
+
+  ```tsx
+  <ConsentWidget.PolicyActions />
+  ```
+
+  `renderAction` is optional. Return the stock button compounds when you want custom mapping while preserving built-in c15t behavior and copy:
+
+  ```tsx
+  <ConsentWidget.PolicyActions
+  renderAction={(action, props) => {
+    const { key, ...buttonProps } = props
+
+    switch (action) {
+      case 'accept':
+          return <ConsentWidget.AcceptAllButton key={key} {...buttonProps} />
+      case 'reject':
+          return <ConsentWidget.RejectButton key={key} {...buttonProps} />
+      case 'customize':
+          return <ConsentWidget.SaveButton key={key} {...buttonProps} />
+    }
+  }}
+  />
+  ```
+
+  Use `useTranslations()` only when you are replacing the button markup entirely:
+
+  ```tsx
+  import { ConsentWidget, useTranslations } from '@c15t/react';
+
+  export function CustomWidgetActions() {
+    const { common } = useTranslations();
+
+    return (
+      <ConsentWidget.PolicyActions
+        renderAction={(action, props) => (
+          <button
+            key={props.key}
+            type="button"
+            className={props.isPrimary ? 'btn-primary' : 'btn-secondary'}
+            style={props.style}
+          >
+            {action === 'accept'
+              ? common.acceptAll
+              : action === 'reject'
+                ? common.rejectAll
+                : common.save}
+          </button>
+        )}
+      />
+    );
+  }
+  ```
+
+  For a fixed footer layout, render `ConsentWidget.Footer` and `ConsentWidget.FooterSubGroup` manually instead of using `ConsentWidget.PolicyActions`.
 
   If the stock widget structure is already correct, stay with tokens and slots instead of rebuilding the layout.
 </section>

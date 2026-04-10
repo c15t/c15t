@@ -155,11 +155,38 @@
 
   ## Advanced: Compound Components
 
-  Use compound components only when the stock banner structure is no longer enough and you need to rearrange existing c15t primitives:
+  Use compound components only when the stock banner structure is no longer enough and you need to rearrange existing c15t primitives while keeping policy-driven action grouping and emphasis:
 
   ```tsx
   <ConsentBanner.Root>
     <ConsentBanner.Overlay />
+    <ConsentBanner.Card>
+      <ConsentBanner.Header>
+        <ConsentBanner.Title />
+        <ConsentBanner.Description />
+      </ConsentBanner.Header>
+      <ConsentBanner.PolicyActions />
+    </ConsentBanner.Card>
+  </ConsentBanner.Root>
+  ```
+
+  - `ConsentBanner.Root` — Outermost container, provides theme context
+  - `ConsentBanner.Card` — Main content card with optional focus trapping
+  - `ConsentBanner.Header` — Contains title and description
+  - `ConsentBanner.Title` — Heading, defaults to translation `consentBanner.title`
+  - `ConsentBanner.Description` — Description text, supports `legalLinks` prop
+  - `ConsentBanner.PolicyActions` — Renders policy-aware grouped actions inside the banner footer
+  - `ConsentBanner.Footer` — Action buttons container
+  - `ConsentBanner.FooterSubGroup` — Groups related buttons together
+  - `ConsentBanner.RejectButton` — Rejects all consent
+  - `ConsentBanner.CustomizeButton` — Opens the consent dialog
+  - `ConsentBanner.AcceptButton` — Accepts all consent
+  - `ConsentBanner.Overlay` — Optional backdrop overlay
+
+  For a fixed layout that intentionally ignores policy grouping, render the footer manually:
+
+  ```tsx
+  <ConsentBanner.Root>
     <ConsentBanner.Card>
       <ConsentBanner.Header>
         <ConsentBanner.Title />
@@ -176,17 +203,63 @@
   </ConsentBanner.Root>
   ```
 
-  - `ConsentBanner.Root` — Outermost container, provides theme context
-  - `ConsentBanner.Card` — Main content card with optional focus trapping
-  - `ConsentBanner.Header` — Contains title and description
-  - `ConsentBanner.Title` — Heading, defaults to translation `cookieBanner.title`
-  - `ConsentBanner.Description` — Description text, supports `legalLinks` prop
-  - `ConsentBanner.Footer` — Action buttons container
-  - `ConsentBanner.FooterSubGroup` — Groups related buttons together
-  - `ConsentBanner.RejectButton` — Rejects all consent
-  - `ConsentBanner.CustomizeButton` — Opens the consent dialog
-  - `ConsentBanner.AcceptButton` — Accepts all consent
-  - `ConsentBanner.Overlay` — Optional backdrop overlay
+  ## Using `renderAction` with c15t Defaults
+
+  `ConsentBanner.PolicyActions` renders stock c15t buttons and translations by default.
+
+  ```tsx
+  <ConsentBanner.PolicyActions />
+  ```
+
+  `renderAction` is optional. When you want custom mapping but still want the built-in c15t button behavior and copy, return the stock button compounds:
+
+  ```tsx
+  <ConsentBanner.PolicyActions
+  renderAction={(action, props) => {
+    const { key, ...buttonProps } = props
+
+    switch (action) {
+      case 'accept':
+          return <ConsentBanner.AcceptButton key={key} {...buttonProps} />
+      case 'reject':
+          return <ConsentBanner.RejectButton key={key} {...buttonProps} />
+      case 'customize':
+          return <ConsentBanner.CustomizeButton key={key} {...buttonProps} />
+    }
+  }}
+  />
+  ```
+
+  Use `useTranslations()` only when you are replacing the button markup entirely:
+
+  ```tsx
+  import { ConsentBanner, useTranslations } from '@c15t/react';
+
+  export function CustomBannerActions() {
+    const { common } = useTranslations();
+
+    return (
+      <ConsentBanner.PolicyActions
+        renderAction={(action, props) => (
+          <button
+            key={props.key}
+            type="button"
+            className={props.isPrimary ? 'btn-primary' : 'btn-secondary'}
+            style={props.style}
+          >
+            {action === 'accept'
+              ? common.acceptAll
+              : action === 'reject'
+                ? common.rejectAll
+                : common.customize}
+          </button>
+        )}
+      />
+    );
+  }
+  ```
+
+  For maximum control, use `useHeadlessConsentUI()` and render `banner.actionGroups` manually.
 
   If you only need styling changes, stay with tokens and slots instead of rebuilding the banner layout.
 </section>

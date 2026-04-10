@@ -4,15 +4,7 @@ import type {
 	PolicyUiActionGroup,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
-} from 'c15t';
-
-export type {
-	PolicyUiAction,
-	PolicyUiActionDirection,
-	PolicyUiActionGroup,
-	PolicyUiProfile,
-	PolicyUiSurfaceConfig,
-};
+} from '../store/type';
 
 const DEFAULT_POLICY_ACTIONS: PolicyUiAction[] = [
 	'reject',
@@ -106,8 +98,8 @@ export function resolvePolicyPrimaryActions(params: {
 		return defaultPrimary;
 	}
 
-	const filtered = params.primaryActions.filter((a) =>
-		params.orderedActions.includes(a)
+	const filtered = params.primaryActions.filter((action) =>
+		params.orderedActions.includes(action)
 	);
 	return filtered.length > 0 ? filtered : defaultPrimary;
 }
