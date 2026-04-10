@@ -41,7 +41,13 @@ describe('consent-enrichment', () => {
 	// ── enrichConsents ──────────────────────────────────────────────────
 	describe('enrichConsents', () => {
 		function createMockCtx(
-			policies: Array<{ id: string; type: string }> = [],
+			policies: Array<{
+				id: string;
+				type: string;
+				version?: string;
+				hash?: string | null;
+				effectiveDate?: Date;
+			}> = [],
 			purposes: Array<{ id: string; code: string }> = [],
 			latestByType: Record<string, { id: string }> = {}
 		) {
@@ -54,7 +60,7 @@ describe('consent-enrichment', () => {
 			};
 
 			const registry = {
-				findOrCreatePolicy: vi.fn((type: string) =>
+				findLatestPolicyByType: vi.fn((type: string) =>
 					Promise.resolve(latestByType[type] ?? { id: `latest_${type}` })
 				),
 				findConsentPolicyById: vi.fn(),
@@ -100,9 +106,53 @@ describe('consent-enrichment', () => {
 				id: 'con_1',
 				type: 'cookie_banner',
 				policyId: 'pol_1',
+				policyVersion: undefined,
+				policyHash: undefined,
+				policyEffectiveDate: undefined,
 				isLatestPolicy: true,
 				preferences: { analytics: true, marketing: true },
 				givenAt: new Date('2024-01-01'),
+			});
+		});
+
+		it('includes legal-document evidence fields when available', async () => {
+			const effectiveDate = new Date('2026-04-07T00:00:00.000Z');
+			const ctx = createMockCtx(
+				[
+					{
+						id: 'pol_legal_1',
+						type: 'privacy_policy',
+						version: '2026-04-07',
+						hash: 'hash_123',
+						effectiveDate,
+					},
+				],
+				[],
+				{ privacy_policy: { id: 'pol_legal_1' } }
+			);
+
+			const result = await enrichConsents(
+				[
+					{
+						id: 'con_1',
+						policyId: 'pol_legal_1',
+						purposeIds: [],
+						givenAt: new Date('2026-04-07T12:00:00.000Z'),
+					},
+				],
+				ctx
+			);
+
+			expect(result[0]).toEqual({
+				id: 'con_1',
+				type: 'privacy_policy',
+				policyId: 'pol_legal_1',
+				policyVersion: '2026-04-07',
+				policyHash: 'hash_123',
+				policyEffectiveDate: effectiveDate,
+				isLatestPolicy: true,
+				preferences: undefined,
+				givenAt: new Date('2026-04-07T12:00:00.000Z'),
 			});
 		});
 
@@ -161,6 +211,9 @@ describe('consent-enrichment', () => {
 			);
 
 			expect(result[0]!.type).toBe('unknown');
+			expect(result[0]!.policyVersion).toBeUndefined();
+			expect(result[0]!.policyHash).toBeUndefined();
+			expect(result[0]!.policyEffectiveDate).toBeUndefined();
 			expect(result[0]!.isLatestPolicy).toBe(false);
 			expect(result[0]!.policyId).toBeUndefined();
 		});
@@ -286,7 +339,7 @@ describe('consent-enrichment', () => {
 			};
 
 			const registry = {
-				findOrCreatePolicy: vi.fn((type: string) =>
+				findLatestPolicyByType: vi.fn((type: string) =>
 					Promise.resolve(latestByType[type] ?? { id: `latest_${type}` })
 				),
 				findConsentPolicyById: vi.fn(),

@@ -16,6 +16,9 @@ export interface EnrichedConsentItem {
 	id: string;
 	type: string;
 	policyId: string | undefined;
+	policyVersion: string | undefined;
+	policyHash: string | undefined;
+	policyEffectiveDate: Date | undefined;
 	isLatestPolicy: boolean;
 	preferences: Record<string, boolean> | undefined;
 	givenAt: Date;
@@ -47,7 +50,7 @@ export function parsePurposeIds(purposeIds: unknown): string[] {
  * Batch-fetch all referenced policies and resolve the latest policy per type.
  *
  * 1 query for findMany('consentPolicy', { where: id IN ... })
- * ≤7 calls for findOrCreatePolicy (one per unique PolicyType)
+ * ≤7 calls for latest-policy lookup (one per unique PolicyType)
  */
 async function batchLoadPolicies(
 	policyIds: Set<string>,
@@ -58,7 +61,14 @@ async function batchLoadPolicies(
 	// Fetch all referenced policies in one query
 	const policyMap = new Map<
 		string,
-		{ id: string; type: string; [key: string]: unknown }
+		{
+			id: string;
+			type: string;
+			version: string;
+			hash?: string | null;
+			effectiveDate: Date;
+			[key: string]: unknown;
+		}
 	>();
 
 	if (policyIds.size > 0) {
@@ -78,7 +88,7 @@ async function batchLoadPolicies(
 
 	const latestPolicyByType = new Map<string, string>();
 	for (const type of uniqueTypes) {
-		const latest = await registry.findOrCreatePolicy(type as PolicyType);
+		const latest = await registry.findLatestPolicyByType(type as PolicyType);
 		if (latest) {
 			latestPolicyByType.set(type, latest.id);
 		}
@@ -137,12 +147,18 @@ export async function enrichConsents(
 	// Map consents synchronously — zero additional queries
 	return consents.map((consent) => {
 		let policyType = 'unknown';
+		let policyVersion: string | undefined;
+		let policyHash: string | undefined;
+		let policyEffectiveDate: Date | undefined;
 		let isLatestPolicy = false;
 
 		if (consent.policyId) {
 			const policy = policyMap.get(consent.policyId);
 			if (policy) {
 				policyType = policy.type;
+				policyVersion = policy.version;
+				policyHash = policy.hash ?? undefined;
+				policyEffectiveDate = policy.effectiveDate;
 				isLatestPolicy =
 					latestPolicyByType.get(policyType) === consent.policyId;
 			}
@@ -164,6 +180,9 @@ export async function enrichConsents(
 			id: consent.id,
 			type: policyType,
 			policyId: consent.policyId ?? undefined,
+			policyVersion,
+			policyHash,
+			policyEffectiveDate,
 			isLatestPolicy,
 			preferences,
 			givenAt: consent.givenAt,

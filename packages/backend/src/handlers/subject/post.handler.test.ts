@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolvePolicyDecision } from '~/handlers/init/policy';
+import { verifyLegalDocumentSnapshotToken } from '~/handlers/legal-document/snapshot';
 import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
 import {
 	buildRuntimeDecisionDedupeKey,
@@ -29,6 +30,13 @@ vi.mock('~/handlers/policy/snapshot', () => ({
 	}),
 }));
 
+vi.mock('~/handlers/legal-document/snapshot', () => ({
+	verifyLegalDocumentSnapshotToken: vi.fn().mockResolvedValue({
+		valid: false,
+		reason: 'missing',
+	}),
+}));
+
 const GIVEN_AT = 1700000000000;
 const GIVEN_AT_DATE = new Date(GIVEN_AT);
 
@@ -49,6 +57,9 @@ function createMockRegistry() {
 		findOrCreateSubject: vi.fn().mockResolvedValue(mockSubject),
 		findOrCreateDomain: vi.fn().mockResolvedValue(mockDomain),
 		findOrCreatePolicy: vi.fn().mockResolvedValue(mockPolicy),
+		findOrCreateLegalDocumentPolicy: vi
+			.fn()
+			.mockResolvedValue({ id: 'pol_legal_1' }),
 		findConsentPolicyById: vi.fn(),
 		findOrCreateConsentPurposeByCode: vi.fn(),
 	};
@@ -93,6 +104,7 @@ function createMockContext(db: unknown, registry: unknown) {
 		policySnapshot: {
 			onValidationFailure: 'reject' as const,
 		},
+		legalDocumentSnapshot: undefined,
 		tenantId: undefined,
 	};
 
@@ -873,6 +885,253 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 						scrollLock: false,
 					},
 				},
+			})
+		);
+	});
+});
+
+describe('postSubjectHandler legal document snapshots', () => {
+	afterEach(() => {
+		vi.clearAllMocks();
+		vi.restoreAllMocks();
+	});
+
+	beforeEach(() => {
+		vi.mocked(verifyLegalDocumentSnapshotToken).mockResolvedValue({
+			valid: false,
+			reason: 'missing',
+		});
+	});
+
+	it('rejects legal document consent without token or policyId when verification is disabled', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			type: 'privacy_policy',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 409,
+			message:
+				'Legal document consent requires policyId when snapshot verification is disabled',
+			cause: {
+				code: 'LEGAL_DOCUMENT_PROOF_REQUIRED',
+			},
+		});
+
+		expect(registry.findOrCreatePolicy).not.toHaveBeenCalled();
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('rejects missing legal document snapshot tokens when verification is enabled', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.legalDocumentSnapshot = {
+			signingKey: 'test-signing-key',
+		};
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			type: 'privacy_policy',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 409,
+			message: 'Legal document snapshot token is required',
+			cause: {
+				code: 'LEGAL_DOCUMENT_SNAPSHOT_REQUIRED',
+			},
+		});
+
+		expect(resolvePolicyDecision).not.toHaveBeenCalled();
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('rejects invalid legal document snapshot tokens when verification is enabled', async () => {
+		vi.mocked(verifyLegalDocumentSnapshotToken).mockResolvedValue({
+			valid: false,
+			reason: 'invalid',
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.legalDocumentSnapshot = {
+			signingKey: 'test-signing-key',
+		};
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			type: 'privacy_policy',
+			documentSnapshotToken: 'document-token',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 409,
+			message: 'Legal document snapshot token is invalid',
+			cause: {
+				code: 'LEGAL_DOCUMENT_SNAPSHOT_INVALID',
+			},
+		});
+
+		expect(resolvePolicyDecision).not.toHaveBeenCalled();
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('rejects expired legal document snapshot tokens when verification is enabled', async () => {
+		vi.mocked(verifyLegalDocumentSnapshotToken).mockResolvedValue({
+			valid: false,
+			reason: 'expired',
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.legalDocumentSnapshot = {
+			signingKey: 'test-signing-key',
+		};
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			type: 'privacy_policy',
+			documentSnapshotToken: 'document-token',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 409,
+			message: 'Legal document snapshot token has expired',
+			cause: {
+				code: 'LEGAL_DOCUMENT_SNAPSHOT_EXPIRED',
+			},
+		});
+
+		expect(resolvePolicyDecision).not.toHaveBeenCalled();
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('rejects legal document snapshot tokens whose type does not match the request', async () => {
+		vi.mocked(verifyLegalDocumentSnapshotToken).mockResolvedValue({
+			valid: true,
+			payload: {
+				iss: 'c15t',
+				aud: 'c15t-legal-document-snapshot',
+				sub: 'hash_123',
+				type: 'terms_and_conditions',
+				version: '2026-04-07',
+				hash: 'hash_123',
+				effectiveDate: '2026-04-07T00:00:00.000Z',
+				iat: 1,
+				exp: 9_999_999_999,
+			},
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.legalDocumentSnapshot = {
+			signingKey: 'test-signing-key',
+		};
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			type: 'privacy_policy',
+			documentSnapshotToken: 'document-token',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 409,
+			message: 'Legal document snapshot token is invalid',
+			cause: {
+				code: 'LEGAL_DOCUMENT_SNAPSHOT_INVALID',
+			},
+		});
+
+		expect(registry.findOrCreateLegalDocumentPolicy).not.toHaveBeenCalled();
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('accepts explicit policyId for legal document consent when verification is disabled', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		registry.findConsentPolicyById = vi.fn().mockResolvedValue({
+			id: 'pol_existing_legal',
+			type: 'privacy_policy',
+			isActive: true,
+		});
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			type: 'privacy_policy',
+			policyId: 'pol_existing_legal',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(registry.findConsentPolicyById).toHaveBeenCalledWith(
+			'pol_existing_legal'
+		);
+		expect(registry.findOrCreatePolicy).not.toHaveBeenCalled();
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'consent',
+			expect.objectContaining({
+				policyId: 'pol_existing_legal',
+			})
+		);
+	});
+
+	it('creates consent against the token-backed legal document policy', async () => {
+		vi.mocked(verifyLegalDocumentSnapshotToken).mockResolvedValue({
+			valid: true,
+			payload: {
+				iss: 'c15t',
+				aud: 'c15t-legal-document-snapshot',
+				sub: 'hash_123',
+				type: 'privacy_policy',
+				version: '2026-04-07',
+				hash: 'hash_123',
+				effectiveDate: '2026-04-07T00:00:00.000Z',
+				iat: 1,
+				exp: 9_999_999_999,
+			},
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.legalDocumentSnapshot = {
+			signingKey: 'test-signing-key',
+		};
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			type: 'privacy_policy',
+			documentSnapshotToken: 'document-token',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(registry.findOrCreateLegalDocumentPolicy).toHaveBeenCalledWith({
+			type: 'privacy_policy',
+			version: '2026-04-07',
+			hash: 'hash_123',
+			effectiveDate: new Date('2026-04-07T00:00:00.000Z'),
+		});
+		expect(resolvePolicyDecision).not.toHaveBeenCalled();
+		expect(db.__tx.create).not.toHaveBeenCalledWith(
+			'runtimePolicyDecision',
+			expect.anything()
+		);
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'consent',
+			expect.objectContaining({
+				policyId: 'pol_legal_1',
+				runtimePolicyDecisionId: undefined,
+				runtimePolicySource: undefined,
 			})
 		);
 	});

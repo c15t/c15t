@@ -1,5 +1,11 @@
 import * as v from 'valibot';
 
+export const legalDocumentPolicyTypeSchema = v.picklist([
+	'privacy_policy',
+	'dpa',
+	'terms_and_conditions',
+]);
+
 export const policyTypeSchema = v.picklist([
 	// Deprecated in 2.0 RC. Runtime banner behavior should use backend policies.
 	'cookie_banner',
@@ -15,6 +21,7 @@ export const consentPolicySchema = v.object({
 	id: v.string(),
 	version: v.string(),
 	type: policyTypeSchema,
+	hash: v.nullish(v.string()),
 	effectiveDate: v.date(),
 	isActive: v.optional(v.boolean(), true),
 	createdAt: v.optional(v.date(), () => new Date()),
@@ -22,4 +29,7 @@ export const consentPolicySchema = v.object({
 });
 
 export type ConsentPolicy = v.InferOutput<typeof consentPolicySchema>;
+export type LegalDocumentPolicyType = v.InferOutput<
+	typeof legalDocumentPolicyTypeSchema
+>;
 export type PolicyType = v.InferOutput<typeof policyTypeSchema>;
