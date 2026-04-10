@@ -9,11 +9,8 @@ description: An IAB TCF 2.3 compliant consent banner that displays partner count
 
 ```tsx
 import { type ReactNode } from 'react';
-import {
-  ConsentManagerProvider,
-  IABConsentBanner,
-  IABConsentDialog,
-} from '@c15t/nextjs';
+import { ConsentManagerProvider } from '@c15t/nextjs';
+import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
   return (

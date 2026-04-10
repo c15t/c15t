@@ -11,11 +11,8 @@ Pair it with `IABConsentBanner` inside the provider:
 
 ```tsx
 import { type ReactNode } from 'react';
-import {
-  ConsentManagerProvider,
-  IABConsentBanner,
-  IABConsentDialog,
-} from '@c15t/react';
+import { ConsentManagerProvider } from '@c15t/react';
+import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
   return (
@@ -46,7 +43,7 @@ By default, the dialog follows `activeUI === 'dialog'` from the consent store. U
 
 ```tsx
 import { useState } from 'react';
-import { IABConsentDialog } from '@c15t/react';
+import { IABConsentDialog } from '@c15t/react/iab';
 
 function SettingsPage() {
   const [open, setOpen] = useState(false);
