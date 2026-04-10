@@ -77,6 +77,23 @@ export interface GoogleTagManagerOptions {
 	updateEventName?: string;
 
 	/**
+	 * Custom mapping from c15t consent categories to Google Consent Mode v2 types.
+	 * Overrides the default mapping when provided.
+	 *
+	 * @default
+	 * ```ts
+	 * {
+	 *   necessary: ['security_storage'],
+	 *   functionality: ['functionality_storage'],
+	 *   measurement: ['analytics_storage'],
+	 *   marketing: ['ad_storage', 'ad_user_data', 'ad_personalization'],
+	 *   experience: ['personalization_storage'],
+	 * }
+	 * ```
+	 */
+	consentMapping?: Record<string, string[]>;
+
+	/**
 	 * Override or extend the default script values.
 	 *
 	 * Default values:
@@ -101,67 +118,16 @@ export function googleTagManager({
 	id,
 	script,
 	updateEventName,
+	consentMapping,
 }: GoogleTagManagerOptions): Script {
-	const resolved = resolveManifest(googleTagManagerManifest, {
+	const manifest = consentMapping
+		? { ...googleTagManagerManifest, consentMapping }
+		: googleTagManagerManifest;
+
+	const resolved = resolveManifest(manifest, {
 		id,
 		updateEventName: updateEventName ?? 'consent-update',
 	});
 
 	return script ? applyScriptOverrides(resolved, script) : resolved;
-}
-
-// Re-export consent mapping utilities for use by google-tag.ts
-export {
-	/** @deprecated Use `googleTagManagerManifest.consentMapping` instead */
-	DEFAULT_GTM_CONSENT_CONFIG,
-	/** @deprecated Use `resolveManifest` with a `consentMapping` instead */
-	mapConsentStateToGTM,
-};
-
-// Legacy types kept for backward compatibility
-import type { AllConsentNames, ConsentState } from 'c15t';
-
-interface GTMConsentConfiguration {
-	ad_storage: 'granted' | 'denied';
-	ad_personalization: 'granted' | 'denied';
-	ad_user_data: 'granted' | 'denied';
-	analytics_storage: 'granted' | 'denied';
-	personalization_storage: 'granted' | 'denied';
-	functionality_storage: 'granted' | 'denied';
-	security_storage: 'granted' | 'denied';
-}
-
-const DEFAULT_GTM_CONSENT_CONFIG: GTMConsentConfiguration = {
-	functionality_storage: 'denied',
-	security_storage: 'denied',
-	analytics_storage: 'denied',
-	ad_storage: 'denied',
-	ad_user_data: 'denied',
-	ad_personalization: 'denied',
-	personalization_storage: 'denied',
-} as const;
-
-const CONSENT_STATE_TO_GTM_MAPPING: Record<
-	AllConsentNames,
-	(keyof GTMConsentConfiguration)[]
-> = {
-	necessary: ['security_storage'],
-	functionality: ['functionality_storage'],
-	measurement: ['analytics_storage'],
-	marketing: ['ad_storage', 'ad_user_data', 'ad_personalization'],
-	experience: ['personalization_storage'],
-} as const;
-
-function mapConsentStateToGTM(
-	consentState: ConsentState
-): GTMConsentConfiguration {
-	const gtmConfig: GTMConsentConfiguration = { ...DEFAULT_GTM_CONSENT_CONFIG };
-	for (const consentType of Object.keys(consentState) as AllConsentNames[]) {
-		const isGranted = consentState[consentType];
-		const gtmConsentTypes = CONSENT_STATE_TO_GTM_MAPPING[consentType];
-		for (const gtmType of gtmConsentTypes) {
-			gtmConfig[gtmType] = isGranted ? 'granted' : 'denied';
-		}
-	}
-	return gtmConfig;
 }

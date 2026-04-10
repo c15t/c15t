@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as compileEngine from './engine/compile';
 import { compileManifest } from './engine/compile';
 import { resolvedManifestToScript } from './engine/runtime';
-import { applyScriptOverrides } from './resolve';
+import { applyScriptOverrides, resolveManifest } from './resolve';
 import type { VendorManifest } from './types';
 
 type TestGlobal = typeof globalThis & Record<string, unknown>;
@@ -256,6 +257,30 @@ describe('scripts engine', () => {
 			],
 			onConsentDeniedSteps: [],
 		});
+	});
+
+	it('caches compiled manifests for repeated resolves with the same config', () => {
+		const compileSpy = vi.spyOn(compileEngine, 'compileManifest');
+		const manifest: VendorManifest = {
+			vendor: 'cached-resolve',
+			category: 'measurement',
+			install: [
+				{
+					type: 'loadScript',
+					src: 'https://cdn.example.com/{{id}}.js',
+				},
+			],
+		};
+
+		const first = resolveManifest(manifest, { id: 'vendor-id' });
+		const second = resolveManifest(manifest, { id: 'vendor-id' });
+
+		expect(compileSpy).toHaveBeenCalledTimes(1);
+		expect(first).not.toBe(second);
+		expect(first.src).toBe('https://cdn.example.com/vendor-id.js');
+		expect(second.src).toBe('https://cdn.example.com/vendor-id.js');
+
+		compileSpy.mockRestore();
 	});
 
 	it('converts resolved manifests into Script objects for external and inline flows', () => {

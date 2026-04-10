@@ -68,6 +68,23 @@ export interface GtagOptions {
 	category: AllConsentNames;
 
 	/**
+	 * Custom mapping from c15t consent categories to Google Consent Mode v2 types.
+	 * Overrides the default mapping when provided.
+	 *
+	 * @default
+	 * ```ts
+	 * {
+	 *   necessary: ['security_storage'],
+	 *   functionality: ['functionality_storage'],
+	 *   measurement: ['analytics_storage'],
+	 *   marketing: ['ad_storage', 'ad_user_data', 'ad_personalization'],
+	 *   experience: ['personalization_storage'],
+	 * }
+	 * ```
+	 */
+	consentMapping?: Record<string, string[]>;
+
+	/**
 	 * Override or extend the default script values.
 	 *
 	 * Default values:
@@ -86,8 +103,17 @@ export interface GtagOptions {
  * @param options - The options for the gtag script.
  * @returns The Google Tag Manager script.
  */
-export function gtag({ id, script, category }: GtagOptions): Script {
-	const resolved = resolveManifest(gtagManifest, { id });
+export function gtag({
+	id,
+	script,
+	category,
+	consentMapping,
+}: GtagOptions): Script {
+	const manifest = consentMapping
+		? { ...gtagManifest, consentMapping }
+		: gtagManifest;
+
+	const resolved = resolveManifest(manifest, { id });
 
 	// Override category from user option
 	resolved.category = category;
