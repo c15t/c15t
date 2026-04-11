@@ -25,6 +25,7 @@ export type C15TEdgeOptions = Pick<
 	| 'iab'
 	| 'cache'
 	| 'policySnapshot'
+	| 'legalDocumentSnapshot'
 	| 'telemetry'
 	| 'logger'
 >;

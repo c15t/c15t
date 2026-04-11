@@ -7,8 +7,13 @@
 import type { PostSubjectInput } from '@c15t/schema';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import { LegalDocumentPolicyConflictError } from '~/db/registry/consent-policy';
 import { generateUniqueId } from '~/db/registry/utils';
 import { getJurisdiction, getLocation } from '~/handlers/init/geo';
+import {
+	type LegalDocumentSnapshotVerificationFailureReason,
+	verifyLegalDocumentSnapshotToken,
+} from '~/handlers/legal-document/snapshot';
 import {
 	type PolicySnapshotVerificationFailureReason,
 	verifyPolicySnapshotToken,
@@ -153,6 +158,16 @@ function parseLanguageFromHeader(header: string | null): string | undefined {
 	return firstLanguage.split('-')[0]?.toLowerCase();
 }
 
+function isLegalDocumentType(
+	type: string
+): type is 'privacy_policy' | 'terms_and_conditions' | 'dpa' {
+	return (
+		type === 'privacy_policy' ||
+		type === 'terms_and_conditions' ||
+		type === 'dpa'
+	);
+}
+
 function resolveSnapshotFailureMode(
 	ctx: C15TContext
 ): 'reject' | 'resolve_current' {
@@ -186,6 +201,42 @@ function buildSnapshotHttpException(
 			);
 		}
 	}
+}
+
+function buildLegalDocumentSnapshotHttpException(
+	reason: LegalDocumentSnapshotVerificationFailureReason
+): HTTPException {
+	switch (reason) {
+		case 'missing':
+			return new HTTPException(409, {
+				message: 'Legal document snapshot token is required',
+				cause: { code: 'LEGAL_DOCUMENT_SNAPSHOT_REQUIRED' },
+			});
+		case 'expired':
+			return new HTTPException(409, {
+				message: 'Legal document snapshot token has expired',
+				cause: { code: 'LEGAL_DOCUMENT_SNAPSHOT_EXPIRED' },
+			});
+		case 'malformed':
+		case 'invalid':
+			return new HTTPException(409, {
+				message: 'Legal document snapshot token is invalid',
+				cause: { code: 'LEGAL_DOCUMENT_SNAPSHOT_INVALID' },
+			});
+		default: {
+			const _exhaustive: never = reason;
+			throw new Error(
+				`Unhandled legal document snapshot verification failure reason: ${_exhaustive}`
+			);
+		}
+	}
+}
+
+function buildLegalDocumentProofHttpException(message: string): HTTPException {
+	return new HTTPException(409, {
+		message,
+		cause: { code: 'LEGAL_DOCUMENT_PROOF_REQUIRED' },
+	});
 }
 
 /**
@@ -241,30 +292,59 @@ export const postSubjectHandler = async (c: Context) => {
 		const requestLanguage = parseLanguageFromHeader(acceptLanguage);
 		const location = await getLocation(request, ctx);
 		const resolvedJurisdiction = getJurisdiction(location, ctx);
-		const snapshotVerification = await verifyPolicySnapshotToken({
-			token: input.policySnapshotToken,
-			options: ctx.policySnapshot,
-			tenantId: ctx.tenantId,
-		});
-		const hasValidSnapshot = snapshotVerification.valid;
-		const snapshotPayload = snapshotVerification.valid
-			? snapshotVerification.payload
+		const legalDocumentConsent = isLegalDocumentType(type);
+		const runtimeSnapshotVerification = legalDocumentConsent
+			? {
+					valid: false as const,
+					reason: 'missing' as const,
+				}
+			: await verifyPolicySnapshotToken({
+					token: input.policySnapshotToken,
+					options: ctx.policySnapshot,
+					tenantId: ctx.tenantId,
+				});
+		const legalDocumentSnapshotVerification = legalDocumentConsent
+			? await verifyLegalDocumentSnapshotToken({
+					token: input.documentSnapshotToken,
+					options: ctx.legalDocumentSnapshot,
+					tenantId: ctx.tenantId,
+				})
+			: {
+					valid: false as const,
+					reason: 'missing' as const,
+				};
+		const hasValidSnapshot = runtimeSnapshotVerification.valid;
+		const snapshotPayload = runtimeSnapshotVerification.valid
+			? runtimeSnapshotVerification.payload
 			: null;
 		const shouldRequireSnapshot =
+			!legalDocumentConsent &&
 			!!ctx.policySnapshot?.signingKey &&
 			resolveSnapshotFailureMode(ctx) === 'reject';
 		if (!hasValidSnapshot && shouldRequireSnapshot) {
-			throw buildSnapshotHttpException(snapshotVerification.reason);
+			throw buildSnapshotHttpException(runtimeSnapshotVerification.reason);
+		}
+		const shouldRequireLegalDocumentSnapshot =
+			legalDocumentConsent && !!ctx.legalDocumentSnapshot?.signingKey;
+		if (
+			shouldRequireLegalDocumentSnapshot &&
+			!legalDocumentSnapshotVerification.valid
+		) {
+			throw buildLegalDocumentSnapshotHttpException(
+				legalDocumentSnapshotVerification.reason
+			);
 		}
 		const resolvedPolicyDecision = hasValidSnapshot
 			? undefined
-			: await resolvePolicyDecision({
-					policies: ctx.policyPacks,
-					countryCode: location.countryCode,
-					regionCode: location.regionCode,
-					jurisdiction: resolvedJurisdiction,
-					iabEnabled: ctx.iab?.enabled === true,
-				});
+			: legalDocumentConsent
+				? undefined
+				: await resolvePolicyDecision({
+						policies: ctx.policyPacks,
+						countryCode: location.countryCode,
+						regionCode: location.regionCode,
+						jurisdiction: resolvedJurisdiction,
+						iabEnabled: ctx.iab?.enabled === true,
+					});
 		const effectivePolicy =
 			hasValidSnapshot && snapshotPayload
 				? {
@@ -336,7 +416,55 @@ export const postSubjectHandler = async (c: Context) => {
 
 		const inputPolicyId =
 			'policyId' in input ? (input.policyId as string | undefined) : undefined;
-		if (inputPolicyId) {
+		if (legalDocumentConsent && legalDocumentSnapshotVerification.valid) {
+			if (legalDocumentSnapshotVerification.payload.type !== type) {
+				throw buildLegalDocumentSnapshotHttpException('invalid');
+			}
+
+			const effectiveDate = new Date(
+				legalDocumentSnapshotVerification.payload.effectiveDate
+			);
+			if (Number.isNaN(effectiveDate.getTime())) {
+				throw buildLegalDocumentSnapshotHttpException('invalid');
+			}
+
+			const documentPolicy = await registry.findOrCreateLegalDocumentPolicy({
+				type,
+				version: legalDocumentSnapshotVerification.payload.version,
+				hash: legalDocumentSnapshotVerification.payload.hash,
+				effectiveDate,
+			});
+			policyId = documentPolicy.id;
+		} else if (legalDocumentConsent) {
+			if (!ctx.legalDocumentSnapshot?.signingKey && !inputPolicyId) {
+				throw buildLegalDocumentProofHttpException(
+					'Legal document consent requires policyId when snapshot verification is disabled'
+				);
+			}
+
+			if (!inputPolicyId) {
+				throw buildLegalDocumentProofHttpException(
+					'Legal document consent requires a valid document snapshot token or policyId'
+				);
+			}
+
+			policyId = inputPolicyId;
+
+			// Verify the policy exists and is active
+			const policy = await registry.findConsentPolicyById(inputPolicyId);
+			if (!policy) {
+				throw new HTTPException(404, {
+					message: 'Policy not found',
+					cause: { code: 'POLICY_NOT_FOUND', policyId, type },
+				});
+			}
+			if (!policy.isActive) {
+				throw new HTTPException(400, {
+					message: 'Policy is inactive',
+					cause: { code: 'POLICY_INACTIVE', policyId, type },
+				});
+			}
+		} else if (inputPolicyId) {
 			policyId = inputPolicyId;
 
 			// Verify the policy exists and is active
@@ -393,7 +521,9 @@ export const postSubjectHandler = async (c: Context) => {
 				}
 			}
 
-			appliedPreferences = Object.fromEntries(filteredAppliedPreferenceEntries);
+			appliedPreferences = Object.fromEntries(
+				filteredAppliedPreferenceEntries
+			) as Record<string, boolean>;
 			const filteredConsentedPurposeCodes = filteredAppliedPreferenceEntries
 				.filter(([_, isConsented]) => isConsented)
 				.map(([purposeCode]) => purposeCode);
@@ -626,6 +756,13 @@ export const postSubjectHandler = async (c: Context) => {
 
 		if (error instanceof HTTPException) {
 			throw error;
+		}
+
+		if (error instanceof LegalDocumentPolicyConflictError) {
+			throw new HTTPException(409, {
+				message: error.message,
+				cause: { code: 'LEGAL_DOCUMENT_RELEASE_CONFLICT' },
+			});
 		}
 
 		throw new HTTPException(500, {
