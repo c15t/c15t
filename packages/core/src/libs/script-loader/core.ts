@@ -147,19 +147,51 @@ function emitLifecycleEvent(
 		scriptId: script.id,
 		elementId: info?.elementId,
 		hasConsent: info?.hasConsent,
-		callback:
-			action === 'callback_start' ||
-			action === 'callback_complete' ||
-			action === 'callback_error'
-				? (data?.callback as
-						| 'onBeforeLoad'
-						| 'onLoad'
-						| 'onConsentChange'
-						| 'onError'
-						| undefined)
-				: undefined,
+		callback: getCallbackFromAction(action, data),
 		data,
 	});
+}
+
+function getCallbackFromAction(
+	action:
+		| 'skipped'
+		| 'already_loaded'
+		| 'callback_start'
+		| 'callback_complete'
+		| 'callback_error'
+		| 'element_appended'
+		| 'loaded'
+		| 'load_listener_attached'
+		| 'error_listener_attached'
+		| 'unloaded',
+	data?: Record<string, unknown>
+): 'onBeforeLoad' | 'onLoad' | 'onConsentChange' | 'onError' | undefined {
+	if (
+		action === 'callback_start' ||
+		action === 'callback_complete' ||
+		action === 'callback_error'
+	) {
+		return data?.callback as
+			| 'onBeforeLoad'
+			| 'onLoad'
+			| 'onConsentChange'
+			| 'onError'
+			| undefined;
+	}
+
+	return undefined;
+}
+
+function getErrorMessage(error: unknown): string {
+	if (error instanceof Error) {
+		return error.message;
+	}
+
+	if (typeof error === 'string') {
+		return error;
+	}
+
+	return 'Unknown error';
 }
 
 function invokeScriptCallback(
@@ -201,12 +233,7 @@ function invokeScriptCallback(
 			info,
 			{
 				callback: callbackName,
-				error:
-					error instanceof Error
-						? error.message
-						: typeof error === 'string'
-							? error
-							: 'Unknown error',
+				error: getErrorMessage(error),
 			}
 		);
 		throw error;

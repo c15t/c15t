@@ -13,7 +13,7 @@ export interface ManifestContract {
 }
 
 type ManifestInterpolationToken = `{{${string}}}`;
-type ManifestCategoryCondition = HasCondition<
+export type ManifestCategoryCondition = HasCondition<
 	AllConsentNames | ManifestInterpolationToken
 >;
 
@@ -132,21 +132,22 @@ export interface DefineQueueMethodsStep {
 		| { global?: never; property: string };
 }
 
+export type GlobalMethodBehavior =
+	| {
+			name: string;
+			behavior: 'noop';
+	  }
+	| {
+			name: string;
+			behavior: 'return';
+			value: unknown;
+	  };
+
 export interface DefineGlobalMethodsStep {
 	type: 'defineGlobalMethods';
 	/** Global object name to receive the methods */
 	target: string;
-	methods: Array<
-		| {
-				name: string;
-				behavior: 'noop';
-		  }
-		| {
-				name: string;
-				behavior: 'return';
-				value: unknown;
-		  }
-	>;
+	methods: Array<GlobalMethodBehavior>;
 }
 
 export interface ConstructGlobalStep {

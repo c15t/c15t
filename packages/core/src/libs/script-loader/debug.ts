@@ -35,7 +35,11 @@ export function emitScriptDebugEvent(
 	};
 
 	for (const listener of getListeners()) {
-		listener(fullEvent);
+		try {
+			listener(fullEvent);
+		} catch (error) {
+			console.error('Failed to handle c15t script debug event listener', error);
+		}
 	}
 
 	return fullEvent;

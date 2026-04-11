@@ -61,6 +61,15 @@ describe('scripts engine', () => {
 		delete globalRef.dataLayer;
 		delete globalRef.recorder;
 		delete globalRef.__calls;
+		delete globalRef.posthog;
+		delete globalRef.twq;
+		delete globalRef.ttq;
+		delete globalRef.fbq;
+		delete globalRef._fbq;
+		delete globalRef.uetq;
+		delete globalRef.UET;
+		delete globalRef._linkedin_partner_id;
+		delete globalRef._linkedin_data_partner_ids;
 	});
 
 	it('preserves typed values for exact placeholders', () => {
@@ -213,6 +222,25 @@ describe('scripts engine', () => {
 		};
 
 		expect(() => compileManifest(manifest)).toThrow('single loadScript step');
+	});
+
+	it('throws when loadScript src becomes empty after interpolation', () => {
+		const manifest = createManifest({
+			vendor: 'invalid-load-script',
+			category: 'measurement',
+			install: [
+				{
+					type: 'loadScript',
+					src: '{{scriptSrc}}',
+				},
+			],
+		});
+
+		expect(() =>
+			compileManifest(manifest, {
+				scriptSrc: '',
+			})
+		).toThrow('non-empty src');
 	});
 
 	it('produces a serializable resolved manifest without unresolved placeholders', () => {

@@ -281,8 +281,8 @@ describe('scripts panel', () => {
 		toggle?.click();
 
 		const text = container.textContent ?? '';
-		expect(text).not.toContain('event-101:00:00.001');
-		expect(text).not.toContain('event-201:00:00.002');
+		expect(text).not.toMatch(/event-1(?!0)/);
+		expect(text).not.toContain('event-2');
 		expect(text).toContain('event-3');
 		expect(text).toContain('event-10');
 	});

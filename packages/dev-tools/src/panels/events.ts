@@ -359,6 +359,8 @@ function getEventIcon(type: EventLogEntry['type']): string {
 			return '◉';
 		case 'iab':
 			return '◆';
+		case 'script':
+			return '⌘';
 		default:
 			return '○';
 	}
@@ -377,6 +379,8 @@ function getEventColor(type: EventLogEntry['type']): string {
 			return 'var(--c15t-devtools-badge-warning, #f59e0b)';
 		case 'iab':
 			return 'var(--c15t-devtools-badge-info, #3b82f6)';
+		case 'script':
+			return 'var(--c15t-devtools-badge-info, #14b8a6)';
 		default:
 			return 'var(--c15t-text-muted)';
 	}

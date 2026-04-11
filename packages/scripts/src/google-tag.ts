@@ -92,6 +92,14 @@ export interface GtagOptions {
 	 * ```
 	 */
 	consentMapping?: Record<string, string[]>;
+
+	/**
+	 * Deprecated script-level overrides preserved for backwards compatibility.
+	 *
+	 * Prefer manifest-backed options instead of this generic override bag.
+	 * @deprecated
+	 */
+	script?: Partial<Script>;
 }
 
 /**
@@ -101,7 +109,12 @@ export interface GtagOptions {
  * @param options - The options for the gtag script.
  * @returns The Google Tag Manager script.
  */
-export function gtag({ id, category, consentMapping }: GtagOptions): Script {
+export function gtag({
+	id,
+	category,
+	consentMapping,
+	script,
+}: GtagOptions): Script {
 	const manifest = consentMapping
 		? { ...gtagManifest, consentMapping }
 		: gtagManifest;
@@ -112,5 +125,16 @@ export function gtag({ id, category, consentMapping }: GtagOptions): Script {
 		loadTime: new Date(),
 	});
 
-	return resolved;
+	if (!script) {
+		return resolved;
+	}
+
+	return {
+		...resolved,
+		...script,
+		attributes: {
+			...(resolved.attributes ?? {}),
+			...(script.attributes ?? {}),
+		},
+	};
 }

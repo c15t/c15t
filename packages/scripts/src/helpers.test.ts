@@ -105,6 +105,32 @@ describe('built-in script helpers', () => {
 				},
 			},
 			{
+				name: 'posthog',
+				script: posthog({ id: 'phc_123' }),
+				expected: {
+					id: 'posthog',
+					category: 'measurement',
+					alwaysLoad: true,
+					persistAfterConsentRevoked: undefined,
+					src: 'https://eu-assets.i.posthog.com/static/array.js',
+				},
+			},
+			{
+				name: 'databuddy',
+				script: databuddy({
+					clientId: 'db_123',
+					configWhenGranted: { clientId: 'db_123', disabled: false },
+					configWhenDenied: { clientId: 'db_123', disabled: true },
+				}),
+				expected: {
+					id: 'databuddy',
+					category: 'measurement',
+					alwaysLoad: true,
+					persistAfterConsentRevoked: undefined,
+					src: 'https://cdn.databuddy.cc/databuddy.js',
+				},
+			},
+			{
 				name: 'linkedinInsights',
 				script: linkedinInsights({ id: '987654' }),
 				expected: {
@@ -122,7 +148,7 @@ describe('built-in script helpers', () => {
 					id: 'microsoft-uet',
 					category: 'marketing',
 					alwaysLoad: undefined,
-					persistAfterConsentRevoked: undefined,
+					persistAfterConsentRevoked: true,
 					src: '//bat.bing.com/bat.js',
 				},
 			},
@@ -238,7 +264,12 @@ describe('built-in script helpers', () => {
 		const optIn = vi.fn();
 		const optOut = vi.fn();
 		globalRef.posthog = {
-			init,
+			init: function initWithReceiver(
+				token: string,
+				options: Record<string, unknown>
+			) {
+				init(this, token, options);
+			},
 			opt_in_capturing: optIn,
 			opt_out_capturing: optOut,
 			get_explicit_consent_status: vi.fn(() => 'pending'),
@@ -277,7 +308,7 @@ describe('built-in script helpers', () => {
 			},
 		});
 
-		expect(init).toHaveBeenCalledWith('phc_123', {
+		expect(init).toHaveBeenCalledWith(globalRef.posthog, 'phc_123', {
 			api_host: 'https://eu.i.posthog.com',
 			ui_host: 'https://eu.i.posthog.com',
 			autocapture: false,
@@ -300,6 +331,19 @@ describe('built-in script helpers', () => {
 		});
 
 		expect(optIn).toHaveBeenCalledTimes(1);
+	});
+
+	it('uses PostHog defaults when optional options are omitted', () => {
+		const script = posthog({
+			id: 'phc_defaults',
+		});
+
+		expect(script.src).toBe('https://eu-assets.i.posthog.com/static/array.js');
+		expect(script.attributes).toEqual({
+			crossorigin: 'anonymous',
+			'data-api-host': 'https://eu.i.posthog.com',
+			'data-ui-host': 'https://eu.i.posthog.com',
+		});
 	});
 
 	it('preserves DataBuddy config seeding and sync behavior', () => {
@@ -395,5 +439,51 @@ describe('built-in script helpers', () => {
 			(globalRef.databuddy as { options: { disabled: boolean } }).options
 				.disabled
 		).toBe(true);
+		expect(globalRef.databuddyConfig).toEqual({
+			clientId: 'db_123',
+			apiUrl: 'https://basket.databuddy.cc',
+			trackScreenViews: true,
+			disabled: true,
+		});
+
+		script.onConsentChange?.({
+			id: script.id,
+			elementId: script.id,
+			hasConsent: true,
+			consents: {
+				necessary: true,
+				functionality: false,
+				measurement: true,
+				marketing: false,
+				experience: false,
+			},
+		});
+
+		expect(globalRef.databuddyConfig).toEqual({
+			clientId: 'db_123',
+			apiUrl: 'https://basket.databuddy.cc',
+			trackScreenViews: true,
+			disabled: false,
+		});
+	});
+
+	it('preserves deprecated gtag script overrides', () => {
+		const script = gtag({
+			id: 'G-OVERRIDE',
+			category: 'measurement',
+			script: {
+				nonce: 'abc123',
+				target: 'body',
+				attributes: {
+					'data-test': '1',
+				},
+			},
+		});
+
+		expect(script.nonce).toBe('abc123');
+		expect(script.target).toBe('body');
+		expect(script.attributes).toEqual({
+			'data-test': '1',
+		});
 	});
 });

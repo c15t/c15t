@@ -85,12 +85,24 @@ export const databuddyManifest = {
 	],
 	onConsentGranted: [
 		{
+			type: 'setGlobal',
+			name: 'databuddyConfig',
+			value: '{{configWhenGranted}}',
+			ifUndefined: false,
+		},
+		{
 			type: 'setGlobalPath',
 			path: ['databuddy', 'options', 'disabled'],
 			value: false,
 		},
 	],
 	onConsentDenied: [
+		{
+			type: 'setGlobal',
+			name: 'databuddyConfig',
+			value: '{{configWhenDenied}}',
+			ifUndefined: false,
+		},
 		{
 			type: 'setGlobalPath',
 			path: ['databuddy', 'options', 'disabled'],

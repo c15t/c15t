@@ -196,7 +196,7 @@ function executeStep(step: ManifestStep): void {
 				>;
 				const method = objectTarget[step.method];
 				if (typeof method === 'function') {
-					method(...args);
+					method.apply(objectTarget, args);
 				}
 			} else if (typeof target === 'function') {
 				(target as (...args: unknown[]) => unknown)(...args);

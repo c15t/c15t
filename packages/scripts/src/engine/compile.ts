@@ -111,8 +111,18 @@ function extractInstallArtifacts(install: ManifestStep[]): {
 	}
 
 	if (loadScriptSteps.length === 1) {
+		const loadScript = loadScriptSteps[0] as LoadScriptStep;
+		if (
+			typeof loadScript.src !== 'string' ||
+			loadScript.src.trim().length === 0
+		) {
+			throw new Error(
+				'loadScript steps must include a non-empty src after manifest interpolation.'
+			);
+		}
+
 		return {
-			loadScript: loadScriptSteps[0],
+			loadScript,
 			setupSteps: install.filter((step) => step.type !== 'loadScript'),
 		};
 	}

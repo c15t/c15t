@@ -114,13 +114,13 @@ export interface PosthogConsentOptions {
 	 * Your posthog api host.
 	 * @default 'https://eu.i.posthog.com'
 	 */
-	apiHost: string;
+	apiHost?: string;
 
 	/** The PostHog array loader URL. */
-	scriptUrl: string;
+	scriptUrl?: string;
 
 	/** PostHog init options passed to `posthog.init(...)`. */
-	initOptions: Record<string, unknown>;
+	initOptions?: Record<string, unknown>;
 }
 
 /**
@@ -134,9 +134,10 @@ export interface PosthogConsentOptions {
 export function posthog(options: PosthogConsentOptions): Script {
 	const resolved = resolveManifest(posthogManifest, {
 		id: options.id,
-		apiHost: options.apiHost,
-		scriptUrl: options.scriptUrl,
-		initOptions: options.initOptions,
+		apiHost: options.apiHost ?? 'https://eu.i.posthog.com',
+		scriptUrl:
+			options.scriptUrl ?? 'https://eu-assets.i.posthog.com/static/array.js',
+		initOptions: options.initOptions ?? {},
 	});
 
 	return resolved;

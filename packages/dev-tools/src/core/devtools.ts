@@ -187,6 +187,7 @@ function scriptDebugEventToLogEntry(event: ScriptDebugEvent): {
 		type: 'script',
 		message: event.message,
 		data: {
+			...(event.data ?? {}),
 			source: event.source,
 			scope: event.scope,
 			action: event.action,
@@ -197,7 +198,6 @@ function scriptDebugEventToLogEntry(event: ScriptDebugEvent): {
 			phase: event.phase,
 			stepType: event.stepType,
 			stepIndex: event.stepIndex,
-			...(event.data ?? {}),
 		},
 	};
 }

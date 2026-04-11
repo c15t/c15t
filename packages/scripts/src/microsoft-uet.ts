@@ -19,6 +19,7 @@ export const microsoftUetManifest = {
 	...vendorManifestContract,
 	vendor: 'microsoft-uet',
 	category: 'marketing',
+	persistAfterConsentRevoked: true,
 	bootstrap: [
 		{
 			type: 'setGlobal',

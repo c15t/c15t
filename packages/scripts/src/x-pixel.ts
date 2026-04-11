@@ -143,7 +143,8 @@ export interface XPixelOptions {
 
 /**
  * Creates an X Pixel script.
- * This script is persistent after consent is revoked because it has built-in functionality to opt into and out of tracking based on consent, which allows us to not need to load the script again when consent is revoked.
+ * This script loads only when consent is granted.
+ * X Pixel does not expose a consent update API, so c15t treats it as a standard consent-gated loader.
  *
  * @param options - The options for the X Pixel script
  * @returns The X Pixel script configuration
