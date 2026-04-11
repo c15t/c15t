@@ -1,0 +1,148 @@
+import type { ConsentStoreState } from 'c15t';
+import { defaultTranslationConfig } from 'c15t';
+import type { ReactElement } from 'react';
+import { describe, expect, test, vi } from 'vitest';
+import { render } from 'vitest-browser-react';
+import { ConsentDialogFooter } from '~/components/consent-dialog/atoms/card';
+import { ConsentStateContext } from '~/context/consent-manager-context';
+import { BrandingCompactLogo, BrandingLink } from '../branding';
+
+function createMockState(
+	overrides: Partial<ConsentStoreState> = {}
+): ConsentStoreState {
+	return {
+		activeUI: 'dialog',
+		model: 'opt-in',
+		translationConfig: defaultTranslationConfig,
+		branding: 'c15t',
+		consents: {
+			necessary: true,
+			functionality: false,
+			experience: false,
+			marketing: false,
+			measurement: false,
+		},
+		selectedConsents: {
+			necessary: true,
+			functionality: false,
+			experience: false,
+			marketing: false,
+			measurement: false,
+		},
+		consentInfo: null,
+		consentCategories: [
+			'necessary',
+			'functionality',
+			'experience',
+			'marketing',
+			'measurement',
+		],
+		consentTypes: [],
+		policyCategories: null,
+		policyScopeMode: null,
+		policyBanner: {},
+		policyDialog: {},
+		saveConsents: vi.fn().mockResolvedValue(undefined),
+		setConsent: vi.fn(),
+		setSelectedConsent: vi.fn(),
+		setActiveUI: vi.fn(),
+		has: vi.fn(),
+		hasConsented: vi.fn(),
+		getDisplayedConsents: vi.fn(() => []),
+		...overrides,
+	} as unknown as ConsentStoreState;
+}
+
+async function renderWithConsentState(
+	ui: ReactElement,
+	stateOverrides: Partial<ConsentStoreState> = {}
+) {
+	const state = createMockState(stateOverrides);
+
+	await render(
+		<ConsentStateContext.Provider
+			value={{
+				state,
+				store: {
+					getState: () => state,
+					subscribe: () => () => undefined,
+					setState: () => undefined,
+				},
+				manager: null,
+			}}
+		>
+			{ui}
+		</ConsentStateContext.Provider>
+	);
+}
+
+describe('BrandingLink', () => {
+	test('maps deprecated consent branding to the INTH tag treatment', async () => {
+		await renderWithConsentState(
+			<BrandingLink
+				hideBranding={false}
+				variant="banner-tag"
+				data-testid="branding-link"
+			/>,
+			{ branding: 'consent' }
+		);
+
+		await vi.waitFor(() => {
+			const link = document.querySelector(
+				'[data-testid="branding-link"]'
+			) as HTMLAnchorElement | null;
+			expect(link).toBeInTheDocument();
+			expect(link).toHaveAttribute('data-branding', 'inth');
+			expect(link).toHaveAttribute('data-variant', 'banner-tag');
+			expect(link?.href).toContain('inth.com');
+		});
+	});
+
+	test('uses the dialog tag variant in the default dialog footer', async () => {
+		await renderWithConsentState(<ConsentDialogFooter hideBranding={false} />, {
+			branding: 'inth',
+		});
+
+		await vi.waitFor(() => {
+			const link = document.querySelector(
+				'[data-testid="consent-dialog-branding"]'
+			);
+			expect(link).toBeInTheDocument();
+			expect(link).toHaveAttribute('data-branding', 'inth');
+			expect(link).toHaveAttribute('data-variant', 'dialog-tag');
+		});
+	});
+
+	test('hides branding when disabled', async () => {
+		await renderWithConsentState(
+			<BrandingLink
+				hideBranding
+				variant="banner-tag"
+				data-testid="branding-link"
+			/>,
+			{ branding: 'inth' }
+		);
+
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector('[data-testid="branding-link"]')
+			).not.toBeInTheDocument();
+		});
+	});
+});
+
+describe('BrandingCompactLogo', () => {
+	test('renders the INTH compact mark for the deprecated consent alias', async () => {
+		render(
+			<BrandingCompactLogo branding="consent" data-testid="branding-icon" />
+		);
+
+		await vi.waitFor(() => {
+			const title = document.querySelector(
+				'[data-testid="branding-icon"] title'
+			);
+			expect(title).toBeInTheDocument();
+			expect(title?.textContent).toBe('INTH');
+		});
+	});
+});

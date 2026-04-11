@@ -62,6 +62,7 @@
 	--consent-dialog-branding-gap: 0.5rem;
 	--consent-dialog-branding-icon-height: 1.25rem;
 	--consent-dialog-branding-icon-width: auto;
+	--consent-dialog-branding-label-size: 0.75rem;
 }
 
 /* Hairline borders for retina displays */
@@ -163,6 +164,10 @@
 		padding: 0 0.5rem;
 	}
 
+	.brandingLabel {
+		white-space: nowrap;
+	}
+
 	.branding:focus-visible {
 		outline: none;
 		box-shadow: 0 0 0 2px var(--consent-dialog-branding-focus-color);
@@ -177,13 +182,80 @@
 	}
 
 	.brandingC15T {
+		display: inline-flex;
+		align-items: center;
+		width: auto;
+		height: auto;
+	}
+
+	.brandingWordmark {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		min-width: 0;
+	}
+
+	.brandingC15TMark {
+		width: auto;
+		height: var(--consent-dialog-branding-icon-height);
+		flex: none;
+	}
+
+	.brandingInth {
 		width: var(--consent-dialog-branding-icon-width);
 		height: var(--consent-dialog-branding-icon-height);
 	}
 
-	.brandingConsent {
-		width: var(--consent-dialog-branding-icon-width);
-		height: 1rem;
+	.brandingTag {
+		position: absolute;
+		display: inline-flex;
+		gap: 0.25rem;
+		min-height: 2rem;
+		padding: 0.375rem 0.625rem;
+		border-radius: 0.5rem 0.5rem 0.125rem 0.125rem;
+		color: var(--c15t-text-on-primary, #fff);
+		background-color: var(--c15t-primary);
+		box-shadow: 0 12px 24px rgb(15 23 42 / 0.18);
+		z-index: 2;
+	}
+
+	.brandingTag .brandingLabel {
+		font-size: var(--consent-dialog-branding-label-size);
+		line-height: 1;
+	}
+
+	.brandingTag .brandingWordmark {
+		gap: 0.1875rem;
+	}
+
+	.brandingTag .brandingC15TMark {
+		height: 0.875rem;
+	}
+
+	.brandingTag .brandingInth {
+		height: 0.875rem;
+	}
+
+	.brandingTagBanner {
+		top: 0;
+		right: 1rem;
+		transform: none;
+		box-shadow: none;
+		border-radius: 0.5rem 0.5rem 0 0;
+	}
+
+	.brandingTagDialog {
+		right: var(--consent-dialog-card-padding-mobile);
+		bottom: 0;
+		transform: translateY(calc(100% + 1px));
+		box-shadow: none;
+		border-radius: 0 0 0.5rem 0.5rem;
+	}
+
+	@media (min-width: 640px) {
+		.brandingTagDialog {
+			right: var(--consent-dialog-card-padding);
+		}
 	}
 
 	.headerWrapper {
@@ -247,7 +319,7 @@
 		box-shadow: var(--consent-dialog-card-shadow);
 		display: flex;
 		flex-direction: column;
-		overflow: hidden;
+		overflow: visible;
 	}
 
 	:global(.c15t-dark) .card {
@@ -317,6 +389,19 @@
 
 	:global(.c15t-dark) .footer {
 		border-color: var(--consent-dialog-stroke-color-dark);
+	}
+
+	.footer.brandingFooter {
+		position: relative;
+		min-height: 0;
+		height: 0;
+		padding: 0;
+		border-top: 0;
+		overflow: visible;
+	}
+
+	.footer.brandingFooter:empty {
+		display: none;
 	}
 
 	/* Reduced motion preference */

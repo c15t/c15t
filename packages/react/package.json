@@ -140,7 +140,6 @@
 		"dist-types",
 		"client",
 		"styles.css",
-		"iab/styles.css",
 		"src/styles.tw3.css",
 		"src/iab/styles.tw3.css",
 		"!dist/mockServiceWorker.js"

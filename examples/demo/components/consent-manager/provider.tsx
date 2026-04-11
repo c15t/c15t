@@ -168,9 +168,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 			}
 		: activeTheme;
 
-	const isHeadlessPolicyTab =
-		pathname === '/policy' &&
-		new URLSearchParams(search).get('tab') === 'headless';
+	const isPolicyDemo = pathname === '/policy';
 	const isPolicyActionsDemo = pathname === '/policy-actions';
 
 	if (isPolicyActionsDemo) {
@@ -189,7 +187,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 				// backendURL: 'https://instance-worker-test.consent-ef4.workers.dev/',
 				// backendURL: 'https://minecraft-europe-hypixel.c15t.xyz',
 				// backendURL: '/api/self-host',
-				backendURL: 'https://minecraft-eu-west-1-mewwing.c15t.xyz/',
+				backendURL: 'https://consent-io-eu-central-1-test.c15t.dev',
 				consentCategories: [
 					'necessary',
 					'functionality',
@@ -246,7 +244,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 				overrides: geoOverrides,
 			}}
 		>
-			{!isHeadlessPolicyTab && !isPolicyActionsDemo ? (
+			{!isPolicyDemo && !isPolicyActionsDemo ? (
 				<>
 					<ConsentBanner />
 					<IABConsentBanner />

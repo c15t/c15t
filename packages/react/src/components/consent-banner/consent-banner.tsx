@@ -14,6 +14,7 @@ import {
 } from '@c15t/ui/utils';
 import { type FC, Fragment, type ReactNode } from 'react';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
+import { BrandingLink } from '~/components/shared/ui/branding';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useHeadlessConsentUI } from '~/hooks/use-headless-consent-ui';
@@ -296,64 +297,71 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 			fallback={<div>Something went wrong with the Consent Banner.</div>}
 		>
 			<ConsentBannerRoot {...config} models={models} uiSource={uiSource}>
-				<ConsentBannerCard aria-label={consentBanner.title}>
-					<ConsentBannerHeader>
-						<ConsentBannerTitle>{title}</ConsentBannerTitle>
-						<ConsentBannerDescription legalLinks={legalLinks}>
-							{description}
-						</ConsentBannerDescription>
-					</ConsentBannerHeader>
-					<ConsentBannerFooter
-						className={cn(
-							shouldFillActions && styles.footerFill,
-							resolvedDirection === 'column' && styles.footerColumn
-						)}
-					>
-						{resolvedLayout.map((item, index) => {
-							if (Array.isArray(item)) {
-								const filteredItems = item.filter((subItem) =>
-									allowedActions.has(subItem)
-								);
-								if (filteredItems.length === 0) {
+				<div className={styles.cardShell}>
+					<BrandingLink
+						hideBranding={false}
+						variant="banner-tag"
+						data-testid="consent-banner-branding"
+					/>
+					<ConsentBannerCard aria-label={consentBanner.title}>
+						<ConsentBannerHeader>
+							<ConsentBannerTitle>{title}</ConsentBannerTitle>
+							<ConsentBannerDescription legalLinks={legalLinks}>
+								{description}
+							</ConsentBannerDescription>
+						</ConsentBannerHeader>
+						<ConsentBannerFooter
+							className={cn(
+								shouldFillActions && styles.footerFill,
+								resolvedDirection === 'column' && styles.footerColumn
+							)}
+						>
+							{resolvedLayout.map((item, index) => {
+								if (Array.isArray(item)) {
+									const filteredItems = item.filter((subItem) =>
+										allowedActions.has(subItem)
+									);
+									if (filteredItems.length === 0) {
+										return null;
+									}
+									const groupKey = item.join('-');
+									return (
+										<ConsentBannerFooterSubGroup
+											key={groupKey ? `group-${groupKey}` : `group-${index}`}
+											className={cn(
+												shouldFillActions && styles.footerSubGroupFill,
+												resolvedDirection === 'column' &&
+													styles.footerSubGroupColumn
+											)}
+										>
+											{filteredItems.map((subItem) => (
+												<Fragment key={subItem}>
+													{renderButton(
+														subItem,
+														shouldFillActions
+															? styles.actionButtonFill
+															: undefined
+													)}
+												</Fragment>
+											))}
+										</ConsentBannerFooterSubGroup>
+									);
+								}
+								if (!allowedActions.has(item)) {
 									return null;
 								}
-								const groupKey = item.join('-');
 								return (
-									<ConsentBannerFooterSubGroup
-										key={groupKey ? `group-${groupKey}` : `group-${index}`}
-										className={cn(
-											shouldFillActions && styles.footerSubGroupFill,
-											resolvedDirection === 'column' &&
-												styles.footerSubGroupColumn
+									<Fragment key={item}>
+										{renderButton(
+											item,
+											shouldFillActions ? styles.actionButtonFill : undefined
 										)}
-									>
-										{filteredItems.map((subItem) => (
-											<Fragment key={subItem}>
-												{renderButton(
-													subItem,
-													shouldFillActions
-														? styles.actionButtonFill
-														: undefined
-												)}
-											</Fragment>
-										))}
-									</ConsentBannerFooterSubGroup>
+									</Fragment>
 								);
-							}
-							if (!allowedActions.has(item)) {
-								return null;
-							}
-							return (
-								<Fragment key={item}>
-									{renderButton(
-										item,
-										shouldFillActions ? styles.actionButtonFill : undefined
-									)}
-								</Fragment>
-							);
-						})}
-					</ConsentBannerFooter>
-				</ConsentBannerCard>
+							})}
+						</ConsentBannerFooter>
+					</ConsentBannerCard>
+				</div>
 			</ConsentBannerRoot>
 		</ErrorBoundary>
 	);

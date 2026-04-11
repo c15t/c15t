@@ -4,8 +4,6 @@
 	"private": true,
 	"scripts": {
 		"build:workspace-deps": "bunx turbo run build --filter=@c15t/nextjs --filter=@c15t/dev-tools --filter=@c15t/node-sdk",
-		"predev": "bun run build:workspace-deps",
-		"predev:localhost": "bun run build:workspace-deps",
 		"prebuild": "bun run build:workspace-deps",
 		"prestart": "bun run build:workspace-deps",
 		"prestart:localhost": "bun run build:workspace-deps",

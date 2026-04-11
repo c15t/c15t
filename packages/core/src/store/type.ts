@@ -600,7 +600,7 @@ export interface StoreOptions extends Partial<StoreConfig> {
  * @public
  */
 export interface StoreRuntimeState extends StoreConfig {
-	/** Whether to show the branding */
+	/** Whether to show the branding. "consent" is a deprecated alias for "inth". */
 	branding: Branding;
 
 	/** Current consent states for all consent types */
