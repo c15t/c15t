@@ -39,13 +39,13 @@ describe('validation utilities', () => {
 	});
 
 	describe('isValidInstanceName', () => {
-		test('should accept valid instance names', () => {
+		test('should accept valid project slugs', () => {
 			expect(isValidInstanceName('my-app')).toBe(true);
 			expect(isValidInstanceName('test123')).toBe(true);
 			expect(isValidInstanceName('a'.repeat(63))).toBe(true);
 		});
 
-		test('should reject invalid instance names', () => {
+		test('should reject invalid project slugs', () => {
 			expect(isValidInstanceName('ab')).toBe(false); // Too short
 			expect(isValidInstanceName('a'.repeat(64))).toBe(false); // Too long
 			expect(isValidInstanceName('My-App')).toBe(false); // Uppercase

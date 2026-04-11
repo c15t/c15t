@@ -1,5 +1,5 @@
 /**
- * Control-plane client for c15t instances.
+ * Control-plane client for c15t hosted projects.
  */
 
 import { CLI_INFO, TIMEOUTS, URLS } from '../constants';
@@ -101,7 +101,7 @@ function mapControlPlaneInstance(raw: ControlPlaneInstance): Instance {
 }
 
 /**
- * Client for c15t instances.
+ * Client for c15t hosted projects.
  *
  * Uses direct control-plane HTTP endpoints under /api/v1.
  */
@@ -205,7 +205,7 @@ export class ControlPlaneClient {
 	}
 
 	/**
-	 * List all instances for the authenticated user.
+	 * List all hosted projects for the authenticated user.
 	 */
 	async listInstances(): Promise<Instance[]> {
 		const raw =
@@ -214,14 +214,14 @@ export class ControlPlaneClient {
 	}
 
 	/**
-	 * Get a specific instance by ID.
+	 * Get a specific hosted project by ID.
 	 */
 	async getInstance(id: string): Promise<Instance> {
 		const instances = await this.listInstances();
 		const instance = instances.find((item) => item.id === id);
 		if (!instance) {
 			throw new CliError('INSTANCE_NOT_FOUND', {
-				details: `Instance not found: ${id}`,
+				details: `Project not found: ${id}`,
 			});
 		}
 
@@ -229,7 +229,7 @@ export class ControlPlaneClient {
 	}
 
 	/**
-	 * Create a new instance.
+	 * Create a new hosted project.
 	 */
 	async createInstance(request: CreateInstanceRequest): Promise<Instance> {
 		const { organizationSlug, region, trustedOrigins } = request.config;
@@ -258,7 +258,7 @@ export class ControlPlaneClient {
 	}
 
 	/**
-	 * Delete an instance.
+	 * Delete a hosted project.
 	 */
 	async deleteInstance(id: string): Promise<void> {
 		await this.request<void>(`/consent/instances/${encodeURIComponent(id)}`, {

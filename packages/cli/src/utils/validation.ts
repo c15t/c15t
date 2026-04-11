@@ -48,10 +48,10 @@ export function extractDynamicSegment(value: string): string | null {
 }
 
 /**
- * Validate an instance name
+ * Validate a hosted project slug
  */
 export function isValidInstanceName(value: string): boolean {
-	// Instance names: lowercase alphanumeric with hyphens, 3-63 chars
+	// Project slugs: lowercase alphanumeric with hyphens, 3-63 chars
 	return /^[a-z][a-z0-9-]{2,62}$/.test(value) && !value.includes('--');
 }
 
@@ -124,7 +124,7 @@ export const validateC15tUrl = createValidator(
 );
 
 /**
- * Instance name validator for prompts
+ * Project slug validator for prompts
  */
 export const validateInstanceName = createValidator(
 	isValidInstanceName,

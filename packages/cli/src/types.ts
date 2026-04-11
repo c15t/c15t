@@ -222,7 +222,7 @@ export interface GenerateOptions {
 	mode: StorageMode;
 	/** Backend URL (for hosted or self-hosted mode) */
 	backendUrl?: string;
-	/** Instance ID (for hosted mode) */
+	/** Project ID (for hosted mode) */
 	instanceId?: string;
 	/** Selected scripts to configure */
 	scripts?: string[];
@@ -269,21 +269,21 @@ export interface PreflightCheck {
 	hint?: string;
 }
 
-// --- Instance (from control plane) ---
+// --- Project (from control plane) ---
 export interface Instance {
-	/** Instance ID */
+	/** Project ID */
 	id: string;
-	/** Instance name */
+	/** Project name */
 	name: string;
 	/** Organization slug */
 	organizationSlug?: string;
 	/** Provisioning region */
 	region?: string;
-	/** Instance URL */
+	/** Project backend URL */
 	url: string;
 	/** Created timestamp */
 	createdAt: string;
-	/** Instance status */
+	/** Project status */
 	status: 'active' | 'inactive' | 'pending';
 }
 
