@@ -5,7 +5,7 @@
 
   **For most apps, you just need a `ConsentManagerProvider` pointing at your backend with presets configured there.** The frontend receives the resolved policy via the `/init` response — no client-side policy config required.
 
-  When a backend isn't available — local development, static previews, Storybook, or as a resilience fallback — you can pass policies directly to the provider via `offlinePolicy.policyPacks` and c15t resolves them locally.
+  When a backend isn't available — local development, static previews, Storybook, automated tests, or as a resilience fallback during a temporary outage — you can pass policies directly to the provider via `offlinePolicy.policyPacks` and c15t resolves them locally.
 
   <Callout type="info">
     For QA and testing, use the [c15t DevTools](/docs/frameworks/react/dev-tools) to simulate different regions and policy responses against your real backend, rather than switching to offline mode.
@@ -31,9 +31,9 @@
 
   The backend resolves the correct policy based on the visitor's geo data and returns it in the `/init` response. Configure your presets on the backend side.
 
-  ## Offline Presets (Fallback)
+  ## Offline Presets (Development and Fallback)
 
-  When no backend is available, pass presets directly to the provider:
+  Use offline presets mainly for local development, Storybook, deterministic tests, or temporary backend outages:
 
   ```tsx
   import { policyPackPresets } from '@c15t/react';
@@ -83,7 +83,7 @@
   ## Provider Shape
 
   Configure packs through `offlinePolicy.policyPacks`. Add `offlinePolicy.i18n`
-  when you want offline mode to mirror hosted policy-profile language behavior:
+  when you want local previews or fallback behavior to mirror hosted policy-profile language behavior:
 
   ```tsx
   <ConsentManagerProvider
@@ -144,7 +144,7 @@
   | `offlinePolicy: { policyPacks: [] }` | Explicit no-banner mode |
   | Non-empty pack, no match, no default | Explicit no-banner mode |
 
-  Omitting the option gives you a safe opt-in default for local development and outage scenarios. Providing it tells c15t you want policy-driven behavior exactly as configured.
+  Omitting the option gives you a safe opt-in default for local development and outage scenarios. Providing it tells c15t you want deterministic preview or fallback behavior exactly as configured.
 </section>
 
 <section id="qa-and-debugging">
@@ -158,7 +158,7 @@
   - Open the DevTools Policy panel to inspect matcher resolution and fingerprints
   - Compare your frontend preview with the backend `/init` response before shipping
 
-  If you need fully deterministic resolution without a backend (e.g., in automated tests or Storybook), pair `offlinePolicy.policyPacks` with `overrides`:
+  If you need fully deterministic resolution without a backend during testing or preview work (for example, in automated tests or Storybook), pair `offlinePolicy.policyPacks` with `overrides`:
 
   ```tsx
   options={{

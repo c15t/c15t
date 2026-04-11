@@ -82,8 +82,12 @@ availableIn:
     }
     ```
 
+    <Callout type="info">
+      Hosted mode is the recommended production setup because the backend resolves jurisdiction and policy, keeps durable consent records, and lets c15t recover from temporary network failures by re-syncing later.
+    </Callout>
+
     <Callout type="warn">
-      Don't have a backend yet? You can use `mode: 'offline'` for local-only consent storage, but review the [browser-only storage consequences](/docs/frameworks/react/concepts/client-modes#offline-mode) before choosing it for production.
+      Don't have a backend yet? You can use `mode: 'offline'` for local-only consent storage, but it gives up backend audit history, server-side consent awareness, and automatic jurisdiction detection. Review the [browser-only storage consequences](/docs/frameworks/react/concepts/client-modes#offline-mode) before choosing it for production.
     </Callout>
   </Step>
 

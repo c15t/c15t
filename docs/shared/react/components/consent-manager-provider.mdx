@@ -106,7 +106,7 @@
 
   ### Fallback: Offline Policies
 
-  When no backend is available, `ConsentManagerProvider` accepts `offlinePolicy.policyPacks` for local policy resolution:
+  When no backend is available, `ConsentManagerProvider` accepts `offlinePolicy.policyPacks` for local policy resolution during development, testing, previews, or temporary backend outages:
 
   ```tsx
   <ConsentManagerProvider
@@ -157,6 +157,7 @@
   Notes:
 
   - `offlinePolicy` is only used in `offline` mode.
+  - Treat offline policies as a development/testing tool or resilience fallback, not the primary production source of truth.
   - `offlinePolicy.i18n` lets offline mode mirror hosted `messageProfile` and profile-local `fallbackLanguage` behavior.
   - Omitting `offlinePolicy.policyPacks` uses the built-in synthetic opt-in fallback banner. Hosted network fallback uses the same opt-in banner.
   - `offlinePolicy: { policyPacks: [] }` is explicit no-banner mode.
