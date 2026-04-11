@@ -17,6 +17,7 @@ import color from 'picocolors';
 import { showHelpMenu } from './actions/show-help-menu';
 import { codemodsCommand } from './commands/codemods';
 import { generate } from './commands/generate';
+import { projectsAction } from './commands/instances';
 import { selfHost } from './commands/self-host';
 import { installSkills } from './commands/skills';
 import { displayIntro } from './components/intro';
@@ -95,6 +96,21 @@ const commands: CliCommand[] = [
 			await open(URLS.GITHUB);
 			logger.success('Thank you for your support!');
 		},
+	},
+	{
+		name: 'projects',
+		label: 'Projects',
+		hint: 'Manage your c15t projects',
+		description: 'List, select, and create c15t projects.',
+		action: (context) => projectsAction(context),
+	},
+	{
+		name: 'instances',
+		label: 'Instances',
+		hint: 'Alias for `projects`',
+		description: 'Alias for `c15t projects`.',
+		action: (context) => projectsAction(context),
+		hidden: true,
 	},
 ];
 
@@ -192,11 +208,13 @@ flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
 			logger.debug('No command specified, entering interactive selection.');
 			telemetry.trackEvent(TelemetryEventName.INTERACTIVE_MENU_OPENED, {});
 
-			const promptOptions = commands.map((cmd) => ({
-				value: cmd.name,
-				label: cmd.label,
-				hint: cmd.hint,
-			}));
+			const promptOptions = commands
+				.filter((cmd) => !cmd.hidden)
+				.map((cmd) => ({
+					value: cmd.name,
+					label: cmd.label,
+					hint: cmd.hint,
+				}));
 			promptOptions.push({
 				value: 'exit',
 				label: 'Exit',

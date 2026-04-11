@@ -113,7 +113,7 @@ async function loginAction(context: CliContext): Promise<void> {
 		logger.message('');
 		logger.message('You can now:');
 		logger.message(
-			`  ${color.dim('•')} Run ${color.cyan('c15t instances')} to manage your instances`
+			`  ${color.dim('•')} Run ${color.cyan('c15t projects')} to manage your projects`
 		);
 		logger.message(
 			`  ${color.dim('•')} Run ${color.cyan('c15t generate')} to set up c15t in your project`
@@ -190,7 +190,7 @@ async function statusAction(context: CliContext): Promise<void> {
 	}
 
 	if (authState.config?.selectedInstanceId) {
-		logger.message(`Selected instance: ${authState.config.selectedInstanceId}`);
+		logger.message(`Selected project: ${authState.config.selectedInstanceId}`);
 	}
 }
 

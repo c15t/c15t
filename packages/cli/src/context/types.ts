@@ -12,6 +12,8 @@ export interface CliCommand {
 	description: string; // For help text (optional)
 	// Action now takes CliContext
 	action: (context: CliContext) => Promise<void>;
+	subcommands?: CliCommand[];
+	hidden?: boolean;
 }
 
 // --- Flag Definition ---

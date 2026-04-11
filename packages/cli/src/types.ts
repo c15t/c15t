@@ -163,10 +163,7 @@ export interface FileSystemUtils {
 // --- Telemetry Interface ---
 export interface Telemetry {
 	/** Track an event */
-	trackEvent: (
-		eventName: string,
-		properties?: Record<string, string | number | boolean | undefined>
-	) => void;
+	trackEvent: (eventName: string, properties?: Record<string, unknown>) => void;
 	/** Track a command execution */
 	trackCommand: (
 		command: string,

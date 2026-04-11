@@ -201,9 +201,9 @@ function getNextSteps(
 	switch (mode) {
 		case STORAGE_MODES.HOSTED:
 		case STORAGE_MODES.C15T:
-			if (backendUrl?.includes('your-instance')) {
+			if (backendUrl?.includes('your-project')) {
 				steps.push(
-					`Update ${color.cyan('c15t.config.ts')} with your actual instance URL`
+					`Update ${color.cyan('c15t.config.ts')} with your actual project URL`
 				);
 			}
 			steps.push('Wrap your app with the ConsentManager component');

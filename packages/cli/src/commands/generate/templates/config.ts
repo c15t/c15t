@@ -43,7 +43,7 @@ function generateHostedConfig(
 ): string {
 	const url = useEnvFile
 		? 'process.env.NEXT_PUBLIC_C15T_URL'
-		: `'${backendURL || 'https://your-instance.c15t.dev'}'`;
+		: `'${backendURL || 'https://your-project.c15t.dev'}'`;
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';

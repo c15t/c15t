@@ -1,12 +1,22 @@
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import fsPromises from 'node:fs/promises';
 import os from 'node:os';
-import type { Logger } from '@c15t/logger';
-import { PostHog } from 'posthog-node';
+import path from 'node:path';
+import {
+	createLogger,
+	type DrainContext,
+	initLogger,
+	type WideEvent,
+} from 'evlog';
+import {
+	createDrainPipeline,
+	type DrainPipelineOptions,
+	type PipelineDrainFn,
+} from 'evlog/pipeline';
+import { ENV_VARS, PATHS, URLS } from '../constants';
+import type { CliLogger } from '../types';
 
-// Environment variable for disabling telemetry
-const TELEMETRY_DISABLED_ENV = 'C15T_TELEMETRY_DISABLED';
-
-// Event type definitions for better typing and consistency
 export const TelemetryEventName = {
 	// CLI Lifecycle events
 	CLI_INVOKED: 'cli.invoked',
@@ -35,6 +45,7 @@ export const TelemetryEventName = {
 
 	// Onboarding events
 	ONBOARDING_STARTED: 'onboarding.started',
+	ONBOARDING_STAGE: 'onboarding.stage',
 	ONBOARDING_COMPLETED: 'onboarding.completed',
 	ONBOARDING_EXITED: 'onboarding.exited',
 	ONBOARDING_STORAGE_MODE_SELECTED: 'onboarding.storage_mode_selected',
@@ -45,6 +56,17 @@ export const TelemetryEventName = {
 	ONBOARDING_DEPENDENCIES_CHOICE: 'onboarding.dependencies_choice',
 	ONBOARDING_DEPENDENCIES_INSTALLED: 'onboarding.dependencies_installed',
 	ONBOARDING_GITHUB_STAR: 'onboarding.github_star',
+
+	// Auth events
+	AUTH_LOGIN_STARTED: 'auth.login.started',
+	AUTH_LOGIN_SUCCEEDED: 'auth.login.succeeded',
+	AUTH_LOGIN_FAILED: 'auth.login.failed',
+	AUTH_LOGOUT: 'auth.logout',
+
+	// Hosted project events
+	PROJECTS_LISTED: 'projects.listed',
+	PROJECT_SELECTED: 'project.selected',
+	PROJECT_CREATED: 'project.created',
 
 	// Error events
 	ERROR_OCCURRED: 'error.occurred',
@@ -76,298 +98,721 @@ export const TelemetryEventName = {
 export type TelemetryEventName =
 	(typeof TelemetryEventName)[keyof typeof TelemetryEventName];
 
+type TelemetryPrimitive = string | number | boolean | null;
+type TelemetryObject = { [key: string]: TelemetryValue };
+type TelemetryValue = TelemetryPrimitive | TelemetryValue[] | TelemetryObject;
+type TelemetryProperties = Record<string, TelemetryValue | undefined>;
+
+type TelemetryBatchPayload = {
+	schemaVersion: 1;
+	source: 'c15t-cli';
+	sentAt: string;
+	events: WideEvent[];
+};
+
+type EventLike = Record<string, unknown>;
+
+const DEFAULT_QUEUE_LIMIT = 250;
+const DEFAULT_TIMEOUT_MS = 3_000;
+const DEFAULT_BATCH_SIZE = 20;
+const DEFAULT_BATCH_INTERVAL_MS = 1_000;
+const DEFAULT_MAX_BUFFER_SIZE = 250;
+const MAX_DEPTH = 5;
+const MAX_ARRAY_LENGTH = 20;
+const MAX_OBJECT_KEYS = 50;
+const MAX_STRING_LENGTH = 500;
+const RESERVED_TOP_LEVEL_KEYS = new Set([
+	'event',
+	'installId',
+	'sessionId',
+	'commandRunId',
+	'sequence',
+	'source',
+]);
+const SENSITIVE_KEY_PATTERN =
+	/(^|[-_])(token|secret|password|authorization|cookie|api[-_]?key|access[-_]?token|refresh[-_]?token|config)([-_]|$)/i;
+const SECRET_VALUE_PATTERN =
+	/^(Bearer\s+[A-Za-z0-9._-]+|[A-Za-z0-9+/=_-]{80,})$/;
+
 export interface TelemetryOptions {
-	/**
-	 * Custom PostHog instance to use instead of the default
-	 */
-	client?: PostHog;
-
-	/**
-	 * Whether telemetry should be disabled
-	 */
 	disabled?: boolean;
-
-	/**
-	 * Whether telemetry debugging should be enabled
-	 */
 	debug?: boolean;
-
-	/**
-	 * Default properties to add to all telemetry events
-	 */
-	defaultProperties?: Record<string, string | number | boolean>;
-
-	/**
-	 * Logger instance to use for logging telemetry events
-	 */
-	logger?: Logger;
+	defaultProperties?: EventLike;
+	logger?: CliLogger;
+	endpoint?: string;
+	headers?: Record<string, string>;
+	fetch?: typeof fetch;
+	storageDir?: string;
+	drainOptions?: DrainPipelineOptions<DrainContext>;
 }
 
-/**
- * Manages telemetry for the CLI
- *
- * The Telemetry class provides methods to track CLI usage and errors
- * in a privacy-preserving way.
- */
 export class Telemetry {
-	private client: PostHog | null = null;
+	private readonly endpoint: string;
+	private readonly fetchImpl: typeof fetch;
+	private readonly queuePath: string;
+	private readonly statePath: string;
+	private readonly headers: Record<string, string>;
+	private readonly defaultProperties: TelemetryProperties;
+	private readonly sessionId = crypto.randomUUID();
+	private readonly installId: string;
+	private readonly isFirstRun: boolean;
+	private readonly drain: PipelineDrainFn<DrainContext>;
+	private readonly storageDir: string;
+
+	private logger: CliLogger | undefined;
 	private disabled: boolean;
-	private defaultProperties: Record<string, string | number | boolean>;
-	private distinctId: string;
-	private apiKey = 'phc_ViY5LtTmh4kqoumXZB2olPFoTz4AbbDfrogNgFi1MH3';
 	private debug: boolean;
-	private logger: Logger | undefined;
+	private sequence = 0;
+	private activeCommandName?: string;
+	private activeCommandRunId?: string;
+	private flushPromise: Promise<void> | null = null;
+	private queueReplayPromise: Promise<void> = Promise.resolve();
+	private queueWritePromise: Promise<void> = Promise.resolve();
 
-	/**
-	 * Creates a new telemetry instance
-	 *
-	 * @param options - Configuration options for telemetry
-	 */
 	constructor(options?: TelemetryOptions) {
-		// Check if telemetry is disabled via environment variable
 		const envDisabled =
-			process.env[TELEMETRY_DISABLED_ENV] === '1' ||
-			process.env[TELEMETRY_DISABLED_ENV]?.toLowerCase() === 'true';
+			process.env[ENV_VARS.TELEMETRY_DISABLED] === '1' ||
+			process.env[ENV_VARS.TELEMETRY_DISABLED]?.toLowerCase() === 'true';
 
-		// Check if we have a valid API key
-		const hasValidApiKey = !!(this.apiKey && this.apiKey.trim() !== '');
-
-		// Initialize state based on options or defaults
-		// Disable telemetry if explicitly disabled or if no API key is available
-		this.disabled = options?.disabled ?? envDisabled ?? !hasValidApiKey;
-		this.defaultProperties = options?.defaultProperties ?? {};
-		this.logger = options?.logger;
+		this.disabled = options?.disabled ?? envDisabled ?? false;
 		this.debug = options?.debug ?? false;
+		this.logger = options?.logger;
+		this.defaultProperties = this.sanitizeProperties(
+			options?.defaultProperties ?? {}
+		);
+		this.endpoint =
+			options?.endpoint ??
+			process.env[ENV_VARS.TELEMETRY_ENDPOINT] ??
+			`${URLS.TELEMETRY}/ingest`;
+		this.fetchImpl = options?.fetch ?? fetch;
+		this.storageDir =
+			options?.storageDir ?? path.join(os.homedir(), PATHS.CONFIG_DIR);
+		this.statePath = path.join(this.storageDir, PATHS.TELEMETRY_STATE_FILE);
+		this.queuePath = path.join(this.storageDir, PATHS.TELEMETRY_QUEUE_FILE);
+		this.headers = this.buildHeaders(options?.headers);
 
-		// Generate a stable anonymous ID based on machine info
-		this.distinctId = this.generateAnonymousId();
+		const identity = this.loadOrCreateInstallIdentity();
+		this.installId = identity.installId;
+		this.isFirstRun = identity.isFirstRun;
 
-		if (!this.disabled) {
-			try {
-				this.initClient(options?.client);
-			} catch (error) {
-				this.disabled = true;
-				this.logDebug('Telemetry disabled due to initialization error:', error);
-			}
-		} else if (!hasValidApiKey) {
-			this.logDebug('Telemetry disabled: No API key provided');
-		}
+		const userDrainOptions = options?.drainOptions;
+		const onDropped = userDrainOptions?.onDropped;
+		const pipeline = createDrainPipeline<DrainContext>({
+			batch: {
+				size: userDrainOptions?.batch?.size ?? DEFAULT_BATCH_SIZE,
+				intervalMs:
+					userDrainOptions?.batch?.intervalMs ?? DEFAULT_BATCH_INTERVAL_MS,
+			},
+			retry: {
+				maxAttempts: userDrainOptions?.retry?.maxAttempts ?? 2,
+				backoff: userDrainOptions?.retry?.backoff ?? 'fixed',
+				initialDelayMs: userDrainOptions?.retry?.initialDelayMs ?? 250,
+				maxDelayMs: userDrainOptions?.retry?.maxDelayMs ?? 1_000,
+			},
+			maxBufferSize: userDrainOptions?.maxBufferSize ?? DEFAULT_MAX_BUFFER_SIZE,
+			onDropped: (events, error) => {
+				onDropped?.(events, error);
+				void this.persistDroppedEvents(events, error);
+			},
+		});
+
+		this.drain = pipeline(async (batch) => {
+			await this.sendBatch(batch.map((item) => item.event));
+		});
+
+		this.applyLoggerConfig();
+		this.queueReplayPromise = this.flushQueuedEvents();
 	}
 
-	/**
-	 * Track a telemetry event
-	 *
-	 * @param eventName - The event name to track
-	 * @param properties - Properties to include with the event
-	 */
 	trackEvent(
-		eventName: TelemetryEventName,
-		properties: Record<string, string | number | boolean | undefined> = {}
+		eventName: TelemetryEventName | string,
+		properties: EventLike = {}
 	): void {
-		if (this.disabled || !this.client) {
+		if (this.disabled) {
 			if (this.debug) {
 				this.logDebug(
-					`Telemetry event skipped (${eventName}): Telemetry disabled or client not initialized`
+					`Telemetry event skipped (${eventName}): telemetry disabled`
 				);
 			}
 			return;
 		}
 
 		try {
-			// Filter out any sensitive data and undefined values from properties
-			const safeProperties: Record<string, string | number | boolean> = {};
-
-			// Copy only non-sensitive properties and filter out undefined values
-			for (const [key, value] of Object.entries(properties)) {
-				if (key !== 'config' && value !== undefined) {
-					safeProperties[key] = value;
-				}
-			}
+			const log = createLogger(this.buildBaseContext(eventName));
+			log.set(this.sanitizeProperties(properties));
+			log.emit();
 
 			if (this.debug) {
-				this.logDebug(`Sending telemetry event: ${eventName}`);
+				this.logDebug(`Queued telemetry event: ${eventName}`);
 			}
-
-			this.client.capture({
-				distinctId: this.distinctId,
-				event: eventName,
-				properties: {
-					...this.defaultProperties,
-					...safeProperties,
-					timestamp: new Date().toISOString(),
-				},
-			});
-
-			// Force a flush and wait a bit to ensure it completes
-			this.client.flush();
 		} catch (error) {
 			if (this.debug) {
-				this.logDebug(`Error sending telemetry event ${eventName}:`, error);
+				this.logDebug(`Failed to queue telemetry event ${eventName}:`, error);
 			}
 		}
 	}
 
-	/**
-	 * Track a telemetry event synchronously
-	 *
-	 * This method ensures the event is sent before returning
-	 *
-	 * @param eventName - The event name to track
-	 * @param properties - Properties to include with the event
-	 */
-	trackEventSync(
-		eventName: TelemetryEventName,
-		properties: Record<string, string | number | boolean | undefined> = {}
-	): void {
-		if (this.disabled || !this.client) {
-			if (this.debug) {
-				this.logDebug('Telemetry disabled or client not initialized');
-			}
-			return;
-		}
-
-		// Filter out any sensitive data and undefined values from properties
-		const safeProperties: Record<string, string | number | boolean> = {};
-
-		// Copy only non-sensitive properties and filter out undefined values
-		for (const [key, value] of Object.entries(properties)) {
-			if (key !== 'config' && value !== undefined) {
-				safeProperties[key] = value;
-			}
-		}
-
-		if (this.debug) {
-			this.logDebug(`Sending telemetry event: ${eventName}`);
-		}
-
-		try {
-			// Fall back to regular capture with immediate flush
-			this.client.capture({
-				distinctId: this.distinctId,
-				event: eventName,
-				properties: {
-					...this.defaultProperties,
-					...safeProperties,
-					timestamp: new Date().toISOString(),
-				},
-			});
-
-			// Force a flush and wait a bit to ensure it completes
-			this.client.flush();
-
-			// Log debug info
-			if (this.debug) {
-				this.logDebug(`Flushed telemetry event: ${eventName}`);
-			}
-		} catch (error) {
-			if (this.debug) {
-				this.logDebug(`Error sending telemetry: ${error}`);
-			}
-		}
-	}
-
-	/**
-	 * Track a command execution
-	 *
-	 * @param command - The command being executed
-	 * @param args - Command arguments
-	 * @param flags - Command flags
-	 */
 	trackCommand(
 		command: string,
 		args: string[] = [],
 		flags: Record<string, string | number | boolean | undefined> = {}
 	): void {
-		if (this.disabled || !this.client) {
-			return;
-		}
+		this.activeCommandName = command;
+		this.activeCommandRunId = crypto.randomUUID();
 
-		// Process flags to filter out sensitive or undefined values
-		const safeFlags: Record<string, string | number | boolean> = {};
-		for (const [key, value] of Object.entries(flags)) {
-			if (key !== 'config' && value !== undefined) {
-				safeFlags[key] = value;
-			}
-		}
+		const safeFlags = this.sanitizeProperties(flags);
+		const safeArgs = this.sanitizeValue(args) as TelemetryValue[];
 
 		this.trackEvent(TelemetryEventName.COMMAND_EXECUTED, {
 			command,
-			args: args.join(' '),
-			// Pass flags as a stringified object to avoid type error
-			flagsData: JSON.stringify(safeFlags),
+			commandRunId: this.activeCommandRunId,
+			args: safeArgs,
+			argsCount: args.length,
+			flags: safeFlags,
+			flagCount: Object.keys(safeFlags).length,
+			flagNames: Object.keys(safeFlags).sort(),
+			subcommand:
+				typeof safeArgs[0] === 'string' ? (safeArgs[0] as string) : undefined,
 		});
 	}
 
-	/**
-	 * Track CLI errors
-	 *
-	 * @param error - The error that occurred
-	 * @param command - The command that was being executed when the error occurred
-	 */
 	trackError(error: Error, command?: string): void {
-		if (this.disabled || !this.client) {
+		if (this.disabled) {
 			return;
 		}
 
-		this.trackEvent(TelemetryEventName.ERROR_OCCURRED, {
-			command,
-			error: error.message,
-			errorName: error.name,
-			stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-		});
-	}
+		const safeCommand = command ?? this.activeCommandName;
+		const safeError = this.sanitizeError(error);
+		const errorMetadata = this.buildErrorMetadata(error);
 
-	/**
-	 * Disable telemetry
-	 */
-	disable(): void {
-		this.disabled = true;
-	}
+		try {
+			const log = createLogger(
+				this.buildBaseContext(TelemetryEventName.ERROR_OCCURRED)
+			);
+			log.error(safeError, {
+				command: safeCommand,
+				commandRunId: this.activeCommandRunId,
+				failure: errorMetadata,
+			});
+			log.emit();
 
-	/**
-	 * Enable telemetry
-	 */
-	enable(): void {
-		this.disabled = false;
-		if (!this.client) {
-			this.initClient();
+			if (this.debug) {
+				this.logDebug(
+					`Queued telemetry error event: ${safeCommand ?? 'unknown-command'}`
+				);
+			}
+		} catch (trackingError) {
+			if (this.debug) {
+				this.logDebug('Failed to queue telemetry error event:', trackingError);
+			}
 		}
 	}
 
-	/**
-	 * Check if telemetry is disabled
-	 *
-	 * @returns Whether telemetry is disabled
-	 */
+	flushSync(): void {
+		if (this.disabled) {
+			return;
+		}
+
+		this.flushPromise = this.flushAll();
+	}
+
+	async shutdown(): Promise<void> {
+		if (this.disabled) {
+			return;
+		}
+
+		await (this.flushPromise ?? this.flushAll());
+	}
+
 	isDisabled(): boolean {
 		return this.disabled;
 	}
 
-	/**
-	 * Shutdown telemetry client
-	 */
-	async shutdown(): Promise<void> {
-		if (this.client) {
-			await this.client.shutdown();
-			this.client = null;
-		}
+	disable(): void {
+		this.disabled = true;
+		this.applyLoggerConfig();
 	}
 
-	/**
-	 * Set the logger instance to use for logging
-	 *
-	 * @param logger - The logger instance to use
-	 */
-	setLogger(logger: Logger): void {
+	enable(): void {
+		this.disabled = false;
+		this.applyLoggerConfig();
+		this.queueReplayPromise = this.flushQueuedEvents();
+	}
+
+	setLogger(logger: CliLogger): void {
 		this.logger = logger;
 	}
 
-	/**
-	 * Log a debug message using the configured logger or console.debug as fallback
-	 *
-	 * @param message - The message to log
-	 * @param args - Additional arguments to log
-	 */
+	private applyLoggerConfig(): void {
+		const cliVersion = this.readString(this.defaultProperties.cliVersion);
+
+		initLogger({
+			enabled: !this.disabled,
+			silent: true,
+			pretty: false,
+			stringify: false,
+			_suppressDrainWarning: this.disabled,
+			env: {
+				service: 'c15t-cli',
+				environment: this.getEnvironmentName(),
+				version: cliVersion,
+			},
+			drain: this.disabled ? undefined : this.drain,
+		});
+	}
+
+	private buildBaseContext(eventName: string): TelemetryProperties {
+		this.sequence += 1;
+
+		return {
+			event: eventName,
+			source: 'c15t-cli',
+			installId: this.installId,
+			sessionId: this.sessionId,
+			commandRunId: this.activeCommandRunId,
+			command: this.activeCommandName,
+			sequence: this.sequence,
+			firstRun: this.isFirstRun,
+			interactive: Boolean(process.stdin.isTTY && process.stdout.isTTY),
+			tty: Boolean(process.stdout.isTTY),
+			ci: this.isCi(),
+			platform: process.platform,
+			arch: process.arch,
+			nodeVersion: process.version,
+			...this.defaultProperties,
+		};
+	}
+
+	private buildHeaders(
+		overrides?: Record<string, string>
+	): Record<string, string> {
+		const cliVersion =
+			this.readString(this.defaultProperties.cliVersion) ?? 'unknown';
+		const writeKey = process.env[ENV_VARS.TELEMETRY_WRITE_KEY];
+
+		return {
+			'Content-Type': 'application/json',
+			'User-Agent': `c15t-cli/${cliVersion}`,
+			'X-C15T-Telemetry-Source': 'cli',
+			...(writeKey ? { Authorization: `Bearer ${writeKey}` } : {}),
+			...overrides,
+		};
+	}
+
+	private async flushAll(): Promise<void> {
+		try {
+			await this.queueReplayPromise;
+			await this.drain.flush();
+			await this.queueWritePromise;
+			await this.flushQueuedEvents();
+
+			if (this.debug) {
+				this.logDebug('Flushed telemetry events');
+			}
+		} catch (error) {
+			if (this.debug) {
+				this.logDebug('Telemetry flush failed:', error);
+			}
+		} finally {
+			this.flushPromise = null;
+		}
+	}
+
+	private async sendBatch(events: WideEvent[]): Promise<void> {
+		if (events.length === 0) {
+			return;
+		}
+
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+		const payload: TelemetryBatchPayload = {
+			schemaVersion: 1,
+			source: 'c15t-cli',
+			sentAt: new Date().toISOString(),
+			events,
+		};
+
+		try {
+			const response = await this.fetchImpl(this.endpoint, {
+				method: 'POST',
+				headers: this.headers,
+				body: JSON.stringify(payload),
+				signal: controller.signal,
+			});
+
+			if (!response.ok) {
+				throw new Error(
+					`Telemetry ingest failed with status ${response.status}`
+				);
+			}
+		} finally {
+			clearTimeout(timeout);
+		}
+	}
+
+	private async persistDroppedEvents(
+		events: DrainContext[],
+		error?: Error
+	): Promise<void> {
+		this.queueWritePromise = this.queueWritePromise.then(async () => {
+			try {
+				const existing = await this.readQueuedEvents();
+				const next = [...existing, ...events.map((item) => item.event)].slice(
+					-DEFAULT_QUEUE_LIMIT
+				);
+				await this.writeQueuedEvents(next);
+
+				if (this.debug) {
+					this.logDebug(
+						`Persisted ${events.length} dropped telemetry event(s) to disk`,
+						error
+					);
+				}
+			} catch (queueError) {
+				if (this.debug) {
+					this.logDebug(
+						'Failed to persist dropped telemetry events:',
+						queueError
+					);
+				}
+			}
+		});
+
+		await this.queueWritePromise;
+	}
+
+	private async flushQueuedEvents(): Promise<void> {
+		if (this.disabled) {
+			return;
+		}
+
+		try {
+			const queuedEvents = await this.readQueuedEvents();
+
+			if (queuedEvents.length === 0) {
+				return;
+			}
+
+			await this.sendBatch(queuedEvents);
+			await fsPromises.unlink(this.queuePath).catch(() => undefined);
+
+			if (this.debug) {
+				this.logDebug(
+					`Replayed ${queuedEvents.length} queued telemetry event(s)`
+				);
+			}
+		} catch (error) {
+			if (this.debug) {
+				this.logDebug('Failed to replay queued telemetry events:', error);
+			}
+		}
+	}
+
+	private async readQueuedEvents(): Promise<WideEvent[]> {
+		try {
+			const content = await fsPromises.readFile(this.queuePath, 'utf-8');
+			const parsed = JSON.parse(content);
+
+			if (!Array.isArray(parsed)) {
+				return [];
+			}
+
+			return parsed.filter((item): item is WideEvent => {
+				return typeof item === 'object' && item !== null;
+			});
+		} catch {
+			return [];
+		}
+	}
+
+	private async writeQueuedEvents(events: WideEvent[]): Promise<void> {
+		await fsPromises.mkdir(this.storageDir, { recursive: true });
+		await fsPromises.writeFile(
+			this.queuePath,
+			JSON.stringify(events, null, 2),
+			{
+				mode: 0o600,
+			}
+		);
+	}
+
+	private loadOrCreateInstallIdentity(): {
+		installId: string;
+		isFirstRun: boolean;
+	} {
+		try {
+			fs.mkdirSync(this.storageDir, { recursive: true });
+
+			if (fs.existsSync(this.statePath)) {
+				const content = fs.readFileSync(this.statePath, 'utf-8');
+				const parsed = JSON.parse(content) as { installId?: string };
+
+				if (
+					typeof parsed.installId === 'string' &&
+					parsed.installId.length > 0
+				) {
+					return {
+						installId: parsed.installId,
+						isFirstRun: false,
+					};
+				}
+			}
+		} catch (error) {
+			if (this.debug) {
+				this.logDebug('Failed to read telemetry state file:', error);
+			}
+		}
+
+		const installId = crypto.randomUUID();
+
+		try {
+			fs.writeFileSync(
+				this.statePath,
+				JSON.stringify(
+					{
+						installId,
+						createdAt: new Date().toISOString(),
+					},
+					null,
+					2
+				),
+				{
+					mode: 0o600,
+				}
+			);
+		} catch (error) {
+			if (this.debug) {
+				this.logDebug('Failed to persist telemetry install ID:', error);
+			}
+		}
+
+		return {
+			installId,
+			isFirstRun: true,
+		};
+	}
+
+	private buildErrorMetadata(error: Error): TelemetryProperties {
+		const eventError = error as Error & {
+			code?: unknown;
+			status?: unknown;
+			statusCode?: unknown;
+			cause?: unknown;
+		};
+
+		return this.sanitizeProperties({
+			name: eventError.name,
+			message: eventError.message,
+			code:
+				typeof eventError.code === 'string' ||
+				typeof eventError.code === 'number'
+					? eventError.code
+					: undefined,
+			status:
+				typeof eventError.status === 'number' ? eventError.status : undefined,
+			statusCode:
+				typeof eventError.statusCode === 'number'
+					? eventError.statusCode
+					: undefined,
+			cause:
+				eventError.cause instanceof Error
+					? eventError.cause.message
+					: typeof eventError.cause === 'string'
+						? eventError.cause
+						: undefined,
+		});
+	}
+
+	private sanitizeError(error: Error): Error {
+		const safeError = new Error(error.message);
+		safeError.name = error.name;
+
+		if (process.env.NODE_ENV === 'development') {
+			safeError.stack = error.stack;
+		} else {
+			delete (safeError as Error & { stack?: string }).stack;
+		}
+
+		const sourceError = error as Error & {
+			status?: unknown;
+			statusCode?: unknown;
+			statusText?: unknown;
+			statusMessage?: unknown;
+			cause?: unknown;
+		};
+		const targetError = safeError as Error & {
+			status?: unknown;
+			statusCode?: unknown;
+			statusText?: unknown;
+			statusMessage?: unknown;
+			cause?: unknown;
+		};
+
+		if (typeof sourceError.status === 'number') {
+			targetError.status = sourceError.status;
+		}
+
+		if (typeof sourceError.statusCode === 'number') {
+			targetError.statusCode = sourceError.statusCode;
+		}
+
+		if (typeof sourceError.statusText === 'string') {
+			targetError.statusText = sourceError.statusText;
+		}
+
+		if (typeof sourceError.statusMessage === 'string') {
+			targetError.statusMessage = sourceError.statusMessage;
+		}
+
+		if (sourceError.cause instanceof Error) {
+			targetError.cause = sourceError.cause.message;
+		} else if (typeof sourceError.cause === 'string') {
+			targetError.cause = sourceError.cause;
+		}
+
+		return safeError;
+	}
+
+	private sanitizeProperties(properties: EventLike): TelemetryObject {
+		const sanitized: TelemetryObject = {};
+
+		for (const [key, value] of Object.entries(properties)) {
+			if (RESERVED_TOP_LEVEL_KEYS.has(key)) {
+				continue;
+			}
+
+			if (value === undefined) {
+				continue;
+			}
+
+			if (SENSITIVE_KEY_PATTERN.test(key)) {
+				sanitized[key] = '[redacted]';
+				continue;
+			}
+
+			sanitized[key] = this.sanitizeValue(value, 0, key);
+		}
+
+		return sanitized;
+	}
+
+	private sanitizeValue(
+		value: unknown,
+		depth = 0,
+		keyHint?: string
+	): TelemetryValue {
+		if (depth >= MAX_DEPTH) {
+			return '[truncated]';
+		}
+
+		if (value === null) {
+			return null;
+		}
+
+		if (
+			typeof value === 'string' ||
+			typeof value === 'number' ||
+			typeof value === 'boolean'
+		) {
+			return this.sanitizePrimitive(value, keyHint);
+		}
+
+		if (value instanceof Date) {
+			return value.toISOString();
+		}
+
+		if (value instanceof Error) {
+			return this.sanitizeProperties(this.buildErrorMetadata(value));
+		}
+
+		if (Array.isArray(value)) {
+			return value
+				.slice(0, MAX_ARRAY_LENGTH)
+				.map((item) => this.sanitizeValue(item, depth + 1));
+		}
+
+		if (typeof value === 'object') {
+			const objectValue = value as Record<string, unknown>;
+			const sanitizedObject: Record<string, TelemetryValue> = {};
+
+			for (const key of Object.keys(objectValue).slice(0, MAX_OBJECT_KEYS)) {
+				const nextValue = objectValue[key];
+
+				if (nextValue === undefined) {
+					continue;
+				}
+
+				if (SENSITIVE_KEY_PATTERN.test(key)) {
+					sanitizedObject[key] = '[redacted]';
+					continue;
+				}
+
+				sanitizedObject[key] = this.sanitizeValue(nextValue, depth + 1, key);
+			}
+
+			return sanitizedObject;
+		}
+
+		return String(value);
+	}
+
+	private sanitizePrimitive(
+		value: string | number | boolean,
+		keyHint?: string
+	): TelemetryPrimitive {
+		if (typeof value !== 'string') {
+			return value;
+		}
+
+		if (keyHint && SENSITIVE_KEY_PATTERN.test(keyHint)) {
+			return '[redacted]';
+		}
+
+		if (SECRET_VALUE_PATTERN.test(value)) {
+			return '[redacted]';
+		}
+
+		if (path.isAbsolute(value)) {
+			return '[absolute-path]';
+		}
+
+		if (value.startsWith('http://') || value.startsWith('https://')) {
+			try {
+				const parsed = new URL(value);
+				parsed.username = '';
+				parsed.password = '';
+				parsed.search = '';
+				parsed.hash = '';
+				value = parsed.toString();
+			} catch {
+				// Keep the original string if URL parsing fails.
+			}
+		}
+
+		if (value.length > MAX_STRING_LENGTH) {
+			return `${value.slice(0, MAX_STRING_LENGTH)}...`;
+		}
+
+		return value;
+	}
+
+	private getEnvironmentName(): string {
+		return process.env.NODE_ENV ?? (this.isCi() ? 'production' : 'development');
+	}
+
+	private isCi(): boolean {
+		return Boolean(
+			process.env.CI ||
+				process.env.GITHUB_ACTIONS ||
+				process.env.BUILDKITE ||
+				process.env.VERCEL
+		);
+	}
+
+	private readString(value: TelemetryValue | undefined): string | undefined {
+		return typeof value === 'string' ? value : undefined;
+	}
+
 	private logDebug(message: string, ...args: unknown[]): void {
 		if (this.logger) {
 			this.logger.debug(message, ...args);
@@ -375,137 +820,8 @@ export class Telemetry {
 			console.debug(message, ...args);
 		}
 	}
-
-	/**
-	 * Initialize the PostHog client
-	 *
-	 * @param customClient - Optional custom PostHog client
-	 */
-	private initClient(customClient?: PostHog): void {
-		if (customClient) {
-			this.client = customClient;
-			if (this.debug) {
-				this.logDebug('Using custom PostHog client');
-			}
-		} else {
-			// Skip telemetry initialization if no API key is provided
-			if (!this.apiKey || this.apiKey.trim() === '') {
-				this.disabled = true;
-				this.logDebug('Telemetry disabled: No API key provided');
-				return;
-			}
-
-			// Capture initialization start time for diagnostics
-			const startTime = Date.now();
-
-			try {
-				// More robust configuration
-				const clientConfig = {
-					host: 'https://eu.i.posthog.com',
-					flushInterval: 0, // Send events immediately in CLI context
-					flushAt: 1, // Flush after a single event
-					// PostHog expects project API keys with phc_ prefix
-					// Don't set personalApiKey since we're using a project key
-					requestTimeout: 3000, // Short timeout for CLI context
-				};
-
-				if (this.debug) {
-					this.logDebug(
-						'Initializing PostHog client with config:',
-						JSON.stringify(clientConfig)
-					);
-				}
-
-				this.client = new PostHog(this.apiKey, clientConfig);
-
-				const initTime = Date.now() - startTime;
-				if (this.debug) {
-					this.logDebug('PostHog client initialized in', initTime, 'ms');
-				}
-			} catch (error) {
-				// If PostHog initialization fails, disable telemetry
-				this.disabled = true;
-
-				// More detailed error logging
-				const errorDetails =
-					error instanceof Error
-						? { message: error.message, name: error.name, stack: error.stack }
-						: { rawError: String(error) };
-
-				if (this.debug) {
-					this.logDebug(
-						'Telemetry disabled due to initialization error:',
-						JSON.stringify(errorDetails, null, 2)
-					);
-				}
-
-				// Try alternative initialization without options as fallback
-				try {
-					if (this.debug) {
-						this.logDebug('Attempting fallback PostHog initialization');
-					}
-					this.client = new PostHog(this.apiKey);
-					this.disabled = false;
-					if (this.debug) {
-						this.logDebug('PostHog client initialized using fallback method');
-					}
-				} catch (fallbackError) {
-					this.logDebug(
-						'Fallback initialization also failed:',
-						fallbackError instanceof Error
-							? fallbackError.message
-							: String(fallbackError)
-					);
-				}
-			}
-		}
-	}
-
-	/**
-	 * Generate an anonymous ID based on machine info
-	 *
-	 * @returns A hash that uniquely identifies the machine without PII
-	 */
-	private generateAnonymousId(): string {
-		// Create a deterministic but anonymous ID
-		// Create a hash of machine information that doesn't contain PII
-		const machineId = crypto
-			.createHash('sha256')
-			.update(os.hostname() + os.platform() + os.arch() + os.totalmem())
-			.digest('hex');
-
-		return machineId;
-	}
-
-	/**
-	 * Force immediate flushing of any pending telemetry events
-	 *
-	 * This is useful when you need to ensure events are sent before process exit
-	 */
-	flushSync(): void {
-		if (this.disabled || !this.client) {
-			return;
-		}
-
-		try {
-			this.client.flush();
-			if (this.debug) {
-				this.logDebug('Manually flushed telemetry events');
-			}
-		} catch (error) {
-			if (this.debug) {
-				this.logDebug(`Error flushing telemetry: ${error}`);
-			}
-		}
-	}
 }
 
-/**
- * Creates a telemetry instance with sensible defaults
- *
- * @param options - Configuration options for telemetry
- * @returns A configured telemetry instance
- */
 export function createTelemetry(options?: TelemetryOptions): Telemetry {
 	return new Telemetry(options);
 }

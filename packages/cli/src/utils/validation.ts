@@ -128,7 +128,7 @@ export const validateC15tUrl = createValidator(
  */
 export const validateInstanceName = createValidator(
 	isValidInstanceName,
-	'Instance name must be 3-63 lowercase alphanumeric characters with hyphens'
+	'Project slug must be 3-63 lowercase alphanumeric characters with hyphens'
 );
 
 /**
