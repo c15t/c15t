@@ -183,7 +183,7 @@ export class Telemetry {
 		this.endpoint =
 			options?.endpoint ??
 			process.env[ENV_VARS.TELEMETRY_ENDPOINT] ??
-			`${URLS.TELEMETRY}/ingest`;
+			URLS.TELEMETRY;
 		this.fetchImpl = options?.fetch ?? fetch;
 		this.storageDir =
 			options?.storageDir ?? path.join(os.homedir(), PATHS.CONFIG_DIR);

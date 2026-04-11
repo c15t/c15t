@@ -9,8 +9,8 @@
 export const URLS = {
 	/** Default c15t cloud platform URL */
 	CONSENT_IO: 'https://consent.io',
-	/** First-party telemetry ingest service */
-	TELEMETRY: 'https://telemetry.c15t.com',
+	/** First-party telemetry logs endpoint */
+	TELEMETRY: 'https://telemetry.c15t.com/c15t/v1/logs',
 	/** Documentation website */
 	DOCS: 'https://v2.c15t.com/docs',
 	/** GitHub repository */
