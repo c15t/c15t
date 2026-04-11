@@ -10,7 +10,8 @@ import {
 	unloadScripts,
 	updateScripts,
 } from '../core';
-import type { Script, ScriptCallbackInfo } from '../types';
+import { subscribeToScriptDebugEvents } from '../debug';
+import type { Script, ScriptCallbackInfo, ScriptDebugEvent } from '../types';
 import {
 	mockRandomForTesting,
 	sampleConsents,
@@ -98,6 +99,65 @@ fbq('track', 'PageView');
 			// Should have called document.createElement for each standard script (3), but not for callback-only script
 			expect(document.createElement).toHaveBeenCalledTimes(3);
 			expect(document.head.appendChild).toHaveBeenCalledTimes(3);
+		});
+
+		it('emits structured script debug events for load lifecycle', () => {
+			const events: ScriptDebugEvent[] = [];
+			const unsubscribe = subscribeToScriptDebugEvents((event) => {
+				events.push(event);
+			});
+
+			loadScripts(
+				[
+					{
+						id: 'telemetry-script',
+						src: 'https://example.com/telemetry.js',
+						category: 'necessary',
+						onBeforeLoad: vi.fn(),
+					},
+					{
+						id: 'blocked-telemetry-script',
+						src: 'https://example.com/blocked.js',
+						category: 'marketing',
+					},
+				],
+				sampleConsents
+			);
+
+			unsubscribe();
+
+			expect(events).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						source: 'script-loader',
+						scope: 'lifecycle',
+						action: 'callback_start',
+						scriptId: 'telemetry-script',
+						callback: 'onBeforeLoad',
+					}),
+					expect.objectContaining({
+						source: 'script-loader',
+						scope: 'lifecycle',
+						action: 'element_appended',
+						scriptId: 'telemetry-script',
+					}),
+					expect.objectContaining({
+						source: 'script-loader',
+						scope: 'lifecycle',
+						action: 'loaded',
+						scriptId: 'telemetry-script',
+					}),
+					expect.objectContaining({
+						source: 'script-loader',
+						scope: 'lifecycle',
+						action: 'skipped',
+						scriptId: 'blocked-telemetry-script',
+						data: expect.objectContaining({
+							reason: 'missing_consent',
+						}),
+					}),
+				])
+			);
 		});
 
 		it('should set script attributes correctly', () => {

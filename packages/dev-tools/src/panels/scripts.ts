@@ -12,7 +12,7 @@ import {
 	createInput,
 	createSection,
 } from '../components/ui';
-import { clearElement, div } from '../core/renderer';
+import { button, clearElement, div, span } from '../core/renderer';
 import type { EventLogEntry } from '../core/state-manager';
 import { createDomScannerSection } from './dom-scanner';
 
@@ -28,6 +28,25 @@ export interface ScriptsPanelOptions {
 }
 
 const scriptsSearchByContainer = new WeakMap<HTMLElement, string>();
+const expandedScriptsByContainer = new WeakMap<HTMLElement, Set<string>>();
+
+const CHEVRON_DOWN_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="6 9 12 15 18 9"></polyline>
+</svg>`;
+const CHEVRON_RIGHT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <polyline points="9 18 15 12 9 6"></polyline>
+</svg>`;
+
+function getExpandedScripts(container: HTMLElement): Set<string> {
+	const existing = expandedScriptsByContainer.get(container);
+	if (existing) {
+		return existing;
+	}
+
+	const expanded = new Set<string>();
+	expandedScriptsByContainer.set(container, expanded);
+	return expanded;
+}
 
 /**
  * Renders the scripts panel content
@@ -124,6 +143,10 @@ export function renderScriptsPanel(
 		for (const script of filteredScripts) {
 			const scriptId = script.id;
 			const isLoaded = loadedScripts[scriptId] === true;
+			const scriptEvents = getScriptActivityEvents(events, scriptId);
+			const latestActivity = scriptEvents[scriptEvents.length - 1];
+			const expandedScripts = getExpandedScripts(container);
+			const isExpanded = expandedScripts.has(scriptId);
 
 			// Get the category - can be a string or a complex condition object
 			const category = script.category;
@@ -154,7 +177,7 @@ export function renderScriptsPanel(
 				variant: statusVariant,
 			});
 
-			const row = div({
+			const header = div({
 				style: {
 					display: 'flex',
 					alignItems: 'center',
@@ -194,15 +217,65 @@ export function renderScriptsPanel(
 								},
 								text: `Category: ${categoryDisplay}`,
 							}),
+							...(latestActivity && scriptEvents.length > 0
+								? [
+										div({
+											style: {
+												fontSize: 'var(--c15t-devtools-font-size-xs)',
+												color: 'var(--c15t-text-muted)',
+												overflow: 'hidden',
+												textOverflow: 'ellipsis',
+												whiteSpace: 'nowrap',
+											},
+											text: `Activity: ${latestActivity.message} (${scriptEvents.length} event${
+												scriptEvents.length === 1 ? '' : 's'
+											})`,
+										}),
+									]
+								: []),
 						],
 					}),
 					div({
 						style: {
 							flexShrink: '0',
+							display: 'flex',
+							alignItems: 'center',
+							gap: '8px',
 						},
-						children: [badge],
+						children: [
+							badge,
+							...(scriptEvents.length > 0
+								? [
+										createAccordionToggle({
+											scriptId,
+											isExpanded,
+											onToggle: () => {
+												if (isExpanded) {
+													expandedScripts.delete(scriptId);
+												} else {
+													expandedScripts.add(scriptId);
+												}
+												renderScriptsPanel(container, options);
+											},
+										}),
+									]
+								: []),
+						],
 					}),
 				],
+			});
+
+			const details =
+				isExpanded && scriptEvents.length > 0
+					? createScriptActivityDetails(scriptEvents)
+					: null;
+			const row = div({
+				style: {
+					display: 'flex',
+					flexDirection: 'column',
+					borderBottom: '1px solid var(--c15t-border)',
+				},
+				children: [header, details],
 			});
 
 			scriptsList.appendChild(row);
@@ -390,12 +463,237 @@ function getEventUrl(event: EventLogEntry): string {
 }
 
 function formatEventTime(timestamp: number): string {
-	return new Date(timestamp).toLocaleTimeString('en-US', {
-		hour12: false,
-		hour: '2-digit',
-		minute: '2-digit',
-		second: '2-digit',
+	const date = new Date(timestamp);
+	const hours = String(date.getHours()).padStart(2, '0');
+	const minutes = String(date.getMinutes()).padStart(2, '0');
+	const seconds = String(date.getSeconds()).padStart(2, '0');
+	const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+	return `${hours}:${minutes}:${seconds}.${milliseconds}`;
+}
+
+function getScriptActivityEvents(
+	events: EventLogEntry[],
+	scriptId: string
+): EventLogEntry[] {
+	return events
+		.filter((event) => {
+			if (event.type !== 'script') {
+				return false;
+			}
+
+			const data = event.data as Record<string, unknown> | undefined;
+			if (data?.scriptId !== scriptId) {
+				return false;
+			}
+
+			return data?.scope === 'lifecycle' || data?.scope === 'phase';
+		})
+		.sort((left, right) => left.timestamp - right.timestamp);
+}
+
+function createAccordionToggle(options: {
+	scriptId: string;
+	isExpanded: boolean;
+	onToggle: () => void;
+}): HTMLButtonElement {
+	const { scriptId, isExpanded, onToggle } = options;
+
+	const toggle = button({
+		ariaLabel: `${isExpanded ? 'Collapse' : 'Expand'} ${scriptId} activity`,
+		ariaExpanded: isExpanded ? 'true' : 'false',
+		style: {
+			display: 'inline-flex',
+			alignItems: 'center',
+			justifyContent: 'center',
+			width: '24px',
+			height: '24px',
+			padding: '0',
+			border: '1px solid var(--c15t-border)',
+			borderRadius: '6px',
+			background: 'transparent',
+			color: 'var(--c15t-text-muted)',
+			cursor: 'pointer',
+			flexShrink: '0',
+		},
+		onClick: onToggle,
 	});
+
+	toggle.innerHTML = isExpanded ? CHEVRON_DOWN_ICON : CHEVRON_RIGHT_ICON;
+	return toggle;
+}
+
+function createScriptActivityDetails(events: EventLogEntry[]): HTMLElement {
+	const groupedEvents = groupScriptActivityEvents(events.slice(-8));
+
+	return div({
+		style: {
+			display: 'flex',
+			flexDirection: 'column',
+			gap: '6px',
+			padding: '0 0 10px 0',
+			marginLeft: '0',
+		},
+		children: groupedEvents.map(([groupName, groupEvents]) =>
+			createScriptActivityGroup(groupName, groupEvents)
+		),
+	});
+}
+
+function createScriptActivityGroup(
+	groupName: string,
+	events: EventLogEntry[]
+): HTMLElement {
+	return div({
+		style: {
+			display: 'flex',
+			flexDirection: 'column',
+			gap: '4px',
+		},
+		children: [
+			span({
+				style: {
+					fontSize: 'var(--c15t-devtools-font-size-xs)',
+					fontWeight: '600',
+					color: 'var(--c15t-text)',
+					textTransform: 'none',
+				},
+				text: groupName,
+			}),
+			...events.map((event) => createScriptActivityRow(event)),
+		],
+	});
+}
+
+function createScriptActivityRow(event: EventLogEntry): HTMLElement {
+	const data = (event.data ?? {}) as Record<string, unknown>;
+	const scope = typeof data.scope === 'string' ? data.scope : undefined;
+	const phase = typeof data.phase === 'string' ? data.phase : undefined;
+	const stepType =
+		typeof data.stepType === 'string' ? data.stepType : undefined;
+
+	const metadata = [scope, phase, stepType].filter(Boolean).join(' / ');
+
+	return div({
+		style: {
+			display: 'flex',
+			flexDirection: 'column',
+			gap: '2px',
+			padding: '6px 10px',
+			marginLeft: '0',
+			borderLeft: '2px solid var(--c15t-border)',
+			backgroundColor:
+				'var(--c15t-devtools-surface-secondary, rgba(127,127,127,0.06))',
+			borderRadius: '0 8px 8px 0',
+		},
+		children: [
+			div({
+				style: {
+					display: 'flex',
+					alignItems: 'center',
+					justifyContent: 'space-between',
+					gap: '8px',
+				},
+				children: [
+					span({
+						style: {
+							fontSize: 'var(--c15t-devtools-font-size-xs)',
+							fontWeight: '600',
+							color: 'var(--c15t-text)',
+						},
+						text: event.message,
+					}),
+					span({
+						style: {
+							fontSize: 'var(--c15t-devtools-font-size-xs)',
+							color: 'var(--c15t-text-muted)',
+							flexShrink: '0',
+						},
+						text: formatEventTime(event.timestamp),
+					}),
+				],
+			}),
+			...(metadata
+				? [
+						span({
+							style: {
+								fontSize: 'var(--c15t-devtools-font-size-xs)',
+								color: 'var(--c15t-text-muted)',
+							},
+							text: metadata,
+						}),
+					]
+				: []),
+		],
+	});
+}
+
+function groupScriptActivityEvents(
+	events: EventLogEntry[]
+): Array<[string, EventLogEntry[]]> {
+	const groups = new Map<string, EventLogEntry[]>();
+
+	for (const event of events) {
+		const groupName = getScriptActivityGroupName(event);
+		const existing = groups.get(groupName);
+		if (existing) {
+			existing.push(event);
+		} else {
+			groups.set(groupName, [event]);
+		}
+	}
+
+	const orderedGroupNames = [
+		'onBeforeLoad',
+		'onLoad',
+		'onConsentChange',
+		'other',
+	];
+
+	return orderedGroupNames
+		.map((groupName) => {
+			const groupEvents = groups.get(groupName);
+			return groupEvents
+				? ([groupName, groupEvents] as [string, EventLogEntry[]])
+				: null;
+		})
+		.filter((group): group is [string, EventLogEntry[]] => group !== null);
+}
+
+function getScriptActivityGroupName(event: EventLogEntry): string {
+	const data = (event.data ?? {}) as Record<string, unknown>;
+	if (typeof data.callback === 'string') {
+		return data.callback;
+	}
+
+	const phase = typeof data.phase === 'string' ? data.phase : '';
+	if (
+		phase === 'bootstrap' ||
+		phase === 'consent-default' ||
+		phase === 'setup' ||
+		phase === 'onBeforeLoadGranted' ||
+		phase === 'onBeforeLoadDenied'
+	) {
+		return 'onBeforeLoad';
+	}
+
+	if (
+		phase === 'afterLoad' ||
+		phase === 'onLoadGranted' ||
+		phase === 'onLoadDenied'
+	) {
+		return 'onLoad';
+	}
+
+	if (
+		phase === 'consent-update' ||
+		phase === 'onConsentChange' ||
+		phase === 'onConsentGranted' ||
+		phase === 'onConsentDenied'
+	) {
+		return 'onConsentChange';
+	}
+
+	return 'other';
 }
 
 function truncateText(text: string, maxLength: number): string {

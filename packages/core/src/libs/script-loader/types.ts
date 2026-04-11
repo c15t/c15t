@@ -286,3 +286,49 @@ export interface ScriptUpdateResult {
 	/** Array of script IDs that were unloaded */
 	unloaded: string[];
 }
+
+export type ScriptDebugSource = 'script-loader' | 'manifest-runtime';
+
+export type ScriptDebugScope = 'lifecycle' | 'phase' | 'step';
+
+export type ScriptLifecycleCallback =
+	| 'onBeforeLoad'
+	| 'onLoad'
+	| 'onConsentChange'
+	| 'onError';
+
+export type ScriptDebugAction =
+	| 'skipped'
+	| 'already_loaded'
+	| 'callback_start'
+	| 'callback_complete'
+	| 'callback_error'
+	| 'element_appended'
+	| 'loaded'
+	| 'load_listener_attached'
+	| 'error_listener_attached'
+	| 'unloaded'
+	| 'phase_start'
+	| 'phase_complete'
+	| 'step_executed'
+	| 'step_error';
+
+export interface ScriptDebugEvent {
+	source: ScriptDebugSource;
+	scope: ScriptDebugScope;
+	action: ScriptDebugAction;
+	message: string;
+	scriptId: string;
+	elementId?: string;
+	hasConsent?: boolean;
+	callback?: ScriptLifecycleCallback;
+	phase?: string;
+	stepType?: string;
+	stepIndex?: number;
+	data?: Record<string, unknown>;
+	timestamp: number;
+}
+
+export type ScriptDebugEventInput = Omit<ScriptDebugEvent, 'timestamp'>;
+
+export type ScriptDebugListener = (event: ScriptDebugEvent) => void;

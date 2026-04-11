@@ -1,4 +1,6 @@
 import type { Script } from 'c15t';
+import { resolveManifest } from './resolve';
+import { type VendorManifest, vendorManifestContract } from './types';
 
 // Extended Window interface to include linkedin insights specific properties
 declare global {
@@ -14,6 +16,51 @@ declare global {
 	}
 }
 
+/**
+ * LinkedIn Insights vendor manifest.
+ *
+ * Sets up the LinkedIn partner ID globals and loads the insights script
+ * via structured startup steps.
+ */
+export const linkedinInsightsManifest = {
+	...vendorManifestContract,
+	vendor: 'linkedin-insights',
+	category: 'marketing',
+	install: [
+		{
+			type: 'setGlobal',
+			name: '_linkedin_partner_id',
+			value: '{{id}}',
+			ifUndefined: false,
+		},
+		{
+			type: 'setGlobal',
+			name: '_linkedin_data_partner_ids',
+			value: [],
+			ifUndefined: true,
+		},
+		{
+			type: 'pushToQueue',
+			queue: '_linkedin_data_partner_ids',
+			value: '{{id}}',
+		},
+		{
+			type: 'defineStubFunction',
+			name: 'lintrk',
+			queue: {
+				property: 'q',
+			},
+			queueFormat: 'array',
+			ifUndefined: true,
+		},
+		{
+			type: 'loadScript',
+			src: '{{scriptSrc}}',
+			async: true,
+		},
+	],
+} as const satisfies VendorManifest;
+
 export interface LinkedInInsightsOptions {
 	/**
 	 * Your LinkedIn Insights ID
@@ -21,15 +68,8 @@ export interface LinkedInInsightsOptions {
 	 */
 	id: string;
 
-	/**
-	 * Override or extend the default script values.
-	 *
-	 * Default values:
-	 * - `id`: 'linkedin-insights'
-	 * - `src`: `https://snap.licdn.com/li.lms-analytics/insight.min.js`
-	 * - `category`: 'marketing'
-	 */
-	script?: Partial<Script>;
+	/** LinkedIn Insights loader URL. */
+	scriptSrc?: string;
 }
 
 /**
@@ -49,43 +89,13 @@ export interface LinkedInInsightsOptions {
  */
 export function linkedinInsights({
 	id,
-	script,
+	scriptSrc,
 }: LinkedInInsightsOptions): Script {
-	const category = script?.category ?? 'marketing';
+	const resolved = resolveManifest(linkedinInsightsManifest, {
+		id,
+		scriptSrc:
+			scriptSrc ?? 'https://snap.licdn.com/li.lms-analytics/insight.min.js',
+	});
 
-	return {
-		id: script?.id ?? 'linkedin-insights',
-		category,
-		textContent: `
-(function(l) {
-if (!l){window.lintrk = function(a,b){window.lintrk.q.push([a,b])};
-window.lintrk.q=[]}
-var s = document.getElementsByTagName("script")[0];
-var b = document.createElement("script");
-b.type = "text/javascript";b.async = true;
-b.src = "${script?.src ?? 'https://snap.licdn.com/li.lms-analytics/insight.min.js'}";
-s.parentNode.insertBefore(b, s);})(window.lintrk);
-		`.trim(),
-		onBeforeLoad({ elementId, ...rest }) {
-			const setupScript = document.createElement('script');
-
-			setupScript.id = `${elementId}-init`;
-
-			setupScript.textContent = `
-      _linkedin_partner_id = "${id}";
-      window._linkedin_data_partner_ids = window._linkedin_data_partner_ids || [];
-      window._linkedin_data_partner_ids.push(_linkedin_partner_id);
-     `;
-
-			if (!document.head) {
-				throw new Error('Document head is not available for script injection');
-			}
-
-			document.head.appendChild(setupScript);
-
-			if (script?.onBeforeLoad) {
-				script.onBeforeLoad({ elementId, ...rest });
-			}
-		},
-	};
+	return resolved;
 }
