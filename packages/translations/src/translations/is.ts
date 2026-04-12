@@ -6,6 +6,7 @@ export const translations: CompleteTranslations = {
 		customize: 'Sérsníða',
 		save: 'Vista stillingar',
 		close: 'Loka',
+		securedBy: 'Varið af',
 	},
 	cookieBanner: {
 		title: 'Við metum friðhelgi þína',

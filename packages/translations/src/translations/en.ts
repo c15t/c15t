@@ -7,6 +7,7 @@ export const translations: CompleteTranslations = {
 		customize: 'Customize',
 		save: 'Save Settings',
 		close: 'Close',
+		securedBy: 'Secured by',
 	},
 	cookieBanner: {
 		title: 'We value your privacy',

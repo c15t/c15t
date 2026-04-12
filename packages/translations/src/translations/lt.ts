@@ -6,6 +6,7 @@ export const translations: CompleteTranslations = {
 		customize: 'Rinktis',
 		save: 'Išsaugoti nustatymus',
 		close: 'Uždaryti',
+		securedBy: 'Apsaugą teikia',
 	},
 	cookieBanner: {
 		title: 'Mes vertiname jūsų privatumą',

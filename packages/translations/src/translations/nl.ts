@@ -6,6 +6,7 @@ export const translations: CompleteTranslations = {
 		customize: 'Aanpassen',
 		save: 'Instellingen opslaan',
 		close: 'Sluiten',
+		securedBy: 'Beveiligd door',
 	},
 	cookieBanner: {
 		title: 'Wij hechten waarde aan uw privacy',

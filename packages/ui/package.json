@@ -92,7 +92,7 @@
 	],
 	"scripts": {
 		"build": "rslib build && bun scripts/generate-css-entrypoints.ts",
-		"dev": "rslib build",
+		"dev": "bun scripts/dev.ts",
 		"fmt": "bun biome format --write .",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run"

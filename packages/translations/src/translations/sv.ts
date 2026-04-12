@@ -6,6 +6,7 @@ export const translations: CompleteTranslations = {
 		customize: 'Anpassa',
 		save: 'Spara inställningar',
 		close: 'Stäng',
+		securedBy: 'Skyddad av',
 	},
 	cookieBanner: {
 		title: 'Vi värdesätter din integritet',

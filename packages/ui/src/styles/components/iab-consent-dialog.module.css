@@ -119,6 +119,7 @@
 
 	/* Card container */
 	.card {
+		position: relative;
 		width: min(100%, var(--iab-cd-max-width));
 		max-height: var(--iab-cd-max-height);
 		min-height: 0;
@@ -128,7 +129,7 @@
 		box-shadow: var(--iab-cd-shadow);
 		display: flex;
 		flex-direction: column;
-		overflow: hidden;
+		overflow: visible;
 	}
 
 	:global(.c15t-dark) .card {
@@ -1248,29 +1249,6 @@
 
 	:global(.c15t-dark) .emptyStateText {
 		color: var(--iab-cd-text-muted-color-dark);
-	}
-
-	/* Branding */
-	.branding {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.75rem;
-		border-top: 1px solid var(--iab-cd-border-color);
-		font-size: 0.75rem;
-		color: var(--iab-cd-text-color);
-		text-decoration: none;
-	}
-
-	:global(.c15t-dark) .branding {
-		border-color: var(--iab-cd-border-color-dark);
-		color: var(--iab-cd-text-color-dark);
-	}
-
-	.brandingIcon {
-		height: 1.25rem;
-		width: auto;
 	}
 
 	/* Vendor sections */

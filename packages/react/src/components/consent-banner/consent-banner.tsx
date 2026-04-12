@@ -152,6 +152,12 @@ export interface ConsentBannerProps {
 	legalLinks?: InlineLegalLinksProps['links'];
 
 	/**
+	 * When true, hides the branding tag on the banner.
+	 * @default false
+	 */
+	hideBranding?: boolean;
+
+	/**
 	 * Defines the layout of buttons in the footer.
 	 * Allows reordering and grouping of buttons.
 	 *
@@ -197,6 +203,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 	customizeButtonText,
 	acceptButtonText,
 	legalLinks,
+	hideBranding = false,
 	layout,
 	direction,
 	primaryButton = 'customize',
@@ -299,7 +306,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 			<ConsentBannerRoot {...config} models={models} uiSource={uiSource}>
 				<div className={styles.cardShell}>
 					<BrandingLink
-						hideBranding={false}
+						hideBranding={hideBranding}
 						variant="banner-tag"
 						data-testid="consent-banner-branding"
 					/>

@@ -6,6 +6,7 @@ export const translations: CompleteTranslations = {
 		customize: 'Personalizza',
 		save: 'Issejvja s-settings',
 		close: 'Agħlaq',
+		securedBy: 'Protett minn',
 	},
 	cookieBanner: {
 		title: 'Napprezzaw il-privatezza tiegħek',

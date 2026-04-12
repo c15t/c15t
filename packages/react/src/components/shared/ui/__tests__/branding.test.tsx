@@ -98,6 +98,41 @@ describe('BrandingLink', () => {
 		});
 	});
 
+	test('renders the branding copy from translations and preserves LTR wordmark', async () => {
+		await renderWithConsentState(
+			<BrandingLink
+				hideBranding={false}
+				variant="banner-tag"
+				data-testid="branding-link"
+			/>,
+			{
+				translationConfig: {
+					defaultLanguage: 'he',
+					translations: {
+						...defaultTranslationConfig.translations,
+						he: {
+							...defaultTranslationConfig.translations.en,
+							common: {
+								...defaultTranslationConfig.translations.en.common,
+								securedBy: 'מאובטח על ידי',
+							},
+						},
+					},
+				},
+			}
+		);
+
+		await vi.waitFor(() => {
+			const link = document.querySelector(
+				'[data-testid="branding-link"]'
+			) as HTMLAnchorElement | null;
+			expect(link).toBeInTheDocument();
+			expect(link).not.toHaveAttribute('dir');
+			expect(link).toHaveTextContent('מאובטח על ידי');
+			expect(link?.querySelector('[dir="ltr"]')).toBeInTheDocument();
+		});
+	});
+
 	test('uses the dialog tag variant in the default dialog footer', async () => {
 		await renderWithConsentState(<ConsentDialogFooter hideBranding={false} />, {
 			branding: 'inth',

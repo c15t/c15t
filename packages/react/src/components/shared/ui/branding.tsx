@@ -2,6 +2,7 @@ import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 import type { Branding } from 'c15t';
 import type { SVGProps } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useTranslations } from '~/hooks/use-translations';
 import { cnExt as cn } from '~/utils/cn';
 import { C15TIconOnly, InthIconOnly, InthLogo } from './logo';
 
@@ -54,9 +55,9 @@ export function BrandingFullLogo({
 	}
 
 	return (
-		<span className={cn(styles.brandingWordmark, className)}>
+		<span dir="ltr" className={cn(styles.brandingWordmark, className)}>
 			<C15TIconOnly className={styles.brandingC15TMark} aria-hidden="true" />
-			<span className={styles.brandingLabel}>c15t</span>
+			<span className={styles.brandingWordmarkLabel}>c15t</span>
 		</span>
 	);
 }
@@ -77,6 +78,7 @@ export function BrandingLink({
 	'data-testid': testId,
 }: BrandingProps) {
 	const { branding } = useConsentManager();
+	const { common } = useTranslations();
 	const resolvedBranding = resolveBranding(branding);
 
 	if (resolvedBranding === 'none' || hideBranding) {
@@ -88,7 +90,6 @@ export function BrandingLink({
 
 	return (
 		<a
-			dir="ltr"
 			className={cn(
 				styles.branding,
 				variant !== 'footer' && styles.brandingTag,
@@ -101,7 +102,9 @@ export function BrandingLink({
 			data-variant={variant}
 			data-testid={testId}
 		>
-			<span className={styles.brandingLabel}>Secured by</span>
+			<span className={styles.brandingCopy}>
+				<span className={styles.brandingText}>{common.securedBy}</span>
+			</span>
 			<BrandingFullLogo
 				branding={branding}
 				className={

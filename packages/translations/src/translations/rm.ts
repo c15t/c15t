@@ -6,6 +6,7 @@ export const translations: CompleteTranslations = {
 		customize: 'Persunalisar',
 		save: 'Memorisar las configuraziuns',
 		close: 'Serrar',
+		securedBy: 'Protegiu da',
 	},
 	cookieBanner: {
 		title: 'Nus stimain vossa sfera privata',

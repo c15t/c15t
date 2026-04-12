@@ -128,9 +128,9 @@
 	}
 
 	.cardShell {
-		position: relative;
+		display: flex;
+		flex-direction: column;
 		width: min(100%, var(--consent-banner-max-width));
-		padding-top: var(--consent-banner-branding-tag-offset);
 	}
 
 	:global(.c15t-dark) .card {

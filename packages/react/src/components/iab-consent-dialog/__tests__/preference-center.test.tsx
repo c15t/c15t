@@ -461,6 +461,24 @@ describe('IAB Consent Dialog Unit Tests', () => {
 	});
 
 	describe('Props', () => {
+		test('should render branding tag by default', async () => {
+			render(
+				<ConsentManagerProvider options={defaultIABOptions}>
+					<IABConsentDialog open />
+				</ConsentManagerProvider>
+			);
+
+			await vi.waitFor(
+				() => {
+					const branding = document.querySelector(
+						'[data-testid="iab-consent-dialog-branding"]'
+					);
+					expect(branding).toBeInTheDocument();
+				},
+				{ timeout: 3000 }
+			);
+		});
+
 		test('should accept hideBranding prop', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
@@ -470,10 +488,10 @@ describe('IAB Consent Dialog Unit Tests', () => {
 
 			await vi.waitFor(
 				() => {
-					const dialog = document.querySelector(
-						'[data-testid="iab-consent-dialog-root"]'
+					const branding = document.querySelector(
+						'[data-testid="iab-consent-dialog-branding"]'
 					);
-					expect(dialog).toBeInTheDocument();
+					expect(branding).not.toBeInTheDocument();
 				},
 				{ timeout: 3000 }
 			);
