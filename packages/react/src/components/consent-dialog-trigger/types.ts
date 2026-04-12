@@ -10,7 +10,7 @@ import type { ReactNode } from 'react';
 /**
  * Icon options for the trigger button.
  *
- * - `'branding'` - Shows c15t or consent.io logo based on branding setting
+ * - `'branding'` - Shows c15t or INTH logo based on branding setting
  * - `'fingerprint'` - Generic fingerprint/privacy icon
  * - `'settings'` - Generic settings/gear icon
  * - `ReactNode` - Custom icon element

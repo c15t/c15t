@@ -85,7 +85,6 @@
 		"dist",
 		"dist-types",
 		"styles.css",
-		"iab/styles.css",
 		"src/primitives",
 		"src/styles",
 		"!src/styles/**/__tests__/**",
@@ -93,7 +92,7 @@
 	],
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts",
-		"dev": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"dev": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts",
 		"fmt": "bun biome format --write .",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run"

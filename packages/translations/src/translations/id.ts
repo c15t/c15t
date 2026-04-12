@@ -6,6 +6,7 @@ export const translations: CompleteTranslations = {
 		customize: 'Sesuaikan',
 		save: 'Simpan Pengaturan',
 		close: 'Tutup',
+		securedBy: 'Diamankan oleh',
 	},
 	cookieBanner: {
 		title: 'Kami menghargai privasi Anda',

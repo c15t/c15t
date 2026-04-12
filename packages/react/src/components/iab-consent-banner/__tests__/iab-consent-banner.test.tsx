@@ -211,6 +211,24 @@ describe('IAB Consent Banner Unit Tests', () => {
 				{ timeout: 3000 }
 			);
 		});
+
+		test('should render branding tag', async () => {
+			render(
+				<ConsentManagerProvider options={defaultIABOptions}>
+					<IABConsentBanner />
+				</ConsentManagerProvider>
+			);
+
+			await vi.waitFor(
+				() => {
+					const branding = document.querySelector(
+						'[data-testid="iab-consent-banner-branding"]'
+					);
+					expect(branding).toBeInTheDocument();
+				},
+				{ timeout: 3000 }
+			);
+		});
 	});
 
 	describe('Accessibility', () => {

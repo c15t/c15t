@@ -6,6 +6,7 @@ export const translations: CompleteTranslations = {
 		customize: 'Kohanda',
 		save: 'Salvesta seaded',
 		close: 'Sulge',
+		securedBy: 'Kaitse pakub',
 	},
 	cookieBanner: {
 		title: 'Hindame teie privaatsust',

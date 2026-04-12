@@ -6,6 +6,7 @@ export const translations: CompleteTranslations = {
 		customize: 'Addasu',
 		save: 'Cadw gosodiadau',
 		close: 'Cau',
+		securedBy: "Wedi'i ddiogelu gan",
 	},
 	cookieBanner: {
 		title: 'Rydym yn gwerthfawrogi eich preifatrwydd',

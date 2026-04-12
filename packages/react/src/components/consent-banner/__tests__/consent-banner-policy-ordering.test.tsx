@@ -201,4 +201,24 @@ describe('ConsentBanner policy ordering', () => {
 			document.querySelector('[data-testid="consent-banner-customize-button"]')
 		).toBeInTheDocument();
 	});
+
+	test('shows branding by default and hides it when hideBranding is true', async () => {
+		renderBanner({});
+
+		await waitForBanner();
+
+		expect(
+			document.querySelector('[data-testid="consent-banner-branding"]')
+		).toBeInTheDocument();
+
+		document.body.innerHTML = '';
+
+		renderBanner({ hideBranding: true });
+
+		await waitForBanner();
+
+		expect(
+			document.querySelector('[data-testid="consent-banner-branding"]')
+		).not.toBeInTheDocument();
+	});
 });

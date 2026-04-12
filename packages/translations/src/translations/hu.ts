@@ -6,6 +6,7 @@ export const translations: CompleteTranslations = {
 		customize: 'Testreszabás',
 		save: 'Beállítások mentése',
 		close: 'Bezárás',
+		securedBy: 'Védelmét biztosítja',
 	},
 	cookieBanner: {
 		title: 'Értékeljük az adatvédelmet',

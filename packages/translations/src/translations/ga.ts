@@ -6,6 +6,7 @@ export const translations: CompleteTranslations = {
 		customize: 'Saincheap',
 		save: 'Sábháil Socruithe',
 		close: 'Dún',
+		securedBy: 'Cosanta ag',
 	},
 	cookieBanner: {
 		title: 'Tugaimid luach do do phríobháideachas',

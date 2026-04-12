@@ -6,6 +6,7 @@ export const translations: CompleteTranslations = {
 		customize: 'Prilagodi',
 		save: 'Spremi postavke',
 		close: 'Zatvori',
+		securedBy: 'Zaštitu pruža',
 	},
 	cookieBanner: {
 		title: 'Cijenimo vašu privatnost',

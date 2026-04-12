@@ -1012,12 +1012,11 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 						</Button.Root>
 					</div>
 
-					{/* Branding */}
-					{!hideBranding && (
-						<div className={styles.branding}>
-							<Branding hideBranding={hideBranding ?? false} />
-						</div>
-					)}
+					<Branding
+						hideBranding={hideBranding ?? false}
+						variant="dialog-tag"
+						data-testid="iab-consent-dialog-branding"
+					/>
 				</div>
 			</div>
 		</ConsentTrackingContext.Provider>

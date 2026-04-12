@@ -441,6 +441,7 @@ export interface C15TOptions {
 
 	/**
 	 * Select which branding to show in the consent banner.
+	 * Use "inth" for the INTH brand. "consent" is a deprecated alias for "inth".
 	 * Use "none" to hide branding.
 	 * @default "c15t"
 	 */

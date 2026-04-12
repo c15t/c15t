@@ -6,6 +6,7 @@ export const translations: CompleteTranslations = {
 		customize: 'Upassen',
 		save: 'Astellunge späicheren',
 		close: 'Zoumaachen',
+		securedBy: 'Ofgeséchert vun',
 	},
 	cookieBanner: {
 		title: 'Mir schätzen Är Privatsphär',
