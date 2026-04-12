@@ -10,6 +10,7 @@
 	},
 	"dependencies": {
 		"@c15t/benchmarking": "workspace:*",
+		"@c15t/react": "workspace:*",
 		"next": "15.3.3",
 		"react": "19.2.3",
 		"react-dom": "19.2.3"
