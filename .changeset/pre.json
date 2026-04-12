@@ -23,5 +23,18 @@
 		"c15t-v1-codemod-fixture": "1.0.0",
 		"@c15t/iab": "2.0.0-rc.5"
 	},
-	"changesets": ["swift-foxes-leap", "tidy-phones-dance"]
+	"changesets": [
+		"bright-hairs-shop",
+		"calm-plants-tell",
+		"embed-overhaul-core",
+		"fresh-owls-relax",
+		"fresh-pumpkins-change",
+		"green-moons-switch",
+		"lucky-icons-fix",
+		"odd-edges-shift",
+		"shaggy-pots-relax",
+		"slow-rabbits-share",
+		"swift-foxes-leap",
+		"tidy-phones-dance"
+	]
 }

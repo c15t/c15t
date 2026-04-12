@@ -1,5 +1,30 @@
 # @c15t/ui
 
+## 2.0.0-rc.8
+
+### Patch Changes
+
+- cd9c830: Fix the `PolicyActions` DX regressions and the published stylesheet packaging for the prebuilt consent UI.
+
+  - `@c15t/ui`: deduplicate policy-action helper ownership behind `c15t`, normalize widget footer subgroup naming, and add direct coverage for action-group flattening.
+  - `@c15t/react`: share the internal `PolicyActions` renderer across banner and widget, add `consentAction` to policy-action render props so stock overrides preserve built-in theming, restore the banner default footer layout when policy hints do not provide a layout, and extend regression coverage.
+  - `@c15t/nextjs`: keep the published stylesheet bridge files aligned with the package entrypoints and publish-artifact guard.
+
+- fee82fd: Refine prebuilt consent-surface branding so it feels attached to the UI instead of appended.
+
+  - `@c15t/react`: add attached branding tags to the stock consent banner, consent dialog, IAB banner, and IAB dialog; localize the branding copy through translations; and add a `hideBranding` prop to the stock `ConsentBanner` component.
+  - `@c15t/nextjs`: keep the published stylesheet entrypoints aligned with the updated prebuilt branding treatment while simplifying stylesheet distribution to reference upstream package styles directly.
+  - `@c15t/ui`: update the shared consent branding tag styles for tighter edge attachment, smaller visual footprint, and consistent banner/dialog treatment across standard and IAB surfaces.
+  - `@c15t/translations`: add the shared localized branding copy used by the updated prebuilt consent surfaces.
+
+- Updated dependencies [43f1b68]
+- Updated dependencies [3d4c107]
+- Updated dependencies [c944e35]
+- Updated dependencies [5956531]
+- Updated dependencies [fee82fd]
+  - c15t@2.0.0-rc.8
+  - @c15t/translations@2.0.0-rc.8
+
 ## 2.0.0-rc.7
 
 ### Minor Changes

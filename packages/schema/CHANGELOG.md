@@ -1,5 +1,11 @@
 # @c15t/schema
 
+## 2.0.0-rc.5
+
+### Patch Changes
+
+- 3d5b0fd: Add legal-document snapshot support, persist document hashes on consent policies, and expose subject consent policy version/hash/effective-date metadata.
+
 ## 2.0.0-rc.4
 
 ### Patch Changes
