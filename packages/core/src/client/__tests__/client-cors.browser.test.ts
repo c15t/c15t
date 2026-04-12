@@ -238,7 +238,10 @@ describe('CORS functionality', () => {
 				'X-Custom-Header': 'value', // Custom header would trigger preflight
 			},
 			body: {
-				type: 'cookie_banner',
+				type: 'terms_and_conditions',
+				externalSubjectId: '',
+				givenAt: Date.now(),
+				subjectId: '',
 				domain: 'example.com',
 				preferences: {
 					analytics: true,

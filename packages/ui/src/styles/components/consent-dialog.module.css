@@ -245,6 +245,7 @@
 	.brandingTag .brandingCopy {
 		font-size: var(--consent-dialog-branding-label-size);
 		letter-spacing: 0.01em;
+		color: var(--c15t-text-on-primary, #fff);
 	}
 
 	.brandingTag .brandingText,
@@ -259,14 +260,17 @@
 
 	.brandingTag .brandingWordmark {
 		gap: 0.3125rem;
+		color: var(--c15t-text-on-primary, #fff);
 	}
 
 	.brandingTag .brandingC15TMark {
 		height: 0.9375rem;
+		color: var(--c15t-text-on-primary, #fff);
 	}
 
 	.brandingTag .brandingInth {
 		height: 0.9375rem;
+		color: var(--c15t-text-on-primary, #fff);
 	}
 
 	.brandingTagBanner {
