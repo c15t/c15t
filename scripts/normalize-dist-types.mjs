@@ -2,7 +2,10 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
-const FROM_SPECIFIER_REGEX = /(from\s+['"])([^'"]+)(['"])/g;
+const SPECIFIER_REGEXES = [
+	/(from\s+['"])([^'"]+)(['"])/g,
+	/(import\(\s*['"])([^'"]+)(['"]\s*\))/g,
+];
 const PACKAGE_TARGETS = [
 	{
 		distDir: path.join(REPO_ROOT, 'packages/core/dist-types'),
@@ -79,6 +82,14 @@ function toExplicitRelativeSpecifier(fromFilePath, targetFilePath) {
 		relativePath = `./${relativePath}`;
 	}
 
+	if (relativePath.endsWith('/index.d.ts')) {
+		return relativePath.slice(0, -'/index.d.ts'.length);
+	}
+
+	if (relativePath.endsWith('.d.ts')) {
+		return relativePath.slice(0, -'.d.ts'.length);
+	}
+
 	return relativePath;
 }
 
@@ -131,7 +142,9 @@ async function resolveDeclarationTarget(fromFilePath, specifier) {
 
 async function normalizeDeclarationFile(filePath, currentTarget) {
 	const original = await fs.readFile(filePath, 'utf8');
-	const matches = Array.from(original.matchAll(FROM_SPECIFIER_REGEX));
+	const matches = SPECIFIER_REGEXES.flatMap((regex) =>
+		Array.from(original.matchAll(regex))
+	);
 
 	if (matches.length === 0) {
 		return;
@@ -170,11 +183,15 @@ async function normalizeDeclarationFile(filePath, currentTarget) {
 		);
 	}
 
-	const normalized = original.replace(
-		FROM_SPECIFIER_REGEX,
-		(fullMatch, prefix, specifier, suffix) =>
-			`${prefix}${resolvedSpecifiers.get(specifier) ?? specifier}${suffix}`
-	);
+	let normalized = original;
+
+	for (const regex of SPECIFIER_REGEXES) {
+		normalized = normalized.replace(
+			regex,
+			(fullMatch, prefix, specifier, suffix) =>
+				`${prefix}${resolvedSpecifiers.get(specifier) ?? specifier}${suffix}`
+		);
+	}
 
 	if (normalized !== original) {
 		await fs.writeFile(filePath, normalized);

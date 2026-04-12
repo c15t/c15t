@@ -46,7 +46,7 @@
 			"require": "./dist/styles/primitives/index.cjs"
 		},
 		"./styles/primitives/*": {
-			"types": "./dist/styles/primitives/*.d.ts",
+			"types": "./dist-types/styles/primitives/*.d.ts",
 			"import": "./dist/styles/primitives/*.js",
 			"require": "./dist/styles/primitives/*.cjs"
 		},
