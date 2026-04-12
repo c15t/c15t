@@ -2,40 +2,67 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
+const PACKAGES_ROOT = path.join(REPO_ROOT, 'packages');
 const SPECIFIER_REGEXES = [
 	/(from\s+['"])([^'"]+)(['"])/g,
 	/(import\(\s*['"])([^'"]+)(['"]\s*\))/g,
 ];
-const PACKAGE_TARGETS = [
-	{
-		distDir: path.join(REPO_ROOT, 'packages/core/dist-types'),
-		specifier: 'c15t',
-	},
-	{
-		distDir: path.join(REPO_ROOT, 'packages/iab/dist-types'),
-		specifier: '@c15t/iab',
-	},
-	{
-		distDir: path.join(REPO_ROOT, 'packages/nextjs/dist-types'),
-		specifier: '@c15t/nextjs',
-	},
-	{
-		distDir: path.join(REPO_ROOT, 'packages/react/dist-types'),
-		specifier: '@c15t/react',
-	},
-	{
-		distDir: path.join(REPO_ROOT, 'packages/schema/dist-types'),
-		specifier: '@c15t/schema',
-	},
-	{
-		distDir: path.join(REPO_ROOT, 'packages/translations/dist-types'),
-		specifier: '@c15t/translations',
-	},
-	{
-		distDir: path.join(REPO_ROOT, 'packages/ui/dist-types'),
-		specifier: '@c15t/ui',
-	},
-];
+
+async function discoverPackageTargets() {
+	try {
+		const entries = await fs.readdir(PACKAGES_ROOT, { withFileTypes: true });
+		const packageTargets = await Promise.all(
+			entries
+				.filter((entry) => entry.isDirectory())
+				.map(async (entry) => {
+					const packageRoot = path.join(PACKAGES_ROOT, entry.name);
+					const packageJsonPath = path.join(packageRoot, 'package.json');
+
+					try {
+						const packageJson = JSON.parse(
+							await fs.readFile(packageJsonPath, 'utf8')
+						);
+
+						if (
+							!packageJson ||
+							typeof packageJson !== 'object' ||
+							typeof packageJson.name !== 'string'
+						) {
+							return null;
+						}
+
+						return {
+							distDir: path.join(packageRoot, 'dist-types'),
+							specifier: packageJson.name,
+						};
+					} catch (error) {
+						if (
+							error &&
+							typeof error === 'object' &&
+							'code' in error &&
+							error.code === 'ENOENT'
+						) {
+							return null;
+						}
+
+						throw error;
+					}
+				})
+		);
+
+		return packageTargets.filter(Boolean);
+	} catch (error) {
+		if (error && typeof error === 'object' && 'code' in error) {
+			if (error.code === 'ENOENT') {
+				return [];
+			}
+		}
+
+		throw error;
+	}
+}
+
+const PACKAGE_TARGETS = await discoverPackageTargets();
 
 function normalizePath(filePath) {
 	return filePath.split(path.sep).join('/');

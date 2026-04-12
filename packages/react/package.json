@@ -36,12 +36,12 @@
 		"./iab/styles.css": "./dist/iab/styles.css",
 		"./iab/styles.tw3.css": "./dist/iab/styles.tw3.css",
 		"./primitives": {
-			"types": "./dist/primitives.d.ts",
+			"types": "./dist-types/primitives.d.ts",
 			"import": "./dist/primitives.js",
 			"require": "./dist/primitives.cjs"
 		},
 		"./primitives/*": {
-			"types": "./dist/primitives/*.d.ts",
+			"types": "./dist-types/primitives/*.d.ts",
 			"import": "./dist/primitives/*.js",
 			"require": "./dist/primitives/*.cjs"
 		},
