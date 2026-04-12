@@ -1,5 +1,39 @@
 # c15t
 
+## 2.0.0-rc.8
+
+### Minor Changes
+
+- 3d4c107: feat(consent): add change-only consent callbacks
+
+  - add `onConsentChanged` as a dedicated callback for explicit consent saves that change an existing persisted consent state
+  - include both previous and current consent categories in the callback payload so analytics and integrations can diff grant/revoke transitions directly
+  - keep `onConsentSet` focused on broad consent-state updates, including initialization and auto-grant flows
+  - update the React provider to keep callback registrations in sync when callback props change after mount
+
+- c944e35: feat(core): move policy action resolution from @c15t/react to c15t core
+
+  Policy-driven action resolution utilities (`resolvePolicyAllowedActions`, `resolvePolicyActionGroups`, `resolvePolicyPrimaryActions`, etc.) are now exported from `c15t` core for shared consent surface runtimes.
+
+  feat(scripts): move bundled integrations to declarative, schema-versioned `VendorManifest` definitions compiled through `resolveManifest()`. The manifest runtime now supports structured startup and consent phases, complex consent conditions, compile caching, and Google Consent Mode v2 signaling without helper-authored lifecycle overrides.
+
+  feat(dev-tools): add script lifecycle and manifest runtime telemetry to the events and scripts panels, including grouped activity traces for `onBeforeLoad`, `onLoad`, and `onConsentChange`.
+
+### Patch Changes
+
+- 43f1b68: - fix `identifyUser()` to consistently use the consent `subjectId` for `PATCH /subjects/:id`, keep the legacy `id` alias backward compatible, and tighten request typing plus retry handling for malformed pending identify submissions.
+- 5956531: Simplify the 2.0 static prefetch flow so static routes only need to start `/init` early and matching prefetched data is consumed automatically during first store initialization.
+
+  - `c15t`: add canonical request-context metadata for SSR and browser-prefetch payloads, auto-consume matching prefetched data on first runtime/store initialization, and replace blanket SSR skip-on-overrides behavior with exact request-context matching.
+  - `@c15t/react`: preserve the dynamic SSR `fetchInitialData()` flow while exposing the new `context_mismatch` SSR status behavior for matching overrides, backend URLs, credentials, and ambient GPC.
+  - `@c15t/nextjs`: remove the RC-era public static-prefetch consumer APIs from the package surface and document `C15tPrefetch` as the only static-route setup step.
+  - `@c15t/cli`: update generated static-route templates to rely on automatic prefetch consumption instead of wiring manual prefetch lookups.
+
+- Updated dependencies [3d5b0fd]
+- Updated dependencies [fee82fd]
+  - @c15t/schema@2.0.0-rc.5
+  - @c15t/translations@2.0.0-rc.8
+
 ## 2.0.0-rc.6
 
 ### Minor Changes
