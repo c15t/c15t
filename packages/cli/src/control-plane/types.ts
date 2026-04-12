@@ -43,14 +43,14 @@ export interface ControlPlaneCapabilities {
 }
 
 /**
- * Create instance request
+ * Create hosted project request
  */
 export interface CreateInstanceRequest {
-	/** Instance name */
+	/** Project slug */
 	name: string;
-	/** Instance configuration */
+	/** Project configuration */
 	config: {
-		/** Organization slug to create the instance under */
+		/** Organization slug to create the project under */
 		organizationSlug: string;
 		/** Region ID for provisioning */
 		region: string;
@@ -70,7 +70,7 @@ export interface ControlPlaneOrganization {
 }
 
 /**
- * Provisioning region for control-plane instances
+ * Provisioning region for control-plane projects
  */
 export interface ControlPlaneRegion {
 	id: string;

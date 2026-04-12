@@ -50,7 +50,7 @@ pnpm dlx @c15t/cli setup
 The CLI will:
 
 - Install necessary packages
-- Configure your c15t instance
+- Configure your c15t project
 - Set up environment variables
 - Add consent management components to your app
 

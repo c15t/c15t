@@ -9,6 +9,8 @@
 export const URLS = {
 	/** Default c15t cloud platform URL */
 	CONSENT_IO: 'https://consent.io',
+	/** First-party telemetry logs endpoint */
+	TELEMETRY: 'https://telemetry.c15t.com/c15t/v1/logs',
 	/** Documentation website */
 	DOCS: 'https://v2.c15t.com/docs',
 	/** GitHub repository */
@@ -29,6 +31,10 @@ export const PATHS = {
 	CONFIG_DIR: '.c15t',
 	/** Config file name */
 	CONFIG_FILE: 'config.json',
+	/** Telemetry state file name */
+	TELEMETRY_STATE_FILE: 'telemetry.json',
+	/** Telemetry retry queue file name */
+	TELEMETRY_QUEUE_FILE: 'telemetry-queue.json',
 	/** Project config file name */
 	PROJECT_CONFIG: 'c15t.config.ts',
 	/** Alternative project config file name */
@@ -83,6 +89,10 @@ export const ENV_VARS = {
 	V2: 'V2',
 	/** Disable telemetry */
 	TELEMETRY_DISABLED: 'C15T_TELEMETRY_DISABLED',
+	/** Override telemetry ingest endpoint */
+	TELEMETRY_ENDPOINT: 'C15T_TELEMETRY_ENDPOINT',
+	/** Optional write key for telemetry ingest */
+	TELEMETRY_WRITE_KEY: 'C15T_TELEMETRY_WRITE_KEY',
 	/** Control-plane/dashboard base URL override */
 	CONSENT_URL: 'CONSENT_URL',
 	/** c15t backend URL */

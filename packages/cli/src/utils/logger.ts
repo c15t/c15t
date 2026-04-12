@@ -9,11 +9,12 @@ export type CliLogger = Logger & CliExtensions;
 
 // Define CLI-specific extension levels with their method signatures
 export interface CliExtensions {
-	message: (message: string, ...args: unknown[]) => void;
-	note: (message: string, ...args: unknown[]) => void;
-	outro: (message: string, ...args: unknown[]) => void;
-	success: (message: string, ...args: unknown[]) => void;
-	failed: (message: string, ...args: unknown[]) => void;
+	message: (message: string) => void;
+	note: (content: string, title?: string) => void;
+	outro: (message: string) => void;
+	success: (message: string) => void;
+	failed: (message: string) => never;
+	step: (current: number, total: number, label: string) => void;
 }
 
 const formatArgs = (args: unknown[]): string => {
@@ -124,29 +125,32 @@ export const createCliLogger = (level: LogLevel): CliLogger => {
 	};
 
 	// Add note method (creates a note box)
-	extendedLogger.note = (message: string, ...args: unknown[]) => {
-		const messageStr = typeof message === 'string' ? message : String(message);
-		const title =
-			args.length > 0 && typeof args[0] === 'string' ? args[0] : undefined;
-		p.note(messageStr, title, {
+	extendedLogger.note = (content: string, title?: string) => {
+		p.note(content, title, {
 			format: (line: string) => line,
 		});
 	};
 
 	// Add success method (final message)
-	extendedLogger.success = (message: string, ...args: unknown[]) => {
-		logMessage('success', message, ...args);
+	extendedLogger.success = (message: string) => {
+		logMessage('success', message);
 	};
 
 	// Add failed method (final message)
-	extendedLogger.failed = (message: string, ...args: unknown[]) => {
-		logMessage('failed', message, ...args);
+	extendedLogger.failed = (message: string) => {
+		logMessage('failed', message);
 		process.exit(0);
 	};
 
 	// Add outro method (uses plain message)
 	extendedLogger.outro = (message: string) => {
 		p.outro(message);
+	};
+
+	extendedLogger.step = (current: number, total: number, label: string) => {
+		const filled = color.green('█'.repeat(current));
+		const empty = color.dim('░'.repeat(total - current));
+		p.log.step(`[${filled}${empty}] Step ${current}/${total}: ${label}`);
 	};
 
 	return extendedLogger;

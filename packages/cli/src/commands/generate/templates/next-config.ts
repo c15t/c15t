@@ -155,7 +155,7 @@ function generateRewriteDestination(
 	}
 
 	return {
-		destination: `${backendURL || 'https://your-instance.c15t.dev'}/:path*`,
+		destination: `${backendURL || 'https://your-project.c15t.dev'}/:path*`,
 		isTemplateLiteral: false,
 	};
 }

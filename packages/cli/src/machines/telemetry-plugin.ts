@@ -6,6 +6,7 @@
 
 import type { Telemetry } from '~/utils/telemetry';
 import { TelemetryEventName } from '~/utils/telemetry';
+import type { GenerateMachineContext } from './generate/types';
 import type { StateHistoryEntry } from './types';
 
 /**
@@ -28,6 +29,181 @@ export interface TelemetryPluginConfig {
 interface MachineSnapshot {
 	value: unknown;
 	context?: unknown;
+}
+
+const GENERATE_STAGE_NAMES: Record<string, string> = {
+	preflight: 'preflight',
+	preflightError: 'preflight',
+	modeSelection: 'mode_selection',
+	hostedMode: 'hosted_mode',
+	offlineMode: 'offline_mode',
+	customMode: 'custom_mode',
+	backendOptions: 'backend_options',
+	frontendOptions: 'frontend_options',
+	scriptsOptions: 'scripts_options',
+	fileGeneration: 'file_generation',
+	dependencyCheck: 'dependency_check',
+	dependencyConfirm: 'dependency_confirm',
+	dependencyInstall: 'dependency_install',
+	summary: 'summary',
+	skillsInstall: 'skills_install',
+	githubStar: 'github_star',
+	cancelling: 'cancelling',
+	cleanup: 'cleanup',
+	complete: 'complete',
+	error: 'error',
+	exited: 'exited',
+	cancelled: 'cancelled',
+};
+
+function normalizeGenerateStageName(state: string): string {
+	return (
+		GENERATE_STAGE_NAMES[state] ??
+		state.replace(/[A-Z]/g, (char) => `_${char.toLowerCase()}`)
+	);
+}
+
+function getGenerateContext(
+	snapshot: MachineSnapshot
+): Partial<GenerateMachineContext> | undefined {
+	return snapshot.context as Partial<GenerateMachineContext> | undefined;
+}
+
+function normalizeCancelReason(reason?: string | null): string {
+	if (!reason) {
+		return 'user_cancelled';
+	}
+
+	const normalized = reason.toLowerCase();
+
+	if (normalized.includes('signal')) {
+		return 'signal_interrupted';
+	}
+	if (normalized.includes('mode selection')) {
+		return 'mode_selection_cancelled';
+	}
+	if (normalized.includes('hosted setup')) {
+		return 'hosted_setup_cancelled';
+	}
+	if (normalized.includes('backend options')) {
+		return 'backend_options_cancelled';
+	}
+	if (normalized.includes('frontend options')) {
+		return 'frontend_options_cancelled';
+	}
+	if (normalized.includes('scripts option')) {
+		return 'scripts_options_cancelled';
+	}
+	if (normalized.includes('dependency')) {
+		return 'dependency_install_cancelled';
+	}
+	if (normalized.includes('prompt cancelled at stage:')) {
+		return normalized
+			.replace('prompt cancelled at stage:', '')
+			.trim()
+			.replace(/\s+/g, '_')
+			.concat('_cancelled');
+	}
+
+	return 'user_cancelled';
+}
+
+function getStageReason(
+	fromState: string,
+	toState: string,
+	context?: Partial<GenerateMachineContext>
+): string | undefined {
+	if (toState === 'preflightError') {
+		return 'preflight_failed';
+	}
+
+	if (
+		toState === 'cancelling' ||
+		toState === 'cancelled' ||
+		toState === 'exited'
+	) {
+		return normalizeCancelReason(context?.cancelReason);
+	}
+
+	if (
+		fromState === 'dependencyInstall' &&
+		context?.installSucceeded === false
+	) {
+		return 'dependency_install_failed';
+	}
+
+	if (toState === 'error') {
+		const lastError = context?.errors?.[context.errors.length - 1];
+
+		if (lastError?.state === 'fileGeneration') {
+			return 'file_generation_failed';
+		}
+
+		if (lastError?.error?.name === 'PromptCancelledError') {
+			return normalizeCancelReason(lastError.error.message);
+		}
+
+		if (lastError?.state) {
+			return `${normalizeGenerateStageName(lastError.state)}_failed`;
+		}
+
+		return 'machine_error';
+	}
+
+	return undefined;
+}
+
+function getStageResult(
+	fromState: string,
+	toState: string,
+	context?: Partial<GenerateMachineContext>
+): 'completed' | 'failed' | 'cancelled' {
+	if (toState === 'preflightError' || toState === 'error') {
+		return 'failed';
+	}
+
+	if (
+		toState === 'cancelling' ||
+		toState === 'cancelled' ||
+		toState === 'exited'
+	) {
+		return 'cancelled';
+	}
+
+	if (
+		fromState === 'dependencyInstall' &&
+		context?.installSucceeded === false
+	) {
+		return 'failed';
+	}
+
+	return 'completed';
+}
+
+function buildGenerateStageTelemetry(
+	fromState: string,
+	toState: string,
+	durationMs: number,
+	snapshot: MachineSnapshot
+) {
+	const context = getGenerateContext(snapshot);
+
+	return {
+		stage: normalizeGenerateStageName(fromState),
+		nextStage: normalizeGenerateStageName(toState),
+		durationMs,
+		result: getStageResult(fromState, toState, context),
+		reason: getStageReason(fromState, toState, context),
+		selectedMode: context?.selectedMode ?? undefined,
+		hostedProvider: context?.hostedProvider ?? undefined,
+		dependencyCount: context?.dependenciesToAdd?.length ?? 0,
+		filesCreatedCount: context?.filesCreated?.length ?? 0,
+		filesModifiedCount: context?.filesModified?.length ?? 0,
+		installConfirmed: context?.installConfirmed ?? undefined,
+		installAttempted: context?.installAttempted ?? undefined,
+		installSucceeded: context?.installSucceeded ?? undefined,
+		errorsCount: context?.errors?.length ?? 0,
+	};
 }
 
 /**
@@ -70,6 +246,18 @@ export function createTelemetrySubscriber(config: TelemetryPluginConfig) {
 				toState: currentState,
 				duration,
 			});
+
+			if (machineId === 'generate') {
+				telemetry.trackEvent(
+					TelemetryEventName.ONBOARDING_STAGE,
+					buildGenerateStageTelemetry(
+						lastState,
+						currentState,
+						duration,
+						snapshot
+					)
+				);
+			}
 		}
 
 		// Record in history

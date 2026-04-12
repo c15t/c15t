@@ -92,8 +92,8 @@
 		"!src/styles/**/*.test.ts"
 	],
 	"scripts": {
-		"build": "rslib build && bun scripts/generate-css-entrypoints.ts",
-		"dev": "rslib build",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts",
+		"dev": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"fmt": "bun biome format --write .",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run"

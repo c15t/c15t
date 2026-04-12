@@ -1,7 +1,7 @@
 import { URLS } from '../constants';
 
 /**
- * Resolve the control-plane base URL for auth + instance management.
+ * Resolve the control-plane base URL for auth + hosted project management.
  *
  * Default: consent.io
  * Override: CONSENT_URL
