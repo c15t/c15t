@@ -147,11 +147,11 @@
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build && bun run clean:dist:test-artifacts && bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/react",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun run clean:dist:test-artifacts && bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/react",
 		"build:agent-docs": "bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/react",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"clean:dist:test-artifacts": "bun --eval \"import { rmSync } from 'node:fs'; rmSync('dist/mockServiceWorker.js', { force: true });\"",
-		"dev": "bun prebuild && rslib build",
+		"dev": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
 		"prepack": "cd ../.. && bunx turbo run build --filter=@c15t/react",

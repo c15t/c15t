@@ -6,6 +6,7 @@ import type {
 	AvailablePackage as AvailablePackageType,
 	StorageMode as StorageModeType,
 } from './constants';
+import type { CliLogger as SharedCliLogger } from './utils/logger';
 
 // Re-export for use in other modules
 export type StorageMode = StorageModeType;
@@ -109,21 +110,7 @@ export interface PackageManagerResult {
 }
 
 // --- Logger Interface ---
-export interface CliLogger {
-	// Standard log levels
-	debug(message: string, ...args: unknown[]): void;
-	info(message: string, ...args: unknown[]): void;
-	warn(message: string, ...args: unknown[]): void;
-	error(message: string, ...args: unknown[]): void;
-
-	// CLI-specific methods
-	message(message: string): void;
-	note(content: string, title?: string): void;
-	success(message: string): void;
-	failed(message: string): never;
-	outro(message: string): void;
-	step(current: number, total: number, label: string): void;
-}
+export type CliLogger = SharedCliLogger;
 
 // --- Error Handlers ---
 export interface ErrorHandlers {

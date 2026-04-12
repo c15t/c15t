@@ -15,7 +15,7 @@ import {
 	type PipelineDrainFn,
 } from 'evlog/pipeline';
 import { ENV_VARS, PATHS, URLS } from '../constants';
-import type { CliLogger } from '../types';
+import type { CliLogger } from './logger';
 
 export const TelemetryEventName = {
 	// CLI Lifecycle events
