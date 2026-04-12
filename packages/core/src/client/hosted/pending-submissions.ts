@@ -20,6 +20,12 @@ import { delay } from './utils';
 const PENDING_CONSENT_KEY = 'c15t-pending-consent-submissions';
 const PENDING_IDENTIFY_KEY = 'c15t-pending-identify-submissions';
 
+function getIdentifySubjectId(
+	submission?: IdentifyUserRequestBody
+): string | undefined {
+	return submission?.subjectId || submission?.id;
+}
+
 /**
  * Check for pending consent submissions on initialization
  * @internal
@@ -242,12 +248,25 @@ export async function processPendingIdentifySubmissions(
 				continue;
 			}
 
+			const subjectId = getIdentifySubjectId(submission);
+			if (!subjectId) {
+				console.warn(
+					'Dropping pending identify submission without a subject ID'
+				);
+				successfulSubmissions.push(j);
+				continue;
+			}
+
 			try {
 				getDebugLogger().log('Retrying identify user submission:', submission);
 
 				// Build the path with the subject ID
-				const path = `${API_ENDPOINTS.PATCH_SUBJECT}/${submission.id}`;
-				const { id: _subjectId, ...patchBody } = submission;
+				const path = `${API_ENDPOINTS.PATCH_SUBJECT}/${subjectId}`;
+				const {
+					subjectId: _subjectId,
+					id: _legacySubjectId,
+					...patchBody
+				} = submission;
 
 				const response = await fetcher<IdentifyUserResponse, typeof patchBody>(
 					context,

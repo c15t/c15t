@@ -13,6 +13,12 @@ import type { FetcherContext } from './fetcher';
 import { createResponseContext } from './fetcher';
 import { withFallback } from './with-fallback';
 
+function getIdentifySubjectId(
+	body?: IdentifyUserRequestBody
+): string | undefined {
+	return body?.subjectId || body?.id;
+}
+
 /**
  * Provides offline mode fallback for identifyUser API.
  * Queues the identify request for retry on next page load.
@@ -22,6 +28,7 @@ export async function offlineFallbackForIdentifyUser(
 	options?: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
 ): Promise<ResponseContext<IdentifyUserResponse>> {
 	const pendingSubmissionsKey = 'c15t-pending-identify-submissions';
+	const newSubjectId = getIdentifySubjectId(options?.body);
 
 	try {
 		if (typeof window !== 'undefined' && options?.body && window.localStorage) {
@@ -44,7 +51,7 @@ export async function offlineFallbackForIdentifyUser(
 			const newSubmission = options.body;
 			const isDuplicate = pendingSubmissions.some(
 				(submission) =>
-					submission.id === newSubmission.id &&
+					getIdentifySubjectId(submission) === newSubjectId &&
 					submission.externalId === newSubmission.externalId
 			);
 
@@ -100,8 +107,9 @@ export async function identifyUser(
 	options: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
 ): Promise<ResponseContext<IdentifyUserResponse>> {
 	const { body, ...restOptions } = options;
+	const subjectId = getIdentifySubjectId(body);
 
-	if (!body?.id) {
+	if (!body || !subjectId) {
 		return {
 			ok: false,
 			data: null,
@@ -128,7 +136,7 @@ export async function identifyUser(
 			consentInfo: {
 				...existingData?.consentInfo,
 				time: existingData?.consentInfo?.time || Date.now(),
-				subjectId: body.id,
+				subjectId,
 				externalId: body.externalId,
 				identityProvider: body.identityProvider,
 			},
@@ -138,10 +146,10 @@ export async function identifyUser(
 	);
 
 	// 2. Build the path with the subject ID
-	const path = `${API_ENDPOINTS.PATCH_SUBJECT}/${body.id}`;
+	const path = `${API_ENDPOINTS.PATCH_SUBJECT}/${subjectId}`;
 
 	// Extract the body fields (excluding id which goes in the path)
-	const { id: _subjectId, ...patchBody } = body;
+	const { subjectId: _subjectId, id: _legacySubjectId, ...patchBody } = body;
 
 	// 3. Make API call with fallback
 	return withFallback<IdentifyUserResponse, typeof patchBody>(
@@ -153,8 +161,8 @@ export async function identifyUser(
 			body: patchBody,
 		},
 		async (fallbackOptions) => {
-			// Re-add the id for the fallback queue
-			const fullBody = { id: body.id, ...fallbackOptions?.body };
+			// Re-add the subject ID for the fallback queue
+			const fullBody = { subjectId, ...fallbackOptions?.body };
 			return offlineFallbackForIdentifyUser({
 				...fallbackOptions,
 				body: fullBody as IdentifyUserRequestBody,

@@ -426,7 +426,7 @@ export const createConsentManagerStore = (
 			// Make API call to link the user to the subject
 			await manager.identifyUser({
 				body: {
-					id: subjectId,
+					subjectId,
 					externalId: user.id,
 					identityProvider: user.identityProvider,
 				},
