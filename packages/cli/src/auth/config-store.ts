@@ -150,7 +150,7 @@ export async function getAccessToken(): Promise<string | null> {
 }
 
 /**
- * Get the selected instance ID
+ * Get the selected project ID
  */
 export async function getSelectedInstanceId(): Promise<string | null> {
 	const config = await loadConfig();
@@ -158,7 +158,7 @@ export async function getSelectedInstanceId(): Promise<string | null> {
 }
 
 /**
- * Set the selected instance ID
+ * Set the selected project ID
  */
 export async function setSelectedInstanceId(instanceId: string): Promise<void> {
 	await updateConfig({ selectedInstanceId: instanceId });
@@ -185,7 +185,7 @@ export async function storeTokens(
 		lastLogin: Date.now(),
 	};
 
-	// Preserve selected instance from existing config
+	// Preserve the selected project from existing config
 	const existing = await loadConfig();
 	if (existing?.selectedInstanceId) {
 		config.selectedInstanceId = existing.selectedInstanceId;

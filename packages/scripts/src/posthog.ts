@@ -1,4 +1,6 @@
 import type { Script } from 'c15t';
+import { resolveManifest } from './resolve';
+import { type VendorManifest, vendorManifestContract } from './types';
 
 declare global {
 	interface Window {
@@ -19,6 +21,89 @@ declare global {
 	}
 }
 
+/**
+ * PostHog vendor manifest.
+ *
+ * PostHog manages its own consent internally via opt_in/opt_out capturing.
+ * The script always loads, and consent is toggled via the PostHog API.
+ */
+export const posthogManifest = {
+	...vendorManifestContract,
+	vendor: 'posthog',
+	category: 'measurement',
+	alwaysLoad: true,
+	bootstrap: [
+		{
+			type: 'setGlobal',
+			name: 'posthog',
+			value: {},
+			ifUndefined: true,
+		},
+		{
+			type: 'defineGlobalMethods',
+			target: 'posthog',
+			methods: [
+				{ name: 'init', behavior: 'noop' },
+				{ name: 'opt_in_capturing', behavior: 'noop' },
+				{ name: 'opt_out_capturing', behavior: 'noop' },
+				{
+					name: 'get_explicit_consent_status',
+					behavior: 'return',
+					value: 'pending',
+				},
+			],
+		},
+	],
+	install: [
+		{
+			type: 'loadScript',
+			src: '{{scriptUrl}}',
+			async: true,
+			attributes: {
+				crossorigin: 'anonymous',
+				'data-api-host': '{{apiHost}}',
+				'data-ui-host': '{{apiHost}}',
+			},
+		},
+	],
+	afterLoad: [
+		{
+			type: 'callGlobal',
+			global: 'posthog',
+			method: 'init',
+			args: ['{{id}}', '{{initOptions}}'],
+		},
+	],
+	onLoadGranted: [
+		{
+			type: 'callGlobal',
+			global: 'posthog',
+			method: 'opt_in_capturing',
+		},
+	],
+	onLoadDenied: [
+		{
+			type: 'callGlobal',
+			global: 'posthog',
+			method: 'opt_out_capturing',
+		},
+	],
+	onConsentGranted: [
+		{
+			type: 'callGlobal',
+			global: 'posthog',
+			method: 'opt_in_capturing',
+		},
+	],
+	onConsentDenied: [
+		{
+			type: 'callGlobal',
+			global: 'posthog',
+			method: 'opt_out_capturing',
+		},
+	],
+} as const satisfies VendorManifest;
+
 export interface PosthogConsentOptions {
 	/**
 	 * Your posthog id, begins with 'phc_'.
@@ -29,27 +114,13 @@ export interface PosthogConsentOptions {
 	 * Your posthog api host.
 	 * @default 'https://eu.i.posthog.com'
 	 */
-	apiHost: string;
+	apiHost?: string;
 
-	/**
-	 * The defaults for the posthog script.
-	 */
-	defaults: string;
+	/** The PostHog array loader URL. */
+	scriptUrl?: string;
 
-	/**
-	 * Other optional options for the posthog script.
-	 * @example { person_profiles: 'identified_only' }
-	 */
-	options: Record<string, unknown>;
-
-	/**
-	 * Override or extend the default script values.
-	 *
-	 * Default values:
-	 * - `id`: 'posthog-consent'
-	 * - `category`: 'measurement'
-	 */
-	script?: Partial<Script>;
+	/** PostHog init options passed to `posthog.init(...)`. */
+	initOptions?: Record<string, unknown>;
 }
 
 /**
@@ -61,69 +132,13 @@ export interface PosthogConsentOptions {
  * @returns The Posthog script
  */
 export function posthog(options: PosthogConsentOptions): Script {
-	const { script } = options;
+	const resolved = resolveManifest(posthogManifest, {
+		id: options.id,
+		apiHost: options.apiHost ?? 'https://eu.i.posthog.com',
+		scriptUrl:
+			options.scriptUrl ?? 'https://eu-assets.i.posthog.com/static/array.js',
+		initOptions: options.initOptions ?? {},
+	});
 
-	const handleConsentOpt = (hasConsent: boolean) => {
-		// Comparing the consent status prevent's us from already opting in/out if the consent status is already set
-		const posthogConsent = window.posthog.get_explicit_consent_status();
-
-		if (hasConsent && posthogConsent !== 'granted') {
-			window.posthog.opt_in_capturing();
-		} else if (!hasConsent && posthogConsent !== 'denied') {
-			window.posthog.opt_out_capturing();
-		}
-	};
-
-	// Build the PostHog script URL with configuration
-	const apiHost = options.apiHost.replace(
-		'.i.posthog.com',
-		'-assets.i.posthog.com'
-	);
-	const scriptUrl = `${apiHost}/static/array.js`;
-
-	return {
-		id: script?.id ?? 'posthog',
-		category: script?.category ?? 'measurement',
-		src: scriptUrl,
-		async: true,
-		attributes: {
-			crossorigin: 'anonymous',
-			'data-api-host': options.apiHost,
-			'data-ui-host': options.apiHost,
-		},
-		alwaysLoad: true,
-		onBeforeLoad: (rest) => {
-			// Initialize PostHog before the script loads
-			if (!window.posthog) {
-				window.posthog = {
-					init: () => {},
-					opt_in_capturing: () => {},
-					opt_out_capturing: () => {},
-					get_explicit_consent_status: () => 'pending',
-				} as typeof window.posthog;
-			}
-
-			script?.onBeforeLoad?.(rest);
-		},
-		onLoad: ({ hasConsent, ...rest }) => {
-			// Initialize PostHog with options now that the script is loaded
-			if (window.posthog && typeof window.posthog.init === 'function') {
-				window.posthog.init(options.id, {
-					api_host: options.apiHost,
-					ui_host: options.apiHost,
-					autocapture: false,
-					...(options.options || {}),
-				});
-
-				handleConsentOpt(hasConsent);
-			}
-
-			script?.onLoad?.({ hasConsent, ...rest });
-		},
-		onConsentChange: ({ hasConsent, ...rest }) => {
-			handleConsentOpt(hasConsent);
-
-			script?.onConsentChange?.({ hasConsent, ...rest });
-		},
-	};
+	return resolved;
 }

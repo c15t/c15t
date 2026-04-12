@@ -6,5 +6,6 @@ export interface Registry {
 	db: ReturnType<InferFumaDB<typeof LatestDB>['orm']>;
 	ctx: {
 		logger: ReturnType<typeof createLogger>;
+		tenantId?: string;
 	};
 }

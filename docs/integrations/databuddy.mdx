@@ -25,9 +25,17 @@ The Databuddy script automatically respects consent preferences by toggling trac
       clientId: 'your-client-id',
       scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
       apiUrl: 'https://basket.databuddy.cc',
-      options: {
+      configWhenGranted: {
+        clientId: 'your-client-id',
+        apiUrl: 'https://basket.databuddy.cc',
         trackScreenViews: true,
         trackOutgoingLinks: true,
+        disabled: false,
+      },
+      configWhenDenied: {
+        clientId: 'your-client-id',
+        apiUrl: 'https://basket.databuddy.cc',
+        disabled: true,
       }
     })
     ```
@@ -77,14 +85,17 @@ This ensures that no tracking occurs without user consent, keeping your analytic
 
 ## Configuration Options
 
-The `options` parameter allows you to customize Databuddy's behavior:
+The Databuddy manifest expects explicit initial config objects for the granted
+and denied consent states:
 
 ```ts
 databuddy({
   clientId: 'your-client-id',
   scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
   apiUrl: 'https://basket.databuddy.cc', // Optional, defaults to basket.databuddy.cc, change if self-hosting
-  options: {
+  configWhenGranted: {
+    clientId: 'your-client-id',
+    apiUrl: 'https://basket.databuddy.cc',
     // Tracking options
     trackScreenViews: true,        // Automatically track page views
     trackOutgoingLinks: true,      // Track clicks on external links
@@ -99,6 +110,12 @@ databuddy({
     batchSize: 10,                 // Events per batch
     batchTimeout: 2000,            // Batch timeout in ms
     samplingRate: 1.0,             // Sample rate (0.0-1.0)
+    disabled: false,
+  },
+  configWhenDenied: {
+    clientId: 'your-client-id',
+    apiUrl: 'https://basket.databuddy.cc',
+    disabled: true,
   }
 })
 ```

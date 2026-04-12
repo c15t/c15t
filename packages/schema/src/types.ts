@@ -25,6 +25,11 @@ export type {
 	ResolvedPolicy,
 	TranslationsResponse,
 } from './api/init';
+export type {
+	LegalDocumentCurrentInput,
+	LegalDocumentCurrentOutput,
+	LegalDocumentCurrentParams,
+} from './api/legal-document';
 // API types - Meta
 export type { StatusOutput } from './api/meta';
 // API types - Subject
@@ -49,6 +54,7 @@ export type {
 	ConsentPolicy,
 	ConsentPurpose,
 	Domain,
+	LegalDocumentPolicyType,
 	PolicyType,
 	RuntimePolicyDecision,
 	Subject,

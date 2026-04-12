@@ -13,8 +13,17 @@ import {
  * Span attributes for database operations
  */
 export interface DatabaseSpanAttributes {
-	/** The database operation type (find, create, update, delete) */
-	operation: 'find' | 'create' | 'update' | 'delete' | 'findOrCreate';
+	/** The database operation type */
+	operation:
+		| 'find'
+		| 'create'
+		| 'update'
+		| 'delete'
+		| 'findOrCreate'
+		| 'findLatest'
+		| 'findByHash'
+		| 'syncCurrent'
+		| 'findOrCreateLegalDocument';
 	/** The entity type being operated on */
 	entity: string;
 	/** Optional additional attributes */

@@ -1,6 +1,8 @@
 import {
 	type ConsentPolicy,
 	consentPolicySchema,
+	type LegalDocumentPolicyType,
+	legalDocumentPolicyTypeSchema,
 	type PolicyType,
 	policyTypeSchema,
 } from '@c15t/schema';
@@ -10,6 +12,7 @@ export const consentPolicyTable = table('consentPolicy', {
 	id: idColumn('id', 'varchar(255)'),
 	version: column('version', 'string'),
 	type: column('type', 'string'),
+	hash: column('hash', 'string').nullable(),
 	effectiveDate: column('effectiveDate', 'timestamp'),
 	isActive: column('isActive', 'bool').defaultTo$(() => true),
 	createdAt: column('createdAt', 'timestamp').defaultTo$('now'),
@@ -20,6 +23,8 @@ export const consentPolicyTable = table('consentPolicy', {
 export {
 	type ConsentPolicy,
 	consentPolicySchema,
+	type LegalDocumentPolicyType,
+	legalDocumentPolicyTypeSchema,
 	type PolicyType,
 	policyTypeSchema,
 };

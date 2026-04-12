@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ConsentPolicy, PolicyType } from '../schema';
-import { policyRegistry } from './consent-policy';
+import { buildLegalDocumentPolicyId, policyRegistry } from './consent-policy';
 import type { Registry } from './types';
+
+vi.mock('./utils/generate-id', () => ({
+	generateUniqueId: vi.fn().mockResolvedValue('pol_test'),
+}));
 
 describe('policyRegistry', () => {
 	const mockLogger = {
@@ -10,10 +14,6 @@ describe('policyRegistry', () => {
 		info: vi.fn(),
 		warn: vi.fn(),
 	};
-
-	vi.mock('./utils/generate-id', () => ({
-		generateUniqueId: vi.fn().mockResolvedValue('pol_test'),
-	}));
 
 	/**
 	 * Creates a mock consent policy object with the specified overrides
@@ -446,6 +446,243 @@ describe('policyRegistry', () => {
 			expect(db.create).toHaveBeenCalledTimes(3);
 
 			vi.useRealTimers();
+		});
+	});
+
+	describe('legal document policy helpers', () => {
+		it('findLatestPolicyByType performs a non-mutating lookup', async () => {
+			const mockPolicy = createMockConsentPolicy({
+				id: 'pol_latest',
+				type: 'privacy_policy',
+			});
+			const db = {
+				findFirst: vi.fn().mockResolvedValue(mockPolicy),
+			};
+
+			const registry = policyRegistry({
+				db,
+				ctx: { logger: mockLogger, tenantId: 'ins_123' },
+			} as unknown as Registry);
+
+			const result = await registry.findLatestPolicyByType('privacy_policy');
+
+			expect(result).toEqual(mockPolicy);
+			expect(db.findFirst).toHaveBeenCalledWith('consentPolicy', {
+				where: expect.any(Function),
+				orderBy: ['effectiveDate', 'desc'],
+			});
+		});
+
+		it('syncCurrentLegalDocumentPolicy creates a new active release and deactivates the previous one', async () => {
+			const policyId = await buildLegalDocumentPolicyId({
+				tenantId: 'ins_123',
+				type: 'privacy_policy',
+				hash: 'hash_123',
+			});
+			const createdPolicy = createMockConsentPolicy({
+				id: policyId,
+				type: 'privacy_policy',
+				version: '2026-04-07',
+				hash: 'hash_123',
+				effectiveDate: new Date('2026-04-07T00:00:00.000Z'),
+				isActive: true,
+			});
+			const tx = {
+				findFirst: vi.fn().mockResolvedValue(null),
+				updateMany: vi.fn().mockResolvedValue(undefined),
+				create: vi.fn().mockResolvedValue(createdPolicy),
+			};
+			const db = {
+				transaction: vi.fn(async (fn: (tx: typeof tx) => unknown) => fn(tx)),
+			};
+
+			const registry = policyRegistry({
+				db,
+				ctx: { logger: mockLogger, tenantId: 'ins_123' },
+			} as unknown as Registry);
+
+			const result = await registry.syncCurrentLegalDocumentPolicy({
+				type: 'privacy_policy',
+				version: '2026-04-07',
+				hash: 'hash_123',
+				effectiveDate: new Date('2026-04-07T00:00:00.000Z'),
+			});
+
+			expect(result).toEqual(createdPolicy);
+			expect(tx.updateMany).toHaveBeenCalledWith('consentPolicy', {
+				where: expect.any(Function),
+				set: { isActive: false },
+			});
+			expect(tx.create).toHaveBeenCalledWith(
+				'consentPolicy',
+				expect.objectContaining({
+					id: policyId,
+					type: 'privacy_policy',
+					hash: 'hash_123',
+					isActive: true,
+				})
+			);
+		});
+
+		it('syncCurrentLegalDocumentPolicy is idempotent for the same release metadata', async () => {
+			const policyId = await buildLegalDocumentPolicyId({
+				tenantId: 'ins_123',
+				type: 'privacy_policy',
+				hash: 'hash_123',
+			});
+			const existingPolicy = createMockConsentPolicy({
+				id: policyId,
+				type: 'privacy_policy',
+				version: '2026-04-07',
+				hash: 'hash_123',
+				effectiveDate: new Date('2026-04-07T00:00:00.000Z'),
+				isActive: true,
+			});
+			const tx = {
+				findFirst: vi.fn().mockResolvedValue(existingPolicy),
+				updateMany: vi.fn().mockResolvedValue(undefined),
+				create: vi.fn(),
+			};
+			const db = {
+				transaction: vi.fn(async (fn: (tx: typeof tx) => unknown) => fn(tx)),
+			};
+
+			const registry = policyRegistry({
+				db,
+				ctx: { logger: mockLogger, tenantId: 'ins_123' },
+			} as unknown as Registry);
+
+			const result = await registry.syncCurrentLegalDocumentPolicy({
+				type: 'privacy_policy',
+				version: '2026-04-07',
+				hash: 'hash_123',
+				effectiveDate: new Date('2026-04-07T00:00:00.000Z'),
+			});
+
+			expect(result).toEqual(existingPolicy);
+			expect(tx.create).not.toHaveBeenCalled();
+		});
+
+		it('syncCurrentLegalDocumentPolicy rejects conflicting metadata for the same release', async () => {
+			const policyId = await buildLegalDocumentPolicyId({
+				tenantId: 'ins_123',
+				type: 'privacy_policy',
+				hash: 'hash_123',
+			});
+			const existingPolicy = createMockConsentPolicy({
+				id: policyId,
+				type: 'privacy_policy',
+				version: '2026-04-06',
+				hash: 'hash_123',
+				effectiveDate: new Date('2026-04-06T00:00:00.000Z'),
+				isActive: true,
+			});
+			const tx = {
+				findFirst: vi.fn().mockResolvedValue(existingPolicy),
+				updateMany: vi.fn().mockResolvedValue(undefined),
+				create: vi.fn(),
+			};
+			const db = {
+				transaction: vi.fn(async (fn: (tx: typeof tx) => unknown) => fn(tx)),
+			};
+
+			const registry = policyRegistry({
+				db,
+				ctx: { logger: mockLogger, tenantId: 'ins_123' },
+			} as unknown as Registry);
+
+			await expect(
+				registry.syncCurrentLegalDocumentPolicy({
+					type: 'privacy_policy',
+					version: '2026-04-07',
+					hash: 'hash_123',
+					effectiveDate: new Date('2026-04-07T00:00:00.000Z'),
+				})
+			).rejects.toMatchObject({
+				name: 'LegalDocumentPolicyConflictError',
+			});
+		});
+
+		it('findOrCreateLegalDocumentPolicy creates historical releases as inactive when a latest release already exists', async () => {
+			const historicalPolicyId = await buildLegalDocumentPolicyId({
+				tenantId: 'ins_123',
+				type: 'privacy_policy',
+				hash: 'hash_123',
+			});
+			const historicalPolicy = createMockConsentPolicy({
+				id: historicalPolicyId,
+				type: 'privacy_policy',
+				version: '2026-04-07',
+				hash: 'hash_123',
+				effectiveDate: new Date('2026-04-07T00:00:00.000Z'),
+				isActive: false,
+			});
+			const db = {
+				findFirst: vi.fn().mockResolvedValueOnce(null),
+				create: vi.fn().mockResolvedValue(historicalPolicy),
+			};
+
+			const registry = policyRegistry({
+				db,
+				ctx: { logger: mockLogger, tenantId: 'ins_123' },
+			} as unknown as Registry);
+
+			const result = await registry.findOrCreateLegalDocumentPolicy({
+				type: 'privacy_policy',
+				version: '2026-04-07',
+				hash: 'hash_123',
+				effectiveDate: new Date('2026-04-07T00:00:00.000Z'),
+			});
+
+			expect(result).toEqual(historicalPolicy);
+			expect(db.create).toHaveBeenCalledWith(
+				'consentPolicy',
+				expect.objectContaining({
+					id: historicalPolicyId,
+					isActive: false,
+				})
+			);
+		});
+
+		it('findOrCreateLegalDocumentPolicy does not promote the first seen receipt to active', async () => {
+			const policyId = await buildLegalDocumentPolicyId({
+				tenantId: 'ins_123',
+				type: 'privacy_policy',
+				hash: 'hash_123',
+			});
+			const historicalPolicy = createMockConsentPolicy({
+				id: policyId,
+				type: 'privacy_policy',
+				version: '2026-04-07',
+				hash: 'hash_123',
+				effectiveDate: new Date('2026-04-07T00:00:00.000Z'),
+				isActive: false,
+			});
+			const db = {
+				findFirst: vi.fn().mockResolvedValueOnce(null),
+				create: vi.fn().mockResolvedValue(historicalPolicy),
+			};
+
+			const registry = policyRegistry({
+				db,
+				ctx: { logger: mockLogger, tenantId: 'ins_123' },
+			} as unknown as Registry);
+
+			const result = await registry.findOrCreateLegalDocumentPolicy({
+				type: 'privacy_policy',
+				version: '2026-04-07',
+				hash: 'hash_123',
+				effectiveDate: new Date('2026-04-07T00:00:00.000Z'),
+			});
+
+			expect(result).toEqual(historicalPolicy);
+			expect(db.create).toHaveBeenCalledWith(
+				'consentPolicy',
+				expect.objectContaining({
+					id: policyId,
+					isActive: false,
+				})
+			);
 		});
 	});
 });

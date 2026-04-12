@@ -112,6 +112,7 @@ export const init = (options: C15TOptions): C15TContext => {
 			db: orm,
 			ctx: {
 				logger,
+				tenantId: options.tenantId,
 			},
 		}),
 	};

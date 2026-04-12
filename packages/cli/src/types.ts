@@ -6,6 +6,7 @@ import type {
 	AvailablePackage as AvailablePackageType,
 	StorageMode as StorageModeType,
 } from './constants';
+import type { CliLogger as SharedCliLogger } from './utils/logger';
 
 // Re-export for use in other modules
 export type StorageMode = StorageModeType;
@@ -109,21 +110,7 @@ export interface PackageManagerResult {
 }
 
 // --- Logger Interface ---
-export interface CliLogger {
-	// Standard log levels
-	debug(message: string, ...args: unknown[]): void;
-	info(message: string, ...args: unknown[]): void;
-	warn(message: string, ...args: unknown[]): void;
-	error(message: string, ...args: unknown[]): void;
-
-	// CLI-specific methods
-	message(message: string): void;
-	note(content: string, title?: string): void;
-	success(message: string): void;
-	failed(message: string): never;
-	outro(message: string): void;
-	step(current: number, total: number, label: string): void;
-}
+export type CliLogger = SharedCliLogger;
 
 // --- Error Handlers ---
 export interface ErrorHandlers {
@@ -163,10 +150,7 @@ export interface FileSystemUtils {
 // --- Telemetry Interface ---
 export interface Telemetry {
 	/** Track an event */
-	trackEvent: (
-		eventName: string,
-		properties?: Record<string, string | number | boolean | undefined>
-	) => void;
+	trackEvent: (eventName: string, properties?: Record<string, unknown>) => void;
 	/** Track a command execution */
 	trackCommand: (
 		command: string,
@@ -225,7 +209,7 @@ export interface GenerateOptions {
 	mode: StorageMode;
 	/** Backend URL (for hosted or self-hosted mode) */
 	backendUrl?: string;
-	/** Instance ID (for hosted mode) */
+	/** Project ID (for hosted mode) */
 	instanceId?: string;
 	/** Selected scripts to configure */
 	scripts?: string[];
@@ -272,21 +256,21 @@ export interface PreflightCheck {
 	hint?: string;
 }
 
-// --- Instance (from control plane) ---
+// --- Project (from control plane) ---
 export interface Instance {
-	/** Instance ID */
+	/** Project ID */
 	id: string;
-	/** Instance name */
+	/** Project name */
 	name: string;
 	/** Organization slug */
 	organizationSlug?: string;
 	/** Provisioning region */
 	region?: string;
-	/** Instance URL */
+	/** Project backend URL */
 	url: string;
 	/** Created timestamp */
 	createdAt: string;
-	/** Instance status */
+	/** Project status */
 	status: 'active' | 'inactive' | 'pending';
 }
 

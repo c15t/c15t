@@ -18,9 +18,11 @@ export function showHelpMenu(
 	const { logger } = context;
 	logger.debug('Displaying help menu using command and flag structures.');
 
+	const visibleCommands = commands.filter((cmd) => !cmd.hidden);
+
 	const commandColumnWidth =
-		Math.max(...commands.map((cmd) => cmd.name.length), 10) + 2;
-	const commandLines = commands
+		Math.max(...visibleCommands.map((cmd) => cmd.name.length), 10) + 2;
+	const commandLines = visibleCommands
 		.map((cmd) => `  ${cmd.name.padEnd(commandColumnWidth)}${cmd.description}`)
 		.join('\n');
 

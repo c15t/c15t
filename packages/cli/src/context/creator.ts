@@ -3,7 +3,7 @@ import {
 	type LogLevel,
 	validLogLevels,
 } from '../utils/logger';
-import { createTelemetry } from '../utils/telemetry';
+import { createTelemetry, TelemetryEventName } from '../utils/telemetry';
 import { createErrorHandlers } from './error-handlers';
 import { createFileSystem } from './file-system';
 import { detectFramework, detectProjectRoot } from './framework-detection';
@@ -89,6 +89,12 @@ export async function createCliContext(
 			disabled: telemetryDisabled,
 			debug: telemetryDebug,
 			defaultProperties: {
+				entryCommand: commandName ?? 'interactive',
+				commandArgsCount: commandArgs.length,
+				enabledFlags: Object.entries(parsedFlags)
+					.filter(([, value]) => value !== false && value !== undefined)
+					.map(([key]) => key)
+					.sort(),
 				cliVersion: context.fs.getPackageInfo().version,
 				framework: context.framework.framework ?? 'unknown',
 				frameworkVersion: context.framework.frameworkVersion ?? 'unknown',
@@ -108,6 +114,18 @@ export async function createCliContext(
 		} else {
 			logger.debug('Telemetry initialized');
 		}
+
+		context.telemetry.trackEvent(TelemetryEventName.CLI_ENVIRONMENT_DETECTED, {
+			command: commandName ?? 'interactive',
+			projectRootChanged: context.projectRoot !== cwd,
+			framework: context.framework.framework ?? 'unknown',
+			frameworkVersion: context.framework.frameworkVersion ?? 'unknown',
+			packageManager: context.packageManager.name,
+			packageManagerVersion: context.packageManager.version ?? 'unknown',
+			hasReact: context.framework.hasReact,
+			reactVersion: context.framework.reactVersion ?? 'unknown',
+			tailwindVersion: context.framework.tailwindVersion ?? 'unknown',
+		});
 	} catch {
 		// If telemetry initialization fails, create a disabled instance
 		logger.warn(

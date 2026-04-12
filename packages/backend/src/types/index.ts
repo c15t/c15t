@@ -281,6 +281,7 @@ export interface I18nOptions {
 
 // Re-export canonical policy types from @c15t/schema
 export type {
+	LegalDocumentPolicyType,
 	PolicyConfig,
 	PolicyModel,
 	PolicyPack,
@@ -318,6 +319,23 @@ export interface PolicySnapshotOptions {
 	 * @default 1800 (30 minutes)
 	 */
 	ttlSeconds?: number;
+}
+
+export interface LegalDocumentSnapshotOptions {
+	/**
+	 * Secret used for signing and verifying legal-document snapshot tokens.
+	 */
+	signingKey: string;
+	/**
+	 * JWT issuer claim for legal-document snapshot tokens.
+	 * @default "c15t"
+	 */
+	issuer?: string;
+	/**
+	 * JWT audience claim for legal-document snapshot tokens.
+	 * When omitted, c15t derives a default audience and scopes it per tenant.
+	 */
+	audience?: string;
 }
 
 export interface BackgroundOptions {
@@ -484,6 +502,11 @@ export interface C15TOptions {
 	 * Optional signed policy snapshots used to keep /init and /subjects consistent.
 	 */
 	policySnapshot?: PolicySnapshotOptions;
+
+	/**
+	 * Optional signed legal-document snapshots issued by external document renderers.
+	 */
+	legalDocumentSnapshot?: LegalDocumentSnapshotOptions;
 
 	/**
 	 * Optional background task runner for non-critical side effects.

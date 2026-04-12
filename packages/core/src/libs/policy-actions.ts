@@ -1,3 +1,13 @@
+/**
+ * Policy-driven action resolution utilities.
+ *
+ * Pure functions that resolve backend policy hints into button layouts
+ * for consent surfaces (banner, dialog). Used by c15t UI runtimes to
+ * determine which buttons to show and how to arrange them.
+ *
+ * @packageDocumentation
+ */
+
 import type {
 	PolicyUiAction,
 	PolicyUiActionDirection,
@@ -5,6 +15,14 @@ import type {
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
 } from '../store/type';
+
+export type {
+	PolicyUiAction,
+	PolicyUiActionDirection,
+	PolicyUiActionGroup,
+	PolicyUiProfile,
+	PolicyUiSurfaceConfig,
+};
 
 const DEFAULT_POLICY_ACTIONS: PolicyUiAction[] = [
 	'reject',

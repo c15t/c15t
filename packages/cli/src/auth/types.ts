@@ -12,7 +12,7 @@ export interface C15tConfig {
 	refreshToken?: string;
 	/** Token expiration timestamp (unix ms) */
 	expiresAt?: number;
-	/** Currently selected instance ID */
+	/** Currently selected project ID */
 	selectedInstanceId?: string;
 	/** Last login timestamp */
 	lastLogin?: number;

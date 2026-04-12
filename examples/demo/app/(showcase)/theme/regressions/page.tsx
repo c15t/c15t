@@ -4,6 +4,7 @@ import {
 	ConsentBanner,
 	ConsentManagerProvider,
 	ConsentWidget,
+	policyPackPresets,
 	type Theme,
 	useConsentManager,
 } from '@c15t/react';
@@ -266,6 +267,13 @@ function LiveRegressionPreview({ check }: { check: RegressionCheck }) {
 								check.previewKind === 'banner'
 									? positionedBannerTheme(check.theme, stageRect)
 									: check.theme,
+							offlinePolicy: {
+								policyPacks: [
+									policyPackPresets.europeOptIn(),
+									policyPackPresets.californiaOptOut(),
+									policyPackPresets.worldNoBanner(),
+								],
+							},
 						}}
 					>
 						{check.previewKind === 'banner' ? (

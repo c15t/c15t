@@ -46,6 +46,8 @@ const baseSubjectConsentSchema = v.object({
 	consentAction: v.optional(v.string()),
 	/** Signed policy snapshot token from /init for consistency/auditability */
 	policySnapshotToken: v.optional(v.string()),
+	/** Signed legal-document snapshot token from a rendered document view */
+	documentSnapshotToken: v.optional(v.string()),
 });
 
 /**
@@ -133,6 +135,18 @@ export const postSubjectErrorSchemas = {
 	}),
 	policySnapshotExpired: v.object({
 		code: v.literal('POLICY_SNAPSHOT_EXPIRED'),
+	}),
+	legalDocumentSnapshotRequired: v.object({
+		code: v.literal('LEGAL_DOCUMENT_SNAPSHOT_REQUIRED'),
+	}),
+	legalDocumentSnapshotInvalid: v.object({
+		code: v.literal('LEGAL_DOCUMENT_SNAPSHOT_INVALID'),
+	}),
+	legalDocumentSnapshotExpired: v.object({
+		code: v.literal('LEGAL_DOCUMENT_SNAPSHOT_EXPIRED'),
+	}),
+	legalDocumentProofRequired: v.object({
+		code: v.literal('LEGAL_DOCUMENT_PROOF_REQUIRED'),
 	}),
 	purposeCreationFailed: v.object({
 		purposeCode: v.string(),

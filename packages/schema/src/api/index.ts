@@ -1,5 +1,4 @@
 export * from './consent';
-
 export {
 	completeTranslationsSchema,
 	type InitOutput,
@@ -11,6 +10,7 @@ export {
 	titleDescriptionSchema,
 	translationsSchema,
 } from './init';
+export * from './legal-document';
 
 export * from './meta';
 

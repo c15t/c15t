@@ -11,6 +11,8 @@ export {
 export {
 	type ConsentPolicy,
 	consentPolicySchema,
+	type LegalDocumentPolicyType,
+	legalDocumentPolicyTypeSchema,
 	type PolicyType,
 	policyTypeSchema,
 } from './consent-policy';
