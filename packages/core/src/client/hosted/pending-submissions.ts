@@ -15,7 +15,7 @@ import type {
 import { API_ENDPOINTS } from '../types';
 import type { FetcherContext } from './fetcher';
 import { fetcher } from './fetcher';
-import { delay } from './utils';
+import { delay, getIdentifySubjectId } from './utils';
 
 const PENDING_CONSENT_KEY = 'c15t-pending-consent-submissions';
 const PENDING_IDENTIFY_KEY = 'c15t-pending-identify-submissions';
@@ -242,12 +242,32 @@ export async function processPendingIdentifySubmissions(
 				continue;
 			}
 
+			const subjectId = getIdentifySubjectId(submission);
+			if (!subjectId) {
+				console.warn(
+					'Dropping pending identify submission without a subject ID'
+				);
+				successfulSubmissions.push(j);
+				continue;
+			}
+			if (!submission.externalId) {
+				console.warn(
+					'Dropping pending identify submission without an externalId'
+				);
+				successfulSubmissions.push(j);
+				continue;
+			}
+
 			try {
 				getDebugLogger().log('Retrying identify user submission:', submission);
 
 				// Build the path with the subject ID
-				const path = `${API_ENDPOINTS.PATCH_SUBJECT}/${submission.id}`;
-				const { id: _subjectId, ...patchBody } = submission;
+				const path = `${API_ENDPOINTS.PATCH_SUBJECT}/${subjectId}`;
+				const {
+					subjectId: _subjectId,
+					id: _legacySubjectId,
+					...patchBody
+				} = submission;
 
 				const response = await fetcher<IdentifyUserResponse, typeof patchBody>(
 					context,

@@ -969,7 +969,7 @@ describe('Consent Store', () => {
 
 			expect(mockManager.identifyUser).toHaveBeenCalledWith({
 				body: {
-					id: 'test-subject-id',
+					subjectId: 'test-subject-id',
 					externalId: 'user-123',
 					identityProvider: 'custom',
 				},

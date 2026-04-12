@@ -38,7 +38,7 @@ describe('Hosted Client identifyUser Tests', () => {
 		// Call identifyUser
 		const response = await client.identifyUser({
 			body: {
-				id: 'sub_test123abc',
+				subjectId: 'sub_test123abc',
 				externalId: 'user_123',
 				identityProvider: 'clerk',
 			},
@@ -66,7 +66,7 @@ describe('Hosted Client identifyUser Tests', () => {
 		// Call identifyUser without subject ID
 		const response = await client.identifyUser({
 			body: {
-				id: '', // Empty ID
+				subjectId: '', // Empty subject ID
 				externalId: 'user_123',
 			},
 		});
@@ -99,7 +99,7 @@ describe('Hosted Client identifyUser Tests', () => {
 		// Call identifyUser
 		const response = await client.identifyUser({
 			body: {
-				id: 'sub_test123abc',
+				subjectId: 'sub_test123abc',
 				externalId: 'user_123',
 				identityProvider: 'clerk',
 			},
@@ -117,6 +117,8 @@ describe('Hosted Client identifyUser Tests', () => {
 		expect(pendingSubmissions).toBeTruthy();
 		const parsed = JSON.parse(pendingSubmissions || '[]');
 		expect(parsed).toHaveLength(1);
+		expect(parsed[0].subjectId).toBe('sub_test123abc');
+		expect(parsed[0].id).toBeUndefined();
 		expect(parsed[0].externalId).toBe('user_123');
 		setDebugEnabled(false);
 	});
@@ -145,7 +147,7 @@ describe('Hosted Client identifyUser Tests', () => {
 		// Call identifyUser
 		await client.identifyUser({
 			body: {
-				id: 'sub_test123abc',
+				subjectId: 'sub_test123abc',
 				externalId: 'user_123',
 				identityProvider: 'clerk',
 			},
@@ -186,7 +188,7 @@ describe('Hosted Client identifyUser Tests', () => {
 		// Switch to account B
 		const response = await client.identifyUser({
 			body: {
-				id: 'sub_test123abc',
+				subjectId: 'sub_test123abc',
 				externalId: 'user_account_b',
 				identityProvider: 'clerk',
 			},
@@ -221,12 +223,47 @@ describe('Hosted Client identifyUser Tests', () => {
 		// Call identifyUser
 		const response = await client.identifyUser({
 			body: {
-				id: 'sub_nonexistent',
+				subjectId: 'sub_nonexistent',
 				externalId: 'user_123',
 			},
 		});
 
 		// Assertions - 404 should use fallback (optimistic)
+		expect(response.ok).toBe(true);
+	});
+
+	it('should still support the legacy id alias for subjectId', async () => {
+		fetchMock.mockResolvedValueOnce(
+			new Response(
+				JSON.stringify({
+					id: 'sub_test123abc',
+					externalId: 'user_123',
+				}),
+				{
+					status: 200,
+					headers: { 'Content-Type': 'application/json' },
+				}
+			)
+		);
+
+		const client = configureConsentManager({
+			mode: 'hosted',
+			backendURL: '/api/c15t',
+		});
+
+		const response = await client.identifyUser({
+			body: {
+				id: 'sub_test123abc',
+				externalId: 'user_123',
+			},
+		});
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			expect.stringContaining(`${API_ENDPOINTS.PATCH_SUBJECT}/sub_test123abc`),
+			expect.objectContaining({
+				method: 'PATCH',
+			})
+		);
 		expect(response.ok).toBe(true);
 	});
 });

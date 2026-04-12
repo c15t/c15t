@@ -43,9 +43,38 @@ export type SetConsentResponse = PostSubjectOutput;
 
 /**
  * Request body for identifyUser (links external ID to subject).
- * Requires subjectId in path, externalId and identityProvider in body.
+ * Uses `subjectId` as the canonical field for the PATCH path.
+ * The legacy `id` alias is still accepted for backwards compatibility.
  */
-export type IdentifyUserRequestBody = PatchSubjectFullInput;
+type IdentifyUserRequestBodyBase = {
+	/** External user ID to link to the subject */
+	externalId: string;
+
+	/** Identity provider name (optional) */
+	identityProvider?: string;
+};
+
+type IdentifyUserRequestBodyWithSubjectId = IdentifyUserRequestBodyBase & {
+	/**
+	 * Subject ID for the PATCH /subjects/:id path.
+	 * Prefer this field in all new code.
+	 */
+	subjectId: string;
+	id?: never;
+};
+
+type IdentifyUserRequestBodyWithLegacyId = IdentifyUserRequestBodyBase & {
+	/**
+	 * @deprecated Use `subjectId` instead.
+	 * Kept to avoid breaking older low-level client integrations.
+	 */
+	id: string;
+	subjectId?: never;
+};
+
+export type IdentifyUserRequestBody =
+	| IdentifyUserRequestBodyWithSubjectId
+	| IdentifyUserRequestBodyWithLegacyId;
 
 /**
  * Response from identifyUser.
