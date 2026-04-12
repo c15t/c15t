@@ -47,7 +47,7 @@
 		"dist-types"
 	],
 	"scripts": {
-		"build": "rslib build",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
 		"check-types:test": "tsc -p tsconfig.test.json",
 		"dev": "rslib build --watch",

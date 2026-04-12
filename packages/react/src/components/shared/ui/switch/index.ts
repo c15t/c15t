@@ -1,2 +1,7 @@
 export * from './switch';
-export * from './switch.types';
+export type {
+	SwitchCSSVariables,
+	SwitchRootCSSVariables,
+	SwitchThumbCSSVariables,
+	SwitchTrackCSSVariables,
+} from './switch.types';

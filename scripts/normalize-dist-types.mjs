@@ -2,37 +2,67 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
-const FROM_SPECIFIER_REGEX = /(from\s+['"])([^'"]+)(['"])/g;
-const PACKAGE_TARGETS = [
-	{
-		distDir: path.join(REPO_ROOT, 'packages/core/dist-types'),
-		specifier: 'c15t',
-	},
-	{
-		distDir: path.join(REPO_ROOT, 'packages/iab/dist-types'),
-		specifier: '@c15t/iab',
-	},
-	{
-		distDir: path.join(REPO_ROOT, 'packages/nextjs/dist-types'),
-		specifier: '@c15t/nextjs',
-	},
-	{
-		distDir: path.join(REPO_ROOT, 'packages/react/dist-types'),
-		specifier: '@c15t/react',
-	},
-	{
-		distDir: path.join(REPO_ROOT, 'packages/schema/dist-types'),
-		specifier: '@c15t/schema',
-	},
-	{
-		distDir: path.join(REPO_ROOT, 'packages/translations/dist-types'),
-		specifier: '@c15t/translations',
-	},
-	{
-		distDir: path.join(REPO_ROOT, 'packages/ui/dist-types'),
-		specifier: '@c15t/ui',
-	},
+const PACKAGES_ROOT = path.join(REPO_ROOT, 'packages');
+const SPECIFIER_REGEXES = [
+	/(from\s+['"])([^'"]+)(['"])/g,
+	/(import\(\s*['"])([^'"]+)(['"]\s*\))/g,
 ];
+
+async function discoverPackageTargets() {
+	try {
+		const entries = await fs.readdir(PACKAGES_ROOT, { withFileTypes: true });
+		const packageTargets = await Promise.all(
+			entries
+				.filter((entry) => entry.isDirectory())
+				.map(async (entry) => {
+					const packageRoot = path.join(PACKAGES_ROOT, entry.name);
+					const packageJsonPath = path.join(packageRoot, 'package.json');
+
+					try {
+						const packageJson = JSON.parse(
+							await fs.readFile(packageJsonPath, 'utf8')
+						);
+
+						if (
+							!packageJson ||
+							typeof packageJson !== 'object' ||
+							typeof packageJson.name !== 'string'
+						) {
+							return null;
+						}
+
+						return {
+							distDir: path.join(packageRoot, 'dist-types'),
+							specifier: packageJson.name,
+						};
+					} catch (error) {
+						if (
+							error &&
+							typeof error === 'object' &&
+							'code' in error &&
+							error.code === 'ENOENT'
+						) {
+							return null;
+						}
+
+						throw error;
+					}
+				})
+		);
+
+		return packageTargets.filter(Boolean);
+	} catch (error) {
+		if (error && typeof error === 'object' && 'code' in error) {
+			if (error.code === 'ENOENT') {
+				return [];
+			}
+		}
+
+		throw error;
+	}
+}
+
+const PACKAGE_TARGETS = await discoverPackageTargets();
 
 function normalizePath(filePath) {
 	return filePath.split(path.sep).join('/');
@@ -77,6 +107,14 @@ function toExplicitRelativeSpecifier(fromFilePath, targetFilePath) {
 
 	if (!relativePath.startsWith('.')) {
 		relativePath = `./${relativePath}`;
+	}
+
+	if (relativePath.endsWith('/index.d.ts')) {
+		return relativePath.slice(0, -'/index.d.ts'.length);
+	}
+
+	if (relativePath.endsWith('.d.ts')) {
+		return relativePath.slice(0, -'.d.ts'.length);
 	}
 
 	return relativePath;
@@ -131,7 +169,9 @@ async function resolveDeclarationTarget(fromFilePath, specifier) {
 
 async function normalizeDeclarationFile(filePath, currentTarget) {
 	const original = await fs.readFile(filePath, 'utf8');
-	const matches = Array.from(original.matchAll(FROM_SPECIFIER_REGEX));
+	const matches = SPECIFIER_REGEXES.flatMap((regex) =>
+		Array.from(original.matchAll(regex))
+	);
 
 	if (matches.length === 0) {
 		return;
@@ -170,11 +210,15 @@ async function normalizeDeclarationFile(filePath, currentTarget) {
 		);
 	}
 
-	const normalized = original.replace(
-		FROM_SPECIFIER_REGEX,
-		(fullMatch, prefix, specifier, suffix) =>
-			`${prefix}${resolvedSpecifiers.get(specifier) ?? specifier}${suffix}`
-	);
+	let normalized = original;
+
+	for (const regex of SPECIFIER_REGEXES) {
+		normalized = normalized.replace(
+			regex,
+			(fullMatch, prefix, specifier, suffix) =>
+				`${prefix}${resolvedSpecifiers.get(specifier) ?? specifier}${suffix}`
+		);
+	}
 
 	if (normalized !== original) {
 		await fs.writeFile(filePath, normalized);
