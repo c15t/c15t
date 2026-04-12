@@ -21,6 +21,14 @@ const { consentManager, consentStore } = getOrCreateConsentRuntime({
 });
 ```
 
+<Callout type="info">
+  Hosted mode is the recommended production setup because the backend resolves jurisdiction and translations, stores consent decisions outside the current browser, and can re-sync after temporary outages.
+</Callout>
+
+<Callout type="warn">
+  You can switch to `mode: 'offline'` for local-only storage, demos, or static previews, but that removes backend audit history, automatic jurisdiction detection, and server-side consent awareness. Review [Client Modes](/docs/frameworks/javascript/concepts/client-modes) before using offline mode in production.
+</Callout>
+
 ## Subscribe to State Changes
 
 The store is a [Zustand vanilla store](https://zustand.docs.pmnd.rs/guides/extracting-actions). Use `subscribe()` for UI and general state updates, `subscribeToConsentChanges()` for change-only consent integrations, and `getState()` to read the current state:

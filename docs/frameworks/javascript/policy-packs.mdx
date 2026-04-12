@@ -3,7 +3,7 @@ title: Policy Packs
 description: Configure regional consent policies in the headless JavaScript runtime — hosted mode, presets, and offline fallback.
 ---
 
-Policy packs configure how c15t handles regional consent in the headless runtime. When connected to a backend, the runtime receives the resolved policy automatically via the `/init` response. For local experimentation or when no backend is available, pass policies directly and c15t resolves them locally.
+Policy packs configure how c15t handles regional consent in the headless runtime. When connected to a backend, the runtime receives the resolved policy automatically via the `/init` response. For local development, testing, previews, or temporary outage fallback, you can pass policies directly and c15t resolves them locally.
 
 ## Hosted Runtime (Recommended)
 
@@ -25,7 +25,7 @@ Configure your presets on the backend side. The frontend receives the resolved p
 
 ## Offline / Fallback
 
-For local development, demos, or as a resilience fallback, pass presets directly:
+For local development, demos, automated tests, or as a resilience fallback during a temporary outage, pass presets directly:
 
 ```ts
 import {
@@ -109,7 +109,7 @@ The omitted-config fallback is intentionally conservative: if the backend is unr
 - Framework wrappers built on top of `c15t`
 - Resilience fallback when the backend is temporarily unreachable
 
-For production apps, keep the canonical pack on the backend and use offline policies only as a fallback or for local experimentation.
+For production apps, keep the canonical pack on the backend and use offline policies only for development, testing, previews, or outage fallback.
 
 <Callout type="info">
   For the full concept model (matchers, scope modes, re-prompting), see [Policy Packs concepts](/docs/frameworks/javascript/concepts/policy-packs). For backend setup, see the [self-host guide](/docs/self-host/guides/policy-packs).
