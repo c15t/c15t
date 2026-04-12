@@ -103,13 +103,6 @@ type TelemetryObject = { [key: string]: TelemetryValue };
 type TelemetryValue = TelemetryPrimitive | TelemetryValue[] | TelemetryObject;
 type TelemetryProperties = Record<string, TelemetryValue | undefined>;
 
-type TelemetryBatchPayload = {
-	schemaVersion: 1;
-	source: 'c15t-cli';
-	sentAt: string;
-	events: WideEvent[];
-};
-
 type EventLike = Record<string, unknown>;
 
 const DEFAULT_QUEUE_LIMIT = 250;
@@ -386,15 +379,13 @@ export class Telemetry {
 	private buildHeaders(
 		overrides?: Record<string, string>
 	): Record<string, string> {
-		const cliVersion =
-			this.readString(this.defaultProperties.cliVersion) ?? 'unknown';
 		const writeKey = process.env[ENV_VARS.TELEMETRY_WRITE_KEY];
+		const orgId = process.env[ENV_VARS.TELEMETRY_ORG_ID];
 
 		return {
 			'Content-Type': 'application/json',
-			'User-Agent': `c15t-cli/${cliVersion}`,
-			'X-C15T-Telemetry-Source': 'cli',
 			...(writeKey ? { Authorization: `Bearer ${writeKey}` } : {}),
+			...(orgId ? { 'X-Axiom-Org-Id': orgId } : {}),
 			...overrides,
 		};
 	}
@@ -425,18 +416,12 @@ export class Telemetry {
 
 		const controller = new AbortController();
 		const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-		const payload: TelemetryBatchPayload = {
-			schemaVersion: 1,
-			source: 'c15t-cli',
-			sentAt: new Date().toISOString(),
-			events,
-		};
 
 		try {
 			const response = await this.fetchImpl(this.endpoint, {
 				method: 'POST',
 				headers: this.headers,
-				body: JSON.stringify(payload),
+				body: JSON.stringify(events),
 				signal: controller.signal,
 			});
 

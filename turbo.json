@@ -16,7 +16,7 @@
 				"../../docs/**",
 				"../../scripts/agent-docs/**"
 			],
-			"outputs": ["dist/**", "docs/**"],
+			"outputs": ["dist/**", "dist-types/**", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/react#build": {
@@ -27,7 +27,7 @@
 				"../../docs/**",
 				"../../scripts/agent-docs/**"
 			],
-			"outputs": ["dist/**", "docs/**"],
+			"outputs": ["dist/**", "dist-types/**", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/nextjs#build": {
@@ -38,7 +38,7 @@
 				"../../docs/**",
 				"../../scripts/agent-docs/**"
 			],
-			"outputs": ["dist/**", "docs/**"],
+			"outputs": ["dist/**", "dist-types/**", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/backend#build": {
@@ -49,7 +49,7 @@
 				"../../docs/**",
 				"../../scripts/agent-docs/**"
 			],
-			"outputs": ["dist/**", "docs/**"],
+			"outputs": ["dist/**", "dist-types/**", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"fmt": {

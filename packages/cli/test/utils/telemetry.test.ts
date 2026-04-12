@@ -36,8 +36,15 @@ describe('Telemetry', () => {
 	let fetchMock: ReturnType<typeof vi.fn>;
 	let storageDir: string;
 	let mockLogger: CliLogger;
+	let originalTelemetryWriteKey: string | undefined;
+	let originalTelemetryOrgId: string | undefined;
 
 	beforeEach(async () => {
+		originalTelemetryWriteKey = process.env.C15T_TELEMETRY_WRITE_KEY;
+		originalTelemetryOrgId = process.env.C15T_TELEMETRY_ORG_ID;
+		delete process.env.C15T_TELEMETRY_WRITE_KEY;
+		delete process.env.C15T_TELEMETRY_ORG_ID;
+
 		fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
 		storageDir = await fs.mkdtemp(
 			path.join(os.tmpdir(), 'c15t-cli-telemetry-')
@@ -61,6 +68,16 @@ describe('Telemetry', () => {
 
 	afterEach(async () => {
 		await telemetry.shutdown();
+		if (originalTelemetryWriteKey === undefined) {
+			delete process.env.C15T_TELEMETRY_WRITE_KEY;
+		} else {
+			process.env.C15T_TELEMETRY_WRITE_KEY = originalTelemetryWriteKey;
+		}
+		if (originalTelemetryOrgId === undefined) {
+			delete process.env.C15T_TELEMETRY_ORG_ID;
+		} else {
+			process.env.C15T_TELEMETRY_ORG_ID = originalTelemetryOrgId;
+		}
 		await fs.rm(storageDir, { recursive: true, force: true });
 	});
 
@@ -104,22 +121,20 @@ describe('Telemetry', () => {
 
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const payload = JSON.parse(String(requestInit?.body)) as {
-			source: string;
-			events: Array<Record<string, unknown>>;
-		};
+		const payload = JSON.parse(String(requestInit?.body)) as Array<
+			Record<string, unknown>
+		>;
 
-		expect(payload.source).toBe('c15t-cli');
-		expect(payload.events).toHaveLength(1);
-		expect(payload.events[0]).toMatchObject({
+		expect(payload).toHaveLength(1);
+		expect(payload[0]).toMatchObject({
 			event: TelemetryEventName.CLI_INVOKED,
 			framework: 'next',
 			nested: { mode: 'hosted' },
 			source: 'c15t-cli',
 		});
-		expect(payload.events[0].installId).toEqual(expect.any(String));
-		expect(payload.events[0].sessionId).toEqual(expect.any(String));
-		expect(payload.events[0].sequence).toBe(1);
+		expect(payload[0].installId).toEqual(expect.any(String));
+		expect(payload[0].sessionId).toEqual(expect.any(String));
+		expect(payload[0].sequence).toBe(1);
 	});
 
 	it('tracks commands with sanitized args and flags', async () => {
@@ -132,10 +147,10 @@ describe('Telemetry', () => {
 		await flushTelemetry(telemetry);
 
 		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const payload = JSON.parse(String(requestInit?.body)) as {
-			events: Array<Record<string, unknown>>;
-		};
-		const event = payload.events[0]!;
+		const payload = JSON.parse(String(requestInit?.body)) as Array<
+			Record<string, unknown>
+		>;
+		const event = payload[0]!;
 
 		expect(event).toMatchObject({
 			event: TelemetryEventName.COMMAND_EXECUTED,
@@ -163,10 +178,10 @@ describe('Telemetry', () => {
 		await flushTelemetry(telemetry);
 
 		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const payload = JSON.parse(String(requestInit?.body)) as {
-			events: Array<Record<string, unknown>>;
-		};
-		const event = payload.events[0]!;
+		const payload = JSON.parse(String(requestInit?.body)) as Array<
+			Record<string, unknown>
+		>;
+		const event = payload[0]!;
 
 		expect(event.event).toBe(TelemetryEventName.ERROR_OCCURRED);
 		expect(event.level).toBe('error');
@@ -192,10 +207,10 @@ describe('Telemetry', () => {
 		await flushTelemetry(telemetry);
 
 		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const payload = JSON.parse(String(requestInit?.body)) as {
-			events: Array<Record<string, unknown>>;
-		};
-		const event = payload.events[0]!;
+		const payload = JSON.parse(String(requestInit?.body)) as Array<
+			Record<string, unknown>
+		>;
+		const event = payload[0]!;
 
 		expect(event.token).toBe('[redacted]');
 		expect(event.nested).toEqual({ password: '[redacted]' });
@@ -252,11 +267,51 @@ describe('Telemetry', () => {
 
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const payload = JSON.parse(String(requestInit?.body)) as {
-			events: Array<Record<string, unknown>>;
-		};
+		const payload = JSON.parse(String(requestInit?.body)) as Array<
+			Record<string, unknown>
+		>;
 
-		expect(payload.events).toHaveLength(1);
-		expect(payload.events[0]?.stage).toBe('enabled');
+		expect(payload).toHaveLength(1);
+		expect(payload[0]?.stage).toBe('enabled');
+	});
+
+	it('sends axiom-compatible headers and a raw events array', async () => {
+		process.env.C15T_TELEMETRY_WRITE_KEY = 'axiom-token';
+		process.env.C15T_TELEMETRY_ORG_ID = 'axiom-org';
+
+		const axiomTelemetry = new Telemetry({
+			fetch: fetchMock as unknown as typeof fetch,
+			storageDir,
+			logger: mockLogger,
+			drainOptions: {
+				retry: {
+					maxAttempts: 1,
+					backoff: 'fixed',
+					initialDelayMs: 10,
+					maxDelayMs: 10,
+				},
+			},
+		});
+
+		axiomTelemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
+			stage: 'axiom',
+		});
+		await flushTelemetry(axiomTelemetry);
+		await axiomTelemetry.shutdown();
+
+		const [, requestInit] = fetchMock.mock.calls[0]!;
+		const headers = requestInit?.headers as Record<string, string>;
+		const payload = JSON.parse(String(requestInit?.body)) as Array<
+			Record<string, unknown>
+		>;
+
+		expect(headers).toMatchObject({
+			'Content-Type': 'application/json',
+			Authorization: 'Bearer axiom-token',
+			'X-Axiom-Org-Id': 'axiom-org',
+		});
+		expect(payload).toHaveLength(1);
+		expect(payload[0]?.stage).toBe('axiom');
+		expect(payload[0]).not.toHaveProperty('events');
 	});
 });
