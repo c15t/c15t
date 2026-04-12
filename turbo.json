@@ -52,6 +52,21 @@
 			"outputs": ["dist/**", "dist-types/**", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
+		"@c15t/solid#build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": []
+		},
+		"@c15t/svelte#build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": []
+		},
+		"@c15t/vue#build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": []
+		},
 		"fmt": {
 			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc", "**/biome.json"],
 			"outputs": []
