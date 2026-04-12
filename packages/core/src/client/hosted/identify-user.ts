@@ -11,13 +11,8 @@ import type { FetchOptions, ResponseContext } from '../types';
 import { API_ENDPOINTS } from '../types';
 import type { FetcherContext } from './fetcher';
 import { createResponseContext } from './fetcher';
+import { getIdentifySubjectId } from './utils';
 import { withFallback } from './with-fallback';
-
-function getIdentifySubjectId(
-	body?: IdentifyUserRequestBody
-): string | undefined {
-	return body?.subjectId || body?.id;
-}
 
 /**
  * Provides offline mode fallback for identifyUser API.

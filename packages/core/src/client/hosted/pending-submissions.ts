@@ -15,16 +15,10 @@ import type {
 import { API_ENDPOINTS } from '../types';
 import type { FetcherContext } from './fetcher';
 import { fetcher } from './fetcher';
-import { delay } from './utils';
+import { delay, getIdentifySubjectId } from './utils';
 
 const PENDING_CONSENT_KEY = 'c15t-pending-consent-submissions';
 const PENDING_IDENTIFY_KEY = 'c15t-pending-identify-submissions';
-
-function getIdentifySubjectId(
-	submission?: IdentifyUserRequestBody
-): string | undefined {
-	return submission?.subjectId || submission?.id;
-}
 
 /**
  * Check for pending consent submissions on initialization
@@ -252,6 +246,13 @@ export async function processPendingIdentifySubmissions(
 			if (!subjectId) {
 				console.warn(
 					'Dropping pending identify submission without a subject ID'
+				);
+				successfulSubmissions.push(j);
+				continue;
+			}
+			if (!submission.externalId) {
+				console.warn(
+					'Dropping pending identify submission without an externalId'
 				);
 				successfulSubmissions.push(j);
 				continue;

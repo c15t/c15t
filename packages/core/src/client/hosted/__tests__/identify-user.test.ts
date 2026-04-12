@@ -117,6 +117,8 @@ describe('Hosted Client identifyUser Tests', () => {
 		expect(pendingSubmissions).toBeTruthy();
 		const parsed = JSON.parse(pendingSubmissions || '[]');
 		expect(parsed).toHaveLength(1);
+		expect(parsed[0].subjectId).toBe('sub_test123abc');
+		expect(parsed[0].id).toBeUndefined();
 		expect(parsed[0].externalId).toBe('user_123');
 		setDebugEnabled(false);
 	});
