@@ -2,7 +2,7 @@ import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 const packageRoot = join(import.meta.dirname, '..');
-const sourceRoot = join(packageRoot, '..', 'ui', 'dist');
+const sourceRoot = join(packageRoot, 'src');
 const distRoot = join(packageRoot, 'dist');
 
 const files = [
@@ -25,5 +25,5 @@ for (const relativePath of files) {
 }
 
 console.log(
-	'Generated dist/styles.css, dist/styles.tw3.css, dist/iab/styles.css, and dist/iab/styles.tw3.css'
+	'Copied wrapper CSS entrypoints into dist/styles.css, dist/styles.tw3.css, dist/iab/styles.css, and dist/iab/styles.tw3.css'
 );
