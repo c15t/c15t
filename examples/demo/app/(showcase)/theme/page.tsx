@@ -3,6 +3,7 @@
 import {
 	ConsentBanner,
 	ConsentManagerProvider,
+	policyPackPresets,
 	type Theme,
 	useConsentManager,
 } from '@c15t/react';
@@ -596,6 +597,13 @@ export default function ThemeShowcasePage() {
 						mode: 'offline',
 						consentCategories: ['necessary', 'marketing', 'measurement'],
 						theme: activeTheme,
+						offlinePolicy: {
+							policyPacks: [
+								policyPackPresets.europeOptIn(),
+								policyPackPresets.californiaOptOut(),
+								policyPackPresets.worldNoBanner(),
+							],
+						},
 					}}
 				>
 					<ForceBannerShow />

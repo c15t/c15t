@@ -93,6 +93,8 @@ export const ENV_VARS = {
 	TELEMETRY_ENDPOINT: 'C15T_TELEMETRY_ENDPOINT',
 	/** Optional write key for telemetry ingest */
 	TELEMETRY_WRITE_KEY: 'C15T_TELEMETRY_WRITE_KEY',
+	/** Optional Axiom org ID for telemetry ingest */
+	TELEMETRY_ORG_ID: 'C15T_TELEMETRY_ORG_ID',
 	/** Control-plane/dashboard base URL override */
 	CONSENT_URL: 'CONSENT_URL',
 	/** c15t backend URL */

@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
-		"build:workspace-deps": "bunx turbo run build --filter=@c15t/nextjs --filter=@c15t/dev-tools --filter=@c15t/node-sdk",
+		"build:workspace-deps": "bunx turbo run build --filter=@c15t/nextjs --filter=@c15t/dev-tools --filter=@c15t/node-sdk --filter=@c15t/cli",
 		"predev": "bun run build:workspace-deps",
 		"predev:localhost": "bun run build:workspace-deps",
 		"prebuild": "bun run build:workspace-deps",
