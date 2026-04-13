@@ -165,8 +165,7 @@
 	],
 	"dependencies": {
 		"@c15t/ui": "workspace:*",
-		"c15t": "workspace:*",
-		"clsx": "2.1.1"
+		"c15t": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/backend": "workspace:*",
