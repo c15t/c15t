@@ -118,6 +118,38 @@ async function renderDefaultPolicyActions(
 	);
 }
 
+async function renderWidget(
+	stateOverrides: Partial<ConsentStoreState> = {},
+	themeSlots: Record<string, string> = {}
+) {
+	const state = createMockState(stateOverrides);
+
+	await render(
+		<GlobalThemeContext.Provider
+			value={{
+				noStyle: false,
+				theme: {
+					slots: themeSlots,
+				},
+			}}
+		>
+			<ConsentStateContext.Provider
+				value={{
+					state,
+					store: {
+						getState: () => state,
+						subscribe: () => () => undefined,
+						setState: () => undefined,
+					},
+					manager: null,
+				}}
+			>
+				<ConsentWidget hideBranding={false} />
+			</ConsentStateContext.Provider>
+		</GlobalThemeContext.Provider>
+	);
+}
+
 describe('ConsentWidget.PolicyActions', () => {
 	test('renders policy group ordering', async () => {
 		await renderPolicyActions();
@@ -225,5 +257,24 @@ describe('ConsentWidget.PolicyActions', () => {
 		).toHaveTextContent(
 			defaultTranslationConfig.translations.en.common.acceptAll
 		);
+	});
+
+	test('renders the widget branding tag without the legacy dialog footer wrapper', async () => {
+		await renderWidget();
+
+		expect(
+			document.querySelector('[data-testid="consent-widget-branding"]')
+		).toBeInTheDocument();
+		expect(
+			document.querySelector('[data-testid="consent-dialog-footer"]')
+		).not.toBeInTheDocument();
+	});
+
+	test('applies the consentWidgetTag theme slot to the stock widget tag', async () => {
+		await renderWidget({}, { consentWidgetTag: 'consent-widget-tag-marker' });
+
+		expect(
+			document.querySelector('[data-testid="consent-widget-branding"]')
+		)?.toHaveClass('consent-widget-tag-marker');
 	});
 });

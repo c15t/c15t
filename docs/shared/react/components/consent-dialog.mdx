@@ -26,7 +26,7 @@
 
   ## Branding
 
-  Hide the c15t branding in the dialog footer:
+  Hide the c15t branding tag:
 
   ```tsx
   <ConsentDialog hideBranding />
@@ -35,7 +35,7 @@
   ## Styling First
 
   <Callout type="info">
-    If you are only changing visuals, stay with the stock dialog and use the theme system first. Start with tokens and slots such as `consentDialogCard`, `consentDialogHeader`, and `consentDialogFooter`. See [Styling Overview](/docs/frameworks/react/styling/overview).
+    If you are only changing visuals, stay with the stock dialog and use the theme system first. Start with tokens and slots such as `consentDialogCard`, `consentWidgetFooter`, and `consentDialogTag`. See [Styling Overview](/docs/frameworks/react/styling/overview).
   </Callout>
 
   ```tsx
@@ -49,7 +49,8 @@
         slots: {
           consentDialogCard: 'rounded-[32px] shadow-xl',
           consentDialogHeader: 'gap-3',
-          consentDialogFooter: 'border-t border-black/10 px-6',
+          consentWidgetFooter: 'gap-3 pt-6',
+          consentDialogTag: 'shadow-none',
         },
       },
     }}

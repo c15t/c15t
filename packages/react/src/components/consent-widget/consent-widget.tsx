@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import type { AccordionRootProps } from '~/components/shared/ui/accordion';
+import { BrandingLink } from '~/components/shared/ui/branding';
 import { useTheme } from '~/hooks/use-theme';
-import { ConsentDialogFooter } from '../consent-dialog/atoms/card';
 import {
 	ConsentWidgetAccordion,
 	ConsentWidgetAccordionItems,
@@ -44,9 +44,10 @@ export const ConsentWidget = ({
 				<ConsentWidgetAccordionItems />
 			</ConsentWidgetAccordion>
 			<ConsentWidgetPolicyActions />
-			<ConsentDialogFooter
-				themeKey="consentWidgetBranding"
+			<BrandingLink
 				hideBranding={hideBranding ?? true}
+				variant="dialog-tag"
+				themeKey="consentWidgetTag"
 				data-testid="consent-widget-branding"
 			/>
 		</ConsentWidgetRoot>

@@ -191,7 +191,7 @@ const ConsentDialogFooter = forwardRef<
 				ref={ref as Ref<HTMLDivElement>}
 				baseClassName={cn(
 					styles.footer,
-					children == null && styles.brandingFooter
+					children == null && !hideBranding && styles.brandingFooter
 				)}
 				data-testid={testId ?? 'consent-dialog-footer'}
 				{...props}
@@ -201,6 +201,7 @@ const ConsentDialogFooter = forwardRef<
 					<Branding
 						hideBranding={hideBranding ?? false}
 						variant="dialog-tag"
+						themeKey="consentDialogTag"
 						data-testid="consent-dialog-branding"
 					/>
 				)}
@@ -212,6 +213,7 @@ const ConsentDialogFooter = forwardRef<
 type BrandingProps = {
 	hideBranding: boolean;
 	variant?: BrandingVariant;
+	themeKey?: import('~/components/shared/ui/branding').BrandingThemeKey;
 	className?: string;
 	'data-testid'?: string;
 };
@@ -261,7 +263,13 @@ const ConsentCustomizationCard = ({
 			<ConsentDialogContent>
 				<ConsentWidget hideBranding noStyle={noStyle} useProvider={true} />
 			</ConsentDialogContent>
-			<ConsentDialogFooter hideBranding={hideBranding} />
+			<ConsentDialogFooter hideBranding />
+			<Branding
+				hideBranding={hideBranding ?? false}
+				variant="dialog-tag"
+				themeKey="consentDialogTag"
+				data-testid="consent-dialog-branding"
+			/>
 		</ConsentDialogCard>
 	);
 };

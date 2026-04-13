@@ -5,6 +5,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentDialogFooter } from '~/components/consent-dialog/atoms/card';
 import { ConsentStateContext } from '~/context/consent-manager-context';
+import { GlobalThemeContext } from '~/context/theme-context';
 import { BrandingCompactLogo, BrandingLink } from '../branding';
 
 function createMockState(
@@ -55,24 +56,31 @@ function createMockState(
 
 async function renderWithConsentState(
 	ui: ReactElement,
-	stateOverrides: Partial<ConsentStoreState> = {}
+	stateOverrides: Partial<ConsentStoreState> = {},
+	themeOverrides: {
+		theme?: {
+			slots?: Record<string, string>;
+		};
+	} = {}
 ) {
 	const state = createMockState(stateOverrides);
 
 	await render(
-		<ConsentStateContext.Provider
-			value={{
-				state,
-				store: {
-					getState: () => state,
-					subscribe: () => () => undefined,
-					setState: () => undefined,
-				},
-				manager: null,
-			}}
-		>
-			{ui}
-		</ConsentStateContext.Provider>
+		<GlobalThemeContext.Provider value={themeOverrides}>
+			<ConsentStateContext.Provider
+				value={{
+					state,
+					store: {
+						getState: () => state,
+						subscribe: () => () => undefined,
+						setState: () => undefined,
+					},
+					manager: null,
+				}}
+			>
+				{ui}
+			</ConsentStateContext.Provider>
+		</GlobalThemeContext.Provider>
 	);
 }
 
@@ -145,6 +153,33 @@ describe('BrandingLink', () => {
 			expect(link).toBeInTheDocument();
 			expect(link).toHaveAttribute('data-branding', 'inth');
 			expect(link).toHaveAttribute('data-variant', 'dialog-tag');
+		});
+	});
+
+	test('applies theme slot styles to branding tags', async () => {
+		await renderWithConsentState(
+			<BrandingLink
+				hideBranding={false}
+				variant="banner-tag"
+				themeKey="consentBannerTag"
+				data-testid="branding-link"
+			/>,
+			{},
+			{
+				theme: {
+					slots: {
+						consentBannerTag: 'branding-theme-marker',
+					},
+				},
+			}
+		);
+
+		await vi.waitFor(() => {
+			const link = document.querySelector(
+				'[data-testid="branding-link"]'
+			) as HTMLAnchorElement | null;
+			expect(link).toBeInTheDocument();
+			expect(link?.className).toContain('branding-theme-marker');
 		});
 	});
 

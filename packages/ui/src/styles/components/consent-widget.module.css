@@ -70,6 +70,8 @@
 
 @layer components {
 	.widget {
+		position: relative;
+		width: 100%;
 		font-family: var(--consent-widget-font-family);
 		line-height: var(--consent-widget-line-height);
 		-webkit-font-smoothing: antialiased;

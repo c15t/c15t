@@ -59,7 +59,8 @@ function createMockState(
 
 function renderBanner(
 	props: ComponentProps<typeof ConsentBanner>,
-	stateOverrides: Partial<ConsentStoreState> = {}
+	stateOverrides: Partial<ConsentStoreState> = {},
+	themeSlotOverrides: Record<string, string> = {}
 ) {
 	const state = createMockState(stateOverrides);
 
@@ -70,6 +71,7 @@ function renderBanner(
 					slots: {
 						buttonPrimary: 'button-primary-marker',
 						buttonSecondary: 'button-secondary-marker',
+						...themeSlotOverrides,
 					},
 				},
 			}}
@@ -220,5 +222,15 @@ describe('ConsentBanner policy ordering', () => {
 		expect(
 			document.querySelector('[data-testid="consent-banner-branding"]')
 		).not.toBeInTheDocument();
+	});
+
+	test('applies the consentBannerTag theme slot to the stock banner tag', async () => {
+		renderBanner({}, {}, { consentBannerTag: 'consent-banner-tag-marker' });
+
+		await waitForBanner();
+
+		expect(
+			document.querySelector('[data-testid="consent-banner-branding"]')
+		)?.toHaveClass('consent-banner-tag-marker');
 	});
 });

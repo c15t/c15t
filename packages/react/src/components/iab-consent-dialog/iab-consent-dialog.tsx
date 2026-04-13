@@ -1015,6 +1015,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					<Branding
 						hideBranding={hideBranding ?? false}
 						variant="dialog-tag"
+						themeKey="iabConsentDialogTag"
 						data-testid="iab-consent-dialog-branding"
 					/>
 				</div>

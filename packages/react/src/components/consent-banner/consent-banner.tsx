@@ -308,6 +308,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 					<BrandingLink
 						hideBranding={hideBranding}
 						variant="banner-tag"
+						themeKey="consentBannerTag"
 						data-testid="consent-banner-branding"
 					/>
 					<ConsentBannerCard aria-label={consentBanner.title}>
