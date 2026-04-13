@@ -148,6 +148,26 @@ describe('BrandingLink', () => {
 		});
 	});
 
+	test('wraps the INTH full logo in the shared LTR wordmark container', async () => {
+		await renderWithConsentState(
+			<BrandingLink
+				hideBranding={false}
+				variant="banner-tag"
+				data-testid="branding-link"
+			/>,
+			{ branding: 'inth' }
+		);
+
+		await vi.waitFor(() => {
+			const link = document.querySelector(
+				'[data-testid="branding-link"]'
+			) as HTMLAnchorElement | null;
+			const wordmark = link?.querySelector('[dir="ltr"]');
+			expect(wordmark).toBeInTheDocument();
+			expect(wordmark?.querySelector('svg')).toBeInTheDocument();
+		});
+	});
+
 	test('hides branding when disabled', async () => {
 		await renderWithConsentState(
 			<BrandingLink

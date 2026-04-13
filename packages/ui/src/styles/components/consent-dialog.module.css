@@ -201,6 +201,8 @@
 	.brandingC15T {
 		display: inline-flex;
 		align-items: center;
+		flex: none;
+		max-width: 100%;
 		width: auto;
 		height: auto;
 	}
@@ -209,7 +211,9 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.25rem;
+		flex: none;
 		min-width: 0;
+		max-width: 100%;
 		white-space: nowrap;
 	}
 
@@ -220,8 +224,21 @@
 	}
 
 	.brandingInth {
+		display: inline-flex;
+		align-items: center;
+		flex: none;
+		max-width: 100%;
 		width: var(--consent-dialog-branding-icon-width);
 		height: var(--consent-dialog-branding-icon-height);
+	}
+
+	.brandingInth > svg {
+		display: block;
+		flex: none;
+		aspect-ratio: 88 / 90;
+		width: auto;
+		height: 100%;
+		max-width: 100%;
 	}
 
 	.brandingTag {

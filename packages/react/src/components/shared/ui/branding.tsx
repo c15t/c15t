@@ -51,7 +51,11 @@ export function BrandingFullLogo({
 	className,
 }: BrandingFullLogoProps) {
 	if (resolveBranding(branding) === 'inth') {
-		return <InthLogo className={className} />;
+		return (
+			<span dir="ltr" className={cn(styles.brandingWordmark, className)}>
+				<InthLogo aria-hidden="true" />
+			</span>
+		);
 	}
 
 	return (
