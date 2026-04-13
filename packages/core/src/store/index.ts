@@ -11,8 +11,10 @@ import type { StorageConfig } from '../libs/cookie';
 import {
 	deleteConsentFromStorage,
 	getConsentFromStorage,
+	saveConsentToStorage,
 } from '../libs/cookie';
 import { setDebugEnabled } from '../libs/debug';
+import { generateSubjectId } from '../libs/generate-subject-id';
 import {
 	extractConsentNamesFromCondition,
 	type HasCondition,
@@ -23,6 +25,7 @@ import { createIframeManager } from '../libs/iframe-blocker/store';
 import { initConsentManager } from '../libs/init-consent-manager';
 import { createNetworkBlockerManager } from '../libs/network-blocker/store';
 import { filterConsentCategoriesByPolicy } from '../libs/policy';
+import { sanitizeSubjectIdentifiers } from '../libs/sanitize-subject-identifiers';
 import { saveConsents } from '../libs/save-consents';
 import { createScriptManager } from '../libs/script-loader';
 import type {
@@ -442,6 +445,104 @@ export const createConsentManagerStore = (
 					identityProvider: user.identityProvider,
 				},
 			});
+		},
+		unstable_acceptPolicyConsent: async (input) => {
+			const currentState = get();
+			const currentInfo = currentState.consentInfo;
+			const subjectId = currentInfo?.subjectId ?? generateSubjectId();
+			const storedIdentifiers = sanitizeSubjectIdentifiers({
+				externalId: currentInfo?.externalId,
+				identityProvider: currentInfo?.identityProvider,
+			});
+			const userIdentifiers = sanitizeSubjectIdentifiers({
+				externalId: currentState.user?.id,
+				identityProvider: currentState.user?.identityProvider,
+			});
+			const inputIdentifiers = sanitizeSubjectIdentifiers({
+				externalId: input.externalId,
+				identityProvider: input.identityProvider,
+			});
+			const externalId =
+				inputIdentifiers.externalId ??
+				storedIdentifiers.externalId ??
+				userIdentifiers.externalId;
+			const identityProvider =
+				inputIdentifiers.identityProvider ??
+				storedIdentifiers.identityProvider ??
+				userIdentifiers.identityProvider;
+			const givenAt = input.givenAt ?? Date.now();
+			const domain =
+				input.domain ??
+				(typeof window !== 'undefined'
+					? window.location.hostname
+					: 'localhost');
+
+			const response = await manager.setConsent({
+				body: {
+					type: input.type,
+					subjectId,
+					domain,
+					givenAt,
+					uiSource: input.uiSource ?? 'api',
+					...(input.policyId ? { policyId: input.policyId } : {}),
+					...(input.policyHash ? { policyHash: input.policyHash } : {}),
+					...(input.documentSnapshotToken
+						? { documentSnapshotToken: input.documentSnapshotToken }
+						: {}),
+					...(input.metadata ? { metadata: input.metadata } : {}),
+					...(input.preferences ? { preferences: input.preferences } : {}),
+					...(externalId ? { externalSubjectId: externalId } : {}),
+					...(identityProvider ? { identityProvider } : {}),
+				},
+			});
+
+			if (!response.ok || !response.data) {
+				const errorMsg =
+					response.error?.message ?? 'Failed to accept policy consent';
+				currentState.callbacks.onError?.({
+					error: errorMsg,
+				});
+				throw new Error(errorMsg);
+			}
+
+			const consent = {
+				...response.data,
+				givenAt:
+					response.data.givenAt instanceof Date
+						? response.data.givenAt
+						: new Date(response.data.givenAt),
+			};
+
+			const nextConsentInfo = {
+				...currentInfo,
+				time: givenAt,
+				subjectId,
+				...(externalId ? { externalId } : {}),
+				...(identityProvider ? { identityProvider } : {}),
+			};
+
+			set({
+				consentInfo: nextConsentInfo,
+				...(externalId
+					? {
+							user: {
+								id: externalId,
+								identityProvider,
+							},
+						}
+					: {}),
+			});
+
+			saveConsentToStorage(
+				{
+					consents: currentState.consents,
+					consentInfo: nextConsentInfo,
+				},
+				undefined,
+				currentState.storageConfig
+			);
+
+			return consent;
 		},
 
 		setOverrides: async (

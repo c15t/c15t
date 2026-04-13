@@ -66,6 +66,7 @@ export const subjectPolicyBasedInputSchema = v.object({
 	...baseSubjectConsentSchema.entries,
 	type: v.picklist(['privacy_policy', 'dpa', 'terms_and_conditions']),
 	policyId: v.optional(v.string()),
+	policyHash: v.optional(v.string()),
 	preferences: v.optional(v.record(v.string(), v.boolean())),
 });
 

@@ -1,9 +1,9 @@
 import { Analytics } from '@vercel/analytics/next';
 import { Geist, Geist_Mono } from 'next/font/google';
-import { ThemeProvider } from 'next-themes';
 import type React from 'react';
 import '../globals.css';
 import { ConsentManager } from '../../components/consent-manager/provider';
+import { ThemeProvider } from '../../components/theme-provider';
 
 const geist = Geist({
 	subsets: ['latin'],

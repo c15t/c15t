@@ -13,6 +13,7 @@ import type {
 	PolicyUiActionGroup,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
+	PostSubjectOutput,
 } from '@c15t/schema/types';
 import type { Model } from '~/libs/determine-model';
 import type { StorageConfig } from '../libs/cookie';
@@ -102,6 +103,31 @@ export interface PolicySurfaceState {
 	uiProfile?: PolicyUiProfile;
 	/** Scroll lock hint from backend runtime policy. */
 	scrollLock?: boolean;
+}
+
+/**
+ * Experimental input for policy-based consent writes.
+ *
+ * @experimental
+ */
+export interface UnstablePolicyConsentInput {
+	type:
+		| 'privacy_policy'
+		| 'terms_and_conditions'
+		| 'dpa'
+		| 'marketing_communications'
+		| 'age_verification'
+		| 'other';
+	policyId?: string;
+	policyHash?: string;
+	documentSnapshotToken?: string;
+	domain?: string;
+	givenAt?: number;
+	metadata?: Record<string, unknown>;
+	preferences?: Record<string, boolean>;
+	uiSource?: string;
+	externalId?: string;
+	identityProvider?: string;
 }
 
 /**
@@ -789,6 +815,15 @@ export interface StoreActions {
 	 * @throws {Error} When the underlying identify-user request fails
 	 */
 	identifyUser: (user: User) => Promise<void>;
+
+	/**
+	 * Writes a policy-based consent such as terms and conditions.
+	 *
+	 * @experimental
+	 */
+	unstable_acceptPolicyConsent: (
+		input: UnstablePolicyConsentInput
+	) => Promise<PostSubjectOutput>;
 
 	/**
 	 * Updates the selected consent state for a specific consent type.

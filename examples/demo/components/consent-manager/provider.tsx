@@ -190,7 +190,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 				// backendURL: 'https://instance-worker-test.consent-ef4.workers.dev/',
 				// backendURL: 'https://minecraft-europe-hypixel.c15t.xyz',
 				// backendURL: '/api/self-host',
-				backendURL: 'https://consent-io-eu-central-1-test.c15t.dev',
+				backendURL: 'https://test-consent-io.inth.app/',
 				consentCategories: [
 					'necessary',
 					'functionality',

@@ -73,6 +73,35 @@ export function applyPolicyPurposeAllowlist<T extends Record<string, boolean>>(
 }
 
 /**
+ * Strips preference keys that are outside the active policy allowlist.
+ *
+ * Use this for API payloads when the backend enforces strict purpose scope and
+ * rejects unknown preference keys entirely.
+ */
+export function stripDisallowedPreferenceKeys<
+	T extends Record<string, boolean>,
+>(preferences: T, allowedPurposeIds?: string[]): Partial<T> {
+	if (
+		!allowedPurposeIds ||
+		allowedPurposeIds.length === 0 ||
+		allowedPurposeIds.includes('*')
+	) {
+		return preferences;
+	}
+
+	const allowed = new Set(['necessary', ...allowedPurposeIds]);
+	const next: Partial<T> = {};
+
+	for (const [key, value] of Object.entries(preferences)) {
+		if (allowed.has(key)) {
+			next[key as keyof T] = value as T[keyof T];
+		}
+	}
+
+	return next;
+}
+
+/**
  * Filters consent categories against a policy purpose allowlist.
  *
  * When allowlist is active, only categories present in it are kept and

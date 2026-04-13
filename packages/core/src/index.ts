@@ -150,6 +150,7 @@ export type {
 	SSRInitRequestMetadata,
 	SSRSkippedReason,
 	StoreOptions,
+	UnstablePolicyConsentInput,
 } from './store/type';
 // Export default translation config
 export { defaultTranslationConfig } from './translations';

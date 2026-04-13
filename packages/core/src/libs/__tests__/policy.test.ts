@@ -4,6 +4,7 @@ import {
 	applyPolicyScopeForRuntimeGating,
 	filterConsentCategoriesByPolicy,
 	getEffectivePolicy,
+	stripDisallowedPreferenceKeys,
 	validateUIAgainstPolicy,
 } from '../policy';
 
@@ -154,6 +155,55 @@ describe('applyPolicyPurposeAllowlist', () => {
 		};
 
 		expect(applyPolicyPurposeAllowlist(preferences, ['*'])).toEqual(
+			preferences
+		);
+	});
+});
+
+describe('stripDisallowedPreferenceKeys', () => {
+	it('returns unchanged preferences when no allowlist is provided', () => {
+		const preferences = {
+			necessary: true,
+			marketing: true,
+		};
+
+		expect(stripDisallowedPreferenceKeys(preferences, undefined)).toEqual(
+			preferences
+		);
+	});
+
+	it('omits non-allowlisted preference keys', () => {
+		const preferences = {
+			necessary: true,
+			marketing: true,
+			measurement: true,
+			functionality: false,
+			experience: false,
+		};
+
+		expect(
+			stripDisallowedPreferenceKeys(preferences, [
+				'necessary',
+				'measurement',
+				'marketing',
+			])
+		).toEqual({
+			necessary: true,
+			marketing: true,
+			measurement: true,
+		});
+	});
+
+	it('returns unchanged preferences when allowlist includes wildcard', () => {
+		const preferences = {
+			necessary: true,
+			marketing: true,
+			measurement: true,
+			functionality: true,
+			experience: false,
+		};
+
+		expect(stripDisallowedPreferenceKeys(preferences, ['*'])).toEqual(
 			preferences
 		);
 	});

@@ -931,9 +931,7 @@ describe('saveConsents', () => {
 				body: expect.objectContaining({
 					preferences: {
 						necessary: true,
-						functionality: false,
 						measurement: true,
-						experience: false,
 						marketing: true,
 					},
 				}),

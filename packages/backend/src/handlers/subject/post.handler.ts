@@ -416,6 +416,10 @@ export const postSubjectHandler = async (c: Context) => {
 
 		const inputPolicyId =
 			'policyId' in input ? (input.policyId as string | undefined) : undefined;
+		const inputPolicyHash =
+			'policyHash' in input
+				? (input.policyHash as string | undefined)
+				: undefined;
 		if (legalDocumentConsent && legalDocumentSnapshotVerification.valid) {
 			if (legalDocumentSnapshotVerification.payload.type !== type) {
 				throw buildLegalDocumentSnapshotHttpException('invalid');
@@ -436,33 +440,67 @@ export const postSubjectHandler = async (c: Context) => {
 			});
 			policyId = documentPolicy.id;
 		} else if (legalDocumentConsent) {
-			if (!ctx.legalDocumentSnapshot?.signingKey && !inputPolicyId) {
+			if (
+				!ctx.legalDocumentSnapshot?.signingKey &&
+				!inputPolicyId &&
+				!inputPolicyHash
+			) {
 				throw buildLegalDocumentProofHttpException(
-					'Legal document consent requires policyId when snapshot verification is disabled'
+					'Legal document consent requires policyId or policyHash when snapshot verification is disabled'
 				);
 			}
 
-			if (!inputPolicyId) {
+			if (!inputPolicyId && !inputPolicyHash) {
 				throw buildLegalDocumentProofHttpException(
-					'Legal document consent requires a valid document snapshot token or policyId'
+					'Legal document consent requires a valid document snapshot token, policyId, or policyHash'
 				);
 			}
 
-			policyId = inputPolicyId;
+			if (inputPolicyId) {
+				policyId = inputPolicyId;
 
-			// Verify the policy exists and is active
-			const policy = await registry.findConsentPolicyById(inputPolicyId);
-			if (!policy) {
-				throw new HTTPException(404, {
-					message: 'Policy not found',
-					cause: { code: 'POLICY_NOT_FOUND', policyId, type },
-				});
-			}
-			if (!policy.isActive) {
-				throw new HTTPException(400, {
-					message: 'Policy is inactive',
-					cause: { code: 'POLICY_INACTIVE', policyId, type },
-				});
+				// Verify the policy exists and is active
+				const policy = await registry.findConsentPolicyById(inputPolicyId);
+				if (!policy) {
+					throw new HTTPException(404, {
+						message: 'Policy not found',
+						cause: { code: 'POLICY_NOT_FOUND', policyId, type },
+					});
+				}
+				if (!policy.isActive) {
+					throw new HTTPException(400, {
+						message: 'Policy is inactive',
+						cause: { code: 'POLICY_INACTIVE', policyId, type },
+					});
+				}
+			} else if (inputPolicyHash) {
+				const policy = await registry.findLegalDocumentPolicyByHash(
+					type,
+					inputPolicyHash
+				);
+				if (!policy) {
+					throw new HTTPException(404, {
+						message: 'Policy not found',
+						cause: {
+							code: 'POLICY_NOT_FOUND',
+							type,
+							policyHash: inputPolicyHash,
+						},
+					});
+				}
+				if (!policy.isActive) {
+					throw new HTTPException(400, {
+						message: 'Policy is inactive',
+						cause: {
+							code: 'POLICY_INACTIVE',
+							policyId: policy.id,
+							type,
+							policyHash: inputPolicyHash,
+						},
+					});
+				}
+
+				policyId = policy.id;
 			}
 		} else if (inputPolicyId) {
 			policyId = inputPolicyId;
@@ -553,6 +591,13 @@ export const postSubjectHandler = async (c: Context) => {
 			}
 
 			purposeIds = purposes;
+		}
+
+		if (!policyId) {
+			throw new HTTPException(500, {
+				message: 'Failed to resolve policy',
+				cause: { code: 'POLICY_RESOLUTION_FAILED', type },
+			});
 		}
 
 		const expiryDays = effectivePolicy?.consent?.expiryDays;

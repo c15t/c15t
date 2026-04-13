@@ -10,7 +10,11 @@ import type {
 } from '../types';
 import { saveConsentToStorage } from './cookie';
 import { generateSubjectId } from './generate-subject-id';
-import { applyPolicyPurposeAllowlist, getEffectivePolicy } from './policy';
+import {
+	applyPolicyPurposeAllowlist,
+	getEffectivePolicy,
+	stripDisallowedPreferenceKeys,
+} from './policy';
 import { sanitizeSubjectIdentifiers } from './sanitize-subject-identifiers';
 
 /**
@@ -187,6 +191,10 @@ export async function saveConsents({
 		newConsents,
 		policyCategories
 	);
+	const requestPreferences = stripDisallowedPreferenceKeys(
+		effectiveConsents,
+		policyCategories
+	) as ConsentState;
 	const didChange = haveConsentsChanged(
 		previousConsents,
 		effectiveConsents,
@@ -278,7 +286,7 @@ export async function saveConsents({
 		const pendingSync: PendingConsentSync = {
 			type,
 			subjectId,
-			preferences: effectiveConsents,
+			preferences: requestPreferences,
 			givenAt,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model,
@@ -335,7 +343,7 @@ export async function saveConsents({
 		body: {
 			type: 'cookie_banner',
 			domain: window.location.hostname,
-			preferences: effectiveConsents,
+			preferences: requestPreferences,
 			subjectId,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model ?? undefined,
