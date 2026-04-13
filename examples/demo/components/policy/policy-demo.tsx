@@ -368,6 +368,33 @@ const policyDemoTheme: Theme = {
 			variant: 'primary',
 		},
 	},
+	slots: {
+		consentBannerTag: {
+			style: {
+				borderRadius: '0',
+			},
+		},
+		consentDialogTag: {
+			style: {
+				borderRadius: '0',
+			},
+		},
+		consentWidgetTag: {
+			style: {
+				borderRadius: '0',
+			},
+		},
+		iabConsentBannerTag: {
+			style: {
+				borderRadius: '0',
+			},
+		},
+		iabConsentDialogTag: {
+			style: {
+				borderRadius: '0',
+			},
+		},
+	},
 };
 
 // ---------------------------------------------------------------------------
