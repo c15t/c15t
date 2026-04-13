@@ -263,7 +263,6 @@ const ConsentCustomizationCard = ({
 			<ConsentDialogContent>
 				<ConsentWidget hideBranding noStyle={noStyle} useProvider={true} />
 			</ConsentDialogContent>
-			<ConsentDialogFooter hideBranding />
 			<Branding
 				hideBranding={hideBranding ?? false}
 				variant="dialog-tag"

@@ -370,6 +370,26 @@ describe('Consent Flow E2E Tests', () => {
 				{ timeout: 3000 }
 			);
 		});
+
+		test('should render stock dialog branding without an empty footer wrapper', async () => {
+			render(
+				<ConsentManagerProvider options={defaultOptions}>
+					<ConsentDialog open={true} />
+				</ConsentManagerProvider>
+			);
+
+			await vi.waitFor(
+				() => {
+					expect(
+						document.querySelector('[data-testid="consent-dialog-branding"]')
+					).toBeInTheDocument();
+					expect(
+						document.querySelector('[data-testid="consent-dialog-footer"]')
+					).not.toBeInTheDocument();
+				},
+				{ timeout: 3000 }
+			);
+		});
 	});
 
 	describe('Complete Flow', () => {
