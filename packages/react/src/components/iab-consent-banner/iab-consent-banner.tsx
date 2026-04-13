@@ -164,6 +164,7 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 				<BrandingLink
 					hideBranding={false}
 					variant="banner-tag"
+					themeKey="iabConsentBannerTag"
 					data-testid="iab-consent-banner-branding"
 				/>
 				<Box

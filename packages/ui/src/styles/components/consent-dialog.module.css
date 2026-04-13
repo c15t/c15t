@@ -395,6 +395,7 @@
 	}
 
 	.card {
+		position: relative;
 		box-sizing: border-box;
 		width: min(100%, var(--consent-dialog-max-width));
 		max-height: 100%;

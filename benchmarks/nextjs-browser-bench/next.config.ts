@@ -5,8 +5,15 @@ import type { NextConfig } from 'next';
 const projectDir = dirname(fileURLToPath(import.meta.url));
 const monorepoRoot = resolve(projectDir, '../..');
 
+const transpilePackages = [
+	'@c15t/benchmarking',
+	'@c15t/react',
+	'@c15t/nextjs',
+	'c15t',
+];
+
 const config: NextConfig = {
-	transpilePackages: ['@c15t/benchmarking'],
+	transpilePackages,
 	turbopack: {
 		root: monorepoRoot,
 	},

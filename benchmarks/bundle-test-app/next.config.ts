@@ -10,8 +10,15 @@ const withBundleAnalyzer = bundleAnalyzer({
 	openAnalyzer: true,
 });
 
+const transpilePackages = [
+	'@c15t/benchmarking',
+	'@c15t/react',
+	'@c15t/nextjs',
+	'c15t',
+];
+
 const config = {
-	transpilePackages: ['@c15t/benchmarking'],
+	transpilePackages,
 	turbopack: {
 		root: monorepoRoot,
 	},

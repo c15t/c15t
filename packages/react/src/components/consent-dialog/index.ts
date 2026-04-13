@@ -82,7 +82,8 @@ export interface ConsentDialogCompoundComponent extends FC<ConsentDialogProps> {
  *     theme: {
  *       slots: {
  *         consentDialogCard: 'rounded-3xl shadow-xl',
- *         consentDialogFooter: 'border-t border-black/10',
+ *         consentWidgetFooter: 'gap-3 pt-6',
+ *         consentDialogTag: 'shadow-none',
  *       },
  *     },
  *   }}
