@@ -218,9 +218,21 @@
 	}
 
 	.brandingC15TMark {
+		display: inline-flex;
+		align-items: center;
+		flex: none;
+		max-width: 100%;
 		width: auto;
 		height: var(--consent-dialog-branding-icon-height);
+	}
+
+	.brandingC15TMark > svg {
+		display: block;
 		flex: none;
+		aspect-ratio: 446 / 445;
+		width: auto;
+		height: 100%;
+		max-width: 100%;
 	}
 
 	.brandingInth {

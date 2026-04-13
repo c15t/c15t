@@ -168,6 +168,28 @@ describe('BrandingLink', () => {
 		});
 	});
 
+	test('wraps the c15t full logo mark in the shared wordmark container', async () => {
+		await renderWithConsentState(
+			<BrandingLink
+				hideBranding={false}
+				variant="banner-tag"
+				data-testid="branding-link"
+			/>
+		);
+
+		await vi.waitFor(() => {
+			const link = document.querySelector(
+				'[data-testid="branding-link"]'
+			) as HTMLAnchorElement | null;
+			const wordmark = link?.querySelector('[dir="ltr"]');
+			const mark = wordmark?.querySelector('[class*="brandingC15TMark"]');
+			expect(wordmark).toBeInTheDocument();
+			expect(mark).toBeInTheDocument();
+			expect(mark?.querySelector('svg')).toBeInTheDocument();
+			expect(wordmark).toHaveTextContent('c15t');
+		});
+	});
+
 	test('hides branding when disabled', async () => {
 		await renderWithConsentState(
 			<BrandingLink
