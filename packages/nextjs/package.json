@@ -75,7 +75,7 @@
 		"dev": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
-		"prepack": "cd ../.. && bunx turbo run build --filter=@c15t/nextjs",
+		"prepack": "bun run build",
 		"test": "bun prebuild && vitest run --passWithNoTests",
 		"test:watch": "bun prebuild && vitest --passWithNoTests"
 	},

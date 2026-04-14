@@ -117,7 +117,7 @@
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"knip": "knip",
 		"lint": "bun biome lint ./src",
-		"prepack": "cd ../.. && bunx turbo run build --filter=@c15t/backend",
+		"prepack": "bun run build",
 		"start": "node dist/server.cjs",
 		"test": "bun prebuild && vitest run",
 		"test:watch": "bun prebuild && vitest"
