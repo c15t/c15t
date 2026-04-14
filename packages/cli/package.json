@@ -8,7 +8,7 @@
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/cli"
 	},
-	"license": "GPL-3.0-only",
+	"license": "Apache-2.0",
 	"type": "module",
 	"exports": "./dist/index.mjs",
 	"main": "./dist/index.mjs",

@@ -14,12 +14,12 @@
 
   ## CMP Registration
 
-  [consent.io](https://consent.io) is pending validation as an IAB Europe-registered CMP for c15t. Once approved, when you use consent.io as your backend, the correct CMP ID will be automatically provided to your client via the `/init` endpoint — no client-side configuration needed.
+  [inth.com](https://inth.com) is pending validation as an IAB Europe-registered CMP for c15t. Once approved, when you use inth.com as your backend, the correct CMP ID will be automatically provided to your client via the `/init` endpoint — no client-side configuration needed.
 
   If you self-host the c15t backend and have your own CMP registration with IAB Europe, you can configure your CMP ID on the backend via `advanced.iab.cmpId` or on the client via the `iab.cmpId` option. A valid (non-zero) CMP ID is required for IAB TCF compliance.
 
   <Callout type="warn">
-    If you heavily customize or build your own IAB banner or dialog (rather than using the default `IABConsentBanner` and `IABConsentDialog` components), you cannot use consent.io's CMP ID. You must register your own CMP with [IAB Europe](https://iabeurope.eu/tcf-2-0/) and use your own CMP ID.
+    If you heavily customize or build your own IAB banner or dialog (rather than using the default `IABConsentBanner` and `IABConsentDialog` components), you cannot use inth.com's CMP ID. You must register your own CMP with [IAB Europe](https://iabeurope.eu/tcf-2-0/) and use your own CMP ID.
   </Callout>
 
   ## How c15t Implements TCF
@@ -43,7 +43,7 @@
   | Option | Type | Description |
   |--------|------|-------------|
   | `enabled` | `boolean` | Enable IAB TCF mode |
-  | `cmpId` | `number` | CMP ID registered with IAB Europe. Automatically provided by the backend when using consent.io. Only set this if you have your own CMP registration. |
+  | `cmpId` | `number` | CMP ID registered with IAB Europe. Automatically provided by the backend when using inth.com. Only set this if you have your own CMP registration. |
   | `vendors` | `number[]` | IAB vendor IDs that your site works with |
   | `nonIABVendors` | `NonIABVendor[]` | Custom vendors not in the IAB registry |
 

@@ -25,7 +25,7 @@
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/node-sdk"
 	},
-	"license": "GPL-3.0-only",
+	"license": "Apache-2.0",
 	"type": "module",
 	"exports": {
 		".": {
