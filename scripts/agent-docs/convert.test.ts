@@ -57,7 +57,7 @@ describe('convertMdxFile', () => {
 		);
 		const { markdown } = await convertMdxFile(filePath, remarkPlugins);
 
-		expect(markdown).toContain('|npm|`npx @c15t/cli@rc`|');
+		expect(markdown).toContain('|npm|`npx @c15t/cli`|');
 		expect(markdown).toContain('1. **Install package**');
 		expect(markdown).toContain('> ℹ️ Info:');
 		expect(markdown).not.toContain('<PackageCommandTabs');
