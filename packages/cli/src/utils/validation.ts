@@ -120,7 +120,7 @@ export const validateUrl = createValidator(
  */
 export const validateC15tUrl = createValidator(
 	isValidC15tUrl,
-	'Please enter a valid c15t URL (e.g., https://my-app.c15t.dev)'
+	'Please enter a valid hosted URL (e.g., https://my-app.inth.app)'
 );
 
 /**

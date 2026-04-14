@@ -468,7 +468,7 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 			);
 			const url = await promptBackendURL({
 				message: 'Enter your consent.io project URL:',
-				placeholder: 'https://your-project.c15t.dev',
+				placeholder: 'https://your-project.inth.app',
 				initialURL,
 				stage: 'consent_manual_url',
 			});
@@ -499,7 +499,7 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 		if (setupMethod === 'manual-url') {
 			const url = await promptBackendURL({
 				message: 'Enter your consent.io project URL:',
-				placeholder: 'https://your-project.c15t.dev',
+				placeholder: 'https://your-project.inth.app',
 				initialURL,
 				stage: 'consent_manual_url',
 			});

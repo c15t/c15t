@@ -49,8 +49,8 @@ export const PATHS = {
 export const REGEX = {
 	/** Generic URL pattern */
 	URL: /^https?:\/\/.+/,
-	/** c15t platform URL pattern */
-	C15T_URL: /^https:\/\/[\w-]+\.c15t\.dev$/,
+	/** Hosted c15t platform URL pattern (legacy and current domains) */
+	C15T_URL: /^https:\/\/[\w-]+\.(?:c15t\.dev|inth\.app)$/,
 	/** Dynamic route segment pattern (e.g., [locale]) */
 	DYNAMIC_SEGMENT: /\[[\w-]+\]/,
 	/** Semantic version pattern */

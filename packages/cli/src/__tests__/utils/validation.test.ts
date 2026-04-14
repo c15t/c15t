@@ -29,12 +29,15 @@ describe('validation utilities', () => {
 		test('should accept valid c15t URLs', () => {
 			expect(isValidC15tUrl('https://my-app.c15t.dev')).toBe(true);
 			expect(isValidC15tUrl('https://test-project.c15t.dev')).toBe(true);
+			expect(isValidC15tUrl('https://my-app.inth.app')).toBe(true);
+			expect(isValidC15tUrl('https://test-project.inth.app')).toBe(true);
 		});
 
 		test('should reject invalid c15t URLs', () => {
 			expect(isValidC15tUrl('https://example.com')).toBe(false);
 			expect(isValidC15tUrl('http://my-app.c15t.dev')).toBe(false);
 			expect(isValidC15tUrl('https://v2.c15t.com')).toBe(false);
+			expect(isValidC15tUrl('https://my-app.inth.dev')).toBe(false);
 		});
 	});
 
