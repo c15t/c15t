@@ -34,7 +34,7 @@ export async function getSSROption({
 		'On slow backends or cross-region setups, SSR can increase TTFB. Measure both TTFB and banner visibility.'
 	);
 	context.logger.info(
-		'Learn more: https://v2.c15t.com/docs/frameworks/nextjs/ssr'
+		'Learn more: https://c15t.com/docs/frameworks/nextjs/ssr'
 	);
 
 	const enableSSR = await p.select({

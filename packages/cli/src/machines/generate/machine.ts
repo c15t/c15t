@@ -532,7 +532,7 @@ export const generateMachine = setup({
 					context.hostedProvider === 'self-hosted'
 				) {
 					logger.info('Setup your backend with the c15t docs:');
-					logger.info('https://v2.c15t.com/docs/self-host/v2');
+					logger.info('https://c15t.com/docs/self-host/v2');
 				} else if (context.selectedMode === 'custom') {
 					logger.info(
 						'Configuration Complete! Implement your custom endpoint handlers.'

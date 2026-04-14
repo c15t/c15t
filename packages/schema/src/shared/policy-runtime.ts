@@ -30,7 +30,7 @@ export type PolicyUiProfile = 'balanced' | 'compact' | 'strict';
  * This is used by `ui.banner` and `ui.dialog` on {@link PolicyConfig}. These
  * overrides are ignored for IAB policies because TCF mode controls that UI.
  *
- * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
+ * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs}
  */
 export interface PolicyUiSurfaceConfig {
 	allowedActions?: PolicyUiAction[];
@@ -58,8 +58,8 @@ export interface PolicyUiSurfaceConfig {
  *
  * Within the same matcher type, first match wins by array order.
  *
- * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
- * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs}
+ * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
 export interface PolicyConfig {
 	id: string;
@@ -121,7 +121,7 @@ export type PolicyPack = PolicyConfig[];
 /**
  * Matcher portion of a {@link PolicyConfig}.
  *
- * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs#matching-order}
+ * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs#matching-order}
  */
 export type PolicyMatch = PolicyConfig['match'];
 export type PolicyMatchedBy = PolicyDecision['matchedBy'];
@@ -134,7 +134,7 @@ const POLICY_PURPOSE_WILDCARD = '*';
  * This is the explainable runtime output behind `/init.policyDecision` and
  * offline policy preview metadata.
  *
- * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs#snapshots-and-debugging}
+ * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs#snapshots-and-debugging}
  */
 export interface ResolvedPolicyDecision {
 	policy: ResolvedPolicy;
@@ -277,7 +277,7 @@ function applyPolicyMatchFragment(
  * These helpers normalize country and region casing and make intent explicit in
  * both backend config and tests.
  *
- * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs#matching-order}
+ * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs#matching-order}
  */
 export const policyMatchers = {
 	default(): PolicyMatch {
@@ -701,7 +701,7 @@ function parseOptionalPolicyConfigs(
 /**
  * Inspects a policy pack and returns both errors and warnings.
  *
- * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
 export function inspectPolicies(
 	policies: unknown,
@@ -971,7 +971,7 @@ function mapPolicy(policy: PolicyConfig): ResolvedPolicy {
 /**
  * Validates a policy pack and throws on the first error.
  *
- * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
 export function validatePolicies(
 	policies: unknown,
@@ -991,8 +991,8 @@ export function validatePolicies(
  * invalid, or when no configured policy matches the request and no default is
  * present.
  *
- * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
- * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs}
+ * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
 export async function resolvePolicyDecision(params: {
 	policies?: unknown;
@@ -1048,7 +1048,7 @@ export async function resolvePolicyDecision(params: {
  * computation. Use this when you only need the resolved policy and match
  * metadata but not the cryptographic fingerprint.
  *
- * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
+ * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs}
  */
 export function resolvePolicySync(params: {
 	policies?: unknown;

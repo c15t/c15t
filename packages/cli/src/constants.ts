@@ -12,17 +12,17 @@ export const URLS = {
 	/** First-party telemetry logs endpoint */
 	TELEMETRY: 'https://telemetry.c15t.com/c15t/v1/logs',
 	/** Documentation website */
-	DOCS: 'https://v2.c15t.com/docs',
+	DOCS: 'https://c15t.com/docs',
 	/** GitHub repository */
 	GITHUB: 'https://github.com/c15t/c15t',
 	/** Discord community */
-	DISCORD: 'https://v2.c15t.com/discord',
+	DISCORD: 'https://c15t.com/discord',
 	/** API documentation */
-	API_DOCS: 'https://v2.c15t.com/docs/api',
+	API_DOCS: 'https://c15t.com/docs/api',
 	/** CLI documentation */
-	CLI_DOCS: 'https://v2.c15t.com/docs/cli',
+	CLI_DOCS: 'https://c15t.com/docs/cli',
 	/** Product changelog */
-	CHANGELOG: 'https://v2.c15t.com/changelog',
+	CHANGELOG: 'https://c15t.com/changelog',
 } as const;
 
 // --- File Paths ---

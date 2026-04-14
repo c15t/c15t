@@ -26,7 +26,7 @@ export interface DatabaseOptions {
 	/**
 	 * The database adapter to use.
 	 *
-	 * @see {@link https://v2.c15t.com/docs/self-host/guides/database-setup}
+	 * @see {@link https://c15t.com/docs/self-host/guides/database-setup}
 	 */
 	adapter: FumaDB<FumaDBSchema>['adapter'];
 
@@ -41,7 +41,7 @@ export interface DatabaseOptions {
 	 * Useful when sharing a database with other applications to avoid naming conflicts.
 	 *
 	 * @example 'c15t_' // tables become: c15t_subject, c15t_consent, etc.
-	 * @see {@link https://v2.c15t.com/docs/self-host/guides/database-setup}
+	 * @see {@link https://c15t.com/docs/self-host/guides/database-setup}
 	 */
 	tablePrefix?: string;
 }
@@ -349,7 +349,7 @@ export interface C15TOptions {
 	/**
 	 * The database adapter to use.
 	 *
-	 * @see {@link https://v2.c15t.com/docs/self-host/guides/database-setup}
+	 * @see {@link https://c15t.com/docs/self-host/guides/database-setup}
 	 */
 	adapter: FumaDB<FumaDBSchema>['adapter'];
 
@@ -364,7 +364,7 @@ export interface C15TOptions {
 	 * Useful when sharing a database with other applications to avoid naming conflicts.
 	 *
 	 * @example 'c15t_' // tables become: c15t_subject, c15t_consent, etc.
-	 * @see {@link https://v2.c15t.com/docs/self-host/guides/database-setup}
+	 * @see {@link https://c15t.com/docs/self-host/guides/database-setup}
 	 */
 	tablePrefix?: string;
 
@@ -374,14 +374,14 @@ export interface C15TOptions {
 	 * and cache key prefixing.
 	 *
 	 * @default "c15t"
-	 * @see {@link https://v2.c15t.com/docs/self-host/api/configuration}
+	 * @see {@link https://c15t.com/docs/self-host/api/configuration}
 	 */
 	appName?: string;
 
 	/**
 	 * Base path prefix for all API routes (e.g. `/api/self-host`).
 	 *
-	 * @see {@link https://v2.c15t.com/docs/self-host/api/endpoints}
+	 * @see {@link https://c15t.com/docs/self-host/api/endpoints}
 	 */
 	basePath?: string;
 
@@ -390,7 +390,7 @@ export interface C15TOptions {
 	 * Protocol is optional; matching is protocol-agnostic and normalized.
 	 *
 	 * @example ['example.com', 'app.example.com', 'localhost:3000']
-	 * @see {@link https://v2.c15t.com/docs/self-host/api/configuration}
+	 * @see {@link https://c15t.com/docs/self-host/api/configuration}
 	 */
 	trustedOrigins: string[];
 
@@ -435,7 +435,7 @@ export interface C15TOptions {
 	 * explicit no-banner mode. In production, prefer including a default policy
 	 * so unmatched traffic still resolves deterministically.
 	 *
-	 * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+	 * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
 	 */
 	policyPacks?: PolicyConfig[];
 
@@ -450,7 +450,7 @@ export interface C15TOptions {
 	/**
 	 * OpenAPI spec generation and documentation UI options.
 	 *
-	 * @see {@link https://v2.c15t.com/docs/self-host/api/endpoints}
+	 * @see {@link https://c15t.com/docs/self-host/api/endpoints}
 	 */
 	openapi?: OpenAPIOptions;
 
@@ -459,14 +459,14 @@ export interface C15TOptions {
 	 * Telemetry is opt-in and disabled by default.
 	 * Users must provide their own SDK setup (Node, Bun, edge, etc.).
 	 *
-	 * @see {@link https://v2.c15t.com/docs/self-host/guides/observability}
+	 * @see {@link https://c15t.com/docs/self-host/guides/observability}
 	 */
 	telemetry?: TelemetryOptions;
 
 	/**
 	 * IP address tracking and masking options.
 	 *
-	 * @see {@link https://v2.c15t.com/docs/self-host/api/configuration}
+	 * @see {@link https://c15t.com/docs/self-host/api/configuration}
 	 */
 	ipAddress?: IPAddressOptions;
 
@@ -474,7 +474,7 @@ export interface C15TOptions {
 	 * Cache configuration for external persistent storage.
 	 * Used for caching GVL and other data.
 	 *
-	 * @see {@link https://v2.c15t.com/docs/self-host/guides/caching}
+	 * @see {@link https://c15t.com/docs/self-host/guides/caching}
 	 */
 	cache?: CacheOptions;
 
@@ -494,7 +494,7 @@ export interface C15TOptions {
 	 * Disabled by default - most users don't need IAB TCF.
 	 * Set enabled: true to activate IAB support.
 	 *
-	 * @see {@link https://v2.c15t.com/docs/self-host/guides/iab-tcf}
+	 * @see {@link https://c15t.com/docs/self-host/guides/iab-tcf}
 	 */
 	iab?: IABOptions;
 

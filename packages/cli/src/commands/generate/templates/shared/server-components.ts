@@ -40,7 +40,7 @@ import ConsentManagerProvider from './provider';
 
 /**
  * Server-side consent management wrapper with SSR data prefetching.
- * @see https://v2.c15t.com/docs/frameworks/${framework.docsSlug}/quickstart
+ * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/quickstart
  */
 export function ConsentManager({ children }: { children: ReactNode }) {
 	const ssrData = fetchInitialData({
@@ -61,7 +61,7 @@ import ConsentManagerProvider from './provider';
 
 /**
  * Consent management wrapper.
- * @see https://v2.c15t.com/docs/frameworks/${framework.docsSlug}/quickstart
+ * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/quickstart
  */
 export function ConsentManager({ children }: { children: ReactNode }) {
 	return (
@@ -89,7 +89,7 @@ import ConsentManagerProvider from './provider';
 
 /**
  * Consent management wrapper.
- * @see https://v2.c15t.com/docs/frameworks/${docsSlug}/quickstart
+ * @see https://c15t.com/docs/frameworks/${docsSlug}/quickstart
  */
 export function ConsentManager({ children }: { children: ReactNode }) {
 	return <ConsentManagerProvider>{children}</ConsentManagerProvider>;

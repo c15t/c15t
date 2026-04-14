@@ -4,7 +4,7 @@ import { policyMatchers } from './policy-runtime';
 /**
  * Preset Europe pack mode used by {@link policyPackPresets}.
  *
- * @see {@link https://v2.c15t.com/docs/frameworks/react/policy-packs}
+ * @see {@link https://c15t.com/docs/frameworks/react/policy-packs}
  */
 export type EuropePolicyMode = 'opt-in' | 'iab';
 
@@ -161,8 +161,8 @@ export interface PolicyPackPresets {
  * ];
  * ```
  *
- * @see {@link https://v2.c15t.com/docs/frameworks/react/policy-packs}
- * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ * @see {@link https://c15t.com/docs/frameworks/react/policy-packs}
+ * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
 export const policyPackPresets: PolicyPackPresets = {
 	europeOptIn: () => europePolicy('opt-in'),

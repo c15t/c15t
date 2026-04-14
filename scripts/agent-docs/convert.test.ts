@@ -75,7 +75,7 @@ describe('convertMdxFile', () => {
 		expect(markdown).toContain('### C15TOptions');
 		expect(markdown).not.toContain('#### `openapi` OpenAPIOptions | undefined');
 		expect(markdown).toContain(
-			'[FumaDBAdapter](https://v2.c15t.com/docs/self-host/guides/database-setup)'
+			'[FumaDBAdapter](https://c15t.com/docs/self-host/guides/database-setup)'
 		);
 		expect(markdown).not.toMatch(/\\\[[^\]]+\\\]\((?::\/\/|https?:\/\/)/);
 		expect(markdown).not.toContain('](<https://');

@@ -181,8 +181,8 @@ export type UnstablePolicyConsentInput =
  *   resolve it locally
  * - `policy` / `policyDecision`: inject a fully synthetic resolved result
  *
- * @see {@link https://v2.c15t.com/docs/frameworks/javascript/policy-packs}
- * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
+ * @see {@link https://c15t.com/docs/frameworks/javascript/policy-packs}
+ * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs}
  */
 export type OfflinePolicyConfig = {
 	/**
@@ -611,7 +611,7 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	 *
 	 * Ignored in hosted/custom modes.
 	 *
-	 * @see {@link https://v2.c15t.com/docs/frameworks/javascript/policy-packs}
+	 * @see {@link https://c15t.com/docs/frameworks/javascript/policy-packs}
 	 */
 	offlinePolicy?: OfflinePolicyConfig;
 

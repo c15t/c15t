@@ -17,7 +17,7 @@ export interface ReactUIOptions extends UIOptions {}
  * In offline mode this also includes `offlinePolicy` configuration for
  * local policy previews.
  *
- * @see {@link https://v2.c15t.com/docs/frameworks/react/policy-packs}
+ * @see {@link https://c15t.com/docs/frameworks/react/policy-packs}
  */
 export type ConsentManagerOptions = BaseConsentManagerOptions & ReactUIOptions;
 
@@ -36,7 +36,7 @@ export interface ConsentManagerProviderProps {
 	 * Configuration options for the consent manager.
 	 * This includes core, React, store, and translation settings.
 	 *
-	 * @see {@link https://v2.c15t.com/docs/frameworks/react/components/consent-manager-provider}
+	 * @see {@link https://c15t.com/docs/frameworks/react/components/consent-manager-provider}
 	 */
 	options: ConsentManagerOptions;
 }

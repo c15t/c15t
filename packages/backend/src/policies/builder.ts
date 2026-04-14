@@ -17,8 +17,8 @@ import { policyMatchers } from './matchers';
  * Use the builder helpers to normalize this input into runtime-ready policy
  * configs.
  *
- * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
- * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
+ * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
+ * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs}
  */
 export interface PolicyBuilderInput {
 	id: string;
@@ -98,7 +98,7 @@ function compactUiSurface(
  * Empty optional fields are removed from the final output, matcher input is
  * merged into `match`, and duplicate string arrays are deduplicated.
  *
- * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
 export function buildPolicyConfig(input: PolicyBuilderInput): PolicyConfig {
 	const categories = dedupeTrimmedStrings(input.categories);
@@ -139,7 +139,7 @@ export function buildPolicyConfig(input: PolicyBuilderInput): PolicyConfig {
  * duplicate region/country matchers use first-match-wins semantics within the
  * same matcher type.
  *
- * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
 export function buildPolicyPack(inputs: PolicyBuilderInput[]): PolicyConfig[] {
 	return inputs.map((input) => buildPolicyConfig(input));
@@ -158,7 +158,7 @@ export function buildPolicyPack(inputs: PolicyBuilderInput[]): PolicyConfig[] {
  * When `defaultPolicy` is provided, its `countries` and `regions` fields are
  * stripped and replaced with `match.isDefault = true`.
  *
- * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
 export function buildPolicyPackWithDefault(
 	inputs: PolicyBuilderInput[],
@@ -203,7 +203,7 @@ export function buildPolicyPackWithDefault(
  * );
  * ```
  *
- * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
 export function composePacks(...packs: PolicyConfig[][]): PolicyConfig[] {
 	const seen = new Set<string>();
@@ -228,7 +228,7 @@ export function composePacks(...packs: PolicyConfig[][]): PolicyConfig[] {
  * Useful when you prefer a grouped API such as `policyBuilder.createPack()`
  * inside backend config files.
  *
- * @see {@link https://v2.c15t.com/docs/self-host/guides/policy-packs}
+ * @see {@link https://c15t.com/docs/self-host/guides/policy-packs}
  */
 export const policyBuilder = {
 	create: buildPolicyConfig,

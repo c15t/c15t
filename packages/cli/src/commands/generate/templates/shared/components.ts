@@ -126,7 +126,7 @@ export function generateConsentComponent({
 	// Build component props
 	let propsDestructure: string;
 	if (useConsentManagerProps) {
-		propsDestructure = `{ children, ssrData }: ConsentManagerProps`;
+		propsDestructure = '{ children, ssrData }: ConsentManagerProps';
 	} else if (ssrDataOption) {
 		propsDestructure = `{
 	children,
@@ -216,20 +216,20 @@ function buildDocComment({
 		const slug = docsSlug || 'nextjs';
 		return `/**
  * Client-side consent manager provider.
- * @see https://v2.c15t.com/docs/frameworks/${slug}/quickstart
+ * @see https://c15t.com/docs/frameworks/${slug}/quickstart
  */`;
 	}
 
 	if (initialDataProp) {
 		return `/**
  * Consent management wrapper for Next.js Pages Router.
- * @see https://v2.c15t.com/docs/frameworks/nextjs/quickstart
+ * @see https://c15t.com/docs/frameworks/nextjs/quickstart
  */`;
 	}
 
 	const slug = docsSlug || 'react';
 	return `/**
  * Consent manager provider.
- * @see https://v2.c15t.com/docs/frameworks/${slug}/quickstart
+ * @see https://c15t.com/docs/frameworks/${slug}/quickstart
  */`;
 }
