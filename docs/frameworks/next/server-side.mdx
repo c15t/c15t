@@ -1,9 +1,11 @@
 ---
 title: Server-Side Data Fetching
-description: Pre-fetch consent data in Server Components with fetchInitialData — eliminate the loading flash and enable streaming.
+description: Pre-fetch consent data in Server Components with fetchInitialData for dynamic Next.js routes.
 ---
 
-The `@c15t/nextjs` package provides `fetchInitialData`, a server-side function that fetches consent data before rendering. This enables SSR hydration — consent state is available immediately on page load without a client-side fetch, eliminating the consent banner flash.
+The `@c15t/nextjs` package provides `fetchInitialData`, a server-side function that fetches consent data before rendering. Use it when the route is already dynamic, or when you want the fastest first banner and are okay opting the route into dynamic rendering. If you need to keep a route fully static, use `C15tPrefetch` instead.
+
+Because `fetchInitialData()` resolves request headers from `next/headers`, using it opts the route into dynamic rendering.
 
 <Callout type="info">
   SSR hydration is part of the [initialization flow](/docs/frameworks/next/concepts/initialization-flow#how-it-works). When SSR data is available, the client skips the API fetch entirely.
@@ -22,13 +24,17 @@ import { fetchInitialData } from '@c15t/nextjs';
 
 // In a Server Component — do NOT await
 const ssrData = fetchInitialData({
-  backendURL: '/api/c15t',
+  backendURL: 'https://your-instance.c15t.dev',
   debug: process.env.NODE_ENV === 'development',
 });
 ```
 
 <Callout type="warn">
   **Do not `await`** `fetchInitialData()` in Server Components. Pass the Promise directly to your client component so Next.js can stream the page while the consent data loads in parallel.
+</Callout>
+
+<Callout type="info">
+  For `fetchInitialData()`, prefer a direct backend URL such as `https://your-instance.c15t.dev`. For browser-side calls from the provider, `C15tPrefetch`, and other client runtime work, prefer a same-origin `/api/c15t` rewrite. See [Optimization](/docs/frameworks/next/optimization) for the full decision guide.
 </Callout>
 
 <Callout type="info">
@@ -66,7 +72,6 @@ sequenceDiagram
 Returns `Promise<SSRInitialData | undefined>`. The data includes the init response (jurisdiction, translations, consent model) and GVL data when IAB is configured.
 
 ### Passing SSR Data to the Provider
-
 Pass the unresolved Promise to the provider's `ssrData` option via a client component:
 
 ```tsx title="components/consent-manager/index.tsx"
@@ -88,7 +93,7 @@ export default function ConsentManager({
       options={{
         mode: 'hosted',
         backendURL: '/api/c15t',
-        store: { ssrData },
+        ssrData,
       }}
     >
       <ConsentBanner />
@@ -105,7 +110,7 @@ import ConsentManager from '@/components/consent-manager';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const ssrData = fetchInitialData({
-    backendURL: '/api/c15t',
+    backendURL: 'https://your-instance.c15t.dev',
   });
 
   return (
