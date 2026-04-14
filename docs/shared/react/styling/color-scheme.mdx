@@ -18,7 +18,7 @@
 
   ## How Dark Mode Works
 
-  When dark mode is active, c15t applies the `dark` token values as CSS variable overrides. Only tokens specified in `dark` are overridden - unset tokens fall back to the `colors` values.
+  When dark mode is active, c15t applies the `dark` token values as CSS variable overrides. Only tokens specified in `dark` are overridden - unset tokens fall back to the `colors` values. This also applies to `textOnPrimary`: if you omit it, c15t derives a readable foreground from the active `primary` color in that scheme.
 
   ```tsx
   const theme = {
