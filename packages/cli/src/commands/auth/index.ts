@@ -200,9 +200,9 @@ async function statusAction(context: CliContext): Promise<void> {
 export const loginCommand: CliCommand = {
 	name: 'login',
 	label: 'Login',
-	hint: 'Authenticate with consent.io',
+	hint: 'Authenticate with inth.com',
 	description:
-		'Log in to your consent.io account using device flow authentication',
+		'Log in to your inth.com account using device flow authentication',
 	action: loginAction,
 };
 
@@ -212,8 +212,8 @@ export const loginCommand: CliCommand = {
 export const logoutCommand: CliCommand = {
 	name: 'logout',
 	label: 'Logout',
-	hint: 'Sign out of consent.io',
-	description: 'Log out of your consent.io account',
+	hint: 'Sign out of inth.com',
+	description: 'Log out of your inth.com account',
 	action: logoutAction,
 };
 

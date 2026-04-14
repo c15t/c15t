@@ -93,7 +93,7 @@ export const modeSelectionActor = fromPromise<
 			{
 				value: 'hosted',
 				label: 'Hosted',
-				hint: 'consent.io or self-hosted backend URL',
+				hint: 'inth.com or self-hosted backend URL',
 			},
 			{
 				value: 'offline',
@@ -117,7 +117,7 @@ export const modeSelectionActor = fromPromise<
 
 // --- Hosted Mode Prompt ---
 
-type HostedProvider = 'consent.io' | 'self-hosted';
+type HostedProvider = 'inth.com' | 'self-hosted';
 type ConsentSetupMethod = 'sign-in' | 'manual-url';
 
 export interface HostedModeInput {
@@ -363,7 +363,7 @@ async function selectOrCreateInstance(
 	cliContext: CliContext
 ): Promise<Instance> {
 	const baseUrl = getControlPlaneBaseUrl();
-	const listSpinner = createTaskSpinner('Fetching your consent.io projects...');
+	const listSpinner = createTaskSpinner('Fetching your inth.com projects...');
 	listSpinner.start();
 
 	const client = await createControlPlaneClientFromConfig(baseUrl);
@@ -394,7 +394,7 @@ async function selectOrCreateInstance(
 				{
 					value: '__create__',
 					label: 'Create new project',
-					hint: 'Provision a new consent.io project now',
+					hint: 'Provision a new inth.com project now',
 				},
 			],
 		});
@@ -431,8 +431,8 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 				message: 'Choose your hosted backend option:',
 				options: [
 					{
-						value: 'consent.io',
-						label: 'consent.io (Recommended)',
+						value: 'inth.com',
+						label: 'inth.com (Recommended)',
 						hint: 'Managed infrastucture',
 					},
 					{
@@ -441,7 +441,7 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 						hint: 'Use your own deployed c15t backend',
 					},
 				],
-				initialValue: 'consent.io',
+				initialValue: 'inth.com',
 			});
 
 			if (isCancel(providerSelection)) {
@@ -463,20 +463,17 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 		}
 
 		if (!isV2ModeEnabled()) {
-			cliContext.logger.info(
-				'consent.io sign-in is currently disabled. Set V2=1 to enable sign-in and project selection.'
-			);
 			const url = await promptBackendURL({
-				message: 'Enter your consent.io project URL:',
+				message: 'Enter your inth.com project URL:',
 				placeholder: 'https://your-project.inth.app',
 				initialURL,
 				stage: 'consent_manual_url',
 			});
-			return { url, provider: 'consent.io' };
+			return { url, provider: 'inth.com' };
 		}
 
 		const setupMethod = await p.select<ConsentSetupMethod | symbol>({
-			message: 'How do you want to configure consent.io?',
+			message: 'How do you want to configure inth.com?',
 			options: [
 				{
 					value: 'sign-in',
@@ -498,12 +495,12 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 
 		if (setupMethod === 'manual-url') {
 			const url = await promptBackendURL({
-				message: 'Enter your consent.io project URL:',
+				message: 'Enter your inth.com project URL:',
 				placeholder: 'https://your-project.inth.app',
 				initialURL,
 				stage: 'consent_manual_url',
 			});
-			return { url, provider: 'consent.io' };
+			return { url, provider: 'inth.com' };
 		}
 
 		await runConsentLogin(cliContext);
@@ -516,7 +513,7 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 
 		return {
 			url: instance.url,
-			provider: 'consent.io',
+			provider: 'inth.com',
 		};
 	}
 );

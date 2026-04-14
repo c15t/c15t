@@ -92,7 +92,7 @@ export const ERROR_CATALOG = {
 	},
 	CONTROL_PLANE_CONNECTION_FAILED: {
 		code: 'CONTROL_PLANE_CONNECTION_FAILED',
-		message: 'Could not connect to consent.io',
+		message: 'Could not connect to inth.com',
 		hint: `Check if ${URLS.CONSENT_IO} is accessible`,
 	},
 	API_ERROR: {

@@ -8,7 +8,7 @@
 // --- URLs ---
 export const URLS = {
 	/** Default c15t cloud platform URL */
-	CONSENT_IO: 'https://consent.io',
+	CONSENT_IO: 'https://inth.com',
 	/** First-party telemetry logs endpoint */
 	TELEMETRY: 'https://telemetry.c15t.com/c15t/v1/logs',
 	/** Documentation website */
