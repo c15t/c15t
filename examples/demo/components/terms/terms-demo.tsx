@@ -9,6 +9,7 @@ import {
 	UserRound,
 } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
+import { createUnsafeDemoLegalDocumentSnapshotToken } from '../../lib/unsafe-demo-legal-document-snapshot';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
@@ -26,6 +27,7 @@ type TermsPolicySummary = {
 	version: string;
 	hash: string;
 	effectiveDate: string;
+	documentSnapshotToken?: string | null;
 };
 
 type IdentityState = {
@@ -44,7 +46,7 @@ type AcceptanceState = IdentityState & {
 const termsHighlights = [
 	'Users agree that consent evidence is stored with the active legal-document release.',
 	'Future releases can be versioned without overwriting the previous acceptance trail.',
-	'The write can target a legal-document release by hash instead of requiring the policy ID in the UI.',
+	'The preferred client contract is a signed document snapshot token; the hash path is a fallback for lighter integrations.',
 ];
 
 function formatDate(value: string) {
@@ -126,6 +128,17 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 				? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
 				: 'border-border bg-muted/70 text-muted-foreground';
 
+	const createDemoSnapshotToken = async () => {
+		const tokenResult = await createUnsafeDemoLegalDocumentSnapshotToken({
+			type: 'terms_and_conditions',
+			version: policy.version,
+			hash: policy.hash,
+			effectiveDate: policy.effectiveDate,
+		});
+
+		return tokenResult.token;
+	};
+
 	return (
 		<div className="relative overflow-hidden bg-background text-foreground">
 			<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.16),transparent_28%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.14),transparent_24%),linear-gradient(180deg,rgba(15,23,42,0.04),transparent_48%)]" />
@@ -149,7 +162,8 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 								<code className="mx-1 rounded bg-muted px-1.5 py-0.5 text-sm">
 									terms_and_conditions
 								</code>
-								consent against a legal-document release hash.
+								consent against a signed legal-document snapshot when available,
+								otherwise against a release hash.
 							</p>
 						</div>
 
@@ -169,8 +183,9 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 								</p>
 								<p className="mt-2 font-medium">Resolve the current release</p>
 								<p className="mt-1 text-muted-foreground text-sm">
-									The page carries the current terms release hash instead of a
-									precomputed policy ID.
+									The preferred input is a signed snapshot token. The release
+									hash stays available as a lighter fallback when the client
+									only knows the rendered document version.
 								</p>
 							</div>
 							<div className="rounded-2xl border border-border/70 bg-background/75 p-4 backdrop-blur">
@@ -424,15 +439,36 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 										setFeedback(null);
 										startTransition(async () => {
 											try {
-												const result = await unstable_acceptPolicyConsent({
-													type: 'terms_and_conditions',
-													policyHash: policy.hash,
-													uiSource: 'terms-demo',
-													metadata: {
-														source: 'examples/demo/terms',
-														release: policy.version,
-													},
-												});
+												const documentSnapshotToken =
+													policy.documentSnapshotToken ??
+													(await createDemoSnapshotToken());
+												const result = await unstable_acceptPolicyConsent(
+													documentSnapshotToken
+														? {
+																type: 'terms_and_conditions',
+																documentSnapshotToken,
+																uiSource: 'terms-demo',
+																metadata: {
+																	source: 'examples/demo/terms',
+																	release: policy.version,
+																},
+															}
+														: {
+																type: 'terms_and_conditions',
+																policyHash: policy.hash,
+																uiSource: 'terms-demo',
+																metadata: {
+																	source: 'examples/demo/terms',
+																	release: policy.version,
+																},
+															}
+												);
+
+												if (!result) {
+													throw new Error(
+														'Unable to record the terms acceptance with c15t.'
+													);
+												}
 
 												setAcceptance({
 													subjectId: result.subjectId,

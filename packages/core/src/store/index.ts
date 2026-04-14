@@ -476,6 +476,25 @@ export const createConsentManagerStore = (
 				(typeof window !== 'undefined'
 					? window.location.hostname
 					: 'localhost');
+			const legalDocumentFields =
+				'policyId' in input ||
+				'policyHash' in input ||
+				'documentSnapshotToken' in input
+					? {
+							...('policyId' in input && input.policyId
+								? { policyId: input.policyId }
+								: {}),
+							...('policyHash' in input && input.policyHash
+								? { policyHash: input.policyHash }
+								: {}),
+							...('documentSnapshotToken' in input &&
+							input.documentSnapshotToken
+								? {
+										documentSnapshotToken: input.documentSnapshotToken,
+									}
+								: {}),
+						}
+					: {};
 
 			const response = await manager.setConsent({
 				body: {
@@ -484,11 +503,7 @@ export const createConsentManagerStore = (
 					domain,
 					givenAt,
 					uiSource: input.uiSource ?? 'api',
-					...(input.policyId ? { policyId: input.policyId } : {}),
-					...(input.policyHash ? { policyHash: input.policyHash } : {}),
-					...(input.documentSnapshotToken
-						? { documentSnapshotToken: input.documentSnapshotToken }
-						: {}),
+					...legalDocumentFields,
 					...(input.metadata ? { metadata: input.metadata } : {}),
 					...(input.preferences ? { preferences: input.preferences } : {}),
 					...(externalId ? { externalSubjectId: externalId } : {}),
@@ -502,7 +517,15 @@ export const createConsentManagerStore = (
 				currentState.callbacks.onError?.({
 					error: errorMsg,
 				});
-				throw new Error(errorMsg);
+				const error = new Error(errorMsg) as Error & {
+					code?: string;
+					details?: Record<string, unknown> | null;
+					status?: number;
+				};
+				error.code = response.error?.code;
+				error.details = response.error?.details ?? null;
+				error.status = response.error?.status;
+				throw error;
 			}
 
 			const consent = {

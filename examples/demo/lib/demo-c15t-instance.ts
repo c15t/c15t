@@ -6,6 +6,7 @@ import { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
 import { LibsqlDialect } from '@libsql/kysely-libsql';
 import { Kysely, PostgresDialect } from 'kysely';
 import { Pool } from 'pg';
+import { DEMO_LEGAL_DOCUMENT_SNAPSHOT } from './demo-legal-document-snapshot';
 import {
 	DEFAULT_DEMO_POLICY_EXAMPLE,
 	DEMO_POLICY_SNAPSHOT_KEY,
@@ -73,6 +74,10 @@ export function createDemoInstance(example = DEFAULT_DEMO_POLICY_EXAMPLE) {
 		policySnapshot: {
 			signingKey: DEMO_POLICY_SNAPSHOT_KEY,
 			ttlSeconds: 60 * 60,
+		},
+		legalDocumentSnapshot: {
+			signingKey: DEMO_LEGAL_DOCUMENT_SNAPSHOT.signingKey,
+			issuer: DEMO_LEGAL_DOCUMENT_SNAPSHOT.issuer,
 		},
 		openapi: {
 			enabled: true,

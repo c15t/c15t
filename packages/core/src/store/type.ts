@@ -106,18 +106,18 @@ export interface PolicySurfaceState {
 }
 
 /**
- * Experimental input for policy-based consent writes.
+ * Experimental input for legal-document consent writes.
+ *
+ * @remarks
+ * Preferred identifier flow:
+ * - `documentSnapshotToken` for authoritative, signed release metadata
+ * - `policyHash` when the caller only knows the rendered document hash
+ * - `policyId` only as a compatibility fallback for older backends
  *
  * @experimental
  */
-export interface UnstablePolicyConsentInput {
-	type:
-		| 'privacy_policy'
-		| 'terms_and_conditions'
-		| 'dpa'
-		| 'marketing_communications'
-		| 'age_verification'
-		| 'other';
+export interface UnstableLegalDocumentConsentInput {
+	type: 'privacy_policy' | 'terms_and_conditions' | 'dpa';
 	policyId?: string;
 	policyHash?: string;
 	documentSnapshotToken?: string;
@@ -129,6 +129,31 @@ export interface UnstablePolicyConsentInput {
 	externalId?: string;
 	identityProvider?: string;
 }
+
+/**
+ * Experimental input for non-legal policy consent writes.
+ *
+ * @experimental
+ */
+export interface UnstableGenericPolicyConsentInput {
+	type: 'marketing_communications' | 'age_verification' | 'other';
+	domain?: string;
+	givenAt?: number;
+	metadata?: Record<string, unknown>;
+	preferences?: Record<string, boolean>;
+	uiSource?: string;
+	externalId?: string;
+	identityProvider?: string;
+}
+
+/**
+ * Experimental input for policy-based consent writes.
+ *
+ * @experimental
+ */
+export type UnstablePolicyConsentInput =
+	| UnstableLegalDocumentConsentInput
+	| UnstableGenericPolicyConsentInput;
 
 /**
  * Offline policy preview payload for the headless runtime.

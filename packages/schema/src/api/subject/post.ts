@@ -61,6 +61,10 @@ export const subjectCookieBannerInputSchema = v.object({
 
 /**
  * Policy-based consent
+ *
+ * For legal documents, callers should prefer `documentSnapshotToken` when
+ * available. `policyHash` is intended as a lighter-weight fallback when the
+ * client knows the rendered release hash but not the internal c15t policy ID.
  */
 export const subjectPolicyBasedInputSchema = v.object({
 	...baseSubjectConsentSchema.entries,

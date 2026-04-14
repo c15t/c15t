@@ -18,6 +18,8 @@ import { useEffect, useState } from 'react';
 import { useThemePreset } from './theme-switcher';
 
 const SEARCH_CHANGE_EVENT = 'c15t:search-change';
+const DEFAULT_BACKEND_URL = 'https://test-consent-io.inth.app/';
+const TERMS_BACKEND_URL = '/api/self-host';
 
 /**
  * Props for the ConsentManager component
@@ -173,6 +175,8 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 
 	const isPolicyDemo = pathname === '/policy';
 	const isPolicyActionsDemo = pathname === '/policy-actions';
+	const isTermsDemo = pathname.startsWith('/terms');
+	const backendURL = isTermsDemo ? TERMS_BACKEND_URL : DEFAULT_BACKEND_URL;
 
 	if (isPolicyActionsDemo) {
 		return (
@@ -187,10 +191,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 		<ConsentManagerProvider
 			options={{
 				mode: 'c15t',
-				// backendURL: 'https://instance-worker-test.consent-ef4.workers.dev/',
-				// backendURL: 'https://minecraft-europe-hypixel.c15t.xyz',
-				// backendURL: '/api/self-host',
-				backendURL: 'https://test-consent-io.inth.app/',
+				backendURL,
 				consentCategories: [
 					'necessary',
 					'functionality',
