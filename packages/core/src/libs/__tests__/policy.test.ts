@@ -158,6 +158,20 @@ describe('applyPolicyPurposeAllowlist', () => {
 			preferences
 		);
 	});
+
+	it('preserves necessary even when it is missing from the allowlist', () => {
+		const preferences = {
+			necessary: true,
+			marketing: true,
+			measurement: true,
+		};
+
+		expect(applyPolicyPurposeAllowlist(preferences, ['marketing'])).toEqual({
+			necessary: true,
+			marketing: true,
+			measurement: false,
+		});
+	});
 });
 
 describe('stripDisallowedPreferenceKeys', () => {
@@ -206,6 +220,19 @@ describe('stripDisallowedPreferenceKeys', () => {
 		expect(stripDisallowedPreferenceKeys(preferences, ['*'])).toEqual(
 			preferences
 		);
+	});
+
+	it('preserves necessary key even when not in allowlist', () => {
+		const preferences = {
+			necessary: true,
+			marketing: true,
+			measurement: true,
+		};
+
+		expect(stripDisallowedPreferenceKeys(preferences, ['marketing'])).toEqual({
+			necessary: true,
+			marketing: true,
+		});
 	});
 });
 

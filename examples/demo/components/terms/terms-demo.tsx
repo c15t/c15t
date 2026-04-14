@@ -439,9 +439,17 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 										setFeedback(null);
 										startTransition(async () => {
 											try {
-												const documentSnapshotToken =
-													policy.documentSnapshotToken ??
-													(await createDemoSnapshotToken());
+												let documentSnapshotToken =
+													policy.documentSnapshotToken ?? undefined;
+
+												if (!documentSnapshotToken) {
+													try {
+														documentSnapshotToken =
+															await createDemoSnapshotToken();
+													} catch {
+														documentSnapshotToken = undefined;
+													}
+												}
 												const result = await unstable_acceptPolicyConsent(
 													documentSnapshotToken
 														? {
@@ -504,7 +512,10 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 
 						<section className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
 							<div
+								aria-atomic="true"
+								aria-live="polite"
 								className={`rounded-[24px] border p-5 text-sm shadow-sm ${feedbackClassName}`}
+								role="status"
 							>
 								<p className="text-xs uppercase tracking-[0.18em]">
 									Request status

@@ -5,6 +5,7 @@ import {
 	type ReactNode,
 	useContext,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useState,
 } from 'react';
@@ -37,8 +38,38 @@ function applyTheme(theme: ResolvedTheme) {
 	document.documentElement.style.colorScheme = theme;
 }
 
+function resolveInitialTheme(
+	defaultTheme: ThemeMode,
+	enableSystem: boolean
+): ThemeMode {
+	if (typeof window === 'undefined') {
+		return defaultTheme;
+	}
+
+	const storedTheme = window.localStorage.getItem(STORAGE_KEY);
+	if (storedTheme === 'light' || storedTheme === 'dark') {
+		return storedTheme;
+	}
+
+	if (storedTheme === 'system' && enableSystem) {
+		return storedTheme;
+	}
+
+	return defaultTheme;
+}
+
+function resolveThemeMode(
+	theme: ThemeMode,
+	enableSystem: boolean
+): ResolvedTheme {
+	if (theme === 'system' && enableSystem) {
+		return getSystemTheme();
+	}
+
+	return theme === 'dark' ? 'dark' : 'light';
+}
+
 type ThemeProviderProps = {
-	attribute?: 'class';
 	children: ReactNode;
 	defaultTheme?: ThemeMode;
 	enableSystem?: boolean;
@@ -49,33 +80,31 @@ export function ThemeProvider({
 	defaultTheme = 'light',
 	enableSystem = true,
 }: ThemeProviderProps) {
-	const [theme, setThemeState] = useState<ThemeMode>(defaultTheme);
-	const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('light');
+	const [theme, setThemeState] = useState<ThemeMode>(() =>
+		resolveInitialTheme(defaultTheme, enableSystem)
+	);
+	const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
+		resolveThemeMode(
+			resolveInitialTheme(defaultTheme, enableSystem),
+			enableSystem
+		)
+	);
 
 	useEffect(() => {
-		const storedTheme = window.localStorage.getItem(
-			STORAGE_KEY
-		) as ThemeMode | null;
-		const nextTheme =
-			storedTheme &&
-			(storedTheme === 'light' ||
-				storedTheme === 'dark' ||
-				(storedTheme === 'system' && enableSystem))
-				? storedTheme
-				: defaultTheme;
-
+		const nextTheme = resolveInitialTheme(defaultTheme, enableSystem);
 		setThemeState(nextTheme);
+		setResolvedTheme(resolveThemeMode(nextTheme, enableSystem));
 	}, [defaultTheme, enableSystem]);
+
+	useLayoutEffect(() => {
+		applyTheme(resolvedTheme);
+	}, [resolvedTheme]);
 
 	useEffect(() => {
 		const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
 		const syncTheme = () => {
-			const nextResolvedTheme =
-				theme === 'system' && enableSystem ? getSystemTheme() : theme;
-
-			setResolvedTheme(nextResolvedTheme === 'dark' ? 'dark' : 'light');
-			applyTheme(nextResolvedTheme === 'dark' ? 'dark' : 'light');
+			setResolvedTheme(resolveThemeMode(theme, enableSystem));
 		};
 
 		syncTheme();
@@ -92,10 +121,11 @@ export function ThemeProvider({
 			resolvedTheme,
 			setTheme: (nextTheme) => {
 				setThemeState(nextTheme);
+				setResolvedTheme(resolveThemeMode(nextTheme, enableSystem));
 				window.localStorage.setItem(STORAGE_KEY, nextTheme);
 			},
 		}),
-		[resolvedTheme, theme]
+		[enableSystem, resolvedTheme, theme]
 	);
 
 	return (

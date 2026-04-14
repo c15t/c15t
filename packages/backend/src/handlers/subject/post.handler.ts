@@ -450,12 +450,6 @@ export const postSubjectHandler = async (c: Context) => {
 				);
 			}
 
-			if (!inputPolicyId && !inputPolicyHash) {
-				throw buildLegalDocumentProofHttpException(
-					'Legal document consent requires a valid document snapshot token, policyId, or policyHash'
-				);
-			}
-
 			if (inputPolicyId) {
 				policyId = inputPolicyId;
 

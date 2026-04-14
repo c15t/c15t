@@ -176,7 +176,13 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 	const isPolicyDemo = pathname === '/policy';
 	const isPolicyActionsDemo = pathname === '/policy-actions';
 	const isTermsDemo = pathname.startsWith('/terms');
-	const backendURL = isTermsDemo ? TERMS_BACKEND_URL : DEFAULT_BACKEND_URL;
+	let backendURL: string;
+
+	if (isTermsDemo) {
+		backendURL = TERMS_BACKEND_URL;
+	} else {
+		backendURL = DEFAULT_BACKEND_URL;
+	}
 
 	if (isPolicyActionsDemo) {
 		return (

@@ -476,25 +476,31 @@ export const createConsentManagerStore = (
 				(typeof window !== 'undefined'
 					? window.location.hostname
 					: 'localhost');
-			const legalDocumentFields =
-				'policyId' in input ||
-				'policyHash' in input ||
-				'documentSnapshotToken' in input
-					? {
-							...('policyId' in input && input.policyId
-								? { policyId: input.policyId }
-								: {}),
-							...('policyHash' in input && input.policyHash
-								? { policyHash: input.policyHash }
-								: {}),
-							...('documentSnapshotToken' in input &&
-							input.documentSnapshotToken
-								? {
-										documentSnapshotToken: input.documentSnapshotToken,
-									}
-								: {}),
-						}
-					: {};
+			const isLegalDocumentType =
+				input.type === 'privacy_policy' ||
+				input.type === 'terms_and_conditions' ||
+				input.type === 'dpa';
+			let legalDocumentFields: Record<string, string> = {};
+
+			if (isLegalDocumentType) {
+				if (input.documentSnapshotToken) {
+					legalDocumentFields = {
+						documentSnapshotToken: input.documentSnapshotToken,
+					};
+				} else if (input.policyHash) {
+					legalDocumentFields = {
+						policyHash: input.policyHash,
+					};
+				} else if (input.policyId) {
+					legalDocumentFields = {
+						policyId: input.policyId,
+					};
+				} else {
+					throw new Error(
+						'Legal document consent requires documentSnapshotToken, policyHash, or policyId.'
+					);
+				}
+			}
 
 			const response = await manager.setConsent({
 				body: {
@@ -514,7 +520,7 @@ export const createConsentManagerStore = (
 			if (!response.ok || !response.data) {
 				const errorMsg =
 					response.error?.message ?? 'Failed to accept policy consent';
-				currentState.callbacks.onError?.({
+				get().callbacks.onError?.({
 					error: errorMsg,
 				});
 				const error = new Error(errorMsg) as Error & {
@@ -536,8 +542,10 @@ export const createConsentManagerStore = (
 						: new Date(response.data.givenAt),
 			};
 
+			const latestState = get();
+			const latestInfo = latestState.consentInfo;
 			const nextConsentInfo = {
-				...currentInfo,
+				...latestInfo,
 				time: givenAt,
 				subjectId,
 				...(externalId ? { externalId } : {}),
@@ -558,11 +566,11 @@ export const createConsentManagerStore = (
 
 			saveConsentToStorage(
 				{
-					consents: currentState.consents,
+					consents: latestState.consents,
 					consentInfo: nextConsentInfo,
 				},
 				undefined,
-				currentState.storageConfig
+				latestState.storageConfig
 			);
 
 			return consent;

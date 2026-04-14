@@ -31,7 +31,7 @@ export interface PendingConsentSync {
 	subjectId: string;
 	externalId?: string;
 	identityProvider?: string;
-	preferences: ConsentState;
+	preferences: Partial<ConsentState>;
 	givenAt: number;
 	jurisdiction?: string;
 	jurisdictionModel?: string | null;
@@ -194,7 +194,7 @@ export async function saveConsents({
 	const requestPreferences = stripDisallowedPreferenceKeys(
 		effectiveConsents,
 		policyCategories
-	) as ConsentState;
+	);
 	const didChange = haveConsentsChanged(
 		previousConsents,
 		effectiveConsents,

@@ -14,12 +14,34 @@ import {
 	getDemoPolicies,
 } from './policies';
 
+function resolvePostgresSslConfig(connectionString?: string) {
+	if (!connectionString) {
+		return undefined;
+	}
+
+	try {
+		const hostname = new URL(connectionString).hostname;
+		const isLocalhost =
+			hostname === 'localhost' ||
+			hostname === '127.0.0.1' ||
+			hostname === '::1';
+
+		return isLocalhost
+			? { rejectUnauthorized: false }
+			: { rejectUnauthorized: true };
+	} catch {
+		return process.env.NODE_ENV === 'development'
+			? { rejectUnauthorized: false }
+			: { rejectUnauthorized: true };
+	}
+}
+
 export const postgresDb = kyselyAdapter({
 	db: new Kysely({
 		dialect: new PostgresDialect({
 			pool: new Pool({
 				connectionString: process.env.DATABASE_URL,
-				ssl: { rejectUnauthorized: false },
+				ssl: resolvePostgresSslConfig(process.env.DATABASE_URL),
 			}),
 		}),
 	}),

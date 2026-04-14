@@ -48,7 +48,8 @@ function flattenLayout(layout?: PolicyUiActionGroup[]): PolicyUiAction[] {
  * Any preference key not in `allowedPurposeIds` is forced to `false`.
  * This prevents backend allowlist enforcement errors when clients hold
  * additional consent keys (for example from IAB category mapping).
- * When `allowedPurposeIds` contains `*`, no filtering is applied.
+ * When `allowedPurposeIds` contains `*`, no filtering is applied. `necessary`
+ * is always retained.
  */
 export function applyPolicyPurposeAllowlist<T extends Record<string, boolean>>(
 	preferences: T,
@@ -62,7 +63,7 @@ export function applyPolicyPurposeAllowlist<T extends Record<string, boolean>>(
 		return preferences;
 	}
 
-	const allowed = new Set(allowedPurposeIds);
+	const allowed = new Set(['necessary', ...allowedPurposeIds]);
 	const next = {} as T;
 
 	for (const [key, value] of Object.entries(preferences)) {
@@ -76,7 +77,8 @@ export function applyPolicyPurposeAllowlist<T extends Record<string, boolean>>(
  * Strips preference keys that are outside the active policy allowlist.
  *
  * Use this for API payloads when the backend enforces strict purpose scope and
- * rejects unknown preference keys entirely.
+ * rejects unknown preference keys entirely. `necessary` is always retained to
+ * stay aligned with `applyPolicyPurposeAllowlist()`.
  */
 export function stripDisallowedPreferenceKeys<
 	T extends Record<string, boolean>,

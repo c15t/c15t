@@ -105,6 +105,10 @@ export interface PolicySurfaceState {
 	scrollLock?: boolean;
 }
 
+type RequireAtLeastOne<T, Keys extends keyof T = keyof T> = Keys extends keyof T
+	? Required<Pick<T, Keys>> & Partial<Omit<T, Keys>>
+	: never;
+
 /**
  * Experimental input for legal-document consent writes.
  *
@@ -116,7 +120,7 @@ export interface PolicySurfaceState {
  *
  * @experimental
  */
-export interface UnstableLegalDocumentConsentInput {
+type UnstableLegalDocumentConsentInputBase = {
 	type: 'privacy_policy' | 'terms_and_conditions' | 'dpa';
 	policyId?: string;
 	policyHash?: string;
@@ -128,7 +132,16 @@ export interface UnstableLegalDocumentConsentInput {
 	uiSource?: string;
 	externalId?: string;
 	identityProvider?: string;
-}
+};
+
+export type UnstableLegalDocumentConsentInput =
+	UnstableLegalDocumentConsentInputBase &
+		RequireAtLeastOne<
+			Pick<
+				UnstableLegalDocumentConsentInputBase,
+				'policyId' | 'policyHash' | 'documentSnapshotToken'
+			>
+		>;
 
 /**
  * Experimental input for non-legal policy consent writes.
