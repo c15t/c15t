@@ -101,7 +101,7 @@ export function normalizeLinkTarget(url: string): string {
 		return `https${url}`;
 	}
 	if (url.startsWith('/')) {
-		return `https://v2.c15t.com${url}`;
+		return `https://c15t.com${url}`;
 	}
 	return url;
 }

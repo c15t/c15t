@@ -294,7 +294,7 @@ export type ConsentManagerOptions = {
 	 * @remarks
 	 * When provided, this takes precedence over `store.offlinePolicy`.
 	 *
-	 * @see {@link https://v2.c15t.com/docs/frameworks/javascript/policy-packs}
+	 * @see {@link https://c15t.com/docs/frameworks/javascript/policy-packs}
 	 */
 	offlinePolicy?: StoreOptions['offlinePolicy'];
 	/**

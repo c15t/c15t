@@ -55,7 +55,7 @@ export async function promptForUIStyle(
 		'Choose how you want your consent UI components generated.'
 	);
 	context.logger.info(
-		'Learn more: https://v2.c15t.com/docs/frameworks/nextjs/customization'
+		'Learn more: https://c15t.com/docs/frameworks/nextjs/customization'
 	);
 
 	const result = await p.select({

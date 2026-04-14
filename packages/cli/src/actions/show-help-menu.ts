@@ -53,7 +53,7 @@ ${optionLines}
 
 Run a command directly (e.g., ${color.cyan('c15t setup')}) or select one interactively when no command is provided.
 
-For more help, visit: https://v2.c15t.com`;
+For more help, visit: https://c15t.com`;
 
 	logger.debug('Help menu content generated.');
 	logger.note(helpContent, 'Usage');
