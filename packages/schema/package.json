@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/schema",
-	"version": "2.0.0-rc.5",
+	"version": "2.0.0-rc.6",
 	"description": "Framework-agnostic Valibot schemas and TypeScript types for c15t consent management",
 	"keywords": [
 		"consent",

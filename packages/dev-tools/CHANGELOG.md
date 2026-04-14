@@ -1,5 +1,18 @@
 # @c15t/dev-tools
 
+## 2.0.0-rc.10
+
+### Patch Changes
+
+- 64d6009: Replace the shared `clsx` dependency with a local `cn` implementation owned by `@c15t/ui`.
+
+  - `@c15t/ui`: own the public `ClassValue` type and `cn(...)` implementation directly instead of re-exporting them from `clsx`, with coverage for nested arrays, object maps, numeric values, and ordering.
+  - `@c15t/react`: continue consuming the shared `@c15t/ui` class helper while dropping the now-unused direct `clsx` dependency from the published package.
+  - `@c15t/dev-tools`: remove the unused direct `clsx` dependency from the published package manifest.
+
+- Updated dependencies [9579b62]
+  - c15t@2.0.0-rc.10
+
 ## 2.0.0-rc.8
 
 ### Minor Changes
