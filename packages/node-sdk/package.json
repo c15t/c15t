@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/node-sdk",
-	"version": "2.0.0-rc.6",
+	"version": "2.0.0-rc.10",
 	"description": "Official Node.js SDK for c15t. Connects to the Consent Engine to read and write consent records and preferences. TypeScript-first, simple APIs, built-in auth and retries.",
 	"keywords": [
 		"react",
@@ -25,7 +25,7 @@
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/node-sdk"
 	},
-	"license": "GPL-3.0-only",
+	"license": "Apache-2.0",
 	"type": "module",
 	"exports": {
 		".": {
@@ -47,7 +47,7 @@
 		"dist-types"
 	],
 	"scripts": {
-		"build": "rslib build",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
 		"check-types:test": "tsc -p tsconfig.test.json",
 		"dev": "rslib build --watch",

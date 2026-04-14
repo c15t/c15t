@@ -1,7 +1,7 @@
 ---
 title: PostHog
 description: PostHog is an open-source product analytics platform for tracking user behavior, session replays, feature flags, and A/B testing. It supports cookieless tracking, allowing analytics to continue even without cookie consent.
-lastModified: 2025-09-19
+lastModified: 2026-04-08
 
 icon: posthog
 ---
@@ -32,9 +32,9 @@ This is the recommended approach if you're using the Posthog JS SDK, this is com
   </Step>
 
   <Step>
-    ### Adding the SDK callback to c15t
+    ### Sync settled consent once, then subscribe to real changes
 
-    The PostHog SDK approach uses `callbacks.onConsentSet` instead of `scripts`. This lets you toggle PostHog's opt-in/opt-out based on the user's consent choice.
+    The recommended PostHog SDK approach uses two phases: run one initial sync after c15t has finished resolving consent, then subscribe to future real preference changes with `subscribeToConsentChanges()`.
 
     <Callout type="info">
       See the [integration overview](/docs/integrations) for how to wrap this in your framework (React or Next.js). Pass the `callbacks` option to your `ConsentManagerProvider` the same way you would pass `scripts`.
@@ -44,19 +44,37 @@ This is the recommended approach if you're using the Posthog JS SDK, this is com
     import { getOrCreateConsentRuntime } from 'c15t';
     import { posthog } from 'posthog-js';
 
-    getOrCreateConsentRuntime({
+    function syncPostHogMeasurementConsent(hasMeasurementConsent: boolean) {
+      if (hasMeasurementConsent) {
+        posthog.opt_in_capturing();
+      } else {
+        posthog.opt_out_capturing();
+      }
+    }
+
+    const runtime = getOrCreateConsentRuntime({
       mode: 'hosted',
       callbacks: {
-        onConsentSet({ preferences }) {
-          if (preferences.measurement) {
-            posthog.opt_in_capturing();
-          } else {
-            posthog.opt_out_capturing();
-          }
-        }
-      }
+        onBannerFetched() {
+          syncPostHogMeasurementConsent(
+            runtime.consentStore.getState().has('measurement')
+          );
+        },
+      },
     });
+
+    runtime.consentStore
+      .getState()
+      .subscribeToConsentChanges(({ allowedCategories }) => {
+        syncPostHogMeasurementConsent(
+          allowedCategories.includes('measurement')
+        );
+      });
     ```
+
+    <Callout type="info">
+      Avoid using `onConsentSet` plus manual deduplication for PostHog. `subscribeToConsentChanges()` already gives you the exact change-only semantics most analytics SDKs need.
+    </Callout>
   </Step>
 </Steps>
 
@@ -97,8 +115,13 @@ By default c15t will always load the script regardless of consent. This is becau
     posthog({
       id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
       apiHost: 'https://eu.i.posthog.com',
-      defaults: '2025-05-24',
-      options: { person_profiles: 'identified_only' }
+      scriptUrl: 'https://eu-assets.i.posthog.com/static/array.js',
+      initOptions: {
+        api_host: 'https://eu.i.posthog.com',
+        ui_host: 'https://eu.i.posthog.com',
+        autocapture: false,
+        person_profiles: 'identified_only',
+      }
     })
     ```
   </Step>

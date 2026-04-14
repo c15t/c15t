@@ -1,11 +1,9 @@
 import { Analytics } from '@vercel/analytics/next';
 import { Geist, Geist_Mono } from 'next/font/google';
-import { ThemeProvider } from 'next-themes';
 import type React from 'react';
-import '../globals.css'; // Must be first — declares @layer order for Tailwind 4 + c15t
-import '@c15t/nextjs/styles.css';
-import '@c15t/nextjs/iab/styles.css';
+import '../globals.css';
 import { ConsentManager } from '../../components/consent-manager/provider';
+import { ThemeProvider } from '../../components/theme-provider';
 
 const geist = Geist({
 	subsets: ['latin'],
@@ -43,7 +41,7 @@ export default function RootLayout({
 			<body
 				className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}
 			>
-				<ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+				<ThemeProvider defaultTheme="light" enableSystem>
 					<ConsentManager>
 						{children}
 						<Analytics />

@@ -1,15 +1,11 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="content">
-  ## Component className
+  ## Prefer Slots for Stock Components
 
-  All consent components accept a `className` prop:
+  There is no single top-level `className` contract across every pre-built consent component.
 
-  ```tsx
-  <ConsentBanner className="my-banner" />
-  <ConsentDialog className="my-dialog" />
-  <ConsentWidget className="my-widget" />
-  ```
+  For the stock `ConsentBanner`, `ConsentDialog`, and `ConsentWidget`, prefer `theme.slots` first. That keeps the markup intact and lets you target the exact part you need.
 
   ## Per-Slot className
 
@@ -58,9 +54,19 @@
   }
   ```
 
-  ## noStyle Mode
+  ## When to Use Raw className
 
-  Use `noStyle` when you want to remove defaults and style from scratch:
+  Use raw className-level styling when:
+
+  - your styling system is already class-driven
+  - tokens are too broad for the change
+  - slots already identify the correct element
+
+  If the request is "make the banner footer darker", prefer `theme.colors.surfaceHover` first. If the request is "add a border and spacing only to the footer", prefer `theme.slots.consentBannerFooter`.
+
+  ## Advanced: `noStyle`
+
+  Use `noStyle` only when you want to remove defaults and style from scratch while still keeping c15t's component structure:
 
   ```tsx
   {/* Remove all styles from a specific component */}
@@ -79,6 +85,8 @@
     },
   } satisfies Theme;
   ```
+
+  Treat `noStyle` as an advanced escape hatch. Do not jump to it just because a token or slot needs debugging.
 
   For full custom markup and behavior, continue to [Headless Mode](../headless).
 </section>

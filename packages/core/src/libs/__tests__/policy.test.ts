@@ -4,6 +4,7 @@ import {
 	applyPolicyScopeForRuntimeGating,
 	filterConsentCategoriesByPolicy,
 	getEffectivePolicy,
+	stripDisallowedPreferenceKeys,
 	validateUIAgainstPolicy,
 } from '../policy';
 
@@ -156,6 +157,82 @@ describe('applyPolicyPurposeAllowlist', () => {
 		expect(applyPolicyPurposeAllowlist(preferences, ['*'])).toEqual(
 			preferences
 		);
+	});
+
+	it('preserves necessary even when it is missing from the allowlist', () => {
+		const preferences = {
+			necessary: true,
+			marketing: true,
+			measurement: true,
+		};
+
+		expect(applyPolicyPurposeAllowlist(preferences, ['marketing'])).toEqual({
+			necessary: true,
+			marketing: true,
+			measurement: false,
+		});
+	});
+});
+
+describe('stripDisallowedPreferenceKeys', () => {
+	it('returns unchanged preferences when no allowlist is provided', () => {
+		const preferences = {
+			necessary: true,
+			marketing: true,
+		};
+
+		expect(stripDisallowedPreferenceKeys(preferences, undefined)).toEqual(
+			preferences
+		);
+	});
+
+	it('omits non-allowlisted preference keys', () => {
+		const preferences = {
+			necessary: true,
+			marketing: true,
+			measurement: true,
+			functionality: false,
+			experience: false,
+		};
+
+		expect(
+			stripDisallowedPreferenceKeys(preferences, [
+				'necessary',
+				'measurement',
+				'marketing',
+			])
+		).toEqual({
+			necessary: true,
+			marketing: true,
+			measurement: true,
+		});
+	});
+
+	it('returns unchanged preferences when allowlist includes wildcard', () => {
+		const preferences = {
+			necessary: true,
+			marketing: true,
+			measurement: true,
+			functionality: true,
+			experience: false,
+		};
+
+		expect(stripDisallowedPreferenceKeys(preferences, ['*'])).toEqual(
+			preferences
+		);
+	});
+
+	it('preserves necessary key even when not in allowlist', () => {
+		const preferences = {
+			necessary: true,
+			marketing: true,
+			measurement: true,
+		};
+
+		expect(stripDisallowedPreferenceKeys(preferences, ['marketing'])).toEqual({
+			necessary: true,
+			marketing: true,
+		});
 	});
 });
 

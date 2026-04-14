@@ -12,10 +12,13 @@ import { ConsentWidget } from '~/components/consent-widget/consent-widget';
 import { Box, type BoxProps } from '~/components/shared/primitives/box';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { InlineLegalLinks } from '~/components/shared/primitives/legal-links';
-import { C15TIcon, ConsentIconOnly } from '~/components/shared/ui/logo';
-import { useConsentManager } from '~/hooks';
+import {
+	BrandingLink,
+	type BrandingVariant,
+} from '~/components/shared/ui/branding';
 import { useTranslations } from '~/hooks/use-translations';
 import type { ClassNameStyle } from '~/types/theme';
+import { cnExt as cn } from '~/utils/cn';
 
 /**
  * Props for the ConsentDialogCard and related components
@@ -186,45 +189,37 @@ const ConsentDialogFooter = forwardRef<
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={styles.footer}
+				baseClassName={cn(
+					styles.footer,
+					children == null && !hideBranding && styles.brandingFooter
+				)}
 				data-testid={testId ?? 'consent-dialog-footer'}
 				{...props}
 				themeKey={themeKey ?? 'consentDialogFooter'}
 			>
-				{children ?? <Branding hideBranding={hideBranding ?? false} />}
+				{children ?? (
+					<Branding
+						hideBranding={hideBranding ?? false}
+						variant="dialog-tag"
+						themeKey="consentDialogTag"
+						data-testid="consent-dialog-branding"
+					/>
+				)}
 			</Box>
 		);
 	}
 );
 
-export function Branding({ hideBranding }: { hideBranding: boolean }) {
-	const { branding } = useConsentManager();
+type BrandingProps = {
+	hideBranding: boolean;
+	variant?: BrandingVariant;
+	themeKey?: import('~/components/shared/ui/branding').BrandingThemeKey;
+	className?: string;
+	'data-testid'?: string;
+};
 
-	if (branding === 'none' || hideBranding) {
-		return null;
-	}
-
-	const refParam =
-		typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
-
-	return (
-		<a
-			dir="ltr"
-			className={styles.branding}
-			href={
-				branding === 'consent'
-					? `https://consent.io${refParam}`
-					: `https://c15t.com${refParam}`
-			}
-		>
-			Secured by{' '}
-			{branding === 'consent' ? (
-				<ConsentIconOnly className={styles.brandingConsent} />
-			) : (
-				<C15TIcon className={styles.brandingC15T} />
-			)}
-		</a>
-	);
+export function Branding(props: BrandingProps) {
+	return <BrandingLink {...props} />;
 }
 
 /**
@@ -268,7 +263,12 @@ const ConsentCustomizationCard = ({
 			<ConsentDialogContent>
 				<ConsentWidget hideBranding noStyle={noStyle} useProvider={true} />
 			</ConsentDialogContent>
-			<ConsentDialogFooter hideBranding={hideBranding} />
+			<Branding
+				hideBranding={hideBranding ?? false}
+				variant="dialog-tag"
+				themeKey="consentDialogTag"
+				data-testid="consent-dialog-branding"
+			/>
 		</ConsentDialogCard>
 	);
 };

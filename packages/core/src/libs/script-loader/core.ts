@@ -1,6 +1,7 @@
 import type { ConsentState } from '../../types/compliance';
 import type { Model } from '../determine-model';
 import { has } from '../has';
+import { emitScriptDebugEvent } from './debug';
 import type { Script, ScriptCallbackInfo, ScriptUpdateResult } from './types';
 import {
 	clearLoadedScripts,
@@ -121,6 +122,124 @@ function scriptHasConsent(
 	return has(script.category, consents);
 }
 
+function emitLifecycleEvent(
+	script: Script,
+	action:
+		| 'skipped'
+		| 'already_loaded'
+		| 'callback_start'
+		| 'callback_complete'
+		| 'callback_error'
+		| 'element_appended'
+		| 'loaded'
+		| 'load_listener_attached'
+		| 'error_listener_attached'
+		| 'unloaded',
+	message: string,
+	info?: Partial<ScriptCallbackInfo>,
+	data?: Record<string, unknown>
+): void {
+	emitScriptDebugEvent({
+		source: 'script-loader',
+		scope: 'lifecycle',
+		action,
+		message,
+		scriptId: script.id,
+		elementId: info?.elementId,
+		hasConsent: info?.hasConsent,
+		callback: getCallbackFromAction(action, data),
+		data,
+	});
+}
+
+function getCallbackFromAction(
+	action:
+		| 'skipped'
+		| 'already_loaded'
+		| 'callback_start'
+		| 'callback_complete'
+		| 'callback_error'
+		| 'element_appended'
+		| 'loaded'
+		| 'load_listener_attached'
+		| 'error_listener_attached'
+		| 'unloaded',
+	data?: Record<string, unknown>
+): 'onBeforeLoad' | 'onLoad' | 'onConsentChange' | 'onError' | undefined {
+	if (
+		action === 'callback_start' ||
+		action === 'callback_complete' ||
+		action === 'callback_error'
+	) {
+		return data?.callback as
+			| 'onBeforeLoad'
+			| 'onLoad'
+			| 'onConsentChange'
+			| 'onError'
+			| undefined;
+	}
+
+	return undefined;
+}
+
+function getErrorMessage(error: unknown): string {
+	if (error instanceof Error) {
+		return error.message;
+	}
+
+	if (typeof error === 'string') {
+		return error;
+	}
+
+	return 'Unknown error';
+}
+
+function invokeScriptCallback(
+	script: Script,
+	callbackName: 'onBeforeLoad' | 'onLoad' | 'onConsentChange' | 'onError',
+	callback: ((info: ScriptCallbackInfo) => void) | undefined,
+	info: ScriptCallbackInfo
+): void {
+	if (!callback) {
+		return;
+	}
+
+	emitLifecycleEvent(
+		script,
+		'callback_start',
+		`${callbackName} started`,
+		info,
+		{
+			callback: callbackName,
+		}
+	);
+
+	try {
+		callback(info);
+		emitLifecycleEvent(
+			script,
+			'callback_complete',
+			`${callbackName} completed`,
+			info,
+			{
+				callback: callbackName,
+			}
+		);
+	} catch (error) {
+		emitLifecycleEvent(
+			script,
+			'callback_error',
+			`${callbackName} failed`,
+			info,
+			{
+				callback: callbackName,
+				error: getErrorMessage(error),
+			}
+		);
+		throw error;
+	}
+}
+
 /**
  * Loads scripts based on user consent settings.
  *
@@ -162,23 +281,49 @@ export function loadScripts(
 	const loadedScriptIds: string[] = [];
 
 	scripts.forEach((script) => {
+		const hasConsent = scriptHasConsent(script, consents, options);
+
 		// Skip if script doesn't have consent (unless alwaysLoad is true)
-		if (!script.alwaysLoad && !scriptHasConsent(script, consents, options)) {
+		if (!script.alwaysLoad && !hasConsent) {
+			emitLifecycleEvent(
+				script,
+				'skipped',
+				'Script skipped due to missing consent',
+				{
+					hasConsent,
+				},
+				{
+					reason: 'missing_consent',
+				}
+			);
 			return;
 		}
 
 		// Skip if script is already loaded
 		if (hasLoadedScript(script.id)) {
-			script.onConsentChange?.({
+			const callbackInfo: ScriptCallbackInfo = {
 				id: script.id,
 				elementId: getScriptElementId(
 					script.id,
 					script.anonymizeId !== false,
 					scriptIdMap
 				),
-				hasConsent: scriptHasConsent(script, consents, options),
+				hasConsent,
 				consents,
-			});
+			};
+
+			emitLifecycleEvent(
+				script,
+				'already_loaded',
+				'Script already loaded; running consent sync',
+				callbackInfo
+			);
+			invokeScriptCallback(
+				script,
+				'onConsentChange',
+				script.onConsentChange,
+				callbackInfo
+			);
 
 			return;
 		}
@@ -211,22 +356,29 @@ export function loadScripts(
 				id: script.id,
 				elementId,
 				consents,
-				hasConsent: scriptHasConsent(script, consents, options),
+				hasConsent,
 			};
 
-			// Execute onBeforeLoad callback if provided
-			if (script.onBeforeLoad) {
-				script.onBeforeLoad(callbackInfo);
-			}
-
-			// Immediately trigger onLoad callback if provided
-			if (script.onLoad) {
-				script.onLoad(callbackInfo);
-			}
+			invokeScriptCallback(
+				script,
+				'onBeforeLoad',
+				script.onBeforeLoad,
+				callbackInfo
+			);
+			invokeScriptCallback(script, 'onLoad', script.onLoad, callbackInfo);
 
 			// Track the script as loaded, but with null instead of a DOM element
 			setLoadedScript(script.id, null);
 			loadedScriptIds.push(script.id);
+			emitLifecycleEvent(
+				script,
+				'loaded',
+				'Callback-only script marked as loaded',
+				callbackInfo,
+				{
+					callbackOnly: true,
+				}
+			);
 			return;
 		}
 
@@ -249,21 +401,41 @@ export function loadScripts(
 				// Script element already exists in DOM, just track it and execute callbacks
 				const callbackInfo: ScriptCallbackInfo = {
 					id: script.id,
-					hasConsent: scriptHasConsent(script, consents, options),
+					hasConsent,
 					elementId,
 					consents,
 					element: existingElement,
 				};
 
-				// Execute onConsentChange callback if provided
-				script.onConsentChange?.(callbackInfo);
-
-				// Execute onLoad callback if provided
-				script.onLoad?.(callbackInfo);
+				emitLifecycleEvent(
+					script,
+					'already_loaded',
+					'Persisted script element already exists; reusing it',
+					callbackInfo,
+					{
+						reason: 'persisted_element',
+					}
+				);
+				invokeScriptCallback(
+					script,
+					'onConsentChange',
+					script.onConsentChange,
+					callbackInfo
+				);
+				invokeScriptCallback(script, 'onLoad', script.onLoad, callbackInfo);
 
 				// Track the script as loaded
 				setLoadedScript(script.id, existingElement);
 				loadedScriptIds.push(script.id);
+				emitLifecycleEvent(
+					script,
+					'loaded',
+					'Existing script element marked as loaded',
+					callbackInfo,
+					{
+						reusedElement: true,
+					}
+				);
 				return;
 			}
 		}
@@ -310,7 +482,7 @@ export function loadScripts(
 		// Create callback info object
 		const callbackInfo: ScriptCallbackInfo = {
 			id: script.id,
-			hasConsent: scriptHasConsent(script, consents, options),
+			hasConsent,
 			elementId,
 			consents,
 			element: scriptElement,
@@ -322,14 +494,20 @@ export function loadScripts(
 				// For text-based scripts, execute onLoad immediately after adding to DOM
 				// Use setTimeout to ensure the script has been parsed and executed
 				setTimeout(() => {
-					script.onLoad?.({
+					invokeScriptCallback(script, 'onLoad', script.onLoad, {
 						...callbackInfo,
 					});
 				}, 0);
 			} else {
 				// For src-based scripts, listen for the load event
+				emitLifecycleEvent(
+					script,
+					'load_listener_attached',
+					'Attached load listener',
+					callbackInfo
+				);
 				scriptElement.addEventListener('load', () => {
-					script.onLoad?.({
+					invokeScriptCallback(script, 'onLoad', script.onLoad, {
 						...callbackInfo,
 					});
 				});
@@ -343,8 +521,14 @@ export function loadScripts(
 				// The onError callback is mainly for network errors with src-based scripts
 			} else {
 				// For src-based scripts, listen for the error event
+				emitLifecycleEvent(
+					script,
+					'error_listener_attached',
+					'Attached error listener',
+					callbackInfo
+				);
 				scriptElement.addEventListener('error', () => {
-					script.onError?.({
+					invokeScriptCallback(script, 'onError', script.onError, {
 						...callbackInfo,
 						error: new Error(`Failed to load script: ${script.src}`),
 					});
@@ -352,10 +536,12 @@ export function loadScripts(
 			}
 		}
 
-		// Execute onBeforeLoad callback if provided
-		if (script.onBeforeLoad) {
-			script.onBeforeLoad(callbackInfo);
-		}
+		invokeScriptCallback(
+			script,
+			'onBeforeLoad',
+			script.onBeforeLoad,
+			callbackInfo
+		);
 
 		// Determine target location (default to 'head')
 		const target = script.target ?? 'head';
@@ -370,8 +556,23 @@ export function loadScripts(
 
 		// Add to document and track
 		targetElement.appendChild(scriptElement);
+		emitLifecycleEvent(
+			script,
+			'element_appended',
+			`Script element appended to ${target}`,
+			callbackInfo,
+			{
+				target,
+			}
+		);
 		setLoadedScript(script.id, scriptElement);
 		loadedScriptIds.push(script.id);
+		emitLifecycleEvent(
+			script,
+			'loaded',
+			'Script marked as loaded',
+			callbackInfo
+		);
 	});
 
 	return loadedScriptIds;
@@ -412,6 +613,8 @@ export function unloadScripts(
 	const unloadedScriptIds: string[] = [];
 
 	scripts.forEach((script) => {
+		const hasConsent = scriptHasConsent(script, consents, options);
+
 		// Skip if script is not loaded
 		if (!hasLoadedScript(script.id)) {
 			return;
@@ -423,14 +626,35 @@ export function unloadScripts(
 		}
 
 		// Check if script no longer has consent
-		if (!scriptHasConsent(script, consents, options)) {
+		if (!hasConsent) {
 			const scriptElement = getLoadedScript(script.id);
+			const callbackInfo: Partial<ScriptCallbackInfo> = {
+				id: script.id,
+				elementId: getScriptElementId(
+					script.id,
+					script.anonymizeId !== false,
+					scriptIdMap
+				),
+				hasConsent,
+				consents,
+				element:
+					scriptElement && scriptElement !== null ? scriptElement : undefined,
+			};
 
 			// Handle callback-only scripts
 			if (script.callbackOnly === true || scriptElement === null) {
 				// Remove from tracking
 				deleteLoadedScript(script.id);
 				unloadedScriptIds.push(script.id);
+				emitLifecycleEvent(
+					script,
+					'unloaded',
+					'Callback-only script marked as unloaded',
+					callbackInfo,
+					{
+						callbackOnly: true,
+					}
+				);
 			}
 			// Handle standard scripts with DOM elements
 			else if (scriptElement) {
@@ -440,11 +664,30 @@ export function unloadScripts(
 					// Remove from tracking
 					deleteLoadedScript(script.id);
 					unloadedScriptIds.push(script.id);
+					emitLifecycleEvent(
+						script,
+						'unloaded',
+						'Script element removed after consent revocation',
+						callbackInfo,
+						{
+							removedElement: true,
+						}
+					);
 				}
 				// If persistAfterConsentRevoked is true, keep the script in DOM but still track as unloaded
 				else {
 					deleteLoadedScript(script.id);
 					unloadedScriptIds.push(script.id);
+					emitLifecycleEvent(
+						script,
+						'unloaded',
+						'Persistent script marked as unloaded without removing element',
+						callbackInfo,
+						{
+							removedElement: false,
+							persistAfterConsentRevoked: true,
+						}
+					);
 				}
 			}
 		}
@@ -594,6 +837,22 @@ export function reloadScript(
 
 	// Check if the script has consent before reloading (unless alwaysLoad is true)
 	if (!script.alwaysLoad && !scriptHasConsent(script, consents, options)) {
+		emitLifecycleEvent(
+			script,
+			'skipped',
+			'Reload skipped due to missing consent',
+			{
+				hasConsent: false,
+				elementId: getScriptElementId(
+					script.id,
+					script.anonymizeId !== false,
+					scriptIdMap
+				),
+			},
+			{
+				reason: 'reload_missing_consent',
+			}
+		);
 		return false;
 	}
 

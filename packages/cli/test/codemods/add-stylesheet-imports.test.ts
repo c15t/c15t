@@ -1,165 +1,179 @@
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { runAddStylesheetImportsCodemod } from '../../src/commands/codemods/add-stylesheet-imports';
 
-let fixtureDir: string;
+const tempDirs: string[] = [];
 
-async function createFixture(files: Record<string, string>): Promise<string> {
-	const dir = await mkdtemp(join(tmpdir(), 'codemod-test-'));
-	for (const [filePath, content] of Object.entries(files)) {
-		const full = join(dir, filePath);
-		await mkdir(dirname(full), { recursive: true });
-		await writeFile(full, content);
+async function createProject(
+	files: Record<string, string>
+): Promise<{ root: string }> {
+	const root = await mkdtemp(join(tmpdir(), 'c15t-add-stylesheet-'));
+	tempDirs.push(root);
+
+	for (const [relativePath, content] of Object.entries(files)) {
+		const filePath = join(root, relativePath);
+		await mkdir(dirname(filePath), { recursive: true });
+		await writeFile(filePath, content, 'utf-8');
 	}
-	return dir;
+
+	return { root };
 }
 
-beforeEach(() => {
-	fixtureDir = '';
-});
+async function readProjectFile(
+	root: string,
+	relativePath: string
+): Promise<string> {
+	return readFile(join(root, relativePath), 'utf-8');
+}
 
 afterEach(async () => {
-	if (fixtureDir) {
-		await rm(fixtureDir, { recursive: true, force: true });
-	}
+	await Promise.all(
+		tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true }))
+	);
 });
 
 describe('add-stylesheet-imports codemod', () => {
-	it('adds styles.css import for React styled app', async () => {
-		fixtureDir = await createFixture({
+	it('adds the React stylesheet to the imported CSS entrypoint', async () => {
+		const { root } = await createProject({
 			'src/main.tsx': [
-				"import React from 'react';",
+				"import './index.css';",
 				"import { App } from './app';",
 				'',
 				'export default App;',
 			].join('\n'),
+			'src/index.css': ':root { color: #111827; }\n',
 			'src/app.tsx': [
-				"import { ConsentBanner, ConsentManagerProvider } from '@c15t/react';",
+				"import { ConsentBanner } from '@c15t/react';",
 				'',
 				'export function App() {',
-				'  return (',
-				"    <ConsentManagerProvider options={{ mode: 'offline' }}>",
-				'      <ConsentBanner />',
-				'    </ConsentManagerProvider>',
-				'  );',
+				'  return <ConsentBanner />;',
 				'}',
 			].join('\n'),
 		});
 
 		const result = await runAddStylesheetImportsCodemod({
-			projectRoot: fixtureDir,
+			projectRoot: root,
 			dryRun: false,
 		});
+		const indexCss = await readProjectFile(root, 'src/index.css');
+		const mainTsx = await readProjectFile(root, 'src/main.tsx');
 
-		expect(result.changedFiles).toHaveLength(1);
-		expect(result.changedFiles[0]?.filePath).toContain('main.tsx');
-		expect(result.changedFiles[0]?.summaries).toContain(
-			"added import '@c15t/react/styles.css'"
-		);
 		expect(result.errors).toHaveLength(0);
-
-		const content = await readFile(join(fixtureDir, 'src/main.tsx'), 'utf-8');
-		expect(content).toContain("import '@c15t/react/styles.css';");
+		expect(result.changedFiles).toHaveLength(1);
+		expect(result.changedFiles[0]?.filePath).toContain('src/index.css');
+		expect(result.changedFiles[0]?.summaries).toContain(
+			'added @import "@c15t/react/styles.css";'
+		);
+		expect(indexCss).toContain('@import "@c15t/react/styles.css";');
+		expect(mainTsx).not.toContain('@c15t/react/styles.css');
 	});
 
-	it('adds styles.css import for Next.js app', async () => {
-		fixtureDir = await createFixture({
+	it('moves Next.js Tailwind 3 imports into app/globals.css and removes the JS import', async () => {
+		const { root } = await createProject({
+			'package.json': JSON.stringify({
+				name: 'tw3-next-app',
+				devDependencies: {
+					tailwindcss: '^3.4.17',
+				},
+			}),
 			'app/layout.tsx': [
-				"import { ConsentBanner, ConsentManagerProvider } from '@c15t/nextjs';",
+				"import '@c15t/nextjs/styles.css';",
+				"import './globals.css';",
 				'',
 				'export default function RootLayout({ children }: { children: React.ReactNode }) {',
-				'  return (',
-				'    <html>',
-				'      <body>',
-				"        <ConsentManagerProvider options={{ mode: 'offline' }}>",
-				'          <ConsentBanner />',
-				'          {children}',
-				'        </ConsentManagerProvider>',
-				'      </body>',
-				'    </html>',
-				'  );',
+				'  return <html><body>{children}</body></html>;',
+				'}',
+			].join('\n'),
+			'app/globals.css': [
+				'@tailwind base;',
+				'@tailwind components;',
+				'@tailwind utilities;',
+			].join('\n'),
+			'app/provider.tsx': [
+				"import { ConsentBanner } from '@c15t/nextjs';",
+				'',
+				'export function Provider() {',
+				'  return <ConsentBanner />;',
 				'}',
 			].join('\n'),
 		});
 
 		const result = await runAddStylesheetImportsCodemod({
-			projectRoot: fixtureDir,
+			projectRoot: root,
 			dryRun: false,
 		});
+		const globalsCss = await readProjectFile(root, 'app/globals.css');
+		const layout = await readProjectFile(root, 'app/layout.tsx');
 
-		expect(result.changedFiles).toHaveLength(1);
-		expect(result.changedFiles[0]?.filePath).toContain('layout.tsx');
-		expect(result.changedFiles[0]?.summaries).toContain(
-			"added import '@c15t/nextjs/styles.css'"
+		expect(result.errors).toHaveLength(0);
+		expect(result.changedFiles).toHaveLength(2);
+		expect(globalsCss).toContain(
+			'@tailwind components;\n@import "@c15t/nextjs/styles.tw3.css";\n@tailwind utilities;'
 		);
-
-		const content = await readFile(join(fixtureDir, 'app/layout.tsx'), 'utf-8');
-		expect(content).toContain("import '@c15t/nextjs/styles.css';");
+		expect(layout).not.toContain('@c15t/nextjs/styles.css');
+		expect(
+			result.changedFiles.some((file) =>
+				file.summaries.includes("removed JS import '@c15t/nextjs/styles.css'")
+			)
+		).toBe(true);
 	});
 
-	it('adds both styles.css and iab/styles.css for IAB usage', async () => {
-		fixtureDir = await createFixture({
+	it('adds both base and IAB imports in order to the CSS entrypoint', async () => {
+		const { root } = await createProject({
 			'src/main.tsx': [
-				"import React from 'react';",
+				"import './index.css';",
 				"import { App } from './app';",
 				'',
 				'export default App;',
 			].join('\n'),
+			'src/index.css': ':root { color: #111827; }\n',
 			'src/app.tsx': [
-				"import { ConsentBanner, ConsentManagerProvider } from '@c15t/react';",
+				"import { ConsentBanner } from '@c15t/react';",
 				"import { IABConsentBanner } from '@c15t/react/iab';",
 				'',
 				'export function App() {',
-				'  return (',
-				"    <ConsentManagerProvider options={{ mode: 'offline' }}>",
-				'      <ConsentBanner />',
-				'      <IABConsentBanner />',
-				'    </ConsentManagerProvider>',
-				'  );',
+				'  return <>',
+				'    <ConsentBanner />',
+				'    <IABConsentBanner />',
+				'  </>;',
 				'}',
 			].join('\n'),
 		});
 
-		const result = await runAddStylesheetImportsCodemod({
-			projectRoot: fixtureDir,
+		await runAddStylesheetImportsCodemod({
+			projectRoot: root,
 			dryRun: false,
 		});
+		const indexCss = await readProjectFile(root, 'src/index.css');
 
-		expect(result.changedFiles).toHaveLength(1);
-		expect(result.changedFiles[0]?.summaries).toContain(
-			"added import '@c15t/react/styles.css'"
+		expect(indexCss).toContain(
+			'@import "@c15t/react/styles.css";\n@import "@c15t/react/iab/styles.css";'
 		);
-		expect(result.changedFiles[0]?.summaries).toContain(
-			"added import '@c15t/react/iab/styles.css'"
-		);
-
-		const content = await readFile(join(fixtureDir, 'src/main.tsx'), 'utf-8');
-		expect(content).toContain("import '@c15t/react/styles.css';");
-		expect(content).toContain("import '@c15t/react/iab/styles.css';");
 	});
 
-	it('skips headless-only projects', async () => {
-		fixtureDir = await createFixture({
+	it('is idempotent when the correct CSS import already exists', async () => {
+		const { root } = await createProject({
 			'src/main.tsx': [
-				"import React from 'react';",
+				"import './index.css';",
 				"import { App } from './app';",
 				'',
 				'export default App;',
 			].join('\n'),
-			'src/app.tsx': [
-				"import { useConsentManager } from '@c15t/react/headless';",
+			'src/index.css': [
+				'@import "@c15t/react/styles.css";',
 				'',
-				'export function App() {',
-				'  const { hasConsent } = useConsentManager();',
-				'  return <div>{String(hasConsent)}</div>;',
-				'}',
+				':root { color: #111827; }',
+			].join('\n'),
+			'src/app.tsx': [
+				"import { ConsentBanner } from '@c15t/react';",
+				'export function App() { return <ConsentBanner />; }',
 			].join('\n'),
 		});
 
 		const result = await runAddStylesheetImportsCodemod({
-			projectRoot: fixtureDir,
+			projectRoot: root,
 			dryRun: false,
 		});
 
@@ -167,11 +181,65 @@ describe('add-stylesheet-imports codemod', () => {
 		expect(result.errors).toHaveLength(0);
 	});
 
-	it('is idempotent when import already exists', async () => {
-		fixtureDir = await createFixture({
+	it('reports changes during dry runs without writing files', async () => {
+		const { root } = await createProject({
 			'src/main.tsx': [
-				"import React from 'react';",
 				"import '@c15t/react/styles.css';",
+				"import './index.css';",
+				"import { App } from './app';",
+				'',
+				'export default App;',
+			].join('\n'),
+			'src/index.css': ':root { color: #111827; }\n',
+			'src/app.tsx': [
+				"import { ConsentBanner } from '@c15t/react';",
+				'export function App() { return <ConsentBanner />; }',
+			].join('\n'),
+		});
+
+		const result = await runAddStylesheetImportsCodemod({
+			projectRoot: root,
+			dryRun: true,
+		});
+		const mainTsx = await readProjectFile(root, 'src/main.tsx');
+		const indexCss = await readProjectFile(root, 'src/index.css');
+
+		expect(result.changedFiles).toHaveLength(2);
+		expect(mainTsx).toContain("import '@c15t/react/styles.css';");
+		expect(indexCss).not.toContain('@c15t/react/styles.css');
+	});
+
+	it('skips headless-only projects', async () => {
+		const { root } = await createProject({
+			'src/main.tsx': [
+				"import './index.css';",
+				"import { App } from './app';",
+				'',
+				'export default App;',
+			].join('\n'),
+			'src/index.css': ':root { color: #111827; }\n',
+			'src/app.tsx': [
+				"import { useConsentManager } from '@c15t/react/headless';",
+				'',
+				'export function App() {',
+				'  const store = useConsentManager();',
+				'  return <div>{String(Boolean(store))}</div>;',
+				'}',
+			].join('\n'),
+		});
+
+		const result = await runAddStylesheetImportsCodemod({
+			projectRoot: root,
+			dryRun: false,
+		});
+
+		expect(result.changedFiles).toHaveLength(0);
+		expect(result.errors).toHaveLength(0);
+	});
+
+	it('returns an actionable error when no global CSS entrypoint exists', async () => {
+		const { root } = await createProject({
+			'src/main.tsx': [
 				"import { App } from './app';",
 				'',
 				'export default App;',
@@ -183,62 +251,16 @@ describe('add-stylesheet-imports codemod', () => {
 		});
 
 		const result = await runAddStylesheetImportsCodemod({
-			projectRoot: fixtureDir,
-			dryRun: false,
-		});
-
-		expect(result.changedFiles).toHaveLength(0);
-		expect(result.errors).toHaveLength(0);
-
-		const content = await readFile(join(fixtureDir, 'src/main.tsx'), 'utf-8');
-		const matches = content.match(/@c15t\/react\/styles\.css/g);
-		expect(matches).toHaveLength(1);
-	});
-
-	it('returns error when no entrypoint found', async () => {
-		fixtureDir = await createFixture({
-			'src/components/banner.tsx': [
-				"import { ConsentBanner } from '@c15t/react';",
-				'export function Banner() { return <ConsentBanner />; }',
-			].join('\n'),
-		});
-
-		const result = await runAddStylesheetImportsCodemod({
-			projectRoot: fixtureDir,
+			projectRoot: root,
 			dryRun: false,
 		});
 
 		expect(result.changedFiles).toHaveLength(0);
 		expect(result.errors).toHaveLength(1);
-		expect(result.errors[0]?.error).toContain('No root entrypoint found');
-	});
-
-	it('reports changes but does not write in dry run', async () => {
-		fixtureDir = await createFixture({
-			'src/main.tsx': [
-				"import React from 'react';",
-				"import { App } from './app';",
-				'',
-				'export default App;',
-			].join('\n'),
-			'src/app.tsx': [
-				"import { ConsentBanner } from '@c15t/react';",
-				'export function App() { return <ConsentBanner />; }',
-			].join('\n'),
-		});
-
-		const result = await runAddStylesheetImportsCodemod({
-			projectRoot: fixtureDir,
-			dryRun: true,
-		});
-
-		expect(result.changedFiles).toHaveLength(1);
-		expect(result.changedFiles[0]?.summaries).toContain(
-			"added import '@c15t/react/styles.css'"
+		expect(result.errors[0]?.error).toContain(
+			'No suitable global CSS entrypoint found.'
 		);
-
-		// File should NOT have been modified on disk
-		const content = await readFile(join(fixtureDir, 'src/main.tsx'), 'utf-8');
-		expect(content).not.toContain('@c15t/react/styles.css');
+		expect(result.errors[0]?.error).toContain('src/index.css');
+		expect(result.errors[0]?.error).toContain('src/styles.css');
 	});
 });

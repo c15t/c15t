@@ -1,30 +1,33 @@
-'use client';
-
-import { ConsentBanner, ConsentManagerProvider } from '@c15t/react';
+import { listCssLayerScenarios } from '@c15t/benchmarking';
 
 export default function Home() {
+	const scenarios = listCssLayerScenarios();
+
 	return (
-		<ConsentManagerProvider
-			options={{
-				mode: 'offline',
-				theme: {
-					slots: {
-						consentBannerTitle: 'custom-title-override',
-					},
-				},
-			}}
-		>
-			<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
-				<h1>No-TW + c15t CSS Layer Test</h1>
-				<p>
-					This page verifies that c15t component styles (inside{' '}
-					<code>@layer c15t</code>) render correctly without any CSS framework.
-					Buttons should have padding, border-radius, and proper background
-					colors. The banner title should have custom blue color and underline
-					from <code>.custom-title-override</code>.
+		<main className="css-layer-home">
+			<div className="css-layer-home-copy">
+				<p className="css-layer-home-eyebrow">Plain CSS Environment</p>
+				<h1 className="css-layer-home-title">c15t CSS layer review routes</h1>
+				<p className="css-layer-home-description">
+					This app renders the shared manual-review scenarios without any
+					Tailwind pipeline. Use it as the plain-CSS control when utility-layer
+					merging starts to drift in the Tailwind environments.
 				</p>
-			</main>
-			<ConsentBanner />
-		</ConsentManagerProvider>
+			</div>
+
+			<ul className="css-layer-home-list">
+				{scenarios.map((scenario) => (
+					<li key={scenario.id}>
+						<a
+							className="css-layer-home-link"
+							href={`/matrix/${scenario.surface}/${scenario.fixtureKind}`}
+						>
+							<span>{scenario.title}</span>
+							<code>{`/matrix/${scenario.surface}/${scenario.fixtureKind}`}</code>
+						</a>
+					</li>
+				))}
+			</ul>
+		</main>
 	);
 }

@@ -93,7 +93,7 @@ export const modeSelectionActor = fromPromise<
 			{
 				value: 'hosted',
 				label: 'Hosted',
-				hint: 'consent.io or self-hosted backend URL',
+				hint: 'inth.com or self-hosted backend URL',
 			},
 			{
 				value: 'offline',
@@ -117,7 +117,7 @@ export const modeSelectionActor = fromPromise<
 
 // --- Hosted Mode Prompt ---
 
-type HostedProvider = 'consent.io' | 'self-hosted';
+type HostedProvider = 'inth.com' | 'self-hosted';
 type ConsentSetupMethod = 'sign-in' | 'manual-url';
 
 export interface HostedModeInput {
@@ -300,7 +300,7 @@ async function createInstanceInteractively(
 	});
 
 	if (isCancel(orgSelection)) {
-		throw new PromptCancelledError('instance_create_org_slug');
+		throw new PromptCancelledError('project_create_org_slug');
 	}
 
 	const v2Regions = regions.filter(
@@ -323,21 +323,21 @@ async function createInstanceInteractively(
 	});
 
 	if (isCancel(regionSelection)) {
-		throw new PromptCancelledError('instance_create_region');
+		throw new PromptCancelledError('project_create_region');
 	}
 
 	const slugInput = await p.text({
-		message: 'New instance slug:',
+		message: 'New project slug:',
 		placeholder: 'my-app',
 		validate: (value) => validateInstanceName(value?.trim() ?? ''),
 	});
 
 	if (isCancel(slugInput)) {
-		throw new PromptCancelledError('instance_create_name');
+		throw new PromptCancelledError('project_create_name');
 	}
 
 	const slug = slugInput.trim();
-	const createSpinner = createTaskSpinner(`Creating instance "${slug}"...`);
+	const createSpinner = createTaskSpinner(`Creating project "${slug}"...`);
 	createSpinner.start();
 
 	try {
@@ -348,13 +348,13 @@ async function createInstanceInteractively(
 				region: regionSelection,
 			},
 		});
-		createSpinner.success('Instance created');
+		createSpinner.success('Project created');
 		cliContext.logger.info(
-			'Created as a v2 development instance. Enable production mode in the dashboard when you are ready.'
+			'Created as a v2 development project. Enable production mode in the dashboard when you are ready.'
 		);
 		return instance;
 	} catch (error) {
-		createSpinner.error('Failed to create instance');
+		createSpinner.error('Failed to create project');
 		throw error;
 	}
 }
@@ -363,9 +363,7 @@ async function selectOrCreateInstance(
 	cliContext: CliContext
 ): Promise<Instance> {
 	const baseUrl = getControlPlaneBaseUrl();
-	const listSpinner = createTaskSpinner(
-		'Fetching your consent.io instances...'
-	);
+	const listSpinner = createTaskSpinner('Fetching your inth.com projects...');
 	listSpinner.start();
 
 	const client = await createControlPlaneClientFromConfig(baseUrl);
@@ -380,13 +378,13 @@ async function selectOrCreateInstance(
 
 		if (instances.length === 0) {
 			cliContext.logger.info(
-				'No instances found. Creating a new instance for this project.'
+				'No projects found. Creating a new project for this local project.'
 			);
 			return await createInstanceInteractively(client, cliContext);
 		}
 
 		const selectedId = await p.select<string | symbol>({
-			message: 'Select an instance to use:',
+			message: 'Select a project to use:',
 			options: [
 				...instances.map((instance) => ({
 					value: instance.id,
@@ -395,14 +393,14 @@ async function selectOrCreateInstance(
 				})),
 				{
 					value: '__create__',
-					label: 'Create new instance',
-					hint: 'Provision a new consent.io instance now',
+					label: 'Create new project',
+					hint: 'Provision a new inth.com project now',
 				},
 			],
 		});
 
 		if (isCancel(selectedId)) {
-			throw new PromptCancelledError('instance_select');
+			throw new PromptCancelledError('project_select');
 		}
 
 		if (selectedId === '__create__') {
@@ -433,8 +431,8 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 				message: 'Choose your hosted backend option:',
 				options: [
 					{
-						value: 'consent.io',
-						label: 'consent.io (Recommended)',
+						value: 'inth.com',
+						label: 'inth.com (Recommended)',
 						hint: 'Managed infrastucture',
 					},
 					{
@@ -443,7 +441,7 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 						hint: 'Use your own deployed c15t backend',
 					},
 				],
-				initialValue: 'consent.io',
+				initialValue: 'inth.com',
 			});
 
 			if (isCancel(providerSelection)) {
@@ -465,29 +463,26 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 		}
 
 		if (!isV2ModeEnabled()) {
-			cliContext.logger.info(
-				'consent.io sign-in is currently disabled. Set V2=1 to enable sign-in and instance selection.'
-			);
 			const url = await promptBackendURL({
-				message: 'Enter your consent.io instance URL:',
-				placeholder: 'https://your-instance.c15t.dev',
+				message: 'Enter your inth.com project URL:',
+				placeholder: 'https://your-project.inth.app',
 				initialURL,
 				stage: 'consent_manual_url',
 			});
-			return { url, provider: 'consent.io' };
+			return { url, provider: 'inth.com' };
 		}
 
 		const setupMethod = await p.select<ConsentSetupMethod | symbol>({
-			message: 'How do you want to configure consent.io?',
+			message: 'How do you want to configure inth.com?',
 			options: [
 				{
 					value: 'sign-in',
-					label: 'Sign in and pick an instance',
-					hint: 'List existing instances or create a new one',
+					label: 'Sign in and pick a project',
+					hint: 'List existing projects or create a new one',
 				},
 				{
 					value: 'manual-url',
-					label: 'Enter instance URL manually',
+					label: 'Enter project URL manually',
 					hint: 'Use an existing backend URL',
 				},
 			],
@@ -500,12 +495,12 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 
 		if (setupMethod === 'manual-url') {
 			const url = await promptBackendURL({
-				message: 'Enter your consent.io instance URL:',
-				placeholder: 'https://your-instance.c15t.dev',
+				message: 'Enter your inth.com project URL:',
+				placeholder: 'https://your-project.inth.app',
 				initialURL,
 				stage: 'consent_manual_url',
 			});
-			return { url, provider: 'consent.io' };
+			return { url, provider: 'inth.com' };
 		}
 
 		await runConsentLogin(cliContext);
@@ -513,12 +508,12 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 
 		await setSelectedInstanceId(instance.id);
 		cliContext.logger.info(
-			`Using instance ${color.cyan(instance.name)} (${color.dim(instance.id)})`
+			`Using project ${color.cyan(instance.name)} (${color.dim(instance.id)})`
 		);
 
 		return {
 			url: instance.url,
-			provider: 'consent.io',
+			provider: 'inth.com',
 		};
 	}
 );
@@ -561,7 +556,7 @@ export const backendOptionsActor = fromPromise<
 
 		const proxyResult = await p.confirm({
 			message:
-				'Proxy requests to your instance with Next.js Rewrites? (Recommended)',
+				'Proxy requests to your project with Next.js Rewrites? (Recommended)',
 			initialValue: true,
 		});
 

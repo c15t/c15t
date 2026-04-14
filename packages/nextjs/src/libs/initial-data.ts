@@ -31,7 +31,13 @@ const DEFAULT_REVALIDATE_SECONDS = 1;
  *   backendURL: '/api/consent',
  *   debug: process.env.NODE_ENV === 'development'
  * });
- * return <ClientProvider ssrData={initialData}>{children}</ClientProvider>
+ * return (
+ *   <ConsentManagerProvider
+ *     options={{ mode: 'hosted', backendURL: '/api/consent', ssrData: initialData }}
+ *   >
+ *     {children}
+ *   </ConsentManagerProvider>
+ * )
  * ```
  */
 export async function fetchInitialData(

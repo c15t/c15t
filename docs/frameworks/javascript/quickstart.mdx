@@ -21,9 +21,17 @@ const { consentManager, consentStore } = getOrCreateConsentRuntime({
 });
 ```
 
+<Callout type="info">
+  Hosted mode is the recommended production setup because the backend resolves jurisdiction and translations, stores consent decisions outside the current browser, and can re-sync after temporary outages.
+</Callout>
+
+<Callout type="warn">
+  You can switch to `mode: 'offline'` for local-only storage, demos, or static previews, but that removes backend audit history, automatic jurisdiction detection, and server-side consent awareness. Review [Client Modes](/docs/frameworks/javascript/concepts/client-modes) before using offline mode in production.
+</Callout>
+
 ## Subscribe to State Changes
 
-The store is a [Zustand vanilla store](https://zustand.docs.pmnd.rs/guides/extracting-actions) — use `subscribe()` to react to consent changes and `getState()` to read the current state:
+The store is a [Zustand vanilla store](https://zustand.docs.pmnd.rs/guides/extracting-actions). Use `subscribe()` for UI and general state updates, `subscribeToConsentChanges()` for change-only consent integrations, and `getState()` to read the current state:
 
 ```ts
 // React to every state change
@@ -31,6 +39,13 @@ consentStore.subscribe((state) => {
   console.log('Consent state:', state.consents);
   console.log('Show banner?', state.activeUI === 'banner');
 });
+
+// React only to real saved preference changes
+consentStore
+  .getState()
+  .subscribeToConsentChanges(({ allowedCategories, deniedCategories }) => {
+    analytics.syncConsent({ allowedCategories, deniedCategories });
+  });
 
 // Read current state at any time
 const state = consentStore.getState();
@@ -108,7 +123,7 @@ console.log('Location:', state?.locationInfo);
 
 Install c15t agent skills to let AI agents help with styling, i18n, scripts & other configuration.
 
-<PackageCommandTabs command="@c15t/cli@rc skills" />
+<PackageCommandTabs command="@c15t/cli skills" />
 
 See [AI Agents](/docs/ai-agents) for bundled package docs and agent skills.
 

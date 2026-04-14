@@ -57,7 +57,9 @@ function LoginForm() {
 ```
 
 <Callout type="info">
-  `identifyUser` sends the user data to the c15t backend. It only works in `'c15t'` mode — in `'offline'` mode the call is a no-op.
+  `identifyUser` sends the user data to the c15t backend. It works in hosted
+  mode, including the legacy alias `mode: 'c15t'`. In `mode: 'offline'`, the
+  call is a no-op.
 </Callout>
 
 <import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#key-types" />

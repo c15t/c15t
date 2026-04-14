@@ -1,0 +1,236 @@
+---
+title: "v2.0.0 - New Styling System, Policy Packs, Backend v2 & More"
+version: "2.0.0"
+date: 2026-04-13
+description: "Stable release notes for c15t 2.0, covering the token-based styling system, policy packs, GPC, IAB TCF 2.3, bundled docs, c15t/skills, dev tools, backend v2, migration tooling, and the prebuilt UI."
+tags:
+  - release
+  - stable
+  - react
+  - nextjs
+  - backend
+  - styling
+  - iab
+type: release
+breaking: true
+authors: [KayleeWilliams]
+---
+
+c15t 2.0 is a major release across all of our packages. It ships a new styling model, a policy-driven consent system, a rewritten backend, expanded framework integrations, and a streamlined migration and setup path.
+
+## Highlights
+
+- [New token-based styling system](#new-token-based-styling-system)
+- [Policy packs and GPC support](#policy-packs-and-gpc-support)
+- [IAB TCF 2.3 support](#iab-tcf-23-support)
+- [Improved Next.js DX and optimizations](#improved-nextjs-dx--optimizations)
+- [Script loading, network blocking, and integrations](#script-loading-network-blocking-and-integrations)
+- [Backend v2](#backend-v2)
+- [Migration and setup with c15t CLI](#migration-and-setup-with-c15t-cli)
+- [Dev tools and diagnostics](#dev-tools-and-diagnostics)
+- [Bundled docs and c15t skills](#bundled-docs-and-c15t-skills)
+- [New hosted infrastructure for Inth.com](#new-hosted-infrastructure-for-inthcom)
+- [Apache 2.0 licensing](#apache-20-licensing)
+- [onConsentChanged callback](#onconsentchanged-callback)
+- [Prebuilt branding](#prebuilt-branding)
+- [Additional changes in 2.0](#additional-changes-in-20)
+
+## New token-based styling system
+
+2.0 uses a styling model built around semantic design tokens instead of deeply nested theme objects. Now style colors, typography, spacing, radius, motion, and surface-level component treatments from one token system. Slots are also available when you want to apply a classname or style to specific component such as the banner's footer.
+
+We have also moved from the css-in-js approach of c15t 1.0 to CSS stylesheet imports e.g.`@c15t/react/styles.css` and `styles.tw3.css`, this improves performance on the main thread and ensures the styling is predictable. Build tools like Turbopack split up Javacript into different chunks causing ordering issues, however these tools consolidate CSS to avoid the CSS ordering issues.
+
+→ [React Styling](/docs/frameworks/react/styling/overview) · [Next.js Styling](/docs/frameworks/next/styling/overview) · [ConsentBanner](/docs/frameworks/react/components/consent-banner) · [ConsentDialog](/docs/frameworks/react/components/consent-dialog) · [ConsentWidget](/docs/frameworks/react/components/consent-widget)
+
+## Policy packs and GPC support
+
+Every organization is different, we designed 1.0 to be a "one-size-fits-all" system but that is not the case. Some may want to only care about consent in the US, or others want to souley focus on the EU-market and want to show an opt-in banner everywhere.
+
+Policy packs define regional consent behavior explicitly. c15t resolves the active policy at runtime from an ordered set of regional policies.
+
+- Built-in presets cover Europe opt-in, Europe IAB, California opt-in, California opt-out, Quebec opt-in, and world-no-banner flows
+- Resolution follows a fixed order: region, country, fallback, then default
+- Per-policy GPC support means opt-out regions such as California can honor Global Privacy Control without forcing the same behavior onto unrelated policies
+- Fallback policies protect strict regions even when geo headers are missing
+- Policy fingerprints automatically re-prompt users when consent-affecting policy semantics change
+- Snapshot tokens bind consent writes to the policy decision returned by `/init`
+- `inspectPolicies()` helps catch misconfiguration before deployment
+
+→ [React Policy Packs](/docs/frameworks/react/policy-packs) · [Next.js Policy Packs](/docs/frameworks/next/policy-packs) · [Policy Packs Concepts](/docs/frameworks/react/concepts/policy-packs) · [Self-Host Guide](/docs/self-host/guides/policy-packs)
+
+## New hosted infrastructure for Inth.com
+
+As part of 2.0's release we have upgraded the infrastructure used users on `inth.com`, formally `consent.io`. This has many benefits such as being faster & improved bot detection, so your usage requests are more accurate to the human-visitors.
+
+Currently this is under the new `inth.app` domain, you can see this in the dashboard for your project as the URL is slightly different than the layout of the previous one. Legacy `c15t.dev` will move over to the new infrastructure in the course of the coming weeks with 0 downtime
+
+## IAB TCF 2.3 support
+
+IAB TCF 2.3 is a consent framework used for programatic advertising, they are notably different than standard banners and have strict UI-requirements, including the "Us and our 1028 partners" text.
+
+c15t now supports this framework and has pre-built UI for the `IABConsentBanner` and `IABConsentDialog` and is available via Policy Packs and a runtime ad-on `@c15t/iab` (so your client-bundle doesn't get bloated if you don't need it).
+
+To run IAB TCF 2.3 you need to register as a CMP with [IAB Europe](https://iabeurope.eu/transparency-consent-framework/) which has a registration fee. For user's hosting with Inth you do not need to do this step and instead can use IAB via a project add-on.
+
+→ [React IAB Overview](/docs/frameworks/react/iab/overview) · [Next.js IAB Overview](/docs/frameworks/next/iab/overview) · [Self-Host IAB Guide](/docs/self-host/guides/iab-tcf)
+
+## Migration and setup with c15t cli
+
+The c15t CLI has been overhauled internally and includes new features:
+
+- Migration Codemods (v1 -> v2)
+- Improved scaffolding with component generation selection, script setup & more.
+- Setup c15t/skills
+
+It's worth noting that there is a lot of breaking changes in this release so a fresh start might be ideal so you can follow our recommended practices particularly for `@c15t/nextjs`.
+
+→ [React Quickstart](/docs/frameworks/react/quickstart) · [Next.js Quickstart](/docs/frameworks/next/quickstart) · [Self-Host Quickstart](/docs/self-host/quickstart) · [AI Agents](/docs/ai-agents)
+
+## Bundled docs and c15t skills
+
+Agents are prevalient in most of our day-to-day activities as a developer. To leverage this c15t now bundles version-matched docs directly with the published packages under `docs/**`.
+
+- `node_modules/c15t/docs/`
+- `node_modules/@c15t/react/docs/`
+- `node_modules/@c15t/nextjs/docs/`
+- `node_modules/@c15t/backend/docs/`
+
+This allows agents can read the docs for the exact installed version. Giving the agent full-knowledge of c15t such as how to customize, set up Meta Pixel, and optimize it.
+
+You can install c15t skills today with `npx skills add c15t/skills`.
+
+→ [AI Agents](/docs/ai-agents)
+
+## Apache 2.0 licensing
+
+c15t 2.0 changes the project license from `GPL-3.0-only` to `Apache-2.0`.
+
+This makes the project easier to evaluate and adopt in a wider range of commercial and internal environments, while keeping the standard Apache 2.0 attribution and patent terms.
+
+→ [License](/docs/oss/license) · [Contributing](/docs/oss/contributing)
+
+## Dev tools and diagnostics
+
+2.0 ships `@c15t/dev-tools`, a floating development panel for inspecting consent behavior in real time.
+
+- inspect consent state, geo context, language, and initialization data
+- inspect policy resolution with full match traces
+- simulate region and GPC overrides during development
+- inspect policy actions and consent UI decisions
+- script lifecycle activity and manifest telemetry
+
+The panel gives teams a way to inspect policy behavior, consent state, and script gating without stitching together console logs and custom debug code.
+
+## onConsentChanged callback
+
+We have added a new callback: `onConsentChanged`. This runs explicitly on consent saves that actually change persisted preferences.
+
+→ [React DevTools](/docs/frameworks/react/components/dev-tools) · [Next.js DevTools](/docs/frameworks/next/components/dev-tools) · [React Callbacks](/docs/frameworks/react/callbacks) · [Next.js Callbacks](/docs/frameworks/next/callbacks)
+
+## Improved Next.js DX & Optimizations
+
+`@c15t/nextjs` now has a simpler default architecture. The provider is client-side by default, so callbacks and consent UI can stay together instead of being split across separate wrapper components. When you do want server-preloaded data, the same provider can accept `ssrData` from `fetchInitialData()`.
+
+Optimization is also clearer now:
+
+- Use a same-origin `/api/c15t` rewrite as the baseline for browser requests. This reduces extra DNS/TLS setup, hides the backend origin, and makes blocking less likely.
+- Use `C15tPrefetch` on static routes. It starts `/init` before hydration, and matching prefetched data is consumed automatically during first initialization.
+- Use `fetchInitialData()` on dynamic routes. It starts `/init` in a Server Component and streams the result into the provider, but it opts the route into dynamic rendering via `next/headers`.
+
+As a rule of thumb: rewrites for everyone, `C15tPrefetch` for static routes, `fetchInitialData()` for dynamic routes. In our production benchmarks, these strategies improved script and banner startup by roughly 30-90% compared with plain client-only init.
+
+→ [Next.js Quickstart](/docs/frameworks/next/quickstart) · [Next.js Optimization](/docs/frameworks/next/optimization) · [Next.js Server-Side](/docs/frameworks/next/server-side)
+
+## Script loading, Network Blocking and integrations
+
+The integrations from `c15t/scripts` have been re-written in a manifest format which has a range of benefits including:
+
+- More predictable lifecycle. 2.0 has explicit phases like bootstrap, install, afterLoad, onLoadGranted, and onConsentDenied instead of burying sequencing inside ad hoc callback code
+- Safer and easier to validate. Manifests are schema-versioned and checked before execution, and the compiler enforces things like interpolation correctness and only one loadScript step in install.
+- Less raw inline JS. The old Meta Pixel helper literally shipped the vendor bootstrap as a big textContent string; the new one expresses the same behavior as defineStubFunction, callGlobal, and loadScript steps. That is easier to read, test, and reason about.
+- Better reuse and future server support.
+- Better debugging. The runtime emits manifest phase and step telemetry, so DevTools can show phase-level activity instead of you reverse-engineering callback order from custom code.
+- Cleaner vendor parity. Google Consent Mode is modeled directly as manifest metadata (consentMapping, consentSignal) rather than each helper manually doing the same mapping work in slightly different callback code.
+
+Instead of handling an onDelete callback for every script to clean it up, the page is now reloaded to clear already-loaded third-party JavaScript when previously granted consent is revoked. This is the best way to handle 3rd party cookies due to the flimsy nature of trying to tear-down every script as the JavaScript is already on the page.
+
+In 1.0 we shipped a massive list of domains & associated categories, this wasn't a smart idea as it increased bundle size but also made it more of a black-box when enabled. In 2.0 we've remade it as an actual network blocker, not a black box, removing the pre-determined list for your own rules to go in, by default no network requests are blocked. It is still prefered, when possible to use the script loader as controlling what Javascript runs on your site is better than blocking it.
+
+→ [React Script Loader](/docs/frameworks/react/script-loader) · [Next.js Script Loader](/docs/frameworks/next/script-loader) · [Integrations Overview](/docs/integrations/overview) · [React Network Blocker](/docs/frameworks/react/network-blocker) · [Next.js Network Blocker](/docs/frameworks/next/network-blocker)
+
+## Backend v2
+
+We rewrote the backend seeing a 60% bundle-size reduction on a Cloudflare Worker, reducing start-up cost and keeping it suited for edge deployments. We did this by replacing ORPC & Zod with Valibot and Hono, as we did not need the majorty of features in the previous stack. It also comes with improved OpenTelemetry support.
+
+It includes a new subject-centric API that makes more sense as the data-subject (user) is the core thing, not consents.
+
+Other backend changes:
+- a root `/` endpoint for simpler health checks
+- `/status` health coverage improvements, including database checks
+- flattened backend entrypoints for TypeScript DX
+
+→ [Self-Host Quickstart](/docs/self-host/quickstart) · [API Endpoints](/docs/self-host/api/endpoints) · [Self-Host Policy Packs](/docs/self-host/guides/policy-packs)
+
+## Prebuilt branding
+
+We've updated the prebuilt UI's branding to be tags attahed to the banner, in the dialog footer like before. The "Secured by" text has also been localised into every language we support.
+
+→ [ConsentBanner](/docs/frameworks/react/components/consent-banner) · [ConsentDialog](/docs/frameworks/react/components/consent-dialog) · [ConsentWidget](/docs/frameworks/react/components/consent-widget) · [ConsentDialogTrigger](/docs/frameworks/react/components/consent-dialog-trigger)
+
+
+## Additional changes in 2.0
+
+2.0 also includes a number of smaller but important product, UI, and packaging changes:
+
+- shared UI primitives now power consent surfaces through `@c15t/ui/primitives`, with adapters for Solid, Vue, and Svelte. Allowing for future c15t packages for those frameworks.
+- the new `PreferenceItem` primitive unifies several expandable-row patterns used across the consent UI
+- fixed-position consent surfaces avoid horizontal overflow and clipped dialog content on mobile viewports
+- `prefers-reduced-motion` is respected throughout the shipped UI
+- package declaration output moved out of runtime bundles into `dist-types/` for publish artifacts and Vite compatibility
+- translation-facing APIs were renamed from `translations` to `i18n`
+- hosted/offline terminology uses `hosted` instead of `c15t` mode
+
+Taken together, these changes make 2.0 a full update to the runtime model, policy system, backend architecture, integration ergonomics, and developer tooling.
+
+## Breaking Changes
+
+### Styling system v1 removed
+
+The legacy nested theme keys and older per-component styling model are replaced by the new token-based styling system. Customizations should now flow through tokens, slots, CSS variables, class overrides, compound components, or fully headless usage.
+
+### Provider options flattened
+
+The old `react: { ... }` wrapper is gone. UI options such as `theme`, `colorScheme`, and `disableAnimation` now live at the provider level.
+
+### Backend v1 removed
+
+The old backend implementation and `/v1` routes are no longer part of 2.0. The current backend surface is the v2 architecture centered around `c15tInstance()` and Fetch-style handlers.
+
+### New API: `/show-consent-banner` replaced with `/init`
+
+Initialization now flows through `/init`, which returns the consent runtime payload, geo context, translations, and policy data, as well as a new subject-centric API
+
+### Consent UI state normalized around `activeUI`
+
+`showPopup`, `isPrivacyDialogOpen`, `setShowPopup()`, and `setIsPrivacyDialogOpen()` are replaced by the `activeUI` state and `setActiveUI()` API.
+
+### Component names updated
+
+The prebuilt component names are now clearer:
+
+| v1 | v2 |
+| --- | --- |
+| `CookieBanner` | `ConsentBanner` |
+| `ConsentManagerDialog` | `ConsentDialog` |
+| `ConsentManagerWidget` | `ConsentWidget` |
+
+### `gdprTypes` renamed to `consentCategories`
+
+Consent categories are no longer framed as GDPR-only. The `initialGDPRTypes` and `gdprTypes` options are replaced by `consentCategories`.
+
+### Tracking blocker replaced with network blocker
+
+The legacy tracking blocker is replaced by the network blocker, which intercepts `fetch` and `XMLHttpRequest` calls using consent-aware domain rules.
+
+<ContributorBlock usernames={["KayleeWilliams"]} title="Thank you to our contributors" />

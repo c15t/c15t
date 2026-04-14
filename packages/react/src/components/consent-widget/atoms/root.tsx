@@ -6,6 +6,7 @@
  * Implements context provider pattern with theme support and state management.
  */
 
+import styles from '@c15t/ui/styles/components/consent-widget.module.js';
 import type { FC, ReactNode } from 'react';
 import { Box } from '~/components/shared/primitives/box';
 import {
@@ -125,6 +126,7 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 
 	const content = (
 		<Box
+			baseClassName={styles.widget}
 			data-testid="consent-widget-root"
 			themeKey="consentWidget"
 			dir={textDirection}

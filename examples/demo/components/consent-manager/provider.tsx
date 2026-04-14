@@ -9,12 +9,17 @@ import {
 	ConsentManagerProvider,
 } from '@c15t/react';
 import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
+import { databuddy } from '@c15t/scripts/databuddy';
+import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+import { xPixel } from '@c15t/scripts/x-pixel';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { useThemePreset } from './theme-switcher';
 
 const SEARCH_CHANGE_EVENT = 'c15t:search-change';
+const DEFAULT_BACKEND_URL = 'https://test-consent-io.inth.app/';
+const TERMS_BACKEND_URL = '/api/self-host';
 
 /**
  * Props for the ConsentManager component
@@ -168,18 +173,31 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 			}
 		: activeTheme;
 
-	const isHeadlessPolicyTab =
-		pathname === '/policy' &&
-		new URLSearchParams(search).get('tab') === 'headless';
+	const isPolicyDemo = pathname === '/policy';
+	const isPolicyActionsDemo = pathname === '/policy-actions';
+	const isTermsDemo = pathname.startsWith('/terms');
+	let backendURL: string;
+
+	if (isTermsDemo) {
+		backendURL = TERMS_BACKEND_URL;
+	} else {
+		backendURL = DEFAULT_BACKEND_URL;
+	}
+
+	if (isPolicyActionsDemo) {
+		return (
+			<>
+				{children}
+				<DevTools />
+			</>
+		);
+	}
 
 	return (
 		<ConsentManagerProvider
 			options={{
 				mode: 'c15t',
-				// backendURL: 'https://instance-worker-test.consent-ef4.workers.dev/',
-				// backendURL: 'https://minecraft-europe-hypixel.c15t.xyz',
-				// backendURL: '/api/self-host',
-				backendURL: 'https://minecraft-eu-west-1-mewwing.c15t.xyz/',
+				backendURL,
 				consentCategories: [
 					'necessary',
 					'functionality',
@@ -216,6 +234,23 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 						category: 'measurement',
 						vendorId: 'internal-analytics',
 					},
+					databuddy({
+						clientId: '13a29940-fa67-4036-9970-cc9f8d869ae',
+						configWhenGranted: {
+							clientId: '13a29940-fa67-4036-9970-cc9f8d869ae',
+							disabled: false,
+						},
+						configWhenDenied: {
+							clientId: '13a29940-fa67-4036-9970-cc9f8d869ae',
+							disabled: true,
+						},
+					}),
+					xPixel({
+						pixelId: 'qvfsy',
+					}),
+					googleTagManager({
+						id: 'GTM-WL5L8NW7',
+					}),
 				],
 				storageConfig: {
 					crossSubdomain: true,
@@ -236,7 +271,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 				overrides: geoOverrides,
 			}}
 		>
-			{!isHeadlessPolicyTab ? (
+			{!isPolicyDemo && !isPolicyActionsDemo ? (
 				<>
 					<ConsentBanner />
 					<IABConsentBanner />

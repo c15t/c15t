@@ -9,6 +9,7 @@
 	--consent-banner-border-radius-sm: var(--c15t-radius-sm);
 	--consent-banner-border-radius: var(--c15t-radius-lg);
 	--consent-banner-max-width: 440px;
+	--consent-banner-branding-tag-offset: 2rem;
 
 	/* Animation variables */
 	--consent-banner-animation-duration: var(--c15t-duration-fast);
@@ -117,13 +118,19 @@
 	/* Card styles */
 	.card {
 		position: relative;
-		width: min(100%, var(--consent-banner-max-width));
+		width: 100%;
 		border-radius: var(--consent-banner-border-radius);
 		border-width: var(--consent-banner-border-width);
 		border-color: var(--consent-banner-border-color);
 		background-color: var(--consent-banner-background-color);
 		box-shadow: var(--consent-banner-shadow);
 		overflow: hidden;
+	}
+
+	.cardShell {
+		display: flex;
+		flex-direction: column;
+		width: min(100%, var(--consent-banner-max-width));
 	}
 
 	:global(.c15t-dark) .card {

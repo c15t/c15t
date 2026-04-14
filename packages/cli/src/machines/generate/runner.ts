@@ -24,6 +24,80 @@ import type { MachineExecutionResult } from '../types';
 import { generateMachine } from './machine';
 import type { GenerateMachineContext } from './types';
 
+function getSetupTrigger(
+	modeArg: StorageMode | undefined,
+	resumed: boolean
+): 'resume' | 'arg' | 'interactive' {
+	if (resumed) {
+		return 'resume';
+	}
+
+	if (modeArg) {
+		return 'arg';
+	}
+
+	return 'interactive';
+}
+
+function normalizeSetupReason(
+	finalState: string,
+	finalContext: GenerateMachineContext
+): string | undefined {
+	if (finalState === 'complete') {
+		return undefined;
+	}
+
+	if (
+		finalState === 'preflightError' ||
+		(!finalContext.preflightPassed &&
+			finalContext.preflightChecks.some((check) => check.status === 'fail'))
+	) {
+		return 'preflight_failed';
+	}
+
+	if (finalState === 'exited' || finalState === 'cancelled') {
+		const reason = finalContext.cancelReason?.toLowerCase();
+
+		if (!reason) {
+			return 'user_cancelled';
+		}
+
+		if (reason.includes('signal')) {
+			return 'signal_interrupted';
+		}
+
+		if (reason.includes('mode selection')) {
+			return 'mode_selection_cancelled';
+		}
+
+		if (reason.includes('hosted setup')) {
+			return 'hosted_setup_cancelled';
+		}
+
+		if (reason.includes('backend options')) {
+			return 'backend_options_cancelled';
+		}
+
+		if (reason.includes('frontend options')) {
+			return 'frontend_options_cancelled';
+		}
+
+		if (reason.includes('scripts option')) {
+			return 'scripts_options_cancelled';
+		}
+
+		return 'user_cancelled';
+	}
+
+	const lastError = finalContext.errors[finalContext.errors.length - 1];
+
+	if (lastError?.state) {
+		return `${lastError.state}_failed`;
+	}
+
+	return 'machine_error';
+}
+
 /**
  * Options for running the generate machine
  */
@@ -119,6 +193,8 @@ export async function runGenerateMachine(
 	// Track start
 	telemetry.trackEvent(TelemetryEventName.ONBOARDING_STARTED, {
 		resumed: resume && snapshot !== undefined,
+		trigger: getSetupTrigger(modeArg, resume && snapshot !== undefined),
+		requestedMode: modeArg ?? undefined,
 	});
 	telemetry.flushSync();
 
@@ -145,12 +221,33 @@ export async function runGenerateMachine(
 				// Only the explicit "complete" state is a successful outcome.
 				// Other terminal states (for example "exited") represent cancel/error exits.
 				const success = finalState === 'complete';
+				const durationMs = duration;
+				const reason = normalizeSetupReason(finalState, finalContext);
+				const result = success
+					? 'success'
+					: finalState === 'exited'
+						? 'cancelled'
+						: 'failed';
 
 				telemetry.trackEvent(TelemetryEventName.ONBOARDING_COMPLETED, {
 					success,
+					result,
+					reason,
+					trigger: getSetupTrigger(modeArg, resume && snapshot !== undefined),
+					resumed: resume && snapshot !== undefined,
 					selectedMode: finalContext.selectedMode ?? undefined,
+					hostedProvider: finalContext.hostedProvider ?? undefined,
 					installDependencies: finalContext.installSucceeded,
+					installConfirmed: finalContext.installConfirmed,
+					installAttempted: finalContext.installAttempted,
+					installSucceeded: finalContext.installSucceeded,
+					dependencyCount: finalContext.dependenciesToAdd.length,
+					filesCreatedCount: finalContext.filesCreated.length,
+					filesModifiedCount: finalContext.filesModified.length,
+					errorsCount: finalContext.errors.length,
+					cancelReason: finalContext.cancelReason ?? undefined,
 					duration,
+					durationMs,
 					finalState,
 				});
 

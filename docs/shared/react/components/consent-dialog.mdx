@@ -26,15 +26,44 @@
 
   ## Branding
 
-  Hide the c15t branding in the dialog footer:
+  Hide the c15t branding tag:
 
   ```tsx
   <ConsentDialog hideBranding />
   ```
 
-  ## Compound Components
+  ## Styling First
 
-  Build fully custom dialog layouts using sub-components:
+  <Callout type="info">
+    If you are only changing visuals, stay with the stock dialog and use the theme system first. Start with tokens and slots such as `consentDialogCard`, `consentWidgetFooter`, and `consentDialogTag`. See [Styling Overview](/docs/frameworks/react/styling/overview).
+  </Callout>
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      theme: {
+        colors: {
+          surface: '#fffdf8',
+          surfaceHover: '#f6f3ee',
+        },
+        slots: {
+          consentDialogCard: 'rounded-[32px] shadow-xl',
+          consentDialogHeader: 'gap-3',
+          consentWidgetFooter: 'gap-3 pt-6',
+          consentDialogTag: 'shadow-none',
+        },
+      },
+    }}
+  >
+    <ConsentDialog />
+  </ConsentManagerProvider>
+  ```
+
+  Dialog copy should be changed through `ConsentManagerProvider.options.i18n`, not by rebuilding the dialog structure.
+
+  ## Advanced: Compound Components
+
+  Use compound components only when you need custom dialog markup while still keeping c15t primitives and policy-aware footer actions:
 
   ```tsx
   <ConsentDialog.Root>
@@ -45,7 +74,12 @@
         <ConsentDialog.HeaderDescription />
       </ConsentDialog.Header>
       <ConsentDialog.Content>
-        <ConsentWidget />
+        <ConsentWidget.Root>
+          <ConsentWidget.Accordion type="single">
+            <ConsentWidget.AccordionItems />
+          </ConsentWidget.Accordion>
+          <ConsentWidget.PolicyActions />
+        </ConsentWidget.Root>
       </ConsentDialog.Content>
       <ConsentDialog.Footer />
     </ConsentDialog.Card>
@@ -60,6 +94,7 @@
   - `ConsentDialog.Content` — Main content area (typically contains `ConsentWidget`)
   - `ConsentDialog.Footer` — Footer with optional branding (`hideBranding` prop)
   - `ConsentDialog.Overlay` — Backdrop overlay
+  - `ConsentWidget.PolicyActions` — Renders policy-aware grouped dialog actions
 
   For a quick pre-composed layout, use the shorthand card:
 
@@ -68,6 +103,12 @@
     <ConsentDialog.ConsentCustomizationCard />
   </ConsentDialog.Root>
   ```
+
+  `ConsentWidget.PolicyActions` uses stock c15t widget buttons and translations by default. Pass `renderAction` only when you need to customize the action mapping, and return stock widget button compounds if you want to preserve built-in behavior and copy.
+
+  For fully manual control over dialog action rendering, use `useHeadlessConsentUI()` and map `dialog.actionGroups` yourself.
+
+  If the stock dialog structure still works, prefer tokens, slots, and provider configuration instead.
 </section>
 
 <section id="props">

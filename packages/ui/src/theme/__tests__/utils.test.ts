@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'vitest';
 import type { Theme } from '../types';
-import { defaultTheme, generateThemeCSS, themeToVars } from '../utils';
+import {
+	defaultTheme,
+	generateThemeCSS,
+	getContrastColor,
+	themeToVars,
+} from '../utils';
 
 describe('defaultTheme', () => {
 	test('has all required color tokens', () => {
@@ -57,6 +62,18 @@ describe('themeToVars', () => {
 		const vars = themeToVars(theme);
 		expect(vars['--c15t-primary']).toBe('#ff0000');
 		expect(vars['--c15t-surface']).toBe('#ffffff');
+	});
+
+	test('converts switch color tokens to CSS variables', () => {
+		const theme: Theme = {
+			colors: {
+				switchTrack: '#123456',
+				switchTrackActive: '#654321',
+			},
+		};
+		const vars = themeToVars(theme);
+		expect(vars['--c15t-switch-track']).toBe('#123456');
+		expect(vars['--c15t-switch-track-active']).toBe('#654321');
 	});
 
 	test('converts typography tokens to CSS variables', () => {
@@ -183,6 +200,57 @@ describe('themeToVars', () => {
 		expect(vars['--c15t-primary']).toBe('#ff0000');
 		expect(vars['--c15t-surface']).toBeUndefined();
 	});
+
+	test('derives text-on-primary when primary is bright', () => {
+		const vars = themeToVars({
+			colors: {
+				primary: '#2ed1c3',
+			},
+		});
+
+		expect(vars['--c15t-text-on-primary']).toBe('#000000');
+	});
+
+	test('derives text-on-primary from dark primary overrides', () => {
+		const vars = themeToVars(
+			{
+				colors: {
+					primary: '#fafafa',
+				},
+				dark: {
+					primary: '#16324f',
+				},
+			},
+			true
+		);
+
+		expect(vars['--c15t-text-on-primary']).toBe('#ffffff');
+	});
+
+	test('preserves explicit text-on-primary overrides', () => {
+		const vars = themeToVars({
+			colors: {
+				primary: '#2ed1c3',
+				textOnPrimary: '#112233',
+			},
+		});
+
+		expect(vars['--c15t-text-on-primary']).toBe('#112233');
+	});
+});
+
+describe('getContrastColor', () => {
+	test('returns dark text for bright backgrounds', () => {
+		expect(getContrastColor('#2ed1c3')).toBe('#000000');
+	});
+
+	test('returns light text for dark backgrounds', () => {
+		expect(getContrastColor('hsl(210, 57%, 20%)')).toBe('#ffffff');
+	});
+
+	test('supports rgb color inputs', () => {
+		expect(getContrastColor('rgb(255, 214, 10)')).toBe('#000000');
+	});
 });
 
 describe('generateThemeCSS', () => {
@@ -205,6 +273,18 @@ describe('generateThemeCSS', () => {
 		};
 		const css = generateThemeCSS(theme);
 		expect(css).toContain('--c15t-primary: #ff0000');
+	});
+
+	test('includes switch token variables in generated CSS', () => {
+		const theme: Theme = {
+			colors: {
+				switchTrack: '#123456',
+				switchTrackActive: '#654321',
+			},
+		};
+		const css = generateThemeCSS(theme);
+		expect(css).toContain('--c15t-switch-track: #123456');
+		expect(css).toContain('--c15t-switch-track-active: #654321');
 	});
 
 	test('includes dark mode selector', () => {

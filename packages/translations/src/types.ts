@@ -11,6 +11,7 @@ export interface CommonTranslations {
 	customize: string;
 	save: string;
 	close: string;
+	securedBy: string;
 }
 
 export interface LegalLinksTranslations {

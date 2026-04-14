@@ -2,11 +2,12 @@
 	"name": "@c15t/no-tw-css-test",
 	"private": true,
 	"scripts": {
-		"dev": "next dev --port 3012",
+		"dev": "next dev --port 3123",
 		"build": "next build",
-		"start": "next start --port 3012"
+		"start": "next start --port 3123"
 	},
 	"dependencies": {
+		"@c15t/benchmarking": "workspace:*",
 		"@c15t/react": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
 		"next": "15.3.3",

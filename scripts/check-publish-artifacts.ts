@@ -42,6 +42,35 @@ const distBlockedPathPatterns: Array<{ reason: string; pattern: RegExp }> = [
 	{ reason: 'rsdoctor report artifact', pattern: /(^|\/)rsdoctor-data\.json$/ },
 ];
 
+const requiredPackedFilesByPackage: Record<string, string[]> = {
+	'@c15t/ui': [
+		'styles.css',
+		'iab/styles.css',
+		'dist/styles.css',
+		'dist/styles.tw3.css',
+		'dist/iab/styles.css',
+		'dist/iab/styles.tw3.css',
+	],
+	'@c15t/react': [
+		'styles.css',
+		'iab/styles.css',
+		'dist/styles.css',
+		'dist/iab/styles.css',
+		'src/styles.tw3.css',
+		'src/iab/styles.tw3.css',
+	],
+	'@c15t/nextjs': [
+		'styles.css',
+		'iab/styles.css',
+		'dist/styles.css',
+		'dist/iab/styles.css',
+		'src/styles.css',
+		'src/styles.tw3.css',
+		'src/iab/styles.css',
+		'src/iab/styles.tw3.css',
+	],
+};
+
 function readManifest(packageDir: string): PackageManifest {
 	return JSON.parse(
 		readFileSync(join(packageDir, 'package.json'), 'utf8')
@@ -307,6 +336,18 @@ for (const packageDir of packageDirs) {
 			return { ...file, reason };
 		})
 		.filter((file) => file !== null);
+
+	const requiredFiles = requiredPackedFilesByPackage[packed.name] ?? [];
+	const packedFilePaths = new Set(packed.files.map((file) => file.path));
+	for (const path of requiredFiles) {
+		if (!packedFilePaths.has(path)) {
+			blockedFiles.push({
+				path,
+				size: 0,
+				reason: 'required published file missing',
+			});
+		}
+	}
 
 	if (blockedFiles.length > 0) {
 		offenders.push({

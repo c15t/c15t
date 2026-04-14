@@ -16,7 +16,7 @@ availableIn:
 
 ## Via CLI
 
-<PackageCommandTabs command="@c15t/cli@rc" />
+<PackageCommandTabs command="@c15t/cli" />
 
 ## Manual Installation
 
@@ -30,14 +30,16 @@ availableIn:
   <Step>
     ### Import styles
 
-    Import the prebuilt component stylesheet in your root layout. This is required for styled components to render correctly.
+    Import the prebuilt component stylesheet in your app-level CSS entrypoint. This is required for styled components to render correctly.
 
-    ```tsx title="app/layout.tsx"
-    import '@c15t/nextjs/styles.css';
+    ```css title="app/globals.css"
+    @import "@c15t/nextjs/styles.css";
     ```
 
+    <import src="../../shared/react/styling/stylesheet-entrypoint.mdx#why-global-css" />
+
     <Callout type="info">
-      If you are using the headless API or fully custom styling, you can skip this import.
+      If you are using the headless API or fully custom styling, you can skip this import. Your root layout should continue importing `./globals.css` as usual.
     </Callout>
   </Step>
 
@@ -84,8 +86,12 @@ availableIn:
     }
     ```
 
+    <Callout type="info">
+      Hosted mode is the recommended production setup because the backend resolves jurisdiction and policy, keeps durable consent records, and lets c15t recover from temporary network failures by re-syncing later.
+    </Callout>
+
     <Callout type="warn">
-      Don't have a backend yet? You can use `mode: 'offline'` for local-only consent storage, but review the [browser-only storage consequences](/docs/frameworks/next/concepts/client-modes#offline-mode) before choosing it for production.
+      Don't have a backend yet? You can use `mode: 'offline'` for local-only consent storage, but it gives up backend audit history, server-side consent awareness, and automatic jurisdiction detection. Review the [browser-only storage consequences](/docs/frameworks/next/concepts/client-modes#offline-mode) before choosing it for production.
     </Callout>
   </Step>
 
@@ -153,7 +159,7 @@ import { DevTools } from '@c15t/dev-tools/react';
 
 Install c15t agent skills to let AI agents help with styling, i18n, scripts & other configuration.
 
-<PackageCommandTabs command="@c15t/cli@rc skills" />
+<PackageCommandTabs command="@c15t/cli skills" />
 
 See [AI Agents](/docs/ai-agents) for bundled package docs and agent skills.
 

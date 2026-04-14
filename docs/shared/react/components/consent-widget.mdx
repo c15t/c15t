@@ -20,22 +20,44 @@
 
   Each consent category is rendered as an expandable accordion item. Clicking the category header expands it to show a description and any associated services. Users can toggle individual categories on or off using the switch control. The `necessary` category is always enabled and cannot be toggled.
 
-  ## Compound Components
+  ## Styling First
 
-  Build fully custom widget layouts using sub-components:
+  <Callout type="info">
+    Most widget customization should stay in the stock component. Use theme tokens and slots such as `consentWidgetAccordion`, `consentWidgetFooter`, and `toggle` before reaching for compound components. See [Styling Overview](/docs/frameworks/react/styling/overview).
+  </Callout>
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      theme: {
+        colors: {
+          surface: '#fffdf8',
+          surfaceHover: '#f6f3ee',
+        },
+        slots: {
+          consentWidgetAccordion: 'rounded-3xl border border-black/10',
+          consentWidgetFooter: 'border-t border-black/10 px-6',
+          toggle: 'shadow-sm',
+        },
+      },
+    }}
+  >
+    <ConsentWidget />
+  </ConsentManagerProvider>
+  ```
+
+  Widget copy should be changed through `ConsentManagerProvider.options.i18n` so the inline UI stays aligned with the rest of the consent experience.
+
+  ## Advanced: Compound Components
+
+  Use compound components only when you need to rearrange the widget's existing primitives while keeping policy-aware action grouping:
 
   ```tsx
   <ConsentWidget.Root>
     <ConsentWidget.Accordion type="multiple">
       <ConsentWidget.AccordionItems />
     </ConsentWidget.Accordion>
-    <ConsentWidget.Footer>
-      <ConsentWidget.FooterSubGroup>
-        <ConsentWidget.RejectButton />
-        <ConsentWidget.AcceptAllButton />
-      </ConsentWidget.FooterSubGroup>
-      <ConsentWidget.SaveButton />
-    </ConsentWidget.Footer>
+    <ConsentWidget.PolicyActions />
   </ConsentWidget.Root>
   ```
 
@@ -47,11 +69,45 @@
   - `ConsentWidget.AccordionContent` — Collapsible content area
   - `ConsentWidget.AccordionArrow` — Expand/collapse indicator
   - `ConsentWidget.Switch` — Category toggle switch
+  - `ConsentWidget.PolicyActions` — Renders grouped policy-aware actions
   - `ConsentWidget.Footer` — Footer container
   - `ConsentWidget.FooterSubGroup` — Groups related buttons
   - `ConsentWidget.AcceptAllButton` — Accepts all consent
   - `ConsentWidget.RejectButton` — Rejects all consent
   - `ConsentWidget.SaveButton` — Saves custom selections
+
+  ## Using `renderAction` with c15t Defaults
+
+  `ConsentWidget.PolicyActions` renders stock c15t buttons and translations by default.
+
+  ```tsx
+  <ConsentWidget.PolicyActions />
+  ```
+
+  `renderAction` is optional. Return the stock button compounds when you want custom mapping while preserving built-in c15t behavior and copy:
+
+  ```tsx
+  <ConsentWidget.PolicyActions
+  renderAction={(action, props) => {
+    const { key, ...buttonProps } = props
+
+    switch (action) {
+      case 'accept':
+          return <ConsentWidget.AcceptAllButton key={key} {...buttonProps} />
+      case 'reject':
+          return <ConsentWidget.RejectButton key={key} {...buttonProps} />
+      case 'customize':
+          return <ConsentWidget.SaveButton key={key} {...buttonProps} />
+    }
+  }}
+  />
+  ```
+
+  `renderAction` is still meant for stock button compounds. If you want completely custom button elements and handlers, use `useHeadlessConsentUI()` and render `dialog.actionGroups` manually instead of `ConsentWidget.PolicyActions`.
+
+  For a fixed footer layout, render `ConsentWidget.Footer` and `ConsentWidget.FooterSubGroup` manually instead of using `ConsentWidget.PolicyActions`.
+
+  If the stock widget structure is already correct, stay with tokens and slots instead of rebuilding the layout.
 </section>
 
 <section id="props">

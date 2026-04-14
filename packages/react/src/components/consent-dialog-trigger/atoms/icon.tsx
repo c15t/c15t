@@ -8,12 +8,8 @@
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
 import { isValidElement, type ReactNode } from 'react';
-import {
-	C15TIconOnly,
-	ConsentIconOnly,
-	FingerprintIcon,
-	SettingsIcon,
-} from '~/components/shared/ui/logo';
+import { BrandingCompactLogo } from '~/components/shared/ui/branding';
+import { FingerprintIcon, SettingsIcon } from '~/components/shared/ui/logo';
 import type { TriggerIcon as TriggerIconType } from '../types';
 import { useTriggerContext } from './root';
 
@@ -23,7 +19,7 @@ import { useTriggerContext } from './root';
 export interface TriggerIconProps {
 	/**
 	 * Icon to display.
-	 * - 'branding' - c15t or consent.io logo based on branding setting
+	 * - 'branding' - c15t or INTH logo based on branding setting
 	 * - 'fingerprint' - Generic fingerprint icon
 	 * - 'settings' - Generic settings/gear icon
 	 * - ReactNode - Custom icon element
@@ -86,8 +82,7 @@ export function TriggerIcon({
 			break;
 		default:
 			// Branding-based icon (using icon-only for compact display)
-			iconElement =
-				branding === 'consent' ? <ConsentIconOnly /> : <C15TIconOnly />;
+			iconElement = <BrandingCompactLogo branding={branding} />;
 	}
 
 	return <span className={iconClasses}>{iconElement}</span>;

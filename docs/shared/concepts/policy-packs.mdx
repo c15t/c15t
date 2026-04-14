@@ -7,11 +7,11 @@
 
   There are three ways to configure policy packs:
 
-  1. **consent.io (recommended)** — use [consent.io](https://consent.io) as your hosted backend. Configure packs visually in the dashboard or via API — no code changes required. Works with any frontend, including static sites.
+  1. **inth.com (recommended)** — use [inth.com](https://inth.com) as your hosted backend. Configure packs visually in the dashboard or via API — no code changes required. Works with any frontend, including static sites.
   2. **Self-hosted backend** — define packs in code via `policyPacks` and resolve them from real request geo data. Full control over policy logic and storage.
-  3. **Offline fallback** — pass the same policy shapes to the frontend via `offlinePolicy.policyPacks`. Used as a resilience fallback when the backend is unreachable, or for quick local experimentation and demos. If you omit `offlinePolicy.policyPacks`, c15t falls back to a synthetic worldwide opt-in banner instead of no-banner mode.
+  3. **Offline fallback** — pass the same policy shapes to the frontend via `offlinePolicy.policyPacks`. Use this mainly for local development, demos, deterministic testing, or resilience when the backend is temporarily unreachable. If you omit `offlinePolicy.policyPacks`, c15t falls back to a synthetic worldwide opt-in banner instead of no-banner mode.
 
-  In both hosted and self-hosted modes, the **backend is always the source of truth**. Offline packs never override a live backend decision.
+  In both hosted and self-hosted modes, the **backend is always the source of truth**. Offline packs are a preview or fallback layer and never override a live backend decision.
 </section>
 
 <section id="quickstart">

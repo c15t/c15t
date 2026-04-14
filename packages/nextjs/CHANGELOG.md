@@ -1,5 +1,90 @@
 # @c15t/nextjs
 
+## 2.0.0-rc.12
+
+### Patch Changes
+
+- aa2bb42: Fix consent switch sizing so it renders consistently in Tailwind and non-Tailwind apps.
+
+  - `@c15t/ui`: make the shared switch primitive use an explicit `border-box` layout, size its track independently of host box-model resets, and clip the track so the thumb ring does not bleed past the edge.
+  - `@c15t/react`: publish the updated prebuilt consent UI styling so React consumers pick up the normalized switch sizing.
+  - `@c15t/nextjs`: publish the updated stylesheet bridge so Next.js installs pick up the normalized switch sizing as well.
+
+- Updated dependencies [aa2bb42]
+  - @c15t/react@2.0.0-rc.12
+
+## 2.0.0-rc.10
+
+### Patch Changes
+
+- Updated dependencies [64d6009]
+- Updated dependencies [79ae8cf]
+- Updated dependencies [9579b62]
+  - @c15t/react@2.0.0-rc.10
+  - c15t@2.0.0-rc.10
+
+## 2.0.0-rc.9
+
+### Patch Changes
+
+- 59b850b: Harden the prebuilt consent-surface branding against host-page CSS so the INTH and c15t wordmarks stay correctly sized across docs, marketing sites, and other embedded app shells.
+
+  - `@c15t/react`: wrap both prebuilt full-logo branding paths in shared internal wordmark containers instead of attaching sizing classes directly to the raw `svg` elements.
+  - `@c15t/ui`: move the logo constraints onto the internal branding wrappers and nested `svg` elements, adding explicit flex, max-width, block-layout, and aspect-ratio rules so global host-page `svg` styles cannot blow up or collapse either wordmark.
+  - `@c15t/nextjs`: keep the published styled surface behavior aligned with the hardened React/UI branding path used by the prebuilt consent banner and dialog components.
+
+- Updated dependencies [59b850b]
+  - @c15t/react@2.0.0-rc.9
+
+## 2.0.0-rc.8
+
+### Patch Changes
+
+- 5956531: Simplify the 2.0 static prefetch flow so static routes only need to start `/init` early and matching prefetched data is consumed automatically during first store initialization.
+
+  - `c15t`: add canonical request-context metadata for SSR and browser-prefetch payloads, auto-consume matching prefetched data on first runtime/store initialization, and replace blanket SSR skip-on-overrides behavior with exact request-context matching.
+  - `@c15t/react`: preserve the dynamic SSR `fetchInitialData()` flow while exposing the new `context_mismatch` SSR status behavior for matching overrides, backend URLs, credentials, and ambient GPC.
+  - `@c15t/nextjs`: remove the RC-era public static-prefetch consumer APIs from the package surface and document `C15tPrefetch` as the only static-route setup step.
+  - `@c15t/cli`: update generated static-route templates to rely on automatic prefetch consumption instead of wiring manual prefetch lookups.
+
+- cd9c830: Fix the `PolicyActions` DX regressions and the published stylesheet packaging for the prebuilt consent UI.
+
+  - `@c15t/ui`: deduplicate policy-action helper ownership behind `c15t`, normalize widget footer subgroup naming, and add direct coverage for action-group flattening.
+  - `@c15t/react`: share the internal `PolicyActions` renderer across banner and widget, add `consentAction` to policy-action render props so stock overrides preserve built-in theming, restore the banner default footer layout when policy hints do not provide a layout, and extend regression coverage.
+  - `@c15t/nextjs`: keep the published stylesheet bridge files aligned with the package entrypoints and publish-artifact guard.
+
+- 05db767: Align the styled package install path around app-level CSS entrypoints instead of JS-side stylesheet imports.
+
+  - `@c15t/react`: update the published README guidance, quickstart docs, and stylesheet usage comments so styled and IAB installs consistently import `@c15t/react/styles.css` or `styles.tw3.css` from a global CSS file, with explicit guidance on why this avoids layer-order debugging problems.
+  - `@c15t/nextjs`: update the published README guidance, quickstart docs, and stylesheet usage comments so styled and IAB installs consistently import `@c15t/nextjs/styles.css` or `styles.tw3.css` from `app/globals.css`, with explicit guidance on why this avoids layer-order debugging problems.
+  - `@c15t/cli`: move the stylesheet codemod and scaffold behavior to mutate global CSS entrypoints, remove old JS-side stylesheet imports, share the CSS-entrypoint mutation logic between generate and codemod flows, and add regression coverage for Tailwind v3/v4, IAB, dry-run, and missing-CSS cases.
+
+- fee82fd: Refine prebuilt consent-surface branding so it feels attached to the UI instead of appended.
+
+  - `@c15t/react`: add attached branding tags to the stock consent banner, consent dialog, IAB banner, and IAB dialog; localize the branding copy through translations; and add a `hideBranding` prop to the stock `ConsentBanner` component.
+  - `@c15t/nextjs`: keep the published stylesheet entrypoints aligned with the updated prebuilt branding treatment while simplifying stylesheet distribution to reference upstream package styles directly.
+  - `@c15t/ui`: update the shared consent branding tag styles for tighter edge attachment, smaller visual footprint, and consistent banner/dialog treatment across standard and IAB surfaces.
+  - `@c15t/translations`: add the shared localized branding copy used by the updated prebuilt consent surfaces.
+
+- Updated dependencies [43f1b68]
+- Updated dependencies [3d4c107]
+- Updated dependencies [c944e35]
+- Updated dependencies [5956531]
+- Updated dependencies [918a70e]
+- Updated dependencies [cd9c830]
+- Updated dependencies [05db767]
+- Updated dependencies [fee82fd]
+  - c15t@2.0.0-rc.8
+  - @c15t/react@2.0.0-rc.8
+  - @c15t/translations@2.0.0-rc.8
+
+## 2.0.0-rc.7
+
+### Patch Changes
+
+- Updated dependencies [ec30bd1]
+  - @c15t/react@2.0.0-rc.7
+
 ## 2.0.0-rc.6
 
 ### Patch Changes

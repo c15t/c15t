@@ -1,5 +1,103 @@
 # @c15t/ui
 
+## 2.0.0-rc.11
+
+### Patch Changes
+
+- aa2bb42: Fix consent switch sizing so it renders consistently in Tailwind and non-Tailwind apps.
+
+  - `@c15t/ui`: make the shared switch primitive use an explicit `border-box` layout, size its track independently of host box-model resets, and clip the track so the thumb ring does not bleed past the edge.
+  - `@c15t/react`: publish the updated prebuilt consent UI styling so React consumers pick up the normalized switch sizing.
+  - `@c15t/nextjs`: publish the updated stylesheet bridge so Next.js installs pick up the normalized switch sizing as well.
+
+## 2.0.0-rc.10
+
+### Minor Changes
+
+- 79ae8cf: Remove the legacy stock-branding theme keys and require the new explicit tag slots for prebuilt consent surfaces.
+
+  - `@c15t/react`: stop resolving stock banner/dialog/widget/IAB branding tags through legacy footer-branding aliases and render the standalone widget/dialog tags without the old footer-wrapper compatibility path.
+  - `@c15t/ui`: add explicit branding tag slots for each prebuilt surface: `consentBannerTag`, `consentDialogTag`, `consentWidgetTag`, `iabConsentBannerTag`, and `iabConsentDialogTag`.
+
+  Breaking change:
+
+  - `consentWidgetBranding` has been removed. Use `consentWidgetTag`.
+  - `consentDialogFooter` no longer styles the stock dialog branding tag. Use `consentDialogTag`.
+  - Style stock banner and IAB branding tags via the new explicit tag slots instead of footer-related keys.
+
+### Patch Changes
+
+- 64d6009: Replace the shared `clsx` dependency with a local `cn` implementation owned by `@c15t/ui`.
+
+  - `@c15t/ui`: own the public `ClassValue` type and `cn(...)` implementation directly instead of re-exporting them from `clsx`, with coverage for nested arrays, object maps, numeric values, and ordering.
+  - `@c15t/react`: continue consuming the shared `@c15t/ui` class helper while dropping the now-unused direct `clsx` dependency from the published package.
+  - `@c15t/dev-tools`: remove the unused direct `clsx` dependency from the published package manifest.
+
+- 7576dc1: Derive `textOnPrimary` automatically from the active `primary` theme color when it is omitted, so primary-filled surfaces such as stock branding tags keep a readable foreground by default.
+
+  - add a shared contrast helper in the UI theme utilities and use it as the fallback for `textOnPrimary`
+  - preserve explicit `textOnPrimary` overrides for consumers who need a fixed branded foreground
+
+- Updated dependencies [9579b62]
+  - c15t@2.0.0-rc.10
+
+## 2.0.0-rc.9
+
+### Patch Changes
+
+- 59b850b: Harden the prebuilt consent-surface branding against host-page CSS so the INTH and c15t wordmarks stay correctly sized across docs, marketing sites, and other embedded app shells.
+
+  - `@c15t/react`: wrap both prebuilt full-logo branding paths in shared internal wordmark containers instead of attaching sizing classes directly to the raw `svg` elements.
+  - `@c15t/ui`: move the logo constraints onto the internal branding wrappers and nested `svg` elements, adding explicit flex, max-width, block-layout, and aspect-ratio rules so global host-page `svg` styles cannot blow up or collapse either wordmark.
+  - `@c15t/nextjs`: keep the published styled surface behavior aligned with the hardened React/UI branding path used by the prebuilt consent banner and dialog components.
+
+## 2.0.0-rc.8
+
+### Patch Changes
+
+- cd9c830: Fix the `PolicyActions` DX regressions and the published stylesheet packaging for the prebuilt consent UI.
+
+  - `@c15t/ui`: deduplicate policy-action helper ownership behind `c15t`, normalize widget footer subgroup naming, and add direct coverage for action-group flattening.
+  - `@c15t/react`: share the internal `PolicyActions` renderer across banner and widget, add `consentAction` to policy-action render props so stock overrides preserve built-in theming, restore the banner default footer layout when policy hints do not provide a layout, and extend regression coverage.
+  - `@c15t/nextjs`: keep the published stylesheet bridge files aligned with the package entrypoints and publish-artifact guard.
+
+- fee82fd: Refine prebuilt consent-surface branding so it feels attached to the UI instead of appended.
+
+  - `@c15t/react`: add attached branding tags to the stock consent banner, consent dialog, IAB banner, and IAB dialog; localize the branding copy through translations; and add a `hideBranding` prop to the stock `ConsentBanner` component.
+  - `@c15t/nextjs`: keep the published stylesheet entrypoints aligned with the updated prebuilt branding treatment while simplifying stylesheet distribution to reference upstream package styles directly.
+  - `@c15t/ui`: update the shared consent branding tag styles for tighter edge attachment, smaller visual footprint, and consistent banner/dialog treatment across standard and IAB surfaces.
+  - `@c15t/translations`: add the shared localized branding copy used by the updated prebuilt consent surfaces.
+
+- Updated dependencies [43f1b68]
+- Updated dependencies [3d4c107]
+- Updated dependencies [c944e35]
+- Updated dependencies [5956531]
+- Updated dependencies [fee82fd]
+  - c15t@2.0.0-rc.8
+  - @c15t/translations@2.0.0-rc.8
+
+## 2.0.0-rc.7
+
+### Minor Changes
+
+- ec30bd1: feat(primitives): shared UI primitive runtime, framework adapters, and runtime performance
+
+  - Extract seven framework-agnostic primitives into `@c15t/ui/primitives`: accordion, button, collapsible, dialog, switch, tabs, and preference-item
+  - Add `PreferenceItem` compound component that unifies three separate expandable-row patterns (Radix Accordion, custom button + AnimatedCollapse, manual state) into a single composable primitive with semantic slots
+  - Publish framework adapter packages (`@c15t/solid`, `@c15t/vue`, `@c15t/svelte`) re-exporting shared primitives and CSS variant generators
+  - Add cross-framework storybooks with shared play-function interaction tests and CI test-runner integration
+
+  **Mobile viewport fixes:**
+
+  - Add `box-sizing: border-box` to all fixed-position consent roots (banner, dialog, IAB variants) — prevents horizontal overflow on narrow viewports
+  - Constrain dialog card with `max-height: 100%` and scrollable content area — prevents title/description from being pushed off-screen on small devices
+
+  **Runtime performance (react-browser-bench, full-ui scenario):**
+
+  - Memoize `useTheme()` deep merge with `useMemo` — reduces calls from 35 to 23 (-35%), total time from 0.10 ms to 0.02 ms (-80%)
+  - Replace `offsetWidth`/`offsetHeight` visibility checks in focus trap with `checkVisibility()` API — eliminates forced synchronous layout on every Tab keypress
+  - Both optimizations are in `@c15t/ui` and benefit all frameworks equally
+
 ## 2.0.0-rc.6
 
 ### Patch Changes

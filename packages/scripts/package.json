@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/scripts",
-	"version": "1.0.2-rc.0",
+	"version": "1.1.0-rc.1",
 	"description": "Pre-built scripts of popular tools for c15t's script loader.",
 	"homepage": "https://c15t.com/docs/frameworks/javascript/script-loader",
 	"repository": {
@@ -8,7 +8,7 @@
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/scripts"
 	},
-	"license": "GPL-3.0-only",
+	"license": "Apache-2.0",
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
@@ -23,7 +23,7 @@
 		"dist-types"
 	],
 	"scripts": {
-		"build": "rslib build",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",

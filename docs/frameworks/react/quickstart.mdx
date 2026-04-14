@@ -16,7 +16,7 @@ availableIn:
 
 ## Via CLI
 
-<PackageCommandTabs command="@c15t/cli@rc" />
+<PackageCommandTabs command="@c15t/cli" />
 
 ## Manual Installation
 
@@ -30,14 +30,16 @@ availableIn:
   <Step>
     ### Import styles
 
-    Import the prebuilt component stylesheet at the root of your application. This is required for styled components to render correctly.
+    Import the prebuilt component stylesheet in your app-level CSS entrypoint. This is required for styled components to render correctly.
 
-    ```tsx title="src/main.tsx"
-    import '@c15t/react/styles.css';
+    ```css title="src/index.css"
+    @import "@c15t/react/styles.css";
     ```
 
+    <import src="../../shared/react/styling/stylesheet-entrypoint.mdx#why-global-css" />
+
     <Callout type="info">
-      If you are using the headless API or fully custom styling, you can skip this import.
+      If you are using the headless API or fully custom styling, you can skip this import. `src/main.tsx` should keep importing `./index.css` as usual.
     </Callout>
   </Step>
 
@@ -80,8 +82,12 @@ availableIn:
     }
     ```
 
+    <Callout type="info">
+      Hosted mode is the recommended production setup because the backend resolves jurisdiction and policy, keeps durable consent records, and lets c15t recover from temporary network failures by re-syncing later.
+    </Callout>
+
     <Callout type="warn">
-      Don't have a backend yet? You can use `mode: 'offline'` for local-only consent storage, but review the [browser-only storage consequences](/docs/frameworks/react/concepts/client-modes#offline-mode) before choosing it for production.
+      Don't have a backend yet? You can use `mode: 'offline'` for local-only consent storage, but it gives up backend audit history, server-side consent awareness, and automatic jurisdiction detection. Review the [browser-only storage consequences](/docs/frameworks/react/concepts/client-modes#offline-mode) before choosing it for production.
     </Callout>
   </Step>
 
@@ -114,6 +120,10 @@ availableIn:
   </Step>
 </Steps>
 
+<Callout type="info">
+  Want to improve startup performance? See [Optimization](/docs/frameworks/react/optimization) for the decision guide, prefetch setup, and network tuning.
+</Callout>
+
 ## Optional: Add DevTools
 
 Install DevTools only if you want a runtime inspector while building and debugging:
@@ -143,13 +153,15 @@ import { DevTools } from '@c15t/dev-tools/react';
 
 Install c15t agent skills to let AI agents help with styling, i18n, scripts & other configuration.
 
-<PackageCommandTabs command="@c15t/cli@rc skills" />
+<PackageCommandTabs command="@c15t/cli skills" />
 
 See [AI Agents](/docs/ai-agents) for bundled package docs and agent skills.
 
 ## Next steps
 
 <Cards className="not-prose grid gap-4 grid-cols-1 sm:grid-cols-2">
+  <Card variant="interactive" title="Optimization" description="Choose the right startup optimizations, then wire up proxying, prefetching, and network tuning." href="/docs/frameworks/react/optimization" />
+
   <Card variant="interactive" title="Script Loader" description="Gate third-party scripts like Google Analytics and Meta Pixel behind consent." href="/docs/frameworks/react/script-loader" />
 
   <Card variant="interactive" title="Styling" description="Customize colors, typography, spacing, and individual component slots." href="/docs/frameworks/react/styling/overview" />

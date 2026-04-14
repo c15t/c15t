@@ -7,13 +7,18 @@ description: Implement IAB Transparency & Consent Framework 2.3 compliance for p
 
 ## Quick Setup
 
+If you use the prebuilt styled IAB UI, import the IAB stylesheet alongside the base stylesheet in your global CSS entrypoint:
+
+```css title="src/index.css"
+@import "@c15t/react/styles.css";
+@import "@c15t/react/iab/styles.css";
+```
+
 ```tsx
 import { type ReactNode } from 'react';
-import {
-  ConsentManagerProvider,
-  IABConsentBanner,
-  IABConsentDialog,
-} from '@c15t/react';
+import { iab } from '@c15t/iab';
+import { ConsentManagerProvider } from '@c15t/react';
+import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
   return (
@@ -21,13 +26,12 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
       options={{
         mode: 'hosted',
         backendURL: 'https://your-instance.c15t.dev',
-        iab: {
-          enabled: true,
+        iab: iab({
           vendors: [1, 2, 10, 25],  // IAB vendor IDs you work with
-          // cmpId is automatically provided by the backend (consent.io).
+          // cmpId is automatically provided by the backend (inth.com).
           // Only set this if you have your own CMP registration with IAB Europe.
           // cmpId: 123,
-        },
+        }),
       }}
     >
       <IABConsentBanner />
@@ -46,4 +50,9 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
 |-----------|-------------|
 | [IABConsentBanner](/docs/frameworks/react/iab/consent-banner) | TCF-compliant banner with partner disclosure |
 | [IABConsentDialog](/docs/frameworks/react/iab/consent-dialog) | Tabbed preference center for purposes and vendors |
-| [useGVLData](/docs/frameworks/react/iab/use-gvl-data) | Hook for building custom IAB UI |
+
+<Callout type="info">
+  For lower-level custom IAB flows, use `useHeadlessIABConsentUI()` from
+  `@c15t/react/iab`. `useGVLData()` is currently internal and is not part of
+  the public package surface.
+</Callout>

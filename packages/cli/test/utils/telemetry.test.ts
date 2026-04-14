@@ -1,241 +1,317 @@
-import type { Logger } from '@c15t/logger';
-import { PostHog } from 'posthog-node';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CliLogger } from '../../src/types';
 import {
 	createTelemetry,
 	Telemetry,
 	TelemetryEventName,
 } from '../../src/utils/telemetry';
 
-// Define a type for our mocked PostHog instance
-interface MockPostHog {
-	capture: ReturnType<typeof vi.fn>;
-	flush: ReturnType<typeof vi.fn>;
-	shutdown: ReturnType<typeof vi.fn>;
-	debug: ReturnType<typeof vi.fn>;
+function createMockLogger(): CliLogger {
+	return {
+		debug: vi.fn(),
+		info: vi.fn(),
+		warn: vi.fn(),
+		error: vi.fn(),
+		message: vi.fn(),
+		note: vi.fn(),
+		success: vi.fn(),
+		failed: vi.fn(() => {
+			throw new Error('failed');
+		}) as unknown as CliLogger['failed'],
+		outro: vi.fn(),
+		step: vi.fn(),
+	};
 }
 
-// Mock PostHog
-vi.mock('posthog-node', () => {
-	const mockCapture = vi.fn();
-	const mockFlush = vi.fn();
-	const mockShutdown = vi.fn().mockResolvedValue(undefined);
-	const mockDebug = vi.fn();
-
-	return {
-		PostHog: vi.fn(function PostHog() {
-			return {
-				capture: mockCapture,
-				flush: mockFlush,
-				shutdown: mockShutdown,
-				debug: mockDebug,
-			};
-		}),
-	};
-});
+async function flushTelemetry(telemetry: Telemetry) {
+	telemetry.flushSync();
+	await telemetry.shutdown();
+}
 
 describe('Telemetry', () => {
 	let telemetry: Telemetry;
-	let mockPostHog: MockPostHog;
-	let mockLogger: Pick<Logger, 'debug' | 'error' | 'info' | 'warn'>;
+	let fetchMock: ReturnType<typeof vi.fn>;
+	let storageDir: string;
+	let mockLogger: CliLogger;
+	let originalTelemetryWriteKey: string | undefined;
+	let originalTelemetryOrgId: string | undefined;
 
-	beforeEach(() => {
-		// Reset mocks before each test
-		vi.clearAllMocks();
+	beforeEach(async () => {
+		originalTelemetryWriteKey = process.env.C15T_TELEMETRY_WRITE_KEY;
+		originalTelemetryOrgId = process.env.C15T_TELEMETRY_ORG_ID;
+		delete process.env.C15T_TELEMETRY_WRITE_KEY;
+		delete process.env.C15T_TELEMETRY_ORG_ID;
 
-		// Create mock logger
-		mockLogger = {
-			debug: vi.fn(),
-			error: vi.fn(),
-			info: vi.fn(),
-			warn: vi.fn(),
-		};
+		fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
+		storageDir = await fs.mkdtemp(
+			path.join(os.tmpdir(), 'c15t-cli-telemetry-')
+		);
+		mockLogger = createMockLogger();
 
-		// Create a PostHog instance to get the mock functions
-		mockPostHog = new PostHog('dummy-key') as unknown as MockPostHog;
-
-		// Create telemetry instance with disabled actual API calls
 		telemetry = new Telemetry({
-			client: mockPostHog as unknown as PostHog,
-			logger: mockLogger as Logger,
+			fetch: fetchMock as unknown as typeof fetch,
+			storageDir,
+			logger: mockLogger,
+			drainOptions: {
+				retry: {
+					maxAttempts: 1,
+					backoff: 'fixed',
+					initialDelayMs: 10,
+					maxDelayMs: 10,
+				},
+			},
 		});
 	});
 
-	it('should create a telemetry instance', () => {
+	afterEach(async () => {
+		await telemetry.shutdown();
+		if (originalTelemetryWriteKey === undefined) {
+			delete process.env.C15T_TELEMETRY_WRITE_KEY;
+		} else {
+			process.env.C15T_TELEMETRY_WRITE_KEY = originalTelemetryWriteKey;
+		}
+		if (originalTelemetryOrgId === undefined) {
+			delete process.env.C15T_TELEMETRY_ORG_ID;
+		} else {
+			process.env.C15T_TELEMETRY_ORG_ID = originalTelemetryOrgId;
+		}
+		await fs.rm(storageDir, { recursive: true, force: true });
+	});
+
+	it('creates a telemetry instance', () => {
 		expect(telemetry).toBeInstanceOf(Telemetry);
 	});
 
-	it('should create telemetry with createTelemetry factory', () => {
-		const instance = createTelemetry();
+	it('creates telemetry with the factory', async () => {
+		const instance = createTelemetry({
+			disabled: true,
+			storageDir,
+			fetch: fetchMock as unknown as typeof fetch,
+		});
+
 		expect(instance).toBeInstanceOf(Telemetry);
+		await instance.shutdown();
 	});
 
-	it('should respect disabled flag', () => {
+	it('respects the disabled flag', async () => {
 		const disabledTelemetry = new Telemetry({
 			disabled: true,
-			client: mockPostHog as unknown as PostHog,
+			storageDir,
+			fetch: fetchMock as unknown as typeof fetch,
 		});
+
 		disabledTelemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
 			test: true,
 		});
-		expect(mockPostHog.capture).not.toHaveBeenCalled();
+		await disabledTelemetry.shutdown();
+
+		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
-	it('should respect debug flag', () => {
-		const debugTelemetry = new Telemetry({
-			debug: true,
-			client: mockPostHog as unknown as PostHog,
-			logger: mockLogger as Logger,
-		});
-		debugTelemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
-			test: true,
-		});
-		expect(mockLogger.debug).toHaveBeenCalledWith(
-			'Using custom PostHog client'
-		);
-		expect(mockLogger.debug).toHaveBeenCalledWith(
-			'Sending telemetry event: cli.invoked'
-		);
-	});
-
-	it('should track events', () => {
-		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, { test: true });
-		expect(mockPostHog.capture).toHaveBeenCalledWith(
-			expect.objectContaining({
-				event: TelemetryEventName.CLI_INVOKED,
-				properties: expect.objectContaining({ test: true }),
-			})
-		);
-		expect(mockPostHog.flush).toHaveBeenCalled();
-	});
-
-	it('should track commands', () => {
-		telemetry.trackCommand('test', ['arg1', 'arg2'], { flag1: true });
-		expect(mockPostHog.capture).toHaveBeenCalledWith(
-			expect.objectContaining({
-				event: TelemetryEventName.COMMAND_EXECUTED,
-				properties: expect.objectContaining({
-					command: 'test',
-					args: 'arg1 arg2',
-				}),
-			})
-		);
-	});
-
-	it('should track errors', () => {
-		const testError = new Error('Test error');
-		telemetry.trackError(testError, 'test-command');
-		expect(mockPostHog.capture).toHaveBeenCalledWith(
-			expect.objectContaining({
-				event: TelemetryEventName.ERROR_OCCURRED,
-				properties: expect.objectContaining({
-					command: 'test-command',
-					error: 'Test error',
-					errorName: 'Error',
-				}),
-			})
-		);
-	});
-
-	it('should disable telemetry', () => {
-		telemetry.disable();
-		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED);
-		expect(mockPostHog.capture).not.toHaveBeenCalled();
-	});
-
-	it('should enable telemetry', () => {
-		telemetry.disable();
-		telemetry.enable();
-		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED);
-		expect(mockPostHog.capture).toHaveBeenCalled();
-	});
-
-	it('should report disabled status', () => {
-		expect(telemetry.isDisabled()).toBe(false);
-		telemetry.disable();
-		expect(telemetry.isDisabled()).toBe(true);
-	});
-
-	it('should shut down the client', async () => {
-		await telemetry.shutdown();
-		expect(mockPostHog.shutdown).toHaveBeenCalled();
-	});
-
-	it('should handle tracking errors gracefully', () => {
-		// Simulate error during event capture
-		(mockPostHog.capture as ReturnType<typeof vi.fn>).mockImplementationOnce(
-			() => {
-				throw new Error('Capture error');
-			}
-		);
-
-		// Create telemetry with debug enabled
-		const debugTelemetry = new Telemetry({
-			debug: true,
-			client: mockPostHog as unknown as PostHog,
-			logger: mockLogger as Logger,
-		});
-
-		// This should not throw even though capture fails
-		expect(() =>
-			debugTelemetry.trackEvent(TelemetryEventName.CLI_INVOKED)
-		).not.toThrow();
-
-		// Should log the error
-		expect(mockLogger.debug).toHaveBeenCalledWith(
-			'Using custom PostHog client'
-		);
-		expect(mockLogger.debug).toHaveBeenCalledWith(
-			'Sending telemetry event: cli.invoked'
-		);
-		expect(mockLogger.debug).toHaveBeenCalledWith(
-			'Error sending telemetry event cli.invoked:',
-			expect.any(Error)
-		);
-	});
-
-	it('should filter out undefined values from properties', () => {
+	it('tracks events via the ingest endpoint', async () => {
 		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
-			defined: 'value',
-			undefinedValue: undefined,
+			framework: 'next',
+			nested: { mode: 'hosted' },
 		});
 
-		expect(mockPostHog.capture).toHaveBeenCalledWith(
-			expect.objectContaining({
-				properties: expect.objectContaining({ defined: 'value' }),
-			})
-		);
+		await flushTelemetry(telemetry);
 
-		// Check that undefined value is not in properties
-		const captureCall = (mockPostHog.capture as ReturnType<typeof vi.fn>).mock
-			.calls[0][0];
-		expect(captureCall.properties).not.toHaveProperty('undefinedValue');
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		const [, requestInit] = fetchMock.mock.calls[0]!;
+		const payload = JSON.parse(String(requestInit?.body)) as Array<
+			Record<string, unknown>
+		>;
+
+		expect(payload).toHaveLength(1);
+		expect(payload[0]).toMatchObject({
+			event: TelemetryEventName.CLI_INVOKED,
+			framework: 'next',
+			nested: { mode: 'hosted' },
+			source: 'c15t-cli',
+		});
+		expect(payload[0].installId).toEqual(expect.any(String));
+		expect(payload[0].sessionId).toEqual(expect.any(String));
+		expect(payload[0].sequence).toBe(1);
 	});
 
-	it('should not track commands when disabled', () => {
+	it('tracks commands with sanitized args and flags', async () => {
+		telemetry.trackCommand('setup', ['hosted', '/tmp/private'], {
+			logger: 'debug',
+			config: '/tmp/c15t.config.ts',
+			'no-telemetry': false,
+		});
+
+		await flushTelemetry(telemetry);
+
+		const [, requestInit] = fetchMock.mock.calls[0]!;
+		const payload = JSON.parse(String(requestInit?.body)) as Array<
+			Record<string, unknown>
+		>;
+		const event = payload[0]!;
+
+		expect(event).toMatchObject({
+			event: TelemetryEventName.COMMAND_EXECUTED,
+			command: 'setup',
+			argsCount: 2,
+			flagCount: 3,
+		});
+		expect(event.commandRunId).toEqual(expect.any(String));
+		expect(event.args).toEqual(['hosted', '[absolute-path]']);
+		expect(event.flags).toEqual({
+			config: '[redacted]',
+			logger: 'debug',
+			'no-telemetry': false,
+		});
+		expect(event.flagNames).toEqual(['config', 'logger', 'no-telemetry']);
+	});
+
+	it('tracks errors with structured failure data', async () => {
+		const error = Object.assign(new Error('Test error'), {
+			code: 'E_TEST',
+			status: 500,
+		});
+
+		telemetry.trackError(error, 'setup');
+		await flushTelemetry(telemetry);
+
+		const [, requestInit] = fetchMock.mock.calls[0]!;
+		const payload = JSON.parse(String(requestInit?.body)) as Array<
+			Record<string, unknown>
+		>;
+		const event = payload[0]!;
+
+		expect(event.event).toBe(TelemetryEventName.ERROR_OCCURRED);
+		expect(event.level).toBe('error');
+		expect(event.command).toBe('setup');
+		expect(event.failure).toMatchObject({
+			name: 'Error',
+			message: 'Test error',
+			code: 'E_TEST',
+			status: 500,
+		});
+	});
+
+	it('redacts sensitive values and strips URL credentials', async () => {
+		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
+			token: 'super-secret-token',
+			nested: {
+				password: 'secret',
+			},
+			endpoint: 'https://user:pass@example.com/path?q=1#hash',
+			projectPath: '/tmp/private-project',
+		});
+
+		await flushTelemetry(telemetry);
+
+		const [, requestInit] = fetchMock.mock.calls[0]!;
+		const payload = JSON.parse(String(requestInit?.body)) as Array<
+			Record<string, unknown>
+		>;
+		const event = payload[0]!;
+
+		expect(event.token).toBe('[redacted]');
+		expect(event.nested).toEqual({ password: '[redacted]' });
+		expect(event.endpoint).toBe('https://example.com/path');
+		expect(event.projectPath).toBe('[absolute-path]');
+	});
+
+	it('queues dropped telemetry batches to disk and replays them later', async () => {
+		fetchMock.mockImplementation(async () => {
+			throw new Error('network down');
+		});
+
+		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
+			attempt: 1,
+		});
+		await flushTelemetry(telemetry);
+
+		const queuePath = path.join(storageDir, 'telemetry-queue.json');
+		const queued = JSON.parse(await fs.readFile(queuePath, 'utf-8')) as Array<
+			Record<string, unknown>
+		>;
+		expect(queued).toHaveLength(1);
+		expect(queued[0]?.event).toBe(TelemetryEventName.CLI_INVOKED);
+
+		const replayFetch = vi.fn(async () => new Response(null, { status: 204 }));
+		const replayTelemetry = new Telemetry({
+			fetch: replayFetch as unknown as typeof fetch,
+			storageDir,
+			logger: mockLogger,
+			drainOptions: {
+				retry: {
+					maxAttempts: 1,
+					backoff: 'fixed',
+					initialDelayMs: 10,
+					maxDelayMs: 10,
+				},
+			},
+		});
+
+		await replayTelemetry.shutdown();
+
+		expect(replayFetch).toHaveBeenCalledTimes(1);
+		await expect(fs.access(queuePath)).rejects.toThrow();
+	});
+
+	it('can be disabled and re-enabled', async () => {
 		telemetry.disable();
-		telemetry.trackCommand('test');
-		expect(mockPostHog.capture).not.toHaveBeenCalled();
+		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, { stage: 'disabled' });
+
+		telemetry.enable();
+		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, { stage: 'enabled' });
+
+		await flushTelemetry(telemetry);
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		const [, requestInit] = fetchMock.mock.calls[0]!;
+		const payload = JSON.parse(String(requestInit?.body)) as Array<
+			Record<string, unknown>
+		>;
+
+		expect(payload).toHaveLength(1);
+		expect(payload[0]?.stage).toBe('enabled');
 	});
 
-	it('should allow setting a custom logger', () => {
-		const newLogger = {
-			debug: vi.fn(),
-			error: vi.fn(),
-			info: vi.fn(),
-			warn: vi.fn(),
-			success: vi.fn(),
-		} as unknown as Logger;
+	it('sends axiom-compatible headers and a raw events array', async () => {
+		process.env.C15T_TELEMETRY_WRITE_KEY = 'axiom-token';
+		process.env.C15T_TELEMETRY_ORG_ID = 'axiom-org';
 
-		const debugTelemetry = new Telemetry({
-			debug: true,
-			client: mockPostHog as unknown as PostHog,
-			logger: newLogger,
+		const axiomTelemetry = new Telemetry({
+			fetch: fetchMock as unknown as typeof fetch,
+			storageDir,
+			logger: mockLogger,
+			drainOptions: {
+				retry: {
+					maxAttempts: 1,
+					backoff: 'fixed',
+					initialDelayMs: 10,
+					maxDelayMs: 10,
+				},
+			},
 		});
 
-		debugTelemetry.trackEvent(TelemetryEventName.CLI_INVOKED);
-		expect(newLogger.debug).toHaveBeenCalledWith(
-			'Sending telemetry event: cli.invoked'
-		);
+		axiomTelemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
+			stage: 'axiom',
+		});
+		await flushTelemetry(axiomTelemetry);
+		await axiomTelemetry.shutdown();
+
+		const [, requestInit] = fetchMock.mock.calls[0]!;
+		const headers = requestInit?.headers as Record<string, string>;
+		const payload = JSON.parse(String(requestInit?.body)) as Array<
+			Record<string, unknown>
+		>;
+
+		expect(headers).toMatchObject({
+			'Content-Type': 'application/json',
+			Authorization: 'Bearer axiom-token',
+			'X-Axiom-Org-Id': 'axiom-org',
+		});
+		expect(payload).toHaveLength(1);
+		expect(payload[0]?.stage).toBe('axiom');
+		expect(payload[0]).not.toHaveProperty('events');
 	});
 });

@@ -54,7 +54,7 @@ function getHostedProviderFromMode(
 		return 'self-hosted';
 	}
 	if (mode === 'c15t') {
-		return 'consent.io';
+		return 'inth.com';
 	}
 
 	return null;

@@ -1,6 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, type ReactNode } from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
@@ -56,9 +57,10 @@ const IABConsentDialogHeader = forwardRef<
 			baseClassName: styles.header,
 			className,
 		});
+		const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 		return (
-			<div ref={ref} {...themedStyle}>
+			<div ref={ref} {...domStyleProps}>
 				{children ? (
 					children
 				) : (

@@ -1,10 +1,20 @@
+/**
+ * Policy-driven action resolution utilities.
+ *
+ * Pure functions that resolve backend policy hints into button layouts
+ * for consent surfaces (banner, dialog). Used by c15t UI runtimes to
+ * determine which buttons to show and how to arrange them.
+ *
+ * @packageDocumentation
+ */
+
 import type {
 	PolicyUiAction,
 	PolicyUiActionDirection,
 	PolicyUiActionGroup,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
-} from 'c15t';
+} from '../store/type';
 
 export type {
 	PolicyUiAction,
@@ -106,8 +116,8 @@ export function resolvePolicyPrimaryActions(params: {
 		return defaultPrimary;
 	}
 
-	const filtered = params.primaryActions.filter((a) =>
-		params.orderedActions.includes(a)
+	const filtered = params.primaryActions.filter((action) =>
+		params.orderedActions.includes(action)
 	);
 	return filtered.length > 0 ? filtered : defaultPrimary;
 }

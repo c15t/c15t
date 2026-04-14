@@ -16,7 +16,7 @@
 				"../../docs/**",
 				"../../scripts/agent-docs/**"
 			],
-			"outputs": ["dist/**", "docs/**"],
+			"outputs": ["dist/**", "dist-types/**", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/react#build": {
@@ -27,7 +27,7 @@
 				"../../docs/**",
 				"../../scripts/agent-docs/**"
 			],
-			"outputs": ["dist/**", "docs/**"],
+			"outputs": ["dist/**", "dist-types/**", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/nextjs#build": {
@@ -38,7 +38,7 @@
 				"../../docs/**",
 				"../../scripts/agent-docs/**"
 			],
-			"outputs": ["dist/**", "docs/**"],
+			"outputs": ["dist/**", "dist-types/**", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/backend#build": {
@@ -49,8 +49,23 @@
 				"../../docs/**",
 				"../../scripts/agent-docs/**"
 			],
-			"outputs": ["dist/**", "docs/**"],
+			"outputs": ["dist/**", "dist-types/**", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
+		},
+		"@c15t/solid#build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": []
+		},
+		"@c15t/svelte#build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": []
+		},
+		"@c15t/vue#build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": []
 		},
 		"fmt": {
 			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc", "**/biome.json"],

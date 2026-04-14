@@ -92,19 +92,35 @@ export {
 	type PolicyValidationIssue,
 	validateUIAgainstPolicy,
 } from './libs/policy';
+export {
+	flattenPolicyActionGroups,
+	hasPolicyHints,
+	resolvePolicyActionGroups,
+	resolvePolicyAllowedActions,
+	resolvePolicyDirection,
+	resolvePolicyOrderedActions,
+	resolvePolicyPrimaryActions,
+	resolvePolicyUiProfile,
+	shouldFillPolicyActions,
+} from './libs/policy-actions';
 export type { PrefetchOptions } from './libs/prefetch';
 // Export prefetch utilities
-export {
-	buildPrefetchScript,
-	ensurePrefetchedInitialData,
-	getPrefetchedInitialData,
-} from './libs/prefetch';
+export { buildPrefetchScript } from './libs/prefetch';
 // Export script loader
 export {
+	emitScriptDebugEvent,
 	getLoadedScriptIds,
 	isScriptLoaded,
 	loadScripts,
 	type Script,
+	type ScriptDebugAction,
+	type ScriptDebugEvent,
+	type ScriptDebugEventInput,
+	type ScriptDebugListener,
+	type ScriptDebugScope,
+	type ScriptDebugSource,
+	type ScriptLifecycleCallback,
+	subscribeToScriptDebugEvents,
 	unloadScripts,
 	updateScripts,
 } from './libs/script-loader';
@@ -130,12 +146,24 @@ export type {
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
 	SSRInitialData,
+	SSRInitRequestContext,
 	SSRInitRequestMetadata,
+	SSRSkippedReason,
 	StoreOptions,
+	UnstableGenericPolicyConsentInput,
+	UnstableLegalDocumentConsentInput,
+	UnstablePolicyConsentInput,
 } from './store/type';
 // Export default translation config
 export { defaultTranslationConfig } from './translations';
-export type { Callback, Callbacks } from './types/callbacks';
+export type {
+	Callback,
+	Callbacks,
+	OnBannerFetchedPayload,
+	OnConsentChangedPayload,
+	OnConsentSetPayload,
+	OnErrorPayload,
+} from './types/callbacks';
 export type {
 	ConsentBannerResponse,
 	ConsentState,

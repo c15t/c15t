@@ -5,9 +5,10 @@ import color from 'picocolors';
 import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '~/context/types';
 import { formatLogMessage } from '~/utils/logger';
+import { formatSearchedCssPaths } from '../../../shared/stylesheets';
 import type { ExpandedTheme, UIStyle } from '../../prompts';
 import { generateClientConfigContent } from '../../templates/config';
-import { updateTailwindCss } from '../../templates/css';
+import { updateAppStylesheetImports } from '../../templates/css';
 import {
 	generateEnvExampleContent,
 	generateEnvFileContent,
@@ -394,25 +395,36 @@ export async function generateFiles({
 		});
 	}
 
-	// Update Tailwind CSS if needed (v3 detection)
-	if (context.framework.tailwindVersion) {
-		spinner.start('Checking Tailwind CSS compatibility...');
-		const tailwindResult = await updateTailwindCss(
+	if (pkg === '@c15t/react' || pkg === '@c15t/nextjs') {
+		spinner.start('Configuring app stylesheet...');
+		const stylesheetResult = await updateAppStylesheetImports({
 			projectRoot,
-			context.framework.tailwindVersion
-		);
-		if (tailwindResult.updated) {
+			packageName: pkg,
+			tailwindVersion: context.framework.tailwindVersion,
+			entrypointPath: result.layoutPath,
+		});
+		if (stylesheetResult.updated) {
 			result.tailwindCssUpdated = true;
-			result.tailwindCssPath = tailwindResult.filePath;
+			result.tailwindCssPath = stylesheetResult.filePath;
 			spinner.stop(
 				formatLogMessage(
 					'info',
-					`Tailwind CSS updated for v3 compatibility: ${color.cyan(path.relative(context.cwd, tailwindResult.filePath || ''))}`
+					`App stylesheet updated: ${color.cyan(path.relative(context.cwd, stylesheetResult.filePath || ''))}`
+				)
+			);
+		} else if (stylesheetResult.filePath) {
+			spinner.stop(
+				formatLogMessage(
+					'debug',
+					'App stylesheet already had the correct c15t imports.'
 				)
 			);
 		} else {
 			spinner.stop(
-				formatLogMessage('debug', 'Tailwind CSS update not needed.')
+				formatLogMessage(
+					'warn',
+					`Could not find a global CSS entrypoint. Checked: ${formatSearchedCssPaths(projectRoot, stylesheetResult.searchedPaths)}`
+				)
 			);
 		}
 	}

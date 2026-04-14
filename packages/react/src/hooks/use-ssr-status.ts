@@ -25,8 +25,9 @@ export interface SSRStatus {
 	 *
 	 * - `'no_data'` — no `ssrData` prop was provided to the provider
 	 * - `'fetch_failed'` — `ssrData` was provided but the Promise resolved with no data
+	 * - `'context_mismatch'` — `ssrData` did not match the current runtime request context
 	 */
-	ssrSkippedReason: 'no_data' | 'fetch_failed' | null;
+	ssrSkippedReason: 'no_data' | 'fetch_failed' | 'context_mismatch' | null;
 }
 
 /**

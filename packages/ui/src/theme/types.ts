@@ -1,4 +1,4 @@
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from '../utils/cn';
 
 /**
  * Generic CSS properties record.
@@ -76,7 +76,7 @@ export interface ColorTokens {
 	text?: string;
 	/** Muted text color for secondary content. */
 	textMuted?: string;
-	/** Text color for content on primary background. */
+	/** Text color for content on primary background. Auto-derived from `primary` when omitted. */
 	textOnPrimary?: string;
 	/** Overlay color for modal backdrops. */
 	overlay?: string;
@@ -243,7 +243,7 @@ export interface ThemeCSSVariables {
 	'--c15t-text'?: string;
 	/** `colors.textMuted` (default: `hsl(0, 0%, 40%)`) */
 	'--c15t-text-muted'?: string;
-	/** `colors.textOnPrimary` (default: `hsl(0, 0%, 100%)`) */
+	/** `colors.textOnPrimary` (auto-derived from `colors.primary` when omitted) */
 	'--c15t-text-on-primary'?: string;
 	/** `colors.overlay` (default: `hsla(0, 0%, 0%, 0.5)`) */
 	'--c15t-overlay'?: string;
@@ -344,6 +344,8 @@ export interface ComponentSlots {
 	consentBannerFooter?: SlotStyle;
 	/** Nested button group inside the banner footer. */
 	consentBannerFooterSubGroup?: SlotStyle;
+	/** Branding tag rendered above the consent banner card. */
+	consentBannerTag?: SlotStyle;
 	/** Backdrop overlay rendered behind the banner when enabled. */
 	consentBannerOverlay?: SlotStyle;
 
@@ -360,8 +362,10 @@ export interface ComponentSlots {
 	consentDialogDescription?: SlotStyle;
 	/** Dialog content region (typically holds ConsentWidget). */
 	consentDialogContent?: SlotStyle;
-	/** Dialog footer container with actions/branding. */
+	/** Footer container used by compound dialog layouts. */
 	consentDialogFooter?: SlotStyle;
+	/** Branding tag rendered below the stock consent dialog card. */
+	consentDialogTag?: SlotStyle;
 	/** Backdrop overlay rendered behind the dialog. */
 	consentDialogOverlay?: SlotStyle;
 
@@ -372,8 +376,8 @@ export interface ComponentSlots {
 	consentWidgetAccordion?: SlotStyle;
 	/** Footer area for widget actions and links. */
 	consentWidgetFooter?: SlotStyle;
-	/** Branding element rendered in the widget footer. */
-	consentWidgetBranding?: SlotStyle;
+	/** Branding tag rendered below the standalone consent widget. */
+	consentWidgetTag?: SlotStyle;
 
 	// --- FRAME SLOTS ---
 	/** Frame wrapper used by blocking placeholders (e.g., iframe blocking). */
@@ -388,6 +392,8 @@ export interface ComponentSlots {
 	iabConsentBannerHeader?: SlotStyle;
 	/** Footer container for IAB banner actions. */
 	iabConsentBannerFooter?: SlotStyle;
+	/** Branding tag rendered above the IAB banner card. */
+	iabConsentBannerTag?: SlotStyle;
 	/** Backdrop overlay rendered behind the IAB banner. */
 	iabConsentBannerOverlay?: SlotStyle;
 
@@ -400,6 +406,8 @@ export interface ComponentSlots {
 	iabConsentDialogHeader?: SlotStyle;
 	/** Footer container for IAB dialog actions. */
 	iabConsentDialogFooter?: SlotStyle;
+	/** Branding tag rendered below the IAB dialog card. */
+	iabConsentDialogTag?: SlotStyle;
 	/** Backdrop overlay rendered behind the IAB dialog. */
 	iabConsentDialogOverlay?: SlotStyle;
 

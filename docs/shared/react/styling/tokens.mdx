@@ -5,6 +5,8 @@
 
   Color tokens define the palette for all consent components. Set `colors` for light mode and `dark` for dark mode overrides.
 
+  When `textOnPrimary` is omitted, c15t derives it automatically from `primary` to keep text readable on primary-filled surfaces such as stock branding tags and buttons. Set `textOnPrimary` explicitly when you need a specific foreground color.
+
   ```tsx
   const theme = {
     colors: {

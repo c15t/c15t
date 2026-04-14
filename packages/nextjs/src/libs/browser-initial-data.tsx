@@ -8,8 +8,8 @@ const DEFAULT_SCRIPT_ID = 'c15t-initial-data-prefetch';
  * Next.js script component that starts `/init` prefetching before hydration.
  *
  * @remarks
- * Use in `app/layout.tsx` for static routes. Pair with
- * `getPrefetchedInitialData()` or `ensurePrefetchedInitialData()` in your client provider.
+ * Use in `app/layout.tsx` for static routes. Matching prefetched data is
+ * consumed automatically by the runtime during first store initialization.
  */
 export function C15tPrefetch({
 	id = DEFAULT_SCRIPT_ID,

@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/translations",
-	"version": "2.0.0-rc.5",
+	"version": "2.0.0-rc.8",
 	"description": "Translation utils for c15t, providing type-safe internationalization support.",
 	"homepage": "https://c15t.com/docs/frameworks/react/hooks/use-translations",
 	"repository": {
@@ -8,7 +8,7 @@
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/translations"
 	},
-	"license": "GPL-3.0-only",
+	"license": "Apache-2.0",
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
@@ -36,7 +36,7 @@
 		"dist-types"
 	],
 	"scripts": {
-		"build": "rslib build",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",

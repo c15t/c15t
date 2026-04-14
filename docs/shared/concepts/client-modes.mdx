@@ -3,12 +3,12 @@
 <section id="overview">
   c15t supports three client modes that determine how consent data is stored and synchronized. Choose the mode that matches your infrastructure:
 
-  - **Hosted mode** - Full backend integration with geolocation, API sync, and analytics
-  - **Offline mode** - Local-only storage with no network requests
+  - **Hosted mode** - Recommended for production. Backend-backed consent with geolocation, centralized policy resolution, audit history, and offline fallback.
+  - **Offline mode** - Browser-only storage with no network requests. Best for local development, demos, static deployments, or controlled fallback scenarios.
   - **Custom mode** - Bring your own backend with custom endpoint handlers
 
   <Callout type="warn">
-    Offline mode is browser-only storage. If browser storage is blocked or cleared, consent cannot be remembered and prior choices cannot be verified.
+    If you need durable consent records, server-side enforcement, or automatic jurisdiction detection, use hosted mode. Offline mode cannot provide those guarantees because consent lives only in the browser.
   </Callout>
 </section>
 
@@ -17,7 +17,7 @@
 
   ## Hosted Mode (Recommended)
 
-  The default mode. Connects to a c15t backend for full consent lifecycle management. We recommend using [consent.io](https://consent.io) for a fully managed experience, but you can [self-host](/docs/self-host) as well.
+  The default mode. Connects to a c15t backend for full consent lifecycle management. We recommend using [inth.com](https://inth.com) for a fully managed experience, but you can [self-host](/docs/self-host) as well.
 
   <Callout type="info">
     `mode: 'hosted'` is the preferred value. The legacy alias `mode: 'c15t'` is still supported for backward compatibility.
@@ -32,6 +32,13 @@
   **Configuration:**
 
   - `backendURL` (required) - API endpoint path
+
+  **Why it is the default for production:**
+
+  - The backend stays the source of truth for policy, translations, and jurisdiction logic
+  - Consent decisions can be stored beyond the current browser session for audit and support workflows
+  - Server-side systems can preload consent-aware behavior instead of waiting for client-only storage
+  - If the backend is temporarily unavailable, c15t can fall back locally and re-sync later
 
   **Best for:** Production apps that need geolocation-based jurisdiction detection, consent record storage, and compliance audit trails.
 </section>
@@ -65,10 +72,12 @@
 
   - No automatic geolocation or jurisdiction detection
   - No consent audit trail
+  - No centralized policy or translation updates without shipping frontend changes
   - No cross-device sync
+  - No server-side visibility before client initialization
   - Works without any backend infrastructure
 
-  **Best for:** Static sites, development/testing, or as a starting point before setting up a backend.
+  **Best for:** Local development, Storybook/static demos, resilience fallback, or simpler sites that explicitly accept browser-only consent storage.
 </section>
 
 <section id="custom-mode">
@@ -93,7 +102,10 @@
   | Feature | Hosted | Offline | Custom |
   |---------|------|---------|--------|
   | Geolocation | Automatic | Manual via overrides | Your implementation |
+  | Policy source of truth | Backend-managed | Bundled into the frontend | Your implementation |
   | Consent sync | API | Local only | Your implementation |
+  | Audit trail | Backend records | Not available | Your implementation |
+  | Server-side consent awareness | Supported | Not available | Your implementation |
   | SSR data | Supported | Not available | Your implementation |
   | Analytics | Built-in | Not available | Your implementation |
   | Infrastructure | c15t backend | None | Your backend |

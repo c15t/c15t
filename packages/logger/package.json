@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/logger",
-	"version": "1.0.2-rc.0",
+	"version": "1.0.2-rc.1",
 	"description": "Logger for c15t.",
 	"homepage": "https://c15t.com/",
 	"repository": {
@@ -8,7 +8,7 @@
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/logger"
 	},
-	"license": "GPL-3.0-only",
+	"license": "Apache-2.0",
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
@@ -26,7 +26,7 @@
 		"dist-types"
 	],
 	"scripts": {
-		"build": "rslib build",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
 		"dev": "rslib build --watch",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",

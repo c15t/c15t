@@ -58,7 +58,7 @@ export async function getBackendOptions({
 
 		const proxyNextjsSelection = await p.confirm({
 			message:
-				'Proxy requests to your instance with Next.js Rewrites? (Recommended)',
+				'Proxy requests to your project with Next.js Rewrites? (Recommended)',
 			initialValue: true,
 		});
 

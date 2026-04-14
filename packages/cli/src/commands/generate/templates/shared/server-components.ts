@@ -45,8 +45,6 @@ import ConsentManagerProvider from './provider';
 export function ConsentManager({ children }: { children: ReactNode }) {
 	const ssrData = fetchInitialData({
 		backendURL: ${backendURLValue},
-		// Shows banner during development. Remove for production.
-		overrides: { country: 'DE' },
 	});
 
 	return (

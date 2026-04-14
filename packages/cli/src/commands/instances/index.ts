@@ -1,5 +1,5 @@
 /**
- * Instance management commands
+ * Project management commands
  */
 
 import * as p from '@clack/prompts';
@@ -9,11 +9,12 @@ import {
 	isLoggedIn,
 	setSelectedInstanceId,
 } from '../../auth';
+import type { CliCommand, CliContext } from '../../context/types';
 import { createControlPlaneClientFromConfig } from '../../control-plane';
 import { CliError } from '../../core/errors';
 import { color } from '../../core/logger';
 import { TelemetryEventName } from '../../core/telemetry';
-import type { CliCommand, CliContext, Instance } from '../../types';
+import type { Instance } from '../../types';
 import { createTaskSpinner } from '../../utils/spinner';
 import { validateInstanceName } from '../../utils/validation';
 
@@ -33,14 +34,14 @@ function formatInstanceRegion(instance: Instance): string {
  */
 async function requireAuth(context: CliContext): Promise<void> {
 	if (!(await isLoggedIn())) {
-		context.logger.error('You must be logged in to manage instances');
+		context.logger.error('You must be logged in to manage projects');
 		context.logger.message(`Run ${color.cyan('c15t login')} to authenticate`);
 		throw new CliError('AUTH_NOT_LOGGED_IN');
 	}
 }
 
 /**
- * List instances command
+ * List projects command
  */
 async function listAction(context: CliContext): Promise<void> {
 	const { logger, telemetry } = context;
@@ -48,7 +49,7 @@ async function listAction(context: CliContext): Promise<void> {
 
 	await requireAuth(context);
 
-	const spinner = createTaskSpinner('Fetching instances...');
+	const spinner = createTaskSpinner('Fetching projects...');
 	spinner.start();
 
 	try {
@@ -63,24 +64,22 @@ async function listAction(context: CliContext): Promise<void> {
 
 		spinner.stop();
 
-		telemetry.trackEvent(TelemetryEventName.INSTANCES_LISTED, {
+		telemetry.trackEvent(TelemetryEventName.PROJECTS_LISTED, {
 			count: instances.length,
 		});
 
 		if (instances.length === 0) {
 			logger.message('');
-			logger.message('No instances found.');
+			logger.message('No projects found.');
 			logger.message('');
-			logger.message(
-				`Run ${color.cyan('c15t instances create')} to create one`
-			);
+			logger.message(`Run ${color.cyan('c15t projects create')} to create one`);
 			return;
 		}
 
 		const selectedId = await getSelectedInstanceId();
 
 		logger.message('');
-		logger.message(color.bold('Your instances:'));
+		logger.message(color.bold('Your projects:'));
 		logger.message('');
 
 		for (const instance of instances) {
@@ -100,7 +99,7 @@ async function listAction(context: CliContext): Promise<void> {
 		}
 
 		if (selectedId) {
-			logger.message(color.dim('▸ indicates the currently selected instance'));
+			logger.message(color.dim('▸ indicates the currently selected project'));
 		}
 	} catch (error) {
 		spinner.stop();
@@ -109,7 +108,7 @@ async function listAction(context: CliContext): Promise<void> {
 }
 
 /**
- * Select instance command
+ * Select project command
  */
 async function selectAction(context: CliContext): Promise<void> {
 	const { logger, telemetry, commandArgs } = context;
@@ -117,7 +116,7 @@ async function selectAction(context: CliContext): Promise<void> {
 
 	await requireAuth(context);
 
-	const spinner = createTaskSpinner('Fetching instances...');
+	const spinner = createTaskSpinner('Fetching projects...');
 	spinner.start();
 
 	try {
@@ -133,10 +132,8 @@ async function selectAction(context: CliContext): Promise<void> {
 		spinner.stop();
 
 		if (instances.length === 0) {
-			logger.message('No instances found.');
-			logger.message(
-				`Run ${color.cyan('c15t instances create')} to create one`
-			);
+			logger.message('No projects found.');
+			logger.message(`Run ${color.cyan('c15t projects create')} to create one`);
 			return;
 		}
 
@@ -152,7 +149,7 @@ async function selectAction(context: CliContext): Promise<void> {
 
 			if (!found) {
 				throw new CliError('INSTANCE_NOT_FOUND', {
-					details: `No instance found with ID, name, or org/name: ${query}`,
+					details: `No project found with ID, name, or org/name: ${query}`,
 				});
 			}
 
@@ -162,7 +159,7 @@ async function selectAction(context: CliContext): Promise<void> {
 			const currentId = await getSelectedInstanceId();
 
 			const result = await p.select({
-				message: 'Select an instance:',
+				message: 'Select a project:',
 				options: instances.map((instance) => ({
 					value: instance.id,
 					label: formatInstanceLabel(instance),
@@ -183,12 +180,12 @@ async function selectAction(context: CliContext): Promise<void> {
 
 		await setSelectedInstanceId(selectedInstance.id);
 
-		telemetry.trackEvent(TelemetryEventName.INSTANCE_SELECTED, {
-			instanceId: selectedInstance.id,
+		telemetry.trackEvent(TelemetryEventName.PROJECT_SELECTED, {
+			projectId: selectedInstance.id,
 		});
 
 		logger.success(
-			`Selected instance: ${color.cyan(formatInstanceLabel(selectedInstance))}`
+			`Selected project: ${color.cyan(formatInstanceLabel(selectedInstance))}`
 		);
 		logger.message(`Region: ${formatInstanceRegion(selectedInstance)}`);
 	} catch (error) {
@@ -198,7 +195,7 @@ async function selectAction(context: CliContext): Promise<void> {
 }
 
 /**
- * Create instance command
+ * Create project command
  */
 async function createAction(context: CliContext): Promise<void> {
 	const { logger, telemetry, commandArgs } = context;
@@ -244,7 +241,7 @@ async function createAction(context: CliContext): Promise<void> {
 			const providedName = commandArgs[0];
 			if (!providedName) {
 				throw new CliError('INSTANCE_NAME_INVALID', {
-					details: 'Instance name is required',
+					details: 'Project slug is required',
 				});
 			}
 
@@ -256,7 +253,7 @@ async function createAction(context: CliContext): Promise<void> {
 			name = providedName;
 		} else {
 			const result = await p.text({
-				message: 'Instance slug:',
+				message: 'Project slug:',
 				placeholder: 'my-app',
 				validate: (value) => validateInstanceName(value?.trim() ?? ''),
 			});
@@ -314,7 +311,7 @@ async function createAction(context: CliContext): Promise<void> {
 			return;
 		}
 
-		const spinner = createTaskSpinner(`Creating instance "${name}"...`);
+		const spinner = createTaskSpinner(`Creating project "${name}"...`);
 		spinner.start();
 		let instance: Instance;
 		try {
@@ -325,14 +322,14 @@ async function createAction(context: CliContext): Promise<void> {
 					region: regionSelection,
 				},
 			});
-			spinner.success('Instance created');
+			spinner.success('Project created');
 		} catch (error) {
-			spinner.error('Failed to create instance');
+			spinner.error('Failed to create project');
 			throw error;
 		}
 
-		telemetry.trackEvent(TelemetryEventName.INSTANCE_CREATED, {
-			instanceId: instance.id,
+		telemetry.trackEvent(TelemetryEventName.PROJECT_CREATED, {
+			projectId: instance.id,
 		});
 
 		logger.message('');
@@ -341,18 +338,18 @@ async function createAction(context: CliContext): Promise<void> {
 		logger.message(`URL: ${color.cyan(instance.url)}`);
 		logger.message('');
 		logger.info(
-			'Created as a v2 development instance. Enable production mode in the dashboard when you are ready.'
+			'Created as a v2 development project. Enable production mode in the dashboard when you are ready.'
 		);
 
-		// Ask if user wants to select this instance
+		// Ask if user wants to select this project
 		const shouldSelect = await p.confirm({
-			message: 'Would you like to use this instance for your project?',
+			message: 'Would you like to use this project for your project?',
 			initialValue: true,
 		});
 
 		if (shouldSelect && !p.isCancel(shouldSelect)) {
 			await setSelectedInstanceId(instance.id);
-			logger.info('Instance selected');
+			logger.info('Project selected');
 		}
 	} finally {
 		await client.close();
@@ -376,9 +373,9 @@ function getStatusColor(status: Instance['status']): string {
 }
 
 /**
- * Main instances command (defaults to list)
+ * Main projects command (defaults to list)
  */
-async function instancesAction(context: CliContext): Promise<void> {
+async function projectsAction(context: CliContext): Promise<void> {
 	const { commandArgs } = context;
 
 	// Check for subcommand
@@ -401,37 +398,45 @@ async function instancesAction(context: CliContext): Promise<void> {
 }
 
 /**
- * Instances command definition
+ * Projects command definition
  */
-export const instancesCommand: CliCommand = {
-	name: 'instances',
-	label: 'Instances',
-	hint: 'Manage your c15t instances',
-	description: 'List, select, and create c15t instances',
-	action: instancesAction,
+export const projectsCommand: CliCommand = {
+	name: 'projects',
+	label: 'Projects',
+	hint: 'Manage your c15t projects',
+	description: 'List, select, and create c15t projects',
+	action: projectsAction,
 	subcommands: [
 		{
 			name: 'list',
 			label: 'List',
-			hint: 'List all instances',
-			description: 'List all c15t instances for your account',
+			hint: 'List all projects',
+			description: 'List all c15t projects for your account',
 			action: listAction,
 		},
 		{
 			name: 'select',
 			label: 'Select',
-			hint: 'Select an instance',
-			description: 'Select an instance for your project',
+			hint: 'Select a project',
+			description: 'Select a project for your local project',
 			action: selectAction,
 		},
 		{
 			name: 'create',
 			label: 'Create',
-			hint: 'Create a new instance',
-			description: 'Create a new c15t instance',
+			hint: 'Create a new project',
+			description: 'Create a new c15t project',
 			action: createAction,
 		},
 	],
 };
 
-export { createAction, listAction, selectAction };
+export const instancesAliasCommand: CliCommand = {
+	...projectsCommand,
+	name: 'instances',
+	label: 'Instances',
+	description: 'Alias for `c15t projects`',
+	hidden: true,
+};
+
+export { createAction, listAction, projectsAction, selectAction };

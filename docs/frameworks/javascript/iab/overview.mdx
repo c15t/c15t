@@ -11,17 +11,17 @@ Enable IAB TCF in the runtime options:
 
 ```ts
 import { getOrCreateConsentRuntime } from 'c15t';
+import { iab } from '@c15t/iab';
 
 const { consentStore } = getOrCreateConsentRuntime({
   mode: 'hosted',
   backendURL: 'https://your-instance.c15t.dev',
-  iab: {
-    enabled: true,
+  iab: iab({
     vendors: [1, 2, 10, 25],  // IAB vendor IDs you work with
-    // cmpId is automatically provided by the backend (consent.io).
+    // cmpId is automatically provided by the backend (inth.com).
     // Only set this if you have your own CMP registration with IAB Europe.
     // cmpId: 123,
-  },
+  }),
 });
 ```
 

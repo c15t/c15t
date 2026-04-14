@@ -1,5 +1,25 @@
 # @c15t/iab
 
+## 2.0.0-rc.10
+
+### Patch Changes
+
+- Updated dependencies [9579b62]
+  - c15t@2.0.0-rc.10
+  - @c15t/schema@2.0.0-rc.6
+
+## 2.0.0-rc.8
+
+### Patch Changes
+
+- Updated dependencies [43f1b68]
+- Updated dependencies [3d4c107]
+- Updated dependencies [c944e35]
+- Updated dependencies [3d5b0fd]
+- Updated dependencies [5956531]
+  - c15t@2.0.0-rc.8
+  - @c15t/schema@2.0.0-rc.5
+
 ## 2.0.0-rc.6
 
 ### Minor Changes

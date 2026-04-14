@@ -1,3 +1,5 @@
+import type { IdentifyUserRequestBody } from '../client-interface';
+
 /**
  * Helper function to introduce a delay
  * @param ms - Delay duration in milliseconds
@@ -6,6 +8,16 @@
  */
 export const delay = (ms: number): Promise<void> =>
 	new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Resolves the subject identifier used by identify-user requests.
+ * Supports the canonical `subjectId` field and the deprecated `id` alias.
+ */
+export function getIdentifySubjectId(
+	submission?: IdentifyUserRequestBody
+): string | undefined {
+	return submission?.subjectId || submission?.id;
+}
 
 /**
  * Generates a UUID v4 for request identification

@@ -92,7 +92,7 @@ export const ERROR_CATALOG = {
 	},
 	CONTROL_PLANE_CONNECTION_FAILED: {
 		code: 'CONTROL_PLANE_CONNECTION_FAILED',
-		message: 'Could not connect to consent.io',
+		message: 'Could not connect to inth.com',
 		hint: `Check if ${URLS.CONSENT_IO} is accessible`,
 	},
 	API_ERROR: {
@@ -105,17 +105,17 @@ export const ERROR_CATALOG = {
 	URL_INVALID: {
 		code: 'URL_INVALID',
 		message: 'Invalid URL format',
-		hint: 'Expected format: https://your-instance.c15t.dev',
+		hint: 'Expected format: https://your-project.inth.app',
 	},
 	INSTANCE_NOT_FOUND: {
 		code: 'INSTANCE_NOT_FOUND',
-		message: 'Instance not found',
-		hint: 'Run `c15t instances list` to see available instances',
+		message: 'Project not found',
+		hint: 'Run `c15t projects list` to see available projects',
 	},
 	INSTANCE_NAME_INVALID: {
 		code: 'INSTANCE_NAME_INVALID',
-		message: 'Invalid instance name',
-		hint: 'Instance names must be alphanumeric with hyphens',
+		message: 'Invalid project slug',
+		hint: 'Project slugs must be alphanumeric with hyphens',
 	},
 
 	// --- File System Errors ---

@@ -97,9 +97,15 @@
 	}
 
 	/* Card styles */
+	.cardShell {
+		display: flex;
+		flex-direction: column;
+		width: min(100%, var(--iab-consent-banner-max-width));
+	}
+
 	.card {
 		position: relative;
-		width: min(100%, var(--iab-consent-banner-max-width));
+		width: 100%;
 		border-radius: var(--iab-consent-banner-border-radius);
 		border-width: var(--iab-consent-banner-border-width);
 		border-style: solid;

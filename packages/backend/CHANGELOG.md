@@ -1,5 +1,42 @@
 # @c15t/backend
 
+## 2.0.0-rc.10
+
+### Patch Changes
+
+- 9579b62: Add token-first legal-document consent groundwork for `2.0`.
+
+  - `c15t`: expand the unstable policy-consent input types so legal-document writes can prefer `documentSnapshotToken`, fall back to `policyHash`, and keep `policyId` only as a compatibility path.
+  - `@c15t/backend`: update legal-document consent writes to resolve append-only consent against a verified document snapshot token when configured, or against a provided document hash when only lighter-weight release proof is available.
+  - `@c15t/schema`: extend the subject consent schema and error shapes for legal-document snapshot tokens and hash-based legal-document resolution.
+
+- Updated dependencies [9579b62]
+  - @c15t/schema@2.0.0-rc.6
+
+## 2.0.0-rc.8
+
+### Patch Changes
+
+- 3d5b0fd: Add legal-document snapshot support, persist document hashes on consent policies, and expose subject consent policy version/hash/effective-date metadata.
+- 918a70e: Fix published TypeScript declaration packaging so consumers stay compatible across both TypeScript 5 and TypeScript 6.
+
+  - `@c15t/react`: correct the `./primitives` type export entries so they point at the published `dist-types` files instead of missing declaration paths.
+  - `@c15t/backend`, `@c15t/cli`, `@c15t/dev-tools`, `@c15t/logger`, `@c15t/node-sdk`, and `@c15t/scripts`: normalize emitted `dist-types` imports during builds so published declarations no longer reference sibling `.d.ts` files directly, which could break consumers on newer TypeScript versions.
+  - Tooling: make declaration normalization discover package targets dynamically so the compatibility fix applies consistently across published packages instead of only a hardcoded subset.
+
+- ad019de: Mark the edge runtime callables as unstable in `2.0`.
+
+  - rename `c15tEdgeInit()` to `unstable_c15tEdgeInit()`
+  - rename `resolveConsent()` to `unstable_resolveConsent()`
+  - update the edge docs and source examples to use the `unstable_` exports
+
+- Updated dependencies [3d5b0fd]
+- Updated dependencies [918a70e]
+- Updated dependencies [fee82fd]
+  - @c15t/schema@2.0.0-rc.5
+  - @c15t/logger@1.0.2-rc.1
+  - @c15t/translations@2.0.0-rc.8
+
 ## 2.0.0-rc.6
 
 ### Patch Changes

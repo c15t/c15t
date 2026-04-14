@@ -6,6 +6,7 @@ export const translations: CompleteTranslations = {
 		customize: 'Προσαρμογή',
 		save: 'Αποθήκευση ρυθμίσεων',
 		close: 'Κλείσιμο',
+		securedBy: 'Προστατεύεται από',
 	},
 	cookieBanner: {
 		title: 'Εκτιμούμε το απόρρητό σας',

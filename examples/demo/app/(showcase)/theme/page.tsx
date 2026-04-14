@@ -3,9 +3,11 @@
 import {
 	ConsentBanner,
 	ConsentManagerProvider,
+	policyPackPresets,
 	type Theme,
 	useConsentManager,
 } from '@c15t/react';
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import {
 	darkTheme,
@@ -563,114 +565,132 @@ export default function ThemeShowcasePage() {
 				<p className="text-muted-foreground">
 					Demonstrating c15t&apos;s customizable theme engine
 				</p>
+				<div className="mt-4 flex justify-center">
+					<Link
+						href="/theme/regressions"
+						className="inline-flex items-center rounded-full border border-border bg-background/85 px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-accent"
+					>
+						Open Regression Checks
+					</Link>
+				</div>
+				<p className="mt-3 text-sm text-muted-foreground">
+					Regression previews live on a dedicated page so they don&apos;t
+					compete with the portaled rotating banner demo.
+				</p>
 			</header>
 
-			{/* Banner display area - takes up the middle */}
-			<div className="flex-1" />
-
-			{/* Current theme info - positioned above the banner */}
-			<div className="fixed top-32 left-0 right-0 text-center pointer-events-none z-10">
-				<h2 className="text-2xl font-semibold text-foreground">
-					{currentThemeData.name}
-				</h2>
-				<p className="text-sm text-muted-foreground mt-1">
-					{currentThemeData.description}
-				</p>
-			</div>
-
-			{/* Banner is rendered via portal, centered in viewport by theme */}
-			<ConsentManagerProvider
-				key={key}
-				options={{
-					mode: 'offline',
-					consentCategories: ['necessary', 'marketing', 'measurement'],
-					theme: activeTheme,
-				}}
-			>
-				<ForceBannerShow />
-				<BannerDisplay
-					layout={currentThemeData.layout}
-					primaryButton={currentThemeData.primaryButton}
-				/>
-			</ConsentManagerProvider>
-
-			{/* Controls - fixed at bottom */}
-			<footer className="fixed bottom-0 left-0 right-0 p-8 flex flex-col items-center gap-4 bg-linear-to-t from-background to-transparent">
-				{/* Navigation controls */}
-				<div className="flex items-center gap-4">
-					<button
-						type="button"
-						onClick={goToPrevious}
-						className="p-2 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
-						aria-label="Previous theme"
-					>
-						<svg
-							className="w-5 h-5"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								strokeWidth={2}
-								d="M15 19l-7-7 7-7"
-							/>
-						</svg>
-					</button>
-
-					<button
-						type="button"
-						onClick={() => setIsPlaying(!isPlaying)}
-						className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-					>
-						{isPlaying ? 'Pause' : 'Play'}
-					</button>
-
-					<button
-						type="button"
-						onClick={goToNext}
-						className="p-2 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
-						aria-label="Next theme"
-					>
-						<svg
-							className="w-5 h-5"
-							fill="none"
-							stroke="currentColor"
-							viewBox="0 0 24 24"
-						>
-							<path
-								strokeLinecap="round"
-								strokeLinejoin="round"
-								strokeWidth={2}
-								d="M9 5l7 7-7 7"
-							/>
-						</svg>
-					</button>
+			<section className="relative flex min-h-[calc(100vh-10rem)] flex-1 items-center justify-center pb-32">
+				{/* Current theme info - positioned above the banner */}
+				<div className="absolute top-12 left-0 right-0 text-center pointer-events-none z-10">
+					<h2 className="text-2xl font-semibold text-foreground">
+						{currentThemeData.name}
+					</h2>
+					<p className="text-sm text-muted-foreground mt-1">
+						{currentThemeData.description}
+					</p>
 				</div>
 
-				{/* Theme dots */}
-				<div className="flex gap-2">
-					{showcaseThemes.map((theme, index) => (
+				{/* Banner is rendered via portal, centered in viewport by theme */}
+				<ConsentManagerProvider
+					key={key}
+					options={{
+						mode: 'offline',
+						consentCategories: ['necessary', 'marketing', 'measurement'],
+						theme: activeTheme,
+						offlinePolicy: {
+							policyPacks: [
+								policyPackPresets.europeOptIn(),
+								policyPackPresets.californiaOptOut(),
+								policyPackPresets.worldNoBanner(),
+							],
+						},
+					}}
+				>
+					<ForceBannerShow />
+					<BannerDisplay
+						layout={currentThemeData.layout}
+						primaryButton={currentThemeData.primaryButton}
+					/>
+				</ConsentManagerProvider>
+
+				{/* Controls */}
+				<footer className="absolute bottom-0 left-0 right-0 p-8 flex flex-col items-center gap-4 bg-linear-to-t from-background to-transparent">
+					{/* Navigation controls */}
+					<div className="flex items-center gap-4">
 						<button
-							key={theme.name}
 							type="button"
-							onClick={() => goToIndex(index)}
-							className={`w-3 h-3 rounded-full transition-all ${
-								index === currentIndex
-									? 'bg-primary scale-125'
-									: 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
-							}`}
-							aria-label={`Go to ${theme.name} theme`}
-						/>
-					))}
-				</div>
+							onClick={goToPrevious}
+							className="p-2 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
+							aria-label="Previous theme"
+						>
+							<svg
+								className="w-5 h-5"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M15 19l-7-7 7-7"
+								/>
+							</svg>
+						</button>
 
-				{/* Theme counter */}
-				<div className="text-sm text-muted-foreground">
-					{currentIndex + 1} / {showcaseThemes.length}
-				</div>
-			</footer>
+						<button
+							type="button"
+							onClick={() => setIsPlaying(!isPlaying)}
+							className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+						>
+							{isPlaying ? 'Pause' : 'Play'}
+						</button>
+
+						<button
+							type="button"
+							onClick={goToNext}
+							className="p-2 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
+							aria-label="Next theme"
+						>
+							<svg
+								className="w-5 h-5"
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									strokeLinecap="round"
+									strokeLinejoin="round"
+									strokeWidth={2}
+									d="M9 5l7 7-7 7"
+								/>
+							</svg>
+						</button>
+					</div>
+
+					{/* Theme dots */}
+					<div className="flex gap-2">
+						{showcaseThemes.map((theme, index) => (
+							<button
+								key={theme.name}
+								type="button"
+								onClick={() => goToIndex(index)}
+								className={`w-3 h-3 rounded-full transition-all ${
+									index === currentIndex
+										? 'bg-primary scale-125'
+										: 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
+								}`}
+								aria-label={`Go to ${theme.name} theme`}
+							/>
+						))}
+					</div>
+
+					{/* Theme counter */}
+					<div className="text-sm text-muted-foreground">
+						{currentIndex + 1} / {showcaseThemes.length}
+					</div>
+				</footer>
+			</section>
 		</div>
 	);
 }

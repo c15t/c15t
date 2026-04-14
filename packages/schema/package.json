@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/schema",
-	"version": "2.0.0-rc.4",
+	"version": "2.0.0-rc.6",
 	"description": "Framework-agnostic Valibot schemas and TypeScript types for c15t consent management",
 	"keywords": [
 		"consent",
@@ -17,7 +17,7 @@
 		"type": "git",
 		"url": "https://github.com/c15t/c15t"
 	},
-	"license": "GPL-3.0-only",
+	"license": "Apache-2.0",
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
@@ -40,9 +40,9 @@
 		"dist-types"
 	],
 	"scripts": {
-		"build": "rslib build",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
-		"dev": "rslib build",
+		"dev": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run --passWithNoTests",

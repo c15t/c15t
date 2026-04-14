@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	flattenPolicyActionGroups,
 	hasPolicyHints,
 	resolvePolicyActionGroups,
 	resolvePolicyAllowedActions,
@@ -22,6 +23,19 @@ describe('resolvePolicyAllowedActions', () => {
 	it('falls back to default actions when policy actions are absent', () => {
 		const actions = resolvePolicyAllowedActions({});
 		expect(actions).toEqual(['reject', 'accept', 'customize']);
+	});
+});
+
+describe('flattenPolicyActionGroups', () => {
+	it('returns an empty array when layout is undefined or empty', () => {
+		expect(flattenPolicyActionGroups()).toEqual([]);
+		expect(flattenPolicyActionGroups([])).toEqual([]);
+	});
+
+	it('preserves action order across grouped and ungrouped layout entries', () => {
+		expect(
+			flattenPolicyActionGroups(['customize', ['reject', 'accept']])
+		).toEqual(['customize', 'reject', 'accept']);
 	});
 });
 

@@ -33,6 +33,12 @@ describe('constants', () => {
 			expect(REGEX.URL.test('not-a-url')).toBe(false);
 		});
 
+		test('C15T_URL regex should match hosted project domains', () => {
+			expect(REGEX.C15T_URL.test('https://project.c15t.dev')).toBe(true);
+			expect(REGEX.C15T_URL.test('https://project.inth.app')).toBe(true);
+			expect(REGEX.C15T_URL.test('https://project.inth.dev')).toBe(false);
+		});
+
 		test('DYNAMIC_SEGMENT regex should match route segments', () => {
 			expect(REGEX.DYNAMIC_SEGMENT.test('[locale]')).toBe(true);
 			expect(REGEX.DYNAMIC_SEGMENT.test('[id]')).toBe(true);

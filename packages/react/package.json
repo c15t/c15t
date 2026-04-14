@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/react",
-	"version": "2.0.0-rc.6",
+	"version": "2.0.0-rc.12",
 	"description": "Developer-first CMP for React: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization",
 	"keywords": [
 		"react",
@@ -25,21 +25,23 @@
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/react"
 	},
-	"license": "GPL-3.0-only",
+	"license": "Apache-2.0",
 	"sideEffects": [
 		"**/*.css"
 	],
 	"type": "module",
 	"exports": {
 		"./styles.css": "./dist/styles.css",
+		"./styles.tw3.css": "./dist/styles.tw3.css",
 		"./iab/styles.css": "./dist/iab/styles.css",
+		"./iab/styles.tw3.css": "./dist/iab/styles.tw3.css",
 		"./primitives": {
-			"types": "./dist/primitives.d.ts",
+			"types": "./dist-types/primitives.d.ts",
 			"import": "./dist/primitives.js",
 			"require": "./dist/primitives.cjs"
 		},
 		"./primitives/*": {
-			"types": "./dist/primitives/*.d.ts",
+			"types": "./dist-types/primitives/*.d.ts",
 			"import": "./dist/primitives/*.js",
 			"require": "./dist/primitives/*.cjs"
 		},
@@ -137,15 +139,19 @@
 		"docs",
 		"dist-types",
 		"client",
+		"styles.css",
+		"iab",
+		"src/styles.tw3.css",
+		"src/iab/styles.tw3.css",
 		"!dist/mockServiceWorker.js"
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build && bun run clean:dist:test-artifacts && bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/react",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun run clean:dist:test-artifacts && bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/react",
 		"build:agent-docs": "bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/react",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"clean:dist:test-artifacts": "bun --eval \"import { rmSync } from 'node:fs'; rmSync('dist/mockServiceWorker.js', { force: true });\"",
-		"dev": "bun prebuild && rslib build",
+		"dev": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
 		"prepack": "cd ../.. && bunx turbo run build --filter=@c15t/react",
@@ -159,8 +165,7 @@
 	],
 	"dependencies": {
 		"@c15t/ui": "workspace:*",
-		"c15t": "workspace:*",
-		"clsx": "2.1.1"
+		"c15t": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/backend": "workspace:*",

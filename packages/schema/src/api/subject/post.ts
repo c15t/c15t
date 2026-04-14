@@ -46,6 +46,8 @@ const baseSubjectConsentSchema = v.object({
 	consentAction: v.optional(v.string()),
 	/** Signed policy snapshot token from /init for consistency/auditability */
 	policySnapshotToken: v.optional(v.string()),
+	/** Signed legal-document snapshot token from a rendered document view */
+	documentSnapshotToken: v.optional(v.string()),
 });
 
 /**
@@ -59,11 +61,16 @@ export const subjectCookieBannerInputSchema = v.object({
 
 /**
  * Policy-based consent
+ *
+ * For legal documents, callers should prefer `documentSnapshotToken` when
+ * available. `policyHash` is intended as a lighter-weight fallback when the
+ * client knows the rendered release hash but not the internal c15t policy ID.
  */
 export const subjectPolicyBasedInputSchema = v.object({
 	...baseSubjectConsentSchema.entries,
 	type: v.picklist(['privacy_policy', 'dpa', 'terms_and_conditions']),
 	policyId: v.optional(v.string()),
+	policyHash: v.optional(v.string()),
 	preferences: v.optional(v.record(v.string(), v.boolean())),
 });
 
@@ -133,6 +140,18 @@ export const postSubjectErrorSchemas = {
 	}),
 	policySnapshotExpired: v.object({
 		code: v.literal('POLICY_SNAPSHOT_EXPIRED'),
+	}),
+	legalDocumentSnapshotRequired: v.object({
+		code: v.literal('LEGAL_DOCUMENT_SNAPSHOT_REQUIRED'),
+	}),
+	legalDocumentSnapshotInvalid: v.object({
+		code: v.literal('LEGAL_DOCUMENT_SNAPSHOT_INVALID'),
+	}),
+	legalDocumentSnapshotExpired: v.object({
+		code: v.literal('LEGAL_DOCUMENT_SNAPSHOT_EXPIRED'),
+	}),
+	legalDocumentProofRequired: v.object({
+		code: v.literal('LEGAL_DOCUMENT_PROOF_REQUIRED'),
 	}),
 	purposeCreationFailed: v.object({
 		purposeCode: v.string(),

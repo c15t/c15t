@@ -34,7 +34,7 @@ export function generateClientConfigContent(
 }
 
 /**
- * Hosted mode config (consent.io or self-hosted backend)
+ * Hosted mode config (inth.com or self-hosted backend)
  */
 function generateHostedConfig(
 	backendURL?: string,
@@ -43,7 +43,7 @@ function generateHostedConfig(
 ): string {
 	const url = useEnvFile
 		? 'process.env.NEXT_PUBLIC_C15T_URL'
-		: `'${backendURL || 'https://your-instance.c15t.dev'}'`;
+		: `'${backendURL || 'https://your-project.inth.app'}'`;
 	const devToolsImport = enableDevTools
 		? "import { createDevTools } from '@c15t/dev-tools';\n"
 		: '';

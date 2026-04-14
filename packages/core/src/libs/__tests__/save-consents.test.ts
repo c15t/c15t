@@ -654,6 +654,84 @@ describe('saveConsents', () => {
 			});
 		});
 
+		it('should emit change-only payload when saved preferences change', async () => {
+			const mockOnConsentChanged = vi.fn();
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'all',
+				get: mockGet,
+				set: mockSet,
+				emitConsentChanged: mockOnConsentChanged,
+			});
+
+			expect(mockOnConsentChanged).toHaveBeenCalledTimes(1);
+			expect(mockOnConsentChanged).toHaveBeenCalledWith({
+				preferences: {
+					necessary: true,
+					functionality: true,
+					measurement: true,
+					experience: true,
+					marketing: true,
+				},
+				previousPreferences: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				allowedCategories: [
+					'necessary',
+					'functionality',
+					'measurement',
+					'experience',
+					'marketing',
+				],
+				deniedCategories: [],
+				previousAllowedCategories: ['necessary'],
+				previousDeniedCategories: [
+					'functionality',
+					'measurement',
+					'experience',
+					'marketing',
+				],
+			});
+		});
+
+		it('should not emit change-only payload when saved preferences do not change', async () => {
+			const mockOnConsentChanged = vi.fn();
+
+			mockGet = vi.fn().mockReturnValue({
+				...mockGet(),
+				consents: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				selectedConsents: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				reloadOnConsentRevoked: false,
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+				emitConsentChanged: mockOnConsentChanged,
+			});
+
+			expect(mockOnConsentChanged).not.toHaveBeenCalled();
+		});
+
 		it('should handle missing onConsentSet callback gracefully', async () => {
 			mockGet = vi.fn().mockReturnValue({
 				callbacks: {
@@ -853,9 +931,7 @@ describe('saveConsents', () => {
 				body: expect.objectContaining({
 					preferences: {
 						necessary: true,
-						functionality: false,
 						measurement: true,
-						experience: false,
 						marketing: true,
 					},
 				}),
@@ -1628,12 +1704,19 @@ describe('saveConsents', () => {
 		});
 
 		it('should store pending sync data before reload', async () => {
-			const mockOnBeforeReload = vi.fn();
+			const mockOnConsentChanged = vi.fn(() => {
+				callOrder.push('onConsentChanged');
+			});
+			const callOrder: string[] = [];
 
 			mockGet = vi.fn().mockReturnValue({
 				callbacks: {
-					onConsentSet: vi.fn(),
-					onBeforeConsentRevocationReload: mockOnBeforeReload,
+					onConsentSet: vi.fn(() => {
+						callOrder.push('onConsentSet');
+					}),
+					onBeforeConsentRevocationReload: vi.fn(() => {
+						callOrder.push('onBeforeConsentRevocationReload');
+					}),
 				},
 				consentCategories: ['necessary', 'marketing'],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
@@ -1679,6 +1762,7 @@ describe('saveConsents', () => {
 				type: 'custom',
 				get: mockGet,
 				set: mockSet,
+				emitConsentChanged: mockOnConsentChanged,
 			});
 
 			// Should store pending sync
@@ -1693,12 +1777,24 @@ describe('saveConsents', () => {
 			const storedData = JSON.parse(String(pendingSyncCall?.[1]));
 			expect(storedData.policySnapshotToken).toBe('snapshot-token-123');
 
-			// Should call onBeforeConsentRevocationReload callback
-			expect(mockOnBeforeReload).toHaveBeenCalledWith({
+			expect(callOrder).toEqual([
+				'onConsentSet',
+				'onConsentChanged',
+				'onBeforeConsentRevocationReload',
+			]);
+			expect(mockOnConsentChanged).toHaveBeenCalledWith({
 				preferences: {
 					necessary: true,
 					marketing: false,
 				},
+				previousPreferences: {
+					necessary: true,
+					marketing: true,
+				},
+				allowedCategories: ['necessary'],
+				deniedCategories: ['marketing'],
+				previousAllowedCategories: ['necessary', 'marketing'],
+				previousDeniedCategories: [],
 			});
 
 			// Should reload

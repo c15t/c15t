@@ -41,7 +41,7 @@ export function getBackendURLValue(
 		return `process.env.${envVarPrefix}_C15T_URL!`;
 	}
 
-	return `'${backendURL || 'https://your-instance.c15t.dev'}'`;
+	return `'${backendURL || 'https://your-project.inth.app'}'`;
 }
 
 /**

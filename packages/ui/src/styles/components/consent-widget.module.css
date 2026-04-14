@@ -70,6 +70,8 @@
 
 @layer components {
 	.widget {
+		position: relative;
+		width: 100%;
 		font-family: var(--consent-widget-font-family);
 		line-height: var(--consent-widget-line-height);
 		-webkit-font-smoothing: antialiased;
@@ -161,7 +163,7 @@
 		}
 	}
 
-	.footerGroup {
+	.footerSubGroup {
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
@@ -176,11 +178,11 @@
 		flex-direction: column;
 	}
 
-	.footerGroupFill {
+	.footerSubGroupFill {
 		width: 100%;
 	}
 
-	.footerGroupColumn {
+	.footerSubGroupColumn {
 		width: 100%;
 	}
 
@@ -190,10 +192,10 @@
 	}
 
 	@media (max-width: 640px) {
-		.footerGroup {
+		.footerSubGroup {
 			width: 100%;
 		}
-		.footerGroup button {
+		.footerSubGroup button {
 			width: 100%;
 		}
 	}

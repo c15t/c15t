@@ -16,7 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
     steps:
       - name: ⬇️ Check out base repository
         uses: actions/checkout@v4
@@ -94,16 +93,24 @@ jobs:
         with:
           base_dir: .bundle-base
           current_dir: .
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ github.token }}
           pr_number: ${{ github.event.pull_request.number }}
-          skip_comment: false
+          skip_comment: true
           fail_on_increase: false
 
-      - name: 📤 Upload bundle diff report
-        if: always()
+      # Step 6: Save PR number and report for the comment workflow
+      - name: 💾 Save PR metadata
+        if: github.event_name == 'pull_request_target'
+        run: |
+          mkdir -p ./bundle-artifacts
+          echo "${{ github.event.pull_request.number }}" > ./bundle-artifacts/pr-number
+          cp bundle-diff.md ./bundle-artifacts/bundle-diff.md 2>/dev/null || echo "No bundle changes detected." > ./bundle-artifacts/bundle-diff.md
+
+      - name: 📤 Upload bundle analysis artifacts
+        if: github.event_name == 'pull_request_target'
         uses: actions/upload-artifact@v4
         with:
-          name: bundle-diff-report
-          path: bundle-diff.md
+          name: bundle-analysis-result
+          path: ./bundle-artifacts/
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 1
