@@ -23,14 +23,17 @@ c15t 2.0 is a major release across all of our packages. It ships a new styling m
 - [New token-based styling system](#new-token-based-styling-system)
 - [Policy packs and GPC support](#policy-packs-and-gpc-support)
 - [IAB TCF 2.3 support](#iab-tcf-23-support)
-- [Migration and setup with c15t cli](#migration-and-setup-with-c15t-cli)
-- [Bundled docs and c15t skills](#bundled-docs-and-c15t-skills)
-- [Dev tools and diagnostics](#dev-tools-and-diagnostics)
-- [Next.js support](#nextjs-support)
-- [Script loading and integrations](#script-loading-and-integrations)
+- [Improved Next.js DX and optimizations](#improved-nextjs-dx--optimizations)
+- [Script loading, network blocking, and integrations](#script-loading-network-blocking-and-integrations)
 - [Backend v2](#backend-v2)
+- [Migration and setup with c15t CLI](#migration-and-setup-with-c15t-cli)
+- [Dev tools and diagnostics](#dev-tools-and-diagnostics)
+- [Bundled docs and c15t skills](#bundled-docs-and-c15t-skills)
+- [New hosted infrastructure for Inth.com](#new-hosted-infrastructure-for-inthcom)
+- [Apache 2.0 licensing](#apache-20-licensing)
+- [onConsentChanged callback](#onconsentchanged-callback)
 - [Prebuilt branding](#prebuilt-branding)
-- [Bundle size and runtime performance](#bundle-size-and-runtime-performance)
+- [Additional changes in 2.0](#additional-changes-in-20)
 
 ## New token-based styling system
 
@@ -55,6 +58,12 @@ Policy packs define regional consent behavior explicitly. c15t resolves the acti
 - `inspectPolicies()` helps catch misconfiguration before deployment
 
 → [React Policy Packs](/docs/frameworks/react/policy-packs) · [Next.js Policy Packs](/docs/frameworks/next/policy-packs) · [Policy Packs Concepts](/docs/frameworks/react/concepts/policy-packs) · [Self-Host Guide](/docs/self-host/guides/policy-packs)
+
+## New hosted infrastructure for Inth.com
+
+As part of 2.0's release we have upgraded the infrastructure used users on `inth.com`, formally `consent.io`. This has many benefits such as being faster & improved bot detection, so your usage requests are more accurate to the human-visitors.
+
+Currently this is under the new `inth.app` domain, you can see this in the dashboard for your project as the URL is slightly different than the layout of the previous one. Legacy `c15t.dev` will move over to the new infrastructure in the course of the coming weeks with 0 downtime
 
 ## IAB TCF 2.3 support
 
@@ -92,6 +101,14 @@ This allows agents can read the docs for the exact installed version. Giving the
 You can install c15t skills today with `npx skills add c15t/skills`.
 
 → [AI Agents](/docs/ai-agents)
+
+## Apache 2.0 licensing
+
+c15t 2.0 changes the project license from `GPL-3.0-only` to `Apache-2.0`.
+
+This makes the project easier to evaluate and adopt in a wider range of commercial and internal environments, while keeping the standard Apache 2.0 attribution and patent terms.
+
+→ [License](/docs/oss/license) · [Contributing](/docs/oss/contributing)
 
 ## Dev tools and diagnostics
 
