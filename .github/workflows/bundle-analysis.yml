@@ -14,25 +14,10 @@ jobs:
   bundle-analysis:
     name: 📦 Bundle Size Analysis
     runs-on: ubuntu-latest
-    # SECURITY: Using pull_request_target with safe checkout pattern
-    # This pattern is recommended by GitHub for workflows that need to:
-    # - Analyze untrusted PR code (for bundle size comparison)
-    # - Post comments on fork PRs (requires write permissions)
-    #
-    # Security mitigations:
-    # 1. Checkout BASE repository first (trusted code from main repo)
-    # 2. Set up build environment using trusted base code
-    # 3. Only then checkout PR code separately (untrusted)
-    # 4. GITHUB_TOKEN is scoped to base repository only, preventing PR code from
-    #    accessing secrets or writing to the repository
-    #
-    # CodeQL may still warn about executing untrusted code, but this is necessary
-    # for bundle analysis. The risk is mitigated by the checkout order and token scoping.
     permissions:
       contents: read
       pull-requests: write
     steps:
-      # Step 1: Checkout BASE repository (trusted code from main repo)
       - name: ⬇️ Check out base repository
         uses: actions/checkout@v4
         with:
@@ -69,16 +54,14 @@ jobs:
         id: build-base
         timeout-minutes: 5
         run: |
-          if [ -f bun.lock ] || [ -f bun.lockb ]; then
-            bun install --frozen-lockfile || bun install
-            WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*" || true
-          elif [ -f pnpm-lock.yaml ]; then
-            pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
-            WITH_RSDOCTOR=1 pnpm exec turbo run build --filter="./packages/*" || true
-          else
+          if [ ! -f bun.lock ] && [ ! -f bun.lockb ]; then
             echo "No supported lockfile found for base branch"
             exit 1
           fi
+
+          bun install --frozen-lockfile || bun install
+          WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*" || true
+
           mkdir -p .bundle-base
           # Copy rsdoctor data files
           find packages -name "rsdoctor-data.json" -exec cp --parents {} .bundle-base/ \; || true
@@ -90,27 +73,21 @@ jobs:
         if: github.event_name == 'pull_request_target'
         uses: actions/checkout@v4
         with:
-          # Keep .bundle-base from the base branch so bundle analysis can compare
           clean: false
           ref: ${{ github.event.pull_request.head.sha }}
-          # For fork PRs, checkout action uses GITHUB_TOKEN which has read access
-          # to the PR head repository via pull_request_target event permissions
 
-      # Step 4: Build PR branch (untrusted code runs here, but in isolated context)
+      # Step 4: Build PR branch
       - name: 🏗️ Build current branch
         id: build-current
         timeout-minutes: 5
         run: |
-          if [ -f bun.lock ] || [ -f bun.lockb ]; then
-            bun install --frozen-lockfile || bun install
-            WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*"
-          elif [ -f pnpm-lock.yaml ]; then
-            pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile
-            WITH_RSDOCTOR=1 pnpm exec turbo run build --filter="./packages/*"
-          else
+          if [ ! -f bun.lock ] && [ ! -f bun.lockb ]; then
             echo "No supported lockfile found for current branch"
             exit 1
           fi
+
+          bun install --frozen-lockfile || bun install
+          WITH_RSDOCTOR=1 bun turbo run build --filter="./packages/*"
 
       - name: 📊 Analyze bundle differences
         uses: ./internals/bundle-analysis-action
