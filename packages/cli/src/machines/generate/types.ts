@@ -60,10 +60,10 @@ export interface GenerateMachineContext extends BaseMachineContext {
 	/** Mode passed as CLI argument */
 	modeArg: StorageMode | null;
 	/** Hosted provider selection when mode is hosted */
-	hostedProvider: 'consent.io' | 'self-hosted' | null;
+	hostedProvider: 'inth.com' | 'self-hosted' | null;
 
 	// --- Backend Options ---
-	/** Backend URL for hosted mode (consent.io or self-hosted provider) */
+	/** Backend URL for hosted mode (inth.com or self-hosted provider) */
 	backendURL: string | null;
 	/** Whether to store backend URL in .env file */
 	useEnvFile: boolean;

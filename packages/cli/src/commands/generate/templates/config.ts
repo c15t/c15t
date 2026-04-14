@@ -34,7 +34,7 @@ export function generateClientConfigContent(
 }
 
 /**
- * Hosted mode config (consent.io or self-hosted backend)
+ * Hosted mode config (inth.com or self-hosted backend)
  */
 function generateHostedConfig(
 	backendURL?: string,

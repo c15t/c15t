@@ -3,7 +3,7 @@ import { URLS } from '../constants';
 /**
  * Resolve the control-plane base URL for auth + hosted project management.
  *
- * Default: consent.io
+ * Default: inth.com
  * Override: CONSENT_URL
  */
 export function getControlPlaneBaseUrl(): string {

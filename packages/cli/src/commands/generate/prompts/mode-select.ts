@@ -14,7 +14,7 @@ export const MODE_OPTIONS = [
 	{
 		value: STORAGE_MODES.HOSTED,
 		label: 'Cloud Hosted',
-		hint: 'Managed by consent.io (Recommended)',
+		hint: 'Managed by inth.com (Recommended)',
 		description:
 			'Store consent data securely in the cloud with zero infrastructure',
 	},
