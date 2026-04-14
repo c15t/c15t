@@ -1,9 +1,9 @@
 'use client';
 
 import {
-	ConsentManagerDialog,
+	ConsentBanner,
+	ConsentDialog,
 	ConsentManagerProvider,
-	CookieBanner,
 	useConsentManager,
 } from '@c15t/react';
 
@@ -15,8 +15,8 @@ export default function FullPage() {
 				<p>This page imports all components from @c15t/react.</p>
 				<TestComponent />
 			</main>
-			<CookieBanner />
-			<ConsentManagerDialog />
+			<ConsentBanner />
+			<ConsentDialog />
 		</ConsentManagerProvider>
 	);
 }
