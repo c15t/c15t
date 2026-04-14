@@ -105,7 +105,7 @@ export const ERROR_CATALOG = {
 	URL_INVALID: {
 		code: 'URL_INVALID',
 		message: 'Invalid URL format',
-		hint: 'Expected format: https://your-project.c15t.dev',
+		hint: 'Expected format: https://your-project.inth.app',
 	},
 	INSTANCE_NOT_FOUND: {
 		code: 'INSTANCE_NOT_FOUND',

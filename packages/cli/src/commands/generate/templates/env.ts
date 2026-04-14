@@ -33,5 +33,5 @@ export function generateEnvFileContent(
  */
 export function generateEnvExampleContent(pkg: AvailablePackages): string {
 	const envVarName = getEnvVarName(pkg);
-	return `\n# c15t Configuration\n${envVarName}=https://your-project.c15t.dev\n`;
+	return `\n# c15t Configuration\n${envVarName}=https://your-project.inth.app\n`;
 }

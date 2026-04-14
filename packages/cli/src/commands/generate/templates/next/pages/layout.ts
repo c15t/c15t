@@ -137,7 +137,7 @@ function addServerSideDataComment(
 	} else if (useEnvFile) {
 		urlExample = 'process.env.NEXT_PUBLIC_C15T_URL!';
 	} else {
-		urlExample = `'${backendURL || 'https://your-project.c15t.dev'}'`;
+		urlExample = `'${backendURL || 'https://your-project.inth.app'}'`;
 	}
 
 	const serverSideComment = `/**
