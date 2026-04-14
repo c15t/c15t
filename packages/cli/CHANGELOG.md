@@ -1,5 +1,18 @@
 # @c15t/cli
 
+## 2.0.0-rc.13
+
+### Major Changes
+
+- 32617c9: Changelog available at https://c15t.com/changelog/2026-04-14-v2.0.0
+
+### Patch Changes
+
+- Updated dependencies [32617c9]
+- Updated dependencies [32617c9]
+  - @c15t/backend@2.0.0-rc.13
+  - @c15t/logger@2.0.0-rc.2
+
 ## 2.0.0-rc.11
 
 ### Patch Changes

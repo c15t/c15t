@@ -24,24 +24,18 @@
 		"@c15t/iab": "2.0.0-rc.5"
 	},
 	"changesets": [
-		"bright-emus-build",
-		"bright-hairs-shop",
-		"bright-mice-wait",
-		"calm-plants-tell",
-		"clean-dogs-divide",
-		"cold-pens-judge",
-		"embed-overhaul-core",
-		"fresh-owls-relax",
-		"fresh-pumpkins-change",
-		"green-moons-switch",
-		"green-pans-heal",
-		"lucky-icons-fix",
-		"odd-edges-shift",
-		"rare-buckets-whisper",
-		"shaggy-pots-relax",
-		"slow-rabbits-share",
-		"swift-foxes-leap",
-		"tidy-phones-dance",
-		"wise-badgers-share"
+		"v2-release-backend",
+		"v2-release-cli",
+		"v2-release-core",
+		"v2-release-dev-tools",
+		"v2-release-iab",
+		"v2-release-logger",
+		"v2-release-nextjs",
+		"v2-release-node-sdk",
+		"v2-release-react",
+		"v2-release-schema",
+		"v2-release-scripts",
+		"v2-release-translations",
+		"v2-release-ui"
 	]
 }

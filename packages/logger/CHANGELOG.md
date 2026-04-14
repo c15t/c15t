@@ -1,5 +1,11 @@
 # @c15t/logger
 
+## 2.0.0-rc.2
+
+### Major Changes
+
+- 32617c9: Changelog available at https://c15t.com/changelog/2026-04-14-v2.0.0
+
 ## 1.0.2-rc.1
 
 ### Patch Changes
