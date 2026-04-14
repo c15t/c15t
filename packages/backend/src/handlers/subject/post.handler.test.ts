@@ -903,7 +903,7 @@ describe('postSubjectHandler legal document snapshots', () => {
 		});
 	});
 
-	it('rejects legal document consent without token or policyId when verification is disabled', async () => {
+	it('rejects legal document consent without token, policyId, or policyHash when verification is disabled', async () => {
 		const db = createMockDb(null);
 		const registry = createMockRegistry();
 		const mockCtx = createMockContext(db, registry);
@@ -916,7 +916,7 @@ describe('postSubjectHandler legal document snapshots', () => {
 		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
 			status: 409,
 			message:
-				'Legal document consent requires policyId when snapshot verification is disabled',
+				'Legal document consent requires policyId or policyHash when snapshot verification is disabled',
 			cause: {
 				code: 'LEGAL_DOCUMENT_PROOF_REQUIRED',
 			},
