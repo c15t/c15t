@@ -5,6 +5,15 @@
 
 import type { ColorTokens, Theme, ThemeCSSVariables } from './types';
 
+type RGBColor = {
+	r: number;
+	g: number;
+	b: number;
+};
+
+const DEFAULT_LIGHT_CONTRAST_COLOR = '#ffffff';
+const DEFAULT_DARK_CONTRAST_COLOR = '#000000';
+
 /**
  * Default design tokens for the v2 theme system.
  */
@@ -94,6 +103,239 @@ export const defaultTheme: Required<Omit<Theme, 'slots'>> = {
 	},
 };
 
+function clamp(value: number, min: number, max: number): number {
+	return Math.min(Math.max(value, min), max);
+}
+
+function parsePercentage(value: string): number | null {
+	if (!value.trim().endsWith('%')) {
+		return null;
+	}
+
+	const parsed = Number.parseFloat(value);
+	return Number.isFinite(parsed) ? clamp(parsed / 100, 0, 1) : null;
+}
+
+function parseRGBChannel(value: string): number | null {
+	const percent = parsePercentage(value);
+	if (percent !== null) {
+		return Math.round(percent * 255);
+	}
+
+	const parsed = Number.parseFloat(value);
+	return Number.isFinite(parsed) ? clamp(parsed, 0, 255) : null;
+}
+
+function parseHue(value: string): number | null {
+	const trimmedValue = value.trim().toLowerCase();
+	const parsed = Number.parseFloat(trimmedValue);
+
+	if (!Number.isFinite(parsed)) {
+		return null;
+	}
+
+	if (trimmedValue.endsWith('turn')) {
+		return parsed * 360;
+	}
+
+	if (trimmedValue.endsWith('rad')) {
+		return (parsed * 180) / Math.PI;
+	}
+
+	if (trimmedValue.endsWith('grad')) {
+		return parsed * 0.9;
+	}
+
+	return parsed;
+}
+
+function parseColorChannels(value: string): string[] {
+	const [channels] = value.split('/');
+	return channels.includes(',')
+		? channels.split(/\s*,\s*/)
+		: channels.trim().split(/\s+/);
+}
+
+function hslToRgb(h: number, s: number, l: number): RGBColor {
+	const normalizedHue = ((h % 360) + 360) % 360;
+	const saturation = clamp(s, 0, 1);
+	const lightness = clamp(l, 0, 1);
+
+	if (saturation === 0) {
+		const channel = Math.round(lightness * 255);
+		return { r: channel, g: channel, b: channel };
+	}
+
+	const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+	const huePrime = normalizedHue / 60;
+	const secondary = chroma * (1 - Math.abs((huePrime % 2) - 1));
+	let red = 0;
+	let green = 0;
+	let blue = 0;
+
+	if (huePrime >= 0 && huePrime < 1) {
+		red = chroma;
+		green = secondary;
+	} else if (huePrime >= 1 && huePrime < 2) {
+		red = secondary;
+		green = chroma;
+	} else if (huePrime >= 2 && huePrime < 3) {
+		green = chroma;
+		blue = secondary;
+	} else if (huePrime >= 3 && huePrime < 4) {
+		green = secondary;
+		blue = chroma;
+	} else if (huePrime >= 4 && huePrime < 5) {
+		red = secondary;
+		blue = chroma;
+	} else {
+		red = chroma;
+		blue = secondary;
+	}
+
+	const match = lightness - chroma / 2;
+
+	return {
+		r: Math.round((red + match) * 255),
+		g: Math.round((green + match) * 255),
+		b: Math.round((blue + match) * 255),
+	};
+}
+
+function parseHexColor(value: string): RGBColor | null {
+	const trimmedValue = value.trim();
+	const hex = trimmedValue.startsWith('#')
+		? trimmedValue.slice(1)
+		: trimmedValue;
+
+	if (!/^[\da-f]{3,4}$|^[\da-f]{6}$|^[\da-f]{8}$/i.test(hex)) {
+		return null;
+	}
+
+	const normalizedHex =
+		hex.length <= 4
+			? hex
+					.slice(0, 3)
+					.split('')
+					.map((channel) => `${channel}${channel}`)
+					.join('')
+			: hex.slice(0, 6);
+
+	return {
+		r: Number.parseInt(normalizedHex.slice(0, 2), 16),
+		g: Number.parseInt(normalizedHex.slice(2, 4), 16),
+		b: Number.parseInt(normalizedHex.slice(4, 6), 16),
+	};
+}
+
+function parseRGBColor(value: string): RGBColor | null {
+	const match = value.trim().match(/^rgba?\((.+)\)$/i);
+
+	if (!match) {
+		return null;
+	}
+
+	const channels = parseColorChannels(match[1] ?? '').slice(0, 3);
+
+	if (channels.length !== 3) {
+		return null;
+	}
+
+	const [red, green, blue] = channels.map(parseRGBChannel);
+
+	if ([red, green, blue].some((channel) => channel === null)) {
+		return null;
+	}
+
+	return {
+		r: red ?? 0,
+		g: green ?? 0,
+		b: blue ?? 0,
+	};
+}
+
+function parseHSLColor(value: string): RGBColor | null {
+	const match = value.trim().match(/^hsla?\((.+)\)$/i);
+
+	if (!match) {
+		return null;
+	}
+
+	const channels = parseColorChannels(match[1] ?? '').slice(0, 3);
+
+	if (channels.length !== 3) {
+		return null;
+	}
+
+	const hue = parseHue(channels[0] ?? '');
+	const saturation = parsePercentage(channels[1] ?? '');
+	const lightness = parsePercentage(channels[2] ?? '');
+
+	if (hue === null || saturation === null || lightness === null) {
+		return null;
+	}
+
+	return hslToRgb(hue, saturation, lightness);
+}
+
+function parseColor(value: string): RGBColor | null {
+	return parseHexColor(value) ?? parseRGBColor(value) ?? parseHSLColor(value);
+}
+
+function srgbToLinear(channel: number): number {
+	const normalizedChannel = channel / 255;
+	return normalizedChannel <= 0.04045
+		? normalizedChannel / 12.92
+		: ((normalizedChannel + 0.055) / 1.055) ** 2.4;
+}
+
+function getRelativeLuminance(color: RGBColor): number {
+	return (
+		0.2126 * srgbToLinear(color.r) +
+		0.7152 * srgbToLinear(color.g) +
+		0.0722 * srgbToLinear(color.b)
+	);
+}
+
+function getContrastRatio(foreground: RGBColor, background: RGBColor): number {
+	const foregroundLuminance = getRelativeLuminance(foreground);
+	const backgroundLuminance = getRelativeLuminance(background);
+	const lighterColor = Math.max(foregroundLuminance, backgroundLuminance);
+	const darkerColor = Math.min(foregroundLuminance, backgroundLuminance);
+
+	return (lighterColor + 0.05) / (darkerColor + 0.05);
+}
+
+/**
+ * Resolves a readable foreground color for a given background color.
+ *
+ * Supports `#rgb`, `#rrggbb`, `rgb()`, and `hsl()` input formats.
+ * Falls back to white when the background color cannot be parsed.
+ */
+export function getContrastColor(
+	backgroundColor: string,
+	{
+		light = DEFAULT_LIGHT_CONTRAST_COLOR,
+		dark = DEFAULT_DARK_CONTRAST_COLOR,
+	}: {
+		light?: string;
+		dark?: string;
+	} = {}
+): string {
+	const background = parseColor(backgroundColor);
+	const lightColor = parseColor(light);
+	const darkColor = parseColor(dark);
+
+	if (!background || !lightColor || !darkColor) {
+		return light;
+	}
+
+	return getContrastRatio(darkColor, background) >=
+		getContrastRatio(lightColor, background)
+		? dark
+		: light;
+}
+
 type ThemeCSSVariableResolver = (
 	theme: Theme,
 	colors?: ColorTokens
@@ -111,7 +353,9 @@ const themeCSSVariableResolvers: Record<
 	'--c15t-border-hover': (_theme, colors) => colors?.borderHover,
 	'--c15t-text': (_theme, colors) => colors?.text,
 	'--c15t-text-muted': (_theme, colors) => colors?.textMuted,
-	'--c15t-text-on-primary': (_theme, colors) => colors?.textOnPrimary,
+	'--c15t-text-on-primary': (_theme, colors) =>
+		colors?.textOnPrimary ??
+		(colors?.primary ? getContrastColor(colors.primary) : undefined),
 	'--c15t-overlay': (_theme, colors) => colors?.overlay,
 	'--c15t-switch-track': (_theme, colors) => colors?.switchTrack,
 	'--c15t-switch-track-active': (_theme, colors) => colors?.switchTrackActive,
