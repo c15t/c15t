@@ -6,6 +6,7 @@
 		"type": "git",
 		"url": "https://github.com/c15t/c15t"
 	},
+	"license": "Apache-2.0",
 	"sideEffects": [
 		"**/*.css"
 	],
@@ -100,8 +101,7 @@
 	},
 	"dependencies": {
 		"@c15t/translations": "workspace:*",
-		"c15t": "workspace:*",
-		"clsx": "2.1.1"
+		"c15t": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

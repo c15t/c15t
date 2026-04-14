@@ -25,7 +25,7 @@
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/react"
 	},
-	"license": "GPL-3.0-only",
+	"license": "Apache-2.0",
 	"sideEffects": [
 		"**/*.css"
 	],
@@ -165,8 +165,7 @@
 	],
 	"dependencies": {
 		"@c15t/ui": "workspace:*",
-		"c15t": "workspace:*",
-		"clsx": "2.1.1"
+		"c15t": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/backend": "workspace:*",

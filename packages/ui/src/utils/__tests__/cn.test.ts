@@ -49,4 +49,29 @@ describe('cn', () => {
 	test('handles numeric values in arrays', () => {
 		expect(cn(['class1', 0])).toBe('class1');
 	});
+
+	test('keeps truthy numeric class names', () => {
+		expect(cn(1, 'foo', 2)).toBe('1 foo 2');
+	});
+
+	test('keeps truthy bigint class names', () => {
+		expect(cn(1n, 'foo')).toBe('1 foo');
+	});
+
+	test('uses only own enumerable object keys', () => {
+		const classes = Object.create({ inherited: true }) as Record<
+			string,
+			unknown
+		>;
+		classes.own = true;
+		classes.hidden = false;
+
+		expect(cn(classes)).toBe('own');
+	});
+
+	test('preserves order through nested arrays and objects', () => {
+		expect(
+			cn('alpha', ['beta', { gamma: true }], { delta: 1, epsilon: 0 }, 'zeta')
+		).toBe('alpha beta gamma delta zeta');
+	});
 });

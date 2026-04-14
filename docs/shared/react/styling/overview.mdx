@@ -63,6 +63,7 @@
   - Banner card background -> `theme.colors.surface`
   - Banner footer background -> `theme.colors.surfaceHover`
   - Shared copy color -> `theme.colors.text` and `theme.colors.textMuted`
+  - Primary-filled surfaces such as stock branding tags and filled actions -> `theme.colors.primary` with `theme.colors.textOnPrimary` as the matching foreground override
 
   ```tsx
   options={{
@@ -74,6 +75,8 @@
     },
   }}
   ```
+
+  If you set `theme.colors.primary` but omit `theme.colors.textOnPrimary`, c15t derives a readable foreground automatically. Add `textOnPrimary` only when you need to force a specific branded foreground color.
 
   ### 3. Component slots
 

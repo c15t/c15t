@@ -1,4 +1,4 @@
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from '../utils/cn';
 
 /**
  * Generic CSS properties record.
@@ -76,7 +76,7 @@ export interface ColorTokens {
 	text?: string;
 	/** Muted text color for secondary content. */
 	textMuted?: string;
-	/** Text color for content on primary background. */
+	/** Text color for content on primary background. Auto-derived from `primary` when omitted. */
 	textOnPrimary?: string;
 	/** Overlay color for modal backdrops. */
 	overlay?: string;
@@ -243,7 +243,7 @@ export interface ThemeCSSVariables {
 	'--c15t-text'?: string;
 	/** `colors.textMuted` (default: `hsl(0, 0%, 40%)`) */
 	'--c15t-text-muted'?: string;
-	/** `colors.textOnPrimary` (default: `hsl(0, 0%, 100%)`) */
+	/** `colors.textOnPrimary` (auto-derived from `colors.primary` when omitted) */
 	'--c15t-text-on-primary'?: string;
 	/** `colors.overlay` (default: `hsla(0, 0%, 0%, 0.5)`) */
 	'--c15t-overlay'?: string;

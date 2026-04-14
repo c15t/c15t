@@ -10,9 +10,9 @@ We love your input! We want to make contributing to c15t.com as easy and transpa
 
 ## 📜 License
 
-By contributing to c15t.com, you agree that your contributions will be licensed under the GNU General Public License v3.0 (GPL-3.0). This is a copyleft license that ensures the software and all derivatives remain free and open source.
+By contributing to c15t.com, you agree that your contributions will be licensed under the Apache License, Version 2.0 (Apache-2.0).
 
-[Read the full license here](LICENSE)
+[Read the full license here](LICENSE.md)
 
 ## 🏠 House Rules
 
@@ -171,20 +171,10 @@ Don't hesitate to:
 
 ## Important License Note
 
-c15t.com is licensed under the GNU General Public License v3.0 (GPL-3.0). By contributing to this project, you agree to license your contributions under the same license. This means:
+c15t.com is licensed under the Apache License, Version 2.0 (Apache-2.0). By contributing
+to this project, you agree to license your contributions under the same license. In
+summary, you may use, modify, and distribute the software, including commercially,
+provided you include the required notices and do not use contributor names for
+endorsement without permission.
 
-- ✅ You can use the code commercially
-- ✅ You can modify the code
-- ✅ You can distribute the code
-- ✅ You can use the code privately
-- ✅ You can use the code for patent purposes
-
-But you must:
-
-- 📢 Disclose source
-- 📄 Include original license
-- 📝 State changes
-- 🔄 Use same license
-- 📋 Include copyright notice
-
-[Learn more about GPL-3.0](https://choosealicense.com/licenses/gpl-3.0/)
+[Learn more about Apache-2.0](https://choosealicense.com/licenses/apache-2.0/)
