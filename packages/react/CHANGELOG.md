@@ -1,5 +1,111 @@
 # @c15t/react
 
+## 2.0.0-rc.13
+
+### Major Changes
+
+- 3e2448f: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+
+### Minor Changes
+
+- 3e2448f: feat: Extract IAB TCF to `@c15t/iab` addon package
+
+  IAB TCF 2.3 support is now an opt-in addon. Non-IAB users no longer pay for IAB code in their bundle.
+
+  **Breaking changes:**
+
+  - `IABConsentBanner`, `IABConsentDialog`, and `useHeadlessIABConsentUI` are no longer exported from `@c15t/react`. Import from `@c15t/react/iab` instead.
+  - IAB config now requires the `iab()` wrapper from `@c15t/iab` instead of a plain `{ enabled: true, ... }` object.
+
+  **Migration:**
+
+  ```tsx
+  // Before
+  import { IABConsentBanner, IABConsentDialog } from '@c15t/react';
+  <ConsentManagerProvider options={{ iab: { enabled: true, cmpId: 28 } }}>
+
+  // After
+  import { iab } from '@c15t/iab';
+  import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
+  <ConsentManagerProvider options={{ iab: iab({ cmpId: 28 }) }}>
+  ```
+
+  **Bundle impact for non-IAB users:**
+
+  - Core bundle: -3.0 KB gzip (-9.2%)
+  - Lazy chunks eliminated: -9.9 KB gzip
+  - Total: -12.9 KB gzip (-30%)
+  - `@iabtechlabtcf/core` removed from core dependencies
+
+### Patch Changes
+
+- 3e2448f: feat: CMP ID now comes from backend, either consent.io when hosted or BYO CMP ID
+  feat: Center the IAB Banner for better policy compliance
+  feat: Improve doc comments around IAB
+- 3e2448f: fix(ui): dark mode not being applied
+- 3e2448f: Bundle version-matched docs inside published c15t packages under `docs/**` for local agent and developer reference.
+
+  Remove CLI `AGENTS.md` generation. Use the bundled package docs directly alongside c15t agent skills.
+
+- 3e2448f: fixed workspace resolving
+- 3e2448f: feat(styles): ship explicit stylesheet entrypoints for prebuilt UI
+
+  - Publish explicit `styles.css` and `iab/styles.css` entrypoints for prebuilt UI in `@c15t/ui`, `@c15t/react`, and `@c15t/nextjs`
+  - Update docs and CLI setup so stylesheet imports and Tailwind host-app configuration are explicit
+  - Support the documented Tailwind 3 and Tailwind 4 layering model without requiring `!important`
+  - Add automated first-paint CDP benchmark (`benchmarks/vite-react-repro/scripts/run-first-paint-bench.ts`)
+
+  **Bundle impact (vite-react-repro):**
+
+  - JS: 435.5 KB → 361.0 KB (-74.5 KB raw, -13.4 KB gzip / -11%)
+  - CSS: 0.8 KB → 49.2 KB (moved from JS to CSS — net gzip saving: -6.5 KB / -5%)
+  - `createElement("style")` runtime calls: eliminated
+  - JS heap: -143 KB (-8%)
+
+  **Main-thread impact (6x CPU throttle, 3 runs × 60 samples):**
+
+  - JS evaluation: 64.5 ms → 53.1 ms (-11.4 ms / -17.7%)
+  - Total → first paint: 87.8 ms → 76.5 ms (-11.3 ms / -12.9%)
+
+- 3e2448f: feat(react): ConsentDialogLink component
+- 3e2448f: fix: update import paths from .css to .js for component styles
+- 3e2448f: fix(ui): dialog width customization, disableAnimation preventing dialog from showing
+- 3e2448f: Separate published declaration files from runtime bundles to improve Vite compatibility
+
+  - Move generated `.d.ts` files out of `dist/` into `dist-types/` across published packages
+  - Stop emitting declaration maps in shared TypeScript config so `.d.ts.map` files are no longer published
+  - Emit declarations only once per package to avoid unstable output when both `esm` and `cjs` builds write types
+  - Update package `types` metadata, publish file lists, Turbo outputs, and publish artifact checks for the new layout
+  - Verify the package layout works in Vite 7 without `optimizeDeps.exclude` workarounds for `c15t` and `@c15t/react`
+
+- 3e2448f: fix(react): react compiler compatability
+- 3e2448f: fix(policy-packs): support multiple primary actions while keeping customize as the default primary action
+
+  Expose `primaryActions` consistently across schema, backend, core, React, and dev-tools. Built-in preset and offline default policies keep `customize` as the default primary action, while custom policies can now mark multiple actions as primary.
+
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+  - c15t@2.0.0-rc.13
+  - @c15t/ui@2.0.0-rc.12
+
 ## 2.0.0-rc.12
 
 ### Patch Changes

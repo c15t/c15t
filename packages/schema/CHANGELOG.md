@@ -1,5 +1,50 @@
 # @c15t/schema
 
+## 2.0.0-rc.7
+
+### Major Changes
+
+- 3e2448f: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+
+### Minor Changes
+
+- 3e2448f: feat(policy): add policy packs for declarative regional consent resolution
+
+  Policy packs let you define regional consent rules once — c15t resolves the right policy automatically based on visitor location. Resolution follows fixed priority: region → country → fallback → default.
+
+  - Built-in presets: `europeOptIn()`, `europeIab()`, `californiaOptOut()`, `californiaOptIn()`, `quebecOptIn()`, `worldNoBanner()`
+  - Per-policy GPC support via `consent.gpc` field
+  - Fallback policies (`match.fallback`) as a safety net when geo-location headers are missing
+  - Material policy fingerprints for automatic re-prompting when consent semantics change
+  - Policy validation with `inspectPolicies()` for catching misconfigurations before deployment
+  - Snapshot tokens (signed JWT) for write-time consistency between `/init` and consent writes
+  - Dev-tools match trace panel showing full resolution path
+
+### Patch Changes
+
+- 3e2448f: feat: CMP ID now comes from backend, either consent.io when hosted or BYO CMP ID
+  feat: Center the IAB Banner for better policy compliance
+  feat: Improve doc comments around IAB
+- 3e2448f: fixed workspace resolving
+- 3e2448f: feat: Add edge-compatible `/init` handler for running consent policy resolution at the edge
+
+  - `c15tEdgeInit()` — drop-in `/init` replacement for Vercel Middleware, Cloudflare Workers, and Deno Deploy
+  - `resolveConsent()` — lightweight synchronous resolver for custom consent cookie flows
+  - `resolvePolicySync()` — synchronous policy matching without fingerprint computation
+  - Refactored `/init` route to use shared `resolveInitPayload` (no behavior change)
+
+- 3e2448f: Separate published declaration files from runtime bundles to improve Vite compatibility
+
+  - Move generated `.d.ts` files out of `dist/` into `dist-types/` across published packages
+  - Stop emitting declaration maps in shared TypeScript config so `.d.ts.map` files are no longer published
+  - Emit declarations only once per package to avoid unstable output when both `esm` and `cjs` builds write types
+  - Update package `types` metadata, publish file lists, Turbo outputs, and publish artifact checks for the new layout
+  - Verify the package layout works in Vite 7 without `optimizeDeps.exclude` workarounds for `c15t` and `@c15t/react`
+
+- 3e2448f: fix(policy-packs): support multiple primary actions while keeping customize as the default primary action
+
+  Expose `primaryActions` consistently across schema, backend, core, React, and dev-tools. Built-in preset and offline default policies keep `customize` as the default primary action, while custom policies can now mark multiple actions as primary.
+
 ## 2.0.0-rc.6
 
 ### Patch Changes

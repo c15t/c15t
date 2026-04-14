@@ -1,5 +1,63 @@
 # @c15t/dev-tools
 
+## 2.0.0-rc.13
+
+### Major Changes
+
+- 3e2448f: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+
+### Patch Changes
+
+- 3e2448f: feat(dev-tools): add GPC to dev-tools with an override
+- 3e2448f: fixed workspace resolving
+- 3e2448f: feat(dev-tools): ui improvements
+- 3e2448f: chore: update dependencies, including zustand and typescript
+- 3e2448f: Separate published declaration files from runtime bundles to improve Vite compatibility
+
+  - Move generated `.d.ts` files out of `dist/` into `dist-types/` across published packages
+  - Stop emitting declaration maps in shared TypeScript config so `.d.ts.map` files are no longer published
+  - Emit declarations only once per package to avoid unstable output when both `esm` and `cjs` builds write types
+  - Update package `types` metadata, publish file lists, Turbo outputs, and publish artifact checks for the new layout
+  - Verify the package layout works in Vite 7 without `optimizeDeps.exclude` workarounds for `c15t` and `@c15t/react`
+
+- 3e2448f: feat(dev-tools): add DevTools export
+  feat(cli): add support for file structures like [locale]
+  feat(cli): add c15t/skills
+- 3e2448f: feat(dev-tools): add persisted overrides and improve debugging with resilient reconnects, richer events, interactive IAB controls, and better script/network diagnostics
+- 3e2448f: fix(policy-packs): support multiple primary actions while keeping customize as the default primary action
+
+  Expose `primaryActions` consistently across schema, backend, core, React, and dev-tools. Built-in preset and offline default policies keep `customize` as the default primary action, while custom policies can now mark multiple actions as primary.
+
+- 3e2448f: feat(policy): add policy packs for declarative regional consent resolution
+
+  Policy packs let you define regional consent rules once — c15t resolves the right policy automatically based on visitor location. Resolution follows fixed priority: region → country → fallback → default.
+
+  - Built-in presets: `europeOptIn()`, `europeIab()`, `californiaOptOut()`, `californiaOptIn()`, `quebecOptIn()`, `worldNoBanner()`
+  - Per-policy GPC support via `consent.gpc` field
+  - Fallback policies (`match.fallback`) as a safety net when geo-location headers are missing
+  - Material policy fingerprints for automatic re-prompting when consent semantics change
+  - Policy validation with `inspectPolicies()` for catching misconfigurations before deployment
+  - Snapshot tokens (signed JWT) for write-time consistency between `/init` and consent writes
+  - Dev-tools match trace panel showing full resolution path
+
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+  - c15t@2.0.0-rc.13
+
 ## 2.0.0-rc.10
 
 ### Patch Changes

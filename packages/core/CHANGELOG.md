@@ -1,5 +1,103 @@
 # c15t
 
+## 2.0.0-rc.13
+
+### Major Changes
+
+- 3e2448f: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+
+### Minor Changes
+
+- 3e2448f: feat: Extract IAB TCF to `@c15t/iab` addon package
+
+  IAB TCF 2.3 support is now an opt-in addon. Non-IAB users no longer pay for IAB code in their bundle.
+
+  **Breaking changes:**
+
+  - `IABConsentBanner`, `IABConsentDialog`, and `useHeadlessIABConsentUI` are no longer exported from `@c15t/react`. Import from `@c15t/react/iab` instead.
+  - IAB config now requires the `iab()` wrapper from `@c15t/iab` instead of a plain `{ enabled: true, ... }` object.
+
+  **Migration:**
+
+  ```tsx
+  // Before
+  import { IABConsentBanner, IABConsentDialog } from '@c15t/react';
+  <ConsentManagerProvider options={{ iab: { enabled: true, cmpId: 28 } }}>
+
+  // After
+  import { iab } from '@c15t/iab';
+  import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
+  <ConsentManagerProvider options={{ iab: iab({ cmpId: 28 }) }}>
+  ```
+
+  **Bundle impact for non-IAB users:**
+
+  - Core bundle: -3.0 KB gzip (-9.2%)
+  - Lazy chunks eliminated: -9.9 KB gzip
+  - Total: -12.9 KB gzip (-30%)
+  - `@iabtechlabtcf/core` removed from core dependencies
+
+- 3e2448f: feat(policy): add policy packs for declarative regional consent resolution
+
+  Policy packs let you define regional consent rules once — c15t resolves the right policy automatically based on visitor location. Resolution follows fixed priority: region → country → fallback → default.
+
+  - Built-in presets: `europeOptIn()`, `europeIab()`, `californiaOptOut()`, `californiaOptIn()`, `quebecOptIn()`, `worldNoBanner()`
+  - Per-policy GPC support via `consent.gpc` field
+  - Fallback policies (`match.fallback`) as a safety net when geo-location headers are missing
+  - Material policy fingerprints for automatic re-prompting when consent semantics change
+  - Policy validation with `inspectPolicies()` for catching misconfigurations before deployment
+  - Snapshot tokens (signed JWT) for write-time consistency between `/init` and consent writes
+  - Dev-tools match trace panel showing full resolution path
+
+### Patch Changes
+
+- 3e2448f: feat: CMP ID now comes from backend, either consent.io when hosted or BYO CMP ID
+  feat: Center the IAB Banner for better policy compliance
+  feat: Improve doc comments around IAB
+- 3e2448f: feat(dev-tools): add GPC to dev-tools with an override
+- 3e2448f: Bundle version-matched docs inside published c15t packages under `docs/**` for local agent and developer reference.
+
+  Remove CLI `AGENTS.md` generation. Use the bundled package docs directly alongside c15t agent skills.
+
+- 3e2448f: Add browser prefetch utilities for faster consent banner visibility
+
+  - New `buildPrefetchScript()` and `getPrefetchedInitialData()` in `c15t` core to start the `/init` request before framework hydration
+  - New `C15tPrefetch` component in `@c15t/nextjs` using `next/script` with `beforeInteractive` strategy for static-route-compatible prefetching
+  - Tuned default motion tokens (fast: 80ms, normal: 150ms, slow: 200ms) and replaced hardcoded CSS durations with theme variables
+
+- 3e2448f: fixed workspace resolving
+- 3e2448f: chore: update dependencies, including zustand and typescript
+- 3e2448f: Rename translation-facing APIs from `translations` to `i18n` across runtime types and helpers.
+  Add CLI migration codemods to update existing projects to the new naming.
+- 3e2448f: Separate published declaration files from runtime bundles to improve Vite compatibility
+
+  - Move generated `.d.ts` files out of `dist/` into `dist-types/` across published packages
+  - Stop emitting declaration maps in shared TypeScript config so `.d.ts.map` files are no longer published
+  - Emit declarations only once per package to avoid unstable output when both `esm` and `cjs` builds write types
+  - Update package `types` metadata, publish file lists, Turbo outputs, and publish artifact checks for the new layout
+  - Verify the package layout works in Vite 7 without `optimizeDeps.exclude` workarounds for `c15t` and `@c15t/react`
+
+- 3e2448f: Rename `c15t` mode references to `hosted` in core runtime and CLI generate flows.
+  Add migration codemods and template updates for the hosted vs offline terminology.
+- 3e2448f: feat: add an IAB subpath export and lazy-load IAB internals
+- 3e2448f: fix: omit invalid optional subject identifiers when saving consent
+- 3e2448f: fix(react): react compiler compatability
+- 3e2448f: fix(policy-packs): support multiple primary actions while keeping customize as the default primary action
+
+  Expose `primaryActions` consistently across schema, backend, core, React, and dev-tools. Built-in preset and offline default policies keep `customize` as the default primary action, while custom policies can now mark multiple actions as primary.
+
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+  - @c15t/schema@2.0.0-rc.7
+  - @c15t/translations@2.0.0-rc.13
+
 ## 2.0.0-rc.10
 
 ### Patch Changes

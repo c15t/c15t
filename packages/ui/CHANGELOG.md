@@ -1,5 +1,75 @@
 # @c15t/ui
 
+## 2.0.0-rc.12
+
+### Major Changes
+
+- 3e2448f: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+
+### Patch Changes
+
+- 3e2448f: feat: CMP ID now comes from backend, either consent.io when hosted or BYO CMP ID
+  feat: Center the IAB Banner for better policy compliance
+  feat: Improve doc comments around IAB
+- 3e2448f: fix(ui): dark mode not being applied
+- 3e2448f: Add browser prefetch utilities for faster consent banner visibility
+
+  - New `buildPrefetchScript()` and `getPrefetchedInitialData()` in `c15t` core to start the `/init` request before framework hydration
+  - New `C15tPrefetch` component in `@c15t/nextjs` using `next/script` with `beforeInteractive` strategy for static-route-compatible prefetching
+  - Tuned default motion tokens (fast: 80ms, normal: 150ms, slow: 200ms) and replaced hardcoded CSS durations with theme variables
+
+- 3e2448f: fixed workspace resolving
+- 3e2448f: feat(styles): ship explicit stylesheet entrypoints for prebuilt UI
+
+  - Publish explicit `styles.css` and `iab/styles.css` entrypoints for prebuilt UI in `@c15t/ui`, `@c15t/react`, and `@c15t/nextjs`
+  - Update docs and CLI setup so stylesheet imports and Tailwind host-app configuration are explicit
+  - Support the documented Tailwind 3 and Tailwind 4 layering model without requiring `!important`
+  - Add automated first-paint CDP benchmark (`benchmarks/vite-react-repro/scripts/run-first-paint-bench.ts`)
+
+  **Bundle impact (vite-react-repro):**
+
+  - JS: 435.5 KB → 361.0 KB (-74.5 KB raw, -13.4 KB gzip / -11%)
+  - CSS: 0.8 KB → 49.2 KB (moved from JS to CSS — net gzip saving: -6.5 KB / -5%)
+  - `createElement("style")` runtime calls: eliminated
+  - JS heap: -143 KB (-8%)
+
+  **Main-thread impact (6x CPU throttle, 3 runs × 60 samples):**
+
+  - JS evaluation: 64.5 ms → 53.1 ms (-11.4 ms / -17.7%)
+  - Total → first paint: 87.8 ms → 76.5 ms (-11.3 ms / -12.9%)
+
+- 3e2448f: Rename translation-facing APIs from `translations` to `i18n` across runtime types and helpers.
+  Add CLI migration codemods to update existing projects to the new naming.
+- 3e2448f: fix: update import paths from .css to .js for component styles
+- 3e2448f: fix(ui): dialog width customization, disableAnimation preventing dialog from showing
+- 3e2448f: Separate published declaration files from runtime bundles to improve Vite compatibility
+
+  - Move generated `.d.ts` files out of `dist/` into `dist-types/` across published packages
+  - Stop emitting declaration maps in shared TypeScript config so `.d.ts.map` files are no longer published
+  - Emit declarations only once per package to avoid unstable output when both `esm` and `cjs` builds write types
+  - Update package `types` metadata, publish file lists, Turbo outputs, and publish artifact checks for the new layout
+  - Verify the package layout works in Vite 7 without `optimizeDeps.exclude` workarounds for `c15t` and `@c15t/react`
+
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+- Updated dependencies [3e2448f]
+  - c15t@2.0.0-rc.13
+  - @c15t/translations@2.0.0-rc.13
+
 ## 2.0.0-rc.11
 
 ### Patch Changes
