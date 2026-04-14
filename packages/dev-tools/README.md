@@ -184,4 +184,4 @@ You can also force dark mode:
 
 ## License
 
-GPL-3.0-only
+Apache-2.0

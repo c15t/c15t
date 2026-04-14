@@ -4,7 +4,7 @@
 	"private": true,
 	"description": "Analyze bundle size differences using rsdoctor and comment on PRs",
 	"author": "c15t",
-	"license": "MIT",
+	"license": "Apache-2.0",
 	"main": "dist/index.js",
 	"engines": {
 		"node": ">=18"

@@ -7,7 +7,7 @@ The c15t backend optionally supports [IAB TCF v2.3](https://iabeurope.eu/transpa
 
 ## CMP Registration
 
-[consent.io](https://consent.io) is pending validation as an IAB Europe-registered CMP for c15t. Once approved, when using consent.io as your hosted backend, the CMP ID will be automatically provided to clients — no additional configuration needed.
+[inth.com](https://inth.com) is pending validation as an IAB Europe-registered CMP for c15t. Once approved, when using inth.com as your hosted backend, the CMP ID will be automatically provided to clients — no additional configuration needed.
 
 If you self-host and have your own CMP registration with IAB Europe, configure your CMP ID via `iab.cmpId`. This value is returned to clients in the `/init` response so they use the correct CMP identity in TC Strings.
 
@@ -16,7 +16,7 @@ If you self-host and have your own CMP registration with IAB Europe, configure y
 </Callout>
 
 <Callout type="warn">
-  If you heavily customize or build your own IAB banner or dialog (rather than using the default `IABConsentBanner` and `IABConsentDialog` components provided by c15t), you cannot use consent.io's CMP ID. You must register your own CMP with [IAB Europe](https://iabeurope.eu/tcf-2-0/) and configure your CMP ID via `iab.cmpId`.
+  If you heavily customize or build your own IAB banner or dialog (rather than using the default `IABConsentBanner` and `IABConsentDialog` components provided by c15t), you cannot use inth.com's CMP ID. You must register your own CMP with [IAB Europe](https://iabeurope.eu/tcf-2-0/) and configure your CMP ID via `iab.cmpId`.
 </Callout>
 
 ## Enable IAB
@@ -28,13 +28,13 @@ export const c15t = c15tInstance({
   // ...
   iab: {
     enabled: true,
-    cmpId: 10,                  // your registered CMP ID (consent.io provides this automatically)
+    cmpId: 10,                  // your registered CMP ID (inth.com provides this automatically)
     vendorIds: [755, 52, 69],   // only include vendors you use
   },
 });
 ```
 
-The backend fetches the GVL from `https://gvl.consent.io` by default and caches it. The `/init` endpoint returns the filtered GVL and your CMP ID to the frontend.
+The backend fetches the GVL from `https://gvl.inth.com` by default and caches it. The `/init` endpoint returns the filtered GVL and your CMP ID to the frontend.
 
 ## Custom GVL Endpoint
 

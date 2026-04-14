@@ -11,7 +11,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
 [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.link/discord)
 [![npm version](https://img.shields.io/npm/v/%40c15t%2Fnextjs?style=flat-square)](https://www.npmjs.com/package/@c15t/nextjs)
 [![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
@@ -133,8 +133,8 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 ## License
 
-[GNU General Public License v3.0](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[Apache License 2.0](https://github.com/c15t/c15t/blob/main/LICENSE.md)
 
 ---
 
-**Built with ❤️ by the [consent.io](https://www.consent.io?utm_source=github&utm_medium=repopage_%40c15t%2Fnextjs) team**
+**Built by [Inth](https://inth.com?utm_source=github&utm_medium=repopage_%40c15t%2Fnextjs)**
