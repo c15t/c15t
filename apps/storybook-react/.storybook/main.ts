@@ -4,8 +4,9 @@ import type { StorybookConfig } from '@storybook/react-vite';
 import { mergeConfig } from 'vite';
 
 const storybookDir = path.dirname(fileURLToPath(import.meta.url));
-const ui = (...segments: string[]) =>
-	path.resolve(storybookDir, '../../../packages/ui/src', ...segments);
+const workspace = (...segments: string[]) =>
+	path.resolve(storybookDir, '../../..', ...segments);
+const ui = (...segments: string[]) => workspace('packages/ui/src', ...segments);
 
 const config: StorybookConfig = {
 	addons: ['@storybook/addon-a11y'],
@@ -37,24 +38,37 @@ const config: StorybookConfig = {
 					},
 					{
 						find: '@c15t/react/primitives',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/react/src/primitives.ts'
-						),
+						replacement: workspace('packages/react/src/primitives.ts'),
 					},
 					{
 						find: /^@c15t\/react$/,
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/react/src/index.ts'
+						replacement: workspace('packages/react/src/index.ts'),
+					},
+					{
+						find: /^@c15t\/iab$/,
+						replacement: workspace('packages/iab/src/index.ts'),
+					},
+					{
+						find: /^@c15t\/schema\/types$/,
+						replacement: workspace('packages/schema/src/types.ts'),
+					},
+					{
+						find: /^@c15t\/schema$/,
+						replacement: workspace('packages/schema/src/index.ts'),
+					},
+					{
+						find: /^c15t$/,
+						replacement: workspace('packages/core/src/index.ts'),
+					},
+					{
+						find: /^@iabtechlabtcf\/core$/,
+						replacement: workspace(
+							'packages/iab/node_modules/@iabtechlabtcf/core'
 						),
 					},
 					{
 						find: /^~\/(.*)$/,
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/react/src/$1'
-						),
+						replacement: workspace('packages/react/src/$1'),
 					},
 					// @c15t/ui — resolve all subpath imports to source
 					{
@@ -90,22 +104,20 @@ const config: StorybookConfig = {
 						replacement: ui('theme', 'index.ts'),
 					},
 					{
+						find: /^@c15t\/ui\/utils$/,
+						replacement: ui('utils', 'index.ts'),
+					},
+					{
 						find: /^@c15t\/ui\/utils\/(.+)$/,
 						replacement: ui('utils', '$1.ts'),
 					},
 					{
 						find: '@c15t/translations/all',
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/translations/src/all.ts'
-						),
+						replacement: workspace('packages/translations/src/all.ts'),
 					},
 					{
 						find: /^@c15t\/translations$/,
-						replacement: path.resolve(
-							storybookDir,
-							'../../../packages/translations/src/index.ts'
-						),
+						replacement: workspace('packages/translations/src/index.ts'),
 					},
 				],
 			},

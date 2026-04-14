@@ -16,6 +16,8 @@ const switchCss = readFileSync(
 describe('switch theme contract', () => {
 	test('defines internal switch variables on the root element', () => {
 		expect(switchCss).toContain('.root {');
+		expect(switchCss).toContain('box-sizing: border-box;');
+		expect(switchCss).toContain('padding: 0;');
 		expect(switchCss).toContain(
 			'--switch-background-color: var(--c15t-switch-track);'
 		);
@@ -27,6 +29,9 @@ describe('switch theme contract', () => {
 
 	test('uses the token-backed variables for checked and unchecked track states', () => {
 		expect(switchCss).toContain('.track {');
+		expect(switchCss).toContain('height: 100%;');
+		expect(switchCss).toContain('width: 100%;');
+		expect(switchCss).toContain('overflow: hidden;');
 		expect(switchCss).toContain(
 			'background-color: var(--switch-background-color);'
 		);

@@ -3,7 +3,8 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"storybook": "portless run --name storybook-react sh -c 'storybook dev --port \"$PORT\" --host \"$HOST\"'",
+		"prestorybook": "bun --cwd ../../packages/core prebuild && bun --cwd ../../packages/react prebuild && bun --cwd ../../packages/iab prebuild",
+		"storybook": "bun run prestorybook && portless run --name storybook-react sh -c 'storybook dev --port \"$PORT\" --host \"$HOST\"'",
 		"build": "storybook build",
 		"test-storybook": "test-storybook --url ${STORYBOOK_URL:-http://127.0.0.1:6006}"
 	},
