@@ -24,6 +24,7 @@
 		"@c15t/iab": "2.0.0-rc.5"
 	},
 	"changesets": [
+		"bright-emus-build",
 		"bright-hairs-shop",
 		"bright-mice-wait",
 		"calm-plants-tell",
