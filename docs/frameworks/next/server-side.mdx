@@ -72,6 +72,7 @@ sequenceDiagram
 Returns `Promise<SSRInitialData | undefined>`. The data includes the init response (jurisdiction, translations, consent model) and GVL data when IAB is configured.
 
 ### Passing SSR Data to the Provider
+
 Pass the unresolved Promise to the provider's `ssrData` option via a client component:
 
 ```tsx title="components/consent-manager/index.tsx"
