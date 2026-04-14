@@ -1,8 +1,8 @@
 'use client';
 
-import { useTheme } from 'next-themes';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { cn } from '../../lib/utils';
+import { useTheme } from '../theme-provider';
 import { Button } from '../ui/button';
 import { type ThemePresetName, themePresets } from './theme-presets';
 

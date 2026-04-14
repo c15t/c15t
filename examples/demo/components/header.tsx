@@ -56,6 +56,12 @@ export function Header() {
 						>
 							Compound DX
 						</a>
+						<a
+							href="/terms"
+							className="text-muted-foreground text-sm transition-colors hover:text-foreground"
+						>
+							Terms Demo
+						</a>
 					</nav>
 
 					<div className="flex items-center gap-4">

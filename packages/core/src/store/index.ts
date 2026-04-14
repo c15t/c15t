@@ -11,8 +11,10 @@ import type { StorageConfig } from '../libs/cookie';
 import {
 	deleteConsentFromStorage,
 	getConsentFromStorage,
+	saveConsentToStorage,
 } from '../libs/cookie';
 import { setDebugEnabled } from '../libs/debug';
+import { generateSubjectId } from '../libs/generate-subject-id';
 import {
 	extractConsentNamesFromCondition,
 	type HasCondition,
@@ -23,6 +25,7 @@ import { createIframeManager } from '../libs/iframe-blocker/store';
 import { initConsentManager } from '../libs/init-consent-manager';
 import { createNetworkBlockerManager } from '../libs/network-blocker/store';
 import { filterConsentCategoriesByPolicy } from '../libs/policy';
+import { sanitizeSubjectIdentifiers } from '../libs/sanitize-subject-identifiers';
 import { saveConsents } from '../libs/save-consents';
 import { createScriptManager } from '../libs/script-loader';
 import type {
@@ -442,6 +445,135 @@ export const createConsentManagerStore = (
 					identityProvider: user.identityProvider,
 				},
 			});
+		},
+		unstable_acceptPolicyConsent: async (input) => {
+			const currentState = get();
+			const currentInfo = currentState.consentInfo;
+			const subjectId = currentInfo?.subjectId ?? generateSubjectId();
+			const storedIdentifiers = sanitizeSubjectIdentifiers({
+				externalId: currentInfo?.externalId,
+				identityProvider: currentInfo?.identityProvider,
+			});
+			const userIdentifiers = sanitizeSubjectIdentifiers({
+				externalId: currentState.user?.id,
+				identityProvider: currentState.user?.identityProvider,
+			});
+			const inputIdentifiers = sanitizeSubjectIdentifiers({
+				externalId: input.externalId,
+				identityProvider: input.identityProvider,
+			});
+			const externalId =
+				inputIdentifiers.externalId ??
+				storedIdentifiers.externalId ??
+				userIdentifiers.externalId;
+			const identityProvider =
+				inputIdentifiers.identityProvider ??
+				storedIdentifiers.identityProvider ??
+				userIdentifiers.identityProvider;
+			const givenAt = input.givenAt ?? Date.now();
+			const domain =
+				input.domain ??
+				(typeof window !== 'undefined'
+					? window.location.hostname
+					: 'localhost');
+			const isLegalDocumentType =
+				input.type === 'privacy_policy' ||
+				input.type === 'terms_and_conditions' ||
+				input.type === 'dpa';
+			let legalDocumentFields: Record<string, string> = {};
+
+			if (isLegalDocumentType) {
+				if (input.documentSnapshotToken) {
+					legalDocumentFields = {
+						documentSnapshotToken: input.documentSnapshotToken,
+					};
+				} else if (input.policyHash) {
+					legalDocumentFields = {
+						policyHash: input.policyHash,
+					};
+				} else if (input.policyId) {
+					legalDocumentFields = {
+						policyId: input.policyId,
+					};
+				} else {
+					throw new Error(
+						'Legal document consent requires documentSnapshotToken, policyHash, or policyId.'
+					);
+				}
+			}
+
+			const response = await manager.setConsent({
+				body: {
+					type: input.type,
+					subjectId,
+					domain,
+					givenAt,
+					uiSource: input.uiSource ?? 'api',
+					...legalDocumentFields,
+					...(input.metadata ? { metadata: input.metadata } : {}),
+					...(input.preferences ? { preferences: input.preferences } : {}),
+					...(externalId ? { externalSubjectId: externalId } : {}),
+					...(identityProvider ? { identityProvider } : {}),
+				},
+			});
+
+			if (!response.ok || !response.data) {
+				const errorMsg =
+					response.error?.message ?? 'Failed to accept policy consent';
+				get().callbacks.onError?.({
+					error: errorMsg,
+				});
+				const error = new Error(errorMsg) as Error & {
+					code?: string;
+					details?: Record<string, unknown> | null;
+					status?: number;
+				};
+				error.code = response.error?.code;
+				error.details = response.error?.details ?? null;
+				error.status = response.error?.status;
+				throw error;
+			}
+
+			const consent = {
+				...response.data,
+				givenAt:
+					response.data.givenAt instanceof Date
+						? response.data.givenAt
+						: new Date(response.data.givenAt),
+			};
+
+			const latestState = get();
+			const latestInfo = latestState.consentInfo;
+			const nextConsentInfo = {
+				...latestInfo,
+				time: givenAt,
+				subjectId,
+				...(externalId ? { externalId } : {}),
+				...(identityProvider ? { identityProvider } : {}),
+			};
+
+			set({
+				consentInfo: nextConsentInfo,
+				...(externalId
+					? {
+							user: {
+								id: externalId,
+								identityProvider,
+							},
+						}
+					: {}),
+			});
+
+			saveConsentToStorage(
+				{
+					consents: latestState.consents,
+					consentInfo: nextConsentInfo,
+				},
+				undefined,
+				latestState.storageConfig
+			);
+
+			return consent;
 		},
 
 		setOverrides: async (

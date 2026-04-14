@@ -13,6 +13,7 @@ import type {
 	PolicyUiActionGroup,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
+	PostSubjectOutput,
 } from '@c15t/schema/types';
 import type { Model } from '~/libs/determine-model';
 import type { StorageConfig } from '../libs/cookie';
@@ -103,6 +104,69 @@ export interface PolicySurfaceState {
 	/** Scroll lock hint from backend runtime policy. */
 	scrollLock?: boolean;
 }
+
+type RequireAtLeastOne<T, Keys extends keyof T = keyof T> = Keys extends keyof T
+	? Required<Pick<T, Keys>> & Partial<Omit<T, Keys>>
+	: never;
+
+/**
+ * Experimental input for legal-document consent writes.
+ *
+ * @remarks
+ * Preferred identifier flow:
+ * - `documentSnapshotToken` for authoritative, signed release metadata
+ * - `policyHash` when the caller only knows the rendered document hash
+ * - `policyId` only as a compatibility fallback for older backends
+ *
+ * @experimental
+ */
+type UnstableLegalDocumentConsentInputBase = {
+	type: 'privacy_policy' | 'terms_and_conditions' | 'dpa';
+	policyId?: string;
+	policyHash?: string;
+	documentSnapshotToken?: string;
+	domain?: string;
+	givenAt?: number;
+	metadata?: Record<string, unknown>;
+	preferences?: Record<string, boolean>;
+	uiSource?: string;
+	externalId?: string;
+	identityProvider?: string;
+};
+
+export type UnstableLegalDocumentConsentInput =
+	UnstableLegalDocumentConsentInputBase &
+		RequireAtLeastOne<
+			Pick<
+				UnstableLegalDocumentConsentInputBase,
+				'policyId' | 'policyHash' | 'documentSnapshotToken'
+			>
+		>;
+
+/**
+ * Experimental input for non-legal policy consent writes.
+ *
+ * @experimental
+ */
+export interface UnstableGenericPolicyConsentInput {
+	type: 'marketing_communications' | 'age_verification' | 'other';
+	domain?: string;
+	givenAt?: number;
+	metadata?: Record<string, unknown>;
+	preferences?: Record<string, boolean>;
+	uiSource?: string;
+	externalId?: string;
+	identityProvider?: string;
+}
+
+/**
+ * Experimental input for policy-based consent writes.
+ *
+ * @experimental
+ */
+export type UnstablePolicyConsentInput =
+	| UnstableLegalDocumentConsentInput
+	| UnstableGenericPolicyConsentInput;
 
 /**
  * Offline policy preview payload for the headless runtime.
@@ -789,6 +853,15 @@ export interface StoreActions {
 	 * @throws {Error} When the underlying identify-user request fails
 	 */
 	identifyUser: (user: User) => Promise<void>;
+
+	/**
+	 * Writes a policy-based consent such as terms and conditions.
+	 *
+	 * @experimental
+	 */
+	unstable_acceptPolicyConsent: (
+		input: UnstablePolicyConsentInput
+	) => Promise<PostSubjectOutput>;
 
 	/**
 	 * Updates the selected consent state for a specific consent type.
