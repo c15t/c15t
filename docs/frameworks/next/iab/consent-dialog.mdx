@@ -11,6 +11,7 @@ Pair it with `IABConsentBanner` inside the provider:
 
 ```tsx
 import { type ReactNode } from 'react';
+import { iab } from '@c15t/iab';
 import { ConsentManagerProvider } from '@c15t/nextjs';
 import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
 
@@ -20,11 +21,12 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
       options={{
         mode: 'hosted',
         backendURL: '/api/c15t',
-        iab: {
-          enabled: true,
-          cmpId: 123,
+        iab: iab({
           vendors: [1, 2, 10, 25],
-        },
+          // cmpId is automatically provided by the backend when using consent.io.
+          // Only set this if you have your own CMP registration.
+          // cmpId: 123,
+        }),
       }}
     >
       <IABConsentBanner />

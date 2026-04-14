@@ -38,14 +38,13 @@
 <section id="config-and-concepts">
   ## IAB Configuration Options
 
-  The `iab` option on the provider accepts:
+  Configure IAB mode with `iab({ ... })` from `@c15t/iab`. The factory enables the addon and injects the runtime module automatically. The user-facing options are:
 
   | Option | Type | Description |
   |--------|------|-------------|
-  | `enabled` | `boolean` | Enable IAB TCF mode |
   | `cmpId` | `number` | CMP ID registered with IAB Europe. Automatically provided by the backend when using consent.io. Only set this if you have your own CMP registration. |
   | `vendors` | `number[]` | IAB vendor IDs that your site works with |
-  | `nonIABVendors` | `NonIABVendor[]` | Custom vendors not in the IAB registry |
+  | `customVendors` | `NonIABVendor[]` | Custom vendors not in the IAB registry |
 
   ## Key Concepts
 

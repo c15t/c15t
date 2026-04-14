@@ -230,36 +230,7 @@
   />
   ```
 
-  Use `useTranslations()` only when you are replacing the button markup entirely:
-
-  ```tsx
-  import { ConsentBanner, useTranslations } from '@c15t/react';
-
-  export function CustomBannerActions() {
-    const { common } = useTranslations();
-
-    return (
-      <ConsentBanner.PolicyActions
-        renderAction={(action, props) => (
-          <button
-            key={props.key}
-            type="button"
-            className={props.isPrimary ? 'btn-primary' : 'btn-secondary'}
-            style={props.style}
-          >
-            {action === 'accept'
-              ? common.acceptAll
-              : action === 'reject'
-                ? common.rejectAll
-                : common.customize}
-          </button>
-        )}
-      />
-    );
-  }
-  ```
-
-  For maximum control, use `useHeadlessConsentUI()` and render `banner.actionGroups` manually.
+  `renderAction` is still meant for stock button compounds. If you want completely custom button elements and click handling, use `useHeadlessConsentUI()` and render `banner.actionGroups` manually instead of `ConsentBanner.PolicyActions`.
 
   If you only need styling changes, stay with tokens and slots instead of rebuilding the banner layout.
 </section>

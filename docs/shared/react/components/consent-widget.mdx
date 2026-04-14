@@ -103,34 +103,7 @@
   />
   ```
 
-  Use `useTranslations()` only when you are replacing the button markup entirely:
-
-  ```tsx
-  import { ConsentWidget, useTranslations } from '@c15t/react';
-
-  export function CustomWidgetActions() {
-    const { common } = useTranslations();
-
-    return (
-      <ConsentWidget.PolicyActions
-        renderAction={(action, props) => (
-          <button
-            key={props.key}
-            type="button"
-            className={props.isPrimary ? 'btn-primary' : 'btn-secondary'}
-            style={props.style}
-          >
-            {action === 'accept'
-              ? common.acceptAll
-              : action === 'reject'
-                ? common.rejectAll
-                : common.save}
-          </button>
-        )}
-      />
-    );
-  }
-  ```
+  `renderAction` is still meant for stock button compounds. If you want completely custom button elements and handlers, use `useHeadlessConsentUI()` and render `dialog.actionGroups` manually instead of `ConsentWidget.PolicyActions`.
 
   For a fixed footer layout, render `ConsentWidget.Footer` and `ConsentWidget.FooterSubGroup` manually instead of using `ConsentWidget.PolicyActions`.
 

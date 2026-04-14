@@ -3,11 +3,11 @@
 <section id="intro">
   Building custom consent UI is easier now because c15t exposes multiple layers of policy-aware primitives instead of forcing you to reconstruct banner rules by hand.
 
-  The layering is:
+  Think of customization as a ladder:
 
   - stock component props for the shortest path
-  - `ConsentBanner.PolicyActions` and `ConsentWidget.PolicyActions` for custom structure with policy-aware actions
-  - `useHeadlessConsentUI()` for fully manual action rendering and non-standard controls
+  - `ConsentBanner.PolicyActions` and `ConsentWidget.PolicyActions` when you want custom structure but still want c15t to resolve policy-aware actions
+  - `useHeadlessConsentUI()` when you need fully manual action rendering, custom controls, or non-standard flow
 
   <Callout type="warning">
     Headless is the last step in the customization ladder. Use this guide only when pre-built components, tokens, slots, compound components, and `noStyle` are no longer sufficient.
@@ -26,6 +26,19 @@
   <Callout type="info">
     This guide is about building your own components while still respecting resolved policy-pack behavior. For the general headless overview, see [Headless Mode](./headless).
   </Callout>
+</section>
+
+<section id="choose-layer">
+  ## Choose the Smallest Layer That Solves the Job
+
+  Start with the smallest API surface that still gives you the behavior you need:
+
+  - Stay with stock components when you only need theming, spacing, copy, or legal-link changes
+  - Use `ConsentBanner.PolicyActions` or `ConsentWidget.PolicyActions` when you want a custom compound-component layout but still want grouped actions, ordering, and primary emphasis to come from policy
+  - Add `renderAction` when the grouping is still correct but you want to remap actions to stock c15t button compounds
+  - Reach for `useHeadlessConsentUI()` only when you need custom button elements, need to map `actionGroups` yourself, wire non-button controls, or coordinate the consent UI with a more custom state machine
+
+  This order matters because every step down the ladder gives you more control, but also makes it easier for your UI to drift away from the resolved policy if you stop using the provided state.
 </section>
 
 <section id="before-you-build">
@@ -57,9 +70,16 @@
   - UI profile and scroll-lock hints
   - whether the banner or dialog should currently be visible
 
+  The hook also gives you the policy-aware action helpers you are expected to call:
+
+  - `performBannerAction('accept' | 'reject')`
+  - `performDialogAction('accept' | 'reject')`
+  - `saveCustomPreferences()` for the dialog `customize` action
+  - `openDialog()`, `openBanner()`, and `closeUI()` for surface visibility
+
   That means your component mostly focuses on markup and design-system concerns instead of re-implementing policy interpretation.
 
-  For most compound-component layouts, start with `ConsentBanner.PolicyActions` or `ConsentWidget.PolicyActions`. They render stock c15t buttons and translations by default, and `renderAction` is only needed when you want to override the action mapping. Reach for manual `actionGroups` mapping when you need action rendering that no longer fits the stock button compounds.
+  For most compound-component layouts, start with `ConsentBanner.PolicyActions` or `ConsentWidget.PolicyActions`. They render stock c15t buttons and translations by default, and `renderAction` is only needed when you want to override which stock compound renders for each action. Reach for manual `actionGroups` mapping when you need action rendering that no longer fits the stock button compounds.
 </section>
 
 <section id="not-for-styling">
