@@ -1,11 +1,90 @@
 # @c15t/dev-tools
 
-## 1.8.6
+## 2.0.0-rc.10
 
 ### Patch Changes
 
-- Updated dependencies [f4448ea]
-  - c15t@1.8.6
+- 64d6009: Replace the shared `clsx` dependency with a local `cn` implementation owned by `@c15t/ui`.
+
+  - `@c15t/ui`: own the public `ClassValue` type and `cn(...)` implementation directly instead of re-exporting them from `clsx`, with coverage for nested arrays, object maps, numeric values, and ordering.
+  - `@c15t/react`: continue consuming the shared `@c15t/ui` class helper while dropping the now-unused direct `clsx` dependency from the published package.
+  - `@c15t/dev-tools`: remove the unused direct `clsx` dependency from the published package manifest.
+
+- Updated dependencies [9579b62]
+  - c15t@2.0.0-rc.10
+
+## 2.0.0-rc.8
+
+### Minor Changes
+
+- c944e35: feat(core): move policy action resolution from @c15t/react to c15t core
+
+  Policy-driven action resolution utilities (`resolvePolicyAllowedActions`, `resolvePolicyActionGroups`, `resolvePolicyPrimaryActions`, etc.) are now exported from `c15t` core for shared consent surface runtimes.
+
+  feat(scripts): move bundled integrations to declarative, schema-versioned `VendorManifest` definitions compiled through `resolveManifest()`. The manifest runtime now supports structured startup and consent phases, complex consent conditions, compile caching, and Google Consent Mode v2 signaling without helper-authored lifecycle overrides.
+
+  feat(dev-tools): add script lifecycle and manifest runtime telemetry to the events and scripts panels, including grouped activity traces for `onBeforeLoad`, `onLoad`, and `onConsentChange`.
+
+### Patch Changes
+
+- 918a70e: Fix published TypeScript declaration packaging so consumers stay compatible across both TypeScript 5 and TypeScript 6.
+
+  - `@c15t/react`: correct the `./primitives` type export entries so they point at the published `dist-types` files instead of missing declaration paths.
+  - `@c15t/backend`, `@c15t/cli`, `@c15t/dev-tools`, `@c15t/logger`, `@c15t/node-sdk`, and `@c15t/scripts`: normalize emitted `dist-types` imports during builds so published declarations no longer reference sibling `.d.ts` files directly, which could break consumers on newer TypeScript versions.
+  - Tooling: make declaration normalization discover package targets dynamically so the compatibility fix applies consistently across published packages instead of only a hardcoded subset.
+
+- Updated dependencies [43f1b68]
+- Updated dependencies [3d4c107]
+- Updated dependencies [c944e35]
+- Updated dependencies [5956531]
+  - c15t@2.0.0-rc.8
+
+## 2.0.0-rc.6
+
+### Patch Changes
+
+- bb3ab0f: chore: update dependencies, including zustand and typescript
+- 1a724fc: fix(policy-packs): support multiple primary actions while keeping customize as the default primary action
+
+  Expose `primaryActions` consistently across schema, backend, core, React, and dev-tools. Built-in preset and offline default policies keep `customize` as the default primary action, while custom policies can now mark multiple actions as primary.
+
+- Updated dependencies [e08e52c]
+- Updated dependencies [bb3ab0f]
+- Updated dependencies [1a724fc]
+  - c15t@2.0.0-rc.6
+
+## 2.0.0-rc.5
+
+### Patch Changes
+
+- e79f840: Separate published declaration files from runtime bundles to improve Vite compatibility
+
+  - Move generated `.d.ts` files out of `dist/` into `dist-types/` across published packages
+  - Stop emitting declaration maps in shared TypeScript config so `.d.ts.map` files are no longer published
+  - Emit declarations only once per package to avoid unstable output when both `esm` and `cjs` builds write types
+  - Update package `types` metadata, publish file lists, Turbo outputs, and publish artifact checks for the new layout
+  - Verify the package layout works in Vite 7 without `optimizeDeps.exclude` workarounds for `c15t` and `@c15t/react`
+
+- 372cf92: feat(policy): add policy packs for declarative regional consent resolution
+
+  Policy packs let you define regional consent rules once — c15t resolves the right policy automatically based on visitor location. Resolution follows fixed priority: region → country → fallback → default.
+
+  - Built-in presets: `europeOptIn()`, `europeIab()`, `californiaOptOut()`, `californiaOptIn()`, `quebecOptIn()`, `worldNoBanner()`
+  - Per-policy GPC support via `consent.gpc` field
+  - Fallback policies (`match.fallback`) as a safety net when geo-location headers are missing
+  - Material policy fingerprints for automatic re-prompting when consent semantics change
+  - Policy validation with `inspectPolicies()` for catching misconfigurations before deployment
+  - Snapshot tokens (signed JWT) for write-time consistency between `/init` and consent writes
+  - Dev-tools match trace panel showing full resolution path
+
+- Updated dependencies [021ac99]
+- Updated dependencies [5f30a3b]
+- Updated dependencies [58fb392]
+- Updated dependencies [e79f840]
+- Updated dependencies [58fb392]
+- Updated dependencies [60a51f1]
+- Updated dependencies [372cf92]
+  - c15t@2.0.0-rc.5
 
 ## 1.8.5
 

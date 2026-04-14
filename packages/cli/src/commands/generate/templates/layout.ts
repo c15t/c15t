@@ -13,9 +13,19 @@ import {
 	SyntaxKind,
 } from 'ts-morph';
 import type { AvailablePackages } from '~/context/framework-detection';
+import type { StorageMode } from '../../../constants';
+import type { ExpandedTheme, UIStyle } from '../prompts';
 import { updateNextLayout } from './next';
-import { generateConsentManagerTemplate } from './react/components';
+import { generateConsentComponent } from './shared/components';
+import { getComponentsDirectory, getSourceDirectory } from './shared/directory';
+import { generateExpandedThemeTemplate } from './shared/expanded-components';
+import { REACT_CONFIG } from './shared/framework-config';
+import {
+	addConsentManagerImport,
+	hasConsentManagerImport,
+} from './shared/module-specifier';
 import { generateOptionsText } from './shared/options';
+import { generateSimpleWrapperComponent } from './shared/server-components';
 
 interface UpdateReactLayoutOptions {
 	projectRoot: string;
@@ -24,114 +34,16 @@ interface UpdateReactLayoutOptions {
 	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
+	enableSSR?: boolean;
+	enableDevTools?: boolean;
+	uiStyle?: UIStyle;
+	expandedTheme?: ExpandedTheme;
+	selectedScripts?: string[];
 }
 
 interface ComponentFilePaths {
 	consentManager: string;
-}
-
-/**
- * Computes a relative module specifier from one file to another
- *
- * @param fromFilePath - The file that will contain the import (e.g., layout file)
- * @param toFilePath - The file being imported (e.g., consent-manager file)
- * @returns A relative module specifier suitable for ES modules (e.g., './consent-manager' or '../consent-manager')
- *
- * @remarks
- * - Computes the relative path between two files
- * - Normalizes path separators to forward slashes for ES modules
- * - Ensures the path starts with './' or '../'
- * - Strips the file extension for bare imports
- */
-function computeRelativeModuleSpecifier(
-	fromFilePath: string,
-	toFilePath: string
-): string {
-	// Get the directory of the file that will contain the import
-	const fromDir = path.dirname(fromFilePath);
-
-	// Compute relative path from the source directory to the target file
-	let relativePath = path.relative(fromDir, toFilePath);
-
-	// Normalize path separators to forward slashes (for module specifiers)
-	relativePath = relativePath.split(path.sep).join('/');
-
-	// Strip the file extension (.ts, .tsx, .js, .jsx)
-	relativePath = relativePath.replace(/\.(tsx?|jsx?)$/, '');
-
-	// Ensure the path starts with './' or '../'
-	if (!relativePath.startsWith('.')) {
-		relativePath = `./${relativePath}`;
-	}
-
-	return relativePath;
-}
-
-/**
- * Adds the ConsentManager import to the layout file
- *
- * @param layoutFile - The source file to update
- * @param consentManagerFilePath - The absolute path to the consent-manager file
- *
- * @remarks
- * Computes the correct relative import path from the layout file to the consent-manager file,
- * handling nested directory structures correctly.
- */
-function addConsentManagerImport(
-	layoutFile: SourceFile,
-	consentManagerFilePath: string
-): void {
-	const layoutFilePath = layoutFile.getFilePath();
-
-	// Compute the correct relative module specifier
-	const moduleSpecifier = computeRelativeModuleSpecifier(
-		layoutFilePath,
-		consentManagerFilePath
-	);
-
-	// Check if import already exists (check for the computed path or common variations)
-	const existingImports = layoutFile.getImportDeclarations();
-	const hasConsentManagerImport = existingImports.some((importDecl) => {
-		const existingSpec = importDecl.getModuleSpecifierValue();
-		// Check if it matches the computed specifier or ends with 'consent-manager'
-		return (
-			existingSpec === moduleSpecifier ||
-			existingSpec.endsWith('consent-manager') ||
-			existingSpec.endsWith('consent-manager.tsx')
-		);
-	});
-
-	if (!hasConsentManagerImport) {
-		layoutFile.addImportDeclaration({
-			namedImports: ['ConsentManager'],
-			moduleSpecifier,
-		});
-	}
-}
-
-/**
- * Determines the source directory based on the layout file location
- *
- * @param layoutFilePath - Full path to the layout file (can be absolute or relative)
- * @returns The source directory path relative to project root
- *
- * @remarks
- * Returns 'src' if the file is in src directory, otherwise returns empty string for root level.
- * Uses path utilities for cross-platform compatibility (handles both Windows and Unix paths).
- */
-function getSourceDirectory(layoutFilePath: string): string {
-	// Normalize the path to handle different path separators and formats
-	const normalizedPath = path.normalize(layoutFilePath);
-
-	// Split the path into segments using the platform-specific separator
-	const segments = normalizedPath.split(path.sep);
-
-	// Check if 'src' is one of the path segments
-	if (segments.includes('src')) {
-		return 'src';
-	}
-
-	return '';
+	consentManagerDir?: string;
 }
 
 /**
@@ -188,7 +100,11 @@ function wrapReturnStatementWithConsentManager(
 		return false;
 	}
 
-	const originalJsx = expression.getText();
+	// Unwrap parenthesized expression if present: return (...) -> ...
+	let originalJsx = expression.getText();
+	if (originalJsx.startsWith('(') && originalJsx.endsWith(')')) {
+		originalJsx = originalJsx.slice(1, -1).trim();
+	}
 
 	// Wrap the JSX with ConsentManager
 	const newJsx = `(
@@ -202,37 +118,93 @@ function wrapReturnStatementWithConsentManager(
 }
 
 /**
- * Creates the consent-manager component file in the React project
+ * Creates the consent-manager component files in the React project
  *
  * @param projectRoot - Root directory of the project
  * @param sourceDir - Source directory path (either 'src' or '')
- * @param optionsText - Stringified options object for ConsentManagerProvider
- * @returns Object containing path to created file
+ * @param mode - Storage mode for consent management
+ * @param backendURL - Backend URL for hosted/self-hosted modes
+ * @param useEnvFile - Whether to use environment variables
+ * @param selectedScripts - Selected scripts to include
+ * @param enableDevTools - Whether to add DevTools component
+ * @param expandedTheme - Theme preset selection
+ * @returns Object containing path to created files
  *
- * @throws {Error} When file cannot be created
+ * @throws {Error} When files cannot be created
  *
  * @remarks
- * Creates one file:
- * - consent-manager.tsx - Component with provider, UI, scripts, and callbacks
+ * Creates in components/consent-manager/:
+ * - index.tsx - Simple wrapper that imports and renders provider
+ * - provider.tsx - Client provider with ConsentManagerProvider, Banner, Dialog
+ * - theme.ts - (optional) Generated when user selects a custom theme
  */
 async function createConsentManagerComponent(
 	projectRoot: string,
 	sourceDir: string,
-	optionsText: string
+	mode: StorageMode,
+	backendURL?: string,
+	useEnvFile?: boolean,
+	selectedScripts?: string[],
+	enableDevTools?: boolean,
+	expandedTheme?: ExpandedTheme
 ): Promise<ComponentFilePaths> {
-	const targetDir = sourceDir ? path.join(projectRoot, sourceDir) : projectRoot;
+	const hasTheme = expandedTheme && expandedTheme !== 'none';
+
+	// Detect or create components directory
+	const componentsDir = await getComponentsDirectory(projectRoot, sourceDir);
+	const consentManagerDirPath = path.join(
+		projectRoot,
+		componentsDir,
+		'consent-manager'
+	);
 
 	// Generate component file content
-	const consentManagerContent = generateConsentManagerTemplate(optionsText);
+	const optionsText = generateOptionsText(
+		mode,
+		backendURL,
+		useEnvFile,
+		undefined,
+		true
+	);
+	const providerContent = generateConsentComponent({
+		importSource: '@c15t/react',
+		optionsText,
+		selectedScripts,
+		enableDevTools,
+		useClientDirective: true,
+		defaultExport: true,
+		includeTheme: Boolean(hasTheme),
+		includeOverrides: true,
+		docsSlug: 'react',
+	});
+	const indexContent = generateSimpleWrapperComponent('React', 'react');
 
-	// Define file path
-	const consentManagerPath = path.join(targetDir, 'consent-manager.tsx');
+	// Define file paths
+	const indexPath = path.join(consentManagerDirPath, 'index.tsx');
+	const providerPath = path.join(consentManagerDirPath, 'provider.tsx');
 
-	// Write file
-	await fs.writeFile(consentManagerPath, consentManagerContent, 'utf-8');
+	// Create directory and write files
+	await fs.mkdir(consentManagerDirPath, { recursive: true });
+	const writePromises: Promise<void>[] = [
+		fs.writeFile(indexPath, indexContent, 'utf-8'),
+		fs.writeFile(providerPath, providerContent, 'utf-8'),
+	];
+
+	// Generate theme file when a theme is selected
+	if (hasTheme) {
+		const themeContent = generateExpandedThemeTemplate(
+			expandedTheme,
+			REACT_CONFIG
+		);
+		const themePath = path.join(consentManagerDirPath, 'theme.ts');
+		writePromises.push(fs.writeFile(themePath, themeContent, 'utf-8'));
+	}
+
+	await Promise.all(writePromises);
 
 	return {
-		consentManager: consentManagerPath,
+		consentManager: indexPath,
+		consentManagerDir: consentManagerDirPath,
 	};
 }
 
@@ -251,6 +223,9 @@ async function updateGenericReactLayout({
 	backendURL,
 	useEnvFile,
 	proxyNextjs,
+	selectedScripts,
+	enableDevTools,
+	expandedTheme,
 }: UpdateReactLayoutOptions): Promise<{
 	updated: boolean;
 	filePath: string | null;
@@ -300,14 +275,7 @@ async function updateGenericReactLayout({
 	const sourceDir = getSourceDirectory(layoutFilePath);
 
 	// Check if ConsentManager is already imported
-	const existingImports = layoutFile.getImportDeclarations();
-	const hasConsentManagerImport = existingImports.some(
-		(importDecl) =>
-			importDecl.getModuleSpecifierValue() === './consent-manager' ||
-			importDecl.getModuleSpecifierValue() === './consent-manager.tsx'
-	);
-
-	if (hasConsentManagerImport) {
+	if (hasConsentManagerImport(layoutFile)) {
 		return {
 			updated: false,
 			filePath: layoutFilePath,
@@ -316,19 +284,16 @@ async function updateGenericReactLayout({
 	}
 
 	try {
-		// Generate options text for the component
-		const optionsText = generateOptionsText(
-			mode,
-			backendURL,
-			useEnvFile,
-			proxyNextjs
-		);
-
 		// Create consent manager component file
 		const componentFiles = await createConsentManagerComponent(
 			projectRoot,
 			sourceDir,
-			optionsText
+			mode as StorageMode,
+			backendURL,
+			useEnvFile,
+			selectedScripts,
+			enableDevTools,
+			expandedTheme
 		);
 
 		// Add import for ConsentManager with correct relative path

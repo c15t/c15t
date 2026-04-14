@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/nextjs",
-	"version": "1.8.6",
+	"version": "2.0.0-rc.12",
 	"description": "Developer-first CMP for Next.js: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization.",
 	"keywords": [
 		"nextjs",
@@ -26,62 +26,69 @@
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/nextjs"
 	},
-	"license": "GPL-3.0-only",
-	"sideEffects": false,
+	"license": "Apache-2.0",
+	"sideEffects": [
+		"**/*.css"
+	],
 	"type": "module",
 	"exports": {
+		"./styles.css": "./dist/styles.css",
+		"./styles.tw3.css": "./dist/styles.tw3.css",
+		"./iab/styles.css": "./dist/iab/styles.css",
+		"./iab/styles.tw3.css": "./dist/iab/styles.tw3.css",
 		"./headless": {
-			"types": "./dist/headless.d.ts",
+			"types": "./dist-types/headless.d.ts",
 			"import": "./dist/headless.js",
 			"require": "./dist/headless.cjs"
 		},
-		"./pages/headless": {
-			"types": "./dist/headless.pages.d.ts",
-			"import": "./dist/headless.pages.js",
-			"require": "./dist/headless.pages.cjs"
-		},
-		"./pages": {
-			"types": "./dist/pages.d.ts",
-			"import": "./dist/pages.js",
-			"require": "./dist/pages.cjs"
-		},
-		"./client": {
-			"types": "./dist/client.d.ts",
-			"import": "./dist/client.js",
-			"require": "./dist/client.cjs"
+		"./components/consent-dialog-link": {
+			"types": "./dist-types/index.d.ts",
+			"import": "./client/components/consent-dialog-link.js",
+			"require": "./dist/index.cjs"
 		},
 		".": {
-			"types": "./dist/index.d.ts",
+			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
 		}
 	},
 	"main": "./dist/index.js",
-	"module": "./dist/index.mjs",
-	"types": "./dist/index.d.ts",
+	"module": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
 	"files": [
-		"dist"
+		"dist",
+		"docs",
+		"dist-types",
+		"client",
+		"styles.css",
+		"iab",
+		"src/styles.css",
+		"src/styles.tw3.css",
+		"src/iab/styles.css",
+		"src/iab/styles.tw3.css"
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/nextjs",
+		"build:agent-docs": "bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/nextjs",
 		"check-types": "bun prebuild && tsc --noEmit",
-		"dev": "bun prebuild && rslib build --watch",
+		"dev": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
+		"prepack": "cd ../.. && bunx turbo run build --filter=@c15t/nextjs",
 		"test": "bun prebuild && vitest run --passWithNoTests",
 		"test:watch": "bun prebuild && vitest --passWithNoTests"
 	},
 	"dependencies": {
 		"@c15t/react": "workspace:*",
-		"@c15t/translations": "workspace:*"
+		"@c15t/translations": "workspace:*",
+		"c15t": "workspace:*"
 	},
 	"devDependencies": {
-		"@c15t/backend": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"genversion": "^3.2.0",
-		"typescript": "^5.0.4"
+		"genversion": "3.2.0",
+		"typescript": "6.0.2"
 	},
 	"peerDependencies": {
 		"next": "^16.0.0 || ^15.0.0 || ^14.0.0 || ^13.0.0",

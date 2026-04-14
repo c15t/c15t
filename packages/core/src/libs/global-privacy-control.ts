@@ -12,8 +12,8 @@
  *
  * @internal
  */
-export function hasGlobalPrivacyControlSignal(enabled: boolean): boolean {
-	if (typeof window === 'undefined' || !enabled) {
+export function hasGlobalPrivacyControlSignal(): boolean {
+	if (typeof window === 'undefined') {
 		return false;
 	}
 

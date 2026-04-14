@@ -1,21 +1,35 @@
 'use client';
 
-import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import {
-	type ComponentPropsWithoutRef,
-	type ComponentRef,
+	type AccordionType,
+	isAccordionItemOpen,
+	toggleAccordionValue,
+} from '@c15t/ui/primitives/accordion';
+import { getDataDisabled } from '@c15t/ui/primitives/data-state';
+import {
+	type AccordionSize,
+	type AccordionVariant,
+	type AccordionVariantsProps,
+	accordionVariants,
+} from '@c15t/ui/styles/primitives/accordion';
+import {
+	type ButtonHTMLAttributes,
+	createContext,
 	type ElementType,
 	forwardRef,
 	type HTMLAttributes,
+	useContext,
+	useId,
+	useMemo,
 } from 'react';
-
 import type { PolymorphicComponentProps } from '~/components/shared/libs/polymorphic';
-import { Box } from '~/components/shared/primitives/box';
+import { useControllableState } from '~/components/shared/libs/use-controllable-state';
 import { LucideIcon } from '~/components/shared/ui/icon';
-import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
-import type { AllThemeKeys, ExtendThemeKeys, ThemeValue } from '~/types/theme';
-import styles from './accordion.module.css';
+import type { ThemeValue } from '~/types/theme';
+
+export type { AccordionSize, AccordionVariant, AccordionVariantsProps };
+export { accordionVariants };
 
 const ACCORDION_ROOT_NAME = 'AccordionRoot';
 const ACCORDION_ITEM_NAME = 'AccordionItem';
@@ -23,7 +37,7 @@ const ACCORDION_ICON_NAME = 'AccordionIcon';
 const ACCORDION_ARROW_NAME = 'AccordionArrow';
 const ACCORDION_TRIGGER_NAME = 'AccordionTrigger';
 const ACCORDION_CONTENT_NAME = 'AccordionContent';
-const AccordionHeader = AccordionPrimitive.Header;
+const ACCORDION_HEADER_NAME = 'AccordionHeader';
 
 export type AccordionStylesKeys = {
 	'accordion.root'?: ThemeValue;
@@ -36,213 +50,374 @@ export type AccordionStylesKeys = {
 	'accordion.content-inner': ThemeValue;
 };
 
-const AccordionRoot = forwardRef<
-	ComponentRef<typeof AccordionPrimitive.Root>,
-	ComponentPropsWithoutRef<typeof AccordionPrimitive.Root> & ExtendThemeKeys
->(
+type AccordionContextValue = {
+	collapsible?: boolean;
+	noStyle?: boolean;
+	onItemToggle: (value: string) => void;
+	type: AccordionType;
+	value: string | string[] | undefined;
+};
+
+type AccordionItemContextValue = {
+	contentId: string;
+	disabled?: boolean;
+	open: boolean;
+	triggerId: string;
+	value: string;
+};
+
+const AccordionContext = createContext<AccordionContextValue | null>(null);
+const AccordionItemContext = createContext<AccordionItemContextValue | null>(
+	null
+);
+
+function useAccordionContext() {
+	const context = useContext(AccordionContext);
+
+	if (!context) {
+		throw new Error('Accordion components must be used within AccordionRoot');
+	}
+
+	return context;
+}
+
+function useAccordionItemContext() {
+	const context = useContext(AccordionItemContext);
+
+	if (!context) {
+		throw new Error('Accordion components must be used within AccordionItem');
+	}
+
+	return context;
+}
+
+export type AccordionRootProps = HTMLAttributes<HTMLDivElement> &
+	AccordionVariantsProps & {
+		collapsible?: boolean;
+		defaultValue?: string | string[];
+		noStyle?: boolean;
+		onValueChange?: (value: string | string[]) => void;
+		type: AccordionType;
+		value?: string | string[];
+	};
+
+const AccordionRoot = forwardRef<HTMLDivElement, AccordionRootProps>(
 	(
 		{
+			children,
 			className,
-			themeKey = 'accordion.root',
-			baseClassName,
+			collapsible,
+			defaultValue,
 			noStyle,
-			style,
+			onValueChange,
+			size = 'medium',
+			type,
+			value,
+			variant = 'default',
 			...rest
 		},
 		forwardedRef
 	) => {
 		const { noStyle: contextNoStyle } = useTheme();
-
-		const accordionStyle = useStyles(themeKey, {
-			baseClassName: [baseClassName, styles.root],
-			className,
-			noStyle: contextNoStyle || noStyle,
-			style,
+		const variants = accordionVariants({ variant, size });
+		const finalNoStyle = contextNoStyle || noStyle;
+		const [currentValue, setCurrentValue] = useControllableState<
+			string | string[] | undefined
+		>({
+			defaultValue:
+				defaultValue ?? (type === 'multiple' ? ([] as string[]) : undefined),
+			onChange: (nextValue) => {
+				if (nextValue !== undefined) {
+					onValueChange?.(nextValue);
+				}
+			},
+			value,
 		});
 
+		const rootClassName = finalNoStyle
+			? className
+			: variants.root({ class: className as string | undefined });
+
+		const contextValue = useMemo<AccordionContextValue>(
+			() => ({
+				collapsible,
+				noStyle: finalNoStyle,
+				onItemToggle: (itemValue) => {
+					setCurrentValue(
+						toggleAccordionValue({
+							collapsible,
+							itemValue,
+							type,
+							value: currentValue,
+						})
+					);
+				},
+				type,
+				value: currentValue,
+			}),
+			[collapsible, currentValue, finalNoStyle, setCurrentValue, type]
+		);
+
 		return (
-			<AccordionPrimitive.Root
-				ref={forwardedRef}
-				{...rest}
-				{...accordionStyle}
-			/>
+			<AccordionContext.Provider value={contextValue}>
+				<div
+					ref={forwardedRef}
+					className={rootClassName}
+					data-slot="accordion-root"
+					{...rest}
+				>
+					{children}
+				</div>
+			</AccordionContext.Provider>
 		);
 	}
 );
 
 AccordionRoot.displayName = ACCORDION_ROOT_NAME;
 
-const AccordionItem = forwardRef<
-	ComponentRef<typeof AccordionPrimitive.Item>,
-	ComponentPropsWithoutRef<typeof AccordionPrimitive.Item> & ExtendThemeKeys
->(
+export interface AccordionItemProps extends HTMLAttributes<HTMLDivElement> {
+	disabled?: boolean;
+	noStyle?: boolean;
+	value: string;
+}
+
+const AccordionItem = forwardRef<HTMLDivElement, AccordionItemProps>(
 	(
-		{ className, themeKey, baseClassName, noStyle, style, ...rest },
+		{ children, className, disabled, noStyle, value, ...rest },
 		forwardedRef
 	) => {
 		const { noStyle: contextNoStyle } = useTheme();
+		const variants = accordionVariants();
+		const accordionContext = useAccordionContext();
+		const open = isAccordionItemOpen(
+			accordionContext.type,
+			accordionContext.value,
+			value
+		);
+		const itemNoStyle = accordionContext.noStyle || contextNoStyle || noStyle;
+		const itemClassName = itemNoStyle
+			? className
+			: variants.item({ class: className });
+		const reactId = useId().replace(/:/g, '');
+		const contentId = `c15t-accordion-content-${reactId}`;
+		const triggerId = `c15t-accordion-trigger-${reactId}`;
 
-		const accordionItemStyle = useStyles(themeKey ?? 'accordion.item', {
-			baseClassName: [baseClassName, styles.item],
-			className,
-			noStyle: contextNoStyle || noStyle,
-			style,
-		});
 		return (
-			<AccordionPrimitive.Item
-				ref={forwardedRef}
-				{...rest}
-				{...accordionItemStyle}
-			/>
+			<AccordionItemContext.Provider
+				value={{
+					contentId,
+					disabled,
+					open,
+					triggerId,
+					value,
+				}}
+			>
+				<div
+					ref={forwardedRef}
+					className={itemClassName}
+					data-disabled={getDataDisabled(disabled)}
+					data-slot="accordion-item"
+					data-state={open ? 'open' : 'closed'}
+					{...rest}
+				>
+					{children}
+				</div>
+			</AccordionItemContext.Provider>
 		);
 	}
 );
+
 AccordionItem.displayName = ACCORDION_ITEM_NAME;
 
-const AccordionTrigger = forwardRef<
-	ComponentRef<typeof AccordionPrimitive.Trigger>,
-	ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger> & ExtendThemeKeys
->(
-	(
-		{ children, className, themeKey, baseClassName, noStyle, style, ...rest },
-		forwardedRef
-	) => {
-		const { noStyle: contextNoStyle } = useTheme();
+export interface AccordionHeaderProps extends HTMLAttributes<HTMLDivElement> {}
 
-		const accordionTriggerStyle = useStyles(
-			themeKey ?? 'accordion.trigger-inner',
-			{
-				baseClassName: [baseClassName, styles.triggerInner],
-				className,
-				noStyle: contextNoStyle || noStyle,
-				style,
-			}
-		);
+const AccordionHeader = forwardRef<HTMLDivElement, AccordionHeaderProps>(
+	({ children, ...rest }, forwardedRef) => (
+		<div ref={forwardedRef} data-slot="accordion-header" {...rest}>
+			{children}
+		</div>
+	)
+);
+
+AccordionHeader.displayName = ACCORDION_HEADER_NAME;
+
+export interface AccordionTriggerProps
+	extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
+	noStyle?: boolean;
+}
+
+const AccordionTrigger = forwardRef<HTMLButtonElement, AccordionTriggerProps>(
+	({ children, className, noStyle, onClick, ...rest }, forwardedRef) => {
+		const { noStyle: contextNoStyle } = useTheme();
+		const variants = accordionVariants();
+		const accordionContext = useAccordionContext();
+		const itemContext = useAccordionItemContext();
+		const triggerNoStyle =
+			accordionContext.noStyle || contextNoStyle || noStyle;
+		const triggerClassName = triggerNoStyle
+			? className
+			: variants.trigger({ class: className });
 
 		return (
-			<AccordionPrimitive.Trigger
+			<button
 				ref={forwardedRef}
+				aria-controls={itemContext.contentId}
+				aria-disabled={itemContext.disabled || undefined}
+				aria-expanded={itemContext.open}
+				className={triggerClassName}
+				data-disabled={getDataDisabled(itemContext.disabled)}
+				data-slot="accordion-trigger"
+				data-state={itemContext.open ? 'open' : 'closed'}
+				disabled={itemContext.disabled}
+				id={itemContext.triggerId}
+				onClick={(event) => {
+					accordionContext.onItemToggle(itemContext.value);
+					onClick?.(event);
+				}}
+				type="button"
 				{...rest}
-				{...accordionTriggerStyle}
 			>
 				{children}
-			</AccordionPrimitive.Trigger>
+			</button>
 		);
 	}
 );
+
 AccordionTrigger.displayName = ACCORDION_TRIGGER_NAME;
+
+export interface AccordionIconBaseProps extends Record<string, unknown> {
+	noStyle?: boolean;
+}
 
 function AccordionIcon<T extends ElementType>({
 	className,
-	themeKey,
-	baseClassName,
 	noStyle,
-	style,
 	as,
 	...rest
-}: PolymorphicComponentProps<T> & ExtendThemeKeys) {
-	const accordionIconStyle = useStyles(themeKey ?? 'accordion.icon', {
-		baseClassName: [baseClassName, styles.icon],
-		className,
-		noStyle,
-		style,
-	});
-
+}: PolymorphicComponentProps<T, AccordionIconBaseProps>) {
+	const variants = accordionVariants();
+	const classNameStr = typeof className === 'string' ? className : undefined;
+	const iconClassName = noStyle
+		? classNameStr
+		: variants.icon({ class: classNameStr });
 	const Component = as || 'div';
 
-	return <Component {...rest} {...accordionIconStyle} />;
+	return (
+		<Component className={iconClassName} data-slot="accordion-icon" {...rest} />
+	);
 }
+
 AccordionIcon.displayName = ACCORDION_ICON_NAME;
 
 type AccordionArrowProps = HTMLAttributes<HTMLDivElement> & {
-	openIcon?: { Element: ElementType; themeKey: AllThemeKeys } & ExtendThemeKeys;
-	closeIcon?: {
-		Element: ElementType;
-		themeKey: AllThemeKeys;
-	} & ExtendThemeKeys;
+	closeIcon?: { Element: ElementType; className?: string };
+	noStyle?: boolean;
+	openIcon?: { Element: ElementType; className?: string };
 };
 
-// open/close
 function AccordionArrow({
+	closeIcon = {
+		Element: LucideIcon({ title: 'Close', iconPath: <path d="M5 12h14" /> }),
+	},
+	className,
+	noStyle,
 	openIcon = {
 		Element: LucideIcon({
 			title: 'Open',
 			iconPath: <path d="M5 12h14M12 5v14" />,
 		}),
-		themeKey: 'accordion.arrow.open',
-	},
-	closeIcon = {
-		Element: LucideIcon({ title: 'Close', iconPath: <path d="M5 12h14" /> }),
-		themeKey: 'accordion.arrow.close',
 	},
 	...rest
 }: AccordionArrowProps) {
-	const accordionArrowOpenStyle = useStyles(openIcon.themeKey, {
-		baseClassName: [openIcon.baseClassName, styles.arrowOpen],
-		className: openIcon.className,
-		noStyle: openIcon.noStyle,
-		style: openIcon.style,
-	});
-	const accordionArrowClosedStyle = useStyles(closeIcon.themeKey, {
-		baseClassName: [closeIcon.baseClassName, styles.arrowClose],
-		className: closeIcon.className,
-		noStyle: closeIcon.noStyle,
-		style: closeIcon.style,
-	});
+	const itemContext = useAccordionItemContext();
+	const variants = accordionVariants();
+	const openClassName = noStyle
+		? openIcon.className
+		: variants.arrowOpen({ class: openIcon.className });
+	const closeClassName = noStyle
+		? closeIcon.className
+		: variants.arrowClose({ class: closeIcon.className });
 
 	return (
-		<>
-			<openIcon.Element {...rest} {...accordionArrowOpenStyle} />
-			<closeIcon.Element {...rest} {...accordionArrowClosedStyle} />
-		</>
+		<span
+			className={className}
+			data-slot="accordion-arrow"
+			style={{
+				alignItems: 'center',
+				display: 'inline-flex',
+				flexShrink: 0,
+				height: '1.25rem',
+				justifyContent: 'center',
+				position: 'relative',
+				width: '1.25rem',
+			}}
+			{...rest}
+		>
+			<openIcon.Element
+				aria-hidden="true"
+				className={openClassName}
+				data-slot="accordion-arrow-open"
+				data-state={itemContext.open ? 'open' : 'closed'}
+			/>
+			<closeIcon.Element
+				aria-hidden="true"
+				className={closeClassName}
+				data-slot="accordion-arrow-close"
+				data-state={itemContext.open ? 'open' : 'closed'}
+			/>
+		</span>
 	);
 }
+
 AccordionArrow.displayName = ACCORDION_ARROW_NAME;
 
-const AccordionContent = forwardRef<
-	ComponentRef<typeof AccordionPrimitive.Content>,
-	ComponentPropsWithoutRef<typeof AccordionPrimitive.Content> & {
-		theme: { content: ExtendThemeKeys; contentInner: ExtendThemeKeys };
-	}
->(({ children, className, theme, ...rest }, forwardedRef) => {
-	const { noStyle: contextNoStyle } = useTheme();
+export interface AccordionContentProps extends HTMLAttributes<HTMLElement> {
+	innerClassName?: string;
+	noStyle?: boolean;
+}
 
-	const accordionContentStyle = useStyles(
-		theme?.content?.themeKey ?? 'accordion.content',
-		{
-			baseClassName: [theme?.content?.baseClassName, styles.content],
-			className,
-			noStyle: theme?.content?.noStyle || contextNoStyle,
-			style: theme?.content?.style,
-		}
-	);
+const AccordionContent = forwardRef<HTMLElement, AccordionContentProps>(
+	({ children, className, innerClassName, noStyle, ...rest }, forwardedRef) => {
+		const { noStyle: contextNoStyle } = useTheme();
+		const variants = accordionVariants();
+		const accordionContext = useAccordionContext();
+		const itemContext = useAccordionItemContext();
+		const contentNoStyle =
+			accordionContext.noStyle || contextNoStyle || noStyle;
+		const contentClassName = contentNoStyle
+			? className
+			: variants.content({ class: className });
+		const contentInnerClassName = contentNoStyle
+			? innerClassName
+			: variants.contentInner({ class: innerClassName });
 
-	return (
-		<AccordionPrimitive.Content
-			ref={forwardedRef}
-			{...rest}
-			{...accordionContentStyle}
-		>
-			<Box
-				{...{
-					...theme?.contentInner,
-					baseClassName: [theme?.content?.baseClassName, styles.contentInner],
-					themeKey: theme?.contentInner?.themeKey ?? 'accordion.content-inner',
-				}}
+		return (
+			<section
+				ref={forwardedRef}
+				aria-hidden={!itemContext.open}
+				aria-labelledby={itemContext.triggerId}
+				className={contentClassName}
+				data-slot="accordion-content"
+				data-state={itemContext.open ? 'open' : 'closed'}
+				id={itemContext.contentId}
+				{...rest}
 			>
-				{children}
-			</Box>
-		</AccordionPrimitive.Content>
-	);
-});
+				<div data-slot="accordion-content-viewport">
+					<div className={contentInnerClassName}>{children}</div>
+				</div>
+			</section>
+		);
+	}
+);
+
 AccordionContent.displayName = ACCORDION_CONTENT_NAME;
 
 export {
-	AccordionRoot as Root,
-	AccordionHeader as Header,
-	AccordionItem as Item,
-	AccordionTrigger as Trigger,
-	AccordionIcon as Icon,
 	AccordionArrow as Arrow,
 	AccordionContent as Content,
+	AccordionHeader as Header,
+	AccordionIcon as Icon,
+	AccordionItem as Item,
+	AccordionRoot as Root,
+	AccordionTrigger as Trigger,
 };

@@ -1,5 +1,5 @@
 ---
-title: Microsoft UET 
+title: Microsoft UET
 description: Track conversions and measure performance for Microsoft Advertising and Bing Ads.
 lastModified: 2025-09-24
 
@@ -12,94 +12,19 @@ Microsoft UET (Universal Event Tracking) is Microsoft's conversion tracking tag 
   UET can also load Microsoft Clarity (if enabled in your UET tag settings). Since Clarity is an analytics tool, we recommend loading it separately with `measurement` consent instead.
 </Callout>
 
-### Adding Microsoft UET to c15t
+## Adding Microsoft UET to c15t
 
-<Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
-  <Tab value="JavaScript">
-    ```ts
-    import { configureConsentManager } from 'c15t';
-    import { microsoftUet } from '@c15t/scripts/microsoft-uet';
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+</Callout>
 
-    configureConsentManager({
-      // ... 
-      scripts: [
-        microsoftUet({
-          id: '123456789012345',
-        }),
-      ],
-    });
-    ```
-  </Tab>
+```ts
+import { microsoftUet } from '@c15t/scripts/microsoft-uet';
 
-  <Tab value="React">
-    ```tsx
-    import { microsoftUet } from '@c15t/scripts/microsoft-uet';
-    import { ConsentManagerProvider } from '@c15t/react';
-
-    export function App({ children }: { children: React.ReactNode }) { 
-      	return (
-        <ConsentManagerProvider
-          options={{
-            scripts: [
-              microsoftUet({
-                id: '123456789012345',
-              }),
-            ],
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Next.js + App Router">
-    ```tsx
-    'use client';
-    import { microsoftUet } from '@c15t/scripts/microsoft-uet';
-    import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
-
-    export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
-      return (
-        <ClientSideOptionsProvider
-          scripts={[
-            microsoftUet({
-              id: '123456789012345',
-            }),
-          ]}
-        >
-          {children}
-        </ClientSideOptionsProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Next.js + Pages Router">
-    ```tsx
-    import { microsoftUet } from '@c15t/scripts/microsoft-uet';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-
-    export function App({ children }: { children: React.ReactNode }) { 
-      return (
-      <ConsentManagerProvider
-        options={{
-          // ... other options
-          scripts: [
-            microsoftUet({
-              id: '123456789012345',
-            }),
-          ],
-        }}
-      >
-        {children}
-      </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-</Tabs>
+microsoftUet({
+  id: '123456789012345',
+})
+```
 
 ## Types
 

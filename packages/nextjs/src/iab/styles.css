@@ -1,0 +1,12 @@
+/**
+ * @c15t/nextjs — IAB TCF component styles.
+ *
+ * Add this stylesheet to the same global CSS entrypoint as your base c15t styles
+ * when using IAB consent components in Next.js. Do not import either stylesheet
+ * from JS/TSX.
+ *
+ * Usage (app/globals.css):
+ *   @import "@c15t/nextjs/styles.css";
+ *   @import "@c15t/nextjs/iab/styles.css";
+ */
+@import "@c15t/react/iab/styles.css";

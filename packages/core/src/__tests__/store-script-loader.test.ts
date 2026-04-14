@@ -53,13 +53,14 @@ vi.mock('vitest-localstorage-mock', () => {
 // Mock the store's fetchConsentBannerInfo method
 vi.mock('../libs/fetch-consent-banner', () => ({
 	fetchConsentBannerInfo: vi.fn().mockResolvedValue({
-		showConsentBanner: true,
-		jurisdiction: { code: 'GDPR', message: 'GDPR applies' },
+		jurisdiction: 'GDPR',
 		location: {
 			countryCode: 'DE',
 			regionCode: null,
-			jurisdiction: 'GDPR',
-			jurisdictionMessage: 'GDPR applies',
+		},
+		translations: {
+			language: 'en',
+			translations: {},
 		},
 		branding: 'c15t',
 	}),
@@ -291,6 +292,26 @@ describe('Store Script Loader Integration', () => {
 			const loadedIds = store.getState().getLoadedScriptIds();
 			expect(loadedIds).toContain('necessary-script');
 			expect(loadedIds).not.toContain('marketing-script');
+		});
+
+		it('should load out-of-policy category scripts as permissive', () => {
+			const store = createTestStore({
+				necessary: true,
+				marketing: false,
+				functionality: false,
+				measurement: true,
+				experience: false,
+			});
+
+			store.setState({
+				policyCategories: ['necessary', 'measurement'],
+				policyScopeMode: 'permissive',
+			});
+
+			store.getState().setScripts([scripts[1]]);
+
+			expect(store.getState().isScriptLoaded('marketing-script')).toBe(true);
+			expect(store.getState().loadedScripts['marketing-script']).toBe(true);
 		});
 	});
 

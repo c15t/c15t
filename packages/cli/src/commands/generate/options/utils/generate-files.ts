@@ -5,7 +5,10 @@ import color from 'picocolors';
 import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '~/context/types';
 import { formatLogMessage } from '~/utils/logger';
+import { formatSearchedCssPaths } from '../../../shared/stylesheets';
+import type { ExpandedTheme, UIStyle } from '../../prompts';
 import { generateClientConfigContent } from '../../templates/config';
+import { updateAppStylesheetImports } from '../../templates/css';
 import {
 	generateEnvExampleContent,
 	generateEnvFileContent,
@@ -15,12 +18,24 @@ import { updateReactLayout } from '../../templates/layout';
 import { updateNextConfig } from '../../templates/next-config';
 import type { BaseOptions } from '../types';
 
+export type GenerateMode =
+	| 'hosted'
+	| 'c15t'
+	| 'self-hosted'
+	| 'offline'
+	| 'custom';
+
 export interface GenerateFilesOptions extends BaseOptions {
 	context: CliContext;
-	mode: 'c15t' | 'offline' | 'custom';
+	mode: GenerateMode;
 	proxyNextjs?: boolean;
 	backendURL?: string;
 	useEnvFile?: boolean;
+	enableSSR?: boolean;
+	enableDevTools?: boolean;
+	uiStyle?: UIStyle;
+	expandedTheme?: ExpandedTheme;
+	selectedScripts?: string[];
 }
 
 export interface GenerateFilesResult {
@@ -31,6 +46,8 @@ export interface GenerateFilesResult {
 	nextConfigUpdated?: boolean;
 	nextConfigPath?: string | null;
 	nextConfigCreated?: boolean;
+	tailwindCssUpdated?: boolean;
+	tailwindCssPath?: string | null;
 }
 
 interface LayoutUpdateResult {
@@ -40,6 +57,7 @@ interface LayoutUpdateResult {
 	componentFiles?: {
 		consentManager: string;
 		consentManagerClient?: string;
+		consentManagerDir?: string;
 	};
 }
 
@@ -50,11 +68,16 @@ interface LayoutUpdateResult {
  */
 async function handleReactLayout(options: {
 	projectRoot: string;
-	mode: 'c15t' | 'offline' | 'custom';
+	mode: GenerateMode;
 	backendURL?: string;
 	useEnvFile?: boolean;
 	pkg: AvailablePackages;
 	proxyNextjs?: boolean;
+	enableSSR?: boolean;
+	enableDevTools?: boolean;
+	uiStyle?: UIStyle;
+	expandedTheme?: ExpandedTheme;
+	selectedScripts?: string[];
 	spinner: ReturnType<typeof p.spinner>;
 	cwd: string;
 }): Promise<{ layoutUpdated: boolean; layoutPath: string | null }> {
@@ -64,6 +87,11 @@ async function handleReactLayout(options: {
 		backendURL,
 		useEnvFile,
 		proxyNextjs,
+		enableSSR,
+		enableDevTools,
+		uiStyle,
+		expandedTheme,
+		selectedScripts,
 		pkg,
 		spinner,
 		cwd,
@@ -75,6 +103,11 @@ async function handleReactLayout(options: {
 		backendURL,
 		useEnvFile,
 		proxyNextjs,
+		enableSSR,
+		enableDevTools,
+		uiStyle,
+		expandedTheme,
+		selectedScripts,
 		pkg,
 	});
 
@@ -96,7 +129,17 @@ async function handleReactLayout(options: {
 				);
 				const relativeLayout = path.relative(cwd, layoutResult.filePath || '');
 
-				// App Directory has 2 files, Pages Directory has 1 file
+				// Expanded mode has directory, App Directory has 2 files, Pages Directory has 1 file
+				if (typedResult.componentFiles.consentManagerDir) {
+					const relativeConsentManagerDir = path.relative(
+						cwd,
+						typedResult.componentFiles.consentManagerDir
+					);
+					return {
+						message: `Layout setup complete!\n  ${color.green('✓')} Created: ${color.cyan(`${relativeConsentManagerDir}/`)} (expanded components)\n  ${color.green('✓')} Created: ${color.cyan(relativeConsentManager)}\n  ${color.green('✓')} Updated: ${color.cyan(relativeLayout)}`,
+						type: 'info',
+					};
+				}
 				if (typedResult.componentFiles.consentManagerClient) {
 					const relativeConsentManagerClient = path.relative(
 						cwd,
@@ -273,6 +316,11 @@ export async function generateFiles({
 	useEnvFile,
 	proxyNextjs,
 	backendURL,
+	enableSSR,
+	enableDevTools,
+	uiStyle,
+	expandedTheme,
+	selectedScripts,
 }: GenerateFilesOptions): Promise<GenerateFilesResult> {
 	const result: GenerateFilesResult = {
 		layoutUpdated: false,
@@ -290,6 +338,11 @@ export async function generateFiles({
 			backendURL,
 			useEnvFile,
 			proxyNextjs,
+			enableSSR,
+			enableDevTools,
+			uiStyle,
+			expandedTheme,
+			selectedScripts,
 			pkg,
 			spinner,
 			cwd: context.cwd,
@@ -298,8 +351,12 @@ export async function generateFiles({
 		result.layoutPath = layoutResult.layoutPath;
 	}
 
-	// Update Next.js config for c15t Next.js projects only
-	if (pkg === '@c15t/nextjs' && proxyNextjs && mode === 'c15t') {
+	// Update Next.js config for hosted/self-hosted Next.js projects only
+	if (
+		pkg === '@c15t/nextjs' &&
+		proxyNextjs &&
+		(mode === 'hosted' || mode === 'c15t' || mode === 'self-hosted')
+	) {
 		const configResult = await handleNextConfig({
 			projectRoot,
 			backendURL,
@@ -316,7 +373,8 @@ export async function generateFiles({
 		result.configContent = generateClientConfigContent(
 			mode,
 			backendURL,
-			useEnvFile
+			useEnvFile,
+			enableDevTools
 		);
 		result.configPath = path.join(projectRoot, 'c15t.config.ts');
 		spinner.stop(
@@ -335,6 +393,40 @@ export async function generateFiles({
 			spinner,
 			cwd: context.cwd,
 		});
+	}
+
+	if (pkg === '@c15t/react' || pkg === '@c15t/nextjs') {
+		spinner.start('Configuring app stylesheet...');
+		const stylesheetResult = await updateAppStylesheetImports({
+			projectRoot,
+			packageName: pkg,
+			tailwindVersion: context.framework.tailwindVersion,
+			entrypointPath: result.layoutPath,
+		});
+		if (stylesheetResult.updated) {
+			result.tailwindCssUpdated = true;
+			result.tailwindCssPath = stylesheetResult.filePath;
+			spinner.stop(
+				formatLogMessage(
+					'info',
+					`App stylesheet updated: ${color.cyan(path.relative(context.cwd, stylesheetResult.filePath || ''))}`
+				)
+			);
+		} else if (stylesheetResult.filePath) {
+			spinner.stop(
+				formatLogMessage(
+					'debug',
+					'App stylesheet already had the correct c15t imports.'
+				)
+			);
+		} else {
+			spinner.stop(
+				formatLogMessage(
+					'warn',
+					`Could not find a global CSS entrypoint. Checked: ${formatSearchedCssPaths(projectRoot, stylesheetResult.searchedPaths)}`
+				)
+			);
+		}
 	}
 
 	return result;

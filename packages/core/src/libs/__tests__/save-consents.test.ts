@@ -1,29 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand';
 import type { ConsentManagerInterface } from '../../client/client-interface';
-import type { PrivacyConsentState } from '../../store.type';
-import { saveConsents } from '../save-consents';
-
-// Mock the GTM and tracking blocker modules
-vi.mock('../gtm', () => ({
-	updateGTMConsent: vi.fn(),
-}));
-
-vi.mock('../tracking-blocker', () => ({
-	createTrackingBlocker: vi.fn(() => ({
-		updateConsents: vi.fn(),
-	})),
-}));
+import type { ConsentStoreState } from '../../store/type';
+import { PENDING_CONSENT_SYNC_KEY, saveConsents } from '../save-consents';
 
 describe('saveConsents', () => {
 	let mockManager: ConsentManagerInterface;
-	let mockGet: StoreApi<PrivacyConsentState>['getState'];
-	let mockSet: StoreApi<PrivacyConsentState>['setState'];
-	let mockTrackingBlocker: {
-		updateConsents: ReturnType<typeof vi.fn>;
-		destroy: ReturnType<typeof vi.fn>;
-	} | null;
+	let mockGet: StoreApi<ConsentStoreState>['getState'];
+	let mockSet: StoreApi<ConsentStoreState>['setState'];
 	let mockLocalStorage: Storage;
+	let updateScriptsMock: ReturnType<typeof vi.fn>;
+	let updateIframeConsentsMock: ReturnType<typeof vi.fn>;
+	let updateNetworkBlockerConsentsMock: ReturnType<typeof vi.fn>;
 
 	beforeEach(() => {
 		// Reset all mocks
@@ -58,24 +46,30 @@ describe('saveConsents', () => {
 			setConsent: vi.fn().mockResolvedValue({ ok: true }),
 			showConsentBanner: vi.fn(),
 			verifyConsent: vi.fn(),
+			identifyUser: vi.fn(),
 			$fetch: vi.fn(),
 		};
 
 		// Create mock store functions
+		updateScriptsMock = vi.fn().mockReturnValue({ loaded: [], unloaded: [] });
+		updateIframeConsentsMock = vi.fn();
+		updateNetworkBlockerConsentsMock = vi.fn();
+
 		mockGet = vi.fn().mockReturnValue({
 			callbacks: {
 				onConsentSet: vi.fn(),
 				onError: vi.fn(),
 			},
-			gdprTypes: [
+			consentCategories: [
 				'necessary',
 				'functionality',
 				'measurement',
 				'experience',
 				'marketing',
 			],
-			updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
-			updateIframeConsents: vi.fn(),
+			updateScripts: updateScriptsMock,
+			updateIframeConsents: updateIframeConsentsMock,
+			updateNetworkBlockerConsents: updateNetworkBlockerConsentsMock,
 			consents: {
 				necessary: true,
 				functionality: false,
@@ -125,14 +119,11 @@ describe('saveConsents', () => {
 					gdprType: 5,
 				},
 			],
+			reloadOnConsentRevoked: true,
+			consentInfo: null, // No prior consent for default tests
 		});
 
 		mockSet = vi.fn();
-
-		mockTrackingBlocker = {
-			updateConsents: vi.fn(),
-			destroy: vi.fn(),
-		};
 	});
 
 	afterEach(() => {
@@ -146,7 +137,6 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith({
@@ -164,9 +154,8 @@ describe('saveConsents', () => {
 					experience: true,
 					marketing: true,
 				},
-				showPopup: false,
+				activeUI: 'none',
 				consentInfo: expect.objectContaining({
-					type: 'all',
 					time: expect.any(Number),
 				}),
 			});
@@ -178,7 +167,6 @@ describe('saveConsents', () => {
 				type: 'necessary',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
@@ -190,9 +178,8 @@ describe('saveConsents', () => {
 						experience: false,
 						marketing: false,
 					},
-					showPopup: false,
+					activeUI: 'none',
 					consentInfo: expect.objectContaining({
-						type: 'necessary',
 						time: expect.any(Number),
 					}),
 				})
@@ -213,7 +200,7 @@ describe('saveConsents', () => {
 					onConsentSet: vi.fn(),
 					onError: vi.fn(),
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -222,6 +209,7 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: customConsents,
 				selectedConsents: customConsents,
 				consentTypes: [
@@ -273,18 +261,194 @@ describe('saveConsents', () => {
 				type: 'custom',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith({
 				consents: customConsents,
 				selectedConsents: customConsents,
-				showPopup: false,
+				activeUI: 'none',
 				consentInfo: expect.objectContaining({
-					type: 'custom',
 					time: expect.any(Number),
 				}),
 			});
+		});
+	});
+
+	describe('immutability (React Compiler compatibility)', () => {
+		/**
+		 * Regression test for https://github.com/c15t/c15t/issues/604
+		 *
+		 * saveConsents must always pass a NEW object reference for `consents`
+		 * to `set()`. If it mutates the existing object in place and sets
+		 * the same reference back, React (and React Compiler in particular)
+		 * cannot detect the state change.
+		 */
+		it('should pass a new consents reference to set(), not mutate in place', async () => {
+			const originalConsents = {
+				necessary: true,
+				functionality: false,
+				measurement: false,
+				experience: false,
+				marketing: false,
+			};
+
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {},
+				consentCategories: [
+					'necessary',
+					'functionality',
+					'measurement',
+					'experience',
+					'marketing',
+				],
+				updateScripts: updateScriptsMock,
+				updateIframeConsents: updateIframeConsentsMock,
+				updateNetworkBlockerConsents: updateNetworkBlockerConsentsMock,
+				consents: originalConsents,
+				selectedConsents: originalConsents, // same reference, as happens after first save
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						disabled: true,
+						display: true,
+						gdprType: 1,
+						description: '',
+					},
+					{
+						name: 'functionality',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 2,
+						description: '',
+					},
+					{
+						name: 'measurement',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 4,
+						description: '',
+					},
+					{
+						name: 'experience',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 3,
+						description: '',
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 5,
+						description: '',
+					},
+				],
+				consentInfo: null,
+				reloadOnConsentRevoked: false,
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'all',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			const setArg = (mockSet as ReturnType<typeof vi.fn>).mock.calls[0][0];
+			expect(setArg.consents).not.toBe(originalConsents);
+			expect(setArg.consents).toEqual({
+				necessary: true,
+				functionality: true,
+				measurement: true,
+				experience: true,
+				marketing: true,
+			});
+		});
+
+		it('should not mutate the original consents object', async () => {
+			const originalConsents = {
+				necessary: true,
+				functionality: true,
+				measurement: true,
+				experience: true,
+				marketing: true,
+			};
+			const snapshot = { ...originalConsents };
+
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {},
+				consentCategories: [
+					'necessary',
+					'functionality',
+					'measurement',
+					'experience',
+					'marketing',
+				],
+				updateScripts: updateScriptsMock,
+				updateIframeConsents: updateIframeConsentsMock,
+				updateNetworkBlockerConsents: updateNetworkBlockerConsentsMock,
+				consents: originalConsents,
+				selectedConsents: originalConsents,
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						disabled: true,
+						display: true,
+						gdprType: 1,
+						description: '',
+					},
+					{
+						name: 'functionality',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 2,
+						description: '',
+					},
+					{
+						name: 'measurement',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 4,
+						description: '',
+					},
+					{
+						name: 'experience',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 3,
+						description: '',
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						disabled: false,
+						display: true,
+						gdprType: 5,
+						description: '',
+					},
+				],
+				consentInfo: { time: Date.now(), subjectId: 'test' },
+				reloadOnConsentRevoked: false,
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'necessary',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			// The original object must not have been mutated
+			expect(originalConsents).toEqual(snapshot);
 		});
 	});
 
@@ -295,7 +459,6 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			// Verify state was updated with new consents
@@ -308,60 +471,92 @@ describe('saveConsents', () => {
 						experience: true,
 						marketing: true,
 					}),
-					showPopup: false,
+					activeUI: 'none',
 					consentInfo: expect.objectContaining({
-						type: 'all',
 						time: expect.any(Number),
+					}),
+				})
+			);
+		});
+
+		it('should attach the active material policy fingerprint to saved consent info', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				...mockGet(),
+				lastBannerFetchData: {
+					policy: {
+						id: 'policy_runtime_gdpr',
+						model: 'opt-in',
+						consent: {
+							expiryDays: 365,
+							scopeMode: 'strict',
+							categories: ['necessary', 'measurement'],
+						},
+						ui: {
+							mode: 'banner',
+							banner: {
+								allowedActions: ['accept', 'reject'],
+								primaryActions: ['accept'],
+								layout: [['accept', 'reject']],
+								direction: 'row',
+							},
+						},
+					},
+				},
+				reloadOnConsentRevoked: false,
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'all',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					consentInfo: expect.objectContaining({
+						materialPolicyFingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
 					}),
 				})
 			);
 		});
 	});
 
-	describe('tracking blocker integration', () => {
-		it('should update tracking blocker with new consents', async () => {
+	describe('network blocker integration', () => {
+		it('should update network blocker consents after saving', async () => {
 			await saveConsents({
 				manager: mockManager,
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
-			expect(mockTrackingBlocker?.updateConsents).toHaveBeenCalledWith({
-				necessary: true,
-				functionality: true,
-				measurement: true,
-				experience: true,
-				marketing: true,
-			});
+			expect(updateNetworkBlockerConsentsMock).toHaveBeenCalledTimes(1);
 		});
 
-		it('should handle null tracking blocker gracefully', async () => {
+		it('should update scripts before updating network blocker consents', async () => {
+			const callOrder: string[] = [];
+
+			updateScriptsMock.mockImplementation(() => {
+				callOrder.push('updateScripts');
+				return { loaded: [], unloaded: [] };
+			});
+
+			updateNetworkBlockerConsentsMock.mockImplementation(() => {
+				callOrder.push('updateNetworkBlockerConsents');
+			});
+
 			await saveConsents({
 				manager: mockManager,
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: null,
 			});
 
-			expect(mockSet).toHaveBeenCalledWith(
-				expect.objectContaining({
-					consents: {
-						necessary: true,
-						functionality: true,
-						measurement: true,
-						experience: true,
-						marketing: true,
-					},
-					showPopup: false,
-					consentInfo: expect.objectContaining({
-						type: 'all',
-						time: expect.any(Number),
-					}),
-				})
-			);
+			expect(callOrder).toEqual([
+				'updateScripts',
+				'updateNetworkBlockerConsents',
+			]);
 		});
 	});
 
@@ -373,7 +568,7 @@ describe('saveConsents', () => {
 					onConsentSet: mockOnConsentSet,
 					onError: vi.fn(),
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -382,6 +577,7 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -445,7 +641,6 @@ describe('saveConsents', () => {
 				type: 'necessary',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockOnConsentSet).toHaveBeenCalledWith({
@@ -459,13 +654,91 @@ describe('saveConsents', () => {
 			});
 		});
 
+		it('should emit change-only payload when saved preferences change', async () => {
+			const mockOnConsentChanged = vi.fn();
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'all',
+				get: mockGet,
+				set: mockSet,
+				emitConsentChanged: mockOnConsentChanged,
+			});
+
+			expect(mockOnConsentChanged).toHaveBeenCalledTimes(1);
+			expect(mockOnConsentChanged).toHaveBeenCalledWith({
+				preferences: {
+					necessary: true,
+					functionality: true,
+					measurement: true,
+					experience: true,
+					marketing: true,
+				},
+				previousPreferences: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				allowedCategories: [
+					'necessary',
+					'functionality',
+					'measurement',
+					'experience',
+					'marketing',
+				],
+				deniedCategories: [],
+				previousAllowedCategories: ['necessary'],
+				previousDeniedCategories: [
+					'functionality',
+					'measurement',
+					'experience',
+					'marketing',
+				],
+			});
+		});
+
+		it('should not emit change-only payload when saved preferences do not change', async () => {
+			const mockOnConsentChanged = vi.fn();
+
+			mockGet = vi.fn().mockReturnValue({
+				...mockGet(),
+				consents: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				selectedConsents: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				reloadOnConsentRevoked: false,
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+				emitConsentChanged: mockOnConsentChanged,
+			});
+
+			expect(mockOnConsentChanged).not.toHaveBeenCalled();
+		});
+
 		it('should handle missing onConsentSet callback gracefully', async () => {
 			mockGet = vi.fn().mockReturnValue({
 				callbacks: {
 					onConsentSet: undefined,
 					onError: vi.fn(),
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -474,6 +747,7 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -538,24 +812,143 @@ describe('saveConsents', () => {
 					type: 'necessary',
 					get: mockGet,
 					set: mockSet,
-					trackingBlocker: mockTrackingBlocker,
 				})
 			).resolves.not.toThrow();
 		});
 	});
 
 	describe('API integration', () => {
-		it('should call manager.setConsent with correct parameters', async () => {
+		it('should apply policy purpose allowlist to state and API payload', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {
+					onConsentSet: vi.fn(),
+					onError: vi.fn(),
+				},
+				consentCategories: [
+					'necessary',
+					'functionality',
+					'measurement',
+					'experience',
+					'marketing',
+				],
+				updateScripts: updateScriptsMock,
+				updateIframeConsents: updateIframeConsentsMock,
+				updateNetworkBlockerConsents: updateNetworkBlockerConsentsMock,
+				consents: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				selectedConsents: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: 'Necessary cookies',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'functionality',
+						defaultValue: false,
+						description: 'Functionality cookies',
+						disabled: false,
+						display: true,
+						gdprType: 2,
+					},
+					{
+						name: 'measurement',
+						defaultValue: false,
+						description: 'Measurement cookies',
+						disabled: false,
+						display: true,
+						gdprType: 4,
+					},
+					{
+						name: 'experience',
+						defaultValue: false,
+						description: 'Experience cookies',
+						disabled: false,
+						display: true,
+						gdprType: 3,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: 'Marketing cookies',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				reloadOnConsentRevoked: false,
+				consentInfo: null,
+				lastBannerFetchData: {
+					policy: {
+						consent: {
+							categories: ['necessary', 'measurement', 'marketing'],
+						},
+					},
+				},
+			});
+
 			await saveConsents({
 				manager: mockManager,
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					consents: {
+						necessary: true,
+						functionality: false,
+						measurement: true,
+						experience: false,
+						marketing: true,
+					},
+					selectedConsents: {
+						necessary: true,
+						functionality: false,
+						measurement: true,
+						experience: false,
+						marketing: true,
+					},
+				})
+			);
+
+			expect(mockManager.setConsent).toHaveBeenCalledWith({
+				body: expect.objectContaining({
+					preferences: {
+						necessary: true,
+						measurement: true,
+						marketing: true,
+					},
+				}),
+			});
+		});
+
+		it('should call manager.setConsent with correct parameters including uiSource', async () => {
+			await saveConsents({
+				manager: mockManager,
+				type: 'all',
+				get: mockGet,
+				set: mockSet,
+				options: { uiSource: 'banner' },
 			});
 
 			expect(mockManager.setConsent).toHaveBeenCalledWith({
-				body: {
+				body: expect.objectContaining({
 					type: 'cookie_banner',
 					domain: 'test.example.com',
 					preferences: {
@@ -565,12 +958,133 @@ describe('saveConsents', () => {
 						experience: true,
 						marketing: true,
 					},
-					metadata: {
-						source: 'consent_widget',
-						acceptanceMethod: 'all',
+					uiSource: 'banner',
+				}),
+			});
+
+			// Should NOT contain hardcoded metadata
+			const callBody = (mockManager.setConsent as ReturnType<typeof vi.fn>).mock
+				.calls[0][0].body;
+			expect(callBody.metadata).toBeUndefined();
+		});
+
+		it('should default uiSource to "api" when no options provided', async () => {
+			await saveConsents({
+				manager: mockManager,
+				type: 'all',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(mockManager.setConsent).toHaveBeenCalledWith({
+				body: expect.objectContaining({
+					uiSource: 'api',
+				}),
+			});
+		});
+
+		it('should omit invalid optional identifiers from the request body', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {
+					onConsentSet: vi.fn(),
+					onError: vi.fn(),
+				},
+				consentCategories: [
+					'necessary',
+					'functionality',
+					'measurement',
+					'experience',
+					'marketing',
+				],
+				updateScripts: updateScriptsMock,
+				updateIframeConsents: updateIframeConsentsMock,
+				updateNetworkBlockerConsents: updateNetworkBlockerConsentsMock,
+				consents: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				selectedConsents: {
+					necessary: true,
+					functionality: true,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: 'Necessary cookies',
+						disabled: true,
+						display: true,
+						gdprType: 1,
 					},
+					{
+						name: 'functionality',
+						defaultValue: false,
+						description: 'Functionality cookies',
+						disabled: false,
+						display: true,
+						gdprType: 2,
+					},
+					{
+						name: 'measurement',
+						defaultValue: false,
+						description: 'Measurement cookies',
+						disabled: false,
+						display: true,
+						gdprType: 4,
+					},
+					{
+						name: 'experience',
+						defaultValue: false,
+						description: 'Experience cookies',
+						disabled: false,
+						display: true,
+						gdprType: 3,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: 'Marketing cookies',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				reloadOnConsentRevoked: false,
+				consentInfo: {
+					time: Date.now(),
+					subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+					externalId: 'undefined',
+					identityProvider: null,
 				},
 			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			const callBody = (mockManager.setConsent as ReturnType<typeof vi.fn>).mock
+				.calls[0][0].body;
+
+			expect(callBody.externalSubjectId).toBeUndefined();
+			expect(callBody.identityProvider).toBeUndefined();
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					consentInfo: {
+						time: expect.any(Number),
+						subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+					},
+				})
+			);
 		});
 
 		it('should handle API success correctly', async () => {
@@ -581,7 +1095,6 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockManager.setConsent).toHaveBeenCalled();
@@ -596,7 +1109,7 @@ describe('saveConsents', () => {
 					onConsentSet: vi.fn(),
 					onError: mockOnError,
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -605,6 +1118,7 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -673,7 +1187,6 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockOnError).toHaveBeenCalledWith({
@@ -691,7 +1204,7 @@ describe('saveConsents', () => {
 					onConsentSet: vi.fn(),
 					onError: undefined,
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -700,6 +1213,7 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -768,7 +1282,6 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(consoleErrorSpy).toHaveBeenCalledWith('API request failed');
@@ -784,7 +1297,7 @@ describe('saveConsents', () => {
 					onConsentSet: vi.fn(),
 					onError: mockOnError,
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -793,6 +1306,7 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -861,140 +1375,11 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockOnError).toHaveBeenCalledWith({
 				error: 'Failed to save consents',
 			});
-		});
-	});
-
-	describe('GTM integration', () => {
-		it('should call updateGTMConsent with new consents', async () => {
-			const { updateGTMConsent } = await import('../gtm');
-
-			await saveConsents({
-				manager: mockManager,
-				type: 'all',
-				get: mockGet,
-				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
-			});
-
-			expect(updateGTMConsent).toHaveBeenCalledWith({
-				necessary: true,
-				functionality: true,
-				measurement: true,
-				experience: true,
-				marketing: true,
-			});
-		});
-	});
-
-	describe('scheduling/yield behavior', () => {
-		it('defers tracking/GTM updates and onConsentSet to the next task', async () => {
-			vi.useFakeTimers();
-			try {
-				const onConsentSet = vi.fn();
-				// Override get() to inject our spy for this test
-				mockGet = vi.fn().mockReturnValue({
-					callbacks: {
-						onConsentSet,
-						onError: vi.fn(),
-					},
-					gdprTypes: [
-						'necessary',
-						'functionality',
-						'measurement',
-						'experience',
-						'marketing',
-					],
-					updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
-					updateIframeConsents: vi.fn(),
-					consents: {
-						necessary: true,
-						functionality: false,
-						measurement: false,
-						experience: false,
-						marketing: false,
-					},
-					consentTypes: [
-						{
-							name: 'necessary',
-							defaultValue: true,
-							description: 'Necessary',
-							disabled: true,
-							display: true,
-							gdprType: 1,
-						},
-						{
-							name: 'functionality',
-							defaultValue: false,
-							description: 'Functionality',
-							disabled: false,
-							display: true,
-							gdprType: 2,
-						},
-						{
-							name: 'measurement',
-							defaultValue: false,
-							description: 'Measurement',
-							disabled: false,
-							display: true,
-							gdprType: 4,
-						},
-						{
-							name: 'experience',
-							defaultValue: false,
-							description: 'Experience',
-							disabled: false,
-							display: true,
-							gdprType: 3,
-						},
-						{
-							name: 'marketing',
-							defaultValue: false,
-							description: 'Marketing',
-							disabled: false,
-							display: true,
-							gdprType: 5,
-						},
-					],
-				});
-
-				const { updateGTMConsent } = await import('../gtm');
-
-				const promise = saveConsents({
-					manager: mockManager,
-					type: 'all',
-					get: mockGet,
-					set: mockSet,
-					trackingBlocker: mockTrackingBlocker,
-				});
-
-				// Immediately after calling, UI update should have occurred
-				expect(mockSet).toHaveBeenCalled();
-				// But side-effects should be deferred
-				expect(mockTrackingBlocker?.updateConsents).not.toHaveBeenCalled();
-				expect(updateGTMConsent).not.toHaveBeenCalled();
-				expect(onConsentSet).not.toHaveBeenCalled();
-
-				// Run all timers to flush the yielded setTimeout(0)
-				await vi.runAllTimersAsync();
-				// Also flush pending microtasks queued by awaited Promises
-				await Promise.resolve();
-
-				// Now side-effects and callbacks should have executed
-				expect(mockTrackingBlocker?.updateConsents).toHaveBeenCalled();
-				expect(updateGTMConsent).toHaveBeenCalled();
-				expect(onConsentSet).toHaveBeenCalled();
-
-				// Allow the async function to complete
-				await promise;
-			} finally {
-				vi.useRealTimers();
-			}
 		});
 	});
 
@@ -1005,7 +1390,7 @@ describe('saveConsents', () => {
 					onConsentSet: vi.fn(),
 					onError: vi.fn(),
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -1014,8 +1399,10 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: {},
 				consentTypes: [],
+				reloadOnConsentRevoked: true,
 			});
 
 			await saveConsents({
@@ -1023,15 +1410,13 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
 				expect.objectContaining({
 					consents: {},
-					showPopup: false,
+					activeUI: 'none',
 					consentInfo: expect.objectContaining({
-						type: 'all',
 						time: expect.any(Number),
 					}),
 				})
@@ -1044,7 +1429,7 @@ describe('saveConsents', () => {
 					onConsentSet: vi.fn(),
 					onError: vi.fn(),
 				},
-				gdprTypes: [
+				consentCategories: [
 					'necessary',
 					'functionality',
 					'measurement',
@@ -1053,6 +1438,7 @@ describe('saveConsents', () => {
 				],
 				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
 				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
 				consents: {
 					necessary: true,
 					functionality: false,
@@ -1079,6 +1465,7 @@ describe('saveConsents', () => {
 						gdprType: 2,
 					},
 				],
+				reloadOnConsentRevoked: true,
 			});
 
 			await saveConsents({
@@ -1086,7 +1473,6 @@ describe('saveConsents', () => {
 				type: 'all',
 				get: mockGet,
 				set: mockSet,
-				trackingBlocker: mockTrackingBlocker,
 			});
 
 			expect(mockSet).toHaveBeenCalledWith(
@@ -1095,13 +1481,500 @@ describe('saveConsents', () => {
 						necessary: true,
 						functionality: true,
 					},
-					showPopup: false,
+					activeUI: 'none',
 					consentInfo: expect.objectContaining({
-						type: 'all',
 						time: expect.any(Number),
 					}),
 				})
 			);
+		});
+	});
+
+	describe('consent revocation reload', () => {
+		let mockReload: ReturnType<typeof vi.fn>;
+
+		beforeEach(() => {
+			mockReload = vi.fn();
+			vi.stubGlobal('window', {
+				...globalThis.window,
+				localStorage: mockLocalStorage,
+				location: {
+					hostname: 'test.example.com',
+					protocol: 'https:',
+					reload: mockReload,
+				},
+			});
+		});
+
+		it('should reload page when consent is revoked and reloadOnConsentRevoked is true', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {
+					onConsentSet: vi.fn(),
+					onBeforeConsentRevocationReload: vi.fn(),
+				},
+				consentCategories: ['necessary', 'marketing'],
+				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
+				consents: {
+					necessary: true,
+					marketing: true, // Previously granted
+				},
+				selectedConsents: {
+					necessary: true,
+					marketing: false, // Now revoking
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: 'Necessary',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: 'Marketing',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				consentInfo: { time: Date.now(), subjectId: 'test-subject' }, // Has prior consent
+				reloadOnConsentRevoked: true,
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(mockReload).toHaveBeenCalled();
+		});
+
+		it('should NOT reload when no prior consent exists (first visit decline)', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {
+					onConsentSet: vi.fn(),
+				},
+				consentCategories: ['necessary', 'marketing'],
+				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
+				consents: {
+					necessary: true,
+					marketing: false,
+				},
+				selectedConsents: {
+					necessary: true,
+					marketing: false,
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: 'Necessary',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: 'Marketing',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				consentInfo: null, // No prior consent
+				reloadOnConsentRevoked: true,
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'necessary',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(mockReload).not.toHaveBeenCalled();
+		});
+
+		it('should NOT reload when adding consent (not revoking)', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {
+					onConsentSet: vi.fn(),
+				},
+				consentCategories: ['necessary', 'marketing'],
+				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
+				consents: {
+					necessary: true,
+					marketing: false, // Previously denied
+				},
+				selectedConsents: {
+					necessary: true,
+					marketing: true, // Now granting
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: 'Necessary',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: 'Marketing',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				consentInfo: { time: Date.now(), subjectId: 'test-subject' },
+				reloadOnConsentRevoked: true,
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(mockReload).not.toHaveBeenCalled();
+		});
+
+		it('should NOT reload when reloadOnConsentRevoked is false', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {
+					onConsentSet: vi.fn(),
+				},
+				consentCategories: ['necessary', 'marketing'],
+				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
+				consents: {
+					necessary: true,
+					marketing: true,
+				},
+				selectedConsents: {
+					necessary: true,
+					marketing: false,
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: 'Necessary',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: 'Marketing',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				consentInfo: { time: Date.now(), subjectId: 'test-subject' },
+				reloadOnConsentRevoked: false, // Disabled
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(mockReload).not.toHaveBeenCalled();
+		});
+
+		it('should store pending sync data before reload', async () => {
+			const mockOnConsentChanged = vi.fn(() => {
+				callOrder.push('onConsentChanged');
+			});
+			const callOrder: string[] = [];
+
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {
+					onConsentSet: vi.fn(() => {
+						callOrder.push('onConsentSet');
+					}),
+					onBeforeConsentRevocationReload: vi.fn(() => {
+						callOrder.push('onBeforeConsentRevocationReload');
+					}),
+				},
+				consentCategories: ['necessary', 'marketing'],
+				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
+				consents: {
+					necessary: true,
+					marketing: true,
+				},
+				selectedConsents: {
+					necessary: true,
+					marketing: false,
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: 'Necessary',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: 'Marketing',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				consentInfo: { time: Date.now(), subjectId: 'existing-subject' },
+				reloadOnConsentRevoked: true,
+				locationInfo: { jurisdiction: 'GDPR' },
+				model: 'opt-in',
+				lastBannerFetchData: {
+					policySnapshotToken: 'snapshot-token-123',
+				},
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+				emitConsentChanged: mockOnConsentChanged,
+			});
+
+			// Should store pending sync
+			expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+				PENDING_CONSENT_SYNC_KEY,
+				expect.any(String)
+			);
+
+			const pendingSyncCall = (
+				mockLocalStorage.setItem as ReturnType<typeof vi.fn>
+			).mock.calls.find(([key]) => key === PENDING_CONSENT_SYNC_KEY);
+			const storedData = JSON.parse(String(pendingSyncCall?.[1]));
+			expect(storedData.policySnapshotToken).toBe('snapshot-token-123');
+
+			expect(callOrder).toEqual([
+				'onConsentSet',
+				'onConsentChanged',
+				'onBeforeConsentRevocationReload',
+			]);
+			expect(mockOnConsentChanged).toHaveBeenCalledWith({
+				preferences: {
+					necessary: true,
+					marketing: false,
+				},
+				previousPreferences: {
+					necessary: true,
+					marketing: true,
+				},
+				allowedCategories: ['necessary'],
+				deniedCategories: ['marketing'],
+				previousAllowedCategories: ['necessary', 'marketing'],
+				previousDeniedCategories: [],
+			});
+
+			// Should reload
+			expect(mockReload).toHaveBeenCalled();
+		});
+
+		it('should store uiSource in pending sync data', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {
+					onConsentSet: vi.fn(),
+					onBeforeConsentRevocationReload: vi.fn(),
+				},
+				consentCategories: ['necessary', 'marketing'],
+				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
+				consents: {
+					necessary: true,
+					marketing: true,
+				},
+				selectedConsents: {
+					necessary: true,
+					marketing: false,
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: 'Necessary',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: 'Marketing',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				consentInfo: { time: Date.now(), subjectId: 'existing-subject' },
+				reloadOnConsentRevoked: true,
+				locationInfo: { jurisdiction: 'GDPR' },
+				model: 'opt-in',
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+				options: { uiSource: 'dialog' },
+			});
+
+			// Verify uiSource is stored in pending sync
+			expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+				PENDING_CONSENT_SYNC_KEY,
+				expect.any(String)
+			);
+
+			const pendingSyncCall = (
+				mockLocalStorage.setItem as ReturnType<typeof vi.fn>
+			).mock.calls.find(([key]) => key === PENDING_CONSENT_SYNC_KEY);
+			const storedData = JSON.parse(String(pendingSyncCall?.[1]));
+			expect(storedData.uiSource).toBe('dialog');
+		});
+
+		it('should omit invalid optional identifiers from pending sync data', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {
+					onConsentSet: vi.fn(),
+					onBeforeConsentRevocationReload: vi.fn(),
+				},
+				consentCategories: ['necessary', 'marketing'],
+				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
+				consents: {
+					necessary: true,
+					marketing: true,
+				},
+				selectedConsents: {
+					necessary: true,
+					marketing: false,
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: 'Necessary',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: 'Marketing',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				consentInfo: {
+					time: Date.now(),
+					subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+					externalId: 'undefined',
+					identityProvider: null,
+				},
+				reloadOnConsentRevoked: true,
+				locationInfo: { jurisdiction: 'GDPR' },
+				model: 'opt-in',
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			const storedData = JSON.parse(
+				(mockLocalStorage.setItem as ReturnType<typeof vi.fn>).mock.calls[0][1]
+			);
+
+			expect(storedData.externalId).toBeUndefined();
+			expect(storedData.identityProvider).toBeUndefined();
+		});
+
+		it('should NOT call API when reload is triggered', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {
+					onConsentSet: vi.fn(),
+				},
+				consentCategories: ['necessary', 'marketing'],
+				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
+				consents: {
+					necessary: true,
+					marketing: true,
+				},
+				selectedConsents: {
+					necessary: true,
+					marketing: false,
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: 'Necessary',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: 'Marketing',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				consentInfo: { time: Date.now(), subjectId: 'test-subject' },
+				reloadOnConsentRevoked: true,
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			// API should NOT be called when reload is triggered
+			// (sync happens after reload)
+			expect(mockManager.setConsent).not.toHaveBeenCalled();
 		});
 	});
 });

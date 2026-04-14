@@ -91,6 +91,47 @@ describe('bundle-analysis', () => {
 			});
 		});
 
+		it('should include initial and entry flags when available', () => {
+			const mockData = {
+				data: {
+					chunkGraph: {
+						chunks: [
+							{
+								name: 'index',
+								size: 1024,
+								initial: true,
+								entry: true,
+							},
+							{
+								name: 'lazy.js',
+								size: 512,
+								initial: false,
+								entry: false,
+							},
+						],
+					},
+				},
+			};
+
+			vi.mocked(readFileSync).mockReturnValue(JSON.stringify(mockData));
+
+			const result = extractBundleSizes('/test/rsdoctor-data.json');
+
+			expect(result).toHaveLength(2);
+			expect(result[0]).toMatchObject({
+				name: 'index',
+				size: 1024,
+				initial: true,
+				entry: true,
+			});
+			expect(result[1]).toMatchObject({
+				name: 'lazy.js',
+				size: 512,
+				initial: false,
+				entry: false,
+			});
+		});
+
 		it('should fallback to assets if chunks not available', () => {
 			const mockData = {
 				data: {
@@ -279,7 +320,7 @@ describe('bundle-analysis', () => {
 			);
 		});
 
-		it('should generate summary table', () => {
+		it('should generate compact overview and collapsed details', () => {
 			const packages: PackageBundleData[] = [
 				{
 					packageName: 'test-package',
@@ -298,7 +339,12 @@ describe('bundle-analysis', () => {
 			];
 
 			const result = generateMarkdownReport(packages);
-			expect(result).toContain('## Summary');
+			expect(result).toContain('## At a Glance');
+			expect(result).toContain(
+				'**Metric:** Initial chunks when available (falls back to all chunks)'
+			);
+			expect(result).toContain('### Top Regressions');
+			expect(result).toContain('All Package Deltas');
 			expect(result).toContain('test-package');
 			expect(result).toContain('1.00 KB');
 			expect(result).toContain('10.00%');
@@ -416,6 +462,7 @@ describe('bundle-analysis', () => {
 
 			expect(result).toContain('## Effective Transitive Impact');
 			expect(result).toContain('`c15t`');
+			expect(result).toContain('Transitive Package Membership');
 			expect(result).toContain('`backend`, `core`, `translations`');
 			expect(result).toContain('33.33%');
 		});
@@ -454,13 +501,10 @@ describe('bundle-analysis', () => {
 
 			const result = generateMarkdownReport(packages);
 			expect(result).toContain('no-changes'); // Should appear in summary
-			// no-changes package should not have a details section since it has no diffs
-			// Check that there's no details section specifically for no-changes
-			const noChangesInDetails = result.match(
-				/<details>[\s\S]*?no-changes[\s\S]*?<\/details>/
-			);
-			expect(noChangesInDetails).toBeNull(); // Should not find no-changes inside details
-			// with-changes package should have a details section
+			// no-changes package should not have a bundle-level package details section
+			expect(result).not.toContain('`no-changes`:');
+			// with-changes package should have bundle-level details
+			expect(result).toContain('`with-changes`:');
 			expect(result).toContain('<details>'); // Should have details section for with-changes
 			expect(result).toContain('with-changes'); // Should appear in details
 		});
@@ -531,6 +575,73 @@ describe('bundle-analysis', () => {
 			expect(result).toHaveLength(2);
 			expect(result[0].packageName).toBe('package1');
 			expect(result[1].packageName).toBe('package2');
+		});
+
+		it('should prefer initial chunks for package totals when available', async () => {
+			const baseData = {
+				data: {
+					chunkGraph: {
+						chunks: [
+							{ name: 'index', size: 1000, initial: true, entry: true },
+							{ name: 'lazy.js', size: 500, initial: false, entry: false },
+						],
+					},
+				},
+			};
+
+			const currentData = {
+				data: {
+					chunkGraph: {
+						chunks: [
+							{ name: 'index', size: 1100, initial: true, entry: true },
+							{ name: 'lazy.js', size: 900, initial: false, entry: false },
+						],
+					},
+				},
+			};
+
+			vi.mocked(existsSync).mockImplementation((path: PathLike) => {
+				return String(path) === 'packages' || String(path).includes('dist');
+			});
+
+			vi.mocked(readdirSync).mockReturnValue([
+				'package1',
+			] as unknown as ReturnType<typeof readdirSync>);
+
+			vi.mocked(statSync).mockReturnValue({
+				isDirectory: () => true,
+			} as unknown as ReturnType<typeof statSync>);
+
+			vi.mocked(fs.readdir).mockImplementation(async (path: PathLike) => {
+				if (String(path).includes('dist')) {
+					return [
+						{
+							name: 'rsdoctor-data.json',
+							isDirectory: () => false,
+							isSymbolicLink: () => false,
+							isFile: () => true,
+						},
+					] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+				}
+				return [] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
+			});
+
+			vi.mocked(readFileSync).mockImplementation(
+				(path: PathOrFileDescriptor) => {
+					if (String(path).includes('base')) {
+						return JSON.stringify(baseData);
+					}
+					return JSON.stringify(currentData);
+				}
+			);
+
+			const result = await analyzeBundles('/base', '/current', 'packages');
+
+			expect(result).toHaveLength(1);
+			expect(result[0].totalBaseSize).toBe(1000);
+			expect(result[0].totalCurrentSize).toBe(1100);
+			expect(result[0].totalDiff).toBe(100);
+			expect(result[0].totalDiffPercent).toBe(10);
 		});
 
 		it('should skip packages with zero size', async () => {

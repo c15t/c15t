@@ -1,0 +1,38 @@
+---
+title: IABConsentBanner
+description: An IAB TCF 2.3 compliant consent banner that displays partner count, purpose summaries, and legitimate interest notices.
+---
+
+<import src="../../../shared/react/iab/consent-banner.mdx#intro" />
+
+## Basic Usage
+
+```tsx
+import { type ReactNode } from 'react';
+import { iab } from '@c15t/iab';
+import { ConsentManagerProvider } from '@c15t/react';
+import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
+
+export default function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: 'https://your-instance.c15t.dev',
+        iab: iab({
+          vendors: [1, 2, 10, 25],
+          // cmpId is automatically provided by the backend when using consent.io.
+          // Only set this if you have your own CMP registration.
+          // cmpId: 123,
+        }),
+      }}
+    >
+      <IABConsentBanner />
+      <IABConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../../shared/react/iab/consent-banner.mdx#content-to-props" />

@@ -1,0 +1,66 @@
+---
+title: Optimization
+description: Improve c15t startup performance with prefetching and network tuning.
+lastModified: 2026-03-17
+---
+
+<import src="../../shared/react/guides/optimization.mdx#intro" />
+
+## 1) Prefer Same-Origin Proxy
+
+Proxy c15t requests through your app server so the browser calls your own origin instead of a third-party domain.
+
+```ts
+const store = createConsentManagerStore({
+  mode: 'hosted',
+  backendURL: '/api/c15t', // same-origin proxy path
+});
+```
+
+<import src="../../shared/react/guides/optimization.mdx#rewrites-why" />
+
+## 2) Prefetch Init Data Early
+
+Use `buildPrefetchScript()` to start the `/init` request as early as possible — before your app JavaScript loads.
+
+<import src="../../shared/react/guides/optimization.mdx#benchmark" />
+
+Add the prefetch script to your HTML `<head>`:
+
+```ts
+import { buildPrefetchScript } from 'c15t';
+
+const script = buildPrefetchScript({
+  backendURL: '/api/c15t',
+});
+// Inject `script` into a <script> tag in your HTML <head>
+```
+
+Then create the store normally. Matching prefetched data is consumed automatically by the runtime during first store initialization:
+
+```ts
+import {
+  createConsentManagerStore,
+} from 'c15t';
+
+const store = createConsentManagerStore({
+  mode: 'hosted',
+  backendURL: '/api/c15t',
+});
+```
+
+<Callout type="info">
+  If `overrides.gpc` conflicts with the browser's ambient GPC signal, the prefetched entry is not reused and c15t falls back to a normal client `/init`.
+</Callout>
+
+<import src="../../shared/react/guides/optimization.mdx#animation" />
+
+## Reduce Network Overhead
+
+<import src="../../shared/react/guides/optimization.mdx#preconnect" />
+
+```html
+<head>
+  <link rel="preconnect" href="https://your-instance.c15t.dev" crossorigin />
+</head>
+```

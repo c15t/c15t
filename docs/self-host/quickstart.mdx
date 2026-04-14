@@ -1,0 +1,146 @@
+---
+title: Quickstart
+description: Self-host the c15t consent management backend in your own infrastructure.
+---
+
+The `@c15t/backend` package gives you a fully self-hosted consent management API. It handles consent storage, geo-location, audit logging, and policy management — all on your own infrastructure.
+
+The backend exposes a standard `(request: Request) => Promise<Response>` handler, so it works with any JavaScript runtime (Node.js, Bun, Deno, Cloudflare Workers) and any HTTP framework.
+
+If you want a fully managed experience we recommend using [inth.com](https://inth.com).
+
+## Installation
+
+<PackageCommandTabs mode="install" command="@c15t/backend" />
+
+## Basic Setup
+
+<Steps>
+  <Step>
+    ### Create a c15t instance
+
+    ```ts title="c15t.ts"
+    import { c15tInstance } from '@c15t/backend';
+    import { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
+    import { db } from './db'; // your Kysely instance
+
+    export const c15t = c15tInstance({
+      appName: 'my-app',
+      basePath: '/api/c15t',
+      trustedOrigins: ['https://example.com'],
+      adapter: kyselyAdapter(db),
+    });
+    ```
+
+    The `trustedOrigins` array controls CORS — list every domain that will send requests to the API.
+  </Step>
+
+  <Step>
+    ### Mount the handler
+
+    The `c15t.handler` accepts a standard Fetch API `Request` and returns a `Response`. Mount it in your framework of choice:
+
+    ```ts title="server.ts"
+    // Bun
+    import { c15t } from './c15t';
+
+    Bun.serve({
+      port: 3001,
+      fetch: c15t.handler,
+    });
+    ```
+
+    ```ts title="src/app/api/c15t/[...path]/route.ts"
+    // Next.js App Router
+    import { c15t } from '@/lib/c15t';
+
+    const handler = c15t.handler;
+
+    export { handler as GET, handler as POST, handler as PUT, handler as PATCH, handler as DELETE };
+    ```
+
+    ```ts title="worker.ts"
+    // Cloudflare Workers
+    import { c15t } from './c15t';
+
+    export default {
+      async fetch(request: Request) {
+        return c15t.handler(request);
+      },
+    };
+    ```
+
+    See [Framework Integration](/docs/self-host/guides/framework-integration) for more examples.
+  </Step>
+
+  <Step>
+    ### Run database migrations
+
+    Before the backend can store consent records, your database needs the required tables.
+
+    The easiest way to migrate your database is via the c15t cli:
+
+    <PackageCommandTabs mode="run" command="@c15t/cli" />
+
+    See [Database Setup](/docs/self-host/guides/database-setup) for adapter-specific migration guides. If you plan to use policy packs with runtime audit storage, also apply the runtime policy decision migration from the [Policy Packs guide](/docs/self-host/guides/policy-packs).
+  </Step>
+
+  <Step>
+    ### Point your frontend at the backend
+
+    Update your frontend consent manager to use your self-hosted URL:
+
+    ```tsx
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: 'https://example.com/api/c15t',
+        consentCategories: ['necessary', 'measurement', 'marketing'],
+      }}
+    >
+    ```
+  </Step>
+
+  <Step>
+    ### Verify it works
+
+    Open `https://example.com/api/c15t/status` in your browser. You should see a JSON response with the server version and your client info:
+
+    ```json
+    {
+      "version": "1.8.0",
+      "timestamp": "2026-02-11T12:00:00.000Z",
+      "client": {
+        "ip": "192.168.1.0",
+        "acceptLanguage": "en-US",
+        "userAgent": "Mozilla/5.0 ...",
+        "region": { "countryCode": "US", "regionCode": "CA" }
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+<Callout type="info">
+  The backend includes auto-generated API documentation. Visit `{basePath}/docs` (e.g. `/api/c15t/docs`) to explore all endpoints interactively.
+</Callout>
+
+## Optional: AI Agents
+
+Install c15t agent skills to let AI agents help with styling, i18n, scripts & other configuration.
+
+<PackageCommandTabs command="@c15t/cli skills" />
+
+See [AI Agents](/docs/ai-agents) for bundled package docs and agent skills.
+
+## Next Steps
+
+<Cards className="not-prose grid gap-4 grid-cols-1 sm:grid-cols-2">
+  <Card variant="interactive" title="Database Setup" description="Configure Prisma, Drizzle, Kysely, TypeORM, or MongoDB as your storage adapter." href="/docs/self-host/guides/database-setup" />
+
+  <Card variant="interactive" title="Framework Integration" description="Mount the backend in Next.js, Bun, Express, Hono, Fastify, or Cloudflare Workers." href="/docs/self-host/guides/framework-integration" />
+
+  <Card variant="interactive" title="Caching" description="Add Redis or Cloudflare KV caching for production performance." href="/docs/self-host/guides/caching" />
+
+  <Card variant="interactive" title="API Endpoints" description="Full reference for every consent API endpoint." href="/docs/self-host/api/endpoints" />
+</Cards>

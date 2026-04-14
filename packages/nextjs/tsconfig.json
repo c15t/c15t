@@ -1,10 +1,14 @@
 {
 	"extends": "@c15t/typescript-config/react-library.json",
 	"compilerOptions": {
+		"rootDir": "src",
 		"moduleResolution": "bundler",
-		"baseUrl": ".",
 		"types": ["@vitest/browser/matchers"],
 		"paths": {
+			"@c15t/react": ["../react/dist-types/index.d.ts"],
+			"@c15t/react/*": ["../react/dist-types/*"],
+			"c15t": ["../core/dist-types/index.d.ts"],
+			"c15t/*": ["../core/dist-types/*"],
 			"~/*": ["./src/*"]
 		}
 	},

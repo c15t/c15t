@@ -1,0 +1,52 @@
+---
+title: Consent Models
+description: How c15t determines consent behavior based on legal jurisdiction.
+---
+
+<import src="../../../shared/concepts/consent-models.mdx#overview" />
+
+Read the current consent model from the hook:
+
+```tsx
+import { useConsentManager } from '@c15t/react';
+
+function ConsentStatus() {
+  const { model, policy } = useConsentManager();
+
+  return (
+    <p>
+      Current consent model: {model ?? 'detecting...'}
+      {policy && ` (from policy: ${policy.id})`}
+    </p>
+  );
+}
+```
+
+<import src="../../../shared/concepts/consent-models.mdx#models-explained" />
+
+<import src="../../../shared/concepts/consent-models.mdx#jurisdiction-mapping" />
+
+Override the detected jurisdiction for testing:
+
+```tsx
+import { useConsentManager } from '@c15t/react';
+
+function JurisdictionTester() {
+  const { setOverrides } = useConsentManager();
+
+  return (
+    <div>
+      <button onClick={() => setOverrides({ country: 'DE' })}>
+        Test as EU visitor
+      </button>
+      <button onClick={() => setOverrides({ country: 'US', region: 'CA' })}>
+        Test as California visitor
+      </button>
+    </div>
+  );
+}
+```
+
+<Callout type="info">
+  For full control over which model applies where — plus UI customization, category scoping, and re-prompting — see [Policy Packs](/docs/frameworks/react/concepts/policy-packs).
+</Callout>

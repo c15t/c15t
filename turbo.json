@@ -1,12 +1,71 @@
 {
-	"$schema": "https://turbo.build/schema.json",
+	"$schema": "https://turborepo.dev/schema.v2.json",
 	"ui": "tui",
 	"tasks": {
 		"build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": [".next/**", "!.next/cache/**", "dist/**"],
+			"outputs": [".next/**", "!.next/cache/**", "dist/**", "dist-types/**"],
 			"env": ["WITH_RSDOCTOR"]
+		},
+		"c15t#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"../../docs/**",
+				"../../scripts/agent-docs/**"
+			],
+			"outputs": ["dist/**", "dist-types/**", "docs/**"],
+			"env": ["WITH_RSDOCTOR"]
+		},
+		"@c15t/react#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"../../docs/**",
+				"../../scripts/agent-docs/**"
+			],
+			"outputs": ["dist/**", "dist-types/**", "docs/**"],
+			"env": ["WITH_RSDOCTOR"]
+		},
+		"@c15t/nextjs#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"../../docs/**",
+				"../../scripts/agent-docs/**"
+			],
+			"outputs": ["dist/**", "dist-types/**", "docs/**"],
+			"env": ["WITH_RSDOCTOR"]
+		},
+		"@c15t/backend#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"../../docs/**",
+				"../../scripts/agent-docs/**"
+			],
+			"outputs": ["dist/**", "dist-types/**", "docs/**"],
+			"env": ["WITH_RSDOCTOR"]
+		},
+		"@c15t/solid#build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": []
+		},
+		"@c15t/svelte#build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": []
+		},
+		"@c15t/vue#build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": []
 		},
 		"fmt": {
 			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc", "**/biome.json"],
@@ -14,17 +73,53 @@
 		},
 		"lint": {
 			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc", "**/biome.json"],
-			"dependsOn": ["^lint"]
+			"dependsOn": ["transit"]
 		},
 		"check-types": {
-			"dependsOn": ["^build", "^check-types"]
+			"dependsOn": ["build", "^build"]
 		},
 		"dev": {
+			"dependsOn": ["^dev"],
+			"cache": false,
+			"persistent": false
+		},
+		"storybook": {
 			"cache": false,
 			"persistent": true
 		},
+		"bundle-bench": {
+			"dependsOn": ["^build"],
+			"outputs": ["report/**", "dist/**"]
+		},
 		"test": {
-			"dependsOn": ["^build", "transit", "@c15t/vitest-config#build"],
+			"dependsOn": ["build", "^build", "transit", "@c15t/vitest-config#build"],
+			"outputs": [
+				"coverage/coverage-summary.json",
+				"coverage/coverage-final.json",
+				"coverage/html/**"
+			]
+		},
+		"test-storybook": {
+			"dependsOn": ["build", "^build"],
+			"outputs": []
+		},
+		"bench": {
+			"dependsOn": ["build", "^build"],
+			"cache": false,
+			"outputs": [".benchmarks/**"]
+		},
+		"bench:ci": {
+			"dependsOn": ["build", "^build"],
+			"cache": false,
+			"outputs": [".benchmarks/**"]
+		},
+		"bench:nightly": {
+			"dependsOn": ["build", "^build"],
+			"cache": false,
+			"outputs": [".benchmarks/**"]
+		},
+		"@c15t/scripts#test": {
+			"dependsOn": ["build", "^build", "transit", "@c15t/vitest-config#build"],
 			"outputs": [
 				"coverage/coverage-summary.json",
 				"coverage/coverage-final.json",

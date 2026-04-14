@@ -1,0 +1,124 @@
+---
+title: Database Setup
+description: Configure a database adapter for your self-hosted c15t backend.
+---
+
+The c15t backend requires a database to store consent records, subjects, audit logs, and policies. Five adapters are supported — choose the one that matches your existing stack.
+
+## Adapters
+
+### Kysely
+
+```ts title="c15t.ts"
+import { c15tInstance } from '@c15t/backend';
+import { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
+import { Kysely, PostgresDialect } from 'kysely';
+import { Pool } from 'pg';
+
+const db = new Kysely({
+  dialect: new PostgresDialect({
+    pool: new Pool({ connectionString: process.env.DATABASE_URL }),
+  }),
+});
+
+export const c15t = c15tInstance({
+  adapter: kyselyAdapter(db),
+  trustedOrigins: ['https://example.com'],
+});
+```
+
+### Drizzle
+
+```ts title="c15t.ts"
+import { c15tInstance } from '@c15t/backend';
+import { drizzleAdapter } from '@c15t/backend/db/adapters/drizzle';
+import { drizzle } from 'drizzle-orm/node-postgres';
+
+const db = drizzle(process.env.DATABASE_URL);
+
+export const c15t = c15tInstance({
+  adapter: drizzleAdapter(db),
+  trustedOrigins: ['https://example.com'],
+});
+```
+
+### Prisma
+
+```ts title="c15t.ts"
+import { c15tInstance } from '@c15t/backend';
+import { prismaAdapter } from '@c15t/backend/db/adapters/prisma';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+export const c15t = c15tInstance({
+  adapter: prismaAdapter(prisma),
+  trustedOrigins: ['https://example.com'],
+});
+```
+
+### TypeORM
+
+```ts title="c15t.ts"
+import { c15tInstance } from '@c15t/backend';
+import { typeormAdapter } from '@c15t/backend/db/adapters/typeorm';
+import { DataSource } from 'typeorm';
+
+const dataSource = new DataSource({
+  type: 'postgres',
+  url: process.env.DATABASE_URL,
+});
+
+export const c15t = c15tInstance({
+  adapter: typeormAdapter(dataSource),
+  trustedOrigins: ['https://example.com'],
+});
+```
+
+### MongoDB
+
+```ts title="c15t.ts"
+import { c15tInstance } from '@c15t/backend';
+import { mongoAdapter } from '@c15t/backend/db/adapters/mongo';
+import { MongoClient } from 'mongodb';
+
+const client = new MongoClient(process.env.MONGODB_URI);
+
+export const c15t = c15tInstance({
+  adapter: mongoAdapter(client),
+  trustedOrigins: ['https://example.com'],
+});
+```
+
+## Migrations
+
+To create & update the database you can use the migrator which is included in the CLI:
+
+<PackageCommandTabs command="@c15t/cli" />
+
+## Table Prefix
+
+If you share a database with other applications, use `tablePrefix` to namespace the c15t tables:
+
+```ts
+c15tInstance({
+  adapter: kyselyAdapter(db),
+  tablePrefix: 'c15t_',
+  trustedOrigins: ['https://example.com'],
+});
+```
+
+This prefixes all table names (e.g. `c15t_subject`, `c15t_consent`, `c15t_audit_log`).
+
+## Schema Overview
+
+The backend creates and manages these tables:
+
+| Table | Purpose |
+| --- | --- |
+| `subject` | Consent subjects (users/devices). Tracks identification status and external IDs. |
+| `consent` | Append-only consent records. Stores preferences, jurisdiction, IP, and timestamps. |
+| `domain` | Domain/website configuration for multi-domain setups. |
+| `consent_policy` | Versioned consent policies. |
+| `consent_purpose` | Maps consent purposes to categories. |
+| `audit_log` | Immutable log of all consent-related actions. |

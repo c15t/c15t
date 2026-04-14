@@ -1,55 +1,105 @@
 ---
-title: "Callbacks"
-description: "Learn how to use callbacks to respond to c15t events in your React application."
-lastModified: 2025-08-20
-availableIn:
-  - framework: 'next'
-    url: '/docs/frameworks/next/callbacks'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/callbacks'
-    title: 'React'
+title: Callbacks
+description: React to consent lifecycle events - initialization, consent changes, errors, and revocation reloads.
 ---
 
-## Implementing Callbacks
+<import src="../../shared/react/guides/callbacks.mdx#intro" />
 
-```tsx title="src/App.tsx"
-import { 
-  ConsentManagerDialog,
-  ConsentManagerProvider,
-  CookieBanner,
-  type ConsentManagerOptions
-} from '@c15t/react';
+<Callout type="info">
+  `subscribeToConsentChanges()` is the recommended API for analytics SDKs and consent-mode integrations. It only emits future saves that actually changed persisted preferences.
+</Callout>
 
-export default function App() {
-  const options: ConsentManagerOptions = {
-    mode: 'c15t', 
-    backendURL: process.env.REACT_APP_C15T_URL,
-    consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner. 
-    ignoreGeoLocation: true, // Useful for development to always view the banner.
-    callbacks: {
-      onBannerFetched(response) {
-        console.log('Consent banner fetched', response);
-      },
-      onConsentSet(response) {
-        console.log('Consent has been saved', response);
-      },
-      onError(response) {
-        console.log('Error', response);
-      },
-    },
-  };
+## Configuration
 
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/react';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
   return (
-    <ConsentManagerProvider options={options}>
-      <div className="App">
-        {/* Your application content */}
-      </div>
-      <CookieBanner />
-      <ConsentManagerDialog />
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: 'https://your-instance.c15t.dev',
+        callbacks: {
+          onBannerFetched: ({ jurisdiction, location, translations }) => {
+            console.log('Jurisdiction:', jurisdiction);
+            console.log('Country:', location.countryCode);
+            console.log('Language:', translations.language);
+          },
+          onConsentSet: ({ preferences }) => {
+            console.log('Consent lifecycle event:', preferences);
+          },
+          onConsentChanged: ({ allowedCategories, deniedCategories }) => {
+            analytics.syncConsent({ allowedCategories, deniedCategories });
+          },
+          onError: ({ error }) => {
+            errorReporter.captureMessage(error);
+          },
+          onBeforeConsentRevocationReload: ({ preferences }) => {
+            // Flush pending analytics before page reloads
+            analytics.flush();
+          },
+        },
+      }}
+    >
+      {children}
     </ConsentManagerProvider>
   );
 }
 ```
 
-<import>../javascript/shared/available-callbacks.mdx</import>
+<import src="../../shared/react/guides/callbacks.mdx#callback-reference" />
+
+## Change-Only Subscriptions
+
+Use `subscribeToConsentChanges()` when you want a stable listener for real preference changes after mount:
+
+```tsx
+import { useEffect } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+function ConsentAnalytics() {
+  const { subscribeToConsentChanges } = useConsentManager();
+
+  useEffect(() => {
+    return subscribeToConsentChanges(({ allowedCategories, deniedCategories }) => {
+      analytics.syncConsent({ allowedCategories, deniedCategories });
+    });
+  }, [subscribeToConsentChanges]);
+
+  return null;
+}
+```
+
+## Runtime Callback Registration
+
+Register or update callbacks at runtime using `setCallback()`:
+
+```tsx
+import { useEffect } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+function ConsentAnalytics() {
+  const { setCallback } = useConsentManager();
+
+  useEffect(() => {
+    setCallback('onBannerFetched', ({ jurisdiction, location }) => {
+      console.log('Resolved init data:', { jurisdiction, location });
+    });
+
+    setCallback('onConsentSet', ({ preferences }) => {
+      console.log('Broad consent lifecycle event:', preferences);
+    });
+
+    return () => {
+      setCallback('onBannerFetched', undefined);
+      setCallback('onConsentSet', undefined);
+    };
+  }, [setCallback]);
+
+  return null;
+}
+```
+
+`setCallback('onConsentSet', ...)` immediately replays the current consent state. For change-only logic, prefer `subscribeToConsentChanges()` or `onConsentChanged`.

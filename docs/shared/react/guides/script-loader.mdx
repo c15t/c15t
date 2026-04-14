@@ -1,0 +1,191 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  The script loader manages third-party scripts based on consent state. Scripts are defined in the provider's `scripts` option and are automatically loaded when their required consent category is granted, and unloaded when consent is revoked.
+
+  c15t has a collection of premade scripts available in `@c15t/scripts`. Check the [integrations overview](/docs/integrations/overview) first before manually building a script.
+
+  <PackageCommandTabs mode="install" command="@c15t/scripts" />
+
+  <Callout type="info">
+    We recommend using the [pre-built integrations](/docs/integrations) when possible.
+  </Callout>
+
+  <Callout type="note">
+    If you need a vendor we do not ship yet, see the [custom integration guide](/docs/integrations/building-integrations). It covers both one-off `Script` objects and reusable manifest-backed integrations.
+  </Callout>
+
+  <Callout type="info">
+    For app-specific scripts, use a plain `Script` object. For reusable integrations, prefer a manifest-backed helper so startup phases, consent signaling, and future server-side loading support stay structured.
+  </Callout>
+</section>
+
+<section id="script-types-to-advanced">
+  ## Choose the Right Approach
+
+  - Use a plain `Script` for one-off app code.
+  - Use a manifest-backed helper in `@c15t/scripts` for reusable integrations, contributions, or anything that needs structured startup behavior.
+
+  If you are building something reusable, start with the [custom integration guide](/docs/integrations/building-integrations) before using raw callbacks.
+
+  ## Reusable Integrations
+
+  For app-specific use, raw `Script` objects are usually enough.
+
+  For reusable integrations, c15t uses a manifest-backed model in `@c15t/scripts`. That keeps startup phases, consent signaling, and vendor-specific boot logic structured instead of hidden inside large callback bodies.
+
+  If you are building an integration for multiple apps or contributing upstream, use the [custom integration guide](/docs/integrations/building-integrations).
+
+  ## Script Types
+
+  ### Standard Scripts
+
+  Load an external JavaScript file via a `<script>` tag. Use `src` to specify the URL.
+
+  ### Inline Scripts
+
+  Execute inline JavaScript code. Use `textContent` instead of `src`:
+
+  ```tsx
+  {
+    id: 'gtag-config',
+    textContent: `
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXX');
+    `,
+    category: 'measurement',
+  }
+  ```
+
+  ### Callback-Only Scripts
+
+  Don't inject any `<script>` tag - just execute callbacks based on consent changes. Useful for controlling libraries that are already loaded:
+
+  ```tsx
+  {
+    id: 'posthog-consent',
+    callbackOnly: true,
+    category: 'measurement',
+    onLoad: ({ hasConsent }) => {
+      if (hasConsent) {
+        posthog.opt_in_capturing();
+      }
+    },
+    onConsentChange: ({ hasConsent }) => {
+      if (hasConsent) {
+        posthog.opt_in_capturing();
+      } else {
+        posthog.opt_out_capturing();
+      }
+    },
+  }
+  ```
+
+  ## Consent Conditions
+
+  The `category` field accepts a `HasCondition` - either a simple string or a logical expression:
+
+  ```tsx
+  // Simple: requires measurement consent
+  { category: 'measurement' }
+
+  // AND: requires both measurement and marketing
+  { category: { and: ['measurement', 'marketing'] } }
+
+  // OR: requires either measurement or marketing
+  { category: { or: ['measurement', 'marketing'] } }
+  ```
+
+  ## Script Callbacks
+
+  Every script supports four lifecycle callbacks:
+
+  | Callback | When | Use Case |
+  |----------|------|----------|
+  | `onBeforeLoad` | Before the script tag is injected | Set up global variables |
+  | `onLoad` | Script loaded successfully | Initialize the library |
+  | `onError` | Script failed to load | Log error, load fallback |
+  | `onConsentChange` | Consent state changed (script already loaded) | Toggle tracking on/off |
+
+  ```tsx
+  {
+    id: 'analytics',
+    src: 'https://analytics.example.com/v2.js',
+    category: 'measurement',
+    onBeforeLoad: ({ id }) => {
+      console.log(`Loading script: ${id}`);
+    },
+    onLoad: ({ element }) => {
+      window.analytics.init('my-key');
+    },
+    onError: ({ error }) => {
+      console.error('Failed to load analytics:', error);
+    },
+    onConsentChange: ({ hasConsent, consents }) => {
+      window.analytics.setConsent(hasConsent);
+    },
+  }
+  ```
+
+  ## Advanced Options
+
+  ### Always Load
+
+  Scripts that manage their own consent internally (like GTM in consent mode):
+
+  ```tsx
+  {
+    id: 'google-tag-manager',
+    src: 'https://www.googletagmanager.com/gtm.js?id=GTM-XXXX',
+    category: 'measurement',
+    alwaysLoad: true, // Loads regardless of consent state
+  }
+  ```
+
+  ### Persist After Revocation
+
+  Keep the script loaded even after consent is revoked (the page won't reload for this script):
+
+  ```tsx
+  {
+    id: 'error-tracking',
+    src: 'https://errors.example.com/track.js',
+    category: 'measurement',
+    persistAfterConsentRevoked: true,
+  }
+  ```
+
+  ### Script Placement
+
+  Control where in the DOM the script is injected:
+
+  ```tsx
+  {
+    id: 'widget',
+    src: 'https://widget.example.com/embed.js',
+    category: 'experience',
+    target: 'body', // 'head' (default) or 'body'
+  }
+  ```
+
+  ### Ad Blocker Evasion
+
+  Script element IDs are anonymized by default to avoid ad blocker pattern matching:
+
+  ```tsx
+  {
+    id: 'analytics',
+    src: '...',
+    category: 'measurement',
+    anonymizeId: true, // default: true
+  }
+  ```
+</section>
+
+<section id="api-reference">
+  ## API Reference
+
+  <AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
+</section>

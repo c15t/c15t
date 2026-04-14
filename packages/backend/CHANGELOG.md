@@ -1,29 +1,149 @@
 # @c15t/backend
 
-## 1.8.6
+## 2.0.0-rc.10
 
 ### Patch Changes
 
-- f4448ea: fix: bump @orpc/\* to 1.13.13 and kysely to 0.28.15 to resolve npm audit vulnerabilities
+- 9579b62: Add token-first legal-document consent groundwork for `2.0`.
 
-## 1.8.5
+  - `c15t`: expand the unstable policy-consent input types so legal-document writes can prefer `documentSnapshotToken`, fall back to `policyHash`, and keep `policyId` only as a compatibility path.
+  - `@c15t/backend`: update legal-document consent writes to resolve append-only consent against a verified document snapshot token when configured, or against a provided document hash when only lighter-weight release proof is available.
+  - `@c15t/schema`: extend the subject consent schema and error shapes for legal-document snapshot tokens and hash-based legal-document resolution.
 
-### Patch Changes
+- Updated dependencies [9579b62]
+  - @c15t/schema@2.0.0-rc.6
 
-- be4e218: Republish patch release to fix workspace dependency protocol resolution during publish.
-
-  Published package manifests now resolve `workspace:*` references to concrete semver ranges before release.
-
-- Updated dependencies [be4e218]
-  - @c15t/translations@1.8.5
-
-## 1.8.4
+## 2.0.0-rc.8
 
 ### Patch Changes
 
-- 8defcd9: Update direct and transitive dependencies to address known vulnerabilities and keep runtime/tooling packages current.
-- Updated dependencies [8defcd9]
-  - @c15t/translations@1.8.4
+- 3d5b0fd: Add legal-document snapshot support, persist document hashes on consent policies, and expose subject consent policy version/hash/effective-date metadata.
+- 918a70e: Fix published TypeScript declaration packaging so consumers stay compatible across both TypeScript 5 and TypeScript 6.
+
+  - `@c15t/react`: correct the `./primitives` type export entries so they point at the published `dist-types` files instead of missing declaration paths.
+  - `@c15t/backend`, `@c15t/cli`, `@c15t/dev-tools`, `@c15t/logger`, `@c15t/node-sdk`, and `@c15t/scripts`: normalize emitted `dist-types` imports during builds so published declarations no longer reference sibling `.d.ts` files directly, which could break consumers on newer TypeScript versions.
+  - Tooling: make declaration normalization discover package targets dynamically so the compatibility fix applies consistently across published packages instead of only a hardcoded subset.
+
+- ad019de: Mark the edge runtime callables as unstable in `2.0`.
+
+  - rename `c15tEdgeInit()` to `unstable_c15tEdgeInit()`
+  - rename `resolveConsent()` to `unstable_resolveConsent()`
+  - update the edge docs and source examples to use the `unstable_` exports
+
+- Updated dependencies [3d5b0fd]
+- Updated dependencies [918a70e]
+- Updated dependencies [fee82fd]
+  - @c15t/schema@2.0.0-rc.5
+  - @c15t/logger@1.0.2-rc.1
+  - @c15t/translations@2.0.0-rc.8
+
+## 2.0.0-rc.6
+
+### Patch Changes
+
+- bb3ab0f: chore: update dependencies, including zustand and typescript
+- 1a724fc: fix(policy-packs): support multiple primary actions while keeping customize as the default primary action
+
+  Expose `primaryActions` consistently across schema, backend, core, React, and dev-tools. Built-in preset and offline default policies keep `customize` as the default primary action, while custom policies can now mark multiple actions as primary.
+
+- Updated dependencies [1a724fc]
+  - @c15t/schema@2.0.0-rc.4
+
+## 2.0.0-rc.5
+
+### Minor Changes
+
+- 372cf92: feat(policy): add policy packs for declarative regional consent resolution
+
+  Policy packs let you define regional consent rules once — c15t resolves the right policy automatically based on visitor location. Resolution follows fixed priority: region → country → fallback → default.
+
+  - Built-in presets: `europeOptIn()`, `europeIab()`, `californiaOptOut()`, `californiaOptIn()`, `quebecOptIn()`, `worldNoBanner()`
+  - Per-policy GPC support via `consent.gpc` field
+  - Fallback policies (`match.fallback`) as a safety net when geo-location headers are missing
+  - Material policy fingerprints for automatic re-prompting when consent semantics change
+  - Policy validation with `inspectPolicies()` for catching misconfigurations before deployment
+  - Snapshot tokens (signed JWT) for write-time consistency between `/init` and consent writes
+  - Dev-tools match trace panel showing full resolution path
+
+### Patch Changes
+
+- 021ac99: Bundle version-matched docs inside published c15t packages under `docs/**` for local agent and developer reference.
+
+  Remove CLI `AGENTS.md` generation. Use the bundled package docs directly alongside c15t agent skills.
+
+- cfe1b2e: feat: Add edge-compatible `/init` handler for running consent policy resolution at the edge
+
+  - `c15tEdgeInit()` — drop-in `/init` replacement for Vercel Middleware, Cloudflare Workers, and Deno Deploy
+  - `resolveConsent()` — lightweight synchronous resolver for custom consent cookie flows
+  - `resolvePolicySync()` — synchronous policy matching without fingerprint computation
+  - Refactored `/init` route to use shared `resolveInitPayload` (no behavior change)
+
+- e79f840: Separate published declaration files from runtime bundles to improve Vite compatibility
+
+  - Move generated `.d.ts` files out of `dist/` into `dist-types/` across published packages
+  - Stop emitting declaration maps in shared TypeScript config so `.d.ts.map` files are no longer published
+  - Emit declarations only once per package to avoid unstable output when both `esm` and `cjs` builds write types
+  - Update package `types` metadata, publish file lists, Turbo outputs, and publish artifact checks for the new layout
+  - Verify the package layout works in Vite 7 without `optimizeDeps.exclude` workarounds for `c15t` and `@c15t/react`
+
+- Updated dependencies [cfe1b2e]
+- Updated dependencies [58fb392]
+- Updated dependencies [e79f840]
+- Updated dependencies [372cf92]
+  - @c15t/schema@2.0.0-rc.3
+  - @c15t/translations@2.0.0-rc.5
+  - @c15t/logger@1.0.2-rc.0
+
+## Unreleased
+
+- Bundle version-matched docs in the published package under `docs/**` for local developer and agent reference.
+
+## 2.0.0-rc.4
+
+### Patch Changes
+
+- 4c8435c: refactor(backend): flatten backend API entrypoints and improve TypeScript DX
+- Updated dependencies [06ee724]
+  - @c15t/translations@2.0.0-rc.4
+
+## 2.0.0-rc.3
+
+### Patch Changes
+
+- 0a18fb6: feat(backend): add base '/' root endpoint for better DX
+
+## 2.0.0-rc.2
+
+### Patch Changes
+
+- 408df0e: feat: CMP ID now comes from backend, either consent.io when hosted or BYO CMP ID
+  feat: Center the IAB Banner for better policy compliance
+  feat: Improve doc comments around IAB
+- Updated dependencies [408df0e]
+  - @c15t/schema@2.0.0-rc.2
+
+## 2.0.0-rc.1
+
+### Patch Changes
+
+- 0bc4f86: fixed workspace resolving
+- Updated dependencies [0bc4f86]
+  - @c15t/translations@2.0.0-rc.1
+  - @c15t/logger@2.0.0-rc.1
+  - @c15t/schema@2.0.0-rc.1
+
+## 2.0.0-rc.0
+
+### Major Changes
+
+- 126a78b: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+
+### Patch Changes
+
+- Updated dependencies [126a78b]
+  - @c15t/logger@2.0.0-rc.0
+  - @c15t/schema@2.0.0-rc.0
+  - @c15t/translations@2.0.0-rc.0
 
 ## 1.8.0
 

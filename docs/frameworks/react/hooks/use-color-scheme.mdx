@@ -1,0 +1,16 @@
+---
+title: useColorScheme
+description: Manage light/dark mode preferences for consent components.
+---
+
+`useColorScheme()` manages the color scheme preference for c15t components. It sets up the appropriate CSS class and media query listeners.
+
+```tsx
+import { useColorScheme } from '@c15t/react';
+
+function ThemeManager() {
+  useColorScheme('system'); // Follow system preference
+}
+```
+
+<import src="../../../shared/react/hooks/use-color-scheme.mdx#reference" />

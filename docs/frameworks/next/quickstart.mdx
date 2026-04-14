@@ -1,7 +1,7 @@
 ---
 title: Quickstart
-description: Integrate c15t into your Next.js application with this step-by-step guide. We'll cover installation, configuration, and basic usage.
-lastModified: 2025-08-26
+description: Add consent management to your Next.js app in under 5 minutes.
+lastModified: 2026-03-11
 availableIn:
   - framework: 'javascript'
     url: '/docs/frameworks/javascript/quickstart'
@@ -14,96 +14,167 @@ availableIn:
     title: 'Next.js'
 ---
 
-## CLI Setup (Recommended)
+## Via CLI
 
-You can get started with the `@c15t/cli` which will generate the code for you!
+<PackageCommandTabs command="@c15t/cli" />
 
-<PackageCommandTabs command="@c15t/cli generate" />
-
-## Manual Setup
+## Manual Installation
 
 <Steps>
   <Step>
-    ### Install `@c15t/nextjs` Package
+    ### Install package
 
     <PackageCommandTabs mode="install" command="@c15t/nextjs" />
   </Step>
 
   <Step>
-    ### Next.js Rewrites (Optional)
+    ### Import styles
 
-    <Callout type="tip">
-      You can use Next.js Rewrites to redirect requests to the c15t backend. This is useful if you want to hide the c15t backend url from your users.
-      [Learn more about Next.js Rewrites](https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites).
+    Import the prebuilt component stylesheet in your app-level CSS entrypoint. This is required for styled components to render correctly.
+
+    ```css title="app/globals.css"
+    @import "@c15t/nextjs/styles.css";
+    ```
+
+    <import src="../../shared/react/styling/stylesheet-entrypoint.mdx#why-global-css" />
+
+    <Callout type="info">
+      If you are using the headless API or fully custom styling, you can skip this import. Your root layout should continue importing `./globals.css` as usual.
+    </Callout>
+  </Step>
+
+  <Step>
+    ### Create `ConsentManager` components
+
+    Create a provider component with the consent UI and a wrapper that re-exports it. This initializes the consent store and makes consent state available to all child components.
+
+    ```tsx title="components/consent-manager/provider.tsx"
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import {
+      ConsentManagerProvider,
+      ConsentBanner,
+      ConsentDialog,
+    } from '@c15t/nextjs';
+
+    export default function ConsentManagerClient({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            consentCategories: ['necessary', 'measurement', 'marketing'],
+            // Shows banner during development. Remove for production.
+            overrides: { country: 'DE' },
+          }}
+        >
+          <ConsentBanner />
+          <ConsentDialog />
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+
+    ```tsx title="components/consent-manager/index.tsx"
+    import type { ReactNode } from 'react';
+    import ConsentManagerProvider from './provider';
+
+    export function ConsentManager({ children }: { children: ReactNode }) {
+      return <ConsentManagerProvider>{children}</ConsentManagerProvider>;
+    }
+    ```
+
+    <Callout type="info">
+      Hosted mode is the recommended production setup because the backend resolves jurisdiction and policy, keeps durable consent records, and lets c15t recover from temporary network failures by re-syncing later.
     </Callout>
 
-    ```ts title="next.config.ts"
-    import type { NextConfig } from 'next';
+    <Callout type="warn">
+      Don't have a backend yet? You can use `mode: 'offline'` for local-only consent storage, but it gives up backend audit history, server-side consent awareness, and automatic jurisdiction detection. Review the [browser-only storage consequences](/docs/frameworks/next/concepts/client-modes#offline-mode) before choosing it for production.
+    </Callout>
+  </Step>
 
-    const config: NextConfig = {
-    	async rewrites() {
-    		return [
-    			{
-    				source: '/api/c15t/:path*',
-    				destination: `${process.env.NEXT_PUBLIC_C15T_URL}/:path*`,
-    			},
-    		];
-    	},
-    };
+  <Step>
+    ### Mount `ConsentManager` at the app root
 
-    export default config;
+    Wrap your app tree with `ConsentManager` so all routes/components can access consent state.
+
+    ```tsx title="app/layout.tsx"
+    import { ConsentManager } from '@/components/consent-manager';
+
+    export default function RootLayout({ children }: { children: React.ReactNode }) {
+      return (
+        <html lang="en">
+          <body>
+            <ConsentManager>{children}</ConsentManager>
+          </body>
+        </html>
+      );
+    }
     ```
   </Step>
 
   <Step>
-    ### Adding it to your Next Application
+    ### Verify it works
 
-    <Callout type="tip">
-      If you're using Next.js Rewrites, you can use the `backendURL` option to redirect requests to the c15t backend by setting it to `/api/c15t`.
-    </Callout>
+    Start your development server and confirm:
 
-    ```tsx title="app/consent-manager.tsx"
-    import { 
-      ConsentManagerDialog,
-      ConsentManagerProvider,
-      CookieBanner,
-    } from '@c15t/nextjs';
-    import type { ReactNode } from 'react';
-
-    export default function ConsentManager({ children }: { children: ReactNode }) {
-      return (
-        <ConsentManagerProvider
-          options={{
-            mode: 'c15t',
-            backendURL: '/api/c15t',
-            consentCategories: ['necessary', 'marketing'], // Optional: Specify which consent categories to show in the banner.
-            ignoreGeoLocation: true, // Useful for development to always view the banner.
-          }}
-        >
-          <CookieBanner />
-          <ConsentManagerDialog />   
-          {children}
-        </ConsentManagerProvider>
-      );
-    };
-    ```
-
-    In your `app/layout.tsx` file, you can import the `ConsentManager` component.
-
-    ```tsx title="app/layout.tsx"
-    import { ConsentManager } from './consent-manager';
-
-    export default function Layout({ children }: { children: ReactNode }) {
-      return <ConsentManager>{children}</ConsentManager>;
-    }
-    ```
-
-    Some options such as scripts & callbacks cannot be seralized and sent to the client from the server. For a guide on how to add these when using the App Directory, [see the ClientSideOptionsProvider documentation](/docs/frameworks/next/components/client-side-options).
+    1. A **consent banner** appears at the bottom of the page
+    2. Clicking **"Customize"** opens a dialog with toggles for each consent category
+    3. After accepting or rejecting, the banner dismisses and your choice persists across page reloads
   </Step>
 </Steps>
 
-***
+<Callout type="info">
+  Want better performance and static-route support? See [Optimization](/docs/frameworks/next/optimization) for rewrites, prefetching, and network tuning. If you want server-side data prefetching, see [Server-Side Data Fetching](/docs/frameworks/next/server-side).
+</Callout>
 
-## Storing Consent
+## Optional: Add DevTools
 
-We recommend using the [hosted solution](/docs/frameworks/next/storing-consent/hosted) with [consent.io](https://consent.io) to store your consent.
+Install DevTools only if you want a runtime inspector while building and debugging:
+
+<PackageCommandTabs mode="install" command="@c15t/dev-tools" />
+
+Then add it inside your existing provider:
+
+```tsx title="components/consent-manager/provider.tsx"
+import { DevTools } from '@c15t/dev-tools/react';
+
+// ...
+
+<ConsentManagerProvider options={...}>
+  <ConsentBanner />
+  <ConsentDialog />
+  {process.env.NODE_ENV !== 'production' && <DevTools />}
+  {children}
+</ConsentManagerProvider>
+```
+
+<Callout type="info">
+  Want to understand what's happening under the hood? See [Initialization Flow](/docs/frameworks/next/concepts/initialization-flow) for the lifecycle and [Cookie Management](/docs/frameworks/next/concepts/cookie-management) for script/cookie behavior and revocation handling.
+</Callout>
+
+## Optional: AI Agents
+
+Install c15t agent skills to let AI agents help with styling, i18n, scripts & other configuration.
+
+<PackageCommandTabs command="@c15t/cli skills" />
+
+See [AI Agents](/docs/ai-agents) for bundled package docs and agent skills.
+
+## Next steps
+
+<Cards className="not-prose grid gap-4 grid-cols-1 sm:grid-cols-2">
+  <Card variant="interactive" title="Optimization" description="Improve banner visibility and lower latency with rewrites, browser prefetch, and SSR tradeoffs." href="/docs/frameworks/next/optimization" />
+
+  <Card variant="interactive" title="Script Loader" description="Gate third-party scripts like Google Analytics and Meta Pixel behind consent." href="/docs/frameworks/next/script-loader" />
+
+  <Card variant="interactive" title="Styling" description="Customize colors, typography, spacing, and individual component slots." href="/docs/frameworks/next/styling/overview" />
+
+  <Card variant="interactive" title="Consent Categories" description="Understand the five consent categories and how to configure them." href="/docs/frameworks/next/concepts/consent-categories" />
+
+  <Card variant="interactive" title="Components" description="Explore the full set of pre-built consent UI components." href="/docs/frameworks/next/components/consent-banner" />
+
+  <Card variant="interactive" title="AI Agents" description="Help AI tools with bundled package docs and reusable c15t agent skills." href="/docs/ai-agents" />
+</Cards>

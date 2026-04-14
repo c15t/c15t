@@ -3,25 +3,23 @@ import { beforeEach, describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 import {
 	ConsentManagerProvider,
-	clearConsentManagerCache,
+	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
 import { useTranslations } from '../use-translations';
 
 describe('useTranslations', () => {
 	beforeEach(() => {
 		// Clear consent manager caches to ensure clean state between tests
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 	});
 
 	test('returns English translations by default', async () => {
-		const { result } = renderHook(() => useTranslations(), {
+		const { result } = await renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 					}}
 				>
 					{children}
@@ -46,14 +44,12 @@ describe('useTranslations', () => {
 	});
 
 	test('returns German translations instead of English when German is selected', async () => {
-		const { result } = renderHook(() => useTranslations(), {
+		const { result } = await renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 						translations: {
 							defaultLanguage: 'de',
 							disableAutoLanguageSwitch: true,
@@ -116,14 +112,12 @@ describe('useTranslations', () => {
 			},
 		};
 
-		const { result } = renderHook(() => useTranslations(), {
+		const { result } = await renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 						translations: customTranslations,
 					}}
 				>
@@ -147,14 +141,12 @@ describe('useTranslations', () => {
 	});
 
 	test('falls back to English when selected language is not available', async () => {
-		const { result } = renderHook(() => useTranslations(), {
+		const { result } = await renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 						translations: {
 							defaultLanguage: 'fr', // Language that doesn't exist
 						},
@@ -180,14 +172,12 @@ describe('useTranslations', () => {
 	});
 
 	test('Custom English instead of English when German is selected', async () => {
-		const { result } = renderHook(() => useTranslations(), {
+		const { result } = await renderHook(() => useTranslations(), {
 			wrapper: ({ children }) => (
 				<ConsentManagerProvider
 					options={{
 						mode: 'offline',
-						react: {
-							noStyle: false,
-						},
+						noStyle: false,
 						translations: {
 							defaultLanguage: 'en',
 							disableAutoLanguageSwitch: true,
@@ -239,4 +229,81 @@ describe('useTranslations', () => {
 			'Custom English Necessary'
 		);
 	});
+
+	test('supports the new i18n config shape', async () => {
+		const { result } = await renderHook(() => useTranslations(), {
+			wrapper: ({ children }) => (
+				<ConsentManagerProvider
+					options={{
+						mode: 'offline',
+						noStyle: false,
+						i18n: {
+							locale: 'de',
+							detectBrowserLanguage: false,
+							messages: {
+								de: {
+									cookieBanner: {
+										title: 'Neuer Titel',
+									},
+									common: {
+										acceptAll: 'Alles',
+									},
+								},
+							},
+						},
+					}}
+				>
+					{children}
+				</ConsentManagerProvider>
+			),
+		});
+
+		await new Promise((resolve) => setTimeout(resolve, 10));
+
+		expect(result.current.cookieBanner.title).toBe('Neuer Titel');
+		expect(result.current.common.acceptAll).toBe('Alles');
+	});
+
+	test(
+		'prefers i18n over legacy translations ' + 'when both are provided',
+		async () => {
+			const { result } = await renderHook(() => useTranslations(), {
+				wrapper: ({ children }) => (
+					<ConsentManagerProvider
+						options={{
+							mode: 'offline',
+							noStyle: false,
+							translations: {
+								defaultLanguage: 'en',
+								translations: {
+									en: {
+										cookieBanner: {
+											title: 'Legacy Title',
+										},
+									},
+								},
+							},
+							i18n: {
+								locale: 'fr',
+								detectBrowserLanguage: false,
+								messages: {
+									fr: {
+										cookieBanner: {
+											title: 'Nouveau Titre',
+										},
+									},
+								},
+							},
+						}}
+					>
+						{children}
+					</ConsentManagerProvider>
+				),
+			});
+
+			await new Promise((resolve) => setTimeout(resolve, 10));
+
+			expect(result.current.cookieBanner.title).toBe('Nouveau Titre');
+		}
+	);
 });

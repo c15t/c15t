@@ -1,33 +1,154 @@
 # @c15t/cli
 
-## 1.8.6
+## 2.0.0-rc.11
 
 ### Patch Changes
 
-- Updated dependencies [f4448ea]
-  - @c15t/backend@1.8.6
-  - @c15t/react@1.8.6
+- 1ae73d3: Update the CLI hosted-backend URL contract to recognize the new `*.inth.app` project domain alongside legacy `*.c15t.dev` URLs.
 
-## 1.8.5
+  - `@c15t/cli`: accept `https://<project>.inth.app` as a valid hosted backend URL, refresh validation and prompt copy to point at the new domain, and update generated hosted config/env/rewrite examples accordingly.
 
-### Patch Changes
-
-- be4e218: Republish patch release to fix workspace dependency protocol resolution during publish.
-
-  Published package manifests now resolve `workspace:*` references to concrete semver ranges before release.
-
-- Updated dependencies [be4e218]
-  - @c15t/backend@1.8.5
-  - @c15t/react@1.8.5
-
-## 1.8.4
+## 2.0.0-rc.10
 
 ### Patch Changes
 
-- 8defcd9: Update direct and transitive dependencies to address known vulnerabilities and keep runtime/tooling packages current.
-- Updated dependencies [8defcd9]
-  - @c15t/backend@1.8.4
-  - @c15t/react@1.8.4
+- Updated dependencies [9579b62]
+  - @c15t/backend@2.0.0-rc.10
+
+## 2.0.0-rc.8
+
+### Patch Changes
+
+- 5956531: Simplify the 2.0 static prefetch flow so static routes only need to start `/init` early and matching prefetched data is consumed automatically during first store initialization.
+
+  - `c15t`: add canonical request-context metadata for SSR and browser-prefetch payloads, auto-consume matching prefetched data on first runtime/store initialization, and replace blanket SSR skip-on-overrides behavior with exact request-context matching.
+  - `@c15t/react`: preserve the dynamic SSR `fetchInitialData()` flow while exposing the new `context_mismatch` SSR status behavior for matching overrides, backend URLs, credentials, and ambient GPC.
+  - `@c15t/nextjs`: remove the RC-era public static-prefetch consumer APIs from the package surface and document `C15tPrefetch` as the only static-route setup step.
+  - `@c15t/cli`: update generated static-route templates to rely on automatic prefetch consumption instead of wiring manual prefetch lookups.
+
+- 918a70e: Fix published TypeScript declaration packaging so consumers stay compatible across both TypeScript 5 and TypeScript 6.
+
+  - `@c15t/react`: correct the `./primitives` type export entries so they point at the published `dist-types` files instead of missing declaration paths.
+  - `@c15t/backend`, `@c15t/cli`, `@c15t/dev-tools`, `@c15t/logger`, `@c15t/node-sdk`, and `@c15t/scripts`: normalize emitted `dist-types` imports during builds so published declarations no longer reference sibling `.d.ts` files directly, which could break consumers on newer TypeScript versions.
+  - Tooling: make declaration normalization discover package targets dynamically so the compatibility fix applies consistently across published packages instead of only a hardcoded subset.
+
+- 05db767: Align the styled package install path around app-level CSS entrypoints instead of JS-side stylesheet imports.
+
+  - `@c15t/react`: update the published README guidance, quickstart docs, and stylesheet usage comments so styled and IAB installs consistently import `@c15t/react/styles.css` or `styles.tw3.css` from a global CSS file, with explicit guidance on why this avoids layer-order debugging problems.
+  - `@c15t/nextjs`: update the published README guidance, quickstart docs, and stylesheet usage comments so styled and IAB installs consistently import `@c15t/nextjs/styles.css` or `styles.tw3.css` from `app/globals.css`, with explicit guidance on why this avoids layer-order debugging problems.
+  - `@c15t/cli`: move the stylesheet codemod and scaffold behavior to mutate global CSS entrypoints, remove old JS-side stylesheet imports, share the CSS-entrypoint mutation logic between generate and codemod flows, and add regression coverage for Tailwind v3/v4, IAB, dry-run, and missing-CSS cases.
+
+- Updated dependencies [3d5b0fd]
+- Updated dependencies [918a70e]
+- Updated dependencies [ad019de]
+  - @c15t/backend@2.0.0-rc.8
+  - @c15t/logger@1.0.2-rc.1
+
+## 2.0.0-rc.6
+
+### Patch Changes
+
+- 5c8ee05: feat(styles): ship explicit stylesheet entrypoints for prebuilt UI
+
+  - Publish explicit `styles.css` and `iab/styles.css` entrypoints for prebuilt UI in `@c15t/ui`, `@c15t/react`, and `@c15t/nextjs`
+  - Update docs and CLI setup so stylesheet imports and Tailwind host-app configuration are explicit
+  - Support the documented Tailwind 3 and Tailwind 4 layering model without requiring `!important`
+  - Add automated first-paint CDP benchmark (`benchmarks/vite-react-repro/scripts/run-first-paint-bench.ts`)
+
+  **Bundle impact (vite-react-repro):**
+
+  - JS: 435.5 KB → 361.0 KB (-74.5 KB raw, -13.4 KB gzip / -11%)
+  - CSS: 0.8 KB → 49.2 KB (moved from JS to CSS — net gzip saving: -6.5 KB / -5%)
+  - `createElement("style")` runtime calls: eliminated
+  - JS heap: -143 KB (-8%)
+
+  **Main-thread impact (6x CPU throttle, 3 runs × 60 samples):**
+
+  - JS evaluation: 64.5 ms → 53.1 ms (-11.4 ms / -17.7%)
+  - Total → first paint: 87.8 ms → 76.5 ms (-11.3 ms / -12.9%)
+
+- Updated dependencies [bb3ab0f]
+- Updated dependencies [1a724fc]
+  - @c15t/backend@2.0.0-rc.6
+
+## 2.0.0-rc.5
+
+### Patch Changes
+
+- 021ac99: Bundle version-matched docs inside published c15t packages under `docs/**` for local agent and developer reference.
+
+  Remove CLI `AGENTS.md` generation. Use the bundled package docs directly alongside c15t agent skills.
+
+- 57eef9f: feat(cli): consent.io integration
+  feat(cli): remove redundent preflight checks
+- 58fb392: Rename translation-facing APIs from `translations` to `i18n` across runtime types and helpers.
+  Add CLI migration codemods to update existing projects to the new naming.
+- 1c1b2d8: feat(cli): add more codemods for v1 -> v2
+- e79f840: Separate published declaration files from runtime bundles to improve Vite compatibility
+
+  - Move generated `.d.ts` files out of `dist/` into `dist-types/` across published packages
+  - Stop emitting declaration maps in shared TypeScript config so `.d.ts.map` files are no longer published
+  - Emit declarations only once per package to avoid unstable output when both `esm` and `cjs` builds write types
+  - Update package `types` metadata, publish file lists, Turbo outputs, and publish artifact checks for the new layout
+  - Verify the package layout works in Vite 7 without `optimizeDeps.exclude` workarounds for `c15t` and `@c15t/react`
+
+- 58fb392: Rename `c15t` mode references to `hosted` in core runtime and CLI generate flows.
+  Add migration codemods and template updates for the hosted vs offline terminology.
+- Updated dependencies [021ac99]
+- Updated dependencies [cfe1b2e]
+- Updated dependencies [e79f840]
+- Updated dependencies [372cf92]
+  - @c15t/backend@2.0.0-rc.5
+  - @c15t/logger@1.0.2-rc.0
+
+## Unreleased
+
+- Bundle version-matched c15t docs in the published packages under `docs/**` for local developer and agent reference. Use the bundled docs directly together with c15t agent skills.
+
+## 2.0.0-rc.4
+
+### Patch Changes
+
+- Updated dependencies [4c8435c]
+  - @c15t/backend@2.0.0-rc.4
+
+## 2.0.0-rc.3
+
+### Patch Changes
+
+- Updated dependencies [0a18fb6]
+  - @c15t/backend@2.0.0-rc.3
+
+## 2.0.0-rc.2
+
+### Patch Changes
+
+- 732d44f: feat(dev-tools): add DevTools export
+  feat(cli): add support for file structures like [locale]
+  feat(cli): add c15t/skills
+- Updated dependencies [408df0e]
+  - @c15t/backend@2.0.0-rc.2
+
+## 2.0.0-rc.1
+
+### Patch Changes
+
+- 0bc4f86: fixed workspace resolving
+- Updated dependencies [0bc4f86]
+  - @c15t/backend@2.0.0-rc.1
+  - @c15t/logger@2.0.0-rc.1
+
+## 2.0.0-rc.0
+
+### Major Changes
+
+- 126a78b: https://v2.c15t.com/changelog/2026-02-12-v2.0.0-rc.0
+
+### Patch Changes
+
+- Updated dependencies [126a78b]
+  - @c15t/backend@2.0.0-rc.0
+  - @c15t/logger@2.0.0-rc.0
 
 ## 1.8.3
 
@@ -64,7 +185,7 @@
   - fix(react): Frame component CSS overriding
   - fix(react): Legal links using the asChild slot causing multi-child error
 
-  https://c15t.com/changelog/2025-12-12-v1.8.2
+  https://v2.c15t.com/changelog/2025-12-12-v1.8.2
 
 - Updated dependencies [2ce4d5a]
   - @c15t/react@1.8.2
@@ -147,7 +268,7 @@
 
 ### Minor Changes
 
-- aa16d03: You can find the full changelog at https://c15t.com/changelog/2025-10-11-v1.7.0
+- aa16d03: You can find the full changelog at https://v2.c15t.com/changelog/2025-10-11-v1.7.0
 
 ### Patch Changes
 
@@ -189,7 +310,7 @@
 
 ### Minor Changes
 
-- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://c15t.com/changelog/2025-09-08-v1.6.0).
+- 84ab0c7: For a full detailed changelog see the [v1.6.0 release notes](https://v2.c15t.com/changelog/2025-09-08-v1.6.0).
 
 ### Patch Changes
 

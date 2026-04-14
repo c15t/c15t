@@ -1,6 +1,6 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { MigrationResult } from '@c15t/backend/v2/db/migrator';
+import type { MigrationResult } from '@c15t/backend/db/migrator';
 import * as p from '@clack/prompts';
 import type { CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';

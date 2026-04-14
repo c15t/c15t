@@ -1,0 +1,122 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  c15t ships with built-in translations for 30+ languages via the `@c15t/translations` package. Language detection happens automatically based on the browser's language preference, and you can override or extend translations for any language.
+
+  In c15t v2, the preferred config shape is `i18n` with `locale`, `detectBrowserLanguage`, and `messages`.
+
+  There are two ways c15t can load translations: client-side or server-side.
+
+  | Server-side | Client-side |
+  | --- | --- |
+  | The best way to reduce bundle size and improve performance. We can detect the user's language based on the browser's language settings, allowing for the most accurate translations. By default, when using a [inth.com](https://inth.com) hosted instance, [these languages](https://github.com/c15t/c15t/tree/main/packages/translations/src/translations) are supported. | Bundled with the application allowing for multiple languages to be supported without the need for a backend. The more translations you have, the larger the bundle size will be, which may impact the performance of your application. |
+</section>
+
+<section id="imports">
+  ## Translation Package Imports
+
+  Use the import path that matches your use case:
+
+  - `@c15t/translations`: types, utilities, and `enTranslations` only (smallest client bundle)
+  - `@c15t/translations/en`: English-only translation object
+  - `@c15t/translations/all`: full `baseTranslations` map for all bundled locales
+
+  If you bundle translations client-side and need multiple languages, import from `@c15t/translations/all` explicitly:
+
+  ```tsx
+  import { baseTranslations } from '@c15t/translations/all';
+
+  const translations = {
+    en: baseTranslations.en,
+    de: baseTranslations.de,
+    fr: baseTranslations.fr,
+  };
+  ```
+</section>
+
+<section id="translation-sections">
+  ## Translation Sections
+
+  The `Translations` object is organized into sections:
+
+  | Section | Controls |
+  |---------|----------|
+  | `common` | Shared button labels: acceptAll, rejectAll, customize, save |
+  | `cookieBanner` | Banner title and description |
+  | `consentManagerDialog` | Dialog title and description |
+  | `consentTypes` | Per-category title and description (keyed by AllConsentNames) |
+  | `frame` | Frame placeholder title and button text (supports `{category}` placeholder) |
+  | `legalLinks` | Privacy policy, cookie policy, terms of service link text |
+  | `iab` | IAB TCF banner, preference center, vendor list translations |
+</section>
+
+<section id="auto-detection">
+  ## Automatic Language Detection
+
+  By default, c15t detects the browser's language (`navigator.language`) and selects the closest matching translation. If custom `messages` are configured, fallback stays within your configured languages before using `locale` (or `'en'`) as the preferred fallback language.
+
+  When backend policy packs use `i18n.messageProfile`, the active language pool comes only from that resolved profile.
+
+  Example: if your Europe profile defines `en`, `fr`, and `de`, and your default profile defines `en`, `es`, and `pt`, a Europe visitor can resolve to `en`, `fr`, or `de`, but not `es`, `pt`, or `zh`.
+
+  Use profile-local `fallbackLanguage` inside backend `i18n.messages` to choose which configured language a policy profile should fall back to when the browser asks for an unsupported locale.
+
+  Disable auto-detection to always use `locale`:
+
+  ```tsx
+  i18n: {
+    locale: 'de',
+    detectBrowserLanguage: false,
+    messages: { ... },
+  }
+  ```
+
+  If you need a policy to always use one specific language regardless of browser preference, set `policy.i18n.language` on the backend policy pack.
+
+  ## Custom Consent Type Labels
+
+  Override the title and description for individual consent categories:
+
+  ```tsx
+  i18n: {
+    messages: {
+      en: {
+        consentTypes: {
+          measurement: {
+            title: 'Analytics & Performance',
+            description: 'Help us understand how visitors interact with our site.',
+          },
+          marketing: {
+            title: 'Advertising',
+            description: 'Used to deliver relevant ads and measure campaign effectiveness.',
+          },
+        },
+      },
+    },
+  }
+  ```
+</section>
+
+<section id="legacy-compat">
+  ## Legacy `translations` Compatibility
+
+  The legacy syntax is still supported in 2.0 for RC compatibility:
+
+  ```tsx
+  // Legacy (still supported)
+  translations: {
+    defaultLanguage: 'en',
+    disableAutoLanguageSwitch: true,
+    translations: { ... },
+  }
+
+  // Preferred in v2
+  i18n: {
+    locale: 'en',
+    detectBrowserLanguage: false,
+    messages: { ... },
+  }
+  ```
+
+  If both are provided, `i18n` takes precedence.
+</section>

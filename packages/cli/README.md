@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fcli" target="_blank" rel="noopener noreferrer">
+  <a href="https://v2.c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fcli" target="_blank" rel="noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
@@ -11,7 +11,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
 [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.link/discord)
 [![npm version](https://img.shields.io/npm/v/%40c15t%2Fcli?style=flat-square)](https://www.npmjs.com/package/@c15t/cli)
 [![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
@@ -26,6 +26,7 @@ CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a prefer
 - Database Migrations: Simplified database schema updates
 - Multi-Framework Support: Works seamlessly across different web frameworks
 - Interactive CLI: User-friendly command-line interface with guided workflows
+- Agent Skills: Install reusable c15t agent skills for AI tooling
 - GitHub Integration: Easy way to star and support the project
 - Documentation Access: Quick access to project documentation
 
@@ -39,33 +40,61 @@ CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a prefer
 Easiest setup with @c15t/cli:
 
 ```bash
-# Generate schema and code
-pnpm dlx @c15t/cli generate
+# Set up c15t
+pnpm dlx @c15t/cli setup
 # Alternatives:
-# npx @c15t/cli generate
-# bunx --bun @c15t/cli generate
+# npx @c15t/cli setup
+# bunx --bun @c15t/cli setup
 ```
 
 The CLI will:
 
 - Install necessary packages
-- Configure your c15t instance
+- Configure your c15t project
 - Set up environment variables
 - Add consent management components to your app
 
 ## Usage
 
-1. Run `@c15t/cli generate` to create initial configuration
-2. Customize consent settings in generated files
-3. Integrate with your web application
-4. Use `@c15t/cli migrate` for database schema updates
+1. Run `@c15t/cli setup` to create initial configuration
+2. Use the docs bundled in installed c15t packages under `docs/` for local agent context
+3. Customize consent settings in generated files
+4. Integrate with your web application
+5. Use `@c15t/cli self-host migrate` for self-hosted database schema updates
 
 ## Available Commands
 
-- `generate`: Generate schema/code based on your c15t config
-- `migrate`: Run database migrations based on your c15t config
+- `setup`: Set up c15t in your project
+- `codemods`: Run migration codemods (for example `translations -> i18n`)
+- `self-host`: Self-hosted workflow commands (currently database migrations)
+- `skills`: Install c15t agent skills for AI-assisted development
+- `changelog`: Open the c15t changelog in your browser
 - `github`: Open the project's GitHub repository to star the project
 - `docs`: Open the c15t documentation in your browser
+
+### Codemods
+
+Run codemods interactively:
+
+```bash
+c15t codemods
+```
+
+Preview changes without writing files:
+
+```bash
+c15t codemods --dry-run
+```
+
+### Bundled Docs
+
+Supported c15t packages now include local docs inside the installed package:
+
+```text
+node_modules/<package>/docs/
+```
+
+These docs are version-matched to the installed package and can be used as local agent context alongside c15t skills.
 
 ## Global Flags
 
@@ -88,7 +117,7 @@ Disable telemetry by:
 
 ## Documentation
 
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/cli/overview).
+For further information, guides, and examples visit the [reference documentation](https://v2.c15t.com/docs/cli/overview).
 
 ## Support
 
@@ -100,8 +129,8 @@ For further information, guides, and examples visit the [reference documentation
 ## Contributing
 
 - We're open to all community contributions!
-- Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)
-- Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)
+- Read our [Contribution Guidelines](https://v2.c15t.com/docs/oss/contributing)
+- Review our [Code of Conduct](https://v2.c15t.com/docs/oss/code-of-conduct)
 - Fork the repository
 - Create a new branch for your feature
 - Submit a pull request
@@ -122,8 +151,8 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 ## License
 
-[GNU General Public License v3.0](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[Apache License 2.0](https://github.com/c15t/c15t/blob/main/LICENSE.md)
 
 ---
 
-**Built with ❤️ by the [consent.io](https://www.consent.io?utm_source=github&utm_medium=repopage_%40c15t%2Fcli) team**
+**Built by [Inth](https://inth.com?utm_source=github&utm_medium=repopage_%40c15t%2Fcli)**

@@ -6,6 +6,8 @@ export const translations: CompleteTranslations = {
 		rejectAll: 'Reject All',
 		customize: 'Customize',
 		save: 'Save Settings',
+		close: 'Close',
+		securedBy: 'Secured by',
 	},
 	cookieBanner: {
 		title: 'We value your privacy',
@@ -47,11 +49,91 @@ export const translations: CompleteTranslations = {
 	frame: {
 		title: 'Accept {category} consent to view this content.',
 		actionButton: 'Enable {category} consent',
+		policyBlocked:
+			"This content is unavailable under your region's consent policy.",
 	},
 	legalLinks: {
 		privacyPolicy: 'Privacy Policy',
 		cookiePolicy: 'Cookie Policy',
 		termsOfService: 'Terms of Service',
+	},
+	iab: {
+		banner: {
+			title: 'Privacy Settings',
+			description:
+				'We and our {partnerCount} partners store and/or access information on your device and process personal data, such as unique identifiers and browsing data, for this website, to:',
+			partnersLink: '{count} partners',
+			andMore: 'And {count} more...',
+			legitimateInterestNotice:
+				'Some partners claim a legitimate interest to process your data. You have the right to object to this processing, customize your choices, and withdraw your consent at any time.',
+			scopeServiceSpecific:
+				'Your consent applies only to this website and will not affect other services.',
+			scopeGroup: 'Your choice applies across our websites in this group.',
+		},
+		preferenceCenter: {
+			title: 'Privacy Settings',
+			description:
+				'Customize your privacy settings here. You can choose which types of cookies and tracking technologies you allow.',
+			tabs: {
+				purposes: 'Purposes',
+				vendors: 'Vendors',
+			},
+			purposeItem: {
+				partners: '{count} partners',
+				vendorsUseLegitimateInterest:
+					'{count} vendors claim legitimate interest',
+				examples: 'Examples',
+				partnersUsingPurpose: 'Partners Using This Purpose',
+				withYourPermission: 'With Your Permission',
+				legitimateInterest: 'Legitimate Interest',
+				objectButton: 'Object',
+				objected: 'Objected',
+				rightToObject:
+					'You have the right to object to processing based on legitimate interest.',
+			},
+			specialPurposes: {
+				title: 'Essential Functions (Required)',
+				tooltip:
+					'These are required for site functionality and security. Per IAB TCF, you cannot object to these special purposes.',
+			},
+			vendorList: {
+				search: 'Search vendors...',
+				showingCount: '{filtered} of {total} vendors',
+				iabVendorsHeading: 'IAB Registered Vendors',
+				iabVendorsNotice:
+					'These partners are registered with the IAB Transparency & Consent Framework (TCF), an industry standard for managing consent',
+				customVendorsHeading: 'Custom Partners',
+				customVendorsNotice:
+					'These are custom partners not registered with IAB Transparency & Consent Framework (TCF). They process data based on your consent and may have different privacy practices than IAB-registered vendors.',
+				purposes: 'Purposes',
+				specialPurposes: 'Special Purposes',
+				specialFeatures: 'Special Features',
+				features: 'Features',
+				dataCategories: 'Data Categories',
+				usesCookies: 'Uses Cookies',
+				nonCookieAccess: 'Non-Cookie Access',
+				maxAge: 'Max Age: {days}d',
+				retention: 'Retention: {days}d',
+				legitimateInterest: 'Leg. Interest',
+				privacyPolicy: 'Privacy Policy',
+				storageDisclosure: 'Storage Disclosure',
+				requiredNotice: 'Required for site functionality, cannot be disabled',
+			},
+			footer: {
+				consentStorage:
+					'Consent preferences are stored in a cookie named "euconsent-v2" for 13 months. The storage duration may be refreshed when you update your preferences.',
+			},
+		},
+		common: {
+			acceptAll: 'Accept All',
+			rejectAll: 'Reject All',
+			customize: 'Customize',
+			saveSettings: 'Save Settings',
+			loading: 'Loading...',
+			showingSelectedVendor: 'Showing selected vendor',
+			clearSelection: 'Clear',
+			customPartner: 'Custom partner not registered with IAB',
+		},
 	},
 };
 

@@ -1,0 +1,45 @@
+---
+title: Initialization Flow
+description: What happens from runtime creation to first state update — the full consent lifecycle.
+---
+
+<import src="../../../shared/concepts/initialization-flow.mdx#overview" />
+
+<import src="../../../shared/concepts/initialization-flow.mdx#flow-diagram" />
+
+<import src="../../../shared/concepts/initialization-flow.mdx#how-it-works" />
+
+<import src="../../../shared/concepts/initialization-flow.mdx#banner-visibility" />
+
+<import src="../../../shared/concepts/initialization-flow.mdx#debugging" />
+
+Configure callbacks in the runtime options to log lifecycle events:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  callbacks: {
+    onBannerFetched: ({ jurisdiction, location }) => {
+      console.log('Init complete:', { jurisdiction, location });
+    },
+    onConsentSet: ({ preferences }) => {
+      console.log('Broad consent lifecycle event:', preferences);
+    },
+    onConsentChanged: ({ allowedCategories, deniedCategories }) => {
+      console.log('Explicit consent change:', {
+        allowedCategories,
+        deniedCategories,
+      });
+    },
+    onBeforeConsentRevocationReload: ({ preferences }) => {
+      console.log('Reloading due to revocation:', preferences);
+    },
+    onError: ({ error }) => {
+      console.error('Consent error:', error);
+    },
+  },
+});
+```

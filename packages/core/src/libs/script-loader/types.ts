@@ -1,5 +1,5 @@
 import type { ConsentState } from '../../types/compliance';
-import type { AllConsentNames } from '../../types/gdpr';
+import type { AllConsentNames } from '../../types/consent-types';
 import type { HasCondition } from '../has';
 
 /**
@@ -165,12 +165,6 @@ export interface Script {
 	onLoad?: (info: ScriptCallbackInfo) => void;
 
 	/**
-	 * Callback executed when the script is being unloaded/removed
-	 * @param info - Information about the script and current consent state
-	 */
-	onDelete?: (info: ScriptCallbackInfo) => void;
-
-	/**
 	 * Callback executed if the script fails to load
 	 * @param info - Information about the script, error, and current consent state
 	 */
@@ -198,6 +192,86 @@ export interface Script {
 	 * ```
 	 */
 	onConsentChange?: (info: ScriptCallbackInfo) => void;
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// IAB TCF Properties
+	// ─────────────────────────────────────────────────────────────────────────
+
+	/**
+	 * IAB TCF vendor ID - links script to a registered vendor.
+	 *
+	 * When in IAB mode, the script will only load if this vendor has consent.
+	 * Takes precedence over `category` when in IAB mode.
+	 * Use custom vendor IDs (string or number) to gate non-IAB vendors too.
+	 *
+	 * @example
+	 * ```ts
+	 * const script: Script = {
+	 *   id: 'google-analytics',
+	 *   src: 'https://www.googletagmanager.com/gtag/js',
+	 *   category: 'measurement',
+	 *   vendorId: 755, // Google Advertising Products
+	 * };
+	 * ```
+	 */
+	vendorId?: number | string;
+
+	/**
+	 * IAB TCF purpose IDs this script requires consent for.
+	 *
+	 * When in IAB mode and no vendorId is set, the script will only load
+	 * if ALL specified purposes have consent.
+	 *
+	 * @example
+	 * ```ts
+	 * const script: Script = {
+	 *   id: 'ad-script',
+	 *   src: 'https://ads.example.com/script.js',
+	 *   category: 'marketing',
+	 *   iabPurposes: [2, 3, 4], // Advertising purposes
+	 * };
+	 * ```
+	 */
+	iabPurposes?: number[];
+
+	/**
+	 * IAB TCF legitimate interest purpose IDs.
+	 *
+	 * These purposes can operate under legitimate interest instead of consent.
+	 * The script loads if all iabPurposes have consent OR all iabLegIntPurposes
+	 * have legitimate interest established.
+	 *
+	 * @example
+	 * ```ts
+	 * const script: Script = {
+	 *   id: 'analytics',
+	 *   src: 'https://analytics.example.com/script.js',
+	 *   category: 'measurement',
+	 *   iabPurposes: [7], // Measure ad performance (consent)
+	 *   iabLegIntPurposes: [9, 10], // Stats & development (legit interest)
+	 * };
+	 * ```
+	 */
+	iabLegIntPurposes?: number[];
+
+	/**
+	 * IAB TCF special feature IDs this script requires.
+	 *
+	 * Special features require explicit opt-in:
+	 * - 1: Use precise geolocation data
+	 * - 2: Actively scan device characteristics for identification
+	 *
+	 * @example
+	 * ```ts
+	 * const script: Script = {
+	 *   id: 'location-tracker',
+	 *   src: 'https://geo.example.com/tracker.js',
+	 *   category: 'measurement',
+	 *   iabSpecialFeatures: [1], // Requires precise geolocation
+	 * };
+	 * ```
+	 */
+	iabSpecialFeatures?: number[];
 }
 
 /**
@@ -212,3 +286,49 @@ export interface ScriptUpdateResult {
 	/** Array of script IDs that were unloaded */
 	unloaded: string[];
 }
+
+export type ScriptDebugSource = 'script-loader' | 'manifest-runtime';
+
+export type ScriptDebugScope = 'lifecycle' | 'phase' | 'step';
+
+export type ScriptLifecycleCallback =
+	| 'onBeforeLoad'
+	| 'onLoad'
+	| 'onConsentChange'
+	| 'onError';
+
+export type ScriptDebugAction =
+	| 'skipped'
+	| 'already_loaded'
+	| 'callback_start'
+	| 'callback_complete'
+	| 'callback_error'
+	| 'element_appended'
+	| 'loaded'
+	| 'load_listener_attached'
+	| 'error_listener_attached'
+	| 'unloaded'
+	| 'phase_start'
+	| 'phase_complete'
+	| 'step_executed'
+	| 'step_error';
+
+export interface ScriptDebugEvent {
+	source: ScriptDebugSource;
+	scope: ScriptDebugScope;
+	action: ScriptDebugAction;
+	message: string;
+	scriptId: string;
+	elementId?: string;
+	hasConsent?: boolean;
+	callback?: ScriptLifecycleCallback;
+	phase?: string;
+	stepType?: string;
+	stepIndex?: number;
+	data?: Record<string, unknown>;
+	timestamp: number;
+}
+
+export type ScriptDebugEventInput = Omit<ScriptDebugEvent, 'timestamp'>;
+
+export type ScriptDebugListener = (event: ScriptDebugEvent) => void;

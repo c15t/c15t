@@ -1,0 +1,39 @@
+---
+title: Policy Packs
+description: How c15t resolves regional consent policies and what a policy pack controls.
+---
+
+<import src="../../../shared/concepts/policy-packs.mdx#overview" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#quickstart" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#what-users-see" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#resolution-flow" />
+
+Inspect the resolved policy directly from the store:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  backendURL: 'https://your-instance.c15t.dev',
+});
+
+const state = consentStore.getState();
+console.log({
+  policyId: state.policy?.id,
+  matchedBy: state.policyDecision?.matchedBy,
+  fingerprint: state.policyDecision?.fingerprint,
+});
+```
+
+<import src="../../../shared/concepts/policy-packs.mdx#common-patterns" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#re-prompting" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#design-guidelines" />
+
+<Callout type="info">
+  For runtime setup, see the [JavaScript policy pack guide](/docs/frameworks/javascript/policy-packs). For backend configuration, see the [self-host guide](/docs/self-host/guides/policy-packs).
+</Callout>

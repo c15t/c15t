@@ -1,6 +1,6 @@
-import type { PrivacyConsentState } from '../../store.type';
-import { extractConsentNamesFromCondition, has } from '../has';
-import type { createTrackingBlocker } from '../tracking-blocker';
+import type { ConsentStoreState } from '../../store/type';
+import { extractConsentNamesFromCondition } from '../has';
+import { applyPolicyScopeForRuntimeGating } from '../policy';
 import {
 	getLoadedScriptIds,
 	isScriptLoaded,
@@ -18,21 +18,51 @@ import {
 /**
  * Creates script management functions for the consent manager store.
  *
+ * @remarks
+ * The returned methods are intended to be spread into the
+ * {@link ConsentStoreState} and provide script loading/unloading behavior
+ * based on the current consent state.
+ *
  * @param getState - Function to get the current state from the store
  * @param setState - Function to update the state in the store
- * @param trackingBlocker - Optional tracking blocker instance to destroy when scripts are added
  * @returns Object containing script management functions
+ *
  * @internal
  */
 export function createScriptManager(
-	getState: () => PrivacyConsentState,
-	setState: (partial: Partial<PrivacyConsentState>) => void,
-	trackingBlocker?: ReturnType<typeof createTrackingBlocker> | null
+	getState: () => ConsentStoreState,
+	setState: (partial: Partial<ConsentStoreState>) => void
 ) {
 	const updateScriptsFn = () => {
-		const { scripts, consents, scriptIdMap } = getState();
+		const {
+			scripts,
+			consents,
+			scriptIdMap,
+			model,
+			iab,
+			policyCategories,
+			policyScopeMode,
+		} = getState();
+		const iabConsent = iab?.config.enabled
+			? {
+					vendorConsents: iab.vendorConsents,
+					vendorLegitimateInterests: iab.vendorLegitimateInterests,
+					purposeConsents: iab.purposeConsents,
+					purposeLegitimateInterests: iab.purposeLegitimateInterests,
+					specialFeatureOptIns: iab.specialFeatureOptIns,
+				}
+			: undefined;
 
-		const result = updateScripts(scripts, consents, scriptIdMap);
+		const runtimeConsents = applyPolicyScopeForRuntimeGating(
+			consents,
+			policyCategories,
+			policyScopeMode
+		);
+
+		const result = updateScripts(scripts, runtimeConsents, scriptIdMap, {
+			model,
+			iabConsent,
+		});
 
 		// Update loadedScripts state
 		const newLoadedScripts = { ...getState().loadedScripts };
@@ -56,25 +86,17 @@ export function createScriptManager(
 		 * Updates scripts based on current consent state.
 		 * Loads scripts that have consent and aren't loaded yet.
 		 * Unloads scripts that no longer have consent.
+		 *
 		 * @returns Object containing arrays of loaded and unloaded script IDs
 		 */
 		updateScripts: () => updateScriptsFn(),
 
 		/**
-		 * Adds multiple script configurations to the store.
+		 * Sets multiple script configurations to the store.
 		 *
 		 * @param scripts - Array of script configurations to add
-		 *
-		 * @remarks
-		 * When scripts are added, the tracking blocker is automatically destroyed
-		 * to prevent conflicts between the two systems.
 		 */
 		setScripts: (scripts: Script[]) => {
-			// Destroy tracking blocker to avoid conflicts with script loader
-			if (trackingBlocker) {
-				trackingBlocker.destroy();
-			}
-
 			const state = getState();
 			const newScriptIdMap = { ...state.scriptIdMap };
 
@@ -85,20 +107,16 @@ export function createScriptManager(
 				}
 			});
 
-			// Extract categories from new scripts and update gdprTypes
+			// Extract categories from new scripts and update consentCategories
 			const newCategories = scripts.flatMap((script) =>
 				extractConsentNamesFromCondition(script.category)
 			);
 
-			const allCategories = [
-				...new Set([...state.gdprTypes, ...newCategories]),
-			];
-
 			setState({
 				scripts: [...state.scripts, ...scripts],
 				scriptIdMap: newScriptIdMap,
-				gdprTypes: allCategories,
 			});
+			getState().updateConsentCategories(newCategories);
 
 			updateScriptsFn();
 		},
@@ -107,35 +125,18 @@ export function createScriptManager(
 		 * Removes a script configuration from the store.
 		 *
 		 * @param scriptId - ID of the script to remove
+		 *
+		 * @remarks
+		 * If the script is currently loaded, it will be unloaded and the DOM
+		 * element will be removed.
 		 */
 		removeScript: (scriptId: string) => {
 			const state = getState();
-
-			// Find the script configuration
-			const script = state.scripts.find((s) => s.id === scriptId);
 
 			// If the script is loaded, unload it first
 			if (hasLoadedScript(scriptId)) {
 				const scriptElement = getLoadedScript(scriptId);
 				if (scriptElement) {
-					// Get the element ID (either anonymized or prefixed)
-					const elementId =
-						state.scriptIdMap[scriptId] || `c15t-script-${scriptId}`;
-
-					// Create callback info object
-					const callbackInfo = {
-						id: scriptId,
-						elementId,
-						consents: state.consents,
-						element: scriptElement,
-						hasConsent: has(script?.category ?? 'necessary', state.consents),
-					};
-
-					// Execute onDelete callback if provided
-					if (script?.onDelete) {
-						script.onDelete(callbackInfo);
-					}
-
 					scriptElement.remove();
 					deleteLoadedScript(scriptId);
 				}
@@ -157,18 +158,38 @@ export function createScriptManager(
 		},
 
 		/**
-		 * Reloads a specific script.
+		 * Reloads a specific script based on its configuration and current
+		 * consent state.
 		 *
 		 * @param scriptId - ID of the script to reload
-		 * @returns True if the script was reloaded, false otherwise
+		 * @returns A promise that resolves to the reloaded script element, or
+		 * `null` if the script could not be reloaded
 		 */
 		reloadScript: (scriptId: string) => {
 			const state = getState();
+			const iabConsent = state.iab?.config.enabled
+				? {
+						vendorConsents: state.iab.vendorConsents,
+						vendorLegitimateInterests: state.iab.vendorLegitimateInterests,
+						purposeConsents: state.iab.purposeConsents,
+						purposeLegitimateInterests: state.iab.purposeLegitimateInterests,
+						specialFeatureOptIns: state.iab.specialFeatureOptIns,
+					}
+				: undefined;
+			const runtimeConsents = applyPolicyScopeForRuntimeGating(
+				state.consents,
+				state.policyCategories,
+				state.policyScopeMode
+			);
 			return reloadScript(
 				scriptId,
 				state.scripts,
-				state.consents,
-				state.scriptIdMap
+				runtimeConsents,
+				state.scriptIdMap,
+				{
+					model: state.model,
+					iabConsent,
+				}
 			);
 		},
 

@@ -3,7 +3,8 @@
 	"icon": "guide",
 	"root": true,
 	"pages": [
-		"index",
+		"overview",
+		"building-integrations",
 		"--- Tag Management ---",
 		"google-tag-manager",
 		"google-tag",

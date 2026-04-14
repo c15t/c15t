@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@c15t/backend/v2/db/migrator', () => ({
+vi.mock('@c15t/backend/db/migrator', () => ({
 	migrator: vi.fn(async () => ({ execute: vi.fn(), getSQL: vi.fn() })),
 }));
 vi.mock('./ensure-backend-config', () => ({
@@ -19,7 +19,7 @@ vi.mock('./orm-result', () => ({
 	handleORMResult: vi.fn(async (..._args: unknown[]) => undefined),
 }));
 
-import { migrator } from '@c15t/backend/v2/db/migrator';
+import { migrator } from '@c15t/backend/db/migrator';
 import { ensureBackendConfig } from './ensure-backend-config';
 import { migrate } from './index';
 import { handleMigrationResult } from './migrator-result';

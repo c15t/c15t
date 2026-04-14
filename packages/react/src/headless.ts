@@ -6,14 +6,37 @@ export {
 	configureConsentManager,
 	defaultTranslationConfig,
 	detectBrowserLanguage,
+	type EuropePolicyMode,
 	mergeTranslationConfigs,
+	type PolicyPackPresets,
+	policyPackPresets,
 	// Translation utilities
 	prepareTranslationConfig,
 } from 'c15t';
 export { useColorScheme } from './hooks/use-color-scheme';
+export {
+	type ConsentDialogTriggerVisibility,
+	type UseConsentDialogTriggerOptions,
+	type UseConsentDialogTriggerResult,
+	useConsentDialogTrigger,
+} from './hooks/use-consent-dialog-trigger';
 // Export hooks
 export { useConsentManager } from './hooks/use-consent-manager';
 export { useFocusTrap } from './hooks/use-focus-trap';
+export {
+	type HeadlessConsentBannerAction,
+	type HeadlessConsentBannerState,
+	type HeadlessConsentDialogAction,
+	type HeadlessConsentDialogState,
+	type HeadlessConsentSurface,
+	type HeadlessConsentSurfaceAction,
+	type HeadlessConsentSurfaceState,
+	type HeadlessConsentWriteAction,
+	type UseHeadlessConsentUIResult,
+	useHeadlessConsentUI,
+} from './hooks/use-headless-consent-ui';
+// IAB headless hook — moved to @c15t/react/iab subpath.
+// Import from '@c15t/react/iab' instead of '@c15t/react/headless'.
 export { useTranslations } from './hooks/use-translations';
 export { ConsentManagerProvider } from './providers/consent-manager-provider';
 

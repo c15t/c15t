@@ -1,14 +1,28 @@
 ---
 title: useFocusTrap
-description: The useFocusTrap hook provides accessibility-focused keyboard navigation management, keeping focus trapped within modal components for better user experience.
-lastModified: 2025-04-10
-availableIn:
-  - framework: 'next'
-    url: '/docs/frameworks/next/hooks/use-focus-trap'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/hooks/use-focus-trap'
-    title: 'React'
+description: Trap keyboard focus within a container for accessible modal dialogs.
 ---
 
-<import>../../react/hooks/use-focus-trap.mdx</import>
+`useFocusTrap()` keeps keyboard focus within a container element while active. This is essential for accessibility - when a modal dialog is open, Tab and Shift+Tab should cycle through focusable elements inside the dialog, not escape to the page behind it.
+
+```tsx
+import { useFocusTrap } from '@c15t/nextjs';
+import { useRef } from 'react';
+
+function AccessibleModal({ isOpen }: { isOpen: boolean }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(isOpen, containerRef);
+
+  if (!isOpen) return null;
+
+  return (
+    <div ref={containerRef} role="dialog" aria-modal="true">
+      <h2>Modal Title</h2>
+      <button>Action</button>
+      <button>Close</button>
+    </div>
+  );
+}
+```
+
+<import src="../../../shared/react/hooks/use-focus-trap.mdx#reference" />

@@ -8,14 +8,16 @@
 			"@c15t/backend",
 			"@c15t/cli",
 			"@c15t/dev-tools",
+			"@c15t/iab",
 			"@c15t/nextjs",
 			"@c15t/node-sdk",
 			"@c15t/react",
 			"@c15t/translations"
 		]
 	],
+	"ignore": ["pigeon-post"],
 	"access": "public",
-	"baseBranch": "canary",
+	"baseBranch": "2.0.0",
 	"updateInternalDependencies": "patch",
 	"___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH": {
 		"onlyUpdatePeerDependentsWhenOutOfRange": true

@@ -11,6 +11,18 @@
 export type LogLevel = 'info' | 'success' | 'warn' | 'error' | 'debug';
 
 /**
+ * Trace context for log correlation with distributed tracing.
+ *
+ * @public
+ */
+export interface TraceContext {
+	/** The trace ID from the current span */
+	traceId: string;
+	/** The span ID from the current span */
+	spanId: string;
+}
+
+/**
  * Configuration interface for logger instances.
  *
  * @remarks
@@ -58,6 +70,25 @@ export interface LoggerOptions {
 	 * @default 'c15t'
 	 */
 	appName?: string;
+
+	/**
+	 * Optional callback to get trace context for log correlation.
+	 *
+	 * @remarks
+	 * When provided, this function will be called for each log message
+	 * to get the current trace context (traceId, spanId).
+	 * This enables correlation between logs and distributed traces.
+	 *
+	 * @example
+	 * ```ts
+	 * import { getTraceContext } from '@c15t/backend/telemetry';
+	 *
+	 * const logger = createLogger({
+	 *   getTraceContext: () => getTraceContext(),
+	 * });
+	 * ```
+	 */
+	getTraceContext?: () => TraceContext | null;
 }
 
 /**
@@ -69,12 +100,13 @@ export interface LoggerOptions {
  *
  * @internal
  */
-export type LogEntry = Parameters<NonNullable<LoggerOptions['log']>> extends [
-	LogLevel,
-	...infer Rest,
-]
-	? Rest
-	: never;
+export type LogEntry =
+	Parameters<NonNullable<LoggerOptions['log']>> extends [
+		LogLevel,
+		...infer Rest,
+	]
+		? Rest
+		: never;
 
 /**
  * Type representing a logger instance with methods for each log level.

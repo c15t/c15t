@@ -3,24 +3,35 @@
  */
 export const API_ENDPOINTS = {
 	/**
-	 * Path for the consent banner information endpoint
+	 * Path for the init endpoint
 	 */
-	SHOW_CONSENT_BANNER: '/show-consent-banner',
+	INIT: '/init',
 
 	/**
-	 * Path for setting consent
+	 * Path for recording consent (POST /subjects)
 	 */
-	SET_CONSENT: '/consent/set',
+	POST_SUBJECT: '/subjects',
 
 	/**
-	 * Path for verifying consent
+	 * Path for checking a subject's consent (GET /subjects/:id)
 	 */
-	VERIFY_CONSENT: '/consent/verify',
+	GET_SUBJECT: '/subjects',
 
 	/**
-	 * Path for identifying a user by linking external ID to consent
+	 * Path for linking external ID to subject (PATCH /subjects/:id)
 	 */
-	IDENTIFY_CONSENT: '/consent/identify',
+	PATCH_SUBJECT: '/subjects',
+
+	/**
+	 * Path for checking if externalId has consented (GET /consents/check)
+	 */
+	CHECK_CONSENT: '/consents/check',
+
+	/**
+	 * Path for listing subjects by externalId (GET /subjects)
+	 * @remarks Requires API key
+	 */
+	LIST_SUBJECTS: '/subjects',
 } as const;
 
 /**
@@ -204,7 +215,7 @@ export interface FetchOptions<
 	fetchOptions?: RequestInit;
 
 	/**
-	 * Request-specific retry configuration. Overrides the global `retryConfig` set in `C15tClientOptions`.
+	 * Request-specific retry configuration. Overrides the global `retryConfig` set in `C15tInternalClientOptions`.
 	 */
 	retryConfig?: RetryConfig;
 }
@@ -220,7 +231,7 @@ export interface FetchOptions<
  * @example
  * ```typescript
  * // Processing a response context
- * const response: ResponseContext<SubjectData> = await client.$fetch('/subject/123');
+ * const response: ResponseContext<SubjectData> = await client.$fetch('/subjects/123');
  *
  * if (response.ok) {
  *   // Handle successful response

@@ -1,30 +1,95 @@
 // Core exports
-export * from 'c15t';
+export type {
+	AllConsentNames,
+	ConsentManagerInterface,
+	ConsentStoreState,
+	ConsentType,
+	EuropePolicyMode,
+	Overrides,
+	PolicyPackPresets,
+	Translations,
+} from 'c15t';
 
+export {
+	configureConsentManager,
+	defaultTranslationConfig,
+	detectBrowserLanguage,
+	mergeTranslationConfigs,
+	policyPackPresets,
+	prepareTranslationConfig,
+} from 'c15t';
+export {
+	ConsentBanner,
+	type ConsentBannerProps,
+} from './components/consent-banner';
+export * from './components/consent-banner/components';
 // Components
 export {
-	ConsentManagerDialog,
-	type ConsentManagerDialogProps,
-} from './components/consent-manager-dialog';
+	ConsentDialog,
+	type ConsentDialogProps,
+} from './components/consent-dialog';
 export {
-	ConsentManagerWidget,
-	type ConsentManagerWidgetProps,
-} from './components/consent-manager-widget';
+	ConsentDialogLink,
+	type ConsentDialogLinkProps,
+} from './components/consent-dialog-link';
+// Consent Dialog Trigger (floating button for resurfacing consent dialogs)
 export {
-	CookieBanner,
-	type CookieBannerProps,
-} from './components/cookie-banner';
+	ConsentDialogTrigger,
+	type ConsentDialogTriggerCompound,
+	type ConsentDialogTriggerProps,
+	TriggerButton,
+	type TriggerButtonProps,
+	TriggerIcon,
+	type TriggerIconProps,
+	type TriggerIconType,
+	// Atom components for direct usage
+	TriggerRoot,
+	type TriggerRootProps,
+	type TriggerSize,
+	TriggerText,
+	type TriggerTextProps,
+	type TriggerVisibility,
+	type UseDraggableOptions,
+	type UseDraggableReturn,
+	// Hook and types
+	useDraggable,
+	useTriggerContext,
+} from './components/consent-dialog-trigger';
+export {
+	ConsentWidget,
+	type ConsentWidgetProps,
+} from './components/consent-widget';
 export { Frame, type FrameProps } from './components/frame';
-export {
-	InlineLegalLinks,
-	LegalLinks,
-	type LegalLinksProps,
-} from './components/shared/primitives/legal-links';
+// IAB TCF 2.3 Components — moved to @c15t/react/iab subpath.
+// Import from '@c15t/react/iab' instead of '@c15t/react'.
+
+export { ConsentButton } from './components/shared/primitives/button';
 
 // Hooks
 export { useColorScheme } from './hooks/use-color-scheme';
+export {
+	type ConsentDialogTriggerVisibility,
+	type UseConsentDialogTriggerOptions,
+	type UseConsentDialogTriggerResult,
+	useConsentDialogTrigger,
+} from './hooks/use-consent-dialog-trigger';
 export { useConsentManager } from './hooks/use-consent-manager';
 export { useFocusTrap } from './hooks/use-focus-trap';
+export {
+	type HeadlessConsentBannerAction,
+	type HeadlessConsentBannerState,
+	type HeadlessConsentDialogAction,
+	type HeadlessConsentDialogState,
+	type HeadlessConsentSurface,
+	type HeadlessConsentSurfaceAction,
+	type HeadlessConsentSurfaceState,
+	type HeadlessConsentWriteAction,
+	type UseHeadlessConsentUIResult,
+	useHeadlessConsentUI,
+} from './hooks/use-headless-consent-ui';
+// IAB headless hook — moved to @c15t/react/iab subpath.
+// Import from '@c15t/react/iab' instead of '@c15t/react'.
+export { useSSRStatus } from './hooks/use-ssr-status';
 export { useTranslations } from './hooks/use-translations';
 
 // Providers
@@ -33,3 +98,16 @@ export type {
 	ConsentManagerOptions,
 	ConsentManagerProviderProps,
 } from './types/consent-manager';
+
+// Theme types
+export type {
+	ColorTokens,
+	ComponentSlots,
+	MotionTokens,
+	RadiusTokens,
+	ShadowTokens,
+	SlotStyle,
+	SpacingTokens,
+	Theme,
+	TypographyTokens,
+} from './types/theme';

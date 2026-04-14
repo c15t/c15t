@@ -3,7 +3,6 @@
 import type { AllConsentNames } from 'c15t';
 import * as atoms from './atoms';
 import { Frame as FrameComponent } from './frame';
-import type { FrameTheme } from './theme';
 import type { FrameCompoundComponent } from './types';
 
 /**
@@ -31,6 +30,6 @@ const Frame = Object.assign(FrameComponent, {
 	Button: atoms.FrameButton,
 }) as FrameCompoundComponent;
 
-export { Frame };
 export { FrameButton, FrameRoot, FrameTitle } from './atoms';
 export type { FrameCompoundComponent, FrameProps } from './types';
+export { Frame };

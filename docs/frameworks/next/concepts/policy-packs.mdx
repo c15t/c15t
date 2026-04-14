@@ -1,0 +1,51 @@
+---
+title: Policy Packs
+description: How c15t resolves regional consent policies and what a policy pack controls.
+---
+
+<import src="../../../shared/concepts/policy-packs.mdx#overview" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#quickstart" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#what-users-see" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#resolution-flow" />
+
+Inspect the resolved policy from any client component:
+
+```tsx
+'use client';
+
+import { useConsentManager } from '@c15t/nextjs';
+
+export function PolicyDebug() {
+  const { locationInfo, model, policy, policyDecision } = useConsentManager();
+
+  return (
+    <pre>
+      {JSON.stringify(
+        {
+          country: locationInfo?.countryCode,
+          region: locationInfo?.regionCode,
+          model,
+          policyId: policy?.id,
+          matchedBy: policyDecision?.matchedBy,
+          fingerprint: policyDecision?.fingerprint,
+        },
+        null,
+        2
+      )}
+    </pre>
+  );
+}
+```
+
+<import src="../../../shared/concepts/policy-packs.mdx#common-patterns" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#re-prompting" />
+
+<import src="../../../shared/concepts/policy-packs.mdx#design-guidelines" />
+
+<Callout type="info">
+  For provider setup, see the [Next.js policy pack guide](/docs/frameworks/next/policy-packs). For backend configuration, see the [self-host guide](/docs/self-host/guides/policy-packs).
+</Callout>

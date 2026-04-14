@@ -17,6 +17,8 @@ export interface BundleStats {
 	path: string;
 	size: number;
 	gzipSize?: number;
+	initial?: boolean;
+	entry?: boolean;
 }
 
 export interface PackageBundleData {
@@ -110,11 +112,20 @@ export function extractBundleSizes(jsonPath: string): BundleStats[] {
 					}
 				}
 
+				const chunkFlags: Pick<BundleStats, 'initial' | 'entry'> = {};
+				if (typeof chunk.initial === 'boolean') {
+					chunkFlags.initial = chunk.initial;
+				}
+				if (typeof chunk.entry === 'boolean') {
+					chunkFlags.entry = chunk.entry;
+				}
+
 				bundles.push({
 					name: chunkName,
 					path: jsonPath,
 					size: chunkSize,
 					gzipSize,
+					...chunkFlags,
 				});
 			}
 		}
@@ -163,6 +174,20 @@ export function extractBundleSizes(jsonPath: string): BundleStats[] {
 		console.error(`Error reading ${jsonPath}:`, error);
 		return [];
 	}
+}
+
+function selectBundlesForTotals(bundles: BundleStats[]): BundleStats[] {
+	// Prefer initial chunks when rsdoctor provides that metadata.
+	// This avoids counting lazy-loaded chunks in top-level package totals.
+	const hasInitialMetadata = bundles.some(
+		(bundle) => typeof bundle.initial === 'boolean'
+	);
+	if (!hasInitialMetadata) {
+		return bundles;
+	}
+
+	const initialBundles = bundles.filter((bundle) => bundle.initial === true);
+	return initialBundles.length > 0 ? initialBundles : bundles;
 }
 
 export function compareBundles(
@@ -244,8 +269,14 @@ async function analyzePackage(
 	}
 
 	const diffs = compareBundles(baseBundles, currentBundles);
-	const totalBaseSize = baseBundles.reduce((sum, b) => sum + b.size, 0);
-	const totalCurrentSize = currentBundles.reduce((sum, b) => sum + b.size, 0);
+	const totalBaseSize = selectBundlesForTotals(baseBundles).reduce(
+		(sum, b) => sum + b.size,
+		0
+	);
+	const totalCurrentSize = selectBundlesForTotals(currentBundles).reduce(
+		(sum, b) => sum + b.size,
+		0
+	);
 	const totalDiff = totalCurrentSize - totalBaseSize;
 	const totalDiffPercent =
 		totalBaseSize > 0 ? (totalDiff / totalBaseSize) * 100 : 0;
@@ -275,6 +306,19 @@ function getChangeEmoji(diffPercent: number): string {
 	if (diffPercent > 0) return '🟡';
 	if (diffPercent < -5) return '🟢';
 	return '⚪';
+}
+
+function sortByAbsoluteChange(
+	packages: PackageBundleData[]
+): PackageBundleData[] {
+	return [...packages].sort(
+		(a, b) => Math.abs(b.totalDiff) - Math.abs(a.totalDiff)
+	);
+}
+
+function formatSignedBytes(bytes: number): string {
+	const sign = bytes >= 0 ? '+' : '';
+	return `${sign}${formatBytes(bytes)}`;
 }
 
 function parseWorkspaceDependencyName(version: string): string | undefined {
@@ -468,15 +512,49 @@ export function generateMarkdownReport(
 		return markdown;
 	}
 
-	// Summary table
-	markdown += '## Summary\n\n';
-	markdown += '| Package | Base Size | Current Size | Change | % Change |\n';
-	markdown += '|---------|-----------|--------------|--------|----------|\n';
+	const totalBase = packages.reduce((sum, pkg) => sum + pkg.totalBaseSize, 0);
+	const totalCurrent = packages.reduce(
+		(sum, pkg) => sum + pkg.totalCurrentSize,
+		0
+	);
+	const totalDiff = totalCurrent - totalBase;
+	const totalDiffPercent = totalBase > 0 ? (totalDiff / totalBase) * 100 : 0;
+	const regressions = packages.filter((pkg) => pkg.totalDiff > 0).length;
+	const improvements = packages.filter((pkg) => pkg.totalDiff < 0).length;
+	const unchanged = packages.length - regressions - improvements;
 
-	for (const pkg of packages) {
-		const sign = pkg.totalDiff >= 0 ? '+' : '';
-		const emoji = getChangeEmoji(pkg.totalDiffPercent);
-		markdown += `| ${emoji} \`${pkg.packageName}\` | ${formatBytes(pkg.totalBaseSize)} | ${formatBytes(pkg.totalCurrentSize)} | ${sign}${formatBytes(pkg.totalDiff)} | ${sign}${pkg.totalDiffPercent.toFixed(2)}% |\n`;
+	markdown += '## At a Glance\n\n';
+	markdown += `- **Total Change:** ${formatSignedBytes(totalDiff)} (${totalDiffPercent >= 0 ? '+' : ''}${totalDiffPercent.toFixed(2)}%)\n`;
+	markdown +=
+		'- **Metric:** Initial chunks when available (falls back to all chunks)\n';
+	markdown += `- **Packages Analyzed:** ${packages.length}\n`;
+	markdown += `- **Regressions / Improvements / Unchanged:** ${regressions} / ${improvements} / ${unchanged}\n`;
+
+	const topRegressions = [...packages]
+		.filter((pkg) => pkg.totalDiff > 0)
+		.sort((a, b) => b.totalDiff - a.totalDiff)
+		.slice(0, 5);
+	const topImprovements = [...packages]
+		.filter((pkg) => pkg.totalDiff < 0)
+		.sort((a, b) => a.totalDiff - b.totalDiff)
+		.slice(0, 5);
+
+	if (topRegressions.length > 0) {
+		markdown += '\n### Top Regressions\n\n';
+		markdown += '| Package | Change | % Change | Current Size |\n';
+		markdown += '|---------|--------|----------|--------------|\n';
+		for (const pkg of topRegressions) {
+			markdown += `| 🔴 \`${pkg.packageName}\` | ${formatSignedBytes(pkg.totalDiff)} | +${pkg.totalDiffPercent.toFixed(2)}% | ${formatBytes(pkg.totalCurrentSize)} |\n`;
+		}
+	}
+
+	if (topImprovements.length > 0) {
+		markdown += '\n### Top Improvements\n\n';
+		markdown += '| Package | Change | % Change | Current Size |\n';
+		markdown += '|---------|--------|----------|--------------|\n';
+		for (const pkg of topImprovements) {
+			markdown += `| 🟢 \`${pkg.packageName}\` | ${formatSignedBytes(pkg.totalDiff)} | ${pkg.totalDiffPercent.toFixed(2)}% | ${formatBytes(pkg.totalCurrentSize)} |\n`;
+		}
 	}
 
 	if (transitive.length > 0) {
@@ -484,23 +562,57 @@ export function generateMarkdownReport(
 		markdown +=
 			'Includes workspace dependency closure for selected root packages.\n\n';
 		markdown +=
-			'| Root Package | Included Packages | Base Size | Current Size | Change | % Change |\n';
+			'| Root Package | Included Count | Base Size | Current Size | Change | % Change |\n';
 		markdown +=
-			'|--------------|-------------------|-----------|--------------|--------|----------|\n';
+			'|--------------|----------------|-----------|--------------|--------|----------|\n';
 
 		for (const entry of transitive) {
-			const sign = entry.totalDiff >= 0 ? '+' : '';
 			const emoji = getChangeEmoji(entry.totalDiffPercent);
+			const sign = entry.totalDiffPercent >= 0 ? '+' : '';
+			const includedCount =
+				entry.includedPackageDirs.length > 0
+					? String(entry.includedPackageDirs.length)
+					: 'not found';
+			markdown += `| ${emoji} \`${entry.rootPackage}\` | ${includedCount} | ${formatBytes(entry.totalBaseSize)} | ${formatBytes(entry.totalCurrentSize)} | ${formatSignedBytes(entry.totalDiff)} | ${sign}${entry.totalDiffPercent.toFixed(2)}% |\n`;
+		}
+
+		markdown +=
+			'\n<details>\n<summary><strong>Transitive Package Membership</strong></summary>\n\n';
+		for (const entry of transitive) {
 			const included =
 				entry.includedPackageDirs.length > 0
 					? entry.includedPackageDirs.map((pkg) => `\`${pkg}\``).join(', ')
 					: 'not found';
-			markdown += `| ${emoji} \`${entry.rootPackage}\` | ${included} | ${formatBytes(entry.totalBaseSize)} | ${formatBytes(entry.totalCurrentSize)} | ${sign}${formatBytes(entry.totalDiff)} | ${sign}${entry.totalDiffPercent.toFixed(2)}% |\n`;
+			markdown += `- \`${entry.rootPackage}\`: ${included}\n`;
 		}
+		markdown += '\n</details>\n';
 	}
 
-	// Detailed changes per package (collapsible)
-	for (const pkg of packages) {
+	markdown += '\n<details>\n';
+	markdown += `<summary><strong>All Package Deltas (${packages.length})</strong></summary>\n\n`;
+	markdown += '| Package | Base Size | Current Size | Change | % Change |\n';
+	markdown += '|---------|-----------|--------------|--------|----------|\n';
+	for (const pkg of sortByAbsoluteChange(packages)) {
+		const sign = pkg.totalDiff >= 0 ? '+' : '';
+		const emoji = getChangeEmoji(pkg.totalDiffPercent);
+		markdown += `| ${emoji} \`${pkg.packageName}\` | ${formatBytes(pkg.totalBaseSize)} | ${formatBytes(pkg.totalCurrentSize)} | ${formatSignedBytes(pkg.totalDiff)} | ${sign}${pkg.totalDiffPercent.toFixed(2)}% |\n`;
+	}
+	markdown += '\n</details>\n';
+
+	const packagesWithBundleChanges = packages.filter(
+		(pkg) =>
+			pkg.diffs.added.length > 0 ||
+			pkg.diffs.removed.length > 0 ||
+			pkg.diffs.changed.length > 0
+	);
+
+	if (packagesWithBundleChanges.length > 0) {
+		markdown +=
+			'\n<details>\n<summary><strong>Bundle-Level Change Details</strong></summary>\n';
+	}
+
+	// Detailed bundle-level changes per package (collapsible)
+	for (const pkg of packagesWithBundleChanges) {
 		if (
 			pkg.diffs.added.length === 0 &&
 			pkg.diffs.removed.length === 0 &&
@@ -511,7 +623,7 @@ export function generateMarkdownReport(
 
 		const sign = pkg.totalDiff >= 0 ? '+' : '';
 		const emoji = getChangeEmoji(pkg.totalDiffPercent);
-		const summaryText = `${emoji} \`${pkg.packageName}\`: ${sign}${formatBytes(pkg.totalDiff)} (${sign}${pkg.totalDiffPercent.toFixed(2)}%)`;
+		const summaryText = `${emoji} \`${pkg.packageName}\`: ${formatSignedBytes(pkg.totalDiff)} (${sign}${pkg.totalDiffPercent.toFixed(2)}%)`;
 
 		markdown += `\n<details>\n<summary><strong>${summaryText}</strong></summary>\n\n`;
 
@@ -544,6 +656,9 @@ export function generateMarkdownReport(
 		}
 
 		markdown += '</details>\n';
+	}
+	if (packagesWithBundleChanges.length > 0) {
+		markdown += '\n</details>\n';
 	}
 
 	markdown +=

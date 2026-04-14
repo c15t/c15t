@@ -33,6 +33,14 @@ out/
 build
 dist
 !internals/bundle-analysis-action/dist
+packages/core/docs
+packages/react/docs
+packages/nextjs/docs
+packages/backend/docs
+.merge_file_*
+dist-types
+apps/bundle-bench-react/.bundle-bench-dist/
+
 
 # Debug
 npm-debug.log*
@@ -52,7 +60,17 @@ docs/public/r/*
 *.tsbuildinfo
 coverage.json
 
-
-examples/*
+.pnpm-store
 version.ts
 i18n.cache
+
+.test-apps/
+.benchmarks/
+
+# CLI persisted generate state
+.c15t-state.json
+.gstack/
+
+# Storybook build output
+storybook-static/
+debug-storybook.log

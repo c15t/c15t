@@ -1,49 +1,45 @@
-// Export types
-import type { ConsentManagerProviderProps as ReactConsentManagerProviderProps } from '@c15t/react';
-
-/**
- * NextJS-specific configuration options for the ConsentManagerProvider.
- *
- * @remarks
- * This interface extends the base React ConsentManagerProviderProps but excludes
- * callback functionality. Callbacks are omitted to simplify the NextJS integration
- * and prevent potential conflicts with server-side rendering.
- *
- * @example
- * ```tsx
- * // Basic NextJS consent manager setup without callbacks
- * <ConsentManagerProvider
- *   options={{
- *     mode: 'c15t',
- *     backendURL: '/api/c15t',
- *     react: {
- *       theme: customTheme
- *     }
- *   }}
- * >
- *   {children}
- * </ConsentManagerProvider>
- * ```
- *
- * @see {@link ReactConsentManagerProviderProps} For the complete React provider props
- * @public
- */
-export type AppDirectoryConsentManagerProviderProps = Omit<
-	ReactConsentManagerProviderProps,
-	'options'
-> & {
-	/**
-	 * Configuration options for the consent manager without callback functions.
-	 * This ensures NextJS compatibility by removing potentially problematic callbacks.
-	 */
-	options: Omit<
-		ReactConsentManagerProviderProps['options'],
-		'callbacks' | 'scripts'
-	>;
-};
+import type { ConsentManagerProviderProps } from '@c15t/react';
+import type { FetchSSRDataOptionsBase } from '@c15t/react/server';
+import type { PrefetchOptions } from 'c15t';
 
 export type InitialDataPromise = NonNullable<
-	ReactConsentManagerProviderProps['options']['store']
->['_initialData'];
+	ConsentManagerProviderProps['options']['store']
+>['ssrData'];
 
-export type InitialData = Awaited<InitialDataPromise>;
+export interface NextCacheOptions {
+	/**
+	 * Cache lifetime in seconds for the Next.js data cache.
+	 * Set to false to disable Next.js caching for this call.
+	 *
+	 * @default 1
+	 */
+	revalidateSeconds?: number | false;
+}
+
+export interface C15tPrefetchProps extends PrefetchOptions {
+	/**
+	 * Optional script element ID.
+	 *
+	 * @default 'c15t-initial-data-prefetch'
+	 */
+	id?: string;
+}
+
+/**
+ * Options for the fetchInitialData function.
+ *
+ * @remarks
+ * Uses the base options from @c15t/react/server - headers are
+ * resolved automatically from Next.js.
+ */
+export interface FetchInitialDataOptions extends FetchSSRDataOptionsBase {
+	/**
+	 * Optional Next.js cache controls for SSR init requests.
+	 */
+	nextCache?: NextCacheOptions;
+}
+
+export interface ConsentManagerProps {
+	children: React.ReactNode;
+	ssrData?: InitialDataPromise;
+}

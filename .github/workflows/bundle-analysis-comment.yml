@@ -1,0 +1,84 @@
+name: Bundle Analysis Comment
+
+# This workflow runs in the context of the base repository with write access,
+# but only processes artifacts (markdown report) from the build workflow.
+# It never checks out or executes untrusted PR code.
+on:
+  workflow_run:
+    workflows: ["Bundle Analysis"]
+    types: [completed]
+
+jobs:
+  comment:
+    name: 💬 Post Bundle Report
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
+    permissions:
+      pull-requests: write
+    steps:
+      - name: 📥 Download bundle analysis artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-analysis-result
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+          path: ./bundle-artifacts
+
+      - name: 💬 Post or update PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Read PR number from artifact
+            const prNumber = parseInt(fs.readFileSync('./bundle-artifacts/pr-number', 'utf8').trim());
+            if (!prNumber || isNaN(prNumber)) {
+              core.info('No valid PR number found, skipping comment.');
+              return;
+            }
+
+            // Cross-validate artifact PR number against workflow_run metadata
+            const runPRs = context.payload.workflow_run.pull_requests;
+            if (runPRs && runPRs.length > 0) {
+              const expectedPR = runPRs[0].number;
+              if (prNumber !== expectedPR) {
+                core.setFailed(`Artifact PR number (${prNumber}) does not match workflow_run PR (${expectedPR})`);
+                return;
+              }
+            }
+
+            // Read the bundle diff report
+            const report = fs.readFileSync('./bundle-artifacts/bundle-diff.md', 'utf8').trim();
+            if (!report) {
+              core.info('No report content found, skipping comment.');
+              return;
+            }
+
+            const header = '<!-- bundle-analysis -->';
+            const body = `${header}\n${report}`;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              ...context.repo,
+              issue_number: prNumber,
+            });
+
+            const existing = comments.find(c => c.body?.includes(header));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                ...context.repo,
+                comment_id: existing.id,
+                body,
+              });
+              core.info(`Updated existing comment on PR #${prNumber}`);
+            } else {
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: prNumber,
+                body,
+              });
+              core.info(`Posted new comment on PR #${prNumber}`);
+            }

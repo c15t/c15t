@@ -1,0 +1,83 @@
+---
+title: Policy Packs
+description: Configure regional consent policies in React — hosted mode, presets, and offline fallback.
+---
+
+<import src="../../shared/react/guides/policy-packs.mdx#intro" />
+
+<import src="../../shared/react/guides/policy-packs.mdx#defaults" />
+
+## React Example (Hosted)
+
+Point the provider at your backend — policy resolution happens server-side:
+
+```tsx
+import type { ReactNode } from 'react';
+import {
+  ConsentBanner,
+  ConsentDialog,
+  ConsentManagerProvider,
+} from '@c15t/react';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        backendURL: 'https://your-instance.c15t.dev',
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+## Offline / Fallback
+
+For local development, previews, automated tests, or when the backend is temporarily unreachable, pass policies directly:
+
+```tsx
+import type { ReactNode } from 'react';
+import {
+  ConsentBanner,
+  ConsentDialog,
+  ConsentManagerProvider,
+  policyPackPresets,
+} from '@c15t/react';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'offline',
+        offlinePolicy: {
+          policyPacks: [
+            policyPackPresets.europeOptIn(),
+            policyPackPresets.californiaOptOut(),
+            policyPackPresets.worldNoBanner(),
+          ],
+        },
+        overrides: {
+          country: 'DE', // Preview as a German visitor
+        },
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../shared/react/guides/policy-packs.mdx#provider-shape" />
+
+<import src="../../shared/react/guides/policy-packs.mdx#fallback-behavior" />
+
+<import src="../../shared/react/guides/policy-packs.mdx#qa-and-debugging" />
+
+<Callout type="info">
+  For the full concept model (matchers, scope modes, re-prompting), see [Policy Packs concepts](/docs/frameworks/react/concepts/policy-packs). For backend setup, see the [self-host guide](/docs/self-host/guides/policy-packs).
+</Callout>

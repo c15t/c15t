@@ -1,29 +1,65 @@
 ---
-title: Overview
-description: The useConsentManager hook is a React hook that provides access to the consent manager's state.
-lastModified: 2025-08-20
-availableIn:
-  - framework: 'javascript'
-    url: '/docs/frameworks/javascript/store/overview'
-    title: 'JavaScript'
-  - framework: 'next'
-    url: '/docs/frameworks/next/hooks/use-consent-manager/overview'
-    title: 'Next.js'
-  - framework: 'react'
-    url: '/docs/frameworks/react/hooks/use-consent-manager/overview'
-    title: 'React'
+title: useConsentManager
+description: The primary hook for accessing consent state and actions. Returns the full consent store including all state properties and action methods.
 ---
 
-<import>../../../javascript/shared/store/overview.mdx#overview</import>
-
-## Usage
+`useConsentManager()` is the primary hook for interacting with the consent system. It returns the complete consent store state and all action methods.
 
 ```tsx
 import { useConsentManager } from '@c15t/react';
 
-const { has } = useConsentManager();
-
-const hasFunctionality = has('functionality');
+function MyComponent() {
+  const {
+    consents,
+    model,
+    has,
+    saveConsents,
+    // ... all state and actions
+  } = useConsentManager();
+}
 ```
 
-<import>../../../javascript/shared/store/overview.mdx#returns</import>
+<import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#callout" />
+
+<import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#state-and-actions" />
+
+## identifyUser
+
+The `identifyUser()` method links anonymous consent records to an authenticated user. Call it after a user logs in to associate their consent preferences with their account.
+
+```tsx
+import { useConsentManager } from '@c15t/react';
+
+function LoginForm() {
+  const { identifyUser } = useConsentManager();
+
+  async function handleLogin(email: string) {
+    // ... your login logic
+    const user = await api.login(email);
+
+    // Link consent to the authenticated user
+    await identifyUser({
+      id: user.id,
+      identityProvider: 'your-auth-provider', // e.g. 'clerk', 'auth0'
+    });
+  }
+
+  return (
+    <form onSubmit={(e) => {
+      e.preventDefault();
+      handleLogin(new FormData(e.currentTarget).get('email') as string);
+    }}>
+      <input name="email" type="email" placeholder="Email" />
+      <button type="submit">Log in</button>
+    </form>
+  );
+}
+```
+
+<Callout type="info">
+  `identifyUser` sends the user data to the c15t backend. It works in hosted
+  mode, including the legacy alias `mode: 'c15t'`. In `mode: 'offline'`, the
+  call is a no-op.
+</Callout>
+
+<import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#key-types" />

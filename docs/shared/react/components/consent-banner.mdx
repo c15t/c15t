@@ -1,0 +1,242 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  `ConsentBanner` is a ready-to-use consent banner that appears automatically in **opt-in jurisdictions** (like GDPR) where explicit consent is required before tracking. In opt-out jurisdictions (like CCPA), the banner won't appear — users get an opt-out mechanism instead. It includes reject, accept, and customize buttons with configurable layout.
+</section>
+
+<section id="customization">
+  ## Button Layout
+
+  The `layout` prop controls button arrangement. Each item is either a button ID or an array of button IDs (which groups them together):
+
+  ```tsx
+  {/* Default: reject and accept grouped, customize separate */}
+  <ConsentBanner layout={[['reject', 'accept'], 'customize']} />
+
+  {/* All buttons in one group */}
+  <ConsentBanner layout={[['reject', 'customize', 'accept']]} />
+
+  {/* Accept first, then reject and customize grouped */}
+  <ConsentBanner layout={['accept', ['reject', 'customize']]} />
+  ```
+
+  To stack groups vertically, pair the same grouped layout with `direction="column"`:
+
+  ```tsx
+  <ConsentBanner
+    layout={['customize', ['reject', 'accept']]}
+    direction="column"
+  />
+  ```
+
+  ## Policy-Driven UI Profile
+
+  When using backend runtime policies, `policy.ui.uiProfile` can control banner action presentation:
+
+  - `compact` — default desktop sizing
+  - `balanced` — auto-fills compact and grouped layouts with moderate emphasis
+  - `strict` — always fills action controls for explicit, high-clarity layouts
+
+  ## Theme-Level Button Styling
+
+  Use the provider `theme` prop to control how stock consent actions look:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      theme: {
+        consentActions: {
+          default: { mode: 'stroke' },
+          accept: { variant: 'primary', mode: 'stroke' },
+          customize: { variant: 'neutral', mode: 'ghost' },
+        },
+      },
+    }}
+  >
+    <ConsentBanner />
+  </ConsentManagerProvider>
+  ```
+
+  Policy packs control grouping, ordering, and direction. The theme controls button appearance.
+
+  ## Styling First
+
+  <Callout type="info">
+    For pure theming, stay inside the pre-built banner. Start with layout props, `theme.consentActions`, design tokens, and `theme.slots` before reaching for compound components. See [Styling Overview](/docs/frameworks/react/styling/overview).
+  </Callout>
+
+  The stock banner maps common visual changes to the theme system:
+
+  - Card background -> `theme.colors.surface`
+  - Footer background -> `theme.colors.surfaceHover`
+  - Card, footer, and title tweaks -> `theme.slots.consentBannerCard`, `consentBannerFooter`, and `consentBannerTitle`
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      theme: {
+        colors: {
+          surface: '#fffdf8',
+          surfaceHover: '#f6f3ee',
+        },
+        slots: {
+          consentBannerCard: 'rounded-[28px] shadow-xl',
+          consentBannerFooter: 'border-t border-black/10 px-6',
+          consentBannerTitle: 'tracking-tight',
+        },
+      },
+    }}
+  >
+    <ConsentBanner />
+  </ConsentManagerProvider>
+  ```
+
+  ### Primary Button
+
+  Highlight specific button(s) as the primary action:
+
+  ```tsx
+  {/* Single primary */}
+  <ConsentBanner primaryButton="accept" />
+
+  {/* Multiple primaries */}
+  <ConsentBanner primaryButton={['accept', 'customize']} />
+  ```
+
+  ## Legal Links
+
+  Control which legal links appear in the banner description:
+
+  ```tsx
+  {/* Show all configured links (default) */}
+  <ConsentBanner legalLinks={undefined} />
+
+  {/* Show no links */}
+  <ConsentBanner legalLinks={null} />
+
+  {/* Show specific links */}
+  <ConsentBanner legalLinks={['privacyPolicy', 'cookiePolicy']} />
+  ```
+
+  <Callout type="info">
+    Legal link URLs are configured in the `ConsentManagerProvider` options via the `legalLinks` prop, not on the banner itself.
+  </Callout>
+
+  ## Customizing Copy
+
+  Prefer provider `i18n` when you want to rename the stock banner content:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      i18n: {
+        locale: 'en',
+        messages: {
+          en: {
+            cookieBanner: {
+              title: 'We value your privacy',
+              description: 'We use cookies to improve the site and measure performance.',
+            },
+            common: {
+              acceptAll: 'Accept all',
+              rejectAll: 'Reject all',
+              customize: 'Manage preferences',
+            },
+          },
+        },
+      },
+    }}
+  >
+    <ConsentBanner />
+  </ConsentManagerProvider>
+  ```
+
+  Direct text props such as `title`, `description`, and `acceptButtonText` are still supported for one-off overrides, but `i18n` is the preferred path for copy changes.
+
+  ## Advanced: Compound Components
+
+  Use compound components only when the stock banner structure is no longer enough and you need to rearrange existing c15t primitives while keeping policy-driven action grouping and emphasis:
+
+  ```tsx
+  <ConsentBanner.Root>
+    <ConsentBanner.Overlay />
+    <ConsentBanner.Card>
+      <ConsentBanner.Header>
+        <ConsentBanner.Title />
+        <ConsentBanner.Description />
+      </ConsentBanner.Header>
+      <ConsentBanner.PolicyActions />
+    </ConsentBanner.Card>
+  </ConsentBanner.Root>
+  ```
+
+  - `ConsentBanner.Root` — Outermost container, provides theme context
+  - `ConsentBanner.Card` — Main content card with optional focus trapping
+  - `ConsentBanner.Header` — Contains title and description
+  - `ConsentBanner.Title` — Heading, defaults to translation `consentBanner.title`
+  - `ConsentBanner.Description` — Description text, supports `legalLinks` prop
+  - `ConsentBanner.PolicyActions` — Renders policy-aware grouped actions inside the banner footer
+  - `ConsentBanner.Footer` — Action buttons container
+  - `ConsentBanner.FooterSubGroup` — Groups related buttons together
+  - `ConsentBanner.RejectButton` — Rejects all consent
+  - `ConsentBanner.CustomizeButton` — Opens the consent dialog
+  - `ConsentBanner.AcceptButton` — Accepts all consent
+  - `ConsentBanner.Overlay` — Optional backdrop overlay
+
+  For a fixed layout that intentionally ignores policy grouping, render the footer manually:
+
+  ```tsx
+  <ConsentBanner.Root>
+    <ConsentBanner.Card>
+      <ConsentBanner.Header>
+        <ConsentBanner.Title />
+        <ConsentBanner.Description />
+      </ConsentBanner.Header>
+      <ConsentBanner.Footer>
+        <ConsentBanner.FooterSubGroup>
+          <ConsentBanner.RejectButton />
+          <ConsentBanner.AcceptButton />
+        </ConsentBanner.FooterSubGroup>
+        <ConsentBanner.CustomizeButton />
+      </ConsentBanner.Footer>
+    </ConsentBanner.Card>
+  </ConsentBanner.Root>
+  ```
+
+  ## Using `renderAction` with c15t Defaults
+
+  `ConsentBanner.PolicyActions` renders stock c15t buttons and translations by default.
+
+  ```tsx
+  <ConsentBanner.PolicyActions />
+  ```
+
+  `renderAction` is optional. When you want custom mapping but still want the built-in c15t button behavior and copy, return the stock button compounds:
+
+  ```tsx
+  <ConsentBanner.PolicyActions
+  renderAction={(action, props) => {
+    const { key, ...buttonProps } = props
+
+    switch (action) {
+      case 'accept':
+          return <ConsentBanner.AcceptButton key={key} {...buttonProps} />
+      case 'reject':
+          return <ConsentBanner.RejectButton key={key} {...buttonProps} />
+      case 'customize':
+          return <ConsentBanner.CustomizeButton key={key} {...buttonProps} />
+    }
+  }}
+  />
+  ```
+
+  `renderAction` is still meant for stock button compounds. If you want completely custom button elements and click handling, use `useHeadlessConsentUI()` and render `banner.actionGroups` manually instead of `ConsentBanner.PolicyActions`.
+
+  If you only need styling changes, stay with tokens and slots instead of rebuilding the banner layout.
+</section>
+
+<section id="props">
+  ## Props
+
+  <AutoTypeTable path="./packages/react/src/components/consent-banner/consent-banner.tsx" name="ConsentBannerProps" />
+</section>

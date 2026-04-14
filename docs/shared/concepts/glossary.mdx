@@ -1,0 +1,23 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="glossary">
+  ### Core Terms
+
+  | Term | Definition |
+  |---|---|
+  | `subjectId` | Client-generated device/browser identifier (`sub_xxx`). Stored in the `c15t` cookie. Created on first consent save. |
+  | `externalId` | Your authenticated user's ID (from Clerk, Auth0, etc.), linked via `identifyUser()`. Connects a device to a user account. |
+  | `consents` | The **saved** consent state — `Record<string, boolean>` mapping categories to granted/denied. Used for gating scripts, iframes, and network requests. |
+  | `selectedConsents` | **Unsaved** toggle state — what the user has toggled in the dialog but hasn't submitted yet. Becomes `consents` after save. |
+  | `mode` | Client operating mode: `'hosted'` (full backend), `'offline'` (local only), or `'custom'` (bring your own handlers). Legacy alias: `'c15t'`. Set once in provider config. See [Client Modes](/docs/frameworks/react/concepts/client-modes). |
+  | `model` | Consent regulatory model derived from jurisdiction: `'opt-in'`, `'opt-out'`, `'iab'`, or `null`. See [Consent Models](/docs/frameworks/react/concepts/consent-models). |
+
+  ### Regulatory Terms
+
+  | Term | Definition |
+  |---|---|
+  | `jurisdiction` | A privacy regulation code (e.g., `GDPR`, `CCPA`, `PIPEDA`, `QC_LAW25`) detected from the user's geolocation. Maps to a consent model. See [Consent Models](/docs/frameworks/react/concepts/consent-models) for the full mapping table. |
+  | GPC | Global Privacy Control — a browser signal (`Sec-GPC: 1`) indicating the user opts out of data sale/sharing. Honored when a policy sets `consent.gpc: true` (enabled by default in California presets). |
+  | TCF | IAB Transparency and Consent Framework (v2.3) — a standard for programmatic advertising consent in GDPR jurisdictions. See [IAB TCF](/docs/frameworks/react/iab/overview). |
+  | GVL | Global Vendor List — an IAB-maintained registry of ad-tech vendors and their declared purposes, used by the TCF consent flow. |
+</section>

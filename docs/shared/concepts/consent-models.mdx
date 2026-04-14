@@ -1,0 +1,77 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="overview">
+  c15t supports four consent models that control how consent defaults, banner visibility, and category gating behave:
+
+  | Model | Philosophy | Banner | Categories default to |
+  |-------|-----------|--------|----------------------|
+  | `opt-in` | Explicit consent required | Blocking banner | `false` (except `necessary`) |
+  | `opt-out` | Processing allowed by default | Non-blocking notice | `true` (all granted) |
+  | `iab` | IAB TCF 2.3 for programmatic ads | TCF banner | Managed by TCF framework |
+  | `null` | No regulation detected | No banner | `true` (all auto-granted) |
+
+  There are two ways c15t determines which model applies:
+
+  1. **Policy packs** (recommended) — you explicitly set the model per region in a `PolicyConfig`. This gives you full control over which regions get which model. See [Policy Packs](/docs/frameworks/react/concepts/policy-packs).
+
+  2. **Automatic jurisdiction mapping** (legacy default) — when no policy pack is configured, c15t detects the visitor's jurisdiction via geolocation and maps it to a model using the table below. This still works but gives you less control over categories, UI, and scope.
+
+  <Callout type="info">
+    When using policy packs, the `consent.model` field in each policy directly sets the model — the automatic jurisdiction mapping is bypassed for that request.
+  </Callout>
+</section>
+
+<section id="models-explained">
+  ## The Four Models
+
+  ### Opt-in
+
+  The strictest consent model, used for GDPR and similar regulations that require explicit, affirmative consent before any non-essential data processing occurs. All consent categories except `necessary` default to `false`. A consent banner must be shown before any tracking scripts load.
+
+  Applies to: EU (GDPR), UK (UK GDPR), Switzerland, Brazil (LGPD), Japan (APPI), South Korea (PIPA), Quebec (Law 25). Also the fallback for unknown jurisdiction codes.
+
+  ### Opt-out
+
+  Used for CCPA-style regulations where data processing is permitted by default until the user exercises their right to opt out. All consent categories default to `true`. A blocking banner is not required — the typical pattern is a non-intrusive notice or footer link.
+
+  Applies to: California (CCPA), Canada (PIPEDA), Australia.
+
+  When the policy has `consent.gpc: true`, the browser's Global Privacy Control signal (`Sec-GPC: 1` or `navigator.globalPrivacyControl`) is respected — `marketing` and `measurement` are denied while other categories remain granted. The built-in California presets enable this by default. See [Policy Packs — GPC](/docs/frameworks/react/concepts/policy-packs#gpc) for details.
+
+  ### IAB
+
+  IAB Transparency and Consent Framework (TCF) 2.3 mode for programmatic advertising compliance. Only activates when two conditions are met: the jurisdiction is `GDPR` or `UK_GDPR`, and `iab.enabled` is `true` in your configuration.
+
+  When active, IAB mode generates TC strings, registers the `__tcfapi` CMP API, and works with the Global Vendor List (GVL) for machine-readable consent signals. If `iab.enabled` is not set, GDPR jurisdictions fall back to standard opt-in.
+
+  ### null
+
+  Returned when no jurisdiction is detected (`NONE` or `null`). No banner is displayed. On first visit, all categories are auto-granted.
+</section>
+
+<section id="jurisdiction-mapping">
+  ## Jurisdiction Mapping
+
+  When no policy pack is configured, c15t maps jurisdictions to models automatically:
+
+  | Jurisdiction Code | Region              | Consent Model |
+  | ----------------- | ------------------- | ------------- |
+  | `GDPR`            | European Union      | opt-in        |
+  | `UK_GDPR`         | United Kingdom      | opt-in        |
+  | `CH`              | Switzerland         | opt-in        |
+  | `BR`              | Brazil (LGPD)       | opt-in        |
+  | `APPI`            | Japan               | opt-in        |
+  | `PIPA`            | South Korea         | opt-in        |
+  | `PIPEDA`          | Canada (excl. Quebec) | opt-out     |
+  | `QC_LAW25`        | Quebec, Canada      | opt-in        |
+  | `CCPA`            | California, USA     | opt-out       |
+  | `AU`              | Australia           | opt-out       |
+  | `NONE`            | No jurisdiction     | null          |
+  | *(unknown)*       | Any other           | opt-in        |
+
+  **IAB override:** If `iab.enabled: true` and the jurisdiction is `GDPR` or `UK_GDPR`, the model becomes `'iab'` instead of `'opt-in'`. This override only applies to those two jurisdictions.
+
+  <Callout type="info">
+    With [policy packs](/docs/frameworks/react/concepts/policy-packs), you set the model explicitly per policy — the automatic mapping above is only used as a fallback when no policy pack is configured, or for non-policy-pack features like auto-granting in `opt-out` jurisdictions.
+  </Callout>
+</section>

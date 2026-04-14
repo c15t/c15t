@@ -1,0 +1,22 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="content">
+  <Callout type="error">
+    c15t is **not yet IAB certified**. The IAB TCF components are under active development and should **not be used in production**. APIs and behavior may change before certification is achieved.
+  </Callout>
+
+  `useGVLData()` currently powers the built-in `IABConsentDialog`, but it is **not part of the public package surface**.
+
+  Older docs showed it as a public hook. That is no longer accurate.
+
+  If you need supported customization points today:
+
+  - Use `IABConsentBanner` and `IABConsentDialog` from `@c15t/react/iab` for the supported prebuilt UI
+  - Use `useHeadlessIABConsentUI()` from `@c15t/react/iab` when you need lower-level control over banner/dialog state and actions
+
+  <Callout type="warn">
+    Until `useGVLData()` is exported as public API, avoid importing it from deep internal paths. Those paths are not covered by semver guarantees and can change without notice.
+  </Callout>
+
+  When a public GVL-focused hook becomes part of the supported API, this page should document that public surface instead of the internal dialog hook.
+</section>

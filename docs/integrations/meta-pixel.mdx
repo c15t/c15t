@@ -10,93 +10,19 @@ Meta Pixel (formerly Facebook Pixel) is Meta's conversion tracking and audience 
 
 This script persists after consent is revoked because it has built-in consent management. When consent changes, c15t updates Meta's internal consent state rather than removing the script entirely.
 
-### Adding the Meta Pixel to c15t
+## Adding the Meta Pixel to c15t
 
-<Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
-  <Tab value="JavaScript">
-    ```ts
-    import { metaPixel } from '@c15t/scripts/meta-pixel';
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+</Callout>
 
-    configureConsentManager({
-      // ... 
-      scripts: [
-        metaPixel({
-          pixelId: '123456789012345',
-        }),
-      ],
-    });
-    ```
-  </Tab>
+```ts
+import { metaPixel } from '@c15t/scripts/meta-pixel';
 
-  <Tab value="React">
-    ```tsx
-    import { metaPixel } from '@c15t/scripts/meta-pixel';
-    import { ConsentManagerProvider } from '@c15t/react';
-
-    export function App({ children }: { children: React.ReactNode }) { 
-      return (
-        <ConsentManagerProvider
-          options={{
-            scripts: [
-              metaPixel({
-                pixelId: '123456789012345',
-              }),
-            ],
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Next.js + App Router">
-    ```tsx
-    'use client';
-    import { metaPixel } from '@c15t/scripts/meta-pixel';
-    import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
-
-    export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
-      return (
-        <ClientSideOptionsProvider
-          scripts={[
-            metaPixel({
-              pixelId: '123456789012345',
-            }),
-          ]}
-        >
-          {children}
-        </ClientSideOptionsProvider>
-      );
-    }
-    ```
-  </Tab>
-
-  <Tab value="Next.js + Pages Router">
-    ```tsx
-    import { metaPixel } from '@c15t/scripts/meta-pixel';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
-
-    export function App({ children }: { children: React.ReactNode }) { 
-      return (
-        <ConsentManagerProvider
-          options={{
-            // ... other options
-            scripts: [
-              metaPixel({
-                pixelId: '123456789012345',
-              }),
-            ],
-          }}
-        >
-          {children}
-        </ConsentManagerProvider>
-      );
-    }
-    ```
-  </Tab>
-</Tabs>
+metaPixel({
+  pixelId: '123456789012345',
+})
+```
 
 ## metaPixelEvent
 

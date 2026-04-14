@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { STORAGE_KEY_V2 } from '../../store.initial-state';
-import { C15tClient } from '../c15t';
+import { STORAGE_KEY_V2 } from '../../store/initial-state';
 import { configureConsentManager } from '../client-factory';
 import { CustomClient } from '../custom';
+import { C15tClient } from '../hosted';
 import type { OfflineClient } from '../offline';
 
 // Note: For Vitest browser mode, we don't need to mock localStorage or fetch
@@ -40,8 +40,13 @@ describe('c15t Client Browser Tests', () => {
 		fetchSpy.mockResolvedValueOnce(
 			new Response(
 				JSON.stringify({
-					showConsentBanner: true,
-					jurisdiction: { code: 'EU', message: 'European Union' },
+					jurisdiction: 'GDPR',
+					location: { countryCode: 'DE', regionCode: null },
+					translations: {
+						language: 'en',
+						translations: {},
+					},
+					branding: 'c15t',
 				}),
 				{
 					status: 200,
@@ -52,23 +57,28 @@ describe('c15t Client Browser Tests', () => {
 
 		// Configure the client
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 		}) as C15tClient;
 
 		// Call the API
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// Assertions
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		expect(fetchSpy).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t/show-consent-banner'),
+			expect.stringContaining('/api/c15t/init'),
 			expect.any(Object)
 		);
 		expect(response.ok).toBe(true);
 		expect(response.data).toEqual({
-			showConsentBanner: true,
-			jurisdiction: { code: 'EU', message: 'European Union' },
+			jurisdiction: 'GDPR',
+			location: { countryCode: 'DE', regionCode: null },
+			translations: {
+				language: 'en',
+				translations: {},
+			},
+			branding: 'c15t',
 		});
 	});
 
@@ -104,8 +114,9 @@ describe('c15t Client Browser Tests', () => {
 		});
 
 		// Verify Content-Type header was set
+		// v2.0 uses POST /subjects endpoint
 		expect(fetchSpy).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t/consent/set'), // Updated to match the correct path
+			expect.stringContaining('/api/c15t/subjects'),
 			expect.objectContaining({
 				method: 'POST',
 				headers: expect.objectContaining({
@@ -124,7 +135,7 @@ describe('c15t Client Browser Tests', () => {
 
 		// Configure the client with retry disabled to avoid multiple calls
 		const client = configureConsentManager({
-			mode: 'c15t',
+			mode: 'hosted',
 			backendURL: '/api/c15t',
 			retryConfig: {
 				maxRetries: 0, // Disable retries for this test
@@ -138,7 +149,7 @@ describe('c15t Client Browser Tests', () => {
 		};
 
 		// Call the API - should fallback to offline mode
-		const response = await client.showConsentBanner({
+		const response = await client.init({
 			onError: errorHandler,
 		});
 
@@ -200,37 +211,41 @@ describe('Offline Client Browser Tests', () => {
 		}) as OfflineClient;
 
 		// Call without headers (defaults to GB - GDPR jurisdiction)
-		let response = await client.showConsentBanner();
-		expect(response.data?.showConsentBanner).toBe(true);
-		expect(response.data?.jurisdiction?.code).toBe('GDPR');
+		let response = await client.init();
+		expect(response.data?.jurisdiction).toBe('GDPR');
 		expect(response.data?.location?.countryCode).toBe('GB');
+		expect(response.data?.location?.regionCode).toBeNull();
 
 		// Call with GDPR country header
-		response = await client.showConsentBanner({
+		response = await client.init({
 			headers: { 'x-c15t-country': 'DE' },
 		});
-		expect(response.data?.showConsentBanner).toBe(true);
-		expect(response.data?.jurisdiction?.code).toBe('GDPR');
+		expect(response.data?.jurisdiction).toBe('GDPR');
 		expect(response.data?.location?.countryCode).toBe('DE');
+		expect(response.data?.location?.regionCode).toBeNull();
 
 		// Call with non-regulated country header
-		response = await client.showConsentBanner({
+		response = await client.init({
 			headers: { 'x-c15t-country': 'US' },
 		});
-		expect(response.data?.showConsentBanner).toBe(false);
-		expect(response.data?.jurisdiction?.code).toBe('NONE');
+		expect(response.data?.jurisdiction).toBe('NONE');
 		expect(response.data?.location?.countryCode).toBe('US');
+		expect(response.data?.location?.regionCode).toBeNull();
 	});
 });
 
 describe('Custom Client Browser Tests', () => {
 	// Real implementations for required handlers
 	const handlers = {
-		showConsentBanner: async () => ({
+		init: async () => ({
 			data: {
-				showConsentBanner: true,
-				jurisdiction: { code: 'EU', message: 'European Union' },
+				jurisdiction: 'GDPR',
 				location: { countryCode: 'DE', regionCode: null },
+				translations: {
+					language: 'en',
+					translations: {},
+				},
+				branding: 'c15t',
 			},
 			ok: true,
 			error: null,
@@ -256,6 +271,12 @@ describe('Custom Client Browser Tests', () => {
 				response: null,
 			};
 		},
+		identifyUser: async () => ({
+			data: { success: true },
+			ok: true,
+			error: null,
+			response: null,
+		}),
 		verifyConsent: async () => ({
 			data: { valid: true },
 			ok: true,
@@ -268,7 +289,7 @@ describe('Custom Client Browser Tests', () => {
 		localStorage.clear();
 
 		// Spy on handlers
-		vi.spyOn(handlers, 'showConsentBanner');
+		vi.spyOn(handlers, 'init');
 		vi.spyOn(handlers, 'setConsent');
 		vi.spyOn(handlers, 'verifyConsent');
 	});
@@ -282,12 +303,12 @@ describe('Custom Client Browser Tests', () => {
 		}) as CustomClient;
 
 		// Call the API
-		const response = await client.showConsentBanner();
+		const response = await client.init();
 
 		// Assertions
-		expect(handlers.showConsentBanner).toHaveBeenCalledTimes(1);
+		expect(handlers.init).toHaveBeenCalledTimes(1);
 		expect(response.ok).toBe(true);
-		expect(response.data?.showConsentBanner).toBe(true);
+		expect(response.data?.jurisdiction).toBe('GDPR');
 	});
 
 	it('should handle custom storage in browser', async () => {

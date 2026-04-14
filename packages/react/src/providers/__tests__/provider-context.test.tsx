@@ -1,63 +1,18 @@
-import { type ConsentManagerOptions, defaultTranslationConfig } from 'c15t';
 // consent-manager-provider.context.test.tsx - Test context values
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { useConsentManager } from '../../hooks/use-consent-manager';
 import {
 	ConsentManagerProvider,
-	clearConsentManagerCache,
+	clearConsentRuntimeCache,
 } from '../consent-manager-provider';
 import { setupMocks } from './test-helpers';
 
 // Setup common mocks
-const { mockConfigureConsentManager } = setupMocks();
-
-// Mock c15t module directly in this test file
-vi.mock('c15t', async () => {
-	const originalModule = await vi.importActual('c15t');
-
-	return {
-		...(originalModule as object),
-		configureConsentManager: (options: ConsentManagerOptions) => {
-			// Track the call
-			mockConfigureConsentManager(options);
-
-			// Return a ready-to-use mock with showPopup set to true
-			return {
-				showConsentBanner: async () => ({
-					ok: true,
-					data: {
-						showConsentBanner: true,
-						jurisdiction: {
-							code: 'GDPR',
-						},
-						translations: {
-							language: 'en',
-							translations: defaultTranslationConfig.translations.en,
-						},
-					},
-					error: null,
-					response: null,
-				}),
-				setConsent: async () => ({
-					ok: true,
-					data: { success: true },
-					error: null,
-					response: null,
-				}),
-				verifyConsent: async () => ({
-					ok: true,
-					data: { valid: true },
-					error: null,
-					response: null,
-				}),
-			};
-		},
-	};
-});
+setupMocks();
 
 // Helper to manually modify the context value
-const modifyContextShowPopup = vi.fn();
+const modifyContextActiveUI = vi.fn();
 
 // Mock the useConsentManager hook
 vi.mock('../../hooks/use-consent-manager', async () => {
@@ -70,13 +25,13 @@ vi.mock('../../hooks/use-consent-manager', async () => {
 		useConsentManager: () => {
 			const result = (
 				originalModule as unknown as {
-					useConsentManager: () => { showPopup: boolean };
+					useConsentManager: () => { activeUI: string };
 				}
 			).useConsentManager();
-			// Force showPopup to true for tests
-			result.showPopup = true;
+			// Force activeUI to 'banner' for tests
+			result.activeUI = 'banner';
 			// Track that this was called
-			modifyContextShowPopup();
+			modifyContextActiveUI();
 			return result;
 		},
 	};
@@ -87,7 +42,7 @@ describe('ConsentManagerProvider Context Values', () => {
 		vi.resetAllMocks();
 		vi.useFakeTimers();
 		// Clear consent manager caches to ensure clean state between tests
-		clearConsentManagerCache();
+		clearConsentRuntimeCache();
 	});
 
 	afterEach(() => {
@@ -103,23 +58,21 @@ describe('ConsentManagerProvider Context Values', () => {
 					<div data-testid="has-manager">
 						{Boolean(context.manager).toString()}
 					</div>
-					<div data-testid="show-popup">
-						{context.showPopup ? 'true' : 'false'}
+					<div data-testid="active-ui">
+						{context.activeUI === 'banner' ? 'true' : 'false'}
 					</div>
 					<div data-testid="debug-state">
-						{JSON.stringify({ showPopup: context.showPopup })}
+						{JSON.stringify({ activeUI: context.activeUI })}
 					</div>
 				</div>
 			);
 		};
 
-		const { getByTestId } = render(
+		const { getByTestId } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
-					react: {
-						theme: { 'banner.root': 'dark' },
-					},
+					theme: { slots: { bannerCard: 'dark' } },
 				}}
 			>
 				<ConsumerComponent />
@@ -130,13 +83,13 @@ describe('ConsentManagerProvider Context Values', () => {
 		await vi.runAllTimersAsync();
 
 		// Verify our mock was called
-		expect(modifyContextShowPopup).toHaveBeenCalled();
+		expect(modifyContextActiveUI).toHaveBeenCalled();
 
 		// Wait for values to be available (with generous timeout)
 		await vi.waitFor(
 			() => {
 				expect(getByTestId('has-manager')).toHaveTextContent('true');
-				expect(getByTestId('show-popup')).toHaveTextContent('true');
+				expect(getByTestId('active-ui')).toHaveTextContent('true');
 			},
 			{ timeout: 3000 }
 		);

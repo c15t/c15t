@@ -1,0 +1,89 @@
+---
+title: Policy Packs
+description: Configure regional consent policies in Next.js — hosted mode, presets, and offline fallback.
+---
+
+<import src="../../shared/react/guides/policy-packs.mdx#intro" />
+
+<import src="../../shared/react/guides/policy-packs.mdx#defaults" />
+
+## Next.js Example (Hosted)
+
+Point the provider at your backend — policy resolution happens server-side:
+
+```tsx title="components/consent-manager/provider.tsx"
+'use client';
+
+import type { ReactNode } from 'react';
+import {
+  ConsentBanner,
+  ConsentDialog,
+  ConsentManagerProvider,
+} from '@c15t/nextjs';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        backendURL: 'https://your-instance.c15t.dev',
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+For production Next.js apps, you can optionally hydrate the first `/init` response with the [server-side utilities](/docs/frameworks/next/server-side).
+
+## Offline / Fallback
+
+For local development, previews, automated tests, or when the backend is temporarily unreachable, pass policies directly:
+
+```tsx title="components/consent-manager/provider.tsx"
+'use client';
+
+import type { ReactNode } from 'react';
+import {
+  ConsentBanner,
+  ConsentDialog,
+  ConsentManagerProvider,
+  policyPackPresets,
+} from '@c15t/nextjs';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'offline',
+        offlinePolicy: {
+          policyPacks: [
+            policyPackPresets.europeOptIn(),
+            policyPackPresets.californiaOptOut(),
+            policyPackPresets.worldNoBanner(),
+          ],
+        },
+        overrides: {
+          country: 'DE', // Preview as a German visitor
+        },
+      }}
+    >
+      <ConsentBanner />
+      <ConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../shared/react/guides/policy-packs.mdx#provider-shape" />
+
+<import src="../../shared/react/guides/policy-packs.mdx#fallback-behavior" />
+
+<import src="../../shared/react/guides/policy-packs.mdx#qa-and-debugging" />
+
+<Callout type="info">
+  For the full concept model (matchers, scope modes, re-prompting), see [Policy Packs concepts](/docs/frameworks/next/concepts/policy-packs). For backend setup, see the [self-host guide](/docs/self-host/guides/policy-packs).
+</Callout>

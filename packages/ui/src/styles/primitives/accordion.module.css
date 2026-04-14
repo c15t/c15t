@@ -1,0 +1,249 @@
+:root {
+	/* Layout variables */
+	--accordion-padding: var(--c15t-space-md);
+	--accordion-radius: var(--c15t-radius-md);
+	--accordion-duration: var(--c15t-duration-normal);
+	--accordion-ease: var(--c15t-easing);
+
+	/* Icon sizes */
+	--accordion-icon-size: 1.25rem;
+
+	/* Colors */
+	--accordion-background-color: var(--c15t-surface);
+	--accordion-background-color-dark: var(--c15t-surface);
+	--accordion-background-hover: var(--c15t-surface-hover);
+	--accordion-background-hover-dark: var(--c15t-surface-hover);
+	--accordion-border-color: var(--c15t-border);
+	--accordion-border-color-dark: var(--c15t-border);
+	--accordion-text-color: var(--c15t-text);
+	--accordion-text-color-dark: var(--c15t-text);
+	--accordion-icon-color: var(--c15t-text-muted);
+	--accordion-icon-color-dark: var(--c15t-text-muted);
+	--accordion-arrow-color: var(--c15t-text-muted);
+	--accordion-arrow-color-dark: var(--c15t-text-muted);
+	--accordion-content-color: var(--c15t-text-muted);
+	--accordion-content-color-dark: var(--c15t-text-muted);
+	--accordion-focus-ring: var(--c15t-primary);
+	--accordion-focus-ring-dark: var(--c15t-primary);
+	--accordion-focus-shadow: 0 0 0 2px var(--accordion-focus-ring);
+	--accordion-focus-shadow-dark: 0 0 0 2px var(--accordion-focus-ring-dark);
+}
+
+@layer components {
+	.root {
+		& > :not([hidden]) ~ :not([hidden]) {
+			--space-y-reverse: 0;
+			margin-top: calc(1rem * calc(1 - var(--space-y-reverse)));
+			margin-bottom: calc(1rem * var(--space-y-reverse));
+		}
+	}
+
+	.item {
+		position: relative;
+		padding: var(--accordion-padding);
+		background-color: var(--accordion-background-color);
+		box-shadow: inset 0 0 0 1px var(--accordion-border-color);
+		transition:
+			background-color var(--accordion-duration) var(--accordion-ease),
+			box-shadow var(--accordion-duration) var(--accordion-ease);
+		border-radius: var(--accordion-radius);
+		overflow: visible;
+	}
+
+	:global(.c15t-dark) .item {
+		background-color: var(--accordion-background-color-dark);
+		box-shadow: inset 0 0 0 1px var(--accordion-border-color-dark);
+	}
+
+	.item:is(:hover, [data-state="open"]) {
+		background-color: var(--accordion-background-hover);
+		box-shadow: inset 0 0 0 1px var(--accordion-border-color);
+	}
+
+	:global(.c15t-dark) .item:is(:hover, [data-state="open"]) {
+		background-color: var(--accordion-background-hover-dark);
+		box-shadow: inset 0 0 0 1px var(--accordion-border-color-dark);
+	}
+
+	/* Focus styles for item */
+	.item:focus-within:not(:has(.triggerInner:focus-visible)) {
+		background-color: var(--accordion-background-hover);
+		box-shadow: inset 0 0 0 1px var(--accordion-border-color);
+	}
+
+	:global(.c15t-dark)
+		.item:focus-within:not(:has(.triggerInner:focus-visible)) {
+		background-color: var(--accordion-background-hover-dark);
+		box-shadow: inset 0 0 0 1px var(--accordion-border-color-dark);
+	}
+
+	.item:has(.triggerInner:focus-visible) {
+		box-shadow: var(--accordion-focus-shadow);
+	}
+
+	:global(.c15t-dark) .item:has(.triggerInner:focus-visible) {
+		box-shadow: var(--accordion-focus-shadow-dark);
+	}
+
+	.trigger {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		position: relative;
+		width: 100%;
+		overflow: visible;
+	}
+
+	.triggerInner {
+		display: flex;
+		align-items: center;
+		gap: 0.625rem;
+		justify-content: flex-start;
+		width: 100%;
+		margin: 0;
+		padding: 0;
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+		letter-spacing: -0.006em;
+		font-weight: 500;
+		text-align: left;
+		color: var(--accordion-text-color);
+		border: 0;
+		background: none;
+		cursor: pointer;
+		border-radius: var(--accordion-radius);
+		position: relative;
+		z-index: 1;
+		touch-action: manipulation;
+	}
+
+	.triggerInner [data-slot="accordion-arrow"] {
+		margin-inline-start: auto;
+	}
+
+	:global(.c15t-dark) .triggerInner {
+		color: var(--accordion-text-color-dark);
+	}
+
+	.triggerInner:focus-visible {
+		outline: none;
+	}
+
+	.icon {
+		width: var(--accordion-icon-size);
+		height: var(--accordion-icon-size);
+		color: var(--accordion-icon-color);
+		flex-shrink: 0;
+	}
+
+	:global(.c15t-dark) .icon {
+		color: var(--accordion-icon-color-dark);
+	}
+
+	.arrowOpen,
+	.arrowClose {
+		display: block;
+		width: var(--accordion-icon-size);
+		height: var(--accordion-icon-size);
+		transition: color var(--accordion-duration) var(--accordion-ease);
+		flex-shrink: 0;
+	}
+
+	.arrowOpen {
+		color: var(--accordion-arrow-color);
+	}
+
+	:global(.c15t-dark) .arrowOpen {
+		color: var(--accordion-arrow-color-dark);
+	}
+
+	.item:hover .arrowOpen {
+		color: var(--accordion-icon-color);
+	}
+
+	:global(.c15t-dark) .item:hover .arrowOpen {
+		color: var(--accordion-icon-color-dark);
+	}
+
+	.arrowClose {
+		color: var(--accordion-icon-color);
+		display: none;
+	}
+
+	:global(.c15t-dark) .arrowClose {
+		color: var(--accordion-icon-color-dark);
+	}
+
+	.item[data-state="open"] .arrowOpen {
+		display: none;
+	}
+
+	.item[data-state="open"] .arrowClose {
+		display: block;
+	}
+
+	.content {
+		display: grid;
+		grid-template-rows: 0fr;
+		overflow: hidden;
+		transition: grid-template-rows var(--accordion-duration)
+			var(--accordion-ease);
+	}
+
+	.content[data-state="open"] {
+		grid-template-rows: 1fr;
+	}
+
+	.content[data-state="closed"] {
+		pointer-events: none;
+	}
+
+	.content > [data-slot="accordion-content-viewport"] {
+		min-height: 0;
+		overflow: hidden;
+	}
+
+	.contentInner {
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+		letter-spacing: -0.006em;
+		color: var(--accordion-content-color);
+		padding-top: 0.75rem;
+		opacity: 1;
+		transform: translateY(0);
+		transition:
+			opacity calc(var(--accordion-duration) * 0.35) ease-out,
+			transform calc(var(--accordion-duration) * 0.35) ease-out;
+		will-change: opacity, transform;
+	}
+
+	.content[data-state="closed"] .contentInner {
+		opacity: 0;
+		transform: translateY(-0.125rem);
+	}
+
+	:global(.c15t-dark) .contentInner {
+		color: var(--accordion-content-color-dark);
+	}
+
+	/* Reduced motion preference */
+	@media (prefers-reduced-motion: reduce) {
+		.item,
+		.content,
+		.arrowOpen,
+		.arrowClose {
+			transition: none;
+		}
+	}
+
+	/* Touch device hover reset - prevents "sticky" hover on tap */
+	@media (hover: none) {
+		.item:hover {
+			background-color: var(--accordion-background-color);
+		}
+
+		.item:hover .arrowOpen {
+			color: var(--accordion-arrow-color);
+		}
+	}
+}

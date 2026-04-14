@@ -1,0 +1,82 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="content">
+  ## What are Slots?
+
+  Slots let you target specific parts of consent components with styles. Each component is built from named slots such as `consentBannerTitle` and `consentDialogTag`.
+
+  Use slots after the stock component APIs and design tokens:
+
+  - If the change is semantic, prefer tokens first. For example, the stock banner footer background comes from `theme.colors.surfaceHover`.
+  - If the component part is correct but you need a local tweak, use a slot.
+
+  Common banner slot choices:
+
+  - `consentBannerCard` for card radius, shadow, width, and local background treatment
+  - `consentBannerFooter` for spacing, borders, and local footer styling
+  - `consentBannerTitle` for title typography
+  - `buttonPrimary` and `buttonSecondary` for shared button classes
+
+  ## Using Slots
+
+  Pass slot styles in the theme's `slots` object:
+
+  ```tsx
+  const theme = {
+    slots: {
+      consentBannerFooter: 'border-t border-black/10 px-6',
+      consentBannerTitle: 'text-xl font-bold tracking-tight',
+
+      // Object value = className + inline styles
+      consentBannerCard: {
+        className: 'rounded-xl shadow-lg',
+        style: { maxWidth: '600px' },
+      },
+    },
+  } satisfies Theme;
+  ```
+
+  ## Slot Style Types
+
+  Each slot accepts either a `string` (treated as className) or a `SlotStyle` object:
+
+  ```tsx
+  // String: treated as className
+  consentBannerTitle: 'my-custom-class'
+
+  // Object: className + style + noStyle
+  consentBannerFooter: {
+    className: 'border-t border-black/10',
+    style: { paddingBlock: '1rem' },
+    noStyle: false, // Set true only when you want to remove this slot's default styling
+  }
+  ```
+
+  `noStyle` on a slot is an advanced escape hatch. Start with className and style overrides first.
+
+  ## Example: Style the stock banner without changing markup
+
+  ```tsx
+  const theme = {
+    colors: {
+      surface: '#fffdf8',
+      surfaceHover: '#f6f3ee',
+    },
+    slots: {
+      consentBannerCard: 'rounded-[28px] shadow-xl',
+      consentBannerFooter: 'border-t border-black/10 px-6',
+      consentBannerTitle: 'tracking-tight',
+    },
+  } satisfies Theme;
+  ```
+
+  ## Available Slots
+
+  Use the typed API reference below for the full slot list and descriptions. It stays in sync with the actual component slot surface.
+
+  ## API Reference
+
+  <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="ComponentSlots" />
+
+  <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="SlotStyle" />
+</section>

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ConsentState } from '../../../types/compliance';
-import type { AllConsentNames } from '../../../types/gdpr';
+import type { AllConsentNames } from '../../../types/consent-types';
 import {
 	clearAllScripts,
 	getLoadedScriptIds,
@@ -10,7 +10,8 @@ import {
 	unloadScripts,
 	updateScripts,
 } from '../core';
-import type { Script, ScriptCallbackInfo } from '../types';
+import { subscribeToScriptDebugEvents } from '../debug';
+import type { Script, ScriptCallbackInfo, ScriptDebugEvent } from '../types';
 import {
 	mockRandomForTesting,
 	sampleConsents,
@@ -78,7 +79,6 @@ fbq('track', 'PageView');
 			callbackOnly: true,
 			onBeforeLoad: vi.fn(),
 			onLoad: vi.fn(),
-			onDelete: vi.fn(),
 		},
 	];
 
@@ -99,6 +99,65 @@ fbq('track', 'PageView');
 			// Should have called document.createElement for each standard script (3), but not for callback-only script
 			expect(document.createElement).toHaveBeenCalledTimes(3);
 			expect(document.head.appendChild).toHaveBeenCalledTimes(3);
+		});
+
+		it('emits structured script debug events for load lifecycle', () => {
+			const events: ScriptDebugEvent[] = [];
+			const unsubscribe = subscribeToScriptDebugEvents((event) => {
+				events.push(event);
+			});
+
+			loadScripts(
+				[
+					{
+						id: 'telemetry-script',
+						src: 'https://example.com/telemetry.js',
+						category: 'necessary',
+						onBeforeLoad: vi.fn(),
+					},
+					{
+						id: 'blocked-telemetry-script',
+						src: 'https://example.com/blocked.js',
+						category: 'marketing',
+					},
+				],
+				sampleConsents
+			);
+
+			unsubscribe();
+
+			expect(events).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({
+						source: 'script-loader',
+						scope: 'lifecycle',
+						action: 'callback_start',
+						scriptId: 'telemetry-script',
+						callback: 'onBeforeLoad',
+					}),
+					expect.objectContaining({
+						source: 'script-loader',
+						scope: 'lifecycle',
+						action: 'element_appended',
+						scriptId: 'telemetry-script',
+					}),
+					expect.objectContaining({
+						source: 'script-loader',
+						scope: 'lifecycle',
+						action: 'loaded',
+						scriptId: 'telemetry-script',
+					}),
+					expect.objectContaining({
+						source: 'script-loader',
+						scope: 'lifecycle',
+						action: 'skipped',
+						scriptId: 'blocked-telemetry-script',
+						data: expect.objectContaining({
+							reason: 'missing_consent',
+						}),
+					}),
+				])
+			);
 		});
 
 		it('should set script attributes correctly', () => {
@@ -333,7 +392,6 @@ fbq('track', 'PageView');
 		it('should handle callback-only scripts correctly', () => {
 			const onBeforeLoad = vi.fn();
 			const onLoad = vi.fn();
-			const onDelete = vi.fn();
 			const scriptIdMap: Record<string, string> = {};
 
 			const callbackOnlyScript: Script = {
@@ -342,7 +400,6 @@ fbq('track', 'PageView');
 				callbackOnly: true,
 				onBeforeLoad,
 				onLoad,
-				onDelete,
 			};
 
 			// Load the callback-only script
@@ -363,7 +420,6 @@ fbq('track', 'PageView');
 			// Should have called onBeforeLoad and onLoad callbacks
 			expect(onBeforeLoad).toHaveBeenCalledTimes(1);
 			expect(onLoad).toHaveBeenCalledTimes(1);
-			expect(onDelete).not.toHaveBeenCalled();
 
 			// Callback info should contain the correct properties
 			expect(onBeforeLoad).toHaveBeenCalledWith(
@@ -612,54 +668,10 @@ fbq('track', 'PageView');
 			expect(scriptElements.length).toBeGreaterThan(0);
 		});
 
-		it('should call onDelete callback with enhanced callback info when unloading scripts', () => {
-			// Create a script with onDelete callback
-			const onDelete = vi.fn();
-			const callbackScript = {
-				id: 'callback-script',
-				src: 'https://example.com/callback.js',
-				category: 'measurement' as AllConsentNames,
-				onDelete,
-			};
-
-			const scriptIdMap: Record<string, string> = {};
-
-			// First load the script
-			loadScripts([callbackScript], sampleConsents, scriptIdMap);
-
-			// Change consent state to revoke consent
-			const newConsents: ConsentState = {
-				...sampleConsents,
-				measurement: false,
-			};
-
-			// Unload scripts without consent
-			const unloadedIds = unloadScripts(
-				[callbackScript],
-				newConsents,
-				scriptIdMap
-			);
-
-			// Should unload the callback script
-			expect(unloadedIds).toContain('callback-script');
-
-			// onDelete should have been called with enhanced callback info
-			expect(onDelete).toHaveBeenCalledTimes(1);
-			expect(onDelete).toHaveBeenCalledWith(
-				expect.objectContaining({
-					id: 'callback-script',
-					elementId: expect.any(String),
-					consents: newConsents,
-					element: expect.any(Object),
-				})
-			);
-		});
-
 		it('should unload callback-only scripts correctly', () => {
-			// Create a callback-only script with onDelete callback
+			// Create a callback-only script
 			const onBeforeLoad = vi.fn();
 			const onLoad = vi.fn();
-			const onDelete = vi.fn();
 
 			const callbackOnlyScript: Script = {
 				id: 'callback-only-unload',
@@ -667,7 +679,6 @@ fbq('track', 'PageView');
 				callbackOnly: true,
 				onBeforeLoad,
 				onLoad,
-				onDelete,
 			};
 
 			const scriptIdMap: Record<string, string> = {};
@@ -700,17 +711,6 @@ fbq('track', 'PageView');
 			expect(unloadedIds).toContain('callback-only-unload');
 			expect(isScriptLoaded('callback-only-unload')).toBe(false);
 
-			// onDelete should have been called with callback info without element
-			expect(onDelete).toHaveBeenCalledTimes(1);
-			expect(onDelete).toHaveBeenCalledWith(
-				expect.objectContaining({
-					id: 'callback-only-unload',
-					elementId: expect.any(String),
-					consents: newConsents,
-					// No element property for callback-only scripts
-				})
-			);
-
 			// Should not have called remove on a DOM element
 			// We can't directly check mockScriptElement.remove since it's not accessible here
 			// But we know that if it were called, document.createElement would have been called first
@@ -718,13 +718,11 @@ fbq('track', 'PageView');
 		});
 
 		it('should unload scripts from body correctly', () => {
-			const onDelete = vi.fn();
 			const bodyScript: Script = {
 				id: 'body-script-unload',
 				src: 'https://example.com/body.js',
 				category: 'measurement',
 				target: 'body',
-				onDelete,
 			};
 
 			const scriptIdMap: Record<string, string> = {};
@@ -748,9 +746,6 @@ fbq('track', 'PageView');
 			// Should unload the body script
 			expect(unloadedIds).toContain('body-script-unload');
 			expect(isScriptLoaded('body-script-unload')).toBe(false);
-
-			// onDelete should have been called
-			expect(onDelete).toHaveBeenCalledTimes(1);
 
 			// Get the script element and verify remove was called
 			const mockCreateElement = document.createElement as unknown as {
@@ -829,102 +824,6 @@ fbq('track', 'PageView');
 			expect(isScriptLoaded('necessary-script')).toBe(false);
 			expect(isScriptLoaded('callback-only-script')).toBe(false);
 		});
-
-		it('should call onDelete callbacks with enhanced callback info when clearing scripts', () => {
-			// Create scripts with onDelete callbacks
-			const onDelete1 = vi.fn();
-			const onDelete2 = vi.fn();
-			const scriptsWithCallbacks = [
-				{
-					id: 'callback-script-1',
-					src: 'https://example.com/callback1.js',
-					category: 'necessary' as AllConsentNames,
-					onDelete: onDelete1,
-				},
-				{
-					id: 'callback-script-2',
-					src: 'https://example.com/callback2.js',
-					category: 'necessary' as AllConsentNames,
-					onDelete: onDelete2,
-				},
-			];
-
-			const scriptIdMap: Record<string, string> = {};
-
-			// Load the scripts
-			loadScripts(scriptsWithCallbacks, sampleConsents, scriptIdMap);
-
-			// Clear all scripts
-			const unloadedIds = clearAllScripts(
-				scriptsWithCallbacks,
-				sampleConsents,
-				scriptIdMap
-			);
-
-			// Should have unloaded all scripts
-			expect(unloadedIds).toContain('callback-script-1');
-			expect(unloadedIds).toContain('callback-script-2');
-
-			// onDelete callbacks should have been called with enhanced callback info
-			expect(onDelete1).toHaveBeenCalledTimes(1);
-			expect(onDelete1).toHaveBeenCalledWith(
-				expect.objectContaining({
-					id: 'callback-script-1',
-					elementId: expect.any(String),
-					consents: sampleConsents,
-					element: expect.any(Object),
-				})
-			);
-			expect(onDelete2).toHaveBeenCalledTimes(1);
-			expect(onDelete2).toHaveBeenCalledWith(
-				expect.objectContaining({
-					id: 'callback-script-2',
-					elementId: expect.any(String),
-					consents: sampleConsents,
-					element: expect.any(Object),
-				})
-			);
-		});
-
-		it('should call onDelete callbacks for callback-only scripts when clearing', () => {
-			// Create a callback-only script with onDelete callback
-			const onDelete = vi.fn();
-			const callbackOnlyScript = {
-				id: 'callback-only-clear',
-				category: 'necessary' as AllConsentNames,
-				callbackOnly: true,
-				onDelete,
-			};
-
-			const scriptIdMap: Record<string, string> = {};
-
-			// Load the callback-only script
-			loadScripts([callbackOnlyScript], sampleConsents, scriptIdMap);
-
-			// Verify it was loaded
-			expect(isScriptLoaded('callback-only-clear')).toBe(true);
-
-			// Clear all scripts
-			const unloadedIds = clearAllScripts(
-				[callbackOnlyScript],
-				sampleConsents,
-				scriptIdMap
-			);
-
-			// Should have unloaded the callback-only script
-			expect(unloadedIds).toContain('callback-only-clear');
-
-			// onDelete should have been called with callback info without element
-			expect(onDelete).toHaveBeenCalledTimes(1);
-			expect(onDelete).toHaveBeenCalledWith(
-				expect.objectContaining({
-					id: 'callback-only-clear',
-					elementId: expect.any(String),
-					consents: sampleConsents,
-					// No element property for callback-only scripts
-				})
-			);
-		});
 	});
 
 	describe('reloadScript', () => {
@@ -977,15 +876,13 @@ fbq('track', 'PageView');
 			expect(result).toBe(false);
 		});
 
-		it('should call onDelete and onBeforeLoad callbacks with enhanced callback info when reloading a script', () => {
-			// Create a script with onDelete callback
-			const onDelete = vi.fn();
+		it('should call onBeforeLoad callback with enhanced callback info when reloading a script', () => {
+			// Create a script with onBeforeLoad callback
 			const onBeforeLoad = vi.fn();
 			const scriptWithCallback = {
 				id: 'reload-script',
 				src: 'https://example.com/reload.js',
 				category: 'necessary' as AllConsentNames,
-				onDelete,
 				onBeforeLoad,
 			};
 
@@ -1005,17 +902,6 @@ fbq('track', 'PageView');
 			// Should return true for successful reload
 			expect(result).toBe(true);
 
-			// onDelete should have been called with enhanced callback info
-			expect(onDelete).toHaveBeenCalledTimes(1);
-			expect(onDelete).toHaveBeenCalledWith(
-				expect.objectContaining({
-					id: expect.any(String),
-					elementId: expect.any(String),
-					consents: expect.any(Object),
-					element: expect.any(Object),
-				})
-			);
-
 			// onBeforeLoad should have been called for the new script with enhanced callback info
 			expect(onBeforeLoad).toHaveBeenCalledTimes(2); // Once during initial load, once during reload
 			expect(onBeforeLoad).toHaveBeenCalledWith(
@@ -1032,7 +918,6 @@ fbq('track', 'PageView');
 			// Create a callback-only script with callbacks
 			const onBeforeLoad = vi.fn();
 			const onLoad = vi.fn();
-			const onDelete = vi.fn();
 
 			const callbackOnlyScript: Script = {
 				id: 'callback-only-reload',
@@ -1040,7 +925,6 @@ fbq('track', 'PageView');
 				callbackOnly: true,
 				onBeforeLoad,
 				onLoad,
-				onDelete,
 			};
 
 			const scriptIdMap: Record<string, string> = {};
@@ -1067,17 +951,6 @@ fbq('track', 'PageView');
 			// Should return true for successful reload
 			expect(result).toBe(true);
 
-			// onDelete should have been called with callback info without element
-			expect(onDelete).toHaveBeenCalledTimes(1);
-			expect(onDelete).toHaveBeenCalledWith(
-				expect.objectContaining({
-					id: 'callback-only-reload',
-					elementId: expect.any(String),
-					consents: sampleConsents,
-					// No element property for callback-only scripts
-				})
-			);
-
 			// onBeforeLoad and onLoad should have been called for the reloaded script
 			expect(onBeforeLoad).toHaveBeenCalledTimes(1);
 			expect(onLoad).toHaveBeenCalledTimes(1);
@@ -1091,13 +964,11 @@ fbq('track', 'PageView');
 
 	describe('persistAfterConsentRevoked', () => {
 		it('should keep script in DOM when persistAfterConsentRevoked is true during unloadScripts', () => {
-			const onDelete = vi.fn();
 			const persistentScript: Script = {
 				id: 'persistent-script',
 				src: 'https://example.com/persistent.js',
 				category: 'marketing',
 				persistAfterConsentRevoked: true,
-				onDelete,
 			};
 
 			const scriptIdMap: Record<string, string> = {};
@@ -1144,29 +1015,16 @@ fbq('track', 'PageView');
 			expect(unloadedIds).toContain('persistent-script');
 			expect(isScriptLoaded('persistent-script')).toBe(false);
 
-			// onDelete callback should have been called
-			expect(onDelete).toHaveBeenCalledTimes(1);
-			expect(onDelete).toHaveBeenCalledWith(
-				expect.objectContaining({
-					id: 'persistent-script',
-					elementId: expect.any(String),
-					consents: consentsWithoutMarketing,
-					element: expect.any(Object),
-				})
-			);
-
 			// Script element should NOT have been removed from DOM
 			expect(removeSpy).not.toHaveBeenCalled();
 		});
 
 		it('should remove script from DOM when persistAfterConsentRevoked is false during unloadScripts', () => {
-			const onDelete = vi.fn();
 			const nonPersistentScript: Script = {
 				id: 'non-persistent-script',
 				src: 'https://example.com/non-persistent.js',
 				category: 'marketing',
 				persistAfterConsentRevoked: false,
-				onDelete,
 			};
 
 			const scriptIdMap: Record<string, string> = {};
@@ -1218,21 +1076,16 @@ fbq('track', 'PageView');
 			expect(unloadedIds).toContain('non-persistent-script');
 			expect(isScriptLoaded('non-persistent-script')).toBe(false);
 
-			// onDelete callback should have been called
-			expect(onDelete).toHaveBeenCalledTimes(1);
-
 			// Script element SHOULD have been removed from DOM
 			expect(removeSpy).toHaveBeenCalledTimes(1);
 		});
 
 		it('should keep script in DOM when persistAfterConsentRevoked is true during clearAllScripts', () => {
-			const onDelete = vi.fn();
 			const persistentScript: Script = {
 				id: 'persistent-clear-script',
 				src: 'https://example.com/persistent-clear.js',
 				category: 'marketing',
 				persistAfterConsentRevoked: true,
-				onDelete,
 			};
 
 			const scriptIdMap: Record<string, string> = {};
@@ -1260,31 +1113,22 @@ fbq('track', 'PageView');
 			const removeSpy = vi.spyOn(mockScriptElement, 'remove');
 
 			// Clear all scripts
-			const unloadedIds = clearAllScripts(
-				[persistentScript],
-				consentsWithMarketing,
-				scriptIdMap
-			);
+			const unloadedIds = clearAllScripts([persistentScript]);
 
 			// Script should be marked as unloaded
 			expect(unloadedIds).toContain('persistent-clear-script');
 			expect(isScriptLoaded('persistent-clear-script')).toBe(false);
-
-			// onDelete callback should have been called
-			expect(onDelete).toHaveBeenCalledTimes(1);
 
 			// Script element should NOT have been removed from DOM
 			expect(removeSpy).not.toHaveBeenCalled();
 		});
 
 		it('should remove script from DOM when persistAfterConsentRevoked is false during clearAllScripts', () => {
-			const onDelete = vi.fn();
 			const nonPersistentScript: Script = {
 				id: 'non-persistent-clear-script',
 				src: 'https://example.com/non-persistent-clear.js',
 				category: 'marketing',
 				persistAfterConsentRevoked: false,
-				onDelete,
 			};
 
 			const scriptIdMap: Record<string, string> = {};
@@ -1317,32 +1161,23 @@ fbq('track', 'PageView');
 			const removeSpy = vi.spyOn(scriptElement, 'remove');
 
 			// Clear all scripts
-			const unloadedIds = clearAllScripts(
-				[nonPersistentScript],
-				consentsWithMarketing,
-				scriptIdMap
-			);
+			const unloadedIds = clearAllScripts([nonPersistentScript]);
 
 			// Script should be marked as unloaded
 			expect(unloadedIds).toContain('non-persistent-clear-script');
 			expect(isScriptLoaded('non-persistent-clear-script')).toBe(false);
-
-			// onDelete callback should have been called
-			expect(onDelete).toHaveBeenCalledTimes(1);
 
 			// Script element SHOULD have been removed from DOM
 			expect(removeSpy).toHaveBeenCalledTimes(1);
 		});
 
 		it('should keep script in DOM when persistAfterConsentRevoked is true during reloadScript', () => {
-			const onDelete = vi.fn();
 			const onBeforeLoad = vi.fn();
 			const persistentScript: Script = {
 				id: 'persistent-reload-script',
 				src: 'https://example.com/persistent-reload.js',
 				category: 'marketing',
 				persistAfterConsentRevoked: true,
-				onDelete,
 				onBeforeLoad,
 			};
 
@@ -1381,22 +1216,17 @@ fbq('track', 'PageView');
 			// Should return true for successful reload
 			expect(result).toBe(true);
 
-			// onDelete callback should have been called
-			expect(onDelete).toHaveBeenCalledTimes(1);
-
 			// Script element should NOT have been removed from DOM
 			expect(removeSpy).not.toHaveBeenCalled();
 		});
 
 		it('should remove script from DOM when persistAfterConsentRevoked is false during reloadScript', () => {
-			const onDelete = vi.fn();
 			const onBeforeLoad = vi.fn();
 			const nonPersistentScript: Script = {
 				id: 'non-persistent-reload-script',
 				src: 'https://example.com/non-persistent-reload.js',
 				category: 'marketing',
 				persistAfterConsentRevoked: false,
-				onDelete,
 				onBeforeLoad,
 			};
 
@@ -1440,21 +1270,16 @@ fbq('track', 'PageView');
 			// Should return true for successful reload
 			expect(result).toBe(true);
 
-			// onDelete callback should have been called
-			expect(onDelete).toHaveBeenCalledTimes(1);
-
 			// Script element SHOULD have been removed from DOM
 			expect(removeSpy).toHaveBeenCalledTimes(1);
 		});
 
 		it('should handle persistAfterConsentRevoked for callback-only scripts', () => {
-			const onDelete = vi.fn();
 			const persistentCallbackScript: Script = {
 				id: 'persistent-callback-script',
 				category: 'marketing',
 				callbackOnly: true,
 				persistAfterConsentRevoked: true,
-				onDelete,
 			};
 
 			const scriptIdMap: Record<string, string> = {};
@@ -1497,29 +1322,16 @@ fbq('track', 'PageView');
 			expect(unloadedIds).toContain('persistent-callback-script');
 			expect(isScriptLoaded('persistent-callback-script')).toBe(false);
 
-			// onDelete callback should have been called
-			expect(onDelete).toHaveBeenCalledTimes(1);
-			expect(onDelete).toHaveBeenCalledWith(
-				expect.objectContaining({
-					id: 'persistent-callback-script',
-					elementId: expect.any(String),
-					consents: consentsWithoutMarketing,
-					// No element property for callback-only scripts
-				})
-			);
-
 			// For callback-only scripts, persistAfterConsentRevoked doesn't affect DOM removal
 			// since there's no DOM element to remove
 		});
 
 		it('should default to false when persistAfterConsentRevoked is undefined', () => {
-			const onDelete = vi.fn();
 			const defaultScript: Script = {
 				id: 'default-script',
 				src: 'https://example.com/default.js',
 				category: 'marketing',
 				// persistAfterConsentRevoked is undefined, should default to false
-				onDelete,
 			};
 
 			const scriptIdMap: Record<string, string> = {};
@@ -1570,9 +1382,6 @@ fbq('track', 'PageView');
 			// Script should be marked as unloaded
 			expect(unloadedIds).toContain('default-script');
 			expect(isScriptLoaded('default-script')).toBe(false);
-
-			// onDelete callback should have been called
-			expect(onDelete).toHaveBeenCalledTimes(1);
 
 			// Script element SHOULD have been removed from DOM (default behavior)
 			expect(removeSpy).toHaveBeenCalledTimes(1);

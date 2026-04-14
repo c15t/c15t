@@ -1,48 +1,97 @@
 ---
-title: "Internationalization (i18n)"
-description: "Learn how to add translations to your Consent Manager."
-lastModified: 2025-08-20
-availableIn:
-  - framework: 'javascript'
-    url: '/docs/frameworks/javascript/internationalization'
-    title: 'JavaScript'
-  - framework: 'react'
-    url: '/docs/frameworks/react/internationalization'
-    title: 'React'
+title: Internationalization
+description: Translate consent UI into 30+ languages with built-in translations, custom overrides, and automatic browser language detection.
 ---
 
-<import>../javascript/shared/internationalization.mdx#overview</import>
+<import src="../../shared/react/guides/internationalization.mdx#intro" />
 
-## Implementation
+## Basic Configuration
 
-Pass the `translations` object in your `ConsentManagerProvider` options to configure the translations for your application.
+Pass custom translations via the `i18n` option:
 
-```tsx title="app/layout.tsx"
+```tsx
+import { type ReactNode } from 'react';
 import { ConsentManagerProvider } from '@c15t/nextjs';
 
-export default function Layout({ children }: { children: React.ReactNode }) {
-	return (
-		<ConsentManagerProvider options={{
-      // ... rest of your config
-      translations: {
-        defaultLanguage: 'en',
-        translations: {
-          en: {
-            common: {
-              acceptAll: 'Accept all',
-            },
-            cookieBanner: {
-              title: 'Cookie Banner',
-              description: 'This is a cookie banner',
+export default function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: '/api/c15t',
+        i18n: {
+          locale: 'en',
+          messages: {
+            de: {
+              cookieBanner: {
+                title: 'Datenschutzeinstellungen',
+                description: 'Wir verwenden Cookies, um Ihnen das beste Erlebnis zu bieten.',
+              },
+              common: {
+                acceptAll: 'Alle akzeptieren',
+                rejectAll: 'Alle ablehnen',
+                customize: 'Anpassen',
+                save: 'Speichern',
+              },
             },
           },
         },
-      },
-    }}>
-			{children}
-		</ConsentManagerProvider>
-	);
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  );
 }
 ```
 
-<import>../javascript/shared/internationalization.mdx#types</import>
+Custom translations are deep-merged with built-in defaults - you only need to override the keys you want to change.
+
+<import src="../../shared/react/guides/internationalization.mdx#imports" />
+
+<import src="../../shared/react/guides/internationalization.mdx#translation-sections" />
+
+## Reading Translations
+
+Use the `useTranslations()` hook to access the current language's translations:
+
+```tsx
+import { useTranslations } from '@c15t/nextjs';
+
+function CustomBanner() {
+  const translations = useTranslations();
+
+  return (
+    <div>
+      <h2>{translations.cookieBanner.title}</h2>
+      <p>{translations.cookieBanner.description}</p>
+    </div>
+  );
+}
+```
+
+## Changing Language
+
+Switch the active language at runtime with `setLanguage()`:
+
+```tsx
+import { useConsentManager } from '@c15t/nextjs';
+
+function LanguageSwitcher() {
+  const { setLanguage } = useConsentManager();
+
+  return (
+    <select onChange={(e) => setLanguage(e.target.value)}>
+      <option value="en">English</option>
+      <option value="de">Deutsch</option>
+      <option value="fr">Fran&ccedil;ais</option>
+      <option value="es">Espa&ntilde;ol</option>
+    </select>
+  );
+}
+```
+
+`setLanguage()` re-fetches the consent banner to get server-resolved translations for the new language.
+
+<import src="../../shared/react/guides/internationalization.mdx#auto-detection" />
+
+<import src="../../shared/react/guides/internationalization.mdx#legacy-compat" />

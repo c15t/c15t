@@ -1,13 +1,45 @@
 {
 	"extends": "@c15t/typescript-config/react-library.json",
 	"compilerOptions": {
+		"rootDir": "src",
 		"moduleResolution": "bundler",
-		"baseUrl": ".",
 		"types": ["@vitest/browser/matchers"],
 		"paths": {
+			"@c15t/ui/styles/primitives": [
+				"../ui/dist-types/styles/primitives/index.d.ts"
+			],
+			"@c15t/ui/styles/primitives/*": [
+				"../ui/dist-types/styles/primitives/*.d.ts"
+			],
+			"@c15t/ui/primitives": ["../ui/dist-types/primitives/index.d.ts"],
+			"@c15t/ui/primitives/data-state": [
+				"../ui/dist-types/primitives/data-state.d.ts"
+			],
+			"@c15t/ui/primitives/*": [
+				"../ui/dist-types/primitives/*/index.d.ts",
+				"../ui/dist-types/primitives/*.d.ts"
+			],
+			"@c15t/ui/theme": ["../ui/dist-types/theme/index.d.ts"],
+			"@c15t/ui/utils": ["../ui/dist-types/utils/index.d.ts"],
+			"c15t": ["../core/dist-types/index.d.ts"],
+			"c15t/*": ["../core/dist-types/*"],
 			"~/*": ["./src/*"]
 		}
 	},
 	"include": ["src"],
-	"exclude": ["node_modules"]
+	"exclude": [
+		"node_modules",
+		"src/**/__tests__/**",
+		"src/**/__snapshots__/**",
+		"src/**/__screenshots__/**",
+		"src/**/*.test.ts",
+		"src/**/*.test.tsx",
+		"src/**/*.spec.ts",
+		"src/**/*.spec.tsx",
+		"src/**/*.e2e.ts",
+		"src/**/*.e2e.test.ts",
+		"src/**/*.e2e.test.tsx",
+		"src/**/mockServiceWorker.js",
+		"src/**/test-setup.*"
+	]
 }

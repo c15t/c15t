@@ -1,0 +1,60 @@
+---
+title: ConsentDialog
+description: A modal dialog where users can toggle individual consent categories.
+---
+
+<import src="../../../shared/react/components/consent-dialog.mdx#intro" />
+
+## Basic Usage
+
+```tsx
+import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/react';
+
+export function ConsentManager() {
+  return (
+    <ConsentManagerProvider options={{ mode: 'hosted', backendURL: 'https://your-instance.c15t.dev' }}>
+      <ConsentBanner />
+      <ConsentDialog />
+    </ConsentManagerProvider>
+  );
+}
+```
+
+## Controlled State
+
+By default, the dialog follows `activeUI === 'dialog'` from the consent store. Use the `open` prop for manual control:
+
+```tsx
+import { useState } from 'react';
+
+function SettingsPage() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)}>Privacy Settings</button>
+      <ConsentDialog open={open} />
+    </>
+  );
+}
+```
+
+Or use the hook to open it programmatically:
+
+```tsx
+import { useConsentManager } from '@c15t/react';
+
+function PrivacyLink() {
+  const { setActiveUI } = useConsentManager();
+
+  return (
+    <button onClick={() => setActiveUI('dialog')}>
+      Manage cookies
+    </button>
+  );
+}
+```
+
+<import src="../../../shared/react/components/consent-dialog.mdx#customization" />
+
+<import src="../../../shared/react/components/consent-dialog.mdx#props" />

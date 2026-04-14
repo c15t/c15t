@@ -1,76 +1,115 @@
-import * as SwitchPrimitives from '@radix-ui/react-switch';
-
+import { getDataDisabled } from '@c15t/ui/primitives/data-state';
+import { getSwitchState, toggleSwitchValue } from '@c15t/ui/primitives/switch';
 import {
-	type ComponentPropsWithoutRef,
-	type ComponentRef,
+	type SwitchSize,
+	type SwitchVariantsProps,
+	switchVariants,
+} from '@c15t/ui/styles/primitives/switch';
+import {
+	type ButtonHTMLAttributes,
 	forwardRef,
+	type KeyboardEvent,
 } from 'react';
-import { Box } from '~/components/shared/primitives/box';
-import { useStyles } from '~/hooks/use-styles';
-import type { ExtendThemeKeys, ThemeValue } from '~/types/theme';
-import styles from './switch.module.css';
+import { useControllableState } from '~/components/shared/libs/use-controllable-state';
+import type { AllThemeKeys, ThemeValue } from '~/types/theme';
+
+export type { SwitchSize, SwitchVariantsProps };
+export { switchVariants };
 
 export type SwitchStylesKeys = {
 	'switch.root': ThemeValue;
 	'switch.thumb': ThemeValue;
 	'switch.track': ThemeValue;
 };
-/**
- * Props for the description text component of the CookieBanner.
- * Extends standard HTML div attributes.
- *
- * @public
- */
+
 export interface SwitchProps
-	extends ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> {
-	theme?: {
-		root: ExtendThemeKeys;
-		thumb: ExtendThemeKeys;
-		track: ExtendThemeKeys;
-	};
+	extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange' | 'size'>,
+		SwitchVariantsProps {
+	checked?: boolean;
+	defaultChecked?: boolean;
+	noStyle?: boolean;
+	onCheckedChange?: (checked: boolean) => void;
+	size?: SwitchSize;
+	themeKey?: AllThemeKeys;
 }
 
-const Switch = forwardRef<
-	ComponentRef<typeof SwitchPrimitives.Root>,
-	SwitchProps
->(({ className, disabled, slot, theme, ...rest }, forwardedRef) => {
-	const switchRoot = useStyles(theme?.root.themeKey ?? 'switch.root', {
-		...theme?.root,
-		baseClassName: [styles.root, theme?.root.baseClassName],
-		className,
-	});
-
-	const switchThumb = useStyles(theme?.thumb.themeKey ?? 'switch.thumb', {
-		...theme?.thumb,
-		baseClassName: [
-			theme?.thumb.baseClassName,
-			styles.thumb,
-			disabled && styles['thumb-disabled'],
-		],
-		style: {
-			...theme?.thumb.style,
-			['--mask' as string]:
-				'radial-gradient(circle farthest-side at 50% 50%, #0000 1.95px, #000 2.05px 100%) 50% 50%/100% 100% no-repeat',
+const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
+	(
+		{
+			checked,
+			className,
+			defaultChecked = false,
+			disabled,
+			noStyle,
+			onCheckedChange,
+			onClick,
+			onKeyDown,
+			size = 'medium',
+			type = 'button',
+			...rest
 		},
-	});
+		forwardedRef
+	) => {
+		const variants = switchVariants({ size });
+		const [isChecked, setIsChecked] = useControllableState({
+			defaultValue: defaultChecked,
+			onChange: onCheckedChange,
+			value: checked,
+		});
 
-	return (
-		<SwitchPrimitives.Root
-			ref={forwardedRef}
-			disabled={disabled}
-			{...rest}
-			{...switchRoot}
-		>
-			<Box
-				themeKey={theme?.track.themeKey ?? 'switch.track'}
-				baseClassName={[styles.track, disabled && styles['track-disabled']]}
-				style={theme?.track.style}
+		const rootClassName = noStyle
+			? className
+			: variants.root({ class: className, disabled });
+		const thumbClassName = noStyle ? undefined : variants.thumb({ disabled });
+		const trackClassName = noStyle ? undefined : variants.track({ disabled });
+		const dataState = getSwitchState(isChecked);
+		const dataDisabled = getDataDisabled(disabled);
+
+		const toggle = () => {
+			if (disabled) {
+				return;
+			}
+
+			setIsChecked(toggleSwitchValue(isChecked));
+		};
+
+		const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
+			toggle();
+			onClick?.(event);
+		};
+
+		const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+			if (event.key === 'Enter') {
+				event.preventDefault();
+				toggle();
+			}
+
+			onKeyDown?.(event);
+		};
+
+		return (
+			<button
+				ref={forwardedRef}
+				aria-checked={isChecked}
+				className={rootClassName}
+				data-disabled={dataDisabled}
+				data-slot="switch"
+				data-state={dataState}
+				disabled={disabled}
+				onClick={handleClick}
+				onKeyDown={handleKeyDown}
+				role="switch"
+				type={type}
+				{...rest}
 			>
-				<SwitchPrimitives.Thumb {...switchThumb} />
-			</Box>
-		</SwitchPrimitives.Root>
-	);
-});
-Switch.displayName = SwitchPrimitives.Root.displayName;
+				<span className={trackClassName} data-slot="switch-track">
+					<span className={thumbClassName} data-slot="switch-thumb" />
+				</span>
+			</button>
+		);
+	}
+);
+
+Switch.displayName = 'SwitchRoot';
 
 export { Switch as Root };

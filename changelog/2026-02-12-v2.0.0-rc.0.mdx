@@ -1,0 +1,202 @@
+---
+title: "v2.0.0-rc.0 — New Styling System, IAB TCF, Dev Tools, Backend v2 & More"
+version: "2.0.0-rc.0"
+date: 2026-02-12
+description: "Release candidate introducing a token-based styling system, IAB TCF 2.3 support, dev tools, backend v2, network blocker, GPC support and a complete documentation overhaul."
+tags:
+  - release
+  - rc
+  - nextjs
+  - react
+  - backend
+type: release
+breaking: true
+authors: [KayleeWilliams]
+---
+
+It's been almost a year since we first started work on c15t, 2.0 is the implementation of the past year of lessons we've learned. It ships a new token-based styling system, full IAB TCF 2.3 support, a dedicated dev-tools panel, a rewritten backend. Every component has been renamed for clarity, and the entire documentation has been rewritten.
+
+## Highlights
+
+- [New token-based styling system](#new-styling-system) replacing the v1 nested theme keys
+- [IAB TCF 2.3 CMP support](#iab-tcf-23-support) with TC String generation and `__tcfapi`
+- [Dev Tools panel](#dev-tools) for inspecting consent state in development
+- [Backend v2](#backend-api-v2) with `c15tInstance()`, valibot+hono, and `/docs` endpoint
+- [Subject-centric API](#subject-centric-api-replaces-consent-identifyverify) replacing consent identify/verify
+- [OpenTelemetry instrumentation](#opentelemetry-instrumentation) with automatic PII stripping
+- [New CLI](#new-cli) with in-depth quickstarts for scripts and theming
+- [Network blocker](#network-blocker) replacing the old tracking blocker
+- [Backend cache adapters](#backend-cache-adapters) for Cloudflare KV, Upstash Redis, and in-memory
+- [Improved script handling](#improved-script-handling) with automatic page reload on revocation
+- [Consent Dialog Trigger](#consent-dialog-trigger) for resurfacing the consent UI
+- [Improved Next.js DX](#improved-nextjs-dx) with cleaner App Directory support
+
+## Breaking Changes
+
+### Styling System v1 Removed
+
+The legacy deeply-nested theme keys and per-component CSS variables have been removed. You must migrate to the new [token-based styling system](/docs/frameworks/react/styling/overview).
+
+### Flattened Provider Options
+
+The `react: { ... }` configuration object in `ConsentManagerProvider` has been removed. All UI options (`theme`, `colorScheme`, `disableAnimation`) are now top-level provider props.
+
+### Backend v1 Removed
+
+The deprecated v1 backend implementation and `/v1` routes have been removed. The former v2 contracts, handlers, and types are now the top-level backend entrypoints. See the [self-host quickstart](/docs/self-host/quickstart) for the current API surface.
+
+### `/show-consent-banner` Replaced with `/init`
+
+The endpoint has been renamed to better reflect its purpose — it returns geo data, consent info, and translations during initialization. Update any custom integrations to use [`/init`](/docs/self-host/api/endpoints).
+
+### `showConsentBanner` Prop Removed
+
+Banner visibility is now driven by jurisdiction and model detection with built-in opt-out support. Remove any custom logic that toggled `showConsentBanner` and use the jurisdiction-aware configuration instead.
+
+### Tracking Blocker Replaced with Network Blocker
+
+The legacy tracking blocker has been removed. The new [network blocker](/docs/frameworks/react/network-blocker) intercepts `fetch`/`XMLHttpRequest` and blocks requests based on consent and domain rules. The default list of blocked domains has been removed.
+
+### Replaced showPopup & isPrivacyDialogOpen with activeUI
+
+Replaced showPopup & isPrivacyDialogOpen with activeUI / setActiveUI for more deterministic component rendering: `none | 'banner' | 'dialog'`.
+
+### Component Renames
+
+Components have been renamed for clarity:
+
+| v1 | v2 |
+| --- | --- |
+| `CookieBanner` | `ConsentBanner` |
+| `ConsentManagerDialog` | `ConsentDialog` |
+| `ConsentManagerWidget` | `ConsentWidget` |
+
+### `gdprTypes` Renamed to `consentCategories`
+
+The `initialGDPRTypes` and `gdprTypes` config options have been renamed to `consentCategories` to reflect that consent categories are not GDPR-specific. Update your store and provider configuration accordingly.
+
+### `ignoreGeoLocation` Prop Removed
+
+The `ignoreGeoLocation` prop has been removed. Use the overrides configuration instead to control banner visibility during development.
+
+### Deprecated Store Options Removed
+
+Several previously deprecated store options, deep imports, and helper libraries (`consent-utils`, GTM helper) have been removed. Switch to the documented `createConsentManagerStore` and `StoreOptions` types.
+
+### Backend Architecture Changed (zod+oRPC → valibot+hono)
+
+The backend contract and router system has been completely rewritten, replacing zod and oRPC with valibot and hono. If you were extending the backend with custom contracts or middleware, you will need to update to the new system.
+
+### Subject-Centric API Replaces Consent Identify/Verify
+
+The `/consent/identify` and `/consent/verify` endpoints have been removed. They are replaced by the new subject-centric API (`/subject/*` endpoints) and `/consent/check`. Update any direct API calls accordingly.
+
+→ [API Endpoints](/docs/self-host/api/endpoints)
+
+### Tailwind CSS Layers
+
+c15t now uses CSS Layers for better Tailwind integration — you no longer need `!` prefixes for overrides. Tailwind CSS v3.x does not support CSS Layers, so check the [Tailwind docs](/docs/frameworks/react/styling/tailwind) if you're on v3.
+
+## New Features
+
+### New Styling System
+
+A modern, token-based system replaces the v1 nested theme keys. Control colors, typography, spacing, and radius globally using semantic design tokens. Fine-tune individual elements with component slots, CSS variables, `className` overrides, or go fully unstyled with `noStyle`.
+
+→ [Styling Overview](/docs/frameworks/react/styling/overview)
+
+### Component Renames & Compound Components
+
+All components have been renamed for clarity (`CookieBanner` → `ConsentBanner`, etc.).
+
+→ [ConsentBanner](/docs/frameworks/react/components/consent-banner) · [ConsentDialog](/docs/frameworks/react/components/consent-dialog) · [ConsentWidget](/docs/frameworks/react/components/consent-widget)
+
+### Dev Tools
+
+New `@c15t/dev-tools` package with a floating inspector panel for viewing consent state, jurisdiction info, and consent history during development.
+
+→ [Dev Tools](/docs/frameworks/react/components/dev-tools)
+
+### @c15t/ui Package
+
+Extracted shared UI primitives into a dedicated package — theme system, style primitives, animation sync, and utilities used across all c15t components.
+
+### Backend API v2
+
+New `c15tInstance()` API with a standard Fetch handler that works with any framework. The backend now auto-generates OpenAPI documentation at `/docs` and ships new endpoints for consent management.
+
+→ [Self-Host Quickstart](/docs/self-host/quickstart) · [API Endpoints](/docs/self-host/api/endpoints) · [Configuration](/docs/self-host/api/configuration)
+
+### New CLI
+
+The c15t/cli has been re-built to allow for more in-depth quickstarts like customizng your scripts and theme.
+
+→ [Next.js Quickstart](/docs/frameworks/next/quickstart) 
+
+### IAB TCF 2.3 Support
+
+Full Consent Management Platform implementation including Global Vendor List integration, `IABConsentBanner`, `IABConsentDialog`, TC String generation, and the `__tcfapi` stub.
+
+<Callout type="warn">
+IAB TCF support is functional but not yet certified by the IAB. Certification is in progress.
+</Callout>
+
+→ [IAB Overview](/docs/frameworks/react/iab/overview)
+
+### Improved Script Handling
+
+Instead of manually implemnting logic to unload each script with a callback, the page will now reload when consent is revoked (assuming consent was granted prior), removing 100% of the JavaScript of the page.
+
+→ [Script Loader](/docs/frameworks/react/script-loader) · [Integrations](/docs/integrations/overview)
+
+### Network Blocker
+
+Intercepts `fetch` and `XMLHttpRequest` calls, blocking requests to configured domains until the user has given consent for the relevant category.
+
+→ [Network Blocker](/docs/frameworks/react/network-blocker)
+
+### Global Privacy Control (GPC)
+
+The consent manager now honors browser GPC signals. When a GPC signal is detected, stricter defaults are applied for tracking categories and the state is reflected in the consent UI and callbacks.
+
+### Improved Next.js DX
+
+Removed the `<ClientSideOptionsProvider />` for cleaner c15t implementations in App Directory. We removed our pages implementation as the performance wasn't what we wanted.
+
+→ [Next.js Quickstart](/docs/frameworks/next/quickstart) · [React Quickstart](/docs/frameworks/react/quickstart)
+
+### Consent Dialog Trigger
+
+A new floating widget that re-opens the consent dialog when clicked. Some regulations want it so users can easily resurface the consent UI at any time, if you don't want this we recommend adding a link in your footer to open the dialog.
+
+→ [Consent Dialog Trigger](docs/frameworks/next/components/consent-dialog-trigger)
+
+### OpenTelemetry Instrumentation
+
+The backend now ships with OpenTelemetry spans for DB, cache, external, and request operations. PII is automatically stripped from span attributes — error messages, stack traces, IPs, and query strings are all sanitized.
+
+### Backend Cache Adapters
+
+New pluggable cache adapter system with built-in support for Cloudflare KV, Upstash Redis, and in-memory caching. Used for GVL data and other cacheable responses.
+
+→ [Configuration](/docs/self-host/api/configuration)
+
+### @c15t/schema Package
+
+All API schemas and domain types have been extracted into a dedicated `@c15t/schema` package, providing a single source of truth for the consent data model.
+
+### `prefers-reduced-motion` Support
+
+All c15t components now respect the `prefers-reduced-motion` OS setting, automatically disabling animations for users who prefer reduced motion.
+
+## Improvements
+
+- Canada jurisdiction now correctly distinguishes Quebec (Law 25, opt-in) from the rest of Canada (PIPEDA, opt-out), matching how CCPA is region-specific to California
+- c15t/backend's bundle size in a Cloudflare Worker is now 60% smaller (1.92mb), reducing start times in serverless enviroments.
+- Removed redundant columns and tables in c15t/backend
+- Complete [documentation overhaul](/docs) covering every component, hook, and API
+- New `selectLanguage` helper and cached language key in `@c15t/translations`
+- Gated debug logger in core replacing bare `console.log` calls (disabled by default)
+- `/status` endpoint now includes a database health check
+
+<ContributorBlock usernames={["KayleeWilliams"]} title="Thank you to our contributors" />

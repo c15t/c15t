@@ -1,4 +1,20 @@
 /**
+ * Jurisdiction code type for privacy regulations
+ */
+export type JurisdictionCode =
+	| 'UK_GDPR' // United Kingdom's GDPR
+	| 'GDPR' // European Union's GDPR (includes EEA)
+	| 'CH'
+	| 'BR'
+	| 'PIPEDA'
+	| 'AU'
+	| 'APPI'
+	| 'PIPA'
+	| 'CCPA'
+	| 'QC_LAW25' // Quebec's Bill 25
+	| 'NONE';
+
+/**
  * Base API path template literal for c15t consent endpoints
  *
  * This type defines the base path for all consent API routes in the c15t system.
@@ -29,5 +45,4 @@ export type ApiPath =
 	| `${ApiPathBase}/consent`
 	| `${ApiPathBase}/consent/:id`
 	| `${ApiPathBase}/jurisdictions`
-	| `${ApiPathBase}/jurisdictions/:code`
-	| `${ApiPathBase}/plugins/:id`;
+	| `${ApiPathBase}/jurisdictions/:code`;

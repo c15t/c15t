@@ -1,0 +1,5620 @@
+{
+	"gvlSpecificationVersion": 3,
+	"vendorListVersion": 143,
+	"tcfPolicyVersion": 5,
+	"lastUpdated": "2026-01-22T16:00:24Z",
+	"purposes": {
+		"1": {
+			"id": 1,
+			"name": "Store and/or access information on a device",
+			"description": "Cookies, device or similar online identifiers (e.g. login-based identifiers, randomly assigned identifiers, network based identifiers) together with other information (e.g. browser type and information, language, screen size, supported technologies etc.) can be stored or read on your device to recognise it each time it connects to an app or to a website, for one or several of the purposes presented here.",
+			"illustrations": [
+				"Most purposes explained in this notice rely on the storage or accessing of information from your device when you use an app or visit a website. For example, a vendor or publisher might need to store a cookie on your device during your first visit on a website, to be able to recognise your device during your next visits (by accessing this cookie each time)."
+			]
+		},
+		"2": {
+			"id": 2,
+			"name": "Use limited data to select advertising",
+			"description": "Advertising presented to you on this service can be based on limited data, such as the website or app you are using, your non-precise location, your device type or which content you are (or have been) interacting with (for example, to limit the number of times an ad is presented to you).",
+			"illustrations": [
+				"A car manufacturer wants to promote its electric vehicles to environmentally conscious users living in the city after office hours. The advertising is presented on a page with related content (such as an article on climate change actions) after 6:30 p.m. to users whose non-precise location suggests that they are in an urban zone.",
+				"A large producer of watercolour paints wants to carry out an online advertising campaign for its latest watercolour range, diversifying its audience to reach as many amateur and professional artists as possible and avoiding showing the ad next to mismatched content (for instance, articles about how to paint your house). The number of times that the ad has been presented to you is detected and limited, to avoid presenting it too often."
+			]
+		},
+		"3": {
+			"id": 3,
+			"name": "Create profiles for personalised advertising",
+			"description": "Information about your activity on this service (such as forms you submit, content you look at) can be stored and combined with other information about you (for example, information from your previous activity on this service and other websites or apps) or similar users. This is then used to build or improve a profile about you (that might include possible interests and personal aspects). Your profile can be used (also later) to present advertising that appears more relevant based on your possible interests by this and other entities.",
+			"illustrations": [
+				"If you read several articles about the best bike accessories to buy, this information could be used to create a profile about your interest in bike accessories. Such a profile may be used or improved later on, on the same or a different website or app to present you with advertising for a particular bike accessory brand. If you also look at a configurator for a vehicle on a luxury car manufacturer website, this information could be combined with your interest in bikes to refine your profile and make an assumption that you are interested in luxury cycling gear.",
+				"An apparel company wishes to promote its new line of high-end baby clothes. It gets in touch with an agency that has a network of clients with high income customers (such as high-end supermarkets) and asks the agency to create profiles of young parents or couples who can be assumed to be wealthy and to have a new child, so that these can later be used to present advertising within partner apps based on those profiles."
+			]
+		},
+		"4": {
+			"id": 4,
+			"name": "Use profiles to select personalised advertising",
+			"description": "Advertising presented to you on this service can be based on your advertising profiles, which can reflect your activity on this service or other websites or apps (like the forms you submit, content you look at), possible interests and personal aspects.",
+			"illustrations": [
+				"An online retailer wants to advertise a limited sale on running shoes. It wants to target advertising to users who previously looked at running shoes on its mobile app. Tracking technologies might be used to recognise that you have previously used the mobile app to consult running shoes, in order to present you with the corresponding advertisement on the app.",
+				"A profile created for personalised advertising in relation to a person having searched for bike accessories on a website can be used to present the relevant advertisement for bike accessories on a mobile app of another organisation."
+			]
+		},
+		"5": {
+			"id": 5,
+			"name": "Create profiles to personalise content",
+			"description": "Information about your activity on this service (for instance, forms you submit, non-advertising content you look at) can be stored and combined with other information about you (such as your previous activity on this service or other websites or apps) or similar users. This is then used to build or improve a profile about you (which might for example include possible interests and personal aspects). Your profile can be used (also later) to present content that appears more relevant based on your possible interests, such as by adapting the order in which content is shown to you, so that it is even easier for you to find content that matches your interests.",
+			"illustrations": [
+				"You read several articles on how to build a treehouse on a social media platform. This information might be added to a profile to mark your interest in content related to outdoors as well as do-it-yourself guides (with the objective of allowing the personalisation of content, so that for example you are presented with more blog posts and articles on treehouses and wood cabins in the future).",
+				"You have viewed three videos on space exploration across different TV apps. An unrelated news platform with which you have had no contact builds a profile based on that viewing behaviour, marking space exploration as a topic of possible interest for other videos."
+			]
+		},
+		"6": {
+			"id": 6,
+			"name": "Use profiles to select personalised content",
+			"description": "Content presented to you on this service can be based on your content personalisation profiles, which can reflect your activity on this or other services (for instance, the forms you submit, content you look at), possible interests and personal aspects. This can for example be used to adapt the order in which content is shown to you, so that it is even easier for you to find (non-advertising) content that matches your interests.",
+			"illustrations": [
+				"You read articles on vegetarian food on a social media platform and then use the cooking app of an unrelated company. The profile built about you on the social media platform will be used to present you vegetarian recipes on the welcome screen of the cooking app.",
+				"You have viewed three videos about rowing across different websites. An unrelated video sharing platform will recommend five other videos on rowing that may be of interest to you when you use your TV app, based on a profile built about you when you visited those different websites to watch online videos."
+			]
+		},
+		"7": {
+			"id": 7,
+			"name": "Measure advertising performance",
+			"description": "Information regarding which advertising is presented to you and how you interact with it can be used to determine how well an advert has worked for you or other users and whether the goals of the advertising were reached. For instance, whether you saw an ad, whether you clicked on it, whether it led you to buy a product or visit a website, etc. This is very helpful to understand the relevance of advertising campaigns.",
+			"illustrations": [
+				"You have clicked on an advertisement about a “black Friday” discount by an online shop on the website of a publisher and purchased a product. Your click will be linked to this purchase. Your interaction and that of other users will be measured to know how many clicks on the ad led to a purchase.",
+				"You are one of very few to have clicked on an advertisement about an “international appreciation day” discount by an online gift shop within the app of a publisher. The publisher wants to have reports to understand how often a specific ad placement within the app, and notably the “international appreciation day” ad, has been viewed or clicked by you and other users, in order to help the publisher and its partners (such as agencies) optimise ad placements."
+			]
+		},
+		"8": {
+			"id": 8,
+			"name": "Measure content performance",
+			"description": "Information regarding which content is presented to you and how you interact with it can be used to determine whether the (non-advertising) content e.g. reached its intended audience and matched your interests. For instance, whether you read an article, watch a video, listen to a podcast or look at a product description, how long you spent on this service and the web pages you visit etc. This is very helpful to understand the relevance of (non-advertising) content that is shown to you.",
+			"illustrations": [
+				"You have read a blog post about hiking on a mobile app of a publisher and followed a link to a recommended and related post. Your interactions will be recorded as showing that the initial hiking post was useful to you and that it was successful in interesting you in the related post. This will be measured to know whether to produce more posts on hiking in the future and where to place them on the home screen of the mobile app.",
+				"You were presented a video on fashion trends, but you and several other users stopped watching after 30 seconds. This information is then used to evaluate the right length of future videos on fashion trends."
+			]
+		},
+		"9": {
+			"id": 9,
+			"name": "Understand audiences through statistics or combinations of data from different sources",
+			"description": "Reports can be generated based on the combination of data sets (like user profiles, statistics, market research, analytics data) regarding your interactions and those of other users with advertising or (non-advertising) content to identify common characteristics (for instance, to determine which target audiences are more receptive to an ad campaign or to certain contents).",
+			"illustrations": [
+				"The owner of an online bookstore wants commercial reporting showing the proportion of visitors who consulted and left its site without buying, or consulted and bought the last celebrity autobiography of the month, as well as the average age and the male/female distribution of each category. Data relating to your navigation on its site and to your personal characteristics is then used and combined with other such data to produce these statistics.",
+				"An advertiser wants to better understand the type of audience interacting with its adverts. It calls upon a research institute to compare the characteristics of users who interacted with the ad with typical attributes of users of similar platforms, across different devices. This comparison reveals to the advertiser that its ad audience is mainly accessing the adverts through mobile devices and is likely in the 45-60 age range."
+			]
+		},
+		"10": {
+			"id": 10,
+			"name": "Develop and improve services",
+			"description": "Information about your activity on this service, such as your interaction with ads or content, can be very helpful to improve products and services and to build new products and services based on user interactions, the type of audience, etc. This specific purpose does not include the development or improvement of user profiles and identifiers.",
+			"illustrations": [
+				"A technology platform working with a social media provider notices a growth in mobile app users, and sees based on their profiles that many of them are connecting through mobile connections. It uses a new technology to deliver ads that are formatted for mobile devices and that are low-bandwidth, to improve their performance.",
+				"An advertiser is looking for a way to display ads on a new type of consumer device. It collects information regarding the way users interact with this new kind of device to determine whether it can build a new mechanism for displaying advertising on this type of device."
+			]
+		},
+		"11": {
+			"id": 11,
+			"name": "Use limited data to select content",
+			"description": "Content presented to you on this service can be based on limited data, such as the website or app you are using, your non-precise location, your device type, or which content you are (or have been) interacting with (for example, to limit the number of times a video or an article is presented to you).",
+			"illustrations": [
+				"A travel magazine has published an article on its website about the new online courses proposed by a language school, to improve travelling experiences abroad. The school’s blog posts are inserted directly at the bottom of the page, and selected on the basis of your non-precise location (for instance, blog posts explaining the course curriculum for different languages than the language of the country you are situated in).",
+				"A sports news mobile app has started a new section of articles covering the most recent football games. Each article includes videos hosted by a separate streaming platform showcasing the highlights of each match. If you fast-forward a video, this information may be used to select a shorter video to play next."
+			]
+		}
+	},
+	"specialPurposes": {
+		"1": {
+			"id": 1,
+			"name": "Ensure security, prevent and detect fraud, and fix errors",
+			"description": "Your data can be used to monitor for and prevent unusual and possibly fraudulent activity (for example, regarding advertising, ad clicks by bots), and ensure systems and processes work properly and securely. It can also be used to correct any problems you, the publisher or the advertiser may encounter in the delivery of content and ads and in your interaction with them.",
+			"illustrations": [
+				"An advertising intermediary delivers ads from various advertisers to its network of partnering websites. It notices a large increase in clicks on ads relating to one advertiser, and uses data regarding the source of the clicks to determine that 80% of the clicks come from bots rather than humans."
+			]
+		},
+		"2": {
+			"id": 2,
+			"name": "Deliver and present advertising and content",
+			"description": "Certain information (like an IP address or device capabilities) is used to ensure the technical compatibility of the content or advertising, and to facilitate the transmission of the content or ad to your device.",
+			"illustrations": [
+				"Clicking on a link in an article might normally send you to another page or part of the article. To achieve this, 1°) your browser sends a request to a server linked to the website, 2°) the server answers back (“here is the article you asked for”), using technical information automatically included in the request sent by your device, to properly display the information / images that are part of the article you asked for. Technically, such exchange of information is necessary to deliver the content that appears on your screen."
+			]
+		},
+		"3": {
+			"id": 3,
+			"name": "Save and communicate privacy choices",
+			"description": "The choices you make regarding the purposes and entities listed in this notice are saved and made available to those entities in the form of digital signals (such as a string of characters). This is necessary in order to enable both this service and those entities to respect such choices.",
+			"illustrations": [
+				"When you visit a website and are offered a choice between consenting to the use of profiles for personalised advertising or not consenting, the choice you make is saved and made available to advertising providers, so that advertising presented to you respects that choice."
+			]
+		}
+	},
+	"features": {
+		"1": {
+			"id": 1,
+			"name": "Match and combine data from other data sources",
+			"description": "Information about your activity on this service may be matched and combined with other information relating to you and originating from various sources (for instance your activity on a separate online service, your use of a loyalty card in-store, or your answers to a survey), in support of the purposes explained in this notice.",
+			"illustrations": []
+		},
+		"2": {
+			"id": 2,
+			"name": "Link different devices",
+			"description": "In support of the purposes explained in this notice, your device might be considered as likely linked to other devices that belong to you or your household (for instance because you are logged in to the same service on both your phone and your computer, or because you may use the same Internet connection on both devices).",
+			"illustrations": []
+		},
+		"3": {
+			"id": 3,
+			"name": "Identify devices based on information transmitted automatically",
+			"description": "Your device might be distinguished from other devices based on information it automatically sends when accessing the Internet (for instance, the IP address of your Internet connection or the type of browser you are using) in support of the purposes exposed in this notice.",
+			"illustrations": []
+		}
+	},
+	"specialFeatures": {
+		"1": {
+			"id": 1,
+			"name": "Use precise geolocation data",
+			"description": "With your acceptance, your precise location (within a radius of less than 500 metres) may be used in support of the purposes explained in this notice.",
+			"illustrations": []
+		},
+		"2": {
+			"id": 2,
+			"name": "Actively scan device characteristics for identification",
+			"description": "With your acceptance, certain characteristics specific to your device might be requested and used to distinguish it from other devices (such as the installed fonts or plugins, the resolution of your screen) in support of the purposes explained in this notice.",
+			"illustrations": []
+		}
+	},
+	"stacks": {
+		"1": {
+			"id": 1,
+			"purposes": [],
+			"specialFeatures": [1, 2],
+			"name": "Precise geolocation data, and identification through device scanning",
+			"description": "Precise geolocation and information about device characteristics can be used."
+		},
+		"2": {
+			"id": 2,
+			"purposes": [2, 7],
+			"specialFeatures": [],
+			"name": "Advertising based on limited data and advertising measurement",
+			"description": "Advertising can be presented based on limited data. Advertising performance can be measured."
+		},
+		"3": {
+			"id": 3,
+			"purposes": [2, 3, 4],
+			"specialFeatures": [],
+			"name": "Personalised advertising",
+			"description": "Advertising can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised advertising."
+		},
+		"4": {
+			"id": 4,
+			"purposes": [2, 7, 9],
+			"specialFeatures": [],
+			"name": "Advertising based on limited data, advertising measurement, and understanding of the audiences",
+			"description": "Advertising can be presented based on limited data. Advertising performance can be measured. Reports can be generated based on your activity and those of others."
+		},
+		"5": {
+			"id": 5,
+			"purposes": [2, 3, 7],
+			"specialFeatures": [],
+			"name": "Advertising based on limited data, personalised advertising profile, and advertising measurement",
+			"description": "Advertising can be presented based on limited data. Your activity on this service can be used to build or improve a profile about you for personalised advertising. Advertising performance can be measured."
+		},
+		"6": {
+			"id": 6,
+			"purposes": [2, 4, 7],
+			"specialFeatures": [],
+			"name": "Selection of personalised advertising and advertising measurement",
+			"description": "Advertising can be personalised based on your profile. Advertising performance can be measured."
+		},
+		"7": {
+			"id": 7,
+			"purposes": [2, 4, 7, 9],
+			"specialFeatures": [],
+			"name": "Selection of personalised advertising, advertising measurement, and audience research",
+			"description": "Advertising can be personalised based on your profile. Advertising performance can be measured. Reports can be generated based on your activity and those of others."
+		},
+		"8": {
+			"id": 8,
+			"purposes": [2, 3, 4, 7],
+			"specialFeatures": [],
+			"name": "Personalised advertising and advertising measurement",
+			"description": "Advertising can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised advertising. Advertising performance can be measured."
+		},
+		"9": {
+			"id": 9,
+			"purposes": [2, 3, 4, 7, 9],
+			"specialFeatures": [],
+			"name": "Personalised advertising, advertising measurement, and audience research",
+			"description": "Advertising can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised advertising. Advertising performance can be measured. Reports can be generated based on your activity and those of others."
+		},
+		"10": {
+			"id": 10,
+			"purposes": [3, 4],
+			"specialFeatures": [],
+			"name": "Personalised advertising",
+			"description": "Advertising can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised advertising."
+		},
+		"11": {
+			"id": 11,
+			"purposes": [5, 6],
+			"specialFeatures": [],
+			"name": "Personalised content",
+			"description": "Content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised content."
+		},
+		"12": {
+			"id": 12,
+			"purposes": [6, 8, 11],
+			"specialFeatures": [],
+			"name": "Selection of personalised content and content measurement",
+			"description": "Content can be personalised based on your profile. Content performance can be measured."
+		},
+		"13": {
+			"id": 13,
+			"purposes": [6, 8, 9, 11],
+			"specialFeatures": [],
+			"name": "Selection of personalised content, content measurement and audience research",
+			"description": "Content can be personalised based on your profile. Content performance can be measured. Reports can be generated based on your activity and those of others.Content can be personalised based on your profile. Content performance can be measured. Reports can be generated based on your activity and those of others."
+		},
+		"14": {
+			"id": 14,
+			"purposes": [5, 6, 8, 11],
+			"specialFeatures": [],
+			"name": "Personalised content and content measurement",
+			"description": "Content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised content. Content performance can be measured."
+		},
+		"15": {
+			"id": 15,
+			"purposes": [5, 6, 8, 9, 11],
+			"specialFeatures": [],
+			"name": "Personalised content, content measurement and audience research",
+			"description": "Content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised content. Content performance can be measured. Reports can be generated based on your activity and those of others."
+		},
+		"16": {
+			"id": 16,
+			"purposes": [5, 6, 8, 9, 10, 11],
+			"specialFeatures": [],
+			"name": "Personalised content, content measurement, audience research, and services development",
+			"description": "Content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised content. Content performance can be measured. Reports can be generated based on your activity and those of others. Your activity on this service can help develop and improve products and services."
+		},
+		"17": {
+			"id": 17,
+			"purposes": [7, 8, 9],
+			"specialFeatures": [],
+			"name": "Advertising and content measurement, and audience research",
+			"description": "Advertising and content performance can be measured. Reports can be generated based on your activity and those of others."
+		},
+		"18": {
+			"id": 18,
+			"purposes": [7, 8],
+			"specialFeatures": [],
+			"name": "Advertising and content measurement",
+			"description": "Advertising and content performance can be measured."
+		},
+		"19": {
+			"id": 19,
+			"purposes": [7, 9],
+			"specialFeatures": [],
+			"name": "Advertising measurement and audience research",
+			"description": "Advertising can be measured. Reports can be generated based on your activity and those of others."
+		},
+		"20": {
+			"id": 20,
+			"purposes": [7, 8, 9, 10],
+			"specialFeatures": [],
+			"name": "Advertising and content measurement, audience research, and services development",
+			"description": "Advertising and content performance can be measured. Your activity on this service can help develop and improve products and services. Reports can be generated based on your activity and those of others."
+		},
+		"21": {
+			"id": 21,
+			"purposes": [8, 9, 10],
+			"specialFeatures": [],
+			"name": "Content measurement, audience research and services development.",
+			"description": "Content performance can be measured. Reports can be generated based on your activity and those of others. Your activity on this service can help develop and improve products and services."
+		},
+		"22": {
+			"id": 22,
+			"purposes": [8, 10],
+			"specialFeatures": [],
+			"name": "Content measurement and services development",
+			"description": "Content performance can be measured. Your activity on this service can help develop and improve products and services."
+		},
+		"23": {
+			"id": 23,
+			"purposes": [2, 4, 6, 7, 8, 11],
+			"specialFeatures": [],
+			"name": "Selection of personalised advertising and content, advertising and content measurement",
+			"description": "Advertising and content can be personalised based on your profile. Advertising and content performance can be measured."
+		},
+		"24": {
+			"id": 24,
+			"purposes": [2, 4, 6, 7, 8, 9, 11],
+			"specialFeatures": [],
+			"name": "Selection of personalised advertising and content, advertising and content measurement, and audience research",
+			"description": "Advertising and content can be personalised based on your profile. Advertising and content performance can be measured. Reports can be generated based on your activity and those of others. Data can be used to build or improve user experience, systems, and software."
+		},
+		"25": {
+			"id": 25,
+			"purposes": [2, 3, 4, 5, 6, 7, 8, 11],
+			"specialFeatures": [],
+			"name": "Personalised advertising and content, advertising and content measurement",
+			"description": "Advertising and content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised advertising or content. Advertising and content performance can be measured."
+		},
+		"26": {
+			"id": 26,
+			"purposes": [2, 3, 4, 5, 6, 7, 8, 9, 11],
+			"specialFeatures": [],
+			"name": "Personalised advertising and content, advertising and content measurement, and audience research",
+			"description": "Advertising and content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised advertising or content. Advertising and content performance can be measured. Reports can be generated based on your activity and those of others."
+		},
+		"27": {
+			"id": 27,
+			"purposes": [3, 5],
+			"specialFeatures": [],
+			"name": "Personalised advertising and content profile",
+			"description": "Your activity on this service can be used to build or improve a profile about you for personalised advertising or content."
+		},
+		"28": {
+			"id": 28,
+			"purposes": [2, 4, 6, 11],
+			"specialFeatures": [],
+			"name": "Selection of personalised advertising and content",
+			"description": "Advertising and content can be personalised based on your profile."
+		},
+		"29": {
+			"id": 29,
+			"purposes": [2, 7, 8, 9],
+			"specialFeatures": [],
+			"name": "Advertising based on limited data, advertising and content measurement, and audience research",
+			"description": "Advertising can be presented based on limited data. Advertising and content performance can be measured. Reports can be generated based on your activity and those of others."
+		},
+		"30": {
+			"id": 30,
+			"purposes": [2, 4, 5, 6, 7, 8, 9, 11],
+			"specialFeatures": [],
+			"name": "Selection of personalised advertising, personalised content, advertising and content measurement, and audience research",
+			"description": "Advertising and content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised advertising or content. Advertising and content performance can be measured. Reports can be generated based on your activity and those of others."
+		},
+		"31": {
+			"id": 31,
+			"purposes": [2, 4, 5, 6, 7, 8, 9, 10, 11],
+			"specialFeatures": [],
+			"name": "Selection of personalised advertising, personalised content, advertising and content measurement, audience research, and services development",
+			"description": "Advertising and content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised content. Advertising and content performance can be measured. Reports can be generated based on your activity and those of others. Your activity on this service can help develop and improve products and services."
+		},
+		"32": {
+			"id": 32,
+			"purposes": [2, 5, 6, 7, 8, 9, 11],
+			"specialFeatures": [],
+			"name": "Advertising based on limited data, personalised content, advertising and content measurement, and audience research",
+			"description": "Advertising can be presented based on limited data. Content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised content. Advertising and content performance can be measured. Reports can be generated based on your activity and those of others."
+		},
+		"33": {
+			"id": 33,
+			"purposes": [2, 5, 6, 7, 8, 9, 10, 11],
+			"specialFeatures": [],
+			"name": "Advertising based on limited data, personalised content, advertising and content measurement, audience research, and services development",
+			"description": "Advertising can be presented based on limited data. Content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised content. Advertising and content performance can be measured. Reports can be generated based on your activity and those of others. Your activity on this service can help develop and improve products and services."
+		},
+		"34": {
+			"id": 34,
+			"purposes": [2, 5, 6, 8, 9, 11],
+			"specialFeatures": [],
+			"name": "Advertising based on limited data, personalised content, content measurement, and audience research",
+			"description": "Advertising can be presented based on limited data. Content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised content. Advertising and content performance can be measured. Reports can be generated based on your activity and those of others."
+		},
+		"35": {
+			"id": 35,
+			"purposes": [2, 5, 6, 8, 9, 10, 11],
+			"specialFeatures": [],
+			"name": "Advertising based on limited data, personalised content, content measurement, audience research and services development",
+			"description": "Advertising can be presented based on limited data. Content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised content. Content performance can be measured. Reports can be generated based on your activity and those of others. Your activity on this service can help develop and improve products and services."
+		},
+		"36": {
+			"id": 36,
+			"purposes": [2, 5, 6, 7, 11],
+			"specialFeatures": [],
+			"name": "Advertising based on limited data, personalised content, and advertising measurement",
+			"description": "Advertising can be presented based on limited data. Content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised content. Advertising performance can be measured."
+		},
+		"37": {
+			"id": 37,
+			"purposes": [2, 5, 6, 7, 10, 11],
+			"specialFeatures": [],
+			"name": "Advertising based on limited data, personalised content, advertising measurement, and services development",
+			"description": "Advertising can be presented based on limited data. Content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised content. Advertising performance can be measured. Your activity on this service can help develop and improve products and services."
+		},
+		"38": {
+			"id": 38,
+			"purposes": [2, 3, 4, 7, 10],
+			"specialFeatures": [],
+			"name": "Personalised advertising, advertising measurement, and services development",
+			"description": "Advertising can be personalised based on your profile.Your activity on this service can be used to build or improve a profile about you for personalised advertising. Advertising performance can be measured. Your activity on this service can help develop and improve products and services."
+		},
+		"39": {
+			"id": 39,
+			"purposes": [2, 3, 4, 7, 9, 10],
+			"specialFeatures": [],
+			"name": "Personalised advertising, advertising measurement, audience research and services development",
+			"description": "Advertising can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised advertising. Advertising performance can be measured. Reports can be generated based on your activity and those of others. Your activity on this service can help develop and improve products and services."
+		},
+		"40": {
+			"id": 40,
+			"purposes": [2, 3, 4, 7, 8, 9, 10],
+			"specialFeatures": [],
+			"name": "Personalised advertising, advertising and content measurement, audience research and services development",
+			"description": "Advertising can be personalised based on your profile.Your activity on this service can be used to build or improve a profile about you for personalised advertising. Advertising and content performance can be measured. Reports can be generated based on your activity and those of others. Your activity on this service can help develop and improve products and services."
+		},
+		"41": {
+			"id": 41,
+			"purposes": [2, 3, 4, 6, 7, 8, 9, 10, 11],
+			"specialFeatures": [],
+			"name": "Personalised advertising, selection of personalised content, advertising and content measurement, audience research and services development",
+			"description": "Advertising and content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised advertising. Advertising and content performance can be measured. Reports can be generated based on your activity and those of others. Your activity on this service can help develop and improve products and services."
+		},
+		"42": {
+			"id": 42,
+			"purposes": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"specialFeatures": [],
+			"name": "Personalised advertising and content, advertising and content measurement, audience research and services development",
+			"description": "Advertising and content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised advertising and content. Advertising and content performance can be measured. Reports can be generated based on your activity and those of others. Your activity on this service can help develop and improve products and services."
+		},
+		"43": {
+			"id": 43,
+			"purposes": [8, 11],
+			"specialFeatures": [],
+			"name": "Content based on limited data and content measurement",
+			"description": "Content can be selected based on limited data. Content performance can be measured."
+		},
+		"44": {
+			"id": 44,
+			"purposes": [5, 6, 11],
+			"specialFeatures": [],
+			"name": "Personalised content",
+			"description": "Content can be personalised based on your profile. Your activity on this service can be used to build or improve a profile about you for personalised content."
+		},
+		"45": {
+			"id": 45,
+			"purposes": [2, 7, 9, 10],
+			"specialFeatures": [],
+			"name": "Advertising based on limited data, advertising measurement, audience research and services development",
+			"description": "Advertising can be presented based on limited data. Advertising performance can be measured. Reports can be generated based on your activity and those of others.Your activity on this service can help develop and improve products and services."
+		}
+	},
+	"dataCategories": {
+		"1": {
+			"id": 1,
+			"name": "IP addresses",
+			"description": "Your IP address is a number assigned by your Internet Service Provider to any Internet connection. It is not always specific to your device and is not always a stable identifier.It is used to route information on the Internet and display online content (including ads) on your connected device."
+		},
+		"2": {
+			"id": 2,
+			"name": "Device characteristics",
+			"description": "Technical characteristics about the device you are using that are not unique to you, such as the language, the time zone or the operating system."
+		},
+		"3": {
+			"id": 3,
+			"name": "Device identifiers",
+			"description": "A device identifier is a unique string of characters assigned to your device or browser by means of a cookie or other storage technologies. It may be created or accessed to recognise your device e.g. across web pages from the same site or across multiple sites or apps."
+		},
+		"4": {
+			"id": 4,
+			"name": "Probabilistic identifiers",
+			"description": "A probabilistic identifier can be created by combining characteristics associated with your device (the type of browser or operating system used) and the IP address of the Internet connection. If you give your agreement, additional characteristics (e.g. the installed font or screen resolution) can also be combined to improve precision of the probabilistic identifier.Such an identifier is considered \"probabilistic\" because several devices can share the same characteristics and Internet connection. It may be used to recognise your device across e.g. web pages from the same site or across multiple sites or apps."
+		},
+		"5": {
+			"id": 5,
+			"name": "Authentication-derived identifiers",
+			"description": "Where an identifier is created on the basis of authentication data, such as contact details associated with online accounts you have created on websites or apps (e.g. e-mail address, phone number) or customer identifiers (e.g. identifier provided by your telecom operator), that identifier may be used to recognise you across websites, apps and devices when you are logged-in with the same contact details."
+		},
+		"6": {
+			"id": 6,
+			"name": "Browsing and interaction data",
+			"description": "Your online activity such as the websites you visit, apps you are using, the content you search for on this service,  or your interactions with content or ads, such as the number of times you have seen a specific content or ad or whether you clicked on it."
+		},
+		"7": {
+			"id": 7,
+			"name": "User-provided data",
+			"description": "The information you may have provided by way of declaration via a form (e.g. feedback, a comment) or when creating an account (e.g. your age, your occupation)."
+		},
+		"8": {
+			"id": 8,
+			"name": "Non-precise location data",
+			"description": "An approximation of your location, expressed as an area with a radius of at least 500 meters. Your approximate location can be deduced from e.g. the IP address of your connection."
+		},
+		"9": {
+			"id": 9,
+			"name": "Precise location data",
+			"description": "Your precise location within a radius of less than 500 meters based on your GPS coordinates. It may be used only with your acceptance."
+		},
+		"10": {
+			"id": 10,
+			"name": "Users’ profiles",
+			"description": "Certain characteristics (e.g. your possible interests, your purchase intentions, your consumer profile) may be inferred or modeled from your previous online activity (e.g. the content you viewed or the service you used, your time spent on various online content and services) or the information you have provided (e.g. your age, your occupation)."
+		},
+		"11": {
+			"id": 11,
+			"name": "Privacy choices",
+			"description": "Your preferences regarding the processing of your data, based on the information you have received."
+		}
+	},
+	"vendors": {
+		"1": {
+			"id": 1,
+			"name": "Exponential Interactive, Inc d/b/a VDX.tv",
+			"purposes": [1, 2, 3, 4, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7, 8, 9, 10],
+			"specialPurposes": [1, 2],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 7776000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://vdx.tv/privacy/",
+					"legIntClaim": "https://www.exponential.com/wp-content/uploads/2018/04/Balancing-Assessment-for-Legitimate-Interest-Publishers-v2.pdf"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 397,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 3, 4, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://tribalfusion.com/compliance_devicestorage_hosting.json"
+		},
+		"2": {
+			"id": 2,
+			"name": "Captify Technologies Limited",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [2],
+			"specialFeatures": [2],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.captifytechnologies.com/privacy-notice/",
+					"legIntClaim": "https://www.captifytechnologies.com/privacy-notice/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 4, 6, 11],
+			"deviceStorageDisclosureUrl": "https://static.dp.cpx.to/gvl/deviceStorageDisclosure.json"
+		},
+		"4": {
+			"id": 4,
+			"name": "Roq.ad GmbH",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.roq.ad/privacy-policy-roqad/",
+					"legIntClaim": "https://www.roq.ad/privacy-policy-roqad/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": { "3": 90 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 8, 9, 11],
+			"deviceStorageDisclosureUrl": "https://roqad-public.s3.eu-central-1.amazonaws.com/tcf-disclosure.json"
+		},
+		"6": {
+			"id": 6,
+			"name": "AdSpirit GmbH",
+			"purposes": [1, 2, 3, 4, 7, 9],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [3],
+			"specialFeatures": [],
+			"overflow": { "httpGetLimit": 32 },
+			"cookieMaxAgeSeconds": 2592000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://help.adspirit.de/privacy.php?lang=1",
+					"legIntClaim": "https://help.adspirit.de/privacy.php?lang=1"
+				},
+				{
+					"langId": "de",
+					"privacy": "https://help.adspirit.de/privacy.php",
+					"legIntClaim": "https://help.adspirit.de/privacy.php"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 60,
+				"purposes": { "2": 14, "7": 14 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://help.adspirit.de/deviceStorage.json"
+		},
+		"8": {
+			"id": 8,
+			"name": "Emerse Sverige AB",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 8, 9],
+			"flexiblePurposes": [2, 9],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2],
+			"specialFeatures": [],
+			"deletedDate": "2025-05-13T15:30:44.66Z",
+			"cookieMaxAgeSeconds": 2592000,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.emerse.com/privacy-policy/",
+					"legIntClaim": "https://www.emerse.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 0,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 6, 8, 11],
+			"deviceStorageDisclosureUrl": "https://s3.eu-west-1.amazonaws.com/cors.emerse.com/gdpr-tcf.json"
+		},
+		"9": {
+			"id": 9,
+			"name": "AdMaxim Limited",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [1],
+			"specialFeatures": [1],
+			"deletedDate": "2025-07-17T13:31:18.943Z",
+			"cookieMaxAgeSeconds": 2592000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.admaxim.com/admaxim-privacy-policy/",
+					"legIntClaim": ""
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 4, 6],
+			"deviceStorageDisclosureUrl": "https://designmaxim.com/tcf.json"
+		},
+		"10": {
+			"id": 10,
+			"name": "Index Exchange Inc. ",
+			"purposes": [1, 2, 4, 7, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.indexexchange.com/privacy",
+					"legIntClaim": "https://www.indexexchange.com/privacy/exchange-platform-privacy-policy/#section-3"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 0,
+				"purposes": { "2": 90, "4": 183, "7": 90, "10": 30 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 8, 9, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.indexexchange.com/device_storage_disclosure.json"
+		},
+		"11": {
+			"id": 11,
+			"name": "Quantcast",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 8, 9, 10],
+			"flexiblePurposes": [2, 7, 8, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 157680000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.quantcast.com/privacy",
+					"legIntClaim": "https://www.quantcast.com/privacy"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 395,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://www.quantcast.com/.well-known/devicestorage.json"
+		},
+		"12": {
+			"id": 12,
+			"name": "BeeswaxIO Corporation",
+			"purposes": [1, 2, 3, 4, 7],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [1, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 34128000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.beeswax.com/privacy/",
+					"legIntClaim": "https://www.beeswax.com/privacy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 397,
+				"purposes": { "2": 30, "4": 0 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 9, 11],
+			"deviceStorageDisclosureUrl": "https://beeswax.com/devicedisclosure.json"
+		},
+		"13": {
+			"id": 13,
+			"name": "Sovrn, Inc.",
+			"purposes": [1, 2, 3, 5, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.sovrn.com/privacy-policy/",
+					"legIntClaim": "https://www.sovrn.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 180,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.sovrn.com/tcf-cookie-disclosure/disclosure.json"
+		},
+		"14": {
+			"id": 14,
+			"name": "Adkernel LLC",
+			"purposes": [1, 3, 4, 9, 10],
+			"legIntPurposes": [2, 7],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [3],
+			"specialFeatures": [1, 2],
+			"cookieMaxAgeSeconds": 15552000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://adkernel.com/privacy-policy/",
+					"legIntClaim": "https://adkernel.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 180,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 3, 8, 9, 10],
+			"deviceStorageDisclosureUrl": "https://static.adkernel.com/deviceStorage.json"
+		},
+		"15": {
+			"id": 15,
+			"name": "Adikteev",
+			"purposes": [1, 2, 3, 4, 5, 6, 9, 10, 11],
+			"legIntPurposes": [7, 8],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [2],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.adikteev.com/privacy",
+					"legIntClaim": "https://www.adikteev.com/privacy-policy-app-users"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 730,
+				"purposes": {},
+				"specialPurposes": { "3": 90 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 8, 10],
+			"deviceStorageDisclosureUrl": "https://tcf-registrationprocess.adikteev.com/deviceStorageDisclosureURL.json"
+		},
+		"16": {
+			"id": 16,
+			"name": "RTB House S.A.",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.rtbhouse.com/privacy-center",
+					"legIntClaim": "https://www.rtbhouse.com/legitimate_interest_assessments_tcf"
+				},
+				{
+					"langId": "fr",
+					"privacy": "https://www.rtbhouse.com/privacy-center/politique-de-confidentialite-des-services",
+					"legIntClaim": "https://www.rtbhouse.com/legitimate_interest_assessments_tcf"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 565,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://rtbhouse.com/DeviceStorage.json"
+		},
+		"20": {
+			"id": 20,
+			"name": "N.Rich Technologies Inc.",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 8, 9, 10],
+			"flexiblePurposes": [2, 7, 8, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 46656000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://nrich.io/privacy-notice",
+					"legIntClaim": "https://nrich.io/gdpr-legitimate-interest-assessment-sheet"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 540,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://privacy.nrich.ai/.well-known/deviceStorage.json"
+		},
+		"21": {
+			"id": 21,
+			"name": "The UK Trade Desk Ltd",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 10],
+			"flexiblePurposes": [2, 7, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.thetradedesk.com/us/privacy",
+					"legIntClaim": "https://www.thetradedesk.com/us/privacy"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 99,
+				"purposes": { "2": 365, "4": 132 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://ttd-misc-public-assets.s3.us-west-2.amazonaws.com/deviceStorageDisclosureURL.json"
+		},
+		"22": {
+			"id": 22,
+			"name": "admetrics GmbH",
+			"purposes": [7, 8],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [2],
+			"specialFeatures": [],
+			"deletedDate": "2024-06-11T00:00:00Z",
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{ "langId": "en", "privacy": "https://admetrics.io/en/privacy_policy/" }
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 6, 11],
+			"deviceStorageDisclosureUrl": "https://www.admetrics.io/tcf/disclosure.json"
+		},
+		"23": {
+			"id": 23,
+			"name": "Nexxen Inc.",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 9, 10],
+			"flexiblePurposes": [2],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 15552000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://nexxen.com/services-privacy-policy/",
+					"legIntClaim": "https://nexxen.com/services-privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 400,
+				"purposes": { "2": 30, "3": 30 },
+				"specialPurposes": { "3": 365 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://services.amobee.com/files/TCFDisclosure.json"
+		},
+		"24": {
+			"id": 24,
+			"name": "Epsilon",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 34560000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.epsilon.com/emea/privacy-policy",
+					"legIntClaim": "https://www.epsilon.com/emea/privacy-policy"
+				},
+				{
+					"langId": "fr",
+					"privacy": "https://legal.epsilon.com/eu/privacy-poliicy-services-fr",
+					"legIntClaim": "https://legal.epsilon.com/eu/privacy-poliicy-services-fr"
+				},
+				{
+					"langId": "de",
+					"privacy": "https://legal.epsilon.com/eu/privacy-policy-services-de",
+					"legIntClaim": "https://legal.epsilon.com/eu/privacy-policy-services-de"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 540,
+				"purposes": { "3": 2190, "4": 2190, "5": 2190, "6": 2190 },
+				"specialPurposes": { "3": 2190 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://s-usweb.dotomi.com/assets/js/taggy-js/2.18.9/device_storage_disclosure.json"
+		},
+		"25": {
+			"id": 25,
+			"name": "Yahoo EMEA Limited",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 64800000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://legal.yahoo.com/emea/en/yahoo/privacy/index.html",
+					"legIntClaim": "https://legal.yahoo.com/emea/en/yahoo/privacy/index.html#section3b"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 400,
+				"purposes": {},
+				"specialPurposes": { "1": 1825, "2": 550, "3": 548 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://meta.legal.yahoo.com/iab-tcf/v2/device-storage-disclosure.json"
+		},
+		"26": {
+			"id": 26,
+			"name": "Venatus Media Limited",
+			"purposes": [1, 2, 3, 4, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [3],
+			"features": [3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.venatus.com/privacy/",
+					"legIntClaim": "https://www.venatus.com/privacy-choices"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 8],
+			"deviceStorageDisclosureUrl": "https://www.venatus.com/tcf-gvl-disclosure.json"
+		},
+		"27": {
+			"id": 27,
+			"name": "ADventori SAS",
+			"purposes": [1, 2, 4, 7],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7],
+			"specialPurposes": [1, 2, 3],
+			"features": [],
+			"specialFeatures": [],
+			"overflow": { "httpGetLimit": 128 },
+			"cookieMaxAgeSeconds": 7776000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "fr",
+					"privacy": "https://www.adventori.com/fr/rgpd/",
+					"legIntClaim": "https://www.adventori.com/fr/rgpd/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"purposes": { "2": 90, "4": 90, "7": 400 },
+				"specialPurposes": { "1": 400, "2": 400, "3": 90 }
+			},
+			"dataDeclaration": [1, 3, 4, 6, 7, 8, 11],
+			"deviceStorageDisclosureUrl": "https://adventori.com/.well-known/tcf-adventori-device-storage-disclosure.json"
+		},
+		"28": {
+			"id": 28,
+			"name": "Triple Lift, Inc.",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 9, 10],
+			"flexiblePurposes": [2, 7, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2],
+			"specialFeatures": [1],
+			"overflow": { "httpGetLimit": 32 },
+			"cookieMaxAgeSeconds": 7776000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://triplelift.com/privacy/",
+					"legIntClaim": "https://triplelift.com/platform-privacy-policy#legalbasisofprocessing"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 45,
+				"purposes": { "3": 52, "4": 52 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://triplelift.com/.well-known/deviceStorage.json"
+		},
+		"29": {
+			"id": 29,
+			"name": "ETARGET SE",
+			"purposes": [1, 2, 7, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [1],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://sk.search.etargetnet.com/policy.html",
+					"legIntClaim": "https://sk.search.etargetnet.com/legitimate-interest.html"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 30,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1],
+			"deviceStorageDisclosureUrl": "https://www.etarget.sk/cookies3.json"
+		},
+		"30": {
+			"id": 30,
+			"name": "BidTheatre AB",
+			"purposes": [1, 3, 4, 7],
+			"legIntPurposes": [2],
+			"flexiblePurposes": [2, 7],
+			"specialPurposes": [1, 2, 3],
+			"features": [2],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 7776000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://adsby.bidtheatre.com/deviceStorage.json",
+					"legIntClaim": "https://cdn.bidtheatre.com/LIA_ferq.pdf"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"purposes": { "2": 7, "3": 60, "4": 0, "7": 180 },
+				"specialPurposes": { "1": 30, "2": 7, "3": 180 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://privacy.bidtheatre.com/deviceStorage.json"
+		},
+		"31": {
+			"id": 31,
+			"name": "Ogury Ltd",
+			"purposes": [1, 2, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 15811200,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://privacy.ogury.com/",
+					"legIntClaim": "https://privacy.ogury.com/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 400,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 7, 8, 11],
+			"deviceStorageDisclosureUrl": "https://privacy.ogury.co/disclosure.json"
+		},
+		"32": {
+			"id": 32,
+			"name": "Xandr, Inc.",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 10],
+			"flexiblePurposes": [2, 7, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 7776000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://about.ads.microsoft.com/en-us/solutions/xandr/platform-privacy-policy",
+					"legIntClaim": "https://about.ads.microsoft.com/en-us/solutions/xandr/platform-privacy-policy#p_lt_ctl01_pageplaceholder_p_lt_ctl00_pageplaceholder_p_lt_WebPartZone3_zonePageBody_BingAds_PageContentViewer_PageContentViewerAll_ctl18_ctl00_ColumnsContainer"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 0,
+				"purposes": { "2": 180, "7": 60, "10": 60 },
+				"specialPurposes": { "1": 540, "3": 90 }
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://acdn.adnxs.com/gvl/1d/xandrdevicestoragedisclosures.json"
+		},
+		"33": {
+			"id": 33,
+			"name": "ShareThis, Inc",
+			"purposes": [1, 3, 5],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 33696000,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{ "langId": "en", "privacy": "https://sharethis.com/privacy/" },
+				{
+					"langId": "fr",
+					"privacy": "https://pcdn.sharethis.com/wp-content/uploads/2021/11/ShareThis-Privacy-Policy-11.2.21_FR.pdf"
+				},
+				{
+					"langId": "es",
+					"privacy": "https://pcdn.sharethis.com/wp-content/uploads/2021/11/ShareThis-Privacy-Policy-11.2.21_ES.pdf"
+				},
+				{
+					"langId": "it",
+					"privacy": "https://pcdn.sharethis.com/wp-content/uploads/2021/11/ShareThis-Privacy-Policy-11.2.21_IT.pdf"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://gdpr-api.sharethis.com/disclosures.json"
+		},
+		"34": {
+			"id": 34,
+			"name": "NEORY GmbH",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7, 8, 9, 10, 11],
+			"specialPurposes": [1, 2, 3],
+			"features": [2, 3],
+			"specialFeatures": [],
+			"overflow": { "httpGetLimit": 128 },
+			"cookieMaxAgeSeconds": 7776000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.neory.com/privacy.html",
+					"legIntClaim": "https://www.neory.com/privacy.html"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://ad.ad-srv.net/privacy/tcf/deviceStorage/6505e3798148a611.json"
+		},
+		"36": {
+			"id": 36,
+			"name": "Nexxen Group LLC",
+			"purposes": [1],
+			"legIntPurposes": [2, 7, 9, 10],
+			"flexiblePurposes": [2, 7, 9],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://nexxen.com/services-privacy-policy/",
+					"legIntClaim": "https://nexxen.com/services-privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 30,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://video.unrulymedia.com/deviceStorageDisclosure.json"
+		},
+		"37": {
+			"id": 37,
+			"name": "NEURAL.ONE",
+			"purposes": [1, 3, 4, 7],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [1, 2],
+			"specialFeatures": [2],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://neural.one/privacy-policy/",
+					"legIntClaim": "https://neural.one/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 4, 6, 8, 11],
+			"deviceStorageDisclosureUrl": "https://iab.neural.one/.well-known/deviceStorage.json"
+		},
+		"39": {
+			"id": 39,
+			"name": "ADITION (Virtual Minds GmbH)",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 7776000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://virtualminds.com/platform-privacy-policy/",
+					"legIntClaim": "https://virtualminds.com/platform-privacy-policy/"
+				},
+				{
+					"langId": "de",
+					"privacy": "https://virtualminds.com/de/plattform-datenschutzerklaerung/",
+					"legIntClaim": "https://virtualminds.com/de/plattform-datenschutzerklaerung/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 7, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://imagesrv.adition.com/tcf/deviceStorage_adition.json"
+		},
+		"40": {
+			"id": 40,
+			"name": "Active Agent (Virtual Minds GmbH)",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 7776000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://virtualminds.com/platform-privacy-policy/",
+					"legIntClaim": "https://virtualminds.com/platform-privacy-policy/"
+				},
+				{
+					"langId": "de",
+					"privacy": "https://virtualminds.com/de/plattform-datenschutzerklaerung/",
+					"legIntClaim": "https://virtualminds.com/de/plattform-datenschutzerklaerung/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 7, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://imagesrv.adition.com/tcf/deviceStorage_activeagent.json"
+		},
+		"42": {
+			"id": 42,
+			"name": "Taboola Europe Limited",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 10, 11],
+			"legIntPurposes": [9],
+			"flexiblePurposes": [2, 7, 8, 10, 11],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31556926,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.taboola.com/privacy-policy",
+					"legIntClaim": "https://www.taboola.com/privacy-policy"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 396,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://accessrequest.taboola.com/iab-tcf-v2-disclosure.json"
+		},
+		"44": {
+			"id": 44,
+			"name": "Adex (Virtual Minds GmbH)",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 7776000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://virtualminds.com/platform-privacy-policy/",
+					"legIntClaim": "https://virtualminds.com/platform-privacy-policy/"
+				},
+				{
+					"langId": "de",
+					"privacy": "https://virtualminds.com/de/plattform-datenschutzerklaerung/",
+					"legIntClaim": "https://virtualminds.com/de/plattform-datenschutzerklaerung/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://dmp.theadex.com/.well-known/deviceStorage.json"
+		},
+		"45": {
+			"id": 45,
+			"name": "Equativ",
+			"purposes": [1, 2, 3, 4, 7, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31540000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://equativ.com/privacy-policy/",
+					"legIntClaim": "https://equativ.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 50,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://apps.smartadserver.com/device-storage-disclosures/equativDeviceStorageDisclosures.json"
+		},
+		"46": {
+			"id": 46,
+			"name": "Skimbit Ltd",
+			"purposes": [],
+			"legIntPurposes": [7, 8, 10],
+			"flexiblePurposes": [7, 8],
+			"specialPurposes": [1, 2],
+			"features": [3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://skimlinks.com/privacy-policies/",
+					"legIntClaim": "https://skimlinks.com/privacy-policies/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 0,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 6, 8, 11],
+			"deviceStorageDisclosureUrl": "https://storage.googleapis.com/skimthru-js/js/skimlinks_tcf_disclosures.json"
+		},
+		"47": {
+			"id": 47,
+			"name": "ADMAN - Phaistos Networks, S.A.",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7],
+			"flexiblePurposes": [2, 7],
+			"specialPurposes": [1, 2],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 315360000,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.adman.gr/privacy",
+					"legIntClaim": "https://www.adman.gr/privacy"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 3650,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [2, 3, 4, 8],
+			"deviceStorageDisclosureUrl": "https://static.adman.gr/phaistos_ads_cookies_disclosure.json"
+		},
+		"48": {
+			"id": 48,
+			"name": "NetSuccess, s.r.o.",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 9, 10],
+			"flexiblePurposes": [2, 7, 9, 10],
+			"specialPurposes": [1, 2],
+			"features": [3],
+			"specialFeatures": [],
+			"deletedDate": "2024-06-11T00:00:00Z",
+			"cookieMaxAgeSeconds": 15552000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://admin.inres.sk/pp/index.html",
+					"legIntClaim": "https://admin.inres.sk/pp/index.html#claim"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 6, 11],
+			"deviceStorageDisclosureUrl": "https://inres.uspech.sk/TCF/TCFStorage.json"
+		},
+		"49": {
+			"id": 49,
+			"name": "Jellyfish France",
+			"purposes": [1, 2, 3, 4, 5, 6],
+			"legIntPurposes": [7, 8, 9, 10],
+			"flexiblePurposes": [7, 8, 9, 10],
+			"specialPurposes": [],
+			"features": [1, 2],
+			"specialFeatures": [1],
+			"overflow": { "httpGetLimit": 32 },
+			"deletedDate": "2024-04-22T00:00:00Z",
+			"cookieMaxAgeSeconds": 34190000,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "fr",
+					"privacy": "https://www.jellyfish.com/fr-fr/privacy-policy",
+					"legIntClaim": "https://www.jellyfish.com/fr-fr/privacy-policy"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 396,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [2, 3, 6, 10],
+			"deviceStorageDisclosureUrl": "https://bkt-gdpr-prod-eu-tcf-public.storage.googleapis.com/deviceStorageDisclosureUrls.json"
+		},
+		"50": {
+			"id": 50,
+			"name": "Adform A/S",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 10],
+			"flexiblePurposes": [2, 7, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 315360000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://site.adform.com/privacy-center/platform-privacy/product-and-services-privacy-policy/",
+					"legIntClaim": "https://site.adform.com/privacy-center/platform-privacy/transparency-and-consent-framework-tcf-compliance/legitimate-interest-at-stake/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 60,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://site.adform.com/assets/devicestorage.json"
+		},
+		"52": {
+			"id": 52,
+			"name": "Magnite, Inc. ",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 10],
+			"flexiblePurposes": [2, 7, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1, 2],
+			"overflow": { "httpGetLimit": 128 },
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.magnite.com/legal/advertising-technology-privacy-policy/",
+					"legIntClaim": "https://www.magnite.com/legal/advertising-technology-privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 28,
+				"purposes": { "10": 90 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 9, 11],
+			"deviceStorageDisclosureUrl": "https://gdpr.rubiconproject.com/dvplus/devicestoragedisclosure.json"
+		},
+		"53": {
+			"id": 53,
+			"name": "Sirdata",
+			"purposes": [1, 3, 4, 5, 6, 9, 10],
+			"legIntPurposes": [2, 7, 8, 11],
+			"flexiblePurposes": [2, 7, 8, 11],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"overflow": { "httpGetLimit": 128 },
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.sirdata.com/en/Privacy",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy#legitimateinterest"
+				},
+				{
+					"langId": "fr",
+					"privacy": "https://www.sirdata.com/fr/Vie-Privee",
+					"legIntClaim": "https://www.sirdata.com/fr/Vie-Privee#legitimateinterest"
+				},
+				{
+					"langId": "bg",
+					"privacy": "https://www.sirdata.com/en/Privacy-bg",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-bg#legitimateinterest"
+				},
+				{
+					"langId": "zh",
+					"privacy": "https://www.sirdata.com/en/Privacy-zh",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-zh#legitimateinterest"
+				},
+				{
+					"langId": "cs",
+					"privacy": "https://www.sirdata.com/en/Privacy-cs",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-cs#legitimateinterest"
+				},
+				{
+					"langId": "da",
+					"privacy": "https://www.sirdata.com/en/Privacy-da",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-da#legitimateinterest"
+				},
+				{
+					"langId": "nl",
+					"privacy": "https://www.sirdata.com/en/Privacy-nl",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-nl#legitimateinterest"
+				},
+				{
+					"langId": "et",
+					"privacy": "https://www.sirdata.com/en/Privacy-et",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-et#legitimateinterest"
+				},
+				{
+					"langId": "fi",
+					"privacy": "https://www.sirdata.com/en/Privacy-fi",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-fi#legitimateinterest"
+				},
+				{
+					"langId": "de",
+					"privacy": "https://www.sirdata.com/en/Privacy-de",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-de#legitimateinterest"
+				},
+				{
+					"langId": "el",
+					"privacy": "https://www.sirdata.com/en/Privacy-el",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-el#legitimateinterest"
+				},
+				{
+					"langId": "hu",
+					"privacy": "https://www.sirdata.com/en/Privacy-hu",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-hu#legitimateinterest"
+				},
+				{
+					"langId": "it",
+					"privacy": "https://www.sirdata.com/en/Privacy-it",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-it#legitimateinterest"
+				},
+				{
+					"langId": "ja",
+					"privacy": "https://www.sirdata.com/en/Privacy-ja",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-ja#legitimateinterest"
+				},
+				{
+					"langId": "lv",
+					"privacy": "https://www.sirdata.com/en/Privacy-lv",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-lv#legitimateinterest"
+				},
+				{
+					"langId": "lt",
+					"privacy": "https://www.sirdata.com/en/Privacy-lt",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-lt#legitimateinterest"
+				},
+				{
+					"langId": "no",
+					"privacy": "https://www.sirdata.com/en/Privacy-no",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-no#legitimateinterest"
+				},
+				{
+					"langId": "pl",
+					"privacy": "https://www.sirdata.com/en/Privacy-pl",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-pl#legitimateinterest"
+				},
+				{
+					"langId": "pt",
+					"privacy": "https://www.sirdata.com/en/Privacy-pt-PT",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-pt-PT#legitimateinterest"
+				},
+				{
+					"langId": "ro",
+					"privacy": "https://www.sirdata.com/en/Privacy-ro",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-ro#legitimateinterest"
+				},
+				{
+					"langId": "ru",
+					"privacy": "https://www.sirdata.com/en/Privacy-ru",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-ru#legitimateinterest"
+				},
+				{
+					"langId": "sk",
+					"privacy": "https://www.sirdata.com/en/Privacy-sk",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-sk#legitimateinterest"
+				},
+				{
+					"langId": "sl",
+					"privacy": "https://www.sirdata.com/en/Privacy-sl",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-sl#legitimateinterest"
+				},
+				{
+					"langId": "es",
+					"privacy": "https://www.sirdata.com/en/Privacy-es",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-es#legitimateinterest"
+				},
+				{
+					"langId": "sv",
+					"privacy": "https://www.sirdata.com/en/Privacy-sv",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-sv#legitimateinterest"
+				},
+				{
+					"langId": "tr",
+					"privacy": "https://www.sirdata.com/en/Privacy-tr",
+					"legIntClaim": "https://www.sirdata.com/en/Privacy-tr#legitimateinterest"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 185,
+				"purposes": {},
+				"specialPurposes": { "3": 730 }
+			},
+			"dataDeclaration": [1, 3, 4, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.sirdata.eu/sirdata_device_storage_disclosure.json"
+		},
+		"55": {
+			"id": 55,
+			"name": "Madison Logic, Inc.",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 10, 11],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 3888000,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.madisonlogic.com/privacy/",
+					"legIntClaim": "https://www.madisonlogic.com/privacy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 7, 8, 9, 11],
+			"deviceStorageDisclosureUrl": "https://iab-info.madisonlogic.com/file.json"
+		},
+		"56": {
+			"id": 56,
+			"name": "Confiant Inc.",
+			"purposes": [],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.confiant.com/privacy",
+					"legIntClaim": "https://www.confiant.com/privacy"
+				},
+				{
+					"langId": "de",
+					"privacy": "https://www.confiant.com/datenschutz",
+					"legIntClaim": "https://www.confiant.com/datenschutz"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 0,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [2, 8],
+			"deviceStorageDisclosureUrl": "https://cdn.clarium.io/tcf-compliance/domains_and_disclosure.json"
+		},
+		"57": {
+			"id": 57,
+			"name": "RATEGAIN ADARA INC",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://adara.com/privacy-promise/",
+					"legIntClaim": "https://adara.com/privacy-promise/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"purposes": {
+					"2": 365,
+					"3": 365,
+					"4": 365,
+					"7": 730,
+					"9": 730,
+					"10": 730
+				},
+				"specialPurposes": { "1": 730, "2": 365 }
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://storage.googleapis.com/adara-public/iab/new/device-storage-disclosure.json"
+		},
+		"58": {
+			"id": 58,
+			"name": "33Across",
+			"purposes": [1, 2, 3, 4, 7, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [2, 3],
+			"specialFeatures": [2],
+			"cookieMaxAgeSeconds": 31556952,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.33across.co.uk/privacy-policy/",
+					"legIntClaim": "https://www.33across.co.uk/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 30,
+				"purposes": { "7": 90, "10": 90 },
+				"specialPurposes": { "1": 90 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://platform.33across.com/disclosures.json"
+		},
+		"59": {
+			"id": 59,
+			"name": "Sift Media, Inc",
+			"purposes": [2],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2],
+			"specialPurposes": [2],
+			"features": [3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.sift.co/privacy",
+					"legIntClaim": "https://www.sift.co/privacy"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 1,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 8, 9],
+			"deviceStorageDisclosureUrl": "https://app-creatives.s3.amazonaws.com/GdprTcfDeviceStorageDisclosure.json"
+		},
+		"60": {
+			"id": 60,
+			"name": "Rakuten Marketing LLC",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 9, 10],
+			"flexiblePurposes": [2, 7, 9, 10],
+			"specialPurposes": [1, 2],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 63072000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://rakutenadvertising.com/legal-notices/services-privacy-policy/",
+					"legIntClaim": "https://go.rakutenadvertising.com/hubfs/Services-Privacy-Policy-English.pdf"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 2555,
+				"purposes": { "3": 540, "4": 540 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://consent.linksynergy.com/rad-gvl-disclosures.json"
+		},
+		"61": {
+			"id": 61,
+			"name": "GumGum, Inc.",
+			"purposes": [1, 2, 3, 4, 7],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7],
+			"specialPurposes": [1, 2, 3],
+			"features": [3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 158112001,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.gumgum.com/terms-and-policies/privacy-policy",
+					"legIntClaim": "https://gumgum.com/terms-and-policies/privacy-policy"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 400,
+				"purposes": { "3": 720, "4": 720 },
+				"specialPurposes": { "3": 14 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://marketing.gumgum.com/devicestoragedisclosures.json"
+		},
+		"62": {
+			"id": 62,
+			"name": "Justpremium BV",
+			"purposes": [1, 2, 7],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://gumgum.com/terms-and-policies/justpremium-privacy-policy",
+					"legIntClaim": "https://gumgum.com/terms-and-policies/justpremium-privacy-policy"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 400,
+				"purposes": {},
+				"specialPurposes": { "3": 14 }
+			},
+			"dataDeclaration": [1, 2, 6, 8, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.justpremium.com/devicestoragedisclosures.json"
+		},
+		"63": {
+			"id": 63,
+			"name": "Lumen Research Limited",
+			"purposes": [7],
+			"legIntPurposes": [],
+			"flexiblePurposes": [7],
+			"specialPurposes": [1, 3],
+			"features": [3],
+			"specialFeatures": [],
+			"overflow": { "httpGetLimit": 32 },
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://lumen-research.com/privacy/",
+					"legIntClaim": "https://lumen-research.com/privacy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 0,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 6, 8, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.lamp.avct.cloud/tcfv2.json"
+		},
+		"66": {
+			"id": 66,
+			"name": "adsquare GmbH",
+			"purposes": [2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7, 8, 9, 10, 11],
+			"specialPurposes": [],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://adsquare.com/privacy/",
+					"legIntClaim": "https://adsquare.com/privacy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 400,
+				"purposes": { "2": 0, "11": 0 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+			"deviceStorageDisclosureUrl": "https://adsquare.com/deviceStorage.json"
+		},
+		"67": {
+			"id": 67,
+			"name": "LifeStreet Corporation",
+			"purposes": [1, 3, 4, 5, 6],
+			"legIntPurposes": [2, 7, 8, 9, 10, 11],
+			"flexiblePurposes": [2, 9, 10, 11],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"overflow": { "httpGetLimit": 128 },
+			"cookieMaxAgeSeconds": 63072000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://lifestreet.com/privacy",
+					"legIntClaim": "https://lifestreet.com/privacy"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": { "3": 363 }
+			},
+			"dataDeclaration": [1, 2, 3, 6, 7, 8, 10],
+			"deviceStorageDisclosureUrl": "https://tcf.lfstmedia.com/TCFV2-disclosures.json"
+		},
+		"68": {
+			"id": 68,
+			"name": "Amazon Ad Server",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 9, 10],
+			"flexiblePurposes": [2, 7, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2],
+			"specialFeatures": [],
+			"deletedDate": "2025-03-20T09:32:59.184Z",
+			"cookieMaxAgeSeconds": 34190000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.sizmek.com/privacy-policy",
+					"legIntClaim": "https://www.sizmek.com/privacy-policy#legal-basis"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 396,
+				"purposes": {},
+				"specialPurposes": { "3": 90 }
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://secure-ds.serving-sys.com/BurstingScript/szmktcf.json"
+		},
+		"69": {
+			"id": 69,
+			"name": "OpenX",
+			"purposes": [1, 2, 3, 4, 7, 10, 11],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.openx.com/legal/privacy-policy/",
+					"legIntClaim": "https://www.openx.com/legal/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 6, 8, 11],
+			"deviceStorageDisclosureUrl": "https://www.openx.com/device-storage.json"
+		},
+		"70": {
+			"id": 70,
+			"name": "Yieldlab (Virtual Minds GmbH)",
+			"purposes": [1, 2, 3, 4, 7, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 7776000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "de",
+					"privacy": "https://virtualminds.com/de/plattform-datenschutzerklaerung/",
+					"legIntClaim": "https://virtualminds.com/de/plattform-datenschutzerklaerung/"
+				},
+				{
+					"langId": "en",
+					"privacy": "https://virtualminds.com/platform-privacy-policy/",
+					"legIntClaim": "https://virtualminds.com/platform-privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 7, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://ad.yieldlab.net/deviceStorage.json"
+		},
+		"71": {
+			"id": 71,
+			"name": "Roku Advertising Services",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 9, 10],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"deletedDate": "2025-09-30T08:57:39.023Z",
+			"cookieMaxAgeSeconds": 34186698,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://docs.roku.com/published/userprivacypolicy/en/us",
+					"legIntClaim": "https://docs.roku.com/published/userprivacypolicy/en/gb#userprivacypolicyen_gb-userprivacypolicy-en_gb-legalbasis"
+				},
+				{
+					"langId": "de",
+					"privacy": "https://docs.roku.com/published/userprivacypolicy/de/de",
+					"legIntClaim": "https://docs.roku.com/published/userprivacypolicy/de/de#userprivacypolicyde_de-userprivacypolicy-de_de-legalbasis"
+				},
+				{
+					"langId": "fr",
+					"privacy": "https://docs.roku.com/published/userprivacypolicy/fr/fr",
+					"legIntClaim": "https://docs.roku.com/published/userprivacypolicy/fr/fr#userprivacypolicyfr_fr-userprivacypolicy-fr_fr-legalbasis"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 540,
+				"purposes": { "2": 390 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://www.roku.com/static/deviceStorage.json"
+		},
+		"72": {
+			"id": 72,
+			"name": "Nano Interactive Group Ltd.",
+			"purposes": [2, 7, 8, 9, 10, 11],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.nanointeractive.com/privacy-statement/",
+					"legIntClaim": "https://www.nanointeractive.com/privacy-statement/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 730,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [2, 6, 8],
+			"deviceStorageDisclosureUrl": "https://cdn.audiencemanager.de/tcf/tcfv2.json"
+		},
+		"73": {
+			"id": 73,
+			"name": "Simplifi Holdings LLC",
+			"purposes": [1, 2, 3, 4, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [2],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31622399,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{ "langId": "en", "privacy": "https://simpli.fi/site-privacy-policy/" }
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 30,
+				"purposes": { "2": 4320 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 3, 9],
+			"deviceStorageDisclosureUrl": "https://um.simpli.fi/iab-disclosures.json"
+		},
+		"75": {
+			"id": 75,
+			"name": "M32 Connect Inc",
+			"purposes": [1, 2, 3, 4, 8, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [1],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://m32connect.com/privacy-consent-management/privacy-cookie-policy/",
+					"legIntClaim": "https://m32connect.com/privacy-consent-management/privacy-cookie-policy/"
+				},
+				{
+					"langId": "fr",
+					"privacy": "https://m32connect.com/fr/vie-privee-et-gestion-du-consentement/politique-de-confidentialite/",
+					"legIntClaim": "https://m32connect.com/fr/vie-privee-et-gestion-du-consentement/politique-de-confidentialite/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 180,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 6, 8],
+			"deviceStorageDisclosureUrl": "https://rdc.m32.media/gdpr/vendors_disclosure.json"
+		},
+		"76": {
+			"id": 76,
+			"name": "PubMatic, Inc",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 9, 10],
+			"flexiblePurposes": [2, 7, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 157852800,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://pubmatic.com/legal/privacy/",
+					"legIntClaim": "https://pubmatic.com/legal/privacy/"
+				},
+				{
+					"langId": "ja",
+					"privacy": "https://pubmatic.co.jp/legal/privacy-policy-jp/",
+					"legIntClaim": "https://pubmatic.co.jp/legal/privacy-policy-jp/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 40,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.pubmatic.com/devicestorage.json"
+		},
+		"77": {
+			"id": 77,
+			"name": "Comscore B.V.",
+			"purposes": [1, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 62208000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.scorecardresearch.com/privacy.aspx"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 11],
+			"deviceStorageDisclosureUrl": "https://census-web.scorecardresearch.com/tcf_vendor_disclosures.json"
+		},
+		"78": {
+			"id": 78,
+			"name": "Flashtalking",
+			"purposes": [1, 2, 3, 4, 7],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7],
+			"specialPurposes": [1, 2, 3],
+			"features": [2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 63072000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.innovid.com/privacy-policy",
+					"legIntClaim": "https://www.innovid.com/privacy-policy#additional-information-europe-residents"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 396,
+				"purposes": {},
+				"specialPurposes": { "3": 0 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.flashtalking.com/tcf/deviceStorage.json"
+		},
+		"80": {
+			"id": 80,
+			"name": "Sharethrough, Inc",
+			"purposes": [1, 2, 7, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 2592000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.sharethrough.com/privacy-center/consumer-privacy-notice",
+					"legIntClaim": "https://privacy-center.sharethrough.com/en/consumer-privacy-notice/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 30,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://assets.sharethrough.com/gvl.json"
+		},
+		"81": {
+			"id": 81,
+			"name": "PulsePoint, Inc.",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [1, 2],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 158112000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://pulsepoint.com/legal/platform-privacy-policy",
+					"legIntClaim": "https://pulsepoint.com/legal/platform-privacy-policy"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 366,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3],
+			"deviceStorageDisclosureUrl": "https://bh.contextweb.com/tcf/vendorInfo.json"
+		},
+		"82": {
+			"id": 82,
+			"name": "Smaato, Inc.",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 3],
+			"specialFeatures": [2],
+			"cookieMaxAgeSeconds": 1814400,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.smaato.com/privacy/",
+					"legIntClaim": "https://www.smaato.com/privacy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 14,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://resources.smaato.com/hubfs/Smaato/IAB/deviceStorage.json"
+		},
+		"83": {
+			"id": 83,
+			"name": "Visarity Technologies GmbH",
+			"purposes": [],
+			"legIntPurposes": [7],
+			"flexiblePurposes": [7],
+			"specialPurposes": [1, 2, 3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://primo.design/docs/PrivacyPolicyPrimo.html",
+					"legIntClaim": "https://primo.design/docs/PrivacyPolicyPrimo.html"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 730,
+				"purposes": {},
+				"specialPurposes": { "3": 0 }
+			},
+			"dataDeclaration": [1],
+			"deviceStorageDisclosureUrl": "https://script.visarity.com/tcf/tcf-visarity.json"
+		},
+		"84": {
+			"id": 84,
+			"name": "Semasio GmbH",
+			"purposes": [1, 3, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31556952,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.semasio.com/legal/semasio-privacy-policy",
+					"legIntClaim": "https://www.semasio.com/legal/semasio-privacy-policy"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 180,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 3, 6, 11],
+			"deviceStorageDisclosureUrl": "https://semasio-tcf-storage.s3.eu-west-1.amazonaws.com/deviceStorage.json"
+		},
+		"85": {
+			"id": 85,
+			"name": "Crimtan Holdings Limited",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 8, 9, 10],
+			"flexiblePurposes": [2, 7, 8, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.crimtan.com/privacy-policy/",
+					"legIntClaim": "https://www.crimtan.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": { "7": 1095, "10": 1095 },
+				"specialPurposes": { "2": 1095 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://a.ctnsnet.com/tcf.json"
+		},
+		"87": {
+			"id": 87,
+			"name": "Genius Sports UK Limited",
+			"purposes": [1, 2, 3, 4, 7, 8, 9, 10, 11],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.geniussports.com/policies/media-buying-services-and-tcf-privacy-notice/",
+					"legIntClaim": " "
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://gsm-tcf.s3.eu-west-1.amazonaws.com/gsm-tcf.json"
+		},
+		"90": {
+			"id": 90,
+			"name": "Teroa S.A.",
+			"purposes": [1, 2, 7, 9],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 220752000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.e-planning.net/privacy-policy.html",
+					"legIntClaim": "https://www.e-planning.net/privacy-policy.html"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 3650,
+				"purposes": { "2": 0 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 6, 8],
+			"deviceStorageDisclosureUrl": "https://www.e-planning.net/deviceStorageDisclosureUrl.json"
+		},
+		"91": {
+			"id": 91,
+			"name": "Criteo SA",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [10],
+			"specialPurposes": [1, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 33696000,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.criteo.com/privacy/",
+					"legIntClaim": "https://www.criteo.com/privacy/how-we-use-your-data/"
+				},
+				{
+					"langId": "fr",
+					"privacy": "https://www.criteo.com/fr/privacy/",
+					"legIntClaim": "https://www.criteo.com/fr/privacy/how-we-use-your-data/"
+				},
+				{
+					"langId": "de",
+					"privacy": "https://www.criteo.com/de/privacy/",
+					"legIntClaim": "https://www.criteo.com/de/privacy/how-we-use-your-data/"
+				},
+				{
+					"langId": "es",
+					"privacy": "https://www.criteo.com/es/privacy/",
+					"legIntClaim": "https://www.criteo.com/es/privacy/how-we-use-your-data/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 390,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://privacy.criteo.com/iab-europe/tcfv2/disclosure"
+		},
+		"92": {
+			"id": 92,
+			"name": "1plusX AG",
+			"purposes": [1, 3, 5],
+			"legIntPurposes": [7, 8, 9],
+			"flexiblePurposes": [7, 8, 9],
+			"specialPurposes": [],
+			"features": [1, 2],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.1plusx.com/privacy-policy/",
+					"legIntClaim": "https://www.1plusx.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 6, 7, 10, 11],
+			"deviceStorageDisclosureUrl": "https://device-storage-disclosure.1plusx.io/device_storage_disclosure.json"
+		},
+		"93": {
+			"id": 93,
+			"name": "Adloox SA",
+			"purposes": [1],
+			"legIntPurposes": [7],
+			"flexiblePurposes": [7],
+			"specialPurposes": [1],
+			"features": [],
+			"specialFeatures": [],
+			"overflow": { "httpGetLimit": 128 },
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.adloox.com/legal/privacy-policy",
+					"legIntClaim": "https://www.adloox.com/legal/privacy-policy"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 396,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8],
+			"deviceStorageDisclosureUrl": "https://glossary.adlooxtracking.com/tcf.json"
+		},
+		"94": {
+			"id": 94,
+			"name": "Blis Global Limited",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 34560000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://blis.com/blis-privacy-policy-for-online-advertising-and-related-uses/",
+					"legIntClaim": "https://blis.com/legitimate-interests-statement/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 400,
+				"purposes": {},
+				"specialPurposes": { "2": 0 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://privacy.blismedia.com/.well-known/deviceStorage.json"
+		},
+		"95": {
+			"id": 95,
+			"name": "Epsilon (Lotame)",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"overflow": { "httpGetLimit": 128 },
+			"cookieMaxAgeSeconds": 23652000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.lotame.com/privacy/services-privacy-notice/",
+					"legIntClaim": "https://www.lotame.com/wp-content/uploads/2024/07/TC_String_Legitimate_Interests_Assessment_Lotame.pdf"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 540,
+				"purposes": { "3": 2190, "4": 2190, "5": 2190, "6": 2190 },
+				"specialPurposes": { "3": 30 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://tags.crwdcntrl.net/privacy/tcf-purposes.json"
+		},
+		"97": {
+			"id": 97,
+			"name": "LiveRamp",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [1, 2],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 315576000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "fr",
+					"privacy": "https://liveramp.fr/politique-confidentialite-produits-services/politique-de-confidentialite-de-nos-produits-et-services-2/",
+					"legIntClaim": "https://liveramp.fr/iab-transparency-consent-framework/"
+				},
+				{
+					"langId": "en",
+					"privacy": "https://liveramp.uk/privacy/service-privacy-policy/",
+					"legIntClaim": "https://liveramp.fr/iab-transparency-consent-framework/"
+				},
+				{
+					"langId": "de",
+					"privacy": "https://liveramp.de/privacy/datenschutzerklarung-fur-die-liveramp-dienste/",
+					"legIntClaim": "https://liveramp.fr/iab-transparency-consent-framework/"
+				},
+				{
+					"langId": "it",
+					"privacy": "https://liveramp.it/privacy-policy-italia/privacy-policy-dei-servizi/",
+					"legIntClaim": "https://liveramp.fr/iab-transparency-consent-framework/"
+				},
+				{
+					"langId": "es",
+					"privacy": "https://liveramp.es/politica-de-privacidad-de-servicios/",
+					"legIntClaim": "https://liveramp.fr/iab-transparency-consent-framework/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 8, 11],
+			"deviceStorageDisclosureUrl": "https://tcf.ats.rlcdn.com/device-storage-disclosure.json"
+		},
+		"98": {
+			"id": 98,
+			"name": "WPP Media",
+			"purposes": [1, 2, 3, 4, 5, 6],
+			"legIntPurposes": [7, 8, 9, 10],
+			"flexiblePurposes": [7, 8, 9, 10],
+			"specialPurposes": [1, 2],
+			"features": [1, 2],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 34128000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.wppmedia.com/pages/privacy-policy",
+					"legIntClaim": "https://www.wppmedia.com/pages/privacy-policy"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 2,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 8, 9, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.mookie1.com/privacy/deviceStorage.json"
+		},
+		"100": {
+			"id": 100,
+			"name": "Fifty Technology Limited",
+			"purposes": [1, 2, 3, 4, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://fifty.io/privacy-policy",
+					"legIntClaim": "https://fifty.io/privacy-policy"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 183,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://fifty.io/privacy/deviceStorage.json"
+		},
+		"101": {
+			"id": 101,
+			"name": "MiQ Digital Ltd",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31540000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.wearemiq.com/privacy-and-compliance",
+					"legIntClaim": "https://www.wearemiq.com/privacy-and-compliance"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 180,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 7, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://www.wearemiq.com/privacy-and-compliance/devicestoragedisclosures.json"
+		},
+		"102": {
+			"id": 102,
+			"name": "Magnite, Inc. (Outstream)",
+			"purposes": [1],
+			"legIntPurposes": [2, 7, 10],
+			"flexiblePurposes": [2, 7, 10],
+			"specialPurposes": [1, 2],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"overflow": { "httpGetLimit": 128 },
+			"deletedDate": "2024-05-03T00:00:00Z",
+			"cookieMaxAgeSeconds": 31556900,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.magnite.com/legal/advertising-technology-privacy-policy/",
+					"legIntClaim": "https://www.magnite.com/legal/advertising-technology-privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 28,
+				"purposes": { "10": 90 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 9, 11],
+			"deviceStorageDisclosureUrl": "https://gdpr.rubiconproject.com/slimcut/devicestoragedisclosure.json"
+		},
+		"104": {
+			"id": 104,
+			"name": "Sonobi, Inc",
+			"purposes": [1, 2, 3, 4],
+			"legIntPurposes": [7, 8, 10],
+			"flexiblePurposes": [],
+			"specialPurposes": [2],
+			"features": [1],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://sonobi.com/privacy-policy/",
+					"legIntClaim": "https://sonobi.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 548,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 3, 8],
+			"deviceStorageDisclosureUrl": "https://sonobi.com/tcf2-device-storage-disclosure.json"
+		},
+		"108": {
+			"id": 108,
+			"name": "Rich Audience Technologies SLU",
+			"purposes": [1, 2, 7, 8, 9, 10, 11],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"overflow": { "httpGetLimit": 128 },
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://legal.richaudience.com/privacy-policy/",
+					"legIntClaim": ""
+				},
+				{
+					"langId": "es",
+					"privacy": "https://legal.richaudience.com/privacy-policy/es/",
+					"legIntClaim": ""
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 8],
+			"deviceStorageDisclosureUrl": "https://cdnj.richaudience.com/52a26ab9400b2a9f5aabfa20acf3196g.json"
+		},
+		"109": {
+			"id": 109,
+			"name": "LoopMe Limited",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1, 2],
+			"overflow": { "httpGetLimit": 32 },
+			"cookieMaxAgeSeconds": 7776000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://legal.loopme.com/privacy-center#contract-hyartvn1o",
+					"legIntClaim": "https://legal.loopme.com/privacy-center#contract-hyartvn1o"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 396,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 7, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://co.loopme.com/deviceStorageDisclosure.json"
+		},
+		"110": {
+			"id": 110,
+			"name": "Dynata LLC",
+			"purposes": [1, 7, 9],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.dynataprivacy.com/",
+					"legIntClaim": "https://www.dynataprivacy.com/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 730,
+				"purposes": {},
+				"specialPurposes": { "3": 365 }
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://www.dynataprivacy.com/deviceStorageDisclosure.json"
+		},
+		"111": {
+			"id": 111,
+			"name": "Showheroes SE",
+			"purposes": [1, 3, 4, 9, 10],
+			"legIntPurposes": [2, 7, 8],
+			"flexiblePurposes": [2, 7, 8],
+			"specialPurposes": [1, 2, 3],
+			"features": [1],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 33955200,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://showheroes.com/privacy-policy/",
+					"legIntClaim": "https://showheroes.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 393,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 3, 8, 11],
+			"deviceStorageDisclosureUrl": "https://static-origin.showheroes.com/gvl_storage_disclosure.json"
+		},
+		"114": {
+			"id": 114,
+			"name": "Sublime",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 34164060,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://ayads.co/privacy.php",
+					"legIntClaim": "https://ayads.co/privacy.php"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"purposes": { "2": 0, "3": 90, "4": 90, "7": 365, "9": 365, "10": 90 },
+				"specialPurposes": { "3": 365 }
+			},
+			"dataDeclaration": [1, 6, 11],
+			"deviceStorageDisclosureUrl": "https://gdpr.ayads.co/cookiepolicy.json"
+		},
+		"115": {
+			"id": 115,
+			"name": "smartclip Europe GmbH",
+			"purposes": [1, 2, 3, 4, 7, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://privacy-portal.smartclip.net/en/privacy-policy",
+					"legIntClaim": "https://privacy-portal.smartclip.net/tcf/purpose-2-li"
+				},
+				{
+					"langId": "de",
+					"privacy": "https://privacy-portal.smartclip.net/de/privacy-policy",
+					"legIntClaim": "https://privacy-portal.smartclip.net/de/tcf/purpose-2-li"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 120,
+				"purposes": { "2": 30, "3": 365, "4": 365 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.smartclip.net/iab/deviceStorageDisclosure.json"
+		},
+		"119": {
+			"id": 119,
+			"name": "Ask Locala",
+			"purposes": [1, 3, 4, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [7, 8, 9, 10],
+			"specialPurposes": [1, 2],
+			"features": [],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://asklocala.com/advertising-privacy-policy/?_gl=1*145zs89*_up*MQ..*_ga*MjA4NDgxNDYxOC4xNjk2NTEyNTU5*_ga_VRM83PCHBL*MTY5NjUxMjU1OC4xLjEuMTY5NjUxMjU3NS4wLjAuMA..*_ga_5N7836YC9X*MTY5NjUxMjU1OC4xLjEuMTY5NjUxMjU3NS4wLjAuMA..",
+					"legIntClaim": "https://asklocala.com/advertising-privacy-policy/?_gl=1*145zs89*_up*MQ..*_ga*MjA4NDgxNDYxOC4xNjk2NTEyNTU5*_ga_VRM83PCHBL*MTY5NjUxMjU1OC4xLjEuMTY5NjUxMjU3NS4wLjAuMA..*_ga_5N7836YC9X*MTY5NjUxMjU1OC4xLjEuMTY5NjUxMjU3NS4wLjAuMA.."
+				},
+				{
+					"langId": "fr",
+					"privacy": "https://asklocala.com/fr/traitements-publicitaires/",
+					"legIntClaim": "https://asklocala.com/fr/traitements-publicitaires/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 45,
+				"purposes": { "3": 30, "4": 30 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 8, 9, 11],
+			"deviceStorageDisclosureUrl": "https://cnt.s4mdsp.com/tcf/v2.json"
+		},
+		"120": {
+			"id": 120,
+			"name": "Eyeota Pte Ltd",
+			"purposes": [1, 3, 5, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31622400,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.eyeota.com/privacy-center",
+					"legIntClaim": "https://www.eyeota.com/eyeota-marketplace-privacy-policy#pcc-anchor-2"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 120,
+				"purposes": {},
+				"specialPurposes": { "1": 180, "3": 180 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://www.eyeota.com/hubfs/Privacy%20Center/deviceStorage.json"
+		},
+		"122": {
+			"id": 122,
+			"name": "Dentsu UK Limited",
+			"purposes": [1, 3, 4, 5, 10],
+			"legIntPurposes": [2, 7, 8],
+			"flexiblePurposes": [2, 7, 8],
+			"specialPurposes": [1, 2, 3],
+			"features": [],
+			"specialFeatures": [],
+			"deletedDate": "2025-04-30T14:34:11.856Z",
+			"cookieMaxAgeSeconds": 63072000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://privacy.metadsp.co.uk/privacy-policy.html",
+					"legIntClaim": "https://privacy.metadsp.co.uk/privacy-policy.html"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": { "2": 365 }
+			},
+			"dataDeclaration": [1, 2, 3, 6, 8, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.metadsp.co.uk/spartan_disclosures.json"
+		},
+		"124": {
+			"id": 124,
+			"name": "Azira",
+			"purposes": [1, 2, 3, 4],
+			"legIntPurposes": [7, 9, 10],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "fr",
+					"privacy": "https://azira.com/fr/privacy-policy/#services-policy",
+					"legIntClaim": "https://azira.com/fr/privacy-policy/#services-policy"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"purposes": {
+					"2": 90,
+					"3": 90,
+					"4": 90,
+					"7": 365,
+					"9": 365,
+					"10": 183
+				},
+				"specialPurposes": { "1": 183, "2": 183, "3": 180 }
+			},
+			"dataDeclaration": [1, 2, 3, 6, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://assets.azira.com/compliance/GDPR/TCFv2/device-storage-and-operational-disclosures.json"
+		},
+		"126": {
+			"id": 126,
+			"name": "DoubleVerify Inc.",
+			"purposes": [],
+			"legIntPurposes": [2, 7, 8, 10],
+			"flexiblePurposes": [2, 7, 8, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://doubleverify.com/privacy-notice?tab=solutions-privacy-notice#solutions-privacy-notice",
+					"legIntClaim": "https://doubleverify.com/privacy-notice?tab=solutions-privacy-notice#solutions-privacy-notice"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 45,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 4, 6, 8, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.doubleverify.com/static/Doubleverify_TCF.json"
+		},
+		"127": {
+			"id": 127,
+			"name": "PIXIMEDIA",
+			"purposes": [1, 2, 3, 4, 7, 8, 11],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [2],
+			"features": [3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 2592000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "fr",
+					"privacy": "https://piximedia.com/privacy/?lang=fr",
+					"legIntClaim": "https://piximedia.com/privacy/?lang=fr"
+				},
+				{
+					"langId": "en",
+					"privacy": "https://piximedia.com/privacy/?lang=en",
+					"legIntClaim": "https://piximedia.com/privacy/?lang=en"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 180,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8],
+			"deviceStorageDisclosureUrl": "https://www.piximedia.com/disclosures.json"
+		},
+		"128": {
+			"id": 128,
+			"name": "BIDSWITCH GmbH",
+			"purposes": [1, 2, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [3],
+			"features": [1, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.bidswitch.com/privacy-policy/",
+					"legIntClaim": "https://www.bidswitch.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 8, 9, 11],
+			"deviceStorageDisclosureUrl": "https://www.bidswitch.com/devicestorage.json"
+		},
+		"129": {
+			"id": 129,
+			"name": "IPONWEB GmbH",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.iponweb.com/policies-legal/iponweb-privacy-policy/",
+					"legIntClaim": "https://www.iponweb.com/policies-legal/iponweb-privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 7, 8, 11],
+			"deviceStorageDisclosureUrl": "https://www.iponweb.com/devicestorage.json"
+		},
+		"130": {
+			"id": 130,
+			"name": "NextRoll, Inc.",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 34128000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.nextroll.com/privacy",
+					"legIntClaim": "https://www.nextroll.com/lia"
+				},
+				{
+					"langId": "de",
+					"privacy": "https://www.nextroll.com/de-DE/privacy",
+					"legIntClaim": "https://www.nextroll.com/lia"
+				},
+				{
+					"langId": "es",
+					"privacy": "https://www.nextroll.com/es-ES/privacy",
+					"legIntClaim": "https://www.nextroll.com/lia"
+				},
+				{
+					"langId": "nl",
+					"privacy": "https://www.nextroll.com/nl-NL/privacy",
+					"legIntClaim": "https://www.nextroll.com/lia"
+				},
+				{
+					"langId": "fr",
+					"privacy": "https://www.nextroll.com/fr-FR/privacy",
+					"legIntClaim": "https://www.nextroll.com/lia"
+				},
+				{
+					"langId": "it",
+					"privacy": "https://www.nextroll.com/it-IT/privacy",
+					"legIntClaim": "https://www.nextroll.com/lia"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": { "3": 90 }
+			},
+			"dataDeclaration": [1, 2, 3, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://s.adroll.com/shares/device_storage.json"
+		},
+		"131": {
+			"id": 131,
+			"name": "ID5 Technology SAS",
+			"purposes": [1, 3, 5, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 7776000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://id5.io/platform-privacy-policy/",
+					"legIntClaim": "https://id5.io/privacy"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 99,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 11],
+			"deviceStorageDisclosureUrl": "https://id5-sync.com/tcf/disclosures.json"
+		},
+		"132": {
+			"id": 132,
+			"name": "Teads France SAS",
+			"purposes": [1, 3, 4, 7, 9, 10],
+			"legIntPurposes": [2],
+			"flexiblePurposes": [2],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://privacy-policy.teads.com/",
+					"legIntClaim": "https://privacy-policy.teads.com/privacy-policy/european-privacy-notice/"
+				},
+				{
+					"langId": "fr",
+					"privacy": "https://privacy-policy.teads.com/privacy-policy/privacy-policy-general-notice-fr/",
+					"legIntClaim": "https://privacy-policy.teads.com/privacy-policy/politique-de-confidentialite-europe/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 120,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://iab-cookie-disclosure.teads.tv/deviceStorage.json"
+		},
+		"133": {
+			"id": 133,
+			"name": "digitalAudience B.V.",
+			"purposes": [1, 3, 5, 7, 9],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31557600,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://digitalaudience.io/legal/",
+					"legIntClaim": "https://digitalaudience.io/legal/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 3, 5, 10, 11],
+			"deviceStorageDisclosureUrl": "https://dadocuments.blob.core.windows.net/documents/IAB-dA-Device-Storage-Disclosure-08092022.json"
+		},
+		"134": {
+			"id": 134,
+			"name": "SMARTSTREAM.TV GmbH",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 9, 10],
+			"flexiblePurposes": [2, 7, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"overflow": { "httpGetLimit": 32 },
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "de",
+					"privacy": "https://www.smartstream.tv/de/produktdatenschutz",
+					"legIntClaim": "https://www.smartstream.tv/de/produktdatenschutz"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://tcf.adtech.app/gen/deviceStorageDisclosure/stv.json"
+		},
+		"136": {
+			"id": 136,
+			"name": "Ströer SSP GmbH (SSP)",
+			"purposes": [1, 4],
+			"legIntPurposes": [2, 7, 9, 10],
+			"flexiblePurposes": [2, 7, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "de",
+					"privacy": "https://www.stroeer.de/ssp-datenschutz",
+					"legIntClaim": "https://www.stroeer.de/ssp-datenschutz"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 730,
+				"purposes": { "2": 0 },
+				"specialPurposes": { "1": 183, "2": 0 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://www.stroeer.de/StroeerSSP_deviceStorage.json"
+		},
+		"137": {
+			"id": 137,
+			"name": "OS Data Solutions GmbH",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 9, 10],
+			"flexiblePurposes": [2, 7, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 7776000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "de",
+					"privacy": "https://osdatasolutions.de/datenschutz/",
+					"legIntClaim": "https://osdatasolutions.de/datenschutz/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 180,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://www.stroeer.de/StroeerDSP_deviceStorage.json"
+		},
+		"138": {
+			"id": 138,
+			"name": "ConnectAd Demand GmbH",
+			"purposes": [1, 2, 3, 4, 7, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 2628000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://connectad.io/privacy/",
+					"legIntClaim": "https://connectad.io/privacy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 30,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.connectad.io/tcf_storage_info.json"
+		},
+		"139": {
+			"id": 139,
+			"name": "Permodo GmbH",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [],
+			"specialFeatures": [],
+			"overflow": { "httpGetLimit": 32 },
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "de",
+					"privacy": "https://permodo.com/de/privacy.html",
+					"legIntClaim": "https://permodo.com/de/privacy.html"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://tcf.adtech.app/gen/deviceStorageDisclosure/per.json"
+		},
+		"140": {
+			"id": 140,
+			"name": "Platform161 B.V.",
+			"purposes": [1, 2, 3, 4, 7, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 34164000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://verve.com/dsp-cookies-privacy/",
+					"legIntClaim": "https://verve.com/dsp-cookies-privacy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 0,
+				"purposes": { "3": 390, "7": 30, "10": 365 },
+				"specialPurposes": { "1": 7 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://static2.creative-serving.org/deviceStorage.json"
+		},
+		"141": {
+			"id": 141,
+			"name": "Emodo LLC",
+			"purposes": [1, 2, 6, 7, 8],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1],
+			"features": [1, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 2592000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://emodo.com/privacy-policy/",
+					"legIntClaim": "https://emodo.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 60,
+				"purposes": {},
+				"specialPurposes": { "1": 30 }
+			},
+			"dataDeclaration": [1, 3, 8],
+			"deviceStorageDisclosureUrl": "https://axonix.com/disclosures.json"
+		},
+		"142": {
+			"id": 142,
+			"name": "Media.net Advertising FZ-LLC",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 9, 10],
+			"flexiblePurposes": [2, 7, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 34190000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.media.net/privacy-policy/",
+					"legIntClaim": "https://www.media.net/privacy-policy/#legitimate-interest"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": { "2": 395, "9": 180, "10": 180 },
+				"specialPurposes": { "3": 395 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://www.media.net/tcfv2/gvl/deviceStorage.json"
+		},
+		"143": {
+			"id": 143,
+			"name": "Connatix Native Exchange Inc.",
+			"purposes": [1, 2, 3, 4, 7, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [2],
+			"cookieMaxAgeSeconds": 2600000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://connatix.com/privacy-policy/",
+					"legIntClaim": "https://connatix.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 30,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://connatix.com/iab-tcf-disclosure.json"
+		},
+		"147": {
+			"id": 147,
+			"name": "Adacado Technologies Inc. (DBA Adacado)",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [7, 8, 9, 10],
+			"specialPurposes": [1, 2],
+			"features": [3],
+			"specialFeatures": [1],
+			"deletedDate": "2024-06-11T00:00:00Z",
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://adacado.com/privacy-policy/",
+					"legIntClaim": "https://adacado.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 395,
+				"purposes": {},
+				"specialPurposes": { "2": 3 }
+			},
+			"dataDeclaration": [1, 6, 8, 11],
+			"deviceStorageDisclosureUrl": "https://storage.googleapis.com/adacado_iab_tcf/tcf.json"
+		},
+		"148": {
+			"id": 148,
+			"name": "LiveIntent Inc.",
+			"purposes": [1, 2, 7],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 63113904,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://liveintent.com/services-privacy-policy/",
+					"legIntClaim": ""
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 730,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 11],
+			"deviceStorageDisclosureUrl": "https://b-code.liadm.com/deviceStorage.json"
+		},
+		"149": {
+			"id": 149,
+			"name": "ADman Interactive SLU",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2],
+			"specialPurposes": [],
+			"features": [2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31535998,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "es",
+					"privacy": "https://admanmedia.com/politica.html",
+					"legIntClaim": "https://admanmedia.com/politica.html"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 0,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 7, 8, 11],
+			"deviceStorageDisclosureUrl": "https://admanmedia.com/deviceStorage.json"
+		},
+		"150": {
+			"id": 150,
+			"name": "Inskin Media LTD",
+			"purposes": [1, 3, 4, 9, 10],
+			"legIntPurposes": [2, 7],
+			"flexiblePurposes": [2, 7],
+			"specialPurposes": [1, 2, 3],
+			"features": [2, 3],
+			"specialFeatures": [],
+			"deletedDate": "2025-06-19T09:25:10.493Z",
+			"cookieMaxAgeSeconds": 31622400,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.azerion.com/wp-content/uploads/2024/06/Website-Privacy-Notice-v3-Inskin-Media.pdf",
+					"legIntClaim": "https://www.azerion.com/wp-content/uploads/2024/06/Website-Privacy-Notice-v3-Inskin-Media.pdf"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"purposes": {
+					"2": 4320,
+					"3": 90,
+					"4": 90,
+					"7": 4320,
+					"9": 90,
+					"10": 4320
+				},
+				"specialPurposes": { "1": 90, "2": 4320, "3": 42 }
+			},
+			"dataDeclaration": [1, 2, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://www.inskinad.com/deviceStorageDisclosure.json"
+		},
+		"151": {
+			"id": 151,
+			"name": "LIFT DSP LIMITED",
+			"purposes": [1, 2, 3, 4, 7],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31560000,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.liftdsp.com/privacy-policy",
+					"legIntClaim": ""
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 390,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 6, 8],
+			"deviceStorageDisclosureUrl": "https://cdn.shopify.com/s/files/1/2696/7002/files/admedo_device_storage_url.json"
+		},
+		"153": {
+			"id": 153,
+			"name": "MADVERTISE MEDIA",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 3],
+			"specialFeatures": [1, 2],
+			"overflow": { "httpGetLimit": 128 },
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://developers.bluestack.app/privacy-policy",
+					"legIntClaim": "https://developers.bluestack.app/privacy-policy"
+				},
+				{
+					"langId": "fr",
+					"privacy": "https://media.madvertise.com/politique-de-confidentialite/",
+					"legIntClaim": "https://media.madvertise.com/politique-de-confidentialite/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 120,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 7, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://adserver.bluestack.app/deviceStorage.json"
+		},
+		"154": {
+			"id": 154,
+			"name": "YOC AG",
+			"purposes": [1, 3, 4, 9, 10],
+			"legIntPurposes": [2, 7],
+			"flexiblePurposes": [2, 7],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://yoc.com/privacy/",
+					"legIntClaim": "https://yoc.com/privacy/"
+				},
+				{
+					"langId": "de",
+					"privacy": "https://yoc.com/de/datenschutz/",
+					"legIntClaim": "https://yoc.com/de/datenschutz/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.yoc.com/visx/sellers/deviceStorage.json"
+		},
+		"155": {
+			"id": 155,
+			"name": "AntVoice",
+			"purposes": [1, 2, 3, 4, 7],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [2, 3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 34819200,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.antvoice.com/en/privacy-policy/",
+					"legIntClaim": "https://www.antvoice.com/en/privacy-policy/"
+				},
+				{
+					"langId": "fr",
+					"privacy": "https://www.antvoice.com/fr/privacy-policy/",
+					"legIntClaim": "https://www.antvoice.com/fr/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 403,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://static.avads.net/deviceStorage.json"
+		},
+		"156": {
+			"id": 156,
+			"name": "Basis Global Technologies, Inc.",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 9, 10],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://privacy.basis.net/",
+					"legIntClaim": "https://privacy.basis.net/#gdpr"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 540,
+				"purposes": { "2": 0, "3": 180, "4": 180, "7": 35 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://privacy.basis.net/devicestorage.json"
+		},
+		"157": {
+			"id": 157,
+			"name": "Seedtag Advertising S.L",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://19567840.fs1.hubspotusercontent-na1.net/hubfs/19567840/Website%20-%20Terms%20and%20Conditions/Seedtag_Contextual%20Advertising%20Privacy%20Policy_ENG.docx%20(2).pdf",
+					"legIntClaim": "https://19567840.fs1.hubspotusercontent-na1.net/hubfs/19567840/Website%20-%20Terms%20and%20Conditions/Seedtag_Contextual%20Advertising%20Privacy%20Policy_ENG.docx%20(2).pdf"
+				},
+				{
+					"langId": "es",
+					"privacy": "https://info.seedtag.com/hubfs/Website%20-%20Terms%20and%20Conditions/Seedtag_Pol%C3%ADtica%20de%20Privacidad%20de%20Publicidad%20Contextual_ESP.docx%20(3).pdf",
+					"legIntClaim": "https://info.seedtag.com/hubfs/Website%20-%20Terms%20and%20Conditions/Seedtag_Pol%C3%ADtica%20de%20Privacidad%20de%20Publicidad%20Contextual_ESP.docx%20(3).pdf"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 0,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 6, 8, 11],
+			"deviceStorageDisclosureUrl": "https://tcf.seedtag.com/vendor.json"
+		},
+		"159": {
+			"id": 159,
+			"name": "Underdog Media LLC ",
+			"purposes": [1, 2, 7],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://underdogmedia.com/privacy/",
+					"legIntClaim": "https://underdogmedia.com/privacy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 63,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 8, 11],
+			"deviceStorageDisclosureUrl": "https://bid.underdog.media/deviceStorage.json"
+		},
+		"160": {
+			"id": 160,
+			"name": "Audience Solutions S.A.",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"overflow": { "httpGetLimit": 32 },
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "pl",
+					"privacy": "https://audience-solutions.com/privacy-policy.pdf",
+					"legIntClaim": "https://audience-solutions.com/privacy-policy.pdf"
+				},
+				{
+					"langId": "en",
+					"privacy": "https://audience-solutions.com/privacy-policy-en.pdf",
+					"legIntClaim": "https://audience-solutions.com/privacy-policy-en.pdf"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": { "3": 0 }
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://audience-solutions.com/.well-known/deviceStorage.json"
+		},
+		"161": {
+			"id": 161,
+			"name": "SMADEX, S.L.U.",
+			"purposes": [1, 2, 3, 4, 7, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://smadex.com/privacy-policy/",
+					"legIntClaim": "https://smadex.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": { "3": 90 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://statics.smadex.com/tcf-storage.json"
+		},
+		"163": {
+			"id": 163,
+			"name": "Bombora Inc.",
+			"purposes": [1, 3],
+			"legIntPurposes": [7, 9, 10],
+			"flexiblePurposes": [7, 9, 10],
+			"specialPurposes": [1],
+			"features": [1, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://bombora.com/privacy",
+					"legIntClaim": "https://bombora.com/privacy"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 730,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 8, 10],
+			"deviceStorageDisclosureUrl": "https://ml314.com/deviceStorage.json"
+		},
+		"164": {
+			"id": 164,
+			"name": "Outbrain UK.",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [2],
+			"cookieMaxAgeSeconds": 34186659,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.outbrain.com/privacy",
+					"legIntClaim": "https://www.outbrain.com/privacy"
+				},
+				{
+					"langId": "fr",
+					"privacy": "https://www.outbrain.com/privacy/fr",
+					"legIntClaim": "https://www.outbrain.com/privacy/fr"
+				},
+				{
+					"langId": "de",
+					"privacy": "https://www.outbrain.com/privacy/de/",
+					"legIntClaim": "https://www.outbrain.com/privacy/de/"
+				},
+				{
+					"langId": "it",
+					"privacy": "https://www.outbrain.com/privacy/it/",
+					"legIntClaim": "https://www.outbrain.com/privacy/it/"
+				},
+				{
+					"langId": "sl",
+					"privacy": "https://www.outbrain.com/privacy/sl/",
+					"legIntClaim": "https://www.outbrain.com/privacy/sl/"
+				},
+				{
+					"langId": "es",
+					"privacy": "https://www.outbrain.com/privacy/es/",
+					"legIntClaim": "https://www.outbrain.com/privacy/es/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 396,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://www.outbrain.com/privacy/wp-json/privacy/v2/devicestorage.json"
+		},
+		"165": {
+			"id": 165,
+			"name": "SpotX, Inc",
+			"purposes": [1],
+			"legIntPurposes": [2, 7, 8, 10],
+			"flexiblePurposes": [2, 7, 8, 10],
+			"specialPurposes": [1, 2],
+			"features": [3],
+			"specialFeatures": [2],
+			"overflow": { "httpGetLimit": 32 },
+			"deletedDate": "2023-10-20T00:00:00Z",
+			"cookieMaxAgeSeconds": 31539996,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.magnite.com/legal/advertising-technology-privacy-policy/",
+					"legIntClaim": "https://www.magnite.com/legal/advertising-technology-privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 28,
+				"purposes": { "10": 90 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 9, 11],
+			"deviceStorageDisclosureUrl": "https://gdpr.rubiconproject.com/spotx/devicestoragedisclosure.json"
+		},
+		"168": {
+			"id": 168,
+			"name": "EASYmedia GmbH",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "de",
+					"privacy": "https://login.rtbmarket.com/gdpr",
+					"legIntClaim": "https://login.rtbmarket.com/gdpr"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.rvty.net/device_storage_disclosure.json"
+		},
+		"173": {
+			"id": 173,
+			"name": "Yieldmo, Inc.",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 9, 10],
+			"flexiblePurposes": [2, 7, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.yieldmo.com/privacy/",
+					"legIntClaim": "https://www.yieldmo.com/privacy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 390,
+				"purposes": {},
+				"specialPurposes": { "1": 30, "2": 365, "3": 30 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://devicestoragedisclosureurl.yieldmo.com/deviceStorage.json"
+		},
+		"174": {
+			"id": 174,
+			"name": "A Million Ads",
+			"purposes": [2],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2],
+			"specialPurposes": [2, 3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.amillionads.com/privacy-policy",
+					"legIntClaim": "https://www.amillionads.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 30,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2],
+			"deviceStorageDisclosureUrl": "https://amillionads-tcf.s3.eu-west-1.amazonaws.com/amillionads_vendordevicestorage.json"
+		},
+		"178": {
+			"id": 178,
+			"name": "Hybrid Theory Global Ltd",
+			"purposes": [1, 2, 3, 4, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://hybridtheory.com/privacy-notice/",
+					"legIntClaim": "https://hybridtheory.com/privacy-notice/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://go.affec.tv/tcfv2/vendor-device-storage"
+		},
+		"184": {
+			"id": 184,
+			"name": "MEDIARITHMICS SAS",
+			"purposes": [1, 3],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.mediarithmics.io/legal/data-policy",
+					"legIntClaim": "https://www.mediarithmics.io/legal/data-policy"
+				},
+				{
+					"langId": "fr",
+					"privacy": "https://www.mediarithmics.io/legal/fr-data-policy",
+					"legIntClaim": "https://www.mediarithmics.io/legal/fr-data-policy"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 180,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [3],
+			"deviceStorageDisclosureUrl": "https://iab-tcf.mediarithmics.com/device_storage_disclosures.json"
+		},
+		"185": {
+			"id": 185,
+			"name": "Bidtellect, Inc",
+			"purposes": [1, 2, 3, 4, 7, 8],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [1, 2],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 7776000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.bidtellect.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 28,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 10, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.bttrack.com/iab/deviceStorageDisclosure.json"
+		},
+		"190": {
+			"id": 190,
+			"name": "video intelligence AG",
+			"purposes": [1, 2, 3, 4, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [1, 3],
+			"specialFeatures": [],
+			"deletedDate": "2025-03-06T15:13:42.562Z",
+			"cookieMaxAgeSeconds": 7776000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.vi.ai/legal/privacy-policy/",
+					"legIntClaim": "https://www.vi.ai/legal/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://www.vi.ai/deviceStorage.json"
+		},
+		"192": {
+			"id": 192,
+			"name": "Remerge GmbH",
+			"purposes": [1],
+			"legIntPurposes": [2, 7, 8, 9, 10, 11],
+			"flexiblePurposes": [2, 7, 8, 9, 10, 11],
+			"specialPurposes": [2],
+			"features": [1],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.remerge.io/service-privacy-policy",
+					"legIntClaim": "https://www.remerge.io/service-privacy-policy"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": { "8": 365, "9": 365, "10": 365 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 6, 8],
+			"deviceStorageDisclosureUrl": "https://assets.remerge.io/iab/deviceStorageDisclosure_v1.json"
+		},
+		"193": {
+			"id": 193,
+			"name": "Affle Iberia SL",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [3],
+			"features": [2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 63072000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://mediasmart.io/privacy/",
+					"legIntClaim": "https://mediasmart.io/privacy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 180,
+				"purposes": { "2": 10, "7": 120, "9": 360 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 8, 9, 11],
+			"deviceStorageDisclosureUrl": "https://cookies.mediasmart.io/cookies.json"
+		},
+		"194": {
+			"id": 194,
+			"name": "Rezonence Limited",
+			"purposes": [1, 2, 3, 4, 7, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [7],
+			"specialPurposes": [1, 2],
+			"features": [3],
+			"specialFeatures": [],
+			"deletedDate": "2025-01-13T17:26:16.317Z",
+			"cookieMaxAgeSeconds": 15552000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://rezonence.com/privacy-policy/",
+					"legIntClaim": "https://rezonence.com/privacy-policy/#legitimate_interest"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 180,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 6, 7, 11],
+			"deviceStorageDisclosureUrl": "https://cdn3.rezonence.com/freewall-templates/master/TCF/deviceStorageDisclosure.json"
+		},
+		"195": {
+			"id": 195,
+			"name": "advanced store GmbH",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7],
+			"flexiblePurposes": [2, 7],
+			"specialPurposes": [1, 2, 3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "de",
+					"privacy": "https://www.advanced-store.com/de/datenschutz/",
+					"legIntClaim": "https://www.advanced-store.com/de/datenschutz/"
+				},
+				{
+					"langId": "en",
+					"privacy": "https://www.advanced-store.com/en/data-privacy/",
+					"legIntClaim": "https://www.advanced-store.com/en/data-privacy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 60,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [3],
+			"deviceStorageDisclosureUrl": "https://ad4m.at/.well-known/deviceStorage.json"
+		},
+		"196": {
+			"id": 196,
+			"name": "AdElement Media Solutions Pvt Ltd",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [2, 3],
+			"specialFeatures": [1],
+			"overflow": { "httpGetLimit": 32 },
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "http://adelement.com/privacy-policy.html",
+					"legIntClaim": "https://adelement.com/privacy-policy.html#legal-basis-processing"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 180,
+				"purposes": { "3": 90, "4": 90, "9": 90 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 6, 7, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://adelement.com/ae.json"
+		},
+		"199": {
+			"id": 199,
+			"name": "ADUX",
+			"purposes": [1, 2, 3, 4, 7, 9],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [3],
+			"features": [],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 62208000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "fr",
+					"privacy": "https://www.adux.co/donnees-personnelles/",
+					"legIntClaim": "https://www.adux.co/donnees-personnelles/"
+				},
+				{
+					"langId": "en",
+					"privacy": "https://www.adux.co/en/personal-data/",
+					"legIntClaim": "https://www.adux.co/en/personal-data/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 8, 9, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.360yield.com/pub/deviceStorageDisclosureAdux.json"
+		},
+		"202": {
+			"id": 202,
+			"name": "Magnite CTV, Inc.",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 10],
+			"flexiblePurposes": [2, 7, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1, 2],
+			"overflow": { "httpGetLimit": 128 },
+			"cookieMaxAgeSeconds": 31556900,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.magnite.com/legal/advertising-technology-privacy-policy/",
+					"legIntClaim": "https://www.magnite.com/legal/advertising-technology-privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 28,
+				"purposes": { "10": 90 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 9, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.tremorhub.com/mctv/devicestoragedisclosure.json"
+		},
+		"203": {
+			"id": 203,
+			"name": "Revcontent, LLC",
+			"purposes": [1],
+			"legIntPurposes": [2, 7, 8, 10, 11],
+			"flexiblePurposes": [2],
+			"specialPurposes": [1, 2, 3],
+			"features": [2, 3],
+			"specialFeatures": [2],
+			"overflow": { "httpGetLimit": 32 },
+			"cookieMaxAgeSeconds": 34560000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.revcontent.com/privacy-policies/",
+					"legIntClaim": "https://www.revcontent.com/privacy-policies/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 30,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 4, 5, 6, 7, 8, 11],
+			"deviceStorageDisclosureUrl": "https://sothebys.revcontent.com/static/device_storage.json"
+		},
+		"205": {
+			"id": 205,
+			"name": "Adssets AB",
+			"purposes": [],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [2],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://adssets.com/policy/",
+					"legIntClaim": "https://adssets.com/policy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": { "purposes": {}, "specialPurposes": { "2": 0 } },
+			"dataDeclaration": [6, 8],
+			"deviceStorageDisclosureUrl": "https://tcf.pliing.com/tcf/disclosure.json"
+		},
+		"206": {
+			"id": 206,
+			"name": "Hybrid Adtech GmbH",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2],
+			"specialPurposes": [],
+			"features": [1, 2, 3],
+			"specialFeatures": [1, 2],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://hybrid.ai/data_protection_policy",
+					"legIntClaim": "https://hybrid.ai/data_protection_policy"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 180,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [2, 3],
+			"deviceStorageDisclosureUrl": "https://st.hybrid.ai/policy/deviceStorage.json"
+		},
+		"209": {
+			"id": 209,
+			"name": "Delta Projects AB",
+			"purposes": [1, 2, 3, 4],
+			"legIntPurposes": [7, 10],
+			"flexiblePurposes": [2, 7, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://deltaprojects.com/data-collection-policy",
+					"legIntClaim": "https://deltaprojects.com/data-collection-policy"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 547,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.de17a.com/policy/deviceStorage.json"
+		},
+		"210": {
+			"id": 210,
+			"name": "Zemanta Inc.",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [1, 3],
+			"specialFeatures": [2],
+			"cookieMaxAgeSeconds": 157680000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.outbrain.com/privacy/privacy-policy-outbrain-dsp/",
+					"legIntClaim": "https://www.outbrain.com/privacy/privacy-policy-outbrain-dsp/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://www.zemanta.com/wp-content/uploads/2022/06/deviceStorage.json"
+		},
+		"211": {
+			"id": 211,
+			"name": "AdTheorent, Inc",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [1, 2, 3],
+			"specialFeatures": [1, 2],
+			"overflow": { "httpGetLimit": 128 },
+			"deletedDate": "2025-06-19T09:28:25.223Z",
+			"cookieMaxAgeSeconds": 63071995,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://adtheorent.com/privacy-policy",
+					"legIntClaim": "https://adtheorent.com/privacy-policy"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 8, 9, 11],
+			"deviceStorageDisclosureUrl": "https://public-cdn.adtheorent.com/iab/AdTheorent-IAB-TCFv2-deviceStorageDisclosure.json"
+		},
+		"212": {
+			"id": 212,
+			"name": "usemax advertisement (Emego GmbH)",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "de",
+					"privacy": "https://www.usemax.de/?l=privacy",
+					"legIntClaim": "https://www.usemax.de/?l=privacy"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": { "3": 0 }
+			},
+			"dataDeclaration": [1, 10],
+			"deviceStorageDisclosureUrl": "https://www.usemax.de/deviceStorage.php"
+		},
+		"213": {
+			"id": 213,
+			"name": "emetriq GmbH",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "de",
+					"privacy": "https://www.emetriq.com/datenschutz/",
+					"legIntClaim": "https://www.emetriq.com/datenschutz/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 180,
+				"purposes": { "2": 0 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://tcf.emetriq.de/deviceStorageDisclosure.json"
+		},
+		"215": {
+			"id": 215,
+			"name": "ARMIS SAS",
+			"purposes": [1, 7],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 33696000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://armis.tech/en/armis-personal-data-privacy-policy/",
+					"legIntClaim": "https://armis.tech/en/armis-personal-data-privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": { "purposes": { "7": 180 }, "specialPurposes": {} },
+			"dataDeclaration": [1, 2, 3, 8],
+			"deviceStorageDisclosureUrl": "https://armis-rgpd-acotedemoi.acotedemoi.com/TCF_ARMIS.json"
+		},
+		"216": {
+			"id": 216,
+			"name": "Mindlytix SAS",
+			"purposes": [1, 2, 3, 4, 5, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1],
+			"features": [1],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 5356800,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "fr",
+					"privacy": "https://mindlytix.com/privacy/",
+					"legIntClaim": "https://mindlytix.com/html/data_information.html"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 123,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://mindlytix.com/tcf/tcf.json"
+		},
+		"217": {
+			"id": 217,
+			"name": "2KDirect, Inc. (dba iPromote)",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 9, 10],
+			"flexiblePurposes": [2, 7, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 157766400,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.ipromote.com/privacy-policy/",
+					"legIntClaim": "https://www.ipromote.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 31,
+				"purposes": {},
+				"specialPurposes": { "1": 365, "3": 1825 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://app.ipromote.com/.well-known/deviceStorage.json"
+		},
+		"224": {
+			"id": 224,
+			"name": "adrule mobile GmbH",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7, 8, 9, 10, 11],
+			"specialPurposes": [3],
+			"features": [],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "de",
+					"privacy": "https://www.adrule.net/de/datenschutz/",
+					"legIntClaim": "https://www.adrule.net/de/datenschutz/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 364,
+				"purposes": {},
+				"specialPurposes": { "3": 90 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.hyj.mobi/tcf/adrule2.json"
+		},
+		"226": {
+			"id": 226,
+			"name": "Publicis Media GmbH",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 157680000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "de",
+					"privacy": "https://www.publicismedia.de/datenschutz/",
+					"legIntClaim": "https://www.publicismedia.de/datenschutz/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 730,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://cdn.vtracy.de/iab/deviceStorage.json"
+		},
+		"227": {
+			"id": 227,
+			"name": "Opt Out Advertising B.V. ",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7, 9, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31622400,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://optoutadvertising.com/privacy-policy/",
+					"legIntClaim": "https://optoutadvertising.com/legitimate-interest-statement/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 90,
+				"purposes": {},
+				"specialPurposes": { "1": 30, "3": 1 }
+			},
+			"dataDeclaration": [1, 2, 3, 6, 7, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://adserving.optoutadvertising.com/dsd"
+		},
+		"228": {
+			"id": 228,
+			"name": "M.D. Primis Technologies Ltd.",
+			"purposes": [1, 2, 3, 4, 5, 6],
+			"legIntPurposes": [7, 8, 10],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 2160000,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.primis.tech/privacy-policy/",
+					"legIntClaim": "https://www.primis.tech/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 30,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 7, 8, 11],
+			"deviceStorageDisclosureUrl": "https://www.primis.tech/deviceStorage.json"
+		},
+		"231": {
+			"id": 231,
+			"name": "AcuityAds Inc.",
+			"purposes": [1, 3, 4],
+			"legIntPurposes": [2, 7, 8, 10],
+			"flexiblePurposes": [2, 7, 8, 10],
+			"specialPurposes": [1, 2, 3],
+			"features": [2],
+			"specialFeatures": [],
+			"overflow": { "httpGetLimit": 128 },
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://privacy.acuityads.com/corporate-privacy-policy.html",
+					"legIntClaim": "https://privacy.acuityads.com/corporate-privacy-policy.html"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 180,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://privacy.acuityads.com/deviceStorageDisclosure.json"
+		},
+		"232": {
+			"id": 232,
+			"name": "Rockerbox, Inc",
+			"purposes": [1],
+			"legIntPurposes": [7],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 2592000,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.rockerbox.com/privacy",
+					"legIntClaim": "https://www.rockerbox.com/privacy"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": { "purposes": { "7": 30 }, "specialPurposes": {} },
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 11],
+			"deviceStorageDisclosureUrl": "https://info.getrockerbox.com/iab_tcf_v2.json"
+		},
+		"235": {
+			"id": 235,
+			"name": "Bucksense Inc",
+			"purposes": [1, 2, 7, 9],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7, 9],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 89200,
+			"usesCookies": true,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.bucksense.com/platform-privacy-policy/",
+					"legIntClaim": "https://www.bucksense.com"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 3, 8],
+			"deviceStorageDisclosureUrl": "https://j.bksnimages.com/iab/devsto02.json"
+		},
+		"237": {
+			"id": 237,
+			"name": "VGI CTV, Inc",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://verve.com/product-privacy-policies/",
+					"legIntClaim": "https://verve.com/website-privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 30,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://lkqd.com/disclosures.json"
+		},
+		"238": {
+			"id": 238,
+			"name": "StackAdapt Inc.",
+			"purposes": [1, 3, 4, 5, 6],
+			"legIntPurposes": [2, 7, 8, 9, 10, 11],
+			"flexiblePurposes": [2, 7, 8, 11],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1, 2],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.stackadapt.com/privacy-policy",
+					"legIntClaim": "https://www.stackadapt.com/privacy-policy"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": { "7": 3652, "8": 180, "9": 4320, "10": 180, "11": 180 },
+				"specialPurposes": { "1": 60, "2": 1, "3": 1825 }
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://s3.amazonaws.com/stackadapt_public/disclosures.json"
+		},
+		"239": {
+			"id": 239,
+			"name": "Triton Digital Canada Inc.",
+			"purposes": [1, 4],
+			"legIntPurposes": [2, 7, 8, 9, 10],
+			"flexiblePurposes": [2, 7, 8, 9, 10],
+			"specialPurposes": [1, 2],
+			"features": [1, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 630720000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.tritondigital.com/privacy-policies",
+					"legIntClaim": "https://www.tritondigital.com/privacy-policies"
+				},
+				{
+					"langId": "fr",
+					"privacy": "https://fr.tritondigital.com/privacy-policies",
+					"legIntClaim": "https://fr.tritondigital.com/privacy-policies"
+				},
+				{
+					"langId": "es",
+					"privacy": "https://es.tritondigital.com/privacy-policies",
+					"legIntClaim": "https://es.tritondigital.com/privacy-policies"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 400,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+			"deviceStorageDisclosureUrl": "https://tritondigital.com/deviceStorageDisclosure.json"
+		},
+		"241": {
+			"id": 241,
+			"name": "OneTag Limited",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [2, 7],
+			"specialPurposes": [1, 2, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [1],
+			"cookieMaxAgeSeconds": 34160000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.onetag.com/privacy/",
+					"legIntClaim": "https://www.onetag.com/privacy/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 548,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 6, 8, 11],
+			"deviceStorageDisclosureUrl": "https://onetag-cdn.com/privacy/tcf_storage.json"
+		},
+		"242": {
+			"id": 242,
+			"name": "twiago GmbH",
+			"purposes": [1, 2, 3, 4, 7],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 2592000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "de",
+					"privacy": "https://a.twiago.com/privacy.php",
+					"legIntClaim": "https://a.twiago.com/privacy.php"
+				},
+				{
+					"langId": "en",
+					"privacy": "https://a.twiago.com/privacy.php",
+					"legIntClaim": "https://a.twiago.com/privacy.php"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 60,
+				"purposes": { "7": 14 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://control.twiago.com/deviceStorage.json"
+		},
+		"243": {
+			"id": 243,
+			"name": "Cloud Technologies S.A.",
+			"purposes": [1, 2, 3, 4, 7, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 3],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 31536000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.cloudtechnologies.pl/en/internet-advertising-privacy-policy",
+					"legIntClaim": "https://www.cloudtechnologies.pl/en/internet-advertising-privacy-policy"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 365,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 5, 6, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://www.cloudtechnologies.pl/deviceStorage.json"
+		},
+		"244": {
+			"id": 244,
+			"name": "ERMES",
+			"purposes": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [],
+			"features": [1, 2, 3],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": 33696000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "fr",
+					"privacy": "https://www.ermes.ai/politique-de-confidentialite/",
+					"legIntClaim": ""
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 395,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2, 3, 4, 5, 6, 7, 8, 10, 11],
+			"deviceStorageDisclosureUrl": "https://tag.leadplace.fr/consents/consents.json"
+		},
+		"246": {
+			"id": 246,
+			"name": "Smartology Limited",
+			"purposes": [1, 3, 4, 8],
+			"legIntPurposes": [2, 7],
+			"flexiblePurposes": [2, 7],
+			"specialPurposes": [1, 2, 3],
+			"features": [],
+			"specialFeatures": [],
+			"cookieMaxAgeSeconds": null,
+			"usesCookies": false,
+			"cookieRefresh": false,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://www.smartology.net/privacy-policy/",
+					"legIntClaim": "https://www.smartology.net/legitimate-interest-assessments/"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 30,
+				"purposes": { "3": 0, "4": 0 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1],
+			"deviceStorageDisclosureUrl": "https://www.smartology.net/deviceStorageDisclosure.json"
+		},
+		"248": {
+			"id": 248,
+			"name": "Converge-Digital",
+			"purposes": [1, 2, 3, 4, 7],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [2],
+			"features": [3],
+			"specialFeatures": [],
+			"overflow": { "httpGetLimit": 32 },
+			"cookieMaxAgeSeconds": 15552000,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "en",
+					"privacy": "https://converge-digital.com/privacy-policy/",
+					"legIntClaim": "https://converge-digital.com/privacy-policy/"
+				}
+			],
+			"usesNonCookieAccess": false,
+			"dataRetention": {
+				"stdRetention": 30,
+				"purposes": { "3": 180, "7": 0 },
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [1, 2],
+			"deviceStorageDisclosureUrl": "https://data.converge-digital.com/deviceStorage.json"
+		},
+		"249": {
+			"id": 249,
+			"name": "Tri-table Sp. z o.o.",
+			"purposes": [1, 2, 4, 7, 10],
+			"legIntPurposes": [],
+			"flexiblePurposes": [],
+			"specialPurposes": [1, 2],
+			"features": [2, 3],
+			"specialFeatures": [1],
+			"overflow": { "httpGetLimit": 128 },
+			"cookieMaxAgeSeconds": 31622400,
+			"usesCookies": true,
+			"cookieRefresh": true,
+			"urls": [
+				{
+					"langId": "pl",
+					"privacy": "https://tri-table.com/polityka-prywatnosci",
+					"legIntClaim": "https://tri-table.com/polityka-prywatnosci"
+				},
+				{
+					"langId": "en",
+					"privacy": "https://tri-table.com/polityka-prywatnosci",
+					"legIntClaim": "https://tri-table.com/polityka-prywatnosci"
+				}
+			],
+			"usesNonCookieAccess": true,
+			"dataRetention": {
+				"stdRetention": 366,
+				"purposes": {},
+				"specialPurposes": {}
+			},
+			"dataDeclaration": [2, 4, 8],
+			"deviceStorageDisclosureUrl": "https://cmp.spolecznosci.net/v2/deviceStorage.json"
+		}
+	}
+}

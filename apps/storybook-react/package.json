@@ -1,0 +1,26 @@
+{
+	"name": "@c15t/storybook-react",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"prestorybook": "bun --cwd ../../packages/core prebuild && bun --cwd ../../packages/react prebuild && bun --cwd ../../packages/iab prebuild",
+		"storybook": "bun run prestorybook && portless run --name storybook-react sh -c 'storybook dev --port \"$PORT\" --host \"$HOST\"'",
+		"build": "storybook build",
+		"test-storybook": "test-storybook --url ${STORYBOOK_URL:-http://127.0.0.1:6006}"
+	},
+	"dependencies": {
+		"@c15t/react": "workspace:*",
+		"@c15t/storybook-tests": "workspace:*",
+		"@c15t/ui": "workspace:*",
+		"react": "^19.2.0",
+		"react-dom": "^19.2.0"
+	},
+	"devDependencies": {
+		"@storybook/addon-a11y": "10.3.1",
+		"@storybook/react-vite": "10.3.1",
+		"@storybook/test-runner": "^0.24.3",
+		"storybook": "10.3.1",
+		"typescript": "5.9.3",
+		"vite": "7.3.1"
+	}
+}

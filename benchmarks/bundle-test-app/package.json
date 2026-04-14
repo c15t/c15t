@@ -1,25 +1,29 @@
 {
-	"name": "@c15t/bundle-test-app",
+	"name": "@c15t/next-bundle-bench",
 	"private": true,
 	"scripts": {
 		"dev": "next dev",
 		"build": "next build",
 		"analyze": "ANALYZE=true next build",
-		"analyze:json": "bun run analyze-bundle.ts --json",
-		"analyze:md": "bun run analyze-bundle.ts --markdown",
-		"analyze:ci": "next build && bun run analyze-bundle.ts --json > bundle-sizes.json"
+		"analyze:json": "bunx tsx analyze-bundle.ts --json",
+		"analyze:md": "bunx tsx analyze-bundle.ts --markdown",
+		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/bundle bunx tsx analyze-bundle.ts",
+		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/bundle bunx tsx analyze-bundle.ts",
+		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/bundle bunx tsx analyze-bundle.ts"
 	},
 	"dependencies": {
-		"next": "16.1.6",
-		"react": "19.2.3",
-		"react-dom": "19.2.3",
+		"@c15t/benchmarking": "workspace:*",
+		"next": "16.2.1",
+		"react": "19.2.4",
+		"react-dom": "19.2.4",
 		"c15t": "workspace:*",
-		"@c15t/react": "workspace:*"
+		"@c15t/react": "workspace:*",
+		"@c15t/nextjs": "workspace:*"
 	},
 	"devDependencies": {
-		"@next/bundle-analyzer": "16.1.6",
-		"typescript": "5.8.3",
-		"@types/react": "19.2.3",
-		"@types/node": "22.14.1"
+		"@next/bundle-analyzer": "16.2.1",
+		"typescript": "6.0.2",
+		"@types/react": "19.2.14",
+		"@types/node": "25.5.0"
 	}
 }

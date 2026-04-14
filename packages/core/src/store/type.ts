@@ -1,0 +1,1101 @@
+/**
+ * @packageDocumentation
+ * Defines the core types and interfaces for the consent management store.
+ */
+
+import type {
+	Branding,
+	InitOutput,
+	PolicyConfig,
+	PolicyScopeMode,
+	PolicyUiAction,
+	PolicyUiActionDirection,
+	PolicyUiActionGroup,
+	PolicyUiProfile,
+	PolicyUiSurfaceConfig,
+	PostSubjectOutput,
+} from '@c15t/schema/types';
+import type { Model } from '~/libs/determine-model';
+import type { StorageConfig } from '../libs/cookie';
+import type { HasCondition } from '../libs/has';
+import type { IABConfig, IABManager } from '../libs/iab-tcf/types';
+import type { IframeBlockerConfig } from '../libs/iframe-blocker';
+import type { NetworkBlockerConfig } from '../libs/network-blocker';
+import type { Script } from '../libs/script-loader';
+import type {
+	AllConsentNames,
+	Callbacks,
+	ConsentBannerResponse,
+	ConsentInfo,
+	ConsentState,
+	ConsentType,
+	consentTypes,
+	GlobalVendorList,
+	I18nConfig,
+	LegalLinks,
+	LocationInfo,
+	OnConsentChangedPayload,
+	Overrides,
+	TranslationConfig,
+	Translations,
+	User,
+} from '../types';
+
+// Re-export IAB types for external consumers
+export type {
+	CMPApi,
+	CMPApiConfig,
+	FetchGVLResult,
+	IABActions,
+	IABManager,
+	IABModule,
+	IABState,
+} from '../libs/iab-tcf/types';
+
+/**
+ * Describes which consent UI component should currently be visible.
+ *
+ * @remarks
+ * - `'none'`   — No consent UI shown (loading, settled, or auto-granted)
+ * - `'banner'` — Banner should be shown
+ * - `'dialog'` — Dialog / preference center should be shown
+ *
+ * @public
+ */
+export type ActiveUI = 'none' | 'banner' | 'dialog';
+
+// Re-export canonical policy types from @c15t/schema
+export type {
+	PolicyScopeMode,
+	PolicyUiAction,
+	PolicyUiActionDirection,
+	PolicyUiActionGroup,
+	PolicyUiProfile,
+	PolicyUiSurfaceConfig,
+};
+export type InitDataSource =
+	| 'ssr'
+	| 'backend'
+	| 'backend-cache-hit'
+	| 'offline-fallback'
+	| 'offline-mode'
+	| 'custom';
+
+/**
+ * Policy-driven UI hints for a single consent surface (banner or dialog).
+ *
+ * @remarks
+ * These values are populated from `/init` response policy data and drive
+ * the headless consent UI hooks.
+ *
+ * @public
+ */
+export interface PolicySurfaceState {
+	/** Allowed actions for this surface derived from backend runtime policy. */
+	allowedActions?: PolicyUiAction[];
+	/** Preferred primary action hints from backend runtime policy. */
+	primaryActions?: PolicyUiAction[];
+	/** Explicit grouped action layout hint from backend runtime policy. */
+	layout?: PolicyUiActionGroup[];
+	/** Direction hint for the grouped action layout. */
+	direction?: PolicyUiActionDirection;
+	/** Presentation profile hint from backend runtime policy. */
+	uiProfile?: PolicyUiProfile;
+	/** Scroll lock hint from backend runtime policy. */
+	scrollLock?: boolean;
+}
+
+type RequireAtLeastOne<T, Keys extends keyof T = keyof T> = Keys extends keyof T
+	? Required<Pick<T, Keys>> & Partial<Omit<T, Keys>>
+	: never;
+
+/**
+ * Experimental input for legal-document consent writes.
+ *
+ * @remarks
+ * Preferred identifier flow:
+ * - `documentSnapshotToken` for authoritative, signed release metadata
+ * - `policyHash` when the caller only knows the rendered document hash
+ * - `policyId` only as a compatibility fallback for older backends
+ *
+ * @experimental
+ */
+type UnstableLegalDocumentConsentInputBase = {
+	type: 'privacy_policy' | 'terms_and_conditions' | 'dpa';
+	policyId?: string;
+	policyHash?: string;
+	documentSnapshotToken?: string;
+	domain?: string;
+	givenAt?: number;
+	metadata?: Record<string, unknown>;
+	preferences?: Record<string, boolean>;
+	uiSource?: string;
+	externalId?: string;
+	identityProvider?: string;
+};
+
+export type UnstableLegalDocumentConsentInput =
+	UnstableLegalDocumentConsentInputBase &
+		RequireAtLeastOne<
+			Pick<
+				UnstableLegalDocumentConsentInputBase,
+				'policyId' | 'policyHash' | 'documentSnapshotToken'
+			>
+		>;
+
+/**
+ * Experimental input for non-legal policy consent writes.
+ *
+ * @experimental
+ */
+export interface UnstableGenericPolicyConsentInput {
+	type: 'marketing_communications' | 'age_verification' | 'other';
+	domain?: string;
+	givenAt?: number;
+	metadata?: Record<string, unknown>;
+	preferences?: Record<string, boolean>;
+	uiSource?: string;
+	externalId?: string;
+	identityProvider?: string;
+}
+
+/**
+ * Experimental input for policy-based consent writes.
+ *
+ * @experimental
+ */
+export type UnstablePolicyConsentInput =
+	| UnstableLegalDocumentConsentInput
+	| UnstableGenericPolicyConsentInput;
+
+/**
+ * Offline policy preview payload for the headless runtime.
+ *
+ * @remarks
+ * Use this in `mode: 'offline'` to preview backend-like policy behavior
+ * without a live `/init` endpoint.
+ *
+ * The runtime supports two levels of control:
+ *
+ * - `policyPacks`: provide a backend-compatible policy pack and let c15t
+ *   resolve it locally
+ * - `policy` / `policyDecision`: inject a fully synthetic resolved result
+ *
+ * @see {@link https://v2.c15t.com/docs/frameworks/javascript/policy-packs}
+ * @see {@link https://v2.c15t.com/docs/frameworks/react/concepts/policy-packs}
+ */
+export type OfflinePolicyConfig = {
+	/**
+	 * Backend-like i18n configuration for offline policy previews.
+	 *
+	 * @remarks
+	 * This mirrors the backend's policy-pack translation model so offline mode
+	 * can resolve `messageProfile` the same way as hosted mode.
+	 */
+	i18n?: {
+		/**
+		 * Translation catalogs keyed by profile.
+		 */
+		messages?: Record<
+			string,
+			{
+				/**
+				 * Fallback language used when the requested language is not configured
+				 * in this profile.
+				 * @default "en"
+				 */
+				fallbackLanguage?: string;
+
+				/**
+				 * Translation overrides keyed by language code.
+				 */
+				translations: Record<string, Partial<Translations>>;
+			}
+		>;
+
+		/**
+		 * Fallback profile used when a policy does not provide `messageProfile`.
+		 * @default "default"
+		 */
+		defaultProfile?: string;
+	};
+
+	/**
+	 * Backend-compatible policy pack resolved in offline mode using
+	 * region > country > default precedence.
+	 *
+	 * @remarks
+	 * Mirrors the backend's `policyPacks` field. Use this with
+	 * `policyPackPresets` helpers or custom `PolicyConfig[]` arrays.
+	 */
+	policyPacks?: PolicyConfig[];
+
+	/**
+	 * Synthetic runtime policy returned by offline mode init.
+	 *
+	 * @remarks
+	 * Useful for local UI previews where no backend `/init` endpoint is available.
+	 */
+	policy?: InitOutput['policy'];
+
+	/**
+	 * Optional explainability metadata for the synthetic policy decision.
+	 */
+	policyDecision?: InitOutput['policyDecision'];
+
+	/**
+	 * Optional synthetic policy snapshot token.
+	 */
+	policySnapshotToken?: InitOutput['policySnapshotToken'];
+};
+
+/**
+ * SSR transport metadata for the `/init` request that produced {@link SSRInitialData}.
+ *
+ * @public
+ */
+export interface SSRInitRequestMetadata {
+	/**
+	 * Effective request inputs used to fetch `/init`.
+	 */
+	requestContext?: SSRInitRequestContext;
+
+	/**
+	 * End-to-end request duration in milliseconds (server-side measurement).
+	 */
+	requestDurationMs?: number;
+
+	/**
+	 * Cache diagnostics extracted from response headers.
+	 */
+	cache?: {
+		/**
+		 * Whether the `/init` response appears to be served from cache.
+		 */
+		isHit: boolean;
+
+		/**
+		 * Human-readable cache detail (for example, `x-vercel-cache=HIT, age=12`).
+		 */
+		detail: string | null;
+	};
+}
+
+/**
+ * Effective request inputs used to fetch `/init`.
+ *
+ * @public
+ */
+export interface SSRInitRequestContext {
+	/**
+	 * Canonical absolute backend URL without a trailing slash.
+	 */
+	backendURL: string;
+
+	/**
+	 * Explicit country override used for the request, if any.
+	 */
+	country: string | null;
+
+	/**
+	 * Explicit region override used for the request, if any.
+	 */
+	region: string | null;
+
+	/**
+	 * Explicit language override used for the request, if any.
+	 */
+	language: string | null;
+
+	/**
+	 * Effective GPC signal used for the request.
+	 */
+	gpc: boolean;
+
+	/**
+	 * Fetch credentials mode for browser-prefetched requests.
+	 */
+	credentials?: RequestCredentials;
+}
+
+export type SSRSkippedReason =
+	| 'no_data'
+	| 'fetch_failed'
+	| 'context_mismatch'
+	| null;
+
+/**
+ * Initial data structure for SSR prefetching.
+ *
+ * @remarks
+ * When using frameworks like Next.js, init data can be prefetched
+ * on the server and passed to the client. GVL is included in the
+ * init response when IAB is active for the resolved request policy
+ * (or for legacy setups without backend policies).
+ *
+ * @public
+ */
+export interface SSRInitialData {
+	/**
+	 * Init endpoint response with jurisdiction, location, translations, and optional GVL.
+	 */
+	init: InitOutput | undefined;
+
+	/**
+	 * Global Vendor List data for IAB TCF mode.
+	 * - `undefined` means IAB is not active for the request or not enabled on server
+	 * - `null` means the user is in a non-IAB region (204 response from gvl.consent.io)
+	 * - `GlobalVendorList` contains the vendor list data from init response
+	 *
+	 * Note: When init returns 200 without gvl, client IAB settings are overridden to disabled.
+	 */
+	gvl?: GlobalVendorList | null;
+
+	/**
+	 * Optional metadata for debugging SSR transport behavior.
+	 */
+	metadata?: SSRInitRequestMetadata;
+}
+
+/**
+ * Shared configuration-related properties between store options and runtime state.
+ *
+ * @remarks
+ * This interface centralizes common configuration fields to keep TSDoc comments
+ * and types in sync between {@link StoreOptions} and {@link ConsentStoreState}.
+ *
+ * @public
+ */
+export interface StoreConfig {
+	/**
+	 * Configuration for the consent manager.
+	 *
+	 * @see {@link StoreMetaConfig} for available options
+	 */
+	config: StoreMetaConfig;
+
+	/**
+	 * Configuration for the legal links
+	 *
+	 * @remarks
+	 * Legal links can display across different parts of the consent manager such
+	 * as the consent banner & dialog.
+	 */
+	legalLinks: LegalLinks;
+
+	/**
+	 * Storage configuration for consent persistence.
+	 *
+	 * @remarks
+	 * Configure how consent data is stored in localStorage and cookies.
+	 */
+	storageConfig?: StorageConfig;
+
+	/**
+	 * The user's information.
+	 * Usually your own internal ID for the user from your auth provider.
+	 *
+	 * @see {@link User} for available options
+	 */
+	user?: User;
+
+	/**
+	 * Forcefully set values like country, region, language for the consent
+	 * manager.
+	 * These values will override the values detected from the browser.
+	 */
+	overrides?: Overrides;
+
+	/**
+	 * Configuration for the network request blocker.
+	 *
+	 * @remarks
+	 * The network blocker intercepts global `fetch` and `XMLHttpRequest`
+	 * calls and blocks requests based on the current consent state and
+	 * configured domain rules.
+	 *
+	 * @see https://c15t.com/docs/frameworks/react/network-blocker
+	 * @see {@link NetworkBlockerConfig} for available options
+	 */
+	networkBlocker?: NetworkBlockerConfig;
+
+	/**
+	 * Event callbacks for consent actions.
+	 */
+	callbacks: Callbacks;
+
+	/**
+	 * Translation configuration for the consent manager.
+	 *
+	 * @see {@link TranslationConfig} for available options
+	 */
+	translationConfig: TranslationConfig;
+
+	/**
+	 * Array of script configurations to manage.
+	 */
+	scripts: Script[];
+}
+
+/**
+ * Metadata describing the consent manager instance.
+ *
+ * @public
+ */
+export interface StoreMetaConfig {
+	/**
+	 * Package name of the consent manager implementation.
+	 */
+	pkg: string;
+
+	/**
+	 * Version of the consent manager package.
+	 */
+	version: string;
+
+	/**
+	 * Current operating mode of the consent manager.
+	 */
+	mode: string;
+
+	/**
+	 * Optional metadata for custom integrations.
+	 *
+	 * @remarks
+	 * This can be used for debugging, analytics or environment flags.
+	 */
+	meta?: Record<string, unknown>;
+}
+
+/**
+ * Configuration options for the consent manager store.
+ *
+ * @remarks
+ * These options control the behavior of the store,
+ * including initialization, tracking blocker, and persistence.
+ *
+ * @public
+ */
+export interface StoreOptions extends Partial<StoreConfig> {
+	/**
+	 * Custom namespace for the store instance.
+	 * @default 'c15tStore'
+	 */
+	namespace?: string;
+
+	/**
+	 * Whether c15t should be active.
+	 *
+	 * @remarks
+	 * When set to `false`, c15t will not run the initialization process and
+	 * all consents will be treated as granted on the client side.
+	 * client side.
+	 *
+	 * This is useful when you want to temporarily disable consent handling
+	 * (for example in certain environments) without removing the
+	 * integration code.
+	 *
+	 * @default true
+	 */
+	enabled?: boolean;
+
+	/**
+	 * Enable debug logging for the consent manager.
+	 *
+	 * @remarks
+	 * When `true`, diagnostic messages are logged to `console.log` / `console.debug`
+	 * with a `[c15t]` prefix. When `false` (default), those calls are no-ops.
+	 * `console.warn` and `console.error` are always shown regardless of this setting.
+	 *
+	 * @default false
+	 */
+	debug?: boolean;
+
+	/**
+	 * Initial consent categories to activate.
+	 *
+	 * @see {@link AllConsentNames} for available options
+	 */
+	initialConsentCategories?: AllConsentNames[];
+
+	/**
+	 * Configuration for the iframe blocker.
+	 * Controls how iframes are blocked based on consent settings.
+	 *
+	 * @see {@link IframeBlockerConfig} for available options
+	 */
+	iframeBlockerConfig?: IframeBlockerConfig;
+
+	/**
+	 * Initial i18n config (preferred in c15t v2).
+	 *
+	 * @remarks
+	 * If both `initialI18nConfig` and `initialTranslationConfig` are provided,
+	 * `initialI18nConfig` takes precedence.
+	 */
+	initialI18nConfig?: Partial<I18nConfig>;
+
+	/**
+	 * Initial Translation Config
+	 *
+	 * @deprecated Use `initialI18nConfig` instead.
+	 *
+	 * @see {@link TranslationConfig} for available options
+	 */
+	initialTranslationConfig?: Partial<TranslationConfig>;
+
+	/**
+	 * Translation configuration for the consent manager.
+	 *
+	 * @see {@link TranslationConfig} for available options
+	 */
+	translationConfig?: TranslationConfig;
+
+	/**
+	 * SSR-prefetched data for hydration.
+	 *
+	 * Pass the Promise from `fetchInitialData()` directly to this option.
+	 * This is useful for server-side rendering (SSR) such as in @c15t/nextjs.
+	 *
+	 * @remarks
+	 * The data includes init data with optional GVL when the server has IAB configured.
+	 * GVL is included in the init response, not fetched separately.
+	 *
+	 * @example
+	 * ```tsx
+	 * // In your layout.tsx (server component)
+	 * const ssrData = fetchInitialData({ backendURL: '/api/consent' });
+	 *
+	 * // Pass to provider (client component)
+	 * <ConsentManagerProvider options={{ ssrData }}>
+	 *   {children}
+	 * </ConsentManagerProvider>
+	 * ```
+	 *
+	 * @see https://c15t.com/docs/frameworks/react/server-side
+	 * @see {@link SSRInitialData} for the data structure
+	 */
+	ssrData?: Promise<SSRInitialData | undefined>;
+
+	/**
+	 * IAB TCF 2.3 configuration.
+	 *
+	 * Most users don't need this - only enable if you work with
+	 * IAB-registered programmatic advertising vendors.
+	 *
+	 * @remarks
+	 * When enabled, c15t will:
+	 * - Use GVL from backend /init response (backend must have GVL configured)
+	 * - Initialize __tcfapi CMP API
+	 * - Generate TC Strings for IAB compliance
+	 *
+	 * Note: If the server returns 200 without GVL, client IAB settings are
+	 * automatically overridden to disabled (server takes precedence).
+	 *
+	 * In offline/fallback mode, GVL is fetched from gvl.consent.io.
+	 *
+	 * This is an opt-in feature with zero bundle impact when not enabled.
+	 *
+	 * @see https://c15t.com/docs/frameworks/react/iab/overview
+	 * @see https://iabeurope.eu/transparency-consent-framework/
+	 * @see {@link IABConfig} for available options
+	 */
+	iab?: IABConfig;
+
+	/**
+	 * Offline-mode policy payload override.
+	 *
+	 * @remarks
+	 * When `mode: 'offline'`, this payload is merged into the offline `init`
+	 * response so policy-driven banner/dialog behavior can be previewed locally.
+	 *
+	 * Ignored in hosted/custom modes.
+	 *
+	 * @see {@link https://v2.c15t.com/docs/frameworks/javascript/policy-packs}
+	 */
+	offlinePolicy?: OfflinePolicyConfig;
+
+	/**
+	 * Callbacks for the consent manager.
+	 *
+	 * @see https://c15t.com/docs/frameworks/react/callbacks
+	 * @see {@link Callbacks} for available options
+	 */
+	callbacks?: Callbacks;
+
+	/**
+	 * Dynamically load scripts based on consent state.
+	 * For scripts such as Google Tag Manager, Meta Pixel, etc.
+	 *
+	 * @see https://c15t.com/docs/frameworks/react/script-loader
+	 * @see {@link Script} for available options
+	 */
+	scripts?: Script[];
+
+	/**
+	 * When true, triggers a page reload when consent is revoked instead of
+	 * trusting script cleanup callbacks. This ensures complete cleanup of
+	 * third-party scripts by refreshing the page with the new consent state.
+	 *
+	 * @remarks
+	 * Reload only happens when:
+	 * - User had previously granted consent (scripts were loaded)
+	 * - User is now revoking one or more consents
+	 *
+	 * Reload does NOT happen when:
+	 * - User is declining consent for the first time (no scripts were loaded)
+	 * - User is adding more consent (just loads new scripts)
+	 *
+	 * The consent is persisted locally before reload, and the API sync
+	 * happens on the fresh page load.
+	 *
+	 * @default true (recommended for privacy compliance)
+	 */
+	reloadOnConsentRevoked?: boolean;
+}
+
+/**
+ * Runtime state fields for the consent management store.
+ *
+ * @remarks
+ * These properties represent the dynamic state of the consent manager that
+ * changes over time as users interact with consent dialogs and preferences.
+ *
+ * @public
+ */
+export interface StoreRuntimeState extends StoreConfig {
+	/** Whether to show the branding. "consent" is a deprecated alias for "inth". */
+	branding: Branding;
+
+	/** Current consent states for all consent types */
+	consents: ConsentState;
+
+	/** Selected consents (Not Saved) - use saveConsents to save */
+	selectedConsents: ConsentState;
+
+	/** Information about when and how consent was given */
+	consentInfo: ConsentInfo | null;
+
+	/**
+	 * Which consent UI component is currently visible.
+	 *
+	 * @see {@link ActiveUI} for possible values
+	 */
+	activeUI: ActiveUI;
+
+	/** Whether consent banner information is currently being loaded */
+	isLoadingConsentInfo: boolean;
+
+	/** Whether consent banner information has been successfully fetched */
+	hasFetchedBanner: boolean;
+
+	/** Last consent banner fetch data for callback replay */
+	lastBannerFetchData: ConsentBannerResponse | null;
+
+	/** Whether debug logging is enabled */
+	debug: boolean;
+
+	/** Active consent categories */
+	consentCategories: AllConsentNames[];
+
+	/** Subject's location information */
+	locationInfo: LocationInfo | null;
+
+	/** Whether to include non-displayed consents in operations */
+	includeNonDisplayedConsents: boolean;
+
+	/** Available consent type configurations */
+	consentTypes: ConsentType[];
+
+	/** Configuration for the iframe blocker */
+	iframeBlockerConfig: IframeBlockerConfig;
+
+	/** Map of currently loaded script IDs to a boolean loaded-state */
+	loadedScripts: Record<string, boolean>;
+
+	/** Map of anonymized script IDs to their original IDs */
+	scriptIdMap: Record<string, string>;
+
+	/**
+	 * What type of consent model to use for the consent manager.
+	 *
+	 * - 'opt-in' - Requires explicit consent before non-essential cookies or tracking. (GDPR Style)
+	 * - 'opt-out' - Allows processing until the user exercises a right to opt out. (CCPA Style)
+	 * - 'iab' - IAB TCF 2.3 mode for programmatic advertising compliance. (GDPR jurisdictions only)
+	 */
+	model: Model;
+
+	/** Policy-driven UI hints for the consent banner surface. */
+	policyBanner: PolicySurfaceState;
+
+	/** Policy-driven UI hints for the consent dialog surface. */
+	policyDialog: PolicySurfaceState;
+
+	/**
+	 * Active runtime policy category scope from `/init`.
+	 *
+	 * @remarks
+	 * Used to keep client-side category discovery (scripts/iframes) aligned with
+	 * backend policy restrictions after initialization.
+	 */
+	policyCategories: string[] | null;
+
+	/**
+	 * Runtime policy scope mode from `/init`.
+	 * Controls whether out-of-scope categories are treated as permissive at runtime.
+	 */
+	policyScopeMode: PolicyScopeMode | null;
+
+	/**
+	 * Source that provided the most recent `/init` payload used to hydrate runtime state.
+	 *
+	 * @remarks
+	 * This is useful for diagnostics and for authoring policy conditions around backend
+	 * availability/cache behavior without relying on volatile dimensions.
+	 */
+	initDataSource: InitDataSource | null;
+
+	/**
+	 * Optional source detail for diagnostics (for example, cache header values).
+	 */
+	initDataSourceDetail: string | null;
+
+	/**
+	 * IAB TCF 2.3 state and actions (null when not configured or not in IAB mode).
+	 *
+	 * @remarks
+	 * This encapsulates all IAB-specific state and methods including the Global Vendor List,
+	 * consent strings, per-vendor/purpose consent states, and management functions.
+	 *
+	 * When IAB mode is enabled, access state and actions via:
+	 * - `store.iab?.gvl` - Global Vendor List
+	 * - `store.iab?.vendorConsents` - Vendor consent state
+	 * - `store.iab?.acceptAll()` - Accept all IAB consents
+	 * - `store.iab?.save()` - Save IAB consents
+	 *
+	 * @see {@link IABManager} for the full state and action interface
+	 */
+	iab: IABManager | null;
+
+	/**
+	 * Whether to reload the page when consent is revoked.
+	 *
+	 * @see {@link StoreOptions.reloadOnConsentRevoked} for details
+	 */
+	reloadOnConsentRevoked: boolean;
+
+	/**
+	 * Whether SSR data was successfully used for initialization.
+	 *
+	 * @remarks
+	 * - `true` if SSR data was provided and successfully consumed
+	 * - `false` if SSR data was not provided or failed to load
+	 */
+	ssrDataUsed: boolean;
+
+	/**
+	 * Reason SSR data was skipped, if applicable.
+	 *
+	 * @remarks
+	 * - `null` if SSR data was used successfully
+	 * - `'no_data'` if no SSR data was provided
+	 * - `'fetch_failed'` if SSR data was provided but the fetch returned no data
+	 * - `'context_mismatch'` if SSR data did not match the current runtime request context
+	 */
+	ssrSkippedReason: SSRSkippedReason;
+}
+
+/**
+ * Runtime action methods for the consent management store.
+ *
+ * @remarks
+ * These methods encapsulate all side-effectful operations that update the
+ * store state or interact with external systems.
+ *
+ * @public
+ */
+export interface StoreActions {
+	/**
+	 * Updates the translation configuration.
+	 *
+	 * @param config - The new translation configuration
+	 */
+	setTranslationConfig: (config: TranslationConfig) => void;
+
+	/**
+	 * Sets the overrides for the consent manager.
+	 *
+	 * Automatically attempts to fetch the consent manager again with the new overrides.
+	 *
+	 * @param overrides - The overrides to set
+	 * @returns A promise that resolves when the consent manager has been fetched again
+	 */
+	setOverrides: (
+		overrides: StoreConfig['overrides']
+	) => Promise<InitOutput | undefined>;
+
+	/**
+	 * Set the language override for the consent manager. This will override the language detected from the browser and re-fetch the consent banner information.
+	 *
+	 * @param language - The language code to override with (for example, "de" or "fr")
+	 * @returns A promise that resolves when the consent manager has been fetched again
+	 */
+	setLanguage: (language: string) => Promise<InitOutput | undefined>;
+
+	/**
+	 * Identifies the user by setting the external ID.
+	 *
+	 * @remarks
+	 * If the user has already consented, it will update the existing record.
+	 *
+	 * @param user - The user's information
+	 * @returns A promise that resolves when the identification has completed
+	 * @throws {Error} When the underlying identify-user request fails
+	 */
+	identifyUser: (user: User) => Promise<void>;
+
+	/**
+	 * Writes a policy-based consent such as terms and conditions.
+	 *
+	 * @experimental
+	 */
+	unstable_acceptPolicyConsent: (
+		input: UnstablePolicyConsentInput
+	) => Promise<PostSubjectOutput>;
+
+	/**
+	 * Updates the selected consent state for a specific consent type.
+	 *
+	 * @param name - The consent type to update
+	 * @param value - The new consent value
+	 *
+	 * @remarks
+	 * This updates only the transient selection. To persist the change, call
+	 * {@link saveConsents}.
+	 */
+	setSelectedConsent: (name: AllConsentNames, value: boolean) => void;
+
+	/**
+	 * Saves the user's consent preferences.
+	 *
+	 * @param type - The type of consent being saved
+	 * @returns A promise that resolves when the preferences have been stored
+	 * @throws {Error} When the underlying persistence layer fails
+	 */
+	saveConsents: (
+		type: 'all' | 'custom' | 'necessary',
+		options?: { uiSource?: string }
+	) => Promise<void>;
+
+	/**
+	 * Updates the consent state for a specific consent type & automatically save the consent.
+	 *
+	 * @param name - The consent type to update
+	 * @param value - The new consent value
+	 */
+	setConsent: (name: AllConsentNames, value: boolean) => void;
+
+	/** Resets all consent preferences to their default values */
+	resetConsents: () => void;
+
+	/**
+	 * Sets the active consent UI component.
+	 *
+	 * @param ui - Which UI to show (`'none'`, `'banner'`, or `'dialog'`)
+	 * @param options - Optional settings
+	 * @param options.force - When true, forces the banner to show even if
+	 *   consent already exists
+	 */
+	setActiveUI: (ui: ActiveUI, options?: { force?: boolean }) => void;
+
+	/**
+	 * Updates the active GDPR consent types.
+	 *
+	 * @param types - Array of consent types to activate
+	 */
+	setConsentCategories: (types: AllConsentNames[]) => void;
+
+	/**
+	 * Sets a callback for a specific consent event.
+	 *
+	 * @param name - The callback event name
+	 * @param callback - The callback function
+	 */
+	setCallback: (
+		name: keyof Callbacks,
+		callback: Callbacks[keyof Callbacks] | undefined
+	) => void;
+
+	/**
+	 * Subscribes to change-only consent saves.
+	 *
+	 * @remarks
+	 * The listener fires only after an explicit save changes the previously
+	 * saved consent state. It does not replay the current state on subscription.
+	 *
+	 * @param listener - The listener to call when consent changes
+	 * @returns Cleanup function that removes the listener
+	 */
+	subscribeToConsentChanges: (
+		listener: (payload: OnConsentChangedPayload) => void
+	) => () => void;
+
+	/**
+	 * Updates the user's location information.
+	 *
+	 * @param location - The location information
+	 */
+	setLocationInfo: (location: LocationInfo | null) => void;
+
+	/**
+	 * Initializes the consent manager by fetching jurisdiction, location, translations, and branding information.
+	 */
+	initConsentManager: () => Promise<InitOutput | undefined>;
+
+	/** Retrieves the list of consent types that should be displayed */
+	getDisplayedConsents: () => typeof consentTypes;
+
+	/** Checks if the user has provided any form of consent */
+	hasConsented: () => boolean;
+
+	/**
+	 * Evaluates whether current consent state satisfies the given condition.
+	 *
+	 * @param condition - The consent condition to evaluate
+	 * @returns True if the consent condition is satisfied, false otherwise
+	 *
+	 * @remarks
+	 * This method provides a powerful way to check complex consent requirements
+	 * using the current consent state from the store.
+	 *
+	 * **Simple Usage:**
+	 * - Check single consent: `store.has("measurement")`
+	 *
+	 * **Complex Conditions:**
+	 * - AND logic: `store.has({ and: ["measurement", "marketing"] })`
+	 * - OR logic: `store.has({ or: ["measurement", "marketing"] })`
+	 * - NOT logic: `store.has({ not: "measurement" })`
+	 * - Nested logic: `store.has({ and: ["necessary", { or: ["measurement", "marketing"] }] })`
+	 *
+	 * @example
+	 * ```typescript
+	 * // Simple checks
+	 * const hasAnalytics = store.has("measurement");
+	 * const hasMarketing = store.has("marketing");
+	 *
+	 * // Complex logic
+	 * const hasAnalyticsAndMarketing = store.has({ and: ["measurement", "marketing"] });
+	 * const hasEitherAnalyticsOrMarketing = store.has({ or: ["measurement", "marketing"] });
+	 * const doesNotHaveMarketing = store.has({ not: "marketing" });
+	 *
+	 * // Complex nested conditions
+	 * const complexCondition = store.has({
+	 *   and: [
+	 *     "necessary",
+	 *     { or: ["measurement", "marketing"] },
+	 *     { not: "functionality" }
+	 *   ]
+	 * });
+	 * ```
+	 */
+	has: <CategoryType extends AllConsentNames>(
+		condition: HasCondition<CategoryType>
+	) => boolean;
+
+	/**
+	 * Sets multiple script configurations to the store.
+	 *
+	 * @param scripts - Array of script configurations to add
+	 */
+	setScripts: (scripts: Script[]) => void;
+
+	/**
+	 * Removes a script configuration from the store.
+	 *
+	 * @param scriptId - ID of the script to remove
+	 */
+	removeScript: (scriptId: string) => void;
+
+	/**
+	 * Updates scripts based on current consent state.
+	 * Loads scripts that have consent and aren't loaded yet.
+	 * Unloads scripts that no longer have consent.
+	 *
+	 * @returns Object containing arrays of loaded and unloaded script IDs
+	 */
+	updateScripts: () => { loaded: string[]; unloaded: string[] };
+
+	/**
+	 * Checks if a script is currently loaded.
+	 *
+	 * @param scriptId - ID of the script to check
+	 * @returns True if the script is loaded, false otherwise
+	 */
+	isScriptLoaded: (scriptId: string) => boolean;
+
+	/**
+	 * Gets all currently loaded script IDs.
+	 *
+	 * @returns Array of loaded script IDs
+	 */
+	getLoadedScriptIds: () => string[];
+
+	/** Initializes the iframe blocker instance. */
+	initializeIframeBlocker: () => void;
+
+	/** Updates the active consents used by the iframe blocker. */
+	updateIframeConsents: () => void;
+
+	/** Destroys the iframe blocker instance and cleans up resources. */
+	destroyIframeBlocker: () => void;
+
+	/** Initializes the network blocker instance. */
+	initializeNetworkBlocker: () => void;
+
+	/** Updates the consent snapshot used by the network blocker. */
+	updateNetworkBlockerConsents: () => void;
+
+	/** Updates the network blocker configuration at runtime. */
+	setNetworkBlocker: (config: StoreConfig['networkBlocker']) => void;
+
+	/** Destroys the network blocker instance and cleans up resources. */
+	destroyNetworkBlocker: () => void;
+
+	/**
+	 * Extends the active GDPR consent categories with any categories used by
+	 * configured scripts.
+	 *
+	 * @param newCategories - New consent categories detected from scripts
+	 */
+	updateConsentCategories: (newCategories: AllConsentNames[]) => void;
+}
+
+/**
+ * Core state and methods interface for the consent management store.
+ *
+ * @remarks
+ * This type combines the runtime state slice {@link StoreRuntimeState} and the
+ * action slice {@link StoreActions} into a single interface that represents
+ * the full store surface.
+ *
+ * The store is typically created using {@link createConsentManagerStore} and
+ * accessed through React hooks or direct store subscription.
+ *
+ * @example
+ * Basic store usage:
+ * ```typescript
+ * const store = createConsentManagerStore();
+ *
+ * // Check consent status using a HasCondition<CategoryType> value (e.g. "measurement"),
+ * // not an arbitrary free-form string
+ * if (store.getState().has('measurement')) {
+ *   initializeAnalytics();
+ * }
+ *
+ * // Update consent preferences
+ * store.getState().saveConsents('all');
+ * ```
+ *
+ * @public
+ */
+export type ConsentStoreState = StoreRuntimeState & StoreActions;

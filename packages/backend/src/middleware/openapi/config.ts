@@ -1,14 +1,16 @@
 import type { C15TOptions } from '~/types';
-import { version } from '../../version';
+import { version } from '~/version';
 /**
  * Default OpenAPI configuration
+ *
+ * Note: specPath and docsPath should NOT include the basePath,
+ * as the basePath is stripped from incoming requests before routing.
  */
 export const createOpenAPIConfig = (options: C15TOptions) => {
-	const basePath = options.basePath || '';
 	return {
-		enabled: true,
-		specPath: `${basePath}/spec.json`,
-		docsPath: `${basePath}/docs`,
+		enabled: options.openapi?.enabled !== false,
+		specPath: '/spec.json',
+		docsPath: '/docs',
 		...(options.openapi || {}),
 	};
 };

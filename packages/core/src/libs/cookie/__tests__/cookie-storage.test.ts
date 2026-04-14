@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../../store.initial-state';
+import { setDebugEnabled } from '../../../libs/debug';
+import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../../store/initial-state';
 import type { ConsentState } from '../../../types';
-import type { ConsentInfo } from '../../../types/gdpr';
+import type { ConsentInfo } from '../../../types/consent-types';
 import {
 	deleteConsentFromStorage,
 	deleteCookie,
@@ -166,6 +167,69 @@ describe('Cookie Storage', () => {
 			window.localStorage.setItem = originalSetItem;
 			consoleWarnSpy.mockRestore();
 		});
+
+		it('should preserve the stored material policy fingerprint when later writes omit it', () => {
+			const originalData = {
+				consents: { necessary: true, measurement: true },
+				consentInfo: {
+					time: 1_700_000_000_000,
+					subjectId: 'sub_existing',
+					materialPolicyFingerprint: 'a'.repeat(64),
+				},
+			};
+
+			saveConsentToStorage(originalData);
+			saveConsentToStorage({
+				consents: { necessary: true, measurement: false },
+				consentInfo: {
+					time: 1_700_000_000_100,
+					subjectId: 'sub_existing',
+				},
+			});
+
+			const retrieved = getConsentFromStorage<typeof originalData>();
+			expect(retrieved?.consentInfo?.materialPolicyFingerprint).toBe(
+				'a'.repeat(64)
+			);
+		});
+
+		it('should not persist nullish optional subject identifiers', () => {
+			const consentData = {
+				consents: { necessary: true },
+				consentInfo: {
+					time: Date.now(),
+					subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+					externalId: 'undefined',
+					identityProvider: null,
+				},
+			};
+
+			saveConsentToStorage(consentData);
+
+			const storedInLS = window.localStorage.getItem(STORAGE_KEY_V2);
+			expect(storedInLS).toBeTruthy();
+			expect(JSON.parse(storedInLS || '{}')).toEqual({
+				consents: { necessary: true },
+				consentInfo: {
+					time: consentData.consentInfo.time,
+					subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+				},
+			});
+
+			const cookieValue =
+				document.cookie.split(`${STORAGE_KEY_V2}=`)[1]?.split(';')[0] || '';
+			expect(cookieValue).not.toContain('i.eid');
+			expect(cookieValue).not.toContain('i.idp');
+
+			const retrieved = getConsentFromStorage<{
+				consents: Partial<ConsentState>;
+				consentInfo: ConsentInfo;
+			}>();
+			expect(retrieved?.consentInfo).toEqual({
+				time: consentData.consentInfo.time,
+				subjectId: 'sub_111AEMh5qpiLmhEcbnqwrmsB7X',
+			});
+		});
 	});
 
 	describe('getConsentFromStorage', () => {
@@ -197,6 +261,7 @@ describe('Cookie Storage', () => {
 		});
 
 		it('should sync cookie when localStorage has data but cookie does not', () => {
+			setDebugEnabled(true);
 			const consoleLogSpy = vi
 				.spyOn(console, 'log')
 				.mockImplementation(() => {});
@@ -214,11 +279,13 @@ describe('Cookie Storage', () => {
 			expectConsentsToMatch(retrieved?.consents, consentData.consents);
 			expect(retrieved?.consentInfo).toEqual(consentData.consentInfo);
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				'[c15t] Synced consent from localStorage to cookie'
+				'[c15t]',
+				'Synced consent from localStorage to cookie'
 			);
 			expect(document.cookie).toContain(`${STORAGE_KEY_V2}=`);
 
 			consoleLogSpy.mockRestore();
+			setDebugEnabled(false);
 		});
 
 		it('should return null when no storage contains data', () => {
@@ -256,6 +323,7 @@ describe('Cookie Storage', () => {
 		});
 
 		it('should migrate data from legacy storage key', () => {
+			setDebugEnabled(true);
 			const consoleLogSpy = vi
 				.spyOn(console, 'log')
 				.mockImplementation(() => {});
@@ -289,10 +357,12 @@ describe('Cookie Storage', () => {
 
 			// Should log migration message
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				`[c15t] Migrated consent data from "${STORAGE_KEY}" to "${STORAGE_KEY_V2}"`
+				'[c15t]',
+				`Migrated consent data from "${STORAGE_KEY}" to "${STORAGE_KEY_V2}"`
 			);
 
 			consoleLogSpy.mockRestore();
+			setDebugEnabled(false);
 		});
 
 		it('should not migrate if new key already has data', () => {
@@ -891,6 +961,7 @@ describe('Cookie Storage', () => {
 
 	describe('Cross-subdomain timestamp comparison', () => {
 		it('should prioritize cookie when both exist (optimized for performance)', () => {
+			setDebugEnabled(true);
 			const consoleLogSpy = vi
 				.spyOn(console, 'log')
 				.mockImplementation(() => {});
@@ -925,13 +996,16 @@ describe('Cookie Storage', () => {
 			expect(syncedLS.consentInfo.time).toBe(newerConsent.consentInfo.time);
 
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				'[c15t] Updated localStorage with consent from cookie'
+				'[c15t]',
+				'Updated localStorage with consent from cookie'
 			);
 
 			consoleLogSpy.mockRestore();
+			setDebugEnabled(false);
 		});
 
 		it('should prioritize cookie even when localStorage is newer (cookie is source of truth)', () => {
+			setDebugEnabled(true);
 			const consoleLogSpy = vi
 				.spyOn(console, 'log')
 				.mockImplementation(() => {});
@@ -966,13 +1040,16 @@ describe('Cookie Storage', () => {
 			expect(syncedLS.consentInfo.time).toBe(olderConsent.consentInfo.time);
 
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				'[c15t] Updated localStorage with consent from cookie'
+				'[c15t]',
+				'Updated localStorage with consent from cookie'
 			);
 
 			consoleLogSpy.mockRestore();
+			setDebugEnabled(false);
 		});
 
 		it('should prioritize cookie when crossSubdomain is enabled, regardless of timestamp', () => {
+			setDebugEnabled(true);
 			const consoleLogSpy = vi
 				.spyOn(console, 'log')
 				.mockImplementation(() => {});
@@ -1009,13 +1086,16 @@ describe('Cookie Storage', () => {
 			expect(syncedLS.consentInfo.time).toBe(olderConsent.consentInfo.time);
 
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				'[c15t] Updated localStorage with consent from cookie (cross-subdomain mode)'
+				'[c15t]',
+				'Updated localStorage with consent from cookie (cross-subdomain mode)'
 			);
 
 			consoleLogSpy.mockRestore();
+			setDebugEnabled(false);
 		});
 
 		it('should prioritize cookie when defaultDomain is set, regardless of timestamp', () => {
+			setDebugEnabled(true);
 			const consoleLogSpy = vi
 				.spyOn(console, 'log')
 				.mockImplementation(() => {});
@@ -1051,13 +1131,16 @@ describe('Cookie Storage', () => {
 			expectConsentsToMatch(syncedLS.consents, olderConsent.consents);
 
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				'[c15t] Updated localStorage with consent from cookie (cross-subdomain mode)'
+				'[c15t]',
+				'Updated localStorage with consent from cookie (cross-subdomain mode)'
 			);
 
 			consoleLogSpy.mockRestore();
+			setDebugEnabled(false);
 		});
 
 		it('should use cookie when localStorage is empty and sync to localStorage', () => {
+			setDebugEnabled(true);
 			const consoleLogSpy = vi
 				.spyOn(console, 'log')
 				.mockImplementation(() => {});
@@ -1084,13 +1167,16 @@ describe('Cookie Storage', () => {
 			expect(syncedLS.consentInfo.time).toBe(consentData.consentInfo.time);
 
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				'[c15t] Synced consent from cookie to localStorage'
+				'[c15t]',
+				'Synced consent from cookie to localStorage'
 			);
 
 			consoleLogSpy.mockRestore();
+			setDebugEnabled(false);
 		});
 
 		it('should use localStorage when cookie is empty and sync to cookie', () => {
+			setDebugEnabled(true);
 			const consoleLogSpy = vi
 				.spyOn(console, 'log')
 				.mockImplementation(() => {});
@@ -1115,10 +1201,12 @@ describe('Cookie Storage', () => {
 			expect(syncedCookie?.consentInfo.time).toBe(consentData.consentInfo.time);
 
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				'[c15t] Synced consent from localStorage to cookie'
+				'[c15t]',
+				'Synced consent from localStorage to cookie'
 			);
 
 			consoleLogSpy.mockRestore();
+			setDebugEnabled(false);
 		});
 
 		it('should prioritize cookie when both have equal timestamps (cookie is source of truth)', () => {
@@ -1166,6 +1254,7 @@ describe('Cookie Storage', () => {
 		});
 
 		it('should handle cross-subdomain scenario: cookie updated on app.example.com is read on example.com', () => {
+			setDebugEnabled(true);
 			const consoleLogSpy = vi
 				.spyOn(console, 'log')
 				.mockImplementation(() => {});
@@ -1200,10 +1289,12 @@ describe('Cookie Storage', () => {
 			expect(updatedLS.consentInfo.time).toBe(newerConsent.consentInfo.time);
 
 			expect(consoleLogSpy).toHaveBeenCalledWith(
-				'[c15t] Updated localStorage with consent from cookie (cross-subdomain mode)'
+				'[c15t]',
+				'Updated localStorage with consent from cookie (cross-subdomain mode)'
 			);
 
 			consoleLogSpy.mockRestore();
+			setDebugEnabled(false);
 		});
 	});
 });

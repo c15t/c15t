@@ -1,0 +1,8 @@
+{
+	"name": "c15t-v1-codemod-fixture",
+	"private": true,
+	"version": "1.0.0",
+	"dependencies": {
+		"@c15t/react": "1.8.5"
+	}
+}

@@ -1,0 +1,118 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  `ConsentDialog` is a modal that shows toggles for each consent category. In **opt-in jurisdictions**, it typically opens when users click "Customize" on `ConsentBanner`. It can also be controlled programmatically for use on settings pages regardless of jurisdiction.
+</section>
+
+<section id="customization">
+  ## Floating Trigger
+
+  Add a floating button that lets users re-open the dialog after dismissing the banner:
+
+  ```tsx
+  {/* Default trigger */}
+  <ConsentDialog showTrigger />
+
+  {/* Custom trigger */}
+  <ConsentDialog
+    showTrigger={{
+      icon: 'settings',
+      defaultPosition: 'bottom-left',
+      showWhen: 'after-consent',
+      size: 'sm',
+    }}
+  />
+  ```
+
+  ## Branding
+
+  Hide the c15t branding tag:
+
+  ```tsx
+  <ConsentDialog hideBranding />
+  ```
+
+  ## Styling First
+
+  <Callout type="info">
+    If you are only changing visuals, stay with the stock dialog and use the theme system first. Start with tokens and slots such as `consentDialogCard`, `consentWidgetFooter`, and `consentDialogTag`. See [Styling Overview](/docs/frameworks/react/styling/overview).
+  </Callout>
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      theme: {
+        colors: {
+          surface: '#fffdf8',
+          surfaceHover: '#f6f3ee',
+        },
+        slots: {
+          consentDialogCard: 'rounded-[32px] shadow-xl',
+          consentDialogHeader: 'gap-3',
+          consentWidgetFooter: 'gap-3 pt-6',
+          consentDialogTag: 'shadow-none',
+        },
+      },
+    }}
+  >
+    <ConsentDialog />
+  </ConsentManagerProvider>
+  ```
+
+  Dialog copy should be changed through `ConsentManagerProvider.options.i18n`, not by rebuilding the dialog structure.
+
+  ## Advanced: Compound Components
+
+  Use compound components only when you need custom dialog markup while still keeping c15t primitives and policy-aware footer actions:
+
+  ```tsx
+  <ConsentDialog.Root>
+    <ConsentDialog.Overlay />
+    <ConsentDialog.Card>
+      <ConsentDialog.Header>
+        <ConsentDialog.HeaderTitle />
+        <ConsentDialog.HeaderDescription />
+      </ConsentDialog.Header>
+      <ConsentDialog.Content>
+        <ConsentWidget.Root>
+          <ConsentWidget.Accordion type="single">
+            <ConsentWidget.AccordionItems />
+          </ConsentWidget.Accordion>
+          <ConsentWidget.PolicyActions />
+        </ConsentWidget.Root>
+      </ConsentDialog.Content>
+      <ConsentDialog.Footer />
+    </ConsentDialog.Card>
+  </ConsentDialog.Root>
+  ```
+
+  - `ConsentDialog.Root` — Portal container with focus trap, scroll lock, and animation
+  - `ConsentDialog.Card` — Main dialog card
+  - `ConsentDialog.Header` — Contains title and description
+  - `ConsentDialog.HeaderTitle` — Dialog title
+  - `ConsentDialog.HeaderDescription` — Description with optional `legalLinks`
+  - `ConsentDialog.Content` — Main content area (typically contains `ConsentWidget`)
+  - `ConsentDialog.Footer` — Footer with optional branding (`hideBranding` prop)
+  - `ConsentDialog.Overlay` — Backdrop overlay
+  - `ConsentWidget.PolicyActions` — Renders policy-aware grouped dialog actions
+
+  For a quick pre-composed layout, use the shorthand card:
+
+  ```tsx
+  <ConsentDialog.Root>
+    <ConsentDialog.ConsentCustomizationCard />
+  </ConsentDialog.Root>
+  ```
+
+  `ConsentWidget.PolicyActions` uses stock c15t widget buttons and translations by default. Pass `renderAction` only when you need to customize the action mapping, and return stock widget button compounds if you want to preserve built-in behavior and copy.
+
+  For fully manual control over dialog action rendering, use `useHeadlessConsentUI()` and map `dialog.actionGroups` yourself.
+
+  If the stock dialog structure still works, prefer tokens, slots, and provider configuration instead.
+</section>
+
+<section id="props">
+  ## Props
+
+  <AutoTypeTable path="./packages/react/src/components/consent-dialog/consent-dialog.tsx" name="ConsentDialogProps" />
+</section>

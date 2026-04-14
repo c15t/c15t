@@ -1,7 +1,7 @@
 ---
 title: PostHog
 description: PostHog is an open-source product analytics platform for tracking user behavior, session replays, feature flags, and A/B testing. It supports cookieless tracking, allowing analytics to continue even without cookie consent.
-lastModified: 2025-09-19
+lastModified: 2026-04-08
 
 icon: posthog
 ---
@@ -27,115 +27,54 @@ This is the recommended approach if you're using the Posthog JS SDK, this is com
       cookieless_mode: 'on_reject'
     })
 
-    posthog.has_opted_out_capturing() // Avoids accidental tracking without consent till c15t has loaded
+    posthog.opt_out_capturing() // Avoids accidental tracking without consent till c15t has loaded
     ```
   </Step>
 
   <Step>
-    ### Adding the script to c15t
+    ### Sync settled consent once, then subscribe to real changes
 
-    <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
-      <Tab value="JavaScript">
-        ```ts
-        import { configureConsentManager } from 'c15t';
-        import { posthog } from 'posthog-js';
+    The recommended PostHog SDK approach uses two phases: run one initial sync after c15t has finished resolving consent, then subscribe to future real preference changes with `subscribeToConsentChanges()`.
 
-        configureConsentManager({
-          // ... 
-          callbacks: {
-            onConsentSet({ preferences }) {
-              if (preferences.measurement) {
-                posthog.opt_in_capturing();
-              } else {
-                posthog.opt_out_capturing();
-              }
-            }
-          }
-        });
-        ```
-      </Tab>
+    <Callout type="info">
+      See the [integration overview](/docs/integrations) for how to wrap this in your framework (React or Next.js). Pass the `callbacks` option to your `ConsentManagerProvider` the same way you would pass `scripts`.
+    </Callout>
 
-      <Tab value="React">
-        ```tsx
-        import { posthog } from 'posthog-js';
-        import { ConsentManagerProvider } from '@c15t/react';
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { posthog } from 'posthog-js';
 
-        export function App({ children }: { children: React.ReactNode }) {
-          return (
-            <ConsentManagerProvider
-              options={{
-                callbacks: {
-                    onConsentSet({ preferences }) {
-                      if (preferences.measurement) {
-                        posthog.opt_in_capturing();
-                      } else {
-                        posthog.opt_out_capturing();
-                      }
-                    }
-                  }
-              }}
-            >
-              {children}
-            </ConsentManagerProvider>
+    function syncPostHogMeasurementConsent(hasMeasurementConsent: boolean) {
+      if (hasMeasurementConsent) {
+        posthog.opt_in_capturing();
+      } else {
+        posthog.opt_out_capturing();
+      }
+    }
+
+    const runtime = getOrCreateConsentRuntime({
+      mode: 'hosted',
+      callbacks: {
+        onBannerFetched() {
+          syncPostHogMeasurementConsent(
+            runtime.consentStore.getState().has('measurement')
           );
-        }
-        ```
-      </Tab>
+        },
+      },
+    });
 
-      <Tab value="Next.js + App Router">
-        ```tsx
-        'use client';
-        import { posthog } from 'posthog-js';
-        import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
-
-        export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
-          return (
-           <ClientSideOptionsProvider
-              callbacks={{
-                 onConsentSet({ preferences }) {
-                     if (preferences.measurement) {
-                       posthog.opt_in_capturing();
-                     } else {
-                       posthog.opt_out_capturing();
-                     }
-                 }
-              }}
-           >
-              {children}
-            </ClientSideOptionsProvider>
-          );
-        }
-        ```
-      </Tab>
-
-      <Tab value="Next.js + Pages Router">
-        ```tsx
-        import { posthog } from 'posthog-js';
-        import { ConsentManagerProvider } from '@c15t/nextjs';
-
-        export function App({ children }: { children: React.ReactNode }) {
-        return (
-        <ConsentManagerProvider
-        options={{
-        // ... other options
-        callbacks: {
-          onConsentSet({ preferences }) {
-            if (preferences.measurement) {
-              posthog.opt_in_capturing();
-            } else {
-              posthog.opt_out_capturing();
-            }
-          }
-        }
-        }}
-        >
-        {children}
-        </ConsentManagerProvider>
+    runtime.consentStore
+      .getState()
+      .subscribeToConsentChanges(({ allowedCategories }) => {
+        syncPostHogMeasurementConsent(
+          allowedCategories.includes('measurement')
         );
-        }
-        ```
-      </Tab>
-    </Tabs>
+      });
+    ```
+
+    <Callout type="info">
+      Avoid using `onConsentSet` plus manual deduplication for PostHog. `subscribeToConsentChanges()` already gives you the exact change-only semantics most analytics SDKs need.
+    </Callout>
   </Step>
 </Steps>
 
@@ -166,103 +105,25 @@ By default c15t will always load the script regardless of consent. This is becau
   <Step>
     ### Adding the script to c15t
 
-    <Tabs items={['JavaScript', 'React', 'Next.js + App Router', 'Next.js + Pages Router']}>
-      <Tab value="JavaScript">
-        ```ts
-        import { configureConsentManager } from 'c15t';
-        import { posthog } from '@c15t/scripts/posthog';
+    <Callout type="info">
+      See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+    </Callout>
 
-        configureConsentManager({
-          // ... 
-          scripts: [
-            posthog({ 
-              id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 
-              apiHost: 'https://eu.i.posthog.com',
-              defaults: '2025-05-24', 
-              options: { person_profiles: 'identified_only' }
-            }),
-           ],
-        });
-        ```
-      </Tab>
+    ```ts
+    import { posthog } from '@c15t/scripts/posthog';
 
-      <Tab value="React">
-        ```tsx
-        import { posthog } from '@c15t/scripts/posthog';
-        import { ConsentManagerProvider } from '@c15t/react';
-
-        export function App({ children }: { children: React.ReactNode }) {
-          return (
-            <ConsentManagerProvider
-              options={{
-                scripts: [
-                  posthog({ 
-                      id: 'phc_foobar', 
-                      apiHost: 'https://eu.i.posthog.com',
-                      defaults: '2025-05-24', 
-                      options: { person_profiles: 'identified_only' }
-                    }),
-                ],
-              }}
-            >
-              {children}
-            </ConsentManagerProvider>
-          );
-        }
-        ```
-      </Tab>
-
-      <Tab value="Next.js + App Router">
-        ```tsx
-        'use client';
-        import { posthog } from '@c15t/scripts/posthog';
-        import { ClientSideOptionsProvider } from '@c15t/nextjs/client';
-
-        export function ConsentManagerClient({ children }: { children: React.ReactNode }) { 
-          return (
-            <ClientSideOptionsProvider
-              scripts={[
-                posthog({ 
-                    id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 
-                    apiHost: 'https://eu.i.posthog.com',
-                    defaults: '2025-05-24', 
-                    options: { person_profiles: 'identified_only' }
-                  }),
-              ]}
-            >
-              {children}
-            </ClientSideOptionsProvider>
-          );
-        }
-        ```
-      </Tab>
-
-      <Tab value="Next.js + Pages Router">
-        ```tsx
-        import { posthog } from '@c15t/scripts/posthog';
-        import { ConsentManagerProvider } from '@c15t/nextjs';
-
-        export function App({ children }: { children: React.ReactNode }) {
-           return (
-            <ConsentManagerProvider
-              options={{
-                scripts: [
-                  posthog({ 
-                    id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 
-                    apiHost: 'https://eu.i.posthog.com',
-                    defaults: '2025-05-24', 
-                    options: { person_profiles: 'identified_only' }
-                  }),
-                ],
-              }}
-            >
-              {children}
-            </ConsentManagerProvider>
-          );
-        }
-        ```
-      </Tab>
-    </Tabs>
+    posthog({
+      id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+      apiHost: 'https://eu.i.posthog.com',
+      scriptUrl: 'https://eu-assets.i.posthog.com/static/array.js',
+      initOptions: {
+        api_host: 'https://eu.i.posthog.com',
+        ui_host: 'https://eu.i.posthog.com',
+        autocapture: false,
+        person_profiles: 'identified_only',
+      }
+    })
+    ```
   </Step>
 </Steps>
 

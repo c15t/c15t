@@ -1,0 +1,91 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  Callbacks let you run custom code at key points in the consent lifecycle. Define them in the provider or runtime `callbacks` option, or register them dynamically after initialization.
+
+  For analytics SDKs and other change-only integrations, prefer `subscribeToConsentChanges()` or `onConsentChanged`. Use `onConsentSet` when you want the broader lifecycle signal, including initialization, automatic defaults, and replay-aware registration.
+</section>
+
+<section id="callback-reference">
+  ## Choose the Right Surface
+
+  | Surface | Replays when registered late? | Fires on init / hydration / auto-grants? | Best for |
+  |---|---|---|---|
+  | `onBannerFetched` | Yes, via `setCallback('onBannerFetched', ...)` after init | Yes | Logging resolved policy, location, and translations |
+  | `onConsentSet` | Yes, via `setCallback('onConsentSet', ...)` | Yes | Broad lifecycle hooks, debugging, and integrations that want the latest full state regardless of how it was reached |
+  | `onConsentChanged` | No | No | Declarative change-only integrations |
+  | `subscribeToConsentChanges()` | No | No | Canonical change-only subscriptions after mount |
+
+  <Callout type="info">
+    `Script.onConsentChange` is a script-scoped lifecycle hook. It is not the global consent change API for analytics SDKs or other app-wide integrations.
+  </Callout>
+
+  ## Available Callbacks
+
+  ### `onBannerFetched`
+
+  Called when the consent banner data is fetched from the backend (or loaded from SSR data). The payload includes jurisdiction info, location data, and resolved translations.
+
+  ```tsx
+  onBannerFetched: ({ jurisdiction, location, translations }) => {
+    // jurisdiction: 'GDPR' | 'CCPA' | { code: 'GDPR', message: '...' } | ...
+    // location: { countryCode: 'DE', regionCode: 'BY' }
+    // translations: { language: 'de', translations: {...} }
+  }
+  ```
+
+  ### `onConsentSet`
+
+  Called whenever c15t broadly settles consent state: store initialization, automatic defaults during init, explicit saves, and replay via `setCallback('onConsentSet', ...)`.
+
+  ```tsx
+  onConsentSet: ({ preferences }) => {
+    // preferences: { necessary: true, measurement: true, marketing: false, ... }
+    console.log('Latest consent state:', preferences);
+  }
+  ```
+
+  ### `onConsentChanged`
+
+  Called only after an explicit `saveConsents()` or `setConsent()` that actually changes the saved consent state. It never fires on store creation, hydration, automatic grants, unchanged saves, or `setCallback('onConsentChanged', ...)`.
+
+  ```tsx
+  onConsentChanged: ({
+    preferences,
+    previousPreferences,
+    allowedCategories,
+    deniedCategories,
+    previousAllowedCategories,
+    previousDeniedCategories,
+  }) => {
+    analytics.syncConsent({
+      allowedCategories,
+      deniedCategories,
+      previousAllowedCategories,
+      previousDeniedCategories,
+    });
+  }
+  ```
+
+  ### `onError`
+
+  Called when an error occurs during consent operations (e.g., API request failure). If no `onError` callback is provided, errors are logged to `console.error`.
+
+  ```tsx
+  onError: ({ error }) => {
+    // error: string describing what went wrong
+    Sentry.captureMessage(`Consent error: ${error}`);
+  }
+  ```
+
+  ### `onBeforeConsentRevocationReload`
+
+  Called synchronously before the page reloads due to consent revocation. This is your last chance to run cleanup before the reload. Keep this callback fast - avoid async operations.
+
+  ```tsx
+  onBeforeConsentRevocationReload: ({ preferences }) => {
+    // Flush any pending data
+    navigator.sendBeacon('/api/flush', JSON.stringify({ session: sessionId }));
+  }
+  ```
+</section>

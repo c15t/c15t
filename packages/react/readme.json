@@ -8,7 +8,7 @@
 		"Automatic GDPR compliance",
 		"Minimal configuration with TypeScript-first design",
 		"Comprehensive Consent Management Platform (CMP)",
-		"Flexible Cookie Banner and Consent Dialog components",
+		"Flexible Cookie Banner and Preference Center components",
 		"Built-in internationalization support",
 		"Seamless consent storage and tracking"
 	],
@@ -21,11 +21,17 @@
 		"",
 		"```bash\npnpm add @c15t/react\n```",
 		"",
+		"Then add the prebuilt stylesheet to your app-level CSS entrypoint:",
+		"",
+		"```css\n/* src/index.css */\n@import \"@c15t/react/styles.css\";\n```",
+		"",
+		"If you use the prebuilt IAB TCF UI, also import `@c15t/react/iab/styles.css`. It is published separately so non-IAB apps do not ship those component rules.",
+		"",
 		"To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/react/quickstart#manual-setup)."
 	],
 	"usage": [
 		"Import `ConsentManagerProvider` in your app's root component",
-		"Add `CookieBanner` and `ConsentManagerDialog` components",
+		"Add `CookieBanner` and `PreferenceCenter` components",
 		"Customise styling and behaviour to fit your app",
 		"For full implementation details, see the [React quickstart docs](https://c15t.com/docs/frameworks/react/quickstart)",
 

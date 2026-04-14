@@ -17,6 +17,7 @@ export interface FrameworkDetectionResult {
 	pkg: AvailablePackages;
 	hasReact: boolean;
 	reactVersion: string | null;
+	tailwindVersion: string | null;
 }
 
 /**
@@ -43,6 +44,11 @@ export async function detectFramework(
 		const reactVersion = hasReact ? deps.react : null;
 		logger?.debug(
 			`React detected: ${hasReact}${reactVersion ? ` (version: ${reactVersion})` : ''}`
+		);
+
+		const tailwindVersion = deps.tailwindcss || null;
+		logger?.debug(
+			`Tailwind detected: ${!!tailwindVersion}${tailwindVersion ? ` (version: ${tailwindVersion})` : ''}`
 		);
 
 		let framework: string | null = null;
@@ -75,7 +81,14 @@ export async function detectFramework(
 			`Detected framework: ${framework}${frameworkVersion ? ` (version: ${frameworkVersion})` : ''}, ` +
 				`package: ${pkg}`
 		);
-		return { framework, frameworkVersion, pkg, hasReact, reactVersion };
+		return {
+			framework,
+			frameworkVersion,
+			pkg,
+			hasReact,
+			reactVersion,
+			tailwindVersion,
+		};
 	} catch (error) {
 		logger?.debug(
 			`Framework detection failed: ${error instanceof Error ? error.message : String(error)}`
@@ -86,6 +99,7 @@ export async function detectFramework(
 			pkg: 'c15t',
 			hasReact: false,
 			reactVersion: null,
+			tailwindVersion: null,
 		};
 	}
 }

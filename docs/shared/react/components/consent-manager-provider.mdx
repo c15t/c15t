@@ -1,0 +1,173 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  `ConsentManagerProvider` is the root component for the c15t consent system. It initializes the consent store, detects the user's jurisdiction, resolves translations, and provides consent state to all child components via React context.
+
+  Every other c15t component and hook must be rendered inside this provider.
+</section>
+
+<section id="options-reference">
+  ## Options Reference
+
+  <AutoTypeTable path="./packages/ui/src/theme/options.ts" name="CommonInlineStoreOptions" />
+
+  <AutoTypeTable path="./packages/ui/src/theme/options.ts" name="ConsentManagerContentOptions" />
+
+  <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="UIOptions" />
+</section>
+
+<section id="legal-links">
+  ## Legal Links
+
+  `legalLinks` defines the URLs shown in consent UI text (banner, dialog, and widget where applicable).
+  Configure only the links you want to expose.
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      backendURL: 'https://your-instance.c15t.dev',
+      legalLinks: {
+        privacyPolicy: {
+          href: '/privacy',
+          target: '_self',
+        },
+        cookiePolicy: {
+          href: '/cookies',
+          target: '_self',
+        },
+        termsOfService: {
+          href: 'https://example.com/terms',
+          target: '_blank',
+          rel: 'noopener noreferrer',
+          label: 'Terms of Service',
+        },
+      },
+    }}
+  >
+  ```
+
+  Notes:
+
+  - Omitting a key (for example `termsOfService`) hides that link.
+  - `label` overrides the translated text for that single link.
+  - Use `_self` for internal pages and `_blank` + `rel="noopener noreferrer"` for external pages.
+  - Control which of the configured links render in each component via the component's `legalLinks` prop.
+</section>
+
+<section id="overrides">
+  ## Overrides
+
+  `overrides` lets you force location/language signals instead of browser or network detection.
+  This is useful for QA, local development, and preview environments.
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      backendURL: 'https://your-instance.c15t.dev',
+      overrides: {
+        country: 'DE',
+        region: 'BY',
+        language: 'de-DE',
+      },
+    }}
+  >
+  ```
+
+  You can also override Global Privacy Control (GPC) behavior during testing:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      backendURL: 'https://your-instance.c15t.dev',
+      overrides: {
+        gpc: true,
+      },
+    }}
+  >
+  ```
+
+  <Callout type="warning">
+    Treat overrides as an environment/testing tool. Avoid hard-coding production overrides unless that behavior is intentional for your deployment.
+  </Callout>
+</section>
+
+<section id="policy-packs">
+  ## Policy Packs
+
+  In hosted mode (recommended), the backend resolves the correct policy automatically — no frontend policy config needed:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      backendURL: 'https://your-instance.c15t.dev',
+    }}
+  >
+  ```
+
+  ### Fallback: Offline Policies
+
+  When no backend is available, `ConsentManagerProvider` accepts `offlinePolicy.policyPacks` for local policy resolution during development, testing, previews, or temporary backend outages:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      mode: 'offline',
+      offlinePolicy: {
+        i18n: {
+          defaultProfile: 'default',
+          messages: {
+            default: {
+              translations: {
+                en: { cookieBanner: { title: 'Privacy choices' } },
+              },
+            },
+            qc: {
+              fallbackLanguage: 'fr',
+              translations: {
+                en: { cookieBanner: { title: 'Quebec Privacy Settings' } },
+                fr: { cookieBanner: { title: 'Paramètres de confidentialité du Québec' } },
+              },
+            },
+          },
+        },
+        policyPacks: [
+          {
+            id: 'qc_opt_in',
+            match: { regions: [{ country: 'CA', region: 'QC' }] },
+            i18n: { messageProfile: 'qc' },
+            consent: { model: 'opt-in', expiryDays: 365 },
+            ui: { mode: 'banner' },
+          },
+          {
+            id: 'default_world',
+            match: { isDefault: true },
+            consent: { model: 'none' },
+            ui: { mode: 'none' },
+          },
+        ],
+      },
+      overrides: {
+        country: 'CA',
+        region: 'QC',
+      },
+    }}
+  >
+  ```
+
+  Notes:
+
+  - `offlinePolicy` is only used in `offline` mode.
+  - Treat offline policies as a development/testing tool or resilience fallback, not the primary production source of truth.
+  - `offlinePolicy.i18n` lets offline mode mirror hosted `messageProfile` and profile-local `fallbackLanguage` behavior.
+  - Omitting `offlinePolicy.policyPacks` uses the built-in synthetic opt-in fallback banner. Hosted network fallback uses the same opt-in banner.
+  - `offlinePolicy: { policyPacks: [] }` is explicit no-banner mode.
+  - In hosted mode, backend `policyPacks` remain the source of truth — frontend offline policies never override a live backend decision.
+
+  Read the full guide at [Policy Packs](/docs/frameworks/react/policy-packs) and the conceptual model at [Policy Packs Concept](/docs/frameworks/react/concepts/policy-packs).
+</section>
+
+<section id="props">
+  ## Props
+
+  <AutoTypeTable path="./packages/react/src/types/consent-manager.ts" name="ConsentManagerProviderProps" />
+</section>

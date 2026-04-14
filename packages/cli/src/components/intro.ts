@@ -95,7 +95,7 @@ export async function displayIntro(
 
 	// Version and Docs using the logger
 	// logger.info(`Using c15t CLI ${color.dim(`v${version}`)}`);
-	// logger.info(`Documentation: ${color.underline('https://c15t.com/docs')}`);
+	// logger.info(`Documentation: ${color.underline('https://v2.c15t.com/docs')}`);
 
 	// Spacing before next step
 	// logger.message('');

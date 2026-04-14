@@ -1,0 +1,86 @@
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro-and-setup">
+  c15t works with Tailwind CSS out of the box. Use the `slots` theme option to apply Tailwind utility classes to any component part.
+
+  ## Setup
+
+  Import the standard c15t stylesheet once in your app-level CSS entrypoint:
+
+  ```css
+  /* React: src/index.css */
+  @import "@c15t/react/styles.css";
+
+  /* Next.js: app/globals.css */
+  @import "@c15t/nextjs/styles.css";
+  ```
+
+  <import src="./stylesheet-entrypoint.mdx#why-global-css" />
+
+  ### Tailwind v4
+
+  Tailwind v4 automatically scans your source files. Import Tailwind normally, then place the c15t stylesheet immediately after it. c15t component styles join Tailwind's `components` layer automatically, so no extra c15t-specific layer declaration is needed:
+
+  ```css title="src/index.css"
+  @import "tailwindcss";
+  @import "@c15t/react/styles.css";
+  ```
+
+  ```css title="app/globals.css"
+  @import "tailwindcss";
+  @import "@c15t/nextjs/styles.css";
+  ```
+
+  ### Tailwind v3
+
+  Import the Tailwind 3-compatible c15t stylesheet after `@tailwind components;` and before `@tailwind utilities;`:
+
+  ```css title="src/index.css"
+  @tailwind base;
+  @tailwind components;
+  @import "@c15t/react/styles.tw3.css";
+  @tailwind utilities;
+  ```
+
+  ```css title="app/globals.css"
+  @tailwind base;
+  @tailwind components;
+  @import "@c15t/nextjs/styles.tw3.css";
+  @tailwind utilities;
+  ```
+</section>
+
+<section id="dark-mode-to-nostyle">
+  ## Dark Mode with Tailwind
+
+  Combine Tailwind's dark mode with c15t's `dark` tokens:
+
+  ```tsx
+  const theme = {
+    colors: {
+      primary: '#6366f1',
+      surface: '#ffffff',
+      text: '#1f2937',
+    },
+    dark: {
+      primary: '#818cf8',
+      surface: '#1f2937',
+      text: '#f9fafb',
+    },
+    slots: {
+      consentBannerCard: 'bg-white dark:bg-gray-900 shadow-lg dark:shadow-gray-900/30',
+      consentBannerTitle: 'text-gray-900 dark:text-gray-100',
+    },
+  } satisfies Theme;
+  ```
+
+  ## Optional: noStyle Mode
+
+  If you want Tailwind to own all layout and visual styling, use `noStyle: true`.
+
+  <Callout type="info">
+    When using `noStyle: true` with Tailwind, you're responsible for all layout and visual styling. Start with slots first, then switch to `noStyle` only when you need full control.
+  </Callout>
+
+  For full custom markup (not just styles), see [Headless Mode](../headless).
+</section>

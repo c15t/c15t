@@ -1,20 +1,27 @@
 import { defineConfig } from '@rslib/core';
-import { getRsdoctorPlugins } from '../shared/rslib-utils';
+import {
+	getRsdoctorPlugins,
+	standardExcludePatterns,
+	standardSourceEntries,
+} from '../shared/rslib-utils';
 
 export default defineConfig({
 	source: {
 		entry: {
-			'**': ['./src/**'],
+			'**': standardSourceEntries,
 		},
+		exclude: standardExcludePatterns,
 	},
 	lib: [
 		{
-			dts: true,
+			dts: {
+				distPath: './dist-types',
+			},
 			bundle: false,
 			format: 'esm',
 		},
 		{
-			dts: true,
+			dts: false,
 			bundle: false,
 			format: 'cjs',
 		},

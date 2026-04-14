@@ -3,24 +3,27 @@ import { defineConfig } from '@rslib/core';
 import {
 	getRsdoctorPlugins,
 	standardExcludePatterns,
+	standardSourceEntries,
 } from '../shared/rslib-utils';
 
 export default defineConfig({
 	source: {
 		entry: {
-			index: ['./src/**'],
+			index: standardSourceEntries,
 		},
 		exclude: standardExcludePatterns,
 	},
 	lib: [
 		{
 			bundle: false,
-			dts: true,
+			dts: {
+				distPath: './dist-types',
+			},
 			format: 'esm',
 		},
 		{
 			bundle: false,
-			dts: true,
+			dts: false,
 			format: 'cjs',
 		},
 	],
@@ -32,7 +35,7 @@ export default defineConfig({
 			localIdentName: 'c15t-[local]-[hash:base64:5]',
 			exportLocalsConvention: 'camelCase',
 		},
-		injectStyles: true,
+		injectStyles: false,
 		minify: {
 			css: true,
 		},

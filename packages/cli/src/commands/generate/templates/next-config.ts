@@ -28,10 +28,8 @@ interface UpdateNextConfigOptions {
  * ```ts
  * const result = await updateNextConfig({
  *   projectRoot: '/path/to/project',
- *   mode: 'c15t',
  *   backendURL: 'https://api.example.com',
- *   useEnvFile: true,
- *   pkg: '@c15t/nextjs'
+ *   useEnvFile: true
  * });
  * ```
  */
@@ -157,7 +155,7 @@ function generateRewriteDestination(
 	}
 
 	return {
-		destination: `${backendURL || 'https://your-instance.c15t.dev'}/:path*`,
+		destination: `${backendURL || 'https://your-project.inth.app'}/:path*`,
 		isTemplateLiteral: false,
 	};
 }

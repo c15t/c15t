@@ -1,0 +1,19 @@
+{
+	"extends": "@c15t/typescript-config/react-library.json",
+	"compilerOptions": {
+		"rootDir": "src",
+		"lib": ["dom", "esnext"],
+		"paths": {
+			"c15t": ["../core/dist-types/index.d.ts"]
+		}
+	},
+	"include": ["src"],
+	"exclude": [
+		"node_modules",
+		"**/__tests__/**",
+		"**/*.test.ts",
+		"**/*.test.tsx",
+		"**/*.spec.ts",
+		"**/*.spec.tsx"
+	]
+}

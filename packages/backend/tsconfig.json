@@ -1,13 +1,17 @@
 {
 	"extends": "@c15t/typescript-config/node.json",
 	"compilerOptions": {
-		"baseUrl": ".",
+		"rootDir": "src",
 		"paths": {
-			"~/*": ["./src/*"],
-			"@c15t/translations": ["../translations"],
-			"@c15t/logger": ["../logger"]
+			"@c15t/logger": ["../logger/dist-types/index.d.ts"],
+			"@c15t/logger/*": ["../logger/dist-types/*"],
+			"@c15t/schema": ["../schema/dist-types/index.d.ts"],
+			"@c15t/schema/*": ["../schema/dist-types/*"],
+			"@c15t/translations": ["../translations/dist-types/index.d.ts"],
+			"@c15t/translations/*": ["../translations/dist-types/*"],
+			"~/*": ["./src/*"]
 		}
 	},
 	"include": ["src"],
-	"exclude": ["node_modules"]
+	"exclude": ["node_modules", "**/*.test.ts", "**/__tests__/**"]
 }

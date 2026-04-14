@@ -8,6 +8,13 @@
  * @see {@link ./middleware} for Next.js middleware integration
  */
 
-// biome-ignore assist/source/organizeImports: Ensure ConsentManagerProvider is overridden by the Next.js-specific implementation
-export * from './shared';
-export { ConsentManagerProvider } from './components/consent-manager-provider';
+export * from '@c15t/react';
+export { buildPrefetchScript, type PrefetchOptions } from 'c15t';
+export { C15tPrefetch } from './libs/browser-initial-data';
+export { fetchInitialData } from './libs/initial-data';
+export type {
+	C15tPrefetchProps,
+	ConsentManagerProps,
+	FetchInitialDataOptions,
+	InitialDataPromise,
+} from './types';

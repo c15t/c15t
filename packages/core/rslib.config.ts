@@ -18,17 +18,23 @@ export default defineConfig({
 	},
 	lib: [
 		{
-			dts: true,
+			dts: {
+				distPath: './dist-types',
+			},
 			format: 'esm',
 		},
 		{
-			dts: true,
+			dts: false,
 			format: 'cjs',
 		},
 	],
 	output: {
 		target: 'web',
 		cleanDistPath: true,
+	},
+	performance: {
+		// Temporary workaround for rspack persistent-cache panics in local builds.
+		buildCache: false,
 	},
 	plugins: [pluginReact()],
 	tools: {

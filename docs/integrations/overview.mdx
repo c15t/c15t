@@ -1,11 +1,20 @@
 ---
 title: Integrations
 description: "Many of your tools may require consent to be given before they can be used. This is especially true for analytics and marketing tools. \nc15t has various ways to integrate with your tools, depending on the tool you are using."
-lastModified: 2025-10-02
+lastModified: 2026-04-10
 
 ---
 
+c15t supports two integration styles:
+
+- use a prebuilt helper from `@c15t/scripts`
+- build your own script or manifest-backed helper
+
+If you are building something reusable or contributing to `@c15t/scripts`, start with the [custom integration guide](/docs/integrations/building-integrations).
+
 <Cards className="my-10 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 @container not-prose grid gap-4">
+  <Card variant="interactive" title="Build a Custom Integration" description="Learn when to use a raw Script, when to use a manifest, and how to debug and test custom integrations." icon={<Icon name="guide" />} href="/docs/integrations/building-integrations" />
+
   <Card variant="interactive" title="GA4 + Google Ads (gtag.js)" description="Send data to Google Analytics 4 and Google Ads with automatic Consent Mode v2 support." icon={<Icon name="google-analytics" />} href="/docs/integrations/google-tag" />
 
   <Card variant="interactive" title="Google Tag Manager" description="Deploy and manage marketing tags centrally with automatic consent state synchronization." icon={<Icon name="google-tag-manager" />} href="/docs/integrations/google-tag-manager" />
@@ -25,15 +34,86 @@ lastModified: 2025-10-02
   <Card variant="interactive" title="X Pixel" description="Measure ad performance and build audiences for advertising campaigns on X (Twitter)." icon={<Icon name="x" />} href="/docs/integrations/x-pixel" />
 </Cards>
 
+## General Pattern
+
+Every integration provides a script configuration function. Pass it to your framework's setup:
+
+<Tabs items={['JavaScript', 'React', 'Next.js']}>
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { yourScript } from '@c15t/scripts/your-script';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      scripts: [
+        yourScript({ /* options */ }),
+      ],
+    });
+    ```
+  </Tab>
+
+  <Tab value="React">
+    ```tsx
+    import { yourScript } from '@c15t/scripts/your-script';
+    import { ConsentManagerProvider } from '@c15t/react';
+
+    export function App({ children }: { children: React.ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            scripts: [
+              yourScript({ /* options */ }),
+            ],
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    import { yourScript } from '@c15t/scripts/your-script';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+
+    export function App({ children }: { children: React.ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            scripts: [
+              yourScript({ /* options */ }),
+            ],
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
 ## Script Loader
 
 Many marketing and analytics tools are commonly loaded using a script tag, such as Google Tag Manager (GTM), Google Tag (gtag.js), Meta Pixel and TikTok Pixel.
 
-c15t's script loader allows you to easily integrate your tools that require consent with c15t, to make this even easier we have provided a set of prebuilt scripts for you to use.
+c15t's script loader allows you to easily integrate your tools that require consent with c15t. The prebuilt integrations in `@c15t/scripts` are the recommended starting point, and the custom integration guide explains how to build your own when you need something more specialized.
 
 - [JavaScript](/docs/frameworks/javascript/script-loader)
 - [React](/docs/frameworks/react/script-loader)
 - [Next.js](/docs/frameworks/next/script-loader)
+
+## Building Your Own
+
+If you need a vendor we do not ship yet:
+
+- build a one-off `Script` directly in your app for simple cases
+- build a reusable manifest-backed helper for shared or package-level integrations
+
+Read the [custom integration guide](/docs/integrations/building-integrations) for the manifest phases, structured step model, testing checklist, and devtools debugging flow.
 
 ## has() method
 

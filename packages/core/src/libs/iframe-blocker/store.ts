@@ -1,4 +1,5 @@
-import type { PrivacyConsentState } from '../../store.type';
+import type { ConsentStoreState } from '../../store/type';
+import { applyPolicyScopeForRuntimeGating } from '../policy';
 import {
 	getIframeConsentCategories,
 	processAllIframes,
@@ -7,17 +8,22 @@ import {
 
 /**
  * Creates an iframe manager that integrates with the main consent store.
- * Follows the script loader pattern with pure functions and state management.
+ *
+ * @remarks
+ * The returned methods are intended to be spread into the
+ * {@link ConsentStoreState} and provide iframe-blocking behavior based on
+ * the current consent preferences.
  *
  * @param get - The store's `getState` method
- * @param set - The store's `setState` method
- * @returns An object with iframe management methods to be spread into the store
+ * @param _set - The store's `setState` method (currently unused)
+ * @returns An object with iframe management methods to be merged into the
+ * store
  *
  * @internal
  */
 export function createIframeManager(
-	get: () => PrivacyConsentState,
-	_set: (partial: Partial<PrivacyConsentState>) => void
+	get: () => ConsentStoreState,
+	_set: (partial: Partial<ConsentStoreState>) => void
 ) {
 	// Store MutationObserver in closure (DOM API, not serializable)
 	// Similar to how script loader manages DOM elements
@@ -27,9 +33,15 @@ export function createIframeManager(
 	return {
 		/**
 		 * Initializes the iframe blocker and starts monitoring iframes.
-		 * Processes existing iframes, sets up observer, and discovers consent categories.
 		 *
-		 * @throws {Error} When called in a non-browser environment (document is undefined)
+		 * @remarks
+		 * - No-ops in non-browser environments (when `document` is undefined)
+		 * - Respects `iframeBlockerConfig.disableAutomaticBlocking`
+		 * - Discovers consent categories from iframes and updates
+		 *   `consentCategories` via {@link ConsentStoreState.updateConsentCategories}
+		 *
+		 * Safe to call multiple times; initialization runs only once per
+		 * page lifecycle.
 		 */
 		initializeIframeBlocker: () => {
 			// Check if already initialized
@@ -43,6 +55,11 @@ export function createIframeManager(
 			}
 
 			const state = get();
+			const runtimeConsents = applyPolicyScopeForRuntimeGating(
+				state.consents,
+				state.policyCategories,
+				state.policyScopeMode
+			);
 
 			if (state.iframeBlockerConfig?.disableAutomaticBlocking) {
 				return;
@@ -71,12 +88,19 @@ export function createIframeManager(
 			setTimeout(discoverAndRegisterCategories, 100);
 
 			// Process all existing iframes (pure function call)
-			processAllIframes(state.consents);
+			processAllIframes(runtimeConsents);
 
 			// Set up observer for dynamically added iframes
 			// Pass callback to discover categories when new iframes are added
 			observer = setupIframeObserver(
-				() => get().consents,
+				() => {
+					const nextState = get();
+					return applyPolicyScopeForRuntimeGating(
+						nextState.consents,
+						nextState.policyCategories,
+						nextState.policyScopeMode
+					);
+				},
 				(categories) => get().updateConsentCategories(categories)
 			);
 
@@ -86,9 +110,13 @@ export function createIframeManager(
 
 		/**
 		 * Updates iframe consent state and reprocesses all iframes.
-		 * Pure function approach - just calls processAllIframes with current consents.
 		 *
-		 * @throws {Error} When called in a non-browser environment (document is undefined)
+		 * @remarks
+		 * Re-applies blocking rules to all known iframes using the current
+		 * consent state. This is a no-op when:
+		 * - The blocker has not been initialized
+		 * - Running in a non-browser environment
+		 * - Automatic blocking is disabled
 		 */
 		updateIframeConsents: () => {
 			// Only process if initialized
@@ -108,14 +136,23 @@ export function createIframeManager(
 				return;
 			}
 
-			processAllIframes(consents);
+			processAllIframes(
+				applyPolicyScopeForRuntimeGating(
+					consents,
+					state.policyCategories,
+					state.policyScopeMode
+				)
+			);
 		},
 
 		/**
 		 * Destroys the iframe blocker and cleans up the observer.
-		 * Resets the active state in the store.
 		 *
-		 * @throws {Error} When called in a non-browser environment (document is undefined)
+		 * @remarks
+		 * Disconnects the underlying `MutationObserver` and marks the
+		 * iframe manager as uninitialized. Safe to call multiple times.
+		 * No-ops in non-browser environments or when automatic blocking is
+		 * disabled.
 		 */
 		destroyIframeBlocker: () => {
 			// Only destroy if initialized

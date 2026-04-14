@@ -1,7 +1,9 @@
 import { defaultTranslationConfig } from 'c15t';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+import { useConsentManager } from '~/hooks/use-consent-manager';
 import { ConsentManagerProvider } from '~/index';
+import { clearConsentRuntimeCache } from '../consent-manager-provider';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -10,6 +12,7 @@ window.fetch = mockFetch;
 describe('ConsentManagerProvider Basic Request Behavior', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
+		clearConsentRuntimeCache();
 		// Set up fake timers for timer-related tests
 		vi.useFakeTimers();
 
@@ -36,6 +39,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 	afterEach(() => {
 		vi.clearAllMocks();
+		clearConsentRuntimeCache();
 		// Restore real timers after each test
 		vi.useRealTimers();
 	});
@@ -44,7 +48,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		render(
 			<ConsentManagerProvider
 				options={{
-					mode: 'c15t',
+					mode: 'hosted',
 					backendURL: '/api/c15t',
 				}}
 			>
@@ -58,7 +62,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		// Should make one request
 		expect(mockFetch).toHaveBeenCalledTimes(1);
 		expect(mockFetch).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t/show-consent-banner'),
+			expect.stringContaining('/api/c15t/init'),
 			expect.any(Object)
 		);
 	});
@@ -67,11 +71,11 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		// First, clear any mock calls from previous tests
 		mockFetch.mockClear();
 
-		const { rerender } = render(
+		const { rerender } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline', // Use offline mode to prevent additional fetches
-					react: { theme: { 'banner.root': 'light' } },
+					theme: { slots: { bannerCard: 'light' } },
 				}}
 			>
 				<div>Light theme</div>
@@ -89,7 +93,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
-					react: { theme: { 'banner.root': 'dark' } },
+					theme: { slots: { bannerCard: 'dark' } },
 				}}
 			>
 				<div>Dark theme</div>
@@ -104,10 +108,10 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	});
 
 	it('should make a new request when core options change', async () => {
-		const { rerender } = render(
+		const { rerender } = await render(
 			<ConsentManagerProvider
 				options={{
-					mode: 'c15t',
+					mode: 'hosted',
 					backendURL: '/api/c15t-1', // Use unique URLs to distinguish calls
 				}}
 			>
@@ -119,7 +123,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		await vi.runAllTimersAsync();
 		expect(mockFetch).toHaveBeenCalledTimes(1);
 		expect(mockFetch).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t-1/show-consent-banner'),
+			expect.stringContaining('/api/c15t-1/init'),
 			expect.any(Object)
 		);
 
@@ -130,7 +134,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		rerender(
 			<ConsentManagerProvider
 				options={{
-					mode: 'c15t',
+					mode: 'hosted',
 					backendURL: '/api/c15t-2', // Different backend URL
 				}}
 			>
@@ -144,7 +148,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		// Should make a new request with the new URL
 		// expect(mockFetch).toHaveBeenCalledTimes(1); // Removed: Real implementation calls twice
 		expect(mockFetch).toHaveBeenCalledWith(
-			expect.stringContaining('/api/c15t-2/show-consent-banner'),
+			expect.stringContaining('/api/c15t-2/init'),
 			expect.any(Object)
 		);
 	});
@@ -153,7 +157,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		// First, clear any mock calls from previous tests
 		mockFetch.mockClear();
 
-		const { rerender } = render(
+		const { rerender } = await render(
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline', // Use offline mode to avoid fetch calls
@@ -186,5 +190,125 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		// Should still have no fetch calls
 		expect(mockFetch).not.toHaveBeenCalled();
+	});
+
+	it('should resolve offlinePolicy.policyPacks in offline mode', async () => {
+		const PolicyProbe = () => {
+			const { model, activeUI } = useConsentManager();
+			return (
+				<div data-testid="policy-probe">
+					{JSON.stringify({ model, activeUI })}
+				</div>
+			);
+		};
+
+		const { getByTestId } = await render(
+			<ConsentManagerProvider
+				options={{
+					mode: 'offline',
+					offlinePolicy: {
+						policyPacks: [
+							{
+								id: 'policy_region_us_ca',
+								match: { regions: [{ country: 'US', region: 'CA' }] },
+								consent: { model: 'opt-out' },
+								ui: { mode: 'banner' },
+							},
+						],
+					},
+					overrides: {
+						country: 'US',
+						region: 'CA',
+					},
+				}}
+			>
+				<PolicyProbe />
+			</ConsentManagerProvider>
+		);
+
+		await vi.runAllTimersAsync();
+
+		expect(mockFetch).not.toHaveBeenCalled();
+		expect(getByTestId('policy-probe')).toHaveTextContent('"model":"opt-out"');
+		expect(getByTestId('policy-probe')).toHaveTextContent(
+			'"activeUI":"banner"'
+		);
+	});
+
+	it('should update callback props on cached runtimes without replaying stale handlers', async () => {
+		const firstOnConsentChanged = vi.fn();
+		const secondOnConsentChanged = vi.fn();
+		let consentManager: ReturnType<typeof useConsentManager> | null = null;
+
+		const Probe = () => {
+			consentManager = useConsentManager();
+			return <div>Probe</div>;
+		};
+
+		const { rerender } = await render(
+			<ConsentManagerProvider
+				options={{
+					mode: 'offline',
+					callbacks: {
+						onConsentChanged: firstOnConsentChanged,
+					},
+					consentCategories: ['necessary', 'measurement'],
+					offlinePolicy: {
+						policy: {
+							model: 'opt-in',
+							consent: {
+								categories: ['necessary', 'measurement'],
+							},
+							ui: {
+								mode: 'banner',
+							},
+						},
+					},
+				}}
+			>
+				<Probe />
+			</ConsentManagerProvider>
+		);
+
+		await vi.runAllTimersAsync();
+
+		rerender(
+			<ConsentManagerProvider
+				options={{
+					mode: 'offline',
+					callbacks: {
+						onConsentChanged: secondOnConsentChanged,
+					},
+					consentCategories: ['necessary', 'measurement'],
+					offlinePolicy: {
+						policy: {
+							model: 'opt-in',
+							consent: {
+								categories: ['necessary', 'measurement'],
+							},
+							ui: {
+								mode: 'banner',
+							},
+						},
+					},
+				}}
+			>
+				<Probe />
+			</ConsentManagerProvider>
+		);
+
+		await vi.runAllTimersAsync();
+
+		consentManager?.setConsent('measurement', true);
+		await vi.runAllTimersAsync();
+
+		expect(firstOnConsentChanged).not.toHaveBeenCalled();
+		expect(secondOnConsentChanged).toHaveBeenCalledTimes(1);
+		expect(secondOnConsentChanged).toHaveBeenCalledWith(
+			expect.objectContaining({
+				allowedCategories: ['necessary', 'measurement'],
+				previousAllowedCategories: ['necessary'],
+			})
+		);
 	});
 });

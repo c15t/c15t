@@ -1,0 +1,62 @@
+---
+title: IABConsentDialog
+description: An IAB TCF 2.3 compliant preference center with tabbed purpose and vendor management.
+---
+
+<import src="../../../shared/react/iab/consent-dialog.mdx#intro" />
+
+## Basic Usage
+
+Pair it with `IABConsentBanner` inside the provider:
+
+```tsx
+import { type ReactNode } from 'react';
+import { iab } from '@c15t/iab';
+import { ConsentManagerProvider } from '@c15t/react';
+import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
+
+export default function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: 'https://your-instance.c15t.dev',
+        iab: iab({
+          vendors: [1, 2, 10, 25],
+          // cmpId is automatically provided by the backend when using consent.io.
+          // Only set this if you have your own CMP registration.
+          // cmpId: 123,
+        }),
+      }}
+    >
+      <IABConsentBanner />
+      <IABConsentDialog />
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../../shared/react/iab/consent-dialog.mdx#tabs" />
+
+## Controlled State
+
+By default, the dialog follows `activeUI === 'dialog'` from the consent store. Use `open` for manual control:
+
+```tsx
+import { useState } from 'react';
+import { IABConsentDialog } from '@c15t/react/iab';
+
+function SettingsPage() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)}>TCF Preferences</button>
+      <IABConsentDialog open={open} />
+    </>
+  );
+}
+```
+
+<import src="../../../shared/react/iab/consent-dialog.mdx#trigger-to-props" />

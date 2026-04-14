@@ -25656,7 +25656,14 @@
 								}
 							}
 						}
-						s.push({ name: A, path: t, size: o, gzipSize: n });
+						const i = {};
+						if (typeof e.initial === 'boolean') {
+							i.initial = e.initial;
+						}
+						if (typeof e.entry === 'boolean') {
+							i.entry = e.entry;
+						}
+						s.push({ name: A, path: t, size: o, gzipSize: n, ...i });
 					}
 				}
 				if (s.length === 0 && r?.data?.chunkGraph?.assets) {
@@ -25691,6 +25698,14 @@
 				console.error(`Error reading ${t}:`, e);
 				return [];
 			}
+		}
+		function selectBundlesForTotals(e) {
+			const t = e.some((e) => typeof e.initial === 'boolean');
+			if (!t) {
+				return e;
+			}
+			const A = e.filter((e) => e.initial === true);
+			return A.length > 0 ? A : e;
 		}
 		function compareBundles(e, t) {
 			const A = new Map(e.map((e) => [e.name, e]));
@@ -25742,8 +25757,8 @@
 				c.push(...extractBundleSizes(e));
 			}
 			const l = compareBundles(a, c);
-			const g = a.reduce((e, t) => e + t.size, 0);
-			const u = c.reduce((e, t) => e + t.size, 0);
+			const g = selectBundlesForTotals(a).reduce((e, t) => e + t.size, 0);
+			const u = selectBundlesForTotals(c).reduce((e, t) => e + t.size, 0);
 			const E = u - g;
 			const h = g > 0 ? (E / g) * 100 : 0;
 			return {
@@ -25769,6 +25784,15 @@
 			if (e > 0) return '🟡';
 			if (e < -5) return '🟢';
 			return '⚪';
+		}
+		function sortByAbsoluteChange(e) {
+			return [...e].sort(
+				(e, t) => Math.abs(t.totalDiff) - Math.abs(e.totalDiff)
+			);
+		}
+		function formatSignedBytes(e) {
+			const t = e >= 0 ? '+' : '';
+			return `${t}${formatBytes(e)}`;
 		}
 		function parseWorkspaceDependencyName(e) {
 			if (!e.startsWith('workspace:')) {
@@ -25900,70 +25924,132 @@
 				A += 'No bundle changes detected.\n';
 				return A;
 			}
-			A += '## Summary\n\n';
-			A += '| Package | Base Size | Current Size | Change | % Change |\n';
-			A += '|---------|-----------|--------------|--------|----------|\n';
-			for (const t of e) {
-				const e = t.totalDiff >= 0 ? '+' : '';
-				const r = getChangeEmoji(t.totalDiffPercent);
-				A += `| ${r} \`${t.packageName}\` | ${formatBytes(t.totalBaseSize)} | ${formatBytes(t.totalCurrentSize)} | ${e}${formatBytes(t.totalDiff)} | ${e}${t.totalDiffPercent.toFixed(2)}% |\n`;
+			const r = e.reduce((e, t) => e + t.totalBaseSize, 0);
+			const s = e.reduce((e, t) => e + t.totalCurrentSize, 0);
+			const o = s - r;
+			const n = r > 0 ? (o / r) * 100 : 0;
+			const i = e.filter((e) => e.totalDiff > 0).length;
+			const a = e.filter((e) => e.totalDiff < 0).length;
+			const c = e.length - i - a;
+			A += '## At a Glance\n\n';
+			A += `- **Total Change:** ${formatSignedBytes(o)} (${n >= 0 ? '+' : ''}${n.toFixed(2)}%)\n`;
+			A +=
+				'- **Metric:** Initial chunks when available (falls back to all chunks)\n';
+			A += `- **Packages Analyzed:** ${e.length}\n`;
+			A += `- **Regressions / Improvements / Unchanged:** ${i} / ${a} / ${c}\n`;
+			const l = [...e]
+				.filter((e) => e.totalDiff > 0)
+				.sort((e, t) => t.totalDiff - e.totalDiff)
+				.slice(0, 5);
+			const g = [...e]
+				.filter((e) => e.totalDiff < 0)
+				.sort((e, t) => e.totalDiff - t.totalDiff)
+				.slice(0, 5);
+			if (l.length > 0) {
+				A += '\n### Top Regressions\n\n';
+				A += '| Package | Change | % Change | Current Size |\n';
+				A += '|---------|--------|----------|--------------|\n';
+				for (const e of l) {
+					A += `| 🔴 \`${e.packageName}\` | ${formatSignedBytes(e.totalDiff)} | +${e.totalDiffPercent.toFixed(2)}% | ${formatBytes(e.totalCurrentSize)} |\n`;
+				}
+			}
+			if (g.length > 0) {
+				A += '\n### Top Improvements\n\n';
+				A += '| Package | Change | % Change | Current Size |\n';
+				A += '|---------|--------|----------|--------------|\n';
+				for (const e of g) {
+					A += `| 🟢 \`${e.packageName}\` | ${formatSignedBytes(e.totalDiff)} | ${e.totalDiffPercent.toFixed(2)}% | ${formatBytes(e.totalCurrentSize)} |\n`;
+				}
 			}
 			if (t.length > 0) {
 				A += '\n## Effective Transitive Impact\n\n';
 				A +=
 					'Includes workspace dependency closure for selected root packages.\n\n';
 				A +=
-					'| Root Package | Included Packages | Base Size | Current Size | Change | % Change |\n';
+					'| Root Package | Included Count | Base Size | Current Size | Change | % Change |\n';
 				A +=
-					'|--------------|-------------------|-----------|--------------|--------|----------|\n';
+					'|--------------|----------------|-----------|--------------|--------|----------|\n';
 				for (const e of t) {
-					const t = e.totalDiff >= 0 ? '+' : '';
-					const r = getChangeEmoji(e.totalDiffPercent);
+					const t = getChangeEmoji(e.totalDiffPercent);
+					const r = e.totalDiffPercent >= 0 ? '+' : '';
 					const s =
+						e.includedPackageDirs.length > 0
+							? String(e.includedPackageDirs.length)
+							: 'not found';
+					A += `| ${t} \`${e.rootPackage}\` | ${s} | ${formatBytes(e.totalBaseSize)} | ${formatBytes(e.totalCurrentSize)} | ${formatSignedBytes(e.totalDiff)} | ${r}${e.totalDiffPercent.toFixed(2)}% |\n`;
+				}
+				A +=
+					'\n<details>\n<summary><strong>Transitive Package Membership</strong></summary>\n\n';
+				for (const e of t) {
+					const t =
 						e.includedPackageDirs.length > 0
 							? e.includedPackageDirs.map((e) => `\`${e}\``).join(', ')
 							: 'not found';
-					A += `| ${r} \`${e.rootPackage}\` | ${s} | ${formatBytes(e.totalBaseSize)} | ${formatBytes(e.totalCurrentSize)} | ${t}${formatBytes(e.totalDiff)} | ${t}${e.totalDiffPercent.toFixed(2)}% |\n`;
+					A += `- \`${e.rootPackage}\`: ${t}\n`;
 				}
+				A += '\n</details>\n';
 			}
-			for (const t of e) {
+			A += '\n<details>\n';
+			A += `<summary><strong>All Package Deltas (${e.length})</strong></summary>\n\n`;
+			A += '| Package | Base Size | Current Size | Change | % Change |\n';
+			A += '|---------|-----------|--------------|--------|----------|\n';
+			for (const t of sortByAbsoluteChange(e)) {
+				const e = t.totalDiff >= 0 ? '+' : '';
+				const r = getChangeEmoji(t.totalDiffPercent);
+				A += `| ${r} \`${t.packageName}\` | ${formatBytes(t.totalBaseSize)} | ${formatBytes(t.totalCurrentSize)} | ${formatSignedBytes(t.totalDiff)} | ${e}${t.totalDiffPercent.toFixed(2)}% |\n`;
+			}
+			A += '\n</details>\n';
+			const u = e.filter(
+				(e) =>
+					e.diffs.added.length > 0 ||
+					e.diffs.removed.length > 0 ||
+					e.diffs.changed.length > 0
+			);
+			if (u.length > 0) {
+				A +=
+					'\n<details>\n<summary><strong>Bundle-Level Change Details</strong></summary>\n';
+			}
+			for (const e of u) {
 				if (
-					t.diffs.added.length === 0 &&
-					t.diffs.removed.length === 0 &&
-					t.diffs.changed.length === 0
+					e.diffs.added.length === 0 &&
+					e.diffs.removed.length === 0 &&
+					e.diffs.changed.length === 0
 				) {
 					continue;
 				}
-				const e = t.totalDiff >= 0 ? '+' : '';
-				const r = getChangeEmoji(t.totalDiffPercent);
-				const s = `${r} \`${t.packageName}\`: ${e}${formatBytes(t.totalDiff)} (${e}${t.totalDiffPercent.toFixed(2)}%)`;
+				const t = e.totalDiff >= 0 ? '+' : '';
+				const r = getChangeEmoji(e.totalDiffPercent);
+				const s = `${r} \`${e.packageName}\`: ${formatSignedBytes(e.totalDiff)} (${t}${e.totalDiffPercent.toFixed(2)}%)`;
 				A += `\n<details>\n<summary><strong>${s}</strong></summary>\n\n`;
-				if (t.diffs.added.length > 0) {
+				if (e.diffs.added.length > 0) {
 					A += '### ➕ Added Bundles\n\n';
-					for (const e of t.diffs.added) {
-						A += `- \`${e.name}\`: ${formatBytes(e.size)}\n`;
+					for (const t of e.diffs.added) {
+						A += `- \`${t.name}\`: ${formatBytes(t.size)}\n`;
 					}
 					A += '\n';
 				}
-				if (t.diffs.removed.length > 0) {
+				if (e.diffs.removed.length > 0) {
 					A += '### ➖ Removed Bundles\n\n';
-					for (const e of t.diffs.removed) {
-						A += `- \`${e.name}\`: ${formatBytes(e.size)}\n`;
+					for (const t of e.diffs.removed) {
+						A += `- \`${t.name}\`: ${formatBytes(t.size)}\n`;
 					}
 					A += '\n';
 				}
-				if (t.diffs.changed.length > 0) {
+				if (e.diffs.changed.length > 0) {
 					A += '### 📊 Changed Bundles\n\n';
 					A += '| Bundle | Base Size | Current Size | Change | % Change |\n';
 					A += '|--------|-----------|--------------|--------|----------|\n';
-					for (const e of t.diffs.changed) {
-						const t = e.diff >= 0 ? '+' : '';
-						const r = getChangeEmoji(e.diffPercent);
-						A += `| ${r} \`${e.name}\` | ${formatBytes(e.baseSize)} | ${formatBytes(e.currentSize)} | ${t}${formatBytes(e.diff)} | ${t}${e.diffPercent.toFixed(2)}% |\n`;
+					for (const t of e.diffs.changed) {
+						const e = t.diff >= 0 ? '+' : '';
+						const r = getChangeEmoji(t.diffPercent);
+						A += `| ${r} \`${t.name}\` | ${formatBytes(t.baseSize)} | ${formatBytes(t.currentSize)} | ${e}${formatBytes(t.diff)} | ${e}${t.diffPercent.toFixed(2)}% |\n`;
 					}
 					A += '\n';
 				}
 				A += '</details>\n';
+			}
+			if (u.length > 0) {
+				A += '\n</details>\n';
 			}
 			A +=
 				'\n---\n*This analysis was generated automatically by [rsdoctor](https://rsdoctor.rs/).*';

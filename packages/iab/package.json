@@ -1,0 +1,66 @@
+{
+	"name": "@c15t/iab",
+	"version": "2.0.0-rc.10",
+	"description": "IAB TCF 2.3 and GPP addon for c15t — opt-in compliance protocol support for programmatic advertising",
+	"keywords": [
+		"iab",
+		"tcf",
+		"gpp",
+		"consent",
+		"privacy",
+		"gdpr",
+		"cmp",
+		"programmatic-advertising",
+		"transparency-consent-framework"
+	],
+	"homepage": "https://c15t.com/docs/frameworks/react/iab/overview",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/iab"
+	},
+	"license": "Apache-2.0",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist-types/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		},
+		"./headless": {
+			"types": "./dist-types/headless.d.ts",
+			"import": "./dist/headless.js",
+			"require": "./dist/headless.cjs"
+		}
+	},
+	"main": "dist/index.cjs",
+	"module": "dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"files": [
+		"dist",
+		"dist-types"
+	],
+	"scripts": {
+		"prebuild": "genversion --esm --semi src/version.ts",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"check-types": "tsc --noEmit",
+		"dev": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
+		"lint": "bun biome lint ./src",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"dependencies": {
+		"@c15t/schema": "workspace:*",
+		"@iabtechlabtcf/core": "^1.5.21",
+		"c15t": "workspace:*"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"genversion": "3.2.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

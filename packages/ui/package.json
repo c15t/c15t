@@ -1,0 +1,116 @@
+{
+	"name": "@c15t/ui",
+	"version": "2.0.0-rc.11",
+	"description": "Framework-agnostic UI and styling system for c15t",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t"
+	},
+	"license": "Apache-2.0",
+	"sideEffects": [
+		"**/*.css"
+	],
+	"type": "module",
+	"exports": {
+		"./styles.css": "./dist/styles.css",
+		"./styles.tw3.css": "./dist/styles.tw3.css",
+		"./iab/styles.css": "./dist/iab/styles.css",
+		"./iab/styles.tw3.css": "./dist/iab/styles.tw3.css",
+		"./primitives": {
+			"types": "./dist-types/primitives/index.d.ts",
+			"import": "./dist/primitives/index.js",
+			"require": "./dist/primitives/index.cjs"
+		},
+		"./primitives/data-state": {
+			"types": "./dist-types/primitives/data-state.d.ts",
+			"import": "./dist/primitives/data-state.js",
+			"require": "./dist/primitives/data-state.cjs"
+		},
+		"./primitives/*": {
+			"types": "./dist-types/primitives/*/index.d.ts",
+			"import": "./dist/primitives/*/index.js",
+			"require": "./dist/primitives/*/index.cjs"
+		},
+		"./theme": {
+			"types": "./dist-types/theme/index.d.ts",
+			"import": "./dist/theme/index.js",
+			"require": "./dist/theme/index.cjs"
+		},
+		"./utils": {
+			"types": "./dist-types/utils/index.d.ts",
+			"import": "./dist/utils/index.js",
+			"require": "./dist/utils/index.cjs"
+		},
+		"./styles/primitives": {
+			"types": "./dist-types/styles/primitives/index.d.ts",
+			"import": "./dist/styles/primitives/index.js",
+			"require": "./dist/styles/primitives/index.cjs"
+		},
+		"./styles/primitives/*": {
+			"types": "./dist-types/styles/primitives/*.d.ts",
+			"import": "./dist/styles/primitives/*.js",
+			"require": "./dist/styles/primitives/*.cjs"
+		},
+		"./styles/primitives/*.module.js": {
+			"types": "./src/styles/css-module.d.ts",
+			"import": "./dist/styles/primitives/*.module.js",
+			"require": "./dist/styles/primitives/*.module.cjs"
+		},
+		"./styles/primitives/*.module.css": {
+			"types": "./src/styles/css-module.d.ts",
+			"import": "./dist/styles/primitives/*.module.js",
+			"require": "./dist/styles/primitives/*.module.cjs"
+		},
+		"./utils/*": {
+			"types": "./dist-types/utils/*.d.ts",
+			"import": "./dist/utils/*.js",
+			"require": "./dist/utils/*.cjs"
+		},
+		"./styles/*.module.js": {
+			"types": "./src/styles/css-module.d.ts",
+			"import": "./dist/styles/*.module.js",
+			"require": "./dist/styles/*.module.cjs"
+		},
+		"./styles/*.module.css": "./dist/styles/*.module.css",
+		"./styles/*": "./dist/styles/*",
+		".": {
+			"types": "./dist-types/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"files": [
+		"dist",
+		"dist-types",
+		"styles.css",
+		"iab",
+		"src/primitives",
+		"src/styles",
+		"!src/styles/**/__tests__/**",
+		"!src/styles/**/*.test.ts"
+	],
+	"scripts": {
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts",
+		"dev": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts",
+		"fmt": "bun biome format --write .",
+		"lint": "bun biome lint ./src",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@c15t/translations": "workspace:*",
+		"c15t": "workspace:*"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"@rslib/core": "0.20.2",
+		"typescript": "6.0.2",
+		"vitest": "4.1.2"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

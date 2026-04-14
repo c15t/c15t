@@ -1,3 +1,4 @@
+import type { ButtonMode } from '@c15t/ui/styles/primitives';
 import type { ComponentRef, HTMLAttributes, MouseEvent } from 'react';
 import type { CSSVariables, ExtendThemeKeys } from '~/types/theme';
 
@@ -27,4 +28,26 @@ export interface ConsentButtonProps
 	 * Allows for custom click handling.
 	 */
 	onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
+	/**
+	 * @remarks
+	 * The visual variant of the button.
+	 * @default 'neutral'
+	 */
+	variant?: 'primary' | 'neutral';
+	/**
+	 * @remarks
+	 * The visual mode of the button.
+	 * @default 'stroke'
+	 */
+	mode?: ButtonMode;
+	/**
+	 * @remarks
+	 * Semantic consent action type for theme-based button styling.
+	 */
+	consentAction?: 'accept' | 'reject' | 'customize';
+	/**
+	 * @remarks
+	 * Whether this button is the primary action for the current surface.
+	 */
+	isPrimary?: boolean;
 }

@@ -16,13 +16,32 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
     steps:
       - name: ⬇️ Check out base repository
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.ref || github.ref }}
-          fetch-depth: 0
+          fetch-depth: 0 # Full history needed for base branch comparison
+
+      - name: 🔍 Detect package manager
+        id: detect-pm
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            echo "pm=pnpm" >> "$GITHUB_OUTPUT"
+          else
+            echo "pm=bun" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 🅿️ Setup pnpm
+        if: steps.detect-pm.outputs.pm == 'pnpm'
+        uses: pnpm/action-setup@v4
+
+      - name: 🟢 Setup Node.js
+        if: steps.detect-pm.outputs.pm == 'pnpm'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
 
       - name: 🟢 Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -47,6 +66,8 @@ jobs:
           find packages -name "rsdoctor-data.json" -exec cp --parents {} .bundle-base/ \; || true
 
       # Step 3: Checkout PR head (untrusted) after trusted base setup.
+      # pull_request_target exposes repo secrets to the workflow; TURBO_* is cleared
+      # in workflow env for this event while PR code runs.
       - name: ⬇️ Check out PR code
         if: github.event_name == 'pull_request_target'
         uses: actions/checkout@v4
@@ -72,16 +93,24 @@ jobs:
         with:
           base_dir: .bundle-base
           current_dir: .
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ github.token }}
           pr_number: ${{ github.event.pull_request.number }}
-          skip_comment: false
+          skip_comment: true
           fail_on_increase: false
 
-      - name: 📤 Upload bundle diff report
-        if: always()
+      # Step 6: Save PR number and report for the comment workflow
+      - name: 💾 Save PR metadata
+        if: github.event_name == 'pull_request_target'
+        run: |
+          mkdir -p ./bundle-artifacts
+          echo "${{ github.event.pull_request.number }}" > ./bundle-artifacts/pr-number
+          cp bundle-diff.md ./bundle-artifacts/bundle-diff.md 2>/dev/null || echo "No bundle changes detected." > ./bundle-artifacts/bundle-diff.md
+
+      - name: 📤 Upload bundle analysis artifacts
+        if: github.event_name == 'pull_request_target'
         uses: actions/upload-artifact@v4
         with:
-          name: bundle-diff-report
-          path: bundle-diff.md
+          name: bundle-analysis-result
+          path: ./bundle-artifacts/
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 1

@@ -100,7 +100,7 @@ jobs:
         run: bunx playwright install
 
       - name: 🧪 Run Tests
-        run: bun turbo run test
+        run: bun turbo run test --filter="./packages/*"
 
       - name: ⬆️ Upload Individual Coverage Reports
         uses: actions/upload-artifact@v4

@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { ORMResult } from '@c15t/backend/v2/db/migrator';
+import type { ORMResult } from '@c15t/backend/db/migrator';
 import type { CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';
 

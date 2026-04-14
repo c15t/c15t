@@ -1,12 +1,29 @@
 {
 	"extends": "@c15t/typescript-config/node.json",
 	"compilerOptions": {
-		"baseUrl": ".",
+		"rootDir": "src",
 		"lib": ["esnext"],
 		"paths": {
+			"@c15t/backend": ["../backend/dist-types/core.d.ts"],
+			"@c15t/backend/*": ["../backend/dist-types/*"],
+			"@c15t/logger": ["../logger/dist-types/index.d.ts"],
 			"~/*": ["./src/*"]
 		}
 	},
 	"include": ["src", "./src/types/babel-presets.d.ts"],
-	"exclude": ["node_modules"]
+	"exclude": [
+		"node_modules",
+		"src/**/__tests__/**",
+		"src/**/__snapshots__/**",
+		"src/**/__screenshots__/**",
+		"src/**/*.test.ts",
+		"src/**/*.test.tsx",
+		"src/**/*.spec.ts",
+		"src/**/*.spec.tsx",
+		"src/**/*.e2e.ts",
+		"src/**/*.e2e.test.ts",
+		"src/**/*.e2e.test.tsx",
+		"src/**/mockServiceWorker.js",
+		"src/**/test-setup.*"
+	]
 }
