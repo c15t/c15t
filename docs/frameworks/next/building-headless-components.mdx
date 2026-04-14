@@ -5,7 +5,62 @@ description: Build policy-aware custom consent components in Next.js using the h
 
 <import src="../../shared/react/guides/building-headless-components.mdx#intro" />
 
+<import src="../../shared/react/guides/building-headless-components.mdx#choose-layer" />
+
+<import src="../../shared/react/guides/building-headless-components.mdx#before-you-build" />
+
 <import src="../../shared/react/guides/building-headless-components.mdx#what-you-get" />
+
+## Policy-Aware Compound Components First
+
+If your goal is "custom layout, same policy behavior", start here before dropping to manual `actionGroups` rendering:
+
+```tsx title="components/consent-manager/banner-shell.tsx"
+'use client';
+
+import { ConsentBanner } from '@c15t/nextjs';
+
+export function BannerShell() {
+  return (
+    <ConsentBanner.Root>
+      <ConsentBanner.Card>
+        <ConsentBanner.Header>
+          <ConsentBanner.Title />
+          <ConsentBanner.Description />
+        </ConsentBanner.Header>
+        <ConsentBanner.PolicyActions />
+      </ConsentBanner.Card>
+    </ConsentBanner.Root>
+  );
+}
+```
+
+Use `renderAction` only when you want to remap actions to stock button compounds while keeping the same policy-driven grouping and ordering:
+
+```tsx title="components/consent-manager/banner-actions.tsx"
+'use client';
+
+import { ConsentBanner } from '@c15t/nextjs';
+
+export function BannerActionsWithCustomMapping() {
+  return (
+    <ConsentBanner.PolicyActions
+      renderAction={(action, props) => {
+        const { key, ...buttonProps } = props;
+
+        switch (action) {
+          case 'accept':
+            return <ConsentBanner.AcceptButton key={key} {...buttonProps} />;
+          case 'reject':
+            return <ConsentBanner.RejectButton key={key} {...buttonProps} />;
+          case 'customize':
+            return <ConsentBanner.CustomizeButton key={key} {...buttonProps} />;
+        }
+      }}
+    />
+  );
+}
+```
 
 <Callout type="info">
   For custom layouts built from c15t compound components, prefer
@@ -56,8 +111,19 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 import { useHeadlessConsentUI, useTranslations } from '@c15t/nextjs/headless';
 
 export function CustomConsentBanner() {
-  const { banner, openDialog, performAction } = useHeadlessConsentUI();
+  const { banner, openDialog, performBannerAction } = useHeadlessConsentUI();
   const translations = useTranslations();
+
+  function getActionLabel(action: (typeof banner.allowedActions)[number]) {
+    switch (action) {
+      case 'accept':
+        return translations.common.acceptAll;
+      case 'reject':
+        return translations.common.rejectAll;
+      case 'customize':
+        return translations.common.customize;
+    }
+  }
 
   if (!banner.isVisible) return null;
 
@@ -81,14 +147,10 @@ export function CustomConsentBanner() {
                     openDialog();
                     return;
                   }
-                  void performAction(action, { surface: 'banner' });
+                  void performBannerAction(action);
                 }}
               >
-                {action === 'accept'
-                  ? translations.common.acceptAll
-                  : action === 'reject'
-                    ? translations.common.rejectAll
-                    : translations.common.customize}
+                {getActionLabel(action)}
               </button>
             ))}
           </div>
@@ -120,6 +182,17 @@ export function CustomConsentDialog() {
     setSelectedConsent,
   } = useConsentManager();
   const translations = useTranslations();
+
+  function getActionLabel(action: (typeof dialog.allowedActions)[number]) {
+    switch (action) {
+      case 'accept':
+        return translations.common.acceptAll;
+      case 'reject':
+        return translations.common.rejectAll;
+      case 'customize':
+        return translations.common.save;
+    }
+  }
 
   if (!dialog.isVisible) return null;
 
@@ -169,11 +242,7 @@ export function CustomConsentDialog() {
                   void performDialogAction(action);
                 }}
               >
-                {action === 'accept'
-                  ? translations.common.acceptAll
-                  : action === 'reject'
-                    ? translations.common.rejectAll
-                    : translations.common.save}
+                {getActionLabel(action)}
               </button>
             ))}
           </div>
@@ -183,6 +252,8 @@ export function CustomConsentDialog() {
   );
 }
 ```
+
+<import src="../../shared/react/guides/building-headless-components.mdx#not-for-styling" />
 
 <import src="../../shared/react/guides/building-headless-components.mdx#checklist" />
 

@@ -1,10 +1,26 @@
 ---
 title: Optimization
 description: Improve c15t startup performance in React with prefetching, proxy rewrites, and rendering tradeoffs.
-lastModified: 2026-03-17
+lastModified: 2026-04-14
 ---
 
 <import src="../../shared/react/guides/optimization.mdx#intro" />
+
+## Start Here
+
+Apply the optimizations in this order:
+
+| Situation | Use | Why | Tradeoff |
+|-----------|-----|-----|----------|
+| Any production app using hosted mode | Same-origin `/api/c15t` proxy | Lowers browser startup overhead and keeps the backend origin out of client config | Requires framework or platform proxy setup |
+| Banner speed matters on cold loads | `buildPrefetchScript()` | Starts `/init` before your app hydrates | Still a browser-side fetch, not SSR |
+| Your app navigates client-side | Keep the provider mounted at the app root | Avoids remounting and re-running init work | Requires provider placement discipline |
+| You cannot proxy and must stay cross-origin | `<link rel="preconnect">` | Starts DNS/TLS work earlier | Smaller gain than same-origin proxying |
+| You are using Next.js and want SSR or static-route-specific guidance | Next.js optimization docs | Covers `C15tPrefetch`, `fetchInitialData()`, and rendering tradeoffs | Next-specific |
+
+<Callout type="info">
+  Treat same-origin proxying as the baseline optimization. The others are situational layers you add when startup timing or route behavior justifies them.
+</Callout>
 
 ## 1) Prefer Same-Origin Proxy
 
@@ -20,11 +36,19 @@ Then use:
 
 <import src="../../shared/react/guides/optimization.mdx#rewrites-why" />
 
+If you can only do one optimization, do this one first.
+
 ## 2) Prefetch Init Data Early
 
 Use `buildPrefetchScript()` from the `c15t` core package to start the `/init` request before your app hydrates. Inject the script as early as possible in your HTML `<head>`.
 
 <import src="../../shared/react/guides/optimization.mdx#benchmark" />
+
+Use this when:
+
+- The app is client-rendered
+- You want a faster first banner without introducing SSR complexity
+- You control the HTML template or document `<head>`
 
 ### Inline Script Prefetch
 
@@ -72,11 +96,15 @@ export default function App({ children }: { children: React.ReactNode }) {
 
 <import src="../../shared/react/guides/optimization.mdx#keep-mounted" />
 
+Mount `ConsentManagerProvider` as high in the tree as possible so route transitions do not recreate it.
+
 <import src="../../shared/react/guides/optimization.mdx#animation" />
 
 To customize motion durations and easing, see [Styling](/docs/frameworks/react/styling/overview).
 
 ## Reduce Network Overhead
+
+If your browser must call a cross-origin backend URL directly, add `preconnect` so the browser can warm up the connection earlier. This is a fallback optimization when same-origin proxying is not possible.
 
 <import src="../../shared/react/guides/optimization.mdx#preconnect" />
 
@@ -85,3 +113,10 @@ To customize motion durations and easing, see [Styling](/docs/frameworks/react/s
   <link rel="preconnect" href="https://your-instance.c15t.dev" crossOrigin="" />
 </head>
 ```
+
+## Next.js-Specific SSR And Static Routes
+
+This page is intentionally React-generic. If you are using Next.js and need SSR or static-route-specific guidance:
+
+- See [Next.js Optimization](/docs/frameworks/next/optimization) for the static-vs-dynamic decision guide
+- See [Next.js Server-Side Data Fetching](/docs/frameworks/next/server-side) for `fetchInitialData()`

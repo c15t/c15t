@@ -1,10 +1,31 @@
 ---
 title: Optimization
-description: Improve c15t startup performance in Next.js with rewrites, static prefetching, and rendering tradeoffs.
-lastModified: 2026-04-09
+description: Improve c15t startup performance in Next.js with same-origin rewrites, static prefetching, and dynamic-route SSR.
+lastModified: 2026-04-14
 ---
 
 <import src="../../shared/react/guides/optimization.mdx#intro" />
+
+## Start Here
+
+Apply the optimizations in this order:
+
+| Situation | Use | Why |
+|-----------|-----|-----|
+| Any production Next.js app | Same-origin `/api/c15t` rewrite | Lowers browser startup overhead and keeps the backend origin out of client config |
+| Static route, but banner speed matters | `C15tPrefetch` | Starts `/init` before hydration without making the route dynamic |
+| Dynamic route, or you want the fastest first banner | `fetchInitialData()` | Starts `/init` on the server and streams the result into the provider |
+| You want the simplest setup | Client-only init | No extra moving parts, but the banner appears later on cold loads |
+
+<Callout type="info">
+  `C15tPrefetch` is the only static-route prefetch step you need in `@c15t/nextjs`. Matching prefetched data is consumed automatically during first initialization.
+</Callout>
+
+<Callout type="info">
+  Prefetched or SSR data is reused only when the request context still matches at runtime. That includes the backend URL, credentials, overrides, and the browser's ambient GPC signal.
+</Callout>
+
+<import src="../../shared/react/guides/optimization.mdx#benchmark" />
 
 ## 1) Prefer Same-Origin Rewrites
 
@@ -36,26 +57,26 @@ Then use:
 <import src="../../shared/react/guides/optimization.mdx#rewrites-why" />
 
 <Callout type="info">
-  Set `NEXT_PUBLIC_C15T_URL` in `.env` to your backend URL, for example `https://your-instance.c15t.dev`.
+  Set `NEXT_PUBLIC_C15T_URL` in `.env` to your backend URL, for example `https://your-project.inth.app`.
 </Callout>
 
 <Callout type="warn">
-  Use rewrites for browser-side calls (`ConsentManagerProvider`, `C15tPrefetch`). For server-side `fetchInitialData()`, prefer a direct backend URL (for example `https://your-instance.c15t.dev`) to avoid an extra server proxy hop.
+  Use rewrites for browser-side calls (`ConsentManagerProvider`, `C15tPrefetch`). For server-side `fetchInitialData()`, prefer a direct backend URL (for example `https://your-project.inth.app`) to avoid an extra server proxy hop.
 </Callout>
 
-## 2) Pick The Right Data Strategy
+## 2) Choose A Startup Strategy
 
-| Goal | Strategy | Tradeoff |
-|------|----------|----------|
-| Keep routes fully static | `C15tPrefetch` | Still client-side fetch, but starts earlier |
-| Fastest first banner on dynamic routes | `fetchInitialData()` in a Server Component (do not await) | Route becomes dynamic because of `next/headers` |
-| Simplest setup | Client-only init (no prefetch) | Banner appears later on slow networks |
+Start with a same-origin rewrite and the default client-side provider. Add one of the preloading strategies below only when the route behavior or performance target calls for it.
 
-<import src="../../shared/react/guides/optimization.mdx#benchmark" />
+### Client-Only Init
+
+Keep the default provider setup when you want the least complexity. This works on both static and dynamic routes, but the banner only appears after the client runtime starts and the initial `/init` request completes.
 
 ### Dynamic Routes: Fetch On The Server And Stream
 
-Use `fetchInitialData()` in a Server Component when you want the fastest first banner and can accept the route becoming dynamic.
+Use `fetchInitialData()` when the route is already dynamic, or when you are willing to make it dynamic in exchange for the fastest first banner.
+
+Because it depends on `next/headers`, this opts the route into dynamic rendering.
 
 ```tsx title="app/layout.tsx"
 import { fetchInitialData } from '@c15t/nextjs';
@@ -99,7 +120,7 @@ export default function ConsentManager({
       options={{
         mode: 'hosted',
         backendURL: '/api/c15t',
-        store: { ssrData },
+        ssrData,
       }}
     >
       <ConsentBanner />
@@ -115,12 +136,12 @@ export default function ConsentManager({
 </Callout>
 
 <Callout type="info">
-  For `fetchInitialData()`, prefer a direct backend URL such as `https://your-instance.c15t.dev` instead of a rewrite to avoid an extra server-side proxy hop. See [Server-Side Data Fetching](/docs/frameworks/next/server-side) for the full flow.
+  For `fetchInitialData()`, prefer a direct backend URL such as `https://your-project.inth.app` instead of a rewrite to avoid an extra server-side proxy hop. See [Server-Side Data Fetching](/docs/frameworks/next/server-side) for the full flow.
 </Callout>
 
 ### Static Routes: Start Fetch Early In The Browser
 
-Use `C15tPrefetch` in your layout. Matching prefetched data is consumed automatically by the runtime during first store initialization.
+Use `C15tPrefetch` when the route needs to stay static but you still want the `/init` request to start before hydration. Matching prefetched data is consumed automatically by the runtime during first store initialization.
 
 ```tsx title="app/layout.tsx"
 import { C15tPrefetch } from '@c15t/nextjs';
@@ -170,11 +191,11 @@ export default function ConsentManagerClient({ children }: { children: React.Rea
 ```
 
 <Callout type="info">
-  `C15tPrefetch` uses Next.js `beforeInteractive` script loading, so the `/init` request can start before hydration. In App Router streaming output, this may appear as Next.js script bootstrap data (for example `self.__next_s.push(...)`) instead of a literal `<head><script>` tag.
+  `C15tPrefetch` uses Next.js `beforeInteractive` script loading, so the `/init` request can start before hydration.
 </Callout>
 
 <Callout type="info">
-  If `overrides.gpc` conflicts with the browser's ambient GPC signal, the prefetched entry is not reused and c15t falls back to a normal client `/init`.
+  If the request context changes between prefetch time and runtime, c15t falls back to a normal client `/init`. A common example is `overrides.gpc` conflicting with the browser's ambient GPC signal.
 </Callout>
 
 <import src="../../shared/react/guides/optimization.mdx#keep-mounted" />
@@ -189,6 +210,6 @@ To customize motion durations and easing, see [Styling](/docs/frameworks/next/st
 
 ```tsx title="app/layout.tsx"
 <head>
-  <link rel="preconnect" href="https://your-instance.c15t.dev" crossOrigin="" />
+  <link rel="preconnect" href="https://your-project.inth.app" crossOrigin="" />
 </head>
 ```
