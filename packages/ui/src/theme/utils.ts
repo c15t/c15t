@@ -150,7 +150,7 @@ function parseHue(value: string): number | null {
 }
 
 function parseColorChannels(value: string): string[] {
-	const [channels] = value.split('/');
+	const channels = value.split('/')[0] ?? '';
 	return channels.includes(',')
 		? channels.split(/\s*,\s*/)
 		: channels.trim().split(/\s+/);
