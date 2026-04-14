@@ -26,6 +26,8 @@
 	"changesets": [
 		"bright-hairs-shop",
 		"calm-plants-tell",
+		"clean-dogs-divide",
+		"cold-pens-judge",
 		"embed-overhaul-core",
 		"fresh-owls-relax",
 		"fresh-pumpkins-change",
@@ -33,9 +35,11 @@
 		"green-pans-heal",
 		"lucky-icons-fix",
 		"odd-edges-shift",
+		"rare-buckets-whisper",
 		"shaggy-pots-relax",
 		"slow-rabbits-share",
 		"swift-foxes-leap",
-		"tidy-phones-dance"
+		"tidy-phones-dance",
+		"wise-badgers-share"
 	]
 }

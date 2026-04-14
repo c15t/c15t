@@ -1,5 +1,36 @@
 # @c15t/ui
 
+## 2.0.0-rc.10
+
+### Minor Changes
+
+- 79ae8cf: Remove the legacy stock-branding theme keys and require the new explicit tag slots for prebuilt consent surfaces.
+
+  - `@c15t/react`: stop resolving stock banner/dialog/widget/IAB branding tags through legacy footer-branding aliases and render the standalone widget/dialog tags without the old footer-wrapper compatibility path.
+  - `@c15t/ui`: add explicit branding tag slots for each prebuilt surface: `consentBannerTag`, `consentDialogTag`, `consentWidgetTag`, `iabConsentBannerTag`, and `iabConsentDialogTag`.
+
+  Breaking change:
+
+  - `consentWidgetBranding` has been removed. Use `consentWidgetTag`.
+  - `consentDialogFooter` no longer styles the stock dialog branding tag. Use `consentDialogTag`.
+  - Style stock banner and IAB branding tags via the new explicit tag slots instead of footer-related keys.
+
+### Patch Changes
+
+- 64d6009: Replace the shared `clsx` dependency with a local `cn` implementation owned by `@c15t/ui`.
+
+  - `@c15t/ui`: own the public `ClassValue` type and `cn(...)` implementation directly instead of re-exporting them from `clsx`, with coverage for nested arrays, object maps, numeric values, and ordering.
+  - `@c15t/react`: continue consuming the shared `@c15t/ui` class helper while dropping the now-unused direct `clsx` dependency from the published package.
+  - `@c15t/dev-tools`: remove the unused direct `clsx` dependency from the published package manifest.
+
+- 7576dc1: Derive `textOnPrimary` automatically from the active `primary` theme color when it is omitted, so primary-filled surfaces such as stock branding tags keep a readable foreground by default.
+
+  - add a shared contrast helper in the UI theme utilities and use it as the fallback for `textOnPrimary`
+  - preserve explicit `textOnPrimary` overrides for consumers who need a fixed branded foreground
+
+- Updated dependencies [9579b62]
+  - c15t@2.0.0-rc.10
+
 ## 2.0.0-rc.9
 
 ### Patch Changes
