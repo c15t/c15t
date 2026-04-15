@@ -1,7 +1,7 @@
 <script lang="ts">
 import { resolveTranslations } from '@c15t/ui/utils';
 import { defaultTranslationConfig } from 'c15t';
-import { getConsentContext, getThemeContext } from '../../context.svelte';
+import { getConsentContext, getThemeContext } from '../../lib/context.svelte';
 
 const consent = getConsentContext();
 const theme = getThemeContext();

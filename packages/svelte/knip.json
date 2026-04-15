@@ -1,11 +1,11 @@
 {
 	"$schema": "https://unpkg.com/knip@latest/schema.json",
 	"entry": [
-		"./src/index.ts",
-		"./src/headless.ts",
-		"./src/types.ts",
-		"./src/utils.ts",
-		"./src/context.svelte.ts"
+		"./src/lib/index.ts",
+		"./src/lib/headless.ts",
+		"./src/lib/types.ts",
+		"./src/lib/utils.ts",
+		"./src/lib/context.svelte.ts"
 	],
 	"ignoreBinaries": [
 		"biome",

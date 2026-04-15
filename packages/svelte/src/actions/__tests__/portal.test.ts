@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import { portal } from '../portal';
+import { portal } from '../../lib/actions/portal';
 
 describe('portal action', () => {
 	test('should move element to document.body by default', () => {

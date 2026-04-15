@@ -1,6 +1,6 @@
 <script lang="ts">
-import ConsentManagerProvider from '../../components/consent-manager-provider.svelte';
-import type { ConsentManagerOptions } from '../../types';
+import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+import type { ConsentManagerOptions } from '../../lib/types';
 
 let {
 	options,

@@ -8,7 +8,7 @@
 import type { TranslationConfig } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
 import { describe, expect, it } from 'vitest';
-import { getIABTranslations } from '../iab-translations';
+import { getIABTranslations } from '../lib/iab-translations';
 
 /**
  * Helper to create a TranslationConfig with IAB overrides.
