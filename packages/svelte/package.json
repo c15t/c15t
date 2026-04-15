@@ -27,9 +27,13 @@
 		"directory": "packages/svelte"
 	},
 	"license": "GPL-3.0-only",
-	"sideEffects": false,
+	"sideEffects": [
+		"**/*.css"
+	],
 	"type": "module",
 	"exports": {
+		"./styles.css": "./dist/styles.css",
+		"./iab/styles.css": "./dist/iab/styles.css",
 		"./headless": {
 			"types": "./dist/headless.d.ts",
 			"svelte": "./dist/headless.js",
@@ -70,6 +74,8 @@
 	"files": [
 		"LICENSE.md",
 		"dist",
+		"styles.css",
+		"iab",
 		"!dist/**/__tests__/**",
 		"!dist/**/*.test.*",
 		"!dist/**/*.spec.*",
@@ -77,9 +83,10 @@
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/lib/version.ts",
-		"build": "bun prebuild && svelte-package -o dist && bun run clean:dist:test-artifacts",
+		"build": "bun prebuild && svelte-package -o dist && bun run copy:dist:css && bun run clean:dist:test-artifacts",
 		"check-types": "bun prebuild && svelte-check --tsconfig ./tsconfig.json",
 		"clean:dist:test-artifacts": "bun --eval \"import { readdirSync, rmSync } from 'node:fs'; import { join } from 'node:path'; const walk = (dir) => { for (const entry of readdirSync(dir, { withFileTypes: true })) { const full = join(dir, entry.name); if (entry.isDirectory()) { if (entry.name === '__tests__') { rmSync(full, { recursive: true, force: true }); continue; } walk(full); continue; } if (/\\.(test|spec)\\.[cm]?[jt]sx?$/.test(entry.name)) { rmSync(full, { force: true }); } } }; walk('dist');\"",
+		"copy:dist:css": "bun --eval \"import { copyFileSync, existsSync, mkdirSync } from 'node:fs'; import { dirname, join } from 'node:path'; const copy = (sourceRel, targetRel) => { const source = join(process.cwd(), sourceRel); const target = join(process.cwd(), targetRel); if (!existsSync(source)) throw new Error('Missing source CSS asset: ' + source); mkdirSync(dirname(target), { recursive: true }); copyFileSync(source, target); }; copy('src/styles.css', 'dist/styles.css'); copy('src/iab/styles.css', 'dist/iab/styles.css');\"",
 		"dev": "bun prebuild && svelte-package -o dist --watch",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
@@ -88,7 +95,6 @@
 		"test:watch": "vitest"
 	},
 	"dependencies": {
-		"@ark-ui/svelte": "^5.19.0",
 		"@c15t/ui": "workspace:*",
 		"c15t": "workspace:*",
 		"clsx": "2.1.1"

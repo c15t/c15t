@@ -13,7 +13,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Preference Item',
+	title: 'PRIMITIVES - REACT/Preference Item',
 } satisfies Meta<typeof PreferenceItem.Root>;
 
 export default meta;

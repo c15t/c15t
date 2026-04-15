@@ -11,7 +11,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Tabs',
+	title: 'PRIMITIVES - SVELTE/Tabs',
 } satisfies Meta<TabsDemo>;
 
 export default meta;

@@ -1,10 +1,9 @@
 <script lang="ts">
-import { Collapsible } from '@ark-ui/svelte/collapsible';
-import { Switch } from '@ark-ui/svelte/switch';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { switchVariants } from '@c15t/ui/styles/primitives';
 import type { IABTranslations } from '../iab-translations';
 import type { ProcessedStack, VendorId } from '../iab-types';
+import { PreferenceItem, Switch } from '../primitives';
 import IABPurposeItem from './iab-purpose-item.svelte';
 import ChevronRightIcon from './icons/chevron-right-icon.svelte';
 
@@ -69,36 +68,43 @@ const totalVendors = $derived(
 );
 </script>
 
-<Collapsible.Root
-	bind:open={isExpanded}
+<PreferenceItem.Root
+	open={isExpanded}
+	onOpenChange={(details) => {
+		isExpanded = details.open;
+	}}
 	class={noStyle ? '' : styles.stackItem || ''}
 	data-testid={`stack-item-${stack.id}`}
+	noStyle
 >
 	<div class={noStyle ? '' : styles.stackHeader || ''}>
-		<Collapsible.Trigger class={noStyle ? '' : styles.stackTrigger || ''}>
-			<Collapsible.Indicator class={noStyle ? '' : styles.purposeArrow || ''}>
+		<PreferenceItem.Trigger class={noStyle ? '' : styles.stackTrigger || ''}>
+			<PreferenceItem.Leading class={noStyle ? '' : styles.purposeArrow || ''}>
 				<ChevronRightIcon aria-hidden={true} />
-			</Collapsible.Indicator>
-			<div class={noStyle ? '' : styles.stackInfo || ''}>
-				<h3 class={noStyle ? '' : styles.stackName || ''}>{stack.name}</h3>
+			</PreferenceItem.Leading>
+			<PreferenceItem.Header class={noStyle ? '' : styles.stackInfo || ''}>
+				<PreferenceItem.Title class={noStyle ? '' : styles.stackName || ''}>
+					{stack.name}
+				</PreferenceItem.Title>
 				{#if !isExpanded}
-					<p class={noStyle ? '' : styles.stackMeta || ''}>
+					<PreferenceItem.Meta class={noStyle ? '' : styles.stackMeta || ''}>
 						{totalVendors}
 						{totalVendors === 1
 							? iabT.preferenceCenter.vendorList.partnerSingular
 							: iabT.preferenceCenter.vendorList.partnerPlural}
-					</p>
+					</PreferenceItem.Meta>
 				{/if}
-			</div>
-		</Collapsible.Trigger>
-		<div class={noStyle ? '' : styles.stackControls || ''}>
+			</PreferenceItem.Header>
+		</PreferenceItem.Trigger>
+		<PreferenceItem.Control class={noStyle ? '' : styles.stackControls || ''}>
 			{#if someEnabled}
 				<span class="sr-only">Partially enabled</span>
 				<div class={noStyle ? '' : styles.partialIndicator || ''} aria-hidden={true}></div>
 			{/if}
 			<Switch.Root
 				checked={allEnabled}
-				onCheckedChange={(details) => handleStackToggle(details.checked)}
+				onCheckedChange={(details: { checked: boolean }) =>
+					handleStackToggle(details.checked)}
 				class={noStyle ? '' : sw.root()}
 			>
 				<Switch.Control class={noStyle ? '' : sw.track()}>
@@ -106,10 +112,10 @@ const totalVendors = $derived(
 				</Switch.Control>
 				<Switch.HiddenInput />
 			</Switch.Root>
-		</div>
+		</PreferenceItem.Control>
 	</div>
 
-	<Collapsible.Content>
+	<PreferenceItem.Content>
 		<div class={noStyle ? '' : styles.stackDescription || ''}>
 			<p>{stack.description}</p>
 			<p class={noStyle ? '' : styles.stackMeta || ''}>
@@ -137,5 +143,5 @@ const totalVendors = $derived(
 				/>
 			{/each}
 		</div>
-	</Collapsible.Content>
-</Collapsible.Root>
+	</PreferenceItem.Content>
+</PreferenceItem.Root>

@@ -30,10 +30,24 @@ const config: StorybookConfig = {
 						),
 					},
 					{
+						find: /^c15t$/,
+						replacement: path.resolve(
+							storybookDir,
+							'../../../packages/core/src/index.ts'
+						),
+					},
+					{
+						find: /^~\/(.+)$/,
+						replacement: path.resolve(
+							storybookDir,
+							'../../../packages/core/src/$1'
+						),
+					},
+					{
 						find: /^@c15t\/svelte$/,
 						replacement: path.resolve(
 							storybookDir,
-							'../../../packages/svelte/src/index.ts'
+							'../../../packages/svelte/src/lib/index.ts'
 						),
 					},
 					{
@@ -47,6 +61,10 @@ const config: StorybookConfig = {
 					{
 						find: /^@c15t\/ui\/primitives$/,
 						replacement: ui('primitives', 'index.ts'),
+					},
+					{
+						find: /^@c15t\/ui\/styles\/primitives\/(.+)\.module\.js$/,
+						replacement: ui('styles', 'primitives', '$1.module.css'),
 					},
 					{
 						find: /^@c15t\/ui\/styles\/primitives\/(.+)$/,

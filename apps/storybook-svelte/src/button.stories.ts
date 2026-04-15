@@ -9,7 +9,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Button',
+	title: 'PRIMITIVES - SVELTE/Button',
 } satisfies Meta<ButtonDemo>;
 
 export default meta;

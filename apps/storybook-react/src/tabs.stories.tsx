@@ -15,7 +15,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Tabs',
+	title: 'PRIMITIVES - REACT/Tabs',
 } satisfies Meta<typeof Tabs.Root>;
 
 export default meta;

@@ -56,5 +56,14 @@ export {
 	getTrackingContext,
 	type ThemeContextValue,
 } from './context.svelte';
+export {
+	Accordion,
+	Collapsible,
+	Dialog,
+	Portal,
+	PreferenceItem,
+	Switch,
+	Tabs,
+} from './primitives';
 // Types
 export type { ConsentManagerOptions } from './types';

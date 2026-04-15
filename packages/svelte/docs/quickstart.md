@@ -10,7 +10,13 @@ pnpm add @c15t/svelte
 
 ## Basic setup
 
-Wrap your app with `ConsentManagerProvider` and render the banner and dialog once near the root.
+Import the package stylesheet once in your global app CSS, then wrap your app with `ConsentManagerProvider` and render the banner and dialog once near the root.
+
+```css
+@import "@c15t/svelte/styles.css";
+```
+
+Then wire the provider and UI components near the root.
 
 ```svelte
 <script lang="ts">

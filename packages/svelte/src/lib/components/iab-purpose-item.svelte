@@ -1,10 +1,9 @@
 <script lang="ts">
-import { Collapsible } from '@ark-ui/svelte/collapsible';
-import { Switch } from '@ark-ui/svelte/switch';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { switchVariants } from '@c15t/ui/styles/primitives';
 import type { IABTranslations } from '../iab-translations';
 import type { ProcessedPurpose, VendorId } from '../iab-types';
+import { PreferenceItem, Switch } from '../primitives';
 import ChevronRightIcon from './icons/chevron-right-icon.svelte';
 import GlobeIcon from './icons/globe-icon.svelte';
 import LegitimateInterestIcon from './icons/legitimate-interest-icon.svelte';
@@ -99,31 +98,35 @@ function handlePurposeToggle(value: boolean) {
 }
 </script>
 
-<Collapsible.Root
-	bind:open={isExpanded}
+<PreferenceItem.Root
+	open={isExpanded}
+	onOpenChange={(details) => {
+		isExpanded = details.open;
+	}}
 	class={noStyle ? '' : styles.purposeItem || ''}
 	data-testid={`purpose-item-${purpose.id}`}
+	noStyle
 >
 	<div class={noStyle ? '' : styles.purposeHeader || ''}>
-		<Collapsible.Trigger class={noStyle ? '' : styles.purposeTrigger || ''}>
-			<Collapsible.Indicator class={noStyle ? '' : styles.purposeArrow || ''}>
+		<PreferenceItem.Trigger class={noStyle ? '' : styles.purposeTrigger || ''}>
+			<PreferenceItem.Leading class={noStyle ? '' : styles.purposeArrow || ''}>
 				<ChevronRightIcon aria-hidden={true} />
-			</Collapsible.Indicator>
-			<div class={noStyle ? '' : styles.purposeInfo || ''}>
-				<h3 class={noStyle ? '' : styles.purposeName || ''}>
+			</PreferenceItem.Leading>
+			<PreferenceItem.Header class={noStyle ? '' : styles.purposeInfo || ''}>
+				<PreferenceItem.Title class={noStyle ? '' : styles.purposeName || ''}>
 					{purpose.name}
 					{#if isLocked}
 						<LockIcon class={noStyle ? '' : styles.lockIcon || ''} aria-hidden={true} />
 					{/if}
-				</h3>
-				<p class={noStyle ? '' : styles.purposeMeta || ''}>
+				</PreferenceItem.Title>
+				<PreferenceItem.Meta class={noStyle ? '' : styles.purposeMeta || ''}>
 					{iabT.preferenceCenter.purposeItem.partners.replace(
 						'{count}',
 						String(purpose.vendors.length),
 					)}
-				</p>
+				</PreferenceItem.Meta>
 				{#if legIntVendors.length > 0}
-					<div class={noStyle ? '' : styles.legitimateInterestBadge || ''}>
+					<PreferenceItem.Auxiliary class={noStyle ? '' : styles.legitimateInterestBadge || ''}>
 						<LegitimateInterestIcon
 							class={noStyle ? '' : styles.legitimateInterestIcon || ''}
 							aria-hidden={true}
@@ -132,24 +135,28 @@ function handlePurposeToggle(value: boolean) {
 							'{count}',
 							String(legIntVendors.length),
 						)}
-					</div>
+					</PreferenceItem.Auxiliary>
 				{/if}
-			</div>
-		</Collapsible.Trigger>
-		<Switch.Root
-			checked={isEnabled}
-			onCheckedChange={(details) => handlePurposeToggle(details.checked)}
-			disabled={isLocked}
-			class={noStyle ? '' : sw.root()}
-		>
-			<Switch.Control class={noStyle ? '' : sw.track({ disabled: isLocked })}>
-				<Switch.Thumb class={noStyle ? '' : sw.thumb({ disabled: isLocked })} />
-			</Switch.Control>
-			<Switch.HiddenInput />
-		</Switch.Root>
+			</PreferenceItem.Header>
+		</PreferenceItem.Trigger>
+		<PreferenceItem.Control>
+			<Switch.Root
+				aria-label={purpose.name}
+				checked={isEnabled}
+				onCheckedChange={(details: { checked: boolean }) =>
+					handlePurposeToggle(details.checked)}
+				disabled={isLocked}
+				class={noStyle ? '' : sw.root()}
+			>
+				<Switch.Control class={noStyle ? '' : sw.track({ disabled: isLocked })}>
+					<Switch.Thumb class={noStyle ? '' : sw.thumb({ disabled: isLocked })} />
+				</Switch.Control>
+				<Switch.HiddenInput />
+			</Switch.Root>
+		</PreferenceItem.Control>
 	</div>
 
-	<Collapsible.Content class={noStyle ? '' : styles.purposeContent || ''}>
+	<PreferenceItem.Content class={noStyle ? '' : styles.purposeContent || ''}>
 		<p class={noStyle ? '' : styles.purposeDescription || ''}>
 			{purpose.description}
 		</p>
@@ -205,32 +212,44 @@ function handlePurposeToggle(value: boolean) {
 
 		<!-- Illustrations / Examples -->
 		{#if purpose.illustrations && purpose.illustrations.length > 0}
-			<Collapsible.Root bind:open={showExamples}>
-				<Collapsible.Trigger class={noStyle ? '' : styles.examplesToggle || ''}>
-					<Collapsible.Indicator>
+			<PreferenceItem.Root
+				open={showExamples}
+				onOpenChange={(details) => {
+					showExamples = details.open;
+				}}
+				noStyle
+			>
+				<PreferenceItem.Trigger class={noStyle ? '' : styles.examplesToggle || ''}>
+					<PreferenceItem.Leading>
 						<ChevronRightIcon width="12" height="12" aria-hidden={true} />
-					</Collapsible.Indicator>
+					</PreferenceItem.Leading>
 					{iabT.preferenceCenter.purposeItem.examples} ({purpose.illustrations.length})
-				</Collapsible.Trigger>
-				<Collapsible.Content>
+				</PreferenceItem.Trigger>
+				<PreferenceItem.Content>
 					<ul class={noStyle ? '' : styles.examplesList || ''}>
 						{#each purpose.illustrations as illustration (illustration)}
 							<li>{illustration}</li>
 						{/each}
 					</ul>
-				</Collapsible.Content>
-			</Collapsible.Root>
+				</PreferenceItem.Content>
+			</PreferenceItem.Root>
 		{/if}
 
 		<!-- Vendor list within purpose -->
-		<Collapsible.Root bind:open={showVendors}>
-			<Collapsible.Trigger class={noStyle ? '' : styles.vendorsToggle || ''}>
-				<Collapsible.Indicator>
+		<PreferenceItem.Root
+			open={showVendors}
+			onOpenChange={(details) => {
+				showVendors = details.open;
+			}}
+			noStyle
+		>
+			<PreferenceItem.Trigger class={noStyle ? '' : styles.vendorsToggle || ''}>
+				<PreferenceItem.Leading>
 					<ChevronRightIcon width="12" height="12" aria-hidden={true} />
-				</Collapsible.Indicator>
+				</PreferenceItem.Leading>
 				{iabT.preferenceCenter.purposeItem.partnersUsingPurpose} ({purpose.vendors.length})
-			</Collapsible.Trigger>
-			<Collapsible.Content>
+			</PreferenceItem.Trigger>
+			<PreferenceItem.Content>
 				<div class={noStyle ? '' : styles.vendorSection || ''}>
 					<!-- IAB Consent Vendors -->
 					{#if iabConsentVendors.length > 0}
@@ -263,7 +282,8 @@ function handlePurposeToggle(value: boolean) {
 								</div>
 								<Switch.Root
 									checked={isConsented}
-									onCheckedChange={(details) => onVendorToggle(vendor.id, details.checked)}
+									onCheckedChange={(details: { checked: boolean }) =>
+										onVendorToggle(vendor.id, details.checked)}
 									class={noStyle ? '' : swSmall.root()}
 								>
 									<Switch.Control class={noStyle ? '' : swSmall.track()}>
@@ -335,7 +355,8 @@ function handlePurposeToggle(value: boolean) {
 								{:else}
 									<Switch.Root
 										checked={isConsented}
-										onCheckedChange={(details) => onVendorToggle(vendor.id, details.checked)}
+										onCheckedChange={(details: { checked: boolean }) =>
+											onVendorToggle(vendor.id, details.checked)}
 										class={noStyle ? '' : swSmall.root()}
 									>
 										<Switch.Control class={noStyle ? '' : swSmall.track()}>
@@ -377,7 +398,8 @@ function handlePurposeToggle(value: boolean) {
 									</div>
 									<Switch.Root
 										checked={isConsented}
-										onCheckedChange={(details) => onVendorToggle(vendor.id, details.checked)}
+										onCheckedChange={(details: { checked: boolean }) =>
+											onVendorToggle(vendor.id, details.checked)}
 										class={noStyle ? '' : swSmall.root()}
 									>
 										<Switch.Control class={noStyle ? '' : swSmall.track()}>
@@ -421,7 +443,8 @@ function handlePurposeToggle(value: boolean) {
 									{:else}
 										<Switch.Root
 											checked={isConsented}
-											onCheckedChange={(details) => onVendorToggle(vendor.id, details.checked)}
+											onCheckedChange={(details: { checked: boolean }) =>
+												onVendorToggle(vendor.id, details.checked)}
 											class={noStyle ? '' : swSmall.root()}
 										>
 											<Switch.Control class={noStyle ? '' : swSmall.track()}>
@@ -435,7 +458,7 @@ function handlePurposeToggle(value: boolean) {
 						</div>
 					{/if}
 				</div>
-			</Collapsible.Content>
-		</Collapsible.Root>
-	</Collapsible.Content>
-</Collapsible.Root>
+			</PreferenceItem.Content>
+		</PreferenceItem.Root>
+	</PreferenceItem.Content>
+</PreferenceItem.Root>

@@ -13,7 +13,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Collapsible',
+	title: 'PRIMITIVES - SVELTE/Collapsible',
 } satisfies Meta<CollapsibleDemo>;
 
 export default meta;

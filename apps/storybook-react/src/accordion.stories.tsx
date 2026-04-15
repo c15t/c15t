@@ -12,7 +12,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Accordion',
+	title: 'PRIMITIVES - REACT/Accordion',
 } satisfies Meta<typeof Accordion.Root>;
 
 export default meta;

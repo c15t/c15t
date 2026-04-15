@@ -1,0 +1,11 @@
+/**
+ * @c15t/svelte — IAB TCF component styles.
+ *
+ * Import this stylesheet in addition to `@c15t/svelte/styles.css`
+ * when using the prebuilt IAB consent UI.
+ *
+ * Usage (src/app.css):
+ *   @import "@c15t/svelte/styles.css";
+ *   @import "@c15t/svelte/iab/styles.css";
+ */
+@import "@c15t/ui/iab/styles.css";

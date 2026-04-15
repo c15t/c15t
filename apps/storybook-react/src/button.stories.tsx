@@ -27,7 +27,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Button',
+	title: 'PRIMITIVES - REACT/Button',
 } satisfies Meta<typeof Button.Root>;
 
 export default meta;

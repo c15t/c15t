@@ -45,7 +45,7 @@ const meta = {
 			</label>
 		</div>
 	),
-	title: 'Primitives/Switch',
+	title: 'PRIMITIVES - REACT/Switch',
 } satisfies Meta<typeof Switch.Root>;
 
 export default meta;
