@@ -12,7 +12,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Collapsible',
+	title: 'PRIMITIVES - REACT/Collapsible',
 } satisfies Meta<typeof Collapsible.Root>;
 
 export default meta;

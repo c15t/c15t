@@ -1,14 +1,11 @@
 <script lang="ts">
-import { Collapsible } from '@ark-ui/svelte/collapsible';
-import { Dialog } from '@ark-ui/svelte/dialog';
-import { Portal } from '@ark-ui/svelte/portal';
-import { Tabs } from '@ark-ui/svelte/tabs';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { getTextDirection } from '@c15t/ui/utils';
 import type { Model } from 'c15t';
 import { getConsentContext, getThemeContext } from '../context.svelte';
 import { getIABTranslations } from '../iab-translations';
 import { processGVLData, type VendorId } from '../iab-types';
+import { Collapsible, Dialog, Portal, Tabs } from '../primitives';
 import Branding from './branding.svelte';
 import IABPurposeItem from './iab-purpose-item.svelte';
 import IABStackItem from './iab-stack-item.svelte';
@@ -170,11 +167,15 @@ function handleVendorClick(vendorId: VendorId) {
 			data-testid="consent-dialog-overlay"
 		/>
 		<Dialog.Positioner
-			class={noStyle ? '' : styles.root || ''}
+			class={noStyle
+				? ''
+				: `${styles.root || ''} ${isOpen ? styles.dialogVisible || '' : styles.dialogHidden || ''}`}
 			data-testid="iab-consent-dialog-root"
 		>
 			<Dialog.Content
-				class={noStyle ? className || '' : `${styles.card || ''} ${className || ''}`}
+				class={noStyle
+					? className || ''
+					: `${styles.card || ''} ${className || ''} ${isOpen ? styles.contentVisible || '' : styles.contentHidden || ''}`}
 				dir={textDirection}
 				data-testid="iab-consent-dialog-card"
 			>
@@ -193,32 +194,38 @@ function handleVendorClick(vendorId: VendorId) {
 					</Dialog.CloseTrigger>
 				</div>
 
-				<!-- Tabs -->
 				<Tabs.Root
 					value={activeTab}
 					onValueChange={handleTabChange}
-					class={noStyle ? '' : styles.tabsContainer || ''}
+					class={noStyle ? '' : styles.body || ''}
 				>
-					<Tabs.List class={noStyle ? '' : styles.tabsList || ''}>
-						<Tabs.Trigger value="purposes" class={noStyle ? '' : styles.tabButton || ''}>
-							{iabT.preferenceCenter.tabs.purposes}
-							{#if !isLoading && gvlData}
-								({gvlData.purposes.length +
-									gvlData.specialPurposes.length +
-									gvlData.specialFeatures.length +
-									gvlData.features.length})
-							{/if}
-						</Tabs.Trigger>
-						<Tabs.Trigger value="vendors" class={noStyle ? '' : styles.tabButton || ''}>
-							{iabT.preferenceCenter.tabs.vendors}
-							{#if !isLoading}
-								({totalVendors})
-							{/if}
-						</Tabs.Trigger>
-					</Tabs.List>
+					<div class={noStyle ? '' : styles.tabsContainer || ''}>
+						<Tabs.List class={noStyle ? '' : styles.tabsList || ''}>
+							<Tabs.Trigger value="purposes" class={noStyle ? '' : styles.tabButton || ''}>
+								{iabT.preferenceCenter.tabs.purposes}
+								{#if !isLoading && gvlData}
+									({gvlData.purposes.length +
+										gvlData.specialPurposes.length +
+										gvlData.specialFeatures.length +
+										gvlData.features.length})
+								{/if}
+							</Tabs.Trigger>
+							<Tabs.Trigger value="vendors" class={noStyle ? '' : styles.tabButton || ''}>
+								{iabT.preferenceCenter.tabs.vendors}
+								{#if !isLoading}
+									({totalVendors})
+								{/if}
+							</Tabs.Trigger>
+							<div
+								aria-hidden="true"
+								class={noStyle ? '' : styles.tabIndicator || ''}
+								data-active-tab={activeTab}
+							></div>
+						</Tabs.List>
+					</div>
 
-					<!-- Purposes Tab Content -->
-					<Tabs.Content value="purposes" class={noStyle ? '' : styles.content || ''}>
+					<div class={noStyle ? '' : styles.content || ''}>
+						<Tabs.Content value="purposes" forceMount class={noStyle ? '' : styles.tabPanel || ''}>
 						{#if isLoading}
 							<div class={noStyle ? '' : styles.loadingContainer || ''}>
 								<div class={noStyle ? '' : styles.loadingSpinner || ''}></div>
@@ -288,7 +295,10 @@ function handleVendorClick(vendorId: VendorId) {
 							<!-- Essential Functions: Special Purposes + Features (locked) -->
 							{#if gvlData.specialPurposes.length > 0 || gvlData.features.length > 0}
 								<Collapsible.Root
-									bind:open={specialPurposesExpanded}
+									open={specialPurposesExpanded}
+									onOpenChange={(details) => {
+										specialPurposesExpanded = details.open;
+									}}
 									class={noStyle ? '' : styles.specialPurposesSection || ''}
 								>
 									<div class={noStyle ? '' : styles.specialPurposesHeader || ''}>
@@ -319,7 +329,7 @@ function handleVendorClick(vendorId: VendorId) {
 									</div>
 
 									<Collapsible.Content>
-										<div class={noStyle ? '' : styles.specialPurposesContent || ''}>
+										<div>
 											<!-- Special Purposes -->
 											{#each gvlData.specialPurposes as purpose (purpose.id)}
 												<IABPurposeItem
@@ -367,10 +377,9 @@ function handleVendorClick(vendorId: VendorId) {
 								</p>
 							</div>
 						{/if}
-					</Tabs.Content>
+						</Tabs.Content>
 
-					<!-- Vendors Tab Content -->
-					<Tabs.Content value="vendors" class={noStyle ? '' : styles.content || ''}>
+						<Tabs.Content value="vendors" forceMount class={noStyle ? '' : styles.tabPanel || ''}>
 						{#if iabState}
 							<IABVendorList
 								vendorData={iabState.gvl}
@@ -386,7 +395,8 @@ function handleVendorClick(vendorId: VendorId) {
 								{iabT}
 							/>
 						{/if}
-					</Tabs.Content>
+						</Tabs.Content>
+					</div>
 				</Tabs.Root>
 
 				<!-- Footer -->
@@ -421,15 +431,13 @@ function handleVendorClick(vendorId: VendorId) {
 						{iabT.common.saveSettings}
 					</button>
 				</div>
-
-				<!-- Branding -->
-				<div class={noStyle ? '' : styles.branding || ''}>
-					<Branding
-						{hideBranding}
-						{noStyle}
-						iconClass={{ consent: styles.brandingConsent || '', c15t: styles.brandingC15T || '' }}
-					/>
-				</div>
+				<Branding
+					{hideBranding}
+					{noStyle}
+					variant="dialog-tag"
+					themeKey="iabConsentDialogTag"
+					data-testid="iab-consent-dialog-branding"
+				/>
 			</Dialog.Content>
 		</Dialog.Positioner>
 	</Portal>

@@ -3,11 +3,13 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"storybook": "portless run --name storybook-svelte sh -c 'storybook dev --port \"$PORT\" --host \"$HOST\"'",
-		"build": "storybook build",
+		"prestorybook": "bun --cwd ../../packages/core prebuild && bun --cwd ../../packages/svelte prebuild && bun --cwd ../../packages/iab prebuild",
+		"storybook": "bun run prestorybook && portless run --name storybook-svelte sh -c 'storybook dev --port \"$PORT\" --host \"$HOST\"'",
+		"build": "bun run prestorybook && storybook build",
 		"test-storybook": "test-storybook --url ${STORYBOOK_URL:-http://127.0.0.1:6006}"
 	},
 	"dependencies": {
+		"c15t": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"@c15t/svelte": "workspace:*",
 		"@c15t/storybook-tests": "workspace:*",

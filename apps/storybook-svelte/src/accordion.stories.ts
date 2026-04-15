@@ -15,7 +15,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Accordion',
+	title: 'PRIMITIVES - SVELTE/Accordion',
 } satisfies Meta<AccordionSingleDemo>;
 
 export default meta;

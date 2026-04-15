@@ -15,7 +15,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Components/Core/Consent Dialog Link',
+	title: 'COMPONENTS - REACT/Core/Consent Dialog Link',
 } satisfies Meta<typeof ConsentDialogLink>;
 
 export default meta;

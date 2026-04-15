@@ -12,7 +12,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Components/Core/Consent Widget',
+	title: 'COMPONENTS - REACT/Core/Consent Widget',
 } satisfies Meta<typeof ConsentWidget>;
 
 export default meta;

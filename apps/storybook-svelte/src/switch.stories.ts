@@ -15,7 +15,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Switch',
+	title: 'PRIMITIVES - SVELTE/Switch',
 } satisfies Meta<SwitchDemo>;
 
 export default meta;

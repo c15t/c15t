@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tabsVariants, getNextTabValue } from '@c15t/svelte';
+	import { getNextTabValue, tabsVariants } from '@c15t/svelte';
 
 	let activeTab = $state('vendors');
 	const classes = tabsVariants();

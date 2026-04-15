@@ -1,6 +1,4 @@
 <script lang="ts">
-import { Collapsible } from '@ark-ui/svelte/collapsible';
-import { Switch } from '@ark-ui/svelte/switch';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { switchVariants } from '@c15t/ui/styles/primitives';
 import type { GlobalVendorList } from 'c15t';
@@ -13,6 +11,7 @@ import type {
 	ProcessedVendor,
 	VendorId,
 } from '../iab-types';
+import { PreferenceItem, Switch } from '../primitives';
 import ChevronDownIcon from './icons/chevron-down-icon.svelte';
 import CloseIcon from './icons/close-icon.svelte';
 import ExternalLinkIcon from './icons/external-link-icon.svelte';
@@ -300,16 +299,17 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 					{@const standardRetentionDays = vendor.dataRetention?.stdRetention}
 					{@const maxAgeText = getMaxAgeText(vendor)}
 
-					<Collapsible.Root
+					<PreferenceItem.Root
 						open={expandedVendors.has(vendor.id)}
 						onOpenChange={(details) => handleVendorOpenChange(vendor.id, details.open)}
 						id={`vendor-${vendorKey}`}
 						class={noStyle
 							? ''
 							: `${styles.vendorListItem || ''} ${vendor.isCustom ? styles.customVendorItem || '' : ''}`}
+						noStyle
 					>
 						<div class={noStyle ? '' : styles.vendorListItemHeader || ''}>
-							<Collapsible.Trigger class={noStyle ? '' : styles.vendorListTrigger || ''}>
+							<PreferenceItem.Trigger class={noStyle ? '' : styles.vendorListTrigger || ''}>
 								<div class={noStyle ? '' : styles.vendorListInfo || ''}>
 									<h3 class={noStyle ? '' : styles.vendorListName || ''}>
 										{vendor.name}
@@ -332,23 +332,29 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 										{/if}
 									</div>
 								</div>
-								<Collapsible.Indicator class={noStyle ? '' : styles.purposeArrow || ''}>
+								<div class={noStyle ? '' : styles.purposeArrow || ''} aria-hidden={true}>
 									<ChevronDownIcon aria-hidden={true} />
-								</Collapsible.Indicator>
-							</Collapsible.Trigger>
-							<Switch.Root
-								checked={vendorConsents[vendorKey] ?? false}
-								onCheckedChange={(details) => onVendorToggle(vendor.id, details.checked)}
-								class={noStyle ? '' : sw.root()}
-							>
-								<Switch.Control class={noStyle ? '' : sw.track()}>
-									<Switch.Thumb class={noStyle ? '' : sw.thumb()} />
-								</Switch.Control>
-								<Switch.HiddenInput />
-							</Switch.Root>
+								</div>
+							</PreferenceItem.Trigger>
+							<div class={noStyle ? '' : styles.vendorConsentControl || ''}>
+								<Switch.Root
+									aria-label={`Consent for ${vendor.name}`}
+									checked={vendorConsents[vendorKey] ?? false}
+									onCheckedChange={(details: { checked: boolean }) =>
+										onVendorToggle(vendor.id, details.checked)}
+									class={noStyle ? '' : styles.vendorConsentSwitch || ''}
+								>
+									<Switch.Control class={noStyle ? '' : sw.track()}>
+										<Switch.Thumb class={noStyle ? '' : sw.thumb()} />
+									</Switch.Control>
+									<Switch.HiddenInput />
+								</Switch.Root>
+							</div>
 						</div>
 
-						<Collapsible.Content class={noStyle ? '' : styles.vendorListContent || ''}>
+						<PreferenceItem.Content
+							innerClassName={noStyle ? '' : styles.vendorListContent || ''}
+						>
 							<!-- Links -->
 							<div class={noStyle ? '' : styles.vendorLinks || ''}>
 								<a
@@ -569,8 +575,8 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 									</ul>
 								</div>
 							{/if}
-						</Collapsible.Content>
-					</Collapsible.Root>
+						</PreferenceItem.Content>
+					</PreferenceItem.Root>
 				{/each}
 			</div>
 		</div>
@@ -598,14 +604,15 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 					{@const isLegitimateInterestAllowed = vendorLegitimateInterests[vendorKey] ?? true}
 					{@const maxAgeText = getMaxAgeText(vendor)}
 
-					<Collapsible.Root
+					<PreferenceItem.Root
 						open={expandedVendors.has(vendor.id)}
 						onOpenChange={(details) => handleVendorOpenChange(vendor.id, details.open)}
 						id={`vendor-${vendorKey}`}
 						class={noStyle ? '' : `${styles.vendorListItem || ''} ${styles.customVendorItem || ''}`}
+						noStyle
 					>
 						<div class={noStyle ? '' : styles.vendorListItemHeader || ''}>
-							<Collapsible.Trigger class={noStyle ? '' : styles.vendorListTrigger || ''}>
+							<PreferenceItem.Trigger class={noStyle ? '' : styles.vendorListTrigger || ''}>
 								<div class={noStyle ? '' : styles.vendorListInfo || ''}>
 									<h3 class={noStyle ? '' : styles.vendorListName || ''}>
 										{vendor.name}
@@ -615,23 +622,29 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 										/>
 									</h3>
 								</div>
-								<Collapsible.Indicator class={noStyle ? '' : styles.purposeArrow || ''}>
+								<div class={noStyle ? '' : styles.purposeArrow || ''} aria-hidden={true}>
 									<ChevronDownIcon aria-hidden={true} />
-								</Collapsible.Indicator>
-							</Collapsible.Trigger>
-							<Switch.Root
-								checked={vendorConsents[vendorKey] ?? false}
-								onCheckedChange={(details) => onVendorToggle(vendor.id, details.checked)}
-								class={noStyle ? '' : sw.root()}
-							>
-								<Switch.Control class={noStyle ? '' : sw.track()}>
-									<Switch.Thumb class={noStyle ? '' : sw.thumb()} />
-								</Switch.Control>
-								<Switch.HiddenInput />
-							</Switch.Root>
+								</div>
+							</PreferenceItem.Trigger>
+							<div class={noStyle ? '' : styles.vendorConsentControl || ''}>
+								<Switch.Root
+									aria-label={`Consent for ${vendor.name}`}
+									checked={vendorConsents[vendorKey] ?? false}
+									onCheckedChange={(details: { checked: boolean }) =>
+										onVendorToggle(vendor.id, details.checked)}
+									class={noStyle ? '' : styles.vendorConsentSwitch || ''}
+								>
+									<Switch.Control class={noStyle ? '' : sw.track()}>
+										<Switch.Thumb class={noStyle ? '' : sw.thumb()} />
+									</Switch.Control>
+									<Switch.HiddenInput />
+								</Switch.Root>
+							</div>
 						</div>
 
-						<Collapsible.Content class={noStyle ? '' : styles.vendorListContent || ''}>
+						<PreferenceItem.Content
+							innerClassName={noStyle ? '' : styles.vendorListContent || ''}
+						>
 							<div class={noStyle ? '' : styles.vendorLinks || ''}>
 								<a
 									href={vendor.policyUrl}
@@ -729,8 +742,8 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 									</ul>
 								</div>
 							{/if}
-						</Collapsible.Content>
-					</Collapsible.Root>
+						</PreferenceItem.Content>
+					</PreferenceItem.Root>
 				{/each}
 			</div>
 		</div>

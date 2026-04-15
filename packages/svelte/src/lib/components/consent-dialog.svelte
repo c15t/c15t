@@ -1,6 +1,4 @@
 <script lang="ts">
-import { Dialog } from '@ark-ui/svelte/dialog';
-import { Portal } from '@ark-ui/svelte/portal';
 import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 import type { LegalLinks as LegalLinksType, Model } from 'c15t';
@@ -10,6 +8,7 @@ import {
 	getThemeContext,
 	setTrackingContext,
 } from '../context.svelte';
+import { Dialog, Portal } from '../primitives';
 import { resolveComponentStyles } from '../utils';
 import Branding from './branding.svelte';
 import ConsentDialogTrigger from './consent-dialog-trigger.svelte';
@@ -124,15 +123,6 @@ const contentStyle = $derived(
 	)
 );
 
-const footerStyle = $derived(
-	resolveComponentStyles(
-		'consentDialogFooter',
-		theme.theme,
-		{ baseClassName: styles.footer, noStyle },
-		noStyle
-	)
-);
-
 // Trigger props
 const triggerProps = $derived.by(() => {
 	if (showTrigger === true) return {};
@@ -174,24 +164,31 @@ function handleOpenChange(details: { open: boolean }) {
 					? rootStyle.className || ''
 					: `${styles.container || ''} ${rootStyle.className || ''} ${!disableAnimation ? (isOpen ? styles.contentVisible || '' : styles.contentHidden || '') : ''}`}
 				dir={textDirection}
-				data-testid="consent-dialog-card"
 			>
 				<!-- Card -->
-				<div class={noStyle ? '' : cardStyle.className || ''}>
+				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+				<div
+					class={noStyle ? '' : cardStyle.className || ''}
+					data-testid="consent-dialog-card"
+					data-c15t-dialog-focus="true"
+					tabindex={-1}
+				>
 					<!-- Header -->
 					<div
 						class={noStyle ? '' : headerStyle.className || ''}
 						data-testid="consent-dialog-header"
 					>
-						<Dialog.Title
+						<div
 							class={noStyle ? '' : titleStyle.className || ''}
 							data-testid="consent-dialog-title"
+							id="consent-dialog-title"
 						>
 							{translations.consentManagerDialog.title}
-						</Dialog.Title>
-						<Dialog.Description
+						</div>
+						<div
 							class={noStyle ? '' : descriptionStyle.className || ''}
 							data-testid="consent-dialog-description"
+							id="consent-dialog-description"
 						>
 							{translations.consentManagerDialog.description}
 							<InlineLegalLinks
@@ -199,7 +196,7 @@ function handleOpenChange(details: { open: boolean }) {
 								themeKey="consentDialogContent"
 								testIdPrefix="consent-dialog-legal-link"
 							/>
-						</Dialog.Description>
+						</div>
 					</div>
 
 					<!-- Content: ConsentWidget -->
@@ -209,19 +206,13 @@ function handleOpenChange(details: { open: boolean }) {
 					>
 						<ConsentWidget hideBranding {noStyle} />
 					</div>
-
-					<!-- Footer with branding -->
-					<div
-						class={noStyle ? '' : footerStyle.className || ''}
-						data-testid="consent-dialog-footer"
-					>
-						<Branding
-							{hideBranding}
-							{noStyle}
-							class={styles.branding || ''}
-							iconClass={{ consent: styles.brandingConsent || '', c15t: styles.brandingC15T || '' }}
-						/>
-					</div>
+					<Branding
+						{hideBranding}
+						{noStyle}
+						variant="dialog-tag"
+						themeKey="consentDialogTag"
+						data-testid="consent-dialog-branding"
+					/>
 				</div>
 			</Dialog.Content>
 		</Dialog.Positioner>

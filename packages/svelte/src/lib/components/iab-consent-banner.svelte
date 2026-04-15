@@ -14,6 +14,7 @@ import { getIABTranslations } from '../iab-translations';
 import { getIABBannerDisplayItems } from '../iab-types';
 import { useBannerVisibility } from '../use-banner-visibility.svelte';
 import { resolveComponentStyles } from '../utils';
+import Branding from './branding.svelte';
 import Overlay from './overlay.svelte';
 
 let {
@@ -21,6 +22,7 @@ let {
 	disableAnimation: localDisableAnimation,
 	scrollLock: localScrollLock = true,
 	trapFocus: localTrapFocus = true,
+	hideBranding = false,
 	primaryButton = 'customize' as 'reject' | 'accept' | 'customize',
 	models = ['iab'] as Model[],
 	uiSource = 'iab_banner',
@@ -30,6 +32,7 @@ let {
 	disableAnimation?: boolean;
 	scrollLock?: boolean;
 	trapFocus?: boolean;
+	hideBranding?: boolean;
 	primaryButton?: 'reject' | 'accept' | 'customize';
 	models?: Model[];
 	uiSource?: string;
@@ -163,76 +166,85 @@ const descriptionParts = $derived(descriptionText.split(partnersLinkText));
 			use:focusTrap={shouldTrapFocus}
 			use:scrollLock={shouldScrollLock}
 		>
-			<div
-				class={noStyle ? '' : styles.card}
-				data-testid="iab-consent-banner-card"
-				role={shouldTrapFocus ? 'dialog' : undefined}
-				aria-modal={shouldTrapFocus ? 'true' : undefined}
-				aria-label={iabT.banner.title}
-			>
-				<!-- Header -->
-				<div class={noStyle ? '' : styles.header} data-testid="iab-consent-banner-header">
-					<h2 class={noStyle ? '' : styles.title}>{iabT.banner.title}</h2>
-					<p class={noStyle ? '' : styles.description}>
-						{descriptionParts[0]}<button
-							type="button"
-							class={noStyle ? '' : styles.partnersLink}
-							onclick={handleViewVendors}
-						>
-							{partnersLinkText}
-						</button>{descriptionParts[1] ?? ''}
-					</p>
-					<ul class={noStyle ? '' : styles.purposeList}>
-						{#each displayItems.displayed as name (name)}
-							<li>{name}</li>
-						{/each}
-						{#if displayItems.remainingCount > 0}
-							<li class={noStyle ? '' : styles.purposeMore}>
-								{iabT.banner.andMore.replace('{count}', String(displayItems.remainingCount))}
-							</li>
-						{/if}
-					</ul>
-					<p class={noStyle ? '' : styles.legitimateInterestNotice}>
-						{iabT.banner.legitimateInterestNotice}
-						{scopeNotice}
-					</p>
-				</div>
+			<div class={noStyle ? '' : styles.cardShell || ''}>
+				<Branding
+					{hideBranding}
+					{noStyle}
+					variant="banner-tag"
+					themeKey="iabConsentBannerTag"
+					data-testid="iab-consent-banner-branding"
+				/>
+				<div
+					class={noStyle ? '' : styles.card}
+					data-testid="iab-consent-banner-card"
+					role={shouldTrapFocus ? 'dialog' : undefined}
+					aria-modal={shouldTrapFocus ? 'true' : undefined}
+					aria-label={iabT.banner.title}
+				>
+					<!-- Header -->
+					<div class={noStyle ? '' : styles.header} data-testid="iab-consent-banner-header">
+						<h2 class={noStyle ? '' : styles.title}>{iabT.banner.title}</h2>
+						<p class={noStyle ? '' : styles.description}>
+							{descriptionParts[0]}<button
+								type="button"
+								class={noStyle ? '' : styles.partnersLink}
+								onclick={handleViewVendors}
+							>
+								{partnersLinkText}
+							</button>{descriptionParts[1] ?? ''}
+						</p>
+						<ul class={noStyle ? '' : styles.purposeList}>
+							{#each displayItems.displayed as name (name)}
+								<li>{name}</li>
+							{/each}
+							{#if displayItems.remainingCount > 0}
+								<li class={noStyle ? '' : styles.purposeMore}>
+									{iabT.banner.andMore.replace('{count}', String(displayItems.remainingCount))}
+								</li>
+							{/if}
+						</ul>
+						<p class={noStyle ? '' : styles.legitimateInterestNotice}>
+							{iabT.banner.legitimateInterestNotice}
+							{scopeNotice}
+						</p>
+					</div>
 
-				<!-- Footer with buttons -->
-				<div class={noStyle ? '' : styles.footer} data-testid="iab-consent-banner-footer">
-					<div class={noStyle ? '' : styles.footerButtonGroup}>
+					<!-- Footer with buttons -->
+					<div class={noStyle ? '' : styles.footer} data-testid="iab-consent-banner-footer">
+						<div class={noStyle ? '' : styles.footerButtonGroup}>
+							<button
+								type="button"
+								class={noStyle
+									? ''
+									: `${styles.rejectButton || ''} ${isPrimary('reject') ? styles.primaryButton || '' : ''}`}
+								onclick={handleRejectAll}
+								data-testid="iab-consent-banner-reject-button"
+							>
+								{iabT.common.rejectAll}
+							</button>
+							<button
+								type="button"
+								class={noStyle
+									? ''
+									: `${styles.acceptButton || ''} ${isPrimary('accept') ? styles.primaryButton || '' : ''}`}
+								onclick={handleAcceptAll}
+								data-testid="iab-consent-banner-accept-button"
+							>
+								{iabT.common.acceptAll}
+							</button>
+						</div>
+						<div class={noStyle ? '' : styles.footerSpacer}></div>
 						<button
 							type="button"
 							class={noStyle
 								? ''
-								: `${styles.rejectButton || ''} ${isPrimary('reject') ? styles.primaryButton || '' : ''}`}
-							onclick={handleRejectAll}
-							data-testid="iab-consent-banner-reject-button"
+								: `${styles.customizeButton || ''} ${isPrimary('customize') ? styles.primaryButton || '' : ''}`}
+							onclick={handleCustomize}
+							data-testid="iab-consent-banner-customize-button"
 						>
-							{iabT.common.rejectAll}
-						</button>
-						<button
-							type="button"
-							class={noStyle
-								? ''
-								: `${styles.acceptButton || ''} ${isPrimary('accept') ? styles.primaryButton || '' : ''}`}
-							onclick={handleAcceptAll}
-							data-testid="iab-consent-banner-accept-button"
-						>
-							{iabT.common.acceptAll}
+							{iabT.common.customize}
 						</button>
 					</div>
-					<div class={noStyle ? '' : styles.footerSpacer}></div>
-					<button
-						type="button"
-						class={noStyle
-							? ''
-							: `${styles.customizeButton || ''} ${isPrimary('customize') ? styles.primaryButton || '' : ''}`}
-						onclick={handleCustomize}
-						data-testid="iab-consent-banner-customize-button"
-					>
-						{iabT.common.customize}
-					</button>
 				</div>
 			</div>
 		</div>

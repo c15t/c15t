@@ -10,7 +10,7 @@ const meta = {
 	parameters: {
 		layout: 'fullscreen',
 	},
-	title: 'Primitives/Dialog',
+	title: 'PRIMITIVES - REACT/Dialog',
 } satisfies Meta<typeof Dialog.Root>;
 
 export default meta;

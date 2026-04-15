@@ -1,6 +1,15 @@
 <script lang="ts">
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
-import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
+import {
+	getTextDirection,
+	resolvePolicyActionGroups,
+	resolvePolicyAllowedActions,
+	resolvePolicyDirection,
+	resolvePolicyOrderedActions,
+	resolvePolicyPrimaryActions,
+	resolveTranslations,
+	shouldFillPolicyActions,
+} from '@c15t/ui/utils';
 import type { LegalLinks as LegalLinksType, Model } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
 import { focusTrap } from '../actions/focus-trap';
@@ -19,9 +28,11 @@ import {
 } from '../context.svelte';
 import { useBannerVisibility } from '../use-banner-visibility.svelte';
 import { resolveComponentStyles } from '../utils';
+import Branding from './branding.svelte';
 import ConsentButton from './consent-button.svelte';
 import InlineLegalLinks from './inline-legal-links.svelte';
 import Overlay from './overlay.svelte';
+import PolicyActionsRenderer from './policy-actions-renderer.svelte';
 
 /**
  * Button identifiers for the consent banner layout.
@@ -41,6 +52,7 @@ let {
 	rejectButtonText,
 	customizeButtonText,
 	acceptButtonText,
+	hideBranding = false,
 	legalLinks,
 	layout = DEFAULT_LAYOUT,
 	primaryButton = 'customize',
@@ -57,6 +69,7 @@ let {
 	rejectButtonText?: string;
 	customizeButtonText?: string;
 	acceptButtonText?: string;
+	hideBranding?: boolean;
 	legalLinks?: (keyof LegalLinksType)[] | null;
 	layout?: ConsentBannerLayout;
 	primaryButton?: ConsentBannerButton | ConsentBannerButton[];
@@ -176,11 +189,59 @@ const finalClassName = $derived(
 );
 
 // Button helpers
-function isPrimary(type: ConsentBannerButton): boolean {
-	return Array.isArray(primaryButton)
-		? primaryButton.includes(type)
-		: type === primaryButton;
-}
+const allowedActions = $derived(
+	resolvePolicyAllowedActions({
+		allowedActions: consent.state.policyBanner.allowedActions,
+	})
+);
+
+const resolvedLayout = $derived(
+	layout ??
+		((consent.state.policyBanner.layout?.length ?? 0) > 0
+			? consent.state.policyBanner.layout
+			: DEFAULT_LAYOUT)
+);
+
+const orderedActions = $derived(
+	resolvePolicyOrderedActions({
+		allowedActions,
+		layout: resolvedLayout,
+	})
+);
+
+const actionGroups = $derived(
+	resolvePolicyActionGroups({
+		allowedActions,
+		layout: resolvedLayout,
+	})
+);
+
+const direction = $derived(
+	resolvePolicyDirection(consent.state.policyBanner.direction)
+);
+
+const effectivePrimaryActions = $derived.by(() => {
+	if ((consent.state.policyBanner.primaryActions?.length ?? 0) > 0) {
+		return consent.state.policyBanner.primaryActions ?? [];
+	}
+
+	return Array.isArray(primaryButton) ? primaryButton : [primaryButton];
+});
+
+const primaryActions = $derived(
+	resolvePolicyPrimaryActions({
+		orderedActions,
+		primaryActions: effectivePrimaryActions,
+	})
+);
+
+const shouldFillActions = $derived(
+	shouldFillPolicyActions({
+		uiProfile: consent.state.policyBanner.uiProfile,
+		actionGroups,
+		direction,
+	})
+);
 
 // Resolved texts
 const resolvedTitle = $derived(title ?? translations.cookieBanner.title);
@@ -206,77 +267,90 @@ const resolvedCustomizeText = $derived(
 			class={finalClassName}
 			dir={textDirection}
 			data-testid="consent-banner-root"
-			use:focusTrap={shouldTrapFocus}
 			use:scrollLock={shouldScrollLock}
 		>
-			<div
-				class={noStyle ? '' : cardStyle.className || ''}
-				data-testid="consent-banner-card"
-				role={shouldTrapFocus ? 'dialog' : undefined}
-				aria-modal={shouldTrapFocus ? 'true' : undefined}
-				aria-label={resolvedTitle}
-			>
-				<div class={noStyle ? '' : headerStyle.className || ''} data-testid="consent-banner-header">
-					<div class={noStyle ? '' : titleStyle.className || ''} data-testid="consent-banner-title">
-						{resolvedTitle}
+			<div class={noStyle ? '' : styles.cardShell || ''}>
+				<Branding
+					{hideBranding}
+					{noStyle}
+					variant="banner-tag"
+					themeKey="consentBannerTag"
+					data-testid="consent-banner-branding"
+				/>
+				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+				<div
+					class={noStyle ? '' : cardStyle.className || ''}
+					data-testid="consent-banner-card"
+					tabindex={shouldTrapFocus ? -1 : undefined}
+					role={shouldTrapFocus ? 'dialog' : undefined}
+					aria-modal={shouldTrapFocus ? 'true' : undefined}
+					aria-label={resolvedTitle}
+					use:focusTrap={shouldTrapFocus}
+				>
+					<div class={noStyle ? '' : headerStyle.className || ''} data-testid="consent-banner-header">
+						<div class={noStyle ? '' : titleStyle.className || ''} data-testid="consent-banner-title">
+							{resolvedTitle}
+						</div>
+						<div
+							class={noStyle ? '' : descriptionStyle.className || ''}
+							data-testid="consent-banner-description"
+						>
+							{resolvedDescription}
+							<InlineLegalLinks
+								links={legalLinks}
+								themeKey="consentBannerDescription"
+								testIdPrefix="consent-banner-legal-link"
+							/>
+						</div>
 					</div>
-					<div
-						class={noStyle ? '' : descriptionStyle.className || ''}
-						data-testid="consent-banner-description"
+					<PolicyActionsRenderer
+						actionGroups={actionGroups}
+						primaryActions={primaryActions}
+						shouldFillActions={shouldFillActions}
+						{direction}
+						footerClassName={noStyle ? '' : footerStyle.className || ''}
+						footerFillClassName={styles.footerFill || ''}
+						footerColumnClassName={styles.footerColumn || ''}
+						footerSubGroupClassName={noStyle ? '' : footerSubGroupStyle.className || ''}
+						footerSubGroupFillClassName={styles.footerSubGroupFill || ''}
+						footerSubGroupColumnClassName={styles.footerSubGroupColumn || ''}
+						actionButtonFillClassName={styles.actionButtonFill || ''}
+						footerTestId="consent-banner-footer"
+						footerSubGroupTestId="consent-banner-footer-sub-group"
 					>
-						{resolvedDescription}
-						<InlineLegalLinks
-							links={legalLinks}
-							themeKey="consentBannerDescription"
-							testIdPrefix="consent-banner-legal-link"
-						/>
-					</div>
-				</div>
-				<div class={noStyle ? '' : footerStyle.className || ''} data-testid="consent-banner-footer">
-					{#snippet renderButton(buttonType: ConsentBannerButton)}
-						{#if buttonType === 'reject'}
-							<ConsentButton
-								action="reject-consent"
-								variant={isPrimary('reject') ? 'primary' : 'neutral'}
-								closeConsentBanner
-								data-testid="consent-banner-reject-button"
-							>
-								{resolvedRejectText}
-							</ConsentButton>
-						{:else if buttonType === 'accept'}
-							<ConsentButton
-								action="accept-consent"
-								variant={isPrimary('accept') ? 'primary' : 'neutral'}
-								closeConsentBanner
-								data-testid="consent-banner-accept-button"
-							>
-								{resolvedAcceptText}
-							</ConsentButton>
-						{:else if buttonType === 'customize'}
-							<ConsentButton
-								action="open-consent-dialog"
-								variant={isPrimary('customize') ? 'primary' : 'neutral'}
-								data-testid="consent-banner-customize-button"
-							>
-								{resolvedCustomizeText}
-							</ConsentButton>
-						{/if}
-					{/snippet}
-
-					{#each layout as item (item)}
-						{#if Array.isArray(item)}
-							<div
-								class={noStyle ? '' : footerSubGroupStyle.className || ''}
-								data-testid="consent-banner-footer-sub-group"
-							>
-								{#each item as buttonType (buttonType)}
-									{@render renderButton(buttonType)}
-								{/each}
-							</div>
-						{:else}
-							{@render renderButton(item)}
-						{/if}
-					{/each}
+						{#snippet renderAction(action: string, isPrimary: boolean, actionClassName?: string)}
+							{#if action === 'reject'}
+								<ConsentButton
+									action="reject-consent"
+									variant={isPrimary ? 'primary' : 'neutral'}
+									closeConsentBanner
+									class={actionClassName}
+									data-testid="consent-banner-reject-button"
+								>
+									{resolvedRejectText}
+								</ConsentButton>
+							{:else if action === 'accept'}
+								<ConsentButton
+									action="accept-consent"
+									variant={isPrimary ? 'primary' : 'neutral'}
+									closeConsentBanner
+									class={actionClassName}
+									data-testid="consent-banner-accept-button"
+								>
+									{resolvedAcceptText}
+								</ConsentButton>
+							{:else if action === 'customize'}
+								<ConsentButton
+									action="open-consent-dialog"
+									variant={isPrimary ? 'primary' : 'neutral'}
+									class={actionClassName}
+									data-testid="consent-banner-customize-button"
+								>
+									{resolvedCustomizeText}
+								</ConsentButton>
+							{/if}
+						{/snippet}
+					</PolicyActionsRenderer>
 				</div>
 			</div>
 		</div>
