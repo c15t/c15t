@@ -7,7 +7,7 @@
 import { render, screen } from '@testing-library/svelte';
 import { clearConsentRuntimeCache } from 'c15t';
 import { beforeEach, describe, expect, test } from 'vitest';
-import ProviderOnlyFixture from '../../__tests__/fixtures/ProviderOnlyFixture.svelte';
+import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
 
 describe('ConsentManagerProvider Rendering Behavior', () => {
 	beforeEach(() => {

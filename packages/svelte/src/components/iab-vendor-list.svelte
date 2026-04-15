@@ -13,14 +13,14 @@ import type {
 	ProcessedVendor,
 	VendorId,
 } from '../iab-types';
-import ChevronDownIcon from './icons/ChevronDownIcon.svelte';
-import CloseIcon from './icons/CloseIcon.svelte';
-import ExternalLinkIcon from './icons/ExternalLinkIcon.svelte';
-import GlobeIcon from './icons/GlobeIcon.svelte';
-import LayersIcon from './icons/LayersIcon.svelte';
-import LegitimateInterestIcon from './icons/LegitimateInterestIcon.svelte';
-import LockIcon from './icons/LockIcon.svelte';
-import SearchIcon from './icons/SearchIcon.svelte';
+import ChevronDownIcon from './icons/chevron-down-icon.svelte';
+import CloseIcon from './icons/close-icon.svelte';
+import ExternalLinkIcon from './icons/external-link-icon.svelte';
+import GlobeIcon from './icons/globe-icon.svelte';
+import LayersIcon from './icons/layers-icon.svelte';
+import LegitimateInterestIcon from './icons/legitimate-interest-icon.svelte';
+import LockIcon from './icons/lock-icon.svelte';
+import SearchIcon from './icons/search-icon.svelte';
 
 const sw = switchVariants();
 

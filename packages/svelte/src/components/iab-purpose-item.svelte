@@ -5,10 +5,10 @@ import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { switchVariants } from '@c15t/ui/styles/primitives';
 import type { IABTranslations } from '../iab-translations';
 import type { ProcessedPurpose, VendorId } from '../iab-types';
-import ChevronRightIcon from './icons/ChevronRightIcon.svelte';
-import GlobeIcon from './icons/GlobeIcon.svelte';
-import LegitimateInterestIcon from './icons/LegitimateInterestIcon.svelte';
-import LockIcon from './icons/LockIcon.svelte';
+import ChevronRightIcon from './icons/chevron-right-icon.svelte';
+import GlobeIcon from './icons/globe-icon.svelte';
+import LegitimateInterestIcon from './icons/legitimate-interest-icon.svelte';
+import LockIcon from './icons/lock-icon.svelte';
 
 const sw = switchVariants();
 const swSmall = switchVariants({ size: 'small' });

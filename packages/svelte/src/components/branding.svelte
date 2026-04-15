@@ -1,7 +1,7 @@
 <script lang="ts">
 import { getConsentContext } from '../context.svelte';
-import C15TIcon from './icons/C15TIcon.svelte';
-import ConsentIconOnly from './icons/ConsentIconOnly.svelte';
+import C15TIcon from './icons/c15-t-icon.svelte';
+import ConsentIconOnly from './icons/consent-icon-only.svelte';
 
 let {
 	hideBranding = false,

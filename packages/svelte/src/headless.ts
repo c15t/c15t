@@ -12,9 +12,9 @@ export { focusTrap } from './actions/focus-trap';
 export { portal } from './actions/portal';
 export { scrollLock } from './actions/scroll-lock';
 // Provider (still needed for headless mode)
-export { default as ConsentManagerProvider } from './components/ConsentManagerProvider.svelte';
+export { default as ConsentManagerProvider } from './components/consent-manager-provider.svelte';
 // Components (useful for headless custom UIs)
-export { default as InlineLegalLinks } from './components/InlineLegalLinks.svelte';
+export { default as InlineLegalLinks } from './components/inline-legal-links.svelte';
 // Context (primary API for headless usage)
 export {
 	type ConsentContextValue,

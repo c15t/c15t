@@ -8,7 +8,7 @@ import { render, screen, waitFor } from '@testing-library/svelte';
 import type { Translations } from 'c15t';
 import { clearConsentRuntimeCache } from 'c15t';
 import { beforeEach, describe, expect, test } from 'vitest';
-import ContextConsumerFixture from '../../__tests__/fixtures/ContextConsumerFixture.svelte';
+import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
 
 describe('Translations', () => {
 	beforeEach(() => {
