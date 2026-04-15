@@ -1,3 +1,6 @@
+export * from '@c15t/ui/primitives';
+export * from '@c15t/ui/styles/primitives';
+
 // Core exports
 
 // Theme types
