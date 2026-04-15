@@ -1,8 +1,8 @@
 <script lang="ts">
-import ConsentDialog from '../../components/consent-dialog.svelte';
-import ConsentDialogLink from '../../components/consent-dialog-link.svelte';
-import ConsentManagerProvider from '../../components/consent-manager-provider.svelte';
-import type { ConsentManagerOptions } from '../../types';
+import ConsentDialog from '../../lib/components/consent-dialog.svelte';
+import ConsentDialogLink from '../../lib/components/consent-dialog-link.svelte';
+import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+import type { ConsentManagerOptions } from '../../lib/types';
 
 let { options }: { options: ConsentManagerOptions } = $props();
 </script>

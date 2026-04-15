@@ -1,8 +1,8 @@
 <script lang="ts">
 import type { Model } from 'c15t';
-import ConsentBanner from '../../components/consent-banner.svelte';
-import ConsentManagerProvider from '../../components/consent-manager-provider.svelte';
-import type { ConsentManagerOptions } from '../../types';
+import ConsentBanner from '../../lib/components/consent-banner.svelte';
+import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+import type { ConsentManagerOptions } from '../../lib/types';
 
 let {
 	options,

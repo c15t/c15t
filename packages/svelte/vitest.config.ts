@@ -12,7 +12,7 @@ export default mergeConfig(
 		plugins: [svelte()],
 		resolve: {
 			alias: {
-				'~': resolve(__dirname, './src'),
+				'~': resolve(__dirname, './src/lib'),
 			},
 			conditions: ['browser'],
 		},

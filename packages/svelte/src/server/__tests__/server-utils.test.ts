@@ -5,9 +5,12 @@
  */
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { fetchSSRData } from '../fetch-ssr-data';
-import { extractRelevantHeaders } from '../headers';
-import { normalizeBackendURL, validateBackendURL } from '../normalize-url';
+import { fetchSSRData } from '../../lib/server/fetch-ssr-data';
+import { extractRelevantHeaders } from '../../lib/server/headers';
+import {
+	normalizeBackendURL,
+	validateBackendURL,
+} from '../../lib/server/normalize-url';
 
 // ─── extractRelevantHeaders ──────────────────────────────────────────────────
 

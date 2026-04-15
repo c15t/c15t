@@ -51,19 +51,39 @@
 			"default": "./dist/index.js"
 		}
 	},
+	"typesVersions": {
+		">4.0": {
+			"headless": [
+				"./dist/headless.d.ts"
+			],
+			"server": [
+				"./dist/server/index.d.ts"
+			],
+			"vite": [
+				"./dist/vite-plugin.d.ts"
+			]
+		}
+	},
 	"main": "./dist/index.js",
 	"svelte": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"files": [
-		"dist"
+		"LICENSE.md",
+		"dist",
+		"!dist/**/__tests__/**",
+		"!dist/**/*.test.*",
+		"!dist/**/*.spec.*",
+		"docs"
 	],
 	"scripts": {
-		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && svelte-package -i src -o dist",
+		"prebuild": "genversion --esm --semi src/lib/version.ts",
+		"build": "bun prebuild && svelte-package -o dist && bun run clean:dist:test-artifacts",
 		"check-types": "bun prebuild && svelte-check --tsconfig ./tsconfig.json",
-		"dev": "bun prebuild && svelte-package -i src -o dist --watch",
+		"clean:dist:test-artifacts": "bun --eval \"import { readdirSync, rmSync } from 'node:fs'; import { join } from 'node:path'; const walk = (dir) => { for (const entry of readdirSync(dir, { withFileTypes: true })) { const full = join(dir, entry.name); if (entry.isDirectory()) { if (entry.name === '__tests__') { rmSync(full, { recursive: true, force: true }); continue; } walk(full); continue; } if (/\\.(test|spec)\\.[cm]?[jt]sx?$/.test(entry.name)) { rmSync(full, { force: true }); } } }; walk('dist');\"",
+		"dev": "bun prebuild && svelte-package -o dist --watch",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
+		"prepack": "bun run build",
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},

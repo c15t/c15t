@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
-import { scrollLock } from '../scroll-lock';
+import { scrollLock } from '../../lib/actions/scroll-lock';
 
 describe('scrollLock action', () => {
 	describe('Rendering', () => {

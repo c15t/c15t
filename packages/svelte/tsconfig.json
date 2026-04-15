@@ -4,7 +4,7 @@
 		"moduleResolution": "bundler",
 		"baseUrl": ".",
 		"paths": {
-			"~/*": ["./src/*"]
+			"~/*": ["./src/lib/*"]
 		}
 	},
 	"include": ["src"],
