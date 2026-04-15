@@ -11,8 +11,8 @@ import {
 import { onMount, untrack } from 'svelte';
 import { portal } from '../actions/portal';
 import { getConsentContext } from '../context.svelte';
-import C15TIconOnly from './icons/C15TIconOnly.svelte';
-import ConsentIconOnly from './icons/ConsentIconOnly.svelte';
+import C15TIconOnly from './icons/c15-t-icon-only.svelte';
+import ConsentIconOnly from './icons/consent-icon-only.svelte';
 
 type TriggerVisibility = 'always' | 'after-consent' | 'never';
 

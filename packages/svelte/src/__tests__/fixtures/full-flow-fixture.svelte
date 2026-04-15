@@ -1,8 +1,8 @@
 <script lang="ts">
-import ConsentBanner from '../../components/ConsentBanner.svelte';
-import ConsentDialog from '../../components/ConsentDialog.svelte';
-import ConsentDialogTrigger from '../../components/ConsentDialogTrigger.svelte';
-import ConsentManagerProvider from '../../components/ConsentManagerProvider.svelte';
+import ConsentBanner from '../../components/consent-banner.svelte';
+import ConsentDialog from '../../components/consent-dialog.svelte';
+import ConsentDialogTrigger from '../../components/consent-dialog-trigger.svelte';
+import ConsentManagerProvider from '../../components/consent-manager-provider.svelte';
 import type { ConsentManagerOptions } from '../../types';
 
 let {

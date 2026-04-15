@@ -14,8 +14,8 @@ import {
 	setTrackingContext,
 } from '../context.svelte';
 import { resolveComponentStyles } from '../utils';
-import Branding from './Branding.svelte';
-import ConsentButton from './ConsentButton.svelte';
+import Branding from './branding.svelte';
+import ConsentButton from './consent-button.svelte';
 
 const sw = switchVariants();
 const av = accordionVariants();

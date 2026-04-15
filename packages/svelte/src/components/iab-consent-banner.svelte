@@ -14,7 +14,7 @@ import { getIABTranslations } from '../iab-translations';
 import { getIABBannerDisplayItems } from '../iab-types';
 import { useBannerVisibility } from '../use-banner-visibility.svelte';
 import { resolveComponentStyles } from '../utils';
-import Overlay from './Overlay.svelte';
+import Overlay from './overlay.svelte';
 
 let {
 	noStyle: localNoStyle,

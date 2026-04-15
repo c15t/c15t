@@ -19,9 +19,9 @@ import {
 } from '../context.svelte';
 import { useBannerVisibility } from '../use-banner-visibility.svelte';
 import { resolveComponentStyles } from '../utils';
-import ConsentButton from './ConsentButton.svelte';
-import InlineLegalLinks from './InlineLegalLinks.svelte';
-import Overlay from './Overlay.svelte';
+import ConsentButton from './consent-button.svelte';
+import InlineLegalLinks from './inline-legal-links.svelte';
+import Overlay from './overlay.svelte';
 
 /**
  * Button identifiers for the consent banner layout.

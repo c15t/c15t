@@ -1,20 +1,24 @@
 <script lang="ts">
 import type { Model } from 'c15t';
-import ConsentBanner from '../../components/ConsentBanner.svelte';
-import ConsentManagerProvider from '../../components/ConsentManagerProvider.svelte';
+import ConsentDialog from '../../components/consent-dialog.svelte';
+import ConsentManagerProvider from '../../components/consent-manager-provider.svelte';
 import type { ConsentManagerOptions } from '../../types';
 
 let {
 	options,
+	open = undefined,
 	models = undefined,
 	uiSource = undefined,
+	hideBranding = undefined,
 }: {
 	options: ConsentManagerOptions;
+	open?: boolean;
 	models?: Model[];
 	uiSource?: string;
+	hideBranding?: boolean;
 } = $props();
 </script>
 
 <ConsentManagerProvider {options}>
-	<ConsentBanner {models} {uiSource} />
+	<ConsentDialog {open} {models} {uiSource} {hideBranding} />
 </ConsentManagerProvider>

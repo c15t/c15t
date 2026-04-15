@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { Snippet } from 'svelte';
-import ConsentButton from './ConsentButton.svelte';
+import ConsentButton from './consent-button.svelte';
 
 let {
 	children,

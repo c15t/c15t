@@ -5,8 +5,8 @@ import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { switchVariants } from '@c15t/ui/styles/primitives';
 import type { IABTranslations } from '../iab-translations';
 import type { ProcessedStack, VendorId } from '../iab-types';
-import IABPurposeItem from './IABPurposeItem.svelte';
-import ChevronRightIcon from './icons/ChevronRightIcon.svelte';
+import IABPurposeItem from './iab-purpose-item.svelte';
+import ChevronRightIcon from './icons/chevron-right-icon.svelte';
 
 const sw = switchVariants();
 

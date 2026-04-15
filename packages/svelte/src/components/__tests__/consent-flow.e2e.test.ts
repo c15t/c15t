@@ -9,10 +9,10 @@
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { clearConsentRuntimeCache } from 'c15t';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import BannerDialogFixture from '../../__tests__/fixtures/BannerDialogFixture.svelte';
-import BannerFixture from '../../__tests__/fixtures/BannerFixture.svelte';
-import DialogFixture from '../../__tests__/fixtures/DialogFixture.svelte';
-import WidgetFixture from '../../__tests__/fixtures/WidgetFixture.svelte';
+import BannerDialogFixture from '../../__tests__/fixtures/banner-dialog-fixture.svelte';
+import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
+import DialogFixture from '../../__tests__/fixtures/dialog-fixture.svelte';
+import WidgetFixture from '../../__tests__/fixtures/widget-fixture.svelte';
 import type { ConsentManagerOptions } from '../../types';
 
 const defaultOptions: ConsentManagerOptions = {

@@ -11,10 +11,10 @@ import {
 	setTrackingContext,
 } from '../context.svelte';
 import { resolveComponentStyles } from '../utils';
-import Branding from './Branding.svelte';
-import ConsentDialogTrigger from './ConsentDialogTrigger.svelte';
-import ConsentWidget from './ConsentWidget.svelte';
-import InlineLegalLinks from './InlineLegalLinks.svelte';
+import Branding from './branding.svelte';
+import ConsentDialogTrigger from './consent-dialog-trigger.svelte';
+import ConsentWidget from './consent-widget.svelte';
+import InlineLegalLinks from './inline-legal-links.svelte';
 
 type ConsentDialogTriggerProps = {
 	defaultPosition?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';

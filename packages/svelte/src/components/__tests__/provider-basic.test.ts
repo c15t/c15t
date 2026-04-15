@@ -7,7 +7,7 @@
 import { render } from '@testing-library/svelte';
 import { clearConsentRuntimeCache } from 'c15t';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import ProviderOnlyFixture from '../../__tests__/fixtures/ProviderOnlyFixture.svelte';
+import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
 
 const mockFetch = vi.fn();
 window.fetch = mockFetch;

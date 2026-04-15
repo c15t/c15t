@@ -9,14 +9,14 @@ import type { Model } from 'c15t';
 import { getConsentContext, getThemeContext } from '../context.svelte';
 import { getIABTranslations } from '../iab-translations';
 import { processGVLData, type VendorId } from '../iab-types';
-import Branding from './Branding.svelte';
-import IABPurposeItem from './IABPurposeItem.svelte';
-import IABStackItem from './IABStackItem.svelte';
-import IABVendorList from './IABVendorList.svelte';
-import ChevronRightIcon from './icons/ChevronRightIcon.svelte';
-import CloseIcon from './icons/CloseIcon.svelte';
-import InfoIcon from './icons/InfoIcon.svelte';
-import LockIcon from './icons/LockIcon.svelte';
+import Branding from './branding.svelte';
+import IABPurposeItem from './iab-purpose-item.svelte';
+import IABStackItem from './iab-stack-item.svelte';
+import IABVendorList from './iab-vendor-list.svelte';
+import ChevronRightIcon from './icons/chevron-right-icon.svelte';
+import CloseIcon from './icons/close-icon.svelte';
+import InfoIcon from './icons/info-icon.svelte';
+import LockIcon from './icons/lock-icon.svelte';
 
 let {
 	open: openProp,
