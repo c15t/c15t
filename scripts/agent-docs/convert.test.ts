@@ -138,6 +138,18 @@ describe('convertMdxFile', () => {
 		);
 	}, 20000);
 
+	it('resolves folder-backed docs pages referenced from framework metadata', async () => {
+		await generatePackageDocs('@c15t/react');
+
+		const markdown = readFileSync(
+			join(ROOT_DIR, 'packages', 'react', 'docs', 'ai-agents.md'),
+			'utf8'
+		);
+
+		expect(markdown).toContain('title: AI Agents');
+		expect(markdown).toContain('## Bundled Docs');
+	}, 20000);
+
 	it('generates package README files with workflow rules and valid links', async () => {
 		await generatePackageDocs('c15t');
 		await generatePackageDocs('@c15t/react');
