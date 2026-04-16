@@ -1,5 +1,8 @@
 {
 	"title": "Next.js",
+	"nav": {
+		"mode": "framework"
+	},
 	"pages": [
 		"quickstart",
 		"optimization",

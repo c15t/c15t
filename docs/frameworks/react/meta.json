@@ -1,5 +1,8 @@
 {
 	"title": "React",
+	"nav": {
+		"mode": "framework"
+	},
 	"pages": [
 		"quickstart",
 		"optimization",

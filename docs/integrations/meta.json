@@ -1,6 +1,10 @@
 {
 	"title": "Guides",
 	"icon": "guide",
+	"nav": {
+		"sidebar": "section",
+		"label": "Integrations"
+	},
 	"root": true,
 	"pages": [
 		"overview",

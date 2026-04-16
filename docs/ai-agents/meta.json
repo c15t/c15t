@@ -1,0 +1,8 @@
+{
+	"title": "AI Agents",
+	"nav": {
+		"sidebar": "combined",
+		"label": "AI Agents"
+	},
+	"pages": ["index"]
+}
