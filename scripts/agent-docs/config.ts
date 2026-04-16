@@ -239,7 +239,7 @@ function buildPublicUrl(config: AgentPackageConfig, entry: string): string {
 	if (entry.startsWith('../')) {
 		const sourcePath = findDocSource(resolve(config.frameworkRoot, entry));
 		if (!sourcePath) {
-			return `https://c15t.com/docs/${entry.replace(/^\.\.\//g, '')}`;
+			return `https://c15t.com/docs/${entry.replace(/^(?:\.\.\/)+/, '')}`;
 		}
 		return `https://c15t.com/docs/${getDocsRouteFromSourcePath(sourcePath)}`;
 	}
