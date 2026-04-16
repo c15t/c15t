@@ -1,7 +1,1 @@
-{
-	"nav": {
-		"sidebar": "combined"
-	},
-	"root": true,
-	"pages": ["index"]
-}
+{}

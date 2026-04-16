@@ -4,5 +4,5 @@
 		"sidebar": "combined",
 		"label": "Contributing"
 	},
-	"pages": ["index", "documentation-setup", "docs-preview-action"]
+	"pages": ["index", "docs-preview-action"]
 }

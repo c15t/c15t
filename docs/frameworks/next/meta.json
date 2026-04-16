@@ -6,6 +6,7 @@
 	"pages": [
 		"quickstart",
 		"optimization",
+		"../../ai-agents",
 		"--- Concepts ---",
 		"./concepts/initialization-flow",
 		"./concepts/client-modes",
