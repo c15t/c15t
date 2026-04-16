@@ -1,5 +1,9 @@
 {
 	"title": "Self-Hosting",
+	"nav": {
+		"sidebar": "section",
+		"label": "Self-Hosting"
+	},
 	"pages": [
 		"quickstart",
 		"--- Guides ---",

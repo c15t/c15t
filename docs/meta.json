@@ -3,13 +3,8 @@
 		"frameworks",
 		"integrations",
 		"self-host",
-		"--- OSS ---",
-		"./ai-agents",
-		"./oss/contributing",
-		"./oss/license",
-		"./oss/why-open-source",
-		"--- Legal ---",
-		"./legals/cookie-policy",
-		"./legals/privacy-policy"
+		"contributing",
+		"oss",
+		"legals"
 	]
 }
