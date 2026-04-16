@@ -1,3 +1,9 @@
 {
+	"title": "Frameworks",
+	"nav": {
+		"sidebar": "section",
+		"label": "Frameworks",
+		"mode": "framework"
+	},
 	"pages": ["react", "javascript", "next"]
 }

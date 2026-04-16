@@ -36,6 +36,14 @@ type AgentPackageConfig = {
 };
 
 type MetaFile = {
+	title?: string;
+	icon?: string;
+	root?: boolean;
+	nav?: {
+		sidebar?: 'section' | 'combined';
+		label?: string;
+		mode?: 'framework';
+	};
 	pages?: string[];
 };
 
@@ -200,7 +208,42 @@ function readMeta(metaFile: string): MetaFile {
 	return JSON.parse(readFileSync(metaFile, 'utf8')) as MetaFile;
 }
 
+function findDocSource(basePath: string): string | null {
+	const candidates = [
+		`${basePath}.mdx`,
+		`${basePath}.md`,
+		join(basePath, 'index.mdx'),
+		join(basePath, 'index.md'),
+	];
+
+	for (const candidate of candidates) {
+		if (existsSync(candidate)) {
+			return candidate;
+		}
+	}
+
+	return null;
+}
+
+function getDocsRouteFromSourcePath(sourcePath: string): string {
+	const normalized = relative(DOCS_DIR, sourcePath)
+		.replace(/\\/g, '/')
+		.replace(/\.(md|mdx)$/, '');
+
+	return normalized.endsWith('/index')
+		? normalized.slice(0, -'/index'.length)
+		: normalized;
+}
+
 function buildPublicUrl(config: AgentPackageConfig, entry: string): string {
+	if (entry.startsWith('../')) {
+		const sourcePath = findDocSource(resolve(config.frameworkRoot, entry));
+		if (!sourcePath) {
+			return `https://c15t.com/docs/${entry.replace(/^(?:\.\.\/)+/, '')}`;
+		}
+		return `https://c15t.com/docs/${getDocsRouteFromSourcePath(sourcePath)}`;
+	}
+
 	if (config.frameworkRoot.endsWith(join('docs', 'self-host'))) {
 		const normalized = entry.replace(/^\.\//, '');
 		if (normalized === 'quickstart') {
@@ -230,12 +273,16 @@ function resolveMetaEntry(
 	topicTags: string[];
 } {
 	if (!entry.startsWith('./')) {
-		const sourcePath = join(config.frameworkRoot, `${entry}.mdx`);
+		const basePath = resolve(config.frameworkRoot, entry);
+		const sourcePath = findDocSource(basePath) ?? `${basePath}.mdx`;
+		const route = entry.startsWith('../')
+			? getDocsRouteFromSourcePath(sourcePath)
+			: entry;
 		return {
 			sourcePath,
-			outputPath: `${entry}.md`,
+			outputPath: `${route}.md`,
 			publicUrl: buildPublicUrl(config, entry),
-			topicTags: deriveTopicTags(entry, sourcePath),
+			topicTags: deriveTopicTags(route, sourcePath),
 		};
 	}
 
@@ -243,13 +290,14 @@ function resolveMetaEntry(
 	const [prefix, ...rest] = normalized.split('/');
 	const remainder = rest.join('/');
 	const aliasRoot = config.pageAliases?.[prefix];
-	const frameworkPath = join(config.frameworkRoot, prefix, `${remainder}.mdx`);
-	const aliasPath = aliasRoot ? join(aliasRoot, `${remainder}.mdx`) : null;
-	const sourcePath = existsSync(frameworkPath)
-		? frameworkPath
-		: aliasPath && existsSync(aliasPath)
-			? aliasPath
-			: frameworkPath;
+	const frameworkPath = findDocSource(join(config.frameworkRoot, normalized));
+	const aliasPath = aliasRoot
+		? findDocSource(join(aliasRoot, remainder))
+		: null;
+	const sourcePath =
+		frameworkPath ??
+		aliasPath ??
+		join(config.frameworkRoot, prefix, `${remainder}.mdx`);
 	return {
 		sourcePath,
 		outputPath: `${normalized}.md`,

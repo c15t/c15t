@@ -1,0 +1,8 @@
+{
+	"title": "Open Source",
+	"nav": {
+		"sidebar": "combined",
+		"label": "Open Source"
+	},
+	"pages": ["why-open-source", "contributing", "code-of-conduct", "license"]
+}
