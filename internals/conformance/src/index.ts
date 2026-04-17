@@ -26,6 +26,17 @@
  *   consent-widget-accordion-trigger-{name}, consent-widget-accordion-content-{name},
  *   consent-widget-switch-{name}
  * - iab-consent-banner-customize-button, iab-consent-dialog-root
+ *
+ * ### Structural invariants
+ *
+ * - Dialog currently renders as `<div role="dialog" aria-modal="true">` with
+ *   `<div role="presentation">` backdrop. A future cross-framework migration
+ *   will flip to native `<dialog>`; until then both frameworks must emit the
+ *   div-based shape byte-for-byte.
+ * - Accordion content must be wrapped in `<div data-slot="accordion-content-viewport">`
+ *   for the grid-collapse animation selector in `accordion.module.css` to apply.
+ * - Decorative SVGs must carry `aria-hidden="true"` so they don't surface as
+ *   `img` nodes in the a11y tree; SVGs that convey meaning use `aria-label`.
  */
 
 export * from './a11y';

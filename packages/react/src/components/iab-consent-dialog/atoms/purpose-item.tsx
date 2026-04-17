@@ -102,6 +102,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 				<PreferenceItem.Trigger className={styles.purposeTrigger} noStyle>
 					<PreferenceItem.Leading noStyle>
 						<svg
+							aria-hidden="true"
 							className={styles.purposeArrow}
 							viewBox="0 0 24 24"
 							fill="none"
@@ -120,6 +121,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 							{purpose.name}
 							{isLocked && (
 								<svg
+									aria-hidden="true"
 									className={styles.lockIcon}
 									viewBox="0 0 24 24"
 									fill="none"
@@ -143,6 +145,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 								noStyle
 							>
 								<svg
+									aria-hidden="true"
 									className={styles.legitimateInterestIcon}
 									viewBox="0 0 24 24"
 									fill="none"
@@ -178,6 +181,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 						<div className={styles.purposeLISectionHeader}>
 							<div className={styles.purposeLIInfo}>
 								<svg
+									aria-hidden="true"
 									className={styles.legitimateInterestIcon}
 									viewBox="0 0 24 24"
 									fill="none"
@@ -238,6 +242,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 						>
 							<PreferenceItem.Trigger className={styles.examplesToggle} noStyle>
 								<svg
+									aria-hidden="true"
 									style={{ width: '0.75rem', height: '0.75rem' }}
 									viewBox="0 0 24 24"
 									fill="none"
@@ -443,12 +448,12 @@ const VendorRow: FC<VendorRowProps> = ({
 					<span>{vendor.name}</span>
 					{vendor.isCustom && (
 						<svg
+							aria-hidden="true"
 							className={styles.customVendorIcon}
 							viewBox="0 0 24 24"
 							fill="none"
 							stroke="currentColor"
 							strokeWidth="2"
-							aria-label={iab.common.customPartner}
 						>
 							<circle cx="12" cy="12" r="10" />
 							<line x1="2" y1="12" x2="22" y2="12" />

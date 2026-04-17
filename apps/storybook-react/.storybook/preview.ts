@@ -2,11 +2,8 @@ import {
 	defaultTheme,
 	generateThemeCSS,
 } from '../../../packages/ui/src/theme/utils';
-import '../../../packages/ui/src/styles/primitives/accordion.module.css';
-import '../../../packages/ui/src/styles/primitives/button.module.css';
-import '../../../packages/ui/src/styles/primitives/collapsible.module.css';
-import '../../../packages/ui/src/styles/primitives/switch.module.css';
-import '../../../packages/ui/src/styles/primitives/tabs.module.css';
+import '../../../packages/react/src/styles.css';
+import '../../../packages/react/src/iab/styles.css';
 import type { Preview } from '@storybook/react-vite';
 
 const storybookThemeStyleId = 'c15t-storybook-theme';

@@ -91,6 +91,25 @@ function snapshotKey(pairKey: string): string {
 		.toLowerCase();
 }
 
+function findFirstDiff(
+	a: string,
+	b: string
+): { offset: number; a: string; b: string } {
+	const len = Math.min(a.length, b.length);
+	for (let i = 0; i < len; i++) {
+		if (a[i] !== b[i]) {
+			const start = Math.max(0, i - 40);
+			const end = i + 120;
+			return { offset: i, a: a.slice(start, end), b: b.slice(start, end) };
+		}
+	}
+	return {
+		offset: len,
+		a: a.slice(Math.max(0, len - 40), len + 120),
+		b: b.slice(Math.max(0, len - 40), len + 120),
+	};
+}
+
 test.describe('cross-framework parity', () => {
 	// Load stories lazily so config errors surface as test failures, not
 	// worker-init crashes.
@@ -133,11 +152,23 @@ test.describe('cross-framework parity', () => {
 					failures.push(
 						`[DOM] ${pair.key}: ${baselineFramework} ≠ ${framework}`
 					);
+					if (process.env.PARITY_DEBUG) {
+						const firstDiff = findFirstDiff(baselineDom, dom);
+						console.log(
+							`\n[PARITY_DEBUG DOM] ${pair.key}\n  baseline (${baselineFramework}) len=${baselineDom.length}\n  other    (${framework}) len=${dom.length}\n  first diff @${firstDiff.offset}:\n    baseline: …${firstDiff.a}\n    other:    …${firstDiff.b}`
+						);
+					}
 				}
 				if (a11y !== baselineA11y) {
 					failures.push(
 						`[A11Y] ${pair.key}: ${baselineFramework} ≠ ${framework}`
 					);
+					if (process.env.PARITY_DEBUG) {
+						const firstDiff = findFirstDiff(baselineA11y, a11y);
+						console.log(
+							`\n[PARITY_DEBUG A11Y] ${pair.key}\n  first diff @${firstDiff.offset}:\n    baseline: …${firstDiff.a}\n    other:    …${firstDiff.b}`
+						);
+					}
 				}
 
 				const styleDiffs = diffComputedStyleMap(baselineStyles, styles);
@@ -158,6 +189,7 @@ test.describe('cross-framework parity', () => {
 			}
 		}
 
+		console.log(`[PARITY] DOM+a11y+CSS: ${failures.length} failure(s)`);
 		expect(failures, failures.join('\n')).toHaveLength(0);
 	});
 

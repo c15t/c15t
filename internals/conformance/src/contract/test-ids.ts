@@ -46,7 +46,6 @@ export const TEST_IDS = {
 		footer: 'consent-widget-footer',
 		footerSubGroup: 'consent-widget-footer-sub-group',
 		rejectButton: 'consent-widget-reject-button',
-		footerAcceptButton: 'consent-widget-footer-accept-button',
 		footerAcceptAllButton: 'consent-widget-footer-accept-all-button',
 		footerCustomizeButton: 'consent-widget-footer-customize-button',
 		footerSaveButton: 'consent-widget-footer-save-button',

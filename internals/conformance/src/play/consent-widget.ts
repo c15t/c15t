@@ -8,10 +8,10 @@ import type { PlayFunction } from 'storybook/types';
 export const expandedCategories: PlayFunction = async ({ canvasElement }) => {
 	const canvas = within(canvasElement);
 	const functionalityTrigger = await canvas.findByTestId(
-		'consent-widget-accordion-trigger-inner-functionality'
+		'consent-widget-accordion-trigger-functionality'
 	);
 	const analyticsTrigger = await canvas.findByTestId(
-		'consent-widget-accordion-trigger-inner-measurement'
+		'consent-widget-accordion-trigger-measurement'
 	);
 	const functionalityContent = await canvas.findByTestId(
 		'consent-widget-accordion-content-functionality'

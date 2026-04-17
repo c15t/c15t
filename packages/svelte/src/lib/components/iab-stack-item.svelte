@@ -102,6 +102,7 @@ const totalVendors = $derived(
 				<div class={noStyle ? '' : styles.partialIndicator || ''} aria-hidden={true}></div>
 			{/if}
 			<Switch.Root
+				aria-label={stack.name}
 				checked={allEnabled}
 				onCheckedChange={(details: { checked: boolean }) =>
 					handleStackToggle(details.checked)}
