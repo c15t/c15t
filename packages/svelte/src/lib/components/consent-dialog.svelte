@@ -164,6 +164,8 @@ function handleOpenChange(details: { open: boolean }) {
 					? rootStyle.className || ''
 					: `${styles.container || ''} ${rootStyle.className || ''} ${!disableAnimation ? (isOpen ? styles.contentVisible || '' : styles.contentHidden || '') : ''}`}
 				dir={textDirection}
+				aria-labelledby="consent-dialog-title"
+				aria-describedby="consent-dialog-description"
 			>
 				<!-- Card -->
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->

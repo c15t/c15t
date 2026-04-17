@@ -41,7 +41,10 @@ const frameTitle = $derived(
 	(
 		translations.frame?.title ??
 		'Accept {category} consent to view this content.'
-	).replace('{category}', category as string)
+	).replace(
+		'{category}',
+		translations.consentTypes?.[category]?.title ?? (category as string)
+	)
 );
 const frameActionButton = $derived(
 	(translations.frame?.actionButton ?? 'Enable {category} consent').replace(

@@ -11,23 +11,20 @@
 
 	let {
 		class: className,
-		type = 'button',
 		...restProps
-	}: HTMLAttributes<HTMLButtonElement> & {
+	}: HTMLAttributes<HTMLDivElement> & {
 		class?: string;
-		type?: 'button' | 'submit' | 'reset';
 	} = $props();
 </script>
 
 {#if shouldRender}
-	<button
-		type={type}
-		tabindex={-1}
-		aria-label="Dismiss dialog"
+	<div
+		role="presentation"
+		aria-hidden="true"
 		class={className}
 		data-slot="dialog-backdrop"
 		data-state={dataState}
 		onclick={() => dialog.requestClose('backdrop')}
 		{...restProps}
-	></button>
+	></div>
 {/if}

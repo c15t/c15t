@@ -78,6 +78,7 @@ export const StackItem: FC<StackItemProps> = ({
 				<PreferenceItem.Trigger className={styles.stackTrigger} noStyle>
 					<PreferenceItem.Leading noStyle>
 						<svg
+							aria-hidden="true"
 							className={styles.purposeArrow}
 							viewBox="0 0 24 24"
 							fill="none"

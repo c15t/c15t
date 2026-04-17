@@ -49,7 +49,6 @@ export const Mobile: Story = {
 			<ConsentDialog />
 			<ConsentDialogTrigger
 				defaultPosition="bottom-left"
-				icon="fingerprint"
 				showWhen="always"
 				size="sm"
 			/>

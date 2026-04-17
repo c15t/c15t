@@ -96,10 +96,6 @@ const config: StorybookConfig = {
 						replacement: ui('styles', 'primitives', 'index.ts'),
 					},
 					{
-						find: /^@c15t\/ui\/styles\/components\/(.*)\.module\.js$/,
-						replacement: ui('styles', 'components', '$1.module.css'),
-					},
-					{
 						find: /^@c15t\/ui\/theme$/,
 						replacement: ui('theme', 'index.ts'),
 					},

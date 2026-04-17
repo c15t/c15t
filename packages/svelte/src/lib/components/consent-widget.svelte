@@ -212,7 +212,6 @@ const shouldFillActions = $derived(
 							<Switch.Control class={noStyle ? '' : sw.track({ disabled: isDisabled })}>
 								<Switch.Thumb class={noStyle ? '' : sw.thumb({ disabled: isDisabled })} />
 							</Switch.Control>
-							<Switch.HiddenInput />
 						</Switch.Root>
 					</PreferenceItem.Control>
 				</div>
