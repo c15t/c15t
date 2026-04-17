@@ -1,4 +1,4 @@
-import { bannerToDialogFlow } from '@c15t/storybook-tests/play/consent-banner';
+import { bannerToDialogFlow } from '@c15t/conformance/play/consent-banner';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
 	ConsentBanner,

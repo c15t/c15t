@@ -1,4 +1,4 @@
-import { expandedCategories } from '@c15t/storybook-tests/play/consent-widget';
+import { expandedCategories } from '@c15t/conformance/play/consent-widget';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ConsentWidget } from '../../../packages/react/src/index';
 import {

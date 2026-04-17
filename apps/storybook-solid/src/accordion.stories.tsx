@@ -1,12 +1,12 @@
 import {
+	multipleModeToggle,
+	singleModeToggle,
+} from '@c15t/conformance/play/accordion';
+import {
 	accordionVariants,
 	getAccordionItemState,
 	toggleAccordionValue,
 } from '@c15t/solid';
-import {
-	multipleModeToggle,
-	singleModeToggle,
-} from '@c15t/storybook-tests/play/accordion';
 import { createSignal, For } from 'solid-js';
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 import { enTranslations } from '../../../packages/translations/src';

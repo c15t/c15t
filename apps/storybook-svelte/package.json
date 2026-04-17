@@ -12,7 +12,7 @@
 		"c15t": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"@c15t/svelte": "workspace:*",
-		"@c15t/storybook-tests": "workspace:*",
+		"@c15t/conformance": "workspace:*",
 		"svelte": "^5.22.6"
 	},
 	"devDependencies": {

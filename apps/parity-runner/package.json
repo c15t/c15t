@@ -1,0 +1,18 @@
+{
+	"name": "@c15t/parity-runner",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "playwright test",
+		"test:update-snapshots": "playwright test --update-snapshots",
+		"report": "playwright show-report"
+	},
+	"dependencies": {
+		"@c15t/conformance": "workspace:*"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@playwright/test": "^1.55.0",
+		"typescript": "5.9.3"
+	}
+}

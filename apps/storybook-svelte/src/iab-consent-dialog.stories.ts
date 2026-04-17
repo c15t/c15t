@@ -1,4 +1,4 @@
-import { tabAndExpansionFlow } from '@c15t/storybook-tests/play/iab-consent-dialog';
+import { tabAndExpansionFlow } from '@c15t/conformance/play/iab-consent-dialog';
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
 import IABConsentDialogStory from './IABConsentDialogStory.svelte';
 

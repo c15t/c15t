@@ -1,7 +1,7 @@
 import {
 	multipleModeToggle,
 	singleModeToggle,
-} from '@c15t/storybook-tests/play/accordion';
+} from '@c15t/conformance/play/accordion';
 import {
 	accordionVariants,
 	getAccordionItemState,

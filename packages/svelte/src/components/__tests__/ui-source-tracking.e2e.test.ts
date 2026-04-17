@@ -84,7 +84,7 @@ describe('UI Source Tracking E2E Tests', () => {
 			});
 
 			const acceptButton = document.querySelector(
-				'[data-testid="consent-widget-accept-all-button"]'
+				'[data-testid="consent-widget-footer-accept-all-button"]'
 			);
 			if (acceptButton) {
 				await fireEvent.click(acceptButton);
@@ -117,7 +117,9 @@ describe('UI Source Tracking E2E Tests', () => {
 			render(WidgetFixture, { options: defaultOptions });
 
 			await waitFor(() => {
-				const widget = document.querySelector('[data-testid="consent-widget"]');
+				const widget = document.querySelector(
+					'[data-testid="consent-widget-root"]'
+				);
 				expect(widget).toBeInTheDocument();
 			});
 		});
@@ -151,7 +153,7 @@ describe('UI Source Tracking E2E Tests', () => {
 
 			// Save from dialog
 			const saveButton = document.querySelector(
-				'[data-testid="consent-widget-save-button"]'
+				'[data-testid="consent-widget-footer-save-button"]'
 			)!;
 			await fireEvent.click(saveButton);
 

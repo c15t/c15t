@@ -1,5 +1,5 @@
+import { openAndClose } from '@c15t/conformance/play/dialog';
 import { Button, Dialog, Switch } from '@c15t/react/primitives';
-import { openAndClose } from '@c15t/storybook-tests/play/dialog';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type React from 'react';
 import { useState } from 'react';
