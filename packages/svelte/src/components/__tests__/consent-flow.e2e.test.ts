@@ -176,7 +176,9 @@ describe('Consent Flow E2E Tests', () => {
 			render(WidgetFixture, { options: defaultOptions });
 
 			await waitFor(() => {
-				const widget = document.querySelector('[data-testid="consent-widget"]');
+				const widget = document.querySelector(
+					'[data-testid="consent-widget-root"]'
+				);
 				expect(widget).toBeInTheDocument();
 			});
 
@@ -215,7 +217,9 @@ describe('Consent Flow E2E Tests', () => {
 			render(DialogFixture, { options: defaultOptions, open: true });
 
 			await waitFor(() => {
-				const widget = document.querySelector('[data-testid="consent-widget"]');
+				const widget = document.querySelector(
+					'[data-testid="consent-widget-root"]'
+				);
 				expect(widget).toBeInTheDocument();
 			});
 		});
@@ -260,7 +264,7 @@ describe('Consent Flow E2E Tests', () => {
 
 			// Step 5: Save preferences
 			const saveButton = document.querySelector(
-				'[data-testid="consent-widget-save-button"]'
+				'[data-testid="consent-widget-footer-save-button"]'
 			)!;
 			await fireEvent.click(saveButton);
 

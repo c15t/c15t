@@ -1,4 +1,4 @@
-import { saveFlow } from '@c15t/storybook-tests/play/consent-dialog';
+import { saveFlow } from '@c15t/conformance/play/consent-dialog';
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
 import ConsentDialogStory from './ConsentDialogStory.svelte';
 

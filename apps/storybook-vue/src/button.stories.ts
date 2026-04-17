@@ -1,4 +1,4 @@
-import { buttonRenders } from '@c15t/storybook-tests/play/button';
+import { buttonRenders } from '@c15t/conformance/play/button';
 import { buttonVariants } from '@c15t/vue';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import { enTranslations } from '../../../packages/translations/src';

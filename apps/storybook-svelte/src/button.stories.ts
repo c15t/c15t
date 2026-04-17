@@ -1,4 +1,4 @@
-import { buttonRenders } from '@c15t/storybook-tests/play/button';
+import { buttonRenders } from '@c15t/conformance/play/button';
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
 import ButtonAllModesDemo from './ButtonAllModesDemo.svelte';
 import ButtonDemo from './ButtonDemo.svelte';

@@ -103,7 +103,7 @@ describe('activeUI Transitions E2E Tests', () => {
 
 		// Click save in dialog
 		const saveButton = document.querySelector(
-			'[data-testid="consent-widget-save-button"]'
+			'[data-testid="consent-widget-footer-save-button"]'
 		)!;
 		await fireEvent.click(saveButton);
 
@@ -219,7 +219,7 @@ describe('activeUI Transitions E2E Tests', () => {
 
 		// Step 3: Save from dialog → hides everything
 		const saveButton = document.querySelector(
-			'[data-testid="consent-widget-save-button"]'
+			'[data-testid="consent-widget-footer-save-button"]'
 		)!;
 		await fireEvent.click(saveButton);
 

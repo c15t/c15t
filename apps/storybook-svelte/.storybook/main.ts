@@ -23,10 +23,10 @@ const config: StorybookConfig = {
 			resolve: {
 				alias: [
 					{
-						find: /^@c15t\/storybook-tests\/(.*)$/,
+						find: /^@c15t\/conformance\/(.*)$/,
 						replacement: path.resolve(
 							storybookDir,
-							'../../../internals/storybook-tests/src/$1'
+							'../../../internals/conformance/src/$1'
 						),
 					},
 					{

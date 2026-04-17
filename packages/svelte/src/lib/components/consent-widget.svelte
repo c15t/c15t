@@ -145,7 +145,7 @@ const shouldFillActions = $derived(
 <div
 	class={noStyle ? className : widgetRootStyle.className || ''}
 	dir={textDirection}
-	data-testid="consent-widget"
+	data-testid="consent-widget-root"
 >
 	<div class={noStyle ? '' : styles.accordionList || ''} data-testid="consent-widget-accordion">
 		{#each displayedConsents as consentType (consentType.name)}
@@ -263,7 +263,7 @@ const shouldFillActions = $derived(
 					closeConsentBanner
 					closeConsentDialog
 					class={actionClassName}
-					data-testid="consent-widget-accept-all-button"
+					data-testid="consent-widget-footer-accept-all-button"
 				>
 					{translations.common.acceptAll}
 				</ConsentButton>
@@ -273,7 +273,7 @@ const shouldFillActions = $derived(
 					variant={isPrimary ? 'primary' : 'neutral'}
 					closeConsentDialog
 					class={actionClassName}
-					data-testid="consent-widget-save-button"
+					data-testid="consent-widget-footer-save-button"
 				>
 					{translations.common.save}
 				</ConsentButton>

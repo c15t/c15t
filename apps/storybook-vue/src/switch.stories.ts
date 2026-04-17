@@ -1,7 +1,4 @@
-import {
-	controlledToggle,
-	toggleOnOff,
-} from '@c15t/storybook-tests/play/switch';
+import { controlledToggle, toggleOnOff } from '@c15t/conformance/play/switch';
 import { getSwitchState, switchVariants, toggleSwitchValue } from '@c15t/vue';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import { computed, ref } from 'vue';

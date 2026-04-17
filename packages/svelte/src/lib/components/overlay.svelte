@@ -22,6 +22,10 @@ const themeKey = $derived(
 		: ('consentBannerOverlay' as const)
 );
 
+const testId = $derived(
+	variant === 'dialog' ? 'consent-dialog-overlay' : 'consent-banner-overlay'
+);
+
 const themeStyle = $derived(
 	resolveComponentStyles(
 		themeKey,
@@ -45,6 +49,6 @@ const className = $derived(
 				.map(([k, v]) => `${k}:${v}`)
 				.join(';')
 		: undefined}
-	data-testid="consent-overlay"
+	data-testid={testId}
 	aria-hidden="true"
 ></div>

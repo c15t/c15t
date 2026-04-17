@@ -194,6 +194,17 @@
 			"dependsOn": ["build", "^build"],
 			"outputs": []
 		},
+		"test:parity": {
+			"dependsOn": ["build", "^build", "transit"],
+			"outputs": ["playwright-report/**", "test-results/**"],
+			"env": [
+				"REACT_STORYBOOK_URL",
+				"SVELTE_STORYBOOK_URL",
+				"VUE_STORYBOOK_URL",
+				"SOLID_STORYBOOK_URL",
+				"PARITY_FRAMEWORKS"
+			]
+		},
 		"bench": {
 			"dependsOn": ["build", "^build"],
 			"cache": false,

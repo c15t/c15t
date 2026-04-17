@@ -152,7 +152,7 @@ function handleOpenChange(details: { open: boolean }) {
 	unmountOnExit
 >
 	<Portal>
-		<Dialog.Backdrop class={noStyle ? '' : styles.overlay || ''} data-testid="consent-overlay" />
+		<Dialog.Backdrop class={noStyle ? '' : styles.overlay || ''} data-testid="consent-dialog-overlay" />
 		<Dialog.Positioner
 			class={noStyle
 				? ''

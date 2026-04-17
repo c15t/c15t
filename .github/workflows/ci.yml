@@ -115,3 +115,68 @@ jobs:
           retention-days: 7
           # Optional: Handle case where no files are found gracefully
           if-no-files-found: warn # 'warn', 'error', or 'ignore'
+
+  parity:
+    name: 🔀 Cross-framework parity
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: ⬇️ Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: 🟢 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: 📦 Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: 🎭 Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            playwright-browsers-${{ runner.os }}-
+
+      - name: 🎭 Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: bunx playwright install --with-deps chromium
+
+      - name: 🏗️ Build Storybooks
+        run: |
+          bun --cwd apps/storybook-react build
+          bun --cwd apps/storybook-svelte build
+
+      - name: 🌐 Serve Storybooks
+        run: |
+          bunx http-server apps/storybook-react/storybook-static --port 6006 --silent &
+          bunx http-server apps/storybook-svelte/storybook-static --port 6007 --silent &
+          # Wait for both to be reachable before continuing.
+          for port in 6006 6007; do
+            for i in {1..30}; do
+              if curl -s "http://127.0.0.1:$port/index.json" >/dev/null; then break; fi
+              sleep 1
+            done
+          done
+
+      - name: 🔀 Run parity suite
+        env:
+          REACT_STORYBOOK_URL: http://127.0.0.1:6006
+          SVELTE_STORYBOOK_URL: http://127.0.0.1:6007
+          PARITY_FRAMEWORKS: react,svelte
+        run: bun run test:parity
+
+      - name: ⬆️ Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/parity-runner/playwright-report/
+          retention-days: 7
