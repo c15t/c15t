@@ -77,20 +77,55 @@ devtools.destroy();
 
 ### TanStack DevTools Plugin
 
-Integrate with TanStack DevTools:
+Integrate c15t into TanStack Devtools with the same `render: <Panel />` pattern
+used by the official TanStack plugins:
 
 ```tsx
+import * as React from 'react';
+import { useRouter } from '@tanstack/react-router';
 import { TanStackDevtools } from '@tanstack/react-devtools';
-import { c15tDevtoolsPlugin } from '@c15t/dev-tools/tanstack';
+import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools';
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
+import { c15tDevtools } from '@c15t/dev-tools/tanstack';
 
-function App() {
+export function AppDevtools() {
+  const router = useRouter();
+
   return (
-    <>
-      <YourApp />
-      <TanStackDevtools plugins={[c15tDevtoolsPlugin()]} />
-    </>
+    <TanStackDevtools
+      plugins={[
+        {
+          name: 'TanStack Query',
+          render: <ReactQueryDevtoolsPanel />,
+        },
+        {
+          name: 'TanStack Router',
+          render: <TanStackRouterDevtoolsPanel router={router} />,
+        },
+        c15tDevtools({
+          defaultOpen: true,
+        }),
+      ]}
+    />
   );
 }
+```
+
+If you want full control over the plugin entry, you can also render the exported
+panel component directly:
+
+```tsx
+import { C15tTanStackDevtoolsPanel } from '@c15t/dev-tools/tanstack';
+
+<TanStackDevtools
+  plugins={[
+    {
+      id: 'c15t',
+      name: 'c15t',
+      render: <C15tTanStackDevtoolsPanel namespace="c15tStore" />,
+    },
+  ]}
+/>
 ```
 
 ## Console API

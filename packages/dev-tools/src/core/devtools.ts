@@ -22,7 +22,7 @@ import {
 	persistOverrides,
 } from './override-storage';
 import { createPanelRenderer } from './panel-renderer';
-import { clearElement, div } from './renderer';
+import { button, clearElement, div } from './renderer';
 import {
 	createStateManager,
 	type DevToolsPosition,
@@ -175,6 +175,153 @@ function createStateCopy(state: ConsentStoreState): Record<string, unknown> {
 			id: script.id,
 		})),
 		loadedScripts: state.loadedScripts,
+	};
+}
+
+interface EmbeddedTabsInstance {
+	element: HTMLElement;
+	setActiveTab: (tab: DevToolsTab) => void;
+	destroy: () => void;
+}
+
+const EMBEDDED_TABS: Array<{ id: DevToolsTab; label: string }> = [
+	{ id: 'location', label: 'Location' },
+	{ id: 'policy', label: 'Policy' },
+	{ id: 'consents', label: 'Consents' },
+	{ id: 'scripts', label: 'Scripts' },
+	{ id: 'iab', label: 'IAB' },
+	{ id: 'actions', label: 'Actions' },
+	{ id: 'events', label: 'Events' },
+];
+
+const EMBEDDED_THEME_VARIABLES: Record<string, string> = {
+	'--c15t-surface': '#1f222b',
+	'--c15t-surface-hover': '#272b35',
+	'--c15t-surface-muted': '#252933',
+	'--c15t-border': 'rgba(255, 255, 255, 0.08)',
+	'--c15t-border-hover': 'rgba(255, 255, 255, 0.16)',
+	'--c15t-text': '#eef2ff',
+	'--c15t-text-muted': '#99a2b3',
+	'--c15t-primary': '#8b5cf6',
+	'--c15t-primary-hover': '#7c3aed',
+	'--c15t-text-on-primary': '#f7f3ff',
+	'--c15t-shadow-sm': 'none',
+	'--c15t-shadow-md': 'none',
+	'--c15t-devtools-surface-elevated': '#1f222b',
+	'--c15t-devtools-surface-muted': '#272b35',
+	'--c15t-devtools-surface-subtle': '#181b22',
+	'--c15t-devtools-border-strong': 'rgba(255, 255, 255, 0.08)',
+	'--c15t-devtools-code-surface': '#15181f',
+	'--c15t-devtools-accent-soft': 'rgba(139, 92, 246, 0.18)',
+	'--c15t-devtools-focus-ring': '#8b5cf6',
+	'--c15t-devtools-badge-success-bg': 'rgba(16, 185, 129, 0.16)',
+	'--c15t-devtools-badge-error-bg': 'rgba(248, 113, 113, 0.18)',
+	'--c15t-devtools-badge-warning-bg': 'rgba(251, 191, 36, 0.18)',
+	'--c15t-devtools-badge-info-bg': 'rgba(96, 165, 250, 0.18)',
+	'--c15t-devtools-badge-neutral-bg': 'rgba(148, 163, 184, 0.16)',
+	'--c15t-devtools-embedded-tab-active-border': 'rgba(139, 92, 246, 0.55)',
+};
+
+function createEmbeddedTabs(options: {
+	activeTab: DevToolsTab;
+	onTabChange: (tab: DevToolsTab) => void;
+	disabledTabs?: DevToolsTab[];
+}): EmbeddedTabsInstance {
+	const { onTabChange, disabledTabs = [] } = options;
+	let activeTab = options.activeTab;
+	const buttons = new Map<DevToolsTab, HTMLButtonElement>();
+
+	const tabList = div({
+		role: 'tablist',
+		ariaLabel: 'DevTools tabs',
+		style: {
+			display: 'flex',
+			flexWrap: 'wrap',
+			gap: '0.5rem',
+			alignItems: 'center',
+			paddingBottom: '0.25rem',
+			borderBottom:
+				'1px solid var(--c15t-devtools-border-strong, rgba(255, 255, 255, 0.08))',
+		},
+	});
+
+	function applyButtonState(
+		tab: DevToolsTab,
+		buttonElement: HTMLButtonElement
+	): void {
+		const isActive = tab === activeTab;
+		const isDisabled = disabledTabs.includes(tab);
+
+		buttonElement.disabled = isDisabled;
+		buttonElement.setAttribute('aria-selected', isActive ? 'true' : 'false');
+		buttonElement.style.borderColor = isActive
+			? 'var(--c15t-devtools-embedded-tab-active-border, rgba(139, 92, 246, 0.55))'
+			: 'transparent';
+		buttonElement.style.backgroundColor = isActive
+			? 'var(--c15t-devtools-accent-soft, rgba(139, 92, 246, 0.18))'
+			: 'transparent';
+		buttonElement.style.color = isActive
+			? 'var(--c15t-text, #eef2ff)'
+			: 'var(--c15t-text-muted, #99a2b3)';
+		buttonElement.style.opacity = isDisabled ? '0.45' : '1';
+		buttonElement.style.cursor = isDisabled ? 'not-allowed' : 'pointer';
+		buttonElement.style.boxShadow = isActive
+			? 'inset 0 0 0 1px var(--c15t-devtools-embedded-tab-active-border, rgba(139, 92, 246, 0.55))'
+			: 'none';
+	}
+
+	for (const tab of EMBEDDED_TABS) {
+		const buttonElement = button({
+			role: 'tab',
+			text: tab.label,
+			onClick: () => {
+				if (disabledTabs.includes(tab.id)) {
+					return;
+				}
+				activeTab = tab.id;
+				for (const [tabId, tabButton] of buttons) {
+					applyButtonState(tabId, tabButton);
+				}
+				onTabChange(tab.id);
+			},
+			style: {
+				display: 'inline-flex',
+				alignItems: 'center',
+				justifyContent: 'center',
+				minHeight: '1.875rem',
+				padding: '0.3125rem 0.75rem',
+				border: '1px solid transparent',
+				borderRadius: '999px',
+				backgroundColor: 'transparent',
+				fontFamily: 'inherit',
+				fontSize: 'var(--c15t-devtools-font-size-xs, 0.75rem)',
+				fontWeight: '500',
+				lineHeight: '1.25',
+				transition:
+					'background-color var(--c15t-duration-fast, 100ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)), border-color var(--c15t-duration-fast, 100ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)), box-shadow var(--c15t-duration-fast, 100ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)), color var(--c15t-duration-fast, 100ms) var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1))',
+			},
+		});
+
+		if (tab.id === 'iab') {
+			buttonElement.title = 'Available when IAB TCF mode is enabled';
+		}
+
+		applyButtonState(tab.id, buttonElement);
+		buttons.set(tab.id, buttonElement);
+		tabList.appendChild(buttonElement);
+	}
+
+	return {
+		element: tabList,
+		setActiveTab: (tab) => {
+			activeTab = tab;
+			for (const [tabId, tabButton] of buttons) {
+				applyButtonState(tabId, tabButton);
+			}
+		},
+		destroy: () => {
+			buttons.clear();
+		},
 	};
 }
 
@@ -488,9 +635,11 @@ export function createDevToolsPanel(options: {
 	element: HTMLElement;
 	destroy: () => void;
 } {
-	const { namespace = 'c15tStore' } = options;
+	const { namespace = 'c15tStore', mode = 'standalone' } = options;
+	const isEmbedded = mode === 'embedded';
 	let detachInstrumentation: (() => void) | null = null;
 	let detachScriptDebug: (() => void) | null = null;
+	let contentArea: HTMLDivElement | null = null;
 
 	// Create state manager without floating button behavior
 	const stateManager = createStateManager({
@@ -527,6 +676,7 @@ export function createDevToolsPanel(options: {
 					});
 				}
 			}
+			renderActivePanel();
 		},
 		onDisconnect: () => {
 			stateManager.setConnected(false);
@@ -534,6 +684,7 @@ export function createDevToolsPanel(options: {
 			detachInstrumentation = null;
 			detachScriptDebug?.();
 			detachScriptDebug = null;
+			renderActivePanel();
 		},
 	});
 	const panelRenderer = createPanelRenderer({
@@ -570,30 +721,40 @@ export function createDevToolsPanel(options: {
 			display: 'flex',
 			flexDirection: 'column',
 			height: '100%',
-			fontFamily: 'var(--c15t-devtools-font-family)',
+			boxSizing: 'border-box',
+			gap: '0.75rem',
+			padding: '0.75rem',
+			fontFamily: 'inherit',
 			fontSize: 'var(--c15t-devtools-font-size-sm)',
-			color: 'var(--c15t-devtools-text)',
-			backgroundColor: 'var(--c15t-devtools-surface)',
+			color: isEmbedded ? 'var(--c15t-text, #eef2ff)' : 'inherit',
+			backgroundColor: 'transparent',
+			colorScheme: isEmbedded ? 'dark' : undefined,
+			...(isEmbedded ? EMBEDDED_THEME_VARIABLES : {}),
 		},
 	});
 
 	// Create content area (before tabs so we can pass render function)
-	const contentArea = div({
+	contentArea = div({
 		style: {
 			flex: '1',
+			minHeight: '0',
 			overflowY: 'auto',
 			overscrollBehavior: 'contain',
+			backgroundColor: 'transparent',
 		},
 	});
 
 	// Render active panel
 	function renderActivePanel(): void {
+		if (!contentArea) {
+			return;
+		}
 		const activeTab = syncTabs();
 		panelRenderer.renderPanel(contentArea, activeTab);
 	}
 
-	let tabsInstance: TabsInstance | null = null;
-	let iabDisabled = true;
+	let tabsInstance: EmbeddedTabsInstance | null = null;
+	let disabledTabsKey = '';
 
 	function getDisabledTabs(): DevToolsTab[] {
 		const disabledTabs: DevToolsTab[] = [];
@@ -606,16 +767,16 @@ export function createDevToolsPanel(options: {
 
 	function syncTabs(): DevToolsTab {
 		const disabledTabs = getDisabledTabs();
-		const nextIabDisabled = disabledTabs.includes('iab');
+		const nextDisabledTabsKey = disabledTabs.join('|');
 		let activeTab = stateManager.getState().activeTab;
 		if (disabledTabs.includes(activeTab)) {
 			activeTab = 'consents';
 			stateManager.setActiveTab(activeTab);
 		}
 
-		if (!tabsInstance || iabDisabled !== nextIabDisabled) {
+		if (!tabsInstance || disabledTabsKey !== nextDisabledTabsKey) {
 			tabsInstance?.destroy();
-			tabsInstance = createTabs({
+			tabsInstance = createEmbeddedTabs({
 				activeTab,
 				onTabChange: (tab) => {
 					stateManager.setActiveTab(tab);
@@ -623,9 +784,13 @@ export function createDevToolsPanel(options: {
 				},
 				disabledTabs,
 			});
-			iabDisabled = nextIabDisabled;
+			disabledTabsKey = nextDisabledTabsKey;
 			if (!tabsInstance.element.parentElement) {
-				container.appendChild(tabsInstance.element);
+				if (contentArea?.parentElement === container) {
+					container.insertBefore(tabsInstance.element, contentArea);
+				} else {
+					container.appendChild(tabsInstance.element);
+				}
 			}
 		} else {
 			tabsInstance.setActiveTab(activeTab);
