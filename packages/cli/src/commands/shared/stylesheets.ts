@@ -22,6 +22,7 @@ const CSS_ENTRYPOINT_CANDIDATES = [
 const LOCAL_CSS_IMPORT_RE =
 	/^\s*import(?:\s+[^'"]+\s+from\s+)?['"]([^'"]+\.css)['"];\s*$/gm;
 
+const CSS_IMPORT_RE = /^\s*@import\b.+;\s*$/;
 const TAILWIND_V4_IMPORT_RE = /^\s*@import\s+['"]tailwindcss['"];\s*$/;
 const TAILWIND_COMPONENTS_RE = /^\s*@tailwind\s+components\s*;\s*$/;
 const TAILWIND_UTILITIES_RE = /^\s*@tailwind\s+utilities\s*;\s*$/;
@@ -150,6 +151,31 @@ function findTopInsertionLineIndex(lines: string[]): number {
 	return index;
 }
 
+function findTailwindV4InsertionLineIndex(
+	lines: string[],
+	tailwindImportIndex: number
+): number {
+	let lastImportIndex = tailwindImportIndex;
+
+	for (let index = tailwindImportIndex + 1; index < lines.length; index += 1) {
+		const line = lines[index];
+		const trimmed = line?.trim() ?? '';
+
+		if (trimmed === '') {
+			continue;
+		}
+
+		if (CSS_IMPORT_RE.test(line ?? '')) {
+			lastImportIndex = index;
+			continue;
+		}
+
+		break;
+	}
+
+	return lastImportIndex + 1;
+}
+
 function insertImportsIntoCssContent(
 	content: string,
 	desiredImports: string[],
@@ -189,7 +215,10 @@ function insertImportsIntoCssContent(
 			TAILWIND_V4_IMPORT_RE.test(line)
 		);
 		if (tailwindImportIndex >= 0) {
-			insertionIndex = tailwindImportIndex + 1;
+			insertionIndex = findTailwindV4InsertionLineIndex(
+				filteredLines,
+				tailwindImportIndex
+			);
 		}
 	}
 

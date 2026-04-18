@@ -55,7 +55,7 @@ describe('updateAppStylesheetImports', () => {
 		);
 	});
 
-	it('inserts the Tailwind v4 stylesheet immediately after tailwindcss', async () => {
+	it('inserts the Tailwind v4 stylesheet at the end of the import block', async () => {
 		const { root } = await createProject({
 			'app/layout.tsx': [
 				"import './globals.css';",
@@ -67,6 +67,7 @@ describe('updateAppStylesheetImports', () => {
 			'app/globals.css': [
 				'@import "tailwindcss";',
 				'@import "tw-animate-css";',
+				'@import "fumadocs-ui/css/preset.css";',
 				'',
 				':root { color: #111827; }',
 			].join('\n'),
@@ -82,7 +83,7 @@ describe('updateAppStylesheetImports', () => {
 
 		expect(result.updated).toBe(true);
 		expect(content).toContain(
-			'@import "tailwindcss";\n@import "@c15t/nextjs/styles.css";\n@import "tw-animate-css";'
+			'@import "tailwindcss";\n@import "tw-animate-css";\n@import "fumadocs-ui/css/preset.css";\n@import "@c15t/nextjs/styles.css";'
 		);
 	});
 
