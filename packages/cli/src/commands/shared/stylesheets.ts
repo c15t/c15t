@@ -22,7 +22,7 @@ const CSS_ENTRYPOINT_CANDIDATES = [
 const LOCAL_CSS_IMPORT_RE =
 	/^\s*import(?:\s+[^'"]+\s+from\s+)?['"]([^'"]+\.css)['"];\s*$/gm;
 
-const CSS_IMPORT_RE = /^\s*@import\b.+;\s*$/;
+const CSS_IMPORT_RE = /^\s*@import\b.+;\s*(?:(?:\/\*.*\*\/|\/\/.*)\s*)?$/;
 const TAILWIND_V4_IMPORT_RE = /^\s*@import\s+['"]tailwindcss['"];\s*$/;
 const TAILWIND_COMPONENTS_RE = /^\s*@tailwind\s+components\s*;\s*$/;
 const TAILWIND_UTILITIES_RE = /^\s*@tailwind\s+utilities\s*;\s*$/;
@@ -160,8 +160,13 @@ function findTailwindV4InsertionLineIndex(
 	for (let index = tailwindImportIndex + 1; index < lines.length; index += 1) {
 		const line = lines[index];
 		const trimmed = line?.trim() ?? '';
+		const isStandaloneCommentLine =
+			/^\/\*.*\*\/\s*$/.test(trimmed) ||
+			/^\/\/.*\s*$/.test(trimmed) ||
+			/^\/\*.*\s*$/.test(trimmed) ||
+			/^\*\/\s*$/.test(trimmed);
 
-		if (trimmed === '') {
+		if (trimmed === '' || isStandaloneCommentLine) {
 			continue;
 		}
 
