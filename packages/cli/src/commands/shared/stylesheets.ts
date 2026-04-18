@@ -164,7 +164,7 @@ function findTailwindV4InsertionLineIndex(
 			/^\/\*.*\*\/\s*$/.test(trimmed) ||
 			/^\/\/.*\s*$/.test(trimmed) ||
 			/^\/\*.*\s*$/.test(trimmed) ||
-			/^\*\/\s*$/.test(trimmed);
+			/^\*(?:\/|$|\s(?!\{).*)$/.test(trimmed);
 
 		if (trimmed === '' || isStandaloneCommentLine) {
 			continue;
