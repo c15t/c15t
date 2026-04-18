@@ -9,7 +9,7 @@ The c15t backend optionally supports [IAB TCF v2.3](https://iabeurope.eu/transpa
 
 [Inth](https://inth.com), c15t's hosted platform, is IAB TCF certified. If you use Inth instead of self-hosting, the CMP ID is automatically provided to clients — no additional configuration needed.
 
-If you self-host, you need your own CMP registration with IAB Europe and must configure your CMP ID via `iab.cmpId`. Registering your own CMP may also involve IAB Europe fees, so check IAB Europe's current CMP registration terms and pricing before choosing this route. This value is returned to clients in the `/init` response so they use the correct CMP identity in TC Strings.
+If you self-host, you need your own CMP registration with IAB Europe and must configure your CMP ID via `iab.cmpId`. Registering your own CMP may also involve IAB Europe fees, so check IAB Europe's current CMP registration terms and pricing before choosing this route. The backend returns this value in the `/init` response so clients use the correct CMP identity in TC Strings.
 
 <Callout type="warn">
   A valid (non-zero) CMP ID is required for IAB TCF compliance. If neither the backend nor the client provides a CMP ID, IAB initialization will fail with an error.
@@ -28,13 +28,13 @@ export const c15t = c15tInstance({
   // ...
   iab: {
     enabled: true,
-    cmpId: 10,                  // your registered CMP ID (only set this when self-hosting or using your own CMP)
+    cmpId: Number('<YOUR_CMP_ID>'), // replace with your registered CMP ID
     vendorIds: [755, 52, 69],   // only include vendors you use
   },
 });
 ```
 
-The backend fetches the GVL from `https://gvl.inth.com` by default and caches it. The `/init` endpoint returns the filtered GVL and your CMP ID to the frontend.
+The backend fetches the GVL from `https://gvl.inth.com` by default and caches it. The `/init` endpoint returns the filtered GVL and your CMP ID to the frontend, so use the same `iab.cmpId` pattern in every self-hosted configuration.
 
 ## Custom GVL Endpoint
 
@@ -43,6 +43,7 @@ Point to your own GVL mirror:
 ```ts
 iab: {
   enabled: true,
+  cmpId: Number('<YOUR_CMP_ID>'), // replace with your registered CMP ID
   endpoint: 'https://your-gvl-mirror.com',
   vendorIds: [755, 52, 69],
 },
@@ -58,6 +59,7 @@ import gvlDe from './gvl/de.json';
 
 iab: {
   enabled: true,
+  cmpId: Number('<YOUR_CMP_ID>'), // replace with your registered CMP ID
   bundled: {
     en: gvlEn,
     de: gvlDe,
@@ -76,6 +78,7 @@ Add your own vendors alongside IAB-registered ones:
 ```ts
 iab: {
   enabled: true,
+  cmpId: Number('<YOUR_CMP_ID>'), // replace with your registered CMP ID
   vendorIds: [755],
   customVendors: [
     {
