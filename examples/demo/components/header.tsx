@@ -62,6 +62,12 @@ export function Header() {
 						>
 							Terms Demo
 						</a>
+						<a
+							href="/tanstack-devtools"
+							className="text-muted-foreground text-sm transition-colors hover:text-foreground"
+						>
+							TanStack Devtools
+						</a>
 					</nav>
 
 					<div className="flex items-center gap-4">
