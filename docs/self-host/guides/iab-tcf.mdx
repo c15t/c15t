@@ -7,16 +7,16 @@ The c15t backend optionally supports [IAB TCF v2.3](https://iabeurope.eu/transpa
 
 ## CMP Registration
 
-[inth.com](https://inth.com) is pending validation as an IAB Europe-registered CMP for c15t. Once approved, when using inth.com as your hosted backend, the CMP ID will be automatically provided to clients — no additional configuration needed.
+[Inth](https://inth.com), c15t's hosted platform, is IAB TCF certified. If you use Inth instead of self-hosting, the CMP ID is automatically provided to clients — no additional configuration needed.
 
-If you self-host and have your own CMP registration with IAB Europe, configure your CMP ID via `iab.cmpId`. This value is returned to clients in the `/init` response so they use the correct CMP identity in TC Strings.
+If you self-host, you need your own CMP registration with IAB Europe and must configure your CMP ID via `iab.cmpId`. Registering your own CMP may also involve IAB Europe fees, so check IAB Europe's current CMP registration terms and pricing before choosing this route. This value is returned to clients in the `/init` response so they use the correct CMP identity in TC Strings.
 
 <Callout type="warn">
   A valid (non-zero) CMP ID is required for IAB TCF compliance. If neither the backend nor the client provides a CMP ID, IAB initialization will fail with an error.
 </Callout>
 
 <Callout type="warn">
-  If you heavily customize or build your own IAB banner or dialog (rather than using the default `IABConsentBanner` and `IABConsentDialog` components provided by c15t), you cannot use inth.com's CMP ID. You must register your own CMP with [IAB Europe](https://iabeurope.eu/tcf-2-0/) and configure your CMP ID via `iab.cmpId`.
+  If you heavily customize or build your own IAB banner or dialog instead of using the default `IABConsentBanner` and `IABConsentDialog` components provided by c15t, you cannot use Inth's CMP ID. You must register your own CMP with [IAB Europe](https://iabeurope.eu/tcf-2-0/) and configure your CMP ID via `iab.cmpId`.
 </Callout>
 
 ## Enable IAB
@@ -28,7 +28,7 @@ export const c15t = c15tInstance({
   // ...
   iab: {
     enabled: true,
-    cmpId: 10,                  // your registered CMP ID (inth.com provides this automatically)
+    cmpId: 10,                  // your registered CMP ID (only set this when self-hosting or using your own CMP)
     vendorIds: [755, 52, 69],   // only include vendors you use
   },
 });
