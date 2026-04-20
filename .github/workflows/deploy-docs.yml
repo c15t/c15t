@@ -36,21 +36,8 @@ jobs:
       github.event.action != 'closed' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    env:
-      DOCS_DEPLOY_TOKEN: ${{ secrets.DOCS_DEPLOY_TOKEN }}
-      DOCS_REPO: ${{ secrets.DOCS_REPO }}
     steps:
-      - name: 🔎 Check docs deploy configuration
-        id: docs-config
-        run: |
-          if [ -n "$DOCS_DEPLOY_TOKEN" ] && [ -n "$DOCS_REPO" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: 📤 Trigger docs preview
-        if: steps.docs-config.outputs.enabled == 'true'
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
@@ -66,18 +53,10 @@ jobs:
             }
 
       - name: 📝 Summary
-        if: steps.docs-config.outputs.enabled == 'true'
         run: |
           echo "### 🔄 Docs Preview Triggered" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "A preview deployment has been triggered. Watch for a comment on this PR with the preview URL." >> $GITHUB_STEP_SUMMARY
-
-      - name: 📝 Skip summary
-        if: steps.docs-config.outputs.enabled != 'true'
-        run: |
-          echo "### ℹ️ Docs Preview Skipped" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "DOCS_DEPLOY_TOKEN or DOCS_REPO is not configured for this repository." >> $GITHUB_STEP_SUMMARY
 
   notify-close:
     name: 🧹 Notify PR Closed
@@ -86,21 +65,8 @@ jobs:
       github.event.action == 'closed' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    env:
-      DOCS_DEPLOY_TOKEN: ${{ secrets.DOCS_DEPLOY_TOKEN }}
-      DOCS_REPO: ${{ secrets.DOCS_REPO }}
     steps:
-      - name: 🔎 Check docs deploy configuration
-        id: docs-config
-        run: |
-          if [ -n "$DOCS_DEPLOY_TOKEN" ] && [ -n "$DOCS_REPO" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: 📤 Notify docs repo of PR close
-        if: steps.docs-config.outputs.enabled == 'true'
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
@@ -115,47 +81,18 @@ jobs:
               "action": "closed"
             }
 
-      - name: 📝 Summary
-        if: steps.docs-config.outputs.enabled == 'true'
-        run: |
-          echo "### 🧹 Docs Preview Cleanup Triggered" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "A close notification was sent via peter-evans/repository-dispatch@v3 for this PR preview." >> $GITHUB_STEP_SUMMARY
-
-      - name: 📝 Skip summary
-        if: steps.docs-config.outputs.enabled != 'true'
-        run: |
-          echo "### ℹ️ Docs Preview Cleanup Skipped" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "notify-close skipped because DOCS_DEPLOY_TOKEN or DOCS_REPO is not configured for this repository." >> $GITHUB_STEP_SUMMARY
-
   # ============================================================================
   # MANUAL PREVIEW DEPLOYMENT (workflow_dispatch with PR number)
   # ============================================================================
   trigger-manual-preview:
     name: 🔍 Trigger Manual Preview
-    if: >-
-      github.event_name == 'workflow_dispatch' &&
-      github.event.inputs.environment == 'preview'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'preview'
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
-    env:
-      DOCS_DEPLOY_TOKEN: ${{ secrets.DOCS_DEPLOY_TOKEN }}
-      DOCS_REPO: ${{ secrets.DOCS_REPO }}
     steps:
-      - name: 🔎 Check docs deploy configuration
-        id: docs-config
-        run: |
-          if [ -n "$DOCS_DEPLOY_TOKEN" ] && [ -n "$DOCS_REPO" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: 📋 Get PR information
         id: pr-info
-        if: steps.docs-config.outputs.enabled == 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -178,7 +115,6 @@ jobs:
             core.setOutput('action', 'opened');
 
       - name: 📤 Trigger docs preview
-        if: steps.docs-config.outputs.enabled == 'true'
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
@@ -194,7 +130,6 @@ jobs:
             }
 
       - name: 📝 Summary
-        if: steps.docs-config.outputs.enabled == 'true'
         run: |
           echo "### 🔄 Manual Docs Preview Triggered" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -205,37 +140,15 @@ jobs:
           echo "**Branch:** ${{ steps.pr-info.outputs.branch }}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ steps.pr-info.outputs.sha }}" >> $GITHUB_STEP_SUMMARY
 
-      - name: 📝 Skip summary
-        if: steps.docs-config.outputs.enabled != 'true'
-        run: |
-          echo "### ℹ️ Manual Docs Preview Skipped" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "DOCS_DEPLOY_TOKEN or DOCS_REPO is not configured for this repository." >> $GITHUB_STEP_SUMMARY
-
   # ============================================================================
   # PRODUCTION DEPLOYMENT (main → c15t.com)
   # ============================================================================
   trigger-production:
     name: 🚀 Trigger Production
-    if: >-
-      github.event_name == 'workflow_dispatch' &&
-      github.event.inputs.environment == 'production'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
     runs-on: ubuntu-latest
-    env:
-      DOCS_DEPLOY_TOKEN: ${{ secrets.DOCS_DEPLOY_TOKEN }}
-      DOCS_REPO: ${{ secrets.DOCS_REPO }}
     steps:
-      - name: 🔎 Check docs deploy configuration
-        id: docs-config
-        run: |
-          if [ -n "$DOCS_DEPLOY_TOKEN" ] && [ -n "$DOCS_REPO" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: 📤 Trigger production deploy
-        if: steps.docs-config.outputs.enabled == 'true'
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
@@ -249,7 +162,6 @@ jobs:
             }
 
       - name: 📝 Summary
-        if: steps.docs-config.outputs.enabled == 'true'
         run: |
           echo "### 🚀 Production Deploy Triggered" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -257,37 +169,15 @@ jobs:
           echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
 
-      - name: 📝 Skip summary
-        if: steps.docs-config.outputs.enabled != 'true'
-        run: |
-          echo "### ℹ️ Production Deploy Skipped" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "DOCS_DEPLOY_TOKEN or DOCS_REPO is not configured for this repository." >> $GITHUB_STEP_SUMMARY
-
   # ============================================================================
   # STAGING DEPLOYMENT (staging → canary.c15t.com)
   # ============================================================================
   trigger-staging:
     name: 🧪 Trigger Staging
-    if: >-
-      github.event_name == 'workflow_dispatch' &&
-      github.event.inputs.environment == 'staging'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'
     runs-on: ubuntu-latest
-    env:
-      DOCS_DEPLOY_TOKEN: ${{ secrets.DOCS_DEPLOY_TOKEN }}
-      DOCS_REPO: ${{ secrets.DOCS_REPO }}
     steps:
-      - name: 🔎 Check docs deploy configuration
-        id: docs-config
-        run: |
-          if [ -n "$DOCS_DEPLOY_TOKEN" ] && [ -n "$DOCS_REPO" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: 📤 Trigger staging deploy
-        if: steps.docs-config.outputs.enabled == 'true'
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
@@ -301,17 +191,9 @@ jobs:
             }
 
       - name: 📝 Summary
-        if: steps.docs-config.outputs.enabled == 'true'
         run: |
           echo "### 🧪 Staging Deploy Triggered" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Target:** https://canary.c15t.com/docs" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-
-      - name: 📝 Skip summary
-        if: steps.docs-config.outputs.enabled != 'true'
-        run: |
-          echo "### ℹ️ Staging Deploy Skipped" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "DOCS_DEPLOY_TOKEN or DOCS_REPO is not configured for this repository." >> $GITHUB_STEP_SUMMARY
