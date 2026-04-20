@@ -20,6 +20,7 @@ type ThemeContextValue = {
 };
 
 const STORAGE_KEY = 'c15t-example-demo-theme';
+const TRANSITION_STYLE_ID = 'c15t-disable-transitions';
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
@@ -36,6 +37,32 @@ function getSystemTheme(): ResolvedTheme {
 function applyTheme(theme: ResolvedTheme) {
 	document.documentElement.classList.toggle('dark', theme === 'dark');
 	document.documentElement.style.colorScheme = theme;
+}
+
+export function disableTransitionsTemporarily() {
+	if (typeof window === 'undefined') {
+		return;
+	}
+
+	const existingStyle = document.getElementById(TRANSITION_STYLE_ID);
+
+	if (existingStyle) {
+		existingStyle.remove();
+	}
+
+	const style = document.createElement('style');
+	style.id = TRANSITION_STYLE_ID;
+	style.textContent =
+		'* , *::before, *::after { transition: none !important; animation: none !important; }';
+	document.head.appendChild(style);
+
+	void window.getComputedStyle(document.body).opacity;
+
+	window.requestAnimationFrame(() => {
+		window.requestAnimationFrame(() => {
+			style.remove();
+		});
+	});
 }
 
 function resolveInitialTheme(
@@ -120,6 +147,7 @@ export function ThemeProvider({
 			theme,
 			resolvedTheme,
 			setTheme: (nextTheme) => {
+				disableTransitionsTemporarily();
 				setThemeState(nextTheme);
 				setResolvedTheme(resolveThemeMode(nextTheme, enableSystem));
 				window.localStorage.setItem(STORAGE_KEY, nextTheme);

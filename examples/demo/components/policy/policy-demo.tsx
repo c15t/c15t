@@ -6,20 +6,24 @@ import {
 	ConsentDialog,
 	ConsentManagerProvider,
 	policyPackPresets,
-	type Theme,
 	useConsentManager,
 } from '@c15t/react';
 import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
 	DEFAULT_DEMO_POLICY_EXAMPLE,
 	demoI18nMessages,
 } from '../../lib/policies';
+import {
+	ThemeSwitcherButton,
+	useThemePreset,
+} from '../consent-manager/theme-switcher';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { VideoDemo } from '../video-demo';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -357,44 +361,6 @@ const offlinePoliciesByExample = {
 	'preset-world-no-banner': [policyPackPresets.worldNoBanner()],
 } as const;
 
-const policyDemoTheme: Theme = {
-	consentActions: {
-		default: {
-			mode: 'stroke',
-		},
-		customize: {
-			variant: 'primary',
-		},
-	},
-	slots: {
-		consentBannerTag: {
-			style: {
-				borderRadius: '0',
-			},
-		},
-		consentDialogTag: {
-			style: {
-				borderRadius: '0',
-			},
-		},
-		consentWidgetTag: {
-			style: {
-				borderRadius: '0',
-			},
-		},
-		iabConsentBannerTag: {
-			style: {
-				borderRadius: '0',
-			},
-		},
-		iabConsentDialogTag: {
-			style: {
-				borderRadius: '0',
-			},
-		},
-	},
-};
-
 // ---------------------------------------------------------------------------
 // Search param helpers
 // ---------------------------------------------------------------------------
@@ -405,9 +371,9 @@ function parseSearchParams(searchParams: URLSearchParams): {
 	country: string;
 	region: string;
 } {
-	const example = searchParams.get('example') ?? 'custom-de-strict';
+	const example = searchParams.get('example') ?? DEFAULT_DEMO_POLICY_EXAMPLE;
 	const mode = searchParams.get('mode') === 'hosted' ? 'hosted' : 'offline';
-	const country = (searchParams.get('country') ?? 'DE').toUpperCase();
+	const country = (searchParams.get('country') ?? 'GB').toUpperCase();
 	const region = (searchParams.get('region') ?? '').toUpperCase();
 	return { example, mode, country, region };
 }
@@ -419,7 +385,9 @@ function buildSearchString(
 	region: string
 ): string {
 	const params = new URLSearchParams();
-	if (example && example !== 'custom-de-strict') params.set('example', example);
+	if (example && example !== DEFAULT_DEMO_POLICY_EXAMPLE) {
+		params.set('example', example);
+	}
 	if (mode !== 'offline') params.set('mode', mode);
 	if (country) params.set('country', country);
 	if (region) params.set('region', region);
@@ -443,6 +411,7 @@ function JsonBlock({ label, value }: { label: string; value: unknown }) {
 // ---------------------------------------------------------------------------
 
 function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
+	const [mounted, setMounted] = useState(false);
 	const {
 		activeUI,
 		consentInfo,
@@ -462,6 +431,10 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 		translationConfig,
 		initDataSource,
 	} = useConsentManager();
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
 
 	const policy = lastBannerFetchData?.policy;
 	const policyDecision = lastBannerFetchData?.policyDecision;
@@ -514,42 +487,93 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 		consents,
 	};
 
+	const displayPolicySummary = mounted
+		? policySummary
+		: {
+				id: null,
+				model: null,
+				mode: demoMode,
+				matchedBy: null,
+				uiMode: 'none',
+				iabEnabled: false,
+				source: null,
+				location: {
+					country: null,
+					region: null,
+				},
+				scopeMode: null,
+				categories: [],
+				messageProfile: 'default',
+				language: {
+					resolved: 'en',
+					requested: 'auto',
+					allowed: [],
+				},
+				actionLayout: {
+					layout: null,
+					direction: null,
+					uiProfile: null,
+				},
+			};
+
+	const displayRuntimeState = mounted
+		? {
+				...runtimeState,
+				policyDecision,
+			}
+		: {
+				activeUI: 'none',
+				hasSavedConsent: false,
+				consents: null,
+				policyDecision: null,
+			};
+
+	const displayPolicyId = mounted ? (policy?.id ?? 'no policy') : 'no policy';
+	const displayModel = mounted ? (model ?? 'none') : 'none';
+	const displayLocationCountry = mounted
+		? (locationInfo?.countryCode ?? '--')
+		: '--';
+	const displayLocationRegion = mounted ? (locationInfo?.regionCode ?? '') : '';
+	const displaySource = mounted ? (initDataSource ?? 'unknown') : 'unknown';
+	const displayResolvedLanguage = mounted ? resolvedLanguage : 'en';
+	const displayRequestedLanguage = mounted ? requestedLanguage : 'auto';
+	const displayLayoutText = mounted ? layoutText : 'default';
+	const displayAllowedLanguages = mounted ? allowedLanguages : [];
+
 	return (
 		<div className="space-y-6">
 			<div className="grid gap-3 text-sm sm:grid-cols-2">
 				<div className="border-b border-border/70 pb-2">
 					<p className="label-pixel text-muted-foreground">Policy</p>
-					<p className="mt-1 font-mono text-xs">{policy?.id ?? 'no policy'}</p>
+					<p className="mt-1 font-mono text-xs">{displayPolicyId}</p>
 				</div>
 				<div className="border-b border-border/70 pb-2">
 					<p className="label-pixel text-muted-foreground">Model</p>
-					<p className="mt-1 font-mono text-xs">{model ?? 'none'}</p>
+					<p className="mt-1 font-mono text-xs">{displayModel}</p>
 				</div>
 				<div className="border-b border-border/70 pb-2">
 					<p className="label-pixel text-muted-foreground">Location</p>
 					<p className="mt-1 font-mono text-xs">
-						{locationInfo?.countryCode ?? '--'}
-						{locationInfo?.regionCode ? `-${locationInfo.regionCode}` : ''}
+						{displayLocationCountry}
+						{displayLocationRegion ? `-${displayLocationRegion}` : ''}
 					</p>
 				</div>
 				<div className="border-b border-border/70 pb-2">
 					<p className="label-pixel text-muted-foreground">Source</p>
-					<p className="mt-1 font-mono text-xs">
-						{initDataSource ?? 'unknown'}
-					</p>
+					<p className="mt-1 font-mono text-xs">{displaySource}</p>
 				</div>
 				<div className="border-b border-border/70 pb-2">
 					<p className="label-pixel text-muted-foreground">Language</p>
 					<p className="mt-1 font-mono text-xs">
-						{resolvedLanguage}
-						{requestedLanguage !== 'auto'
-							? ` / requested ${requestedLanguage}`
+						{displayResolvedLanguage}
+						{displayRequestedLanguage !== 'auto'
+							? ` / requested ${displayRequestedLanguage}`
 							: ' / auto'}
 					</p>
 				</div>
 				<div className="border-b border-border/70 pb-2">
 					<p className="label-pixel text-muted-foreground">Layout</p>
-					<p className="mt-1 font-mono text-xs">{layoutText}</p>
+					<p className="mt-1 font-mono text-xs">{displayLayoutText}</p>
 				</div>
 			</div>
 
@@ -580,7 +604,7 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 					})}
 				</div>
 				<p className="text-xs text-muted-foreground">
-					Allowed for this profile: {allowedLanguages.join(', ')}
+					Allowed for this profile: {displayAllowedLanguages.join(', ')}
 				</p>
 			</div>
 
@@ -622,14 +646,8 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 				</Button>
 			</div>
 
-			<JsonBlock label="Resolved policy" value={policySummary} />
-			<JsonBlock
-				label="Runtime state"
-				value={{
-					...runtimeState,
-					policyDecision,
-				}}
-			/>
+			<JsonBlock label="Resolved policy" value={displayPolicySummary} />
+			<JsonBlock label="Runtime state" value={displayRuntimeState} />
 		</div>
 	);
 }
@@ -642,6 +660,7 @@ export function PolicyDemo() {
 	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
+	const { theme: presetTheme } = useThemePreset();
 
 	const {
 		example,
@@ -752,28 +771,25 @@ export function PolicyDemo() {
 						</p>
 					</div>
 
-					<nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
-						<Link
-							href="/policy-actions"
-							className="underline-offset-4 transition hover:text-foreground hover:underline"
-						>
-							Policy actions
-						</Link>
-						<Link
-							href="/terms"
-							className="underline-offset-4 transition hover:text-foreground hover:underline"
-						>
-							Terms flow
-						</Link>
-						<a
-							href="https://c15t.com/docs"
-							target="_blank"
-							rel="noreferrer"
-							className="underline-offset-4 transition hover:text-foreground hover:underline"
-						>
-							Docs
-						</a>
-					</nav>
+					<div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+						<nav className="flex flex-wrap gap-x-5 gap-y-2">
+							<Link
+								href="/policy-actions"
+								className="underline-offset-4 transition hover:text-foreground hover:underline"
+							>
+								Policy actions
+							</Link>
+							<a
+								href="https://c15t.com/docs"
+								target="_blank"
+								rel="noreferrer"
+								className="underline-offset-4 transition hover:text-foreground hover:underline"
+							>
+								Docs
+							</a>
+						</nav>
+						<ThemeSwitcherButton />
+					</div>
 				</header>
 
 				<ConsentManagerProvider
@@ -786,7 +802,7 @@ export function PolicyDemo() {
 									consentCategories: categories,
 									iab: iabConfig,
 									overrides,
-									theme: policyDemoTheme,
+									theme: presetTheme,
 								}
 							: {
 									mode: 'offline',
@@ -800,7 +816,7 @@ export function PolicyDemo() {
 									consentCategories: categories,
 									iab: iabConfig,
 									overrides,
-									theme: policyDemoTheme,
+									theme: presetTheme,
 								}
 					}
 				>
@@ -919,6 +935,8 @@ export function PolicyDemo() {
 									</div>
 								</div>
 							</div>
+
+							<VideoDemo inline />
 						</section>
 
 						<section className="space-y-6 border-t border-border/80 pt-8 lg:border-t-0 lg:border-l lg:pl-8 lg:pt-0">
