@@ -114,16 +114,18 @@ function executeStep(step: ManifestStep): void {
 				break;
 			}
 
-			win[step.name] = function queueFunction(
-				this: unknown,
-				...args: unknown[]
-			) {
+			win[step.name] = function queueFunction(this: unknown) {
 				const queueTarget = win[step.queue];
 				if (!Array.isArray(queueTarget)) {
 					return;
 				}
 
-				queueTarget.push(step.pushStyle === 'array' ? [...args] : args);
+				const runtimeArgs = Array.from(arguments);
+				queueTarget.push(
+					step.pushStyle === 'array'
+						? runtimeArgs
+						: (arguments as unknown as IArguments)
+				);
 			};
 			break;
 		}
