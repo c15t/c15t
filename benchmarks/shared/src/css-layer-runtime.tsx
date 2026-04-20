@@ -31,13 +31,11 @@ function ForceSurface({ surface }: { surface: CssLayerSurface }) {
 
 function ScenarioSurface({ scenario }: { scenario: CssLayerScenario }) {
 	if (scenario.surface === 'banner') {
-		const bannerProps = (scenario.surfaceProps.banner ??
-			{}) as ConsentBannerProps;
+		const bannerProps: ConsentBannerProps = scenario.surfaceProps.banner ?? {};
 		return <ConsentBanner {...bannerProps} />;
 	}
 
-	const dialogProps = (scenario.surfaceProps.dialog ??
-		{}) as ConsentDialogProps;
+	const dialogProps: ConsentDialogProps = scenario.surfaceProps.dialog ?? {};
 	return <ConsentDialog {...dialogProps} />;
 }
 

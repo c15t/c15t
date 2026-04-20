@@ -115,6 +115,20 @@ jobs:
               "action": "closed"
             }
 
+      - name: 📝 Summary
+        if: steps.docs-config.outputs.enabled == 'true'
+        run: |
+          echo "### 🧹 Docs Preview Cleanup Triggered" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "A close notification was sent via peter-evans/repository-dispatch@v3 for this PR preview." >> $GITHUB_STEP_SUMMARY
+
+      - name: 📝 Skip summary
+        if: steps.docs-config.outputs.enabled != 'true'
+        run: |
+          echo "### ℹ️ Docs Preview Cleanup Skipped" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "notify-close skipped because DOCS_DEPLOY_TOKEN or DOCS_REPO is not configured for this repository." >> $GITHUB_STEP_SUMMARY
+
   # ============================================================================
   # MANUAL PREVIEW DEPLOYMENT (workflow_dispatch with PR number)
   # ============================================================================
