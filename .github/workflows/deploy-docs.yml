@@ -34,6 +34,8 @@ jobs:
     if: >-
       github.event_name == 'pull_request_target' &&
       github.event.action != 'closed' &&
+      secrets.DOCS_DEPLOY_TOKEN != '' &&
+      secrets.DOCS_REPO != '' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
@@ -63,6 +65,8 @@ jobs:
     if: >-
       github.event_name == 'pull_request_target' &&
       github.event.action == 'closed' &&
+      secrets.DOCS_DEPLOY_TOKEN != '' &&
+      secrets.DOCS_REPO != '' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
@@ -86,7 +90,11 @@ jobs:
   # ============================================================================
   trigger-manual-preview:
     name: 🔍 Trigger Manual Preview
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'preview'
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.environment == 'preview' &&
+      secrets.DOCS_DEPLOY_TOKEN != '' &&
+      secrets.DOCS_REPO != ''
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
@@ -145,7 +153,11 @@ jobs:
   # ============================================================================
   trigger-production:
     name: 🚀 Trigger Production
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.environment == 'production' &&
+      secrets.DOCS_DEPLOY_TOKEN != '' &&
+      secrets.DOCS_REPO != ''
     runs-on: ubuntu-latest
     steps:
       - name: 📤 Trigger production deploy
@@ -174,7 +186,11 @@ jobs:
   # ============================================================================
   trigger-staging:
     name: 🧪 Trigger Staging
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.environment == 'staging' &&
+      secrets.DOCS_DEPLOY_TOKEN != '' &&
+      secrets.DOCS_REPO != ''
     runs-on: ubuntu-latest
     steps:
       - name: 📤 Trigger staging deploy

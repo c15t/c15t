@@ -251,6 +251,7 @@
       "name": "@c15t/script-lifecycle-bench",
       "dependencies": {
         "@c15t/benchmarking": "workspace:*",
+        "@c15t/react": "workspace:*",
         "c15t": "workspace:*",
         "next": "16.1.4",
         "react": "19.2.3",

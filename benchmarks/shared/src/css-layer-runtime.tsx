@@ -2,7 +2,9 @@
 
 import {
 	ConsentBanner,
+	type ConsentBannerProps,
 	ConsentDialog,
+	type ConsentDialogProps,
 	ConsentManagerProvider,
 	useConsentManager,
 } from '@c15t/react';
@@ -29,10 +31,14 @@ function ForceSurface({ surface }: { surface: CssLayerSurface }) {
 
 function ScenarioSurface({ scenario }: { scenario: CssLayerScenario }) {
 	if (scenario.surface === 'banner') {
-		return <ConsentBanner {...scenario.surfaceProps.banner} />;
+		const bannerProps = (scenario.surfaceProps.banner ??
+			{}) as ConsentBannerProps;
+		return <ConsentBanner {...bannerProps} />;
 	}
 
-	return <ConsentDialog {...scenario.surfaceProps.dialog} />;
+	const dialogProps = (scenario.surfaceProps.dialog ??
+		{}) as ConsentDialogProps;
+	return <ConsentDialog {...dialogProps} />;
 }
 
 export function CssLayerScenarioRenderer({
