@@ -4,21 +4,19 @@ import { iab } from '@c15t/iab';
 import {
 	ConsentBanner,
 	ConsentDialog,
-	ConsentDialogTrigger,
 	ConsentManagerProvider,
 	policyPackPresets,
 	type Theme,
 	useConsentManager,
 } from '@c15t/react';
 import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
-import { Cloud, Globe, Laptop, MapPin, RotateCcw } from 'lucide-react';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 import {
 	DEFAULT_DEMO_POLICY_EXAMPLE,
 	demoI18nMessages,
 } from '../../lib/policies';
-import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -429,12 +427,26 @@ function buildSearchString(
 	return str ? `?${str}` : '';
 }
 
+function JsonBlock({ label, value }: { label: string; value: unknown }) {
+	return (
+		<div className="space-y-2">
+			<p className="label-pixel text-muted-foreground">{label}</p>
+			<pre className="overflow-x-auto rounded-xl border border-border/80 bg-muted/20 p-3 font-mono text-[12px] leading-5 text-foreground/90">
+				{JSON.stringify(value ?? null, null, 2)}
+			</pre>
+		</div>
+	);
+}
+
 // ---------------------------------------------------------------------------
 // Runtime state panel
 // ---------------------------------------------------------------------------
 
 function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 	const {
+		activeUI,
+		consentInfo,
+		consents,
 		iab,
 		initConsentManager,
 		lastBannerFetchData,
@@ -469,97 +481,80 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 		layoutText = JSON.stringify(bannerUi.layout);
 	}
 
-	return (
-		<div className="space-y-4">
-			<div className="flex flex-wrap gap-1.5">
-				<Badge variant="outline" className="font-mono text-xs">
-					{policy?.id ?? 'no policy'}
-				</Badge>
-				<Badge variant="secondary" className="text-xs">
-					{model ?? 'none'}
-				</Badge>
-				<Badge variant="secondary" className="text-xs">
-					matched: {policyDecision?.matchedBy ?? 'n/a'}
-				</Badge>
-				{policy?.ui?.mode && policy.ui.mode !== 'none' && (
-					<Badge variant="secondary" className="text-xs">
-						ui: {policy.ui.mode}
-					</Badge>
-				)}
-				{iab?.config.enabled && (
-					<Badge variant="secondary" className="text-xs">
-						IAB
-					</Badge>
-				)}
-				<Badge
-					variant={demoMode === 'hosted' ? 'default' : 'outline'}
-					className="text-xs"
-				>
-					{demoMode === 'hosted' ? 'hosted' : 'offline'}
-				</Badge>
-			</div>
+	const policySummary = {
+		id: policy?.id ?? null,
+		model: model ?? null,
+		mode: demoMode,
+		matchedBy: policyDecision?.matchedBy ?? null,
+		uiMode: policy?.ui?.mode ?? 'none',
+		iabEnabled: iab?.config.enabled ?? false,
+		source: initDataSource ?? null,
+		location: {
+			country: locationInfo?.countryCode ?? null,
+			region: locationInfo?.regionCode ?? null,
+		},
+		scopeMode: policyScopeMode ?? null,
+		categories: policyCategories ?? [],
+		messageProfile: activeProfile,
+		language: {
+			resolved: resolvedLanguage,
+			requested: requestedLanguage,
+			allowed: allowedLanguages,
+		},
+		actionLayout: {
+			layout: bannerUi?.layout ?? null,
+			direction: bannerUi?.direction ?? null,
+			uiProfile: bannerUi?.uiProfile ?? null,
+		},
+	};
 
+	const runtimeState = {
+		activeUI,
+		hasSavedConsent: consentInfo != null,
+		consents,
+	};
+
+	return (
+		<div className="space-y-6">
 			<div className="grid gap-3 text-sm sm:grid-cols-2">
-				<div>
-					<span className="text-muted-foreground text-xs">Location</span>
-					<p className="font-mono text-sm">
+				<div className="border-b border-border/70 pb-2">
+					<p className="label-pixel text-muted-foreground">Policy</p>
+					<p className="mt-1 font-mono text-xs">{policy?.id ?? 'no policy'}</p>
+				</div>
+				<div className="border-b border-border/70 pb-2">
+					<p className="label-pixel text-muted-foreground">Model</p>
+					<p className="mt-1 font-mono text-xs">{model ?? 'none'}</p>
+				</div>
+				<div className="border-b border-border/70 pb-2">
+					<p className="label-pixel text-muted-foreground">Location</p>
+					<p className="mt-1 font-mono text-xs">
 						{locationInfo?.countryCode ?? '--'}
 						{locationInfo?.regionCode ? `-${locationInfo.regionCode}` : ''}
 					</p>
 				</div>
-				<div>
-					<span className="text-muted-foreground text-xs">Scope</span>
-					<p className="font-mono text-sm">{policyScopeMode ?? 'permissive'}</p>
-				</div>
-				<div>
-					<span className="text-muted-foreground text-xs">Source</span>
-					<p className="font-mono text-sm">{initDataSource ?? 'unknown'}</p>
-				</div>
-				<div>
-					<span className="text-muted-foreground text-xs">Categories</span>
-					<p className="font-mono text-sm">
-						{policyCategories?.length ? policyCategories.join(', ') : 'all'}
+				<div className="border-b border-border/70 pb-2">
+					<p className="label-pixel text-muted-foreground">Source</p>
+					<p className="mt-1 font-mono text-xs">
+						{initDataSource ?? 'unknown'}
 					</p>
 				</div>
-				<div>
-					<span className="text-muted-foreground text-xs">Action Layout</span>
-					<p className="font-mono text-sm">{layoutText}</p>
-				</div>
-				<div>
-					<span className="text-muted-foreground text-xs">Direction</span>
-					<p className="font-mono text-sm">{bannerUi?.direction ?? 'row'}</p>
-				</div>
-				<div>
-					<span className="text-muted-foreground text-xs">Message Profile</span>
-					<p className="font-mono text-sm">{activeProfile}</p>
-				</div>
-				<div>
-					<span className="text-muted-foreground text-xs">Language</span>
-					<p className="font-mono text-sm">
+				<div className="border-b border-border/70 pb-2">
+					<p className="label-pixel text-muted-foreground">Language</p>
+					<p className="mt-1 font-mono text-xs">
 						{resolvedLanguage}
 						{requestedLanguage !== 'auto'
-							? ` (requested ${requestedLanguage})`
-							: ' (auto)'}
+							? ` / requested ${requestedLanguage}`
+							: ' / auto'}
 					</p>
+				</div>
+				<div className="border-b border-border/70 pb-2">
+					<p className="label-pixel text-muted-foreground">Layout</p>
+					<p className="mt-1 font-mono text-xs">{layoutText}</p>
 				</div>
 			</div>
 
-			<div className="space-y-2 rounded-lg border bg-muted/30 p-3">
-				<div className="flex items-center justify-between gap-3">
-					<div>
-						<p className="font-medium text-sm">Language fallback test</p>
-						<p className="text-muted-foreground text-xs">
-							Hosted and offline policy-pack modes now use the same
-							profile-aware i18n rules. Try Chinese on a Europe location to
-							verify it falls back inside that profile instead of expanding to
-							another locale.
-						</p>
-					</div>
-					<Badge variant="outline" className="font-mono text-xs">
-						allowed: {allowedLanguages.join(', ')}
-					</Badge>
-				</div>
-
+			<div className="space-y-2">
+				<p className="label-pixel text-muted-foreground">Language</p>
 				<div className="flex flex-wrap gap-2">
 					{demoLanguageOptions.map((option) => {
 						const isActive =
@@ -569,6 +564,7 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 								key={option.label}
 								variant={isActive ? 'default' : 'outline'}
 								size="sm"
+								className="rounded-full"
 								onClick={() => {
 									if (!option.value) {
 										void setOverrides({ language: undefined });
@@ -583,17 +579,8 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 						);
 					})}
 				</div>
-			</div>
-
-			<div className="space-y-2 rounded-lg border bg-muted/30 p-3">
-				<p className="font-medium text-sm">UI policy + theme demo</p>
-				<p className="text-muted-foreground text-xs">
-					This demo now uses grouped policy layouts with
-					<code className="mx-1 text-xs">
-						[['reject', 'accept'], 'customize']
-					</code>
-					and theme-level button styling via
-					<code className="mx-1 text-xs">theme.consentActions</code>.
+				<p className="text-xs text-muted-foreground">
+					Allowed for this profile: {allowedLanguages.join(', ')}
 				</p>
 			</div>
 
@@ -601,6 +588,7 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 				<Button
 					variant="outline"
 					size="sm"
+					className="rounded-full"
 					onClick={() => setActiveUI('banner', { force: true })}
 				>
 					Show Banner
@@ -608,25 +596,40 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 				<Button
 					variant="outline"
 					size="sm"
+					className="rounded-full"
 					onClick={() => setActiveUI('dialog', { force: true })}
 				>
 					Show Dialog
 				</Button>
-				<Button variant="outline" size="sm" onClick={() => setActiveUI('none')}>
+				<Button
+					variant="outline"
+					size="sm"
+					className="rounded-full"
+					onClick={() => setActiveUI('none')}
+				>
 					Hide UI
 				</Button>
 				<Button
 					variant="ghost"
 					size="sm"
+					className="rounded-full"
 					onClick={() => {
 						resetConsents();
 						void initConsentManager();
 					}}
 				>
-					<RotateCcw className="mr-1.5 h-3.5 w-3.5" />
 					Reset
 				</Button>
 			</div>
+
+			<JsonBlock label="Resolved policy" value={policySummary} />
+			<JsonBlock
+				label="Runtime state"
+				value={{
+					...runtimeState,
+					policyDecision,
+				}}
+			/>
 		</div>
 	);
 }
@@ -732,147 +735,47 @@ export function PolicyDemo() {
 	});
 
 	return (
-		<main className="min-h-screen bg-muted/30 py-12">
-			<div className="container mx-auto max-w-3xl space-y-8 px-4">
-				{/* Header */}
-				<div>
-					<h1 className="font-semibold text-3xl tracking-tight">
-						Policy Packs
-					</h1>
-					<p className="mt-2 text-muted-foreground">
-						See how c15t resolves different consent experiences based on visitor
-						location. Force request languages below to see which locales each
-						policy profile will actually return.
-					</p>
-				</div>
-
-				{/* Mode toggle + Location picker */}
-				<div className="space-y-4 rounded-xl border bg-background p-5">
-					<div className="flex items-center justify-between">
-						<div className="flex items-center gap-2 font-medium text-sm">
-							<Globe className="h-4 w-4 text-muted-foreground" />
-							Visitor Location
-						</div>
-
-						{/* Mode toggle */}
-						<div className="flex items-center gap-1 rounded-lg border p-0.5">
-							<button
-								type="button"
-								onClick={() => navigate(example, 'offline', country, region)}
-								className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-medium text-xs transition-all ${
-									demoMode === 'offline'
-										? 'bg-foreground text-background'
-										: 'text-muted-foreground hover:text-foreground'
-								}`}
-							>
-								<Laptop className="h-3.5 w-3.5" />
-								Offline
-							</button>
-							<button
-								type="button"
-								onClick={() => navigate(example, 'hosted', country, region)}
-								className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-medium text-xs transition-all ${
-									demoMode === 'hosted'
-										? 'bg-foreground text-background'
-										: 'text-muted-foreground hover:text-foreground'
-								}`}
-							>
-								<Cloud className="h-3.5 w-3.5" />
-								Hosted
-							</button>
-						</div>
-					</div>
-
-					{demoMode === 'hosted' && (
-						<p className="text-muted-foreground text-xs">
-							Resolving via <code className="text-xs">/api/self-host/init</code>{' '}
-							— policies come from the backend config.
+		<main className="min-h-screen bg-background">
+			<div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
+				<header className="flex flex-col gap-6 border-b border-border/80 pb-8 lg:flex-row lg:items-end lg:justify-between">
+					<div className="max-w-2xl space-y-3">
+						<p className="label-pixel text-muted-foreground">
+							c15t / example demo
 						</p>
-					)}
-
-					<div className="flex flex-wrap gap-2">
-						<div className="w-full space-y-4">
-							{locationPresetSections.map((section) => (
-								<div key={section.label} className="space-y-2">
-									<div>
-										<p className="font-medium text-sm">{section.label}</p>
-										<p className="text-muted-foreground text-xs">
-											{section.description}
-										</p>
-									</div>
-									<div className="flex flex-wrap gap-2">
-										{section.presets.map((preset) => {
-											const isActive = preset.id === activePreset?.id;
-											return (
-												<button
-													key={`${section.label}-${preset.label}`}
-													type="button"
-													onClick={() => selectLocation(preset)}
-													className={`group relative rounded-lg border px-3 py-2 text-left text-sm transition-all ${
-														isActive
-															? 'border-foreground bg-foreground text-background'
-															: 'hover:border-foreground/30 hover:bg-muted/50'
-													}`}
-												>
-													<div className="flex items-center gap-2">
-														<MapPin className="h-3.5 w-3.5" />
-														<span className="font-medium">{preset.label}</span>
-														<span
-															className={`font-mono text-xs ${isActive ? 'text-background/70' : 'text-muted-foreground'}`}
-														>
-															{preset.country}
-															{preset.region ? `-${preset.region}` : ''}
-														</span>
-													</div>
-													<p
-														className={`mt-0.5 text-xs ${isActive ? 'text-background/70' : 'text-muted-foreground'}`}
-													>
-														{preset.description}
-													</p>
-												</button>
-											);
-										})}
-									</div>
-								</div>
-							))}
-						</div>
+						<h1 className="max-w-[14ch] text-3xl font-semibold tracking-[-0.04em] text-balance sm:text-4xl">
+							Policy-first consent flows.
+						</h1>
+						<p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+							Switch geography, policy source, and language. This page resolves
+							the active policy, shows current consent state, and turns on IAB
+							TCF 2.3 when the selected policy requires it.
+						</p>
 					</div>
 
-					<div className="flex items-end gap-3">
-						<div className="space-y-1.5">
-							<Label htmlFor="country" className="text-xs">
-								Country
-							</Label>
-							<Input
-								id="country"
-								value={country}
-								onChange={(e) =>
-									navigate(example, demoMode, e.target.value, region)
-								}
-								placeholder="DE"
-								maxLength={2}
-								className="w-20 font-mono"
-							/>
-						</div>
-						<div className="space-y-1.5">
-							<Label htmlFor="region" className="text-xs">
-								Region
-							</Label>
-							<Input
-								id="region"
-								value={region}
-								onChange={(e) =>
-									navigate(example, demoMode, country, e.target.value)
-								}
-								placeholder=""
-								maxLength={3}
-								className="w-20 font-mono"
-							/>
-						</div>
-					</div>
-				</div>
+					<nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
+						<Link
+							href="/policy-actions"
+							className="underline-offset-4 transition hover:text-foreground hover:underline"
+						>
+							Policy actions
+						</Link>
+						<Link
+							href="/terms"
+							className="underline-offset-4 transition hover:text-foreground hover:underline"
+						>
+							Terms flow
+						</Link>
+						<a
+							href="https://c15t.com/docs"
+							target="_blank"
+							rel="noreferrer"
+							className="underline-offset-4 transition hover:text-foreground hover:underline"
+						>
+							Docs
+						</a>
+					</nav>
+				</header>
 
-				{/* Resolved policy + consent UI */}
 				<ConsentManagerProvider
 					key={providerKey}
 					options={
@@ -901,22 +804,144 @@ export function PolicyDemo() {
 								}
 					}
 				>
-					<div className="space-y-4 rounded-xl border bg-background p-5">
-						<div className="flex items-center gap-2 font-medium text-sm">
-							Resolved Policy
-							{activePreset && (
-								<span className="font-normal text-muted-foreground">
-									for {activePreset.label}
-								</span>
-							)}
-						</div>
-						<RuntimeInfo demoMode={demoMode} />
+					<div className="grid gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(20rem,0.95fr)]">
+						<section className="space-y-8">
+							<div className="space-y-3">
+								<p className="label-pixel text-muted-foreground">Mode</p>
+								<div className="flex flex-wrap gap-2">
+									<button
+										type="button"
+										onClick={() =>
+											navigate(example, 'offline', country, region)
+										}
+										className={`rounded-full border px-4 py-2 text-sm transition ${
+											demoMode === 'offline'
+												? 'border-foreground bg-foreground text-background'
+												: 'border-border text-foreground hover:border-foreground/40'
+										}`}
+									>
+										Offline
+									</button>
+									<button
+										type="button"
+										onClick={() => navigate(example, 'hosted', country, region)}
+										className={`rounded-full border px-4 py-2 text-sm transition ${
+											demoMode === 'hosted'
+												? 'border-foreground bg-foreground text-background'
+												: 'border-border text-foreground hover:border-foreground/40'
+										}`}
+									>
+										Hosted
+									</button>
+								</div>
+								<p className="text-sm text-muted-foreground">
+									{demoMode === 'hosted'
+										? 'Hosted mode resolves policies through the self-hosted backend route.'
+										: 'Offline mode runs the same scenarios from the local policy pack config.'}
+								</p>
+							</div>
+
+							<div className="space-y-5">
+								<div>
+									<p className="label-pixel text-muted-foreground">Scenarios</p>
+								</div>
+
+								{locationPresetSections.map((section) => (
+									<div key={section.label} className="space-y-3">
+										<p className="text-sm font-medium">{section.label}</p>
+										<div className="flex flex-wrap gap-2">
+											{section.presets.map((preset) => {
+												const isActive = preset.id === activePreset?.id;
+												return (
+													<button
+														key={`${section.label}-${preset.label}`}
+														type="button"
+														onClick={() => selectLocation(preset)}
+														className={`rounded-full border px-4 py-2 text-left text-sm transition ${
+															isActive
+																? 'border-foreground bg-foreground text-background'
+																: 'border-border text-foreground hover:border-foreground/40'
+														}`}
+													>
+														<span>{preset.label}</span>
+														<span
+															className={`ml-2 font-mono text-[11px] ${
+																isActive
+																	? 'text-background/70'
+																	: 'text-muted-foreground'
+															}`}
+														>
+															{preset.country}
+															{preset.region ? `-${preset.region}` : ''}
+														</span>
+													</button>
+												);
+											})}
+										</div>
+									</div>
+								))}
+							</div>
+
+							<div className="space-y-3">
+								<p className="label-pixel text-muted-foreground">
+									Manual override
+								</p>
+								<div className="flex flex-wrap items-end gap-3">
+									<div className="space-y-1.5">
+										<Label htmlFor="country" className="text-xs">
+											Country
+										</Label>
+										<Input
+											id="country"
+											value={country}
+											onChange={(e) =>
+												navigate(example, demoMode, e.target.value, region)
+											}
+											placeholder="DE"
+											maxLength={2}
+											className="w-20 rounded-full border-border/80 font-mono shadow-none"
+										/>
+									</div>
+									<div className="space-y-1.5">
+										<Label htmlFor="region" className="text-xs">
+											Region
+										</Label>
+										<Input
+											id="region"
+											value={region}
+											onChange={(e) =>
+												navigate(example, demoMode, country, e.target.value)
+											}
+											placeholder=""
+											maxLength={3}
+											className="w-20 rounded-full border-border/80 font-mono shadow-none"
+										/>
+									</div>
+								</div>
+							</div>
+						</section>
+
+						<section className="space-y-6 border-t border-border/80 pt-8 lg:border-t-0 lg:border-l lg:pl-8 lg:pt-0">
+							<div className="space-y-2">
+								<p className="label-pixel text-muted-foreground">
+									Current scenario
+								</p>
+								<h2 className="text-2xl font-semibold tracking-tight">
+									{activePreset?.label ?? 'Custom override'}
+								</h2>
+								<p className="text-sm leading-6 text-muted-foreground">
+									{activePreset?.description ??
+										'The policy is being resolved from the manual country and region override.'}
+								</p>
+							</div>
+
+							<RuntimeInfo demoMode={demoMode} />
+						</section>
 					</div>
 
 					<ConsentBanner />
 					<IABConsentBanner />
 					<IABConsentDialog />
-					<ConsentDialogTrigger />
 					<ConsentDialog />
 				</ConsentManagerProvider>
 			</div>

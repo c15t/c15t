@@ -113,7 +113,7 @@
 		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/backend",
 		"build:agent-docs": "bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/backend",
 		"check-types": "bun prebuild && tsc --noEmit",
-		"dev": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"knip": "knip",
 		"lint": "bun biome lint ./src",

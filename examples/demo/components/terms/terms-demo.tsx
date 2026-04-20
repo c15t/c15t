@@ -365,15 +365,15 @@ export function TermsDemo({ policy }: { policy: TermsPolicySummary }) {
 												Terms excerpt
 											</p>
 											<h2 className="mt-1 font-semibold text-2xl">
-												PigeonPost messaging terms
+												c15t example terms
 											</h2>
 										</div>
 									</div>
 
 									<div className="mt-6 max-w-2xl space-y-4 text-muted-foreground text-sm leading-7 sm:text-base">
 										<p>
-											By accepting these terms you authorize PigeonPost to store
-											a versioned legal-document consent for your authenticated
+											By accepting these terms you authorize c15t to store a
+											versioned legal-document consent for your authenticated
 											account, including the subject ID, release hash,
 											timestamp, and source metadata required for audit
 											evidence.

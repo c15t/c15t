@@ -94,7 +94,7 @@
 	],
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts",
-		"dev": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts",
+		"dev": "sh -c 'rslib build --no-dts --no-clean && bun scripts/generate-css-entrypoints.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write .",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run"
