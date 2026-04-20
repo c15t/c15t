@@ -1,6 +1,5 @@
 'use client';
 
-import { DevTools } from '@c15t/dev-tools/react';
 import { iab } from '@c15t/iab';
 import {
 	ConsentBanner,
@@ -173,7 +172,7 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 			}
 		: activeTheme;
 
-	const isPolicyDemo = pathname === '/policy';
+	const isPolicyDemo = pathname === '/' || pathname === '/policy';
 	const isPolicyActionsDemo = pathname === '/policy-actions';
 	const isTermsDemo = pathname.startsWith('/terms');
 	let backendURL: string;
@@ -184,13 +183,8 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 		backendURL = DEFAULT_BACKEND_URL;
 	}
 
-	if (isPolicyActionsDemo) {
-		return (
-			<>
-				{children}
-				<DevTools />
-			</>
-		);
+	if (isPolicyDemo || isPolicyActionsDemo) {
+		return <>{children}</>;
 	}
 
 	return (
@@ -280,7 +274,6 @@ export function ConsentManager({ children }: ConsentManagerProps) {
 					<ConsentDialog />
 				</>
 			) : null}
-			<DevTools />
 			{children}
 		</ConsentManagerProvider>
 	);

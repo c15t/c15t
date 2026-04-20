@@ -2,7 +2,7 @@
 
 This directory contains the internal benchmark platform for `c15t`, `@c15t/react`, and `@c15t/nextjs`.
 
-## Suites
+## Performance Suites
 
 - `core-benchmarks`
   Measures framework-agnostic runtime work such as store creation, `has()`, cookie round-trips, init, repeat-visitor init, and script updates.
@@ -16,6 +16,17 @@ This directory contains the internal benchmark platform for `c15t`, `@c15t/react
   Runs deterministic local script lifecycle flows for load, unload, reload, callback-only, `alwaysLoad`, and `persistAfterConsentRevoked` behavior.
 - `shared`
   Shared schema, fixtures, budgets, comparison logic, and report formatting.
+
+## Compatibility Suites
+
+- `css-layer-preview`
+  Manual review shell for the shared CSS matrix.
+- `tw3-test`
+  Tailwind 3 compatibility harness.
+- `tw4-test`
+  Tailwind 4 compatibility harness.
+- `no-tw-test`
+  Plain CSS compatibility harness.
 
 ## Outputs
 

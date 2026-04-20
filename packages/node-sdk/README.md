@@ -163,22 +163,19 @@ export const consentClient = c15tClient({
   baseUrl: process.env.C15T_API_URL || 'http://localhost:3000/api/self-host',
 });
 
-// app/consent-check/page.tsx
+// app/terms/page.tsx
 import { consentClient } from '@/lib/c15t-client';
 
-export default async function ConsentCheckPage({ searchParams }) {
-  const { externalId } = await searchParams;
-  
-  const result = await consentClient.checkConsent({
-    externalId,
-    type: 'analytics',
+export default async function TermsPage() {
+  const result = await consentClient.currentLegalDocument({
+    type: 'terms-and-conditions',
   });
 
   if (!result.ok) {
     return <div>Error: {result.error?.message}</div>;
   }
 
-  return <pre>{JSON.stringify(result.data, null, 2)}</pre>;
+  return <pre>{JSON.stringify(result.data?.document, null, 2)}</pre>;
 }
 ```
 

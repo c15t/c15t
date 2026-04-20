@@ -50,7 +50,7 @@
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
 		"check-types:test": "tsc -p tsconfig.test.json",
-		"dev": "rslib build --watch",
+		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run",

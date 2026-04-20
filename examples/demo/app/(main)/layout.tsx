@@ -1,18 +1,17 @@
 import { Analytics } from '@vercel/analytics/next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { GeistMono } from 'geist/font/mono';
+import {
+	GeistPixelCircle,
+	GeistPixelGrid,
+	GeistPixelLine,
+	GeistPixelSquare,
+	GeistPixelTriangle,
+} from 'geist/font/pixel';
+import { GeistSans } from 'geist/font/sans';
 import type React from 'react';
 import '../globals.css';
 import { ConsentManager } from '../../components/consent-manager/provider';
 import { ThemeProvider } from '../../components/theme-provider';
-
-const geist = Geist({
-	subsets: ['latin'],
-	variable: '--font-geist-sans',
-});
-const geistMono = Geist_Mono({
-	subsets: ['latin'],
-	variable: '--font-geist-mono',
-});
 
 // Theme preset fonts
 // const spaceGrotesk = Space_Grotesk({
@@ -39,7 +38,7 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body
-				className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}
+				className={`${GeistSans.variable} ${GeistMono.variable} ${GeistPixelSquare.variable} ${GeistPixelGrid.variable} ${GeistPixelCircle.variable} ${GeistPixelTriangle.variable} ${GeistPixelLine.variable} font-sans antialiased`}
 			>
 				<ThemeProvider defaultTheme="light" enableSystem>
 					<ConsentManager>

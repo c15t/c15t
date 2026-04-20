@@ -19,7 +19,7 @@ type ThemeContextValue = {
 	setTheme: (theme: ThemeMode) => void;
 };
 
-const STORAGE_KEY = 'pigeon-post-theme';
+const STORAGE_KEY = 'c15t-example-demo-theme';
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 

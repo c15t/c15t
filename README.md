@@ -57,6 +57,12 @@ Comprehensive guides for different frameworks:
 - [React Quickstart](https://c15t.link/react)
 - [JavaScript Quickstart](https://c15t.link/javascript)
 
+## Local Workflows
+
+- `bun run dev` starts the main product demo in `examples/demo`
+- `bun run bench:ci` runs the benchmark suites that publish `.benchmarks/**` artifacts
+- `bun run compat:styles:review` launches the Tailwind 3, Tailwind 4, plain CSS, and preview compatibility harnesses
+
 ## Support
 
 - Join our [Discord community](https://c15t.link/discord)

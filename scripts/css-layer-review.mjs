@@ -66,7 +66,7 @@ for (const route of routes) {
 
 console.log('');
 console.log(
-	'If this is the first run after dependency changes, run `bun run css-layer:build` in another shell first.'
+	'If this is the first run after dependency changes, run `bun run compat:styles:build` in another shell first.'
 );
 console.log('');
 
