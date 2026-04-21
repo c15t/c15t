@@ -12,6 +12,7 @@ import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createDemoScripts } from '../../lib/demo-scripts';
 import {
 	DEFAULT_DEMO_POLICY_EXAMPLE,
 	demoI18nMessages,
@@ -802,6 +803,7 @@ export function PolicyDemo() {
 									consentCategories: categories,
 									iab: iabConfig,
 									overrides,
+									scripts: createDemoScripts('demo-analytics'),
 									theme: presetTheme,
 								}
 							: {
@@ -816,6 +818,7 @@ export function PolicyDemo() {
 									consentCategories: categories,
 									iab: iabConfig,
 									overrides,
+									scripts: createDemoScripts('demo-analytics'),
 									theme: presetTheme,
 								}
 					}
