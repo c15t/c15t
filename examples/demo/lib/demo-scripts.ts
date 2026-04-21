@@ -2,7 +2,9 @@ import { databuddy } from '@c15t/scripts/databuddy';
 import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 import { xPixel } from '@c15t/scripts/x-pixel';
 
-export function createDemoScripts(customVendorId: string) {
+type DemoScript = ReturnType<typeof databuddy>;
+
+export function createDemoScripts(customVendorId: string): DemoScript[] {
 	return [
 		{
 			id: 'example-analytics-iab',

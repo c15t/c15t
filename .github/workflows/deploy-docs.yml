@@ -37,7 +37,20 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
+      - name: 🔎 Check preview deploy secrets
+        id: preview-secrets
+        env:
+          DOCS_DEPLOY_TOKEN: ${{ secrets.DOCS_DEPLOY_TOKEN }}
+          DOCS_REPO: ${{ secrets.DOCS_REPO }}
+        run: |
+          if [ -n "$DOCS_DEPLOY_TOKEN" ] && [ -n "$DOCS_REPO" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: 📤 Trigger docs preview
+        if: steps.preview-secrets.outputs.available == 'true'
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
@@ -54,9 +67,15 @@ jobs:
 
       - name: 📝 Summary
         run: |
-          echo "### 🔄 Docs Preview Triggered" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "A preview deployment has been triggered. Watch for a comment on this PR with the preview URL." >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.preview-secrets.outputs.available }}" = "true" ]; then
+            echo "### 🔄 Docs Preview Triggered" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "A preview deployment has been triggered. Watch for a comment on this PR with the preview URL." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Docs Preview Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Required preview deployment secrets are not configured for this run." >> $GITHUB_STEP_SUMMARY
+          fi
 
   notify-close:
     name: 🧹 Notify PR Closed
@@ -66,7 +85,20 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
+      - name: 🔎 Check preview deploy secrets
+        id: preview-secrets
+        env:
+          DOCS_DEPLOY_TOKEN: ${{ secrets.DOCS_DEPLOY_TOKEN }}
+          DOCS_REPO: ${{ secrets.DOCS_REPO }}
+        run: |
+          if [ -n "$DOCS_DEPLOY_TOKEN" ] && [ -n "$DOCS_REPO" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: 📤 Notify docs repo of PR close
+        if: steps.preview-secrets.outputs.available == 'true'
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
@@ -80,6 +112,18 @@ jobs:
               "sha": "${{ github.event.pull_request.head.sha }}",
               "action": "closed"
             }
+
+      - name: 📝 Summary
+        run: |
+          if [ "${{ steps.preview-secrets.outputs.available }}" = "true" ]; then
+            echo "### 🧹 Docs Preview Notified" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The docs repo has been notified that the PR was closed." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Docs Close Notification Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Required preview deployment secrets are not configured for this run." >> $GITHUB_STEP_SUMMARY
+          fi
 
   # ============================================================================
   # MANUAL PREVIEW DEPLOYMENT (workflow_dispatch with PR number)

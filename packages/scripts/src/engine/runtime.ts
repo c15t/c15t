@@ -120,12 +120,12 @@ function executeStep(step: ManifestStep): void {
 					return;
 				}
 
-				const runtimeArgs = Array.from(arguments);
-				queueTarget.push(
-					step.pushStyle === 'array'
-						? runtimeArgs
-						: (arguments as unknown as IArguments)
-				);
+				if (step.pushStyle === 'array') {
+					queueTarget.push(Array.from(arguments));
+					return;
+				}
+
+				queueTarget.push(arguments);
 			};
 			break;
 		}

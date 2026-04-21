@@ -67,7 +67,11 @@ describe('gtag contract', () => {
 				personalization_storage: 'denied',
 			},
 		]);
-		expect(toArgs(win.dataLayer?.[1])[0]).toBe('js');
+		const jsEntry = toArgs(win.dataLayer?.[1]);
+		expect(jsEntry[0]).toBe('js');
+		expect(typeof jsEntry[1] === 'number' || jsEntry[1] instanceof Date).toBe(
+			true
+		);
 		expect(toArgs(win.dataLayer?.[2])).toEqual(['config', 'G-CONTRACT']);
 	});
 });

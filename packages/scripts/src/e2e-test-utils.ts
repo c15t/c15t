@@ -11,6 +11,29 @@ export type GoogleTagDataState = {
 	};
 };
 
+export interface TikTokQueue {
+	[index: number]: unknown;
+	length: number;
+	push: (...items: unknown[]) => number;
+	load?: (...args: unknown[]) => unknown;
+	page?: (...args: unknown[]) => unknown;
+	track?: (...args: unknown[]) => unknown;
+	identify?: (...args: unknown[]) => unknown;
+	instances?: (...args: unknown[]) => unknown;
+	debug?: (...args: unknown[]) => unknown;
+	on?: (...args: unknown[]) => unknown;
+	off?: (...args: unknown[]) => unknown;
+	once?: (...args: unknown[]) => unknown;
+	ready?: (...args: unknown[]) => unknown;
+	alias?: (...args: unknown[]) => unknown;
+	group?: (...args: unknown[]) => unknown;
+	enableCookie?: (...args: unknown[]) => unknown;
+	disableCookie?: (...args: unknown[]) => unknown;
+	holdConsent?: (...args: unknown[]) => unknown;
+	revokeConsent?: (...args: unknown[]) => unknown;
+	grantConsent?: (...args: unknown[]) => unknown;
+}
+
 export type TestWindow = Window &
 	typeof globalThis & {
 		TiktokAnalyticsObject?: string;
@@ -38,7 +61,7 @@ export type TestWindow = Window &
 			opt_in_capturing: () => void;
 			opt_out_capturing: () => void;
 		};
-		ttq?: Record<string, unknown> & unknown[];
+		ttq?: TikTokQueue;
 		twq?: ((...args: unknown[]) => void) & { queue?: unknown[] };
 		uetq?: unknown[] | { push: (...args: unknown[]) => void };
 	};
@@ -80,6 +103,24 @@ export function installHeadProbe(
 		.spyOn(document.head, 'appendChild')
 		.mockImplementation((node: Node) => {
 			const appended = originalAppendChild.call(document.head, node);
+
+			if (node instanceof HTMLScriptElement) {
+				onAppend(node, window as TestWindow);
+			}
+
+			return appended;
+		});
+}
+
+export function installBodyProbe(
+	onAppend: (script: HTMLScriptElement, win: TestWindow) => void
+) {
+	const originalAppendChild = Node.prototype.appendChild;
+
+	return vi
+		.spyOn(document.body, 'appendChild')
+		.mockImplementation((node: Node) => {
+			const appended = originalAppendChild.call(document.body, node);
 
 			if (node instanceof HTMLScriptElement) {
 				onAppend(node, window as TestWindow);
