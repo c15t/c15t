@@ -11,5 +11,11 @@
 		}
 	},
 	"include": ["src"],
-	"exclude": ["node_modules"]
+	"exclude": [
+		"node_modules",
+		"src/**/*.test.ts",
+		"src/**/*.spec.ts",
+		"src/**/*.e2e.test.ts",
+		"src/e2e-test-utils.ts"
+	]
 }
