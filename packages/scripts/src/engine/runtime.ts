@@ -136,15 +136,16 @@ function executeStep(step: ManifestStep): void {
 				break;
 			}
 
-			const stub = function stubFunction(this: unknown, ...args: unknown[]) {
+			const stub = function stubFunction(this: unknown) {
 				const self = win[step.name] as Record<string, unknown> | undefined;
 				const dispatcher =
 					self && step.dispatchProperty
 						? self[step.dispatchProperty]
 						: undefined;
+				const runtimeArgs = Array.from(arguments);
 
 				if (typeof dispatcher === 'function') {
-					dispatcher.apply(self, args);
+					dispatcher.apply(self, runtimeArgs);
 					return;
 				}
 
@@ -154,7 +155,9 @@ function executeStep(step: ManifestStep): void {
 				}
 
 				queueTarget.push(
-					step.queueFormat === 'array' ? [...args] : (args as unknown)
+					step.queueFormat === 'array'
+						? runtimeArgs
+						: (arguments as unknown as IArguments)
 				);
 			};
 
