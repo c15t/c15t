@@ -26,7 +26,11 @@ describe('tiktokPixel contract', () => {
 			}
 
 			const queue = win.ttq as unknown[];
-			queueSnapshot = Array.isArray(queue) ? [...queue] : [];
+			if (Array.isArray(queue)) {
+				queueSnapshot = [...queue];
+			} else {
+				queueSnapshot = [];
+			}
 			acknowledged =
 				win.TiktokAnalyticsObject === 'ttq' && Array.isArray(queue);
 
@@ -74,7 +78,6 @@ describe('tiktokPixel contract', () => {
 			node.dispatchEvent(new Event('load'));
 
 			const runtimeQueue: TikTokQueue = [] as unknown as TikTokQueue;
-			runtimeQueue.push = Array.prototype.push;
 			runtimeQueue.grantConsent = () => {
 				runtimeCalls.push('grantConsent');
 			};
@@ -85,7 +88,14 @@ describe('tiktokPixel contract', () => {
 				runtimeCalls.push('revokeConsent');
 			};
 
-			for (const queuedCall of Array.isArray(queue) ? [...queue] : []) {
+			let queuedCalls: unknown[] = [];
+			if (Array.isArray(queue)) {
+				queuedCalls = [...queue];
+			} else {
+				queuedCalls = [];
+			}
+
+			for (const queuedCall of queuedCalls) {
 				if (!Array.isArray(queuedCall)) {
 					continue;
 				}
