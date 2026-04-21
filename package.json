@@ -13,7 +13,7 @@
 		"benchmarks/**",
 		"apps/*",
 		"configs/*",
-		"packages/**",
+		"packages/*",
 		"internals/**",
 		"examples/*"
 	],
