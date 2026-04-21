@@ -4,6 +4,14 @@ import { xPixel } from '@c15t/scripts/x-pixel';
 
 type DemoScript = ReturnType<typeof databuddy>;
 
+/**
+ * Returns the demo script definitions used by the example demo app.
+ *
+ * @param customVendorId - Vendor identifier injected into the custom demo
+ * analytics script entry.
+ * @returns An array of `DemoScript` objects representing the demo app's
+ * third-party and example analytics integrations.
+ */
 export function createDemoScripts(customVendorId: string): DemoScript[] {
 	return [
 		{
@@ -31,12 +39,9 @@ export function createDemoScripts(customVendorId: string): DemoScript[] {
 		}),
 		xPixel({
 			pixelId: 'qvfsy',
-			scriptSrc: undefined,
 		}),
 		googleTagManager({
 			id: 'GTM-WL5L8NW7',
-			updateEventName: undefined,
-			consentMapping: undefined,
 		}),
 	];
 }

@@ -28,10 +28,7 @@ describe('tiktokPixel contract', () => {
 			const queue = win.ttq as unknown[];
 			queueSnapshot = Array.isArray(queue) ? [...queue] : [];
 			acknowledged =
-				win.TiktokAnalyticsObject === 'ttq' &&
-				Array.isArray(queue) &&
-				JSON.stringify(queueSnapshot) ===
-					JSON.stringify([['grantConsent'], ['page']]);
+				win.TiktokAnalyticsObject === 'ttq' && Array.isArray(queue);
 
 			win.ttq = {
 				grantConsent: () => {

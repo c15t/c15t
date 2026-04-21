@@ -154,11 +154,12 @@ function executeStep(step: ManifestStep): void {
 					return;
 				}
 
-				queueTarget.push(
-					step.queueFormat === 'array'
-						? runtimeArgs
-						: (arguments as unknown as IArguments)
-				);
+				if (step.queueFormat === 'array') {
+					queueTarget.push(runtimeArgs);
+					return;
+				}
+
+				queueTarget.push(arguments);
 			};
 
 			win[step.name] = stub;

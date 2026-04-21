@@ -23,22 +23,14 @@ on:
         type: string
 permissions: {}
 jobs:
-  # ============================================================================
-  # PREVIEW DEPLOYMENTS (for PRs)
-  # pull_request_target has access to secrets; only same-repo PRs auto-trigger so
-  # fork PRs cannot drive repository-dispatch with arbitrary head SHAs. Fork
-  # previews: use workflow_dispatch → preview with the PR number (maintainers).
-  # ============================================================================
-  trigger-preview:
-    name: 🔍 Trigger Preview
-    if: >-
-      github.event_name == 'pull_request_target' &&
-      github.event.action != 'closed' &&
-      github.event.pull_request.head.repo.full_name == github.repository
+  check-secrets:
+    name: 🔎 Check Docs Deploy Secrets
     runs-on: ubuntu-latest
+    outputs:
+      available: ${{ steps.check.outputs.available }}
     steps:
       - name: 🔎 Check preview deploy secrets
-        id: preview-secrets
+        id: check
         env:
           DOCS_DEPLOY_TOKEN: ${{ secrets.DOCS_DEPLOY_TOKEN }}
           DOCS_REPO: ${{ secrets.DOCS_REPO }}
@@ -49,8 +41,24 @@ jobs:
             echo "available=false" >> "$GITHUB_OUTPUT"
           fi
 
+  # ============================================================================
+  # PREVIEW DEPLOYMENTS (for PRs)
+  # pull_request_target has access to secrets; only same-repo PRs auto-trigger so
+  # fork PRs cannot drive repository-dispatch with arbitrary head SHAs. Fork
+  # previews: use workflow_dispatch → preview with the PR number (maintainers).
+  # ============================================================================
+  trigger-preview:
+    name: 🔍 Trigger Preview
+    needs: check-secrets
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
       - name: 📤 Trigger docs preview
-        if: steps.preview-secrets.outputs.available == 'true'
+        id: trigger_preview
+        if: needs.check-secrets.outputs.available == 'true'
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
@@ -66,39 +74,38 @@ jobs:
             }
 
       - name: 📝 Summary
+        if: always()
         run: |
-          if [ "${{ steps.preview-secrets.outputs.available }}" = "true" ]; then
-            echo "### 🔄 Docs Preview Triggered" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "A preview deployment has been triggered. Watch for a comment on this PR with the preview URL." >> $GITHUB_STEP_SUMMARY
-          else
+          if [ "${{ needs.check-secrets.outputs.available }}" != "true" ]; then
             echo "### ⚠️ Docs Preview Skipped" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Required preview deployment secrets are not configured for this run." >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.trigger_preview.outcome }}" = "success" ]; then
+            echo "### 🔄 Docs Preview Triggered" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "A preview deployment has been triggered. Watch for a comment on this PR with the preview URL." >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.trigger_preview.outcome }}" = "failure" ]; then
+            echo "### ❌ Docs Preview Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The docs preview dispatch failed. Check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Docs Preview Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The docs preview dispatch was skipped." >> $GITHUB_STEP_SUMMARY
           fi
 
   notify-close:
     name: 🧹 Notify PR Closed
+    needs: check-secrets
     if: >-
       github.event_name == 'pull_request_target' &&
       github.event.action == 'closed' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      - name: 🔎 Check preview deploy secrets
-        id: preview-secrets
-        env:
-          DOCS_DEPLOY_TOKEN: ${{ secrets.DOCS_DEPLOY_TOKEN }}
-          DOCS_REPO: ${{ secrets.DOCS_REPO }}
-        run: |
-          if [ -n "$DOCS_DEPLOY_TOKEN" ] && [ -n "$DOCS_REPO" ]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: 📤 Notify docs repo of PR close
-        if: steps.preview-secrets.outputs.available == 'true'
+        id: notify_close
+        if: needs.check-secrets.outputs.available == 'true'
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
@@ -114,15 +121,24 @@ jobs:
             }
 
       - name: 📝 Summary
+        if: always()
         run: |
-          if [ "${{ steps.preview-secrets.outputs.available }}" = "true" ]; then
-            echo "### 🧹 Docs Preview Notified" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "The docs repo has been notified that the PR was closed." >> $GITHUB_STEP_SUMMARY
-          else
+          if [ "${{ needs.check-secrets.outputs.available }}" != "true" ]; then
             echo "### ⚠️ Docs Close Notification Skipped" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Required preview deployment secrets are not configured for this run." >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.notify_close.outcome }}" = "success" ]; then
+            echo "### 🧹 Docs Preview Notified" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The docs repo has been notified that the PR was closed." >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.notify_close.outcome }}" = "failure" ]; then
+            echo "### ❌ Docs Close Notification Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The docs repo close notification failed. Check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Docs Close Notification Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The docs repo close notification was skipped." >> $GITHUB_STEP_SUMMARY
           fi
 
   # ============================================================================
@@ -130,6 +146,7 @@ jobs:
   # ============================================================================
   trigger-manual-preview:
     name: 🔍 Trigger Manual Preview
+    needs: check-secrets
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'preview'
     runs-on: ubuntu-latest
     permissions:
@@ -159,6 +176,8 @@ jobs:
             core.setOutput('action', 'opened');
 
       - name: 📤 Trigger docs preview
+        id: trigger_preview
+        if: needs.check-secrets.outputs.available == 'true'
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
@@ -174,25 +193,43 @@ jobs:
             }
 
       - name: 📝 Summary
+        if: always()
         run: |
-          echo "### 🔄 Manual Docs Preview Triggered" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "A preview deployment has been triggered for PR #${{ steps.pr-info.outputs.pr_number }}." >> $GITHUB_STEP_SUMMARY
-          echo "Watch for a comment on the PR with the preview URL." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**PR:** #${{ steps.pr-info.outputs.pr_number }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** ${{ steps.pr-info.outputs.branch }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ steps.pr-info.outputs.sha }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.check-secrets.outputs.available }}" != "true" ]; then
+            echo "### ⚠️ Manual Docs Preview Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Required preview deployment secrets are not configured for this run." >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.trigger_preview.outcome }}" = "success" ]; then
+            echo "### 🔄 Manual Docs Preview Triggered" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "A preview deployment has been triggered for PR #${{ steps.pr-info.outputs.pr_number }}." >> $GITHUB_STEP_SUMMARY
+            echo "Watch for a comment on the PR with the preview URL." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**PR:** #${{ steps.pr-info.outputs.pr_number }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Branch:** ${{ steps.pr-info.outputs.branch }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Commit:** ${{ steps.pr-info.outputs.sha }}" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.trigger_preview.outcome }}" = "failure" ]; then
+            echo "### ❌ Manual Docs Preview Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The manual docs preview dispatch failed. Check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Manual Docs Preview Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The manual docs preview dispatch was skipped." >> $GITHUB_STEP_SUMMARY
+          fi
 
   # ============================================================================
   # PRODUCTION DEPLOYMENT (main → c15t.com)
   # ============================================================================
   trigger-production:
     name: 🚀 Trigger Production
+    needs: check-secrets
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
     runs-on: ubuntu-latest
     steps:
       - name: 📤 Trigger production deploy
+        id: trigger_production
+        if: needs.check-secrets.outputs.available == 'true'
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
@@ -206,22 +243,40 @@ jobs:
             }
 
       - name: 📝 Summary
+        if: always()
         run: |
-          echo "### 🚀 Production Deploy Triggered" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Target:** https://c15t.com/docs" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.check-secrets.outputs.available }}" != "true" ]; then
+            echo "### ⚠️ Production Deploy Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Required preview deployment secrets are not configured for this run." >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.trigger_production.outcome }}" = "success" ]; then
+            echo "### 🚀 Production Deploy Triggered" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Target:** https://c15t.com/docs" >> $GITHUB_STEP_SUMMARY
+            echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.trigger_production.outcome }}" = "failure" ]; then
+            echo "### ❌ Production Deploy Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The production deploy dispatch failed. Check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Production Deploy Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The production deploy dispatch was skipped." >> $GITHUB_STEP_SUMMARY
+          fi
 
   # ============================================================================
   # STAGING DEPLOYMENT (staging → canary.c15t.com)
   # ============================================================================
   trigger-staging:
     name: 🧪 Trigger Staging
+    needs: check-secrets
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'
     runs-on: ubuntu-latest
     steps:
       - name: 📤 Trigger staging deploy
+        id: trigger_staging
+        if: needs.check-secrets.outputs.available == 'true'
         uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
@@ -235,9 +290,24 @@ jobs:
             }
 
       - name: 📝 Summary
+        if: always()
         run: |
-          echo "### 🧪 Staging Deploy Triggered" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Target:** https://canary.c15t.com/docs" >> $GITHUB_STEP_SUMMARY
-          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.check-secrets.outputs.available }}" != "true" ]; then
+            echo "### ⚠️ Staging Deploy Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Required preview deployment secrets are not configured for this run." >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.trigger_staging.outcome }}" = "success" ]; then
+            echo "### 🧪 Staging Deploy Triggered" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Target:** https://canary.c15t.com/docs" >> $GITHUB_STEP_SUMMARY
+            echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.trigger_staging.outcome }}" = "failure" ]; then
+            echo "### ❌ Staging Deploy Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The staging deploy dispatch failed. Check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Staging Deploy Skipped" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The staging deploy dispatch was skipped." >> $GITHUB_STEP_SUMMARY
+          fi

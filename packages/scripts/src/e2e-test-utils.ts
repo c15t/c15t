@@ -2,7 +2,7 @@ import { afterEach, vi } from 'vitest';
 import {
 	clearAllScripts,
 	loadScripts,
-} from '../../core/src/libs/script-loader/core';
+} from '../../core/src/libs/script-loader';
 
 export type GoogleTagDataState = {
 	ics: {
@@ -11,28 +11,32 @@ export type GoogleTagDataState = {
 	};
 };
 
-export interface TikTokQueue {
+type TikTokQueueMethodName =
+	| 'load'
+	| 'page'
+	| 'track'
+	| 'identify'
+	| 'instances'
+	| 'debug'
+	| 'on'
+	| 'off'
+	| 'once'
+	| 'ready'
+	| 'alias'
+	| 'group'
+	| 'enableCookie'
+	| 'disableCookie'
+	| 'holdConsent'
+	| 'revokeConsent'
+	| 'grantConsent';
+
+export type TikTokQueue = {
 	[index: number]: unknown;
 	length: number;
 	push: (...items: unknown[]) => number;
-	load?: (...args: unknown[]) => unknown;
-	page?: (...args: unknown[]) => unknown;
-	track?: (...args: unknown[]) => unknown;
-	identify?: (...args: unknown[]) => unknown;
-	instances?: (...args: unknown[]) => unknown;
-	debug?: (...args: unknown[]) => unknown;
-	on?: (...args: unknown[]) => unknown;
-	off?: (...args: unknown[]) => unknown;
-	once?: (...args: unknown[]) => unknown;
-	ready?: (...args: unknown[]) => unknown;
-	alias?: (...args: unknown[]) => unknown;
-	group?: (...args: unknown[]) => unknown;
-	enableCookie?: (...args: unknown[]) => unknown;
-	disableCookie?: (...args: unknown[]) => unknown;
-	holdConsent?: (...args: unknown[]) => unknown;
-	revokeConsent?: (...args: unknown[]) => unknown;
-	grantConsent?: (...args: unknown[]) => unknown;
-}
+} & {
+	[K in TikTokQueueMethodName]?: (...args: unknown[]) => unknown;
+};
 
 export type TestWindow = Window &
 	typeof globalThis & {
@@ -94,40 +98,33 @@ export function toArgs(value: unknown): unknown[] {
 	return Array.from(value as IArguments);
 }
 
+function installAppendProbe(
+	target: HTMLHeadElement | HTMLBodyElement,
+	onAppend: (script: HTMLScriptElement, win: TestWindow) => void
+) {
+	const originalAppendChild = target.appendChild.bind(target);
+
+	return vi.spyOn(target, 'appendChild').mockImplementation((node: Node) => {
+		const appended = originalAppendChild(node);
+
+		if (node instanceof HTMLScriptElement) {
+			onAppend(node, window as TestWindow);
+		}
+
+		return appended;
+	});
+}
+
 export function installHeadProbe(
 	onAppend: (script: HTMLScriptElement, win: TestWindow) => void
 ) {
-	const originalAppendChild = Node.prototype.appendChild;
-
-	return vi
-		.spyOn(document.head, 'appendChild')
-		.mockImplementation((node: Node) => {
-			const appended = originalAppendChild.call(document.head, node);
-
-			if (node instanceof HTMLScriptElement) {
-				onAppend(node, window as TestWindow);
-			}
-
-			return appended;
-		});
+	return installAppendProbe(document.head, onAppend);
 }
 
 export function installBodyProbe(
 	onAppend: (script: HTMLScriptElement, win: TestWindow) => void
 ) {
-	const originalAppendChild = Node.prototype.appendChild;
-
-	return vi
-		.spyOn(document.body, 'appendChild')
-		.mockImplementation((node: Node) => {
-			const appended = originalAppendChild.call(document.body, node);
-
-			if (node instanceof HTMLScriptElement) {
-				onAppend(node, window as TestWindow);
-			}
-
-			return appended;
-		});
+	return installAppendProbe(document.body, onAppend);
 }
 
 function resetVendorGlobals() {
