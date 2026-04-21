@@ -75,7 +75,12 @@ describe('tiktokPixel contract', () => {
 			const queue = win.ttq;
 			expect(Array.isArray(queue)).toBe(true);
 
-			node.dispatchEvent(new Event('load'));
+			let queuedCalls: unknown[] = [];
+			if (Array.isArray(queue)) {
+				queuedCalls = [...queue];
+			} else {
+				queuedCalls = [];
+			}
 
 			const runtimeQueue: TikTokQueue = [] as unknown as TikTokQueue;
 			runtimeQueue.grantConsent = () => {
@@ -88,12 +93,7 @@ describe('tiktokPixel contract', () => {
 				runtimeCalls.push('revokeConsent');
 			};
 
-			let queuedCalls: unknown[] = [];
-			if (Array.isArray(queue)) {
-				queuedCalls = [...queue];
-			} else {
-				queuedCalls = [];
-			}
+			win.ttq = runtimeQueue;
 
 			for (const queuedCall of queuedCalls) {
 				if (!Array.isArray(queuedCall)) {
@@ -101,15 +101,19 @@ describe('tiktokPixel contract', () => {
 				}
 
 				const [method, ...args] = queuedCall;
-				const runtimeMethod =
-					typeof method === 'string' ? runtimeQueue[method] : undefined;
+				let runtimeMethod: unknown;
+				if (typeof method === 'string') {
+					runtimeMethod = runtimeQueue[method];
+				} else {
+					runtimeMethod = undefined;
+				}
 
 				if (typeof runtimeMethod === 'function') {
 					runtimeMethod(...args);
 				}
 			}
 
-			win.ttq = runtimeQueue;
+			node.dispatchEvent(new Event('load'));
 		});
 
 		loadScripts(
