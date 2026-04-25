@@ -35,6 +35,10 @@ const ROUTE_TO_SCENARIO: Record<string, string> = {
 	'/react-full': 'react-full',
 	'/nextjs-basic': 'nextjs-basic',
 	'/nextjs-ssr': 'nextjs-ssr',
+	'/v3-react-full': 'v3-react-full',
+	'/v3-react-full-aggregate': 'v3-react-full-aggregate',
+	'/v3-react-full-split': 'v3-react-full-split',
+	'/v3-react-standard-script-loader': 'v3-react-standard-script-loader',
 };
 
 async function waitForServer() {
