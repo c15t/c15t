@@ -11,6 +11,36 @@ export default mergeConfig(
 		resolve: {
 			alias: {
 				'~': resolve(__dirname, './src'),
+				'c15t/v3/modules/script-loader': resolve(
+					__dirname,
+					'../core/src/v3/modules/script-loader/index.ts'
+				),
+				'c15t/v3/modules/network-blocker': resolve(
+					__dirname,
+					'../core/src/v3/modules/network-blocker/index.ts'
+				),
+				'c15t/v3/modules/iframe-blocker': resolve(
+					__dirname,
+					'../core/src/v3/modules/iframe-blocker/index.ts'
+				),
+				'c15t/v3/modules/persistence': resolve(
+					__dirname,
+					'../core/src/v3/modules/persistence/index.ts'
+				),
+				'c15t/v3': resolve(__dirname, '../core/src/v3/index.ts'),
+				c15t: resolve(__dirname, '../core/src/index.ts'),
+				'@c15t/react/v3': resolve(__dirname, '../react/src/v3/index.ts'),
+				'@c15t/react/server': resolve(
+					__dirname,
+					'../react/src/server/index.ts'
+				),
+				'@c15t/react': resolve(__dirname, '../react/src/index.ts'),
+				'@c15t/translations': resolve(
+					__dirname,
+					'../translations/src/index.ts'
+				),
+				'@c15t/schema/types': resolve(__dirname, '../schema/src/types.ts'),
+				'@c15t/schema': resolve(__dirname, '../schema/src/index.ts'),
 			},
 		},
 		test: {

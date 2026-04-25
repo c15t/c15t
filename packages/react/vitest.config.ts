@@ -22,6 +22,23 @@ export default mergeConfig(
 				// Resolve core package to source so Vite can handle its dynamic
 				// imports natively. rslib emits webpack-style chunks that Vite's
 				// browser bundler cannot analyse.
+				'c15t/v3/modules/script-loader': resolve(
+					__dirname,
+					'../core/src/v3/modules/script-loader/index.ts'
+				),
+				'c15t/v3/modules/network-blocker': resolve(
+					__dirname,
+					'../core/src/v3/modules/network-blocker/index.ts'
+				),
+				'c15t/v3/modules/iframe-blocker': resolve(
+					__dirname,
+					'../core/src/v3/modules/iframe-blocker/index.ts'
+				),
+				'c15t/v3/modules/persistence': resolve(
+					__dirname,
+					'../core/src/v3/modules/persistence/index.ts'
+				),
+				'c15t/v3': resolve(__dirname, '../core/src/v3/index.ts'),
 				c15t: resolve(__dirname, '../core/src/index.ts'),
 				'@c15t/schema/types': resolve(__dirname, '../schema/src/types.ts'),
 				'@c15t/schema': resolve(__dirname, '../schema/src/index.ts'),
@@ -63,6 +80,7 @@ export default mergeConfig(
 					__dirname,
 					'../iab/node_modules/@iabtechlabtcf/core'
 				),
+				'@c15t/iab/v3': resolve(__dirname, '../iab/src/v3/index.ts'),
 				'@c15t/iab': resolve(__dirname, '../iab/src/index.ts'),
 				react: resolve(__dirname, './node_modules/react'),
 				'react-dom': resolve(__dirname, './node_modules/react-dom'),
