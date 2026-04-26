@@ -1,0 +1,206 @@
+---
+title: "v2.1.0 Draft - v3 API Preview and Faster React Runtime"
+version: "2.1.0"
+date: 2026-05-03
+description: "Draft release notes for the opt-in v3 API preview, covering the kernel contract, React render isolation, v3 hosted transport alignment, and benchmark results from the @c15t/react v3 examples."
+tags:
+  - release
+  - draft
+  - react
+  - nextjs
+  - performance
+type: release
+breaking: false
+draft: true
+authors: [KayleeWilliams]
+packages:
+  - "c15t@2.1.0"
+  - "@c15t/react@2.1.0"
+  - "@c15t/nextjs@2.1.0"
+  - "@c15t/iab@2.1.0"
+---
+
+> Draft note: this is currently written as `v2.1.0` because the release adds opt-in v3 entrypoints across core, React, Next.js, and IAB packages. If we classify it as a patch preview instead, update the frontmatter and package list before publishing.
+
+This release introduces the first opt-in preview of the v3 API for c15t, `@c15t/react`, and `@c15t/nextjs`.
+
+The goal of v3 is not to replace the stable v2 API in-place. The new API ships behind explicit `/v3` entrypoints so teams can try the new runtime model without changing existing v2 integrations.
+
+## Highlights
+
+- New framework-neutral kernel in `c15t/v3`
+- Policy-first v3 surface aligned with the current policy-pack runtime
+- v3 hosted consent writes are aligned back to the backend's subject endpoint, `POST /subjects`
+- React v3 provider and hooks isolate renders to the selected consent slice
+- Next.js v3 helpers prefetch rich init data into a serializable `KernelConfig`
+- IAB v3 handle exposes the CMP API through an observable getter
+
+## Policy-first v3 API
+
+v3 moves the consent runtime around a small kernel:
+
+```ts
+import { createConsentKernel, createHostedTransport } from 'c15t/v3';
+
+const kernel = createConsentKernel({
+  transport: createHostedTransport({
+    backendURL: '/api/c15t',
+  }),
+});
+
+await kernel.commands.init();
+await kernel.commands.save('all');
+```
+
+Adapters read from the same snapshot:
+
+```ts
+const snapshot = kernel.getSnapshot();
+
+snapshot.consents;
+snapshot.hasConsented;
+snapshot.subjectId;
+snapshot.policy;
+snapshot.model;
+snapshot.activeUI;
+```
+
+The important change is that the v3 preview no longer exposes legacy jurisdiction/banner fields as part of its public contract.
+
+Instead, the resolved policy is the source of truth:
+
+- `policy.model` determines whether the effective model is `opt-in`, `opt-out`, `iab`, or `null`
+- `policy.ui.mode` determines whether the active UI is `banner`, `dialog`, or `none`
+- geographic data remains an input to policy resolution, but not the main public runtime contract
+
+This matches the direction already taken by the v2 policy-pack runtime, where jurisdiction-shaped fields are deprecated compatibility data rather than the behavior source of truth. v3 uses the preview period to make that contract explicit and avoid carrying deprecated fields into new framework adapters.
+
+This also makes the React adapter smaller and easier to keep consistent with the framework-neutral kernel. React now subscribes to kernel state by selected slice instead of recreating consent semantics inside provider state.
+
+## Hosted saves are aligned with `/subjects`
+
+The v3 hosted transport now writes consent records through the same subject-centric API used by the current backend:
+
+```txt
+POST /subjects
+```
+
+This is a v3 preview alignment fix. v2 already uses the subject endpoint; the issue was that the new v3 transport had temporarily drifted to the wrong write URL while the preview API was being shaped.
+
+The v3 save body maps the kernel snapshot into the backend schema with:
+
+- `subjectId`
+- `domain`
+- `type: 'cookie_banner'`
+- `preferences`
+- `givenAt`
+- `policySnapshotToken`
+- `tcString`
+- `jurisdictionModel`
+- `uiSource`
+- `consentAction`
+- external subject identity fields
+
+`subjectId` is generated lazily before the first save and reused for future writes. Persistence hydration restores that subject ID locally without making a backend save.
+
+## Faster React runtime
+
+The biggest user-visible improvement is in `@c15t/react/v3`.
+
+The v2 React provider exposes a larger consent manager object through React state and context. That is ergonomic, but it means a consent mutation can fan out through components that do not care about the changed category.
+
+The v3 React provider creates one kernel per mount and lets hooks subscribe to exactly the slice they need:
+
+```tsx
+import { ConsentProvider, useConsent } from '@c15t/react/v3';
+
+function MarketingScripts() {
+  const allowed = useConsent('marketing');
+  return allowed ? <Scripts /> : null;
+}
+```
+
+In the render-count benchmark, ten children read five different consent categories, then only `marketing` changes:
+
+| Runtime | Mount commits | Mutation commits |
+| --- | ---: | ---: |
+| v2 `ConsentManagerProvider` + `useConsentManager()` | 20 | 20 |
+| v3 `ConsentProvider` + `useConsent(category)` | 10 | 2 |
+
+That is a 50% lower mount count in the benchmark harness and a 90% reduction in mutation fanout. Only the two components reading `marketing` re-rendered.
+
+The browser benchmarks also show faster visible UI and consent-triggered script loading in the local deterministic examples:
+
+| Benchmark | v2 median | v3 median | Change |
+| --- | ---: | ---: | ---: |
+| Banner visible | 97.7 ms | 54.0 ms | -44.7% |
+| Banner mount | 82.8 ms | 43.5 ms | -47.5% |
+| Script loading, 5 scripts | 36.4 ms | 10.6 ms | -70.9% |
+| Script loading, 10 scripts | 54.9 ms | 11.7 ms | -78.7% |
+| Script loading, 25 scripts | 56.2 ms | 19.4 ms | -65.5% |
+| Script loading, 50 scripts | 65.7 ms | 48.2 ms | -26.6% |
+
+These numbers come from local deterministic benchmark routes and should be read as runtime overhead comparisons, not third-party network latency measurements.
+
+The bundle-size story is more nuanced. The v3 API is split by design, so common paths can import only the provider, hooks, UI, and modules they use. Synthetic routes that import every v3 feature can still be larger than a narrower v2 route. We will continue tracking common route shapes separately from full harness routes.
+
+## Next.js v3 prefetch
+
+`@c15t/nextjs/v3/server` now returns a plain `KernelConfig` that can be awaited in a Server Component and passed to the client boundary:
+
+```tsx
+import { prefetchInitialConsent } from '@c15t/nextjs/v3/server';
+import { ConsentBoundary } from '@c15t/nextjs/v3';
+
+export default async function RootLayout({ children }) {
+  const config = await prefetchInitialConsent({
+    backendURL: '/api/c15t',
+  });
+
+  return (
+    <ConsentBoundary config={config} backendURL="/api/c15t">
+      {children}
+    </ConsentBoundary>
+  );
+}
+```
+
+The prefetch result preserves rich init fields through first render:
+
+- location
+- translations
+- branding
+- policy
+- policy decision
+- policy snapshot token
+- GVL
+- custom vendors
+- CMP ID
+
+This keeps first paint aligned with the backend's resolved policy while still letting the client refresh init after mount.
+
+## Compatibility
+
+This is an opt-in API preview. Existing v2 imports keep working:
+
+```ts
+import { ConsentManagerProvider } from '@c15t/react';
+```
+
+The v3 surface is available through explicit v3 entrypoints:
+
+```ts
+import { createConsentKernel } from 'c15t/v3';
+import { ConsentProvider } from '@c15t/react/v3';
+import { ConsentBoundary } from '@c15t/nextjs/v3';
+```
+
+Because v3 is still unstable, we are using the preview period to validate framework integration patterns, React Compiler behavior, and benchmark coverage before promoting this contract to stable.
+
+## Notes
+
+- This release is scheduled for **May 3, 2026**
+- The v3 API is opt-in and does not require existing v2 applications to migrate
+- The final version number may change before publish depending on whether we classify this as a minor preview or a patch-level opt-in feature
+
+<ContributorBlock usernames={["KayleeWilliams"]} title="Thank you to our contributors" />
