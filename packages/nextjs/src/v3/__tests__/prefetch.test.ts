@@ -8,6 +8,11 @@ import { prefetchInitialConsent } from '../server';
 
 const cookieStore = new Map<string, string>();
 const headerStore = new Map<string, string>();
+const POLICY = {
+	id: 'gdpr',
+	model: 'opt-in',
+	ui: { mode: 'banner' },
+};
 
 vi.mock('next/headers', () => ({
 	cookies: () =>
@@ -39,14 +44,21 @@ describe('prefetchInitialConsent: backend call', () => {
 		headerStore.set('x-forwarded-proto', 'https');
 		cookieStore.set('sess', 'abc');
 
-		const fetchSpy = vi
-			.fn()
-			.mockResolvedValue(
-				new Response(
-					JSON.stringify({ jurisdiction: 'GDPR', showConsentBanner: true }),
-					{ status: 200, headers: { 'content-type': 'application/json' } }
-				)
-			);
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(
+				JSON.stringify({
+					policy: POLICY,
+					policySnapshotToken: 'snap-1',
+					location: { countryCode: 'DE', regionCode: null },
+					translations: { language: 'de', translations: {} },
+					branding: 'c15t',
+					gvl: null,
+					customVendors: [],
+					cmpId: 28,
+				}),
+				{ status: 200, headers: { 'content-type': 'application/json' } }
+			)
+		);
 
 		const config = await prefetchInitialConsent({
 			backendURL: '/api/c15t',
@@ -65,8 +77,20 @@ describe('prefetchInitialConsent: backend call', () => {
 		expect(headers.cookie).toContain('sess=abc');
 
 		// Response was merged into config.
-		expect(config.initialJurisdiction).toBe('GDPR');
-		expect(config.initialShowConsentBanner).toBe(true);
+		expect(config.initialPolicy).toEqual(POLICY);
+		expect(config.initialPolicySnapshotToken).toBe('snap-1');
+		expect(config.initialLocation).toEqual({
+			countryCode: 'DE',
+			regionCode: null,
+		});
+		expect(config.initialTranslations?.language).toBe('de');
+		expect(config.initialBranding).toBe('c15t');
+		expect(config.initialIab).toMatchObject({
+			enabled: false,
+			gvl: null,
+			customVendors: [],
+			cmpId: 28,
+		});
 	});
 
 	test('absolute backendURL bypasses host resolution', async () => {
@@ -99,8 +123,8 @@ describe('prefetchInitialConsent: backend call', () => {
 		expect(config.initialOverrides?.country).toBe('US');
 		expect(config.initialConsents?.marketing).toBe(true);
 		// Init response missing; fields stay undefined.
-		expect(config.initialJurisdiction).toBeUndefined();
-		expect(config.initialShowConsentBanner).toBeUndefined();
+		expect(config.initialPolicy).toBeUndefined();
+		expect(config.initialPolicySnapshotToken).toBeUndefined();
 	});
 
 	test('server-returned consents merge with cookie consents', async () => {

@@ -1,6 +1,6 @@
 import type { ConsentStoreState } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
-import { createConsentKernel } from 'c15t/v3';
+import type { KernelConfig } from 'c15t/v3';
 import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -58,11 +58,9 @@ function createMockState(
 	} as unknown as ConsentStoreState;
 }
 
-function createKernel(state: ConsentStoreState) {
-	return createConsentKernel({
+function createPrefetch(state: ConsentStoreState): KernelConfig {
+	return {
 		initialConsents: state.consents as never,
-		initialJurisdiction: 'GDPR',
-		initialShowConsentBanner: true,
 		initialTranslations: {
 			language: 'en',
 			translations: defaultTranslationConfig.translations.en,
@@ -80,7 +78,7 @@ function createKernel(state: ConsentStoreState) {
 				dialog: state.policyDialog,
 			},
 		} as never,
-	});
+	};
 }
 
 async function renderPolicyActions(
@@ -91,12 +89,13 @@ async function renderPolicyActions(
 	themeOverrides?: Record<string, unknown>
 ) {
 	const state = createMockState(stateOverrides);
-	const kernel = createKernel(state);
+	const prefetch = createPrefetch(state);
 
 	await render(
 		<ConsentProvider
-			kernel={kernel}
 			options={{
+				persistence: false,
+				prefetch,
 				noStyle: false,
 				theme: themeOverrides as never,
 			}}
@@ -126,10 +125,10 @@ async function renderDefaultPolicyActions(
 	stateOverrides: Partial<ConsentStoreState> = {}
 ) {
 	const state = createMockState(stateOverrides);
-	const kernel = createKernel(state);
+	const prefetch = createPrefetch(state);
 
 	await render(
-		<ConsentProvider kernel={kernel} options={{ noStyle: false }}>
+		<ConsentProvider options={{ persistence: false, prefetch, noStyle: false }}>
 			<ConsentBanner.PolicyActions />
 		</ConsentProvider>
 	);

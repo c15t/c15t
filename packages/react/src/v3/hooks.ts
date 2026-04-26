@@ -44,7 +44,7 @@ function useKernel(): ConsentKernel {
 	const kernel = useContext(KernelContext);
 	if (!kernel) {
 		throw new Error(
-			'c15t: no kernel in context. Wrap your app with <ConsentProvider kernel={kernel}> from @c15t/react/v3.'
+			'c15t: no kernel in context. Wrap your app with <ConsentProvider options={...}> from @c15t/react/v3.'
 		);
 	}
 	return kernel;
@@ -113,16 +113,6 @@ export function useUser(): Readonly<KernelUser> | null {
 }
 
 // -- Rich-init selectors ---------------------------------------------------
-
-/** Jurisdiction code (GDPR, CCPA, etc.) or null until `/init` resolves. */
-export function useJurisdiction(): string | null {
-	return useKernelSelector((snap) => snap.jurisdiction);
-}
-
-/** Banner visibility hint from the backend. `null` until resolved. */
-export function useShowConsentBanner(): boolean | null {
-	return useKernelSelector((snap) => snap.showConsentBanner);
-}
 
 /** Geographic context reported by the backend. */
 export function useLocation(): Readonly<LocationResponse> | null {

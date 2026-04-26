@@ -101,16 +101,6 @@ export function useUser(): Readonly<Ref<Readonly<KernelUser> | null>> {
 
 // -- Rich-init selectors ---------------------------------------------------
 
-/** Jurisdiction code (GDPR, CCPA, etc.) or null until `/init` resolves. */
-export function useJurisdiction(): Readonly<Ref<string | null>> {
-	return useKernelSelector((snap) => snap.jurisdiction);
-}
-
-/** Banner visibility hint from the backend. `null` until resolved. */
-export function useShowConsentBanner(): Readonly<Ref<boolean | null>> {
-	return useKernelSelector((snap) => snap.showConsentBanner);
-}
-
 /** Geographic context reported by the backend. */
 export function useLocation(): Readonly<
 	Ref<Readonly<LocationResponse> | null>

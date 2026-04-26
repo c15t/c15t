@@ -422,8 +422,12 @@ describe('script-loader: nested AND/OR/NOT conditions', () => {
 describe('script-loader: IAB evaluation when model="iab"', () => {
 	test('vendorId gate: vendor consent drives load', () => {
 		const kernel = createConsentKernel({
-			initialJurisdiction: 'GDPR',
 			initialIab: { enabled: true },
+			initialPolicy: {
+				id: 'iab',
+				model: 'iab',
+				ui: { mode: 'banner' },
+			} as never,
 			initialConsents: { marketing: true },
 		});
 

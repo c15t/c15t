@@ -289,8 +289,12 @@ describe('network-blocker: dispose', () => {
 describe('network-blocker: IAB evaluation when model="iab"', () => {
 	test('rule with vendorId blocks when vendor consent missing', async () => {
 		const kernel = createConsentKernel({
-			initialJurisdiction: 'GDPR',
 			initialIab: { enabled: true },
+			initialPolicy: {
+				id: 'iab',
+				model: 'iab',
+				ui: { mode: 'banner' },
+			} as never,
 			initialConsents: { marketing: true },
 		});
 		createNetworkBlocker({

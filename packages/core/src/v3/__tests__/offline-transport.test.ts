@@ -9,21 +9,21 @@ import { describe, expect, test } from 'vitest';
 import { createConsentKernel, createOfflineTransport } from '../index';
 
 describe('createOfflineTransport: basic behavior', () => {
-	test('no policy packs → returns default jurisdiction + no-banner', async () => {
+	test('no policy packs → returns no-banner policy', async () => {
 		const transport = createOfflineTransport();
 		const response = await transport.init?.({
 			overrides: {},
 			user: null,
 		});
-		expect(response?.jurisdiction).toBe('NONE');
-		expect(response?.showConsentBanner).toBe(false);
+		expect(response?.policy?.id).toBe('no_banner');
+		expect(response?.policy?.model).toBe('none');
+		expect(response?.policy?.ui?.mode).toBe('none');
 		expect(response?.branding).toBe('c15t');
 		expect(response?.translations?.language).toBe('en');
 	});
 
-	test('custom defaultJurisdiction + defaultLanguage + branding honored', async () => {
+	test('custom defaultLanguage + branding honored', async () => {
 		const transport = createOfflineTransport({
-			defaultJurisdiction: 'GDPR',
 			defaultLanguage: 'de',
 			branding: 'consent',
 		});
@@ -31,7 +31,6 @@ describe('createOfflineTransport: basic behavior', () => {
 			overrides: {},
 			user: null,
 		});
-		expect(response?.jurisdiction).toBe('GDPR');
 		expect(response?.translations?.language).toBe('de');
 		expect(response?.branding).toBe('consent');
 	});
@@ -59,7 +58,7 @@ describe('createOfflineTransport: basic behavior', () => {
 });
 
 describe('createOfflineTransport: policy-pack resolution', () => {
-	test('matching policy pack drives showConsentBanner', async () => {
+	test('matching policy pack drives policy UI mode', async () => {
 		const transport = createOfflineTransport({
 			policyPacks: [
 				{
@@ -74,12 +73,12 @@ describe('createOfflineTransport: policy-pack resolution', () => {
 			overrides: { country: 'DE' },
 			user: null,
 		});
-		expect(response?.showConsentBanner).toBe(true);
+		expect(response?.policy?.ui?.mode).toBe('banner');
 		expect(response?.policy).toBeDefined();
 		expect(response?.policyDecision).toBeDefined();
 	});
 
-	test('non-matching override returns no policy', async () => {
+	test('non-matching override returns no-banner fallback policy', async () => {
 		const transport = createOfflineTransport({
 			policyPacks: [
 				{
@@ -94,8 +93,8 @@ describe('createOfflineTransport: policy-pack resolution', () => {
 			overrides: { country: 'US' },
 			user: null,
 		});
-		expect(response?.policy).toBeUndefined();
-		expect(response?.showConsentBanner).toBe(false);
+		expect(response?.policy?.id).toBe('no_banner');
+		expect(response?.policy?.ui?.mode).toBe('none');
 	});
 });
 
@@ -112,12 +111,12 @@ describe('createOfflineTransport: kernel integration', () => {
 						ui: { mode: 'banner' },
 					},
 				],
-				defaultJurisdiction: 'GDPR',
 			}),
 		});
 		await kernel.commands.init();
 		const snap = kernel.getSnapshot();
-		expect(snap.showConsentBanner).toBe(true);
+		expect(snap.activeUI).toBe('banner');
+		expect(snap.model).toBe('opt-in');
 		expect(snap.location).toEqual({ countryCode: 'DE', regionCode: null });
 		expect(snap.policy).toBeDefined();
 		expect(snap.translations).toBeDefined();
@@ -129,6 +128,7 @@ describe('createOfflineTransport: kernel integration', () => {
 		});
 		const result = await kernel.commands.save('all');
 		expect(result.ok).toBe(true);
+		expect(result.subjectId).toBe(kernel.getSnapshot().subjectId);
 		expect(kernel.getSnapshot().hasConsented).toBe(true);
 	});
 });

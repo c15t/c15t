@@ -11,33 +11,36 @@
  * - ConsentDraftProvider shares draft across siblings
  * - kernel state changes reseed draft when draft is clean
  */
-import { createConsentKernel } from 'c15t/v3';
 import type { ReactNode } from 'react';
 import { describe, expect, test } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentDraftProvider, useConsentDraft } from '../draft';
+import { useConsent, useSetConsent } from '../hooks';
 import { ConsentProvider } from '../provider';
 
-function wrap(kernel = createConsentKernel()) {
+function wrap(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
-		<ConsentProvider kernel={kernel}>{children}</ConsentProvider>
+		<ConsentProvider options={{ persistence: false, ...options }}>
+			{children}
+		</ConsentProvider>
 	);
-	return { kernel, Wrapper };
+	return { Wrapper };
 }
 
-function wrapWithProvider(kernel = createConsentKernel()) {
+function wrapWithProvider(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
-		<ConsentProvider kernel={kernel}>
+		<ConsentProvider options={{ persistence: false, ...options }}>
 			<ConsentDraftProvider>{children}</ConsentDraftProvider>
 		</ConsentProvider>
 	);
-	return { kernel, Wrapper };
+	return { Wrapper };
 }
 
 describe('useConsentDraft — basic staging', () => {
 	test('initial values match kernel.consents', async () => {
-		const { kernel, Wrapper } = wrap();
-		kernel.set.consent({ marketing: true });
+		const { Wrapper } = wrap({
+			prefetch: { initialConsents: { marketing: true } },
+		});
 
 		function Probe() {
 			const draft = useConsentDraft();
@@ -60,10 +63,11 @@ describe('useConsentDraft — basic staging', () => {
 	});
 
 	test('set() mutates draft without touching kernel', async () => {
-		const { kernel, Wrapper } = wrap();
+		const { Wrapper } = wrap();
 
 		function Probe() {
 			const draft = useConsentDraft();
+			const kernelMarketing = useConsent('marketing');
 			return (
 				<div>
 					<button
@@ -76,6 +80,7 @@ describe('useConsentDraft — basic staging', () => {
 					<span data-testid="draft">
 						{String(draft.values.marketing)}|{String(draft.isDirty)}
 					</span>
+					<span data-testid="kernel">{String(kernelMarketing)}</span>
 				</div>
 			);
 		}
@@ -88,14 +93,16 @@ describe('useConsentDraft — basic staging', () => {
 		await getByTestId('toggle').click();
 		await expect.element(getByTestId('draft')).toHaveTextContent('true|true');
 		// Kernel is untouched.
-		expect(kernel.getSnapshot().consents.marketing).toBe(false);
+		await expect.element(getByTestId('kernel')).toHaveTextContent('false');
 	});
 
 	test('save() commits draft to kernel + clears dirty', async () => {
-		const { kernel, Wrapper } = wrap();
+		const { Wrapper } = wrap();
 
 		function Probe() {
 			const draft = useConsentDraft();
+			const kernelMarketing = useConsent('marketing');
+			const hasConsented = useConsent('necessary');
 			return (
 				<div>
 					<button
@@ -113,6 +120,8 @@ describe('useConsentDraft — basic staging', () => {
 						save
 					</button>
 					<span data-testid="dirty">{String(draft.isDirty)}</span>
+					<span data-testid="kernel">{String(kernelMarketing)}</span>
+					<span data-testid="necessary">{String(hasConsented)}</span>
 				</div>
 			);
 		}
@@ -126,13 +135,13 @@ describe('useConsentDraft — basic staging', () => {
 		await expect.element(getByTestId('dirty')).toHaveTextContent('true');
 		await getByTestId('save').click();
 		await expect.element(getByTestId('dirty')).toHaveTextContent('false');
-		expect(kernel.getSnapshot().consents.marketing).toBe(true);
-		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		await expect.element(getByTestId('kernel')).toHaveTextContent('true');
 	});
 
 	test('reset() discards draft changes', async () => {
-		const { kernel, Wrapper } = wrap();
-		kernel.set.consent({ marketing: false });
+		const { Wrapper } = wrap({
+			prefetch: { initialConsents: { marketing: false } },
+		});
 
 		function Probe() {
 			const draft = useConsentDraft();
@@ -252,11 +261,23 @@ describe('ConsentDraftProvider — shared draft across siblings', () => {
 
 describe('useConsentDraft — reseeds on external kernel change when clean', () => {
 	test('external kernel mutation reseeds draft when draft is clean', async () => {
-		const { kernel, Wrapper } = wrapWithProvider();
+		const { Wrapper } = wrapWithProvider();
 
 		function Probe() {
 			const draft = useConsentDraft();
-			return <span data-testid="m">{String(draft.values.marketing)}</span>;
+			const setConsent = useSetConsent();
+			return (
+				<>
+					<button
+						type="button"
+						data-testid="external"
+						onClick={() => setConsent({ marketing: true })}
+					>
+						external
+					</button>
+					<span data-testid="m">{String(draft.values.marketing)}</span>
+				</>
+			);
 		}
 
 		const { getByTestId } = await render(
@@ -267,7 +288,7 @@ describe('useConsentDraft — reseeds on external kernel change when clean', () 
 		await expect.element(getByTestId('m')).toHaveTextContent('false');
 
 		// External change — simulates another tab saving consent.
-		kernel.set.consent({ marketing: true });
+		await getByTestId('external').click();
 		await expect.element(getByTestId('m')).toHaveTextContent('true');
 	});
 });

@@ -122,13 +122,11 @@ export function ConsentDraftProvider({
 	const parentStore = useContext(DraftContext);
 	if (!kernel) {
 		throw new Error(
-			'ConsentDraftProvider: no kernel in context. Wrap with <ConsentProvider kernel={...}> first.'
+			'ConsentDraftProvider: no kernel in context. Wrap with <ConsentProvider options={...}> first.'
 		);
 	}
 
-	if (parentStore && !initial) {
-		return <>{children}</>;
-	}
+	const shouldUseParentStore = Boolean(parentStore && !initial);
 
 	// Seed the store exactly once. `initial` wins, then kernel's current consents.
 	const [store] = useState(() => {
@@ -148,6 +146,7 @@ export function ConsentDraftProvider({
 	// every external kernel change would look "dirty" simply because the
 	// kernel moved on.
 	useEffect(() => {
+		if (shouldUseParentStore) return;
 		let lastKernelConsents = kernel.getSnapshot().consents as ConsentState;
 		return kernel.subscribe((snap) => {
 			const nextKernelConsents = snap.consents as ConsentState;
@@ -163,7 +162,11 @@ export function ConsentDraftProvider({
 			lastKernelConsents = nextKernelConsents;
 			if (!dirty) store.overwrite(nextKernelConsents);
 		});
-	}, [kernel, store]);
+	}, [kernel, shouldUseParentStore, store]);
+
+	if (shouldUseParentStore) {
+		return <>{children}</>;
+	}
 
 	return (
 		<DraftContext.Provider value={store}>{children}</DraftContext.Provider>
@@ -174,7 +177,7 @@ function useKernelOrThrow() {
 	const kernel = useContext(KernelContext);
 	if (!kernel) {
 		throw new Error(
-			'useConsentDraft: no kernel in context. Wrap with <ConsentProvider kernel={...}>.'
+			'useConsentDraft: no kernel in context. Wrap with <ConsentProvider options={...}>.'
 		);
 	}
 	return kernel;

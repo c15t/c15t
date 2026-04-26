@@ -151,8 +151,8 @@ export interface PrefetchInitialConsentOptions
 	/**
 	 * Backend base URL. When provided, the helper will also call
 	 * `${backendURL}/init` server-side and fold the response into the
-	 * returned config (`initialJurisdiction`, `initialShowConsentBanner`,
-	 * `initialConsents` if the backend knows the user). This avoids a
+	 * returned prefetch config (policy, UI, translations, IAB metadata,
+	 * and consents if the backend knows the user). This avoids a
 	 * first-paint flicker before the client-side init lands.
 	 *
 	 * Relative URLs are resolved via the request headers (`x-forwarded-proto`,
@@ -198,9 +198,8 @@ function resolveBackendURL(
  *
  * 1. Reads cookies + geo headers like `readInitialConsentConfig`.
  * 2. Calls `${backendURL}/init` server-side with the request context.
- * 3. Folds the response into a `KernelConfig` — `initialJurisdiction`
- *    and `initialShowConsentBanner` are populated so first paint is
- *    correct without a client roundtrip.
+ * 3. Folds the response into a `KernelConfig` so first paint is correct
+ *    without waiting for a client roundtrip.
  *
  * If the backend call fails, returns the baseline config (silent
  * degradation — the client boundary will retry on mount).
@@ -237,12 +236,6 @@ export async function prefetchInitialConsent(
 		if (!response) return base;
 
 		const merged: KernelConfig = { ...base };
-		if (response.jurisdiction !== undefined) {
-			merged.initialJurisdiction = response.jurisdiction;
-		}
-		if (response.showConsentBanner !== undefined) {
-			merged.initialShowConsentBanner = response.showConsentBanner;
-		}
 		if (response.resolvedOverrides) {
 			merged.initialOverrides = {
 				...(base.initialOverrides ?? {}),
@@ -253,6 +246,36 @@ export async function prefetchInitialConsent(
 			merged.initialConsents = {
 				...(base.initialConsents ?? {}),
 				...response.consents,
+			};
+		}
+		if (response.location !== undefined)
+			merged.initialLocation = response.location;
+		if (response.translations !== undefined) {
+			merged.initialTranslations = response.translations;
+		}
+		if (response.branding !== undefined)
+			merged.initialBranding = response.branding;
+		if (response.policy !== undefined) merged.initialPolicy = response.policy;
+		if (response.policyDecision !== undefined) {
+			merged.initialPolicyDecision = response.policyDecision;
+		}
+		if (response.policySnapshotToken !== undefined) {
+			merged.initialPolicySnapshotToken = response.policySnapshotToken;
+		}
+		if (
+			response.gvl !== undefined ||
+			response.customVendors !== undefined ||
+			response.cmpId !== undefined
+		) {
+			merged.initialIab = {
+				...(merged.initialIab ?? {}),
+				...(response.gvl !== undefined
+					? { gvl: response.gvl, enabled: response.gvl !== null }
+					: {}),
+				...(response.customVendors !== undefined
+					? { customVendors: response.customVendors }
+					: {}),
+				...(response.cmpId !== undefined ? { cmpId: response.cmpId } : {}),
 			};
 		}
 		return merged;

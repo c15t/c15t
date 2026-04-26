@@ -13,7 +13,6 @@
  * it can feed the continuous-monitoring scoreboard.
  */
 import { defaultTranslationConfig } from 'c15t';
-import { createConsentKernel } from 'c15t/v3';
 import { Profiler, type ReactNode } from 'react';
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -22,7 +21,7 @@ import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
-import { ConsentProvider, useConsent } from '../index';
+import { ConsentProvider, useConsent, useSetConsent } from '../index';
 
 type Category =
 	| 'necessary'
@@ -143,15 +142,6 @@ async function runV2(): Promise<Run> {
 
 async function runV3(): Promise<Run> {
 	const counts = new Map<number, number>();
-	const kernel = createConsentKernel({
-		initialConsents: {
-			necessary: true,
-			functionality: false,
-			marketing: false,
-			measurement: false,
-			experience: false,
-		},
-	});
 
 	function V3Child({ index }: { index: number }) {
 		const category = CATEGORIES[index % CATEGORIES.length] as Category;
@@ -170,18 +160,45 @@ async function runV3(): Promise<Run> {
 		);
 	}
 
-	await render(
-		<ConsentProvider kernel={kernel}>
+	function V3Mutator() {
+		const setConsent = useSetConsent();
+		return (
+			<button
+				data-testid="v3-toggle"
+				onClick={() => setConsent({ marketing: true })}
+				type="button"
+			>
+				flip marketing
+			</button>
+		);
+	}
+
+	const { getByTestId } = await render(
+		<ConsentProvider
+			options={{
+				persistence: false,
+				prefetch: {
+					initialConsents: {
+						necessary: true,
+						functionality: false,
+						marketing: false,
+						measurement: false,
+						experience: false,
+					},
+				},
+			}}
+		>
 			{Array.from({ length: CHILDREN }, (_, i) => (
 				<V3Child key={i} index={i} />
 			))}
+			<V3Mutator />
 		</ConsentProvider>
 	);
 
 	await settle();
 	const mountRenders = Array.from(counts.values()).reduce((a, b) => a + b, 0);
 
-	kernel.set.consent({ marketing: true });
+	await getByTestId('v3-toggle').click();
 	await settle();
 
 	const afterMutation = Array.from(counts.values()).reduce((a, b) => a + b, 0);
@@ -212,7 +229,6 @@ describe('v3 render-count bench', () => {
 		// bundle.
 		(globalThis as Record<string, unknown>).__C15T_RENDER_BENCH__ = payload;
 
-		// biome-ignore lint: intentional bench output
 		console.log(
 			`\n[render-count-bench] v2 mount=${v2.mountRenders} mutation=${v2.mutationRenders}` +
 				` | v3 mount=${v3.mountRenders} mutation=${v3.mutationRenders}\n`

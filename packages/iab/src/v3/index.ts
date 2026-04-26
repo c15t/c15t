@@ -70,7 +70,7 @@ export interface IABHandle {
 	/** Tear down the CMP API + stub and disconnect kernel subscriptions. */
 	dispose(): void;
 	/** The underlying CMP API instance (for advanced consumers). */
-	cmpApi: CMPApi | null;
+	readonly cmpApi: CMPApi | null;
 	/** Set consent for a specific IAB vendor by ID. */
 	setVendorConsent(vendorId: string | number, value: boolean): void;
 	/** Set legitimate interest for a specific IAB vendor. */
@@ -297,7 +297,9 @@ export function createIAB(options: CreateIABOptions): IABHandle {
 	}
 
 	return {
-		cmpApi,
+		get cmpApi() {
+			return cmpApi;
+		},
 		dispose() {
 			disposed = true;
 			unsubscribe();

@@ -57,6 +57,23 @@ describe('persistence: hydration', () => {
 		createPersistence({ kernel });
 		expect(kernel.getSnapshot().consents.marketing).toBe(true);
 		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		expect(kernel.getSnapshot().subjectId).toMatch(/^sub_/);
+	});
+
+	test('hydration does not call transport.save', async () => {
+		const pre = createConsentKernel();
+		const seed = createPersistence({ kernel: pre });
+		await pre.commands.save({ marketing: true });
+		await flushDebounce();
+		seed.dispose();
+
+		const save = vi.fn().mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({ transport: { save } });
+		createPersistence({ kernel });
+
+		expect(kernel.getSnapshot().consents.marketing).toBe(true);
+		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		expect(save).not.toHaveBeenCalled();
 	});
 
 	test('skipHydration skips the read', async () => {

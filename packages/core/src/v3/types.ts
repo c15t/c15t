@@ -39,8 +39,8 @@ export type {
 export type KernelBranding = 'c15t' | 'consent' | 'inth';
 
 /**
- * Consent-model the banner should enforce. Derived on every init
- * response via `deriveModel(jurisdiction, policy, iabEnabled)`.
+ * Consent model the runtime should enforce. Derived from the resolved
+ * policy and IAB enablement.
  * - `opt-in`  — banner must appear before tracking (GDPR default)
  * - `opt-out` — tracking allowed by default, banner lets user opt out (CCPA)
  * - `iab`     — IAB TCF string drives everything
@@ -138,19 +138,10 @@ export interface ConsentSnapshot {
 	/** Monotonic revision, bumps on every mutation. */
 	readonly revision: number;
 
+	/** Subject ID used for append-only consent writes. Generated lazily. */
+	readonly subjectId: string | null;
+
 	// -- Init-response derived state -----------------------------------------
-	/**
-	 * Jurisdiction code resolved by the backend (GDPR, CCPA, LGPD, etc.)
-	 * or `null` until `commands.init()` has resolved. Offline kernels
-	 * without a transport stay at `null` unless provided via config.
-	 */
-	readonly jurisdiction: string | null;
-	/**
-	 * Whether the consent banner should be shown. `null` until resolved —
-	 * adapters should render nothing until this is a concrete boolean,
-	 * otherwise SSR markup will mismatch client hydration.
-	 */
-	readonly showConsentBanner: boolean | null;
 	/** Geographic context reported by the backend. */
 	readonly location: Readonly<LocationResponse> | null;
 	/** Resolved translation bundle. */
@@ -164,7 +155,7 @@ export interface ConsentSnapshot {
 	/** Signed token for write-time consistency — sent back on save. */
 	readonly policySnapshotToken: string | null;
 
-	// -- Derived from jurisdiction + policy + iab.enabled --------------------
+	// -- Derived from policy + iab.enabled -----------------------------------
 	/** Effective consent model. */
 	readonly model: KernelModel;
 	/** Which UI surface should render, if any. */
@@ -194,14 +185,8 @@ export interface KernelConfig {
 	initialOverrides?: KernelOverrides;
 	/** Initial identified user, if known at construction. */
 	initialUser?: KernelUser;
-	/** Initial jurisdiction (e.g. from prefetch). Overwritten by init response. */
-	initialJurisdiction?: string;
-	/**
-	 * Initial banner visibility (e.g. from prefetch). When set the
-	 * adapter can render decisively on first paint without waiting for
-	 * the client-side init roundtrip.
-	 */
-	initialShowConsentBanner?: boolean;
+	/** Initial subject ID, usually hydrated from stored consent. */
+	initialSubjectId?: string;
 	/** Initial translation bundle (e.g. from prefetch). */
 	initialTranslations?: KernelTranslations;
 	/** Initial location (e.g. from prefetch). */
@@ -244,8 +229,6 @@ export interface InitContext {
  */
 export interface InitResponse {
 	// -- Scope already supported in the MVP transport ------------------------
-	jurisdiction?: string;
-	showConsentBanner?: boolean;
 	/** Geographic context the transport resolved (e.g. from IP lookup). */
 	resolvedOverrides?: KernelOverrides;
 	/** Server-side consent state, if the user is already identified. */
@@ -286,9 +269,13 @@ export interface InitResponse {
  * backend can reject writes against stale policies.
  */
 export interface SavePayload {
+	subjectId: string;
 	consents: Readonly<ConsentState>;
 	overrides: Readonly<KernelOverrides>;
 	user: Readonly<KernelUser> | null;
+	model: KernelModel;
+	uiSource: KernelActiveUI;
+	consentAction: 'all' | 'necessary' | 'custom';
 	policySnapshotToken: string | null;
 	/** TC string emitted by the IAB module; absent in non-IAB flows. */
 	tcString?: string | null;
@@ -336,8 +323,6 @@ export type Unsubscribe = () => void;
  */
 export interface InitResult {
 	ok: boolean;
-	jurisdiction?: string;
-	showConsentBanner?: boolean;
 	error?: unknown;
 }
 
@@ -371,6 +356,8 @@ export interface ConsentKernel {
 		consent(input: Partial<ConsentState>): void;
 		overrides(input: KernelOverrides): void;
 		language(code: string): void;
+		subjectId(id: string | null): void;
+		hasConsented(value: boolean): void;
 		/** Set the active UI surface. */
 		activeUI(ui: KernelActiveUI): void;
 		/** Patch the IAB slice. Creates the slice if currently null. */

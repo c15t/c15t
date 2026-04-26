@@ -12,7 +12,6 @@
  *   a wrapper that races hosted/offline transports).
  */
 import type {
-	JurisdictionCode,
 	PolicyConfig,
 	PolicyDecision,
 	ResolvedPolicy,
@@ -48,13 +47,6 @@ export interface OfflineTransportOptions {
 	 * language override. Defaults to 'en'.
 	 */
 	defaultLanguage?: string;
-
-	/**
-	 * Default jurisdiction to report when no policy matches. Defaults
-	 * to 'NONE' — treat as no-regulation-applies (opt-out everything
-	 * except necessary).
-	 */
-	defaultJurisdiction?: JurisdictionCode;
 
 	/**
 	 * Brand identifier. Defaults to 'c15t'.
@@ -97,8 +89,6 @@ export function createOfflineTransport(
 	options: OfflineTransportOptions = {}
 ): KernelTransport {
 	const defaultLanguage = options.defaultLanguage ?? 'en';
-	const defaultJurisdiction: JurisdictionCode =
-		options.defaultJurisdiction ?? 'NONE';
 	const branding: KernelBranding = options.branding ?? 'c15t';
 	const iabEnabled = options.iabEnabled === true;
 	const translations = normalizeTranslations(
@@ -121,15 +111,11 @@ export function createOfflineTransport(
 					})
 				: undefined;
 
-			const policy: ResolvedPolicy | undefined = match?.policy;
-			const jurisdiction: JurisdictionCode =
-				(policy as { jurisdiction?: JurisdictionCode } | undefined)
-					?.jurisdiction ?? defaultJurisdiction;
-
-			// showConsentBanner: when a policy matched and it says banner,
-			// show it. Otherwise default to false (no regulation applies).
-			const showConsentBanner =
-				policy?.ui?.mode === 'banner' || policy?.ui?.mode === 'dialog';
+			const policy: ResolvedPolicy = match?.policy ?? {
+				id: 'no_banner',
+				model: 'none',
+				ui: { mode: 'none' },
+			};
 
 			const policyDecision: PolicyDecision | undefined = match
 				? ({
@@ -147,29 +133,25 @@ export function createOfflineTransport(
 				: translations;
 
 			const response: InitResponse = {
-				jurisdiction,
-				showConsentBanner,
 				location: {
 					countryCode: country,
 					regionCode: region,
 				},
 				translations: resolvedTranslations,
 				branding,
+				policy,
 			};
-			if (policy) {
-				response.policy = policy;
-			}
 			if (policyDecision) {
 				response.policyDecision = policyDecision;
 			}
 			return response;
 		},
 
-		async save(_payload: SavePayload): Promise<SaveResult> {
+		async save(payload: SavePayload): Promise<SaveResult> {
 			// Offline mode — no server to acknowledge the save. The caller's
-			// persistence module handles client-side storage. Always succeeds
-			// with no subjectId (local writes use generateSubjectId separately).
-			return { ok: true };
+			// persistence module handles client-side storage. Echo the kernel's
+			// subject ID so save results stay consistent across transports.
+			return { ok: true, subjectId: payload.subjectId };
 		},
 
 		// identify is a no-op in offline mode — no server to notify.

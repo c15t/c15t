@@ -48,24 +48,24 @@ describe('kernel transport: no transport = no-op commands', () => {
 });
 
 describe('kernel transport: init applies response to snapshot', () => {
-	test('jurisdiction + showConsentBanner land in snapshot', async () => {
+	test('legacy jurisdiction + showConsentBanner init fields are ignored', async () => {
 		const transport: KernelTransport = {
 			async init() {
 				return {
 					jurisdiction: 'GDPR',
 					showConsentBanner: true,
-				};
+				} as InitResponse;
 			},
 		};
 		const kernel = createConsentKernel({ transport });
 
-		expect(kernel.getSnapshot().jurisdiction).toBeNull();
-		expect(kernel.getSnapshot().showConsentBanner).toBeNull();
+		expect(kernel.getSnapshot().model).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('none');
 
 		await kernel.commands.init();
 
-		expect(kernel.getSnapshot().jurisdiction).toBe('GDPR');
-		expect(kernel.getSnapshot().showConsentBanner).toBe(true);
+		expect(kernel.getSnapshot().model).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('none');
 	});
 
 	test('resolvedOverrides merge into snapshot.overrides', async () => {
@@ -135,7 +135,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 		const events: string[] = [];
 		const transport: KernelTransport = {
 			async init() {
-				return { jurisdiction: 'CCPA' };
+				return {};
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -167,8 +167,8 @@ describe('kernel transport: init applies response to snapshot', () => {
 		expect(result.error).toBe(boom);
 		expect(errors).toEqual([boom]);
 		// Snapshot should be unchanged.
-		expect(kernel.getSnapshot().jurisdiction).toBeNull();
-		expect(kernel.getSnapshot().showConsentBanner).toBeNull();
+		expect(kernel.getSnapshot().model).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('none');
 	});
 });
 
@@ -188,7 +188,27 @@ describe('kernel transport: save flows consents to backend', () => {
 		expect(result.subjectId).toBe('sub-1');
 		expect(saveSpy).toHaveBeenCalledTimes(1);
 		const payload = saveSpy.mock.calls[0]?.[0];
+		expect(payload?.subjectId).toMatch(/^sub_/);
 		expect(payload?.consents.marketing).toBe(true);
+	});
+
+	test('save creates and reuses a subjectId', async () => {
+		const saveSpy = vi.fn<
+			[Parameters<NonNullable<KernelTransport['save']>>[0]],
+			Promise<SaveResult>
+		>();
+		saveSpy.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({ transport: { save: saveSpy } });
+
+		await kernel.commands.save('all');
+		const first = kernel.getSnapshot().subjectId;
+		await kernel.commands.save({ marketing: false });
+		const second = kernel.getSnapshot().subjectId;
+
+		expect(first).toMatch(/^sub_/);
+		expect(second).toBe(first);
+		expect(saveSpy.mock.calls[0]?.[0].subjectId).toBe(first);
+		expect(saveSpy.mock.calls[1]?.[0].subjectId).toBe(first);
 	});
 
 	test('save transport error → result.ok=false + command:error event', async () => {
@@ -247,7 +267,7 @@ describe('kernel transport: identify forwards to transport', () => {
 describe('createHostedTransport: request shape', () => {
 	test('init POSTs to `${backendURL}/init` with overrides+user', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
-			new Response(JSON.stringify({ jurisdiction: 'GDPR' }), {
+			new Response(JSON.stringify({ policy: { id: 'p', model: 'none' } }), {
 				status: 200,
 				headers: { 'content-type': 'application/json' },
 			})
@@ -262,7 +282,7 @@ describe('createHostedTransport: request shape', () => {
 			user: { externalId: 'user-1' },
 		});
 
-		expect(response?.jurisdiction).toBe('GDPR');
+		expect(response?.policy?.id).toBe('p');
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		const [url, init] = fetchSpy.mock.calls[0] ?? [];
 		// Trailing slash on backendURL is stripped.
@@ -273,7 +293,7 @@ describe('createHostedTransport: request shape', () => {
 		expect(body.user.externalId).toBe('user-1');
 	});
 
-	test('save POSTs to `${backendURL}/consent`', async () => {
+	test('save POSTs to `${backendURL}/subjects` with backend body', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(JSON.stringify({ ok: true, subjectId: 'sub-1' }), {
 				status: 200,
@@ -286,6 +306,7 @@ describe('createHostedTransport: request shape', () => {
 		});
 
 		const result = await transport.save?.({
+			subjectId: 'sub_test',
 			consents: {
 				necessary: true,
 				functionality: true,
@@ -294,12 +315,38 @@ describe('createHostedTransport: request shape', () => {
 				experience: true,
 			},
 			overrides: {},
-			user: null,
+			user: { externalId: 'user-1', identityProvider: 'app' },
+			model: 'opt-in',
+			uiSource: 'banner',
+			consentAction: 'all',
+			policySnapshotToken: 'snap-1',
+			tcString: 'tc-1',
 		});
 
 		expect(result?.subjectId).toBe('sub-1');
-		const [url] = fetchSpy.mock.calls[0] ?? [];
-		expect(url).toBe('/api/c15t/consent');
+		const [url, init] = fetchSpy.mock.calls[0] ?? [];
+		expect(url).toBe('/api/c15t/subjects');
+		const body = JSON.parse((init as RequestInit).body as string);
+		expect(body).toMatchObject({
+			subjectId: 'sub_test',
+			externalSubjectId: 'user-1',
+			identityProvider: 'app',
+			domain: 'localhost',
+			type: 'cookie_banner',
+			preferences: {
+				necessary: true,
+				functionality: true,
+				marketing: true,
+				measurement: true,
+				experience: true,
+			},
+			jurisdictionModel: 'opt-in',
+			uiSource: 'banner',
+			consentAction: 'all',
+			policySnapshotToken: 'snap-1',
+			tcString: 'tc-1',
+		});
+		expect(typeof body.givenAt).toBe('number');
 	});
 
 	test('extra headers are merged into every request', async () => {

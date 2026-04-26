@@ -6,7 +6,6 @@
  * 2. ZERO unrelated re-renders invariant — key v3 gate.
  * 3. Stale-closure bug (c15t/c15t#604) is structurally resolved.
  */
-import { createConsentKernel } from 'c15t/v3';
 import type { ReactNode } from 'react';
 import { Profiler, StrictMode, useRef } from 'react';
 import { describe, expect, test } from 'vitest';
@@ -19,48 +18,79 @@ import {
 	useOverrides,
 	useSaveConsents,
 	useSetConsent,
+	useSetOverrides,
 } from '../index';
 
-function withProvider(kernel = createConsentKernel()) {
+function withProvider(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
-		<ConsentProvider kernel={kernel}>{children}</ConsentProvider>
+		<ConsentProvider options={{ persistence: false, ...options }}>
+			{children}
+		</ConsentProvider>
 	);
-	return { kernel, Wrapper };
+	return { Wrapper };
 }
 
 describe('v3 react: selector hook basics', () => {
 	test('useConsent returns current state and updates on mutation', async () => {
-		const { kernel, Wrapper } = withProvider();
+		const { Wrapper } = withProvider();
 
 		function MarketingStatus() {
 			const allowed = useConsent('marketing');
 			return <div data-testid="status">{allowed ? 'on' : 'off'}</div>;
 		}
 
+		function ToggleMarketing() {
+			const setConsent = useSetConsent();
+			return (
+				<button
+					type="button"
+					data-testid="toggle"
+					onClick={() => setConsent({ marketing: true })}
+				>
+					toggle
+				</button>
+			);
+		}
+
 		const { getByTestId } = await render(
 			<Wrapper>
 				<MarketingStatus />
+				<ToggleMarketing />
 			</Wrapper>
 		);
 
 		await expect.element(getByTestId('status')).toHaveTextContent('off');
 
-		kernel.set.consent({ marketing: true });
+		await getByTestId('toggle').click();
 
 		await expect.element(getByTestId('status')).toHaveTextContent('on');
 	});
 
 	test('useConsents returns the full map', async () => {
-		const { kernel, Wrapper } = withProvider();
+		const { Wrapper } = withProvider();
 
 		function Dump() {
 			const consents = useConsents();
 			return <pre data-testid="dump">{JSON.stringify(consents)}</pre>;
 		}
 
+		function Toggle() {
+			const setConsent = useSetConsent();
+			return (
+				<button
+					type="button"
+					data-testid="toggle"
+					onClick={() => setConsent({ marketing: true, measurement: true })}
+				>
+					toggle
+				</button>
+			);
+		}
+
 		const { getByTestId } = await render(
 			<Wrapper>
 				<Dump />
+				<Toggle />
 			</Wrapper>
 		);
 
@@ -68,7 +98,7 @@ describe('v3 react: selector hook basics', () => {
 			.element(getByTestId('dump'))
 			.toHaveTextContent('"marketing":false');
 
-		kernel.set.consent({ marketing: true, measurement: true });
+		await getByTestId('toggle').click();
 
 		await expect
 			.element(getByTestId('dump'))
@@ -76,40 +106,68 @@ describe('v3 react: selector hook basics', () => {
 	});
 
 	test('useHasConsented flips after save', async () => {
-		const { kernel, Wrapper } = withProvider();
+		const { Wrapper } = withProvider();
 
 		function Status() {
 			const v = useHasConsented();
 			return <div data-testid="has">{String(v)}</div>;
 		}
 
+		function SaveAll() {
+			const save = useSaveConsents();
+			return (
+				<button
+					type="button"
+					data-testid="save"
+					onClick={() => void save('all')}
+				>
+					save
+				</button>
+			);
+		}
+
 		const { getByTestId } = await render(
 			<Wrapper>
 				<Status />
+				<SaveAll />
 			</Wrapper>
 		);
 
 		await expect.element(getByTestId('has')).toHaveTextContent('false');
-		await kernel.commands.save('all');
+		await getByTestId('save').click();
 		await expect.element(getByTestId('has')).toHaveTextContent('true');
 	});
 
 	test('useOverrides updates on set.overrides', async () => {
-		const { kernel, Wrapper } = withProvider();
+		const { Wrapper } = withProvider();
 
 		function CountryLabel() {
 			const o = useOverrides();
 			return <div data-testid="country">{o.country ?? 'none'}</div>;
 		}
 
+		function SetCountry() {
+			const setOverrides = useSetOverrides();
+			return (
+				<button
+					type="button"
+					data-testid="set-country"
+					onClick={() => setOverrides({ country: 'DE' })}
+				>
+					set country
+				</button>
+			);
+		}
+
 		const { getByTestId } = await render(
 			<Wrapper>
 				<CountryLabel />
+				<SetCountry />
 			</Wrapper>
 		);
 
 		await expect.element(getByTestId('country')).toHaveTextContent('none');
-		kernel.set.overrides({ country: 'DE' });
+		await getByTestId('set-country').click();
 		await expect.element(getByTestId('country')).toHaveTextContent('DE');
 	});
 });
@@ -120,7 +178,7 @@ describe('v3 react: zero unrelated re-renders', () => {
 	// `useConsent('marketing')` must not re-render when
 	// `useConsent('measurement')` flips elsewhere.
 	test('flipping marketing does not re-render a measurement-only component', async () => {
-		const { kernel, Wrapper } = withProvider();
+		const { Wrapper } = withProvider();
 		const marketingRenders: number[] = [];
 		const measurementRenders: number[] = [];
 
@@ -142,10 +200,24 @@ describe('v3 react: zero unrelated re-renders', () => {
 			);
 		}
 
+		function ToggleMarketing() {
+			const setConsent = useSetConsent();
+			return (
+				<button
+					type="button"
+					data-testid="toggle"
+					onClick={() => setConsent({ marketing: true })}
+				>
+					toggle
+				</button>
+			);
+		}
+
 		await render(
 			<Wrapper>
 				<MarketingView />
 				<MeasurementView />
+				<ToggleMarketing />
 			</Wrapper>
 		);
 
@@ -154,7 +226,9 @@ describe('v3 react: zero unrelated re-renders', () => {
 		const marketingAfterMount = marketingRenders.length;
 		const measurementAfterMount = measurementRenders.length;
 
-		kernel.set.consent({ marketing: true });
+		await document
+			.querySelector<HTMLButtonElement>('[data-testid="toggle"]')
+			?.click();
 		await new Promise((r) => setTimeout(r, 10));
 
 		// Marketing hook's returned value changed → exactly one more commit.
@@ -165,15 +239,25 @@ describe('v3 react: zero unrelated re-renders', () => {
 	});
 
 	test('no-op mutation triggers zero re-renders anywhere', async () => {
-		const { kernel, Wrapper } = withProvider();
+		const { Wrapper } = withProvider();
 		const renders: number[] = [];
 
 		function View() {
 			const consents = useConsents();
+			const setConsent = useSetConsent();
 			return (
-				<Profiler id="dump" onRender={() => renders.push(1)}>
-					<pre>{JSON.stringify(consents)}</pre>
-				</Profiler>
+				<>
+					<button
+						type="button"
+						data-testid="noop"
+						onClick={() => setConsent({ necessary: true })}
+					>
+						noop
+					</button>
+					<Profiler id="dump" onRender={() => renders.push(1)}>
+						<pre>{JSON.stringify(consents)}</pre>
+					</Profiler>
+				</>
 			);
 		}
 
@@ -188,7 +272,9 @@ describe('v3 react: zero unrelated re-renders', () => {
 
 		// necessary is already true; this should be a no-op at the kernel
 		// level and should not trigger subscribers.
-		kernel.set.consent({ necessary: true });
+		await document
+			.querySelector<HTMLButtonElement>('[data-testid="noop"]')
+			?.click();
 		await new Promise((r) => setTimeout(r, 10));
 
 		expect(renders.length).toBe(afterMount);
@@ -202,16 +288,33 @@ describe('v3 react: stale-closure resolved (issue #604)', () => {
 	// to cache. Even if this test ran under React Compiler the result
 	// would be correct by construction.
 	test('useConsent result is always fresh after mutations', async () => {
-		const { kernel, Wrapper } = withProvider();
+		const { Wrapper } = withProvider();
 
 		function MarketingReader() {
 			const renderCountRef = useRef(0);
 			renderCountRef.current += 1;
 			const allowed = useConsent('marketing');
+			const setConsent = useSetConsent();
 			return (
-				<div data-testid="value">
-					{allowed ? 'on' : 'off'}|{renderCountRef.current}
-				</div>
+				<>
+					<button
+						type="button"
+						data-testid="on"
+						onClick={() => setConsent({ marketing: true })}
+					>
+						on
+					</button>
+					<button
+						type="button"
+						data-testid="off"
+						onClick={() => setConsent({ marketing: false })}
+					>
+						off
+					</button>
+					<div data-testid="value">
+						{allowed ? 'on' : 'off'}|{renderCountRef.current}
+					</div>
+				</>
 			);
 		}
 
@@ -225,17 +328,17 @@ describe('v3 react: stale-closure resolved (issue #604)', () => {
 
 		await expect.element(getByTestId('value')).toHaveTextContent(/^off\|/);
 
-		kernel.set.consent({ marketing: true });
+		await getByTestId('on').click();
 		await expect.element(getByTestId('value')).toHaveTextContent(/^on\|/);
 
-		kernel.set.consent({ marketing: false });
+		await getByTestId('off').click();
 		await expect.element(getByTestId('value')).toHaveTextContent(/^off\|/);
 	});
 });
 
 describe('v3 react: action hooks', () => {
 	test('useSetConsent returns a stable reference and mutates kernel', async () => {
-		const { kernel, Wrapper } = withProvider();
+		const { Wrapper } = withProvider();
 		let firstRef: unknown;
 		let secondRef: unknown;
 		let renders = 0;
@@ -251,7 +354,7 @@ describe('v3 react: action hooks', () => {
 					<button
 						type="button"
 						data-testid="toggle"
-						onClick={() => setConsent({ marketing: true })}
+						onClick={() => setConsent({ measurement: true })}
 					>
 						toggle
 					</button>
@@ -266,7 +369,7 @@ describe('v3 react: action hooks', () => {
 			</Wrapper>
 		);
 
-		kernel.set.consent({ measurement: true });
+		await getByTestId('toggle').click();
 		await expect.element(getByTestId('measurement')).toHaveTextContent('true');
 
 		// Reference stability across re-renders caused by unrelated state.
@@ -275,11 +378,12 @@ describe('v3 react: action hooks', () => {
 	});
 
 	test('useSaveConsents commits via kernel', async () => {
-		const { kernel, Wrapper } = withProvider();
+		const { Wrapper } = withProvider();
 
 		function Saver() {
 			const save = useSaveConsents();
 			const hasConsented = useHasConsented();
+			const marketing = useConsent('marketing');
 			return (
 				<div>
 					<button
@@ -292,6 +396,7 @@ describe('v3 react: action hooks', () => {
 						save
 					</button>
 					<span data-testid="has">{String(hasConsented)}</span>
+					<span data-testid="marketing">{String(marketing)}</span>
 				</div>
 			);
 		}
@@ -305,6 +410,6 @@ describe('v3 react: action hooks', () => {
 		await expect.element(getByTestId('has')).toHaveTextContent('false');
 		await getByTestId('save').click();
 		await expect.element(getByTestId('has')).toHaveTextContent('true');
-		expect(kernel.getSnapshot().consents.marketing).toBe(true);
+		await expect.element(getByTestId('marketing')).toHaveTextContent('true');
 	});
 });

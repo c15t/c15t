@@ -49,7 +49,11 @@ export type {
 	SaveResult,
 	Unsubscribe,
 } from 'c15t/v3';
-export { createConsentKernel, createHostedTransport } from 'c15t/v3';
+export {
+	createConsentKernel,
+	createHostedTransport,
+	createOfflineTransport,
+} from 'c15t/v3';
 export {
 	useActiveUI,
 	useBranding,
@@ -60,7 +64,6 @@ export {
 	useIABSnapshot,
 	useIdentify,
 	useInit,
-	useJurisdiction,
 	useLocation,
 	useModel,
 	useOverrides,
@@ -76,7 +79,6 @@ export {
 	useSetIAB,
 	useSetLanguage,
 	useSetOverrides,
-	useShowConsentBanner,
 	useSnapshot,
 	useSpecialFeatureOptIn,
 	useTCString,

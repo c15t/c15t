@@ -4,13 +4,14 @@
  * Unstable. API may change before v3.0 stable.
  *
  * Pattern:
- *   import { createConsentKernel } from 'c15t/v3';
  *   import { ConsentProvider, useConsent, useSaveConsents } from '@c15t/react/v3';
  *
- *   const kernel = createConsentKernel(config);
- *
  *   function App({ children }) {
- *     return <ConsentProvider kernel={kernel}>{children}</ConsentProvider>;
+ *     return (
+ *       <ConsentProvider options={{ mode: 'hosted', backendURL: '/api/c15t' }}>
+ *         {children}
+ *       </ConsentProvider>
+ *     );
  *   }
  *
  *   function MarketingScripts() {
@@ -24,8 +25,8 @@
  * - Action hooks return stable kernel methods — no `useCallback` dance
  *   required at the consumer site.
  * - No provider-level useEffect syncing state into React state. No
- *   cache patching. No method rewriting. No banner fetch, localStorage
- *   read, or window write at mount. Those live in opt-in boot modules.
+ *   cache patching. No method rewriting. Provider boot work is explicit
+ *   module wiring around a single per-mount kernel.
  */
 
 // Re-export kernel types + factories so v3 consumers need only one import.
@@ -87,7 +88,6 @@ export {
 	useIABSnapshot,
 	useIdentify,
 	useInit,
-	useJurisdiction,
 	useLocation,
 	useModel,
 	useOverrides,
@@ -103,7 +103,6 @@ export {
 	useSetConsent,
 	useSetLanguage,
 	useSetOverrides,
-	useShowConsentBanner,
 	useSnapshot,
 	useSpecialFeatureOptIn,
 	useTCString,
@@ -123,5 +122,5 @@ export {
 	usePersistence,
 	useScriptLoader,
 } from './module-hooks';
-export type { ConsentProviderProps } from './provider';
+export type { ConsentProviderOptions, ConsentProviderProps } from './provider';
 export { ConsentProvider } from './provider';

@@ -55,13 +55,27 @@ const GDPR_DECISION: PolicyDecision = {
 	fingerprint: 'abc123',
 } as unknown as PolicyDecision;
 
+const IAB_POLICY: ResolvedPolicy = {
+	...GDPR_POLICY,
+	id: 'iab-policy',
+	model: 'iab',
+	consent: {
+		...GDPR_POLICY.consent,
+		model: 'iab',
+	},
+} as unknown as ResolvedPolicy;
+
+const NO_BANNER_POLICY: ResolvedPolicy = {
+	id: 'no_banner',
+	model: 'none',
+	ui: { mode: 'none' },
+} as unknown as ResolvedPolicy;
+
 describe('rich init: applies full response to snapshot', () => {
 	test('fills location / translations / branding / policy / policyDecision / policySnapshotToken', async () => {
 		const transport: KernelTransport = {
 			async init() {
 				return {
-					jurisdiction: 'GDPR',
-					showConsentBanner: true,
 					location: { countryCode: 'DE', regionCode: 'BE' },
 					translations: {
 						language: 'de',
@@ -81,8 +95,6 @@ describe('rich init: applies full response to snapshot', () => {
 		await kernel.commands.init();
 		const snap = kernel.getSnapshot();
 
-		expect(snap.jurisdiction).toBe('GDPR');
-		expect(snap.showConsentBanner).toBe(true);
 		expect(snap.location).toEqual({ countryCode: 'DE', regionCode: 'BE' });
 		expect(snap.translations?.language).toBe('de');
 		expect(snap.branding).toBe('c15t');
@@ -95,7 +107,6 @@ describe('rich init: applies full response to snapshot', () => {
 		const transport: KernelTransport = {
 			async init() {
 				return {
-					jurisdiction: 'GDPR',
 					policy: GDPR_POLICY,
 				};
 			},
@@ -128,7 +139,7 @@ describe('rich init: applies full response to snapshot', () => {
 	test('applies policy.preselectedCategories when hasConsented is false', async () => {
 		const transport: KernelTransport = {
 			async init() {
-				return { jurisdiction: 'GDPR', policy: GDPR_POLICY };
+				return { policy: GDPR_POLICY };
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -147,7 +158,6 @@ describe('rich init: applies full response to snapshot', () => {
 		const transport: KernelTransport = {
 			async init() {
 				return {
-					jurisdiction: 'GDPR',
 					policy: GDPR_POLICY,
 					// Server says hasConsented=true — user has prior choice
 					hasConsented: true,
@@ -167,10 +177,10 @@ describe('rich init: applies full response to snapshot', () => {
 		expect(snap.consents.functionality).toBe(false);
 	});
 
-	test('model=null when jurisdiction is NONE', async () => {
+	test('model=null when policy.model is none', async () => {
 		const transport: KernelTransport = {
 			async init() {
-				return { jurisdiction: 'NONE' };
+				return { policy: NO_BANNER_POLICY };
 			},
 		};
 		const kernel = createConsentKernel({ transport });
@@ -186,7 +196,6 @@ describe('rich init: IAB passthrough', () => {
 		const transport: KernelTransport = {
 			async init() {
 				return {
-					jurisdiction: 'GDPR',
 					gvl: {
 						gvlSpecificationVersion: 3,
 						vendorListVersion: 42,
@@ -218,7 +227,7 @@ describe('rich init: IAB passthrough', () => {
 	test('gvl=null on 200 response → iab.enabled remains false', async () => {
 		const transport: KernelTransport = {
 			async init() {
-				return { jurisdiction: 'GDPR', gvl: null };
+				return { gvl: null };
 			},
 		};
 		const kernel = createConsentKernel({
@@ -233,7 +242,7 @@ describe('rich init: IAB passthrough', () => {
 	test('no IAB fields in response → snapshot.iab unchanged', async () => {
 		const transport: KernelTransport = {
 			async init() {
-				return { jurisdiction: 'GDPR' };
+				return {};
 			},
 		};
 		const kernel = createConsentKernel({
@@ -284,18 +293,17 @@ describe('set.iab: kernel action', () => {
 
 	test('flipping enabled re-derives model + activeUI', () => {
 		const kernel = createConsentKernel({
-			initialJurisdiction: 'GDPR',
 			initialIab: { enabled: false },
-			initialPolicy: GDPR_POLICY,
+			initialPolicy: IAB_POLICY,
 		});
 
-		expect(kernel.getSnapshot().model).toBe('opt-in');
+		expect(kernel.getSnapshot().model).toBeNull();
 
 		kernel.set.iab({ enabled: true });
 		expect(kernel.getSnapshot().model).toBe('iab');
 
 		kernel.set.iab({ enabled: false });
-		expect(kernel.getSnapshot().model).toBe('opt-in');
+		expect(kernel.getSnapshot().model).toBeNull();
 	});
 
 	test('no-op patch does not notify subscribers', () => {

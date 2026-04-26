@@ -4,7 +4,8 @@
 		"moduleResolution": "bundler",
 		"baseUrl": ".",
 		"paths": {
-			"~/*": ["./src/*"]
+			"~/*": ["./src/*"],
+			"c15t/v3": ["../core/src/v3/index.ts"]
 		}
 	},
 	"include": ["src"]

@@ -75,10 +75,6 @@ export function createPersistence(
 	let scheduled = false;
 	let lastSnapshot = kernel.getSnapshot();
 
-	// Kernel doesn't currently carry a subjectId slice. We track the one
-	// we write (or hydrate) here locally so subsequent writes stay stable.
-	let cachedSubjectId: string | null = null;
-
 	function hydrate(): boolean {
 		if (!hasStorageAPIs) return false;
 		const stored = getConsentFromStorage<StoredPayload>(storageConfig) as
@@ -92,14 +88,9 @@ export function createPersistence(
 		if (stored.consentInfo) {
 			const storedId = stored.consentInfo.subjectId;
 			if (storedId && isValidSubjectId(storedId)) {
-				cachedSubjectId = storedId;
+				kernel.set.subjectId(storedId);
 			}
-			// hasConsented flips true via commands.save. Persistence hydrates
-			// the consents but also needs to mark the user as having
-			// interacted. Use save() with the hydrated values — the kernel
-			// short-circuits when there's nothing to change but still flips
-			// hasConsented.
-			void kernel.commands.save(stored.consents ?? undefined);
+			kernel.set.hasConsented(true);
 		}
 		return true;
 	}
@@ -107,15 +98,17 @@ export function createPersistence(
 	function writeNow(snapshot: ConsentSnapshot): void {
 		if (!hasStorageAPIs) return;
 		if (!snapshot.hasConsented) return; // don't persist until the user has decided
-		if (!cachedSubjectId || !isValidSubjectId(cachedSubjectId)) {
-			cachedSubjectId = generateSubjectId();
+		let subjectId = snapshot.subjectId;
+		if (!subjectId || !isValidSubjectId(subjectId)) {
+			subjectId = generateSubjectId();
+			kernel.set.subjectId(subjectId);
 		}
 		saveConsentToStorage(
 			{
 				consents: snapshot.consents as V2ConsentState,
 				consentInfo: {
 					time: Date.now(),
-					subjectId: cachedSubjectId,
+					subjectId,
 				},
 			},
 			storageConfig

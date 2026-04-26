@@ -3,7 +3,8 @@
 	"private": true,
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/index.ts",
+		"./v3": "./src/v3/index.ts"
 	},
 	"scripts": {
 		"build": "tsc --noEmit",
@@ -11,6 +12,7 @@
 	},
 	"dependencies": {
 		"@c15t/ui": "workspace:*",
+		"c15t": "workspace:*",
 		"svelte": "^5.22.6"
 	},
 	"devDependencies": {

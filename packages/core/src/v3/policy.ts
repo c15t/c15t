@@ -9,7 +9,6 @@
  * neutral and there's no reason to duplicate the logic.
  */
 import type { PolicyScopeMode, ResolvedPolicy } from '@c15t/schema/types';
-import { determineModel } from '../libs/determine-model';
 import {
 	applyPolicyScopeForRuntimeGating as v2ApplyPolicyScope,
 	filterConsentCategoriesByPolicy as v2FilterCategories,
@@ -19,18 +18,17 @@ import { allConsentNames } from '../types/consent-types';
 import type { ConsentState, KernelActiveUI, KernelModel } from './types';
 
 /**
- * Determines the consent model from jurisdiction + IAB enabled flag.
- * Pure pass-through to the v2 helper — preserves every jurisdiction
- * mapping the backend and tests already rely on.
+ * Determines the consent model from the resolved policy. Geography is an
+ * input to policy resolution, but the kernel only cares about the policy
+ * the backend or offline transport selected.
  */
 export function deriveModel(
-	jurisdiction: string | null,
+	policy: ResolvedPolicy | null,
 	iabEnabled: boolean
 ): KernelModel {
-	return determineModel(
-		jurisdiction as Parameters<typeof determineModel>[0],
-		iabEnabled
-	);
+	if (!policy || policy.model === 'none') return null;
+	if (policy.model === 'iab') return iabEnabled ? 'iab' : null;
+	return policy.model;
 }
 
 /**
@@ -39,7 +37,7 @@ export function deriveModel(
  * Rules (mirror v2's `store-updater.ts:166-170` behavior):
  * - If the policy explicitly sets `ui.mode`, use that.
  * - Otherwise, if a model is in effect, default to `'banner'`.
- * - If no model applies (e.g. `jurisdiction: 'NONE'`), render nothing.
+ * - If no model applies, render nothing.
  */
 export function deriveActiveUI(
 	model: KernelModel,

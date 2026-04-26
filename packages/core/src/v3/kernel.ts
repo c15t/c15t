@@ -20,6 +20,7 @@ import type {
 	PolicyScopeMode,
 	ResolvedPolicy,
 } from '@c15t/schema/types';
+import { generateSubjectId } from '../libs/generate-subject-id';
 import type { AllConsentNames } from '../types/consent-types';
 import { allConsentNames } from '../types/consent-types';
 import { applyPolicyToConsents, deriveActiveUI, deriveModel } from './policy';
@@ -111,33 +112,37 @@ export function createConsentKernel(config: KernelConfig = {}): ConsentKernel {
 	const transport: KernelTransport | undefined = config.transport;
 
 	const initialIab = buildInitialIab(config.initialIab);
-	const initialModel = deriveModel(
-		config.initialJurisdiction ?? null,
-		initialIab?.enabled ?? false
-	);
+	const initialPolicy = config.initialPolicy
+		? { ...config.initialPolicy }
+		: null;
+	const initialModel = deriveModel(initialPolicy, initialIab?.enabled ?? false);
+	const initialPolicyResult = applyPolicyToConsents({
+		consents: buildInitialConsents(config.initialConsents),
+		hasConsented: false,
+		policy: initialPolicy,
+	});
 
 	let snapshot: ConsentSnapshot = freezeSnapshot({
-		consents: buildInitialConsents(config.initialConsents),
+		consents: initialPolicyResult.consents,
 		overrides: { ...(config.initialOverrides ?? {}) },
 		user: config.initialUser ? { ...config.initialUser } : null,
+		subjectId: config.initialSubjectId ?? null,
 		hasConsented: false,
 		revision: 0,
-		jurisdiction: config.initialJurisdiction ?? null,
-		showConsentBanner: config.initialShowConsentBanner ?? null,
 		location: config.initialLocation ? { ...config.initialLocation } : null,
 		translations: config.initialTranslations
 			? { ...config.initialTranslations }
 			: null,
 		branding: config.initialBranding ?? null,
-		policy: config.initialPolicy ? { ...config.initialPolicy } : null,
+		policy: initialPolicy,
 		policyDecision: config.initialPolicyDecision
 			? { ...config.initialPolicyDecision }
 			: null,
 		policySnapshotToken: config.initialPolicySnapshotToken ?? null,
 		model: initialModel,
-		activeUI: deriveActiveUI(initialModel, config.initialPolicy ?? null),
-		policyCategories: [],
-		policyScopeMode: config.initialPolicy?.consent?.scopeMode ?? 'permissive',
+		activeUI: deriveActiveUI(initialModel, initialPolicy),
+		policyCategories: initialPolicyResult.policyCategories,
+		policyScopeMode: initialPolicyResult.policyScopeMode,
 		policyBanner: config.initialPolicy?.ui?.banner
 			? { ...config.initialPolicy.ui.banner }
 			: null,
@@ -171,9 +176,8 @@ export function createConsentKernel(config: KernelConfig = {}): ConsentKernel {
 		consents?: ConsentState;
 		overrides?: KernelOverrides;
 		user?: KernelUser | null;
+		subjectId?: string | null;
 		hasConsented?: boolean;
-		jurisdiction?: string | null;
-		showConsentBanner?: boolean | null;
 		location?: LocationResponse | null;
 		translations?: KernelTranslations | null;
 		branding?: KernelBranding | null;
@@ -194,16 +198,10 @@ export function createConsentKernel(config: KernelConfig = {}): ConsentKernel {
 			consents: patch.consents ?? snapshot.consents,
 			overrides: patch.overrides ?? snapshot.overrides,
 			user: patch.user === undefined ? snapshot.user : patch.user,
+			subjectId:
+				patch.subjectId === undefined ? snapshot.subjectId : patch.subjectId,
 			hasConsented: patch.hasConsented ?? snapshot.hasConsented,
 			revision: snapshot.revision + 1,
-			jurisdiction:
-				patch.jurisdiction === undefined
-					? snapshot.jurisdiction
-					: patch.jurisdiction,
-			showConsentBanner:
-				patch.showConsentBanner === undefined
-					? snapshot.showConsentBanner
-					: patch.showConsentBanner,
 			location:
 				patch.location === undefined ? snapshot.location : patch.location,
 			translations:
@@ -252,12 +250,6 @@ export function createConsentKernel(config: KernelConfig = {}): ConsentKernel {
 	function applyInitResponse(response: InitResponse): void {
 		const patch: AdvancePatch = {};
 
-		if (response.jurisdiction !== undefined) {
-			patch.jurisdiction = response.jurisdiction;
-		}
-		if (response.showConsentBanner !== undefined) {
-			patch.showConsentBanner = response.showConsentBanner;
-		}
 		if (response.resolvedOverrides) {
 			patch.overrides = {
 				...snapshot.overrides,
@@ -333,18 +325,13 @@ export function createConsentKernel(config: KernelConfig = {}): ConsentKernel {
 
 		// Derive model / activeUI / policy-filtered categories after all
 		// fields in the patch are resolved. Policy derivations depend on
-		// the final effective policy + iab.enabled + jurisdiction, so
-		// compute them last.
+		// the final effective policy + iab.enabled, so compute them last.
 		const effectivePolicy =
 			patch.policy !== undefined ? patch.policy : snapshot.policy;
-		const effectiveJurisdiction =
-			patch.jurisdiction !== undefined
-				? patch.jurisdiction
-				: snapshot.jurisdiction;
 		const effectiveIabEnabled =
 			(patch.iab !== undefined ? patch.iab : snapshot.iab)?.enabled ?? false;
 
-		const nextModel = deriveModel(effectiveJurisdiction, effectiveIabEnabled);
+		const nextModel = deriveModel(effectivePolicy, effectiveIabEnabled);
 		patch.model = nextModel;
 		patch.activeUI = deriveActiveUI(nextModel, effectivePolicy);
 
@@ -418,6 +405,16 @@ export function createConsentKernel(config: KernelConfig = {}): ConsentKernel {
 				emit({ type: 'overrides:set', snapshot });
 			},
 
+			subjectId(id) {
+				if (snapshot.subjectId === id) return;
+				advance({ subjectId: id });
+			},
+
+			hasConsented(value) {
+				if (snapshot.hasConsented === value) return;
+				advance({ hasConsented: value });
+			},
+
 			activeUI(ui) {
 				if (snapshot.activeUI === ui) return;
 				advance({ activeUI: ui });
@@ -444,7 +441,7 @@ export function createConsentKernel(config: KernelConfig = {}): ConsentKernel {
 				// If enable/disable flipped, re-derive model + activeUI.
 				const patchToApply: AdvancePatch = { iab: nextIab };
 				if (nextIab.enabled !== (snapshot.iab?.enabled ?? false)) {
-					const nextModel = deriveModel(snapshot.jurisdiction, nextIab.enabled);
+					const nextModel = deriveModel(snapshot.policy, nextIab.enabled);
 					patchToApply.model = nextModel;
 					patchToApply.activeUI = deriveActiveUI(nextModel, snapshot.policy);
 				}
@@ -457,15 +454,8 @@ export function createConsentKernel(config: KernelConfig = {}): ConsentKernel {
 			async init(): Promise<InitResult> {
 				emit({ type: 'command:init:started' });
 
-				// No transport → kernel stays offline-only. Consumer supplies
-				// jurisdiction / showConsentBanner via config or skips the
-				// banner entirely.
 				if (!transport?.init) {
-					const result: InitResult = {
-						ok: true,
-						jurisdiction: snapshot.jurisdiction ?? undefined,
-						showConsentBanner: snapshot.showConsentBanner ?? undefined,
-					};
+					const result: InitResult = { ok: true };
 					emit({ type: 'command:init:completed', result });
 					return result;
 				}
@@ -477,11 +467,7 @@ export function createConsentKernel(config: KernelConfig = {}): ConsentKernel {
 					};
 					const response = await transport.init(ctx);
 					applyInitResponse(response);
-					const result: InitResult = {
-						ok: true,
-						jurisdiction: snapshot.jurisdiction ?? undefined,
-						showConsentBanner: snapshot.showConsentBanner ?? undefined,
-					};
+					const result: InitResult = { ok: true };
 					emit({ type: 'command:init:completed', result });
 					return result;
 				} catch (error) {
@@ -494,18 +480,33 @@ export function createConsentKernel(config: KernelConfig = {}): ConsentKernel {
 
 			async save(input): Promise<SaveResult> {
 				emit({ type: 'command:save:started' });
+				const subjectId = snapshot.subjectId ?? generateSubjectId();
+				const uiSource = snapshot.activeUI;
+				let consentAction: SavePayload['consentAction'] = 'custom';
 				if (input === 'all') {
+					consentAction = 'all';
 					const all: ConsentState = { ...snapshot.consents };
 					for (const name of allConsentNames) {
 						all[name] = true;
 					}
-					advance({ consents: all, hasConsented: true, activeUI: 'none' });
+					advance({
+						consents: all,
+						subjectId,
+						hasConsented: true,
+						activeUI: 'none',
+					});
 				} else if (input === 'none') {
+					consentAction = 'necessary';
 					const none: ConsentState = { ...snapshot.consents };
 					for (const name of allConsentNames) {
 						none[name] = name === 'necessary';
 					}
-					advance({ consents: none, hasConsented: true, activeUI: 'none' });
+					advance({
+						consents: none,
+						subjectId,
+						hasConsented: true,
+						activeUI: 'none',
+					});
 				} else if (input && typeof input === 'object') {
 					const next: ConsentState = { ...snapshot.consents };
 					let changed = false;
@@ -520,31 +521,45 @@ export function createConsentKernel(config: KernelConfig = {}): ConsentKernel {
 						}
 					}
 					if (changed) {
-						advance({ consents: next, hasConsented: true, activeUI: 'none' });
+						advance({
+							consents: next,
+							subjectId,
+							hasConsented: true,
+							activeUI: 'none',
+						});
 					} else if (!snapshot.hasConsented) {
-						advance({ hasConsented: true, activeUI: 'none' });
+						advance({ subjectId, hasConsented: true, activeUI: 'none' });
 					} else if (snapshot.activeUI !== 'none') {
-						advance({ activeUI: 'none' });
+						advance({ subjectId, activeUI: 'none' });
+					} else if (snapshot.subjectId !== subjectId) {
+						advance({ subjectId });
 					}
 				} else {
-					advance({ hasConsented: true, activeUI: 'none' });
+					advance({ subjectId, hasConsented: true, activeUI: 'none' });
 				}
 
 				if (!transport?.save) {
-					const result: SaveResult = { ok: true };
+					const result: SaveResult = { ok: true, subjectId };
 					emit({ type: 'command:save:completed', result });
 					return result;
 				}
 
 				try {
 					const payload: SavePayload = {
+						subjectId,
 						consents: snapshot.consents,
 						overrides: snapshot.overrides,
 						user: snapshot.user,
+						model: snapshot.model,
+						uiSource,
+						consentAction,
 						policySnapshotToken: snapshot.policySnapshotToken,
 						tcString: snapshot.iab?.tcString ?? null,
 					};
 					const result = await transport.save(payload);
+					if (result.subjectId && result.subjectId !== snapshot.subjectId) {
+						advance({ subjectId: result.subjectId });
+					}
 					emit({ type: 'command:save:completed', result });
 					return result;
 				} catch (error) {

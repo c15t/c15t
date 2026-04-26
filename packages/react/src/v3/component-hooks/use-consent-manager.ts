@@ -29,7 +29,7 @@ function useKernelSnapshot(): ConsentSnapshot {
 	const kernel = useContext(KernelContext);
 	if (!kernel) {
 		throw new Error(
-			'useConsentManager must be used within <ConsentProvider kernel={kernel}> from @c15t/react/v3'
+			'useConsentManager must be used within <ConsentProvider options={...}> from @c15t/react/v3'
 		);
 	}
 
@@ -62,7 +62,7 @@ export function useConsentManager() {
 	const kernel = useContext(KernelContext);
 	if (!kernel) {
 		throw new Error(
-			'useConsentManager must be used within <ConsentProvider kernel={kernel}> from @c15t/react/v3'
+			'useConsentManager must be used within <ConsentProvider options={...}> from @c15t/react/v3'
 		);
 	}
 

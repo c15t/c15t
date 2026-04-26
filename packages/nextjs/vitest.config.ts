@@ -29,12 +29,16 @@ export default mergeConfig(
 				),
 				'c15t/v3': resolve(__dirname, '../core/src/v3/index.ts'),
 				c15t: resolve(__dirname, '../core/src/index.ts'),
-				'@c15t/react/v3': resolve(__dirname, '../react/src/v3/index.ts'),
-				'@c15t/react/server': resolve(
+				'@c15t/react/v3/provider': resolve(
 					__dirname,
-					'../react/src/server/index.ts'
+					'../react/src/v3/provider.tsx'
 				),
-				'@c15t/react': resolve(__dirname, '../react/src/index.ts'),
+				'@c15t/react/v3/hooks': resolve(__dirname, '../react/src/v3/hooks.ts'),
+				'@c15t/react/v3/module-hooks': resolve(
+					__dirname,
+					'../react/src/v3/module-hooks.ts'
+				),
+				'@c15t/react/v3': resolve(__dirname, '../react/src/v3/index.ts'),
 				'@c15t/translations': resolve(
 					__dirname,
 					'../translations/src/index.ts'
