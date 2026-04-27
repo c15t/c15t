@@ -61,7 +61,10 @@ export interface NamingOptions {
  * identifiers (`drizzle`, `prisma`, `convex`) untouched — those drive
  * the generated TypeScript API, which intentionally stays camelCase.
  */
-type DbNameVariant = { sql: string; mongodb: string };
+interface DbNameVariant {
+	sql: string;
+	mongodb: string;
+}
 
 /**
  * Build the `BuildNameVariants` map consumed by fumadb's `db.names()`
@@ -97,7 +100,7 @@ export const buildNamingVariants = (
 
 			if (override.fields) {
 				for (const [colOrm, colDb] of Object.entries(override.fields)) {
-					if (!(colOrm in tableDef.columns)) continue;
+					if (!Object.hasOwn(tableDef.columns, colOrm)) continue;
 					if (colDb === colOrm) continue;
 					variants[`${tableOrm}.${colOrm}`] = { sql: colDb, mongodb: colDb };
 					changed = true;
