@@ -28,9 +28,12 @@ describe('snakeCaseTables', () => {
 
 	it('returns the same shape as a manual override map', () => {
 		const tables = snakeCaseTables();
-		// shape check: every entry has at least `name`, with optional `fields`
+		// shape check: every entry has at least `name`, with a non-null `fields`
+		// object (buildTablesMap always assigns `fields: existing?.fields ?? {}`)
 		for (const value of Object.values(tables)) {
 			expect(typeof value.name).toBe('string');
+			expect(value.fields).toBeDefined();
+			expect(value.fields).not.toBeNull();
 			expect(typeof value.fields).toBe('object');
 		}
 	});
@@ -121,6 +124,33 @@ describe('buildNamingVariants', () => {
 		expect(variants?.consentPolicy).toEqual({
 			sql: 'consent_policy',
 			mongodb: 'consent_policy',
+		});
+	});
+
+	it('lets a manual field override win over a bulk-utility field via spread', () => {
+		const tables = snakeCaseTables();
+		const variants = buildNamingVariants({
+			tables: {
+				...tables,
+				consent: {
+					...tables.consent,
+					fields: {
+						...tables.consent?.fields,
+						subjectId: 'custom_subject_id',
+					},
+				},
+			},
+		});
+
+		// manually overridden field wins
+		expect(variants?.['consent.subjectId']).toEqual({
+			sql: 'custom_subject_id',
+			mongodb: 'custom_subject_id',
+		});
+		// sibling field on the same table still uses the utility's snake_case
+		expect(variants?.['consent.tcString']).toEqual({
+			sql: 'tc_string',
+			mongodb: 'tc_string',
 		});
 	});
 

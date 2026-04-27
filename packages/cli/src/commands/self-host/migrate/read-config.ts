@@ -45,7 +45,6 @@ export async function readConfigAndGetDb(
 					'.cjs',
 					'.mts',
 					'.cts',
-					'.cjs',
 				],
 			},
 		});
