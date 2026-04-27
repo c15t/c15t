@@ -3,6 +3,8 @@
 "@c15t/cli": minor
 ---
 
+# Customizable SQL/Mongo table and column naming
+
 Add a `naming` option to the c15t config so self-hosters can customize SQL and Mongo table/column identifiers (e.g. snake_case) without touching the ORM-facing API.
 
 ```ts

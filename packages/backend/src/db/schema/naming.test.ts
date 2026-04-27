@@ -134,4 +134,18 @@ describe('buildNamingVariants', () => {
 
 		expect(variants).toBeNull();
 	});
+
+	it('keeps valid overrides when unknown keys are present', () => {
+		const variants = buildNamingVariants({
+			tables: {
+				doesNotExist: { name: 'whatever' },
+				consentPolicy: { name: 'consent_policies' },
+			},
+		});
+
+		expect(variants?.consentPolicy).toEqual({
+			sql: 'consent_policies',
+			mongodb: 'consent_policies',
+		});
+	});
 });

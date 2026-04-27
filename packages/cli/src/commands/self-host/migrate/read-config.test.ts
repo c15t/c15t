@@ -112,6 +112,11 @@ describe('readConfigAndGetDb', () => {
 			mongodb: 'runtime_policy_decision',
 		});
 		expect(DB.client).toHaveBeenCalled();
+		const namesOrder = namesFn.mock.invocationCallOrder[0] ?? 0;
+		const clientOrder =
+			(DB as unknown as { client: ReturnType<typeof vi.fn> }).client.mock
+				.invocationCallOrder[0] ?? 0;
+		expect(namesOrder).toBeLessThan(clientOrder);
 	});
 
 	it('skips names() when naming is omitted (no-op fast path)', async () => {
@@ -148,6 +153,11 @@ describe('readConfigAndGetDb', () => {
 			}
 		).names.prefix;
 		expect(prefixFn).toHaveBeenCalledWith('c15t_');
+		const prefixOrder = prefixFn.mock.invocationCallOrder[0] ?? 0;
+		const clientOrder =
+			(DB as unknown as { client: ReturnType<typeof vi.fn> }).client.mock
+				.invocationCallOrder[0] ?? 0;
+		expect(prefixOrder).toBeLessThan(clientOrder);
 	});
 
 	it('rethrows non-Error as wrapped Error', async () => {
