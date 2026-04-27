@@ -1,11 +1,17 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { DB } from '@c15t/backend/db/schema';
+import {
+	buildNamingVariants,
+	DB,
+	type NamingOptions,
+} from '@c15t/backend/db/schema';
 import { loadConfig } from 'c12';
 import type { CliContext } from '~/context/types';
 
 type MigratorDatabaseConfig = {
 	adapter: Parameters<(typeof DB)['client']>[0];
+	naming?: NamingOptions;
+	tablePrefix?: string;
 } & Record<string, unknown>;
 
 export async function readConfigAndGetDb(
@@ -52,8 +58,20 @@ export async function readConfigAndGetDb(
 			);
 		}
 
+		// Apply naming + tablePrefix before creating the client so generated
+		// migrations and ORM schema match the runtime identifiers produced by
+		// `c15tInstance` (see backend `init.ts`).
+		let factory = DB;
+		const variants = buildNamingVariants(config.naming);
+		if (variants) {
+			factory = factory.names(variants);
+		}
+		if (config.tablePrefix) {
+			factory = factory.names.prefix(config.tablePrefix);
+		}
+
 		return {
-			db: DB.client(config.adapter),
+			db: factory.client(config.adapter),
 		};
 	} catch (error) {
 		logger.error('Failed to load backend config', error);

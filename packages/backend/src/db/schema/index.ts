@@ -3,6 +3,13 @@ import { v1 } from './1.0.0';
 import { v2 } from './2.0.0';
 
 export * from './2.0.0';
+export {
+	buildNamingVariants,
+	lowerCaseTables,
+	type NamingOptions,
+	snakeCaseTables,
+	type TableNaming,
+} from './naming';
 
 export const DB = fumadb({
 	namespace: 'c15t',

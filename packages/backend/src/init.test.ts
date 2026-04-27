@@ -47,6 +47,7 @@ vi.mock('./db/schema', () => ({
 	DB: {
 		client: mockClient,
 	},
+	buildNamingVariants: vi.fn(() => null),
 }));
 
 beforeEach(() => {
