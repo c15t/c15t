@@ -106,7 +106,10 @@ export const buildNamingVariants = (
 		}
 	}
 
-	return changed ? variants : null;
+	if (changed) {
+		return variants;
+	}
+	return null;
 };
 
 /**
