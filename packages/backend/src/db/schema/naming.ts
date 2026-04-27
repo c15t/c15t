@@ -109,15 +109,30 @@ export const buildNamingVariants = (
 	return changed ? variants : null;
 };
 
+/**
+ * Convert a camelCase or PascalCase identifier to snake_case.
+ *
+ * Internal helper used by {@link snakeCaseTables} and shared with any
+ * future case-style utilities that need the same transform.
+ */
 const toSnakeCase = (input: string): string =>
 	input
 		.replace(/([a-z\d])([A-Z])/g, '$1_$2')
 		.replace(/([A-Z]+)([A-Z][a-z])/g, '$1_$2')
 		.toLowerCase();
 
-// Merge tables and columns across every known schema version so columns
-// added in a newer version (or removed in a newer version but still present
-// during legacy → latest migrations) all receive a renamed variant.
+/**
+ * Build a `tables` map by walking every known schema version and applying
+ * `transform` to each table and column ORM name.
+ *
+ * Merging across every schema version (v1, v2, …) ensures columns added
+ * in a newer version — or removed in a newer version but still present
+ * during legacy → latest migrations — all receive a renamed variant. The
+ * first occurrence of a table or column wins, so callers cannot collide
+ * with earlier versions when iteration order is preserved.
+ *
+ * Internal helper backing {@link snakeCaseTables} and {@link lowerCaseTables}.
+ */
 const buildTablesMap = (
 	transform: (ormName: string) => string
 ): Record<string, TableNaming> => {

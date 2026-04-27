@@ -14,6 +14,17 @@ type MigratorDatabaseConfig = {
 	tablePrefix?: string;
 } & Record<string, unknown>;
 
+/**
+ * Load a c15t backend config file and build the migrator database client.
+ *
+ * Reads the config at `absoluteConfigPath` via `c12`, validates the
+ * required `adapter` field, and applies `naming` and `tablePrefix`
+ * (in that order) before constructing the client — mirroring the order
+ * used by the backend's `init.ts` so generated migrations match the
+ * runtime schema.
+ *
+ * @throws Error when the config file is missing, invalid, or fails to load.
+ */
 export async function readConfigAndGetDb(
 	context: CliContext,
 	absoluteConfigPath: string
