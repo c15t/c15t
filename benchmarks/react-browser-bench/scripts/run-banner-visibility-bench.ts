@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +10,6 @@ const HOST = '127.0.0.1';
 const PORT = 4315;
 const BASE_URL = `http://${HOST}:${PORT}`;
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const buildIdPath = join(appDir, '.next', 'BUILD_ID');
 const outputDir =
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/banner-visibility';
 const iterations = Number(process.env.BENCH_ITERATIONS ?? '15');
@@ -75,7 +74,7 @@ async function runCommand(args: string[], label: string) {
 }
 
 async function ensureBuild() {
-	if (existsSync(buildIdPath)) return;
+	rmSync(join(appDir, '.next'), { recursive: true, force: true });
 	await runCommand(['run', 'build'], 'banner visibility benchmark build');
 }
 

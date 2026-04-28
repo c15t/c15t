@@ -25,6 +25,7 @@ import { useTheme } from '~/hooks/use-theme';
 import type { CSSPropertiesWithVars } from '~/types/theme';
 import { cnExt as cn } from '~/utils/cn';
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useIsomorphicLayoutEffect } from '~/v3/components/shared/libs/use-isomorphic-layout-effect';
 import { Overlay } from './overlay';
 
 /**
@@ -138,9 +139,11 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const dialogRef = useRef<HTMLDialogElement>(null);
 	const contentRef = useRef<HTMLDivElement>(null);
 
-	// Handle mounting (avoid SSR mismatch when using portal)
+	// First render must return null on the server and on the very first
+	// client render so hydration matches; flipping in a layout effect
+	// merges the second render into the first paint.
 	const [isMounted, setIsMounted] = useState(false);
-	useEffect(() => {
+	useIsomorphicLayoutEffect(() => {
 		setIsMounted(true);
 	}, []);
 

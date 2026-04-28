@@ -75,7 +75,7 @@ Both paths fire a single fetch returning a fixed banner payload. The numbers mea
 
 ## v3 React Adapter — Current Measurements (2026-04-24, Track 3 MVP)
 
-Adapter: `@c15t/react/v3`. Kernel is passed in via `<ConsentProvider kernel={kernel}>`; selector hooks use `useSyncExternalStore`.
+Adapter: `@c15t/react/v3`. Kernel creation is owned by `<ConsentProvider options={...}>`; selector hooks use `useSyncExternalStore`.
 
 ### React re-render counts — 10 children reading 5 different categories, flip `marketing`
 
@@ -126,7 +126,7 @@ export default async function RootLayout({ children }) {
 }
 ```
 
-No unawaited Promise through props. No module-level cache — each request gets its own kernel through the boundary's `useState(() => createConsentKernel(config))` initializer. Fluid Compute safe by construction.
+No unawaited Promise through props. No module-level cache — each request gets its own kernel through the React provider's per-mount initializer. Fluid Compute safe by construction.
 
 ### Bundle (gzip, ESM)
 
@@ -174,7 +174,7 @@ export default async function RootLayout({ children }) {
 }
 ```
 
-Both paths are Fluid Compute safe — every request gets its own kernel through the boundary's `useState(() => createConsentKernel(config))` initializer, no module-level cache.
+Both paths are Fluid Compute safe — every request gets its own kernel through the React provider's per-mount initializer, no module-level cache.
 
 ### What v3 inherits, fixes, or defers vs v2
 
@@ -184,8 +184,8 @@ Both paths are Fluid Compute safe — every request gets its own kernel through 
 | Geo override from request headers | via backend roundtrip | direct read of `x-vercel-ip-country` / `cf-ipcountry` / region |
 | Language from `accept-language` | via translations pipeline | parsed inline for initial override |
 | Server-side `/init` prefetch | via `fetchInitialData()` Promise-as-prop | `prefetchInitialConsent()` returns plain config |
-| Client-side `/init` refresh | implicit at provider mount | explicit `useEffect` inside `ConsentBoundary` |
-| First-paint flicker | possible (init race) | eliminated with prefetch (`initialShowConsentBanner` populated) |
+| Client-side `/init` refresh | implicit at provider mount | implicit at v3 provider mount |
+| First-paint flicker | possible (init race) | eliminated with server prefetch |
 | `unstable_cache` for SSR data | yes, keyed on normalized URL | opt-in at transport layer; not required |
 | Fluid Compute correctness | hazardous (module-level runtime cache) | safe (per-mount kernel, no shared state) |
 
@@ -193,7 +193,7 @@ Both paths are Fluid Compute safe — every request gets its own kernel through 
 
 - `packages/nextjs/src/v3/__tests__/server.test.ts` — **15/15 pass** (cookie parsing, malformed cookie rejection, custom cookie name, geo header precedence, region, language parsing, options overrides, concurrent-call isolation).
 - `packages/nextjs/src/v3/__tests__/boundary.test.tsx` — **3/3 pass** (initial consents honored, initial overrides honored, per-mount kernel isolation).
-- `packages/nextjs/src/v3/__tests__/end-to-end.test.tsx` — **4/4 pass** (backendURL auto-init, no-transport no-network, skipAutoInit, explicit transport overrides backendURL).
+- `packages/nextjs/src/v3/__tests__/end-to-end.test.tsx` — **4/4 pass** (backendURL auto-init, offline no-network, enabled=false no-init, prefetched first paint).
 - `packages/nextjs/src/v3/__tests__/prefetch.test.ts` — **6/6 pass** (backend context forwarded, absolute URL bypass, silent degradation on network error, consent merge with cookie, resolvedOverrides merge, forwardHeaders).
 
 **Total Next.js v3 tests: 28/28 green.**

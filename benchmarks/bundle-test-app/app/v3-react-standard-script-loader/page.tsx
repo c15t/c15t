@@ -11,13 +11,9 @@ import {
 	useHasConsented,
 	useSaveConsents,
 } from '@c15t/react/v3/hooks';
-import { usePersistence } from '@c15t/react/v3/module-hooks/persistence';
-import { useScriptLoader } from '@c15t/react/v3/module-hooks/script-loader';
 import { ConsentProvider } from '@c15t/react/v3/provider';
 import type { AllConsentNames } from 'c15t';
-import { createConsentKernel, createOfflineTransport } from 'c15t/v3';
 import type { Script } from 'c15t/v3/modules/script-loader';
-import { useState } from 'react';
 
 const DEMO_SCRIPTS: Script[] = [
 	{
@@ -55,18 +51,18 @@ const CATEGORIES: AllConsentNames[] = [
 ];
 
 export default function V3ReactStandardScriptLoaderPage() {
-	const [kernel] = useState(() =>
-		createConsentKernel({
-			transport: createOfflineTransport(),
-			initialJurisdiction: 'GDPR',
-			initialShowConsentBanner: true,
-		})
-	);
-
 	return (
-		<ConsentProvider kernel={kernel}>
+		<ConsentProvider
+			options={{
+				mode: 'offline',
+				scripts: DEMO_SCRIPTS,
+				prefetch: {
+					initialJurisdiction: 'GDPR',
+					initialShowConsentBanner: true,
+				},
+			}}
+		>
 			<ConsentDraftProvider>
-				<ScriptLoaderMount />
 				<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
 					<h1>React v3 Standard + Script Loader Benchmark</h1>
 					<p>
@@ -81,12 +77,6 @@ export default function V3ReactStandardScriptLoaderPage() {
 			</ConsentDraftProvider>
 		</ConsentProvider>
 	);
-}
-
-function ScriptLoaderMount() {
-	useScriptLoader(DEMO_SCRIPTS);
-	usePersistence();
-	return null;
 }
 
 function TestComponent() {

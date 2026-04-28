@@ -22,6 +22,7 @@ export interface ScriptCountBenchState {
 declare global {
 	interface Window {
 		__c15tScriptCountBench?: ScriptCountBenchState;
+		__c15tGetScriptCountBenchState?: () => ScriptCountBenchState | null;
 	}
 }
 

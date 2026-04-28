@@ -8,15 +8,12 @@ import {
 	ConsentDraftProvider,
 	ConsentProvider,
 	ConsentWidget,
-	createConsentKernel,
-	createOfflineTransport,
 	useConsentDraft,
 	useConsents,
 	useHasConsented,
 	useSaveConsents,
 } from '@c15t/react/v3';
 import type { AllConsentNames } from 'c15t';
-import { useState } from 'react';
 
 const CATEGORIES: AllConsentNames[] = [
 	'necessary',
@@ -27,16 +24,16 @@ const CATEGORIES: AllConsentNames[] = [
 ];
 
 export default function V3ReactFullAggregatePage() {
-	const [kernel] = useState(() =>
-		createConsentKernel({
-			transport: createOfflineTransport(),
-			initialJurisdiction: 'GDPR',
-			initialShowConsentBanner: true,
-		})
-	);
-
 	return (
-		<ConsentProvider kernel={kernel}>
+		<ConsentProvider
+			options={{
+				mode: 'offline',
+				prefetch: {
+					initialJurisdiction: 'GDPR',
+					initialShowConsentBanner: true,
+				},
+			}}
+		>
 			<ConsentDraftProvider>
 				<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
 					<h1>React v3 Full Aggregate Benchmark</h1>

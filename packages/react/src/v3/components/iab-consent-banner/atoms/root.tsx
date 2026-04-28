@@ -18,6 +18,7 @@ import { useStyles } from '~/hooks/use-styles';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useIsomorphicLayoutEffect } from '~/v3/components/shared/libs/use-isomorphic-layout-effect';
 import { IABConsentBannerOverlay } from './overlay';
 
 interface IABConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
@@ -129,15 +130,11 @@ const IABConsentBannerRootChildren = forwardRef<
 
 		useEffect(() => {
 			if (shouldShowBanner) {
-				if (hasAnimated) {
-					setIsVisible(true);
-				} else {
-					const animationTimer = setTimeout(() => {
-						setIsVisible(true);
-						setHasAnimated(true);
-					}, 10);
-					return () => clearTimeout(animationTimer);
-				}
+				// Sync flip is enough — the prior render committed the element
+				// with `bannerHidden`, so the class change to `bannerVisible`
+				// is what triggers the entrance animation. No setTimeout floor.
+				setIsVisible(true);
+				if (!hasAnimated) setHasAnimated(true);
 			} else {
 				setHasAnimated(false);
 
@@ -159,9 +156,11 @@ const IABConsentBannerRootChildren = forwardRef<
 			noStyle,
 		});
 
+		// First render must return null on the server and on the very first
+		// client render so hydration matches; flipping in a layout effect
+		// merges the second render into the first paint.
 		const [isMounted, setIsMounted] = useState(false);
-
-		useEffect(() => {
+		useIsomorphicLayoutEffect(() => {
 			setIsMounted(true);
 		}, []);
 

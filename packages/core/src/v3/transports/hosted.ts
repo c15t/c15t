@@ -63,10 +63,21 @@ export interface HostedTransportOptions {
 	domain?: string;
 }
 
+/** Strip a single trailing slash so `${base}/init` doesn't double up. */
 function trimSlash(url: string): string {
 	return url.endsWith('/') ? url.slice(0, -1) : url;
 }
 
+/**
+ * Resolve the `domain` field sent on `POST /subjects`.
+ *
+ * Resolution order:
+ * 1. Explicit `options.domain` if supplied.
+ * 2. `window.location.hostname` in the browser.
+ * 3. Hostname parsed from `backendURL` for absolute URLs in server
+ *    runtimes.
+ * 4. `'localhost'` as a final fallback.
+ */
 function resolveDomain(
 	backendURL: string,
 	explicit: string | undefined

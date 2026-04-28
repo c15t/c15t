@@ -12,7 +12,7 @@ import {
 	type PolicyUiActionDirection,
 	shouldFillPolicyActions,
 } from '@c15t/ui/utils';
-import { type FC, Fragment, type ReactNode } from 'react';
+import { type FC, Fragment, type ReactNode, useMemo } from 'react';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { cnExt as cn } from '~/utils/cn';
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
@@ -224,30 +224,49 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 		trapFocus: localTrapFocus,
 	});
 
-	const orderedActions = banner.orderedActions;
-	const allowedActions = new Set(orderedActions);
 	const effectivePrimaryButton =
 		banner.primaryActions.length > 0 ? banner.primaryActions : primaryButton;
-	const resolvedLayout: ConsentBannerLayout =
-		layout ??
-		((banner.layout?.length ?? 0) > 0 ? banner.actionGroups : DEFAULT_LAYOUT);
-	const resolvedDirection = direction ?? banner.direction ?? 'row';
-	const activeGroups = resolvedLayout
-		.map((item) =>
-			Array.isArray(item)
-				? item.filter((action): action is PolicyUiAction =>
-						allowedActions.has(action)
-					)
-				: allowedActions.has(item)
-					? [item]
-					: []
-		)
-		.filter((group) => group.length > 0);
-	const shouldFillActions = shouldFillPolicyActions({
-		uiProfile: banner.uiProfile,
-		actionGroups: activeGroups,
-		direction: resolvedDirection,
-	});
+	const {
+		allowedActions,
+		resolvedLayout,
+		resolvedDirection,
+		shouldFillActions,
+	} = useMemo(() => {
+		const allowed = new Set(banner.orderedActions);
+		const layoutResolved: ConsentBannerLayout =
+			layout ??
+			((banner.layout?.length ?? 0) > 0 ? banner.actionGroups : DEFAULT_LAYOUT);
+		const directionResolved = direction ?? banner.direction ?? 'row';
+		const activeGroups = layoutResolved
+			.map((item) =>
+				Array.isArray(item)
+					? item.filter((action): action is PolicyUiAction =>
+							allowed.has(action)
+						)
+					: allowed.has(item)
+						? [item]
+						: []
+			)
+			.filter((group) => group.length > 0);
+		return {
+			allowedActions: allowed,
+			resolvedLayout: layoutResolved,
+			resolvedDirection: directionResolved,
+			shouldFillActions: shouldFillPolicyActions({
+				uiProfile: banner.uiProfile,
+				actionGroups: activeGroups,
+				direction: directionResolved,
+			}),
+		};
+	}, [
+		banner.orderedActions,
+		banner.actionGroups,
+		banner.layout,
+		banner.direction,
+		banner.uiProfile,
+		layout,
+		direction,
+	]);
 
 	const renderButton = (type: ConsentBannerButton, className?: string) => {
 		if (!allowedActions.has(type)) {

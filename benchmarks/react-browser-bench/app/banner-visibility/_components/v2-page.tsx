@@ -8,6 +8,18 @@ import {
 import { useEffect, useRef } from 'react';
 import { getBenchState, observeBannerVisibility } from './state';
 
+const BENCHMARK_POLICY = {
+	id: 'banner-visibility-benchmark',
+	model: 'opt-in' as const,
+	consent: {
+		categories: ['necessary', 'measurement', 'marketing'],
+		scopeMode: 'permissive' as const,
+	},
+	ui: {
+		mode: 'banner' as const,
+	},
+};
+
 function V2Probe() {
 	const { activeUI } = useConsentManager();
 	const renderRef = useRef(0);
@@ -37,6 +49,9 @@ export function V2BannerVisibilityPage() {
 		<ConsentManagerProvider
 			options={{
 				mode: 'offline',
+				offlinePolicy: {
+					policy: BENCHMARK_POLICY,
+				},
 				theme: {
 					motion: {
 						duration: {

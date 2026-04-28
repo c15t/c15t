@@ -50,6 +50,9 @@ beforeEach(() => {
 			removeChild: vi.fn(),
 			parentNode: null,
 		})),
+		createDocumentFragment: vi.fn(() => ({
+			appendChild: vi.fn(),
+		})),
 		dispatchEvent: vi.fn(),
 		addEventListener: vi.fn(),
 		removeEventListener: vi.fn(),

@@ -292,7 +292,7 @@ describe('script-loader: callbacks fire in sequence', () => {
 		expect(onLoad).toHaveBeenCalledTimes(1);
 	});
 
-	test('onConsentChange fires when consent flips for an already-loaded script', () => {
+	test('onConsentChange skips unrelated consent flips for an already-loaded script', () => {
 		const onConsentChange = vi.fn();
 		const kernel = createConsentKernel({
 			initialConsents: { marketing: true, measurement: false },
@@ -303,7 +303,6 @@ describe('script-loader: callbacks fire in sequence', () => {
 				{
 					id: 'gtm',
 					src: 'https://example.com/gtm.js',
-					// Loads on marketing; observes any consent-relevant change.
 					category: 'marketing',
 					onConsentChange,
 				},
@@ -311,9 +310,29 @@ describe('script-loader: callbacks fire in sequence', () => {
 		});
 		onConsentChange.mockClear();
 
-		// Another consent slice flips → already-loaded script reconciles
-		// and fires onConsentChange so the script can react.
 		kernel.set.consent({ measurement: true });
+		expect(onConsentChange).not.toHaveBeenCalled();
+	});
+
+	test('onConsentChange fires when a loaded script loses consent', () => {
+		const onConsentChange = vi.fn();
+		const kernel = createConsentKernel({
+			initialConsents: { marketing: true },
+		});
+		createScriptLoader({
+			kernel,
+			scripts: [
+				{
+					id: 'gtm',
+					src: 'https://example.com/gtm.js',
+					category: 'marketing',
+					onConsentChange,
+				},
+			],
+		});
+		onConsentChange.mockClear();
+
+		kernel.set.consent({ marketing: false });
 		expect(onConsentChange).toHaveBeenCalled();
 	});
 });

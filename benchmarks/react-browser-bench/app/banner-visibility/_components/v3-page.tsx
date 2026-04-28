@@ -3,9 +3,20 @@
 import { ConsentBanner } from '@c15t/react/v3/consent-banner';
 import { useActiveUI } from '@c15t/react/v3/hooks';
 import { ConsentProvider } from '@c15t/react/v3/provider';
-import { createConsentKernel, createOfflineTransport } from 'c15t/v3';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { getBenchState, observeBannerVisibility } from './state';
+
+const BENCHMARK_POLICY = {
+	id: 'banner-visibility-benchmark',
+	model: 'opt-in' as const,
+	consent: {
+		categories: ['necessary', 'measurement', 'marketing'],
+		scopeMode: 'permissive' as const,
+	},
+	ui: {
+		mode: 'banner' as const,
+	},
+};
 
 function V3Probe() {
 	const activeUI = useActiveUI();
@@ -32,18 +43,14 @@ function V3Probe() {
 }
 
 export function V3BannerVisibilityPage() {
-	const [kernel] = useState(() =>
-		createConsentKernel({
-			transport: createOfflineTransport(),
-			initialJurisdiction: 'GDPR',
-			initialShowConsentBanner: true,
-		})
-	);
-
 	return (
 		<ConsentProvider
-			kernel={kernel}
 			options={{
+				mode: 'offline',
+				offlinePolicy: {
+					policy: BENCHMARK_POLICY,
+				},
+				persistence: false,
 				theme: {
 					motion: {
 						duration: {

@@ -1,7 +1,5 @@
 'use client';
 
-// Load the v2 prebuilt component CSS (shared with v3 — both surfaces
-// use `@c15t/ui/styles/components/*.module.css` under the hood).
 import '@c15t/react/styles.css';
 
 /**
@@ -26,17 +24,12 @@ import {
 	ConsentDraftProvider,
 	ConsentProvider,
 	ConsentWidget,
-	createConsentKernel,
-	createOfflineTransport,
 	useConsent,
 	useConsentDraft,
 	useConsents,
 	useHasConsented,
 	useIframeBlocker,
-	useNetworkBlocker,
-	usePersistence,
 	useSaveConsents,
-	useScriptLoader,
 } from '@c15t/react/v3';
 import type { AllConsentNames } from 'c15t';
 import type { Script } from 'c15t/v3/modules/script-loader';
@@ -93,18 +86,27 @@ const DEMO_SCRIPTS: Script[] = [
 ];
 
 export default function V3ReactFullPage() {
-	// Force showConsentBanner=true so the demo always renders the banner,
-	// even in a jurisdiction the offline transport would otherwise mark
-	// as NONE.
-	const [kernel] = useState(() =>
-		createConsentKernel({
-			transport: createOfflineTransport(),
-			initialShowConsentBanner: true,
-		})
-	);
-
 	return (
-		<ConsentProvider kernel={kernel}>
+		<ConsentProvider
+			options={{
+				mode: 'offline',
+				scripts: DEMO_SCRIPTS,
+				networkBlocker: {
+					rules: [
+						{ domain: 'google-analytics.com', category: 'measurement' },
+						{ domain: 'facebook.net', category: 'marketing' },
+						{ domain: 'hotjar.com', category: 'measurement' },
+					],
+					logBlockedRequests: false,
+				},
+				// Force showConsentBanner=true so the demo always renders the banner,
+				// even in a jurisdiction the offline transport would otherwise mark
+				// as NONE.
+				prefetch: {
+					initialShowConsentBanner: true,
+				},
+			}}
+		>
 			<ConsentDraftProvider>
 				<main
 					style={{
@@ -152,17 +154,7 @@ export default function V3ReactFullPage() {
  * re-renders don't re-run the hooks.
  */
 function ModuleMount() {
-	useScriptLoader(DEMO_SCRIPTS);
-	useNetworkBlocker({
-		rules: [
-			{ domain: 'google-analytics.com', category: 'measurement' },
-			{ domain: 'facebook.net', category: 'marketing' },
-			{ domain: 'hotjar.com', category: 'measurement' },
-		],
-		logBlockedRequests: false,
-	});
 	useIframeBlocker();
-	usePersistence();
 	return null;
 }
 
@@ -308,6 +300,7 @@ function LoadedScripts() {
 	// mount/unmount.
 	const consents = useConsents();
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Re-read the DOM after consent changes.
 	useEffect(() => {
 		// Give the script-loader a tick to reconcile.
 		const handle = setTimeout(() => {

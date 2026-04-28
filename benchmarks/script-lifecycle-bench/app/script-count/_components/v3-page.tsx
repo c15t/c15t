@@ -4,8 +4,7 @@ import { ConsentDraftProvider } from '@c15t/react/v3/draft';
 import { useSaveConsents } from '@c15t/react/v3/hooks';
 import { useScriptLoader } from '@c15t/react/v3/module-hooks/script-loader';
 import { ConsentProvider } from '@c15t/react/v3/provider';
-import { createConsentKernel, createOfflineTransport } from 'c15t/v3';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import {
 	createInitialBenchState,
 	listDomIds,
@@ -29,7 +28,6 @@ function V3Probe({ count }: { count: number }) {
 	const loader = useScriptLoader(scripts);
 	const saveConsents = useSaveConsents();
 	const benchRef = useRef<ScriptCountBenchState | null>(null);
-	const [, setTick] = useState(0);
 
 	if (!benchRef.current) {
 		benchRef.current = createInitialBenchState('v3', count);
@@ -41,31 +39,26 @@ function V3Probe({ count }: { count: number }) {
 		window.__c15tScriptCountBench = bench;
 		publish(bench, {
 			activeUI: 'ready',
-			loadedIds: loader
-				.getLoadedScriptIds()
-				.sort((left, right) => left.localeCompare(right)),
-			domIds: listDomIds(count),
 			initialReady: true,
 		});
-	}, [loader, count]);
 
-	useEffect(() => {
-		let frame = 0;
-		const poll = () => {
+		window.__c15tGetScriptCountBenchState = () => {
 			const bench = benchRef.current;
-			if (bench) {
-				publish(bench, {
-					loadedIds: loader
-						.getLoadedScriptIds()
-						.sort((left, right) => left.localeCompare(right)),
-					domIds: listDomIds(count),
-				});
-				setTick((value) => value + 1);
-			}
-			frame = window.requestAnimationFrame(poll);
+			if (!bench) return null;
+			publish(bench, {
+				loadedIds: loader
+					.getLoadedScriptIds()
+					.sort((left, right) => left.localeCompare(right)),
+				domIds: listDomIds(count),
+			});
+			return bench;
 		};
-		frame = window.requestAnimationFrame(poll);
-		return () => window.cancelAnimationFrame(frame);
+
+		return () => {
+			if (window.__c15tGetScriptCountBenchState) {
+				delete window.__c15tGetScriptCountBenchState;
+			}
+		};
 	}, [loader, count]);
 
 	return (
@@ -87,30 +80,19 @@ function V3Probe({ count }: { count: number }) {
 			>
 				Accept all
 			</button>
-			<pre id="script-count-state">
-				{JSON.stringify(
-					typeof window === 'undefined'
-						? benchRef.current
-						: (window.__c15tScriptCountBench ?? benchRef.current),
-					null,
-					2
-				)}
-			</pre>
+			<pre id="script-count-state">ready</pre>
 		</>
 	);
 }
 
 export function V3ScriptCountPage({ count }: { count: number }) {
-	const [kernel] = useState(() =>
-		createConsentKernel({
-			transport: createOfflineTransport(),
-			initialJurisdiction: 'GDPR',
-			initialShowConsentBanner: true,
-		})
-	);
-
 	return (
-		<ConsentProvider kernel={kernel}>
+		<ConsentProvider
+			options={{
+				mode: 'offline',
+				persistence: false,
+			}}
+		>
 			<ConsentDraftProvider>
 				<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
 					<h1>v3 @c15t/react/v3 script count benchmark</h1>

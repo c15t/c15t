@@ -60,6 +60,15 @@ export interface OfflineTransportOptions {
 	iabEnabled?: boolean;
 }
 
+/**
+ * Normalize the `translations` option into the `KernelTranslations`
+ * shape that init responses carry.
+ *
+ * Accepts three input shapes:
+ * - `undefined`                  → empty translations bundle.
+ * - `KernelTranslations`         → passed through.
+ * - raw `TranslationsResponse`   → wrapped with `defaultLanguage`.
+ */
 function normalizeTranslations(
 	input: KernelTranslations | TranslationsResponse | undefined,
 	defaultLanguage: string
@@ -70,7 +79,6 @@ function normalizeTranslations(
 			translations: {} as TranslationsResponse,
 		};
 	}
-	// If the caller passed a KernelTranslations shape, use it directly.
 	if (
 		typeof input === 'object' &&
 		'language' in input &&
@@ -78,13 +86,16 @@ function normalizeTranslations(
 	) {
 		return input;
 	}
-	// Otherwise treat as a raw translations map — wrap with the default language.
 	return {
 		language: defaultLanguage,
 		translations: input as TranslationsResponse,
 	};
 }
 
+/**
+ * Build an offline transport. The returned object is plain — no
+ * listeners, no caches, no state. Safe to create per request.
+ */
 export function createOfflineTransport(
 	options: OfflineTransportOptions = {}
 ): KernelTransport {

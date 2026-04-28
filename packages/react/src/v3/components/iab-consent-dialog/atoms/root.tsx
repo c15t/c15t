@@ -11,6 +11,7 @@ import { useStyles } from '~/hooks/use-styles';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import { cnExt as cn } from '~/utils/cn';
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useIsomorphicLayoutEffect } from '~/v3/components/shared/libs/use-isomorphic-layout-effect';
 import { IABConsentDialogOverlay } from './overlay';
 
 interface IABConsentDialogRootProps {
@@ -79,8 +80,9 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	// Scroll lock
 	useScrollLock(Boolean(isOpen && resolvedScrollLock));
 
-	// Mount state for portal
-	useEffect(() => {
+	// Mount state for portal — layout effect merges the second render into
+	// the first paint so portal content shows up without an extra cycle.
+	useIsomorphicLayoutEffect(() => {
 		setIsMounted(true);
 	}, []);
 

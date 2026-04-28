@@ -18,6 +18,7 @@ import { useStyles } from '~/hooks/use-styles';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useIsomorphicLayoutEffect } from '~/v3/components/shared/libs/use-isomorphic-layout-effect';
 import { Overlay } from './overlay';
 
 /**
@@ -307,17 +308,11 @@ const ConsentBannerRootChildren = forwardRef<
 		// Handle animation visibility state
 		useEffect(() => {
 			if (shouldShowBanner) {
-				// If banner is showing but we haven't animated yet, trigger the animation
-				if (hasAnimated) {
-					setIsVisible(true);
-				} else {
-					// Small delay to ensure the component is mounted and ready for animation
-					const animationTimer = setTimeout(() => {
-						setIsVisible(true);
-						setHasAnimated(true);
-					}, 10);
-					return () => clearTimeout(animationTimer);
-				}
+				// Sync flip is enough — the prior render committed the element
+				// with `bannerHidden`, so the class change to `bannerVisible`
+				// is what triggers the entrance animation. No setTimeout floor.
+				setIsVisible(true);
+				if (!hasAnimated) setHasAnimated(true);
 			} else {
 				// Reset animation state when hiding so it can animate again next time
 				setHasAnimated(false);
@@ -345,13 +340,12 @@ const ConsentBannerRootChildren = forwardRef<
 			noStyle,
 		});
 
-		// Track client-side mounting state to prevent SSR hydration issues
-		// with the portal rendering
+		// First render must return null on the server and on the very first
+		// client render so hydration matches; flipping in a layout effect
+		// merges the second render into the first paint instead of waiting
+		// for an effect-driven re-paint.
 		const [isMounted, setIsMounted] = useState(false);
-
-		// Initialize mounting state after initial render
-		// This ensures we only render the portal on the client side
-		useEffect(() => {
+		useIsomorphicLayoutEffect(() => {
 			setIsMounted(true);
 		}, []);
 

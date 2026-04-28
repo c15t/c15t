@@ -1,7 +1,7 @@
 'use client';
 
 import { ConsentManagerProvider, useConsentManager } from '@c15t/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import {
 	createInitialBenchState,
 	listDomIds,
@@ -23,7 +23,6 @@ function publish(
 function V2Probe({ count }: { count: number }) {
 	const consent = useConsentManager();
 	const benchRef = useRef<ScriptCountBenchState | null>(null);
-	const [, setTick] = useState(0);
 
 	if (!benchRef.current) {
 		benchRef.current = createInitialBenchState('v2', count);
@@ -35,32 +34,27 @@ function V2Probe({ count }: { count: number }) {
 		window.__c15tScriptCountBench = bench;
 		publish(bench, {
 			activeUI: consent.activeUI,
-			loadedIds: consent
-				.getLoadedScriptIds()
-				.sort((left, right) => left.localeCompare(right)),
-			domIds: listDomIds(count),
 			initialReady: true,
 		});
-	}, [consent, count]);
 
-	useEffect(() => {
-		let frame = 0;
-		const poll = () => {
+		window.__c15tGetScriptCountBenchState = () => {
 			const bench = benchRef.current;
-			if (bench) {
-				publish(bench, {
-					activeUI: consent.activeUI,
-					loadedIds: consent
-						.getLoadedScriptIds()
-						.sort((left, right) => left.localeCompare(right)),
-					domIds: listDomIds(count),
-				});
-				setTick((value) => value + 1);
-			}
-			frame = window.requestAnimationFrame(poll);
+			if (!bench) return null;
+			publish(bench, {
+				activeUI: consent.activeUI,
+				loadedIds: consent
+					.getLoadedScriptIds()
+					.sort((left, right) => left.localeCompare(right)),
+				domIds: listDomIds(count),
+			});
+			return bench;
 		};
-		frame = window.requestAnimationFrame(poll);
-		return () => window.cancelAnimationFrame(frame);
+
+		return () => {
+			if (window.__c15tGetScriptCountBenchState) {
+				delete window.__c15tGetScriptCountBenchState;
+			}
+		};
 	}, [consent, count]);
 
 	return (
@@ -82,15 +76,7 @@ function V2Probe({ count }: { count: number }) {
 			>
 				Accept all
 			</button>
-			<pre id="script-count-state">
-				{JSON.stringify(
-					typeof window === 'undefined'
-						? benchRef.current
-						: (window.__c15tScriptCountBench ?? benchRef.current),
-					null,
-					2
-				)}
-			</pre>
+			<pre id="script-count-state">ready</pre>
 		</>
 	);
 }

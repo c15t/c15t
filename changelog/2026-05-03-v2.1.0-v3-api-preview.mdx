@@ -129,18 +129,19 @@ In the render-count benchmark, ten children read five different consent categori
 
 That is a 50% lower mount count in the benchmark harness and a 90% reduction in mutation fanout. Only the two components reading `marketing` re-rendered.
 
-The browser benchmarks also show faster visible UI and consent-triggered script loading in the local deterministic examples:
+The browser benchmarks also show faster visible UI and consent-triggered script loading in the local deterministic examples.
+These numbers come from a 50-iteration local run after rebuilding the benchmark apps and removing script-count probe overhead from the measured path:
 
 | Benchmark | v2 median | v3 median | Change |
 | --- | ---: | ---: | ---: |
-| Banner visible | 97.7 ms | 54.0 ms | -44.7% |
-| Banner mount | 82.8 ms | 43.5 ms | -47.5% |
-| Script loading, 5 scripts | 36.4 ms | 10.6 ms | -70.9% |
-| Script loading, 10 scripts | 54.9 ms | 11.7 ms | -78.7% |
-| Script loading, 25 scripts | 56.2 ms | 19.4 ms | -65.5% |
-| Script loading, 50 scripts | 65.7 ms | 48.2 ms | -26.6% |
+| Banner visible | 73.2 ms | 59.1 ms | -19.3% |
+| Banner mount | 39.3 ms | 33.1 ms | -15.8% |
+| Script loading, 5 scripts | 12.9 ms | 9.7 ms | -24.8% |
+| Script loading, 10 scripts | 14.0 ms | 10.3 ms | -26.4% |
+| Script loading, 25 scripts | 20.3 ms | 11.9 ms | -41.4% |
+| Script loading, 50 scripts | 26.7 ms | 18.2 ms | -31.8% |
 
-These numbers come from local deterministic benchmark routes and should be read as runtime overhead comparisons, not third-party network latency measurements.
+The deterministic routes preseed backend state and use local scripts, so the results should be read as runtime overhead comparisons, not third-party network latency measurements.
 
 The bundle-size story is more nuanced. The v3 API is split by design, so common paths can import only the provider, hooks, UI, and modules they use. Synthetic routes that import every v3 feature can still be larger than a narrower v2 route. We will continue tracking common route shapes separately from full harness routes.
 

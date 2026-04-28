@@ -442,6 +442,7 @@ function createProviderKernel(options: ConsentProviderOptions): ConsentKernel {
 						policyPacks: getProviderPolicies(options),
 						translations: i18nTranslations,
 					}));
+
 	const transport = withSSRData(baseTransport, options.ssrData);
 
 	return createConsentKernel({
@@ -766,25 +767,35 @@ export function ConsentProvider({ options, children }: ConsentProviderProps) {
 	);
 	useProviderOptionSync(kernel, options, enabled);
 
-	const themeContextValue = useMemo(() => {
-		const {
-			theme = {},
-			noStyle,
-			disableAnimation,
-			scrollLock,
-			trapFocus = true,
-			colorScheme,
-		} = options;
+	// Merge the user's theme separately on its own reference so callers
+	// passing a fresh `options` object each render (but a stable `theme`)
+	// don't pay for a deepMerge on every render. generateThemeCSS below
+	// also depends on this, so stabilizing the merge keeps the <style>
+	// tag content stable.
+	const userTheme = options.theme;
+	const mergedTheme = useMemo(
+		() => deepMerge(defaultTheme, userTheme ?? {}),
+		[userTheme]
+	);
 
-		return {
-			theme: deepMerge(defaultTheme, theme),
-			noStyle,
-			disableAnimation,
-			scrollLock,
-			trapFocus,
-			colorScheme,
-		};
-	}, [options]);
+	const themeContextValue = useMemo(
+		() => ({
+			theme: mergedTheme,
+			noStyle: options.noStyle,
+			disableAnimation: options.disableAnimation,
+			scrollLock: options.scrollLock,
+			trapFocus: options.trapFocus ?? true,
+			colorScheme: options.colorScheme,
+		}),
+		[
+			mergedTheme,
+			options.noStyle,
+			options.disableAnimation,
+			options.scrollLock,
+			options.trapFocus,
+			options.colorScheme,
+		]
+	);
 
 	const uiConfigValue = useMemo<V3UIConfigValue>(
 		() => ({

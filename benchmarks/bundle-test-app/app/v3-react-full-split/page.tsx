@@ -13,8 +13,6 @@ import {
 } from '@c15t/react/v3/hooks';
 import { ConsentProvider } from '@c15t/react/v3/provider';
 import type { AllConsentNames } from 'c15t';
-import { createConsentKernel, createOfflineTransport } from 'c15t/v3';
-import { useState } from 'react';
 
 const CATEGORIES: AllConsentNames[] = [
 	'necessary',
@@ -25,16 +23,16 @@ const CATEGORIES: AllConsentNames[] = [
 ];
 
 export default function V3ReactFullSplitPage() {
-	const [kernel] = useState(() =>
-		createConsentKernel({
-			transport: createOfflineTransport(),
-			initialJurisdiction: 'GDPR',
-			initialShowConsentBanner: true,
-		})
-	);
-
 	return (
-		<ConsentProvider kernel={kernel}>
+		<ConsentProvider
+			options={{
+				mode: 'offline',
+				prefetch: {
+					initialJurisdiction: 'GDPR',
+					initialShowConsentBanner: true,
+				},
+			}}
+		>
 			<ConsentDraftProvider>
 				<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>
 					<h1>React v3 Full Split Benchmark</h1>

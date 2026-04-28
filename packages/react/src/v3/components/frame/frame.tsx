@@ -4,6 +4,7 @@ import type { AllConsentNames } from 'c15t';
 import { forwardRef, useEffect, useState } from 'react';
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
+import { useIsomorphicLayoutEffect } from '~/v3/components/shared/libs/use-isomorphic-layout-effect';
 import { FrameButton, FrameRoot, FrameTitle } from './atoms';
 import type { FrameProps } from './types';
 
@@ -20,8 +21,13 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 			policyScopeMode,
 		} = useConsentManager();
 		const { frame } = useTranslations();
+		// Layout effect commits the mount flag before paint, so the second
+		// render lands in the same paint as the initial null render — no
+		// RAF stall, no FOUC, since CSS modules are imported synchronously.
 		const [isMounted, setIsMounted] = useState(false);
-		const [isReady, setIsReady] = useState(false);
+		useIsomorphicLayoutEffect(() => {
+			setIsMounted(true);
+		}, []);
 
 		const hasConsent = has(category);
 		const hasPolicyScope =
@@ -33,28 +39,18 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 		const isStrictPolicyBlocked =
 			policyScopeMode === 'strict' && isOutOfPolicyCategory;
 
-		// biome-ignore lint/correctness/useExhaustiveDependencies: we only want to update the consent categories when the component is mounted
+		// biome-ignore lint/correctness/useExhaustiveDependencies: we only want to register the category when it changes
 		useEffect(() => {
-			setIsMounted(true);
 			updateConsentCategories([...consentCategories, category]);
 		}, [category]);
 
-		// Wait for next frame to ensure styles are loaded
-		useEffect(() => {
-			if (isMounted) {
-				requestAnimationFrame(() => {
-					setIsReady(true);
-				});
-			}
-		}, [isMounted]);
-
 		const renderContent = () => {
-			// Before ready, show nothing to prevent FOUC
-			if (!isMounted || !isReady) {
+			// Before mount, return null so SSR and first client render match.
+			if (!isMounted) {
 				return null;
 			}
 
-			// After ready, show children if consent is granted
+			// After mount, show children if consent is granted
 			if (hasConsent) {
 				return children;
 			}
