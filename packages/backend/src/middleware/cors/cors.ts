@@ -105,6 +105,19 @@ function expandWithWWW(origins: string[]): string[] {
 }
 
 /**
+ * Checks if a normalized origin matches a normalized wildcard pattern.
+ *
+ * @param origin - Normalized request origin
+ * @param wildcardPattern - Normalized wildcard pattern (e.g. *.example.com)
+ * @returns true if the origin is a subdomain of the wildcard pattern
+ */
+function matchesWildcard(origin: string, wildcardPattern: string): boolean {
+	const wildcardDomain = wildcardPattern.slice(2);
+
+	return origin !== wildcardDomain && origin.endsWith(`.${wildcardDomain}`);
+}
+
+/**
  * Creates CORS options configuration for Hono's cors middleware
  *
  * @param trustedOrigins - Array of allowed origin patterns or single string. Can include wildcards ('*').
@@ -172,6 +185,9 @@ export function createCORSOptions(
 						normalizedOrigin === '[::1]' ||
 						normalizedOrigin.startsWith('[::1]:')
 					);
+				}
+				if (normalizedTrusted.startsWith('*.')) {
+					return matchesWildcard(normalizedOrigin, normalizedTrusted);
 				}
 				return normalizedTrusted === normalizedOrigin;
 			});

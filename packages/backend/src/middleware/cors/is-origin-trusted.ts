@@ -19,6 +19,9 @@ import type { Logger } from '@c15t/logger';
 export const STRIP_REGEX =
 	/^(?:https?:\/\/)|^(?:wss?:\/\/)|(?:\/+$)|(?::\d+$)/g;
 
+/** Regular expression to match www prefix in domain names */
+const WWW_REGEX = /^www\./;
+
 /**
  * Checks if a domain matches a wildcard pattern
  *
@@ -117,9 +120,11 @@ export function isOriginTrusted(
 				return matchesWildcard(originHostname, strippedDomain, logger);
 			}
 
-			const isMatch = originHostname === strippedDomain;
+			const normalizedOriginHostname = originHostname.replace(WWW_REGEX, '');
+			const normalizedDomain = strippedDomain.replace(WWW_REGEX, '');
+			const isMatch = normalizedOriginHostname === normalizedDomain;
 			logger?.debug(
-				`Exact match result: ${isMatch} ${originHostname} === ${strippedDomain}`
+				`Exact match result: ${isMatch} ${normalizedOriginHostname} === ${normalizedDomain}`
 			);
 			return isMatch;
 		});
