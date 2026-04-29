@@ -1,9 +1,59 @@
+import type { ConsentStoreState } from 'c15t';
+import { defaultTranslationConfig } from 'c15t';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+import { ConsentDialogOverlay } from '~/components/consent-dialog/atoms/overlay';
 import { ConsentWidgetAccordion } from '~/components/consent-widget/atoms/accordion';
 import { IABConsentBannerFooter } from '~/components/iab-consent-banner/atoms/footer';
 import { IABConsentBannerHeader } from '~/components/iab-consent-banner/atoms/header';
+import { ConsentStateContext } from '~/context/consent-manager-context';
 import { GlobalThemeContext } from '~/context/theme-context';
+
+function createMockState(
+	overrides: Partial<ConsentStoreState> = {}
+): ConsentStoreState {
+	return {
+		activeUI: 'dialog',
+		model: 'opt-in',
+		translationConfig: defaultTranslationConfig,
+		consents: {
+			necessary: true,
+			functionality: false,
+			experience: false,
+			marketing: false,
+			measurement: false,
+		},
+		selectedConsents: {
+			necessary: true,
+			functionality: false,
+			experience: false,
+			marketing: false,
+			measurement: false,
+		},
+		consentInfo: null,
+		consentCategories: [
+			'necessary',
+			'functionality',
+			'experience',
+			'marketing',
+			'measurement',
+		],
+		consentTypes: [],
+		policyCategories: null,
+		policyScopeMode: null,
+		policyBanner: {},
+		policyDialog: {},
+		saveConsents: vi.fn().mockResolvedValue(undefined),
+		setConsent: vi.fn(),
+		setSelectedConsent: vi.fn(),
+		setActiveUI: vi.fn(),
+		has: vi.fn(),
+		hasConsented: vi.fn(),
+		getDisplayedConsents: vi.fn(() => []),
+		subscribeToConsentChanges: vi.fn(() => () => undefined),
+		...overrides,
+	} as unknown as ConsentStoreState;
+}
 
 describe('Theme regressions', () => {
 	test('does not forward slot noStyle to the DOM', async () => {
@@ -107,6 +157,44 @@ describe('Theme regressions', () => {
 			expect(accordion).toHaveStyle({
 				backgroundColor: 'rgb(4, 5, 6)',
 				padding: '12px',
+			});
+		});
+	});
+
+	test('allows direct className and inline style on ConsentDialog.Overlay', async () => {
+		const state = createMockState();
+
+		await render(
+			<GlobalThemeContext.Provider value={{ noStyle: false }}>
+				<ConsentStateContext.Provider
+					value={{
+						state,
+						store: {
+							getState: () => state,
+							subscribe: () => () => undefined,
+							setState: () => undefined,
+						},
+						manager: null,
+					}}
+				>
+					<ConsentDialogOverlay
+						className="dialog-overlay-direct"
+						noStyle
+						style={{ backgroundColor: 'rgb(7, 8, 9)' }}
+					/>
+				</ConsentStateContext.Provider>
+			</GlobalThemeContext.Provider>
+		);
+
+		await vi.waitFor(() => {
+			const overlay = document.querySelector(
+				'[data-testid="consent-dialog-overlay"]'
+			) as HTMLElement | null;
+
+			expect(overlay).toBeInTheDocument();
+			expect(overlay?.className).toContain('dialog-overlay-direct');
+			expect(overlay).toHaveStyle({
+				backgroundColor: 'rgb(7, 8, 9)',
 			});
 		});
 	});

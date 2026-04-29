@@ -45,7 +45,9 @@ const distBlockedPathPatterns: Array<{ reason: string; pattern: RegExp }> = [
 const requiredPackedFilesByPackage: Record<string, string[]> = {
 	'@c15t/ui': [
 		'styles.css',
+		'styles.tw3.css',
 		'iab/styles.css',
+		'iab/styles.tw3.css',
 		'dist/styles.css',
 		'dist/styles.tw3.css',
 		'dist/iab/styles.css',
@@ -53,22 +55,41 @@ const requiredPackedFilesByPackage: Record<string, string[]> = {
 	],
 	'@c15t/react': [
 		'styles.css',
+		'styles.tw3.css',
 		'iab/styles.css',
+		'iab/styles.tw3.css',
 		'dist/styles.css',
+		'dist/styles.tw3.css',
 		'dist/iab/styles.css',
+		'dist/iab/styles.tw3.css',
 		'src/styles.tw3.css',
 		'src/iab/styles.tw3.css',
 	],
 	'@c15t/nextjs': [
 		'styles.css',
+		'styles.tw3.css',
 		'iab/styles.css',
+		'iab/styles.tw3.css',
 		'dist/styles.css',
+		'dist/styles.tw3.css',
 		'dist/iab/styles.css',
+		'dist/iab/styles.tw3.css',
 		'src/styles.css',
 		'src/styles.tw3.css',
 		'src/iab/styles.css',
 		'src/iab/styles.tw3.css',
 	],
+};
+
+const styleEntrypointPackages = new Set([
+	'@c15t/ui',
+	'@c15t/react',
+	'@c15t/nextjs',
+]);
+
+const rootTw3ProxyContents: Record<string, string> = {
+	'styles.tw3.css': '@import "./dist/styles.tw3.css";',
+	'iab/styles.tw3.css': '@import "../dist/iab/styles.tw3.css";',
 };
 
 function readManifest(packageDir: string): PackageManifest {
@@ -302,6 +323,59 @@ function scanAgentDocsContent(packageDir: string): string[] {
 	return issues;
 }
 
+function scanStyleEntrypointsContent(
+	packageDir: string,
+	packageName: string,
+	packedFilePaths: Set<string>
+): Array<{ path: string; size: number; reason: string }> {
+	if (!styleEntrypointPackages.has(packageName)) {
+		return [];
+	}
+
+	const issues: Array<{ path: string; size: number; reason: string }> = [];
+
+	for (const [path, expectedContent] of Object.entries(rootTw3ProxyContents)) {
+		if (!packedFilePaths.has(path)) {
+			continue;
+		}
+
+		const filePath = join(packageDir, path);
+		const content = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
+		if (content.trim() !== expectedContent) {
+			issues.push({
+				path,
+				size: content.length,
+				reason: 'Tailwind v3 root proxy must point at the dist entrypoint',
+			});
+		}
+	}
+
+	for (const path of ['dist/styles.tw3.css', 'dist/iab/styles.tw3.css']) {
+		if (!packedFilePaths.has(path)) {
+			continue;
+		}
+
+		const filePath = join(packageDir, path);
+		const content = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
+		if (/^\s*@import\b/m.test(content)) {
+			issues.push({
+				path,
+				size: content.length,
+				reason: 'Tailwind v3 dist CSS must inline rules, not nested imports',
+			});
+		}
+		if (!content.includes('c15t-ui-')) {
+			issues.push({
+				path,
+				size: content.length,
+				reason: 'Tailwind v3 dist CSS must contain generated c15t UI rules',
+			});
+		}
+	}
+
+	return issues;
+}
+
 const packageDirs = readdirSync(PACKAGES_DIR, { withFileTypes: true })
 	.filter((entry) => entry.isDirectory())
 	.map((entry) => join(PACKAGES_DIR, entry.name))
@@ -348,6 +422,9 @@ for (const packageDir of packageDirs) {
 			});
 		}
 	}
+	blockedFiles.push(
+		...scanStyleEntrypointsContent(packageDir, packed.name, packedFilePaths)
+	);
 
 	if (blockedFiles.length > 0) {
 		offenders.push({

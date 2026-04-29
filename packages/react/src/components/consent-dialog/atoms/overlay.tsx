@@ -5,7 +5,13 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
-import { type FC, type PropsWithChildren, useEffect, useState } from 'react';
+import {
+	type CSSProperties,
+	forwardRef,
+	type HTMLAttributes,
+	useEffect,
+	useState,
+} from 'react';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
@@ -23,25 +29,18 @@ import { cnExt as cn } from '~/utils/cn';
  * @public
  */
 
-/**
- * Props for the Overlay component.
- *
- * @remarks
- * Extends {@link PropsWithChildren} so that the overlay can optionally wrap
- * its compound components (e.g. `ConsentDialog.Card`). This resolves
- * TypeScript errors when consumers nest elements inside
- * `<ConsentDialog.Root>`.
- */
-export type OverlayProps = PropsWithChildren<{
+export interface OverlayProps
+	extends Omit<HTMLAttributes<HTMLDivElement>, 'style'> {
 	/**
 	 * Custom styles to override default overlay styling.
 	 *
 	 * @remarks
-	 * - Can be a string class name or an object with className and style properties
+	 * - Accepts normal React inline styles
+	 * - Also accepts the legacy string class name or object with className and style properties
 	 * - Styles are merged with theme styles and default styles
 	 * - Useful for customizing overlay appearance while maintaining functionality
 	 */
-	style?: ThemeValue;
+	style?: CSSProperties | ThemeValue;
 
 	/**
 	 * Disables default styling when true.
@@ -52,78 +51,86 @@ export type OverlayProps = PropsWithChildren<{
 	 * - Maintains functionality without visual opinions
 	 */
 	noStyle?: boolean;
-}>;
+}
 
-const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
-	const { activeUI } = useConsentManager();
-	const {
-		disableAnimation,
-		noStyle: isThemeNoStyle,
-		scrollLock = true,
-	} = useTheme();
+const ConsentDialogOverlay = forwardRef<HTMLDivElement, OverlayProps>(
+	({ className, noStyle, style, ...props }, ref) => {
+		const { activeUI } = useConsentManager();
+		const { disableAnimation, noStyle: isThemeNoStyle } = useTheme();
 
-	const showDialog = activeUI === 'dialog';
-	const [isVisible, setIsVisible] = useState(false);
+		const showDialog = activeUI === 'dialog';
+		const [isVisible, setIsVisible] = useState(false);
 
-	// Handle animation visibility state
-	useEffect(() => {
-		if (showDialog) {
-			setIsVisible(true);
-		} else if (disableAnimation) {
-			setIsVisible(false);
-		} else {
-			const animationDurationMs = Number.parseInt(
-				getComputedStyle(document.documentElement).getPropertyValue(
-					'--consent-dialog-animation-duration'
-				) || '200',
-				10
-			);
-			const timer = setTimeout(() => {
+		// Handle animation visibility state
+		useEffect(() => {
+			if (showDialog) {
+				setIsVisible(true);
+			} else if (disableAnimation) {
 				setIsVisible(false);
-			}, animationDurationMs); // Match CSS animation duration
-			return () => clearTimeout(timer);
-		}
-	}, [showDialog, disableAnimation]);
-
-	// Get custom className from style prop
-	const customClassName = typeof style === 'string' ? style : style?.className;
-
-	// Apply theme styles
-	const theme = useStyles('consentDialogOverlay', {
-		baseClassName: !(isThemeNoStyle || noStyle) && styles.overlay,
-		className: customClassName,
-		noStyle: isThemeNoStyle || noStyle,
-	});
-
-	// Animations are handled with CSS classes
-	const shouldApplyAnimation =
-		!(isThemeNoStyle || noStyle) && !disableAnimation;
-
-	// Use conditional assignment instead of nested ternaries
-	let animationClass: string | undefined;
-	if (shouldApplyAnimation) {
-		animationClass = isVisible ? styles.overlayVisible : styles.overlayHidden;
-	} else {
-		animationClass = undefined;
-	}
-
-	// Combine theme className with animation class if needed
-	const finalClassName = cn(theme.className, animationClass);
-
-	return (
-		<div
-			role="presentation"
-			aria-hidden="true"
-			style={
-				typeof style === 'object' && 'style' in style
-					? { ...theme.style, ...style.style }
-					: theme.style
+			} else {
+				const animationDurationMs = Number.parseInt(
+					getComputedStyle(document.documentElement).getPropertyValue(
+						'--consent-dialog-animation-duration'
+					) || '200',
+					10
+				);
+				const timer = setTimeout(() => {
+					setIsVisible(false);
+				}, animationDurationMs); // Match CSS animation duration
+				return () => clearTimeout(timer);
 			}
-			className={finalClassName}
-			data-testid="consent-dialog-overlay"
-		/>
-	);
-};
+		}, [showDialog, disableAnimation]);
+
+		const legacyStyleClassName =
+			typeof style === 'string'
+				? style
+				: style && ('className' in style ? style.className : undefined);
+		const customClassName = cn(legacyStyleClassName, className);
+
+		const inlineStyle =
+			typeof style === 'object' && style !== null
+				? 'style' in style || 'className' in style
+					? style.style
+					: style
+				: undefined;
+
+		// Apply theme styles
+		const theme = useStyles('consentDialogOverlay', {
+			baseClassName: !(isThemeNoStyle || noStyle) && styles.overlay,
+			className: customClassName,
+			noStyle: isThemeNoStyle || noStyle,
+		});
+
+		// Animations are handled with CSS classes
+		const shouldApplyAnimation =
+			!(isThemeNoStyle || noStyle) && !disableAnimation;
+
+		// Use conditional assignment instead of nested ternaries
+		let animationClass: string | undefined;
+		if (shouldApplyAnimation) {
+			animationClass = isVisible ? styles.overlayVisible : styles.overlayHidden;
+		} else {
+			animationClass = undefined;
+		}
+
+		// Combine theme className with animation class if needed
+		const finalClassName = cn(theme.className, animationClass);
+
+		return (
+			<div
+				ref={ref}
+				{...props}
+				role="presentation"
+				aria-hidden="true"
+				style={{ ...theme.style, ...inlineStyle }}
+				className={finalClassName}
+				data-testid="consent-dialog-overlay"
+			/>
+		);
+	}
+);
+
+ConsentDialogOverlay.displayName = 'ConsentDialogOverlay';
 
 const Overlay = ConsentDialogOverlay;
 
