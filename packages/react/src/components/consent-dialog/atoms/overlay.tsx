@@ -81,18 +81,23 @@ const ConsentDialogOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 			}
 		}, [showDialog, disableAnimation]);
 
-		const legacyStyleClassName =
-			typeof style === 'string'
-				? style
-				: style && ('className' in style ? style.className : undefined);
+		let legacyStyleClassName: string | undefined;
+		if (typeof style === 'string') {
+			legacyStyleClassName = style;
+		} else if (style && 'className' in style) {
+			legacyStyleClassName = style.className;
+		}
+
 		const customClassName = cn(legacyStyleClassName, className);
 
-		const inlineStyle =
-			typeof style === 'object' && style !== null
-				? 'style' in style || 'className' in style
-					? style.style
-					: style
-				: undefined;
+		let inlineStyle: CSSProperties | undefined;
+		if (typeof style === 'object' && style !== null) {
+			if ('style' in style || 'className' in style) {
+				inlineStyle = style.style;
+			} else {
+				inlineStyle = style as CSSProperties;
+			}
+		}
 
 		// Apply theme styles
 		const theme = useStyles('consentDialogOverlay', {

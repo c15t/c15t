@@ -1,5 +1,6 @@
 import type { ConsentStoreState } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
+import { createRef } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentDialogOverlay } from '~/components/consent-dialog/atoms/overlay';
@@ -163,6 +164,7 @@ describe('Theme regressions', () => {
 
 	test('allows direct className and inline style on ConsentDialog.Overlay', async () => {
 		const state = createMockState();
+		const overlayRef = createRef<HTMLDivElement>();
 
 		await render(
 			<GlobalThemeContext.Provider value={{ noStyle: false }}>
@@ -178,7 +180,10 @@ describe('Theme regressions', () => {
 					}}
 				>
 					<ConsentDialogOverlay
+						ref={overlayRef}
 						className="dialog-overlay-direct"
+						data-qa="overlay"
+						id="overlay-id"
 						noStyle
 						style={{ backgroundColor: 'rgb(7, 8, 9)' }}
 					/>
@@ -192,6 +197,9 @@ describe('Theme regressions', () => {
 			) as HTMLElement | null;
 
 			expect(overlay).toBeInTheDocument();
+			expect(overlayRef.current).toBe(overlay);
+			expect(overlay).toHaveAttribute('data-qa', 'overlay');
+			expect(overlay).toHaveAttribute('id', 'overlay-id');
 			expect(overlay?.className).toContain('dialog-overlay-direct');
 			expect(overlay).toHaveStyle({
 				backgroundColor: 'rgb(7, 8, 9)',
