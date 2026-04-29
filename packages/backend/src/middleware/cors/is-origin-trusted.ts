@@ -5,6 +5,7 @@
  */
 
 import type { Logger } from '@c15t/logger';
+import { matchesWildcard } from './matches-wildcard';
 
 /**
  * Regular expression to strip protocol, trailing slashes, and port numbers from URLs
@@ -21,35 +22,6 @@ export const STRIP_REGEX =
 
 /** Regular expression to match www prefix in domain names */
 const WWW_REGEX = /^www\./;
-
-/**
- * Checks if a domain matches a wildcard pattern
- *
- * @param hostname - The hostname to check
- * @param wildcardPattern - The wildcard pattern (e.g. *.example.com)
- * @param logger - Optional logger for debugging
- * @returns true if the hostname matches the wildcard pattern
- *
- * @internal
- */
-function matchesWildcard(
-	hostname: string,
-	wildcardPattern: string,
-	logger?: Logger
-): boolean {
-	const wildcardDomain = wildcardPattern.slice(2); // Remove *. prefix
-
-	// Ensure the hostname is not the base domain and ends with .wildcardDomain
-	// This prevents matching domains like 'foobar-my-site.com' against '*.my-site.com'
-	const isValid =
-		hostname !== wildcardDomain && hostname.endsWith(`.${wildcardDomain}`);
-
-	logger?.debug(
-		`Wildcard match result: ${isValid} ${hostname} ends with .${wildcardDomain}`
-	);
-
-	return isValid;
-}
 
 /**
  * Validates if a given origin matches any of the trusted domain patterns
@@ -117,7 +89,11 @@ export function isOriginTrusted(
 			logger?.debug(`Checking against stripped domain: ${strippedDomain}`);
 
 			if (strippedDomain.startsWith('*.')) {
-				return matchesWildcard(originHostname, strippedDomain, logger);
+				const isMatch = matchesWildcard(originHostname, strippedDomain);
+				logger?.debug(
+					`Wildcard match result: ${isMatch} ${originHostname} matches ${strippedDomain}`
+				);
+				return isMatch;
 			}
 
 			const normalizedOriginHostname = originHostname.replace(WWW_REGEX, '');
