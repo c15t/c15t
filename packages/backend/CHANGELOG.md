@@ -1,5 +1,13 @@
 # @c15t/backend
 
+## 2.0.2
+
+### Patch Changes
+
+- 85b9106: # Fix CORS trusted origin matching
+
+  Fix CORS trusted origin matching for wildcard subdomains and www variants.
+
 ## 2.0.0
 
 ### Major Changes
