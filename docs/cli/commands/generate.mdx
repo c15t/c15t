@@ -29,10 +29,13 @@ The exact set of generated files is determined by your `c15t.config` and the fra
 
 ## Flags
 
-- `--dry-run` — preview the files that would be written without changing anything on disk.
-- `--force` — overwrite existing files instead of prompting.
+- `-y` / `--yes` — accept defaults and skip prompts.
+- `--resume` — resume from a previously interrupted run.
+- A storage mode (`hosted`, `offline`, `self-hosted`, `custom`) can be passed as the first positional argument to skip the storage-mode prompt.
+
+Plus the [global flags](../global-flags).
 
 ## Related
 
-- [`setup`](./setup) — initial scaffold (calls `generate` under the hood).
+- [`setup`](./setup) — alias for `generate`; same behaviour and flags.
 - [`self-host migrate`](./self-host) — apply generated database migrations.

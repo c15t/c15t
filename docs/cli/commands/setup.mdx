@@ -50,6 +50,10 @@ After `setup` completes, the banner appears on first page load in dev. Follow-up
 
 ## Flags
 
-- `--dry-run` — preview the files that would be written without changing anything on disk.
-- `--force` — overwrite existing files instead of prompting.
-- `--yes` / `-y` — accept defaults and skip prompts.
+`setup` is an alias for [`generate`](./generate) and accepts the same flags:
+
+- `-y` / `--yes` — accept defaults and skip prompts (used by the summary step).
+- `--resume` — resume from a previously interrupted run.
+- A storage mode (`hosted`, `offline`, `self-hosted`, `custom`) can be passed as the first positional argument to skip the storage-mode prompt.
+
+Plus the [global flags](../global-flags) (`--help`, `--version`, `--logger`, `--config`, `--no-telemetry`, `--telemetry-debug`).
