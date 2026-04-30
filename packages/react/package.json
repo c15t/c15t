@@ -1,25 +1,38 @@
 {
 	"name": "@c15t/react",
 	"version": "2.0.0",
-	"description": "Developer-first CMP for React: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization",
+	"description": "Headless cookie banner, consent manager & preference center for React. RSC-compatible, GDPR/CCPA/LGPD/TCF, TypeScript-first.",
 	"keywords": [
 		"react",
+		"react-consent",
+		"react-cookie-banner",
+		"react-cookie-consent",
 		"consent",
 		"privacy",
 		"gdpr",
 		"ccpa",
 		"lgpd",
+		"tcf",
+		"iab",
+		"cmp",
 		"headless",
 		"typescript",
 		"cookie-banner",
+		"cookie-consent",
 		"consent-management-platform",
-		"cmp",
+		"consent-management",
 		"consent-banner",
-		"user-consent",
-		"privacy-compliance",
-		"web-privacy"
+		"consent-manager-react",
+		"preference-center",
+		"react-server-components",
+		"rsc",
+		"use-client",
+		"tracking-consent"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/react/quickstart",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",

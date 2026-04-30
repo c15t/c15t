@@ -1,222 +1,92 @@
-# @c15t/dev-tools
+<p align="center">
+  <a href="https://c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fdev-tools" target="_blank" rel="noopener noreferrer">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
+      <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
+    </picture>
+  </a>
+  <br />
+  <h1 align="center">@c15t/dev-tools: Developer Tooling (Work in Progress)</h1>
+</p>
 
-Developer tools for debugging and inspecting c15t consent management state.
+[![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
+[![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.link/discord)
+[![npm version](https://img.shields.io/npm/v/%40c15t%2Fdev-tools?style=flat-square)](https://www.npmjs.com/package/@c15t/dev-tools)
+[![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
+[![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
+[![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
 
-## Features
+A collection of developer tools and utilities for the c15t ecosystem, currently under active development.
 
-- **Consents Panel**: View and toggle consent states in real-time
-- **Location Panel**: Inspect location and apply geo/language overrides
-- **Policy Panel**: Inspect detailed runtime policy-pack decision data
-- **Scripts Panel**: Monitor script loading status
-- **Actions Panel**: Quick actions for testing consent flows
-- **Framework Agnostic**: Pure JavaScript core with React wrapper
-- **TanStack DevTools Integration**: Use as a plugin in TanStack DevTools
-- **CSS Animations**: Smooth, accessible animations with reduced motion support
-- **Dark Mode**: Automatic dark mode support
+## Key Features
 
-## Installation
+- 🚧 Experimental developer utilities
+- React component library with utility tools
+- Radix UI and Tailwind CSS integration
+- State management and UI component helpers
+- Ongoing development and refinement
+
+## Prerequisites
+
+- Node.js 18.17.0 or later
+- React 16.8.0 or later
+- Familiarity with experimental tooling
+
+## Manual Installation
 
 ```bash
-bun add @c15t/dev-tools
+pnpm add @c15t/dev-tools
 ```
+
+⚠️ **Note:** This package is experimental and may undergo significant changes.
 
 ## Usage
 
-### React
+1. 🚧 Explore the dev tools with caution
+2. Import and use components carefully
+3. Expect potential breaking changes
+4. Feedback and contributions welcome!
 
-The easiest way to add DevTools to a React application:
+## Documentation
 
-```tsx
-import { DevTools } from '@c15t/dev-tools/react';
+For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/dev-tools/overview).
 
-function App() {
-  return (
-    <>
-      <YourApp />
-      <DevTools position="bottom-right" />
-    </>
-  );
-}
-```
+## Support
 
-#### Props
+- Join our [Discord community](https://c15t.link/discord)
+- Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
+- Visit [inth.com](https://inth.com) and use the chat widget
+- Contact our support team via email [support@inth.com](mailto:support@inth.com)
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `namespace` | `string` | `'c15tStore'` | Window namespace for the store |
-| `position` | `'bottom-right' \| 'bottom-left' \| 'top-right' \| 'top-left'` | `'bottom-right'` | Position of the floating button |
-| `defaultOpen` | `boolean` | `false` | Whether to start with panel open |
-| `disabled` | `boolean` | `false` | Disable DevTools (e.g., in production) |
+## Contributing
 
-#### Production Usage
+- We're open to all community contributions!
+- Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)
+- Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)
+- Fork the repository
+- Create a new branch for your feature
+- Submit a pull request
+- **All contributions, big or small, are welcome and appreciated!**
 
-```tsx
-<DevTools disabled={process.env.NODE_ENV === 'production'} />
-```
+## Security
 
-### Vanilla JavaScript
+If you believe you have found a security vulnerability in c15t, we encourage you to **_responsibly disclose this and NOT open a public issue_**. We will investigate all legitimate reports.
 
-For non-React applications or more control:
+Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our Open Source Software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
 
-```typescript
-import { createDevTools } from '@c15t/dev-tools';
+### Security Policy
 
-const devtools = createDevTools({
-  namespace: 'c15tStore',
-  position: 'bottom-right',
-});
-
-// Control programmatically
-devtools.open();
-devtools.close();
-devtools.toggle();
-
-// Cleanup
-devtools.destroy();
-```
-
-### TanStack DevTools Plugin
-
-Integrate c15t into TanStack Devtools with the same `render: <Panel />` pattern
-used by the official TanStack plugins:
-
-```tsx
-import * as React from 'react';
-import { useRouter } from '@tanstack/react-router';
-import { TanStackDevtools } from '@tanstack/react-devtools';
-import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools';
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
-import { c15tDevtools } from '@c15t/dev-tools/tanstack';
-
-export function AppDevtools() {
-  const router = useRouter();
-
-  return (
-    <TanStackDevtools
-      plugins={[
-        {
-          name: 'TanStack Query',
-          render: <ReactQueryDevtoolsPanel />,
-        },
-        {
-          name: 'TanStack Router',
-          render: <TanStackRouterDevtoolsPanel router={router} />,
-        },
-        c15tDevtools({
-          defaultOpen: true,
-        }),
-      ]}
-    />
-  );
-}
-```
-
-If you want full control over the plugin entry, you can also render the exported
-panel component directly:
-
-```tsx
-import { C15tTanStackDevtoolsPanel } from '@c15t/dev-tools/tanstack';
-
-<TanStackDevtools
-  plugins={[
-    {
-      id: 'c15t',
-      name: 'c15t',
-      render: <C15tTanStackDevtoolsPanel namespace="c15tStore" />,
-    },
-  ]}
-/>
-```
-
-## Console API
-
-The DevTools expose a global API for quick debugging:
-
-```javascript
-// Open/close the panel
-window.__c15tDevTools.open();
-window.__c15tDevTools.close();
-window.__c15tDevTools.toggle();
-
-// Check state
-window.__c15tDevTools.getState();
-// { isOpen: false, activeTab: 'consents', isConnected: true }
-```
-
-## Panels
-
-### Consents
-
-- View all consent types with enabled/disabled badges
-- Toggle individual consents with immediate feedback
-- Quick actions: Accept All, Reject All
-- Shows consent model (opt-in, opt-out, iab)
-
-### Location
-
-- Detected country, region, and jurisdiction
-- Compact active policy summary (policy ID + matcher + snapshot status)
-- Set country, region, and language overrides
-- View active consent model with description
-- Clear all overrides
-
-### Policy
-
-- Runtime policy decision details from `/init`
-- Policy ID, match strategy, and fingerprint
-- Consent model, scope mode, purpose scope
-- UI constraints (mode, allowed actions, primary action)
-- i18n profile, expiry, and proof-capture summary
-- Snapshot token presence indicator
-
-### Scripts
-
-- List configured scripts with consent requirements
-- Status badges: Loaded, Pending, Blocked
-- Network blocker status
-- Summary of loaded vs pending scripts
-
-### Actions
-
-- Show consent banner
-- Open preference center
-- Re-fetch banner data
-- Reset all consents
-- Copy state to clipboard for debugging
-
-## Styling
-
-The DevTools use CSS variables for theming. Variables are prefixed with `--c15t-devtools-`:
-
-```css
-/* Override colors */
-:root {
-  --c15t-devtools-primary: hsl(220, 90%, 50%);
-  --c15t-devtools-surface: hsl(0, 0%, 100%);
-}
-```
-
-### Dark Mode
-
-Dark mode is automatically applied when:
-- The document has a `.dark` or `.c15t-dark` class
-- System preference is dark (`prefers-color-scheme: dark`)
-
-You can also force dark mode:
-
-```css
-.my-devtools-container {
-  @extend .c15t-devtools-dark;
-}
-```
-
-## Browser Support
-
-- Chrome 90+
-- Firefox 90+
-- Safari 15+
-- Edge 90+
+- Please do not share security vulnerabilities in public forums, issues, or pull requests
+- Provide detailed information about the potential vulnerability
+- Allow reasonable time for us to address the issue before any public disclosure
+- We are committed to addressing security concerns promptly and transparently
 
 ## License
 
-Apache-2.0
+[Apache License 2.0](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+
+---
+
+**Built by [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fdev-tools)**

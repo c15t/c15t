@@ -1,0 +1,32 @@
+---
+title: skills
+description: Install c15t agent skills for AI-assisted development.
+---
+
+`skills` installs reusable c15t agent skills into your local AI tooling (Claude Code, Cursor, OpenCode, etc.). Skills are scoped instruction sets that teach an agent how to work with c15t — running codemods, scaffolding components, applying conventions.
+
+## Usage
+
+```bash
+pnpm dlx @c15t/cli skills
+```
+
+The CLI detects which agent harnesses you have installed and offers to install the appropriate skill files.
+
+## What gets installed
+
+Skills are written to your agent's standard skill directory (e.g. `~/.claude/skills/c15t-*` for Claude Code). Each skill is a small markdown file that activates when the agent detects c15t-related work in your repository.
+
+## Bundled docs
+
+Recent c15t packages also ship docs alongside the package — your agent can consume these directly without needing the skill installed:
+
+```text
+node_modules/@c15t/<package>/docs/
+```
+
+These docs are version-matched to the installed package, so an agent always sees documentation that matches the code it's working with.
+
+## Updating skills
+
+Re-run `skills` after upgrading c15t to pick up new or revised skills. The installer updates files in place and only modifies skills that have changed.

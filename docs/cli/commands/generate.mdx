@@ -1,0 +1,33 @@
+---
+title: generate
+description: Generate consent schema and code for your project.
+---
+
+`generate` creates schema files and TypeScript code for managing consent in your project. It is typically used after [`setup`](./setup) to regenerate types when configuration changes.
+
+## Usage
+
+```bash
+pnpm dlx @c15t/cli generate
+```
+
+## When to use it
+
+- After editing your consent categories, scripts, or policy packs.
+- After upgrading c15t to pull in new schema fields.
+- When wiring up self-hosted databases that require generated migrations.
+
+## What it produces
+
+Depending on your project, `generate` writes:
+
+- TypeScript type definitions for your consent shape.
+- Configuration files consumed by `@c15t/cli setup` and `@c15t/backend`.
+- Migration files for your selected database adapter (when self-hosted).
+
+The exact set of generated files is determined by your `c15t.config` and the framework detected in `package.json`.
+
+## Related
+
+- [`setup`](./setup) — initial scaffold.
+- [`self-host migrate`](./self-host) — apply generated database migrations.

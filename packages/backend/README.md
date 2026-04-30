@@ -18,7 +18,7 @@
 [![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
 [![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
 
-Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preferences centre. Webhooks, audit logs, storage adapters. Self host or use consent.io
+Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preference center. Webhooks, audit logs, storage adapters. Self host or use inth.com
 
 ## Key Features
 
@@ -54,8 +54,8 @@ For further information, guides, and examples visit the [reference documentation
 
 - Join our [Discord community](https://c15t.link/discord)
 - Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
-- Visit [consent.io](https://consent.io) and use the chat widget
-- Contact our support team via email [support@consent.io](mailto:support@consent.io)
+- Visit [inth.com](https://inth.com) and use the chat widget
+- Contact our support team via email [support@inth.com](mailto:support@inth.com)
 
 ## Contributing
 
@@ -86,4 +86,4 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 ---
 
-**Built by [Inth](https://inth.com?utm_source=github&utm_medium=repopage_%40c15t%2Fbackend)**
+**Built by [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fbackend)**

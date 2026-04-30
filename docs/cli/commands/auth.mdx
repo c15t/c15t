@@ -1,0 +1,42 @@
+---
+title: login & logout
+description: Authenticate the CLI with your hosted c15t account on inth.com.
+---
+
+The CLI authenticates against the hosted control plane (inth.com) so it can manage your projects, fetch configuration, and call protected APIs. Self-hosted users do not need to log in.
+
+## `login`
+
+```bash
+pnpm dlx @c15t/cli login
+```
+
+The CLI uses the OAuth device flow:
+
+1. Opens your browser to the verification URL.
+2. Displays a short user code to confirm the device.
+3. Polls for the access token and stores it locally once you approve.
+
+Tokens are cached in your OS config directory and refreshed automatically.
+
+## `logout`
+
+```bash
+pnpm dlx @c15t/cli logout
+```
+
+Clears all stored credentials. Run this if you're switching accounts, working on a shared machine, or rotating credentials.
+
+## Already logged in?
+
+If you're already logged in, `login` reports your current email and asks whether you want to switch accounts. Pass `--force` to skip the prompt.
+
+## Where credentials live
+
+Tokens are stored using the `c12` config layer in your platform's standard config directory:
+
+- macOS: `~/Library/Preferences/c15t/`
+- Linux: `~/.config/c15t/`
+- Windows: `%APPDATA%\c15t\`
+
+These files are user-readable only. Never commit them or copy them into containers.

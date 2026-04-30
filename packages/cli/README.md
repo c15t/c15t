@@ -40,17 +40,17 @@ CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a prefer
 Easiest setup with @c15t/cli:
 
 ```bash
-# Set up c15t
-pnpm dlx @c15t/cli setup
+# Generate schema and code
+pnpm dlx @c15t/cli generate
 # Alternatives:
-# npx @c15t/cli setup
-# bunx --bun @c15t/cli setup
+# npx @c15t/cli generate
+# bunx --bun @c15t/cli generate
 ```
 
 The CLI will:
 
 - Install necessary packages
-- Configure your c15t project
+- Configure your c15t instance
 - Set up environment variables
 - Add consent management components to your app
 
@@ -65,36 +65,12 @@ The CLI will:
 ## Available Commands
 
 - `setup`: Set up c15t in your project
-- `codemods`: Run migration codemods (for example `translations -> i18n`)
+- `codemods`: Run migration codemods for c15t upgrades
 - `self-host`: Self-hosted workflow commands (currently database migrations)
 - `skills`: Install c15t agent skills for AI-assisted development
 - `changelog`: Open the c15t changelog in your browser
 - `github`: Open the project's GitHub repository to star the project
 - `docs`: Open the c15t documentation in your browser
-
-### Codemods
-
-Run codemods interactively:
-
-```bash
-c15t codemods
-```
-
-Preview changes without writing files:
-
-```bash
-c15t codemods --dry-run
-```
-
-### Bundled Docs
-
-Supported c15t packages now include local docs inside the installed package:
-
-```text
-node_modules/<package>/docs/
-```
-
-These docs are version-matched to the installed package and can be used as local agent context alongside c15t skills.
 
 ## Global Flags
 
@@ -123,8 +99,8 @@ For further information, guides, and examples visit the [reference documentation
 
 - Join our [Discord community](https://c15t.link/discord)
 - Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
-- Visit [consent.io](https://consent.io) and use the chat widget
-- Contact our support team via email [support@consent.io](mailto:support@consent.io)
+- Visit [inth.com](https://inth.com) and use the chat widget
+- Contact our support team via email [support@inth.com](mailto:support@inth.com)
 
 ## Contributing
 
@@ -155,4 +131,4 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 ---
 
-**Built by [Inth](https://inth.com?utm_source=github&utm_medium=repopage_%40c15t%2Fcli)**
+**Built by [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fcli)**

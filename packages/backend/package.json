@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/backend",
 	"version": "2.0.0",
-	"description": "Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preferences centre. Webhooks, audit logs, storage adapters. Self host or use consent.io",
+	"description": "Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preference center. Webhooks, audit logs, storage adapters. Self host or use inth.com",
 	"keywords": [
 		"consent",
 		"privacy",
@@ -20,6 +20,9 @@
 		"consent-banner"
 	],
 	"homepage": "https://c15t.com/docs/self-host/v2",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",

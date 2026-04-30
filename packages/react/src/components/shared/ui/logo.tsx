@@ -101,7 +101,7 @@ export const InthIconOnly = (props: SVGProps<SVGSVGElement> & IconProps) => (
 	<InthMark titleId="inth-icon" {...props} />
 );
 
-// Consent logo for consent.io domain
+// Consent logo for inth.com domain
 export const ConsentLogo = ({
 	title = 'Consent',
 	titleId = 'consent-logo',

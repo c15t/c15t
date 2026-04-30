@@ -1,0 +1,31 @@
+---
+title: Global flags
+description: Flags that work on every CLI command.
+---
+
+These flags are accepted by every `@c15t/cli` command.
+
+| Flag | Description |
+|---|---|
+| `--help` | Show help for the current command and exit. |
+| `--version` | Print the installed CLI version and exit. |
+| `--no-telemetry` | Disable anonymous telemetry for this run. See [Telemetry](./telemetry). |
+| `--dry-run` | Preview changes without writing files (supported by `codemods`, `generate`, `setup`). |
+
+## Environment variables
+
+| Variable | Effect |
+|---|---|
+| `C15T_TELEMETRY_DISABLED=1` | Permanently disable telemetry for this user. |
+| `C15T_DEBUG=1` | Enable verbose debug logs. |
+| `C15T_BACKEND_URL` | Override the backend URL the CLI talks to (used during local development). |
+| `NO_COLOR=1` | Disable terminal colors. |
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Success. |
+| `1` | General error (failed command, validation error). |
+| `2` | Usage error (invalid flags or arguments). |
+| `130` | Interrupted (Ctrl-C). |

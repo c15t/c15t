@@ -11,7 +11,7 @@
 	],
 	"prerequisites": [
 		"Node.js 18.17.0 or later",
-		"A Hosted [c15t instance](https://consent.io) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)"
+		"A Hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)"
 	],
 	"manualInstallation": ["", "```bash\npnpm add @c15t/node-sdk\n```"],
 	"usage": [

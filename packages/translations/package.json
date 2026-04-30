@@ -1,8 +1,24 @@
 {
 	"name": "@c15t/translations",
 	"version": "2.0.0",
-	"description": "Translation utils for c15t, providing type-safe internationalization support.",
+	"description": "Type-safe i18n translations for c15t consent UI — cookie banner, consent dialog, preference center.",
+	"keywords": [
+		"c15t",
+		"i18n",
+		"translations",
+		"localization",
+		"consent",
+		"privacy",
+		"gdpr",
+		"ccpa",
+		"cmp",
+		"cookie-banner",
+		"typescript"
+	],
 	"homepage": "https://c15t.com/docs/frameworks/react/hooks/use-translations",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",

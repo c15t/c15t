@@ -46,8 +46,8 @@ For further information, guides, and examples visit the [reference documentation
 
 - Join our [Discord community](https://c15t.link/discord)
 - Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
-- Visit [consent.io](https://consent.io) and use the chat widget
-- Contact our support team via email [support@consent.io](mailto:support@consent.io)
+- Visit [inth.com](https://inth.com) and use the chat widget
+- Contact our support team via email [support@inth.com](mailto:support@inth.com)
 
 ## Contributing
 
@@ -78,4 +78,4 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 ---
 
-**Built by [Inth](https://inth.com?utm_source=github&utm_medium=repopage_%40c15t%2Fscripts)**
+**Built by [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fscripts)**

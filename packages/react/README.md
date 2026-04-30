@@ -18,7 +18,7 @@
 [![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
 [![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
 
-Developer-first CMP for React: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization
+Headless cookie banner, consent manager & preference center for React. RSC-compatible, GDPR/CCPA/LGPD/TCF, TypeScript-first.
 
 ## Key Features
 
@@ -36,7 +36,7 @@ Developer-first CMP for React: cookie banner, consent manager, preferences centr
 
 - React 16.8 or later
 - Node.js 18.17.0 or later
-- A hosted [c15t instance](https://consent.io) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)
+- A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)
 
 ## Quick Start
 
@@ -77,19 +77,24 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 ## Usage
 
 1. Import `ConsentManagerProvider` in your app's root component
-2. Add `CookieBanner` and `PreferenceCenter` components
+2. Add `ConsentBanner` and `ConsentDialog` components
 3. Customise styling and behaviour to fit your app
 4. For full implementation details, see the [React quickstart docs](https://c15t.com/docs/frameworks/react/quickstart)
 
 ```tsx
 // App.tsx
-import { ConsentManagerProvider, CookieBanner } from '@c15t/react'
+import {
+  ConsentManagerProvider,
+  ConsentBanner,
+  ConsentDialog,
+} from '@c15t/react'
 
 function App() {
   return (
     <ConsentManagerProvider>
       <YourApp />
-      <CookieBanner />
+      <ConsentBanner />
+      <ConsentDialog />
     </ConsentManagerProvider>
   )
 }
@@ -103,8 +108,8 @@ For further information, guides, and examples visit the [reference documentation
 
 - Join our [Discord community](https://c15t.link/discord)
 - Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
-- Visit [consent.io](https://consent.io) and use the chat widget
-- Contact our support team via email [support@consent.io](mailto:support@consent.io)
+- Visit [inth.com](https://inth.com) and use the chat widget
+- Contact our support team via email [support@inth.com](mailto:support@inth.com)
 
 ## Contributing
 
@@ -135,4 +140,4 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 ---
 
-**Built by [Inth](https://inth.com?utm_source=github&utm_medium=repopage_%40c15t%2Freact)**
+**Built by [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Freact)**

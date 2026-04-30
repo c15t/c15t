@@ -18,7 +18,7 @@
 [![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
 [![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
 
-Developer-first CMP for Next.js: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization
+Headless cookie banner, consent manager & preference center for Next.js. App Router & Pages Router, RSC, GDPR/CCPA/LGPD/TCF compliant.
 
 ## Key Features
 
@@ -36,7 +36,7 @@ Developer-first CMP for Next.js: cookie banner, consent manager, preferences cen
 - Next.js 13.5.4 or later
 - React 18 or later
 - Node.js 18.17.0 or later
-- A hosted [c15t instance](https://consent.io) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)
+- A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)
 
 ## Quick Start
 
@@ -75,13 +75,17 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 ## Usage
 
 1. Import `ConsentManagerProvider` in your app's root layout
-2. Add `CookieBanner` and `ConsentManagerDialog` components
+2. Add `ConsentBanner` and `ConsentDialog` components
 3. Customise styling and behaviour to fit your app
 4. For full implementation details, see the [Next.js quickstart docs](https://c15t.com/docs/frameworks/next/quickstart)
 
 ```tsx
 // app/layout.tsx
-import { ConsentManagerProvider, CookieBanner } from '@c15t/nextjs'
+import {
+  ConsentManagerProvider,
+  ConsentBanner,
+  ConsentDialog,
+} from '@c15t/nextjs'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -89,7 +93,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ConsentManagerProvider>
           {children}
-          <CookieBanner />
+          <ConsentBanner />
+          <ConsentDialog />
         </ConsentManagerProvider>
       </body>
     </html>
@@ -105,8 +110,8 @@ For further information, guides, and examples visit the [reference documentation
 
 - Join our [Discord community](https://c15t.link/discord)
 - Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
-- Visit [consent.io](https://consent.io) and use the chat widget
-- Contact our support team via email [support@consent.io](mailto:support@consent.io)
+- Visit [inth.com](https://inth.com) and use the chat widget
+- Contact our support team via email [support@inth.com](mailto:support@inth.com)
 
 ## Contributing
 
@@ -137,4 +142,4 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 ---
 
-**Built by [Inth](https://inth.com?utm_source=github&utm_medium=repopage_%40c15t%2Fnextjs)**
+**Built by [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fnextjs)**

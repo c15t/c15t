@@ -22,4 +22,4 @@ export const IAB_STORAGE_KEYS = {
  *
  * @internal
  */
-export const GVL_ENDPOINT = 'https://gvl.consent.io';
+export const GVL_ENDPOINT = 'https://gvl.inth.app';
