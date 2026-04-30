@@ -54,6 +54,7 @@
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/benchmarking#build": {
+			"dependsOn": ["^build"],
 			"outputs": []
 		},
 		"@c15t/solid#build": {
