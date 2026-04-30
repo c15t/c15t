@@ -1,8 +1,34 @@
 {
 	"name": "@c15t/scripts",
 	"version": "2.0.1",
-	"description": "Pre-built scripts of popular tools for c15t's script loader.",
+	"description": "Pre-built scripts for c15t's script loader (GTM, GA4, Meta).",
+	"keywords": [
+		"c15t",
+		"script-loader",
+		"consent",
+		"gdpr",
+		"ccpa",
+		"lgpd",
+		"gtm",
+		"google-tag-manager",
+		"google-tag",
+		"ga4",
+		"google-ads",
+		"meta-pixel",
+		"posthog",
+		"tiktok-pixel",
+		"linkedin-insights",
+		"microsoft-uet",
+		"x-pixel",
+		"analytics-consent",
+		"consent-mode",
+		"privacy",
+		"cmp"
+	],
 	"homepage": "https://c15t.com/docs/frameworks/javascript/script-loader",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",

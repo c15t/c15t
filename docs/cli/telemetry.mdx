@@ -1,0 +1,41 @@
+---
+title: Telemetry
+description: What the CLI collects, why, and how to disable it.
+---
+
+`@c15t/cli` collects anonymous usage data to help us prioritise features and find rough edges in workflows. It is fully optional — the CLI works the same with telemetry disabled.
+
+## What we collect
+
+- Which command was run (e.g. `setup`, `codemods`, `self-host migrate`).
+- Whether the run succeeded or failed.
+- Which framework was detected (React, Next.js, vanilla).
+- The CLI version and Node.js version.
+- A randomly generated, anonymous machine ID (rotates if you reset config).
+
+## What we do **not** collect
+
+- Source code, file contents, or file paths.
+- Environment variables or secrets.
+- Configuration values from your `c15t.config`.
+- Personally identifiable information.
+
+## How to disable
+
+Per-run:
+
+```bash
+pnpm dlx @c15t/cli setup --no-telemetry
+```
+
+Permanently for your user:
+
+```bash
+export C15T_TELEMETRY_DISABLED=1
+```
+
+Add the export to your shell profile (`.zshrc`, `.bashrc`, etc.) to make it persistent.
+
+## Source
+
+The telemetry implementation is open source — see [`packages/cli/src/utils/telemetry.ts`](https://github.com/c15t/c15t/blob/main/packages/cli/src/utils/telemetry.ts) for the exact event names and payloads.

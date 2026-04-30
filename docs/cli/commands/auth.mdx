@@ -1,0 +1,43 @@
+---
+title: login & logout
+description: Authenticate the CLI with your hosted c15t account on inth.com.
+---
+
+The CLI authenticates against the hosted control plane (inth.com) so it can manage your projects, fetch configuration, and call protected APIs. Self-hosted users do not need to log in.
+
+## `login`
+
+```bash
+pnpm dlx @c15t/cli login
+```
+
+The CLI uses the OAuth device flow:
+
+1. Opens your browser to the verification URL.
+2. Displays a short user code to confirm the device.
+3. Polls for the access token and stores it locally once you approve.
+
+Tokens are cached in your OS config directory and refreshed automatically.
+
+## `logout`
+
+```bash
+pnpm dlx @c15t/cli logout
+```
+
+Clears all stored credentials. Run this if you're switching accounts, working on a shared machine, or rotating credentials.
+
+## Already logged in?
+
+If you're already logged in, `login` reports your current email and asks whether you want to switch accounts. Pass `--force` to skip the prompt.
+
+## Where credentials live
+
+Tokens are written to a single JSON file under your home directory:
+
+- Unix / macOS: `~/.c15t/config.json`
+- Windows: `%USERPROFILE%\.c15t\config.json`
+
+The CLI resolves the location with `os.homedir()` plus the `.c15t` config directory and writes the file with mode `0o600` (owner read/write only). The implementation lives in `packages/cli/src/auth/config-store.ts` and the schema is `C15tConfig` in `packages/cli/src/auth/types.ts`.
+
+Never commit `config.json` or copy it into containers — it holds the access token, refresh token, and your last-selected project ID.

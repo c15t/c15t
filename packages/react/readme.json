@@ -1,6 +1,6 @@
 {
 	"title": "@c15t/react: React Consent Components",
-	"description": "Developer-first CMP for React: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization",
+	"description": "Headless cookie banner, consent manager & preference center for React. RSC-compatible, GDPR/CCPA/LGPD/TCF, TypeScript-first.",
 	"features": [
 		"Works with React 19, 18, 17, and 16.8",
 		"Full 'use client' support for React Server Components",
@@ -15,7 +15,7 @@
 	"prerequisites": [
 		"React 16.8 or later",
 		"Node.js 18.17.0 or later",
-		"A hosted [c15t instance](https://consent.io) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)"
+		"A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)"
 	],
 	"manualInstallation": [
 		"",
@@ -31,11 +31,11 @@
 	],
 	"usage": [
 		"Import `ConsentManagerProvider` in your app's root component",
-		"Add `CookieBanner` and `PreferenceCenter` components",
+		"Add `ConsentBanner` and `ConsentDialog` components",
 		"Customise styling and behaviour to fit your app",
 		"For full implementation details, see the [React quickstart docs](https://c15t.com/docs/frameworks/react/quickstart)",
 
-		"```tsx\n// App.tsx\nimport { ConsentManagerProvider, CookieBanner } from '@c15t/react'\n\nfunction App() {\n  return (\n    <ConsentManagerProvider>\n      <YourApp />\n      <CookieBanner />\n    </ConsentManagerProvider>\n  )\n}\n```"
+		"```tsx\n// App.tsx\nimport {\n  ConsentManagerProvider,\n  ConsentBanner,\n  ConsentDialog,\n} from '@c15t/react'\n\nfunction App() {\n  return (\n    <ConsentManagerProvider>\n      <YourApp />\n      <ConsentBanner />\n      <ConsentDialog />\n    </ConsentManagerProvider>\n  )\n}\n```"
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/react/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/react/quickstart",
