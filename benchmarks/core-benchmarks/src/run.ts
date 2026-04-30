@@ -1,16 +1,18 @@
 #!/usr/bin/env bun
 import { join } from 'node:path';
+import { coreRuntimeBudgets } from '@c15t/benchmarking/budgets';
+import { coreFixtures } from '@c15t/benchmarking/fixtures';
 import {
 	BENCHMARK_SCHEMA_VERSION,
 	type BenchmarkResult,
-	coreFixtures,
-	coreRuntimeBudgets,
+} from '@c15t/benchmarking/schema';
+import {
 	getEnvironment,
 	safeBaseSha,
 	safeCommitSha,
 	summarizeMetric,
 	writeJson,
-} from '@c15t/benchmarking';
+} from '@c15t/benchmarking/utils';
 import {
 	type ConsentState,
 	configureConsentManager,
