@@ -144,9 +144,9 @@ const baseReadmeTemplate = (rawConfig: PackageReadmeConfig) => {
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
     </picture>
   </a>
-  <br />
-  <h1 align="center">${config.title}</h1>
 </p>
+
+# ${config.title}
 
 [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
