@@ -1,5 +1,3 @@
-# c15t: Developer-First Consent Management Platform
-
 <p align="center">
   <a href="https://c15t.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=c15t" target="_blank" rel="noopener noreferrer">
     <picture>
@@ -7,6 +5,8 @@
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
     </picture>
   </a>
+  <br />
+  <h1 align="center">c15t: Developer-First Consent Management Platform</h1>
 </p>
 
 [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)

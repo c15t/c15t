@@ -137,15 +137,15 @@ const baseReadmeTemplate = (rawConfig: PackageReadmeConfig) => {
 	const npmPackageLink = `https://www.npmjs.com/package/${config.packageName}`;
 
 	// Build sections
-	const bannerBlock = `# ${config.title}
-
-<p align="center">
+	const bannerBlock = `<p align="center">
   <a href="https://c15t.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=${npmBadgeName}" target="_blank" rel="noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
     </picture>
   </a>
+  <br />
+  <h1 align="center">${config.title}</h1>
 </p>
 
 [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
