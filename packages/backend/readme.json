@@ -1,6 +1,6 @@
 {
 	"title": "@c15t/backend: Consent Management Backend",
-	"description": "Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preference center. Webhooks, audit logs, storage adapters. Self host or use inth.com",
+	"description": "Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preference center. Webhooks, audit logs, storage adapters. Self-host or use inth.com",
 	"features": [
 		"Consent Management: Track and manage user consent preferences",
 		"Geo-Location: Identify user's location to show relevant consent preferences",

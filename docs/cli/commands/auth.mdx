@@ -33,10 +33,11 @@ If you're already logged in, `login` reports your current email and asks whether
 
 ## Where credentials live
 
-Tokens are stored using the `c12` config layer in your platform's standard config directory:
+Tokens are written to a single JSON file under your home directory:
 
-- macOS: `~/Library/Preferences/c15t/`
-- Linux: `~/.config/c15t/`
-- Windows: `%APPDATA%\c15t\`
+- Unix / macOS: `~/.c15t/config.json`
+- Windows: `%USERPROFILE%\.c15t\config.json`
 
-These files are user-readable only. Never commit them or copy them into containers.
+The CLI resolves the location with `os.homedir()` plus the `.c15t` config directory and writes the file with mode `0o600` (owner read/write only). The implementation lives in `packages/cli/src/auth/config-store.ts` and the schema is `C15tConfig` in `packages/cli/src/auth/types.ts`.
+
+Never commit `config.json` or copy it into containers — it holds the access token, refresh token, and your last-selected project ID.

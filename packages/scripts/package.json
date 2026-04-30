@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/scripts",
 	"version": "2.0.1",
-	"description": "Pre-built scripts of popular tools for c15t's script loader — GTM, Google Tag (GA4 + Ads), Meta Pixel, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel.",
+	"description": "Pre-built scripts for c15t's script loader (GTM, GA4, Meta, PostHog, etc.).",
 	"keywords": [
 		"c15t",
 		"script-loader",

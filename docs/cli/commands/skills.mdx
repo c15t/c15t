@@ -11,11 +11,11 @@ description: Install c15t agent skills for AI-assisted development.
 pnpm dlx @c15t/cli skills
 ```
 
-The CLI detects which agent harnesses you have installed and offers to install the appropriate skill files.
+The CLI launches the skills installer (`skills add c15t/skills`) and walks you through the prompts. Exact behaviour depends on which agent CLI/installer you have available.
 
 ## What gets installed
 
-Skills are written to your agent's standard skill directory (e.g. `~/.claude/skills/c15t-*` for Claude Code). Each skill is a small markdown file that activates when the agent detects c15t-related work in your repository.
+Skills are typically written to your agent's standard skill directory — the precise path depends on the agent and its installer. Each skill is a small markdown file that activates when the agent detects c15t-related work in your repository.
 
 ## Bundled docs
 
@@ -29,4 +29,4 @@ These docs are version-matched to the installed package, so an agent always sees
 
 ## Updating skills
 
-Re-run `skills` after upgrading c15t to pick up new or revised skills. The installer updates files in place and only modifies skills that have changed.
+Re-run `skills` after upgrading c15t to pick up new or revised skills. The installer's update behaviour depends on the agent harness — re-running is safe in any case.

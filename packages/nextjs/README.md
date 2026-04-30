@@ -43,11 +43,11 @@ Headless cookie banner, consent manager & preference center for Next.js. App Rou
 Easiest setup with @c15t/cli:
 
 ```bash
-# Generate schema and code
-pnpm dlx @c15t/cli generate
+# Set up c15t in your project
+pnpm dlx @c15t/cli setup
 # Alternatives:
-# npx @c15t/cli generate
-# bunx --bun @c15t/cli generate
+# npx @c15t/cli setup
+# bunx --bun @c15t/cli setup
 ```
 
 The CLI will:

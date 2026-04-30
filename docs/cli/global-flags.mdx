@@ -3,14 +3,20 @@ title: Global flags
 description: Flags that work on every CLI command.
 ---
 
-These flags are accepted by every `@c15t/cli` command.
+These flags are registered globally by the CLI parser (`packages/cli/src/core/parser.ts`) and accepted on every command.
 
 | Flag | Description |
 |---|---|
-| `--help` | Show help for the current command and exit. |
-| `--version` | Print the installed CLI version and exit. |
+| `--help`, `-h` | Show help for the current command and exit. |
+| `--version`, `-v` | Print the installed CLI version and exit. |
 | `--no-telemetry` | Disable anonymous telemetry for this run. See [Telemetry](./telemetry). |
-| `--dry-run` | Preview changes without writing files (supported by `codemods`, `generate`, `setup`). |
+| `--telemetry-debug` | Print telemetry events to stderr instead of sending them. |
+| `--logger <level>` | Override the log level (`debug`, `info`, `warn`, `error`). |
+| `--config <path>` | Load configuration from an explicit file. |
+| `--yes`, `-y` | Skip interactive prompts and accept defaults. |
+| `--force` | Overwrite existing files when generating output. |
+
+`--dry-run` is **not** global — it's accepted only by commands that write files. See [`codemods`](./commands/codemods), [`generate`](./commands/generate), and [`setup`](./commands/setup) for per-command usage.
 
 ## Environment variables
 
@@ -18,7 +24,9 @@ These flags are accepted by every `@c15t/cli` command.
 |---|---|
 | `C15T_TELEMETRY_DISABLED=1` | Permanently disable telemetry for this user. |
 | `C15T_DEBUG=1` | Enable verbose debug logs. |
-| `C15T_BACKEND_URL` | Override the backend URL the CLI talks to (used during local development). |
+| `C15T_URL` | Override the backend URL the CLI talks to (the value read by `ENV_VARS.BACKEND_URL` in `packages/cli/src/constants.ts`). |
+| `C15T_API_KEY` | API key passed to the backend (read by `ENV_VARS.API_KEY`). |
+| `CONSENT_URL` | Override the control-plane / dashboard base URL (used for `login`). |
 | `NO_COLOR=1` | Disable terminal colors. |
 
 ## Exit codes

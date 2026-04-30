@@ -27,7 +27,12 @@ Depending on your project, `generate` writes:
 
 The exact set of generated files is determined by your `c15t.config` and the framework detected in `package.json`.
 
+## Flags
+
+- `--dry-run` — preview the files that would be written without changing anything on disk.
+- `--force` — overwrite existing files instead of prompting.
+
 ## Related
 
-- [`setup`](./setup) — initial scaffold.
+- [`setup`](./setup) — initial scaffold (calls `generate` under the hood).
 - [`self-host migrate`](./self-host) — apply generated database migrations.

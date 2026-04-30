@@ -46,7 +46,7 @@ function updateIABState(
  *
  * This function:
  * 1. Initializes the IAB stub immediately (queues __tcfapi calls)
- * 2. Uses prefetched GVL if available, otherwise fetches from inth.app
+ * 2. Uses prefetched GVL if available, otherwise fetches from gvl.inth.app
  * 3. Initializes the CMP API
  * 4. Loads existing TC String from storage if available
  *
@@ -90,7 +90,7 @@ export async function initializeIABMode(
 		if (prefetchedGVL) {
 			gvl = prefetchedGVL;
 		} else {
-			// Fetch GVL from inth.app (no client-side filtering - GVL is source of truth)
+			// Fetch GVL from gvl.inth.app (no client-side filtering - GVL is source of truth)
 			// Backend may still filter vendorIds if configured
 			gvl = await fetchGVL();
 

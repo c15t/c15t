@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/backend",
 	"version": "2.0.0",
-	"description": "Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preference center. Webhooks, audit logs, storage adapters. Self host or use inth.com",
+	"description": "Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preference center. Webhooks, audit logs, storage adapters. Self-host or use inth.com",
 	"keywords": [
 		"consent",
 		"privacy",

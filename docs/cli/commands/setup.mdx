@@ -33,3 +33,9 @@ After `setup` completes, the banner appears on first page load in dev. You can c
 ## Re-running
 
 `setup` is idempotent — running it again won't duplicate components or re-install packages, but it will offer to update configuration if it has changed since the last run.
+
+## Flags
+
+- `--dry-run` — preview the files that would be written without changing anything on disk.
+- `--force` — overwrite existing files instead of prompting.
+- `--yes` / `-y` — accept defaults and skip prompts.

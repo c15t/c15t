@@ -42,9 +42,39 @@ pnpm add @c15t/node-sdk
 
 ## Usage
 
-1. Import the c15tClient function from the SDK
-2. Configure the client with your API base URL
-3. Interact with the c15t API using type-safe methods
+1. Import `c15tClient` from `@c15t/node-sdk`
+2. Configure with a base URL and token, or set `C15T_API_URL` and `C15T_API_TOKEN` so the client picks them up automatically
+3. Call API methods on `client.meta`, `client.subjects`, etc. — every method is fully typed
+
+```ts
+// server.ts
+import { c15tClient } from '@c15t/node-sdk'
+
+// Auto-configure from C15T_API_URL + C15T_API_TOKEN env vars
+const client = c15tClient()
+
+// Or pass options explicitly
+// const client = c15tClient({
+//   baseUrl: process.env.C15T_API_URL!,
+//   token: process.env.C15T_API_TOKEN!,
+// })
+
+try {
+  const status = await client.meta.status()
+  console.log('c15t API status:', status)
+
+  const subject = await client.subjects.create({
+    type: 'cookie_banner',
+    subjectId: 'sub_123',
+    domain: 'example.com',
+    preferences: { analytics: true },
+    givenAt: Date.now(),
+  })
+  console.log('Created subject', subject.id)
+} catch (error) {
+  console.error('c15t request failed:', error)
+}
+```
 
 ## Support
 
