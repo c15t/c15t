@@ -13,7 +13,7 @@ These flags are registered globally by the CLI parser (`packages/cli/src/context
 | `--telemetry-debug` | Print telemetry events to stderr instead of sending them. |
 | `--logger <level>` | Set log level (`fatal`, `error`, `warn`, `info`, `debug`). |
 | `--config <path>` | Load configuration from an explicit file. |
-| `-y` | Skip confirmation prompts (use with caution). |
+| `-y`, `--yes` | Skip confirmation prompts (use with caution). |
 
 `--dry-run` is **not** global; the codemods command accepts it as a per-command flag — see [`codemods`](./commands/codemods).
 

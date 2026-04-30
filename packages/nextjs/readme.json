@@ -25,7 +25,7 @@
 		"",
 		"```css\n/* app/globals.css */\n@import \"@c15t/nextjs/styles.css\";\n```",
 		"",
-		"To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/nextjs/quickstart#manual-setup)."
+		"To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/next/quickstart#manual-setup)."
 	],
 	"usage": [
 		"Import `ConsentManagerProvider` in your app's root layout",
