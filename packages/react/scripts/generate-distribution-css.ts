@@ -98,7 +98,7 @@ for (const relativePath of inlinedFiles) {
 		' */',
 		'',
 	].join('\n');
-	Bun.write(targetPath, `${header}${sourceCss}`);
+	await Bun.write(targetPath, `${header}${sourceCss}`);
 }
 
 console.log(
