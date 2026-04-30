@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/nextjs",
-	"version": "2.0.0",
+	"version": "2.0.2",
 	"description": "Headless cookie banner, consent manager & preference center for Next.js. App Router & Pages Router, RSC, GDPR/CCPA/LGPD/TCF compliant.",
 	"keywords": [
 		"nextjs",
