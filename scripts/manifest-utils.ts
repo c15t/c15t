@@ -16,6 +16,8 @@ export type ManifestTarget = {
 	target: string;
 };
 
+const MAX_WILDCARD_PATTERN_LENGTH = 256;
+
 export function readManifest(packageDir: string): PackageManifest {
 	return JSON.parse(
 		readFileSync(join(packageDir, 'package.json'), 'utf8')
@@ -111,6 +113,12 @@ export function collectManifestTargets(
 }
 
 export function wildcardToRegExp(pattern: string): RegExp {
+	if (pattern.length > MAX_WILDCARD_PATTERN_LENGTH) {
+		throw new Error(
+			`Manifest wildcard target is too long (${pattern.length} characters; max ${MAX_WILDCARD_PATTERN_LENGTH}).`
+		);
+	}
+
 	const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
 	return new RegExp(`^${escaped.replaceAll('*', '.+')}$`);
 }
