@@ -1,111 +1,13 @@
 #!/usr/bin/env bun
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-
-type PackageManifest = {
-	name?: string;
-	main?: string;
-	module?: string;
-	types?: string;
-	bin?: string | Record<string, string>;
-	exports?: unknown;
-};
-
-type ManifestTarget = {
-	source: string;
-	target: string;
-};
-
-function readManifest(packageDir: string): PackageManifest {
-	return JSON.parse(
-		readFileSync(join(packageDir, 'package.json'), 'utf8')
-	) as PackageManifest;
-}
-
-function normalizePackagePath(target: string): string | null {
-	const normalized = target.replaceAll('\\', '/');
-
-	if (
-		normalized.startsWith('/') ||
-		/^[A-Za-z]:\//.test(normalized) ||
-		normalized.includes('://') ||
-		normalized === '..' ||
-		normalized.startsWith('../') ||
-		normalized.endsWith('/..') ||
-		normalized.includes('/../')
-	) {
-		return null;
-	}
-
-	return normalized.replace(/^\.\//, '');
-}
-
-function collectExportTargets(
-	value: unknown,
-	targets: ManifestTarget[],
-	source: string
-) {
-	if (typeof value === 'string') {
-		const normalized = normalizePackagePath(value);
-		if (normalized) {
-			targets.push({ source, target: normalized });
-		}
-		return;
-	}
-
-	if (Array.isArray(value)) {
-		for (const item of value) {
-			collectExportTargets(item, targets, source);
-		}
-		return;
-	}
-
-	if (value && typeof value === 'object') {
-		for (const [key, item] of Object.entries(value)) {
-			collectExportTargets(item, targets, `${source}[${JSON.stringify(key)}]`);
-		}
-	}
-}
-
-function collectManifestTargets(manifest: PackageManifest): ManifestTarget[] {
-	const targets: ManifestTarget[] = [];
-
-	for (const key of ['main', 'module', 'types'] as const) {
-		const value = manifest[key];
-		if (typeof value !== 'string') {
-			continue;
-		}
-
-		const normalized = normalizePackagePath(value);
-		if (normalized) {
-			targets.push({ source: key, target: normalized });
-		}
-	}
-
-	if (typeof manifest.bin === 'string') {
-		const normalized = normalizePackagePath(manifest.bin);
-		if (normalized) {
-			targets.push({ source: 'bin', target: normalized });
-		}
-	} else if (manifest.bin && typeof manifest.bin === 'object') {
-		for (const [name, value] of Object.entries(manifest.bin)) {
-			const normalized = normalizePackagePath(value);
-			if (normalized) {
-				targets.push({ source: `bin.${name}`, target: normalized });
-			}
-		}
-	}
-
-	collectExportTargets(manifest.exports, targets, 'exports');
-
-	return targets;
-}
-
-function wildcardToRegExp(pattern: string): RegExp {
-	const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
-	return new RegExp(`^${escaped.replaceAll('*', '.+')}$`);
-}
+import type { ManifestTarget } from './manifest-utils';
+import {
+	collectManifestTargets,
+	readManifest,
+	wildcardToRegExp,
+} from './manifest-utils';
 
 function collectPackageFiles(dir: string, prefix = ''): string[] {
 	const result: string[] = [];
