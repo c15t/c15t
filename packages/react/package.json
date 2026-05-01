@@ -68,20 +68,10 @@
 			"import": "./dist/headless.js",
 			"require": "./dist/headless.cjs"
 		},
-		"./preference-center": {
-			"types": "./dist-types/components/preference-center/index.d.ts",
-			"import": "./dist/components/preference-center/index.js",
-			"require": "./dist/components/preference-center/index.cjs"
-		},
-		"./preference-center-widget": {
-			"types": "./dist-types/components/preference-center-widget/index.d.ts",
-			"import": "./dist/components/preference-center-widget/index.js",
-			"require": "./dist/components/preference-center-widget/index.cjs"
-		},
 		"./cookie-banner": {
-			"types": "./dist-types/components/cookie-banner/index.d.ts",
-			"import": "./dist/components/cookie-banner/index.js",
-			"require": "./dist/components/cookie-banner/index.cjs"
+			"types": "./dist-types/components/consent-banner/index.d.ts",
+			"import": "./dist/components/consent-banner/index.js",
+			"require": "./dist/components/consent-banner/index.cjs"
 		},
 		"./components/consent-banner": {
 			"types": "./dist-types/components/consent-banner/index.d.ts",
@@ -123,21 +113,6 @@
 			"import": "./dist/hooks/index.js",
 			"require": "./dist/hooks/index.cjs"
 		},
-		"./context": {
-			"types": "./dist-types/context/index.d.ts",
-			"import": "./dist/context/index.js",
-			"require": "./dist/context/index.cjs"
-		},
-		"./types": {
-			"types": "./dist-types/types/index.d.ts",
-			"import": "./dist/types/index.js",
-			"require": "./dist/types/index.cjs"
-		},
-		"./utils": {
-			"types": "./dist-types/utils/index.d.ts",
-			"import": "./dist/utils/index.js",
-			"require": "./dist/utils/index.cjs"
-		},
 		".": {
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
@@ -168,7 +143,7 @@
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && bun scripts/generate-distribution-css.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
-		"prepack": "bun run build",
+		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
 		"test": "bun prebuild && vitest run",
 		"test:watch": "bun prebuild && vitest"
 	},

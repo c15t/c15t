@@ -21,6 +21,16 @@ type PackResult = {
 type PackageManifest = {
 	name?: string;
 	private?: boolean;
+	main?: string;
+	module?: string;
+	types?: string;
+	bin?: string | Record<string, string>;
+	exports?: unknown;
+};
+
+type ManifestTarget = {
+	source: string;
+	target: string;
 };
 
 const ROOT = process.cwd();
@@ -96,6 +106,102 @@ function readManifest(packageDir: string): PackageManifest {
 	return JSON.parse(
 		readFileSync(join(packageDir, 'package.json'), 'utf8')
 	) as PackageManifest;
+}
+
+function normalizePackagePath(target: string): string | null {
+	if (!(target.startsWith('./') || target.startsWith('../'))) {
+		return null;
+	}
+
+	return target.replace(/^\.\//, '').replaceAll('\\', '/');
+}
+
+function collectExportTargets(
+	value: unknown,
+	targets: ManifestTarget[],
+	source: string
+) {
+	if (typeof value === 'string') {
+		const normalized = normalizePackagePath(value);
+		if (normalized) {
+			targets.push({ source, target: normalized });
+		}
+		return;
+	}
+
+	if (Array.isArray(value)) {
+		for (const item of value) {
+			collectExportTargets(item, targets, source);
+		}
+		return;
+	}
+
+	if (value && typeof value === 'object') {
+		for (const [key, item] of Object.entries(value)) {
+			collectExportTargets(item, targets, `${source}[${JSON.stringify(key)}]`);
+		}
+	}
+}
+
+function collectManifestTargets(manifest: PackageManifest): ManifestTarget[] {
+	const targets: ManifestTarget[] = [];
+
+	for (const key of ['main', 'module', 'types'] as const) {
+		const value = manifest[key];
+		if (typeof value !== 'string') {
+			continue;
+		}
+
+		const normalized = normalizePackagePath(value);
+		if (normalized) {
+			targets.push({ source: key, target: normalized });
+		}
+	}
+
+	if (typeof manifest.bin === 'string') {
+		const normalized = normalizePackagePath(manifest.bin);
+		if (normalized) {
+			targets.push({ source: 'bin', target: normalized });
+		}
+	} else if (manifest.bin && typeof manifest.bin === 'object') {
+		for (const [name, value] of Object.entries(manifest.bin)) {
+			const normalized = normalizePackagePath(value);
+			if (normalized) {
+				targets.push({ source: `bin.${name}`, target: normalized });
+			}
+		}
+	}
+
+	collectExportTargets(manifest.exports, targets, 'exports');
+
+	return targets;
+}
+
+function wildcardToRegExp(pattern: string): RegExp {
+	const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+	return new RegExp(`^${escaped.replaceAll('*', '.+')}$`);
+}
+
+function scanPackedManifestTargets(
+	manifest: PackageManifest,
+	packedFilePaths: Set<string>
+): Array<{ path: string; size: number; reason: string }> {
+	const packedFiles = [...packedFilePaths];
+
+	return collectManifestTargets(manifest)
+		.filter(({ target }) => {
+			if (target.includes('*')) {
+				const pattern = wildcardToRegExp(target);
+				return !packedFiles.some((filePath) => pattern.test(filePath));
+			}
+
+			return !packedFilePaths.has(target);
+		})
+		.map(({ source, target }) => ({
+			path: target,
+			size: 0,
+			reason: `manifest target missing from packed files (${source})`,
+		}));
 }
 
 function runPack(packageDir: string): PackResult {
@@ -422,6 +528,7 @@ for (const packageDir of packageDirs) {
 			});
 		}
 	}
+	blockedFiles.push(...scanPackedManifestTargets(manifest, packedFilePaths));
 	blockedFiles.push(
 		...scanStyleEntrypointsContent(packageDir, packed.name, packedFilePaths)
 	);
