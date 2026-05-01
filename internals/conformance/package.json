@@ -1,0 +1,35 @@
+{
+	"name": "@c15t/conformance",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./play/*": "./src/play/*.ts",
+		"./fixtures": "./src/fixtures/index.ts",
+		"./fixtures/*": "./src/fixtures/*.ts",
+		"./contract": "./src/contract/index.ts",
+		"./contract/*": "./src/contract/*.ts",
+		"./assertions": "./src/assertions/index.ts",
+		"./a11y": "./src/a11y/index.ts",
+		"./dom-snapshot": "./src/dom-snapshot.ts",
+		"./computed-style": "./src/computed-style.ts",
+		"./driver": "./src/driver.ts",
+		"./suite": "./src/suite/index.ts",
+		"./lint": "./src/lint/testid-lint.ts"
+	},
+	"scripts": {
+		"lint:testids": "bun src/lint/testid-lint.ts",
+		"test": "bun test --preload ./test-setup.ts"
+	},
+	"dependencies": {
+		"axe-core": "4.11.0",
+		"c15t": "workspace:*",
+		"storybook": "10.3.1"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@happy-dom/global-registrator": "^20.0.0",
+		"typescript": "5.9.3"
+	},
+	"version": "0.0.1"
+}

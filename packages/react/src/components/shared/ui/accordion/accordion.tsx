@@ -317,13 +317,12 @@ type AccordionArrowProps = HTMLAttributes<HTMLDivElement> & {
 
 function AccordionArrow({
 	closeIcon = {
-		Element: LucideIcon({ title: 'Close', iconPath: <path d="M5 12h14" /> }),
+		Element: LucideIcon({ iconPath: <path d="M5 12h14" /> }),
 	},
 	className,
 	noStyle,
 	openIcon = {
 		Element: LucideIcon({
-			title: 'Open',
 			iconPath: <path d="M5 12h14M12 5v14" />,
 		}),
 	},

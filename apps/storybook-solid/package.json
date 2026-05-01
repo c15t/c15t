@@ -10,7 +10,7 @@
 	"dependencies": {
 		"@c15t/ui": "workspace:*",
 		"@c15t/solid": "workspace:*",
-		"@c15t/storybook-tests": "workspace:*",
+		"@c15t/conformance": "workspace:*",
 		"solid-js": "^1.9.5"
 	},
 	"devDependencies": {

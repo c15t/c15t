@@ -10,7 +10,7 @@
 	},
 	"dependencies": {
 		"@c15t/react": "workspace:*",
-		"@c15t/storybook-tests": "workspace:*",
+		"@c15t/conformance": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"react": "^19.2.0",
 		"react-dom": "^19.2.0"

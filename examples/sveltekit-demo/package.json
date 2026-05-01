@@ -1,0 +1,33 @@
+{
+	"name": "sveltekit-demo",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview",
+		"check-types": "svelte-check --tsconfig ./tsconfig.json"
+	},
+	"dependencies": {
+		"@c15t/backend": "workspace:*",
+		"@c15t/node-sdk": "workspace:*",
+		"@c15t/svelte": "workspace:*",
+		"@c15t/dev-tools": "workspace:*",
+		"@c15t/translations": "workspace:*",
+		"@libsql/kysely-libsql": "^0.4.1",
+		"c15t": "workspace:*",
+		"kysely": "^0.28.11"
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-auto": "^4.0.0",
+		"@sveltejs/kit": "^2.16.0",
+		"@sveltejs/vite-plugin-svelte": "^5.0.3",
+		"@tailwindcss/vite": "^4.0.0",
+		"svelte": "^5.0.0",
+		"svelte-check": "^4.1.5",
+		"tailwindcss": "^4.0.0",
+		"typescript": "^5.9.3",
+		"vite": "^6.0.0"
+	}
+}

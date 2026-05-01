@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { switchVariants, getSwitchState, toggleSwitchValue } from '@c15t/svelte';
+	import { getSwitchState, switchVariants, toggleSwitchValue } from '@c15t/svelte';
 
 	interface Props {
 		label?: string;

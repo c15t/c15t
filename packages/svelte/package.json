@@ -1,21 +1,127 @@
 {
 	"name": "@c15t/svelte",
-	"private": true,
+	"version": "2.0.0-rc.4",
+	"description": "Developer-first CMP for Svelte: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization",
+	"keywords": [
+		"svelte",
+		"sveltekit",
+		"consent",
+		"privacy",
+		"gdpr",
+		"ccpa",
+		"lgpd",
+		"headless",
+		"typescript",
+		"cookie-banner",
+		"consent-management-platform",
+		"cmp",
+		"consent-banner",
+		"user-consent",
+		"privacy-compliance",
+		"web-privacy"
+	],
+	"homepage": "https://c15t.com/docs/frameworks/svelte/quickstart",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/svelte"
+	},
+	"license": "GPL-3.0-only",
+	"sideEffects": [
+		"**/*.css"
+	],
 	"type": "module",
 	"exports": {
-		".": "./src/index.ts"
+		"./styles.css": "./dist/styles.css",
+		"./iab/styles.css": "./dist/iab/styles.css",
+		"./headless": {
+			"types": "./dist/headless.d.ts",
+			"svelte": "./dist/headless.js",
+			"default": "./dist/headless.js"
+		},
+		"./server": {
+			"types": "./dist/server/index.d.ts",
+			"import": "./dist/server/index.js",
+			"default": "./dist/server/index.js"
+		},
+		"./vite": {
+			"types": "./dist/vite-plugin.d.ts",
+			"import": "./dist/vite-plugin.js",
+			"default": "./dist/vite-plugin.js"
+		},
+		".": {
+			"types": "./dist/index.d.ts",
+			"svelte": "./dist/index.js",
+			"default": "./dist/index.js"
+		}
 	},
+	"typesVersions": {
+		">4.0": {
+			"headless": [
+				"./dist/headless.d.ts"
+			],
+			"server": [
+				"./dist/server/index.d.ts"
+			],
+			"vite": [
+				"./dist/vite-plugin.d.ts"
+			]
+		}
+	},
+	"main": "./dist/index.js",
+	"svelte": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"LICENSE.md",
+		"dist",
+		"styles.css",
+		"iab",
+		"!dist/**/__tests__/**",
+		"!dist/**/*.test.*",
+		"!dist/**/*.spec.*",
+		"docs"
+	],
 	"scripts": {
-		"build": "tsc --noEmit",
-		"test": "vitest run --passWithNoTests"
+		"prebuild": "genversion --esm --semi src/lib/version.ts",
+		"build": "bun prebuild && svelte-package -o dist && bun run copy:dist:css && bun run clean:dist:test-artifacts",
+		"check-types": "bun prebuild && svelte-check --tsconfig ./tsconfig.json",
+		"clean:dist:test-artifacts": "bun --eval \"import { readdirSync, rmSync } from 'node:fs'; import { join } from 'node:path'; const walk = (dir) => { for (const entry of readdirSync(dir, { withFileTypes: true })) { const full = join(dir, entry.name); if (entry.isDirectory()) { if (entry.name === '__tests__') { rmSync(full, { recursive: true, force: true }); continue; } walk(full); continue; } if (/\\.(test|spec)\\.[cm]?[jt]sx?$/.test(entry.name)) { rmSync(full, { force: true }); } } }; walk('dist');\"",
+		"copy:dist:css": "bun --eval \"import { copyFileSync, existsSync, mkdirSync } from 'node:fs'; import { dirname, join } from 'node:path'; const copy = (sourceRel, targetRel) => { const source = join(process.cwd(), sourceRel); const target = join(process.cwd(), targetRel); if (!existsSync(source)) throw new Error('Missing source CSS asset: ' + source); mkdirSync(dirname(target), { recursive: true }); copyFileSync(source, target); }; copy('src/styles.css', 'dist/styles.css'); copy('src/iab/styles.css', 'dist/iab/styles.css');\"",
+		"dev": "bun prebuild && svelte-package -o dist --watch",
+		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
+		"lint": "bun biome lint ./src",
+		"prepack": "bun run build",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"dependencies": {
 		"@c15t/ui": "workspace:*",
-		"svelte": "^5.22.6"
+		"c15t": "workspace:*",
+		"clsx": "2.1.1"
 	},
 	"devDependencies": {
+		"@c15t/conformance": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
-		"typescript": "5.9.3",
-		"vitest": "4.0.15"
+		"@c15t/vitest-config": "workspace:*",
+		"@sveltejs/package": "^2.3.7",
+		"@sveltejs/vite-plugin-svelte": "^5.0.3",
+		"@testing-library/jest-dom": "^6.0.0",
+		"@testing-library/svelte": "^5.0.0",
+		"genversion": "3.2.0",
+		"jsdom": "^25.0.0",
+		"svelte-check": "^4.1.5",
+		"typescript": "^5.9.3"
+	},
+	"peerDependencies": {
+		"svelte": "^5.0.0",
+		"vite": "^5.0.0 || ^6.0.0"
+	},
+	"peerDependenciesMeta": {
+		"vite": {
+			"optional": true
+		}
+	},
+	"publishConfig": {
+		"access": "public"
 	}
 }

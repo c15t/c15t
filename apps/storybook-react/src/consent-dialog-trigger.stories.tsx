@@ -1,4 +1,4 @@
-import { triggerOpensDialog } from '@c15t/storybook-tests/play/consent-dialog-trigger';
+import { triggerOpensDialog } from '@c15t/conformance/play/consent-dialog-trigger';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
 	ConsentDialog,
@@ -15,7 +15,7 @@ const meta = {
 	parameters: {
 		layout: 'fullscreen',
 	},
-	title: 'Components/Core/Consent Dialog Trigger',
+	title: 'COMPONENTS - REACT/Core/Consent Dialog Trigger',
 } satisfies Meta<typeof ConsentDialogTrigger>;
 
 export default meta;
@@ -49,7 +49,6 @@ export const Mobile: Story = {
 			<ConsentDialog />
 			<ConsentDialogTrigger
 				defaultPosition="bottom-left"
-				icon="fingerprint"
 				showWhen="always"
 				size="sm"
 			/>
