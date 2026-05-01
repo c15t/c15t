@@ -220,6 +220,7 @@
 		"dist-types",
 		"client",
 		"styles.css",
+		"styles.tw3.css",
 		"iab",
 		"src/styles.tw3.css",
 		"src/iab/styles.tw3.css",
