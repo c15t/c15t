@@ -19,11 +19,12 @@
  * v2 parity: `packages/core/src/libs/script-loader/{core,utils,store,types}.ts`.
  *
  * Invariants:
- * - Purely idempotent: calling `createScriptLoader` twice with the same
- *   scripts only mounts DOM once; the second instance's mount is a
- *   no-op for scripts already in the DOM (matched by element ID).
- * - No global state. The only "global" touched is `document.head` /
- *   `document.body` (DOM append target) and optional
+ * - Idempotent by resolved element ID: calling `createScriptLoader` twice
+ *   with the same scripts only mounts DOM once; later instances register
+ *   the existing DOM element as loaded but do not own it.
+ * - Minimal module state: anonymized element IDs are cached per page so
+ *   fresh loader instances resolve the same DOM IDs. Other state remains
+ *   per loader, except DOM append targets and optional
  *   `window.__c15tScriptDebugListeners` for v2 debug-event compatibility.
  * - `dispose()` removes every element this loader mounted and
  *   disconnects the kernel subscription. Elements mounted by other
@@ -66,11 +67,13 @@ export function createScriptLoader(
 	let normalized: NormalizedScript[] = normalizeScripts(options.scripts);
 
 	const loadedElements = new Map<string, HTMLScriptElement | null>();
+	const ownedScriptIds = new Set<string>();
 	const elementIds = createElementIdResolver();
 	const eligibilityByScriptId = new Map<string, boolean>();
 
 	const mountDeps: MountDeps = {
 		loadedElements,
+		ownedScriptIds,
 		elementIds,
 		emit,
 		hasDebugListener,
@@ -132,12 +135,14 @@ export function createScriptLoader(
 		dispose() {
 			unsubscribe();
 			if (typeof document === 'undefined') return;
-			for (const [, element] of loadedElements) {
-				if (element && element.parentNode) {
+			for (const [scriptId, element] of loadedElements) {
+				if (!ownedScriptIds.has(scriptId)) continue;
+				if (element?.parentNode) {
 					element.parentNode.removeChild(element);
 				}
 			}
 			loadedElements.clear();
+			ownedScriptIds.clear();
 			elementIds.clear();
 			eligibilityByScriptId.clear();
 		},

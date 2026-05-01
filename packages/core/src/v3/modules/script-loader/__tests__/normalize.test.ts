@@ -78,11 +78,11 @@ describe('createElementIdResolver', () => {
 		expect(a).toBe(b);
 	});
 
-	test('clear() drops the cache so the next resolve generates a fresh ID', () => {
+	test('keeps anonymized IDs stable across resolver instances and clear()', () => {
 		const resolver = createElementIdResolver();
 		const a = resolver.resolve(baseScript);
 		resolver.clear();
-		const b = resolver.resolve(baseScript);
-		expect(b).not.toBe(a);
+		const b = createElementIdResolver().resolve(baseScript);
+		expect(b).toBe(a);
 	});
 });

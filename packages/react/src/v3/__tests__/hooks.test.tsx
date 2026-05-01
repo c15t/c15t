@@ -8,13 +8,14 @@
  */
 import type { ReactNode } from 'react';
 import { Profiler, StrictMode, useRef } from 'react';
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import {
 	ConsentProvider,
 	useConsent,
 	useConsents,
 	useHasConsented,
+	useNetworkBlocker,
 	useOverrides,
 	useSaveConsents,
 	useSetConsent,
@@ -333,6 +334,152 @@ describe('v3 react: stale-closure resolved (issue #604)', () => {
 
 		await getByTestId('off').click();
 		await expect.element(getByTestId('value')).toHaveTextContent(/^off\|/);
+	});
+});
+
+describe('v3 react: network blocker lifecycle', () => {
+	function installFetchStub() {
+		const originalFetch = window.fetch;
+		const fetchStub = vi.fn(async () => new Response('ok', { status: 200 }));
+		window.fetch = fetchStub as unknown as typeof window.fetch;
+		return {
+			fetchStub,
+			originalFetch,
+			restore() {
+				window.fetch = originalFetch;
+			},
+		};
+	}
+
+	test('abandoned render does not patch fetch', async () => {
+		const fetch = installFetchStub();
+
+		function ThrowsAfterHook() {
+			useNetworkBlocker({
+				rules: [{ domain: 'example.com', category: 'marketing' }],
+				logBlockedRequests: false,
+			});
+			throw new Error('render failed before commit');
+		}
+
+		try {
+			await expect(
+				render(
+					<ConsentProvider options={{ persistence: false }}>
+						<ThrowsAfterHook />
+					</ConsentProvider>
+				)
+			).rejects.toThrow('render failed before commit');
+
+			expect(window.fetch).toBe(fetch.fetchStub);
+		} finally {
+			fetch.restore();
+		}
+	});
+
+	test('StrictMode provider restores fetch after unmount', async () => {
+		const fetch = installFetchStub();
+
+		try {
+			const view = await render(
+				<StrictMode>
+					<ConsentProvider
+						options={{
+							persistence: false,
+							networkBlocker: {
+								rules: [{ domain: 'example.com', category: 'marketing' }],
+								logBlockedRequests: false,
+							},
+						}}
+					>
+						<div>mounted</div>
+					</ConsentProvider>
+				</StrictMode>
+			);
+
+			expect(window.fetch).not.toBe(fetch.fetchStub);
+			view.unmount();
+			expect((await window.fetch('https://example.com/x')).status).toBe(200);
+			expect(fetch.fetchStub).toHaveBeenCalledOnce();
+		} finally {
+			fetch.restore();
+		}
+	});
+
+	test('rules update after mount affects intercepted requests', async () => {
+		const fetch = installFetchStub();
+
+		try {
+			const { rerender } = await render(
+				<ConsentProvider
+					options={{
+						persistence: false,
+						networkBlocker: {
+							rules: [{ domain: 'first.example.com', category: 'marketing' }],
+							logBlockedRequests: false,
+						},
+					}}
+				>
+					<div>mounted</div>
+				</ConsentProvider>
+			);
+
+			expect((await window.fetch('https://first.example.com/x')).status).toBe(
+				451
+			);
+			expect((await window.fetch('https://second.example.com/x')).status).toBe(
+				200
+			);
+
+			await rerender(
+				<ConsentProvider
+					options={{
+						persistence: false,
+						networkBlocker: {
+							rules: [{ domain: 'second.example.com', category: 'marketing' }],
+							logBlockedRequests: false,
+						},
+					}}
+				>
+					<div>mounted</div>
+				</ConsentProvider>
+			);
+
+			expect((await window.fetch('https://first.example.com/x')).status).toBe(
+				200
+			);
+			expect((await window.fetch('https://second.example.com/x')).status).toBe(
+				451
+			);
+		} finally {
+			fetch.restore();
+		}
+	});
+
+	test('enabled false disables blocking after commit', async () => {
+		const fetch = installFetchStub();
+
+		try {
+			await render(
+				<ConsentProvider
+					options={{
+						persistence: false,
+						networkBlocker: {
+							rules: [{ domain: 'example.com', category: 'marketing' }],
+							enabled: false,
+							logBlockedRequests: false,
+						},
+					}}
+				>
+					<div>mounted</div>
+				</ConsentProvider>
+			);
+
+			expect((await window.fetch('https://example.com/x')).status).toBe(200);
+			expect(fetch.fetchStub).toHaveBeenCalledOnce();
+		} finally {
+			fetch.restore();
+		}
 	});
 });
 

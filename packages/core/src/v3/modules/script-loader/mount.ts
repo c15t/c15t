@@ -25,6 +25,8 @@ import type { PendingMount, Script, ScriptLoaderDebugEvent } from './types';
 export interface MountDeps {
 	/** Per-loader registry: scriptId → element (or `null` for callback-only). */
 	loadedElements: Map<string, HTMLScriptElement | null>;
+	/** Script IDs whose DOM element was created by this loader instance. */
+	ownedScriptIds: Set<string>;
 	/** Resolves the DOM `id` attribute for a script. */
 	elementIds: ElementIdResolver;
 	/** Debug emitter (merged onDebug + v2 compat). */
@@ -117,6 +119,36 @@ export function mountScript(
 		);
 	}
 
+	const existingElement =
+		typeof document.getElementById === 'function'
+			? document.getElementById(elementId)
+			: null;
+	if (existingElement) {
+		const element = existingElement as HTMLScriptElement;
+		deps.loadedElements.set(script.id, element);
+		if (typeof script.onConsentChange === 'function' || deps.hasDebugListener) {
+			const info = buildCallbackInfo(
+				script,
+				snapshot,
+				hasConsent,
+				elementId,
+				element
+			);
+			invokeCallback(script, 'onConsentChange', info, deps.emit);
+			deps.emit({
+				source: 'script-loader',
+				scope: 'step',
+				action: 'already_loaded',
+				message: 'Script element already exists in DOM; reused it',
+				scriptId: script.id,
+				elementId: info.elementId,
+				hasConsent: info.hasConsent,
+				timestamp: Date.now(),
+			});
+		}
+		return;
+	}
+
 	const element = document.createElement('script');
 	element.id = elementId;
 	if (script.src) element.src = script.src;
@@ -175,6 +207,7 @@ export function mountScript(
 
 	target.appendChild(element);
 	deps.loadedElements.set(script.id, element);
+	deps.ownedScriptIds.add(script.id);
 
 	if (!script.src && info) {
 		// Inline script: defer onLoad one tick so the browser parses
@@ -219,6 +252,7 @@ export function unmountScript(
 		// Element stays in DOM but we drop our reference so a later
 		// re-grant re-fires callbacks rather than short-circuiting.
 		deps.loadedElements.delete(script.id);
+		deps.ownedScriptIds.delete(script.id);
 		if (deps.hasDebugListener) {
 			deps.emit({
 				source: 'script-loader',
@@ -233,10 +267,12 @@ export function unmountScript(
 		return;
 	}
 
-	if (element && element.parentNode) {
+	const ownsElement = deps.ownedScriptIds.has(script.id);
+	if (ownsElement && element?.parentNode) {
 		element.parentNode.removeChild(element);
 	}
 	deps.loadedElements.delete(script.id);
+	deps.ownedScriptIds.delete(script.id);
 
 	if (typeof script.onConsentChange === 'function') {
 		const info = buildCallbackInfo(script, snapshot, hasConsent, elementId);
@@ -297,6 +333,7 @@ export function flushPendingMounts(
 
 	for (const pending of batch) {
 		deps.loadedElements.set(pending.script.id, pending.element);
+		deps.ownedScriptIds.add(pending.script.id);
 
 		if (!pending.script.src && pending.info) {
 			const info = pending.info;

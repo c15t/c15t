@@ -6,7 +6,7 @@ import {
 	type NetworkBlockerHandle,
 	type NetworkBlockerRule,
 } from 'c15t/v3/modules/network-blocker';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRequiredKernel } from './shared';
 
 export interface UseNetworkBlockerOptions {
@@ -20,15 +20,31 @@ export function useNetworkBlocker(
 	options: UseNetworkBlockerOptions
 ): NetworkBlockerHandle {
 	const kernel = useRequiredKernel();
-	const [handle] = useState(() =>
-		createNetworkBlocker({
-			kernel,
-			rules: options.rules,
-			enabled: options.enabled,
-			logBlockedRequests: options.logBlockedRequests,
-			onRequestBlocked: options.onRequestBlocked,
-		})
-	);
+	const handleRef = useRef<NetworkBlockerHandle | null>(null);
+	const latestRulesRef = useRef(options.rules);
+	const latestEnabledRef = useRef(options.enabled);
+
+	latestRulesRef.current = options.rules;
+	latestEnabledRef.current = options.enabled;
+
+	const facadeRef = useRef<NetworkBlockerHandle | null>(null);
+	if (!facadeRef.current) {
+		facadeRef.current = {
+			dispose() {
+				handleRef.current?.dispose();
+				handleRef.current = null;
+			},
+			updateRules(next) {
+				latestRulesRef.current = next;
+				handleRef.current?.updateRules(next);
+			},
+			setEnabled(enabled) {
+				latestEnabledRef.current = enabled;
+				handleRef.current?.setEnabled(enabled);
+			},
+		};
+	}
+	const handle = facadeRef.current;
 
 	const firstRules = useRef(true);
 	useEffect(() => {
@@ -46,8 +62,22 @@ export function useNetworkBlocker(
 	}, [handle, options.enabled]);
 
 	useEffect(() => {
-		return () => handle.dispose();
-	}, [handle]);
+		const created = createNetworkBlocker({
+			kernel,
+			rules: latestRulesRef.current,
+			enabled: latestEnabledRef.current,
+			logBlockedRequests: options.logBlockedRequests,
+			onRequestBlocked: options.onRequestBlocked,
+		});
+		handleRef.current = created;
+
+		return () => {
+			if (handleRef.current === created) {
+				handleRef.current = null;
+			}
+			created.dispose();
+		};
+	}, [kernel, options.logBlockedRequests, options.onRequestBlocked]);
 
 	return handle;
 }

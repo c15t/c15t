@@ -101,6 +101,13 @@ beforeEach(() => {
 			if (tag !== 'script') throw new Error(`Unexpected tag: ${tag}`);
 			return createStubElement();
 		},
+		getElementById(id: string) {
+			return (
+				head.children.find((child) => child.id === id) ??
+				body.children.find((child) => child.id === id) ??
+				null
+			);
+		},
 		head,
 		body,
 	});
@@ -175,6 +182,62 @@ describe('script-loader: basic load/unload on consent change', () => {
 		expect(head.children).toHaveLength(0);
 		kernel.set.consent({ marketing: true });
 		expect(head.children).toHaveLength(1);
+	});
+});
+
+describe('script-loader: DOM dedupe across loader instances', () => {
+	test('second loader reuses an existing default-anonymized element', () => {
+		const kernel = createConsentKernel({
+			initialConsents: { marketing: true },
+		});
+		const script: Script = {
+			id: 'shared-anon',
+			src: 'https://example.com/shared.js',
+			category: 'marketing',
+		};
+
+		const first = createScriptLoader({ kernel, scripts: [script] });
+		expect(head.children).toHaveLength(1);
+		const element = head.children[0];
+		expect(element?.id).toMatch(/^c15t-/);
+		expect(element?.id).not.toBe('c15t-script-shared-anon');
+
+		const second = createScriptLoader({ kernel, scripts: [script] });
+
+		expect(head.children).toHaveLength(1);
+		expect(head.children[0]).toBe(element);
+		expect(second.getLoadedScriptIds()).toEqual(['shared-anon']);
+
+		second.dispose();
+		expect(head.children).toHaveLength(1);
+		expect(head.children[0]).toBe(element);
+
+		first.dispose();
+		expect(head.children).toHaveLength(0);
+	});
+
+	test('second loader reuses an existing stable non-anonymized element', () => {
+		const kernel = createConsentKernel({
+			initialConsents: { marketing: true },
+		});
+		const script: Script = {
+			id: 'shared-stable',
+			src: 'https://example.com/shared-stable.js',
+			category: 'marketing',
+			anonymizeId: false,
+		};
+
+		const first = createScriptLoader({ kernel, scripts: [script] });
+		const second = createScriptLoader({ kernel, scripts: [script] });
+
+		expect(head.children).toHaveLength(1);
+		expect(head.children[0]?.id).toBe('c15t-script-shared-stable');
+
+		second.dispose();
+		expect(head.children).toHaveLength(1);
+
+		first.dispose();
+		expect(head.children).toHaveLength(0);
 	});
 });
 

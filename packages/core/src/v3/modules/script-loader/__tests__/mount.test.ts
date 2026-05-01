@@ -19,6 +19,7 @@ function makeDeps(): {
 	const emitted: { action: string; scriptId: string }[] = [];
 	const deps: MountDeps = {
 		loadedElements: new Map(),
+		ownedScriptIds: new Set(),
 		elementIds: createElementIdResolver(),
 		emit: (event) => {
 			emitted.push({ action: event.action, scriptId: event.scriptId });
@@ -105,6 +106,37 @@ describe('mountScript', () => {
 		mountScript(deps, script, snap, true, null);
 		expect(document.head.querySelector('script')).not.toBeNull();
 		expect(deps.loadedElements.has('s')).toBe(true);
+		expect(deps.ownedScriptIds.has('s')).toBe(true);
+	});
+
+	test('reuses an existing element with the resolved ID', () => {
+		const { deps, emitted } = makeDeps();
+		const snap = createConsentKernel().getSnapshot();
+		const onBeforeLoad = vi.fn();
+		const onConsentChange = vi.fn();
+		const script: Script = {
+			id: 's',
+			src: 'https://x/s.js',
+			category: 'marketing',
+			anonymizeId: false,
+			onBeforeLoad,
+			onConsentChange,
+		};
+		const existing = document.createElement('script');
+		existing.id = 'c15t-script-s';
+		document.head.appendChild(existing);
+
+		mountScript(deps, script, snap, true, null);
+
+		expect(document.head.querySelectorAll('script')).toHaveLength(1);
+		expect(deps.loadedElements.get('s')).toBe(existing);
+		expect(deps.ownedScriptIds.has('s')).toBe(false);
+		expect(onBeforeLoad).not.toHaveBeenCalled();
+		expect(onConsentChange).toHaveBeenCalledOnce();
+		expect(emitted).toContainEqual({
+			action: 'already_loaded',
+			scriptId: 's',
+		});
 	});
 });
 
@@ -139,6 +171,28 @@ describe('unmountScript', () => {
 		unmountScript(deps, script, snap, false);
 		expect(document.head.querySelector('script')).toBeNull();
 		expect(deps.loadedElements.has('s')).toBe(false);
+		expect(deps.ownedScriptIds.has('s')).toBe(false);
+	});
+
+	test('drops a reused element from registry without removing DOM', () => {
+		const { deps } = makeDeps();
+		const snap = createConsentKernel().getSnapshot();
+		const script: Script = {
+			id: 's',
+			src: 'https://x/s.js',
+			category: 'marketing',
+			anonymizeId: false,
+		};
+		const existing = document.createElement('script');
+		existing.id = 'c15t-script-s';
+		document.head.appendChild(existing);
+		mountScript(deps, script, snap, true, null);
+
+		unmountScript(deps, script, snap, false);
+
+		expect(document.head.querySelector('script')).toBe(existing);
+		expect(deps.loadedElements.has('s')).toBe(false);
+		expect(deps.ownedScriptIds.has('s')).toBe(false);
 	});
 
 	test('is a no-op for scripts this loader never mounted', () => {

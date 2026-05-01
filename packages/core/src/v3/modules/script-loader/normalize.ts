@@ -9,6 +9,8 @@
 import type { AllConsentNames } from '../../../types/consent-types';
 import type { NormalizedScript, Script } from './types';
 
+const anonymizedElementIds = new Map<string, string>();
+
 /**
  * Generate an opaque 8-char random ID. Uses `crypto.randomUUID()`
  * when available (the modern path); falls back to `Math.random()` in
@@ -59,25 +61,21 @@ export interface ElementIdResolver {
  * stable across mounts so consumers can target it from CSS / extensions.
  *
  * When `script.anonymizeId` is unset or `true`, the ID is a random
- * `c15t-<8 random chars>` token cached for the lifetime of this
- * resolver. The cache makes `getElementId()` idempotent across
- * reconcile passes — same script always gets the same anon ID.
+ * `c15t-<8 random chars>` token cached for the lifetime of this page's
+ * module instance. The cache makes `getElementId()` idempotent across
+ * fresh loader instances — same script always gets the same anon ID.
  */
 export function createElementIdResolver(): ElementIdResolver {
-	const cache = new Map<string, string>();
-
 	return {
 		resolve(script) {
 			const anonymize = script.anonymizeId !== false;
 			if (!anonymize) return `c15t-script-${script.id}`;
-			const cached = cache.get(script.id);
+			const cached = anonymizedElementIds.get(script.id);
 			if (cached) return cached;
 			const generated = `c15t-${generateRandomId()}`;
-			cache.set(script.id, generated);
+			anonymizedElementIds.set(script.id, generated);
 			return generated;
 		},
-		clear() {
-			cache.clear();
-		},
+		clear() {},
 	};
 }
