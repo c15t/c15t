@@ -70,7 +70,7 @@
 		},
 		"./cookie-banner": {
 			"types": "./dist-types/components/consent-banner/index.d.ts",
-			"import": "./dist/components/consent-banner/index.js",
+			"import": "./client/components/consent-banner.js",
 			"require": "./dist/components/consent-banner/index.cjs"
 		},
 		"./components/consent-banner": {

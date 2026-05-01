@@ -24,11 +24,21 @@ function readManifest(packageDir: string): PackageManifest {
 }
 
 function normalizePackagePath(target: string): string | null {
-	if (!(target.startsWith('./') || target.startsWith('../'))) {
+	const normalized = target.replaceAll('\\', '/');
+
+	if (
+		normalized.startsWith('/') ||
+		/^[A-Za-z]:\//.test(normalized) ||
+		normalized.includes('://') ||
+		normalized === '..' ||
+		normalized.startsWith('../') ||
+		normalized.endsWith('/..') ||
+		normalized.includes('/../')
+	) {
 		return null;
 	}
 
-	return target.replace(/^\.\//, '').replaceAll('\\', '/');
+	return normalized.replace(/^\.\//, '');
 }
 
 function collectExportTargets(

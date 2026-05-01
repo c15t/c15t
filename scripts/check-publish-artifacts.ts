@@ -109,7 +109,7 @@ function readManifest(packageDir: string): PackageManifest {
 }
 
 function normalizePackagePath(target: string): string | null {
-	if (!(target.startsWith('./') || target.startsWith('../'))) {
+	if (target.startsWith('/') || target.includes('://')) {
 		return null;
 	}
 
