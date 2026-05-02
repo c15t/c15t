@@ -6,6 +6,12 @@ import {
 	checkPackedAgentDocs,
 	supportedAgentDocsPackages,
 } from './agent-docs/check-budgets';
+import type { PackageManifest } from './manifest-utils';
+import {
+	collectManifestTargets,
+	readManifest,
+	wildcardToRegExp,
+} from './manifest-utils';
 
 type PackedFile = {
 	path: string;
@@ -16,11 +22,6 @@ type PackResult = {
 	name: string;
 	version: string;
 	files: PackedFile[];
-};
-
-type PackageManifest = {
-	name?: string;
-	private?: boolean;
 };
 
 const ROOT = process.cwd();
@@ -92,10 +93,26 @@ const rootTw3ProxyContents: Record<string, string> = {
 	'iab/styles.tw3.css': '@import "../dist/iab/styles.tw3.css";',
 };
 
-function readManifest(packageDir: string): PackageManifest {
-	return JSON.parse(
-		readFileSync(join(packageDir, 'package.json'), 'utf8')
-	) as PackageManifest;
+function scanPackedManifestTargets(
+	manifest: PackageManifest,
+	packedFilePaths: Set<string>
+): Array<{ path: string; size: number; reason: string }> {
+	const packedFiles = [...packedFilePaths];
+
+	return collectManifestTargets(manifest)
+		.filter(({ target }) => {
+			if (target.includes('*')) {
+				const pattern = wildcardToRegExp(target);
+				return !packedFiles.some((filePath) => pattern.test(filePath));
+			}
+
+			return !packedFilePaths.has(target);
+		})
+		.map(({ source, target }) => ({
+			path: target,
+			size: 0,
+			reason: `manifest target missing from packed files (${source})`,
+		}));
 }
 
 function runPack(packageDir: string): PackResult {
@@ -422,6 +439,7 @@ for (const packageDir of packageDirs) {
 			});
 		}
 	}
+	blockedFiles.push(...scanPackedManifestTargets(manifest, packedFilePaths));
 	blockedFiles.push(
 		...scanStyleEntrypointsContent(packageDir, packed.name, packedFilePaths)
 	);

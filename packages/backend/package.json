@@ -120,7 +120,7 @@
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"knip": "knip",
 		"lint": "bun biome lint ./src",
-		"prepack": "bun run build",
+		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
 		"start": "node dist/server.cjs",
 		"test": "bun prebuild && vitest run",
 		"test:watch": "bun prebuild && vitest"
