@@ -1,5 +1,12 @@
 # @c15t/nextjs
 
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [10cec50]
+  - @c15t/react@2.0.3
+
 ## 2.0.2
 
 ### Patch Changes
