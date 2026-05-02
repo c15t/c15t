@@ -466,6 +466,7 @@ describe('Consent Store', () => {
 
 			store.setState({
 				policyCategories: ['necessary', 'measurement'],
+				policyScopeMode: 'strict',
 			});
 
 			store
@@ -489,6 +490,7 @@ describe('Consent Store', () => {
 			store.setState({
 				consentCategories: ['necessary', 'measurement'],
 				policyCategories: ['necessary', 'measurement'],
+				policyScopeMode: 'strict',
 			});
 
 			store.getState().updateConsentCategories(['experience', 'marketing']);
@@ -1132,10 +1134,11 @@ describe('Consent Store', () => {
 			expect(store.getState().consentCategories).toContain('measurement');
 		});
 
-		it('should not add out-of-policy script categories to consentCategories', () => {
+		it('should not add out-of-policy script categories to consentCategories in strict scope mode', () => {
 			const store = createConsentManagerStore(mockManager);
 			store.setState({
 				policyCategories: ['necessary', 'measurement'],
+				policyScopeMode: 'strict',
 				consentCategories: ['necessary', 'measurement'],
 			});
 
