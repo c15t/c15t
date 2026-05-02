@@ -1,7 +1,0 @@
-[     476ms] [VERBOSE] Rendering was performed in a subtree hidden by content-visibility. @ http://127.0.0.1:4136/sb-manager/runtime.js:12798
-[     477ms] [VERBOSE] Rendering was performed in a subtree hidden by content-visibility. @ http://127.0.0.1:4136/sb-manager/runtime.js:12798
-[     478ms] [VERBOSE] Rendering was performed in a subtree hidden by content-visibility. @ http://127.0.0.1:4136/sb-manager/runtime.js:12798
-[     479ms] [VERBOSE] Rendering was performed in a subtree hidden by content-visibility. @ http://127.0.0.1:4136/sb-manager/runtime.js:12798
-[     483ms] [VERBOSE] Rendering was performed in a subtree hidden by content-visibility. @ http://127.0.0.1:4136/sb-manager/runtime.js:12798
-[     484ms] [VERBOSE] Rendering was performed in a subtree hidden by content-visibility. @ http://127.0.0.1:4136/sb-manager/runtime.js:12798
-[     726ms] [WARNING] The 'ariaLabel' prop on 'PopoverProvider' will become mandatory in Storybook 11. Provide a concise, accessible label describing the popover's purpose. @ http://127.0.0.1:4136/sb-manager/globals-runtime.js:5810
