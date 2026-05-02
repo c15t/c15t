@@ -535,6 +535,7 @@ export const postSubjectHandler = async (c: Context) => {
 			let filteredAppliedPreferenceEntries = appliedPreferenceEntries;
 
 			if (
+				effectiveScopeMode === 'strict' &&
 				allowedCategories &&
 				allowedCategories.length > 0 &&
 				!hasWildcardCategoryScope
@@ -545,7 +546,7 @@ export const postSubjectHandler = async (c: Context) => {
 				filteredAppliedPreferenceEntries = appliedPreferenceEntries.filter(
 					([purpose]) => allowedCategories.includes(purpose)
 				);
-				if (disallowed.length > 0 && effectiveScopeMode === 'strict') {
+				if (disallowed.length > 0) {
 					throw new HTTPException(400, {
 						message: 'Preferences include categories not allowed by policy',
 						cause: { code: 'PURPOSE_NOT_ALLOWED', disallowed },

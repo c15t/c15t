@@ -895,6 +895,7 @@ describe('saveConsents', () => {
 				lastBannerFetchData: {
 					policy: {
 						consent: {
+							scopeMode: 'strict',
 							categories: ['necessary', 'measurement', 'marketing'],
 						},
 					},
@@ -934,6 +935,95 @@ describe('saveConsents', () => {
 						measurement: true,
 						marketing: true,
 					},
+				}),
+			});
+		});
+
+		it('should keep configured preferences for permissive policy scope', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: {
+					onConsentSet: vi.fn(),
+					onError: vi.fn(),
+				},
+				consentCategories: ['necessary', 'measurement', 'marketing'],
+				updateScripts: updateScriptsMock,
+				updateIframeConsents: updateIframeConsentsMock,
+				updateNetworkBlockerConsents: updateNetworkBlockerConsentsMock,
+				consents: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					experience: false,
+					marketing: false,
+				},
+				selectedConsents: {
+					necessary: true,
+					functionality: false,
+					measurement: true,
+					experience: false,
+					marketing: true,
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: 'Necessary cookies',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'measurement',
+						defaultValue: false,
+						description: 'Measurement cookies',
+						disabled: false,
+						display: true,
+						gdprType: 4,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: 'Marketing cookies',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				reloadOnConsentRevoked: false,
+				consentInfo: null,
+				lastBannerFetchData: {
+					policy: {
+						consent: {
+							scopeMode: 'permissive',
+							categories: ['necessary'],
+						},
+					},
+				},
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(mockSet).toHaveBeenCalledWith(
+				expect.objectContaining({
+					consents: expect.objectContaining({
+						necessary: true,
+						measurement: true,
+						marketing: true,
+					}),
+				})
+			);
+			expect(mockManager.setConsent).toHaveBeenCalledWith({
+				body: expect.objectContaining({
+					preferences: expect.objectContaining({
+						necessary: true,
+						measurement: true,
+						marketing: true,
+					}),
 				}),
 			});
 		});

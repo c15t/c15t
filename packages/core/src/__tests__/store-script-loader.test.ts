@@ -310,6 +310,7 @@ describe('Store Script Loader Integration', () => {
 
 			store.getState().setScripts([scripts[1]]);
 
+			expect(store.getState().consentCategories).toContain('marketing');
 			expect(store.getState().isScriptLoaded('marketing-script')).toBe(true);
 			expect(store.getState().loadedScripts['marketing-script']).toBe(true);
 		});

@@ -139,6 +139,21 @@ export function filterConsentCategoriesByPolicy(
 }
 
 /**
+ * Returns whether policy category scope should be enforced as a hard allowlist.
+ */
+export function shouldEnforcePolicyCategoryScope(
+	allowedPurposeIds?: string[] | null,
+	scopeMode: 'strict' | 'permissive' | null = 'permissive'
+): boolean {
+	return (
+		scopeMode === 'strict' &&
+		Array.isArray(allowedPurposeIds) &&
+		allowedPurposeIds.length > 0 &&
+		!allowedPurposeIds.includes('*')
+	);
+}
+
+/**
  * Applies policy scope to runtime gating behavior.
  *
  * Out-of-policy categories are treated as permissive by c15t runtime and are

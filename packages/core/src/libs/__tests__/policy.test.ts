@@ -4,6 +4,7 @@ import {
 	applyPolicyScopeForRuntimeGating,
 	filterConsentCategoriesByPolicy,
 	getEffectivePolicy,
+	shouldEnforcePolicyCategoryScope,
 	stripDisallowedPreferenceKeys,
 	validateUIAgainstPolicy,
 } from '../policy';
@@ -265,6 +266,19 @@ describe('filterConsentCategoriesByPolicy', () => {
 				['*']
 			)
 		).toEqual(['necessary', 'measurement', 'experience', 'marketing']);
+	});
+});
+
+describe('shouldEnforcePolicyCategoryScope', () => {
+	it('only enforces category scope for strict non-wildcard policies', () => {
+		expect(shouldEnforcePolicyCategoryScope(['necessary'], 'strict')).toBe(
+			true
+		);
+		expect(shouldEnforcePolicyCategoryScope(['necessary'], 'permissive')).toBe(
+			false
+		);
+		expect(shouldEnforcePolicyCategoryScope(['*'], 'strict')).toBe(false);
+		expect(shouldEnforcePolicyCategoryScope(undefined, 'strict')).toBe(false);
 	});
 });
 

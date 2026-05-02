@@ -349,13 +349,14 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		vi.clearAllMocks();
 	});
 
-	it('treats out-of-policy categories as out-of-scope (hidden and false)', async () => {
+	it('treats strict out-of-policy categories as out-of-scope (hidden and false)', async () => {
 		const data = createMockConsentBannerResponse({
 			jurisdiction: 'GDPR',
 			policy: {
 				id: 'policy_jp_restricted',
 				model: 'opt-in',
 				consent: {
+					scopeMode: 'strict',
 					categories: ['necessary', 'measurement'],
 				},
 			},
@@ -419,6 +420,57 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		);
 	});
 
+	it('keeps configured categories visible for permissive policy scope', async () => {
+		const data = createMockConsentBannerResponse({
+			jurisdiction: 'GDPR',
+			policy: {
+				id: 'policy_eu_permissive',
+				model: 'opt-in',
+				consent: {
+					scopeMode: 'permissive',
+					categories: ['necessary'],
+				},
+			},
+		});
+		const mockState = createMockStoreState({
+			iab: null,
+			consentCategories: ['necessary', 'measurement', 'marketing'],
+			consents: {
+				necessary: true,
+				measurement: false,
+				marketing: false,
+				functionality: false,
+				experience: false,
+			},
+			selectedConsents: {
+				necessary: true,
+				measurement: false,
+				marketing: false,
+				functionality: false,
+				experience: false,
+			},
+		});
+		const mockGet = vi.fn().mockReturnValue(mockState);
+		const mockSet = vi.fn();
+
+		await updateStore(
+			data,
+			{
+				get: mockGet,
+				set: mockSet,
+				manager: {} as InitConsentManagerConfig['manager'],
+				initialTranslationConfig: undefined,
+			},
+			true
+		);
+
+		expect(mockSet).toHaveBeenCalledWith(
+			expect.not.objectContaining({
+				consentCategories: expect.any(Array),
+			})
+		);
+	});
+
 	it('does not restrict categories when policy purpose scope is wildcard', async () => {
 		const data = createMockConsentBannerResponse({
 			jurisdiction: 'GDPR',
@@ -462,6 +514,7 @@ describe('updateStore - policy purpose/category restrictions', () => {
 				id: 'policy_uk',
 				model: 'opt-in',
 				consent: {
+					scopeMode: 'strict',
 					categories: ['necessary', 'functionality', 'measurement'],
 					preselectedCategories: ['functionality', 'marketing'],
 				},
