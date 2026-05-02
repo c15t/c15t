@@ -35,7 +35,7 @@ export const ConsentWidgetFooterSubGroup = forwardRef<HTMLDivElement, BoxProps>(
 				baseClassName={styles.footerSubGroup}
 				data-testid="consent-widget-footer-sub-group"
 				{...props}
-				themeKey="consentWidgetFooter"
+				themeKey="consentWidgetFooterSubGroup"
 			>
 				{children}
 			</Box>

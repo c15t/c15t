@@ -94,6 +94,7 @@ export interface ConsentWidgetCompoundComponent extends FC<ConsentWidgetProps> {
  *       slots: {
  *         consentWidgetAccordion: 'rounded-3xl border border-black/10',
  *         consentWidgetFooter: 'border-t border-black/10',
+ *         consentWidgetFooterSubGroup: 'gap-3',
  *       },
  *     },
  *   }}
