@@ -278,6 +278,8 @@ describe('shouldEnforcePolicyCategoryScope', () => {
 			false
 		);
 		expect(shouldEnforcePolicyCategoryScope(['*'], 'strict')).toBe(false);
+		expect(shouldEnforcePolicyCategoryScope(null, 'strict')).toBe(false);
+		expect(shouldEnforcePolicyCategoryScope([], 'strict')).toBe(false);
 		expect(shouldEnforcePolicyCategoryScope(undefined, 'strict')).toBe(false);
 	});
 });

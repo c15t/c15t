@@ -464,8 +464,8 @@ describe('updateStore - policy purpose/category restrictions', () => {
 			true
 		);
 
-		expect(mockSet).toHaveBeenCalledWith(
-			expect.not.objectContaining({
+		expect(mockSet).not.toHaveBeenCalledWith(
+			expect.objectContaining({
 				consentCategories: expect.any(Array),
 			})
 		);

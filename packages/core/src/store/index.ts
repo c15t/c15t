@@ -299,7 +299,7 @@ export const createConsentManagerStore = (
 						policyScopeMode
 					)
 						? filterConsentCategoriesByPolicy(types, policyCategories)
-						: types,
+						: Array.from(new Set(types)),
 				};
 			}),
 		setCallback: (name, callback) => {
