@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join, posix as pathPosix } from 'node:path';
 
-export type PackageManifest = {
+export interface PackageManifest {
 	name?: string;
 	private?: boolean;
 	main?: string;
@@ -9,12 +9,12 @@ export type PackageManifest = {
 	types?: string;
 	bin?: string | Record<string, string>;
 	exports?: unknown;
-};
+}
 
-export type ManifestTarget = {
+export interface ManifestTarget {
 	source: string;
 	target: string;
-};
+}
 
 const MAX_WILDCARD_PATTERN_LENGTH = 256;
 
@@ -53,7 +53,7 @@ export function collectExportTargets(
 	value: unknown,
 	targets: ManifestTarget[],
 	source: string
-) {
+): void {
 	if (typeof value === 'string') {
 		const normalized = normalizePackagePath(value);
 		if (normalized) {
