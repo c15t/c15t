@@ -14,7 +14,7 @@
 		"@c15t/benchmarking": "workspace:*",
 		"@c15t/react": "workspace:*",
 		"c15t": "workspace:*",
-		"next": "16.1.4",
+		"next": "16.2.3",
 		"react": "19.2.3",
 		"react-dom": "19.2.3"
 	},
