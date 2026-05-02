@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/react",
-	"version": "2.0.2",
+	"version": "2.0.3",
 	"description": "Headless cookie banner, consent manager & preference center for React. RSC-compatible, GDPR/CCPA/LGPD/TCF, TypeScript-first.",
 	"keywords": [
 		"react",

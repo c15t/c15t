@@ -1,5 +1,11 @@
 # @c15t/ui
 
+## 2.0.2
+
+### Patch Changes
+
+- 10cec50: Fix consent widget footer slot styling so container classes no longer leak onto nested footer subgroups.
+
 ## 2.0.1
 
 ### Patch Changes

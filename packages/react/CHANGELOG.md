@@ -1,5 +1,13 @@
 # @c15t/react
 
+## 2.0.3
+
+### Patch Changes
+
+- 10cec50: Fix consent widget footer slot styling so container classes no longer leak onto nested footer subgroups.
+- Updated dependencies [10cec50]
+  - @c15t/ui@2.0.2
+
 ## 2.0.2
 
 ### Patch Changes
