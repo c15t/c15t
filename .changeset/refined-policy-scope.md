@@ -1,5 +1,6 @@
 ---
 "@c15t/backend": patch
+"@c15t/schema": patch
 "c15t": patch
 ---
 
