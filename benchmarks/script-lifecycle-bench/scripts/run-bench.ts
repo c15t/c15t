@@ -29,6 +29,7 @@ const outputDir =
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/script-lifecycle';
 const iterations = Number(process.env.BENCH_ITERATIONS ?? '7');
 const warmupIterations = Number(process.env.BENCH_WARMUP_ITERATIONS ?? '1');
+const expectedServerShutdownCodes = new Set([0, 137, 143]);
 
 interface SerializableScriptBenchState {
 	scenario: string;
@@ -264,6 +265,7 @@ async function run() {
 		logs += String(chunk);
 	});
 
+	let serverFailure: Error | null = null;
 	try {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
@@ -363,9 +365,16 @@ async function run() {
 		if (!server.killed) {
 			server.kill('SIGKILL');
 		}
-		if (server.exitCode && server.exitCode !== 0) {
-			throw new Error(logs || 'Script lifecycle bench server failed');
+		if (
+			server.exitCode != null &&
+			!expectedServerShutdownCodes.has(server.exitCode)
+		) {
+			serverFailure = new Error(logs || 'Script lifecycle bench server failed');
 		}
+	}
+
+	if (serverFailure) {
+		throw serverFailure;
 	}
 }
 
