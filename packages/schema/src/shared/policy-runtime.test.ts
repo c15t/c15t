@@ -113,6 +113,50 @@ describe('resolvePolicyDecision', () => {
 		expect(first?.fingerprint).toMatch(/^[a-f0-9]{64}$/);
 	});
 
+	it('filters preselected categories only when policy scope is strict', async () => {
+		const strict = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'strict_policy',
+					match: policyMatchers.countries(['GB']),
+					consent: {
+						model: 'opt-in',
+						scopeMode: 'strict',
+						categories: ['necessary', 'functionality'],
+						preselectedCategories: ['functionality', 'marketing'],
+					},
+				},
+			],
+			countryCode: 'GB',
+			regionCode: null,
+			jurisdiction: 'UK_GDPR',
+		});
+		const permissive = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'permissive_policy',
+					match: policyMatchers.countries(['GB']),
+					consent: {
+						model: 'opt-in',
+						scopeMode: 'permissive',
+						categories: ['necessary'],
+						preselectedCategories: ['marketing'],
+					},
+				},
+			],
+			countryCode: 'GB',
+			regionCode: null,
+			jurisdiction: 'UK_GDPR',
+		});
+
+		expect(strict?.policy.consent?.preselectedCategories).toEqual([
+			'functionality',
+		]);
+		expect(permissive?.policy.consent?.preselectedCategories).toEqual([
+			'marketing',
+		]);
+	});
+
 	it('creates the same policy fingerprint across all hash strategies', async () => {
 		Object.defineProperty(globalThis, 'crypto', {
 			value: webcrypto,

@@ -30,6 +30,7 @@ const outputDir =
 const iterations = Number(process.env.BENCH_ITERATIONS ?? '7');
 const warmupIterations = Number(process.env.BENCH_WARMUP_ITERATIONS ?? '1');
 const expectedServerShutdownCodes = new Set([0, 137, 143]);
+const expectedServerShutdownSignals = new Set(['SIGTERM', 'SIGKILL']);
 
 interface SerializableScriptBenchState {
 	scenario: string;
@@ -369,7 +370,17 @@ async function run() {
 			server.exitCode != null &&
 			!expectedServerShutdownCodes.has(server.exitCode)
 		) {
-			serverFailure = new Error(logs || 'Script lifecycle bench server failed');
+			serverFailure = new Error(
+				`${logs || 'Script lifecycle bench server failed'}\nUnexpected server exit code: ${server.exitCode}`
+			);
+		} else if (
+			server.exitCode == null &&
+			server.signalCode != null &&
+			!expectedServerShutdownSignals.has(server.signalCode)
+		) {
+			serverFailure = new Error(
+				`${logs || 'Script lifecycle bench server failed'}\nUnexpected server signal: ${server.signalCode}`
+			);
 		}
 	}
 

@@ -540,11 +540,15 @@ export const postSubjectHandler = async (c: Context) => {
 				allowedCategories.length > 0 &&
 				!hasWildcardCategoryScope
 			) {
+				const strictAllowedCategories = new Set([
+					'necessary',
+					...allowedCategories,
+				]);
 				const disallowed = appliedPreferenceEntries
 					.map(([purpose]) => purpose)
-					.filter((purpose) => !allowedCategories.includes(purpose));
+					.filter((purpose) => !strictAllowedCategories.has(purpose));
 				filteredAppliedPreferenceEntries = appliedPreferenceEntries.filter(
-					([purpose]) => allowedCategories.includes(purpose)
+					([purpose]) => strictAllowedCategories.has(purpose)
 				);
 				if (disallowed.length > 0) {
 					throw new HTTPException(400, {

@@ -572,6 +572,63 @@ describe('updateStore - policy purpose/category restrictions', () => {
 		);
 	});
 
+	it('preselects out-of-policy configured categories in permissive scope', async () => {
+		const data = createMockConsentBannerResponse({
+			jurisdiction: 'GDPR',
+			policy: {
+				id: 'policy_eu_permissive',
+				model: 'opt-in',
+				consent: {
+					scopeMode: 'permissive',
+					categories: ['necessary'],
+					preselectedCategories: ['marketing', 'measurement'],
+				},
+			},
+		});
+		const mockState = createMockStoreState({
+			iab: null,
+			consentInfo: null,
+			consentCategories: ['necessary', 'marketing'],
+			consents: {
+				necessary: true,
+				functionality: false,
+				experience: false,
+				marketing: false,
+				measurement: false,
+			},
+			selectedConsents: {
+				necessary: true,
+				functionality: false,
+				experience: false,
+				marketing: false,
+				measurement: false,
+			},
+		});
+		const mockGet = vi.fn().mockReturnValue(mockState);
+		const mockSet = vi.fn();
+
+		await updateStore(
+			data,
+			{
+				get: mockGet,
+				set: mockSet,
+				manager: {} as InitConsentManagerConfig['manager'],
+				initialTranslationConfig: undefined,
+			},
+			true
+		);
+
+		expect(mockSet).toHaveBeenCalledWith(
+			expect.objectContaining({
+				selectedConsents: expect.objectContaining({
+					necessary: true,
+					marketing: true,
+					measurement: false,
+				}),
+			})
+		);
+	});
+
 	it('stores policy UI action order/layout hints from init response', async () => {
 		const data = createMockConsentBannerResponse({
 			jurisdiction: 'CCPA',

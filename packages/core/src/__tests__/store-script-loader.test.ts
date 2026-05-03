@@ -100,10 +100,6 @@ describe('Store Script Loader Integration', () => {
 
 		// Mock MutationObserver as a constructor class
 		global.MutationObserver = class MutationObserver {
-			constructor(_callback: MutationCallback) {
-				// Mock implementation
-			}
-
 			observe = vi.fn();
 			disconnect = vi.fn();
 			takeRecords = vi.fn().mockReturnValue([]);
@@ -294,7 +290,7 @@ describe('Store Script Loader Integration', () => {
 			expect(loadedIds).not.toContain('marketing-script');
 		});
 
-		it('should load out-of-policy category scripts as permissive', () => {
+		it('should respect denied out-of-policy category scripts in permissive scope', () => {
 			const store = createTestStore({
 				necessary: true,
 				marketing: false,
@@ -311,8 +307,8 @@ describe('Store Script Loader Integration', () => {
 			store.getState().setScripts([scripts[1]]);
 
 			expect(store.getState().consentCategories).toContain('marketing');
-			expect(store.getState().isScriptLoaded('marketing-script')).toBe(true);
-			expect(store.getState().loadedScripts['marketing-script']).toBe(true);
+			expect(store.getState().isScriptLoaded('marketing-script')).toBe(false);
+			expect(store.getState().loadedScripts['marketing-script']).not.toBe(true);
 		});
 	});
 

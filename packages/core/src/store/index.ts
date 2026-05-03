@@ -293,13 +293,19 @@ export const createConsentManagerStore = (
 		setConsentCategories: (types) =>
 			set(() => {
 				const { policyCategories, policyScopeMode } = get();
+				if (
+					shouldEnforcePolicyCategoryScope(policyCategories, policyScopeMode)
+				) {
+					return {
+						consentCategories: filterConsentCategoriesByPolicy(
+							types,
+							policyCategories
+						),
+					};
+				}
+
 				return {
-					consentCategories: shouldEnforcePolicyCategoryScope(
-						policyCategories,
-						policyScopeMode
-					)
-						? filterConsentCategoriesByPolicy(types, policyCategories)
-						: Array.from(new Set(types)),
+					consentCategories: Array.from(new Set(types)),
 				};
 			}),
 		setCallback: (name, callback) => {
@@ -400,21 +406,27 @@ export const createConsentManagerStore = (
 		},
 
 		updateConsentCategories: (newCategories: AllConsentNames[]) => {
+			const {
+				consentCategories: currentConsentCategories,
+				policyCategories,
+				policyScopeMode,
+			} = get();
 			const allCategoriesSet = new Set<AllConsentNames>([
-				...get().consentCategories,
+				...currentConsentCategories,
 				...newCategories,
 			]);
-			const { policyCategories, policyScopeMode } = get();
-			const allCategories = shouldEnforcePolicyCategoryScope(
-				policyCategories,
-				policyScopeMode
-			)
-				? filterConsentCategoriesByPolicy(
-						Array.from(allCategoriesSet),
-						policyCategories
-					)
-				: Array.from(allCategoriesSet);
-			set({ consentCategories: allCategories });
+			let consentCategories: AllConsentNames[];
+
+			if (shouldEnforcePolicyCategoryScope(policyCategories, policyScopeMode)) {
+				consentCategories = filterConsentCategoriesByPolicy(
+					Array.from(allCategoriesSet),
+					policyCategories
+				);
+			} else {
+				consentCategories = Array.from(allCategoriesSet);
+			}
+
+			set({ consentCategories });
 		},
 
 		identifyUser: async (user: User) => {

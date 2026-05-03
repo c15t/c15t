@@ -156,41 +156,16 @@ export function shouldEnforcePolicyCategoryScope(
 /**
  * Applies policy scope to runtime gating behavior.
  *
- * Out-of-policy categories are treated as permissive by c15t runtime and are
- * therefore granted for gating decisions (scripts/iframes load normally).
+ * Runtime gating should always respect the current consent state. Policy scope
+ * is enforced when categories are discovered, rendered, and saved rather than
+ * by overriding user choices here.
  */
 export function applyPolicyScopeForRuntimeGating(
 	consents: ConsentState,
-	allowedPurposeIds?: string[] | null,
-	scopeMode: 'strict' | 'permissive' | null = 'permissive'
+	_allowedPurposeIds?: string[] | null,
+	_scopeMode: 'strict' | 'permissive' | null = 'permissive'
 ): ConsentState {
-	if (scopeMode === 'strict') {
-		return consents;
-	}
-
-	if (
-		!allowedPurposeIds ||
-		allowedPurposeIds.length === 0 ||
-		allowedPurposeIds.includes('*')
-	) {
-		return consents;
-	}
-
-	const allowedCategories = new Set<AllConsentNames>([
-		'necessary',
-		...allowedPurposeIds.filter(isConsentCategory),
-	]);
-	const next = { ...consents };
-
-	for (const category of allConsentNames) {
-		if (!allowedCategories.has(category)) {
-			next[category] = true;
-		}
-	}
-
-	next.necessary = true;
-
-	return next;
+	return consents;
 }
 
 /**

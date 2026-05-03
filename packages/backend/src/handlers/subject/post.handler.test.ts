@@ -423,6 +423,58 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 		expect(db.transaction).not.toHaveBeenCalled();
 	});
 
+	it('allows necessary preferences in strict scope even when omitted from policy categories', async () => {
+		vi.mocked(resolvePolicyDecision).mockResolvedValue({
+			policy: {
+				id: 'policy_restrictive',
+				model: 'opt-in',
+				consent: { scopeMode: 'strict', categories: ['measurement'] },
+			},
+			matchedBy: 'country',
+			fingerprint: 'a'.repeat(64),
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		registry.findOrCreateConsentPurposeByCode = vi
+			.fn()
+			.mockImplementation(async (code: string) => ({ id: `purpose_${code}` }));
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			preferences: {
+				necessary: true,
+				measurement: true,
+			},
+		});
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledWith(
+			'necessary'
+		);
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledWith(
+			'measurement'
+		);
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'consent',
+			expect.objectContaining({
+				purposeIds: {
+					json: ['purpose_necessary', 'purpose_measurement'],
+				},
+			})
+		);
+		expect(mockCtx.getJsonData()).toEqual(
+			expect.objectContaining({
+				appliedPreferences: {
+					necessary: true,
+					measurement: true,
+				},
+			})
+		);
+	});
+
 	it('passes top-level iabEnabled into write-time policy resolution', async () => {
 		const db = createMockDb(null);
 		const registry = createMockRegistry();

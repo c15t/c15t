@@ -180,10 +180,6 @@ function buildStoreUpdate(
 	// Apply policy-driven purpose/category restrictions for strict non-wildcard
 	// scope. Permissive policies keep configured/script-derived categories visible.
 	const policyCategories = data.policy?.consent?.categories;
-	const hasPolicyCategoryList =
-		Array.isArray(policyCategories) &&
-		policyCategories.length > 0 &&
-		!policyCategories.includes('*');
 	const hasStrictPolicyCategoryAllowlist = shouldEnforcePolicyCategoryScope(
 		policyCategories,
 		data.policy?.consent?.scopeMode ?? null
@@ -212,9 +208,11 @@ function buildStoreUpdate(
 		Array.isArray(preselectedCategories) &&
 		preselectedCategories.length > 0;
 	if (shouldApplyPreselectedCategories) {
-		const preselectedScope = hasPolicyCategoryList
-			? filterConsentCategoriesByPolicy(allConsentNames, policyCategories)
-			: allConsentNames;
+		const displayedConsentNames =
+			update.consentCategories ?? get().consentCategories;
+		const preselectedScope = hasStrictPolicyCategoryAllowlist
+			? filterConsentCategoriesByPolicy(displayedConsentNames, policyCategories)
+			: displayedConsentNames;
 		const allowedPreselectedCategories = filterConsentCategoriesByPolicy(
 			preselectedScope,
 			preselectedCategories
