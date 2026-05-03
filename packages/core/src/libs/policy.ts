@@ -154,11 +154,9 @@ export function shouldEnforcePolicyCategoryScope(
 }
 
 /**
- * Applies policy scope to runtime gating behavior.
- *
- * Runtime gating should always respect the current consent state. Policy scope
- * is enforced when categories are discovered, rendered, and saved rather than
- * by overriding user choices here.
+ * @deprecated No-op retained for API compatibility. Runtime gating respects
+ * the current consent state directly; policy scope is enforced at category
+ * discovery, render, and save time instead.
  */
 export function applyPolicyScopeForRuntimeGating(
 	consents: ConsentState,
