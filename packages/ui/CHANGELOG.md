@@ -1,5 +1,12 @@
 # @c15t/ui
 
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [748536a]
+  - c15t@2.0.4
+
 ## 2.0.2
 
 ### Patch Changes

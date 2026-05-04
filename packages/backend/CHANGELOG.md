@@ -1,5 +1,13 @@
 # @c15t/backend
 
+## 2.0.4
+
+### Patch Changes
+
+- 748536a: Refine policy category scope handling.
+- Updated dependencies [748536a]
+  - @c15t/schema@2.0.1
+
 ## 2.0.2
 
 ### Patch Changes
