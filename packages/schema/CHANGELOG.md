@@ -1,5 +1,11 @@
 # @c15t/schema
 
+## 2.0.1
+
+### Patch Changes
+
+- 748536a: Refine policy category scope handling.
+
 ## 2.0.0
 
 ### Major Changes

@@ -1,5 +1,12 @@
 # @c15t/node-sdk
 
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [748536a]
+  - @c15t/backend@2.0.4
+
 ## 2.0.2
 
 ### Patch Changes

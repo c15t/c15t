@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/dev-tools",
-	"version": "2.0.1",
+	"version": "2.0.4",
 	"description": "Developer tools for c15t — React utilities for inspecting consent state, debugging, and dogfooding the SDK.",
 	"keywords": [
 		"c15t",
