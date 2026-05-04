@@ -33,6 +33,31 @@
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
+		},
+		"./v3": {
+			"types": "./dist-types/v3/index.d.ts",
+			"import": "./dist/v3.js",
+			"require": "./dist/v3.cjs"
+		},
+		"./v3/modules/script-loader": {
+			"types": "./dist-types/v3/modules/script-loader/index.d.ts",
+			"import": "./dist/v3-script-loader.js",
+			"require": "./dist/v3-script-loader.cjs"
+		},
+		"./v3/modules/network-blocker": {
+			"types": "./dist-types/v3/modules/network-blocker/index.d.ts",
+			"import": "./dist/v3-network-blocker.js",
+			"require": "./dist/v3-network-blocker.cjs"
+		},
+		"./v3/modules/iframe-blocker": {
+			"types": "./dist-types/v3/modules/iframe-blocker/index.d.ts",
+			"import": "./dist/v3-iframe-blocker.js",
+			"require": "./dist/v3-iframe-blocker.cjs"
+		},
+		"./v3/modules/persistence": {
+			"types": "./dist-types/v3/modules/persistence/index.d.ts",
+			"import": "./dist/v3-persistence.js",
+			"require": "./dist/v3-persistence.cjs"
 		}
 	},
 	"main": "dist/index.cjs",

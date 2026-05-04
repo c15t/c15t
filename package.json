@@ -21,6 +21,7 @@
 		"bench": "turbo run bench --filter=@c15t/core-benchmarks --filter=@c15t/next-bundle-bench --filter=@c15t/react-browser-bench --filter=@c15t/nextjs-browser-bench --filter=@c15t/script-lifecycle-bench",
 		"bench:ci": "turbo run bench:ci --filter=@c15t/core-benchmarks --filter=@c15t/next-bundle-bench --filter=@c15t/react-browser-bench --filter=@c15t/nextjs-browser-bench --filter=@c15t/script-lifecycle-bench",
 		"bench:compare": "bunx tsx benchmarks/shared/run-compare.ts",
+		"bench:important-react": "bun scripts/run-important-react-benches.ts",
 		"bench:nightly": "turbo run bench:nightly --filter=@c15t/core-benchmarks --filter=@c15t/next-bundle-bench --filter=@c15t/react-browser-bench --filter=@c15t/nextjs-browser-bench --filter=@c15t/script-lifecycle-bench",
 		"build": "turbo run build",
 		"build:libs": "turbo run build --filter=./packages/**",

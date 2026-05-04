@@ -50,6 +50,16 @@
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
+		},
+		"./v3": {
+			"types": "./dist-types/v3/index.d.ts",
+			"import": "./dist/v3/index.js",
+			"require": "./dist/v3/index.cjs"
+		},
+		"./v3/server": {
+			"types": "./dist-types/v3/server.d.ts",
+			"import": "./dist/v3/server.js",
+			"require": "./dist/v3/server.cjs"
 		}
 	},
 	"main": "./dist/index.js",

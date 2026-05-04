@@ -61,6 +61,7 @@ Comprehensive guides for different frameworks:
 
 - `bun run dev` starts the main product demo in `examples/demo`
 - `bun run bench:ci` runs the benchmark suites that publish `.benchmarks/**` artifacts
+- `bun run bench:important-react -- --iterations 10` runs the key React v2/v3 banner visibility and script loading benchmarks in parallel
 - `bun run compat:styles:review` launches the Tailwind 3, Tailwind 4, plain CSS, and preview compatibility harnesses
 
 ## Support

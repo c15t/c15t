@@ -1,5 +1,109 @@
 import type { MetricBudget } from './schema';
 
+/**
+ * v3 budget constants — apply to `c15t/v3`, `@c15t/react/v3`, `@c15t/nextjs/v3`.
+ *
+ * These use `percent-lte` with NEGATIVE thresholds, meaning the v3 measurement
+ * must IMPROVE by at least |threshold|% against the base branch. The base
+ * branch is expected to carry the v2-era benchmark numbers documented in
+ * `benchmarks/BASELINE.md`, so the net effect is "v3 must be at least N%
+ * faster/smaller than the v2 baseline."
+ *
+ * These are attached to v3 benchmark output via the v3 runners' `budgetDefinitions`
+ * field (see `benchmarks/core-benchmarks/src/run.ts` for the v2 equivalent).
+ * Until the v3 runners exist (Track 2), these constants are exported but unused.
+ *
+ * Per `.context/plans/system-instruction-you-are-working-cryptic-pelican.md`:
+ *   Bundle: −30% or better
+ *   First-render / repeatVisitorInit: −50% or better
+ *   Retained heap: −50% or better
+ *   Zero unrelated React re-renders (enforced via separate profiler harness)
+ */
+export const coreRuntimeV3Budgets: MetricBudget[] = [
+	{
+		metric: 'createConsentKernel',
+		comparator: 'percent-lte',
+		threshold: 0,
+		description:
+			'v3 kernel construction must not regress vs v2 baseline (target: sub-µs, pure).',
+	},
+	{
+		metric: 'initConsentManager',
+		comparator: 'percent-lte',
+		threshold: -50,
+		description: 'v3 full init must be at least 50% faster than v2 baseline.',
+	},
+	{
+		metric: 'repeatVisitorInit',
+		comparator: 'percent-lte',
+		threshold: -50,
+		description:
+			'v3 repeat-visitor init must be at least 50% faster than v2 baseline.',
+	},
+];
+
+export const bundleV3Budgets: MetricBudget[] = [
+	{
+		metric: 'core-only',
+		comparator: 'percent-lte',
+		threshold: -30,
+		description:
+			'v3 /core-only route addition must be at least 30% smaller than v2 baseline.',
+	},
+	{
+		metric: 'react-headless',
+		comparator: 'percent-lte',
+		threshold: -30,
+		description:
+			'v3 /react-headless route addition must be at least 30% smaller than v2 baseline.',
+	},
+	{
+		metric: 'react-banner-only',
+		comparator: 'percent-lte',
+		threshold: -30,
+		description:
+			'v3 /react-banner-only route addition must be at least 30% smaller than v2 baseline.',
+	},
+	{
+		metric: 'react-full',
+		comparator: 'percent-lte',
+		threshold: -30,
+		description:
+			'v3 /react-full route addition must be at least 30% smaller than v2 baseline.',
+	},
+	{
+		metric: 'nextjs-basic',
+		comparator: 'percent-lte',
+		threshold: -30,
+		description:
+			'v3 /nextjs-basic route addition must be at least 30% smaller than v2 baseline.',
+	},
+];
+
+export const artifactV3Budgets: MetricBudget[] = [
+	{
+		metric: 'c15t',
+		comparator: 'percent-lte',
+		threshold: -30,
+		description:
+			'v3 c15t package tarball must be at least 30% smaller than v2.',
+	},
+	{
+		metric: '@c15t/react',
+		comparator: 'percent-lte',
+		threshold: -30,
+		description:
+			'v3 @c15t/react package tarball must be at least 30% smaller than v2.',
+	},
+	{
+		metric: '@c15t/nextjs',
+		comparator: 'percent-lte',
+		threshold: -30,
+		description:
+			'v3 @c15t/nextjs package tarball must be at least 30% smaller than v2.',
+	},
+];
+
 export const coreRuntimeBudgets: MetricBudget[] = [
 	{
 		metric: 'configureConsentManager',

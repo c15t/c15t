@@ -6,6 +6,11 @@ export default defineConfig({
 	source: {
 		entry: {
 			index: ['./src/index.ts'],
+			v3: ['./src/v3/index.ts'],
+			'v3-script-loader': ['./src/v3/modules/script-loader/index.ts'],
+			'v3-network-blocker': ['./src/v3/modules/network-blocker/index.ts'],
+			'v3-iframe-blocker': ['./src/v3/modules/iframe-blocker/index.ts'],
+			'v3-persistence': ['./src/v3/modules/persistence/index.ts'],
 		},
 		exclude: [
 			'**/__tests__/**',

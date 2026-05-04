@@ -129,6 +129,86 @@
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
+		},
+		"./v3": {
+			"types": "./dist-types/v3/index.d.ts",
+			"import": "./dist/v3/index.js",
+			"require": "./dist/v3/index.cjs"
+		},
+		"./v3/provider": {
+			"types": "./dist-types/v3/provider.d.ts",
+			"import": "./dist/v3/provider.js",
+			"require": "./dist/v3/provider.cjs"
+		},
+		"./v3/hooks": {
+			"types": "./dist-types/v3/hooks.d.ts",
+			"import": "./dist/v3/hooks.js",
+			"require": "./dist/v3/hooks.cjs"
+		},
+		"./v3/draft": {
+			"types": "./dist-types/v3/draft.d.ts",
+			"import": "./dist/v3/draft.js",
+			"require": "./dist/v3/draft.cjs"
+		},
+		"./v3/module-hooks": {
+			"types": "./dist-types/v3/module-hooks.d.ts",
+			"import": "./dist/v3/module-hooks.js",
+			"require": "./dist/v3/module-hooks.cjs"
+		},
+		"./v3/module-hooks/script-loader": {
+			"types": "./dist-types/v3/module-hooks/script-loader.d.ts",
+			"import": "./dist/v3/module-hooks/script-loader.js",
+			"require": "./dist/v3/module-hooks/script-loader.cjs"
+		},
+		"./v3/module-hooks/persistence": {
+			"types": "./dist-types/v3/module-hooks/persistence.d.ts",
+			"import": "./dist/v3/module-hooks/persistence.js",
+			"require": "./dist/v3/module-hooks/persistence.cjs"
+		},
+		"./v3/module-hooks/network-blocker": {
+			"types": "./dist-types/v3/module-hooks/network-blocker.d.ts",
+			"import": "./dist/v3/module-hooks/network-blocker.js",
+			"require": "./dist/v3/module-hooks/network-blocker.cjs"
+		},
+		"./v3/module-hooks/iframe-blocker": {
+			"types": "./dist-types/v3/module-hooks/iframe-blocker.d.ts",
+			"import": "./dist/v3/module-hooks/iframe-blocker.js",
+			"require": "./dist/v3/module-hooks/iframe-blocker.cjs"
+		},
+		"./v3/consent-banner": {
+			"types": "./dist-types/v3/consent-banner.d.ts",
+			"import": "./dist/v3/consent-banner.js",
+			"require": "./dist/v3/consent-banner.cjs"
+		},
+		"./v3/consent-dialog": {
+			"types": "./dist-types/v3/consent-dialog.d.ts",
+			"import": "./dist/v3/consent-dialog.js",
+			"require": "./dist/v3/consent-dialog.cjs"
+		},
+		"./v3/consent-widget": {
+			"types": "./dist-types/v3/consent-widget.d.ts",
+			"import": "./dist/v3/consent-widget.js",
+			"require": "./dist/v3/consent-widget.cjs"
+		},
+		"./v3/consent-dialog-link": {
+			"types": "./dist-types/v3/consent-dialog-link.d.ts",
+			"import": "./dist/v3/consent-dialog-link.js",
+			"require": "./dist/v3/consent-dialog-link.cjs"
+		},
+		"./v3/consent-dialog-trigger": {
+			"types": "./dist-types/v3/consent-dialog-trigger.d.ts",
+			"import": "./dist/v3/consent-dialog-trigger.js",
+			"require": "./dist/v3/consent-dialog-trigger.cjs"
+		},
+		"./v3/frame": {
+			"types": "./dist-types/v3/frame.d.ts",
+			"import": "./dist/v3/frame.js",
+			"require": "./dist/v3/frame.cjs"
+		},
+		"./v3/iab": {
+			"types": "./dist-types/v3/iab.d.ts",
+			"import": "./dist/v3/iab.js",
+			"require": "./dist/v3/iab.cjs"
 		}
 	},
 	"main": "./dist/index.cjs",
