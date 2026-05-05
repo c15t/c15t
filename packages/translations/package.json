@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/translations",
-	"version": "2.0.0",
+	"version": "2.0.5",
 	"description": "Type-safe i18n translations for c15t consent UI — cookie banner, consent dialog, preference center.",
 	"keywords": [
 		"c15t",
