@@ -423,6 +423,58 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 		expect(db.transaction).not.toHaveBeenCalled();
 	});
 
+	it('allows necessary preferences in strict scope even when omitted from policy categories', async () => {
+		vi.mocked(resolvePolicyDecision).mockResolvedValue({
+			policy: {
+				id: 'policy_restrictive',
+				model: 'opt-in',
+				consent: { scopeMode: 'strict', categories: ['measurement'] },
+			},
+			matchedBy: 'country',
+			fingerprint: 'a'.repeat(64),
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		registry.findOrCreateConsentPurposeByCode = vi
+			.fn()
+			.mockImplementation(async (code: string) => ({ id: `purpose_${code}` }));
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			preferences: {
+				necessary: true,
+				measurement: true,
+			},
+		});
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledWith(
+			'necessary'
+		);
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledWith(
+			'measurement'
+		);
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'consent',
+			expect.objectContaining({
+				purposeIds: {
+					json: ['purpose_necessary', 'purpose_measurement'],
+				},
+			})
+		);
+		expect(mockCtx.getJsonData()).toEqual(
+			expect.objectContaining({
+				appliedPreferences: {
+					necessary: true,
+					measurement: true,
+				},
+			})
+		);
+	});
+
 	it('passes top-level iabEnabled into write-time policy resolution', async () => {
 		const db = createMockDb(null);
 		const registry = createMockRegistry();
@@ -588,7 +640,7 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 		expect(db.transaction).not.toHaveBeenCalled();
 	});
 
-	it('ignores out-of-scope categories when scopeMode is permissive', async () => {
+	it('persists out-of-scope categories when scopeMode is permissive', async () => {
 		vi.mocked(resolvePolicyDecision).mockResolvedValue({
 			policy: {
 				id: 'policy_unmanaged',
@@ -616,9 +668,12 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 		// @ts-expect-error - simplified test context
 		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
 
-		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledTimes(1);
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledTimes(2);
 		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledWith(
 			'measurement'
+		);
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledWith(
+			'marketing'
 		);
 		expect(db.transaction).toHaveBeenCalled();
 		expect(
@@ -629,7 +684,54 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 			).appliedPreferences
 		).toEqual({
 			measurement: true,
+			marketing: true,
 		});
+	});
+
+	it('returns submitted preferences for necessary-only permissive policies', async () => {
+		vi.mocked(resolvePolicyDecision).mockResolvedValue({
+			policy: {
+				id: 'europe_opt_in',
+				model: 'opt-in',
+				consent: { scopeMode: 'permissive', categories: ['necessary'] },
+			},
+			matchedBy: 'country',
+			fingerprint: 'e'.repeat(64),
+		});
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		registry.findOrCreateConsentPurposeByCode = vi
+			.fn()
+			.mockImplementation(async (code: string) => ({ id: `pur_${code}` }));
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			type: 'cookie_banner',
+			preferences: {
+				necessary: true,
+				measurement: true,
+				marketing: true,
+			},
+			consentAction: 'all',
+			uiSource: 'banner',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(registry.findOrCreateConsentPurposeByCode).toHaveBeenCalledTimes(3);
+		expect(mockCtx.getJsonData()).toEqual(
+			expect.objectContaining({
+				type: 'cookie_banner',
+				appliedPreferences: {
+					necessary: true,
+					measurement: true,
+					marketing: true,
+				},
+				uiSource: 'banner',
+			})
+		);
 	});
 
 	it('allows all purposes when policy uses wildcard scope', async () => {

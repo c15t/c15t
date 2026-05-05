@@ -143,11 +143,13 @@
 		display: flex;
 		justify-content: space-between;
 		gap: 1rem;
+		border-top: 1px solid var(--consent-widget-border-color);
 		padding: var(--consent-widget-footer-padding);
 		background-color: var(--consent-widget-footer-background-color);
 	}
 
 	:global(.c15t-dark) .footer {
+		border-color: var(--consent-widget-border-color-dark);
 		background-color: var(--consent-widget-footer-background-color-dark);
 	}
 

@@ -344,7 +344,7 @@ export interface SSRInitialData {
 	/**
 	 * Global Vendor List data for IAB TCF mode.
 	 * - `undefined` means IAB is not active for the request or not enabled on server
-	 * - `null` means the user is in a non-IAB region (204 response from gvl.consent.io)
+	 * - `null` means the user is in a non-IAB region (204 response from gvl.inth.app)
 	 * - `GlobalVendorList` contains the vendor list data from init response
 	 *
 	 * Note: When init returns 200 without gvl, client IAB settings are overridden to disabled.
@@ -592,7 +592,7 @@ export interface StoreOptions extends Partial<StoreConfig> {
 	 * Note: If the server returns 200 without GVL, client IAB settings are
 	 * automatically overridden to disabled (server takes precedence).
 	 *
-	 * In offline/fallback mode, GVL is fetched from gvl.consent.io.
+	 * In offline/fallback mode, GVL is fetched from gvl.inth.app.
 	 *
 	 * This is an opt-in feature with zero bundle impact when not enabled.
 	 *

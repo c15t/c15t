@@ -407,7 +407,12 @@ function normalizePreselectedCategories(
 	}
 
 	const categories = normalizeCategories(policy);
-	if (!categories || categories.length === 0 || categories.includes('*')) {
+	if (
+		normalizeScopeMode(policy) !== 'strict' ||
+		!categories ||
+		categories.length === 0 ||
+		categories.includes('*')
+	) {
 		return dedupeTrimmedStrings(preselectedCategories);
 	}
 

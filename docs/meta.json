@@ -1,6 +1,7 @@
 {
 	"pages": [
 		"frameworks",
+		"cli",
 		"integrations",
 		"self-host",
 		"contributing",

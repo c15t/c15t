@@ -6,7 +6,7 @@ import { translations } from '@c15t/translations/en';
 export const DEMO_POLICY_SNAPSHOT_KEY =
 	process.env.C15T_POLICY_SNAPSHOT_KEY ?? 'demo-policy-snapshot-key';
 
-export const DEFAULT_DEMO_POLICY_EXAMPLE = 'custom-de-strict';
+export const DEFAULT_DEMO_POLICY_EXAMPLE = 'preset-europe-opt-in';
 
 // ---------------------------------------------------------------------------
 // i18n message profiles

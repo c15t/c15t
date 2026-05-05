@@ -1,5 +1,25 @@
 # @c15t/cli
 
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [748536a]
+  - @c15t/backend@2.0.4
+
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [85b9106]
+  - @c15t/backend@2.0.2
+
+## 2.0.1
+
+### Patch Changes
+
+- 2eb1dca: Place Tailwind v4 c15t stylesheet imports at the end of the top-level import block so preset styles like Fumadocs do not override c15t theme tokens.
+
 ## 2.0.0
 
 ### Major Changes

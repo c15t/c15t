@@ -1,0 +1,38 @@
+---
+title: Global flags
+description: Flags that work on every CLI command.
+---
+
+These flags are registered globally by the CLI parser (`packages/cli/src/context/parser.ts`) and accepted on every command.
+
+| Flag | Description |
+|---|---|
+| `--help`, `-h` | Show help for the current command and exit. |
+| `--version`, `-v` | Print the installed CLI version and exit. |
+| `--no-telemetry` | Disable anonymous telemetry for this run. See [Telemetry](./telemetry). |
+| `--telemetry-debug` | Print telemetry events to stderr instead of sending them. |
+| `--logger <level>` | Set log level (`fatal`, `error`, `warn`, `info`, `debug`). |
+| `--config <path>` | Load configuration from an explicit file. |
+| `-y`, `--yes` | Skip confirmation prompts (use with caution). |
+
+`--dry-run` is **not** global; the codemods command accepts it as a per-command flag — see [`codemods`](./commands/codemods).
+
+## Environment variables
+
+| Variable | Effect |
+|---|---|
+| `C15T_TELEMETRY_DISABLED=1` | Permanently disable telemetry for this user. |
+| `C15T_DEBUG=1` | Enable verbose debug logs. |
+| `C15T_URL` | Override the backend URL the CLI talks to (the value read by `ENV_VARS.BACKEND_URL` in `packages/cli/src/constants.ts`). |
+| `C15T_API_KEY` | API key passed to the backend (read by `ENV_VARS.API_KEY`). |
+| `CONSENT_URL` | Override the control-plane / dashboard base URL (used for `login`). |
+| `NO_COLOR=1` | Disable terminal colors. |
+
+## Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Success. |
+| `1` | General error (failed command, validation error). |
+| `2` | Usage error (invalid flags or arguments). |
+| `130` | Interrupted (Ctrl-C). |

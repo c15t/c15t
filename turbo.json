@@ -1,5 +1,6 @@
 {
 	"$schema": "https://turborepo.dev/schema.v2.json",
+	"concurrency": "20",
 	"ui": "tui",
 	"tasks": {
 		"build": {
@@ -52,6 +53,10 @@
 			"outputs": ["dist/**", "dist-types/**", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
+		"@c15t/benchmarking#build": {
+			"dependsOn": ["^build"],
+			"outputs": []
+		},
 		"@c15t/solid#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
@@ -79,9 +84,96 @@
 			"dependsOn": ["build", "^build"]
 		},
 		"dev": {
-			"dependsOn": ["^dev"],
 			"cache": false,
-			"persistent": false
+			"persistent": true,
+			"interruptible": true
+		},
+		"@c15t/example-demo#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"with": [
+				"c15t#dev",
+				"@c15t/backend#dev",
+				"@c15t/iab#dev",
+				"@c15t/logger#dev",
+				"@c15t/nextjs#dev",
+				"@c15t/react#dev",
+				"@c15t/schema#dev",
+				"@c15t/scripts#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
+		},
+		"@c15t/nextjs-browser-bench#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"with": [
+				"c15t#dev",
+				"@c15t/logger#dev",
+				"@c15t/nextjs#dev",
+				"@c15t/react#dev",
+				"@c15t/schema#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
+		},
+		"@c15t/css-layer-preview#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"with": [
+				"c15t#dev",
+				"@c15t/logger#dev",
+				"@c15t/nextjs#dev",
+				"@c15t/react#dev",
+				"@c15t/schema#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
+		},
+		"@c15t/tw3-css-test#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"with": [
+				"c15t#dev",
+				"@c15t/logger#dev",
+				"@c15t/nextjs#dev",
+				"@c15t/react#dev",
+				"@c15t/schema#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
+		},
+		"@c15t/tw4-css-test#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"with": [
+				"c15t#dev",
+				"@c15t/logger#dev",
+				"@c15t/nextjs#dev",
+				"@c15t/react#dev",
+				"@c15t/schema#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
+		},
+		"@c15t/no-tw-css-test#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"with": [
+				"c15t#dev",
+				"@c15t/logger#dev",
+				"@c15t/nextjs#dev",
+				"@c15t/react#dev",
+				"@c15t/schema#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
 		},
 		"storybook": {
 			"cache": false,

@@ -1,0 +1,44 @@
+---
+title: codemods
+description: Migrate code between c15t versions automatically.
+---
+
+`codemods` runs structured code transformations to migrate your project between c15t versions. It uses [ts-morph](https://ts-morph.com/) to safely rewrite imports, JSX, and config objects.
+
+## Usage
+
+Run interactively and pick which codemods to apply:
+
+```bash
+pnpm dlx @c15t/cli codemods
+```
+
+Preview without writing files:
+
+```bash
+pnpm dlx @c15t/cli codemods --dry-run
+```
+
+## Available codemods
+
+Each codemod is version-aware — the CLI hides codemods that don't apply to your installed `c15t` version.
+
+| ID | What it does |
+|---|---|
+| `component-renames` | Renames `CookieBanner` → `ConsentBanner`, `ConsentManagerDialog` → `ConsentDialog`, `ConsentManagerWidget` → `ConsentWidget`. |
+| `gdpr-types-to-consent-categories` | Migrates `gdprTypes`/`initialGDPRTypes` to `consentCategories`. |
+| `translations-to-i18n` | Migrates legacy translation config keys to the v2 `i18n` shape. |
+| `tracking-blocker-to-network-blocker` | Migrates `trackingBlockerConfig` to network blocker rules. |
+| `mode-c15t-to-hosted` | Migrates legacy `mode: 'c15t'` to `mode: 'hosted'`. |
+| `react-options-to-top-level` | Lifts `react.theme` / `react.colorScheme` / `react.disableAnimation` to top-level options. |
+| `ignore-geo-location-to-overrides` | Migrates `ignoreGeoLocation: true` to `overrides: { country: 'DE' }`. |
+| `offline-add-policy-packs` | Adds starter `policyPackPresets` to offline configs missing policies. |
+| `add-stylesheet-imports` | Moves c15t imports into the app CSS entrypoint, including Tailwind 3 and IAB variants. |
+| `active-ui-api` | Migrates `showPopup` / `isPrivacyDialogOpen` to the unified `activeUI` API. |
+
+## Safety
+
+- All codemods support `--dry-run`.
+- Codemods are idempotent — running twice produces the same result.
+- The CLI prints a per-file diff summary so you can review changes before committing.
+- Run on a clean git working tree so you can `git diff` and revert if needed.

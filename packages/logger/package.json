@@ -1,8 +1,20 @@
 {
 	"name": "@c15t/logger",
 	"version": "2.0.0",
-	"description": "Logger for c15t.",
+	"description": "Lightweight, structured logger for c15t packages with custom-handler support and type-safe levels.",
+	"keywords": [
+		"c15t",
+		"logger",
+		"logging",
+		"structured-logging",
+		"typescript",
+		"consent",
+		"privacy"
+	],
 	"homepage": "https://c15t.com/",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
@@ -28,7 +40,7 @@
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
-		"dev": "rslib build --watch",
+		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run --passWithNoTests",

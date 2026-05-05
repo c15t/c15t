@@ -4,6 +4,7 @@ import {
 	applyPolicyScopeForRuntimeGating,
 	filterConsentCategoriesByPolicy,
 	getEffectivePolicy,
+	shouldEnforcePolicyCategoryScope,
 	stripDisallowedPreferenceKeys,
 	validateUIAgainstPolicy,
 } from '../policy';
@@ -268,11 +269,26 @@ describe('filterConsentCategoriesByPolicy', () => {
 	});
 });
 
+describe('shouldEnforcePolicyCategoryScope', () => {
+	it('only enforces category scope for strict non-wildcard policies', () => {
+		expect(shouldEnforcePolicyCategoryScope(['necessary'], 'strict')).toBe(
+			true
+		);
+		expect(shouldEnforcePolicyCategoryScope(['necessary'], 'permissive')).toBe(
+			false
+		);
+		expect(shouldEnforcePolicyCategoryScope(['*'], 'strict')).toBe(false);
+		expect(shouldEnforcePolicyCategoryScope(null, 'strict')).toBe(false);
+		expect(shouldEnforcePolicyCategoryScope([], 'strict')).toBe(false);
+		expect(shouldEnforcePolicyCategoryScope(undefined, 'strict')).toBe(false);
+	});
+});
+
 describe('applyPolicyScopeForRuntimeGating', () => {
 	it('returns unchanged consents when no allowlist is provided', () => {
 		const consents = {
 			necessary: true,
-			functionality: false,
+			functionality: true,
 			experience: false,
 			marketing: false,
 			measurement: true,
@@ -283,10 +299,10 @@ describe('applyPolicyScopeForRuntimeGating', () => {
 		);
 	});
 
-	it('treats out-of-policy categories as granted for runtime gating', () => {
+	it('respects out-of-policy category choices in permissive mode', () => {
 		const consents = {
 			necessary: true,
-			functionality: false,
+			functionality: true,
 			experience: false,
 			marketing: false,
 			measurement: true,
@@ -301,8 +317,8 @@ describe('applyPolicyScopeForRuntimeGating', () => {
 		).toEqual({
 			necessary: true,
 			functionality: true,
-			experience: true,
-			marketing: true,
+			experience: false,
+			marketing: false,
 			measurement: true,
 		});
 	});

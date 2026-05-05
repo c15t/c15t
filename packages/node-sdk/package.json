@@ -1,25 +1,27 @@
 {
 	"name": "@c15t/node-sdk",
-	"version": "2.0.0",
+	"version": "2.0.4",
 	"description": "Official Node.js SDK for c15t. Connects to the Consent Engine to read and write consent records and preferences. TypeScript-first, simple APIs, built-in auth and retries.",
 	"keywords": [
-		"react",
+		"c15t",
+		"node",
+		"nodejs",
+		"sdk",
 		"consent",
+		"consent-api",
+		"consent-management",
 		"privacy",
 		"gdpr",
 		"ccpa",
 		"lgpd",
-		"headless",
-		"typescript",
-		"cookie-banner",
-		"consent-management-platform",
 		"cmp",
-		"consent-banner",
-		"user-consent",
-		"privacy-compliance",
-		"web-privacy"
+		"typescript",
+		"server-side"
 	],
 	"homepage": "https://c15t.com",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
@@ -50,7 +52,7 @@
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
 		"check-types:test": "tsc -p tsconfig.test.json",
-		"dev": "rslib build --watch",
+		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run",

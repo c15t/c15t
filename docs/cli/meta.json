@@ -1,0 +1,21 @@
+{
+	"title": "CLI",
+	"nav": {
+		"sidebar": "combined",
+		"label": "CLI"
+	},
+	"pages": [
+		"overview",
+		"quickstart",
+		"--- Commands ---",
+		"./commands/setup",
+		"./commands/generate",
+		"./commands/codemods",
+		"./commands/self-host",
+		"./commands/skills",
+		"./commands/auth",
+		"--- Reference ---",
+		"global-flags",
+		"telemetry"
+	]
+}

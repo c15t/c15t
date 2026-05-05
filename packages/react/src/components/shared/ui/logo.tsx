@@ -101,7 +101,16 @@ export const InthIconOnly = (props: SVGProps<SVGSVGElement> & IconProps) => (
 	<InthMark titleId="inth-icon" {...props} />
 );
 
-// Consent logo for consent.io domain
+/**
+ * Wordmark logo for the hosted consent product (inth.com).
+ *
+ * Used in marketing surfaces such as the optional banner attribution and
+ * the consent dialog footer. Render inside a flow where its native
+ * 595x97 viewBox can scale freely (e.g. an `inline-block` parent).
+ *
+ * @param title - Accessible title announced to screen readers. Defaults to "Consent".
+ * @param titleId - DOM id for the SVG `<title>` element. Must be unique on the page when rendered more than once.
+ */
 export const ConsentLogo = ({
 	title = 'Consent',
 	titleId = 'consent-logo',

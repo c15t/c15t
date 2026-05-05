@@ -19,6 +19,7 @@ import { hasGlobalPrivacyControlSignal } from '../global-privacy-control';
 import {
 	applyPolicyPurposeAllowlist,
 	filterConsentCategoriesByPolicy,
+	shouldEnforcePolicyCategoryScope,
 } from '../policy';
 import type { ConsentBannerResponse, InitConsentManagerConfig } from './types';
 
@@ -176,15 +177,14 @@ function buildStoreUpdate(
 		update.selectedConsents = autoGrantedConsents;
 	}
 
-	// Apply policy-driven purpose/category restrictions for non-wildcard scope.
-	// Out-of-policy categories are treated as out-of-scope (hidden + forced false),
-	// not as granted consent.
+	// Apply policy-driven purpose/category restrictions for strict non-wildcard
+	// scope. Permissive policies keep configured/script-derived categories visible.
 	const policyCategories = data.policy?.consent?.categories;
-	const hasPolicyCategoryAllowlist =
-		Array.isArray(policyCategories) &&
-		policyCategories.length > 0 &&
-		!policyCategories.includes('*');
-	if (hasPolicyCategoryAllowlist) {
+	const hasStrictPolicyCategoryAllowlist = shouldEnforcePolicyCategoryScope(
+		policyCategories,
+		data.policy?.consent?.scopeMode ?? null
+	);
+	if (hasStrictPolicyCategoryAllowlist) {
 		const uniqueAllowedCategories = filterConsentCategoriesByPolicy(
 			allConsentNames,
 			policyCategories
@@ -208,9 +208,11 @@ function buildStoreUpdate(
 		Array.isArray(preselectedCategories) &&
 		preselectedCategories.length > 0;
 	if (shouldApplyPreselectedCategories) {
-		const preselectedScope = hasPolicyCategoryAllowlist
-			? filterConsentCategoriesByPolicy(allConsentNames, policyCategories)
-			: allConsentNames;
+		const displayedConsentNames =
+			update.consentCategories ?? get().consentCategories;
+		const preselectedScope = hasStrictPolicyCategoryAllowlist
+			? filterConsentCategoriesByPolicy(displayedConsentNames, policyCategories)
+			: displayedConsentNames;
 		const allowedPreselectedCategories = filterConsentCategoriesByPolicy(
 			preselectedScope,
 			preselectedCategories

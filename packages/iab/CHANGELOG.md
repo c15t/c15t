@@ -1,5 +1,13 @@
 # @c15t/iab
 
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [748536a]
+  - @c15t/schema@2.0.1
+  - c15t@2.0.4
+
 ## 2.0.0
 
 ### Major Changes
