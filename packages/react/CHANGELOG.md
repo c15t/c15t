@@ -1,5 +1,12 @@
 # @c15t/react
 
+## 2.0.5
+
+### Patch Changes
+
+- c15t@2.0.5
+- @c15t/ui@2.0.4
+
 ## 2.0.4
 
 ### Patch Changes

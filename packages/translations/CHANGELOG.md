@@ -1,5 +1,11 @@
 # @c15t/translations
 
+## 2.0.5
+
+### Patch Changes
+
+- 1588a24: Fix German translations to use consistent casing and tone.
+
 ## 2.0.0
 
 ### Major Changes

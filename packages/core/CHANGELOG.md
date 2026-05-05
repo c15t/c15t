@@ -1,5 +1,12 @@
 # c15t
 
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [1588a24]
+  - @c15t/translations@2.0.5
+
 ## 2.0.4
 
 ### Patch Changes
