@@ -3,7 +3,13 @@ import { init } from './init';
 import type { C15TOptions } from './types';
 
 // Use vi.hoisted so these are available inside vi.mock factories (which are hoisted)
-const { mockLogger, mockClient } = vi.hoisted(() => {
+const {
+	mockLogger,
+	mockClient,
+	mockNames,
+	mockPrefix,
+	mockBuildNamingVariants,
+} = vi.hoisted(() => {
 	const mockLogger = {
 		debug: vi.fn(),
 		info: vi.fn(),
@@ -17,7 +23,27 @@ const { mockLogger, mockClient } = vi.hoisted(() => {
 		orm: mockClientOrm,
 	});
 
-	return { mockLogger, mockClient };
+	type Factory = {
+		client: typeof mockClient;
+		names: ReturnType<typeof vi.fn> & { prefix: ReturnType<typeof vi.fn> };
+	};
+	const factory = { client: mockClient } as Factory;
+	const mockPrefix = vi.fn(() => factory);
+	const mockNames = vi.fn(() => factory) as Factory['names'];
+	mockNames.prefix = mockPrefix;
+	factory.names = mockNames;
+
+	const mockBuildNamingVariants = vi.fn(
+		() => null as null | Record<string, { sql: string; mongodb: string }>
+	);
+
+	return {
+		mockLogger,
+		mockClient,
+		mockNames,
+		mockPrefix,
+		mockBuildNamingVariants,
+	};
 });
 
 // Mock local modules
@@ -46,7 +72,9 @@ vi.mock('./db/registry', () => ({
 vi.mock('./db/schema', () => ({
 	DB: {
 		client: mockClient,
+		names: mockNames,
 	},
+	buildNamingVariants: mockBuildNamingVariants,
 }));
 
 beforeEach(() => {
@@ -152,5 +180,42 @@ describe('init', () => {
 		expect(mockLogger.warn).toHaveBeenCalledWith(
 			'policyPacks: No default policy configured. Requests that do not match region/country will have no active policy.'
 		);
+	});
+
+	it('applies naming variants via db.names() before creating the client', () => {
+		const variants = {
+			consent: { sql: 'consent_v2', mongodb: 'consent_v2' },
+		};
+		mockBuildNamingVariants.mockReturnValueOnce(variants);
+
+		const options = createOptions({
+			naming: { tables: { consent: { name: 'consent_v2' } } },
+		});
+		init(options);
+
+		expect(mockBuildNamingVariants).toHaveBeenCalledWith(options.naming);
+		expect(mockNames).toHaveBeenCalledWith(variants);
+		const namesOrder = mockNames.mock.invocationCallOrder[0] ?? 0;
+		const clientOrder = mockClient.mock.invocationCallOrder[0] ?? 0;
+		expect(namesOrder).toBeLessThan(clientOrder);
+	});
+
+	it('skips db.names() when buildNamingVariants returns null (no-op fast path)', () => {
+		mockBuildNamingVariants.mockReturnValueOnce(null);
+
+		init(createOptions());
+
+		expect(mockNames).not.toHaveBeenCalled();
+		expect(mockClient).toHaveBeenCalledTimes(1);
+	});
+
+	it('applies tablePrefix via db.names.prefix() before creating the client', () => {
+		const options = createOptions({ tablePrefix: 'c15t_' });
+		init(options);
+
+		expect(mockPrefix).toHaveBeenCalledWith('c15t_');
+		const prefixOrder = mockPrefix.mock.invocationCallOrder[0] ?? 0;
+		const clientOrder = mockClient.mock.invocationCallOrder[0] ?? 0;
+		expect(prefixOrder).toBeLessThan(clientOrder);
 	});
 });

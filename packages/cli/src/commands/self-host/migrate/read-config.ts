@@ -1,13 +1,30 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { DB } from '@c15t/backend/db/schema';
+import {
+	buildNamingVariants,
+	DB,
+	type NamingOptions,
+} from '@c15t/backend/db/schema';
 import { loadConfig } from 'c12';
 import type { CliContext } from '~/context/types';
 
 type MigratorDatabaseConfig = {
 	adapter: Parameters<(typeof DB)['client']>[0];
+	naming?: NamingOptions;
+	tablePrefix?: string;
 } & Record<string, unknown>;
 
+/**
+ * Load a c15t backend config file and build the migrator database client.
+ *
+ * Reads the config at `absoluteConfigPath` via `c12`, validates the
+ * required `adapter` field, and applies `naming` and `tablePrefix`
+ * (in that order) before constructing the client — mirroring the order
+ * used by the backend's `init.ts` so generated migrations match the
+ * runtime schema.
+ *
+ * @throws Error when the config file is missing, invalid, or fails to load.
+ */
 export async function readConfigAndGetDb(
 	context: CliContext,
 	absoluteConfigPath: string
@@ -39,7 +56,6 @@ export async function readConfigAndGetDb(
 					'.cjs',
 					'.mts',
 					'.cts',
-					'.cjs',
 				],
 			},
 		});
@@ -52,8 +68,20 @@ export async function readConfigAndGetDb(
 			);
 		}
 
+		// Apply naming + tablePrefix before creating the client so generated
+		// migrations and ORM schema match the runtime identifiers produced by
+		// `c15tInstance` (see backend `init.ts`).
+		let factory = DB;
+		const variants = buildNamingVariants(config.naming);
+		if (variants) {
+			factory = factory.names(variants);
+		}
+		if (config.tablePrefix) {
+			factory = factory.names.prefix(config.tablePrefix);
+		}
+
 		return {
-			db: DB.client(config.adapter),
+			db: factory.client(config.adapter),
 		};
 	} catch (error) {
 		logger.error('Failed to load backend config', error);
