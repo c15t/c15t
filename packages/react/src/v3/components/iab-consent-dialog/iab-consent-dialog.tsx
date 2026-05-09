@@ -322,6 +322,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		// Use double-RAF to ensure browser has laid out new content
 		let rafId1: number;
 		let rafId2: number;
+		let removeTransitionListener: (() => void) | null = null;
 
 		rafId1 = requestAnimationFrame(() => {
 			rafId2 = requestAnimationFrame(() => {
@@ -362,12 +363,15 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 				content.addEventListener('transitionend', handleTransitionEnd, {
 					once: true,
 				});
+				removeTransitionListener = () =>
+					content.removeEventListener('transitionend', handleTransitionEnd);
 			});
 		});
 
 		return () => {
 			cancelAnimationFrame(rafId1);
 			cancelAnimationFrame(rafId2);
+			removeTransitionListener?.();
 		};
 	}, [activeTab]);
 

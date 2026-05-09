@@ -98,15 +98,6 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		}
 	}, [isOpen, disableAnimation]);
 
-	// Don't render if not mounted or IAB is disabled
-	if (!isMounted || !iabState?.config.enabled) {
-		return null;
-	}
-
-	if (!isOpen && !isVisible) {
-		return null;
-	}
-
 	const themedStyle = useStyles('iabConsentDialog', {
 		baseClassName: cn(
 			styles.root,
@@ -118,6 +109,15 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		),
 	});
 	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
+
+	// Don't render if not mounted or IAB is disabled
+	if (!isMounted || !iabState?.config.enabled) {
+		return null;
+	}
+
+	if (!isOpen && !isVisible) {
+		return null;
+	}
 
 	const dialogContent = (
 		<ConsentTrackingContext.Provider

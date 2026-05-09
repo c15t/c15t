@@ -112,17 +112,19 @@ export const VendorList: FC<VendorListProps> = ({
 	].sort((a, b) => a.name.localeCompare(b.name));
 
 	useEffect(() => {
-		if (selectedVendorId !== null) {
-			setExpandedVendors((prev) => new Set(prev).add(selectedVendorId));
-			setTimeout(() => {
-				const element = document.getElementById(
-					`vendor-${String(selectedVendorId)}`
-				);
-				if (element) {
-					element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-				}
-			}, 100);
+		if (selectedVendorId === null) {
+			return;
 		}
+		setExpandedVendors((prev) => new Set(prev).add(selectedVendorId));
+		const timer = setTimeout(() => {
+			const element = document.getElementById(
+				`vendor-${String(selectedVendorId)}`
+			);
+			if (element) {
+				element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			}
+		}, 100);
+		return () => clearTimeout(timer);
 	}, [selectedVendorId]);
 
 	const filteredVendors =
