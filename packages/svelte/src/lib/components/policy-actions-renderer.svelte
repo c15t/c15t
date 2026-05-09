@@ -56,15 +56,22 @@ const resolvedFooterSubGroupClassName = $derived(
 const actionClassName = $derived(
 	shouldFillActions ? actionButtonFillClassName : undefined
 );
+const keyedActionGroups = $derived(
+	actionGroups.map((group, groupIndex) => ({
+		group,
+		groupIndex,
+		key: group.join('-') + '-' + groupIndex,
+	}))
+);
 </script>
 
 <div class={resolvedFooterClassName} data-testid={footerTestId}>
-	{#each actionGroups as group, groupIndex (`${group.join('-')}-${groupIndex}`)}
+	{#each keyedActionGroups as actionGroup (actionGroup.key)}
 		<div
 			class={resolvedFooterSubGroupClassName}
 			data-testid={footerSubGroupTestId}
 		>
-			{#each group as action (`${groupIndex}-${action}`)}
+			{#each actionGroup.group as action (actionGroup.groupIndex + '-' + action)}
 				{@render renderAction?.(
 					action,
 					primaryActions.includes(action),
