@@ -261,7 +261,9 @@ const resolvedCustomizeText = $derived(
 
 {#if visibility.isMounted && visibility.shouldRender}
 	<div use:portal>
-		<Overlay visible={visibility.isVisible} />
+		{#if shouldScrollLock}
+			<Overlay visible={visibility.isVisible} />
+		{/if}
 		<div
 			bind:this={visibility.bannerEl}
 			class={finalClassName}

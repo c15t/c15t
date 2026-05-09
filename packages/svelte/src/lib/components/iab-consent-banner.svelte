@@ -20,7 +20,7 @@ import Overlay from './overlay.svelte';
 let {
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
-	scrollLock: localScrollLock = true,
+	scrollLock: localScrollLock,
 	trapFocus: localTrapFocus = true,
 	hideBranding = false,
 	primaryButton = 'customize' as 'reject' | 'accept' | 'customize',
@@ -157,7 +157,9 @@ const descriptionParts = $derived(descriptionText.split(partnersLinkText));
 
 {#if visibility.isMounted && visibility.shouldRender && displayItems.isReady}
 	<div use:portal>
-		<Overlay visible={visibility.isVisible} />
+		{#if shouldScrollLock}
+			<Overlay visible={visibility.isVisible} />
+		{/if}
 		<div
 			bind:this={visibility.bannerEl}
 			class={finalClassName}
