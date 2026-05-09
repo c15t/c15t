@@ -1,4 +1,24 @@
-import type { Plugin } from 'vite';
+type ResolveResult = string | { id: string } | null | undefined;
+
+interface C15tStylesPluginContext {
+	resolve(
+		source: string,
+		importer: string | undefined,
+		options: Record<string, unknown>
+	): Promise<ResolveResult>;
+}
+
+interface C15tStylesPlugin {
+	name: string;
+	enforce: 'pre';
+	resolveId(
+		this: C15tStylesPluginContext,
+		source: string,
+		importer?: string,
+		options?: Record<string, unknown>
+	): Promise<string | undefined>;
+	transform(code: string, id: string): string | undefined;
+}
 
 /**
  * Vite plugin that redirects `@c15t/ui` CSS-module JS files
@@ -27,7 +47,7 @@ import type { Plugin } from 'vite';
  * });
  * ```
  */
-export function c15tStylesPlugin(): Plugin {
+export function c15tStylesPlugin(): C15tStylesPlugin {
 	const redirectedIds = new Set<string>();
 
 	return {
@@ -44,7 +64,9 @@ export function c15tStylesPlugin(): Plugin {
 					skipSelf: true,
 				});
 				if (!resolved) return;
-				const cssId = resolved.id.replace(/\.module\.js$/, '.module.css');
+				const resolvedId =
+					typeof resolved === 'string' ? resolved : resolved.id;
+				const cssId = resolvedId.replace(/\.module\.js$/, '.module.css');
 				redirectedIds.add(cssId);
 				return cssId;
 			}
@@ -61,7 +83,9 @@ export function c15tStylesPlugin(): Plugin {
 					skipSelf: true,
 				});
 				if (!resolved) return;
-				const cssId = resolved.id.replace(/\.module\.js$/, '.module.css');
+				const resolvedId =
+					typeof resolved === 'string' ? resolved : resolved.id;
+				const cssId = resolvedId.replace(/\.module\.js$/, '.module.css');
 				redirectedIds.add(cssId);
 				return cssId;
 			}
