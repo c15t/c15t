@@ -484,9 +484,13 @@ function snapshotConsentsChanged(
 }
 
 function categoriesWithValue(snapshot: ConsentSnapshot, value: boolean) {
-	return Object.entries(snapshot.consents)
-		.filter(([, enabled]) => enabled === value)
-		.map(([category]) => category as AllConsentNames);
+	const result: AllConsentNames[] = [];
+	for (const [category, enabled] of Object.entries(snapshot.consents)) {
+		if (enabled === value) {
+			result.push(category as AllConsentNames);
+		}
+	}
+	return result;
 }
 
 function stringifyError(error: unknown): string {
