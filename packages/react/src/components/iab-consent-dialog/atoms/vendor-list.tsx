@@ -40,6 +40,9 @@ interface VendorListProps {
 	) => void;
 }
 
+const EMPTY_CUSTOM_VENDORS: CustomVendor[] = [];
+const EMPTY_VENDOR_LEG_INT: Record<string, boolean> = Object.freeze({});
+
 export const VendorList: FC<VendorListProps> = ({
 	vendorData,
 	purposes,
@@ -47,8 +50,8 @@ export const VendorList: FC<VendorListProps> = ({
 	onVendorToggle,
 	selectedVendorId,
 	onClearSelection,
-	customVendors = [],
-	vendorLegitimateInterests = {},
+	customVendors = EMPTY_CUSTOM_VENDORS,
+	vendorLegitimateInterests = EMPTY_VENDOR_LEG_INT,
 	onVendorLegitimateInterestToggle,
 }) => {
 	const [searchTerm, setSearchTerm] = useState('');

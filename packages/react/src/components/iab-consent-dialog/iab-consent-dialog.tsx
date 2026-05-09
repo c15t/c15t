@@ -405,8 +405,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			);
 			if (unassignedInStack.length >= 2) {
 				// Get purposes for this stack (only unassigned ones)
+				const unassignedInStackSet = new Set(unassignedInStack);
 				const stackPurposes = otherPurposes.filter((p) =>
-					unassignedInStack.includes(p.id)
+					unassignedInStackSet.has(p.id)
 				);
 				processedStacks.push({
 					id: stackId,

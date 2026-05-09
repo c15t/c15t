@@ -31,6 +31,9 @@ interface PurposeItemProps {
 	) => void;
 }
 
+const EMPTY_VENDOR_LEG_INT: Record<string, boolean> = Object.freeze({});
+const EMPTY_PURPOSE_LEG_INT: Record<number, boolean> = Object.freeze({});
+
 export const PurposeItem: FC<PurposeItemProps> = ({
 	purpose,
 	isEnabled,
@@ -39,9 +42,9 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 	onVendorToggle,
 	onVendorClick,
 	isLocked = false,
-	vendorLegitimateInterests = {},
+	vendorLegitimateInterests = EMPTY_VENDOR_LEG_INT,
 	onVendorLegitimateInterestToggle,
-	purposeLegitimateInterests = {},
+	purposeLegitimateInterests = EMPTY_PURPOSE_LEG_INT,
 	onPurposeLegitimateInterestToggle,
 }) => {
 	const [isExpanded, setIsExpanded] = useState(false);
@@ -255,8 +258,8 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 							</PreferenceItem.Trigger>
 							<PreferenceItem.Content noStyle>
 								<ul className={styles.examplesList}>
-									{purpose.illustrations.map((illustration, index) => (
-										<li key={index}>{illustration}</li>
+									{purpose.illustrations.map((illustration) => (
+										<li key={illustration}>{illustration}</li>
 									))}
 								</ul>
 							</PreferenceItem.Content>

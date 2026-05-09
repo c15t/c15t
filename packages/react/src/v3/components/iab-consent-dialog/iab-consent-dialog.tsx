@@ -1040,8 +1040,9 @@ function computeProcessedGvl(
 			(pid) => !assignedPurposeIds.has(pid)
 		);
 		if (unassignedInStack.length >= 2) {
+			const unassignedInStackSet = new Set(unassignedInStack);
 			const stackPurposes = otherPurposes.filter((p) =>
-				unassignedInStack.includes(p.id)
+				unassignedInStackSet.has(p.id)
 			);
 			processedStacks.push({
 				id: stackId,
