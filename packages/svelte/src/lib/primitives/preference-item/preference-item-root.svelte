@@ -6,8 +6,8 @@
 		togglePreferenceItemValue,
 	} from '@c15t/ui/primitives';
 	import { preferenceItemVariants } from '@c15t/ui/styles/primitives';
-	import { untrack } from 'svelte';
 	import type { Snippet } from 'svelte';
+	import { untrack } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { getThemeContext } from '../../context.svelte';
 	import { setPreferenceItemContext } from './context';

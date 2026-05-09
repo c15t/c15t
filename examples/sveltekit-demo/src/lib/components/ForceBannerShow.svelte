@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { getConsentContext } from '@c15t/svelte';
+	import { getConsent } from '@c15t/svelte';
 	import { onMount } from 'svelte';
 
-	const consent = getConsentContext();
+	const consent = getConsent();
 
 	onMount(() => {
-		consent.state.setActiveUI('banner', { force: true });
+		consent.setActiveUI('banner', { force: true });
 	});
 </script>

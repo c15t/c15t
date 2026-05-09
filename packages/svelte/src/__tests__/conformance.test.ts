@@ -28,7 +28,7 @@ import {
 } from 'c15t';
 import { mount, unmount } from 'svelte';
 import { describe, expect, test } from 'vitest';
-import { version } from '~/version';
+import { version } from '../lib/version';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
 
 function assertRenderable(

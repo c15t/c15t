@@ -66,7 +66,7 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 
 ## Usage
 
-1. Wrap your app with `ConsentManagerProvider`
+1. Wrap your app with `ConsentProvider`
 2. Add `ConsentBanner` and consent management components
 3. Customise styling and behaviour to fit your app
 4. For full implementation details, see the [Svelte quickstart docs](https://c15t.com/docs/frameworks/svelte/quickstart)
@@ -74,13 +74,13 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 ```svelte
 <!-- +layout.svelte -->
 <script>
-  import { ConsentManagerProvider, ConsentBanner } from '@c15t/svelte'
+  import { ConsentProvider, ConsentBanner } from '@c15t/svelte'
 </script>
 
-<ConsentManagerProvider>
+<ConsentProvider>
   <slot />
   <ConsentBanner />
-</ConsentManagerProvider>
+</ConsentProvider>
 ```
 
 ## Documentation

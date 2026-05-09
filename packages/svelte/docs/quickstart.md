@@ -10,7 +10,7 @@ pnpm add @c15t/svelte
 
 ## Basic setup
 
-Import the package stylesheet once in your global app CSS, then wrap your app with `ConsentManagerProvider` and render the banner and dialog once near the root.
+Import the package stylesheet once in your global app CSS, then wrap your app with `ConsentProvider` and render the banner and dialog once near the root.
 
 ```css
 @import "@c15t/svelte/styles.css";
@@ -23,11 +23,11 @@ Then wire the provider and UI components near the root.
 	import {
 		ConsentBanner,
 		ConsentDialog,
-		ConsentManagerProvider,
+		ConsentProvider,
 	} from '@c15t/svelte';
 </script>
 
-<ConsentManagerProvider
+<ConsentProvider
 	options={{
 		mode: 'hosted',
 		backendURL: 'https://your-instance.c15t.dev',
@@ -38,7 +38,7 @@ Then wire the provider and UI components near the root.
 	<slot />
 	<ConsentBanner />
 	<ConsentDialog />
-</ConsentManagerProvider>
+</ConsentProvider>
 ```
 
 For SvelteKit, place this in your root `+layout.svelte` or a shared layout wrapper.

@@ -37,6 +37,10 @@ export function useBannerVisibility(
 			isVisible = false;
 			shouldRender = false;
 		} else {
+			if (!isVisible) {
+				shouldRender = false;
+				return;
+			}
 			isVisible = false;
 			const el = bannerEl;
 			if (el) {

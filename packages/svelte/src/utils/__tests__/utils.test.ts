@@ -10,7 +10,7 @@ import {
 	defaultTheme,
 	generateThemeCSS,
 	resolveComponentStyles,
-} from '~/utils';
+} from '../../lib/utils';
 
 describe('Utils', () => {
 	describe('defaultTheme', () => {

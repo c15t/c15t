@@ -1,6 +1,6 @@
 import { iab } from '../../../packages/iab/src/index';
 import { mockGVL } from '../../../packages/react/src/components/iab/__tests__/fixtures/mock-consent-state';
-import type { ConsentManagerOptions } from '../../../packages/svelte/src/lib/types';
+import type { ConsentProviderOptions } from '../../../packages/svelte/src/lib/types';
 import { enTranslations } from '../../../packages/translations/src/index';
 
 type ConsentRecord = Record<string, boolean>;
@@ -48,7 +48,7 @@ export function seedTCString(tcString: string | null) {
 	window.localStorage.setItem('euconsent-v2', tcString);
 }
 
-export const defaultConsentOptions: ConsentManagerOptions = {
+export const defaultConsentOptions: ConsentProviderOptions = {
 	mode: 'offline',
 	translations: {
 		language: 'en',
@@ -56,7 +56,7 @@ export const defaultConsentOptions: ConsentManagerOptions = {
 	},
 };
 
-export const editableConsentOptions: Partial<ConsentManagerOptions> = {
+export const editableConsentOptions: Partial<ConsentProviderOptions> = {
 	consentCategories: [
 		'necessary',
 		'functionality',
@@ -74,7 +74,7 @@ export const editableStoredConsent: ConsentRecord = {
 	experience: false,
 };
 
-export const defaultIABOptions: ConsentManagerOptions = {
+export const defaultIABOptions: ConsentProviderOptions = {
 	...defaultConsentOptions,
 	iab: iab({
 		cmpId: 160,

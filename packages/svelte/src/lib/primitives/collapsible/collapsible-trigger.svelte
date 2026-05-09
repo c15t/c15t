@@ -1,7 +1,7 @@
 <script lang="ts">
+	import { getCollapsibleState, getDataDisabled } from '@c15t/ui/primitives';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
-	import { getCollapsibleState, getDataDisabled } from '@c15t/ui/primitives';
 	import { getCollapsibleRootContext } from './context';
 
 	const root = getCollapsibleRootContext();

@@ -11,9 +11,48 @@ export default mergeConfig(
 	defineConfig({
 		plugins: [svelte()],
 		resolve: {
-			alias: {
-				'~': resolve(__dirname, './src/lib'),
-			},
+			alias: [
+				{
+					find: 'c15t/v3/modules/iframe-blocker',
+					replacement: resolve(
+						__dirname,
+						'../core/src/v3/modules/iframe-blocker/index.ts'
+					),
+				},
+				{
+					find: 'c15t/v3/modules/network-blocker',
+					replacement: resolve(
+						__dirname,
+						'../core/src/v3/modules/network-blocker/index.ts'
+					),
+				},
+				{
+					find: 'c15t/v3/modules/persistence',
+					replacement: resolve(
+						__dirname,
+						'../core/src/v3/modules/persistence/index.ts'
+					),
+				},
+				{
+					find: 'c15t/v3/modules/script-loader',
+					replacement: resolve(
+						__dirname,
+						'../core/src/v3/modules/script-loader/index.ts'
+					),
+				},
+				{
+					find: '@c15t/iab/v3',
+					replacement: resolve(__dirname, '../iab/src/v3/index.ts'),
+				},
+				{
+					find: 'c15t/v3',
+					replacement: resolve(__dirname, '../core/src/v3/index.ts'),
+				},
+				{
+					find: '~',
+					replacement: resolve(__dirname, '../core/src'),
+				},
+			],
 			conditions: ['browser'],
 		},
 		test: {

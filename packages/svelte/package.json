@@ -95,6 +95,7 @@
 		"test:watch": "vitest"
 	},
 	"dependencies": {
+		"@c15t/iab": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"c15t": "workspace:*",
 		"clsx": "2.1.1"

@@ -1,7 +1,7 @@
 <script lang="ts">
+	import { getDataDisabled } from '@c15t/ui/primitives';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
-	import { getDataDisabled } from '@c15t/ui/primitives';
 	import { getTabsRootContext } from './context';
 
 	const root = getTabsRootContext();
