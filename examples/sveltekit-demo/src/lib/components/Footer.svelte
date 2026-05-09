@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { getConsentContext } from '@c15t/svelte';
+	import { getConsent } from '@c15t/svelte';
 
-	const consent = getConsentContext();
+	const consent = getConsent();
 </script>
 
 <footer class="border-t border-border py-12 px-4 sm:px-6 lg:px-8">
@@ -42,7 +42,7 @@
 				<ul class="space-y-2 text-sm text-muted-foreground">
 					<li>
 					<button
-						onclick={() => consent.state.setActiveUI('dialog')}
+						onclick={() => consent.setActiveUI('dialog')}
 						class="transition-colors hover:text-foreground cursor-pointer"
 					>
 						Your privacy settings

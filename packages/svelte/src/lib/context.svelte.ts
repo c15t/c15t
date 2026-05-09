@@ -1,40 +1,107 @@
-/**
- * Svelte context for consent management state.
- *
- * Uses Svelte's setContext/getContext with $state runes
- * to provide reactive consent state throughout the component tree.
- */
-
 import type { Theme, UIOptions } from '@c15t/ui/theme';
-import type { ConsentManagerInterface, ConsentStoreState } from 'c15t';
+import {
+	type ActiveUI,
+	type AllConsentNames,
+	allConsentNames,
+	type ConsentType,
+	consentTypes as defaultConsentTypes,
+	defaultTranslationConfig,
+	has as evaluateHas,
+	type HasCondition,
+	type Model,
+	type TranslationConfig,
+} from 'c15t';
+import type {
+	ConsentKernel,
+	ConsentSnapshot,
+	ConsentState,
+	KernelActiveUI,
+	KernelIABState,
+	PolicyUiSurfaceConfig,
+} from 'c15t/v3';
 import { getContext, setContext } from 'svelte';
+import type { ConsentProviderOptions } from './types';
 
-const CONSENT_CONTEXT_KEY = Symbol('c15t-consent');
-const THEME_CONTEXT_KEY = Symbol('c15t-theme');
-const TRACKING_CONTEXT_KEY = Symbol('c15t-tracking');
+const CONSENT_CONTEXT_KEY = Symbol('c15t-v3-consent');
+const THEME_CONTEXT_KEY = Symbol('c15t-v3-theme');
+const TRACKING_CONTEXT_KEY = Symbol('c15t-v3-tracking');
 
-/**
- * The consent context value shared through the component tree.
- *
- * `state` is provided via a getter in ConsentManagerProvider, so it always
- * reflects the latest store snapshot. Methods on ConsentStoreState (e.g.
- * setActiveUI, saveConsents, setSelectedConsent) are stable references
- * bound to the store instance — they do not change between state updates,
- * so it is safe to call them through `consent.state.methodName(...)`.
- */
-export interface ConsentContextValue {
-	readonly state: ConsentStoreState;
-	readonly store: {
-		getState: () => ConsentStoreState;
-		subscribe: (listener: (state: ConsentStoreState) => void) => () => void;
-		setState: (state: Partial<ConsentStoreState>) => void;
+const EMPTY_POLICY_SURFACE: PolicyUiSurfaceConfig = {};
+
+export type SaveType = 'all' | 'custom' | 'necessary';
+
+export interface SvelteIABState extends KernelIABState {
+	config: {
+		enabled: boolean;
+		cmpId: number | null;
 	};
-	readonly manager: ConsentManagerInterface | null;
+	isLoadingGVL: boolean;
+	nonIABVendors: KernelIABState['customVendors'];
+	preferenceCenterTab: 'purposes' | 'vendors';
+	setPreferenceCenterTab(tab: 'purposes' | 'vendors'): void;
+	setVendorConsent(vendorId: string | number, value: boolean): void;
+	setVendorLegitimateInterest(vendorId: string | number, value: boolean): void;
+	setPurposeConsent(purposeId: number, value: boolean): void;
+	setPurposeLegitimateInterest(purposeId: number, value: boolean): void;
+	setSpecialFeatureOptIn(featureId: number, value: boolean): void;
+	acceptAll(): void;
+	rejectAll(): void;
+	save(): Promise<void>;
 }
 
-/**
- * The theme context value shared through the component tree.
- */
+export interface ConsentDraftState {
+	readonly values: Partial<ConsentState>;
+	set(name: AllConsentNames, value: boolean): void;
+	reset(): void;
+	save(): Promise<void>;
+}
+
+export interface ConsentCompatState
+	extends Omit<
+		ConsentSnapshot,
+		| 'activeUI'
+		| 'branding'
+		| 'hasConsented'
+		| 'model'
+		| 'policyBanner'
+		| 'policyDialog'
+	> {
+	activeUI: ActiveUI;
+	branding: NonNullable<ConsentSnapshot['branding']>;
+	consents: Readonly<ConsentState>;
+	selectedConsents: Partial<ConsentState>;
+	selectedConsentTypes: Partial<ConsentState>;
+	consentInfo: { type: 'v3' } | null;
+	consentCategories: AllConsentNames[];
+	consentTypes: ConsentType[];
+	iab: SvelteIABState | null;
+	manager: null;
+	model: Model;
+	policyBanner: PolicyUiSurfaceConfig;
+	policyDialog: PolicyUiSurfaceConfig;
+	legalLinks: ConsentProviderOptions['legalLinks'];
+	translationConfig: TranslationConfig;
+	getDisplayedConsents(): ConsentType[];
+	has(condition: HasCondition<AllConsentNames>): boolean;
+	hasConsented(): boolean;
+	saveConsents(type: SaveType, options?: { uiSource?: string }): Promise<void>;
+	setActiveUI(ui: ActiveUI, options?: { force?: boolean }): void;
+	setConsent(name: AllConsentNames, value: boolean): void;
+	setLanguage(code: string): void;
+	setSelectedConsent(name: AllConsentNames, value: boolean): void;
+	subscribeToConsentChanges(
+		listener: (state: ConsentState) => void
+	): () => void;
+	updateConsentCategories(names: AllConsentNames[]): void;
+}
+
+export interface ConsentContextValue {
+	readonly kernel: ConsentKernel;
+	readonly snapshot: ConsentSnapshot;
+	readonly state: ConsentCompatState;
+	readonly manager: ConsentKernel;
+}
+
 export interface ThemeContextValue {
 	readonly theme?: Theme;
 	readonly noStyle?: boolean;
@@ -42,120 +109,343 @@ export interface ThemeContextValue {
 	readonly scrollLock?: boolean;
 	readonly trapFocus?: boolean;
 	readonly colorScheme?: UIOptions['colorScheme'];
+	readonly legalLinks?: ConsentProviderOptions['legalLinks'];
 }
 
-/**
- * Sets the consent manager context. Called by ConsentManagerProvider.
- * @internal
- */
-export function setConsentContext(value: ConsentContextValue): void {
-	setContext(CONSENT_CONTEXT_KEY, value);
-}
-
-/**
- * Gets the consent manager context. Throws if used outside a provider.
- */
-export function getConsentContext(): ConsentContextValue {
-	const context = getContext<ConsentContextValue | undefined>(
-		CONSENT_CONTEXT_KEY
-	);
-
-	if (context === undefined) {
-		throw new Error(
-			'getConsentContext must be used within a ConsentManagerProvider'
-		);
-	}
-
-	return context;
-}
-
-/**
- * Flat accessor for consent state and manager.
- *
- * Svelte equivalent of React's `useConsentManager()`. Returns an object
- * with getters that always reflect the latest consent state snapshot,
- * plus the consent manager instance.
- *
- * @example
- * ```svelte
- * <script>
- *   const consent = getConsentManager();
- *   // Access state reactively via getters
- *   $: console.log(consent.activeUI, consent.consents);
- *   // Call methods directly
- *   consent.setActiveUI('dialog');
- * </script>
- * ```
- */
-export function getConsentManager(): ConsentStoreState & {
-	manager: ConsentManagerInterface | null;
-} {
-	const ctx = getConsentContext();
-
-	return new Proxy(
-		{} as ConsentStoreState & { manager: ConsentManagerInterface | null },
-		{
-			get(_target, prop) {
-				if (prop === 'manager') return ctx.manager;
-				return (ctx.state as unknown as Record<string | symbol, unknown>)[prop];
-			},
-			set(_target, prop) {
-				throw new Error(
-					`[c15t] consent.${String(prop)} is read-only. Use state methods like setActiveUI() instead.`
-				);
-			},
-			has(_target, prop) {
-				if (prop === 'manager') return true;
-				return prop in ctx.state;
-			},
-			ownKeys() {
-				return [...Object.keys(ctx.state), 'manager'];
-			},
-			getOwnPropertyDescriptor(_target, prop) {
-				if (prop === 'manager' || prop in ctx.state) {
-					return { configurable: true, enumerable: true, writable: false };
-				}
-				return undefined;
-			},
-		}
-	);
-}
-
-/**
- * The consent tracking context value for propagating uiSource.
- */
 export interface ConsentTrackingValue {
 	readonly uiSource?: string;
 }
 
-/**
- * Sets the consent tracking context. Called by banner/dialog/widget roots.
- * @internal
- */
+export interface ConsentControllerOptions {
+	getSnapshot(): ConsentSnapshot;
+	getDraft(): ConsentDraftState;
+	getIAB(): SvelteIABState | null;
+	getConsentCategories(): AllConsentNames[];
+	getLegalLinks(): ConsentProviderOptions['legalLinks'];
+}
+
+function toTranslationConfig(snapshot: ConsentSnapshot): TranslationConfig {
+	const resolved = snapshot.translations;
+	if (!resolved) return defaultTranslationConfig;
+
+	return {
+		...defaultTranslationConfig,
+		defaultLanguage: resolved.language,
+		translations: {
+			...defaultTranslationConfig.translations,
+			[resolved.language]: resolved.translations,
+		},
+	};
+}
+
+function toActiveUI(ui: KernelActiveUI): ActiveUI {
+	return (ui ?? 'none') as ActiveUI;
+}
+
+function toModel(model: ConsentSnapshot['model']): Model {
+	return (model ?? 'opt-in') as Model;
+}
+
+function displayedConsentTypes(categories: readonly AllConsentNames[]) {
+	const allowed =
+		categories.length > 0
+			? new Set(categories)
+			: new Set(allConsentNames as readonly AllConsentNames[]);
+	return defaultConsentTypes
+		.filter((type) => allowed.has(type.name))
+		.map((type) => ({ ...type, display: true }));
+}
+
+function createCompatState(
+	kernel: ConsentKernel,
+	options: ConsentControllerOptions
+): ConsentCompatState {
+	const getSnapshot = options.getSnapshot;
+
+	const controller = {
+		get consents() {
+			return getSnapshot().consents;
+		},
+		get selectedConsents() {
+			return options.getDraft().values;
+		},
+		get selectedConsentTypes() {
+			return options.getDraft().values;
+		},
+		get consentInfo() {
+			return getSnapshot().hasConsented ? { type: 'v3' as const } : null;
+		},
+		get consentCategories() {
+			const configured = options.getConsentCategories();
+			return configured.length > 0
+				? configured
+				: Array.from(
+						getSnapshot().policyCategories.length > 0
+							? getSnapshot().policyCategories
+							: allConsentNames
+					);
+		},
+		get consentTypes() {
+			return displayedConsentTypes(
+				(this as ConsentCompatState).consentCategories
+			);
+		},
+		get iab() {
+			return options.getIAB();
+		},
+		get manager() {
+			return null;
+		},
+		get activeUI() {
+			return toActiveUI(getSnapshot().activeUI);
+		},
+		get branding() {
+			return getSnapshot().branding ?? 'c15t';
+		},
+		get model() {
+			return toModel(getSnapshot().model);
+		},
+		get policyBanner() {
+			return getSnapshot().policyBanner ?? EMPTY_POLICY_SURFACE;
+		},
+		get policyDialog() {
+			return getSnapshot().policyDialog ?? EMPTY_POLICY_SURFACE;
+		},
+		get legalLinks() {
+			return options.getLegalLinks();
+		},
+		get translationConfig() {
+			return toTranslationConfig(getSnapshot());
+		},
+		getDisplayedConsents() {
+			return displayedConsentTypes(
+				(this as ConsentCompatState).consentCategories
+			);
+		},
+		has(condition: HasCondition<AllConsentNames>) {
+			const snapshot = getSnapshot();
+			const categories = Array.from(
+				snapshot.policyCategories
+			) as AllConsentNames[];
+			return evaluateHas(condition, snapshot.consents as ConsentState, {
+				policyCategories: categories.length > 0 ? categories : null,
+				policyScopeMode: snapshot.policyScopeMode,
+			});
+		},
+		hasConsented() {
+			return getSnapshot().hasConsented;
+		},
+		async saveConsents(type: SaveType) {
+			if (type === 'all') {
+				await kernel.commands.save('all');
+				options.getDraft().reset();
+				return;
+			}
+			if (type === 'necessary') {
+				await kernel.commands.save('none');
+				options.getDraft().reset();
+				return;
+			}
+			await options.getDraft().save();
+		},
+		setActiveUI(ui: ActiveUI) {
+			(
+				kernel.set as typeof kernel.set & {
+					activeUI(ui: KernelActiveUI): void;
+				}
+			).activeUI(ui as KernelActiveUI);
+		},
+		setConsent(name: AllConsentNames, value: boolean) {
+			kernel.set.consent({ [name]: value } as Partial<ConsentState>);
+		},
+		setLanguage(code: string) {
+			kernel.set.language(code);
+			void kernel.commands.init();
+		},
+		setSelectedConsent(name: AllConsentNames, value: boolean) {
+			options.getDraft().set(name, value);
+		},
+		subscribeToConsentChanges(listener: (state: ConsentState) => void) {
+			return kernel.subscribe((snapshot: ConsentSnapshot) =>
+				listener(snapshot.consents as ConsentState)
+			);
+		},
+		updateConsentCategories(_names: AllConsentNames[]) {
+			// v3 policy categories come from the kernel/provider config.
+		},
+	};
+
+	return new Proxy(controller as ConsentCompatState, {
+		get(target, prop, receiver) {
+			if (prop in target) return Reflect.get(target, prop, receiver);
+			return Reflect.get(getSnapshot(), prop, receiver);
+		},
+		has(target, prop) {
+			return prop in target || prop in getSnapshot();
+		},
+		ownKeys(target) {
+			return Array.from(
+				new Set([...Reflect.ownKeys(getSnapshot()), ...Reflect.ownKeys(target)])
+			);
+		},
+		getOwnPropertyDescriptor(target, prop) {
+			if (prop in target || prop in getSnapshot()) {
+				return { configurable: true, enumerable: true };
+			}
+			return undefined;
+		},
+	});
+}
+
+export function setConsentContext(
+	kernel: ConsentKernel,
+	options: ConsentControllerOptions
+): void {
+	const compatState = createCompatState(kernel, options);
+	setContext(CONSENT_CONTEXT_KEY, {
+		kernel,
+		get snapshot() {
+			return options.getSnapshot();
+		},
+		get state() {
+			return compatState;
+		},
+		get manager() {
+			return kernel;
+		},
+	} satisfies ConsentContextValue);
+}
+
+export function getConsentContext(): ConsentContextValue {
+	const context = getContext<ConsentContextValue | undefined>(
+		CONSENT_CONTEXT_KEY
+	);
+	if (!context) {
+		throw new Error(
+			'c15t: no v3 consent context. Wrap your app with <ConsentProvider options={...}> from @c15t/svelte.'
+		);
+	}
+	return context;
+}
+
+export function getConsentKernel(): ConsentKernel {
+	return getConsentContext().kernel;
+}
+
+export function getSnapshot(): ConsentSnapshot {
+	return getConsentContext().snapshot;
+}
+
+export function getConsent(): ConsentCompatState {
+	return getConsentContext().state;
+}
+
+export interface HeadlessConsentSurfaceState {
+	allowedActions: string[];
+	orderedActions: string[];
+	actionGroups: string[][];
+	primaryActions: string[];
+	layout?: unknown[];
+	direction: 'row' | 'column';
+	uiProfile?: string;
+	scrollLock?: boolean;
+	hasPolicyHints: boolean;
+	shouldFillActions: boolean;
+	isVisible: boolean;
+}
+
+export function getHeadlessConsent() {
+	const consent = getConsent();
+	return {
+		get activeUI() {
+			return consent.activeUI;
+		},
+		get banner() {
+			return resolveHeadlessSurface(consent, 'banner', consent.policyBanner);
+		},
+		get dialog() {
+			return resolveHeadlessSurface(consent, 'dialog', consent.policyDialog);
+		},
+		openBanner() {
+			consent.setActiveUI('banner');
+		},
+		openDialog() {
+			consent.setActiveUI('dialog');
+		},
+		closeUI() {
+			consent.setActiveUI('none');
+		},
+		async performAction(action: 'accept' | 'reject' | 'customize') {
+			if (action === 'accept') {
+				await consent.saveConsents('all');
+				return;
+			}
+			if (action === 'reject') {
+				await consent.saveConsents('necessary');
+				return;
+			}
+			consent.setActiveUI('dialog');
+		},
+		async saveCustomPreferences() {
+			await consent.saveConsents('custom');
+		},
+	};
+}
+
+function resolveHeadlessSurface(
+	consent: ConsentCompatState,
+	surface: 'banner' | 'dialog',
+	policy: PolicyUiSurfaceConfig
+): HeadlessConsentSurfaceState {
+	const allowedActions = (policy.allowedActions ?? [
+		'reject',
+		'accept',
+		'customize',
+	]) as string[];
+	const layout = policy.layout as unknown[] | undefined;
+	const orderedActions =
+		layout?.flatMap((group) => (Array.isArray(group) ? group : [group])) ??
+		allowedActions;
+	const actionGroups = layout?.map((group) =>
+		Array.isArray(group) ? group : [group]
+	) ?? [allowedActions];
+	const direction = policy.direction === 'column' ? 'column' : 'row';
+	const primaryActions = (policy.primaryActions as string[] | undefined) ?? [
+		'customize',
+	];
+	return {
+		allowedActions,
+		orderedActions: orderedActions as string[],
+		actionGroups: actionGroups as string[][],
+		primaryActions,
+		layout,
+		direction,
+		uiProfile: policy.uiProfile as string | undefined,
+		scrollLock: policy.scrollLock,
+		hasPolicyHints: Object.keys(policy).length > 0,
+		shouldFillActions: direction === 'column' && actionGroups.length > 1,
+		isVisible: consent.activeUI === surface,
+	};
+}
+
+export function getIAB(): SvelteIABState | null {
+	return getConsentContext().state.iab;
+}
+
 export function setTrackingContext(value: ConsentTrackingValue): void {
 	setContext(TRACKING_CONTEXT_KEY, value);
 }
 
-/**
- * Gets the consent tracking context. Returns empty object if not set.
- */
 export function getTrackingContext(): ConsentTrackingValue {
 	return (
 		getContext<ConsentTrackingValue | undefined>(TRACKING_CONTEXT_KEY) ?? {}
 	);
 }
 
-/**
- * Sets the theme context. Called by ConsentManagerProvider.
- * @internal
- */
 export function setThemeContext(value: ThemeContextValue): void {
 	setContext(THEME_CONTEXT_KEY, value);
 }
 
-/**
- * Gets the theme context.
- */
 export function getThemeContext(): ThemeContextValue {
 	return (
 		getContext<ThemeContextValue | undefined>(THEME_CONTEXT_KEY) ?? {

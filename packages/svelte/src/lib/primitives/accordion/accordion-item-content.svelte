@@ -1,7 +1,7 @@
 <script lang="ts">
+	import { getOpenState } from '@c15t/ui/primitives';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
-	import { getOpenState } from '@c15t/ui/primitives';
 	import { getAccordionItemContext } from './context';
 
 	const item = getAccordionItemContext();

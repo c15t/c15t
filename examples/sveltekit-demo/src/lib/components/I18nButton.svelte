@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { getConsentContext } from '@c15t/svelte';
+	import { getConsent } from '@c15t/svelte';
 
-	const consent = getConsentContext();
+	const consent = getConsent();
 	const languages = ['en', 'zh', 'fr', 'de'];
 
 	function cycleLanguage() {
-		const currentLang = consent.state.translationConfig?.defaultLanguage ?? 'en';
+		const currentLang = consent.translationConfig?.defaultLanguage ?? 'en';
 		const currentIndex = languages.indexOf(currentLang);
 		const nextIndex = (currentIndex + 1) % languages.length;
-		consent.state.setLanguage(languages[nextIndex]);
+		consent.setLanguage(languages[nextIndex]);
 	}
 </script>
 

@@ -1,29 +1,18 @@
-// Core exports (no components)
-export {
-	type ConsentManagerInterface,
-	configureConsentManager,
-	defaultTranslationConfig,
-	detectBrowserLanguage,
-	mergeTranslationConfigs,
-	prepareTranslationConfig,
-} from 'c15t';
+export type { AllConsentNames } from 'c15t';
+export type { ConsentState, KernelActiveUI, KernelConfig } from 'c15t/v3';
 export { focusTrap } from './actions/focus-trap';
-// Actions
 export { portal } from './actions/portal';
 export { scrollLock } from './actions/scroll-lock';
-// Provider (still needed for headless mode)
-export { default as ConsentManagerProvider } from './components/consent-manager-provider.svelte';
-// Components (useful for headless custom UIs)
 export { default as InlineLegalLinks } from './components/inline-legal-links.svelte';
-// Context (primary API for headless usage)
 export {
-	type ConsentContextValue,
-	getConsentContext,
-	getConsentManager,
-	getThemeContext,
-	type ThemeContextValue,
+	getConsent,
+	getConsentKernel,
+	getHeadlessConsent,
+	getIAB,
+	getSnapshot,
+	type HeadlessConsentSurfaceState,
+	type SvelteIABState,
 } from './context.svelte';
-// IAB types and utilities (for headless/custom IAB UI)
 export { getIABTranslations, type IABTranslations } from './iab-translations';
 export {
 	getIABBannerDisplayItems,
@@ -36,5 +25,4 @@ export {
 	processGVLData,
 	type VendorId,
 } from './iab-types';
-// Types
-export type { ConsentManagerOptions } from './types';
+export type { ConsentProviderOptions } from './types';

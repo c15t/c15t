@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import type { Snippet } from 'svelte';
-	import type { HTMLAttributes } from 'svelte/elements';
 	import type { AccordionType } from '@c15t/ui/primitives';
-	import { setAccordionRootContext } from './context';
 	import { toggleAccordionValue } from '@c15t/ui/primitives';
+	import type { Snippet } from 'svelte';
+	import { untrack } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
+	import { setAccordionRootContext } from './context';
 
 	let {
 		children,

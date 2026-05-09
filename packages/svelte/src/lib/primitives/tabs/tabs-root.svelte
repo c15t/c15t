@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import type { Snippet } from 'svelte';
-	import type { HTMLAttributes } from 'svelte/elements';
 	import type { TabsOrientation } from '@c15t/ui/primitives';
 	import { getDataDisabled } from '@c15t/ui/primitives';
+	import type { Snippet } from 'svelte';
+	import { untrack } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
 	import { setTabsRootContext } from './context';
 
 	const componentId = $props.id();

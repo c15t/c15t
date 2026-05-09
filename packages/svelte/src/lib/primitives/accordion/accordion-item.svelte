@@ -1,7 +1,7 @@
 <script lang="ts">
+	import { getDataDisabled, getOpenState, isAccordionItemOpen } from '@c15t/ui/primitives';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
-	import { getDataDisabled, getOpenState, isAccordionItemOpen } from '@c15t/ui/primitives';
 	import { getAccordionRootContext, setAccordionItemContext } from './context';
 
 	const componentId = $props.id();

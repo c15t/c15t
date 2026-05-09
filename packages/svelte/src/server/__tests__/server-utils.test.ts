@@ -1,11 +1,14 @@
 /**
  * Tests for server-side utilities.
  *
- * Covers: extractRelevantHeaders, validateBackendURL, normalizeBackendURL, fetchSSRData
+ * Covers: extractRelevantHeaders, validateBackendURL, normalizeBackendURL, v3 prefetch helpers
  */
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { fetchSSRData } from '../../lib/server/fetch-ssr-data';
+import {
+	prefetchInitialConsent,
+	readInitialConsentConfig,
+} from '../../lib/server';
 import { extractRelevantHeaders } from '../../lib/server/headers';
 import {
 	normalizeBackendURL,
@@ -239,9 +242,9 @@ describe('normalizeBackendURL', () => {
 	});
 });
 
-// ─── fetchSSRData ────────────────────────────────────────────────────────────
+// ─── v3 initial config / prefetch ───────────────────────────────────────────
 
-describe('fetchSSRData', () => {
+describe('v3 server helpers', () => {
 	const mockFetch = vi.fn();
 
 	beforeEach(() => {
@@ -253,35 +256,54 @@ describe('fetchSSRData', () => {
 		vi.restoreAllMocks();
 	});
 
-	test('returns undefined when no relevant headers found', async () => {
+	test('readInitialConsentConfig returns empty config when no request context is present', async () => {
 		const headers = new Headers({
 			'content-type': 'application/json',
 		});
-		const result = await fetchSSRData({
-			backendURL: 'https://api.example.com',
+		const result = await readInitialConsentConfig({
 			headers,
 		});
-		expect(result).toBeUndefined();
-		expect(mockFetch).not.toHaveBeenCalled();
+		expect(result).toEqual({});
 	});
 
-	test('returns undefined when URL normalization fails', async () => {
+	test('readInitialConsentConfig reads geo, language, and consent cookie', async () => {
+		const headers = new Headers({
+			'cf-ipcountry': 'DE',
+			'x-vercel-ip-country-region': 'BE',
+			'accept-language': 'de-DE,de;q=0.9',
+			cookie: `c15t-consent=${encodeURIComponent(
+				JSON.stringify({ necessary: true, marketing: true })
+			)}`,
+		});
+		const result = await readInitialConsentConfig({
+			headers,
+		});
+
+		expect(result.initialOverrides).toEqual({
+			country: 'DE',
+			region: 'BE',
+			language: 'de-DE',
+		});
+		expect(result.initialConsents?.marketing).toBe(true);
+	});
+
+	test('prefetchInitialConsent returns base config when URL normalization fails', async () => {
 		const headers = new Headers({
 			'cf-ipcountry': 'DE',
 		});
-		// Relative URL with no host headers = can't normalize
-		const result = await fetchSSRData({
+		const result = await prefetchInitialConsent({
 			backendURL: '/api/consent',
 			headers,
+			fetch: mockFetch,
 		});
-		expect(result).toBeUndefined();
+		expect(result.initialOverrides?.country).toBe('DE');
 		expect(mockFetch).not.toHaveBeenCalled();
 	});
 
-	test('makes fetch call to normalized URL /init', async () => {
+	test('prefetchInitialConsent calls normalized URL /init', async () => {
 		const initData = {
-			showConsentBanner: true,
-			jurisdiction: { code: 'GDPR' },
+			location: { countryCode: 'DE', regionCode: null },
+			branding: 'c15t',
 		};
 		mockFetch.mockResolvedValue(
 			new Response(JSON.stringify(initData), {
@@ -293,20 +315,27 @@ describe('fetchSSRData', () => {
 		const headers = new Headers({
 			'cf-ipcountry': 'DE',
 		});
-		await fetchSSRData({
+		await prefetchInitialConsent({
 			backendURL: 'https://api.example.com',
 			headers,
+			fetch: mockFetch,
 		});
 
 		expect(mockFetch).toHaveBeenCalledOnce();
 		expect(mockFetch.mock.calls[0][0]).toBe('https://api.example.com/init');
+		expect(mockFetch.mock.calls[0][1].method).toBe('POST');
 	});
 
-	test('returns { init, gvl } on successful response', async () => {
+	test('prefetchInitialConsent folds init response into KernelConfig', async () => {
 		const initData = {
-			showConsentBanner: true,
-			jurisdiction: { code: 'GDPR' },
-			gvl: { vendors: {} },
+			location: { countryCode: 'DE', regionCode: null },
+			translations: { language: 'en', translations: {} },
+			branding: 'c15t',
+			policy: { id: 'gdpr', model: 'opt-in', ui: { mode: 'banner' } },
+			policySnapshotToken: 'token',
+			gvl: { vendors: {}, purposes: {}, stacks: {}, specialFeatures: {} },
+			customVendors: [],
+			cmpId: 123,
 		};
 		mockFetch.mockResolvedValue(
 			new Response(JSON.stringify(initData), {
@@ -318,107 +347,49 @@ describe('fetchSSRData', () => {
 		const headers = new Headers({
 			'cf-ipcountry': 'DE',
 		});
-		const result = await fetchSSRData({
+		const result = await prefetchInitialConsent({
 			backendURL: 'https://api.example.com',
 			headers,
+			fetch: mockFetch,
 		});
 
-		expect(result).toBeDefined();
-		expect(result?.init).toEqual(initData);
-		expect(result?.gvl).toEqual({ vendors: {} });
+		expect(result.initialLocation).toEqual(initData.location);
+		expect(result.initialTranslations).toEqual(initData.translations);
+		expect(result.initialBranding).toBe('c15t');
+		expect(result.initialPolicy).toEqual(initData.policy);
+		expect(result.initialPolicySnapshotToken).toBe('token');
+		expect(result.initialIab?.cmpId).toBe(123);
 	});
 
-	test('returns undefined on non-OK response', async () => {
+	test('prefetchInitialConsent returns base config on non-OK response', async () => {
 		mockFetch.mockResolvedValue(new Response('Not Found', { status: 404 }));
 
 		const headers = new Headers({
 			'cf-ipcountry': 'DE',
 		});
-		const result = await fetchSSRData({
+		const result = await prefetchInitialConsent({
 			backendURL: 'https://api.example.com',
 			headers,
+			fetch: mockFetch,
 		});
 
-		expect(result).toBeUndefined();
+		expect(result.initialOverrides?.country).toBe('DE');
+		expect(result.initialPolicy).toBeUndefined();
 	});
 
-	test('returns undefined on fetch error/network failure', async () => {
+	test('prefetchInitialConsent returns base config on fetch error', async () => {
 		mockFetch.mockRejectedValue(new Error('Network error'));
 
 		const headers = new Headers({
 			'cf-ipcountry': 'DE',
 		});
-		const result = await fetchSSRData({
+		const result = await prefetchInitialConsent({
 			backendURL: 'https://api.example.com',
 			headers,
+			fetch: mockFetch,
 		});
 
-		expect(result).toBeUndefined();
-	});
-
-	test('applies country override header', async () => {
-		const initData = { showConsentBanner: true };
-		mockFetch.mockResolvedValue(
-			new Response(JSON.stringify(initData), {
-				status: 200,
-				headers: { 'Content-Type': 'application/json' },
-			})
-		);
-
-		const headers = new Headers({
-			'cf-ipcountry': 'DE',
-		});
-		await fetchSSRData({
-			backendURL: 'https://api.example.com',
-			headers,
-			overrides: { country: 'US' },
-		});
-
-		const fetchHeaders = mockFetch.mock.calls[0][1].headers;
-		expect(fetchHeaders['x-c15t-country']).toBe('US');
-	});
-
-	test('applies region override header', async () => {
-		const initData = { showConsentBanner: true };
-		mockFetch.mockResolvedValue(
-			new Response(JSON.stringify(initData), {
-				status: 200,
-				headers: { 'Content-Type': 'application/json' },
-			})
-		);
-
-		const headers = new Headers({
-			'cf-ipcountry': 'DE',
-		});
-		await fetchSSRData({
-			backendURL: 'https://api.example.com',
-			headers,
-			overrides: { region: 'CA' },
-		});
-
-		const fetchHeaders = mockFetch.mock.calls[0][1].headers;
-		expect(fetchHeaders['x-c15t-region']).toBe('CA');
-	});
-
-	test('applies language override header', async () => {
-		const initData = { showConsentBanner: true };
-		mockFetch.mockResolvedValue(
-			new Response(JSON.stringify(initData), {
-				status: 200,
-				headers: { 'Content-Type': 'application/json' },
-			})
-		);
-
-		const headers = new Headers({
-			'cf-ipcountry': 'DE',
-		});
-		await fetchSSRData({
-			backendURL: 'https://api.example.com',
-			headers,
-			overrides: { language: 'fr-FR' },
-		});
-
-		const fetchHeaders = mockFetch.mock.calls[0][1].headers;
-		expect(fetchHeaders['accept-language']).toBe('fr-FR');
+		expect(result.initialOverrides?.country).toBe('DE');
+		expect(result.initialPolicy).toBeUndefined();
 	});
 });

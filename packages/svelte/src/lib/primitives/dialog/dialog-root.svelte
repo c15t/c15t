@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
 	import type { Snippet } from 'svelte';
+	import { untrack } from 'svelte';
 	import { setDialogRootContext } from './context';
 
 	const componentId = $props.id();

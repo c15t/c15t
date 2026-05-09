@@ -3,7 +3,7 @@
 		ConsentBanner,
 		ConsentDialog,
 		ConsentDialogTrigger,
-		ConsentManagerProvider,
+		ConsentProvider,
 		IABConsentBanner,
 		IABConsentDialog,
 	} from '@c15t/svelte';
@@ -12,7 +12,7 @@
 	let { children } = $props();
 </script>
 
-<ConsentManagerProvider
+<ConsentProvider
 	options={{
 		mode: 'offline',
 		consentCategories: ['necessary', 'marketing', 'measurement'],
@@ -79,4 +79,4 @@
 	<IABConsentDialog />
 	<ConsentDialogTrigger />
 	{@render children()}
-</ConsentManagerProvider>
+</ConsentProvider>

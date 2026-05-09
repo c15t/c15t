@@ -7,7 +7,9 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
-		"check-types": "svelte-check --tsconfig ./tsconfig.json"
+		"check-types": "svelte-check --tsconfig ./tsconfig.json",
+		"bench:banner-visibility": "bun run ./scripts/run-banner-visibility-bench.ts",
+		"bench:script-count": "bun run ./scripts/run-script-count-bench.ts"
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",

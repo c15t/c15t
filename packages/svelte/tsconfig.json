@@ -4,7 +4,13 @@
 		"moduleResolution": "bundler",
 		"baseUrl": ".",
 		"paths": {
-			"~/*": ["./src/lib/*"]
+			"@c15t/iab": ["../iab/src/index.ts"],
+			"@c15t/iab/v3": ["../iab/src/v3/index.ts"],
+			"@c15t/iab/*": ["../iab/src/*"],
+			"c15t": ["../core/dist-types/index.d.ts"],
+			"c15t/v3": ["../core/src/v3/index.ts"],
+			"c15t/v3/modules/*": ["../core/src/v3/modules/*/index.ts"],
+			"~/*": ["../core/src/*", "./src/lib/*"]
 		}
 	},
 	"include": ["src"],
