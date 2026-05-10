@@ -162,6 +162,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'rybbitAnalytics',
+		vendor: 'rybbit-analytics',
+		label: 'Rybbit Analytics',
+		hint: 'Privacy-friendly web analytics',
+		docsSlug: 'rybbit-analytics',
+		packageSubpath: 'rybbit-analytics',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'plausibleAnalytics',
 		vendor: 'plausible-analytics',
 		label: 'Plausible Analytics',

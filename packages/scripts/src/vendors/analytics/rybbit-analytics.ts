@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
 declare global {
 	interface Window {
@@ -18,8 +18,11 @@ function booleanAttribute(value: boolean | undefined): string | undefined {
 	if (value === undefined) {
 		return undefined;
 	}
+	if (value) {
+		return 'true';
+	}
 
-	return value ? 'true' : 'false';
+	return 'false';
 }
 
 /**
@@ -55,74 +58,33 @@ export const rybbitAnalyticsManifest = {
 } as const satisfies VendorManifest;
 
 export interface RybbitAnalyticsOptions {
-	/**
-	 * Your Rybbit site ID.
-	 */
+	/** Your Rybbit site ID. */
 	siteId: string | number;
-
-	/**
-	 * Automatically track pageviews.
-	 */
+	/** Automatically track pageviews. */
 	autoTrackPageview?: boolean;
-
-	/**
-	 * Enable SPA route tracking.
-	 */
+	/** Enable SPA route tracking. */
 	trackSpa?: boolean;
-
-	/**
-	 * Include query parameters in tracked URLs.
-	 */
+	/** Include query parameters in tracked URLs. */
 	trackQuery?: boolean;
-
-	/**
-	 * Track outbound link clicks.
-	 */
+	/** Track outbound link clicks. */
 	trackOutbound?: boolean;
-
-	/**
-	 * Track JavaScript errors.
-	 */
+	/** Track JavaScript errors. */
 	trackErrors?: boolean;
-
-	/**
-	 * Enable session replay.
-	 */
+	/** Enable session replay. */
 	sessionReplay?: boolean;
-
-	/**
-	 * Enable Web Vitals tracking.
-	 */
+	/** Enable Web Vitals tracking. */
 	webVitals?: boolean;
-
-	/**
-	 * URL patterns to skip from tracking.
-	 */
+	/** URL patterns to skip from tracking. */
 	skipPatterns?: string[];
-
-	/**
-	 * URL patterns to mask in tracked data.
-	 */
+	/** URL patterns to mask in tracked data. */
 	maskPatterns?: string[];
-
-	/**
-	 * Debounce interval for pageview tracking.
-	 */
+	/** Debounce interval for pageview tracking. */
 	debounce?: number;
-
-	/**
-	 * API key for authenticated tracking.
-	 */
+	/** API key for authenticated tracking. */
 	apiKey?: string;
-
-	/**
-	 * Override the analytics host URL.
-	 */
+	/** Override the analytics host URL. */
 	analyticsHost?: string;
-
-	/**
-	 * Custom loader URL.
-	 */
+	/** Custom loader URL. */
 	scriptUrl?: string;
 }
 
@@ -130,7 +92,6 @@ function getRybbitScriptUrl(options: RybbitAnalyticsOptions): string {
 	if (options.scriptUrl) {
 		return options.scriptUrl;
 	}
-
 	if (options.analyticsHost) {
 		return `${options.analyticsHost}/script.js`;
 	}
@@ -141,17 +102,26 @@ function getRybbitScriptUrl(options: RybbitAnalyticsOptions): string {
 /**
  * Creates a Rybbit Analytics script.
  *
- * The upstream registry helper adds a client-side queue wrapper around the global
- * API. c15t's manifest engine cannot serialize that wrapper, so this helper
- * keeps only the declarative script configuration.
- *
- * @see https://rybbit.io/docs
- *
  * @param options - The options for the Rybbit Analytics script.
  * @returns The Rybbit Analytics script.
  */
 export function rybbitAnalytics(options: RybbitAnalyticsOptions): Script {
-	const resolved = resolveManifest(rybbitAnalyticsManifest, {
+	let debounce: string | undefined;
+	if (options.debounce !== undefined) {
+		debounce = String(options.debounce);
+	}
+
+	let skipPatterns: string | undefined;
+	if (options.skipPatterns) {
+		skipPatterns = JSON.stringify(options.skipPatterns);
+	}
+
+	let maskPatterns: string | undefined;
+	if (options.maskPatterns) {
+		maskPatterns = JSON.stringify(options.maskPatterns);
+	}
+
+	return resolveManifest(rybbitAnalyticsManifest, {
 		scriptUrl: getRybbitScriptUrl(options),
 		siteId: String(options.siteId),
 		autoTrackPageview: booleanAttribute(options.autoTrackPageview),
@@ -161,16 +131,9 @@ export function rybbitAnalytics(options: RybbitAnalyticsOptions): Script {
 		trackErrors: booleanAttribute(options.trackErrors),
 		sessionReplay: booleanAttribute(options.sessionReplay),
 		webVitals: booleanAttribute(options.webVitals),
-		skipPatterns: options.skipPatterns
-			? JSON.stringify(options.skipPatterns)
-			: undefined,
-		maskPatterns: options.maskPatterns
-			? JSON.stringify(options.maskPatterns)
-			: undefined,
-		debounce:
-			options.debounce === undefined ? undefined : String(options.debounce),
+		skipPatterns,
+		maskPatterns,
+		debounce,
 		apiKey: options.apiKey,
 	});
-
-	return resolved;
 }

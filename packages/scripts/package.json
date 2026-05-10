@@ -47,6 +47,11 @@
 			"import": "./dist/vendors/analytics/posthog.js",
 			"require": "./dist/vendors/analytics/posthog.cjs"
 		},
+		"./rybbit-analytics": {
+			"types": "./dist-types/vendors/analytics/rybbit-analytics.d.ts",
+			"import": "./dist/vendors/analytics/rybbit-analytics.js",
+			"require": "./dist/vendors/analytics/rybbit-analytics.cjs"
+		},
 		"./umami-analytics": {
 			"types": "./dist-types/vendors/analytics/umami-analytics.d.ts",
 			"import": "./dist/vendors/analytics/umami-analytics.js",
