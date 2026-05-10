@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
 declare global {
 	interface Window {
@@ -48,7 +48,7 @@ export const mixpanelAnalyticsManifest = {
 		},
 		{
 			type: 'loadScript',
-			src: '{{scriptSrc}}',
+			src: '{{scriptUrl}}',
 			async: true,
 		},
 	],
@@ -91,51 +91,29 @@ export const mixpanelAnalyticsManifest = {
 } as const satisfies VendorManifest;
 
 export interface MixpanelAnalyticsOptions {
-	/**
-	 * Your Mixpanel project token.
-	 * @example `1234567890abcdef1234567890abcdef`
-	 */
+	/** Your Mixpanel project token. */
 	token: string;
-
-	/**
-	 * Mixpanel init options passed after the library loads.
-	 *
-	 * The manifest engine cannot serialize Mixpanel's full custom bootstrap
-	 * snippet, so named instances and nested `people.*` queue helpers are out of
-	 * scope for this helper.
-	 */
+	/** Mixpanel init options passed after the library loads. */
 	initOptions?: Record<string, unknown>;
-
 	/** Mixpanel loader URL. */
-	scriptSrc?: string;
+	scriptUrl?: string;
 }
 
 /**
  * Creates a Mixpanel Analytics script.
  *
- * @param options - The options for the Mixpanel Analytics script
- * @returns The Mixpanel Analytics script configuration
- *
- * @example
- * ```ts
- * const mixpanelAnalyticsScript = mixpanelAnalytics({
- *   token: '1234567890abcdef1234567890abcdef',
- * });
- * ```
- *
- * @see {@link https://docs.mixpanel.com/docs/tracking-methods/sdks/javascript} Mixpanel JavaScript SDK documentation
+ * @param options - The options for the Mixpanel Analytics script.
+ * @returns The Mixpanel Analytics script configuration.
  */
 export function mixpanelAnalytics({
 	token,
 	initOptions,
-	scriptSrc,
+	scriptUrl,
 }: MixpanelAnalyticsOptions): Script {
-	const resolved = resolveManifest(mixpanelAnalyticsManifest, {
+	return resolveManifest(mixpanelAnalyticsManifest, {
 		token,
 		initOptions: initOptions ?? {},
-		scriptSrc:
-			scriptSrc ?? 'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js',
+		scriptUrl:
+			scriptUrl ?? 'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js',
 	});
-
-	return resolved;
 }

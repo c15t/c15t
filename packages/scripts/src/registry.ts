@@ -152,6 +152,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'mixpanelAnalytics',
+		vendor: 'mixpanel-analytics',
+		label: 'Mixpanel Analytics',
+		hint: 'Product analytics and funnels',
+		docsSlug: 'mixpanel-analytics',
+		packageSubpath: 'mixpanel-analytics',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'posthog',
 		vendor: 'posthog',
 		label: 'PostHog',

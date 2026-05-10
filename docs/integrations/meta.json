@@ -15,6 +15,7 @@
 		"cloudflare-web-analytics",
 		"databuddy",
 		"fathom-analytics",
+		"mixpanel-analytics",
 		"posthog",
 		"plausible-analytics",
 		"umami-analytics",

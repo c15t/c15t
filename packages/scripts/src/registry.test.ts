@@ -42,6 +42,10 @@ import {
 } from './vendors/analytics/fathom-analytics';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
 import {
+	mixpanelAnalytics,
+	mixpanelAnalyticsManifest,
+} from './vendors/analytics/mixpanel-analytics';
+import {
 	plausibleAnalytics,
 	plausibleAnalyticsManifest,
 } from './vendors/analytics/plausible-analytics';
@@ -114,6 +118,16 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://cdn.usefathom.com/script.js',
+		},
+	},
+	mixpanelAnalytics: {
+		script: mixpanelAnalytics({
+			token: '1234567890abcdef1234567890abcdef',
+		}),
+		expected: {
+			alwaysLoad: true,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js',
 		},
 	},
 	posthog: {
@@ -197,6 +211,7 @@ const vendorManifests = [
 	cloudflareWebAnalyticsManifest,
 	databuddyManifest,
 	fathomAnalyticsManifest,
+	mixpanelAnalyticsManifest,
 	posthogManifest,
 	plausibleAnalyticsManifest,
 	umamiAnalyticsManifest,
