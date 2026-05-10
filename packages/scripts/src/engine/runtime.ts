@@ -1,6 +1,6 @@
 import {
-	emitScriptDebugEvent,
 	type ConsentState,
+	emitScriptDebugEvent,
 	type Script,
 	type ScriptCallbackInfo,
 } from 'c15t';

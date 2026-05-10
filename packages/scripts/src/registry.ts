@@ -1,4 +1,7 @@
-export type IntegrationCategory = 'analytics' | 'ads-and-pixels' | 'tag-manager';
+export type IntegrationCategory =
+	| 'analytics'
+	| 'ads-and-pixels'
+	| 'tag-manager';
 export type IntegrationConsentCategory =
 	| 'necessary'
 	| 'functionality'
