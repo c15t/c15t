@@ -3,10 +3,11 @@ import {
 	emitScriptDebugEvent,
 	type Script,
 	type ScriptCallbackInfo,
+	type ScriptLifecycleCallback,
 } from 'c15t';
 import type { ManifestStep, ResolvedManifest } from '../types';
 
-type ManifestLifecycleCallback = 'onBeforeLoad' | 'onLoad' | 'onConsentChange';
+type ManifestLifecycleCallback = Exclude<ScriptLifecycleCallback, 'onError'>;
 
 interface StepExecutionContext {
 	scriptId: string;

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+	createCallbackInfo,
 	deniedConsentState,
 	expectScriptMatchesIntegration,
 	getTestGlobal,
@@ -53,12 +54,12 @@ describe('databuddy', () => {
 			'data-api-url': 'https://basket.databuddy.cc',
 		});
 
-		script.onBeforeLoad?.({
-			id: script.id,
-			elementId: script.id,
-			hasConsent: false,
-			consents: deniedConsentState,
-		});
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: deniedConsentState,
+			})
+		);
 
 		expect(globalRef.databuddyConfig).toEqual({
 			clientId: 'db_123',
@@ -79,24 +80,25 @@ describe('databuddy', () => {
 			},
 		};
 
-		script.onLoad?.({
-			id: script.id,
-			elementId: script.id,
-			hasConsent: true,
-			consents: grantedMeasurementConsentState,
-		});
+		script.onLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				hasConsent: true,
+				consents: grantedMeasurementConsentState,
+			})
+		);
 
 		expect(
 			(globalRef.databuddy as { options: { disabled: boolean } }).options
 				.disabled
 		).toBe(false);
 
-		script.onConsentChange?.({
-			id: script.id,
-			elementId: script.id,
-			hasConsent: false,
-			consents: deniedConsentState,
-		});
+		script.onConsentChange?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: deniedConsentState,
+			})
+		);
 
 		expect(
 			(globalRef.databuddy as { options: { disabled: boolean } }).options
@@ -109,12 +111,13 @@ describe('databuddy', () => {
 			disabled: true,
 		});
 
-		script.onConsentChange?.({
-			id: script.id,
-			elementId: script.id,
-			hasConsent: true,
-			consents: grantedMeasurementConsentState,
-		});
+		script.onConsentChange?.(
+			createCallbackInfo({
+				id: script.id,
+				hasConsent: true,
+				consents: grantedMeasurementConsentState,
+			})
+		);
 
 		expect(globalRef.databuddyConfig).toEqual({
 			clientId: 'db_123',

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+	createCallbackInfo,
 	deniedConsentState,
 	expectScriptMatchesIntegration,
 	getTestGlobal,
@@ -56,12 +57,12 @@ describe('posthog', () => {
 			'data-ui-host': 'https://eu.i.posthog.com',
 		});
 
-		script.onLoad?.({
-			id: script.id,
-			elementId: script.id,
-			hasConsent: false,
-			consents: deniedConsentState,
-		});
+		script.onLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: deniedConsentState,
+			})
+		);
 
 		expect(init).toHaveBeenCalledWith(globalRef.posthog, 'phc_123', {
 			api_host: 'https://eu.i.posthog.com',
@@ -72,12 +73,13 @@ describe('posthog', () => {
 		});
 		expect(optOut).toHaveBeenCalledTimes(1);
 
-		script.onConsentChange?.({
-			id: script.id,
-			elementId: script.id,
-			hasConsent: true,
-			consents: grantedMeasurementConsentState,
-		});
+		script.onConsentChange?.(
+			createCallbackInfo({
+				id: script.id,
+				hasConsent: true,
+				consents: grantedMeasurementConsentState,
+			})
+		);
 
 		expect(optIn).toHaveBeenCalledTimes(1);
 	});

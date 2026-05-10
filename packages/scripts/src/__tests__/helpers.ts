@@ -1,3 +1,4 @@
+import type { ConsentState, ScriptCallbackInfo } from 'c15t';
 import { afterEach, beforeEach, expect, vi } from 'vitest';
 import {
 	type BuiltInScriptIntegrationKey,
@@ -47,7 +48,7 @@ export interface ExpectedScriptSnapshot {
  * preferences, `measurement` controls analytics, `marketing` controls
  * advertising-related storage, and `experience` controls personalization.
  */
-export const deniedConsentState = {
+export const deniedConsentState: ConsentState = {
 	necessary: true,
 	functionality: false,
 	measurement: false,
@@ -62,13 +63,36 @@ export const deniedConsentState = {
  * preferences, `measurement` controls analytics, `marketing` controls
  * advertising-related storage, and `experience` controls personalization.
  */
-export const grantedMeasurementConsentState = {
+export const grantedMeasurementConsentState: ConsentState = {
 	necessary: true,
 	functionality: false,
 	measurement: true,
 	marketing: false,
 	experience: false,
 };
+
+/**
+ * Required callback fields for creating a script lifecycle payload in tests.
+ */
+export type CallbackInfoOverrides = Partial<ScriptCallbackInfo> &
+	Pick<ScriptCallbackInfo, 'id'>;
+
+/**
+ * Creates a fully typed callback payload for script lifecycle tests.
+ *
+ * Defaults model a denied-consent callback for the same DOM element ID as the
+ * script ID, while allowing individual tests to override the relevant fields.
+ */
+export function createCallbackInfo(
+	overrides: CallbackInfoOverrides
+): ScriptCallbackInfo {
+	return {
+		elementId: overrides.id,
+		hasConsent: false,
+		consents: deniedConsentState,
+		...overrides,
+	};
+}
 
 /**
  * Returns a mutable test-friendly reference to the global object.

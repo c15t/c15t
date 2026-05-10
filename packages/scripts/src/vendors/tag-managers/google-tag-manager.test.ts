@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+	createCallbackInfo,
 	deniedConsentState,
 	expectScriptMatchesIntegration,
 	getTestGlobal,
@@ -28,12 +29,12 @@ describe('googleTagManager', () => {
 		const script = googleTagManager({ id: 'GTM-ORDER' });
 		globalRef.dataLayer = [];
 
-		script.onBeforeLoad?.({
-			id: script.id,
-			elementId: script.id,
-			hasConsent: false,
-			consents: deniedConsentState,
-		});
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: deniedConsentState,
+			})
+		);
 
 		const dataLayer = globalRef.dataLayer as unknown[];
 		expect(toArgumentsArray(dataLayer[0])).toEqual([
