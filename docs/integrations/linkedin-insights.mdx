@@ -6,12 +6,18 @@ lastModified: 2025-09-24
 icon: linkedin
 ---
 
-LinkedIn Insights Tag is LinkedIn's conversion tracking and audience matching tool for LinkedIn advertising campaigns. It tracks website actions, measures ad performance, builds matched audiences for retargeting, and provides demographic insights about your visitors. By default, c15t loads this script based on `marketing` consent.
+LinkedIn Insights Tag is LinkedIn's conversion tracking and audience matching tool for LinkedIn advertising campaigns. It tracks website actions, measures ad performance, builds matched audiences for retargeting, and provides demographic insights about your visitors.
+
+## How c15t loads it
+
+- **Category:** `marketing` (Ads & Pixels)
+- **Loads when:** marketing consent is granted
+- **On revocation:** unloaded — c15t removes the script element from the DOM
 
 ## Adding the LinkedIn Insights Tag to c15t
 
 <Callout type="info">
-  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+  Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
 </Callout>
 
 ```ts
@@ -26,7 +32,7 @@ linkedinInsights({
 
 ### LinkedInInsightsOptions
 
-<AutoTypeTable path="./packages/scripts/src/linkedin-insights.ts" name="LinkedInInsightsOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/linkedin-insights.ts" name="LinkedInInsightsOptions" />
 
 ### Script
 

@@ -9,17 +9,17 @@
 	"pages": [
 		"overview",
 		"building-integrations",
-		"--- Tag Management ---",
-		"google-tag-manager",
+		"--- Analytics ---",
 		"google-tag",
-		"--- Measurement ---",
 		"databuddy",
 		"posthog",
-		"--- Advertising & Conversion Tracking ---",
+		"--- Ads & Pixels ---",
 		"meta-pixel",
 		"tiktok-pixel",
 		"linkedin-insights",
 		"microsoft-uet",
-		"x-pixel"
+		"x-pixel",
+		"--- Tag Managers ---",
+		"google-tag-manager"
 	]
 }
