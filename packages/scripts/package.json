@@ -87,6 +87,11 @@
 			"import": "./dist/vendors/ads-and-pixels/meta-pixel.js",
 			"require": "./dist/vendors/ads-and-pixels/meta-pixel.cjs"
 		},
+		"./reddit-pixel": {
+			"types": "./dist-types/vendors/ads-and-pixels/reddit-pixel.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/reddit-pixel.js",
+			"require": "./dist/vendors/ads-and-pixels/reddit-pixel.cjs"
+		},
 		"./microsoft-uet": {
 			"types": "./dist-types/vendors/ads-and-pixels/microsoft-uet.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/microsoft-uet.js",
