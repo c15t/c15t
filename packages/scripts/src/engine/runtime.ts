@@ -1,19 +1,10 @@
-import { type ConsentState, emitScriptDebugEvent, type Script } from 'c15t';
+import {
+	emitScriptDebugEvent,
+	type ConsentState,
+	type Script,
+	type ScriptCallbackInfo,
+} from 'c15t';
 import type { ManifestStep, ResolvedManifest } from '../types';
-
-/**
- * Callback info passed to Script lifecycle hooks.
- * Mirrors the ScriptCallbackInfo type from c15t core
- * (which isn't exported from the public API).
- */
-interface CallbackInfo {
-	id: string;
-	elementId: string;
-	hasConsent: boolean;
-	consents: ConsentState;
-	element?: HTMLScriptElement;
-	error?: Error;
-}
 
 type ManifestLifecycleCallback = 'onBeforeLoad' | 'onLoad' | 'onConsentChange';
 
@@ -455,7 +446,7 @@ export function resolvedManifestToScript(
 		resolvedManifest.onBeforeLoadDeniedSteps.length > 0 ||
 		hasConsentMapping
 	) {
-		script.onBeforeLoad = (info: CallbackInfo) => {
+		script.onBeforeLoad = (info: ScriptCallbackInfo) => {
 			const baseContext = {
 				scriptId: resolvedManifest.vendor,
 				elementId: info.elementId,
@@ -491,7 +482,7 @@ export function resolvedManifestToScript(
 	}
 
 	if (resolvedManifest.afterLoadSteps.length > 0) {
-		script.onLoad = (info: CallbackInfo) => {
+		script.onLoad = (info: ScriptCallbackInfo) => {
 			const baseContext = {
 				scriptId: resolvedManifest.vendor,
 				elementId: info.elementId,
@@ -519,7 +510,7 @@ export function resolvedManifestToScript(
 			}
 		};
 	} else if (hasLoadConsentBranches) {
-		script.onLoad = (info: CallbackInfo) => {
+		script.onLoad = (info: ScriptCallbackInfo) => {
 			const baseContext = {
 				scriptId: resolvedManifest.vendor,
 				elementId: info.elementId,
@@ -544,7 +535,7 @@ export function resolvedManifestToScript(
 	}
 
 	if (hasConsentLifecycle) {
-		script.onConsentChange = (info: CallbackInfo) => {
+		script.onConsentChange = (info: ScriptCallbackInfo) => {
 			const baseContext = {
 				scriptId: resolvedManifest.vendor,
 				elementId: info.elementId,

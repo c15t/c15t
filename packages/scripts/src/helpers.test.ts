@@ -6,10 +6,22 @@ import { linkedinInsights } from './linkedin-insights';
 import { metaPixel } from './meta-pixel';
 import { microsoftUet } from './microsoft-uet';
 import { posthog } from './posthog';
+import {
+	type BuiltInScriptIntegrationKey,
+	builtInScriptIntegrations,
+} from './registry';
 import { tiktokPixel } from './tiktok-pixel';
 import { xPixel } from './x-pixel';
 
 type TestGlobal = typeof globalThis & Record<string, unknown>;
+
+interface HelperScriptSnapshot {
+	id: string;
+	category: unknown;
+	alwaysLoad?: boolean;
+	persistAfterConsentRevoked?: boolean;
+	src?: string;
+}
 
 function setupMockBrowser() {
 	const globalRef = globalThis as TestGlobal;
@@ -59,126 +71,108 @@ describe('built-in script helpers', () => {
 	});
 
 	it('keeps helper output parity across all bundled integrations', () => {
-		const helpers = [
-			{
-				name: 'googleTagManager',
+		const helperCases = {
+			googleTagManager: {
 				script: googleTagManager({ id: 'GTM-123' }),
 				expected: {
-					id: 'google-tag-manager',
-					category: 'necessary',
 					alwaysLoad: true,
 					persistAfterConsentRevoked: undefined,
 					src: 'https://www.googletagmanager.com/gtm.js?id=GTM-123',
 				},
 			},
-			{
-				name: 'gtag',
+			gtag: {
 				script: gtag({ id: 'G-123', category: 'measurement' }),
 				expected: {
-					id: 'gtag',
-					category: 'measurement',
 					alwaysLoad: true,
 					persistAfterConsentRevoked: true,
 					src: 'https://www.googletagmanager.com/gtag/js?id=G-123',
 				},
 			},
-			{
-				name: 'metaPixel',
+			metaPixel: {
 				script: metaPixel({ pixelId: '123456' }),
 				expected: {
-					id: 'meta-pixel',
-					category: 'marketing',
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: true,
 					src: 'https://connect.facebook.net/en_US/fbevents.js',
 				},
 			},
-			{
-				name: 'tiktokPixel',
+			tiktokPixel: {
 				script: tiktokPixel({ pixelId: 'tt-123' }),
 				expected: {
-					id: 'tiktok-pixel',
-					category: 'marketing',
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: true,
 					src: 'https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=tt-123&lib=ttq',
 				},
 			},
-			{
-				name: 'posthog',
+			posthog: {
 				script: posthog({ id: 'phc_123' }),
 				expected: {
-					id: 'posthog',
-					category: 'measurement',
 					alwaysLoad: true,
 					persistAfterConsentRevoked: undefined,
 					src: 'https://eu-assets.i.posthog.com/static/array.js',
 				},
 			},
-			{
-				name: 'databuddy',
+			databuddy: {
 				script: databuddy({
 					clientId: 'db_123',
 					configWhenGranted: { clientId: 'db_123', disabled: false },
 					configWhenDenied: { clientId: 'db_123', disabled: true },
 				}),
 				expected: {
-					id: 'databuddy',
-					category: 'measurement',
 					alwaysLoad: true,
 					persistAfterConsentRevoked: undefined,
 					src: 'https://cdn.databuddy.cc/databuddy.js',
 				},
 			},
-			{
-				name: 'linkedinInsights',
+			linkedinInsights: {
 				script: linkedinInsights({ id: '987654' }),
 				expected: {
-					id: 'linkedin-insights',
-					category: 'marketing',
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: undefined,
 					src: 'https://snap.licdn.com/li.lms-analytics/insight.min.js',
 				},
 			},
-			{
-				name: 'microsoftUet',
+			microsoftUet: {
 				script: microsoftUet({ id: 'uet-123' }),
 				expected: {
-					id: 'microsoft-uet',
-					category: 'marketing',
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: true,
 					src: '//bat.bing.com/bat.js',
 				},
 			},
-			{
-				name: 'xPixel',
+			xPixel: {
 				script: xPixel({ pixelId: 'tw-123' }),
 				expected: {
-					id: 'x-pixel',
-					category: 'marketing',
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: undefined,
 					src: 'https://static.ads-twitter.com/uwt.js',
 				},
 			},
-		];
+		} satisfies Record<
+			BuiltInScriptIntegrationKey,
+			{
+				script: HelperScriptSnapshot;
+				expected: {
+					alwaysLoad: boolean | undefined;
+					persistAfterConsentRevoked: boolean | undefined;
+					src: string;
+				};
+			}
+		>;
 
-		for (const helper of helpers) {
-			expect(helper.script.id, helper.name).toBe(helper.expected.id);
-			expect(helper.script.category, helper.name).toBe(
-				helper.expected.category
+		for (const integration of builtInScriptIntegrations) {
+			const helper = helperCases[integration.key];
+			expect(helper.script.id, integration.key).toBe(integration.vendor);
+			expect(helper.script.category, integration.key).toBe(
+				integration.consentCategory
 			);
-			expect(helper.script.alwaysLoad, helper.name).toBe(
+			expect(helper.script.alwaysLoad, integration.key).toBe(
 				helper.expected.alwaysLoad
 			);
-			expect(helper.script.persistAfterConsentRevoked, helper.name).toBe(
+			expect(helper.script.persistAfterConsentRevoked, integration.key).toBe(
 				helper.expected.persistAfterConsentRevoked
 			);
-			if ('src' in helper.expected) {
-				expect(helper.script.src, helper.name).toBe(helper.expected.src);
-			}
+			expect(helper.script.src, integration.key).toBe(helper.expected.src);
 		}
 	});
 
