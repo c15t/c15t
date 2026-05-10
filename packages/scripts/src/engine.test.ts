@@ -1,14 +1,14 @@
 import { type ScriptDebugEvent, subscribeToScriptDebugEvents } from 'c15t';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import * as compileEngine from './engine/compile';
-import { compileManifest } from './engine/compile';
-import { resolvedManifestToScript } from './engine/runtime';
-import { resolveManifest } from './resolve';
 import {
 	createCallbackInfo,
 	deniedConsentState,
 	grantedMeasurementConsentState,
 } from './__tests__/helpers';
+import * as compileEngine from './engine/compile';
+import { compileManifest } from './engine/compile';
+import { resolvedManifestToScript } from './engine/runtime';
+import { resolveManifest } from './resolve';
 import {
 	VENDOR_MANIFEST_KIND,
 	VENDOR_MANIFEST_SCHEMA_VERSION,
