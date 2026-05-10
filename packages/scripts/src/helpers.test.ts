@@ -7,6 +7,7 @@ import { metaPixel } from './meta-pixel';
 import { microsoftUet } from './microsoft-uet';
 import { posthog } from './posthog';
 import { tiktokPixel } from './tiktok-pixel';
+import { googleRecaptcha } from './google-recaptcha';
 import { xPixel } from './x-pixel';
 
 type TestGlobal = typeof globalThis & Record<string, unknown>;
@@ -150,6 +151,17 @@ describe('built-in script helpers', () => {
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: true,
 					src: '//bat.bing.com/bat.js',
+				},
+			},
+			{
+				name: 'googleRecaptcha',
+				script: googleRecaptcha({ siteKey: 'recaptcha-key' }),
+				expected: {
+					id: 'google-recaptcha',
+					category: 'necessary',
+					alwaysLoad: undefined,
+					persistAfterConsentRevoked: undefined,
+					src: 'https://www.google.com/recaptcha/api.js?render=recaptcha-key',
 				},
 			},
 			{

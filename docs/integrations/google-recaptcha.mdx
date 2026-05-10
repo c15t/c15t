@@ -1,0 +1,31 @@
+---
+title: Google reCAPTCHA
+description: Load the reCAPTCHA loader with your site key in the script URL.
+lastModified: 2026-05-09
+
+icon: guide
+---
+
+Google reCAPTCHA loads through `@c15t/scripts` using c15t's script loader and the helper's default consent category.
+
+## Adding Google reCAPTCHA to c15t
+
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+</Callout>
+
+```ts
+import { googleRecaptcha } from '@c15t/scripts/google-recaptcha';
+
+googleRecaptcha({ siteKey: 'recaptcha-key' })
+```
+
+## Types
+
+### GoogleRecaptchaOptions
+
+<AutoTypeTable path="./packages/scripts/src/google-recaptcha.ts" name="GoogleRecaptchaOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
