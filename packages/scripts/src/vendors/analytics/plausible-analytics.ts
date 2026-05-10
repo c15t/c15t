@@ -197,12 +197,22 @@ export interface PlausibleAnalyticsOptions {
  * ```
  */
 export function plausibleAnalytics(options: PlausibleAnalyticsOptions): Script {
-	const resolved = resolveManifest(plausibleAnalyticsManifest, {
+	const manifestOptions = {
 		scriptUrl: options.scriptUrl ?? buildPlausibleScriptUrl(options),
-		domain: options.scriptId ? undefined : options.domain,
-		apiAttribute: options.scriptId ? undefined : options.endpoint,
+		domain: undefined as string | undefined,
+		apiAttribute: undefined as string | undefined,
 		initOptions: buildPlausibleInitOptions(options),
-	});
+	};
+
+	if (options.scriptId) {
+		manifestOptions.domain = undefined;
+		manifestOptions.apiAttribute = undefined;
+	} else {
+		manifestOptions.domain = options.domain;
+		manifestOptions.apiAttribute = options.endpoint;
+	}
+
+	const resolved = resolveManifest(plausibleAnalyticsManifest, manifestOptions);
 
 	return resolved;
 }

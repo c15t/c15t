@@ -89,7 +89,5 @@ describe('plausibleAnalytics', () => {
 			toArgumentsArray(['pageview']),
 			toArgumentsArray(['event', 'signup']),
 		]);
-
-		delete globalRef.plausible;
 	});
 });
