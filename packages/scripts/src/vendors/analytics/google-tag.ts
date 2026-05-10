@@ -1,6 +1,6 @@
 import type { AllConsentNames, Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
 // Extended Window interface to include gtag specific properties
 declare global {
