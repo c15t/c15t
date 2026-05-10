@@ -39,6 +39,10 @@ cloudflareWebAnalytics({
 
 The helper JSON-encodes `{ token, spa }` into the `data-cf-beacon` attribute that Cloudflare's loader reads at startup, matching Cloudflare's recommended embed.
 
+## Tracking events in your app
+
+Cloudflare Web Analytics has no app-facing event API — the beacon tracks pageviews automatically once the script is loaded. There are no event calls in your application code to guard, so c15t's consent gating fully controls when and whether tracking happens.
+
 ## Types
 
 ### CloudflareWebAnalyticsOptions
