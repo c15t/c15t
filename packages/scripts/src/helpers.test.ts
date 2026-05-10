@@ -6,6 +6,7 @@ import { linkedinInsights } from './linkedin-insights';
 import { metaPixel } from './meta-pixel';
 import { microsoftUet } from './microsoft-uet';
 import { posthog } from './posthog';
+import { promptwatch } from './promptwatch';
 import { tiktokPixel } from './tiktok-pixel';
 import { xPixel } from './x-pixel';
 
@@ -150,6 +151,17 @@ describe('built-in script helpers', () => {
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: true,
 					src: '//bat.bing.com/bat.js',
+				},
+			},
+			{
+				name: 'promptwatch',
+				script: promptwatch({ projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c' }),
+				expected: {
+					id: 'promptwatch',
+					category: 'measurement',
+					alwaysLoad: undefined,
+					persistAfterConsentRevoked: undefined,
+					src: 'https://ingest.promptwatch.com/js/client.min.js',
 				},
 			},
 			{
