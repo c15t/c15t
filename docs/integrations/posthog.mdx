@@ -15,15 +15,15 @@ c15t exposes two integration patterns for PostHog. Pick the one that matches how
 
 ## PostHog SDK Implementation
 
-This is the recommended approach if you're using the Posthog JS SDK, this is commonly used in React projects.
+This is the recommended approach if you're using the PostHog JS SDK; it's commonly used in React projects.
 
 ### Adding the PostHog SDK to c15t
 
 <Steps>
   <Step>
-    ### Initialize Posthog
+    ### Initialize PostHog
 
-    When you initialize posthog make sure to set `cookieless_mode` to `on_reject`.
+    When you initialize PostHog make sure to set `cookieless_mode` to `on_reject`.
 
     ```ts
     posthog.init("phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", {
@@ -85,7 +85,7 @@ This is the recommended approach if you're using the Posthog JS SDK, this is com
 
 ## PostHog Script Implementation
 
-If you want to load posthog via a script tag it's recommended to use this approach.
+If you want to load PostHog via a script tag, it's recommended to use this approach.
 
 ### How c15t loads it
 
