@@ -27,7 +27,19 @@ import {
 	tiktokPixelManifest,
 } from './vendors/ads-and-pixels/tiktok-pixel';
 import { xPixel, xPixelManifest } from './vendors/ads-and-pixels/x-pixel';
+import {
+	ahrefsAnalytics,
+	ahrefsAnalyticsManifest,
+} from './vendors/analytics/ahrefs-analytics';
+import {
+	cloudflareWebAnalytics,
+	cloudflareWebAnalyticsManifest,
+} from './vendors/analytics/cloudflare-web-analytics';
 import { databuddy, databuddyManifest } from './vendors/analytics/databuddy';
+import {
+	fathomAnalytics,
+	fathomAnalyticsManifest,
+} from './vendors/analytics/fathom-analytics';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
 import {
 	plausibleAnalytics,
@@ -64,6 +76,22 @@ const helperParityCases = {
 			src: 'https://www.googletagmanager.com/gtag/js?id=G-123',
 		},
 	},
+	ahrefsAnalytics: {
+		script: ahrefsAnalytics({ key: 'ahrefs-key' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://analytics.ahrefs.com/analytics.js',
+		},
+	},
+	cloudflareWebAnalytics: {
+		script: cloudflareWebAnalytics({ token: 'tok-abc' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://static.cloudflareinsights.com/beacon.min.js',
+		},
+	},
 	databuddy: {
 		script: databuddy({
 			clientId: 'db_123',
@@ -74,6 +102,14 @@ const helperParityCases = {
 			alwaysLoad: true,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://cdn.databuddy.cc/databuddy.js',
+		},
+	},
+	fathomAnalytics: {
+		script: fathomAnalytics({ site: 'SITE123' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.usefathom.com/script.js',
 		},
 	},
 	posthog: {
@@ -145,7 +181,10 @@ const helperParityCases = {
 const vendorManifests = [
 	googleTagManagerManifest,
 	gtagManifest,
+	ahrefsAnalyticsManifest,
+	cloudflareWebAnalyticsManifest,
 	databuddyManifest,
+	fathomAnalyticsManifest,
 	posthogManifest,
 	plausibleAnalyticsManifest,
 	metaPixelManifest,
