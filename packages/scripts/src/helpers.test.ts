@@ -4,6 +4,7 @@ import { gtag } from './google-tag';
 import { googleTagManager } from './google-tag-manager';
 import { linkedinInsights } from './linkedin-insights';
 import { metaPixel } from './meta-pixel';
+import { mixpanelAnalytics } from './mixpanel-analytics';
 import { microsoftUet } from './microsoft-uet';
 import { posthog } from './posthog';
 import { tiktokPixel } from './tiktok-pixel';
@@ -47,6 +48,7 @@ describe('built-in script helpers', () => {
 		delete globalRef.dataLayer;
 		delete globalRef.gtag;
 		delete globalRef.posthog;
+		delete globalRef.mixpanel;
 		delete globalRef.databuddy;
 		delete globalRef.databuddyConfig;
 		delete globalRef.ttq;
@@ -142,6 +144,17 @@ describe('built-in script helpers', () => {
 				},
 			},
 			{
+				name: 'mixpanelAnalytics',
+				script: mixpanelAnalytics({ token: 'mixpanel-token' }),
+				expected: {
+					id: 'mixpanel-analytics',
+					category: 'measurement',
+					alwaysLoad: true,
+					persistAfterConsentRevoked: undefined,
+					src: 'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js',
+				},
+			},
+			{
 				name: 'microsoftUet',
 				script: microsoftUet({ id: 'uet-123' }),
 				expected: {
@@ -180,6 +193,60 @@ describe('built-in script helpers', () => {
 				expect(helper.script.src, helper.name).toBe(helper.expected.src);
 			}
 		}
+	});
+
+	it('initializes Mixpanel and syncs consent via opt-in and opt-out calls', () => {
+		const globalRef = globalThis as TestGlobal;
+		const init = vi.fn();
+		const optIn = vi.fn();
+		const optOut = vi.fn();
+		globalRef.mixpanel = {
+			init,
+			track: vi.fn(),
+			identify: vi.fn(),
+			reset: vi.fn(),
+			register: vi.fn(),
+			opt_in_tracking: optIn,
+			opt_out_tracking: optOut,
+		};
+
+		const script = mixpanelAnalytics({
+			token: 'mixpanel-token',
+			initOptions: {
+				debug: true,
+			},
+		});
+
+		script.onLoad?.({
+			id: script.id,
+			elementId: script.id,
+			hasConsent: false,
+			consents: {
+				necessary: true,
+				functionality: false,
+				measurement: false,
+				marketing: false,
+				experience: false,
+			},
+		});
+
+		expect(init).toHaveBeenCalledWith('mixpanel-token', { debug: true });
+		expect(optOut).toHaveBeenCalledTimes(1);
+
+		script.onConsentChange?.({
+			id: script.id,
+			elementId: script.id,
+			hasConsent: true,
+			consents: {
+				necessary: true,
+				functionality: false,
+				measurement: true,
+				marketing: false,
+				experience: false,
+			},
+		});
+
+		expect(optIn).toHaveBeenCalledTimes(1);
 	});
 
 	it('runs Google Tag Manager consent defaults before boot logic', () => {
