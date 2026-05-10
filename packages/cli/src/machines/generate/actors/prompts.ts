@@ -915,7 +915,10 @@ export const skillsInstallActor = fromPromise<
 				npm: 'npx',
 			};
 			const execCommand = execCommands[pmName] ?? 'npx';
-			const [cmd = 'npx', ...baseArgs] = execCommand.split(' ');
+			const [cmd, ...baseArgs] = execCommand.split(' ') as [
+				string,
+				...string[],
+			];
 
 			cliContext.logger.info('Installing c15t agent skills...');
 
