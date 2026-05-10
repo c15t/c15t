@@ -40,6 +40,7 @@ import {
 	fathomAnalytics,
 	fathomAnalyticsManifest,
 } from './vendors/analytics/fathom-analytics';
+import { hotjar, hotjarManifest } from './vendors/analytics/hotjar';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
 import {
 	plausibleAnalytics,
@@ -114,6 +115,14 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://cdn.usefathom.com/script.js',
+		},
+	},
+	hotjar: {
+		script: hotjar({ siteId: 1234567 }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://static.hotjar.com/c/hotjar-1234567.js?sv=6',
 		},
 	},
 	posthog: {
@@ -197,6 +206,7 @@ const vendorManifests = [
 	cloudflareWebAnalyticsManifest,
 	databuddyManifest,
 	fathomAnalyticsManifest,
+	hotjarManifest,
 	posthogManifest,
 	plausibleAnalyticsManifest,
 	umamiAnalyticsManifest,

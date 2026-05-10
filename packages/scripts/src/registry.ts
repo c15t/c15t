@@ -152,6 +152,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'hotjar',
+		vendor: 'hotjar',
+		label: 'Hotjar',
+		hint: 'Heatmaps and session recordings',
+		docsSlug: 'hotjar',
+		packageSubpath: 'hotjar',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'posthog',
 		vendor: 'posthog',
 		label: 'PostHog',

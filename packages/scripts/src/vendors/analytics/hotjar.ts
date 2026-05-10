@@ -1,8 +1,7 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
-// Extended Window interface to include Hotjar-specific properties
 declare global {
 	interface Window {
 		hj: ((...args: unknown[]) => void) & { q?: unknown[][] };
@@ -44,7 +43,7 @@ export const hotjarManifest = {
 		},
 		{
 			type: 'loadScript',
-			src: '{{scriptSrc}}',
+			src: '{{scriptUrl}}',
 			async: true,
 		},
 	],
@@ -64,36 +63,32 @@ export interface HotjarOptions {
 	version?: number;
 
 	/** Hotjar loader URL. */
-	scriptSrc?: string;
+	scriptUrl?: string;
 }
 
 /**
  * Creates a Hotjar script.
  *
- * @param options - The options for the Hotjar script
- * @returns The Hotjar script configuration
+ * @param options - The options for the Hotjar script.
+ * @returns The Hotjar script configuration.
  *
  * @example
  * ```ts
- * const hotjarScript = hotjar({
- *   siteId: 1234567,
- * });
- * ```
+ * import { hotjar } from '@c15t/scripts/hotjar';
  *
- * @see {@link https://help.hotjar.com/hc/en-us/articles/115009336727-Install-the-Hotjar-Tracking-Code} Hotjar installation documentation
+ * hotjar({ siteId: 1234567 });
+ * ```
  */
 export function hotjar({
 	siteId,
 	version = 6,
-	scriptSrc,
+	scriptUrl,
 }: HotjarOptions): Script {
-	const resolved = resolveManifest(hotjarManifest, {
+	return resolveManifest(hotjarManifest, {
 		siteId,
 		version,
-		scriptSrc:
-			scriptSrc ??
+		scriptUrl:
+			scriptUrl ??
 			`https://static.hotjar.com/c/hotjar-${siteId}.js?sv=${version}`,
 	});
-
-	return resolved;
 }
