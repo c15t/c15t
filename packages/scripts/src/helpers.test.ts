@@ -6,6 +6,7 @@ import { linkedinInsights } from './linkedin-insights';
 import { metaPixel } from './meta-pixel';
 import { microsoftUet } from './microsoft-uet';
 import { posthog } from './posthog';
+import { snapchatPixel } from './snapchat-pixel';
 import { tiktokPixel } from './tiktok-pixel';
 import { xPixel } from './x-pixel';
 
@@ -56,6 +57,8 @@ describe('built-in script helpers', () => {
 		delete globalRef.uetq;
 		delete globalRef.fbq;
 		delete globalRef._fbq;
+		delete globalRef.snaptr;
+		delete globalRef._snaptr;
 	});
 
 	it('keeps helper output parity across all bundled integrations', () => {
@@ -150,6 +153,17 @@ describe('built-in script helpers', () => {
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: true,
 					src: '//bat.bing.com/bat.js',
+				},
+			},
+			{
+				name: 'snapchatPixel',
+				script: snapchatPixel({ pixelId: '123456789012345' }),
+				expected: {
+					id: 'snapchat-pixel',
+					category: 'marketing',
+					alwaysLoad: undefined,
+					persistAfterConsentRevoked: undefined,
+					src: 'https://sc-static.net/scevent.min.js',
 				},
 			},
 			{
@@ -485,5 +499,66 @@ describe('built-in script helpers', () => {
 		expect(script.attributes).toEqual({
 			'data-test': '1',
 		});
+	});
+
+	it('queues Snapchat Pixel init options and page view before the bundle loads', () => {
+		const globalRef = globalThis as TestGlobal;
+		const script = snapchatPixel({
+			pixelId: '123456789012345',
+			initOptions: {
+				user_email: 'hello@example.com',
+			},
+		});
+
+		script.onBeforeLoad?.({
+			id: script.id,
+			elementId: script.id,
+			hasConsent: true,
+			consents: {
+				necessary: true,
+				functionality: false,
+				measurement: false,
+				marketing: true,
+				experience: false,
+			},
+		});
+
+		const snaptr = globalRef.snaptr as ((...args: unknown[]) => void) & {
+			queue?: unknown[][];
+		};
+
+		expect(typeof snaptr).toBe('function');
+		expect(snaptr.queue).toEqual([
+			['init', '123456789012345', { user_email: 'hello@example.com' }],
+			['track', 'PAGE_VIEW'],
+		]);
+		expect(document.head.appendChild).not.toHaveBeenCalled();
+	});
+
+	it('supports disabling the default Snapchat Pixel page view', () => {
+		const globalRef = globalThis as TestGlobal;
+		const script = snapchatPixel({
+			pixelId: '123456789012345',
+			trackPageView: false,
+		});
+
+		script.onBeforeLoad?.({
+			id: script.id,
+			elementId: script.id,
+			hasConsent: true,
+			consents: {
+				necessary: true,
+				functionality: false,
+				measurement: false,
+				marketing: true,
+				experience: false,
+			},
+		});
+
+		const snaptr = globalRef.snaptr as ((...args: unknown[]) => void) & {
+			queue?: unknown[][];
+		};
+
+		expect(snaptr.queue).toEqual([['init', '123456789012345']]);
 	});
 });
