@@ -6,6 +6,7 @@ import { linkedinInsights } from './linkedin-insights';
 import { metaPixel } from './meta-pixel';
 import { microsoftUet } from './microsoft-uet';
 import { posthog } from './posthog';
+import { segment } from './segment';
 import { tiktokPixel } from './tiktok-pixel';
 import { xPixel } from './x-pixel';
 
@@ -51,6 +52,7 @@ describe('built-in script helpers', () => {
 		delete globalRef.databuddyConfig;
 		delete globalRef.ttq;
 		delete globalRef.twq;
+		delete globalRef.analytics;
 		delete globalRef._linkedin_partner_id;
 		delete globalRef._linkedin_data_partner_ids;
 		delete globalRef.uetq;
@@ -102,6 +104,17 @@ describe('built-in script helpers', () => {
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: true,
 					src: 'https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=tt-123&lib=ttq',
+				},
+			},
+			{
+				name: 'segment',
+				script: segment({ writeKey: 'segment-key' }),
+				expected: {
+					id: 'segment',
+					category: 'measurement',
+					alwaysLoad: undefined,
+					persistAfterConsentRevoked: undefined,
+					src: 'https://cdn.segment.com/analytics.js/v1/segment-key/analytics.min.js',
 				},
 			},
 			{
@@ -180,6 +193,36 @@ describe('built-in script helpers', () => {
 				expect(helper.script.src, helper.name).toBe(helper.expected.src);
 			}
 		}
+	});
+
+	it('queues Segment page and track calls before the vendor bundle loads', () => {
+		const globalRef = globalThis as TestGlobal;
+		const script = segment({ writeKey: 'segment-key' });
+
+		script.onBeforeLoad?.({
+			id: script.id,
+			elementId: script.id,
+			hasConsent: true,
+			consents: {
+				necessary: true,
+				functionality: false,
+				measurement: true,
+				marketing: false,
+				experience: false,
+			},
+		});
+
+		const analytics = globalRef.analytics as unknown[] & {
+			track: (event: string, properties?: Record<string, unknown>) => void;
+		};
+
+		expect(Array.isArray(analytics)).toBe(true);
+		expect(analytics[0]).toEqual(['page']);
+
+		analytics.track('Signup', { plan: 'pro' });
+
+		expect(analytics[1]).toEqual(['track', 'Signup', { plan: 'pro' }]);
+		expect(document.head.appendChild).not.toHaveBeenCalled();
 	});
 
 	it('runs Google Tag Manager consent defaults before boot logic', () => {

@@ -1,0 +1,52 @@
+---
+title: Segment
+description: Load Segment Analytics.js with c15t and gate it behind measurement consent.
+lastModified: 2026-05-09
+
+icon: guide
+---
+
+Segment lets you collect analytics events in one place and forward them to downstream destinations. The `@c15t/scripts/segment` helper creates Segment's standard `window.analytics` queue, optionally queues the initial `page()` call, and loads Analytics.js when `measurement` consent is available.
+
+## Adding Segment to c15t
+
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework.
+</Callout>
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+import { segment } from '@c15t/scripts/segment';
+
+getOrCreateConsentRuntime({
+  mode: 'hosted',
+  scripts: [
+    segment({
+      writeKey: 'abc123xyz456',
+    }),
+  ],
+});
+```
+
+## Disable the default page call
+
+By default the helper queues `analytics.page()` before the vendor bundle loads. If you want to handle page views yourself, set `trackPageView` to `false`.
+
+```ts
+import { segment } from '@c15t/scripts/segment';
+
+segment({
+  writeKey: 'abc123xyz456',
+  trackPageView: false,
+});
+```
+
+## Types
+
+### SegmentOptions
+
+<AutoTypeTable path="./packages/scripts/src/segment.ts" name="SegmentOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
