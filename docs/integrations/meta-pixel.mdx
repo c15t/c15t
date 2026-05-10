@@ -6,14 +6,18 @@ lastModified: 2025-09-24
 icon: meta
 ---
 
-Meta Pixel (formerly Facebook Pixel) is Meta's conversion tracking and audience targeting tool for Facebook and Instagram advertising. It tracks user actions, measures ad effectiveness, builds custom audiences, and optimizes ad delivery. By default, c15t loads this script based on `marketing` consent.
+Meta Pixel (formerly Facebook Pixel) is Meta's conversion tracking and audience targeting tool for Facebook and Instagram advertising. It tracks user actions, measures ad effectiveness, builds custom audiences, and optimizes ad delivery.
 
-This script persists after consent is revoked because it has built-in consent management. When consent changes, c15t updates Meta's internal consent state rather than removing the script entirely.
+## How c15t loads it
+
+- **Category:** `marketing` (Ads & Pixels)
+- **Loads when:** marketing consent is granted
+- **On revocation:** [persists](/docs/frameworks/react/script-loader#persist-after-revocation) — c15t calls `fbq('consent', 'revoke')` so Meta stops tracking without removing the script
 
 ## Adding the Meta Pixel to c15t
 
 <Callout type="info">
-  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+  Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
 </Callout>
 
 ```ts
@@ -40,7 +44,7 @@ metaPixelEvent('Purchase', { value: 10.0, currency: 'USD' });
 
 ### MetaPixelOptions
 
-<AutoTypeTable path="./packages/scripts/src/meta-pixel.ts" name="MetaPixelOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/meta-pixel.ts" name="MetaPixelOptions" />
 
 ### Script
 
@@ -48,4 +52,4 @@ metaPixelEvent('Purchase', { value: 10.0, currency: 'USD' });
 
 ### StandardEventParams
 
-<AutoTypeTable path="./packages/scripts/src/meta-pixel.ts" name="StandardEventParams" />
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/meta-pixel.ts" name="StandardEventParams" />

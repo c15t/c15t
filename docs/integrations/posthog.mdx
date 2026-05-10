@@ -8,17 +8,22 @@ icon: posthog
 
 PostHog is an open-source product analytics platform that helps you understand user behavior, track events, and analyze product usage. Unlike traditional analytics tools, PostHog supports both cookieless and cookie-based tracking. This means you can sync c15t with PostHog and continue collecting analytics even when users haven't given consent—PostHog simply operates in cookieless mode until consent is granted.
 
+c15t exposes two integration patterns for PostHog. Pick the one that matches how you already load the SDK:
+
+- **PostHog SDK** — your app loads `posthog-js` itself; c15t only synchronizes consent. Recommended for most React apps.
+- **PostHog Script** — c15t loads PostHog's array bootstrap as a managed `Script`.
+
 ## PostHog SDK Implementation
 
-This is the recommended approach if you're using the Posthog JS SDK, this is commonly used in React projects.
+This is the recommended approach if you're using the PostHog JS SDK; it's commonly used in React projects.
 
 ### Adding the PostHog SDK to c15t
 
 <Steps>
   <Step>
-    ### Initialize Posthog
+    ### Initialize PostHog
 
-    When you initialize posthog make sure to set `cookieless_mode` to `on_reject`.
+    When you initialize PostHog make sure to set `cookieless_mode` to `on_reject`.
 
     ```ts
     posthog.init("phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", {
@@ -37,12 +42,12 @@ This is the recommended approach if you're using the Posthog JS SDK, this is com
     The recommended PostHog SDK approach uses two phases: run one initial sync after c15t has finished resolving consent, then subscribe to future real preference changes with `subscribeToConsentChanges()`.
 
     <Callout type="info">
-      See the [integration overview](/docs/integrations) for how to wrap this in your framework (React or Next.js). Pass the `callbacks` option to your `ConsentManagerProvider` the same way you would pass `scripts`.
+      To wrap this in your framework, pass the `callbacks` option to your `ConsentManagerProvider` the same way you would pass `scripts` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
     </Callout>
 
     ```ts
     import { getOrCreateConsentRuntime } from 'c15t';
-    import { posthog } from 'posthog-js';
+    import posthog from 'posthog-js';
 
     function syncPostHogMeasurementConsent(hasMeasurementConsent: boolean) {
       if (hasMeasurementConsent) {
@@ -80,25 +85,28 @@ This is the recommended approach if you're using the Posthog JS SDK, this is com
 
 ## PostHog Script Implementation
 
-If you want to load posthog via a script tag it's recommended to use this approach.
+If you want to load PostHog via a script tag, it's recommended to use this approach.
 
-By default c15t will always load the script regardless of consent. This is because the script has built-in functionality to opt into and out of tracking based on consent.
+### How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** [`alwaysLoad`](/docs/frameworks/react/script-loader#always-load) — runs on page start regardless of consent state
+- **On consent change:** c15t calls `posthog.opt_in_capturing()` / `posthog.opt_out_capturing()` so the script stays loaded but only captures after consent is granted
 
 <Steps>
   <Step>
-    ### Initialize Posthog
+    ### Configure cookieless mode
 
-    This script does not load the Posthog script, it only syncs the consent state with Posthog via the Posthog JS SDK.
+    The c15t helper loads PostHog's bootstrap script, calls `posthog.init()` for you using the `initOptions` you pass, and then synchronizes consent through `posthog.opt_in_capturing()` / `posthog.opt_out_capturing()`. You do not need to call `posthog.init()` separately.
 
-    This is due to Posthog's use of cookieless tracking. However, you need to set `cookieless_mode` to `on_reject` when initializing Posthog.
+    Because PostHog supports cookieless tracking, set `cookieless_mode: 'on_reject'` in `initOptions` so PostHog keeps collecting data without cookies until measurement consent is granted:
 
     ```ts
-    posthog.init("phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", {
-      api_host: "https://eu.i.posthog.com",
-      defaults: "2025-05-24",
+    const initOptions = {
+      api_host: 'https://eu.i.posthog.com',
       // PostHog will not set any cookies until the user has given consent
-      cookieless_mode: 'on_reject'
-    })
+      cookieless_mode: 'on_reject',
+    };
     ```
   </Step>
 
@@ -106,7 +114,7 @@ By default c15t will always load the script regardless of consent. This is becau
     ### Adding the script to c15t
 
     <Callout type="info">
-      See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+      Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
     </Callout>
 
     ```ts
@@ -121,6 +129,7 @@ By default c15t will always load the script regardless of consent. This is becau
         ui_host: 'https://eu.i.posthog.com',
         autocapture: false,
         person_profiles: 'identified_only',
+        cookieless_mode: 'on_reject',
       }
     })
     ```
@@ -131,7 +140,7 @@ By default c15t will always load the script regardless of consent. This is becau
 
 ### PosthogConsentOptions
 
-<AutoTypeTable path="./packages/scripts/src/posthog.ts" name="PosthogConsentOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/posthog.ts" name="PosthogConsentOptions" />
 
 ### Script
 

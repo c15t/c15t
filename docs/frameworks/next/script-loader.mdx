@@ -1,13 +1,13 @@
 ---
 title: Script Loader
-description: Gate third-party scripts behind consent - load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
+description: Gate third-party scripts behind consent in Next.js — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
 ---
 
 <import src="../../shared/react/guides/script-loader.mdx#intro" />
 
 ## Basic Usage
 
-Pass an array of scripts to `ConsentManagerProvider`. Built-in helpers from `@c15t/scripts` return plain `Script` objects, so they can sit beside app-specific scripts:
+Pass an array of scripts to `ConsentManagerProvider`. Built-in helpers from `@c15t/scripts` return plain `Script` objects, so they sit beside app-specific scripts:
 
 ```tsx
 import { type ReactNode } from 'react';
@@ -36,11 +36,11 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 }
 ```
 
-In Next.js, put the provider in the client boundary that owns your consent UI. The script loader runs in the browser, so script definitions should be passed through the provider options rather than injected directly in Server Components.
+The script loader runs in the browser, so place the provider in the client boundary that owns your consent UI and pass scripts through the provider options instead of injecting them in Server Components.
 
 ## Recommended Structure
 
-Keep script setup close to your consent provider. For most apps, define the scripts once and pass them to the provider:
+Define your script list once and keep it next to the consent provider:
 
 ```tsx
 'use client';
@@ -70,35 +70,30 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 }
 ```
 
-Use environment variables or server-rendered configuration to choose IDs, but avoid rendering vendor scripts with `next/script` separately unless you are deliberately opting out of c15t's script lifecycle for that vendor.
+Use environment variables or server-rendered configuration to choose ids per environment, but avoid rendering vendor scripts with `next/script` separately — that bypasses c15t's lifecycle for that vendor.
 
 <import src="../../shared/react/guides/script-loader.mdx#script-types-to-advanced" />
 
 ## Dynamic Script Management
 
-Add, remove, or check scripts at runtime via `useConsentManager()`. This is useful for tenant-specific integrations, dashboard-only tools, or vendors that are configured after a user signs in.
+The shared guide above lists what the script-manager methods do. In Next.js they are exposed through `useConsentManager()`:
 
 ```tsx
 import { useConsentManager } from '@c15t/nextjs';
 
 function ScriptManager() {
-  const { setScripts, removeScript, isScriptLoaded, getLoadedScriptIds } = useConsentManager();
+  const {
+    setScripts,
+    removeScript,
+    isScriptLoaded,
+    getLoadedScriptIds,
+  } = useConsentManager();
 
-  // Add scripts dynamically
-  setScripts([{ id: 'dynamic', src: '...', category: 'measurement' }]);
-
-  // Remove a script
-  removeScript('dynamic');
-
-  // Check if a script is loaded
-  const loaded = isScriptLoaded('google-analytics');
-
-  // Get all loaded script IDs
-  const allLoaded = getLoadedScriptIds();
+  // ...
 }
 ```
 
-Register dynamic scripts from a client effect or event handler, not during render:
+Register dynamic scripts from a client effect or event handler — never directly in the render body — so React can run the call once per dependency change and tear it down on unmount:
 
 ```tsx
 'use client';
@@ -129,24 +124,23 @@ export function WorkspaceAnalytics({ workspaceId }: { workspaceId: string }) {
 }
 ```
 
-## Next.js And Renderable Integrations
+## Renderable Integrations
 
 Some integrations need a visible component, not just a script tag. Google Maps, YouTube, checkout widgets, and calendars all need consent gating plus component lifecycle.
 
-For those integrations:
+Split the problem into three layers:
 
-- keep the c15t script loader as the source of truth for shared SDK loading,
-- render a placeholder until consent is granted,
-- create the widget only on the client,
-- and avoid duplicating the same vendor through both `next/script` and c15t.
+1. Use the script loader as the source of truth for shared SDK loading.
+2. Render a placeholder until consent is granted.
+3. Create the widget instance only on the client and clean it up on unmount.
 
-If the integration is iframe-only, prefer iframe gating. If the integration needs an SDK, load the SDK once and let each component instance create and clean up its own widget.
+For iframe-only embeds, use the [iframe blocking](/docs/frameworks/next/iframe-blocking) pattern. For SDK-backed widgets, load the SDK once and let each component instance create and clean up its own widget. Avoid mixing `next/script` with c15t for the same vendor.
 
 ## App Router Notes
 
-- The provider and dynamic script management components must be client components.
-- Keep vendor IDs out of static examples when they differ per environment.
-- If a script must be available before a page becomes interactive, prefer a built-in helper that models denied consent defaults rather than adding a separate `next/script` tag.
+- The provider and any component that calls `useConsentManager()` must be client components.
+- Keep vendor ids out of static examples when they differ per environment — read them from `process.env.NEXT_PUBLIC_*` or runtime config.
+- If a script must be available before a page becomes interactive, prefer a built-in helper that models denied-consent defaults rather than adding a separate `next/script` tag.
 - If you use CSP nonces, pass the nonce through the `Script` object so c15t applies it to the generated script element.
 
 <import src="../../shared/react/guides/script-loader.mdx#api-reference" />

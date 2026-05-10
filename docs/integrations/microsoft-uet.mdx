@@ -6,16 +6,22 @@ lastModified: 2025-09-24
 icon: microsoft
 ---
 
-Microsoft UET (Universal Event Tracking) is Microsoft's conversion tracking tag for Microsoft Advertising. It tracks user actions, measures campaign effectiveness, and enables remarketing campaigns. By default, c15t loads this script based on `marketing` consent.
+Microsoft UET (Universal Event Tracking) is Microsoft's conversion tracking tag for Microsoft Advertising. It tracks user actions, measures campaign effectiveness, and enables remarketing campaigns.
 
 <Callout type="note">
   UET can also load Microsoft Clarity (if enabled in your UET tag settings). Since Clarity is an analytics tool, we recommend loading it separately with `measurement` consent instead.
 </Callout>
 
+## How c15t loads it
+
+- **Category:** `marketing` (Ads & Pixels)
+- **Loads when:** marketing consent is granted
+- **On revocation:** [persists](/docs/frameworks/react/script-loader#persist-after-revocation) — c15t pushes the new consent state to `uetq` so UET stops tracking without removing the script
+
 ## Adding Microsoft UET to c15t
 
 <Callout type="info">
-  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+  Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
 </Callout>
 
 ```ts
@@ -30,7 +36,7 @@ microsoftUet({
 
 ### MicrosoftUetOptions
 
-<AutoTypeTable path="./packages/scripts/src/microsoft-uet.ts" name="MicrosoftUetOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/microsoft-uet.ts" name="MicrosoftUetOptions" />
 
 ### Script
 

@@ -1,54 +1,54 @@
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-  The script loader manages third-party JavaScript based on consent state. You declare scripts in the provider's `scripts` option, and c15t decides when each script should load, stay loaded, unload, or receive a consent update.
+  The script loader manages third-party JavaScript based on consent state. You declare scripts in your provider's `scripts` option, and c15t decides when each script should load, stay loaded, unload, or receive a consent update.
 
-  Use it for analytics, pixels, tag managers, product analytics, and other vendor snippets that should not run until the right consent condition is satisfied. Prebuilt helpers live in `@c15t/scripts`; custom scripts can be declared directly when the vendor is specific to your app.
+  Use it for analytics, pixels, tag managers, product analytics, and other vendor snippets that should not run until the right consent condition is satisfied. Prebuilt helpers live in [`@c15t/scripts`](/docs/integrations/overview); custom scripts can be declared directly when the vendor is specific to your app.
 
   <PackageCommandTabs mode="install" command="@c15t/scripts" />
 
   <Callout type="info">
-    Start with the [integrations overview](/docs/integrations/overview) before writing your own script. The built-in helpers encode vendor boot order, consent updates, and common defaults for you.
+    Start with the [integrations overview](/docs/integrations/overview) before writing your own script. Built-in helpers encode vendor boot order, consent updates, and common defaults so you do not have to.
   </Callout>
 
   <Callout type="note">
-    If you need a vendor c15t does not ship yet, see the [custom integration guide](/docs/integrations/building-integrations). It explains when to use a one-off `Script` object and when to build a reusable manifest-backed helper.
+    If you need a vendor c15t does not ship yet, see the [custom integration guide](/docs/integrations/building-integrations). It explains when a one-off `Script` is enough and when to build a reusable manifest-backed helper.
   </Callout>
 
   <Callout type="info">
-    The script loader handles JavaScript tags and callback lifecycles. For iframe-only embeds, use the iframe blocking pattern. For UI components such as maps or video players, combine consent state with a component-level placeholder or a dedicated renderable integration.
+    The script loader handles JavaScript tags and callback lifecycles. For iframe-only embeds, use the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern. For UI components such as maps or video players, combine consent state with a component-level placeholder or a dedicated renderable integration.
   </Callout>
 </section>
 
 <section id="script-types-to-advanced">
+  ## Mental Model
+
+  Every script you register has the same lifecycle. c15t evaluates each script against the current consent state, then drives it through a small number of states:
+
+  1. **Pending** — registered but waiting for consent. Nothing is in the DOM yet.
+  2. **Loaded** — consent matched, c15t injected the script (or ran callbacks for callback-only scripts).
+  3. **Updated** — already loaded, consent state changed, `onConsentChange` ran so the SDK can react.
+  4. **Unloaded** — consent was revoked. c15t removed the script element unless you opted into persistence.
+
+  Four lifecycle callbacks let you hook into transitions: `onBeforeLoad`, `onLoad`, `onConsentChange`, and `onError`. Two flags — [`alwaysLoad`](#always-load) and [`persistAfterConsentRevoked`](#persist-after-revocation) — change how c15t treats consent boundaries. Everything else (DOM placement, ad-block evasion, dynamic management) is a refinement on top of this core model.
+
   ## Choose the Right Approach
 
-  Most projects use more than one integration style. Pick the smallest one that keeps consent behavior clear:
+  Most projects mix more than one style. Pick the smallest one that keeps consent behavior obvious:
 
-  - Use a built-in helper from `@c15t/scripts` when c15t already supports the vendor.
-  - Use a plain `Script` for one-off app code with simple load and callback behavior.
-  - Use a manifest-backed helper for reusable vendor integrations with setup phases, queues, stubs, or consent APIs.
-  - Use iframe/embed gating when the third party loads through an iframe rather than a script tag.
-  - Use a renderable integration pattern when the script backs a React/Next component, such as a map or video player.
-
-  ## How Loading Works
-
-  c15t evaluates each script against the current consent state. If the script has consent, c15t injects it into the page and tracks it as loaded. If consent is later revoked, c15t unloads the script unless the script is configured to persist and receive consent updates instead.
-
-  A typical lifecycle looks like this:
-
-  1. c15t checks the script's `category` condition.
-  2. `onBeforeLoad` runs before the script tag is added.
-  3. The script tag is appended to the configured target.
-  4. `onLoad` runs when the browser loads the script.
-  5. `onConsentChange` runs for loaded scripts when consent changes.
-  6. `onError` runs if the script fails to load.
+  | Style | Use when |
+  |---|---|
+  | **Built-in helper** from `@c15t/scripts` | c15t already ships the vendor. See the [integrations overview](/docs/integrations/overview). |
+  | **Plain `Script`** | One-off app code with simple load and callback behavior. |
+  | **Callback-only `Script`** | Another package already loaded the SDK; c15t only synchronizes consent. |
+  | **Manifest-backed helper** | Reusable vendor integration with structured setup phases, queues, stubs, or a vendor consent API. |
+  | **Iframe / renderable integration** | Vendor exposes an iframe or React component, not just a `<script>` tag. |
 
   ## Script Types
 
   ### Standard Scripts
 
-  Standard scripts load an external JavaScript file via a `<script>` tag. Use this for most analytics and pixel SDKs:
+  Standard scripts load an external JavaScript file via a `<script>` tag. This is the default for most analytics and pixel SDKs:
 
   ```tsx
   {
@@ -77,7 +77,7 @@
 
   ### Callback-Only Scripts
 
-  Callback-only scripts do not inject a script tag. They run lifecycle callbacks when consent allows them to. Use this when another package has already loaded the library and c15t only needs to synchronize consent:
+  Callback-only scripts do not inject a script tag. They run lifecycle callbacks when consent allows them to. Use this when another package has already loaded the SDK and c15t only needs to drive consent:
 
   ```tsx
   {
@@ -101,7 +101,7 @@
 
   ### Manifest-Backed Helpers
 
-  Built-in integrations in `@c15t/scripts` are manifest-backed. A manifest describes vendor setup as structured steps, then c15t compiles it into a `Script`. This keeps queue setup, script URLs, consent signaling, and post-load work consistent across apps.
+  Built-in integrations in `@c15t/scripts` are manifest-backed. A manifest describes vendor setup as structured phases, then c15t compiles it into a `Script`. Manifests keep queue stubs, script URLs, consent signaling, and post-load work consistent across apps and they are safe to ship from a server.
 
   Use a manifest-backed helper when:
 
@@ -110,11 +110,43 @@
   - the vendor exposes a consent API,
   - or you plan to contribute the integration back to c15t.
 
+  Read the [custom integration guide](/docs/integrations/building-integrations) for the manifest contract, phases, and testing checklist.
+
   ### Iframe And Renderable Integrations
 
   Some vendors are not just script tags. YouTube embeds, maps, calendars, and checkout widgets often need a visible component, a placeholder, or an iframe.
 
-  For iframe-only embeds, gate the iframe source until consent is granted. For SDK-backed UI, use the script loader for the shared SDK and render the component only when consent and SDK readiness agree.
+  - For iframe-only embeds, gate the iframe `src` with the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern instead of loading a script just to hide an iframe.
+  - For SDK-backed UI, use the script loader for the shared SDK and render the component only when consent and SDK readiness agree.
+
+  ## Lifecycle Callbacks
+
+  Every script supports four callbacks. Each receives a `ScriptCallbackInfo` payload (id, element, hasConsent, consents):
+
+  - `onBeforeLoad` — runs before the script tag is injected. Create globals, queues, or vendor stubs here.
+  - `onLoad` — runs after the browser loads the script. Call vendor `init()` APIs here.
+  - `onConsentChange` — runs for loaded scripts when consent changes. Forward the new consent state to the vendor SDK.
+  - `onError` — runs when the script fails to load. Record diagnostics or render a fallback.
+
+  ```tsx
+  {
+    id: 'analytics',
+    src: 'https://analytics.example.com/v2.js',
+    category: 'measurement',
+    onBeforeLoad: ({ id }) => {
+      window.analyticsQueue = window.analyticsQueue || [];
+    },
+    onLoad: () => {
+      window.analytics.init('my-key');
+    },
+    onError: ({ error }) => {
+      console.error('Failed to load analytics:', error);
+    },
+    onConsentChange: ({ hasConsent }) => {
+      window.analytics.setConsent(hasConsent);
+    },
+  }
+  ```
 
   ## Consent Conditions
 
@@ -131,57 +163,32 @@
   { category: { or: ['measurement', 'marketing'] } }
   ```
 
-  ## Script Callbacks
+  Consent categories use the same names as the rest of c15t (`necessary`, `functionality`, `experience`, `measurement`, `marketing`).
 
-  Every script supports four lifecycle callbacks:
-
-  - `onBeforeLoad`: runs before the script tag is injected. Use it to create globals, queues, or config objects.
-  - `onLoad`: runs after the browser loads the script. Use it to call vendor initialization APIs.
-  - `onError`: runs when the script fails to load. Use it to record diagnostics or show a fallback.
-  - `onConsentChange`: runs for loaded scripts when consent changes. Use it to call vendor consent APIs.
-
-  ```tsx
-  {
-    id: 'analytics',
-    src: 'https://analytics.example.com/v2.js',
-    category: 'measurement',
-    onBeforeLoad: ({ id }) => {
-      console.log(`Loading script: ${id}`);
-    },
-    onLoad: ({ element }) => {
-      window.analytics.init('my-key');
-    },
-    onError: ({ error }) => {
-      console.error('Failed to load analytics:', error);
-    },
-    onConsentChange: ({ hasConsent, consents }) => {
-      window.analytics.setConsent(hasConsent);
-    },
-  }
-  ```
-
-  ## Advanced Options
+  ## Persistence Options
 
   ### Always Load
 
-  `alwaysLoad` loads the script regardless of whether its category is currently granted. Use it only when the vendor must be present early and has a reliable consent API of its own, such as Google Tag Manager with Consent Mode.
+  `alwaysLoad` loads the script regardless of whether its category is currently granted. Use it only when the vendor must be present early **and** has a reliable consent API of its own — Google Tag Manager with Consent Mode is the canonical example.
 
   ```tsx
   {
     id: 'google-tag-manager',
     src: 'https://www.googletagmanager.com/gtm.js?id=GTM-XXXX',
     category: 'measurement',
-    alwaysLoad: true, // Loads regardless of consent state
+    alwaysLoad: true,
   }
   ```
 
+  When `alwaysLoad` is on, `onConsentChange` becomes mandatory: it is how the loaded SDK learns about every transition.
+
   <Callout type="warning">
-    `alwaysLoad` shifts responsibility to the vendor integration. Make sure the script receives denied consent defaults before it can track.
+    `alwaysLoad` shifts compliance responsibility to the vendor integration. Make sure the script receives denied-by-default consent signals before it can track.
   </Callout>
 
   ### Persist After Revocation
 
-  `persistAfterConsentRevoked` keeps the script in the page after consent is revoked. Use it only when the vendor exposes a runtime consent toggle. Otherwise, unloading is safer.
+  `persistAfterConsentRevoked` keeps a script in the page after consent is revoked instead of unloading it. Use it only when the vendor exposes a runtime consent toggle — otherwise unloading is safer because removing the element guarantees the SDK stops.
 
   ```tsx
   {
@@ -189,59 +196,61 @@
     src: 'https://errors.example.com/track.js',
     category: 'measurement',
     persistAfterConsentRevoked: true,
+    onConsentChange: ({ hasConsent }) => {
+      window.ErrorTracker.setConsent(hasConsent);
+    },
   }
   ```
 
-  When this is enabled, `onConsentChange` becomes important because it is how the already-loaded SDK learns about the new consent state.
+  As with `alwaysLoad`, `onConsentChange` is how the persisted SDK learns about consent updates.
 
-  ### Script Placement
+  ### `alwaysLoad` vs `persistAfterConsentRevoked`
 
-  Control where in the DOM the script is injected:
+  These two flags answer different questions. Use this table to keep them straight:
+
+  | Question | `alwaysLoad` | `persistAfterConsentRevoked` |
+  |---|---|---|
+  | Loads before consent is granted? | Yes | No (waits for consent like a normal script) |
+  | Stays loaded after consent is revoked? | Yes | Yes |
+  | Requires a vendor consent API? | Yes | Yes |
+
+  ## DOM Placement
+
+  Control where the script is injected and whether the element id is anonymized:
 
   ```tsx
   {
     id: 'widget',
     src: 'https://widget.example.com/embed.js',
     category: 'experience',
-    target: 'body', // 'head' (default) or 'body'
+    target: 'body',     // 'head' (default) or 'body'
+    anonymizeId: true,  // default: true, hides the c15t script id from ad blockers
+    nonce: 'abc123',    // optional CSP nonce
   }
   ```
 
-  ### Ad Blocker Evasion
-
-  Script element IDs are anonymized by default to avoid simple ad blocker pattern matching:
-
-  ```tsx
-  {
-    id: 'analytics',
-    src: '...',
-    category: 'measurement',
-    anonymizeId: true, // default: true
-  }
-  ```
-
-  Set `anonymizeId: false` only when another script or test needs a stable DOM ID.
+  Set `anonymizeId: false` only when another script or test needs a stable DOM id. Pass `nonce` when your CSP requires it; c15t applies it directly to the generated `<script>` element.
 
   ## Dynamic Management
 
-  Framework packages expose script manager methods through `useConsentManager()`. Use them when integrations are not known at initial render, such as tenant-specific tools or feature-flagged scripts.
+  Framework packages expose script-manager methods so integrations can be added, removed, or inspected at runtime. Use this for tenant-specific tools, feature-flagged scripts, or vendors that are configured after sign-in:
 
-  - `setScripts()` adds script definitions and immediately evaluates them against consent.
-  - `removeScript()` removes a definition and unloads its element if needed.
-  - `isScriptLoaded()` checks whether c15t has loaded a script.
-  - `getLoadedScriptIds()` returns all currently loaded script IDs.
+  - `setScripts(scripts)` — registers script definitions and immediately evaluates them against consent.
+  - `removeScript(id)` — removes a definition and unloads its element if needed.
+  - `isScriptLoaded(id)` — returns whether c15t has loaded a script.
+  - `getLoadedScriptIds()` — returns every currently loaded script id.
 
-  Dynamic scripts should still use stable IDs. If the same vendor is added repeatedly with different IDs, c15t treats them as different scripts.
+  Dynamic scripts should still use stable ids. If the same vendor is added repeatedly with different ids, c15t treats each call as a new script.
 
   ## Debugging Checklist
 
-  If a script does not behave as expected:
+  When a script does not behave as expected:
 
-  1. Confirm the script's `category` matches the consent you granted.
+  1. Confirm the script's `category` matches the consent that has been granted.
   2. Check whether the script is `alwaysLoad` or consent-gated.
-  3. Check whether the browser blocked the request.
-  4. Confirm `onBeforeLoad` creates any globals before the vendor code reads them.
-  5. Confirm `onConsentChange` updates persisted scripts when consent changes.
+  3. Confirm `onBeforeLoad` creates any globals before the vendor code reads them.
+  4. Confirm `onConsentChange` updates persisted or always-loaded scripts when consent changes.
+  5. Check whether the browser or an ad blocker blocked the request.
   6. Use c15t devtools to inspect script lifecycle events when available.
 </section>
 
