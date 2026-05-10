@@ -2,20 +2,20 @@ import { describe, it } from 'vitest';
 import {
 	expectScriptMatchesIntegration,
 	setupScriptHelperTest,
-} from './__tests__/helpers';
-import { metaPixel } from './meta-pixel';
+} from '../../__tests__/helpers';
+import { microsoftUet } from './microsoft-uet';
 
-describe('metaPixel', () => {
+describe('microsoftUet', () => {
 	setupScriptHelperTest();
 
 	it('matches registry metadata and default script output', () => {
 		expectScriptMatchesIntegration(
-			'metaPixel',
-			metaPixel({ pixelId: '123456' }),
+			'microsoftUet',
+			microsoftUet({ id: 'uet-123' }),
 			{
 				alwaysLoad: undefined,
 				persistAfterConsentRevoked: true,
-				src: 'https://connect.facebook.net/en_US/fbevents.js',
+				src: '//bat.bing.com/bat.js',
 			}
 		);
 	});

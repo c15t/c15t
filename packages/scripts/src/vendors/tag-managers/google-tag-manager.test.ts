@@ -5,27 +5,27 @@ import {
 	getTestGlobal,
 	setupScriptHelperTest,
 	toArgumentsArray,
-} from './__tests__/helpers';
-import { gtag } from './google-tag';
+} from '../../__tests__/helpers';
+import { googleTagManager } from './google-tag-manager';
 
-describe('gtag', () => {
+describe('googleTagManager', () => {
 	setupScriptHelperTest();
 
 	it('matches registry metadata and default script output', () => {
 		expectScriptMatchesIntegration(
-			'gtag',
-			gtag({ id: 'G-123', category: 'measurement' }),
+			'googleTagManager',
+			googleTagManager({ id: 'GTM-123' }),
 			{
 				alwaysLoad: true,
-				persistAfterConsentRevoked: true,
-				src: 'https://www.googletagmanager.com/gtag/js?id=G-123',
+				persistAfterConsentRevoked: undefined,
+				src: 'https://www.googletagmanager.com/gtm.js?id=GTM-123',
 			}
 		);
 	});
 
-	it('runs consent defaults before config calls', () => {
+	it('runs consent defaults before boot logic', () => {
 		const globalRef = getTestGlobal();
-		const script = gtag({ id: 'G-ORDER', category: 'measurement' });
+		const script = googleTagManager({ id: 'GTM-ORDER' });
 		globalRef.dataLayer = [];
 
 		script.onBeforeLoad?.({
@@ -49,28 +49,7 @@ describe('gtag', () => {
 				personalization_storage: 'denied',
 			},
 		]);
-		expect(toArgumentsArray(dataLayer[1])[0]).toBe('js');
-		expect(toArgumentsArray(dataLayer[2])).toEqual(['config', 'G-ORDER']);
+		expect(dataLayer[1]).toMatchObject({ event: 'gtm.js' });
 		expect(document.head.appendChild).not.toHaveBeenCalled();
-	});
-
-	it('preserves deprecated script overrides', () => {
-		const script = gtag({
-			id: 'G-OVERRIDE',
-			category: 'measurement',
-			script: {
-				nonce: 'abc123',
-				target: 'body',
-				attributes: {
-					'data-test': '1',
-				},
-			},
-		});
-
-		expect(script.nonce).toBe('abc123');
-		expect(script.target).toBe('body');
-		expect(script.attributes).toEqual({
-			'data-test': '1',
-		});
 	});
 });

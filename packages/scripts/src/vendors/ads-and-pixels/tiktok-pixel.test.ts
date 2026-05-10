@@ -2,7 +2,7 @@ import { describe, it } from 'vitest';
 import {
 	expectScriptMatchesIntegration,
 	setupScriptHelperTest,
-} from './__tests__/helpers';
+} from '../../__tests__/helpers';
 import { tiktokPixel } from './tiktok-pixel';
 
 describe('tiktokPixel', () => {

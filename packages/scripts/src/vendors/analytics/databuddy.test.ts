@@ -5,7 +5,7 @@ import {
 	getTestGlobal,
 	grantedMeasurementConsentState,
 	setupScriptHelperTest,
-} from './__tests__/helpers';
+} from '../../__tests__/helpers';
 import { databuddy } from './databuddy';
 
 describe('databuddy', () => {
