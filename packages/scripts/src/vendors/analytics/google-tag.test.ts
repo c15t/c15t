@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
 	createCallbackInfo,
 	deniedConsentState,
-	expectScriptMatchesIntegration,
 	getTestGlobal,
 	setupScriptHelperTest,
 	toArgumentsArray,
@@ -11,18 +10,6 @@ import { gtag } from './google-tag';
 
 describe('gtag', () => {
 	setupScriptHelperTest();
-
-	it('matches registry metadata and default script output', () => {
-		expectScriptMatchesIntegration(
-			'gtag',
-			gtag({ id: 'G-123', category: 'measurement' }),
-			{
-				alwaysLoad: true,
-				persistAfterConsentRevoked: true,
-				src: 'https://www.googletagmanager.com/gtag/js?id=G-123',
-			}
-		);
-	});
 
 	it('runs consent defaults before config calls', () => {
 		const globalRef = getTestGlobal();

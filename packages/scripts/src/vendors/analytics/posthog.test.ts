@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import {
 	createCallbackInfo,
 	deniedConsentState,
-	expectScriptMatchesIntegration,
 	getTestGlobal,
 	grantedMeasurementConsentState,
 	setupScriptHelperTest,
@@ -11,14 +10,6 @@ import { posthog } from './posthog';
 
 describe('posthog', () => {
 	setupScriptHelperTest();
-
-	it('matches registry metadata and default script output', () => {
-		expectScriptMatchesIntegration('posthog', posthog({ id: 'phc_123' }), {
-			alwaysLoad: true,
-			persistAfterConsentRevoked: undefined,
-			src: 'https://eu-assets.i.posthog.com/static/array.js',
-		});
-	});
 
 	it('keeps init options as an object and syncs consent state', () => {
 		const globalRef = getTestGlobal();

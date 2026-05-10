@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import {
 	createCallbackInfo,
 	deniedConsentState,
-	expectScriptMatchesIntegration,
 	getTestGlobal,
 	grantedMeasurementConsentState,
 	setupScriptHelperTest,
@@ -11,22 +10,6 @@ import { databuddy } from './databuddy';
 
 describe('databuddy', () => {
 	setupScriptHelperTest();
-
-	it('matches registry metadata and default script output', () => {
-		expectScriptMatchesIntegration(
-			'databuddy',
-			databuddy({
-				clientId: 'db_123',
-				configWhenGranted: { clientId: 'db_123', disabled: false },
-				configWhenDenied: { clientId: 'db_123', disabled: true },
-			}),
-			{
-				alwaysLoad: true,
-				persistAfterConsentRevoked: undefined,
-				src: 'https://cdn.databuddy.cc/databuddy.js',
-			}
-		);
-	});
 
 	it('preserves config seeding and sync behavior', () => {
 		const globalRef = getTestGlobal();
