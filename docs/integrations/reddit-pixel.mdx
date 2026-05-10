@@ -1,0 +1,49 @@
+---
+title: Reddit Pixel
+description: Track conversions and build retargeting audiences for Reddit advertising campaigns.
+lastModified: 2026-05-09
+
+icon: reddit
+---
+
+Reddit Pixel is Reddit's conversion tracking tool for ads and remarketing. It seeds the standard `rdt` queue before the vendor bundle loads, initializes your pixel, and by default records a `PageVisit` event once consent for `marketing` is available.
+
+## Adding Reddit Pixel to c15t
+
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+</Callout>
+
+```ts
+import { redditPixel } from '@c15t/scripts/reddit-pixel';
+
+redditPixel({
+  pixelId: 't2_abcdef',
+})
+```
+
+If you prefer to control page-view tracking yourself, disable the default `PageVisit` call:
+
+```ts
+redditPixel({
+  pixelId: 't2_abcdef',
+  trackPageVisit: false,
+})
+```
+
+## How it works
+
+- c15t defines Reddit's `rdt` stub and queue before the network script loads.
+- The helper queues `rdt('init', pixelId)` automatically.
+- By default, it also queues `rdt('track', 'PageVisit')`.
+- You can override the loader URL with `scriptSrc` for testing or proxying setups.
+
+## Types
+
+### RedditPixelOptions
+
+<AutoTypeTable path="./packages/scripts/src/reddit-pixel.ts" name="RedditPixelOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

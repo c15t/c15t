@@ -6,6 +6,7 @@ import { linkedinInsights } from './linkedin-insights';
 import { metaPixel } from './meta-pixel';
 import { microsoftUet } from './microsoft-uet';
 import { posthog } from './posthog';
+import { redditPixel } from './reddit-pixel';
 import { tiktokPixel } from './tiktok-pixel';
 import { xPixel } from './x-pixel';
 
@@ -56,6 +57,7 @@ describe('built-in script helpers', () => {
 		delete globalRef.uetq;
 		delete globalRef.fbq;
 		delete globalRef._fbq;
+		delete globalRef.rdt;
 	});
 
 	it('keeps helper output parity across all bundled integrations', () => {
@@ -150,6 +152,17 @@ describe('built-in script helpers', () => {
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: true,
 					src: '//bat.bing.com/bat.js',
+				},
+			},
+			{
+				name: 'redditPixel',
+				script: redditPixel({ pixelId: 't2_abcdef' }),
+				expected: {
+					id: 'reddit-pixel',
+					category: 'marketing',
+					alwaysLoad: undefined,
+					persistAfterConsentRevoked: undefined,
+					src: 'https://www.redditstatic.com/ads/pixel.js',
 				},
 			},
 			{
@@ -485,5 +498,61 @@ describe('built-in script helpers', () => {
 		expect(script.attributes).toEqual({
 			'data-test': '1',
 		});
+	});
+
+	it('queues Reddit Pixel init and page visit before the bundle loads', () => {
+		const globalRef = globalThis as TestGlobal;
+		const script = redditPixel({ pixelId: 't2_abcdef' });
+
+		script.onBeforeLoad?.({
+			id: script.id,
+			elementId: script.id,
+			hasConsent: true,
+			consents: {
+				necessary: true,
+				functionality: false,
+				measurement: false,
+				marketing: true,
+				experience: false,
+			},
+		});
+
+		const rdt = globalRef.rdt as ((...args: unknown[]) => void) & {
+			callQueue?: unknown[][];
+		};
+
+		expect(typeof rdt).toBe('function');
+		expect(rdt.callQueue).toEqual([
+			['init', 't2_abcdef'],
+			['track', 'PageVisit'],
+		]);
+		expect(document.head.appendChild).not.toHaveBeenCalled();
+	});
+
+	it('supports disabling the default Reddit Pixel page visit', () => {
+		const globalRef = globalThis as TestGlobal;
+		const script = redditPixel({
+			pixelId: 't2_abcdef',
+			trackPageVisit: false,
+		});
+
+		script.onBeforeLoad?.({
+			id: script.id,
+			elementId: script.id,
+			hasConsent: true,
+			consents: {
+				necessary: true,
+				functionality: false,
+				measurement: false,
+				marketing: true,
+				experience: false,
+			},
+		});
+
+		const rdt = globalRef.rdt as ((...args: unknown[]) => void) & {
+			callQueue?: unknown[][];
+		};
+
+		expect(rdt.callQueue).toEqual([['init', 't2_abcdef']]);
 	});
 });
