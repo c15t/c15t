@@ -19,7 +19,11 @@ function booleanAttribute(value: boolean | undefined): string | undefined {
 		return undefined;
 	}
 
-	return value ? 'true' : 'false';
+	if (value) {
+		return 'true';
+	}
+
+	return 'false';
 }
 
 function listAttribute(
@@ -29,7 +33,11 @@ function listAttribute(
 		return undefined;
 	}
 
-	return Array.isArray(value) ? value.join(',') : value;
+	if (Array.isArray(value)) {
+		return value.join(',');
+	}
+
+	return value;
 }
 
 /**
@@ -108,6 +116,8 @@ export interface UmamiAnalyticsOptions {
  *
  * @param options - The options for the Umami Analytics script.
  * @returns The Umami Analytics script.
+ * @throws {Error} When `websiteId` is missing, empty, or invalid. Provide a
+ * valid non-empty `websiteId` string to prevent this error.
  *
  * @example
  * ```ts

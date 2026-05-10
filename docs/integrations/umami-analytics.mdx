@@ -55,11 +55,14 @@ Guard event calls by checking consent state. From React:
 ```tsx
 import { useConsentManager } from '@c15t/react';
 
-function trackSignup() {
+function useTrackSignup() {
   const { has } = useConsentManager();
-  if (has('measurement')) {
-    window.umami?.track('signup');
-  }
+
+  return () => {
+    if (has('measurement')) {
+      window.umami?.track('signup');
+    }
+  };
 }
 ```
 
