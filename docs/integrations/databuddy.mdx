@@ -8,6 +8,12 @@ icon: databuddy
 
 The Databuddy script automatically respects consent preferences by toggling tracking on and off based on the user's consent state.
 
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** [`alwaysLoad`](/docs/frameworks/react/script-loader#always-load) — runs on page start regardless of consent state
+- **On consent change:** c15t toggles `window.databuddy.options.disabled` so tracking turns on or off without removing the script
+
 ## Script Implementation
 
 <Steps>
@@ -15,7 +21,7 @@ The Databuddy script automatically respects consent preferences by toggling trac
     ### Adding the Databuddy script to c15t
 
     <Callout type="info">
-      See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+      Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
     </Callout>
 
     ```ts
@@ -73,6 +79,16 @@ The Databuddy script automatically respects consent preferences by toggling trac
   </Step>
 </Steps>
 
+## Tracking events in your app
+
+Databuddy is `alwaysLoad: true`, so the script is in the DOM from page start regardless of consent. `window.databuddy` is therefore always defined and calls to `track`, `screenView`, or `setGlobalProperties` are safe to make at any time — when measurement consent is denied, c15t flips `window.databuddy.options.disabled = true` so the SDK becomes a no-op until consent is granted again.
+
+```ts
+window.databuddy?.track('signup');
+```
+
+You do not need to guard these calls with `useConsentManager().has('measurement')`, but doing so does no harm if you prefer the symmetry with other vendors.
+
 ## How Consent Management Works
 
 The Databuddy integration automatically handles consent management:
@@ -124,7 +140,7 @@ databuddy({
 
 ### DatabuddyConsentOptions
 
-<AutoTypeTable path="./packages/scripts/src/databuddy.ts" name="DatabuddyConsentOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/databuddy.ts" name="DatabuddyConsentOptions" />
 
 ### Script
 
