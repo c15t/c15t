@@ -1,0 +1,31 @@
+---
+title: Intercom
+description: Bootstrap Intercom settings and load the messenger widget bundle.
+lastModified: 2026-05-09
+
+icon: guide
+---
+
+Intercom loads through `@c15t/scripts` using c15t's script loader and the helper's default consent category.
+
+## Adding Intercom to c15t
+
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+</Callout>
+
+```ts
+import { intercom } from '@c15t/scripts/intercom';
+
+intercom({ appId: 'abc123' })
+```
+
+## Types
+
+### IntercomOptions
+
+<AutoTypeTable path="./packages/scripts/src/intercom.ts" name="IntercomOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
