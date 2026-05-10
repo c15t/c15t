@@ -47,7 +47,7 @@ This is the recommended approach if you're using the Posthog JS SDK, this is com
 
     ```ts
     import { getOrCreateConsentRuntime } from 'c15t';
-    import { posthog } from 'posthog-js';
+    import posthog from 'posthog-js';
 
     function syncPostHogMeasurementConsent(hasMeasurementConsent: boolean) {
       if (hasMeasurementConsent) {
