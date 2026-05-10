@@ -112,6 +112,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'cloudflareWebAnalytics',
+		vendor: 'cloudflare-web-analytics',
+		label: 'Cloudflare Web Analytics',
+		hint: 'Cookieless analytics from Cloudflare',
+		docsSlug: 'cloudflare-web-analytics',
+		packageSubpath: 'cloudflare-web-analytics',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'databuddy',
 		vendor: 'databuddy',
 		label: 'Databuddy',

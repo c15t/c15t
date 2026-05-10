@@ -27,6 +27,10 @@ import {
 	tiktokPixelManifest,
 } from './vendors/ads-and-pixels/tiktok-pixel';
 import { xPixel, xPixelManifest } from './vendors/ads-and-pixels/x-pixel';
+import {
+	cloudflareWebAnalytics,
+	cloudflareWebAnalyticsManifest,
+} from './vendors/analytics/cloudflare-web-analytics';
 import { databuddy, databuddyManifest } from './vendors/analytics/databuddy';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
 import { posthog, posthogManifest } from './vendors/analytics/posthog';
@@ -58,6 +62,14 @@ const helperParityCases = {
 			alwaysLoad: true,
 			persistAfterConsentRevoked: true,
 			src: 'https://www.googletagmanager.com/gtag/js?id=G-123',
+		},
+	},
+	cloudflareWebAnalytics: {
+		script: cloudflareWebAnalytics({ token: 'tok-abc' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://static.cloudflareinsights.com/beacon.min.js',
 		},
 	},
 	databuddy: {
@@ -133,6 +145,7 @@ const helperParityCases = {
 const vendorManifests = [
 	googleTagManagerManifest,
 	gtagManifest,
+	cloudflareWebAnalyticsManifest,
 	databuddyManifest,
 	posthogManifest,
 	metaPixelManifest,
