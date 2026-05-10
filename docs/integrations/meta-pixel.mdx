@@ -50,12 +50,21 @@ This means `window.fbq` (and the `metaPixelEvent` helper) are only defined after
 import { useConsentManager } from '@c15t/react';
 import { metaPixelEvent } from '@c15t/scripts/meta-pixel';
 
-function trackPurchase() {
+function useTrackPurchase() {
   const { has } = useConsentManager();
+
   // Defensive pattern: only call metaPixelEvent while marketing consent is granted.
-  if (has('marketing')) {
-    metaPixelEvent('Purchase', { value: 10.0, currency: 'USD' });
-  }
+  return () => {
+    if (has('marketing')) {
+      metaPixelEvent('Purchase', { value: 10.0, currency: 'USD' });
+    }
+  };
+}
+
+function PurchaseButton() {
+  const trackPurchase = useTrackPurchase();
+
+  return <button onClick={trackPurchase}>Complete purchase</button>;
 }
 ```
 
