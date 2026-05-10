@@ -256,13 +256,23 @@
   The safe pattern in React is to read consent state through `useConsentManager().has(category)` before calling the SDK:
 
   ```tsx
+  import { useCallback } from 'react';
   import { useConsentManager } from '@c15t/react';
 
-  function trackSignup() {
+  function useTrackSignup() {
     const { has } = useConsentManager();
-    if (has('measurement')) {
-      window.fathom?.trackEvent('signup');
-    }
+
+    return useCallback(() => {
+      if (has('measurement')) {
+        window.fathom?.trackEvent('signup');
+      }
+    }, [has]);
+  }
+
+  function SignupButton() {
+    const trackSignup = useTrackSignup();
+
+    return <button onClick={trackSignup}>Sign up</button>;
   }
   ```
 
