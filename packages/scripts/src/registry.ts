@@ -233,6 +233,12 @@ export function getBuiltInScriptIntegration(
  *
  * @param subpath - Kebab-case subpath such as `google-tag`.
  * @returns The matching integration, or `undefined` when no entry matches.
+ *
+ * @example
+ * ```ts
+ * const integration = getBuiltInScriptIntegrationBySubpath('meta-pixel');
+ * console.log(integration?.label); // "Meta Pixel"
+ * ```
  */
 export function getBuiltInScriptIntegrationBySubpath(
 	subpath: string
