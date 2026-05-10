@@ -162,6 +162,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'segment',
+		vendor: 'segment',
+		label: 'Segment',
+		hint: 'Customer data platform',
+		docsSlug: 'segment',
+		packageSubpath: 'segment',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'plausibleAnalytics',
 		vendor: 'plausible-analytics',
 		label: 'Plausible Analytics',

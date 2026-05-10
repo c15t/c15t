@@ -47,6 +47,11 @@
 			"import": "./dist/vendors/analytics/posthog.js",
 			"require": "./dist/vendors/analytics/posthog.cjs"
 		},
+		"./segment": {
+			"types": "./dist-types/vendors/analytics/segment.d.ts",
+			"import": "./dist/vendors/analytics/segment.js",
+			"require": "./dist/vendors/analytics/segment.cjs"
+		},
 		"./umami-analytics": {
 			"types": "./dist-types/vendors/analytics/umami-analytics.d.ts",
 			"import": "./dist/vendors/analytics/umami-analytics.js",

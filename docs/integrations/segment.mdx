@@ -1,17 +1,23 @@
 ---
 title: Segment
 description: Load Segment Analytics.js with c15t and gate it behind measurement consent.
-lastModified: 2026-05-09
+lastModified: 2026-05-10
 
 icon: guide
 ---
 
-Segment lets you collect analytics events in one place and forward them to downstream destinations. The `@c15t/scripts/segment` helper creates Segment's standard `window.analytics` queue, optionally queues the initial `page()` call, and loads Analytics.js when `measurement` consent is available.
+Segment lets you collect analytics events in one place and forward them to downstream destinations. The `segment()` helper creates Segment's standard `window.analytics` queue, optionally queues the initial `page()` call, and loads Analytics.js when `measurement` consent is available.
+
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** measurement consent is granted
+- **On revocation:** unloaded - c15t removes the script from the DOM and clears Segment globals until consent is granted again.
 
 ## Adding Segment to c15t
 
 <Callout type="info">
-  See the [integration overview](/docs/integrations) for how to pass scripts to your framework.
+  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
 </Callout>
 
 ```ts
@@ -41,11 +47,44 @@ segment({
 });
 ```
 
+## Tracking events in your app
+
+c15t gates the Segment script from loading until `measurement` consent is granted. Your application code that calls Segment's runtime API (`window.analytics.track`, `identify`, etc.) is **not** automatically gated - `window.analytics` does not exist until the script is loaded, so unguarded calls before consent throw.
+
+Guard event calls by checking consent state. From React:
+
+```tsx
+import { useCallback } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+function SignupExample() {
+  const { has } = useConsentManager();
+
+  const trackSignup = useCallback(() => {
+    if (has('measurement')) {
+      window.analytics?.track('Signup Completed', { plan: 'pro' });
+    }
+  }, [has]);
+}
+```
+
+From plain JavaScript:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('measurement')) {
+  window.analytics?.track('Signup Completed', { plan: 'pro' });
+}
+```
+
 ## Types
 
 ### SegmentOptions
 
-<AutoTypeTable path="./packages/scripts/src/segment.ts" name="SegmentOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/segment.ts" name="SegmentOptions" />
 
 ### Script
 

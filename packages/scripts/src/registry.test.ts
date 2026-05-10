@@ -46,6 +46,7 @@ import {
 	plausibleAnalyticsManifest,
 } from './vendors/analytics/plausible-analytics';
 import { posthog, posthogManifest } from './vendors/analytics/posthog';
+import { segment, segmentManifest } from './vendors/analytics/segment';
 import {
 	umamiAnalytics,
 	umamiAnalyticsManifest,
@@ -124,6 +125,14 @@ const helperParityCases = {
 			src: 'https://eu-assets.i.posthog.com/static/array.js',
 		},
 	},
+	segment: {
+		script: segment({ writeKey: 'abc123xyz456' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.segment.com/analytics.js/v1/abc123xyz456/analytics.min.js',
+		},
+	},
 	plausibleAnalytics: {
 		script: plausibleAnalytics({ domain: 'example.com' }),
 		expected: {
@@ -198,6 +207,7 @@ const vendorManifests = [
 	databuddyManifest,
 	fathomAnalyticsManifest,
 	posthogManifest,
+	segmentManifest,
 	plausibleAnalyticsManifest,
 	umamiAnalyticsManifest,
 	metaPixelManifest,

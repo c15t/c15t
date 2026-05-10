@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
 export interface SegmentApi {
 	track: (event: string, properties?: Record<string, unknown>) => void;
@@ -60,73 +60,51 @@ export const segmentManifest = {
 		},
 		{
 			type: 'loadScript',
-			src: '{{scriptSrc}}',
+			src: '{{scriptUrl}}',
 			async: true,
 		},
 	],
 } as const satisfies VendorManifest;
 
 export interface SegmentOptions {
-	/**
-	 * Your Segment write key.
-	 * @example `abc123xyz456`
-	 */
+	/** Your Segment write key. */
 	writeKey: string;
-
-	/**
-	 * Queue the initial `analytics.page()` call during setup.
-	 * @default true
-	 */
+	/** Queue the initial `analytics.page()` call during setup. */
 	trackPageView?: boolean;
-
-	/**
-	 * Optional full loader URL override.
-	 *
-	 * This helper intentionally targets the default `window.analytics` global.
-	 * Alternate global keys from the upstream registry helper are not supported here.
-	 */
-	scriptSrc?: string;
+	/** Optional full loader URL override. */
+	scriptUrl?: string;
 }
 
 /**
  * Creates a Segment Analytics.js script.
  *
- * @param options - The options for the Segment script
- * @returns The Segment script configuration
- *
- * @example
- * ```ts
- * const segmentScript = segment({
- *   writeKey: 'abc123xyz456',
- * });
- * ```
- *
- * @see {@link https://segment.com/docs/connections/sources/catalog/libraries/website/javascript/} Segment Analytics.js documentation
+ * @param options - The options for the Segment script.
+ * @returns The Segment script configuration.
  */
 export function segment({
 	writeKey,
 	trackPageView = true,
-	scriptSrc,
+	scriptUrl,
 }: SegmentOptions): Script {
-	const manifest = trackPageView
-		? segmentManifest
-		: ({
-				...segmentManifest,
-				install: segmentManifest.install.filter(
-					(step) =>
-						!(
-							step.type === 'callGlobal' &&
-							step.global === 'analytics' &&
-							step.method === 'page'
-						)
-				),
-			} as const satisfies VendorManifest);
+	let manifest = segmentManifest;
 
-	const resolved = resolveManifest(manifest, {
-		scriptSrc:
-			scriptSrc ??
+	if (!trackPageView) {
+		manifest = {
+			...segmentManifest,
+			install: segmentManifest.install.filter(
+				(step) =>
+					!(
+						step.type === 'callGlobal' &&
+						step.global === 'analytics' &&
+						step.method === 'page'
+					)
+			),
+		} as const satisfies VendorManifest;
+	}
+
+	return resolveManifest(manifest, {
+		scriptUrl:
+			scriptUrl ??
 			`https://cdn.segment.com/analytics.js/v1/${writeKey}/analytics.min.js`,
 	});
-
-	return resolved;
 }
