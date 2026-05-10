@@ -95,19 +95,18 @@ If you want to load posthog via a script tag it's recommended to use this approa
 
 <Steps>
   <Step>
-    ### Initialize Posthog
+    ### Configure cookieless mode
 
-    This script does not load the Posthog script, it only syncs the consent state with Posthog via the Posthog JS SDK.
+    The c15t helper loads PostHog's bootstrap script, calls `posthog.init()` for you using the `initOptions` you pass, and then synchronizes consent through `posthog.opt_in_capturing()` / `posthog.opt_out_capturing()`. You do not need to call `posthog.init()` separately.
 
-    This is due to Posthog's use of cookieless tracking. However, you need to set `cookieless_mode` to `on_reject` when initializing Posthog.
+    Because PostHog supports cookieless tracking, set `cookieless_mode: 'on_reject'` in `initOptions` so PostHog keeps collecting data without cookies until measurement consent is granted:
 
     ```ts
-    posthog.init("phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", {
-      api_host: "https://eu.i.posthog.com",
-      defaults: "2025-05-24",
+    const initOptions = {
+      api_host: 'https://eu.i.posthog.com',
       // PostHog will not set any cookies until the user has given consent
-      cookieless_mode: 'on_reject'
-    })
+      cookieless_mode: 'on_reject',
+    };
     ```
   </Step>
 
@@ -130,6 +129,7 @@ If you want to load posthog via a script tag it's recommended to use this approa
         ui_host: 'https://eu.i.posthog.com',
         autocapture: false,
         person_profiles: 'identified_only',
+        cookieless_mode: 'on_reject',
       }
     })
     ```
