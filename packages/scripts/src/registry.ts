@@ -142,6 +142,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'fathomAnalytics',
+		vendor: 'fathom-analytics',
+		label: 'Fathom Analytics',
+		hint: 'Privacy-friendly cookieless analytics',
+		docsSlug: 'fathom-analytics',
+		packageSubpath: 'fathom-analytics',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'posthog',
 		vendor: 'posthog',
 		label: 'PostHog',

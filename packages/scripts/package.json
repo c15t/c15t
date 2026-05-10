@@ -27,6 +27,11 @@
 			"import": "./dist/vendors/analytics/databuddy.js",
 			"require": "./dist/vendors/analytics/databuddy.cjs"
 		},
+		"./fathom-analytics": {
+			"types": "./dist-types/vendors/analytics/fathom-analytics.d.ts",
+			"import": "./dist/vendors/analytics/fathom-analytics.js",
+			"require": "./dist/vendors/analytics/fathom-analytics.cjs"
+		},
 		"./google-tag": {
 			"types": "./dist-types/vendors/analytics/google-tag.d.ts",
 			"import": "./dist/vendors/analytics/google-tag.js",

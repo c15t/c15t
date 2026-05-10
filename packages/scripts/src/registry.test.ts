@@ -36,6 +36,10 @@ import {
 	cloudflareWebAnalyticsManifest,
 } from './vendors/analytics/cloudflare-web-analytics';
 import { databuddy, databuddyManifest } from './vendors/analytics/databuddy';
+import {
+	fathomAnalytics,
+	fathomAnalyticsManifest,
+} from './vendors/analytics/fathom-analytics';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
 import { posthog, posthogManifest } from './vendors/analytics/posthog';
 import {
@@ -94,6 +98,14 @@ const helperParityCases = {
 			alwaysLoad: true,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://cdn.databuddy.cc/databuddy.js',
+		},
+	},
+	fathomAnalytics: {
+		script: fathomAnalytics({ site: 'SITE123' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.usefathom.com/script.js',
 		},
 	},
 	posthog: {
@@ -160,6 +172,7 @@ const vendorManifests = [
 	ahrefsAnalyticsManifest,
 	cloudflareWebAnalyticsManifest,
 	databuddyManifest,
+	fathomAnalyticsManifest,
 	posthogManifest,
 	metaPixelManifest,
 	tiktokPixelManifest,
