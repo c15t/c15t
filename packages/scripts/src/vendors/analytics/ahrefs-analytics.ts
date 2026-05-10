@@ -71,10 +71,8 @@ export interface AhrefsAnalyticsOptions {
  * ```
  */
 export function ahrefsAnalytics(options: AhrefsAnalyticsOptions): Script {
-	const resolved = resolveManifest(ahrefsAnalyticsManifest, {
+	return resolveManifest(ahrefsAnalyticsManifest, {
 		key: options.key,
 		scriptUrl: options.scriptUrl ?? 'https://analytics.ahrefs.com/analytics.js',
 	});
-
-	return resolved;
 }
