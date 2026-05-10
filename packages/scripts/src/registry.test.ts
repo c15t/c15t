@@ -29,6 +29,10 @@ import {
 import { xPixel, xPixelManifest } from './vendors/ads-and-pixels/x-pixel';
 import { databuddy, databuddyManifest } from './vendors/analytics/databuddy';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
+import {
+	plausibleAnalytics,
+	plausibleAnalyticsManifest,
+} from './vendors/analytics/plausible-analytics';
 import { posthog, posthogManifest } from './vendors/analytics/posthog';
 import {
 	googleTagManager,
@@ -78,6 +82,14 @@ const helperParityCases = {
 			alwaysLoad: true,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://eu-assets.i.posthog.com/static/array.js',
+		},
+	},
+	plausibleAnalytics: {
+		script: plausibleAnalytics({ domain: 'example.com' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://plausible.io/js/script.js',
 		},
 	},
 	metaPixel: {
@@ -135,6 +147,7 @@ const vendorManifests = [
 	gtagManifest,
 	databuddyManifest,
 	posthogManifest,
+	plausibleAnalyticsManifest,
 	metaPixelManifest,
 	tiktokPixelManifest,
 	linkedinInsightsManifest,

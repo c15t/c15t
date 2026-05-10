@@ -232,6 +232,7 @@ function cleanupMockBrowser() {
 	delete globalRef.posthog;
 	delete globalRef.databuddy;
 	delete globalRef.databuddyConfig;
+	delete globalRef.plausible;
 	delete globalRef.ttq;
 	delete globalRef.twq;
 	delete globalRef._linkedin_partner_id;

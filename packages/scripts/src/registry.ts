@@ -132,6 +132,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'plausibleAnalytics',
+		vendor: 'plausible-analytics',
+		label: 'Plausible Analytics',
+		hint: 'Privacy-friendly cookieless analytics',
+		docsSlug: 'plausible-analytics',
+		packageSubpath: 'plausible-analytics',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'metaPixel',
 		vendor: 'meta-pixel',
 		label: 'Meta Pixel',
