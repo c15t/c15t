@@ -7,6 +7,7 @@
 			"@c15t/backend": ["../backend/dist-types/core.d.ts"],
 			"@c15t/backend/*": ["../backend/dist-types/*"],
 			"@c15t/logger": ["../logger/dist-types/index.d.ts"],
+			"@c15t/scripts/registry": ["../scripts/dist-types/registry.d.ts"],
 			"~/*": ["./src/*"]
 		}
 	},
