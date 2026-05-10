@@ -7,6 +7,7 @@ import { metaPixel } from './meta-pixel';
 import { microsoftUet } from './microsoft-uet';
 import { posthog } from './posthog';
 import { tiktokPixel } from './tiktok-pixel';
+import { usercentrics } from './usercentrics';
 import { xPixel } from './x-pixel';
 
 type TestGlobal = typeof globalThis & Record<string, unknown>;
@@ -150,6 +151,17 @@ describe('built-in script helpers', () => {
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: true,
 					src: '//bat.bing.com/bat.js',
+				},
+			},
+			{
+				name: 'usercentrics',
+				script: usercentrics({ rulesetId: 'ruleset-123' }),
+				expected: {
+					id: 'usercentrics',
+					category: 'necessary',
+					alwaysLoad: true,
+					persistAfterConsentRevoked: undefined,
+					src: 'https://web.cmp.usercentrics.eu/ui/loader.js',
 				},
 			},
 			{
