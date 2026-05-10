@@ -19,13 +19,13 @@ import {
 	metaPixelManifest,
 } from './vendors/ads-and-pixels/meta-pixel';
 import {
-	redditPixel,
-	redditPixelManifest,
-} from './vendors/ads-and-pixels/reddit-pixel';
-import {
 	microsoftUet,
 	microsoftUetManifest,
 } from './vendors/ads-and-pixels/microsoft-uet';
+import {
+	redditPixel,
+	redditPixelManifest,
+} from './vendors/ads-and-pixels/reddit-pixel';
 import {
 	tiktokPixel,
 	tiktokPixelManifest,
