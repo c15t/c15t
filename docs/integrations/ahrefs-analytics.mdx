@@ -1,0 +1,50 @@
+---
+title: Ahrefs Analytics
+description: Cookieless web analytics from Ahrefs with a prebuilt helper that wires the project key into a c15t-managed script.
+lastModified: 2026-05-10
+
+icon: ahrefs
+---
+
+Ahrefs Web Analytics is a cookieless analytics product configured with a single project key. The `ahrefsAnalytics()` helper wires that key into the `data-key` attribute that Ahrefs' loader reads at startup.
+
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** measurement consent is granted
+- **On revocation:** unloaded — c15t removes the script element from the DOM. Ahrefs Web Analytics is cookieless, so no client-side state needs clearing.
+
+## Adding Ahrefs Analytics to c15t
+
+<Callout type="info">
+  Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
+</Callout>
+
+```ts
+import { ahrefsAnalytics } from '@c15t/scripts/ahrefs-analytics';
+
+ahrefsAnalytics({
+  key: 'your-ahrefs-project-key',
+})
+```
+
+To run from a custom loader URL (for example a self-hosted proxy):
+
+```ts
+ahrefsAnalytics({
+  key: 'your-ahrefs-project-key',
+  scriptUrl: 'https://analytics.example.com/analytics.js',
+})
+```
+
+Once loaded, Ahrefs exposes its runtime API on `window.AhrefsAnalytics`. The c15t helper only models the serializable script configuration — calls to `window.AhrefsAnalytics.sendEvent(...)` happen in your application code as needed.
+
+## Types
+
+### AhrefsAnalyticsOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/ahrefs-analytics.ts" name="AhrefsAnalyticsOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

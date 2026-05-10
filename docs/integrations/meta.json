@@ -11,6 +11,7 @@
 		"building-integrations",
 		"--- Analytics ---",
 		"google-tag",
+		"ahrefs-analytics",
 		"databuddy",
 		"posthog",
 		"--- Ads & Pixels ---",
