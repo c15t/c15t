@@ -120,6 +120,12 @@ export interface UmamiAnalyticsOptions {
  * ```
  */
 export function umamiAnalytics(options: UmamiAnalyticsOptions): Script {
+	if (!options.websiteId || options.websiteId.trim().length === 0) {
+		throw new Error(
+			'umamiAnalytics: invalid websiteId - must be a non-empty string'
+		);
+	}
+
 	const resolved = resolveManifest(umamiAnalyticsManifest, {
 		websiteId: options.websiteId,
 		hostUrl: options.hostUrl,
