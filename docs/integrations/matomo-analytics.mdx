@@ -1,0 +1,54 @@
+---
+title: Matomo Analytics
+description: Load Matomo with c15t and keep Matomo's queue aligned with measurement consent.
+lastModified: 2026-05-09
+
+icon: guide
+---
+
+Matomo gives you privacy-focused web analytics with self-hosted and cloud deployment options. The `@c15t/scripts/matomo-analytics` helper sets up Matomo's `_paq` queue, points it at your tracker, and can queue consent-aware commands before the vendor bundle loads.
+
+## Adding Matomo to c15t
+
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework.
+</Callout>
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+import { matomoAnalytics } from '@c15t/scripts/matomo-analytics';
+
+getOrCreateConsentRuntime({
+  mode: 'hosted',
+  scripts: [
+    matomoAnalytics({
+      matomoUrl: 'https://analytics.example.com',
+      siteId: 1,
+    }),
+  ],
+});
+```
+
+## Enable Matomo consent mode
+
+If you want Matomo to wait for consent before tracking, set `defaultConsent` to `'required'` or `'given'`.
+
+```ts
+import { matomoAnalytics } from '@c15t/scripts/matomo-analytics';
+
+matomoAnalytics({
+  matomoUrl: 'https://analytics.example.com',
+  siteId: 1,
+  defaultConsent: 'required',
+});
+```
+
+## Types
+
+### MatomoAnalyticsOptions
+
+<AutoTypeTable path="./packages/scripts/src/matomo-analytics.ts" name="MatomoAnalyticsOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

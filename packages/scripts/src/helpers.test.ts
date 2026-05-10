@@ -3,6 +3,7 @@ import { databuddy } from './databuddy';
 import { gtag } from './google-tag';
 import { googleTagManager } from './google-tag-manager';
 import { linkedinInsights } from './linkedin-insights';
+import { matomoAnalytics } from './matomo-analytics';
 import { metaPixel } from './meta-pixel';
 import { microsoftUet } from './microsoft-uet';
 import { posthog } from './posthog';
@@ -53,6 +54,7 @@ describe('built-in script helpers', () => {
 		delete globalRef.twq;
 		delete globalRef._linkedin_partner_id;
 		delete globalRef._linkedin_data_partner_ids;
+		delete globalRef._paq;
 		delete globalRef.uetq;
 		delete globalRef.fbq;
 		delete globalRef._fbq;
@@ -142,6 +144,20 @@ describe('built-in script helpers', () => {
 				},
 			},
 			{
+				name: 'matomoAnalytics',
+				script: matomoAnalytics({
+					matomoUrl: 'https://analytics.example.com',
+					siteId: 1,
+				}),
+				expected: {
+					id: 'matomo-analytics',
+					category: 'measurement',
+					alwaysLoad: undefined,
+					persistAfterConsentRevoked: undefined,
+					src: 'https://analytics.example.com/matomo.js',
+				},
+			},
+			{
 				name: 'microsoftUet',
 				script: microsoftUet({ id: 'uet-123' }),
 				expected: {
@@ -180,6 +196,56 @@ describe('built-in script helpers', () => {
 				expect(helper.script.src, helper.name).toBe(helper.expected.src);
 			}
 		}
+	});
+
+	it('queues Matomo consent steps and page tracking in order', () => {
+		const globalRef = globalThis as TestGlobal;
+		const script = matomoAnalytics({
+			matomoUrl: 'https://analytics.example.com',
+			siteId: 1,
+			defaultConsent: 'required',
+		});
+
+		script.onBeforeLoad?.({
+			id: script.id,
+			elementId: script.id,
+			hasConsent: false,
+			consents: {
+				necessary: true,
+				functionality: false,
+				measurement: false,
+				marketing: false,
+				experience: false,
+			},
+		});
+
+		expect(globalRef._paq).toEqual([
+			['setTrackerUrl', 'https://analytics.example.com/matomo.php'],
+			['setSiteId', '1'],
+			['requireConsent'],
+		]);
+
+		script.onConsentChange?.({
+			id: script.id,
+			elementId: script.id,
+			hasConsent: true,
+			consents: {
+				necessary: true,
+				functionality: false,
+				measurement: true,
+				marketing: false,
+				experience: false,
+			},
+		});
+
+		expect(globalRef._paq).toEqual([
+			['setTrackerUrl', 'https://analytics.example.com/matomo.php'],
+			['setSiteId', '1'],
+			['requireConsent'],
+			['setConsentGiven'],
+			['trackPageView'],
+		]);
+		expect(document.head.appendChild).not.toHaveBeenCalled();
 	});
 
 	it('runs Google Tag Manager consent defaults before boot logic', () => {
