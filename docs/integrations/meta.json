@@ -11,6 +11,7 @@
 		"building-integrations",
 		"--- Analytics ---",
 		"google-tag",
+		"cloudflare-web-analytics",
 		"databuddy",
 		"posthog",
 		"--- Ads & Pixels ---",

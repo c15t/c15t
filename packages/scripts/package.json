@@ -12,6 +12,11 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
+		"./cloudflare-web-analytics": {
+			"types": "./dist-types/vendors/analytics/cloudflare-web-analytics.d.ts",
+			"import": "./dist/vendors/analytics/cloudflare-web-analytics.js",
+			"require": "./dist/vendors/analytics/cloudflare-web-analytics.cjs"
+		},
 		"./databuddy": {
 			"types": "./dist-types/vendors/analytics/databuddy.d.ts",
 			"import": "./dist/vendors/analytics/databuddy.js",
