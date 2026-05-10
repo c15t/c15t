@@ -27,8 +27,24 @@ import {
 	tiktokPixelManifest,
 } from './vendors/ads-and-pixels/tiktok-pixel';
 import { xPixel, xPixelManifest } from './vendors/ads-and-pixels/x-pixel';
+import {
+	ahrefsAnalytics,
+	ahrefsAnalyticsManifest,
+} from './vendors/analytics/ahrefs-analytics';
+import {
+	cloudflareWebAnalytics,
+	cloudflareWebAnalyticsManifest,
+} from './vendors/analytics/cloudflare-web-analytics';
 import { databuddy, databuddyManifest } from './vendors/analytics/databuddy';
+import {
+	fathomAnalytics,
+	fathomAnalyticsManifest,
+} from './vendors/analytics/fathom-analytics';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
+import {
+	plausibleAnalytics,
+	plausibleAnalyticsManifest,
+} from './vendors/analytics/plausible-analytics';
 import { posthog, posthogManifest } from './vendors/analytics/posthog';
 import {
 	umamiAnalytics,
@@ -64,6 +80,22 @@ const helperParityCases = {
 			src: 'https://www.googletagmanager.com/gtag/js?id=G-123',
 		},
 	},
+	ahrefsAnalytics: {
+		script: ahrefsAnalytics({ key: 'ahrefs-key' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://analytics.ahrefs.com/analytics.js',
+		},
+	},
+	cloudflareWebAnalytics: {
+		script: cloudflareWebAnalytics({ token: 'tok-abc' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://static.cloudflareinsights.com/beacon.min.js',
+		},
+	},
 	databuddy: {
 		script: databuddy({
 			clientId: 'db_123',
@@ -76,12 +108,28 @@ const helperParityCases = {
 			src: 'https://cdn.databuddy.cc/databuddy.js',
 		},
 	},
+	fathomAnalytics: {
+		script: fathomAnalytics({ site: 'SITE123' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.usefathom.com/script.js',
+		},
+	},
 	posthog: {
 		script: posthog({ id: 'phc_123' }),
 		expected: {
 			alwaysLoad: true,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://eu-assets.i.posthog.com/static/array.js',
+		},
+	},
+	plausibleAnalytics: {
+		script: plausibleAnalytics({ domain: 'example.com' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://plausible.io/js/script.js',
 		},
 	},
 	umamiAnalytics: {
@@ -145,8 +193,12 @@ const helperParityCases = {
 const vendorManifests = [
 	googleTagManagerManifest,
 	gtagManifest,
+	ahrefsAnalyticsManifest,
+	cloudflareWebAnalyticsManifest,
 	databuddyManifest,
+	fathomAnalyticsManifest,
 	posthogManifest,
+	plausibleAnalyticsManifest,
 	umamiAnalyticsManifest,
 	metaPixelManifest,
 	tiktokPixelManifest,
