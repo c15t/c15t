@@ -46,6 +46,35 @@ Each option is mapped to Umami's published `data-*` attribute (`data-website-id`
   `beforeSend` accepts a string referencing a global hook (e.g. `'window.umamiBeforeSend'`), not a function value. The c15t manifest runtime serializes script configuration, so inline callbacks cannot be passed through it.
 </Callout>
 
+## Tracking events in your app
+
+c15t gates the Umami script from loading until `measurement` consent is granted. Your application code that calls Umami's runtime API (`window.umami.track`, `window.umami.identify`) is **not** automatically gated — `window.umami` does not exist until the script is loaded, so unguarded calls before consent throw.
+
+Guard event calls by checking consent state. From React:
+
+```tsx
+import { useConsentManager } from '@c15t/react';
+
+function trackSignup() {
+  const { has } = useConsentManager();
+  if (has('measurement')) {
+    window.umami?.track('signup');
+  }
+}
+```
+
+From plain JavaScript:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('measurement')) {
+  window.umami?.track('signup');
+}
+```
+
 ## Types
 
 ### UmamiAnalyticsOptions
