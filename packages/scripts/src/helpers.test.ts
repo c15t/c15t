@@ -7,6 +7,7 @@ import { metaPixel } from './meta-pixel';
 import { microsoftUet } from './microsoft-uet';
 import { posthog } from './posthog';
 import { tiktokPixel } from './tiktok-pixel';
+import { stripe } from './stripe';
 import { xPixel } from './x-pixel';
 
 type TestGlobal = typeof globalThis & Record<string, unknown>;
@@ -150,6 +151,17 @@ describe('built-in script helpers', () => {
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: true,
 					src: '//bat.bing.com/bat.js',
+				},
+			},
+			{
+				name: 'stripe',
+				script: stripe(),
+				expected: {
+					id: 'stripe',
+					category: 'functionality',
+					alwaysLoad: undefined,
+					persistAfterConsentRevoked: undefined,
+					src: 'https://js.stripe.com/basil/stripe.js',
 				},
 			},
 			{
