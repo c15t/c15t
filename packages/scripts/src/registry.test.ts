@@ -31,6 +31,10 @@ import { databuddy, databuddyManifest } from './vendors/analytics/databuddy';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
 import { posthog, posthogManifest } from './vendors/analytics/posthog';
 import {
+	umamiAnalytics,
+	umamiAnalyticsManifest,
+} from './vendors/analytics/umami-analytics';
+import {
 	googleTagManager,
 	googleTagManagerManifest,
 } from './vendors/tag-managers/google-tag-manager';
@@ -78,6 +82,14 @@ const helperParityCases = {
 			alwaysLoad: true,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://eu-assets.i.posthog.com/static/array.js',
+		},
+	},
+	umamiAnalytics: {
+		script: umamiAnalytics({ websiteId: 'site-abc' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cloud.umami.is/script.js',
 		},
 	},
 	metaPixel: {
@@ -135,6 +147,7 @@ const vendorManifests = [
 	gtagManifest,
 	databuddyManifest,
 	posthogManifest,
+	umamiAnalyticsManifest,
 	metaPixelManifest,
 	tiktokPixelManifest,
 	linkedinInsightsManifest,

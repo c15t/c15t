@@ -27,6 +27,11 @@
 			"import": "./dist/vendors/analytics/posthog.js",
 			"require": "./dist/vendors/analytics/posthog.cjs"
 		},
+		"./umami-analytics": {
+			"types": "./dist-types/vendors/analytics/umami-analytics.d.ts",
+			"import": "./dist/vendors/analytics/umami-analytics.js",
+			"require": "./dist/vendors/analytics/umami-analytics.cjs"
+		},
 		"./google-tag-manager": {
 			"types": "./dist-types/vendors/tag-managers/google-tag-manager.d.ts",
 			"import": "./dist/vendors/tag-managers/google-tag-manager.js",
