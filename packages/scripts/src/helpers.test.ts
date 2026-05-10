@@ -215,14 +215,14 @@ describe('built-in script helpers', () => {
 			},
 		});
 
-		const clarityGlobal = globalRef.clarity as ((...args: unknown[]) => void) & {
+		const clarityGlobal = globalRef.clarity as ((
+			...args: unknown[]
+		) => void) & {
 			q?: unknown[][];
 		};
 
 		expect(typeof clarityGlobal).toBe('function');
-		expect(clarityGlobal.q).toEqual([
-			['consent', { analytics: 'denied' }],
-		]);
+		expect(clarityGlobal.q).toEqual([['consent', { analytics: 'denied' }]]);
 
 		script.onConsentChange?.({
 			id: script.id,
