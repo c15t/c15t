@@ -19,10 +19,16 @@ c15t initializes Google Tag with Consent Mode v2 defaults set to denied and auto
 - Use `category: 'measurement'` for analytics-only tracking (GA4 events)
 - Use `category: 'marketing'` for advertising and conversion tracking (Google Ads)
 
+## How c15t loads it
+
+- **Category:** configurable — `measurement` (default) or `marketing` (Analytics)
+- **Loads when:** [`alwaysLoad`](/docs/frameworks/react/script-loader#always-load) — runs on page start regardless of consent state, with Consent Mode v2 defaults set to denied
+- **On consent change:** [persists](/docs/frameworks/react/script-loader#persist-after-revocation) — c15t pushes a Consent Mode v2 `update` to gtag instead of removing the script
+
 ## Adding GA4 + Google Ads to c15t
 
 <Callout type="info">
-  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+  Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
 </Callout>
 
 ```ts
@@ -34,11 +40,21 @@ gtag({
 })
 ```
 
+## Tracking events in your app
+
+`gtag.js` is `alwaysLoad: true`, so `window.gtag` is present from page start regardless of consent. Calls like `gtag('event', 'sign_up')` are **safe at any time** — c15t sets Consent Mode v2 defaults to denied before the user makes a choice, and Google's SDK suppresses transmission of events while the relevant consent is denied. When consent later changes, c15t emits a Consent Mode v2 `update` so events fire correctly going forward.
+
+```ts
+window.gtag?.('event', 'sign_up', { method: 'email' });
+```
+
+You do not need to wrap `gtag(...)` calls in a `useConsentManager().has(...)` check — Consent Mode handles the suppression for you.
+
 ## Types
 
 ### GtagOptions
 
-<AutoTypeTable path="./packages/scripts/src/google-tag.ts" name="GtagOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/google-tag.ts" name="GtagOptions" />
 
 ### Script
 
