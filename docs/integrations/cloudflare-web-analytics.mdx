@@ -1,0 +1,54 @@
+---
+title: Cloudflare Web Analytics
+description: Cookieless analytics from Cloudflare with a prebuilt helper that serializes the beacon config into the `data-cf-beacon` attribute.
+lastModified: 2026-05-10
+
+icon: cloudflare
+---
+
+Cloudflare Web Analytics is a cookieless analytics product configured through a single `data-cf-beacon` attribute on its loader. The `cloudflareWebAnalytics()` helper serializes your token and single-page application (SPA) preference into that attribute and hands the result to c15t's script loader.
+
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** measurement consent is granted
+- **On revocation:** unloaded — c15t removes the script element from the DOM. Cloudflare Web Analytics is cookieless, so no client-side state needs clearing.
+
+## Adding Cloudflare Web Analytics to c15t
+
+<Callout type="info">
+  Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
+</Callout>
+
+```ts
+import { cloudflareWebAnalytics } from '@c15t/scripts/cloudflare-web-analytics';
+
+cloudflareWebAnalytics({
+  token: 'your-cloudflare-token',
+})
+```
+
+SPA route tracking is enabled by default. Disable it for traditional multi-page apps:
+
+```ts
+cloudflareWebAnalytics({
+  token: 'your-cloudflare-token',
+  spa: false,
+})
+```
+
+The helper JSON-encodes `{ token, spa }` into the `data-cf-beacon` attribute that Cloudflare's loader reads at startup, matching Cloudflare's recommended embed.
+
+## Tracking events in your app
+
+Cloudflare Web Analytics has no app-facing event API — the beacon tracks pageviews automatically once the script is loaded. There are no event calls in your application code to guard, so c15t's consent gating fully controls when and whether tracking happens.
+
+## Types
+
+### CloudflareWebAnalyticsOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/cloudflare-web-analytics.ts" name="CloudflareWebAnalyticsOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

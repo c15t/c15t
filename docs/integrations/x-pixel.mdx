@@ -6,12 +6,18 @@ lastModified: 2025-09-24
 icon: x
 ---
 
-X Pixel (formerly Twitter Pixel) is X's conversion tracking and audience building tool. It helps you measure ad performance, retarget website visitors, and optimize campaigns on the X platform. By default, c15t loads this script based on `marketing` consent.
+X Pixel (formerly Twitter Pixel) is X's conversion tracking and audience building tool. It helps you measure ad performance, retarget website visitors, and optimize campaigns on the X platform.
+
+## How c15t loads it
+
+- **Category:** `marketing` (Ads & Pixels)
+- **Loads when:** marketing consent is granted
+- **On revocation:** unloaded — c15t removes the script element from the DOM
 
 ## Implementation
 
 <Callout type="info">
-  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+  Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
 </Callout>
 
 ```ts
@@ -32,11 +38,29 @@ import { xPixelEvent } from '@c15t/scripts/x-pixel';
 xPixelEvent('tw-xxxx-xxxx', { value: 10.00, currency: 'USD' });
 ```
 
+## Tracking events in your app
+
+c15t gates the X Pixel script from loading until `marketing` consent is granted. Your application code that calls `twq` or the `xPixelEvent` helper is **not** automatically gated — `window.twq` does not exist before consent is granted, and is removed again if consent is revoked. Unguarded calls throw.
+
+Guard event calls by checking consent state:
+
+```tsx
+import { useConsentManager } from '@c15t/react';
+import { xPixelEvent } from '@c15t/scripts/x-pixel';
+
+function trackPurchase() {
+  const { has } = useConsentManager();
+  if (has('marketing')) {
+    xPixelEvent('tw-xxxx-xxxx', { value: 10.0, currency: 'USD' });
+  }
+}
+```
+
 ## Types
 
 ### XPixelOptions
 
-<AutoTypeTable path="./packages/scripts/src/x-pixel.ts" name="XPixelOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/x-pixel.ts" name="XPixelOptions" />
 
 ### Script
 
@@ -44,8 +68,8 @@ xPixelEvent('tw-xxxx-xxxx', { value: 10.00, currency: 'USD' });
 
 ### XPixelEvent
 
-<AutoTypeTable path="./packages/scripts/src/x-pixel.ts" name="XPixelEvent" />
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/x-pixel.ts" name="XPixelEvent" />
 
 ### XPixelContent
 
-<AutoTypeTable path="./packages/scripts/src/x-pixel.ts" name="XPixelContent" />
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/x-pixel.ts" name="XPixelContent" />

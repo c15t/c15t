@@ -1,5 +1,10 @@
 import { type ScriptDebugEvent, subscribeToScriptDebugEvents } from 'c15t';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+	createCallbackInfo,
+	deniedConsentState,
+	grantedMeasurementConsentState,
+} from './__tests__/helpers';
 import * as compileEngine from './engine/compile';
 import { compileManifest } from './engine/compile';
 import { resolvedManifestToScript } from './engine/runtime';
@@ -421,18 +426,12 @@ describe('scripts engine', () => {
 		const globalRef = globalThis as TestGlobal;
 		globalRef.dataLayer = [];
 
-		resolved.onBeforeLoad?.({
-			id: resolved.id,
-			elementId: resolved.id,
-			hasConsent: false,
-			consents: {
-				necessary: true,
-				functionality: false,
-				measurement: false,
-				marketing: false,
-				experience: false,
-			},
-		});
+		resolved.onBeforeLoad?.(
+			createCallbackInfo({
+				id: resolved.id,
+				consents: deniedConsentState,
+			})
+		);
 
 		const dataLayer = globalRef.dataLayer as unknown[];
 		expect(Array.from(dataLayer[0] as IArguments)).toEqual([
@@ -489,18 +488,12 @@ describe('scripts engine', () => {
 		const globalRef = globalThis as TestGlobal;
 		globalRef.dataLayer = [];
 
-		script.onBeforeLoad?.({
-			id: script.id,
-			elementId: script.id,
-			hasConsent: false,
-			consents: {
-				necessary: true,
-				functionality: false,
-				measurement: false,
-				marketing: false,
-				experience: false,
-			},
-		});
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: deniedConsentState,
+			})
+		);
 
 		expect(globalRef.dataLayer as unknown[]).toEqual([
 			['consent', 'default', { ad_storage: 'denied' }],
@@ -578,53 +571,36 @@ describe('scripts engine', () => {
 			},
 		};
 
-		script.onBeforeLoad?.({
-			id: script.id,
-			elementId: script.id,
-			hasConsent: false,
-			consents: {
-				necessary: true,
-				functionality: false,
-				measurement: false,
-				marketing: false,
-				experience: false,
-			},
-		});
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: deniedConsentState,
+			})
+		);
 
 		expect(globalRef.databuddyConfig).toEqual({
 			disabled: true,
 		});
 
-		script.onLoad?.({
-			id: script.id,
-			elementId: script.id,
-			hasConsent: true,
-			consents: {
-				necessary: true,
-				functionality: false,
-				measurement: true,
-				marketing: false,
-				experience: false,
-			},
-		});
+		script.onLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				hasConsent: true,
+				consents: grantedMeasurementConsentState,
+			})
+		);
 
 		expect(
 			(globalRef.databuddy as { options: { disabled: boolean } }).options
 				.disabled
 		).toBe(false);
 
-		script.onConsentChange?.({
-			id: script.id,
-			elementId: script.id,
-			hasConsent: false,
-			consents: {
-				necessary: true,
-				functionality: false,
-				measurement: false,
-				marketing: false,
-				experience: false,
-			},
-		});
+		script.onConsentChange?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: deniedConsentState,
+			})
+		);
 
 		expect(
 			(globalRef.databuddy as { options: { disabled: boolean } }).options
@@ -663,18 +639,19 @@ describe('scripts engine', () => {
 
 		const script = resolvedManifestToScript(compileManifest(manifest));
 
-		script.onConsentChange?.({
-			id: script.id,
-			elementId: script.id,
-			hasConsent: true,
-			consents: {
-				necessary: true,
-				functionality: false,
-				measurement: false,
-				marketing: true,
-				experience: false,
-			},
-		});
+		script.onConsentChange?.(
+			createCallbackInfo({
+				id: script.id,
+				hasConsent: true,
+				consents: {
+					necessary: true,
+					functionality: false,
+					measurement: false,
+					marketing: true,
+					experience: false,
+				},
+			})
+		);
 
 		expect(calls).toEqual([
 			['consent', 'update', { ad_storage: 'granted' }],
@@ -716,31 +693,21 @@ describe('scripts engine', () => {
 		const globalRef = globalThis as TestGlobal;
 		globalRef.dataLayer = [];
 
-		script.onBeforeLoad?.({
-			id: script.id,
-			elementId: script.id,
-			hasConsent: true,
-			consents: {
-				necessary: true,
-				functionality: false,
-				measurement: true,
-				marketing: false,
-				experience: false,
-			},
-		});
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				hasConsent: true,
+				consents: grantedMeasurementConsentState,
+			})
+		);
 
-		script.onConsentChange?.({
-			id: script.id,
-			elementId: script.id,
-			hasConsent: true,
-			consents: {
-				necessary: true,
-				functionality: false,
-				measurement: true,
-				marketing: false,
-				experience: false,
-			},
-		});
+		script.onConsentChange?.(
+			createCallbackInfo({
+				id: script.id,
+				hasConsent: true,
+				consents: grantedMeasurementConsentState,
+			})
+		);
 
 		unsubscribe();
 
