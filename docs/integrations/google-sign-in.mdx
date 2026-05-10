@@ -1,0 +1,31 @@
+---
+title: Google Sign-In
+description: Load Google Identity Services for sign-in flows in your application code.
+lastModified: 2026-05-09
+
+icon: guide
+---
+
+Google Sign-In loads through `@c15t/scripts` using c15t's script loader and the helper's default consent category.
+
+## Adding Google Sign-In to c15t
+
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+</Callout>
+
+```ts
+import { googleSignIn } from '@c15t/scripts/google-sign-in';
+
+googleSignIn()
+```
+
+## Types
+
+### GoogleSignInOptions
+
+<AutoTypeTable path="./packages/scripts/src/google-sign-in.ts" name="GoogleSignInOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
