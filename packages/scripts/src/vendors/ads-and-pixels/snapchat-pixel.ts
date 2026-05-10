@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
 export type SnapchatPixelEventName =
 	| 'PAGE_VIEW'
@@ -112,7 +112,7 @@ export const snapchatPixelManifest = {
 		},
 		{
 			type: 'loadScript',
-			src: '{{scriptSrc}}',
+			src: '{{scriptUrl}}',
 			async: true,
 		},
 	],
@@ -135,65 +135,56 @@ export interface SnapchatPixelOptions {
 	trackPageView?: boolean;
 
 	/** Snapchat Pixel loader URL. */
-	scriptSrc?: string;
+	scriptUrl?: string;
 }
 
 /**
  * Creates a Snapchat Pixel script.
  *
- * @param options - The options for the Snapchat Pixel script
- * @returns The Snapchat Pixel script configuration
- *
- * @example
- * ```ts
- * const snapchatPixelScript = snapchatPixel({
- *   pixelId: '123456789012345',
- * });
- * ```
- *
- * @see {@link https://businesshelp.snapchat.com/s/article/pixel-website-install} Snapchat Pixel documentation
+ * @param options - The options for the Snapchat Pixel script.
+ * @returns The Snapchat Pixel script configuration.
  */
 export function snapchatPixel({
 	pixelId,
 	initOptions,
 	trackPageView = true,
-	scriptSrc,
+	scriptUrl,
 }: SnapchatPixelOptions): Script {
-	const install = [
+	const initArgs: unknown[] = ['init', '{{pixelId}}'];
+	if (initOptions !== undefined) {
+		initArgs.push('{{initOptions}}');
+	}
+
+	const install: VendorManifest['install'] = [
 		{
 			type: 'callGlobal',
 			global: 'snaptr',
-			args:
-				initOptions === undefined
-					? ['init', '{{pixelId}}']
-					: ['init', '{{pixelId}}', '{{initOptions}}'],
+			args: initArgs,
 		},
-		...(trackPageView
-			? [
-					{
-						type: 'callGlobal',
-						global: 'snaptr',
-						args: ['track', 'PAGE_VIEW'],
-					},
-				]
-			: []),
-		{
-			type: 'loadScript',
-			src: '{{scriptSrc}}',
-			async: true,
-		},
-	] as const;
+	];
+
+	if (trackPageView) {
+		install.push({
+			type: 'callGlobal',
+			global: 'snaptr',
+			args: ['track', 'PAGE_VIEW'],
+		});
+	}
+
+	install.push({
+		type: 'loadScript',
+		src: '{{scriptUrl}}',
+		async: true,
+	});
 
 	const manifest = {
 		...snapchatPixelManifest,
 		install,
 	} as const satisfies VendorManifest;
 
-	const resolved = resolveManifest(manifest, {
+	return resolveManifest(manifest, {
 		pixelId,
 		initOptions: initOptions ?? {},
-		scriptSrc: scriptSrc ?? 'https://sc-static.net/scevent.min.js',
+		scriptUrl: scriptUrl ?? 'https://sc-static.net/scevent.min.js',
 	});
-
-	return resolved;
 }

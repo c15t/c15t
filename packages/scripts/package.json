@@ -72,6 +72,11 @@
 			"import": "./dist/vendors/ads-and-pixels/microsoft-uet.js",
 			"require": "./dist/vendors/ads-and-pixels/microsoft-uet.cjs"
 		},
+		"./snapchat-pixel": {
+			"types": "./dist-types/vendors/ads-and-pixels/snapchat-pixel.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/snapchat-pixel.js",
+			"require": "./dist/vendors/ads-and-pixels/snapchat-pixel.cjs"
+		},
 		"./tiktok-pixel": {
 			"types": "./dist-types/vendors/ads-and-pixels/tiktok-pixel.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/tiktok-pixel.js",
