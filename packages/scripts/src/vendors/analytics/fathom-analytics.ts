@@ -5,22 +5,16 @@ import { type VendorManifest, vendorManifestContract } from '../../types';
 declare global {
 	interface Window {
 		fathom?: {
-			beacon: (context: { url: string; referrer?: string }) => void;
 			blockTrackingForMe: () => void;
 			enableTrackingForMe: () => void;
-			isTrackingEnabled: () => boolean;
-			send: (type: string, data: unknown) => void;
-			setSite: (siteId: string) => void;
-			siteId: string;
 			trackEvent: (
 				eventName: string,
-				value?: {
-					_site_id?: string;
+				opts?: {
 					_value?: number;
 				}
 			) => void;
 			trackGoal: (goalId: string, cents: number) => void;
-			trackPageview: (context?: { url: string; referrer?: string }) => void;
+			trackPageview: (opts?: { url: string; referrer?: string }) => void;
 		};
 	}
 }
@@ -67,8 +61,8 @@ export interface FathomAnalyticsOptions {
 	site: string;
 
 	/**
-	 * The SPA tracking mode.
-	 * @default 'auto'
+	 * The SPA tracking mode. When undefined, SPA auto-routing is disabled and
+	 * the `data-spa` attribute is omitted.
 	 */
 	spa?: 'auto' | 'history' | 'hash';
 
