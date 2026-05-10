@@ -2,7 +2,7 @@ import type { ConsentState, ScriptCallbackInfo } from 'c15t';
 import { afterEach, beforeEach, expect, vi } from 'vitest';
 import {
 	type BuiltInScriptIntegrationKey,
-	builtInScriptIntegrations,
+	getBuiltInScriptIntegration,
 } from '../registry';
 
 /**
@@ -166,16 +166,7 @@ export function expectScriptMatchesIntegration(
 	script: HelperScriptSnapshot,
 	expected: ExpectedScriptSnapshot
 ): void {
-	let integration: (typeof builtInScriptIntegrations)[number] | undefined;
-	for (const entry of builtInScriptIntegrations) {
-		if (entry.key === key) {
-			integration = entry;
-			break;
-		}
-	}
-
-	expect(integration, key).toBeDefined();
-	const matchedIntegration = integration!;
+	const matchedIntegration = getBuiltInScriptIntegration(key);
 
 	expect(script.id, key).toBe(matchedIntegration.vendor);
 	expect(script.category, key).toBe(matchedIntegration.consentCategory);
