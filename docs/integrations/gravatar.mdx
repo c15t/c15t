@@ -1,0 +1,31 @@
+---
+title: Gravatar
+description: Load the Gravatar JavaScript profiles SDK bundle.
+lastModified: 2026-05-09
+
+icon: guide
+---
+
+Gravatar loads through `@c15t/scripts` using c15t's script loader and the helper's default consent category.
+
+## Adding Gravatar to c15t
+
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+</Callout>
+
+```ts
+import { gravatar } from '@c15t/scripts/gravatar';
+
+gravatar()
+```
+
+## Types
+
+### GravatarOptions
+
+<AutoTypeTable path="./packages/scripts/src/gravatar.ts" name="GravatarOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
