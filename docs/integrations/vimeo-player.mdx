@@ -1,0 +1,31 @@
+---
+title: Vimeo Player
+description: Load the Vimeo Player API for embedded video controls.
+lastModified: 2026-05-09
+
+icon: guide
+---
+
+Vimeo Player loads through `@c15t/scripts` using c15t's script loader and the helper's default consent category.
+
+## Adding Vimeo Player to c15t
+
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+</Callout>
+
+```ts
+import { vimeoPlayer } from '@c15t/scripts/vimeo-player';
+
+vimeoPlayer()
+```
+
+## Types
+
+### VimeoPlayerOptions
+
+<AutoTypeTable path="./packages/scripts/src/vimeo-player.ts" name="VimeoPlayerOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

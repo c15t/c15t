@@ -7,6 +7,7 @@ import { metaPixel } from './meta-pixel';
 import { microsoftUet } from './microsoft-uet';
 import { posthog } from './posthog';
 import { tiktokPixel } from './tiktok-pixel';
+import { vimeoPlayer } from './vimeo-player';
 import { xPixel } from './x-pixel';
 
 type TestGlobal = typeof globalThis & Record<string, unknown>;
@@ -150,6 +151,17 @@ describe('built-in script helpers', () => {
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: true,
 					src: '//bat.bing.com/bat.js',
+				},
+			},
+			{
+				name: 'vimeoPlayer',
+				script: vimeoPlayer(),
+				expected: {
+					id: 'vimeo-player',
+					category: 'functionality',
+					alwaysLoad: undefined,
+					persistAfterConsentRevoked: undefined,
+					src: 'https://player.vimeo.com/api/player.js',
 				},
 			},
 			{
