@@ -80,6 +80,17 @@ This prevents GTM-managed scripts from loading without proper consent while givi
   </Step>
 </Steps>
 
+## Tracking events in your app
+
+GTM is `alwaysLoad: true`, so the GTM container and `window.dataLayer` are present from page start regardless of consent. Calls like `dataLayer.push({ event: 'signup' })` are **safe at any time** — Consent Mode v2 defaults are set to denied before the user makes a choice, and GTM-managed tags only fire when the matching consent has been granted.
+
+```ts
+window.dataLayer = window.dataLayer || [];
+window.dataLayer.push({ event: 'signup' });
+```
+
+You do not need to wrap `dataLayer.push(...)` in a `useConsentManager().has(...)` check — the consent gate happens inside GTM, not inside c15t.
+
 ## Post-setup verification checklist
 
 1. Open GTM Preview mode and confirm your container (`GTM-...`) loads on page load.
