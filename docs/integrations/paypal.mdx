@@ -1,0 +1,31 @@
+---
+title: PayPal
+description: Load the PayPal Web SDK core bundle for live or sandbox environments.
+lastModified: 2026-05-09
+
+icon: guide
+---
+
+PayPal loads through `@c15t/scripts` using c15t's script loader and the helper's default consent category.
+
+## Adding PayPal to c15t
+
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+</Callout>
+
+```ts
+import { paypal } from '@c15t/scripts/paypal';
+
+paypal({ sandbox: false })
+```
+
+## Types
+
+### PayPalOptions
+
+<AutoTypeTable path="./packages/scripts/src/paypal.ts" name="PayPalOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
