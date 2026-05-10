@@ -57,8 +57,7 @@ export function promptwatch({
 }: PromptwatchOptions): Script {
 	const resolved = resolveManifest(promptwatchManifest, {
 		projectId,
-		scriptSrc:
-			scriptSrc ?? 'https://ingest.promptwatch.com/js/client.min.js',
+		scriptSrc: scriptSrc ?? 'https://ingest.promptwatch.com/js/client.min.js',
 	});
 
 	return resolved;

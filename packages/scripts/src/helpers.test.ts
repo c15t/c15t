@@ -155,7 +155,9 @@ describe('built-in script helpers', () => {
 			},
 			{
 				name: 'promptwatch',
-				script: promptwatch({ projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c' }),
+				script: promptwatch({
+					projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
+				}),
 				expected: {
 					id: 'promptwatch',
 					category: 'measurement',
