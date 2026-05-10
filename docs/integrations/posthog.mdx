@@ -136,6 +136,19 @@ If you want to load PostHog via a script tag, it's recommended to use this appro
   </Step>
 </Steps>
 
+## Tracking events in your app
+
+The behavior depends on which pattern you chose:
+
+- **SDK Implementation** — your app loaded `posthog-js` itself, so `posthog.capture(...)` is always available. c15t calls `opt_in_capturing()` / `opt_out_capturing()` for you, so PostHog's own consent state suppresses capture when measurement is denied. Calls are safe at any time.
+- **Script Implementation** — the c15t helper uses `alwaysLoad: true`, so `window.posthog` is always defined. c15t calls `opt_in_capturing()` / `opt_out_capturing()` based on consent. Calls to `posthog.capture(...)` are safe — they will simply be no-ops while consent is denied.
+
+```ts
+posthog.capture('signup');
+```
+
+You do not need to guard these calls with `useConsentManager().has('measurement')`, but doing so is fine if you prefer the explicit check.
+
 ## Types
 
 ### PosthogConsentOptions

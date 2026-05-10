@@ -79,6 +79,16 @@ The Databuddy script automatically respects consent preferences by toggling trac
   </Step>
 </Steps>
 
+## Tracking events in your app
+
+Databuddy is `alwaysLoad: true`, so the script is in the DOM from page start regardless of consent. `window.databuddy` is therefore always defined and calls to `track`, `screenView`, or `setGlobalProperties` are safe to make at any time — when measurement consent is denied, c15t flips `window.databuddy.options.disabled = true` so the SDK becomes a no-op until consent is granted again.
+
+```ts
+window.databuddy?.track('signup');
+```
+
+You do not need to guard these calls with `useConsentManager().has('measurement')`, but doing so does no harm if you prefer the symmetry with other vendors.
+
 ## How Consent Management Works
 
 The Databuddy integration automatically handles consent management:

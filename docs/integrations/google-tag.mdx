@@ -40,6 +40,16 @@ gtag({
 })
 ```
 
+## Tracking events in your app
+
+`gtag.js` is `alwaysLoad: true`, so `window.gtag` is present from page start regardless of consent. Calls like `gtag('event', 'sign_up')` are **safe at any time** — c15t sets Consent Mode v2 defaults to denied before the user makes a choice, and Google's SDK suppresses transmission of events while the relevant consent is denied. When consent later changes, c15t emits a Consent Mode v2 `update` so events fire correctly going forward.
+
+```ts
+window.gtag?.('event', 'sign_up', { method: 'email' });
+```
+
+You do not need to wrap `gtag(...)` calls in a `useConsentManager().has(...)` check — Consent Mode handles the suppression for you.
+
 ## Types
 
 ### GtagOptions
