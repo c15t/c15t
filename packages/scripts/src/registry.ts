@@ -55,7 +55,7 @@ export interface IntegrationRegistryEntry {
 	hint?: string;
 	/** Docs route slug for this integration. */
 	docsSlug: string;
-	/** Public package subpath, e.g. `@c15t/scripts/meta-pixel`. */
+	/** Package subpath, e.g. `meta-pixel` for `@c15t/scripts/meta-pixel`. */
 	packageSubpath: string;
 	/** Product area used for grouping and discovery. */
 	integrationCategory: IntegrationCategory;
