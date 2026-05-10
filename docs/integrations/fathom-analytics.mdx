@@ -43,7 +43,7 @@ Each option is mapped to Fathom's published `data-*` attribute (`data-site`, `da
 
 ## Tracking events in your app
 
-c15t gates the Fathom script from loading until `measurement` consent is granted. Your application code that calls Fathom's runtime API (`window.fathom.trackEvent`, `trackPageview`, `trackGoal`) is **not** automatically gated — `window.fathom` does not exist until the script is loaded, so unguarded calls before consent throw.
+c15t gates the Fathom script from loading until `measurement` consent is granted. Your application code that calls Fathom's runtime API (`window.fathom.trackEvent`, `trackPageview`, `trackGoal`) is **not** automatically gated — `window.fathom` does not exist until the script is loaded, so unguarded calls before consent will throw errors.
 
 Guard event calls by checking consent state. From React:
 

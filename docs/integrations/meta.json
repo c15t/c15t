@@ -11,6 +11,8 @@
 		"building-integrations",
 		"--- Analytics ---",
 		"google-tag",
+		"ahrefs-analytics",
+		"cloudflare-web-analytics",
 		"databuddy",
 		"fathom-analytics",
 		"posthog",

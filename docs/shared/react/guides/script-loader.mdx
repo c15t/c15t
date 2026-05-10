@@ -242,6 +242,54 @@
 
   Dynamic scripts should still use stable ids. If the same vendor is added repeatedly with different ids, c15t treats each call as a new script.
 
+  ## Calling Vendor APIs From Your App
+
+  The script loader controls **when the vendor SDK loads**. It does not intercept calls your application code makes to that SDK afterwards. Whether your event calls are safe before consent is granted depends on the script's persistence flags:
+
+  | Vendor pattern | What c15t does | What your app code must do |
+  |---|---|---|
+  | Consent-gated load, unloaded on revoke (e.g. cookieless analytics) | Script not in DOM until consent granted; removed on revoke. Global is `undefined` outside that window. | **Guard every call.** Unguarded `window.vendor.track(...)` throws when the global is absent. |
+  | Consent-gated load with `persistAfterConsentRevoked` (e.g. Meta Pixel) | Script not in DOM until consent granted; stays after revoke. c15t calls vendor's consent-revoke API on revocation. | Guard calls only for the pre-initial-consent window. Once loaded, the SDK handles its own suppression. |
+  | `alwaysLoad: true` with a vendor consent API (e.g. GTM, gtag, Databuddy, PostHog) | Script in DOM on page start; c15t signals consent state through the vendor's API. | Calls are safe — the vendor SDK suppresses transmission when consent is denied. |
+  | No app-facing API (e.g. Cloudflare Web Analytics) | Script in/out of DOM based on consent. Tracking is fully automatic. | Nothing to guard. |
+
+  The safe pattern in React is to read consent state through `useConsentManager().has(category)` before calling the SDK:
+
+  ```tsx
+  import { useCallback } from 'react';
+  import { useConsentManager } from '@c15t/react';
+
+  function useTrackSignup() {
+    const { has } = useConsentManager();
+
+    return useCallback(() => {
+      if (has('measurement')) {
+        window.fathom?.trackEvent('signup');
+      }
+    }, [has]);
+  }
+
+  function SignupButton() {
+    const trackSignup = useTrackSignup();
+
+    return <button onClick={trackSignup}>Sign up</button>;
+  }
+  ```
+
+  From non-React code, read the consent store directly:
+
+  ```ts
+  import { getOrCreateConsentRuntime } from 'c15t';
+
+  const { consentStore } = getOrCreateConsentRuntime();
+
+  if (consentStore.getState().has('measurement')) {
+    window.fathom?.trackEvent('signup');
+  }
+  ```
+
+  Each [integration page](/docs/integrations/overview) includes a vendor-specific **Tracking events in your app** block that names which pattern applies.
+
   ## Debugging Checklist
 
   When a script does not behave as expected:
