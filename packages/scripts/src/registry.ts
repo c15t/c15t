@@ -112,6 +112,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'ahrefsAnalytics',
+		vendor: 'ahrefs-analytics',
+		label: 'Ahrefs Analytics',
+		hint: 'Cookieless web analytics from Ahrefs',
+		docsSlug: 'ahrefs-analytics',
+		packageSubpath: 'ahrefs-analytics',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'cloudflareWebAnalytics',
 		vendor: 'cloudflare-web-analytics',
 		label: 'Cloudflare Web Analytics',

@@ -12,6 +12,11 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
+		"./ahrefs-analytics": {
+			"types": "./dist-types/vendors/analytics/ahrefs-analytics.d.ts",
+			"import": "./dist/vendors/analytics/ahrefs-analytics.js",
+			"require": "./dist/vendors/analytics/ahrefs-analytics.cjs"
+		},
 		"./cloudflare-web-analytics": {
 			"types": "./dist-types/vendors/analytics/cloudflare-web-analytics.d.ts",
 			"import": "./dist/vendors/analytics/cloudflare-web-analytics.js",
