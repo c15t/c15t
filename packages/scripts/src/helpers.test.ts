@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { clarity } from './clarity';
 import { databuddy } from './databuddy';
 import { gtag } from './google-tag';
 import { googleTagManager } from './google-tag-manager';
@@ -46,6 +47,7 @@ describe('built-in script helpers', () => {
 		vi.unstubAllGlobals();
 		delete globalRef.dataLayer;
 		delete globalRef.gtag;
+		delete globalRef.clarity;
 		delete globalRef.posthog;
 		delete globalRef.databuddy;
 		delete globalRef.databuddyConfig;
@@ -60,6 +62,17 @@ describe('built-in script helpers', () => {
 
 	it('keeps helper output parity across all bundled integrations', () => {
 		const helpers = [
+			{
+				name: 'clarity',
+				script: clarity({ id: 'clarity12345' }),
+				expected: {
+					id: 'clarity',
+					category: 'measurement',
+					alwaysLoad: undefined,
+					persistAfterConsentRevoked: true,
+					src: 'https://www.clarity.ms/tag/clarity12345',
+				},
+			},
 			{
 				name: 'googleTagManager',
 				script: googleTagManager({ id: 'GTM-123' }),
@@ -180,6 +193,55 @@ describe('built-in script helpers', () => {
 				expect(helper.script.src, helper.name).toBe(helper.expected.src);
 			}
 		}
+	});
+
+	it('queues Clarity consent calls before the vendor bundle loads', () => {
+		const globalRef = globalThis as TestGlobal;
+		const script = clarity({
+			id: 'clarity12345',
+			defaultConsent: { analytics: 'denied' },
+		});
+
+		script.onBeforeLoad?.({
+			id: script.id,
+			elementId: script.id,
+			hasConsent: false,
+			consents: {
+				necessary: true,
+				functionality: false,
+				measurement: false,
+				marketing: false,
+				experience: false,
+			},
+		});
+
+		const clarityGlobal = globalRef.clarity as ((...args: unknown[]) => void) & {
+			q?: unknown[][];
+		};
+
+		expect(typeof clarityGlobal).toBe('function');
+		expect(clarityGlobal.q).toEqual([
+			['consent', { analytics: 'denied' }],
+		]);
+
+		script.onConsentChange?.({
+			id: script.id,
+			elementId: script.id,
+			hasConsent: true,
+			consents: {
+				necessary: true,
+				functionality: false,
+				measurement: true,
+				marketing: false,
+				experience: false,
+			},
+		});
+
+		expect(clarityGlobal.q).toEqual([
+			['consent', { analytics: 'denied' }],
+			['consent', true],
+		]);
+		expect(document.head.appendChild).not.toHaveBeenCalled();
 	});
 
 	it('runs Google Tag Manager consent defaults before boot logic', () => {

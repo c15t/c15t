@@ -1,0 +1,54 @@
+---
+title: Clarity
+description: Load Microsoft Clarity with c15t and keep it in sync with measurement consent.
+lastModified: 2026-05-09
+
+icon: guide
+---
+
+Microsoft Clarity gives you session recordings, heatmaps, and behavioral insights. The `@c15t/scripts/clarity` helper sets up Clarity's queue stub, loads the vendor bundle, and updates Clarity's consent state as measurement consent changes.
+
+## Adding Clarity to c15t
+
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework.
+</Callout>
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+import { clarity } from '@c15t/scripts/clarity';
+
+getOrCreateConsentRuntime({
+  mode: 'hosted',
+  scripts: [
+    clarity({
+      id: 'abcdef1234',
+    }),
+  ],
+});
+```
+
+## Default consent
+
+You can queue an initial Clarity consent value before the script loads.
+
+```ts
+import { clarity } from '@c15t/scripts/clarity';
+
+clarity({
+  id: 'abcdef1234',
+  defaultConsent: false,
+});
+```
+
+If you pass an object, c15t will queue that exact value during boot. Later consent changes are mapped to simple `true` or `false` values when c15t updates Clarity.
+
+## Types
+
+### ClarityOptions
+
+<AutoTypeTable path="./packages/scripts/src/clarity.ts" name="ClarityOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
