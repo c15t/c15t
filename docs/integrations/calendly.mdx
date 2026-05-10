@@ -1,0 +1,31 @@
+---
+title: Calendly
+description: Load the Calendly widget bundle and queue API calls before the script arrives.
+lastModified: 2026-05-09
+
+icon: guide
+---
+
+Calendly loads through `@c15t/scripts` using c15t's script loader and the helper's default consent category.
+
+## Adding Calendly to c15t
+
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+</Callout>
+
+```ts
+import { calendly } from '@c15t/scripts/calendly';
+
+calendly()
+```
+
+## Types
+
+### CalendlyOptions
+
+<AutoTypeTable path="./packages/scripts/src/calendly.ts" name="CalendlyOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
