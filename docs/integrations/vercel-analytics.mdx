@@ -1,17 +1,23 @@
 ---
 title: Vercel Analytics
 description: Bootstrap Vercel Analytics with a declarative queue and script attributes.
-lastModified: 2026-05-09
+lastModified: 2026-05-10
 
 icon: guide
 ---
 
-Vercel Analytics loads through `@c15t/scripts` using c15t's script loader and the helper's default consent category.
+Vercel Analytics loads through `@c15t/scripts` using a declarative queue bootstrap (`vaq` + `va`) and script attributes for DSN/endpoint options.
+
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** measurement consent is granted
+- **On revocation:** unloaded - c15t removes the script from the DOM and clears access to runtime globals until consent is granted again.
 
 ## Adding Vercel Analytics to c15t
 
 <Callout type="info">
-  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
 </Callout>
 
 ```ts
@@ -20,11 +26,54 @@ import { vercelAnalytics } from '@c15t/scripts/vercel-analytics';
 vercelAnalytics()
 ```
 
+Load the debug bundle or a custom endpoint when needed:
+
+```ts
+vercelAnalytics({
+  mode: 'development',
+  disableAutoTrack: true,
+  endpoint: 'https://analytics.example.com/v1/events',
+})
+```
+
+## Tracking events in your app
+
+c15t gates the Vercel Analytics script from loading until `measurement` consent is granted. Your application code that calls Vercel's runtime API (`window.va(...)`) is **not** automatically gated - `window.va` does not exist until the script is loaded, so unguarded calls before consent throw.
+
+Guard event calls by checking consent state. From React:
+
+```tsx
+import { useCallback } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+function SignupExample() {
+  const { has } = useConsentManager();
+
+  const trackSignup = useCallback(() => {
+    if (has('measurement')) {
+      window.va?.('signup', { plan: 'pro' });
+    }
+  }, [has]);
+}
+```
+
+From plain JavaScript:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('measurement')) {
+  window.va?.('signup', { plan: 'pro' });
+}
+```
+
 ## Types
 
 ### VercelAnalyticsOptions
 
-<AutoTypeTable path="./packages/scripts/src/vercel-analytics.ts" name="VercelAnalyticsOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/vercel-analytics.ts" name="VercelAnalyticsOptions" />
 
 ### Script
 

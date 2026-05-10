@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
 export type VercelAnalyticsMode = 'auto' | 'development' | 'production';
 
@@ -54,36 +54,17 @@ export const vercelAnalyticsManifest = {
 } as const satisfies VendorManifest;
 
 export interface VercelAnalyticsOptions {
-	/**
-	 * Project DSN for self-hosted or non-Vercel deployments.
-	 */
+	/** Project DSN for self-hosted or non-Vercel deployments. */
 	dsn?: string;
-
-	/**
-	 * Disable automatic pageview tracking.
-	 */
+	/** Disable automatic pageview tracking. */
 	disableAutoTrack?: boolean;
-
-	/**
-	 * Preferred script mode.
-	 *
-	 * The c15t manifest helper uses this only to choose the default script URL.
-	 */
+	/** Preferred script mode. */
 	mode?: VercelAnalyticsMode;
-
-	/**
-	 * Load Vercel's debug bundle when set to `true`.
-	 */
+	/** Load Vercel's debug bundle when set to `true`. */
 	debug?: boolean;
-
-	/**
-	 * Custom ingestion endpoint.
-	 */
+	/** Custom ingestion endpoint. */
 	endpoint?: string;
-
-	/**
-	 * Custom loader URL.
-	 */
+	/** Custom loader URL. */
 	scriptUrl?: string;
 }
 
@@ -91,7 +72,6 @@ function getVercelScriptUrl(options: VercelAnalyticsOptions): string {
 	if (options.scriptUrl) {
 		return options.scriptUrl;
 	}
-
 	if (options.mode === 'development' || options.debug) {
 		return 'https://va.vercel-scripts.com/v1/script.debug.js';
 	}
@@ -102,22 +82,21 @@ function getVercelScriptUrl(options: VercelAnalyticsOptions): string {
 /**
  * Creates a Vercel Analytics script.
  *
- * This helper keeps Vercel Analytics declarative by preserving only the queue
- * bootstrap and load-time attributes. Runtime callbacks such as `beforeSend`
- * are intentionally omitted.
- *
- * @see https://vercel.com/docs/analytics
- *
  * @param options - The options for the Vercel Analytics script.
  * @returns The Vercel Analytics script.
  */
-export function vercelAnalytics(options: VercelAnalyticsOptions = {}): Script {
-	const resolved = resolveManifest(vercelAnalyticsManifest, {
+export function vercelAnalytics(
+	options: VercelAnalyticsOptions = {}
+): Script {
+	let disableAutoTrackAttribute: string | undefined;
+	if (options.disableAutoTrack) {
+		disableAutoTrackAttribute = '1';
+	}
+
+	return resolveManifest(vercelAnalyticsManifest, {
 		scriptUrl: getVercelScriptUrl(options),
 		dsn: options.dsn,
 		endpoint: options.endpoint,
-		disableAutoTrackAttribute: options.disableAutoTrack ? '1' : undefined,
+		disableAutoTrackAttribute,
 	});
-
-	return resolved;
 }
