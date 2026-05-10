@@ -9,10 +9,14 @@ describe('metaPixel', () => {
 	setupScriptHelperTest();
 
 	it('matches registry metadata and default script output', () => {
-		expectScriptMatchesIntegration('metaPixel', metaPixel({ pixelId: '123456' }), {
-			alwaysLoad: undefined,
-			persistAfterConsentRevoked: true,
-			src: 'https://connect.facebook.net/en_US/fbevents.js',
-		});
+		expectScriptMatchesIntegration(
+			'metaPixel',
+			metaPixel({ pixelId: '123456' }),
+			{
+				alwaysLoad: undefined,
+				persistAfterConsentRevoked: true,
+				src: 'https://connect.facebook.net/en_US/fbevents.js',
+			}
+		);
 	});
 });

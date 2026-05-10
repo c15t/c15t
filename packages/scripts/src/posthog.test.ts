@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+	deniedConsentState,
 	expectScriptMatchesIntegration,
 	getTestGlobal,
 	grantedMeasurementConsentState,
-	deniedConsentState,
 	setupScriptHelperTest,
 } from './__tests__/helpers';
 import { posthog } from './posthog';
