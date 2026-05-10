@@ -12,6 +12,7 @@
 		"--- Analytics ---",
 		"google-tag",
 		"ahrefs-analytics",
+		"cloudflare-web-analytics",
 		"databuddy",
 		"posthog",
 		"--- Ads & Pixels ---",

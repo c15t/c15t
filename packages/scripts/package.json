@@ -17,6 +17,11 @@
 			"import": "./dist/vendors/analytics/ahrefs-analytics.js",
 			"require": "./dist/vendors/analytics/ahrefs-analytics.cjs"
 		},
+		"./cloudflare-web-analytics": {
+			"types": "./dist-types/vendors/analytics/cloudflare-web-analytics.d.ts",
+			"import": "./dist/vendors/analytics/cloudflare-web-analytics.js",
+			"require": "./dist/vendors/analytics/cloudflare-web-analytics.cjs"
+		},
 		"./databuddy": {
 			"types": "./dist-types/vendors/analytics/databuddy.d.ts",
 			"import": "./dist/vendors/analytics/databuddy.js",
