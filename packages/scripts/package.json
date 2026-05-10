@@ -37,6 +37,11 @@
 			"import": "./dist/vendors/analytics/google-tag.js",
 			"require": "./dist/vendors/analytics/google-tag.cjs"
 		},
+		"./plausible-analytics": {
+			"types": "./dist-types/vendors/analytics/plausible-analytics.d.ts",
+			"import": "./dist/vendors/analytics/plausible-analytics.js",
+			"require": "./dist/vendors/analytics/plausible-analytics.cjs"
+		},
 		"./posthog": {
 			"types": "./dist-types/vendors/analytics/posthog.d.ts",
 			"import": "./dist/vendors/analytics/posthog.js",
