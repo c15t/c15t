@@ -46,13 +46,19 @@ c15t gates the Ahrefs Analytics script from loading until `measurement` consent 
 Guard event calls by checking consent state. From React:
 
 ```tsx
+import { useCallback } from 'react';
 import { useConsentManager } from '@c15t/react';
 
-function trackSignup() {
+function SignupExample() {
   const { has } = useConsentManager();
-  if (has('measurement')) {
-    window.AhrefsAnalytics?.sendEvent('signup');
-  }
+
+  const trackSignup = useCallback(() => {
+    if (has('measurement')) {
+      window.AhrefsAnalytics?.sendEvent('signup');
+    }
+  }, [has]);
+
+  // Call trackSignup() from an event handler after signup succeeds.
 }
 ```
 
