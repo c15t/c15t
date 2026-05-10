@@ -1,0 +1,31 @@
+---
+title: Google Maps
+description: Load the Maps JavaScript API using a declarative script URL.
+lastModified: 2026-05-09
+
+icon: guide
+---
+
+Google Maps loads through `@c15t/scripts` using c15t's script loader and the helper's default consent category.
+
+## Adding Google Maps to c15t
+
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+</Callout>
+
+```ts
+import { googleMaps } from '@c15t/scripts/google-maps';
+
+googleMaps({ apiKey: 'maps-key' })
+```
+
+## Types
+
+### GoogleMapsOptions
+
+<AutoTypeTable path="./packages/scripts/src/google-maps.ts" name="GoogleMapsOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
