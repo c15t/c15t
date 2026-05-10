@@ -1,0 +1,52 @@
+---
+title: Fathom Analytics
+description: Privacy-friendly cookieless analytics with a prebuilt helper that maps Fathom's data attributes into a c15t-managed script.
+lastModified: 2026-05-10
+
+icon: fathom
+---
+
+Fathom Analytics is a lightweight, cookieless analytics product configured entirely through `data-*` attributes on its loader. The `fathomAnalytics()` helper serializes your site ID and tracking options into those attributes and hands the result to c15t's script loader.
+
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** measurement consent is granted
+- **On revocation:** unloaded — c15t removes the script element from the DOM. Fathom is cookieless, so no client-side state needs clearing.
+
+## Adding Fathom Analytics to c15t
+
+<Callout type="info">
+  Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
+</Callout>
+
+```ts
+import { fathomAnalytics } from '@c15t/scripts/fathom-analytics';
+
+fathomAnalytics({
+  site: 'SITE123',
+})
+```
+
+If you need to tune SPA tracking, canonical URL tracking, or Do Not Track handling:
+
+```ts
+fathomAnalytics({
+  site: 'SITE123',
+  spa: 'history',
+  canonical: true,
+  honorDnt: true,
+})
+```
+
+Each option is mapped to Fathom's published `data-*` attribute (`data-site`, `data-spa`, `data-auto`, `data-canonical`, `data-honor-dnt`) and the script uses `defer` so it matches Fathom's recommended embed pattern.
+
+## Types
+
+### FathomAnalyticsOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/fathom-analytics.ts" name="FathomAnalyticsOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

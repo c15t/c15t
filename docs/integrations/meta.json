@@ -12,6 +12,7 @@
 		"--- Analytics ---",
 		"google-tag",
 		"databuddy",
+		"fathom-analytics",
 		"posthog",
 		"--- Ads & Pixels ---",
 		"meta-pixel",
