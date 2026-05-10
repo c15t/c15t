@@ -1,17 +1,23 @@
 ---
 title: Reddit Pixel
 description: Track conversions and build retargeting audiences for Reddit advertising campaigns.
-lastModified: 2026-05-09
+lastModified: 2026-05-10
 
 icon: reddit
 ---
 
 Reddit Pixel is Reddit's conversion tracking tool for ads and remarketing. It seeds the standard `rdt` queue before the vendor bundle loads, initializes your pixel, and by default records a `PageVisit` event once consent for `marketing` is available.
 
+## How c15t loads it
+
+- **Category:** `marketing` (Ads & Pixels)
+- **Loads when:** marketing consent is granted
+- **On revocation:** unloaded - c15t removes the script from the DOM, so later `rdt(...)` calls from app code need guarding until consent is granted again.
+
 ## Adding Reddit Pixel to c15t
 
 <Callout type="info">
-  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
 </Callout>
 
 ```ts
@@ -31,18 +37,46 @@ redditPixel({
 })
 ```
 
-## How it works
+## Tracking events in your app
 
-- c15t defines Reddit's `rdt` stub and queue before the network script loads.
-- The helper queues `rdt('init', pixelId)` automatically.
-- By default, it also queues `rdt('track', 'PageVisit')`.
-- You can override the loader URL with `scriptSrc` for testing or proxying setups.
+c15t gates the Reddit Pixel script from loading until `marketing` consent is granted. Your application code that calls Reddit's runtime API (`window.rdt(...)`) is **not** automatically gated - `window.rdt` does not exist until the script is loaded, so unguarded calls before consent throw.
+
+Guard event calls by checking consent state. From React:
+
+```tsx
+import { useCallback } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+function CheckoutExample() {
+  const { has } = useConsentManager();
+
+  const trackPurchase = useCallback(() => {
+    if (has('marketing')) {
+      window.rdt?.('track', 'Purchase', { currency: 'USD', value: 99 });
+    }
+  }, [has]);
+
+  // Call trackPurchase() from your conversion success path.
+}
+```
+
+From plain JavaScript:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('marketing')) {
+  window.rdt?.('track', 'Purchase', { currency: 'USD', value: 99 });
+}
+```
 
 ## Types
 
 ### RedditPixelOptions
 
-<AutoTypeTable path="./packages/scripts/src/reddit-pixel.ts" name="RedditPixelOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/reddit-pixel.ts" name="RedditPixelOptions" />
 
 ### Script
 

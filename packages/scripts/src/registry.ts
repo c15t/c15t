@@ -192,6 +192,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 	},
 	{
+		key: 'redditPixel',
+		vendor: 'reddit-pixel',
+		label: 'Reddit Pixel',
+		hint: 'Reddit ads tracking',
+		docsSlug: 'reddit-pixel',
+		packageSubpath: 'reddit-pixel',
+		integrationCategory: 'ads-and-pixels',
+		consentCategory: 'marketing',
+	},
+	{
 		key: 'tiktokPixel',
 		vendor: 'tiktok-pixel',
 		label: 'TikTok Pixel',

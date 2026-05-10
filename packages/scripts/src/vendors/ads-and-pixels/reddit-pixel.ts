@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
 export type RedditPixelEventName =
 	| 'PageVisit'
@@ -66,7 +66,7 @@ export const redditPixelManifest = {
 		},
 		{
 			type: 'loadScript',
-			src: '{{scriptSrc}}',
+			src: '{{scriptUrl}}',
 			async: true,
 		},
 	],
@@ -86,47 +86,38 @@ export interface RedditPixelOptions {
 	trackPageVisit?: boolean;
 
 	/** Reddit Pixel loader URL. */
-	scriptSrc?: string;
+	scriptUrl?: string;
 }
 
 /**
  * Creates a Reddit Pixel script.
  *
- * @param options - The options for the Reddit Pixel script
- * @returns The Reddit Pixel script configuration
- *
- * @example
- * ```ts
- * const redditPixelScript = redditPixel({
- *   pixelId: 't2_abcdef',
- * });
- * ```
- *
- * @see {@link https://business.reddithelp.com/s/article/Install-the-Reddit-Pixel-on-your-website} Reddit Pixel documentation
+ * @param options - The options for the Reddit Pixel script.
+ * @returns The Reddit Pixel script configuration.
  */
 export function redditPixel({
 	pixelId,
 	trackPageVisit = true,
-	scriptSrc,
+	scriptUrl,
 }: RedditPixelOptions): Script {
-	const manifest = trackPageVisit
-		? redditPixelManifest
-		: ({
-				...redditPixelManifest,
-				install: redditPixelManifest.install.filter(
-					(step) =>
-						!(
-							step.type === 'callGlobal' &&
-							step.args?.[0] === 'track' &&
-							step.args?.[1] === 'PageVisit'
-						)
-				),
-			} as const satisfies VendorManifest);
+	let manifest = redditPixelManifest;
 
-	const resolved = resolveManifest(manifest, {
+	if (!trackPageVisit) {
+		manifest = {
+			...redditPixelManifest,
+			install: redditPixelManifest.install.filter(
+				(step) =>
+					!(
+						step.type === 'callGlobal' &&
+						step.args?.[0] === 'track' &&
+						step.args?.[1] === 'PageVisit'
+					)
+			),
+		} as const satisfies VendorManifest;
+	}
+
+	return resolveManifest(manifest, {
 		pixelId,
-		scriptSrc: scriptSrc ?? 'https://www.redditstatic.com/ads/pixel.js',
+		scriptUrl: scriptUrl ?? 'https://www.redditstatic.com/ads/pixel.js',
 	});
-
-	return resolved;
 }

@@ -19,6 +19,10 @@ import {
 	metaPixelManifest,
 } from './vendors/ads-and-pixels/meta-pixel';
 import {
+	redditPixel,
+	redditPixelManifest,
+} from './vendors/ads-and-pixels/reddit-pixel';
+import {
 	microsoftUet,
 	microsoftUetManifest,
 } from './vendors/ads-and-pixels/microsoft-uet';
@@ -148,6 +152,14 @@ const helperParityCases = {
 			src: 'https://connect.facebook.net/en_US/fbevents.js',
 		},
 	},
+	redditPixel: {
+		script: redditPixel({ pixelId: 't2_abcdef' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://www.redditstatic.com/ads/pixel.js',
+		},
+	},
 	tiktokPixel: {
 		script: tiktokPixel({ pixelId: 'tt-123' }),
 		expected: {
@@ -201,6 +213,7 @@ const vendorManifests = [
 	plausibleAnalyticsManifest,
 	umamiAnalyticsManifest,
 	metaPixelManifest,
+	redditPixelManifest,
 	tiktokPixelManifest,
 	linkedinInsightsManifest,
 	microsoftUetManifest,
