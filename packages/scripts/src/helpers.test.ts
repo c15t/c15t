@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { databuddy } from './databuddy';
 import { gtag } from './google-tag';
 import { googleTagManager } from './google-tag-manager';
+import { hotjar } from './hotjar';
 import { linkedinInsights } from './linkedin-insights';
 import { metaPixel } from './meta-pixel';
 import { microsoftUet } from './microsoft-uet';
@@ -46,6 +47,8 @@ describe('built-in script helpers', () => {
 		vi.unstubAllGlobals();
 		delete globalRef.dataLayer;
 		delete globalRef.gtag;
+		delete globalRef.hj;
+		delete globalRef._hjSettings;
 		delete globalRef.posthog;
 		delete globalRef.databuddy;
 		delete globalRef.databuddyConfig;
@@ -131,6 +134,17 @@ describe('built-in script helpers', () => {
 				},
 			},
 			{
+				name: 'hotjar',
+				script: hotjar({ siteId: 1234567 }),
+				expected: {
+					id: 'hotjar',
+					category: 'measurement',
+					alwaysLoad: undefined,
+					persistAfterConsentRevoked: undefined,
+					src: 'https://static.hotjar.com/c/hotjar-1234567.js?sv=6',
+				},
+			},
+			{
 				name: 'linkedinInsights',
 				script: linkedinInsights({ id: '987654' }),
 				expected: {
@@ -180,6 +194,38 @@ describe('built-in script helpers', () => {
 				expect(helper.script.src, helper.name).toBe(helper.expected.src);
 			}
 		}
+	});
+
+	it('seeds Hotjar globals before loading the vendor bundle', () => {
+		const globalRef = globalThis as TestGlobal;
+		const script = hotjar({ siteId: 1234567, version: 6 });
+
+		script.onBeforeLoad?.({
+			id: script.id,
+			elementId: script.id,
+			hasConsent: true,
+			consents: {
+				necessary: true,
+				functionality: false,
+				measurement: true,
+				marketing: false,
+				experience: false,
+			},
+		});
+
+		expect(globalRef._hjSettings).toEqual({
+			hjid: 1234567,
+			hjsv: 6,
+		});
+		const hj = globalRef.hj as ((...args: unknown[]) => void) & {
+			q?: unknown[][];
+		};
+
+		expect(typeof hj).toBe('function');
+
+		hj('event', 'signup');
+		expect(hj.q).toEqual([['event', 'signup']]);
+		expect(document.head.appendChild).not.toHaveBeenCalled();
 	});
 
 	it('runs Google Tag Manager consent defaults before boot logic', () => {

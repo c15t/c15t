@@ -1,0 +1,47 @@
+---
+title: Hotjar
+description: Load Hotjar with c15t and gate it behind measurement consent while preserving Hotjar's standard queue bootstrap.
+lastModified: 2026-05-09
+
+icon: guide
+---
+
+Hotjar helps you understand behavior with heatmaps, session recordings, and feedback tools. The `@c15t/scripts/hotjar` helper sets up Hotjar's `_hjSettings` object and `hj` queue, then loads the vendor script when `measurement` consent is available.
+
+## Adding Hotjar to c15t
+
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework.
+</Callout>
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+import { hotjar } from '@c15t/scripts/hotjar';
+
+getOrCreateConsentRuntime({
+  mode: 'hosted',
+  scripts: [
+    hotjar({
+      siteId: 1234567,
+      version: 6,
+    }),
+  ],
+});
+```
+
+## How it works
+
+- c15t treats Hotjar as a `measurement` script
+- the helper seeds `window._hjSettings`
+- the helper creates the standard `window.hj` queue stub
+- c15t loads `https://static.hotjar.com/c/hotjar-<siteId>.js?sv=<version>` after consent allows it
+
+## Types
+
+### HotjarOptions
+
+<AutoTypeTable path="./packages/scripts/src/hotjar.ts" name="HotjarOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
