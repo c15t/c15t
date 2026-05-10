@@ -40,8 +40,8 @@ import {
 	fathomAnalytics,
 	fathomAnalyticsManifest,
 } from './vendors/analytics/fathom-analytics';
-import { hotjar, hotjarManifest } from './vendors/analytics/hotjar';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
+import { hotjar, hotjarManifest } from './vendors/analytics/hotjar';
 import {
 	plausibleAnalytics,
 	plausibleAnalyticsManifest,
