@@ -31,11 +31,11 @@ import {
 	ahrefsAnalytics,
 	ahrefsAnalyticsManifest,
 } from './vendors/analytics/ahrefs-analytics';
+import { clarity, clarityManifest } from './vendors/analytics/clarity';
 import {
 	cloudflareWebAnalytics,
 	cloudflareWebAnalyticsManifest,
 } from './vendors/analytics/cloudflare-web-analytics';
-import { clarity, clarityManifest } from './vendors/analytics/clarity';
 import { databuddy, databuddyManifest } from './vendors/analytics/databuddy';
 import {
 	fathomAnalytics,
