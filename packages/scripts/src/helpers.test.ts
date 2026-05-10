@@ -7,6 +7,7 @@ import { metaPixel } from './meta-pixel';
 import { microsoftUet } from './microsoft-uet';
 import { posthog } from './posthog';
 import { tiktokPixel } from './tiktok-pixel';
+import { googleAdsense } from './google-adsense';
 import { xPixel } from './x-pixel';
 
 type TestGlobal = typeof globalThis & Record<string, unknown>;
@@ -150,6 +151,17 @@ describe('built-in script helpers', () => {
 					alwaysLoad: undefined,
 					persistAfterConsentRevoked: true,
 					src: '//bat.bing.com/bat.js',
+				},
+			},
+			{
+				name: 'googleAdsense',
+				script: googleAdsense({ client: 'ca-pub-123' }),
+				expected: {
+					id: 'google-adsense',
+					category: 'marketing',
+					alwaysLoad: undefined,
+					persistAfterConsentRevoked: undefined,
+					src: 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-123',
 				},
 			},
 			{
