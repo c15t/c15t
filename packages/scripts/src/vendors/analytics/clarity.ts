@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
 export type ClarityConsentValue = boolean | Record<string, string>;
 
@@ -51,7 +51,7 @@ export const clarityManifest = {
 	install: [
 		{
 			type: 'loadScript',
-			src: '{{scriptSrc}}',
+			src: '{{scriptUrl}}',
 			async: true,
 		},
 	],
@@ -79,7 +79,7 @@ export interface ClarityOptions {
 	id: string;
 
 	/**
-	 * Optional initial consent value queued before the loader runs.
+	 * Optional initial consent value queued before the script loads.
 	 *
 	 * Object-shaped advanced consent vectors are supported only for this initial
 	 * boot-time value. Later c15t consent changes are mapped to simple booleans.
@@ -87,48 +87,38 @@ export interface ClarityOptions {
 	defaultConsent?: ClarityConsentValue;
 
 	/** Clarity loader URL. */
-	scriptSrc?: string;
+	scriptUrl?: string;
 }
 
 /**
  * Creates a Microsoft Clarity script.
  *
- * @param options - The options for the Clarity script
- * @returns The Clarity script configuration
- *
- * @example
- * ```ts
- * const clarityScript = clarity({
- *   id: 'abcdef1234',
- * });
- * ```
- *
- * @see {@link https://learn.microsoft.com/en-us/clarity/setup-and-installation/clarity-setup} Microsoft Clarity documentation
+ * @param options - The options for the Clarity script.
+ * @returns The Clarity script configuration.
  */
 export function clarity({
 	id,
 	defaultConsent,
-	scriptSrc,
+	scriptUrl,
 }: ClarityOptions): Script {
-	const manifest =
-		defaultConsent === undefined
-			? clarityManifest
-			: ({
-					...clarityManifest,
-					install: [
-						{
-							type: 'callGlobal',
-							global: 'clarity',
-							args: ['consent', '{{defaultConsent}}'],
-						},
-						...clarityManifest.install,
-					],
-				} as const satisfies VendorManifest);
+	let manifest = clarityManifest;
 
-	const resolved = resolveManifest(manifest, {
+	if (defaultConsent !== undefined) {
+		manifest = {
+			...clarityManifest,
+			install: [
+				{
+					type: 'callGlobal',
+					global: 'clarity',
+					args: ['consent', '{{defaultConsent}}'],
+				},
+				...clarityManifest.install,
+			],
+		} as const satisfies VendorManifest;
+	}
+
+	return resolveManifest(manifest, {
 		defaultConsent,
-		scriptSrc: scriptSrc ?? `https://www.clarity.ms/tag/${id}`,
+		scriptUrl: scriptUrl ?? `https://www.clarity.ms/tag/${id}`,
 	});
-
-	return resolved;
 }

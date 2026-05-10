@@ -13,6 +13,7 @@
 		"google-tag",
 		"ahrefs-analytics",
 		"cloudflare-web-analytics",
+		"clarity",
 		"databuddy",
 		"fathom-analytics",
 		"posthog",

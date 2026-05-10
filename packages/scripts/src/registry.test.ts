@@ -35,6 +35,7 @@ import {
 	cloudflareWebAnalytics,
 	cloudflareWebAnalyticsManifest,
 } from './vendors/analytics/cloudflare-web-analytics';
+import { clarity, clarityManifest } from './vendors/analytics/clarity';
 import { databuddy, databuddyManifest } from './vendors/analytics/databuddy';
 import {
 	fathomAnalytics,
@@ -94,6 +95,14 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://static.cloudflareinsights.com/beacon.min.js',
+		},
+	},
+	clarity: {
+		script: clarity({ id: 'abcdef1234' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://www.clarity.ms/tag/abcdef1234',
 		},
 	},
 	databuddy: {
@@ -195,6 +204,7 @@ const vendorManifests = [
 	gtagManifest,
 	ahrefsAnalyticsManifest,
 	cloudflareWebAnalyticsManifest,
+	clarityManifest,
 	databuddyManifest,
 	fathomAnalyticsManifest,
 	posthogManifest,
