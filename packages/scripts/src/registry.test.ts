@@ -47,6 +47,10 @@ import {
 } from './vendors/analytics/plausible-analytics';
 import { posthog, posthogManifest } from './vendors/analytics/posthog';
 import {
+	umamiAnalytics,
+	umamiAnalyticsManifest,
+} from './vendors/analytics/umami-analytics';
+import {
 	googleTagManager,
 	googleTagManagerManifest,
 } from './vendors/tag-managers/google-tag-manager';
@@ -128,6 +132,14 @@ const helperParityCases = {
 			src: 'https://plausible.io/js/script.js',
 		},
 	},
+	umamiAnalytics: {
+		script: umamiAnalytics({ websiteId: 'site-abc' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cloud.umami.is/script.js',
+		},
+	},
 	metaPixel: {
 		script: metaPixel({ pixelId: '123456' }),
 		expected: {
@@ -187,6 +199,7 @@ const vendorManifests = [
 	fathomAnalyticsManifest,
 	posthogManifest,
 	plausibleAnalyticsManifest,
+	umamiAnalyticsManifest,
 	metaPixelManifest,
 	tiktokPixelManifest,
 	linkedinInsightsManifest,

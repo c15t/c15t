@@ -172,6 +172,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'umamiAnalytics',
+		vendor: 'umami-analytics',
+		label: 'Umami Analytics',
+		hint: 'Open-source cookieless analytics',
+		docsSlug: 'umami-analytics',
+		packageSubpath: 'umami-analytics',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'metaPixel',
 		vendor: 'meta-pixel',
 		label: 'Meta Pixel',
