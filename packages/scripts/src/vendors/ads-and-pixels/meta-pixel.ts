@@ -1,6 +1,8 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
+import { buildQueuePixelInstall } from '../_shared/install-builders';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 /**
  * Represents the `contents` array object property.
@@ -22,6 +24,7 @@ export interface FbqBaseEventParams {
 	content_type?: 'product' | 'product_group';
 	contents?: FbqContent[];
 	currency?: string;
+	delivery_category?: 'in_store' | 'curbside' | 'home_delivery';
 	num_items?: number;
 	predicted_ltv?: number;
 	search_string?: string;
@@ -29,69 +32,80 @@ export interface FbqBaseEventParams {
 	value?: number;
 }
 
-type AddPaymentInfoParams = Pick<
-	FbqBaseEventParams,
-	'content_ids' | 'contents' | 'currency' | 'value'
->;
-type AddToCartParams = Pick<
-	FbqBaseEventParams,
-	'content_ids' | 'content_type' | 'contents' | 'currency' | 'value'
->;
-type AddToWishlistParams = Pick<
-	FbqBaseEventParams,
-	'content_ids' | 'contents' | 'currency' | 'value'
->;
-type CompleteRegistrationParams = Pick<
-	FbqBaseEventParams,
-	'currency' | 'value' | 'status'
->;
-type InitiateCheckoutParams = Pick<
-	FbqBaseEventParams,
-	'content_ids' | 'contents' | 'currency' | 'num_items' | 'value'
->;
-type LeadParams = Pick<FbqBaseEventParams, 'currency' | 'value'>;
+export type FbqCustomParams = Record<string, unknown>;
+type WithCustomParams<TParams> = TParams & FbqCustomParams;
 
-type SearchParams = Pick<
-	FbqBaseEventParams,
-	| 'content_ids'
-	| 'content_type'
-	| 'contents'
-	| 'currency'
-	| 'search_string'
-	| 'value'
+type AddPaymentInfoParams = WithCustomParams<
+	Pick<FbqBaseEventParams, 'content_ids' | 'contents' | 'currency' | 'value'>
 >;
-type StartTrialParams = Pick<
-	FbqBaseEventParams,
-	'currency' | 'predicted_ltv' | 'value'
+type AddToCartParams = WithCustomParams<
+	Pick<
+		FbqBaseEventParams,
+		'content_ids' | 'content_type' | 'contents' | 'currency' | 'value'
+	>
 >;
-type SubscribeParams = Pick<
-	FbqBaseEventParams,
-	'currency' | 'predicted_ltv' | 'value'
+type AddToWishlistParams = WithCustomParams<
+	Pick<FbqBaseEventParams, 'content_ids' | 'contents' | 'currency' | 'value'>
 >;
-type ViewContentParams = Pick<
-	FbqBaseEventParams,
-	'content_ids' | 'content_type' | 'contents' | 'currency' | 'value'
+type CompleteRegistrationParams = WithCustomParams<
+	Pick<FbqBaseEventParams, 'currency' | 'value' | 'status'>
+>;
+type InitiateCheckoutParams = WithCustomParams<
+	Pick<
+		FbqBaseEventParams,
+		'content_ids' | 'contents' | 'currency' | 'num_items' | 'value'
+	>
+>;
+type LeadParams = WithCustomParams<
+	Pick<FbqBaseEventParams, 'currency' | 'value'>
+>;
+type PageViewParams = FbqCustomParams;
+
+type SearchParams = WithCustomParams<
+	Pick<
+		FbqBaseEventParams,
+		| 'content_ids'
+		| 'content_type'
+		| 'contents'
+		| 'currency'
+		| 'search_string'
+		| 'value'
+	>
+>;
+type StartTrialParams = WithCustomParams<
+	Pick<FbqBaseEventParams, 'currency' | 'predicted_ltv' | 'value'>
+>;
+type SubscribeParams = WithCustomParams<
+	Pick<FbqBaseEventParams, 'currency' | 'predicted_ltv' | 'value'>
+>;
+type ViewContentParams = WithCustomParams<
+	Pick<
+		FbqBaseEventParams,
+		'content_ids' | 'content_type' | 'contents' | 'currency' | 'value'
+	>
 >;
 
 /**
  * The 'Purchase' event has required properties.
  * We use TypeScript's utility types to enforce this.
  */
-type PurchaseParams = Pick<
-	FbqBaseEventParams,
-	'content_ids' | 'content_type' | 'contents' | 'num_items'
-> &
-	Required<Pick<FbqBaseEventParams, 'currency' | 'value'>>;
+type PurchaseParams = WithCustomParams<
+	Pick<
+		FbqBaseEventParams,
+		'content_ids' | 'content_type' | 'contents' | 'num_items'
+	> &
+		Required<Pick<FbqBaseEventParams, 'currency' | 'value'>>
+>;
 
 /**
  * Events with no specific properties listed can accept any of the base parameters.
  */
-type ContactParams = FbqBaseEventParams;
-type CustomizeProductParams = FbqBaseEventParams;
-type DonateParams = FbqBaseEventParams;
-type FindLocationParams = FbqBaseEventParams;
-type ScheduleParams = FbqBaseEventParams;
-type SubmitApplicationParams = FbqBaseEventParams;
+type ContactParams = WithCustomParams<FbqBaseEventParams>;
+type CustomizeProductParams = WithCustomParams<FbqBaseEventParams>;
+type DonateParams = WithCustomParams<FbqBaseEventParams>;
+type FindLocationParams = WithCustomParams<FbqBaseEventParams>;
+type ScheduleParams = WithCustomParams<FbqBaseEventParams>;
+type SubmitApplicationParams = WithCustomParams<FbqBaseEventParams>;
 
 /**
  * A mapping of Standard Event names to their corresponding parameter types.
@@ -108,6 +122,7 @@ export interface StandardEventParams {
 	FindLocation: FindLocationParams;
 	InitiateCheckout: InitiateCheckoutParams;
 	Lead: LeadParams;
+	PageView: PageViewParams;
 	Purchase: PurchaseParams;
 	Schedule: ScheduleParams;
 	Search: SearchParams;
@@ -119,16 +134,77 @@ export interface StandardEventParams {
 
 export type StandardEventName = keyof StandardEventParams;
 
+export interface MetaPixelEventOptions {
+	/**
+	 * Event ID used to deduplicate browser events against Conversions API events.
+	 *
+	 * @see https://developers.facebook.com/docs/marketing-api/conversions-api/deduplicate-pixel-and-server-events
+	 */
+	eventID?: string;
+	[key: string]: unknown;
+}
+
+export interface MetaPixelDataProcessingOptions {
+	/**
+	 * Data processing flags sent to Meta before `init`.
+	 *
+	 * Use `['LDU']` to enable Limited Data Use, or `[]` to explicitly disable it.
+	 */
+	options: 'LDU'[] | [];
+
+	/**
+	 * Meta country code. Use `0` to let Meta geolocate the event or `1` for USA.
+	 */
+	country?: number;
+
+	/**
+	 * Meta state code. Use `0` to let Meta geolocate the event.
+	 *
+	 * @example `1000` for California
+	 */
+	state?: number;
+}
+
 // Extended Window interface to include meta pixel specific properties
 declare global {
 	interface Window {
 		fbq: {
-			(command: 'init', pixelId: string): void;
+			(
+				command: 'dataProcessingOptions',
+				options: MetaPixelDataProcessingOptions['options'],
+				country?: number,
+				state?: number
+			): void;
+			(
+				command: 'init',
+				pixelId: string,
+				options?: Record<string, unknown>
+			): void;
 			(
 				command: 'track',
 				eventName: StandardEventName,
 				params?: StandardEventParams[StandardEventName],
-				eventId?: string
+				options?: MetaPixelEventOptions
+			): void;
+			(
+				command: 'trackCustom',
+				eventName: string,
+				params?: FbqCustomParams,
+				options?: MetaPixelEventOptions
+			): void;
+			(
+				command: 'trackSingle',
+				pixelId: string,
+				eventName: StandardEventName,
+				params?: StandardEventParams[StandardEventName],
+				options?: MetaPixelEventOptions
+			): void;
+			(
+				command: 'trackSingleCustom',
+				pixelId: string,
+				eventName: string,
+				params?: FbqCustomParams,
+				options?: MetaPixelEventOptions
 			): void;
 			(command: 'consent', action: 'grant' | 'revoke'): void;
 			(...args: unknown[]): void;
@@ -210,6 +286,24 @@ export interface MetaPixelOptions {
 	 */
 	pixelId: string;
 
+	/** Optional payload passed as the third argument to `fbq('init', ...)`. */
+	initOptions?: Record<string, unknown>;
+
+	/**
+	 * Queue the default `PageView` event during setup.
+	 *
+	 * @default true
+	 */
+	trackPageView?: boolean;
+
+	/**
+	 * Optional Meta data processing options, such as Limited Data Use.
+	 *
+	 * When provided, c15t queues `fbq('dataProcessingOptions', ...)` before
+	 * `fbq('init', ...)`.
+	 */
+	dataProcessingOptions?: MetaPixelDataProcessingOptions;
+
 	/** Meta Pixel loader URL. */
 	scriptSrc?: string;
 }
@@ -232,13 +326,111 @@ export interface MetaPixelOptions {
  *
  * @see {@link https://developers.facebook.com/docs/meta-pixel/get-started} Meta Pixel documentation
  */
-export function metaPixel({ pixelId, scriptSrc }: MetaPixelOptions): Script {
-	const resolved = resolveManifest(metaPixelManifest, {
+export function metaPixel({
+	pixelId,
+	initOptions,
+	trackPageView = true,
+	dataProcessingOptions,
+	scriptSrc,
+}: MetaPixelOptions): Script {
+	const install = buildMetaPixelInstall({
+		hasInitOptions: initOptions !== undefined,
+		trackPageView,
+		dataProcessingOptions,
+	});
+
+	const manifest = {
+		...metaPixelManifest,
+		install,
+	} as const satisfies VendorManifest;
+
+	const resolved = resolveManifest(manifest, {
 		pixelId,
-		scriptSrc: scriptSrc ?? 'https://connect.facebook.net/en_US/fbevents.js',
+		initOptions,
+		scriptSrc: resolveScriptUrl(
+			scriptSrc,
+			'https://connect.facebook.net/en_US/fbevents.js'
+		),
 	});
 
 	return resolved;
+}
+
+function buildMetaPixelInstall({
+	hasInitOptions,
+	trackPageView,
+	dataProcessingOptions,
+}: {
+	hasInitOptions: boolean;
+	trackPageView: boolean;
+	dataProcessingOptions?: MetaPixelDataProcessingOptions;
+}): VendorManifest['install'] {
+	const initArgs: unknown[] = ['init', '{{pixelId}}'];
+
+	if (hasInitOptions) {
+		initArgs.push('{{initOptions}}');
+	}
+
+	const install = buildQueuePixelInstall({
+		global: 'fbq',
+		initArgs,
+		trackStep: getMetaPixelPageViewStep(trackPageView),
+		scriptPlaceholder: '{{scriptSrc}}',
+	});
+
+	if (dataProcessingOptions !== undefined) {
+		install.unshift({
+			type: 'callGlobal',
+			global: 'fbq',
+			args: getMetaPixelDataProcessingArgs(dataProcessingOptions),
+		});
+	}
+
+	install.unshift({
+		type: 'callGlobal',
+		global: 'fbq',
+		args: ['consent', 'grant'],
+	});
+
+	return install;
+}
+
+function getMetaPixelDataProcessingArgs({
+	options,
+	country,
+	state,
+}: MetaPixelDataProcessingOptions): unknown[] {
+	const args: unknown[] = ['dataProcessingOptions', options];
+
+	if (country !== undefined || state !== undefined) {
+		args.push(country ?? 0, state ?? 0);
+	}
+
+	return args;
+}
+
+function getMetaPixelPageViewStep(
+	trackPageView: boolean
+): { args: unknown[] } | undefined {
+	if (trackPageView) {
+		return {
+			args: ['track', 'PageView'],
+		};
+	}
+
+	return undefined;
+}
+
+function resolveMetaPixelEventOptions(
+	eventOptions?: MetaPixelEventOptions | string
+): MetaPixelEventOptions | undefined {
+	if (typeof eventOptions === 'string') {
+		return {
+			eventID: eventOptions,
+		};
+	}
+
+	return eventOptions;
 }
 
 /**
@@ -259,5 +451,67 @@ export function metaPixel({ pixelId, scriptSrc }: MetaPixelOptions): Script {
 export const metaPixelEvent = <TEventName extends StandardEventName>(
 	eventName: TEventName,
 	params?: StandardEventParams[TEventName],
-	eventId?: string
-) => window.fbq('track', eventName, params, eventId);
+	eventOptions?: MetaPixelEventOptions | string
+) =>
+	window.fbq(
+		'track',
+		eventName,
+		params,
+		resolveMetaPixelEventOptions(eventOptions)
+	);
+
+/**
+ * Tracks a Meta Pixel custom event with optional custom parameters.
+ *
+ * @param eventName - The custom event name to track
+ * @param params - Optional custom parameters to track
+ * @param eventOptions - Optional event options, including Conversions API eventID
+ */
+export const metaPixelCustomEvent = (
+	eventName: string,
+	params?: FbqCustomParams,
+	eventOptions?: MetaPixelEventOptions | string
+) =>
+	window.fbq(
+		'trackCustom',
+		eventName,
+		params,
+		resolveMetaPixelEventOptions(eventOptions)
+	);
+
+/**
+ * Tracks a standard event for a single Meta Pixel ID.
+ *
+ * Use this when multiple Meta Pixels are initialized on the same page and the
+ * event should not fire for every initialized pixel.
+ */
+export const metaPixelSingleEvent = <TEventName extends StandardEventName>(
+	pixelId: string,
+	eventName: TEventName,
+	params?: StandardEventParams[TEventName],
+	eventOptions?: MetaPixelEventOptions | string
+) =>
+	window.fbq(
+		'trackSingle',
+		pixelId,
+		eventName,
+		params,
+		resolveMetaPixelEventOptions(eventOptions)
+	);
+
+/**
+ * Tracks a custom event for a single Meta Pixel ID.
+ */
+export const metaPixelSingleCustomEvent = (
+	pixelId: string,
+	eventName: string,
+	params?: FbqCustomParams,
+	eventOptions?: MetaPixelEventOptions | string
+) =>
+	window.fbq(
+		'trackSingleCustom',
+		pixelId,
+		eventName,
+		params,
+		resolveMetaPixelEventOptions(eventOptions)
+	);
