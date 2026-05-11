@@ -27,6 +27,10 @@ import {
 	snapchatPixelManifest,
 } from './vendors/ads-and-pixels/snapchat-pixel';
 import {
+	redditPixel,
+	redditPixelManifest,
+} from './vendors/ads-and-pixels/reddit-pixel';
+import {
 	tiktokPixel,
 	tiktokPixelManifest,
 } from './vendors/ads-and-pixels/tiktok-pixel';
@@ -35,6 +39,7 @@ import {
 	ahrefsAnalytics,
 	ahrefsAnalyticsManifest,
 } from './vendors/analytics/ahrefs-analytics';
+import { clarity, clarityManifest } from './vendors/analytics/clarity';
 import {
 	cloudflareWebAnalytics,
 	cloudflareWebAnalyticsManifest,
@@ -45,15 +50,24 @@ import {
 	fathomAnalyticsManifest,
 } from './vendors/analytics/fathom-analytics';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
+import { hotjar, hotjarManifest } from './vendors/analytics/hotjar';
 import {
 	plausibleAnalytics,
 	plausibleAnalyticsManifest,
 } from './vendors/analytics/plausible-analytics';
 import { posthog, posthogManifest } from './vendors/analytics/posthog';
 import {
+	rybbitAnalytics,
+	rybbitAnalyticsManifest,
+} from './vendors/analytics/rybbit-analytics';
+import {
 	umamiAnalytics,
 	umamiAnalyticsManifest,
 } from './vendors/analytics/umami-analytics';
+import {
+	vercelAnalytics,
+	vercelAnalyticsManifest,
+} from './vendors/analytics/vercel-analytics';
 import {
 	googleTagManager,
 	googleTagManagerManifest,
@@ -100,6 +114,14 @@ const helperParityCases = {
 			src: 'https://static.cloudflareinsights.com/beacon.min.js',
 		},
 	},
+	clarity: {
+		script: clarity({ id: 'abcdef1234' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://www.clarity.ms/tag/abcdef1234',
+		},
+	},
 	databuddy: {
 		script: databuddy({
 			clientId: 'db_123',
@@ -120,12 +142,28 @@ const helperParityCases = {
 			src: 'https://cdn.usefathom.com/script.js',
 		},
 	},
+	hotjar: {
+		script: hotjar({ siteId: 1234567 }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://static.hotjar.com/c/hotjar-1234567.js?sv=6',
+		},
+	},
 	posthog: {
 		script: posthog({ id: 'phc_123' }),
 		expected: {
 			alwaysLoad: true,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://eu-assets.i.posthog.com/static/array.js',
+		},
+	},
+	rybbitAnalytics: {
+		script: rybbitAnalytics({ siteId: 'rybbit-123' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://app.rybbit.io/api/script.js',
 		},
 	},
 	plausibleAnalytics: {
@@ -144,12 +182,28 @@ const helperParityCases = {
 			src: 'https://cloud.umami.is/script.js',
 		},
 	},
+	vercelAnalytics: {
+		script: vercelAnalytics(),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://va.vercel-scripts.com/v1/script.js',
+		},
+	},
 	metaPixel: {
 		script: metaPixel({ pixelId: '123456' }),
 		expected: {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: true,
 			src: 'https://connect.facebook.net/en_US/fbevents.js',
+		},
+	},
+	redditPixel: {
+		script: redditPixel({ pixelId: 't2_abcdef' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://www.redditstatic.com/ads/pixel.js',
 		},
 	},
 	tiktokPixel: {
@@ -207,12 +261,17 @@ const vendorManifests = [
 	gtagManifest,
 	ahrefsAnalyticsManifest,
 	cloudflareWebAnalyticsManifest,
+	clarityManifest,
 	databuddyManifest,
 	fathomAnalyticsManifest,
+	hotjarManifest,
 	posthogManifest,
+	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,
 	umamiAnalyticsManifest,
+	vercelAnalyticsManifest,
 	metaPixelManifest,
+	redditPixelManifest,
 	tiktokPixelManifest,
 	linkedinInsightsManifest,
 	microsoftUetManifest,
