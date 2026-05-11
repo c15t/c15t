@@ -31,6 +31,7 @@ import {
 	ahrefsAnalytics,
 	ahrefsAnalyticsManifest,
 } from './vendors/analytics/ahrefs-analytics';
+import { clarity, clarityManifest } from './vendors/analytics/clarity';
 import {
 	cloudflareWebAnalytics,
 	cloudflareWebAnalyticsManifest,
@@ -41,6 +42,7 @@ import {
 	fathomAnalyticsManifest,
 } from './vendors/analytics/fathom-analytics';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
+import { hotjar, hotjarManifest } from './vendors/analytics/hotjar';
 import {
 	plausibleAnalytics,
 	plausibleAnalyticsManifest,
@@ -100,6 +102,14 @@ const helperParityCases = {
 			src: 'https://static.cloudflareinsights.com/beacon.min.js',
 		},
 	},
+	clarity: {
+		script: clarity({ id: 'abcdef1234' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://www.clarity.ms/tag/abcdef1234',
+		},
+	},
 	databuddy: {
 		script: databuddy({
 			clientId: 'db_123',
@@ -118,6 +128,14 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://cdn.usefathom.com/script.js',
+		},
+	},
+	hotjar: {
+		script: hotjar({ siteId: 1234567 }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://static.hotjar.com/c/hotjar-1234567.js?sv=6',
 		},
 	},
 	posthog: {
@@ -207,8 +225,10 @@ const vendorManifests = [
 	gtagManifest,
 	ahrefsAnalyticsManifest,
 	cloudflareWebAnalyticsManifest,
+	clarityManifest,
 	databuddyManifest,
 	fathomAnalyticsManifest,
+	hotjarManifest,
 	posthogManifest,
 	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,

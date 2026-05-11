@@ -22,6 +22,11 @@
 			"import": "./dist/vendors/analytics/cloudflare-web-analytics.js",
 			"require": "./dist/vendors/analytics/cloudflare-web-analytics.cjs"
 		},
+		"./clarity": {
+			"types": "./dist-types/vendors/analytics/clarity.d.ts",
+			"import": "./dist/vendors/analytics/clarity.js",
+			"require": "./dist/vendors/analytics/clarity.cjs"
+		},
 		"./databuddy": {
 			"types": "./dist-types/vendors/analytics/databuddy.d.ts",
 			"import": "./dist/vendors/analytics/databuddy.js",
@@ -31,6 +36,11 @@
 			"types": "./dist-types/vendors/analytics/fathom-analytics.d.ts",
 			"import": "./dist/vendors/analytics/fathom-analytics.js",
 			"require": "./dist/vendors/analytics/fathom-analytics.cjs"
+		},
+		"./hotjar": {
+			"types": "./dist-types/vendors/analytics/hotjar.d.ts",
+			"import": "./dist/vendors/analytics/hotjar.js",
+			"require": "./dist/vendors/analytics/hotjar.cjs"
 		},
 		"./google-tag": {
 			"types": "./dist-types/vendors/analytics/google-tag.d.ts",
