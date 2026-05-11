@@ -101,6 +101,14 @@ export function clarity({
 	defaultConsent,
 	scriptUrl,
 }: ClarityOptions): Script {
+	const normalizedId = id.trim();
+
+	if (scriptUrl === undefined && normalizedId.length === 0) {
+		throw new Error(
+			`Invalid Clarity id value "${id}". A non-empty id is required to construct the Clarity loader URL when scriptUrl is not provided.`
+		);
+	}
+
 	let manifest = clarityManifest;
 
 	if (defaultConsent !== undefined) {
@@ -119,6 +127,6 @@ export function clarity({
 
 	return resolveManifest(manifest, {
 		defaultConsent,
-		scriptUrl: scriptUrl ?? `https://www.clarity.ms/tag/${id}`,
+		scriptUrl: scriptUrl ?? `https://www.clarity.ms/tag/${normalizedId}`,
 	});
 }
