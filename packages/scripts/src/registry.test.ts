@@ -23,6 +23,14 @@ import {
 	microsoftUetManifest,
 } from './vendors/ads-and-pixels/microsoft-uet';
 import {
+	redditPixel,
+	redditPixelManifest,
+} from './vendors/ads-and-pixels/reddit-pixel';
+import {
+	snapchatPixel,
+	snapchatPixelManifest,
+} from './vendors/ads-and-pixels/snapchat-pixel';
+import {
 	tiktokPixel,
 	tiktokPixelManifest,
 } from './vendors/ads-and-pixels/tiktok-pixel';
@@ -31,6 +39,7 @@ import {
 	ahrefsAnalytics,
 	ahrefsAnalyticsManifest,
 } from './vendors/analytics/ahrefs-analytics';
+import { clarity, clarityManifest } from './vendors/analytics/clarity';
 import {
 	cloudflareWebAnalytics,
 	cloudflareWebAnalyticsManifest,
@@ -41,6 +50,15 @@ import {
 	fathomAnalyticsManifest,
 } from './vendors/analytics/fathom-analytics';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
+import { hotjar, hotjarManifest } from './vendors/analytics/hotjar';
+import {
+	matomoAnalytics,
+	matomoAnalyticsManifest,
+} from './vendors/analytics/matomo-analytics';
+import {
+	mixpanelAnalytics,
+	mixpanelAnalyticsManifest,
+} from './vendors/analytics/mixpanel-analytics';
 import {
 	plausibleAnalytics,
 	plausibleAnalyticsManifest,
@@ -51,9 +69,18 @@ import {
 	promptwatchManifest,
 } from './vendors/analytics/promptwatch';
 import {
+	rybbitAnalytics,
+	rybbitAnalyticsManifest,
+} from './vendors/analytics/rybbit-analytics';
+import { segment, segmentManifest } from './vendors/analytics/segment';
+import {
 	umamiAnalytics,
 	umamiAnalyticsManifest,
 } from './vendors/analytics/umami-analytics';
+import {
+	vercelAnalytics,
+	vercelAnalyticsManifest,
+} from './vendors/analytics/vercel-analytics';
 import {
 	googleTagManager,
 	googleTagManagerManifest,
@@ -100,6 +127,14 @@ const helperParityCases = {
 			src: 'https://static.cloudflareinsights.com/beacon.min.js',
 		},
 	},
+	clarity: {
+		script: clarity({ id: 'abcdef1234' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://www.clarity.ms/tag/abcdef1234',
+		},
+	},
 	databuddy: {
 		script: databuddy({
 			clientId: 'db_123',
@@ -120,6 +155,35 @@ const helperParityCases = {
 			src: 'https://cdn.usefathom.com/script.js',
 		},
 	},
+	mixpanelAnalytics: {
+		script: mixpanelAnalytics({
+			token: '1234567890abcdef1234567890abcdef',
+		}),
+		expected: {
+			alwaysLoad: true,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js',
+		},
+	},
+	hotjar: {
+		script: hotjar({ siteId: 1234567 }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://static.hotjar.com/c/hotjar-1234567.js?sv=6',
+		},
+	},
+	matomoAnalytics: {
+		script: matomoAnalytics({
+			matomoUrl: 'https://analytics.example.com',
+			siteId: 1,
+		}),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://analytics.example.com/matomo.js',
+		},
+	},
 	posthog: {
 		script: posthog({ id: 'phc_123' }),
 		expected: {
@@ -138,6 +202,22 @@ const helperParityCases = {
 			src: 'https://ingest.promptwatch.com/js/client.min.js',
 		},
 	},
+	segment: {
+		script: segment({ writeKey: 'abc123xyz456' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.segment.com/analytics.js/v1/abc123xyz456/analytics.min.js',
+		},
+	},
+	rybbitAnalytics: {
+		script: rybbitAnalytics({ siteId: 'rybbit-123' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://app.rybbit.io/api/script.js',
+		},
+	},
 	plausibleAnalytics: {
 		script: plausibleAnalytics({ domain: 'example.com' }),
 		expected: {
@@ -154,12 +234,28 @@ const helperParityCases = {
 			src: 'https://cloud.umami.is/script.js',
 		},
 	},
+	vercelAnalytics: {
+		script: vercelAnalytics(),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://va.vercel-scripts.com/v1/script.js',
+		},
+	},
 	metaPixel: {
 		script: metaPixel({ pixelId: '123456' }),
 		expected: {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: true,
 			src: 'https://connect.facebook.net/en_US/fbevents.js',
+		},
+	},
+	redditPixel: {
+		script: redditPixel({ pixelId: 't2_abcdef' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://www.redditstatic.com/ads/pixel.js',
 		},
 	},
 	tiktokPixel: {
@@ -186,6 +282,14 @@ const helperParityCases = {
 			src: '//bat.bing.com/bat.js',
 		},
 	},
+	snapchatPixel: {
+		script: snapchatPixel({ pixelId: '123456789012345' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://sc-static.net/scevent.min.js',
+		},
+	},
 	xPixel: {
 		script: xPixel({ pixelId: 'tw-123' }),
 		expected: {
@@ -209,16 +313,25 @@ const vendorManifests = [
 	gtagManifest,
 	ahrefsAnalyticsManifest,
 	cloudflareWebAnalyticsManifest,
+	clarityManifest,
 	databuddyManifest,
 	fathomAnalyticsManifest,
+	mixpanelAnalyticsManifest,
+	hotjarManifest,
+	matomoAnalyticsManifest,
 	posthogManifest,
 	promptwatchManifest,
+	segmentManifest,
+	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,
 	umamiAnalyticsManifest,
+	vercelAnalyticsManifest,
 	metaPixelManifest,
+	redditPixelManifest,
 	tiktokPixelManifest,
 	linkedinInsightsManifest,
 	microsoftUetManifest,
+	snapchatPixelManifest,
 	xPixelManifest,
 ];
 

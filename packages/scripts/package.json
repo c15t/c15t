@@ -22,6 +22,11 @@
 			"import": "./dist/vendors/analytics/cloudflare-web-analytics.js",
 			"require": "./dist/vendors/analytics/cloudflare-web-analytics.cjs"
 		},
+		"./clarity": {
+			"types": "./dist-types/vendors/analytics/clarity.d.ts",
+			"import": "./dist/vendors/analytics/clarity.js",
+			"require": "./dist/vendors/analytics/clarity.cjs"
+		},
 		"./databuddy": {
 			"types": "./dist-types/vendors/analytics/databuddy.d.ts",
 			"import": "./dist/vendors/analytics/databuddy.js",
@@ -32,10 +37,25 @@
 			"import": "./dist/vendors/analytics/fathom-analytics.js",
 			"require": "./dist/vendors/analytics/fathom-analytics.cjs"
 		},
+		"./hotjar": {
+			"types": "./dist-types/vendors/analytics/hotjar.d.ts",
+			"import": "./dist/vendors/analytics/hotjar.js",
+			"require": "./dist/vendors/analytics/hotjar.cjs"
+		},
 		"./google-tag": {
 			"types": "./dist-types/vendors/analytics/google-tag.d.ts",
 			"import": "./dist/vendors/analytics/google-tag.js",
 			"require": "./dist/vendors/analytics/google-tag.cjs"
+		},
+		"./matomo-analytics": {
+			"types": "./dist-types/vendors/analytics/matomo-analytics.d.ts",
+			"import": "./dist/vendors/analytics/matomo-analytics.js",
+			"require": "./dist/vendors/analytics/matomo-analytics.cjs"
+		},
+		"./mixpanel-analytics": {
+			"types": "./dist-types/vendors/analytics/mixpanel-analytics.d.ts",
+			"import": "./dist/vendors/analytics/mixpanel-analytics.js",
+			"require": "./dist/vendors/analytics/mixpanel-analytics.cjs"
 		},
 		"./plausible-analytics": {
 			"types": "./dist-types/vendors/analytics/plausible-analytics.d.ts",
@@ -52,10 +72,25 @@
 			"import": "./dist/vendors/analytics/promptwatch.js",
 			"require": "./dist/vendors/analytics/promptwatch.cjs"
 		},
+		"./segment": {
+			"types": "./dist-types/vendors/analytics/segment.d.ts",
+			"import": "./dist/vendors/analytics/segment.js",
+			"require": "./dist/vendors/analytics/segment.cjs"
+		},
+		"./rybbit-analytics": {
+			"types": "./dist-types/vendors/analytics/rybbit-analytics.d.ts",
+			"import": "./dist/vendors/analytics/rybbit-analytics.js",
+			"require": "./dist/vendors/analytics/rybbit-analytics.cjs"
+		},
 		"./umami-analytics": {
 			"types": "./dist-types/vendors/analytics/umami-analytics.d.ts",
 			"import": "./dist/vendors/analytics/umami-analytics.js",
 			"require": "./dist/vendors/analytics/umami-analytics.cjs"
+		},
+		"./vercel-analytics": {
+			"types": "./dist-types/vendors/analytics/vercel-analytics.d.ts",
+			"import": "./dist/vendors/analytics/vercel-analytics.js",
+			"require": "./dist/vendors/analytics/vercel-analytics.cjs"
 		},
 		"./google-tag-manager": {
 			"types": "./dist-types/vendors/tag-managers/google-tag-manager.d.ts",
@@ -72,10 +107,20 @@
 			"import": "./dist/vendors/ads-and-pixels/meta-pixel.js",
 			"require": "./dist/vendors/ads-and-pixels/meta-pixel.cjs"
 		},
+		"./reddit-pixel": {
+			"types": "./dist-types/vendors/ads-and-pixels/reddit-pixel.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/reddit-pixel.js",
+			"require": "./dist/vendors/ads-and-pixels/reddit-pixel.cjs"
+		},
 		"./microsoft-uet": {
 			"types": "./dist-types/vendors/ads-and-pixels/microsoft-uet.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/microsoft-uet.js",
 			"require": "./dist/vendors/ads-and-pixels/microsoft-uet.cjs"
+		},
+		"./snapchat-pixel": {
+			"types": "./dist-types/vendors/ads-and-pixels/snapchat-pixel.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/snapchat-pixel.js",
+			"require": "./dist/vendors/ads-and-pixels/snapchat-pixel.cjs"
 		},
 		"./tiktok-pixel": {
 			"types": "./dist-types/vendors/ads-and-pixels/tiktok-pixel.d.ts",
