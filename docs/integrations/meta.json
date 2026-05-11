@@ -15,6 +15,7 @@
 		"cloudflare-web-analytics",
 		"databuddy",
 		"fathom-analytics",
+		"hotjar",
 		"posthog",
 		"plausible-analytics",
 		"umami-analytics",
