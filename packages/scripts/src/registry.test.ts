@@ -23,13 +23,13 @@ import {
 	microsoftUetManifest,
 } from './vendors/ads-and-pixels/microsoft-uet';
 import {
-	snapchatPixel,
-	snapchatPixelManifest,
-} from './vendors/ads-and-pixels/snapchat-pixel';
-import {
 	redditPixel,
 	redditPixelManifest,
 } from './vendors/ads-and-pixels/reddit-pixel';
+import {
+	snapchatPixel,
+	snapchatPixelManifest,
+} from './vendors/ads-and-pixels/snapchat-pixel';
 import {
 	tiktokPixel,
 	tiktokPixelManifest,
