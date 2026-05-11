@@ -8,9 +8,10 @@ declare global {
 		CRISP_WEBSITE_ID: string;
 		CRISP_RUNTIME_CONFIG?: {
 			locale?: string;
+			session_merge?: boolean;
 		};
 		CRISP_COOKIE_DOMAIN?: string;
-		CRISP_COOKIE_EXPIRATION?: number;
+		CRISP_COOKIE_EXPIRE?: number;
 		CRISP_TOKEN_ID?: string;
 	}
 }
@@ -62,6 +63,12 @@ export interface CrispOptions {
 	/** Optional Crisp token ID for session continuity. */
 	tokenId?: string;
 
+	/** Whether to merge anonymous sessions into token-backed sessions. */
+	sessionMerge?: boolean;
+
+	/** Whether to enable `$crisp` safe mode before other queued calls. */
+	safeMode?: boolean;
+
 	/** Crisp loader URL. */
 	scriptSrc?: string;
 }
@@ -82,12 +89,13 @@ function createCrispManifest(options: CrispOptions): VendorManifest {
 		},
 	];
 
-	if (options.locale) {
+	if (options.locale || options.sessionMerge) {
 		install.push({
 			type: 'setGlobal',
 			name: 'CRISP_RUNTIME_CONFIG',
 			value: {
-				locale: '{{locale}}',
+				...(options.locale ? { locale: '{{locale}}' } : {}),
+				...(options.sessionMerge ? { session_merge: '{{sessionMerge}}' } : {}),
 			},
 			ifUndefined: false,
 		});
@@ -105,7 +113,7 @@ function createCrispManifest(options: CrispOptions): VendorManifest {
 	if (options.cookieExpiry !== undefined) {
 		install.push({
 			type: 'setGlobal',
-			name: 'CRISP_COOKIE_EXPIRATION',
+			name: 'CRISP_COOKIE_EXPIRE',
 			value: '{{cookieExpiry}}',
 			ifUndefined: false,
 		});
@@ -117,6 +125,14 @@ function createCrispManifest(options: CrispOptions): VendorManifest {
 			name: 'CRISP_TOKEN_ID',
 			value: '{{tokenId}}',
 			ifUndefined: false,
+		});
+	}
+
+	if (options.safeMode) {
+		install.push({
+			type: 'pushToQueue',
+			queue: '$crisp',
+			value: ['safe', true],
 		});
 	}
 
@@ -157,6 +173,7 @@ export function crisp(options: CrispOptions): Script {
 		cookieDomain: options.cookieDomain,
 		cookieExpiry: options.cookieExpiry,
 		tokenId: options.tokenId,
+		sessionMerge: options.sessionMerge,
 		scriptSrc: options.scriptSrc ?? 'https://client.crisp.chat/l.js',
 	});
 }

@@ -42,6 +42,8 @@ describe('crisp', () => {
 			cookieDomain: '.example.com',
 			cookieExpiry: 3600,
 			tokenId: 'token-123',
+			sessionMerge: true,
+			safeMode: true,
 		});
 
 		script.onBeforeLoad?.(
@@ -52,10 +54,30 @@ describe('crisp', () => {
 
 		expect(globalRef.CRISP_RUNTIME_CONFIG).toEqual({
 			locale: 'fr',
+			session_merge: true,
 		});
 		expect(globalRef.CRISP_COOKIE_DOMAIN).toBe('.example.com');
-		expect(globalRef.CRISP_COOKIE_EXPIRATION).toBe(3600);
+		expect(globalRef.CRISP_COOKIE_EXPIRE).toBe(3600);
 		expect(globalRef.CRISP_TOKEN_ID).toBe('token-123');
+		expect(globalRef.$crisp).toEqual([['safe', true]]);
+	});
+
+	it('sets session merge without requiring a locale override', () => {
+		const globalRef = getTestGlobal();
+		const script = crisp({
+			websiteId: 'crisp-123',
+			sessionMerge: true,
+		});
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+			})
+		);
+
+		expect(globalRef.CRISP_RUNTIME_CONFIG).toEqual({
+			session_merge: true,
+		});
 	});
 
 	it('supports overriding the loader URL', () => {

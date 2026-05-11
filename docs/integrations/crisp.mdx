@@ -1,12 +1,12 @@
 ---
 title: Crisp
-description: Load Crisp live chat with the standard website ID bootstrap.
-lastModified: 2026-05-09
+description: Load Crisp live chat with website ID, runtime, cookie, and session options.
+lastModified: 2026-05-11
 
 icon: guide
 ---
 
-Crisp loads through `@c15t/scripts` using c15t's script loader and the helper's default consent category.
+Crisp loads through `@c15t/scripts` using c15t's script loader and the `functionality` consent category.
 
 ## Adding Crisp to c15t
 
@@ -19,6 +19,26 @@ import { crisp } from '@c15t/scripts/crisp';
 
 crisp({ websiteId: 'crisp-123' })
 ```
+
+## Runtime options
+
+The helper seeds Crisp's documented globals before loading `https://client.crisp.chat/l.js`.
+
+```ts
+crisp({
+  websiteId: 'crisp-123',
+  locale: 'fr',
+  cookieDomain: 'app.example.com',
+  cookieExpiry: 3600,
+  tokenId: 'secure-user-token',
+  sessionMerge: true,
+  safeMode: true,
+})
+```
+
+`locale` and `sessionMerge` are written to `CRISP_RUNTIME_CONFIG`. `cookieDomain` maps to `CRISP_COOKIE_DOMAIN`, `cookieExpiry` maps to `CRISP_COOKIE_EXPIRE`, and `tokenId` maps to `CRISP_TOKEN_ID`.
+
+For session continuity, generate `tokenId` on your backend with a secure random value. Do not use emails, hashes of emails, timestamps, or incrementing IDs as Crisp session tokens. If you verify user emails, generate the HMAC signature on your backend and set it with Crisp's `$crisp` API after the helper loads.
 
 ## Types
 
