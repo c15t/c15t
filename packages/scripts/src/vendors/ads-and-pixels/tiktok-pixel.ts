@@ -1,15 +1,30 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
+
+type TikTokPixelFunction = {
+	grantConsent: () => void;
+	revokeConsent: () => void;
+	page: () => void;
+	track: (eventName: string, properties?: Record<string, unknown>) => void;
+	identify: (properties?: Record<string, unknown>) => void;
+	instances: (...args: unknown[]) => void;
+	debug: (...args: unknown[]) => void;
+	on: (...args: unknown[]) => void;
+	off: (...args: unknown[]) => void;
+	once: (...args: unknown[]) => void;
+	ready: (...args: unknown[]) => void;
+	alias: (...args: unknown[]) => void;
+	group: (...args: unknown[]) => void;
+	enableCookie: (...args: unknown[]) => void;
+	disableCookie: (...args: unknown[]) => void;
+	holdConsent: (...args: unknown[]) => void;
+};
 
 // Extended Window interface to include TikTok Pixel-specific properties
 declare global {
 	interface Window {
-		ttq: {
-			grantConsent: () => void;
-			revokeConsent: () => void;
-			page: () => void;
-		};
+		ttq: TikTokPixelFunction;
 	}
 }
 

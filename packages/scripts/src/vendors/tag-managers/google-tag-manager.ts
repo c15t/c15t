@@ -1,6 +1,10 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
+import {
+	GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
+	withOptionalConsentMapping,
+} from '../_shared/google-consent';
 
 // Extended Window interface to include GTM-specific properties
 declare global {
@@ -59,13 +63,7 @@ export const googleTagManagerManifest = {
 			args: ['event', '{{updateEventName}}'],
 		},
 	],
-	consentMapping: {
-		necessary: ['security_storage'],
-		functionality: ['functionality_storage'],
-		measurement: ['analytics_storage'],
-		marketing: ['ad_storage', 'ad_user_data', 'ad_personalization'],
-		experience: ['personalization_storage'],
-	},
+	consentMapping: GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
 	consentSignal: 'gtag',
 } as const satisfies VendorManifest;
 
@@ -115,9 +113,10 @@ export function googleTagManager({
 	updateEventName,
 	consentMapping,
 }: GoogleTagManagerOptions): Script {
-	const manifest = consentMapping
-		? { ...googleTagManagerManifest, consentMapping }
-		: googleTagManagerManifest;
+	const manifest = withOptionalConsentMapping(
+		googleTagManagerManifest,
+		consentMapping
+	);
 
 	const resolved = resolveManifest(manifest, {
 		id,

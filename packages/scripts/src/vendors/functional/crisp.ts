@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
 declare global {
 	interface Window {
@@ -47,29 +47,19 @@ export const crispManifest = {
 } as const satisfies VendorManifest;
 
 export interface CrispOptions {
-	/**
-	 * Your Crisp website ID.
-	 */
+	/** Your Crisp website ID. */
 	websiteId: string;
 
-	/**
-	 * Optional locale passed through `window.CRISP_RUNTIME_CONFIG`.
-	 */
+	/** Optional locale passed through `window.CRISP_RUNTIME_CONFIG`. */
 	locale?: string;
 
-	/**
-	 * Optional cookie domain override for Crisp.
-	 */
+	/** Optional cookie domain override for Crisp. */
 	cookieDomain?: string;
 
-	/**
-	 * Optional cookie expiration in seconds.
-	 */
+	/** Optional cookie expiration in seconds. */
 	cookieExpiry?: number;
 
-	/**
-	 * Optional Crisp token ID for session continuity.
-	 */
+	/** Optional Crisp token ID for session continuity. */
 	tokenId?: string;
 
 	/** Crisp loader URL. */
@@ -148,20 +138,20 @@ function createCrispManifest(options: CrispOptions): VendorManifest {
  * This manifest-based helper keeps the serializable queue/bootstrap globals and
  * omits the upstream ready callback wrapper.
  *
- * @param options - The options for the Crisp script
- * @returns The Crisp script configuration
+ * @param options - The options for the Crisp script.
+ * @returns The Crisp script configuration.
  *
  * @example
  * ```ts
  * const crispScript = crisp({
- *   websiteId: '1234-abcd',
+ * 	websiteId: '1234-abcd',
  * });
  * ```
  *
- * @see {@link https://help.crisp.chat/en/article/how-do-i-install-crisp-live-chat-on-my-website-10wcj3l/} Crisp installation documentation
+ * @see {@link https://help.crisp.chat/en/article/how-do-i-install-crisp-live-chat-on-my-website-10wcj3l/} Crisp installation documentation.
  */
 export function crisp(options: CrispOptions): Script {
-	const resolved = resolveManifest(createCrispManifest(options), {
+	return resolveManifest(createCrispManifest(options), {
 		websiteId: options.websiteId,
 		locale: options.locale,
 		cookieDomain: options.cookieDomain,
@@ -169,6 +159,4 @@ export function crisp(options: CrispOptions): Script {
 		tokenId: options.tokenId,
 		scriptSrc: options.scriptSrc ?? 'https://client.crisp.chat/l.js',
 	});
-
-	return resolved;
 }
