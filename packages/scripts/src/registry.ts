@@ -162,6 +162,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'promptwatch',
+		vendor: 'promptwatch',
+		label: 'Promptwatch',
+		hint: 'AI traffic analytics',
+		docsSlug: 'promptwatch',
+		packageSubpath: 'promptwatch',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'plausibleAnalytics',
 		vendor: 'plausible-analytics',
 		label: 'Plausible Analytics',

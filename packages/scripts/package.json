@@ -47,6 +47,11 @@
 			"import": "./dist/vendors/analytics/posthog.js",
 			"require": "./dist/vendors/analytics/posthog.cjs"
 		},
+		"./promptwatch": {
+			"types": "./dist-types/vendors/analytics/promptwatch.d.ts",
+			"import": "./dist/vendors/analytics/promptwatch.js",
+			"require": "./dist/vendors/analytics/promptwatch.cjs"
+		},
 		"./umami-analytics": {
 			"types": "./dist-types/vendors/analytics/umami-analytics.d.ts",
 			"import": "./dist/vendors/analytics/umami-analytics.js",
