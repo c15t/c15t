@@ -434,16 +434,19 @@ function resolveMetaPixelEventOptions(
 }
 
 /**
- * Meta Pixel Event
- * This is a wrapper around the `fbq` function that the Meta Pixel script uses.
+ * Tracks a Meta Pixel standard event.
  *
- * @param eventName - The event name to track
- * @param params - Optional parameters to track
- * @param eventId - Optional event ID to track (If using Conversion API)
+ * This is a wrapper around `fbq('track', ...)`.
  *
- * @usage
+ * @template TEventName - The Meta `StandardEventName` being tracked.
+ * @param eventName - The `StandardEventName` to track.
+ * @param params - Optional `StandardEventParams[TEventName]` payload.
+ * @param eventOptions - Optional `MetaPixelEventOptions` or event ID string.
+ * @returns `void`; calls `window.fbq`.
+ *
+ * @example
  * ```ts
- * metaPixelEvent('Purchase', { value: 10.0, currency: 'USD' });
+ * metaPixelEvent('Purchase', { value: 10.0, currency: 'USD' }, 'event-123');
  * ```
  *
  * @see {@link https://developers.facebook.com/docs/meta-pixel/reference} Meta Pixel documentation
@@ -484,6 +487,23 @@ export const metaPixelCustomEvent = (
  *
  * Use this when multiple Meta Pixels are initialized on the same page and the
  * event should not fire for every initialized pixel.
+ *
+ * @template TEventName - The Meta `StandardEventName` being tracked.
+ * @param pixelId - Meta Pixel ID that should receive the event.
+ * @param eventName - The `StandardEventName` to track.
+ * @param params - Optional `StandardEventParams[TEventName]` payload.
+ * @param eventOptions - Optional `MetaPixelEventOptions` or event ID string.
+ * @returns `void`; calls `window.fbq`.
+ *
+ * @example
+ * ```ts
+ * metaPixelSingleEvent(
+ * 	'123456',
+ * 	'Purchase',
+ * 	{ value: 9.99, currency: 'USD' },
+ * 	'event-123'
+ * );
+ * ```
  */
 export const metaPixelSingleEvent = <TEventName extends StandardEventName>(
 	pixelId: string,
@@ -501,6 +521,20 @@ export const metaPixelSingleEvent = <TEventName extends StandardEventName>(
 
 /**
  * Tracks a custom event for a single Meta Pixel ID.
+ *
+ * Use this when multiple Meta Pixels are initialized on the same page and the
+ * custom event should not fire for every initialized pixel.
+ *
+ * @param pixelId - Meta Pixel ID that should receive the custom event.
+ * @param eventName - Custom event name to track.
+ * @param params - Optional `FbqCustomParams` payload.
+ * @param eventOptions - Optional `MetaPixelEventOptions` or event ID string.
+ * @returns `void`; calls `window.fbq`.
+ *
+ * @example
+ * ```ts
+ * metaPixelSingleCustomEvent('123456', 'MyCustomEvent', { foo: 'bar' });
+ * ```
  */
 export const metaPixelSingleCustomEvent = (
 	pixelId: string,
