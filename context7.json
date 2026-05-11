@@ -29,7 +29,6 @@
 		"Next.js: Use Next.js Rewrites to proxy backendURL through /api/c15t/:path* to hide the backend URL from users",
 		"Consent checking: Use has() with simple checks (has('marketing')), complex logic (has({ and: ['measurement', 'marketing'] })), or nested conditions (has({ and: ['necessary', { or: ['measurement', 'marketing'] }] }))",
 		"Prebuilt scripts available in `@c15t/scripts` include googleTagManager and googleTag (GA4 + Google Ads with Consent Mode v2).",
-<<<<<<< HEAD
 		"Other prebuilt scripts include ahrefsAnalytics, cloudflareWebAnalytics, clarity, databuddy, fathomAnalytics, hotjar, and plausibleAnalytics.",
 		"Analytics and tracking scripts include posthog, rybbitAnalytics, umamiAnalytics, vercelAnalytics, and metaPixel.",
 		"Advertising pixels include redditPixel, tiktokPixel, linkedinInsights, microsoftUet, and xPixel.",
