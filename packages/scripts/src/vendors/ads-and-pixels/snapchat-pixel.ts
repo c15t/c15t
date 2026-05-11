@@ -141,8 +141,39 @@ export interface SnapchatPixelOptions {
 /**
  * Creates a Snapchat Pixel script.
  *
- * @param options - The options for the Snapchat Pixel script.
- * @returns The Snapchat Pixel script configuration.
+ * @param options.pixelId - Snapchat Pixel ID used in `snaptr('init', ...)`.
+ *   Expected format is a numeric string (commonly 15 digits), for example
+ *   `'123456789012345'`. This value is required and should come directly from
+ *   Snapchat Ads Manager.
+ * @param options.initOptions - Optional object passed as the third argument to
+ *   `snaptr('init', pixelId, initOptions)`, for advanced initialization values.
+ *   Example: `{ user_email: 'user@example.com', user_phone_number: '+15551234567' }`.
+ * @param options.trackPageView - Whether to queue the default
+ *   `snaptr('track', 'PAGE_VIEW')` call during setup. Defaults to `true`; set to
+ *   `false` when you want to control page-view tracking manually.
+ * @returns A resolved c15t `Script` configuration that defines the Snapchat
+ *   queue stub, runs `init` (and optionally `PAGE_VIEW`), and then loads the
+ *   Snapchat SDK script URL.
+ * @throws `resolveManifest` may throw when required placeholders cannot be
+ *   resolved (for example, when `pixelId` is missing/empty) or when provided
+ *   manifest values are invalid for interpolation.
+ *
+ * Edge cases:
+ * - Missing `pixelId` causes manifest resolution to fail.
+ * - Non-numeric or malformed `pixelId` values may initialize incorrectly in
+ *   Snapchat even if local script construction succeeds.
+ *
+ * @example
+ * ```ts
+ * const script = snapchatPixel({
+ * 	pixelId: '123456789012345',
+ * 	initOptions: {
+ * 		user_email: 'user@example.com',
+ * 		user_phone_number: '+15551234567',
+ * 	},
+ * 	trackPageView: false,
+ * });
+ * ```
  */
 export function snapchatPixel({
 	pixelId,
