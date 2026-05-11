@@ -38,7 +38,7 @@ vercelAnalytics({
 
 ## Tracking events in your app
 
-c15t gates the Vercel Analytics script from loading until `measurement` consent is granted. Your application code that calls Vercel's runtime API (`window.va(...)`) is **not** automatically gated - `window.va` does not exist until the script is loaded, so unguarded calls before consent throw.
+c15t initializes a bootstrap phase first (`vaq` plus a local `window.va` stub), then loads the remote Vercel Analytics script after `measurement` consent is granted. Calls are safe once the bootstrap stub exists (they are queued/ignored in `vaq`), but they execute only after consent is granted and the real `window.va` is injected and flushes the queue.
 
 Guard event calls by checking consent state. From React:
 

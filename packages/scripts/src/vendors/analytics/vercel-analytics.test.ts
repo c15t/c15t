@@ -49,6 +49,8 @@ describe('vercelAnalytics', () => {
 		});
 
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
+		// Intentional cast: `globalRef.va` can be emitted incorrectly in CI dts
+		// generation; keep this workaround to avoid non-callable ambient output.
 		const va = globalRef.va as
 			| ((event: string, properties?: unknown) => void)
 			| undefined;
