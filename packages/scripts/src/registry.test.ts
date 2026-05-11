@@ -254,7 +254,7 @@ const helperParityCases = {
 		script: redditPixel({ pixelId: 't2_abcdef' }),
 		expected: {
 			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
+			persistAfterConsentRevoked: true,
 			src: 'https://www.redditstatic.com/ads/pixel.js',
 		},
 	},
