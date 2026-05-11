@@ -33,7 +33,10 @@ export interface PromptwatchOptions {
 /**
  * Promptwatch analytics script for AI traffic and usage insights.
  *
- * @param options - The options for the Promptwatch script.
+ * @param options - Promptwatch integration options.
+ * @param options.projectId - Promptwatch project id from your dashboard.
+ * @param options.scriptUrl - Optional custom script URL override.
+ * @throws {Error} When `projectId` is empty or only whitespace.
  * @returns The Promptwatch script configuration.
  */
 export function promptwatch({
@@ -50,7 +53,7 @@ export function promptwatch({
 	const defaultScriptUrl = 'https://ingest.promptwatch.com/js/client.min.js';
 	let normalizedScriptUrl = defaultScriptUrl;
 	if (scriptUrl !== undefined && scriptUrl.trim().length > 0) {
-		normalizedScriptUrl = scriptUrl;
+		normalizedScriptUrl = scriptUrl.trim();
 	}
 
 	return resolveManifest(promptwatchManifest, {
