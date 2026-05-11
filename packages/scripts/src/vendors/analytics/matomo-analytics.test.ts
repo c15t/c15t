@@ -34,10 +34,15 @@ describe('matomoAnalytics', () => {
 			disableCookies: true,
 		});
 
-		expect(script.src).toBe('https://cdn.matomo.cloud/my-site.matomo.cloud/matomo.js');
+		expect(script.src).toBe(
+			'https://cdn.matomo.cloud/my-site.matomo.cloud/matomo.js'
+		);
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
 		expect(globalRef._paq).toEqual([
-			['setTrackerUrl', 'https://cdn.matomo.cloud/my-site.matomo.cloud/matomo.php'],
+			[
+				'setTrackerUrl',
+				'https://cdn.matomo.cloud/my-site.matomo.cloud/matomo.php',
+			],
 			['setSiteId', '2'],
 			['enableLinkTracking'],
 			['disableCookies'],
