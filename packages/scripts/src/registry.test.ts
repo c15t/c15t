@@ -56,11 +56,11 @@ import {
 	plausibleAnalyticsManifest,
 } from './vendors/analytics/plausible-analytics';
 import { posthog, posthogManifest } from './vendors/analytics/posthog';
-import { segment, segmentManifest } from './vendors/analytics/segment';
 import {
 	rybbitAnalytics,
 	rybbitAnalyticsManifest,
 } from './vendors/analytics/rybbit-analytics';
+import { segment, segmentManifest } from './vendors/analytics/segment';
 import {
 	umamiAnalytics,
 	umamiAnalyticsManifest,
