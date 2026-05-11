@@ -17,9 +17,14 @@ declare global {
 			opt_in_capturing: () => void;
 			opt_out_capturing: () => void;
 			get_explicit_consent_status: () => string;
+			capture: (event: string, properties?: Record<string, unknown>) => void;
 		};
 	}
 }
+
+const DEFAULT_API_HOST = 'https://eu.i.posthog.com';
+const DEFAULT_SCRIPT_URL = 'https://eu-assets.i.posthog.com/static/array.js';
+const DEFAULTS_DATE = '2026-01-30';
 
 /**
  * PostHog vendor manifest.
@@ -44,6 +49,7 @@ export const posthogManifest = {
 			target: 'posthog',
 			methods: [
 				{ name: 'init', behavior: 'noop' },
+				{ name: 'capture', behavior: 'noop' },
 				{ name: 'opt_in_capturing', behavior: 'noop' },
 				{ name: 'opt_out_capturing', behavior: 'noop' },
 				{
@@ -132,12 +138,17 @@ export interface PosthogConsentOptions {
  * @returns The Posthog script
  */
 export function posthog(options: PosthogConsentOptions): Script {
+	const apiHost = options.apiHost ?? DEFAULT_API_HOST;
 	const resolved = resolveManifest(posthogManifest, {
 		id: options.id,
-		apiHost: options.apiHost ?? 'https://eu.i.posthog.com',
-		scriptUrl:
-			options.scriptUrl ?? 'https://eu-assets.i.posthog.com/static/array.js',
-		initOptions: options.initOptions ?? {},
+		apiHost,
+		scriptUrl: options.scriptUrl ?? DEFAULT_SCRIPT_URL,
+		initOptions: {
+			api_host: apiHost,
+			defaults: DEFAULTS_DATE,
+			cookieless_mode: 'on_reject',
+			...options.initOptions,
+		},
 	});
 
 	return resolved;

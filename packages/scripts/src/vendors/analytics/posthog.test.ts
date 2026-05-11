@@ -26,6 +26,7 @@ describe('posthog', () => {
 			opt_in_capturing: optIn,
 			opt_out_capturing: optOut,
 			get_explicit_consent_status: vi.fn(() => 'pending'),
+			capture: vi.fn(),
 		};
 
 		const script = posthog({
@@ -61,6 +62,7 @@ describe('posthog', () => {
 			autocapture: false,
 			person_profiles: 'identified_only',
 			cookieless_mode: 'on_reject',
+			defaults: '2026-01-30',
 		});
 		expect(optOut).toHaveBeenCalledTimes(1);
 
@@ -75,7 +77,17 @@ describe('posthog', () => {
 		expect(optIn).toHaveBeenCalledTimes(1);
 	});
 
-	it('uses defaults when optional options are omitted', () => {
+	it('uses consent-aware defaults when optional options are omitted', () => {
+		const globalRef = getTestGlobal();
+		const init = vi.fn();
+		globalRef.posthog = {
+			init,
+			opt_in_capturing: vi.fn(),
+			opt_out_capturing: vi.fn(),
+			get_explicit_consent_status: vi.fn(() => 'pending'),
+			capture: vi.fn(),
+		};
+
 		const script = posthog({
 			id: 'phc_defaults',
 		});
@@ -85,6 +97,54 @@ describe('posthog', () => {
 			crossorigin: 'anonymous',
 			'data-api-host': 'https://eu.i.posthog.com',
 			'data-ui-host': 'https://eu.i.posthog.com',
+		});
+
+		script.onLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: grantedMeasurementConsentState,
+			})
+		);
+
+		expect(init).toHaveBeenCalledWith('phc_defaults', {
+			api_host: 'https://eu.i.posthog.com',
+			defaults: '2026-01-30',
+			cookieless_mode: 'on_reject',
+		});
+	});
+
+	it('allows explicit init options to override helper defaults', () => {
+		const globalRef = getTestGlobal();
+		const init = vi.fn();
+		globalRef.posthog = {
+			init,
+			opt_in_capturing: vi.fn(),
+			opt_out_capturing: vi.fn(),
+			get_explicit_consent_status: vi.fn(() => 'pending'),
+			capture: vi.fn(),
+		};
+
+		const script = posthog({
+			id: 'phc_overrides',
+			apiHost: 'https://eu.i.posthog.com',
+			initOptions: {
+				api_host: 'https://us.i.posthog.com',
+				defaults: '2025-05-24',
+				cookieless_mode: 'always',
+			},
+		});
+
+		script.onLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: deniedConsentState,
+			})
+		);
+
+		expect(init).toHaveBeenCalledWith('phc_overrides', {
+			api_host: 'https://us.i.posthog.com',
+			defaults: '2025-05-24',
+			cookieless_mode: 'always',
 		});
 	});
 });
