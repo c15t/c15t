@@ -67,6 +67,11 @@
 			"import": "./dist/vendors/analytics/posthog.js",
 			"require": "./dist/vendors/analytics/posthog.cjs"
 		},
+		"./promptwatch": {
+			"types": "./dist-types/vendors/analytics/promptwatch.d.ts",
+			"import": "./dist/vendors/analytics/promptwatch.js",
+			"require": "./dist/vendors/analytics/promptwatch.cjs"
+		},
 		"./segment": {
 			"types": "./dist-types/vendors/analytics/segment.d.ts",
 			"import": "./dist/vendors/analytics/segment.js",

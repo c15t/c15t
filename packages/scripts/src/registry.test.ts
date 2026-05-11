@@ -65,6 +65,10 @@ import {
 } from './vendors/analytics/plausible-analytics';
 import { posthog, posthogManifest } from './vendors/analytics/posthog';
 import {
+	promptwatch,
+	promptwatchManifest,
+} from './vendors/analytics/promptwatch';
+import {
 	rybbitAnalytics,
 	rybbitAnalyticsManifest,
 } from './vendors/analytics/rybbit-analytics';
@@ -188,6 +192,16 @@ const helperParityCases = {
 			src: 'https://eu-assets.i.posthog.com/static/array.js',
 		},
 	},
+	promptwatch: {
+		script: promptwatch({
+			projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
+		}),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://ingest.promptwatch.com/js/client.min.js',
+		},
+	},
 	segment: {
 		script: segment({ writeKey: 'abc123xyz456' }),
 		expected: {
@@ -306,6 +320,7 @@ const vendorManifests = [
 	hotjarManifest,
 	matomoAnalyticsManifest,
 	posthogManifest,
+	promptwatchManifest,
 	segmentManifest,
 	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,
