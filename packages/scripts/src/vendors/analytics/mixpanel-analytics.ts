@@ -93,7 +93,14 @@ export const mixpanelAnalyticsManifest = {
 export interface MixpanelAnalyticsOptions {
 	/** Your Mixpanel project token. */
 	token: string;
-	/** Mixpanel init options passed after the library loads. */
+	/**
+	 * Mixpanel init options passed after the library loads.
+	 *
+	 * The manifest engine serializes this object as a template variable, so use
+	 * JSON-serializable values only (no functions, class instances, prototypes,
+	 * `Map`, `Set`, or other non-JSON types). Named instances and nested
+	 * `people.*` queue helpers are intentionally out of scope for this helper.
+	 */
 	initOptions?: Record<string, unknown>;
 	/** Mixpanel loader URL. */
 	scriptUrl?: string;
@@ -104,6 +111,16 @@ export interface MixpanelAnalyticsOptions {
  *
  * @param options - The options for the Mixpanel Analytics script.
  * @returns The Mixpanel Analytics script configuration.
+ *
+ * @example
+ * ```ts
+ * import { mixpanelAnalytics } from '@c15t/scripts/mixpanel-analytics';
+ *
+ * const script = mixpanelAnalytics({
+ * 	token: '1234567890abcdef1234567890abcdef',
+ * 	initOptions: { debug: true },
+ * });
+ * ```
  */
 export function mixpanelAnalytics({
 	token,

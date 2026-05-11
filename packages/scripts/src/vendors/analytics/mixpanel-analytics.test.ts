@@ -31,10 +31,6 @@ describe('mixpanelAnalytics', () => {
 		const optOut = vi.fn();
 		globalRef.mixpanel = {
 			init,
-			track: vi.fn(),
-			identify: vi.fn(),
-			reset: vi.fn(),
-			register: vi.fn(),
 			opt_in_tracking: optIn,
 			opt_out_tracking: optOut,
 		};
