@@ -1,0 +1,86 @@
+---
+title: Snapchat Pixel
+description: Measure Snapchat ad performance and build remarketing audiences with a prebuilt pixel helper.
+lastModified: 2026-05-10
+
+icon: snapchat
+---
+
+Snapchat Pixel is Snapchat's website conversion tracking and audience-building tool. The `snapchatPixel()` helper seeds the `snaptr` queue, initializes your pixel, and by default tracks a `PAGE_VIEW` event as soon as `marketing` consent is available.
+
+## How c15t loads it
+
+- **Category:** `marketing` (Ads & Pixels)
+- **Loads when:** marketing consent is granted
+- **On revocation:** unloaded - c15t removes the script from the DOM, so app code should guard `snaptr(...)` calls until consent is granted again.
+
+## Adding Snapchat Pixel to c15t
+
+<Callout type="info">
+  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
+</Callout>
+
+```ts
+import { snapchatPixel } from '@c15t/scripts/snapchat-pixel';
+
+snapchatPixel({
+  pixelId: '123456789012345',
+});
+```
+
+You can pass extra init payload and disable the default page-view event when you need finer control:
+
+```ts
+snapchatPixel({
+  pixelId: '123456789012345',
+  initOptions: {
+    user_email: 'hello@example.com',
+  },
+  trackPageView: false,
+});
+```
+
+## Tracking events in your app
+
+c15t gates the Snapchat Pixel script from loading until `marketing` consent is granted. Your application code that calls Snapchat's runtime API (`window.snaptr(...)`) is **not** automatically gated - `window.snaptr` does not exist until the script is loaded, so unguarded calls before consent throw.
+
+Guard event calls by checking consent state. From React:
+
+```tsx
+import { useCallback } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+function CheckoutExample() {
+  const { has } = useConsentManager();
+
+  const trackPurchase = useCallback(() => {
+    if (has('marketing')) {
+      window.snaptr?.('track', 'PURCHASE', { currency: 'USD', price: 99 });
+    }
+  }, [has]);
+
+  // Call trackPurchase() from your conversion success path.
+}
+```
+
+From plain JavaScript:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('marketing')) {
+  window.snaptr?.('track', 'PURCHASE', { currency: 'USD', price: 99 });
+}
+```
+
+## Types
+
+### SnapchatPixelOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/snapchat-pixel.ts" name="SnapchatPixelOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

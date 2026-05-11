@@ -1,0 +1,81 @@
+---
+title: Rybbit Analytics
+description: Privacy-friendly analytics with script-tag configuration via Rybbit's data attributes.
+lastModified: 2026-05-10
+
+icon: guide
+---
+
+Rybbit Analytics loads through `@c15t/scripts` and configures tracking behavior via `data-*` attributes on the script element.
+
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** measurement consent is granted
+- **On revocation:** unloaded - c15t removes the script from the DOM and stops network activity until consent is granted again.
+
+## Adding Rybbit Analytics to c15t
+
+<Callout type="info">
+  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
+</Callout>
+
+```ts
+import { rybbitAnalytics } from '@c15t/scripts/rybbit-analytics';
+
+rybbitAnalytics({ siteId: 'rybbit-123' })
+```
+
+To use a custom analytics host:
+
+```ts
+rybbitAnalytics({
+  siteId: 'rybbit-123',
+  analyticsHost: 'https://analytics.example.com',
+})
+```
+
+## Tracking events in your app
+
+c15t gates the Rybbit script from loading until `measurement` consent is granted. Your application code that calls Rybbit's runtime API (`window.rybbit`) is **not** automatically gated - `window.rybbit` does not exist until the script is loaded, so unguarded calls before consent throw.
+
+Guard event calls by checking consent state. From React:
+
+```tsx
+import { useCallback } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+export default function SignupExample() {
+  const { has } = useConsentManager();
+
+  const trackSignup = useCallback(() => {
+    if (has('measurement')) {
+      window.rybbit?.event('signup');
+    }
+  }, [has]);
+
+  return <button onClick={trackSignup}>Sign up</button>;
+}
+```
+
+From plain JavaScript:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('measurement')) {
+  window.rybbit?.event('signup');
+}
+```
+
+## Types
+
+### RybbitAnalyticsOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/rybbit-analytics.ts" name="RybbitAnalyticsOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
