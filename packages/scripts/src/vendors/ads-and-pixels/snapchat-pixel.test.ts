@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
 	expectScriptMatchesIntegration,
 	expectStubCommandQueue,
@@ -6,7 +6,12 @@ import {
 	runOnBeforeLoad,
 	setupScriptHelperTest,
 } from '../../__tests__/helpers';
-import { snapchatPixel } from './snapchat-pixel';
+import { resolveManifest } from '../../resolve';
+import {
+	snapchatPixel,
+	snapchatPixelEvent,
+	snapchatPixelManifest,
+} from './snapchat-pixel';
 
 type SnaptrStub =
 	| (((...args: unknown[]) => void) & {
@@ -59,5 +64,49 @@ describe('snapchatPixel', () => {
 		expectStubCommandQueue(stub, 'queue', [
 			['init', '123456789012345', { user_email: 'hello@example.com' }],
 		]);
+	});
+
+	it('keeps the exported manifest resolvable without init options', () => {
+		const globalRef = getTestGlobal();
+		const script = resolveManifest(snapchatPixelManifest, {
+			pixelId: '123456789012345',
+			scriptUrl: 'https://sc-static.net/scevent.min.js',
+		});
+
+		runOnBeforeLoad(script);
+
+		const stub = globalRef.snaptr as SnaptrStub;
+		expectStubCommandQueue(stub, 'queue', [
+			['init', '123456789012345'],
+			['track', 'PAGE_VIEW'],
+		]);
+	});
+});
+
+describe('snapchatPixelEvent', () => {
+	setupScriptHelperTest();
+
+	it('forwards purchase metadata and deduplication IDs to snaptr', () => {
+		const globalRef = getTestGlobal();
+		const snaptr = vi.fn();
+		globalRef.snaptr = snaptr;
+
+		snapchatPixelEvent('PURCHASE', {
+			price: 99,
+			currency: 'USD',
+			transaction_id: 'order-123',
+			client_dedup_id: 'event-123',
+			item_ids: ['sku-123'],
+			number_items: 1,
+		});
+
+		expect(snaptr).toHaveBeenCalledWith('track', 'PURCHASE', {
+			price: 99,
+			currency: 'USD',
+			transaction_id: 'order-123',
+			client_dedup_id: 'event-123',
+			item_ids: ['sku-123'],
+			number_items: 1,
+		});
 	});
 });

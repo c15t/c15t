@@ -44,18 +44,25 @@ snapchatPixel({
 
 c15t gates the Snapchat Pixel script from loading until `marketing` consent is granted. Your application code that calls Snapchat's runtime API (`window.snaptr(...)`) is **not** automatically gated - `window.snaptr` does not exist until the script is loaded, so unguarded calls before consent throw.
 
-Guard event calls by checking consent state. From React:
+Use `snapchatPixelEvent()` for typed standard and custom event tracking. Guard
+event calls by checking consent state. From React:
 
 ```tsx
 import { useCallback } from 'react';
 import { useConsentManager } from '@c15t/react';
+import { snapchatPixelEvent } from '@c15t/scripts/snapchat-pixel';
 
 function CheckoutExample() {
   const { has } = useConsentManager();
 
   const trackPurchase = useCallback(() => {
     if (has('marketing')) {
-      window.snaptr?.('track', 'PURCHASE', { currency: 'USD', price: 99 });
+      snapchatPixelEvent('PURCHASE', {
+        price: 99,
+        currency: 'USD',
+        transaction_id: 'order-123',
+        client_dedup_id: 'event-123',
+      });
     }
   }, [has]);
 
@@ -67,11 +74,12 @@ From plain JavaScript:
 
 ```ts
 import { getOrCreateConsentRuntime } from 'c15t';
+import { snapchatPixelEvent } from '@c15t/scripts/snapchat-pixel';
 
 const { consentStore } = getOrCreateConsentRuntime();
 
 if (consentStore.getState().has('marketing')) {
-  window.snaptr?.('track', 'PURCHASE', { currency: 'USD', price: 99 });
+  snapchatPixelEvent('PURCHASE', { price: 99, currency: 'USD' });
 }
 ```
 
@@ -80,6 +88,10 @@ if (consentStore.getState().has('marketing')) {
 ### SnapchatPixelOptions
 
 <AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/snapchat-pixel.ts" name="SnapchatPixelOptions" />
+
+### SnapchatPixelEventProperties
+
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/snapchat-pixel.ts" name="SnapchatPixelEventProperties" />
 
 ### Script
 
