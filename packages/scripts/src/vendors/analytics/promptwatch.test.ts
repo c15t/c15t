@@ -31,4 +31,23 @@ describe('promptwatch', () => {
 
 		expect(script.src).toBe('https://cdn.example.com/promptwatch.js');
 	});
+
+	it('falls back to default URL when scriptUrl is blank', () => {
+		const script = promptwatch({
+			projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
+			scriptUrl: '   ',
+		});
+
+		expect(script.src).toBe('https://ingest.promptwatch.com/js/client.min.js');
+	});
+
+	it('throws for an empty projectId', () => {
+		expect(() =>
+			promptwatch({
+				projectId: '   ',
+			})
+		).toThrowError(
+			'promptwatch: invalid projectId - must be a non-empty string'
+		);
+	});
 });

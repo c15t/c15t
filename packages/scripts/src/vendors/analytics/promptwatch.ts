@@ -40,8 +40,21 @@ export function promptwatch({
 	projectId,
 	scriptUrl,
 }: PromptwatchOptions): Script {
+	const normalizedProjectId = projectId.trim();
+	if (normalizedProjectId.length === 0) {
+		throw new Error(
+			'promptwatch: invalid projectId - must be a non-empty string'
+		);
+	}
+
+	const defaultScriptUrl = 'https://ingest.promptwatch.com/js/client.min.js';
+	let normalizedScriptUrl = defaultScriptUrl;
+	if (scriptUrl !== undefined && scriptUrl.trim().length > 0) {
+		normalizedScriptUrl = scriptUrl;
+	}
+
 	return resolveManifest(promptwatchManifest, {
-		projectId,
-		scriptUrl: scriptUrl ?? 'https://ingest.promptwatch.com/js/client.min.js',
+		projectId: normalizedProjectId,
+		scriptUrl: normalizedScriptUrl,
 	});
 }
