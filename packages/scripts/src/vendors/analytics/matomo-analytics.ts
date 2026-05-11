@@ -74,6 +74,8 @@ function resolveMatomoOrigin(
  * @param options - Manifest toggles:
  * - `enableConsentMode`: enables Matomo consent queue commands and sets
  * `alwaysLoad`/`persistAfterConsentRevoked`.
+ * - `consentInitiallyGiven`: when consent mode is enabled, queues
+ * `setConsentGiven` during install instead of `requireConsent`.
  * - `enableLinkTracking`: queues `enableLinkTracking` during install.
  * - `disableCookies`: queues `disableCookies` during install.
  * - `trackPageView`: queues `trackPageView` immediately only when consent mode
@@ -84,6 +86,7 @@ function resolveMatomoOrigin(
  */
 function createMatomoAnalyticsManifest(options: {
 	enableConsentMode: boolean;
+	consentInitiallyGiven: boolean;
 	enableLinkTracking: boolean;
 	disableCookies: boolean;
 	trackPageView: boolean;
@@ -123,11 +126,19 @@ function createMatomoAnalyticsManifest(options: {
 		});
 	}
 
-	if (options.enableConsentMode) {
+	if (options.enableConsentMode && !options.consentInitiallyGiven) {
 		install.push({
 			type: 'pushToQueue',
 			queue: '_paq',
 			value: ['requireConsent'],
+		});
+	}
+
+	if (options.enableConsentMode && options.consentInitiallyGiven) {
+		install.push({
+			type: 'pushToQueue',
+			queue: '_paq',
+			value: ['setConsentGiven'],
 		});
 	}
 
@@ -200,6 +211,7 @@ function createMatomoAnalyticsManifest(options: {
 
 export const matomoAnalyticsManifest = createMatomoAnalyticsManifest({
 	enableConsentMode: false,
+	consentInitiallyGiven: false,
 	enableLinkTracking: false,
 	disableCookies: false,
 	trackPageView: true,
@@ -222,7 +234,7 @@ export interface MatomoAnalyticsOptions {
 	disableCookies?: boolean;
 	/** Queue an initial `trackPageView`. */
 	trackPageView?: boolean;
-	/** Enable Matomo's consent mode queueing. */
+	/** Default Matomo consent state (`required` blocks, `given` starts enabled). */
 	defaultConsent?: 'required' | 'given';
 }
 
@@ -258,9 +270,11 @@ export function matomoAnalytics(options: MatomoAnalyticsOptions = {}): Script {
 
 	const enableConsentMode =
 		options.defaultConsent === 'required' || options.defaultConsent === 'given';
+	const consentInitiallyGiven = options.defaultConsent === 'given';
 
 	const manifest = createMatomoAnalyticsManifest({
 		enableConsentMode,
+		consentInitiallyGiven,
 		enableLinkTracking: options.enableLinkTracking ?? false,
 		disableCookies: options.disableCookies ?? false,
 		trackPageView: options.trackPageView ?? true,

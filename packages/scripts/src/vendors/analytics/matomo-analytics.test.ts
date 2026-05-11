@@ -86,4 +86,34 @@ describe('matomoAnalytics', () => {
 		expect(globalRef._paq).toContainEqual(['setConsentGiven']);
 		expect(globalRef._paq).toContainEqual(['forgetConsentGiven']);
 	});
+
+	it('treats defaultConsent given as immediately granted', () => {
+		const globalRef = getTestGlobal();
+		const script = matomoAnalytics({
+			matomoUrl: 'https://analytics.example.com',
+			defaultConsent: 'given',
+			trackPageView: true,
+		});
+
+		expect(script.alwaysLoad).toBe(true);
+		expect(script.persistAfterConsentRevoked).toBe(true);
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: deniedConsentState,
+			})
+		);
+		script.onConsentChange?.(
+			createCallbackInfo({
+				id: script.id,
+				hasConsent: false,
+				consents: deniedConsentState,
+			})
+		);
+
+		expect(globalRef._paq).toContainEqual(['setConsentGiven']);
+		expect(globalRef._paq).not.toContainEqual(['requireConsent']);
+		expect(globalRef._paq).toContainEqual(['forgetConsentGiven']);
+	});
 });
