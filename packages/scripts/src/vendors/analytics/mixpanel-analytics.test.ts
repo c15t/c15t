@@ -9,12 +9,14 @@ import {
 } from '../../__tests__/helpers';
 import { mixpanelAnalytics } from './mixpanel-analytics';
 
+const MOCK_MIXPANEL_TOKEN = '1234567890abcdef1234567890abcdef';
+
 describe('mixpanelAnalytics', () => {
 	setupScriptHelperTest();
 
 	it('matches registry metadata with default loader URL', () => {
 		const script = mixpanelAnalytics({
-			token: '1234567890abcdef1234567890abcdef',
+			token: MOCK_MIXPANEL_TOKEN,
 		});
 
 		expectScriptMatchesIntegration('mixpanelAnalytics', script, {
@@ -36,7 +38,7 @@ describe('mixpanelAnalytics', () => {
 		};
 
 		const script = mixpanelAnalytics({
-			token: '1234567890abcdef1234567890abcdef',
+			token: MOCK_MIXPANEL_TOKEN,
 			initOptions: { debug: true },
 		});
 
@@ -46,7 +48,7 @@ describe('mixpanelAnalytics', () => {
 				consents: deniedConsentState,
 			})
 		);
-		expect(init).toHaveBeenCalledWith('1234567890abcdef1234567890abcdef', {
+		expect(init).toHaveBeenCalledWith(MOCK_MIXPANEL_TOKEN, {
 			debug: true,
 		});
 		expect(optOut).toHaveBeenCalledTimes(1);
