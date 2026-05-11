@@ -109,7 +109,7 @@ export function clarity({
 		);
 	}
 
-	let manifest = clarityManifest;
+	let manifest: VendorManifest = clarityManifest;
 
 	if (defaultConsent !== undefined) {
 		manifest = {
@@ -122,7 +122,7 @@ export function clarity({
 				},
 				...clarityManifest.install,
 			],
-		} as const satisfies VendorManifest;
+		};
 	}
 
 	return resolveManifest(manifest, {

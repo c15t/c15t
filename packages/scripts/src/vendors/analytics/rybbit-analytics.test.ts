@@ -27,6 +27,15 @@ describe('rybbitAnalytics', () => {
 		expect(script.src).toBe('https://analytics.example.com/script.js');
 	});
 
+	it('normalizes trailing slashes in analyticsHost', () => {
+		const script = rybbitAnalytics({
+			siteId: 'rybbit-123',
+			analyticsHost: 'https://analytics.example.com///',
+		});
+
+		expect(script.src).toBe('https://analytics.example.com/script.js');
+	});
+
 	it('maps options to script data attributes', () => {
 		const script = rybbitAnalytics({
 			siteId: 'rybbit-123',

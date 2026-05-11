@@ -93,7 +93,8 @@ function getRybbitScriptUrl(options: RybbitAnalyticsOptions): string {
 		return options.scriptUrl;
 	}
 	if (options.analyticsHost) {
-		return `${options.analyticsHost}/script.js`;
+		const normalizedAnalyticsHost = options.analyticsHost.replace(/\/+$/, '');
+		return `${normalizedAnalyticsHost}/script.js`;
 	}
 
 	return 'https://app.rybbit.io/api/script.js';

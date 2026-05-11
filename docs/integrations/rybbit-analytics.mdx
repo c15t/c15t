@@ -45,7 +45,7 @@ Guard event calls by checking consent state. From React:
 import { useCallback } from 'react';
 import { useConsentManager } from '@c15t/react';
 
-function SignupExample() {
+export default function SignupExample() {
   const { has } = useConsentManager();
 
   const trackSignup = useCallback(() => {
@@ -53,6 +53,8 @@ function SignupExample() {
       window.rybbit?.event('signup');
     }
   }, [has]);
+
+  return <button onClick={trackSignup}>Sign up</button>;
 }
 ```
 
