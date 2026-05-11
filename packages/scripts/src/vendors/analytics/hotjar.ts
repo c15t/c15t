@@ -4,7 +4,7 @@ import { type VendorManifest, vendorManifestContract } from '../../types';
 
 declare global {
 	interface Window {
-		hj: ((...args: unknown[]) => void) & { q?: unknown[][] };
+		hj?: ((...args: unknown[]) => void) & { q?: unknown[][] };
 		_hjSettings?: {
 			hjid: number | string;
 			hjsv: number;

@@ -40,7 +40,7 @@ hotjar({
 
 ## Tracking events in your app
 
-c15t gates the Hotjar script from loading until `measurement` consent is granted. Your application code that calls Hotjar's runtime API (`window.hj(...)`) is **not** automatically gated - `window.hj` does not exist until the script is loaded, so unguarded calls before consent throw.
+c15t gates loading of the Hotjar script until `measurement` consent is granted. The `hotjar()` helper initializes Hotjar globals by creating a pre-load queue stub at `window.hj`, so calls to Hotjar's runtime API (`window.hj(...)`) can be queued before the real script loads. After the helper runs, `window.hj` exists as that queue stub; once Hotjar's script loads, it is replaced by Hotjar's real implementation.
 
 Guard event calls by checking consent state. From React:
 
