@@ -1,12 +1,31 @@
-import { onMount } from 'svelte';
+import { onMount, tick } from 'svelte';
+
+const DEFAULT_DURATION_MS = 200;
+
+function readDurationMs(target: Element | null): number {
+	if (typeof document === 'undefined') return DEFAULT_DURATION_MS;
+	const value = getComputedStyle(target ?? document.documentElement)
+		.getPropertyValue('--consent-banner-animation-duration')
+		.trim();
+	if (!value) return DEFAULT_DURATION_MS;
+	if (value.endsWith('ms'))
+		return Number.parseFloat(value) || DEFAULT_DURATION_MS;
+	if (value.endsWith('s'))
+		return Number.parseFloat(value) * 1000 || DEFAULT_DURATION_MS;
+	return Number.parseFloat(value) || DEFAULT_DURATION_MS;
+}
 
 /**
- * Shared visibility/animation state machine for banner components.
+ * Visibility / mount lifecycle for the consent banner.
  *
- * Manages the mount → show → hide → unmount lifecycle with CSS transition support.
- * - On show: mounts DOM, then delays 10ms to trigger CSS transition.
- * - On hide: starts CSS transition, waits for transitionend (with 500ms fallback), then unmounts.
- * - When animations are disabled: toggles instantly without transitions.
+ * - On show: mounts the element with `.bannerHidden`, awaits Svelte commit,
+ *   forces a reflow so the browser observes that initial style, then flips
+ *   to `.bannerVisible`. The CSS transition fires automatically — no JS
+ *   timing coordination.
+ * - On hide: flips to `.bannerHidden`, then unmounts after the duration
+ *   declared by the `--consent-banner-animation-duration` CSS variable.
+ * - When animation is disabled (provider option or `prefers-reduced-motion`):
+ *   toggles synchronously, skipping the show reflow and the hide timer.
  */
 export function useBannerVisibility(
 	getShouldShow: () => boolean,
@@ -27,35 +46,43 @@ export function useBannerVisibility(
 
 		if (shouldShow) {
 			shouldRender = true;
-			const timer = setTimeout(() => {
+			if (disableAnim) {
 				isVisible = true;
-			}, 10);
-			return () => clearTimeout(timer);
+				return;
+			}
+			let cancelled = false;
+			void tick().then(() => {
+				if (cancelled) return;
+				// Force layout so the browser observes `bannerHidden` before we
+				// flip to `bannerVisible`. Without this, a fresh mount can
+				// compute the final style first and skip the entry transition.
+				void bannerEl?.offsetHeight;
+				isVisible = true;
+			});
+			return () => {
+				cancelled = true;
+			};
+		}
+
+		if (!isVisible) {
+			shouldRender = false;
+			return;
 		}
 
 		if (disableAnim) {
 			isVisible = false;
 			shouldRender = false;
-		} else {
-			if (!isVisible) {
-				shouldRender = false;
-				return;
-			}
-			isVisible = false;
-			const el = bannerEl;
-			if (el) {
-				const handler = () => {
-					shouldRender = false;
-				};
-				el.addEventListener('transitionend', handler, { once: true });
-				const fallback = setTimeout(handler, 500);
-				return () => {
-					el.removeEventListener('transitionend', handler);
-					clearTimeout(fallback);
-				};
-			}
-			shouldRender = false;
+			return;
 		}
+
+		isVisible = false;
+		const timer = setTimeout(
+			() => {
+				shouldRender = false;
+			},
+			readDurationMs(bannerEl ?? null)
+		);
+		return () => clearTimeout(timer);
 	});
 
 	return {

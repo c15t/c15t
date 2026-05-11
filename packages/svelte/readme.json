@@ -28,7 +28,7 @@
 		"Customise styling and behaviour to fit your app",
 		"For full implementation details, see the [Svelte quickstart docs](https://c15t.com/docs/frameworks/svelte/quickstart)",
 
-		"```svelte\n<!-- +layout.svelte -->\n<script>\n  import { ConsentProvider, ConsentBanner, ConsentDialog } from '@c15t/svelte'\n  import '@c15t/svelte/styles.css'\n\n  let { children } = $props()\n</script>\n\n<ConsentProvider>\n  {@render children()}\n  <ConsentBanner />\n  <ConsentDialog />\n</ConsentProvider>\n```"
+		"```svelte\n<!-- src/routes/+layout.svelte -->\n<script>\n  import { ConsentProvider, ConsentBanner, ConsentDialog } from '@c15t/svelte'\n  import '../app.css'\n\n  let { children } = $props()\n</script>\n\n<ConsentProvider\n  mode=\"hosted\"\n  backendURL=\"https://your-instance.c15t.dev\"\n  consentCategories={['necessary', 'measurement', 'marketing']}\n>\n  {@render children()}\n  <ConsentBanner />\n  <ConsentDialog />\n</ConsentProvider>\n```\n\nImport `@c15t/svelte/styles.css` once from your global CSS, such as SvelteKit's `src/app.css`."
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/svelte/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/svelte/quickstart",

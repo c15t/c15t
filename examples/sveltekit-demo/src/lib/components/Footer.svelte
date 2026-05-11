@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { getConsent } from '@c15t/svelte';
+	import { getConsentManager } from '@c15t/svelte';
 
-	const consent = getConsent();
+	const consent = getConsentManager();
 </script>
 
 <footer class="border-t border-border py-12 px-4 sm:px-6 lg:px-8">

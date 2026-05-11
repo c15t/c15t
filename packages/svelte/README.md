@@ -67,32 +67,63 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 ## Usage
 
 1. Wrap your app with `ConsentProvider`
-2. Add `ConsentBanner` and consent management components
-3. Customise styling and behaviour to fit your app
+2. Add `ConsentBanner` and `ConsentDialog` near the root
+3. Read and update consent in your own components with `getConsentManager()`
 4. For full implementation details, see the [Svelte quickstart docs](https://c15t.com/docs/frameworks/svelte/quickstart)
 
 ```svelte
-<!-- +layout.svelte -->
+<!-- src/routes/+layout.svelte -->
 <script>
   import { ConsentProvider, ConsentBanner, ConsentDialog } from '@c15t/svelte'
-  import '@c15t/svelte/styles.css'
+  import '../app.css'
 
   let { children } = $props()
 </script>
 
-<ConsentProvider>
+<ConsentProvider
+  mode="hosted"
+  backendURL="https://your-instance.c15t.dev"
+  consentCategories={['necessary', 'measurement', 'marketing']}
+>
   {@render children()}
   <ConsentBanner />
   <ConsentDialog />
 </ConsentProvider>
 ```
 
+Import `@c15t/svelte/styles.css` once from your global CSS, such as SvelteKit's
+`src/app.css`. When using IAB components, also import
+`@c15t/svelte/iab/styles.css` alongside the base stylesheet.
+
+Top-level props are the canonical configuration form. If you prefer a single
+shared config object, pass `options={...}` instead; matching top-level props
+win over `options` fields.
+
+### Reading consent in your components
+
+```svelte
+<script lang="ts">
+  import { getConsentManager } from '@c15t/svelte'
+
+  const consent = getConsentManager()
+</script>
+
+{#if consent.consents.measurement}
+  <!-- Analytics embed -->
+{/if}
+
+<button onclick={() => consent.setActiveUI('dialog')}>
+  Manage cookies
+</button>
+```
+
 Primitive state follows Svelte conventions: use `bind:checked` for
 `Switch.Root`, `bind:open` for dialog/disclosure primitives, and `bind:value`
 for tabs and accordions.
 
-When using IAB components, import `@c15t/svelte/iab/styles.css` once alongside
-the base stylesheet.
+For SvelteKit, you can also prefetch consent on the server via
+`@c15t/svelte/server` — see the
+[quickstart's SSR section](https://c15t.com/docs/frameworks/svelte/quickstart#sveltekit-ssr-optional).
 
 ## Documentation
 

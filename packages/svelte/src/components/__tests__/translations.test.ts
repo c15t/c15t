@@ -57,10 +57,10 @@ describe('Translations', () => {
 		render(ContextConsumerFixture, {
 			options: {
 				mode: 'offline',
-				translations: {
-					defaultLanguage: 'de',
-					disableAutoLanguageSwitch: true,
-					translations: {
+				i18n: {
+					locale: 'de',
+					detectBrowserLanguage: false,
+					messages: {
 						de: {
 							common: {
 								acceptAll: 'German Accept All',
@@ -119,8 +119,8 @@ describe('Translations', () => {
 		render(ContextConsumerFixture, {
 			options: {
 				mode: 'offline',
-				translations: {
-					translations: {
+				i18n: {
+					messages: {
 						en: {
 							cookieBanner: {
 								title: 'Custom Cookie Settings',
@@ -164,8 +164,10 @@ describe('Translations', () => {
 		render(ContextConsumerFixture, {
 			options: {
 				mode: 'offline',
-				translations: {
-					defaultLanguage: 'fr', // Language that doesn't exist
+				i18n: {
+					locale: 'fr', // Language with no messages provided
+					detectBrowserLanguage: false,
+					messages: {},
 				},
 			},
 		});
@@ -187,10 +189,10 @@ describe('Translations', () => {
 		render(ContextConsumerFixture, {
 			options: {
 				mode: 'offline',
-				translations: {
-					defaultLanguage: 'en',
-					disableAutoLanguageSwitch: true,
-					translations: {
+				i18n: {
+					locale: 'en',
+					detectBrowserLanguage: false,
+					messages: {
 						en: {
 							common: {
 								acceptAll: 'Custom English Accept All',
@@ -272,41 +274,6 @@ describe('Translations', () => {
 			);
 			expect(screen.getByTestId('translation-accept-all')).toHaveTextContent(
 				'Alles'
-			);
-		});
-	});
-
-	test('prefers i18n over legacy translations when both are provided', async () => {
-		render(ContextConsumerFixture, {
-			options: {
-				mode: 'offline',
-				translations: {
-					defaultLanguage: 'en',
-					translations: {
-						en: {
-							cookieBanner: {
-								title: 'Legacy Title',
-							},
-						},
-					},
-				},
-				i18n: {
-					locale: 'fr',
-					detectBrowserLanguage: false,
-					messages: {
-						fr: {
-							cookieBanner: {
-								title: 'Nouveau Titre',
-							},
-						},
-					},
-				},
-			},
-		});
-
-		await waitFor(() => {
-			expect(screen.getByTestId('translation-banner-title')).toHaveTextContent(
-				'Nouveau Titre'
 			);
 		});
 	});

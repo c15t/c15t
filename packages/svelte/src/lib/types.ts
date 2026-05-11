@@ -3,16 +3,12 @@ import type { Theme, UIOptions } from '@c15t/ui/theme';
 import type {
 	AllConsentNames,
 	Callbacks,
-	CustomClientOptions,
 	I18nConfig,
 	IABConfig,
 	LegalLinks,
 	NetworkBlockerConfig,
-	OfflinePolicyConfig,
 	PolicyConfig,
 	StorageConfig,
-	StoreOptions,
-	TranslationConfig,
 	User,
 } from 'c15t';
 import type {
@@ -29,7 +25,7 @@ import type {
 	ScriptLoaderDebugEvent,
 } from 'c15t/v3/modules/script-loader';
 
-export type ProviderMode = 'hosted' | 'offline' | 'custom' | 'c15t';
+export type ProviderMode = 'hosted' | 'offline' | 'c15t';
 
 export type ProviderIABOptions =
 	| (Partial<Omit<CreateIABOptions, 'kernel' | 'gvl'>> &
@@ -80,26 +76,6 @@ export interface ConsentProviderOptions
 	consentCategories?: AllConsentNames[];
 	legalLinks?: LegalLinks;
 	theme?: Theme;
-
-	/**
-	 * Deprecated migration input accepted by the v3 adapter so existing
-	 * Svelte fixtures can move incrementally. Prefer `i18n`.
-	 */
-	translations?:
-		| Partial<TranslationConfig>
-		| KernelConfig['initialTranslations'];
-	/**
-	 * Deprecated migration input. Prefer `policies` or `prefetch`.
-	 */
-	offlinePolicy?: OfflinePolicyConfig;
-	/**
-	 * Deprecated migration input. Compatible fields are read as fallbacks.
-	 */
-	store?: StoreOptions;
-	/**
-	 * Deprecated migration input for tests/custom integrations.
-	 */
-	endpointHandlers?: CustomClientOptions['endpointHandlers'];
 }
 
 export type SvelteUIOptions = UIOptions;

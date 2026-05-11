@@ -162,7 +162,8 @@ function createCompatState(
 ): ConsentCompatState {
 	const getSnapshot = options.getSnapshot;
 
-	const controller = {
+	const controller: ConsentCompatState = {
+		// -- Controller-owned state (computed from snapshot + provider options) --
 		get consents() {
 			return getSnapshot().consents;
 		},
@@ -186,9 +187,7 @@ function createCompatState(
 					);
 		},
 		get consentTypes() {
-			return displayedConsentTypes(
-				(this as ConsentCompatState).consentCategories
-			);
+			return displayedConsentTypes(controller.consentCategories);
 		},
 		get iab() {
 			return options.getIAB();
@@ -217,10 +216,45 @@ function createCompatState(
 		get translationConfig() {
 			return toTranslationConfig(getSnapshot());
 		},
+
+		// -- Snapshot passthrough (was previously served by a Proxy) -------------
+		get overrides() {
+			return getSnapshot().overrides;
+		},
+		get user() {
+			return getSnapshot().user;
+		},
+		get revision() {
+			return getSnapshot().revision;
+		},
+		get subjectId() {
+			return getSnapshot().subjectId;
+		},
+		get location() {
+			return getSnapshot().location;
+		},
+		get translations() {
+			return getSnapshot().translations;
+		},
+		get policy() {
+			return getSnapshot().policy;
+		},
+		get policyDecision() {
+			return getSnapshot().policyDecision;
+		},
+		get policySnapshotToken() {
+			return getSnapshot().policySnapshotToken;
+		},
+		get policyCategories() {
+			return getSnapshot().policyCategories;
+		},
+		get policyScopeMode() {
+			return getSnapshot().policyScopeMode;
+		},
+
+		// -- Methods --------------------------------------------------------------
 		getDisplayedConsents() {
-			return displayedConsentTypes(
-				(this as ConsentCompatState).consentCategories
-			);
+			return displayedConsentTypes(controller.consentCategories);
 		},
 		has(condition: HasCondition<AllConsentNames>) {
 			const snapshot = getSnapshot();
@@ -275,26 +309,7 @@ function createCompatState(
 		},
 	};
 
-	return new Proxy(controller as ConsentCompatState, {
-		get(target, prop, receiver) {
-			if (prop in target) return Reflect.get(target, prop, receiver);
-			return Reflect.get(getSnapshot(), prop, receiver);
-		},
-		has(target, prop) {
-			return prop in target || prop in getSnapshot();
-		},
-		ownKeys(target) {
-			return Array.from(
-				new Set([...Reflect.ownKeys(getSnapshot()), ...Reflect.ownKeys(target)])
-			);
-		},
-		getOwnPropertyDescriptor(target, prop) {
-			if (prop in target || prop in getSnapshot()) {
-				return { configurable: true, enumerable: true };
-			}
-			return undefined;
-		},
-	});
+	return controller;
 }
 
 export function setConsentContext(
@@ -336,7 +351,17 @@ export function getSnapshot(): ConsentSnapshot {
 	return getConsentContext().snapshot;
 }
 
-export function getConsent(): ConsentCompatState {
+/**
+ * Returns the reactive consent manager controller for the current component.
+ *
+ * Exposes both readable state (`consents`, `activeUI`, `model`, …) and
+ * mutators (`setConsent`, `saveConsents`, `setActiveUI`, `setLanguage`, …).
+ * This is the primary API for reading and writing consent from inside your
+ * own components — equivalent to React's `useConsentManager()`.
+ *
+ * Must be called inside a component tree wrapped in `<ConsentProvider>`.
+ */
+export function getConsentManager(): ConsentCompatState {
 	return getConsentContext().state;
 }
 
@@ -355,7 +380,7 @@ export interface HeadlessConsentSurfaceState {
 }
 
 export function getHeadlessConsent() {
-	const consent = getConsent();
+	const consent = getConsentManager();
 	return {
 		get activeUI() {
 			return consent.activeUI;

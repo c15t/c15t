@@ -5,11 +5,8 @@ import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
 import {
 	type AllConsentNames,
 	type Callbacks,
-	type CustomClientOptions,
 	defaultTranslationConfig,
 	type I18nConfig,
-	type OfflinePolicyConfig,
-	type TranslationConfig,
 	type User,
 } from 'c15t';
 import {
@@ -19,14 +16,12 @@ import {
 	createConsentKernel,
 	createHostedTransport,
 	createOfflineTransport,
-	type InitResponse,
 	type KernelConfig,
 	type KernelEvent,
 	type KernelOverrides,
 	type KernelTranslations,
 	type KernelTransport,
 	type KernelUser,
-	type SaveResult,
 	type TranslationsResponse,
 } from 'c15t/v3';
 import { createIframeBlocker } from 'c15t/v3/modules/iframe-blocker';
@@ -62,13 +57,37 @@ const DEFAULT_TRANSLATIONS: KernelTranslations = {
 	translations: defaultTranslationConfig.translations.en as never,
 };
 
-let {
-	children,
-	options = {},
-}: {
+type ConsentProviderProps = ConsentProviderOptions & {
 	children?: Snippet;
 	options?: ConsentProviderOptions;
-} = $props();
+};
+
+let props: ConsentProviderProps = $props();
+const children = $derived(props.children);
+const options = $derived(resolveProviderOptions(props));
+
+function mergeDefinedOptions(
+	base: ConsentProviderOptions,
+	overrides: ConsentProviderOptions
+): ConsentProviderOptions {
+	const merged = { ...base };
+	for (const [key, value] of Object.entries(overrides) as Array<
+		[keyof ConsentProviderOptions, ConsentProviderOptions[keyof ConsentProviderOptions]]
+	>) {
+		if (value !== undefined) {
+			merged[key] = value as never;
+		}
+	}
+	return merged;
+}
+
+function resolveProviderOptions({
+	children: _children,
+	options: nestedOptions = {},
+	...topLevelOptions
+}: ConsentProviderProps): ConsentProviderOptions {
+	return mergeDefinedOptions(nestedOptions, topLevelOptions);
+}
 
 function normalizeUser(
 	user: ConsentProviderOptions['user']
@@ -80,42 +99,6 @@ function normalizeUser(
 		externalId: legacy.id,
 		identityProvider: legacy.identityProvider,
 	};
-}
-
-function normalizeLegacyI18n(
-	translations: Partial<TranslationConfig> | KernelTranslations | undefined
-): Partial<I18nConfig> | undefined {
-	if (!translations) return undefined;
-	if ('language' in translations && 'translations' in translations) {
-		return {
-			locale: translations.language,
-			messages: {
-				[translations.language]: translations.translations,
-			},
-		};
-	}
-	if (!translations.translations) return undefined;
-	return {
-		messages: translations.translations,
-		locale: translations.defaultLanguage,
-		detectBrowserLanguage:
-			translations.disableAutoLanguageSwitch === undefined
-				? undefined
-				: !translations.disableAutoLanguageSwitch,
-	};
-}
-
-function resolveProviderI18n(
-	providerOptions: ConsentProviderOptions
-): Partial<I18nConfig> | undefined {
-	return (
-		providerOptions.i18n ??
-		providerOptions.store?.initialI18nConfig ??
-		normalizeLegacyI18n(
-			providerOptions.translations ??
-				providerOptions.store?.initialTranslationConfig
-		)
-	);
 }
 
 function resolveI18nTranslations(
@@ -141,39 +124,27 @@ function resolveI18nTranslations(
 }
 
 function getEnabled(providerOptions: ConsentProviderOptions): boolean {
-	return providerOptions.enabled ?? providerOptions.store?.enabled ?? true;
+	return providerOptions.enabled ?? true;
 }
 
 function getStorageConfig(providerOptions: ConsentProviderOptions) {
-	return providerOptions.storageConfig ?? providerOptions.store?.storageConfig;
+	return providerOptions.storageConfig;
 }
 
 function getProviderCallbacks(
 	providerOptions: ConsentProviderOptions
 ): Callbacks | undefined {
-	return providerOptions.callbacks ?? providerOptions.store?.callbacks;
+	return providerOptions.callbacks;
 }
 
 function getProviderPolicies(providerOptions: ConsentProviderOptions) {
-	return (
-		providerOptions.policies ??
-		providerOptions.offlinePolicy?.policyPacks ??
-		providerOptions.store?.offlinePolicy?.policyPacks
-	);
-}
-
-function getProviderOfflinePolicy(
-	providerOptions: ConsentProviderOptions
-): OfflinePolicyConfig | undefined {
-	return providerOptions.offlinePolicy ?? providerOptions.store?.offlinePolicy;
+	return providerOptions.policies;
 }
 
 function getProviderIab(
 	providerOptions: ConsentProviderOptions
 ): ProviderIABOptions | undefined {
-	return (providerOptions.iab ?? providerOptions.store?.iab) as
-		| ProviderIABOptions
-		| undefined;
+	return providerOptions.iab;
 }
 
 function buildInlinePolicy(
@@ -211,69 +182,14 @@ function buildNoBannerPolicy(): KernelConfig['initialPolicy'] {
 	};
 }
 
-function createCustomTransport(
-	endpointHandlers: CustomClientOptions['endpointHandlers']
-): KernelTransport {
-	return {
-		async init() {
-			if (!endpointHandlers.init) return {};
-			const response = await endpointHandlers.init();
-			if (!response.ok || !response.data) {
-				throw response.error ?? new Error('c15t custom transport: init failed');
-			}
-			const init = response.data as Record<string, unknown>;
-			return {
-				location: init.location as never,
-				translations: init.translations as never,
-				branding: init.branding as never,
-				gvl: init.gvl as never,
-				customVendors: init.customVendors as never,
-				cmpId: init.cmpId as never,
-				policy: init.policy as never,
-				policyDecision: init.policyDecision as never,
-				policySnapshotToken: init.policySnapshotToken as never,
-				consents: init.consents as never,
-				hasConsented: init.hasConsented as never,
-			};
-		},
-		async save(payload) {
-			const response = await endpointHandlers.setConsent({
-				body: {
-					subjectId: payload.subjectId,
-					externalSubjectId: payload.user?.externalId,
-					identityProvider: payload.user?.identityProvider,
-					domain:
-						typeof window === 'undefined'
-							? 'localhost'
-							: window.location.hostname,
-					type: 'cookie_banner',
-					preferences: payload.consents,
-					givenAt: Date.now(),
-					jurisdictionModel: payload.model ?? undefined,
-					uiSource: payload.uiSource ?? undefined,
-					consentAction: payload.consentAction,
-					policySnapshotToken: payload.policySnapshotToken ?? undefined,
-					tcString: payload.tcString ?? undefined,
-				},
-			});
-			return {
-				ok: response.ok,
-				subjectId: response.data?.subjectId,
-			} satisfies SaveResult;
-		},
-	};
-}
-
 function createStaticOfflineTransport(
 	prefetch: KernelConfig,
-	offlinePolicy: OfflinePolicyConfig | undefined,
 	translations: KernelTranslations,
 	categories: AllConsentNames[] | undefined,
 	useInlineFallback: boolean
 ): KernelTransport | null {
 	const policy =
 		prefetch.initialPolicy ??
-		offlinePolicy?.policy ??
 		(useInlineFallback ? buildInlinePolicy(categories) : undefined);
 	if (!policy) return null;
 	return {
@@ -290,11 +206,8 @@ function createStaticOfflineTransport(
 						: translations),
 				branding: prefetch.initialBranding ?? 'c15t',
 				policy,
-				policyDecision:
-					prefetch.initialPolicyDecision ?? offlinePolicy?.policyDecision,
-				policySnapshotToken:
-					prefetch.initialPolicySnapshotToken ??
-					offlinePolicy?.policySnapshotToken,
+				policyDecision: prefetch.initialPolicyDecision,
+				policySnapshotToken: prefetch.initialPolicySnapshotToken,
 			};
 		},
 		async save(payload) {
@@ -310,35 +223,29 @@ function createProviderKernel(
 	const mode: ProviderMode =
 		providerOptions.mode ?? (providerOptions.backendURL ? 'hosted' : 'offline');
 	const prefetch = providerOptions.prefetch ?? {};
-	const offlinePolicy = getProviderOfflinePolicy(providerOptions);
 	const policyPacks = getProviderPolicies(providerOptions);
 	const i18nTranslations =
-		resolveI18nTranslations(resolveProviderI18n(providerOptions)) ??
-		DEFAULT_TRANSLATIONS;
+		resolveI18nTranslations(providerOptions.i18n) ?? DEFAULT_TRANSLATIONS;
 
 	const baseTransport =
 		providerOptions.transport ??
-		(mode === 'custom' && providerOptions.endpointHandlers
-			? createCustomTransport(providerOptions.endpointHandlers)
-			: mode === 'hosted' || mode === 'c15t'
-				? createHostedTransport({
-						backendURL: providerOptions.backendURL ?? '/api/c15t',
-						domain: providerOptions.domain,
-						headers: providerOptions.headers,
-						fetch: providerOptions.customFetch,
-					})
-				: (createStaticOfflineTransport(
-						prefetch,
-						offlinePolicy,
-							i18nTranslations,
-							providerOptions.consentCategories ??
-								providerOptions.store?.initialConsentCategories,
-							policyPacks === undefined
-						) ??
-						createOfflineTransport({
-							policyPacks,
-							translations: i18nTranslations,
-						})));
+		(mode === 'hosted' || mode === 'c15t'
+			? createHostedTransport({
+					backendURL: providerOptions.backendURL ?? '/api/c15t',
+					domain: providerOptions.domain,
+					headers: providerOptions.headers,
+					fetch: providerOptions.customFetch,
+				})
+			: (createStaticOfflineTransport(
+					prefetch,
+					i18nTranslations,
+					providerOptions.consentCategories,
+					policyPacks === undefined
+				) ??
+				createOfflineTransport({
+					policyPacks,
+					translations: i18nTranslations,
+				})));
 
 	return createConsentKernel({
 		...prefetch,
@@ -356,17 +263,11 @@ function createProviderKernel(
 			enabled === false
 				? (prefetch.initialPolicy ?? buildNoBannerPolicy())
 				: (prefetch.initialPolicy ??
-						offlinePolicy?.policy ??
 						(policyPacks === undefined
-							? buildInlinePolicy(
-									providerOptions.consentCategories ??
-										providerOptions.store?.initialConsentCategories
-								)
+							? buildInlinePolicy(providerOptions.consentCategories)
 							: undefined)),
-		initialPolicyDecision:
-			prefetch.initialPolicyDecision ?? offlinePolicy?.policyDecision,
-		initialPolicySnapshotToken:
-			prefetch.initialPolicySnapshotToken ?? offlinePolicy?.policySnapshotToken,
+		initialPolicyDecision: prefetch.initialPolicyDecision,
+		initialPolicySnapshotToken: prefetch.initialPolicySnapshotToken,
 	});
 }
 
@@ -400,7 +301,7 @@ let draftValues = $state<Partial<ConsentState>>({});
 let iabHandle = $state<IABHandle | null>(null);
 let iabTab = $state<'purposes' | 'vendors'>('purposes');
 let configuredCategories = $state<AllConsentNames[]>(
-	untrack(() => options.consentCategories ?? options.store?.initialConsentCategories ?? [])
+	untrack(() => options.consentCategories ?? [])
 );
 
 const draft: ConsentDraftState = {
@@ -502,9 +403,7 @@ function hasRevokedConsent(previous: ConsentSnapshot, next: ConsentSnapshot) {
 
 function wireCallbacks(callbacks: Callbacks | undefined) {
 	let saveStartedSnapshot: ConsentSnapshot | null = null;
-	const reloadOnConsentRevoked =
-		(options.reloadOnConsentRevoked ??
-			options.store?.reloadOnConsentRevoked) !== false;
+	const reloadOnConsentRevoked = options.reloadOnConsentRevoked !== false;
 	const subscriptions = [
 		kernel.events.on('init:applied', ({ snapshot: next }) => {
 			const decision = next.policyDecision as { jurisdiction?: unknown } | null;
@@ -678,8 +577,7 @@ onMount(() => {
 });
 
 $effect(() => {
-	configuredCategories =
-		options.consentCategories ?? options.store?.initialConsentCategories ?? [];
+	configuredCategories = options.consentCategories ?? [];
 });
 
 $effect(() => {

@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { getConsent } from '@c15t/svelte';
+	import { getConsentManager } from '@c15t/svelte';
 	import { onMount } from 'svelte';
 
-	const consent = getConsent();
+	const consent = getConsentManager();
 
 	onMount(() => {
 		consent.setActiveUI('banner', { force: true });

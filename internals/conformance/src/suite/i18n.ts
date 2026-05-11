@@ -42,9 +42,10 @@ export function runI18nConformance(driver: TestDriver, api: SuiteApi): void {
 						component: 'consent-banner',
 						locale: locale.code,
 						providerOptions: {
-							translations: {
-								defaultLanguage: locale.code,
-								translations: {
+							i18n: {
+								locale: locale.code,
+								detectBrowserLanguage: false,
+								messages: {
 									[locale.code]: {
 										common: {
 											acceptAll: locale.translations.banner.acceptAll,
@@ -80,9 +81,10 @@ export function runI18nConformance(driver: TestDriver, api: SuiteApi): void {
 							component: 'consent-banner',
 							locale: locale.code,
 							providerOptions: {
-								translations: {
-									defaultLanguage: locale.code,
-									translations: {
+								i18n: {
+									locale: locale.code,
+									detectBrowserLanguage: false,
+									messages: {
 										[locale.code]: {
 											cookieBanner: {
 												title: locale.translations.banner.title,

@@ -60,8 +60,8 @@ export { default as Frame } from './components/frame.svelte';
 export { default as IABConsentBanner } from './components/iab-consent-banner.svelte';
 export { default as IABConsentDialog } from './components/iab-consent-dialog.svelte';
 export {
-	getConsent,
 	getConsentKernel,
+	getConsentManager,
 	getHeadlessConsent,
 	getIAB,
 	getSnapshot,

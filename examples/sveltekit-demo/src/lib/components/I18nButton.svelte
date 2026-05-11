@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { getConsent } from '@c15t/svelte';
+	import { getConsentManager } from '@c15t/svelte';
 
-	const consent = getConsent();
+	const consent = getConsentManager();
 	const languages = ['en', 'zh', 'fr', 'de'];
 
 	function cycleLanguage() {

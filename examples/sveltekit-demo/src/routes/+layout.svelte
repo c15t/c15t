@@ -120,11 +120,11 @@
 			},
 		}}
 	>
+		{@render children()}
 		<ConsentBanner />
 		<IABConsentBanner />
 		<IABConsentDialog />
 		<ConsentDialogTrigger />
 		<ConsentDialog />
-		{@render children()}
 	</ConsentProvider>
 {/if}

@@ -5,8 +5,8 @@ export { portal } from './actions/portal';
 export { scrollLock } from './actions/scroll-lock';
 export { default as InlineLegalLinks } from './components/inline-legal-links.svelte';
 export {
-	getConsent,
 	getConsentKernel,
+	getConsentManager,
 	getHeadlessConsent,
 	getIAB,
 	getSnapshot,
