@@ -42,6 +42,10 @@ import {
 } from './vendors/analytics/fathom-analytics';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
 import {
+	matomoAnalytics,
+	matomoAnalyticsManifest,
+} from './vendors/analytics/matomo-analytics';
+import {
 	plausibleAnalytics,
 	plausibleAnalyticsManifest,
 } from './vendors/analytics/plausible-analytics';
@@ -114,6 +118,17 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://cdn.usefathom.com/script.js',
+		},
+	},
+	matomoAnalytics: {
+		script: matomoAnalytics({
+			matomoUrl: 'https://analytics.example.com',
+			siteId: 1,
+		}),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://analytics.example.com/matomo.js',
 		},
 	},
 	posthog: {
@@ -197,6 +212,7 @@ const vendorManifests = [
 	cloudflareWebAnalyticsManifest,
 	databuddyManifest,
 	fathomAnalyticsManifest,
+	matomoAnalyticsManifest,
 	posthogManifest,
 	plausibleAnalyticsManifest,
 	umamiAnalyticsManifest,

@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
 declare global {
 	interface Window {
@@ -95,7 +95,7 @@ function createMatomoAnalyticsManifest(options: {
 
 	install.push({
 		type: 'loadScript',
-		src: '{{scriptSrc}}',
+		src: '{{scriptUrl}}',
 		async: true,
 	});
 
@@ -123,14 +123,15 @@ function createMatomoAnalyticsManifest(options: {
 			queue: '_paq',
 			value: ['setConsentGiven'],
 		});
+
 		if (options.trackPageView) {
-			// Re-queue the current page when consent is granted after initial load.
 			onConsentGranted.push({
 				type: 'pushToQueue',
 				queue: '_paq',
 				value: ['trackPageView'],
 			});
 		}
+
 		onConsentDenied.push({
 			type: 'pushToQueue',
 			queue: '_paq',
@@ -142,8 +143,8 @@ function createMatomoAnalyticsManifest(options: {
 		...vendorManifestContract,
 		vendor: 'matomo-analytics',
 		category: 'measurement',
-		alwaysLoad: options.enableConsentMode,
-		persistAfterConsentRevoked: options.enableConsentMode,
+		alwaysLoad: options.enableConsentMode ? true : undefined,
+		persistAfterConsentRevoked: options.enableConsentMode ? true : undefined,
 		install,
 		onBeforeLoadGranted,
 		onConsentGranted,
@@ -151,77 +152,55 @@ function createMatomoAnalyticsManifest(options: {
 	};
 }
 
-export interface MatomoAnalyticsOptions {
-	/**
-	 * Your Matomo site ID.
-	 * @default 1
-	 */
-	siteId?: string | number;
+export const matomoAnalyticsManifest = createMatomoAnalyticsManifest({
+	enableConsentMode: false,
+	enableLinkTracking: false,
+	disableCookies: false,
+	trackPageView: true,
+});
 
+export interface MatomoAnalyticsOptions {
+	/** Your Matomo site ID. */
+	siteId?: string | number;
 	/** Your Matomo base URL, for example `https://analytics.example.com`. */
 	matomoUrl?: string;
-
-	/**
-	 * Your Matomo Cloud identifier, for example `my-site.matomo.cloud`.
-	 * Used only when `matomoUrl` is not provided.
-	 */
+	/** Your Matomo Cloud identifier, for example `my-site.matomo.cloud`. */
 	cloudId?: string;
-
 	/** Optional explicit tracker endpoint override. */
 	trackerUrl?: string;
-
 	/** Optional explicit script URL override. */
-	scriptSrc?: string;
-
+	scriptUrl?: string;
 	/** Queue `enableLinkTracking`. */
 	enableLinkTracking?: boolean;
-
 	/** Queue `disableCookies`. */
 	disableCookies?: boolean;
-
-	/**
-	 * Queue an initial `trackPageView`.
-	 * Only the initial page is handled here; SPA route watchers are out of scope.
-	 * @default true
-	 */
+	/** Queue an initial `trackPageView`. */
 	trackPageView?: boolean;
-
-	/**
-	 * Enable Matomo's consent mode queueing.
-	 *
-	 * Both `'required'` and `'given'` map to the same manifest behavior here:
-	 * c15t's current consent state decides whether `setConsentGiven` is queued
-	 * before the loader runs.
-	 */
+	/** Enable Matomo's consent mode queueing. */
 	defaultConsent?: 'required' | 'given';
 }
 
 /**
  * Creates a Matomo Analytics script.
  *
- * @param options - The options for the Matomo Analytics script
- * @returns The Matomo Analytics script configuration
- *
- * @example
- * ```ts
- * const matomoAnalyticsScript = matomoAnalytics({
- *   matomoUrl: 'https://analytics.example.com',
- *   siteId: 1,
- * });
- * ```
- *
- * @see {@link https://developer.matomo.org/guides/tracking-javascript-guide} Matomo JavaScript tracking documentation
+ * @param options - The options for the Matomo Analytics script.
+ * @returns The Matomo Analytics script configuration.
  */
 export function matomoAnalytics(options: MatomoAnalyticsOptions = {}): Script {
 	const origin = resolveMatomoOrigin(options);
-	const trackerUrl =
-		options.trackerUrl ?? (origin ? joinUrl(origin, 'matomo.php') : undefined);
-	const scriptSrc =
-		options.scriptSrc ?? (origin ? joinUrl(origin, 'matomo.js') : undefined);
+	let trackerUrl = options.trackerUrl;
+	if (!trackerUrl && origin) {
+		trackerUrl = joinUrl(origin, 'matomo.php');
+	}
 
-	if (!trackerUrl || !scriptSrc) {
+	let scriptUrl = options.scriptUrl;
+	if (!scriptUrl && origin) {
+		scriptUrl = joinUrl(origin, 'matomo.js');
+	}
+
+	if (!trackerUrl || !scriptUrl) {
 		throw new Error(
-			'matomoAnalytics requires `matomoUrl`, `cloudId`, or explicit `trackerUrl` and `scriptSrc` values.'
+			'matomoAnalytics requires `matomoUrl`, `cloudId`, or explicit `trackerUrl` and `scriptUrl` values.'
 		);
 	}
 
@@ -235,11 +214,9 @@ export function matomoAnalytics(options: MatomoAnalyticsOptions = {}): Script {
 		trackPageView: options.trackPageView ?? true,
 	});
 
-	const resolved = resolveManifest(manifest, {
+	return resolveManifest(manifest, {
 		siteId: String(options.siteId ?? 1),
 		trackerUrl,
-		scriptSrc,
+		scriptUrl,
 	});
-
-	return resolved;
 }

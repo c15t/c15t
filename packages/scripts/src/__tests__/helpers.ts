@@ -229,6 +229,7 @@ function cleanupMockBrowser() {
 	vi.unstubAllGlobals();
 	delete globalRef.dataLayer;
 	delete globalRef.gtag;
+	delete globalRef._paq;
 	delete globalRef.posthog;
 	delete globalRef.databuddy;
 	delete globalRef.databuddyConfig;
