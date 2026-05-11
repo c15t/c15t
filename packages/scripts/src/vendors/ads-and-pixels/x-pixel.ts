@@ -73,9 +73,23 @@ export interface XPixelEvent {
 	twclid?: string;
 	/**
 	 * Status of the conversion event
-	 * @example completed
+	 * Should be set to values like "started" or "completed".
+	 * @example "completed"
 	 */
-	status?: boolean;
+	status?: 'started' | 'completed' | (string & {});
+	/**
+	 * Email address used for user matching.
+	 * The X Pixel hashes this value before transmission.
+	 * @example "[email protected]"
+	 */
+	email_address?: string;
+	/**
+	 * Phone number used for user matching.
+	 * Include country code in E.164 format (for example, +11234567890).
+	 * The X Pixel hashes this value before transmission.
+	 * @example "+11234567890"
+	 */
+	phone_number?: string;
 
 	/**
 	 * Content/products associated with the conversion event
@@ -156,7 +170,7 @@ export interface XPixelOptions {
  * });
  * ```
  *
- * @see {@link https://ads.twitter.com/help/article/x-pixel} X Pixel documentation
+ * @see {@link https://business.x.com/en/help/campaign-measurement-and-analytics/conversion-tracking-for-websites} X conversion tracking documentation
  */
 export function xPixel({ pixelId, scriptSrc }: XPixelOptions): Script {
 	const resolved = resolveManifest(xPixelManifest, {
