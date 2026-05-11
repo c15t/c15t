@@ -1,6 +1,8 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
+import { booleanDataAttribute, listDataAttribute } from '../_shared/attributes';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
 	interface Window {
@@ -12,32 +14,6 @@ declare global {
 			};
 		};
 	}
-}
-
-function booleanAttribute(value: boolean | undefined): string | undefined {
-	if (value === undefined) {
-		return undefined;
-	}
-
-	if (value) {
-		return 'true';
-	}
-
-	return 'false';
-}
-
-function listAttribute(
-	value: string[] | string | undefined
-): string | undefined {
-	if (value === undefined) {
-		return undefined;
-	}
-
-	if (Array.isArray(value)) {
-		return value.join(',');
-	}
-
-	return value;
 }
 
 /**
@@ -139,11 +115,14 @@ export function umamiAnalytics(options: UmamiAnalyticsOptions): Script {
 	const resolved = resolveManifest(umamiAnalyticsManifest, {
 		websiteId: options.websiteId,
 		hostUrl: options.hostUrl,
-		autoTrackAttribute: booleanAttribute(options.autoTrack),
-		domains: listAttribute(options.domains),
+		autoTrackAttribute: booleanDataAttribute(options.autoTrack),
+		domains: listDataAttribute(options.domains),
 		tag: options.tag,
 		beforeSend: options.beforeSend,
-		scriptUrl: options.scriptUrl ?? 'https://cloud.umami.is/script.js',
+		scriptUrl: resolveScriptUrl(
+			options.scriptUrl,
+			'https://cloud.umami.is/script.js'
+		),
 	});
 
 	return resolved;

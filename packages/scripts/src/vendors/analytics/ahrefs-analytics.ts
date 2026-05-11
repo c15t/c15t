@@ -1,6 +1,7 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
 	interface Window {
@@ -73,6 +74,9 @@ export interface AhrefsAnalyticsOptions {
 export function ahrefsAnalytics(options: AhrefsAnalyticsOptions): Script {
 	return resolveManifest(ahrefsAnalyticsManifest, {
 		key: options.key,
-		scriptUrl: options.scriptUrl ?? 'https://analytics.ahrefs.com/analytics.js',
+		scriptUrl: resolveScriptUrl(
+			options.scriptUrl,
+			'https://analytics.ahrefs.com/analytics.js'
+		),
 	});
 }

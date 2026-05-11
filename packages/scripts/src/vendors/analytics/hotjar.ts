@@ -1,6 +1,7 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
 	interface Window {
@@ -87,8 +88,9 @@ export function hotjar({
 	return resolveManifest(hotjarManifest, {
 		siteId,
 		version,
-		scriptUrl:
-			scriptUrl ??
-			`https://static.hotjar.com/c/hotjar-${siteId}.js?sv=${version}`,
+		scriptUrl: resolveScriptUrl(
+			scriptUrl,
+			`https://static.hotjar.com/c/hotjar-${siteId}.js?sv=${version}`
+		),
 	});
 }

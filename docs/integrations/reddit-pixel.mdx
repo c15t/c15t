@@ -1,7 +1,7 @@
 ---
 title: Reddit Pixel
 description: Track conversions and build retargeting audiences for Reddit advertising campaigns.
-lastModified: 2026-05-10
+lastModified: 2026-05-11
 
 icon: reddit
 ---
@@ -12,7 +12,10 @@ Reddit Pixel is Reddit's conversion tracking tool for ads and remarketing. It se
 
 - **Category:** `marketing` (Ads & Pixels)
 - **Loads when:** marketing consent is granted
-- **On revocation:** unloaded - c15t removes the script from the DOM, so later `rdt(...)` calls from app code need guarding until consent is granted again.
+- **On revocation:** retained in the DOM so c15t can call Reddit's
+  first-party-cookie controls. c15t calls `rdt('disableFirstPartyCookies')`
+  when marketing consent is denied and `rdt('enableFirstPartyCookies')` when
+  it is granted again.
 
 ## Adding Reddit Pixel to c15t
 
@@ -37,6 +40,70 @@ redditPixel({
 })
 ```
 
+## Consent and privacy
+
+c15t keeps Reddit Pixel behind `marketing` consent. Before marketing consent,
+the Reddit script is not loaded. After marketing consent is granted, c15t loads
+the script and queues the Reddit `init` call.
+
+For stricter first-party-cookie behavior, disable Reddit first-party cookies
+during initialization:
+
+```ts
+redditPixel({
+  pixelId: 't2_abcdef',
+  disableFirstPartyCookies: true,
+})
+```
+
+You can also pass Reddit's initialization options directly:
+
+```ts
+redditPixel({
+  pixelId: 't2_abcdef',
+  initOptions: {
+    optOut: true,
+    disableFirstPartyCookies: true,
+  },
+})
+```
+
+Reddit supports a Limited Data Use flag through data processing fields. Use the
+values required by your policy and jurisdiction:
+
+```ts
+redditPixel({
+  pixelId: 't2_abcdef',
+  initOptions: {
+    dpm: ['LDU'],
+    dpcc: 'US',
+    dprc: 'CA',
+  },
+})
+```
+
+Reddit can also receive attribution matching signals such as `email`,
+`phoneNumber`, `externalId`, `aaid`, and `idfa`. Only pass those fields after
+you have the right consent or legal basis for your use case:
+
+```ts
+redditPixel({
+  pixelId: 't2_abcdef',
+  initOptions: {
+    email: 'person@example.com',
+    externalId: 'customer-123',
+    aam: {
+      email: false,
+      phone_number: false,
+    },
+  },
+})
+```
+
+See Reddit's docs for [Limited Data Use](https://business.reddithelp.com/s/article/Limited-Data-Use),
+[event metadata](https://business.reddithelp.com/s/article/about-event-metadata),
+and [event deduplication](https://business.reddithelp.com/s/article/event-deduplication).
+
 ## Tracking events in your app
 
 c15t gates the Reddit Pixel script from loading until `marketing` consent is granted. Your application code that calls Reddit's runtime API (`window.rdt(...)`) is **not** automatically gated - `window.rdt` does not exist until the script is loaded, so unguarded calls before consent throw.
@@ -46,13 +113,18 @@ Guard event calls by checking consent state. From React:
 ```tsx
 import { useCallback } from 'react';
 import { useConsentManager } from '@c15t/react';
+import { redditPixelEvent } from '@c15t/scripts/reddit-pixel';
 
 function CheckoutExample() {
   const { has } = useConsentManager();
 
   const trackPurchase = useCallback(() => {
     if (has('marketing')) {
-      window.rdt?.('track', 'Purchase', { currency: 'USD', value: 99 });
+      redditPixelEvent('Purchase', {
+        currency: 'USD',
+        value: 99,
+        conversionId: 'order-123',
+      });
     }
   }, [has]);
 
@@ -68,15 +140,31 @@ import { getOrCreateConsentRuntime } from 'c15t';
 const { consentStore } = getOrCreateConsentRuntime();
 
 if (consentStore.getState().has('marketing')) {
-  window.rdt?.('track', 'Purchase', { currency: 'USD', value: 99 });
+  window.rdt?.('track', 'Purchase', {
+    currency: 'USD',
+    value: 99,
+    conversionId: 'order-123',
+  });
 }
 ```
+
+When you use Reddit Pixel and Conversions API together, send the same
+`conversionId` in the browser event and the server event so Reddit can
+deduplicate them.
 
 ## Types
 
 ### RedditPixelOptions
 
 <AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/reddit-pixel.ts" name="RedditPixelOptions" />
+
+### RedditPixelInitOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/reddit-pixel.ts" name="RedditPixelInitOptions" />
+
+### RedditPixelEventMetadata
+
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/reddit-pixel.ts" name="RedditPixelEventMetadata" />
 
 ### Script
 

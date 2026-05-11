@@ -1,6 +1,8 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
+import { booleanDataAttribute } from '../_shared/attributes';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
 	interface Window {
@@ -17,14 +19,6 @@ declare global {
 			trackPageview: (opts?: { url: string; referrer?: string }) => void;
 		};
 	}
-}
-
-function booleanAttribute(value: boolean | undefined): string | undefined {
-	if (value === undefined) {
-		return undefined;
-	}
-
-	return value ? 'true' : 'false';
 }
 
 /**
@@ -111,10 +105,13 @@ export function fathomAnalytics(options: FathomAnalyticsOptions): Script {
 	const resolved = resolveManifest(fathomAnalyticsManifest, {
 		site: options.site,
 		spa: options.spa,
-		autoAttribute: booleanAttribute(options.auto),
-		canonicalAttribute: booleanAttribute(options.canonical),
-		honorDntAttribute: booleanAttribute(options.honorDnt),
-		scriptUrl: options.scriptUrl ?? 'https://cdn.usefathom.com/script.js',
+		autoAttribute: booleanDataAttribute(options.auto),
+		canonicalAttribute: booleanDataAttribute(options.canonical),
+		honorDntAttribute: booleanDataAttribute(options.honorDnt),
+		scriptUrl: resolveScriptUrl(
+			options.scriptUrl,
+			'https://cdn.usefathom.com/script.js'
+		),
 	});
 
 	return resolved;

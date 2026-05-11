@@ -1,11 +1,14 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
+import { buildQueuePixelInstall } from '../_shared/install-builders';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 export type SnapchatPixelEventName =
 	| 'PAGE_VIEW'
 	| 'VIEW_CONTENT'
 	| 'ADD_CART'
+	| 'PURCHASE'
 	| 'SIGN_UP'
 	| 'SAVE'
 	| 'START_CHECKOUT'
@@ -29,22 +32,57 @@ export type SnapchatPixelEventName =
 	| 'LIST_VIEW';
 
 export interface SnapchatPixelEventProperties {
+	/** Total monetary value for commerce events such as `PURCHASE`. */
 	price?: number;
+
+	/**
+	 * Event identifier used to deduplicate browser Pixel events against
+	 * server-side Conversions API events.
+	 */
 	client_dedup_id?: string;
+
+	/** ISO 4217 currency code, for example `USD`. */
 	currency?: string;
+
+	/** Transaction/order identifier for purchase events. */
 	transaction_id?: string;
+
+	/** Product, SKU, or content identifiers associated with the event. */
 	item_ids?: string[];
+
+	/** Product or content category associated with the event. */
 	item_category?: string;
+
+	/** Free-form description for the event. */
 	description?: string;
+
+	/** Query text for `SEARCH` events. */
 	search_string?: string;
+
+	/** Number of items represented by the event. */
 	number_items?: number;
+
+	/** Whether payment information was available, represented as `0` or `1`. */
 	payment_info_available?: 0 | 1;
+
+	/** Signup method for `SIGN_UP` events. */
 	sign_up_method?: string;
+
+	/** Whether the action succeeded, represented as `0` or `1`. */
 	success?: 0 | 1;
+
+	/** Brand names associated with the event contents. */
 	brands?: string[];
+
+	/** Fulfillment method for commerce events. */
 	delivery_method?: 'in_store' | 'curbside' | 'delivery';
+
+	/** Customer lifecycle status associated with the event. */
 	customer_status?: 'new' | 'returning' | 'reactivated';
+
+	/** Optional custom tag for event segmentation in Snapchat. */
 	event_tag?: string;
+
 	[key: string]: unknown;
 }
 
@@ -103,7 +141,7 @@ export const snapchatPixelManifest = {
 		{
 			type: 'callGlobal',
 			global: 'snaptr',
-			args: ['init', '{{pixelId}}', '{{initOptions}}'],
+			args: ['init', '{{pixelId}}'],
 		},
 		{
 			type: 'callGlobal',
@@ -186,26 +224,18 @@ export function snapchatPixel({
 		initArgs.push('{{initOptions}}');
 	}
 
-	const install: VendorManifest['install'] = [
-		{
-			type: 'callGlobal',
-			global: 'snaptr',
-			args: initArgs,
-		},
-	];
+	let trackStep: { args: unknown[] } | undefined;
 
 	if (trackPageView) {
-		install.push({
-			type: 'callGlobal',
-			global: 'snaptr',
+		trackStep = {
 			args: ['track', 'PAGE_VIEW'],
-		});
+		};
 	}
 
-	install.push({
-		type: 'loadScript',
-		src: '{{scriptUrl}}',
-		async: true,
+	const install = buildQueuePixelInstall({
+		global: 'snaptr',
+		initArgs,
+		trackStep,
 	});
 
 	const manifest = {
@@ -215,7 +245,32 @@ export function snapchatPixel({
 
 	return resolveManifest(manifest, {
 		pixelId,
-		initOptions: initOptions ?? {},
-		scriptUrl: scriptUrl ?? 'https://sc-static.net/scevent.min.js',
+		initOptions,
+		scriptUrl: resolveScriptUrl(
+			scriptUrl,
+			'https://sc-static.net/scevent.min.js'
+		),
 	});
 }
+
+/**
+ * Tracks a Snapchat Pixel event.
+ *
+ * @param eventName - Snapchat standard event name or a custom event name.
+ * @param properties - Optional event properties, including
+ *   `client_dedup_id` for Pixel plus Conversions API deduplication.
+ *
+ * @example
+ * ```ts
+ * snapchatPixelEvent('PURCHASE', {
+ * 	price: 99,
+ * 	currency: 'USD',
+ * 	transaction_id: 'order-123',
+ * 	client_dedup_id: 'event-123',
+ * });
+ * ```
+ */
+export const snapchatPixelEvent = (
+	eventName: SnapchatPixelEventName | (string & {}),
+	properties?: SnapchatPixelEventProperties
+) => window.snaptr('track', eventName, properties);

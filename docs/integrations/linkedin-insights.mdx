@@ -1,23 +1,37 @@
 ---
 title: LinkedIn Insights
 description: Track conversions and build matched audiences for LinkedIn advertising campaigns.
-lastModified: 2025-09-24
+lastModified: 2026-05-11
 
 icon: linkedin
 ---
 
-LinkedIn Insights Tag is LinkedIn's conversion tracking and audience matching tool for LinkedIn advertising campaigns. It tracks website actions, measures ad performance, builds matched audiences for retargeting, and provides demographic insights about your visitors.
+LinkedIn Insight Tag is LinkedIn's conversion tracking and audience matching tool for LinkedIn advertising campaigns. It tracks website actions, measures ad performance, builds website retargeting audiences, and provides aggregate audience insights about visitors from LinkedIn member accounts.
+
+## Official LinkedIn documentation
+
+- [Add the LinkedIn Insight Tag to your website](https://www.linkedin.com/help/lms/answer/a418880)
+- [LinkedIn Insight Tag overview](https://www.linkedin.com/help/lms/answer/a489169)
+- [LinkedIn Insight Tag FAQs](https://www.linkedin.com/help/lms/answer/a427660)
+- [Insight Tag source status](https://www.linkedin.com/help/lms/answer/a488323)
+- [Compatible tag management systems](https://www.linkedin.com/help/lms/answer/a422760)
+- [LinkedIn Ads Agreement](https://www.linkedin.com/legal/sas-terms)
 
 ## How c15t loads it
 
 - **Category:** `marketing` (Ads & Pixels)
 - **Loads when:** marketing consent is granted
-- **On revocation:** unloaded — c15t removes the script element from the DOM
+- **Default install:** c15t sets the LinkedIn partner ID globals, seeds the `lintrk` queue, and loads LinkedIn's `insight.min.js`
+- **On revocation:** unloaded - c15t removes the script element from the DOM
 
-## Adding the LinkedIn Insights Tag to c15t
+<Callout type="warning">
+  LinkedIn says the Insight Tag should not be installed on pages that collect or contain Sensitive Data, including certain consumer health or financial pages. If your app has those pages, only include this script on eligible routes and confirm the placement with your legal team.
+</Callout>
+
+## Adding the LinkedIn Insight Tag to c15t
 
 <Callout type="info">
-  Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
+  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
 </Callout>
 
 ```ts
@@ -28,9 +42,21 @@ linkedinInsights({
 })
 ```
 
+Use the LinkedIn Insight Tag partner ID as `id`. You can find it in Campaign Manager under **Data** -> **Signals manager** -> **Insight Tag**.
+
+c15t intentionally does not add LinkedIn's `<noscript>` image pixel fallback. The integration is consent-gated JavaScript, so the script only loads after `marketing` consent is granted.
+
+## Verifying the tag
+
+LinkedIn validates the tag after an associated domain or URL receives traffic. Source status can take a few minutes and up to 24 hours to update after the first page load:
+
+- **Active:** signal received in the past seven days
+- **No recent activity:** no signal for more than seven days
+- **Unverified:** no signal received yet
+
 ## Tracking events in your app
 
-c15t gates the LinkedIn Insight Tag from loading until `marketing` consent is granted. Page tracking is automatic once the script loads, but if you fire custom conversions through `window.lintrk(...)`, those calls are **not** automatically gated — `window.lintrk` does not exist before consent is granted, and is removed again if consent is revoked.
+c15t gates the LinkedIn Insight Tag from loading until `marketing` consent is granted. Page tracking is automatic once the script loads, but if you fire custom conversions through `window.lintrk(...)`, those calls are **not** automatically gated - `window.lintrk` does not exist before consent is granted, and is removed again if consent is revoked.
 
 Guard custom conversion calls by checking consent state:
 

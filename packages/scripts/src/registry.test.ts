@@ -254,7 +254,7 @@ const helperParityCases = {
 		script: redditPixel({ pixelId: 't2_abcdef' }),
 		expected: {
 			alwaysLoad: undefined,
-			persistAfterConsentRevoked: undefined,
+			persistAfterConsentRevoked: true,
 			src: 'https://www.redditstatic.com/ads/pixel.js',
 		},
 	},
@@ -277,7 +277,7 @@ const helperParityCases = {
 	microsoftUet: {
 		script: microsoftUet({ id: 'uet-123' }),
 		expected: {
-			alwaysLoad: undefined,
+			alwaysLoad: true,
 			persistAfterConsentRevoked: true,
 			src: '//bat.bing.com/bat.js',
 		},
