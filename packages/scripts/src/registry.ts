@@ -132,6 +132,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'clarity',
+		vendor: 'clarity',
+		label: 'Microsoft Clarity',
+		hint: 'Session replay and heatmaps',
+		docsSlug: 'clarity',
+		packageSubpath: 'clarity',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'databuddy',
 		vendor: 'databuddy',
 		label: 'Databuddy',
