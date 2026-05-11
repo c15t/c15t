@@ -31,7 +31,10 @@ describe('vercelAnalytics', () => {
 	});
 
 	it('queues events and maps script attributes', () => {
-		const globalRef = getTestGlobal();
+		const globalRef = getTestGlobal() as typeof globalThis & {
+			va?: (event: string, properties?: unknown) => void;
+			vaq?: unknown[];
+		};
 		const script = vercelAnalytics({
 			dsn: 'dsn_123',
 			endpoint: 'https://analytics.example.com/v1/events',
