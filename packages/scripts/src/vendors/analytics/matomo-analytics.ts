@@ -8,18 +8,50 @@ declare global {
 	}
 }
 
+/**
+ * Removes an `http://` or `https://` prefix from a URL-like string.
+ *
+ * @param value - The input string that may include a protocol prefix.
+ * @returns The input without a leading HTTP(S) protocol; unchanged when no
+ * protocol prefix is present.
+ */
 function stripProtocol(value: string): string {
 	return value.replace(/^https?:\/\//, '');
 }
 
+/**
+ * Trims trailing slash characters from a string.
+ *
+ * @param value - The input string to normalize.
+ * @returns The input without trailing slashes. For an empty string, returns an
+ * empty string.
+ */
 function stripTrailingSlash(value: string): string {
 	return value.replace(/\/+$/, '');
 }
 
+/**
+ * Concatenates a base URL and path into a single slash-separated URL.
+ *
+ * @param base - Base URL or origin. Any trailing slashes are removed before
+ * joining.
+ * @param path - URL path segment. Any leading slashes are removed before
+ * joining.
+ * @returns A URL string in the form `<normalized base>/<normalized path>`.
+ */
 function joinUrl(base: string, path: string): string {
 	return `${stripTrailingSlash(base)}/${path.replace(/^\/+/, '')}`;
 }
 
+/**
+ * Resolves the Matomo origin from integration options.
+ *
+ * @param options - Matomo integration options. `matomoUrl` is used first when
+ * present; otherwise `cloudId` is converted to
+ * `https://cdn.matomo.cloud/<cloudId>`.
+ * @returns A normalized Matomo origin with protocol/trailing slashes removed as
+ * needed, or `undefined` when neither `matomoUrl` nor `cloudId` is provided.
+ */
 function resolveMatomoOrigin(
 	options: MatomoAnalyticsOptions
 ): string | undefined {
@@ -36,6 +68,20 @@ function resolveMatomoOrigin(
 	return undefined;
 }
 
+/**
+ * Builds a Matomo `VendorManifest` from helper options.
+ *
+ * @param options - Manifest toggles:
+ * - `enableConsentMode`: enables Matomo consent queue commands and sets
+ * `alwaysLoad`/`persistAfterConsentRevoked`.
+ * - `enableLinkTracking`: queues `enableLinkTracking` during install.
+ * - `disableCookies`: queues `disableCookies` during install.
+ * - `trackPageView`: queues `trackPageView` immediately only when consent mode
+ * is disabled; when consent mode is enabled, queues it in grant hooks.
+ * @returns A Matomo `VendorManifest` with `install`, consent lifecycle hooks,
+ * and consent metadata (`alwaysLoad`, `persistAfterConsentRevoked`) derived
+ * from `enableConsentMode`.
+ */
 function createMatomoAnalyticsManifest(options: {
 	enableConsentMode: boolean;
 	enableLinkTracking: boolean;
@@ -185,6 +231,12 @@ export interface MatomoAnalyticsOptions {
  *
  * @param options - The options for the Matomo Analytics script.
  * @returns The Matomo Analytics script configuration.
+ * @throws {Error} Throws
+ * `'matomoAnalytics requires \`matomoUrl\`, \`cloudId\`, or explicit \`trackerUrl\` and \`scriptUrl\` values.'`
+ * when either resolved `trackerUrl` or `scriptUrl` is missing (for example,
+ * when neither `matomoUrl` nor `cloudId` is provided and explicit
+ * `trackerUrl`/`scriptUrl` values are not supplied). Provide `matomoUrl`, or
+ * provide both explicit `trackerUrl` and `scriptUrl`.
  */
 export function matomoAnalytics(options: MatomoAnalyticsOptions = {}): Script {
 	const origin = resolveMatomoOrigin(options);
