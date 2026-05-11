@@ -7,6 +7,7 @@
 export type IntegrationCategory =
 	| 'analytics'
 	| 'ads-and-pixels'
+	| 'functional'
 	| 'tag-manager';
 
 /**
@@ -77,6 +78,10 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 	{
 		key: 'ads-and-pixels',
 		label: 'Ads & Pixels',
+	},
+	{
+		key: 'functional',
+		label: 'Functional',
 	},
 	{
 		key: 'tag-manager',
@@ -260,6 +265,16 @@ export const builtInScriptIntegrations = [
 		packageSubpath: 'vercel-analytics',
 		integrationCategory: 'analytics',
 		consentCategory: 'measurement',
+	},
+	{
+		key: 'crisp',
+		vendor: 'crisp',
+		label: 'Crisp',
+		hint: 'Live chat widget',
+		docsSlug: 'crisp',
+		packageSubpath: 'crisp',
+		integrationCategory: 'functional',
+		consentCategory: 'functionality',
 	},
 	{
 		key: 'metaPixel',

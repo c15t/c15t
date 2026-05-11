@@ -2,8 +2,13 @@
 	"$schema": "https://context7.com/schema/context7.json",
 	"projectTitle": "c15t",
 	"description": "A headless consent engine that transforms privacy management from a compliance checkbox into a fully observable system. Built for modern development teams with GDPR compliance, TypeScript-first APIs, and framework-agnostic design.",
-	"folders": ["docs"],
-	"branchVersions": ["canary", "main"],
+	"folders": [
+		"docs"
+	],
+	"branchVersions": [
+		"canary",
+		"main"
+	],
 	"excludeFolders": [
 		"internals",
 		"node_modules",
@@ -31,6 +36,7 @@
 		"Prebuilt scripts available in `@c15t/scripts` include googleTagManager and googleTag (GA4 + Google Ads with Consent Mode v2).",
 		"Other prebuilt scripts include ahrefsAnalytics, cloudflareWebAnalytics, clarity, databuddy, fathomAnalytics, hotjar, and plausibleAnalytics.",
 		"Analytics and tracking scripts include matomoAnalytics, mixpanelAnalytics, posthog, promptwatch, segment, rybbitAnalytics, umamiAnalytics, vercelAnalytics, and metaPixel.",
+		"Functional scripts include crisp for live chat widgets.",
 		"Advertising pixels include redditPixel, snapchatPixel, tiktokPixel, linkedinInsights, microsoftUet, and xPixel.",
 		"Google Tag (gtag.js): Use category: 'measurement' for GA4 analytics-only, category: 'marketing' for Google Ads. c15t automatically configures Consent Mode v2 defaults",
 		"Geo-location: Set ignoreGeoLocation: true during development to always show the banner. In production, GDPR banners show automatically for EU users",

@@ -282,6 +282,12 @@ function cleanupMockBrowser() {
 	delete globalRef.va;
 	delete globalRef.vaq;
 	delete globalRef.vam;
+	delete globalRef.$crisp;
+	delete globalRef.CRISP_WEBSITE_ID;
+	delete globalRef.CRISP_RUNTIME_CONFIG;
+	delete globalRef.CRISP_COOKIE_DOMAIN;
+	delete globalRef.CRISP_COOKIE_EXPIRE;
+	delete globalRef.CRISP_TOKEN_ID;
 	delete globalRef.databuddy;
 	delete globalRef.databuddyConfig;
 	delete globalRef.plausible;

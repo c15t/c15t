@@ -92,6 +92,11 @@
 			"import": "./dist/vendors/analytics/vercel-analytics.js",
 			"require": "./dist/vendors/analytics/vercel-analytics.cjs"
 		},
+		"./crisp": {
+			"types": "./dist-types/vendors/functional/crisp.d.ts",
+			"import": "./dist/vendors/functional/crisp.js",
+			"require": "./dist/vendors/functional/crisp.cjs"
+		},
 		"./google-tag-manager": {
 			"types": "./dist-types/vendors/tag-managers/google-tag-manager.d.ts",
 			"import": "./dist/vendors/tag-managers/google-tag-manager.js",

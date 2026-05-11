@@ -1,0 +1,77 @@
+---
+title: Crisp
+description: Load Crisp live chat with website ID, runtime, cookie, and session options.
+lastModified: 2026-05-11
+
+icon: guide
+---
+
+Crisp adds the Crisp live chat widget and exposes the `$crisp` queue for
+chatbox actions such as opening the chat, setting user details, and resetting
+sessions.
+
+## Official Crisp documentation
+
+- [Web Chat SDK](https://docs.crisp.chat/guides/chatbox-sdks/web-sdk/)
+- [$crisp methods](https://docs.crisp.chat/guides/chatbox-sdks/web-sdk/dollar-crisp/)
+- [Identity verification](https://docs.crisp.chat/guides/chatbox-sdks/web-sdk/identity-verification/)
+- [Cookie policies](https://docs.crisp.chat/guides/chatbox-sdks/web-sdk/cookie-policies/)
+- [Session continuity](https://docs.crisp.chat/guides/chatbox-sdks/web-sdk/session-continuity/)
+- [Language customization](https://docs.crisp.chat/guides/chatbox-sdks/web-sdk/language-customization/)
+
+## How c15t loads it
+
+- **Category:** `functionality` (Functional)
+- **Loads when:** functionality consent is granted
+- **Before load:** c15t seeds `window.$crisp`, `CRISP_WEBSITE_ID`, and any
+  optional Crisp runtime globals
+- **On revocation:** c15t follows the default script loader behavior for
+  non-persistent scripts
+
+## Adding Crisp to c15t
+
+<Callout type="info">
+  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+</Callout>
+
+```ts
+import { crisp } from '@c15t/scripts/crisp';
+
+crisp({ websiteId: 'crisp-123' })
+```
+
+## Runtime options
+
+The helper seeds Crisp's documented globals before loading
+`https://client.crisp.chat/l.js`.
+
+```ts
+crisp({
+  websiteId: 'crisp-123',
+  locale: 'fr',
+  cookieDomain: 'app.example.com',
+  cookieExpiry: 3600,
+  tokenId: 'secure-user-token',
+  sessionMerge: true,
+  safeMode: true,
+})
+```
+
+`locale` and `sessionMerge` are written to `CRISP_RUNTIME_CONFIG`.
+`cookieDomain` maps to `CRISP_COOKIE_DOMAIN`, `cookieExpiry` maps to
+`CRISP_COOKIE_EXPIRE`, and `tokenId` maps to `CRISP_TOKEN_ID`.
+
+For session continuity, generate `tokenId` on your backend with a secure random
+value. Do not use emails, hashes of emails, timestamps, or incrementing IDs as
+Crisp session tokens. If you verify user emails, generate the HMAC signature on
+your backend and set it with Crisp's `$crisp` API after the helper loads.
+
+## Types
+
+### CrispOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/functional/crisp.ts" name="CrispOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

@@ -81,6 +81,7 @@ import {
 	vercelAnalytics,
 	vercelAnalyticsManifest,
 } from './vendors/analytics/vercel-analytics';
+import { crisp, crispManifest } from './vendors/functional/crisp';
 import {
 	googleTagManager,
 	googleTagManagerManifest,
@@ -242,6 +243,14 @@ const helperParityCases = {
 			src: 'https://va.vercel-scripts.com/v1/script.js',
 		},
 	},
+	crisp: {
+		script: crisp({ websiteId: 'crisp-123' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://client.crisp.chat/l.js',
+		},
+	},
 	metaPixel: {
 		script: metaPixel({ pixelId: '123456' }),
 		expected: {
@@ -326,6 +335,7 @@ const vendorManifests = [
 	plausibleAnalyticsManifest,
 	umamiAnalyticsManifest,
 	vercelAnalyticsManifest,
+	crispManifest,
 	metaPixelManifest,
 	redditPixelManifest,
 	tiktokPixelManifest,

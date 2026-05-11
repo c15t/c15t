@@ -62,6 +62,14 @@ Analytics integrations usually require `measurement` consent. Some vendors can r
   <Card variant="interactive" title="Vercel Analytics" description="Bootstrap Vercel Analytics with a declarative queue and script attributes." icon={<Icon name="guide" />} href="/docs/integrations/vercel-analytics" />
 </Cards>
 
+## Functional
+
+Functional integrations usually require `functionality` consent. They add optional user-facing capabilities, such as chat widgets, that should only run after the user allows them.
+
+<Cards className="my-10 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 @container not-prose grid gap-4">
+  <Card variant="interactive" title="Crisp" description="Load Crisp live chat with the standard website ID bootstrap." icon={<Icon name="guide" />} href="/docs/integrations/crisp" />
+</Cards>
+
 ## Ads & Pixels
 
 Advertising pixels usually require `marketing` consent. Many of them need startup stubs so events can be queued safely before the remote SDK loads — built-in helpers handle this for you.
