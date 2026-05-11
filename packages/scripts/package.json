@@ -47,6 +47,11 @@
 			"import": "./dist/vendors/analytics/google-tag.js",
 			"require": "./dist/vendors/analytics/google-tag.cjs"
 		},
+		"./matomo-analytics": {
+			"types": "./dist-types/vendors/analytics/matomo-analytics.d.ts",
+			"import": "./dist/vendors/analytics/matomo-analytics.js",
+			"require": "./dist/vendors/analytics/matomo-analytics.cjs"
+		},
 		"./mixpanel-analytics": {
 			"types": "./dist-types/vendors/analytics/mixpanel-analytics.d.ts",
 			"import": "./dist/vendors/analytics/mixpanel-analytics.js",

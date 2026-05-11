@@ -182,6 +182,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'matomoAnalytics',
+		vendor: 'matomo-analytics',
+		label: 'Matomo Analytics',
+		hint: 'Self-hosted privacy analytics',
+		docsSlug: 'matomo-analytics',
+		packageSubpath: 'matomo-analytics',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'posthog',
 		vendor: 'posthog',
 		label: 'PostHog',

@@ -52,6 +52,10 @@ import {
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
 import { hotjar, hotjarManifest } from './vendors/analytics/hotjar';
 import {
+	matomoAnalytics,
+	matomoAnalyticsManifest,
+} from './vendors/analytics/matomo-analytics';
+import {
 	mixpanelAnalytics,
 	mixpanelAnalyticsManifest,
 } from './vendors/analytics/mixpanel-analytics';
@@ -163,6 +167,17 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://static.hotjar.com/c/hotjar-1234567.js?sv=6',
+		},
+	},
+	matomoAnalytics: {
+		script: matomoAnalytics({
+			matomoUrl: 'https://analytics.example.com',
+			siteId: 1,
+		}),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://analytics.example.com/matomo.js',
 		},
 	},
 	posthog: {
@@ -289,6 +304,7 @@ const vendorManifests = [
 	fathomAnalyticsManifest,
 	mixpanelAnalyticsManifest,
 	hotjarManifest,
+	matomoAnalyticsManifest,
 	posthogManifest,
 	segmentManifest,
 	rybbitAnalyticsManifest,
