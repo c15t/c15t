@@ -230,6 +230,7 @@ function cleanupMockBrowser() {
 	delete globalRef.dataLayer;
 	delete globalRef.gtag;
 	delete globalRef._paq;
+	delete globalRef.mixpanel;
 	delete globalRef.analytics;
 	delete globalRef.clarity;
 	delete globalRef.hj;

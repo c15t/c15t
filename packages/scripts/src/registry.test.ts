@@ -56,6 +56,10 @@ import {
 	matomoAnalyticsManifest,
 } from './vendors/analytics/matomo-analytics';
 import {
+	mixpanelAnalytics,
+	mixpanelAnalyticsManifest,
+} from './vendors/analytics/mixpanel-analytics';
+import {
 	plausibleAnalytics,
 	plausibleAnalyticsManifest,
 } from './vendors/analytics/plausible-analytics';
@@ -145,6 +149,16 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://cdn.usefathom.com/script.js',
+		},
+	},
+	mixpanelAnalytics: {
+		script: mixpanelAnalytics({
+			token: '1234567890abcdef1234567890abcdef',
+		}),
+		expected: {
+			alwaysLoad: true,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js',
 		},
 	},
 	hotjar: {
@@ -288,6 +302,7 @@ const vendorManifests = [
 	clarityManifest,
 	databuddyManifest,
 	fathomAnalyticsManifest,
+	mixpanelAnalyticsManifest,
 	hotjarManifest,
 	matomoAnalyticsManifest,
 	posthogManifest,

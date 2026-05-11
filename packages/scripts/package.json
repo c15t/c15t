@@ -52,6 +52,11 @@
 			"import": "./dist/vendors/analytics/matomo-analytics.js",
 			"require": "./dist/vendors/analytics/matomo-analytics.cjs"
 		},
+		"./mixpanel-analytics": {
+			"types": "./dist-types/vendors/analytics/mixpanel-analytics.d.ts",
+			"import": "./dist/vendors/analytics/mixpanel-analytics.js",
+			"require": "./dist/vendors/analytics/mixpanel-analytics.cjs"
+		},
 		"./plausible-analytics": {
 			"types": "./dist-types/vendors/analytics/plausible-analytics.d.ts",
 			"import": "./dist/vendors/analytics/plausible-analytics.js",
