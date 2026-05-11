@@ -24,11 +24,11 @@
 	],
 	"usage": [
 		"Wrap your app with `ConsentProvider`",
-		"Add `ConsentBanner` and consent management components",
+		"Add `ConsentBanner` and `ConsentDialog` near the root",
 		"Customise styling and behaviour to fit your app",
 		"For full implementation details, see the [Svelte quickstart docs](https://c15t.com/docs/frameworks/svelte/quickstart)",
 
-		"```svelte\n<!-- +layout.svelte -->\n<script>\n  import { ConsentProvider, ConsentBanner } from '@c15t/svelte'\n</script>\n\n<ConsentProvider>\n  <slot />\n  <ConsentBanner />\n</ConsentProvider>\n```"
+		"```svelte\n<!-- +layout.svelte -->\n<script>\n  import { ConsentProvider, ConsentBanner, ConsentDialog } from '@c15t/svelte'\n  import '@c15t/svelte/styles.css'\n\n  let { children } = $props()\n</script>\n\n<ConsentProvider>\n  {@render children()}\n  <ConsentBanner />\n  <ConsentDialog />\n</ConsentProvider>\n```"
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/svelte/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/svelte/quickstart",

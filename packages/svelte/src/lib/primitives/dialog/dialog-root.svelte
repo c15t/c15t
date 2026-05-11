@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { untrack } from 'svelte';
 	import { setDialogRootContext } from './context';
 
 	const componentId = $props.id();
@@ -9,10 +8,8 @@
 		children,
 		closeOnEscape = true,
 		closeOnInteractOutside = true,
-		defaultOpen = false,
 		lazyMount = false,
-		onOpenChange,
-		open: openProp,
+		open = $bindable(false),
 		preventScroll = false,
 		trapFocus = true,
 		unmountOnExit = false,
@@ -20,21 +17,17 @@
 		children?: Snippet;
 		closeOnEscape?: boolean;
 		closeOnInteractOutside?: boolean;
-		defaultOpen?: boolean;
 		lazyMount?: boolean;
-		onOpenChange?: (details: { open: boolean }) => void;
 		open?: boolean;
 		preventScroll?: boolean;
 		trapFocus?: boolean;
 		unmountOnExit?: boolean;
 	} = $props();
 
-	let internalOpen = $state(untrack(() => defaultOpen));
-	let hasOpened = $state(untrack(() => defaultOpen));
-	let lastOpen = untrack(() => defaultOpen);
+	let hasOpened = $state(open);
+	let lastOpen = open;
 	let restoreFocusElement: HTMLElement | null = null;
 
-	const open = $derived(openProp ?? internalOpen);
 	const shouldRender = $derived(
 		open || (!unmountOnExit && (!lazyMount || hasOpened))
 	);
@@ -43,11 +36,7 @@
 	const descriptionId = `c15t-dialog-description-${componentId}`;
 
 	function setOpen(nextOpen: boolean) {
-		if (openProp === undefined) {
-			internalOpen = nextOpen;
-		}
-
-		onOpenChange?.({ open: nextOpen });
+		open = nextOpen;
 	}
 
 	function requestClose(reason: 'backdrop' | 'close-trigger' | 'escape') {

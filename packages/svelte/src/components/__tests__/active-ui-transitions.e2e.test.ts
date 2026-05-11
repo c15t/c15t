@@ -13,9 +13,9 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import BannerDialogFixture from '../../__tests__/fixtures/banner-dialog-fixture.svelte';
 import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
 import FullFlowFixture from '../../__tests__/fixtures/full-flow-fixture.svelte';
-import type { ConsentManagerOptions } from '../../lib/types';
+import type { ConsentProviderOptions } from '../../lib/types';
 
-const defaultOptions: ConsentManagerOptions = {
+const defaultOptions: ConsentProviderOptions = {
 	mode: 'offline',
 };
 

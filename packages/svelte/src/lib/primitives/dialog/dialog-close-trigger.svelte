@@ -13,6 +13,7 @@
 		children,
 		class: className,
 		disabled = false,
+		onclick,
 		type = 'button',
 		...restProps
 	}: HTMLAttributes<HTMLButtonElement> & {
@@ -21,6 +22,15 @@
 		disabled?: boolean;
 		type?: 'button' | 'submit' | 'reset';
 	} = $props();
+
+	function handleClick(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
+		if (!disabled) {
+			dialog.requestClose('close-trigger');
+		}
+		onclick?.(event);
+	}
 </script>
 
 <button
@@ -30,12 +40,8 @@
 	data-state={dataState}
 	data-disabled={disabled ? '' : undefined}
 	{disabled}
-	onclick={() => {
-		if (!disabled) {
-			dialog.requestClose('close-trigger');
-		}
-	}}
 	{...restProps}
+	onclick={handleClick}
 >
 	{@render children?.()}
 </button>

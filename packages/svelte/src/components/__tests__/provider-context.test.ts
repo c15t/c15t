@@ -1,5 +1,5 @@
 /**
- * Tests for ConsentManagerProvider context values.
+ * Tests for ConsentProvider context values.
  *
  * Mirrors: packages/react/src/providers/__tests__/provider-context.test.tsx
  */
@@ -9,7 +9,7 @@ import { clearConsentRuntimeCache } from 'c15t';
 import { beforeEach, describe, expect, test } from 'vitest';
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
 
-describe('ConsentManagerProvider Context Values', () => {
+describe('ConsentProvider Context Values', () => {
 	beforeEach(() => {
 		clearConsentRuntimeCache();
 		window.localStorage.clear();

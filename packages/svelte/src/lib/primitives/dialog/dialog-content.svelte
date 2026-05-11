@@ -20,17 +20,21 @@
 	let {
 		children,
 		class: className,
+		onkeydown,
 		...restProps
 	}: HTMLAttributes<HTMLDivElement> & {
 		children?: Snippet;
 		class?: string;
 	} = $props();
 
-	function handleKeyDown(event: KeyboardEvent) {
+	function handleKeyDown(
+		event: KeyboardEvent & { currentTarget: EventTarget & HTMLDivElement }
+	) {
 		if (isDialogDismissKey(event.key)) {
 			event.preventDefault();
 			dialog.requestClose('escape');
 		}
+		onkeydown?.(event);
 	}
 
 	$effect(() => {
@@ -68,8 +72,8 @@
 		data-state={dataState}
 		use:focusTrap={open && dialog.trapFocus}
 		use:scrollLock={open && dialog.preventScroll}
-		onkeydown={handleKeyDown}
 		{...restProps}
+		onkeydown={handleKeyDown}
 	>
 		{@render children?.()}
 	</div>

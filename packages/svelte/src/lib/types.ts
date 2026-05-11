@@ -102,10 +102,4 @@ export interface ConsentProviderOptions
 	endpointHandlers?: CustomClientOptions['endpointHandlers'];
 }
 
-/**
- * Backwards-compatible type alias only. The provider/runtime API is v3-native
- * and the root package no longer exports `ConsentManagerProvider`.
- */
-export type ConsentManagerOptions = ConsentProviderOptions;
-
 export type SvelteUIOptions = UIOptions;

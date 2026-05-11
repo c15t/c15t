@@ -22,7 +22,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
 	args: {
-		defaultOpen: true,
+		open: true,
 		title: consentTypes.measurement.title,
 		description: consentTypes.measurement.description,
 	},
@@ -31,7 +31,7 @@ export const Default: Story = {
 
 export const ClosedByDefault: Story = {
 	args: {
-		defaultOpen: false,
+		open: false,
 		title: consentTypes.functionality.title,
 		description: consentTypes.functionality.description,
 	},

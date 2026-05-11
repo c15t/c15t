@@ -2,7 +2,6 @@
 	import type { AccordionType } from '@c15t/ui/primitives';
 	import { toggleAccordionValue } from '@c15t/ui/primitives';
 	import type { Snippet } from 'svelte';
-	import { untrack } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { setAccordionRootContext } from './context';
 
@@ -10,33 +9,21 @@
 		children,
 		class: className,
 		collapsible = false,
-		defaultValue,
-		onValueChange,
 		type,
-		value: valueProp,
+		value = $bindable<string | string[] | undefined>(
+			type === 'multiple' ? [] : undefined
+		),
 		...restProps
 	}: HTMLAttributes<HTMLDivElement> & {
 		children?: Snippet;
 		class?: string;
 		collapsible?: boolean;
-		defaultValue?: string | string[];
-		onValueChange?: (details: { value: string | string[] | undefined }) => void;
 		type: AccordionType;
 		value?: string | string[];
 	} = $props();
 
-	let internalValue = $state<string | string[] | undefined>(
-		untrack(() => defaultValue ?? (type === 'multiple' ? [] : undefined))
-	);
-
-	const value = $derived(valueProp ?? internalValue);
-
 	function setValue(nextValue: string | string[] | undefined) {
-		if (valueProp === undefined) {
-			internalValue = nextValue;
-		}
-
-		onValueChange?.({ value: nextValue });
+		value = nextValue;
 	}
 
 	function toggleItem(itemValue: string) {

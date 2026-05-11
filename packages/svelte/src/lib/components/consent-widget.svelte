@@ -58,14 +58,20 @@ const displayedConsents = $derived(
 	)
 );
 
-let openItem = $state('');
+let openItems = $state<Record<string, boolean>>({});
 
 function toggleConsent(name: string, checked: boolean) {
 	consent.state.setSelectedConsent(name as AllConsentNames, checked);
 }
 
-function toggleOpenItem(name: string, open: boolean) {
-	openItem = open ? name : openItem === name ? '' : openItem;
+function toggleOpenItem(name: string) {
+	const nextOpen = !(openItems[name] ?? false);
+	openItems = Object.fromEntries(
+		displayedConsents.map((consentType) => [
+			consentType.name,
+			nextOpen && consentType.name === name,
+		])
+	);
 }
 
 function formatConsentName(name: AllConsentNames): string {
@@ -149,7 +155,7 @@ const shouldFillActions = $derived(
 >
 	<div class={noStyle ? '' : styles.accordionList || ''} data-testid="consent-widget-accordion">
 		{#each displayedConsents as consentType (consentType.name)}
-			{@const isOpen = openItem === consentType.name}
+			{@const isOpen = openItems[consentType.name] ?? false}
 			{@const isChecked =
 				consent.state.selectedConsents?.[consentType.name] ??
 				consent.state.consents[consentType.name] ??
@@ -159,12 +165,12 @@ const shouldFillActions = $derived(
 				class={noStyle ? '' : styles.accordionItem || ''}
 				open={isOpen}
 				noStyle
-				onOpenChange={(details) => toggleOpenItem(consentType.name, details.open)}
 				data-testid={`consent-widget-accordion-item-${consentType.name}`}
 			>
 				<div class={noStyle ? '' : styles.accordionTrigger || ''}>
 					<PreferenceItem.Trigger
 						class={noStyle ? '' : styles.accordionTriggerInner || ''}
+						onclick={() => toggleOpenItem(consentType.name)}
 						data-testid={`consent-widget-accordion-trigger-${consentType.name}`}
 					>
 						<PreferenceItem.Leading
@@ -203,8 +209,7 @@ const shouldFillActions = $derived(
 							aria-label={translations.consentTypes[consentType.name]?.title ??
 								formatConsentName(consentType.name)}
 							checked={isChecked}
-							onCheckedChange={(details: { checked: boolean }) =>
-								toggleConsent(consentType.name, details.checked)}
+							onclick={() => toggleConsent(consentType.name, !isChecked)}
 							disabled={isDisabled}
 							class={noStyle ? '' : sw.root()}
 							data-scope="switch"

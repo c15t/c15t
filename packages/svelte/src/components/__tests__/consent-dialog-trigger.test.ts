@@ -9,9 +9,9 @@ import { fireEvent, render, waitFor } from '@testing-library/svelte';
 import { clearConsentRuntimeCache } from 'c15t';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import FullFlowFixture from '../../__tests__/fixtures/full-flow-fixture.svelte';
-import type { ConsentManagerOptions } from '../../lib/types';
+import type { ConsentProviderOptions } from '../../lib/types';
 
-const defaultOptions: ConsentManagerOptions = {
+const defaultOptions: ConsentProviderOptions = {
 	mode: 'offline',
 };
 

@@ -9,6 +9,8 @@
 	let {
 		children,
 		class: className,
+		onclick,
+		onkeydown,
 		type = 'button',
 		value,
 		...restProps
@@ -44,8 +46,11 @@
 		}
 	}
 
-	function handleKeyDown(event: KeyboardEvent) {
+	function handleKeyDown(
+		event: KeyboardEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
 		if (typeof document === 'undefined') {
+			onkeydown?.(event);
 			return;
 		}
 
@@ -67,6 +72,14 @@
 			event.preventDefault();
 			moveFocus(nextValue);
 		}
+		onkeydown?.(event);
+	}
+
+	function handleClick(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
+		root.setValue(value);
+		onclick?.(event);
 	}
 </script>
 
@@ -82,9 +95,9 @@
 	data-state={dataState}
 	data-disabled={dataDisabled}
 	disabled={disabled}
-	onclick={() => root.setValue(value)}
-	onkeydown={handleKeyDown}
 	{...restProps}
+	onclick={handleClick}
+	onkeydown={handleKeyDown}
 >
 	{@render children?.()}
 </button>

@@ -3,7 +3,7 @@
  *
  * Drives the shared `runConformanceSuite` against real Svelte renders:
  * - `mount` boots a fixture that wraps the requested component in
- *   `ConsentManagerProvider` (provider takes a `children` snippet, so
+ *   `ConsentProvider` (provider takes a `children` snippet, so
  *   each component variant needs a dispatching fixture).
  * - `getStore` pulls the cached store from `getOrCreateConsentRuntime`.
  * - `serverRender` invokes `svelte/server.render` against the same fixture.
@@ -21,13 +21,10 @@ import {
 	type SuiteApi,
 	type TestDriver,
 } from '@c15t/conformance';
-import {
-	type ConsentManagerOptions,
-	clearConsentRuntimeCache,
-	getOrCreateConsentRuntime,
-} from 'c15t';
+import { clearConsentRuntimeCache, getOrCreateConsentRuntime } from 'c15t';
 import { mount, unmount } from 'svelte';
 import { describe, expect, test } from 'vitest';
+import type { ConsentProviderOptions } from '../lib/types';
 import { version } from '../lib/version';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
 
@@ -43,16 +40,16 @@ function assertRenderable(
 	return component;
 }
 
-function buildProviderOptions(opts: MountOptions): ConsentManagerOptions {
+function buildProviderOptions(opts: MountOptions): ConsentProviderOptions {
 	const provided = (opts.providerOptions ??
-		{}) as Partial<ConsentManagerOptions>;
+		{}) as Partial<ConsentProviderOptions>;
 	return {
 		mode: 'offline',
 		...provided,
-	} as ConsentManagerOptions;
+	} as ConsentProviderOptions;
 }
 
-let lastOptions: ConsentManagerOptions | null = null;
+let lastOptions: ConsentProviderOptions | null = null;
 
 const driver: TestDriver = {
 	framework: 'svelte',
@@ -110,7 +107,7 @@ const driver: TestDriver = {
 		};
 	},
 	async serverRender(_opts: MountOptions): Promise<string> {
-		// ConsentManagerProvider uses `$effect` at component init, which is a
+		// ConsentProvider uses `$effect` at component init, which is a
 		// client-only rune. `svelte/server.render` throws `effect_orphan`
 		// when that runs in SSR. Marked as todo until the provider is made
 		// SSR-safe (e.g. by guarding $effect behind `if (typeof window)` or

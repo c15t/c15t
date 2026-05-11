@@ -2,7 +2,6 @@
 	import type { TabsOrientation } from '@c15t/ui/primitives';
 	import { getDataDisabled } from '@c15t/ui/primitives';
 	import type { Snippet } from 'svelte';
-	import { untrack } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { setTabsRootContext } from './context';
 
@@ -11,27 +10,20 @@
 	let {
 		children,
 		class: className,
-		defaultValue = null,
 		disabled = false,
 		loop = true,
-		onValueChange,
 		orientation = 'horizontal',
-		value: valueProp,
+		value = $bindable<string | null>(null),
 		...restProps
 	}: HTMLAttributes<HTMLDivElement> & {
 		children?: Snippet;
 		class?: string;
-		defaultValue?: string | null;
 		disabled?: boolean;
 		loop?: boolean;
-		onValueChange?: (details: { value: string | null }) => void;
 		orientation?: TabsOrientation;
 		value?: string | null;
 	} = $props();
 
-	let internalValue = $state<string | null>(untrack(() => defaultValue));
-
-	const value = $derived(valueProp ?? internalValue);
 	const baseId = `c15t-tabs-${componentId}`;
 	const dataDisabled = $derived(getDataDisabled(disabled));
 
@@ -40,11 +32,7 @@
 			return;
 		}
 
-		if (valueProp === undefined) {
-			internalValue = nextValue;
-		}
-
-		onValueChange?.({ value: nextValue });
+		value = nextValue;
 	}
 
 	setTabsRootContext({

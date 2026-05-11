@@ -51,6 +51,7 @@ let {
 let isExpanded = $state(false);
 let showExamples = $state(false);
 let showVendors = $state(false);
+let purposeChecked = $state(false);
 
 const legIntVendors = $derived(
 	purpose.vendors.filter((v) => v.usesLegitimateInterest)
@@ -89,6 +90,10 @@ const customConsentVendors = $derived(consentVendors.filter((v) => v.isCustom));
 const iabLegIntVendors = $derived(legIntVendors.filter((v) => !v.isCustom));
 const customLegIntVendors = $derived(legIntVendors.filter((v) => v.isCustom));
 
+$effect(() => {
+	purposeChecked = isEnabled;
+});
+
 // Handle purpose toggle - also toggles all consent-based vendors
 function handlePurposeToggle(value: boolean) {
 	onToggle(value);
@@ -99,10 +104,7 @@ function handlePurposeToggle(value: boolean) {
 </script>
 
 <PreferenceItem.Root
-	open={isExpanded}
-	onOpenChange={(details) => {
-		isExpanded = details.open;
-	}}
+	bind:open={isExpanded}
 	class={noStyle ? '' : styles.purposeItem || ''}
 	data-testid={`purpose-item-${purpose.id}`}
 	noStyle
@@ -142,9 +144,8 @@ function handlePurposeToggle(value: boolean) {
 		<PreferenceItem.Control>
 			<Switch.Root
 				aria-label={purpose.name}
-				checked={isEnabled}
-				onCheckedChange={(details: { checked: boolean }) =>
-					handlePurposeToggle(details.checked)}
+				bind:checked={purposeChecked}
+				onclick={() => handlePurposeToggle(purposeChecked)}
 				disabled={isLocked}
 				class={noStyle ? '' : sw.root()}
 			>
@@ -213,10 +214,7 @@ function handlePurposeToggle(value: boolean) {
 		<!-- Illustrations / Examples -->
 		{#if purpose.illustrations && purpose.illustrations.length > 0}
 			<PreferenceItem.Root
-				open={showExamples}
-				onOpenChange={(details) => {
-					showExamples = details.open;
-				}}
+				bind:open={showExamples}
 				noStyle
 			>
 				<PreferenceItem.Trigger class={noStyle ? '' : styles.examplesToggle || ''}>
@@ -237,10 +235,7 @@ function handlePurposeToggle(value: boolean) {
 
 		<!-- Vendor list within purpose -->
 		<PreferenceItem.Root
-			open={showVendors}
-			onOpenChange={(details) => {
-				showVendors = details.open;
-			}}
+			bind:open={showVendors}
 			noStyle
 		>
 			<PreferenceItem.Trigger class={noStyle ? '' : styles.vendorsToggle || ''}>
@@ -282,8 +277,7 @@ function handlePurposeToggle(value: boolean) {
 								</div>
 								<Switch.Root
 									checked={isConsented}
-									onCheckedChange={(details: { checked: boolean }) =>
-										onVendorToggle(vendor.id, details.checked)}
+									onclick={() => onVendorToggle(vendor.id, !isConsented)}
 									class={noStyle ? '' : swSmall.root()}
 								>
 									<Switch.Control class={noStyle ? '' : swSmall.track()}>
@@ -355,8 +349,7 @@ function handlePurposeToggle(value: boolean) {
 								{:else}
 									<Switch.Root
 										checked={isConsented}
-										onCheckedChange={(details: { checked: boolean }) =>
-											onVendorToggle(vendor.id, details.checked)}
+										onclick={() => onVendorToggle(vendor.id, !isConsented)}
 										class={noStyle ? '' : swSmall.root()}
 									>
 										<Switch.Control class={noStyle ? '' : swSmall.track()}>
@@ -398,8 +391,7 @@ function handlePurposeToggle(value: boolean) {
 									</div>
 									<Switch.Root
 										checked={isConsented}
-										onCheckedChange={(details: { checked: boolean }) =>
-											onVendorToggle(vendor.id, details.checked)}
+										onclick={() => onVendorToggle(vendor.id, !isConsented)}
 										class={noStyle ? '' : swSmall.root()}
 									>
 										<Switch.Control class={noStyle ? '' : swSmall.track()}>
@@ -443,8 +435,7 @@ function handlePurposeToggle(value: boolean) {
 									{:else}
 										<Switch.Root
 											checked={isConsented}
-											onCheckedChange={(details: { checked: boolean }) =>
-												onVendorToggle(vendor.id, details.checked)}
+											onclick={() => onVendorToggle(vendor.id, !isConsented)}
 											class={noStyle ? '' : swSmall.root()}
 										>
 											<Switch.Control class={noStyle ? '' : swSmall.track()}>

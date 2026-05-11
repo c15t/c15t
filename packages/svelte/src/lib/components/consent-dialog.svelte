@@ -67,6 +67,8 @@ const isOpen = $derived(
 	models.includes(consent.state.model) &&
 		(openProp ?? consent.state.activeUI === 'dialog')
 );
+let dialogOpen = $state(false);
+let lastResolvedOpen = $state(false);
 
 // Per-element theme key styling
 const rootStyle = $derived(
@@ -130,11 +132,19 @@ const triggerProps = $derived.by(() => {
 	return showTrigger;
 });
 
-function handleOpenChange(details: { open: boolean }) {
-	if (!details.open) {
-		consent.state.setActiveUI('none');
+$effect(() => {
+	if (isOpen !== lastResolvedOpen) {
+		dialogOpen = isOpen;
+		lastResolvedOpen = isOpen;
 	}
-}
+});
+
+$effect(() => {
+	if (lastResolvedOpen && !dialogOpen) {
+		consent.state.setActiveUI('none');
+		lastResolvedOpen = false;
+	}
+});
 </script>
 
 {#if triggerProps}
@@ -142,8 +152,7 @@ function handleOpenChange(details: { open: boolean }) {
 {/if}
 
 <Dialog.Root
-	open={isOpen}
-	onOpenChange={handleOpenChange}
+	bind:open={dialogOpen}
 	closeOnInteractOutside={false}
 	closeOnEscape={true}
 	trapFocus={true}

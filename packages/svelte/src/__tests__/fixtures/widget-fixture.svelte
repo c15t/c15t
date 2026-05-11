@@ -1,11 +1,11 @@
 <script lang="ts">
-import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+import ConsentProvider from '../../lib/components/consent-provider.svelte';
 import ConsentWidget from '../../lib/components/consent-widget.svelte';
-import type { ConsentManagerOptions } from '../../lib/types';
+import type { ConsentProviderOptions } from '../../lib/types';
 
-let { options }: { options: ConsentManagerOptions } = $props();
+let { options }: { options: ConsentProviderOptions } = $props();
 </script>
 
-<ConsentManagerProvider {options}>
+<ConsentProvider {options}>
 	<ConsentWidget />
-</ConsentManagerProvider>
+</ConsentProvider>

@@ -301,7 +301,6 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 
 					<PreferenceItem.Root
 						open={expandedVendors.has(vendor.id)}
-						onOpenChange={(details) => handleVendorOpenChange(vendor.id, details.open)}
 						id={`vendor-${vendorKey}`}
 						class={noStyle
 							? ''
@@ -309,7 +308,11 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 						noStyle
 					>
 						<div class={noStyle ? '' : styles.vendorListItemHeader || ''}>
-							<PreferenceItem.Trigger class={noStyle ? '' : styles.vendorListTrigger || ''}>
+							<PreferenceItem.Trigger
+								class={noStyle ? '' : styles.vendorListTrigger || ''}
+								onclick={() =>
+									handleVendorOpenChange(vendor.id, !expandedVendors.has(vendor.id))}
+							>
 								<div class={noStyle ? '' : styles.vendorListInfo || ''}>
 									<h3 class={noStyle ? '' : styles.vendorListName || ''}>
 										{vendor.name}
@@ -340,8 +343,8 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 								<Switch.Root
 									aria-label={`Consent for ${vendor.name}`}
 									checked={vendorConsents[vendorKey] ?? false}
-									onCheckedChange={(details: { checked: boolean }) =>
-										onVendorToggle(vendor.id, details.checked)}
+									onclick={() =>
+										onVendorToggle(vendor.id, !(vendorConsents[vendorKey] ?? false))}
 									class={noStyle ? '' : styles.vendorConsentSwitch || ''}
 								>
 									<Switch.Control class={noStyle ? '' : sw.track()}>
@@ -606,13 +609,16 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 
 					<PreferenceItem.Root
 						open={expandedVendors.has(vendor.id)}
-						onOpenChange={(details) => handleVendorOpenChange(vendor.id, details.open)}
 						id={`vendor-${vendorKey}`}
 						class={noStyle ? '' : `${styles.vendorListItem || ''} ${styles.customVendorItem || ''}`}
 						noStyle
 					>
 						<div class={noStyle ? '' : styles.vendorListItemHeader || ''}>
-							<PreferenceItem.Trigger class={noStyle ? '' : styles.vendorListTrigger || ''}>
+							<PreferenceItem.Trigger
+								class={noStyle ? '' : styles.vendorListTrigger || ''}
+								onclick={() =>
+									handleVendorOpenChange(vendor.id, !expandedVendors.has(vendor.id))}
+							>
 								<div class={noStyle ? '' : styles.vendorListInfo || ''}>
 									<h3 class={noStyle ? '' : styles.vendorListName || ''}>
 										{vendor.name}
@@ -630,8 +636,8 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 								<Switch.Root
 									aria-label={`Consent for ${vendor.name}`}
 									checked={vendorConsents[vendorKey] ?? false}
-									onCheckedChange={(details: { checked: boolean }) =>
-										onVendorToggle(vendor.id, details.checked)}
+									onclick={() =>
+										onVendorToggle(vendor.id, !(vendorConsents[vendorKey] ?? false))}
 									class={noStyle ? '' : styles.vendorConsentSwitch || ''}
 								>
 									<Switch.Control class={noStyle ? '' : sw.track()}>

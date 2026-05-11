@@ -1,5 +1,5 @@
 /**
- * Tests for ConsentManagerProvider basic request behavior.
+ * Tests for ConsentProvider basic request behavior.
  *
  * Mirrors: packages/react/src/providers/__tests__/provider-basic.test.tsx
  */
@@ -7,12 +7,13 @@
 import { render } from '@testing-library/svelte';
 import { clearConsentRuntimeCache } from 'c15t';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
 import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
 
 const mockFetch = vi.fn();
 window.fetch = mockFetch;
 
-describe('ConsentManagerProvider Basic Request Behavior', () => {
+describe('ConsentProvider Basic Request Behavior', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		clearConsentRuntimeCache();
@@ -63,5 +64,52 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 		// No fetch in offline mode
 		expect(mockFetch).not.toHaveBeenCalled();
+	});
+
+	test('should resolve offlinePolicy.policyPacks in offline mode', async () => {
+		const { getByTestId } = render(ContextConsumerFixture, {
+			options: {
+				mode: 'offline',
+				offlinePolicy: {
+					policyPacks: [
+						{
+							id: 'policy_region_us_ca',
+							match: { regions: [{ country: 'US', region: 'CA' }] },
+							consent: { model: 'opt-out' },
+							ui: { mode: 'banner' },
+						},
+					],
+				},
+				overrides: {
+					country: 'US',
+					region: 'CA',
+				},
+			},
+		});
+
+		await new Promise((resolve) => setTimeout(resolve, 100));
+
+		expect(mockFetch).not.toHaveBeenCalled();
+		expect(getByTestId('model')).toHaveTextContent('opt-out');
+		expect(getByTestId('active-ui')).toHaveTextContent('banner');
+	});
+
+	test('should call transport init once on initial mount', async () => {
+		const init = vi.fn(async () => ({}));
+
+		render(ProviderOnlyFixture, {
+			options: {
+				transport: {
+					init,
+					async save(payload) {
+						return { ok: true, subjectId: payload.subjectId };
+					},
+				},
+			},
+		});
+
+		await new Promise((resolve) => setTimeout(resolve, 100));
+
+		expect(init).toHaveBeenCalledTimes(1);
 	});
 });

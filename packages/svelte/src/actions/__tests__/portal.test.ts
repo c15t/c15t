@@ -1,7 +1,7 @@
 /**
  * Tests for the portal Svelte action.
  *
- * No direct React equivalent — this is Svelte-specific.
+ * Svelte-specific portal action tests.
  */
 
 import { describe, expect, test } from 'vitest';

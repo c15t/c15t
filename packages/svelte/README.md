@@ -74,14 +74,25 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 ```svelte
 <!-- +layout.svelte -->
 <script>
-  import { ConsentProvider, ConsentBanner } from '@c15t/svelte'
+  import { ConsentProvider, ConsentBanner, ConsentDialog } from '@c15t/svelte'
+  import '@c15t/svelte/styles.css'
+
+  let { children } = $props()
 </script>
 
 <ConsentProvider>
-  <slot />
+  {@render children()}
   <ConsentBanner />
+  <ConsentDialog />
 </ConsentProvider>
 ```
+
+Primitive state follows Svelte conventions: use `bind:checked` for
+`Switch.Root`, `bind:open` for dialog/disclosure primitives, and `bind:value`
+for tabs and accordions.
+
+When using IAB components, import `@c15t/svelte/iab/styles.css` once alongside
+the base stylesheet.
 
 ## Documentation
 

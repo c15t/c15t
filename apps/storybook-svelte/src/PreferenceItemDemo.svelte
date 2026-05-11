@@ -1,14 +1,13 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
 	import { PreferenceItem, Switch } from '@c15t/svelte';
 	import { enTranslations } from '@c15t/translations';
 
 	interface Props {
-		defaultChecked?: boolean;
-		defaultOpen?: boolean;
+		checked?: boolean;
 		description?: string;
 		disabled?: boolean;
 		meta?: string;
+		open?: boolean;
 		title?: string;
 		withSwitch?: boolean;
 	}
@@ -16,24 +15,21 @@
 	const { consentTypes } = enTranslations;
 
 	const {
-		defaultChecked = false,
-		defaultOpen = false,
+		checked: initialChecked = false,
 		description = consentTypes.necessary.description,
 		disabled = false,
 		meta,
+		open: initialOpen = false,
 		title = consentTypes.necessary.title,
 		withSwitch = false,
 	}: Props = $props();
 
-	let open = $state(untrack(() => defaultOpen));
-	let checked = $state(untrack(() => defaultChecked));
+	let open = $state(initialOpen);
+	let checked = $state(initialChecked);
 </script>
 
 <PreferenceItem.Root
-	{open}
-	onOpenChange={(details) => {
-		open = details.open;
-	}}
+	bind:open
 	style="width:32rem;"
 >
 	<div
@@ -60,10 +56,7 @@
 					<Switch.Root
 						aria-label={title}
 						{disabled}
-						checked={checked}
-						onCheckedChange={(details: { checked: boolean }) => {
-							checked = details.checked;
-						}}
+						bind:checked
 					/>
 				</PreferenceItem.Control>
 			{/if}

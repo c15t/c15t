@@ -11,10 +11,18 @@
 
 	let {
 		class: className,
+		onclick,
 		...restProps
 	}: HTMLAttributes<HTMLDivElement> & {
 		class?: string;
 	} = $props();
+
+	function handleClick(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLDivElement }
+	) {
+		dialog.requestClose('backdrop');
+		onclick?.(event);
+	}
 </script>
 
 {#if shouldRender}
@@ -24,7 +32,7 @@
 		class={className}
 		data-slot="dialog-backdrop"
 		data-state={dataState}
-		onclick={() => dialog.requestClose('backdrop')}
 		{...restProps}
+		onclick={handleClick}
 	></div>
 {/if}

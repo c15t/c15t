@@ -44,11 +44,6 @@
 			"import": "./dist/server/index.js",
 			"default": "./dist/server/index.js"
 		},
-		"./vite": {
-			"types": "./dist/vite-plugin.d.ts",
-			"import": "./dist/vite-plugin.js",
-			"default": "./dist/vite-plugin.js"
-		},
 		".": {
 			"types": "./dist/index.d.ts",
 			"svelte": "./dist/index.js",
@@ -62,9 +57,6 @@
 			],
 			"server": [
 				"./dist/server/index.d.ts"
-			],
-			"vite": [
-				"./dist/vite-plugin.d.ts"
 			]
 		}
 	},
@@ -114,13 +106,7 @@
 		"typescript": "^5.9.3"
 	},
 	"peerDependencies": {
-		"svelte": "^5.0.0",
-		"vite": "^5.0.0 || ^6.0.0"
-	},
-	"peerDependenciesMeta": {
-		"vite": {
-			"optional": true
-		}
+		"svelte": "^5.0.0"
 	},
 	"publishConfig": {
 		"access": "public"

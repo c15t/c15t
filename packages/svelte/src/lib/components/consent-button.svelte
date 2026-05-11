@@ -117,8 +117,8 @@ function handleClick(e: MouseEvent) {
 				.map(([k, v]) => `${k}:${v}`)
 				.join(';')
 		: undefined}
-	onclick={handleClick}
 	{...restProps}
+	onclick={handleClick}
 >
 	{#if children}
 		{@render children()}

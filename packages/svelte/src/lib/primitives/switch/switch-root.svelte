@@ -1,32 +1,26 @@
 <script lang="ts">
 	import { getDataDisabled, getSwitchState, toggleSwitchValue } from '@c15t/ui/primitives';
 	import type { Snippet } from 'svelte';
-	import { untrack } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { setSwitchRootContext } from './context';
 
 	let {
 		children,
 		class: className,
-		checked: checkedProp,
-		defaultChecked = false,
+		checked = $bindable(false),
 		disabled = false,
-		onCheckedChange,
+		onclick,
+		onkeydown,
 		type = 'button',
 		...restProps
 	}: HTMLAttributes<HTMLButtonElement> & {
 		children?: Snippet;
 		class?: string;
 		checked?: boolean;
-		defaultChecked?: boolean;
 		disabled?: boolean;
-		onCheckedChange?: (details: { checked: boolean }) => void;
 		type?: 'button' | 'submit' | 'reset';
 	} = $props();
 
-	let internalChecked = $state(untrack(() => defaultChecked));
-
-	const checked = $derived(checkedProp ?? internalChecked);
 	const dataState = $derived(getSwitchState(checked));
 	const dataDisabled = $derived(getDataDisabled(disabled));
 
@@ -35,22 +29,28 @@
 			return;
 		}
 
-		if (checkedProp === undefined) {
-			internalChecked = nextChecked;
-		}
-
-		onCheckedChange?.({ checked: nextChecked });
+		checked = nextChecked;
 	}
 
 	function toggle() {
 		setChecked(toggleSwitchValue(checked));
 	}
 
-	function handleKeyDown(event: KeyboardEvent) {
+	function handleClick(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
+		toggle();
+		onclick?.(event);
+	}
+
+	function handleKeyDown(
+		event: KeyboardEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
 		if (event.key === 'Enter') {
 			event.preventDefault();
 			toggle();
 		}
+		onkeydown?.(event);
 	}
 
 	setSwitchRootContext({
@@ -73,9 +73,9 @@
 	data-state={dataState}
 	data-disabled={dataDisabled}
 	disabled={disabled}
-	onclick={toggle}
-	onkeydown={handleKeyDown}
 	{...restProps}
+	onclick={handleClick}
+	onkeydown={handleKeyDown}
 >
 	{@render children?.()}
 </button>

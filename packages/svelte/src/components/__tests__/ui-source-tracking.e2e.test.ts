@@ -13,9 +13,9 @@ import BannerDialogFixture from '../../__tests__/fixtures/banner-dialog-fixture.
 import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
 import DialogFixture from '../../__tests__/fixtures/dialog-fixture.svelte';
 import WidgetFixture from '../../__tests__/fixtures/widget-fixture.svelte';
-import type { ConsentManagerOptions } from '../../lib/types';
+import type { ConsentProviderOptions } from '../../lib/types';
 
-const defaultOptions: ConsentManagerOptions = {
+const defaultOptions: ConsentProviderOptions = {
 	mode: 'offline',
 };
 

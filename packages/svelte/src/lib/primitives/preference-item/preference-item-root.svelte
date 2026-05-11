@@ -7,7 +7,6 @@
 	} from '@c15t/ui/primitives';
 	import { preferenceItemVariants } from '@c15t/ui/styles/primitives';
 	import type { Snippet } from 'svelte';
-	import { untrack } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { getThemeContext } from '../../context.svelte';
 	import { setPreferenceItemContext } from './context';
@@ -19,25 +18,18 @@
 	let {
 		children,
 		class: className,
-		defaultOpen = false,
 		disabled = false,
 		noStyle: localNoStyle,
-		onOpenChange,
-		open: openProp,
+		open = $bindable(false),
 		...restProps
 	}: HTMLAttributes<HTMLDivElement> & {
 		children?: Snippet;
 		class?: string;
-		defaultOpen?: boolean;
 		disabled?: boolean;
 		noStyle?: boolean;
-		onOpenChange?: (details: { open: boolean }) => void;
 		open?: boolean;
 	} = $props();
 
-	let internalOpen = $state(untrack(() => defaultOpen));
-
-	const open = $derived(openProp ?? internalOpen);
 	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 	const rootClassName = $derived(
 		noStyle ? className : variants.root({ class: className })
@@ -48,11 +40,7 @@
 	const triggerId = `c15t-preference-item-trigger-${componentId}`;
 
 	function setOpen(nextOpen: boolean) {
-		if (openProp === undefined) {
-			internalOpen = nextOpen;
-		}
-
-		onOpenChange?.({ open: nextOpen });
+		open = nextOpen;
 	}
 
 	function toggle() {

@@ -25,6 +25,8 @@ Then wire the provider and UI components near the root.
 		ConsentDialog,
 		ConsentProvider,
 	} from '@c15t/svelte';
+
+	let { children } = $props();
 </script>
 
 <ConsentProvider
@@ -35,7 +37,7 @@ Then wire the provider and UI components near the root.
 		overrides: { country: 'DE' },
 	}}
 >
-	<slot />
+	{@render children()}
 	<ConsentBanner />
 	<ConsentDialog />
 </ConsentProvider>
@@ -44,6 +46,42 @@ Then wire the provider and UI components near the root.
 For SvelteKit, place this in your root `+layout.svelte` or a shared layout wrapper.
 
 For Astro, use the same provider and components inside a Svelte island or shared Svelte layout component.
+
+If you use the IAB banner or dialog, import the IAB stylesheet once too:
+
+```css
+@import "@c15t/svelte/iab/styles.css";
+```
+
+## Svelte-native primitives
+
+The low-level primitives use Svelte bindings for controlled state:
+
+```svelte
+<script lang="ts">
+	import { Switch, Tabs } from '@c15t/svelte';
+
+	let analytics = $state(false);
+	let tab = $state<string | null>('purposes');
+</script>
+
+<Switch.Root bind:checked={analytics} aria-label="Analytics cookies">
+	<Switch.Control>
+		<Switch.Thumb />
+	</Switch.Control>
+</Switch.Root>
+
+<Tabs.Root bind:value={tab}>
+	<Tabs.List>
+		<Tabs.Trigger value="purposes">Purposes</Tabs.Trigger>
+		<Tabs.Trigger value="vendors">Vendors</Tabs.Trigger>
+	</Tabs.List>
+	<Tabs.Content value="purposes">Purpose preferences</Tabs.Content>
+	<Tabs.Content value="vendors">Vendor preferences</Tabs.Content>
+</Tabs.Root>
+```
+
+Use `bind:open` with `Dialog.Root`, `Collapsible.Root`, and `PreferenceItem.Root`; use `bind:value` with `Accordion.Root`.
 
 ## What to check
 

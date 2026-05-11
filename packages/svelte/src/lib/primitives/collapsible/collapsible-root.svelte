@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { getCollapsibleState, getDataDisabled, toggleCollapsibleValue } from '@c15t/ui/primitives';
 	import type { Snippet } from 'svelte';
-	import { untrack } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 	import { setCollapsibleRootContext } from './context';
 
@@ -10,23 +9,16 @@
 	let {
 		children,
 		class: className,
-		defaultOpen = false,
 		disabled = false,
-		onOpenChange,
-		open: openProp,
+		open = $bindable(false),
 		...restProps
 	}: HTMLAttributes<HTMLDivElement> & {
 		children?: Snippet;
 		class?: string;
-		defaultOpen?: boolean;
 		disabled?: boolean;
-		onOpenChange?: (details: { open: boolean }) => void;
 		open?: boolean;
 	} = $props();
 
-	let internalOpen = $state(untrack(() => defaultOpen));
-
-	const open = $derived(openProp ?? internalOpen);
 	const dataState = $derived(getCollapsibleState(open));
 	const dataDisabled = $derived(getDataDisabled(disabled));
 	const triggerId = `c15t-collapsible-trigger-${componentId}`;
@@ -37,11 +29,7 @@
 			return;
 		}
 
-		if (openProp === undefined) {
-			internalOpen = nextOpen;
-		}
-
-		onOpenChange?.({ open: nextOpen });
+		open = nextOpen;
 	}
 
 	function toggle() {

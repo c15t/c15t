@@ -16,6 +16,7 @@
 	let {
 		children,
 		class: className,
+		onclick,
 		type = 'button',
 		...restProps
 	}: HTMLAttributes<HTMLButtonElement> & {
@@ -23,6 +24,13 @@
 		class?: string;
 		type?: 'button' | 'submit' | 'reset';
 	} = $props();
+
+	function handleClick(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
+		root.toggle();
+		onclick?.(event);
+	}
 </script>
 
 <button
@@ -36,8 +44,8 @@
 	data-state={dataState}
 	data-disabled={dataDisabled}
 	disabled={disabled}
-	onclick={() => root.toggle()}
 	{...restProps}
+	onclick={handleClick}
 >
 	{@render children?.()}
 </button>

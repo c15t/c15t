@@ -111,7 +111,7 @@ const visibility = useBannerVisibility(
 	() => disableAnimation
 );
 
-// Styling - per-element theme key resolution matching React
+// Styling - per-element theme key resolution shared across framework adapters.
 const rootStyle = $derived(
 	resolveComponentStyles(
 		'consentBanner',

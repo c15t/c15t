@@ -1,5 +1,5 @@
 /**
- * Tests for ConsentManagerProvider error handling.
+ * Tests for ConsentProvider error handling.
  *
  * Mirrors: packages/react/src/providers/__tests__/provider-errors.test.tsx
  */
@@ -12,7 +12,7 @@ import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fi
 const mockFetch = vi.fn();
 window.fetch = mockFetch;
 
-describe('ConsentManagerProvider Error Handling', () => {
+describe('ConsentProvider Error Handling', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		clearConsentRuntimeCache();

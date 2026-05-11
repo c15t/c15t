@@ -1,38 +1,37 @@
 <script lang="ts">
-	import { getSwitchState, switchVariants, toggleSwitchValue } from '@c15t/svelte';
+	import { Switch, switchVariants } from '@c15t/svelte';
 
 	interface Props {
 		label?: string;
-		defaultChecked?: boolean;
+		checked?: boolean;
 		disabled?: boolean;
 		size?: 'small' | 'medium';
 	}
 
 	const {
 		label = 'Analytics',
-		defaultChecked = false,
+		checked: initialChecked = false,
 		disabled = false,
 		size = 'medium',
 	}: Props = $props();
 
-	let checked = $state(defaultChecked);
+	let checked = $state(initialChecked);
 	const classes = switchVariants({ size });
 </script>
 
 <div style="display:grid;gap:0.75rem;">
 	<label style="align-items:center;display:inline-flex;gap:0.75rem;">
-		<button
+		<Switch.Root
+			bind:checked
 			class={classes.root()}
-			role="switch"
-			aria-checked={String(checked)}
 			aria-label={label}
-			data-state={getSwitchState(checked)}
-			type="button"
 			{disabled}
-			onclick={() => { if (!disabled) checked = toggleSwitchValue(checked); }}
 		>
-			<span class={classes.track({ disabled })}><span class={classes.thumb({ disabled })} /></span>
-		</button>
+			<Switch.Control class={classes.track({ disabled })}>
+				<Switch.Thumb class={classes.thumb({ disabled })} />
+			</Switch.Control>
+			<Switch.HiddenInput />
+		</Switch.Root>
 		<span>{label}</span>
 	</label>
 </div>

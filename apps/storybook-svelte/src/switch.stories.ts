@@ -28,14 +28,14 @@ export const Playground: Story = {
 
 export const Checked: Story = {
 	args: {
-		defaultChecked: true,
+		checked: true,
 		label: consentTypes.measurement.title,
 	},
 };
 
 export const Controlled: Story = {
 	args: {
-		defaultChecked: true,
+		checked: true,
 		label: consentTypes.functionality.title,
 	},
 	play: controlledToggle,

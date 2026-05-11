@@ -4,7 +4,6 @@ import { generateThemeCSS } from '@c15t/ui/theme';
 import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
 import {
 	type AllConsentNames,
-	allConsentNames,
 	type Callbacks,
 	type CustomClientOptions,
 	defaultTranslationConfig,
@@ -187,7 +186,13 @@ function buildInlinePolicy(
 			categories:
 				categories && categories.length > 0
 					? categories
-					: Array.from(allConsentNames),
+					: [
+							'necessary',
+							'functionality',
+							'marketing',
+							'measurement',
+							'experience',
+						],
 			scopeMode: 'permissive',
 		},
 		ui: {
@@ -263,12 +268,14 @@ function createStaticOfflineTransport(
 	prefetch: KernelConfig,
 	offlinePolicy: OfflinePolicyConfig | undefined,
 	translations: KernelTranslations,
-	categories: AllConsentNames[] | undefined
-): KernelTransport {
+	categories: AllConsentNames[] | undefined,
+	useInlineFallback: boolean
+): KernelTransport | null {
 	const policy =
 		prefetch.initialPolicy ??
 		offlinePolicy?.policy ??
-		buildInlinePolicy(categories);
+		(useInlineFallback ? buildInlinePolicy(categories) : undefined);
+	if (!policy) return null;
 	return {
 		async init(ctx) {
 			return {
@@ -304,6 +311,7 @@ function createProviderKernel(
 		providerOptions.mode ?? (providerOptions.backendURL ? 'hosted' : 'offline');
 	const prefetch = providerOptions.prefetch ?? {};
 	const offlinePolicy = getProviderOfflinePolicy(providerOptions);
+	const policyPacks = getProviderPolicies(providerOptions);
 	const i18nTranslations =
 		resolveI18nTranslations(resolveProviderI18n(providerOptions)) ??
 		DEFAULT_TRANSLATIONS;
@@ -322,14 +330,15 @@ function createProviderKernel(
 				: (createStaticOfflineTransport(
 						prefetch,
 						offlinePolicy,
-						i18nTranslations,
-						providerOptions.consentCategories ??
-							providerOptions.store?.initialConsentCategories
-					) ??
-					createOfflineTransport({
-						policyPacks: getProviderPolicies(providerOptions),
-						translations: i18nTranslations,
-					})));
+							i18nTranslations,
+							providerOptions.consentCategories ??
+								providerOptions.store?.initialConsentCategories,
+							policyPacks === undefined
+						) ??
+						createOfflineTransport({
+							policyPacks,
+							translations: i18nTranslations,
+						})));
 
 	return createConsentKernel({
 		...prefetch,
@@ -347,11 +356,13 @@ function createProviderKernel(
 			enabled === false
 				? (prefetch.initialPolicy ?? buildNoBannerPolicy())
 				: (prefetch.initialPolicy ??
-					offlinePolicy?.policy ??
-					buildInlinePolicy(
-						providerOptions.consentCategories ??
-							providerOptions.store?.initialConsentCategories
-					)),
+						offlinePolicy?.policy ??
+						(policyPacks === undefined
+							? buildInlinePolicy(
+									providerOptions.consentCategories ??
+										providerOptions.store?.initialConsentCategories
+								)
+							: undefined)),
 		initialPolicyDecision:
 			prefetch.initialPolicyDecision ?? offlinePolicy?.policyDecision,
 		initialPolicySnapshotToken:
@@ -555,6 +566,7 @@ function wireCallbacks(callbacks: Callbacks | undefined) {
 const disposeCallbacks = untrack(() =>
 	wireCallbacks(getProviderCallbacks(options))
 );
+let hasSkippedInitialOverridesInit = false;
 
 function normalizePersistenceOptions():
 	| UsePersistenceOptions
@@ -680,6 +692,10 @@ $effect(() => {
 $effect(() => {
 	const overrides: KernelOverrides = options.overrides ?? {};
 	kernel.set.overrides(overrides);
+	if (!hasSkippedInitialOverridesInit) {
+		hasSkippedInitialOverridesInit = true;
+		return;
+	}
 	if (getEnabled(options)) {
 		void kernel.commands.init().then(() => {
 			if (kernel.getSnapshot().hasConsented) {

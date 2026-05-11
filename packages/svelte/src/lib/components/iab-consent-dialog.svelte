@@ -49,6 +49,8 @@ const isOpen = $derived(
 		(openProp ?? consent.state.activeUI === 'dialog') &&
 		iabState?.config.enabled === true
 );
+let dialogOpen = $state(false);
+let lastResolvedOpen = $state(false);
 
 // Tab state
 let activeTab = $state<string | null>('purposes');
@@ -59,6 +61,26 @@ let specialPurposesExpanded = $state(false);
 $effect(() => {
 	if (isOpen && iabState?.preferenceCenterTab) {
 		activeTab = iabState.preferenceCenterTab;
+	}
+});
+
+$effect(() => {
+	if (isOpen !== lastResolvedOpen) {
+		dialogOpen = isOpen;
+		lastResolvedOpen = isOpen;
+	}
+});
+
+$effect(() => {
+	if (lastResolvedOpen && !dialogOpen) {
+		consent.state.setActiveUI('none');
+		lastResolvedOpen = false;
+	}
+});
+
+$effect(() => {
+	if (activeTab === 'purposes' || activeTab === 'vendors') {
+		iabState?.setPreferenceCenterTab(activeTab);
 	}
 });
 
@@ -86,20 +108,6 @@ const specialSectionPartnerCount = $derived.by(() => {
 		...gvlData.features.flatMap((f) => f.vendors.map((v) => v.id)),
 	]).size;
 });
-
-// Handlers
-function handleOpenChange(details: { open: boolean }) {
-	if (!details.open) {
-		consent.state.setActiveUI('none');
-	}
-}
-
-function handleTabChange(details: { value: string | null }) {
-	if (details.value === 'purposes' || details.value === 'vendors') {
-		activeTab = details.value;
-		iabState?.setPreferenceCenterTab(details.value);
-	}
-}
 
 function handlePurposeToggle(purposeId: number, value: boolean) {
 	iabState?.setPurposeConsent(purposeId, value);
@@ -152,8 +160,7 @@ function handleVendorClick(vendorId: VendorId) {
 </script>
 
 <Dialog.Root
-	open={isOpen}
-	onOpenChange={handleOpenChange}
+	bind:open={dialogOpen}
 	closeOnInteractOutside={false}
 	closeOnEscape={true}
 	trapFocus={true}
@@ -195,8 +202,7 @@ function handleVendorClick(vendorId: VendorId) {
 				</div>
 
 				<Tabs.Root
-					value={activeTab}
-					onValueChange={handleTabChange}
+					bind:value={activeTab}
 					class={noStyle ? '' : styles.body || ''}
 				>
 					<div class={noStyle ? '' : styles.tabsContainer || ''}>
@@ -295,10 +301,7 @@ function handleVendorClick(vendorId: VendorId) {
 							<!-- Essential Functions: Special Purposes + Features (locked) -->
 							{#if gvlData.specialPurposes.length > 0 || gvlData.features.length > 0}
 								<Collapsible.Root
-									open={specialPurposesExpanded}
-									onOpenChange={(details) => {
-										specialPurposesExpanded = details.open;
-									}}
+									bind:open={specialPurposesExpanded}
 									class={noStyle ? '' : styles.specialPurposesSection || ''}
 								>
 									<div class={noStyle ? '' : styles.specialPurposesHeader || ''}>

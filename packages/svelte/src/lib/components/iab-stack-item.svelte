@@ -44,6 +44,7 @@ let {
 } = $props();
 
 let isExpanded = $state(false);
+let stackChecked = $state(false);
 
 const allEnabled = $derived(
 	stack.purposes.every((p) => consents[p.id] ?? false)
@@ -51,6 +52,10 @@ const allEnabled = $derived(
 const someEnabled = $derived(
 	stack.purposes.some((p) => consents[p.id] ?? false) && !allEnabled
 );
+
+$effect(() => {
+	stackChecked = allEnabled;
+});
 
 function handleStackToggle(value: boolean) {
 	for (const purpose of stack.purposes) {
@@ -69,10 +74,7 @@ const totalVendors = $derived(
 </script>
 
 <PreferenceItem.Root
-	open={isExpanded}
-	onOpenChange={(details) => {
-		isExpanded = details.open;
-	}}
+	bind:open={isExpanded}
 	class={noStyle ? '' : styles.stackItem || ''}
 	data-testid={`stack-item-${stack.id}`}
 	noStyle
@@ -103,9 +105,8 @@ const totalVendors = $derived(
 			{/if}
 			<Switch.Root
 				aria-label={stack.name}
-				checked={allEnabled}
-				onCheckedChange={(details: { checked: boolean }) =>
-					handleStackToggle(details.checked)}
+				bind:checked={stackChecked}
+				onclick={() => handleStackToggle(stackChecked)}
 				class={noStyle ? '' : sw.root()}
 			>
 				<Switch.Control class={noStyle ? '' : sw.track()}>

@@ -21,10 +21,7 @@
 </div>
 
 <Dialog.Root
-	{open}
-	onOpenChange={(details) => {
-		open = details.open;
-	}}
+	bind:open
 	closeOnInteractOutside={true}
 	closeOnEscape={true}
 	trapFocus={true}

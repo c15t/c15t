@@ -1,11 +1,10 @@
 <script lang="ts">
 	import {
-		Dialog,
-		buttonVariants,
-		getSwitchState,
-		switchVariants,
-		toggleSwitchValue,
-	} from '@c15t/svelte';
+	Dialog,
+	buttonVariants,
+	Switch,
+	switchVariants,
+} from '@c15t/svelte';
 	import { enTranslations } from '@c15t/translations';
 
 	const { common, consentManagerDialog, consentTypes } = enTranslations;
@@ -32,10 +31,7 @@
 </div>
 
 <Dialog.Root
-	{open}
-	onOpenChange={(details) => {
-		open = details.open;
-	}}
+	bind:open
 	closeOnInteractOutside={true}
 	closeOnEscape={true}
 	trapFocus={true}
@@ -66,21 +62,16 @@
 							{consentTypes.measurement.description}
 						</div>
 					</div>
-					<button
-						type="button"
+					<Switch.Root
+						bind:checked
 						class={switchClasses.root()}
-						role="switch"
 						aria-label="Enable analytics cookies"
-						aria-checked={checked}
-						data-state={getSwitchState(checked)}
-						onclick={() => {
-							checked = toggleSwitchValue(checked);
-						}}
 					>
-						<span class={switchClasses.track()}>
-							<span class={switchClasses.thumb()}></span>
-						</span>
-					</button>
+						<Switch.Control class={switchClasses.track()}>
+							<Switch.Thumb class={switchClasses.thumb()} />
+						</Switch.Control>
+						<Switch.HiddenInput />
+					</Switch.Root>
 				</div>
 				<div style="display:flex;gap:0.75rem;justify-content:flex-end;">
 					<Dialog.CloseTrigger

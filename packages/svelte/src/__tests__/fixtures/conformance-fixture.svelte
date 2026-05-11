@@ -1,9 +1,9 @@
 <script lang="ts">
 import ConsentBanner from '../../lib/components/consent-banner.svelte';
 import ConsentDialog from '../../lib/components/consent-dialog.svelte';
-import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+import ConsentProvider from '../../lib/components/consent-provider.svelte';
 import ConsentWidget from '../../lib/components/consent-widget.svelte';
-import type { ConsentManagerOptions } from '../../lib/types';
+import type { ConsentProviderOptions } from '../../lib/types';
 
 type MountableComponent = 'consent-banner' | 'consent-dialog' | 'consent-widget';
 
@@ -12,11 +12,11 @@ let {
 	options,
 }: {
 	component: MountableComponent;
-	options: ConsentManagerOptions;
+	options: ConsentProviderOptions;
 } = $props();
 </script>
 
-<ConsentManagerProvider {options}>
+<ConsentProvider {options}>
 	{#if component === 'consent-banner'}
 		<ConsentBanner />
 	{:else if component === 'consent-dialog'}
@@ -24,4 +24,4 @@ let {
 	{:else if component === 'consent-widget'}
 		<ConsentWidget />
 	{/if}
-</ConsentManagerProvider>
+</ConsentProvider>
