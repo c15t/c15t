@@ -49,6 +49,10 @@ import {
 } from './vendors/analytics/plausible-analytics';
 import { posthog, posthogManifest } from './vendors/analytics/posthog';
 import {
+	rybbitAnalytics,
+	rybbitAnalyticsManifest,
+} from './vendors/analytics/rybbit-analytics';
+import {
 	umamiAnalytics,
 	umamiAnalyticsManifest,
 } from './vendors/analytics/umami-analytics';
@@ -142,6 +146,14 @@ const helperParityCases = {
 			src: 'https://eu-assets.i.posthog.com/static/array.js',
 		},
 	},
+	rybbitAnalytics: {
+		script: rybbitAnalytics({ siteId: 'rybbit-123' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://app.rybbit.io/api/script.js',
+		},
+	},
 	plausibleAnalytics: {
 		script: plausibleAnalytics({ domain: 'example.com' }),
 		expected: {
@@ -218,6 +230,7 @@ const vendorManifests = [
 	fathomAnalyticsManifest,
 	hotjarManifest,
 	posthogManifest,
+	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,
 	umamiAnalyticsManifest,
 	metaPixelManifest,
