@@ -67,6 +67,11 @@
 			"import": "./dist/vendors/analytics/umami-analytics.js",
 			"require": "./dist/vendors/analytics/umami-analytics.cjs"
 		},
+		"./vercel-analytics": {
+			"types": "./dist-types/vendors/analytics/vercel-analytics.d.ts",
+			"import": "./dist/vendors/analytics/vercel-analytics.js",
+			"require": "./dist/vendors/analytics/vercel-analytics.cjs"
+		},
 		"./google-tag-manager": {
 			"types": "./dist-types/vendors/tag-managers/google-tag-manager.d.ts",
 			"import": "./dist/vendors/tag-managers/google-tag-manager.js",

@@ -57,6 +57,10 @@ import {
 	umamiAnalyticsManifest,
 } from './vendors/analytics/umami-analytics';
 import {
+	vercelAnalytics,
+	vercelAnalyticsManifest,
+} from './vendors/analytics/vercel-analytics';
+import {
 	googleTagManager,
 	googleTagManagerManifest,
 } from './vendors/tag-managers/google-tag-manager';
@@ -170,6 +174,14 @@ const helperParityCases = {
 			src: 'https://cloud.umami.is/script.js',
 		},
 	},
+	vercelAnalytics: {
+		script: vercelAnalytics(),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://va.vercel-scripts.com/v1/script.js',
+		},
+	},
 	metaPixel: {
 		script: metaPixel({ pixelId: '123456' }),
 		expected: {
@@ -233,6 +245,7 @@ const vendorManifests = [
 	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,
 	umamiAnalyticsManifest,
+	vercelAnalyticsManifest,
 	metaPixelManifest,
 	tiktokPixelManifest,
 	linkedinInsightsManifest,

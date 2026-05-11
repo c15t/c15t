@@ -233,6 +233,9 @@ function cleanupMockBrowser() {
 	delete globalRef.hj;
 	delete globalRef._hjSettings;
 	delete globalRef.posthog;
+	delete globalRef.va;
+	delete globalRef.vaq;
+	delete globalRef.vam;
 	delete globalRef.databuddy;
 	delete globalRef.databuddyConfig;
 	delete globalRef.plausible;

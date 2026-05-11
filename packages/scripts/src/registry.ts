@@ -212,6 +212,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'vercelAnalytics',
+		vendor: 'vercel-analytics',
+		label: 'Vercel Analytics',
+		hint: 'Vercel web analytics',
+		docsSlug: 'vercel-analytics',
+		packageSubpath: 'vercel-analytics',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'metaPixel',
 		vendor: 'meta-pixel',
 		label: 'Meta Pixel',

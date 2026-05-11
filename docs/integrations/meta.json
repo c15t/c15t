@@ -21,6 +21,7 @@
 		"rybbit-analytics",
 		"plausible-analytics",
 		"umami-analytics",
+		"vercel-analytics",
 		"--- Ads & Pixels ---",
 		"meta-pixel",
 		"tiktok-pixel",
