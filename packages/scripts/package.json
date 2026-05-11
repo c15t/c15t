@@ -12,6 +12,81 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
+		"./ahrefs-analytics": {
+			"types": "./dist-types/vendors/analytics/ahrefs-analytics.d.ts",
+			"import": "./dist/vendors/analytics/ahrefs-analytics.js",
+			"require": "./dist/vendors/analytics/ahrefs-analytics.cjs"
+		},
+		"./cloudflare-web-analytics": {
+			"types": "./dist-types/vendors/analytics/cloudflare-web-analytics.d.ts",
+			"import": "./dist/vendors/analytics/cloudflare-web-analytics.js",
+			"require": "./dist/vendors/analytics/cloudflare-web-analytics.cjs"
+		},
+		"./databuddy": {
+			"types": "./dist-types/vendors/analytics/databuddy.d.ts",
+			"import": "./dist/vendors/analytics/databuddy.js",
+			"require": "./dist/vendors/analytics/databuddy.cjs"
+		},
+		"./fathom-analytics": {
+			"types": "./dist-types/vendors/analytics/fathom-analytics.d.ts",
+			"import": "./dist/vendors/analytics/fathom-analytics.js",
+			"require": "./dist/vendors/analytics/fathom-analytics.cjs"
+		},
+		"./google-tag": {
+			"types": "./dist-types/vendors/analytics/google-tag.d.ts",
+			"import": "./dist/vendors/analytics/google-tag.js",
+			"require": "./dist/vendors/analytics/google-tag.cjs"
+		},
+		"./plausible-analytics": {
+			"types": "./dist-types/vendors/analytics/plausible-analytics.d.ts",
+			"import": "./dist/vendors/analytics/plausible-analytics.js",
+			"require": "./dist/vendors/analytics/plausible-analytics.cjs"
+		},
+		"./posthog": {
+			"types": "./dist-types/vendors/analytics/posthog.d.ts",
+			"import": "./dist/vendors/analytics/posthog.js",
+			"require": "./dist/vendors/analytics/posthog.cjs"
+		},
+		"./umami-analytics": {
+			"types": "./dist-types/vendors/analytics/umami-analytics.d.ts",
+			"import": "./dist/vendors/analytics/umami-analytics.js",
+			"require": "./dist/vendors/analytics/umami-analytics.cjs"
+		},
+		"./google-tag-manager": {
+			"types": "./dist-types/vendors/tag-managers/google-tag-manager.d.ts",
+			"import": "./dist/vendors/tag-managers/google-tag-manager.js",
+			"require": "./dist/vendors/tag-managers/google-tag-manager.cjs"
+		},
+		"./linkedin-insights": {
+			"types": "./dist-types/vendors/ads-and-pixels/linkedin-insights.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/linkedin-insights.js",
+			"require": "./dist/vendors/ads-and-pixels/linkedin-insights.cjs"
+		},
+		"./meta-pixel": {
+			"types": "./dist-types/vendors/ads-and-pixels/meta-pixel.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/meta-pixel.js",
+			"require": "./dist/vendors/ads-and-pixels/meta-pixel.cjs"
+		},
+		"./microsoft-uet": {
+			"types": "./dist-types/vendors/ads-and-pixels/microsoft-uet.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/microsoft-uet.js",
+			"require": "./dist/vendors/ads-and-pixels/microsoft-uet.cjs"
+		},
+		"./tiktok-pixel": {
+			"types": "./dist-types/vendors/ads-and-pixels/tiktok-pixel.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/tiktok-pixel.js",
+			"require": "./dist/vendors/ads-and-pixels/tiktok-pixel.cjs"
+		},
+		"./x-pixel": {
+			"types": "./dist-types/vendors/ads-and-pixels/x-pixel.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/x-pixel.js",
+			"require": "./dist/vendors/ads-and-pixels/x-pixel.cjs"
+		},
+		"./registry": {
+			"types": "./dist-types/registry.d.ts",
+			"import": "./dist/registry.js",
+			"require": "./dist/registry.cjs"
+		},
 		"./*": {
 			"types": "./dist-types/*.d.ts",
 			"import": "./dist/*.js",
