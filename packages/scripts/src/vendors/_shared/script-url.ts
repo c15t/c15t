@@ -5,6 +5,13 @@
  * @param value - Optional string value, usually a user-provided override.
  * @returns The trimmed string when it contains non-whitespace characters,
  * otherwise `undefined`.
+ *
+ * @example
+ * ```ts
+ * trimToUndefined('  https://cdn.example.com  '); // 'https://cdn.example.com'
+ * trimToUndefined('   '); // undefined
+ * trimToUndefined(undefined); // undefined
+ * ```
  */
 export function trimToUndefined(value: string | undefined): string | undefined {
 	if (value === undefined) {
@@ -30,6 +37,21 @@ export function trimToUndefined(value: string | undefined): string | undefined {
  * This helper intentionally does not trim or validate the override. Use
  * `trimToUndefined` before calling this helper when blank string overrides
  * should fall back to the vendor default.
+ *
+ * @example
+ * ```ts
+ * resolveScriptUrl(undefined, 'https://cdn.example.com/default.js');
+ * // 'https://cdn.example.com/default.js'
+ * ```
+ *
+ * @example
+ * ```ts
+ * resolveScriptUrl(
+ * 	'https://custom.com/script.js',
+ * 	'https://cdn.example.com/default.js'
+ * );
+ * // 'https://custom.com/script.js'
+ * ```
  */
 export function resolveScriptUrl(
 	override: string | undefined,
@@ -48,6 +70,15 @@ export function resolveScriptUrl(
  * @param base - Base URL or origin. Trailing slashes are removed before joining.
  * @param path - Path segment. Leading slashes are removed before joining.
  * @returns A slash-joined URL string.
+ *
+ * @example
+ * ```ts
+ * joinUrlPath('https://example.com///', '///script.js');
+ * // 'https://example.com/script.js'
+ *
+ * joinUrlPath('https://example.com', 'script.js');
+ * // 'https://example.com/script.js'
+ * ```
  */
 export function joinUrlPath(base: string, path: string): string {
 	return `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;

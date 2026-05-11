@@ -76,7 +76,7 @@ export interface XPixelEvent {
 	 * Should be set to values like "started" or "completed".
 	 * @example "completed"
 	 */
-	status?: 'started' | 'completed' | (string & {});
+	status?: 'started' | 'completed';
 	/**
 	 * Email address used for user matching.
 	 * The X Pixel hashes this value before transmission.

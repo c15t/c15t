@@ -8,6 +8,13 @@ import {
 } from '../../__tests__/helpers';
 import { snapchatPixel } from './snapchat-pixel';
 
+type SnaptrStub =
+	| (((...args: unknown[]) => void) & {
+			queue?: unknown[][];
+			version?: string;
+	  })
+	| undefined;
+
 describe('snapchatPixel', () => {
 	setupScriptHelperTest();
 
@@ -27,12 +34,7 @@ describe('snapchatPixel', () => {
 
 		runOnBeforeLoad(script);
 
-		const stub = globalRef.snaptr as
-			| (((...args: unknown[]) => void) & {
-					queue?: unknown[][];
-					version?: string;
-			  })
-			| undefined;
+		const stub = globalRef.snaptr as SnaptrStub;
 
 		expect(stub?.version).toBe('1.0');
 		expectStubCommandQueue(stub, 'queue', [
@@ -53,9 +55,7 @@ describe('snapchatPixel', () => {
 		expect(script.src).toBe('https://cdn.example.com/scevent.min.js');
 		runOnBeforeLoad(script);
 
-		const stub = globalRef.snaptr as
-			| (((...args: unknown[]) => void) & { queue?: unknown[][] })
-			| undefined;
+		const stub = globalRef.snaptr as SnaptrStub;
 		expectStubCommandQueue(stub, 'queue', [
 			['init', '123456789012345', { user_email: 'hello@example.com' }],
 		]);

@@ -5,6 +5,13 @@
  * @param value - Optional boolean value from a vendor option.
  * @returns `'true'` or `'false'` when a boolean is provided, otherwise
  * `undefined` so the manifest compiler can omit the attribute.
+ *
+ * @example
+ * ```ts
+ * booleanDataAttribute(true); // 'true'
+ * booleanDataAttribute(false); // 'false'
+ * booleanDataAttribute(undefined); // undefined
+ * ```
  */
 export function booleanDataAttribute(
 	value: boolean | undefined
@@ -27,6 +34,13 @@ export function booleanDataAttribute(
  * @param value - Optional string value or string list from a vendor option.
  * @returns The original string, a comma-joined array, or `undefined` so the
  * manifest compiler can omit the attribute.
+ *
+ * @example
+ * ```ts
+ * listDataAttribute('example.com'); // 'example.com'
+ * listDataAttribute(['a.com', 'b.com']); // 'a.com,b.com'
+ * listDataAttribute(undefined); // undefined
+ * ```
  */
 export function listDataAttribute(
 	value: string[] | string | undefined

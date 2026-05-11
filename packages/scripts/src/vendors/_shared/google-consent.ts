@@ -4,6 +4,13 @@
  * @remarks
  * Shared by direct gtag.js and Google Tag Manager integrations so both emit the
  * same Google storage consent defaults unless a caller provides an override.
+ *
+ * @example
+ * ```ts
+ * const manifest = {
+ * 	consentMapping: GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
+ * };
+ * ```
  */
 export const GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING: Record<string, string[]> =
 	{
@@ -23,6 +30,25 @@ export const GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING: Record<string, string[]> =
  * categories to Google consent types.
  * @returns The original manifest when no override is provided, or a shallow
  * copy with the override mapping when one is provided.
+ *
+ * @example
+ * ```ts
+ * const customMapping: Record<string, string[]> = {
+ * 	marketing: ['ad_storage'],
+ * };
+ * const mapped = withOptionalConsentMapping<TManifest>(
+ * 	manifest,
+ * 	customMapping
+ * );
+ * ```
+ *
+ * @example
+ * ```ts
+ * const unchanged = withOptionalConsentMapping<TManifest>(
+ * 	manifest,
+ * 	undefined
+ * );
+ * ```
  */
 export function withOptionalConsentMapping<
 	TManifest extends {

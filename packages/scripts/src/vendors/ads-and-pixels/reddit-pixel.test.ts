@@ -8,6 +8,12 @@ import {
 } from '../../__tests__/helpers';
 import { redditPixel } from './reddit-pixel';
 
+type RdtStub =
+	| (((...args: unknown[]) => void) & {
+			callQueue?: unknown[][];
+	  })
+	| undefined;
+
 describe('redditPixel', () => {
 	setupScriptHelperTest();
 
@@ -27,11 +33,7 @@ describe('redditPixel', () => {
 
 		runOnBeforeLoad(script);
 
-		const stub = globalRef.rdt as
-			| (((...args: unknown[]) => void) & {
-					callQueue?: unknown[][];
-			  })
-			| undefined;
+		const stub = globalRef.rdt as RdtStub;
 		expect(typeof stub).toBe('function');
 		expectStubCommandQueue(stub, 'callQueue', [
 			['init', 't2_abcdef'],
@@ -50,11 +52,7 @@ describe('redditPixel', () => {
 		expect(script.src).toBe('https://cdn.example.com/reddit-pixel.js');
 		runOnBeforeLoad(script);
 
-		const stub = globalRef.rdt as
-			| (((...args: unknown[]) => void) & {
-					callQueue?: unknown[][];
-			  })
-			| undefined;
+		const stub = globalRef.rdt as RdtStub;
 		expectStubCommandQueue(stub, 'callQueue', [['init', 't2_abcdef']]);
 	});
 });
