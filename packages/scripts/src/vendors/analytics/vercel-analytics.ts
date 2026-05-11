@@ -85,9 +85,7 @@ function getVercelScriptUrl(options: VercelAnalyticsOptions): string {
  * @param options - The options for the Vercel Analytics script.
  * @returns The Vercel Analytics script.
  */
-export function vercelAnalytics(
-	options: VercelAnalyticsOptions = {}
-): Script {
+export function vercelAnalytics(options: VercelAnalyticsOptions = {}): Script {
 	let disableAutoTrackAttribute: string | undefined;
 	if (options.disableAutoTrack) {
 		disableAutoTrackAttribute = '1';
