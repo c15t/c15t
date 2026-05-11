@@ -49,7 +49,10 @@ describe('vercelAnalytics', () => {
 		});
 
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
-		globalRef.va?.('signup', { plan: 'pro' });
+		const va = globalRef.va as
+			| ((event: string, properties?: unknown) => void)
+			| undefined;
+		va?.('signup', { plan: 'pro' });
 		expect(globalRef.vaq).toEqual([
 			toArgumentsArray(['signup', { plan: 'pro' }]),
 		]);
