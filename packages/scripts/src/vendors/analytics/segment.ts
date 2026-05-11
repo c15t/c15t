@@ -2,24 +2,122 @@ import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
 
+/**
+ * Public Segment Analytics.js API exposed on `window.analytics`.
+ *
+ * Use this interface when interacting with Segment calls queued before or after
+ * the client library is fully initialized.
+ *
+ * @example
+ * ```ts
+ * window.analytics.track('Signup', { plan: 'pro' });
+ * ```
+ */
 export interface SegmentApi {
+	/**
+	 * Queues an event tracking call.
+	 *
+	 * @param event - Event name to record.
+	 * @param properties - Optional event properties payload.
+	 * @returns `void`.
+	 *
+	 * @remarks
+	 * Calls are queued until Analytics.js initializes.
+	 *
+	 * @example
+	 * ```ts
+	 * window.analytics.track('Signup', { plan: 'pro' });
+	 * ```
+	 */
 	track: (event: string, properties?: Record<string, unknown>) => void;
+	/**
+	 * Queues a page tracking call.
+	 *
+	 * @param name - Optional page name override.
+	 * @param properties - Optional page metadata payload.
+	 * @returns `void`.
+	 *
+	 * @remarks
+	 * If no name is passed, Segment infers the current page context.
+	 *
+	 * @example
+	 * ```ts
+	 * window.analytics.page('Pricing');
+	 * ```
+	 */
 	page: (name?: string, properties?: Record<string, unknown>) => void;
+	/**
+	 * Queues a user identification call.
+	 *
+	 * @param userId - Stable user identifier.
+	 * @param traits - Optional trait map associated with the user.
+	 * @param options - Optional Segment call options.
+	 * @returns `void`.
+	 *
+	 * @remarks
+	 * Ensure the client is initialized and use a stable `userId` to avoid
+	 * fragmented user profiles.
+	 *
+	 * @example
+	 * ```ts
+	 * window.analytics.identify('user_123', { email: 'dev@example.com' });
+	 * ```
+	 */
 	identify: (
 		userId: string,
 		traits?: Record<string, unknown>,
 		options?: Record<string, unknown>
 	) => void;
+	/**
+	 * Queues a group association call for account-level analytics.
+	 *
+	 * @param groupId - Group or account identifier.
+	 * @param traits - Optional group trait map.
+	 * @param options - Optional Segment call options.
+	 * @returns `void`.
+	 *
+	 * @example
+	 * ```ts
+	 * window.analytics.group('acme-inc', { plan: 'enterprise' });
+	 * ```
+	 */
 	group: (
 		groupId: string,
 		traits?: Record<string, unknown>,
 		options?: Record<string, unknown>
 	) => void;
+	/**
+	 * Queues a user alias call to merge identities.
+	 *
+	 * @param userId - New canonical user identifier.
+	 * @param previousId - Optional previous anonymous or legacy identifier.
+	 * @param options - Optional Segment call options.
+	 * @returns `void`.
+	 *
+	 * @remarks
+	 * Use `previousId` only when linking an existing anonymous identity to the
+	 * new `userId`.
+	 *
+	 * @example
+	 * ```ts
+	 * window.analytics.alias('user_123', 'anon_456');
+	 * ```
+	 */
 	alias: (
 		userId: string,
 		previousId?: string,
 		options?: Record<string, unknown>
 	) => void;
+	/**
+	 * Queues a reset call that clears current user identity state.
+	 *
+	 * @returns `void`.
+	 *
+	 * @example
+	 * ```ts
+	 * window.analytics.reset();
+	 * ```
+	 */
 	reset: () => void;
 }
 

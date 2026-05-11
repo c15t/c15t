@@ -47,4 +47,36 @@ describe('segment', () => {
 		expect(analytics?.length).toBe(0);
 		expect(typeof analytics?.page).toBe('function');
 	});
+
+	it('does not queue page when trackPageView is false and still queues track calls', () => {
+		const globalRef = getTestGlobal();
+		const script = segment({
+			writeKey: 'segment-key',
+			trackPageView: false,
+		});
+
+		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
+		const analytics = globalRef.analytics as
+			| (unknown[] & {
+					page?: unknown;
+					track?: (event: string, properties?: Record<string, unknown>) => void;
+			  })
+			| undefined;
+
+		expect(Array.isArray(analytics)).toBe(true);
+		expect(analytics?.length).toBe(0);
+		expect(analytics?.[0]).not.toEqual(toArgumentsArray(['page']));
+
+		analytics?.track?.('Signup', { plan: 'pro' });
+		expect(analytics?.[0]).toEqual(
+			toArgumentsArray(['track', 'Signup', { plan: 'pro' }])
+		);
+
+		const appendChildCalls = (
+			globalThis.document as unknown as {
+				head: { appendChild: { mock: { calls: unknown[] } } };
+			}
+		).head.appendChild.mock.calls;
+		expect(appendChildCalls).toHaveLength(0);
+	});
 });
