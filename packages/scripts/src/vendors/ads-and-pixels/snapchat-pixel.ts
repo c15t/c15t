@@ -1,6 +1,8 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
+import { buildQueuePixelInstall } from '../_shared/install-builders';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 export type SnapchatPixelEventName =
 	| 'PAGE_VIEW'
@@ -186,26 +188,18 @@ export function snapchatPixel({
 		initArgs.push('{{initOptions}}');
 	}
 
-	const install: VendorManifest['install'] = [
-		{
-			type: 'callGlobal',
-			global: 'snaptr',
-			args: initArgs,
-		},
-	];
+	let trackStep: { args: unknown[] } | undefined;
 
 	if (trackPageView) {
-		install.push({
-			type: 'callGlobal',
-			global: 'snaptr',
+		trackStep = {
 			args: ['track', 'PAGE_VIEW'],
-		});
+		};
 	}
 
-	install.push({
-		type: 'loadScript',
-		src: '{{scriptUrl}}',
-		async: true,
+	const install = buildQueuePixelInstall({
+		global: 'snaptr',
+		initArgs,
+		trackStep,
 	});
 
 	const manifest = {
@@ -216,6 +210,9 @@ export function snapchatPixel({
 	return resolveManifest(manifest, {
 		pixelId,
 		initOptions: initOptions ?? {},
-		scriptUrl: scriptUrl ?? 'https://sc-static.net/scevent.min.js',
+		scriptUrl: resolveScriptUrl(
+			scriptUrl,
+			'https://sc-static.net/scevent.min.js'
+		),
 	});
 }

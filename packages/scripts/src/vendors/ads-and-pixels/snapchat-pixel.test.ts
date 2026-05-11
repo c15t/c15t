@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-	createCallbackInfo,
 	expectScriptMatchesIntegration,
+	expectStubCommandQueue,
 	getTestGlobal,
+	runOnBeforeLoad,
 	setupScriptHelperTest,
-	toArgumentsArray,
 } from '../../__tests__/helpers';
 import { snapchatPixel } from './snapchat-pixel';
 
@@ -25,7 +25,7 @@ describe('snapchatPixel', () => {
 		const globalRef = getTestGlobal();
 		const script = snapchatPixel({ pixelId: '123456789012345' });
 
-		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
+		runOnBeforeLoad(script);
 
 		const stub = globalRef.snaptr as
 			| (((...args: unknown[]) => void) & {
@@ -35,9 +35,9 @@ describe('snapchatPixel', () => {
 			| undefined;
 
 		expect(stub?.version).toBe('1.0');
-		expect(stub?.queue).toEqual([
-			toArgumentsArray(['init', '123456789012345']),
-			toArgumentsArray(['track', 'PAGE_VIEW']),
+		expectStubCommandQueue(stub, 'queue', [
+			['init', '123456789012345'],
+			['track', 'PAGE_VIEW'],
 		]);
 	});
 
@@ -51,17 +51,13 @@ describe('snapchatPixel', () => {
 		});
 
 		expect(script.src).toBe('https://cdn.example.com/scevent.min.js');
-		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
+		runOnBeforeLoad(script);
 
 		const stub = globalRef.snaptr as
 			| (((...args: unknown[]) => void) & { queue?: unknown[][] })
 			| undefined;
-		expect(stub?.queue).toEqual([
-			toArgumentsArray([
-				'init',
-				'123456789012345',
-				{ user_email: 'hello@example.com' },
-			]),
+		expectStubCommandQueue(stub, 'queue', [
+			['init', '123456789012345', { user_email: 'hello@example.com' }],
 		]);
 	});
 });

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-	createCallbackInfo,
 	expectScriptMatchesIntegration,
+	expectStubCommandQueue,
 	getTestGlobal,
+	runOnBeforeLoad,
 	setupScriptHelperTest,
-	toArgumentsArray,
 } from '../../__tests__/helpers';
 import { redditPixel } from './reddit-pixel';
 
@@ -25,7 +25,7 @@ describe('redditPixel', () => {
 		const globalRef = getTestGlobal();
 		const script = redditPixel({ pixelId: 't2_abcdef' });
 
-		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
+		runOnBeforeLoad(script);
 
 		const stub = globalRef.rdt as
 			| (((...args: unknown[]) => void) & {
@@ -33,9 +33,9 @@ describe('redditPixel', () => {
 			  })
 			| undefined;
 		expect(typeof stub).toBe('function');
-		expect(stub?.callQueue).toEqual([
-			toArgumentsArray(['init', 't2_abcdef']),
-			toArgumentsArray(['track', 'PageVisit']),
+		expectStubCommandQueue(stub, 'callQueue', [
+			['init', 't2_abcdef'],
+			['track', 'PageVisit'],
 		]);
 	});
 
@@ -48,13 +48,13 @@ describe('redditPixel', () => {
 		});
 
 		expect(script.src).toBe('https://cdn.example.com/reddit-pixel.js');
-		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
+		runOnBeforeLoad(script);
 
 		const stub = globalRef.rdt as
 			| (((...args: unknown[]) => void) & {
 					callQueue?: unknown[][];
 			  })
 			| undefined;
-		expect(stub?.callQueue).toEqual([toArgumentsArray(['init', 't2_abcdef'])]);
+		expectStubCommandQueue(stub, 'callQueue', [['init', 't2_abcdef']]);
 	});
 });

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
-	createCallbackInfo,
 	deniedConsentState,
+	expectGoogleConsentDefault,
 	getTestGlobal,
+	runOnBeforeLoad,
 	setupScriptHelperTest,
 	toArgumentsArray,
 } from '../../__tests__/helpers';
@@ -16,27 +17,12 @@ describe('gtag', () => {
 		const script = gtag({ id: 'G-ORDER', category: 'measurement' });
 		globalRef.dataLayer = [];
 
-		script.onBeforeLoad?.(
-			createCallbackInfo({
-				id: script.id,
-				consents: deniedConsentState,
-			})
-		);
+		runOnBeforeLoad(script, {
+			consents: deniedConsentState,
+		});
 
 		const dataLayer = globalRef.dataLayer as unknown[];
-		expect(toArgumentsArray(dataLayer[0])).toEqual([
-			'consent',
-			'default',
-			{
-				security_storage: 'granted',
-				functionality_storage: 'denied',
-				analytics_storage: 'denied',
-				ad_storage: 'denied',
-				ad_user_data: 'denied',
-				ad_personalization: 'denied',
-				personalization_storage: 'denied',
-			},
-		]);
+		expectGoogleConsentDefault(dataLayer[0]);
 		expect(toArgumentsArray(dataLayer[1])[0]).toBe('js');
 		expect(toArgumentsArray(dataLayer[2])).toEqual(['config', 'G-ORDER']);
 		expect(document.head.appendChild).not.toHaveBeenCalled();

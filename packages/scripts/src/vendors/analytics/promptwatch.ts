@@ -1,6 +1,7 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
+import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 /**
  * Promptwatch vendor manifest.
@@ -51,10 +52,10 @@ export function promptwatch({
 	}
 
 	const defaultScriptUrl = 'https://ingest.promptwatch.com/js/client.min.js';
-	let normalizedScriptUrl = defaultScriptUrl;
-	if (scriptUrl !== undefined && scriptUrl.trim().length > 0) {
-		normalizedScriptUrl = scriptUrl.trim();
-	}
+	const normalizedScriptUrl = resolveScriptUrl(
+		trimToUndefined(scriptUrl),
+		defaultScriptUrl
+	);
 
 	return resolveManifest(promptwatchManifest, {
 		projectId: normalizedProjectId,

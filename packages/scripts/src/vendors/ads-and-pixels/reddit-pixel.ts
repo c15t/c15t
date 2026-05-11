@@ -1,6 +1,8 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
+import { buildQueuePixelInstall } from '../_shared/install-builders';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 export type RedditPixelEventName =
 	| 'PageVisit'
@@ -100,26 +102,18 @@ export function redditPixel({
 	trackPageVisit = true,
 	scriptUrl,
 }: RedditPixelOptions): Script {
-	const install: VendorManifest['install'] = [
-		{
-			type: 'callGlobal',
-			global: 'rdt',
-			args: ['init', '{{pixelId}}'],
-		},
-	];
+	let trackStep: { args: unknown[] } | undefined;
 
 	if (trackPageVisit) {
-		install.push({
-			type: 'callGlobal',
-			global: 'rdt',
+		trackStep = {
 			args: ['track', 'PageVisit'],
-		});
+		};
 	}
 
-	install.push({
-		type: 'loadScript',
-		src: '{{scriptUrl}}',
-		async: true,
+	const install = buildQueuePixelInstall({
+		global: 'rdt',
+		initArgs: ['init', '{{pixelId}}'],
+		trackStep,
 	});
 
 	const manifest = {
@@ -129,6 +123,9 @@ export function redditPixel({
 
 	return resolveManifest(manifest, {
 		pixelId,
-		scriptUrl: scriptUrl ?? 'https://www.redditstatic.com/ads/pixel.js',
+		scriptUrl: resolveScriptUrl(
+			scriptUrl,
+			'https://www.redditstatic.com/ads/pixel.js'
+		),
 	});
 }

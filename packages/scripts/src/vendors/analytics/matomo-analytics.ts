@@ -1,6 +1,7 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
+import { joinUrlPath } from '../_shared/script-url';
 
 declare global {
 	interface Window {
@@ -28,19 +29,6 @@ function stripProtocol(value: string): string {
  */
 function stripTrailingSlash(value: string): string {
 	return value.replace(/\/+$/, '');
-}
-
-/**
- * Concatenates a base URL and path into a single slash-separated URL.
- *
- * @param base - Base URL or origin. Any trailing slashes are removed before
- * joining.
- * @param path - URL path segment. Any leading slashes are removed before
- * joining.
- * @returns A URL string in the form `<normalized base>/<normalized path>`.
- */
-function joinUrl(base: string, path: string): string {
-	return `${stripTrailingSlash(base)}/${path.replace(/^\/+/, '')}`;
 }
 
 /**
@@ -254,12 +242,12 @@ export function matomoAnalytics(options: MatomoAnalyticsOptions = {}): Script {
 	const origin = resolveMatomoOrigin(options);
 	let trackerUrl = options.trackerUrl;
 	if (!trackerUrl && origin) {
-		trackerUrl = joinUrl(origin, 'matomo.php');
+		trackerUrl = joinUrlPath(origin, 'matomo.php');
 	}
 
 	let scriptUrl = options.scriptUrl;
 	if (!scriptUrl && origin) {
-		scriptUrl = joinUrl(origin, 'matomo.js');
+		scriptUrl = joinUrlPath(origin, 'matomo.js');
 	}
 
 	if (!trackerUrl || !scriptUrl) {

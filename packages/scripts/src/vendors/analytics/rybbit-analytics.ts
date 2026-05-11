@@ -1,6 +1,8 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
+import { booleanDataAttribute } from '../_shared/attributes';
+import { joinUrlPath } from '../_shared/script-url';
 
 declare global {
 	interface Window {
@@ -12,17 +14,6 @@ declare global {
 			pageview: () => void;
 		};
 	}
-}
-
-function booleanAttribute(value: boolean | undefined): string | undefined {
-	if (value === undefined) {
-		return undefined;
-	}
-	if (value) {
-		return 'true';
-	}
-
-	return 'false';
 }
 
 /**
@@ -93,8 +84,7 @@ function getRybbitScriptUrl(options: RybbitAnalyticsOptions): string {
 		return options.scriptUrl;
 	}
 	if (options.analyticsHost) {
-		const normalizedAnalyticsHost = options.analyticsHost.replace(/\/+$/, '');
-		return `${normalizedAnalyticsHost}/script.js`;
+		return joinUrlPath(options.analyticsHost, 'script.js');
 	}
 
 	return 'https://app.rybbit.io/api/script.js';
@@ -125,13 +115,13 @@ export function rybbitAnalytics(options: RybbitAnalyticsOptions): Script {
 	return resolveManifest(rybbitAnalyticsManifest, {
 		scriptUrl: getRybbitScriptUrl(options),
 		siteId: String(options.siteId),
-		autoTrackPageview: booleanAttribute(options.autoTrackPageview),
-		trackSpa: booleanAttribute(options.trackSpa),
-		trackQuery: booleanAttribute(options.trackQuery),
-		trackOutbound: booleanAttribute(options.trackOutbound),
-		trackErrors: booleanAttribute(options.trackErrors),
-		sessionReplay: booleanAttribute(options.sessionReplay),
-		webVitals: booleanAttribute(options.webVitals),
+		autoTrackPageview: booleanDataAttribute(options.autoTrackPageview),
+		trackSpa: booleanDataAttribute(options.trackSpa),
+		trackQuery: booleanDataAttribute(options.trackQuery),
+		trackOutbound: booleanDataAttribute(options.trackOutbound),
+		trackErrors: booleanDataAttribute(options.trackErrors),
+		sessionReplay: booleanDataAttribute(options.sessionReplay),
+		webVitals: booleanDataAttribute(options.webVitals),
 		skipPatterns,
 		maskPatterns,
 		debounce,

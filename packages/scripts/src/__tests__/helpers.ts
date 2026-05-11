@@ -1,4 +1,4 @@
-import type { ConsentState, ScriptCallbackInfo } from 'c15t';
+import type { ConsentState, Script, ScriptCallbackInfo } from 'c15t';
 import { afterEach, beforeEach, expect, vi } from 'vitest';
 import {
 	type BuiltInScriptIntegrationKey,
@@ -92,6 +92,22 @@ export function createCallbackInfo(
 		consents: deniedConsentState,
 		...overrides,
 	};
+}
+
+export type LifecycleCallbackOverrides = Partial<
+	Omit<ScriptCallbackInfo, 'id'>
+>;
+
+export function runOnBeforeLoad(
+	script: Pick<Script, 'id' | 'onBeforeLoad'>,
+	overrides: LifecycleCallbackOverrides = {}
+): void {
+	script.onBeforeLoad?.(
+		createCallbackInfo({
+			id: script.id,
+			...overrides,
+		})
+	);
 }
 
 /**
@@ -197,6 +213,33 @@ export function expectScriptMatchesIntegration(
  */
 export function toArgumentsArray(value: unknown): unknown[] {
 	return Array.prototype.slice.call(value);
+}
+
+export function expectGoogleConsentDefault(entry: unknown): void {
+	expect(toArgumentsArray(entry)).toEqual([
+		'consent',
+		'default',
+		{
+			security_storage: 'granted',
+			functionality_storage: 'denied',
+			analytics_storage: 'denied',
+			ad_storage: 'denied',
+			ad_user_data: 'denied',
+			ad_personalization: 'denied',
+			personalization_storage: 'denied',
+		},
+	]);
+}
+
+export function expectStubCommandQueue(
+	stub: unknown,
+	queueKey: string,
+	commands: unknown[][]
+): void {
+	const queueOwner = stub as Record<string, unknown> | undefined;
+	expect(queueOwner?.[queueKey]).toEqual(
+		commands.map((command) => toArgumentsArray(command))
+	);
 }
 
 function setupMockBrowser() {

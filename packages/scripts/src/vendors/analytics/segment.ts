@@ -1,6 +1,7 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 /**
  * Public Segment Analytics.js API exposed on `window.analytics`.
@@ -201,8 +202,9 @@ export function segment({
 	}
 
 	return resolveManifest(manifest, {
-		scriptUrl:
-			scriptUrl ??
-			`https://cdn.segment.com/analytics.js/v1/${writeKey}/analytics.min.js`,
+		scriptUrl: resolveScriptUrl(
+			scriptUrl,
+			`https://cdn.segment.com/analytics.js/v1/${writeKey}/analytics.min.js`
+		),
 	});
 }

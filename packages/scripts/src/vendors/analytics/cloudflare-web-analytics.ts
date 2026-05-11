@@ -1,6 +1,7 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
+import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
 	interface Window {
@@ -76,9 +77,10 @@ export function cloudflareWebAnalytics(
 	options: CloudflareWebAnalyticsOptions
 ): Script {
 	const resolved = resolveManifest(cloudflareWebAnalyticsManifest, {
-		scriptUrl:
-			options.scriptUrl ??
-			'https://static.cloudflareinsights.com/beacon.min.js',
+		scriptUrl: resolveScriptUrl(
+			options.scriptUrl,
+			'https://static.cloudflareinsights.com/beacon.min.js'
+		),
 		beaconConfig: JSON.stringify({
 			token: options.token,
 			spa: options.spa ?? true,
