@@ -96,9 +96,14 @@ describe('metaPixelEvent', () => {
 			currency: 'USD',
 		});
 
-		expect(fbq).toHaveBeenCalledWith('track', 'Purchase', {
-			value: 10,
-			currency: 'USD',
-		}, undefined);
+		expect(fbq).toHaveBeenCalledWith(
+			'track',
+			'Purchase',
+			{
+				value: 10,
+				currency: 'USD',
+			},
+			undefined
+		);
 	});
 });
