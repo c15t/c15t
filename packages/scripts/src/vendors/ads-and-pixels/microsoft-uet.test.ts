@@ -75,7 +75,12 @@ describe('microsoftUet', () => {
 
 		globalRef.UET = UetMock;
 
-		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				hasConsent: false,
+			})
+		);
 		script.onLoad?.(
 			createCallbackInfo({
 				id: script.id,
