@@ -1,21 +1,42 @@
 ---
 title: Microsoft UET
 description: Track conversions and measure performance for Microsoft Advertising and Bing Ads.
-lastModified: 2025-09-24
+lastModified: 2026-05-11
 
 icon: microsoft
 ---
 
-Microsoft UET (Universal Event Tracking) is Microsoft's conversion tracking tag for Microsoft Advertising. It tracks user actions, measures campaign effectiveness, and enables remarketing campaigns. By default, c15t loads this script based on `marketing` consent.
+Microsoft UET (Universal Event Tracking) is Microsoft's conversion tracking tag
+for Microsoft Advertising. It tracks user actions, measures campaign
+effectiveness, and enables remarketing campaigns.
+
+## Official Microsoft documentation
+
+- [Universal Event Tracking](https://learn.microsoft.com/en-us/advertising/guides/universal-event-tracking?view=bingads-13)
+- [UET tag data object](https://learn.microsoft.com/en-us/advertising/campaign-management-service/uettag?view=bingads-13)
+- [FAQ: Universal Event Tracking](https://help.ads.microsoft.com/#apex/3/en/53056/2)
+- [FAQ: Remarketing](https://help.ads.microsoft.com/#apex/3/en/56727/1)
 
 <Callout type="note">
-  UET can also load Microsoft Clarity (if enabled in your UET tag settings). Since Clarity is an analytics tool, we recommend loading it separately with `measurement` consent instead.
+  UET can also load Microsoft Clarity (if enabled in your UET tag settings). Since
+  Clarity is an analytics tool, we recommend loading it separately with
+  `measurement` consent instead.
 </Callout>
+
+## How c15t loads it
+
+- **Category:** `marketing` (Ads & Pixels)
+- **Loads when:** immediately, with Microsoft consent mode enabled
+- **Default consent:** c15t pushes `ad_storage: 'denied'` before loading UET unless marketing consent is already granted
+- **On grant/revocation:** c15t pushes the new consent state to `uetq` so UET can switch between granted and denied mode without removing the script
 
 ## Adding Microsoft UET to c15t
 
 <Callout type="info">
-  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
+  Pass the result to your `ConsentManagerProvider` — see the
+  [JavaScript](/docs/frameworks/javascript/script-loader),
+  [React](/docs/frameworks/react/script-loader), or
+  [Next.js](/docs/frameworks/next/script-loader) script loader guide.
 </Callout>
 
 ```ts
@@ -26,11 +47,41 @@ microsoftUet({
 })
 ```
 
+Use the UET tag ID as `id`. Microsoft recommends creating one UET tag and
+adding it across your site; that tag can then support conversion goals and
+remarketing lists.
+
+## Tracking events in your app
+
+c15t loads Microsoft UET in consent mode, so `window.uetq` is created before
+consent is granted. Your own event calls are **not** automatically gated. Guard
+them if you only want to send custom conversion events after marketing consent
+is granted.
+
+Microsoft's custom event syntax uses
+`window.uetq.push('event', action, parameters)`. Conversion goals can match page
+visits and custom events, and event payloads can include revenue fields such as
+`revenue_value` and `currency`.
+
+```tsx
+import { useConsentManager } from '@c15t/react';
+
+function trackPurchase() {
+  const { has } = useConsentManager();
+  if (has('marketing')) {
+    window.uetq?.push('event', 'purchase', {
+      revenue_value: 10,
+      currency: 'USD',
+    });
+  }
+}
+```
+
 ## Types
 
 ### MicrosoftUetOptions
 
-<AutoTypeTable path="./packages/scripts/src/microsoft-uet.ts" name="MicrosoftUetOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/microsoft-uet.ts" name="MicrosoftUetOptions" />
 
 ### Script
 

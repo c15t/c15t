@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
 declare global {
 	interface Window {
@@ -71,8 +71,8 @@ export interface CalendlyOptions {
  * The helper intentionally omits inline widget auto-initialization because the
  * vendor API requires live DOM elements that c15t manifests cannot serialize.
  *
- * @param options - Optional configuration for the Calendly script
- * @returns The Calendly script configuration
+ * @param options - Optional configuration for the Calendly script.
+ * @returns The Calendly script configuration.
  */
 export function calendly(options: CalendlyOptions = {}): Script {
 	let resolvedScriptSrc = options.scriptSrc;
@@ -81,9 +81,7 @@ export function calendly(options: CalendlyOptions = {}): Script {
 		resolvedScriptSrc = 'https://assets.calendly.com/assets/external/widget.js';
 	}
 
-	const resolved = resolveManifest(calendlyManifest, {
+	return resolveManifest(calendlyManifest, {
 		scriptSrc: resolvedScriptSrc,
 	});
-
-	return resolved;
 }
