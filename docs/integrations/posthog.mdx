@@ -161,6 +161,10 @@ The behavior depends on which pattern you chose:
 - **SDK Implementation** — your app loaded `posthog-js` itself, so `posthog.capture(...)` is available once your SDK setup has run. c15t calls `opt_in_capturing()` / `opt_out_capturing()` for you. Pending events before c15t syncs consent may be dropped; after denial, PostHog captures cookieless events.
 - **Script Implementation** — the c15t helper uses `alwaysLoad: true`, so `window.posthog` is defined early. c15t calls `opt_in_capturing()` / `opt_out_capturing()` based on consent. Pending events before the PostHog bootstrap finishes may be dropped; after denial, PostHog captures cookieless events.
 
+<Callout type="warning">
+  PostHog may start a new session when a user moves between cookieless and cookie-based capture. This can split pre-consent and post-consent activity into separate sessions, which may inflate session counts or affect funnels around the consent boundary. Treat this as a PostHog analytics limitation, not a c15t consent sync issue.
+</Callout>
+
 ```ts
 posthog.capture('signup');
 ```
