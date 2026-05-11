@@ -49,6 +49,10 @@ This is the recommended approach if you're using the PostHog JS SDK; it's common
 
     With `cookieless_mode: 'on_reject'`, denied measurement consent does not mean "no events." It means PostHog records cookieless events without browser persistence. If your product needs denied consent to stop all PostHog event capture, do not use cookieless mode; load or call PostHog only after consent is granted.
 
+    <Callout type="warning">
+      Do not use `posthog.has_opted_in_capturing()` or `posthog.has_opted_out_capturing()` to decide whether to show your banner. In recent PostHog versions, `has_opted_in_capturing()` can return `true` when consent is still pending. Use c15t's consent store as the source of truth, or use PostHog's `get_explicit_consent_status()` when you specifically need PostHog's stored consent state.
+    </Callout>
+
     <Callout type="info">
       To wrap this in your framework, pass the `callbacks` option to your `ConsentManagerProvider` the same way you would pass `scripts` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
     </Callout>
