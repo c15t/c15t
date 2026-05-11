@@ -1,0 +1,83 @@
+---
+title: Hotjar
+description: Product analytics and behavior insights with a prebuilt helper that seeds Hotjar globals before loading the vendor bundle.
+lastModified: 2026-05-10
+icon: guide
+---
+
+Hotjar helps you understand behavior with heatmaps, session recordings, and feedback tools. The `hotjar()` helper sets up Hotjar's `_hjSettings` global and `hj` queue stub, then loads the vendor script once `measurement` consent is granted.
+
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** measurement consent is granted
+- **On revocation:** unloaded - c15t removes the script element from the DOM. Hotjar state stays client-side in Hotjar globals and any network activity stops once the loader is removed.
+
+## Adding Hotjar to c15t
+
+<Callout type="info">
+  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
+</Callout>
+
+```ts
+import { hotjar } from '@c15t/scripts/hotjar';
+
+hotjar({
+  siteId: 1234567,
+  version: 6,
+});
+```
+
+To load Hotjar from a custom URL:
+
+```ts
+hotjar({
+  siteId: 1234567,
+  scriptUrl: 'https://cdn.example.com/hotjar.js',
+});
+```
+
+## Tracking events in your app
+
+c15t gates loading of the Hotjar script until `measurement` consent is granted. The `hotjar()` helper initializes Hotjar globals by creating a pre-load queue stub at `window.hj`, so calls to Hotjar's runtime API (`window.hj(...)`) can be queued before the real script loads. After the helper runs, `window.hj` exists as that queue stub; once Hotjar's script loads, it is replaced by Hotjar's real implementation.
+
+Guard event calls by checking consent state. From React:
+
+```tsx
+import { useCallback } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+function SignupExample() {
+  const { has } = useConsentManager();
+
+  const trackSignup = useCallback(() => {
+    if (has('measurement')) {
+      window.hj?.('event', 'signup');
+    }
+  }, [has]);
+
+  // Call trackSignup() from an event handler after signup succeeds.
+}
+```
+
+From plain JavaScript:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('measurement')) {
+  window.hj?.('event', 'signup');
+}
+```
+
+## Types
+
+### HotjarOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/hotjar.ts" name="HotjarOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

@@ -31,6 +31,7 @@ import {
 	ahrefsAnalytics,
 	ahrefsAnalyticsManifest,
 } from './vendors/analytics/ahrefs-analytics';
+import { clarity, clarityManifest } from './vendors/analytics/clarity';
 import {
 	cloudflareWebAnalytics,
 	cloudflareWebAnalyticsManifest,
@@ -41,11 +42,16 @@ import {
 	fathomAnalyticsManifest,
 } from './vendors/analytics/fathom-analytics';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
+import { hotjar, hotjarManifest } from './vendors/analytics/hotjar';
 import {
 	plausibleAnalytics,
 	plausibleAnalyticsManifest,
 } from './vendors/analytics/plausible-analytics';
 import { posthog, posthogManifest } from './vendors/analytics/posthog';
+import {
+	rybbitAnalytics,
+	rybbitAnalyticsManifest,
+} from './vendors/analytics/rybbit-analytics';
 import {
 	umamiAnalytics,
 	umamiAnalyticsManifest,
@@ -100,6 +106,14 @@ const helperParityCases = {
 			src: 'https://static.cloudflareinsights.com/beacon.min.js',
 		},
 	},
+	clarity: {
+		script: clarity({ id: 'abcdef1234' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: true,
+			src: 'https://www.clarity.ms/tag/abcdef1234',
+		},
+	},
 	databuddy: {
 		script: databuddy({
 			clientId: 'db_123',
@@ -120,12 +134,28 @@ const helperParityCases = {
 			src: 'https://cdn.usefathom.com/script.js',
 		},
 	},
+	hotjar: {
+		script: hotjar({ siteId: 1234567 }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://static.hotjar.com/c/hotjar-1234567.js?sv=6',
+		},
+	},
 	posthog: {
 		script: posthog({ id: 'phc_123' }),
 		expected: {
 			alwaysLoad: true,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://eu-assets.i.posthog.com/static/array.js',
+		},
+	},
+	rybbitAnalytics: {
+		script: rybbitAnalytics({ siteId: 'rybbit-123' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://app.rybbit.io/api/script.js',
 		},
 	},
 	plausibleAnalytics: {
@@ -207,9 +237,12 @@ const vendorManifests = [
 	gtagManifest,
 	ahrefsAnalyticsManifest,
 	cloudflareWebAnalyticsManifest,
+	clarityManifest,
 	databuddyManifest,
 	fathomAnalyticsManifest,
+	hotjarManifest,
 	posthogManifest,
+	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,
 	umamiAnalyticsManifest,
 	vercelAnalyticsManifest,
