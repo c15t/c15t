@@ -184,7 +184,7 @@ export function segment({
 	trackPageView = true,
 	scriptUrl,
 }: SegmentOptions): Script {
-	let manifest = segmentManifest;
+	let manifest: VendorManifest = segmentManifest;
 
 	if (!trackPageView) {
 		manifest = {
