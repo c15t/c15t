@@ -272,6 +272,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'marketing',
 	},
 	{
+		key: 'snapchatPixel',
+		vendor: 'snapchat-pixel',
+		label: 'Snapchat Pixel',
+		hint: 'Snapchat ads tracking',
+		docsSlug: 'snapchat-pixel',
+		packageSubpath: 'snapchat-pixel',
+		integrationCategory: 'ads-and-pixels',
+		consentCategory: 'marketing',
+	},
+	{
 		key: 'xPixel',
 		vendor: 'x-pixel',
 		label: 'X (Twitter) Pixel',

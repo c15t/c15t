@@ -100,21 +100,32 @@ export function redditPixel({
 	trackPageVisit = true,
 	scriptUrl,
 }: RedditPixelOptions): Script {
-	let manifest = redditPixelManifest;
+	const install: VendorManifest['install'] = [
+		{
+			type: 'callGlobal',
+			global: 'rdt',
+			args: ['init', '{{pixelId}}'],
+		},
+	];
 
-	if (!trackPageVisit) {
-		manifest = {
-			...redditPixelManifest,
-			install: redditPixelManifest.install.filter(
-				(step) =>
-					!(
-						step.type === 'callGlobal' &&
-						step.args?.[0] === 'track' &&
-						step.args?.[1] === 'PageVisit'
-					)
-			),
-		} as const satisfies VendorManifest;
+	if (trackPageVisit) {
+		install.push({
+			type: 'callGlobal',
+			global: 'rdt',
+			args: ['track', 'PageVisit'],
+		});
 	}
+
+	install.push({
+		type: 'loadScript',
+		src: '{{scriptUrl}}',
+		async: true,
+	});
+
+	const manifest = {
+		...redditPixelManifest,
+		install,
+	} as const satisfies VendorManifest;
 
 	return resolveManifest(manifest, {
 		pixelId,

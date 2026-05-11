@@ -27,6 +27,10 @@ import {
 	redditPixelManifest,
 } from './vendors/ads-and-pixels/reddit-pixel';
 import {
+	snapchatPixel,
+	snapchatPixelManifest,
+} from './vendors/ads-and-pixels/snapchat-pixel';
+import {
 	tiktokPixel,
 	tiktokPixelManifest,
 } from './vendors/ads-and-pixels/tiktok-pixel';
@@ -226,6 +230,14 @@ const helperParityCases = {
 			src: '//bat.bing.com/bat.js',
 		},
 	},
+	snapchatPixel: {
+		script: snapchatPixel({ pixelId: '123456789012345' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://sc-static.net/scevent.min.js',
+		},
+	},
 	xPixel: {
 		script: xPixel({ pixelId: 'tw-123' }),
 		expected: {
@@ -263,6 +275,7 @@ const vendorManifests = [
 	tiktokPixelManifest,
 	linkedinInsightsManifest,
 	microsoftUetManifest,
+	snapchatPixelManifest,
 	xPixelManifest,
 ];
 

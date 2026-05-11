@@ -240,6 +240,8 @@ function cleanupMockBrowser() {
 	delete globalRef.databuddyConfig;
 	delete globalRef.plausible;
 	delete globalRef.ttq;
+	delete globalRef.snaptr;
+	delete globalRef._snaptr;
 	delete globalRef.rdt;
 	delete globalRef.twq;
 	delete globalRef._linkedin_partner_id;
