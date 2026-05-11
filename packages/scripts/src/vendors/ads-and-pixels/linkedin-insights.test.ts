@@ -1,11 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
 	expectScriptMatchesIntegration,
+	expectStubCommandQueue,
 	getTestGlobal,
 	runOnBeforeLoad,
 	setupScriptHelperTest,
 } from '../../__tests__/helpers';
 import { linkedinInsights } from './linkedin-insights';
+
+type LintrkStub =
+	| (((...args: unknown[]) => void) & {
+			q?: unknown[][];
+	  })
+	| undefined;
 
 describe('linkedinInsights', () => {
 	setupScriptHelperTest();
@@ -29,14 +36,27 @@ describe('linkedinInsights', () => {
 		expect(globalRef._linkedin_partner_id).toBe('987654');
 		expect(globalRef._linkedin_data_partner_ids).toEqual(['987654']);
 
-		const lintrk = globalRef.lintrk as
-			| (((...args: unknown[]) => void) & { q?: unknown[][] })
-			| undefined;
+		const lintrk = globalRef.lintrk as LintrkStub;
 		expect(typeof lintrk).toBe('function');
-		expect(lintrk?.q).toEqual([]);
+		expectStubCommandQueue(lintrk, 'q', []);
 
 		lintrk?.('track', { conversion_id: 'abc123' });
-		expect(lintrk?.q).toEqual([['track', { conversion_id: 'abc123' }]]);
+		expectStubCommandQueue(lintrk, 'q', [
+			['track', { conversion_id: 'abc123' }],
+		]);
+	});
+
+	it('preserves existing data partner IDs while appending the partner ID', () => {
+		const globalRef = getTestGlobal();
+		globalRef._linkedin_data_partner_ids = ['existing'];
+		const script = linkedinInsights({ id: '987654' });
+
+		runOnBeforeLoad(script);
+
+		expect(globalRef._linkedin_data_partner_ids).toEqual([
+			'existing',
+			'987654',
+		]);
 	});
 
 	it('supports overriding the loader URL', () => {
