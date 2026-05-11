@@ -14,13 +14,49 @@ describe('microsoftUet', () => {
 		const script = microsoftUet({ id: 'uet-123' });
 
 		expectScriptMatchesIntegration('microsoftUet', script, {
-			alwaysLoad: undefined,
+			alwaysLoad: true,
 			persistAfterConsentRevoked: true,
 			src: '//bat.bing.com/bat.js',
 		});
 	});
 
-	it('boots queue and sends page + default consent on load', () => {
+	it('boots queue and sends granted default consent before load', () => {
+		const globalRef = getTestGlobal();
+		const script = microsoftUet({ id: 'uet-123' });
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				hasConsent: true,
+			})
+		);
+
+		expect(globalRef.uetq).toEqual([
+			'consent',
+			'default',
+			{ ad_storage: 'granted' },
+		]);
+	});
+
+	it('boots queue and sends denied default consent before load', () => {
+		const globalRef = getTestGlobal();
+		const script = microsoftUet({ id: 'uet-123' });
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				hasConsent: false,
+			})
+		);
+
+		expect(globalRef.uetq).toEqual([
+			'consent',
+			'default',
+			{ ad_storage: 'denied' },
+		]);
+	});
+
+	it('constructs UET and sends page load after script load', () => {
 		const globalRef = getTestGlobal();
 		const script = microsoftUet({ id: 'uet-123' });
 
@@ -52,12 +88,9 @@ describe('microsoftUet', () => {
 		expect(instance.options).toEqual({
 			ti: 'uet-123',
 			enableAutoSpaTracking: true,
-			q: [],
+			q: ['consent', 'default', { ad_storage: 'denied' }],
 		});
-		expect(instance.pushCalls).toEqual([
-			['pageLoad'],
-			['consent', 'default', { ad_storage: 'granted' }],
-		]);
+		expect(instance.pushCalls).toEqual([['pageLoad']]);
 
 		delete globalRef.UET;
 	});

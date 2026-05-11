@@ -12,13 +12,14 @@ declare global {
 /**
  * Microsoft UET vendor manifest.
  *
- * Uses structured startup steps and manages consent via the UET push API:
- * `window.uetq.push('consent', 'default'|'update', { ad_storage: 'granted'|'denied' })`
+ * Loads in consent mode and manages consent via the UET push API:
+ * `window.uetq.push('consent', 'default'|'update', consentState)`.
  */
 export const microsoftUetManifest = {
 	...vendorManifestContract,
 	vendor: 'microsoft-uet',
 	category: 'marketing',
+	alwaysLoad: true,
 	persistAfterConsentRevoked: true,
 	bootstrap: [
 		{
@@ -26,6 +27,22 @@ export const microsoftUetManifest = {
 			name: 'uetq',
 			value: [],
 			ifUndefined: true,
+		},
+	],
+	onBeforeLoadGranted: [
+		{
+			type: 'callGlobal',
+			global: 'uetq',
+			method: 'push',
+			args: ['consent', 'default', { ad_storage: 'granted' }],
+		},
+	],
+	onBeforeLoadDenied: [
+		{
+			type: 'callGlobal',
+			global: 'uetq',
+			method: 'push',
+			args: ['consent', 'default', { ad_storage: 'denied' }],
 		},
 	],
 	install: [
@@ -53,12 +70,6 @@ export const microsoftUetManifest = {
 			global: 'uetq',
 			method: 'push',
 			args: ['pageLoad'],
-		},
-		{
-			type: 'callGlobal',
-			global: 'uetq',
-			method: 'push',
-			args: ['consent', 'default', { ad_storage: 'granted' }],
 		},
 	],
 	onConsentGranted: [
@@ -92,7 +103,8 @@ export interface MicrosoftUetOptions {
 
 /**
  * Microsoft UET Script
- * This script is persistent after consent is revoked because it has built-in functionality to opt into and out of tracking based on consent, which allows us to not need to load the script again when consent is revoked.
+ * This script loads in consent mode and stays persistent because UET can opt
+ * into and out of tracking based on consent.
  *
  * @param options - The options for the Microsoft UET script
  * @returns The Microsoft UET script configuration

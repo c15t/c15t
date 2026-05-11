@@ -277,7 +277,7 @@ const helperParityCases = {
 	microsoftUet: {
 		script: microsoftUet({ id: 'uet-123' }),
 		expected: {
-			alwaysLoad: undefined,
+			alwaysLoad: true,
 			persistAfterConsentRevoked: true,
 			src: '//bat.bing.com/bat.js',
 		},
