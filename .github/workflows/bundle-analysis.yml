@@ -8,8 +8,8 @@ on:
 
 env:
   # Never expose remote-cache credentials while PR code is running.
-  TURBO_TOKEN: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TOKEN }}
-  TURBO_TEAM: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+  TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
 
 jobs:
   bundle-analysis:
@@ -23,6 +23,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.base.ref || github.ref }}
           fetch-depth: 0 # Full history needed for base branch comparison
+          persist-credentials: false
 
       - name: 🟢 Setup Bun
         uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7

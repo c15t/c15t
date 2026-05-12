@@ -1,21 +1,21 @@
-# OSS Repository Security Hardening Guide
+# Open-Source Software (OSS) Repository Security Hardening Guide
 
 This guide captures the supply-chain hardening baseline used for c15t after the
 May 2026 TanStack incident. Use it as the standard prompt and review checklist
-when bringing other OSS repositories up to the same level.
+when bringing other open-source software (OSS) repositories up to the same level.
 
 ## TanStack Incident Summary
 
 The relevant failure mode was not a stolen maintainer password or a leaked
-long-lived npm token. The attack used CI itself:
+long-lived npm token. The attack used continuous integration (CI) itself:
 
-- A malicious fork PR triggered a `pull_request_target` workflow.
+- A malicious fork pull request (PR) triggered a `pull_request_target` workflow.
 - That workflow checked out attacker-controlled code while running in the base
   repository context.
 - The job had access to write a shared GitHub Actions cache.
 - A later legitimate release workflow restored the poisoned cache.
 - The poisoned cache extracted the short-lived publish credential when it was
-  minted by OIDC trusted publishing.
+  minted by OpenID Connect (OIDC) trusted publishing.
 - Compromised package artifacts were published before maintainers saw the issue.
 
 The lesson: OIDC, provenance, 2FA, and lockfiles are necessary, but they do not

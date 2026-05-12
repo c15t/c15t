@@ -61,8 +61,8 @@ jobs:
         id: run-base-bench
         continue-on-error: ${{ github.event_name == 'pull_request' }}
         env:
-          TURBO_TOKEN: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TOKEN }}
-          TURBO_TEAM: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TEAM }}
+          TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+          TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
         run: bun run bench:ci
 
       - name: Save base results

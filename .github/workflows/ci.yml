@@ -9,8 +9,8 @@ on:
 env:
   # Do not pass Turbo remote-cache creds when running untrusted PR code (same-repo
   # PRs still execute arbitrary branch code). Fork PRs already omit repo secrets.
-  TURBO_TOKEN: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TOKEN }}
-  TURBO_TEAM: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+  TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
 
 jobs:
   lint_and_check:
