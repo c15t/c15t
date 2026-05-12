@@ -48,9 +48,12 @@ function resolveMatomoOrigin(
 	}
 
 	if (options.cloudId) {
-		return `https://cdn.matomo.cloud/${stripTrailingSlash(
-			stripProtocol(options.cloudId)
-		)}`;
+		const cleanedCloudId = stripTrailingSlash(stripProtocol(options.cloudId));
+		if (cleanedCloudId.endsWith('.matomo.cloud')) {
+			return `https://${cleanedCloudId}`;
+		}
+
+		return `https://cdn.matomo.cloud/${cleanedCloudId}`;
 	}
 
 	return undefined;
@@ -128,6 +131,14 @@ function createMatomoAnalyticsManifest(options: {
 			queue: '_paq',
 			value: ['setConsentGiven'],
 		});
+
+		if (options.trackPageView) {
+			install.push({
+				type: 'pushToQueue',
+				queue: '_paq',
+				value: ['trackPageView'],
+			});
+		}
 	}
 
 	if (options.trackPageView && !options.enableConsentMode) {
@@ -145,14 +156,18 @@ function createMatomoAnalyticsManifest(options: {
 	});
 
 	const onBeforeLoadGranted: VendorManifest['onBeforeLoadGranted'] = [];
-	if (options.enableConsentMode) {
+	if (options.enableConsentMode && !options.consentInitiallyGiven) {
 		onBeforeLoadGranted.push({
 			type: 'pushToQueue',
 			queue: '_paq',
 			value: ['setConsentGiven'],
 		});
 	}
-	if (options.trackPageView && options.enableConsentMode) {
+	if (
+		options.trackPageView &&
+		options.enableConsentMode &&
+		!options.consentInitiallyGiven
+	) {
 		onBeforeLoadGranted.push({
 			type: 'pushToQueue',
 			queue: '_paq',

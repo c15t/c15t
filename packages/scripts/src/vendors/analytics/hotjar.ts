@@ -31,7 +31,7 @@ export const hotjarManifest = {
 				hjid: '{{siteId}}',
 				hjsv: '{{version}}',
 			},
-			ifUndefined: false,
+			ifUndefined: true,
 		},
 		{
 			type: 'defineStubFunction',

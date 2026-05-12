@@ -7,26 +7,78 @@ icon: hotjar
 
 Hotjar helps you understand behavior with heatmaps, session recordings, and feedback tools. The `hotjar()` helper sets up Hotjar's `_hjSettings` global and `hj` queue stub, then loads the vendor script once `measurement` consent is granted.
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { hotjar } from '@c15t/scripts/hotjar';
+
+    const scripts = [hotjar({ siteId: 1234567, version: 6 })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { hotjar } from '@c15t/scripts/hotjar';
+
+    const scripts = [hotjar({ siteId: 1234567, version: 6 })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { hotjar } from '@c15t/scripts/hotjar';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [hotjar({ siteId: 1234567, version: 6 })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `measurement` (Analytics)
 - **Loads when:** measurement consent is granted
-- **On revocation:** unloaded - c15t removes the script element from the DOM. Hotjar state stays client-side in Hotjar globals and any network activity stops once the loader is removed.
-
-## Adding Hotjar to c15t
-
-<Callout type="info">
-  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-</Callout>
-
-```ts
-import { hotjar } from '@c15t/scripts/hotjar';
-
-hotjar({
-  siteId: 1234567,
-  version: 6,
-});
-```
+- **On revocation:** unloaded - c15t removes the loader script element from the DOM, which prevents further loader-driven network requests. Existing Hotjar requests, timers, event listeners, and globals may continue until they finish or are cleared by Hotjar-specific APIs.
 
 To load Hotjar from a custom URL:
 

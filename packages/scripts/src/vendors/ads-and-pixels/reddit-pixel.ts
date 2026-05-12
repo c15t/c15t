@@ -158,7 +158,7 @@ type RedditPixelFunction = {
 
 declare global {
 	interface Window {
-		rdt: RedditPixelFunction & {
+		rdt?: RedditPixelFunction & {
 			callQueue?: unknown[][];
 			sendEvent?: (...args: unknown[]) => void;
 		};
@@ -337,4 +337,10 @@ function getRedditPixelInitOptions({
 export const redditPixelEvent = (
 	eventName: RedditPixelEventName | (string & {}),
 	metadata?: RedditPixelEventMetadata
-) => window.rdt('track', eventName, metadata);
+) => {
+	if (typeof window === 'undefined' || typeof window.rdt !== 'function') {
+		return;
+	}
+
+	window.rdt('track', eventName, metadata);
+};

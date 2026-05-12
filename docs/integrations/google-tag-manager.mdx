@@ -15,13 +15,82 @@ This prevents GTM-managed scripts from loading without proper consent while givi
   Use GTM if your team manages many tags centrally in the GTM UI. Use `gtag.js` if you only need GA4/Google Ads directly in code. Don't run both for the same destination unless intentional, or you may duplicate events.
 </Callout>
 
+## Integrate with c15t
+
+Use your GTM container ID, which begins with `GTM-`.
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+
+    const scripts = [googleTagManager({ id: 'GTM-XXXXXXX' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+
+    const scripts = [googleTagManager({ id: 'GTM-XXXXXXX' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [googleTagManager({ id: 'GTM-XXXXXXX' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `necessary` (Tag Managers)
 - **Loads when:** [`alwaysLoad`](/docs/frameworks/react/script-loader#always-load) — runs on page start with Consent Mode v2 defaults set to denied
 - **On consent change:** c15t pushes a Consent Mode v2 `update` to the data layer; GTM-managed tags re-evaluate against the new state
 
-## Implementation
+## Configure the integration
 
 <Steps>
   <Step>
@@ -53,29 +122,11 @@ This prevents GTM-managed scripts from loading without proper consent while givi
   </Step>
 
   <Step>
-    ### Adding / Updating tags
+    ### Update tags
 
     Now for your existing tags, you can add the "consent-update" trigger to the tag, this will fire the update event when the consent state is updated & it has the appropriate consent state.
 
     ![Update tags](https://qawfa2yzgrix7k7v.public.blob.vercel-storage.com/google-tag-manager/update-tags.png)
-  </Step>
-
-  <Step>
-    ### Setting up c15t with Google Tag Manager
-
-    After creating your container, you can set up c15t with Google Tag Manager. All you need to do is copy and paste your container ID & begins with "GTM-".
-
-    <Callout type="info">
-      Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-    </Callout>
-
-    ```ts
-    import { googleTagManager } from '@c15t/scripts/google-tag-manager';
-
-    googleTagManager({
-      id: 'GTM-XXXXXXX',
-    })
-    ```
   </Step>
 </Steps>
 
@@ -90,7 +141,7 @@ window.dataLayer.push({ event: 'signup' });
 
 You do not need to wrap `dataLayer.push(...)` in a `useConsentManager().has(...)` check — the consent gate happens inside GTM, not inside c15t.
 
-## Post-setup verification checklist
+## Verify setup
 
 1. Open GTM Preview mode and confirm your container (`GTM-...`) loads on page load.
 2. Before giving consent, confirm non-essential tags do not fire in GTM Preview.

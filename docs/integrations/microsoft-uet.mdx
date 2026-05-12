@@ -22,29 +22,79 @@ effectiveness, and enables remarketing campaigns.
   `measurement` consent instead.
 </Callout>
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { microsoftUet } from '@c15t/scripts/microsoft-uet';
+
+    const scripts = [microsoftUet({ id: '123456789012345' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { microsoftUet } from '@c15t/scripts/microsoft-uet';
+
+    const scripts = [microsoftUet({ id: '123456789012345' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { microsoftUet } from '@c15t/scripts/microsoft-uet';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [microsoftUet({ id: '123456789012345' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `marketing` (Ads & Pixels)
 - **Loads when:** immediately, with Microsoft consent mode enabled
 - **Default consent:** c15t pushes `ad_storage: 'denied'` before loading UET unless marketing consent is already granted
 - **On grant/revocation:** c15t pushes the new consent state to `uetq` so UET can switch between granted and denied mode without removing the script
-
-## Adding Microsoft UET to c15t
-
-<Callout type="info">
-  Pass the result to your `ConsentManagerProvider` — see the
-  [JavaScript](/docs/frameworks/javascript/script-loader),
-  [React](/docs/frameworks/react/script-loader), or
-  [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-</Callout>
-
-```ts
-import { microsoftUet } from '@c15t/scripts/microsoft-uet';
-
-microsoftUet({
-  id: '123456789012345',
-})
-```
 
 Use the UET tag ID as `id`. Microsoft recommends creating one UET tag and
 adding it across your site; that tag can then support conversion goals and

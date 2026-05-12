@@ -15,6 +15,73 @@ calls until the widget bundle loads.
 - [JavaScript API](https://developers.intercom.com/installing-intercom/web/methods)
 - [Attributes and objects](https://developers.intercom.com/installing-intercom/web/attributes-objects)
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { intercom } from '@c15t/scripts/intercom';
+
+    const scripts = [intercom({ appId: 'abc123' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { intercom } from '@c15t/scripts/intercom';
+
+    const scripts = [intercom({ appId: 'abc123' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { intercom } from '@c15t/scripts/intercom';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [intercom({ appId: 'abc123' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `functionality` (Functional)
@@ -24,19 +91,7 @@ calls until the widget bundle loads.
 - **On revocation:** c15t follows the default script loader behavior for
   non-persistent scripts
 
-## Adding Intercom to c15t
-
-<Callout type="info">
-  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
-</Callout>
-
-```ts
-import { intercom } from '@c15t/scripts/intercom';
-
-intercom({ appId: 'abc123' })
-```
-
-## API region
+## Configure the integration
 
 Intercom's default regional API base is `https://api-iam.intercom.io`. If your
 workspace uses the EU or Australia data host, pass the matching `apiBase`.
@@ -48,7 +103,7 @@ intercom({
 })
 ```
 
-## Runtime options
+### Runtime options
 
 Pass additional Intercom settings through `settings`. The helper always writes
 the provided `appId` to `app_id` and `apiBase` to `api_base`.

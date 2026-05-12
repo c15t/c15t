@@ -7,25 +7,78 @@ icon: fathom-analytics
 
 Fathom Analytics is a lightweight, cookieless analytics product configured entirely through `data-*` attributes on its loader. The `fathomAnalytics()` helper serializes your site ID and tracking options into those attributes and hands the result to c15t's script loader.
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { fathomAnalytics } from '@c15t/scripts/fathom-analytics';
+
+    const scripts = [fathomAnalytics({ site: 'SITE123' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { fathomAnalytics } from '@c15t/scripts/fathom-analytics';
+
+    const scripts = [fathomAnalytics({ site: 'SITE123' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { fathomAnalytics } from '@c15t/scripts/fathom-analytics';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [fathomAnalytics({ site: 'SITE123' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `measurement` (Analytics)
 - **Loads when:** measurement consent is granted
 - **On revocation:** unloaded — c15t removes the script element from the DOM. Fathom is cookieless, so no client-side state needs clearing.
-
-## Adding Fathom Analytics to c15t
-
-<Callout type="info">
-  Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-</Callout>
-
-```ts
-import { fathomAnalytics } from '@c15t/scripts/fathom-analytics';
-
-fathomAnalytics({
-  site: 'SITE123',
-})
-```
 
 If you need to tune SPA tracking, canonical URL tracking, or Do Not Track handling:
 
@@ -49,11 +102,20 @@ Guard event calls by checking consent state. From React:
 ```tsx
 import { useConsentManager } from '@c15t/react';
 
-function trackSignup() {
+function useTrackSignup() {
   const { has } = useConsentManager();
-  if (has('measurement')) {
-    window.fathom?.trackEvent('signup');
-  }
+
+  return () => {
+    if (has('measurement')) {
+      window.fathom?.trackEvent('signup');
+    }
+  };
+}
+
+function SignupButton() {
+  const trackSignup = useTrackSignup();
+
+  return <button onClick={trackSignup}>Sign up</button>;
 }
 ```
 

@@ -98,7 +98,7 @@ type SnapchatPixelFunction = {
 
 declare global {
 	interface Window {
-		snaptr: SnapchatPixelFunction & {
+		snaptr?: SnapchatPixelFunction & {
 			handleRequest?: (...args: unknown[]) => void;
 			loaded?: boolean;
 			push?: Window['snaptr'];
@@ -273,4 +273,10 @@ export function snapchatPixel({
 export const snapchatPixelEvent = (
 	eventName: SnapchatPixelEventName | (string & {}),
 	properties?: SnapchatPixelEventProperties
-) => window.snaptr('track', eventName, properties);
+) => {
+	if (typeof window === 'undefined' || typeof window.snaptr !== 'function') {
+		return;
+	}
+
+	window.snaptr('track', eventName, properties);
+};

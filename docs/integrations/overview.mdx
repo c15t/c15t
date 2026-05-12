@@ -1,15 +1,58 @@
 ---
 title: Integrations
-description: "Browse built-in `@c15t/scripts` integrations by category, or learn when to drop down to a plain `Script` or a manifest-backed helper."
-lastModified: 2026-05-10
+description: "Load analytics, pixels, tag managers, and widgets through c15t so consent state controls when they run, update, and appear in your consent UI."
+lastModified: 2026-05-12
 
 ---
 
-c15t ships prebuilt helpers in [`@c15t/scripts`](https://www.npmjs.com/package/@c15t/scripts) for the third-party tools developers integrate most often. Every helper returns a regular `Script` object, so it works anywhere the c15t [script loader](/docs/frameworks/javascript/script-loader) accepts scripts.
+Third-party tools are easy to paste into app code, but consent makes them part
+of your privacy runtime. Analytics SDKs, ad pixels, tag managers, and chat
+widgets can load remote code, store identifiers, send events, and keep running
+after the first page view.
 
 <Callout type="info">
-  Built-in helpers encode vendor boot order, consent updates, and common defaults for you. Prefer them over hand-rolled snippets whenever c15t already supports the vendor.
+  Put consent-sensitive vendor tools in c15t instead of scattering script tags
+  across your codebase. c15t becomes the place that decides when they can load,
+  when they must stop, and which consent categories your UI needs to show.
 </Callout>
+
+## Why Manage Tools In c15t
+
+When you install a vendor directly in your app, your consent logic has to chase
+that vendor everywhere it appears: page layouts, route handlers, event helpers,
+tag-manager snippets, and cleanup code.
+
+Register the vendor with c15t instead. The integration becomes a declarative
+`Script` that the consent runtime can reason about:
+
+- c15t registers the tool with the runtime and evaluates it against the current
+  consent state;
+- c15t automatically adds the tool's consent category to the active categories,
+  so GDPR-style consent UIs include `measurement`, `marketing`, or
+  `functionality` when an enabled integration needs them;
+- c15t blocks the script until consent is granted, or loads it with denied
+  defaults when the vendor has its own consent mode;
+- c15t handles revocation by unloading the script or calling the vendor's
+  consent API;
+- c15t runs vendor setup in the right order, including queue stubs, global
+  functions, data attributes, default page-view events, and consent updates.
+
+That gives your app one consent lifecycle instead of many scattered vendor
+lifecycles.
+
+## Built-In Helpers
+
+c15t ships prebuilt helpers in
+[`@c15t/scripts`](https://www.npmjs.com/package/@c15t/scripts) for the
+third-party tools developers integrate most often. Prefer them over copied
+vendor snippets whenever c15t already supports the vendor.
+
+Every helper returns a regular `Script` object, so it works anywhere the c15t
+[script loader](/docs/frameworks/javascript/script-loader) accepts scripts. You
+usually choose the helper, provide the vendor ID, and pass the result to your
+provider's `scripts` option. The vendor page explains anything else that still
+matters, such as custom events, region settings, privacy modes, or ecommerce
+payloads.
 
 ## Choose An Integration Style
 

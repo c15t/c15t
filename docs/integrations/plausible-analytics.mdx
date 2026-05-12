@@ -7,25 +7,78 @@ icon: plausible
 
 Plausible Analytics is a privacy-friendly, cookieless analytics product with a lightweight script loader. The `plausibleAnalytics()` helper models Plausible's queue bootstrap and script attributes as a c15t-managed script so early `window.plausible(...)` calls are buffered safely until the tracker loads.
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { plausibleAnalytics } from '@c15t/scripts/plausible-analytics';
+
+    const scripts = [plausibleAnalytics({ domain: 'example.com' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { plausibleAnalytics } from '@c15t/scripts/plausible-analytics';
+
+    const scripts = [plausibleAnalytics({ domain: 'example.com' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { plausibleAnalytics } from '@c15t/scripts/plausible-analytics';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [plausibleAnalytics({ domain: 'example.com' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `measurement` (Analytics)
 - **Loads when:** measurement consent is granted
 - **On revocation:** unloaded — c15t removes the script element from the DOM. Plausible is cookieless, so no client-side state needs clearing.
-
-## Adding Plausible Analytics to c15t
-
-<Callout type="info">
-  Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-</Callout>
-
-```ts
-import { plausibleAnalytics } from '@c15t/scripts/plausible-analytics';
-
-plausibleAnalytics({
-  domain: 'example.com',
-})
-```
 
 If you need script extensions or hash-based routing support, pass them through the helper:
 

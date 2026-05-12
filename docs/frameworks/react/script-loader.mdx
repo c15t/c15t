@@ -43,6 +43,8 @@ The provider registers those scripts when the consent runtime starts. From that 
 Define your script list once and keep it next to the consent provider so vendor setup stays declarative:
 
 ```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/react';
 import { gtag } from '@c15t/scripts/google-tag';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
@@ -51,7 +53,7 @@ const scripts = [
   metaPixel({ pixelId: '123456' }),
 ];
 
-export function ConsentProvider({ children }: { children: React.ReactNode }) {
+export function ConsentProvider({ children }: { children: ReactNode }) {
   return (
     <ConsentManagerProvider
       options={{

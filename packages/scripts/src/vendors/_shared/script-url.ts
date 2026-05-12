@@ -81,5 +81,24 @@ export function resolveScriptUrl(
  * ```
  */
 export function joinUrlPath(base: string, path: string): string {
-	return `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
+	const trimmedBase = base.trim();
+	const trimmedPath = path.trim();
+
+	if (trimmedBase.length === 0) {
+		throw new TypeError(
+			`joinUrlPath requires a non-empty base URL. Received base=${JSON.stringify(
+				base
+			)}, path=${JSON.stringify(path)}.`
+		);
+	}
+
+	if (trimmedPath.length === 0) {
+		throw new TypeError(
+			`joinUrlPath requires a non-empty path. Received base=${JSON.stringify(
+				base
+			)}, path=${JSON.stringify(path)}.`
+		);
+	}
+
+	return `${trimmedBase.replace(/\/+$/, '')}/${trimmedPath.replace(/^\/+/, '')}`;
 }

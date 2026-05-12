@@ -42,7 +42,6 @@ export const rybbitAnalyticsManifest = {
 				'data-skip-patterns': '{{skipPatterns}}',
 				'data-mask-patterns': '{{maskPatterns}}',
 				'data-debounce': '{{debounce}}',
-				'data-api-key': '{{apiKey}}',
 			},
 		},
 	],
@@ -137,6 +136,5 @@ export function rybbitAnalytics(options: RybbitAnalyticsOptions): Script {
 		skipPatterns,
 		maskPatterns,
 		debounce,
-		apiKey: options.apiKey,
 	});
 }

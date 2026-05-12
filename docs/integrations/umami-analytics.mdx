@@ -2,30 +2,83 @@
 title: Umami Analytics
 description: Open-source, cookieless analytics with a prebuilt helper that maps Umami's data attributes into a c15t-managed script.
 lastModified: 2026-05-10
-icon: umani-analytics
+icon: umami-analytics
 ---
 
 Umami is an open-source, cookieless analytics product configured entirely through `data-*` attributes on its loader. The `umamiAnalytics()` helper serializes your website ID, host override, and tracking options into those attributes and hands the result to c15t's script loader.
+
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { umamiAnalytics } from '@c15t/scripts/umami-analytics';
+
+    const scripts = [umamiAnalytics({ websiteId: 'site-abc-123' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { umamiAnalytics } from '@c15t/scripts/umami-analytics';
+
+    const scripts = [umamiAnalytics({ websiteId: 'site-abc-123' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { umamiAnalytics } from '@c15t/scripts/umami-analytics';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [umamiAnalytics({ websiteId: 'site-abc-123' })],
+    });
+    ```
+  </Tab>
+</Tabs>
 
 ## How c15t loads it
 
 - **Category:** `measurement` (Analytics)
 - **Loads when:** measurement consent is granted
 - **On revocation:** unloaded — c15t removes the script element from the DOM. Umami is cookieless, so no client-side state needs clearing.
-
-## Adding Umami Analytics to c15t
-
-<Callout type="info">
-  Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-</Callout>
-
-```ts
-import { umamiAnalytics } from '@c15t/scripts/umami-analytics';
-
-umamiAnalytics({
-  websiteId: 'site-abc-123',
-})
-```
 
 If you self-host Umami or need to restrict tracking to specific domains:
 

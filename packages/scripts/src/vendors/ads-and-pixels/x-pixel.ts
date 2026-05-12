@@ -200,5 +200,12 @@ export function xPixel({ pixelId, scriptSrc }: XPixelOptions): Script {
  *
  * @see {@link https://business.x.com/en/help/campaign-measurement-and-analytics/conversion-tracking-for-websites#event-types-and-parameters}
  */
-export const xPixelEvent = (eventId: string, metadata?: XPixelEvent) =>
-	window.twq?.('event', eventId, metadata);
+export const xPixelEvent = (eventId: string, metadata?: XPixelEvent) => {
+	if (typeof window === 'undefined' || typeof window.twq !== 'function') {
+		throw new Error(
+			'X Pixel (twq) is not loaded. Ensure marketing consent is granted before calling xPixelEvent.'
+		);
+	}
+
+	return window.twq('event', eventId, metadata);
+};

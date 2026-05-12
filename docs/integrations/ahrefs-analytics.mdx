@@ -7,25 +7,90 @@ icon: ahrefs
 
 Ahrefs Web Analytics is a cookieless analytics product configured with a single project key. The `ahrefsAnalytics()` helper wires that key into the `data-key` attribute that Ahrefs' loader reads at startup.
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { ahrefsAnalytics } from '@c15t/scripts/ahrefs-analytics';
+
+    const scripts = [
+      ahrefsAnalytics({
+        key: 'your-ahrefs-project-key',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { ahrefsAnalytics } from '@c15t/scripts/ahrefs-analytics';
+
+    const scripts = [
+      ahrefsAnalytics({
+        key: 'your-ahrefs-project-key',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { ahrefsAnalytics } from '@c15t/scripts/ahrefs-analytics';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [
+        ahrefsAnalytics({
+          key: 'your-ahrefs-project-key',
+        }),
+      ],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `measurement` (Analytics)
 - **Loads when:** measurement consent is granted
 - **On revocation:** unloaded — c15t removes the script element from the DOM. Ahrefs Web Analytics is cookieless, so no client-side state needs clearing.
-
-## Adding Ahrefs Analytics to c15t
-
-<Callout type="info">
-  Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-</Callout>
-
-```ts
-import { ahrefsAnalytics } from '@c15t/scripts/ahrefs-analytics';
-
-ahrefsAnalytics({
-  key: 'your-ahrefs-project-key',
-})
-```
 
 To run from a custom loader URL (for example a self-hosted proxy):
 

@@ -11,27 +11,80 @@ X Pixel (formerly Twitter Pixel) is X's conversion tracking and audience buildin
 
 - [Conversion tracking for websites (X Ads Help)](https://business.x.com/en/help/campaign-measurement-and-analytics/conversion-tracking-for-websites)
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { xPixel } from '@c15t/scripts/x-pixel';
+
+    const scripts = [xPixel({ pixelId: '123456789012345' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { xPixel } from '@c15t/scripts/x-pixel';
+
+    const scripts = [xPixel({ pixelId: '123456789012345' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { xPixel } from '@c15t/scripts/x-pixel';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [xPixel({ pixelId: '123456789012345' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `marketing` (Ads & Pixels)
 - **Loads when:** marketing consent is granted
 - **On revocation:** unloaded — c15t removes the script element from the DOM
 
-## Implementation
-
-<Callout type="info">
-  Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-</Callout>
-
-```ts
-import { xPixel } from '@c15t/scripts/x-pixel';
-
-xPixel({
-  pixelId: '123456789012345',
-})
-```
-
-## xPixelEvent
+## Configure the integration
 
 You can use the `xPixelEvent` function to track events. This is a wrapper around the `twq` function that the X Pixel script uses.
 

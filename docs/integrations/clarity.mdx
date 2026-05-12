@@ -7,27 +7,92 @@ icon: microsoft-clarity
 
 Microsoft Clarity gives you session recordings, heatmaps, and behavioral insights. The `clarity()` helper sets up Clarity's queue stub, loads the vendor bundle, and keeps Clarity's consent state in sync as c15t measurement consent changes.
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { clarity } from '@c15t/scripts/clarity';
+
+    const scripts = [
+      clarity({
+        id: 'abcdef1234',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { clarity } from '@c15t/scripts/clarity';
+
+    const scripts = [
+      clarity({
+        id: 'abcdef1234',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { clarity } from '@c15t/scripts/clarity';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [
+        clarity({
+          id: 'abcdef1234',
+        }),
+      ],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `measurement` (Analytics)
 - **Loads when:** measurement consent is granted
 - **On revocation:** stays loaded (`persistAfterConsentRevoked: true`) and receives `clarity('consent', false)` so Clarity transitions into denied mode without tearing down the script.
 
-## Adding Clarity to c15t
-
-<Callout type="info">
-  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-</Callout>
-
-```ts
-import { clarity } from '@c15t/scripts/clarity';
-
-clarity({
-  id: 'abcdef1234',
-});
-```
-
-## Default consent
+## Configure the integration
 
 You can queue an initial Clarity consent value before the script loads.
 
@@ -40,7 +105,19 @@ clarity({
 });
 ```
 
-If you pass an object, c15t queues that exact value during boot. Later consent changes are mapped to simple `true` or `false` values when c15t updates Clarity.
+Use an object when you need to map granular consent categories into Clarity's boot-time consent payload:
+
+```ts
+clarity({
+  id: 'abcdef1234',
+  defaultConsent: {
+    marketing: false,
+    analytics: true,
+  },
+});
+```
+
+c15t queues that exact `defaultConsent` object during boot. Later consent changes are mapped to simple `true` or `false` values when c15t updates Clarity.
 
 ## Tracking events in your app
 

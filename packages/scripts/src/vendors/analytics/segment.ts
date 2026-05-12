@@ -206,7 +206,7 @@ export function segment({
 						step.method === 'page'
 					)
 			),
-		} as const satisfies VendorManifest;
+		} satisfies VendorManifest;
 	}
 
 	return resolveManifest(manifest, {

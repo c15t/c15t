@@ -6,8 +6,7 @@ import { resolveScriptUrl } from '../_shared/script-url';
 declare global {
 	interface Window {
 		__cfBeacon?: {
-			load?: 'single';
-			spa: boolean;
+			spa?: boolean;
 			token: string;
 		};
 	}

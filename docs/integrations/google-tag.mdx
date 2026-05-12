@@ -18,26 +18,93 @@ c15t initializes Google Tag with Consent Mode v2 defaults set to denied and auto
 - Use `category: 'measurement'` for analytics-only tracking (GA4 events)
 - Use `category: 'marketing'` for advertising and conversion tracking (Google Ads)
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { gtag } from '@c15t/scripts/google-tag';
+
+    const scripts = [
+      gtag({
+        id: 'G-XXXXXXXXXX',
+        category: 'measurement', // or 'marketing'
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { gtag } from '@c15t/scripts/google-tag';
+
+    const scripts = [
+      gtag({
+        id: 'G-XXXXXXXXXX',
+        category: 'measurement', // or 'marketing'
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { gtag } from '@c15t/scripts/google-tag';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [
+        gtag({
+          id: 'G-XXXXXXXXXX',
+          category: 'measurement', // or 'marketing'
+        }),
+      ],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
-- **Category:** configurable — `measurement` (default) or `marketing` (Analytics)
+- **Category:** configurable — `measurement` (default, Analytics) or `marketing`
 - **Loads when:** [`alwaysLoad`](/docs/frameworks/react/script-loader#always-load) — runs on page start regardless of consent state, with Consent Mode v2 defaults set to denied
 - **On consent change:** [persists](/docs/frameworks/react/script-loader#persist-after-revocation) — c15t pushes a Consent Mode v2 `update` to gtag instead of removing the script
-
-## Adding GA4 + Google Ads to c15t
-
-<Callout type="info">
-  Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-</Callout>
-
-```ts
-import { gtag } from '@c15t/scripts/google-tag';
-
-gtag({
-  id: 'G-XXXXXXXXXX',
-  category: 'measurement', // or 'marketing'
-})
-```
 
 ## Tracking events in your app
 

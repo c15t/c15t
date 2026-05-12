@@ -12,11 +12,11 @@ c15t exposes two integration patterns for PostHog. Pick the one that matches how
 - **PostHog SDK** — your app loads `posthog-js` itself; c15t only synchronizes consent. Recommended for most React apps.
 - **PostHog Script** — c15t loads PostHog's array bootstrap as a managed `Script`.
 
-## PostHog SDK Implementation
+## Integrate with c15t
+
+### SDK pattern
 
 This is the recommended approach if you're using the PostHog JS SDK; it's commonly used in React projects.
-
-### Adding the PostHog SDK to c15t
 
 <Steps>
   <Step>
@@ -94,15 +94,9 @@ This is the recommended approach if you're using the PostHog JS SDK; it's common
   </Step>
 </Steps>
 
-## PostHog Script Implementation
+### Script helper pattern
 
 If you want to load PostHog via a script tag, it's recommended to use this approach.
-
-### How c15t loads it
-
-- **Category:** `measurement` (Analytics)
-- **Loads when:** [`alwaysLoad`](/docs/frameworks/react/script-loader#always-load) — runs on page start regardless of consent state
-- **On consent change:** c15t calls `posthog.opt_in_capturing()` / `posthog.opt_out_capturing()` so the script stays loaded while PostHog switches between cookie-based and cookieless capture
 
 <Steps>
   <Step>
@@ -130,28 +124,102 @@ If you want to load PostHog via a script tag, it's recommended to use this appro
   </Step>
 
   <Step>
-    ### Adding the script to c15t
+    ### Add the script helper
 
-    <Callout type="info">
-      Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-    </Callout>
+    <Tabs items={['React', 'Next.js', 'JavaScript']}>
+      <Tab value="React">
+        ```tsx
+        import { type ReactNode } from 'react';
+        import { ConsentManagerProvider } from '@c15t/react';
+        import { posthog } from '@c15t/scripts/posthog';
 
-    ```ts
-    import { posthog } from '@c15t/scripts/posthog';
+        const scripts = [
+          posthog({
+            id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+            apiHost: 'https://eu.i.posthog.com',
+            scriptUrl: 'https://eu-assets.i.posthog.com/static/array.js',
+          }),
+        ];
 
-    posthog({
-      id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-      apiHost: 'https://eu.i.posthog.com',
-      scriptUrl: 'https://eu-assets.i.posthog.com/static/array.js',
-      initOptions: {
-        ui_host: 'https://eu.i.posthog.com',
-        autocapture: false,
-        person_profiles: 'identified_only',
-      }
-    })
-    ```
+        export function ConsentProvider({ children }: { children: ReactNode }) {
+          return (
+            <ConsentManagerProvider
+              options={{
+                mode: 'hosted',
+                backendURL: 'https://your-instance.c15t.dev',
+                scripts,
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
+        }
+        ```
+      </Tab>
+
+      <Tab value="Next.js">
+        ```tsx
+        'use client';
+
+        import { type ReactNode } from 'react';
+        import { ConsentManagerProvider } from '@c15t/nextjs';
+        import { posthog } from '@c15t/scripts/posthog';
+
+        const scripts = [
+          posthog({
+            id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+            apiHost: 'https://eu.i.posthog.com',
+            scriptUrl: 'https://eu-assets.i.posthog.com/static/array.js',
+          }),
+        ];
+
+        export function ConsentProvider({ children }: { children: ReactNode }) {
+          return (
+            <ConsentManagerProvider
+              options={{
+                mode: 'hosted',
+                backendURL: '/api/c15t',
+                scripts,
+              }}
+            >
+              {children}
+            </ConsentManagerProvider>
+          );
+        }
+        ```
+      </Tab>
+
+      <Tab value="JavaScript">
+        ```ts
+        import { getOrCreateConsentRuntime } from 'c15t';
+        import { posthog } from '@c15t/scripts/posthog';
+
+        getOrCreateConsentRuntime({
+          mode: 'hosted',
+          backendURL: 'https://your-instance.c15t.dev',
+          scripts: [
+            posthog({
+              id: 'phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+              apiHost: 'https://eu.i.posthog.com',
+              scriptUrl: 'https://eu-assets.i.posthog.com/static/array.js',
+            }),
+          ],
+        });
+        ```
+      </Tab>
+    </Tabs>
   </Step>
 </Steps>
+
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **SDK pattern:** your app loads `posthog-js`; c15t synchronizes
+  measurement consent with PostHog opt-in and opt-out APIs.
+- **Script helper pattern:** c15t loads PostHog on page start with
+  [`alwaysLoad`](/docs/frameworks/react/script-loader#always-load), then
+  switches PostHog between cookie-based and cookieless capture as consent
+  changes.
 
 ## Tracking events in your app
 
@@ -170,7 +238,7 @@ posthog.capture('signup');
 
 You do not need to guard these calls with `useConsentManager().has('measurement')` when cookieless measurement after rejection is acceptable. Add your own guard if denied consent should mean no PostHog event capture at all.
 
-## GDPR notes
+## Consent and privacy
 
 PostHog's GDPR guidance recommends using PostHog Cloud EU for robust GDPR compliance, configuring consent clearly, and limiting what personal data is collected. Cookieless mode helps avoid browser persistence when measurement consent is rejected, but it does not replace your own legal basis, consent language, data minimization, IP capture settings, or right-to-be-forgotten process.
 

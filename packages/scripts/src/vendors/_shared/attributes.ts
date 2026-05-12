@@ -28,17 +28,20 @@ export function booleanDataAttribute(
 }
 
 /**
- * Converts a string or string list into a comma-separated script `data-*`
- * attribute value.
+ * Converts a string or string list into a script `data-*` attribute value.
+ *
+ * Arrays are JSON-serialized so values containing commas can be round-tripped
+ * with `JSON.parse` by consumers that read the attribute.
  *
  * @param value - Optional string value or string list from a vendor option.
- * @returns The original string, a comma-joined array, or `undefined` so the
+ * @returns The original string, a JSON-serialized array, or `undefined` so the
  * manifest compiler can omit the attribute.
  *
  * @example
  * ```ts
  * listDataAttribute('example.com'); // 'example.com'
- * listDataAttribute(['a.com', 'b.com']); // 'a.com,b.com'
+ * listDataAttribute(['a.com', 'b.com']); // '["a.com","b.com"]'
+ * listDataAttribute([]); // undefined
  * listDataAttribute(undefined); // undefined
  * ```
  */
@@ -50,7 +53,11 @@ export function listDataAttribute(
 	}
 
 	if (Array.isArray(value)) {
-		return value.join(',');
+		if (value.length === 0) {
+			return undefined;
+		}
+
+		return JSON.stringify(value);
 	}
 
 	return value;

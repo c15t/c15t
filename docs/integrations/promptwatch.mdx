@@ -7,25 +7,90 @@ icon: promptwatch
 
 [Promptwatch](https://promptwatch.com) provides analytics focused on AI-related traffic and usage. The official embed loads a single script with your `data-project-id`. By default, c15t loads this script when `measurement` consent is granted.
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { promptwatch } from '@c15t/scripts/promptwatch';
+
+    const scripts = [
+      promptwatch({
+        projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { promptwatch } from '@c15t/scripts/promptwatch';
+
+    const scripts = [
+      promptwatch({
+        projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { promptwatch } from '@c15t/scripts/promptwatch';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [
+        promptwatch({
+          projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
+        }),
+      ],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `measurement` (Analytics)
 - **Loads when:** measurement consent is granted
 - **On revocation:** unloaded - c15t removes the script from the DOM and pauses Promptwatch data collection until consent is granted again.
-
-## Adding Promptwatch to c15t
-
-<Callout type="info">
-  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-</Callout>
-
-```ts
-import { promptwatch } from '@c15t/scripts/promptwatch';
-
-promptwatch({
-	projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
-});
-```
 
 To use a custom loader URL:
 

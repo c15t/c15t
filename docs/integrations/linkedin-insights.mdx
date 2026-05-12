@@ -16,6 +16,85 @@ LinkedIn Insight Tag is LinkedIn's conversion tracking and audience matching too
 - [Compatible tag management systems](https://www.linkedin.com/help/lms/answer/a422760)
 - [LinkedIn Ads Agreement](https://www.linkedin.com/legal/sas-terms)
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
+
+    const scripts = [
+      linkedinInsights({
+        id: '123456789012345',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
+
+    const scripts = [
+      linkedinInsights({
+        id: '123456789012345',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [
+        linkedinInsights({
+          id: '123456789012345',
+        }),
+      ],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `marketing` (Ads & Pixels)
@@ -27,31 +106,9 @@ LinkedIn Insight Tag is LinkedIn's conversion tracking and audience matching too
   LinkedIn says the Insight Tag should not be installed on pages that collect or contain Sensitive Data, including certain consumer health or financial pages. If your app has those pages, only include this script on eligible routes and confirm the placement with your legal team.
 </Callout>
 
-## Adding the LinkedIn Insight Tag to c15t
-
-<Callout type="info">
-  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-</Callout>
-
-```ts
-import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
-
-linkedinInsights({
-  id: '123456789012345',
-})
-```
-
 Use the LinkedIn Insight Tag partner ID as `id`. You can find it in Campaign Manager under **Data** -> **Signals manager** -> **Insight Tag**.
 
 c15t intentionally does not add LinkedIn's `<noscript>` image pixel fallback. The integration is consent-gated JavaScript, so the script only loads after `marketing` consent is granted.
-
-## Verifying the tag
-
-LinkedIn validates the tag after an associated domain or URL receives traffic. Source status can take a few minutes and up to 24 hours to update after the first page load:
-
-- **Active:** signal received in the past seven days
-- **No recent activity:** no signal for more than seven days
-- **Unverified:** no signal received yet
 
 ## Tracking events in your app
 
@@ -69,6 +126,14 @@ function trackSignup() {
   }
 }
 ```
+
+## Verify setup
+
+LinkedIn validates the tag after an associated domain or URL receives traffic. Source status can take a few minutes and up to 24 hours to update after the first page load:
+
+- **Active:** signal received in the past seven days
+- **No recent activity:** no signal for more than seven days
+- **Unverified:** no signal received yet
 
 ## Types
 

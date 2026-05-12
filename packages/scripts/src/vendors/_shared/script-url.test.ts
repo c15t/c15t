@@ -39,5 +39,45 @@ describe('vendor script URL helpers', () => {
 				joinUrlPath('https://analytics.example.com///', '/script.js')
 			).toBe('https://analytics.example.com/script.js');
 		});
+
+		it('handles base URL without trailing slash and path with leading slash', () => {
+			expect(joinUrlPath('https://analytics.example.com', '/script.js')).toBe(
+				'https://analytics.example.com/script.js'
+			);
+		});
+
+		it('handles base URL with trailing slash and path without leading slash', () => {
+			expect(joinUrlPath('https://analytics.example.com/', 'script.js')).toBe(
+				'https://analytics.example.com/script.js'
+			);
+		});
+
+		it('handles base URL and path both without slashes', () => {
+			expect(joinUrlPath('https://analytics.example.com', 'script.js')).toBe(
+				'https://analytics.example.com/script.js'
+			);
+		});
+
+		it('normalizes multiple slashes and trims whitespace', () => {
+			expect(
+				joinUrlPath('  https://analytics.example.com///  ', '///script.js  ')
+			).toBe('https://analytics.example.com/script.js');
+		});
+
+		it('preserves query strings and hashes in paths', () => {
+			expect(
+				joinUrlPath(
+					'https://analytics.example.com/',
+					'/script.js?site=abc#loader'
+				)
+			).toBe('https://analytics.example.com/script.js?site=abc#loader');
+		});
+
+		it('throws for empty base or path values', () => {
+			expect(() => joinUrlPath('', 'script.js')).toThrow(TypeError);
+			expect(() => joinUrlPath('https://analytics.example.com', '  ')).toThrow(
+				TypeError
+			);
+		});
 	});
 });

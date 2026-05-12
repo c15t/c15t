@@ -130,7 +130,6 @@ export function mixpanelAnalytics({
 	return resolveManifest(mixpanelAnalyticsManifest, {
 		token,
 		initOptions: initOptions ?? {},
-		scriptUrl:
-			scriptUrl ?? 'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js',
+		scriptUrl: scriptUrl ?? 'https://cdn.mxpnl.com/libs/mixpanel-2.78.0.min.js',
 	});
 }

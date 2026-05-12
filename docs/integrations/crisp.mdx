@@ -18,6 +18,73 @@ sessions.
 - [Session continuity](https://docs.crisp.chat/guides/chatbox-sdks/web-sdk/session-continuity/)
 - [Language customization](https://docs.crisp.chat/guides/chatbox-sdks/web-sdk/language-customization/)
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { crisp } from '@c15t/scripts/crisp';
+
+    const scripts = [crisp({ websiteId: 'crisp-123' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { crisp } from '@c15t/scripts/crisp';
+
+    const scripts = [crisp({ websiteId: 'crisp-123' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { crisp } from '@c15t/scripts/crisp';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [crisp({ websiteId: 'crisp-123' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `functionality` (Functional)
@@ -27,19 +94,7 @@ sessions.
 - **On revocation:** c15t follows the default script loader behavior for
   non-persistent scripts
 
-## Adding Crisp to c15t
-
-<Callout type="info">
-  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
-</Callout>
-
-```ts
-import { crisp } from '@c15t/scripts/crisp';
-
-crisp({ websiteId: 'crisp-123' })
-```
-
-## Runtime options
+## Configure the integration
 
 The helper seeds Crisp's documented globals before loading
 `https://client.crisp.chat/l.js`.
@@ -58,7 +113,9 @@ crisp({
 
 `locale` and `sessionMerge` are written to `CRISP_RUNTIME_CONFIG`.
 `cookieDomain` maps to `CRISP_COOKIE_DOMAIN`, `cookieExpiry` maps to
-`CRISP_COOKIE_EXPIRE`, and `tokenId` maps to `CRISP_TOKEN_ID`.
+`CRISP_COOKIE_EXPIRE`, and `tokenId` maps to `CRISP_TOKEN_ID`. `safeMode`
+queues `['safe', true]` on `window.$crisp` before the loader runs so Crisp
+starts in safe mode.
 
 For session continuity, generate `tokenId` on your backend with a secure random
 value. Do not use emails, hashes of emails, timestamps, or incrementing IDs as

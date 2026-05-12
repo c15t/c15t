@@ -7,6 +7,73 @@ icon: reddit
 
 Reddit Pixel is Reddit's conversion tracking tool for ads and remarketing. It seeds the standard `rdt` queue before the vendor bundle loads, initializes your pixel, and by default records a `PageVisit` event once consent for `marketing` is available.
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { redditPixel } from '@c15t/scripts/reddit-pixel';
+
+    const scripts = [redditPixel({ pixelId: 't2_abcdef' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { redditPixel } from '@c15t/scripts/reddit-pixel';
+
+    const scripts = [redditPixel({ pixelId: 't2_abcdef' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { redditPixel } from '@c15t/scripts/reddit-pixel';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [redditPixel({ pixelId: 't2_abcdef' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `marketing` (Ads & Pixels)
@@ -16,20 +83,6 @@ Reddit Pixel is Reddit's conversion tracking tool for ads and remarketing. It se
   when marketing consent is denied and `rdt('enableFirstPartyCookies')` when
   it is granted again.
 
-## Adding Reddit Pixel to c15t
-
-<Callout type="info">
-  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-</Callout>
-
-```ts
-import { redditPixel } from '@c15t/scripts/reddit-pixel';
-
-redditPixel({
-  pixelId: 't2_abcdef',
-})
-```
-
 If you prefer to control page-view tracking yourself, disable the default `PageVisit` call:
 
 ```ts
@@ -38,6 +91,54 @@ redditPixel({
   trackPageVisit: false,
 })
 ```
+
+## Tracking events in your app
+
+c15t gates the Reddit Pixel script from loading until `marketing` consent is granted. Your application code that calls Reddit's runtime API (`window.rdt(...)`) is **not** automatically gated - `window.rdt` does not exist until the script is loaded, so unguarded calls before consent throw.
+
+Guard event calls by checking consent state. From React:
+
+```tsx
+import { useCallback } from 'react';
+import { useConsentManager } from '@c15t/react';
+import { redditPixelEvent } from '@c15t/scripts/reddit-pixel';
+
+function CheckoutExample() {
+  const { has } = useConsentManager();
+
+  const trackPurchase = useCallback(() => {
+    if (has('marketing')) {
+      redditPixelEvent('Purchase', {
+        currency: 'USD',
+        value: 99,
+        conversionId: 'order-123',
+      });
+    }
+  }, [has]);
+
+  // Call trackPurchase() from your conversion success path.
+}
+```
+
+From plain JavaScript:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('marketing')) {
+  window.rdt?.('track', 'Purchase', {
+    currency: 'USD',
+    value: 99,
+    conversionId: 'order-123',
+  });
+}
+```
+
+When you use Reddit Pixel and Conversions API together, send the same
+`conversionId` in the browser event and the server event so Reddit can
+deduplicate them.
 
 ## Consent and privacy
 
@@ -102,54 +203,6 @@ redditPixel({
 See Reddit's docs for [Limited Data Use](https://business.reddithelp.com/s/article/Limited-Data-Use),
 [event metadata](https://business.reddithelp.com/s/article/about-event-metadata),
 and [event deduplication](https://business.reddithelp.com/s/article/event-deduplication).
-
-## Tracking events in your app
-
-c15t gates the Reddit Pixel script from loading until `marketing` consent is granted. Your application code that calls Reddit's runtime API (`window.rdt(...)`) is **not** automatically gated - `window.rdt` does not exist until the script is loaded, so unguarded calls before consent throw.
-
-Guard event calls by checking consent state. From React:
-
-```tsx
-import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
-import { redditPixelEvent } from '@c15t/scripts/reddit-pixel';
-
-function CheckoutExample() {
-  const { has } = useConsentManager();
-
-  const trackPurchase = useCallback(() => {
-    if (has('marketing')) {
-      redditPixelEvent('Purchase', {
-        currency: 'USD',
-        value: 99,
-        conversionId: 'order-123',
-      });
-    }
-  }, [has]);
-
-  // Call trackPurchase() from your conversion success path.
-}
-```
-
-From plain JavaScript:
-
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-
-const { consentStore } = getOrCreateConsentRuntime();
-
-if (consentStore.getState().has('marketing')) {
-  window.rdt?.('track', 'Purchase', {
-    currency: 'USD',
-    value: 99,
-    conversionId: 'order-123',
-  });
-}
-```
-
-When you use Reddit Pixel and Conversions API together, send the same
-`conversionId` in the browser event and the server event so Reddit can
-deduplicate them.
 
 ## Types
 

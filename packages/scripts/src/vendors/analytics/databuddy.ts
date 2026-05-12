@@ -175,7 +175,7 @@ export interface DatabuddyConsentOptions {
 export function databuddy(options: DatabuddyConsentOptions): Script {
 	const resolved = resolveManifest(databuddyManifest, {
 		clientId: options.clientId,
-		apiUrl: options.apiUrl,
+		apiUrl: options.apiUrl ?? 'https://basket.databuddy.cc',
 		configWhenGranted: options.configWhenGranted,
 		configWhenDenied: options.configWhenDenied,
 		scriptUrl: options.scriptUrl ?? 'https://cdn.databuddy.cc/databuddy.js',

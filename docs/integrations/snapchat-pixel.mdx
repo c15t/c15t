@@ -7,25 +7,78 @@ icon: snapchat
 
 Snapchat Pixel is Snapchat's website conversion tracking and audience-building tool. The `snapchatPixel()` helper seeds the `snaptr` queue, initializes your pixel, and by default tracks a `PAGE_VIEW` event as soon as `marketing` consent is available.
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { snapchatPixel } from '@c15t/scripts/snapchat-pixel';
+
+    const scripts = [snapchatPixel({ pixelId: '123456789012345' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { snapchatPixel } from '@c15t/scripts/snapchat-pixel';
+
+    const scripts = [snapchatPixel({ pixelId: '123456789012345' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { snapchatPixel } from '@c15t/scripts/snapchat-pixel';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [snapchatPixel({ pixelId: '123456789012345' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `marketing` (Ads & Pixels)
 - **Loads when:** marketing consent is granted
 - **On revocation:** unloaded - c15t removes the script from the DOM, so app code should guard `snaptr(...)` calls until consent is granted again.
-
-## Adding Snapchat Pixel to c15t
-
-<Callout type="info">
-  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-</Callout>
-
-```ts
-import { snapchatPixel } from '@c15t/scripts/snapchat-pixel';
-
-snapchatPixel({
-  pixelId: '123456789012345',
-});
-```
 
 You can pass extra init payload and disable the default page-view event when you need finer control:
 

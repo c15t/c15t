@@ -7,33 +7,92 @@ icon: mixpanel
 
 Mixpanel helps you track product usage, funnels, and retention. The `mixpanelAnalytics()` helper always loads the Mixpanel library, initializes it after the bundle is ready, and uses Mixpanel's own `opt_in_tracking()` and `opt_out_tracking()` methods to keep tracking aligned with `measurement` consent.
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { mixpanelAnalytics } from '@c15t/scripts/mixpanel-analytics';
+
+    const scripts = [
+      mixpanelAnalytics({
+        token: '1234567890abcdef1234567890abcdef',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { mixpanelAnalytics } from '@c15t/scripts/mixpanel-analytics';
+
+    const scripts = [
+      mixpanelAnalytics({
+        token: '1234567890abcdef1234567890abcdef',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { mixpanelAnalytics } from '@c15t/scripts/mixpanel-analytics';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [
+        mixpanelAnalytics({
+          token: '1234567890abcdef1234567890abcdef',
+        }),
+      ],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `measurement` (Analytics)
 - **Loads when:** immediately (`alwaysLoad: true`)
 - **Consent behavior:** c15t keeps the SDK loaded and toggles tracking by calling Mixpanel's opt-in and opt-out APIs when consent changes.
 
-## Adding Mixpanel to c15t
-
-<Callout type="info">
-  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-</Callout>
-
-```ts
-import { getOrCreateConsentRuntime } from 'c15t';
-import { mixpanelAnalytics } from '@c15t/scripts/mixpanel-analytics';
-
-getOrCreateConsentRuntime({
-  mode: 'hosted',
-  scripts: [
-    mixpanelAnalytics({
-      token: '1234567890abcdef1234567890abcdef',
-    }),
-  ],
-});
-```
-
-## Pass Mixpanel init options
+## Configure the integration
 
 You can pass serializable init options through to `mixpanel.init(...)`.
 
@@ -48,7 +107,7 @@ mixpanelAnalytics({
 });
 ```
 
-## Calling Mixpanel APIs in app code
+## Tracking events in your app
 
 Because Mixpanel is configured with `alwaysLoad: true`, `window.mixpanel` is available as soon as the script loads, even before `measurement` consent is granted. You can still call `window.mixpanel.track(...)` from app code; consent suppression is handled by Mixpanel's opt-in/opt-out methods that c15t triggers on consent updates.
 

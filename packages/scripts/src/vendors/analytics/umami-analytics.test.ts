@@ -26,14 +26,14 @@ describe('umamiAnalytics', () => {
 		});
 	});
 
-	it('joins a domain array into a comma-separated attribute', () => {
+	it('serializes a domain array into a JSON attribute', () => {
 		const script = umamiAnalytics({
 			websiteId: 'site-abc',
 			domains: ['example.com', 'www.example.com'],
 		});
 
 		expect(script.attributes).toMatchObject({
-			'data-domains': 'example.com,www.example.com',
+			'data-domains': '["example.com","www.example.com"]',
 		});
 	});
 

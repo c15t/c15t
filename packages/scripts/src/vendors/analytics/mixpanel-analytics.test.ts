@@ -22,7 +22,7 @@ describe('mixpanelAnalytics', () => {
 		expectScriptMatchesIntegration('mixpanelAnalytics', script, {
 			alwaysLoad: true,
 			persistAfterConsentRevoked: undefined,
-			src: 'https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js',
+			src: 'https://cdn.mxpnl.com/libs/mixpanel-2.78.0.min.js',
 		});
 	});
 

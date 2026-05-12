@@ -61,7 +61,7 @@ function buildPlausibleInitOptions(
 		initOptions.customProperties = options.customProperties;
 	}
 
-	if (options.scriptId && options.endpoint) {
+	if (options.endpoint) {
 		initOptions.endpoint = options.endpoint;
 	}
 

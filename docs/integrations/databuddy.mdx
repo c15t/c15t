@@ -7,98 +7,128 @@ icon: databuddy
 
 The Databuddy script automatically respects consent preferences by toggling tracking on and off based on the user's consent state.
 
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { databuddy } from '@c15t/scripts/databuddy';
+
+    const scripts = [
+      databuddy({
+        clientId: 'your-client-id',
+        scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
+        apiUrl: 'https://basket.databuddy.cc',
+        configWhenGranted: {
+          clientId: 'your-client-id',
+          apiUrl: 'https://basket.databuddy.cc',
+          disabled: false,
+        },
+        configWhenDenied: {
+          clientId: 'your-client-id',
+          apiUrl: 'https://basket.databuddy.cc',
+          disabled: true,
+        },
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { databuddy } from '@c15t/scripts/databuddy';
+
+    const scripts = [
+      databuddy({
+        clientId: 'your-client-id',
+        scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
+        apiUrl: 'https://basket.databuddy.cc',
+        configWhenGranted: {
+          clientId: 'your-client-id',
+          apiUrl: 'https://basket.databuddy.cc',
+          disabled: false,
+        },
+        configWhenDenied: {
+          clientId: 'your-client-id',
+          apiUrl: 'https://basket.databuddy.cc',
+          disabled: true,
+        },
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { databuddy } from '@c15t/scripts/databuddy';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [
+        databuddy({
+          clientId: 'your-client-id',
+          scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
+          apiUrl: 'https://basket.databuddy.cc',
+          configWhenGranted: {
+            clientId: 'your-client-id',
+            apiUrl: 'https://basket.databuddy.cc',
+            disabled: false,
+          },
+          configWhenDenied: {
+            clientId: 'your-client-id',
+            apiUrl: 'https://basket.databuddy.cc',
+            disabled: true,
+          },
+        }),
+      ],
+    });
+    ```
+  </Tab>
+</Tabs>
+
 ## How c15t loads it
 
 - **Category:** `measurement` (Analytics)
 - **Loads when:** [`alwaysLoad`](/docs/frameworks/react/script-loader#always-load) — runs on page start regardless of consent state
 - **On consent change:** c15t toggles `window.databuddy.options.disabled` so tracking turns on or off without removing the script
 
-## Script Implementation
-
-<Steps>
-  <Step>
-    ### Adding the Databuddy script to c15t
-
-    <Callout type="info">
-      Pass the result to your `ConsentManagerProvider` — see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
-    </Callout>
-
-    ```ts
-    import { databuddy } from '@c15t/scripts/databuddy';
-
-    databuddy({
-      clientId: 'your-client-id',
-      scriptUrl: 'https://cdn.databuddy.cc/databuddy.js',
-      apiUrl: 'https://basket.databuddy.cc',
-      configWhenGranted: {
-        clientId: 'your-client-id',
-        apiUrl: 'https://basket.databuddy.cc',
-        trackScreenViews: true,
-        trackOutgoingLinks: true,
-        disabled: false,
-      },
-      configWhenDenied: {
-        clientId: 'your-client-id',
-        apiUrl: 'https://basket.databuddy.cc',
-        disabled: true,
-      }
-    })
-    ```
-  </Step>
-
-  <Step>
-    ### Using Databuddy in your application
-
-    Once initialized, Databuddy is available globally via `window.databuddy` or `window.db`:
-
-    ```ts
-    // Track a custom event
-    window.databuddy?.trackCustomEvent('button_clicked', {
-      button_id: 'signup',
-      page: '/landing'
-    });
-
-    // Or use the shorthand
-    window.db?.track('purchase_completed', {
-      amount: 99.99,
-      currency: 'USD'
-    });
-
-    // Track a screen view manually
-    window.databuddy?.screenView('/dashboard', {
-      user_role: 'admin'
-    });
-
-    // Set global properties for all events
-    window.databuddy?.setGlobalProperties({
-      app_version: '1.2.3',
-      environment: 'production'
-    });
-    ```
-  </Step>
-</Steps>
-
-## Tracking events in your app
-
-Databuddy is `alwaysLoad: true`, so the script is in the DOM from page start regardless of consent. `window.databuddy` is therefore always defined and calls to `track`, `screenView`, or `setGlobalProperties` are safe to make at any time — when measurement consent is denied, c15t flips `window.databuddy.options.disabled = true` so the SDK becomes a no-op until consent is granted again.
-
-```ts
-window.databuddy?.track('signup');
-```
-
-You do not need to guard these calls with `useConsentManager().has('measurement')`, but doing so does no harm if you prefer the symmetry with other vendors.
-
-## How Consent Management Works
-
-The Databuddy integration automatically handles consent management:
-
-1. **Before Script Load**: Sets `window.databuddyConfig.disabled` based on initial consent state
-2. **On Consent Grant**: Enables tracking by setting `window.databuddy.options.disabled = false`
-3. **On Consent Revoke**: Disables tracking by setting `window.databuddy.options.disabled = true`
-
-This ensures that no tracking occurs without user consent, keeping your analytics privacy-compliant.
-
-## Configuration Options
+## Configure the integration
 
 The Databuddy manifest expects explicit initial config objects for the granted
 and denied consent states:
@@ -134,6 +164,26 @@ databuddy({
   }
 })
 ```
+
+## Tracking events in your app
+
+Databuddy is `alwaysLoad: true`, so the script is in the DOM from page start regardless of consent. `window.databuddy` is therefore always defined and calls to `track`, `screenView`, or `setGlobalProperties` are safe to make at any time — when measurement consent is denied, c15t flips `window.databuddy.options.disabled = true` so the SDK becomes a no-op until consent is granted again.
+
+```ts
+window.databuddy?.track('signup');
+```
+
+You do not need to guard these calls with `useConsentManager().has('measurement')`, but doing so does no harm if you prefer the symmetry with other vendors.
+
+## Consent and privacy
+
+The Databuddy integration automatically handles consent management:
+
+1. **Before Script Load**: Sets `window.databuddyConfig.disabled` based on initial consent state
+2. **On Consent Grant**: Enables tracking by setting `window.databuddy.options.disabled = false`
+3. **On Consent Revoke**: Disables tracking by setting `window.databuddy.options.disabled = true`
+
+This ensures that no tracking occurs without user consent, keeping your analytics privacy-compliant.
 
 ## Types
 

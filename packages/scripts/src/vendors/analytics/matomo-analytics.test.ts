@@ -34,15 +34,10 @@ describe('matomoAnalytics', () => {
 			disableCookies: true,
 		});
 
-		expect(script.src).toBe(
-			'https://cdn.matomo.cloud/my-site.matomo.cloud/matomo.js'
-		);
+		expect(script.src).toBe('https://my-site.matomo.cloud/matomo.js');
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
 		expect(globalRef._paq).toEqual([
-			[
-				'setTrackerUrl',
-				'https://cdn.matomo.cloud/my-site.matomo.cloud/matomo.php',
-			],
+			['setTrackerUrl', 'https://my-site.matomo.cloud/matomo.php'],
 			['setSiteId', '2'],
 			['enableLinkTracking'],
 			['disableCookies'],
@@ -54,6 +49,7 @@ describe('matomoAnalytics', () => {
 		const globalRef = getTestGlobal();
 		const script = matomoAnalytics({
 			matomoUrl: 'https://analytics.example.com',
+			siteId: 1,
 			defaultConsent: 'required',
 			trackPageView: true,
 		});
@@ -91,6 +87,7 @@ describe('matomoAnalytics', () => {
 		const globalRef = getTestGlobal();
 		const script = matomoAnalytics({
 			matomoUrl: 'https://analytics.example.com',
+			siteId: 1,
 			defaultConsent: 'given',
 			trackPageView: true,
 		});

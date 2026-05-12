@@ -71,10 +71,12 @@ describe('xPixelEvent', () => {
 		});
 	});
 
-	it('is a no-op when twq is unavailable', () => {
+	it('throws when twq is unavailable', () => {
 		const globalRef = getTestGlobal();
 		delete globalRef.twq;
 
-		expect(() => xPixelEvent('tw-pixel-event')).not.toThrow();
+		expect(() => xPixelEvent('tw-pixel-event')).toThrow(
+			'X Pixel (twq) is not loaded.'
+		);
 	});
 });

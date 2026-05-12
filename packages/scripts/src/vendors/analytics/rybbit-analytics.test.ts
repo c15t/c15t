@@ -64,7 +64,6 @@ describe('rybbitAnalytics', () => {
 			'data-skip-patterns': '["/admin"]',
 			'data-mask-patterns': '["/private"]',
 			'data-debounce': '500',
-			'data-api-key': 'secret-key',
 		});
 	});
 });
