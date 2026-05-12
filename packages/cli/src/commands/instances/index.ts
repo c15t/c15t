@@ -143,8 +143,8 @@ async function selectAction(context: CliContext): Promise<void> {
 		if (commandArgs.length > 0) {
 			const query = commandArgs[0];
 			if (!query) {
-				throw new CliError('INSTANCE_NOT_FOUND', {
-					details: 'No project ID, name, or org/name was provided.',
+				throw new CliError('INSTANCE_NAME_INVALID', {
+					details: 'Project identifier cannot be empty.',
 				});
 			}
 			const found = instances.find(

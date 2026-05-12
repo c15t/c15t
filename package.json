@@ -15,9 +15,7 @@
 		"configs/*",
 		"packages/**",
 		"internals/**",
-		"examples/demo",
-		"../toolkit/packages/*",
-		"../toolkit/internals/*"
+		"examples/demo"
 	],
 	"scripts": {
 		"bench": "turbo run bench --filter=@c15t/core-benchmarks --filter=@c15t/next-bundle-bench --filter=@c15t/react-browser-bench --filter=@c15t/nextjs-browser-bench --filter=@c15t/script-lifecycle-bench",
@@ -58,6 +56,7 @@
 	},
 	"overrides": {
 		"cross-spawn": ">=6.0.6",
+		"hexbus": "0.2.0",
 		"typeorm": ">=0.3.26"
 	},
 	"devDependencies": {

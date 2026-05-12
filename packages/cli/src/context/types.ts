@@ -1,10 +1,11 @@
-import type { C15TOptions } from '@c15t/backend';
 import type {
 	CliFlag,
 	CliLogger,
 	ErrorHandlers,
 	FileSystemUtils,
 	FlagType,
+	CliCommand as HexbusCliCommand,
+	CliContext as HexbusCliContext,
 	FrameworkDetectionResult as HexbusFrameworkDetectionResult,
 	PackageInfo,
 	PackageManager,
@@ -34,36 +35,10 @@ export type FrameworkDetectionResult = Omit<
 	pkg: AvailablePackages;
 };
 
-export interface CliCommand {
-	name: string;
-	label: string;
-	hint: string;
-	description: string;
-	action: (context: CliContext) => Promise<void>;
-	subcommands?: CliCommand[];
-	hidden?: boolean;
-}
-
-// --- Config Management ---
-export interface ConfigManagement {
-	loadConfig: () => Promise<C15TOptions | null>;
-	requireConfig: () => Promise<C15TOptions>;
-	getPathAliases: (configPath?: string) => Record<string, string> | null;
-}
+export type CliCommand = HexbusCliCommand<CliContext>;
 
 // --- CLI Context Definition ---
-export interface CliContext {
-	logger: CliLogger;
-	flags: ParsedArgs['parsedFlags'];
-	commandName: string | undefined;
-	commandArgs: string[];
-	cwd: string;
-	error: ErrorHandlers;
-	config: ConfigManagement;
-	fs: FileSystemUtils;
+export interface CliContext extends HexbusCliContext<AvailablePackages> {
 	framework: FrameworkDetectionResult;
 	telemetry: Telemetry;
-	confirm: (message: string, initialValue?: boolean) => Promise<boolean>;
-	projectRoot: string;
-	packageManager: PackageManagerResult;
 }

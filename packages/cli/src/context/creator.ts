@@ -1,7 +1,7 @@
 import { createCliContext as createHexbusCliContext } from 'hexbus';
 import { createTelemetry, TelemetryEventName } from '../utils/telemetry';
-import { globalFlags } from './parser';
-import type { CliCommand, CliContext } from './types';
+import { mapCliCommandsToHexbusCommands, parseCliArgs } from './parser';
+import type { AvailablePackages, CliCommand, CliContext } from './types';
 
 /**
  * Parses arguments, creates the logger, and returns the application context.
@@ -16,12 +16,12 @@ export async function createCliContext(
 	cwd: string,
 	commands: CliCommand[]
 ): Promise<CliContext> {
-	const context = (await createHexbusCliContext({
+	const parsed = parseCliArgs(rawArgs, commands);
+	const hexbusContext = await createHexbusCliContext<AvailablePackages>({
 		appName: 'c15t',
-		commands: commands as never,
+		commands: mapCliCommandsToHexbusCommands(commands),
 		configName: 'c15t',
 		cwd,
-		globalFlags,
 		interactivePackageManagerDetection: true,
 		packageMap: {
 			core: 'c15t',
@@ -29,16 +29,21 @@ export async function createCliContext(
 			react: '@c15t/react',
 		},
 		rawArgs,
-	})) as unknown as CliContext;
-
-	const { logger, flags, commandName, commandArgs } = context;
+	});
+	const framework = {
+		...hexbusContext.framework,
+		pkg: hexbusContext.framework.pkg ?? 'c15t',
+	};
+	const { logger } = hexbusContext;
+	const { parsedFlags: flags, commandName, commandArgs } = parsed;
 
 	// Add telemetry, respecting the telemetry flag if present
 	const telemetryDisabled = flags['no-telemetry'] === true;
 	const telemetryDebug = flags['telemetry-debug'] === true;
+	let telemetry = createTelemetry({ disabled: true, logger });
 
 	try {
-		context.telemetry = createTelemetry({
+		telemetry = createTelemetry({
 			disabled: telemetryDisabled,
 			debug: telemetryDebug,
 			defaultProperties: {
@@ -48,16 +53,17 @@ export async function createCliContext(
 					.filter(([, value]) => value !== false && value !== undefined)
 					.map(([key]) => key)
 					.sort(),
-				cliVersion: context.fs.getPackageInfo().version,
-				framework: context.framework.framework ?? 'unknown',
-				frameworkVersion: context.framework.frameworkVersion ?? 'unknown',
-				packageManager: context.packageManager.name,
-				packageManagerVersion: context.packageManager.version ?? 'unknown',
-				hasReact: context.framework.hasReact,
-				reactVersion: context.framework.reactVersion ?? 'unknown',
-				package: context.framework.pkg ?? 'unknown',
+				cliVersion: hexbusContext.fs.getPackageInfo().version,
+				framework: framework.framework ?? 'unknown',
+				frameworkVersion: framework.frameworkVersion ?? 'unknown',
+				packageManager: hexbusContext.packageManager.name,
+				packageManagerVersion:
+					hexbusContext.packageManager.version ?? 'unknown',
+				hasReact: framework.hasReact,
+				reactVersion: framework.reactVersion ?? 'unknown',
+				package: framework.pkg,
 			},
-			logger: context.logger,
+			logger,
 		});
 
 		if (telemetryDisabled) {
@@ -68,27 +74,36 @@ export async function createCliContext(
 			logger.debug('Telemetry initialized');
 		}
 
-		context.telemetry.trackEvent(TelemetryEventName.CLI_ENVIRONMENT_DETECTED, {
+		telemetry.trackEvent(TelemetryEventName.CLI_ENVIRONMENT_DETECTED, {
 			command: commandName ?? 'interactive',
-			projectRootChanged: context.projectRoot !== cwd,
-			framework: context.framework.framework ?? 'unknown',
-			frameworkVersion: context.framework.frameworkVersion ?? 'unknown',
-			packageManager: context.packageManager.name,
-			packageManagerVersion: context.packageManager.version ?? 'unknown',
-			hasReact: context.framework.hasReact,
-			reactVersion: context.framework.reactVersion ?? 'unknown',
-			tailwindVersion: context.framework.tailwindVersion ?? 'unknown',
+			projectRootChanged: hexbusContext.projectRoot !== cwd,
+			framework: framework.framework ?? 'unknown',
+			frameworkVersion: framework.frameworkVersion ?? 'unknown',
+			packageManager: hexbusContext.packageManager.name,
+			packageManagerVersion: hexbusContext.packageManager.version ?? 'unknown',
+			hasReact: framework.hasReact,
+			reactVersion: framework.reactVersion ?? 'unknown',
+			tailwindVersion: framework.tailwindVersion ?? 'unknown',
 		});
 	} catch {
 		// If telemetry initialization fails, create a disabled instance
 		logger.warn(
 			'Failed to initialize telemetry, continuing with telemetry disabled'
 		);
-		context.telemetry = createTelemetry({
+		telemetry = createTelemetry({
 			disabled: true,
-			logger: context.logger,
+			logger,
 		});
 	}
+
+	const context: CliContext = {
+		...hexbusContext,
+		commandArgs,
+		commandName,
+		flags,
+		framework,
+		telemetry,
+	};
 
 	logger.debug('CLI context fully initialized with all utilities');
 

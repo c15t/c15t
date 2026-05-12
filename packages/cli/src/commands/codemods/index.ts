@@ -1,4 +1,5 @@
 import {
+	type CodemodDefinition,
 	type CodemodRunResult,
 	type CodemodVersionMetadata,
 	defineCodemod,
@@ -55,8 +56,10 @@ function toHexbusCodemodResult(
 	};
 }
 
-function createC15tCodemod(definition: C15tCodemodDefinition) {
-	return defineCodemod({
+function createC15tCodemod(
+	definition: C15tCodemodDefinition
+): CodemodDefinition<CliContext> {
+	return defineCodemod<CliContext>({
 		id: definition.id,
 		label: definition.label,
 		hint: definition.hint,
@@ -183,7 +186,7 @@ const codemods = [
 export async function runCodemods(context: CliContext): Promise<void> {
 	const { commandArgs, flags, logger } = context;
 	const dryRun = commandArgs.includes('--dry-run');
-	await runHexbusCodemods(context as never, codemods, {
+	await runHexbusCodemods(context, codemods, {
 		brandName: 'c15t',
 		detectInstalledVersion: async (projectRoot) => {
 			const version = await detectInstalledC15tVersion(projectRoot);

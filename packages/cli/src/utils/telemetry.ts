@@ -309,6 +309,18 @@ export class Telemetry {
 		this.flushPromise = this.flushAll();
 	}
 
+	flushBackground(): void {
+		this.flushSync();
+	}
+
+	async flush(): Promise<void> {
+		if (this.disabled) {
+			return;
+		}
+
+		await this.flushAll();
+	}
+
 	async shutdown(): Promise<void> {
 		if (this.disabled) {
 			return;
@@ -749,36 +761,41 @@ export class Telemetry {
 			return value;
 		}
 
+		let sanitizedValue = value;
+
 		if (keyHint && SENSITIVE_KEY_PATTERN.test(keyHint)) {
 			return '[redacted]';
 		}
 
-		if (SECRET_VALUE_PATTERN.test(value)) {
+		if (SECRET_VALUE_PATTERN.test(sanitizedValue)) {
 			return '[redacted]';
 		}
 
-		if (path.isAbsolute(value)) {
+		if (path.isAbsolute(sanitizedValue)) {
 			return '[absolute-path]';
 		}
 
-		if (value.startsWith('http://') || value.startsWith('https://')) {
+		if (
+			sanitizedValue.startsWith('http://') ||
+			sanitizedValue.startsWith('https://')
+		) {
 			try {
-				const parsed = new URL(value);
+				const parsed = new URL(sanitizedValue);
 				parsed.username = '';
 				parsed.password = '';
 				parsed.search = '';
 				parsed.hash = '';
-				value = parsed.toString();
+				sanitizedValue = parsed.toString();
 			} catch {
 				// Keep the original string if URL parsing fails.
 			}
 		}
 
-		if (value.length > MAX_STRING_LENGTH) {
-			return `${value.slice(0, MAX_STRING_LENGTH)}...`;
+		if (sanitizedValue.length > MAX_STRING_LENGTH) {
+			return `${sanitizedValue.slice(0, MAX_STRING_LENGTH)}...`;
 		}
 
-		return value;
+		return sanitizedValue;
 	}
 
 	private getEnvironmentName(): string {
