@@ -9,14 +9,14 @@
   <h1 align="center">@c15t/logger: Logger for c15t</h1>
 </p>
 
-[![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[![GitHub stars](https://img.shields.io/github/stars/inthhq/c15t?style=flat-square)](https://github.com/inthhq/c15t)
+[![CI](https://img.shields.io/github/actions/workflow/status/inthhq/c15t/ci.yml?style=flat-square)](https://github.com/inthhq/c15t/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](https://github.com/inthhq/c15t/blob/main/LICENSE.md)
 [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.link/discord)
 [![npm version](https://img.shields.io/npm/v/%40c15t%2Flogger?style=flat-square)](https://www.npmjs.com/package/@c15t/logger)
-[![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
-[![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
+[![Top Language](https://img.shields.io/github/languages/top/inthhq/c15t?style=flat-square)](https://github.com/inthhq/c15t)
+[![Last Commit](https://img.shields.io/github/last-commit/inthhq/c15t?style=flat-square)](https://github.com/inthhq/c15t/commits/main)
+[![Open Issues](https://img.shields.io/github/issues/inthhq/c15t?style=flat-square)](https://github.com/inthhq/c15t/issues)
 
 A lightweight, customizable logging utility for Node.js and TypeScript applications. Designed for use in c15t CLI and backend applications.
 
@@ -123,7 +123,7 @@ extendedLogger.database('Query executed in 10ms');
 ## Support
 
 - Join our [Discord community](https://c15t.link/discord)
-- Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
+- Open an issue on our [GitHub repository](https://github.com/inthhq/c15t/issues)
 - Visit [consent.io](https://consent.io) and use the chat widget
 - Contact our support team via email [support@consent.io](mailto:support@consent.io)
 
@@ -141,7 +141,7 @@ extendedLogger.database('Query executed in 10ms');
 
 If you believe you have found a security vulnerability in c15t, we encourage you to **_responsibly disclose this and NOT open a public issue_**. We will investigate all legitimate reports.
 
-Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our Open Source Software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
+Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our Open Source Software. To do this, please visit [https://github.com/inthhq/c15t/security](https://github.com/inthhq/c15t/security) and click the "Report a vulnerability" button.
 
 ### Security Policy
 
@@ -152,7 +152,7 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 ## License
 
-[Apache License 2.0](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[Apache License 2.0](https://github.com/inthhq/c15t/blob/main/LICENSE.md)
 
 ---
 

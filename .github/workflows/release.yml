@@ -21,7 +21,7 @@ jobs:
     name: Release ${{ github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
     runs-on: ubuntu-latest
 
-    if: github.repository == 'c15t/c15t'
+    if: github.repository == 'inthhq/c15t'
     steps:
       - name: Check out code
         uses: actions/checkout@v4

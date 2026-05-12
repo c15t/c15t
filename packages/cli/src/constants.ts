@@ -14,7 +14,7 @@ export const URLS = {
 	/** Documentation website */
 	DOCS: 'https://c15t.com/docs',
 	/** GitHub repository */
-	GITHUB: 'https://github.com/c15t/c15t',
+	GITHUB: 'https://github.com/inthhq/c15t',
 	/** Discord community */
 	DISCORD: 'https://c15t.com/discord',
 	/** API documentation */
