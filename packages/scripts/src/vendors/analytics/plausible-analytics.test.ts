@@ -54,6 +54,24 @@ describe('plausibleAnalytics', () => {
 		});
 	});
 
+	it('trims identifiers before building manifest values', () => {
+		const script = plausibleAnalytics({ domain: ' example.com ' });
+
+		expect(script.attributes).toEqual({
+			'data-domain': 'example.com',
+			'data-api': undefined,
+		});
+	});
+
+	it('throws when neither scriptId nor domain is provided', () => {
+		expect(() => plausibleAnalytics({})).toThrow(
+			'plausibleAnalytics: missing scriptId or domain'
+		);
+		expect(() =>
+			plausibleAnalytics({ scriptId: '   ', domain: '   ' })
+		).toThrow('plausibleAnalytics: missing scriptId or domain');
+	});
+
 	it('seeds the plausible queue stub and buffers calls before the script loads', () => {
 		const globalRef = getTestGlobal();
 		const script = plausibleAnalytics({

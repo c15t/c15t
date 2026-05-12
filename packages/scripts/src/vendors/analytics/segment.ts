@@ -185,8 +185,10 @@ export function segment({
 	trackPageView = true,
 	scriptUrl,
 }: SegmentOptions): Script {
-	const normalizedWriteKey =
-		typeof writeKey === 'string' ? writeKey.trim() : '';
+	let normalizedWriteKey = '';
+	if (typeof writeKey === 'string') {
+		normalizedWriteKey = writeKey.trim();
+	}
 	if (normalizedWriteKey.length === 0) {
 		throw new Error('segment: missing or invalid writeKey');
 	}

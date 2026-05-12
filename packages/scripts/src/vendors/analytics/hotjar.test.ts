@@ -28,7 +28,7 @@ describe('hotjar', () => {
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
 
 		expect(globalRef._hjSettings).toEqual({
-			hjid: 1234567,
+			hjid: '1234567',
 			hjsv: 6,
 		});
 
@@ -48,5 +48,28 @@ describe('hotjar', () => {
 		});
 
 		expect(script.src).toBe('https://cdn.example.com/hotjar.js');
+	});
+
+	it('trims string site IDs before building the script URL', () => {
+		const script = hotjar({ siteId: ' 1234567 ' });
+
+		expect(script.src).toBe(
+			'https://static.hotjar.com/c/hotjar-1234567.js?sv=6'
+		);
+	});
+
+	it('throws for missing, empty, or zero site IDs', () => {
+		expect(() => hotjar({ siteId: '' })).toThrow(
+			'hotjar: missing or invalid siteId'
+		);
+		expect(() => hotjar({ siteId: '  ' })).toThrow(
+			'hotjar: missing or invalid siteId'
+		);
+		expect(() => hotjar({ siteId: 0 })).toThrow(
+			'hotjar: missing or invalid siteId'
+		);
+		expect(() => hotjar({ siteId: '0' })).toThrow(
+			'hotjar: missing or invalid siteId'
+		);
 	});
 });

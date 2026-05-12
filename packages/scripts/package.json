@@ -22,10 +22,10 @@
 			"import": "./dist/vendors/analytics/cloudflare-web-analytics.js",
 			"require": "./dist/vendors/analytics/cloudflare-web-analytics.cjs"
 		},
-		"./clarity": {
-			"types": "./dist-types/vendors/analytics/clarity.d.ts",
-			"import": "./dist/vendors/analytics/clarity.js",
-			"require": "./dist/vendors/analytics/clarity.cjs"
+		"./microsoft-clarity": {
+			"types": "./dist-types/vendors/analytics/microsoft-clarity.d.ts",
+			"import": "./dist/vendors/analytics/microsoft-clarity.js",
+			"require": "./dist/vendors/analytics/microsoft-clarity.cjs"
 		},
 		"./databuddy": {
 			"types": "./dist-types/vendors/analytics/databuddy.d.ts",
@@ -163,8 +163,8 @@
 		"dev": "rslib build --watch",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
-		"test": "vitest run --passWithNoTests",
-		"test:watch": "vitest"
+		"test": "bun test",
+		"test:watch": "bun test --watch"
 	},
 	"browserslist": [
 		">0.2%",

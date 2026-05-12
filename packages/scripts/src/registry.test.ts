@@ -39,7 +39,6 @@ import {
 	ahrefsAnalytics,
 	ahrefsAnalyticsManifest,
 } from './vendors/analytics/ahrefs-analytics';
-import { clarity, clarityManifest } from './vendors/analytics/clarity';
 import {
 	cloudflareWebAnalytics,
 	cloudflareWebAnalyticsManifest,
@@ -55,6 +54,10 @@ import {
 	matomoAnalytics,
 	matomoAnalyticsManifest,
 } from './vendors/analytics/matomo-analytics';
+import {
+	clarity,
+	clarityManifest,
+} from './vendors/analytics/microsoft-clarity';
 import {
 	mixpanelAnalytics,
 	mixpanelAnalyticsManifest,
@@ -129,7 +132,7 @@ const helperParityCases = {
 			src: 'https://static.cloudflareinsights.com/beacon.min.js',
 		},
 	},
-	clarity: {
+	'microsoft-clarity': {
 		script: clarity({ id: 'abcdef1234' }),
 		expected: {
 			alwaysLoad: undefined,
@@ -357,7 +360,14 @@ const vendorManifests = [
 
 function getPublicScriptExportSubpaths(): string[] {
 	return Object.keys(packageJson.exports)
-		.filter((key) => key !== './*' && key !== './registry')
+		.filter(
+			(key) =>
+				key.startsWith('./') &&
+				key !== '.' &&
+				key !== './*' &&
+				key !== './package.json' &&
+				key !== './registry'
+		)
 		.map((key) => key.replace('./', ''));
 }
 

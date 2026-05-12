@@ -26,6 +26,37 @@ describe('mixpanelAnalytics', () => {
 		});
 	});
 
+	it('trims valid tokens before resolving the manifest', () => {
+		const globalRef = getTestGlobal();
+		const init = vi.fn();
+		globalRef.mixpanel = {
+			init,
+			opt_in_tracking: vi.fn(),
+			opt_out_tracking: vi.fn(),
+		};
+		const script = mixpanelAnalytics({
+			token: ` ${MOCK_MIXPANEL_TOKEN} `,
+		});
+
+		script.onLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: deniedConsentState,
+			})
+		);
+
+		expect(init).toHaveBeenCalledWith(MOCK_MIXPANEL_TOKEN, {});
+	});
+
+	it('throws for blank or malformed tokens', () => {
+		expect(() => mixpanelAnalytics({ token: '   ' })).toThrow(
+			'mixpanelAnalytics: token must be a non-empty 32-character hexadecimal string'
+		);
+		expect(() => mixpanelAnalytics({ token: 'not-a-valid-token' })).toThrow(
+			'mixpanelAnalytics: token must be a non-empty 32-character hexadecimal string'
+		);
+	});
+
 	it('initializes mixpanel and syncs consent state through opt methods', () => {
 		const globalRef = getTestGlobal();
 		const init = vi.fn();

@@ -87,13 +87,21 @@ c15t gates the TikTok Pixel script from loading until `marketing` consent is gra
 This means `window.ttq` is only defined after the user has granted marketing consent at least once. Before that, unguarded calls throw. After that, calls are safe — TikTok's own consent state suppresses tracking when revoked.
 
 ```tsx
+import { useCallback } from 'react';
 import { useConsentManager } from '@c15t/react';
 
-function trackPurchase() {
+function useTrackPurchase() {
   const { has } = useConsentManager();
-  if (has('marketing')) {
-    window.ttq?.track('CompletePayment', { value: 10.0, currency: 'USD' });
-  }
+  return useCallback(() => {
+    if (has('marketing')) {
+      window.ttq?.track('CompletePayment', { value: 10.0, currency: 'USD' });
+    }
+  }, [has]);
+}
+
+function PurchaseButton() {
+  const trackPurchase = useTrackPurchase();
+  return <button onClick={trackPurchase}>Complete purchase</button>;
 }
 ```
 

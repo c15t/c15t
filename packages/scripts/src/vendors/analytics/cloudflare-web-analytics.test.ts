@@ -29,6 +29,20 @@ describe('cloudflareWebAnalytics', () => {
 		});
 	});
 
+	it('trims tokens before serializing the beacon config', () => {
+		const script = cloudflareWebAnalytics({ token: '  tok-abc  ' });
+
+		expect(script.attributes).toEqual({
+			'data-cf-beacon': JSON.stringify({ token: 'tok-abc', spa: true }),
+		});
+	});
+
+	it('throws for blank tokens', () => {
+		expect(() => cloudflareWebAnalytics({ token: '   ' })).toThrow(
+			'cloudflareWebAnalytics: missing token'
+		);
+	});
+
 	it('honors a custom loader URL', () => {
 		const script = cloudflareWebAnalytics({
 			token: 'tok-abc',

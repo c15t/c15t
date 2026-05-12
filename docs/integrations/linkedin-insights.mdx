@@ -117,13 +117,21 @@ c15t gates the LinkedIn Insight Tag from loading until `marketing` consent is gr
 Guard custom conversion calls by checking consent state:
 
 ```tsx
+import { useCallback } from 'react';
 import { useConsentManager } from '@c15t/react';
 
-function trackSignup() {
+function useTrackSignup() {
   const { has } = useConsentManager();
-  if (has('marketing')) {
-    window.lintrk?.('track', { conversion_id: 12345 });
-  }
+  return useCallback(() => {
+    if (has('marketing')) {
+      window.lintrk?.('track', { conversion_id: 12345 });
+    }
+  }, [has]);
+}
+
+function SignupButton() {
+  const trackSignup = useTrackSignup();
+  return <button onClick={trackSignup}>Sign up</button>;
 }
 ```
 

@@ -7,15 +7,15 @@ import {
 	setupScriptHelperTest,
 	toArgumentsArray,
 } from '../../__tests__/helpers';
-import { clarity } from './clarity';
+import { clarity } from './microsoft-clarity';
 
-describe('clarity', () => {
+describe('microsoft-clarity', () => {
 	setupScriptHelperTest();
 
 	it('matches registry metadata with default loader URL', () => {
 		const script = clarity({ id: 'abcdef1234' });
 
-		expectScriptMatchesIntegration('clarity', script, {
+		expectScriptMatchesIntegration('microsoft-clarity', script, {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: true,
 			src: 'https://www.clarity.ms/tag/abcdef1234',

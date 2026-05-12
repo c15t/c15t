@@ -200,19 +200,46 @@ export interface PlausibleAnalyticsOptions {
  * ```
  */
 export function plausibleAnalytics(options: PlausibleAnalyticsOptions): Script {
+	let scriptId: string | undefined;
+	if (options.scriptId) {
+		scriptId = options.scriptId.trim();
+	}
+
+	let domain: string | undefined;
+	if (options.domain) {
+		domain = options.domain.trim();
+	}
+
+	if (!scriptId && !domain) {
+		throw new Error('plausibleAnalytics: missing scriptId or domain');
+	}
+
+	const normalizedOptions: PlausibleAnalyticsOptions = { ...options };
+	if (scriptId) {
+		normalizedOptions.scriptId = scriptId;
+	} else {
+		delete normalizedOptions.scriptId;
+	}
+	if (domain) {
+		normalizedOptions.domain = domain;
+	} else {
+		delete normalizedOptions.domain;
+	}
+
 	const manifestOptions = {
-		scriptUrl: options.scriptUrl ?? buildPlausibleScriptUrl(options),
+		scriptUrl:
+			normalizedOptions.scriptUrl ?? buildPlausibleScriptUrl(normalizedOptions),
 		domain: undefined as string | undefined,
 		apiAttribute: undefined as string | undefined,
-		initOptions: buildPlausibleInitOptions(options),
+		initOptions: buildPlausibleInitOptions(normalizedOptions),
 	};
 
-	if (options.scriptId) {
+	if (scriptId) {
 		manifestOptions.domain = undefined;
 		manifestOptions.apiAttribute = undefined;
 	} else {
-		manifestOptions.domain = options.domain;
-		manifestOptions.apiAttribute = options.endpoint;
+		manifestOptions.domain = domain;
+		manifestOptions.apiAttribute = normalizedOptions.endpoint;
 	}
 
 	const resolved = resolveManifest(plausibleAnalyticsManifest, manifestOptions);

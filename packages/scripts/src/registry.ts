@@ -46,7 +46,7 @@ export interface IntegrationCategoryEntry {
  * implementation details here.
  */
 export interface IntegrationRegistryEntry {
-	/** Stable camelCase key used by tests and generated metadata. */
+	/** Stable key used by tests and generated metadata. */
 	key: string;
 	/** Script id emitted by the resolved helper. */
 	vendor: string;
@@ -137,12 +137,12 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
-		key: 'clarity',
-		vendor: 'clarity',
+		key: 'microsoft-clarity',
+		vendor: 'microsoft-clarity',
 		label: 'Microsoft Clarity',
 		hint: 'Session replay and heatmaps',
-		docsSlug: 'clarity',
-		packageSubpath: 'clarity',
+		docsSlug: 'microsoft-clarity',
+		packageSubpath: 'microsoft-clarity',
 		integrationCategory: 'analytics',
 		consentCategory: 'measurement',
 	},
@@ -365,7 +365,7 @@ export type BuiltInScriptIntegration =
 	(typeof builtInScriptIntegrations)[number];
 
 /**
- * Union of stable camelCase keys for built-in integrations.
+ * Union of stable keys for built-in integrations.
  */
 export type BuiltInScriptIntegrationKey = BuiltInScriptIntegration['key'];
 
@@ -378,7 +378,7 @@ export type BuiltInScriptIntegrationSubpath =
 /**
  * Looks up a built-in integration by its registry key.
  *
- * @param key - Stable camelCase integration key.
+ * @param key - Stable integration key.
  * @returns The matching built-in integration entry.
  * @throws `Error("Unknown built-in script integration: <key>")` when the key is
  * not present. Catch this when accepting untrusted or user-provided keys.

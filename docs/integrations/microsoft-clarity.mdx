@@ -1,5 +1,5 @@
 ---
-title: Clarity
+title: Microsoft Clarity
 description: Session replay and behavior analytics with a prebuilt helper that keeps Clarity consent synchronized with c15t measurement state.
 lastModified: 2026-05-10
 icon: microsoft-clarity
@@ -14,7 +14,7 @@ Microsoft Clarity gives you session recordings, heatmaps, and behavioral insight
     ```tsx
     import { type ReactNode } from 'react';
     import { ConsentManagerProvider } from '@c15t/react';
-    import { clarity } from '@c15t/scripts/clarity';
+    import { clarity } from '@c15t/scripts/microsoft-clarity';
 
     const scripts = [
       clarity({
@@ -44,7 +44,7 @@ Microsoft Clarity gives you session recordings, heatmaps, and behavioral insight
 
     import { type ReactNode } from 'react';
     import { ConsentManagerProvider } from '@c15t/nextjs';
-    import { clarity } from '@c15t/scripts/clarity';
+    import { clarity } from '@c15t/scripts/microsoft-clarity';
 
     const scripts = [
       clarity({
@@ -71,7 +71,7 @@ Microsoft Clarity gives you session recordings, heatmaps, and behavioral insight
   <Tab value="JavaScript">
     ```ts
     import { getOrCreateConsentRuntime } from 'c15t';
-    import { clarity } from '@c15t/scripts/clarity';
+    import { clarity } from '@c15t/scripts/microsoft-clarity';
 
     getOrCreateConsentRuntime({
       mode: 'hosted',
@@ -97,7 +97,7 @@ Microsoft Clarity gives you session recordings, heatmaps, and behavioral insight
 You can queue an initial Clarity consent value before the script loads.
 
 ```ts
-import { clarity } from '@c15t/scripts/clarity';
+import { clarity } from '@c15t/scripts/microsoft-clarity';
 
 clarity({
   id: 'abcdef1234',
@@ -158,7 +158,7 @@ if (consentStore.getState().has('measurement')) {
 
 ### ClarityOptions
 
-<AutoTypeTable path="./packages/scripts/src/vendors/analytics/clarity.ts" name="ClarityOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/microsoft-clarity.ts" name="ClarityOptions" />
 
 ### Script
 

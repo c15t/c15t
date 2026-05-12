@@ -85,12 +85,21 @@ export function hotjar({
 	version = 6,
 	scriptUrl,
 }: HotjarOptions): Script {
+	if (siteId === null || siteId === undefined) {
+		throw new Error('hotjar: missing or invalid siteId');
+	}
+
+	const normalizedSiteId = String(siteId).trim();
+	if (normalizedSiteId.length === 0 || normalizedSiteId === '0') {
+		throw new Error('hotjar: missing or invalid siteId');
+	}
+
 	return resolveManifest(hotjarManifest, {
-		siteId,
+		siteId: normalizedSiteId,
 		version,
 		scriptUrl: resolveScriptUrl(
 			scriptUrl,
-			`https://static.hotjar.com/c/hotjar-${siteId}.js?sv=${version}`
+			`https://static.hotjar.com/c/hotjar-${normalizedSiteId}.js?sv=${version}`
 		),
 	});
 }

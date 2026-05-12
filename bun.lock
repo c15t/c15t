@@ -6,6 +6,7 @@
       "name": "c15t-workspace",
       "devDependencies": {
         "@biomejs/biome": "2.4.10",
+        "@c15t/scripts": "^2.0.1",
         "@changesets/changelog-github": "0.6.0",
         "@changesets/cli": "2.30.0",
         "@rsbuild/core": "1.7.5",
@@ -24,6 +25,7 @@
         "@vitest/coverage-istanbul": "4.1.2",
         "@vitest/coverage-v8": "4.1.2",
         "baseline-browser-mapping": "latest",
+        "bun-types": "^1.3.13",
         "changeset-conventional-commits": "1.0.3",
         "decode-named-character-reference": "1.3.0",
         "esbuild": "^0.28.0",
@@ -436,6 +438,7 @@
     },
     "internals/storybook-tests": {
       "name": "@c15t/storybook-tests",
+      "version": "0.0.1",
       "dependencies": {
         "storybook": "10.3.1",
       },
@@ -446,7 +449,7 @@
     },
     "internals/typescript-config": {
       "name": "@c15t/typescript-config",
-      "version": "0.0.1-beta.1",
+      "version": "0.0.1",
     },
     "internals/vitest-config": {
       "name": "@c15t/vitest-config",
@@ -459,7 +462,7 @@
     },
     "packages/backend": {
       "name": "@c15t/backend",
-      "version": "2.0.0-rc.8",
+      "version": "2.0.0",
       "dependencies": {
         "@c15t/logger": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -493,7 +496,7 @@
     },
     "packages/cli": {
       "name": "@c15t/cli",
-      "version": "2.0.0-rc.8",
+      "version": "2.0.0",
       "bin": {
         "cli": "dist/index.mjs",
       },
@@ -533,7 +536,7 @@
     },
     "packages/core": {
       "name": "c15t",
-      "version": "2.0.0-rc.8",
+      "version": "2.0.0",
       "dependencies": {
         "@c15t/schema": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -548,7 +551,7 @@
     },
     "packages/dev-tools": {
       "name": "@c15t/dev-tools",
-      "version": "2.0.0-rc.8",
+      "version": "2.0.0",
       "dependencies": {
         "@radix-ui/react-accordion": "1.2.12",
         "@radix-ui/react-scroll-area": "^1.2.10",
@@ -578,7 +581,7 @@
     },
     "packages/iab": {
       "name": "@c15t/iab",
-      "version": "2.0.0-rc.8",
+      "version": "2.0.0",
       "dependencies": {
         "@c15t/schema": "workspace:*",
         "@iabtechlabtcf/core": "^1.5.21",
@@ -592,7 +595,7 @@
     },
     "packages/logger": {
       "name": "@c15t/logger",
-      "version": "1.0.2-rc.1",
+      "version": "2.0.0",
       "dependencies": {
         "chalk": "^5.6.2",
         "neverthrow": "^8.2.0",
@@ -605,7 +608,7 @@
     },
     "packages/nextjs": {
       "name": "@c15t/nextjs",
-      "version": "2.0.0-rc.9",
+      "version": "2.0.0",
       "dependencies": {
         "@c15t/react": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -625,7 +628,7 @@
     },
     "packages/node-sdk": {
       "name": "@c15t/node-sdk",
-      "version": "2.0.0-rc.8",
+      "version": "2.0.0",
       "dependencies": {
         "@c15t/backend": "workspace:*",
         "@orpc/client": "1.13.13",
@@ -649,7 +652,7 @@
     },
     "packages/react": {
       "name": "@c15t/react",
-      "version": "2.0.0-rc.9",
+      "version": "2.0.0",
       "dependencies": {
         "@c15t/ui": "workspace:*",
         "c15t": "workspace:*",
@@ -670,7 +673,7 @@
     },
     "packages/schema": {
       "name": "@c15t/schema",
-      "version": "2.0.0-rc.5",
+      "version": "2.0.0",
       "dependencies": {
         "valibot": "1.3.1",
       },
@@ -681,7 +684,7 @@
     },
     "packages/scripts": {
       "name": "@c15t/scripts",
-      "version": "1.1.0-rc.1",
+      "version": "2.0.0",
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
@@ -714,7 +717,7 @@
     },
     "packages/translations": {
       "name": "@c15t/translations",
-      "version": "2.0.0-rc.8",
+      "version": "2.0.0",
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
@@ -723,7 +726,7 @@
     },
     "packages/ui": {
       "name": "@c15t/ui",
-      "version": "2.0.0-rc.9",
+      "version": "2.0.0",
       "dependencies": {
         "@c15t/translations": "workspace:*",
         "c15t": "workspace:*",
@@ -2480,7 +2483,7 @@
 
     "buffer-from": ["buffer-from@1.1.2", "", {}, "sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ=="],
 
-    "bun-types": ["bun-types@1.3.9", "", { "dependencies": { "@types/node": "*" } }, "sha512-+UBWWOakIP4Tswh0Bt0QD0alpTY8cb5hvgiYeWCMet9YukHbzuruIEeXC2D7nMJPB12kbh8C7XJykSexEqGKJg=="],
+    "bun-types": ["bun-types@1.3.13", "", { "dependencies": { "@types/node": "*" } }, "sha512-QXKeHLlOLqQX9LgYaHJfzdBaV21T63HhFJnvuRCcjZiaUDpbs5ED1MgxbMra71CsryN/1dAoXuJJJwIv/2drVA=="],
 
     "bundle-name": ["bundle-name@4.1.0", "", { "dependencies": { "run-applescript": "^7.0.0" } }, "sha512-tjwM5exMg6BGRI+kNmTntNsvdZS1X8BFYS6tnJ2hdH0kVxM6/eVZ2xy+FqStSWvYmtfFMDLIxurorHwDKfDz5Q=="],
 
@@ -5064,6 +5067,8 @@
 
     "@types/babel__template/@babel/parser": ["@babel/parser@7.29.0", "", { "dependencies": { "@babel/types": "^7.29.0" }, "bin": "./bin/babel-parser.js" }, "sha512-IyDgFV5GeDUVX4YdF/3CPULtVGSXXMLh1xVIgdCgxApktqnQV0r7/8Nqthg+8YLGaAtdyIlo2qIdZrbCv4+7ww=="],
 
+    "@types/bun/bun-types": ["bun-types@1.3.9", "", { "dependencies": { "@types/node": "*" } }, "sha512-+UBWWOakIP4Tswh0Bt0QD0alpTY8cb5hvgiYeWCMet9YukHbzuruIEeXC2D7nMJPB12kbh8C7XJykSexEqGKJg=="],
+
     "@types/concat-stream/@types/node": ["@types/node@24.10.1", "", { "dependencies": { "undici-types": "~7.16.0" } }, "sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ=="],
 
     "@types/connect/@types/node": ["@types/node@24.10.1", "", { "dependencies": { "undici-types": "~7.16.0" } }, "sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ=="],
@@ -5111,8 +5116,6 @@
     "bitbucket/before-after-hook": ["before-after-hook@2.2.3", "", {}, "sha512-NzUnlZexiaH/46WDhANlyR2bXRopNg4F/zuSA3OpZnllCUgRaOF2znDioDWrmbNVsuZk6l9pMquQB38cfBZwkQ=="],
 
     "bitbucket/is-plain-object": ["is-plain-object@3.0.1", "", {}, "sha512-Xnpx182SBMrr/aBik8y+GuR4U1L9FqMSojwDQwPMmxyC6bvEqly9UBCxhauBF5vNh2gwWJNX6oDV7O+OM4z34g=="],
-
-    "bun-types/@types/node": ["@types/node@24.10.1", "", { "dependencies": { "undici-types": "~7.16.0" } }, "sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ=="],
 
     "c15t-v1-codemod-fixture/@c15t/react": ["@c15t/react@1.8.5", "", { "dependencies": { "@radix-ui/react-accordion": "1.2.12", "@radix-ui/react-slot": "1.2.4", "@radix-ui/react-switch": "1.1.4", "c15t": "1.8.5", "clsx": "2.1.1", "zustand": "^5.0.11" }, "peerDependencies": { "react": "^19.0.0 || ^19.0.0-rc || ^18.0.0 || ^17.0.0 || ^16.8.0", "react-dom": "^19.0.0 || ^19.0.0-rc || ^18.0.0 || ^17.0.0 || ^16.8.0" } }, "sha512-0JLWp4ipdHy2KCxhP1D8wN8XXkYxxZ+XKoa4qmhiMW6VUa8JzhdwGlsTL+mAuJ96f6xzIyCBA5SIE1Dgq8LkVA=="],
 
@@ -6072,6 +6075,8 @@
 
     "@testing-library/dom/pretty-format/react-is": ["react-is@17.0.2", "", {}, "sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w=="],
 
+    "@types/bun/bun-types/@types/node": ["@types/node@24.10.1", "", { "dependencies": { "undici-types": "~7.16.0" } }, "sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ=="],
+
     "@types/concat-stream/@types/node/undici-types": ["undici-types@7.16.0", "", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
 
     "@types/connect/@types/node/undici-types": ["undici-types@7.16.0", "", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
@@ -6089,8 +6094,6 @@
     "babel-plugin-istanbul/istanbul-lib-instrument/@babel/parser": ["@babel/parser@7.29.0", "", { "dependencies": { "@babel/types": "^7.29.0" }, "bin": "./bin/babel-parser.js" }, "sha512-IyDgFV5GeDUVX4YdF/3CPULtVGSXXMLh1xVIgdCgxApktqnQV0r7/8Nqthg+8YLGaAtdyIlo2qIdZrbCv4+7ww=="],
 
     "babel-plugin-jsx-dom-expressions/parse5/entities": ["entities@6.0.1", "", {}, "sha512-aN97NXWF6AWBTahfVOIrB/NShkzi5H7F9r1s9mD3cDj4Ko5f2qhhVoYMibXF7GlLveb/D2ioWay8lxI97Ven3g=="],
-
-    "bun-types/@types/node/undici-types": ["undici-types@7.16.0", "", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
 
     "c15t-v1-codemod-fixture/@c15t/react/@radix-ui/react-switch": ["@radix-ui/react-switch@1.1.4", "", { "dependencies": { "@radix-ui/primitive": "1.1.2", "@radix-ui/react-compose-refs": "1.1.2", "@radix-ui/react-context": "1.1.2", "@radix-ui/react-primitive": "2.0.3", "@radix-ui/react-use-controllable-state": "1.1.1", "@radix-ui/react-use-previous": "1.1.1", "@radix-ui/react-use-size": "1.1.1" }, "peerDependencies": { "@types/react": "*", "@types/react-dom": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc", "react-dom": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react", "@types/react-dom"] }, "sha512-zGP6W8plLeogoeGMiTHJ/uvf+TE1C2chVsEwfP8YlvpQKJHktG+iCkUtCLGPAuDV8/qDSmIRPm4NggaTxFMVBQ=="],
 
@@ -6859,6 +6862,8 @@
     "@orpc/zod/@orpc/contract/@orpc/client/@orpc/standard-server-peer": ["@orpc/standard-server-peer@1.13.6", "", { "dependencies": { "@orpc/shared": "1.13.6", "@orpc/standard-server": "1.13.6" } }, "sha512-WTqjNS6A9sxR4HVxWUb9ZoBHeQiesHeANmVBFdM/QjAaPUZYKn6WACYU6Q2eGmsCUeTQFfMssk0BG2EsgRNEYw=="],
 
     "@rslib/core/@rsbuild/core/@rspack/core/@rspack/binding": ["@rspack/binding@2.0.0-beta.9", "", { "optionalDependencies": { "@rspack/binding-darwin-arm64": "2.0.0-beta.9", "@rspack/binding-darwin-x64": "2.0.0-beta.9", "@rspack/binding-linux-arm64-gnu": "2.0.0-beta.9", "@rspack/binding-linux-arm64-musl": "2.0.0-beta.9", "@rspack/binding-linux-x64-gnu": "2.0.0-beta.9", "@rspack/binding-linux-x64-musl": "2.0.0-beta.9", "@rspack/binding-wasm32-wasi": "2.0.0-beta.9", "@rspack/binding-win32-arm64-msvc": "2.0.0-beta.9", "@rspack/binding-win32-ia32-msvc": "2.0.0-beta.9", "@rspack/binding-win32-x64-msvc": "2.0.0-beta.9" } }, "sha512-QgkOvzl6BJc4Vg5eaY9r7MkHNfXvVZPgTIeYkdBEOYPowdyCLhlG9vH7QltqLKP9KDNel70YIeMyUrpTqez01w=="],
+
+    "@types/bun/bun-types/@types/node/undici-types": ["undici-types@7.16.0", "", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
 
     "c15t-v1-codemod-fixture/@c15t/react/@radix-ui/react-switch/@radix-ui/primitive": ["@radix-ui/primitive@1.1.2", "", {}, "sha512-XnbHrrprsNqZKQhStrSwgRUQzoCI1glLzdw79xiZPoofhGICeZRSQ3dIxAKH1gb3OHfNf4d6f+vAv3kil2eggA=="],
 

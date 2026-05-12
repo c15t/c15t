@@ -31,7 +31,7 @@ declare global {
  */
 export const clarityManifest = {
 	...vendorManifestContract,
-	vendor: 'clarity',
+	vendor: 'microsoft-clarity',
 	category: 'measurement',
 	persistAfterConsentRevoked: true,
 	bootstrap: [

@@ -101,14 +101,22 @@ c15t gates the X Pixel script from loading until `marketing` consent is granted.
 Guard event calls by checking consent state:
 
 ```tsx
+import { useCallback } from 'react';
 import { useConsentManager } from '@c15t/react';
 import { xPixelEvent } from '@c15t/scripts/x-pixel';
 
-function trackPurchase() {
+function useTrackPurchase() {
   const { has } = useConsentManager();
-  if (has('marketing')) {
-    xPixelEvent('tw-xxxx-xxxx', { value: 10.0, currency: 'USD' });
-  }
+  return useCallback(() => {
+    if (has('marketing')) {
+      xPixelEvent('tw-xxxx-xxxx', { value: 10.0, currency: 'USD' });
+    }
+  }, [has]);
+}
+
+function PurchaseButton() {
+  const trackPurchase = useTrackPurchase();
+  return <button onClick={trackPurchase}>Complete purchase</button>;
 }
 ```
 

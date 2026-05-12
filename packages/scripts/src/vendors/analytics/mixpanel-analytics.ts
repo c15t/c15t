@@ -4,7 +4,7 @@ import { type VendorManifest, vendorManifestContract } from '../../types';
 
 declare global {
 	interface Window {
-		mixpanel: {
+		mixpanel?: {
 			init: (token: string, config?: Record<string, unknown>) => void;
 			track: (event: string, properties?: Record<string, unknown>) => void;
 			identify: (distinctId: string) => void;
@@ -111,6 +111,8 @@ export interface MixpanelAnalyticsOptions {
  *
  * @param options - The options for the Mixpanel Analytics script.
  * @returns The Mixpanel Analytics script configuration.
+ * @throws {Error} Throws when `token` is not a non-empty 32-character
+ * hexadecimal Mixpanel project token.
  *
  * @example
  * ```ts
@@ -127,8 +129,18 @@ export function mixpanelAnalytics({
 	initOptions,
 	scriptUrl,
 }: MixpanelAnalyticsOptions): Script {
+	let normalizedToken = '';
+	if (typeof token === 'string') {
+		normalizedToken = token.trim();
+	}
+	if (!/^[a-f0-9]{32}$/i.test(normalizedToken)) {
+		throw new Error(
+			'mixpanelAnalytics: token must be a non-empty 32-character hexadecimal string'
+		);
+	}
+
 	return resolveManifest(mixpanelAnalyticsManifest, {
-		token,
+		token: normalizedToken,
 		initOptions: initOptions ?? {},
 		scriptUrl: scriptUrl ?? 'https://cdn.mxpnl.com/libs/mixpanel-2.78.0.min.js',
 	});

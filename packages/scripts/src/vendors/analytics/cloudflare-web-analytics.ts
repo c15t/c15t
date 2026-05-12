@@ -75,13 +75,18 @@ export interface CloudflareWebAnalyticsOptions {
 export function cloudflareWebAnalytics(
 	options: CloudflareWebAnalyticsOptions
 ): Script {
+	const token = String(options.token).trim();
+	if (token.length === 0) {
+		throw new Error('cloudflareWebAnalytics: missing token');
+	}
+
 	const resolved = resolveManifest(cloudflareWebAnalyticsManifest, {
 		scriptUrl: resolveScriptUrl(
 			options.scriptUrl,
 			'https://static.cloudflareinsights.com/beacon.min.js'
 		),
 		beaconConfig: JSON.stringify({
-			token: options.token,
+			token,
 			spa: options.spa ?? true,
 		}),
 	});

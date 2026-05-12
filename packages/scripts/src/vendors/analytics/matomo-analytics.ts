@@ -59,29 +59,22 @@ function resolveMatomoOrigin(
 	return undefined;
 }
 
-/**
- * Builds a Matomo `VendorManifest` from helper options.
- *
- * @param options - Manifest toggles:
- * - `enableConsentMode`: enables Matomo consent queue commands and sets
- * `alwaysLoad`/`persistAfterConsentRevoked`.
- * - `consentInitiallyGiven`: when consent mode is enabled, queues
- * `setConsentGiven` during install instead of `requireConsent`.
- * - `enableLinkTracking`: queues `enableLinkTracking` during install.
- * - `disableCookies`: queues `disableCookies` during install.
- * - `trackPageView`: queues `trackPageView` immediately only when consent mode
- * is disabled; when consent mode is enabled, queues it in grant hooks.
- * @returns A Matomo `VendorManifest` with `install`, consent lifecycle hooks,
- * and consent metadata (`alwaysLoad`, `persistAfterConsentRevoked`) derived
- * from `enableConsentMode`.
- */
-function createMatomoAnalyticsManifest(options: {
+type MatomoManifestOptions = {
 	enableConsentMode: boolean;
 	consentInitiallyGiven: boolean;
 	enableLinkTracking: boolean;
 	disableCookies: boolean;
 	trackPageView: boolean;
-}): VendorManifest {
+};
+
+interface MatomoGrantedHooks {
+	onBeforeLoadGranted: VendorManifest['onBeforeLoadGranted'];
+	onConsentGranted: VendorManifest['onConsentGranted'];
+}
+
+function buildInstallSteps(
+	options: MatomoManifestOptions
+): VendorManifest['install'] {
 	const install: VendorManifest['install'] = [
 		{
 			type: 'setGlobal',
@@ -155,6 +148,10 @@ function createMatomoAnalyticsManifest(options: {
 		async: true,
 	});
 
+	return install;
+}
+
+function buildGrantedHooks(options: MatomoManifestOptions): MatomoGrantedHooks {
 	const onBeforeLoadGranted: VendorManifest['onBeforeLoadGranted'] = [];
 	if (options.enableConsentMode && !options.consentInitiallyGiven) {
 		onBeforeLoadGranted.push({
@@ -176,7 +173,6 @@ function createMatomoAnalyticsManifest(options: {
 	}
 
 	const onConsentGranted: VendorManifest['onConsentGranted'] = [];
-	const onConsentDenied: VendorManifest['onConsentDenied'] = [];
 	if (options.enableConsentMode) {
 		onConsentGranted.push({
 			type: 'pushToQueue',
@@ -191,7 +187,19 @@ function createMatomoAnalyticsManifest(options: {
 				value: ['trackPageView'],
 			});
 		}
+	}
 
+	return {
+		onBeforeLoadGranted,
+		onConsentGranted,
+	};
+}
+
+function buildDeniedHooks(
+	options: MatomoManifestOptions
+): VendorManifest['onConsentDenied'] {
+	const onConsentDenied: VendorManifest['onConsentDenied'] = [];
+	if (options.enableConsentMode) {
 		onConsentDenied.push({
 			type: 'pushToQueue',
 			queue: '_paq',
@@ -199,16 +207,46 @@ function createMatomoAnalyticsManifest(options: {
 		});
 	}
 
+	return onConsentDenied;
+}
+
+/**
+ * Builds a Matomo `VendorManifest` from helper options.
+ *
+ * @param options - Manifest toggles:
+ * - `enableConsentMode`: enables Matomo consent queue commands and sets
+ * `alwaysLoad`/`persistAfterConsentRevoked`.
+ * - `consentInitiallyGiven`: when consent mode is enabled, queues
+ * `setConsentGiven` during install instead of `requireConsent`.
+ * - `enableLinkTracking`: queues `enableLinkTracking` during install.
+ * - `disableCookies`: queues `disableCookies` during install.
+ * - `trackPageView`: queues `trackPageView` immediately only when consent mode
+ * is disabled; when consent mode is enabled, queues it in grant hooks.
+ * @returns A Matomo `VendorManifest` with `install`, consent lifecycle hooks,
+ * and consent metadata (`alwaysLoad`, `persistAfterConsentRevoked`) derived
+ * from `enableConsentMode`.
+ */
+function createMatomoAnalyticsManifest(
+	options: MatomoManifestOptions
+): VendorManifest {
+	const { onBeforeLoadGranted, onConsentGranted } = buildGrantedHooks(options);
+	let alwaysLoad: true | undefined;
+	let persistAfterConsentRevoked: true | undefined;
+	if (options.enableConsentMode) {
+		alwaysLoad = true;
+		persistAfterConsentRevoked = true;
+	}
+
 	return {
 		...vendorManifestContract,
 		vendor: 'matomo-analytics',
 		category: 'measurement',
-		alwaysLoad: options.enableConsentMode ? true : undefined,
-		persistAfterConsentRevoked: options.enableConsentMode ? true : undefined,
-		install,
+		alwaysLoad,
+		persistAfterConsentRevoked,
+		install: buildInstallSteps(options),
 		onBeforeLoadGranted,
 		onConsentGranted,
-		onConsentDenied,
+		onConsentDenied: buildDeniedHooks(options),
 	};
 }
 
