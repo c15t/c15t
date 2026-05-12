@@ -1,0 +1,5 @@
+[install]
+# Delay newly-published npm package versions during dependency resolution.
+# Existing entries in bun.lock are unaffected by this gate.
+minimumReleaseAge = 259200
+auto = "disable"
