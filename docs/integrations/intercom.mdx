@@ -11,7 +11,9 @@ calls until the widget bundle loads.
 ## Official Intercom documentation
 
 - [Install Intercom Messenger](https://developers.intercom.com/installing-intercom/web/installation)
+- [Secure your Messenger](https://developers.intercom.com/installing-intercom/web/identity-verification)
 - [JavaScript API](https://developers.intercom.com/installing-intercom/web/methods)
+- [Attributes and objects](https://developers.intercom.com/installing-intercom/web/attributes-objects)
 
 ## How c15t loads it
 
@@ -34,20 +36,40 @@ import { intercom } from '@c15t/scripts/intercom';
 intercom({ appId: 'abc123' })
 ```
 
+## API region
+
+Intercom's default regional API base is `https://api-iam.intercom.io`. If your
+workspace uses the EU or Australia data host, pass the matching `apiBase`.
+
+```ts
+intercom({
+  appId: 'abc123',
+  apiBase: 'https://api-iam.eu.intercom.io',
+})
+```
+
 ## Runtime options
 
 Pass additional Intercom settings through `settings`. The helper always writes
-the provided `appId` to `app_id`.
+the provided `appId` to `app_id` and `apiBase` to `api_base`.
 
 ```ts
 intercom({
   appId: 'abc123',
   settings: {
-    api_base: 'https://api-iam.intercom.io',
     name: 'Ada Lovelace',
+    user_id: 'user-123',
+    company: {
+      company_id: 'company-123',
+      name: 'Example Company Inc.',
+    },
   },
 })
 ```
+
+For logged-in users, Intercom recommends securing the Messenger with
+server-generated identity data. Generate verification tokens on your backend and
+only pass client-safe values through `settings`.
 
 ## Types
 
