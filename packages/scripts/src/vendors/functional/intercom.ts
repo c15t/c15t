@@ -74,7 +74,7 @@ export type IntercomCustomSettings = Partial<
 
 declare global {
 	interface Window {
-		Intercom: ((...args: unknown[]) => void) & {
+		Intercom?: ((...args: unknown[]) => void) & {
 			q?: unknown[][];
 		};
 		intercomSettings?: IntercomSettings;

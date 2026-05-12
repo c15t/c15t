@@ -39,9 +39,12 @@ function buildPlausibleScriptUrl(options: PlausibleAnalyticsOptions): string {
 	}
 
 	if (options.extension) {
-		const extensions = Array.isArray(options.extension)
-			? options.extension.join('.')
-			: options.extension;
+		let extensions: string;
+		if (Array.isArray(options.extension)) {
+			extensions = options.extension.join('.');
+		} else {
+			extensions = options.extension;
+		}
 
 		return `https://plausible.io/js/script.${extensions}.js`;
 	}

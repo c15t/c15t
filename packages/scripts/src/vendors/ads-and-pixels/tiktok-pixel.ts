@@ -2,7 +2,7 @@ import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
 
-type TikTokPixelFunction = {
+interface TikTokPixelFunction {
 	grantConsent: () => void;
 	revokeConsent: () => void;
 	page: () => void;
@@ -19,7 +19,7 @@ type TikTokPixelFunction = {
 	enableCookie: (...args: unknown[]) => void;
 	disableCookie: (...args: unknown[]) => void;
 	holdConsent: (...args: unknown[]) => void;
-};
+}
 
 // Extended Window interface to include TikTok Pixel-specific properties
 declare global {

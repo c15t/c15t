@@ -5,7 +5,7 @@ import { joinUrlPath } from '../_shared/script-url';
 
 declare global {
 	interface Window {
-		_paq: unknown[];
+		_paq?: unknown[];
 	}
 }
 

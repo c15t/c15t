@@ -79,6 +79,18 @@ export interface RybbitAnalyticsOptions {
 	scriptUrl?: string;
 }
 
+/**
+ * Resolves the Rybbit Analytics script URL.
+ *
+ * Uses `options.scriptUrl` when provided, falls back to
+ * `options.analyticsHost` joined with `script.js`, and defaults to
+ * `https://app.rybbit.io/api/script.js`.
+ *
+ * @param options - Rybbit Analytics options.
+ * @returns The resolved script URL.
+ *
+ * @internal
+ */
 function getRybbitScriptUrl(options: RybbitAnalyticsOptions): string {
 	if (options.scriptUrl) {
 		return options.scriptUrl;

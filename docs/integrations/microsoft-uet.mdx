@@ -2,7 +2,6 @@
 title: Microsoft UET
 description: Track conversions and measure performance for Microsoft Advertising and Bing Ads.
 lastModified: 2026-05-11
-
 icon: microsoft
 ---
 
@@ -64,16 +63,30 @@ visits and custom events, and event payloads can include revenue fields such as
 `revenue_value` and `currency`.
 
 ```tsx
+import { useCallback } from 'react';
 import { useConsentManager } from '@c15t/react';
 
-function trackPurchase() {
+function useTrackPurchase() {
   const { has } = useConsentManager();
-  if (has('marketing')) {
-    window.uetq?.push('event', 'purchase', {
-      revenue_value: 10,
-      currency: 'USD',
-    });
-  }
+
+  return useCallback(() => {
+    if (has('marketing')) {
+      window.uetq?.push('event', 'purchase', {
+        revenue_value: 10,
+        currency: 'USD',
+      });
+    }
+  }, [has]);
+}
+
+function CheckoutButton() {
+  const trackPurchase = useTrackPurchase();
+
+  return (
+    <button type="button" onClick={trackPurchase}>
+      Complete purchase
+    </button>
+  );
 }
 ```
 

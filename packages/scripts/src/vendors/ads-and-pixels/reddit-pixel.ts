@@ -301,6 +301,15 @@ export function redditPixel({
 	});
 }
 
+/**
+ * Merges optional init options with an explicit first-party cookie flag.
+ *
+ * @param initOptions - Optional Reddit Pixel init options.
+ * @param disableFirstPartyCookies - Optional first-party cookie disable flag.
+ * @returns Reddit Pixel init options, or `undefined` when no options are set.
+ *
+ * @internal
+ */
 function getRedditPixelInitOptions({
 	initOptions,
 	disableFirstPartyCookies,

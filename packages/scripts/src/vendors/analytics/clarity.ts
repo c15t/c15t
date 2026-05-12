@@ -16,7 +16,7 @@ type ClarityFunction = {
 
 declare global {
 	interface Window {
-		clarity: ClarityFunction & {
+		clarity?: ClarityFunction & {
 			q?: unknown[][];
 			v?: string;
 		};
@@ -95,6 +95,9 @@ export interface ClarityOptions {
  *
  * @param options - The options for the Clarity script.
  * @returns The Clarity script configuration.
+ * @throws {Error} When `options.id` is missing or invalid and no `scriptUrl`
+ * override is provided. Provide a valid Clarity project id string to prevent
+ * this error.
  */
 export function clarity({
 	id,

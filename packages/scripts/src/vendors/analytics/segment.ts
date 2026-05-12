@@ -124,7 +124,7 @@ export interface SegmentApi {
 
 declare global {
 	interface Window {
-		analytics: SegmentApi;
+		analytics?: SegmentApi;
 	}
 }
 
@@ -185,6 +185,14 @@ export function segment({
 	trackPageView = true,
 	scriptUrl,
 }: SegmentOptions): Script {
+	const normalizedWriteKey =
+		typeof writeKey === 'string' ? writeKey.trim() : '';
+	if (normalizedWriteKey.length === 0) {
+		throw new Error('segment: missing or invalid writeKey');
+	}
+	const segmentCdnBase = 'https://cdn.segment.com/analytics.js/v1';
+	const defaultScriptUrl = `${segmentCdnBase}/${normalizedWriteKey}/analytics.min.js`;
+
 	let manifest: VendorManifest = segmentManifest;
 
 	if (!trackPageView) {
@@ -202,9 +210,6 @@ export function segment({
 	}
 
 	return resolveManifest(manifest, {
-		scriptUrl: resolveScriptUrl(
-			scriptUrl,
-			`https://cdn.segment.com/analytics.js/v1/${writeKey}/analytics.min.js`
-		),
+		scriptUrl: resolveScriptUrl(scriptUrl, defaultScriptUrl),
 	});
 }

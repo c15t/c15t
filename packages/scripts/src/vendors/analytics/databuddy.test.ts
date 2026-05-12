@@ -108,5 +108,9 @@ describe('databuddy', () => {
 			trackScreenViews: true,
 			disabled: false,
 		});
+		expect(
+			(globalRef.databuddy as { options: { disabled: boolean } }).options
+				.disabled
+		).toEqual(false);
 	});
 });

@@ -89,13 +89,15 @@ function createCrispManifest(options: CrispOptions): VendorManifest {
 		},
 	];
 
-	if (options.locale || options.sessionMerge) {
+	if (options.locale !== undefined || options.sessionMerge !== undefined) {
 		install.push({
 			type: 'setGlobal',
 			name: 'CRISP_RUNTIME_CONFIG',
 			value: {
-				...(options.locale ? { locale: '{{locale}}' } : {}),
-				...(options.sessionMerge ? { session_merge: '{{sessionMerge}}' } : {}),
+				...(options.locale !== undefined ? { locale: '{{locale}}' } : {}),
+				...(options.sessionMerge !== undefined
+					? { session_merge: '{{sessionMerge}}' }
+					: {}),
 			},
 			ifUndefined: false,
 		});

@@ -792,7 +792,7 @@ export const AVAILABLE_SCRIPTS = BUILT_IN_INTEGRATION_CATEGORIES.flatMap(
 
 export type AvailableScript = (typeof AVAILABLE_SCRIPTS)[number]['value'];
 type AvailableScriptPromptOptions = Parameters<
-	typeof p.multiselect<AvailableScript>
+	typeof p.multiselect<string>
 >[0]['options'];
 
 export interface ScriptsOptionInput {
@@ -834,9 +834,9 @@ export const scriptsOptionActor = fromPromise<
 		value: script.value,
 		label: script.label,
 		hint: script.hint,
-	})) as AvailableScriptPromptOptions;
+	})) satisfies AvailableScriptPromptOptions;
 
-	const selected = await p.multiselect<AvailableScript>({
+	const selected = await p.multiselect<string>({
 		message: 'Which scripts do you want to add?',
 		options: scriptOptions,
 		required: false,

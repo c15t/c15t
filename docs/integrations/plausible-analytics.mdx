@@ -46,13 +46,27 @@ c15t gates the Plausible script from loading until `measurement` consent is gran
 Guard event calls by checking consent state. From React:
 
 ```tsx
+import { useCallback } from 'react';
 import { useConsentManager } from '@c15t/react';
 
-function trackSignup() {
+function useTrackSignup() {
   const { has } = useConsentManager();
-  if (has('measurement')) {
-    window.plausible?.('Signup');
-  }
+
+  return useCallback(() => {
+    if (has('measurement')) {
+      window.plausible?.('Signup');
+    }
+  }, [has]);
+}
+
+function SignupButton() {
+  const trackSignup = useTrackSignup();
+
+  return (
+    <button type="button" onClick={trackSignup}>
+      Sign up
+    </button>
+  );
 }
 ```
 

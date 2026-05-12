@@ -455,7 +455,7 @@ export const metaPixelEvent = <TEventName extends StandardEventName>(
 	eventName: TEventName,
 	params?: StandardEventParams[TEventName],
 	eventOptions?: MetaPixelEventOptions | string
-) =>
+): void =>
 	window.fbq(
 		'track',
 		eventName,
@@ -474,7 +474,7 @@ export const metaPixelCustomEvent = (
 	eventName: string,
 	params?: FbqCustomParams,
 	eventOptions?: MetaPixelEventOptions | string
-) =>
+): void =>
 	window.fbq(
 		'trackCustom',
 		eventName,
@@ -510,7 +510,7 @@ export const metaPixelSingleEvent = <TEventName extends StandardEventName>(
 	eventName: TEventName,
 	params?: StandardEventParams[TEventName],
 	eventOptions?: MetaPixelEventOptions | string
-) =>
+): void =>
 	window.fbq(
 		'trackSingle',
 		pixelId,
@@ -541,7 +541,7 @@ export const metaPixelSingleCustomEvent = (
 	eventName: string,
 	params?: FbqCustomParams,
 	eventOptions?: MetaPixelEventOptions | string
-) =>
+): void =>
 	window.fbq(
 		'trackSingleCustom',
 		pixelId,

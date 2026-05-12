@@ -72,8 +72,13 @@ export interface AhrefsAnalyticsOptions {
  * ```
  */
 export function ahrefsAnalytics(options: AhrefsAnalyticsOptions): Script {
+	const key = typeof options.key === 'string' ? options.key.trim() : '';
+	if (key.length === 0) {
+		throw new Error('ahrefsAnalytics: missing or invalid key');
+	}
+
 	return resolveManifest(ahrefsAnalyticsManifest, {
-		key: options.key,
+		key,
 		scriptUrl: resolveScriptUrl(
 			options.scriptUrl,
 			'https://analytics.ahrefs.com/analytics.js'
