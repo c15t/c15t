@@ -25,10 +25,12 @@ export async function installSkills(context: CliContext) {
 		cwd: context.projectRoot,
 		logger,
 		onFailure: (error) => {
-			telemetry.trackError(
-				error instanceof Error ? error : new Error(String(error)),
-				'skills'
-			);
+			if (error instanceof Error) {
+				telemetry.trackError(error, 'skills');
+			} else {
+				const normalizedError = new Error(String(error));
+				telemetry.trackError(normalizedError, 'skills');
+			}
 		},
 		onSuccess: () => {
 			telemetry.trackEvent(TelemetryEventName.ONBOARDING_COMPLETED, {

@@ -45,10 +45,15 @@ export function mapCliCommandsToHexbusCommands(
 
 function getPrimaryFlagName(flag: CliFlag): string {
 	const longName = flag.names.find((name) => name.startsWith('--'));
-	const fallback = flag.names.reduce(
-		(longest, name) => (name.length > longest.length ? name : longest),
-		''
-	);
+	const fallback = flag.names.reduce((longest, name) => {
+		let selected = longest;
+		if (name.length > longest.length) {
+			selected = name;
+		} else {
+			selected = longest;
+		}
+		return selected;
+	}, '');
 	const chosen = longName ?? fallback;
 	return chosen.replace(/^--?/, '');
 }

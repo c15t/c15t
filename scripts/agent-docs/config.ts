@@ -230,18 +230,28 @@ function getDocsRouteFromSourcePath(sourcePath: string): string {
 		.replace(/\\/g, '/')
 		.replace(/\.(md|mdx)$/, '');
 
-	return normalized.endsWith('/index')
-		? normalized.slice(0, -'/index'.length)
-		: normalized;
+	return normalizeDocsRoute(normalized);
+}
+
+function normalizeDocsRoute(route: string): string {
+	if (route === 'index') {
+		return '';
+	}
+
+	if (route.endsWith('/index')) {
+		return route.slice(0, -'/index'.length);
+	}
+
+	return route;
 }
 
 function buildPublicUrl(config: AgentPackageConfig, entry: string): string {
 	if (entry.startsWith('../')) {
 		const sourcePath = findDocSource(resolve(config.frameworkRoot, entry));
 		if (!sourcePath) {
-			const route = entry
-				.replace(/^(?:\.\.\/)+/, '')
-				.replace(/\.(md|mdx)$/, '');
+			const route = normalizeDocsRoute(
+				entry.replace(/^(?:\.\.\/)+/, '').replace(/\.(md|mdx)$/, '')
+			);
 			return `https://c15t.com/docs/${route}`;
 		}
 		return `https://c15t.com/docs/${getDocsRouteFromSourcePath(sourcePath)}`;

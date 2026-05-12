@@ -38,7 +38,7 @@ import { URLS } from './constants';
 
 // Import context creator and types
 import { createCliContext } from './context/creator';
-import { globalFlags } from './context/parser';
+import { globalFlags, mapCliCommandsToHexbusCommands } from './context/parser';
 import type { CliCommand } from './context/types';
 import { formatLogMessage } from './utils/logger';
 import { TelemetryEventName } from './utils/telemetry';
@@ -225,7 +225,7 @@ flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
 		showHelpMenu(
 			context,
 			{ appName: 'c15t', docsUrl: URLS.DOCS, version },
-			commands as never,
+			mapCliCommandsToHexbusCommands(commands),
 			globalFlags
 		);
 		await telemetry.shutdown();

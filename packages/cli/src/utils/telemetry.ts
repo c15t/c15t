@@ -318,7 +318,17 @@ export class Telemetry {
 			return;
 		}
 
-		await this.flushAll();
+		if (this.flushPromise) {
+			await this.flushPromise;
+			return;
+		}
+
+		this.flushPromise = this.flushAll();
+		try {
+			await this.flushPromise;
+		} finally {
+			this.flushPromise = null;
+		}
 	}
 
 	async shutdown(): Promise<void> {
