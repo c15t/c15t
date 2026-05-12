@@ -35,9 +35,9 @@
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/logger": "workspace:*",
+		"@clack/prompts": "1.1.0",
 		"@inth/hexbus-codemods": "0.2.0",
 		"@inth/hexbus-skills": "0.1.1",
-		"@clack/prompts": "1.1.0",
 		"@modelcontextprotocol/sdk": "^1.29.0",
 		"c12": "3.3.3",
 		"dotenv": "17.3.1",
