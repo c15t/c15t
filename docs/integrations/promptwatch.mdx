@@ -1,0 +1,48 @@
+---
+title: Promptwatch
+description: Promptwatch analyzes traffic on your site for Artificial Intelligence (AI) traffic and usage insights. Data is stored in the EU without user-identifiable information.
+lastModified: 2026-05-10
+
+icon: promptwatch
+---
+
+[Promptwatch](https://promptwatch.com) provides analytics focused on AI-related traffic and usage. The official embed loads a single script with your `data-project-id`. By default, c15t loads this script when `measurement` consent is granted.
+
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** measurement consent is granted
+- **On revocation:** unloaded - c15t removes the script from the DOM and pauses Promptwatch data collection until consent is granted again.
+
+## Adding Promptwatch to c15t
+
+<Callout type="info">
+  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
+</Callout>
+
+```ts
+import { promptwatch } from '@c15t/scripts/promptwatch';
+
+promptwatch({
+	projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
+});
+```
+
+To use a custom loader URL:
+
+```ts
+promptwatch({
+	projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
+	scriptUrl: 'https://cdn.example.com/promptwatch.js',
+});
+```
+
+## Types
+
+### PromptwatchOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/promptwatch.ts" name="PromptwatchOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

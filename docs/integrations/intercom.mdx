@@ -1,12 +1,27 @@
 ---
 title: Intercom
 description: Bootstrap Intercom settings and load the messenger widget bundle.
-lastModified: 2026-05-09
+lastModified: 2026-05-12
 
 icon: guide
 ---
 
-Intercom loads through `@c15t/scripts` using c15t's script loader and the helper's default consent category.
+Intercom adds the Intercom messenger widget and queues early `Intercom(...)`
+calls until the widget bundle loads.
+
+## Official Intercom documentation
+
+- [Install Intercom Messenger](https://developers.intercom.com/installing-intercom/web/installation)
+- [JavaScript API](https://developers.intercom.com/installing-intercom/web/methods)
+
+## How c15t loads it
+
+- **Category:** `functionality` (Functional)
+- **Loads when:** functionality consent is granted
+- **Before load:** c15t seeds `window.intercomSettings` and a queueing
+  `Intercom` stub
+- **On revocation:** c15t follows the default script loader behavior for
+  non-persistent scripts
 
 ## Adding Intercom to c15t
 
@@ -20,11 +35,26 @@ import { intercom } from '@c15t/scripts/intercom';
 intercom({ appId: 'abc123' })
 ```
 
+## Runtime options
+
+Pass additional Intercom settings through `settings`. The helper always writes
+the provided `appId` to `app_id`.
+
+```ts
+intercom({
+  appId: 'abc123',
+  settings: {
+    api_base: 'https://api-iam.intercom.io',
+    name: 'Ada Lovelace',
+  },
+})
+```
+
 ## Types
 
 ### IntercomOptions
 
-<AutoTypeTable path="./packages/scripts/src/intercom.ts" name="IntercomOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/functional/intercom.ts" name="IntercomOptions" />
 
 ### Script
 

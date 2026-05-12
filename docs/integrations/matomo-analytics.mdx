@@ -1,0 +1,87 @@
+---
+title: Matomo Analytics
+description: Load Matomo with c15t and keep Matomo's queue aligned with measurement consent.
+lastModified: 2026-05-10
+
+icon: matomo
+---
+
+Matomo gives you privacy-focused web analytics with self-hosted and cloud deployment options. The `matomoAnalytics()` helper sets up Matomo's `_paq` queue, points it at your tracker, and can queue consent-aware commands before the vendor bundle loads.
+
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** measurement consent is granted by default
+- **Consent mode option:** with `defaultConsent`, the helper switches to `alwaysLoad: true` and uses Matomo queue commands to grant/forget consent without unloading the SDK.
+
+## Adding Matomo to c15t
+
+<Callout type="info">
+  Pass the result to your `ConsentManagerProvider` - see the [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), or [Next.js](/docs/frameworks/next/script-loader) script loader guide.
+</Callout>
+
+```ts
+import { matomoAnalytics } from '@c15t/scripts/matomo-analytics';
+
+matomoAnalytics({
+  matomoUrl: 'https://analytics.example.com',
+  siteId: 1,
+});
+```
+
+## Enable Matomo consent mode
+
+If you want Matomo to wait for consent before tracking, set `defaultConsent` to `'required'` or `'given'`.
+
+```ts
+import { matomoAnalytics } from '@c15t/scripts/matomo-analytics';
+
+matomoAnalytics({
+  matomoUrl: 'https://analytics.example.com',
+  siteId: 1,
+  defaultConsent: 'required',
+});
+```
+
+## Tracking events in your app
+
+Matomo's runtime API is queue-based (`window._paq`). When the script is not loaded yet, pushing to `_paq` is still safe as long as the queue exists. The helper creates `_paq` during setup.
+
+From React:
+
+```tsx
+import { useCallback } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+function SignupExample() {
+  const { has } = useConsentManager();
+
+  const trackSignup = useCallback(() => {
+    if (has('measurement')) {
+      window._paq?.push(['trackEvent', 'signup', 'completed']);
+    }
+  }, [has]);
+}
+```
+
+From plain JavaScript:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('measurement')) {
+  window._paq?.push(['trackEvent', 'signup', 'completed']);
+}
+```
+
+## Types
+
+### MatomoAnalyticsOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/matomo-analytics.ts" name="MatomoAnalyticsOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

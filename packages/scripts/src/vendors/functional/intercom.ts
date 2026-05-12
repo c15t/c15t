@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
 type IntercomSettings = Record<string, unknown> & {
 	app_id: string;
@@ -18,8 +18,8 @@ declare global {
 /**
  * Intercom vendor manifest.
  *
- * Seeds `window.intercomSettings` and a simple queueing `Intercom` stub before
- * loading the widget bundle.
+ * Seeds `window.intercomSettings` and a queueing `Intercom` stub before loading
+ * the messenger widget bundle.
  */
 export const intercomManifest = {
 	...vendorManifestContract,
@@ -56,7 +56,8 @@ export interface IntercomOptions {
 	appId: string;
 
 	/**
-	 * Additional serializable Intercom settings merged into `intercomSettings`.
+	 * Additional serializable Intercom settings merged into
+	 * `window.intercomSettings`.
 	 */
 	settings?: Record<string, unknown>;
 
@@ -65,35 +66,33 @@ export interface IntercomOptions {
 }
 
 /**
- * Creates an Intercom script.
+ * Creates an Intercom messenger script.
  *
- * The manifest preserves the declarative settings bootstrap and queue stub,
- * while leaving richer runtime boot/update flows to the loaded Intercom SDK.
+ * The helper bootstraps the documented Intercom settings object and queues
+ * early `Intercom(...)` calls until the messenger bundle loads.
  *
- * @param options - The options for the Intercom script
- * @returns The Intercom script configuration
+ * @param options - The options for the Intercom script.
+ * @returns The Intercom script configuration.
  *
  * @example
  * ```ts
  * const intercomScript = intercom({
- *   appId: 'abc123',
+ * 	appId: 'abc123',
  * });
  * ```
  *
- * @see {@link https://developers.intercom.com/installing-intercom/web/installation} Intercom installation documentation
+ * @see {@link https://developers.intercom.com/installing-intercom/web/installation} Intercom installation documentation.
  */
 export function intercom({
 	appId,
 	settings,
 	scriptSrc,
 }: IntercomOptions): Script {
-	const resolved = resolveManifest(intercomManifest, {
+	return resolveManifest(intercomManifest, {
 		settings: {
 			...(settings ?? {}),
 			app_id: appId,
 		},
 		scriptSrc: scriptSrc ?? `https://widget.intercom.io/widget/${appId}`,
 	});
-
-	return resolved;
 }

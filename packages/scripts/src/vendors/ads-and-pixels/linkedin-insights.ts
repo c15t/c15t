@@ -1,11 +1,21 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
-// Extended Window interface to include linkedin insights specific properties
+export interface LinkedInInsightsConversionEvent {
+	conversion_id: string | number;
+	[key: string]: unknown;
+}
+
+type LinkedInInsightsFunction = {
+	(command: 'track', event: LinkedInInsightsConversionEvent): void;
+	(command: string, ...args: unknown[]): void;
+};
+
+// Extended Window interface to include LinkedIn Insight Tag specific properties.
 declare global {
 	interface Window {
-		lintrk: ((...args: unknown[]) => void) & { q?: unknown[][] };
+		lintrk: LinkedInInsightsFunction & { q?: unknown[][] };
 		_linkedin_partner_id?: string;
 		_linkedin_data_partner_ids?: string[];
 		ORIBILI?: {
@@ -17,9 +27,9 @@ declare global {
 }
 
 /**
- * LinkedIn Insights vendor manifest.
+ * LinkedIn Insight Tag vendor manifest.
  *
- * Sets up the LinkedIn partner ID globals and loads the insights script
+ * Sets up the LinkedIn partner ID globals and loads the Insight Tag script
  * via structured startup steps.
  */
 export const linkedinInsightsManifest = {
@@ -63,20 +73,24 @@ export const linkedinInsightsManifest = {
 
 export interface LinkedInInsightsOptions {
 	/**
-	 * Your LinkedIn Insights ID
+	 * Your LinkedIn Insight Tag partner ID.
+	 *
+	 * LinkedIn shows this in Campaign Manager under Data -> Signals manager ->
+	 * Insight Tag.
+	 *
 	 * @example `123456789012345`
 	 */
 	id: string;
 
-	/** LinkedIn Insights loader URL. */
+	/** LinkedIn Insight Tag loader URL. */
 	scriptSrc?: string;
 }
 
 /**
- * LinkedIn Insights Script
+ * LinkedIn Insight Tag script.
  *
- * @param options - The options for the LinkedIn Insights script
- * @returns The LinkedIn Insights script configuration
+ * @param options - The options for the LinkedIn Insight Tag script.
+ * @returns The LinkedIn Insight Tag script configuration.
  *
  * @example
  * ```ts
@@ -85,7 +99,7 @@ export interface LinkedInInsightsOptions {
  * });
  * ```
  *
- * @see {@link https://business.linkedin.com/marketing-solutions/ad-libraries/insights} LinkedIn Insights documentation
+ * @see {@link https://www.linkedin.com/help/lms/answer/a418880} Add the LinkedIn Insight Tag to your website
  */
 export function linkedinInsights({
 	id,
