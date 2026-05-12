@@ -277,6 +277,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'functionality',
 	},
 	{
+		key: 'intercom',
+		vendor: 'intercom',
+		label: 'Intercom',
+		hint: 'Messenger and live chat widget',
+		docsSlug: 'intercom',
+		packageSubpath: 'intercom',
+		integrationCategory: 'functional',
+		consentCategory: 'functionality',
+	},
+	{
 		key: 'metaPixel',
 		vendor: 'meta-pixel',
 		label: 'Meta Pixel',

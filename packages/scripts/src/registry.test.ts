@@ -82,6 +82,7 @@ import {
 	vercelAnalyticsManifest,
 } from './vendors/analytics/vercel-analytics';
 import { crisp, crispManifest } from './vendors/functional/crisp';
+import { intercom, intercomManifest } from './vendors/functional/intercom';
 import {
 	googleTagManager,
 	googleTagManagerManifest,
@@ -251,6 +252,14 @@ const helperParityCases = {
 			src: 'https://client.crisp.chat/l.js',
 		},
 	},
+	intercom: {
+		script: intercom({ appId: 'abc123' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://widget.intercom.io/widget/abc123',
+		},
+	},
 	metaPixel: {
 		script: metaPixel({ pixelId: '123456' }),
 		expected: {
@@ -336,6 +345,7 @@ const vendorManifests = [
 	umamiAnalyticsManifest,
 	vercelAnalyticsManifest,
 	crispManifest,
+	intercomManifest,
 	metaPixelManifest,
 	redditPixelManifest,
 	tiktokPixelManifest,

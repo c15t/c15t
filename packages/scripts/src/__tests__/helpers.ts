@@ -288,6 +288,8 @@ function cleanupMockBrowser() {
 	delete globalRef.CRISP_COOKIE_DOMAIN;
 	delete globalRef.CRISP_COOKIE_EXPIRE;
 	delete globalRef.CRISP_TOKEN_ID;
+	delete globalRef.Intercom;
+	delete globalRef.intercomSettings;
 	delete globalRef.databuddy;
 	delete globalRef.databuddyConfig;
 	delete globalRef.plausible;

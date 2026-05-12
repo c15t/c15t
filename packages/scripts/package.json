@@ -97,6 +97,11 @@
 			"import": "./dist/vendors/functional/crisp.js",
 			"require": "./dist/vendors/functional/crisp.cjs"
 		},
+		"./intercom": {
+			"types": "./dist-types/vendors/functional/intercom.d.ts",
+			"import": "./dist/vendors/functional/intercom.js",
+			"require": "./dist/vendors/functional/intercom.cjs"
+		},
 		"./google-tag-manager": {
 			"types": "./dist-types/vendors/tag-managers/google-tag-manager.d.ts",
 			"import": "./dist/vendors/tag-managers/google-tag-manager.js",
