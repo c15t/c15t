@@ -30,7 +30,7 @@
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/javascript/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/javascript/quickstart",
-	"githubLink": "https://github.com/inthhq/c15t",
+	"githubLink": "https://github.com/c15t/c15t",
 	"showCLIGeneration": true,
 	"npmName": "c15t"
 }

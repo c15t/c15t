@@ -276,7 +276,7 @@ describe('saveConsents', () => {
 
 	describe('immutability (React Compiler compatibility)', () => {
 		/**
-		 * Regression test for https://github.com/inthhq/c15t/issues/604
+		 * Regression test for https://github.com/c15t/c15t/issues/604
 		 *
 		 * saveConsents must always pass a NEW object reference for `consents`
 		 * to `set()`. If it mutates the existing object in place and sets

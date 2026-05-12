@@ -53,7 +53,7 @@ export function useConsentManager(): ConsentStoreState & {
 	// that capture reactive state values from context. Without this, React
 	// Compiler sees stable function references + stable arguments and caches
 	// the return value forever, producing stale results after consent changes.
-	// See: https://github.com/inthhq/c15t/issues/604
+	// See: https://github.com/c15t/c15t/issues/604
 	const has: ConsentStoreState['has'] = useCallback(
 		(condition) =>
 			evaluateHas(condition, consents, {

@@ -23,7 +23,7 @@
 	"homepage": "https://c15t.com/docs/frameworks/javascript/quickstart",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/inthhq/c15t.git",
+		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/core"
 	},
 	"license": "Apache-2.0",

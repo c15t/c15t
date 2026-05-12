@@ -1008,14 +1008,14 @@ export const githubStarActor = fromPromise<GitHubStarOutput, GitHubStarInput>(
 		if (result) {
 			try {
 				const open = (await import('open')).default;
-				await open('https://github.com/inthhq/c15t');
+				await open('https://github.com/c15t/c15t');
 				cliContext.logger.success(
 					'GitHub repository opened. Thank you for your support!'
 				);
 				return { opened: true };
 			} catch {
 				cliContext.logger.info(
-					'You can star us later by visiting: https://github.com/inthhq/c15t'
+					'You can star us later by visiting: https://github.com/c15t/c15t'
 				);
 				return { opened: false };
 			}

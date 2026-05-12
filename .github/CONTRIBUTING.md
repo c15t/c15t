@@ -18,7 +18,7 @@ By contributing to c15t.com, you agree that your contributions will be licensed 
 
 ### Before You Start
 
-- Check existing [issues](https://github.com/inthhq/c15t/issues) and [PRs](https://github.com/inthhq/c15t/pulls) first
+- Check existing [issues](https://github.com/c15t/c15t/issues) and [PRs](https://github.com/c15t/c15t/pulls) first
 - **Always create an issue before starting development**
 - Follow our PR template carefully
 

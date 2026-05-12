@@ -13,7 +13,7 @@ We take the security of our project seriously and appreciate your help in identi
 2. **Private Reporting**
    - Report security vulnerabilities directly to our security team
    - Use GitHub's private vulnerability reporting feature
-   - Visit: [https://github.com/inthhq/c15t/security](https://github.com/inthhq/c15t/security)
+   - Visit: [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security)
    - Click "Report a vulnerability"
 
 3. **What to Include in Your Report**
