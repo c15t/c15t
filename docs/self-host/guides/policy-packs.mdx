@@ -1,6 +1,7 @@
 ---
 title: Policy Packs
 description: Configure regional policy packs on the backend and return deterministic runtime policy decisions from /init.
+group: self-host
 ---
 
 Policy packs are the backend source of truth for regional consent behavior. You pass them to `c15tInstance({ policyPacks })`, and c15t resolves a normalized runtime policy for each `/init` request based on the visitor's location.

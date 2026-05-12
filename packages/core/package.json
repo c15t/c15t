@@ -51,14 +51,12 @@
 	"files": [
 		"dist",
 		"dist-types",
-		"docs",
 		"README.md",
 		"CHANGELOG.md"
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/agent-docs/generate-package-docs.ts c15t",
-		"build:agent-docs": "bun ../../scripts/agent-docs/generate-package-docs.ts c15t",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"check-types:test": "tsc -p tsconfig.test.json",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",

@@ -92,6 +92,7 @@
 		"fast-glob": "3.3.3",
 		"json5": "2.2.3",
 		"knip": "6.1.1",
+		"leadtype": "^0.1.1",
 		"lefthook": "2.1.4",
 		"mdast-util-compact": "5.0.0",
 		"mdast-util-mdx": "3.0.0",

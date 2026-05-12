@@ -73,7 +73,6 @@
 	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",
-		"docs",
 		"dist-types",
 		"client",
 		"styles.css",
@@ -86,8 +85,7 @@
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/nextjs",
-		"build:agent-docs": "bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/nextjs",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && bun scripts/generate-distribution-css.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
