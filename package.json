@@ -15,7 +15,9 @@
 		"configs/*",
 		"packages/**",
 		"internals/**",
-		"examples/demo"
+		"examples/demo",
+		"../toolkit/packages/*",
+		"../toolkit/internals/*"
 	],
 	"scripts": {
 		"bench": "turbo run bench --filter=@c15t/core-benchmarks --filter=@c15t/next-bundle-bench --filter=@c15t/react-browser-bench --filter=@c15t/nextjs-browser-bench --filter=@c15t/script-lifecycle-bench",

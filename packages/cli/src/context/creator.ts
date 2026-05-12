@@ -1,16 +1,7 @@
-import {
-	createCliLogger,
-	type LogLevel,
-	validLogLevels,
-} from '../utils/logger';
+import { createCliContext as createHexbusCliContext } from 'hexbus';
 import { createTelemetry, TelemetryEventName } from '../utils/telemetry';
-import { createErrorHandlers } from './error-handlers';
-import { createFileSystem } from './file-system';
-import { detectFramework, detectProjectRoot } from './framework-detection';
-import { detectPackageManager } from './package-manager-detection';
-import { parseCliArgs } from './parser';
+import { globalFlags } from './parser';
 import type { CliCommand, CliContext } from './types';
-import { createUserInteraction } from './user-interaction';
 
 /**
  * Parses arguments, creates the logger, and returns the application context.
@@ -25,64 +16,26 @@ export async function createCliContext(
 	cwd: string,
 	commands: CliCommand[]
 ): Promise<CliContext> {
-	const { commandName, commandArgs, parsedFlags } = parseCliArgs(
-		rawArgs,
-		commands
-	);
-
-	let desiredLogLevel: LogLevel = 'info';
-	const levelArg = parsedFlags.logger;
-
-	if (typeof levelArg === 'string') {
-		if ((validLogLevels as string[]).includes(levelArg)) {
-			desiredLogLevel = levelArg as LogLevel;
-		} else {
-			console.warn(
-				`[CLI Setup] Invalid log level '${levelArg}' provided via --logger. Using default 'info'.`
-			);
-		}
-	} else if (levelArg === true) {
-		console.warn(
-			"[CLI Setup] --logger flag found but no level specified. Using default 'info'."
-		);
-	}
-
-	const logger = createCliLogger(desiredLogLevel);
-	logger.debug(`Logger initialized with level: ${desiredLogLevel}`);
-
-	// Create the base context
-	const baseContext: Partial<CliContext> = {
-		logger,
-		flags: parsedFlags,
-		commandName,
-		commandArgs,
+	const context = (await createHexbusCliContext({
+		appName: 'c15t',
+		commands: commands as never,
+		configName: 'c15t',
 		cwd,
-	};
+		globalFlags,
+		interactivePackageManagerDetection: true,
+		packageMap: {
+			core: 'c15t',
+			next: '@c15t/nextjs',
+			react: '@c15t/react',
+		},
+		rawArgs,
+	})) as unknown as CliContext;
 
-	// Create a self-referential context object
-	const context = baseContext as CliContext;
-
-	// Add error handlers
-	context.error = createErrorHandlers(context);
-
-	// Add user interaction helpers
-	const userInteraction = createUserInteraction(context);
-	context.confirm = userInteraction.confirm;
-
-	// Add file system utilities
-	context.fs = createFileSystem(context);
-
-	// Detect project root, framework, and package manager
-	context.projectRoot = await detectProjectRoot(cwd, logger);
-	context.framework = await detectFramework(context.projectRoot, logger);
-	context.packageManager = await detectPackageManager(
-		context.projectRoot,
-		logger
-	);
+	const { logger, flags, commandName, commandArgs } = context;
 
 	// Add telemetry, respecting the telemetry flag if present
-	const telemetryDisabled = parsedFlags['no-telemetry'] === true;
-	const telemetryDebug = parsedFlags['telemetry-debug'] === true;
+	const telemetryDisabled = flags['no-telemetry'] === true;
+	const telemetryDebug = flags['telemetry-debug'] === true;
 
 	try {
 		context.telemetry = createTelemetry({
@@ -91,7 +44,7 @@ export async function createCliContext(
 			defaultProperties: {
 				entryCommand: commandName ?? 'interactive',
 				commandArgsCount: commandArgs.length,
-				enabledFlags: Object.entries(parsedFlags)
+				enabledFlags: Object.entries(flags)
 					.filter(([, value]) => value !== false && value !== undefined)
 					.map(([key]) => key)
 					.sort(),

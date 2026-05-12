@@ -10,17 +10,28 @@
  * - Help/version display
  */
 
+import { readFileSync } from 'node:fs';
 import * as p from '@clack/prompts';
 import 'dotenv/config';
+import {
+	displayIntro,
+	isVersionRequest,
+	printVersionInfo,
+	showHelpMenu,
+	startBackgroundUpdateCheck,
+} from 'hexbus';
 import open from 'open';
 import color from 'picocolors';
-import { showHelpMenu } from './actions/show-help-menu';
+import {
+	authStatusCommand,
+	loginCommand,
+	logoutCommand,
+} from './commands/auth';
 import { codemodsCommand } from './commands/codemods';
-import { generate } from './commands/generate';
+import { generate, generateCommand } from './commands/generate';
 import { projectsAction } from './commands/instances';
 import { selfHost } from './commands/self-host';
 import { installSkills } from './commands/skills';
-import { displayIntro } from './components/intro';
 
 // Import from new v2 modules
 import { URLS } from './constants';
@@ -32,6 +43,36 @@ import type { CliCommand } from './context/types';
 import { formatLogMessage } from './utils/logger';
 import { TelemetryEventName } from './utils/telemetry';
 
+interface CliPackageInfo {
+	name: string;
+	version: string;
+}
+
+function readOwnPackageInfo(): CliPackageInfo {
+	try {
+		const packageJsonUrl = new URL('../package.json', import.meta.url);
+		const content = readFileSync(packageJsonUrl, 'utf-8');
+		const parsed = JSON.parse(content) as Record<string, unknown>;
+		let name = '@c15t/cli';
+		if (typeof parsed.name === 'string') {
+			name = parsed.name;
+		}
+		let version = 'unknown';
+		if (typeof parsed.version === 'string') {
+			version = parsed.version;
+		}
+		return {
+			name,
+			version,
+		};
+	} catch {
+		return {
+			name: '@c15t/cli',
+			version: 'unknown',
+		};
+	}
+}
+
 // Define commands (using types from context)
 const commands: CliCommand[] = [
 	{
@@ -41,6 +82,7 @@ const commands: CliCommand[] = [
 		description: 'Set up c15t in your project.',
 		action: (context) => generate(context),
 	},
+	generateCommand,
 	codemodsCommand,
 	{
 		name: 'skills',
@@ -112,19 +154,30 @@ const commands: CliCommand[] = [
 		action: (context) => projectsAction(context),
 		hidden: true,
 	},
+	loginCommand,
+	logoutCommand,
+	authStatusCommand,
 ];
 
 export async function main() {
 	// --- Context Setup ---
 	const rawArgs = process.argv.slice(2);
 	const cwd = process.cwd();
+	const packageInfo = readOwnPackageInfo();
+	const version = packageInfo.version;
+
+	if (isVersionRequest(rawArgs)) {
+		await printVersionInfo({
+			appName: 'c15t',
+			currentVersion: version,
+			packageName: packageInfo.name,
+		});
+		process.exit(0);
+	}
+
 	// Pass commands array to creator, as parser needs it
 	const context = await createCliContext(rawArgs, cwd, commands);
 	const { logger, flags, commandName, commandArgs, error, telemetry } = context;
-
-	// --- Package Info & Early Exit Check ---
-	const packageInfo = context.fs.getPackageInfo();
-	const version = packageInfo.version;
 
 	// Inform users about telemetry if it's enabled
 	if (!telemetry.isDisabled()) {
@@ -136,6 +189,13 @@ flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
 			`${formatLogMessage('info', 'Telemetry Notice')}`
 		);
 	}
+
+	startBackgroundUpdateCheck({
+		appName: 'c15t',
+		currentVersion: version,
+		logger,
+		packageName: packageInfo.name,
+	});
 
 	// Track CLI invocation (without command yet)
 	try {
@@ -152,7 +212,6 @@ flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
 
 	if (flags.version) {
 		logger.debug('Version flag detected');
-		logger.message(`c15t CLI version ${version}`);
 		telemetry.trackEvent(TelemetryEventName.VERSION_DISPLAYED, { version });
 		telemetry.flushSync();
 		await telemetry.shutdown();
@@ -163,7 +222,12 @@ flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
 		logger.debug('Help flag detected. Displaying help and exiting.');
 		telemetry.trackEvent(TelemetryEventName.HELP_DISPLAYED, { version });
 		telemetry.flushSync();
-		showHelpMenu(context, version, commands, globalFlags);
+		showHelpMenu(
+			context,
+			{ appName: 'c15t', docsUrl: URLS.DOCS, version },
+			commands as never,
+			globalFlags
+		);
 		await telemetry.shutdown();
 		process.exit(0);
 	}
@@ -175,7 +239,12 @@ flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
 	logger.debug('Parsed global flags:', flags);
 
 	// Display intro with context
-	await displayIntro(context, version);
+	await displayIntro(context, {
+		appName: 'c15t',
+		figletText: 'c15t',
+		tagline: 'Consent management made easy.',
+		version,
+	});
 
 	// --- Configuration Check ---
 	logger.debug(`Current working directory: ${cwd}`);

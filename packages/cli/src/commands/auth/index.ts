@@ -15,10 +15,10 @@ import {
 	pollForToken,
 	storeTokens,
 } from '../../auth';
+import type { CliCommand, CliContext } from '../../context/types';
 import { color } from '../../core/logger';
-import { TelemetryEventName } from '../../core/telemetry';
-import type { CliCommand, CliContext } from '../../types';
 import { createTaskSpinner } from '../../utils/spinner';
+import { TelemetryEventName } from '../../utils/telemetry';
 
 /**
  * Login command
@@ -165,20 +165,20 @@ async function statusAction(context: CliContext): Promise<void> {
 	const authState = await getAuthState();
 
 	if (!authState.isLoggedIn) {
-		logger.message('Status: ' + color.yellow('Not logged in'));
+		logger.message(`Status: ${color.yellow('Not logged in')}`);
 		logger.message('');
 		logger.message(`Run ${color.cyan('c15t login')} to authenticate`);
 		return;
 	}
 
 	if (authState.isExpired) {
-		logger.message('Status: ' + color.yellow('Session expired'));
+		logger.message(`Status: ${color.yellow('Session expired')}`);
 		logger.message('');
 		logger.message(`Run ${color.cyan('c15t login')} to refresh your session`);
 		return;
 	}
 
-	logger.message('Status: ' + color.green('Logged in'));
+	logger.message(`Status: ${color.green('Logged in')}`);
 
 	if (authState.config?.email) {
 		logger.message(`Account: ${authState.config.email}`);

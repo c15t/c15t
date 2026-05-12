@@ -13,9 +13,9 @@ import type { CliCommand, CliContext } from '../../context/types';
 import { createControlPlaneClientFromConfig } from '../../control-plane';
 import { CliError } from '../../core/errors';
 import { color } from '../../core/logger';
-import { TelemetryEventName } from '../../core/telemetry';
 import type { Instance } from '../../types';
 import { createTaskSpinner } from '../../utils/spinner';
+import { TelemetryEventName } from '../../utils/telemetry';
 import { validateInstanceName } from '../../utils/validation';
 
 function formatInstanceLabel(instance: Instance): string {
@@ -141,7 +141,12 @@ async function selectAction(context: CliContext): Promise<void> {
 
 		// Check if instance ID/name was provided as argument
 		if (commandArgs.length > 0) {
-			const query = commandArgs[0]!;
+			const query = commandArgs[0];
+			if (!query) {
+				throw new CliError('INSTANCE_NOT_FOUND', {
+					details: 'No project ID, name, or org/name was provided.',
+				});
+			}
 			const found = instances.find(
 				(i) =>
 					i.id === query || i.name === query || formatInstanceLabel(i) === query
@@ -175,7 +180,13 @@ async function selectAction(context: CliContext): Promise<void> {
 				return;
 			}
 
-			selectedInstance = instances.find((i) => i.id === result)!;
+			const foundInstance = instances.find((i) => i.id === result);
+			if (!foundInstance) {
+				throw new CliError('INSTANCE_NOT_FOUND', {
+					details: `No project found with ID: ${String(result)}`,
+				});
+			}
+			selectedInstance = foundInstance;
 		}
 
 		await setSelectedInstanceId(selectedInstance.id);
