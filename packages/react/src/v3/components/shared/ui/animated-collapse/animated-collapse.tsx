@@ -94,6 +94,7 @@ export const AnimatedCollapse: FC<AnimatedCollapseProps> = ({
 	useLayoutEffect(() => {
 		const wrapper = wrapperRef.current;
 		const content = contentRef.current;
+		let removeTransitionListener: (() => void) | null = null;
 
 		// Check for reduced motion preference
 		const prefersReducedMotion = window.matchMedia(
@@ -158,9 +159,12 @@ export const AnimatedCollapse: FC<AnimatedCollapseProps> = ({
 						});
 						setIsAnimating(false);
 						wrapper?.removeEventListener('transitionend', handleTransitionEnd);
+						removeTransitionListener = null;
 					};
 
 					wrapper?.addEventListener('transitionend', handleTransitionEnd);
+					removeTransitionListener = () =>
+						wrapper?.removeEventListener('transitionend', handleTransitionEnd);
 				});
 			});
 		} else {
@@ -204,9 +208,12 @@ export const AnimatedCollapse: FC<AnimatedCollapseProps> = ({
 					setShouldRender(false);
 					setIsAnimating(false);
 					wrapper.removeEventListener('transitionend', handleTransitionEnd);
+					removeTransitionListener = null;
 				};
 
 				wrapper.addEventListener('transitionend', handleTransitionEnd);
+				removeTransitionListener = () =>
+					wrapper.removeEventListener('transitionend', handleTransitionEnd);
 			});
 		}
 
@@ -214,6 +221,7 @@ export const AnimatedCollapse: FC<AnimatedCollapseProps> = ({
 			if (animationRef.current !== null) {
 				cancelAnimationFrame(animationRef.current);
 			}
+			removeTransitionListener?.();
 		};
 	}, [isOpen, duration, easing]);
 

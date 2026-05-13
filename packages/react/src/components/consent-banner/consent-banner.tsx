@@ -232,17 +232,19 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 		layout ??
 		((banner.layout?.length ?? 0) > 0 ? banner.actionGroups : DEFAULT_LAYOUT);
 	const resolvedDirection = direction ?? banner.direction ?? 'row';
-	const activeGroups = resolvedLayout
-		.map((item) =>
-			Array.isArray(item)
-				? item.filter((action): action is PolicyUiAction =>
-						allowedActions.has(action)
-					)
-				: allowedActions.has(item)
-					? [item]
-					: []
-		)
-		.filter((group) => group.length > 0);
+	const activeGroups: PolicyUiAction[][] = [];
+	for (const item of resolvedLayout) {
+		const group = Array.isArray(item)
+			? item.filter((action): action is PolicyUiAction =>
+					allowedActions.has(action)
+				)
+			: allowedActions.has(item)
+				? [item]
+				: [];
+		if (group.length > 0) {
+			activeGroups.push(group);
+		}
+	}
 	const shouldFillActions = shouldFillPolicyActions({
 		uiProfile: banner.uiProfile,
 		actionGroups: activeGroups,

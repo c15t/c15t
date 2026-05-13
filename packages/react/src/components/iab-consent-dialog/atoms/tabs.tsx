@@ -1,12 +1,7 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
-import {
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
-	useMemo,
-} from 'react';
+import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 import * as Tabs from '~/components/shared/ui/tabs';
 import { useGVLData } from '../hooks/use-gvl-data';
 import { useIABTranslations } from '../use-iab-translations';
@@ -30,19 +25,11 @@ const IABConsentDialogTabs = forwardRef<
 		totalVendors,
 		isLoading,
 	} = useGVLData();
-	const purposeCount = useMemo(
-		() =>
-			purposes.length +
-			specialPurposes.length +
-			specialFeatures.length +
-			features.length,
-		[
-			features.length,
-			purposes.length,
-			specialFeatures.length,
-			specialPurposes.length,
-		]
-	);
+	const purposeCount =
+		purposes.length +
+		specialPurposes.length +
+		specialFeatures.length +
+		features.length;
 
 	return (
 		<Tabs.Root

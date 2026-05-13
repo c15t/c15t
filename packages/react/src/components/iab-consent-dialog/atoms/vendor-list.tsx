@@ -40,6 +40,9 @@ interface VendorListProps {
 	) => void;
 }
 
+const EMPTY_CUSTOM_VENDORS: CustomVendor[] = [];
+const EMPTY_VENDOR_LEG_INT: Record<string, boolean> = Object.freeze({});
+
 export const VendorList: FC<VendorListProps> = ({
 	vendorData,
 	purposes,
@@ -47,8 +50,8 @@ export const VendorList: FC<VendorListProps> = ({
 	onVendorToggle,
 	selectedVendorId,
 	onClearSelection,
-	customVendors = [],
-	vendorLegitimateInterests = {},
+	customVendors = EMPTY_CUSTOM_VENDORS,
+	vendorLegitimateInterests = EMPTY_VENDOR_LEG_INT,
 	onVendorLegitimateInterestToggle,
 }) => {
 	const [searchTerm, setSearchTerm] = useState('');
@@ -112,17 +115,19 @@ export const VendorList: FC<VendorListProps> = ({
 	].sort((a, b) => a.name.localeCompare(b.name));
 
 	useEffect(() => {
-		if (selectedVendorId !== null) {
-			setExpandedVendors((prev) => new Set(prev).add(selectedVendorId));
-			setTimeout(() => {
-				const element = document.getElementById(
-					`vendor-${String(selectedVendorId)}`
-				);
-				if (element) {
-					element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-				}
-			}, 100);
+		if (selectedVendorId === null) {
+			return;
 		}
+		setExpandedVendors((prev) => new Set(prev).add(selectedVendorId));
+		const timer = setTimeout(() => {
+			const element = document.getElementById(
+				`vendor-${String(selectedVendorId)}`
+			);
+			if (element) {
+				element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			}
+		}, 100);
+		return () => clearTimeout(timer);
 	}, [selectedVendorId]);
 
 	const filteredVendors =
@@ -154,14 +159,18 @@ export const VendorList: FC<VendorListProps> = ({
 			return [];
 		}
 
-		return purposes
-			.filter((purpose) =>
-				purpose.vendors.some((v) => String(v.id) === String(vendorId))
-			)
-			.map((purpose) => ({
-				...purpose,
-				usesLegitimateInterest: vendor.legIntPurposes.includes(purpose.id),
-			}));
+		const result: (ProcessedPurpose & { usesLegitimateInterest: boolean })[] =
+			[];
+		const idStr = String(vendorId);
+		for (const purpose of purposes) {
+			if (purpose.vendors.some((v) => String(v.id) === idStr)) {
+				result.push({
+					...purpose,
+					usesLegitimateInterest: vendor.legIntPurposes.includes(purpose.id),
+				});
+			}
+		}
+		return result;
 	};
 
 	const getVendorSpecialPurposes = (vendorId: VendorId) => {
@@ -170,14 +179,14 @@ export const VendorList: FC<VendorListProps> = ({
 			return [];
 		}
 
-		return vendor.specialPurposes
-			.map((id) => vendorData.specialPurposes[id])
-			.filter((sp): sp is NonNullable<typeof sp> => sp != null)
-			.map((sp) => ({
-				id: sp.id,
-				name: sp.name,
-				description: sp.description,
-			}));
+		const result: { id: number; name: string; description: string }[] = [];
+		for (const id of vendor.specialPurposes) {
+			const sp = vendorData.specialPurposes[id];
+			if (sp != null) {
+				result.push({ id: sp.id, name: sp.name, description: sp.description });
+			}
+		}
+		return result;
 	};
 
 	const getVendorSpecialFeatures = (vendorId: VendorId) => {
@@ -186,14 +195,14 @@ export const VendorList: FC<VendorListProps> = ({
 			return [];
 		}
 
-		return vendor.specialFeatures
-			.map((id) => vendorData.specialFeatures[id])
-			.filter((sf): sf is NonNullable<typeof sf> => sf != null)
-			.map((sf) => ({
-				id: sf.id,
-				name: sf.name,
-				description: sf.description,
-			}));
+		const result: { id: number; name: string; description: string }[] = [];
+		for (const id of vendor.specialFeatures) {
+			const sf = vendorData.specialFeatures[id];
+			if (sf != null) {
+				result.push({ id: sf.id, name: sf.name, description: sf.description });
+			}
+		}
+		return result;
 	};
 
 	const getVendorFeatures = (vendorId: VendorId) => {
@@ -202,14 +211,14 @@ export const VendorList: FC<VendorListProps> = ({
 			return [];
 		}
 
-		return (vendor.features || [])
-			.map((id) => vendorData.features[id])
-			.filter((f): f is NonNullable<typeof f> => f != null)
-			.map((f) => ({
-				id: f.id,
-				name: f.name,
-				description: f.description,
-			}));
+		const result: { id: number; name: string; description: string }[] = [];
+		for (const id of vendor.features || []) {
+			const f = vendorData.features[id];
+			if (f != null) {
+				result.push({ id: f.id, name: f.name, description: f.description });
+			}
+		}
+		return result;
 	};
 
 	return (

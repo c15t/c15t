@@ -251,108 +251,108 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			isCustom: true,
 		});
 
-		// Process purposes
-		const processedPurposes: ProcessedPurpose[] = Object.entries(gvl.purposes)
-			.map(([id, purpose]) => {
-				// Get IAB vendors for this purpose (all vendors from GVL)
-				const iabVendorsForPurpose: ProcessedVendor[] = Object.entries(
-					gvl.vendors
-				)
-					.filter(([, vendor]) => {
-						return (
-							vendor.purposes?.includes(Number(id)) ||
-							vendor.legIntPurposes?.includes(Number(id))
-						);
-					})
-					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor, Number(id)));
-
-				// Get custom vendors for this purpose
-				const customVendorsForPurpose: ProcessedVendor[] = customVendors
-					.filter((cv) => {
-						return (
-							cv.purposes?.includes(Number(id)) ||
-							cv.legIntPurposes?.includes(Number(id))
-						);
-					})
-					.map((cv) => mapCustomVendor(cv, Number(id)));
-
-				return {
-					id: Number(id),
+		// Process purposes — single-pass: build IAB/custom vendor lists, then
+		// only emit purposes that ended up with at least one vendor.
+		const processedPurposes: ProcessedPurpose[] = [];
+		for (const [id, purpose] of Object.entries(gvl.purposes)) {
+			const numId = Number(id);
+			const iabVendorsForPurpose: ProcessedVendor[] = [];
+			for (const [vendorId, vendor] of Object.entries(gvl.vendors)) {
+				if (
+					vendor.purposes?.includes(numId) ||
+					vendor.legIntPurposes?.includes(numId)
+				) {
+					iabVendorsForPurpose.push(mapVendor(vendorId, vendor, numId));
+				}
+			}
+			const customVendorsForPurpose: ProcessedVendor[] = [];
+			for (const cv of customVendors) {
+				if (
+					cv.purposes?.includes(numId) ||
+					cv.legIntPurposes?.includes(numId)
+				) {
+					customVendorsForPurpose.push(mapCustomVendor(cv, numId));
+				}
+			}
+			const vendors = [...iabVendorsForPurpose, ...customVendorsForPurpose];
+			if (vendors.length > 0) {
+				processedPurposes.push({
+					id: numId,
 					name: purpose.name,
 					description: purpose.description,
 					descriptionLegal: purpose.descriptionLegal,
 					illustrations: purpose.illustrations || [],
-					vendors: [...iabVendorsForPurpose, ...customVendorsForPurpose],
-				};
-			})
-			.filter((purpose) => purpose.vendors.length > 0);
+					vendors,
+				});
+			}
+		}
 
 		// Process special purposes
-		const processedSpecialPurposes: ProcessedPurpose[] = Object.entries(
-			gvl.specialPurposes || {}
-		)
-			.map(([id, purpose]) => {
-				const vendorsForPurpose: ProcessedVendor[] = Object.entries(gvl.vendors)
-					.filter(([, vendor]) => {
-						return vendor.specialPurposes?.includes(Number(id));
-					})
-					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
-
-				return {
-					id: Number(id),
+		const processedSpecialPurposes: ProcessedPurpose[] = [];
+		for (const [id, purpose] of Object.entries(gvl.specialPurposes || {})) {
+			const numId = Number(id);
+			const vendorsForPurpose: ProcessedVendor[] = [];
+			for (const [vendorId, vendor] of Object.entries(gvl.vendors)) {
+				if (vendor.specialPurposes?.includes(numId)) {
+					vendorsForPurpose.push(mapVendor(vendorId, vendor));
+				}
+			}
+			if (vendorsForPurpose.length > 0) {
+				processedSpecialPurposes.push({
+					id: numId,
 					name: purpose.name,
 					description: purpose.description,
 					descriptionLegal: purpose.descriptionLegal,
 					illustrations: purpose.illustrations || [],
 					vendors: vendorsForPurpose,
 					isSpecialPurpose: true,
-				};
-			})
-			.filter((sp) => sp.vendors.length > 0);
+				});
+			}
+		}
 
 		// Process special features
-		const processedSpecialFeatures: ProcessedSpecialFeature[] = Object.entries(
-			gvl.specialFeatures || {}
-		)
-			.map(([id, feature]) => {
-				const vendorsForFeature: ProcessedVendor[] = Object.entries(gvl.vendors)
-					.filter(([, vendor]) => {
-						return vendor.specialFeatures?.includes(Number(id));
-					})
-					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
-
-				return {
-					id: Number(id),
+		const processedSpecialFeatures: ProcessedSpecialFeature[] = [];
+		for (const [id, feature] of Object.entries(gvl.specialFeatures || {})) {
+			const numId = Number(id);
+			const vendorsForFeature: ProcessedVendor[] = [];
+			for (const [vendorId, vendor] of Object.entries(gvl.vendors)) {
+				if (vendor.specialFeatures?.includes(numId)) {
+					vendorsForFeature.push(mapVendor(vendorId, vendor));
+				}
+			}
+			if (vendorsForFeature.length > 0) {
+				processedSpecialFeatures.push({
+					id: numId,
 					name: feature.name,
 					description: feature.description,
 					descriptionLegal: feature.descriptionLegal,
 					illustrations: feature.illustrations || [],
 					vendors: vendorsForFeature,
-				};
-			})
-			.filter((sf) => sf.vendors.length > 0);
+				});
+			}
+		}
 
 		// Process features (informational, no consent toggle)
-		const processedFeatures: ProcessedFeature[] = Object.entries(
-			gvl.features || {}
-		)
-			.map(([id, feature]) => {
-				const vendorsForFeature: ProcessedVendor[] = Object.entries(gvl.vendors)
-					.filter(([, vendor]) => {
-						return vendor.features?.includes(Number(id));
-					})
-					.map(([vendorId, vendor]) => mapVendor(vendorId, vendor));
-
-				return {
-					id: Number(id),
+		const processedFeatures: ProcessedFeature[] = [];
+		for (const [id, feature] of Object.entries(gvl.features || {})) {
+			const numId = Number(id);
+			const vendorsForFeature: ProcessedVendor[] = [];
+			for (const [vendorId, vendor] of Object.entries(gvl.vendors)) {
+				if (vendor.features?.includes(numId)) {
+					vendorsForFeature.push(mapVendor(vendorId, vendor));
+				}
+			}
+			if (vendorsForFeature.length > 0) {
+				processedFeatures.push({
+					id: numId,
 					name: feature.name,
 					description: feature.description,
 					descriptionLegal: feature.descriptionLegal,
 					illustrations: feature.illustrations || [],
 					vendors: vendorsForFeature,
-				};
-			})
-			.filter((f) => f.vendors.length > 0);
+				});
+			}
+		}
 
 		// Group purposes into stacks (Purpose 1 is always standalone per IAB TCF spec)
 		const STANDALONE_PURPOSE_ID = 1;
@@ -405,8 +405,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 			);
 			if (unassignedInStack.length >= 2) {
 				// Get purposes for this stack (only unassigned ones)
+				const unassignedInStackSet = new Set(unassignedInStack);
 				const stackPurposes = otherPurposes.filter((p) =>
-					unassignedInStack.includes(p.id)
+					unassignedInStackSet.has(p.id)
 				);
 				processedStacks.push({
 					id: stackId,
@@ -569,6 +570,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		// Use double-RAF to ensure browser has laid out new content
 		let rafId1: number;
 		let rafId2: number;
+		let removeTransitionListener: (() => void) | null = null;
 
 		rafId1 = requestAnimationFrame(() => {
 			rafId2 = requestAnimationFrame(() => {
@@ -609,12 +611,15 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 				content.addEventListener('transitionend', handleTransitionEnd, {
 					once: true,
 				});
+				removeTransitionListener = () =>
+					content.removeEventListener('transitionend', handleTransitionEnd);
 			});
 		});
 
 		return () => {
 			cancelAnimationFrame(rafId1);
 			cancelAnimationFrame(rafId2);
+			removeTransitionListener?.();
 		};
 	}, [activeTab]);
 

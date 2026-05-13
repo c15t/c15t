@@ -237,17 +237,17 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 			layout ??
 			((banner.layout?.length ?? 0) > 0 ? banner.actionGroups : DEFAULT_LAYOUT);
 		const directionResolved = direction ?? banner.direction ?? 'row';
-		const activeGroups = layoutResolved
-			.map((item) =>
-				Array.isArray(item)
-					? item.filter((action): action is PolicyUiAction =>
-							allowed.has(action)
-						)
-					: allowed.has(item)
-						? [item]
-						: []
-			)
-			.filter((group) => group.length > 0);
+		const activeGroups: PolicyUiAction[][] = [];
+		for (const item of layoutResolved) {
+			const group = Array.isArray(item)
+				? item.filter((action): action is PolicyUiAction => allowed.has(action))
+				: allowed.has(item)
+					? [item]
+					: [];
+			if (group.length > 0) {
+				activeGroups.push(group);
+			}
+		}
 		return {
 			allowedActions: allowed,
 			resolvedLayout: layoutResolved,

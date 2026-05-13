@@ -199,8 +199,8 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 							{descriptionText.split(partnersLinkText)[1]}
 						</p>
 						<ul className={styles.purposeList}>
-							{banner.displayItems.map((name, index) => (
-								<li key={index}>{name}</li>
+							{banner.displayItems.map((name) => (
+								<li key={name}>{name}</li>
 							))}
 							{banner.remainingCount > 0 && (
 								<li className={styles.purposeMore}>

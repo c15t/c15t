@@ -30,6 +30,9 @@ interface StackItemProps {
 	) => void;
 }
 
+const EMPTY_VENDOR_LEG_INT: Record<string, boolean> = Object.freeze({});
+const EMPTY_PURPOSE_LEG_INT: Record<number, boolean> = Object.freeze({});
+
 export const StackItem: FC<StackItemProps> = ({
 	stack,
 	consents,
@@ -37,9 +40,9 @@ export const StackItem: FC<StackItemProps> = ({
 	vendorConsents,
 	onVendorToggle,
 	onVendorClick,
-	vendorLegitimateInterests = {},
+	vendorLegitimateInterests = EMPTY_VENDOR_LEG_INT,
 	onVendorLegitimateInterestToggle,
-	purposeLegitimateInterests = {},
+	purposeLegitimateInterests = EMPTY_PURPOSE_LEG_INT,
 	onPurposeLegitimateInterestToggle,
 }) => {
 	const [isExpanded, setIsExpanded] = useState(false);
