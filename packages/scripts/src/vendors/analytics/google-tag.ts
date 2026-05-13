@@ -1,6 +1,10 @@
 import type { AllConsentNames, Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import {
+	runtimeDateValue,
+	type VendorManifest,
+	vendorManifestContract,
+} from '../../types';
 import {
 	GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
 	withOptionalConsentMapping,
@@ -44,7 +48,7 @@ export const gtagManifest = {
 		{
 			type: 'callGlobal',
 			global: 'gtag',
-			args: ['js', '{{loadTime}}'],
+			args: ['js', runtimeDateValue],
 		},
 		{
 			type: 'callGlobal',
@@ -118,7 +122,6 @@ export function gtag({
 	const resolved = resolveManifest(manifest, {
 		id,
 		category,
-		loadTime: new Date(),
 	});
 
 	if (!script) {

@@ -1,6 +1,10 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import {
+	runtimeTimestampValue,
+	type VendorManifest,
+	vendorManifestContract,
+} from '../../types';
 import {
 	GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
 	withOptionalConsentMapping,
@@ -46,7 +50,7 @@ export const googleTagManagerManifest = {
 			type: 'pushToQueue',
 			queue: 'dataLayer',
 			value: {
-				'gtm.start': '{{loadTime}}',
+				'gtm.start': runtimeTimestampValue,
 				event: 'gtm.js',
 			},
 		},
@@ -120,7 +124,6 @@ export function googleTagManager({
 
 	const resolved = resolveManifest(manifest, {
 		id,
-		loadTime: Date.now(),
 		updateEventName: updateEventName ?? 'consent-update',
 	});
 

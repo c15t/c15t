@@ -5,7 +5,12 @@ import {
 	type ScriptCallbackInfo,
 	type ScriptLifecycleCallback,
 } from 'c15t';
-import type { ManifestStep, ResolvedManifest } from '../types';
+import {
+	type ManifestStep,
+	type ResolvedManifest,
+	RUNTIME_VALUE_KIND,
+	type RuntimeValue,
+} from '../types';
 
 type ManifestLifecycleCallback = Exclude<ScriptLifecycleCallback, 'onError'>;
 
@@ -17,7 +22,31 @@ interface StepExecutionContext {
 	phase: string;
 }
 
+function isRuntimeValue(value: unknown): value is RuntimeValue {
+	if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+		return false;
+	}
+
+	const candidate = value as Partial<RuntimeValue>;
+	return (
+		candidate.kind === RUNTIME_VALUE_KIND &&
+		(candidate.value === 'date' || candidate.value === 'timestamp')
+	);
+}
+
+function resolveRuntimeValue(value: RuntimeValue): Date | number {
+	if (value.value === 'date') {
+		return new Date();
+	}
+
+	return Date.now();
+}
+
 function cloneStepValue(value: unknown): unknown {
+	if (isRuntimeValue(value)) {
+		return resolveRuntimeValue(value);
+	}
+
 	if (value instanceof Date) {
 		return new Date(value);
 	}

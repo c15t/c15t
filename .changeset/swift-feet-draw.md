@@ -27,5 +27,9 @@ execution. The package also includes registry metadata, focused provider tests,
 and engine coverage so script helpers resolve predictable loader URLs,
 attributes, consent callbacks, and queued vendor calls.
 
+Google Tag and Google Tag Manager boot timestamps now resolve during script
+lifecycle execution instead of helper construction, which keeps documented setup
+patterns compatible with Next.js Cache Components prerendering.
+
 Updated the docs and CLI generation prompts so these providers are discoverable
 from the integration docs and script-loader setup flows.
