@@ -11,14 +11,14 @@
 	"dependencies": {
 		"@c15t/benchmarking": "workspace:*",
 		"@c15t/react": "workspace:*",
-		"next": "15.3.3",
-		"react": "19.2.3",
-		"react-dom": "19.2.3"
+		"next": "16.2.6",
+		"react": "19.2.6",
+		"react-dom": "19.2.6"
 	},
 	"devDependencies": {
-		"@types/node": "22.14.1",
-		"@types/react": "19.2.3",
+		"@types/node": "25.7.0",
+		"@types/react": "19.2.14",
 		"@types/react-dom": "19.2.3",
-		"typescript": "5.8.3"
+		"typescript": "6.0.3"
 	}
 }

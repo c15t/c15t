@@ -13,17 +13,17 @@
 	},
 	"dependencies": {
 		"@c15t/benchmarking": "workspace:*",
-		"next": "16.2.1",
-		"react": "19.2.4",
-		"react-dom": "19.2.4",
+		"next": "16.2.6",
+		"react": "19.2.6",
+		"react-dom": "19.2.6",
 		"c15t": "workspace:*",
 		"@c15t/react": "workspace:*",
 		"@c15t/nextjs": "workspace:*"
 	},
 	"devDependencies": {
-		"@next/bundle-analyzer": "16.2.1",
-		"typescript": "6.0.2",
+		"@next/bundle-analyzer": "16.2.6",
+		"typescript": "6.0.3",
 		"@types/react": "19.2.14",
-		"@types/node": "25.5.0"
+		"@types/node": "25.7.0"
 	}
 }

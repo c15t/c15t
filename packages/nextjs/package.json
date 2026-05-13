@@ -88,12 +88,12 @@
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"genversion": "3.2.0",
-		"typescript": "6.0.2"
+		"typescript": "6.0.3"
 	},
 	"peerDependencies": {
-		"next": "^16.0.0 || ^15.0.0 || ^14.0.0 || ^13.0.0",
-		"react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
-		"react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc"
+		"next": "^16.2.6",
+		"react": "^19.2.6",
+		"react-dom": "^19.2.6"
 	},
 	"publishConfig": {
 		"access": "public"
