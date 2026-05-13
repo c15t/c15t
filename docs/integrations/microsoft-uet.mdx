@@ -1,36 +1,150 @@
 ---
 title: Microsoft UET
 description: Track conversions and measure performance for Microsoft Advertising and Bing Ads.
-lastModified: 2025-09-24
-
+lastModified: 2026-05-11
 icon: microsoft
 ---
 
-Microsoft UET (Universal Event Tracking) is Microsoft's conversion tracking tag for Microsoft Advertising. It tracks user actions, measures campaign effectiveness, and enables remarketing campaigns. By default, c15t loads this script based on `marketing` consent.
+Microsoft UET (Universal Event Tracking) is Microsoft's conversion tracking tag
+for Microsoft Advertising. It tracks user actions, measures campaign
+effectiveness, and enables remarketing campaigns.
+
+## Official Microsoft documentation
+
+- [Universal Event Tracking](https://learn.microsoft.com/en-us/advertising/guides/universal-event-tracking?view=bingads-13)
+- [UET tag data object](https://learn.microsoft.com/en-us/advertising/campaign-management-service/uettag?view=bingads-13)
+- [FAQ: Universal Event Tracking](https://help.ads.microsoft.com/#apex/3/en/53056/2)
+- [FAQ: Remarketing](https://help.ads.microsoft.com/#apex/3/en/56727/1)
 
 <Callout type="note">
-  UET can also load Microsoft Clarity (if enabled in your UET tag settings). Since Clarity is an analytics tool, we recommend loading it separately with `measurement` consent instead.
+  UET can also load Microsoft Clarity (if enabled in your UET tag settings). Since
+  Clarity is an analytics tool, we recommend loading it separately with
+  `measurement` consent instead.
 </Callout>
 
-## Adding Microsoft UET to c15t
+## Integrate with c15t
 
-<Callout type="info">
-  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
-</Callout>
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { microsoftUet } from '@c15t/scripts/microsoft-uet';
 
-```ts
-import { microsoftUet } from '@c15t/scripts/microsoft-uet';
+    const scripts = [microsoftUet({ id: '123456789012345' })];
 
-microsoftUet({
-  id: '123456789012345',
-})
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { microsoftUet } from '@c15t/scripts/microsoft-uet';
+
+    const scripts = [microsoftUet({ id: '123456789012345' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { microsoftUet } from '@c15t/scripts/microsoft-uet';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [microsoftUet({ id: '123456789012345' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## How c15t loads it
+
+- **Category:** `marketing` (Ads & Pixels)
+- **Loads when:** immediately, with Microsoft consent mode enabled
+- **Default consent:** c15t pushes `ad_storage: 'denied'` before loading UET unless marketing consent is already granted
+- **On grant/revocation:** c15t pushes the new consent state to `uetq` so UET can switch between granted and denied mode without removing the script
+
+Use the UET tag ID as `id`. Microsoft recommends creating one UET tag and
+adding it across your site; that tag can then support conversion goals and
+remarketing lists.
+
+## Tracking events in your app
+
+c15t loads Microsoft UET in consent mode, so `window.uetq` is created before
+consent is granted. Your own event calls are **not** automatically gated. Guard
+them if you only want to send custom conversion events after marketing consent
+is granted.
+
+Microsoft's custom event syntax uses
+`window.uetq.push('event', action, parameters)`. Conversion goals can match page
+visits and custom events, and event payloads can include revenue fields such as
+`revenue_value` and `currency`.
+
+```tsx
+import { useCallback } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+function useTrackPurchase() {
+  const { has } = useConsentManager();
+
+  return useCallback(() => {
+    if (has('marketing')) {
+      window.uetq?.push('event', 'purchase', {
+        revenue_value: 10,
+        currency: 'USD',
+      });
+    }
+  }, [has]);
+}
+
+function CheckoutButton() {
+  const trackPurchase = useTrackPurchase();
+
+  return (
+    <button type="button" onClick={trackPurchase}>
+      Complete purchase
+    </button>
+  );
+}
 ```
 
 ## Types
 
 ### MicrosoftUetOptions
 
-<AutoTypeTable path="./packages/scripts/src/microsoft-uet.ts" name="MicrosoftUetOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/microsoft-uet.ts" name="MicrosoftUetOptions" />
 
 ### Script
 

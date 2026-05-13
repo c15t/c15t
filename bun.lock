@@ -459,7 +459,7 @@
     },
     "packages/backend": {
       "name": "@c15t/backend",
-      "version": "2.0.2",
+      "version": "2.0.4",
       "dependencies": {
         "@c15t/logger": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -493,13 +493,14 @@
     },
     "packages/cli": {
       "name": "@c15t/cli",
-      "version": "2.0.2",
+      "version": "2.0.4",
       "bin": {
         "cli": "dist/index.mjs",
       },
       "dependencies": {
         "@c15t/backend": "workspace:*",
         "@c15t/logger": "workspace:*",
+        "@c15t/scripts": "workspace:*",
         "@clack/prompts": "1.1.0",
         "@modelcontextprotocol/sdk": "^1.29.0",
         "c12": "3.3.3",
@@ -540,7 +541,7 @@
     },
     "packages/dev-tools": {
       "name": "@c15t/dev-tools",
-      "version": "2.0.1",
+      "version": "2.0.4",
       "dependencies": {
         "@radix-ui/react-accordion": "1.2.12",
         "@radix-ui/react-scroll-area": "^1.2.10",
@@ -597,7 +598,7 @@
     },
     "packages/nextjs": {
       "name": "@c15t/nextjs",
-      "version": "2.0.2",
+      "version": "2.0.4",
       "dependencies": {
         "@c15t/react": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -617,7 +618,7 @@
     },
     "packages/node-sdk": {
       "name": "@c15t/node-sdk",
-      "version": "2.0.2",
+      "version": "2.0.4",
       "dependencies": {
         "@c15t/backend": "workspace:*",
         "@orpc/client": "1.13.13",
@@ -641,7 +642,7 @@
     },
     "packages/react": {
       "name": "@c15t/react",
-      "version": "2.0.2",
+      "version": "2.0.4",
       "dependencies": {
         "@c15t/ui": "workspace:*",
         "c15t": "workspace:*",
@@ -715,7 +716,7 @@
     },
     "packages/ui": {
       "name": "@c15t/ui",
-      "version": "2.0.1",
+      "version": "2.0.3",
       "dependencies": {
         "@c15t/translations": "workspace:*",
         "c15t": "workspace:*",

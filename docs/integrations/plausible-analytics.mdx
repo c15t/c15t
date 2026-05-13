@@ -1,0 +1,146 @@
+---
+title: Plausible Analytics
+description: Privacy-friendly cookieless analytics with a prebuilt helper that preserves Plausible's queue bootstrap and loader attributes.
+lastModified: 2026-05-10
+icon: plausible
+---
+
+Plausible Analytics is a privacy-friendly, cookieless analytics product with a lightweight script loader. The `plausibleAnalytics()` helper models Plausible's queue bootstrap and script attributes as a c15t-managed script so early `window.plausible(...)` calls are buffered safely until the tracker loads.
+
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { plausibleAnalytics } from '@c15t/scripts/plausible-analytics';
+
+    const scripts = [plausibleAnalytics({ domain: 'example.com' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { plausibleAnalytics } from '@c15t/scripts/plausible-analytics';
+
+    const scripts = [plausibleAnalytics({ domain: 'example.com' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { plausibleAnalytics } from '@c15t/scripts/plausible-analytics';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [plausibleAnalytics({ domain: 'example.com' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** measurement consent is granted
+- **On revocation:** unloaded — c15t removes the script element from the DOM. Plausible is cookieless, so no client-side state needs clearing.
+
+If you need script extensions or hash-based routing support, pass them through the helper:
+
+```ts
+plausibleAnalytics({
+  domain: 'example.com',
+  extension: ['file-downloads', 'outbound-links'],
+  hashBasedRouting: true,
+})
+```
+
+The helper seeds a `window.plausible` queue stub during `onBeforeLoad`, so any calls made between the consent grant and the real script attaching get buffered into `plausible.q` and replayed. It also maps the legacy `data-domain` / `data-api` attributes and the new `scriptId`-based loader URL automatically.
+
+## Tracking events in your app
+
+c15t gates the Plausible script from loading until `measurement` consent is granted. Your application code that calls Plausible is **not** automatically gated — `window.plausible` does not exist until the script is loaded, so unguarded calls before consent throw.
+
+Guard event calls by checking consent state. From React:
+
+```tsx
+import { useCallback } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+function useTrackSignup() {
+  const { has } = useConsentManager();
+
+  return useCallback(() => {
+    if (has('measurement')) {
+      window.plausible?.('Signup');
+    }
+  }, [has]);
+}
+
+function SignupButton() {
+  const trackSignup = useTrackSignup();
+
+  return (
+    <button type="button" onClick={trackSignup}>
+      Sign up
+    </button>
+  );
+}
+```
+
+From plain JavaScript:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('measurement')) {
+  window.plausible?.('Signup');
+}
+```
+
+## Types
+
+### PlausibleAnalyticsOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/plausible-analytics.ts" name="PlausibleAnalyticsOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

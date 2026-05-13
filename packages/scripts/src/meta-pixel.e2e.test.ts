@@ -11,7 +11,7 @@ import {
 	registerVendorContractCleanup,
 	toArgs,
 } from './e2e-test-utils';
-import { metaPixel } from './meta-pixel';
+import { metaPixel } from './vendors/ads-and-pixels/meta-pixel';
 
 describe('metaPixel contract', () => {
 	registerVendorContractCleanup();

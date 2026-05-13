@@ -3,7 +3,6 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { databuddy } from './databuddy';
 import {
 	deniedConsents,
 	grantedMeasurementConsents,
@@ -12,6 +11,7 @@ import {
 	registerVendorContractCleanup,
 	type TestWindow,
 } from './e2e-test-utils';
+import { databuddy } from './vendors/analytics/databuddy';
 
 describe('databuddy contract', () => {
 	registerVendorContractCleanup();
@@ -63,7 +63,7 @@ describe('databuddy contract', () => {
 		expect(attributes).toEqual({
 			crossorigin: 'anonymous',
 			clientId: 'db-contract',
-			apiUrl: null,
+			apiUrl: 'https://basket.databuddy.cc',
 		});
 		expect((window as TestWindow).databuddy?.options.disabled).toBe(true);
 

@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
 declare global {
 	interface Window {
@@ -175,7 +175,7 @@ export interface DatabuddyConsentOptions {
 export function databuddy(options: DatabuddyConsentOptions): Script {
 	const resolved = resolveManifest(databuddyManifest, {
 		clientId: options.clientId,
-		apiUrl: options.apiUrl,
+		apiUrl: options.apiUrl ?? 'https://basket.databuddy.cc',
 		configWhenGranted: options.configWhenGranted,
 		configWhenDenied: options.configWhenDenied,
 		scriptUrl: options.scriptUrl ?? 'https://cdn.databuddy.cc/databuddy.js',

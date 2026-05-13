@@ -2,7 +2,6 @@
 title: GA4 + Google Ads (gtag.js)
 description: Send data to Google Analytics 4 and Google Ads with automatic Consent Mode v2 support.
 lastModified: 2026-02-10
-
 icon: google-analytics
 ---
 
@@ -19,26 +18,109 @@ c15t initializes Google Tag with Consent Mode v2 defaults set to denied and auto
 - Use `category: 'measurement'` for analytics-only tracking (GA4 events)
 - Use `category: 'marketing'` for advertising and conversion tracking (Google Ads)
 
-## Adding GA4 + Google Ads to c15t
+## Integrate with c15t
 
-<Callout type="info">
-  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
-</Callout>
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { gtag } from '@c15t/scripts/google-tag';
+
+    const scripts = [
+      gtag({
+        id: 'G-XXXXXXXXXX',
+        category: 'measurement', // or 'marketing'
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { gtag } from '@c15t/scripts/google-tag';
+
+    const scripts = [
+      gtag({
+        id: 'G-XXXXXXXXXX',
+        category: 'measurement', // or 'marketing'
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { gtag } from '@c15t/scripts/google-tag';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [
+        gtag({
+          id: 'G-XXXXXXXXXX',
+          category: 'measurement', // or 'marketing'
+        }),
+      ],
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## How c15t loads it
+
+- **Category:** configurable — `measurement` (default, Analytics) or `marketing`
+- **Loads when:** [`alwaysLoad`](/docs/frameworks/react/script-loader#always-load) — runs on page start regardless of consent state, with Consent Mode v2 defaults set to denied
+- **On consent change:** [persists](/docs/frameworks/react/script-loader#persist-after-revocation) — c15t pushes a Consent Mode v2 `update` to gtag instead of removing the script
+
+## Tracking events in your app
+
+`gtag.js` is `alwaysLoad: true`, so `window.gtag` is present from page start regardless of consent. Calls like `gtag('event', 'sign_up')` are **safe at any time** — c15t sets Consent Mode v2 defaults to denied before the user makes a choice, and Google's SDK suppresses transmission of events while the relevant consent is denied. When consent later changes, c15t emits a Consent Mode v2 `update` so events fire correctly going forward.
 
 ```ts
-import { gtag } from '@c15t/scripts/google-tag';
-
-gtag({
-  id: 'G-XXXXXXXXXX',
-  category: 'measurement', // or 'marketing'
-})
+window.gtag?.('event', 'sign_up', { method: 'email' });
 ```
+
+You do not need to wrap `gtag(...)` calls in a `useConsentManager().has(...)` check — Consent Mode handles the suppression for you.
 
 ## Types
 
 ### GtagOptions
 
-<AutoTypeTable path="./packages/scripts/src/google-tag.ts" name="GtagOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/google-tag.ts" name="GtagOptions" />
 
 ### Script
 
