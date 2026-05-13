@@ -1,0 +1,31 @@
+---
+"@c15t/backend": minor
+"@c15t/cli": minor
+"c15t": minor
+"@c15t/dev-tools": minor
+"@c15t/iab": minor
+"@c15t/logger": minor
+"@c15t/nextjs": minor
+"@c15t/node-sdk": minor
+"@c15t/react": minor
+"@c15t/schema": minor
+"@c15t/scripts": minor
+"@c15t/translations": minor
+"@c15t/ui": minor
+---
+
+Expanded the script loader with a registry-backed provider system and a much
+broader set of consent-aware integrations. New helpers cover analytics,
+advertising pixels, functional tools, and tag managers, including Ahrefs,
+Cloudflare Web Analytics, Fathom, Hotjar, Matomo, Microsoft Clarity, Mixpanel,
+Plausible, PromptWatch, Rybbit, Segment, Umami, Vercel Analytics, Reddit Pixel,
+Snapchat Pixel, and Crisp/Intercom.
+
+Provider manifests now share common utilities for script URL resolution, boolean
+data attributes, install-step builders, Google consent mapping, and lifecycle
+execution. The package also includes registry metadata, focused provider tests,
+and engine coverage so script helpers resolve predictable loader URLs,
+attributes, consent callbacks, and queued vendor calls.
+
+Updated the docs and CLI generation prompts so these providers are discoverable
+from the integration docs and script-loader setup flows.
