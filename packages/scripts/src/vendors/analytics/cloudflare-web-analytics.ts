@@ -61,6 +61,8 @@ export interface CloudflareWebAnalyticsOptions {
  *
  * @param options - The options for the Cloudflare Web Analytics script.
  * @returns The Cloudflare Web Analytics script.
+ * @throws {Error} Throws `cloudflareWebAnalytics: missing token` when
+ * `options.token` is missing, invalid, or trims to an empty string.
  *
  * @example
  * ```ts
@@ -75,7 +77,12 @@ export interface CloudflareWebAnalyticsOptions {
 export function cloudflareWebAnalytics(
 	options: CloudflareWebAnalyticsOptions
 ): Script {
-	const token = typeof options.token === 'string' ? options.token.trim() : '';
+	let token: string;
+	if (typeof options.token === 'string') {
+		token = options.token.trim();
+	} else {
+		token = '';
+	}
 	if (token.length === 0) {
 		throw new Error('cloudflareWebAnalytics: missing token');
 	}

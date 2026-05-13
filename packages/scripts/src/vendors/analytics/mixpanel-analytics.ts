@@ -129,13 +129,11 @@ export function mixpanelAnalytics({
 	initOptions,
 	scriptUrl,
 }: MixpanelAnalyticsOptions): Script {
-	let normalizedToken = '';
-	if (typeof token === 'string') {
-		normalizedToken = token.trim();
-	}
+	const normalizedToken = token.trim();
 	if (!/^[a-f0-9]{32}$/i.test(normalizedToken)) {
 		throw new Error(
-			'mixpanelAnalytics: token must be a non-empty 32-character hexadecimal string'
+			'mixpanelAnalytics: token must be a non-empty ' +
+				'32-character hexadecimal string'
 		);
 	}
 

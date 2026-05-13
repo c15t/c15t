@@ -27,6 +27,16 @@ describe('rybbitAnalytics', () => {
 		expect(script.src).toBe('https://analytics.example.com/script.js');
 	});
 
+	it('ignores blank scriptUrl overrides', () => {
+		const script = rybbitAnalytics({
+			siteId: 'rybbit-123',
+			analyticsHost: 'https://analytics.example.com',
+			scriptUrl: '   ',
+		});
+
+		expect(script.src).toBe('https://analytics.example.com/script.js');
+	});
+
 	it('normalizes trailing slashes in analyticsHost', () => {
 		const script = rybbitAnalytics({
 			siteId: 'rybbit-123',
@@ -80,6 +90,9 @@ describe('rybbitAnalytics', () => {
 		);
 		expect(() =>
 			rybbitAnalytics({ siteId: undefined as unknown as string })
+		).toThrow('rybbitAnalytics: missing siteId');
+		expect(() =>
+			rybbitAnalytics({ siteId: null as unknown as string })
 		).toThrow('rybbitAnalytics: missing siteId');
 	});
 });

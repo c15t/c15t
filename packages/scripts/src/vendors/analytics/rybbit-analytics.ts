@@ -92,8 +92,9 @@ export interface RybbitAnalyticsOptions {
  * @internal
  */
 function getRybbitScriptUrl(options: RybbitAnalyticsOptions): string {
-	if (options.scriptUrl) {
-		return options.scriptUrl;
+	const url = options.scriptUrl?.trim();
+	if (url && url.length > 0) {
+		return url;
 	}
 	if (options.analyticsHost) {
 		return joinUrlPath(options.analyticsHost, 'script.js');
@@ -107,10 +108,17 @@ function getRybbitScriptUrl(options: RybbitAnalyticsOptions): string {
  *
  * @param options - The options for the Rybbit Analytics script.
  * @returns The Rybbit Analytics script.
+ * @throws {Error} Throws `rybbitAnalytics: missing siteId` when
+ * `options.siteId` is undefined, null, or trims to an empty string. Provide a
+ * valid non-empty site ID string to prevent this error.
  */
 export function rybbitAnalytics(options: RybbitAnalyticsOptions): Script {
-	const siteId =
-		typeof options.siteId === 'undefined' ? '' : String(options.siteId).trim();
+	let siteId: string;
+	if (options.siteId === undefined || options.siteId === null) {
+		siteId = '';
+	} else {
+		siteId = String(options.siteId).trim();
+	}
 	if (siteId.length === 0) {
 		throw new Error('rybbitAnalytics: missing siteId');
 	}
