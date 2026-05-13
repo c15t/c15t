@@ -11,15 +11,16 @@ on:
 # Prevent multiple concurrent release workflows
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
-permissions:
-  contents: write # Needed by changesets/action to create releases/tags and commit version bumps
-  pull-requests: write # Needed by changesets/action to create the "Version Packages" PR
-  id-token: write # Required for OIDC trusted publishing with npm (bypasses 2FA requirement)
+permissions: {}
 
 jobs:
   release:
     name: Release ${{ github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed by changesets/action to create releases/tags and commit version bumps
+      pull-requests: write # Needed by changesets/action to create the "Version Packages" PR
+      id-token: write # Required for OIDC trusted publishing with npm (bypasses 2FA requirement)
 
     if: github.repository == 'c15t/c15t'
     steps:

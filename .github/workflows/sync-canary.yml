@@ -6,14 +6,15 @@ on:
       - main
   workflow_dispatch:
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   sync:
     name: Create PR to sync Main to Canary
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -91,4 +92,4 @@ jobs:
               console.log('ℹ️ Sync PR already exists');
             }
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
