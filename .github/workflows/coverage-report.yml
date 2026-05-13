@@ -24,11 +24,11 @@ jobs:
     steps:
       # Checkout is needed to potentially read thresholds from vite config later? Optional otherwise.
       - name: Checkout code (optional, for context)
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       # Download the coverage artifacts uploaded by the CI workflow
       - name: Download Individual Coverage Reports
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: individual-coverage-data # Match upload name
           # Download to a predictable directory, maintaining structure
@@ -79,15 +79,15 @@ jobs:
     steps:
       # We need to re-download the artifact in each matrix job
       - name: Download Individual Coverage Reports
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: individual-coverage-data # Match upload name
           path: coverage-artifacts
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ needs.report.outputs.run_id || github.event.workflow_run.id }} # Use run_id from needs if possible
+          run-id: ${{ github.event.workflow_run.id }}
           
       - name: 📊 Report Coverage Comment on PR
-        uses: davelosert/vitest-coverage-report-action@v2
+        uses: davelosert/vitest-coverage-report-action@02f3c2e641286b7fa308cd3e430783103ce6103b
         with:
           name: ${{ matrix.package.name }} # Use package name for comment section title
           json_summary_path: ${{ matrix.package.summary_path }}

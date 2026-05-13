@@ -6,17 +6,18 @@ on:
       - main
   workflow_dispatch:
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 jobs:
   sync:
     name: Create PR to sync Main to Canary
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 0
 
@@ -49,7 +50,7 @@ jobs:
           echo "SYNC_BRANCH=$SYNC_BRANCH" >> $GITHUB_ENV
 
       - name: Create Pull Request
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b
         with:
           script: |
             const { data: existingPRs } = await github.rest.pulls.list({
@@ -91,4 +92,4 @@ jobs:
               console.log('ℹ️ Sync PR already exists');
             }
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

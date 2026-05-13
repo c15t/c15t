@@ -13,12 +13,12 @@ jobs:
       contents: read
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 0
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
         with:
           bun-version: "1.3.11"
 
@@ -26,7 +26,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Install Playwright Chromium
-        run: bunx playwright install --with-deps chromium chromium-headless-shell
+        run: bunx playwright@1.58.2 install --with-deps chromium chromium-headless-shell
 
       - name: Clean benchmark output
         run: rm -rf .benchmarks
@@ -38,7 +38,7 @@ jobs:
         run: bun run bench:nightly
 
       - name: Upload nightly artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: benchmark-nightly
           path: .benchmarks/nightly/
