@@ -1,25 +1,38 @@
 {
 	"name": "@c15t/react",
-	"version": "2.0.0",
-	"description": "Developer-first CMP for React: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization",
+	"version": "2.0.4",
+	"description": "Headless cookie banner, consent manager & preference center for React. RSC-compatible, GDPR/CCPA/LGPD/TCF, TypeScript-first.",
 	"keywords": [
 		"react",
+		"react-consent",
+		"react-cookie-banner",
+		"react-cookie-consent",
 		"consent",
 		"privacy",
 		"gdpr",
 		"ccpa",
 		"lgpd",
+		"tcf",
+		"iab",
+		"cmp",
 		"headless",
 		"typescript",
 		"cookie-banner",
+		"cookie-consent",
 		"consent-management-platform",
-		"cmp",
+		"consent-management",
 		"consent-banner",
-		"user-consent",
-		"privacy-compliance",
-		"web-privacy"
+		"consent-manager-react",
+		"preference-center",
+		"react-server-components",
+		"rsc",
+		"use-client",
+		"tracking-consent"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/react/quickstart",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
@@ -55,20 +68,10 @@
 			"import": "./dist/headless.js",
 			"require": "./dist/headless.cjs"
 		},
-		"./preference-center": {
-			"types": "./dist-types/components/preference-center/index.d.ts",
-			"import": "./dist/components/preference-center/index.js",
-			"require": "./dist/components/preference-center/index.cjs"
-		},
-		"./preference-center-widget": {
-			"types": "./dist-types/components/preference-center-widget/index.d.ts",
-			"import": "./dist/components/preference-center-widget/index.js",
-			"require": "./dist/components/preference-center-widget/index.cjs"
-		},
 		"./cookie-banner": {
-			"types": "./dist-types/components/cookie-banner/index.d.ts",
-			"import": "./dist/components/cookie-banner/index.js",
-			"require": "./dist/components/cookie-banner/index.cjs"
+			"types": "./dist-types/components/consent-banner/index.d.ts",
+			"import": "./client/components/consent-banner.js",
+			"require": "./dist/components/consent-banner/index.cjs"
 		},
 		"./components/consent-banner": {
 			"types": "./dist-types/components/consent-banner/index.d.ts",
@@ -110,21 +113,6 @@
 			"import": "./dist/hooks/index.js",
 			"require": "./dist/hooks/index.cjs"
 		},
-		"./context": {
-			"types": "./dist-types/context/index.d.ts",
-			"import": "./dist/context/index.js",
-			"require": "./dist/context/index.cjs"
-		},
-		"./types": {
-			"types": "./dist-types/types/index.d.ts",
-			"import": "./dist/types/index.js",
-			"require": "./dist/types/index.cjs"
-		},
-		"./utils": {
-			"types": "./dist-types/utils/index.d.ts",
-			"import": "./dist/utils/index.js",
-			"require": "./dist/utils/index.cjs"
-		},
 		".": {
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
@@ -140,6 +128,7 @@
 		"dist-types",
 		"client",
 		"styles.css",
+		"styles.tw3.css",
 		"iab",
 		"src/styles.tw3.css",
 		"src/iab/styles.tw3.css",
@@ -151,10 +140,10 @@
 		"build:agent-docs": "bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/react",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"clean:dist:test-artifacts": "bun --eval \"import { rmSync } from 'node:fs'; rmSync('dist/mockServiceWorker.js', { force: true });\"",
-		"dev": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts",
+		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && bun scripts/generate-distribution-css.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
-		"prepack": "bun run build",
+		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
 		"test": "bun prebuild && vitest run",
 		"test:watch": "bun prebuild && vitest"
 	},

@@ -32,7 +32,7 @@ This demo includes OpenTelemetry instrumentation that sends traces and metrics t
    bun run dev
    ```
 
-   The demo now runs through Portless and will open on a stable named local URL such as `https://pigeon-post.localhost`.
+   The demo now runs through Portless and will open on a stable named local URL such as `https://example-demo.localhost`.
 
 5. **View Telemetry in Axiom**
 

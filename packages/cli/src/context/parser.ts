@@ -28,7 +28,7 @@ export const globalFlags: CliFlag[] = [
 		expectsValue: true,
 	},
 	{
-		names: ['-y'],
+		names: ['-y', '--yes'],
 		description: 'Skip confirmation prompts (use with caution).',
 		type: 'boolean',
 		expectsValue: false,

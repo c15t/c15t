@@ -1,46 +1,384 @@
 ---
 title: Meta Pixel
 description: Track conversions and build audiences for Facebook and Instagram advertising campaigns.
-lastModified: 2025-09-24
-
+lastModified: 2026-05-11
 icon: meta
 ---
 
-Meta Pixel (formerly Facebook Pixel) is Meta's conversion tracking and audience targeting tool for Facebook and Instagram advertising. It tracks user actions, measures ad effectiveness, builds custom audiences, and optimizes ad delivery. By default, c15t loads this script based on `marketing` consent.
+Meta Pixel (formerly Facebook Pixel) is Meta's conversion tracking and audience targeting tool for Facebook and Instagram advertising. It tracks user actions, measures ad effectiveness, builds custom audiences, and optimizes ad delivery.
 
-This script persists after consent is revoked because it has built-in consent management. When consent changes, c15t updates Meta's internal consent state rather than removing the script entirely.
+## Integrate with c15t
 
-## Adding the Meta Pixel to c15t
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { metaPixel } from '@c15t/scripts/meta-pixel';
 
-<Callout type="info">
-  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
-</Callout>
+    const scripts = [
+      metaPixel({
+        pixelId: '123456789012345',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { metaPixel } from '@c15t/scripts/meta-pixel';
+
+    const scripts = [
+      metaPixel({
+        pixelId: '123456789012345',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { metaPixel } from '@c15t/scripts/meta-pixel';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [
+        metaPixel({
+          pixelId: '123456789012345',
+        }),
+      ],
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## How c15t loads it
+
+- **Category:** `marketing` (Ads & Pixels)
+- **Loads when:** marketing consent is granted
+- **Default install:** c15t queues `fbq('consent', 'grant')`, `fbq('init', pixelId)`, `fbq('track', 'PageView')`, then loads Meta's `fbevents.js`
+- **On revocation:** [persists](/docs/frameworks/react/script-loader#persist-after-revocation) — c15t calls `fbq('consent', 'revoke')` so Meta stops tracking without removing the script
+
+Meta recommends installing the base pixel on every page you want to measure. c15t injects scripts into the document head by default, which matches Meta's recommendation to load the pixel early.
+
+## Configure the integration
+
+Use the default setup when you want Meta's standard `PageView` event to fire as soon as the pixel loads after marketing consent.
 
 ```ts
-import { metaPixel } from '@c15t/scripts/meta-pixel';
-
 metaPixel({
   pixelId: '123456789012345',
-})
+});
 ```
 
-## metaPixelEvent
+For single-page applications, disable the automatic `PageView` and track route changes yourself.
 
-You can use the `metaPixelEvent` function to track events. This is a wrapper around the `fbq` function that the Meta Pixel script uses.
+```ts
+metaPixel({
+  pixelId: '123456789012345',
+  trackPageView: false,
+});
+```
 
-To learn more about Meta Pixel's standard events, see the [Meta Pixel documentation](https://developers.facebook.com/docs/meta-pixel/reference).
+You can pass optional init data as the third argument to `fbq('init', ...)`.
+
+```ts
+metaPixel({
+  pixelId: '123456789012345',
+  initOptions: {
+    external_id: 'customer-123',
+  },
+});
+```
+
+## Tracking events in your app
+
+c15t gates the Meta Pixel script from loading until `marketing` consent is
+granted. After consent is granted the script stays in the DOM, and c15t calls
+`fbq('consent', 'revoke')` if consent is later revoked so Meta stops tracking
+without removing the script.
+
+This means `window.fbq` and the `metaPixelEvent` helpers are only defined after
+the user has granted marketing consent at least once. Before that, unguarded
+calls throw.
+
+### Standard events
+
+Use `metaPixelEvent` to track Meta standard events. It is a typed wrapper around `fbq('track', ...)`.
+
+Meta documents standard event tracking in its [conversion tracking guide](https://developers.facebook.com/docs/meta-pixel/implementation/conversion-tracking) and [Marketing API pixel examples](https://developers.facebook.com/docs/meta-pixel/implementation/marketing-api).
 
 ```ts
 import { metaPixelEvent } from '@c15t/scripts/meta-pixel';
 
-metaPixelEvent('Purchase', { value: 10.0, currency: 'USD' });
+metaPixelEvent('Lead', {
+  value: 40,
+  currency: 'USD',
+});
+
+metaPixelEvent('AddToCart', {
+  content_ids: ['SKU-123'],
+  content_type: 'product',
+  value: 49.99,
+  currency: 'USD',
+});
+
+metaPixelEvent(
+  'Purchase',
+  {
+    contents: [
+      { id: 'SKU-123', quantity: 2 },
+      { id: 'SKU-456', quantity: 1 },
+    ],
+    content_type: 'product',
+    value: 149.97,
+    currency: 'USD',
+  },
+  'browser-event-123'
+);
 ```
+
+The optional third argument can be an event ID string or an options object. c15t forwards string IDs as `{ eventID: '...' }`, which is the browser-side format used for Conversions API deduplication.
+
+```ts
+metaPixelEvent(
+  'Purchase',
+  { value: 149.97, currency: 'USD' },
+  { eventID: 'browser-event-123' }
+);
+```
+
+### Custom events
+
+Use `metaPixelCustomEvent` when Meta's standard events do not fit the action you are measuring. Meta custom event names must be strings and cannot exceed 50 characters.
+
+```ts
+import { metaPixelCustomEvent } from '@c15t/scripts/meta-pixel';
+
+metaPixelCustomEvent('ShareDiscount', {
+  promotion: 'share_discount_10%',
+});
+```
+
+Custom events can also use an event ID for Conversions API deduplication.
+
+```ts
+metaPixelCustomEvent(
+  'ShareDiscount',
+  { promotion: 'share_discount_10%' },
+  'browser-event-456'
+);
+```
+
+### Guard event calls with consent
+
+The example below intentionally uses `useConsentManager().has('marketing')` as
+a defensive policy so your app avoids calling `metaPixelEvent` whenever consent
+is currently revoked, even though Meta also suppresses tracking after initial
+load.
+
+```tsx
+import { useConsentManager } from '@c15t/react';
+import { metaPixelEvent } from '@c15t/scripts/meta-pixel';
+
+function useTrackPurchase() {
+  const { has } = useConsentManager();
+
+  // Defensive pattern: only call metaPixelEvent while marketing consent is granted.
+  return () => {
+    if (has('marketing')) {
+      metaPixelEvent('Purchase', { value: 10.0, currency: 'USD' });
+    }
+  };
+}
+
+function PurchaseButton() {
+  const trackPurchase = useTrackPurchase();
+
+  return <button onClick={trackPurchase}>Complete purchase</button>;
+}
+```
+
+### SPA route changes
+
+Meta's [SPA guidance](https://developers.facebook.com/docs/facebook-pixel/implementation/tag_spa) recommends tracking meaningful URL changes from your router. Disable the install-time `PageView`, then emit page views after navigation while marketing consent is granted.
+
+```tsx
+import { useConsentManager } from '@c15t/react';
+import { metaPixelEvent } from '@c15t/scripts/meta-pixel';
+import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
+
+function MetaRouteTracking() {
+  const { has } = useConsentManager();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (has('marketing')) {
+      metaPixelEvent('PageView');
+    }
+  }, [has, location.pathname, location.search]);
+
+  return null;
+}
+```
+
+## Consent and privacy
+
+Meta's GDPR guidance documents `fbq('consent', 'revoke')` and `fbq('consent', 'grant')`. c15t handles those calls for you after the script has loaded once:
+
+- Before marketing consent, c15t does not load Meta Pixel.
+- When marketing consent is granted, c15t loads Meta Pixel and calls `fbq('consent', 'grant')`.
+- When marketing consent is revoked later, c15t keeps the script in place and calls `fbq('consent', 'revoke')`.
+
+For US state privacy rules, Meta supports [Data Processing Options](https://developers.facebook.com/docs/meta-pixel/implementation/data-processing-options). Pass `dataProcessingOptions` to queue `fbq('dataProcessingOptions', ...)` before `fbq('init', ...)`.
+
+Let Meta geolocate Limited Data Use:
+
+```ts
+metaPixel({
+  pixelId: '123456789012345',
+  dataProcessingOptions: {
+    options: ['LDU'],
+    country: 0,
+    state: 0,
+  },
+});
+```
+
+Enable Limited Data Use for California:
+
+```ts
+metaPixel({
+  pixelId: '123456789012345',
+  dataProcessingOptions: {
+    options: ['LDU'],
+    country: 1,
+    state: 1000,
+  },
+});
+```
+
+Explicitly disable Limited Data Use:
+
+```ts
+metaPixel({
+  pixelId: '123456789012345',
+  dataProcessingOptions: {
+    options: [],
+  },
+});
+```
+
+## Catalog and collaborative ads
+
+For Advantage+ catalog ads, Meta requires `ViewContent`, `AddToCart`, and `Purchase` events to include either `content_ids` or `contents`. IDs must match your product catalog. See Meta's [Advantage+ catalog ads guide](https://developers.facebook.com/docs/meta-pixel/get-started/advantage-catalog-ads).
+
+```ts
+metaPixelEvent('ViewContent', {
+  content_ids: ['SKU-123'],
+  content_type: 'product',
+  value: 49.99,
+  currency: 'USD',
+});
+```
+
+For collaborative ads, Meta requires `content_type: 'product'`; `AddToCart` and `Purchase` also require `contents`, `currency`, and `value`. See Meta's [collaborative ads pixel guide](https://developers.facebook.com/docs/meta-pixel/implementation/pixel-for-collaborative-ads).
+
+```ts
+metaPixelEvent('AddToCart', {
+  contents: [{ id: 'SKU-123', quantity: 2 }],
+  content_type: 'product',
+  value: 99.98,
+  currency: 'USD',
+});
+```
+
+## Movies
+
+Meta's [movies pixel guide](https://developers.facebook.com/docs/meta-pixel/implementation/pixel-for-movies) uses the standard events `ViewContent`, `InitiateCheckout`, `Purchase`, and `PageView` with movie-specific parameters such as `movieref`.
+
+```ts
+metaPixelEvent('InitiateCheckout', {
+  content_ids: ['movie-1|theater-1|2026-05-11T19:30:00-07:00'],
+  movieref: 'fb_movies',
+  num_items: 2,
+});
+```
+
+## Multiple pixels
+
+Meta's [multiple pixel guidance](https://developers.facebook.com/docs/facebook-pixel/implementation/accurate_event_tracking) warns that `fbq('track', ...)` and `fbq('trackCustom', ...)` fire for every initialized pixel ID. If another integration or tag manager initializes more than one pixel, use the single-pixel helpers to prevent overfiring.
+
+```ts
+import {
+  metaPixelSingleCustomEvent,
+  metaPixelSingleEvent,
+} from '@c15t/scripts/meta-pixel';
+
+metaPixelSingleEvent('PIXEL-A', 'Purchase', {
+  value: 149.97,
+  currency: 'USD',
+});
+
+metaPixelSingleCustomEvent('PIXEL-B', 'Step4', {
+  funnel: 'checkout',
+});
+```
+
+## Custom audiences and sharing
+
+Meta custom audiences are configured in Events Manager after standard events, custom events, or custom conversions are being received. The c15t integration sends the browser events; audience rules are managed in Meta. See Meta's [custom audiences guide](https://developers.facebook.com/docs/facebook-pixel/implementation/custom-audiences).
+
+Pixel sharing between businesses or agencies is also managed through Meta Business Manager or the Business Management APIs, not through the browser script. See Meta's [pixel sharing guide](https://developers.facebook.com/docs/marketing-api/business-asset-management/guides/business-pixel-sharing).
 
 ## Types
 
 ### MetaPixelOptions
 
-<AutoTypeTable path="./packages/scripts/src/meta-pixel.ts" name="MetaPixelOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/meta-pixel.ts" name="MetaPixelOptions" />
+
+### MetaPixelDataProcessingOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/meta-pixel.ts" name="MetaPixelDataProcessingOptions" />
+
+### MetaPixelEventOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/meta-pixel.ts" name="MetaPixelEventOptions" />
 
 ### Script
 
@@ -48,4 +386,4 @@ metaPixelEvent('Purchase', { value: 10.0, currency: 'USD' });
 
 ### StandardEventParams
 
-<AutoTypeTable path="./packages/scripts/src/meta-pixel.ts" name="StandardEventParams" />
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/meta-pixel.ts" name="StandardEventParams" />

@@ -1,0 +1,67 @@
+---
+title: "v2.0.1 - TanStack Devtools Support & Tailwind Import Ordering"
+version: "2.0.1"
+date: 2026-04-19
+description: "Patch release adding official TanStack Devtools support for @c15t/dev-tools and improving Tailwind v4 stylesheet import ordering in the c15t CLI."
+tags:
+  - release
+  - stable
+  - cli
+  - dev-tools
+  - react
+  - nextjs
+  - styling
+type: release
+breaking: false
+draft: false
+authors: [KayleeWilliams]
+packages:
+  - "@c15t/dev-tools@2.0.1"
+  - "@c15t/cli@2.0.1"
+---
+
+## 🐛 Bug Fixes & Improvements
+
+### **@c15t/dev-tools**
+
+Added official TanStack Devtools support for `@c15t/dev-tools`.
+
+This release stabilizes the existing integration and makes it ready to document publicly:
+
+* Added the `c15tDevtools()` plugin factory for TanStack Devtools, while keeping `c15tDevtoolsPlugin()` as a backward-compatible alias
+* Switched the integration to TanStack Devtools' React plugin API instead of the previous custom mount pattern
+* Kept the embedded c15t panel connected across TanStack tab switches so it does not drop the store connection when the plugin view remounts
+* Updated the embedded panel styling to better match TanStack Devtools
+* Added demo coverage for repro and regression testing
+
+#### Usage
+
+```tsx
+import { TanStackDevtools } from '@tanstack/react-devtools';
+import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools';
+import { c15tDevtools } from '@c15t/dev-tools/tanstack';
+
+export function AppDevtools() {
+  return (
+    <TanStackDevtools
+      plugins={[
+        {
+          name: 'TanStack Query',
+          render: <ReactQueryDevtoolsPanel />,
+        },
+        c15tDevtools({
+          defaultOpen: true,
+        }),
+      ]}
+    />
+  );
+}
+```
+
+### **@c15t/cli**
+
+Improved Tailwind v4 stylesheet import ordering when the CLI adds c15t stylesheets to app-level CSS files.
+
+This keeps c15t imports at the end of the top-level `@import` block so preset styles such as Fumadocs load first and do not override c15t theme tokens unexpectedly.
+
+<ContributorBlock usernames={["KayleeWilliams"]} title="Thank you to our contributors" />

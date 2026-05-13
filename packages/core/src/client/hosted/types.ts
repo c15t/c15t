@@ -70,7 +70,7 @@ export interface C15tInternalClientOptions {
 	/**
 	 * IAB configuration for offline/fallback mode.
 	 * When the backend is unavailable and IAB is enabled,
-	 * the client will fetch GVL from gvl.consent.io with these settings.
+	 * the client will fetch GVL from gvl.inth.app with these settings.
 	 */
 	iabConfig?: IABFallbackConfig;
 }

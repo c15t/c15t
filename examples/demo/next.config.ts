@@ -1,20 +1,12 @@
+import { fileURLToPath } from 'node:url';
 import type { NextConfig } from 'next';
 
+const workspaceRoot = fileURLToPath(new URL('../..', import.meta.url));
+
 const config: NextConfig = {
-	allowedDevOrigins: [
-		'pigeon-post.localhost',
-		'*.pigeon-post.localhost',
-		'css-module-strategy.pigeon-post.localhost',
-		'*.pigeon-post.localhost',
-		'theme-rc-bugs.pigeon-post.localhost',
-	],
-	async rewrites() {
-		return [
-			{
-				source: '/api/pigeon/:path*',
-				destination: 'https://inth-status-europe-pigeon.c15t.dev/:path*',
-			},
-		];
+	allowedDevOrigins: ['example-demo.localhost', '*.example-demo.localhost'],
+	turbopack: {
+		root: workspaceRoot,
 	},
 };
 

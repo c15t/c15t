@@ -1,0 +1,36 @@
+---
+title: Overview
+description: The c15t CLI scaffolds, migrates, and configures consent management in your project.
+---
+
+`@c15t/cli` is the command-line companion for c15t. It installs packages, scaffolds components, runs codemods between versions, manages self-hosted database migrations, and installs agent skills for AI-assisted development.
+
+## Install & run
+
+The CLI is designed to run via `dlx`/`npx`/`bunx` — you don't need to add it as a dependency.
+
+```bash
+# pnpm
+pnpm dlx @c15t/cli setup
+
+# npm
+npx @c15t/cli setup
+
+# bun
+bunx --bun @c15t/cli setup
+```
+
+## What it does
+
+- **`setup`** — interactive scaffolder. Detects your framework (React, Next.js), installs packages, configures the consent client, sets environment variables, and adds banner + dialog components.
+- **`generate`** — generates schema and code for consent management.
+- **`codemods`** — runs migration codemods between c15t versions (e.g. v1 → v2 component renames, `gdprTypes` → `consentCategories`).
+- **`self-host migrate`** — runs database migrations for self-hosted `@c15t/backend` deployments.
+- **`skills`** — installs reusable c15t agent skills for AI tooling.
+- **`login` / `logout`** — authenticates with the hosted control plane (inth.com).
+
+See [Quickstart](./quickstart) to scaffold a new project, or jump to a specific [command](./commands/setup).
+
+## Telemetry
+
+The CLI collects anonymous usage data to help prioritize features. Telemetry is fully optional. See [Telemetry](./telemetry) for what's collected and how to disable it.

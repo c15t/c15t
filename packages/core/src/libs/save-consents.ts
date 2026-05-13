@@ -13,6 +13,7 @@ import { generateSubjectId } from './generate-subject-id';
 import {
 	applyPolicyPurposeAllowlist,
 	getEffectivePolicy,
+	shouldEnforcePolicyCategoryScope,
 	stripDisallowedPreferenceKeys,
 } from './policy';
 import { sanitizeSubjectIdentifiers } from './sanitize-subject-identifiers';
@@ -185,16 +186,18 @@ export async function saveConsents({
 		}
 	}
 
-	const policyCategories =
-		getEffectivePolicy(lastBannerFetchData)?.consent?.categories;
-	const effectiveConsents = applyPolicyPurposeAllowlist(
-		newConsents,
-		policyCategories
+	const effectivePolicy = getEffectivePolicy(lastBannerFetchData);
+	const policyCategories = effectivePolicy?.consent?.categories;
+	const shouldEnforcePolicyScope = shouldEnforcePolicyCategoryScope(
+		policyCategories,
+		effectivePolicy?.consent?.scopeMode ?? null
 	);
-	const requestPreferences = stripDisallowedPreferenceKeys(
-		effectiveConsents,
-		policyCategories
-	);
+	const effectiveConsents = shouldEnforcePolicyScope
+		? applyPolicyPurposeAllowlist(newConsents, policyCategories)
+		: newConsents;
+	const requestPreferences = shouldEnforcePolicyScope
+		? stripDisallowedPreferenceKeys(effectiveConsents, policyCategories)
+		: effectiveConsents;
 	const didChange = haveConsentsChanged(
 		previousConsents,
 		effectiveConsents,

@@ -1,5 +1,26 @@
 # @c15t/ui
 
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [748536a]
+  - c15t@2.0.4
+
+## 2.0.2
+
+### Patch Changes
+
+- 10cec50: Fix consent widget footer slot styling so container classes no longer leak onto nested footer subgroups.
+
+## 2.0.1
+
+### Patch Changes
+
+- 50e17f0: Fix Tailwind CSS v3 stylesheet packaging so package resolvers that do not follow nested CSS imports still include the generated c15t component rules.
+
+  Root `styles.tw3.css` and `iab/styles.tw3.css` proxy entrypoints are now published, and the React/Next.js Tailwind v3 dist stylesheets inline the generated UI CSS instead of forwarding through nested package imports.
+
 ## 2.0.0
 
 ### Major Changes

@@ -17,6 +17,7 @@
 [![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
 [![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
+[![skills.sh](https://skills.sh/b/c15t/skills)](https://skills.sh/c15t/skills)
 
 ## Overview
 
@@ -43,7 +44,7 @@ c15t is a headless consent engine that transforms privacy management from a comp
 | `@c15t/react` | React Components for Consent Management | Works with React 19, 18, 17, 16.8, Full 'use client' support, Headless and customizable UI, Automatic GDPR compliance, Built-in internationalization | [![npm](https://img.shields.io/npm/v/@c15t/react?style=flat-square)](https://www.npmjs.com/package/@c15t/react) |
 | `@c15t/nextjs` | Next.js Consent Integration | Works with Next.js 15, 14, 13, Server-side rendering support, App and pages router compatibility, 'use client' support, Automatic compliance | [![npm](https://img.shields.io/npm/v/@c15t/nextjs?style=flat-square)](https://www.npmjs.com/package/@c15t/nextjs) |
 | `@c15t/translations` | Internationalization Support | Type-safe translation interfaces, Modular translation imports, Supports partial and complete translations, Defines translation types for consent components | [![npm](https://img.shields.io/npm/v/@c15t/translations?style=flat-square)](https://www.npmjs.com/package/@c15t/translations) |
-| `@c15t/scripts` | Prebuilt Scripts | Prebuilt script snippets for popular analytics and marketing tools, Easy integration with c15t's script loader, Configuration options for each supported vendor, Supports Google Tag Manager, Meta Pixel, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, and X Pixel | [![npm](https://img.shields.io/npm/v/@c15t/scripts?style=flat-square)](https://www.npmjs.com/package/@c15t/scripts) |
+| `@c15t/scripts` | Prebuilt Scripts | Prebuilt script snippets for 25+ popular analytics, marketing, and functional tools including Google Tag Manager, Google Analytics 4 (GA4), Universal Event Tracking (UET), Meta Pixel, Intercom, and more. [See full list ->](./docs/integrations/overview.mdx) | [![npm](https://img.shields.io/npm/v/@c15t/scripts?style=flat-square)](https://www.npmjs.com/package/@c15t/scripts) |
 | `@c15t/dev-tools` | Developer Tooling | Experimental developer utilities, React component library with utility tools, Radix UI and Tailwind CSS integration, State management and UI component helpers, Currently under active development | [![npm](https://img.shields.io/npm/v/@c15t/dev-tools?style=flat-square)](https://www.npmjs.com/package/@c15t/dev-tools) |
 | `@c15t/cli` | Command-line Interface | Configuration Generation, Database Migrations, Multi-Framework Support, Interactive Guided Workflows, GitHub Integration | [![npm](https://img.shields.io/npm/v/@c15t/cli?style=flat-square)](https://www.npmjs.com/package/@c15t/cli) |
 | `@c15t/backend` | Consent Management Backend | Consent Policy Engine, Geo-Location Detection, Server-Side Translation, Audit Logging, Domain and Policy Management | [![npm](https://img.shields.io/npm/v/@c15t/backend?style=flat-square)](https://www.npmjs.com/package/@c15t/backend) |
@@ -57,12 +58,18 @@ Comprehensive guides for different frameworks:
 - [React Quickstart](https://c15t.link/react)
 - [JavaScript Quickstart](https://c15t.link/javascript)
 
+## Local Workflows
+
+- `bun run dev` starts the main product demo in `examples/demo`
+- `bun run bench:ci` runs the benchmark suites that publish `.benchmarks/**` artifacts
+- `bun run compat:styles:review` launches the Tailwind 3, Tailwind 4, plain CSS, and preview compatibility harnesses
+
 ## Support
 
 - Join our [Discord community](https://c15t.link/discord)
 - Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
-- Visit [consent.io](https://consent.io) and use the chat widget
-- Contact our support team via email [support@consent.io](mailto:support@consent.io)
+- Visit [inth.com](https://inth.com) and use the chat widget
+- Contact our support team via email [support@inth.com](mailto:support@inth.com)
 
 ## Contributing
 

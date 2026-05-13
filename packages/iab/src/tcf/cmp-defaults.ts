@@ -8,7 +8,7 @@ import { version } from '../version';
 
 /**
  * Default CMP ID fallback. Zero means no CMP is registered.
- * consent.io provides its registered CMP ID via the `/init` endpoint.
+ * inth.com provides its registered CMP ID via the `/init` endpoint.
  * Self-hosted users can configure their own via `advanced.iab.cmpId`.
  */
 export const CMP_ID = 0;

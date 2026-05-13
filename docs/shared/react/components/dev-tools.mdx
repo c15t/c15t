@@ -38,6 +38,39 @@
   | **IAB** | IAB TCF state (when enabled) - TC string, vendor consents, purposes |
   | **Events** | Timeline of consent events and state changes |
   | **Actions** | Buttons to trigger consent actions (accept all, reject all, reset) |
+
+  ## TanStack Devtools
+
+  `@c15t/dev-tools/tanstack` exposes a panel component and plugin factory that match TanStack Devtools' plugin API, so c15t can sit beside Query and Router without a custom mount adapter:
+
+  ```tsx
+  import * as React from 'react';
+  import { useRouter } from '@tanstack/react-router';
+  import { TanStackDevtools } from '@tanstack/react-devtools';
+  import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools';
+  import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
+  import { c15tDevtools } from '@c15t/dev-tools/tanstack';
+
+  export function AppDevtools() {
+    const router = useRouter();
+
+    return (
+      <TanStackDevtools
+        plugins={[
+          {
+            name: 'TanStack Query',
+            render: <ReactQueryDevtoolsPanel />,
+          },
+          {
+            name: 'TanStack Router',
+            render: <TanStackRouterDevtoolsPanel router={router} />,
+          },
+          c15tDevtools(),
+        ]}
+      />
+    );
+  }
+  ```
 </section>
 
 <section id="props">

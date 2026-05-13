@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/iab",
-	"version": "2.0.0",
+	"version": "2.0.4",
 	"description": "IAB TCF 2.3 and GPP addon for c15t — opt-in compliance protocol support for programmatic advertising",
 	"keywords": [
 		"iab",
@@ -14,6 +14,9 @@
 		"transparency-consent-framework"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/react/iab/overview",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
@@ -44,7 +47,7 @@
 		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
-		"dev": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run",

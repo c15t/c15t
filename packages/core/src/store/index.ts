@@ -24,7 +24,10 @@ import type { IABConfig } from '../libs/iab-tcf/types';
 import { createIframeManager } from '../libs/iframe-blocker/store';
 import { initConsentManager } from '../libs/init-consent-manager';
 import { createNetworkBlockerManager } from '../libs/network-blocker/store';
-import { filterConsentCategoriesByPolicy } from '../libs/policy';
+import {
+	filterConsentCategoriesByPolicy,
+	shouldEnforcePolicyCategoryScope,
+} from '../libs/policy';
 import { sanitizeSubjectIdentifiers } from '../libs/sanitize-subject-identifiers';
 import { saveConsents } from '../libs/save-consents';
 import { createScriptManager } from '../libs/script-loader';
@@ -288,11 +291,22 @@ export const createConsentManagerStore = (
 			});
 		},
 		setConsentCategories: (types) =>
-			set({
-				consentCategories: filterConsentCategoriesByPolicy(
-					types,
-					get().policyCategories
-				),
+			set(() => {
+				const { policyCategories, policyScopeMode } = get();
+				if (
+					shouldEnforcePolicyCategoryScope(policyCategories, policyScopeMode)
+				) {
+					return {
+						consentCategories: filterConsentCategoriesByPolicy(
+							types,
+							policyCategories
+						),
+					};
+				}
+
+				return {
+					consentCategories: Array.from(new Set(types)),
+				};
 			}),
 		setCallback: (name, callback) => {
 			const currentState = get();
@@ -392,15 +406,27 @@ export const createConsentManagerStore = (
 		},
 
 		updateConsentCategories: (newCategories: AllConsentNames[]) => {
+			const {
+				consentCategories: currentConsentCategories,
+				policyCategories,
+				policyScopeMode,
+			} = get();
 			const allCategoriesSet = new Set<AllConsentNames>([
-				...get().consentCategories,
+				...currentConsentCategories,
 				...newCategories,
 			]);
-			const allCategories = filterConsentCategoriesByPolicy(
-				Array.from(allCategoriesSet),
-				get().policyCategories
-			);
-			set({ consentCategories: allCategories });
+			let consentCategories: AllConsentNames[];
+
+			if (shouldEnforcePolicyCategoryScope(policyCategories, policyScopeMode)) {
+				consentCategories = filterConsentCategoriesByPolicy(
+					Array.from(allCategoriesSet),
+					policyCategories
+				);
+			} else {
+				consentCategories = Array.from(allCategoriesSet);
+			}
+
+			set({ consentCategories });
 		},
 
 		identifyUser: async (user: User) => {

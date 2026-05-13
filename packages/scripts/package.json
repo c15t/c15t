@@ -1,8 +1,34 @@
 {
 	"name": "@c15t/scripts",
-	"version": "2.0.0",
-	"description": "Pre-built scripts of popular tools for c15t's script loader.",
+	"version": "2.0.1",
+	"description": "Pre-built scripts for c15t's script loader (GTM, GA4, Meta).",
+	"keywords": [
+		"c15t",
+		"script-loader",
+		"consent",
+		"gdpr",
+		"ccpa",
+		"lgpd",
+		"gtm",
+		"google-tag-manager",
+		"google-tag",
+		"ga4",
+		"google-ads",
+		"meta-pixel",
+		"posthog",
+		"tiktok-pixel",
+		"linkedin-insights",
+		"microsoft-uet",
+		"x-pixel",
+		"analytics-consent",
+		"consent-mode",
+		"privacy",
+		"cmp"
+	],
 	"homepage": "https://c15t.com/docs/frameworks/javascript/script-loader",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
@@ -12,6 +38,141 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
+		"./ahrefs-analytics": {
+			"types": "./dist-types/vendors/analytics/ahrefs-analytics.d.ts",
+			"import": "./dist/vendors/analytics/ahrefs-analytics.js",
+			"require": "./dist/vendors/analytics/ahrefs-analytics.cjs"
+		},
+		"./cloudflare-web-analytics": {
+			"types": "./dist-types/vendors/analytics/cloudflare-web-analytics.d.ts",
+			"import": "./dist/vendors/analytics/cloudflare-web-analytics.js",
+			"require": "./dist/vendors/analytics/cloudflare-web-analytics.cjs"
+		},
+		"./microsoft-clarity": {
+			"types": "./dist-types/vendors/analytics/microsoft-clarity.d.ts",
+			"import": "./dist/vendors/analytics/microsoft-clarity.js",
+			"require": "./dist/vendors/analytics/microsoft-clarity.cjs"
+		},
+		"./databuddy": {
+			"types": "./dist-types/vendors/analytics/databuddy.d.ts",
+			"import": "./dist/vendors/analytics/databuddy.js",
+			"require": "./dist/vendors/analytics/databuddy.cjs"
+		},
+		"./fathom-analytics": {
+			"types": "./dist-types/vendors/analytics/fathom-analytics.d.ts",
+			"import": "./dist/vendors/analytics/fathom-analytics.js",
+			"require": "./dist/vendors/analytics/fathom-analytics.cjs"
+		},
+		"./hotjar": {
+			"types": "./dist-types/vendors/analytics/hotjar.d.ts",
+			"import": "./dist/vendors/analytics/hotjar.js",
+			"require": "./dist/vendors/analytics/hotjar.cjs"
+		},
+		"./google-tag": {
+			"types": "./dist-types/vendors/analytics/google-tag.d.ts",
+			"import": "./dist/vendors/analytics/google-tag.js",
+			"require": "./dist/vendors/analytics/google-tag.cjs"
+		},
+		"./matomo-analytics": {
+			"types": "./dist-types/vendors/analytics/matomo-analytics.d.ts",
+			"import": "./dist/vendors/analytics/matomo-analytics.js",
+			"require": "./dist/vendors/analytics/matomo-analytics.cjs"
+		},
+		"./mixpanel-analytics": {
+			"types": "./dist-types/vendors/analytics/mixpanel-analytics.d.ts",
+			"import": "./dist/vendors/analytics/mixpanel-analytics.js",
+			"require": "./dist/vendors/analytics/mixpanel-analytics.cjs"
+		},
+		"./plausible-analytics": {
+			"types": "./dist-types/vendors/analytics/plausible-analytics.d.ts",
+			"import": "./dist/vendors/analytics/plausible-analytics.js",
+			"require": "./dist/vendors/analytics/plausible-analytics.cjs"
+		},
+		"./posthog": {
+			"types": "./dist-types/vendors/analytics/posthog.d.ts",
+			"import": "./dist/vendors/analytics/posthog.js",
+			"require": "./dist/vendors/analytics/posthog.cjs"
+		},
+		"./promptwatch": {
+			"types": "./dist-types/vendors/analytics/promptwatch.d.ts",
+			"import": "./dist/vendors/analytics/promptwatch.js",
+			"require": "./dist/vendors/analytics/promptwatch.cjs"
+		},
+		"./segment": {
+			"types": "./dist-types/vendors/analytics/segment.d.ts",
+			"import": "./dist/vendors/analytics/segment.js",
+			"require": "./dist/vendors/analytics/segment.cjs"
+		},
+		"./rybbit-analytics": {
+			"types": "./dist-types/vendors/analytics/rybbit-analytics.d.ts",
+			"import": "./dist/vendors/analytics/rybbit-analytics.js",
+			"require": "./dist/vendors/analytics/rybbit-analytics.cjs"
+		},
+		"./umami-analytics": {
+			"types": "./dist-types/vendors/analytics/umami-analytics.d.ts",
+			"import": "./dist/vendors/analytics/umami-analytics.js",
+			"require": "./dist/vendors/analytics/umami-analytics.cjs"
+		},
+		"./vercel-analytics": {
+			"types": "./dist-types/vendors/analytics/vercel-analytics.d.ts",
+			"import": "./dist/vendors/analytics/vercel-analytics.js",
+			"require": "./dist/vendors/analytics/vercel-analytics.cjs"
+		},
+		"./crisp": {
+			"types": "./dist-types/vendors/functional/crisp.d.ts",
+			"import": "./dist/vendors/functional/crisp.js",
+			"require": "./dist/vendors/functional/crisp.cjs"
+		},
+		"./intercom": {
+			"types": "./dist-types/vendors/functional/intercom.d.ts",
+			"import": "./dist/vendors/functional/intercom.js",
+			"require": "./dist/vendors/functional/intercom.cjs"
+		},
+		"./google-tag-manager": {
+			"types": "./dist-types/vendors/tag-managers/google-tag-manager.d.ts",
+			"import": "./dist/vendors/tag-managers/google-tag-manager.js",
+			"require": "./dist/vendors/tag-managers/google-tag-manager.cjs"
+		},
+		"./linkedin-insights": {
+			"types": "./dist-types/vendors/ads-and-pixels/linkedin-insights.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/linkedin-insights.js",
+			"require": "./dist/vendors/ads-and-pixels/linkedin-insights.cjs"
+		},
+		"./meta-pixel": {
+			"types": "./dist-types/vendors/ads-and-pixels/meta-pixel.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/meta-pixel.js",
+			"require": "./dist/vendors/ads-and-pixels/meta-pixel.cjs"
+		},
+		"./reddit-pixel": {
+			"types": "./dist-types/vendors/ads-and-pixels/reddit-pixel.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/reddit-pixel.js",
+			"require": "./dist/vendors/ads-and-pixels/reddit-pixel.cjs"
+		},
+		"./microsoft-uet": {
+			"types": "./dist-types/vendors/ads-and-pixels/microsoft-uet.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/microsoft-uet.js",
+			"require": "./dist/vendors/ads-and-pixels/microsoft-uet.cjs"
+		},
+		"./snapchat-pixel": {
+			"types": "./dist-types/vendors/ads-and-pixels/snapchat-pixel.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/snapchat-pixel.js",
+			"require": "./dist/vendors/ads-and-pixels/snapchat-pixel.cjs"
+		},
+		"./tiktok-pixel": {
+			"types": "./dist-types/vendors/ads-and-pixels/tiktok-pixel.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/tiktok-pixel.js",
+			"require": "./dist/vendors/ads-and-pixels/tiktok-pixel.cjs"
+		},
+		"./x-pixel": {
+			"types": "./dist-types/vendors/ads-and-pixels/x-pixel.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/x-pixel.js",
+			"require": "./dist/vendors/ads-and-pixels/x-pixel.cjs"
+		},
+		"./registry": {
+			"types": "./dist-types/registry.d.ts",
+			"import": "./dist/registry.js",
+			"require": "./dist/registry.cjs"
+		},
 		"./*": {
 			"types": "./dist-types/*.d.ts",
 			"import": "./dist/*.js",
@@ -25,10 +186,10 @@
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
-		"dev": "rslib build --watch",
+		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
-		"test": "vitest run --passWithNoTests",
+		"test": "vitest run",
 		"test:watch": "vitest"
 	},
 	"browserslist": [
