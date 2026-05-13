@@ -1,6 +1,6 @@
 import type { Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import { type VendorManifest, vendorManifestContract } from '../../types';
 
 export interface XPixelContent {
 	/**
@@ -73,9 +73,23 @@ export interface XPixelEvent {
 	twclid?: string;
 	/**
 	 * Status of the conversion event
-	 * @example completed
+	 * Should be set to values like "started" or "completed".
+	 * @example "completed"
 	 */
-	status?: boolean;
+	status?: 'started' | 'completed';
+	/**
+	 * Email address used for user matching.
+	 * The X Pixel hashes this value before transmission.
+	 * @example "[email protected]"
+	 */
+	email_address?: string;
+	/**
+	 * Phone number used for user matching.
+	 * Include country code in E.164 format (for example, +11234567890).
+	 * The X Pixel hashes this value before transmission.
+	 * @example "+11234567890"
+	 */
+	phone_number?: string;
 
 	/**
 	 * Content/products associated with the conversion event
@@ -156,7 +170,7 @@ export interface XPixelOptions {
  * });
  * ```
  *
- * @see {@link https://ads.twitter.com/help/article/x-pixel} X Pixel documentation
+ * @see {@link https://business.x.com/en/help/campaign-measurement-and-analytics/conversion-tracking-for-websites} X conversion tracking documentation
  */
 export function xPixel({ pixelId, scriptSrc }: XPixelOptions): Script {
 	const resolved = resolveManifest(xPixelManifest, {
@@ -185,6 +199,16 @@ export function xPixel({ pixelId, scriptSrc }: XPixelOptions): Script {
  * ```
  *
  * @see {@link https://business.x.com/en/help/campaign-measurement-and-analytics/conversion-tracking-for-websites#event-types-and-parameters}
+ * @throws {Error} Throws when `window` is unavailable or `window.twq` is not a
+ * function. Ensure marketing consent is granted and the X Pixel has loaded
+ * before calling this helper.
  */
-export const xPixelEvent = (eventId: string, metadata?: XPixelEvent) =>
-	window.twq?.('event', eventId, metadata);
+export const xPixelEvent = (eventId: string, metadata?: XPixelEvent): void => {
+	if (typeof window === 'undefined' || typeof window.twq !== 'function') {
+		throw new Error(
+			'X Pixel (twq) is not loaded. Ensure marketing consent is granted before calling xPixelEvent.'
+		);
+	}
+
+	window.twq('event', eventId, metadata);
+};

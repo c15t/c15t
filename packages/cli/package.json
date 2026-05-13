@@ -59,6 +59,7 @@
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/logger": "workspace:*",
+		"@c15t/scripts": "workspace:*",
 		"@clack/prompts": "1.1.0",
 		"@modelcontextprotocol/sdk": "^1.29.0",
 		"c12": "3.3.3",

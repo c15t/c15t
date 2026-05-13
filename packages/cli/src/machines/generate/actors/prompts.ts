@@ -4,6 +4,10 @@
  * Wraps @clack/prompts for use as XState actors with proper cancellation handling.
  */
 
+import {
+	BUILT_IN_INTEGRATION_CATEGORIES,
+	builtInScriptIntegrations,
+} from '@c15t/scripts/registry';
 import * as p from '@clack/prompts';
 import { fromPromise } from 'xstate';
 import {
@@ -775,55 +779,21 @@ export const frontendOptionsActor = fromPromise<
 /**
  * Available scripts from @c15t/scripts package
  */
-export const AVAILABLE_SCRIPTS = [
-	{
-		value: 'google-tag-manager',
-		label: 'Google Tag Manager',
-		hint: 'GTM container script',
-	},
-	{
-		value: 'google-tag',
-		label: 'Google Tag (gtag.js)',
-		hint: 'Google Analytics 4',
-	},
-	{
-		value: 'meta-pixel',
-		label: 'Meta Pixel',
-		hint: 'Facebook/Instagram tracking',
-	},
-	{
-		value: 'posthog',
-		label: 'PostHog',
-		hint: 'Product analytics',
-	},
-	{
-		value: 'linkedin-insights',
-		label: 'LinkedIn Insight Tag',
-		hint: 'LinkedIn conversion tracking',
-	},
-	{
-		value: 'tiktok-pixel',
-		label: 'TikTok Pixel',
-		hint: 'TikTok ads tracking',
-	},
-	{
-		value: 'x-pixel',
-		label: 'X (Twitter) Pixel',
-		hint: 'X/Twitter conversion tracking',
-	},
-	{
-		value: 'microsoft-uet',
-		label: 'Microsoft UET',
-		hint: 'Bing Ads tracking',
-	},
-	{
-		value: 'databuddy',
-		label: 'Databuddy',
-		hint: 'Data collection',
-	},
-] as const;
+export const AVAILABLE_SCRIPTS = BUILT_IN_INTEGRATION_CATEGORIES.flatMap(
+	(category) =>
+		builtInScriptIntegrations
+			.filter((integration) => integration.integrationCategory === category.key)
+			.map((integration) => ({
+				value: integration.packageSubpath,
+				label: integration.label,
+				hint: integration.hint,
+			}))
+);
 
 export type AvailableScript = (typeof AVAILABLE_SCRIPTS)[number]['value'];
+type AvailableScriptPromptOptions = Parameters<
+	typeof p.multiselect<string>
+>[0]['options'];
 
 export interface ScriptsOptionInput {
 	cliContext: CliContext;
@@ -860,13 +830,15 @@ export const scriptsOptionActor = fromPromise<
 		};
 	}
 
-	const selected = await p.multiselect({
+	const scriptOptions = AVAILABLE_SCRIPTS.map((script) => ({
+		value: script.value,
+		label: script.label,
+		hint: script.hint,
+	})) satisfies AvailableScriptPromptOptions;
+
+	const selected = await p.multiselect<string>({
 		message: 'Which scripts do you want to add?',
-		options: AVAILABLE_SCRIPTS.map((s) => ({
-			value: s.value,
-			label: s.label,
-			hint: s.hint,
-		})),
+		options: scriptOptions,
 		required: false,
 	});
 
@@ -948,11 +920,14 @@ export const skillsInstallActor = fromPromise<
 				npm: 'npx',
 			};
 			const execCommand = execCommands[pmName] ?? 'npx';
-			const [cmd, ...baseArgs] = execCommand.split(' ');
+			const [cmd, ...baseArgs] = execCommand.split(' ') as [
+				string,
+				...string[],
+			];
 
 			cliContext.logger.info('Installing c15t agent skills...');
 
-			const child = spawn(cmd!, [...baseArgs, 'skills', 'add', 'c15t/skills'], {
+			const child = spawn(cmd, [...baseArgs, 'skills', 'add', 'c15t/skills'], {
 				cwd: cliContext.projectRoot,
 				stdio: 'inherit',
 			});

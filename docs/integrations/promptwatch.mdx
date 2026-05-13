@@ -1,0 +1,112 @@
+---
+title: Promptwatch
+description: Promptwatch analyzes traffic on your site for Artificial Intelligence (AI) traffic and usage insights. Data is stored in the EU without user-identifiable information.
+lastModified: 2026-05-10
+icon: promptwatch
+---
+
+[Promptwatch](https://promptwatch.com) provides analytics focused on AI-related traffic and usage. The official embed loads a single script with your `data-project-id`. By default, c15t loads this script when `measurement` consent is granted.
+
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { promptwatch } from '@c15t/scripts/promptwatch';
+
+    const scripts = [
+      promptwatch({
+        projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { promptwatch } from '@c15t/scripts/promptwatch';
+
+    const scripts = [
+      promptwatch({
+        projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { promptwatch } from '@c15t/scripts/promptwatch';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [
+        promptwatch({
+          projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
+        }),
+      ],
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** measurement consent is granted
+- **On revocation:** unloaded - c15t removes the script from the DOM and pauses Promptwatch data collection until consent is granted again.
+
+To use a custom loader URL:
+
+```ts
+promptwatch({
+	projectId: '7d60345b-27bb-4779-a385-d4fc19ce732c',
+	scriptUrl: 'https://cdn.example.com/promptwatch.js',
+});
+```
+
+## Types
+
+### PromptwatchOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/promptwatch.ts" name="PromptwatchOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

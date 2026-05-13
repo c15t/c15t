@@ -1,6 +1,14 @@
 import type { AllConsentNames, Script } from 'c15t';
-import { resolveManifest } from './resolve';
-import { type VendorManifest, vendorManifestContract } from './types';
+import { resolveManifest } from '../../resolve';
+import {
+	runtimeDateValue,
+	type VendorManifest,
+	vendorManifestContract,
+} from '../../types';
+import {
+	GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
+	withOptionalConsentMapping,
+} from '../_shared/google-consent';
 
 // Extended Window interface to include gtag specific properties
 declare global {
@@ -40,7 +48,7 @@ export const gtagManifest = {
 		{
 			type: 'callGlobal',
 			global: 'gtag',
-			args: ['js', '{{loadTime}}'],
+			args: ['js', runtimeDateValue],
 		},
 		{
 			type: 'callGlobal',
@@ -53,13 +61,7 @@ export const gtagManifest = {
 			async: true,
 		},
 	],
-	consentMapping: {
-		necessary: ['security_storage'],
-		functionality: ['functionality_storage'],
-		measurement: ['analytics_storage'],
-		marketing: ['ad_storage', 'ad_user_data', 'ad_personalization'],
-		experience: ['personalization_storage'],
-	},
+	consentMapping: GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
 	consentSignal: 'gtag',
 } as const satisfies VendorManifest;
 
@@ -115,14 +117,11 @@ export function gtag({
 	consentMapping,
 	script,
 }: GtagOptions): Script {
-	const manifest = consentMapping
-		? { ...gtagManifest, consentMapping }
-		: gtagManifest;
+	const manifest = withOptionalConsentMapping(gtagManifest, consentMapping);
 
 	const resolved = resolveManifest(manifest, {
 		id,
 		category,
-		loadTime: new Date(),
 	});
 
 	if (!script) {

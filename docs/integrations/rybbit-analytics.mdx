@@ -1,0 +1,135 @@
+---
+title: Rybbit Analytics
+description: Privacy-friendly analytics with script-tag configuration via Rybbit's data attributes.
+lastModified: 2026-05-10
+icon: rybbit-analytics
+---
+
+Rybbit Analytics loads through `@c15t/scripts` and configures tracking behavior via `data-*` attributes on the script element.
+
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { rybbitAnalytics } from '@c15t/scripts/rybbit-analytics';
+
+    const scripts = [rybbitAnalytics({ siteId: 'rybbit-123' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { rybbitAnalytics } from '@c15t/scripts/rybbit-analytics';
+
+    const scripts = [rybbitAnalytics({ siteId: 'rybbit-123' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { rybbitAnalytics } from '@c15t/scripts/rybbit-analytics';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [rybbitAnalytics({ siteId: 'rybbit-123' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** measurement consent is granted
+- **On revocation:** unloaded - c15t removes the script from the DOM and stops network activity until consent is granted again.
+
+To use a custom analytics host:
+
+```ts
+rybbitAnalytics({
+  siteId: 'rybbit-123',
+  analyticsHost: 'https://analytics.example.com',
+})
+```
+
+## Tracking events in your app
+
+c15t gates the Rybbit script from loading until `measurement` consent is granted. Your application code that calls Rybbit's runtime API (`window.rybbit`) is **not** automatically gated - `window.rybbit` does not exist until the script is loaded, so unguarded calls before consent throw.
+
+Guard event calls by checking consent state. From React:
+
+```tsx
+import { useCallback } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+export default function SignupExample() {
+  const { has } = useConsentManager();
+
+  const trackSignup = useCallback(() => {
+    if (has('measurement')) {
+      window.rybbit?.event('signup');
+    }
+  }, [has]);
+
+  return <button onClick={trackSignup}>Sign up</button>;
+}
+```
+
+From plain JavaScript:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('measurement')) {
+  window.rybbit?.event('signup');
+}
+```
+
+## Types
+
+### RybbitAnalyticsOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/rybbit-analytics.ts" name="RybbitAnalyticsOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

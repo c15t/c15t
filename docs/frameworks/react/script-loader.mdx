@@ -1,13 +1,13 @@
 ---
 title: Script Loader
-description: Gate third-party scripts behind consent - load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
+description: Gate third-party scripts behind consent in React — load Google Analytics, Meta Pixel, and other tracking scripts only when users grant permission.
 ---
 
 <import src="../../shared/react/guides/script-loader.mdx#intro" />
 
 ## Basic Usage
 
-Pass an array of `Script` objects to the provider:
+Pass an array of scripts to `ConsentManagerProvider`. Built-in helpers from `@c15t/scripts` return plain `Script` objects, so they sit beside app-specific scripts:
 
 ```tsx
 import { type ReactNode } from 'react';
@@ -36,30 +36,100 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 }
 ```
 
+The provider registers those scripts when the consent runtime starts. From that point on, c15t owns the lifecycle: it checks consent, injects eligible scripts, unloads them when consent is revoked, and runs `onConsentChange` for scripts that stay loaded.
+
+## Recommended Structure
+
+Define your script list once and keep it next to the consent provider so vendor setup stays declarative:
+
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/react';
+import { gtag } from '@c15t/scripts/google-tag';
+import { metaPixel } from '@c15t/scripts/meta-pixel';
+
+const scripts = [
+  gtag({ id: 'G-XXXXXXX' }),
+  metaPixel({ pixelId: '123456' }),
+];
+
+export function ConsentProvider({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: 'https://your-instance.c15t.dev',
+        scripts,
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+If an integration is route-specific or tenant-specific, use [dynamic script management](#dynamic-script-management) instead of conditionally building this list per render.
+
 <import src="../../shared/react/guides/script-loader.mdx#script-types-to-advanced" />
 
 ## Dynamic Script Management
 
-Add, remove, or check scripts at runtime via `useConsentManager()`:
+The shared guide above lists what the script-manager methods do. In React they are exposed through `useConsentManager()`:
 
 ```tsx
 import { useConsentManager } from '@c15t/react';
 
 function ScriptManager() {
-  const { setScripts, removeScript, isScriptLoaded, getLoadedScriptIds } = useConsentManager();
+  const {
+    setScripts,
+    removeScript,
+    isScriptLoaded,
+    getLoadedScriptIds,
+  } = useConsentManager();
 
-  // Add scripts dynamically
-  setScripts([{ id: 'dynamic', src: '...', category: 'measurement' }]);
-
-  // Remove a script
-  removeScript('dynamic');
-
-  // Check if a script is loaded
-  const loaded = isScriptLoaded('google-analytics');
-
-  // Get all loaded script IDs
-  const allLoaded = getLoadedScriptIds();
+  // ...
 }
 ```
+
+Register dynamic scripts from an effect or event handler — never directly in the render body. Effects guarantee the call runs once per dependency change and gives you a tear-down path:
+
+```tsx
+import { useEffect } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+export function TenantAnalytics({ siteId }: { siteId: string }) {
+  const { setScripts, removeScript } = useConsentManager();
+
+  useEffect(() => {
+    const scriptId = `tenant-analytics-${siteId}`;
+
+    setScripts([
+      {
+        id: scriptId,
+        src: `https://cdn.example.com/${siteId}.js`,
+        category: 'measurement',
+      },
+    ]);
+
+    return () => {
+      removeScript(scriptId);
+    };
+  }, [siteId, setScripts, removeScript]);
+
+  return null;
+}
+```
+
+## Renderable Integrations
+
+Some vendors need a render surface as well as a script — maps, video players, calendars, and checkout widgets all fall in this bucket.
+
+Split the problem into three layers:
+
+1. Use the script loader to gate and load the shared SDK once.
+2. Use React state (or a custom hook) to render a placeholder until consent is granted.
+3. Create the widget instance only after the SDK is ready and clean it up on unmount.
+
+For iframe-only embeds, use the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern instead of loading a JavaScript SDK to hide an iframe. For SDK-backed widgets, treat the SDK as a singleton and each rendered component as its own instance.
 
 <import src="../../shared/react/guides/script-loader.mdx#api-reference" />
