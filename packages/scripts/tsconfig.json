@@ -3,7 +3,7 @@
 	"compilerOptions": {
 		"rootDir": "src",
 		"moduleResolution": "bundler",
-		"types": ["@vitest/browser/matchers", "bun-types"],
+		"types": ["@vitest/browser/matchers"],
 		"paths": {
 			"c15t": ["../core/dist-types/index.d.ts"],
 			"c15t/*": ["../core/dist-types/*"],
