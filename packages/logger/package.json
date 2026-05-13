@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/logger",
-	"version": "2.0.0",
+	"version": "2.1.0",
 	"description": "Lightweight, structured logger for c15t packages with custom-handler support and type-safe levels.",
 	"keywords": [
 		"c15t",
