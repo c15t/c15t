@@ -37,7 +37,7 @@ function resolvePostgresSslConfig(connectionString?: string) {
 }
 
 export const postgresDb = kyselyAdapter({
-	db: new Kysely({
+	db: new Kysely<any>({
 		dialect: new PostgresDialect({
 			pool: new Pool({
 				connectionString: process.env.DATABASE_URL,
@@ -49,7 +49,7 @@ export const postgresDb = kyselyAdapter({
 });
 
 export const tursoDb = kyselyAdapter({
-	db: new Kysely({
+	db: new Kysely<any>({
 		dialect: new LibsqlDialect({
 			url: 'http://127.0.0.1:8080',
 		}),

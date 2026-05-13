@@ -134,7 +134,7 @@
 		"@valibot/to-json-schema": "1.7.0",
 		"base-x": "5.0.1",
 		"defu": "6.1.7",
-		"fumadb": "0.3.0",
+		"fumadb": "0.2.2",
 		"hono": "4.12.18",
 		"hono-openapi": "1.3.0",
 		"jose": "6.2.3",
