@@ -266,9 +266,22 @@ export interface PosthogConsentOptions {
 }
 
 /**
- * Loads the PostHog script and initializes it with the given options.
- * This uses posthog.opt_in_capturing() to opt in to capturing and
- * posthog.opt_out_capturing() to opt out of capturing.
+ * Creates a c15t PostHog script helper.
+ *
+ * The `posthog()` helper uses `region` to resolve the PostHog API, UI, and
+ * bootstrap script hosts. By default, `loadMode: 'always'` loads PostHog
+ * immediately and syncs consent with `posthog.opt_in_capturing()` or
+ * `posthog.opt_out_capturing()`.
+ *
+ * With `loadMode: 'after-consent'`, the script is consent-gated and c15t calls
+ * `posthog.opt_in_capturing()` or `posthog.opt_out_capturing()` after load
+ * based on the user's measurement consent. With `loadMode: 'disabled'`, no
+ * PostHog script is loaded and no `posthog.opt_in_capturing()` or
+ * `posthog.opt_out_capturing()` calls are made.
+ *
+ * Edge case: `loadMode: 'disabled'` skips consent-related flows entirely; use it
+ * only when consumers manage PostHog loading and consent externally.
+ *
  * @see https://posthog.com/docs/libraries/js#opt-in-capturing
  *
  * @param options - Optional configuration for the PostHog consent script
