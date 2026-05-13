@@ -3,7 +3,7 @@
  *
  * Drives the shared `runConformanceSuite` against real Svelte renders:
  * - `mount` boots a fixture that wraps the requested component in
- *   `ConsentProvider` (provider takes a `children` snippet, so
+ *   `ConsentManagerProvider` (provider takes a `children` snippet, so
  *   each component variant needs a dispatching fixture).
  * - `getStore` pulls the cached store from `getOrCreateConsentRuntime`.
  * - `serverRender` invokes `svelte/server.render` against the same fixture.
@@ -24,7 +24,7 @@ import {
 import { clearConsentRuntimeCache, getOrCreateConsentRuntime } from 'c15t';
 import { mount, unmount } from 'svelte';
 import { describe, expect, test } from 'vitest';
-import type { ConsentProviderOptions } from '../lib/types';
+import type { ConsentManagerOptions } from '../lib/types';
 import { version } from '../lib/version';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
 
@@ -40,16 +40,16 @@ function assertRenderable(
 	return component;
 }
 
-function buildProviderOptions(opts: MountOptions): ConsentProviderOptions {
+function buildProviderOptions(opts: MountOptions): ConsentManagerOptions {
 	const provided = (opts.providerOptions ??
-		{}) as Partial<ConsentProviderOptions>;
+		{}) as Partial<ConsentManagerOptions>;
 	return {
 		mode: 'offline',
 		...provided,
-	} as ConsentProviderOptions;
+	} as ConsentManagerOptions;
 }
 
-let lastOptions: ConsentProviderOptions | null = null;
+let lastOptions: ConsentManagerOptions | null = null;
 
 const driver: TestDriver = {
 	framework: 'svelte',
@@ -107,7 +107,7 @@ const driver: TestDriver = {
 		};
 	},
 	async serverRender(_opts: MountOptions): Promise<string> {
-		// ConsentProvider uses `$effect` at component init, which is a
+		// ConsentManagerProvider uses `$effect` at component init, which is a
 		// client-only rune. `svelte/server.render` throws `effect_orphan`
 		// when that runs in SSR. Marked as todo until the provider is made
 		// SSR-safe (e.g. by guarding $effect behind `if (typeof window)` or

@@ -10,7 +10,7 @@ pnpm add @c15t/svelte
 
 ## Basic setup
 
-Import the package stylesheet once in your global app CSS, then wrap your app with `ConsentProvider` and render the banner and dialog once near the root.
+Import the package stylesheet once in your global app CSS, then wrap your app with `ConsentManagerProvider` and render the banner and dialog once near the root.
 
 ```css
 /* src/app.css */
@@ -23,14 +23,14 @@ Import the package stylesheet once in your global app CSS, then wrap your app wi
 	import {
 		ConsentBanner,
 		ConsentDialog,
-		ConsentProvider,
+		ConsentManagerProvider,
 	} from '@c15t/svelte';
 	import '../app.css';
 
 	let { children } = $props();
 </script>
 
-<ConsentProvider
+<ConsentManagerProvider
 	mode="hosted"
 	backendURL="https://your-instance.c15t.dev"
 	consentCategories={['necessary', 'measurement', 'marketing']}
@@ -38,7 +38,7 @@ Import the package stylesheet once in your global app CSS, then wrap your app wi
 	{@render children()}
 	<ConsentBanner />
 	<ConsentDialog />
-</ConsentProvider>
+</ConsentManagerProvider>
 ```
 
 Top-level props are the canonical configuration form. If you have a shared config object you want to pass around, you can also use `options={...}`; matching top-level props win over fields from `options`.
@@ -54,7 +54,7 @@ If you use the IAB banner or dialog, import the IAB stylesheet once too:
 
 ## Reading and updating consent
 
-Call `getConsentManager()` inside any component beneath `<ConsentProvider>` to access reactive state and mutators. It's the equivalent of React's `useConsentManager()`.
+Call `getConsentManager()` inside any component beneath `<ConsentManagerProvider>` to access reactive state and mutators. It's the equivalent of React's `useConsentManager()`.
 
 ```svelte
 <script lang="ts">
@@ -128,13 +128,13 @@ export const load = async ({ request, fetch }) => {
 ```svelte
 <!-- src/routes/+layout.svelte -->
 <script lang="ts">
-	import { ConsentBanner, ConsentDialog, ConsentProvider } from '@c15t/svelte';
+	import { ConsentBanner, ConsentDialog, ConsentManagerProvider } from '@c15t/svelte';
 	import '../app.css';
 
 	let { data, children } = $props();
 </script>
 
-<ConsentProvider
+<ConsentManagerProvider
 	mode="hosted"
 	backendURL="https://your-instance.c15t.dev"
 	prefetch={data.prefetch}
@@ -142,7 +142,7 @@ export const load = async ({ request, fetch }) => {
 	{@render children()}
 	<ConsentBanner />
 	<ConsentDialog />
-</ConsentProvider>
+</ConsentManagerProvider>
 ```
 
 `prefetchInitialConsent` extracts country/region from edge headers (`x-vercel-ip-country`, `cf-ipcountry`, …), parses the consent cookie, and resolves the policy via your backend. The result is a `KernelConfig` you pass straight into `prefetch`. If only the cookie/header parsing is wanted, use `readInitialConsentConfig` instead.
@@ -178,7 +178,7 @@ Pass message bundles via `i18n`. The locale is picked from the user's browser un
 	import { baseTranslations } from '@c15t/translations/all';
 </script>
 
-<ConsentProvider
+<ConsentManagerProvider
 	mode="hosted"
 	backendURL="https://your-instance.c15t.dev"
 	i18n={{
@@ -193,7 +193,7 @@ Pass message bundles via `i18n`. The locale is picked from the user's browser un
 	{@render children()}
 	<ConsentBanner />
 	<ConsentDialog />
-</ConsentProvider>
+</ConsentManagerProvider>
 ```
 
 Switch languages at runtime with `consent.setLanguage('fr')`.

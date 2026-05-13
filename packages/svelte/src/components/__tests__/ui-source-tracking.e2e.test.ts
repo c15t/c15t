@@ -13,9 +13,9 @@ import BannerDialogFixture from '../../__tests__/fixtures/banner-dialog-fixture.
 import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
 import DialogFixture from '../../__tests__/fixtures/dialog-fixture.svelte';
 import WidgetFixture from '../../__tests__/fixtures/widget-fixture.svelte';
-import type { ConsentProviderOptions } from '../../lib/types';
+import type { ConsentManagerOptions } from '../../lib/types';
 
-const defaultOptions: ConsentProviderOptions = {
+const defaultOptions: ConsentManagerOptions = {
 	mode: 'offline',
 };
 
@@ -57,11 +57,8 @@ describe('UI Source Tracking E2E Tests', () => {
 			});
 		});
 
-		test('should render banner with custom uiSource prop', async () => {
-			render(BannerFixture, {
-				options: defaultOptions,
-				uiSource: 'custom_banner',
-			});
+		test('should render banner without crashing', async () => {
+			render(BannerFixture, { options: defaultOptions });
 
 			await waitFor(() => {
 				const banner = document.querySelector(
@@ -96,12 +93,8 @@ describe('UI Source Tracking E2E Tests', () => {
 			}
 		});
 
-		test('should render dialog with custom uiSource prop', async () => {
-			render(DialogFixture, {
-				options: defaultOptions,
-				open: true,
-				uiSource: 'custom_dialog',
-			});
+		test('should render dialog without crashing', async () => {
+			render(DialogFixture, { options: defaultOptions, open: true });
 
 			await waitFor(() => {
 				const dialog = document.querySelector(

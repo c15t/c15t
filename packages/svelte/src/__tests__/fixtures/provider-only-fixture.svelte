@@ -1,13 +1,13 @@
 <script lang="ts">
-import ConsentProvider from '../../lib/components/consent-provider.svelte';
-import type { ConsentProviderOptions } from '../../lib/types';
+import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+import type { ConsentManagerOptions } from '../../lib/types';
 
 let {
 	options,
 	label = 'child',
-}: { options: ConsentProviderOptions; label?: string } = $props();
+}: { options: ConsentManagerOptions; label?: string } = $props();
 </script>
 
-<ConsentProvider {options}>
+<ConsentManagerProvider {options}>
 	<div data-testid="render-{label}">{label}</div>
-</ConsentProvider>
+</ConsentManagerProvider>

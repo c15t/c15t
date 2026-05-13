@@ -37,7 +37,7 @@ import {
 	setThemeContext,
 } from '../context.svelte';
 import type {
-	ConsentProviderOptions,
+	ConsentManagerOptions,
 	ProviderIABOptions,
 	ProviderMode,
 	UsePersistenceOptions,
@@ -57,22 +57,22 @@ const DEFAULT_TRANSLATIONS: KernelTranslations = {
 	translations: defaultTranslationConfig.translations.en as never,
 };
 
-type ConsentProviderProps = ConsentProviderOptions & {
+type ConsentManagerProviderProps = ConsentManagerOptions & {
 	children?: Snippet;
-	options?: ConsentProviderOptions;
+	options?: ConsentManagerOptions;
 };
 
-let props: ConsentProviderProps = $props();
+let props: ConsentManagerProviderProps = $props();
 const children = $derived(props.children);
 const options = $derived(resolveProviderOptions(props));
 
 function mergeDefinedOptions(
-	base: ConsentProviderOptions,
-	overrides: ConsentProviderOptions
-): ConsentProviderOptions {
+	base: ConsentManagerOptions,
+	overrides: ConsentManagerOptions
+): ConsentManagerOptions {
 	const merged = { ...base };
 	for (const [key, value] of Object.entries(overrides) as Array<
-		[keyof ConsentProviderOptions, ConsentProviderOptions[keyof ConsentProviderOptions]]
+		[keyof ConsentManagerOptions, ConsentManagerOptions[keyof ConsentManagerOptions]]
 	>) {
 		if (value !== undefined) {
 			merged[key] = value as never;
@@ -85,12 +85,12 @@ function resolveProviderOptions({
 	children: _children,
 	options: nestedOptions = {},
 	...topLevelOptions
-}: ConsentProviderProps): ConsentProviderOptions {
+}: ConsentManagerProviderProps): ConsentManagerOptions {
 	return mergeDefinedOptions(nestedOptions, topLevelOptions);
 }
 
 function normalizeUser(
-	user: ConsentProviderOptions['user']
+	user: ConsentManagerOptions['user']
 ): KernelUser | undefined {
 	if (!user) return undefined;
 	if ('externalId' in user) return user;
@@ -123,26 +123,26 @@ function resolveI18nTranslations(
 	};
 }
 
-function getEnabled(providerOptions: ConsentProviderOptions): boolean {
+function getEnabled(providerOptions: ConsentManagerOptions): boolean {
 	return providerOptions.enabled ?? true;
 }
 
-function getStorageConfig(providerOptions: ConsentProviderOptions) {
+function getStorageConfig(providerOptions: ConsentManagerOptions) {
 	return providerOptions.storageConfig;
 }
 
 function getProviderCallbacks(
-	providerOptions: ConsentProviderOptions
+	providerOptions: ConsentManagerOptions
 ): Callbacks | undefined {
 	return providerOptions.callbacks;
 }
 
-function getProviderPolicies(providerOptions: ConsentProviderOptions) {
+function getProviderPolicies(providerOptions: ConsentManagerOptions) {
 	return providerOptions.policies;
 }
 
 function getProviderIab(
-	providerOptions: ConsentProviderOptions
+	providerOptions: ConsentManagerOptions
 ): ProviderIABOptions | undefined {
 	return providerOptions.iab;
 }
@@ -217,7 +217,7 @@ function createStaticOfflineTransport(
 }
 
 function createProviderKernel(
-	providerOptions: ConsentProviderOptions
+	providerOptions: ConsentManagerOptions
 ): ConsentKernel {
 	const enabled = getEnabled(providerOptions);
 	const mode: ProviderMode =

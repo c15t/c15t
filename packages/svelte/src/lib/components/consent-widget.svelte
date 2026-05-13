@@ -13,12 +13,7 @@ import {
 } from '@c15t/ui/utils';
 import type { AllConsentNames } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
-import {
-	getConsentContext,
-	getThemeContext,
-	getTrackingContext,
-	setTrackingContext,
-} from '../context.svelte';
+import { getConsentContext, getThemeContext } from '../context.svelte';
 import { PreferenceItem, Switch } from '../primitives';
 import { resolveComponentStyles } from '../utils';
 import Branding from './branding.svelte';
@@ -39,8 +34,6 @@ let {
 
 const consent = getConsentContext();
 const theme = getThemeContext();
-const parentTracking = getTrackingContext();
-setTrackingContext({ uiSource: parentTracking.uiSource ?? 'widget' });
 
 const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 

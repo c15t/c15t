@@ -1,5 +1,5 @@
 /**
- * Tests for ConsentProvider rendering/hydration behavior.
+ * Tests for ConsentManagerProvider rendering/hydration behavior.
  *
  * Mirrors: packages/react/src/providers/__tests__/provider-hydration.test.tsx
  */
@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, test } from 'vitest';
 import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
 import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
 
-describe('ConsentProvider Rendering Behavior', () => {
+describe('ConsentManagerProvider Rendering Behavior', () => {
 	beforeEach(() => {
 		clearConsentRuntimeCache();
 	});

@@ -5,11 +5,7 @@ import type { Model } from 'c15t';
 import { focusTrap } from '../actions/focus-trap';
 import { portal } from '../actions/portal';
 import { scrollLock } from '../actions/scroll-lock';
-import {
-	getConsentContext,
-	getThemeContext,
-	setTrackingContext,
-} from '../context.svelte';
+import { getConsentContext, getThemeContext } from '../context.svelte';
 import { getIABTranslations } from '../iab-translations';
 import { getIABBannerDisplayItems } from '../iab-types';
 import { useBannerVisibility } from '../use-banner-visibility.svelte';
@@ -25,7 +21,6 @@ let {
 	hideBranding = false,
 	primaryButton = 'customize' as 'reject' | 'accept' | 'customize',
 	models = ['iab'] as Model[],
-	uiSource = 'iab_banner',
 	class: className,
 }: {
 	noStyle?: boolean;
@@ -35,17 +30,11 @@ let {
 	hideBranding?: boolean;
 	primaryButton?: 'reject' | 'accept' | 'customize';
 	models?: Model[];
-	uiSource?: string;
 	class?: string;
 } = $props();
 
 const consent = getConsentContext();
 const theme = getThemeContext();
-setTrackingContext({
-	get uiSource() {
-		return uiSource;
-	},
-});
 
 const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 const disableAnimation = $derived(

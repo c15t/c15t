@@ -2,20 +2,20 @@
 import ConsentBanner from '../../lib/components/consent-banner.svelte';
 import ConsentDialog from '../../lib/components/consent-dialog.svelte';
 import ConsentDialogTrigger from '../../lib/components/consent-dialog-trigger.svelte';
-import ConsentProvider from '../../lib/components/consent-provider.svelte';
-import type { ConsentProviderOptions } from '../../lib/types';
+import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+import type { ConsentManagerOptions } from '../../lib/types';
 
 let {
 	options,
 	showWhen = 'always' as 'always' | 'after-consent' | 'never',
 }: {
-	options: ConsentProviderOptions;
+	options: ConsentManagerOptions;
 	showWhen?: 'always' | 'after-consent' | 'never';
 } = $props();
 </script>
 
-<ConsentProvider {options}>
+<ConsentManagerProvider {options}>
 	<ConsentBanner />
 	<ConsentDialog />
 	<ConsentDialogTrigger {showWhen} />
-</ConsentProvider>
+</ConsentManagerProvider>

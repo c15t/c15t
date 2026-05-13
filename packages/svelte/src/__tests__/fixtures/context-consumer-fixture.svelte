@@ -1,11 +1,11 @@
 <script lang="ts">
-import ConsentProvider from '../../lib/components/consent-provider.svelte';
-import type { ConsentProviderOptions } from '../../lib/types';
+import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+import type { ConsentManagerOptions } from '../../lib/types';
 import ContextReader from './context-reader.svelte';
 
-let { options }: { options: ConsentProviderOptions } = $props();
+let { options }: { options: ConsentManagerOptions } = $props();
 </script>
 
-<ConsentProvider {options}>
+<ConsentManagerProvider {options}>
 	<ContextReader />
-</ConsentProvider>
+</ConsentManagerProvider>

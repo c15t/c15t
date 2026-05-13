@@ -47,7 +47,7 @@ export interface UseNetworkBlockerOptions {
 export interface UsePersistenceOptions
 	extends Omit<PersistenceOptions, 'kernel'> {}
 
-export interface ConsentProviderOptions
+export interface ConsentManagerOptions
 	extends Pick<
 		UIOptions,
 		'colorScheme' | 'disableAnimation' | 'noStyle' | 'scrollLock' | 'trapFocus'

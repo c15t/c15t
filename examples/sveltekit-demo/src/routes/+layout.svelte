@@ -3,7 +3,7 @@
 		ConsentBanner,
 		ConsentDialog,
 		ConsentDialogTrigger,
-		ConsentProvider,
+		ConsentManagerProvider,
 		IABConsentBanner,
 		IABConsentDialog,
 	} from '@c15t/svelte';
@@ -55,7 +55,7 @@
 {#if isBenchRoute}
 	{@render children()}
 {:else}
-	<ConsentProvider
+	<ConsentManagerProvider
 		options={{
 			mode: 'c15t',
 			backendURL: '/api/self-host',
@@ -126,5 +126,5 @@
 		<IABConsentDialog />
 		<ConsentDialogTrigger />
 		<ConsentDialog />
-	</ConsentProvider>
+	</ConsentManagerProvider>
 {/if}

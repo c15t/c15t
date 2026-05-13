@@ -25,4 +25,4 @@ export {
 	processGVLData,
 	type VendorId,
 } from './iab-types';
-export type { ConsentProviderOptions } from './types';
+export type { ConsentManagerOptions } from './types';

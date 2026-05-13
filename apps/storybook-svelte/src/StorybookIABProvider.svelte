@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { ConsentProvider } from '@c15t/svelte';
+	import { ConsentManagerProvider } from '@c15t/svelte';
 	import { clearConsentRuntimeCache } from 'c15t';
 	import { untrack, type Snippet } from 'svelte';
-	import type { ConsentProviderOptions } from '../../../packages/svelte/src/lib/types';
+	import type { ConsentManagerOptions } from '../../../packages/svelte/src/lib/types';
 	import {
 		type ConsentRecord,
 		defaultIABOptions,
@@ -13,7 +13,7 @@
 
 	const props = $props<{
 		children: Snippet;
-		options?: Partial<ConsentProviderOptions>;
+		options?: Partial<ConsentManagerOptions>;
 		storedConsent?: ConsentRecord;
 		tcString?: string | null;
 	}>();
@@ -36,6 +36,6 @@
 	}
 </script>
 
-<ConsentProvider options={mergedOptions}>
+<ConsentManagerProvider options={mergedOptions}>
 	{@render props.children()}
-</ConsentProvider>
+</ConsentManagerProvider>

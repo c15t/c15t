@@ -3,11 +3,7 @@ import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 import type { LegalLinks as LegalLinksType, Model } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
-import {
-	getConsentContext,
-	getThemeContext,
-	setTrackingContext,
-} from '../context.svelte';
+import { getConsentContext, getThemeContext } from '../context.svelte';
 import { Dialog, Portal } from '../primitives';
 import { resolveComponentStyles } from '../utils';
 import Branding from './branding.svelte';
@@ -45,11 +41,6 @@ const {
 
 const consent = getConsentContext();
 const theme = getThemeContext();
-setTrackingContext({
-	get uiSource() {
-		return 'dialog';
-	},
-});
 
 const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 const disableAnimation = $derived(theme.disableAnimation ?? false);

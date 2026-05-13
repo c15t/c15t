@@ -21,11 +21,7 @@ import { focusTrap } from '../actions/focus-trap';
 // the dialog mounts (establishing Ark's focus trap), so they don't compete.
 import { portal } from '../actions/portal';
 import { scrollLock } from '../actions/scroll-lock';
-import {
-	getConsentContext,
-	getThemeContext,
-	setTrackingContext,
-} from '../context.svelte';
+import { getConsentContext, getThemeContext } from '../context.svelte';
 import { useBannerVisibility } from '../use-banner-visibility.svelte';
 import { resolveComponentStyles } from '../utils';
 import Branding from './branding.svelte';
@@ -57,7 +53,6 @@ let {
 	layout = DEFAULT_LAYOUT,
 	primaryButton = 'customize',
 	models = ['opt-in'] as Model[],
-	uiSource = 'banner',
 	class: className,
 }: {
 	noStyle?: boolean;
@@ -74,17 +69,11 @@ let {
 	layout?: ConsentBannerLayout;
 	primaryButton?: ConsentBannerButton | ConsentBannerButton[];
 	models?: Model[];
-	uiSource?: string;
 	class?: string;
 } = $props();
 
 const consent = getConsentContext();
 const theme = getThemeContext();
-setTrackingContext({
-	get uiSource() {
-		return uiSource;
-	},
-});
 
 const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 const disableAnimation = $derived(

@@ -19,7 +19,14 @@ export type {
 	LegalLinks,
 	Translations,
 } from 'c15t';
-export { defaultTranslationConfig } from 'c15t';
+export {
+	configureConsentManager,
+	defaultTranslationConfig,
+	detectBrowserLanguage,
+	mergeTranslationConfigs,
+	policyPackPresets,
+	prepareTranslationConfig,
+} from 'c15t';
 export type {
 	ConsentKernel,
 	ConsentSnapshot,
@@ -54,7 +61,7 @@ export { default as ConsentButton } from './components/consent-button.svelte';
 export { default as ConsentDialog } from './components/consent-dialog.svelte';
 export { default as ConsentDialogLink } from './components/consent-dialog-link.svelte';
 export { default as ConsentDialogTrigger } from './components/consent-dialog-trigger.svelte';
-export { default as ConsentProvider } from './components/consent-provider.svelte';
+export { default as ConsentManagerProvider } from './components/consent-manager-provider.svelte';
 export { default as ConsentWidget } from './components/consent-widget.svelte';
 export { default as Frame } from './components/frame.svelte';
 export { default as IABConsentBanner } from './components/iab-consent-banner.svelte';
@@ -78,7 +85,7 @@ export {
 	Tabs,
 } from './primitives';
 export type {
-	ConsentProviderOptions,
+	ConsentManagerOptions,
 	ProviderIABOptions,
 	ProviderMode,
 	SvelteUIOptions,

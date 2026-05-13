@@ -20,11 +20,10 @@ import type {
 	PolicyUiSurfaceConfig,
 } from 'c15t/v3';
 import { getContext, setContext } from 'svelte';
-import type { ConsentProviderOptions } from './types';
+import type { ConsentManagerOptions } from './types';
 
 const CONSENT_CONTEXT_KEY = Symbol('c15t-v3-consent');
 const THEME_CONTEXT_KEY = Symbol('c15t-v3-theme');
-const TRACKING_CONTEXT_KEY = Symbol('c15t-v3-tracking');
 
 const EMPTY_POLICY_SURFACE: PolicyUiSurfaceConfig = {};
 
@@ -79,12 +78,12 @@ export interface ConsentCompatState
 	model: Model;
 	policyBanner: PolicyUiSurfaceConfig;
 	policyDialog: PolicyUiSurfaceConfig;
-	legalLinks: ConsentProviderOptions['legalLinks'];
+	legalLinks: ConsentManagerOptions['legalLinks'];
 	translationConfig: TranslationConfig;
 	getDisplayedConsents(): ConsentType[];
 	has(condition: HasCondition<AllConsentNames>): boolean;
 	hasConsented(): boolean;
-	saveConsents(type: SaveType, options?: { uiSource?: string }): Promise<void>;
+	saveConsents(type: SaveType): Promise<void>;
 	setActiveUI(ui: ActiveUI, options?: { force?: boolean }): void;
 	setConsent(name: AllConsentNames, value: boolean): void;
 	setLanguage(code: string): void;
@@ -92,7 +91,6 @@ export interface ConsentCompatState
 	subscribeToConsentChanges(
 		listener: (state: ConsentState) => void
 	): () => void;
-	updateConsentCategories(names: AllConsentNames[]): void;
 }
 
 export interface ConsentContextValue {
@@ -109,11 +107,7 @@ export interface ThemeContextValue {
 	readonly scrollLock?: boolean;
 	readonly trapFocus?: boolean;
 	readonly colorScheme?: UIOptions['colorScheme'];
-	readonly legalLinks?: ConsentProviderOptions['legalLinks'];
-}
-
-export interface ConsentTrackingValue {
-	readonly uiSource?: string;
+	readonly legalLinks?: ConsentManagerOptions['legalLinks'];
 }
 
 export interface ConsentControllerOptions {
@@ -121,7 +115,7 @@ export interface ConsentControllerOptions {
 	getDraft(): ConsentDraftState;
 	getIAB(): SvelteIABState | null;
 	getConsentCategories(): AllConsentNames[];
-	getLegalLinks(): ConsentProviderOptions['legalLinks'];
+	getLegalLinks(): ConsentManagerOptions['legalLinks'];
 }
 
 function toTranslationConfig(snapshot: ConsentSnapshot): TranslationConfig {
@@ -304,9 +298,6 @@ function createCompatState(
 				listener(snapshot.consents as ConsentState)
 			);
 		},
-		updateConsentCategories(_names: AllConsentNames[]) {
-			// v3 policy categories come from the kernel/provider config.
-		},
 	};
 
 	return controller;
@@ -337,7 +328,7 @@ export function getConsentContext(): ConsentContextValue {
 	);
 	if (!context) {
 		throw new Error(
-			'c15t: no v3 consent context. Wrap your app with <ConsentProvider options={...}> from @c15t/svelte.'
+			'c15t: no v3 consent context. Wrap your app with <ConsentManagerProvider options={...}> from @c15t/svelte.'
 		);
 	}
 	return context;
@@ -359,7 +350,7 @@ export function getSnapshot(): ConsentSnapshot {
  * This is the primary API for reading and writing consent from inside your
  * own components — equivalent to React's `useConsentManager()`.
  *
- * Must be called inside a component tree wrapped in `<ConsentProvider>`.
+ * Must be called inside a component tree wrapped in `<ConsentManagerProvider>`.
  */
 export function getConsentManager(): ConsentCompatState {
 	return getConsentContext().state;
@@ -455,16 +446,6 @@ function resolveHeadlessSurface(
 
 export function getIAB(): SvelteIABState | null {
 	return getConsentContext().state.iab;
-}
-
-export function setTrackingContext(value: ConsentTrackingValue): void {
-	setContext(TRACKING_CONTEXT_KEY, value);
-}
-
-export function getTrackingContext(): ConsentTrackingValue {
-	return (
-		getContext<ConsentTrackingValue | undefined>(TRACKING_CONTEXT_KEY) ?? {}
-	);
 }
 
 export function setThemeContext(value: ThemeContextValue): void {

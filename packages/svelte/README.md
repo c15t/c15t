@@ -66,7 +66,7 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 
 ## Usage
 
-1. Wrap your app with `ConsentProvider`
+1. Wrap your app with `ConsentManagerProvider`
 2. Add `ConsentBanner` and `ConsentDialog` near the root
 3. Read and update consent in your own components with `getConsentManager()`
 4. For full implementation details, see the [Svelte quickstart docs](https://c15t.com/docs/frameworks/svelte/quickstart)
@@ -74,13 +74,13 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 ```svelte
 <!-- src/routes/+layout.svelte -->
 <script>
-  import { ConsentProvider, ConsentBanner, ConsentDialog } from '@c15t/svelte'
+  import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/svelte'
   import '../app.css'
 
   let { children } = $props()
 </script>
 
-<ConsentProvider
+<ConsentManagerProvider
   mode="hosted"
   backendURL="https://your-instance.c15t.dev"
   consentCategories={['necessary', 'measurement', 'marketing']}
@@ -88,7 +88,7 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
   {@render children()}
   <ConsentBanner />
   <ConsentDialog />
-</ConsentProvider>
+</ConsentManagerProvider>
 ```
 
 Import `@c15t/svelte/styles.css` once from your global CSS, such as SvelteKit's

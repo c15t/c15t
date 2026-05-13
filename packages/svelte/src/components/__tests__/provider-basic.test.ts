@@ -1,5 +1,5 @@
 /**
- * Tests for ConsentProvider basic request behavior.
+ * Tests for ConsentManagerProvider basic request behavior.
  *
  * Mirrors: packages/react/src/providers/__tests__/provider-basic.test.tsx
  */
@@ -9,12 +9,12 @@ import { clearConsentRuntimeCache } from 'c15t';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
 import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
-import ConsentProvider from '../../lib/components/consent-provider.svelte';
+import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
 
 const mockFetch = vi.fn();
 window.fetch = mockFetch;
 
-describe('ConsentProvider Basic Request Behavior', () => {
+describe('ConsentManagerProvider Basic Request Behavior', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		clearConsentRuntimeCache();
@@ -54,7 +54,7 @@ describe('ConsentProvider Basic Request Behavior', () => {
 	test('should accept top-level options and prefer them over options object', async () => {
 		mockFetch.mockClear();
 
-		render(ConsentProvider, {
+		render(ConsentManagerProvider, {
 			options: {
 				mode: 'hosted',
 				backendURL: 'https://example.invalid',

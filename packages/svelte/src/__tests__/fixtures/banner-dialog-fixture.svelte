@@ -1,13 +1,13 @@
 <script lang="ts">
 import ConsentBanner from '../../lib/components/consent-banner.svelte';
 import ConsentDialog from '../../lib/components/consent-dialog.svelte';
-import ConsentProvider from '../../lib/components/consent-provider.svelte';
-import type { ConsentProviderOptions } from '../../lib/types';
+import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
+import type { ConsentManagerOptions } from '../../lib/types';
 
-let { options }: { options: ConsentProviderOptions } = $props();
+let { options }: { options: ConsentManagerOptions } = $props();
 </script>
 
-<ConsentProvider {options}>
+<ConsentManagerProvider {options}>
 	<ConsentBanner />
 	<ConsentDialog />
-</ConsentProvider>
+</ConsentManagerProvider>

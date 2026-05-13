@@ -1,7 +1,7 @@
 <script lang="ts">
 	import {
 		ConsentBanner,
-		ConsentProvider,
+		ConsentManagerProvider,
 		type Theme,
 	} from '@c15t/svelte';
 	import ForceBannerShow from '$lib/components/ForceBannerShow.svelte';
@@ -326,7 +326,7 @@
 	</div>
 
 	{#key key}
-		<ConsentProvider
+		<ConsentManagerProvider
 			options={{
 				mode: 'offline',
 				consentCategories: ['necessary', 'marketing', 'measurement'],
@@ -338,7 +338,7 @@
 				layout={currentThemeData.layout ?? [['reject', 'accept'], 'customize']}
 				primaryButton={currentThemeData.primaryButton ?? ['customize']}
 			/>
-		</ConsentProvider>
+		</ConsentManagerProvider>
 	{/key}
 
 	<footer class="fixed bottom-0 left-0 right-0 p-8 flex flex-col items-center gap-4 bg-gradient-to-t from-background to-transparent">

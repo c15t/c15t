@@ -5,7 +5,7 @@ import { resolveTranslations } from '@c15t/ui/utils';
 import type { AllConsentNames } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
 import type { Snippet } from 'svelte';
-import { onMount, untrack } from 'svelte';
+import { onMount } from 'svelte';
 import { getConsentContext, getThemeContext } from '../context.svelte';
 
 const btn = buttonVariants({
@@ -60,18 +60,6 @@ onMount(() => {
 	isMounted = true;
 	requestAnimationFrame(() => {
 		isReady = true;
-	});
-});
-
-// Register category reactively so prop changes and concurrent mounts
-// always read the latest consentCategories from the store.
-$effect(() => {
-	const cat = category;
-	untrack(() => {
-		const categories = consent.state.consentCategories;
-		if (!categories.includes(cat)) {
-			consent.state.updateConsentCategories([...categories, cat]);
-		}
 	});
 });
 

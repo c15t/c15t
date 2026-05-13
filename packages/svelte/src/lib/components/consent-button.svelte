@@ -2,11 +2,8 @@
 import { buttonVariants } from '@c15t/ui/styles/primitives';
 import type { AllConsentNames } from 'c15t';
 import type { Snippet } from 'svelte';
-import {
-	getConsentContext,
-	getThemeContext,
-	getTrackingContext,
-} from '../context.svelte';
+import type { HTMLButtonAttributes } from 'svelte/elements';
+import { getConsentContext, getThemeContext } from '../context.svelte';
 import { resolveComponentStyles } from '../utils';
 
 let {
@@ -22,7 +19,7 @@ let {
 	noStyle: localNoStyle,
 	class: className,
 	...restProps
-}: {
+}: Omit<HTMLButtonAttributes, 'class'> & {
 	action:
 		| 'accept-consent'
 		| 'reject-consent'
@@ -33,19 +30,15 @@ let {
 	mode?: 'filled' | 'stroke' | 'lighter' | 'ghost';
 	size?: 'medium' | 'small' | 'xsmall' | 'xxsmall';
 	children?: Snippet;
-	onclick?: (e: MouseEvent) => void;
 	closeConsentBanner?: boolean;
 	closeConsentDialog?: boolean;
 	category?: AllConsentNames;
 	noStyle?: boolean;
 	class?: string;
-	'data-testid'?: string;
-	[key: string]: unknown;
 } = $props();
 
 const consent = getConsentContext();
 const theme = getThemeContext();
-const tracking = getTrackingContext();
 
 const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 
@@ -68,7 +61,9 @@ const buttonStyle = $derived(
 	)
 );
 
-function handleClick(e: MouseEvent) {
+function handleClick(
+	e: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+) {
 	const { state } = consent;
 
 	// Handle UI state changes first
@@ -84,18 +79,15 @@ function handleClick(e: MouseEvent) {
 	onclick?.(e);
 
 	if (action !== 'open-consent-dialog') {
-		const consentOptions = tracking.uiSource
-			? { uiSource: tracking.uiSource }
-			: undefined;
 		switch (action) {
 			case 'accept-consent':
-				state.saveConsents('all', consentOptions);
+				state.saveConsents('all');
 				break;
 			case 'reject-consent':
-				state.saveConsents('necessary', consentOptions);
+				state.saveConsents('necessary');
 				break;
 			case 'custom-consent':
-				state.saveConsents('custom', consentOptions);
+				state.saveConsents('custom');
 				break;
 			case 'set-consent':
 				if (!category) {
