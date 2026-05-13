@@ -100,7 +100,7 @@ jobs:
 
       - name: 🎭 Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: bunx playwright@1.58.2 install
+        run: bunx playwright@1.60.0 install
 
       - name: 🧪 Run Tests
         run: bun turbo run test --filter="./packages/*"
