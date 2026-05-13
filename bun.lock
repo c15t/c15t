@@ -761,11 +761,7 @@
       },
       "peerDependencies": {
         "svelte": "^5.0.0",
-        "vite": "^5.0.0 || ^6.0.0",
       },
-      "optionalPeers": [
-        "vite",
-      ],
     },
     "packages/translations": {
       "name": "@c15t/translations",

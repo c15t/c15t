@@ -50,6 +50,9 @@
 			"default": "./dist/index.js"
 		}
 	},
+	"main": "./dist/index.js",
+	"svelte": "./dist/index.js",
+	"types": "./dist/index.d.ts",
 	"typesVersions": {
 		">4.0": {
 			"headless": [
@@ -60,9 +63,6 @@
 			]
 		}
 	},
-	"main": "./dist/index.js",
-	"svelte": "./dist/index.js",
-	"types": "./dist/index.d.ts",
 	"files": [
 		"LICENSE.md",
 		"dist",
