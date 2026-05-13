@@ -137,7 +137,7 @@ describe('resolvePolicyDecision', () => {
 		expect(result?.policy.consent?.scopeMode).toBe('strict');
 	});
 
-	it('filters preselected categories to the configured policy scope', async () => {
+	it('filters preselected categories to the configured policy scope in strict mode', async () => {
 		const result = await resolvePolicyDecision({
 			policies: [
 				{
@@ -145,6 +145,7 @@ describe('resolvePolicyDecision', () => {
 					match: { countries: ['GB'] },
 					consent: {
 						model: 'opt-in',
+						scopeMode: 'strict',
 						categories: ['necessary', 'functionality'],
 						preselectedCategories: ['functionality', 'marketing'],
 					},
@@ -161,6 +162,30 @@ describe('resolvePolicyDecision', () => {
 		]);
 		expect(result?.policy.consent?.preselectedCategories).toEqual([
 			'functionality',
+		]);
+	});
+
+	it('keeps preselected categories outside policy categories in permissive mode', async () => {
+		const result = await resolvePolicyDecision({
+			policies: [
+				{
+					id: 'policy_uk',
+					match: { countries: ['GB'] },
+					consent: {
+						model: 'opt-in',
+						scopeMode: 'permissive',
+						categories: ['necessary'],
+						preselectedCategories: ['marketing'],
+					},
+				},
+			],
+			countryCode: 'GB',
+			regionCode: null,
+			jurisdiction: 'UK_GDPR',
+		});
+
+		expect(result?.policy.consent?.preselectedCategories).toEqual([
+			'marketing',
 		]);
 	});
 

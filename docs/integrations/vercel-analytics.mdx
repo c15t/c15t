@@ -1,0 +1,134 @@
+---
+title: Vercel Analytics
+description: Bootstrap Vercel Analytics with a declarative queue and script attributes.
+lastModified: 2026-05-10
+icon: vercel-analytics
+---
+
+Vercel Analytics loads through `@c15t/scripts` using a declarative queue bootstrap (`vaq` + `va`) and script attributes for DSN/endpoint options.
+
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { vercelAnalytics } from '@c15t/scripts/vercel-analytics';
+
+    const scripts = [vercelAnalytics()];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { vercelAnalytics } from '@c15t/scripts/vercel-analytics';
+
+    const scripts = [vercelAnalytics()];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { vercelAnalytics } from '@c15t/scripts/vercel-analytics';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [vercelAnalytics()],
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** measurement consent is granted
+- **On revocation:** unloaded - c15t removes the script from the DOM and clears access to runtime globals until consent is granted again.
+
+Load the debug bundle or a custom endpoint when needed:
+
+```ts
+vercelAnalytics({
+  mode: 'development',
+  disableAutoTrack: true,
+  endpoint: 'https://analytics.example.com/v1/events',
+})
+```
+
+## Tracking events in your app
+
+c15t initializes a bootstrap phase first (`vaq` plus a local `window.va` stub), then loads the remote Vercel Analytics script after `measurement` consent is granted. Calls are safe once the bootstrap stub exists (they are queued/ignored in `vaq`), but they execute only after consent is granted and the real `window.va` is injected and flushes the queue.
+
+Guard event calls by checking consent state. From React:
+
+```tsx
+import { useCallback } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+function SignupExample() {
+  const { has } = useConsentManager();
+
+  const trackSignup = useCallback(() => {
+    if (has('measurement')) {
+      window.va?.('signup', { plan: 'pro' });
+    }
+  }, [has]);
+}
+```
+
+From plain JavaScript:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('measurement')) {
+  window.va?.('signup', { plan: 'pro' });
+}
+```
+
+## Types
+
+### VercelAnalyticsOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/vercel-analytics.ts" name="VercelAnalyticsOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />

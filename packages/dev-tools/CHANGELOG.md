@@ -1,5 +1,64 @@
 # @c15t/dev-tools
 
+## 2.1.0
+
+### Minor Changes
+
+- 4a89092: Expanded the script loader with a registry-backed provider system and a much
+  broader set of consent-aware integrations. New helpers cover analytics,
+  advertising pixels, functional tools, and tag managers, including Ahrefs,
+  Cloudflare Web Analytics, Fathom, Hotjar, Matomo, Microsoft Clarity, Mixpanel,
+  Plausible, PromptWatch, Rybbit, Segment, Umami, Vercel Analytics, Reddit Pixel,
+  Snapchat Pixel, and Crisp/Intercom.
+
+  Provider manifests now share common utilities for script URL resolution, boolean
+  data attributes, install-step builders, Google consent mapping, and lifecycle
+  execution. The package also includes registry metadata, focused provider tests,
+  and engine coverage so script helpers resolve predictable loader URLs,
+  attributes, consent callbacks, and queued vendor calls.
+
+  Google Tag and Google Tag Manager boot timestamps now resolve during script
+  lifecycle execution instead of helper construction, which keeps documented setup
+  patterns compatible with Next.js Cache Components prerendering.
+
+  PostHog now supports explicit EU/US region selection, keeps the bootstrap script
+  host aligned with an explicit API host, and exposes loading modes for immediate
+  cookieless consent sync, consent-gated loading, or disabling the helper without
+  issuing a PostHog network request.
+
+  Updated the docs and CLI generation prompts so these providers are discoverable
+  from the integration docs and script-loader setup flows.
+
+### Patch Changes
+
+- Updated dependencies [4a89092]
+  - c15t@2.1.0
+
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [748536a]
+  - c15t@2.0.4
+
+## 2.0.1
+
+### Patch Changes
+
+- d35df50: Improve the TanStack Devtools integration so c15t behaves like a first-class
+  TanStack plugin.
+
+  - Add the `c15tDevtools()` plugin factory and keep `c15tDevtoolsPlugin` as a
+    backward-compatible alias.
+  - Render the embedded c15t panel through TanStack's React plugin API instead of
+    a custom imperative mount pattern.
+  - Keep the embedded panel instance alive across TanStack tab switches so the
+    c15t store connection does not drop when the plugin view remounts.
+  - Restyle the embedded c15t panel to better match TanStack Devtools' dark
+    palette and use a flat tab-button row instead of the overflow dropdown.
+  - Add a demo page that mounts TanStack Query and c15t side-by-side for repro and
+    regression testing.
+
 ## 2.0.0
 
 ### Major Changes

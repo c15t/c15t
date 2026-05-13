@@ -1,0 +1,59 @@
+---
+title: setup
+description: Interactive scaffolder that installs packages and adds consent components to your project.
+---
+
+`setup` is the recommended entry point for new projects. It detects your framework, installs c15t packages, wires up the client, and drops in working banner and dialog components.
+
+## Usage
+
+```bash
+pnpm dlx @c15t/cli setup
+```
+
+## What it does
+
+1. **Detects the framework** by reading `package.json` (Next.js, React, or vanilla).
+2. **Asks how you want to host the backend**:
+   - **Hosted (inth.com)** — free sign-up, no infra to run.
+   - **Self-hosted** — uses `@c15t/backend`, requires a database.
+3. **Installs packages** with your detected package manager (`pnpm`, `npm`, `yarn`, or `bun`).
+4. **Adds the stylesheet import** to your app's CSS entrypoint.
+5. **Creates a provider component** at `components/consent-manager/provider.tsx` (or equivalent) with `ConsentManagerProvider`, `ConsentBanner`, and `ConsentDialog`.
+6. **Writes environment variables** for the backend URL.
+
+## Result
+
+After `setup` completes, the banner appears on first page load in dev. Follow-up docs depend on the framework `setup` detected:
+
+### React
+
+- Theme tokens — [styling overview](/docs/frameworks/react/styling/overview)
+- Translations — [`useTranslations`](/docs/frameworks/react/hooks/use-translations)
+- Policy packs — [concepts: policy packs](/docs/frameworks/react/concepts/policy-packs)
+
+### Next.js
+
+- Theme tokens — [styling overview](/docs/frameworks/next/styling/overview)
+- Translations — [`useTranslations`](/docs/frameworks/next/hooks/use-translations)
+- Policy packs — [concepts: policy packs](/docs/frameworks/next/concepts/policy-packs)
+
+### Vanilla JavaScript
+
+- Building UI — [building UI](/docs/frameworks/javascript/building-ui)
+- Translations — [internationalization](/docs/frameworks/javascript/internationalization)
+- Policy packs — [policy packs](/docs/frameworks/javascript/policy-packs)
+
+## Re-running
+
+`setup` is idempotent — running it again won't duplicate components or re-install packages, but it will offer to update configuration if it has changed since the last run.
+
+## Flags
+
+`setup` is an alias for [`generate`](./generate) and accepts the same flags:
+
+- `-y` / `--yes` — accept defaults and skip prompts (used by the summary step).
+- `--resume` — resume from a previously interrupted run.
+- A storage mode (`hosted`, `offline`, `self-hosted`, `custom`) can be passed as the first positional argument to skip the storage-mode prompt.
+
+Plus the [global flags](../global-flags) (`--help`, `--version`, `--logger`, `--config`, `--no-telemetry`, `--telemetry-debug`).

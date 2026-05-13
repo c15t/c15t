@@ -1,21 +1,18 @@
-import { type ConsentState, emitScriptDebugEvent, type Script } from 'c15t';
-import type { ManifestStep, ResolvedManifest } from '../types';
+import {
+	type ConsentState,
+	emitScriptDebugEvent,
+	type Script,
+	type ScriptCallbackInfo,
+	type ScriptLifecycleCallback,
+} from 'c15t';
+import {
+	type ManifestStep,
+	type ResolvedManifest,
+	RUNTIME_VALUE_KIND,
+	type RuntimeValue,
+} from '../types';
 
-/**
- * Callback info passed to Script lifecycle hooks.
- * Mirrors the ScriptCallbackInfo type from c15t core
- * (which isn't exported from the public API).
- */
-interface CallbackInfo {
-	id: string;
-	elementId: string;
-	hasConsent: boolean;
-	consents: ConsentState;
-	element?: HTMLScriptElement;
-	error?: Error;
-}
-
-type ManifestLifecycleCallback = 'onBeforeLoad' | 'onLoad' | 'onConsentChange';
+type ManifestLifecycleCallback = Exclude<ScriptLifecycleCallback, 'onError'>;
 
 interface StepExecutionContext {
 	scriptId: string;
@@ -25,7 +22,31 @@ interface StepExecutionContext {
 	phase: string;
 }
 
+function isRuntimeValue(value: unknown): value is RuntimeValue {
+	if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+		return false;
+	}
+
+	const candidate = value as Partial<RuntimeValue>;
+	return (
+		candidate.kind === RUNTIME_VALUE_KIND &&
+		(candidate.value === 'date' || candidate.value === 'timestamp')
+	);
+}
+
+function resolveRuntimeValue(value: RuntimeValue): Date | number {
+	if (value.value === 'date') {
+		return new Date();
+	}
+
+	return Date.now();
+}
+
 function cloneStepValue(value: unknown): unknown {
+	if (isRuntimeValue(value)) {
+		return resolveRuntimeValue(value);
+	}
+
 	if (value instanceof Date) {
 		return new Date(value);
 	}
@@ -114,16 +135,18 @@ function executeStep(step: ManifestStep): void {
 				break;
 			}
 
-			win[step.name] = function queueFunction(
-				this: unknown,
-				...args: unknown[]
-			) {
+			win[step.name] = function queueFunction(this: unknown) {
 				const queueTarget = win[step.queue];
 				if (!Array.isArray(queueTarget)) {
 					return;
 				}
 
-				queueTarget.push(step.pushStyle === 'array' ? [...args] : args);
+				if (step.pushStyle === 'array') {
+					queueTarget.push(Array.from(arguments));
+					return;
+				}
+
+				queueTarget.push(arguments);
 			};
 			break;
 		}
@@ -134,15 +157,16 @@ function executeStep(step: ManifestStep): void {
 				break;
 			}
 
-			const stub = function stubFunction(this: unknown, ...args: unknown[]) {
+			const stub = function stubFunction(this: unknown) {
 				const self = win[step.name] as Record<string, unknown> | undefined;
 				const dispatcher =
 					self && step.dispatchProperty
 						? self[step.dispatchProperty]
 						: undefined;
+				const runtimeArgs = Array.from(arguments);
 
 				if (typeof dispatcher === 'function') {
-					dispatcher.apply(self, args);
+					dispatcher.apply(self, runtimeArgs);
 					return;
 				}
 
@@ -151,9 +175,12 @@ function executeStep(step: ManifestStep): void {
 					return;
 				}
 
-				queueTarget.push(
-					step.queueFormat === 'array' ? [...args] : (args as unknown)
-				);
+				if (step.queueFormat === 'array') {
+					queueTarget.push(runtimeArgs);
+					return;
+				}
+
+				queueTarget.push(arguments);
 			};
 
 			win[step.name] = stub;
@@ -455,7 +482,7 @@ export function resolvedManifestToScript(
 		resolvedManifest.onBeforeLoadDeniedSteps.length > 0 ||
 		hasConsentMapping
 	) {
-		script.onBeforeLoad = (info: CallbackInfo) => {
+		script.onBeforeLoad = (info: ScriptCallbackInfo) => {
 			const baseContext = {
 				scriptId: resolvedManifest.vendor,
 				elementId: info.elementId,
@@ -491,7 +518,7 @@ export function resolvedManifestToScript(
 	}
 
 	if (resolvedManifest.afterLoadSteps.length > 0) {
-		script.onLoad = (info: CallbackInfo) => {
+		script.onLoad = (info: ScriptCallbackInfo) => {
 			const baseContext = {
 				scriptId: resolvedManifest.vendor,
 				elementId: info.elementId,
@@ -519,7 +546,7 @@ export function resolvedManifestToScript(
 			}
 		};
 	} else if (hasLoadConsentBranches) {
-		script.onLoad = (info: CallbackInfo) => {
+		script.onLoad = (info: ScriptCallbackInfo) => {
 			const baseContext = {
 				scriptId: resolvedManifest.vendor,
 				elementId: info.elementId,
@@ -544,7 +571,7 @@ export function resolvedManifestToScript(
 	}
 
 	if (hasConsentLifecycle) {
-		script.onConsentChange = (info: CallbackInfo) => {
+		script.onConsentChange = (info: ScriptCallbackInfo) => {
 			const baseContext = {
 				scriptId: resolvedManifest.vendor,
 				elementId: info.elementId,

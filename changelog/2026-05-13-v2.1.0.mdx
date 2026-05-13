@@ -1,0 +1,141 @@
+---
+title: "v2.1.0 - Expanded Script Integrations and Provider Registry"
+version: "2.1.0"
+date: 2026-05-13
+description: "Minor release expanding the consent-aware script loader with a registry-backed provider system, more prebuilt integrations, stronger lifecycle utilities, CLI discovery updates, and German translation refinements."
+tags:
+  - release
+  - stable
+  - scripts
+  - integrations
+  - react
+  - nextjs
+  - cli
+  - i18n
+type: release
+breaking: false
+draft: false
+authors: [KayleeWilliams]
+packages:
+  - "c15t@2.1.0"
+  - "@c15t/backend@2.1.0"
+  - "@c15t/cli@2.1.0"
+  - "@c15t/dev-tools@2.1.0"
+  - "@c15t/iab@2.1.0"
+  - "@c15t/logger@2.1.0"
+  - "@c15t/nextjs@2.1.0"
+  - "@c15t/node-sdk@2.1.0"
+  - "@c15t/react@2.1.0"
+  - "@c15t/schema@2.1.0"
+  - "@c15t/scripts@2.1.0"
+  - "@c15t/translations@2.1.0"
+  - "@c15t/ui@2.1.0"
+---
+
+c15t 2.1 expands the script loader into a broader consent-aware integration system. The release adds a registry-backed provider model, many more prebuilt script helpers, stronger shared lifecycle utilities, and clearer documentation for using third-party scripts safely across React and Next.js.
+
+This is a minor release with no breaking changes.
+
+## Highlights
+
+- New registry-backed provider system for script integrations
+- New prebuilt helpers for analytics, ads and pixels, functional tools, and tag managers
+- Public integration registry for discovery and CLI generation
+- Shared utilities for script URLs, attributes, Google Consent Mode, install steps, and lifecycle callback execution
+- Runtime timestamp handling for Google Tag and Google Tag Manager
+- PostHog region and load-mode controls
+- Expanded script-loader and integration documentation
+- German translation casing and tone refinements
+
+## Registry-backed script providers
+
+`@c15t/scripts` now has a central registry for built-in integrations. The registry gives each helper a stable identity, category, consent category, package subpath, and discovery metadata.
+
+The registry is now the source of truth for built-in script helper discovery, which means integrations can be surfaced consistently across package exports, tests, docs, and CLI prompts.
+
+This also makes the script-loader API easier to grow without each helper carrying its own slightly different setup conventions.
+
+## New script integrations
+
+2.1 adds and expands prebuilt helpers across the common third-party script categories:
+
+### Analytics
+
+- Ahrefs Analytics
+- Cloudflare Web Analytics
+- Fathom Analytics
+- Hotjar
+- Matomo Analytics
+- Microsoft Clarity
+- Mixpanel Analytics
+- Plausible Analytics
+- Rybbit Analytics
+- Segment
+- Umami Analytics
+- Vercel Analytics
+
+### Ads and pixels
+
+- Reddit Pixel
+- Snapchat Pixel
+
+Existing ads and pixel helpers such as Meta Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET, and X Pixel also received stronger registry coverage and updated tests.
+
+### Functional tools
+
+- Crisp
+- Intercom
+- PromptWatch
+
+Each helper is modeled as a manifest-backed integration so c15t can reason about when it loads, what it injects, and how it behaves when consent changes.
+
+## Shared lifecycle foundations
+
+Provider manifests now share common utilities for:
+
+- resolving script URLs and host overrides
+- building boolean and JSON data attributes
+- constructing install steps
+- mapping Google Consent Mode categories
+- resolving lifecycle-time values
+- creating consistent script callback payloads
+- testing helper parity against registry metadata
+
+This makes helper behavior more predictable and gives each provider stronger coverage for loader URLs, attributes, consent callbacks, queued vendor calls, and unload behavior.
+
+## Google Tag and Google Tag Manager
+
+Google Tag and Google Tag Manager now resolve boot timestamps during script lifecycle execution instead of when the helper is constructed.
+
+That keeps documented setup patterns compatible with Next.js Cache Components and other prerendering flows where helpers may be created before the browser-side script lifecycle actually runs.
+
+## PostHog controls
+
+The PostHog helper now supports explicit regional and loading behavior:
+
+- `region: 'eu' | 'us'` derives the matching API, UI, and bootstrap hosts
+- explicit host overrides keep the bootstrap script aligned with the configured API host
+- `loadMode: 'always'` preserves the existing cookieless consent-sync behavior
+- `loadMode: 'after-consent'` waits for measurement consent before injecting PostHog
+- `loadMode: 'disabled'` prevents the helper from issuing a PostHog network request
+
+The PostHog docs now call out the privacy-first EU setup using `region: 'eu'` with `loadMode: 'after-consent'`.
+
+## CLI and docs discovery
+
+The CLI script picker now reads from the shared registry instead of maintaining its own hand-written option list.
+
+The script-loader docs were also reorganized around a clearer lifecycle model:
+
+- Pending
+- Loaded
+- Updated
+- Unloaded
+
+The React, Next.js, shared script-loader, and integration overview pages now use the same mental model and category structure. Integration pages include more direct guidance for how each provider loads, which consent category controls it, and what happens when consent is revoked.
+
+## German translations
+
+German translations now use more consistent casing and tone across consent banners, preference dialogs, and related UI text.
+
+<ContributorBlock usernames={["BurnedChris", "mezotv", "KayleeWilliams"]} title="Thank you to our contributors" />

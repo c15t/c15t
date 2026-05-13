@@ -139,43 +139,31 @@ export function filterConsentCategoriesByPolicy(
 }
 
 /**
- * Applies policy scope to runtime gating behavior.
- *
- * Out-of-policy categories are treated as permissive by c15t runtime and are
- * therefore granted for gating decisions (scripts/iframes load normally).
+ * Returns whether policy category scope should be enforced as a hard allowlist.
+ */
+export function shouldEnforcePolicyCategoryScope(
+	allowedPurposeIds?: string[] | null,
+	scopeMode: 'strict' | 'permissive' | null = 'permissive'
+): boolean {
+	return (
+		scopeMode === 'strict' &&
+		Array.isArray(allowedPurposeIds) &&
+		allowedPurposeIds.length > 0 &&
+		!allowedPurposeIds.includes('*')
+	);
+}
+
+/**
+ * @deprecated No-op retained for API compatibility. Runtime gating respects
+ * the current consent state directly; policy scope is enforced at category
+ * discovery, render, and save time instead.
  */
 export function applyPolicyScopeForRuntimeGating(
 	consents: ConsentState,
-	allowedPurposeIds?: string[] | null,
-	scopeMode: 'strict' | 'permissive' | null = 'permissive'
+	_allowedPurposeIds?: string[] | null,
+	_scopeMode: 'strict' | 'permissive' | null = 'permissive'
 ): ConsentState {
-	if (scopeMode === 'strict') {
-		return consents;
-	}
-
-	if (
-		!allowedPurposeIds ||
-		allowedPurposeIds.length === 0 ||
-		allowedPurposeIds.includes('*')
-	) {
-		return consents;
-	}
-
-	const allowedCategories = new Set<AllConsentNames>([
-		'necessary',
-		...allowedPurposeIds.filter(isConsentCategory),
-	]);
-	const next = { ...consents };
-
-	for (const category of allConsentNames) {
-		if (!allowedCategories.has(category)) {
-			next[category] = true;
-		}
-	}
-
-	next.necessary = true;
-
-	return next;
+	return consents;
 }
 
 /**

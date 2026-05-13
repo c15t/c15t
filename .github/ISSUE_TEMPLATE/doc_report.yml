@@ -1,60 +1,26 @@
-name: "📚 Documentation"
-description: Report a documentation issue
-labels: ["Documentation", "Needs Approval"]
+name: Documentation issue
+description: Report a problem with the c15t docs
+labels: ["documentation", "needs-triage"]
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for helping improve our documentation! Please provide as much detail as possible.
-
-  - type: dropdown
-    id: type
-    attributes:
-      label: Issue Type
-      description: What type of documentation issue is this?
-      multiple: true
-      options:
-        - "🔗 Broken Link"
-        - "❌ Incorrect Information"
-        - "✏️ Typo/Grammar"
-        - "➕ Missing Information"
-        - "🎨 Formatting/Style"
-        - "📖 Clarity/Readability"
-        - "🔄 Outdated Content"
-    validations:
-      required: true
-
   - type: input
     id: page
     attributes:
       label: Page URL
-      description: Which page has the issue?
-      placeholder: "https://c15t.com/docs/..."
+      placeholder: https://c15t.com/docs/...
     validations:
       required: true
 
   - type: textarea
-    id: current
+    id: problem
     attributes:
-      label: Current Content
-      description: What does the documentation currently say?
-      placeholder: "Copy the relevant section..."
+      label: What's wrong?
+      description: Quote the relevant section and explain the issue.
     validations:
       required: true
 
   - type: textarea
     id: suggested
     attributes:
-      label: Suggested Changes
-      description: How should it be improved?
-      placeholder: "The documentation should say..."
-    validations:
-      required: true
-
-  - type: textarea
-    id: context
-    attributes:
-      label: Additional Context
-      description: Any other information that might be helpful?
+      label: Suggested change
     validations:
       required: false

@@ -2,35 +2,114 @@
 title: TikTok Pixel
 description: Measure ad performance and build audiences for TikTok advertising campaigns.
 lastModified: 2025-09-24
-
 icon: tiktok
 ---
 
-TikTok Pixel is TikTok's conversion tracking and audience targeting tool. It measures ad effectiveness, tracks user actions, and helps optimize your TikTok advertising campaigns. By default, c15t loads this script based on `marketing` consent.
+TikTok Pixel is TikTok's conversion tracking and audience targeting tool. It measures ad effectiveness, tracks user actions, and helps optimize your TikTok advertising campaigns.
 
-This script persists after consent is revoked because it has built-in consent management. When consent changes, c15t updates TikTok's internal consent state rather than removing the script entirely.
+## Integrate with c15t
 
-## Implementation
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { tiktokPixel } from '@c15t/scripts/tiktok-pixel';
 
-### Adding the script to c15t
+    const scripts = [tiktokPixel({ pixelId: '123456789012345' })];
 
-<Callout type="info">
-  See the [integration overview](/docs/integrations) for how to pass scripts to your framework (JavaScript, React, or Next.js).
-</Callout>
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
 
-```ts
-import { tiktokPixel } from '@c15t/scripts/tiktok-pixel';
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
 
-tiktokPixel({
-  pixelId: '123456789012345',
-})
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { tiktokPixel } from '@c15t/scripts/tiktok-pixel';
+
+    const scripts = [tiktokPixel({ pixelId: '123456789012345' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { tiktokPixel } from '@c15t/scripts/tiktok-pixel';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [tiktokPixel({ pixelId: '123456789012345' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## How c15t loads it
+
+- **Category:** `marketing` (Ads & Pixels)
+- **Loads when:** marketing consent is granted
+- **On revocation:** [persists](/docs/frameworks/react/script-loader#persist-after-revocation) — c15t pushes the new consent state to `ttq` so TikTok stops tracking without removing the script
+
+## Tracking events in your app
+
+c15t gates the TikTok Pixel script from loading until `marketing` consent is granted. After consent is granted the script stays in the DOM, and c15t pushes the new consent state to `ttq` if consent is later revoked.
+
+This means `window.ttq` is only defined after the user has granted marketing consent at least once. Before that, unguarded calls throw. After that, calls are safe — TikTok's own consent state suppresses tracking when revoked.
+
+```tsx
+import { useCallback } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+function useTrackPurchase() {
+  const { has } = useConsentManager();
+  return useCallback(() => {
+    if (has('marketing')) {
+      window.ttq?.track('CompletePayment', { value: 10.0, currency: 'USD' });
+    }
+  }, [has]);
+}
+
+function PurchaseButton() {
+  const trackPurchase = useTrackPurchase();
+  return <button onClick={trackPurchase}>Complete purchase</button>;
+}
 ```
 
 ## Types
 
 ### TikTokPixelOptions
 
-<AutoTypeTable path="./packages/scripts/src/tiktok-pixel.ts" name="TikTokPixelOptions" />
+<AutoTypeTable path="./packages/scripts/src/vendors/ads-and-pixels/tiktok-pixel.ts" name="TikTokPixelOptions" />
 
 ### Script
 

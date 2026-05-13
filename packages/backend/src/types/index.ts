@@ -204,7 +204,7 @@ export interface IABOptions {
 
 	/**
 	 * Override the default GVL endpoint.
-	 * @default 'https://gvl.consent.io'
+	 * @default 'https://gvl.inth.app'
 	 */
 	endpoint?: string;
 

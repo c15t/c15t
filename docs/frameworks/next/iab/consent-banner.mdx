@@ -21,7 +21,7 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
         backendURL: '/api/c15t',
         iab: iab({
           vendors: [1, 2, 10, 25],
-          // cmpId is automatically provided by the backend when using consent.io.
+          // cmpId is automatically provided by the backend when using Inth.
           // Only set this if you have your own CMP registration.
           // cmpId: 123,
         }),
