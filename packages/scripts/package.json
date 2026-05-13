@@ -163,8 +163,8 @@
 		"dev": "rslib build --watch",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
-		"test": "bun test",
-		"test:watch": "bun test --watch"
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"browserslist": [
 		">0.2%",
