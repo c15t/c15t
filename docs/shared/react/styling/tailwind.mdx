@@ -19,15 +19,17 @@
 
   ### Tailwind v4
 
-  Tailwind v4 automatically scans your source files. Import Tailwind normally, then place the c15t stylesheet immediately after it. c15t component styles join Tailwind's `components` layer automatically, so no extra c15t-specific layer declaration is needed:
+  Tailwind v4 automatically scans your source files. Import Tailwind normally, then keep the c15t stylesheet last in the top-level `@import` block so Fumadocs, `tw-animate-css`, or other preset styles load first. c15t component styles join Tailwind's `components` layer automatically, so no extra c15t-specific layer declaration is needed:
 
   ```css title="src/index.css"
   @import "tailwindcss";
+  @import "tw-animate-css";
   @import "@c15t/react/styles.css";
   ```
 
   ```css title="app/globals.css"
   @import "tailwindcss";
+  @import "tw-animate-css";
   @import "@c15t/nextjs/styles.css";
   ```
 

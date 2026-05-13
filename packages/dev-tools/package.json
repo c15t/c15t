@@ -1,8 +1,22 @@
 {
 	"name": "@c15t/dev-tools",
-	"version": "2.0.0",
-	"description": "A collection of developer tools and utilities for the c15t ecosystem, currently under active development.",
+	"version": "2.0.4",
+	"description": "Developer tools for c15t — React utilities for inspecting consent state, debugging, and dogfooding the SDK.",
+	"keywords": [
+		"c15t",
+		"consent",
+		"privacy",
+		"developer-tools",
+		"devtools",
+		"react",
+		"gdpr",
+		"cmp",
+		"debugging"
+	],
 	"homepage": "https://c15t.com",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
@@ -38,7 +52,7 @@
 		"prebuild": "bunx genversion --esm --semi src/version.ts",
 		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "bun prebuild && tsc --noEmit",
-		"dev": "bun prebuild && rslib build --watch",
+		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src"
 	},

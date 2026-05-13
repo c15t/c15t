@@ -1,8 +1,9 @@
 'use client';
 
+import { Check, ChevronDown, Monitor, Moon, Palette, Sun } from 'lucide-react';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { cn } from '../../lib/utils';
-import { useTheme } from '../theme-provider';
+import { disableTransitionsTemporarily, useTheme } from '../theme-provider';
 import { Button } from '../ui/button';
 import { type ThemePresetName, themePresets } from './theme-presets';
 
@@ -23,6 +24,7 @@ function _getSnapshot() {
 }
 
 function _setPreset(name: ThemePresetName) {
+	disableTransitionsTemporarily();
 	_preset = name;
 	localStorage.setItem('c15t-theme-preset', name);
 	for (const l of _listeners) l();
@@ -30,39 +32,30 @@ function _setPreset(name: ThemePresetName) {
 
 const presetInfo: Record<
 	ThemePresetName,
-	{ label: string; icon: string; description: string }
+	{ label: string; description: string }
 > = {
+	none: {
+		label: 'Default',
+		description: 'Base c15t styling',
+	},
 	minimal: {
 		label: 'Minimal',
-		icon: '◻️',
 		description: 'Standard CSS',
 	},
 	dark: {
-		label: 'Dark Mode',
-		icon: '🌙',
+		label: 'Dark',
 		description: 'Always dark',
 	},
-	full: {
-		label: 'Enterprise',
-		icon: '🏢',
-		description: 'Full width banner',
-	},
 	tailwind: {
-		label: 'Tailwind',
-		icon: '🌊',
-		description: 'Uses app variables',
-	},
-	none: {
-		label: 'Default',
-		icon: '⚙️',
-		description: 'No theme preset',
+		label: 'App',
+		description: 'Follows demo tokens',
 	},
 };
 
 const colorModes = [
-	{ value: 'light', label: 'Light', icon: '☀️' },
-	{ value: 'dark', label: 'Dark', icon: '🌙' },
-	{ value: 'system', label: 'System', icon: '💻' },
+	{ value: 'light', label: 'Light', icon: Sun },
+	{ value: 'dark', label: 'Dark', icon: Moon },
+	{ value: 'system', label: 'System', icon: Monitor },
 ] as const;
 
 export function ThemeSwitcherButton() {
@@ -86,26 +79,17 @@ export function ThemeSwitcherButton() {
 			<Button
 				size="sm"
 				variant="outline"
+				className="h-9 rounded-full border-border/80 px-3 text-foreground shadow-none"
 				aria-expanded={open}
 				aria-label="Theme settings"
 				aria-haspopup="menu"
 				onClick={() => setOpen((prev) => !prev)}
 			>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="16"
-					height="16"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					strokeWidth="2"
-					strokeLinecap="round"
-					strokeLinejoin="round"
-				>
-					<title>Theme settings</title>
-					<circle cx="12" cy="12" r="3" />
-					<path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-				</svg>
+				<Palette className="size-4" />
+				<span className="font-medium text-sm">Theme</span>
+				<ChevronDown
+					className={cn('size-4 transition-transform', open && 'rotate-180')}
+				/>
 			</Button>
 			{open && <ThemeSwitcherPanel />}
 		</div>
@@ -117,59 +101,80 @@ function ThemeSwitcherPanel() {
 	const { theme: colorMode, setTheme: setColorMode } = useTheme();
 
 	return (
-		<div className="absolute top-full right-0 z-[60] mt-2 flex w-56 flex-col gap-2 rounded-xl border border-zinc-200 bg-white/95 p-3 shadow-lg backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/95">
-			<span className="mb-1 font-medium text-xs text-zinc-500 dark:text-zinc-400">
-				Theme Preset
-			</span>
-			{(Object.keys(themePresets) as ThemePresetName[]).map((presetKey) => {
-				const info = presetInfo[presetKey];
-				const isActive = preset === presetKey;
-				return (
-					<button
-						key={presetKey}
-						type="button"
-						onClick={() => setThemePreset(presetKey)}
-						className={cn(
-							'flex items-center gap-3 rounded-lg px-3 py-2 text-left transition-all',
-							isActive
-								? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-								: 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
-						)}
-					>
-						<span className="text-lg">{info.icon}</span>
-						<div className="flex flex-col">
-							<span className="font-medium text-sm">{info.label}</span>
-							<span
-								className={`text-xs ${isActive ? 'text-zinc-400 dark:text-zinc-500' : 'text-zinc-500 dark:text-zinc-400'}`}
-							>
-								{info.description}
-							</span>
-						</div>
-					</button>
-				);
-			})}
+		<div className="absolute top-full right-0 z-[60] mt-3 w-[20rem] rounded-[1.25rem] border border-border/80 bg-background p-3 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.28)]">
+			<div className="space-y-1 border-b border-border/80 px-1 pb-3">
+				<p className="label-pixel text-muted-foreground">Theme</p>
+				<p className="text-sm text-muted-foreground">
+					Keep the demo on the base UI or swap in a preset.
+				</p>
+			</div>
 
-			<div className="mt-2 border-zinc-200 border-t pt-2 dark:border-zinc-700">
-				<span className="mb-1 block font-medium text-xs text-zinc-500 dark:text-zinc-400">
-					Color Mode
-				</span>
-				<div className="flex gap-1">
-					{colorModes.map((mode) => (
+			<div className="mt-3 grid gap-2">
+				{(Object.keys(themePresets) as ThemePresetName[]).map((presetKey) => {
+					const info = presetInfo[presetKey];
+					const isActive = preset === presetKey;
+
+					return (
 						<button
-							key={mode.value}
+							key={presetKey}
 							type="button"
-							onClick={() => setColorMode(mode.value)}
+							onClick={() => setThemePreset(presetKey)}
 							className={cn(
-								'flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs transition-all',
-								colorMode === mode.value
-									? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-									: 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+								'flex items-start justify-between rounded-2xl border px-3 py-3 text-left transition-colors',
+								isActive
+									? 'border-foreground bg-foreground text-background'
+									: 'border-border/80 bg-background text-foreground hover:border-foreground/30'
 							)}
 						>
-							<span>{mode.icon}</span>
-							<span>{mode.label}</span>
+							<div className="flex min-w-0 flex-1 flex-col gap-1">
+								<span className="font-medium text-sm">{info.label}</span>
+								<span
+									className={cn(
+										'text-xs leading-5',
+										isActive ? 'text-background/70' : 'text-muted-foreground'
+									)}
+								>
+									{info.description}
+								</span>
+							</div>
+							<span
+								className={cn(
+									'flex size-5 shrink-0 items-center justify-center rounded-full border',
+									isActive
+										? 'border-background/30 bg-background/10 text-background'
+										: 'border-border/80 text-transparent'
+								)}
+							>
+								<Check className="size-3.5" />
+							</span>
 						</button>
-					))}
+					);
+				})}
+			</div>
+
+			<div className="mt-3 border-t border-border/80 px-1 pt-3">
+				<p className="label-pixel text-muted-foreground">Color mode</p>
+				<div className="mt-2 grid grid-cols-3 gap-2">
+					{colorModes.map((mode) => {
+						const Icon = mode.icon;
+
+						return (
+							<button
+								key={mode.value}
+								type="button"
+								onClick={() => setColorMode(mode.value)}
+								className={cn(
+									'flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition-colors',
+									colorMode === mode.value
+										? 'border-foreground bg-foreground text-background'
+										: 'border-border/80 text-foreground hover:border-foreground/30'
+								)}
+							>
+								<Icon className="size-3.5" />
+								<span>{mode.label}</span>
+							</button>
+						);
+					})}
 				</div>
 			</div>
 		</div>

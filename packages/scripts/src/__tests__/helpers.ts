@@ -237,7 +237,12 @@ export function expectStubCommandQueue(
 	commands: unknown[][]
 ): void {
 	const queueOwner = stub as Record<string, unknown> | undefined;
-	expect(queueOwner?.[queueKey]).toEqual(
+	const actualQueue = Array.isArray(queueOwner?.[queueKey])
+		? (queueOwner[queueKey] as unknown[]).map((command) =>
+				toArgumentsArray(command)
+			)
+		: queueOwner?.[queueKey];
+	expect(actualQueue).toEqual(
 		commands.map((command) => toArgumentsArray(command))
 	);
 }

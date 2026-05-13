@@ -58,10 +58,10 @@ export const tursoDb = kyselyAdapter({
 });
 
 export const DEMO_TERMS_RELEASE = {
-	title: 'PigeonPost Terms & Conditions',
+	title: 'c15t Example Terms & Conditions',
 	type: 'terms_and_conditions' as const,
 	version: '2026-04-13',
-	hash: 'pigeonpost-terms-v2026-04-13',
+	hash: 'c15t-example-terms-v2026-04-13',
 	effectiveDate: '2026-04-13T00:00:00.000Z',
 };
 

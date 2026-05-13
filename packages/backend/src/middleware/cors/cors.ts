@@ -4,6 +4,8 @@
  * @packageDocumentation
  */
 
+import { matchesWildcard } from './matches-wildcard';
+
 /**
  * CORS configuration options compatible with Hono's cors middleware
  */
@@ -172,6 +174,9 @@ export function createCORSOptions(
 						normalizedOrigin === '[::1]' ||
 						normalizedOrigin.startsWith('[::1]:')
 					);
+				}
+				if (normalizedTrusted.startsWith('*.')) {
+					return matchesWildcard(normalizedOrigin, normalizedTrusted);
 				}
 				return normalizedTrusted === normalizedOrigin;
 			});

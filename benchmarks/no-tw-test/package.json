@@ -10,7 +10,7 @@
 		"@c15t/benchmarking": "workspace:*",
 		"@c15t/react": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
-		"next": "15.3.3",
+		"next": "15.5.15",
 		"react": "19.2.3",
 		"react-dom": "19.2.3"
 	},

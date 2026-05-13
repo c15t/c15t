@@ -5,6 +5,24 @@ description: Use Tailwind CSS utility classes to style consent components via th
 
 <import src="../../../shared/react/styling/tailwind.mdx#intro-and-setup" />
 
+## Troubleshooting: Fumadocs Overrides c15t Styles
+
+If c15t components render partially unstyled or lose their theme tokens inside a Fumadocs site, check the order of the imports in `app/globals.css`.
+
+**Cause:** Fumadocs preset imports can load after c15t and override the tokens and layer output that c15t components depend on.
+
+**Fix:** Keep `@c15t/nextjs/styles.css` at the end of the top-level `@import` block:
+
+```css title="app/globals.css"
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "fumadocs-ui/css/shadcn.css";
+@import "fumadocs-ui/css/preset.css";
+@import "@c15t/nextjs/styles.css";
+```
+
+If you use other preset or docs-site stylesheets, apply the same rule: load them first, then import c15t last in the top-level import block.
+
 ## Using Tailwind with Slots
 
 Apply Tailwind classes via the theme's `slots` object:

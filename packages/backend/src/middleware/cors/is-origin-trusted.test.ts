@@ -88,6 +88,15 @@ describe('CORS utilities', () => {
 			expect(isOriginTrusted('https://EXAMPLE.COM', trustedDomains)).toBe(true);
 		});
 
+		it('should allow www and non-www exact domain variants', () => {
+			expect(isOriginTrusted('https://www.example.com', ['example.com'])).toBe(
+				true
+			);
+			expect(isOriginTrusted('https://example.com', ['www.example.com'])).toBe(
+				true
+			);
+		});
+
 		it('should handle subdomain levels with wildcards', () => {
 			const trustedDomains = ['*.example.com'];
 			expect(isOriginTrusted('https://a.b.example.com', trustedDomains)).toBe(

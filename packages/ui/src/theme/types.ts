@@ -376,6 +376,8 @@ export interface ComponentSlots {
 	consentWidgetAccordion?: SlotStyle;
 	/** Footer area for widget actions and links. */
 	consentWidgetFooter?: SlotStyle;
+	/** Nested button group inside the widget footer. */
+	consentWidgetFooterSubGroup?: SlotStyle;
 	/** Branding tag rendered below the standalone consent widget. */
 	consentWidgetTag?: SlotStyle;
 
