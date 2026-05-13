@@ -201,6 +201,7 @@ describe('built-in script helpers', () => {
 		});
 
 		const dataLayer = globalRef.dataLayer as unknown[];
+		expect(Array.isArray(dataLayer[0])).toBe(false);
 		expect(Array.from(dataLayer[0] as IArguments)).toEqual([
 			'consent',
 			'default',
@@ -237,6 +238,7 @@ describe('built-in script helpers', () => {
 		});
 
 		const dataLayer = globalRef.dataLayer as unknown[];
+		expect(Array.isArray(dataLayer[0])).toBe(false);
 		expect(Array.from(dataLayer[0] as IArguments)).toEqual([
 			'consent',
 			'default',

@@ -114,16 +114,18 @@ function executeStep(step: ManifestStep): void {
 				break;
 			}
 
-			win[step.name] = function queueFunction(
-				this: unknown,
-				...args: unknown[]
-			) {
+			win[step.name] = function queueFunction(this: unknown) {
 				const queueTarget = win[step.queue];
 				if (!Array.isArray(queueTarget)) {
 					return;
 				}
 
-				queueTarget.push(step.pushStyle === 'array' ? [...args] : args);
+				if (step.pushStyle === 'array') {
+					queueTarget.push(Array.from(arguments));
+					return;
+				}
+
+				queueTarget.push(arguments);
 			};
 			break;
 		}
@@ -134,15 +136,16 @@ function executeStep(step: ManifestStep): void {
 				break;
 			}
 
-			const stub = function stubFunction(this: unknown, ...args: unknown[]) {
+			const stub = function stubFunction(this: unknown) {
 				const self = win[step.name] as Record<string, unknown> | undefined;
 				const dispatcher =
 					self && step.dispatchProperty
 						? self[step.dispatchProperty]
 						: undefined;
+				const runtimeArgs = Array.from(arguments);
 
 				if (typeof dispatcher === 'function') {
-					dispatcher.apply(self, args);
+					dispatcher.apply(self, runtimeArgs);
 					return;
 				}
 
@@ -151,9 +154,12 @@ function executeStep(step: ManifestStep): void {
 					return;
 				}
 
-				queueTarget.push(
-					step.queueFormat === 'array' ? [...args] : (args as unknown)
-				);
+				if (step.queueFormat === 'array') {
+					queueTarget.push(runtimeArgs);
+					return;
+				}
+
+				queueTarget.push(arguments);
 			};
 
 			win[step.name] = stub;

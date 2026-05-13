@@ -1,0 +1,39 @@
+---
+title: self-host
+description: Workflow commands for self-hosted @c15t/backend deployments.
+---
+
+`self-host` is the namespace for commands that only apply when you run your own [`@c15t/backend`](/docs/self-host/v2). The hosted product (inth.com) handles these automatically.
+
+## Usage
+
+Run the interactive picker:
+
+```bash
+pnpm dlx @c15t/cli self-host
+```
+
+Or invoke a subcommand directly:
+
+```bash
+pnpm dlx @c15t/cli self-host migrate
+```
+
+## Subcommands
+
+### `migrate`
+
+Runs the latest database migrations for your configured adapter.
+
+```bash
+pnpm dlx @c15t/cli self-host migrate
+```
+
+`@c15t/backend` supports Drizzle, Kysely, Prisma, TypeORM, and Mongo adapters. The migrate command picks the right migration runner based on your `c15t-backend.config.ts`.
+
+**Tip:** run `migrate` after every `c15t` upgrade. New schema fields are introduced as additive migrations.
+
+## Related
+
+- [Self-host overview](/docs/self-host/v2) — full deployment guide.
+- [`generate`](./generate) — regenerate schema files before migrating.

@@ -13,9 +13,9 @@
 		"benchmarks/**",
 		"apps/*",
 		"configs/*",
-		"packages/**",
+		"packages/*",
 		"internals/**",
-		"examples/demo"
+		"examples/*"
 	],
 	"scripts": {
 		"bench": "turbo run bench --filter=@c15t/core-benchmarks --filter=@c15t/next-bundle-bench --filter=@c15t/react-browser-bench --filter=@c15t/nextjs-browser-bench --filter=@c15t/script-lifecycle-bench",
@@ -30,10 +30,10 @@
 		"ci:publish": "bunx changeset tag && bun publish",
 		"ci:version": "bun changeset version",
 		"clear-cache": "bun scripts/clear-rslib-cache.ts",
-		"css-layer:build": "turbo run build --filter=@c15t/css-layer-preview --filter=@c15t/tw3-css-test --filter=@c15t/tw4-css-test --filter=@c15t/no-tw-css-test",
-		"css-layer:dev": "node scripts/css-layer-review.mjs",
-		"css-layer:review": "node scripts/css-layer-review.mjs",
-		"dev": "turbo watch dev --concurrency=15 --filter=!./examples/** --filter=!./benchmarks/** --filter=!./apps/**",
+		"compat:styles:build": "turbo run build --filter=@c15t/css-layer-preview --filter=@c15t/tw3-css-test --filter=@c15t/tw4-css-test --filter=@c15t/no-tw-css-test",
+		"compat:styles:review": "node scripts/css-layer-review.mjs",
+		"dev": "turbo run dev --filter=@c15t/example-demo",
+		"dev:bench:nextjs": "turbo run dev --filter=@c15t/nextjs-browser-bench",
 		"fmt": "turbo run fmt",
 		"fmt:docs": "bunx remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
 		"generate:readmes": "tsx scripts/generate-readme.ts",
@@ -45,6 +45,7 @@
 		"release": "bun run build && bun run check:publish-artifacts && bun scripts/resolve-workspace-deps.ts && changeset publish",
 		"release:canary": "bun run build && bun run check:publish-artifacts && bun scripts/resolve-workspace-deps.ts && changeset publish --tag canary",
 		"release:rc": "bun run build:libs && bun run check:publish-artifacts && bun scripts/resolve-workspace-deps.ts && changeset publish",
+		"repro:tw3-css": "bun scripts/repro-tw3-css-entrypoints.ts",
 		"setup:docs": "tsx scripts/setup-docs.ts",
 		"test": "turbo run test",
 		"vercel-build": "tsx scripts/setup-docs.ts --vercel",
@@ -56,7 +57,14 @@
 	},
 	"overrides": {
 		"cross-spawn": ">=6.0.6",
-		"typeorm": ">=0.3.26"
+		"defu": "6.1.5",
+		"hono": "4.12.14",
+		"next@>=15.3.0-canary.0 <15.5.15": "15.5.15",
+		"next@>=16.0.0-beta.0 <16.2.3": "16.2.3",
+		"postcss": "8.5.10",
+		"typeorm": ">=0.3.26",
+		"vite@>=7.0.0 <=7.3.1": "7.3.2",
+		"vite@>=8.0.0 <=8.0.4": "8.0.5"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.10",
@@ -108,7 +116,7 @@
 		"unist-builder": "4.0.0",
 		"unist-util-is": "6.0.1",
 		"unist-util-visit": "5.1.0",
-		"vite": "8.0.3",
+		"vite": "8.0.5",
 		"vitest": "4.1.2",
 		"vitest-browser-react": "2.1.0"
 	},

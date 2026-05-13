@@ -16,5 +16,5 @@ for (const route of routes) {
 
 console.log('');
 console.log(
-	'Run `bun run css-layer:build` once, then `bun run css-layer:dev`, and open one of the preview routes above.'
+	'Run `bun run compat:styles:build` once, then `bun run compat:styles:review`, and open one of the preview routes above.'
 );
