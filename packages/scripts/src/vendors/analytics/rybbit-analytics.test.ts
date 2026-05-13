@@ -67,4 +67,19 @@ describe('rybbitAnalytics', () => {
 			'data-api-key': 'secret-key',
 		});
 	});
+
+	it('trims site IDs before setting data attributes', () => {
+		const script = rybbitAnalytics({ siteId: '  rybbit-123  ' });
+
+		expect(script.attributes?.['data-site-id']).toBe('rybbit-123');
+	});
+
+	it('throws for blank site IDs', () => {
+		expect(() => rybbitAnalytics({ siteId: '   ' })).toThrow(
+			'rybbitAnalytics: missing siteId'
+		);
+		expect(() =>
+			rybbitAnalytics({ siteId: undefined as unknown as string })
+		).toThrow('rybbitAnalytics: missing siteId');
+	});
 });

@@ -75,7 +75,7 @@ export interface CloudflareWebAnalyticsOptions {
 export function cloudflareWebAnalytics(
 	options: CloudflareWebAnalyticsOptions
 ): Script {
-	const token = String(options.token).trim();
+	const token = typeof options.token === 'string' ? options.token.trim() : '';
 	if (token.length === 0) {
 		throw new Error('cloudflareWebAnalytics: missing token');
 	}

@@ -109,6 +109,12 @@ function getRybbitScriptUrl(options: RybbitAnalyticsOptions): string {
  * @returns The Rybbit Analytics script.
  */
 export function rybbitAnalytics(options: RybbitAnalyticsOptions): Script {
+	const siteId =
+		typeof options.siteId === 'undefined' ? '' : String(options.siteId).trim();
+	if (siteId.length === 0) {
+		throw new Error('rybbitAnalytics: missing siteId');
+	}
+
 	let debounce: string | undefined;
 	if (options.debounce !== undefined) {
 		debounce = String(options.debounce);
@@ -126,7 +132,7 @@ export function rybbitAnalytics(options: RybbitAnalyticsOptions): Script {
 
 	return resolveManifest(rybbitAnalyticsManifest, {
 		scriptUrl: getRybbitScriptUrl(options),
-		siteId: String(options.siteId),
+		siteId,
 		autoTrackPageview: booleanDataAttribute(options.autoTrackPageview),
 		trackSpa: booleanDataAttribute(options.trackSpa),
 		trackQuery: booleanDataAttribute(options.trackQuery),

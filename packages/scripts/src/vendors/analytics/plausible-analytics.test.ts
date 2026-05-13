@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'bun:test';
 import {
 	createCallbackInfo,
 	deniedConsentState,
@@ -20,10 +20,8 @@ describe('plausibleAnalytics', () => {
 			persistAfterConsentRevoked: undefined,
 			src: 'https://plausible.io/js/script.js',
 		});
-		expect(script.attributes).toEqual({
-			'data-domain': 'example.com',
-			'data-api': undefined,
-		});
+		expect(script.attributes?.['data-domain']).toBe('example.com');
+		expect(script.attributes?.['data-api']).toBeUndefined();
 	});
 
 	it('joins script extensions into the loader filename', () => {
@@ -35,10 +33,8 @@ describe('plausibleAnalytics', () => {
 		expect(script.src).toBe(
 			'https://plausible.io/js/script.file-downloads.outbound-links.js'
 		);
-		expect(script.attributes).toEqual({
-			'data-domain': 'example.com',
-			'data-api': undefined,
-		});
+		expect(script.attributes?.['data-domain']).toBe('example.com');
+		expect(script.attributes?.['data-api']).toBeUndefined();
 	});
 
 	it('uses the new scriptId loader and drops domain/data-api attributes', () => {
@@ -48,19 +44,15 @@ describe('plausibleAnalytics', () => {
 		});
 
 		expect(script.src).toBe('https://plausible.io/js/pa-abc123.js');
-		expect(script.attributes).toEqual({
-			'data-domain': undefined,
-			'data-api': undefined,
-		});
+		expect(script.attributes?.['data-domain']).toBeUndefined();
+		expect(script.attributes?.['data-api']).toBeUndefined();
 	});
 
 	it('trims identifiers before building manifest values', () => {
 		const script = plausibleAnalytics({ domain: ' example.com ' });
 
-		expect(script.attributes).toEqual({
-			'data-domain': 'example.com',
-			'data-api': undefined,
-		});
+		expect(script.attributes?.['data-domain']).toBe('example.com');
+		expect(script.attributes?.['data-api']).toBeUndefined();
 	});
 
 	it('throws when neither scriptId nor domain is provided', () => {

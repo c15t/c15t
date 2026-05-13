@@ -41,6 +41,9 @@ describe('cloudflareWebAnalytics', () => {
 		expect(() => cloudflareWebAnalytics({ token: '   ' })).toThrow(
 			'cloudflareWebAnalytics: missing token'
 		);
+		expect(() =>
+			cloudflareWebAnalytics({ token: undefined as unknown as string })
+		).toThrow('cloudflareWebAnalytics: missing token');
 	});
 
 	it('honors a custom loader URL', () => {
