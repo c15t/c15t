@@ -65,6 +65,36 @@ export function resolveScriptUrl(
 }
 
 /**
+ * Removes leading slash characters without using a regular expression.
+ *
+ * This helper is used on caller-controlled URL fragments, so it intentionally
+ * stays linear even for very long repeated slash input.
+ */
+export function stripLeadingSlashes(value: string): string {
+	let index = 0;
+	while (index < value.length && value.charCodeAt(index) === 47) {
+		index += 1;
+	}
+
+	return index === 0 ? value : value.slice(index);
+}
+
+/**
+ * Removes trailing slash characters without using a regular expression.
+ *
+ * This helper is used on caller-controlled URL fragments, so it intentionally
+ * stays linear even for very long repeated slash input.
+ */
+export function stripTrailingSlashes(value: string): string {
+	let end = value.length;
+	while (end > 0 && value.charCodeAt(end - 1) === 47) {
+		end -= 1;
+	}
+
+	return end === value.length ? value : value.slice(0, end);
+}
+
+/**
  * Joins a base URL and path with exactly one slash between them.
  *
  * @param base - Base URL or origin. Trailing slashes are removed before joining.
@@ -100,5 +130,5 @@ export function joinUrlPath(base: string, path: string): string {
 		);
 	}
 
-	return `${trimmedBase.replace(/\/+$/, '')}/${trimmedPath.replace(/^\/+/, '')}`;
+	return `${stripTrailingSlashes(trimmedBase)}/${stripLeadingSlashes(trimmedPath)}`;
 }

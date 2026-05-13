@@ -1,7 +1,7 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
-import { joinUrlPath } from '../_shared/script-url';
+import { joinUrlPath, stripTrailingSlashes } from '../_shared/script-url';
 
 declare global {
 	interface Window {
@@ -17,18 +17,15 @@ declare global {
  * protocol prefix is present.
  */
 function stripProtocol(value: string): string {
-	return value.replace(/^https?:\/\//, '');
-}
+	if (value.startsWith('https://')) {
+		return value.slice('https://'.length);
+	}
 
-/**
- * Trims trailing slash characters from a string.
- *
- * @param value - The input string to normalize.
- * @returns The input without trailing slashes. For an empty string, returns an
- * empty string.
- */
-function stripTrailingSlash(value: string): string {
-	return value.replace(/\/+$/, '');
+	if (value.startsWith('http://')) {
+		return value.slice('http://'.length);
+	}
+
+	return value;
 }
 
 /**
@@ -44,11 +41,11 @@ function resolveMatomoOrigin(
 	options: MatomoAnalyticsOptions
 ): string | undefined {
 	if (options.matomoUrl) {
-		return stripTrailingSlash(options.matomoUrl);
+		return stripTrailingSlashes(options.matomoUrl);
 	}
 
 	if (options.cloudId) {
-		const cleanedCloudId = stripTrailingSlash(stripProtocol(options.cloudId));
+		const cleanedCloudId = stripTrailingSlashes(stripProtocol(options.cloudId));
 		if (cleanedCloudId.endsWith('.matomo.cloud')) {
 			return `https://${cleanedCloudId}`;
 		}

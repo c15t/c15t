@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { joinUrlPath, resolveScriptUrl, trimToUndefined } from './script-url';
+import {
+	joinUrlPath,
+	resolveScriptUrl,
+	stripLeadingSlashes,
+	stripTrailingSlashes,
+	trimToUndefined,
+} from './script-url';
 
 describe('vendor script URL helpers', () => {
 	describe('trimToUndefined', () => {
@@ -78,6 +84,20 @@ describe('vendor script URL helpers', () => {
 			expect(() => joinUrlPath('https://analytics.example.com', '  ')).toThrow(
 				TypeError
 			);
+		});
+	});
+
+	describe('slash stripping helpers', () => {
+		it('remove repeated slashes without changing inner slash groups', () => {
+			expect(stripLeadingSlashes('///script//path.js')).toBe('script//path.js');
+			expect(stripTrailingSlashes('https://example.com///')).toBe(
+				'https://example.com'
+			);
+		});
+
+		it('handles all-slash values', () => {
+			expect(stripLeadingSlashes('////')).toBe('');
+			expect(stripTrailingSlashes('////')).toBe('');
 		});
 	});
 });

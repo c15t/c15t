@@ -1,6 +1,7 @@
 import type { Script } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
+import { stripTrailingSlashes } from '../_shared/script-url';
 
 declare global {
 	interface Window {
@@ -50,7 +51,7 @@ const REGION_HOSTS = {
 } as const satisfies Record<PosthogRegion, PosthogHostProfile>;
 
 function normalizeHost(host: string): string {
-	return host.replace(/\/+$/, '');
+	return stripTrailingSlashes(host);
 }
 
 function regionFromHost(host: string): PosthogRegion | undefined {
