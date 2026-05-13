@@ -28,10 +28,6 @@ export default function V3ReactFullAggregatePage() {
 		<ConsentProvider
 			options={{
 				mode: 'offline',
-				prefetch: {
-					initialJurisdiction: 'GDPR',
-					initialShowConsentBanner: true,
-				},
 			}}
 		>
 			<ConsentDraftProvider>

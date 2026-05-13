@@ -1,11 +1,11 @@
-import { Tabs } from '@c15t/react/primitives';
 import {
 	arrowLeftNavigation,
 	homeAndEndKeys,
 	keyboardNavigation,
 	tabKeySkipsInactiveTabs,
 	tabSwitching,
-} from '@c15t/storybook-tests/play/tabs';
+} from '@c15t/conformance/play/tabs';
+import { Tabs } from '@c15t/react/primitives';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type React from 'react';
 import { useState } from 'react';
@@ -15,7 +15,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Tabs',
+	title: 'PRIMITIVES - REACT/Tabs',
 } satisfies Meta<typeof Tabs.Root>;
 
 export default meta;

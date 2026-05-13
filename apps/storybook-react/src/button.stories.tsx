@@ -1,5 +1,5 @@
+import { buttonRenders } from '@c15t/conformance/play/button';
 import { Button } from '@c15t/react/primitives';
-import { buttonRenders } from '@c15t/storybook-tests/play/button';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 const meta = {
@@ -27,7 +27,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Button',
+	title: 'PRIMITIVES - REACT/Button',
 } satisfies Meta<typeof Button.Root>;
 
 export default meta;

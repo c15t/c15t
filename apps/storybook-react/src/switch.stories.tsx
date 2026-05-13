@@ -1,8 +1,5 @@
+import { controlledToggle, toggleOnOff } from '@c15t/conformance/play/switch';
 import { Switch } from '@c15t/react/primitives';
-import {
-	controlledToggle,
-	toggleOnOff,
-} from '@c15t/storybook-tests/play/switch';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { enTranslations } from '../../../packages/translations/src';
@@ -45,7 +42,7 @@ const meta = {
 			</label>
 		</div>
 	),
-	title: 'Primitives/Switch',
+	title: 'PRIMITIVES - REACT/Switch',
 } satisfies Meta<typeof Switch.Root>;
 
 export default meta;

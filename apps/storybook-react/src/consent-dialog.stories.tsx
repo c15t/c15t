@@ -1,4 +1,4 @@
-import { saveFlow } from '@c15t/storybook-tests/play/consent-dialog';
+import { saveFlow } from '@c15t/conformance/play/consent-dialog';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
 	ConsentBanner,
@@ -15,7 +15,7 @@ const meta = {
 	parameters: {
 		layout: 'fullscreen',
 	},
-	title: 'Components/Core/Consent Dialog',
+	title: 'COMPONENTS - REACT/Core/Consent Dialog',
 } satisfies Meta<typeof ConsentDialog>;
 
 export default meta;

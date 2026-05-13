@@ -1,7 +1,7 @@
 import {
 	startsClosedByDefault,
 	toggleOpenClose,
-} from '@c15t/storybook-tests/play/collapsible';
+} from '@c15t/conformance/play/collapsible';
 import { enTranslations } from '@c15t/translations';
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
 import CollapsibleDemo from './CollapsibleDemo.svelte';
@@ -13,7 +13,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Collapsible',
+	title: 'PRIMITIVES - SVELTE/Collapsible',
 } satisfies Meta<CollapsibleDemo>;
 
 export default meta;
@@ -22,7 +22,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
 	args: {
-		defaultOpen: true,
+		open: true,
 		title: consentTypes.measurement.title,
 		description: consentTypes.measurement.description,
 	},
@@ -31,7 +31,7 @@ export const Default: Story = {
 
 export const ClosedByDefault: Story = {
 	args: {
-		defaultOpen: false,
+		open: false,
 		title: consentTypes.functionality.title,
 		description: consentTypes.functionality.description,
 	},

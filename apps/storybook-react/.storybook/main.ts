@@ -30,10 +30,10 @@ const config: StorybookConfig = {
 			resolve: {
 				alias: [
 					{
-						find: /^@c15t\/storybook-tests\/(.*)$/,
+						find: /^@c15t\/conformance\/(.*)$/,
 						replacement: path.resolve(
 							storybookDir,
-							'../../../internals/storybook-tests/src/$1'
+							'../../../internals/conformance/src/$1'
 						),
 					},
 					{
@@ -94,10 +94,6 @@ const config: StorybookConfig = {
 					{
 						find: /^@c15t\/ui\/styles\/primitives$/,
 						replacement: ui('styles', 'primitives', 'index.ts'),
-					},
-					{
-						find: /^@c15t\/ui\/styles\/components\/(.*)\.module\.js$/,
-						replacement: ui('styles', 'components', '$1.module.css'),
 					},
 					{
 						find: /^@c15t\/ui\/theme$/,

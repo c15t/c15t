@@ -56,10 +56,6 @@ export default function V3ReactStandardScriptLoaderPage() {
 			options={{
 				mode: 'offline',
 				scripts: DEMO_SCRIPTS,
-				prefetch: {
-					initialJurisdiction: 'GDPR',
-					initialShowConsentBanner: true,
-				},
 			}}
 		>
 			<ConsentDraftProvider>

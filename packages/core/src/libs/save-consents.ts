@@ -342,7 +342,7 @@ export async function saveConsents({
 	const consent = await manager.setConsent({
 		body: {
 			type: 'cookie_banner',
-			domain: window.location.hostname,
+			domain: typeof window !== 'undefined' ? window.location.hostname : '',
 			preferences: requestPreferences,
 			subjectId,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,

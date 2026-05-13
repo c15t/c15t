@@ -29,6 +29,7 @@ coverage
 
 # Build Outputs
 .next/
+.svelte-kit
 out/
 build
 dist

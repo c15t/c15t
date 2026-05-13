@@ -1,4 +1,4 @@
-import { linkOpensDialog } from '@c15t/storybook-tests/play/consent-dialog-link';
+import { linkOpensDialog } from '@c15t/conformance/play/consent-dialog-link';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
 	ConsentDialog,
@@ -15,7 +15,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Components/Core/Consent Dialog Link',
+	title: 'COMPONENTS - REACT/Core/Consent Dialog Link',
 } satisfies Meta<typeof ConsentDialogLink>;
 
 export default meta;

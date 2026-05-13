@@ -24,7 +24,7 @@ const ConsentWidgetAcceptAllButton = forwardRef<
 			consentAction="accept"
 			{...props}
 			themeKey="buttonSecondary"
-			data-testid="consent-widget-footer-accept-button"
+			data-testid="consent-widget-footer-accept-all-button"
 			closeConsentBanner={true}
 			closeConsentDialog={true}
 		>

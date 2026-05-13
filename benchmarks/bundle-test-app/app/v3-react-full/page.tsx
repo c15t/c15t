@@ -99,12 +99,6 @@ export default function V3ReactFullPage() {
 					],
 					logBlockedRequests: false,
 				},
-				// Force showConsentBanner=true so the demo always renders the banner,
-				// even in a jurisdiction the offline transport would otherwise mark
-				// as NONE.
-				prefetch: {
-					initialShowConsentBanner: true,
-				},
 			}}
 		>
 			<ConsentDraftProvider>

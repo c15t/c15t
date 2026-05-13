@@ -1,8 +1,8 @@
-import { Collapsible } from '@c15t/react/primitives';
 import {
 	startsClosedByDefault,
 	toggleOpenClose,
-} from '@c15t/storybook-tests/play/collapsible';
+} from '@c15t/conformance/play/collapsible';
+import { Collapsible } from '@c15t/react/primitives';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type React from 'react';
 import { enTranslations } from '../../../packages/translations/src';
@@ -12,7 +12,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Collapsible',
+	title: 'PRIMITIVES - REACT/Collapsible',
 } satisfies Meta<typeof Collapsible.Root>;
 
 export default meta;

@@ -1,7 +1,7 @@
 import {
 	startsClosedByDefault,
 	toggleOpenClose,
-} from '@c15t/storybook-tests/play/collapsible';
+} from '@c15t/conformance/play/collapsible';
 import { collapsibleVariants, getOpenState } from '@c15t/vue';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import { computed, ref } from 'vue';
