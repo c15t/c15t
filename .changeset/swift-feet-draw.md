@@ -31,5 +31,10 @@ Google Tag and Google Tag Manager boot timestamps now resolve during script
 lifecycle execution instead of helper construction, which keeps documented setup
 patterns compatible with Next.js Cache Components prerendering.
 
+PostHog now supports explicit EU/US region selection, keeps the bootstrap script
+host aligned with an explicit API host, and exposes loading modes for immediate
+cookieless consent sync, consent-gated loading, or disabling the helper without
+issuing a PostHog network request.
+
 Updated the docs and CLI generation prompts so these providers are discoverable
 from the integration docs and script-loader setup flows.
