@@ -27,10 +27,6 @@ export default function V3ReactFullSplitPage() {
 		<ConsentProvider
 			options={{
 				mode: 'offline',
-				prefetch: {
-					initialJurisdiction: 'GDPR',
-					initialShowConsentBanner: true,
-				},
 			}}
 		>
 			<ConsentDraftProvider>

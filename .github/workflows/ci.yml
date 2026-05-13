@@ -150,9 +150,9 @@ jobs:
         run: bunx playwright install --with-deps chromium
 
       - name: 🏗️ Build Storybooks
-        run: |
-          bun --cwd apps/storybook-react build
-          bun --cwd apps/storybook-svelte build
+        # Use turbo so workspace deps (notably @c15t/ui CSS dist) build
+        # before the storybook builds consume them via PostCSS @import.
+        run: bun turbo run build --filter=@c15t/storybook-react --filter=@c15t/storybook-svelte
 
       - name: 🌐 Serve Storybooks
         run: |
