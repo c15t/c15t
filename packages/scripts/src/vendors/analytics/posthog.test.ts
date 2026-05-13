@@ -58,7 +58,7 @@ describe('posthog', () => {
 
 		expect(init).toHaveBeenCalledWith(globalRef.posthog, 'phc_123', {
 			api_host: 'https://eu.i.posthog.com',
-			ui_host: 'https://eu.i.posthog.com',
+			ui_host: 'https://eu.posthog.com',
 			autocapture: false,
 			person_profiles: 'identified_only',
 			cookieless_mode: 'on_reject',
@@ -207,6 +207,20 @@ describe('posthog', () => {
 		});
 	});
 
+	it('uses explicit region UI host for custom API hosts', () => {
+		const script = posthog({
+			id: 'phc_custom_region',
+			region: 'us',
+			apiHost: 'https://events.example.com/posthog',
+		});
+
+		expect(script.attributes).toEqual({
+			crossorigin: 'anonymous',
+			'data-api-host': 'https://events.example.com/posthog',
+			'data-ui-host': 'https://us.posthog.com',
+		});
+	});
+
 	it('can wait for measurement consent before loading PostHog', () => {
 		const script = posthog({
 			id: 'phc_after_consent',
@@ -234,7 +248,7 @@ describe('posthog', () => {
 		expect(script.onConsentChange).toBeUndefined();
 	});
 
-	it('allows explicit init options to override helper defaults', () => {
+	it('allows init options to override non-host helper defaults', () => {
 		const globalRef = getTestGlobal();
 		const init = vi.fn();
 		globalRef.posthog = {
@@ -264,8 +278,8 @@ describe('posthog', () => {
 		);
 
 		expect(init).toHaveBeenCalledWith('phc_overrides', {
-			api_host: 'https://us.i.posthog.com',
-			ui_host: 'https://us.posthog.com',
+			api_host: 'https://eu.i.posthog.com',
+			ui_host: 'https://eu.posthog.com',
 			defaults: '2025-05-24',
 			cookieless_mode: 'always',
 		});

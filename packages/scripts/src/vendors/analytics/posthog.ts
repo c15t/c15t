@@ -90,9 +90,10 @@ function deriveScriptUrlFromApiHost(apiHost: string): string {
  * is not supported by the option types and should not be passed.
  *
  * For custom `apiHost` values that do not match known PostHog Cloud regions,
- * `uiHost` defaults to the normalized `apiHost`. When `scriptUrl` is omitted,
- * an explicit `apiHost` derives it with `deriveScriptUrlFromApiHost`; otherwise
- * the selected region default script URL is used.
+ * `uiHost` uses an explicitly selected region when present and otherwise
+ * defaults to the normalized `apiHost`. When `scriptUrl` is omitted, an explicit
+ * `apiHost` derives it with `deriveScriptUrlFromApiHost`; otherwise the
+ * selected region default script URL is used.
  *
  * @example
  * `{ region: 'us' }` resolves US API, UI, and bootstrap script hosts.
@@ -109,19 +110,30 @@ function resolvePosthogHosts(
 	const regionDefaults = REGION_HOSTS[options.region ?? 'eu'];
 	const apiHost = normalizeHost(options.apiHost ?? regionDefaults.apiHost);
 	const inferredRegion = regionFromHost(apiHost);
-	const uiHost = normalizeHost(
-		options.uiHost ??
-			(inferredRegion ? REGION_HOSTS[inferredRegion].uiHost : apiHost)
-	);
+	let uiHost: string;
+	if (options.uiHost !== undefined) {
+		uiHost = options.uiHost;
+	} else if (inferredRegion) {
+		uiHost = REGION_HOSTS[inferredRegion].uiHost;
+	} else if (options.region !== undefined) {
+		uiHost = REGION_HOSTS[options.region].uiHost;
+	} else {
+		uiHost = apiHost;
+	}
+
+	let scriptUrl: string;
+	if (options.scriptUrl !== undefined) {
+		scriptUrl = options.scriptUrl;
+	} else if (options.apiHost !== undefined) {
+		scriptUrl = deriveScriptUrlFromApiHost(apiHost);
+	} else {
+		scriptUrl = regionDefaults.scriptUrl;
+	}
 
 	return {
 		apiHost,
-		uiHost,
-		scriptUrl:
-			options.scriptUrl ??
-			(options.apiHost
-				? deriveScriptUrlFromApiHost(apiHost)
-				: regionDefaults.scriptUrl),
+		uiHost: normalizeHost(uiHost),
+		scriptUrl,
 	};
 }
 
@@ -278,11 +290,11 @@ export function posthog(options: PosthogConsentOptions): Script {
 		uiHost,
 		scriptUrl,
 		initOptions: {
-			api_host: apiHost,
-			ui_host: uiHost,
 			defaults: DEFAULTS_DATE,
 			cookieless_mode: 'on_reject',
 			...options.initOptions,
+			api_host: apiHost,
+			ui_host: uiHost,
 		},
 	});
 
