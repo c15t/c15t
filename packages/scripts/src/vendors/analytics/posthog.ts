@@ -74,6 +74,35 @@ function deriveScriptUrlFromApiHost(apiHost: string): string {
 	return `${normalized}/static/array.js`;
 }
 
+/**
+ * Resolves the PostHog host profile from helper options.
+ *
+ * Precedence is:
+ * 1. Explicit `options.apiHost`, `options.uiHost`, and `options.scriptUrl`.
+ * 2. Region inferred from an explicit `apiHost` via `regionFromHost` and
+ *    `REGION_HOSTS`.
+ * 3. `REGION_HOSTS[options.region ?? 'eu']` defaults.
+ *
+ * `options` is a `PosthogConsentOptions` object with optional string host
+ * fields; the returned `PosthogHostProfile` always contains string `apiHost`,
+ * `uiHost`, and `scriptUrl` values. `apiHost` and `uiHost` are always
+ * normalized with `normalizeHost`. `undefined` values select defaults; `null`
+ * is not supported by the option types and should not be passed.
+ *
+ * For custom `apiHost` values that do not match known PostHog Cloud regions,
+ * `uiHost` defaults to the normalized `apiHost`. When `scriptUrl` is omitted,
+ * an explicit `apiHost` derives it with `deriveScriptUrlFromApiHost`; otherwise
+ * the selected region default script URL is used.
+ *
+ * @example
+ * `{ region: 'us' }` resolves US API, UI, and bootstrap script hosts.
+ * @example
+ * `{ apiHost: 'https://us.i.posthog.com/' }` normalizes the API host and
+ * derives the US bootstrap script URL.
+ * @example
+ * `{ apiHost: 'https://events.example.com' }` resolves UI to the same custom
+ * host and script URL to `https://events.example.com/static/array.js`.
+ */
 function resolvePosthogHosts(
 	options: PosthogConsentOptions
 ): PosthogHostProfile {
