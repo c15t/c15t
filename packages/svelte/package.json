@@ -11,11 +11,11 @@
 	},
 	"dependencies": {
 		"@c15t/ui": "workspace:*",
-		"svelte": "^5.22.6"
+		"svelte": "^5.55.5"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
-		"typescript": "5.9.3",
-		"vitest": "4.0.15"
+		"typescript": "6.0.3",
+		"vitest": "4.1.6"
 	}
 }

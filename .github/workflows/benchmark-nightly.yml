@@ -26,7 +26,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Install Playwright Chromium
-        run: bunx playwright@1.58.2 install --with-deps chromium chromium-headless-shell
+        run: bunx playwright@1.60.0 install --with-deps chromium chromium-headless-shell
 
       - name: Clean benchmark output
         run: rm -rf .benchmarks
