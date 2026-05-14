@@ -180,6 +180,78 @@ describe('buildRuntimeDecisionDedupeKey', () => {
 	});
 });
 
+describe('postSubjectHandler givenAt validation', () => {
+	afterEach(() => {
+		vi.clearAllMocks();
+		vi.restoreAllMocks();
+		vi.useRealTimers();
+	});
+
+	it('rejects consent timestamps more than 5 minutes in the future', async () => {
+		const now = new Date('2024-01-01T00:00:00.000Z');
+		vi.useFakeTimers();
+		vi.setSystemTime(now);
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			givenAt: now.getTime() + 300_001,
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 400,
+			message: 'Consent givenAt cannot be more than 5 minutes in the future',
+			cause: {
+				code: 'CONSENT_GIVEN_AT_IN_FUTURE',
+			},
+		});
+
+		expect(registry.findOrCreateSubject).not.toHaveBeenCalled();
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('allows consent timestamps within the 5 minute future clock skew window', async () => {
+		const now = new Date('2024-01-01T00:00:00.000Z');
+		vi.useFakeTimers();
+		vi.setSystemTime(now);
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			givenAt: now.getTime() + 300_000,
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(db.transaction).toHaveBeenCalled();
+	});
+
+	it('allows older consent timestamps for offline fallback replay', async () => {
+		const now = new Date('2024-01-01T00:00:00.000Z');
+		vi.useFakeTimers();
+		vi.setSystemTime(now);
+
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			givenAt: now.getTime() - 30 * 86_400_000,
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(db.transaction).toHaveBeenCalled();
+	});
+});
+
 describe('postSubjectHandler idempotency', () => {
 	afterEach(() => {
 		vi.clearAllMocks();
