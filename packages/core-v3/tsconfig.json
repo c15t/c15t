@@ -1,0 +1,24 @@
+{
+	"extends": "@c15t/typescript-config/react-library.json",
+	"compilerOptions": {
+		"rootDir": "src",
+		"lib": ["dom", "esnext"],
+		"paths": {
+			"@c15t/schema": ["../schema/dist-types/index.d.ts"],
+			"@c15t/schema/*": ["../schema/dist-types/*"],
+			"@c15t/translations": ["../translations/dist-types/index.d.ts"],
+			"@c15t/translations/*": ["../translations/dist-types/*"],
+			"~/*": ["./src/*"]
+		}
+	},
+	"include": ["src"],
+	"exclude": [
+		"node_modules",
+		"**/__tests__/**",
+		"**/*.test.ts",
+		"**/*.test.tsx",
+		"**/*.spec.ts",
+		"**/*.spec.tsx",
+		"**/*.browser.test.ts"
+	]
+}

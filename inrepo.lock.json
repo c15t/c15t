@@ -1,0 +1,47 @@
+{
+	"lockfileVersion": 1,
+	"modules": {
+		"react": {
+			"source": "react",
+			"gitUrl": "https://github.com/facebook/react.git",
+			"commit": "8fc5763b8acb3fe8ca8c350cff7675a5bce2b332",
+			"ref": null,
+			"updatedAt": "2026-05-14T03:26:15.587Z"
+		},
+		"vue": {
+			"source": "vue",
+			"gitUrl": "https://github.com/vuejs/core.git",
+			"commit": "2042a040f1bb0620ca5381c8e60d6621b591d00f",
+			"ref": null,
+			"updatedAt": "2026-05-14T03:26:19.914Z"
+		},
+		"svelte": {
+			"source": "svelte",
+			"gitUrl": "https://github.com/sveltejs/svelte.git",
+			"commit": "5122936edb3c14e9a602e579727479b49cbd3239",
+			"ref": null,
+			"updatedAt": "2026-05-14T03:27:10.416Z"
+		},
+		"nuxt": {
+			"source": "nuxt",
+			"gitUrl": "https://github.com/nuxt/nuxt.git",
+			"commit": "fe86029c0a6883c3d8506879d61d1e1c37fb7308",
+			"ref": null,
+			"updatedAt": "2026-05-14T03:32:00.266Z"
+		},
+		"preact": {
+			"source": "preact",
+			"gitUrl": "https://github.com/preactjs/preact.git",
+			"commit": "a31df28ef6cab46ff877a8a51b69d62f0618eb57",
+			"ref": null,
+			"updatedAt": "2026-05-14T03:32:09.637Z"
+		},
+		"solid": {
+			"source": "solid",
+			"gitUrl": "https://github.com/sarenji/solid.git",
+			"commit": "21ff7e535f56e9ecc957f3f54164dd6bf72804e5",
+			"ref": null,
+			"updatedAt": "2026-05-14T03:32:20.807Z"
+		}
+	}
+}

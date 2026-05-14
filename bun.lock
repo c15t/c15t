@@ -436,6 +436,7 @@
     },
     "internals/storybook-tests": {
       "name": "@c15t/storybook-tests",
+      "version": "0.0.1",
       "dependencies": {
         "storybook": "10.3.1",
       },
@@ -446,7 +447,7 @@
     },
     "internals/typescript-config": {
       "name": "@c15t/typescript-config",
-      "version": "0.0.1-beta.1",
+      "version": "0.0.1",
     },
     "internals/vitest-config": {
       "name": "@c15t/vitest-config",
@@ -459,7 +460,7 @@
     },
     "packages/backend": {
       "name": "@c15t/backend",
-      "version": "2.0.0-rc.8",
+      "version": "2.0.0",
       "dependencies": {
         "@c15t/logger": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -493,7 +494,7 @@
     },
     "packages/cli": {
       "name": "@c15t/cli",
-      "version": "2.0.0-rc.8",
+      "version": "2.0.0",
       "bin": {
         "cli": "dist/index.mjs",
       },
@@ -532,7 +533,22 @@
     },
     "packages/core": {
       "name": "c15t",
-      "version": "2.0.0-rc.8",
+      "version": "2.0.0",
+      "dependencies": {
+        "@c15t/schema": "workspace:*",
+        "@c15t/translations": "workspace:*",
+        "zustand": "5.0.12",
+      },
+      "devDependencies": {
+        "@c15t/typescript-config": "workspace:*",
+        "@c15t/vitest-config": "workspace:*",
+        "genversion": "3.2.0",
+        "vitest-localstorage-mock": "0.1.2",
+      },
+    },
+    "packages/core-v3": {
+      "name": "c15t-v3",
+      "version": "2.0.0",
       "dependencies": {
         "@c15t/schema": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -547,7 +563,7 @@
     },
     "packages/dev-tools": {
       "name": "@c15t/dev-tools",
-      "version": "2.0.0-rc.8",
+      "version": "2.0.0",
       "dependencies": {
         "@radix-ui/react-accordion": "1.2.12",
         "@radix-ui/react-scroll-area": "^1.2.10",
@@ -577,7 +593,21 @@
     },
     "packages/iab": {
       "name": "@c15t/iab",
-      "version": "2.0.0-rc.8",
+      "version": "2.0.0",
+      "dependencies": {
+        "@c15t/schema": "workspace:*",
+        "@iabtechlabtcf/core": "^1.5.21",
+        "c15t": "workspace:*",
+      },
+      "devDependencies": {
+        "@c15t/typescript-config": "workspace:*",
+        "@c15t/vitest-config": "workspace:*",
+        "genversion": "3.2.0",
+      },
+    },
+    "packages/iab-v3": {
+      "name": "@c15t/iab-v3",
+      "version": "2.0.0",
       "dependencies": {
         "@c15t/schema": "workspace:*",
         "@iabtechlabtcf/core": "^1.5.21",
@@ -591,7 +621,7 @@
     },
     "packages/logger": {
       "name": "@c15t/logger",
-      "version": "1.0.2-rc.1",
+      "version": "2.0.0",
       "dependencies": {
         "chalk": "^5.6.2",
         "neverthrow": "^8.2.0",
@@ -604,7 +634,27 @@
     },
     "packages/nextjs": {
       "name": "@c15t/nextjs",
-      "version": "2.0.0-rc.9",
+      "version": "2.0.0",
+      "dependencies": {
+        "@c15t/react": "workspace:*",
+        "@c15t/translations": "workspace:*",
+        "c15t": "workspace:*",
+      },
+      "devDependencies": {
+        "@c15t/typescript-config": "workspace:*",
+        "@c15t/vitest-config": "workspace:*",
+        "genversion": "3.2.0",
+        "typescript": "6.0.2",
+      },
+      "peerDependencies": {
+        "next": "^16.0.0 || ^15.0.0 || ^14.0.0 || ^13.0.0",
+        "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
+        "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
+      },
+    },
+    "packages/nextjs-v3": {
+      "name": "@c15t/nextjs-v3",
+      "version": "2.0.0",
       "dependencies": {
         "@c15t/react": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -624,7 +674,7 @@
     },
     "packages/node-sdk": {
       "name": "@c15t/node-sdk",
-      "version": "2.0.0-rc.8",
+      "version": "2.0.0",
       "dependencies": {
         "@c15t/backend": "workspace:*",
         "@orpc/client": "1.13.13",
@@ -648,7 +698,28 @@
     },
     "packages/react": {
       "name": "@c15t/react",
-      "version": "2.0.0-rc.9",
+      "version": "2.0.0",
+      "dependencies": {
+        "@c15t/ui": "workspace:*",
+        "c15t": "workspace:*",
+      },
+      "devDependencies": {
+        "@c15t/backend": "workspace:*",
+        "@c15t/iab": "workspace:*",
+        "@c15t/typescript-config": "workspace:*",
+        "@c15t/vitest-config": "workspace:*",
+        "@iabtechlabtcf/core": "^1.5.20",
+        "genversion": "3.2.0",
+        "msw": "^2.12.14",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0 || ^19.0.0-rc || ^18.0.0 || ^17.0.0 || ^16.8.0",
+        "react-dom": "^19.0.0 || ^19.0.0-rc || ^18.0.0 || ^17.0.0 || ^16.8.0",
+      },
+    },
+    "packages/react-v3": {
+      "name": "@c15t/react-v3",
+      "version": "2.0.0",
       "dependencies": {
         "@c15t/ui": "workspace:*",
         "c15t": "workspace:*",
@@ -669,7 +740,7 @@
     },
     "packages/schema": {
       "name": "@c15t/schema",
-      "version": "2.0.0-rc.5",
+      "version": "2.0.0",
       "dependencies": {
         "valibot": "1.3.1",
       },
@@ -680,7 +751,7 @@
     },
     "packages/scripts": {
       "name": "@c15t/scripts",
-      "version": "1.1.0-rc.1",
+      "version": "2.0.0",
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
@@ -713,7 +784,7 @@
     },
     "packages/translations": {
       "name": "@c15t/translations",
-      "version": "2.0.0-rc.8",
+      "version": "2.0.0",
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
@@ -722,7 +793,7 @@
     },
     "packages/ui": {
       "name": "@c15t/ui",
-      "version": "2.0.0-rc.9",
+      "version": "2.0.0",
       "dependencies": {
         "@c15t/translations": "workspace:*",
         "c15t": "workspace:*",
@@ -933,6 +1004,8 @@
 
     "@c15t/iab": ["@c15t/iab@workspace:packages/iab"],
 
+    "@c15t/iab-v3": ["@c15t/iab-v3@workspace:packages/iab-v3"],
+
     "@c15t/logger": ["@c15t/logger@workspace:packages/logger"],
 
     "@c15t/next-bundle-bench": ["@c15t/next-bundle-bench@workspace:benchmarks/bundle-test-app"],
@@ -941,6 +1014,8 @@
 
     "@c15t/nextjs-browser-bench": ["@c15t/nextjs-browser-bench@workspace:benchmarks/nextjs-browser-bench"],
 
+    "@c15t/nextjs-v3": ["@c15t/nextjs-v3@workspace:packages/nextjs-v3"],
+
     "@c15t/no-tw-css-test": ["@c15t/no-tw-css-test@workspace:benchmarks/no-tw-test"],
 
     "@c15t/node-sdk": ["@c15t/node-sdk@workspace:packages/node-sdk"],
@@ -948,6 +1023,8 @@
     "@c15t/react": ["@c15t/react@workspace:packages/react"],
 
     "@c15t/react-browser-bench": ["@c15t/react-browser-bench@workspace:benchmarks/react-browser-bench"],
+
+    "@c15t/react-v3": ["@c15t/react-v3@workspace:packages/react-v3"],
 
     "@c15t/schema": ["@c15t/schema@workspace:packages/schema"],
 
@@ -2492,6 +2569,8 @@
     "c15t": ["c15t@workspace:packages/core"],
 
     "c15t-v1-codemod-fixture": ["c15t-v1-codemod-fixture@workspace:packages/cli/test/fixtures/v1-app"],
+
+    "c15t-v3": ["c15t-v3@workspace:packages/core-v3"],
 
     "caching-transform": ["caching-transform@4.0.0", "", { "dependencies": { "hasha": "^5.0.0", "make-dir": "^3.0.0", "package-hash": "^4.0.0", "write-file-atomic": "^3.0.0" } }, "sha512-kpqOvwXnjjN44D89K5ccQC+RUrsy7jB/XLlRrx0D7/2HNcTPqzsb6XgYoErwko6QsV184CA2YgS1fxDiiDZMWA=="],
 
