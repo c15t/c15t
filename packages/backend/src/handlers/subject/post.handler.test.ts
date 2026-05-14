@@ -3,6 +3,7 @@ import { resolvePolicyDecision } from '~/handlers/init/policy';
 import { verifyLegalDocumentSnapshotToken } from '~/handlers/legal-document/snapshot';
 import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
 import {
+	buildConsentDedupeKey,
 	buildRuntimeDecisionDedupeKey,
 	postSubjectHandler,
 } from './post.handler';
@@ -180,6 +181,46 @@ describe('buildRuntimeDecisionDedupeKey', () => {
 	});
 });
 
+describe('buildConsentDedupeKey', () => {
+	it('stays stable for identical consent submissions', () => {
+		const first = buildConsentDedupeKey({
+			tenantId: 'ins_123',
+			subjectId: 'sub_user1',
+			domainId: 'dom_1',
+			policyId: 'pol_1',
+			givenAt: GIVEN_AT_DATE,
+		});
+		const second = buildConsentDedupeKey({
+			tenantId: 'ins_123',
+			subjectId: 'sub_user1',
+			domainId: 'dom_1',
+			policyId: 'pol_1',
+			givenAt: GIVEN_AT_DATE,
+		});
+
+		expect(first).toBe(second);
+	});
+
+	it('changes across tenants', () => {
+		const tenantA = buildConsentDedupeKey({
+			tenantId: 'ins_a',
+			subjectId: 'sub_user1',
+			domainId: 'dom_1',
+			policyId: 'pol_1',
+			givenAt: GIVEN_AT_DATE,
+		});
+		const tenantB = buildConsentDedupeKey({
+			tenantId: 'ins_b',
+			subjectId: 'sub_user1',
+			domainId: 'dom_1',
+			policyId: 'pol_1',
+			givenAt: GIVEN_AT_DATE,
+		});
+
+		expect(tenantA).not.toBe(tenantB);
+	});
+});
+
 describe('postSubjectHandler idempotency', () => {
 	afterEach(() => {
 		vi.clearAllMocks();
@@ -229,6 +270,88 @@ describe('postSubjectHandler idempotency', () => {
 		expect(db.transaction).toHaveBeenCalled();
 	});
 
+	it('should return existing consent when a concurrent insert wins the race', async () => {
+		const existingConsent = {
+			id: 'con_existing',
+			givenAt: GIVEN_AT_DATE,
+		};
+		const db = createMockDb(null);
+		db.__tx.findFirst = vi
+			.fn()
+			.mockResolvedValueOnce(null)
+			.mockResolvedValueOnce(existingConsent);
+		db.__tx.create = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('unique conflict'));
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		const result = mockCtx.getJsonData() as {
+			consentId: string;
+			subjectId: string;
+		};
+
+		expect(result.consentId).toBe('con_existing');
+		expect(result.subjectId).toBe('sub_user1');
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'consent',
+			expect.objectContaining({
+				dedupeKey: buildConsentDedupeKey({
+					subjectId: 'sub_user1',
+					domainId: 'dom_1',
+					policyId: 'pol_1',
+					givenAt: GIVEN_AT_DATE,
+				}),
+			})
+		);
+	});
+
+	it('should create consent without dedupe key when the column is unavailable', async () => {
+		const db = createMockDb(null);
+		db.__tx.findFirst = vi.fn().mockResolvedValue(null);
+		db.__tx.create = vi
+			.fn()
+			.mockRejectedValueOnce(
+				Object.assign(new Error("Unknown column 'dedupeKey'"), {
+					code: 'ER_BAD_FIELD_ERROR',
+				})
+			)
+			.mockResolvedValueOnce({
+				id: 'con_new',
+				givenAt: GIVEN_AT_DATE,
+			});
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		const result = mockCtx.getJsonData() as {
+			consentId: string;
+		};
+		const retryPayload = db.__tx.create.mock.calls[1]?.[1] as Record<
+			string,
+			unknown
+		>;
+
+		expect(result.consentId).toBe('con_new');
+		expect(db.__tx.create).toHaveBeenCalledTimes(2);
+		expect(db.__tx.create.mock.calls[0]?.[1]).toEqual(
+			expect.objectContaining({
+				dedupeKey: buildConsentDedupeKey({
+					subjectId: 'sub_user1',
+					domainId: 'dom_1',
+					policyId: 'pol_1',
+					givenAt: GIVEN_AT_DATE,
+				}),
+			})
+		);
+		expect(retryPayload).not.toHaveProperty('dedupeKey');
+	});
+
 	it('should create separate records for different givenAt timestamps', async () => {
 		const db = createMockDb(null);
 		const registry = createMockRegistry();
@@ -268,6 +391,7 @@ describe('postSubjectHandler idempotency', () => {
 		// Get the tx.create call
 		const transactionFn = db.transaction.mock.calls[0][0];
 		const tx = {
+			findFirst: vi.fn().mockResolvedValue(null),
 			create: vi
 				.fn()
 				.mockResolvedValue({ id: 'con_new', givenAt: GIVEN_AT_DATE }),
@@ -345,6 +469,7 @@ describe('postSubjectHandler idempotency', () => {
 		// Get the tx.create call
 		const transactionFn = db.transaction.mock.calls[0][0];
 		const tx = {
+			findFirst: vi.fn().mockResolvedValue(null),
 			create: vi
 				.fn()
 				.mockResolvedValue({ id: 'con_new', givenAt: GIVEN_AT_DATE }),

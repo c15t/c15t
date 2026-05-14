@@ -10,6 +10,7 @@ export const consentSchema = v.object({
 	ipAddress: v.nullish(v.string()),
 	userAgent: v.nullish(v.string()),
 	givenAt: v.optional(v.date(), () => new Date()),
+	dedupeKey: v.nullish(v.string()),
 	validUntil: v.nullish(v.date()),
 	/** Jurisdiction code (e.g., 'GDPR', 'UK_GDPR', 'CCPA') */
 	jurisdiction: v.nullish(v.string()),
