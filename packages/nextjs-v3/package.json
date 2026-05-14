@@ -53,8 +53,8 @@
 	"dependencies": {
 		"@c15t/react-v3": "workspace:*",
 		"@c15t/translations": "workspace:*",
-		"c15t-v3": "workspace:*",
-		"c15t": "workspace:*"
+		"c15t": "workspace:*",
+		"c15t-v3": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

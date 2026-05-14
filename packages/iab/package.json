@@ -56,10 +56,10 @@
 		"test:watch": "vitest"
 	},
 	"dependencies": {
+		"@c15t/iab-v3": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@iabtechlabtcf/core": "^1.5.21",
-		"c15t": "workspace:*",
-		"@c15t/iab-v3": "workspace:*"
+		"c15t": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

@@ -91,10 +91,10 @@
 		"test:watch": "bun prebuild && vitest --passWithNoTests"
 	},
 	"dependencies": {
+		"@c15t/nextjs-v3": "workspace:*",
 		"@c15t/react": "workspace:*",
 		"@c15t/translations": "workspace:*",
-		"c15t": "workspace:*",
-		"@c15t/nextjs-v3": "workspace:*"
+		"c15t": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

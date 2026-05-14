@@ -136,18 +136,18 @@
 	"dependencies": {
 		"@c15t/iab-v3": "workspace:*",
 		"@c15t/ui": "workspace:*",
-		"c15t-v3": "workspace:*",
-		"c15t": "workspace:*"
+		"c15t": "workspace:*",
+		"c15t-v3": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/conformance": "workspace:*",
+		"@c15t/iab": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"@iabtechlabtcf/core": "^1.5.20",
 		"genversion": "3.2.0",
-		"msw": "^2.12.14",
-		"@c15t/iab": "workspace:*"
+		"msw": "^2.12.14"
 	},
 	"peerDependencies": {
 		"react": "^19.0.0 || ^19.0.0-rc || ^18.0.0 || ^17.0.0 || ^16.8.0",
