@@ -36,6 +36,7 @@
 		"dev:bench:nextjs": "turbo run dev --filter=@c15t/nextjs-browser-bench",
 		"fmt": "turbo run fmt",
 		"fmt:docs": "bunx remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
+		"generate:package-docs": "bun scripts/generate-package-docs.ts",
 		"generate:readmes": "tsx scripts/generate-readme.ts",
 		"postinstall": "lefthook install",
 		"knip": "knip",

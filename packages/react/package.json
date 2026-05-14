@@ -125,6 +125,8 @@
 	"files": [
 		"dist",
 		"dist-types",
+		"AGENTS.md",
+		"docs",
 		"client",
 		"styles.css",
 		"styles.tw3.css",
@@ -135,7 +137,8 @@
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun run clean:dist:test-artifacts",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun run clean:dist:test-artifacts && bun ../../scripts/generate-package-docs.ts @c15t/react",
+		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/react",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"clean:dist:test-artifacts": "bun --eval \"import { rmSync } from 'node:fs'; rmSync('dist/mockServiceWorker.js', { force: true });\"",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && bun scripts/generate-distribution-css.ts && rslib build --watch --no-dts --no-clean'",

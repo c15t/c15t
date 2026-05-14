@@ -6,31 +6,38 @@
 		"build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": [".next/**", "!.next/cache/**", "dist/**", "dist-types/**"],
+			"outputs": [
+				".next/**",
+				"!.next/cache/**",
+				"dist/**",
+				"dist-types/**",
+				"AGENTS.md",
+				"docs/**"
+			],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"c15t#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", "dist-types/**"],
+			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/react#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", "dist-types/**"],
+			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/nextjs#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", "dist-types/**"],
+			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/backend#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", "dist-types/**"],
+			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
 		"@c15t/benchmarking#build": {

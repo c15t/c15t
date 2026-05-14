@@ -108,11 +108,14 @@
 	"files": [
 		"dist",
 		"dist-types",
+		"AGENTS.md",
+		"docs",
 		"README.md"
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/backend",
+		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/backend",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
