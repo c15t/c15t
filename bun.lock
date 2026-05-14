@@ -30,6 +30,7 @@
         "fast-glob": "3.3.3",
         "json5": "2.2.3",
         "knip": "6.1.1",
+        "leadtype": "^0.1.1",
         "lefthook": "2.1.4",
         "mdast-util-compact": "5.0.0",
         "mdast-util-mdx": "3.0.0",
@@ -459,7 +460,7 @@
     },
     "packages/backend": {
       "name": "@c15t/backend",
-      "version": "2.0.4",
+      "version": "2.1.0",
       "dependencies": {
         "@c15t/logger": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -493,7 +494,7 @@
     },
     "packages/cli": {
       "name": "@c15t/cli",
-      "version": "2.0.4",
+      "version": "2.1.0",
       "bin": {
         "cli": "dist/index.mjs",
       },
@@ -526,7 +527,7 @@
     },
     "packages/core": {
       "name": "c15t",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "dependencies": {
         "@c15t/schema": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -541,7 +542,7 @@
     },
     "packages/dev-tools": {
       "name": "@c15t/dev-tools",
-      "version": "2.0.4",
+      "version": "2.1.0",
       "dependencies": {
         "@radix-ui/react-accordion": "1.2.12",
         "@radix-ui/react-scroll-area": "^1.2.10",
@@ -571,7 +572,7 @@
     },
     "packages/iab": {
       "name": "@c15t/iab",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "dependencies": {
         "@c15t/schema": "workspace:*",
         "@iabtechlabtcf/core": "^1.5.21",
@@ -585,7 +586,7 @@
     },
     "packages/logger": {
       "name": "@c15t/logger",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "dependencies": {
         "chalk": "^5.6.2",
         "neverthrow": "^8.2.0",
@@ -598,7 +599,7 @@
     },
     "packages/nextjs": {
       "name": "@c15t/nextjs",
-      "version": "2.0.4",
+      "version": "2.1.0",
       "dependencies": {
         "@c15t/react": "workspace:*",
         "@c15t/translations": "workspace:*",
@@ -618,7 +619,7 @@
     },
     "packages/node-sdk": {
       "name": "@c15t/node-sdk",
-      "version": "2.0.4",
+      "version": "2.1.0",
       "dependencies": {
         "@c15t/backend": "workspace:*",
         "@orpc/client": "1.13.13",
@@ -642,7 +643,7 @@
     },
     "packages/react": {
       "name": "@c15t/react",
-      "version": "2.0.4",
+      "version": "2.1.0",
       "dependencies": {
         "@c15t/ui": "workspace:*",
         "c15t": "workspace:*",
@@ -663,7 +664,7 @@
     },
     "packages/schema": {
       "name": "@c15t/schema",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "dependencies": {
         "valibot": "1.3.1",
       },
@@ -674,7 +675,7 @@
     },
     "packages/scripts": {
       "name": "@c15t/scripts",
-      "version": "2.0.1",
+      "version": "2.1.0",
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
@@ -707,7 +708,7 @@
     },
     "packages/translations": {
       "name": "@c15t/translations",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
@@ -716,7 +717,7 @@
     },
     "packages/ui": {
       "name": "@c15t/ui",
-      "version": "2.0.3",
+      "version": "2.1.0",
       "dependencies": {
         "@c15t/translations": "workspace:*",
         "c15t": "workspace:*",
@@ -3338,6 +3339,8 @@
 
     "launch-editor": ["launch-editor@2.13.2", "", { "dependencies": { "picocolors": "^1.1.1", "shell-quote": "^1.8.3" } }, "sha512-4VVDnbOpLXy/s8rdRCSXb+zfMeFR0WlJWpET1iA9CQdlZDfwyLjUuGQzXU4VeOoey6AicSAluWan7Etga6Kcmg=="],
 
+    "leadtype": ["leadtype@0.1.1", "", { "dependencies": { "@types/mdast": "4.0.4", "json5": "2.2.3", "mdast-util-to-string": "4.0.0", "remark": "15.0.1", "remark-gfm": "4.0.1", "remark-mdx": "3.1.1", "tinyglobby": "0.2.16", "unified": "11.0.5", "unist-util-visit": "5.1.0", "valibot": "1.4.0", "vfile": "^6.0.3", "vfile-matter": "^5.0.1", "yaml": "^2.9.0" }, "peerDependencies": { "@cloudflare/tanstack-ai": ">=0.1.7", "@tanstack/ai": ">=0.15.0", "ai": ">=6.0.0", "bash-tool": ">=1.3.16", "jiti": ">=2.0.0", "just-bash": ">=2.14.5", "typescript": ">=5.0.0" }, "optionalPeers": ["@cloudflare/tanstack-ai", "@tanstack/ai", "ai", "bash-tool", "jiti", "just-bash", "typescript"], "bin": { "leadtype": "dist/cli.js" } }, "sha512-qF89L0FZaiE1SZe9zm41Zb1HcxJgJ6jppkgUZ5pNwNU0CscdGJtsdJMXoBzL8yXO4aBl1qx/R2lb6XDo8llArQ=="],
+
     "lefthook": ["lefthook@2.1.4", "", { "optionalDependencies": { "lefthook-darwin-arm64": "2.1.4", "lefthook-darwin-x64": "2.1.4", "lefthook-freebsd-arm64": "2.1.4", "lefthook-freebsd-x64": "2.1.4", "lefthook-linux-arm64": "2.1.4", "lefthook-linux-x64": "2.1.4", "lefthook-openbsd-arm64": "2.1.4", "lefthook-openbsd-x64": "2.1.4", "lefthook-windows-arm64": "2.1.4", "lefthook-windows-x64": "2.1.4" }, "bin": { "lefthook": "bin/index.js" } }, "sha512-JNfJ5gAn0KADvJ1I6/xMcx70+/6TL6U9gqGkKvPw5RNMfatC7jIg0Evl97HN846xmfz959BV70l8r3QsBJk30w=="],
 
     "lefthook-darwin-arm64": ["lefthook-darwin-arm64@2.1.4", "", { "os": "darwin", "cpu": "arm64" }, "sha512-BUAAE9+rUrjr39a+wH/1zHmGrDdwUQ2Yq/z6BQbM/yUb9qtXBRcQ5eOXxApqWW177VhGBpX31aqIlfAZ5Q7wzw=="],
@@ -4312,7 +4315,7 @@
 
     "tinyexec": ["tinyexec@1.0.2", "", {}, "sha512-W/KYk+NFhkmsYpuHq5JykngiOCnxeVL8v8dFnqxSD8qEEdRfXk1SDM6JzNqcERbcGYj9tMrDQBYV9cjgnunFIg=="],
 
-    "tinyglobby": ["tinyglobby@0.2.15", "", { "dependencies": { "fdir": "^6.5.0", "picomatch": "^4.0.3" } }, "sha512-j2Zq4NyQYG5XMST4cbs02Ak8iJUdxRM0XI5QyxXuZOzKOINmWurp3smXu3y5wDcJrptwpSjgXHzIQxR0omXljQ=="],
+    "tinyglobby": ["tinyglobby@0.2.16", "", { "dependencies": { "fdir": "^6.5.0", "picomatch": "^4.0.4" } }, "sha512-pn99VhoACYR8nFHhxqix+uvsbXineAasWm5ojXoN8xEwK5Kd3/TrhNn1wByuD52UxWRLy8pu+kRMniEi6Eq9Zg=="],
 
     "tinygradient": ["tinygradient@1.1.5", "", { "dependencies": { "@types/tinycolor2": "^1.4.0", "tinycolor2": "^1.0.0" } }, "sha512-8nIfc2vgQ4TeLnk2lFj4tRLvvJwEfQuabdsmvDdQPT0xlk9TaNtpGd6nNRxXoK6vQhN6RSzj+Cnp5tTQmpxmbw=="],
 
@@ -4475,6 +4478,8 @@
     "vfile": ["vfile@6.0.3", "", { "dependencies": { "@types/unist": "^3.0.0", "vfile-message": "^4.0.0" } }, "sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q=="],
 
     "vfile-location": ["vfile-location@5.0.3", "", { "dependencies": { "@types/unist": "^3.0.0", "vfile": "^6.0.0" } }, "sha512-5yXvWDEgqeiYiBe1lbxYF7UMAIm/IcopxMHrMQDq3nvKcjPKIhZklUKL+AE7J7uApI4kwe2snsK+eI6UTj9EHg=="],
+
+    "vfile-matter": ["vfile-matter@5.0.1", "", { "dependencies": { "vfile": "^6.0.0", "yaml": "^2.0.0" } }, "sha512-o6roP82AiX0XfkyTHyRCMXgHfltUNlXSEqCIS80f+mbAyiQBE2fxtDVMtseyytGx75sihiJFo/zR6r/4LTs2Cw=="],
 
     "vfile-message": ["vfile-message@4.0.3", "", { "dependencies": { "@types/unist": "^3.0.0", "unist-util-stringify-position": "^4.0.0" } }, "sha512-QTHzsGd1EhbZs4AsQ20JX1rC3cOlt/IWJruk893DfLRr57lcnOeMaWG4K0JrRta4mIJZKth2Au3mM3u03/JWKw=="],
 
@@ -5271,6 +5276,10 @@
     "kysely-pglite/globby": ["globby@14.1.0", "", { "dependencies": { "@sindresorhus/merge-streams": "^2.1.0", "fast-glob": "^3.3.3", "ignore": "^7.0.3", "path-type": "^6.0.0", "slash": "^5.1.0", "unicorn-magic": "^0.3.0" } }, "sha512-0Ia46fDOaT7k4og1PDW4YbodWWr3scS2vAr2lTbsplOt2WkKp0vQbkI9wKis/T5LV/dqPjO3bpS/z6GTJB82LA=="],
 
     "kysely-pglite/jiti": ["jiti@2.0.0-beta.3", "", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-pmfRbVRs/7khFrSAYnSiJ8C0D5GvzkE4Ey2pAvUcJsw1ly/p+7ut27jbJrjY79BpAJQJ4gXYFtK6d1Aub+9baQ=="],
+
+    "leadtype/valibot": ["valibot@1.4.0", "", { "peerDependencies": { "typescript": ">=5" }, "optionalPeers": ["typescript"] }, "sha512-iC/x7fVcSyOwlm/VSt7RlHnzNGLGvR9GnxdifUeWoCJo0q4ZZvrVkIHC6faTlkxG47I2Y4UrFquPuVHCrOnrLg=="],
+
+    "leadtype/yaml": ["yaml@2.9.0", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA=="],
 
     "libsql/detect-libc": ["detect-libc@2.0.2", "", {}, "sha512-UX6sGumvvqSaXgdKGUsgZWqcUyIXZ/vZTrlRT/iobiKhGL0zL4d3osHj3uqllWJK+i+sixDS/3COVEOFbupFyw=="],
 

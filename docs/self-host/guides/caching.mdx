@@ -1,6 +1,7 @@
 ---
 title: Caching
 description: Add a caching layer to your self-hosted c15t backend for production performance.
+group: self-host
 ---
 
 The backend includes a caching layer for frequently accessed data like GVL (Global Vendor List) lookups and custom server-side translations. By default, an in-memory cache is used — suitable for single-instance deployments. For production with multiple instances, plug in Redis or Cloudflare KV so all instances share the same cache.

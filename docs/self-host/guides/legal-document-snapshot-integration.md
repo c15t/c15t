@@ -1,3 +1,9 @@
+---
+title: "Legal Document Snapshot Integration"
+description: "Reference page for legal document snapshot integration."
+group: self-host
+---
+
 # Legal Document Snapshot Integration
 
 This guide defines the 2.0 groundwork for legal-document consent flows such as terms and conditions, privacy policies, and DPAs.

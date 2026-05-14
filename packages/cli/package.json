@@ -43,10 +43,13 @@
 	},
 	"files": [
 		"dist",
-		"dist-types"
+		"dist-types",
+		"AGENTS.md",
+		"docs"
 	],
 	"scripts": {
-		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/cli",
+		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/cli",
 		"check-types": "tsc --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
