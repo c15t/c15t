@@ -30,6 +30,7 @@
         "fast-glob": "3.3.3",
         "json5": "2.2.3",
         "knip": "6.13.1",
+        "leadtype": "^0.1.1",
         "lefthook": "2.1.6",
         "mdast-util-compact": "5.0.0",
         "mdast-util-mdx": "3.0.0",
@@ -461,7 +462,7 @@
     },
     "packages/backend": {
       "name": "@c15t/backend",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "dependencies": {
         "@c15t/logger": "workspace:*",
         "@c15t/schema": "workspace:*",
@@ -3346,6 +3347,8 @@
 
     "launch-editor": ["launch-editor@2.13.2", "", { "dependencies": { "picocolors": "^1.1.1", "shell-quote": "^1.8.3" } }, "sha512-4VVDnbOpLXy/s8rdRCSXb+zfMeFR0WlJWpET1iA9CQdlZDfwyLjUuGQzXU4VeOoey6AicSAluWan7Etga6Kcmg=="],
 
+    "leadtype": ["leadtype@0.1.2", "", { "dependencies": { "@types/mdast": "4.0.4", "json5": "2.2.3", "mdast-util-to-string": "4.0.0", "remark": "15.0.1", "remark-gfm": "4.0.1", "remark-mdx": "3.1.1", "tinyglobby": "0.2.16", "unified": "11.0.5", "unist-util-visit": "5.1.0", "valibot": "1.4.0", "vfile": "^6.0.3", "vfile-matter": "^5.0.1", "yaml": "^2.9.0" }, "peerDependencies": { "@cloudflare/tanstack-ai": ">=0.1.7", "@tanstack/ai": ">=0.15.0", "ai": ">=6.0.0", "bash-tool": ">=1.3.16", "fumadocs-core": ">=15.0.0", "jiti": ">=2.0.0", "just-bash": ">=2.14.5", "typescript": ">=5.0.0" }, "optionalPeers": ["@cloudflare/tanstack-ai", "@tanstack/ai", "ai", "bash-tool", "fumadocs-core", "jiti", "just-bash", "typescript"], "bin": { "leadtype": "dist/cli.js" } }, "sha512-yZS5E6qpYMUzsMM06olU6ItKGX9NogYcgXQkNWL6VdDpkSgz7dKRQ/cj4eVmu0kX6MrbnjTHh+pjYCXTRuk+YA=="],
+
     "lefthook": ["lefthook@2.1.6", "", { "optionalDependencies": { "lefthook-darwin-arm64": "2.1.6", "lefthook-darwin-x64": "2.1.6", "lefthook-freebsd-arm64": "2.1.6", "lefthook-freebsd-x64": "2.1.6", "lefthook-linux-arm64": "2.1.6", "lefthook-linux-x64": "2.1.6", "lefthook-openbsd-arm64": "2.1.6", "lefthook-openbsd-x64": "2.1.6", "lefthook-windows-arm64": "2.1.6", "lefthook-windows-x64": "2.1.6" }, "bin": { "lefthook": "bin/index.js" } }, "sha512-w9sBoR0mdN+kJc3SB85VzpiAAl451/rxdCRcZlwW71QLjkeH3EBQFgc4VMj5apePychYDHAlqEWTB8J8JK/j1Q=="],
 
     "lefthook-darwin-arm64": ["lefthook-darwin-arm64@2.1.6", "", { "os": "darwin", "cpu": "arm64" }, "sha512-hyB7eeiX78BS66f70byTJacDLC/xV1vgMv9n+idFUsrM7J3Udd/ag9Ag5NP3t0eN0EqQqAtrNnt35EH01lxnRQ=="],
@@ -4483,6 +4486,8 @@
     "vfile": ["vfile@6.0.3", "", { "dependencies": { "@types/unist": "^3.0.0", "vfile-message": "^4.0.0" } }, "sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q=="],
 
     "vfile-location": ["vfile-location@5.0.3", "", { "dependencies": { "@types/unist": "^3.0.0", "vfile": "^6.0.0" } }, "sha512-5yXvWDEgqeiYiBe1lbxYF7UMAIm/IcopxMHrMQDq3nvKcjPKIhZklUKL+AE7J7uApI4kwe2snsK+eI6UTj9EHg=="],
+
+    "vfile-matter": ["vfile-matter@5.0.1", "", { "dependencies": { "vfile": "^6.0.0", "yaml": "^2.0.0" } }, "sha512-o6roP82AiX0XfkyTHyRCMXgHfltUNlXSEqCIS80f+mbAyiQBE2fxtDVMtseyytGx75sihiJFo/zR6r/4LTs2Cw=="],
 
     "vfile-message": ["vfile-message@4.0.3", "", { "dependencies": { "@types/unist": "^3.0.0", "unist-util-stringify-position": "^4.0.0" } }, "sha512-QTHzsGd1EhbZs4AsQ20JX1rC3cOlt/IWJruk893DfLRr57lcnOeMaWG4K0JrRta4mIJZKth2Au3mM3u03/JWKw=="],
 

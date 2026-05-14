@@ -34,9 +34,17 @@ build
 dist
 !internals/bundle-analysis-action/dist
 packages/core/docs
+packages/core/AGENTS.md
 packages/react/docs
+packages/react/AGENTS.md
 packages/nextjs/docs
+packages/nextjs/AGENTS.md
 packages/backend/docs
+packages/backend/AGENTS.md
+packages/scripts/docs
+packages/scripts/AGENTS.md
+packages/cli/docs
+packages/cli/AGENTS.md
 .merge_file_*
 dist-types
 apps/bundle-bench-react/.bundle-bench-dist/
