@@ -1,3 +1,1 @@
-'use client';
-
-export * from './components/consent-widget';
+export * from '@c15t/react-v3/consent-widget';

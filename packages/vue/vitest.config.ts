@@ -14,21 +14,21 @@ export default mergeConfig(
 				// need a rebuild before these tests can run.
 				'c15t/v3/modules/script-loader': resolve(
 					__dirname,
-					'../core/src/v3/modules/script-loader/index.ts'
+					'../core-v3/src/modules/script-loader/index.ts'
 				),
 				'c15t/v3/modules/network-blocker': resolve(
 					__dirname,
-					'../core/src/v3/modules/network-blocker/index.ts'
+					'../core-v3/src/modules/network-blocker/index.ts'
 				),
 				'c15t/v3/modules/iframe-blocker': resolve(
 					__dirname,
-					'../core/src/v3/modules/iframe-blocker/index.ts'
+					'../core-v3/src/modules/iframe-blocker/index.ts'
 				),
 				'c15t/v3/modules/persistence': resolve(
 					__dirname,
-					'../core/src/v3/modules/persistence/index.ts'
+					'../core-v3/src/modules/persistence/index.ts'
 				),
-				'c15t/v3': resolve(__dirname, '../core/src/v3/index.ts'),
+				'c15t/v3': resolve(__dirname, '../core-v3/src/index.ts'),
 				c15t: resolve(__dirname, '../core/src/index.ts'),
 				'@c15t/translations': resolve(
 					__dirname,

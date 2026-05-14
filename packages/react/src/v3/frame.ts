@@ -1,3 +1,1 @@
-'use client';
-
-export * from './components/frame';
+export * from '@c15t/react-v3/frame';

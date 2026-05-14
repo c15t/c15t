@@ -246,7 +246,8 @@
 	],
 	"dependencies": {
 		"@c15t/ui": "workspace:*",
-		"c15t": "workspace:*"
+		"c15t": "workspace:*",
+		"@c15t/react-v3": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/backend": "workspace:*",

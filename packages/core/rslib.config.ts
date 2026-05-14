@@ -2,6 +2,8 @@ import { pluginReact } from '@rsbuild/plugin-react';
 import { defineConfig } from '@rslib/core';
 import { getRsdoctorPlugins } from '../shared/rslib-utils';
 
+const externals = ['c15t-v3'];
+
 export default defineConfig({
 	source: {
 		entry: {
@@ -36,6 +38,7 @@ export default defineConfig({
 	output: {
 		target: 'web',
 		cleanDistPath: true,
+		externals,
 	},
 	performance: {
 		// Temporary workaround for rspack persistent-cache panics in local builds.

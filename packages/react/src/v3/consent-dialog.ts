@@ -1,3 +1,1 @@
-'use client';
-
-export * from './components/consent-dialog';
+export * from '@c15t/react-v3/consent-dialog';

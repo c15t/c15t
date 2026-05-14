@@ -1,0 +1,20 @@
+{
+	"extends": "@c15t/typescript-config/react-library.json",
+	"compilerOptions": {
+		"rootDir": "src",
+		"moduleResolution": "bundler",
+		"types": ["@vitest/browser/matchers"],
+		"paths": {
+			"@c15t/react-v3": ["../react-v3/dist-types/index.d.ts"],
+			"@c15t/react-v3/*": ["../react-v3/dist-types/*"],
+			"c15t": ["../core/dist-types/index.d.ts"],
+			"c15t/*": ["../core/dist-types/*"],
+			"c15t-v3": ["../core-v3/dist-types/index.d.ts"],
+			"c15t-v3/*": ["../core-v3/dist-types/*"],
+			"~/*": ["./src/*"],
+			"@c15t/react-v3/hooks": ["../react-v3/dist-types/v3/hooks.d.ts"]
+		}
+	},
+	"include": ["src"],
+	"exclude": ["node_modules"]
+}

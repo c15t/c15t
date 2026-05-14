@@ -572,7 +572,22 @@
       "dependencies": {
         "@c15t/schema": "workspace:*",
         "@c15t/translations": "workspace:*",
+        "c15t-v3": "workspace:*",
         "zustand": "5.0.12",
+      },
+      "devDependencies": {
+        "@c15t/typescript-config": "workspace:*",
+        "@c15t/vitest-config": "workspace:*",
+        "genversion": "3.2.0",
+        "vitest-localstorage-mock": "0.1.2",
+      },
+    },
+    "packages/core-v3": {
+      "name": "c15t-v3",
+      "version": "2.0.0",
+      "dependencies": {
+        "@c15t/schema": "workspace:*",
+        "@c15t/translations": "workspace:*",
       },
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
@@ -615,9 +630,25 @@
       "name": "@c15t/iab",
       "version": "2.0.0",
       "dependencies": {
+        "@c15t/iab-v3": "workspace:*",
         "@c15t/schema": "workspace:*",
         "@iabtechlabtcf/core": "^1.5.21",
         "c15t": "workspace:*",
+      },
+      "devDependencies": {
+        "@c15t/typescript-config": "workspace:*",
+        "@c15t/vitest-config": "workspace:*",
+        "genversion": "3.2.0",
+      },
+    },
+    "packages/iab-v3": {
+      "name": "@c15t/iab-v3",
+      "version": "2.0.0",
+      "dependencies": {
+        "@c15t/schema": "workspace:*",
+        "@iabtechlabtcf/core": "^1.5.21",
+        "c15t": "workspace:*",
+        "c15t-v3": "workspace:*",
       },
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
@@ -642,9 +673,31 @@
       "name": "@c15t/nextjs",
       "version": "2.0.0",
       "dependencies": {
+        "@c15t/nextjs-v3": "workspace:*",
         "@c15t/react": "workspace:*",
         "@c15t/translations": "workspace:*",
         "c15t": "workspace:*",
+      },
+      "devDependencies": {
+        "@c15t/typescript-config": "workspace:*",
+        "@c15t/vitest-config": "workspace:*",
+        "genversion": "3.2.0",
+        "typescript": "6.0.2",
+      },
+      "peerDependencies": {
+        "next": "^16.0.0 || ^15.0.0 || ^14.0.0 || ^13.0.0",
+        "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
+        "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
+      },
+    },
+    "packages/nextjs-v3": {
+      "name": "@c15t/nextjs-v3",
+      "version": "2.0.0",
+      "dependencies": {
+        "@c15t/react-v3": "workspace:*",
+        "@c15t/translations": "workspace:*",
+        "c15t": "workspace:*",
+        "c15t-v3": "workspace:*",
       },
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
@@ -686,8 +739,33 @@
       "name": "@c15t/react",
       "version": "2.0.0",
       "dependencies": {
+        "@c15t/react-v3": "workspace:*",
         "@c15t/ui": "workspace:*",
         "c15t": "workspace:*",
+      },
+      "devDependencies": {
+        "@c15t/backend": "workspace:*",
+        "@c15t/conformance": "workspace:*",
+        "@c15t/iab": "workspace:*",
+        "@c15t/typescript-config": "workspace:*",
+        "@c15t/vitest-config": "workspace:*",
+        "@iabtechlabtcf/core": "^1.5.20",
+        "genversion": "3.2.0",
+        "msw": "^2.12.14",
+      },
+      "peerDependencies": {
+        "react": "^19.0.0 || ^19.0.0-rc || ^18.0.0 || ^17.0.0 || ^16.8.0",
+        "react-dom": "^19.0.0 || ^19.0.0-rc || ^18.0.0 || ^17.0.0 || ^16.8.0",
+      },
+    },
+    "packages/react-v3": {
+      "name": "@c15t/react-v3",
+      "version": "2.0.0",
+      "dependencies": {
+        "@c15t/iab-v3": "workspace:*",
+        "@c15t/ui": "workspace:*",
+        "c15t": "workspace:*",
+        "c15t-v3": "workspace:*",
       },
       "devDependencies": {
         "@c15t/backend": "workspace:*",
@@ -995,6 +1073,8 @@
 
     "@c15t/iab": ["@c15t/iab@workspace:packages/iab"],
 
+    "@c15t/iab-v3": ["@c15t/iab-v3@workspace:packages/iab-v3"],
+
     "@c15t/logger": ["@c15t/logger@workspace:packages/logger"],
 
     "@c15t/next-bundle-bench": ["@c15t/next-bundle-bench@workspace:benchmarks/bundle-test-app"],
@@ -1002,6 +1082,8 @@
     "@c15t/nextjs": ["@c15t/nextjs@workspace:packages/nextjs"],
 
     "@c15t/nextjs-browser-bench": ["@c15t/nextjs-browser-bench@workspace:benchmarks/nextjs-browser-bench"],
+
+    "@c15t/nextjs-v3": ["@c15t/nextjs-v3@workspace:packages/nextjs-v3"],
 
     "@c15t/no-tw-css-test": ["@c15t/no-tw-css-test@workspace:benchmarks/no-tw-test"],
 
@@ -1012,6 +1094,8 @@
     "@c15t/react": ["@c15t/react@workspace:packages/react"],
 
     "@c15t/react-browser-bench": ["@c15t/react-browser-bench@workspace:benchmarks/react-browser-bench"],
+
+    "@c15t/react-v3": ["@c15t/react-v3@workspace:packages/react-v3"],
 
     "@c15t/schema": ["@c15t/schema@workspace:packages/schema"],
 
@@ -2570,6 +2654,8 @@
     "c12": ["c12@3.3.3", "", { "dependencies": { "chokidar": "^5.0.0", "confbox": "^0.2.2", "defu": "^6.1.4", "dotenv": "^17.2.3", "exsolve": "^1.0.8", "giget": "^2.0.0", "jiti": "^2.6.1", "ohash": "^2.0.11", "pathe": "^2.0.3", "perfect-debounce": "^2.0.0", "pkg-types": "^2.3.0", "rc9": "^2.1.2" }, "peerDependencies": { "magicast": "*" }, "optionalPeers": ["magicast"] }, "sha512-750hTRvgBy5kcMNPdh95Qo+XUBeGo8C7nsKSmedDmaQI+E0r82DwHeM6vBewDe4rGFbnxoa4V9pw+sPh5+Iz8Q=="],
 
     "c15t": ["c15t@workspace:packages/core"],
+
+    "c15t-v3": ["c15t-v3@workspace:packages/core-v3"],
 
     "caching-transform": ["caching-transform@4.0.0", "", { "dependencies": { "hasha": "^5.0.0", "make-dir": "^3.0.0", "package-hash": "^4.0.0", "write-file-atomic": "^3.0.0" } }, "sha512-kpqOvwXnjjN44D89K5ccQC+RUrsy7jB/XLlRrx0D7/2HNcTPqzsb6XgYoErwko6QsV184CA2YgS1fxDiiDZMWA=="],
 

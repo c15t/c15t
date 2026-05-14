@@ -66,7 +66,7 @@ export {
 	isValidSubjectId,
 } from './libs/generate-subject-id';
 export type { HasCondition, HasOptions } from './libs/has';
-export { has } from './libs/has';
+export { extractConsentNamesFromCondition, has } from './libs/has';
 export type {
 	CMPApi,
 	CMPApiConfig,
@@ -82,7 +82,11 @@ export {
 	type IframeBlocker,
 	type IframeBlockerConfig,
 } from './libs/iframe-blocker';
-export type { NetworkBlockerConfig } from './libs/network-blocker';
+export type {
+	BlockedRequestInfo,
+	NetworkBlockerConfig,
+	NetworkBlockerRule,
+} from './libs/network-blocker';
 export {
 	applyPolicyPurposeAllowlist,
 	applyPolicyScopeForRuntimeGating,
@@ -173,6 +177,7 @@ export type {
 export {
 	type AllConsentNames,
 	allConsentNames,
+	type ConsentInfo,
 	type ConsentType,
 	consentTypes,
 } from './types/consent-types';

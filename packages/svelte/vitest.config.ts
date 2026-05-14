@@ -16,37 +16,37 @@ export default mergeConfig(
 					find: 'c15t/v3/modules/iframe-blocker',
 					replacement: resolve(
 						__dirname,
-						'../core/src/v3/modules/iframe-blocker/index.ts'
+						'../core-v3/src/modules/iframe-blocker/index.ts'
 					),
 				},
 				{
 					find: 'c15t/v3/modules/network-blocker',
 					replacement: resolve(
 						__dirname,
-						'../core/src/v3/modules/network-blocker/index.ts'
+						'../core-v3/src/modules/network-blocker/index.ts'
 					),
 				},
 				{
 					find: 'c15t/v3/modules/persistence',
 					replacement: resolve(
 						__dirname,
-						'../core/src/v3/modules/persistence/index.ts'
+						'../core-v3/src/modules/persistence/index.ts'
 					),
 				},
 				{
 					find: 'c15t/v3/modules/script-loader',
 					replacement: resolve(
 						__dirname,
-						'../core/src/v3/modules/script-loader/index.ts'
+						'../core-v3/src/modules/script-loader/index.ts'
 					),
 				},
 				{
 					find: '@c15t/iab/v3',
-					replacement: resolve(__dirname, '../iab/src/v3/index.ts'),
+					replacement: resolve(__dirname, '../iab-v3/src/index.ts'),
 				},
 				{
 					find: 'c15t/v3',
-					replacement: resolve(__dirname, '../core/src/v3/index.ts'),
+					replacement: resolve(__dirname, '../core-v3/src/index.ts'),
 				},
 				{
 					find: '~',

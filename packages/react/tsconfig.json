@@ -23,7 +23,14 @@
 			"@c15t/ui/utils": ["../ui/dist-types/utils/index.d.ts"],
 			"c15t": ["../core/dist-types/index.d.ts"],
 			"c15t/*": ["../core/dist-types/*"],
-			"~/*": ["./src/*"]
+			"~/*": ["./src/*"],
+			"@c15t/react-v3": ["../react-v3/dist-types/index.d.ts"],
+			"@c15t/react-v3/*": ["../react-v3/dist-types/*"],
+			"c15t-v3": ["../core-v3/dist-types/index.d.ts"],
+			"c15t-v3/*": ["../core-v3/dist-types/*"],
+			"@c15t/iab-v3": ["../iab-v3/dist-types/index.d.ts"],
+			"@c15t/iab-v3/*": ["../iab-v3/dist-types/*"],
+			"@c15t/react-v3/hooks": ["../react-v3/dist-types/v3/hooks.d.ts"]
 		}
 	},
 	"include": ["src"],

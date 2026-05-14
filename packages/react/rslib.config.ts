@@ -6,6 +6,8 @@ import {
 	standardSourceEntries,
 } from '../shared/rslib-utils';
 
+const externals = ['@c15t/react-v3'];
+
 export default defineConfig({
 	source: {
 		entry: {
@@ -30,6 +32,7 @@ export default defineConfig({
 	output: {
 		target: 'web',
 		cleanDistPath: true,
+		externals,
 		cssModules: {
 			auto: true,
 			localIdentName: 'c15t-[local]-[hash:base64:5]',

@@ -1,3 +1,1 @@
-'use client';
-
-export * from './components/consent-banner';
+export * from '@c15t/react-v3/consent-banner';

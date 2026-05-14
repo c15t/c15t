@@ -8,7 +8,9 @@
 			"@c15t/schema/*": ["../schema/dist-types/*"],
 			"@c15t/translations": ["../translations/dist-types/index.d.ts"],
 			"@c15t/translations/*": ["../translations/dist-types/*"],
-			"~/*": ["./src/*"]
+			"~/*": ["./src/*"],
+			"c15t-v3": ["../core-v3/dist-types/index.d.ts"],
+			"c15t-v3/*": ["../core-v3/dist-types/*"]
 		}
 	},
 	"include": ["src"],

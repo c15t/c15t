@@ -91,7 +91,8 @@
 	"dependencies": {
 		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
-		"zustand": "5.0.12"
+		"zustand": "5.0.12",
+		"c15t-v3": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

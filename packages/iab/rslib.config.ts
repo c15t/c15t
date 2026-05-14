@@ -1,6 +1,8 @@
 import { defineConfig } from '@rslib/core';
 import { getRsdoctorPlugins } from '../shared/rslib-utils';
 
+const externals = ['@c15t/iab-v3'];
+
 export default defineConfig({
 	source: {
 		entry: {
@@ -31,6 +33,7 @@ export default defineConfig({
 	output: {
 		target: 'web',
 		cleanDistPath: true,
+		externals,
 	},
 	performance: {
 		buildCache: false,

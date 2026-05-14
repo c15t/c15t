@@ -4,7 +4,11 @@
 		"rootDir": "src",
 		"lib": ["dom", "esnext"],
 		"paths": {
-			"c15t": ["../core/dist-types/index.d.ts"]
+			"c15t": ["../core/dist-types/index.d.ts"],
+			"@c15t/iab-v3": ["../iab-v3/dist-types/index.d.ts"],
+			"@c15t/iab-v3/*": ["../iab-v3/dist-types/*"],
+			"c15t-v3": ["../core-v3/dist-types/index.d.ts"],
+			"c15t-v3/*": ["../core-v3/dist-types/*"]
 		}
 	},
 	"include": ["src"],

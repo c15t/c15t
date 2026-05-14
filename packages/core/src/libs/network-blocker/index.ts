@@ -6,4 +6,8 @@
 
 export { shouldBlockRequest } from './core';
 export { createNetworkBlockerManager } from './store';
-export type { NetworkBlockerConfig, NetworkBlockerRule } from './types';
+export type {
+	BlockedRequestInfo,
+	NetworkBlockerConfig,
+	NetworkBlockerRule,
+} from './types';
