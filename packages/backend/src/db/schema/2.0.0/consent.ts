@@ -11,6 +11,7 @@ export const consentTable = table('consent', {
 	ipAddress: column('ipAddress', 'string').nullable(),
 	userAgent: column('userAgent', 'string').nullable(),
 	givenAt: column('givenAt', 'timestamp').defaultTo$('now'),
+	dedupeKey: column('dedupeKey', 'string').nullable().unique(),
 	validUntil: column('validUntil', 'timestamp').nullable(),
 	/** Jurisdiction code (e.g., 'GDPR', 'UK_GDPR', 'CCPA') */
 	jurisdiction: column('jurisdiction', 'string').nullable(),

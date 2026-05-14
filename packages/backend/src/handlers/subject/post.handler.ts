@@ -43,6 +43,22 @@ export function buildRuntimeDecisionDedupeKey(input: {
 	].join('|');
 }
 
+export function buildConsentDedupeKey(input: {
+	tenantId?: string;
+	subjectId: string;
+	domainId: string;
+	policyId?: string | null;
+	givenAt: Date;
+}): string {
+	return [
+		input.tenantId ?? 'default',
+		input.subjectId,
+		input.domainId,
+		input.policyId ?? 'none',
+		input.givenAt.toISOString(),
+	].join('|');
+}
+
 /**
  * Builds the runtime decision payload from either a verified snapshot token
  * or a freshly resolved policy decision.
@@ -156,6 +172,32 @@ function parseLanguageFromHeader(header: string | null): string | undefined {
 	}
 
 	return firstLanguage.split('-')[0]?.toLowerCase();
+}
+
+function isMissingConsentDedupeKeyColumnError(error: unknown): boolean {
+	const message = extractErrorMessage(error).toLowerCase();
+	if (!message.includes('dedupekey')) {
+		return false;
+	}
+
+	const code =
+		typeof error === 'object' &&
+		error !== null &&
+		'code' in error &&
+		typeof error.code === 'string'
+			? error.code
+			: undefined;
+
+	return (
+		code === '42703' ||
+		code === 'ER_BAD_FIELD_ERROR' ||
+		code === 'SQLITE_ERROR' ||
+		code === 'P2022' ||
+		message.includes('unknown column') ||
+		message.includes('no such column') ||
+		message.includes('does not exist') ||
+		message.includes('invalid column name')
+	);
 }
 
 function isLegalDocumentType(
@@ -636,16 +678,29 @@ export const postSubjectHandler = async (c: Context) => {
 			proofConfig,
 		});
 
-		// Check for duplicate consent (idempotency)
-		const existingConsent = await db.findFirst('consent', {
-			where: (b) =>
-				b.and(
-					b('subjectId', '=', subject.id),
-					b('domainId', '=', domainRecord.id),
-					b('policyId', '=', policyId),
-					b('givenAt', '=', givenAt)
-				),
+		const consentDedupeKey = buildConsentDedupeKey({
+			tenantId: ctx.tenantId,
+			subjectId: subject.id,
+			domainId: domainRecord.id,
+			policyId,
+			givenAt,
 		});
+
+		const findExistingConsent = (
+			database: Pick<C15TContext['db'], 'findFirst'>
+		) =>
+			database.findFirst('consent', {
+				where: (b) =>
+					b.and(
+						b('subjectId', '=', subject.id),
+						b('domainId', '=', domainRecord.id),
+						b('policyId', '=', policyId),
+						b('givenAt', '=', givenAt)
+					),
+			});
+
+		// Check for duplicate consent (idempotency)
+		const existingConsent = await findExistingConsent(db);
 
 		if (existingConsent) {
 			logger.debug('Duplicate consent detected, returning existing record', {
@@ -665,6 +720,21 @@ export const postSubjectHandler = async (c: Context) => {
 		}
 
 		const result = await db.transaction(async (tx) => {
+			const existingConsentInTransaction = await findExistingConsent(tx);
+
+			if (existingConsentInTransaction) {
+				logger.debug(
+					'Duplicate consent detected in transaction, returning existing record',
+					{
+						consentId: existingConsentInTransaction.id,
+					}
+				);
+				return {
+					consent: existingConsentInTransaction,
+					created: false,
+				};
+			}
+
 			logger.debug('Creating consent record', {
 				subjectId: subject.id,
 				domainId: domainRecord.id,
@@ -717,8 +787,9 @@ export const postSubjectHandler = async (c: Context) => {
 						)))
 				: undefined;
 
-			// Always create a new consent record (append-only)
-			const consentRecord = await tx.create('consent', {
+			// Create the append-only consent record unless another identical request won the race.
+			let created = true;
+			const consentCreateData = {
 				id: await generateUniqueId(tx, 'consent', ctx),
 				subjectId: subject.id,
 				domainId: domainRecord.id,
@@ -739,9 +810,44 @@ export const postSubjectHandler = async (c: Context) => {
 				validUntil,
 				runtimePolicyDecisionId: runtimePolicyDecision?.id,
 				runtimePolicySource: decisionPayload?.source,
-			});
+				dedupeKey: consentDedupeKey,
+			};
+			const consentRecord = await tx
+				.create('consent', consentCreateData)
+				.catch(async (error) => {
+					const concurrentConsent = await findExistingConsent(tx);
+					if (concurrentConsent) {
+						created = false;
+						logger.debug(
+							'Consent insert conflicted, returning existing record',
+							{
+								consentId: concurrentConsent.id,
+							}
+						);
+						return concurrentConsent;
+					}
 
-			logger.debug('Created consent', { consentRecord: consentRecord.id });
+					if (isMissingConsentDedupeKeyColumnError(error)) {
+						const { dedupeKey: _dedupeKey, ...legacyConsentCreateData } =
+							consentCreateData;
+						logger.warn(
+							'Consent dedupe key column is unavailable, creating consent without dedupe key',
+							{
+								subjectId: subject.id,
+								domainId: domainRecord.id,
+								policyId,
+							}
+						);
+						return tx.create('consent', legacyConsentCreateData);
+					}
+
+					throw error;
+				});
+
+			logger.debug('Resolved consent', {
+				consentRecord: consentRecord.id,
+				created,
+			});
 
 			if (!consentRecord) {
 				throw new HTTPException(500, {
@@ -756,22 +862,25 @@ export const postSubjectHandler = async (c: Context) => {
 
 			return {
 				consent: consentRecord,
+				created,
 			};
 		});
 
 		// Record telemetry metrics
-		const metrics = getMetrics();
-		if (metrics) {
-			const jurisdiction = effectiveJurisdiction;
-			metrics.recordConsentCreated({ type, jurisdiction });
+		if (result.created) {
+			const metrics = getMetrics();
+			if (metrics) {
+				const jurisdiction = effectiveJurisdiction;
+				metrics.recordConsentCreated({ type, jurisdiction });
 
-			// Determine accepted vs rejected based on preferences
-			const hasAccepted =
-				preferences && Object.values(preferences).some(Boolean);
-			if (hasAccepted) {
-				metrics.recordConsentAccepted({ type, jurisdiction });
-			} else {
-				metrics.recordConsentRejected({ type, jurisdiction });
+				// Determine accepted vs rejected based on preferences
+				const hasAccepted =
+					preferences && Object.values(preferences).some(Boolean);
+				if (hasAccepted) {
+					metrics.recordConsentAccepted({ type, jurisdiction });
+				} else {
+					metrics.recordConsentRejected({ type, jurisdiction });
+				}
 			}
 		}
 
