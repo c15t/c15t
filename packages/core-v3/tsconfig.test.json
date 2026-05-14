@@ -1,0 +1,15 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noImplicitAny": false,
+		"strictNullChecks": false,
+		"noEmit": true
+	},
+	"include": [
+		"src/**/__tests__/**/*.ts",
+		"src/**/*.test.ts",
+		"src/**/*.spec.ts",
+		"src/**/*.browser.test.ts"
+	],
+	"exclude": ["node_modules"]
+}

@@ -1,4 +1,4 @@
-import { RsdoctorRspackPlugin } from '@rsdoctor/rspack-plugin';
+import { RsdoctorRspackMultiplePlugin } from '@rsdoctor/rspack-plugin';
 
 /**
  * Standard exclude patterns for rslib configuration files.
@@ -44,19 +44,21 @@ export const standardSourceEntries = [
 ];
 
 /**
- * Returns an array of RsdoctorRspackPlugin instances if WITH_RSDOCTOR environment variable is set,
- * otherwise returns an empty array.
- * This utility centralizes the Rsdoctor plugin configuration across all rslib configs.
+ * Returns RsdoctorRspackPlugin instances when Rsdoctor is enabled via env.
+ *
+ * Supports `RSDOCTOR=true` (Rsdoctor Rspack quick start) and `WITH_RSDOCTOR=true`
+ * (legacy monorepo convention). See
+ * https://rsdoctor.rs/guide/start/quick-start#rspack
  */
 export function getRsdoctorPlugins() {
-	if (process.env.WITH_RSDOCTOR) {
+	if (process.env.RSDOCTOR || process.env.WITH_RSDOCTOR) {
 		return [
-			new RsdoctorRspackPlugin({
-				disableClientServer: true,
+			new RsdoctorRspackMultiplePlugin({
+				disableClientServer: false,
 				output: {
 					mode: 'brief',
 					options: {
-						type: ['json'],
+						type: ['html'],
 					},
 				},
 			}),

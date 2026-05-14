@@ -1,0 +1,82 @@
+'use client';
+
+import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
+import {
+	forwardRef,
+	type HTMLAttributes,
+	type ReactNode,
+	type RefObject,
+	useEffect,
+	useState,
+} from 'react';
+import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useFocusTrap } from '~/hooks/use-focus-trap';
+import { useStyles } from '~/hooks/use-styles';
+import { useTheme } from '~/hooks/use-theme';
+import { cnExt as cn } from '~/utils/cn';
+import { useIABTranslations } from '../use-iab-translations';
+
+interface IABConsentDialogCardProps extends HTMLAttributes<HTMLDivElement> {
+	children: ReactNode;
+}
+
+/**
+ * Card component for the IAB Consent Dialog.
+ *
+ * @remarks
+ * Main container for the consent dialog content. Handles focus trap when trapFocus is enabled.
+ *
+ * @public
+ */
+const IABConsentDialogCard = forwardRef<
+	HTMLDivElement,
+	IABConsentDialogCardProps
+>(({ children, className, ...props }, ref) => {
+	const { trapFocus } = useTheme();
+	const { activeUI } = useConsentManager();
+	const iabTranslations = useIABTranslations();
+	const [isVisible, setIsVisible] = useState(false);
+	const showDialog = activeUI === 'dialog';
+
+	useFocusTrap(Boolean(showDialog && trapFocus), ref as RefObject<HTMLElement>);
+
+	useEffect(() => {
+		if (showDialog) {
+			setIsVisible(true);
+		} else {
+			const timer = setTimeout(() => {
+				setIsVisible(false);
+			}, 150);
+			return () => clearTimeout(timer);
+		}
+	}, [showDialog]);
+
+	const themedStyle = useStyles('iabConsentDialogCard', {
+		baseClassName: cn(
+			styles.card,
+			isVisible ? styles.contentVisible : styles.contentHidden
+		),
+		className,
+	});
+	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
+
+	return (
+		<div
+			ref={ref}
+			{...domStyleProps}
+			role="dialog"
+			aria-modal={trapFocus ? 'true' : undefined}
+			aria-label={iabTranslations.preferenceCenter.title}
+			tabIndex={0}
+			data-testid="iab-consent-dialog-card"
+			{...props}
+		>
+			{children}
+		</div>
+	);
+});
+
+IABConsentDialogCard.displayName = 'IABConsentDialogCard';
+
+export { IABConsentDialogCard };

@@ -74,3 +74,5 @@ i18n.cache
 # Storybook build output
 storybook-static/
 debug-storybook.log
+/inrepo_modules/
+/.inrepo/
