@@ -39,6 +39,7 @@ const distBlockedPathPatterns: Array<{ reason: string; pattern: RegExp }> = [
 ];
 
 const requiredPackedFilesByPackage: Record<string, string[]> = {
+	c15t: ['AGENTS.md', 'docs/README.md'],
 	'@c15t/ui': [
 		'styles.css',
 		'styles.tw3.css',
@@ -50,6 +51,8 @@ const requiredPackedFilesByPackage: Record<string, string[]> = {
 		'dist/iab/styles.tw3.css',
 	],
 	'@c15t/react': [
+		'AGENTS.md',
+		'docs/README.md',
 		'styles.css',
 		'styles.tw3.css',
 		'iab/styles.css',
@@ -62,6 +65,8 @@ const requiredPackedFilesByPackage: Record<string, string[]> = {
 		'src/iab/styles.tw3.css',
 	],
 	'@c15t/nextjs': [
+		'AGENTS.md',
+		'docs/README.md',
 		'styles.css',
 		'styles.tw3.css',
 		'iab/styles.css',
@@ -75,6 +80,9 @@ const requiredPackedFilesByPackage: Record<string, string[]> = {
 		'src/iab/styles.css',
 		'src/iab/styles.tw3.css',
 	],
+	'@c15t/backend': ['AGENTS.md', 'docs/README.md'],
+	'@c15t/scripts': ['AGENTS.md', 'docs/README.md'],
+	'@c15t/cli': ['AGENTS.md', 'docs/README.md'],
 };
 
 const styleEntrypointPackages = new Set([

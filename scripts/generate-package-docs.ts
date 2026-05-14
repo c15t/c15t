@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -128,6 +128,16 @@ async function runLeadtype(config: PackageDocsConfig) {
 	if (exitCode !== 0) {
 		throw new Error(`leadtype package docs failed for ${config.name}`);
 	}
+
+	const agentsPath = join(outDir, 'AGENTS.md');
+	const docsReadmePath = join(outDir, 'docs', 'README.md');
+	const agentsContent = readFileSync(agentsPath, 'utf8');
+	mkdirSync(join(outDir, 'docs'), { recursive: true });
+	writeFileSync(
+		docsReadmePath,
+		agentsContent.replaceAll('(./docs/', '(./'),
+		'utf8'
+	);
 }
 
 for (const config of selectedConfigs()) {
