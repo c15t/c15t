@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/backend",
-	"version": "2.0.0",
+	"version": "2.1.0",
 	"description": "Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preferences centre. Webhooks, audit logs, storage adapters. Self host or use consent.io",
 	"keywords": [
 		"consent",
@@ -20,6 +20,9 @@
 		"consent-banner"
 	],
 	"homepage": "https://c15t.com/docs/self-host/v2",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
@@ -105,6 +108,7 @@
 	"files": [
 		"dist",
 		"dist-types",
+		"AGENTS.md",
 		"docs",
 		"README.md"
 	],
@@ -113,11 +117,11 @@
 		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/backend",
 		"build:agent-docs": "bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/backend",
 		"check-types": "bun prebuild && tsc --noEmit",
-		"dev": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"knip": "knip",
 		"lint": "bun biome lint ./src",
-		"prepack": "bun run build",
+		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
 		"start": "node dist/server.cjs",
 		"test": "bun prebuild && vitest run",
 		"test:watch": "bun prebuild && vitest"
