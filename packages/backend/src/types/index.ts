@@ -13,7 +13,7 @@ import type { Meter, Tracer } from '@opentelemetry/api';
 import type { FumaDB, InferFumaDB } from 'fumadb';
 import type { CacheAdapter } from '../cache/types';
 import type { createRegistry } from '../db/registry';
-import type { DB, LatestDB } from '../db/schema';
+import type { DB, LatestDB, NamingOptions } from '../db/schema';
 import type { JurisdictionCode } from './api';
 
 export * from './api';
@@ -44,6 +44,21 @@ export interface DatabaseOptions {
 	 * @see {@link https://c15t.com/docs/self-host/guides/database-setup}
 	 */
 	tablePrefix?: string;
+
+	/**
+	 * Customize SQL table and column names.
+	 *
+	 * Omit (default) to keep the historical camelCase identifiers — fully
+	 * backwards compatible.
+	 *
+	 * Provide `tables` directly, or use a built-in utility such as
+	 * `snakeCaseTables()` to generate the map. Spread to combine.
+	 *
+	 * @example { tables: snakeCaseTables() }
+	 * @example { tables: { consentPolicy: { name: 'consent_policies' } } }
+	 * @see {@link https://c15t.com/docs/self-host/guides/database-setup}
+	 */
+	naming?: NamingOptions;
 }
 
 /**
@@ -369,6 +384,21 @@ export interface C15TOptions {
 	tablePrefix?: string;
 
 	/**
+	 * Customize SQL table and column names.
+	 *
+	 * Omit (default) to keep the historical camelCase identifiers — fully
+	 * backwards compatible.
+	 *
+	 * Provide `tables` directly, or use a built-in utility such as
+	 * `snakeCaseTables()` to generate the map. Spread to combine.
+	 *
+	 * @example { tables: snakeCaseTables() }
+	 * @example { tables: { consentPolicy: { name: 'consent_policies' } } }
+	 * @see {@link https://c15t.com/docs/self-host/guides/database-setup}
+	 */
+	naming?: NamingOptions;
+
+	/**
 	 * Application name used as backend metadata and identity.
 	 * Returned by `/init` (`appName`), used in logs, telemetry defaults (`service.name`),
 	 * and cache key prefixing.
@@ -517,7 +547,7 @@ export interface C15TOptions {
 export interface C15TContext
 	extends Omit<
 		C15TOptions,
-		'ipAddress' | 'adapter' | 'logger' | 'tablePrefix'
+		'ipAddress' | 'adapter' | 'logger' | 'tablePrefix' | 'naming'
 	> {
 	appName: string;
 	logger: ReturnType<typeof createLogger>;
