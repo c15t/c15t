@@ -252,12 +252,19 @@ flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
 				return c15tContext;
 			},
 			beforeCommand: ({ commandNames, context }) => {
-				context.logger.debug('Raw process arguments:', process.argv);
 				context.logger.debug('Parsed command name:', context.commandName);
-				context.logger.debug('Parsed command args:', context.commandArgs);
-				context.logger.debug('Parsed global flags:', context.flags);
-				context.logger.debug(`Current working directory: ${cwd}`);
-				context.logger.debug(`Config path flag: ${context.flags.config}`);
+				context.logger.debug(
+					'Parsed argument count:',
+					context.commandArgs.length
+				);
+				context.logger.debug(
+					'Parsed global flag names:',
+					Object.keys(context.flags)
+				);
+				context.logger.debug(
+					'Config path flag provided:',
+					typeof context.flags.config === 'string'
+				);
 				context.logger.info(`Executing command: ${commandNames.join(' ')}`);
 			},
 		},
