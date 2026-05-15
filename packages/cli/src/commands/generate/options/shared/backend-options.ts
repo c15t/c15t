@@ -3,7 +3,7 @@
  * Composes backend-related prompts (env file + proxy) for modes with a backend URL
  */
 
-import * as p from '@clack/prompts';
+import { promptConfirm } from 'hexbus';
 import type { CliContext } from '~/context/types';
 
 interface BackendOptionsInput {
@@ -28,27 +28,32 @@ interface BackendOptionsResult {
  */
 export async function getBackendOptions({
 	context,
-	backendURL,
 	handleCancel,
 }: BackendOptionsInput): Promise<BackendOptionsResult> {
 	let useEnvFile = false;
 	let proxyNextjs: boolean | undefined;
 
 	// Prompt for env file storage
-	const useEnvFileSelection = await p.confirm({
+	const useEnvFileSelection = await promptConfirm({
+		cancel: 'silent',
 		message:
 			'Store the backendURL in a .env file? (Recommended, URL is public)',
 		initialValue: true,
+		stage: 'backend_env_file_setup',
+		telemetry: context.telemetry,
 	});
 
-	if (handleCancel?.(useEnvFileSelection)) {
+	const cancelledEnvFile =
+		useEnvFileSelection === undefined ||
+		handleCancel?.(useEnvFileSelection) === true;
+	if (cancelledEnvFile) {
 		context.error.handleCancel('Setup cancelled.', {
 			command: 'onboarding',
 			stage: 'backend_env_file_setup',
 		});
 	}
 
-	useEnvFile = useEnvFileSelection as boolean;
+	useEnvFile = useEnvFileSelection ?? false;
 
 	// Prompt for Next.js proxy if using Next.js
 	if (context.framework.pkg === '@c15t/nextjs') {
@@ -56,20 +61,26 @@ export async function getBackendOptions({
 			'Learn more about Next.js Rewrites: https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites'
 		);
 
-		const proxyNextjsSelection = await p.confirm({
+		const proxyNextjsSelection = await promptConfirm({
+			cancel: 'silent',
 			message:
 				'Proxy requests to your project with Next.js Rewrites? (Recommended)',
 			initialValue: true,
+			stage: 'backend_proxy_nextjs_setup',
+			telemetry: context.telemetry,
 		});
 
-		if (handleCancel?.(proxyNextjsSelection)) {
+		const cancelledProxyNextjs =
+			proxyNextjsSelection === undefined ||
+			handleCancel?.(proxyNextjsSelection) === true;
+		if (cancelledProxyNextjs) {
 			context.error.handleCancel('Setup cancelled.', {
 				command: 'onboarding',
 				stage: 'backend_proxy_nextjs_setup',
 			});
 		}
 
-		proxyNextjs = proxyNextjsSelection as boolean;
+		proxyNextjs = proxyNextjsSelection ?? false;
 	}
 
 	return {

@@ -5,7 +5,7 @@
  */
 
 import path from 'node:path';
-import color from 'picocolors';
+import { color } from 'hexbus';
 import type { CliContext } from '~/context/types';
 
 /**

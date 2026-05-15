@@ -34,17 +34,14 @@
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
-		"@c15t/logger": "workspace:*",
-		"@clack/prompts": "1.1.0",
+		"@inth/hexbus-codemods": "0.5.0",
+		"@inth/hexbus-skills": "0.1.1",
 		"@modelcontextprotocol/sdk": "^1.29.0",
 		"c12": "3.3.3",
 		"dotenv": "17.3.1",
-		"evlog": "^2.11.1",
-		"figlet": "1.11.0",
 		"fs-extra": "11.3.4",
+		"hexbus": "0.6.0",
 		"open": "11.0.0",
-		"package-manager-detector": "1.6.0",
-		"picocolors": "1.1.1",
 		"ts-morph": "27.0.2",
 		"xstate": "^5.30.0",
 		"zod": "4.3.6"
@@ -52,9 +49,6 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"@types/figlet": "1.7.0",
-		"@types/fs-extra": "11.0.4",
-		"@types/prettier": "^3.0.0",
 		"prettier": "^3.8.1"
 	},
 	"publishConfig": {

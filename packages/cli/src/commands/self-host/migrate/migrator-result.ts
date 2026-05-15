@@ -1,7 +1,7 @@
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { MigrationResult } from '@c15t/backend/db/migrator';
-import * as p from '@clack/prompts';
+import { promptConfirm } from 'hexbus';
 import type { CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';
 
@@ -14,12 +14,15 @@ export async function handleMigrationResult(
 		success: true,
 	});
 
-	const saveSQL = await p.confirm({
+	const saveSQL = await promptConfirm({
+		cancel: 'silent',
 		message: 'Save SQL to file?',
 		initialValue: true,
+		stage: 'migration_save_sql',
+		telemetry,
 	});
 
-	if (p.isCancel(saveSQL)) {
+	if (saveSQL === undefined) {
 		telemetry.trackEvent(TelemetryEventName.MIGRATION_FAILED, {
 			saveSql: false,
 		});
@@ -36,12 +39,15 @@ export async function handleMigrationResult(
 		logger.success(`SQL saved to: ${filename}`);
 	}
 
-	const execute = await p.confirm({
+	const execute = await promptConfirm({
+		cancel: 'silent',
 		message: 'Execute this migration?',
 		initialValue: false,
+		stage: 'migration_execute',
+		telemetry,
 	});
 
-	if (p.isCancel(execute)) {
+	if (execute === undefined) {
 		telemetry.trackEvent(TelemetryEventName.MIGRATION_FAILED, {
 			execute: false,
 		});

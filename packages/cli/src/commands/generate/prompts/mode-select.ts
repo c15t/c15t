@@ -2,8 +2,7 @@
  * Storage mode selection prompts
  */
 
-import * as p from '@clack/prompts';
-import color from 'picocolors';
+import { color, promptSelect } from 'hexbus';
 import type { CliContext } from '~/context/types';
 import { STORAGE_MODES, type StorageMode } from '../../../constants';
 
@@ -52,20 +51,23 @@ export async function promptForMode(context: CliContext): Promise<StorageMode> {
 	logger.message(color.bold('How would you like to store consent data?'));
 	logger.message('');
 
-	const result = await p.select({
+	const result = await promptSelect({
+		cancel: 'silent',
 		message: 'Select a storage mode:',
 		options: MODE_OPTIONS.map((option) => ({
 			value: option.value,
 			label: option.label,
 			hint: option.hint,
 		})),
+		stage: 'mode_selection',
+		telemetry: context.telemetry,
 	});
 
-	if (p.isCancel(result)) {
+	if (result === undefined) {
 		context.error.handleCancel('Mode selection cancelled');
 	}
 
-	return result as StorageMode;
+	return result;
 }
 
 /**

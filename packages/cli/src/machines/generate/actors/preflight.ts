@@ -5,7 +5,7 @@
  */
 
 import path from 'node:path';
-import color from 'picocolors';
+import { color } from 'hexbus';
 import { fromPromise } from 'xstate';
 import type { CliContext } from '~/context/types';
 import type { GenerateMachineContext, PreflightCheckResult } from '../types';

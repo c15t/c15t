@@ -5,7 +5,7 @@ import type { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
 import type { mongoAdapter } from '@c15t/backend/db/adapters/mongo';
 import type { prismaAdapter } from '@c15t/backend/db/adapters/prisma';
 import type { typeormAdapter } from '@c15t/backend/db/adapters/typeorm';
-import * as p from '@clack/prompts';
+import { promptConfirm, promptSelect, promptText } from 'hexbus';
 import type { CliContext } from '~/context/types';
 
 type AdapterKey =
@@ -314,17 +314,19 @@ export default defineConfig({
 }
 
 async function promptSelectAdapter(): Promise<AdapterKey> {
-	const selection = (await p.select({
+	const selection = await promptSelect({
+		cancel: 'silent',
 		message: 'Select database adapter:',
 		options: (Object.keys(ADAPTER_LABELS) as AdapterKey[]).map((key) => ({
 			value: key,
 			label: ADAPTER_LABELS[key],
 		})),
-	})) as AdapterKey | symbol;
-	if (p.isCancel(selection)) {
+		stage: 'adapter_select',
+	});
+	if (selection === undefined) {
 		throw new Cancelled('adapter_select');
 	}
-	return selection as AdapterKey;
+	return selection;
 }
 
 async function promptSelectProvider<A extends AdapterKey>(
@@ -338,11 +340,13 @@ async function promptSelectProvider<A extends AdapterKey>(
 		const [first] = providers;
 		return (first as (typeof providers)[number]).value as ProviderFor<A>;
 	}
-	const selection = await p.select({
+	const selection = await promptSelect({
+		cancel: 'silent',
 		message: 'Select database provider:',
 		options: providers.map((opt) => ({ value: opt.value, label: opt.label })),
+		stage: 'provider_select',
 	});
-	if (p.isCancel(selection)) {
+	if (selection === undefined) {
 		throw new Cancelled('provider_select');
 	}
 	return selection as ProviderFor<A>;
@@ -354,22 +358,26 @@ async function promptConnection<A extends AdapterKey>(
 ): Promise<ConnectionInput> {
 	const connection: ConnectionInput = { useEnv: true };
 	if (provider === 'sqlite') {
-		const sqliteFile = await p.text({
+		const sqliteFile = await promptText({
+			cancel: 'silent',
 			message: 'SQLite file path:',
 			initialValue: './db.sqlite',
+			stage: 'sqlite_path',
 		});
-		if (p.isCancel(sqliteFile)) {
+		if (sqliteFile === undefined) {
 			throw new Cancelled('sqlite_path');
 		}
 		connection.sqliteFile = String(sqliteFile);
 		return connection;
 	}
 
-	const useEnv = await p.confirm({
+	const useEnv = await promptConfirm({
+		cancel: 'silent',
 		message: 'Store connection string in an environment variable?',
 		initialValue: true,
+		stage: 'use_env_confirm',
 	});
-	if (p.isCancel(useEnv)) {
+	if (useEnv === undefined) {
 		throw new Cancelled('use_env_confirm');
 	}
 	connection.useEnv = Boolean(useEnv);
@@ -377,11 +385,13 @@ async function promptConnection<A extends AdapterKey>(
 	if (connection.useEnv) {
 		const defaultVar =
 			adapter === 'mongoAdapter' ? 'MONGODB_URI' : 'DATABASE_URL';
-		const envVarName = await p.text({
+		const envVarName = await promptText({
+			cancel: 'silent',
 			message: 'Env var name for connection string:',
 			initialValue: defaultVar,
+			stage: 'env_var_name',
 		});
-		if (p.isCancel(envVarName)) {
+		if (envVarName === undefined) {
 			throw new Cancelled('env_var_name');
 		}
 		connection.envVar = String(envVarName);
@@ -392,11 +402,13 @@ async function promptConnection<A extends AdapterKey>(
 		adapter === 'mongoAdapter'
 			? 'mongodb+srv://user:pass@host/db'
 			: 'postgresql://user:pass@host:5432/db';
-	const connectionString = await p.text({
+	const connectionString = await promptText({
+		cancel: 'silent',
 		message: 'Connection string:',
 		placeholder,
+		stage: 'connection_string',
 	});
-	if (p.isCancel(connectionString)) {
+	if (connectionString === undefined) {
 		throw new Cancelled('connection_string');
 	}
 	connection.value = String(connectionString);

@@ -1,87 +1,44 @@
-import type { C15TOptions } from '@c15t/backend';
-import type { CliLogger } from '../utils/logger';
-import type { Telemetry } from '../utils/telemetry';
-import type { FrameworkDetectionResult } from './framework-detection';
-import type { PackageManagerResult } from './package-manager-detection';
+import type {
+	CliFlag,
+	CliLogger,
+	ErrorHandlers,
+	FileSystemUtils,
+	FlagType,
+	CliCommand as HexbusCliCommand,
+	CliContext as HexbusCliContext,
+	FrameworkDetectionResult as HexbusFrameworkDetectionResult,
+	PackageInfo,
+	PackageManager,
+	PackageManagerResult,
+	ParsedArgs,
+	Telemetry,
+} from 'hexbus';
 
-// --- Command Definition ---
-export interface CliCommand {
-	name: string;
-	label: string; // For prompts
-	hint: string; // For prompts
-	description: string; // For help text (optional)
-	// Action now takes CliContext
-	action: (context: CliContext) => Promise<void>;
-	subcommands?: CliCommand[];
-	hidden?: boolean;
-}
+export type {
+	CliFlag,
+	CliLogger,
+	ErrorHandlers,
+	FileSystemUtils,
+	FlagType,
+	PackageInfo,
+	PackageManager,
+	PackageManagerResult,
+	ParsedArgs,
+};
 
-// --- Flag Definition ---
-export type FlagType = 'boolean' | 'string' | 'special'; // 'special' for help/version
+export type AvailablePackages = 'c15t' | '@c15t/react' | '@c15t/nextjs';
 
-export interface CliFlag {
-	names: string[]; // e.g., ['--help', '-h']
-	description: string;
-	type: FlagType;
-	expectsValue: boolean;
-}
+export type FrameworkDetectionResult = Omit<
+	HexbusFrameworkDetectionResult<AvailablePackages>,
+	'pkg'
+> & {
+	pkg: AvailablePackages;
+};
 
-// --- Parsed Args Definition ---
-export interface ParsedArgs {
-	commandName: string | undefined;
-	commandArgs: string[];
-	// Store flags by their primary name (e.g., 'help', 'logger')
-	parsedFlags: Record<string, string | boolean | undefined>;
-}
-
-// --- Package Info ---
-export interface PackageInfo {
-	name: string;
-	version: string;
-	[key: string]: unknown;
-}
-
-// --- Error Handling Helpers ---
-export interface ErrorHandlers {
-	handleError: (error: unknown, message: string) => never;
-	handleCancel: (
-		message?: string,
-		context?: { command?: string; stage?: string }
-	) => never;
-}
-
-// --- Config Management ---
-export interface ConfigManagement {
-	loadConfig: () => Promise<C15TOptions | null>;
-	requireConfig: () => Promise<C15TOptions>;
-	getPathAliases: (configPath?: string) => Record<string, string> | null;
-}
-
-// --- File System Utilities ---
-export interface FileSystemUtils {
-	getPackageInfo: () => PackageInfo;
-}
+export type CliCommand = HexbusCliCommand<CliContext>;
 
 // --- CLI Context Definition ---
-export interface CliContext {
-	logger: CliLogger;
-	flags: ParsedArgs['parsedFlags'];
-	commandName: string | undefined;
-	commandArgs: string[];
-	cwd: string;
-
-	// Shared utilities
-	error: ErrorHandlers;
-	config: ConfigManagement;
-	fs: FileSystemUtils;
-
-	// Telemetry for tracking CLI command usage
-	telemetry: Telemetry;
-
-	// Utilities for user interaction
-	confirm: (message: string, initialValue: boolean) => Promise<boolean>;
-
-	projectRoot: string;
+export interface CliContext extends HexbusCliContext<AvailablePackages> {
 	framework: FrameworkDetectionResult;
-	packageManager: PackageManagerResult;
+	telemetry: Telemetry;
 }

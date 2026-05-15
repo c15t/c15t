@@ -4,8 +4,7 @@
  * Shows execution plan before changes and completion summary after.
  */
 
-import * as p from '@clack/prompts';
-import color from 'picocolors';
+import { color, promptConfirm } from 'hexbus';
 import type { PackageManagerResult } from '~/context/package-manager-detection';
 import type { CliContext } from '~/context/types';
 import { STORAGE_MODES, type StorageMode, URLS } from '../../constants';
@@ -89,12 +88,15 @@ export async function displayExecutionPlan(
 		return true;
 	}
 
-	const confirmed = await p.confirm({
+	const confirmed = await promptConfirm({
+		cancel: 'silent',
 		message: 'Proceed with these changes?',
 		initialValue: true,
+		stage: 'execution_plan_confirm',
+		telemetry: context.telemetry,
 	});
 
-	if (p.isCancel(confirmed)) {
+	if (confirmed === undefined) {
 		return false;
 	}
 
@@ -215,7 +217,7 @@ function getNextSteps(
 			break;
 
 		case STORAGE_MODES.SELF_HOSTED:
-			steps.push(`Set up your c15t backend server`);
+			steps.push('Set up your c15t backend server');
 			steps.push(
 				`Update ${color.cyan('c15t.config.ts')} with your backend URL`
 			);
@@ -232,9 +234,9 @@ function getNextSteps(
 
 	// Framework-specific steps
 	if (framework === 'Next.js') {
-		steps.push(`Add the ConsentManager to your layout or _app file`);
+		steps.push('Add the ConsentManager to your layout or _app file');
 	} else if (framework === 'React' || framework === 'Vite + React') {
-		steps.push(`Import ConsentManager in your App.tsx/main.tsx`);
+		steps.push('Import ConsentManager in your App.tsx/main.tsx');
 	}
 
 	// Common steps
@@ -254,12 +256,15 @@ export async function promptGitHubStar(context: CliContext): Promise<void> {
 	logger.message(color.dim('─'.repeat(40)));
 	logger.message('');
 
-	const shouldStar = await p.confirm({
+	const shouldStar = await promptConfirm({
+		cancel: 'silent',
 		message: `If c15t helps you, consider starring us on GitHub! ${color.dim('(Opens browser)')}`,
 		initialValue: false,
+		stage: 'github_star',
+		telemetry,
 	});
 
-	if (shouldStar && !p.isCancel(shouldStar)) {
+	if (shouldStar === true) {
 		const open = await import('open');
 		await open.default(URLS.GITHUB);
 		telemetry.trackEvent('onboarding.github_star', { clicked: true });

@@ -3,7 +3,7 @@
  * Allows users to choose a theme preset when using expanded UI components
  */
 
-import * as p from '@clack/prompts';
+import { promptSelect } from 'hexbus';
 import type { CliContext } from '~/context/types';
 
 /**
@@ -69,7 +69,8 @@ export async function promptForExpandedTheme(
 		'You can customize the theme further by editing the generated theme.ts file.'
 	);
 
-	const result = await p.select({
+	const result = await promptSelect({
+		cancel: 'silent',
 		message: 'Theme preset:',
 		options: EXPANDED_THEME_OPTIONS.map((option) => ({
 			value: option.value,
@@ -77,14 +78,16 @@ export async function promptForExpandedTheme(
 			hint: option.hint,
 		})),
 		initialValue: 'none' as ExpandedTheme,
+		stage: 'expanded_theme_selection',
+		telemetry: context.telemetry,
 	});
 
-	if (handleCancel?.(result)) {
+	if (handleCancel?.(result) ?? result === undefined) {
 		context.error.handleCancel('Setup cancelled.', {
 			command: 'onboarding',
 			stage: 'expanded_theme_selection',
 		});
 	}
 
-	return result as ExpandedTheme;
+	return result;
 }

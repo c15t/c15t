@@ -10,17 +10,26 @@
  * - Help/version display
  */
 
-import * as p from '@clack/prompts';
+import { readFileSync } from 'node:fs';
 import 'dotenv/config';
+import {
+	color,
+	type CliCommand as HexbusCliCommand,
+	type PackageInfo as HexbusPackageInfo,
+	parseCliArgs,
+	runCli,
+} from 'hexbus';
 import open from 'open';
-import color from 'picocolors';
-import { showHelpMenu } from './actions/show-help-menu';
+import {
+	authStatusCommand,
+	loginCommand,
+	logoutCommand,
+} from './commands/auth';
 import { codemodsCommand } from './commands/codemods';
-import { generate } from './commands/generate';
-import { projectsAction } from './commands/instances';
-import { selfHost } from './commands/self-host';
+import { generate, generateCommand } from './commands/generate';
+import { instancesAliasCommand, projectsCommand } from './commands/instances';
+import { selfHostCommand } from './commands/self-host';
 import { installSkills } from './commands/skills';
-import { displayIntro } from './components/intro';
 
 // Import from new v2 modules
 import { URLS } from './constants';
@@ -28,9 +37,63 @@ import { URLS } from './constants';
 // Import context creator and types
 import { createCliContext } from './context/creator';
 import { globalFlags } from './context/parser';
-import type { CliCommand } from './context/types';
+import type {
+	AvailablePackages,
+	CliCommand,
+	CliContext,
+} from './context/types';
 import { formatLogMessage } from './utils/logger';
-import { TelemetryEventName } from './utils/telemetry';
+import { createC15TTelemetryOptions } from './utils/telemetry';
+
+/**
+ * CLI package metadata read from `@c15t/cli`'s package manifest.
+ *
+ * @property name - The package name string.
+ * @property version - The package semver string.
+ */
+interface CliPackageInfo extends HexbusPackageInfo {
+	name: string;
+	version: string;
+}
+
+/**
+ * Reads package metadata for the running `@c15t/cli` package.
+ *
+ * Reads the package manifest adjacent to the built CLI entry point and returns
+ * the package name/version used by Hexbus for help and version output. Missing,
+ * unreadable, or malformed package data falls back to `@c15t/cli` and
+ * `unknown`; missing individual fields fall back independently.
+ *
+ * @returns The resolved CLI package metadata.
+ */
+function readOwnPackageInfo(): CliPackageInfo {
+	try {
+		const packageJsonUrl = new URL('../package.json', import.meta.url);
+		const content = readFileSync(packageJsonUrl, 'utf-8');
+		const parsed = JSON.parse(content) as Record<string, unknown>;
+		let name = '@c15t/cli';
+		if (typeof parsed.name === 'string') {
+			name = parsed.name;
+		}
+		let version = 'unknown';
+		if (typeof parsed.version === 'string') {
+			version = parsed.version;
+		}
+		return {
+			name,
+			version,
+		};
+	} catch (error) {
+		console.warn(
+			'Failed to read/parse package.json for `@c15t/cli`; using fallback package metadata.',
+			error
+		);
+		return {
+			name: '@c15t/cli',
+			version: 'unknown',
+		};
+	}
+}
 
 // Define commands (using types from context)
 const commands: CliCommand[] = [
@@ -41,6 +104,7 @@ const commands: CliCommand[] = [
 		description: 'Set up c15t in your project.',
 		action: (context) => generate(context),
 	},
+	generateCommand,
 	codemodsCommand,
 	{
 		name: 'skills',
@@ -73,11 +137,7 @@ const commands: CliCommand[] = [
 		},
 	},
 	{
-		name: 'self-host',
-		label: 'Self-host',
-		hint: 'Self-hosted backend workflow tools',
-		description: 'Self-host workflow commands (migrations).',
-		action: (context) => selfHost(context),
+		...selfHostCommand,
 	},
 	{
 		name: 'github',
@@ -97,205 +157,140 @@ const commands: CliCommand[] = [
 			logger.success('Thank you for your support!');
 		},
 	},
-	{
-		name: 'projects',
-		label: 'Projects',
-		hint: 'Manage your c15t projects',
-		description: 'List, select, and create c15t projects.',
-		action: (context) => projectsAction(context),
-	},
-	{
-		name: 'instances',
-		label: 'Instances',
-		hint: 'Alias for `projects`',
-		description: 'Alias for `c15t projects`.',
-		action: (context) => projectsAction(context),
-		hidden: true,
-	},
+	projectsCommand,
+	instancesAliasCommand,
+	loginCommand,
+	logoutCommand,
+	authStatusCommand,
 ];
 
+function isCommandToken(value: string | undefined): value is string {
+	return typeof value === 'string' && !value.startsWith('-');
+}
+
+function findUnknownCommandName(rawArgs: string[]): string | undefined {
+	const parsed = parseCliArgs(
+		rawArgs,
+		commands as unknown as HexbusCliCommand[],
+		globalFlags
+	);
+
+	if (!parsed.commandName) {
+		const [firstArg] = parsed.commandArgs;
+		if (isCommandToken(firstArg)) {
+			return firstArg;
+		}
+		return undefined;
+	}
+
+	let command = commands.find((item) => item.name === parsed.commandName);
+	let remainingArgs = parsed.commandArgs;
+
+	while (command?.subcommands && command.subcommands.length > 0) {
+		const [nextArg] = remainingArgs;
+		if (!isCommandToken(nextArg)) {
+			return undefined;
+		}
+
+		const subcommand = command.subcommands.find(
+			(item) => item.name === nextArg
+		);
+		if (!subcommand) {
+			return nextArg;
+		}
+
+		command = subcommand;
+		remainingArgs = remainingArgs.slice(1);
+	}
+
+	return undefined;
+}
+
 export async function main() {
-	// --- Context Setup ---
 	const rawArgs = process.argv.slice(2);
 	const cwd = process.cwd();
-	// Pass commands array to creator, as parser needs it
-	const context = await createCliContext(rawArgs, cwd, commands);
-	const { logger, flags, commandName, commandArgs, error, telemetry } = context;
+	const packageInfo = readOwnPackageInfo();
 
-	// --- Package Info & Early Exit Check ---
-	const packageInfo = context.fs.getPackageInfo();
-	const version = packageInfo.version;
+	await runCli<AvailablePackages, CliContext>({
+		appName: 'c15t',
+		commands,
+		context: {
+			configName: 'c15t',
+			cwd,
+			globalFlags,
+			interactivePackageManagerDetection: true,
+			packageMap: {
+				core: 'c15t',
+				next: '@c15t/nextjs',
+				react: '@c15t/react',
+			},
+			telemetry: createC15TTelemetryOptions({
+				defaultProperties: {
+					cliVersion: packageInfo.version,
+				},
+			}),
+		},
+		help: {
+			docsUrl: URLS.DOCS,
+			flags: globalFlags,
+		},
+		hooks: {
+			afterContext: async (context) => {
+				const c15tContext = await createCliContext(context);
+				const { logger, telemetry } = c15tContext;
 
-	// Inform users about telemetry if it's enabled
-	if (!telemetry.isDisabled()) {
-		logger.note(
-			`c15t collects anonymous usage data to help improve the CLI. 
+				if (!telemetry.isDisabled()) {
+					logger.note(
+						`c15t collects anonymous usage data to help improve the CLI. 
 This data is not personally identifiable and helps us prioritize features.
 To disable telemetry, use the ${color.cyan('--no-telemetry')}
 flag or set ${color.cyan('C15T_TELEMETRY_DISABLED=1')} in your environment.`,
-			`${formatLogMessage('info', 'Telemetry Notice')}`
-		);
-	}
+						`${formatLogMessage('info', 'Telemetry Notice')}`
+					);
+				}
 
-	// Track CLI invocation (without command yet)
-	try {
-		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
-			version,
-			nodeVersion: process.version,
-			platform: process.platform,
-		});
-		// Explicitly flush to ensure the event is sent immediately
-		telemetry.flushSync();
-	} catch (error) {
-		logger.debug('Failed to track CLI invocation:', error);
-	}
-
-	if (flags.version) {
-		logger.debug('Version flag detected');
-		logger.message(`c15t CLI version ${version}`);
-		telemetry.trackEvent(TelemetryEventName.VERSION_DISPLAYED, { version });
-		telemetry.flushSync();
-		await telemetry.shutdown();
-		process.exit(0);
-	}
-
-	if (flags.help) {
-		logger.debug('Help flag detected. Displaying help and exiting.');
-		telemetry.trackEvent(TelemetryEventName.HELP_DISPLAYED, { version });
-		telemetry.flushSync();
-		showHelpMenu(context, version, commands, globalFlags);
-		await telemetry.shutdown();
-		process.exit(0);
-	}
-
-	// --- Regular Execution Flow ---
-	logger.debug('Raw process arguments:', process.argv);
-	logger.debug('Parsed command name:', commandName);
-	logger.debug('Parsed command args:', commandArgs);
-	logger.debug('Parsed global flags:', flags);
-
-	// Display intro with context
-	await displayIntro(context, version);
-
-	// --- Configuration Check ---
-	logger.debug(`Current working directory: ${cwd}`);
-	logger.debug(`Config path flag: ${flags.config}`);
-
-	// --- Execute Command or Show Interactive Menu ---
-	try {
-		if (commandName) {
-			const command = commands.find((cmd) => cmd.name === commandName);
-			if (command) {
-				logger.info(`Executing command: ${command.name}`);
-				telemetry.trackCommand(command.name, commandArgs, flags);
-				await command.action(context);
-				telemetry.trackEvent(TelemetryEventName.COMMAND_SUCCEEDED, {
-					command: command.name,
-					executionTime: Date.now() - performance.now(),
-				});
-				telemetry.flushSync();
-			} else {
-				logger.error(`Unknown command: ${commandName}`);
-				telemetry.trackEvent(TelemetryEventName.COMMAND_UNKNOWN, {
-					unknownCommand: commandName,
-				});
-				telemetry.flushSync();
-				logger.info('Run c15t --help to see available commands.');
-				await telemetry.shutdown();
-				process.exit(1);
-			}
-		} else {
-			logger.debug('No command specified, entering interactive selection.');
-			telemetry.trackEvent(TelemetryEventName.INTERACTIVE_MENU_OPENED, {});
-
-			const promptOptions = commands
-				.filter((cmd) => !cmd.hidden)
-				.map((cmd) => ({
-					value: cmd.name,
-					label: cmd.label,
-					hint: cmd.hint,
-				}));
-			promptOptions.push({
-				value: 'exit',
-				label: 'Exit',
-				hint: 'Close the CLI',
-			});
-
-			const selectedCommandName = await p.select({
+				return c15tContext;
+			},
+			beforeCommand: ({ commandNames, context }) => {
+				context.logger.debug('Parsed command name:', context.commandName);
+				context.logger.debug(
+					'Parsed argument count:',
+					context.commandArgs.length
+				);
+				context.logger.debug(
+					'Parsed global flag names:',
+					Object.keys(context.flags)
+				);
+				context.logger.debug(
+					'Config path flag provided:',
+					typeof context.flags.config === 'string'
+				);
+				context.logger.info(`Executing command: ${commandNames.join(' ')}`);
+			},
+		},
+		intro: {
+			figletText: 'c15t',
+			tagline: 'Consent management made easy.',
+		},
+		noCommand: {
+			mode: 'interactive',
+			selection: {
+				exitHint: 'Close the CLI',
+				exitLabel: 'Exit',
+				exitValue: 'exit',
 				message: formatLogMessage(
 					'info',
 					'Which command would you like to run?'
 				),
-				options: promptOptions,
-			});
+			},
+		},
+		packageInfo,
+		rawArgs,
+	});
 
-			if (p.isCancel(selectedCommandName)) {
-				logger.debug('Interactive selection cancelled.');
-				telemetry.trackEvent(TelemetryEventName.INTERACTIVE_MENU_EXITED, {
-					action: 'cancelled',
-				});
-				context.error.handleCancel('Operation cancelled.', {
-					command: 'interactive_menu',
-					stage: 'exit',
-				});
-				return;
-			}
-
-			if (selectedCommandName === 'exit') {
-				logger.debug('Interactive selection exited.');
-				telemetry.trackEvent(TelemetryEventName.INTERACTIVE_MENU_EXITED, {
-					action: 'exit',
-				});
-				logger.outro('Exited c15t CLI.');
-				telemetry.flushSync();
-				return;
-			}
-
-			const selectedCommand = commands.find(
-				(cmd) => cmd.name === selectedCommandName
-			);
-			if (selectedCommand) {
-				logger.debug(`User selected command: ${selectedCommand.name}`);
-				telemetry.trackCommand(selectedCommand.name, [], flags);
-				await selectedCommand.action(context);
-				telemetry.trackEvent(TelemetryEventName.COMMAND_SUCCEEDED, {
-					command: selectedCommand.name,
-					executionTime: Date.now() - performance.now(),
-				});
-				telemetry.flushSync();
-			} else {
-				telemetry.trackEvent(TelemetryEventName.COMMAND_UNKNOWN, {
-					unknownCommand: String(selectedCommandName),
-				});
-				telemetry.flushSync();
-				error.handleError(
-					new Error(`Command '${selectedCommandName}' not found`),
-					'An internal error occurred'
-				);
-			}
-		}
-		logger.debug('Command execution completed');
-		telemetry.trackEvent(TelemetryEventName.CLI_COMPLETED, {
-			success: true,
-		});
-		telemetry.flushSync();
-	} catch (executionError) {
-		telemetry.trackEvent(TelemetryEventName.COMMAND_FAILED, {
-			command: commandName,
-			error:
-				executionError instanceof Error
-					? executionError.message
-					: String(executionError),
-		});
-		telemetry.flushSync();
-		error.handleError(
-			executionError,
-			'An unexpected error occurred during command execution'
-		);
+	if (findUnknownCommandName(rawArgs) && process.exitCode === undefined) {
+		process.exitCode = 1;
 	}
-
-	// Ensure telemetry is properly shut down
-	await telemetry.shutdown();
 }
 
 main();

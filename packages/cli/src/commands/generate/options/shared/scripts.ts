@@ -1,4 +1,4 @@
-import * as p from '@clack/prompts';
+import { promptConfirm } from 'hexbus';
 import type { CliContext } from '~/context/types';
 
 interface GetScriptsToAddOptions {
@@ -14,9 +14,12 @@ export async function getScriptsToAdd({
 		'@c15t/scripts has various prebuilt scripts for you to use. Learn more: https://c15t.com/docs/integrations'
 	);
 
-	const addScriptsSelection = await p.confirm({
+	const addScriptsSelection = await promptConfirm({
+		cancel: 'silent',
 		message: 'Do you want to add @c15t/scripts to your project?',
 		initialValue: true,
+		stage: 'scripts_addition',
+		telemetry: context.telemetry,
 	});
 
 	if (handleCancel?.(addScriptsSelection)) {

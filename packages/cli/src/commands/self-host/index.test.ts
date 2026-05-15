@@ -1,17 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@clack/prompts', () => ({
-	select: vi.fn(),
-	isCancel: vi.fn((value: unknown) => value === Symbol.for('CANCEL')),
+vi.mock('hexbus', async (importOriginal) => ({
+	...(await importOriginal<typeof import('hexbus')>()),
+	selectCommand: vi.fn(),
 }));
 
 vi.mock('./migrate', () => ({
 	migrate: vi.fn(async () => undefined),
 }));
 
-import * as prompts from '@clack/prompts';
+import { selectCommand } from 'hexbus';
 import { TelemetryEventName } from '~/utils/telemetry';
-import { selfHost } from './index';
+import { selfHost, selfHostSubcommands } from './index';
 import { migrate } from './migrate';
 
 function createMockContext(commandArgs: string[] = []) {
@@ -72,11 +72,10 @@ describe('selfHost command', () => {
 	it('exits self-host menu gracefully when Exit is selected', async () => {
 		const context = createMockContext();
 		(
-			prompts.select as unknown as ReturnType<typeof vi.fn>
-		).mockResolvedValueOnce('exit');
-		(
-			prompts.isCancel as unknown as ReturnType<typeof vi.fn>
-		).mockReturnValueOnce(false);
+			selectCommand as unknown as ReturnType<typeof vi.fn>
+		).mockResolvedValueOnce({
+			type: 'exited',
+		});
 
 		await selfHost(context);
 
@@ -93,13 +92,11 @@ describe('selfHost command', () => {
 
 	it('uses cancellation handler when selection is cancelled', async () => {
 		const context = createMockContext();
-		const cancel = Symbol.for('CANCEL');
 		(
-			prompts.select as unknown as ReturnType<typeof vi.fn>
-		).mockResolvedValueOnce(cancel);
-		(
-			prompts.isCancel as unknown as ReturnType<typeof vi.fn>
-		).mockReturnValueOnce(true);
+			selectCommand as unknown as ReturnType<typeof vi.fn>
+		).mockResolvedValueOnce({
+			type: 'cancelled',
+		});
 
 		await selfHost(context);
 
@@ -110,5 +107,29 @@ describe('selfHost command', () => {
 				stage: 'menu_selection',
 			}
 		);
+	});
+
+	it('selects subcommands through Hexbus selection', async () => {
+		const context = createMockContext();
+		const [migrateCommand] = selfHostSubcommands;
+		(
+			selectCommand as unknown as ReturnType<typeof vi.fn>
+		).mockResolvedValueOnce({
+			command: migrateCommand,
+			type: 'selected',
+		});
+
+		await selfHost(context);
+
+		expect(selectCommand).toHaveBeenCalledWith(
+			context,
+			selfHostSubcommands,
+			expect.objectContaining({
+				exitHint: 'Close the CLI',
+				exitLabel: 'Exit',
+				exitValue: 'exit',
+			})
+		);
+		expect(migrate).toHaveBeenCalledWith(context);
 	});
 });

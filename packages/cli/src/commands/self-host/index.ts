@@ -1,16 +1,22 @@
-import * as p from '@clack/prompts';
-import type { CliContext } from '~/context/types';
+import { selectCommand } from 'hexbus';
+import type { CliCommand, CliContext } from '~/context/types';
 import { formatLogMessage } from '~/utils/logger';
 import { TelemetryEventName } from '~/utils/telemetry';
 import { migrate } from './migrate';
 
+async function runSelfHostMigrate(context: CliContext) {
+	context.telemetry.trackEvent(TelemetryEventName.SELF_HOST_STARTED, {});
+	await migrate(context);
+}
+
 // Define self-host subcommands
-const subcommands = [
+export const selfHostSubcommands: CliCommand[] = [
 	{
 		name: 'migrate',
 		label: 'Migrate database',
 		hint: 'Run latest database migrations',
-		action: migrate,
+		description: 'Run latest database migrations for self-hosted deployments',
+		action: runSelfHostMigrate,
 	},
 ];
 
@@ -51,27 +57,17 @@ export async function selfHost(context: CliContext) {
 		context: 'self-host',
 	});
 
-	const promptOptions = subcommands.map((cmd) => ({
-		value: cmd.name,
-		label: cmd.label,
-		hint: cmd.hint,
-	}));
-
-	promptOptions.push({
-		value: 'exit',
-		label: 'Exit',
-		hint: 'Close the CLI',
-	});
-
-	const selectedSubcommandName = await p.select({
+	const selection = await selectCommand(context, selfHostSubcommands, {
+		exitHint: 'Close the CLI',
+		exitLabel: 'Exit',
+		exitValue: 'exit',
 		message: formatLogMessage(
 			'info',
 			'Which self-host task would you like to run?'
 		),
-		options: promptOptions,
 	});
 
-	if (p.isCancel(selectedSubcommandName)) {
+	if (selection.type === 'cancelled') {
 		logger.debug('Self-host interactive selection cancelled.');
 		telemetry.trackEvent(TelemetryEventName.INTERACTIVE_MENU_EXITED, {
 			action: 'cancelled',
@@ -84,7 +80,7 @@ export async function selfHost(context: CliContext) {
 		return;
 	}
 
-	if (selectedSubcommandName === 'exit') {
+	if (selection.type === 'exited') {
 		logger.debug('Self-host interactive selection exited.');
 		telemetry.trackEvent(TelemetryEventName.INTERACTIVE_MENU_EXITED, {
 			action: 'exit',
@@ -94,15 +90,11 @@ export async function selfHost(context: CliContext) {
 		return;
 	}
 
-	const selectedSubcommand = subcommands.find(
-		(cmd) => cmd.name === selectedSubcommandName
-	);
-
-	if (selectedSubcommand) {
-		logger.debug(`User selected subcommand: ${selectedSubcommand.name}`);
-		await selectedSubcommand.action(context);
+	if (selection.type === 'selected') {
+		logger.debug(`User selected subcommand: ${selection.command.name}`);
+		await selection.command.action?.(context);
 	} else {
-		logger.error(`Unknown subcommand: ${selectedSubcommandName}`);
+		logger.error('Unknown subcommand selection');
 		telemetry.trackEvent(TelemetryEventName.SELF_HOST_COMPLETED, {
 			success: false,
 			reason: 'invalid_selection',
@@ -114,3 +106,12 @@ export async function selfHost(context: CliContext) {
 		success: true,
 	});
 }
+
+export const selfHostCommand: CliCommand = {
+	name: 'self-host',
+	label: 'Self-host',
+	hint: 'Self-hosted backend workflow tools',
+	description: 'Self-host workflow commands (migrations).',
+	action: selfHost,
+	subcommands: selfHostSubcommands,
+};

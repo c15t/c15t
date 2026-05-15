@@ -53,16 +53,13 @@ vi.mock('../src/commands/generate/setup', () => ({
 	}),
 }));
 
-// Mock clack/prompts
-vi.mock('@clack/prompts', () => ({
-	confirm: vi.fn().mockImplementation(() => false),
-	isCancel: vi.fn().mockReturnValue(false),
-	log: {
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-	},
-}));
+// Prompt rendering is owned by Hexbus.
+vi.mock('hexbus', () => {
+	return {
+		promptConfirm: vi.fn().mockImplementation(() => false),
+		logMessage: vi.fn(),
+	};
+});
 
 describe('Command Integration', () => {
 	beforeEach(() => {

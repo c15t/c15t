@@ -6,7 +6,6 @@
 		"paths": {
 			"@c15t/backend": ["../backend/dist-types/core.d.ts"],
 			"@c15t/backend/*": ["../backend/dist-types/*"],
-			"@c15t/logger": ["../logger/dist-types/index.d.ts"],
 			"~/*": ["./src/*"]
 		}
 	},

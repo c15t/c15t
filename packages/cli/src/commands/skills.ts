@@ -4,8 +4,7 @@
  * Installs c15t agent skills for AI-assisted development (Claude, Cursor, etc.)
  */
 
-import { spawn } from 'node:child_process';
-import { once } from 'node:events';
+import { installSkills as installHexbusSkills } from '@inth/hexbus-skills';
 import type { CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';
 
@@ -22,39 +21,23 @@ export async function installSkills(context: CliContext) {
 		'Supported tools: Claude Code, Cursor, GitHub Copilot, and any agent that supports the skills format.'
 	);
 
-	const execCommands: Record<string, string> = {
-		bun: 'bunx',
-		pnpm: 'pnpm dlx',
-		yarn: 'yarn dlx',
-		npm: 'npx',
-	};
-	const execCommand = execCommands[packageManager.name] ?? 'npx';
-	const [cmd, ...baseArgs] = execCommand.split(' ');
-
-	logger.info(`Running: ${execCommand} skills add c15t/skills`);
-
-	try {
-		const child = spawn(cmd!, [...baseArgs, 'skills', 'add', 'c15t/skills'], {
-			cwd: context.projectRoot,
-			stdio: 'inherit',
-		});
-
-		const [exitCode] = await once(child, 'exit');
-
-		if (exitCode === 0) {
-			logger.success('Agent skills installed successfully!');
+	await installHexbusSkills({
+		cwd: context.projectRoot,
+		logger,
+		onFailure: (error) => {
+			if (error instanceof Error) {
+				telemetry.trackError(error, 'skills');
+			} else {
+				const normalizedError = new Error(String(error));
+				telemetry.trackError(normalizedError, 'skills');
+			}
+		},
+		onSuccess: () => {
 			telemetry.trackEvent(TelemetryEventName.ONBOARDING_COMPLETED, {
 				action: 'skills_installed',
 			});
-		} else {
-			logger.error(
-				`Skills installation failed (exit code ${exitCode}). Please try again or install manually with: npx skills add c15t/skills`
-			);
-		}
-	} catch (error) {
-		logger.error(
-			`Skills installation failed: ${error instanceof Error ? error.message : String(error)}`
-		);
-		logger.info('You can install manually with: npx skills add c15t/skills');
-	}
+		},
+		packageManager: packageManager.name,
+		skillRef: 'c15t/skills',
+	});
 }
