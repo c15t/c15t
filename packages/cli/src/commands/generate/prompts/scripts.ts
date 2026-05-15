@@ -2,8 +2,7 @@
  * Script configuration prompts
  */
 
-import * as p from '@clack/prompts';
-import color from 'picocolors';
+import { color, promptMultiselect } from 'hexbus';
 import type { CliContext } from '~/context/types';
 
 /**
@@ -84,7 +83,8 @@ export async function promptForScripts(
 	logger.message(color.dim('These will be configured to respect user consent'));
 	logger.message('');
 
-	const result = await p.multiselect({
+	const result = await promptMultiselect({
+		cancel: 'silent',
 		message: 'Select scripts (space to toggle, enter to confirm):',
 		options: SCRIPT_OPTIONS.map((option) => ({
 			value: option.value,
@@ -92,14 +92,16 @@ export async function promptForScripts(
 			hint: option.hint,
 		})),
 		required: false,
+		stage: 'scripts_selection',
+		telemetry: context.telemetry,
 	});
 
-	if (p.isCancel(result)) {
+	if (result === undefined) {
 		// Not cancelling the whole flow, just return empty
 		return [];
 	}
 
-	return result as ScriptId[];
+	return result;
 }
 
 /**

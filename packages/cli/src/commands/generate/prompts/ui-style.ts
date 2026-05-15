@@ -3,7 +3,7 @@
  * Allows users to choose between prebuilt components (single file) or expanded components (directory structure)
  */
 
-import * as p from '@clack/prompts';
+import { promptSelect } from 'hexbus';
 import type { CliContext } from '~/context/types';
 
 /**
@@ -58,7 +58,8 @@ export async function promptForUIStyle(
 		'Learn more: https://c15t.com/docs/frameworks/nextjs/customization'
 	);
 
-	const result = await p.select({
+	const result = await promptSelect({
+		cancel: 'silent',
 		message: 'UI component style:',
 		options: UI_STYLE_OPTIONS.map((option) => ({
 			value: option.value,
@@ -66,14 +67,16 @@ export async function promptForUIStyle(
 			hint: option.hint,
 		})),
 		initialValue: 'prebuilt' as UIStyle,
+		stage: 'ui_style_selection',
+		telemetry: context.telemetry,
 	});
 
-	if (handleCancel?.(result)) {
+	if (handleCancel?.(result) ?? result === undefined) {
 		context.error.handleCancel('Setup cancelled.', {
 			command: 'onboarding',
 			stage: 'ui_style_selection',
 		});
 	}
 
-	return result as UIStyle;
+	return result;
 }

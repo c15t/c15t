@@ -11,8 +11,8 @@ import type {
 	PackageManager,
 	PackageManagerResult,
 	ParsedArgs,
+	Telemetry,
 } from 'hexbus';
-import type { Telemetry } from '../utils/telemetry';
 
 export type {
 	CliFlag,

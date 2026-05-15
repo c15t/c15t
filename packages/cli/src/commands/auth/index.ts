@@ -2,7 +2,7 @@
  * Authentication commands (login/logout)
  */
 
-import * as p from '@clack/prompts';
+import { promptConfirm } from 'hexbus';
 import open from 'open';
 import {
 	clearConfig,
@@ -35,12 +35,15 @@ async function loginAction(context: CliContext): Promise<void> {
 			logger.message(`Logged in as: ${color.cyan(authState.config.email)}`);
 		}
 
-		const shouldRelogin = await p.confirm({
+		const shouldRelogin = await promptConfirm({
+			cancel: 'silent',
 			message: 'Would you like to log in with a different account?',
 			initialValue: false,
+			stage: 'auth_relogin_confirm',
+			telemetry,
 		});
 
-		if (p.isCancel(shouldRelogin) || !shouldRelogin) {
+		if (shouldRelogin !== true) {
 			return;
 		}
 	}
@@ -76,12 +79,15 @@ async function loginAction(context: CliContext): Promise<void> {
 		logger.message('');
 
 		// Try to open the browser
-		const shouldOpen = await p.confirm({
+		const shouldOpen = await promptConfirm({
+			cancel: 'silent',
 			message: 'Open the verification page in your browser?',
 			initialValue: true,
+			stage: 'auth_open_verification',
+			telemetry,
 		});
 
-		if (shouldOpen && !p.isCancel(shouldOpen)) {
+		if (shouldOpen === true) {
 			await open(verificationUrl);
 			logger.info('Browser opened');
 		}

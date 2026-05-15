@@ -1,10 +1,15 @@
 /**
  * Prompts actor for the generate state machine
  *
- * Wraps @clack/prompts for use as XState actors with proper cancellation handling.
+ * Wraps Hexbus prompts for use as XState actors with proper cancellation handling.
  */
 
-import * as p from '@clack/prompts';
+import {
+	promptConfirm,
+	promptMultiselect,
+	promptSelect,
+	promptText,
+} from 'hexbus';
 import { fromPromise } from 'xstate';
 import {
 	formatUserCode,
@@ -31,13 +36,6 @@ import type { Instance } from '~/types';
 import { createTaskSpinner } from '~/utils/spinner';
 import { validateInstanceName } from '~/utils/validation';
 import type { ExpandedTheme, UIStyle } from '../types';
-
-/**
- * Check if a value is a cancel symbol
- */
-function isCancel(value: unknown): value is symbol {
-	return p.isCancel(value);
-}
 
 /**
  * Cancelled error for prompts
@@ -86,7 +84,8 @@ export const modeSelectionActor = fromPromise<
 		initialMode = 'hosted';
 	}
 
-	const result = await p.select<string | symbol | undefined>({
+	const result = await promptSelect({
+		cancel: 'silent',
 		message: 'How would you like to store consent decisions?',
 		initialValue: initialMode,
 		options: [
@@ -106,9 +105,10 @@ export const modeSelectionActor = fromPromise<
 				hint: 'Full control over storage logic',
 			},
 		],
+		stage: 'mode_selection',
 	});
 
-	if (isCancel(result)) {
+	if (result === undefined) {
 		throw new PromptCancelledError('mode_selection');
 	}
 
@@ -118,7 +118,6 @@ export const modeSelectionActor = fromPromise<
 // --- Hosted Mode Prompt ---
 
 type HostedProvider = 'inth.com' | 'self-hosted';
-type ConsentSetupMethod = 'sign-in' | 'manual-url';
 
 export interface HostedModeInput {
 	cliContext: CliContext;
@@ -137,7 +136,8 @@ async function promptBackendURL(input: {
 	initialURL?: string;
 	stage: string;
 }): Promise<string> {
-	const result = await p.text({
+	const result = await promptText({
+		cancel: 'silent',
 		message: input.message,
 		placeholder: input.placeholder,
 		initialValue: input.initialURL,
@@ -154,13 +154,14 @@ async function promptBackendURL(input: {
 
 			return undefined;
 		},
+		stage: input.stage,
 	});
 
-	if (isCancel(result)) {
+	if (result === undefined) {
 		throw new PromptCancelledError(input.stage);
 	}
 
-	return result as string;
+	return result;
 }
 
 async function runConsentLogin(cliContext: CliContext): Promise<void> {
@@ -169,12 +170,15 @@ async function runConsentLogin(cliContext: CliContext): Promise<void> {
 	let useExistingSession = false;
 
 	if (authState.isLoggedIn && !authState.isExpired) {
-		const keepCurrentSession = await p.confirm({
+		const keepCurrentSession = await promptConfirm({
+			cancel: 'silent',
 			message: 'You are already signed in. Use your existing session?',
 			initialValue: true,
+			stage: 'consent_existing_session',
+			telemetry: cliContext.telemetry,
 		});
 
-		if (isCancel(keepCurrentSession)) {
+		if (keepCurrentSession === undefined) {
 			throw new PromptCancelledError('consent_existing_session');
 		}
 
@@ -209,12 +213,15 @@ async function runConsentLogin(cliContext: CliContext): Promise<void> {
 		);
 		cliContext.logger.message('');
 
-		const shouldOpen = await p.confirm({
+		const shouldOpen = await promptConfirm({
+			cancel: 'silent',
 			message: 'Open the verification page in your browser?',
 			initialValue: true,
+			stage: 'consent_open_verification',
+			telemetry: cliContext.telemetry,
 		});
 
-		if (isCancel(shouldOpen)) {
+		if (shouldOpen === undefined) {
 			throw new PromptCancelledError('consent_open_verification');
 		}
 
@@ -289,7 +296,8 @@ async function createInstanceInteractively(
 		});
 	}
 
-	const orgSelection = await p.select<string | symbol>({
+	const orgSelection = await promptSelect({
+		cancel: 'silent',
 		message: 'Select organization:',
 		options: organizations.map((org: ControlPlaneOrganization) => ({
 			value: org.organizationSlug,
@@ -297,9 +305,11 @@ async function createInstanceInteractively(
 			hint: `${org.organizationSlug} • ${org.role}`,
 		})),
 		initialValue: organizations[0]?.organizationSlug,
+		stage: 'project_create_org_slug',
+		telemetry: cliContext.telemetry,
 	});
 
-	if (isCancel(orgSelection)) {
+	if (orgSelection === undefined) {
 		throw new PromptCancelledError('project_create_org_slug');
 	}
 
@@ -312,7 +322,8 @@ async function createInstanceInteractively(
 		});
 	}
 
-	const regionSelection = await p.select<string | symbol>({
+	const regionSelection = await promptSelect({
+		cancel: 'silent',
 		message: 'Select V2 region:',
 		options: v2Regions.map((region: ControlPlaneRegion) => ({
 			value: region.id,
@@ -320,19 +331,24 @@ async function createInstanceInteractively(
 			hint: region.label,
 		})),
 		initialValue: v2Regions.find((region) => region.id === 'us-east-1')?.id,
+		stage: 'project_create_region',
+		telemetry: cliContext.telemetry,
 	});
 
-	if (isCancel(regionSelection)) {
+	if (regionSelection === undefined) {
 		throw new PromptCancelledError('project_create_region');
 	}
 
-	const slugInput = await p.text({
+	const slugInput = await promptText({
+		cancel: 'silent',
 		message: 'New project slug:',
 		placeholder: 'my-app',
 		validate: (value) => validateInstanceName(value?.trim() ?? ''),
+		stage: 'project_create_name',
+		telemetry: cliContext.telemetry,
 	});
 
-	if (isCancel(slugInput)) {
+	if (slugInput === undefined) {
 		throw new PromptCancelledError('project_create_name');
 	}
 
@@ -383,7 +399,8 @@ async function selectOrCreateInstance(
 			return await createInstanceInteractively(client, cliContext);
 		}
 
-		const selectedId = await p.select<string | symbol>({
+		const selectedId = await promptSelect({
+			cancel: 'silent',
 			message: 'Select a project to use:',
 			options: [
 				...instances.map((instance) => ({
@@ -397,9 +414,11 @@ async function selectOrCreateInstance(
 					hint: 'Provision a new inth.com project now',
 				},
 			],
+			stage: 'project_select',
+			telemetry: cliContext.telemetry,
 		});
 
-		if (isCancel(selectedId)) {
+		if (selectedId === undefined) {
 			throw new PromptCancelledError('project_select');
 		}
 
@@ -427,7 +446,8 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 		let provider = preselectedProvider ?? null;
 
 		if (!provider) {
-			const providerSelection = await p.select<HostedProvider | symbol>({
+			const providerSelection = await promptSelect({
+				cancel: 'silent',
 				message: 'Choose your hosted backend option:',
 				options: [
 					{
@@ -442,9 +462,11 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 					},
 				],
 				initialValue: 'inth.com',
+				stage: 'hosted_provider',
+				telemetry: cliContext.telemetry,
 			});
 
-			if (isCancel(providerSelection)) {
+			if (providerSelection === undefined) {
 				throw new PromptCancelledError('hosted_provider');
 			}
 
@@ -472,7 +494,8 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 			return { url, provider: 'inth.com' };
 		}
 
-		const setupMethod = await p.select<ConsentSetupMethod | symbol>({
+		const setupMethod = await promptSelect({
+			cancel: 'silent',
 			message: 'How do you want to configure inth.com?',
 			options: [
 				{
@@ -487,9 +510,11 @@ export const hostedModeActor = fromPromise<HostedModeOutput, HostedModeInput>(
 				},
 			],
 			initialValue: 'sign-in',
+			stage: 'consent_setup_method',
+			telemetry: cliContext.telemetry,
 		});
 
-		if (isCancel(setupMethod)) {
+		if (setupMethod === undefined) {
 			throw new PromptCancelledError('consent_setup_method');
 		}
 
@@ -537,13 +562,16 @@ export const backendOptionsActor = fromPromise<
 	const { cliContext } = input;
 
 	// Env file prompt
-	const useEnvFile = await p.confirm({
+	const useEnvFile = await promptConfirm({
+		cancel: 'silent',
 		message:
 			'Store the backendURL in a .env file? (Recommended, URL is public)',
 		initialValue: true,
+		stage: 'env_file',
+		telemetry: cliContext.telemetry,
 	});
 
-	if (isCancel(useEnvFile)) {
+	if (useEnvFile === undefined) {
 		throw new PromptCancelledError('env_file');
 	}
 
@@ -554,21 +582,24 @@ export const backendOptionsActor = fromPromise<
 			'Learn more about Next.js Rewrites: https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites'
 		);
 
-		const proxyResult = await p.confirm({
+		const proxyResult = await promptConfirm({
+			cancel: 'silent',
 			message:
 				'Proxy requests to your project with Next.js Rewrites? (Recommended)',
 			initialValue: true,
+			stage: 'proxy_nextjs',
+			telemetry: cliContext.telemetry,
 		});
 
-		if (isCancel(proxyResult)) {
+		if (proxyResult === undefined) {
 			throw new PromptCancelledError('proxy_nextjs');
 		}
 
-		proxyNextjs = proxyResult as boolean;
+		proxyNextjs = proxyResult;
 	}
 
 	return {
-		useEnvFile: useEnvFile as boolean,
+		useEnvFile,
 		proxyNextjs,
 	};
 });
@@ -631,7 +662,8 @@ export const frontendOptionsActor = fromPromise<
 			'Learn more: https://c15t.com/docs/frameworks/nextjs/customization'
 		);
 
-		const styleResult = await p.select({
+		const styleResult = await promptSelect({
+			cancel: 'silent',
 			message: 'UI component style:',
 			options: [
 				{
@@ -646,16 +678,19 @@ export const frontendOptionsActor = fromPromise<
 				},
 			],
 			initialValue: 'prebuilt' as UIStyle,
+			stage: 'ui_style',
+			telemetry: cliContext.telemetry,
 		});
 
-		if (isCancel(styleResult)) {
+		if (styleResult === undefined) {
 			throw new PromptCancelledError('ui_style');
 		}
 
 		uiStyle = styleResult as UIStyle;
 
 		// Theme prompt (both prebuilt and expanded)
-		const themeResult = await p.select({
+		const themeResult = await promptSelect({
+			cancel: 'silent',
 			message: 'Theme preset:',
 			options: [
 				{
@@ -680,9 +715,11 @@ export const frontendOptionsActor = fromPromise<
 				},
 			],
 			initialValue: 'none' as ExpandedTheme,
+			stage: 'expanded_theme',
+			telemetry: cliContext.telemetry,
 		});
 
-		if (isCancel(themeResult)) {
+		if (themeResult === undefined) {
 			throw new PromptCancelledError('expanded_theme');
 		}
 
@@ -695,7 +732,8 @@ export const frontendOptionsActor = fromPromise<
 			'Choose how you want your consent UI components generated.'
 		);
 
-		const styleResult = await p.select({
+		const styleResult = await promptSelect({
+			cancel: 'silent',
 			message: 'UI component style:',
 			options: [
 				{
@@ -710,16 +748,19 @@ export const frontendOptionsActor = fromPromise<
 				},
 			],
 			initialValue: 'prebuilt' as UIStyle,
+			stage: 'ui_style',
+			telemetry: cliContext.telemetry,
 		});
 
-		if (isCancel(styleResult)) {
+		if (styleResult === undefined) {
 			throw new PromptCancelledError('ui_style');
 		}
 
 		uiStyle = styleResult as UIStyle;
 
 		// Theme prompt (both prebuilt and expanded)
-		const reactThemeResult = await p.select({
+		const reactThemeResult = await promptSelect({
+			cancel: 'silent',
 			message: 'Theme preset:',
 			options: [
 				{
@@ -744,9 +785,11 @@ export const frontendOptionsActor = fromPromise<
 				},
 			],
 			initialValue: 'none' as ExpandedTheme,
+			stage: 'expanded_theme',
+			telemetry: cliContext.telemetry,
 		});
 
-		if (isCancel(reactThemeResult)) {
+		if (reactThemeResult === undefined) {
 			throw new PromptCancelledError('expanded_theme');
 		}
 
@@ -844,12 +887,15 @@ export const scriptsOptionActor = fromPromise<
 		'The @c15t/scripts package provides pre-configured third-party scripts with consent management.'
 	);
 
-	const addScripts = await p.confirm({
+	const addScripts = await promptConfirm({
+		cancel: 'silent',
 		message: 'Add @c15t/scripts for third-party script management?',
 		initialValue: true,
+		stage: 'scripts_option',
+		telemetry: cliContext.telemetry,
 	});
 
-	if (isCancel(addScripts)) {
+	if (addScripts === undefined) {
 		throw new PromptCancelledError('scripts_option');
 	}
 
@@ -860,7 +906,8 @@ export const scriptsOptionActor = fromPromise<
 		};
 	}
 
-	const selected = await p.multiselect({
+	const selected = await promptMultiselect({
+		cancel: 'silent',
 		message: 'Which scripts do you want to add?',
 		options: AVAILABLE_SCRIPTS.map((s) => ({
 			value: s.value,
@@ -868,9 +915,11 @@ export const scriptsOptionActor = fromPromise<
 			hint: s.hint,
 		})),
 		required: false,
+		stage: 'scripts_selection',
+		telemetry: cliContext.telemetry,
 	});
 
-	if (isCancel(selected)) {
+	if (selected === undefined) {
 		throw new PromptCancelledError('scripts_selection');
 	}
 
@@ -898,16 +947,18 @@ export const installConfirmActor = fromPromise<
 	const { dependencies, packageManager } = input;
 
 	const depList = dependencies.join(', ');
-	const result = await p.confirm({
+	const result = await promptConfirm({
+		cancel: 'silent',
 		message: `Install dependencies (${depList}) with ${packageManager}?`,
 		initialValue: true,
+		stage: 'install_confirm',
 	});
 
-	if (isCancel(result)) {
+	if (result === undefined) {
 		throw new PromptCancelledError('install_confirm');
 	}
 
-	return { confirmed: result as boolean };
+	return { confirmed: result };
 });
 
 // --- Skills Install Prompt ---
@@ -926,13 +977,16 @@ export const skillsInstallActor = fromPromise<
 >(async ({ input }) => {
 	const { cliContext } = input;
 
-	const result = await p.confirm({
+	const result = await promptConfirm({
+		cancel: 'silent',
 		message:
 			'Install c15t agent skills for AI-assisted development? (Claude, Cursor, etc.)',
 		initialValue: true,
+		stage: 'skills_install',
+		telemetry: cliContext.telemetry,
 	});
 
-	if (isCancel(result)) {
+	if (result === undefined) {
 		return { installed: false };
 	}
 
@@ -949,10 +1003,16 @@ export const skillsInstallActor = fromPromise<
 			};
 			const execCommand = execCommands[pmName] ?? 'npx';
 			const [cmd, ...baseArgs] = execCommand.split(' ');
+			if (!cmd) {
+				cliContext.logger.warn(
+					'Skills installation failed. You can install later with: npx skills add c15t/skills'
+				);
+				return { installed: false };
+			}
 
 			cliContext.logger.info('Installing c15t agent skills...');
 
-			const child = spawn(cmd!, [...baseArgs, 'skills', 'add', 'c15t/skills'], {
+			const child = spawn(cmd, [...baseArgs, 'skills', 'add', 'c15t/skills'], {
 				cwd: cliContext.projectRoot,
 				stdio: 'inherit',
 			});
@@ -995,12 +1055,15 @@ export const githubStarActor = fromPromise<GitHubStarOutput, GitHubStarInput>(
 	async ({ input }) => {
 		const { cliContext } = input;
 
-		const result = await p.confirm({
+		const result = await promptConfirm({
+			cancel: 'silent',
 			message: 'Would you like to star c15t on GitHub now?',
 			initialValue: true,
+			stage: 'github_star',
+			telemetry: cliContext.telemetry,
 		});
 
-		if (isCancel(result)) {
+		if (result === undefined) {
 			// Don't throw for this optional prompt, just return false
 			return { opened: false };
 		}

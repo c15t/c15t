@@ -2,7 +2,7 @@
  * Project management commands
  */
 
-import * as p from '@clack/prompts';
+import { promptConfirm, promptSelect, promptText } from 'hexbus';
 import {
 	getControlPlaneBaseUrl,
 	getSelectedInstanceId,
@@ -163,7 +163,8 @@ async function selectAction(context: CliContext): Promise<void> {
 			// Interactive selection
 			const currentId = await getSelectedInstanceId();
 
-			const result = await p.select({
+			const result = await promptSelect({
+				cancel: 'silent',
 				message: 'Select a project:',
 				options: instances.map((instance) => ({
 					value: instance.id,
@@ -173,9 +174,11 @@ async function selectAction(context: CliContext): Promise<void> {
 							? `(currently selected) • ${formatInstanceRegion(instance)}`
 							: formatInstanceRegion(instance),
 				})),
+				stage: 'project_select',
+				telemetry,
 			});
 
-			if (p.isCancel(result)) {
+			if (result === undefined) {
 				logger.info('Selection cancelled');
 				return;
 			}
@@ -263,13 +266,16 @@ async function createAction(context: CliContext): Promise<void> {
 
 			name = providedName;
 		} else {
-			const result = await p.text({
+			const result = await promptText({
+				cancel: 'silent',
 				message: 'Project slug:',
 				placeholder: 'my-app',
 				validate: (value) => validateInstanceName(value?.trim() ?? ''),
+				stage: 'project_create_name',
+				telemetry,
 			});
 
-			if (p.isCancel(result)) {
+			if (result === undefined) {
 				logger.info('Creation cancelled');
 				return;
 			}
@@ -285,7 +291,8 @@ async function createAction(context: CliContext): Promise<void> {
 			});
 		}
 
-		const orgSelection = await p.select<string | symbol>({
+		const orgSelection = await promptSelect({
+			cancel: 'silent',
 			message: 'Select organization:',
 			options: organizations.map((org) => ({
 				value: org.organizationSlug,
@@ -293,9 +300,11 @@ async function createAction(context: CliContext): Promise<void> {
 				hint: `${org.organizationSlug} • ${org.role}`,
 			})),
 			initialValue: organizations[0]?.organizationSlug,
+			stage: 'project_create_org',
+			telemetry,
 		});
 
-		if (p.isCancel(orgSelection)) {
+		if (orgSelection === undefined) {
 			logger.info('Creation cancelled');
 			return;
 		}
@@ -307,7 +316,8 @@ async function createAction(context: CliContext): Promise<void> {
 			});
 		}
 
-		const regionSelection = await p.select<string | symbol>({
+		const regionSelection = await promptSelect({
+			cancel: 'silent',
 			message: 'Select V2 region:',
 			options: v2Regions.map((region) => ({
 				value: region.id,
@@ -315,9 +325,11 @@ async function createAction(context: CliContext): Promise<void> {
 				hint: region.label,
 			})),
 			initialValue: v2Regions.find((region) => region.id === 'us-east-1')?.id,
+			stage: 'project_create_region',
+			telemetry,
 		});
 
-		if (p.isCancel(regionSelection)) {
+		if (regionSelection === undefined) {
 			logger.info('Creation cancelled');
 			return;
 		}
@@ -353,12 +365,15 @@ async function createAction(context: CliContext): Promise<void> {
 		);
 
 		// Ask if user wants to select this project
-		const shouldSelect = await p.confirm({
+		const shouldSelect = await promptConfirm({
+			cancel: 'silent',
 			message: 'Would you like to use this project for your project?',
 			initialValue: true,
+			stage: 'project_created_select',
+			telemetry,
 		});
 
-		if (shouldSelect && !p.isCancel(shouldSelect)) {
+		if (shouldSelect === true) {
 			await setSelectedInstanceId(instance.id);
 			logger.info('Project selected');
 		}

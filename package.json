@@ -56,7 +56,7 @@
 	},
 	"overrides": {
 		"cross-spawn": ">=6.0.6",
-		"hexbus": "0.2.0",
+		"hexbus": "link:hexbus",
 		"typeorm": ">=0.3.26"
 	},
 	"devDependencies": {

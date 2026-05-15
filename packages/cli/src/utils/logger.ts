@@ -1,11 +1,14 @@
-import { createLogger, type Logger } from '@c15t/logger';
-import * as p from '@clack/prompts';
-import color from 'picocolors';
+import {
+	type CliLogger,
+	createCliLogger as createHexbusCliLogger,
+	formatLogMessage as formatHexbusLogMessage,
+	logMessage as logHexbusMessage,
+} from 'hexbus';
 
 // Define standard log levels
 export type LogLevel = 'error' | 'warn' | 'info' | 'debug';
 export const validLogLevels: LogLevel[] = ['error', 'warn', 'info', 'debug'];
-export type CliLogger = Logger & CliExtensions;
+export type { CliLogger };
 
 // Define CLI-specific extension levels with their method signatures
 export interface CliExtensions {
@@ -16,13 +19,6 @@ export interface CliExtensions {
 	failed: (message: string) => never;
 	step: (current: number, total: number, label: string) => void;
 }
-
-const formatArgs = (args: unknown[]): string => {
-	if (args.length === 0) {
-		return '';
-	}
-	return `\n${args.map((arg) => `  - ${JSON.stringify(arg, null, 2)}`).join('\n')}`;
-};
 
 /**
  * Formats a log message with appropriate styling based on log level
@@ -37,34 +33,7 @@ export const formatLogMessage = (
 	message: unknown,
 	args: unknown[] = []
 ): string => {
-	const messageStr = typeof message === 'string' ? message : String(message);
-	const formattedArgs = formatArgs(args);
-
-	switch (logLevel) {
-		case 'error': {
-			return `${color.bgRed(color.black(' error '))} ${messageStr}${formattedArgs}`;
-		}
-		case 'warn': {
-			return `${color.bgYellow(color.black(' warning '))} ${messageStr}${formattedArgs}`;
-		}
-		case 'info': {
-			return `${color.bgGreen(color.black(' info '))} ${messageStr}${formattedArgs}`;
-		}
-		case 'debug': {
-			return `${color.bgBlack(color.white(' debug '))} ${messageStr}${formattedArgs}`;
-		}
-		case 'success': {
-			return `${color.bgGreen(color.white(' success '))} ${messageStr}${formattedArgs}`;
-		}
-		case 'failed': {
-			return `${color.bgRed(color.white(' failed '))} ${messageStr}${formattedArgs}`;
-		}
-		default: {
-			// Handle unexpected levels
-			const levelStr = logLevel as string;
-			return `[${levelStr.toUpperCase()}] ${messageStr}${formattedArgs}`;
-		}
-	}
+	return formatHexbusLogMessage(logLevel, message, args);
 };
 
 /**
@@ -80,78 +49,11 @@ export const logMessage = (
 	message: unknown,
 	...args: unknown[]
 ): void => {
-	const formattedMessage = formatLogMessage(logLevel, message, args);
-
-	switch (logLevel) {
-		case 'error':
-			p.log.error(formattedMessage);
-			break;
-		case 'warn':
-			p.log.warn(formattedMessage);
-			break;
-		case 'info':
-		case 'debug':
-			p.log.info(formattedMessage);
-			break;
-		case 'success':
-		case 'failed':
-			p.outro(formattedMessage);
-			break;
-		default:
-			p.log.message(formattedMessage);
-	}
+	logHexbusMessage(logLevel, message, ...args);
 };
 
 // This function creates a logger instance based on the provided level
 // It includes the custom log handler for clack integration.
 export const createCliLogger = (level: LogLevel): CliLogger => {
-	// Create the base logger with standard levels
-	const baseLogger = createLogger({
-		level,
-		appName: 'c15t',
-		log: (logLevel, message, ...args) => {
-			// Level filtering is primarily handled by the createLogger factory's level setting.
-			// This function now just focuses on routing output.
-			logMessage(logLevel, message, ...args);
-		},
-	});
-
-	// Extend the logger with CLI-specific methods
-	const extendedLogger = baseLogger as CliLogger;
-
-	// Add message method (plain text without prefix)
-	extendedLogger.message = (message: string) => {
-		p.log.message(message);
-	};
-
-	// Add note method (creates a note box)
-	extendedLogger.note = (content: string, title?: string) => {
-		p.note(content, title, {
-			format: (line: string) => line,
-		});
-	};
-
-	// Add success method (final message)
-	extendedLogger.success = (message: string) => {
-		logMessage('success', message);
-	};
-
-	// Add failed method (final message)
-	extendedLogger.failed = (message: string) => {
-		logMessage('failed', message);
-		process.exit(0);
-	};
-
-	// Add outro method (uses plain message)
-	extendedLogger.outro = (message: string) => {
-		p.outro(message);
-	};
-
-	extendedLogger.step = (current: number, total: number, label: string) => {
-		const filled = color.green('█'.repeat(current));
-		const empty = color.dim('░'.repeat(total - current));
-		p.log.step(`[${filled}${empty}] Step ${current}/${total}: ${label}`);
-	};
-
-	return extendedLogger;
+	return createHexbusCliLogger(level);
 };

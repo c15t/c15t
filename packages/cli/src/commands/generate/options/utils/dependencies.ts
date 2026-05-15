@@ -1,10 +1,10 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import path from 'node:path';
-import * as p from '@clack/prompts';
-import color from 'picocolors';
+import { color, promptConfirm } from 'hexbus';
 import type { PackageManager } from '~/context/package-manager-detection';
 import type { CliContext } from '~/context/types';
+import { createTaskSpinner } from '~/utils/spinner';
 import { TelemetryEventName } from '~/utils/telemetry';
 
 /**
@@ -104,7 +104,6 @@ export async function installDependencies({
 	autoInstall = false,
 }: InstallDependenciesOptions) {
 	const { telemetry, logger } = context;
-	const s = p.spinner();
 
 	if (dependenciesToAdd.length === 0) {
 		return { installDepsConfirmed: false, ranInstall: false };
@@ -113,12 +112,15 @@ export async function installDependencies({
 	const depsString = dependenciesToAdd.map((d) => color.cyan(d)).join(', ');
 
 	if (!autoInstall) {
-		const addDepsSelection = await p.confirm({
+		const addDepsSelection = await promptConfirm({
+			cancel: 'silent',
 			message: `Add required dependencies using ${color.cyan(context.packageManager.name)}? (${depsString})`,
 			initialValue: true,
+			stage: 'install_dependencies_confirm',
+			telemetry: context.telemetry,
 		});
 
-		if (handleCancel?.(addDepsSelection)) {
+		if (handleCancel?.(addDepsSelection) ?? addDepsSelection === undefined) {
 			return { installDepsConfirmed: false, ranInstall: false };
 		}
 
@@ -127,7 +129,10 @@ export async function installDependencies({
 		}
 	}
 
-	s.start(
+	const spinner = createTaskSpinner(
+		`Running ${color.cyan(context.packageManager.name)} to add and install dependencies... (this might take a moment)`
+	);
+	spinner.start(
 		`Running ${color.cyan(context.packageManager.name)} to add and install dependencies... (this might take a moment)`
 	);
 	try {
@@ -136,7 +141,7 @@ export async function installDependencies({
 			dependenciesToAdd,
 			context.packageManager.name
 		);
-		s.stop(
+		spinner.stop(
 			`✅ Dependencies installed: ${dependenciesToAdd.map((d) => color.cyan(d)).join(', ')}`
 		);
 		telemetry.trackEvent(TelemetryEventName.ONBOARDING_DEPENDENCIES_INSTALLED, {
@@ -147,7 +152,7 @@ export async function installDependencies({
 
 		return { installDepsConfirmed: true, ranInstall: true };
 	} catch (installError) {
-		s.stop(color.yellow('⚠️ Dependency installation failed.'));
+		spinner.stop(color.yellow('⚠️ Dependency installation failed.'));
 		logger.error('Installation Error:', installError);
 		telemetry.trackEvent(TelemetryEventName.ONBOARDING_DEPENDENCIES_INSTALLED, {
 			success: false,

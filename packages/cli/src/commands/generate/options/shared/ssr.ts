@@ -1,4 +1,4 @@
-import * as p from '@clack/prompts';
+import { promptSelect } from 'hexbus';
 import type { CliContext } from '~/context/types';
 
 interface GetSSROptionOptions {
@@ -37,25 +37,28 @@ export async function getSSROption({
 		'Learn more: https://c15t.com/docs/frameworks/nextjs/ssr'
 	);
 
-	const enableSSR = await p.select({
+	const enableSSR = await promptSelect({
+		cancel: 'silent',
 		message:
 			'Enable SSR consent prefetch? (faster first banner visibility, dynamic route)',
 		options: [
 			{
-				value: true,
+				value: 'true',
 				label: 'Yes (Recommended)',
 				hint: 'Fetch consent data on server and stream to client',
 			},
 			{
-				value: false,
+				value: 'false',
 				label: 'No',
 				hint: 'Client-only fetch after hydration (better for fully static pages)',
 			},
 		],
-		initialValue: true,
+		initialValue: 'true',
+		stage: 'ssr_option',
+		telemetry: context.telemetry,
 	});
 
-	const cancelled = handleCancel?.(enableSSR) ?? p.isCancel(enableSSR);
+	const cancelled = handleCancel?.(enableSSR) ?? enableSSR === undefined;
 
 	if (cancelled) {
 		if (onCancel) {
@@ -68,5 +71,5 @@ export async function getSSROption({
 		});
 	}
 
-	return enableSSR as boolean;
+	return enableSSR === 'true';
 }
