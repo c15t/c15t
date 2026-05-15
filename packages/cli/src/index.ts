@@ -45,11 +45,27 @@ import type {
 import { formatLogMessage } from './utils/logger';
 import { createC15TTelemetryOptions } from './utils/telemetry';
 
+/**
+ * CLI package metadata read from `@c15t/cli`'s package manifest.
+ *
+ * @property name - The package name string.
+ * @property version - The package semver string.
+ */
 interface CliPackageInfo extends HexbusPackageInfo {
 	name: string;
 	version: string;
 }
 
+/**
+ * Reads package metadata for the running `@c15t/cli` package.
+ *
+ * Reads the package manifest adjacent to the built CLI entry point and returns
+ * the package name/version used by Hexbus for help and version output. Missing,
+ * unreadable, or malformed package data falls back to `@c15t/cli` and
+ * `unknown`; missing individual fields fall back independently.
+ *
+ * @returns The resolved CLI package metadata.
+ */
 function readOwnPackageInfo(): CliPackageInfo {
 	try {
 		const packageJsonUrl = new URL('../package.json', import.meta.url);
@@ -67,7 +83,11 @@ function readOwnPackageInfo(): CliPackageInfo {
 			name,
 			version,
 		};
-	} catch {
+	} catch (error) {
+		console.warn(
+			'Failed to read/parse package.json for `@c15t/cli`; using fallback package metadata.',
+			error
+		);
 		return {
 			name: '@c15t/cli',
 			version: 'unknown',
