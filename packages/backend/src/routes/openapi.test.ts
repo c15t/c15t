@@ -8,16 +8,25 @@ import { createSubjectRoutes } from './subject';
 
 type OpenAPIObject = Record<string, unknown>;
 
+/**
+ * Narrows an unknown OpenAPI value to an object and fails the test if missing.
+ */
 function asObject(value: unknown): OpenAPIObject {
 	expect(value).toEqual(expect.any(Object));
 	return value as OpenAPIObject;
 }
 
+/**
+ * Narrows an unknown OpenAPI value to an array and fails the test if missing.
+ */
 function asArray(value: unknown): unknown[] {
 	expect(Array.isArray(value)).toBe(true);
 	return value as unknown[];
 }
 
+/**
+ * Finds an operation in the generated OpenAPI paths map.
+ */
 function getOperation(
 	spec: OpenAPIObject,
 	path: string,
@@ -35,6 +44,9 @@ function getOperation(
 	return asObject(pathItem[method]);
 }
 
+/**
+ * Finds a named OpenAPI parameter in the expected location.
+ */
 function getParameter(
 	operation: OpenAPIObject,
 	name: string,
@@ -50,6 +62,9 @@ function getParameter(
 	return parameter as OpenAPIObject;
 }
 
+/**
+ * Returns the JSON request schema for an OpenAPI operation.
+ */
 function getRequestSchema(operation: OpenAPIObject): OpenAPIObject {
 	const requestBody = asObject(operation.requestBody);
 	const content = asObject(requestBody.content);
@@ -57,6 +72,9 @@ function getRequestSchema(operation: OpenAPIObject): OpenAPIObject {
 	return asObject(json.schema);
 }
 
+/**
+ * Recursively finds a property across composed OpenAPI schemas.
+ */
 function findProperty(
 	schema: OpenAPIObject,
 	propertyName: string
@@ -92,6 +110,9 @@ function findProperty(
 	}
 }
 
+/**
+ * Generates the local OpenAPI spec from the route factories under test.
+ */
 async function getOpenAPISpec() {
 	const app = new Hono<{ Variables: { c15tContext: C15TContext } }>();
 
