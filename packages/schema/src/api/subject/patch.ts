@@ -7,17 +7,39 @@
 import * as v from 'valibot';
 import { subjectIdSchema } from './post';
 
+export const patchSubjectParamsSchema = v.object({
+	/** Subject ID from path parameter */
+	id: v.pipe(
+		subjectIdSchema,
+		v.description('Client-generated subject ID in sub_xxx format.'),
+		v.examples(['sub_2jv6z8n4q9'])
+	),
+});
+
+export const patchSubjectInputSchema = v.strictObject({
+	/** External user ID to link to this subject */
+	externalId: v.pipe(
+		v.string(),
+		v.description('External user ID from your authentication system.'),
+		v.examples(['user_123'])
+	),
+	/** Identity provider that issued the external ID */
+	identityProvider: v.optional(
+		v.pipe(
+			v.string(),
+			v.description('Identity provider name for the external ID.'),
+			v.examples(['auth0', 'clerk'])
+		)
+	),
+});
+
 /**
  * PATCH /subject/:id combined input schema (path param + body).
  * Hono merges path params and body into a single input object.
  */
 export const patchSubjectFullInputSchema = v.object({
-	/** Subject ID from path parameter */
-	id: subjectIdSchema,
-	/** External user ID to link */
-	externalId: v.string(),
-	/** Identity provider name (optional) */
-	identityProvider: v.optional(v.string()),
+	...patchSubjectParamsSchema.entries,
+	...patchSubjectInputSchema.entries,
 });
 
 /**
@@ -48,4 +70,6 @@ export const patchSubjectErrorSchemas = {
 export type PatchSubjectFullInput = v.InferOutput<
 	typeof patchSubjectFullInputSchema
 >;
+export type PatchSubjectInput = v.InferOutput<typeof patchSubjectInputSchema>;
+export type PatchSubjectParams = v.InferOutput<typeof patchSubjectParamsSchema>;
 export type PatchSubjectOutput = v.InferOutput<typeof patchSubjectOutputSchema>;
