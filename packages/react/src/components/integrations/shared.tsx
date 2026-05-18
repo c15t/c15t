@@ -16,7 +16,7 @@ export function IntegrationPlaceholder({
 	return (
 		<FrameRoot>
 			<FrameTitle category={category}>{children}</FrameTitle>
-			{showButton ? <FrameButton category={category} /> : null}
+			{showButton && <FrameButton category={category} />}
 		</FrameRoot>
 	);
 }

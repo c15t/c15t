@@ -131,14 +131,18 @@ Use the built-in renderable helpers when they fit:
 import { C15TGoogleMap, C15TYouTubeEmbed } from '@c15t/react';
 
 function Page() {
+  const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
   return (
     <>
-      <C15TGoogleMap
-        apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
-        center={{ lat: 40.7128, lng: -74.006 }}
-        consentCategory="measurement"
-        zoom={12}
-      />
+      {googleMapsApiKey && (
+        <C15TGoogleMap
+          apiKey={googleMapsApiKey}
+          center={{ lat: 40.7128, lng: -74.006 }}
+          consentCategory="measurement"
+          zoom={12}
+        />
+      )}
 
       <C15TYouTubeEmbed
         consentCategory="marketing"

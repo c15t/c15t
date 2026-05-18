@@ -33,7 +33,12 @@ export interface GoogleMapsApi {
 	};
 }
 
-export type GoogleMapInstance = object;
+export interface GoogleMapInstance {
+	getCenter?: () => unknown;
+	getZoom?: () => number | undefined;
+	setCenter?: (center: GoogleMapCoordinates) => void;
+	setZoom?: (zoom: number) => void;
+}
 
 export interface GoogleMapOptions {
 	center: GoogleMapCoordinates;
@@ -177,7 +182,6 @@ export const C15TGoogleMap = forwardRef<HTMLDivElement, C15TGoogleMapProps>(
 				}),
 				category: consentCategory,
 				async: true,
-				defer: true,
 				nonce,
 			}),
 			[
@@ -248,7 +252,11 @@ export const C15TGoogleMap = forwardRef<HTMLDivElement, C15TGoogleMapProps>(
 					mapId,
 				});
 			} catch (error) {
-				onError?.(error instanceof Error ? error : new Error(String(error)));
+				let nextError = new Error(String(error));
+				if (error instanceof Error) {
+					nextError = error;
+				}
+				onError?.(nextError);
 				return;
 			}
 
@@ -312,14 +320,20 @@ export const C15TGoogleMap = forwardRef<HTMLDivElement, C15TGoogleMapProps>(
 			return null;
 		})();
 
+		const isMapReady = mapsScript.status === 'ready';
+		let mapCanvasDisplay = 'none';
+		if (isMapReady) {
+			mapCanvasDisplay = 'block';
+		}
+
 		return (
 			<div data-c15t-integration="google-map" {...props}>
 				{fallback}
 				<div
 					ref={setContainerRef}
-					aria-hidden={mapsScript.status !== 'ready'}
+					aria-hidden={!isMapReady}
 					style={{
-						display: mapsScript.status === 'ready' ? 'block' : 'none',
+						display: mapCanvasDisplay,
 						height: '100%',
 						width: '100%',
 					}}

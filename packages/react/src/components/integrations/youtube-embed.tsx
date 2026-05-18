@@ -58,7 +58,10 @@ export interface C15TYouTubeEmbedProps
 	/**
 	 * Additional props passed to the underlying Frame component.
 	 */
-	frameProps?: Omit<FrameProps, 'children' | 'category' | 'placeholder'>;
+	frameProps?: Omit<
+		FrameProps,
+		'children' | 'category' | 'className' | 'placeholder'
+	>;
 }
 
 function buildYouTubeEmbedUrl({
@@ -86,14 +89,37 @@ function buildYouTubeEmbedUrl({
 		}
 	}
 
-	const host = privacyEnhanced
-		? 'https://www.youtube-nocookie.com'
-		: 'https://www.youtube.com';
-	const suffix = query.size > 0 ? `?${query.toString()}` : '';
+	let host = 'https://www.youtube.com';
+	if (privacyEnhanced) {
+		host = 'https://www.youtube-nocookie.com';
+	}
+
+	let suffix = '';
+	if (query.size > 0) {
+		suffix = `?${query.toString()}`;
+	}
 
 	return `${host}/embed/${encodeURIComponent(videoId)}${suffix}`;
 }
 
+/**
+ * Renders a YouTube iframe behind c15t consent gating.
+ *
+ * Use this helper for iframe-only YouTube embeds. The iframe is mounted only
+ * after the configured consent category is allowed, so YouTube network requests
+ * are avoided while consent is missing.
+ *
+ * @example
+ * ```tsx
+ * <C15TYouTubeEmbed
+ *   consentCategory="marketing"
+ *   title="Product demo"
+ *   videoId="dQw4w9WgXcQ"
+ * />
+ * ```
+ *
+ * @throws When neither `videoId` nor `src` is provided.
+ */
 export function C15TYouTubeEmbed({
 	videoId,
 	src,
@@ -114,14 +140,15 @@ export function C15TYouTubeEmbed({
 		throw new Error('C15TYouTubeEmbed requires either videoId or src');
 	}
 
-	const embedSrc =
-		src ??
-		buildYouTubeEmbedUrl({
+	let embedSrc = src;
+	if (!embedSrc) {
+		embedSrc = buildYouTubeEmbedUrl({
 			videoId: videoId as string,
 			privacyEnhanced,
 			start,
 			params,
 		});
+	}
 
 	return (
 		<Frame

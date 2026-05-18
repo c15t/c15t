@@ -137,14 +137,18 @@ Use the React renderable integrations through `@c15t/nextjs` in client component
 import { C15TGoogleMap, C15TYouTubeEmbed } from '@c15t/nextjs';
 
 export function ConsentAwareMedia() {
+  const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+
   return (
     <>
-      <C15TGoogleMap
-        apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''}
-        center={{ lat: 40.7128, lng: -74.006 }}
-        consentCategory="measurement"
-        zoom={12}
-      />
+      {googleMapsApiKey && (
+        <C15TGoogleMap
+          apiKey={googleMapsApiKey}
+          center={{ lat: 40.7128, lng: -74.006 }}
+          consentCategory="measurement"
+          zoom={12}
+        />
+      )}
 
       <C15TYouTubeEmbed
         consentCategory="marketing"

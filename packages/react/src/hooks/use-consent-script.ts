@@ -78,7 +78,11 @@ interface ScriptRegistryEntry<TReady> {
 const scriptRegistry = new Map<string, ScriptRegistryEntry<unknown>>();
 
 function toError(error: unknown): Error {
-	return error instanceof Error ? error : new Error(String(error));
+	if (error instanceof Error) {
+		return error;
+	}
+
+	return new Error(String(error));
 }
 
 function createScriptSignature(script: Script): string {
@@ -253,9 +257,10 @@ export function useConsentScript<TReady = unknown>({
 	timeoutMs,
 }: UseConsentScriptOptions<TReady>): UseConsentScriptResult<TReady> {
 	const { has, loadedScripts, setScripts, removeScript } = useConsentManager();
-	const hasConsent = enabled
-		? has(script.category as HasCondition<AllConsentNames>)
-		: false;
+	let hasConsent = false;
+	if (enabled) {
+		hasConsent = has(script.category as HasCondition<AllConsentNames>);
+	}
 	const scriptAppended = loadedScripts[script.id] === true;
 	const [readyValue, setReadyValue] = useState<TReady | null>(null);
 	const [isReady, setIsReady] = useState(false);
@@ -346,11 +351,12 @@ export function useConsentScript<TReady = unknown>({
 		status = 'ready';
 	}
 
-	const ready = hasConsent
-		? ((scriptRegistry.get(script.id)?.promise as
-				| Promise<TReady>
-				| undefined) ?? null)
-		: null;
+	let ready: Promise<TReady> | null = null;
+	if (hasConsent) {
+		ready =
+			(scriptRegistry.get(script.id)?.promise as Promise<TReady> | undefined) ??
+			null;
+	}
 
 	return {
 		status,
