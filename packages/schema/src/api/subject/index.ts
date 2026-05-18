@@ -30,10 +30,14 @@ export {
 
 export {
 	type PatchSubjectFullInput,
+	type PatchSubjectInput,
 	type PatchSubjectOutput,
+	type PatchSubjectParams,
 	patchSubjectErrorSchemas,
 	patchSubjectFullInputSchema,
+	patchSubjectInputSchema,
 	patchSubjectOutputSchema,
+	patchSubjectParamsSchema,
 } from './patch';
 
 export {

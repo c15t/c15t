@@ -13,9 +13,21 @@ import { subjectIdSchema } from './post';
  */
 export const getSubjectInputSchema = v.object({
 	/** Subject ID from path parameter */
-	id: subjectIdSchema,
+	id: v.pipe(
+		subjectIdSchema,
+		v.description('Client-generated subject ID in sub_xxx format.'),
+		v.examples(['sub_2jv6z8n4q9'])
+	),
 	/** Filter by consent type(s), comma-separated (query param) */
-	type: v.optional(v.string()),
+	type: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Optional consent policy type or comma-separated policy types to filter by.'
+			),
+			v.examples(['cookie_banner', 'privacy_policy,cookie_banner'])
+		)
+	),
 });
 
 /**
@@ -23,14 +35,26 @@ export const getSubjectInputSchema = v.object({
  */
 export const getSubjectQuerySchema = v.object({
 	/** Filter by consent type(s), comma-separated */
-	type: v.optional(v.string()),
+	type: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Optional consent policy type or comma-separated policy types to filter by.'
+			),
+			v.examples(['cookie_banner', 'privacy_policy,cookie_banner'])
+		)
+	),
 });
 
 /**
  * @deprecated Use getSubjectInputSchema instead. Kept for backward compatibility.
  */
 export const getSubjectParamsSchema = v.object({
-	id: subjectIdSchema,
+	id: v.pipe(
+		subjectIdSchema,
+		v.description('Client-generated subject ID in sub_xxx format.'),
+		v.examples(['sub_2jv6z8n4q9'])
+	),
 });
 
 /**
