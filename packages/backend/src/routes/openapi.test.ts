@@ -12,7 +12,9 @@ type OpenAPIObject = Record<string, unknown>;
  * Narrows an unknown OpenAPI value to an object and fails the test if missing.
  */
 function asObject(value: unknown): OpenAPIObject {
-	expect(value).toEqual(expect.any(Object));
+	expect(value).not.toBeNull();
+	expect(typeof value).toBe('object');
+	expect(Array.isArray(value)).toBe(false);
 	return value as OpenAPIObject;
 }
 
@@ -33,10 +35,11 @@ function getOperation(
 	method: string
 ): OpenAPIObject {
 	const paths = asObject(spec.paths);
-	const pathCandidates = [
-		path,
-		path.endsWith('/') ? path.slice(0, -1) : `${path}/`,
-	];
+	let alternatePath = `${path}/`;
+	if (path.endsWith('/')) {
+		alternatePath = path.slice(0, -1);
+	}
+	const pathCandidates = [path, alternatePath];
 	const resolvedPath = pathCandidates
 		.map((candidate) => paths[candidate])
 		.find(Boolean);
@@ -111,6 +114,40 @@ function findProperty(
 }
 
 /**
+ * Checks whether a property is required across a schema or composed variants.
+ */
+function hasRequiredProperty(
+	schema: OpenAPIObject,
+	propertyName: string
+): boolean {
+	const required = schema.required;
+
+	if (Array.isArray(required) && required.includes(propertyName)) {
+		return true;
+	}
+
+	for (const key of ['oneOf', 'anyOf', 'allOf']) {
+		const variants = schema[key];
+
+		if (!Array.isArray(variants)) {
+			continue;
+		}
+
+		for (const variant of variants) {
+			if (!(variant && typeof variant === 'object')) {
+				continue;
+			}
+
+			if (hasRequiredProperty(variant as OpenAPIObject, propertyName)) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+/**
  * Generates the local OpenAPI spec from the route factories under test.
  */
 async function getOpenAPISpec() {
@@ -176,6 +213,8 @@ describe('OpenAPI route documentation', () => {
 		expect(findProperty(patchSchema, 'externalId')?.description).toContain(
 			'External user ID'
 		);
+		expect(hasRequiredProperty(patchSchema, 'externalId')).toBe(true);
+		expect(hasRequiredProperty(patchSchema, 'identityProvider')).toBe(false);
 
 		const postSubject = getOperation(spec, '/subjects/', 'post');
 		const postSchema = getRequestSchema(postSubject);
@@ -192,5 +231,9 @@ describe('OpenAPI route documentation', () => {
 		expect(findProperty(postSchema, 'preferences')?.description).toContain(
 			'Consent preferences'
 		);
+		expect(hasRequiredProperty(postSchema, 'subjectId')).toBe(true);
+		expect(hasRequiredProperty(postSchema, 'domain')).toBe(true);
+		expect(hasRequiredProperty(postSchema, 'givenAt')).toBe(true);
+		expect(hasRequiredProperty(postSchema, 'preferences')).toBe(true);
 	});
 });
