@@ -37,6 +37,7 @@ export interface GoogleMapInstance {
 	getCenter?: () => unknown;
 	getZoom?: () => number | undefined;
 	setCenter?: (center: GoogleMapCoordinates) => void;
+	setOptions?: (options: Record<string, unknown>) => void;
 	setZoom?: (zoom: number) => void;
 }
 
@@ -129,6 +130,48 @@ function buildGoogleMapsScriptUrl({
 	return `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
 }
 
+function createMapOptions({
+	center,
+	mapId,
+	options,
+	zoom,
+}: {
+	center: GoogleMapCoordinates;
+	mapId?: string;
+	options?: Omit<GoogleMapOptions, 'center' | 'zoom' | 'mapId'>;
+	zoom: number;
+}): GoogleMapOptions {
+	const nextOptions: GoogleMapOptions = {
+		...options,
+		center,
+		zoom,
+	};
+
+	if (mapId) {
+		nextOptions.mapId = mapId;
+	}
+
+	return nextOptions;
+}
+
+function createMapUpdateOptions({
+	mapId,
+	options,
+}: {
+	mapId?: string;
+	options?: Omit<GoogleMapOptions, 'center' | 'zoom' | 'mapId'>;
+}): Record<string, unknown> {
+	const nextOptions: Record<string, unknown> = {
+		...options,
+	};
+
+	if (mapId) {
+		nextOptions.mapId = mapId;
+	}
+
+	return nextOptions;
+}
+
 export const C15TGoogleMap = forwardRef<HTMLDivElement, C15TGoogleMapProps>(
 	(
 		{
@@ -155,14 +198,17 @@ export const C15TGoogleMap = forwardRef<HTMLDivElement, C15TGoogleMapProps>(
 		forwardedRef
 	) => {
 		const hasApiKey = apiKey.trim().length > 0;
-		const containerRef = useRef<HTMLDivElement | null>(null);
+		const mapCanvasRef = useRef<HTMLDivElement | null>(null);
 		const mapRef = useRef<GoogleMapInstance | null>(null);
+		const latestCallbacksRef = useRef({ onError, onReady });
+		const latestOptionsRef = useRef({ center, mapId, options, zoom });
 		const callbackName = `__c15tGoogleMapsReady_${sanitizeCallbackName(scriptId)}`;
 
-		const setContainerRef = useCallback(
-			(node: HTMLDivElement | null) => {
-				containerRef.current = node;
+		latestCallbacksRef.current = { onError, onReady };
+		latestOptionsRef.current = { center, mapId, options, zoom };
 
+		const setWrapperRef = useCallback(
+			(node: HTMLDivElement | null) => {
 				if (typeof forwardedRef === 'function') {
 					forwardedRef(node);
 				} else if (forwardedRef) {
@@ -240,32 +286,35 @@ export const C15TGoogleMap = forwardRef<HTMLDivElement, C15TGoogleMapProps>(
 				return;
 			}
 
-			const container = containerRef.current;
+			const container = mapCanvasRef.current;
 			if (!container) {
 				return;
 			}
 
+			if (mapRef.current) {
+				return;
+			}
+
+			const initialOptions = latestOptionsRef.current;
 			container.innerHTML = '';
 
 			let map: GoogleMapInstance;
 			try {
-				map = new mapsScript.readyValue.maps.Map(container, {
-					...options,
-					center,
-					zoom,
-					mapId,
-				});
+				map = new mapsScript.readyValue.maps.Map(
+					container,
+					createMapOptions(initialOptions)
+				);
 			} catch (error) {
 				let nextError = new Error(String(error));
 				if (error instanceof Error) {
 					nextError = error;
 				}
-				onError?.(nextError);
+				latestCallbacksRef.current.onError?.(nextError);
 				return;
 			}
 
 			mapRef.current = map;
-			onReady?.(map, mapsScript.readyValue);
+			latestCallbacksRef.current.onReady?.(map, mapsScript.readyValue);
 
 			return () => {
 				if (mapRef.current) {
@@ -276,16 +325,22 @@ export const C15TGoogleMap = forwardRef<HTMLDivElement, C15TGoogleMapProps>(
 				container.innerHTML = '';
 				mapRef.current = null;
 			};
-		}, [
-			center,
-			mapId,
-			mapsScript.readyValue,
-			mapsScript.status,
-			onError,
-			onReady,
-			options,
-			zoom,
-		]);
+		}, [mapsScript.readyValue, mapsScript.status]);
+
+		useEffect(() => {
+			if (mapsScript.status !== 'ready') {
+				return;
+			}
+
+			const map = mapRef.current;
+			if (!map) {
+				return;
+			}
+
+			map.setOptions?.(createMapUpdateOptions({ mapId, options }));
+			map.setCenter?.(center);
+			map.setZoom?.(zoom);
+		}, [center, mapId, mapsScript.status, options, zoom]);
 
 		useEffect(() => {
 			if (mapsScript.error) {
@@ -344,10 +399,10 @@ export const C15TGoogleMap = forwardRef<HTMLDivElement, C15TGoogleMapProps>(
 		}
 
 		return (
-			<div data-c15t-integration="google-map" {...props}>
+			<div ref={setWrapperRef} data-c15t-integration="google-map" {...props}>
 				{fallback}
 				<div
-					ref={setContainerRef}
+					ref={mapCanvasRef}
 					aria-hidden={!isMapReady}
 					style={{
 						display: mapCanvasDisplay,

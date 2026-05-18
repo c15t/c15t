@@ -186,6 +186,7 @@ describe('renderable integrations', () => {
 					center={{ lat: 51.5, lng: -0.12 }}
 					consentCategory="measurement"
 					placeholder={<div>Blocked measurement map</div>}
+					scriptId="blocked-google-map"
 					zoom={10}
 				/>
 			</MockConsentProvider>
@@ -209,6 +210,7 @@ describe('renderable integrations', () => {
 					center={{ lat: 51.5, lng: -0.12 }}
 					consentCategory="necessary"
 					errorFallback={<div>Google Maps requires an API key</div>}
+					scriptId="missing-key-google-map"
 					zoom={10}
 				/>
 			</MockConsentProvider>
@@ -273,6 +275,7 @@ describe('renderable integrations', () => {
 
 	test('loads Google Maps through the shared script hook and callback readiness', async () => {
 		const mapInstance = {};
+		let mapsApi: unknown;
 		const mapConstructor = vi.fn(function GoogleMapConstructor() {
 			return mapInstance;
 		});
@@ -293,7 +296,7 @@ describe('renderable integrations', () => {
 			}
 
 			setTimeout(() => {
-				(window as unknown as Record<string, unknown>).google = {
+				mapsApi = {
 					maps: {
 						Map: mapConstructor,
 						event: {
@@ -301,6 +304,7 @@ describe('renderable integrations', () => {
 						},
 					},
 				};
+				(window as unknown as Record<string, unknown>).google = mapsApi;
 
 				if (callbackName) {
 					const callback = (window as unknown as Record<string, unknown>)[
@@ -334,6 +338,7 @@ describe('renderable integrations', () => {
 					consentCategory="necessary"
 					data-testid="map"
 					onReady={onReady}
+					scriptId="ready-google-map"
 					zoom={10}
 				/>
 			</MockConsentProvider>
@@ -347,10 +352,87 @@ describe('renderable integrations', () => {
 		expect(
 			container.querySelector('[data-c15t-integration="google-map"]')
 		).not.toBeNull();
-		expect(mapConstructor).toHaveBeenCalledWith(expect.any(HTMLDivElement), {
-			center: { lat: 51.5, lng: -0.12 },
-			zoom: 10,
-			mapId: undefined,
+		expect(mapConstructor).toHaveBeenCalledWith(
+			expect.any(HTMLDivElement),
+			expect.objectContaining({
+				center: { lat: 51.5, lng: -0.12 },
+				zoom: 10,
+			})
+		);
+		expect(onReady).toHaveBeenCalledWith(mapInstance, mapsApi);
+	});
+
+	test('shares one Google Maps script across multiple map instances', async () => {
+		const mapConstructor = vi.fn(function GoogleMapConstructor() {
+			return {};
+		});
+		const onFirstReady = vi.fn();
+		const onSecondReady = vi.fn();
+		const setScripts = vi.fn((scripts) => {
+			const script = scripts[0];
+			let callbackName: string | null = null;
+			if (script?.src) {
+				callbackName = new URL(script.src).searchParams.get('callback');
+			}
+
+			setTimeout(() => {
+				(window as unknown as Record<string, unknown>).google = {
+					maps: {
+						Map: mapConstructor,
+					},
+				};
+
+				if (callbackName) {
+					const callback = (window as unknown as Record<string, unknown>)[
+						callbackName
+					];
+					if (typeof callback === 'function') {
+						callback();
+					}
+				}
+
+				script?.onLoad?.({
+					id: script.id,
+					elementId: script.id,
+					hasConsent: true,
+					consents: {
+						experience: false,
+						functionality: false,
+						marketing: false,
+						measurement: false,
+						necessary: true,
+					},
+				});
+			}, 0);
+		});
+		const state = createMockConsentState({ setScripts });
+
+		await render(
+			<MockConsentProvider state={state}>
+				<C15TGoogleMap
+					apiKey="test-key"
+					center={{ lat: 51.5, lng: -0.12 }}
+					consentCategory="necessary"
+					onReady={onFirstReady}
+					scriptId="shared-google-map"
+					zoom={10}
+				/>
+				<C15TGoogleMap
+					apiKey="test-key"
+					center={{ lat: 40.71, lng: -74 }}
+					consentCategory="necessary"
+					onReady={onSecondReady}
+					scriptId="shared-google-map"
+					zoom={12}
+				/>
+			</MockConsentProvider>
+		);
+
+		await waitFor(() => {
+			expect(setScripts).toHaveBeenCalledTimes(1);
+			expect(mapConstructor).toHaveBeenCalledTimes(2);
+			expect(onFirstReady).toHaveBeenCalled();
+			expect(onSecondReady).toHaveBeenCalled();
 		});
 	});
 });

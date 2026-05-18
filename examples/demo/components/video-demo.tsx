@@ -15,6 +15,12 @@ export function VideoDemo({
 	let sectionClassName = 'space-y-6 border-border/80 border-t pt-8';
 	let headingClassName = 'text-2xl';
 	let gridClassName = 'gap-8 lg:grid-cols-2';
+	let googleMapsDemo = (
+		<div className="flex h-80 items-center justify-center rounded-lg border border-border/80 bg-muted/20 px-6 text-center text-muted-foreground text-sm">
+			Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to validate the Google Maps SDK
+			wrapper locally.
+		</div>
+	);
 
 	if (inline) {
 		sectionClassName = 'space-y-5';
@@ -22,18 +28,31 @@ export function VideoDemo({
 		gridClassName = 'gap-6';
 	}
 
+	if (googleMapsApiKey) {
+		googleMapsDemo = (
+			<C15TGoogleMap
+				apiKey={googleMapsApiKey}
+				center={{ lat: 40.7128, lng: -74.006 }}
+				consentCategory="measurement"
+				style={{ height: 320, width: '100%' }}
+				zoom={12}
+			/>
+		);
+	}
+
 	return (
 		<section className={cn(sectionClassName, className)}>
 			<div className="max-w-3xl space-y-3">
-				<p className="label-pixel text-muted-foreground">Iframe gating</p>
+				<p className="label-pixel text-muted-foreground">
+					Renderable integrations
+				</p>
 				<h2 className={cn('font-semibold tracking-tight', headingClassName)}>
-					Policy-gated embeds with{' '}
-					<code className="font-mono">C15TYouTubeEmbed</code>
+					Policy-gated media and maps
 				</h2>
 				<p className="text-muted-foreground text-sm leading-6 sm:text-base">
-					These embeds use the React{' '}
-					<code className="font-mono">C15TYouTubeEmbed</code> wrapper, which
-					keeps iframe-only media behind the active consent policy.
+					These examples use <code className="font-mono">C15TYouTubeEmbed</code>{' '}
+					for iframe media and <code className="font-mono">C15TGoogleMap</code>{' '}
+					for an SDK-backed widget behind the active consent policy.
 				</p>
 			</div>
 
@@ -55,20 +74,7 @@ export function VideoDemo({
 					/>
 					<div className="space-y-3">
 						<h3 className="font-medium text-base">Google Maps SDK</h3>
-						{googleMapsApiKey ? (
-							<C15TGoogleMap
-								apiKey={googleMapsApiKey}
-								center={{ lat: 40.7128, lng: -74.006 }}
-								consentCategory="measurement"
-								style={{ height: 320, width: '100%' }}
-								zoom={12}
-							/>
-						) : (
-							<div className="flex h-80 items-center justify-center rounded-lg border border-border/80 bg-muted/20 px-6 text-center text-muted-foreground text-sm">
-								Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to validate the Google Maps
-								SDK wrapper locally.
-							</div>
-						)}
+						{googleMapsDemo}
 					</div>
 				</div>
 
