@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentStateContext } from '~/context/consent-manager-context';
+import { useConsentScript } from '~/hooks/use-consent-script';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
@@ -42,6 +43,75 @@ function Provider({ children }: { children: ReactNode }) {
 		>
 			{children}
 		</ConsentManagerProvider>
+	);
+}
+
+function createMockConsentState(overrides: Partial<ConsentStoreState> = {}) {
+	const state = {
+		consents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		consentInfo: null,
+		consentCategories: ['necessary'],
+		consentTypes: [],
+		loadedScripts: {},
+		policyCategories: ['*'],
+		policyScopeMode: 'permissive',
+		removeScript: vi.fn(),
+		setScripts: vi.fn(),
+		subscribeToConsentChanges: () => () => undefined,
+		getDisplayedConsents: () => [],
+		...overrides,
+	} as unknown as ConsentStoreState;
+
+	return state;
+}
+
+function MockConsentProvider({
+	children,
+	state,
+}: {
+	children: ReactNode;
+	state: ConsentStoreState;
+}) {
+	return (
+		<ConsentStateContext.Provider
+			value={{
+				state,
+				store: {
+					getState: () => state,
+					setState: () => undefined,
+					subscribe: () => () => undefined,
+				},
+				manager: null,
+			}}
+		>
+			{children}
+		</ConsentStateContext.Provider>
+	);
+}
+
+function ConsentScriptProbe({
+	script,
+}: {
+	script: Parameters<typeof useConsentScript>[0]['script'];
+}) {
+	const result = useConsentScript({ script });
+	let readyText = 'missing-ready-promise';
+	if (result.ready) {
+		readyText = 'has-ready-promise';
+	}
+
+	return (
+		<div>
+			<span>{result.status}</span>
+			<span>{readyText}</span>
+			<span>{result.error?.message}</span>
+		</div>
 	);
 }
 
@@ -97,7 +167,7 @@ describe('renderable integrations', () => {
 	test('keeps Google Maps script unregistered until consent is available', async () => {
 		const setScripts = vi.fn();
 		const removeScript = vi.fn();
-		const state = {
+		const state = createMockConsentState({
 			consents: {
 				experience: false,
 				functionality: false,
@@ -105,30 +175,12 @@ describe('renderable integrations', () => {
 				measurement: false,
 				necessary: true,
 			},
-			consentInfo: null,
-			consentCategories: ['necessary'],
-			consentTypes: [],
-			loadedScripts: {},
-			policyCategories: ['*'],
-			policyScopeMode: 'permissive',
 			setScripts,
 			removeScript,
-			subscribeToConsentChanges: () => () => undefined,
-			getDisplayedConsents: () => [],
-		} as unknown as ConsentStoreState;
+		});
 
 		const { container } = await render(
-			<ConsentStateContext.Provider
-				value={{
-					state,
-					store: {
-						getState: () => state,
-						setState: () => undefined,
-						subscribe: () => () => undefined,
-					},
-					manager: null,
-				}}
-			>
+			<MockConsentProvider state={state}>
 				<C15TGoogleMap
 					apiKey="test-key"
 					center={{ lat: 51.5, lng: -0.12 }}
@@ -136,7 +188,7 @@ describe('renderable integrations', () => {
 					placeholder={<div>Blocked measurement map</div>}
 					zoom={10}
 				/>
-			</ConsentStateContext.Provider>
+			</MockConsentProvider>
 		);
 
 		await new Promise((resolve) => requestAnimationFrame(resolve));
@@ -144,6 +196,79 @@ describe('renderable integrations', () => {
 		expect(setScripts).not.toHaveBeenCalled();
 		expect(removeScript).not.toHaveBeenCalled();
 		expect(container.textContent).toContain('measurement');
+	});
+
+	test('keeps Google Maps script unregistered when the API key is missing', async () => {
+		const setScripts = vi.fn();
+		const state = createMockConsentState({ setScripts });
+
+		const { container } = await render(
+			<MockConsentProvider state={state}>
+				<C15TGoogleMap
+					apiKey=""
+					center={{ lat: 51.5, lng: -0.12 }}
+					consentCategory="necessary"
+					errorFallback={<div>Google Maps requires an API key</div>}
+					zoom={10}
+				/>
+			</MockConsentProvider>
+		);
+
+		await new Promise((resolve) => requestAnimationFrame(resolve));
+
+		expect(setScripts).not.toHaveBeenCalled();
+		expect(container.textContent).toContain('requires an API key');
+	});
+
+	test('exposes a ready promise while a consent script is loading', async () => {
+		const setScripts = vi.fn();
+		const state = createMockConsentState({ setScripts });
+
+		const { container } = await render(
+			<MockConsentProvider state={state}>
+				<ConsentScriptProbe
+					script={{
+						id: 'pending-script',
+						src: 'https://example.com/pending.js',
+						category: 'necessary',
+					}}
+				/>
+			</MockConsentProvider>
+		);
+
+		await waitFor(() => {
+			expect(container.textContent).toContain('loading');
+			expect(container.textContent).toContain('has-ready-promise');
+		});
+	});
+
+	test('surfaces conflicting script ids as hook errors', async () => {
+		const state = createMockConsentState();
+
+		const { container } = await render(
+			<MockConsentProvider state={state}>
+				<ConsentScriptProbe
+					script={{
+						id: 'shared-script',
+						src: 'https://example.com/first.js',
+						category: 'necessary',
+					}}
+				/>
+				<ConsentScriptProbe
+					script={{
+						id: 'shared-script',
+						src: 'https://example.com/second.js',
+						category: 'necessary',
+					}}
+				/>
+			</MockConsentProvider>
+		);
+
+		await waitFor(() => {
+			expect(container.textContent).toContain(
+				'Conflicting consent script options'
+			);
+		});
 	});
 
 	test('loads Google Maps through the shared script hook and callback readiness', async () => {
@@ -162,9 +287,10 @@ describe('renderable integrations', () => {
 		};
 		const setScripts = vi.fn((scripts) => {
 			const script = scripts[0];
-			const callbackName = script?.src
-				? new URL(script.src).searchParams.get('callback')
-				: null;
+			let callbackName: string | null = null;
+			if (script?.src) {
+				callbackName = new URL(script.src).searchParams.get('callback');
+			}
 
 			setTimeout(() => {
 				(window as unknown as Record<string, unknown>).google = {
@@ -194,32 +320,14 @@ describe('renderable integrations', () => {
 			}, 0);
 		});
 		const removeScript = vi.fn();
-		const state = {
+		const state = createMockConsentState({
 			consents,
-			consentInfo: null,
-			consentCategories: ['necessary'],
-			consentTypes: [],
-			loadedScripts: {},
-			policyCategories: ['*'],
-			policyScopeMode: 'permissive',
 			setScripts,
 			removeScript,
-			subscribeToConsentChanges: () => () => undefined,
-			getDisplayedConsents: () => [],
-		} as unknown as ConsentStoreState;
+		});
 
 		const { container } = await render(
-			<ConsentStateContext.Provider
-				value={{
-					state,
-					store: {
-						getState: () => state,
-						setState: () => undefined,
-						subscribe: () => () => undefined,
-					},
-					manager: null,
-				}}
-			>
+			<MockConsentProvider state={state}>
 				<C15TGoogleMap
 					apiKey="test-key"
 					center={{ lat: 51.5, lng: -0.12 }}
@@ -228,7 +336,7 @@ describe('renderable integrations', () => {
 					onReady={onReady}
 					zoom={10}
 				/>
-			</ConsentStateContext.Provider>
+			</MockConsentProvider>
 		);
 
 		await waitFor(() => {

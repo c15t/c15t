@@ -70,9 +70,11 @@ export interface C15TGoogleMapProps
 }
 
 function getWindowRecord(): Record<string, unknown> | null {
-	return typeof window === 'undefined'
-		? null
-		: (window as unknown as Record<string, unknown>);
+	if (typeof window === 'undefined') {
+		return null;
+	}
+
+	return window as unknown as Record<string, unknown>;
 }
 
 function getGoogleMapsApi(): GoogleMapsApi | null {
@@ -152,6 +154,7 @@ export const C15TGoogleMap = forwardRef<HTMLDivElement, C15TGoogleMapProps>(
 		},
 		forwardedRef
 	) => {
+		const hasApiKey = apiKey.trim().length > 0;
 		const containerRef = useRef<HTMLDivElement | null>(null);
 		const mapRef = useRef<GoogleMapInstance | null>(null);
 		const callbackName = `__c15tGoogleMapsReady_${sanitizeCallbackName(scriptId)}`;
@@ -225,6 +228,7 @@ export const C15TGoogleMap = forwardRef<HTMLDivElement, C15TGoogleMapProps>(
 		);
 
 		const mapsScript = useConsentScript<GoogleMapsApi>({
+			enabled: hasApiKey,
 			script,
 			resolveReady: getGoogleMapsApi,
 			registerReadyCallback: registerGoogleMapsCallback,
@@ -290,6 +294,19 @@ export const C15TGoogleMap = forwardRef<HTMLDivElement, C15TGoogleMapProps>(
 		}, [mapsScript.error, onError]);
 
 		const fallback = (() => {
+			if (!hasApiKey) {
+				return (
+					errorFallback ?? (
+						<IntegrationPlaceholder
+							category={consentCategory}
+							showButton={false}
+						>
+							Google Maps requires an API key.
+						</IntegrationPlaceholder>
+					)
+				);
+			}
+
 			if (mapsScript.status === 'blocked') {
 				return (
 					placeholder ?? (

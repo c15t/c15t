@@ -265,6 +265,7 @@ export function useConsentScript<TReady = unknown>({
 	const [readyValue, setReadyValue] = useState<TReady | null>(null);
 	const [isReady, setIsReady] = useState(false);
 	const [error, setError] = useState<Error | null>(null);
+	const [ready, setReady] = useState<Promise<TReady> | null>(null);
 
 	const registryOptions = useMemo(
 		() => ({
@@ -282,11 +283,26 @@ export function useConsentScript<TReady = unknown>({
 			setReadyValue(null);
 			setIsReady(false);
 			setError(null);
+			setReady(null);
 			return;
 		}
 
-		const entry = getOrCreateRegistryEntry(registryOptions);
+		let entry: ScriptRegistryEntry<TReady>;
+		try {
+			entry = getOrCreateRegistryEntry(registryOptions);
+		} catch (nextError) {
+			setReadyValue(null);
+			setIsReady(false);
+			setError(toError(nextError));
+			setReady(null);
+			return;
+		}
 		entry.refCount += 1;
+
+		setReadyValue(null);
+		setIsReady(false);
+		setError(null);
+		setReady(entry.promise);
 
 		if (!entry.registered) {
 			setScripts([entry.script]);
@@ -349,13 +365,6 @@ export function useConsentScript<TReady = unknown>({
 		status = 'error';
 	} else if (isReady) {
 		status = 'ready';
-	}
-
-	let ready: Promise<TReady> | null = null;
-	if (hasConsent) {
-		ready =
-			(scriptRegistry.get(script.id)?.promise as Promise<TReady> | undefined) ??
-			null;
 	}
 
 	return {

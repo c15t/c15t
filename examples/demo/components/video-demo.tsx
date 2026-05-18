@@ -12,21 +12,21 @@ export function VideoDemo({
 	className?: string;
 	inline?: boolean;
 }) {
+	let sectionClassName = 'space-y-6 border-border/80 border-t pt-8';
+	let headingClassName = 'text-2xl';
+	let gridClassName = 'gap-8 lg:grid-cols-2';
+
+	if (inline) {
+		sectionClassName = 'space-y-5';
+		headingClassName = 'text-xl';
+		gridClassName = 'gap-6';
+	}
+
 	return (
-		<section
-			className={cn(
-				inline ? 'space-y-5' : 'space-y-6 border-border/80 border-t pt-8',
-				className
-			)}
-		>
+		<section className={cn(sectionClassName, className)}>
 			<div className="max-w-3xl space-y-3">
 				<p className="label-pixel text-muted-foreground">Iframe gating</p>
-				<h2
-					className={cn(
-						'font-semibold tracking-tight',
-						inline ? 'text-xl' : 'text-2xl'
-					)}
-				>
+				<h2 className={cn('font-semibold tracking-tight', headingClassName)}>
 					Policy-gated embeds with{' '}
 					<code className="font-mono">C15TYouTubeEmbed</code>
 				</h2>
@@ -37,7 +37,7 @@ export function VideoDemo({
 				</p>
 			</div>
 
-			<div className={cn('grid', inline ? 'gap-6' : 'gap-8 lg:grid-cols-2')}>
+			<div className={cn('grid', gridClassName)}>
 				<div className="space-y-3">
 					<div>
 						<h3 className="font-medium text-base">Measurement category</h3>
