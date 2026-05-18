@@ -129,13 +129,42 @@ export function WorkspaceAnalytics({ workspaceId }: { workspaceId: string }) {
 
 Some integrations need a visible component, not just a script tag. Google Maps, YouTube, checkout widgets, and calendars all need consent gating plus component lifecycle.
 
-Split the problem into three layers:
+Use the React renderable integrations through `@c15t/nextjs` in client components:
+
+```tsx
+'use client';
+
+import { C15TGoogleMap, C15TYouTubeEmbed } from '@c15t/nextjs';
+
+export function ConsentAwareMedia() {
+  return (
+    <>
+      <C15TGoogleMap
+        apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? ''}
+        center={{ lat: 40.7128, lng: -74.006 }}
+        consentCategory="measurement"
+        zoom={12}
+      />
+
+      <C15TYouTubeEmbed
+        consentCategory="marketing"
+        title="Product demo"
+        videoId="dQw4w9WgXcQ"
+      />
+    </>
+  );
+}
+```
+
+The implementation splits the problem into three layers:
 
 1. Use the script loader as the source of truth for shared SDK loading.
-2. Render a placeholder until consent is granted.
+2. Use `useConsentScript()` for SDK readiness when a vendor uses a callback-style loader.
 3. Create the widget instance only on the client and clean it up on unmount.
 
-For iframe-only embeds, use the [iframe blocking](/docs/frameworks/next/iframe-blocking) pattern. For SDK-backed widgets, load the SDK once and let each component instance create and clean up its own widget. Avoid mixing `next/script` with c15t for the same vendor.
+Google Maps is SDK-backed and uses one shared c15t-managed script plus per-component map instances. YouTube is iframe-only and uses the existing `Frame` boundary rather than the YouTube iframe API.
+
+For iframe-only embeds, use the [iframe blocking](/docs/frameworks/next/iframe-blocking) pattern or `C15TYouTubeEmbed`. For SDK-backed widgets, load the SDK once and let each component instance create and clean up its own widget. Avoid mixing `next/script` with c15t for the same vendor.
 
 ## App Router Notes
 

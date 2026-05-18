@@ -125,12 +125,43 @@ export function TenantAnalytics({ siteId }: { siteId: string }) {
 
 Some vendors need a render surface as well as a script — maps, video players, calendars, and checkout widgets all fall in this bucket.
 
-Split the problem into three layers:
+Use the built-in renderable helpers when they fit:
+
+```tsx
+import { C15TGoogleMap, C15TYouTubeEmbed } from '@c15t/react';
+
+function Page() {
+  return (
+    <>
+      <C15TGoogleMap
+        apiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}
+        center={{ lat: 40.7128, lng: -74.006 }}
+        consentCategory="measurement"
+        zoom={12}
+      />
+
+      <C15TYouTubeEmbed
+        consentCategory="marketing"
+        title="Product demo"
+        videoId="dQw4w9WgXcQ"
+      />
+    </>
+  );
+}
+```
+
+The design splits the problem into three layers:
 
 1. Use the script loader to gate and load the shared SDK once.
-2. Use React state (or a custom hook) to render a placeholder until consent is granted.
+2. Use `useConsentScript()` for SDK readiness when a vendor uses a callback-style loader.
 3. Create the widget instance only after the SDK is ready and clean it up on unmount.
 
-For iframe-only embeds, use the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern instead of loading a JavaScript SDK to hide an iframe. For SDK-backed widgets, treat the SDK as a singleton and each rendered component as its own instance.
+Google Maps is SDK-backed, so `C15TGoogleMap` registers one shared Google Maps script through the c15t script manager and waits for the callback-shaped SDK readiness signal before creating each map instance.
+
+YouTube is iframe-only, so `C15TYouTubeEmbed` builds on the existing `Frame` consent boundary instead of loading the YouTube iframe API. That keeps iframe media separate from SDK widgets and avoids a second source of truth for script readiness.
+
+For custom SDK-backed widgets, call `useConsentScript()` with a c15t `Script` object. The hook uses `setScripts`, `loadedScripts`, and `removeScript` from the consent store, then exposes a promise-shaped readiness result for SDK callbacks.
+
+For iframe-only embeds, use the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern or `C15TYouTubeEmbed` instead of loading a JavaScript SDK to hide an iframe. For SDK-backed widgets, treat the SDK as a singleton and each rendered component as its own instance.
 
 <import src="../../shared/react/guides/script-loader.mdx#api-reference" />
