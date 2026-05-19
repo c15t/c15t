@@ -49,6 +49,11 @@ export type TestWindow = Window &
 		_linkedin_data_partner_ids?: string[];
 		_linkedin_partner_id?: string;
 		_fbq?: Record<string, unknown>;
+		analytics?: unknown[] & Record<string, (...args: unknown[]) => void>;
+		clarity?: ((...args: unknown[]) => void) & {
+			q?: unknown[][];
+			v?: string;
+		};
 		dataLayer?: unknown[];
 		databuddy?: {
 			options: {
@@ -59,6 +64,10 @@ export type TestWindow = Window &
 		fbq?: Record<string, unknown>;
 		google_tag_data?: GoogleTagDataState;
 		lintrk?: ((...args: unknown[]) => void) & { q?: unknown[] };
+		plausible?: ((...args: unknown[]) => void) & {
+			o?: Record<string, unknown>;
+			q?: unknown[][];
+		};
 		posthog?: {
 			get_explicit_consent_status: () => string;
 			init: (...args: unknown[]) => void;
@@ -136,12 +145,15 @@ function resetVendorGlobals() {
 		'_linkedin_data_partner_ids',
 		'_linkedin_partner_id',
 		'_fbq',
+		'analytics',
+		'clarity',
 		'dataLayer',
 		'databuddy',
 		'databuddyConfig',
 		'fbq',
 		'google_tag_data',
 		'lintrk',
+		'plausible',
 		'posthog',
 		'ttq',
 		'twq',
