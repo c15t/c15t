@@ -30,7 +30,11 @@ You can link consent records to your own internal user IDs or anonymous visitor 
 
 ### 1. Setting the Initial User ID (Server Component Example)
 
-If you store a visitor token in an HttpOnly cookie, you can read it server-side in Next.js and pass it to the `ConsentManagerProvider` options:
+If you store a visitor token in an HttpOnly cookie, you can read it server-side in Next.js and pass it to the `ConsentManagerProvider` options.
+
+<Callout type="info">
+  This example uses the asynchronous `cookies()` API available in **Next.js 15+**. For **Next.js 14 and earlier**, use the synchronous form: `const cookieStore = cookies();` (without `await`).
+</Callout>
 
 ```tsx
 // app/layout.tsx
