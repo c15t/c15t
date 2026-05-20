@@ -24,9 +24,39 @@ function MyComponent() {
 
 <import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#state-and-actions" />
 
-## identifyUser
+## User Identification
 
-The `identifyUser()` method links anonymous consent records to an authenticated user. Call it after a user logs in to associate their consent preferences with their account.
+You can link consent records to your own internal user IDs or anonymous visitor tokens. This maps the consent history to the `externalId` field on the subject row in the database, allowing you to include consent records in GDPR Article 15 exports.
+
+### 1. Setting the Initial User ID
+
+Pass the initial user or visitor ID to the `ConsentManagerProvider` via the `options.user` object:
+
+```tsx
+import { ConsentManagerProvider } from '@c15t/react';
+
+function App() {
+  // Retrieve your visitor token from cookies, local storage, or application context
+  const visitorToken = getVisitorToken();
+
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: 'https://your-instance.c15t.dev',
+        consentCategories: ['necessary', 'measurement', 'marketing'],
+        user: visitorToken ? { id: visitorToken, identityProvider: 'custom-visitor' } : undefined,
+      }}
+    >
+      <MyComponents />
+    </ConsentManagerProvider>
+  );
+}
+```
+
+### 2. Updating the ID After Login (`identifyUser`)
+
+When a user logs in, call the `identifyUser()` method to link their previous anonymous consent history to their new authenticated account:
 
 ```tsx
 import { useConsentManager } from '@c15t/react';
@@ -38,10 +68,10 @@ function LoginForm() {
     // ... your login logic
     const user = await api.login(email);
 
-    // Link consent to the authenticated user
+    // Link the current subject's consent history to the authenticated user ID
     await identifyUser({
       id: user.id,
-      identityProvider: 'your-auth-provider', // e.g. 'clerk', 'auth0'
+      identityProvider: 'your-auth-provider', // e.g. 'clerk', 'auth0', 'custom'
     });
   }
 
@@ -58,9 +88,7 @@ function LoginForm() {
 ```
 
 <Callout type="info">
-  `identifyUser` sends the user data to the c15t backend. It works in hosted
-  mode, including the legacy alias `mode: 'c15t'`. In `mode: 'offline'`, the
-  call is a no-op.
+  User identification (`options.user` and `identifyUser`) requires hosted mode (`mode: 'hosted'`). In `mode: 'offline'`, these configurations are a no-op as consent is stored locally in client-side cookies only.
 </Callout>
 
 <import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#key-types" />
