@@ -59,7 +59,7 @@ describe('CORS utilities', () => {
 			expect(isOriginTrusted('wss://example.com', trustedDomains)).toBe(true);
 		});
 
-		it('should handle ports in origins', () => {
+		it('should handle ports in origins when the trusted domain is host-only', () => {
 			const trustedDomains = ['example.com'];
 			expect(isOriginTrusted('https://example.com:3000', trustedDomains)).toBe(
 				true
@@ -67,6 +67,21 @@ describe('CORS utilities', () => {
 			expect(isOriginTrusted('http://example.com:8080', trustedDomains)).toBe(
 				true
 			);
+		});
+
+		it('should scope origins to explicit trusted ports', () => {
+			expect(isOriginTrusted('http://localhost:3000', ['localhost:3000'])).toBe(
+				true
+			);
+			expect(isOriginTrusted('http://localhost:5173', ['localhost:3000'])).toBe(
+				false
+			);
+			expect(
+				isOriginTrusted('https://api.example.com:8443', ['*.example.com:8443'])
+			).toBe(true);
+			expect(
+				isOriginTrusted('https://api.example.com:9443', ['*.example.com:8443'])
+			).toBe(false);
 		});
 
 		it('should handle empty trusted domains array', () => {
