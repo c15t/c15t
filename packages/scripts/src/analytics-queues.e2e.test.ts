@@ -63,9 +63,12 @@ describe('analytics queue contracts', () => {
 			}
 
 			scriptSrc = node.src;
-			queueSnapshot = win._paq?.map((entry) =>
-				Array.isArray(entry) ? [...entry] : entry
-			);
+			queueSnapshot = win._paq?.map((entry) => {
+				if (Array.isArray(entry)) {
+					return [...entry];
+				}
+				return entry;
+			});
 			node.dispatchEvent(new Event('load'));
 		});
 

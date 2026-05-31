@@ -18,6 +18,22 @@ const grantedFunctionalityConsents = {
 	functionality: true,
 };
 
+function deepFreeze<T>(value: T): T {
+	if (value === null || typeof value !== 'object') {
+		return value;
+	}
+
+	for (const nestedValue of Object.values(value as Record<string, unknown>)) {
+		deepFreeze(nestedValue);
+	}
+
+	return Object.freeze(value);
+}
+
+function cloneFrozen<T>(value: T): T {
+	return deepFreeze(structuredClone(value));
+}
+
 describe('functional vendor contracts', () => {
 	registerVendorContractCleanup();
 
@@ -95,8 +111,16 @@ describe('functional vendor contracts', () => {
 			}
 
 			win.Intercom?.('boot', { app_id: 'INTERCOM-CONTRACT' });
-			queueSnapshot = win.Intercom?.q?.map((entry) => [...entry]);
-			settingsSnapshot = win.intercomSettings;
+			if (win.Intercom?.q) {
+				queueSnapshot = cloneFrozen(win.Intercom.q);
+			} else {
+				queueSnapshot = undefined;
+			}
+			if (win.intercomSettings) {
+				settingsSnapshot = cloneFrozen(win.intercomSettings);
+			} else {
+				settingsSnapshot = undefined;
+			}
 			scriptSrc = node.src;
 			node.dispatchEvent(new Event('load'));
 		});

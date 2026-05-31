@@ -60,10 +60,11 @@ describe('analytics loader contracts', () => {
 			}
 
 			const rawConfig = node.getAttribute('data-cf-beacon');
-			beaconConfig =
-				typeof rawConfig === 'string'
-					? (JSON.parse(rawConfig) as Record<string, unknown>)
-					: undefined;
+			if (typeof rawConfig === 'string') {
+				beaconConfig = JSON.parse(rawConfig) as Record<string, unknown>;
+			} else {
+				beaconConfig = undefined;
+			}
 			defer = node.defer;
 			node.dispatchEvent(new Event('load'));
 		});
