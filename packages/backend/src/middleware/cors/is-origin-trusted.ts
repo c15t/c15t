@@ -7,15 +7,6 @@
 import type { Logger } from '@c15t/logger';
 import { matchesWildcard } from './matches-wildcard';
 
-/**
- * Regular expression to strip protocol and trailing slashes from URLs.
- * Port numbers are intentionally preserved so entries such as
- * `localhost:3000` do not trust every service on `localhost`.
- *
- * @internal
- */
-export const STRIP_REGEX = /^(?:https?:\/\/)|^(?:wss?:\/\/)|(?:\/+$)/g;
-
 /** Regular expression to match www prefix in domain names */
 const WWW_REGEX = /^www\./;
 
