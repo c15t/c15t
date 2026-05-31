@@ -19,9 +19,39 @@ export const STRIP_REGEX = /^(?:https?:\/\/)|^(?:wss?:\/\/)|(?:\/+$)/g;
 /** Regular expression to match www prefix in domain names */
 const WWW_REGEX = /^www\./;
 
+/** Regular expression matching a URL scheme prefix (e.g. `https://`) */
+const PROTOCOL_REGEX = /^[a-z][a-z\d+.-]*:\/\//i;
+
+/** Default ports for the protocols we accept, used to resolve origins. */
+const DEFAULT_PORTS: Record<string, string> = {
+	'http:': '80',
+	'https:': '443',
+	'ws:': '80',
+	'wss:': '443',
+};
+
 interface NormalizedTrustedDomain {
 	hostname: string;
 	port?: string;
+}
+
+/**
+ * Extracts an explicitly written port from an authority component.
+ *
+ * Unlike `URL.port`, this preserves default ports (e.g. `:443`) because the
+ * port was deliberately configured and should still scope the origin.
+ *
+ * @internal
+ */
+function extractExplicitPort(authority: string): string | undefined {
+	// IPv6 literals carry the port after the closing bracket: [::1]:3000
+	const ipv6 = authority.match(/^\[[^\]]+\](?::(\d+))?$/);
+	if (ipv6) {
+		return ipv6[1] || undefined;
+	}
+
+	const match = authority.match(/:(\d+)$/);
+	return match ? match[1] : undefined;
 }
 
 function normalizeTrustedDomain(
@@ -32,17 +62,19 @@ function normalizeTrustedDomain(
 		return null;
 	}
 
-	const withoutProtocolOrSlash = trimmed.replace(STRIP_REGEX, '');
+	const hasProtocol = PROTOCOL_REGEX.test(trimmed);
+	const withoutProtocol = trimmed.replace(PROTOCOL_REGEX, '');
+	// The authority is everything before the first path/query/fragment marker.
+	const authority = withoutProtocol.split(/[/?#]/)[0] ?? '';
+
 	try {
-		const parsed = new URL(
-			/^[a-z][a-z\d+.-]*:\/\//i.test(trimmed)
-				? trimmed
-				: `https://${withoutProtocolOrSlash}`
-		);
+		const parsed = new URL(hasProtocol ? trimmed : `https://${authority}`);
 
 		return {
 			hostname: parsed.hostname.toLowerCase(),
-			port: parsed.port || undefined,
+			// Read the port from the raw input rather than `parsed.port`, which
+			// drops scheme-default ports such as `:443` on https.
+			port: extractExplicitPort(authority),
 		};
 	} catch {
 		return null;
@@ -102,7 +134,9 @@ export function isOriginTrusted(
 		// Parse the origin URL to get host components
 		const url = new URL(origin);
 		const originHostname = url.hostname.toLowerCase();
-		const originPort = url.port || undefined;
+		// Resolve the scheme default (e.g. 443 for https) so a trusted entry
+		// like `example.com:443` still matches `https://example.com`.
+		const originPort = url.port || DEFAULT_PORTS[url.protocol] || undefined;
 		logger?.debug(`Parsed origin hostname: ${originHostname}`);
 
 		return trustedDomains.some((domain) => {

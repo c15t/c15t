@@ -84,6 +84,23 @@ describe('CORS utilities', () => {
 			).toBe(false);
 		});
 
+		it('should honor explicitly configured default ports', () => {
+			// :443 is the https default, but writing it should still scope the port
+			expect(isOriginTrusted('https://example.com', ['example.com:443'])).toBe(
+				true
+			);
+			expect(
+				isOriginTrusted('https://example.com:8443', ['example.com:443'])
+			).toBe(false);
+			// :80 written without a protocol must still match an http origin
+			expect(isOriginTrusted('http://example.com', ['example.com:80'])).toBe(
+				true
+			);
+			expect(isOriginTrusted('https://example.com', ['example.com:80'])).toBe(
+				false
+			);
+		});
+
 		it('should handle empty trusted domains array', () => {
 			const trustedDomains: string[] = [];
 			expect(isOriginTrusted('https://example.com', trustedDomains)).toBe(
