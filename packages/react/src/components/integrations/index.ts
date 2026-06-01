@@ -1,14 +1,11 @@
 'use client';
 
 export {
-	C15TGoogleMap,
-	type C15TGoogleMapProps,
+	GoogleMap,
 	type GoogleMapCoordinates,
 	type GoogleMapInstance,
 	type GoogleMapOptions,
+	type GoogleMapProps,
 	type GoogleMapsApi,
 } from './google-map';
-export {
-	C15TYouTubeEmbed,
-	type C15TYouTubeEmbedProps,
-} from './youtube-embed';
+export { YouTubeEmbed, type YouTubeEmbedProps } from './youtube-embed';

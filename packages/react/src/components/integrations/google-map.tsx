@@ -48,7 +48,7 @@ export interface GoogleMapOptions {
 	[key: string]: unknown;
 }
 
-export interface C15TGoogleMapProps
+export interface GoogleMapProps
 	extends Omit<ComponentPropsWithRef<'div'>, 'children' | 'onError'> {
 	apiKey: string;
 	center: GoogleMapCoordinates;
@@ -172,7 +172,7 @@ function createMapUpdateOptions({
 	return nextOptions;
 }
 
-export const C15TGoogleMap = forwardRef<HTMLDivElement, C15TGoogleMapProps>(
+export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 	(
 		{
 			apiKey,
@@ -415,4 +415,4 @@ export const C15TGoogleMap = forwardRef<HTMLDivElement, C15TGoogleMapProps>(
 	}
 );
 
-C15TGoogleMap.displayName = 'C15TGoogleMap';
+GoogleMap.displayName = 'GoogleMap';

@@ -8,8 +8,8 @@ import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
-import { C15TGoogleMap } from '../google-map';
-import { C15TYouTubeEmbed } from '../youtube-embed';
+import { GoogleMap } from '../google-map';
+import { YouTubeEmbed } from '../youtube-embed';
 
 async function waitFor(assertion: () => undefined | boolean, timeoutMs = 1000) {
 	const start = Date.now();
@@ -129,7 +129,7 @@ describe('renderable integrations', () => {
 	test('keeps YouTube iframe unmounted until consent is available', async () => {
 		const { container } = await render(
 			<Provider>
-				<C15TYouTubeEmbed
+				<YouTubeEmbed
 					consentCategory="marketing"
 					src="https://www.youtube.com/embed/test-video"
 					title="Blocked video"
@@ -146,7 +146,7 @@ describe('renderable integrations', () => {
 	test('renders YouTube iframe through Frame when consent is available', async () => {
 		const { container } = await render(
 			<Provider>
-				<C15TYouTubeEmbed
+				<YouTubeEmbed
 					consentCategory="necessary"
 					iframeClassName="video-frame"
 					videoId="abc123"
@@ -162,6 +162,23 @@ describe('renderable integrations', () => {
 		const iframe = container.querySelector('iframe');
 		expect(iframe?.src).toContain('youtube-nocookie.com/embed/abc123');
 		expect(iframe?.className).toBe('video-frame');
+	});
+
+	test('renders an error fallback instead of throwing when no videoId or src is provided', async () => {
+		const { container } = await render(
+			<Provider>
+				<YouTubeEmbed
+					consentCategory="necessary"
+					errorFallback={<div>Missing video source</div>}
+					title="Misconfigured video"
+				/>
+			</Provider>
+		);
+
+		await new Promise((resolve) => requestAnimationFrame(resolve));
+
+		expect(container.querySelector('iframe')).toBeNull();
+		expect(container.textContent).toContain('Missing video source');
 	});
 
 	test('keeps Google Maps script unregistered until consent is available', async () => {
@@ -181,7 +198,7 @@ describe('renderable integrations', () => {
 
 		const { container } = await render(
 			<MockConsentProvider state={state}>
-				<C15TGoogleMap
+				<GoogleMap
 					apiKey="test-key"
 					center={{ lat: 51.5, lng: -0.12 }}
 					consentCategory="measurement"
@@ -205,7 +222,7 @@ describe('renderable integrations', () => {
 
 		const { container } = await render(
 			<MockConsentProvider state={state}>
-				<C15TGoogleMap
+				<GoogleMap
 					apiKey=""
 					center={{ lat: 51.5, lng: -0.12 }}
 					consentCategory="necessary"
@@ -332,7 +349,7 @@ describe('renderable integrations', () => {
 
 		const { container } = await render(
 			<MockConsentProvider state={state}>
-				<C15TGoogleMap
+				<GoogleMap
 					apiKey="test-key"
 					center={{ lat: 51.5, lng: -0.12 }}
 					consentCategory="necessary"
@@ -409,7 +426,7 @@ describe('renderable integrations', () => {
 
 		await render(
 			<MockConsentProvider state={state}>
-				<C15TGoogleMap
+				<GoogleMap
 					apiKey="test-key"
 					center={{ lat: 51.5, lng: -0.12 }}
 					consentCategory="necessary"
@@ -417,7 +434,7 @@ describe('renderable integrations', () => {
 					scriptId="shared-google-map"
 					zoom={10}
 				/>
-				<C15TGoogleMap
+				<GoogleMap
 					apiKey="test-key"
 					center={{ lat: 40.71, lng: -74 }}
 					consentCategory="necessary"

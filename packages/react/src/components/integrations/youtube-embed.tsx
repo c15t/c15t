@@ -1,10 +1,11 @@
 'use client';
 
 import type { AllConsentNames } from 'c15t';
-import type { ComponentPropsWithRef, ReactNode } from 'react';
+import { type ComponentPropsWithRef, forwardRef, type ReactNode } from 'react';
 import { Frame, type FrameProps } from '../frame';
+import { IntegrationPlaceholder } from './shared';
 
-export interface C15TYouTubeEmbedProps
+export interface YouTubeEmbedProps
 	extends Omit<ComponentPropsWithRef<'iframe'>, 'src' | 'children'> {
 	/**
 	 * YouTube video id. Use this for first-party construction of the embed URL.
@@ -56,6 +57,11 @@ export interface C15TYouTubeEmbedProps
 	placeholder?: ReactNode;
 
 	/**
+	 * Fallback rendered when neither `videoId` nor `src` is provided.
+	 */
+	errorFallback?: ReactNode;
+
+	/**
 	 * Additional props passed to the underlying Frame component.
 	 */
 	frameProps?: Omit<
@@ -73,7 +79,7 @@ function buildYouTubeEmbedUrl({
 	videoId: string;
 	privacyEnhanced: boolean;
 	start?: number;
-	params?: C15TYouTubeEmbedProps['params'];
+	params?: YouTubeEmbedProps['params'];
 }) {
 	const query = new URLSearchParams();
 
@@ -109,62 +115,78 @@ function buildYouTubeEmbedUrl({
  * after the configured consent category is allowed, so YouTube network requests
  * are avoided while consent is missing.
  *
+ * When neither `videoId` nor `src` is provided, an error fallback is rendered
+ * instead of throwing, mirroring the fallback behavior of `GoogleMap`.
+ *
  * @example
  * ```tsx
- * <C15TYouTubeEmbed
+ * <YouTubeEmbed
  *   consentCategory="marketing"
  *   title="Product demo"
  *   videoId="dQw4w9WgXcQ"
  * />
  * ```
- *
- * @throws When neither `videoId` nor `src` is provided.
  */
-export function C15TYouTubeEmbed({
-	videoId,
-	src,
-	consentCategory = 'marketing',
-	privacyEnhanced = true,
-	start,
-	params,
-	className,
-	iframeClassName,
-	placeholder,
-	frameProps,
-	title = 'YouTube video',
-	allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
-	allowFullScreen = true,
-	...iframeProps
-}: C15TYouTubeEmbedProps) {
-	if (!src && !videoId) {
-		throw new Error('C15TYouTubeEmbed requires either videoId or src');
-	}
-
-	let embedSrc = src;
-	if (!embedSrc) {
-		embedSrc = buildYouTubeEmbedUrl({
-			videoId: videoId as string,
-			privacyEnhanced,
+export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
+	(
+		{
+			videoId,
+			src,
+			consentCategory = 'marketing',
+			privacyEnhanced = true,
 			start,
 			params,
-		});
-	}
+			className,
+			iframeClassName,
+			placeholder,
+			errorFallback,
+			frameProps,
+			title = 'YouTube video',
+			allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+			allowFullScreen = true,
+			...iframeProps
+		},
+		forwardedRef
+	) => {
+		let embedSrc = src;
+		if (!embedSrc && videoId) {
+			embedSrc = buildYouTubeEmbedUrl({
+				videoId,
+				privacyEnhanced,
+				start,
+				params,
+			});
+		}
 
-	return (
-		<Frame
-			category={consentCategory}
-			className={className}
-			placeholder={placeholder}
-			{...frameProps}
-		>
-			<iframe
-				allow={allow}
-				allowFullScreen={allowFullScreen}
-				className={iframeClassName}
-				src={embedSrc}
-				title={title}
-				{...iframeProps}
-			/>
-		</Frame>
-	);
-}
+		if (!embedSrc) {
+			return (
+				errorFallback ?? (
+					<IntegrationPlaceholder category={consentCategory} showButton={false}>
+						This embed requires a YouTube videoId or src.
+					</IntegrationPlaceholder>
+				)
+			);
+		}
+
+		return (
+			<Frame
+				category={consentCategory}
+				className={className}
+				placeholder={placeholder}
+				{...frameProps}
+			>
+				<iframe
+					allow={allow}
+					allowFullScreen={allowFullScreen}
+					className={iframeClassName}
+					ref={forwardedRef}
+					src={embedSrc}
+					title={title}
+					{...iframeProps}
+				/>
+			</Frame>
+		);
+	}
+);
+
+YouTubeEmbed.displayName = 'YouTubeEmbed';

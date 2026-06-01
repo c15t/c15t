@@ -134,7 +134,7 @@ Use the React renderable integrations through `@c15t/nextjs` in client component
 ```tsx
 'use client';
 
-import { C15TGoogleMap, C15TYouTubeEmbed } from '@c15t/nextjs';
+import { GoogleMap, YouTubeEmbed } from '@c15t/nextjs';
 
 export function ConsentAwareMedia() {
   const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -142,7 +142,7 @@ export function ConsentAwareMedia() {
   return (
     <>
       {googleMapsApiKey && (
-        <C15TGoogleMap
+        <GoogleMap
           apiKey={googleMapsApiKey}
           center={{ lat: 40.7128, lng: -74.006 }}
           consentCategory="measurement"
@@ -150,7 +150,7 @@ export function ConsentAwareMedia() {
         />
       )}
 
-      <C15TYouTubeEmbed
+      <YouTubeEmbed
         consentCategory="marketing"
         title="Product demo"
         videoId="dQw4w9WgXcQ"
@@ -168,7 +168,7 @@ The implementation splits the problem into three layers:
 
 Google Maps is SDK-backed and uses one shared c15t-managed script plus per-component map instances. YouTube is iframe-only and uses the existing `Frame` boundary rather than the YouTube iframe API.
 
-For iframe-only embeds, use the [iframe blocking](/docs/frameworks/next/iframe-blocking) pattern or `C15TYouTubeEmbed`. For SDK-backed widgets, load the SDK once and let each component instance create and clean up its own widget. Avoid mixing `next/script` with c15t for the same vendor.
+For iframe-only embeds, use the [iframe blocking](/docs/frameworks/next/iframe-blocking) pattern or `YouTubeEmbed`. For SDK-backed widgets, load the SDK once and let each component instance create and clean up its own widget. Avoid mixing `next/script` with c15t for the same vendor.
 
 ## App Router Notes
 

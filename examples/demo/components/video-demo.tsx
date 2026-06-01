@@ -1,6 +1,6 @@
 'use client';
 
-import { C15TGoogleMap, C15TYouTubeEmbed } from '@c15t/react';
+import { GoogleMap, YouTubeEmbed } from '@c15t/react';
 import { cn } from '../lib/utils';
 
 const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -30,7 +30,7 @@ export function VideoDemo({
 
 	if (googleMapsApiKey) {
 		googleMapsDemo = (
-			<C15TGoogleMap
+			<GoogleMap
 				apiKey={googleMapsApiKey}
 				center={{ lat: 40.7128, lng: -74.006 }}
 				consentCategory="measurement"
@@ -50,9 +50,9 @@ export function VideoDemo({
 					Policy-gated media and maps
 				</h2>
 				<p className="text-muted-foreground text-sm leading-6 sm:text-base">
-					These examples use <code className="font-mono">C15TYouTubeEmbed</code>{' '}
-					for iframe media and <code className="font-mono">C15TGoogleMap</code>{' '}
-					for an SDK-backed widget behind the active consent policy.
+					These examples use <code className="font-mono">YouTubeEmbed</code> for
+					iframe media and <code className="font-mono">GoogleMap</code> for an
+					SDK-backed widget behind the active consent policy.
 				</p>
 			</div>
 
@@ -65,7 +65,7 @@ export function VideoDemo({
 							measurement is allowed.
 						</p>
 					</div>
-					<C15TYouTubeEmbed
+					<YouTubeEmbed
 						consentCategory="measurement"
 						className="relative aspect-video w-full"
 						iframeClassName="inset-0 h-full w-full"
@@ -86,7 +86,7 @@ export function VideoDemo({
 							allow the experience category.
 						</p>
 					</div>
-					<C15TYouTubeEmbed
+					<YouTubeEmbed
 						consentCategory="experience"
 						className="relative aspect-video w-full"
 						iframeClassName="inset-0 h-full w-full"

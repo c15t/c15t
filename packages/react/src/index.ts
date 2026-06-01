@@ -61,14 +61,14 @@ export {
 } from './components/consent-widget';
 export { Frame, type FrameProps } from './components/frame';
 export {
-	C15TGoogleMap,
-	type C15TGoogleMapProps,
-	C15TYouTubeEmbed,
-	type C15TYouTubeEmbedProps,
+	GoogleMap,
 	type GoogleMapCoordinates,
 	type GoogleMapInstance,
 	type GoogleMapOptions,
+	type GoogleMapProps,
 	type GoogleMapsApi,
+	YouTubeEmbed,
+	type YouTubeEmbedProps,
 } from './components/integrations';
 // IAB TCF 2.3 Components — moved to @c15t/react/iab subpath.
 // Import from '@c15t/react/iab' instead of '@c15t/react'.
