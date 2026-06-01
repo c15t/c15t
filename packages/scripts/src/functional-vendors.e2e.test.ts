@@ -18,7 +18,7 @@ const grantedFunctionalityConsents = {
 	functionality: true,
 };
 
-function deepFreeze<T>(value: T): T {
+function deepFreeze<ValueType>(value: ValueType): ValueType {
 	if (value === null || typeof value !== 'object') {
 		return value;
 	}
@@ -30,7 +30,7 @@ function deepFreeze<T>(value: T): T {
 	return Object.freeze(value);
 }
 
-function cloneFrozen<T>(value: T): T {
+function cloneFrozen<ValueType>(value: ValueType): ValueType {
 	return deepFreeze(structuredClone(value));
 }
 
