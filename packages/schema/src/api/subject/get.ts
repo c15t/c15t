@@ -9,7 +9,11 @@ import { subjectIdSchema } from './post';
 
 /**
  * GET /subject/:id combined input schema (path param + query params).
- * Hono flattens path params and query params into a single input object.
+ *
+ * Convenience schema for callers that handle the full input as one object.
+ * Route validation uses `getSubjectParamsSchema` (path) and
+ * `getSubjectQuerySchema` (query) so `id` and `type` are documented in the
+ * correct locations in the generated OpenAPI spec.
  */
 export const getSubjectInputSchema = v.object({
 	/** Subject ID from path parameter */
@@ -31,7 +35,7 @@ export const getSubjectInputSchema = v.object({
 });
 
 /**
- * @deprecated Use getSubjectInputSchema instead. Kept for backward compatibility.
+ * GET /subject/:id query params schema.
  */
 export const getSubjectQuerySchema = v.object({
 	/** Filter by consent type(s), comma-separated */
@@ -47,7 +51,7 @@ export const getSubjectQuerySchema = v.object({
 });
 
 /**
- * @deprecated Use getSubjectInputSchema instead. Kept for backward compatibility.
+ * GET /subject/:id path params schema.
  */
 export const getSubjectParamsSchema = v.object({
 	id: v.pipe(
