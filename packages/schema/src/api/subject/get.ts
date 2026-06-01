@@ -9,28 +9,56 @@ import { subjectIdSchema } from './post';
 
 /**
  * GET /subject/:id combined input schema (path param + query params).
- * Hono flattens path params and query params into a single input object.
+ *
+ * Convenience schema for callers that handle the full input as one object.
+ * Route validation uses `getSubjectParamsSchema` (path) and
+ * `getSubjectQuerySchema` (query) so `id` and `type` are documented in the
+ * correct locations in the generated OpenAPI spec.
  */
 export const getSubjectInputSchema = v.object({
 	/** Subject ID from path parameter */
-	id: subjectIdSchema,
+	id: v.pipe(
+		subjectIdSchema,
+		v.description('Client-generated subject ID in sub_xxx format.'),
+		v.examples(['sub_2jv6z8n4q9'])
+	),
 	/** Filter by consent type(s), comma-separated (query param) */
-	type: v.optional(v.string()),
+	type: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Optional consent policy type or comma-separated policy types to filter by.'
+			),
+			v.examples(['cookie_banner', 'privacy_policy,cookie_banner'])
+		)
+	),
 });
 
 /**
- * @deprecated Use getSubjectInputSchema instead. Kept for backward compatibility.
+ * GET /subject/:id query params schema.
  */
 export const getSubjectQuerySchema = v.object({
 	/** Filter by consent type(s), comma-separated */
-	type: v.optional(v.string()),
+	type: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Optional consent policy type or comma-separated policy types to filter by.'
+			),
+			v.examples(['cookie_banner', 'privacy_policy,cookie_banner'])
+		)
+	),
 });
 
 /**
- * @deprecated Use getSubjectInputSchema instead. Kept for backward compatibility.
+ * GET /subject/:id path params schema.
  */
 export const getSubjectParamsSchema = v.object({
-	id: subjectIdSchema,
+	id: v.pipe(
+		subjectIdSchema,
+		v.description('Client-generated subject ID in sub_xxx format.'),
+		v.examples(['sub_2jv6z8n4q9'])
+	),
 });
 
 /**
