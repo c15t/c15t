@@ -16,7 +16,7 @@ export const patchSubjectParamsSchema = v.object({
 	),
 });
 
-export const patchSubjectInputSchema = v.strictObject({
+export const patchSubjectInputSchema = v.object({
 	/** External user ID to link to this subject */
 	externalId: v.pipe(
 		v.string(),

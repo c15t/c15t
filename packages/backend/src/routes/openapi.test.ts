@@ -61,8 +61,7 @@ function getParameter(
 		return candidate.name === name && candidate.in === location;
 	});
 
-	expect(parameter).toEqual(expect.any(Object));
-	return parameter as OpenAPIObject;
+	return asObject(parameter);
 }
 
 /**
@@ -206,10 +205,10 @@ describe('OpenAPI route documentation', () => {
 
 		const patchSubject = getOperation(spec, '/subjects/{id}', 'patch');
 		const patchSchema = getRequestSchema(patchSubject);
+		const patchSubjectId = getParameter(patchSubject, 'id', 'path');
 
-		expect(getParameter(patchSubject, 'id', 'path').description).toContain(
-			'subject ID'
-		);
+		expect(patchSubjectId.required).toBe(true);
+		expect(patchSubjectId.description).toContain('subject ID');
 		expect(findProperty(patchSchema, 'externalId')?.description).toContain(
 			'External user ID'
 		);
@@ -235,5 +234,36 @@ describe('OpenAPI route documentation', () => {
 		expect(hasRequiredProperty(postSchema, 'domain')).toBe(true);
 		expect(hasRequiredProperty(postSchema, 'givenAt')).toBe(true);
 		expect(hasRequiredProperty(postSchema, 'preferences')).toBe(true);
+
+		const currentLegalDocument = getOperation(
+			spec,
+			'/legal-documents/{type}/current',
+			'put'
+		);
+		const currentLegalDocumentSchema = getRequestSchema(currentLegalDocument);
+		const legalDocumentType = getParameter(
+			currentLegalDocument,
+			'type',
+			'path'
+		);
+
+		expect(legalDocumentType.required).toBe(true);
+		expect(legalDocumentType.description).toContain('legal document type');
+		expect(
+			findProperty(currentLegalDocumentSchema, 'version')?.description
+		).toContain('version');
+		expect(
+			findProperty(currentLegalDocumentSchema, 'hash')?.description
+		).toContain('hash');
+		expect(
+			findProperty(currentLegalDocumentSchema, 'effectiveDate')?.description
+		).toContain('effective date');
+		expect(hasRequiredProperty(currentLegalDocumentSchema, 'version')).toBe(
+			true
+		);
+		expect(hasRequiredProperty(currentLegalDocumentSchema, 'hash')).toBe(true);
+		expect(
+			hasRequiredProperty(currentLegalDocumentSchema, 'effectiveDate')
+		).toBe(true);
 	});
 });
