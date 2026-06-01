@@ -11,7 +11,11 @@ import { consentItemSchema } from './get';
  * GET /subjects query params (requires API key)
  */
 export const listSubjectsQuerySchema = v.object({
-	externalId: v.string(),
+	externalId: v.pipe(
+		v.string(),
+		v.description('External user ID from your authentication system.'),
+		v.examples(['user_123'])
+	),
 });
 
 /**

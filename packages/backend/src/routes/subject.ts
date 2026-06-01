@@ -5,18 +5,19 @@
  */
 
 import {
-	getSubjectInputSchema,
 	getSubjectOutputSchema,
+	getSubjectParamsSchema,
+	getSubjectQuerySchema,
 	listSubjectsOutputSchema,
 	listSubjectsQuerySchema,
+	patchSubjectInputSchema,
 	patchSubjectOutputSchema,
+	patchSubjectParamsSchema,
 	postSubjectInputSchema,
 	postSubjectOutputSchema,
-	subjectIdSchema,
 } from '@c15t/schema';
 import { Hono } from 'hono';
 import { describeRoute, resolver, validator as vValidator } from 'hono-openapi';
-import * as v from 'valibot';
 import { getSubjectHandler } from '~/handlers/subject/get.handler';
 import { listSubjectsHandler } from '~/handlers/subject/list.handler';
 import { patchSubjectHandler } from '~/handlers/subject/patch.handler';
@@ -54,7 +55,8 @@ export const createSubjectRoutes = () => {
 				},
 			},
 		}),
-		vValidator('param', getSubjectInputSchema),
+		vValidator('param', getSubjectParamsSchema),
+		vValidator('query', getSubjectQuerySchema),
 		getSubjectHandler
 	);
 
@@ -110,14 +112,8 @@ export const createSubjectRoutes = () => {
 				},
 			},
 		}),
-		vValidator('param', v.object({ id: subjectIdSchema })),
-		vValidator(
-			'json',
-			v.object({
-				externalId: v.string(),
-				identityProvider: v.optional(v.string()),
-			})
-		),
+		vValidator('param', patchSubjectParamsSchema),
+		vValidator('json', patchSubjectInputSchema),
 		patchSubjectHandler
 	);
 
