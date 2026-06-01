@@ -33,7 +33,7 @@ You can link consent records to your own internal user IDs or anonymous visitor 
 If you store a visitor token in an HttpOnly cookie, you can read it server-side in Next.js and pass it to the `ConsentManagerProvider` options.
 
 <Callout type="info">
-  This example uses the asynchronous `cookies()` API available in **Next.js 15+**. For **Next.js 14 and earlier**, use the synchronous form: `const cookieStore = cookies();` (without `await`).
+  This example uses the asynchronous `cookies()` API available in **Next.js 15+**. For **Next.js 14 and earlier**, use the synchronous form `const cookieStore = cookies();` (without `await`) and remove `async` from the `RootLayout` signature if no other async operations exist.
 </Callout>
 
 ```tsx
@@ -65,6 +65,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 When a user logs in, call the `identifyUser()` method to link their previous anonymous consent history to their new authenticated account:
 
 ```tsx
+'use client';
+
 import { useConsentManager } from '@c15t/nextjs';
 
 function LoginForm() {
