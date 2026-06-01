@@ -7,21 +7,70 @@
 import type { Logger } from '@c15t/logger';
 import { matchesWildcard } from './matches-wildcard';
 
+/** Regular expression to match www prefix in domain names */
+const WWW_REGEX = /^www\./;
+
+/** Regular expression matching a URL scheme prefix (e.g. `https://`) */
+const PROTOCOL_REGEX = /^[a-z][a-z\d+.-]*:\/\//i;
+
+/** Default ports for the protocols we accept, used to resolve origins. */
+const DEFAULT_PORTS: Record<string, string> = {
+	'http:': '80',
+	'https:': '443',
+	'ws:': '80',
+	'wss:': '443',
+};
+
+interface NormalizedTrustedDomain {
+	hostname: string;
+	port?: string;
+}
+
 /**
- * Regular expression to strip protocol, trailing slashes, and port numbers from URLs
- * Matches:
- * - http:// or https:// protocol
- * - ws:// or wss:// protocol
- * - trailing slashes
- * - port numbers with colon
+ * Extracts an explicitly written port from an authority component.
+ *
+ * Unlike `URL.port`, this preserves default ports (e.g. `:443`) because the
+ * port was deliberately configured and should still scope the origin.
  *
  * @internal
  */
-export const STRIP_REGEX =
-	/^(?:https?:\/\/)|^(?:wss?:\/\/)|(?:\/+$)|(?::\d+$)/g;
+function extractExplicitPort(authority: string): string | undefined {
+	// IPv6 literals carry the port after the closing bracket: [::1]:3000
+	const ipv6 = authority.match(/^\[[^\]]+\](?::(\d+))?$/);
+	if (ipv6) {
+		return ipv6[1] || undefined;
+	}
 
-/** Regular expression to match www prefix in domain names */
-const WWW_REGEX = /^www\./;
+	const match = authority.match(/:(\d+)$/);
+	return match ? match[1] : undefined;
+}
+
+function normalizeTrustedDomain(
+	domain: string
+): NormalizedTrustedDomain | null {
+	const trimmed = domain.trim();
+	if (!trimmed) {
+		return null;
+	}
+
+	const hasProtocol = PROTOCOL_REGEX.test(trimmed);
+	const withoutProtocol = trimmed.replace(PROTOCOL_REGEX, '');
+	// The authority is everything before the first path/query/fragment marker.
+	const authority = withoutProtocol.split(/[/?#]/)[0] ?? '';
+
+	try {
+		const parsed = new URL(hasProtocol ? trimmed : `https://${authority}`);
+
+		return {
+			hostname: parsed.hostname.toLowerCase(),
+			// Read the port from the raw input rather than `parsed.port`, which
+			// drops scheme-default ports such as `:443` on https.
+			port: extractExplicitPort(authority),
+		};
+	} catch {
+		return null;
+	}
+}
 
 /**
  * Validates if a given origin matches any of the trusted domain patterns
@@ -73,9 +122,12 @@ export function isOriginTrusted(
 			return true;
 		}
 
-		// Parse the origin URL to get just the hostname
+		// Parse the origin URL to get host components
 		const url = new URL(origin);
 		const originHostname = url.hostname.toLowerCase();
+		// Resolve the scheme default (e.g. 443 for https) so a trusted entry
+		// like `example.com:443` still matches `https://example.com`.
+		const originPort = url.port || DEFAULT_PORTS[url.protocol] || undefined;
 		logger?.debug(`Parsed origin hostname: ${originHostname}`);
 
 		return trustedDomains.some((domain) => {
@@ -85,22 +137,42 @@ export function isOriginTrusted(
 				return false;
 			}
 
-			const strippedDomain = domain.replace(STRIP_REGEX, '').toLowerCase();
-			logger?.debug(`Checking against stripped domain: ${strippedDomain}`);
+			const normalizedDomain = normalizeTrustedDomain(domain);
+			if (!normalizedDomain) {
+				logger?.debug('Skipping invalid domain');
+				return false;
+			}
 
-			if (strippedDomain.startsWith('*.')) {
-				const isMatch = matchesWildcard(originHostname, strippedDomain);
+			logger?.debug(
+				`Checking against stripped domain: ${normalizedDomain.hostname}`
+			);
+
+			if (normalizedDomain.port && normalizedDomain.port !== originPort) {
 				logger?.debug(
-					`Wildcard match result: ${isMatch} ${originHostname} matches ${strippedDomain}`
+					`Port mismatch: ${originPort ?? '<default>'} !== ${normalizedDomain.port}`
+				);
+				return false;
+			}
+
+			if (normalizedDomain.hostname.startsWith('*.')) {
+				const isMatch = matchesWildcard(
+					originHostname,
+					normalizedDomain.hostname
+				);
+				logger?.debug(
+					`Wildcard match result: ${isMatch} ${originHostname} matches ${normalizedDomain.hostname}`
 				);
 				return isMatch;
 			}
 
 			const normalizedOriginHostname = originHostname.replace(WWW_REGEX, '');
-			const normalizedDomain = strippedDomain.replace(WWW_REGEX, '');
-			const isMatch = normalizedOriginHostname === normalizedDomain;
+			const normalizedTrustedHostname = normalizedDomain.hostname.replace(
+				WWW_REGEX,
+				''
+			);
+			const isMatch = normalizedOriginHostname === normalizedTrustedHostname;
 			logger?.debug(
-				`Exact match result: ${isMatch} ${normalizedOriginHostname} === ${normalizedDomain}`
+				`Exact match result: ${isMatch} ${normalizedOriginHostname} === ${normalizedTrustedHostname}`
 			);
 			return isMatch;
 		});
