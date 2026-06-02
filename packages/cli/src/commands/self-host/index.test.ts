@@ -39,6 +39,7 @@ describe('selfHost command', () => {
 
 	afterEach(() => {
 		vi.restoreAllMocks();
+		process.exitCode = undefined;
 	});
 
 	it('runs migrate when migrate subcommand is provided', async () => {
@@ -67,6 +68,7 @@ describe('selfHost command', () => {
 				reason: 'unknown_subcommand',
 			}
 		);
+		expect(process.exitCode).toBe(1);
 	});
 
 	it('exits self-host menu gracefully when Exit is selected', async () => {

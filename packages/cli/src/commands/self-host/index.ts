@@ -46,6 +46,7 @@ export async function selfHost(context: CliContext) {
 					success: false,
 					reason: 'unknown_subcommand',
 				});
+				process.exitCode = 1;
 				return;
 		}
 		return;
