@@ -30,7 +30,7 @@
         "fast-glob": "3.3.3",
         "json5": "2.2.3",
         "knip": "6.1.1",
-        "leadtype": "^0.1.1",
+        "leadtype": "^0.2.0",
         "lefthook": "2.1.4",
         "mdast-util-compact": "5.0.0",
         "mdast-util-mdx": "3.0.0",
@@ -3339,7 +3339,7 @@
 
     "launch-editor": ["launch-editor@2.13.2", "", { "dependencies": { "picocolors": "^1.1.1", "shell-quote": "^1.8.3" } }, "sha512-4VVDnbOpLXy/s8rdRCSXb+zfMeFR0WlJWpET1iA9CQdlZDfwyLjUuGQzXU4VeOoey6AicSAluWan7Etga6Kcmg=="],
 
-    "leadtype": ["leadtype@0.1.1", "", { "dependencies": { "@types/mdast": "4.0.4", "json5": "2.2.3", "mdast-util-to-string": "4.0.0", "remark": "15.0.1", "remark-gfm": "4.0.1", "remark-mdx": "3.1.1", "tinyglobby": "0.2.16", "unified": "11.0.5", "unist-util-visit": "5.1.0", "valibot": "1.4.0", "vfile": "^6.0.3", "vfile-matter": "^5.0.1", "yaml": "^2.9.0" }, "peerDependencies": { "@cloudflare/tanstack-ai": ">=0.1.7", "@tanstack/ai": ">=0.15.0", "ai": ">=6.0.0", "bash-tool": ">=1.3.16", "jiti": ">=2.0.0", "just-bash": ">=2.14.5", "typescript": ">=5.0.0" }, "optionalPeers": ["@cloudflare/tanstack-ai", "@tanstack/ai", "ai", "bash-tool", "jiti", "just-bash", "typescript"], "bin": { "leadtype": "dist/cli.js" } }, "sha512-qF89L0FZaiE1SZe9zm41Zb1HcxJgJ6jppkgUZ5pNwNU0CscdGJtsdJMXoBzL8yXO4aBl1qx/R2lb6XDo8llArQ=="],
+    "leadtype": ["leadtype@0.2.0", "", { "dependencies": { "@types/mdast": "4.0.4", "json5": "2.2.3", "mdast-util-to-string": "4.0.0", "remark": "15.0.1", "remark-gfm": "4.0.1", "remark-mdx": "3.1.1", "tinyglobby": "0.2.16", "unified": "11.0.5", "unist-util-visit": "5.1.0", "valibot": "1.4.0", "vfile": "^6.0.3", "vfile-matter": "^5.0.1", "yaml": "^2.9.0" }, "peerDependencies": { "@cloudflare/tanstack-ai": ">=0.1.7", "@modelcontextprotocol/sdk": ">=1.29.0", "@tanstack/ai": ">=0.15.0", "ai": ">=6.0.0", "bash-tool": ">=1.3.16", "fumadocs-core": ">=15.0.0", "jiti": ">=2.0.0", "just-bash": ">=2.14.5", "react": ">=18.0.0", "svelte": ">=5.0.0", "typescript": ">=5.0.0", "vue": ">=3.5.0" }, "optionalPeers": ["@cloudflare/tanstack-ai", "@modelcontextprotocol/sdk", "@tanstack/ai", "ai", "bash-tool", "fumadocs-core", "jiti", "just-bash", "react", "svelte", "typescript", "vue"], "bin": { "leadtype": "dist/cli.js" } }, "sha512-ojSFF0MnNswzqHUEWCq42QBjiUgyBNlkXEfZ4B87Gplql+ZSXna2luSyGyr97IKqi9+DZmjZPgkBvi0ztfgjPg=="],
 
     "lefthook": ["lefthook@2.1.4", "", { "optionalDependencies": { "lefthook-darwin-arm64": "2.1.4", "lefthook-darwin-x64": "2.1.4", "lefthook-freebsd-arm64": "2.1.4", "lefthook-freebsd-x64": "2.1.4", "lefthook-linux-arm64": "2.1.4", "lefthook-linux-x64": "2.1.4", "lefthook-openbsd-arm64": "2.1.4", "lefthook-openbsd-x64": "2.1.4", "lefthook-windows-arm64": "2.1.4", "lefthook-windows-x64": "2.1.4" }, "bin": { "lefthook": "bin/index.js" } }, "sha512-JNfJ5gAn0KADvJ1I6/xMcx70+/6TL6U9gqGkKvPw5RNMfatC7jIg0Evl97HN846xmfz959BV70l8r3QsBJk30w=="],
 

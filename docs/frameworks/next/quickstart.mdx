@@ -1,17 +1,16 @@
 ---
 title: Quickstart
 description: Add consent management to your Next.js app in under 5 minutes.
-lastModified: 2026-03-11
-availableIn:
-  - framework: 'javascript'
-    url: '/docs/frameworks/javascript/quickstart'
-    title: 'JavaScript'
-  - framework: 'react'
-    url: '/docs/frameworks/react/quickstart'
-    title: 'React'
-  - framework: 'next'
-    url: '/docs/frameworks/next/quickstart'
-    title: 'Next.js'
+variants:
+  - value: "javascript"
+    href: "/docs/frameworks/javascript/quickstart"
+    label: "JavaScript"
+  - value: "react"
+    href: "/docs/frameworks/react/quickstart"
+    label: "React"
+  - value: "next"
+    href: "/docs/frameworks/next/quickstart"
+    label: "Next.js"
 group: frameworks
 ---
 
@@ -26,6 +25,7 @@ group: frameworks
     ### Install package
 
     <PackageCommandTabs mode="install" command="@c15t/nextjs" />
+
   </Step>
 
   <Step>
@@ -42,6 +42,7 @@ group: frameworks
     <Callout type="info">
       If you are using the headless API or fully custom styling, you can skip this import. Your root layout should continue importing `./globals.css` as usual.
     </Callout>
+
   </Step>
 
   <Step>
@@ -94,6 +95,7 @@ group: frameworks
     <Callout type="warn">
       Don't have a backend yet? You can use `mode: 'offline'` for local-only consent storage, but it gives up backend audit history, server-side consent awareness, and automatic jurisdiction detection. Review the [browser-only storage consequences](/docs/frameworks/next/concepts/client-modes#offline-mode) before choosing it for production.
     </Callout>
+
   </Step>
 
   <Step>
@@ -114,6 +116,7 @@ group: frameworks
       );
     }
     ```
+
   </Step>
 
   <Step>
@@ -124,11 +127,15 @@ group: frameworks
     1. A **consent banner** appears at the bottom of the page
     2. Clicking **"Customize"** opens a dialog with toggles for each consent category
     3. After accepting or rejecting, the banner dismisses and your choice persists across page reloads
+
   </Step>
 </Steps>
 
 <Callout type="info">
-  Want better performance and static-route support? See [Optimization](/docs/frameworks/next/optimization) for rewrites, prefetching, and network tuning. If you want server-side data prefetching, see [Server-Side Data Fetching](/docs/frameworks/next/server-side).
+	Want better performance and static-route support? See
+	[Optimization](/docs/frameworks/next/optimization) for rewrites, prefetching, and network tuning.
+	If you want server-side data prefetching, see [Server-Side Data
+	Fetching](/docs/frameworks/next/server-side).
 </Callout>
 
 ## Optional: Add DevTools
@@ -153,7 +160,10 @@ import { DevTools } from '@c15t/dev-tools/react';
 ```
 
 <Callout type="info">
-  Want to understand what's happening under the hood? See [Initialization Flow](/docs/frameworks/next/concepts/initialization-flow) for the lifecycle and [Cookie Management](/docs/frameworks/next/concepts/cookie-management) for script/cookie behavior and revocation handling.
+	Want to understand what's happening under the hood? See [Initialization
+	Flow](/docs/frameworks/next/concepts/initialization-flow) for the lifecycle and [Cookie
+	Management](/docs/frameworks/next/concepts/cookie-management) for script/cookie behavior and
+	revocation handling.
 </Callout>
 
 ## Optional: AI Agents
@@ -169,13 +179,33 @@ See [AI Agents](/docs/ai-agents) for bundled package docs and agent skills.
 <Cards className="not-prose grid gap-4 grid-cols-1 sm:grid-cols-2">
   <Card variant="interactive" title="Optimization" description="Improve banner visibility and lower latency with rewrites, browser prefetch, and SSR tradeoffs." href="/docs/frameworks/next/optimization" />
 
-  <Card variant="interactive" title="Script Loader" description="Gate third-party scripts like Google Analytics and Meta Pixel behind consent." href="/docs/frameworks/next/script-loader" />
+<Card
+	variant="interactive"
+	title="Script Loader"
+	description="Gate third-party scripts like Google Analytics and Meta Pixel behind consent."
+	href="/docs/frameworks/next/script-loader"
+/>
 
-  <Card variant="interactive" title="Styling" description="Customize colors, typography, spacing, and individual component slots." href="/docs/frameworks/next/styling/overview" />
+<Card
+	variant="interactive"
+	title="Styling"
+	description="Customize colors, typography, spacing, and individual component slots."
+	href="/docs/frameworks/next/styling/overview"
+/>
 
-  <Card variant="interactive" title="Consent Categories" description="Understand the five consent categories and how to configure them." href="/docs/frameworks/next/concepts/consent-categories" />
+<Card
+	variant="interactive"
+	title="Consent Categories"
+	description="Understand the five consent categories and how to configure them."
+	href="/docs/frameworks/next/concepts/consent-categories"
+/>
 
-  <Card variant="interactive" title="Components" description="Explore the full set of pre-built consent UI components." href="/docs/frameworks/next/components/consent-banner" />
+<Card
+	variant="interactive"
+	title="Components"
+	description="Explore the full set of pre-built consent UI components."
+	href="/docs/frameworks/next/components/consent-banner"
+/>
 
   <Card variant="interactive" title="AI Agents" description="Help AI tools with bundled package docs and reusable c15t agent skills." href="/docs/ai-agents" />
 </Cards>
