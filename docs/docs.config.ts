@@ -1,108 +1,6 @@
-import { defineDocsConfig } from 'leadtype';
+import { defineDocsConfig, defineFrameworkNavigation } from 'leadtype';
 
 const generateDocsConfig = () => {
-	const frameworkConceptPages = [
-		'concepts/initialization-flow',
-		'concepts/client-modes',
-		'concepts/consent-models',
-		'concepts/policy-packs',
-		'concepts/consent-categories',
-		'concepts/cookie-management',
-		'concepts/glossary',
-	];
-
-	const reactFrameworkGuidePages = [
-		'script-loader',
-		'iframe-blocking',
-		'network-blocker',
-		'callbacks',
-		'internationalization',
-		'policy-packs',
-		'server-side',
-	];
-
-	const reactFrameworkComponentPages = [
-		'components/consent-manager-provider',
-		'components/consent-banner',
-		'components/consent-dialog',
-		'components/consent-widget',
-		'components/consent-dialog-trigger',
-		'components/consent-dialog-link',
-		'components/frame',
-		'components/dev-tools',
-	];
-
-	const reactFrameworkStylingPages = [
-		'styling/overview',
-		'styling/tokens',
-		'styling/slots',
-		'styling/classnames',
-		'styling/tailwind',
-		'styling/color-scheme',
-		'styling/css-variables',
-	];
-
-	const reactFrameworkHookPages = [
-		'hooks/use-consent-manager/overview',
-		'hooks/use-consent-manager/checking-consent',
-		'hooks/use-consent-manager/setting-consent',
-		'hooks/use-consent-manager/location-info',
-		'hooks/use-translations',
-		'hooks/use-focus-trap',
-		'hooks/use-color-scheme',
-		'hooks/use-reduced-motion',
-		'hooks/use-text-direction',
-		'hooks/use-ssr-status',
-		'hooks/use-draggable',
-	];
-
-	const reactFrameworkIabPages = [
-		'iab/overview',
-		'iab/consent-banner',
-		'iab/consent-dialog',
-		'iab/use-gvl-data',
-	];
-
-	const buildReactFrameworkNavigation = (title: string, base: string) => ({
-		title,
-		base,
-		pages: ['quickstart', 'optimization', '/ai-agents'],
-		children: [
-			{
-				title: 'Concepts',
-				pages: frameworkConceptPages,
-			},
-			{
-				title: 'Guides',
-				pages: reactFrameworkGuidePages,
-			},
-			{
-				title: 'Components',
-				pages: reactFrameworkComponentPages,
-			},
-			{
-				title: 'Styling',
-				pages: reactFrameworkStylingPages,
-			},
-			{
-				title: 'Hooks',
-				pages: reactFrameworkHookPages,
-			},
-			{
-				title: 'Troubleshooting',
-				pages: ['troubleshooting'],
-			},
-			{
-				title: 'Headless',
-				pages: ['building-headless-components', 'headless'],
-			},
-			{
-				title: 'IAB TCF',
-				pages: reactFrameworkIabPages,
-			},
-		],
-	});
-
 	return defineDocsConfig({
 		product: {
 			name: 'c15t',
@@ -166,20 +64,112 @@ const generateDocsConfig = () => {
 			},
 		],
 		navigation: [
-			{
+			defineFrameworkNavigation({
 				title: 'Frameworks',
 				base: 'frameworks',
-				pages: [''],
-				children: [
-					buildReactFrameworkNavigation('React', 'react'),
-					{
-						title: 'JavaScript',
-						base: 'javascript',
+				pages: ['index'],
+				templates: {
+					componentFramework: {
 						pages: ['quickstart', 'optimization', '/ai-agents'],
 						children: [
 							{
 								title: 'Concepts',
-								pages: frameworkConceptPages,
+								pages: [
+									'concepts/initialization-flow',
+									'concepts/client-modes',
+									'concepts/consent-models',
+									'concepts/policy-packs',
+									'concepts/consent-categories',
+									'concepts/cookie-management',
+									'concepts/glossary',
+								],
+							},
+							{
+								title: 'Guides',
+								pages: [
+									'script-loader',
+									'iframe-blocking',
+									'network-blocker',
+									'callbacks',
+									'internationalization',
+									'policy-packs',
+									'server-side',
+								],
+							},
+							{
+								title: 'Components',
+								pages: [
+									'components/consent-manager-provider',
+									'components/consent-banner',
+									'components/consent-dialog',
+									'components/consent-widget',
+									'components/consent-dialog-trigger',
+									'components/consent-dialog-link',
+									'components/frame',
+									'components/dev-tools',
+								],
+							},
+							{
+								title: 'Styling',
+								pages: [
+									'styling/overview',
+									'styling/tokens',
+									'styling/slots',
+									'styling/classnames',
+									'styling/tailwind',
+									'styling/color-scheme',
+									'styling/css-variables',
+								],
+							},
+							{
+								title: 'Hooks',
+								pages: [
+									'hooks/use-consent-manager/overview',
+									'hooks/use-consent-manager/checking-consent',
+									'hooks/use-consent-manager/setting-consent',
+									'hooks/use-consent-manager/location-info',
+									'hooks/use-translations',
+									'hooks/use-focus-trap',
+									'hooks/use-color-scheme',
+									'hooks/use-reduced-motion',
+									'hooks/use-text-direction',
+									'hooks/use-ssr-status',
+									'hooks/use-draggable',
+								],
+							},
+							{
+								title: 'Troubleshooting',
+								pages: ['troubleshooting'],
+							},
+							{
+								title: 'Headless',
+								pages: ['building-headless-components', 'headless'],
+							},
+							{
+								title: 'IAB TCF',
+								pages: [
+									'iab/overview',
+									'iab/consent-banner',
+									'iab/consent-dialog',
+									'iab/use-gvl-data',
+								],
+							},
+						],
+					},
+					javascript: {
+						pages: ['quickstart', 'optimization', '/ai-agents'],
+						children: [
+							{
+								title: 'Concepts',
+								pages: [
+									'concepts/initialization-flow',
+									'concepts/client-modes',
+									'concepts/consent-models',
+									'concepts/policy-packs',
+									'concepts/consent-categories',
+									'concepts/cookie-management',
+									'concepts/glossary',
+								],
 							},
 							{
 								title: 'Guides',
@@ -215,9 +205,25 @@ const generateDocsConfig = () => {
 							},
 						],
 					},
-					buildReactFrameworkNavigation('Next.js', 'next'),
+				},
+				frameworks: [
+					{
+						title: 'React',
+						base: 'react',
+						template: 'componentFramework',
+					},
+					{
+						title: 'JavaScript',
+						base: 'javascript',
+						template: 'javascript',
+					},
+					{
+						title: 'Next.js',
+						base: 'next',
+						template: 'componentFramework',
+					},
 				],
-			},
+			}),
 			{
 				title: 'CLI',
 				base: 'cli',
