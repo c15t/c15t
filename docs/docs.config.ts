@@ -249,7 +249,7 @@ const generateDocsConfig = () => {
 			{
 				title: 'Integrations',
 				base: 'integrations',
-				pages: ['overview', 'building-integrations'],
+				pages: ['overview', 'building-integrations', 'google-tag-manager'],
 				children: [
 					{
 						title: 'Analytics',
@@ -287,10 +287,6 @@ const generateDocsConfig = () => {
 							'snapchat-pixel',
 							'x-pixel',
 						],
-					},
-					{
-						title: 'Tag Managers',
-						pages: ['google-tag-manager'],
 					},
 				],
 			},
