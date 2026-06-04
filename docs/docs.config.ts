@@ -249,8 +249,12 @@ const generateDocsConfig = () => {
 			{
 				title: 'Integrations',
 				base: 'integrations',
-				pages: ['overview', 'building-integrations', 'google-tag-manager'],
+				pages: ['overview', 'building-integrations'],
 				children: [
+					{
+						title: 'Tag Managers',
+						pages: ['google-tag-manager'],
+					},
 					{
 						title: 'Analytics',
 						pages: [
