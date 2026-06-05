@@ -19,7 +19,7 @@
 		"cmp",
 		"consent-banner"
 	],
-	"homepage": "https://c15t.com/docs/self-host/v2",
+	"homepage": "https://c15t.com/docs/self-host/quickstart",
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},

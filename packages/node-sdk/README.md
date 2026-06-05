@@ -32,7 +32,7 @@ A fully typed, flexible Node.js SDK for seamless interaction with the c15t conse
 ## Prerequisites
 
 - Node.js 18.17.0 or later
-- A Hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)
+- A Hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/quickstart)
 
 ## Manual Installation
 

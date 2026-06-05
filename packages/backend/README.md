@@ -48,7 +48,7 @@ Configure your database adapter (supports Drizzle, Kysely, Prisma, TypeORM, and 
 
 ## Documentation
 
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/self-host/v2).
+For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/self-host/quickstart).
 
 ## Support
 
