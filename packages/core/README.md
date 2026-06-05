@@ -34,7 +34,7 @@ Headless cookie banner, consent manager & preference center for JavaScript / Typ
 - JavaScript or TypeScript project
 - Node.js 18.17.0 or later
 - npm, pnpm, or yarn package manager
-- A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)
+- A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/quickstart)
 
 ## Quick Start
 

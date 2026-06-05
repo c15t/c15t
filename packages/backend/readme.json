@@ -23,8 +23,8 @@
 		"Use the provided router and schema for consent management",
 		"Implement consent tracking and management in your application"
 	],
-	"docsLink": "https://c15t.com/docs/self-host/v2",
-	"quickStartLink": "https://c15t.com/docs/self-host/v2",
+	"docsLink": "https://c15t.com/docs/self-host/quickstart",
+	"quickStartLink": "https://c15t.com/docs/self-host/quickstart",
 	"githubLink": "https://github.com/c15t/c15t",
 	"showCLIGeneration": false
 }
