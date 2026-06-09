@@ -139,61 +139,64 @@ const brutalistTheme: Theme = {
 };
 
 /**
- * Bubblegum — saturated pastels and bounce.
- * Shows: oversized radii, spring easing with slower durations, tinted
- * shadows, `lighter`-mode action buttons.
+ * Aurora — gradient-brand SaaS look.
+ * Shows: className + style slots together (gradient primary button with a
+ * Tailwind hover), tinted shadows, spring easing on enter/exit.
  */
-const bubblegumTheme: Theme = {
+const auroraTheme: Theme = {
 	consentActions: {
-		default: { variant: 'primary', mode: 'lighter' },
+		default: { variant: 'neutral', mode: 'lighter' },
 		accept: { variant: 'primary', mode: 'filled' },
 	},
 	colors: {
-		primary: '#ec4899',
-		primaryHover: '#db2777',
-		surface: '#fff7fb',
-		surfaceHover: '#ffeef7',
-		border: '#fbcfe8',
-		borderHover: '#f9a8d4',
-		text: '#831843',
-		textMuted: '#be5d8f',
+		primary: '#7c3aed',
+		primaryHover: '#6d28d9',
+		surface: '#ffffff',
+		surfaceHover: '#f8f7ff',
+		border: '#e9e5f8',
+		borderHover: '#d6cef2',
+		text: '#1e1b2e',
+		textMuted: '#6f6a85',
 		textOnPrimary: '#ffffff',
-		overlay: 'rgba(131, 24, 67, 0.3)',
-		switchTrack: '#fbcfe8',
-		switchTrackActive: '#ec4899',
+		overlay: 'rgba(30, 27, 46, 0.4)',
+		switchTrack: '#e9e5f8',
+		switchTrackActive: '#7c3aed',
 		switchThumb: '#ffffff',
 	},
 	dark: {
-		primary: '#f472b6',
-		primaryHover: '#ec4899',
-		surface: '#2a0a1d',
-		surfaceHover: '#3d1029',
-		border: '#701a43',
-		borderHover: '#9d2563',
-		text: '#fce7f3',
-		textMuted: '#e89ec4',
-		textOnPrimary: '#500724',
-		switchTrack: '#701a43',
-		switchTrackActive: '#f472b6',
-		switchThumb: '#fce7f3',
+		primary: '#a78bfa',
+		primaryHover: '#8b5cf6',
+		surface: '#13101f',
+		surfaceHover: '#1c1730',
+		border: '#2e2749',
+		borderHover: '#443a6b',
+		text: '#ece9f8',
+		textMuted: '#9d95bd',
+		textOnPrimary: '#13101f',
+		switchTrack: '#2e2749',
+		switchTrackActive: '#a78bfa',
+		switchThumb: '#ece9f8',
 	},
-	typography: {
-		fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
-		fontWeight: { normal: 450, medium: 600, semibold: 700 },
-		lineHeight: { tight: '1.3', normal: '1.55', relaxed: '1.8' },
-	},
-	spacing: { md: '1.125rem', lg: '1.75rem' },
-	radius: { sm: '0.75rem', md: '1.25rem', lg: '1.75rem', full: '9999px' },
+	radius: { sm: '0.5rem', md: '0.75rem', lg: '1.125rem', full: '9999px' },
 	shadows: {
-		sm: '0 2px 8px rgba(236, 72, 153, 0.12)',
-		md: '0 8px 24px rgba(236, 72, 153, 0.18)',
-		lg: '0 16px 48px rgba(236, 72, 153, 0.25)',
+		sm: '0 2px 8px rgba(124, 58, 237, 0.08)',
+		md: '0 8px 24px rgba(124, 58, 237, 0.12)',
+		lg: '0 16px 48px rgba(124, 58, 237, 0.18)',
 	},
 	motion: {
-		duration: { fast: '150ms', normal: '300ms', slow: '450ms' },
-		easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-		easingOut: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-		easingSpring: 'cubic-bezier(0.34, 1.8, 0.64, 1)',
+		duration: { fast: '120ms', normal: '240ms', slow: '360ms' },
+		easingOut: 'cubic-bezier(0.34, 1.4, 0.64, 1)',
+	},
+	slots: {
+		buttonPrimary: {
+			className: 'transition hover:brightness-110',
+			style: {
+				background:
+					'linear-gradient(135deg, #8b5cf6 0%, #6366f1 55%, #ec4899 130%)',
+				border: 'none',
+				boxShadow: '0 4px 16px rgba(124, 58, 237, 0.35)',
+			},
+		},
 	},
 };
 
@@ -306,76 +309,89 @@ const editorialTheme: Theme = {
 };
 
 /**
- * Glass — frosted translucency over the page.
- * Shows: slots layered on tokens — backdrop blur with `color-mix` against
- * the surface token, so the same slot styles adapt to light and dark mode.
+ * Liquid Glass — frosted, refractive surfaces inspired by
+ * https://aave.com/design/building-glass-for-the-web. True lens refraction
+ * needs SVG displacement maps and custom components; this is how close the
+ * base theme system gets with slots alone: heavy backdrop blur + saturation,
+ * a gradient wash built on `color-mix` over the surface token (so it adapts
+ * to dark mode), and specular rim lighting from stacked inset shadows.
  */
+const liquidGlassSurface = {
+	background:
+		'linear-gradient(135deg, color-mix(in srgb, var(--c15t-surface) 62%, transparent) 0%, color-mix(in srgb, var(--c15t-surface) 38%, transparent) 100%)',
+	backdropFilter: 'blur(28px) saturate(190%) brightness(1.06)',
+	WebkitBackdropFilter: 'blur(28px) saturate(190%) brightness(1.06)',
+	border: '1px solid color-mix(in srgb, var(--c15t-text) 10%, transparent)',
+	boxShadow: [
+		// specular rim: bright top edge, soft side glints, shaded bottom edge
+		'inset 0 1px 1px rgba(255, 255, 255, 0.55)',
+		'inset 1px 0 1px rgba(255, 255, 255, 0.18)',
+		'inset -1px 0 1px rgba(255, 255, 255, 0.18)',
+		'inset 0 -1px 1px rgba(0, 0, 0, 0.08)',
+		// depth
+		'0 16px 40px rgba(10, 8, 32, 0.18)',
+		'0 4px 12px rgba(10, 8, 32, 0.08)',
+	].join(', '),
+};
+
 const glassTheme: Theme = {
 	consentActions: {
 		default: { variant: 'neutral', mode: 'lighter' },
 		accept: { variant: 'primary', mode: 'filled' },
 	},
 	colors: {
-		primary: '#6366f1',
-		primaryHover: '#4f46e5',
-		surface: '#ffffff',
-		surfaceHover: '#f5f5ff',
-		border: 'rgba(99, 102, 241, 0.2)',
-		borderHover: 'rgba(99, 102, 241, 0.4)',
+		primary: '#4f46e5',
+		primaryHover: '#4338ca',
+		surface: '#fdfdff',
+		surfaceHover: '#f4f4ff',
+		border: 'rgba(30, 27, 75, 0.12)',
+		borderHover: 'rgba(30, 27, 75, 0.25)',
 		text: '#1e1b4b',
-		textMuted: '#6460a8',
+		textMuted: '#5b5786',
 		textOnPrimary: '#ffffff',
-		overlay: 'rgba(30, 27, 75, 0.2)',
-		switchTrack: 'rgba(99, 102, 241, 0.2)',
-		switchTrackActive: '#6366f1',
+		overlay: 'rgba(30, 27, 75, 0.15)',
+		switchTrack: 'rgba(30, 27, 75, 0.15)',
+		switchTrackActive: '#4f46e5',
 		switchThumb: '#ffffff',
 	},
 	dark: {
 		primary: '#a5b4fc',
-		primaryHover: '#818cf8',
-		surface: '#0f0d2a',
-		surfaceHover: '#1a1740',
-		border: 'rgba(165, 180, 252, 0.2)',
-		borderHover: 'rgba(165, 180, 252, 0.4)',
+		primaryHover: '#c7d2fe',
+		surface: '#100e24',
+		surfaceHover: '#191540',
+		border: 'rgba(199, 210, 254, 0.18)',
+		borderHover: 'rgba(199, 210, 254, 0.35)',
 		text: '#e0e7ff',
 		textMuted: '#9fa8da',
-		textOnPrimary: '#0f0d2a',
-		switchTrack: 'rgba(165, 180, 252, 0.2)',
+		textOnPrimary: '#100e24',
+		overlay: 'rgba(5, 4, 18, 0.35)',
+		switchTrack: 'rgba(199, 210, 254, 0.2)',
 		switchTrackActive: '#a5b4fc',
 		switchThumb: '#e0e7ff',
 	},
-	radius: { sm: '0.625rem', md: '1rem', lg: '1.5rem', full: '9999px' },
+	radius: { sm: '0.75rem', md: '1.125rem', lg: '1.75rem', full: '9999px' },
 	shadows: {
-		sm: '0 2px 8px rgba(30, 27, 75, 0.08)',
-		md: '0 8px 32px rgba(30, 27, 75, 0.12)',
-		lg: '0 24px 64px rgba(30, 27, 75, 0.2)',
+		sm: '0 2px 8px rgba(10, 8, 32, 0.08)',
+		md: '0 8px 32px rgba(10, 8, 32, 0.12)',
+		lg: '0 24px 64px rgba(10, 8, 32, 0.2)',
+	},
+	motion: {
+		duration: { fast: '140ms', normal: '280ms', slow: '420ms' },
+		easingOut: 'cubic-bezier(0.22, 1, 0.36, 1)',
 	},
 	slots: {
-		consentBannerCard: {
+		consentBannerCard: { style: liquidGlassSurface },
+		consentDialogCard: { style: liquidGlassSurface },
+		iabConsentBannerCard: { style: liquidGlassSurface },
+		buttonSecondary: {
 			style: {
-				backgroundColor:
-					'color-mix(in srgb, var(--c15t-surface) 70%, transparent)',
-				backdropFilter: 'blur(20px) saturate(160%)',
-				WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-				border: '1px solid var(--c15t-border)',
-			},
-		},
-		consentDialogCard: {
-			style: {
-				backgroundColor:
-					'color-mix(in srgb, var(--c15t-surface) 75%, transparent)',
-				backdropFilter: 'blur(24px) saturate(160%)',
-				WebkitBackdropFilter: 'blur(24px) saturate(160%)',
-				border: '1px solid var(--c15t-border)',
-			},
-		},
-		iabConsentBannerCard: {
-			style: {
-				backgroundColor:
-					'color-mix(in srgb, var(--c15t-surface) 70%, transparent)',
-				backdropFilter: 'blur(20px) saturate(160%)',
-				WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-				border: '1px solid var(--c15t-border)',
+				background: 'color-mix(in srgb, var(--c15t-surface) 45%, transparent)',
+				backdropFilter: 'blur(10px)',
+				WebkitBackdropFilter: 'blur(10px)',
+				border:
+					'1px solid color-mix(in srgb, var(--c15t-text) 12%, transparent)',
+				boxShadow:
+					'inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 2px 8px rgba(10, 8, 32, 0.08)',
 			},
 		},
 	},
@@ -403,10 +419,10 @@ export const themePresets = {
 		description: 'Hard edges, offset shadows, mono type',
 		theme: brutalistTheme,
 	},
-	bubblegum: {
-		label: 'Bubblegum',
-		description: 'Pastel pinks with springy motion',
-		theme: bubblegumTheme,
+	aurora: {
+		label: 'Aurora',
+		description: 'Gradient brand buttons, tinted shadows',
+		theme: auroraTheme,
 	},
 	terminal: {
 		label: 'Terminal',
@@ -419,8 +435,8 @@ export const themePresets = {
 		theme: editorialTheme,
 	},
 	glass: {
-		label: 'Glass',
-		description: 'Frosted blur via slots + color-mix',
+		label: 'Liquid Glass',
+		description: 'Frosted, light-catching surfaces',
 		theme: glassTheme,
 	},
 } as const satisfies Record<string, ThemePreset>;

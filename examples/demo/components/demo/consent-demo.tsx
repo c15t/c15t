@@ -104,7 +104,11 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 	const router = useRouter();
 	const pathname = usePathname();
 	const searchParams = useSearchParams();
-	const { theme: presetTheme, mounted: themeMounted } = useThemePreset();
+	const {
+		theme: presetTheme,
+		preset,
+		mounted: themeMounted,
+	} = useThemePreset();
 
 	const params = parseParams(searchParams);
 	const scenario = getScenarioById(params.scenarioId);
@@ -208,7 +212,8 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 
 	return (
 		<main className="min-h-screen bg-background">
-			<div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
+			{themeMounted && preset === 'glass' && <GlassBackdrop />}
+			<div className="relative mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
 				<header className="flex flex-wrap items-center justify-between gap-4 border-border/80 border-b pb-6">
 					<div className="space-y-1">
 						<h1 className="font-semibold text-xl tracking-tight">
@@ -353,6 +358,24 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 				</ConsentManagerProvider>
 			</div>
 		</main>
+	);
+}
+
+/**
+ * Soft color fields behind the page so the Liquid Glass preset's backdrop
+ * blur has something to refract — over a flat background, frosted glass
+ * reads as plain gray.
+ */
+function GlassBackdrop() {
+	return (
+		<div
+			aria-hidden
+			className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+		>
+			<div className="absolute -top-40 -left-40 size-[36rem] rounded-full bg-gradient-to-br from-indigo-400/40 via-sky-300/30 to-transparent blur-3xl dark:from-indigo-500/25 dark:via-sky-500/15" />
+			<div className="absolute top-1/3 -right-40 size-[32rem] rounded-full bg-gradient-to-bl from-pink-400/35 via-violet-300/25 to-transparent blur-3xl dark:from-pink-500/20 dark:via-violet-500/15" />
+			<div className="absolute -bottom-48 left-1/4 size-[40rem] rounded-full bg-gradient-to-tr from-emerald-300/35 via-cyan-300/25 to-transparent blur-3xl dark:from-emerald-500/15 dark:via-cyan-500/10" />
+		</div>
 	);
 }
 

@@ -13,7 +13,7 @@ export function VideoDemo({
 	return (
 		<section
 			className={cn(
-				inline ? 'space-y-5' : 'space-y-6 border-t border-border/80 pt-8',
+				inline ? 'space-y-5' : 'space-y-6 border-border/80 border-t pt-8',
 				className
 			)}
 		>
@@ -27,7 +27,7 @@ export function VideoDemo({
 				>
 					Policy-gated embeds with <code className="font-mono">Frame</code>
 				</h2>
-				<p className="text-sm leading-6 text-muted-foreground sm:text-base">
+				<p className="text-muted-foreground text-sm leading-6 sm:text-base">
 					These embeds are wrapped with the React{' '}
 					<code className="font-mono">Frame</code> component, so access follows
 					the active consent policy for the current scenario.
@@ -38,7 +38,7 @@ export function VideoDemo({
 				<div className="space-y-3">
 					<div>
 						<h3 className="font-medium text-base">Measurement category</h3>
-						<p className="text-sm text-muted-foreground">
+						<p className="text-muted-foreground text-sm">
 							Use this to validate media that should unlock only when
 							measurement is allowed.
 						</p>
@@ -60,7 +60,7 @@ export function VideoDemo({
 				<div className="space-y-3">
 					<div>
 						<h3 className="font-medium text-base">Experience category</h3>
-						<p className="text-sm text-muted-foreground">
+						<p className="text-muted-foreground text-sm">
 							This one stays blocked until the active policy and consent state
 							allow the experience category.
 						</p>
