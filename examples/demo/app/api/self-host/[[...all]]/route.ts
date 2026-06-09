@@ -4,12 +4,17 @@ import {
 	postgresDb,
 	tursoDb,
 } from '../../../../lib/demo-c15t-instance';
-import { DEFAULT_DEMO_POLICY_EXAMPLE } from '../../../../lib/policies';
+import {
+	DEFAULT_SCENARIO_ID,
+	DEMO_SCENARIO_HEADER,
+} from '../../../../lib/scenarios';
 
 const handleRequest = async (request: NextRequest) => {
-	const example =
-		request.nextUrl.searchParams.get('example') ?? DEFAULT_DEMO_POLICY_EXAMPLE;
-	return createDemoInstance(example).handler(request);
+	const scenario =
+		request.headers.get(DEMO_SCENARIO_HEADER) ??
+		request.nextUrl.searchParams.get('scenario') ??
+		DEFAULT_SCENARIO_ID;
+	return createDemoInstance(scenario).handler(request);
 };
 
 export {

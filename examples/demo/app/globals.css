@@ -139,37 +139,6 @@
 }
 
 @layer utilities {
-	.font-pixel {
-		font-family:
-			var(--font-geist-pixel-square), var(--font-geist-sans), sans-serif;
-		font-optical-sizing: auto;
-	}
-
-	.font-pixel-square {
-		font-family:
-			var(--font-geist-pixel-square), var(--font-geist-sans), sans-serif;
-	}
-
-	.font-pixel-grid {
-		font-family:
-			var(--font-geist-pixel-grid), var(--font-geist-sans), sans-serif;
-	}
-
-	.font-pixel-circle {
-		font-family:
-			var(--font-geist-pixel-circle), var(--font-geist-sans), sans-serif;
-	}
-
-	.font-pixel-triangle {
-		font-family:
-			var(--font-geist-pixel-triangle), var(--font-geist-sans), sans-serif;
-	}
-
-	.font-pixel-line {
-		font-family:
-			var(--font-geist-pixel-line), var(--font-geist-sans), sans-serif;
-	}
-
 	.label-pixel {
 		font-family:
 			var(--font-geist-pixel-square), var(--font-geist-sans), sans-serif;

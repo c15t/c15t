@@ -4,11 +4,9 @@ import {
 	DEMO_POLICY_SNAPSHOT_KEY,
 	demoI18nMessages,
 	demoPolicies,
-} from './lib/policies';
-// import { tursoDb } from './app/api/self-host/[[...all]]/route';
+} from './lib/scenarios';
 
 export default defineConfig({
-	// adapter: tursoDb,
 	adapter: postgresDb,
 	trustedOrigins: ['localhost', 'vercel.app'],
 	i18n: {
@@ -20,6 +18,4 @@ export default defineConfig({
 		signingKey: DEMO_POLICY_SNAPSHOT_KEY,
 		ttlSeconds: 60 * 60,
 	},
-	// namespace: 'schema1',
-	// tablePrefix: 'schema1.'
 });

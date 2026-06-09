@@ -40,7 +40,7 @@ export const minimalTheme: Theme = {
 		textOnPrimary: '#09090b',
 	},
 	typography: {
-		fontFamily: 'var(--font-inter), system-ui, sans-serif',
+		fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
 		fontSize: {
 			sm: '0.8125rem',
 			base: '0.875rem',
@@ -134,7 +134,7 @@ export const darkTheme: Theme = {
 	},
 	// No 'dark' overrides needed as the base IS dark
 	typography: {
-		fontFamily: 'var(--font-inter), system-ui, sans-serif',
+		fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
 		fontSize: {
 			sm: '0.8125rem',
 			base: '0.875rem',
