@@ -29,6 +29,7 @@ import {
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { VideoDemo } from '../video-demo';
+import { LiquidGlassFilter } from './liquid-glass-filter';
 import { LiveStatus } from './live-status';
 
 const HOSTED_BACKEND_URL = 'https://c15t-demo-consent-io.inth.app';
@@ -212,7 +213,12 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 
 	return (
 		<main className="min-h-screen bg-background">
-			{themeMounted && preset === 'glass' && <GlassBackdrop />}
+			{themeMounted && preset === 'glass' && (
+				<>
+					<GlassBackdrop />
+					<LiquidGlassFilter />
+				</>
+			)}
 			<div className="relative mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
 				<header className="flex flex-wrap items-center justify-between gap-4 border-border/80 border-b pb-6">
 					<div className="space-y-1">

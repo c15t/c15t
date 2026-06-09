@@ -310,17 +310,17 @@ const editorialTheme: Theme = {
 
 /**
  * Liquid Glass — frosted, refractive surfaces inspired by
- * https://aave.com/design/building-glass-for-the-web. True lens refraction
- * needs SVG displacement maps and custom components; this is how close the
- * base theme system gets with slots alone: heavy backdrop blur + saturation,
- * a gradient wash built on `color-mix` over the surface token (so it adapts
- * to dark mode), and specular rim lighting from stacked inset shadows.
+ * https://aave.com/design/building-glass-for-the-web. The gradient wash is
+ * built on `color-mix` over the surface token (so it adapts to dark mode)
+ * and specular rim lighting comes from stacked inset shadows. The backdrop
+ * filter lives in the `liquid-glass-card` class (app CSS): a frosted blur by
+ * default, upgraded to true edge refraction via an SVG displacement-map
+ * filter (`LiquidGlassFilter`) on browsers that support SVG-referenced
+ * backdrop filters.
  */
 const liquidGlassSurface = {
 	background:
-		'linear-gradient(135deg, color-mix(in srgb, var(--c15t-surface) 62%, transparent) 0%, color-mix(in srgb, var(--c15t-surface) 38%, transparent) 100%)',
-	backdropFilter: 'blur(28px) saturate(190%) brightness(1.06)',
-	WebkitBackdropFilter: 'blur(28px) saturate(190%) brightness(1.06)',
+		'linear-gradient(135deg, color-mix(in srgb, var(--c15t-surface) 72%, transparent) 0%, color-mix(in srgb, var(--c15t-surface) 48%, transparent) 100%)',
 	border: '1px solid color-mix(in srgb, var(--c15t-text) 10%, transparent)',
 	boxShadow: [
 		// specular rim: bright top edge, soft side glints, shaded bottom edge
@@ -380,9 +380,18 @@ const glassTheme: Theme = {
 		easingOut: 'cubic-bezier(0.22, 1, 0.36, 1)',
 	},
 	slots: {
-		consentBannerCard: { style: liquidGlassSurface },
-		consentDialogCard: { style: liquidGlassSurface },
-		iabConsentBannerCard: { style: liquidGlassSurface },
+		consentBannerCard: {
+			className: 'liquid-glass-card',
+			style: liquidGlassSurface,
+		},
+		consentDialogCard: {
+			className: 'liquid-glass-card',
+			style: liquidGlassSurface,
+		},
+		iabConsentBannerCard: {
+			className: 'liquid-glass-card',
+			style: liquidGlassSurface,
+		},
 		buttonSecondary: {
 			style: {
 				background: 'color-mix(in srgb, var(--c15t-surface) 45%, transparent)',

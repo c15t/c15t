@@ -139,6 +139,19 @@
 }
 
 @layer utilities {
+	/* Liquid Glass preset: frosted fallback everywhere... */
+	.liquid-glass-card {
+		-webkit-backdrop-filter: blur(28px) saturate(190%) brightness(1.06);
+		backdrop-filter: blur(28px) saturate(190%) brightness(1.06);
+	}
+
+	/* ...true edge refraction where SVG-referenced backdrop filters work
+	   (the .lg-refract class is set by LiquidGlassFilter on Chromium). */
+	.lg-refract .liquid-glass-card {
+		backdrop-filter: url("#c15t-liquid-glass") blur(4px) saturate(175%)
+			brightness(1.05);
+	}
+
 	.label-pixel {
 		font-family:
 			var(--font-geist-pixel-square), var(--font-geist-sans), sans-serif;
