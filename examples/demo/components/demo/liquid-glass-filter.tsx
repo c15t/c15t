@@ -15,13 +15,17 @@ import { useEffect, useState } from 'react';
  * keep the plain frosted-blur fallback.
  */
 
-const MAP_W = 480;
-const MAP_H = 360;
-const RADIUS = 44;
-/** Width of the refracting edge band, in map pixels. */
-const DEPTH = 64;
-/** Falloff exponent — higher bends harder right at the edge. */
-const CURVE = 1.7;
+// Map proportions sit between the banner (~2.3:1) and dialog (~1.2:1)
+// aspect ratios since one map stretches to fit both.
+const MAP_W = 560;
+const MAP_H = 320;
+const RADIUS = 36;
+/** Width of the refracting edge band, in map pixels. Keep thin — the map
+ * stretches to the element, so a thick band smears content deep inside the
+ * card instead of bending it at the rim. */
+const DEPTH = 28;
+/** Falloff exponent — higher concentrates the bend right at the edge. */
+const CURVE = 2.4;
 
 /** Signed distance to a rounded rectangle centered in the map (negative inside). */
 function roundedRectSDF(x: number, y: number): number {
@@ -131,7 +135,7 @@ export function LiquidGlassFilter() {
 				<feDisplacementMap
 					in="SourceGraphic"
 					in2="map"
-					scale="64"
+					scale="36"
 					xChannelSelector="R"
 					yChannelSelector="G"
 				/>
