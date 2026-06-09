@@ -156,9 +156,9 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 	const providerKey = `${backend}-${params.mode}-${params.scenarioId}-${params.country}-${params.region}`;
 
 	// Use the default theme during SSR/hydration to avoid mismatches, then
-	// switch to the visitor's preset. The IAB banner is normally a centered
-	// modal; for the demo we pin it bottom-right and let clicks pass through
-	// the backdrop so the controls stay usable while it is open.
+	// switch to the visitor's preset. The IAB banner keeps its default
+	// center-of-page placement, but clicks pass through the backdrop so the
+	// demo controls stay usable while it is open.
 	const activeTheme = themeMounted ? presetTheme : undefined;
 	const demoTheme = useMemo(
 		() => ({
@@ -166,11 +166,7 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 			slots: {
 				...(activeTheme?.slots ?? {}),
 				iabConsentBanner: {
-					style: {
-						alignItems: 'flex-end',
-						justifyContent: 'flex-end',
-						pointerEvents: 'none',
-					},
+					style: { pointerEvents: 'none' },
 				},
 				iabConsentBannerCard: {
 					style: { pointerEvents: 'auto' },
