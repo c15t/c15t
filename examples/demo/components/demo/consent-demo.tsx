@@ -209,18 +209,14 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 	return (
 		<main className="min-h-screen bg-background">
 			<div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
-				<header className="flex flex-col gap-6 border-border/80 border-b pb-8 lg:flex-row lg:items-end lg:justify-between">
-					<div className="max-w-2xl space-y-3">
-						<p className="label-pixel text-muted-foreground">
-							c15t demo{isSelfHost ? ' / self-hosted backend' : ''}
-						</p>
-						<h1 className="max-w-[16ch] text-balance font-semibold text-3xl tracking-[-0.04em] sm:text-4xl">
-							One consent setup, every regulation.
+				<header className="flex flex-wrap items-center justify-between gap-4 border-border/80 border-b pb-6">
+					<div className="space-y-1">
+						<h1 className="font-semibold text-xl tracking-tight">
+							c15t demo{isSelfHost ? ' — self-hosted backend' : ''}
 						</h1>
-						<p className="max-w-xl text-muted-foreground text-sm leading-6 sm:text-base">
-							Pick a location to see which policy c15t resolves and the banner
-							it produces — from GDPR opt-in to IAB TCF to California opt-out.
-							Switch language and theme at any time.
+						<p className="text-muted-foreground text-sm">
+							Pick a scenario to see which policy resolves and the banner it
+							produces.
 						</p>
 					</div>
 
