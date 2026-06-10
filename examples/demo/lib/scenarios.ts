@@ -62,114 +62,97 @@ type I18nMessageProfiles = Record<
 	}
 >;
 
+/** Languages offered by the demo's language picker. */
+export const DEMO_LANGUAGES = ['en', 'fr', 'de', 'es', 'pt'] as const;
+
 /**
- * Layers demo-specific copy on top of the full language pack that ships with
- * `@c15t/translations`, so every surface (banner, dialog, IAB UI) stays
- * translated even when a profile only customizes the banner copy.
+ * Builds a message profile containing every picker language. Each language
+ * starts from the full pack that ships with `@c15t/translations` (so all
+ * surfaces — banner, dialog, IAB UI — stay translated), with demo-specific
+ * copy layered on top only where a profile customizes it. This also means
+ * switching to any picker language works in every scenario instead of
+ * silently falling back to English.
  */
-function withBase(
-	language: keyof typeof baseTranslations,
-	overrides: Partial<Translations> = {}
-): Partial<Translations> {
-	return { ...baseTranslations[language], ...overrides };
+function profile(
+	overrides: Partial<
+		Record<(typeof DEMO_LANGUAGES)[number], Partial<Translations>>
+	> = {}
+): { translations: Record<string, Partial<Translations>> } {
+	return {
+		translations: Object.fromEntries(
+			DEMO_LANGUAGES.map((language) => [
+				language,
+				{ ...baseTranslations[language], ...overrides[language] },
+			])
+		),
+	};
 }
 
 export const demoI18nMessages: I18nMessageProfiles = {
-	default: {
-		translations: {
-			en: withBase('en'),
-			es: withBase('es', {
-				cookieBanner: {
-					title: 'Tus opciones de privacidad',
-					description:
-						'Usamos cookies para mejorar el sitio. Puedes aceptar o ajustar tu configuracion en cualquier momento.',
-				},
-			}),
-			pt: withBase('pt', {
-				cookieBanner: {
-					title: 'As suas escolhas de privacidade',
-					description:
-						'Usamos cookies para melhorar o site. Pode aceitar ou ajustar as suas definicoes a qualquer momento.',
-				},
-			}),
+	// Stock c15t translations, used by the shipped policy-pack presets.
+	default: profile(),
+	eu: profile({
+		en: {
+			cookieBanner: {
+				title: 'EU GDPR Consent',
+				description:
+					'We only use optional cookies with your consent. You can change settings anytime.',
+			},
 		},
-	},
-	eu: {
-		translations: {
-			en: withBase('en', {
-				cookieBanner: {
-					title: 'EU GDPR Consent',
-					description:
-						'We only use optional cookies with your consent. You can change settings anytime.',
-				},
-			}),
-			de: withBase('de', {
-				cookieBanner: {
-					title: 'GDPR-Einwilligung',
-					description:
-						'Optionale Cookies werden nur mit deiner Einwilligung verwendet.',
-				},
-			}),
-			fr: withBase('fr', {
-				cookieBanner: {
-					title: 'Consentement RGPD',
-					description:
-						'Nous utilisons uniquement des cookies facultatifs avec votre consentement.',
-				},
-			}),
+		de: {
+			cookieBanner: {
+				title: 'GDPR-Einwilligung',
+				description:
+					'Optionale Cookies werden nur mit deiner Einwilligung verwendet.',
+			},
 		},
-	},
-	fr: {
-		translations: {
-			en: withBase('en', {
-				cookieBanner: {
-					title: 'France IAB Preferences',
-					description:
-						'You can accept, reject, or customize IAB purposes for advertising and measurement.',
-				},
-			}),
-			fr: withBase('fr', {
-				cookieBanner: {
-					title: 'Paramètres de confidentialité (IAB)',
-					description:
-						'Vous pouvez accepter, refuser ou personnaliser les finalités IAB.',
-				},
-			}),
-			de: withBase('de', {
-				cookieBanner: {
-					title: 'Datenschutzeinstellungen (IAB)',
-					description:
-						'Sie konnen IAB-Zwecke akzeptieren, ablehnen oder individuell anpassen.',
-				},
-			}),
+		fr: {
+			cookieBanner: {
+				title: 'Consentement RGPD',
+				description:
+					'Nous utilisons uniquement des cookies facultatifs avec votre consentement.',
+			},
 		},
-	},
-	caSales: {
-		translations: {
-			en: withBase('en', {
-				cookieBanner: {
-					title: 'Your California privacy choices',
-					description:
-						'You can allow all optional uses, or opt out of the sale and sharing of your personal information.',
-				},
-				common: {
-					...baseTranslations.en.common,
-					acceptAll: 'Accept All',
-					rejectAll: 'Do not sell/share my personal information',
-					customize: 'Customize',
-				},
-			}),
+	}),
+	fr: profile({
+		en: {
+			cookieBanner: {
+				title: 'France IAB Preferences',
+				description:
+					'You can accept, reject, or customize IAB purposes for advertising and measurement.',
+			},
 		},
-	},
+		fr: {
+			cookieBanner: {
+				title: 'Paramètres de confidentialité (IAB)',
+				description:
+					'Vous pouvez accepter, refuser ou personnaliser les finalités IAB.',
+			},
+		},
+		de: {
+			cookieBanner: {
+				title: 'Datenschutzeinstellungen (IAB)',
+				description:
+					'Sie konnen IAB-Zwecke akzeptieren, ablehnen oder individuell anpassen.',
+			},
+		},
+	}),
+	caSales: profile({
+		en: {
+			cookieBanner: {
+				title: 'Your California privacy choices',
+				description:
+					'You can allow all optional uses, or opt out of the sale and sharing of your personal information.',
+			},
+			common: {
+				...baseTranslations.en.common,
+				acceptAll: 'Accept All',
+				rejectAll: 'Do not sell/share my personal information',
+				customize: 'Customize',
+			},
+		},
+	}),
 };
-
-/** Languages available for a given message profile, sorted. */
-export function getProfileLanguages(profile?: string): string[] {
-	const activeProfile = profile ?? 'default';
-	return Object.keys(
-		demoI18nMessages[activeProfile]?.translations ?? {}
-	).sort();
-}
 
 // ---------------------------------------------------------------------------
 // Scenarios
@@ -197,10 +180,7 @@ export const demoScenarios: DemoScenario[] = [
 		group: 'preset',
 		country: 'GB',
 		description: 'Shipped preset for Europe + UK opt-in banners.',
-		policy: {
-			...policyPackPresets.europeOptIn(),
-			i18n: { messageProfile: 'eu' },
-		},
+		policy: policyPackPresets.europeOptIn(),
 	},
 	{
 		id: 'preset-europe-iab',
@@ -208,10 +188,7 @@ export const demoScenarios: DemoScenario[] = [
 		group: 'preset',
 		country: 'FR',
 		description: 'Shipped preset for IAB TCF 2.3 across Europe.',
-		policy: {
-			...policyPackPresets.europeIab(),
-			i18n: { messageProfile: 'fr' },
-		},
+		policy: policyPackPresets.europeIab(),
 	},
 	{
 		id: 'preset-california-opt-in',

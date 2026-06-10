@@ -247,31 +247,36 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 				<ConsentManagerProvider key={providerKey} options={providerOptions}>
 					<div className="grid gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(20rem,0.95fr)]">
 						<section className="space-y-8">
-							{/* Mode */}
-							<div className="space-y-3">
-								<p className="label-pixel text-muted-foreground">Mode</p>
-								<div className="flex flex-wrap gap-2">
-									<PillButton
-										active={params.mode === 'offline'}
-										onClick={() => navigate({ mode: 'offline' })}
-									>
-										Offline
-									</PillButton>
-									<PillButton
-										active={params.mode === 'hosted'}
-										onClick={() => navigate({ mode: 'hosted' })}
-									>
-										{hostedLabel}
-									</PillButton>
+							{/* Mode — dev-only control. Hidden on the sales-facing page
+							    (offline is the only mode that matters there), but still
+							    shown if a ?mode=hosted link brought you here so the
+							    state is never invisible. */}
+							{(isSelfHost || params.mode === 'hosted') && (
+								<div className="space-y-3">
+									<p className="label-pixel text-muted-foreground">Mode</p>
+									<div className="flex flex-wrap gap-2">
+										<PillButton
+											active={params.mode === 'offline'}
+											onClick={() => navigate({ mode: 'offline' })}
+										>
+											Offline
+										</PillButton>
+										<PillButton
+											active={params.mode === 'hosted'}
+											onClick={() => navigate({ mode: 'hosted' })}
+										>
+											{hostedLabel}
+										</PillButton>
+									</div>
+									<p className="text-muted-foreground text-sm">
+										{params.mode === 'offline'
+											? 'Offline mode simulates the selected scenario locally — no backend required.'
+											: isSelfHost
+												? 'Policies resolve through this app’s /api/self-host route using the selected scenario.'
+												: 'Connected to a hosted consent.io instance. Policies come from that instance’s configuration, so scenario packs below only apply in offline mode.'}
+									</p>
 								</div>
-								<p className="text-muted-foreground text-sm">
-									{params.mode === 'offline'
-										? 'Offline mode simulates the selected scenario locally — no backend required.'
-										: isSelfHost
-											? 'Policies resolve through this app’s /api/self-host route using the selected scenario.'
-											: 'Connected to a hosted consent.io instance. Policies come from that instance’s configuration, so scenario packs below only apply in offline mode.'}
-								</p>
-							</div>
+							)}
 
 							{/* Scenarios */}
 							<div className="space-y-5">

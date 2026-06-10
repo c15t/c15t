@@ -2,7 +2,6 @@
 
 import { useConsentManager } from '@c15t/react';
 import { useEffect, useState } from 'react';
-import { getProfileLanguages } from '../../lib/scenarios';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 
@@ -62,7 +61,6 @@ export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
 
 	const policy = lastBannerFetchData?.policy;
 	const policyDecision = lastBannerFetchData?.policyDecision;
-	const allowedLanguages = getProfileLanguages(policy?.i18n?.messageProfile);
 	const requestedLanguage = overrides?.language;
 	const resolvedLanguage =
 		lastBannerFetchData?.translations.language ??
@@ -91,7 +89,6 @@ export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
 				categories: (policyCategories ?? []).filter(
 					(category) => category !== '*'
 				),
-				allowedLanguages,
 			}
 		: {
 				policyId: '…',
@@ -102,7 +99,6 @@ export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
 				banner: '…',
 				hasSavedConsent: false,
 				categories: [] as string[],
-				allowedLanguages: [] as string[],
 			};
 
 	const rawState = mounted
@@ -183,12 +179,6 @@ export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
 						);
 					})}
 				</div>
-				{display.allowedLanguages.length > 0 && (
-					<p className="text-muted-foreground text-xs">
-						Translated for this scenario: {display.allowedLanguages.join(', ')}.
-						Other languages fall back to English.
-					</p>
-				)}
 			</div>
 
 			<div className="flex flex-wrap gap-2">
