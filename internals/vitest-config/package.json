@@ -3,12 +3,17 @@
 	"version": "1.0.0",
 	"type": "module",
 	"exports": {
-		"./base": "./dist/base-config.js",
-		"./ui": "./dist/ui-config.js"
+		"./base": {
+			"types": "./src/base-config.ts",
+			"import": "./src/base-config.ts"
+		},
+		"./ui": {
+			"types": "./src/ui-config.ts",
+			"import": "./src/ui-config.ts"
+		}
 	},
 	"private": true,
 	"scripts": {
-		"build": "rslib build",
 		"check-types": "tsc --noEmit",
 		"dev": "echo '@c15t/vitest-config has no watch task'",
 		"lint": "bun biome lint ./src",
