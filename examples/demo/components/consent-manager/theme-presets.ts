@@ -11,13 +11,14 @@ import type { Theme } from '@c15t/react';
  */
 
 /**
- * Minimal — quiet neutral baseline.
- * Shows: restrained color tokens, small radii, hairline borders.
+ * Minimal — quiet neutral baseline as one compact card.
+ * Shows: restrained color tokens, small radii, hairline borders, and
+ * footer slots flattening the stock two-tone footer into a single surface.
  */
 const minimalTheme: Theme = {
 	consentActions: {
 		default: { mode: 'stroke' },
-		customize: { variant: 'primary' },
+		primary: { variant: 'primary' },
 	},
 	colors: {
 		primary: '#18181b',
@@ -55,6 +56,19 @@ const minimalTheme: Theme = {
 		md: '0 2px 8px rgba(0, 0, 0, 0.06)',
 		lg: '0 4px 16px rgba(0, 0, 0, 0.08)',
 	},
+	slots: {
+		// Drop the footer's tinted background so the banner and dialog read
+		// as one compact card instead of a two-tone surface.
+		consentBannerFooter: {
+			style: { backgroundColor: 'transparent', paddingTop: 0 },
+		},
+		consentDialogFooter: {
+			style: { backgroundColor: 'transparent' },
+		},
+		iabConsentBannerFooter: {
+			style: { backgroundColor: 'transparent', paddingTop: 0 },
+		},
+	},
 };
 
 /**
@@ -65,7 +79,7 @@ const minimalTheme: Theme = {
 const brutalistTheme: Theme = {
 	consentActions: {
 		default: { variant: 'neutral', mode: 'stroke' },
-		accept: { variant: 'primary', mode: 'filled' },
+		primary: { variant: 'primary', mode: 'filled' },
 	},
 	colors: {
 		primary: '#1d4ed8',
@@ -146,7 +160,7 @@ const brutalistTheme: Theme = {
 const auroraTheme: Theme = {
 	consentActions: {
 		default: { variant: 'neutral', mode: 'lighter' },
-		accept: { variant: 'primary', mode: 'filled' },
+		primary: { variant: 'primary', mode: 'filled' },
 	},
 	colors: {
 		primary: '#7c3aed',
@@ -208,7 +222,7 @@ const auroraTheme: Theme = {
 const terminalTheme: Theme = {
 	consentActions: {
 		default: { variant: 'primary', mode: 'stroke' },
-		accept: { variant: 'primary', mode: 'filled' },
+		primary: { variant: 'primary', mode: 'filled' },
 	},
 	colors: {
 		primary: '#22c55e',
@@ -258,8 +272,7 @@ const terminalTheme: Theme = {
 const editorialTheme: Theme = {
 	consentActions: {
 		default: { variant: 'neutral', mode: 'ghost' },
-		accept: { variant: 'primary', mode: 'filled' },
-		customize: { variant: 'neutral', mode: 'stroke' },
+		primary: { variant: 'primary', mode: 'filled' },
 	},
 	colors: {
 		primary: '#9a3412',
@@ -351,7 +364,7 @@ const liquidGlassTag = {
 const glassTheme: Theme = {
 	consentActions: {
 		default: { variant: 'neutral', mode: 'lighter' },
-		accept: { variant: 'primary', mode: 'filled' },
+		primary: { variant: 'primary', mode: 'filled' },
 	},
 	colors: {
 		primary: '#4f46e5',
@@ -440,7 +453,7 @@ export const themePresets = {
 	},
 	minimal: {
 		label: 'Minimal',
-		description: 'Quiet neutrals, hairline borders',
+		description: 'Quiet neutrals as one compact card',
 		theme: minimalTheme,
 	},
 	brutalist: {
