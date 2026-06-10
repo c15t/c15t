@@ -334,6 +334,20 @@ const liquidGlassSurface = {
 	].join(', '),
 };
 
+const liquidGlassTag = {
+	background: 'color-mix(in srgb, var(--c15t-primary) 82%, transparent)',
+	backdropFilter: 'blur(12px) saturate(160%)',
+	WebkitBackdropFilter: 'blur(12px) saturate(160%)',
+	border: '1px solid rgba(255, 255, 255, 0.35)',
+	borderRadius: 'var(--c15t-radius-full)',
+	boxShadow:
+		'inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 12px rgba(10, 8, 32, 0.18)',
+	// Float clear of the card instead of fusing to its top edge, and pull in
+	// from the corner so it does not overhang the large radius.
+	marginBlockEnd: '0.5rem',
+	marginInlineEnd: '1.25rem',
+};
+
 const glassTheme: Theme = {
 	consentActions: {
 		default: { variant: 'neutral', mode: 'lighter' },
@@ -392,6 +406,12 @@ const glassTheme: Theme = {
 			className: 'liquid-glass-card',
 			style: liquidGlassSurface,
 		},
+		// The stock branding tag is an opaque tab fused to the card's top
+		// edge, which clashes with a translucent card and overhangs its large
+		// corner radius. Restyle it as a small floating glass pill.
+		consentBannerTag: { style: liquidGlassTag },
+		consentDialogTag: { style: liquidGlassTag },
+		iabConsentBannerTag: { style: liquidGlassTag },
 		buttonSecondary: {
 			style: {
 				background: 'color-mix(in srgb, var(--c15t-surface) 45%, transparent)',
