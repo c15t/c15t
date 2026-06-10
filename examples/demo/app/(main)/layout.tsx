@@ -1,3 +1,4 @@
+import { DevTools } from '@c15t/dev-tools/react';
 import { Analytics } from '@vercel/analytics/next';
 import { GeistMono } from 'geist/font/mono';
 import { GeistPixelSquare } from 'geist/font/pixel';
@@ -24,6 +25,9 @@ export default function RootLayout({
 			>
 				<ThemeProvider defaultTheme="light" enableSystem>
 					{children}
+					{/* Always on, including production — this demo exists to show
+					    what the consent manager is doing under the hood. */}
+					<DevTools position="bottom-right" />
 					<Analytics />
 				</ThemeProvider>
 			</body>

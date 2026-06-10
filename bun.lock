@@ -336,6 +336,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@c15t/backend": "workspace:*",
+        "@c15t/dev-tools": "workspace:*",
         "@c15t/iab": "workspace:*",
         "@c15t/nextjs": "workspace:*",
         "@c15t/react": "workspace:*",

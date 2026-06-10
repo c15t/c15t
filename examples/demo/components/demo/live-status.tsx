@@ -62,6 +62,7 @@ export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
 	const policy = lastBannerFetchData?.policy;
 	const policyDecision = lastBannerFetchData?.policyDecision;
 	const requestedLanguage = overrides?.language;
+	const messageProfile = policy?.i18n?.messageProfile ?? 'default';
 	const resolvedLanguage =
 		lastBannerFetchData?.translations.language ??
 		translationConfig.defaultLanguage ??
@@ -80,6 +81,10 @@ export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
 				language: `${resolvedLanguage}${
 					requestedLanguage ? ` (requested ${requestedLanguage})` : ' (auto)'
 				}`,
+				copy:
+					messageProfile === 'default'
+						? 'stock translations'
+						: `custom ("${messageProfile}" profile)`,
 				banner:
 					policy?.ui?.mode === 'none' || !policy?.ui
 						? (policy?.ui?.mode ?? 'default')
@@ -96,6 +101,7 @@ export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
 				iabEnabled: false,
 				location: '--',
 				language: '…',
+				copy: '…',
 				banner: '…',
 				hasSavedConsent: false,
 				categories: [] as string[],
@@ -120,6 +126,7 @@ export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
 				<StatusRow label="Model" value={display.model} />
 				<StatusRow label="Location" value={display.location} />
 				<StatusRow label="Language" value={display.language} />
+				<StatusRow label="Copy" value={display.copy} />
 				<StatusRow
 					label="IAB TCF"
 					value={display.iabEnabled ? 'enabled' : 'off'}

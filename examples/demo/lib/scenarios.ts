@@ -233,7 +233,7 @@ export const demoScenarios: DemoScenario[] = [
 		group: 'custom',
 		country: 'FR',
 		description:
-			'Country-level IAB TCF policy that takes priority over the EU preset for France.',
+			'Country-level IAB TCF policy with custom banner copy (the "fr" message profile) in English, French, and German.',
 		policy: {
 			id: 'fr_iab',
 			match: { countries: ['FR'] },
@@ -256,7 +256,7 @@ export const demoScenarios: DemoScenario[] = [
 		group: 'custom',
 		country: 'DE',
 		description:
-			'Strict opt-in with specific categories and compact split-row actions.',
+			'Strict opt-in with specific categories, compact split-row actions, and custom GDPR copy (the "eu" message profile).',
 		policy: {
 			id: 'de_strict',
 			match: { countries: ['DE'] },
@@ -379,7 +379,7 @@ export const demoScenarios: DemoScenario[] = [
 		country: 'US',
 		region: 'CA',
 		description:
-			'Two actions only: Accept All as the primary CTA plus a "Do not sell/share" opt-out.',
+			'Two actions only: Accept All as the primary CTA plus a custom "Do not sell/share" opt-out label (the "caSales" message profile).',
 		policy: {
 			id: 'ca_do_not_sell',
 			match: { regions: [{ country: 'US', region: 'CA' }] },
