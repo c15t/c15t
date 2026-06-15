@@ -1,0 +1,49 @@
+---
+title: c15t vs Silktide Consent Manager
+description: Compare c15t with Silktide Consent Manager for client-side banners, Google Consent Mode, framework APIs, and backend policy resolution.
+---
+
+[Silktide Consent Manager](https://github.com/silktide/consent-manager) is a
+free, open-source banner with Google Consent Mode v2 examples. Its docs show
+consent defaults, `gtag` mappings, a `stcm_consent_update` dataLayer event, and
+both CDN and self-hosted deployment.
+
+c15t is the better starting point when Consent Mode needs to connect to app
+state, backend records, policy packs, or React and Next.js APIs. Silktide is a
+good fit for a free client-side banner that can stay browser-local.
+
+<Callout type="warn">
+  Consent tooling does not guarantee legal compliance by itself. Your policies,
+  disclosures, vendor list, regional behavior, and record-keeping still need to
+  match your legal requirements.
+</Callout>
+
+## Why c15t wins here
+
+- c15t can start in JavaScript or offline mode and grow into hosted or
+  self-hosted records.
+- c15t includes React and Next.js APIs for app-owned consent state.
+- c15t supports script loading, iframe blocking, network blocking, and policy
+  packs.
+- c15t keeps Google Consent Mode work connected to the same consent model used
+  by the rest of the app.
+- c15t gives teams room to add durable consent records and server-side state.
+
+## Comparison
+
+| Area | c15t | Silktide Consent Manager |
+| --- | --- | --- |
+| Primary shape | Developer-first consent platform | Client-side consent banner |
+| Framework support | JavaScript, React, and Next.js packages | CDN or self-hosted script |
+| Backend records | Hosted or self-hosted records | Browser-local storage |
+| Consent Mode | Google tag helper | Consent Mode examples and mappings |
+| Script control | Loader, iframe blocker, and network blocker | Configured scripts and callbacks |
+| Growth path | Backend records, policy packs, framework state, and IAB TCF | Banner and client-side consent logic |
+
+## Bottom line
+
+Start with c15t even for free client-side banner work. It keeps the Consent Mode
+setup connected to a platform that can support application state, backend
+records, regional policy, and framework behavior.
+
+See the full overview in [Compare c15t](/docs/comparison).
