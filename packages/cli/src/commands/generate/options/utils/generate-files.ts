@@ -1,10 +1,10 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type * as p from '@clack/prompts';
-import color from 'picocolors';
+import { color } from 'hexbus';
 import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '~/context/types';
 import { formatLogMessage } from '~/utils/logger';
+import type { TaskSpinner } from '~/utils/spinner';
 import { formatSearchedCssPaths } from '../../../shared/stylesheets';
 import type { ExpandedTheme, UIStyle } from '../../prompts';
 import { generateClientConfigContent } from '../../templates/config';
@@ -78,7 +78,7 @@ async function handleReactLayout(options: {
 	uiStyle?: UIStyle;
 	expandedTheme?: ExpandedTheme;
 	selectedScripts?: string[];
-	spinner: ReturnType<typeof p.spinner>;
+	spinner: TaskSpinner;
 	cwd: string;
 }): Promise<{ layoutUpdated: boolean; layoutPath: string | null }> {
 	const {
@@ -184,7 +184,7 @@ async function handleNextConfig(options: {
 	projectRoot: string;
 	backendURL?: string;
 	useEnvFile?: boolean;
-	spinner: ReturnType<typeof p.spinner>;
+	spinner: TaskSpinner;
 }): Promise<{
 	nextConfigUpdated: boolean;
 	nextConfigPath: string | null;
@@ -243,7 +243,7 @@ async function handleEnvFiles(options: {
 	projectRoot: string;
 	backendURL: string;
 	pkg: AvailablePackages;
-	spinner: ReturnType<typeof p.spinner>;
+	spinner: TaskSpinner;
 	cwd: string;
 }): Promise<void> {
 	const { projectRoot, backendURL, pkg, spinner, cwd } = options;

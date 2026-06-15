@@ -1,9 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@clack/prompts', () => {
+vi.mock('hexbus', () => {
 	return {
-		confirm: vi.fn(),
-		isCancel: (value: unknown) => value === Symbol.for('CANCEL'),
+		promptConfirm: vi.fn(),
 	};
 });
 
@@ -14,7 +13,7 @@ vi.mock('node:fs/promises', () => {
 });
 
 import { writeFile } from 'node:fs/promises';
-import * as prompts from '@clack/prompts';
+import { promptConfirm } from 'hexbus';
 import { TelemetryEventName } from '../../../utils/telemetry';
 import { handleMigrationResult } from './migrator-result';
 
@@ -39,7 +38,7 @@ function createResult() {
 
 describe('handleMigrationResult', () => {
 	beforeEach(() => {
-		(prompts.confirm as unknown as ReturnType<typeof vi.fn>).mockReset();
+		(promptConfirm as unknown as ReturnType<typeof vi.fn>).mockReset();
 	});
 
 	afterEach(() => {
@@ -50,8 +49,8 @@ describe('handleMigrationResult', () => {
 		const context = createMockContext();
 		const result = createResult();
 		(
-			prompts.confirm as unknown as ReturnType<typeof vi.fn>
-		).mockResolvedValueOnce(Symbol.for('CANCEL'));
+			promptConfirm as unknown as ReturnType<typeof vi.fn>
+		).mockResolvedValueOnce(undefined);
 
 		await handleMigrationResult(context, result);
 
@@ -69,9 +68,9 @@ describe('handleMigrationResult', () => {
 	it('saves SQL to file when user chooses to save, then cancels execute', async () => {
 		const context = createMockContext();
 		const result = createResult();
-		(prompts.confirm as unknown as ReturnType<typeof vi.fn>)
+		(promptConfirm as unknown as ReturnType<typeof vi.fn>)
 			.mockResolvedValueOnce(true) // save SQL
-			.mockResolvedValueOnce(Symbol.for('CANCEL')); // execute cancel
+			.mockResolvedValueOnce(undefined); // execute cancel
 
 		await handleMigrationResult(context, result);
 
@@ -94,7 +93,7 @@ describe('handleMigrationResult', () => {
 	it('executes migration and tracks completion', async () => {
 		const context = createMockContext();
 		const result = createResult();
-		(prompts.confirm as unknown as ReturnType<typeof vi.fn>)
+		(promptConfirm as unknown as ReturnType<typeof vi.fn>)
 			.mockResolvedValueOnce(false) // do not save SQL
 			.mockResolvedValueOnce(true); // execute
 

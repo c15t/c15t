@@ -161,6 +161,8 @@ export const fileGenerationActor = fromPromise<
 		start: (msg: string) => logger.debug(`[spinner] ${msg}`),
 		stop: (msg: string) => logger.debug(`[spinner] ${msg}`),
 		message: (msg: string) => logger.debug(`[spinner] ${msg}`),
+		success: (msg: string) => logger.debug(`[spinner] ${msg}`),
+		error: (msg: string) => logger.debug(`[spinner] ${msg}`),
 	};
 
 	try {
@@ -193,9 +195,7 @@ export const fileGenerationActor = fromPromise<
 		const generateResult = await generateFiles({
 			context: cliContext,
 			mode,
-			spinner: spinnerMock as ReturnType<
-				typeof import('@clack/prompts').spinner
-			>,
+			spinner: spinnerMock,
 			backendURL: backendURL ?? undefined,
 			useEnvFile,
 			proxyNextjs,

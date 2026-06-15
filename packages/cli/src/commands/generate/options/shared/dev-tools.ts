@@ -1,4 +1,4 @@
-import * as p from '@clack/prompts';
+import { promptSelect } from 'hexbus';
 import type { CliContext } from '~/context/types';
 
 interface GetDevToolsOptionOptions {
@@ -21,27 +21,30 @@ export async function getDevToolsOption({
 	);
 	context.logger.info('Learn more: https://c15t.com/docs/dev-tools/overview');
 
-	const enableDevTools = await p.select({
+	const enableDevTools = await promptSelect({
+		cancel: 'silent',
 		message: 'Install and enable c15t DevTools?',
 		options: [
 			{
-				value: true,
+				value: 'true',
 				label: 'Yes (Recommended)',
 				hint: isReactProject
 					? 'Adds <DevTools /> to generated consent components'
 					: 'Adds createDevTools() setup to c15t.config.ts',
 			},
 			{
-				value: false,
+				value: 'false',
 				label: 'No',
 				hint: 'Skip DevTools installation and setup',
 			},
 		],
-		initialValue: true,
+		initialValue: 'true',
+		stage: 'dev_tools_option',
+		telemetry: context.telemetry,
 	});
 
 	const cancelled =
-		handleCancel?.(enableDevTools) ?? p.isCancel(enableDevTools);
+		handleCancel?.(enableDevTools) ?? enableDevTools === undefined;
 
 	if (cancelled) {
 		if (onCancel) {
@@ -54,5 +57,5 @@ export async function getDevToolsOption({
 		});
 	}
 
-	return enableDevTools as boolean;
+	return enableDevTools === 'true';
 }

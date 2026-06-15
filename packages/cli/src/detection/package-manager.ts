@@ -6,7 +6,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import * as p from '@clack/prompts';
+import { promptSelect } from 'hexbus';
 import type { CliLogger, PackageManager, PackageManagerResult } from '../types';
 
 /**
@@ -107,7 +107,8 @@ async function promptForPackageManager(
 ): Promise<PackageManager> {
 	logger?.debug('Prompting user to select package manager');
 
-	const result = await p.select({
+	const result = await promptSelect({
+		cancel: 'silent',
 		message: 'Which package manager do you use?',
 		options: [
 			{ value: 'bun', label: 'bun', hint: 'Fast all-in-one toolkit' },
@@ -115,13 +116,14 @@ async function promptForPackageManager(
 			{ value: 'yarn', label: 'yarn', hint: 'Classic package manager' },
 			{ value: 'npm', label: 'npm', hint: 'Default Node.js package manager' },
 		],
+		stage: 'package_manager_selection',
 	});
 
-	if (p.isCancel(result)) {
+	if (result === undefined) {
 		throw new Error('Package manager selection cancelled');
 	}
 
-	return result as PackageManager;
+	return result;
 }
 
 /**

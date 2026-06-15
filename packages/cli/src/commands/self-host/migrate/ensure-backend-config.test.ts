@@ -3,16 +3,15 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@clack/prompts', () => {
+vi.mock('hexbus', () => {
 	return {
-		select: vi.fn(),
-		confirm: vi.fn(),
-		text: vi.fn(),
-		isCancel: (value: unknown) => value === Symbol.for('CANCEL'),
+		promptSelect: vi.fn(),
+		promptConfirm: vi.fn(),
+		promptText: vi.fn(),
 	};
 });
 
-import * as prompts from '@clack/prompts';
+import { promptConfirm, promptSelect, promptText } from 'hexbus';
 
 import { ensureBackendConfig } from './ensure-backend-config';
 
@@ -39,9 +38,9 @@ function readGeneratedConfig(cwd: string): Promise<string> {
 }
 
 beforeEach(() => {
-	(prompts.select as unknown as ReturnType<typeof vi.fn>).mockReset();
-	(prompts.confirm as unknown as ReturnType<typeof vi.fn>).mockReset();
-	(prompts.text as unknown as ReturnType<typeof vi.fn>).mockReset();
+	(promptSelect as unknown as ReturnType<typeof vi.fn>).mockReset();
+	(promptConfirm as unknown as ReturnType<typeof vi.fn>).mockReset();
+	(promptText as unknown as ReturnType<typeof vi.fn>).mockReset();
 });
 
 afterEach(() => {
@@ -51,16 +50,16 @@ afterEach(() => {
 describe('ensureBackendConfig generation', () => {
 	it('generates Kysely (PostgreSQL) config with db prelude', async () => {
 		const cwd = await makeTmpDir('c15t-kysely-pg');
+		(promptSelect as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+			'kyselyAdapter'
+		); // adapter
+		(promptSelect as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+			'postgresql'
+		); // provider
 		(
-			prompts.select as unknown as ReturnType<typeof vi.fn>
-		).mockResolvedValueOnce('kyselyAdapter'); // adapter
-		(
-			prompts.select as unknown as ReturnType<typeof vi.fn>
-		).mockResolvedValueOnce('postgresql'); // provider
-		(
-			prompts.confirm as unknown as ReturnType<typeof vi.fn>
+			promptConfirm as unknown as ReturnType<typeof vi.fn>
 		).mockResolvedValueOnce(true); // use env
-		(prompts.text as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+		(promptText as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
 			'DATABASE_URL'
 		); // env var name
 
@@ -86,13 +85,13 @@ describe('ensureBackendConfig generation', () => {
 
 	it('generates Drizzle (SQLite) config with db prelude', async () => {
 		const cwd = await makeTmpDir('c15t-drizzle-sqlite');
-		(
-			prompts.select as unknown as ReturnType<typeof vi.fn>
-		).mockResolvedValueOnce('drizzleAdapter'); // adapter
-		(
-			prompts.select as unknown as ReturnType<typeof vi.fn>
-		).mockResolvedValueOnce('sqlite'); // provider
-		(prompts.text as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+		(promptSelect as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+			'drizzleAdapter'
+		); // adapter
+		(promptSelect as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+			'sqlite'
+		); // provider
+		(promptText as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
 			'./db.sqlite'
 		); // sqlite path
 
@@ -117,16 +116,16 @@ describe('ensureBackendConfig generation', () => {
 
 	it('generates Prisma (MongoDB) config with prisma prelude', async () => {
 		const cwd = await makeTmpDir('c15t-prisma-mongo');
+		(promptSelect as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+			'prismaAdapter'
+		); // adapter
+		(promptSelect as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+			'mongodb'
+		); // provider
 		(
-			prompts.select as unknown as ReturnType<typeof vi.fn>
-		).mockResolvedValueOnce('prismaAdapter'); // adapter
-		(
-			prompts.select as unknown as ReturnType<typeof vi.fn>
-		).mockResolvedValueOnce('mongodb'); // provider
-		(
-			prompts.confirm as unknown as ReturnType<typeof vi.fn>
+			promptConfirm as unknown as ReturnType<typeof vi.fn>
 		).mockResolvedValueOnce(true); // use env
-		(prompts.text as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+		(promptText as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
 			'MONGODB_URI'
 		); // env var name
 
@@ -149,16 +148,16 @@ describe('ensureBackendConfig generation', () => {
 
 	it('generates TypeORM (MySQL) config with source prelude', async () => {
 		const cwd = await makeTmpDir('c15t-typeorm-mysql');
+		(promptSelect as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+			'typeormAdapter'
+		); // adapter
+		(promptSelect as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+			'mysql'
+		); // provider
 		(
-			prompts.select as unknown as ReturnType<typeof vi.fn>
-		).mockResolvedValueOnce('typeormAdapter'); // adapter
-		(
-			prompts.select as unknown as ReturnType<typeof vi.fn>
-		).mockResolvedValueOnce('mysql'); // provider
-		(
-			prompts.confirm as unknown as ReturnType<typeof vi.fn>
+			promptConfirm as unknown as ReturnType<typeof vi.fn>
 		).mockResolvedValueOnce(true); // use env
-		(prompts.text as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+		(promptText as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
 			'DATABASE_URL'
 		); // env var name
 
@@ -182,14 +181,14 @@ describe('ensureBackendConfig generation', () => {
 
 	it('generates Mongo adapter config with client prelude', async () => {
 		const cwd = await makeTmpDir('c15t-mongo');
-		(
-			prompts.select as unknown as ReturnType<typeof vi.fn>
-		).mockResolvedValueOnce('mongoAdapter'); // adapter
+		(promptSelect as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+			'mongoAdapter'
+		); // adapter
 		// provider not asked (only one)
 		(
-			prompts.confirm as unknown as ReturnType<typeof vi.fn>
+			promptConfirm as unknown as ReturnType<typeof vi.fn>
 		).mockResolvedValueOnce(true); // use env
-		(prompts.text as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+		(promptText as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
 			'MONGODB_URI'
 		); // env var name
 

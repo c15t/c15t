@@ -3,10 +3,13 @@
  */
 
 import type {
+	CliLogger as SharedCliLogger,
+	Telemetry as SharedTelemetry,
+} from 'hexbus';
+import type {
 	AvailablePackage as AvailablePackageType,
 	StorageMode as StorageModeType,
 } from './constants';
-import type { CliLogger as SharedCliLogger } from './utils/logger';
 
 // Re-export for use in other modules
 export type StorageMode = StorageModeType;
@@ -148,24 +151,7 @@ export interface FileSystemUtils {
 }
 
 // --- Telemetry Interface ---
-export interface Telemetry {
-	/** Track an event */
-	trackEvent: (eventName: string, properties?: Record<string, unknown>) => void;
-	/** Track a command execution */
-	trackCommand: (
-		command: string,
-		args?: string[],
-		flags?: Record<string, string | number | boolean | undefined>
-	) => void;
-	/** Track an error */
-	trackError: (error: Error, command?: string) => void;
-	/** Flush pending events */
-	flushSync: () => void;
-	/** Shutdown the telemetry client */
-	shutdown: () => Promise<void>;
-	/** Check if telemetry is disabled */
-	isDisabled: () => boolean;
-}
+export type Telemetry = SharedTelemetry;
 
 // --- CLI Context ---
 export interface CliContext {

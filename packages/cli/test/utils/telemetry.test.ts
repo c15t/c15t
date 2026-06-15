@@ -1,317 +1,96 @@
-import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CliLogger } from '../../src/types';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { ENV_VARS, PATHS, URLS } from '../../src/constants';
 import {
-	createTelemetry,
-	Telemetry,
+	createC15TTelemetryOptions,
+	HEXBUS_EVENT_NAME_ALIASES,
 	TelemetryEventName,
 } from '../../src/utils/telemetry';
 
-function createMockLogger(): CliLogger {
-	return {
-		debug: vi.fn(),
-		info: vi.fn(),
-		warn: vi.fn(),
-		error: vi.fn(),
-		message: vi.fn(),
-		note: vi.fn(),
-		success: vi.fn(),
-		failed: vi.fn(() => {
-			throw new Error('failed');
-		}) as unknown as CliLogger['failed'],
-		outro: vi.fn(),
-		step: vi.fn(),
-	};
-}
-
-async function flushTelemetry(telemetry: Telemetry) {
-	telemetry.flushSync();
-	await telemetry.shutdown();
-}
-
-describe('Telemetry', () => {
-	let telemetry: Telemetry;
-	let fetchMock: ReturnType<typeof vi.fn>;
-	let storageDir: string;
-	let mockLogger: CliLogger;
+describe('c15t telemetry configuration', () => {
+	let originalTelemetryDisabled: string | undefined;
+	let originalTelemetryEndpoint: string | undefined;
 	let originalTelemetryWriteKey: string | undefined;
 	let originalTelemetryOrgId: string | undefined;
 
-	beforeEach(async () => {
-		originalTelemetryWriteKey = process.env.C15T_TELEMETRY_WRITE_KEY;
-		originalTelemetryOrgId = process.env.C15T_TELEMETRY_ORG_ID;
-		delete process.env.C15T_TELEMETRY_WRITE_KEY;
-		delete process.env.C15T_TELEMETRY_ORG_ID;
+	beforeEach(() => {
+		originalTelemetryDisabled = process.env[ENV_VARS.TELEMETRY_DISABLED];
+		originalTelemetryEndpoint = process.env[ENV_VARS.TELEMETRY_ENDPOINT];
+		originalTelemetryWriteKey = process.env[ENV_VARS.TELEMETRY_WRITE_KEY];
+		originalTelemetryOrgId = process.env[ENV_VARS.TELEMETRY_ORG_ID];
 
-		fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
-		storageDir = await fs.mkdtemp(
-			path.join(os.tmpdir(), 'c15t-cli-telemetry-')
-		);
-		mockLogger = createMockLogger();
-
-		telemetry = new Telemetry({
-			fetch: fetchMock as unknown as typeof fetch,
-			storageDir,
-			logger: mockLogger,
-			drainOptions: {
-				retry: {
-					maxAttempts: 1,
-					backoff: 'fixed',
-					initialDelayMs: 10,
-					maxDelayMs: 10,
-				},
-			},
-		});
+		delete process.env[ENV_VARS.TELEMETRY_DISABLED];
+		delete process.env[ENV_VARS.TELEMETRY_ENDPOINT];
+		delete process.env[ENV_VARS.TELEMETRY_WRITE_KEY];
+		delete process.env[ENV_VARS.TELEMETRY_ORG_ID];
 	});
 
-	afterEach(async () => {
-		await telemetry.shutdown();
-		if (originalTelemetryWriteKey === undefined) {
-			delete process.env.C15T_TELEMETRY_WRITE_KEY;
-		} else {
-			process.env.C15T_TELEMETRY_WRITE_KEY = originalTelemetryWriteKey;
-		}
-		if (originalTelemetryOrgId === undefined) {
-			delete process.env.C15T_TELEMETRY_ORG_ID;
-		} else {
-			process.env.C15T_TELEMETRY_ORG_ID = originalTelemetryOrgId;
-		}
-		await fs.rm(storageDir, { recursive: true, force: true });
+	afterEach(() => {
+		restoreEnv(ENV_VARS.TELEMETRY_DISABLED, originalTelemetryDisabled);
+		restoreEnv(ENV_VARS.TELEMETRY_ENDPOINT, originalTelemetryEndpoint);
+		restoreEnv(ENV_VARS.TELEMETRY_WRITE_KEY, originalTelemetryWriteKey);
+		restoreEnv(ENV_VARS.TELEMETRY_ORG_ID, originalTelemetryOrgId);
 	});
 
-	it('creates a telemetry instance', () => {
-		expect(telemetry).toBeInstanceOf(Telemetry);
-	});
-
-	it('creates telemetry with the factory', async () => {
-		const instance = createTelemetry({
-			disabled: true,
-			storageDir,
-			fetch: fetchMock as unknown as typeof fetch,
+	it('builds Hexbus telemetry options with c15t defaults', () => {
+		const options = createC15TTelemetryOptions({
+			defaultProperties: { cliVersion: '2.0.0' },
 		});
 
-		expect(instance).toBeInstanceOf(Telemetry);
-		await instance.shutdown();
-	});
-
-	it('respects the disabled flag', async () => {
-		const disabledTelemetry = new Telemetry({
-			disabled: true,
-			storageDir,
-			fetch: fetchMock as unknown as typeof fetch,
-		});
-
-		disabledTelemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
-			test: true,
-		});
-		await disabledTelemetry.shutdown();
-
-		expect(fetchMock).not.toHaveBeenCalled();
-	});
-
-	it('tracks events via the ingest endpoint', async () => {
-		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
-			framework: 'next',
-			nested: { mode: 'hosted' },
-		});
-
-		await flushTelemetry(telemetry);
-
-		expect(fetchMock).toHaveBeenCalledTimes(1);
-		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const payload = JSON.parse(String(requestInit?.body)) as Array<
-			Record<string, unknown>
-		>;
-
-		expect(payload).toHaveLength(1);
-		expect(payload[0]).toMatchObject({
-			event: TelemetryEventName.CLI_INVOKED,
-			framework: 'next',
-			nested: { mode: 'hosted' },
+		expect(options).toMatchObject({
+			appName: 'c15t',
+			defaultProperties: { cliVersion: '2.0.0' },
+			disabled: false,
+			endpoint: URLS.TELEMETRY,
+			envVarPrefix: 'C15T',
+			eventNameMap: HEXBUS_EVENT_NAME_ALIASES,
+			queueFileName: PATHS.TELEMETRY_QUEUE_FILE,
 			source: 'c15t-cli',
-		});
-		expect(payload[0].installId).toEqual(expect.any(String));
-		expect(payload[0].sessionId).toEqual(expect.any(String));
-		expect(payload[0].sequence).toBe(1);
-	});
-
-	it('tracks commands with sanitized args and flags', async () => {
-		telemetry.trackCommand('setup', ['hosted', '/tmp/private'], {
-			logger: 'debug',
-			config: '/tmp/c15t.config.ts',
-			'no-telemetry': false,
-		});
-
-		await flushTelemetry(telemetry);
-
-		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const payload = JSON.parse(String(requestInit?.body)) as Array<
-			Record<string, unknown>
-		>;
-		const event = payload[0]!;
-
-		expect(event).toMatchObject({
-			event: TelemetryEventName.COMMAND_EXECUTED,
-			command: 'setup',
-			argsCount: 2,
-			flagCount: 3,
-		});
-		expect(event.commandRunId).toEqual(expect.any(String));
-		expect(event.args).toEqual(['hosted', '[absolute-path]']);
-		expect(event.flags).toEqual({
-			config: '[redacted]',
-			logger: 'debug',
-			'no-telemetry': false,
-		});
-		expect(event.flagNames).toEqual(['config', 'logger', 'no-telemetry']);
-	});
-
-	it('tracks errors with structured failure data', async () => {
-		const error = Object.assign(new Error('Test error'), {
-			code: 'E_TEST',
-			status: 500,
-		});
-
-		telemetry.trackError(error, 'setup');
-		await flushTelemetry(telemetry);
-
-		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const payload = JSON.parse(String(requestInit?.body)) as Array<
-			Record<string, unknown>
-		>;
-		const event = payload[0]!;
-
-		expect(event.event).toBe(TelemetryEventName.ERROR_OCCURRED);
-		expect(event.level).toBe('error');
-		expect(event.command).toBe('setup');
-		expect(event.failure).toMatchObject({
-			name: 'Error',
-			message: 'Test error',
-			code: 'E_TEST',
-			status: 500,
+			stateFileName: PATHS.TELEMETRY_STATE_FILE,
+			storageDir: path.join(os.homedir(), PATHS.CONFIG_DIR),
 		});
 	});
 
-	it('redacts sensitive values and strips URL credentials', async () => {
-		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
-			token: 'super-secret-token',
-			nested: {
-				password: 'secret',
-			},
-			endpoint: 'https://user:pass@example.com/path?q=1#hash',
-			projectPath: '/tmp/private-project',
+	it('honors telemetry environment overrides', () => {
+		process.env[ENV_VARS.TELEMETRY_DISABLED] = 'true';
+		process.env[ENV_VARS.TELEMETRY_ENDPOINT] = 'https://example.test/logs';
+		process.env[ENV_VARS.TELEMETRY_WRITE_KEY] = 'write-key';
+		process.env[ENV_VARS.TELEMETRY_ORG_ID] = 'org-id';
+
+		const options = createC15TTelemetryOptions();
+
+		expect(options.disabled).toBe(true);
+		expect(options.endpoint).toBe('https://example.test/logs');
+		expect(options.headers).toMatchObject({
+			Authorization: 'Bearer write-key',
+			'X-Axiom-Org-Id': 'org-id',
 		});
-
-		await flushTelemetry(telemetry);
-
-		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const payload = JSON.parse(String(requestInit?.body)) as Array<
-			Record<string, unknown>
-		>;
-		const event = payload[0]!;
-
-		expect(event.token).toBe('[redacted]');
-		expect(event.nested).toEqual({ password: '[redacted]' });
-		expect(event.endpoint).toBe('https://example.com/path');
-		expect(event.projectPath).toBe('[absolute-path]');
 	});
 
-	it('queues dropped telemetry batches to disk and replays them later', async () => {
-		fetchMock.mockImplementation(async () => {
-			throw new Error('network down');
+	it('maps Hexbus lifecycle names to c15t event names', () => {
+		expect(HEXBUS_EVENT_NAME_ALIASES).toMatchObject({
+			cli_completed: TelemetryEventName.CLI_COMPLETED,
+			cli_environment_detected: TelemetryEventName.CLI_ENVIRONMENT_DETECTED,
+			cli_invoked: TelemetryEventName.CLI_INVOKED,
+			command_failed: TelemetryEventName.COMMAND_FAILED,
+			command_invoked: TelemetryEventName.COMMAND_EXECUTED,
+			command_succeeded: TelemetryEventName.COMMAND_SUCCEEDED,
+			command_unknown: TelemetryEventName.COMMAND_UNKNOWN,
+			error_occurred: TelemetryEventName.ERROR_OCCURRED,
+			help_displayed: TelemetryEventName.HELP_DISPLAYED,
+			interactive_menu_exited: TelemetryEventName.INTERACTIVE_MENU_EXITED,
+			interactive_menu_opened: TelemetryEventName.INTERACTIVE_MENU_OPENED,
+			version_displayed: TelemetryEventName.VERSION_DISPLAYED,
 		});
-
-		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
-			attempt: 1,
-		});
-		await flushTelemetry(telemetry);
-
-		const queuePath = path.join(storageDir, 'telemetry-queue.json');
-		const queued = JSON.parse(await fs.readFile(queuePath, 'utf-8')) as Array<
-			Record<string, unknown>
-		>;
-		expect(queued).toHaveLength(1);
-		expect(queued[0]?.event).toBe(TelemetryEventName.CLI_INVOKED);
-
-		const replayFetch = vi.fn(async () => new Response(null, { status: 204 }));
-		const replayTelemetry = new Telemetry({
-			fetch: replayFetch as unknown as typeof fetch,
-			storageDir,
-			logger: mockLogger,
-			drainOptions: {
-				retry: {
-					maxAttempts: 1,
-					backoff: 'fixed',
-					initialDelayMs: 10,
-					maxDelayMs: 10,
-				},
-			},
-		});
-
-		await replayTelemetry.shutdown();
-
-		expect(replayFetch).toHaveBeenCalledTimes(1);
-		await expect(fs.access(queuePath)).rejects.toThrow();
-	});
-
-	it('can be disabled and re-enabled', async () => {
-		telemetry.disable();
-		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, { stage: 'disabled' });
-
-		telemetry.enable();
-		telemetry.trackEvent(TelemetryEventName.CLI_INVOKED, { stage: 'enabled' });
-
-		await flushTelemetry(telemetry);
-
-		expect(fetchMock).toHaveBeenCalledTimes(1);
-		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const payload = JSON.parse(String(requestInit?.body)) as Array<
-			Record<string, unknown>
-		>;
-
-		expect(payload).toHaveLength(1);
-		expect(payload[0]?.stage).toBe('enabled');
-	});
-
-	it('sends axiom-compatible headers and a raw events array', async () => {
-		process.env.C15T_TELEMETRY_WRITE_KEY = 'axiom-token';
-		process.env.C15T_TELEMETRY_ORG_ID = 'axiom-org';
-
-		const axiomTelemetry = new Telemetry({
-			fetch: fetchMock as unknown as typeof fetch,
-			storageDir,
-			logger: mockLogger,
-			drainOptions: {
-				retry: {
-					maxAttempts: 1,
-					backoff: 'fixed',
-					initialDelayMs: 10,
-					maxDelayMs: 10,
-				},
-			},
-		});
-
-		axiomTelemetry.trackEvent(TelemetryEventName.CLI_INVOKED, {
-			stage: 'axiom',
-		});
-		await flushTelemetry(axiomTelemetry);
-		await axiomTelemetry.shutdown();
-
-		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const headers = requestInit?.headers as Record<string, string>;
-		const payload = JSON.parse(String(requestInit?.body)) as Array<
-			Record<string, unknown>
-		>;
-
-		expect(headers).toMatchObject({
-			'Content-Type': 'application/json',
-			Authorization: 'Bearer axiom-token',
-			'X-Axiom-Org-Id': 'axiom-org',
-		});
-		expect(payload).toHaveLength(1);
-		expect(payload[0]?.stage).toBe('axiom');
-		expect(payload[0]).not.toHaveProperty('events');
 	});
 });
+
+function restoreEnv(key: string, value: string | undefined): void {
+	if (value === undefined) {
+		delete process.env[key];
+		return;
+	}
+
+	process.env[key] = value;
+}

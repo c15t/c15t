@@ -1,0 +1,12 @@
+{
+	"lockfileVersion": 1,
+	"modules": {
+		"hexbus": {
+			"source": "hexbus",
+			"gitUrl": "https://github.com/inthhq/hexbus.git",
+			"commit": "8662daaac3b517c11e16082e207dcca412963c85",
+			"ref": null,
+			"updatedAt": "2026-05-12T16:17:56.255Z"
+		}
+	}
+}

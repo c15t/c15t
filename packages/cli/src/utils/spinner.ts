@@ -2,8 +2,11 @@
  * Spinner and progress indicator utilities
  */
 
-import * as p from '@clack/prompts';
-import color from 'picocolors';
+import {
+	color,
+	createSpinner as createHexbusSpinner,
+	logMessage,
+} from 'hexbus';
 
 export interface TaskSpinner {
 	start(message?: string): void;
@@ -17,7 +20,7 @@ export interface TaskSpinner {
  * Create a spinner for long-running operations
  */
 export function createTaskSpinner(initialMessage?: string): TaskSpinner {
-	const spinner = p.spinner();
+	const spinner = createHexbusSpinner(initialMessage);
 	let isRunning = false;
 
 	return {
@@ -43,14 +46,14 @@ export function createTaskSpinner(initialMessage?: string): TaskSpinner {
 
 		success(message: string): void {
 			if (isRunning) {
-				spinner.stop(color.green('✓') + ' ' + message);
+				spinner.stop(`${color.green('✓')} ${message}`);
 				isRunning = false;
 			}
 		},
 
 		error(message: string): void {
 			if (isRunning) {
-				spinner.stop(color.red('✗') + ' ' + message);
+				spinner.stop(`${color.red('✗')} ${message}`);
 				isRunning = false;
 			}
 		},
@@ -101,7 +104,7 @@ export interface ProgressBar {
  * Create a progress bar
  */
 export function createProgressBar(total: number, label?: string): ProgressBar {
-	let lastCurrent = 0;
+	let _lastCurrent = 0;
 
 	function render(current: number, message?: string): string {
 		const percentage = Math.round((current / total) * 100);
@@ -117,12 +120,12 @@ export function createProgressBar(total: number, label?: string): ProgressBar {
 
 	return {
 		update(current: number, message?: string): void {
-			lastCurrent = current;
-			p.log.step(render(current, message));
+			_lastCurrent = current;
+			logMessage('info', render(current, message));
 		},
 
 		complete(message?: string): void {
-			p.log.step(render(total, message || 'Complete'));
+			logMessage('info', render(total, message || 'Complete'));
 		},
 	};
 }
@@ -147,7 +150,7 @@ export function createStepIndicator(steps: string[]): StepIndicator {
 	function render(step: number, label: string): void {
 		const filled = color.green('█'.repeat(step));
 		const empty = color.dim('░'.repeat(total - step));
-		p.log.step(`[${filled}${empty}] Step ${step}/${total}: ${label}`);
+		logMessage('info', `[${filled}${empty}] Step ${step}/${total}: ${label}`);
 	}
 
 	return {
@@ -164,7 +167,7 @@ export function createStepIndicator(steps: string[]): StepIndicator {
 		},
 
 		complete(): void {
-			p.log.step(color.green(`✓ All ${total} steps completed`));
+			logMessage('info', color.green(`✓ All ${total} steps completed`));
 		},
 	};
 }
@@ -200,7 +203,7 @@ export function createTaskGroup(): TaskGroup {
 					await task();
 					spinner.success(name);
 					success.push(name);
-				} catch (error) {
+				} catch (_error) {
 					spinner.error(name);
 					failed.push(name);
 				}

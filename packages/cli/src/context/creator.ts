@@ -1,141 +1,39 @@
-import {
-	createCliLogger,
-	type LogLevel,
-	validLogLevels,
-} from '../utils/logger';
-import { createTelemetry, TelemetryEventName } from '../utils/telemetry';
-import { createErrorHandlers } from './error-handlers';
-import { createFileSystem } from './file-system';
-import { detectFramework, detectProjectRoot } from './framework-detection';
-import { detectPackageManager } from './package-manager-detection';
-import { parseCliArgs } from './parser';
-import type { CliCommand, CliContext } from './types';
-import { createUserInteraction } from './user-interaction';
+import type { CliContext as HexbusCliContext } from 'hexbus';
+import type { AvailablePackages, CliContext } from './types';
 
 /**
- * Parses arguments, creates the logger, and returns the application context.
+ * Adds c15t-specific services to the base Hexbus context.
  *
- * @param rawArgs - The raw command line arguments (process.argv.slice(2)).
- * @param cwd - The current working directory (process.cwd()).
- * @param commands - The list of available CLI commands.
+ * @param hexbusContext - Context created by Hexbus' shared lifecycle.
+ * @param cliVersion - Version of the running c15t CLI package.
  * @returns The CLI context object.
  */
 export async function createCliContext(
-	rawArgs: string[],
-	cwd: string,
-	commands: CliCommand[]
+	hexbusContext: HexbusCliContext<AvailablePackages>
 ): Promise<CliContext> {
-	const { commandName, commandArgs, parsedFlags } = parseCliArgs(
-		rawArgs,
-		commands
-	);
-
-	let desiredLogLevel: LogLevel = 'info';
-	const levelArg = parsedFlags.logger;
-
-	if (typeof levelArg === 'string') {
-		if ((validLogLevels as string[]).includes(levelArg)) {
-			desiredLogLevel = levelArg as LogLevel;
-		} else {
-			console.warn(
-				`[CLI Setup] Invalid log level '${levelArg}' provided via --logger. Using default 'info'.`
-			);
-		}
-	} else if (levelArg === true) {
-		console.warn(
-			"[CLI Setup] --logger flag found but no level specified. Using default 'info'."
-		);
-	}
-
-	const logger = createCliLogger(desiredLogLevel);
-	logger.debug(`Logger initialized with level: ${desiredLogLevel}`);
-
-	// Create the base context
-	const baseContext: Partial<CliContext> = {
-		logger,
-		flags: parsedFlags,
-		commandName,
-		commandArgs,
-		cwd,
+	const framework = {
+		...hexbusContext.framework,
+		pkg: hexbusContext.framework.pkg ?? 'c15t',
 	};
+	const { logger } = hexbusContext;
+	const { commandArgs, commandName, flags, telemetry } = hexbusContext;
 
-	// Create a self-referential context object
-	const context = baseContext as CliContext;
-
-	// Add error handlers
-	context.error = createErrorHandlers(context);
-
-	// Add user interaction helpers
-	const userInteraction = createUserInteraction(context);
-	context.confirm = userInteraction.confirm;
-
-	// Add file system utilities
-	context.fs = createFileSystem(context);
-
-	// Detect project root, framework, and package manager
-	context.projectRoot = await detectProjectRoot(cwd, logger);
-	context.framework = await detectFramework(context.projectRoot, logger);
-	context.packageManager = await detectPackageManager(
-		context.projectRoot,
-		logger
-	);
-
-	// Add telemetry, respecting the telemetry flag if present
-	const telemetryDisabled = parsedFlags['no-telemetry'] === true;
-	const telemetryDebug = parsedFlags['telemetry-debug'] === true;
-
-	try {
-		context.telemetry = createTelemetry({
-			disabled: telemetryDisabled,
-			debug: telemetryDebug,
-			defaultProperties: {
-				entryCommand: commandName ?? 'interactive',
-				commandArgsCount: commandArgs.length,
-				enabledFlags: Object.entries(parsedFlags)
-					.filter(([, value]) => value !== false && value !== undefined)
-					.map(([key]) => key)
-					.sort(),
-				cliVersion: context.fs.getPackageInfo().version,
-				framework: context.framework.framework ?? 'unknown',
-				frameworkVersion: context.framework.frameworkVersion ?? 'unknown',
-				packageManager: context.packageManager.name,
-				packageManagerVersion: context.packageManager.version ?? 'unknown',
-				hasReact: context.framework.hasReact,
-				reactVersion: context.framework.reactVersion ?? 'unknown',
-				package: context.framework.pkg ?? 'unknown',
-			},
-			logger: context.logger,
-		});
-
-		if (telemetryDisabled) {
-			logger.debug('Telemetry is disabled by user preference');
-		} else if (telemetryDebug) {
-			logger.debug('Telemetry initialized with debug mode enabled');
-		} else {
-			logger.debug('Telemetry initialized');
-		}
-
-		context.telemetry.trackEvent(TelemetryEventName.CLI_ENVIRONMENT_DETECTED, {
-			command: commandName ?? 'interactive',
-			projectRootChanged: context.projectRoot !== cwd,
-			framework: context.framework.framework ?? 'unknown',
-			frameworkVersion: context.framework.frameworkVersion ?? 'unknown',
-			packageManager: context.packageManager.name,
-			packageManagerVersion: context.packageManager.version ?? 'unknown',
-			hasReact: context.framework.hasReact,
-			reactVersion: context.framework.reactVersion ?? 'unknown',
-			tailwindVersion: context.framework.tailwindVersion ?? 'unknown',
-		});
-	} catch {
-		// If telemetry initialization fails, create a disabled instance
-		logger.warn(
-			'Failed to initialize telemetry, continuing with telemetry disabled'
-		);
-		context.telemetry = createTelemetry({
-			disabled: true,
-			logger: context.logger,
-		});
+	if (telemetry.isDisabled()) {
+		logger.debug('Telemetry is disabled by user preference');
+	} else if (flags['telemetry-debug'] === true) {
+		logger.debug('Telemetry initialized with debug mode enabled');
+	} else {
+		logger.debug('Telemetry initialized');
 	}
+
+	const context: CliContext = {
+		...hexbusContext,
+		commandArgs,
+		commandName,
+		flags,
+		framework,
+		telemetry,
+	};
 
 	logger.debug('CLI context fully initialized with all utilities');
 

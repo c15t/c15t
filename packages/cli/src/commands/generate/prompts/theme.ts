@@ -2,8 +2,7 @@
  * Theme selection prompts
  */
 
-import * as p from '@clack/prompts';
-import color from 'picocolors';
+import { color, promptSelect } from 'hexbus';
 import type { CliContext } from '~/context/types';
 
 /**
@@ -57,21 +56,24 @@ export async function promptForTheme(context: CliContext): Promise<ThemeId> {
 	logger.message(color.bold('Choose a theme for your consent banner:'));
 	logger.message('');
 
-	const result = await p.select({
+	const result = await promptSelect({
+		cancel: 'silent',
 		message: 'Select a theme:',
 		options: THEME_OPTIONS.map((option) => ({
 			value: option.value,
 			label: option.label,
 			hint: option.hint,
 		})),
+		stage: 'theme_selection',
+		telemetry: context.telemetry,
 	});
 
-	if (p.isCancel(result)) {
+	if (result === undefined) {
 		// Default to 'default' theme
 		return 'default';
 	}
 
-	return result as ThemeId;
+	return result;
 }
 
 /**

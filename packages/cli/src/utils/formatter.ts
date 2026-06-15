@@ -4,8 +4,6 @@
  * Provides Prettier integration for formatting generated code.
  */
 
-import { basename, dirname } from 'node:path';
-
 /**
  * Format options
  */
@@ -124,7 +122,7 @@ export async function formatCss(code: string): Promise<string> {
 /**
  * Basic code indentation (for when Prettier is not available)
  */
-export function indent(code: string, spaces: number = 2): string {
+export function indent(code: string, spaces = 2): string {
 	const indentStr = ' '.repeat(spaces);
 	return code
 		.split('\n')
@@ -149,7 +147,7 @@ export function dedent(
 	const lines = result.split('\n');
 
 	// Find the minimum indentation (excluding empty lines)
-	let minIndent = Infinity;
+	let minIndent = Number.POSITIVE_INFINITY;
 	for (const line of lines) {
 		if (line.trim()) {
 			const indent = line.match(/^(\s*)/)?.[1]?.length || 0;
@@ -157,7 +155,7 @@ export function dedent(
 		}
 	}
 
-	if (minIndent === Infinity) {
+	if (minIndent === Number.POSITIVE_INFINITY) {
 		minIndent = 0;
 	}
 
