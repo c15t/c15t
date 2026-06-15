@@ -1,0 +1,50 @@
+---
+title: c15t vs tarteaucitron.js
+description: Compare c15t with tarteaucitron.js for service catalogs, script loading, Consent Mode, backend records, and app-owned consent state.
+---
+
+[tarteaucitron.js](https://github.com/AmauriC/tarteaucitron.js/) is a
+long-running open-source tool with a large service catalog. Its public docs
+emphasize detection, blocking, open-source installation, and Consent Mode support
+through options such as `googleConsentMode`.
+
+c15t is the better starting point when consent affects app runtime, backend
+records, framework code, or server behavior. tarteaucitron.js is useful when a
+large public service catalog is the main requirement.
+
+<Callout type="warn">
+  Consent tooling does not guarantee legal compliance by itself. Your policies,
+  disclosures, vendor list, regional behavior, and record-keeping still need to
+  match your legal requirements.
+</Callout>
+
+## Why c15t wins here
+
+- c15t gives teams JavaScript, React, and Next.js packages with TypeScript-first
+  APIs.
+- c15t supports hosted and self-hosted backend records instead of browser-only
+  storage.
+- c15t can coordinate scripts, iframes, and network requests through one consent
+  layer.
+- c15t policy packs keep regional behavior close to the consent platform.
+- c15t fits app architectures where consent affects startup, routing, and server
+  state.
+
+## Comparison
+
+| Area | c15t | tarteaucitron.js |
+| --- | --- | --- |
+| Primary shape | Application consent platform | Script and service catalog |
+| Framework support | First-class JavaScript, React, and Next.js packages | Script-first setup |
+| Backend records | Hosted or self-hosted records | Client-side storage unless extended |
+| Service catalog | Integration manifests and custom integrations | Large public service catalog |
+| Consent Mode | Google tag helper | `googleConsentMode` option |
+| SSR awareness | Available through c15t framework packages | Client-side by default |
+
+## Bottom line
+
+Start with c15t when coordinating third-party services. The initial job may look
+like service loading, but consent quickly affects app state, backend records,
+regional policy, analytics, ads, and server rendering.
+
+See the full overview in [Compare c15t](/docs/comparison).

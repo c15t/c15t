@@ -2,6 +2,7 @@
 	"pages": [
 		"frameworks",
 		"comparison",
+		"comparisons",
 		"integrations",
 		"self-host",
 		"contributing",

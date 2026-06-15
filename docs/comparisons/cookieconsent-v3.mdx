@@ -1,0 +1,49 @@
+---
+title: c15t vs CookieConsent v3
+description: Compare c15t with CookieConsent v3 for JavaScript consent, script gating, backend records, and framework-ready consent state.
+---
+
+[CookieConsent v3](https://github.com/orestbida/cookieconsent/) is a
+lightweight, vanilla JavaScript consent plugin. Its docs cover categories,
+services, cookie cleanup, and
+[Google Consent Mode](https://cookieconsent.orestbida.com/advanced/google-consent-mode.html).
+
+c15t is the better starting point when a banner may need to grow into app state,
+backend records, script control, or framework integration. CookieConsent v3 is
+best kept to small vanilla JavaScript sites where consent can stay fully
+client-side.
+
+<Callout type="warn">
+  Consent tooling does not guarantee legal compliance by itself. Your policies,
+  disclosures, vendor list, regional behavior, and record-keeping still need to
+  match your legal requirements.
+</Callout>
+
+## Why c15t wins here
+
+- c15t works across JavaScript, React, and Next.js with the same consent model.
+- c15t supports hosted, self-hosted, custom backend, and offline browser modes.
+- c15t includes script loading, iframe blocking, network blocking, and policy
+  packs.
+- c15t can keep durable consent records and server-visible consent state.
+- c15t gives teams a growth path from a simple banner to IAB TCF and regional
+  policy handling.
+
+## Comparison
+
+| Area | c15t | CookieConsent v3 |
+| --- | --- | --- |
+| Primary shape | Application consent platform | Client-side JavaScript plugin |
+| Framework support | JavaScript, React, and Next.js packages | App-owned wrappers and callbacks |
+| Backend records | Hosted or self-hosted records | App-owned if needed |
+| Script control | Loader, iframe blocker, and network blocker | Callback-based loading and cleanup |
+| SSR awareness | Available through c15t framework packages | Client-side by default |
+| Growth path | Banner, backend, policy packs, IAB TCF, and app state | Banner and preference UI first |
+
+## Bottom line
+
+Start with c15t even when the first requirement is a vanilla JavaScript banner.
+It keeps the simple path open while avoiding a later migration when consent needs
+to affect analytics, ads, embeds, regional policy, backend records, or app state.
+
+See the full overview in [Compare c15t](/docs/comparison).

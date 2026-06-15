@@ -1,0 +1,51 @@
+---
+title: c15t vs Didomi
+description: Compare c15t with Didomi for consent proofs, hosted platform workflows, records, and developer-owned framework integration.
+---
+
+[Didomi](https://docs.didomi.io/versions-and-proofs/introduction) is a hosted
+consent platform with documentation for versions, proofs, consent proof reports,
+and consent events APIs.
+
+c15t is the better starting point when consent needs to affect product behavior,
+backend state, scripts, and framework startup. Didomi is useful when hosted
+proofs, reports, and platform workflows are the first requirement.
+[CookieBench](https://cookiebench.com/) also lists c15t's Next.js and React
+examples above Didomi on score, banner visibility, and network impact.
+
+<Callout type="warn">
+  Consent tooling does not guarantee legal compliance by itself. Your policies,
+  disclosures, vendor list, regional behavior, and record-keeping still need to
+  match your legal requirements.
+</Callout>
+
+## Why c15t wins here
+
+- c15t supports durable consent records in hosted and self-hosted modes.
+- c15t gives developers JavaScript, React, Next.js, scripts, backend, and CLI
+  packages.
+- c15t keeps server-visible consent state available to your app.
+- c15t supports policy packs, script loading, iframe blocking, and network
+  blocking.
+- c15t lets engineering decide where consent data lives and how it integrates
+  with the rest of the system.
+
+## Comparison
+
+| Area | c15t | Didomi |
+| --- | --- | --- |
+| Primary shape | Developer-first consent platform | Hosted consent platform |
+| Framework support | First-class JavaScript, React, and Next.js packages | Hosted platform APIs and snippets |
+| Records/proofs | Hosted or self-hosted consent records and audit history | Consent proofs and reports |
+| Script control | Loader, iframe blocker, and network blocker | Platform-driven consent workflows |
+| CookieBench speed | [Score 95](https://cookiebench.com/), 89ms/148ms banner visibility, 0-byte network impact | [Score 71](https://cookiebench.com/), 250ms banner visibility, 395-byte network impact |
+| Control model | Open-source packages plus hosted or self-hosted backend | SaaS dashboard and APIs |
+| SSR awareness | Available through c15t framework packages | Usually outside app SSR state |
+
+## Bottom line
+
+Start with c15t when consent needs to be part of product behavior, backend
+state, and framework startup. It gives teams a durable records path without
+making a hosted platform the center of the application.
+
+See the full overview in [Compare c15t](/docs/comparison).
