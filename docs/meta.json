@@ -1,6 +1,7 @@
 {
 	"pages": [
 		"frameworks",
+		"comparison",
 		"integrations",
 		"self-host",
 		"contributing",

@@ -1,0 +1,279 @@
+---
+title: Compare c15t
+description: Compare c15t with open-source consent libraries, React banners, and hosted CMPs such as OneTrust, Cookiebot by Usercentrics, Didomi, Usercentrics, and Osano.
+---
+
+Choosing a consent tool is less about "which banner looks best" and more about
+where consent state needs to live, which frameworks you use, and how much of the
+consent lifecycle you want the tool to own.
+
+Use this page to compare c15t with popular JavaScript, React, and Next.js
+alternatives, plus representative hosted Consent Management Platforms (CMPs)
+such as OneTrust, Cookiebot by Usercentrics, Didomi, Usercentrics, and Osano. It
+is intentionally opinionated, but not one-size-fits-all: some projects are
+better served by a small client-side banner, while others need a backend-backed
+platform with records, rule management, scanning, or compliance workflows.
+
+<Callout type="warn">
+  Consent tooling does not guarantee legal compliance by itself. Your policies,
+  disclosures, vendor list, regional behavior, and record-keeping still need to
+  match your legal requirements.
+</Callout>
+
+## Quick Recommendation
+
+| If you need... | Start with... | Why |
+|----------------|---------------|-----|
+| A JavaScript consent engine with policy resolution, script gating, and backend records | c15t | It has a headless core, hosted/self-hosted backend modes, policy packs, audit history, and JavaScript APIs. |
+| React components, hooks, and a headless path | c15t | `@c15t/react` includes prebuilt UI, hooks, primitives, styling hooks, and TypeScript-first APIs. |
+| Next.js App Router support with SSR or prefetching | c15t | `@c15t/nextjs` supports App Router setup, same-origin rewrites, `C15tPrefetch`, and `fetchInitialData()`. |
+| A lightweight vanilla JavaScript banner | [CookieConsent v3](https://github.com/orestbida/cookieconsent/) or [Silktide Consent Manager](https://github.com/silktide/consent-manager) | Both are small, client-side tools with straightforward configuration and self-hosting options. |
+| A service-based open-source privacy manager | [Klaro!](https://klaro.org/docs/) or [tarteaucitron.js](https://github.com/AmauriC/tarteaucitron.js/) | Both focus on managing named third-party services and are strongest on traditional script-tag websites. |
+| A simple React cookie notice | [react-cookie-consent](https://www.npmjs.com/package/react-cookie-consent) | It is a React banner component, not a full consent platform. |
+| A hosted enterprise CMP | [OneTrust](https://www.onetrust.com/products/consent-management/), [Cookiebot by Usercentrics](https://www.cookiebot.com/us/developer/), [Didomi](https://docs.didomi.io/versions-and-proofs/introduction), [Usercentrics](https://usercentrics.com/us/), or [Osano](https://www.osano.com/cookieconsent) | Hosted CMPs are stronger when you want a SaaS control plane, scanning, legal workflows, dashboards, and managed operations rather than open-source app code. |
+
+<Callout type="info">
+  Most JavaScript, React, and banner libraries in this comparison are
+  frontend-only. They can show a banner, store browser preferences, and call your
+  callbacks, but they do not include a backend for consent records,
+  auditability, regional policy management, or server-side APIs unless you build
+  or buy that layer separately.
+</Callout>
+
+## Framework Fit
+
+| Stack | c15t | CookieConsent v3 | Klaro! / tarteaucitron.js / Silktide | Hosted CMPs | react-cookie-consent |
+|-------|------|------------------|--------------------------------------|--------------|----------------------|
+| JavaScript | First-class. Use `c15t` directly with a vanilla store and optional backend sync. | First-class. CookieConsent is a vanilla JavaScript plugin. | First-class for script-tag sites and client-side service management. | Usually script based, backed by a hosted dashboard and policy configuration. | Not a fit without React. |
+| React | First-class. Use `@c15t/react` for providers, hooks, components, and headless UI. | Works through manual wrappers and callbacks. | Works through script loading or custom wrappers, but not React-native APIs. | Hosted scripts can run in React apps; app-level state usually remains external. | First-class for a simple banner. |
+| Next.js | First-class. Use `@c15t/nextjs` with App Router, client components, static prefetching, or server-side initial data. | Works as a client-only script; SSR and App Router behavior are manual. | Works as client-side scripts; route-level SSR awareness is manual. | Hosted scripts work, but consent state is generally outside Next.js server rendering by default. | Works in client components, but server awareness and script gating are manual. |
+
+## Feature Matrix
+
+Legend: 🟢 built-in or first-class, 🟡 supported with user code, callbacks, or
+documented integrations, 🟠 partial, hosted-plan dependent, community-oriented,
+or limited scope, ⚪ not a fit or not documented, ⚠️ compliance still depends on
+your legal setup.
+
+The "Hosted CMPs" column covers representative SaaS CMPs such as OneTrust,
+Cookiebot by Usercentrics, Didomi, and Usercentrics Web CMP. Osano is called out
+separately because its open-source CookieConsent plugin and hosted CMP are often
+compared together.
+
+| Capability | c15t | CookieConsent v3 | Klaro! | tarteaucitron.js | Silktide Consent Manager | Osano CookieConsent / CMP | Hosted CMPs | react-cookie-consent |
+|------------|------|------------------|--------|------------------|--------------------------|---------------------------|-------------|----------------------|
+| Vanilla JavaScript usage | 🟢 Core JS package | 🟢 Vanilla plugin | 🟢 Script-first manager | 🟢 Script-first manager | 🟢 Client-side script | 🟢 Script or hosted CMP | 🟢 Hosted script | ⚪ React component |
+| React integration | 🟢 `@c15t/react` | 🟡 Manual wrapper | 🟡 Script or wrapper | 🟡 Script or wrapper | 🟡 Script or wrapper | 🟡 External script | 🟡 External script | 🟢 React package |
+| Next.js and App Router fit | 🟢 `@c15t/nextjs` | 🟡 Client-only setup | 🟡 Client-only setup | 🟡 Client-only setup | 🟡 Client-only setup | 🟡 Hosted script | 🟡 Hosted script | 🟡 Client component |
+| TypeScript types and DX | 🟢 TS-first packages | 🟠 JS-first config | 🟠 JS API | 🟠 Global JS config | 🟠 Global JS config | 🟠 Hosted workflow or JS plugin | 🟠 Hosted workflow and JS APIs | 🟡 Typed but narrow |
+| Hosted backend/control plane | 🟢 Hosted or self-hosted backend | ⚪ Frontend-only | ⚪ Frontend-first | 🟠 Hosted option, library first | ⚪ Frontend-only | 🟢 Hosted CMP | 🟢 SaaS control plane | ⚪ Frontend-only |
+| Consent records/audit log | 🟢 Backend records and audit log | ⚪ App-owned | ⚪ App-owned | ⚪ App-owned | ⚪ App-owned | 🟢 Hosted CMP records | 🟢 Platform records | ⚪ App-owned |
+| Policy/geolocation/rule management | 🟢 Policy packs and backend state | 🟡 App-owned config | 🟡 App-owned config | 🟡 App-owned config | 🟡 App-owned config | 🟢 Hosted CMP rules | 🟢 Regional rules | ⚪ App-owned |
+| Scanner/service catalog | 🟡 Integrations and manifests | 🟡 Categories and services | 🟢 Apps and purposes | 🟢 Large service catalog | 🟡 Configured scripts | 🟢 Hosted scanning | 🟢 Scanner and catalogs | ⚪ Not a fit |
+| Script blocking/tag orchestration | 🟢 Loader, iframe, network | 🟡 Callbacks and cleanup | 🟢 Configured services | 🟢 Service loading | 🟢 Script injection | 🟢 Hosted CMP or callbacks | 🟢 Blocking and tag control | 🟡 App-owned callbacks |
+| Google Consent Mode v2 fit | 🟢 Google tag helper | 🟡 Official guide | 🟡 Official tutorial | 🟢 Config option | 🟢 Built-in mapping | 🟠 Hosted CMP guidance | 🟢 Common CMP integration | ⚪ Not built in |
+| Developer-first self-hosting/open-source fit | 🟢 Developer-owned stack | 🟢 Open-source package | 🟢 Open-source package | 🟢 Open-source package | 🟢 Open-source package | 🟠 Plugin plus hosted CMP | ⚪ SaaS-first | 🟢 Open-source package |
+| Customization and theming | 🟢 UI, slots, CSS vars | 🟢 Layout and CSS config | 🟢 Notice and modal config | 🟢 Banner, panel, CSS | 🟢 CSS vars and labels | 🟠 Plan/workflow dependent | 🟠 Dashboard/workflow dependent | 🟡 Props and styles |
+| Consent persistence and storage | 🟢 Backend records or offline | 🟡 Browser storage | 🟡 Cookie or localStorage | 🟡 Client-side storage | 🟡 localStorage focused | 🟢 Hosted records or plugin storage | 🟢 Hosted records | 🟡 Cookie value |
+| Server and SSR awareness | 🟢 Initial data and rewrites | ⚪ Client-side default | ⚪ Client-side default | ⚪ Client-side default | ⚪ Client-side default | ⚪ Outside app SSR by default | ⚪ Outside app SSR by default | ⚪ Client-side default |
+| Compliance caveat | ⚠️ Legal setup required | ⚠️ Legal setup required | ⚠️ Legal setup required | ⚠️ Legal setup required | ⚠️ Legal setup required | ⚠️ Legal setup required | ⚠️ Legal setup required | ⚠️ Legal setup required |
+
+## Detailed Feature Comparison
+
+| Area | c15t | CookieConsent v3 | Klaro! | tarteaucitron.js | Silktide Consent Manager | Hosted CMPs | react-cookie-consent |
+|------|------|------------------|--------|------------------|--------------------------|--------------|----------------------|
+| Consent model depth | Backend-backed CMP model with `opt-in`, `opt-out`, `none`, and `iab` modes via policy packs. | Client-side categories and services. Strong for banner and preference UI, lighter on backend workflow. | Service and purpose-based consent manager with stored preferences and app/service controls. | Service catalog and tag-manager-style consent for many third-party tools. | Client-side consent types with script injection and Google mapping. | SaaS CMP model with dashboards, regional templates, consent receipts, rules, and managed workflows. | Single React banner with callbacks and cookie storage. |
+| Deployment | Hosted through inth.com, self-hosted backend, custom backend, or offline browser mode. | CDN, npm, or self-hosted static assets. | CDN/self-hosted open-source setup, plus hosted Klaro options. | Open-source self-hosting and tarteaucitron.io hosted options. | CDN or self-hosted CSS/JS. | Hosted control plane plus site script. Some products expose APIs and developer SDKs, but the dashboard is central. | Bundled into your React app from npm. |
+| Script and service blocking | Built-in script loader, iframe blocking, and network blocker. Integrations can be plain scripts or manifest-backed helpers. | Uses callbacks, accepted categories/services, and cookie auto-clear. You wire script loading behavior. | Applies consent by enabling/disabling configured elements and deleting configured cookies. | Large service catalog with consent-controlled service loading. | Injects configured scripts and runs accept/reject callbacks. | OneTrust, Cookiebot, Usercentrics, and Osano document automatic blocking tied to scan results, categorizations, or service rules. | You implement script loading and blocking in callbacks. |
+| Google Consent Mode and ads | `@c15t/scripts/google-tag` initializes Consent Mode v2 defaults and updates consent automatically. | Official docs include a Google Consent Mode setup with `gtag('consent', 'default')` and consent updates. | Official GTM tutorial covers Consent Mode v2 and custom consent events. | Official config includes `googleConsentMode: true` for Google Ads and GA4. | Built-in `gtag` mapping updates Consent Mode v2 and pushes `stcm_consent_update`. | Commonly supported by enterprise CMP workflows and Google CMP integrations, but exact setup is product-specific. | No built-in Consent Mode integration. |
+| TypeScript and developer experience | TypeScript packages for JavaScript, React, Next.js, scripts, backend, CLI, and generated API docs. | JavaScript-first configuration. React and Next integration are manual. | JavaScript config and API. Framework adapters are usually app-owned. | JavaScript global configuration and service catalog. | JavaScript global configuration. | Usually dashboard-first with JavaScript snippets, APIs, and SDKs for custom integration. | TypeScript package for React, but intentionally narrow in scope. |
+| Server, SSR, and App Router | Server-side initial data, static prefetch, same-origin rewrites, and server-visible consent in hosted/custom modes. | Client-side only by default. | Client-side only by default. | Client-side only by default. | Client-side only by default. | Hosted CMPs collect and enforce consent, but their browser scripts usually sit outside your app's SSR state model by default. | Client-side React component by default. |
+| Backend records and auditability | Hosted/self-hosted modes can keep durable consent records, backend policy state, and server-side visibility. Offline mode is browser-only. | Browser cookie/localStorage style storage; durable audit records are your responsibility. | Stores choices in cookie or localStorage in client setups. | Stores choices client-side unless paired with additional infrastructure. | Stores choices client-side, including localStorage keys used by Consent Mode examples. | OneTrust, Didomi, Cookiebot, Usercentrics, and Osano position record keeping, proofs, or dashboards as platform capabilities. | Stores a cookie value for the banner decision. |
+| Regional policy and rule management | Policy packs, location info, backend policy state, and developer-controlled behavior. | Possible with custom config and callbacks; not a hosted rule engine. | Possible with custom app/purpose configuration; not a backend policy engine. | Possible through service config and hosted options; library usage is app-owned. | Possible through app-owned config. | Strong fit for geolocation-aware templates, regulation workflows, and legal or privacy-team configuration. | App-owned. |
+| Scanner and service catalog | Integration manifests help structure services, but c15t is not positioned as a crawler-first scanner. | Categories and services are configured by the app. | Apps and purposes are configured by the app. | Large public service catalog. | Configured scripts and consent types. | Strong fit when built-in scanning, cookie classification, and service inventories are procurement requirements. | Not a fit. |
+| Customization | Prebuilt UI, headless primitives, CSS variables, Tailwind guidance, slots, custom class names, and custom UI paths. | Configurable layouts, translations, categories, services, and CSS. | Configurable notice/modal, translations, purposes, services, and styling. | Configurable banner/panel behavior, service grouping, CSS, and service text. | CSS variables, generated config, custom labels, and callbacks. | Dashboard-driven customization, often with templates, language settings, and plan-dependent workflow controls. | React props and inline style/class customization. |
+
+## c15t vs CookieConsent v3
+
+[CookieConsent v3](https://github.com/orestbida/cookieconsent/) is a strong
+choice when you want a lightweight, vanilla JavaScript consent plugin. Its
+official docs include examples for categories, services, cookie cleanup, and
+[Google Consent Mode](https://cookieconsent.orestbida.com/advanced/google-consent-mode.html).
+
+c15t is a better fit when consent needs to become part of the application
+architecture:
+
+- You want the same consent model to work across JavaScript, React, and Next.js.
+- You need backend-backed policy resolution, geolocation, translations, or
+  consent records.
+- You want consent-aware script loading, iframe blocking, or network blocking
+  without hand-rolling every callback.
+- You want Next.js-specific behavior such as same-origin rewrites, static route
+  prefetching, or streamed server-side initial data.
+- You need IAB Transparency and Consent Framework (TCF) 2.3 support for
+  programmatic advertising.
+
+CookieConsent v3 may be the better choice when you only need a client-side
+banner and preference modal, especially on a mostly static site where the
+consent state does not need to leave the browser.
+
+## How the Alternatives Position
+
+### Klaro!
+
+[Klaro!](https://klaro.org/docs/) is an open-source consent manager focused on
+third-party apps and services. Its JavaScript API exposes a `ConsentManager`
+that can read, save, apply, and reset consent choices, and its docs cover
+[Google Tag Manager and Consent Mode v2](https://klaro.org/docs/tutorials/google_tag_manager).
+
+Choose Klaro! when you want a mature service-based privacy manager for a
+traditional JavaScript site. Choose c15t when React/Next.js integration,
+server-side consent awareness, policy packs, or durable backend records are
+central requirements.
+
+### tarteaucitron.js
+
+[tarteaucitron.js](https://github.com/AmauriC/tarteaucitron.js/) is a
+long-running open-source consent tool with a large service catalog. Its public
+docs emphasize automatic detection/blocking, open-source installation, and
+Consent Mode support through options such as `googleConsentMode`.
+
+Choose tarteaucitron.js when your main problem is coordinating many third-party
+services on a script-tag or CMS-style website. Choose c15t when you want consent
+state to be part of your app runtime, backend, and framework-specific developer
+workflow.
+
+### Silktide Consent Manager
+
+[Silktide Consent Manager](https://github.com/silktide/consent-manager) is a
+free, open-source banner with a clear Google Consent Mode v2 story. Its docs
+show consent defaults, `gtag` mappings, a `stcm_consent_update` dataLayer event,
+and both CDN and self-hosted deployment.
+
+Choose Silktide when you want a free client-side banner with Google Consent Mode
+setup guidance and minimal infrastructure. Choose c15t when you need more than
+browser-local consent, or when you want framework APIs and backend policy
+resolution.
+
+### Osano CookieConsent
+
+[Osano CookieConsent](https://github.com/osano/cookieconsent/) exists in two
+different shapes: the open-source JavaScript plugin and Osano's hosted CMP. The
+open-source README itself notes that serious production use often needs GeoIP
+lookups, regional consent rules, callbacks, saved consents, and script loading.
+Google's own help docs cover Osano's hosted CMP setup for Consent Mode.
+
+Choose Osano when you want a hosted commercial CMP and privacy operations
+workflow. Choose c15t when you want an open-source, developer-owned consent
+stack that can be hosted, self-hosted, or integrated into your own backend.
+
+### Hosted CMPs
+
+Hosted CMPs such as
+[OneTrust](https://www.onetrust.com/products/consent-management/),
+[Cookiebot by Usercentrics](https://www.cookiebot.com/us/developer/),
+[Didomi](https://docs.didomi.io/versions-and-proofs/introduction), and
+[Usercentrics](https://usercentrics.com/us/) are not just banner libraries.
+They usually provide a SaaS control plane for templates, regulation and
+geolocation rules, consent logs or proofs, scanning, service classification,
+and reporting.
+
+Choose a hosted CMP when procurement, legal review, managed workflows, built-in
+scanning, broad language/regulation coverage, or a dashboard-first operating
+model are more important than owning the consent system in your application
+code. Choose c15t when you want a developer-first, open-source, backend-aware
+stack that can live inside your JavaScript, React, Next.js, or self-hosted
+architecture.
+
+### react-cookie-consent
+
+[react-cookie-consent](https://www.npmjs.com/package/react-cookie-consent) is a
+small React package for showing a cookie consent bar. It is useful when the
+requirement is mostly "show a banner and remember that the user clicked it."
+
+Choose react-cookie-consent for low-risk React sites that do not need granular
+categories, server-side consent awareness, script blocking, IAB TCF, or durable
+records. Choose c15t when consent affects analytics, ads, embeds, regional
+policy, or application state.
+
+## Choosing by Architecture
+
+### Static or CMS Site
+
+If your site is mostly static and consent is only used to decide whether to load
+a few scripts, a client-side tool like CookieConsent v3, Klaro!, tarteaucitron.js,
+or Silktide may be enough.
+
+c15t still works in JavaScript or offline mode, but its biggest benefits show up
+when consent decisions need to be visible to your app, your backend, or your
+support/compliance workflows.
+
+### React App
+
+Use c15t when you want consent state inside React through
+`ConsentManagerProvider`, `useConsentManager()`, prebuilt components, and
+headless primitives. Use react-cookie-consent when you only need a simple banner
+component and plan to handle script gating yourself.
+
+Script-first tools can run in React apps, but they usually sit outside React's
+state model unless you build an adapter.
+
+### Next.js App
+
+Use c15t when consent affects page startup, server rendering, App Router layout
+code, or same-origin backend routing. `@c15t/nextjs` supports client-only setup,
+static prefetching with `C15tPrefetch`, and streamed server-side initial data
+with `fetchInitialData()`.
+
+Most alternatives can still be installed in a Next.js app, but they usually run
+as client-only scripts. That is fine for many sites, but it means SSR,
+geolocation forwarding, server-side consent awareness, and route-level startup
+performance are your responsibility.
+
+### Privacy Operations or Procurement-Heavy Sites
+
+If a privacy, legal, or procurement team needs a managed dashboard, scan
+reports, audit exports, regulation templates, and non-developer workflows, a
+hosted CMP such as OneTrust, Cookiebot by Usercentrics, Didomi, Usercentrics, or
+Osano may be the better starting point.
+
+c15t is more appropriate when the engineering team wants open-source packages,
+self-hosting or custom backend options, server-aware consent state, and direct
+framework integration instead of a SaaS-first control plane.
+
+## Sources Checked
+
+- [CookieConsent v3 GitHub](https://github.com/orestbida/cookieconsent/) and
+  [Google Consent Mode guide](https://cookieconsent.orestbida.com/advanced/google-consent-mode.html)
+- [Klaro! JavaScript API](https://klaro.org/docs/api/js_api) and
+  [GTM + Consent Mode v2 tutorial](https://klaro.org/docs/tutorials/google_tag_manager)
+- [tarteaucitron.js GitHub](https://github.com/AmauriC/tarteaucitron.js/) and
+  [open-source installation docs](https://tarteaucitron.io/en/free-installation-open-source/)
+- [Silktide Consent Manager GitHub](https://github.com/silktide/consent-manager)
+  and [Google Consent Mode docs](https://silktide.com/consent-manager/docs/google-consent-mode/)
+- [Osano CookieConsent GitHub](https://github.com/osano/cookieconsent/) and
+  [Osano cookie consent overview](https://www.osano.com/cookieconsent),
+  [Osano CMP overview](https://www.osano.com/solutions/consent-management-platform),
+  and [Osano CMP JavaScript API](https://developers.osano.com/cmp/javascript-api/developer-documentation-consent-javascript-api)
+- [OneTrust Consent Management Platform](https://www.onetrust.com/products/consent-management/),
+  [OneTrust Cookie Auto-Blocking](https://my.onetrust.com/s/article/UUID-cdb2fcad-1640-fdbd-e432-73c5536f0bbd),
+  and [OneTrust consent logging docs](https://my.onetrust.com/s/article/UUID-7fe84e03-290e-81f6-7f49-a47b8e07afd1?language=en_US)
+- [Cookiebot automatic cookie blocking](https://support.cookiebot.com/hc/en-us/articles/360009074960-Automatic-cookie-blocking),
+  [Cookiebot Manager setup](https://support.cookiebot.com/hc/en-us/articles/6733672185372-Getting-started-using-the-Manager),
+  and [Cookiebot developer resources](https://www.cookiebot.com/us/developer/)
+- [Didomi versions and proofs](https://docs.didomi.io/versions-and-proofs/introduction),
+  [Didomi consent proofs reports](https://docs.didomi.io/versions-and-proofs/consent-proofs-reports),
+  and [Didomi consent events API](https://developers.didomi.io/api-and-platform/consents/events)
+- [Usercentrics Web CMP](https://usercentrics.com/us/),
+  [Usercentrics direct implementation guide](https://support.usercentrics.com/hc/en-us/articles/19446626144540-Direct-implementation-and-markup-guide),
+  and [Usercentrics auto-blocking docs](https://support.usercentrics.com/hc/en-us/articles/17337159049244-Auto-blocking-in-detail)
+- [react-cookie-consent npm package](https://www.npmjs.com/package/react-cookie-consent)
+- c15t docs for [JavaScript](/docs/frameworks/javascript/quickstart),
+  [React](/docs/frameworks/react/quickstart),
+  [Next.js](/docs/frameworks/next/quickstart),
+  [script loading](/docs/frameworks/next/script-loader),
+  [policy packs](/docs/frameworks/next/concepts/policy-packs),
+  [client modes](/docs/frameworks/next/concepts/client-modes), and
+  [IAB TCF](/docs/frameworks/next/iab/overview)
+- c15t self-host docs for
+  [database-backed consent records and audit logs](/docs/self-host/guides/database-setup)
