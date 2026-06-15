@@ -1,0 +1,23 @@
+{
+	"packages": [
+		{
+			"name": "react"
+		},
+		{
+			"name": "vue"
+		},
+		{
+			"name": "svelte"
+		},
+		{
+			"name": "nuxt"
+		},
+		{
+			"name": "preact"
+		},
+		{
+			"name": "solid"
+		}
+	],
+	"$schema": "https://raw.githubusercontent.com/inthhq/inrepo/main/inrepo.schema.json"
+}
