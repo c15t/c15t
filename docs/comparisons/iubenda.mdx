@@ -1,0 +1,52 @@
+---
+title: c15t vs Iubenda
+description: Compare c15t with Iubenda for cookie banners, CMP workflows, consent records, Google Consent Mode, and app-owned consent state.
+---
+
+[Iubenda](https://www.iubenda.com/en/cookie-solution/) offers cookie banners,
+Consent Management Platform workflows, tracker scanning, cookie blocking,
+Google Consent Mode support, and a Consent Database for recording consent.
+
+c15t is the better starting point when consent needs to live in your app,
+backend, and framework code. Iubenda is useful when you want a hosted compliance
+suite with policy generation, scanning, dashboards, and consent database
+workflows.
+[CookieBench](https://cookiebench.com/) also lists c15t's Next.js and React
+examples above Iubenda on score, banner visibility, and network impact.
+
+<Callout type="warn">
+  Consent tooling does not guarantee legal compliance by itself. Your policies,
+  disclosures, vendor list, regional behavior, and record-keeping still need to
+  match your legal requirements.
+</Callout>
+
+## Why c15t wins here
+
+- c15t gives JavaScript, React, and Next.js teams direct APIs for consent state.
+- c15t supports hosted, self-hosted, custom backend, and offline browser modes.
+- c15t keeps consent records and policy state close to the product architecture.
+- c15t includes script loading, iframe blocking, network blocking, and
+  integration manifests.
+- c15t lets engineering own framework behavior, server rendering, same-origin
+  routing, and backend deployment.
+
+## Comparison
+
+| Area | c15t | Iubenda |
+| --- | --- | --- |
+| Primary shape | Developer-first consent platform | Hosted compliance and consent suite |
+| Framework support | First-class JavaScript, React, and Next.js packages | Hosted script and platform setup |
+| Backend records | Hosted or self-hosted records | Consent Database and dashboard workflows |
+| Cookie blocking | Loader, iframe blocker, network blocker, and integrations | Tracker scanning, cookie blocking, and CMP rules |
+| Consent Mode | Google tag helper | Google Consent Mode support |
+| CookieBench speed | [Score 95](https://cookiebench.com/), 89ms/148ms banner visibility, 0-byte network impact | [Score 66](https://cookiebench.com/), 241ms banner visibility, 408-byte network impact |
+| Control model | Open-source packages plus hosted or self-hosted backend | Hosted dashboard, policy tools, and compliance workflows |
+| SSR awareness | Available through c15t framework packages | Usually outside app SSR state |
+
+## Bottom line
+
+Start with c15t when consent should shape the application, backend, scripts, and
+server-side behavior. It keeps the banner path simple while giving engineering a
+consent layer that can grow with the product.
+
+See the full overview in [Compare c15t](/docs/comparison).

@@ -1,0 +1,48 @@
+---
+title: c15t vs Klaro!
+description: Compare c15t with Klaro! for service-based consent, Google Consent Mode, backend records, and framework integration.
+---
+
+[Klaro!](https://klaro.org/docs/) is an open-source consent manager for
+third-party apps and services. Its JavaScript API exposes a `ConsentManager`
+that can read, save, apply, and reset choices. Its docs also cover
+[Google Tag Manager and Consent Mode v2](https://klaro.org/docs/tutorials/google_tag_manager).
+
+c15t is the better starting point when consent needs to live in JavaScript,
+React, Next.js, and the backend. Klaro! is useful when the main job is managing
+named third-party services on a script-tag site.
+
+<Callout type="warn">
+  Consent tooling does not guarantee legal compliance by itself. Your policies,
+  disclosures, vendor list, regional behavior, and record-keeping still need to
+  match your legal requirements.
+</Callout>
+
+## Why c15t wins here
+
+- c15t gives JavaScript, React, and Next.js teams one consent model.
+- c15t supports server-visible consent state through hosted, self-hosted, or
+  custom backend modes.
+- c15t includes policy packs for regional behavior instead of leaving all policy
+  logic in app-owned configuration.
+- c15t supports script, iframe, and network control from the same platform.
+- c15t keeps the door open for durable records, generated docs, and IAB TCF.
+
+## Comparison
+
+| Area | c15t | Klaro! |
+| --- | --- | --- |
+| Primary shape | Developer-first consent platform | Service and purpose consent manager |
+| Framework support | First-class JavaScript, React, and Next.js packages | Script-first setup or custom wrappers |
+| Backend records | Hosted or self-hosted records | Client storage unless extended |
+| Policy handling | Policy packs and backend state | App-owned purpose and service config |
+| Script control | Loader, iframe blocker, network blocker, and integrations | Configured apps and services |
+| SSR awareness | Available through c15t framework packages | Client-side by default |
+
+## Bottom line
+
+Start with c15t for traditional JavaScript sites too. Service management is only
+one part of consent, and c15t keeps consent ready for frameworks, backend
+records, server-side state, regional policy, and future compliance workflows.
+
+See the full overview in [Compare c15t](/docs/comparison).
