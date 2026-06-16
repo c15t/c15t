@@ -5,6 +5,7 @@
 		"label": "Comparisons"
 	},
 	"pages": [
+		"index",
 		"cookieconsent-v3",
 		"klaro",
 		"tarteaucitron",
