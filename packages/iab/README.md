@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://c15t.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fbackend" target="_blank" rel="noopener noreferrer">
+  <a href="https://c15t.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fiab" target="_blank" rel="noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
@@ -7,61 +7,66 @@
   </a>
 </p>
 
-# @c15t/backend: Consent Management Backend
+# @c15t/iab: IAB TCF 2.3 Addon
 
 [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
 [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.link/discord)
-[![npm version](https://img.shields.io/npm/v/%40c15t%2Fbackend?style=flat-square)](https://www.npmjs.com/package/@c15t/backend)
+[![npm version](https://img.shields.io/npm/v/%40c15t%2Fiab?style=flat-square)](https://www.npmjs.com/package/@c15t/iab)
 [![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
 [![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
 
-Self-hostable consent management backend for c15t. Powers cookie banners, consent managers, preference centers, policy resolution, audit logs, and consent records.
+IAB TCF 2.3 addon for c15t with TC String generation, GVL support, TCF APIs, and programmatic advertising consent workflows.
 
 ## Key Features
 
-- Self-hosted CMP backend: Run c15t on your own infrastructure with your own database
-- Consent Management: Track and manage user consent preferences and consent records
-- Geo-Location: Identify a user's location to show relevant consent preferences
-- Server-Side Translation: Reduce banner bundle size by translating consent preferences on the server
-- Audit Logging: Comprehensive logging of all consent-related actions
-- Domain Management: Handle multiple domains and subdomains
-- Policy Management: Version and manage consent policies
-- IAB TCF 2.3 support: Configure GVL, CMP registration, and custom vendors
+- IAB TCF 2.3 support for programmatic advertising consent
+- TC String generation and storage
+- Global Vendor List (GVL) support
+- Purpose, special purpose, feature, special feature, and vendor controls
+- Headless APIs for custom IAB consent experiences
+- React UI integration through @c15t/react/iab
 
 ## Prerequisites
 
 - Node.js 18.17.0 or later
-- npm, pnpm, or yarn package manager
+- c15t 2.x
+- Use [Inth](https://inth.com) for a hosted IAB TCF-certified CMP setup with a managed CMP ID, or register your own CMP with IAB Europe and configure your own CMP ID
 
-## Installation
+## Manual Installation
 
-Install the backend package using your preferred package manager
-Configure your database adapter (supports Drizzle, Kysely, Prisma, TypeORM, and Mongo)
+```bash
+pnpm add @c15t/iab
+```
+
+For React UI components, use the @c15t/react IAB subpath and stylesheet:
+
+```tsx
+import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab'
+```
+
+```css
+@import "@c15t/react/iab/styles.css";
+```
 
 ## Usage
 
-1. Import the backend package in your project
-2. Configure your database connection
-3. Use the provided router and schema for consent management
-4. Implement consent tracking and management in your application
+1. Configure c15t with the IAB consent model for jurisdictions that require TCF workflows
+2. Use the React IAB components for a prebuilt TCF banner and preference center
+3. Use headless APIs when you need a custom IAB consent experience
+4. For full implementation details, see the [IAB TCF 2.3 docs](https://c15t.com/docs/frameworks/react/iab/overview)
 
 ## Documentation
 
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/self-host/quickstart).
-
-## Hosted or Self-Hosted
-
-Use [inth.com](https://inth.com) when you want a managed c15t backend with no infrastructure to maintain. Use @c15t/backend when you need full control over hosting, database, CORS origins, policy configuration, audit logs, and deployment topology.
+For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/frameworks/react/iab/overview).
 
 ## Related Packages
 
-- [c15t](https://www.npmjs.com/package/c15t): Headless JavaScript consent engine
-- [@c15t/react](https://www.npmjs.com/package/@c15t/react): React consent UI and headless hooks
-- [@c15t/nextjs](https://www.npmjs.com/package/@c15t/nextjs): Next.js App Router and Pages Router integration
-- [@c15t/node-sdk](https://www.npmjs.com/package/@c15t/node-sdk): Type-safe Node.js API client
+- [@c15t/react](https://www.npmjs.com/package/@c15t/react): React IAB consent banner, dialog, and hooks through @c15t/react/iab
+- [@c15t/backend](https://www.npmjs.com/package/@c15t/backend): Backend configuration for IAB TCF, GVL, CMP registration, and custom vendors
+- [c15t](https://www.npmjs.com/package/c15t): Core consent engine
 
 ## Support
 
@@ -99,4 +104,4 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 ---
 
-**Built by [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fbackend)**
+**Built by [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fiab)**

@@ -18,21 +18,22 @@
 [![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
 [![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
 
-A fully typed, flexible Node.js SDK for seamless interaction with the c15t consent management platform API.
+Type-safe Node.js SDK for hosted and self-hosted c15t consent APIs, consent records, privacy preferences, and backend automation.
 
 ## Key Features
 
 - Type-safe API client with full TypeScript support
+- Works with managed c15t instances on inth.com and self-hosted @c15t/backend deployments
+- Read and write consent records, subjects, and privacy preferences from Node.js
 - Flexible client configuration with authentication and custom headers
 - Supports dynamic base URL and API prefix configuration
 - Built on top of @orpc/client for robust API interactions
-- Easy integration with Node.js applications
 - Comprehensive error handling and URL validation
 
 ## Prerequisites
 
 - Node.js 18.17.0 or later
-- A Hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/quickstart)
+- A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/quickstart)
 
 ## Manual Installation
 
@@ -75,6 +76,13 @@ try {
   console.error('c15t request failed:', error)
 }
 ```
+
+## Common Use Cases
+
+- Sync consent records between your application and c15t
+- Build admin tooling around hosted or self-hosted consent APIs
+- Automate privacy preference workflows from server-side jobs
+- Integrate c15t consent records with internal data systems
 
 ## Support
 

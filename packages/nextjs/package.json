@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/nextjs",
 	"version": "2.1.0",
-	"description": "Headless cookie banner, consent manager & preference center for Next.js. App Router & Pages Router, RSC, GDPR/CCPA/LGPD/TCF compliant.",
+	"description": "Next.js cookie banner and consent management platform for App Router, Pages Router, SSR, IAB TCF, and Consent Mode.",
 	"keywords": [
 		"nextjs",
 		"next",
@@ -31,7 +31,10 @@
 		"rsc",
 		"ssr",
 		"server-side-rendering",
-		"tracking-consent"
+		"tracking-consent",
+		"google-consent-mode",
+		"consent-mode-v2",
+		"nextjs-cmp"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/next/quickstart",
 	"bugs": {

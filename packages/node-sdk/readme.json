@@ -1,17 +1,18 @@
 {
 	"title": "@c15t/node-sdk: Type-Safe Node.js API Client",
-	"description": "A fully typed, flexible Node.js SDK for seamless interaction with the c15t consent management platform API.",
+	"description": "Type-safe Node.js SDK for hosted and self-hosted c15t consent APIs, consent records, privacy preferences, and backend automation.",
 	"features": [
 		"Type-safe API client with full TypeScript support",
+		"Works with managed c15t instances on inth.com and self-hosted @c15t/backend deployments",
+		"Read and write consent records, subjects, and privacy preferences from Node.js",
 		"Flexible client configuration with authentication and custom headers",
 		"Supports dynamic base URL and API prefix configuration",
 		"Built on top of @orpc/client for robust API interactions",
-		"Easy integration with Node.js applications",
 		"Comprehensive error handling and URL validation"
 	],
 	"prerequisites": [
 		"Node.js 18.17.0 or later",
-		"A Hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/quickstart)"
+		"A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/quickstart)"
 	],
 	"manualInstallation": ["", "```bash\npnpm add @c15t/node-sdk\n```"],
 	"usage": [
@@ -21,5 +22,8 @@
 
 		"```ts\n// server.ts\nimport { c15tClient } from '@c15t/node-sdk'\n\n// Auto-configure from C15T_API_URL + C15T_API_TOKEN env vars\nconst client = c15tClient()\n\n// Or pass options explicitly\n// const client = c15tClient({\n//   baseUrl: process.env.C15T_API_URL!,\n//   token: process.env.C15T_API_TOKEN!,\n// })\n\ntry {\n  const status = await client.meta.status()\n  console.log('c15t API status:', status)\n\n  const subject = await client.subjects.create({\n    type: 'cookie_banner',\n    subjectId: 'sub_123',\n    domain: 'example.com',\n    preferences: { analytics: true },\n    givenAt: Date.now(),\n  })\n  console.log('Created subject', subject.id)\n} catch (error) {\n  console.error('c15t request failed:', error)\n}\n```"
 	],
-	"showCLIGeneration": false
+	"showCLIGeneration": false,
+	"customSections": {
+		"Common Use Cases": "- Sync consent records between your application and c15t\n- Build admin tooling around hosted or self-hosted consent APIs\n- Automate privacy preference workflows from server-side jobs\n- Integrate c15t consent records with internal data systems"
+	}
 }

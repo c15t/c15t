@@ -264,7 +264,7 @@ For further information, guides, and examples visit the [reference documentation
 	if (config.customSections) {
 		customSectionsBlock = Object.entries(config.customSections)
 			.map(([heading, content]) => `## ${heading}\n\n${content}`)
-			.join('\n');
+			.join('\n\n');
 	}
 
 	const supportBlock = addSection('## Support', config.support);

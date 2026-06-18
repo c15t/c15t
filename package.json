@@ -1,7 +1,7 @@
 {
 	"name": "c15t-workspace",
 	"private": true,
-	"description": "Developer-first Consent Management Platform",
+	"description": "Developer-first consent management platform for cookie banners, preference centers, Consent Mode v2, IAB TCF, and self-hosted CMP workflows.",
 	"homepage": "https://c15t.com",
 	"repository": {
 		"type": "git",

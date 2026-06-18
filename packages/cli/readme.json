@@ -1,7 +1,10 @@
 {
 	"title": "@c15t/cli: c15t's CLI",
-	"description": "CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a preferences centre, generate types and config, and run migration tooling for self-hosted deployments.",
+	"description": "CLI for c15t setup. Scaffold React and Next.js cookie banners, choose hosted/self-hosted/offline mode, and add consent integrations.",
 	"features": [
+		"Cookie Banner Setup: Scaffold React and Next.js consent UI",
+		"Mode Selection: Choose managed hosting on inth.com, self-hosted backend, or offline mode",
+		"Script Integrations: Add Google Tag Manager, Google Consent Mode v2, Meta Pixel, and other consent-aware scripts",
 		"Configuration Generation: Automatically generate schema and code for consent management",
 		"Database Migrations: Simplified database schema updates",
 		"Multi-Framework Support: Works seamlessly across different web frameworks",
@@ -80,5 +83,8 @@
 	"docsLink": "https://c15t.com/docs/cli/overview",
 	"quickStartLink": "https://c15t.com/docs/cli/quickstart",
 	"githubLink": "https://github.com/c15t/c15t",
-	"showCLIGeneration": true
+	"showCLIGeneration": true,
+	"customSections": {
+		"Setup Paths": "- **Managed on inth.com**: Configure a hosted c15t instance\n- **Self-hosted backend**: Generate config and run database migrations for @c15t/backend\n- **Offline mode**: Generate browser-only consent setup for demos, local development, previews, or static sites"
+	}
 }

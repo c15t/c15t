@@ -1,21 +1,22 @@
 {
 	"title": "@c15t/react: React Consent Components",
-	"description": "Headless cookie banner, consent manager & preference center for React. RSC-compatible, GDPR/CCPA/LGPD/TCF, TypeScript-first.",
+	"description": "React cookie banner, consent manager, preference center, and headless CMP components for modern React apps.",
 	"features": [
 		"Works with React 19, 18, 17, and 16.8",
 		"Full 'use client' support for React Server Components",
-		"Headless and fully customizable UI components",
-		"Automatic GDPR compliance",
+		"Prebuilt and fully customizable cookie banner, consent dialog, and preference center UI",
+		"Headless hooks for custom consent flows",
 		"Minimal configuration with TypeScript-first design",
 		"Comprehensive Consent Management Platform (CMP)",
-		"Flexible Cookie Banner and Preference Center components",
+		"IAB TCF 2.3 UI and hooks through the @c15t/react/iab subpath",
+		"Google Tag Manager, Google Consent Mode v2, Meta Pixel, and analytics integrations through @c15t/scripts",
 		"Built-in internationalization support",
 		"Seamless consent storage and tracking"
 	],
 	"prerequisites": [
 		"React 16.8 or later",
 		"Node.js 18.17.0 or later",
-		"A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/quickstart)"
+		"A hosted [c15t instance](https://inth.com) (free sign-up), [self-hosted deployment](https://c15t.com/docs/self-host/quickstart), or offline mode for local-only storage"
 	],
 	"manualInstallation": [
 		"",
@@ -32,12 +33,16 @@
 	"usage": [
 		"Import `ConsentManagerProvider` in your app's root component",
 		"Add `ConsentBanner` and `ConsentDialog` components",
-		"Customise styling and behaviour to fit your app",
+		"Customize styling and behavior to fit your app",
 		"For full implementation details, see the [React quickstart docs](https://c15t.com/docs/frameworks/react/quickstart)",
 
 		"```tsx\n// App.tsx\nimport {\n  ConsentManagerProvider,\n  ConsentBanner,\n  ConsentDialog,\n} from '@c15t/react'\n\nfunction App() {\n  return (\n    <ConsentManagerProvider>\n      <YourApp />\n      <ConsentBanner />\n      <ConsentDialog />\n    </ConsentManagerProvider>\n  )\n}\n```"
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/react/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/react/quickstart",
-	"showCLIGeneration": true
+	"showCLIGeneration": true,
+	"customSections": {
+		"Deployment Modes": "- **Managed on inth.com**: Hosted c15t backend for policy storage, audit history, and managed infrastructure\n- **Self-hosted backend**: Use @c15t/backend when you need full infrastructure control\n- **Offline mode**: Browser-only consent storage for local development, demos, previews, static sites, or fallback scenarios",
+		"Popular Integrations": "- Google Tag Manager with Google Consent Mode v2\n- Google Analytics 4 and Google Ads through gtag.js\n- Meta Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, and Snapchat Pixel\n- PostHog, Segment, Mixpanel, Microsoft Clarity, Hotjar, Plausible, Fathom, Matomo, Umami, and Vercel Analytics\n- Intercom and Crisp chat widgets"
+	}
 }

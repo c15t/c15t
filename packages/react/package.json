@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/react",
 	"version": "2.1.0",
-	"description": "Headless cookie banner, consent manager & preference center for React. RSC-compatible, GDPR/CCPA/LGPD/TCF, TypeScript-first.",
+	"description": "React cookie banner, consent manager, preference center, and headless CMP components with IAB TCF and Consent Mode support.",
 	"keywords": [
 		"react",
 		"react-consent",
@@ -27,7 +27,10 @@
 		"react-server-components",
 		"rsc",
 		"use-client",
-		"tracking-consent"
+		"tracking-consent",
+		"google-consent-mode",
+		"consent-mode-v2",
+		"react-cmp"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/react/quickstart",
 	"bugs": {
