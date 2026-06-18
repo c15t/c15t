@@ -54,7 +54,7 @@ For further information, guides, and examples visit the [reference documentation
 
 ## Hosted or Self-Hosted
 
-Use [inth.com](https://inth.com) when you want a managed c15t backend with no infrastructure to maintain. Use @c15t/backend when you need full control over hosting, database, CORS origins, policy configuration, audit logs, and deployment topology.
+Use [inth.com](https://inth.com) when you want a hosted c15t backend with no infrastructure to maintain. Use @c15t/backend when you need full control over hosting, database, CORS origins, policy configuration, audit logs, and deployment topology.
 
 ## Related Packages
 

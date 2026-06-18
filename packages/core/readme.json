@@ -35,7 +35,7 @@
 	"showCLIGeneration": true,
 	"npmName": "c15t",
 	"customSections": {
-		"Deployment Modes": "- **Managed on inth.com**: Hosted backend with policy storage, audit history, and managed infrastructure\n- **Self-hosted backend**: Run @c15t/backend with your own database and infrastructure\n- **Offline mode**: Store consent locally in the browser for development, previews, static sites, or controlled fallback scenarios",
+		"Deployment Modes": "- **Hosted on inth.com**: Hosted backend with policy storage, audit history, and hosted infrastructure\n- **Self-hosted backend**: Run @c15t/backend with your own database and infrastructure\n- **Offline mode**: Store consent locally in the browser for development, previews, static sites, or controlled fallback scenarios",
 		"Related Packages": "- [@c15t/react](https://www.npmjs.com/package/@c15t/react): React cookie banner, consent dialog, preference center, and headless hooks\n- [@c15t/nextjs](https://www.npmjs.com/package/@c15t/nextjs): Next.js App Router and Pages Router integration\n- [@c15t/scripts](https://www.npmjs.com/package/@c15t/scripts): Consent-aware analytics, tag manager, pixel, and widget loaders\n- [@c15t/backend](https://www.npmjs.com/package/@c15t/backend): Self-hostable consent backend"
 	}
 }

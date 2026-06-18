@@ -86,7 +86,7 @@ For further information, guides, and examples visit the [reference documentation
 
 ## Deployment Modes
 
-- **Managed on inth.com**: Hosted backend with policy storage, audit history, and managed infrastructure
+- **Hosted on inth.com**: Hosted backend with policy storage, audit history, and hosted infrastructure
 - **Self-hosted backend**: Run @c15t/backend with your own database and infrastructure
 - **Offline mode**: Store consent locally in the browser for development, previews, static sites, or controlled fallback scenarios
 

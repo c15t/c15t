@@ -42,7 +42,7 @@
 	"quickStartLink": "https://c15t.com/docs/frameworks/react/quickstart",
 	"showCLIGeneration": true,
 	"customSections": {
-		"Deployment Modes": "- **Managed on inth.com**: Hosted c15t backend for policy storage, audit history, and managed infrastructure\n- **Self-hosted backend**: Use @c15t/backend when you need full infrastructure control\n- **Offline mode**: Browser-only consent storage for local development, demos, previews, static sites, or fallback scenarios",
+		"Deployment Modes": "- **Hosted on inth.com**: Hosted c15t backend for policy storage, audit history, and hosted infrastructure\n- **Self-hosted backend**: Use @c15t/backend when you need full infrastructure control\n- **Offline mode**: Browser-only consent storage for local development, demos, previews, static sites, or fallback scenarios",
 		"Popular Integrations": "- Google Tag Manager with Google Consent Mode v2\n- Google Analytics 4 and Google Ads through gtag.js\n- Meta Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, and Snapchat Pixel\n- PostHog, Segment, Mixpanel, Microsoft Clarity, Hotjar, Plausible, Fathom, Matomo, Umami, and Vercel Analytics\n- Intercom and Crisp chat widgets"
 	}
 }

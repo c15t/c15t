@@ -25,7 +25,7 @@ c15t is a developer-first consent management platform (CMP) used by [2,100+ site
 
 c15t keeps consent management inside your application stack instead of a black-box third-party snippet. Use the prebuilt UI for cookie banners, consent dialogs, and preference centers, or use the headless APIs to build a fully custom consent experience.
 
-c15t can run with a managed backend on [inth.com](https://inth.com), a self-hosted consent backend, or offline/local-only mode for development, previews, and static deployments. Hosted and self-hosted modes support durable consent records, backend policy state, audit logs, and server-side visibility.
+c15t can run with a hosted backend on [inth.com](https://inth.com), a self-hosted consent backend, or offline/local-only mode for development, previews, and static deployments. Hosted and self-hosted modes support durable consent records, backend policy state, audit logs, and server-side visibility.
 
 ## Why c15t
 
@@ -35,7 +35,7 @@ c15t can run with a managed backend on [inth.com](https://inth.com), a self-host
 - Support Google Tag Manager and Google Consent Mode v2 without hand-rolling consent updates
 - Manage Meta Pixel and other conversion pixels with marketing consent
 - Add IAB TCF 2.3 support for programmatic advertising workflows
-- Choose managed hosting on inth.com, a self-hosted backend, or offline mode
+- Choose hosted on inth.com, a self-hosted backend, or offline mode
 
 ## Integrations
 
@@ -43,7 +43,7 @@ Load analytics, pixels, tag managers, and widgets through c15t so consent state 
 
 - **Google Tag Manager** - loads at page start with Google Consent Mode v2 defaults set to denied; GTM-managed tags fire only once matching consent is granted ([guide](https://c15t.com/docs/integrations/google-tag-manager))
 - **Google Analytics 4 + Google Ads (gtag.js)** - automatic Consent Mode v2 defaults and consent updates when users make a choice ([guide](https://c15t.com/docs/integrations/google-tag))
-- **Conversion pixels** gated behind marketing consent: Meta Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET (Bing Ads), X Pixel, Reddit Pixel, Snapchat Pixel
+- **Conversion pixels** gated behind marketing consent: Meta Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET (Microsoft Ads), X Pixel, Reddit Pixel, Snapchat Pixel
 - **Analytics** gated behind measurement consent: PostHog, Segment, Mixpanel, Microsoft Clarity, Hotjar, Plausible, Fathom, Matomo, Umami, Vercel Analytics
 - **Chat widgets** gated behind functional consent: Intercom, Crisp
 
@@ -51,7 +51,7 @@ See the [full integrations list](https://c15t.com/docs/integrations).
 
 ## Deployment Modes
 
-- **Managed on inth.com** - use a hosted c15t backend with managed infrastructure, policy storage, audit history, and dashboard workflows
+- **Hosted on inth.com** - use a hosted c15t backend with hosted infrastructure, policy storage, audit history, and dashboard workflows
 - **Self-hosted backend** - deploy [@c15t/backend](https://www.npmjs.com/package/@c15t/backend) with your own database and infrastructure for full control
 - **Offline mode** - store consent locally in the browser for local development, demos, previews, static sites, or controlled fallback scenarios
 

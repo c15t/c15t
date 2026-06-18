@@ -23,7 +23,7 @@ CLI for c15t setup. Scaffold React and Next.js cookie banners, choose hosted/sel
 ## Key Features
 
 - Cookie Banner Setup: Scaffold React and Next.js consent UI
-- Mode Selection: Choose managed hosting on inth.com, self-hosted backend, or offline mode
+- Mode Selection: Choose hosted on inth.com, self-hosted backend, or offline mode
 - Script Integrations: Add Google Tag Manager, Google Consent Mode v2, Meta Pixel, and other consent-aware scripts
 - Configuration Generation: Automatically generate schema and code for consent management
 - Database Migrations: Simplified database schema updates
@@ -100,7 +100,7 @@ For further information, guides, and examples visit the [reference documentation
 
 ## Setup Paths
 
-- **Managed on inth.com**: Configure a hosted c15t instance
+- **Hosted on inth.com**: Configure a hosted c15t instance
 - **Self-hosted backend**: Generate config and run database migrations for @c15t/backend
 - **Offline mode**: Generate browser-only consent setup for demos, local development, previews, or static sites
 

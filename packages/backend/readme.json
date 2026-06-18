@@ -30,7 +30,7 @@
 	"githubLink": "https://github.com/c15t/c15t",
 	"showCLIGeneration": false,
 	"customSections": {
-		"Hosted or Self-Hosted": "Use [inth.com](https://inth.com) when you want a managed c15t backend with no infrastructure to maintain. Use @c15t/backend when you need full control over hosting, database, CORS origins, policy configuration, audit logs, and deployment topology.",
+		"Hosted or Self-Hosted": "Use [inth.com](https://inth.com) when you want a hosted c15t backend with no infrastructure to maintain. Use @c15t/backend when you need full control over hosting, database, CORS origins, policy configuration, audit logs, and deployment topology.",
 		"Related Packages": "- [c15t](https://www.npmjs.com/package/c15t): Headless JavaScript consent engine\n- [@c15t/react](https://www.npmjs.com/package/@c15t/react): React consent UI and headless hooks\n- [@c15t/nextjs](https://www.npmjs.com/package/@c15t/nextjs): Next.js App Router and Pages Router integration\n- [@c15t/node-sdk](https://www.npmjs.com/package/@c15t/node-sdk): Type-safe Node.js API client"
 	}
 }

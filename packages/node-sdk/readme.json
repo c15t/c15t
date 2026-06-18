@@ -3,7 +3,7 @@
 	"description": "Type-safe Node.js SDK for hosted and self-hosted c15t consent APIs, consent records, privacy preferences, and backend automation.",
 	"features": [
 		"Type-safe API client with full TypeScript support",
-		"Works with managed c15t instances on inth.com and self-hosted @c15t/backend deployments",
+		"Works with hosted c15t instances on inth.com and self-hosted @c15t/backend deployments",
 		"Read and write consent records, subjects, and privacy preferences from Node.js",
 		"Flexible client configuration with authentication and custom headers",
 		"Supports dynamic base URL and API prefix configuration",
