@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/backend",
-	"version": "2.1.0",
+	"version": "2.1.1",
 	"description": "Self-hostable consent management backend for c15t with policy resolution, audit logs, geolocation, and storage adapters.",
 	"keywords": [
 		"consent",

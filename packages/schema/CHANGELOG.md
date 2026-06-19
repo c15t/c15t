@@ -1,5 +1,11 @@
 # @c15t/schema
 
+## 2.1.1
+
+### Patch Changes
+
+- 8c004cf: Improve generated OpenAPI request schemas for consent, subject, and legal-document endpoints.
+
 ## 2.1.0
 
 ### Minor Changes

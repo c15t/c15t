@@ -1,5 +1,12 @@
 # @c15t/nextjs
 
+## 2.1.1
+
+### Patch Changes
+
+- @c15t/react@2.1.1
+- c15t@2.1.1
+
 ## 2.1.0
 
 ### Minor Changes

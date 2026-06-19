@@ -1,5 +1,14 @@
 # @c15t/cli
 
+## 2.1.1
+
+### Patch Changes
+
+- Updated dependencies [8c004cf]
+- Updated dependencies [e011d19]
+  - @c15t/backend@2.1.1
+  - @c15t/scripts@2.1.0
+
 ## 2.1.0
 
 ### Minor Changes
