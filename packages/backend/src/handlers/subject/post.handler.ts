@@ -23,6 +23,8 @@ import { extractErrorMessage } from '~/utils/extract-error-message';
 import { getMetrics } from '~/utils/metrics';
 import { resolvePolicyDecision } from '../init/policy';
 
+const MAX_FUTURE_CONSENT_TIME_DRIFT_MS = 5 * 60 * 1000;
+
 export function buildRuntimeDecisionDedupeKey(input: {
 	tenantId?: string;
 	fingerprint: string;
@@ -239,6 +241,15 @@ function buildLegalDocumentProofHttpException(message: string): HTTPException {
 	});
 }
 
+function validateConsentGivenAt(givenAt: Date, now = Date.now()) {
+	if (givenAt.getTime() > now + MAX_FUTURE_CONSENT_TIME_DRIFT_MS) {
+		throw new HTTPException(400, {
+			message: 'Consent givenAt cannot be more than 5 minutes in the future',
+			cause: { code: 'CONSENT_GIVEN_AT_IN_FUTURE' },
+		});
+	}
+}
+
 /**
  * Handles the creation of a new consent record for a subject.
  *
@@ -266,6 +277,7 @@ export const postSubjectHandler = async (c: Context) => {
 
 	const preferences = 'preferences' in input ? input.preferences : undefined;
 	const givenAt = new Date(givenAtEpoch);
+	validateConsentGivenAt(givenAt);
 
 	// Derive model-aware consent action from the raw frontend type
 	const rawConsentAction =
