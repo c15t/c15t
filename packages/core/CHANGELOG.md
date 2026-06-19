@@ -1,5 +1,12 @@
 # c15t
 
+## 2.1.1
+
+### Patch Changes
+
+- Updated dependencies [8c004cf]
+  - @c15t/schema@2.1.1
+
 ## 2.1.0
 
 ### Minor Changes

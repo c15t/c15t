@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/nextjs",
-	"version": "2.1.0",
+	"version": "2.1.1",
 	"description": "Next.js cookie banner and consent management platform for App Router, Pages Router, SSR, IAB TCF, and Consent Mode.",
 	"keywords": [
 		"nextjs",

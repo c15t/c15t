@@ -1,5 +1,17 @@
 # @c15t/backend
 
+## 2.1.1
+
+### Patch Changes
+
+- 8c004cf: Improve generated OpenAPI request schemas for consent, subject, and legal-document endpoints.
+- e011d19: # Honor explicit ports in trusted origins
+
+  Preserve explicit ports configured in `trustedOrigins` during CORS origin checks instead of stripping them. Host-only entries (e.g. `example.com`) remain port-agnostic, but entries with an explicit port (e.g. `localhost:3000`) now only trust that exact port.
+
+- Updated dependencies [8c004cf]
+  - @c15t/schema@2.1.1
+
 ## 2.1.0
 
 ### Minor Changes

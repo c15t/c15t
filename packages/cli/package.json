@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/cli",
-	"version": "2.1.0",
+	"version": "2.1.1",
 	"description": "CLI for c15t setup. Scaffold React and Next.js cookie banners, choose hosted/self-hosted/offline mode, and add consent integrations.",
 	"keywords": [
 		"c15t",
