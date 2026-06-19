@@ -65,6 +65,11 @@
 			"import": "./client/components/consent-dialog-link.js",
 			"require": "./dist/index.cjs"
 		},
+		"./components/integrations": {
+			"types": "./dist-types/components/integrations/index.d.ts",
+			"import": "./client/components/integrations.js",
+			"require": "./dist/components/integrations/index.cjs"
+		},
 		".": {
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
