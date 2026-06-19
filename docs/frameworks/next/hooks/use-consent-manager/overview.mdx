@@ -24,11 +24,49 @@ function MyComponent() {
 
 <import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#state-and-actions" />
 
-## identifyUser
+## User Identification
 
-The `identifyUser()` method links anonymous consent records to an authenticated user. Call it after a user logs in to associate their consent preferences with their account.
+You can link consent records to your own internal user IDs or anonymous visitor tokens (such as a UUID stored in a first-party cookie). This maps the consent history to the `externalId` field on the subject row in the database, allowing you to include consent records in GDPR Article 15 exports.
+
+### 1. Setting the Initial User ID (Server Component Example)
+
+If you store a visitor token in an HttpOnly cookie, you can read it server-side in Next.js and pass it to the `ConsentManagerProvider` options.
+
+<Callout type="info">
+  This example uses the asynchronous `cookies()` API available in **Next.js 15+**. For **Next.js 14 and earlier**, use the synchronous form `const cookieStore = cookies();` (without `await`) and remove `async` from the `RootLayout` signature if no other async operations exist.
+</Callout>
 
 ```tsx
+// app/layout.tsx
+import { cookies } from 'next/headers';
+import { ConsentManagerProvider } from '@c15t/nextjs';
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const cookieStore = await cookies();
+  const visitorToken = cookieStore.get('visitor_token')?.value;
+
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: '/api/c15t',
+        consentCategories: ['necessary', 'measurement', 'marketing'],
+        user: visitorToken ? { id: visitorToken, identityProvider: 'cookie' } : undefined,
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+### 2. Updating the ID After Login (`identifyUser`)
+
+When a user logs in, call the `identifyUser()` method to link their previous anonymous consent history to their new authenticated account:
+
+```tsx
+'use client';
+
 import { useConsentManager } from '@c15t/nextjs';
 
 function LoginForm() {
@@ -38,10 +76,10 @@ function LoginForm() {
     // ... your login logic
     const user = await api.login(email);
 
-    // Link consent to the authenticated user
+    // Link the current subject's consent history to the authenticated user ID
     await identifyUser({
       id: user.id,
-      identityProvider: 'your-auth-provider', // e.g. 'clerk', 'auth0'
+      identityProvider: 'your-auth-provider', // e.g. 'clerk', 'auth0', 'custom'
     });
   }
 
@@ -58,9 +96,7 @@ function LoginForm() {
 ```
 
 <Callout type="info">
-  `identifyUser` sends the user data to the c15t backend. It works in hosted
-  mode, including the legacy alias `mode: 'c15t'`. In `mode: 'offline'`, the
-  call is a no-op.
+  User identification (`options.user` and `identifyUser`) requires hosted mode (`mode: 'hosted'`). In `mode: 'offline'`, these configurations are a no-op as consent is stored locally in client-side cookies only.
 </Callout>
 
 <import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#key-types" />
