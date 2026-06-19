@@ -9,12 +9,14 @@
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { type FC, type RefObject, useRef } from 'react';
 import { Box } from '~/components/shared/primitives/box';
+import { resolveConsentButtonStyle } from '~/components/shared/primitives/button';
 import { BrandingLink } from '~/components/shared/ui/branding';
 import * as Button from '~/components/shared/ui/button';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useHeadlessIABConsentUI } from '~/hooks/use-headless-iab-consent-ui';
+import { useTheme } from '~/hooks/use-theme';
 import { useIABTranslations } from '../iab-consent-dialog/use-iab-translations';
 import { IABConsentBannerRoot } from './atoms/root';
 
@@ -104,6 +106,7 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 		performBannerAction,
 	} = useHeadlessIABConsentUI();
 	const { policyBanner } = useConsentManager();
+	const { theme } = useTheme();
 	const resolvedScrollLock = localScrollLock ?? policyBanner.scrollLock ?? true;
 
 	const cardRef = useRef<HTMLDivElement>(null);
@@ -138,6 +141,22 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 
 	const isPrimary = (button: 'reject' | 'accept' | 'customize') =>
 		button === primaryButton;
+
+	// Respect theme.consentActions (incl. the policy-aware `primary` key)
+	// while keeping the stock IAB treatments as the fallback.
+	const buttonStyle = (
+		action: 'reject' | 'accept' | 'customize',
+		fallbackMode: 'filled' | 'stroke'
+	) =>
+		resolveConsentButtonStyle({
+			consentAction: action,
+			isPrimary: isPrimary(action),
+			theme,
+			fallback: {
+				variant: isPrimary(action) ? 'primary' : 'neutral',
+				mode: fallbackMode,
+			},
+		});
 
 	// Don't render if IAB is disabled (e.g., server returned null GVL) or calculations not complete
 	if (!iabState?.config.enabled || !banner.isReady) {
@@ -224,8 +243,7 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 					>
 						<div className={styles.footerButtonGroup}>
 							<Button.Root
-								variant={isPrimary('reject') ? 'primary' : 'neutral'}
-								mode="stroke"
+								{...buttonStyle('reject', 'stroke')}
 								size="small"
 								onClick={handleRejectAll}
 								className={styles.rejectButton}
@@ -234,8 +252,10 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 								{iabT.common.rejectAll}
 							</Button.Root>
 							<Button.Root
-								variant={isPrimary('accept') ? 'primary' : 'neutral'}
-								mode={isPrimary('accept') ? 'filled' : 'stroke'}
+								{...buttonStyle(
+									'accept',
+									isPrimary('accept') ? 'filled' : 'stroke'
+								)}
 								size="small"
 								onClick={handleAcceptAll}
 								className={styles.acceptButton}
@@ -246,8 +266,10 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 						</div>
 						<div className={styles.footerSpacer} />
 						<Button.Root
-							variant={isPrimary('customize') ? 'primary' : 'neutral'}
-							mode={isPrimary('customize') ? 'filled' : 'stroke'}
+							{...buttonStyle(
+								'customize',
+								isPrimary('customize') ? 'filled' : 'stroke'
+							)}
 							size="small"
 							onClick={handleCustomize}
 							className={styles.customizeButton}

@@ -13,34 +13,35 @@ export function VideoDemo({
 	return (
 		<section
 			className={cn(
-				inline ? 'space-y-5' : 'space-y-6 border-t border-border/80 pt-8',
+				inline ? 'space-y-5' : 'space-y-6 border-border/80 border-t pt-8',
 				className
 			)}
 		>
 			<div className="max-w-3xl space-y-3">
-				<p className="label-pixel text-muted-foreground">Iframe gating</p>
+				<p className="label-pixel text-muted-foreground">Blocked embeds</p>
 				<h2
 					className={cn(
 						'font-semibold tracking-tight',
 						inline ? 'text-xl' : 'text-2xl'
 					)}
 				>
-					Policy-gated embeds with <code className="font-mono">Frame</code>
+					<code className="font-mono">{'<Frame>'}</code>
 				</h2>
-				<p className="text-sm leading-6 text-muted-foreground sm:text-base">
-					These embeds are wrapped with the React{' '}
-					<code className="font-mono">Frame</code> component, so access follows
-					the active consent policy for the current scenario.
+				<p className="text-muted-foreground text-sm leading-6 sm:text-base">
+					Each video is wrapped in{' '}
+					<code className="font-mono">{'<Frame category="…">'}</code>. It stays
+					blocked until that category is allowed, then loads.
 				</p>
 			</div>
 
 			<div className={cn('grid', inline ? 'gap-6' : 'gap-8 lg:grid-cols-2')}>
 				<div className="space-y-3">
 					<div>
-						<h3 className="font-medium text-base">Measurement category</h3>
-						<p className="text-sm text-muted-foreground">
-							Use this to validate media that should unlock only when
-							measurement is allowed.
+						<h3 className="font-medium text-base">
+							<code className="font-mono text-sm">category="measurement"</code>
+						</h3>
+						<p className="text-muted-foreground text-sm">
+							Unlocks when measurement consent is given.
 						</p>
 					</div>
 					<Frame
@@ -59,10 +60,11 @@ export function VideoDemo({
 
 				<div className="space-y-3">
 					<div>
-						<h3 className="font-medium text-base">Experience category</h3>
-						<p className="text-sm text-muted-foreground">
-							This one stays blocked until the active policy and consent state
-							allow the experience category.
+						<h3 className="font-medium text-base">
+							<code className="font-mono text-sm">category="experience"</code>
+						</h3>
+						<p className="text-muted-foreground text-sm">
+							Unlocks when experience consent is given.
 						</p>
 					</div>
 					<Frame category="experience" className="relative aspect-video w-full">
