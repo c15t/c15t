@@ -1,0 +1,39 @@
+{
+	"title": "@c15t/iab: IAB TCF 2.3 Addon",
+	"description": "IAB TCF 2.3 addon for c15t with TC String generation, GVL support, TCF APIs, and programmatic advertising consent workflows.",
+	"features": [
+		"IAB TCF 2.3 support for programmatic advertising consent",
+		"TC String generation and storage",
+		"Global Vendor List (GVL) support",
+		"Purpose, special purpose, feature, special feature, and vendor controls",
+		"Headless APIs for custom IAB consent experiences",
+		"React UI integration through @c15t/react/iab"
+	],
+	"prerequisites": [
+		"Node.js 18.17.0 or later",
+		"c15t 2.x",
+		"Use [Inth](https://inth.com) for a hosted IAB TCF-certified CMP setup with a managed CMP ID, or register your own CMP with IAB Europe and configure your own CMP ID"
+	],
+	"manualInstallation": [
+		"",
+		"```bash\npnpm add @c15t/iab\n```",
+		"",
+		"For React UI components, use the @c15t/react IAB subpath and stylesheet:",
+		"",
+		"```tsx\nimport { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab'\n```",
+		"",
+		"```css\n@import \"@c15t/react/iab/styles.css\";\n```"
+	],
+	"usage": [
+		"Configure c15t with the IAB consent model for jurisdictions that require TCF workflows",
+		"Use the React IAB components for a prebuilt TCF banner and preference center",
+		"Use headless APIs when you need a custom IAB consent experience",
+		"For full implementation details, see the [IAB TCF 2.3 docs](https://c15t.com/docs/frameworks/react/iab/overview)"
+	],
+	"docsLink": "https://c15t.com/docs/frameworks/react/iab/overview",
+	"quickStartLink": "https://c15t.com/docs/frameworks/react/iab/overview",
+	"showCLIGeneration": false,
+	"customSections": {
+		"Related Packages": "- [@c15t/react](https://www.npmjs.com/package/@c15t/react): React IAB consent banner, dialog, and hooks through @c15t/react/iab\n- [@c15t/backend](https://www.npmjs.com/package/@c15t/backend): Backend configuration for IAB TCF, GVL, CMP registration, and custom vendors\n- [c15t](https://www.npmjs.com/package/c15t): Core consent engine"
+	}
+}

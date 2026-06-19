@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/backend",
 	"version": "2.1.0",
-	"description": "Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preference center. Webhooks, audit logs, storage adapters. Self-host or use inth.com",
+	"description": "Self-hostable consent management backend for c15t with policy resolution, audit logs, geolocation, and storage adapters.",
 	"keywords": [
 		"consent",
 		"privacy",
@@ -10,6 +10,8 @@
 		"lgpd",
 		"backend",
 		"self-host",
+		"self-hosted-cmp",
+		"consent-backend",
 		"consent-management",
 		"user-privacy",
 		"compliance",

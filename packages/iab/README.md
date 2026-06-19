@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://c15t.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fscripts" target="_blank" rel="noopener noreferrer">
+  <a href="https://c15t.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fiab" target="_blank" rel="noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
@@ -7,52 +7,66 @@
   </a>
 </p>
 
-# @c15t/scripts: Prebuilt Consent Scripts
+# @c15t/iab: IAB TCF 2.3 Addon
 
 [![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
 [![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.link/discord)
-[![npm version](https://img.shields.io/npm/v/%40c15t%2Fscripts?style=flat-square)](https://www.npmjs.com/package/@c15t/scripts)
+[![npm version](https://img.shields.io/npm/v/%40c15t%2Fiab?style=flat-square)](https://www.npmjs.com/package/@c15t/iab)
 [![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
 [![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
 [![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
 
-Consent-aware script integrations for Google Tag Manager, Google Consent Mode v2, GA4, Google Ads, Meta Pixel, analytics tools, pixels, tag managers, and widgets.
+IAB TCF 2.3 addon for c15t with TC String generation, GVL support, TCF APIs, and programmatic advertising consent workflows.
 
 ## Key Features
 
-- Prebuilt script loaders for popular analytics, advertising, marketing, and functional tools
-- Google Tag Manager support with Google Consent Mode v2 defaults and consent updates
-- Google Analytics 4 and Google Ads support through gtag.js
-- Consent-gated Meta Pixel and conversion pixel loading
-- Easy integration with c15t's script loader
-- Configuration options for each supported vendor
-- Supported vendors include Google Tag Manager, Meta Pixel, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, Snapchat Pixel, Intercom, Crisp, and more
+- IAB TCF 2.3 support for programmatic advertising consent
+- TC String generation and storage
+- Global Vendor List (GVL) support
+- Purpose, special purpose, feature, special feature, and vendor controls
+- Headless APIs for custom IAB consent experiences
+- React UI integration through @c15t/react/iab
+
+## Prerequisites
+
+- Node.js 18.17.0 or later
+- c15t 2.x
+- Use [Inth](https://inth.com) for a hosted IAB TCF-certified CMP setup with a managed CMP ID, or register your own CMP with IAB Europe and configure your own CMP ID
+
+## Manual Installation
+
+```bash
+pnpm add @c15t/iab
+```
+
+For React UI components, use the @c15t/react IAB subpath and stylesheet:
+
+```tsx
+import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab'
+```
+
+```css
+@import "@c15t/react/iab/styles.css";
+```
+
+## Usage
+
+1. Configure c15t with the IAB consent model for jurisdictions that require TCF workflows
+2. Use the React IAB components for a prebuilt TCF banner and preference center
+3. Use headless APIs when you need a custom IAB consent experience
+4. For full implementation details, see the [IAB TCF 2.3 docs](https://c15t.com/docs/frameworks/react/iab/overview)
 
 ## Documentation
 
-For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/integrations).
+For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/frameworks/react/iab/overview).
 
-## Integrations
+## Related Packages
 
-- **Google Tag Manager**: Loads with Google Consent Mode v2 defaults set to denied; GTM-managed tags fire only once matching consent is granted ([guide](https://c15t.com/docs/integrations/google-tag-manager))
-- **Google Analytics 4 + Google Ads (gtag.js)**: Consent Mode v2 defaults and consent updates when users make a choice ([guide](https://c15t.com/docs/integrations/google-tag))
-- **Conversion pixels**: Meta Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET (Microsoft Ads), X Pixel, Reddit Pixel, Snapchat Pixel
-- **Analytics**: PostHog, Segment, Mixpanel, Microsoft Clarity, Hotjar, Plausible, Fathom, Matomo, Umami, Vercel Analytics
-- **Chat widgets**: Intercom, Crisp
-
-## Example
-
-```ts
-import { googleTagManager } from '@c15t/scripts/google-tag-manager'
-import { metaPixel } from '@c15t/scripts/meta-pixel'
-
-const scripts = [
-  googleTagManager({ id: 'GTM-XXXXXX' }),
-  metaPixel({ pixelId: '000000000000000' }),
-]
-```
+- [@c15t/react](https://www.npmjs.com/package/@c15t/react): React IAB consent banner, dialog, and hooks through @c15t/react/iab
+- [@c15t/backend](https://www.npmjs.com/package/@c15t/backend): Backend configuration for IAB TCF, GVL, CMP registration, and custom vendors
+- [c15t](https://www.npmjs.com/package/c15t): Core consent engine
 
 ## Support
 
@@ -90,4 +104,4 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 ---
 
-**Built by [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fscripts)**
+**Built by [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fiab)**

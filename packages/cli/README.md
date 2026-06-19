@@ -18,10 +18,13 @@
 [![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
 [![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
 
-CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a preferences centre, generate types and config, and run migration tooling for self-hosted deployments.
+CLI for c15t setup. Scaffold React and Next.js cookie banners, choose hosted/self-hosted/offline mode, and add consent integrations.
 
 ## Key Features
 
+- Cookie Banner Setup: Scaffold React and Next.js consent UI
+- Mode Selection: Choose hosted on inth.com, self-hosted backend, or offline mode
+- Script Integrations: Add Google Tag Manager, Google Consent Mode v2, Meta Pixel, and other consent-aware scripts
 - Configuration Generation: Automatically generate schema and code for consent management
 - Database Migrations: Simplified database schema updates
 - Multi-Framework Support: Works seamlessly across different web frameworks
@@ -94,6 +97,12 @@ Disable telemetry by:
 ## Documentation
 
 For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/cli/overview).
+
+## Setup Paths
+
+- **Hosted on inth.com**: Configure a hosted c15t instance
+- **Self-hosted backend**: Generate config and run database migrations for @c15t/backend
+- **Offline mode**: Generate browser-only consent setup for demos, local development, previews, or static sites
 
 ## Support
 

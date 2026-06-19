@@ -18,16 +18,18 @@
 [![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
 [![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
 
-Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preference center. Webhooks, audit logs, storage adapters. Self-host or use inth.com
+Self-hostable consent management backend for c15t. Powers cookie banners, consent managers, preference centers, policy resolution, audit logs, and consent records.
 
 ## Key Features
 
-- Consent Management: Track and manage user consent preferences
-- Geo-Location: Identify user's location to show relevant consent preferences
+- Self-hosted CMP backend: Run c15t on your own infrastructure with your own database
+- Consent Management: Track and manage user consent preferences and consent records
+- Geo-Location: Identify a user's location to show relevant consent preferences
 - Server-Side Translation: Reduce banner bundle size by translating consent preferences on the server
 - Audit Logging: Comprehensive logging of all consent-related actions
 - Domain Management: Handle multiple domains and subdomains
 - Policy Management: Version and manage consent policies
+- IAB TCF 2.3 support: Configure GVL, CMP registration, and custom vendors
 
 ## Prerequisites
 
@@ -49,6 +51,17 @@ Configure your database adapter (supports Drizzle, Kysely, Prisma, TypeORM, and 
 ## Documentation
 
 For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/self-host/quickstart).
+
+## Hosted or Self-Hosted
+
+Use [inth.com](https://inth.com) when you want a hosted c15t backend with no infrastructure to maintain. Use @c15t/backend when you need full control over hosting, database, CORS origins, policy configuration, audit logs, and deployment topology.
+
+## Related Packages
+
+- [c15t](https://www.npmjs.com/package/c15t): Headless JavaScript consent engine
+- [@c15t/react](https://www.npmjs.com/package/@c15t/react): React consent UI and headless hooks
+- [@c15t/nextjs](https://www.npmjs.com/package/@c15t/nextjs): Next.js App Router and Pages Router integration
+- [@c15t/node-sdk](https://www.npmjs.com/package/@c15t/node-sdk): Type-safe Node.js API client
 
 ## Support
 
