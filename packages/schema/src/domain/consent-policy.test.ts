@@ -27,6 +27,9 @@ describe('legalDocumentPolicyTypeSchema', () => {
 	it.each([
 		'terms_and_conditions2', // suffix without the `_` boundary
 		'privacy_policyx',
+		'terms_and_conditions_', // `_` boundary with empty suffix
+		'privacy_policy_',
+		'dpa_',
 		'terms',
 		'',
 		'cookie_banner',
