@@ -5,7 +5,10 @@
  */
 
 import * as v from 'valibot';
-import { policyTypeSchema } from '../../domain/consent-policy';
+import {
+	legalDocumentPolicyTypeSchema,
+	policyTypeSchema,
+} from '../../domain/consent-policy';
 
 /**
  * Base subject ID validation - must be in sub_xxx format
@@ -140,7 +143,7 @@ export const subjectCookieBannerInputSchema = v.object({
  */
 export const subjectPolicyBasedInputSchema = v.object({
 	...baseSubjectConsentSchema.entries,
-	type: v.picklist(['privacy_policy', 'dpa', 'terms_and_conditions']),
+	type: legalDocumentPolicyTypeSchema,
 	policyId: v.optional(
 		v.pipe(
 			v.string(),

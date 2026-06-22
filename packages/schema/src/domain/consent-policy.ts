@@ -1,10 +1,24 @@
 import * as v from 'valibot';
 
-export const legalDocumentPolicyTypeSchema = v.picklist([
+export const LEGAL_DOCUMENT_TYPE_PREFIXES = [
 	'privacy_policy',
 	'dpa',
 	'terms_and_conditions',
-]);
+] as const;
+
+export const isLegalDocumentType = (value: unknown): value is string =>
+	typeof value === 'string' &&
+	LEGAL_DOCUMENT_TYPE_PREFIXES.some(
+		(prefix) => value === prefix || value.startsWith(`${prefix}_`)
+	);
+
+export const legalDocumentPolicyTypeSchema = v.pipe(
+	v.string(),
+	v.check(
+		(value: string): boolean => isLegalDocumentType(value),
+		'Invalid legal document type'
+	)
+);
 
 export const policyTypeSchema = v.picklist([
 	// Deprecated in 2.0 RC. Runtime banner behavior should use backend policies.
