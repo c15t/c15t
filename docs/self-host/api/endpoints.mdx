@@ -82,7 +82,7 @@ Records a consent event. This is an append-only operation — every call creates
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `type` | string | Yes | `cookie_banner`, `privacy_policy`, `dpa`, `terms_and_conditions`, `marketing_communications`, `age_verification`, `other` |
+| `type` | string | Yes | `cookie_banner`, `privacy_policy`, `dpa`, `terms_and_conditions`, `marketing_communications`, `age_verification`, `other`. Legal-document types (`privacy_policy`, `dpa`, `terms_and_conditions`) also accept suffixed variants, e.g. `terms_and_conditions_b2b`, so multiple policies of one family can be active at once |
 | `subjectId` | string | Yes | Client-generated subject identifier |
 | `domain` | string | Yes | Domain where consent was given |
 | `preferences` | object | No | Consent category preferences (for `cookie_banner` type) |
