@@ -1,6 +1,6 @@
 {
 	"name": "c15t",
-	"version": "2.1.0",
+	"version": "2.1.1-canary-20260624181535",
 	"description": "Headless JavaScript consent management platform for cookie banners, privacy preferences, consent storage, and script gating.",
 	"keywords": [
 		"consent",
