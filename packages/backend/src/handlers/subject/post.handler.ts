@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 
-import type { PostSubjectInput } from '@c15t/schema';
+import { isLegalDocumentType, type PostSubjectInput } from '@c15t/schema';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { LegalDocumentPolicyConflictError } from '~/db/registry/consent-policy';
@@ -156,16 +156,6 @@ function parseLanguageFromHeader(header: string | null): string | undefined {
 	}
 
 	return firstLanguage.split('-')[0]?.toLowerCase();
-}
-
-function isLegalDocumentType(
-	type: string
-): type is 'privacy_policy' | 'terms_and_conditions' | 'dpa' {
-	return (
-		type === 'privacy_policy' ||
-		type === 'terms_and_conditions' ||
-		type === 'dpa'
-	);
 }
 
 function resolveSnapshotFailureMode(

@@ -11,6 +11,8 @@ export {
 export {
 	type ConsentPolicy,
 	consentPolicySchema,
+	isLegalDocumentType,
+	LEGAL_DOCUMENT_TYPE_PREFIXES,
 	type LegalDocumentPolicyType,
 	legalDocumentPolicyTypeSchema,
 	type PolicyType,
