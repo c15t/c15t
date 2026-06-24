@@ -9,15 +9,14 @@
 
 &nbsp;
 
-[![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
-[![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.link/discord)
-[![npm version](https://img.shields.io/npm/v/c15t?style=flat-square)](https://www.npmjs.com/package/c15t)
-[![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
-[![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
-[![skills.sh](https://skills.sh/b/c15t/skills)](https://skills.sh/c15t/skills)
+<p align="center">
+  <a href="https://www.npmjs.com/package/c15t"><img src="https://shieldcn.dev/npm/c15t.svg?variant=outline&size=xs" alt="Latest NPM Version"></a>
+  <a href="https://github.com/c15t/c15t"><img src="https://shieldcn.dev/github/c15t/c15t/stars.svg?variant=outline&size=xs" alt="Stars"></a>
+  <a href="https://github.com/c15t/c15t/blob/main/LICENSE.md"><img src="https://shieldcn.dev/github/c15t/c15t/license.svg?variant=outline&size=xs" alt="License"></a>
+  <a href="https://c15t.link/discord"><img src="https://shieldcn.dev/discord/1312171102268690493.svg?variant=outline&size=xs" alt="Discord"></a>
+  <a href="https://skills.sh/c15t/skills/c15t"><img src="https://shieldcn.dev/skills/c15t/skills/c15t.svg?variant=outline&size=xs" alt="Skills"></a>
+  <a href="https://inth.com?utm_source=github&utm_medium=repo_homepage"><img src="https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?size=xs&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&color=ffc803&labelTextColor=000000&valueColor=000000" alt="Made by Inth"></a>
+</p>
 
 c15t is a developer-first consent management platform (CMP) used by [2,100+ sites](https://www.wappalyzer.com/technologies/cookie-compliance/c15t/), including expo.dev, zed.dev, and unkey.dev. It helps JavaScript, React, and Next.js teams build cookie banners, preference centers, privacy preferences, and fully headless consent flows, with integrations for Google Tag Manager, Google Consent Mode v2, Meta Pixel, IAB TCF 2.3, and more.
 
@@ -63,16 +62,16 @@ Watch the Next.js Conf 2025 talk: [Why Your Consent Banner Should Be in Your Bun
 
 | Package | Description | Key Features | Version |
 |---------|-------------|--------------|---------|
-| `c15t` | Headless JavaScript consent management platform | Cookie consent, privacy preferences, local storage, SSR support, framework-agnostic APIs | [![npm](https://img.shields.io/npm/v/c15t?style=flat-square)](https://www.npmjs.com/package/c15t) |
-| `@c15t/react` | React cookie banner and consent manager | React 19/18/17/16.8, prebuilt UI, headless hooks, RSC-compatible, IAB subpath support | [![npm](https://img.shields.io/npm/v/@c15t/react?style=flat-square)](https://www.npmjs.com/package/@c15t/react) |
-| `@c15t/nextjs` | Next.js cookie banner and CMP integration | App Router, Pages Router, SSR, React Server Components, same-origin backend proxy support | [![npm](https://img.shields.io/npm/v/@c15t/nextjs?style=flat-square)](https://www.npmjs.com/package/@c15t/nextjs) |
-| `@c15t/translations` | Internationalization Support | Type-safe translation interfaces, Modular translation imports, Supports partial and complete translations, Defines translation types for consent components | [![npm](https://img.shields.io/npm/v/@c15t/translations?style=flat-square)](https://www.npmjs.com/package/@c15t/translations) |
-| `@c15t/scripts` | Consent-aware script integrations | Google Tag Manager, Google Consent Mode v2, GA4, Google Ads, Meta Pixel, PostHog, Intercom, and more. [See full list ->](./docs/integrations/overview.mdx) | [![npm](https://img.shields.io/npm/v/@c15t/scripts?style=flat-square)](https://www.npmjs.com/package/@c15t/scripts) |
-| `@c15t/iab` | IAB TCF 2.3 addon | TC String generation, GVL support, TCF APIs, vendor and purpose controls for programmatic ads | [![npm](https://img.shields.io/npm/v/@c15t/iab?style=flat-square)](https://www.npmjs.com/package/@c15t/iab) |
-| `@c15t/dev-tools` | Developer Tooling | Experimental developer utilities, React component library with utility tools, Radix UI and Tailwind CSS integration, State management and UI component helpers, Currently under active development | [![npm](https://img.shields.io/npm/v/@c15t/dev-tools?style=flat-square)](https://www.npmjs.com/package/@c15t/dev-tools) |
-| `@c15t/cli` | Command-line Interface | Configuration Generation, Database Migrations, Multi-Framework Support, Interactive Guided Workflows, GitHub Integration | [![npm](https://img.shields.io/npm/v/@c15t/cli?style=flat-square)](https://www.npmjs.com/package/@c15t/cli) |
-| `@c15t/backend` | Self-hosted consent backend | Policy engine, geolocation, server-side translation, audit logs, domain management, storage adapters | [![npm](https://img.shields.io/npm/v/@c15t/backend?style=flat-square)](https://www.npmjs.com/package/@c15t/backend) |
-| `@c15t/node-sdk` | Type-safe Node.js API client | Hosted and self-hosted API access, typed methods, dynamic base URLs, token auth, error handling | [![npm](https://img.shields.io/npm/v/@c15t/node-sdk?style=flat-square)](https://www.npmjs.com/package/@c15t/node-sdk) |
+| `c15t` | Headless JavaScript consent management platform | Cookie consent, privacy preferences, local storage, SSR support, framework-agnostic APIs | [![npm](https://shieldcn.dev/npm/c15t.svg?variant=outline&size=sm)](https://www.npmjs.com/package/c15t) |
+| `@c15t/react` | React cookie banner and consent manager | React 19/18/17/16.8, prebuilt UI, headless hooks, RSC-compatible, IAB subpath support | [![npm](https://shieldcn.dev/npm/@c15t/react.svg?variant=outline&size=sm)](https://www.npmjs.com/package/@c15t/react) |
+| `@c15t/nextjs` | Next.js cookie banner and CMP integration | App Router, Pages Router, SSR, React Server Components, same-origin backend proxy support | [![npm](https://shieldcn.dev/npm/@c15t/nextjs.svg?variant=outline&size=sm)](https://www.npmjs.com/package/@c15t/nextjs) |
+| `@c15t/translations` | Internationalization Support | Type-safe translation interfaces, Modular translation imports, Supports partial and complete translations, Defines translation types for consent components | [![npm](https://shieldcn.dev/npm/@c15t/translations.svg?variant=outline&size=sm)](https://www.npmjs.com/package/@c15t/translations) |
+| `@c15t/scripts` | Consent-aware script integrations | Google Tag Manager, Google Consent Mode v2, GA4, Google Ads, Meta Pixel, PostHog, Intercom, and more. [See full list ->](./docs/integrations/overview.mdx) | [![npm](https://shieldcn.dev/npm/@c15t/scripts.svg?variant=outline&size=sm)](https://www.npmjs.com/package/@c15t/scripts) |
+| `@c15t/iab` | IAB TCF 2.3 addon | TC String generation, GVL support, TCF APIs, vendor and purpose controls for programmatic ads | [![npm](https://shieldcn.dev/npm/@c15t/iab.svg?variant=outline&size=sm)](https://www.npmjs.com/package/@c15t/iab) |
+| `@c15t/dev-tools` | Developer Tooling | Experimental developer utilities, React component library with utility tools, Radix UI and Tailwind CSS integration, State management and UI component helpers, Currently under active development | [![npm](https://shieldcn.dev/npm/@c15t/dev-tools.svg?variant=outline&size=sm)](https://www.npmjs.com/package/@c15t/dev-tools) |
+| `@c15t/cli` | Command-line Interface | Configuration Generation, Database Migrations, Multi-Framework Support, Interactive Guided Workflows, GitHub Integration | [![npm](https://shieldcn.dev/npm/@c15t/cli.svg?variant=outline&size=sm)](https://www.npmjs.com/package/@c15t/cli) |
+| `@c15t/backend` | Self-hosted consent backend | Policy engine, geolocation, server-side translation, audit logs, domain management, storage adapters | [![npm](https://shieldcn.dev/npm/@c15t/backend.svg?variant=outline&size=sm)](https://www.npmjs.com/package/@c15t/backend) |
+| `@c15t/node-sdk` | Type-safe Node.js API client | Hosted and self-hosted API access, typed methods, dynamic base URLs, token auth, error handling | [![npm](https://shieldcn.dev/npm/@c15t/node-sdk.svg?variant=outline&size=sm)](https://www.npmjs.com/package/@c15t/node-sdk) |
 
 ## Documentation
 
