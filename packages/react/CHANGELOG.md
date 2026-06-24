@@ -1,5 +1,12 @@
 # @c15t/react
 
+## 2.1.1-canary-20260624181535
+
+### Patch Changes
+
+- c15t@2.1.1-canary-20260624181535
+- @c15t/ui@2.1.1-canary-20260624181535
+
 ## 2.1.0
 
 ### Minor Changes
