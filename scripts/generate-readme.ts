@@ -87,6 +87,22 @@ const INTH_BADGE_QUERY = new URLSearchParams({
 	valueColor: '000000',
 }).toString();
 
+const withBadgeMode = (url: string, mode: 'light' | 'dark') => {
+	const separator = url.includes('?') ? '&' : '?';
+	return `${url}${separator}mode=${mode}`;
+};
+
+const renderThemeAwareBadge = ({
+	alt,
+	href,
+	src,
+}: {
+	alt: string;
+	href: string;
+	src: string;
+}) =>
+	`<a href="${href}"><picture><source media="(prefers-color-scheme: dark)" srcset="${withBadgeMode(src, 'dark')}"><img src="${withBadgeMode(src, 'light')}" alt="${alt}"></picture></a>`;
+
 // Modify the renderNumberedWithCodeBlocks function to add blank lines around code blocks and lists
 const renderNumberedWithCodeBlocks = (items: string[]) => {
 	let i = 1;
@@ -146,6 +162,40 @@ const baseReadmeTemplate = (rawConfig: PackageReadmeConfig) => {
 	const npmBadgeName = encodeNpmName(config.packageName);
 	const npmPackageLink = `https://www.npmjs.com/package/${config.packageName}`;
 	const madeByInthBadgeUrl = `https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?${INTH_BADGE_QUERY}`;
+	const badgeBlock = `<p>
+${[
+	renderThemeAwareBadge({
+		alt: 'Latest NPM Version',
+		href: npmPackageLink,
+		src: `https://shieldcn.dev/npm/${npmBadgeName}.svg?variant=outline`,
+	}),
+	renderThemeAwareBadge({
+		alt: 'Stars',
+		href: 'https://github.com/c15t/c15t',
+		src: 'https://shieldcn.dev/github/c15t/c15t/stars.svg?variant=outline',
+	}),
+	renderThemeAwareBadge({
+		alt: 'License',
+		href: 'https://github.com/c15t/c15t/blob/main/LICENSE.md',
+		src: 'https://shieldcn.dev/github/c15t/c15t/license.svg?variant=outline',
+	}),
+	renderThemeAwareBadge({
+		alt: 'Discord',
+		href: 'https://c15t.link/discord',
+		src: 'https://shieldcn.dev/discord/1312171102268690493.svg?variant=outline',
+	}),
+	renderThemeAwareBadge({
+		alt: 'Skills',
+		href: 'https://skills.sh/c15t/skills/c15t',
+		src: 'https://shieldcn.dev/skills/c15t/skills/c15t.svg?variant=outline',
+	}),
+	renderThemeAwareBadge({
+		alt: 'Made by Inth',
+		href: `https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=${npmBadgeName}`,
+		src: madeByInthBadgeUrl,
+	}),
+].join('\n')}
+</p>`;
 
 	// Build sections
 	const bannerBlock = `<p align="center">
@@ -159,12 +209,7 @@ const baseReadmeTemplate = (rawConfig: PackageReadmeConfig) => {
 
 # ${config.title}
 
-[![Latest NPM Version](https://shieldcn.dev/npm/${npmBadgeName}.svg?variant=outline)](${npmPackageLink})
-[![Stars](https://shieldcn.dev/github/c15t/c15t/stars.svg?variant=outline)](https://github.com/c15t/c15t)
-[![License](https://shieldcn.dev/github/c15t/c15t/license.svg?variant=outline)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
-[![Discord](https://shieldcn.dev/discord/1312171102268690493.svg?variant=outline)](https://c15t.link/discord)
-[![Skills](https://shieldcn.dev/skills/c15t/skills/c15t.svg?variant=outline)](https://skills.sh/c15t/skills/c15t)
-[![Made by Inth](${madeByInthBadgeUrl})](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=${npmBadgeName})`;
+${badgeBlock}`;
 
 	let featuresBlock = '';
 	if (config.features && config.features.length > 0) {
