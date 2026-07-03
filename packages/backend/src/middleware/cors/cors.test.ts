@@ -58,6 +58,45 @@ describe('createCORSOptions (unit)', () => {
 		});
 	});
 
+	describe('wildcard subdomains', () => {
+		it('allows apex, www, and wildcard subdomains when apex and wildcard are configured', async () => {
+			const config = createCORSOptions([
+				'https://example.com',
+				'https://*.example.com',
+			]);
+
+			expect(await callOrigin(config.origin, 'https://example.com')).toBe(
+				'https://example.com'
+			);
+			expect(await callOrigin(config.origin, 'https://www.example.com')).toBe(
+				'https://www.example.com'
+			);
+			expect(await callOrigin(config.origin, 'https://app.example.com')).toBe(
+				'https://app.example.com'
+			);
+		});
+
+		it('does not allow apex domains from wildcard-only configuration', async () => {
+			const config = createCORSOptions(['https://*.example.com']);
+
+			expect(await callOrigin(config.origin, 'https://example.com')).toBeNull();
+			expect(await callOrigin(config.origin, 'https://app.example.com')).toBe(
+				'https://app.example.com'
+			);
+		});
+
+		it('rejects similar domains that are not subdomains', async () => {
+			const config = createCORSOptions(['https://*.example.com']);
+
+			expect(
+				await callOrigin(config.origin, 'https://badexample.com')
+			).toBeNull();
+			expect(
+				await callOrigin(config.origin, 'https://example.com.evil.com')
+			).toBeNull();
+		});
+	});
+
 	describe('specific origins', () => {
 		it('allows trusted origin and rejects untrusted', async () => {
 			const config = createCORSOptions(['http://localhost:3002']);

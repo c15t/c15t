@@ -24,7 +24,7 @@ jobs:
       packages: ${{ steps.changes.outputs.packages }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 0
 
@@ -83,21 +83,17 @@ jobs:
         package: ${{ fromJson(needs.detect-changed-packages.outputs.packages) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 0
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
         with:
-          bun-version: latest
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
+          bun-version: 1.3.11
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
           registry-url: 'https://registry.npmjs.org'
@@ -127,4 +123,4 @@ jobs:
           echo "::notice title=Version::$VERSION"
 
       - name: Publish to pkg.pr.new
-        run: bunx pkg-pr-new publish --compact './packages/${{ matrix.package }}' --no-template --packageManager=bun --bun
+        run: bunx pkg-pr-new@0.0.66 publish --compact './packages/${{ matrix.package }}' --no-template --packageManager=bun --bun

@@ -27,6 +27,8 @@ const outputDir =
 const iterations = Number(process.env.BENCH_ITERATIONS ?? '7');
 const warmupIterations = Number(process.env.BENCH_WARMUP_ITERATIONS ?? '1');
 const initPrefix = `${BASE_URL}/api/bench-consent/init`;
+const expectedServerShutdownCodes = new Set([0, 137, 143]);
+const expectedServerShutdownSignals = new Set(['SIGTERM', 'SIGKILL']);
 
 const scenarios = [
 	{ name: 'client', path: '/client' },
@@ -262,6 +264,7 @@ async function run() {
 		logs += String(chunk);
 	});
 
+	let serverFailure: Error | null = null;
 	try {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
@@ -422,9 +425,26 @@ async function run() {
 		if (!server.killed) {
 			server.kill('SIGKILL');
 		}
-		if (server.exitCode && server.exitCode !== 0) {
-			throw new Error(logs || 'Next.js browser bench server failed');
+		if (
+			server.exitCode != null &&
+			!expectedServerShutdownCodes.has(server.exitCode)
+		) {
+			serverFailure = new Error(
+				`${logs || 'Next.js browser bench server failed'}\nUnexpected server exit code: ${server.exitCode}`
+			);
+		} else if (
+			server.exitCode == null &&
+			server.signalCode != null &&
+			!expectedServerShutdownSignals.has(server.signalCode)
+		) {
+			serverFailure = new Error(
+				`${logs || 'Next.js browser bench server failed'}\nUnexpected server signal: ${server.signalCode}`
+			);
 		}
+	}
+
+	if (serverFailure) {
+		throw serverFailure;
 	}
 }
 

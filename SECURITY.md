@@ -74,7 +74,7 @@ We believe in recognizing responsible security researchers. Depending on the sev
 ## 📞 Contact
 
 For any security-related concerns, please contact:
-- **Security Team**: [security@consent.io](mailto:security@consent.io)
+- **Security Team**: [security@inth.com](mailto:security@inth.com)
 - **PGP Key**: Available upon request for encrypted communication
 
 ## 📜 Legal

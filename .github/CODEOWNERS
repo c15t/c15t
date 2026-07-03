@@ -1,2 +1,7 @@
-* @burnedchris
+* @burnedchris @KayleeWilliams
 
+# GitHub workflow code executes with repository credentials and requires
+# explicit review from the repository owner.
+.github/ @burnedchris @KayleeWilliams
+.github/workflows/ @burnedchris @KayleeWilliams
+.github/actions/ @burnedchris @KayleeWilliams

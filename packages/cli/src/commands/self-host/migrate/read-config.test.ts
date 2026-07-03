@@ -9,8 +9,8 @@ vi.mock('c12', () => ({
 	})),
 }));
 
-vi.mock('@c15t/backend/db/schema', async (importOriginal) => {
-	const actual = await (importOriginal() as Promise<Record<string, unknown>>);
+vi.mock('@c15t/backend/db/schema', async () => {
+	const actual = await import('../../../../../backend/src/db/schema');
 
 	type Factory = {
 		client: ReturnType<typeof vi.fn>;

@@ -1,0 +1,10 @@
+rules:
+  dangerous-triggers:
+    ignore:
+      # These workflow_run jobs are intentionally privileged comment writers.
+      # They download named artifacts, validate the PR number against the
+      # triggering workflow_run metadata, and do not execute PR-controlled code.
+      - benchmark-comment.yml:3
+      - bundle-analysis-comment.yml:6
+      - ci-coverage.yml:3
+      - coverage-report.yml:3

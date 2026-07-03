@@ -59,13 +59,45 @@ describe('CORS utilities', () => {
 			expect(isOriginTrusted('wss://example.com', trustedDomains)).toBe(true);
 		});
 
-		it('should handle ports in origins', () => {
+		it('should handle ports in origins when the trusted domain is host-only', () => {
 			const trustedDomains = ['example.com'];
 			expect(isOriginTrusted('https://example.com:3000', trustedDomains)).toBe(
 				true
 			);
 			expect(isOriginTrusted('http://example.com:8080', trustedDomains)).toBe(
 				true
+			);
+		});
+
+		it('should scope origins to explicit trusted ports', () => {
+			expect(isOriginTrusted('http://localhost:3000', ['localhost:3000'])).toBe(
+				true
+			);
+			expect(isOriginTrusted('http://localhost:5173', ['localhost:3000'])).toBe(
+				false
+			);
+			expect(
+				isOriginTrusted('https://api.example.com:8443', ['*.example.com:8443'])
+			).toBe(true);
+			expect(
+				isOriginTrusted('https://api.example.com:9443', ['*.example.com:8443'])
+			).toBe(false);
+		});
+
+		it('should honor explicitly configured default ports', () => {
+			// :443 is the https default, but writing it should still scope the port
+			expect(isOriginTrusted('https://example.com', ['example.com:443'])).toBe(
+				true
+			);
+			expect(
+				isOriginTrusted('https://example.com:8443', ['example.com:443'])
+			).toBe(false);
+			// :80 written without a protocol must still match an http origin
+			expect(isOriginTrusted('http://example.com', ['example.com:80'])).toBe(
+				true
+			);
+			expect(isOriginTrusted('https://example.com', ['example.com:80'])).toBe(
+				false
 			);
 		});
 
@@ -86,6 +118,15 @@ describe('CORS utilities', () => {
 			const trustedDomains = ['EXAMPLE.com'];
 			expect(isOriginTrusted('https://example.com', trustedDomains)).toBe(true);
 			expect(isOriginTrusted('https://EXAMPLE.COM', trustedDomains)).toBe(true);
+		});
+
+		it('should allow www and non-www exact domain variants', () => {
+			expect(isOriginTrusted('https://www.example.com', ['example.com'])).toBe(
+				true
+			);
+			expect(isOriginTrusted('https://example.com', ['www.example.com'])).toBe(
+				true
+			);
 		});
 
 		it('should handle subdomain levels with wildcards', () => {

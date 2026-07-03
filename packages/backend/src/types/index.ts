@@ -5,8 +5,6 @@ import {
 	type GlobalVendorList,
 	type NonIABVendor,
 	type PolicyConfig,
-	/** @deprecated Use `PolicyConfig[]` instead */
-	type PolicyPack,
 } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
 import type { Meter, Tracer } from '@opentelemetry/api';
@@ -14,7 +12,6 @@ import type { FumaDB, InferFumaDB } from 'fumadb';
 import type { CacheAdapter } from '../cache/types';
 import type { createRegistry } from '../db/registry';
 import type { DB, LatestDB, NamingOptions } from '../db/schema';
-import type { JurisdictionCode } from './api';
 
 export * from './api';
 
@@ -219,7 +216,7 @@ export interface IABOptions {
 
 	/**
 	 * Override the default GVL endpoint.
-	 * @default 'https://gvl.consent.io'
+	 * @default 'https://gvl.inth.app'
 	 */
 	endpoint?: string;
 

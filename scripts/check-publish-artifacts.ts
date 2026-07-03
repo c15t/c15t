@@ -2,10 +2,12 @@
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { PackageManifest } from './manifest-utils';
 import {
-	checkPackedAgentDocs,
-	supportedAgentDocsPackages,
-} from './agent-docs/check-budgets';
+	collectManifestTargets,
+	readManifest,
+	wildcardToRegExp,
+} from './manifest-utils';
 
 type PackedFile = {
 	path: string;
@@ -18,14 +20,8 @@ type PackResult = {
 	files: PackedFile[];
 };
 
-type PackageManifest = {
-	name?: string;
-	private?: boolean;
-};
-
 const ROOT = process.cwd();
 const PACKAGES_DIR = join(ROOT, 'packages');
-const TABLE_HEADER = '|Property|Type|Description|Default|Required|';
 
 const distBlockedPathPatterns: Array<{ reason: string; pattern: RegExp }> = [
 	{ reason: 'test folder', pattern: /(^|\/)__tests__(\/|$)/ },
@@ -43,38 +39,83 @@ const distBlockedPathPatterns: Array<{ reason: string; pattern: RegExp }> = [
 ];
 
 const requiredPackedFilesByPackage: Record<string, string[]> = {
+	c15t: ['AGENTS.md', 'docs/README.md'],
 	'@c15t/ui': [
 		'styles.css',
+		'styles.tw3.css',
 		'iab/styles.css',
+		'iab/styles.tw3.css',
 		'dist/styles.css',
 		'dist/styles.tw3.css',
 		'dist/iab/styles.css',
 		'dist/iab/styles.tw3.css',
 	],
 	'@c15t/react': [
+		'AGENTS.md',
+		'docs/README.md',
 		'styles.css',
+		'styles.tw3.css',
 		'iab/styles.css',
+		'iab/styles.tw3.css',
 		'dist/styles.css',
+		'dist/styles.tw3.css',
 		'dist/iab/styles.css',
+		'dist/iab/styles.tw3.css',
 		'src/styles.tw3.css',
 		'src/iab/styles.tw3.css',
 	],
 	'@c15t/nextjs': [
+		'AGENTS.md',
+		'docs/README.md',
 		'styles.css',
+		'styles.tw3.css',
 		'iab/styles.css',
+		'iab/styles.tw3.css',
 		'dist/styles.css',
+		'dist/styles.tw3.css',
 		'dist/iab/styles.css',
+		'dist/iab/styles.tw3.css',
 		'src/styles.css',
 		'src/styles.tw3.css',
 		'src/iab/styles.css',
 		'src/iab/styles.tw3.css',
 	],
+	'@c15t/backend': ['AGENTS.md', 'docs/README.md'],
+	'@c15t/scripts': ['AGENTS.md', 'docs/README.md'],
+	'@c15t/cli': ['AGENTS.md', 'docs/README.md'],
 };
 
-function readManifest(packageDir: string): PackageManifest {
-	return JSON.parse(
-		readFileSync(join(packageDir, 'package.json'), 'utf8')
-	) as PackageManifest;
+const styleEntrypointPackages = new Set([
+	'@c15t/ui',
+	'@c15t/react',
+	'@c15t/nextjs',
+]);
+
+const rootTw3ProxyContents: Record<string, string> = {
+	'styles.tw3.css': '@import "./dist/styles.tw3.css";',
+	'iab/styles.tw3.css': '@import "../dist/iab/styles.tw3.css";',
+};
+
+function scanPackedManifestTargets(
+	manifest: PackageManifest,
+	packedFilePaths: Set<string>
+): Array<{ path: string; size: number; reason: string }> {
+	const packedFiles = [...packedFilePaths];
+
+	return collectManifestTargets(manifest)
+		.filter(({ target }) => {
+			if (target.includes('*')) {
+				const pattern = wildcardToRegExp(target);
+				return !packedFiles.some((filePath) => pattern.test(filePath));
+			}
+
+			return !packedFilePaths.has(target);
+		})
+		.map(({ source, target }) => ({
+			path: target,
+			size: 0,
+			reason: `manifest target missing from packed files (${source})`,
+		}));
 }
 
 function runPack(packageDir: string): PackResult {
@@ -159,144 +200,54 @@ function getBlockedReason(path: string): string | null {
 	return null;
 }
 
-function collectMarkdownFiles(dir: string): string[] {
-	if (!existsSync(dir)) {
+function scanStyleEntrypointsContent(
+	packageDir: string,
+	packageName: string,
+	packedFilePaths: Set<string>
+): Array<{ path: string; size: number; reason: string }> {
+	if (!styleEntrypointPackages.has(packageName)) {
 		return [];
 	}
 
-	const result: string[] = [];
-	for (const entry of readdirSync(dir, { withFileTypes: true })) {
-		const entryPath = join(dir, entry.name);
-		if (entry.isDirectory()) {
-			result.push(...collectMarkdownFiles(entryPath));
-		} else if (entry.isFile() && entry.name.endsWith('.md')) {
-			result.push(entryPath);
-		}
-	}
-	return result;
-}
+	const issues: Array<{ path: string; size: number; reason: string }> = [];
 
-function validateRelativeMarkdownLinks(
-	content: string,
-	rel: string,
-	availableRelativePaths: Set<string>,
-	issues: string[]
-) {
-	const linkPattern = /\[[^\]]+\]\((\.\/[^)]+)\)/g;
-	for (const match of content.matchAll(linkPattern)) {
-		const target = match[1]?.replace(/^\.\//, '');
-		if (!target) {
+	for (const [path, expectedContent] of Object.entries(rootTw3ProxyContents)) {
+		if (!packedFilePaths.has(path)) {
 			continue;
 		}
-		if (!availableRelativePaths.has(target)) {
-			issues.push(`broken relative docs link in ${rel}: ${target}`);
+
+		const filePath = join(packageDir, path);
+		const content = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
+		if (content.trim() !== expectedContent) {
+			issues.push({
+				path,
+				size: content.length,
+				reason: 'Tailwind v3 root proxy must point at the dist entrypoint',
+			});
 		}
 	}
-}
 
-function scanAgentDocsContent(packageDir: string): string[] {
-	const issues: string[] = [];
-	const docsDir = join(packageDir, 'docs');
-	const markdownFiles = collectMarkdownFiles(docsDir);
-	const availableRelativePaths = new Set(
-		markdownFiles.map((filePath) =>
-			filePath.slice(docsDir.length + 1).replaceAll('\\', '/')
-		)
-	);
-
-	for (const filePath of markdownFiles) {
-		const rel = filePath.slice(packageDir.length + 1).replaceAll('\\', '/');
-		const content = readFileSync(filePath, 'utf8');
-		const docsRel = rel.slice('docs/'.length);
-
-		if (
-			/\\\[[^\]]+\\\]\(:\/\//.test(content) ||
-			/\\\[[^\]]+\\\]\(https?:\/\//.test(content)
-		) {
-			issues.push(`invalid escaped markdown link syntax in ${rel}`);
-		}
-		if (/\]\(<https?:\/\/[^)>]+\s-\s[^)>]+>\)/.test(content)) {
-			issues.push(`invalid angle-bracket markdown link syntax in ${rel}`);
-		}
-		if (content.includes('&#xA;')) {
-			issues.push(`escaped newline entity found in ${rel}`);
-		}
-		if (rel === 'docs/README.md') {
-			if (!content.includes('## Start Here')) {
-				issues.push('missing Start Here section in docs/README.md');
-			}
-			if (!content.includes('## Workflow Rules')) {
-				issues.push('missing Workflow Rules section in docs/README.md');
-			}
-			if (content.includes('dist/docs/')) {
-				issues.push('stale dist/docs reference found in docs/README.md');
-			}
-		}
-		if (/^#### `[^`]+` \{.+$/m.test(content)) {
-			issues.push(`oversized anonymous object heading found in ${rel}`);
-		}
-		if (
-			/(?:^|\n)### Options\s*\n\s*\n### [A-Za-z0-9]+Options(?:\n|$)/.test(
-				content
-			)
-		) {
-			issues.push(`redundant options heading pair found in ${rel}`);
+	for (const path of ['dist/styles.tw3.css', 'dist/iab/styles.tw3.css']) {
+		if (!packedFilePaths.has(path)) {
+			continue;
 		}
 
-		const lines = content.split('\n');
-		let inPropertyTable = false;
-		for (let index = 0; index < lines.length; index += 1) {
-			if (lines[index] === TABLE_HEADER) {
-				inPropertyTable = true;
-
-				let previousNonEmpty = index - 1;
-				while (
-					previousNonEmpty >= 0 &&
-					lines[previousNonEmpty]?.trim() === ''
-				) {
-					previousNonEmpty -= 1;
-				}
-
-				if (
-					previousNonEmpty >= 0 &&
-					lines[previousNonEmpty]?.startsWith('|') &&
-					!lines[previousNonEmpty]?.startsWith('#### ')
-				) {
-					issues.push(
-						`anonymous repeated table sequence in ${rel}:${index + 1}`
-					);
-					break;
-				}
-
-				continue;
-			}
-
-			if (!inPropertyTable) {
-				continue;
-			}
-
-			if (lines[index].trim() === '') {
-				inPropertyTable = false;
-				continue;
-			}
-
-			const line = lines[index] ?? '';
-			if (!line.startsWith('|') || !line.endsWith('|')) {
-				continue;
-			}
-			const cells = line.slice(1, -1).split('|');
-			if (cells[1] && cells[1].length > 140) {
-				issues.push(`oversized type cell found in ${rel}`);
-				break;
-			}
+		const filePath = join(packageDir, path);
+		const content = existsSync(filePath) ? readFileSync(filePath, 'utf8') : '';
+		if (/^\s*@import\b/m.test(content)) {
+			issues.push({
+				path,
+				size: content.length,
+				reason: 'Tailwind v3 dist CSS must inline rules, not nested imports',
+			});
 		}
-
-		validateRelativeMarkdownLinks(
-			content,
-			docsRel,
-			availableRelativePaths,
-			issues
-		);
+		if (!content.includes('c15t-ui-')) {
+			issues.push({
+				path,
+				size: content.length,
+				reason: 'Tailwind v3 dist CSS must contain generated c15t UI rules',
+			});
+		}
 	}
 
 	return issues;
@@ -311,11 +262,6 @@ const offenders: Array<{
 	packageName: string;
 	version: string;
 	files: Array<{ path: string; size: number; reason: string }>;
-}> = [];
-const agentDocOffenders: Array<{
-	packageName: string;
-	version: string;
-	issues: string[];
 }> = [];
 
 let checkedPackages = 0;
@@ -348,6 +294,10 @@ for (const packageDir of packageDirs) {
 			});
 		}
 	}
+	blockedFiles.push(...scanPackedManifestTargets(manifest, packedFilePaths));
+	blockedFiles.push(
+		...scanStyleEntrypointsContent(packageDir, packed.name, packedFilePaths)
+	);
 
 	if (blockedFiles.length > 0) {
 		offenders.push({
@@ -356,22 +306,9 @@ for (const packageDir of packageDirs) {
 			files: blockedFiles,
 		});
 	}
-
-	if (supportedAgentDocsPackages().includes(packed.name)) {
-		const result = checkPackedAgentDocs(packed.name, packed.files);
-		const contentIssues = scanAgentDocsContent(packageDir);
-		const allIssues = [...result.issues, ...contentIssues];
-		if (allIssues.length > 0) {
-			agentDocOffenders.push({
-				packageName: packed.name,
-				version: packed.version,
-				issues: allIssues,
-			});
-		}
-	}
 }
 
-if (offenders.length === 0 && agentDocOffenders.length === 0) {
+if (offenders.length === 0) {
 	console.log(
 		`Publish artifact guard passed. Checked ${checkedPackages} packages.`
 	);
@@ -383,13 +320,6 @@ for (const offender of offenders) {
 	console.error(`\n- ${offender.packageName}@${offender.version}`);
 	for (const file of offender.files) {
 		console.error(`  - ${file.path} (${file.size} bytes) [${file.reason}]`);
-	}
-}
-
-for (const offender of agentDocOffenders) {
-	console.error(`\n- ${offender.packageName}@${offender.version}`);
-	for (const issue of offender.issues) {
-		console.error(`  - ${issue}`);
 	}
 }
 

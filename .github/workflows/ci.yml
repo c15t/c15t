@@ -9,8 +9,8 @@ on:
 env:
   # Do not pass Turbo remote-cache creds when running untrusted PR code (same-repo
   # PRs still execute arbitrary branch code). Fork PRs already omit repo secrets.
-  TURBO_TOKEN: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TOKEN }}
-  TURBO_TEAM: ${{ github.event_name == 'pull_request' && '' || secrets.TURBO_TEAM }}
+  TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+  TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
 
 jobs:
   lint_and_check:
@@ -22,14 +22,15 @@ jobs:
       pull-requests: write # Needed for reviewdog github-pr-review reporter (optional)
     steps:
       - name: ⬇️ Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 2
+          persist-credentials: false
 
       - name: 🟢 Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
         with:
-          bun-version: latest
+          bun-version: 1.3.11
 
       - name: 📦 Install dependencies
         run: bun install --frozen-lockfile
@@ -38,7 +39,7 @@ jobs:
         run: bun turbo run check-types
 
       - name: 🧹 Run Biome with Reviewdog
-        uses: mongolyy/reviewdog-action-biome@v2.1.0
+        uses: mongolyy/reviewdog-action-biome@0b1d65ada95594f01240e84f09ba7b8723e5ff7d
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-check # Report results as checks
@@ -51,14 +52,15 @@ jobs:
       contents: read # Needed for checkout
     steps:
       - name: ⬇️ Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 2
+          persist-credentials: false
 
       - name: 🟢 Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
         with:
-          bun-version: latest
+          bun-version: 1.3.11
 
       - name: 📦 Install dependencies
         run: bun install --frozen-lockfile
@@ -74,21 +76,22 @@ jobs:
       contents: read # Needed for checkout
     steps:
       - name: ⬇️ Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           fetch-depth: 2
+          persist-credentials: false
 
       - name: 🟢 Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
         with:
-          bun-version: latest
+          bun-version: 1.3.11
 
       - name: 📦 Install dependencies
         run: bun install --frozen-lockfile
 
       - name: 🎭 Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ~/.cache/ms-playwright
           key: playwright-browsers-${{ runner.os }}-${{ hashFiles('**/bun.lockb') }}
@@ -97,13 +100,13 @@ jobs:
 
       - name: 🎭 Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: bunx playwright install
+        run: bunx playwright@1.58.2 install
 
       - name: 🧪 Run Tests
         run: bun turbo run test --filter="./packages/*"
 
       - name: ⬆️ Upload Individual Coverage Reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: individual-coverage-data # Artifact containing all raw reports
           path: |

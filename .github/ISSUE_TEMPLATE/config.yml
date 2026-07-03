@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Report a security vulnerability
-    url: mailto:security@consent.io
-    about: Please email security@consent.io instead of opening a public issue.
+    url: mailto:security@inth.com
+    about: Please email security@inth.com instead of opening a public issue.
   - name: Report a Code of Conduct violation
     url: mailto:conduct@c15t.dev
     about: Conduct reports are handled privately. Please email conduct@c15t.dev.

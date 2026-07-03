@@ -1,6 +1,7 @@
 ---
 title: Edge Deployment
 description: Run consent policy resolution at the edge for faster initial banner loads.
+group: self-host
 ---
 
 The `/init` endpoint determines consent policy from geo headers, resolves translations, and optionally fetches the GVL. None of this requires a database. The `@c15t/backend/edge` export lets you run this logic in edge runtimes (Vercel Middleware, Cloudflare Workers, Deno Deploy) so the consent banner resolves from the nearest PoP instead of round-tripping to your origin.

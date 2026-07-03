@@ -47,7 +47,7 @@ export const SCRIPT_OPTIONS = [
 		category: 'analytics',
 	},
 	{
-		value: 'clarity',
+		value: 'microsoft-clarity',
 		label: 'Microsoft Clarity',
 		hint: 'Session replay',
 		category: 'analytics',
@@ -175,11 +175,11 @@ export function generateScriptConfig(scripts: ScriptId[]): string {
 			purpose: 'analytics',
 			src: 'https://static.hotjar.com/c/hotjar-XXXXX.js',
 		}`;
-			case 'clarity':
+			case 'microsoft-clarity':
 				return `
 		// Microsoft Clarity
 		{
-			id: 'clarity',
+			id: 'microsoft-clarity',
 			name: 'Microsoft Clarity',
 			purpose: 'analytics',
 			src: 'https://www.clarity.ms/tag/XXXXX',

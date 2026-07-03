@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/backend",
-	"version": "2.0.0",
-	"description": "Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preferences centre. Webhooks, audit logs, storage adapters. Self host or use consent.io",
+	"version": "2.1.0",
+	"description": "Self-hostable consent management backend for c15t with policy resolution, audit logs, geolocation, and storage adapters.",
 	"keywords": [
 		"consent",
 		"privacy",
@@ -10,6 +10,8 @@
 		"lgpd",
 		"backend",
 		"self-host",
+		"self-hosted-cmp",
+		"consent-backend",
 		"consent-management",
 		"user-privacy",
 		"compliance",
@@ -19,7 +21,10 @@
 		"cmp",
 		"consent-banner"
 	],
-	"homepage": "https://c15t.com/docs/self-host/v2",
+	"homepage": "https://c15t.com/docs/self-host/quickstart",
+	"bugs": {
+		"url": "https://github.com/c15t/c15t/issues"
+	},
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
@@ -105,19 +110,20 @@
 	"files": [
 		"dist",
 		"dist-types",
+		"AGENTS.md",
 		"docs",
 		"README.md"
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/backend",
-		"build:agent-docs": "bun ../../scripts/agent-docs/generate-package-docs.ts @c15t/backend",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/backend",
+		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/backend",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"knip": "knip",
 		"lint": "bun biome lint ./src",
-		"prepack": "bun run build",
+		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
 		"start": "node dist/server.cjs",
 		"test": "bun prebuild && vitest run",
 		"test:watch": "bun prebuild && vitest"
@@ -133,9 +139,9 @@
 		"@scalar/hono-api-reference": "0.10.5",
 		"@valibot/to-json-schema": "1.6.0",
 		"base-x": "5.0.1",
-		"defu": "6.1.4",
+		"defu": "6.1.5",
 		"fumadb": "0.2.2",
-		"hono": "4.12.9",
+		"hono": "4.12.14",
 		"hono-openapi": "1.3.0",
 		"jose": "6.2.2",
 		"valibot": "1.3.1"

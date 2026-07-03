@@ -46,7 +46,7 @@ function updateIABState(
  *
  * This function:
  * 1. Initializes the IAB stub immediately (queues __tcfapi calls)
- * 2. Uses prefetched GVL if available, otherwise fetches from consent.io
+ * 2. Uses prefetched GVL if available, otherwise fetches from gvl.inth.app
  * 3. Initializes the CMP API
  * 4. Loads existing TC String from storage if available
  *
@@ -90,7 +90,7 @@ export async function initializeIABMode(
 		if (prefetchedGVL) {
 			gvl = prefetchedGVL;
 		} else {
-			// Fetch GVL from consent.io (no client-side filtering - GVL is source of truth)
+			// Fetch GVL from gvl.inth.app (no client-side filtering - GVL is source of truth)
 			// Backend may still filter vendorIds if configured
 			gvl = await fetchGVL();
 
@@ -171,7 +171,7 @@ export async function initializeIABMode(
 		if (effectiveCmpId === 0) {
 			throw new Error(
 				'[c15t] IAB TCF Error: CMP ID is 0. A valid CMP ID registered with IAB Europe is required for IAB TCF compliance.\n' +
-					'If using consent.io, the CMP ID should be provided automatically via /init.\n' +
+					'If using inth.com, the CMP ID should be provided automatically via /init.\n' +
 					'If self-hosting, configure it on the backend via `advanced.iab.cmpId` or on the client via `iab.cmpId`.\n' +
 					'To register your own CMP: https://iabeurope.eu/tcf-for-cmps/'
 			);

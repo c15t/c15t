@@ -11,9 +11,19 @@ import * as v from 'valibot';
  */
 export const checkConsentQuerySchema = v.object({
 	/** External user ID to check */
-	externalId: v.string(),
+	externalId: v.pipe(
+		v.string(),
+		v.description('External user ID from your authentication system.'),
+		v.examples(['user_123'])
+	),
 	/** Consent type(s) to check, comma-separated */
-	type: v.string(),
+	type: v.pipe(
+		v.string(),
+		v.description(
+			'Consent policy type or comma-separated policy types to check.'
+		),
+		v.examples(['cookie_banner', 'privacy_policy,cookie_banner'])
+	),
 });
 
 /**

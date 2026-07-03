@@ -113,6 +113,7 @@ export {
 	isScriptLoaded,
 	loadScripts,
 	type Script,
+	type ScriptCallbackInfo,
 	type ScriptDebugAction,
 	type ScriptDebugEvent,
 	type ScriptDebugEventInput,

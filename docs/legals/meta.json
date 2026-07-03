@@ -1,9 +1,0 @@
-{
-	"title": "Legals",
-	"nav": {
-		"sidebar": "combined",
-		"label": "Legal"
-	},
-	"root": false,
-	"pages": ["cookie-policy", "privacy-policy"]
-}

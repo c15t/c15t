@@ -25,6 +25,8 @@ const outputDir =
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/browser-runtime/react';
 const iterations = Number(process.env.BENCH_ITERATIONS ?? '7');
 const warmupIterations = Number(process.env.BENCH_WARMUP_ITERATIONS ?? '1');
+const expectedServerShutdownCodes = new Set([0, 137, 143]);
+const expectedServerShutdownSignals = new Set(['SIGTERM', 'SIGKILL']);
 
 const scenarios = [
 	{ name: 'full-ui', path: '/full-ui' },
@@ -255,6 +257,7 @@ async function run() {
 		logs += String(chunk);
 	});
 
+	let serverFailure: Error | null = null;
 	try {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
@@ -419,9 +422,26 @@ async function run() {
 		if (!server.killed) {
 			server.kill('SIGKILL');
 		}
-		if (server.exitCode && server.exitCode !== 0) {
-			throw new Error(logs || 'React browser bench server failed');
+		if (
+			server.exitCode != null &&
+			!expectedServerShutdownCodes.has(server.exitCode)
+		) {
+			serverFailure = new Error(
+				`${logs || 'React browser bench server failed'}\nUnexpected server exit code: ${server.exitCode}`
+			);
+		} else if (
+			server.exitCode == null &&
+			server.signalCode != null &&
+			!expectedServerShutdownSignals.has(server.signalCode)
+		) {
+			serverFailure = new Error(
+				`${logs || 'React browser bench server failed'}\nUnexpected server signal: ${server.signalCode}`
+			);
 		}
+	}
+
+	if (serverFailure) {
+		throw serverFailure;
 	}
 }
 

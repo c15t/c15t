@@ -1,274 +1,109 @@
 <p align="center">
-  <a href="https://c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fnode-sdk" target="_blank" rel="noopener noreferrer">
+  <a href="https://c15t.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fnode-sdk" target="_blank" rel="noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
     </picture>
   </a>
-  <br />
-  <h1 align="center">@c15t/node-sdk: Type-Safe Node.js API Client</h1>
 </p>
 
-[![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
-[![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.link/discord)
-[![npm version](https://img.shields.io/npm/v/%40c15t%2Fnode-sdk?style=flat-square)](https://www.npmjs.com/package/@c15t/node-sdk)
-[![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
-[![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
+# @c15t/node-sdk: Type-Safe Node.js API Client
 
-A fully typed, lightweight Node.js SDK for seamless interaction with the c15t consent management platform API.
+[![Latest NPM Version](https://shieldcn.dev/npm/%40c15t%2Fnode-sdk.svg?variant=outline)](https://www.npmjs.com/package/@c15t/node-sdk)
+[![Stars](https://shieldcn.dev/github/c15t/c15t/stars.svg?variant=outline)](https://github.com/c15t/c15t)
+[![License](https://shieldcn.dev/github/c15t/c15t/license.svg?variant=outline)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[![Discord](https://shieldcn.dev/discord/1312171102268690493.svg?variant=outline)](https://c15t.link/discord)
+[![Skills](https://shieldcn.dev/skills/c15t/skills/c15t.svg?variant=outline)](https://skills.sh/c15t/skills/c15t)
+[![Made by Inth](https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&color=ffc803&labelTextColor=000000&valueColor=000000)](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fnode-sdk)
+
+Type-safe Node.js SDK for hosted and self-hosted c15t consent APIs, consent records, privacy preferences, and backend automation.
 
 ## Key Features
 
-- **Type-safe API client** with full TypeScript support
-- **Zero-config setup** with environment variable auto-detection
-- **Result-like error handling** with `unwrap()`, `unwrapOr()`, and `expect()` helpers
-- **Custom error class** (`C15TError`) for typed error handling
-- **Automatic retries** with exponential backoff
-- **Namespaced API methods** for intuitive organization
-- **Lightweight** with minimal dependencies
+- Type-safe API client with full TypeScript support
+- Works with hosted c15t instances on inth.com and self-hosted @c15t/backend deployments
+- Read and write consent records, subjects, and privacy preferences from Node.js
+- Flexible client configuration with authentication and custom headers
+- Supports dynamic base URL and API prefix configuration
+- Built on top of @orpc/client for robust API interactions
+- Comprehensive error handling and URL validation
 
 ## Prerequisites
 
 - Node.js 18.17.0 or later
-- A Hosted [c15t instance](https://consent.io) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)
+- A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/quickstart)
 
-## Installation
+## Manual Installation
 
 ```bash
-# npm
-npm install @c15t/node-sdk
-
-# pnpm
 pnpm add @c15t/node-sdk
-
-# yarn
-yarn add @c15t/node-sdk
-
-# bun
-bun add @c15t/node-sdk
 ```
 
-## Quick Start
+## Usage
 
-### Basic Setup
+1. Import `c15tClient` from `@c15t/node-sdk`
+2. Configure with a base URL and token, or set `C15T_API_URL` and `C15T_API_TOKEN` so the client picks them up automatically
+3. Call API methods on `client.meta`, `client.subjects`, etc. — every method is fully typed
 
-```typescript
-import { c15tClient } from '@c15t/node-sdk';
+```ts
+// server.ts
+import { c15tClient } from '@c15t/node-sdk'
 
-// Auto-configure from environment variables
-// Reads C15T_API_URL and C15T_API_TOKEN automatically
-const client = c15tClient();
+// Auto-configure from C15T_API_URL + C15T_API_TOKEN env vars
+const client = c15tClient()
 
-// Or provide explicit configuration
-const client = c15tClient({
-  baseUrl: 'https://api.example.com',
-  token: 'your-api-token',
-});
-```
-
-### Environment Variables
-
-The SDK automatically reads these environment variables:
-
-- `C15T_API_URL` - Base URL for the API server
-- `C15T_API_TOKEN` - Authentication token
-
-### Check Consent Status
-
-```typescript
-const result = await client.checkConsent({
-  externalId: 'user_123',
-  type: 'analytics',
-});
-
-if (result.ok) {
-  console.log('Has consent:', result.data?.results.analytics?.hasConsent);
-} else {
-  console.error('Error:', result.error?.message);
-}
-```
-
-### Using Result Helpers
-
-The SDK provides ergonomic helper methods inspired by Rust's Result type:
-
-```typescript
-// Unwrap data or throw if error
-const subject = (await client.getSubject('sub_123')).unwrap();
-
-// Unwrap with custom error message
-const subject = (await client.getSubject('sub_123')).expect('Subject not found');
-
-// Unwrap with default value
-const subject = (await client.getSubject('sub_123')).unwrapOr(defaultSubject);
-
-// Transform data with map
-const name = (await client.getSubject('sub_123')).map(s => s.externalId);
-```
-
-### Error Handling
-
-```typescript
-import { c15tClient, C15TError, isC15TError } from '@c15t/node-sdk';
-
-const client = c15tClient();
+// Or pass options explicitly
+// const client = c15tClient({
+//   baseUrl: process.env.C15T_API_URL!,
+//   token: process.env.C15T_API_TOKEN!,
+// })
 
 try {
-  const subject = (await client.getSubject('sub_123')).unwrap();
+  const status = await client.meta.status()
+  console.log('c15t API status:', status)
+
+  const subject = await client.subjects.create({
+    type: 'cookie_banner',
+    subjectId: 'sub_123',
+    domain: 'example.com',
+    preferences: { analytics: true },
+    givenAt: Date.now(),
+  })
+  console.log('Created subject', subject.id)
 } catch (error) {
-  if (isC15TError(error)) {
-    console.log('Status:', error.status);     // 404
-    console.log('Code:', error.code);         // 'NOT_FOUND'
-    console.log('Details:', error.details);
-    
-    if (error.isNotFound()) {
-      // Handle not found
-    } else if (error.isServerError()) {
-      // Handle server error
-    }
-  }
+  console.error('c15t request failed:', error)
 }
 ```
 
-### Create Subject with Consent
+## Common Use Cases
 
-```typescript
-const result = await client.createSubject({
-  type: 'cookie_banner',
-  subjectId: 'sub_123',
-  externalSubjectId: 'user_123',
-  domain: 'example.com',
-  preferences: {
-    analytics: true,
-    marketing: false,
-  },
-  givenAt: Date.now(),
-});
-
-if (result.ok) {
-  console.log('Subject created:', result.data?.subjectId);
-}
-```
-
-### Server Component Usage (Next.js)
-
-```typescript
-// lib/c15t-client.ts
-import { c15tClient } from '@c15t/node-sdk';
-
-export const consentClient = c15tClient({
-  baseUrl: process.env.C15T_API_URL || 'http://localhost:3000/api/self-host',
-});
-
-// app/terms/page.tsx
-import { consentClient } from '@/lib/c15t-client';
-
-export default async function TermsPage() {
-  const result = await consentClient.currentLegalDocument({
-    type: 'terms-and-conditions',
-  });
-
-  if (!result.ok) {
-    return <div>Error: {result.error?.message}</div>;
-  }
-
-  return <pre>{JSON.stringify(result.data?.document, null, 2)}</pre>;
-}
-```
-
-## API Reference
-
-### Client Methods
-
-| Method | Description |
-|--------|-------------|
-| `client.status()` | Check API status |
-| `client.init()` | Initialize consent manager |
-| `client.checkConsent(query)` | Check consent status |
-| `client.createSubject(input)` | Create a new subject |
-| `client.getSubject(id)` | Get subject by ID |
-| `client.patchSubject(id, input)` | Update subject |
-| `client.listSubjects(query)` | List subjects |
-
-### Namespaced Methods
-
-```typescript
-// Meta operations
-client.meta.status();
-client.meta.init();
-
-// Consent operations
-client.consent.check(query);
-
-// Subject operations
-client.subjects.create(input);
-client.subjects.get(id);
-client.subjects.patch(id, input);
-client.subjects.list(query);
-```
-
-### ResponseContext
-
-All methods return a `ResponseContext<T>` with:
-
-```typescript
-interface ResponseContext<T> {
-  data: T | null;           // Response data
-  error: {...} | null;      // Error details
-  ok: boolean;              // Success status
-  response: Response | null; // Raw Response object
-  
-  // Helper methods
-  unwrap(): T;              // Get data or throw
-  unwrapOr(default: T): T;  // Get data or return default
-  expect(msg: string): T;   // Get data or throw with custom message
-  map<U>(fn: (T) => U): ResponseContext<U>; // Transform data
-}
-```
-
-### Configuration Options
-
-```typescript
-interface C15TClientOptions {
-  baseUrl?: string;           // API base URL (or use C15T_API_URL env var)
-  token?: string;             // Auth token (or use C15T_API_TOKEN env var)
-  headers?: Record<string, string>; // Custom headers
-  prefix?: string;            // API path prefix
-  retryConfig?: {
-    maxRetries?: number;      // Default: 3
-    initialDelayMs?: number;  // Default: 100
-    backoffFactor?: number;   // Default: 2
-    retryableStatusCodes?: number[]; // Default: [500, 502, 503, 504]
-    retryOnNetworkError?: boolean;   // Default: true
-  };
-}
-```
+- Sync consent records between your application and c15t
+- Build admin tooling around hosted or self-hosted consent APIs
+- Automate privacy preference workflows from server-side jobs
+- Integrate c15t consent records with internal data systems
 
 ## Support
 
 - Join our [Discord community](https://c15t.link/discord)
 - Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
-- Visit [consent.io](https://consent.io) and use the chat widget
-- Contact our support team via email [support@consent.io](mailto:support@consent.io)
+- Visit [inth.com](https://inth.com) and use the chat widget
+- Contact our support team via email [support@inth.com](mailto:support@inth.com)
 
 ## Contributing
 
-- We're open to all community contributions!
+- We're open to all community contributions.
 - Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)
 - Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)
 - Fork the repository
 - Create a new branch for your feature
 - Submit a pull request
-- **All contributions, big or small, are welcome and appreciated!**
+- **All contributions, big or small, are welcome and appreciated.**
 
 ## Security
 
 If you believe you have found a security vulnerability in c15t, we encourage you to **_responsibly disclose this and NOT open a public issue_**. We will investigate all legitimate reports.
 
-Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our Open Source Software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
+Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our open-source software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
 
 ### Security Policy
 
@@ -283,4 +118,4 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 ---
 
-**Built by [Inth](https://inth.com?utm_source=github&utm_medium=repopage_%40c15t%2Fnode-sdk)**
+**Built by [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fnode-sdk)**

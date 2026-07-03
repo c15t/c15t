@@ -5,7 +5,7 @@
  * 1. Bundled translations (checked first)
  * 2. In-memory cache
  * 3. External cache (Redis/KV)
- * 4. Fetch from gvl.consent.io
+ * 4. Fetch from gvl.inth.app
  *
  * @packageDocumentation
  */
@@ -21,7 +21,7 @@ import { GVL_TTL_MS, MEMORY_TTL_MS } from './types';
 /**
  * Default GVL endpoint.
  */
-const GVL_ENDPOINT = 'https://gvl.consent.io';
+const GVL_ENDPOINT = 'https://gvl.inth.app';
 
 /**
  * Options for creating a GVL resolver.
@@ -54,7 +54,7 @@ export interface GVLResolverOptions {
 
 	/**
 	 * Override the default GVL endpoint.
-	 * @default 'https://gvl.consent.io'
+	 * @default 'https://gvl.inth.app'
 	 */
 	endpoint?: string;
 }
@@ -208,7 +208,7 @@ async function fetchGVLWithLanguage(
  * 1. **Bundled** - Check bundled translations (0ms)
  * 2. **In-Memory** - Check worker/process memory cache (0ms)
  * 3. **External Cache** - Check Redis/KV if configured (20-40ms)
- * 4. **Fetch** - Fetch from gvl.consent.io with Accept-Language (100-300ms)
+ * 4. **Fetch** - Fetch from gvl.inth.app with Accept-Language (100-300ms)
  *
  * @param options - Resolver configuration
  * @returns A GVL resolver instance
@@ -268,7 +268,7 @@ export function createGVLResolver(options: GVLResolverOptions): GVLResolver {
 				getMetrics()?.recordCacheMiss('external');
 			}
 
-			// 4. Fetch from gvl.consent.io with Accept-Language header (100-300ms)
+			// 4. Fetch from gvl.inth.app with Accept-Language header (100-300ms)
 			const gvl = await fetchGVLWithLanguage(language, vendorIds, endpoint);
 
 			if (gvl) {

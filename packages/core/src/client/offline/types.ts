@@ -7,7 +7,7 @@ import type { IABFallbackConfig } from '../hosted/types';
 export interface OfflineClientOptions {
 	/**
 	 * IAB configuration for offline mode.
-	 * When IAB is enabled, the client will fetch GVL from gvl.consent.io.
+	 * When IAB is enabled, the client will fetch GVL from gvl.inth.app.
 	 */
 	iabConfig?: IABFallbackConfig;
 

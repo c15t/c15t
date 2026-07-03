@@ -23,7 +23,7 @@ async function createFallbackContext(
 /**
  * Provides offline mode fallback for showConsentBanner API.
  * Simulates the behavior of OfflineClient when API requests fail.
- * In fallback mode, fetches GVL from gvl.consent.io when IAB is enabled.
+ * In fallback mode, fetches GVL from gvl.inth.app when IAB is enabled.
  * @internal
  */
 export async function offlineFallbackForConsentBanner(

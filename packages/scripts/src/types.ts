@@ -7,6 +7,23 @@ export const vendorManifestContract = {
 	schemaVersion: VENDOR_MANIFEST_SCHEMA_VERSION,
 } as const;
 
+export const RUNTIME_VALUE_KIND = 'c15t.runtime-value';
+
+export interface RuntimeValue {
+	kind: typeof RUNTIME_VALUE_KIND;
+	value: 'date' | 'timestamp';
+}
+
+export const runtimeDateValue = {
+	kind: RUNTIME_VALUE_KIND,
+	value: 'date',
+} as const satisfies RuntimeValue;
+
+export const runtimeTimestampValue = {
+	kind: RUNTIME_VALUE_KIND,
+	value: 'timestamp',
+} as const satisfies RuntimeValue;
+
 export interface ManifestContract {
 	kind: typeof VENDOR_MANIFEST_KIND;
 	schemaVersion: typeof VENDOR_MANIFEST_SCHEMA_VERSION;

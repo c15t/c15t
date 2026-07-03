@@ -1,34 +1,34 @@
 <p align="center">
-  <a href="https://c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fnextjs" target="_blank" rel="noopener noreferrer">
+  <a href="https://c15t.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fnextjs" target="_blank" rel="noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
     </picture>
   </a>
-  <br />
-  <h1 align="center">@c15t/nextjs: Next.js Integration</h1>
 </p>
 
-[![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
-[![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.link/discord)
-[![npm version](https://img.shields.io/npm/v/%40c15t%2Fnextjs?style=flat-square)](https://www.npmjs.com/package/@c15t/nextjs)
-[![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
-[![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
+# @c15t/nextjs: Next.js Integration
 
-Developer-first CMP for Next.js: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization
+[![Latest NPM Version](https://shieldcn.dev/npm/%40c15t%2Fnextjs.svg?variant=outline)](https://www.npmjs.com/package/@c15t/nextjs)
+[![Stars](https://shieldcn.dev/github/c15t/c15t/stars.svg?variant=outline)](https://github.com/c15t/c15t)
+[![License](https://shieldcn.dev/github/c15t/c15t/license.svg?variant=outline)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[![Discord](https://shieldcn.dev/discord/1312171102268690493.svg?variant=outline)](https://c15t.link/discord)
+[![Skills](https://shieldcn.dev/skills/c15t/skills/c15t.svg?variant=outline)](https://skills.sh/c15t/skills/c15t)
+[![Made by Inth](https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&color=ffc803&labelTextColor=000000&valueColor=000000)](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fnextjs)
+
+Next.js cookie banner and consent management platform for App Router, Pages Router, SSR, and headless consent flows.
 
 ## Key Features
 
-- Works with Next.js 15, 14, and 13
+- Works with Next.js 16, 15, 14, and 13
 - Full 'use client' support for React Server Components
 - Server-side rendering support for both app and pages routers
-- Automatic GDPR compliance
+- Prebuilt and customizable cookie banner, consent dialog, and preference center UI
+- Headless hooks for custom consent flows
 - Minimal configuration with TypeScript-first design
-- Headless, customisable UI components (Cookie Banner, Consent Dialog, etc.)
-- Built-in internationalisation support
+- IAB TCF 2.3 UI and hooks through the @c15t/react/iab subpath
+- Google Tag Manager, Google Consent Mode v2, Meta Pixel, and analytics integrations through @c15t/scripts
+- Built-in internationalization support
 - Seamless consent storage and tracking
 
 ## Prerequisites
@@ -36,18 +36,18 @@ Developer-first CMP for Next.js: cookie banner, consent manager, preferences cen
 - Next.js 13.5.4 or later
 - React 18 or later
 - Node.js 18.17.0 or later
-- A hosted [c15t instance](https://consent.io) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/v2)
+- A hosted [c15t instance](https://inth.com) (free sign-up), [self-hosted deployment](https://c15t.com/docs/self-host/quickstart), or offline mode for local-only storage
 
 ## Quick Start
 
 Easiest setup with @c15t/cli:
 
 ```bash
-# Generate schema and code
-pnpm dlx @c15t/cli generate
+# Set up c15t in your project
+pnpm dlx @c15t/cli setup
 # Alternatives:
-# npx @c15t/cli generate
-# bunx --bun @c15t/cli generate
+# npx @c15t/cli setup
+# bunx --bun @c15t/cli setup
 ```
 
 The CLI will:
@@ -70,18 +70,22 @@ Then add the prebuilt stylesheet to your app-level CSS entrypoint:
 @import "@c15t/nextjs/styles.css";
 ```
 
-To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/nextjs/quickstart#manual-setup).
+To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/next/quickstart#manual-setup).
 
 ## Usage
 
 1. Import `ConsentManagerProvider` in your app's root layout
-2. Add `CookieBanner` and `ConsentManagerDialog` components
-3. Customise styling and behaviour to fit your app
+2. Add `ConsentBanner` and `ConsentDialog` components
+3. Customize styling and behavior to fit your app
 4. For full implementation details, see the [Next.js quickstart docs](https://c15t.com/docs/frameworks/next/quickstart)
 
 ```tsx
 // app/layout.tsx
-import { ConsentManagerProvider, CookieBanner } from '@c15t/nextjs'
+import {
+  ConsentManagerProvider,
+  ConsentBanner,
+  ConsentDialog,
+} from '@c15t/nextjs'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -89,7 +93,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ConsentManagerProvider>
           {children}
-          <CookieBanner />
+          <ConsentBanner />
+          <ConsentDialog />
         </ConsentManagerProvider>
       </body>
     </html>
@@ -101,28 +106,42 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/frameworks/next/quickstart).
 
+## Deployment Modes
+
+- **Hosted on inth.com**: Hosted c15t backend for policy storage, audit history, and hosted infrastructure
+- **Self-hosted backend**: Use @c15t/backend with your own database and infrastructure
+- **Offline mode**: Browser-only consent storage for local development, demos, previews, static sites, or fallback scenarios
+
+## Popular Integrations
+
+- Google Tag Manager with Google Consent Mode v2
+- Google Analytics 4 and Google Ads through gtag.js
+- Meta Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, and Snapchat Pixel
+- PostHog, Segment, Mixpanel, Microsoft Clarity, Hotjar, Plausible, Fathom, Matomo, Umami, and Vercel Analytics
+- Intercom and Crisp chat widgets
+
 ## Support
 
 - Join our [Discord community](https://c15t.link/discord)
 - Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
-- Visit [consent.io](https://consent.io) and use the chat widget
-- Contact our support team via email [support@consent.io](mailto:support@consent.io)
+- Visit [inth.com](https://inth.com) and use the chat widget
+- Contact our support team via email [support@inth.com](mailto:support@inth.com)
 
 ## Contributing
 
-- We're open to all community contributions!
+- We're open to all community contributions.
 - Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)
 - Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)
 - Fork the repository
 - Create a new branch for your feature
 - Submit a pull request
-- **All contributions, big or small, are welcome and appreciated!**
+- **All contributions, big or small, are welcome and appreciated.**
 
 ## Security
 
 If you believe you have found a security vulnerability in c15t, we encourage you to **_responsibly disclose this and NOT open a public issue_**. We will investigate all legitimate reports.
 
-Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our Open Source Software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
+Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our open-source software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
 
 ### Security Policy
 
@@ -137,4 +156,4 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 ---
 
-**Built by [Inth](https://inth.com?utm_source=github&utm_medium=repopage_%40c15t%2Fnextjs)**
+**Built by [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fnextjs)**
