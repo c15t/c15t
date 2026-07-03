@@ -9,38 +9,48 @@
 
 # @c15t/scripts: Prebuilt Consent Scripts
 
-[![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
-[![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.link/discord)
-[![npm version](https://img.shields.io/npm/v/%40c15t%2Fscripts?style=flat-square)](https://www.npmjs.com/package/@c15t/scripts)
-[![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
-[![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
+[![Latest NPM Version](https://shieldcn.dev/npm/%40c15t%2Fscripts.svg?variant=outline)](https://www.npmjs.com/package/@c15t/scripts)
+[![Stars](https://shieldcn.dev/github/c15t/c15t/stars.svg?variant=outline)](https://github.com/c15t/c15t)
+[![License](https://shieldcn.dev/github/c15t/c15t/license.svg?variant=outline)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[![Discord](https://shieldcn.dev/discord/1312171102268690493.svg?variant=outline)](https://c15t.link/discord)
+[![Skills](https://shieldcn.dev/skills/c15t/skills/c15t.svg?variant=outline)](https://skills.sh/c15t/skills/c15t)
+[![Made by Inth](https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&color=ffc803&labelTextColor=000000&valueColor=000000)](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fscripts)
 
-Prebuilt script integrations for c15t, providing ready-to-use consent-aware analytics and marketing scripts.
+Consent-aware script integrations for Google Tag Manager, Google Consent Mode v2, GA4, Google Ads, Meta Pixel, analytics tools, pixels, tag managers, and widgets.
 
 ## Key Features
 
-- Prebuilt script snippets for popular analytics and marketing tools
+- Prebuilt script loaders for popular analytics, advertising, marketing, and functional tools
+- Google Tag Manager support with Google Consent Mode v2 defaults and consent updates
+- Google Analytics 4 and Google Ads support through gtag.js
+- Consent-gated Meta Pixel and conversion pixel loading
 - Easy integration with c15t's script loader
 - Configuration options for each supported vendor
-- Supported vendors include Google Tag Manager, Meta Pixel, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, and X Pixel
+- Supported vendors include Google Tag Manager, Meta Pixel, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, Snapchat Pixel, Intercom, Crisp, and more
 
 ## Documentation
 
 For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/integrations).
 
-## Scripts
+## Integrations
 
-- [Google Tag Manager](https://c15t.link/google-tag-manager)
-- [Google Tag](https://c15t.link/google-tag)
-- [PostHog](https://c15t.link/posthog)
-- [Meta Pixel](https://c15t.link/meta-pixel)
-- [TikTok Pixel](https://c15t.link/tiktok-pixel)
-- [LinkedIn Insights](https://c15t.link/linkedin-insights)
-- [Microsoft UET](https://c15t.link/microsoft-uet)
-- [X Pixel](https://c15t.link/x-pixel)
+- **Google Tag Manager**: Loads with Google Consent Mode v2 defaults set to denied; GTM-managed tags fire only once matching consent is granted ([guide](https://c15t.com/docs/integrations/google-tag-manager))
+- **Google Analytics 4 + Google Ads (gtag.js)**: Consent Mode v2 defaults and consent updates when users make a choice ([guide](https://c15t.com/docs/integrations/google-tag))
+- **Conversion pixels**: Meta Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET (Microsoft Ads), X Pixel, Reddit Pixel, Snapchat Pixel
+- **Analytics**: PostHog, Segment, Mixpanel, Microsoft Clarity, Hotjar, Plausible, Fathom, Matomo, Umami, Vercel Analytics
+- **Chat widgets**: Intercom, Crisp
+
+## Example
+
+```ts
+import { googleTagManager } from '@c15t/scripts/google-tag-manager'
+import { metaPixel } from '@c15t/scripts/meta-pixel'
+
+const scripts = [
+  googleTagManager({ id: 'GTM-XXXXXX' }),
+  metaPixel({ pixelId: '000000000000000' }),
+]
+```
 
 ## Support
 

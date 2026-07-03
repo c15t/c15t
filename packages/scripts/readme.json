@@ -1,15 +1,19 @@
 {
 	"title": "@c15t/scripts: Prebuilt Consent Scripts",
-	"description": "Prebuilt script integrations for c15t, providing ready-to-use consent-aware analytics and marketing scripts.",
+	"description": "Consent-aware script integrations for Google Tag Manager, Google Consent Mode v2, GA4, Google Ads, Meta Pixel, analytics tools, pixels, tag managers, and widgets.",
 	"features": [
-		"Prebuilt script snippets for popular analytics and marketing tools",
+		"Prebuilt script loaders for popular analytics, advertising, marketing, and functional tools",
+		"Google Tag Manager support with Google Consent Mode v2 defaults and consent updates",
+		"Google Analytics 4 and Google Ads support through gtag.js",
+		"Consent-gated Meta Pixel and conversion pixel loading",
 		"Easy integration with c15t's script loader",
 		"Configuration options for each supported vendor",
-		"Supported vendors include Google Tag Manager, Meta Pixel, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, and X Pixel"
+		"Supported vendors include Google Tag Manager, Meta Pixel, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, Snapchat Pixel, Intercom, Crisp, and more"
 	],
 	"docsLink": "https://c15t.com/docs/integrations",
 	"showCLIGeneration": false,
 	"customSections": {
-		"Scripts": "- [Google Tag Manager](https://c15t.link/google-tag-manager)\n- [Google Tag](https://c15t.link/google-tag)\n- [PostHog](https://c15t.link/posthog)\n- [Meta Pixel](https://c15t.link/meta-pixel)\n- [TikTok Pixel](https://c15t.link/tiktok-pixel)\n- [LinkedIn Insights](https://c15t.link/linkedin-insights)\n- [Microsoft UET](https://c15t.link/microsoft-uet)\n- [X Pixel](https://c15t.link/x-pixel)"
+		"Integrations": "- **Google Tag Manager**: Loads with Google Consent Mode v2 defaults set to denied; GTM-managed tags fire only once matching consent is granted ([guide](https://c15t.com/docs/integrations/google-tag-manager))\n- **Google Analytics 4 + Google Ads (gtag.js)**: Consent Mode v2 defaults and consent updates when users make a choice ([guide](https://c15t.com/docs/integrations/google-tag))\n- **Conversion pixels**: Meta Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET (Microsoft Ads), X Pixel, Reddit Pixel, Snapchat Pixel\n- **Analytics**: PostHog, Segment, Mixpanel, Microsoft Clarity, Hotjar, Plausible, Fathom, Matomo, Umami, Vercel Analytics\n- **Chat widgets**: Intercom, Crisp",
+		"Example": "```ts\nimport { googleTagManager } from '@c15t/scripts/google-tag-manager'\nimport { metaPixel } from '@c15t/scripts/meta-pixel'\n\nconst scripts = [\n  googleTagManager({ id: 'GTM-XXXXXX' }),\n  metaPixel({ pixelId: '000000000000000' }),\n]\n```"
 	}
 }

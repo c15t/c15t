@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/scripts",
 	"version": "2.1.0",
-	"description": "Pre-built scripts for c15t's script loader (GTM, GA4, Meta).",
+	"description": "Consent-aware script integrations for Google Tag Manager, Google Consent Mode v2, GA4, Google Ads, Meta Pixel, and more.",
 	"keywords": [
 		"c15t",
 		"script-loader",
@@ -22,6 +22,7 @@
 		"x-pixel",
 		"analytics-consent",
 		"consent-mode",
+		"consent-mode-v2",
 		"privacy",
 		"cmp"
 	],

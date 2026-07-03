@@ -1,18 +1,19 @@
 {
 	"title": "c15t: Developer-First Consent Management Platform",
+	"description": "Headless JavaScript consent management platform for cookie banners, privacy preferences, consent storage, and consent-aware script gating.",
 	"features": [
-		"Developer-First Design: Easy integration with minimal configuration",
-		"Framework Agnostic: Works across JavaScript frameworks",
-		"GDPR Compliance: Built-in support for privacy regulations",
-		"Customizable Consent Management: Flexible consent preferences",
-		"Server-Side Rendering Support: Compatible with SSR frameworks",
+		"Cookie consent: Build consent flows for banners, dialogs, and preference centers",
+		"Headless APIs: Own the UI while c15t manages consent state and persistence",
+		"Framework agnostic: Works across JavaScript and TypeScript applications",
+		"Script gating: Connect to @c15t/scripts for Google Tag Manager, Consent Mode v2, Meta Pixel, and more",
+		"Server-side rendering support: Compatible with SSR frameworks",
 		"Internationalization: Built-in translation support"
 	],
 	"prerequisites": [
 		"JavaScript or TypeScript project",
 		"Node.js 18.17.0 or later",
 		"npm, pnpm, or yarn package manager",
-		"A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/quickstart)"
+		"A hosted [c15t instance](https://inth.com) (free sign-up), [self-hosted deployment](https://c15t.com/docs/self-host/quickstart), or offline mode for local-only storage"
 	],
 	"manualInstallation": [
 		"",
@@ -32,5 +33,9 @@
 	"quickStartLink": "https://c15t.com/docs/frameworks/javascript/quickstart",
 	"githubLink": "https://github.com/c15t/c15t",
 	"showCLIGeneration": true,
-	"npmName": "c15t"
+	"npmName": "c15t",
+	"customSections": {
+		"Deployment Modes": "- **Hosted on inth.com**: Hosted backend with policy storage, audit history, and hosted infrastructure\n- **Self-hosted backend**: Run @c15t/backend with your own database and infrastructure\n- **Offline mode**: Store consent locally in the browser for development, previews, static sites, or controlled fallback scenarios",
+		"Related Packages": "- [@c15t/react](https://www.npmjs.com/package/@c15t/react): React cookie banner, consent dialog, preference center, and headless hooks\n- [@c15t/nextjs](https://www.npmjs.com/package/@c15t/nextjs): Next.js App Router and Pages Router integration\n- [@c15t/scripts](https://www.npmjs.com/package/@c15t/scripts): Consent-aware analytics, tag manager, pixel, and widget loaders\n- [@c15t/backend](https://www.npmjs.com/package/@c15t/backend): Self-hostable consent backend"
+	}
 }

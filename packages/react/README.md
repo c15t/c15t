@@ -9,26 +9,25 @@
 
 # @c15t/react: React Consent Components
 
-[![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
-[![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.link/discord)
-[![npm version](https://img.shields.io/npm/v/%40c15t%2Freact?style=flat-square)](https://www.npmjs.com/package/@c15t/react)
-[![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
-[![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
+[![Latest NPM Version](https://shieldcn.dev/npm/%40c15t%2Freact.svg?variant=outline)](https://www.npmjs.com/package/@c15t/react)
+[![Stars](https://shieldcn.dev/github/c15t/c15t/stars.svg?variant=outline)](https://github.com/c15t/c15t)
+[![License](https://shieldcn.dev/github/c15t/c15t/license.svg?variant=outline)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[![Discord](https://shieldcn.dev/discord/1312171102268690493.svg?variant=outline)](https://c15t.link/discord)
+[![Skills](https://shieldcn.dev/skills/c15t/skills/c15t.svg?variant=outline)](https://skills.sh/c15t/skills/c15t)
+[![Made by Inth](https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&color=ffc803&labelTextColor=000000&valueColor=000000)](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Freact)
 
-Headless cookie banner, consent manager & preference center for React. RSC-compatible, GDPR/CCPA/LGPD/TCF, TypeScript-first.
+React cookie banner, consent manager, preference center, and headless CMP components for modern React apps.
 
 ## Key Features
 
 - Works with React 19, 18, 17, and 16.8
 - Full 'use client' support for React Server Components
-- Headless and fully customizable UI components
-- Automatic GDPR compliance
+- Prebuilt and fully customizable cookie banner, consent dialog, and preference center UI
+- Headless hooks for custom consent flows
 - Minimal configuration with TypeScript-first design
 - Comprehensive Consent Management Platform (CMP)
-- Flexible Cookie Banner and Preference Center components
+- IAB TCF 2.3 UI and hooks through the @c15t/react/iab subpath
+- Google Tag Manager, Google Consent Mode v2, Meta Pixel, and analytics integrations through @c15t/scripts
 - Built-in internationalization support
 - Seamless consent storage and tracking
 
@@ -36,7 +35,7 @@ Headless cookie banner, consent manager & preference center for React. RSC-compa
 
 - React 16.8 or later
 - Node.js 18.17.0 or later
-- A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/quickstart)
+- A hosted [c15t instance](https://inth.com) (free sign-up), [self-hosted deployment](https://c15t.com/docs/self-host/quickstart), or offline mode for local-only storage
 
 ## Quick Start
 
@@ -78,7 +77,7 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 
 1. Import `ConsentManagerProvider` in your app's root component
 2. Add `ConsentBanner` and `ConsentDialog` components
-3. Customise styling and behaviour to fit your app
+3. Customize styling and behavior to fit your app
 4. For full implementation details, see the [React quickstart docs](https://c15t.com/docs/frameworks/react/quickstart)
 
 ```tsx
@@ -103,6 +102,20 @@ function App() {
 ## Documentation
 
 For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/frameworks/react/quickstart).
+
+## Deployment Modes
+
+- **Hosted on inth.com**: Hosted c15t backend for policy storage, audit history, and hosted infrastructure
+- **Self-hosted backend**: Use @c15t/backend when you need full infrastructure control
+- **Offline mode**: Browser-only consent storage for local development, demos, previews, static sites, or fallback scenarios
+
+## Popular Integrations
+
+- Google Tag Manager with Google Consent Mode v2
+- Google Analytics 4 and Google Ads through gtag.js
+- Meta Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, and Snapchat Pixel
+- PostHog, Segment, Mixpanel, Microsoft Clarity, Hotjar, Plausible, Fathom, Matomo, Umami, and Vercel Analytics
+- Intercom and Crisp chat widgets
 
 ## Support
 

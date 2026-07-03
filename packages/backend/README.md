@@ -9,25 +9,25 @@
 
 # @c15t/backend: Consent Management Backend
 
-[![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
-[![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.link/discord)
-[![npm version](https://img.shields.io/npm/v/%40c15t%2Fbackend?style=flat-square)](https://www.npmjs.com/package/@c15t/backend)
-[![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
-[![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
+[![Latest NPM Version](https://shieldcn.dev/npm/%40c15t%2Fbackend.svg?variant=outline)](https://www.npmjs.com/package/@c15t/backend)
+[![Stars](https://shieldcn.dev/github/c15t/c15t/stars.svg?variant=outline)](https://github.com/c15t/c15t)
+[![License](https://shieldcn.dev/github/c15t/c15t/license.svg?variant=outline)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[![Discord](https://shieldcn.dev/discord/1312171102268690493.svg?variant=outline)](https://c15t.link/discord)
+[![Skills](https://shieldcn.dev/skills/c15t/skills/c15t.svg?variant=outline)](https://skills.sh/c15t/skills/c15t)
+[![Made by Inth](https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&color=ffc803&labelTextColor=000000&valueColor=000000)](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fbackend)
 
-Consent policy engine and API for c15t. Powers the cookie banner, consent manager, and preference center. Webhooks, audit logs, storage adapters. Self-host or use inth.com
+Self-hostable consent management backend for c15t. Powers cookie banners, consent managers, preference centers, policy resolution, audit logs, and consent records.
 
 ## Key Features
 
-- Consent Management: Track and manage user consent preferences
-- Geo-Location: Identify user's location to show relevant consent preferences
+- Self-hosted CMP backend: Run c15t on your own infrastructure with your own database
+- Consent Management: Track and manage user consent preferences and consent records
+- Geo-Location: Identify a user's location to show relevant consent preferences
 - Server-Side Translation: Reduce banner bundle size by translating consent preferences on the server
 - Audit Logging: Comprehensive logging of all consent-related actions
 - Domain Management: Handle multiple domains and subdomains
 - Policy Management: Version and manage consent policies
+- IAB TCF 2.3 support: Configure GVL, CMP registration, and custom vendors
 
 ## Prerequisites
 
@@ -49,6 +49,17 @@ Configure your database adapter (supports Drizzle, Kysely, Prisma, TypeORM, and 
 ## Documentation
 
 For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/self-host/quickstart).
+
+## Hosted or Self-Hosted
+
+Use [inth.com](https://inth.com) when you want a hosted c15t backend with no infrastructure to maintain. Use @c15t/backend when you need full control over hosting, database, CORS origins, policy configuration, audit logs, and deployment topology.
+
+## Related Packages
+
+- [c15t](https://www.npmjs.com/package/c15t): Headless JavaScript consent engine
+- [@c15t/react](https://www.npmjs.com/package/@c15t/react): React consent UI and headless hooks
+- [@c15t/nextjs](https://www.npmjs.com/package/@c15t/nextjs): Next.js App Router and Pages Router integration
+- [@c15t/node-sdk](https://www.npmjs.com/package/@c15t/node-sdk): Type-safe Node.js API client
 
 ## Support
 
