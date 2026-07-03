@@ -26,7 +26,7 @@ describe('microsoft-clarity', () => {
 		const globalRef = getTestGlobal();
 		const script = clarity({
 			id: 'abcdef1234',
-			defaultConsent: { ad_storage: 'denied' },
+			defaultConsent: { ad_Storage: 'denied' },
 		});
 
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
@@ -34,16 +34,20 @@ describe('microsoft-clarity', () => {
 		const stub = globalRef.clarity as
 			| (((...args: unknown[]) => void) & {
 					q?: unknown[][];
-					v?: string;
 			  })
 			| undefined;
-		expect(stub?.v).toBe('0.7.0');
 		expect(stub?.q).toEqual([
-			toArgumentsArray(['consent', { ad_storage: 'denied' }]),
+			toArgumentsArray([
+				'consentv2',
+				{
+					ad_Storage: 'denied',
+					analytics_Storage: 'denied',
+				},
+			]),
 		]);
 	});
 
-	it('maps consent updates to Clarity consent calls', () => {
+	it('maps consent updates to Clarity Consent V2 calls', () => {
 		const globalRef = getTestGlobal();
 		const script = clarity({ id: 'abcdef1234' });
 
@@ -65,8 +69,27 @@ describe('microsoft-clarity', () => {
 			| (((...args: unknown[]) => void) & { q?: unknown[][] })
 			| undefined;
 		expect(stub?.q).toEqual([
-			toArgumentsArray(['consent', true]),
-			toArgumentsArray(['consent', false]),
+			toArgumentsArray([
+				'consentv2',
+				{
+					ad_Storage: 'denied',
+					analytics_Storage: 'denied',
+				},
+			]),
+			toArgumentsArray([
+				'consentv2',
+				{
+					ad_Storage: 'denied',
+					analytics_Storage: 'granted',
+				},
+			]),
+			toArgumentsArray([
+				'consentv2',
+				{
+					ad_Storage: 'denied',
+					analytics_Storage: 'denied',
+				},
+			]),
 		]);
 	});
 });
