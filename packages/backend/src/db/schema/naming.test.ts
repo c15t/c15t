@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { v2 } from './2.0.0';
 import {
 	buildNamingVariants,
+	compareNameVariants,
+	exportNameVariantsForVersion,
 	lowerCaseTables,
+	NamingOptionsError,
+	namingFingerprint,
 	snakeCaseTables,
 } from './naming';
 
@@ -93,7 +97,6 @@ describe('buildNamingVariants', () => {
 			tables: {
 				consentPolicy: {
 					name: 'consent_policies',
-					fields: { effectiveDate: 'effective_date' },
 				},
 			},
 		});
@@ -102,9 +105,26 @@ describe('buildNamingVariants', () => {
 			sql: 'consent_policies',
 			mongodb: 'consent_policies',
 		});
+		expect(variants?.['consentPolicy.effectiveDate']).toBeUndefined();
+	});
+
+	it('applies a complete manual field override', () => {
+		const tables = snakeCaseTables();
+		const variants = buildNamingVariants({
+			tables: {
+				consentPolicy: {
+					...tables.consentPolicy,
+					fields: {
+						...tables.consentPolicy?.fields,
+						effectiveDate: 'policy_effective_date',
+					},
+				},
+			},
+		});
+
 		expect(variants?.['consentPolicy.effectiveDate']).toEqual({
-			sql: 'effective_date',
-			mongodb: 'effective_date',
+			sql: 'policy_effective_date',
+			mongodb: 'policy_effective_date',
 		});
 	});
 
@@ -154,28 +174,72 @@ describe('buildNamingVariants', () => {
 		});
 	});
 
-	it('ignores override keys that are not part of the schema', () => {
-		const variants = buildNamingVariants({
-			tables: {
-				doesNotExist: { name: 'whatever' },
-				consent: { fields: { alsoMissing: 'x' } },
-			},
-		});
-
-		expect(variants).toBeNull();
+	it('throws for override keys that are not part of the schema', () => {
+		expect(() =>
+			buildNamingVariants({
+				tables: {
+					doesNotExist: { name: 'whatever' },
+					consent: { fields: { alsoMissing: 'x' } },
+				},
+			})
+		).toThrow(NamingOptionsError);
 	});
 
-	it('keeps valid overrides when unknown keys are present', () => {
-		const variants = buildNamingVariants({
-			tables: {
-				doesNotExist: { name: 'whatever' },
-				consentPolicy: { name: 'consent_policies' },
-			},
-		});
+	it('throws when a field map is missing known columns', () => {
+		expect(() =>
+			buildNamingVariants({
+				tables: {
+					consent: { fields: { subjectId: 'subject_id' } },
+				},
+			})
+		).toThrow(/field map is missing/);
+	});
+});
 
-		expect(variants?.consentPolicy).toEqual({
-			sql: 'consent_policies',
-			mongodb: 'consent_policies',
-		});
+describe('persisted naming variants', () => {
+	it('exports the effective persisted shape for a schema version', () => {
+		const exported = exportNameVariantsForVersion([v2], '2.0.0');
+
+		expect(exported?.consent?.sql).toBe('consent');
+		expect(exported?.['consent.subjectId']?.mongodb).toBe('subjectId');
+		expect(exported?.runtimePolicyDecision?.sql).toBe('runtimePolicyDecision');
+	});
+
+	it('compares stored and current DB-side name variants', () => {
+		const stored = exportNameVariantsForVersion([v2], '2.0.0');
+		const current = exportNameVariantsForVersion([v2], '2.0.0');
+		if (!(stored && current)) {
+			throw new Error('expected test schema to export name variants');
+		}
+		current.consent = {
+			...current.consent,
+			sql: 'consents',
+			mongodb: 'consents',
+		};
+
+		expect(compareNameVariants(stored, current)).toEqual([
+			{
+				path: 'consent',
+				variant: 'sql',
+				expected: 'consents',
+				actual: 'consent',
+			},
+			{
+				path: 'consent',
+				variant: 'mongodb',
+				expected: 'consents',
+				actual: 'consent',
+			},
+		]);
+	});
+
+	it('builds a stable fingerprint for persisted naming maps', () => {
+		const variants = exportNameVariantsForVersion([v2], '2.0.0');
+		if (!variants) {
+			throw new Error('expected test schema to export name variants');
+		}
+
+		expect(namingFingerprint(variants)).toBe(namingFingerprint(variants));
+		expect(namingFingerprint(variants)).toMatch(/^[0-9a-f]{8}$/);
 	});
 });

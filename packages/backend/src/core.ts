@@ -366,6 +366,7 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 
 export {
 	lowerCaseTables,
+	type NamingMismatchRecovery,
 	type NamingOptions,
 	snakeCaseTables,
 	type TableNaming,

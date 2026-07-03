@@ -160,6 +160,23 @@ describe('readConfigAndGetDb', () => {
 		expect(prefixOrder).toBeLessThan(clientOrder);
 	});
 
+	it('returns the configured naming mismatch recovery mode', async () => {
+		(
+			vi.mocked(loadConfig) as unknown as ReturnType<typeof vi.fn>
+		).mockResolvedValueOnce({
+			config: {
+				adapter: { id: 'k', type: 'kysely' },
+				naming: { migration: { onMismatch: 'adopt-current' } },
+			},
+		});
+		const context = {
+			logger: { info: vi.fn(), debug: vi.fn(), error: vi.fn() },
+		} as unknown as Parameters<typeof readConfigAndGetDb>[0];
+		const result = await readConfigAndGetDb(context, configPath);
+
+		expect(result.namingMismatch).toBe('adopt-current');
+	});
+
 	it('rethrows non-Error as wrapped Error', async () => {
 		(
 			vi.mocked(loadConfig) as unknown as ReturnType<typeof vi.fn>

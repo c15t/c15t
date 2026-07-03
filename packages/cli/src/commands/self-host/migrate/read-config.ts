@@ -3,6 +3,7 @@ import path from 'node:path';
 import {
 	buildNamingVariants,
 	DB,
+	type NamingMismatchRecovery,
 	type NamingOptions,
 } from '@c15t/backend/db/schema';
 import { loadConfig } from 'c12';
@@ -30,6 +31,7 @@ export async function readConfigAndGetDb(
 	absoluteConfigPath: string
 ): Promise<{
 	db: ReturnType<typeof DB.client>;
+	namingMismatch?: NamingMismatchRecovery;
 }> {
 	const { logger } = context;
 
@@ -82,6 +84,7 @@ export async function readConfigAndGetDb(
 
 		return {
 			db: factory.client(config.adapter),
+			namingMismatch: config.naming?.migration?.onMismatch,
 		};
 	} catch (error) {
 		logger.error('Failed to load backend config', error);

@@ -6,7 +6,10 @@ export * from './2.0.0';
 export {
 	buildNamingVariants,
 	lowerCaseTables,
+	NamingMismatchError,
+	type NamingMismatchRecovery,
 	type NamingOptions,
+	NamingOptionsError,
 	snakeCaseTables,
 	type TableNaming,
 } from './naming';

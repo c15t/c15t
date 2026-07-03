@@ -13,7 +13,7 @@ export async function migrate(context: CliContext) {
 	// Ensure backend config exists (create if missing)
 	const configResult = await ensureBackendConfig(context);
 
-	if (!configResult || !configResult.path) {
+	if (!configResult?.path) {
 		logger.error('No backend config found.');
 		return;
 	}
@@ -28,11 +28,11 @@ export async function migrate(context: CliContext) {
 		});
 	}
 
-	const { db } = await readConfigAndGetDb(context, path);
+	const { db, namingMismatch } = await readConfigAndGetDb(context, path);
 
 	logger.info('Loaded c15t-backend.config.ts');
 
-	const result = await migrator({ db, schema: 'latest' });
+	const result = await migrator({ db, schema: 'latest', namingMismatch });
 
 	if ('path' in result) {
 		await handleORMResult(context, result);

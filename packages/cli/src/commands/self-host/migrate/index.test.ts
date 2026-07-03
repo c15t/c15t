@@ -10,7 +10,11 @@ vi.mock('./ensure-backend-config', () => ({
 	})),
 }));
 vi.mock('./read-config', () => ({
-	readConfigAndGetDb: vi.fn(async () => ({ db: {}, adapter: 'kysely' })),
+	readConfigAndGetDb: vi.fn(async () => ({
+		db: {},
+		adapter: 'kysely',
+		namingMismatch: 'adopt-current',
+	})),
 }));
 vi.mock('./migrator-result', () => ({
 	handleMigrationResult: vi.fn(async (..._args: unknown[]) => undefined),
@@ -67,7 +71,11 @@ describe('migrate command', () => {
 		await migrate(context);
 		expect(ensureBackendConfig).toHaveBeenCalled();
 		expect(readConfigAndGetDb).toHaveBeenCalled();
-		expect(migrator).toHaveBeenCalled();
+		expect(migrator).toHaveBeenCalledWith({
+			db: {},
+			schema: 'latest',
+			namingMismatch: 'adopt-current',
+		});
 		expect(handleMigrationResult).toHaveBeenCalled();
 		expect(handleORMResult).not.toHaveBeenCalled();
 	});

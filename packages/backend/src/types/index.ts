@@ -50,9 +50,17 @@ export interface DatabaseOptions {
 	 *
 	 * Provide `tables` directly, or use a built-in utility such as
 	 * `snakeCaseTables()` to generate the map. Spread to combine.
+	 * If `tables.<name>.fields` is provided, it must include every known c15t
+	 * column for that table so stale maps fail loudly during config load.
+	 *
+	 * After the database has been initialized, changing naming is blocked by
+	 * the migrator unless you intentionally use
+	 * `migration.onMismatch: 'adopt-current'` after manually renaming the
+	 * existing database objects to match the new config.
 	 *
 	 * @example { tables: snakeCaseTables() }
 	 * @example { tables: { consentPolicy: { name: 'consent_policies' } } }
+	 * @example { migration: { onMismatch: 'adopt-current' } }
 	 * @see {@link https://c15t.com/docs/self-host/guides/database-setup}
 	 */
 	naming?: NamingOptions;
@@ -388,9 +396,17 @@ export interface C15TOptions {
 	 *
 	 * Provide `tables` directly, or use a built-in utility such as
 	 * `snakeCaseTables()` to generate the map. Spread to combine.
+	 * If `tables.<name>.fields` is provided, it must include every known c15t
+	 * column for that table so stale maps fail loudly during config load.
+	 *
+	 * After the database has been initialized, changing naming is blocked by
+	 * the migrator unless you intentionally use
+	 * `migration.onMismatch: 'adopt-current'` after manually renaming the
+	 * existing database objects to match the new config.
 	 *
 	 * @example { tables: snakeCaseTables() }
 	 * @example { tables: { consentPolicy: { name: 'consent_policies' } } }
+	 * @example { migration: { onMismatch: 'adopt-current' } }
 	 * @see {@link https://c15t.com/docs/self-host/guides/database-setup}
 	 */
 	naming?: NamingOptions;

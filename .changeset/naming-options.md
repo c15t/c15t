@@ -21,4 +21,6 @@ c15t({
 - Only `sql` and `mongodb` identifiers are rewritten — the TypeScript ORM API stays camelCase, so application code is unaffected.
 - Variants are computed against every known schema version, so columns added in newer versions (or removed in newer versions but still present during legacy → latest migrations) all receive the rename.
 - Forwarded through the CLI's `read-config` so `c15t migrate` renders renamed migrations.
+- Migrations now compare the current effective naming map against FumaDB's persisted `name-variants` and fail closed on drift, with an explicit `naming.migration.onMismatch: 'adopt-current'` recovery path after manually renaming existing database objects.
+- Manual field maps must include every known column for that table, so stale generated maps fail loudly instead of silently missing future columns.
 - Backwards compatible: omitting `naming` keeps the historical camelCase identifiers.
