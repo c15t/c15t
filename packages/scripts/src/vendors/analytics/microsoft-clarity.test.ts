@@ -7,7 +7,10 @@ import {
 	setupScriptHelperTest,
 	toArgumentsArray,
 } from '../../__tests__/helpers';
-import { clarity } from './microsoft-clarity';
+import { type ClarityConsentV2Payload, clarity } from './microsoft-clarity';
+
+const consentv2Call = (payload: ClarityConsentV2Payload) =>
+	toArgumentsArray(['consentv2', payload]);
 
 describe('microsoft-clarity', () => {
 	setupScriptHelperTest();
@@ -26,7 +29,7 @@ describe('microsoft-clarity', () => {
 		const globalRef = getTestGlobal();
 		const script = clarity({
 			id: 'abcdef1234',
-			defaultConsent: { ad_Storage: 'denied' },
+			defaultConsent: { ad_Storage: 'granted' },
 		});
 
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
@@ -37,19 +40,20 @@ describe('microsoft-clarity', () => {
 			  })
 			| undefined;
 		expect(stub?.q).toEqual([
-			toArgumentsArray([
-				'consentv2',
-				{
-					ad_Storage: 'denied',
-					analytics_Storage: 'denied',
-				},
-			]),
+			consentv2Call({
+				ad_Storage: 'granted',
+				analytics_Storage: 'denied',
+			}),
 		]);
 	});
 
 	it('maps consent updates to Clarity Consent V2 calls', () => {
 		const globalRef = getTestGlobal();
 		const script = clarity({ id: 'abcdef1234' });
+		const grantedMeasurementAndMarketingConsentState = {
+			...grantedMeasurementConsentState,
+			marketing: true,
+		};
 
 		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
 		script.onConsentChange?.(
@@ -62,6 +66,13 @@ describe('microsoft-clarity', () => {
 		script.onConsentChange?.(
 			createCallbackInfo({
 				id: script.id,
+				hasConsent: true,
+				consents: grantedMeasurementAndMarketingConsentState,
+			})
+		);
+		script.onConsentChange?.(
+			createCallbackInfo({
+				id: script.id,
 			})
 		);
 
@@ -69,27 +80,22 @@ describe('microsoft-clarity', () => {
 			| (((...args: unknown[]) => void) & { q?: unknown[][] })
 			| undefined;
 		expect(stub?.q).toEqual([
-			toArgumentsArray([
-				'consentv2',
-				{
-					ad_Storage: 'denied',
-					analytics_Storage: 'denied',
-				},
-			]),
-			toArgumentsArray([
-				'consentv2',
-				{
-					ad_Storage: 'denied',
-					analytics_Storage: 'granted',
-				},
-			]),
-			toArgumentsArray([
-				'consentv2',
-				{
-					ad_Storage: 'denied',
-					analytics_Storage: 'denied',
-				},
-			]),
+			consentv2Call({
+				ad_Storage: 'denied',
+				analytics_Storage: 'denied',
+			}),
+			consentv2Call({
+				ad_Storage: 'denied',
+				analytics_Storage: 'granted',
+			}),
+			consentv2Call({
+				ad_Storage: 'granted',
+				analytics_Storage: 'granted',
+			}),
+			consentv2Call({
+				ad_Storage: 'denied',
+				analytics_Storage: 'denied',
+			}),
 		]);
 	});
 });

@@ -2,13 +2,32 @@ import type { ConsentState, Script, ScriptCallbackInfo } from 'c15t';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
 
+/**
+ * Microsoft Clarity Consent V2 storage state.
+ *
+ * Clarity accepts string consent values instead of booleans for its granular
+ * `ad_Storage` and `analytics_Storage` channels.
+ */
 export type ClarityConsentState = 'granted' | 'denied';
 
+/**
+ * Consent V2 payload sent to Microsoft Clarity.
+ *
+ * c15t maps `marketing` consent to `ad_Storage` and `measurement` consent to
+ * `analytics_Storage`.
+ */
 export interface ClarityConsentV2Payload {
 	ad_Storage: ClarityConsentState;
 	analytics_Storage: ClarityConsentState;
 }
 
+/**
+ * Optional boot-time consent override accepted by the Clarity helper.
+ *
+ * Booleans apply the same value to both Clarity Consent V2 channels. Object
+ * values may use Clarity keys or c15t category aliases and are merged over the
+ * current c15t consent state.
+ */
 export type ClarityConsentValue =
 	| boolean
 	| Partial<
@@ -42,6 +61,11 @@ declare global {
 	}
 }
 
+/**
+ * Converts c15t and user-supplied consent values into Clarity Consent V2 state.
+ *
+ * @internal
+ */
 function toClarityConsentState(
 	value: unknown
 ): ClarityConsentState | undefined {
@@ -86,12 +110,31 @@ function getConsentValue(
 function getConsentPayloadFromState(
 	consents: ConsentState
 ): ClarityConsentV2Payload {
+	let adStorage: ClarityConsentState;
+	if (consents.marketing) {
+		adStorage = 'granted';
+	} else {
+		adStorage = 'denied';
+	}
+
+	let analyticsStorage: ClarityConsentState;
+	if (consents.measurement) {
+		analyticsStorage = 'granted';
+	} else {
+		analyticsStorage = 'denied';
+	}
+
 	return {
-		ad_Storage: consents.marketing ? 'granted' : 'denied',
-		analytics_Storage: consents.measurement ? 'granted' : 'denied',
+		ad_Storage: adStorage,
+		analytics_Storage: analyticsStorage,
 	};
 }
 
+/**
+ * Builds the Consent V2 payload for Clarity from c15t state and overrides.
+ *
+ * @internal
+ */
 function getClarityConsentPayload(
 	consents: ConsentState,
 	defaultConsent?: ClarityConsentValue
@@ -131,6 +174,11 @@ function getClarityConsentPayload(
 	return fallback;
 }
 
+/**
+ * Queues or sends the current Clarity Consent V2 payload.
+ *
+ * @internal
+ */
 function syncClarityConsent(
 	info: ScriptCallbackInfo,
 	defaultConsent?: ClarityConsentValue
