@@ -1,6 +1,6 @@
 # RFC 0001: Consent Manifest
 
-Status: **Draft — implementation may proceed; §5 (audit strategy) requires sign-off from the audit owner before any production release.**
+Status: **Accepted — recompute-on-write audit validation is owner-approved.**
 
 ## 1. Problem
 
@@ -77,15 +77,33 @@ versioned by config revision. Per-tenant, never per-user. Staleness window
 `gpc` (`Sec-GPC`). GPC affects resolution output (opt-out defaults), never
 manifest cache keys.
 
-## 5. Audit strategy (OPEN — needs audit-owner sign-off)
+## 5. Audit strategy (Accepted — recompute-on-write)
 
 Hosted `/init` signs a `policySnapshotToken` over the full resolved decision.
-Manifest mode has no backend read, hence no token. **Recommended: recompute on
-write.** `POST /subjects` in manifest mode carries the asserted decision inputs
-(`policyId`, `fingerprint`, `country`, `region`, `language`); the backend
-re-runs the shared resolver and validates the fingerprint before accepting.
-Trust moves to the write path, where the server is authoritative anyway and
-off the perf-critical path. Tokens remain accepted from hosted-mode clients.
+Manifest mode has no backend read, hence no token. The accepted strategy is
+**recompute on write**: `POST /subjects` in manifest mode carries the asserted
+decision inputs (`policyId`, `fingerprint`, `country`, `region`, `language`,
+`gpc`). The backend constructs the same manifest body as `GET /manifest`,
+re-runs the shared resolver with those inputs, and accepts only when the
+derived `policyId` and `fingerprint` match the asserted values. Trust moves to
+the write path, where the server is authoritative anyway and off the
+perf-critical path.
+
+Enforcement matrix:
+
+| Write evidence | Backend behavior |
+| --- | --- |
+| `policySnapshotToken` | Verify the token and use the token-backed audit path. Asserted manifest decision inputs are not required. |
+| No token + complete asserted decision inputs | Recompute from the current manifest and accept only if `policyId` and `fingerprint` match. Audit records use the same runtime decision fields as token-backed writes, with source `manifest_recompute`. |
+| Neither token nor asserted decision inputs | Legacy behavior is unchanged: accept or reject exactly as the existing write-time fallback configuration dictates. |
+
+If recompute validation fails, `POST /subjects` returns HTTP `409` with
+`code: "STALE_POLICY"` and message
+`"Policy decision is stale; refresh the consent manifest and retry"`. Clients
+should refresh `GET /manifest`, resolve again, and retry the save. Incomplete
+manifest decision inputs are rejected with HTTP `422` and the same
+`STALE_POLICY` code.
+
 Alternatives considered: per-pack pre-signed tokens (too coarse — tokens are
 per-decision), short-TTL manifest signature + server expansion.
 

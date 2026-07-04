@@ -87,6 +87,7 @@ interface LastDecisionInputs {
 	country: string | null;
 	region: string | null;
 	language: string;
+	gpc?: boolean;
 }
 
 function trimSlash(url: string): string {
@@ -184,13 +185,17 @@ async function defaultFetchGvl(input: {
 	return (await response.json()) as GlobalVendorList;
 }
 
-function rememberDecision(payload: InitOutput): LastDecisionInputs {
+function rememberDecision(
+	payload: InitOutput,
+	inputs?: ResolveInitFromManifestInputs
+): LastDecisionInputs {
 	return {
 		policyId: payload.policyDecision?.policyId,
 		fingerprint: payload.policyDecision?.fingerprint,
 		country: payload.location.countryCode,
 		region: payload.location.regionCode,
 		language: payload.translations.language,
+		gpc: inputs?.gpc,
 	};
 }
 
@@ -214,7 +219,7 @@ export function createManifestTransport(
 	const domain = resolveDomain(backendURL, options.domain);
 	let manifestPromise: Promise<ConsentManifest> | undefined;
 	let lastDecisionInputs: LastDecisionInputs | undefined = options.initialInit
-		? rememberDecision(options.initialInit)
+		? rememberDecision(options.initialInit, options.inputs)
 		: undefined;
 
 	async function getManifest(): Promise<ConsentManifest> {
@@ -259,7 +264,7 @@ export function createManifestTransport(
 				});
 			}
 
-			lastDecisionInputs = rememberDecision(payload);
+			lastDecisionInputs = rememberDecision(payload, inputs);
 			return mapInitOutputToInitResponse(payload, toHeadersFromInputs(inputs));
 		},
 
@@ -270,6 +275,7 @@ export function createManifestTransport(
 				);
 			}
 
+			const shouldAssertDecisionInputs = !payload.policySnapshotToken;
 			const response = await fetchImpl(`${backendURL}/subjects`, {
 				method: 'POST',
 				credentials,
@@ -290,11 +296,14 @@ export function createManifestTransport(
 					consentAction: payload.consentAction,
 					policySnapshotToken: payload.policySnapshotToken ?? undefined,
 					tcString: payload.tcString ?? undefined,
-					policyId: lastDecisionInputs?.policyId,
-					fingerprint: lastDecisionInputs?.fingerprint,
-					country: lastDecisionInputs?.country,
-					region: lastDecisionInputs?.region,
-					language: lastDecisionInputs?.language,
+					...(shouldAssertDecisionInputs && {
+						policyId: lastDecisionInputs?.policyId,
+						fingerprint: lastDecisionInputs?.fingerprint,
+						country: lastDecisionInputs?.country,
+						region: lastDecisionInputs?.region,
+						language: lastDecisionInputs?.language,
+						gpc: lastDecisionInputs?.gpc,
+					}),
 					metadata: payload.user?.properties
 						? { userProperties: payload.user.properties }
 						: undefined,
