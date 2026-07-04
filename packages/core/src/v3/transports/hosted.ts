@@ -21,9 +21,12 @@
  * backwards-compatible way means adding optional fields; the kernel
  * ignores unknown fields.
  */
+import type { InitOutput } from '@c15t/schema/types';
 import type {
 	InitContext,
 	InitResponse,
+	KernelBranding,
+	KernelOverrides,
 	KernelTransport,
 	SavePayload,
 	SaveResult,
@@ -43,9 +46,12 @@ export interface HostedTransportOptions {
 	fetch?: typeof globalThis.fetch;
 
 	/**
-	 * Additional headers to include on every request. Useful for
-	 * propagating `authorization`, `cookie`, `x-forwarded-*` on the
-	 * server side.
+	 * Request headers that may be passed through to `GET /init`.
+	 *
+	 * Only the backend-recognized init headers are forwarded:
+	 * `accept-language`, supported geo CDN headers, and `sec-gpc`.
+	 * Other names are ignored so callers do not accidentally forward
+	 * arbitrary request header bags.
 	 */
 	headers?: Record<string, string>;
 
@@ -93,6 +99,98 @@ function resolveDomain(
 	}
 }
 
+const INIT_HEADER_ALLOWLIST = new Set([
+	'accept-language',
+	'sec-gpc',
+	'x-c15t-country',
+	'x-c15t-region',
+	'cf-ipcountry',
+	'x-vercel-ip-country',
+	'x-vercel-ip-country-region',
+	'x-amz-cf-ipcountry',
+	'x-country-code',
+	'x-region-code',
+]);
+
+function buildAllowedInitHeaders(
+	headers: Record<string, string> | undefined
+): Record<string, string> {
+	const allowed: Record<string, string> = {};
+	if (!headers) return allowed;
+	for (const [name, value] of Object.entries(headers)) {
+		const normalizedName = name.toLowerCase();
+		if (INIT_HEADER_ALLOWLIST.has(normalizedName)) {
+			allowed[normalizedName] = value;
+		}
+	}
+	return allowed;
+}
+
+function mapBranding(
+	branding: InitOutput['branding']
+): KernelBranding | undefined {
+	return branding === 'none' ? undefined : branding;
+}
+
+function mapResolvedOverrides(
+	payload: InitOutput,
+	headers: Record<string, string>
+): KernelOverrides {
+	const overrides: KernelOverrides = {
+		language: payload.translations.language,
+	};
+
+	if (payload.location.countryCode) {
+		overrides.country = payload.location.countryCode;
+	}
+	if (payload.location.regionCode) {
+		overrides.region = payload.location.regionCode;
+	}
+	if (headers['sec-gpc'] === '1') {
+		overrides.gpc = true;
+	} else if (headers['sec-gpc'] === '0') {
+		overrides.gpc = false;
+	}
+
+	return overrides;
+}
+
+function mapInitOutputToInitResponse(
+	payload: InitOutput,
+	headers: Record<string, string>
+): InitResponse {
+	const mapped: InitResponse = {
+		resolvedOverrides: mapResolvedOverrides(payload, headers),
+		location: payload.location,
+		translations: payload.translations,
+		// On the real backend, omitted `gvl` on a 200 response means IAB is not
+		// active for this request. The kernel disables IAB on explicit null.
+		gvl: payload.gvl ?? null,
+	};
+
+	const branding = mapBranding(payload.branding);
+	if (branding !== undefined) {
+		mapped.branding = branding;
+	}
+	if (payload.policy !== undefined) {
+		mapped.policy = payload.policy;
+	}
+	if (payload.policyDecision !== undefined) {
+		mapped.policyDecision = payload.policyDecision;
+	}
+	if (payload.policySnapshotToken !== undefined) {
+		mapped.policySnapshotToken = payload.policySnapshotToken;
+	}
+	if (payload.customVendors !== undefined) {
+		mapped.customVendors = payload.customVendors;
+	}
+	if (payload.cmpId !== undefined) {
+		mapped.cmpId = payload.cmpId;
+	}
+
+	return mapped;
+}
+
 /**
  * Build a hosted transport. The returned object is plain — no listeners,
  * no caches, no state. Safe to create per request.
@@ -107,24 +205,19 @@ export function createHostedTransport(
 			'createHostedTransport: no fetch available. Pass `fetch` in options.'
 		);
 	}
-	const baseHeaders = options.headers ?? {};
+	const initHeaders = buildAllowedInitHeaders(options.headers);
 	const credentials = options.credentials ?? 'include';
 	const domain = resolveDomain(base, options.domain);
 
 	return {
-		async init(ctx: InitContext): Promise<InitResponse> {
+		async init(_ctx: InitContext): Promise<InitResponse> {
 			const response = await fetchImpl(`${base}/init`, {
-				method: 'POST',
+				method: 'GET',
 				credentials,
 				headers: {
-					'content-type': 'application/json',
 					accept: 'application/json',
-					...baseHeaders,
+					...initHeaders,
 				},
-				body: JSON.stringify({
-					overrides: ctx.overrides,
-					user: ctx.user,
-				}),
 			});
 
 			if (!response.ok) {
@@ -133,8 +226,8 @@ export function createHostedTransport(
 				);
 			}
 
-			const payload = (await response.json()) as InitResponse;
-			return payload;
+			const payload = (await response.json()) as InitOutput;
+			return mapInitOutputToInitResponse(payload, initHeaders);
 		},
 
 		async save(payload: SavePayload): Promise<SaveResult> {
@@ -144,7 +237,6 @@ export function createHostedTransport(
 				headers: {
 					'content-type': 'application/json',
 					accept: 'application/json',
-					...baseHeaders,
 				},
 				body: JSON.stringify({
 					subjectId: payload.subjectId,

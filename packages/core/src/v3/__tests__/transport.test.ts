@@ -5,6 +5,7 @@
  * backend. createHostedTransport is also unit-tested against a mocked
  * fetch so we know the request shape and error handling are correct.
  */
+import type { InitOutput } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 import {
 	createConsentKernel,
@@ -13,6 +14,131 @@ import {
 	type KernelTransport,
 	type SaveResult,
 } from '../index';
+
+const REALISTIC_INIT_OUTPUT = {
+	jurisdiction: 'GDPR',
+	location: { countryCode: 'DE', regionCode: 'BE' },
+	translations: {
+		language: 'de',
+		translations: {
+			common: {
+				acceptAll: 'Alle akzeptieren',
+				rejectAll: 'Alle ablehnen',
+				customize: 'Anpassen',
+				save: 'Speichern',
+			},
+			cookieBanner: {
+				title: 'Cookies verwalten',
+				description: 'Waehlen Sie aus, welche Cookies verwendet werden.',
+			},
+			consentManagerDialog: {
+				title: 'Datenschutzeinstellungen',
+				description: 'Verwalten Sie Ihre Praeferenzen.',
+			},
+			consentTypes: {
+				experience: {
+					title: 'Erlebnis',
+					description: 'Personalisierte Funktionen.',
+				},
+				functionality: {
+					title: 'Funktionalitaet',
+					description: 'Verbesserte Websitefunktionen.',
+				},
+				marketing: {
+					title: 'Marketing',
+					description: 'Personalisierte Werbung.',
+				},
+				measurement: {
+					title: 'Analyse',
+					description: 'Nutzungsmessung.',
+				},
+				necessary: {
+					title: 'Notwendig',
+					description: 'Erforderliche Cookies.',
+				},
+			},
+			frame: {
+				title: 'Cookie-Einstellungen',
+				actionButton: 'Einstellungen oeffnen',
+			},
+			legalLinks: {
+				privacyPolicy: 'Datenschutz',
+				termsOfService: 'Nutzungsbedingungen',
+				cookiePolicy: 'Cookie-Richtlinie',
+			},
+		},
+	},
+	branding: 'c15t',
+	gvl: {
+		gvlSpecificationVersion: 3,
+		vendorListVersion: 42,
+		tcfPolicyVersion: 4,
+		lastUpdated: '2026-01-01T00:00:00Z',
+		purposes: {},
+		specialPurposes: {},
+		features: {},
+		specialFeatures: {},
+		stacks: {},
+		vendors: {},
+	},
+	customVendors: [
+		{
+			id: 'internal-analytics',
+			name: 'Internal Analytics',
+			privacyPolicyUrl: 'https://example.com/privacy',
+			purposes: [1, 7],
+			legIntPurposes: [2],
+			usesCookies: true,
+		},
+	],
+	cmpId: 28,
+	policy: {
+		id: 'de-iab',
+		model: 'iab',
+		i18n: {
+			language: 'de',
+			messageProfile: 'formal',
+		},
+		consent: {
+			expiryDays: 180,
+			scopeMode: 'strict',
+			categories: ['necessary', 'functionality', 'marketing', 'measurement'],
+			preselectedCategories: ['necessary'],
+			gpc: true,
+		},
+		ui: {
+			mode: 'dialog',
+			banner: {
+				allowedActions: ['accept', 'reject', 'customize'],
+				primaryActions: ['accept'],
+				direction: 'row',
+				uiProfile: 'balanced',
+				scrollLock: false,
+			},
+			dialog: {
+				allowedActions: ['accept', 'reject', 'customize'],
+				primaryActions: ['accept', 'customize'],
+				direction: 'column',
+				uiProfile: 'strict',
+				scrollLock: true,
+			},
+		},
+		proof: {
+			storeIp: false,
+			storeUserAgent: true,
+			storeLanguage: true,
+		},
+	},
+	policyDecision: {
+		policyId: 'de-iab',
+		fingerprint: 'policy-fingerprint',
+		matchedBy: 'region',
+		country: 'DE',
+		region: 'BE',
+		jurisdiction: 'GDPR',
+	},
+	policySnapshotToken: 'snapshot-token',
+} satisfies InitOutput;
 
 describe('kernel transport: no transport = no-op commands', () => {
 	test('init returns ok without firing any network call', async () => {
@@ -265,9 +391,9 @@ describe('kernel transport: identify forwards to transport', () => {
 // ---- createHostedTransport unit tests ------------------------------------
 
 describe('createHostedTransport: request shape', () => {
-	test('init POSTs to `${backendURL}/init` with overrides+user', async () => {
+	test('init GETs `${backendURL}/init` with no body', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
-			new Response(JSON.stringify({ policy: { id: 'p', model: 'none' } }), {
+			new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
 				status: 200,
 				headers: { 'content-type': 'application/json' },
 			})
@@ -282,15 +408,13 @@ describe('createHostedTransport: request shape', () => {
 			user: { externalId: 'user-1' },
 		});
 
-		expect(response?.policy?.id).toBe('p');
+		expect(response?.policy?.id).toBe('de-iab');
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		const [url, init] = fetchSpy.mock.calls[0] ?? [];
 		// Trailing slash on backendURL is stripped.
 		expect(url).toBe('https://api.example.com/c15t/init');
-		expect((init as RequestInit).method).toBe('POST');
-		const body = JSON.parse((init as RequestInit).body as string);
-		expect(body.overrides).toEqual({ country: 'DE' });
-		expect(body.user.externalId).toBe('user-1');
+		expect((init as RequestInit).method).toBe('GET');
+		expect((init as RequestInit).body).toBeUndefined();
 	});
 
 	test('save POSTs to `${backendURL}/subjects` with backend body', async () => {
@@ -349,22 +473,95 @@ describe('createHostedTransport: request shape', () => {
 		expect(typeof body.givenAt).toBe('number');
 	});
 
-	test('extra headers are merged into every request', async () => {
+	test('init only forwards allowlisted backend input headers', async () => {
 		const fetchSpy = vi
 			.fn()
-			.mockResolvedValue(new Response('{}', { status: 200 }));
+			.mockResolvedValue(
+				new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), { status: 200 })
+			);
 		const transport = createHostedTransport({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
-			headers: { authorization: 'Bearer t' },
+			headers: {
+				'accept-language': 'de-DE,de;q=0.9',
+				authorization: 'Bearer t',
+				cookie: 'session=secret',
+				'sec-gpc': '1',
+				'X-C15T-Region': 'BE',
+				'x-c15t-country': 'DE',
+				'x-forwarded-for': '203.0.113.1',
+			},
 		});
 
 		await transport.init?.({ overrides: {}, user: null });
 		const [, init] = fetchSpy.mock.calls[0] ?? [];
-		expect((init as RequestInit).headers).toMatchObject({
-			'content-type': 'application/json',
-			authorization: 'Bearer t',
+		expect((init as RequestInit).headers).toEqual({
+			accept: 'application/json',
+			'accept-language': 'de-DE,de;q=0.9',
+			'sec-gpc': '1',
+			'x-c15t-country': 'DE',
+			'x-c15t-region': 'BE',
 		});
+	});
+
+	test('init maps backend InitOutput into the kernel init response shape', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+			})
+		);
+		const transport = createHostedTransport({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			headers: { 'sec-gpc': '1' },
+		});
+
+		const response = await transport.init?.({ overrides: {}, user: null });
+
+		expect(response).toMatchObject({
+			resolvedOverrides: {
+				country: 'DE',
+				region: 'BE',
+				language: 'de',
+				gpc: true,
+			},
+			location: { countryCode: 'DE', regionCode: 'BE' },
+			translations: { language: 'de' },
+			branding: 'c15t',
+			policy: { id: 'de-iab', model: 'iab' },
+			policyDecision: {
+				policyId: 'de-iab',
+				matchedBy: 'region',
+				jurisdiction: 'GDPR',
+			},
+			policySnapshotToken: 'snapshot-token',
+			gvl: { vendorListVersion: 42 },
+			customVendors: [{ id: 'internal-analytics' }],
+			cmpId: 28,
+		});
+		expect('jurisdiction' in (response ?? {})).toBe(false);
+	});
+
+	test('init maps omitted backend GVL to null so IAB is disabled', async () => {
+		const withoutIab = {
+			...REALISTIC_INIT_OUTPUT,
+			customVendors: undefined,
+			gvl: undefined,
+		};
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify(withoutIab), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		const response = await transport.init?.({ overrides: {}, user: null });
+
+		expect(response?.gvl).toBeNull();
 	});
 
 	test('non-2xx response throws an actionable error', async () => {
