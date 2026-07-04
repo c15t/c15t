@@ -5,7 +5,6 @@ import {
 	buildInitialSnapshot,
 	DEFAULT_CONSENTS,
 	DEFAULT_IAB,
-	freezeSnapshot,
 } from '../snapshot';
 
 describe('buildInitialConsents', () => {
@@ -104,6 +103,29 @@ describe('buildInitialSnapshot', () => {
 	test('initial subjectId is preserved', () => {
 		const snap = buildInitialSnapshot({ initialSubjectId: 'sub_42' });
 		expect(snap.subjectId).toBe('sub_42');
+	});
+
+	test('initialHasConsented hides active UI and preserves user consents', () => {
+		const snap = buildInitialSnapshot({
+			initialHasConsented: true,
+			initialConsents: { marketing: true, measurement: true },
+			initialPolicy: {
+				model: 'opt-in',
+				ui: {
+					mode: 'banner',
+				},
+				consent: {
+					categories: ['marketing'],
+					scopeMode: 'strict',
+				},
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+		});
+
+		expect(snap.hasConsented).toBe(true);
+		expect(snap.activeUI).toBe('none');
+		expect(snap.consents.marketing).toBe(true);
+		expect(snap.consents.measurement).toBe(true);
 	});
 
 	test('initial banner/dialog UI hints are copied off the policy', () => {

@@ -127,9 +127,10 @@ export function buildInitialSnapshot(config: KernelConfig): ConsentSnapshot {
 		? { ...config.initialPolicy }
 		: null;
 	const initialModel = deriveModel(initialPolicy, initialIab?.enabled ?? false);
+	const initialHasConsented = config.initialHasConsented ?? false;
 	const initialPolicyResult = applyPolicyToConsents({
 		consents: buildInitialConsents(config.initialConsents),
-		hasConsented: false,
+		hasConsented: initialHasConsented,
 		policy: initialPolicy,
 	});
 
@@ -138,7 +139,7 @@ export function buildInitialSnapshot(config: KernelConfig): ConsentSnapshot {
 		overrides: { ...(config.initialOverrides ?? {}) },
 		user: config.initialUser ? { ...config.initialUser } : null,
 		subjectId: config.initialSubjectId ?? null,
-		hasConsented: false,
+		hasConsented: initialHasConsented,
 		revision: 0,
 		location: config.initialLocation ? { ...config.initialLocation } : null,
 		translations: config.initialTranslations
@@ -151,7 +152,9 @@ export function buildInitialSnapshot(config: KernelConfig): ConsentSnapshot {
 			: null,
 		policySnapshotToken: config.initialPolicySnapshotToken ?? null,
 		model: initialModel,
-		activeUI: deriveActiveUI(initialModel, initialPolicy),
+		activeUI: initialHasConsented
+			? 'none'
+			: deriveActiveUI(initialModel, initialPolicy),
 		policyCategories: initialPolicyResult.policyCategories,
 		policyScopeMode: initialPolicyResult.policyScopeMode,
 		policyBanner: config.initialPolicy?.ui?.banner

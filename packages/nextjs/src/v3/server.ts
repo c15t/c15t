@@ -32,7 +32,6 @@ import { cookies, headers } from 'next/headers';
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
-	parseAcceptLanguage,
 } from './headers';
 
 const CONSENT_COOKIE_DEFAULT = 'c15t-consent';
@@ -61,15 +60,36 @@ export interface ReadInitialConsentConfigOptions {
  * `{ "necessary": true, "marketing": false, ... }`. Silently ignores
  * malformed cookies — consent defaults to all-false-except-necessary.
  */
-function parseConsentCookie(
-	value: string | undefined
-): Partial<ConsentState> | undefined {
+function parseConsentCookie(value: string | undefined):
+	| {
+			consents: Partial<ConsentState>;
+			subjectId?: string;
+	  }
+	| undefined {
 	if (!value) return undefined;
 	try {
 		const decoded = decodeURIComponent(value);
-		const parsed = JSON.parse(decoded) as Partial<ConsentState>;
+		const parsed = JSON.parse(decoded) as
+			| Partial<ConsentState>
+			| {
+					consents?: Partial<ConsentState>;
+					consentInfo?: { subjectId?: unknown } | null;
+			  };
 		if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-			return parsed;
+			const payloadConsents =
+				'consents' in parsed && parsed.consents
+					? parsed.consents
+					: (parsed as Partial<ConsentState>);
+			const subjectId =
+				'consentInfo' in parsed &&
+				parsed.consentInfo &&
+				typeof parsed.consentInfo.subjectId === 'string'
+					? parsed.consentInfo.subjectId
+					: undefined;
+			return {
+				consents: payloadConsents,
+				subjectId,
+			};
 		}
 	} catch {
 		// Malformed cookie — consumer will get defaults.
@@ -101,7 +121,7 @@ export async function readInitialConsentConfig(
 
 	const cookieName = options.cookieName ?? CONSENT_COOKIE_DEFAULT;
 	const consentCookie = cookieStore.get(cookieName)?.value;
-	const initialConsents = parseConsentCookie(consentCookie);
+	const storedConsent = parseConsentCookie(consentCookie);
 
 	const inputs = extractConsentRequestInputs(headerStore as Headers, {
 		country: options.country,
@@ -115,7 +135,13 @@ export async function readInitialConsentConfig(
 	if (inputs.gpc !== undefined) overrides.gpc = inputs.gpc;
 
 	const config: KernelConfig = {};
-	if (initialConsents) config.initialConsents = initialConsents;
+	if (storedConsent) {
+		config.initialConsents = storedConsent.consents;
+		config.initialHasConsented = true;
+		if (storedConsent.subjectId) {
+			config.initialSubjectId = storedConsent.subjectId;
+		}
+	}
 	if (Object.keys(overrides).length > 0) {
 		config.initialOverrides = overrides;
 	}

@@ -11,7 +11,6 @@ import {
 	useEffect,
 	useState,
 } from 'react';
-import { createPortal } from 'react-dom';
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import { LocalThemeContext } from '~/v3/context/theme-context';
 import {
@@ -302,6 +301,8 @@ const ConsentBannerRootChildren = forwardRef<
 
 		// ConsentBanner shows when activeUI is 'banner' and the current model matches
 		const shouldShowBanner = activeUI === 'banner' && models.includes(model);
+		const [hasInitializedVisibility, setHasInitializedVisibility] =
+			useState(false);
 
 		// Get animation duration from CSS custom property (client-side only)
 		useEffect(() => {
@@ -316,6 +317,15 @@ const ConsentBannerRootChildren = forwardRef<
 
 		// Handle animation visibility state
 		useEffect(() => {
+			if (!hasInitializedVisibility) {
+				setHasInitializedVisibility(true);
+				setIsVisible(shouldShowBanner);
+				if (shouldShowBanner) {
+					setHasAnimated(true);
+				}
+				return;
+			}
+
 			if (shouldShowBanner) {
 				if (disableAnimation) {
 					setIsVisible(true);
@@ -346,7 +356,13 @@ const ConsentBannerRootChildren = forwardRef<
 					return () => clearTimeout(timer);
 				}
 			}
-		}, [shouldShowBanner, disableAnimation, hasAnimated, animationDurationMs]);
+		}, [
+			shouldShowBanner,
+			disableAnimation,
+			hasAnimated,
+			animationDurationMs,
+			hasInitializedVisibility,
+		]);
 
 		// Apply styles from the ConsentBanner context and merge with local styles.
 		// Uses the 'content' style key for consistent theming.
@@ -359,21 +375,6 @@ const ConsentBannerRootChildren = forwardRef<
 			className: className || forwardedClassName,
 			noStyle,
 		});
-
-		// Track client-side mounting state to prevent SSR hydration issues
-		// with the portal rendering
-		const [isMounted, setIsMounted] = useState(false);
-
-		// Initialize mounting state after initial render
-		// This ensures we only render the portal on the client side
-		useEffect(() => {
-			setIsMounted(true);
-		}, []);
-
-		// Prevent rendering until client-side mount is complete
-		if (!isMounted) {
-			return null;
-		}
 
 		// Create a final class name that respects the noStyle flag
 		const finalClassName = noStyle
@@ -388,24 +389,21 @@ const ConsentBannerRootChildren = forwardRef<
 		const domStyleProps = sanitizeDOMStyleProps(contentStyle);
 
 		// Only render when the banner should be shown
-		return shouldShowBanner
-			? createPortal(
-					<>
-						<Overlay />
-						<div
-							ref={ref}
-							{...props}
-							{...domStyleProps}
-							className={finalClassName}
-							data-testid="consent-banner-root"
-							dir={textDirection}
-						>
-							{children}
-						</div>
-					</>,
-					document.body
-				)
-			: null;
+		return shouldShowBanner ? (
+			<>
+				<Overlay />
+				<div
+					ref={ref}
+					{...props}
+					{...domStyleProps}
+					className={finalClassName}
+					data-testid="consent-banner-root"
+					dir={textDirection}
+				>
+					{children}
+				</div>
+			</>
+		) : null;
 	}
 );
 

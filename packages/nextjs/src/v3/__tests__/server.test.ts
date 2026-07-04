@@ -52,6 +52,23 @@ describe('readInitialConsentConfig: cookies', () => {
 			marketing: true,
 			measurement: true,
 		});
+		expect(config.initialHasConsented).toBe(true);
+	});
+
+	test('parses persisted v2/v3 storage payloads', async () => {
+		cookieStore.set(
+			'c15t-consent',
+			encodeURIComponent(
+				JSON.stringify({
+					consents: { marketing: true },
+					consentInfo: { subjectId: 'sub_123' },
+				})
+			)
+		);
+		const config = await readInitialConsentConfig();
+		expect(config.initialConsents).toEqual({ marketing: true });
+		expect(config.initialHasConsented).toBe(true);
+		expect(config.initialSubjectId).toBe('sub_123');
 	});
 
 	test('ignores malformed cookies', async () => {
@@ -73,6 +90,7 @@ describe('readInitialConsentConfig: cookies', () => {
 		);
 		const config = await readInitialConsentConfig({ cookieName: 'my-consent' });
 		expect(config.initialConsents).toEqual({ marketing: true });
+		expect(config.initialHasConsented).toBe(true);
 	});
 });
 

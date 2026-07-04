@@ -187,6 +187,8 @@ export interface KernelConfig {
 	initialUser?: KernelUser;
 	/** Initial subject ID, usually hydrated from stored consent. */
 	initialSubjectId?: string;
+	/** Whether the user has already made a consent choice. */
+	initialHasConsented?: boolean;
 	/** Initial translation bundle (e.g. from prefetch). */
 	initialTranslations?: KernelTranslations;
 	/** Initial location (e.g. from prefetch). */

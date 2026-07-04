@@ -49,7 +49,7 @@ beforeEach(() => {
 });
 
 describe('prefetchInitialConsent: backend call', () => {
-	test('calls ${backendURL}/init with current context', async () => {
+	test('calls backendURL/init with current context', async () => {
 		headerStore.set('x-vercel-ip-country', 'DE');
 		headerStore.set('host', 'app.example.com');
 		headerStore.set('x-forwarded-proto', 'https');
@@ -137,6 +137,7 @@ describe('prefetchInitialConsent: backend call', () => {
 		// Baseline from cookie + header is preserved.
 		expect(config.initialOverrides?.country).toBe('US');
 		expect(config.initialConsents?.marketing).toBe(true);
+		expect(config.initialHasConsented).toBe(true);
 		// Init response missing; fields stay undefined.
 		expect(config.initialPolicy).toBeUndefined();
 		expect(config.initialPolicySnapshotToken).toBeUndefined();
@@ -167,6 +168,7 @@ describe('prefetchInitialConsent: backend call', () => {
 			marketing: true,
 			measurement: false,
 		});
+		expect(config.initialHasConsented).toBe(true);
 	});
 
 	test('resolvedOverrides from server merge into overrides', async () => {
