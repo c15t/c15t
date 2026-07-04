@@ -79,8 +79,14 @@ describe('IAB Storage E2E Tests', () => {
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Verify TC string storage
-			const tcString = getStoredTCString();
-			expect(tcString).toBeDefined();
+			const tcString = await vi.waitFor(
+				() => {
+					const stored = getStoredTCString();
+					expect(stored).not.toBeNull();
+					return stored;
+				},
+				{ timeout: 2000 }
+			);
 			expect(typeof tcString).toBe('string');
 		});
 
@@ -100,7 +106,14 @@ describe('IAB Storage E2E Tests', () => {
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			const tcString = getStoredTCString();
+			const tcString = await vi.waitFor(
+				() => {
+					const stored = getStoredTCString();
+					expect(stored).not.toBeNull();
+					return stored;
+				},
+				{ timeout: 2000 }
+			);
 
 			// TC strings are base64url encoded with dots as section separators
 			// Format: core.disclosedVendors.allowedVendors.publisherTC
@@ -249,7 +262,12 @@ describe('IAB Storage E2E Tests', () => {
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Should use c15t key
-			expect(window.localStorage.getItem('c15t')).not.toBeNull();
+			await vi.waitFor(
+				() => {
+					expect(window.localStorage.getItem('c15t')).not.toBeNull();
+				},
+				{ timeout: 2000 }
+			);
 		});
 
 		test('should use "euconsent-v2" key for TC string', async () => {

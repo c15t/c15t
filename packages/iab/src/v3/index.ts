@@ -375,7 +375,8 @@ export function createIAB(options: CreateIABOptions): IABHandle {
 		},
 		generateTCString: generateTC,
 		async save() {
-			await generateTC();
+			const tcString = await generateTC();
+			cmpApi?.saveToStorage(tcString);
 			// Map purposes → c15t consents one more time to make sure
 			// the final save payload reflects what we just generated.
 			const purposes = readIAB(kernel).purposeConsents;

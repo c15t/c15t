@@ -1,9 +1,46 @@
 import styles from '@c15t/ui/styles/primitives/legal-links.module.js';
+import { resolveTranslations } from '@c15t/ui/utils';
 import type { LegalLinks as LegalLinksType } from 'c15t';
-import { useConsentManager } from '~/v3/hooks/use-consent-manager';
+import { defaultTranslationConfig } from 'c15t';
+import { useContext, useMemo, useSyncExternalStore } from 'react';
+import { KernelContext } from '~/v3/context';
+import { ConsentStateContext } from '~/v3/context/consent-manager-context';
 import { useStyles } from '~/v3/hooks/use-styles';
-import { useTranslations } from '~/v3/hooks/use-translations';
 import type { AllThemeKeys } from '~/v3/types/theme/style-keys';
+import { V3UIConfigContext } from '~/v3/ui-config-context';
+
+const noopSubscribe = () => () => undefined;
+
+function useLegalLinksConfig(): LegalLinksType | undefined {
+	const v3Config = useContext(V3UIConfigContext);
+	const legacyContext = useContext(ConsentStateContext);
+	return v3Config.legalLinks ?? legacyContext?.state.legalLinks;
+}
+
+function useLegalLinkTranslations(): Record<string, string> | undefined {
+	const kernel = useContext(KernelContext);
+	const legacyContext = useContext(ConsentStateContext);
+	const kernelTranslations = useSyncExternalStore(
+		kernel ? (listener) => kernel.subscribe(listener) : noopSubscribe,
+		() => kernel?.getSnapshot().translations ?? null,
+		() => kernel?.getSnapshot().translations ?? null
+	);
+	const legacyTranslationConfig = legacyContext?.state.translationConfig;
+
+	return useMemo(() => {
+		if (kernelTranslations?.translations) {
+			const translations = kernelTranslations.translations as Partial<
+				NonNullable<typeof defaultTranslationConfig.translations.en>
+			>;
+			return translations.legalLinks;
+		}
+
+		return resolveTranslations(
+			legacyTranslationConfig ?? {},
+			defaultTranslationConfig
+		).legalLinks;
+	}, [kernelTranslations, legacyTranslationConfig]);
+}
 
 /**
  * Hook to filter legal links based on the provided links prop.
@@ -14,7 +51,7 @@ import type { AllThemeKeys } from '~/v3/types/theme/style-keys';
 export function useFilteredLegalLinks(
 	links?: (keyof LegalLinksType)[] | null
 ): LegalLinksType | null {
-	const { legalLinks } = useConsentManager();
+	const legalLinks = useLegalLinksConfig();
 
 	// Show no links by default or if explicitly null
 	if (links === undefined || links === null) {
@@ -73,7 +110,7 @@ export function InlineLegalLinks({
 	testIdPrefix,
 }: InlineLegalLinksProps) {
 	const filteredLinks = useFilteredLegalLinks(links);
-	const { legalLinks: t } = useTranslations();
+	const t = useLegalLinkTranslations();
 	const linkStyles = useStyles(themeKey as any, {
 		baseClassName: styles.legalLink,
 	});

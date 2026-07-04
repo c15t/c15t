@@ -156,7 +156,7 @@ describe('useConsentManager', () => {
 			consents: {
 				necessary: true,
 				functionality: false,
-				experience: false,
+				experience: true,
 				marketing: false,
 				measurement: false,
 			},

@@ -1,8 +1,9 @@
+import type { InitOutput } from 'c15t';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { useTheme } from '../../hooks/use-theme';
 import { InlineLegalLinks } from '../components/shared/primitives/legal-links';
+import { useTheme } from '../hooks/use-theme';
 import {
 	ConsentProvider,
 	type ConsentProviderOptions,
@@ -17,6 +18,23 @@ import {
 } from '../index';
 
 const STORAGE_KEY = 'c15t-provider-test';
+
+function hostedInitOutput(
+	policy: InitOutput['policy'] = {
+		id: 'gdpr',
+		model: 'opt-in',
+		ui: { mode: 'banner' },
+	}
+): InitOutput {
+	return {
+		jurisdiction: 'GDPR',
+		location: { countryCode: 'DE', regionCode: null },
+		translations: { language: 'en', translations: {} },
+		branding: 'c15t',
+		gvl: null,
+		policy,
+	} as InitOutput;
+}
 
 function clearCookies() {
 	for (const cookie of document.cookie.split(';')) {
@@ -125,7 +143,7 @@ describe('v3 ConsentProvider options API', () => {
 
 	test('syncs dynamic overrides option and re-inits when enabled', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
-			new Response(JSON.stringify({}), {
+			new Response(JSON.stringify(hostedInitOutput()), {
 				status: 200,
 				headers: { 'content-type': 'application/json' },
 			})
@@ -169,23 +187,18 @@ describe('v3 ConsentProvider options API', () => {
 
 		await expect.element(getByTestId('country')).toHaveTextContent('DE');
 		await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
-		const body = JSON.parse(
-			(fetchSpy.mock.calls[1]?.[1] as RequestInit).body as string
-		);
-		expect(body.overrides).toEqual({ country: 'DE' });
+		const [url, init] = fetchSpy.mock.calls[1] ?? [];
+		expect(url).toBe('/api/c15t/init');
+		expect((init as RequestInit).method).toBe('GET');
+		expect((init as RequestInit).body).toBeUndefined();
 	});
 
 	test('syncs enabled option after mount', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
-			new Response(
-				JSON.stringify({
-					policy: { id: 'gdpr', model: 'opt-in', ui: { mode: 'banner' } },
-				}),
-				{
-					status: 200,
-					headers: { 'content-type': 'application/json' },
-				}
-			)
+			new Response(JSON.stringify(hostedInitOutput()), {
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+			})
 		);
 
 		function Probe() {
@@ -504,18 +517,11 @@ describe('v3 ConsentProvider options API', () => {
 	});
 
 	test('maps hosted v2 transport options into the v3 hosted transport', async () => {
-		const fetchSpy = vi.fn().mockResolvedValue(
-			new Response(
-				JSON.stringify({
-					policy: {
-						id: 'gdpr',
-						model: 'opt-in',
-						ui: { mode: 'banner' },
-					},
-				}),
-				{ status: 200 }
-			)
-		);
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify(hostedInitOutput()), { status: 200 })
+			);
 
 		function Probe() {
 			const snapshot = useSnapshot();
@@ -527,7 +533,7 @@ describe('v3 ConsentProvider options API', () => {
 				options={{
 					mode: 'c15t',
 					backendURL: '/custom-c15t',
-					headers: { 'x-test': 'yes' },
+					headers: { 'accept-language': 'de', 'x-test': 'yes' },
 					customFetch: fetchSpy,
 					retryConfig: { maxRetries: 2 },
 					persistence: false,
@@ -538,14 +544,18 @@ describe('v3 ConsentProvider options API', () => {
 		);
 
 		await expect.element(getByTestId('active-ui')).toHaveTextContent('banner');
-		expect(fetchSpy).toHaveBeenCalledWith(
-			'/custom-c15t/init',
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url, init] = fetchSpy.mock.calls[0] ?? [];
+		expect(url).toBe('/custom-c15t/init');
+		expect((init as RequestInit).method).toBe('GET');
+		expect((init as RequestInit).body).toBeUndefined();
+		expect((init as RequestInit).headers).toEqual(
 			expect.objectContaining({
-				headers: expect.objectContaining({
-					'x-test': 'yes',
-				}),
+				accept: 'application/json',
+				'accept-language': 'de',
 			})
 		);
+		expect((init as RequestInit).headers).not.toHaveProperty('x-test');
 	});
 
 	test('bridges init, save, change, and error callbacks', async () => {
