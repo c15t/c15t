@@ -392,6 +392,29 @@ export function createIAB(options: CreateIABOptions): IABHandle {
 
 export type { CMPApi } from 'c15t';
 export type { GlobalVendorList, NonIABVendor } from 'c15t/v3';
+export {
+	type HeadlessIABBannerAction,
+	type HeadlessIABBannerState,
+	type HeadlessIABDialogAction,
+	type HeadlessIABDialogData,
+	type HeadlessIABDialogState,
+	type HeadlessIABPreferenceTab,
+	type HeadlessIABProcessedFeature,
+	type HeadlessIABProcessedPurpose,
+	type HeadlessIABProcessedSpecialFeature,
+	type HeadlessIABProcessedStack,
+	type HeadlessIABProcessedVendor,
+	type HeadlessIABStateInput,
+	type HeadlessIABVendorId,
+	type ProcessedFeature,
+	type ProcessedGVLData,
+	type ProcessedPurpose,
+	type ProcessedSpecialFeature,
+	type ProcessedStack,
+	type ProcessedVendor,
+	processGVLForDialog,
+	resolveIABBannerSummary,
+} from './headless';
 /**
  * Convenience re-exports so consumers writing custom IAB flows don't
  * need to thread through `@c15t/iab`'s internal subpaths.

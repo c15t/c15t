@@ -84,6 +84,10 @@ export default mergeConfig(
 					__dirname,
 					'../iab/node_modules/@iabtechlabtcf/core'
 				),
+				'@c15t/iab/v3/headless': resolve(
+					__dirname,
+					'../iab/src/v3/headless.ts'
+				),
 				'@c15t/iab/v3': resolve(__dirname, '../iab/src/v3/index.ts'),
 				'@c15t/iab': resolve(__dirname, '../iab/src/index.ts'),
 				react: resolve(__dirname, './node_modules/react'),

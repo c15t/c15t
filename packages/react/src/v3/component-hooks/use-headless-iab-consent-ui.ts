@@ -1,5 +1,6 @@
 'use client';
 
+import { resolveIABBannerSummary } from '@c15t/iab/v3/headless';
 import { useCallback, useMemo } from 'react';
 import { useIAB } from '../iab-context';
 import { useConsentManager } from './use-consent-manager';
@@ -9,13 +10,10 @@ export function useHeadlessIABConsentUI() {
 	const { activeUI, policyBanner, policyDialog, setActiveUI } =
 		useConsentManager();
 
-	const vendorCount = iab?.gvl ? Object.keys(iab.gvl.vendors ?? {}).length : 0;
-	const displayItems = useMemo(() => {
-		if (!iab?.gvl) return [];
-		return Object.values(iab.gvl.purposes ?? {})
-			.slice(0, 3)
-			.map((purpose) => purpose.name);
-	}, [iab?.gvl]);
+	const banner = useMemo(
+		() => resolveIABBannerSummary(iab),
+		[iab?.gvl, iab?.nonIABVendors]
+	);
 
 	const openVendorsDialog = useCallback(() => {
 		iab?.setPreferenceCenterTab('vendors');
@@ -76,10 +74,7 @@ export function useHeadlessIABConsentUI() {
 		iab,
 		activeUI,
 		banner: {
-			isReady: Boolean(iab?.gvl),
-			vendorCount,
-			displayItems,
-			remainingCount: Math.max(0, displayItems.length - 3),
+			...banner,
 			scrollLock: policyBanner.scrollLock,
 		},
 		dialog: {
