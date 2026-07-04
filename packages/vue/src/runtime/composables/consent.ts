@@ -1,87 +1,59 @@
 import {
 	type CONSENT_CATEGORY,
-	type Consent,
 	getConsentAvailableCategories,
-	interpretStoredConsent,
 } from 'c15t/v3/consent-record';
-import { computed, customRef } from 'vue';
-import {
-	useConsentActiveUI,
-	useConsentConfig,
-	useConsentInit,
-	useCookie,
-} from '#imports';
-
-const CONSENT_COOKIE = 'c15t:consent';
+import { computed } from 'vue';
+import { useConsentConfig } from './config';
+import { useConsentInit } from './init';
+import { useConsentKernel, useConsentKernelContext } from './kernel';
 
 export function useStoredConsent() {
-	return useCookie<Consent>(CONSENT_COOKIE, {
-		default: () => ({
-			policies: {},
-			categories: {},
-		}),
-	});
+	return useConsentKernelContext().storedConsent;
 }
 
 export function useConsent() {
-	const stored = useStoredConsent();
-	const init = useConsentInit();
-
-	return customRef((track, trigger) => ({
-		get() {
-			track();
-			return stored.value.categories;
+	const context = useConsentKernelContext();
+	return computed({
+		get: () => context.snapshot.value.consents,
+		set: (value) => {
+			context.kernel.set.consent(value);
 		},
-		set(value) {
-			stored.value.categories = value;
-			if (!init.value) throw new Error('Consent init not found');
-			if (!init.value.policy) throw new Error('Consent policy not found');
-			if (!init.value.policyDecision)
-				throw new Error('Consent policy decision not found');
-			stored.value.policies[init.value.policy.id] = {
-				fingerprint: init.value.policyDecision.fingerprint,
-				timestamp: Date.now().toString(),
-			};
-			trigger();
-		},
-	}));
+	});
 }
 
 export function useHasConsent() {
-	const stored = useStoredConsent();
-	const init = useConsentInit();
+	const context = useConsentKernelContext();
 	return computed(() => {
-		if (!init.value) return [];
-		if (!stored.value) return [];
-		return interpretStoredConsent(stored.value, init.value);
+		const snapshot = context.snapshot.value;
+		return Object.entries(snapshot.consents)
+			.filter(([, enabled]) => enabled)
+			.map(([category]) => category as CONSENT_CATEGORY);
 	});
 }
 
 export type ConsentSaveInput = Array<CONSENT_CATEGORY> | 'all' | 'none';
 
 export function useConsentSave() {
-	const activeUI = useConsentActiveUI();
 	const config = useConsentConfig();
-	const consent = useConsent();
 	const init = useConsentInit();
+	const kernel = useConsentKernel();
 
 	return (categories: ConsentSaveInput) => {
+		if (categories === 'all' || categories === 'none') {
+			void kernel.commands.save(categories);
+			return;
+		}
+
 		const available = getConsentAvailableCategories(
 			init.value,
 			config.value.consentCategories
 		);
-		const selected =
-			categories === 'all'
-				? new Set(available)
-				: categories === 'none'
-					? new Set<CONSENT_CATEGORY>()
-					: new Set(categories);
+		const selected = new Set(categories);
 
 		const next = {} as Record<CONSENT_CATEGORY, boolean>;
 		for (const category of available) {
 			next[category] = category === 'necessary' || selected.has(category);
 		}
-		consent.value = next;
-		activeUI.value = null;
+		void kernel.commands.save(next);
 	};
 }

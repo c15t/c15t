@@ -2,12 +2,12 @@
 	setup
 	lang="ts"
 >
-import { mergeProps } from 'vue';
+import { computed, mergeProps } from 'vue';
 import buttonStyles from '@c15t/styles/button.module.css';
 import type { ButtonMode, ButtonVariant } from '@c15t/schema/config';
-import { useConsentConfig } from '#imports';
+import { useConsentConfig } from '../composables/config';
 
-withDefaults(
+const props = withDefaults(
 	defineProps<{
 		variant?: ButtonVariant;
 		mode?: ButtonMode;
@@ -21,22 +21,27 @@ withDefaults(
 );
 
 const config = useConsentConfig();
+const buttonAttrs = computed(() =>
+	mergeProps(
+		{
+			type: props.type,
+			'data-testid': 'consent-button',
+			'data-variant': props.variant,
+			'data-mode': props.mode,
+		},
+		((props.variant === 'primary'
+			? config.value.components?.button?.primary
+			: config.value.components?.button?.secondary) ?? {}) as Record<
+			string,
+			unknown
+		>
+	)
+);
 </script>
 
 <template>
 	<button
-		v-bind="mergeProps(
-		{
-			type,
-			'data-testid': 'consent-button',
-			'data-variant': variant,
-			'data-mode': mode,
-		},
-		(variant === 'primary'
-			? config.components?.button?.primary
-			: config.components?.button?.secondary) ?? {},
-	)
-		"
+		v-bind="buttonAttrs"
 		:class="buttonStyles.button"
 	>
 		<slot />

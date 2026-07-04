@@ -1,5 +1,5 @@
 export default defineNuxtConfig({
-	modules: ['@c15t/vue'],
+	modules: ['../src/module'],
 	c15t: {
 		backendURL: 'https://nuxt-consent-io.inth.app',
 		consentCategories: ['necessary', 'measurement', 'marketing'],

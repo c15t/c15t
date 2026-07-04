@@ -1,6 +1,5 @@
-import { getRegionFromHeaders } from '@c15t/schema/geo';
-import { type Ref } from 'vue';
-import { useRequestHeaders, useState } from '#imports';
+import { computed, type Ref } from 'vue';
+import { useConsentKernelContext } from './kernel';
 
 export interface RequestRegion {
 	region?: string;
@@ -8,10 +7,13 @@ export interface RequestRegion {
 }
 
 export function useRequestRegion(): Ref<RequestRegion> {
-	const headers = useRequestHeaders();
-
-	const location = useState('c15t:location', () =>
-		getRegionFromHeaders(headers)
-	);
-	return location;
+	const context = useConsentKernelContext();
+	return computed(() => ({
+		country:
+			context.snapshot.value.location?.countryCode ??
+			context.snapshot.value.overrides.country,
+		region:
+			context.snapshot.value.location?.regionCode ??
+			context.snapshot.value.overrides.region,
+	}));
 }

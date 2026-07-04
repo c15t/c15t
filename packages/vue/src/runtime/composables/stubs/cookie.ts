@@ -1,10 +1,14 @@
 import { customRef, type Ref } from 'vue';
 
-export function useCookie<T extends Object | string>(
+export interface UseCookieOptions<T> {
+	default?: () => T;
+}
+
+export function useCookie<T extends Object | string | null>(
 	name: string,
-	defaultValueFn: () => T
+	options: UseCookieOptions<T> = {}
 ): Ref<T> {
-	const defaultValue = defaultValueFn();
+	const defaultValue = options.default?.() ?? (null as T);
 	return customRef((track, trigger) => {
 		return {
 			get() {

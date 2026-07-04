@@ -4,6 +4,12 @@ const route = useRoute();
 const config = useConsentConfig();
 const init = useConsentInit();
 const activeUI = useConsentActiveUI();
+const country = computed(() =>
+	typeof route.query.country === 'string' ? route.query.country : undefined
+);
+const region = computed(() =>
+	typeof route.query.region === 'string' ? route.query.region : undefined
+);
 
 const regionPresets = [
 	{ id: 'california', label: 'California', to: "/?country=US&region=CA" },
@@ -32,7 +38,7 @@ function openBanner() {
 	</nav>
 
 
-	<ConsentRoot :country="route.query.country" :region="route.query.region" />
+	<ConsentRoot :country="country" :region="region" />
 
 	<div v-if="init" class="playground-status">
 		{{ activeUI }}

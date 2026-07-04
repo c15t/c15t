@@ -25,7 +25,7 @@ import {
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
 const init = useConsentInit();
-const { consent: activeConsentUi } = useConsent();
+const consent = useConsent();
 const iabSelection = useConsentIabSelection();
 
 const STORAGE_KEY = 'c15t:dialog-trigger-position';
@@ -78,8 +78,8 @@ const initialValue = computed(
 	() =>
 		persistedPosition.value ??
 		resolveInitialPosition(
-			config.value.triggerDefaultPosition,
-			config.value.triggerSize
+			config.value.triggerDefaultPosition ?? 'bottom-right',
+			config.value.triggerSize ?? 'md'
 		)
 );
 
@@ -107,8 +107,8 @@ watch(
 		}
 
 		const next = resolveInitialPosition(
-			config.value.triggerDefaultPosition,
-			config.value.triggerSize
+			config.value.triggerDefaultPosition ?? 'bottom-right',
+			config.value.triggerSize ?? 'md'
 		);
 		x.value = next.x;
 		y.value = next.y;
@@ -126,7 +126,7 @@ const hasConsented = computed(() => {
 		return hasIabConsent();
 	}
 
-	return activeConsentUi.value === null;
+	return Object.keys(consent.value).length > 0;
 });
 
 const isVisible = computed(() => {

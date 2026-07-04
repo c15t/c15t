@@ -1,3 +1,5 @@
-export function useRequestHeaders(): Record<string, string | undefined> {
+export function useRequestHeaders(
+	_include?: string[]
+): Record<string, string | undefined> {
 	return {};
 }

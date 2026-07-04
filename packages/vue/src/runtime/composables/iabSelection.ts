@@ -1,6 +1,7 @@
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import { computed, type Ref } from 'vue';
-import { useConsentActiveUI, useConsentInit, useCookie } from '#imports';
+import { useConsentInit, useState } from '#imports';
+import { useConsentKernel, useConsentKernelContext } from './kernel';
 
 export type IabPreferenceTab = 'purposes' | 'vendors';
 
@@ -15,8 +16,6 @@ export interface ConsentIabSelection {
 
 export type IabConsentSaveInput = 'all' | 'none' | ConsentIabSelection;
 
-const IAB_SELECTION_COOKIE = 'c15t:iab-selection';
-
 export function createDefaultIabSelection(): ConsentIabSelection {
 	return {
 		purposeConsents: {},
@@ -29,8 +28,39 @@ export function createDefaultIabSelection(): ConsentIabSelection {
 }
 
 export function useConsentIabStore() {
-	return useCookie<ConsentIabSelection>(IAB_SELECTION_COOKIE, {
-		default: createDefaultIabSelection,
+	const context = useConsentKernelContext();
+	const tab = useState<IabPreferenceTab>(
+		'c15t:iab-preference-tab',
+		() => 'purposes'
+	);
+
+	return computed<ConsentIabSelection>({
+		get: () => {
+			const iab = context.snapshot.value.iab;
+			return {
+				purposeConsents: { ...(iab?.purposeConsents ?? {}) },
+				purposeLegitimateInterests: {
+					...(iab?.purposeLegitimateInterests ?? {}),
+				},
+				vendorConsents: { ...(iab?.vendorConsents ?? {}) },
+				vendorLegitimateInterests: {
+					...(iab?.vendorLegitimateInterests ?? {}),
+				},
+				specialFeatureOptIns: { ...(iab?.specialFeatureOptIns ?? {}) },
+				preferenceCenterTab: tab.value,
+			};
+		},
+		set: (value) => {
+			tab.value = value.preferenceCenterTab;
+			context.kernel.set.iab({
+				enabled: true,
+				purposeConsents: value.purposeConsents,
+				purposeLegitimateInterests: value.purposeLegitimateInterests,
+				vendorConsents: value.vendorConsents,
+				vendorLegitimateInterests: value.vendorLegitimateInterests,
+				specialFeatureOptIns: value.specialFeatureOptIns,
+			});
+		},
 	});
 }
 
@@ -144,8 +174,8 @@ export function buildRejectAllIab(
 }
 
 export function useConsentIabSave() {
-	const activeUI = useConsentActiveUI();
 	const init = useConsentInit();
+	const kernel = useConsentKernel();
 	const selection = useConsentIabSelection();
 
 	return (input: IabConsentSaveInput, tab?: IabPreferenceTab) => {
@@ -167,6 +197,6 @@ export function useConsentIabSave() {
 				preferenceCenterTab: tab ?? input.preferenceCenterTab,
 			};
 		}
-		activeUI.value = null;
+		void kernel.commands.save();
 	};
 }

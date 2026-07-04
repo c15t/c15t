@@ -65,8 +65,12 @@
 		"@c15t/vitest-config": "workspace:*",
 		"@nuxt/kit": "^4.4.7",
 		"@nuxt/module-builder": "^1.0.2",
+		"@vue/test-utils": "^2.4.6",
+		"jsdom": "^25.0.0",
 		"nuxt": "^4.4.7",
+		"pathe": "^2.0.3",
 		"typescript": "5.9.3",
+		"unbuild": "^3.6.1",
 		"vitest": "4.0.15",
 		"vue-tsc": "^3.3.3"
 	},

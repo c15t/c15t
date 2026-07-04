@@ -1,5 +1,13 @@
 {
-	"extends": "./.nuxt/tsconfig.json",
+	"extends": "@c15t/typescript-config/base.json",
+	"compilerOptions": {
+		"moduleResolution": "bundler",
+		"baseUrl": ".",
+		"paths": {
+			"#imports": ["./src/runtime/vue/stubs.ts"],
+			"#c15t/composables": ["./src/runtime/composables/index.ts"]
+		}
+	},
 	"include": [
 		"src/**/*.ts",
 		"src/**/*.vue",

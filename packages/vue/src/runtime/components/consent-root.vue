@@ -1,11 +1,15 @@
 <script lang="ts" setup>
-import { getCurrentInstance, onMounted, watch } from 'vue';
+import { onMounted, watch } from 'vue';
 import ConsentBanner from './consent-banner.vue';
 import ConsentManager from './consent-manager.vue';
 import IabConsentBanner from './iab-consent-banner.vue';
 import IabConsentDialog from './iab-consent-dialog.vue';
 import { useConsentConfig } from '../composables/config';
-import { useConsent, useConsentActiveUI, useConsentInit } from '#imports';
+import {
+	useConsentActiveUI,
+	useConsentInit,
+	useConsentKernel,
+} from '../composables';
 
 const props = defineProps<{
 	region?: string
@@ -13,23 +17,10 @@ const props = defineProps<{
 	language?: string
 }>()
 
-const { consent: activeConsentUi } = useConsent()
 const activeUI = useConsentActiveUI()
 const init = useConsentInit()
 const config = useConsentConfig()
-
-async function fetchInit() {
-	const headers: Record<string, string> = {}
-	if (props.country) headers['x-c15t-country'] = props.country
-	if (props.region) headers['x-c15t-region'] = props.region
-	if (props.language) headers['x-c15t-language'] = props.language
-
-	const response = await fetch(config.value.backendURL + '/init', { headers })
-	const json = await response.json()
-	init.value = json
-	activeUI.value = activeConsentUi.value
-	return json
-}
+const kernel = useConsentKernel()
 
 onMounted(() => {
 	for (const [key, value] of Object.entries(config.value.tokens ?? {})) {
@@ -37,19 +28,15 @@ onMounted(() => {
 	}
 });
 
-watch(props, fetchInit)
-
-const response = fetchInit()
-
-
-// Workaround -- When wrapped in suspense, block rendering until fetch completes
-const instance = getCurrentInstance()
-if (instance && 'suspense' in instance && instance.suspense) {
-	// @ts-expect-error - instance.asyncDep is not typed
-  instance.asyncDep = response
-}
-
-
+watch(
+	() => [props.country, props.region, props.language] as const,
+	([country, region, language]) => {
+		if (!(country || region || language)) return;
+		kernel.set.overrides({ country, region, language });
+		void kernel.commands.init();
+	},
+	{ immediate: true }
+);
 
 </script>
 

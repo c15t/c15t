@@ -77,6 +77,14 @@ export default defineNuxtModule<ConsentConfig>({
 				from: resolver.resolve('./runtime/composables/region'),
 				name: 'useRequestRegion',
 			},
+			{
+				from: resolver.resolve('./runtime/composables/kernel'),
+				name: 'useConsentKernel',
+			},
+			{
+				from: resolver.resolve('./runtime/composables/kernel'),
+				name: 'useConsentSnapshot',
+			},
 		]);
 	},
 });

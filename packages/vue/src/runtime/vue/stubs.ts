@@ -5,7 +5,14 @@
  * typeof contract (Nuxt's `useFetch` overloads are not assignable to a narrow
  * stub signature).
  */
+
+export * from '../composables';
 export * from '../composables/stubs/cookie';
 export * from '../composables/stubs/fetch';
 export * from '../composables/stubs/requestHeaders';
 export * from '../composables/stubs/state';
+
+export function useHead(_input?: unknown): void {
+	// Plain Vue does not have Nuxt head management; CSS variables are applied by
+	// the Vue root component on mount.
+}

@@ -4,5 +4,6 @@ export * from './config';
 export * from './consent';
 export * from './iabSelection';
 export * from './init';
+export * from './kernel';
 export * from './language';
 export * from './region';

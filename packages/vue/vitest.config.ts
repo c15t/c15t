@@ -10,6 +10,11 @@ export default mergeConfig(
 		resolve: {
 			alias: {
 				'~': resolve(__dirname, './src'),
+				'#imports': resolve(__dirname, './src/runtime/vue/stubs.ts'),
+				'#c15t/composables': resolve(
+					__dirname,
+					'./src/runtime/composables/index.ts'
+				),
 				// Point c15t/v3 at source so v3 changes in core don't
 				// need a rebuild before these tests can run.
 				'c15t/v3/modules/script-loader': resolve(
@@ -28,6 +33,10 @@ export default mergeConfig(
 					__dirname,
 					'../core/src/v3/modules/persistence/index.ts'
 				),
+				'c15t/v3/consent-record': resolve(
+					__dirname,
+					'../core/src/v3/consent-record/index.ts'
+				),
 				'c15t/v3': resolve(__dirname, '../core/src/v3/index.ts'),
 				c15t: resolve(__dirname, '../core/src/index.ts'),
 				'@c15t/translations': resolve(
@@ -35,6 +44,10 @@ export default mergeConfig(
 					'../translations/src/index.ts'
 				),
 				'@c15t/schema/types': resolve(__dirname, '../schema/src/types.ts'),
+				'@c15t/schema/config': resolve(
+					__dirname,
+					'../schema/src/config/index.ts'
+				),
 				'@c15t/schema': resolve(__dirname, '../schema/src/index.ts'),
 			},
 		},

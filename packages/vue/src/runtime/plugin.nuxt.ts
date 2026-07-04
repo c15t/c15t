@@ -1,32 +1,62 @@
+import type { InitOutput } from '@c15t/schema/types';
 import { defu } from 'defu';
 import { computed } from 'vue';
-import { defineNuxtPlugin, useAppConfig, useRuntimeConfig } from '#imports';
+import {
+	defineNuxtPlugin,
+	useAppConfig,
+	useFetch,
+	useRequestHeaders,
+	useRuntimeConfig,
+} from '#imports';
 import { consentConfigKey } from './composables/config';
 import type { ConsentConfig } from './config';
-import { symbolActiveUI, symbolConsent, symbolInit } from './utils/symbols';
+import {
+	createVueConsentKernelContext,
+	INIT_HEADER_NAMES,
+	pickAllowedInitHeaders,
+	startVueConsentRuntime,
+} from './kernel';
+import {
+	symbolActiveUI,
+	symbolConsent,
+	symbolInit,
+	symbolKernel,
+	symbolKernelContext,
+	symbolSnapshot,
+} from './utils/symbols';
 
-export default defineNuxtPlugin((nuxtApp) => {
+export default defineNuxtPlugin(async (nuxtApp) => {
 	const appConfig = useAppConfig();
 	const runtimeConfig = useRuntimeConfig();
-
-	nuxtApp.vueApp.provide(
-		consentConfigKey,
-		computed(
-			() =>
-				defu(
-					appConfig.c15t,
-					runtimeConfig.public.c15t
-				) as Partial<ConsentConfig>
-		)
+	const config = computed(
+		() =>
+			defu(appConfig.c15t, runtimeConfig.public.c15t) as Partial<ConsentConfig>
+	);
+	const headers = pickAllowedInitHeaders(
+		useRequestHeaders([...INIT_HEADER_NAMES])
 	);
 
-	nuxtApp.vueApp.provide(symbolActiveUI, ref<ConsentActiveUI>(null));
-	nuxtApp.vueApp.provide(
-		symbolConsent,
-		useCookie<Consent>('c15t:consent', () => ({
-			policies: {},
-			categories: {},
-		}))
-	);
-	nuxtApp.vueApp.provide(symbolInit, ref<InitOutput>(null));
+	const { data } = await useFetch<InitOutput>('/init', {
+		baseURL: config.value.backendURL,
+		headers,
+		key: 'c15t:init',
+	});
+
+	nuxtApp.vueApp.provide(consentConfigKey, config);
+
+	const context = createVueConsentKernelContext({
+		config: config.value as ConsentConfig,
+		headers,
+		prefetch: data.value ?? undefined,
+	});
+
+	nuxtApp.vueApp.provide(symbolKernelContext, context);
+	nuxtApp.vueApp.provide(symbolKernel, context.kernel);
+	nuxtApp.vueApp.provide(symbolSnapshot, context.snapshot);
+	nuxtApp.vueApp.provide(symbolInit, context.init);
+	nuxtApp.vueApp.provide(symbolActiveUI, context.activeUI);
+	nuxtApp.vueApp.provide(symbolConsent, context.storedConsent);
+	startVueConsentRuntime(context, config.value as ConsentConfig, {
+		runInit: !data.value,
+	});
 });
