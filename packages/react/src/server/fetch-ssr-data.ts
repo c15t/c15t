@@ -40,6 +40,7 @@ function performInitFetch(
 
 	return fetch(`${normalizedURL}/init`, {
 		method: 'GET',
+		cache: 'no-store',
 		headers: relevantHeaders,
 	})
 		.then((response) => {

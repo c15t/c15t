@@ -79,6 +79,7 @@ export interface ConsentProviderOptions
 	mode?: ProviderMode;
 	backendURL?: string;
 	domain?: string;
+	transport?: KernelTransport;
 	headers?: Record<string, string>;
 	customFetch?: typeof fetch;
 	storageConfig?: StorageConfig;
@@ -437,7 +438,8 @@ function createProviderKernel(options: ConsentProviderOptions): ConsentKernel {
 	);
 
 	const baseTransport =
-		mode === 'custom' && options.endpointHandlers
+		options.transport ??
+		(mode === 'custom' && options.endpointHandlers
 			? createCustomTransport(options.endpointHandlers)
 			: mode === 'hosted' || mode === 'c15t'
 				? createHostedTransport({
@@ -450,7 +452,7 @@ function createProviderKernel(options: ConsentProviderOptions): ConsentKernel {
 					createOfflineTransport({
 						policyPacks: getProviderPolicies(options),
 						translations: i18nTranslations,
-					}));
+					})));
 
 	const transport = withSSRData(baseTransport, options.ssrData);
 

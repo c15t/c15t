@@ -99,8 +99,20 @@ C15T_BENCH_ITERATIONS=10 bun run bench -- --profile mobile --init-latency-ms 200
   applies 4x CPU throttling and Fast-4G-like network conditions.
 - `--init-latency-ms <n>` forwards to `C15T_BENCH_INIT_LATENCY_MS`, making the
   local deterministic init route delay by `n` milliseconds.
+- `--cold-manifest true` records manifest scenarios as separate `*-cold` and
+  `*-steady` outputs. The server starts with a distinct manifest cache key for
+  that run; request 1 is the cold manifest fill and requests 2..N are the
+  steady cached path.
 - Results record `metadata.profile` and `metadata.initLatencyMs` alongside CLS,
   banner element timing, first-HTML banner presence, and long-task metrics.
+
+Direct-init browser benchmark arms intentionally fetch `/init` with
+`cache: "no-store"` so every measured request pays `C15T_BENCH_INIT_LATENCY_MS`.
+Manifest arms intentionally keep their framework/server manifest caching: SSR
+manifest arms resolve init from the cached server manifest, Next's manifest
+client arm fetches the same-origin cached manifest route in the browser, and
+Nuxt's client-manifest arm uses the module's same-origin manifest-backed init
+route. This asymmetry is the benchmark subject, not a harness accident.
 
 Bundle size is measured separately by `bundle-test-app` because it is build analysis rather than an iteration-based browser runtime benchmark.
 

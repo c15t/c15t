@@ -6,6 +6,9 @@ export const DEFAULT_MANIFEST_ROUTE = '/api/c15t/manifest';
 export function isManifestModeEnabled(
 	config: Partial<Pick<ConsentConfig, 'manifest' | 'manifestURL'>>
 ): boolean {
+	if (config.manifest === false) {
+		return false;
+	}
 	return config.manifest === true || Boolean(config.manifestURL);
 }
 

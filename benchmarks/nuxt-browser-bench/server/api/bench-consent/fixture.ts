@@ -1,5 +1,45 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 
+export type BenchConsentFixtureEndpoint = 'init' | 'manifest' | 'subjects';
+
+export type BenchConsentFixtureCounts = Record<
+	BenchConsentFixtureEndpoint,
+	number
+>;
+
+const globalWithBenchCounts = globalThis as typeof globalThis & {
+	__c15tNuxtBenchFixtureCounts?: BenchConsentFixtureCounts;
+};
+
+function getMutableBenchConsentFixtureCounts(): BenchConsentFixtureCounts {
+	globalWithBenchCounts.__c15tNuxtBenchFixtureCounts ??= {
+		init: 0,
+		manifest: 0,
+		subjects: 0,
+	};
+	return globalWithBenchCounts.__c15tNuxtBenchFixtureCounts;
+}
+
+export function recordBenchConsentFixtureExecution(
+	endpoint: BenchConsentFixtureEndpoint
+): void {
+	const counts = getMutableBenchConsentFixtureCounts();
+	counts[endpoint] += 1;
+	console.log(`[c15t-bench-fixture] ${endpoint} count=${counts[endpoint]}`);
+}
+
+export function getBenchConsentFixtureCounts(): BenchConsentFixtureCounts {
+	return { ...getMutableBenchConsentFixtureCounts() };
+}
+
+export function resetBenchConsentFixtureCounts(): BenchConsentFixtureCounts {
+	const counts = getMutableBenchConsentFixtureCounts();
+	counts.init = 0;
+	counts.manifest = 0;
+	counts.subjects = 0;
+	return getBenchConsentFixtureCounts();
+}
+
 export const benchConsentTranslations = {
 	common: {
 		acceptAll: 'Accept All',

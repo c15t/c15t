@@ -293,6 +293,7 @@ async function fetchHostedInit(input: {
 	}
 	const response = await fetchImpl(`${input.backendURL}/init`, {
 		method: 'GET',
+		cache: 'no-store',
 		credentials: 'include',
 		headers: {
 			accept: 'application/json',

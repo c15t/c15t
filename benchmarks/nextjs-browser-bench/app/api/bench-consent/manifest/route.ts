@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server';
 import {
 	applyBenchConsentLatency,
 	benchConsentManifestResponse,
+	recordBenchConsentFixtureExecution,
 } from '../fixture';
 
 export async function GET() {
+	recordBenchConsentFixtureExecution('manifest');
 	await applyBenchConsentLatency();
 
 	return NextResponse.json(benchConsentManifestResponse, {

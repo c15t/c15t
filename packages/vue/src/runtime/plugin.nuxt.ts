@@ -17,6 +17,7 @@ import {
 	pickAllowedInitHeaders,
 	startVueConsentRuntime,
 } from './kernel';
+import { isManifestModeEnabled } from './manifest';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -37,9 +38,11 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 		useRequestHeaders([...INIT_HEADER_NAMES])
 	);
 	const initFetchTarget = getNuxtInitFetchTarget(config.value);
+	const manifestMode = isManifestModeEnabled(config.value);
 
 	const { data } = await useFetch<InitOutput>(initFetchTarget.url, {
 		baseURL: initFetchTarget.baseURL,
+		cache: manifestMode ? undefined : 'no-store',
 		headers,
 		key: 'c15t:init',
 	});

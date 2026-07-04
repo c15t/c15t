@@ -27,7 +27,12 @@ import {
 } from '@c15t/benchmarking/utils';
 import { chromium } from 'playwright';
 
-type NuxtBenchScenario = 'ssr' | 'ssr-manifest' | 'client' | 'repeat-visitor';
+type NuxtBenchScenario =
+	| 'ssr'
+	| 'ssr-manifest'
+	| 'client'
+	| 'client-manifest'
+	| 'repeat-visitor';
 
 interface NuxtBrowserBenchState {
 	scenario: NuxtBenchScenario;
@@ -112,11 +117,17 @@ const initLatencyMs = parseBenchInitLatencyMs(
 );
 const scenarioFilter =
 	readCliFlag('--scenario') ?? process.env.C15T_BENCH_SCENARIO;
+const coldManifestMode =
+	readCliFlag('--cold-manifest') === 'true' ||
+	readCliFlag('--cold-manifest') === '1' ||
+	process.env.C15T_BENCH_COLD_MANIFEST === '1' ||
+	process.env.C15T_BENCH_COLD_MANIFEST === 'true';
 
 const allScenarios = [
 	{ name: 'ssr', path: '/ssr' },
 	{ name: 'ssr-manifest', path: '/ssr-manifest' },
 	{ name: 'client', path: '/client' },
+	{ name: 'client-manifest', path: '/client-manifest' },
 	{ name: 'repeat-visitor', path: '/repeat-visitor' },
 ] as const satisfies ReadonlyArray<{
 	name: NuxtBenchScenario;
@@ -129,7 +140,7 @@ const scenarios = scenarioFilter
 
 if (scenarioFilter && scenarios.length === 0) {
 	throw new Error(
-		`Unsupported scenario "${scenarioFilter}". Expected ssr, ssr-manifest, client, or repeat-visitor.`
+		`Unsupported scenario "${scenarioFilter}". Expected ssr, ssr-manifest, client, client-manifest, or repeat-visitor.`
 	);
 }
 
@@ -251,15 +262,6 @@ async function seedRepeatVisitorCookie(
 	]);
 }
 
-async function getBannerInFirstHtml(path: string): Promise<boolean> {
-	const response = await fetch(`${BASE_URL}${path}`);
-	const html = await response.text();
-	return (
-		html.includes(`data-testid="${bannerRootTestId}"`) ||
-		html.includes(`data-testid='${bannerRootTestId}'`)
-	);
-}
-
 function resultScenarioName(scenario: string): string {
 	if (throttleProfile === 'none' && initLatencyMs === 0) {
 		return scenario;
@@ -285,18 +287,25 @@ function nullableMedian(
 async function collectScenarioMetrics(
 	page: import('playwright').Page,
 	scenario: NuxtBenchScenario,
-	path: string,
-	bannerInFirstHtml: boolean
+	path: string
 ) {
 	let initRequests = 0;
+	let manifestRequests = 0;
 	page.on('request', (request) => {
 		const url = new URL(request.url());
 		if (url.pathname.endsWith('/init')) {
 			initRequests += 1;
 		}
+		if (url.pathname.endsWith('/manifest')) {
+			manifestRequests += 1;
+		}
 	});
 
-	await page.goto(path);
+	const response = await page.goto(path);
+	const firstHtml = (await response?.text().catch(() => '')) ?? '';
+	const bannerInFirstHtml =
+		firstHtml.includes(`data-testid="${bannerRootTestId}"`) ||
+		firstHtml.includes(`data-testid='${bannerRootTestId}'`);
 	await page.waitForLoadState('domcontentloaded');
 	await page.waitForFunction(
 		(targetScenario) => {
@@ -364,14 +373,20 @@ async function collectScenarioMetrics(
 			performanceObserverInfo.bannerPaintMs ?? state?.bannerPaintMs ?? null,
 		bannerInFirstHtml,
 		initRequestsAfterLoad: initRequests,
+		manifestRequestsAfterLoad: manifestRequests,
 	};
 }
 
-type NuxtBrowserSample = Awaited<ReturnType<typeof collectScenarioMetrics>> & {
+type NuxtBrowserSample = Omit<
+	Awaited<ReturnType<typeof collectScenarioMetrics>>,
+	'scenario'
+> & {
+	scenario?: string;
 	interactionLatencyMs?: number;
 };
 
 function budgetsForScenario(scenario: string): MetricBudget[] {
+	const baseScenario = scenario.replace(/-(cold|steady)$/, '');
 	const shared = browserBudgets.filter((budget) =>
 		[
 			'bannerReadyMs',
@@ -382,9 +397,9 @@ function budgetsForScenario(scenario: string): MetricBudget[] {
 	);
 
 	if (
-		scenario === 'ssr' ||
-		scenario === 'ssr-manifest' ||
-		scenario === 'repeat-visitor'
+		baseScenario === 'ssr' ||
+		baseScenario === 'ssr-manifest' ||
+		baseScenario === 'repeat-visitor'
 	) {
 		return [
 			...shared,
@@ -394,6 +409,19 @@ function budgetsForScenario(scenario: string): MetricBudget[] {
 				threshold: 0,
 				description:
 					'SSR and repeat-visitor routes should not trigger browser-observed init requests.',
+			},
+		];
+	}
+
+	if (baseScenario === 'client-manifest') {
+		return [
+			...shared,
+			{
+				metric: 'initRequestsAfterLoad',
+				comparator: 'count-lte',
+				threshold: 1,
+				description:
+					'Nuxt client manifest mode prefetches the same-origin manifest-backed init route at most once.',
 			},
 		];
 	}
@@ -410,6 +438,30 @@ function budgetsForScenario(scenario: string): MetricBudget[] {
 	];
 }
 
+interface BenchConsentFixtureCounts {
+	init: number;
+	manifest: number;
+	subjects: number;
+}
+
+async function resetFixtureCounts(): Promise<void> {
+	await fetch(`${BASE_URL}/api/bench-consent/stats`, {
+		method: 'POST',
+		cache: 'no-store',
+	});
+}
+
+async function readFixtureCounts(): Promise<BenchConsentFixtureCounts> {
+	const response = await fetch(`${BASE_URL}/api/bench-consent/stats`, {
+		cache: 'no-store',
+	});
+	return (await response.json()) as BenchConsentFixtureCounts;
+}
+
+function isManifestScenario(scenario: string): boolean {
+	return scenario.includes('manifest');
+}
+
 async function run() {
 	await ensureBuild();
 
@@ -418,6 +470,9 @@ async function run() {
 		env: {
 			...process.env,
 			C15T_BENCH_INIT_LATENCY_MS: `${initLatencyMs}`,
+			...(coldManifestMode
+				? { C15T_BENCH_COLD_MANIFEST_TOKEN: String(Date.now()) }
+				: {}),
 			HOST,
 			PORT: `${PORT}`,
 			NITRO_HOST: HOST,
@@ -441,8 +496,16 @@ async function run() {
 
 		for (const scenario of scenarios) {
 			const samples: NuxtBrowserSample[] = [];
-			const bannerInFirstHtml = await getBannerInFirstHtml(scenario.path);
-			for (let index = 0; index < warmupIterations + iterations; index += 1) {
+			await resetFixtureCounts();
+			const effectiveWarmupIterations =
+				coldManifestMode && isManifestScenario(scenario.name)
+					? 0
+					: warmupIterations;
+			for (
+				let index = 0;
+				index < effectiveWarmupIterations + iterations;
+				index += 1
+			) {
 				const context = await browser.newContext({ baseURL: BASE_URL });
 				if (scenario.name === 'repeat-visitor') {
 					await seedRepeatVisitorCookie(context);
@@ -452,149 +515,179 @@ async function run() {
 				const metrics = await collectScenarioMetrics(
 					page,
 					scenario.name,
-					scenario.path,
-					bannerInFirstHtml
+					scenario.path
 				);
 				const interactionLatencyMs = await measureInteractionLatency(
 					page,
 					scenario.name
 				);
-				if (index >= warmupIterations) {
+				if (index >= effectiveWarmupIterations) {
+					const measuredIndex = index - effectiveWarmupIterations;
 					samples.push({
 						...metrics,
+						scenario:
+							coldManifestMode &&
+							isManifestScenario(scenario.name) &&
+							measuredIndex === 0
+								? `${scenario.name}-cold`
+								: coldManifestMode && isManifestScenario(scenario.name)
+									? `${scenario.name}-steady`
+									: metrics.scenario,
 						interactionLatencyMs,
 					});
 				}
 				await context.close();
 			}
+			const fixtureCounts = await readFixtureCounts();
 
-			const outputScenario = resultScenarioName(scenario.name);
-			const result: BenchmarkResult = {
-				schemaVersion: BENCHMARK_SCHEMA_VERSION,
-				suite: 'browser-runtime',
-				package: '@c15t/vue',
-				framework: 'vue',
-				runtime: 'playwright',
-				scenario: outputScenario,
-				commitSha: safeCommitSha(),
-				baseSha: safeBaseSha(),
-				timestamp: new Date().toISOString(),
-				environment: getEnvironment(browser.version()),
-				fixture: {
-					name: outputScenario,
-					consentCount: 5,
-					scriptCount: 0,
-					localeCount: 1,
-					themeComplexity: 'minimal',
-				},
-				metadata: {
-					profile: throttleProfile,
-					initLatencyMs,
-					bannerInFirstHtml: samples.every(
-						(sample) => sample.bannerInFirstHtml
-					),
-					bannerPaintMs: nullableMedian(
-						samples.map((sample) => sample.bannerPaintMs)
-					),
-					cls: Number(
-						median(samples.map((sample) => sample.cls ?? 0)).toFixed(4)
-					),
-				},
-				metrics: [
-					summarizeMetric(
-						'bannerReadyMs',
-						'ms',
-						samples.map((sample) => sample.bannerReadyMs ?? 0)
-					),
-					summarizeMetric(
-						'bannerVisibleMs',
-						'ms',
-						samples.map((sample) => sample.bannerVisibleMs ?? 0)
-					),
-					summarizeNullableMetric(
-						'bannerPaintMs',
-						'ms',
-						samples.map((sample) => sample.bannerPaintMs ?? null)
-					),
-					summarizeMetric(
-						'bannerInFirstHtml',
-						'count',
-						samples.map((sample) => (sample.bannerInFirstHtml ? 1 : 0))
-					),
-					summarizeMetric(
-						'cls',
-						'ratio',
-						samples.map((sample) => sample.cls ?? 0)
-					),
-					summarizeMetric(
-						'firstAppScriptStartMs',
-						'ms',
-						samples.map((sample) => sample.firstAppScriptStartMs ?? 0)
-					),
-					summarizeMetric(
-						'lastAppScriptEndMs',
-						'ms',
-						samples.map((sample) => sample.lastAppScriptEndMs ?? 0)
-					),
-					summarizeMetric(
-						'appScriptCount',
-						'count',
-						samples.map((sample) => sample.appScriptCount ?? 0)
-					),
-					summarizeMetric(
-						'domContentLoadedMs',
-						'ms',
-						samples.map((sample) => sample.domContentLoadedMs ?? 0)
-					),
-					summarizeMetric(
-						'loadEventMs',
-						'ms',
-						samples.map((sample) => sample.loadEventMs ?? 0)
-					),
-					summarizeMetric(
-						'initRequestsAfterLoad',
-						'count',
-						samples.map((sample) => sample.initRequestsAfterLoad ?? 0)
-					),
-					summarizeMetric(
-						'mountCount',
-						'count',
-						samples.map((sample) => sample.mountCount ?? 0)
-					),
-					summarizeMetric(
-						'renderCount',
-						'count',
-						samples.map((sample) => sample.renderCount ?? 0)
-					),
-					summarizeMetric(
-						'longTaskCount',
-						'count',
-						samples.map((sample) => sample.longTaskCount ?? 0)
-					),
-					summarizeMetric(
-						'longTaskTotalMs',
-						'ms',
-						samples.map((sample) => sample.longTaskTotalMs ?? 0)
-					),
-					summarizeMetric(
-						'domNodeCount',
-						'count',
-						samples.map((sample) => sample.domNodeCount ?? 0)
-					),
-					summarizeMetric(
-						'interactionLatencyMs',
-						'ms',
-						samples.map((sample) => sample.interactionLatencyMs ?? 0)
-					),
-				],
-				budgetDefinitions: budgetsForScenario(scenario.name),
-				budgets: [],
-				notes: [
-					'Nuxt browser bench covers SSR, client SPA, and pre-seeded repeat-visitor paths with local deterministic Nitro endpoints.',
-				],
-			};
+			const grouped = new Map<string, typeof samples>();
+			for (const sample of samples) {
+				const key = sample.scenario ?? scenario.name;
+				const existing = grouped.get(key) ?? [];
+				existing.push(sample);
+				grouped.set(key, existing);
+			}
 
-			writeJson(join(outputDir, resultFileName(scenario.name)), result);
+			for (const [groupScenario, groupedSamples] of grouped) {
+				const outputScenario = resultScenarioName(groupScenario);
+				const result: BenchmarkResult = {
+					schemaVersion: BENCHMARK_SCHEMA_VERSION,
+					suite: 'browser-runtime',
+					package: '@c15t/vue',
+					framework: 'vue',
+					runtime: 'playwright',
+					scenario: outputScenario,
+					commitSha: safeCommitSha(),
+					baseSha: safeBaseSha(),
+					timestamp: new Date().toISOString(),
+					environment: getEnvironment(browser.version()),
+					fixture: {
+						name: outputScenario,
+						consentCount: 5,
+						scriptCount: 0,
+						localeCount: 1,
+						themeComplexity: 'minimal',
+					},
+					metadata: {
+						profile: throttleProfile,
+						initLatencyMs,
+						coldManifestMode,
+						fixtureInitExecutions: fixtureCounts.init,
+						fixtureManifestExecutions: fixtureCounts.manifest,
+						fixtureSubjectExecutions: fixtureCounts.subjects,
+						bannerInFirstHtml: groupedSamples.every(
+							(sample) => sample.bannerInFirstHtml
+						),
+						bannerPaintMs: nullableMedian(
+							groupedSamples.map((sample) => sample.bannerPaintMs)
+						),
+						cls: Number(
+							median(groupedSamples.map((sample) => sample.cls ?? 0)).toFixed(4)
+						),
+					},
+					metrics: [
+						summarizeMetric(
+							'bannerReadyMs',
+							'ms',
+							groupedSamples.map((sample) => sample.bannerReadyMs ?? 0)
+						),
+						summarizeMetric(
+							'bannerVisibleMs',
+							'ms',
+							groupedSamples.map((sample) => sample.bannerVisibleMs ?? 0)
+						),
+						summarizeNullableMetric(
+							'bannerPaintMs',
+							'ms',
+							groupedSamples.map((sample) => sample.bannerPaintMs ?? null)
+						),
+						summarizeMetric(
+							'bannerInFirstHtml',
+							'count',
+							groupedSamples.map((sample) => (sample.bannerInFirstHtml ? 1 : 0))
+						),
+						summarizeMetric(
+							'cls',
+							'ratio',
+							groupedSamples.map((sample) => sample.cls ?? 0)
+						),
+						summarizeMetric(
+							'firstAppScriptStartMs',
+							'ms',
+							groupedSamples.map((sample) => sample.firstAppScriptStartMs ?? 0)
+						),
+						summarizeMetric(
+							'lastAppScriptEndMs',
+							'ms',
+							groupedSamples.map((sample) => sample.lastAppScriptEndMs ?? 0)
+						),
+						summarizeMetric(
+							'appScriptCount',
+							'count',
+							groupedSamples.map((sample) => sample.appScriptCount ?? 0)
+						),
+						summarizeMetric(
+							'domContentLoadedMs',
+							'ms',
+							groupedSamples.map((sample) => sample.domContentLoadedMs ?? 0)
+						),
+						summarizeMetric(
+							'loadEventMs',
+							'ms',
+							groupedSamples.map((sample) => sample.loadEventMs ?? 0)
+						),
+						summarizeMetric(
+							'initRequestsAfterLoad',
+							'count',
+							groupedSamples.map((sample) => sample.initRequestsAfterLoad ?? 0)
+						),
+						summarizeMetric(
+							'manifestRequestsAfterLoad',
+							'count',
+							groupedSamples.map(
+								(sample) => sample.manifestRequestsAfterLoad ?? 0
+							)
+						),
+						summarizeMetric(
+							'mountCount',
+							'count',
+							groupedSamples.map((sample) => sample.mountCount ?? 0)
+						),
+						summarizeMetric(
+							'renderCount',
+							'count',
+							groupedSamples.map((sample) => sample.renderCount ?? 0)
+						),
+						summarizeMetric(
+							'longTaskCount',
+							'count',
+							groupedSamples.map((sample) => sample.longTaskCount ?? 0)
+						),
+						summarizeMetric(
+							'longTaskTotalMs',
+							'ms',
+							groupedSamples.map((sample) => sample.longTaskTotalMs ?? 0)
+						),
+						summarizeMetric(
+							'domNodeCount',
+							'count',
+							groupedSamples.map((sample) => sample.domNodeCount ?? 0)
+						),
+						summarizeMetric(
+							'interactionLatencyMs',
+							'ms',
+							groupedSamples.map((sample) => sample.interactionLatencyMs ?? 0)
+						),
+					],
+					budgetDefinitions: budgetsForScenario(groupScenario),
+					budgets: [],
+					notes: [
+						'Nuxt browser bench covers SSR, client SPA, and pre-seeded repeat-visitor paths with local deterministic Nitro endpoints.',
+					],
+				};
+
+				writeJson(join(outputDir, resultFileName(groupScenario)), result);
+			}
 		}
 
 		await browser.close();

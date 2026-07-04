@@ -6,7 +6,8 @@ export default defineNuxtPlugin({
 		const appConfig = useAppConfig();
 		appConfig.c15t = {
 			...(appConfig.c15t ?? {}),
-			manifest: route.path === '/ssr-manifest',
+			manifest:
+				route.path === '/ssr-manifest' || route.path === '/client-manifest',
 		};
 	},
 });

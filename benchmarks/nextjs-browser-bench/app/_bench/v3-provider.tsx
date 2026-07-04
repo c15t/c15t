@@ -9,7 +9,8 @@ import {
 	type ConsentProviderOptions,
 	type InitialDataPromise,
 } from '@c15t/nextjs/v3';
-import type { ReactNode } from 'react';
+import { createManifestTransport } from 'c15t/v3';
+import { type ReactNode, useMemo } from 'react';
 import { getState, type NextjsBenchScenario } from './state';
 import { NextjsV3BenchmarkProbe } from './v3-probe';
 
@@ -97,6 +98,34 @@ export function NextjsV3ClientBenchmarkProvider({
 }) {
 	return (
 		<ConsentProvider options={createOptions(scenario)}>
+			<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
+		</ConsentProvider>
+	);
+}
+
+export function NextjsV3ManifestClientBenchmarkProvider({
+	children,
+	scenario,
+}: {
+	children: ReactNode;
+	scenario: NextjsBenchScenario;
+}) {
+	const transport = useMemo(
+		() =>
+			createManifestTransport({
+				backendURL: '/api/bench-consent',
+				manifestURL: '/api/c15t/manifest',
+			}),
+		[]
+	);
+
+	return (
+		<ConsentProvider
+			options={{
+				...createOptions(scenario),
+				transport,
+			}}
+		>
 			<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
 		</ConsentProvider>
 	);

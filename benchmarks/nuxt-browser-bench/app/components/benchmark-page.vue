@@ -5,7 +5,12 @@
 import { useConsentActiveUI } from '#c15t/composables';
 
 defineProps<{
-	scenario: 'ssr' | 'ssr-manifest' | 'client' | 'repeat-visitor';
+	scenario:
+		| 'ssr'
+		| 'ssr-manifest'
+		| 'client'
+		| 'client-manifest'
+		| 'repeat-visitor';
 }>();
 
 const activeUI = useConsentActiveUI();

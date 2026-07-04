@@ -18,6 +18,9 @@ export default function HomePage() {
 					<Link href="/v3-client">/v3-client</Link>
 				</li>
 				<li>
+					<Link href="/v3-manifest-client">/v3-manifest-client</Link>
+				</li>
+				<li>
 					<Link href="/v3-ssr">/v3-ssr</Link>
 				</li>
 				<li>

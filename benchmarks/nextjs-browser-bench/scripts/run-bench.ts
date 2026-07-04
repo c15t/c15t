@@ -72,6 +72,11 @@ const initLatencyMs = parseBenchInitLatencyMs(
 );
 const scenarioFilter =
 	readCliFlag('--scenario') ?? process.env.C15T_BENCH_SCENARIO;
+const coldManifestMode =
+	readCliFlag('--cold-manifest') === 'true' ||
+	readCliFlag('--cold-manifest') === '1' ||
+	process.env.C15T_BENCH_COLD_MANIFEST === '1' ||
+	process.env.C15T_BENCH_COLD_MANIFEST === 'true';
 
 const allScenarios = [
 	{ name: 'client', path: '/client' },
@@ -81,6 +86,7 @@ const allScenarios = [
 
 const v3Scenarios = [
 	{ name: 'nextjs-v3-client', path: '/v3-client' },
+	{ name: 'nextjs-v3-manifest-client', path: '/v3-manifest-client' },
 	{ name: 'nextjs-v3-ssr', path: '/v3-ssr' },
 	{ name: 'nextjs-v3-manifest-ssr', path: '/v3-manifest-ssr' },
 ] as const;
@@ -217,15 +223,6 @@ async function applyPageProfile(
 	});
 }
 
-async function getBannerInFirstHtml(path: string): Promise<boolean> {
-	const response = await fetch(`${BASE_URL}${path}`);
-	const html = await response.text();
-	return (
-		html.includes(`data-testid="${bannerRootTestId}"`) ||
-		html.includes(`data-testid='${bannerRootTestId}'`)
-	);
-}
-
 function resultScenarioName(scenario: string): string {
 	if (throttleProfile === 'none' && initLatencyMs === 0) {
 		return scenario;
@@ -251,18 +248,25 @@ function nullableMedian(
 async function collectScenarioMetrics(
 	page: import('playwright').Page,
 	scenario: string,
-	path: string,
-	bannerInFirstHtml: boolean
+	path: string
 ) {
 	let initRequests = 0;
+	let manifestRequests = 0;
 	page.on('request', (request) => {
 		const url = new URL(request.url());
 		if (url.pathname.endsWith('/init')) {
 			initRequests += 1;
 		}
+		if (url.pathname.endsWith('/manifest')) {
+			manifestRequests += 1;
+		}
 	});
 
-	await page.goto(path);
+	const response = await page.goto(path);
+	const firstHtml = (await response?.text().catch(() => '')) ?? '';
+	const bannerInFirstHtml =
+		firstHtml.includes(`data-testid="${bannerRootTestId}"`) ||
+		firstHtml.includes(`data-testid='${bannerRootTestId}'`);
 	await page.waitForFunction(
 		(targetScenario) => {
 			const state = window.__c15tNextBench;
@@ -338,16 +342,20 @@ async function collectScenarioMetrics(
 			performanceObserverInfo.bannerPaintMs ?? state?.bannerPaintMs ?? null,
 		bannerInFirstHtml,
 		initRequestsAfterLoad: initRequests,
+		manifestRequestsAfterLoad: manifestRequests,
 	};
 }
 
-type NextjsBrowserSample = Awaited<
-	ReturnType<typeof collectScenarioMetrics>
+type NextjsBrowserSample = Omit<
+	Awaited<ReturnType<typeof collectScenarioMetrics>>,
+	'scenario'
 > & {
+	scenario?: string;
 	interactionLatencyMs?: number;
 };
 
 function budgetsForScenario(scenario: string): MetricBudget[] {
+	const baseScenario = scenario.replace(/-(cold|steady)$/, '');
 	const shared = browserBudgets.filter((budget) =>
 		[
 			'bannerReadyMs',
@@ -358,9 +366,9 @@ function budgetsForScenario(scenario: string): MetricBudget[] {
 	);
 
 	if (
-		scenario === 'ssr' ||
-		scenario === 'nextjs-v3-ssr' ||
-		scenario === 'nextjs-v3-manifest-ssr'
+		baseScenario === 'ssr' ||
+		baseScenario === 'nextjs-v3-ssr' ||
+		baseScenario === 'nextjs-v3-manifest-ssr'
 	) {
 		return [
 			...shared,
@@ -374,8 +382,24 @@ function budgetsForScenario(scenario: string): MetricBudget[] {
 		];
 	}
 
-	if (scenario === 'repeat-visitor' || scenario === 'nextjs-v3-repeat') {
+	if (
+		baseScenario === 'repeat-visitor' ||
+		baseScenario === 'nextjs-v3-repeat'
+	) {
 		return shared;
+	}
+
+	if (baseScenario === 'nextjs-v3-manifest-client') {
+		return [
+			...shared,
+			{
+				metric: 'initRequestsAfterLoad',
+				comparator: 'count-eq',
+				threshold: 0,
+				description:
+					'Client manifest flow should resolve init from /manifest without a browser /init request.',
+			},
+		];
 	}
 
 	return [
@@ -390,6 +414,30 @@ function budgetsForScenario(scenario: string): MetricBudget[] {
 	];
 }
 
+interface BenchConsentFixtureCounts {
+	init: number;
+	manifest: number;
+	subjects: number;
+}
+
+async function resetFixtureCounts(): Promise<void> {
+	await fetch(`${BASE_URL}/api/bench-consent/stats`, {
+		method: 'POST',
+		cache: 'no-store',
+	});
+}
+
+async function readFixtureCounts(): Promise<BenchConsentFixtureCounts> {
+	const response = await fetch(`${BASE_URL}/api/bench-consent/stats`, {
+		cache: 'no-store',
+	});
+	return (await response.json()) as BenchConsentFixtureCounts;
+}
+
+function isManifestScenario(scenario: string): boolean {
+	return scenario.includes('manifest');
+}
+
 async function run() {
 	await ensureBuild();
 
@@ -401,6 +449,9 @@ async function run() {
 			env: {
 				...process.env,
 				C15T_BENCH_INIT_LATENCY_MS: `${initLatencyMs}`,
+				...(coldManifestMode
+					? { C15T_BENCH_COLD_MANIFEST_TOKEN: String(Date.now()) }
+					: {}),
 			},
 			stdio: ['ignore', 'pipe', 'pipe'],
 		}
@@ -421,24 +472,40 @@ async function run() {
 
 		for (const scenario of scenarios) {
 			const samples: NextjsBrowserSample[] = [];
-			const bannerInFirstHtml = await getBannerInFirstHtml(scenario.path);
-			for (let index = 0; index < warmupIterations + iterations; index += 1) {
+			await resetFixtureCounts();
+			const effectiveWarmupIterations =
+				coldManifestMode && isManifestScenario(scenario.name)
+					? 0
+					: warmupIterations;
+			for (
+				let index = 0;
+				index < effectiveWarmupIterations + iterations;
+				index += 1
+			) {
 				const context = await browser.newContext({ baseURL: BASE_URL });
 				const page = await context.newPage();
 				await applyPageProfile(context, page);
 				const metrics = await collectScenarioMetrics(
 					page,
 					scenario.name,
-					scenario.path,
-					bannerInFirstHtml
+					scenario.path
 				);
 				const interactionLatencyMs = await measureInteractionLatency(
 					page,
 					scenario.name
 				);
-				if (index >= warmupIterations) {
+				if (index >= effectiveWarmupIterations) {
+					const measuredIndex = index - effectiveWarmupIterations;
 					samples.push({
 						...metrics,
+						scenario:
+							coldManifestMode &&
+							isManifestScenario(scenario.name) &&
+							measuredIndex === 0
+								? `${scenario.name}-cold`
+								: coldManifestMode && isManifestScenario(scenario.name)
+									? `${scenario.name}-steady`
+									: metrics.scenario,
 						interactionLatencyMs,
 					});
 				}
@@ -446,7 +513,7 @@ async function run() {
 				if (
 					(scenario.name === 'client' ||
 						scenario.name === 'nextjs-v3-client') &&
-					index >= warmupIterations
+					index >= effectiveWarmupIterations
 				) {
 					const repeatContext = await browser.newContext({ baseURL: BASE_URL });
 					const repeatPage = await repeatContext.newPage();
@@ -454,8 +521,7 @@ async function run() {
 					const repeatMetrics = await collectScenarioMetrics(
 						repeatPage,
 						scenario.name,
-						scenario.path,
-						bannerInFirstHtml
+						scenario.path
 					);
 					const repeatInteractionLatencyMs = await measureInteractionLatency(
 						repeatPage,
@@ -476,6 +542,7 @@ async function run() {
 
 				await context.close();
 			}
+			const fixtureCounts = await readFixtureCounts();
 
 			const grouped = new Map<string, typeof samples>();
 			for (const sample of samples) {
@@ -508,6 +575,10 @@ async function run() {
 					metadata: {
 						profile: throttleProfile,
 						initLatencyMs,
+						coldManifestMode,
+						fixtureInitExecutions: fixtureCounts.init,
+						fixtureManifestExecutions: fixtureCounts.manifest,
+						fixtureSubjectExecutions: fixtureCounts.subjects,
 						bannerInFirstHtml: groupedSamples.every(
 							(sample) => sample.bannerInFirstHtml
 						),
@@ -573,6 +644,13 @@ async function run() {
 							'initRequestsAfterLoad',
 							'count',
 							groupedSamples.map((sample) => sample.initRequestsAfterLoad ?? 0)
+						),
+						summarizeMetric(
+							'manifestRequestsAfterLoad',
+							'count',
+							groupedSamples.map(
+								(sample) => sample.manifestRequestsAfterLoad ?? 0
+							)
 						),
 						summarizeMetric(
 							'mountCount',

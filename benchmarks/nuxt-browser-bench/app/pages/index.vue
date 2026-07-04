@@ -5,6 +5,7 @@
 			<li><NuxtLink to="/ssr">/ssr</NuxtLink></li>
 			<li><NuxtLink to="/ssr-manifest">/ssr-manifest</NuxtLink></li>
 			<li><NuxtLink to="/client">/client</NuxtLink></li>
+			<li><NuxtLink to="/client-manifest">/client-manifest</NuxtLink></li>
 			<li><NuxtLink to="/repeat-visitor">/repeat-visitor</NuxtLink></li>
 		</ul>
 	</main>
