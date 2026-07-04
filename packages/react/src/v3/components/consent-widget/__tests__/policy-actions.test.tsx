@@ -1,10 +1,10 @@
 import type { ConsentStoreState } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
-import type { KernelConfig } from 'c15t/v3';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentWidget } from '~/v3/components/consent-widget';
-import { ConsentProvider } from '~/v3/provider';
+import { ConsentStateContext } from '~/v3/context/consent-manager-context';
+import { GlobalThemeContext } from '~/v3/context/theme-context';
 
 function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
@@ -57,52 +57,40 @@ function createMockState(
 	} as unknown as ConsentStoreState;
 }
 
-function createPrefetch(state: ConsentStoreState): KernelConfig {
-	return {
-		initialConsents: state.consents as never,
-		initialTranslations: {
-			language: 'en',
-			translations: defaultTranslationConfig.translations.en,
-		},
-		initialPolicy: {
-			id: 'test-policy',
-			model: 'opt-in',
-			consent: {
-				categories: state.policyCategories ?? ['*'],
-				scopeMode: state.policyScopeMode ?? 'permissive',
-			},
-			ui: {
-				mode: 'dialog',
-				banner: state.policyBanner,
-				dialog: state.policyDialog,
-			},
-		} as never,
-	};
-}
-
 async function renderPolicyActions(
 	stateOverrides: Partial<ConsentStoreState> = {}
 ) {
 	const state = createMockState(stateOverrides);
-	const prefetch = createPrefetch(state);
 
 	await render(
-		<ConsentProvider options={{ persistence: false, prefetch, noStyle: false }}>
-			<ConsentWidget.PolicyActions
-				renderAction={(action, props) => (
-					<button
-						key={props.key}
-						data-testid={`widget-action-${action}`}
-						data-consent-action={props.consentAction}
-						data-primary={String(props.isPrimary)}
-						data-style={props.style ? 'styled' : 'plain'}
-						type="button"
-					>
-						{action}
-					</button>
-				)}
-			/>
-		</ConsentProvider>
+		<GlobalThemeContext.Provider value={{ noStyle: false }}>
+			<ConsentStateContext.Provider
+				value={{
+					state,
+					store: {
+						getState: () => state,
+						subscribe: () => () => undefined,
+						setState: () => undefined,
+					},
+					manager: null,
+				}}
+			>
+				<ConsentWidget.PolicyActions
+					renderAction={(action, props) => (
+						<button
+							key={props.key}
+							data-testid={`widget-action-${action}`}
+							data-consent-action={props.consentAction}
+							data-primary={String(props.isPrimary)}
+							data-style={props.style ? 'styled' : 'plain'}
+							type="button"
+						>
+							{action}
+						</button>
+					)}
+				/>
+			</ConsentStateContext.Provider>
+		</GlobalThemeContext.Provider>
 	);
 }
 
@@ -110,12 +98,23 @@ async function renderDefaultPolicyActions(
 	stateOverrides: Partial<ConsentStoreState> = {}
 ) {
 	const state = createMockState(stateOverrides);
-	const prefetch = createPrefetch(state);
 
 	await render(
-		<ConsentProvider options={{ persistence: false, prefetch, noStyle: false }}>
-			<ConsentWidget.PolicyActions />
-		</ConsentProvider>
+		<GlobalThemeContext.Provider value={{ noStyle: false }}>
+			<ConsentStateContext.Provider
+				value={{
+					state,
+					store: {
+						getState: () => state,
+						subscribe: () => () => undefined,
+						setState: () => undefined,
+					},
+					manager: null,
+				}}
+			>
+				<ConsentWidget.PolicyActions />
+			</ConsentStateContext.Provider>
+		</GlobalThemeContext.Provider>
 	);
 }
 
@@ -124,21 +123,30 @@ async function renderWidget(
 	themeSlots: Record<string, string> = {}
 ) {
 	const state = createMockState(stateOverrides);
-	const prefetch = createPrefetch(state);
 
 	await render(
-		<ConsentProvider
-			options={{
-				persistence: false,
-				prefetch,
+		<GlobalThemeContext.Provider
+			value={{
 				noStyle: false,
 				theme: {
 					slots: themeSlots,
 				},
 			}}
 		>
-			<ConsentWidget hideBranding={false} />
-		</ConsentProvider>
+			<ConsentStateContext.Provider
+				value={{
+					state,
+					store: {
+						getState: () => state,
+						subscribe: () => () => undefined,
+						setState: () => undefined,
+					},
+					manager: null,
+				}}
+			>
+				<ConsentWidget hideBranding={false} />
+			</ConsentStateContext.Provider>
+		</GlobalThemeContext.Provider>
 	);
 }
 

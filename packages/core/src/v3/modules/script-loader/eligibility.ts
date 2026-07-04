@@ -8,8 +8,9 @@
  * script in that reconcile — this is the only place policy-scope
  * runtime gating is applied.
  */
-import { applyPolicyScopeForRuntimeGating } from '../../../libs/policy';
-import type { AllConsentNames } from '../../../types/consent-types';
+
+import type { AllConsentNames } from '../../consent/consent-types';
+import { applyPolicyScopeForRuntimeGating } from '../../libs/policy';
 import type { ConsentSnapshot, ConsentState } from '../../types';
 import { has, hasIABConsent } from '../has';
 import type { NormalizedScript, ReconcilePass } from './types';

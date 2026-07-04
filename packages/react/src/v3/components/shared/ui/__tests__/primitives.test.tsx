@@ -8,7 +8,7 @@ import type { ReactNode, RefObject } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
-import { GlobalThemeContext } from '~/context/theme-context';
+import { GlobalThemeContext } from '~/v3/context/theme-context';
 import {
 	Content as AccordionContent,
 	Item as AccordionItem,

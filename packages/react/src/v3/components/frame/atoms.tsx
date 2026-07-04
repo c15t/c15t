@@ -1,7 +1,7 @@
 import styles from '@c15t/ui/styles/components/frame.module.js';
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, type Ref } from 'react';
-import { useTranslations } from '~/v3/component-hooks/use-translations';
+import { useTranslations } from '~/v3/hooks/use-translations';
 import { Box, type BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';

@@ -10,11 +10,11 @@ import {
 	useEffect,
 	useState,
 } from 'react';
-import { useFocusTrap } from '~/hooks/use-focus-trap';
-import { useStyles } from '~/hooks/use-styles';
-import { useTheme } from '~/hooks/use-theme';
-import { cnExt as cn } from '~/utils/cn';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useConsentManager } from '~/v3/hooks/use-consent-manager';
+import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
+import { useStyles } from '~/v3/hooks/use-styles';
+import { useTheme } from '~/v3/hooks/use-theme';
+import { cnExt as cn } from '~/v3/utils/cn';
 import { useIABTranslations } from '../use-iab-translations';
 
 interface IABConsentDialogCardProps extends HTMLAttributes<HTMLDivElement> {

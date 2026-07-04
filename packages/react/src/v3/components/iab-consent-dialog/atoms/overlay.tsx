@@ -2,10 +2,10 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { forwardRef, type HTMLAttributes, useEffect, useState } from 'react';
-import { useScrollLock } from '~/hooks/use-scroll-lock';
-import { useStyles } from '~/hooks/use-styles';
-import { useTheme } from '~/hooks/use-theme';
-import { cnExt as cn } from '~/utils/cn';
+import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
+import { useStyles } from '~/v3/hooks/use-styles';
+import { useTheme } from '~/v3/hooks/use-theme';
+import { cnExt as cn } from '~/v3/utils/cn';
 
 interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
 	noStyle?: boolean;

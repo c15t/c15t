@@ -37,10 +37,8 @@ import {
 import type { Script } from 'c15t/v3/modules/script-loader';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useColorScheme } from '../hooks/use-color-scheme';
-import type { ConsentManagerOptions } from '../types/consent-manager';
-import { defaultTheme } from '../utils/theme-utils';
 import { KernelContext } from './context';
+import { useColorScheme } from './hooks/use-color-scheme';
 import type { IABProviderProps } from './iab-context';
 import { IABProvider } from './iab-context';
 import {
@@ -52,7 +50,9 @@ import {
 	useScriptLoader,
 } from './module-hooks';
 import { V3ThemeProvider } from './theme-provider';
+import type { ConsentManagerOptions } from './types/consent-manager';
 import type { V3UIConfigValue } from './ui-config-context';
+import { defaultTheme } from './utils/theme-utils';
 
 type ProviderMode = 'hosted' | 'offline' | 'custom' | 'c15t';
 

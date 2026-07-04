@@ -38,6 +38,14 @@ export default mergeConfig(
 					__dirname,
 					'../react/src/v3/module-hooks.ts'
 				),
+				'@c15t/react/v3/server': resolve(
+					__dirname,
+					'../react/src/v3/server/index.ts'
+				),
+				'@c15t/react/v3/headless': resolve(
+					__dirname,
+					'../react/src/v3/headless.ts'
+				),
 				'@c15t/react/v3': resolve(__dirname, '../react/src/v3/index.ts'),
 				'@c15t/translations': resolve(
 					__dirname,

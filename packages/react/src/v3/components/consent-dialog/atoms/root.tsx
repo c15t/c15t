@@ -12,20 +12,19 @@ import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ConsentTrackingContext } from '~/context/consent-tracking-context';
+import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import {
 	LocalThemeContext,
 	type ThemeContextValue,
-} from '~/context/theme-context';
-import { useTextDirection } from '~/hooks';
-import { useFocusTrap } from '~/hooks/use-focus-trap';
-import { useScrollLock } from '~/hooks/use-scroll-lock';
-import { useStyles } from '~/hooks/use-styles';
-import { useTheme } from '~/hooks/use-theme';
-import type { CSSPropertiesWithVars } from '~/types/theme';
-import { cnExt as cn } from '~/utils/cn';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
-import { useIsomorphicLayoutEffect } from '~/v3/components/shared/libs/use-isomorphic-layout-effect';
+} from '~/v3/context/theme-context';
+import { useConsentManager } from '~/v3/hooks/use-consent-manager';
+import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
+import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
+import { useStyles } from '~/v3/hooks/use-styles';
+import { useTextDirection } from '~/v3/hooks/use-text-direction';
+import { useTheme } from '~/v3/hooks/use-theme';
+import type { CSSPropertiesWithVars } from '~/v3/types/theme';
+import { cnExt as cn } from '~/v3/utils/cn';
 import { Overlay } from './overlay';
 
 /**
@@ -139,11 +138,9 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	const dialogRef = useRef<HTMLDialogElement>(null);
 	const contentRef = useRef<HTMLDivElement>(null);
 
-	// First render must return null on the server and on the very first
-	// client render so hydration matches; flipping in a layout effect
-	// merges the second render into the first paint.
+	// Handle mounting (avoid SSR mismatch when using portal)
 	const [isMounted, setIsMounted] = useState(false);
-	useIsomorphicLayoutEffect(() => {
+	useEffect(() => {
 		setIsMounted(true);
 	}, []);
 

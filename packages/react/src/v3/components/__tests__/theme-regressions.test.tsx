@@ -1,9 +1,9 @@
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { GlobalThemeContext } from '~/context/theme-context';
 import { ConsentWidgetAccordion } from '~/v3/components/consent-widget/atoms/accordion';
 import { IABConsentBannerFooter } from '~/v3/components/iab-consent-banner/atoms/footer';
 import { IABConsentBannerHeader } from '~/v3/components/iab-consent-banner/atoms/header';
+import { GlobalThemeContext } from '~/v3/context/theme-context';
 
 describe('Theme regressions', () => {
 	test('does not forward slot noStyle to the DOM', async () => {

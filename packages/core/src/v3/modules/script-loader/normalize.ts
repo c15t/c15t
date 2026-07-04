@@ -6,7 +6,7 @@
  * (`createElementIdResolver`). The cache lives in a closure rather than
  * a `Map<>` argument so callers don't have to plumb identity through.
  */
-import type { AllConsentNames } from '../../../types/consent-types';
+import type { AllConsentNames } from '../../consent/consent-types';
 import type { NormalizedScript, Script } from './types';
 
 const anonymizedElementIds = new Map<string, string>();

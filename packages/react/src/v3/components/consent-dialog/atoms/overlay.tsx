@@ -6,11 +6,11 @@
 
 import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 import { type FC, type PropsWithChildren, useEffect, useState } from 'react';
-import { useStyles } from '~/hooks/use-styles';
-import { useTheme } from '~/hooks/use-theme';
-import type { ThemeValue } from '~/types/theme';
-import { cnExt as cn } from '~/utils/cn';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useConsentManager } from '~/v3/hooks/use-consent-manager';
+import { useStyles } from '~/v3/hooks/use-styles';
+import { useTheme } from '~/v3/hooks/use-theme';
+import type { ThemeValue } from '~/v3/types/theme';
+import { cnExt as cn } from '~/v3/utils/cn';
 
 /**
  * Props for the Overlay component.

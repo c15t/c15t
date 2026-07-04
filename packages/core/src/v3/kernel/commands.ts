@@ -10,8 +10,9 @@
  * is extracted into the pure helper `resolveSavePatch` so each branch
  * can be unit-tested without standing up a full kernel.
  */
-import { generateSubjectId } from '../../libs/generate-subject-id';
-import { allConsentNames } from '../../types/consent-types';
+
+import { allConsentNames } from '../consent/consent-types';
+import { generateSubjectId } from '../libs/generate-subject-id';
 import type {
 	ConsentSnapshot,
 	ConsentState,

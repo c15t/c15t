@@ -1,13 +1,9 @@
 import styles from '@c15t/ui/styles/primitives/legal-links.module.js';
-import { resolveTranslations } from '@c15t/ui/utils';
 import type { LegalLinks as LegalLinksType } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
-import { useContext, useMemo } from 'react';
-import { ConsentStateContext } from '~/context/consent-manager-context';
-import { useStyles } from '~/hooks/use-styles';
-import type { AllThemeKeys } from '~/types/theme/style-keys';
-import { KernelContext } from '~/v3/context';
-import { V3UIConfigContext } from '~/v3/ui-config-context';
+import { useConsentManager } from '~/v3/hooks/use-consent-manager';
+import { useStyles } from '~/v3/hooks/use-styles';
+import { useTranslations } from '~/v3/hooks/use-translations';
+import type { AllThemeKeys } from '~/v3/types/theme/style-keys';
 
 /**
  * Hook to filter legal links based on the provided links prop.
@@ -18,9 +14,7 @@ import { V3UIConfigContext } from '~/v3/ui-config-context';
 export function useFilteredLegalLinks(
 	links?: (keyof LegalLinksType)[] | null
 ): LegalLinksType | null {
-	const consentState = useContext(ConsentStateContext);
-	const v3UiConfig = useContext(V3UIConfigContext);
-	const legalLinks = consentState?.state.legalLinks ?? v3UiConfig.legalLinks;
+	const { legalLinks } = useConsentManager();
 
 	// Show no links by default or if explicitly null
 	if (links === undefined || links === null) {
@@ -79,26 +73,7 @@ export function InlineLegalLinks({
 	testIdPrefix,
 }: InlineLegalLinksProps) {
 	const filteredLinks = useFilteredLegalLinks(links);
-	const consentState = useContext(ConsentStateContext);
-	const kernel = useContext(KernelContext);
-	const translatedLabels = useMemo(() => {
-		if (consentState) {
-			return resolveTranslations(
-				consentState.state.translationConfig,
-				defaultTranslationConfig
-			).legalLinks;
-		}
-
-		return (
-			(kernel?.getSnapshot().translations?.translations.legalLinks as
-				| Record<string, string>
-				| undefined) ??
-			(defaultTranslationConfig.translations.en?.legalLinks as Record<
-				string,
-				string
-			>)
-		);
-	}, [consentState, kernel]);
+	const { legalLinks: t } = useTranslations();
 	const linkStyles = useStyles(themeKey as any, {
 		baseClassName: styles.legalLink,
 	});
@@ -129,8 +104,7 @@ export function InlineLegalLinks({
 							{...linkStyles}
 							data-testid={testIdPrefix ? `${testIdPrefix}-${type}` : undefined}
 						>
-							{link.label ??
-								(translatedLabels as Record<string, string>)?.[type as string]}
+							{link.label ?? (t as Record<string, string>)?.[type as string]}
 							{index < array.length - 1 && ','}
 						</a>
 						{index < array.length - 1 && ' '}

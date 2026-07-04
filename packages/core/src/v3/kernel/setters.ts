@@ -11,7 +11,7 @@
  * mutation would defeat that.
  */
 
-import { allConsentNames } from '../../types/consent-types';
+import { allConsentNames } from '../consent/consent-types';
 import { deriveActiveUI, deriveModel } from '../policy';
 import type {
 	ConsentSnapshot,

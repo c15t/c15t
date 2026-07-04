@@ -162,7 +162,10 @@ export function mountScript(
 	}
 	if (script.attributes) {
 		for (const [key, value] of Object.entries(script.attributes)) {
-			element.setAttribute(key, value);
+			element.setAttribute(
+				key,
+				typeof value === 'string' ? value : String(value)
+			);
 		}
 	}
 

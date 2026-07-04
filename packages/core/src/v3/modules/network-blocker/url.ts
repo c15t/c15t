@@ -86,5 +86,5 @@ export function methodMatchesRule(
 ): boolean {
 	if (!rule.methods || rule.methods.length === 0) return true;
 	const upper = normalizeMethod(method);
-	return rule.methods.some((m) => normalizeMethod(m) === upper);
+	return rule.methods.some((m: string) => normalizeMethod(m) === upper);
 }

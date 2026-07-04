@@ -3,9 +3,9 @@ import { defaultTranslationConfig } from 'c15t';
 import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { ConsentStateContext } from '~/context/consent-manager-context';
-import { GlobalThemeContext } from '~/context/theme-context';
 import { ConsentBanner } from '~/v3/components/consent-banner';
+import { ConsentStateContext } from '~/v3/context/consent-manager-context';
+import { GlobalThemeContext } from '~/v3/context/theme-context';
 
 function createMockState(
 	overrides: Partial<ConsentStoreState> = {}

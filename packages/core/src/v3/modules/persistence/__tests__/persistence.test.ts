@@ -10,8 +10,8 @@
  * - dispose stops further writes
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { deleteConsentFromStorage } from '../../../../libs/cookie';
 import { createConsentKernel } from '../../../index';
+import { deleteConsentFromStorage } from '../../../libs/cookie';
 import { createPersistence } from '../index';
 
 // localStorage + document.cookie are stubbed by packages/core/vitest.setup.ts

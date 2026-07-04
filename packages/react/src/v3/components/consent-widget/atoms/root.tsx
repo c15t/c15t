@@ -8,17 +8,17 @@
 
 import styles from '@c15t/ui/styles/components/consent-widget.module.js';
 import type { FC, ReactNode } from 'react';
+import { Box } from '~/v3/components/shared/primitives/box';
 import {
 	ConsentTrackingContext,
 	useConsentTracking,
-} from '~/context/consent-tracking-context';
+} from '~/v3/context/consent-tracking-context';
 import {
 	LocalThemeContext,
 	type ThemeContextValue,
-} from '~/context/theme-context';
-import { useTextDirection } from '~/hooks/use-text-direction';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
-import { Box } from '~/v3/components/shared/primitives/box';
+} from '~/v3/context/theme-context';
+import { useConsentManager } from '~/v3/hooks/use-consent-manager';
+import { useTextDirection } from '~/v3/hooks/use-text-direction';
 
 /**
  * Props for the ConsentWidgetRoot component.

@@ -21,16 +21,21 @@
  */
 
 import type { CMPApi } from 'c15t';
-import type { ConsentKernel, GlobalVendorList, NonIABVendor } from 'c15t/v3';
-import { createCMPApi } from '../tcf/cmp-api';
-import { clearGVLCache, fetchGVL } from '../tcf/fetch-gvl';
-import { getTCFCore } from '../tcf/lazy-load';
+import type {
+	ConsentKernel,
+	ConsentSnapshot,
+	GlobalVendorList,
+	NonIABVendor,
+} from 'c15t/v3';
+import { createCMPApi } from './tcf/cmp-api';
+import { clearGVLCache, fetchGVL } from './tcf/fetch-gvl';
+import { getTCFCore } from './tcf/lazy-load';
 import {
 	c15tConsentsToIabPurposes,
 	iabPurposesToC15tConsents,
-} from '../tcf/purpose-mapping';
-import { destroyIABStub as destroyStub, initializeIABStub } from '../tcf/stub';
-import { generateTCString } from '../tcf/tc-string';
+} from './tcf/purpose-mapping';
+import { destroyIABStub as destroyStub, initializeIABStub } from './tcf/stub';
+import { generateTCString } from './tcf/tc-string';
 
 /**
  * Public option surface for `createIAB`. Mirrors v2's `IABUserConfig`
@@ -252,7 +257,7 @@ export function createIAB(options: CreateIABOptions): IABHandle {
 
 	// Keep the CMP API state in sync with snapshot changes. v2 calls
 	// `cmpApi.updateConsent(tcString)` on save — we mirror that here.
-	const unsubscribe = kernel.subscribe((snapshot) => {
+	const unsubscribe = kernel.subscribe((snapshot: ConsentSnapshot) => {
 		if (!cmpApi) return;
 		const tcString = snapshot.iab?.tcString ?? null;
 		if (tcString) cmpApi.updateConsent(tcString);

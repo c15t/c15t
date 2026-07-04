@@ -24,7 +24,7 @@
  *   with a microtask debounce so rapid flips produce one write.
  * - Dispose unsubscribes but does not clear storage.
  */
-import { deleteConsentFromStorage } from '../../../libs/cookie';
+import { deleteConsentFromStorage } from '../../libs/cookie';
 import { hydrateFromStorage } from './hydrate';
 import { createWriteScheduler } from './schedule';
 import type { PersistenceHandle, PersistenceOptions } from './types';

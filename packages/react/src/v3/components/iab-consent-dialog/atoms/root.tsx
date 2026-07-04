@@ -4,14 +4,13 @@ import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { type FC, type ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ConsentTrackingContext } from '~/context/consent-tracking-context';
-import { LocalThemeContext } from '~/context/theme-context';
-import { useScrollLock } from '~/hooks/use-scroll-lock';
-import { useStyles } from '~/hooks/use-styles';
-import { useTextDirection } from '~/hooks/use-text-direction';
-import { cnExt as cn } from '~/utils/cn';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
-import { useIsomorphicLayoutEffect } from '~/v3/components/shared/libs/use-isomorphic-layout-effect';
+import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
+import { LocalThemeContext } from '~/v3/context/theme-context';
+import { useConsentManager } from '~/v3/hooks/use-consent-manager';
+import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
+import { useStyles } from '~/v3/hooks/use-styles';
+import { useTextDirection } from '~/v3/hooks/use-text-direction';
+import { cnExt as cn } from '~/v3/utils/cn';
 import { IABConsentDialogOverlay } from './overlay';
 
 interface IABConsentDialogRootProps {
@@ -80,9 +79,8 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	// Scroll lock
 	useScrollLock(Boolean(isOpen && resolvedScrollLock));
 
-	// Mount state for portal — layout effect merges the second render into
-	// the first paint so portal content shows up without an extra cycle.
-	useIsomorphicLayoutEffect(() => {
+	// Mount state for portal
+	useEffect(() => {
 		setIsMounted(true);
 	}, []);
 

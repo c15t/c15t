@@ -124,3 +124,9 @@ export {
 } from './module-hooks';
 export type { ConsentProviderOptions, ConsentProviderProps } from './provider';
 export { ConsentProvider } from './provider';
+
+export { ConsentManagerProvider } from './providers/consent-manager-provider';
+export type {
+	ConsentManagerOptions,
+	ConsentManagerProviderProps,
+} from './types/consent-manager';

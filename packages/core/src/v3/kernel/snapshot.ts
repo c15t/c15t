@@ -6,7 +6,7 @@
  * holds the mutable `let snapshot` cell; this file only produces values.
  */
 
-import { allConsentNames } from '../../types/consent-types';
+import { allConsentNames } from '../consent/consent-types';
 import { applyPolicyToConsents, deriveActiveUI, deriveModel } from '../policy';
 import type {
 	ConsentSnapshot,

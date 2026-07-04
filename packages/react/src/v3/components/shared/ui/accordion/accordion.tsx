@@ -22,11 +22,11 @@ import {
 	useId,
 	useMemo,
 } from 'react';
-import { useTheme } from '~/hooks/use-theme';
-import type { ThemeValue } from '~/types/theme';
 import type { PolymorphicComponentProps } from '~/v3/components/shared/libs/polymorphic';
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
 import { LucideIcon } from '~/v3/components/shared/ui/icon';
+import { useTheme } from '~/v3/hooks/use-theme';
+import type { ThemeValue } from '~/v3/types/theme';
 
 export type { AccordionSize, AccordionVariant, AccordionVariantsProps };
 export { accordionVariants };

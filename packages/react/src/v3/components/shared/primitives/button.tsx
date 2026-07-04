@@ -1,14 +1,14 @@
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, type MouseEvent, useCallback } from 'react';
-import { useConsentTracking } from '~/context/consent-tracking-context';
-import { useStyles } from '~/hooks/use-styles';
-import { useTheme } from '~/hooks/use-theme';
+import { useConsentTracking } from '~/v3/context/consent-tracking-context';
+import { useConsentManager } from '~/v3/hooks/use-consent-manager';
+import { useStyles } from '~/v3/hooks/use-styles';
+import { useTheme } from '~/v3/hooks/use-theme';
 import type {
 	AllThemeKeys,
 	CSSPropertiesWithVars,
 	CSSVariables,
-} from '~/types/theme';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+} from '~/v3/types/theme';
 import { Slot } from '../libs/slot';
 import * as Button from '../ui/button';
 import type { ButtonVariantsProps } from '../ui/button/button';

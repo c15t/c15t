@@ -13,12 +13,13 @@
  * coordinate them. Pure-extracting that side effect is a separate
  * refactor (would change the kernel-write order during the same tick).
  */
-import { saveConsentToStorage } from '../../../libs/cookie';
+
+import type { ConsentState as V2ConsentState } from '../../consent/compliance';
+import { saveConsentToStorage } from '../../libs/cookie';
 import {
 	generateSubjectId,
 	isValidSubjectId,
-} from '../../../libs/generate-subject-id';
-import type { ConsentState as V2ConsentState } from '../../../types/compliance';
+} from '../../libs/generate-subject-id';
 import type { ConsentKernel, ConsentSnapshot } from '../../types';
 import type { StorageConfig } from './types';
 

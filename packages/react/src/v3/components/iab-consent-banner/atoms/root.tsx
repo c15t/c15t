@@ -12,13 +12,12 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { ConsentTrackingContext } from '~/context/consent-tracking-context';
-import { LocalThemeContext } from '~/context/theme-context';
-import { useStyles } from '~/hooks/use-styles';
-import { useTextDirection } from '~/hooks/use-text-direction';
-import type { CSSPropertiesWithVars } from '~/types/theme';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
-import { useIsomorphicLayoutEffect } from '~/v3/components/shared/libs/use-isomorphic-layout-effect';
+import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
+import { LocalThemeContext } from '~/v3/context/theme-context';
+import { useConsentManager } from '~/v3/hooks/use-consent-manager';
+import { useStyles } from '~/v3/hooks/use-styles';
+import { useTextDirection } from '~/v3/hooks/use-text-direction';
+import type { CSSPropertiesWithVars } from '~/v3/types/theme';
 import { IABConsentBannerOverlay } from './overlay';
 
 interface IABConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
@@ -130,11 +129,15 @@ const IABConsentBannerRootChildren = forwardRef<
 
 		useEffect(() => {
 			if (shouldShowBanner) {
-				// Sync flip is enough — the prior render committed the element
-				// with `bannerHidden`, so the class change to `bannerVisible`
-				// is what triggers the entrance animation. No setTimeout floor.
-				setIsVisible(true);
-				if (!hasAnimated) setHasAnimated(true);
+				if (hasAnimated) {
+					setIsVisible(true);
+				} else {
+					const animationTimer = setTimeout(() => {
+						setIsVisible(true);
+						setHasAnimated(true);
+					}, 10);
+					return () => clearTimeout(animationTimer);
+				}
 			} else {
 				setHasAnimated(false);
 
@@ -156,11 +159,9 @@ const IABConsentBannerRootChildren = forwardRef<
 			noStyle,
 		});
 
-		// First render must return null on the server and on the very first
-		// client render so hydration matches; flipping in a layout effect
-		// merges the second render into the first paint.
 		const [isMounted, setIsMounted] = useState(false);
-		useIsomorphicLayoutEffect(() => {
+
+		useEffect(() => {
 			setIsMounted(true);
 		}, []);
 

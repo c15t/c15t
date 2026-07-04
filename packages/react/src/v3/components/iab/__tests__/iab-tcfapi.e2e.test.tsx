@@ -7,12 +7,12 @@
 import { userEvent } from '@vitest/browser/context';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+import { IABConsentBanner } from '~/v3/components/iab-consent-banner';
+import { IABConsentDialog } from '~/v3/components/iab-consent-dialog';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
-import { IABConsentBanner } from '~/v3/components/iab-consent-banner';
-import { IABConsentDialog } from '~/v3/components/iab-consent-dialog';
+} from '~/v3/providers/consent-manager-provider';
 import {
 	addCMPEventListener,
 	clearConsentState,

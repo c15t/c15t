@@ -2,9 +2,8 @@
 
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, useEffect, useState } from 'react';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
-import { useTranslations } from '~/v3/component-hooks/use-translations';
-import { useIsomorphicLayoutEffect } from '~/v3/components/shared/libs/use-isomorphic-layout-effect';
+import { useConsentManager } from '~/v3/hooks/use-consent-manager';
+import { useTranslations } from '~/v3/hooks/use-translations';
 import { FrameButton, FrameRoot, FrameTitle } from './atoms';
 import type { FrameProps } from './types';
 
@@ -21,36 +20,41 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 			policyScopeMode,
 		} = useConsentManager();
 		const { frame } = useTranslations();
-		// Layout effect commits the mount flag before paint, so the second
-		// render lands in the same paint as the initial null render — no
-		// RAF stall, no FOUC, since CSS modules are imported synchronously.
 		const [isMounted, setIsMounted] = useState(false);
-		useIsomorphicLayoutEffect(() => {
-			setIsMounted(true);
-		}, []);
+		const [isReady, setIsReady] = useState(false);
 
 		const hasConsent = has(category);
 		const hasPolicyScope =
 			Array.isArray(policyCategories) &&
 			policyCategories.length > 0 &&
-			!(policyCategories as readonly string[]).includes('*');
+			!policyCategories.includes('*');
 		const isOutOfPolicyCategory =
 			hasPolicyScope && !policyCategories.includes(category);
 		const isStrictPolicyBlocked =
 			policyScopeMode === 'strict' && isOutOfPolicyCategory;
 
-		// biome-ignore lint/correctness/useExhaustiveDependencies: we only want to register the category when it changes
+		// biome-ignore lint/correctness/useExhaustiveDependencies: we only want to update the consent categories when the component is mounted
 		useEffect(() => {
+			setIsMounted(true);
 			updateConsentCategories([...consentCategories, category]);
 		}, [category]);
 
+		// Wait for next frame to ensure styles are loaded
+		useEffect(() => {
+			if (isMounted) {
+				requestAnimationFrame(() => {
+					setIsReady(true);
+				});
+			}
+		}, [isMounted]);
+
 		const renderContent = () => {
-			// Before mount, return null so SSR and first client render match.
-			if (!isMounted) {
+			// Before ready, show nothing to prevent FOUC
+			if (!isMounted || !isReady) {
 				return null;
 			}
 
-			// After mount, show children if consent is granted
+			// After ready, show children if consent is granted
 			if (hasConsent) {
 				return children;
 			}

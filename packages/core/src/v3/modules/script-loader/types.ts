@@ -10,11 +10,11 @@
  * can share them. They are not re-exported from `index.ts`.
  */
 
+import type { AllConsentNames } from '../../consent/consent-types';
 import type {
 	Script,
 	ScriptCallbackInfo,
-} from '../../../libs/script-loader/types';
-import type { AllConsentNames } from '../../../types/consent-types';
+} from '../../libs/script-loader/types';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,

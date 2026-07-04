@@ -2,9 +2,10 @@
 
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, type HTMLAttributes } from 'react';
-import { useStyles } from '~/hooks/use-styles';
-import type { AllThemeKeys, ExtendThemeKeys } from '~/types/theme';
+
 import { Slot } from '~/v3/components/shared/libs/slot';
+import { useStyles } from '~/v3/hooks/use-styles';
+import type { AllThemeKeys, ExtendThemeKeys } from '~/v3/types/theme';
 
 /**
  * Props for the description text component of the CookieBanner.

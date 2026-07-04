@@ -11,7 +11,7 @@ import type {
 	BlockedRequestInfo,
 	NetworkBlockerConfig,
 	NetworkBlockerRule,
-} from '../../../libs/network-blocker/types';
+} from '../../libs/network-blocker/types';
 import type { ConsentKernel } from '../../types';
 
 export type { BlockedRequestInfo, NetworkBlockerConfig, NetworkBlockerRule };

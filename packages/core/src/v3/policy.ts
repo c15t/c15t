@@ -9,12 +9,12 @@
  * neutral and there's no reason to duplicate the logic.
  */
 import type { PolicyScopeMode, ResolvedPolicy } from '@c15t/schema/types';
+import type { AllConsentNames } from './consent/consent-types';
+import { allConsentNames } from './consent/consent-types';
 import {
 	applyPolicyScopeForRuntimeGating as v2ApplyPolicyScope,
 	filterConsentCategoriesByPolicy as v2FilterCategories,
-} from '../libs/policy';
-import type { AllConsentNames } from '../types/consent-types';
-import { allConsentNames } from '../types/consent-types';
+} from './libs/policy';
 import type { ConsentState, KernelActiveUI, KernelModel } from './types';
 
 /**

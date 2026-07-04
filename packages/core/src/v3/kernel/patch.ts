@@ -17,7 +17,7 @@ import type {
 	PolicyScopeMode,
 	ResolvedPolicy,
 } from '@c15t/schema/types';
-import type { AllConsentNames } from '../../types/consent-types';
+import type { AllConsentNames } from '../consent/consent-types';
 import type {
 	ConsentSnapshot,
 	ConsentState,

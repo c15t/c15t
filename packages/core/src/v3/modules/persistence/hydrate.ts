@@ -9,8 +9,8 @@
  * source of read truth so v2 + v3 consumers see the same persistence
  * format.
  */
-import { getConsentFromStorage } from '../../../libs/cookie';
-import { isValidSubjectId } from '../../../libs/generate-subject-id';
+import { getConsentFromStorage } from '../../libs/cookie';
+import { isValidSubjectId } from '../../libs/generate-subject-id';
 import type { ConsentKernel } from '../../types';
 import type { StorageConfig, StoredPayload } from './types';
 

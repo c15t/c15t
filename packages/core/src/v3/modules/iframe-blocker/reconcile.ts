@@ -12,8 +12,8 @@
  *   - consent granted + has `data-src` but no `src` → move data-src → src
  *   - consent NOT granted + has `src`              → removeAttribute('src')
  */
-import type { AllConsentNames } from '../../../types/consent-types';
-import { allConsentNames } from '../../../types/consent-types';
+import type { AllConsentNames } from '../../consent/consent-types';
+import { allConsentNames } from '../../consent/consent-types';
 import type { ConsentSnapshot, ConsentState } from '../../types';
 import { type HasOptions, has } from '../has';
 

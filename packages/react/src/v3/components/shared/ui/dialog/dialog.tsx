@@ -17,10 +17,10 @@ import {
 	useRef,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { useFocusTrap } from '~/hooks/use-focus-trap';
-import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { Slot } from '~/v3/components/shared/libs/slot';
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
+import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
+import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
 
 type DialogContextValue = {
 	contentId: string;

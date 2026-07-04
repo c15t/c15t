@@ -8,9 +8,9 @@ import {
 	type ReactNode,
 	type RefObject,
 } from 'react';
-import { useFocusTrap } from '~/hooks/use-focus-trap';
-import { useStyles } from '~/hooks/use-styles';
-import { useTheme } from '~/hooks/use-theme';
+import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
+import { useStyles } from '~/v3/hooks/use-styles';
+import { useTheme } from '~/v3/hooks/use-theme';
 
 interface IABConsentBannerCardProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;

@@ -9,7 +9,7 @@
  * are derived AFTER all input fields are merged so they reflect the
  * effective post-patch policy + IAB enablement, not the pre-patch state.
  */
-import { allConsentNames } from '../../types/consent-types';
+import { allConsentNames } from '../consent/consent-types';
 import { applyPolicyToConsents, deriveActiveUI, deriveModel } from '../policy';
 import type {
 	ConsentSnapshot,

@@ -13,14 +13,15 @@
  *
  * Pure. No DOM. No network. Safe in Node, RSC, edge, tests.
  */
+
+import type { ConsentState } from '../consent/compliance';
+import type { AllConsentNames } from '../consent/consent-types';
 import {
 	extractConsentNamesFromCondition,
 	type HasCondition,
 	type HasOptions,
 	has,
-} from '../../libs/has';
-import type { ConsentState } from '../../types/compliance';
-import type { AllConsentNames } from '../../types/consent-types';
+} from '../libs/has';
 import type { ConsentSnapshot, KernelIABState } from '../types';
 
 export type { HasCondition, HasOptions };

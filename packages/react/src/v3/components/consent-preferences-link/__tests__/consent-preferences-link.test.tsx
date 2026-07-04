@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
+import { ConsentDialog } from '~/v3/components/consent-dialog';
+import { ConsentDialogLink } from '~/v3/components/consent-dialog-link';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
-import { ConsentDialog } from '~/v3/components/consent-dialog';
-import { ConsentDialogLink } from '~/v3/components/consent-dialog-link';
+} from '~/v3/providers/consent-manager-provider';
 
 describe('ConsentDialogLink', () => {
 	beforeEach(() => {

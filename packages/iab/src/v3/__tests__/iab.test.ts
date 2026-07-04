@@ -12,8 +12,8 @@
 import type { GlobalVendorList } from 'c15t/v3';
 import { createConsentKernel } from 'c15t/v3';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { setMockGVL } from '../../tcf/fetch-gvl';
 import { createIAB } from '../index';
+import { setMockGVL } from '../tcf/fetch-gvl';
 
 const MOCK_GVL: GlobalVendorList = {
 	gvlSpecificationVersion: 3,

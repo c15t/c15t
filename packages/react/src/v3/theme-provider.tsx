@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import {
 	GlobalThemeContext,
 	type ThemeContextValue,
-} from '../context/theme-context';
+} from './context/theme-context';
 import { V3UIConfigContext, type V3UIConfigValue } from './ui-config-context';
 
 interface V3ThemeProviderProps {

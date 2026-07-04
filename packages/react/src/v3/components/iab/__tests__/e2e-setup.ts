@@ -9,7 +9,7 @@
 
 import { iab } from '@c15t/iab';
 import { vi } from 'vitest';
-import type { ConsentManagerOptions } from '~/types/consent-manager';
+import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
 import { mockGVL } from './fixtures/mock-consent-state';
 
 /**

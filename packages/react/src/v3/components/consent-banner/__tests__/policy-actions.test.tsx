@@ -1,11 +1,11 @@
 import type { ConsentStoreState } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
-import type { KernelConfig } from 'c15t/v3';
 import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentBanner } from '~/v3/components/consent-banner';
-import { ConsentProvider } from '~/v3/provider';
+import { ConsentStateContext } from '~/v3/context/consent-manager-context';
+import { GlobalThemeContext } from '~/v3/context/theme-context';
 
 function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
@@ -58,29 +58,6 @@ function createMockState(
 	} as unknown as ConsentStoreState;
 }
 
-function createPrefetch(state: ConsentStoreState): KernelConfig {
-	return {
-		initialConsents: state.consents as never,
-		initialTranslations: {
-			language: 'en',
-			translations: defaultTranslationConfig.translations.en,
-		},
-		initialPolicy: {
-			id: 'test-policy',
-			model: 'opt-in',
-			consent: {
-				categories: state.policyCategories ?? ['*'],
-				scopeMode: state.policyScopeMode ?? 'permissive',
-			},
-			ui: {
-				mode: 'banner',
-				banner: state.policyBanner,
-				dialog: state.policyDialog,
-			},
-		} as never,
-	};
-}
-
 async function renderPolicyActions(
 	stateOverrides: Partial<ConsentStoreState> = {},
 	renderAction?: ComponentProps<
@@ -89,35 +66,44 @@ async function renderPolicyActions(
 	themeOverrides?: Record<string, unknown>
 ) {
 	const state = createMockState(stateOverrides);
-	const prefetch = createPrefetch(state);
 
 	await render(
-		<ConsentProvider
-			options={{
-				persistence: false,
-				prefetch,
+		<GlobalThemeContext.Provider
+			value={{
 				noStyle: false,
 				theme: themeOverrides as never,
 			}}
 		>
-			<ConsentBanner.PolicyActions
-				renderAction={
-					renderAction ??
-					((action, props) => (
-						<button
-							key={props.key}
-							data-testid={`banner-action-${action}`}
-							data-consent-action={props.consentAction}
-							data-primary={String(props.isPrimary)}
-							data-style={props.style ? 'styled' : 'plain'}
-							type="button"
-						>
-							{action}
-						</button>
-					))
-				}
-			/>
-		</ConsentProvider>
+			<ConsentStateContext.Provider
+				value={{
+					state,
+					store: {
+						getState: () => state,
+						subscribe: () => () => undefined,
+						setState: () => undefined,
+					},
+					manager: null,
+				}}
+			>
+				<ConsentBanner.PolicyActions
+					renderAction={
+						renderAction ??
+						((action, props) => (
+							<button
+								key={props.key}
+								data-testid={`banner-action-${action}`}
+								data-consent-action={props.consentAction}
+								data-primary={String(props.isPrimary)}
+								data-style={props.style ? 'styled' : 'plain'}
+								type="button"
+							>
+								{action}
+							</button>
+						))
+					}
+				/>
+			</ConsentStateContext.Provider>
+		</GlobalThemeContext.Provider>
 	);
 }
 
@@ -125,12 +111,23 @@ async function renderDefaultPolicyActions(
 	stateOverrides: Partial<ConsentStoreState> = {}
 ) {
 	const state = createMockState(stateOverrides);
-	const prefetch = createPrefetch(state);
 
 	await render(
-		<ConsentProvider options={{ persistence: false, prefetch, noStyle: false }}>
-			<ConsentBanner.PolicyActions />
-		</ConsentProvider>
+		<GlobalThemeContext.Provider value={{ noStyle: false }}>
+			<ConsentStateContext.Provider
+				value={{
+					state,
+					store: {
+						getState: () => state,
+						subscribe: () => () => undefined,
+						setState: () => undefined,
+					},
+					manager: null,
+				}}
+			>
+				<ConsentBanner.PolicyActions />
+			</ConsentStateContext.Provider>
+		</GlobalThemeContext.Provider>
 	);
 }
 

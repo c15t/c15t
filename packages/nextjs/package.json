@@ -79,6 +79,20 @@
 			"types": "./dist-types/v3/server.d.ts",
 			"import": "./dist/v3/server.js",
 			"require": "./dist/v3/server.cjs"
+		},
+		"./v3/styles.css": "./dist/v3/styles.css",
+		"./v3/styles.tw3.css": "./dist/v3/styles.tw3.css",
+		"./v3/iab/styles.css": "./dist/v3/iab/styles.css",
+		"./v3/iab/styles.tw3.css": "./dist/v3/iab/styles.tw3.css",
+		"./v3/headless": {
+			"types": "./dist-types/v3/headless.d.ts",
+			"import": "./dist/v3/headless.js",
+			"require": "./dist/v3/headless.cjs"
+		},
+		"./v3/components/consent-dialog-link": {
+			"types": "./dist-types/v3/index.d.ts",
+			"import": "./dist/v3/index.js",
+			"require": "./dist/v3/index.cjs"
 		}
 	},
 	"main": "./dist/index.js",

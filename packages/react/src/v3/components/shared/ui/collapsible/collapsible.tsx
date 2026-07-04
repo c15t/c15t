@@ -15,8 +15,8 @@ import {
 	useContext,
 	useId,
 } from 'react';
-import { useTheme } from '~/hooks/use-theme';
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
+import { useTheme } from '~/v3/hooks/use-theme';
 
 type CollapsibleContextValue = {
 	contentId: string;

@@ -29,39 +29,16 @@
  * - No module-level runtime cache — Fluid Compute safe by construction.
  */
 
-export {
-	useConsent,
-	useConsents,
-	useHasConsented,
-	useIdentify,
-	useInit,
-	useOverrides,
-	useSaveConsents,
-	useSetConsent,
-	useSetLanguage,
-	useSetOverrides,
-	useSnapshot,
-	useUser,
-} from '@c15t/react/v3/hooks';
-export type { ConsentProviderProps } from '@c15t/react/v3/provider';
-export { ConsentProvider } from '@c15t/react/v3/provider';
-export type {
-	ConsentKernel,
-	ConsentSnapshot,
-	ConsentState,
-	HostedTransportOptions,
-	InitResult,
-	KernelConfig,
-	KernelEvent,
-	KernelOverrides,
-	KernelTransport,
-	KernelUser,
-	SaveResult,
-} from 'c15t/v3';
-// Re-export the React adapter so consumers have one import path.
-export {
-	createConsentKernel,
-	createHostedTransport,
-} from 'c15t/v3';
+export * from '@c15t/react/v3';
+
+export { buildPrefetchScript, type PrefetchOptions } from 'c15t';
 export type { ConsentBoundaryProps } from './boundary';
 export { ConsentBoundary } from './boundary';
+export { C15tPrefetch } from './libs/browser-initial-data';
+export { fetchInitialData } from './libs/initial-data';
+export type {
+	C15tPrefetchProps,
+	ConsentManagerProps,
+	FetchInitialDataOptions,
+	InitialDataPromise,
+} from './types';

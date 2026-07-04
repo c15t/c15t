@@ -200,6 +200,75 @@
 			"types": "./dist-types/v3/iab.d.ts",
 			"import": "./dist/v3/iab.js",
 			"require": "./dist/v3/iab.cjs"
+		},
+		"./v3/styles.css": "./dist/v3/styles.css",
+		"./v3/styles.tw3.css": "./dist/v3/styles.tw3.css",
+		"./v3/iab/styles.css": "./dist/v3/iab/styles.css",
+		"./v3/iab/styles.tw3.css": "./dist/v3/iab/styles.tw3.css",
+		"./v3/primitives": {
+			"types": "./dist-types/v3/primitives.d.ts",
+			"import": "./dist/v3/primitives.js",
+			"require": "./dist/v3/primitives.cjs"
+		},
+		"./v3/primitives/*": {
+			"types": "./dist-types/v3/primitives/*.d.ts",
+			"import": "./dist/v3/primitives/*.js",
+			"require": "./dist/v3/primitives/*.cjs"
+		},
+		"./v3/server": {
+			"types": "./dist-types/v3/server/index.d.ts",
+			"import": "./dist/v3/server/index.js",
+			"require": "./dist/v3/server/index.cjs"
+		},
+		"./v3/headless": {
+			"types": "./dist-types/v3/headless.d.ts",
+			"import": "./dist/v3/headless.js",
+			"require": "./dist/v3/headless.cjs"
+		},
+		"./v3/components/consent-banner": {
+			"types": "./dist-types/v3/components/consent-banner/index.d.ts",
+			"import": "./dist/v3/components/consent-banner/index.js",
+			"require": "./dist/v3/components/consent-banner/index.cjs"
+		},
+		"./v3/components/consent-dialog": {
+			"types": "./dist-types/v3/components/consent-dialog/index.d.ts",
+			"import": "./dist/v3/components/consent-dialog/index.js",
+			"require": "./dist/v3/components/consent-dialog/index.cjs"
+		},
+		"./v3/components/consent-dialog-trigger": {
+			"types": "./dist-types/v3/components/consent-dialog-trigger/index.d.ts",
+			"import": "./dist/v3/components/consent-dialog-trigger/index.js",
+			"require": "./dist/v3/components/consent-dialog-trigger/index.cjs"
+		},
+		"./v3/components/consent-dialog-link": {
+			"types": "./dist-types/v3/components/consent-dialog-link/index.d.ts",
+			"import": "./dist/v3/components/consent-dialog-link/index.js",
+			"require": "./dist/v3/components/consent-dialog-link/index.cjs"
+		},
+		"./v3/components/consent-widget": {
+			"types": "./dist-types/v3/components/consent-widget/index.d.ts",
+			"import": "./dist/v3/components/consent-widget/index.js",
+			"require": "./dist/v3/components/consent-widget/index.cjs"
+		},
+		"./v3/components/frame": {
+			"types": "./dist-types/v3/components/frame/index.d.ts",
+			"import": "./dist/v3/components/frame/index.js",
+			"require": "./dist/v3/components/frame/index.cjs"
+		},
+		"./v3/context": {
+			"types": "./dist-types/v3/context/index.d.ts",
+			"import": "./dist/v3/context/index.js",
+			"require": "./dist/v3/context/index.cjs"
+		},
+		"./v3/types": {
+			"types": "./dist-types/v3/types/index.d.ts",
+			"import": "./dist/v3/types/index.js",
+			"require": "./dist/v3/types/index.cjs"
+		},
+		"./v3/utils": {
+			"types": "./dist-types/v3/utils/index.d.ts",
+			"import": "./dist/v3/utils/index.js",
+			"require": "./dist/v3/utils/index.cjs"
 		}
 	},
 	"main": "./dist/index.cjs",
@@ -237,13 +306,13 @@
 		"not op_mini all"
 	],
 	"dependencies": {
+		"@c15t/iab": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"c15t": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/conformance": "workspace:*",
-		"@c15t/iab": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"@iabtechlabtcf/core": "^1.5.20",

@@ -1,9 +1,10 @@
 /**
  * Shared types for the persistence module.
  */
-import type { StorageConfig } from '../../../libs/cookie';
-import type { ConsentState as V2ConsentState } from '../../../types/compliance';
-import type { ConsentInfo } from '../../../types/consent-types';
+
+import type { ConsentState as V2ConsentState } from '../../consent/compliance';
+import type { ConsentInfo } from '../../consent/consent-types';
+import type { StorageConfig } from '../../libs/cookie';
 import type { ConsentKernel } from '../../types';
 
 export type { StorageConfig };

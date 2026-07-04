@@ -69,7 +69,7 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-import type { ConsentState } from '../../../types/compliance';
+import type { ConsentState } from '../../consent/compliance';
 import { createConsentKernel, createOfflineTransport } from '../../index';
 import { createPersistence } from '../../modules/persistence';
 import { createScriptLoader } from '../../modules/script-loader';

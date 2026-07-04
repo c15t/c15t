@@ -5,11 +5,11 @@
 
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 import { forwardRef, type HTMLAttributes, useEffect, useState } from 'react';
-import { useScrollLock } from '~/hooks/use-scroll-lock';
-import { useStyles } from '~/hooks/use-styles';
-import { useTheme } from '~/hooks/use-theme';
-import { cnExt as cn } from '~/utils/cn';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useConsentManager } from '~/v3/hooks/use-consent-manager';
+import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
+import { useStyles } from '~/v3/hooks/use-styles';
+import { useTheme } from '~/v3/hooks/use-theme';
+import { cnExt as cn } from '~/v3/utils/cn';
 
 /**
  * Props for the Overlay component.

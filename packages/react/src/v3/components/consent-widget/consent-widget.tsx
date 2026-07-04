@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useTheme } from '~/hooks/use-theme';
 import type { AccordionRootProps } from '~/v3/components/shared/ui/accordion';
 import { BrandingLink } from '~/v3/components/shared/ui/branding';
-import { ConsentDraftProvider } from '~/v3/draft';
+import { useTheme } from '~/v3/hooks/use-theme';
 import {
 	ConsentWidgetAccordion,
 	ConsentWidgetAccordionItems,
@@ -34,27 +33,23 @@ export const ConsentWidget = ({
 	};
 
 	return (
-		<ConsentDraftProvider>
-			<ConsentWidgetRoot {...mergedProps}>
-				<ConsentWidgetAccordion
-					type="single"
-					value={openItem}
-					onValueChange={(value: NonNullable<AccordionRootProps['value']>) => {
-						setOpenItem(
-							Array.isArray(value) ? (value[0] ?? '') : (value ?? '')
-						);
-					}}
-				>
-					<ConsentWidgetAccordionItems />
-				</ConsentWidgetAccordion>
-				<ConsentWidgetPolicyActions />
-				<BrandingLink
-					hideBranding={hideBranding ?? true}
-					variant="dialog-tag"
-					themeKey="consentWidgetTag"
-					data-testid="consent-widget-branding"
-				/>
-			</ConsentWidgetRoot>
-		</ConsentDraftProvider>
+		<ConsentWidgetRoot {...mergedProps}>
+			<ConsentWidgetAccordion
+				type="single"
+				value={openItem}
+				onValueChange={(value: NonNullable<AccordionRootProps['value']>) => {
+					setOpenItem(Array.isArray(value) ? (value[0] ?? '') : (value ?? ''));
+				}}
+			>
+				<ConsentWidgetAccordionItems />
+			</ConsentWidgetAccordion>
+			<ConsentWidgetPolicyActions />
+			<BrandingLink
+				hideBranding={hideBranding ?? true}
+				variant="dialog-tag"
+				themeKey="consentWidgetTag"
+				data-testid="consent-widget-branding"
+			/>
+		</ConsentWidgetRoot>
 	);
 };

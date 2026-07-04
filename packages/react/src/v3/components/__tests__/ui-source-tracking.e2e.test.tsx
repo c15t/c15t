@@ -10,14 +10,14 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
-import type { ConsentManagerOptions } from '~/types/consent-manager';
 import { ConsentBanner } from '~/v3/components/consent-banner';
 import { ConsentDialog } from '~/v3/components/consent-dialog';
 import { ConsentWidget } from '~/v3/components/consent-widget';
+import {
+	ConsentManagerProvider,
+	clearConsentRuntimeCache,
+} from '~/v3/providers/consent-manager-provider';
+import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
 
 // Mock localStorage
 const localStorageMock = (() => {

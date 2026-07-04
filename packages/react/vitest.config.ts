@@ -99,7 +99,10 @@ export default mergeConfig(
 				provider: playwright(),
 				instances: [{ browser: 'chromium' }],
 			},
-			setupFiles: ['./src/test-setup.browser.ts'],
+			setupFiles: [
+				'./src/test-setup.browser.ts',
+				'./src/v3/test-setup.browser.ts',
+			],
 			retry: 2,
 		},
 	})

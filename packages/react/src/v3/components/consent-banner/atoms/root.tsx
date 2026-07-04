@@ -12,13 +12,12 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { ConsentTrackingContext } from '~/context/consent-tracking-context';
-import { LocalThemeContext } from '~/context/theme-context';
-import { useStyles } from '~/hooks/use-styles';
-import { useTextDirection } from '~/hooks/use-text-direction';
-import type { CSSPropertiesWithVars } from '~/types/theme';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
-import { useIsomorphicLayoutEffect } from '~/v3/components/shared/libs/use-isomorphic-layout-effect';
+import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
+import { LocalThemeContext } from '~/v3/context/theme-context';
+import { useConsentManager } from '~/v3/hooks/use-consent-manager';
+import { useStyles } from '~/v3/hooks/use-styles';
+import { useTextDirection } from '~/v3/hooks/use-text-direction';
+import type { CSSPropertiesWithVars } from '~/v3/types/theme';
 import { Overlay } from './overlay';
 
 /**
@@ -308,11 +307,17 @@ const ConsentBannerRootChildren = forwardRef<
 		// Handle animation visibility state
 		useEffect(() => {
 			if (shouldShowBanner) {
-				// Sync flip is enough — the prior render committed the element
-				// with `bannerHidden`, so the class change to `bannerVisible`
-				// is what triggers the entrance animation. No setTimeout floor.
-				setIsVisible(true);
-				if (!hasAnimated) setHasAnimated(true);
+				// If banner is showing but we haven't animated yet, trigger the animation
+				if (hasAnimated) {
+					setIsVisible(true);
+				} else {
+					// Small delay to ensure the component is mounted and ready for animation
+					const animationTimer = setTimeout(() => {
+						setIsVisible(true);
+						setHasAnimated(true);
+					}, 10);
+					return () => clearTimeout(animationTimer);
+				}
 			} else {
 				// Reset animation state when hiding so it can animate again next time
 				setHasAnimated(false);
@@ -340,12 +345,13 @@ const ConsentBannerRootChildren = forwardRef<
 			noStyle,
 		});
 
-		// First render must return null on the server and on the very first
-		// client render so hydration matches; flipping in a layout effect
-		// merges the second render into the first paint instead of waiting
-		// for an effect-driven re-paint.
+		// Track client-side mounting state to prevent SSR hydration issues
+		// with the portal rendering
 		const [isMounted, setIsMounted] = useState(false);
-		useIsomorphicLayoutEffect(() => {
+
+		// Initialize mounting state after initial render
+		// This ensures we only render the portal on the client side
+		useEffect(() => {
 			setIsMounted(true);
 		}, []);
 

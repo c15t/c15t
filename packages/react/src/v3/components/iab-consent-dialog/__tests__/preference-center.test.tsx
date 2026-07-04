@@ -10,8 +10,8 @@ import { render } from 'vitest-browser-react';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
-} from '~/providers/consent-manager-provider';
-import type { ConsentManagerOptions } from '~/types/consent-manager';
+} from '~/v3/providers/consent-manager-provider';
+import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
 import { IABConsentDialog } from '../iab-consent-dialog';
 
 // Mock localStorage
