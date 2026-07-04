@@ -64,6 +64,41 @@ export type {
 export type Branding = (typeof brandingValues)[number];
 export type JurisdictionCode = (typeof jurisdictionCodes)[number];
 
+export type {
+	ConsentManifest,
+	ConsentManifestBranding,
+	ConsentManifestDefaults,
+	ConsentManifestGVLReference,
+	ConsentManifestIAB,
+	ConsentManifestPolicyPack,
+	ConsentManifestTranslationInputs,
+	I18nMessageProfile,
+	I18nMessageProfiles,
+	I18nOptions,
+	LoggerLike,
+	ResolveInitFromManifestInputs,
+	ResolveInitFromManifestOptions,
+} from './shared';
+export {
+	checkJurisdiction,
+	createConsentManifestPolicyPack,
+	createResolvedPolicyFromConfig,
+	EEA_COUNTRY_CODES,
+	EU_COUNTRY_CODES,
+	getTranslations,
+	getTranslationsData,
+	inspectPolicies,
+	listProfiles,
+	POLICY_MATCH_DATASET_VERSION,
+	policyMatchers,
+	resolveInitFromManifest,
+	resolveNoPolicyFallback,
+	resolvePolicyDecision,
+	resolvePolicySync,
+	UK_COUNTRY_CODES,
+	validateMessages,
+	validatePolicies,
+} from './shared';
 // GVL types - IAB TCF Global Vendor List
 export type {
 	GlobalVendorList,
@@ -76,7 +111,6 @@ export type {
 	GVLVendor,
 	GVLVendorUrl,
 } from './shared/gvl';
-
 // Non-IAB vendor types - Custom vendors not registered with IAB
 export type {
 	NonIABVendor,
@@ -122,17 +156,6 @@ export type {
 	PolicyValidationResult,
 	ResolvedPolicyDecision,
 	ResolvedPolicyMatch,
-} from './shared/policy-runtime';
-export {
-	EEA_COUNTRY_CODES,
-	EU_COUNTRY_CODES,
-	inspectPolicies,
-	POLICY_MATCH_DATASET_VERSION,
-	policyMatchers,
-	resolvePolicyDecision,
-	resolvePolicySync,
-	UK_COUNTRY_CODES,
-	validatePolicies,
 } from './shared/policy-runtime';
 
 // Re-export constants for runtime checks (no Zod involved)

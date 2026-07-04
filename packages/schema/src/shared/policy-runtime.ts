@@ -943,7 +943,9 @@ function resolveIndexedPolicyMatch(params: {
 	return undefined;
 }
 
-function mapPolicy(policy: PolicyConfig): ResolvedPolicy {
+export function createResolvedPolicyFromConfig(
+	policy: PolicyConfig
+): ResolvedPolicy {
 	const model = normalizeModel(policy);
 
 	return {
@@ -1038,7 +1040,7 @@ export async function resolvePolicyDecision(params: {
 		return undefined;
 	}
 
-	const policy = mapPolicy(matchedPolicy.policy);
+	const policy = createResolvedPolicyFromConfig(matchedPolicy.policy);
 	const fingerprint = await createPolicyFingerprint(policy);
 
 	return {
@@ -1094,7 +1096,7 @@ export function resolvePolicySync(params: {
 		return undefined;
 	}
 
-	const policy = mapPolicy(matchedPolicy.policy);
+	const policy = createResolvedPolicyFromConfig(matchedPolicy.policy);
 
 	return {
 		policy,
