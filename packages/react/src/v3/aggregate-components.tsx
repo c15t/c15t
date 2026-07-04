@@ -15,6 +15,7 @@ import type {
 	ConsentWidgetCompoundComponent,
 	ConsentWidgetProps,
 } from './components/consent-widget';
+import { useActiveUI } from './hooks';
 
 type AnyComponent = ComponentType<any>;
 
@@ -61,6 +62,12 @@ const LazyConsentWidgetComponent = lazyWidgetExport(
 ) as ComponentType<ConsentWidgetProps & { children?: ReactNode }>;
 
 function LazyConsentDialog(props: ConsentDialogProps) {
+	const activeUI = useActiveUI();
+	const shouldLoadDialog =
+		props.open === true || activeUI === 'dialog' || Boolean(props.showTrigger);
+	if (!shouldLoadDialog) {
+		return null;
+	}
 	return <LazyConsentDialogComponent {...props} />;
 }
 
