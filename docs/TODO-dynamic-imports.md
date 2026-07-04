@@ -1,3 +1,9 @@
+---
+title: "TODO Dynamic Imports"
+description: "Reference page for todo dynamic imports."
+group: reference
+---
+
 # TODO: Dynamic Imports for Consent Components
 
 > **Status:** Future optimization

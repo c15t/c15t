@@ -11,7 +11,7 @@ import {
 	registerVendorContractCleanup,
 	toArgs,
 } from './e2e-test-utils';
-import { xPixel } from './x-pixel';
+import { xPixel } from './vendors/ads-and-pixels/x-pixel';
 
 describe('xPixel contract', () => {
 	registerVendorContractCleanup();

@@ -1,8 +1,0 @@
-{
-	"title": "Contributing",
-	"nav": {
-		"sidebar": "combined",
-		"label": "Contributing"
-	},
-	"pages": ["index", "docs-preview-action"]
-}

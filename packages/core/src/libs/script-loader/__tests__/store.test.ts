@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ConsentStoreState } from '../../../store/type';
-import type { AllConsentNames } from '../../../types/consent-types';
 import { clearAllScripts, loadScripts, updateScripts } from '../core';
 import { createScriptManager } from '../store';
 import type { Script } from '../types';
@@ -223,7 +222,7 @@ describe('Script Manager Store Integration', () => {
 			expect(document.head.appendChild).toHaveBeenCalledTimes(1);
 		});
 
-		it('should apply permissive policy scope before reloading', () => {
+		it('should respect denied out-of-policy categories before reloading', () => {
 			mockState.scripts = [...scripts];
 			mockState.consents = {
 				...sampleConsents,
@@ -239,9 +238,9 @@ describe('Script Manager Store Integration', () => {
 
 			const result = scriptManager.reloadScript('marketing-script');
 
-			expect(result).toBe(true);
-			expect(document.createElement).toHaveBeenCalledTimes(1);
-			expect(document.head.appendChild).toHaveBeenCalledTimes(1);
+			expect(result).toBe(false);
+			expect(document.createElement).not.toHaveBeenCalled();
+			expect(document.head.appendChild).not.toHaveBeenCalled();
 		});
 	});
 

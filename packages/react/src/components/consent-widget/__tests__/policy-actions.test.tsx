@@ -277,4 +277,27 @@ describe('ConsentWidget.PolicyActions', () => {
 			document.querySelector('[data-testid="consent-widget-branding"]')
 		)?.toHaveClass('consent-widget-tag-marker');
 	});
+
+	test('keeps footer slot classes off footer subgroups', async () => {
+		await renderWidget(
+			{},
+			{
+				consentWidgetFooter: 'footer-border-marker border-t pt-6',
+				consentWidgetFooterSubGroup: 'footer-subgroup-marker gap-3',
+			}
+		);
+
+		const footer = document.querySelector(
+			'[data-testid="consent-widget-footer"]'
+		);
+		const subgroup = document.querySelector(
+			'[data-testid="consent-widget-footer-sub-group"]'
+		);
+
+		expect(footer).toHaveClass('footer-border-marker');
+		expect(footer).toHaveClass('border-t');
+		expect(subgroup).not.toHaveClass('footer-border-marker');
+		expect(subgroup).not.toHaveClass('border-t');
+		expect(subgroup).toHaveClass('footer-subgroup-marker');
+	});
 });

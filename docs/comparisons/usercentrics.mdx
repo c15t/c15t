@@ -1,0 +1,51 @@
+---
+title: c15t vs Usercentrics
+description: Compare c15t with Usercentrics Web CMP for hosted consent workflows, auto-blocking, regional rules, and app-integrated consent state.
+---
+
+[Usercentrics Web CMP](https://usercentrics.com/us/) is a hosted consent
+management platform. Its docs cover direct implementation, markup guidance,
+auto-blocking, service rules, and platform-managed consent workflows.
+
+c15t is the better starting point when app-integrated consent state, backend
+records, framework behavior, and deployment control matter. Usercentrics is
+useful when a hosted Web CMP and platform-managed rules are the priority.
+[CookieBench](https://cookiebench.com/) also lists c15t's Next.js and React
+examples above Usercentrics on score, banner visibility, and network impact.
+
+<Callout type="warn">
+  Consent tooling does not guarantee legal compliance by itself. Your policies,
+  disclosures, vendor list, regional behavior, and record-keeping still need to
+  match your legal requirements.
+</Callout>
+
+## Why c15t wins here
+
+- c15t supports JavaScript, React, and Next.js with first-class APIs.
+- c15t can run hosted, self-hosted, against a custom backend, or offline.
+- c15t keeps consent records and server-visible consent state available to the
+  product.
+- c15t supports policy packs, script loading, iframe blocking, and network
+  blocking.
+- c15t avoids making a SaaS-first control plane the default owner of consent
+  behavior.
+
+## Comparison
+
+| Area | c15t | Usercentrics |
+| --- | --- | --- |
+| Primary shape | Developer-first consent platform | Hosted Web CMP |
+| Framework support | First-class JavaScript, React, and Next.js packages | Hosted script and direct implementation |
+| Backend records | Hosted or self-hosted records | Platform records |
+| Script control | Loader, iframe blocker, and network blocker | Auto-blocking and service rules |
+| Regional policy | Policy packs and backend state | Platform-managed regional rules |
+| CookieBench speed | [Score 95](https://cookiebench.com/), 89ms/148ms banner visibility, 0-byte network impact | [Score 63](https://cookiebench.com/), 445ms banner visibility, 45-byte network impact |
+| SSR awareness | Available through c15t framework packages | Usually outside app SSR state |
+
+## Bottom line
+
+Start with c15t when consent should be visible to your app, backend, and
+framework code. It keeps operational needs compatible with a developer-owned
+consent layer.
+
+See the full overview in [Compare c15t](/docs/comparison).

@@ -187,7 +187,7 @@ describe('useConsentManager', () => {
 			),
 		});
 
-		expect(result.current.has('experience')).toBe(true);
+		expect(result.current.has('experience')).toBe(false);
 		expect(result.current.has('measurement')).toBe(false);
 	});
 });

@@ -9,7 +9,7 @@ import {
 	loadScripts,
 	registerVendorContractCleanup,
 } from './e2e-test-utils';
-import { posthog } from './posthog';
+import { posthog } from './vendors/analytics/posthog';
 
 describe('posthog contract', () => {
 	registerVendorContractCleanup();
@@ -59,9 +59,19 @@ describe('posthog contract', () => {
 		expect(attributes).toEqual({
 			crossorigin: 'anonymous',
 			dataApiHost: 'https://eu.i.posthog.com',
-			dataUiHost: 'https://eu.i.posthog.com',
+			dataUiHost: 'https://eu.posthog.com',
 		});
-		expect(initCalls).toEqual([['phc_contract', {}]]);
+		expect(initCalls).toEqual([
+			[
+				'phc_contract',
+				{
+					defaults: '2026-01-30',
+					cookieless_mode: 'on_reject',
+					api_host: 'https://eu.i.posthog.com',
+					ui_host: 'https://eu.posthog.com',
+				},
+			],
+		]);
 		expect(consentCalls).toEqual(['opt_out']);
 	});
 });

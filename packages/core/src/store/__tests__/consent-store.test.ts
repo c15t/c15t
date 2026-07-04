@@ -8,7 +8,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createConsentManagerStore } from '..';
 import { STORAGE_KEY_V2 } from '../initial-state';
-import type { ConsentStoreState, StoreOptions } from '../type';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock Setup
@@ -466,6 +465,7 @@ describe('Consent Store', () => {
 
 			store.setState({
 				policyCategories: ['necessary', 'measurement'],
+				policyScopeMode: 'strict',
 			});
 
 			store
@@ -489,6 +489,7 @@ describe('Consent Store', () => {
 			store.setState({
 				consentCategories: ['necessary', 'measurement'],
 				policyCategories: ['necessary', 'measurement'],
+				policyScopeMode: 'strict',
 			});
 
 			store.getState().updateConsentCategories(['experience', 'marketing']);
@@ -842,7 +843,7 @@ describe('Consent Store', () => {
 			expect(store.getState().has(condition)).toBe(true);
 		});
 
-		it('should treat out-of-policy categories as granted in has()', () => {
+		it('should respect out-of-policy category choices in has()', () => {
 			const store = createConsentManagerStore(mockManager);
 
 			store.setState({
@@ -850,14 +851,14 @@ describe('Consent Store', () => {
 				policyScopeMode: 'permissive',
 				consents: {
 					necessary: true,
-					marketing: false,
+					marketing: true,
 					measurement: true,
 					functionality: false,
 					experience: false,
 				},
 			});
 
-			expect(store.getState().has('experience')).toBe(true);
+			expect(store.getState().has('experience')).toBe(false);
 			expect(store.getState().has('marketing')).toBe(true);
 			expect(store.getState().has('measurement')).toBe(true);
 		});
@@ -1132,10 +1133,11 @@ describe('Consent Store', () => {
 			expect(store.getState().consentCategories).toContain('measurement');
 		});
 
-		it('should not add out-of-policy script categories to consentCategories', () => {
+		it('should not add out-of-policy script categories to consentCategories in strict scope mode', () => {
 			const store = createConsentManagerStore(mockManager);
 			store.setState({
 				policyCategories: ['necessary', 'measurement'],
+				policyScopeMode: 'strict',
 				consentCategories: ['necessary', 'measurement'],
 			});
 
@@ -1172,7 +1174,7 @@ describe('Consent Store', () => {
 			const storeCustom = createConsentManagerStore(mockManager, {
 				reloadOnConsentRevoked: false,
 			});
-			// Note: reloadOnConsentRevoked might be in initial state, check actual behavior
+			expect(storeCustom.getState().reloadOnConsentRevoked).toBe(false);
 		});
 
 		it('should apply model configuration', () => {

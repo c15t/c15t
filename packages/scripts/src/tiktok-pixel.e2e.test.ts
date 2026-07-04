@@ -10,7 +10,7 @@ import {
 	registerVendorContractCleanup,
 	type TikTokQueue,
 } from './e2e-test-utils';
-import { tiktokPixel } from './tiktok-pixel';
+import { tiktokPixel } from './vendors/ads-and-pixels/tiktok-pixel';
 
 describe('tiktokPixel contract', () => {
 	registerVendorContractCleanup();

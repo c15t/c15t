@@ -1,7 +1,7 @@
 {
 	"name": "c15t-workspace",
 	"private": true,
-	"description": "Developer-first Consent Management Platform",
+	"description": "Developer-first consent management platform for cookie banners, preference centers, Consent Mode v2, IAB TCF, and self-hosted CMP workflows.",
 	"homepage": "https://c15t.com",
 	"repository": {
 		"type": "git",
@@ -26,8 +26,8 @@
 		"build": "turbo run build",
 		"build:libs": "turbo run build --filter=./packages/**",
 		"changeset": "changeset",
-		"check:publish-artifacts": "bun scripts/check-publish-artifacts.ts",
 		"check-types": "turbo run check-types",
+		"check:publish-artifacts": "bun scripts/check-publish-artifacts.ts",
 		"ci:publish": "bunx changeset tag && bun publish",
 		"ci:version": "bun changeset version",
 		"clear-cache": "bun scripts/clear-rslib-cache.ts",
@@ -37,6 +37,7 @@
 		"dev:bench:nextjs": "turbo run dev --filter=@c15t/nextjs-browser-bench",
 		"fmt": "turbo run fmt",
 		"fmt:docs": "bunx remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
+		"generate:package-docs": "bun scripts/generate-package-docs.ts",
 		"generate:readmes": "tsx scripts/generate-readme.ts",
 		"postinstall": "lefthook install",
 		"knip": "knip",
@@ -60,7 +61,14 @@
 	},
 	"overrides": {
 		"cross-spawn": ">=6.0.6",
-		"typeorm": ">=0.3.26"
+		"defu": "6.1.5",
+		"hono": "4.12.14",
+		"next@>=15.3.0-canary.0 <15.5.15": "15.5.15",
+		"next@>=16.0.0-beta.0 <16.2.3": "16.2.3",
+		"postcss": "8.5.10",
+		"typeorm": ">=0.3.26",
+		"vite@>=7.0.0 <=7.3.1": "7.3.2",
+		"vite@>=8.0.0 <=8.0.4": "8.0.5"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.10",
@@ -88,6 +96,7 @@
 		"fast-glob": "3.3.3",
 		"json5": "2.2.3",
 		"knip": "6.1.1",
+		"leadtype": "^0.2.1",
 		"lefthook": "2.1.4",
 		"mdast-util-compact": "5.0.0",
 		"mdast-util-mdx": "3.0.0",
@@ -113,7 +122,7 @@
 		"unist-builder": "4.0.0",
 		"unist-util-is": "6.0.1",
 		"unist-util-visit": "5.1.0",
-		"vite": "8.0.3",
+		"vite": "8.0.5",
 		"vitest": "4.1.2",
 		"vitest-browser-react": "2.1.0"
 	},

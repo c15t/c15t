@@ -10,10 +10,13 @@
 		{
 			"matchPackagePatterns": ["*"],
 			"groupName": "dependencies",
+			"minimumReleaseAge": "24 hours",
 			"schedule": ["before 5am every monday"]
 		}
 	],
 	"ignorePaths": ["**/node_modules/**"],
+	"internalChecksFilter": "strict",
+	"prCreation": "not-pending",
 	"rangeStrategy": "bump",
 	"timezone": "UTC",
 	"schedule": ["before 5am every monday"]

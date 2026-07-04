@@ -12,7 +12,7 @@ import {
 	type TestWindow,
 	toArgs,
 } from './e2e-test-utils';
-import { gtag } from './google-tag';
+import { gtag } from './vendors/analytics/google-tag';
 
 describe('gtag contract', () => {
 	registerVendorContractCleanup();

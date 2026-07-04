@@ -38,6 +38,14 @@ export type TikTokQueue = {
 	[K in TikTokQueueMethodName]?: (...args: unknown[]) => unknown;
 };
 
+type SnapchatQueueStub = ((...args: unknown[]) => void) & {
+	handleRequest?: (...args: unknown[]) => void;
+	loaded?: boolean;
+	push?: SnapchatQueueStub;
+	queue?: unknown[][];
+	version?: string;
+};
+
 export type TestWindow = Window &
 	typeof globalThis & {
 		TiktokAnalyticsObject?: string;
@@ -46,9 +54,30 @@ export type TestWindow = Window &
 		) => {
 			push: (...args: unknown[]) => void;
 		};
+		$crisp?: unknown[][];
+		CRISP_COOKIE_DOMAIN?: string;
+		CRISP_COOKIE_EXPIRE?: number;
+		CRISP_RUNTIME_CONFIG?: {
+			locale?: string;
+			session_merge?: boolean;
+		};
+		CRISP_TOKEN_ID?: string;
+		CRISP_WEBSITE_ID?: string;
+		Intercom?: ((...args: unknown[]) => void) & { q?: unknown[][] };
 		_linkedin_data_partner_ids?: string[];
 		_linkedin_partner_id?: string;
 		_fbq?: Record<string, unknown>;
+		_hjSettings?: {
+			hjid: number | string;
+			hjsv: number;
+		};
+		_paq?: unknown[];
+		_snaptr?: SnapchatQueueStub;
+		analytics?: unknown[] & Record<string, (...args: unknown[]) => void>;
+		clarity?: ((...args: unknown[]) => void) & {
+			q?: unknown[][];
+			v?: string;
+		};
 		dataLayer?: unknown[];
 		databuddy?: {
 			options: {
@@ -58,16 +87,30 @@ export type TestWindow = Window &
 		databuddyConfig?: Record<string, unknown>;
 		fbq?: Record<string, unknown>;
 		google_tag_data?: GoogleTagDataState;
+		hj?: ((...args: unknown[]) => void) & { q?: unknown[][] };
+		intercomSettings?: Record<string, unknown>;
 		lintrk?: ((...args: unknown[]) => void) & { q?: unknown[] };
+		mixpanel?: unknown[] & Record<string, (...args: unknown[]) => void>;
+		plausible?: ((...args: unknown[]) => void) & {
+			o?: Record<string, unknown>;
+			q?: unknown[][];
+		};
 		posthog?: {
 			get_explicit_consent_status: () => string;
 			init: (...args: unknown[]) => void;
 			opt_in_capturing: () => void;
 			opt_out_capturing: () => void;
 		};
+		rdt?: ((...args: unknown[]) => void) & {
+			callQueue?: unknown[][];
+			sendEvent?: (...args: unknown[]) => void;
+		};
+		snaptr?: SnapchatQueueStub;
 		ttq?: TikTokQueue;
 		twq?: ((...args: unknown[]) => void) & { queue?: unknown[] };
 		uetq?: unknown[] | { push: (...args: unknown[]) => void };
+		va?: (event: string, properties?: unknown) => void;
+		vaq?: unknown[][];
 	};
 
 export { loadScripts };
@@ -133,19 +176,39 @@ function resetVendorGlobals() {
 	for (const key of [
 		'TiktokAnalyticsObject',
 		'UET',
+		'$crisp',
+		'CRISP_COOKIE_DOMAIN',
+		'CRISP_COOKIE_EXPIRE',
+		'CRISP_RUNTIME_CONFIG',
+		'CRISP_TOKEN_ID',
+		'CRISP_WEBSITE_ID',
+		'Intercom',
 		'_linkedin_data_partner_ids',
 		'_linkedin_partner_id',
 		'_fbq',
+		'_hjSettings',
+		'_paq',
+		'_snaptr',
+		'analytics',
+		'clarity',
 		'dataLayer',
 		'databuddy',
 		'databuddyConfig',
 		'fbq',
 		'google_tag_data',
+		'hj',
+		'intercomSettings',
 		'lintrk',
+		'mixpanel',
+		'plausible',
 		'posthog',
+		'rdt',
+		'snaptr',
 		'ttq',
 		'twq',
 		'uetq',
+		'va',
+		'vaq',
 	] as const) {
 		delete win[key];
 	}

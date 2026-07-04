@@ -1,0 +1,53 @@
+---
+title: c15t vs OneTrust
+description: Compare c15t with OneTrust for hosted CMP workflows, consent records, script control, and developer-owned app integration.
+---
+
+[OneTrust](https://www.onetrust.com/products/consent-management/) is a hosted
+consent management platform. Its product and support docs cover consent
+management, cookie auto-blocking, consent logging, dashboards, templates, and
+privacy-team workflows.
+
+c15t is the better starting point when engineering needs consent state in the
+product, backend, and framework stack. OneTrust is useful when an enterprise
+team wants a hosted CMP dashboard and privacy-team workflows first.
+[CookieBench](https://cookiebench.com/) also lists c15t's Next.js and React
+examples above OneTrust on score, banner visibility, and network impact.
+
+<Callout type="warn">
+  Consent tooling does not guarantee legal compliance by itself. Your policies,
+  disclosures, vendor list, regional behavior, and record-keeping still need to
+  match your legal requirements.
+</Callout>
+
+## Why c15t wins here
+
+- c15t gives developers open-source packages for JavaScript, React, Next.js,
+  scripts, backend, and CLI workflows.
+- c15t supports hosted and self-hosted backend records.
+- c15t keeps consent state visible to the app and server instead of isolating it
+  in an external script.
+- c15t supports direct framework integration, policy packs, and custom backend
+  deployment paths.
+- c15t lets engineering own the consent architecture without starting from a
+  SaaS-first control plane.
+
+## Comparison
+
+| Area | c15t | OneTrust |
+| --- | --- | --- |
+| Primary shape | Developer-first consent platform | Hosted enterprise CMP |
+| Framework support | First-class JavaScript, React, and Next.js packages | Hosted script and platform workflows |
+| Backend records | Hosted or self-hosted records | Platform consent logs |
+| Script control | Loader, iframe blocker, and network blocker | Cookie auto-blocking and platform rules |
+| CookieBench speed | [Score 95](https://cookiebench.com/), 89ms/148ms banner visibility, 0-byte network impact | [Score 62](https://cookiebench.com/), 514ms banner visibility, 518-byte network impact |
+| Control model | Open-source packages plus hosted or self-hosted backend | SaaS dashboard and managed operations |
+| SSR awareness | Available through c15t framework packages | Usually outside app SSR state |
+
+## Bottom line
+
+Start with c15t for consent architecture, even when privacy and procurement
+teams care about dashboards, reports, templates, or audit workflows. c15t keeps
+consent state in the product and backend where engineering can reason about it.
+
+See the full overview in [Compare c15t](/docs/comparison).

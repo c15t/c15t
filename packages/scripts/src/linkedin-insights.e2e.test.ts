@@ -9,7 +9,7 @@ import {
 	loadScripts,
 	registerVendorContractCleanup,
 } from './e2e-test-utils';
-import { linkedinInsights } from './linkedin-insights';
+import { linkedinInsights } from './vendors/ads-and-pixels/linkedin-insights';
 
 describe('linkedinInsights contract', () => {
 	registerVendorContractCleanup();

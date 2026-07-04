@@ -1,0 +1,51 @@
+---
+title: c15t vs Cookiebot
+description: Compare c15t with Cookiebot by Usercentrics for cookie blocking, consent records, hosted CMP workflows, and app-owned consent state.
+---
+
+[Cookiebot by Usercentrics](https://www.cookiebot.com/us/developer/) is a
+hosted consent tool with developer resources, automatic cookie blocking, a
+manager setup flow, scanning, and cookie classification workflows.
+
+c15t is the better starting point when consent affects the app, backend,
+framework startup, or server-side behavior. Cookiebot is useful when hosted
+scanning, cookie classification, and automatic blocking are the main job.
+[CookieBench](https://cookiebench.com/) lists c15t's Next.js and React examples
+at the top of its checked leaderboard; Cookiebot by Usercentrics was not listed
+there, so this page does not assign it a CookieBench speed score.
+
+<Callout type="warn">
+  Consent tooling does not guarantee legal compliance by itself. Your policies,
+  disclosures, vendor list, regional behavior, and record-keeping still need to
+  match your legal requirements.
+</Callout>
+
+## Why c15t wins here
+
+- c15t gives JavaScript, React, and Next.js teams direct APIs for consent state.
+- c15t supports hosted, self-hosted, custom backend, and offline browser modes.
+- c15t keeps consent records and policy state close to the product architecture.
+- c15t includes script loading, iframe blocking, network blocking, and
+  integration manifests.
+- c15t lets teams own framework behavior, server rendering, and same-origin
+  routing.
+
+## Comparison
+
+| Area | c15t | Cookiebot |
+| --- | --- | --- |
+| Primary shape | Developer-first consent platform | Hosted cookie consent manager |
+| Framework support | First-class JavaScript, React, and Next.js packages | Hosted script and developer snippets |
+| Backend records | Hosted or self-hosted records | Platform records |
+| Cookie blocking | Loader, iframe blocker, network blocker, and integrations | Automatic cookie blocking |
+| Scanner/catalog | Integration manifests | Built-in scanning and cookie classification |
+| CookieBench speed | [Score 95](https://cookiebench.com/), 89ms/148ms banner visibility, 0-byte network impact | Not listed in the captured CookieBench leaderboard |
+| SSR awareness | Available through c15t framework packages | Usually outside app SSR state |
+
+## Bottom line
+
+Start with c15t when consent needs to affect your application, backend, scripts,
+and server-side behavior. It keeps the cookie-banner path simple while giving
+engineering ownership over the consent layer.
+
+See the full overview in [Compare c15t](/docs/comparison).

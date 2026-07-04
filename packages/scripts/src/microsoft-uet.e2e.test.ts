@@ -10,7 +10,7 @@ import {
 	registerVendorContractCleanup,
 	type TestWindow,
 } from './e2e-test-utils';
-import { microsoftUet } from './microsoft-uet';
+import { microsoftUet } from './vendors/ads-and-pixels/microsoft-uet';
 
 describe('microsoftUet contract', () => {
 	registerVendorContractCleanup();
@@ -52,11 +52,8 @@ describe('microsoftUet contract', () => {
 		expect(constructorArgs[0]).toMatchObject({
 			ti: 'UET-CONTRACT',
 			enableAutoSpaTracking: true,
-			q: [],
+			q: ['consent', 'default', { ad_storage: 'granted' }],
 		});
-		expect(pushCalls).toEqual([
-			['pageLoad'],
-			['consent', 'default', { ad_storage: 'granted' }],
-		]);
+		expect(pushCalls).toEqual([['pageLoad']]);
 	});
 });
