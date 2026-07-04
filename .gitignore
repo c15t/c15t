@@ -82,3 +82,6 @@ i18n.cache
 # Storybook build output
 storybook-static/
 debug-storybook.log
+
+# Agent worktrees
+.claude/worktrees/
