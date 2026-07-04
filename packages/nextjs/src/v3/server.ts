@@ -20,13 +20,20 @@
  * Component or route handler. It is NOT marked `'use server'` because it
  * is a plain async function, not an action.
  */
+
+import type { InitOutput } from '@c15t/schema/types';
 import {
 	type ConsentState,
-	createHostedTransport,
+	createManifestTransport,
 	type KernelConfig,
 	type KernelOverrides,
 } from 'c15t/v3';
 import { cookies, headers } from 'next/headers';
+import {
+	consentInputsToOverrides,
+	extractConsentRequestInputs,
+	parseAcceptLanguage,
+} from './headers';
 
 const CONSENT_COOKIE_DEFAULT = 'c15t-consent';
 
@@ -47,19 +54,6 @@ export interface ReadInitialConsentConfigOptions {
 	 * If provided, override the auto-detected language.
 	 */
 	language?: string;
-}
-
-/**
- * Extract the first entry from an Accept-Language header, stripping any
- * quality suffix. Returns undefined if the header is absent or
- * unparseable.
- */
-function parseAcceptLanguage(header: string | null): string | undefined {
-	if (!header) return undefined;
-	const first = header.split(',')[0]?.trim();
-	if (!first) return undefined;
-	const code = first.split(';')[0]?.trim();
-	return code && code.length <= 10 ? code : undefined;
 }
 
 /**
@@ -109,25 +103,16 @@ export async function readInitialConsentConfig(
 	const consentCookie = cookieStore.get(cookieName)?.value;
 	const initialConsents = parseConsentCookie(consentCookie);
 
-	const country =
-		options.country ??
-		headerStore.get('x-vercel-ip-country') ??
-		headerStore.get('cf-ipcountry') ??
-		headerStore.get('x-country') ??
-		undefined;
-
-	const region =
-		headerStore.get('x-vercel-ip-country-region') ??
-		headerStore.get('cf-region-code') ??
-		undefined;
-
-	const language =
-		options.language ?? parseAcceptLanguage(headerStore.get('accept-language'));
+	const inputs = extractConsentRequestInputs(headerStore as Headers, {
+		country: options.country,
+		language: options.language,
+	});
 
 	const overrides: KernelOverrides = {};
-	if (country) overrides.country = country;
-	if (region) overrides.region = region;
-	if (language) overrides.language = language;
+	if (inputs.country) overrides.country = inputs.country;
+	if (inputs.region) overrides.region = inputs.region;
+	if (inputs.language) overrides.language = inputs.language;
+	if (inputs.gpc !== undefined) overrides.gpc = inputs.gpc;
 
 	const config: KernelConfig = {};
 	if (initialConsents) config.initialConsents = initialConsents;
@@ -159,6 +144,18 @@ export interface PrefetchInitialConsentOptions
 	 * `host`) so the backend call works under any reverse-proxy.
 	 */
 	backendURL: string;
+
+	/**
+	 * Same-origin or absolute `GET /manifest` URL. When set, prefetch resolves
+	 * init locally from the cached manifest and does not call `/init`.
+	 */
+	manifestURL?: string;
+
+	/**
+	 * Inline manifest for hosts that already loaded it. Takes precedence over
+	 * `manifestURL` and keeps the request path backend-free.
+	 */
+	manifest?: Parameters<typeof createManifestTransport>[0]['manifest'];
 
 	/**
 	 * Override fetch. Useful for testing or for wiring Vercel's
@@ -212,6 +209,9 @@ export async function prefetchInitialConsent(
 	const requestCookies = await cookies();
 
 	const absoluteBackend = resolveBackendURL(options.backendURL, requestHeaders);
+	const absoluteManifest = options.manifestURL
+		? resolveBackendURL(options.manifestURL, requestHeaders)
+		: undefined;
 
 	// Build forwarding headers: cookies + any explicitly-forwarded keys.
 	const forward: Record<string, string> = {};
@@ -222,65 +222,175 @@ export async function prefetchInitialConsent(
 		if (value) forward[key.toLowerCase()] = value;
 	}
 
-	const transport = createHostedTransport({
-		backendURL: absoluteBackend,
-		fetch: options.fetch,
-		headers: forward,
-	});
+	if (options.manifest || absoluteManifest) {
+		const manifestInputs = extractConsentRequestInputs(
+			requestHeaders as Headers,
+			{
+				country: options.country,
+				language: options.language,
+			}
+		);
+		const transport = createManifestTransport({
+			backendURL: absoluteBackend,
+			manifestURL: absoluteManifest,
+			manifest: options.manifest,
+			fetch: options.fetch,
+			headers: forward,
+			inputs: manifestInputs,
+		});
+
+		try {
+			const response = await transport.init?.({
+				overrides: {
+					...(base.initialOverrides ?? {}),
+					...consentInputsToOverrides(manifestInputs),
+				},
+				user: base.initialUser ?? null,
+			});
+			if (!response) return base;
+			return mergeInitResponseIntoConfig(base, response);
+		} catch {
+			return base;
+		}
+	}
 
 	try {
-		const response = await transport.init?.({
-			overrides: base.initialOverrides ?? {},
-			user: base.initialUser ?? null,
+		const response = await fetchHostedInit({
+			backendURL: absoluteBackend,
+			fetch: options.fetch,
+			headers: {
+				...forward,
+				...createInitHeadersFromOverrides(base.initialOverrides ?? {}),
+			},
 		});
-		if (!response) return base;
-
-		const merged: KernelConfig = { ...base };
-		if (response.resolvedOverrides) {
-			merged.initialOverrides = {
-				...(base.initialOverrides ?? {}),
-				...response.resolvedOverrides,
-			};
-		}
-		if (response.consents) {
-			merged.initialConsents = {
-				...(base.initialConsents ?? {}),
-				...response.consents,
-			};
-		}
-		if (response.location !== undefined)
-			merged.initialLocation = response.location;
-		if (response.translations !== undefined) {
-			merged.initialTranslations = response.translations;
-		}
-		if (response.branding !== undefined)
-			merged.initialBranding = response.branding;
-		if (response.policy !== undefined) merged.initialPolicy = response.policy;
-		if (response.policyDecision !== undefined) {
-			merged.initialPolicyDecision = response.policyDecision;
-		}
-		if (response.policySnapshotToken !== undefined) {
-			merged.initialPolicySnapshotToken = response.policySnapshotToken;
-		}
-		if (
-			response.gvl !== undefined ||
-			response.customVendors !== undefined ||
-			response.cmpId !== undefined
-		) {
-			merged.initialIab = {
-				...(merged.initialIab ?? {}),
-				...(response.gvl !== undefined
-					? { gvl: response.gvl, enabled: response.gvl !== null }
-					: {}),
-				...(response.customVendors !== undefined
-					? { customVendors: response.customVendors }
-					: {}),
-				...(response.cmpId !== undefined ? { cmpId: response.cmpId } : {}),
-			};
-		}
-		return merged;
+		return mergeInitOutputIntoConfig(base, response);
 	} catch {
 		// Silent degradation. Client-side init will retry.
 		return base;
 	}
+}
+
+function createInitHeadersFromOverrides(
+	overrides: Readonly<KernelOverrides>
+): Record<string, string> {
+	const headers: Record<string, string> = {};
+	if (overrides.country) headers['x-c15t-country'] = overrides.country;
+	if (overrides.region) headers['x-c15t-region'] = overrides.region;
+	if (overrides.language) headers['accept-language'] = overrides.language;
+	if (overrides.gpc !== undefined)
+		headers['sec-gpc'] = overrides.gpc ? '1' : '0';
+	return headers;
+}
+
+async function fetchHostedInit(input: {
+	backendURL: string;
+	fetch?: typeof globalThis.fetch;
+	headers: Record<string, string>;
+}): Promise<InitOutput> {
+	const fetchImpl = input.fetch ?? globalThis.fetch?.bind(globalThis);
+	if (!fetchImpl) {
+		throw new Error('prefetchInitialConsent: no fetch available.');
+	}
+	const response = await fetchImpl(`${input.backendURL}/init`, {
+		method: 'GET',
+		credentials: 'include',
+		headers: {
+			accept: 'application/json',
+			...input.headers,
+		},
+	});
+	if (!response.ok) {
+		throw new Error(
+			`prefetchInitialConsent: /init responded ${response.status} ${response.statusText}`
+		);
+	}
+	return (await response.json()) as InitOutput;
+}
+
+function mergeInitOutputIntoConfig(
+	base: KernelConfig,
+	response: InitOutput
+): KernelConfig {
+	return mergeInitResponseIntoConfig(base, {
+		resolvedOverrides: {
+			language: response.translations.language,
+			...(response.location.countryCode
+				? { country: response.location.countryCode }
+				: {}),
+			...(response.location.regionCode
+				? { region: response.location.regionCode }
+				: {}),
+		},
+		location: response.location,
+		translations: response.translations,
+		branding: response.branding === 'none' ? undefined : response.branding,
+		policy: response.policy,
+		policyDecision: response.policyDecision,
+		policySnapshotToken: response.policySnapshotToken,
+		gvl: response.gvl ?? null,
+		customVendors: response.customVendors,
+		cmpId: response.cmpId,
+	});
+}
+
+function mergeInitResponseIntoConfig(
+	base: KernelConfig,
+	response: {
+		resolvedOverrides?: KernelOverrides;
+		consents?: Partial<ConsentState>;
+		location?: KernelConfig['initialLocation'];
+		translations?: KernelConfig['initialTranslations'];
+		branding?: KernelConfig['initialBranding'];
+		policy?: KernelConfig['initialPolicy'];
+		policyDecision?: KernelConfig['initialPolicyDecision'];
+		policySnapshotToken?: KernelConfig['initialPolicySnapshotToken'];
+		gvl?: NonNullable<KernelConfig['initialIab']>['gvl'];
+		customVendors?: NonNullable<KernelConfig['initialIab']>['customVendors'];
+		cmpId?: NonNullable<KernelConfig['initialIab']>['cmpId'];
+	}
+): KernelConfig {
+	const merged: KernelConfig = { ...base };
+	if (response.resolvedOverrides) {
+		merged.initialOverrides = {
+			...(base.initialOverrides ?? {}),
+			...response.resolvedOverrides,
+		};
+	}
+	if (response.consents) {
+		merged.initialConsents = {
+			...(base.initialConsents ?? {}),
+			...response.consents,
+		};
+	}
+	if (response.location !== undefined)
+		merged.initialLocation = response.location;
+	if (response.translations !== undefined) {
+		merged.initialTranslations = response.translations;
+	}
+	if (response.branding !== undefined)
+		merged.initialBranding = response.branding;
+	if (response.policy !== undefined) merged.initialPolicy = response.policy;
+	if (response.policyDecision !== undefined) {
+		merged.initialPolicyDecision = response.policyDecision;
+	}
+	if (response.policySnapshotToken !== undefined) {
+		merged.initialPolicySnapshotToken = response.policySnapshotToken;
+	}
+	if (
+		response.gvl !== undefined ||
+		response.customVendors !== undefined ||
+		response.cmpId !== undefined
+	) {
+		merged.initialIab = {
+			...(merged.initialIab ?? {}),
+			...(response.gvl !== undefined
+				? { gvl: response.gvl, enabled: response.gvl !== null }
+				: {}),
+			...(response.customVendors !== undefined
+				? { customVendors: response.customVendors }
+				: {}),
+			...(response.cmpId !== undefined ? { cmpId: response.cmpId } : {}),
+		};
+	}
+	return merged;
 }
