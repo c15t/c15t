@@ -55,6 +55,97 @@ export type ConsentCategory =
 	| 'measurement'
 	| 'marketing';
 
+export type ConsentComponentSlots<T = Record<string, unknown>> = {
+	banner: {
+		root?: T;
+		card?: T;
+		header?: T;
+		title?: T;
+		description?: T;
+		footer?: T;
+		actions?: T;
+		actionGroup?: T;
+		tag?: T;
+		overlay?: T;
+	};
+	dialog: {
+		root?: T;
+		card?: T;
+		header?: T;
+		title?: T;
+		description?: T;
+		content?: T;
+		footer?: T;
+		tag?: T;
+		overlay?: T;
+	};
+	manager: {
+		root?: T;
+		accordion?: T;
+		footer?: T;
+		actions?: T;
+		actionGroup?: T;
+		tag?: T;
+	};
+	button: {
+		primary?: T;
+		secondary?: T;
+	};
+	switch: {
+		root?: T;
+	};
+	accordion: {
+		root?: T;
+	};
+	'accordion-item': {
+		root?: T;
+		trigger?: T;
+		content?: T;
+	};
+	description: {
+		banner?: T;
+		dialog?: T;
+		manager?: T;
+	};
+	tag: {
+		banner?: T;
+		dialog?: T;
+		manager?: T;
+		'iab-banner'?: T;
+		'iab-dialog'?: T;
+	};
+	link: {
+		banner?: T;
+		dialog?: T;
+		manager?: T;
+	};
+	badge: {
+		root?: T;
+	};
+	'iab-banner': {
+		root?: T;
+		card?: T;
+		header?: T;
+		title?: T;
+		description?: T;
+		footer?: T;
+		tag?: T;
+		overlay?: T;
+	};
+	'iab-dialog': {
+		root?: T;
+		card?: T;
+		header?: T;
+		title?: T;
+		description?: T;
+		content?: T;
+		footer?: T;
+		tabs?: T;
+		tag?: T;
+		overlay?: T;
+	};
+};
+
 /**
  * Central consent configuration contract shared across framework packages.
  *
@@ -160,96 +251,7 @@ export interface ConsentConfig<T = Record<string, unknown>> {
 		>
 	>;
 	/** Per-component slot attribute overrides. */
-	components?: {
-		banner: {
-			root?: T;
-			card?: T;
-			header?: T;
-			title?: T;
-			description?: T;
-			footer?: T;
-			actions?: T;
-			actionGroup?: T;
-			tag?: T;
-			overlay?: T;
-		};
-		dialog: {
-			root?: T;
-			card?: T;
-			header?: T;
-			title?: T;
-			description?: T;
-			content?: T;
-			footer?: T;
-			tag?: T;
-			overlay?: T;
-		};
-		manager: {
-			root?: T;
-			accordion?: T;
-			footer?: T;
-			actions?: T;
-			actionGroup?: T;
-			tag?: T;
-		};
-		button: {
-			primary?: T;
-			secondary?: T;
-		};
-		switch: {
-			root?: T;
-		};
-		accordion: {
-			root?: T;
-		};
-		'accordion-item': {
-			root?: T;
-			trigger?: T;
-			content?: T;
-		};
-		description: {
-			banner?: T;
-			dialog?: T;
-			manager?: T;
-		};
-		tag: {
-			banner?: T;
-			dialog?: T;
-			manager?: T;
-			'iab-banner'?: T;
-			'iab-dialog'?: T;
-		};
-		link: {
-			banner?: T;
-			dialog?: T;
-			manager?: T;
-		};
-		badge: {
-			root?: T;
-		};
-		'iab-banner': {
-			root?: T;
-			card?: T;
-			header?: T;
-			title?: T;
-			description?: T;
-			footer?: T;
-			tag?: T;
-			overlay?: T;
-		};
-		'iab-dialog': {
-			root?: T;
-			card?: T;
-			header?: T;
-			title?: T;
-			description?: T;
-			content?: T;
-			footer?: T;
-			tabs?: T;
-			tag?: T;
-			overlay?: T;
-		};
-	};
+	components?: ConsentComponentSlots<T>;
 }
 
 export {

@@ -1,4 +1,4 @@
-import { defaultConsentConfig } from '@c15t/config';
+import { defaultConsentConfig } from '@c15t/schema/config';
 import { defu } from 'defu';
 import {
 	type ComputedRef,

@@ -1,4 +1,4 @@
-import { getRegionFromHeaders } from '@c15t/utils';
+import { getRegionFromHeaders } from '@c15t/schema/geo';
 import { type Ref } from 'vue';
 import { useRequestHeaders, useState } from '#imports';
 

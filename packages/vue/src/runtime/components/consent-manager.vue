@@ -17,7 +17,10 @@ import {
 	DialogPortal,
 	DialogRoot,
 } from 'reka-ui';
-import { getConsentAvailableCategories, type CONSENT_CATEGORY } from '@c15t/utils';
+import {
+	getConsentAvailableCategories,
+	type CONSENT_CATEGORY,
+} from 'c15t/v3/consent-record';
 import { computed, type HTMLAttributes, ref, watch } from 'vue';
 import {
 	useConsentActiveUI,
@@ -49,11 +52,19 @@ const managerComponents = computed(
 			| undefined
 );
 
-const draft = ref<Record<CONSENT_CATEGORY, boolean>>({} as Record<CONSENT_CATEGORY, boolean>);
+const draft = ref<Record<CONSENT_CATEGORY, boolean>>(
+	{} as Record<CONSENT_CATEGORY, boolean>
+);
 
 const disableAnimation = computed(() => Boolean(config.value.disableAnimation));
 
-useConsentScrollLock(computed(() => activeUI.value === 'manager' && Boolean(init.value?.policy?.ui?.dialog?.scrollLock)));
+useConsentScrollLock(
+	computed(
+		() =>
+			activeUI.value === 'manager' &&
+			Boolean(init.value?.policy?.ui?.dialog?.scrollLock)
+	)
+);
 
 function consentTitle(category: CONSENT_CATEGORY) {
 	const types = init.value?.translations?.translations?.consentTypes as
@@ -70,7 +81,7 @@ function consentTitle(category: CONSENT_CATEGORY) {
 function reset() {
 	const categories = getConsentAvailableCategories(
 		init.value,
-		config.value.consentCategories,
+		config.value.consentCategories
 	);
 
 	const grantedSet = new Set(granted.value);
@@ -81,9 +92,13 @@ function reset() {
 	draft.value = next;
 }
 
-watch(activeUI, (ui) => {
-	if (ui === 'manager') reset();
-}, { immediate: true });
+watch(
+	activeUI,
+	(ui) => {
+		if (ui === 'manager') reset();
+	},
+	{ immediate: true }
+);
 
 const labels = computed(() => {
 	const common = init.value?.translations?.translations?.common;
@@ -244,15 +259,13 @@ function onAction(action: PolicyUiAction) {
 										>
 											<div :class="accordionStyles.contentViewport">
 												<div :class="accordionStyles.contentInner">
-													{{
-														(
+													{{ (
 															init?.translations?.translations
 																?.consentTypes as Record<
 																string,
 																{ description?: string }
 															>
-														)?.[category]?.description
-													}}
+														)?.[category]?.description }}
 												</div>
 											</div>
 										</AccordionContent>

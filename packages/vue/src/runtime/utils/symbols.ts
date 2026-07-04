@@ -1,6 +1,6 @@
-import type { ConsentActiveUI } from '@c15t/config';
 import type { InitOutput } from '@c15t/schema';
-import type { Consent } from '@c15t/utils';
+import type { ConsentActiveUI } from '@c15t/schema/config';
+import type { Consent } from 'c15t/v3/consent-record';
 import type { InjectionKey, Ref } from 'vue';
 
 export const symbolInit = Symbol('c15t:init') as InjectionKey<

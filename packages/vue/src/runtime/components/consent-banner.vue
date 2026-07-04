@@ -1,6 +1,9 @@
-<script setup lang="ts">
+<script
+	setup
+	lang="ts"
+>
 import { computed, Teleport, Transition } from 'vue';
-import { DEFAULT_BANNER_POSITION } from '@c15t/config';
+import { DEFAULT_BANNER_POSITION } from '@c15t/schema/config';
 import type { PolicyUiAction } from '@c15t/schema/types';
 import bannerStyles from '@c15t/styles/consent-banner.module.css';
 import {
@@ -35,20 +38,20 @@ const isOpen = computed(() => {
 const disableAnimation = computed(() => Boolean(config.value.disableAnimation));
 
 const scrollLock = computed(
-	() => init.value?.policy?.ui?.banner?.scrollLock ?? true,
+	() => init.value?.policy?.ui?.banner?.scrollLock ?? true
 );
 useConsentScrollLock(computed(() => isOpen.value && scrollLock.value));
 
-const shouldTrapFocus = computed(
-	() => Boolean(isOpen.value && config.value.trapFocus),
+const shouldTrapFocus = computed(() =>
+	Boolean(isOpen.value && config.value.trapFocus)
 );
 
 const bannerTitle = computed(
-	() => init.value?.translations?.translations?.cookieBanner?.title,
+	() => init.value?.translations?.translations?.cookieBanner?.title
 );
 
 const bannerPosition = computed(
-	() => config.value.bannerPosition ?? DEFAULT_BANNER_POSITION,
+	() => config.value.bannerPosition ?? DEFAULT_BANNER_POSITION
 );
 
 const labels = computed(() => {
@@ -114,7 +117,10 @@ function onAction(action: PolicyUiAction) {
 						v-if="!(config.bannerHideBranding ?? config.hideBranding)"
 						context="banner"
 					/>
-					<FocusScope :trapped="shouldTrapFocus" :loop="shouldTrapFocus">
+					<FocusScope
+						:trapped="shouldTrapFocus"
+						:loop="shouldTrapFocus"
+					>
 						<div
 							v-bind="config.components?.banner?.card"
 							data-testid="consent-banner-card"

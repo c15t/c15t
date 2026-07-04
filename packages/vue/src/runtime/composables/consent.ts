@@ -3,7 +3,7 @@ import {
 	type Consent,
 	getConsentAvailableCategories,
 	interpretStoredConsent,
-} from '@c15t/utils';
+} from 'c15t/v3/consent-record';
 import { computed, customRef } from 'vue';
 import {
 	useConsentActiveUI,

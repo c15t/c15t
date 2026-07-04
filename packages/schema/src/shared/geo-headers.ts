@@ -21,7 +21,7 @@ export function headersToRecord(headers: Headers): Record<string, string> {
 }
 
 function pickHeader(
-	headers: Record<string, string>,
+	headers: Record<string, string | undefined>,
 	names: readonly string[]
 ): string | undefined {
 	return names.reduce<string | undefined>(
@@ -33,7 +33,9 @@ function pickHeader(
 /**
  * Resolves country and region from common geo IP headers.
  */
-export function getRegionFromHeaders(headers: Record<string, string>): {
+export function getRegionFromHeaders(
+	headers: Record<string, string | undefined>
+): {
 	region?: string;
 	country?: string;
 } {

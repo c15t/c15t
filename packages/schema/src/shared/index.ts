@@ -8,6 +8,7 @@ export {
 	brandingValues as brandingValuesConst,
 	jurisdictionCodes as jurisdictionCodesConst,
 } from './constants';
+export { getRegionFromHeaders, headersToRecord } from './geo-headers';
 export {
 	type GlobalVendorList,
 	type GVLDataCategory,

@@ -1,4 +1,4 @@
-import type { ConsentActiveUI } from '@c15t/config';
+import type { ConsentActiveUI } from '@c15t/schema/config';
 import type { InitOutput } from '@c15t/schema/types';
 
 export const CONSENT_CATEGORIES = [
@@ -42,23 +42,19 @@ export function getConsentAvailableCategories(
 /**
  * Persistent, policy-agnostic record of a subject's consent decisions.
  *
- * Only choices the subject has *explicitly* made are stored. The active policy
- * is never written into this record — it is layered on top at read time — so a
- * single record can travel between jurisdictions (e.g. EU → California) without
- * a policy silently rewriting what the user actually decided.
+ * Only choices the subject has explicitly made are stored. The active policy is
+ * never written into this record, so a single record can travel between
+ * jurisdictions without silently rewriting what the user actually decided.
  */
 export interface Consent {
 	/**
 	 * Per-policy acknowledgements, keyed by `policyId`.
-	 *
-	 * @param fingerprint - The fingerprint of the policy that was used to grant or deny the categories.
-	 * @param timestamp - When the consent was saved under this policy.
 	 */
 	policies: Record<string, { fingerprint: string; timestamp: string }>;
 
 	/**
-	 * Categories Granted or Denied by the user explicitly.
-	 * An absent category means "no choice yet"
+	 * Categories granted or denied by the user explicitly.
+	 * An absent category means "no choice yet".
 	 */
 	categories: {
 		[key in CONSENT_CATEGORY]?: boolean;
@@ -68,16 +64,6 @@ export interface Consent {
 /**
  * Projects the subject's stored decisions onto the categories the active policy
  * actually governs, returning the categories that are effectively granted.
- *
- * This is the single read-time authority for gating (scripts, tags, network):
- * explicit user choices always win, while unspecified categories fall back to
- * the lawful default for the policy's model. The same record therefore yields
- * different results per jurisdiction without ever being mutated — an EU policy
- * treats silence as denial, an opt-out policy treats it as permission.
- *
- * @param consent - The subject's stored decisions.
- * @param init - The resolved `/init` payload describing the active policy.
- * @param gpc - Global Privacy Control signal is present (Sec-GPC=1 OR navigator.globalPrivacyControl === true)
  */
 export function interpretStoredConsent(
 	consent: Consent,
@@ -93,7 +79,7 @@ export function interpretStoredConsent(
 			granted.add(category);
 			continue;
 		}
-		// Out of scope → scopeMode: permissive grants, strict blocks.
+		// Out of scope: scopeMode permissive grants, strict blocks.
 		if (
 			init.policy?.consent?.categories?.length &&
 			!init.policy.consent.categories.includes('*') &&
@@ -102,7 +88,7 @@ export function interpretStoredConsent(
 			if (init.policy.consent.scopeMode !== 'strict') granted.add(category);
 			continue;
 		}
-		// In-scope silence → model default; GPC opts out tracking.
+		// In-scope silence: model default; GPC opts out tracking.
 		const isTracking = category === 'marketing' || category === 'measurement';
 		if (
 			(init.policy?.model === 'opt-out' || init.policy?.model === 'none') &&
@@ -155,21 +141,7 @@ function isPolicyAcknowledgementValid(
 }
 
 /**
- * Decides which consent surface (if any) must be shown for the active policy.
- *
- * A prompt is the legal mechanism for obtaining a fresh affirmative act, so it
- * is required whenever the subject's acknowledgement of the *current* policy is
- * missing, stale (the fingerprint changed), or expired — but only when the
- * policy mandates a prompt and the decision isn't already satisfied another
- * way. Where the policy honors GPC, an opt-out signal *is* the decision, so no
- * banner is shown; in opt-in regimes GPC cannot substitute for consent and the
- * surface is still required.
- *
- * @param consent - The subject's stored decisions.
- * @param init - The resolved `/init` payload describing the active policy.
- * @param gpc - When `true`, a Global Privacy Control signal is present *and* the
- *   active policy honors it, suppressing the prompt in opt-out regimes.
- * @returns The surface to display, or `'none'` when no prompt is needed.
+ * Decides which consent surface, if any, must be shown for the active policy.
  */
 export function deriveActiveConsentUi(
 	consent: Consent,
@@ -178,7 +150,6 @@ export function deriveActiveConsentUi(
 ): ConsentActiveUI {
 	if (!init.policy?.ui?.mode || init.policy?.ui?.mode === 'none') return null;
 
-	// If GPC is present and the model is opt-out
 	if (gpc && init.policy?.model === 'opt-out') return null;
 
 	if (isPolicyAcknowledgementValid(consent, init)) return null;

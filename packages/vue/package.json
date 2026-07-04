@@ -51,11 +51,10 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@c15t/config": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/styles": "workspace:*",
-		"@c15t/utils": "workspace:*",
 		"@vueuse/core": "^14.3.0",
+		"c15t": "workspace:*",
 		"defu": "^6.1.4",
 		"reka-ui": "^2.9.9",
 		"ufo": "^1.6.1",

@@ -1,7 +1,0 @@
-{
-	"extends": "@c15t/typescript-config/base.json",
-	"compilerOptions": {
-		"moduleResolution": "bundler"
-	},
-	"include": ["src/**/*.ts"]
-}

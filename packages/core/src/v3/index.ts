@@ -19,7 +19,18 @@
  * - packages/core/src/__tests__/v3-correctness-gates.test.ts for invariants
  */
 
+export type { CONSENT_CATEGORY, Consent } from './consent-record';
+export {
+	CONSENT_CATEGORIES,
+	deriveActiveConsentUi,
+	getConsentAvailableCategories,
+	interpretStoredConsent,
+} from './consent-record';
 export { createConsentKernel } from './kernel';
+export {
+	generateSubjectId,
+	isValidSubjectId,
+} from './libs/generate-subject-id';
 export type { HostedTransportOptions } from './transports/hosted';
 export { createHostedTransport } from './transports/hosted';
 export type { OfflineTransportOptions } from './transports/offline';

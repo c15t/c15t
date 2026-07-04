@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getRegionFromHeaders } from './get-region-from-headers';
+import { getRegionFromHeaders } from './geo-headers';
 
 describe('getRegionFromHeaders', () => {
 	it('reads x-c15t-country and x-c15t-region', () => {

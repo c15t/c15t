@@ -1,36 +1,6 @@
+import { getRegionFromHeaders, headersToRecord } from '@c15t/schema/geo';
 import type { C15TOptions } from '~/types';
 import type { JurisdictionCode } from '~/types/api';
-
-/**
- * Normalizes a header value to a string or null.
- */
-function normalizeHeader(
-	value: string | string[] | null | undefined
-): string | null {
-	if (!value) {
-		return null;
-	}
-	return Array.isArray(value) ? (value[0] ?? null) : value;
-}
-
-/**
- * Gets geo-related headers from the request.
- */
-function getGeoHeaders(headers: Headers) {
-	const countryCode =
-		normalizeHeader(headers.get('x-c15t-country')) ??
-		normalizeHeader(headers.get('cf-ipcountry')) ??
-		normalizeHeader(headers.get('x-vercel-ip-country')) ??
-		normalizeHeader(headers.get('x-amz-cf-ipcountry')) ??
-		normalizeHeader(headers.get('x-country-code'));
-
-	const regionCode =
-		normalizeHeader(headers.get('x-c15t-region')) ??
-		normalizeHeader(headers.get('x-vercel-ip-country-region')) ??
-		normalizeHeader(headers.get('x-region-code'));
-
-	return { countryCode, regionCode };
-}
 
 /**
  * Determines the applicable jurisdiction based on country and region codes.
@@ -172,8 +142,10 @@ export async function getLocation(
 		return { countryCode: null, regionCode: null };
 	}
 
-	const { countryCode, regionCode } = getGeoHeaders(request.headers);
-	return { countryCode, regionCode };
+	const { country, region } = getRegionFromHeaders(
+		headersToRecord(request.headers)
+	);
+	return { countryCode: country ?? null, regionCode: region ?? null };
 }
 
 /**

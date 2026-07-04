@@ -7,6 +7,8 @@ export default defineConfig({
 		entry: {
 			index: ['./src/index.ts'],
 			v3: ['./src/v3/index.ts'],
+			'v3-consent-record': ['./src/v3/consent-record/index.ts'],
+			'v3-generate-subject-id': ['./src/v3/libs/generate-subject-id.ts'],
 			'v3-script-loader': ['./src/v3/modules/script-loader/index.ts'],
 			'v3-network-blocker': ['./src/v3/modules/network-blocker/index.ts'],
 			'v3-iframe-blocker': ['./src/v3/modules/iframe-blocker/index.ts'],

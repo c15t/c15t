@@ -6,6 +6,8 @@ export default defineConfig({
 		entry: {
 			index: ['./src/index.ts'],
 			types: ['./src/types.ts'],
+			config: ['./src/config/index.ts'],
+			geo: ['./src/shared/geo-headers.ts'],
 		},
 		exclude: [
 			'**/__tests__/**',

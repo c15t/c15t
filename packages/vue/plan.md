@@ -1,6 +1,6 @@
 # c15t Vue
 
-Implementation notes for `@c15t/vue`. Shared config types live in `@c15t/config`; Vue binds
+Implementation notes for `@c15t/vue`. Shared config types live in `@c15t/schema/config`; Vue binds
 `ConsentConfig` to `HTMLAttributes` in `packages/vue/src/lib/config.ts`.
 
 ## Quickstart
@@ -77,7 +77,7 @@ function openBanner() {
 
 ## Configuration
 
-Flat `ConsentConfig` from `@c15t/config` (Vue: `ConsentConfig` via `lib/config.ts`):
+Flat `ConsentConfig` from `@c15t/schema/config` (Vue: `ConsentConfig` via `lib/config.ts`):
 
 ```ts
 interface ConsentConfig {
@@ -94,7 +94,7 @@ interface ConsentConfig {
 	dialogShowTrigger?: boolean;
 	models?: PolicyModel[];
 	bannerModels?: PolicyModel[];
-	// … flat per-surface keys — see @c15t/config
+	// … flat per-surface keys — see @c15t/schema/config
 	tokens?: Record<string, string | number>;
 	components?: {
 		// HTMLAttributes only (class, style, aria-*, data-*, etc.)
@@ -121,7 +121,7 @@ interface ConsentConfig {
 | Policy footer layout | `init.policy.ui.*` via `lib/policy-surface.ts` (ordering, primary, fill) |
 
 Primitives (`ButtonVariant`, `ButtonMode`, `ConsentActiveUI`, `ConsentSaveAction`) import
-from `@c15t/config`. Do not re-export them from `lib/config.ts`.
+from `@c15t/schema/config`. Do not re-export them from `lib/config.ts`.
 
 No nested `theme`, no `components.*.slots`, no component swap `overrides`.
 
@@ -200,7 +200,7 @@ styled in CSS via `[data-state="open"]` etc., never from config. Do not use `dat
 <script setup lang="ts">
 import { mergeProps } from 'vue';
 import buttonStyles from '@c15t/styles/button.module.css';
-import type { ButtonMode, ButtonVariant } from '@c15t/config';
+import type { ButtonMode, ButtonVariant } from '@c15t/schema/config';
 import { useConsentComponent } from '../composables';
 
 const props = withDefaults(
@@ -311,7 +311,7 @@ Nuxt: `useConsentInitNuxt()` wraps `useFetch('/init')` with language query.
 ### `useConsentComponent(component)`
 
 Returns `ComputedRef<ConsentThemeResult<C>>` — slot attrs from `config.components?.[component]`.
-Registry: `ConsentComponentSlots` in `@c15t/config`.
+Registry: `ConsentComponentSlots` in `@c15t/schema/config`.
 
 ### `useConsentSelection()`
 
@@ -329,12 +329,12 @@ IAB accept/reject/save logic lives in IAB SFCs; dialog uses local draft state un
 `Ref<ConsentActiveUI | null>` — `'banner' | 'dialog' | … | 'manager'`. Nuxt:
 `useConsentActiveUINuxt()`.
 
-Types: `ConsentActiveUI`, `ConsentSaveAction` from `@c15t/config`.
+Types: `ConsentActiveUI`, `ConsentSaveAction` from `@c15t/schema/config`.
 
 ## Package layout
 
 ```
-packages/config/src/index.ts     # ConsentConfig, ConsentComponentSlots, primitives
+packages/schema/src/config/index.ts     # ConsentConfig, ConsentComponentSlots, primitives
 packages/vue/src/lib/config.ts   # ConsentConfig<HTMLAttributes> binding only
 packages/vue/src/composables.ts
 packages/vue/src/injections.ts

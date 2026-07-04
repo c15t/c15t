@@ -59,11 +59,6 @@
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
 			"outputs": []
 		},
-		"@c15t/config#build": {
-			"dependsOn": ["^build"],
-			"inputs": ["src/**/*.ts", "package.json", "tsconfig.json"],
-			"outputs": []
-		},
 		"@c15t/styles#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["src/**/*.module.css", "src/animations/**", "package.json"],

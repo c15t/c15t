@@ -52,6 +52,16 @@
 			"import": "./dist/v3.js",
 			"require": "./dist/v3.cjs"
 		},
+		"./v3/consent-record": {
+			"types": "./dist-types/v3/consent-record/index.d.ts",
+			"import": "./dist/v3-consent-record.js",
+			"require": "./dist/v3-consent-record.cjs"
+		},
+		"./v3/libs/generate-subject-id": {
+			"types": "./dist-types/v3/libs/generate-subject-id.d.ts",
+			"import": "./dist/v3-generate-subject-id.js",
+			"require": "./dist/v3-generate-subject-id.cjs"
+		},
 		"./v3/modules/script-loader": {
 			"types": "./dist-types/v3/modules/script-loader/index.d.ts",
 			"import": "./dist/v3-script-loader.js",

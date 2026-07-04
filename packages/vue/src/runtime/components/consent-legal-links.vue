@@ -1,6 +1,9 @@
-<script setup lang="ts">
+<script
+	setup
+	lang="ts"
+>
 import { computed } from 'vue';
-import type { ConsentLegalLinkKey } from '@c15t/config';
+import type { ConsentLegalLinkKey } from '@c15t/schema/config';
 import legalStyles from '@c15t/styles/legal-links.module.css';
 import ConsentLink from './consent-link.vue';
 
@@ -26,8 +29,14 @@ const resolvedLinks = computed(() =>
 		data-testid="consent-legal-links"
 		:class="legalStyles.legalLinks"
 	>
-		<template v-for="(link, index) in resolvedLinks" :key="link">
-			<ConsentLink :context="context" :link="link" />
+		<template
+			v-for="(link, index) in resolvedLinks"
+			:key="link"
+		>
+			<ConsentLink
+				:context="context"
+				:link="link"
+			/>
 			<span v-if="index < resolvedLinks.length - 1">, </span>
 		</template>
 	</span>

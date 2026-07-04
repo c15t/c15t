@@ -2,7 +2,7 @@ import type { App, Plugin } from 'vue';
 import { consentConfigKey } from './runtime/composables/config';
 import type { ConsentConfig } from './runtime/config';
 
-export type * from '@c15t/config';
+export type * from '@c15t/schema/config';
 export * from './runtime/composables';
 export type {
 	ConsentConfig,
