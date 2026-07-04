@@ -5,6 +5,7 @@ export interface NuxtCustomSchema {
 		c15t?: Partial<ConsentConfig>;
 	};
 	runtimeConfig?: {
+		c15t?: Partial<ConsentConfig>;
 		public?: {
 			c15t?: Partial<ConsentConfig>;
 		};

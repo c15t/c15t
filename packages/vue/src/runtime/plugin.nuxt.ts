@@ -12,6 +12,7 @@ import { consentConfigKey } from './composables/config';
 import type { ConsentConfig } from './config';
 import {
 	createVueConsentKernelContext,
+	getNuxtInitFetchTarget,
 	INIT_HEADER_NAMES,
 	pickAllowedInitHeaders,
 	startVueConsentRuntime,
@@ -35,9 +36,10 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 	const headers = pickAllowedInitHeaders(
 		useRequestHeaders([...INIT_HEADER_NAMES])
 	);
+	const initFetchTarget = getNuxtInitFetchTarget(config.value);
 
-	const { data } = await useFetch<InitOutput>('/init', {
-		baseURL: config.value.backendURL,
+	const { data } = await useFetch<InitOutput>(initFetchTarget.url, {
+		baseURL: initFetchTarget.baseURL,
 		headers,
 		key: 'c15t:init',
 	});

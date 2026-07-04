@@ -277,6 +277,8 @@ function componentFor(component: MountableComponent) {
 		case 'iab-consent-banner':
 		case 'iab-consent-dialog':
 			throw new DriverNotImplementedError('vue', `mount(${component})`);
+		default:
+			throw new DriverNotImplementedError('vue', `mount(${component})`);
 	}
 }
 
@@ -389,7 +391,7 @@ const driver: TestDriver = {
 		}
 		return {
 			getState: () => projectStoreState(lastContext as VueConsentKernelContext),
-			subscribe: (listener) =>
+			subscribe: (listener: () => void) =>
 				(lastContext as VueConsentKernelContext).kernel.subscribe(() => {
 					listener();
 				}),

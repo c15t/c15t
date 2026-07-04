@@ -5,6 +5,7 @@ import {
 	type ConsentSnapshot,
 	createConsentKernel,
 	createHostedTransport,
+	createManifestTransport,
 	type KernelActiveUI,
 	type KernelConfig,
 	type KernelTransport,
@@ -17,6 +18,7 @@ import {
 import { createScriptLoader, type Script } from 'c15t/v3/modules/script-loader';
 import { computed, type Ref, shallowRef } from 'vue';
 import type { ConsentConfig } from './config';
+import { isManifestModeEnabled, resolveNuxtManifestRoute } from './manifest';
 
 export const INIT_HEADER_NAMES = [
 	'accept-language',
@@ -139,6 +141,21 @@ function snapshotToStoredConsent(snapshot: ConsentSnapshot): Consent {
 	return { policies, categories };
 }
 
+export function getNuxtInitFetchTarget(config: Partial<RuntimeConsentConfig>): {
+	url: string;
+	baseURL?: string;
+} {
+	if (isManifestModeEnabled(config)) {
+		return {
+			url: config.initRoute ?? '/api/c15t/init',
+		};
+	}
+	return {
+		url: '/init',
+		baseURL: config.backendURL,
+	};
+}
+
 function createVueHostedTransport(
 	config: RuntimeConsentConfig,
 	headers: Record<string, string>
@@ -182,13 +199,49 @@ function createVueHostedTransport(
 	};
 }
 
+function createVueManifestTransport(
+	config: RuntimeConsentConfig,
+	headers: Record<string, string>,
+	prefetch: InitOutput | undefined
+): KernelTransport {
+	const backendURL = config.backendURL ?? '/api/c15t';
+	return createManifestTransport({
+		backendURL,
+		manifestURL: resolveNuxtManifestRoute(config),
+		domain: config.domain,
+		fetch: config.customFetch,
+		headers,
+		inputs: {
+			country:
+				headers['x-c15t-country'] ??
+				headers['cf-ipcountry'] ??
+				headers['x-vercel-ip-country'] ??
+				null,
+			region:
+				headers['x-c15t-region'] ??
+				headers['x-vercel-ip-country-region'] ??
+				null,
+			language: headers['accept-language'] ?? 'en',
+			gpc:
+				headers['sec-gpc'] === '1'
+					? true
+					: headers['sec-gpc'] === '0'
+						? false
+						: undefined,
+		},
+		initialInit: prefetch,
+	});
+}
+
 export function createVueConsentKernelContext(options: {
 	config: RuntimeConsentConfig;
 	headers?: Record<string, string | undefined>;
 	prefetch?: InitOutput;
 }): VueConsentKernelContext {
 	const headers = pickAllowedInitHeaders(options.headers ?? {});
-	const transport = createVueHostedTransport(options.config, headers);
+	const transport = isManifestModeEnabled(options.config)
+		? createVueManifestTransport(options.config, headers, options.prefetch)
+		: createVueHostedTransport(options.config, headers);
 	const kernel = createConsentKernel({
 		...initOutputToKernelConfig(options.prefetch),
 		transport,
