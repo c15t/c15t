@@ -1,0 +1,79 @@
+@layer components {
+	.actionRoot:not(:global(.headless)) {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		width: 100%;
+	}
+
+	.actionGroup:not(:global(.headless)) {
+		display: flex;
+		flex-direction: row;
+		gap: 1rem;
+		width: 100%;
+	}
+
+	.actionGroup:not(:global(.headless)) button[data-action] {
+		flex: 1;
+		width: 100%;
+		min-width: 0;
+	}
+
+	.actionRoot:not(:global(.headless))[data-fill],
+	.actionRoot:not(:global(.headless))[data-direction="column"] {
+		flex-direction: column;
+	}
+
+	.actionRoot:not(:global(.headless))[data-fill] .actionGroup,
+	.actionRoot:not(:global(.headless))[data-direction="column"] .actionGroup,
+	.actionGroup:not(:global(.headless))[data-direction="column"] {
+		flex-direction: column;
+		width: 100%;
+	}
+
+	.actionRoot:not(:global(.headless))[data-split] {
+		gap: 0.5rem;
+	}
+
+	@media (min-width: 640px) {
+		.actionRoot:not(:global(.headless))[data-split] {
+			flex-direction: row;
+			align-items: center;
+			justify-content: space-between;
+		}
+
+		.actionRoot:not(:global(.headless))[data-split] .actionGroup {
+			width: auto;
+		}
+
+		.actionRoot:not(:global(.headless))[data-split]
+			.actionGroup
+			button[data-action] {
+			width: auto;
+			flex: none;
+		}
+
+		.actionRoot:not(:global(.headless))[data-direction="row"]:not([data-fill]) {
+			flex-direction: row;
+		}
+
+		.actionRoot:not(:global(.headless))[data-direction="row"]:not([data-fill])
+			.actionGroup {
+			width: auto;
+		}
+
+		.actionRoot:not(:global(.headless))[data-direction="row"]:not([data-fill])
+			.actionGroup
+			button[data-action] {
+			width: auto;
+			flex: none;
+		}
+
+		.actionRoot:not(:global(.headless))[data-fill] .actionGroup button[data-action],
+		.actionRoot:not(:global(.headless))[data-direction="column"]
+			.actionGroup
+			button[data-action] {
+			width: 100%;
+		}
+	}
+}

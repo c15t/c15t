@@ -1,0 +1,73 @@
+import type {
+	ConsentBannerPosition,
+	ConsentConfig,
+	ConsentManagerMode,
+} from './index';
+
+export const DEFAULT_BANNER_POSITION =
+	'bottom-left' as const satisfies ConsentBannerPosition;
+
+export const DEFAULT_MANAGER_MODE =
+	'dialog' as const satisfies ConsentManagerMode;
+
+/** Default values aligned with `@c15t/ui` `defaultTheme` / `themeToVars()`. */
+export const defaultConsentConfig = {
+	trapFocus: true,
+	hideBranding: false,
+	showTrigger: false,
+	bannerUiSource: 'banner',
+	bannerPosition: DEFAULT_BANNER_POSITION,
+	disableAnimation: false,
+	dialogUiSource: 'dialog',
+	managerMode: DEFAULT_MANAGER_MODE,
+	triggerDefaultPosition: 'bottom-right',
+	triggerPersistPosition: true,
+	triggerShowWhen: 'after-consent',
+	triggerAriaLabel: 'Open privacy settings',
+	triggerSize: 'md',
+	triggerIcon: 'fingerprint',
+	tokens: {
+		'c15t-primary': 'hsl(228, 100%, 60%)',
+		'c15t-primary-hover': 'hsl(228, 100%, 55%)',
+		'c15t-surface': 'hsl(0, 0%, 100%)',
+		'c15t-surface-hover': 'hsl(0, 0%, 98%)',
+		'c15t-border': 'hsl(0, 0%, 90%)',
+		'c15t-border-hover': 'hsl(0, 0%, 85%)',
+		'c15t-text': 'hsl(0, 0%, 10%)',
+		'c15t-text-muted': 'hsl(0, 0%, 40%)',
+		'c15t-text-on-primary': 'hsl(0, 0%, 100%)',
+		'c15t-overlay': 'hsla(0, 0%, 0%, 0.5)',
+		'c15t-switch-track': 'hsl(0, 0%, 85%)',
+		'c15t-switch-track-active': 'hsl(228, 100%, 60%)',
+		'c15t-switch-thumb': 'hsl(0, 0%, 100%)',
+		'c15t-font-family': 'system-ui, -apple-system, sans-serif',
+		'c15t-font-size-sm': '0.875rem',
+		'c15t-font-size-base': '1rem',
+		'c15t-font-size-lg': '1.125rem',
+		'c15t-font-weight-normal': 400,
+		'c15t-font-weight-medium': 500,
+		'c15t-font-weight-semibold': 600,
+		'c15t-line-height-tight': '1.25',
+		'c15t-line-height-normal': '1.5',
+		'c15t-line-height-relaxed': '1.75',
+		'c15t-space-xs': '0.25rem',
+		'c15t-space-sm': '0.5rem',
+		'c15t-space-md': '1rem',
+		'c15t-space-lg': '1.5rem',
+		'c15t-space-xl': '2rem',
+		'c15t-radius-sm': '0.25rem',
+		'c15t-radius-md': '0.5rem',
+		'c15t-radius-lg': '0.75rem',
+		'c15t-radius-full': '9999px',
+		'c15t-shadow-sm': '0 1px 2px hsla(0, 0%, 0%, 0.05)',
+		'c15t-shadow-md': '0 4px 12px hsla(0, 0%, 0%, 0.08)',
+		'c15t-shadow-lg': '0 8px 24px hsla(0, 0%, 0%, 0.12)',
+		'c15t-duration-fast': '80ms',
+		'c15t-duration-normal': '150ms',
+		'c15t-duration-slow': '200ms',
+		'c15t-easing': 'cubic-bezier(0.4, 0, 0.2, 1)',
+		'c15t-easing-out': 'cubic-bezier(0.215, 0.61, 0.355, 1)',
+		'c15t-easing-in-out': 'cubic-bezier(0.645, 0.045, 0.355, 1)',
+		'c15t-easing-spring': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+	},
+} satisfies ConsentConfig;

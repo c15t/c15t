@@ -1,0 +1,38 @@
+{
+	"name": "@c15t/styles",
+	"version": "2.0.0",
+	"description": "CSS modules for c15t consent UI components",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t",
+		"directory": "packages/styles"
+	},
+	"license": "Apache-2.0",
+	"sideEffects": [
+		"**/*.css"
+	],
+	"type": "module",
+	"exports": {
+		"./*.module.css": {
+			"types": "./types/*.module.css.d.ts",
+			"import": "./src/*.module.css",
+			"default": "./src/*.module.css"
+		}
+	},
+	"files": [
+		"src",
+		"types"
+	],
+	"scripts": {
+		"build": "tcm src -p \"*.module.css\" -o types --camelCase",
+		"prepack": "bun run build",
+		"fmt": "bun biome format --write .",
+		"lint": "bun biome lint ./src"
+	},
+	"devDependencies": {
+		"typed-css-modules": "0.9.1"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

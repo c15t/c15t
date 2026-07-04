@@ -8,7 +8,7 @@
 		"indentWidth": 2,
 		"lineEnding": "lf",
 		"lineWidth": 80,
-		"attributePosition": "auto"
+		"attributePosition": "multiline"
 	},
 	"assist": { "actions": { "source": { "organizeImports": "on" } } },
 	"linter": {
@@ -78,7 +78,7 @@
 	"javascript": {
 		"formatter": {
 			"arrowParentheses": "always",
-			"attributePosition": "auto",
+			"attributePosition": "multiline",
 			"bracketSameLine": false,
 			"bracketSpacing": true,
 			"enabled": true,
@@ -91,6 +91,23 @@
 			"quoteStyle": "single",
 			"semicolons": "always",
 			"trailingCommas": "es5"
+		}
+	},
+	"html": {
+		"experimentalFullSupportEnabled": true,
+		"parser": {
+			"interpolation": true
+		},
+		"formatter": {
+			"enabled": true,
+			"indentStyle": "tab",
+			"indentWidth": 2,
+			"lineEnding": "lf",
+			"lineWidth": 80,
+			"attributePosition": "multiline",
+			"bracketSameLine": false,
+			"indentScriptAndStyle": false,
+			"selfCloseVoidElements": "always"
 		}
 	},
 	"css": {

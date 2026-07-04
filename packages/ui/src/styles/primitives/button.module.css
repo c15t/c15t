@@ -94,6 +94,7 @@
 	.button {
 		display: inline-flex;
 		align-items: center;
+		text-wrap: nowrap;
 		justify-content: center;
 		gap: 0.5rem;
 		border-radius: var(--button-border-radius);

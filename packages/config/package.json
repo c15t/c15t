@@ -1,0 +1,31 @@
+{
+	"name": "@c15t/config",
+	"version": "2.0.0",
+	"description": "Framework-agnostic consent configuration types for c15t",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t",
+		"directory": "packages/config"
+	},
+	"license": "Apache-2.0",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"files": [
+		"src"
+	],
+	"scripts": {
+		"build": "tsc --noEmit",
+		"check-types": "tsc --noEmit",
+		"fmt": "bun biome format --write .",
+		"lint": "bun biome lint ./src"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"typescript": "5.9.3"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

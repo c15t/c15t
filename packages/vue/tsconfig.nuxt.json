@@ -1,0 +1,11 @@
+{
+	"extends": "./.nuxt/tsconfig.json",
+	"include": [
+		"src/**/*.ts",
+		"src/**/*.vue",
+		"src/**/*.d.ts",
+		"src/env.d.ts",
+		"src/c15t-aliases.d.ts"
+	],
+	"exclude": ["src/**/*.nuxt.ts", "src/vite.ts", "src/index.ts"]
+}

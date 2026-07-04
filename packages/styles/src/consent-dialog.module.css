@@ -1,0 +1,779 @@
+@import url("./animations/enter-exit.css");
+
+:root {
+	/* Typography */
+	--consent-dialog-font-family: var(--c15t-font-family);
+	--consent-dialog-line-height: var(--c15t-line-height-tight);
+	--consent-dialog-title-font-size: var(--c15t-font-size-sm);
+	--consent-dialog-title-font-weight: var(--c15t-font-weight-semibold);
+	--consent-dialog-title-letter-spacing: -0.025em;
+	--consent-dialog-description-font-size: var(--c15t-font-size-base);
+	--consent-dialog-description-font-weight: var(--c15t-font-weight-normal);
+	--consent-dialog-description-line-height: var(--c15t-line-height-normal);
+	--consent-dialog-footer-gap: var(--c15t-space-sm);
+	--consent-dialog-footer-font-size: 14px;
+	--consent-dialog-branding-font-size: var(--c15t-font-size-base);
+	--consent-dialog-branding-font-weight: var(--c15t-font-weight-medium);
+	--consent-dialog-branding-line-height: var(--c15t-line-height-relaxed);
+	--consent-dialog-branding-letter-spacing: -0.01em;
+
+	/* Colors */
+	--consent-dialog-stroke-color: var(--c15t-border);
+	--consent-dialog-stroke-color-dark: var(--c15t-border);
+	--consent-dialog-branding-focus-color: var(--c15t-primary);
+	--consent-dialog-branding-focus-color-dark: var(--c15t-primary);
+	--consent-dialog-link-text-color: var(--c15t-text);
+	--consent-dialog-link-text-color-dark: var(--c15t-text);
+	--consent-dialog-border-color: var(--c15t-border);
+	--consent-dialog-border-color-dark: var(--c15t-border);
+	--consent-dialog-background-color: var(--c15t-surface);
+	--consent-dialog-background-color-dark: var(--c15t-surface);
+	--consent-dialog-foreground-color: var(--c15t-text);
+	--consent-dialog-foreground-color-dark: var(--c15t-text);
+	--consent-dialog-muted-color: var(--c15t-text-muted);
+	--consent-dialog-muted-color-dark: var(--c15t-text-muted);
+	--consent-dialog-overlay-background-color: var(--c15t-overlay);
+	--consent-dialog-overlay-background-color-dark: var(--c15t-overlay);
+
+	/* Spacing */
+	--consent-dialog-card-padding: var(--c15t-space-lg);
+	--consent-dialog-card-padding-mobile: var(--c15t-space-md);
+	--consent-dialog-card-gap: var(--c15t-space-xs);
+	--consent-dialog-header-gap: var(--c15t-space-xs);
+	--consent-dialog-content-gap: var(--c15t-space-md);
+	--consent-dialog-footer-padding-y: var(--c15t-space-md);
+
+	/* Layout */
+	--consent-dialog-card-radius: var(--c15t-radius-lg);
+	--consent-dialog-max-width: 28rem;
+	--consent-dialog-height: 100%;
+	--consent-dialog-z-index: 999999999;
+	--consent-dialog-overlay-z-index: 999999998;
+
+	/* Effects */
+	--consent-dialog-card-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+	--consent-dialog-border-width: 1px;
+	--consent-dialog-border-width-hairline: 1px;
+	--consent-dialog-border-style: solid;
+
+	/* Animation */
+	--consent-dialog-animation-duration: var(--c15t-duration-normal);
+	--consent-dialog-animation-timing: ease-out;
+
+	/* Branding */
+	--consent-dialog-branding-gap: 0.5rem;
+	--consent-dialog-branding-icon-height: 1.25rem;
+	--consent-dialog-branding-icon-width: auto;
+	--consent-dialog-branding-label-size: 0.6875rem;
+}
+
+/* Hairline borders for retina displays */
+@media only screen and (min-resolution: 192dpi) {
+	:root {
+		--consent-dialog-border-width-hairline: 0.5px;
+	}
+}
+
+@layer components {
+	.root:not(:global(.headless)) {
+		box-sizing: border-box;
+		isolation: isolate;
+		font-family: var(--consent-dialog-font-family);
+		line-height: var(--consent-dialog-line-height);
+		-webkit-text-size-adjust: 100%;
+		tab-size: 4;
+		margin: 0;
+		padding: var(--consent-dialog-card-padding-mobile);
+		border: 0;
+		background: none;
+		position: fixed;
+		inset: 0px;
+		z-index: var(--consent-dialog-z-index);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		border-radius: var(--consent-dialog-card-radius);
+		background-color: transparent;
+		width: 100%;
+		height: var(--consent-dialog-height);
+	}
+
+	.root:not(:global(.headless))[dir="rtl"] {
+		direction: rtl;
+	}
+
+	/* Dialog animation — Reka data-state keyframes (Presence waits for animationend) */
+	@keyframes consent-dialog-fade-in {
+		from {
+			opacity: 0;
+		}
+
+		to {
+			opacity: 1;
+		}
+	}
+
+	@keyframes consent-dialog-fade-out {
+		from {
+			opacity: 1;
+		}
+
+		to {
+			opacity: 0;
+		}
+	}
+
+	.overlay:not(:global(.headless))[data-state="open"] {
+		animation: consent-dialog-fade-in var(--consent-dialog-animation-duration)
+			var(--consent-dialog-animation-timing);
+	}
+
+	.overlay:not(:global(.headless))[data-state="closed"] {
+		animation: consent-dialog-fade-out var(--consent-dialog-animation-duration)
+			ease-in;
+	}
+
+	.root:not(:global(.headless))[data-state="open"] {
+		animation: consent-dialog-fade-in var(--consent-dialog-animation-duration)
+			var(--consent-dialog-animation-timing);
+	}
+
+	.root:not(:global(.headless))[data-state="closed"] {
+		animation: consent-dialog-fade-out var(--consent-dialog-animation-duration)
+			ease-in;
+	}
+
+	.root[data-state="open"] .container:not(:global(.headless)) {
+		animation: enter var(--consent-dialog-animation-duration)
+			cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+
+	.root[data-state="closed"] .container:not(:global(.headless)) {
+		animation: exit var(--consent-dialog-animation-duration)
+			var(--consent-dialog-animation-timing);
+	}
+
+	.root:not(:global(.headless))[data-mode="dialog"] {
+		justify-content: center;
+		align-items: center;
+	}
+
+	.root:not(:global(.headless))[data-mode="sidebar-left"],
+	.root:not(:global(.headless))[data-mode="sidebar-right"] {
+		padding: 0;
+		justify-content: flex-start;
+		align-items: stretch;
+	}
+
+	.root:not(:global(.headless))[data-mode="sidebar-right"] {
+		justify-content: flex-end;
+	}
+
+	.root:not(:global(.headless))[data-mode="sidebar-left"]
+		.container:not(:global(.headless)),
+	.root:not(:global(.headless))[data-mode="sidebar-right"]
+		.container:not(:global(.headless)) {
+		position: relative;
+		z-index: var(--consent-dialog-z-index);
+		width: min(100%, var(--consent-dialog-max-width));
+		max-height: 100%;
+		height: 100%;
+	}
+
+	.root:not(:global(.headless))[data-mode="sidebar-left"]
+		.card:not(:global(.headless)),
+	.root:not(:global(.headless))[data-mode="sidebar-right"]
+		.card:not(:global(.headless)) {
+		width: 100%;
+		height: 100%;
+		max-height: 100%;
+		margin: 0;
+		border-radius: 0;
+	}
+
+	@keyframes consent-dialog-slide-in-left {
+		from {
+			transform: translateX(-100%);
+		}
+
+		to {
+			transform: translateX(0);
+		}
+	}
+
+	@keyframes consent-dialog-slide-out-left {
+		from {
+			transform: translateX(0);
+		}
+
+		to {
+			transform: translateX(-100%);
+		}
+	}
+
+	@keyframes consent-dialog-slide-in-right {
+		from {
+			transform: translateX(100%);
+		}
+
+		to {
+			transform: translateX(0);
+		}
+	}
+
+	@keyframes consent-dialog-slide-out-right {
+		from {
+			transform: translateX(0);
+		}
+
+		to {
+			transform: translateX(100%);
+		}
+	}
+
+	.root[data-mode="sidebar-left"][data-state="open"]
+		.container:not(:global(.headless)) {
+		animation: consent-dialog-slide-in-left
+			var(--consent-dialog-animation-duration)
+			var(--consent-dialog-animation-timing);
+	}
+
+	.root[data-mode="sidebar-left"][data-state="closed"]
+		.container:not(:global(.headless)) {
+		animation: consent-dialog-slide-out-left
+			var(--consent-dialog-animation-duration) ease-in;
+	}
+
+	.root[data-mode="sidebar-right"][data-state="open"]
+		.container:not(:global(.headless)) {
+		animation: consent-dialog-slide-in-right
+			var(--consent-dialog-animation-duration)
+			var(--consent-dialog-animation-timing);
+	}
+
+	.root[data-mode="sidebar-right"][data-state="closed"]
+		.container:not(:global(.headless)) {
+		animation: consent-dialog-slide-out-right
+			var(--consent-dialog-animation-duration) ease-in;
+	}
+
+	/* Legacy class toggles — used by React and banner-style transitions */
+	.dialogVisible:not(:global(.headless)) {
+		opacity: 1;
+		transition: opacity var(--consent-dialog-animation-duration)
+			var(--consent-dialog-animation-timing);
+	}
+
+	.dialogHidden:not(:global(.headless)) {
+		opacity: 0;
+		transition: opacity var(--consent-dialog-animation-duration)
+			var(--consent-dialog-animation-timing);
+	}
+
+	.contentVisible:not(:global(.headless)) {
+		opacity: 1;
+		transform: scale(1);
+		transition:
+			opacity var(--consent-dialog-animation-duration)
+			var(--consent-dialog-animation-timing),
+			transform var(--consent-dialog-animation-duration)
+			cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+
+	.contentHidden:not(:global(.headless)) {
+		opacity: 0;
+		transform: scale(0.95);
+		transition:
+			opacity var(--consent-dialog-animation-duration)
+			var(--consent-dialog-animation-timing),
+			transform var(--consent-dialog-animation-duration)
+			var(--consent-dialog-animation-timing);
+	}
+
+	@media (min-width: 640px) {
+		.root:not(:global(.headless)) {
+			padding: var(--consent-dialog-card-padding);
+			width: auto;
+		}
+	}
+
+	.container:not(:global(.headless)) {
+		width: 100%;
+		max-height: 100%;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.branding:not(:global(.headless)) {
+		display: flex;
+		margin: auto 0;
+		justify-content: center;
+		align-items: center;
+		gap: var(--consent-dialog-branding-gap);
+		font-size: var(--consent-dialog-branding-font-size);
+		font-weight: var(--consent-dialog-branding-font-weight);
+		line-height: var(--consent-dialog-branding-line-height);
+		letter-spacing: var(--consent-dialog-branding-letter-spacing);
+		color: var(--consent-dialog-foreground-color);
+		text-decoration: none;
+		border-radius: 0.25rem;
+		padding: 0 0.5rem;
+	}
+
+	.brandingCopy:not(:global(.headless)) {
+		display: inline-flex;
+		align-items: baseline;
+		gap: 0.25rem;
+		min-width: 0;
+		white-space: nowrap;
+	}
+
+	.brandingText:not(:global(.headless)) {
+		font-weight: var(--c15t-font-weight-medium);
+	}
+
+	.brandingBy:not(:global(.headless)) {
+		font-weight: var(--c15t-font-weight-normal);
+	}
+
+	.brandingWordmarkLabel:not(:global(.headless)) {
+		white-space: nowrap;
+		letter-spacing: -0.03em;
+	}
+
+	.branding:not(:global(.headless)):focus-visible {
+		outline: none;
+		box-shadow: 0 0 0 2px var(--consent-dialog-branding-focus-color);
+	}
+
+	:global(.c15t-dark) .branding:not(:global(.headless)):focus-visible {
+		box-shadow: 0 0 0 2px var(--consent-dialog-branding-focus-color-dark);
+	}
+
+	:global(.c15t-dark) .branding:not(:global(.headless)) {
+		color: var(--consent-dialog-foreground-color-dark);
+	}
+
+	.brandingC15T:not(:global(.headless)) {
+		display: inline-flex;
+		align-items: center;
+		flex: none;
+		max-width: 100%;
+		width: auto;
+		height: auto;
+	}
+
+	.brandingWordmark:not(:global(.headless)) {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		flex: none;
+		min-width: 0;
+		max-width: 100%;
+		white-space: nowrap;
+	}
+
+	.brandingC15TMark:not(:global(.headless)) {
+		display: inline-flex;
+		align-items: center;
+		flex: none;
+		max-width: 100%;
+		width: auto;
+		height: var(--consent-dialog-branding-icon-height);
+	}
+
+	.brandingC15TMark:not(:global(.headless)) > svg {
+		display: block;
+		flex: none;
+		aspect-ratio: 446 / 445;
+		width: auto;
+		height: 100%;
+		max-width: 100%;
+	}
+
+	.brandingInth:not(:global(.headless)) {
+		display: inline-flex;
+		align-items: center;
+		flex: none;
+		max-width: 100%;
+		width: var(--consent-dialog-branding-icon-width);
+		height: var(--consent-dialog-branding-icon-height);
+	}
+
+	.brandingInth:not(:global(.headless)) > svg {
+		display: block;
+		flex: none;
+		aspect-ratio: 88 / 90;
+		width: auto;
+		height: 100%;
+		max-width: 100%;
+	}
+
+	.brandingTag:not(:global(.headless)) {
+		position: absolute;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		min-height: 1.75rem;
+		max-width: calc(100% - 1.5rem);
+		padding: 0.28125rem 0.625rem;
+		border: 1px solid color-mix(in srgb, var(--c15t-primary), black 14%);
+		border-radius: 0.75rem 0.75rem 0.1875rem 0.1875rem;
+		color: var(--c15t-text-on-primary, #fff);
+		background-color: var(--c15t-primary);
+		box-shadow:
+			inset 0 1px 0 rgb(255 255 255 / 0.16),
+			0 1px 2px rgb(15 23 42 / 0.12);
+		z-index: 2;
+	}
+
+	.brandingTag:not(:global(.headless)) .brandingCopy {
+		font-size: var(--consent-dialog-branding-label-size);
+		letter-spacing: 0.01em;
+		color: var(--c15t-text-on-primary, #fff);
+	}
+
+	.brandingTag .brandingText,
+	.brandingTag:not(:global(.headless)) .brandingBy {
+		line-height: 1;
+	}
+
+	.brandingTag:not(:global(.headless)) .brandingWordmarkLabel {
+		font-size: var(--consent-dialog-branding-label-size);
+		line-height: 1;
+	}
+
+	.brandingTag:not(:global(.headless)) .brandingWordmark {
+		gap: 0.3125rem;
+		color: var(--c15t-text-on-primary, #fff);
+	}
+
+	.brandingTag:not(:global(.headless)) .brandingC15TMark {
+		height: 0.9375rem;
+		color: var(--c15t-text-on-primary, #fff);
+	}
+
+	.brandingTag:not(:global(.headless)) .brandingInth {
+		height: 0.9375rem;
+		color: var(--c15t-text-on-primary, #fff);
+	}
+
+	.brandingTag[data-context="banner"]:not(:global(.headless)),
+	.brandingTag[data-context="iab-banner"]:not(:global(.headless)) {
+		position: relative;
+		align-self: flex-end;
+		top: auto;
+		right: auto;
+		transform: none;
+		margin-inline-end: 0.75rem;
+		margin-block-end: -1px;
+		border-bottom-width: 0;
+		border-radius: 0.75rem 0.75rem 0 0;
+	}
+
+	.brandingTag[data-context="dialog"]:not(:global(.headless)),
+	.brandingTag[data-context="iab-dialog"]:not(:global(.headless)) {
+		right: var(--consent-dialog-card-padding-mobile);
+		bottom: 0;
+		transform: translateY(calc(100% + 1px));
+		border-top-width: 0;
+		border-radius: 0 0 0.75rem 0.75rem;
+	}
+
+	.brandingTag[data-context="manager"]:not(:global(.headless)) {
+		position: static;
+		min-height: auto;
+		max-width: none;
+		padding: 0;
+		border: none;
+		border-radius: 0;
+		color: var(--consent-manager-link-text-color);
+		background-color: transparent;
+		box-shadow: none;
+		z-index: auto;
+		text-decoration: none;
+		text-align: center;
+		flex-direction: row;
+		display: flex;
+		flex: 1;
+		gap: 0.5rem;
+		align-items: center;
+		justify-content: center;
+	}
+
+	:global(.c15t-dark)
+		.brandingTag[data-context="manager"]:not(:global(.headless)) {
+		color: var(--consent-manager-link-text-color-dark);
+	}
+
+	.brandingTag[data-context="manager"]:not(:global(.headless)) svg {
+		height: 1.2rem;
+	}
+
+	@media (min-width: 640px) {
+		.brandingTag[data-context="dialog"]:not(:global(.headless)),
+		.brandingTag[data-context="iab-dialog"]:not(:global(.headless)) {
+			right: var(--consent-dialog-card-padding);
+		}
+	}
+
+	/* Legacy React compat */
+	.brandingTagBanner:not(:global(.headless)) {
+		position: relative;
+		align-self: flex-end;
+		top: auto;
+		right: auto;
+		transform: none;
+		margin-inline-end: 0.75rem;
+		margin-block-end: -1px;
+		border-bottom-width: 0;
+		border-radius: 0.75rem 0.75rem 0 0;
+	}
+
+	.brandingTagDialog:not(:global(.headless)) {
+		right: var(--consent-dialog-card-padding-mobile);
+		bottom: 0;
+		transform: translateY(calc(100% + 1px));
+		border-top-width: 0;
+		border-radius: 0 0 0.75rem 0.75rem;
+	}
+
+	@media (min-width: 640px) {
+		.brandingTagDialog:not(:global(.headless)) {
+			right: var(--consent-dialog-card-padding);
+		}
+	}
+
+	@media (max-width: 480px) {
+		.brandingTag:not(:global(.headless)) {
+			gap: 0.375rem;
+			max-width: calc(100% - 1rem);
+			padding: 0.3125rem 0.625rem;
+		}
+
+		.brandingTag .brandingCopy,
+		.brandingTag:not(:global(.headless)) .brandingWordmarkLabel {
+			font-size: 0.625rem;
+		}
+
+		.brandingTag .brandingC15TMark,
+		.brandingTag:not(:global(.headless)) .brandingInth {
+			height: 0.8125rem;
+		}
+	}
+
+	.headerWrapper:not(:global(.headless)) {
+		position: relative;
+	}
+
+	.closeButton:not(:global(.headless)) {
+		position: absolute;
+		right: 22px;
+		top: 22px;
+	}
+
+	.footer:not(:global(.headless)) {
+		justify-content: center;
+		font-size: 14px;
+		padding-top: 1rem;
+		padding-bottom: 1rem;
+		border-top: solid 1px var(--consent-dialog-stroke-color);
+	}
+
+	:global(.c15t-dark) .footer:not(:global(.headless)) {
+		border-color: var(--consent-dialog-stroke-color-dark);
+	}
+
+	.overlay:not(:global(.headless)) {
+		color: var(--consent-dialog-link-text-color);
+		position: fixed;
+		inset: 0px;
+		background-color: var(--consent-dialog-overlay-background-color);
+		z-index: var(--consent-dialog-overlay-z-index);
+	}
+
+	/* Overlay animation — Vue Transition + Reka data-state fallback */
+	.overlayVisible:not(:global(.headless)) {
+		opacity: 1;
+		transition: opacity var(--consent-dialog-animation-duration)
+			var(--consent-dialog-animation-timing);
+	}
+
+	.overlayHidden:not(:global(.headless)) {
+		opacity: 0;
+		transition: opacity var(--consent-dialog-animation-duration)
+			var(--consent-dialog-animation-timing);
+	}
+
+	:global(.c15t-dark) .overlay:not(:global(.headless)) {
+		background-color: var(--consent-dialog-overlay-background-color-dark);
+		color: var(--consent-dialog-link-text-color-dark);
+	}
+
+	.card:not(:global(.headless)) {
+		position: relative;
+		box-sizing: border-box;
+		width: min(100%, var(--consent-dialog-max-width));
+		max-height: 100%;
+		margin: 0 auto;
+		border-radius: var(--consent-dialog-card-radius);
+		border: var(--consent-dialog-border-width)
+			var(--consent-dialog-border-style) var(--consent-dialog-border-color);
+		background-color: var(--consent-dialog-background-color);
+		color: var(--consent-dialog-foreground-color);
+		box-shadow: var(--consent-dialog-card-shadow);
+		display: flex;
+		flex-direction: column;
+		overflow: visible;
+	}
+
+	:global(.c15t-dark) .card:not(:global(.headless)) {
+		background-color: var(--consent-dialog-background-color-dark);
+		color: var(--consent-dialog-foreground-color-dark);
+		border-color: var(--consent-dialog-border-color-dark);
+	}
+
+	.header:not(:global(.headless)) {
+		display: flex;
+		flex-direction: column;
+		flex-shrink: 0;
+		padding: var(--consent-dialog-card-padding);
+		gap: var(--consent-dialog-header-gap);
+	}
+
+	.header:not(:global(.headless)) > * + * {
+		margin-top: var(--consent-dialog-card-gap);
+	}
+
+	.title:not(:global(.headless)) {
+		font-weight: var(--consent-dialog-title-font-weight);
+		font-size: var(--consent-dialog-title-font-size);
+		line-height: 1;
+		letter-spacing: var(--consent-dialog-title-letter-spacing);
+	}
+
+	.description:not(:global(.headless)) {
+		color: var(--consent-dialog-muted-color);
+		font-size: var(--consent-dialog-description-font-size);
+		font-weight: var(--consent-dialog-description-font-weight);
+		line-height: var(--consent-dialog-description-line-height);
+	}
+
+	:global(.c15t-dark) .description:not(:global(.headless)) {
+		color: var(--consent-dialog-muted-color-dark);
+	}
+
+	.description[data-context="dialog"]:not(:global(.headless)) {
+		color: var(--consent-dialog-muted-color);
+		font-size: var(--consent-dialog-description-font-size);
+		font-weight: var(--consent-dialog-description-font-weight);
+		line-height: var(--consent-dialog-description-line-height);
+	}
+
+	:global(.c15t-dark)
+		.description[data-context="dialog"]:not(:global(.headless)) {
+		color: var(--consent-dialog-muted-color-dark);
+	}
+
+	.content:not(:global(.headless)) {
+		padding: var(--consent-dialog-card-padding);
+		padding-top: 0;
+		gap: var(--consent-dialog-content-gap);
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
+	}
+
+	.footer:not(:global(.headless)) {
+		display: flex;
+		flex-direction: column;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		gap: var(--consent-dialog-footer-gap);
+		font-size: var(--consent-dialog-footer-font-size);
+		padding-top: var(--consent-dialog-footer-padding-y);
+		padding-bottom: var(--consent-dialog-footer-padding-y);
+		border-top: var(--consent-dialog-border-width)
+			var(--consent-dialog-border-style) var(--consent-dialog-stroke-color);
+	}
+
+	/* Hide footer when it has no children */
+	.footer:not(:global(.headless)):empty {
+		display: none;
+		border-top: none;
+	}
+
+	:global(.c15t-dark) .footer:not(:global(.headless)) {
+		border-color: var(--consent-dialog-stroke-color-dark);
+	}
+
+	.footer:not(:global(.headless)).brandingFooter {
+		position: relative;
+		min-height: 0;
+		height: 0;
+		padding: 0;
+		border-top: 0;
+		overflow: visible;
+	}
+
+	.footer:not(:global(.headless)).brandingFooter:empty {
+		display: none;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.dialogVisible,
+		.dialogHidden,
+		.contentVisible,
+		.contentHidden,
+		.overlayVisible,
+		.overlayHidden:not(:global(.headless)),
+		.overlay:not(:global(.headless))[data-state="open"],
+		.overlay:not(:global(.headless))[data-state="closed"],
+		.root:not(:global(.headless))[data-state="open"],
+		.root:not(:global(.headless))[data-state="closed"],
+		.root[data-state="open"] .container:not(:global(.headless)),
+		.root[data-state="closed"] .container:not(:global(.headless)) {
+			transition: none;
+			animation: none;
+		}
+	}
+
+	.overlay[data-disable-animation]:not(:global(.headless))[data-state="open"],
+	.overlay[data-disable-animation]:not(:global(.headless))[data-state="closed"],
+	.root[data-disable-animation]:not(:global(.headless))[data-state="open"],
+	.root[data-disable-animation]:not(:global(.headless))[data-state="closed"],
+	.root[data-disable-animation][data-state="open"]
+		.container:not(:global(.headless)),
+	.root[data-disable-animation][data-state="closed"]
+		.container:not(:global(.headless)),
+	:global(.disable-animation)
+		.overlay:not(:global(.headless))[data-state="open"],
+	:global(.disable-animation)
+		.overlay:not(:global(.headless))[data-state="closed"],
+	:global(.disable-animation) .root:not(:global(.headless))[data-state="open"],
+	:global(.disable-animation)
+		.root:not(:global(.headless))[data-state="closed"],
+	:global(.disable-animation)
+		.root[data-state="open"]
+		.container:not(:global(.headless)),
+	:global(.disable-animation)
+		.root[data-state="closed"]
+		.container:not(:global(.headless)),
+	:global([data-disable-animation])
+		.overlay:not(:global(.headless))[data-state="open"],
+	:global([data-disable-animation])
+		.overlay:not(:global(.headless))[data-state="closed"],
+	:global([data-disable-animation])
+		.root:not(:global(.headless))[data-state="open"],
+	:global([data-disable-animation])
+		.root:not(:global(.headless))[data-state="closed"],
+	:global([data-disable-animation])
+		.root[data-state="open"]
+		.container:not(:global(.headless)),
+	:global([data-disable-animation])
+		.root[data-state="closed"]
+		.container:not(:global(.headless)) {
+		animation: none;
+	}
+}

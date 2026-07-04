@@ -1,11 +1,3 @@
 {
-	"extends": "@c15t/typescript-config/base.json",
-	"compilerOptions": {
-		"moduleResolution": "bundler",
-		"baseUrl": ".",
-		"paths": {
-			"~/*": ["./src/*"]
-		}
-	},
-	"include": ["src"]
+	"extends": "./tsconfig.nuxt.json"
 }

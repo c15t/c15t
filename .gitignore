@@ -29,23 +29,14 @@ coverage
 
 # Build Outputs
 .next/
-.svelte-kit
 out/
 build
 dist
 !internals/bundle-analysis-action/dist
 packages/core/docs
-packages/core/AGENTS.md
 packages/react/docs
-packages/react/AGENTS.md
 packages/nextjs/docs
-packages/nextjs/AGENTS.md
 packages/backend/docs
-packages/backend/AGENTS.md
-packages/scripts/docs
-packages/scripts/AGENTS.md
-packages/cli/docs
-packages/cli/AGENTS.md
 .merge_file_*
 dist-types
 apps/bundle-bench-react/.bundle-bench-dist/
@@ -83,3 +74,10 @@ i18n.cache
 # Storybook build output
 storybook-static/
 debug-storybook.log
+
+# Nuxt module playground
+packages/vue/.nuxt
+packages/vue/playground/.nuxt
+packages/vue/playground/.output
+/inrepo_modules/
+/.inrepo/
