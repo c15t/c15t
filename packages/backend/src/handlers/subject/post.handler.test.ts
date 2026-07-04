@@ -1,4 +1,6 @@
+import { type PolicyConfig, resolveInitFromManifest } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildConsentManifestFromOptions } from '~/handlers/init/manifest';
 import { resolvePolicyDecision } from '~/handlers/init/policy';
 import { verifyLegalDocumentSnapshotToken } from '~/handlers/legal-document/snapshot';
 import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
@@ -129,6 +131,109 @@ function createMockContext(db: unknown, registry: unknown) {
 		},
 		getJsonData: () => jsonData,
 		_ctx: ctx,
+	};
+}
+
+const recomputePolicyPacks = [
+	{
+		id: 'eu_opt_in',
+		match: { countries: ['DE'] },
+		consent: {
+			model: 'opt-in',
+			expiryDays: 365,
+			scopeMode: 'strict',
+			categories: ['necessary', 'measurement', 'marketing'],
+			preselectedCategories: ['necessary'],
+		},
+		i18n: {
+			language: 'en',
+			messageProfile: 'default',
+		},
+		ui: {
+			mode: 'banner',
+			banner: {
+				scrollLock: true,
+			},
+		},
+		proof: {
+			storeIp: false,
+			storeUserAgent: true,
+			storeLanguage: true,
+		},
+	},
+	{
+		id: 'us_ca_opt_out',
+		match: { regions: [{ country: 'US', region: 'CA' }] },
+		consent: {
+			model: 'opt-out',
+			expiryDays: 180,
+			scopeMode: 'permissive',
+			categories: ['necessary', 'marketing'],
+			gpc: true,
+		},
+		ui: {
+			mode: 'banner',
+		},
+	},
+	{
+		id: 'default_notice',
+		match: { isDefault: true },
+		consent: {
+			model: 'none',
+			expiryDays: 30,
+			categories: ['necessary'],
+		},
+		ui: {
+			mode: 'none',
+		},
+	},
+] satisfies PolicyConfig[];
+
+async function createAssertedDecisionInput(params: {
+	policyPacks?: PolicyConfig[];
+	country: string | null;
+	region: string | null;
+	language: string;
+	gpc?: boolean;
+}) {
+	const manifest = await buildConsentManifestFromOptions({
+		appName: 'c15t',
+		branding: 'c15t',
+		policyPacks: params.policyPacks ?? recomputePolicyPacks,
+		i18n: {
+			defaultProfile: 'default',
+			messages: {
+				default: {
+					fallbackLanguage: 'en',
+					translations: {
+						en: {
+							common: {
+								acceptAll: 'Accept all',
+							},
+						},
+					},
+				},
+			},
+		},
+	});
+	const payload = resolveInitFromManifest(manifest, {
+		country: params.country,
+		region: params.region,
+		language: params.language,
+		gpc: params.gpc,
+	});
+
+	if (!payload.policyDecision) {
+		throw new Error('Expected a policy decision for recompute test input');
+	}
+
+	return {
+		policyId: payload.policyDecision.policyId,
+		fingerprint: payload.policyDecision.fingerprint,
+		country: payload.location.countryCode,
+		region: payload.location.regionCode,
+		language: payload.translations.language,
+		gpc: params.gpc,
 	};
 }
 
@@ -987,6 +1092,285 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 						scrollLock: false,
 					},
 				},
+			})
+		);
+	});
+});
+
+describe('postSubjectHandler manifest recompute-on-write validation', () => {
+	afterEach(() => {
+		vi.clearAllMocks();
+		vi.restoreAllMocks();
+	});
+
+	beforeEach(() => {
+		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue({
+			valid: false,
+			reason: 'missing',
+		});
+		vi.mocked(resolvePolicyDecision).mockResolvedValue(undefined);
+	});
+
+	it('accepts valid asserted decision inputs and records runtime audit fields', async () => {
+		const asserted = await createAssertedDecisionInput({
+			country: 'DE',
+			region: null,
+			language: 'en',
+			gpc: true,
+		});
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		registry.findOrCreateConsentPurposeByCode = vi
+			.fn()
+			.mockImplementation(async (code: string) => ({ id: `pur_${code}` }));
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.policyPacks = recomputePolicyPacks;
+		mockCtx._ctx.i18n = {
+			defaultProfile: 'default',
+			messages: {
+				default: {
+					fallbackLanguage: 'en',
+					translations: {
+						en: {
+							common: {
+								acceptAll: 'Accept all',
+							},
+						},
+					},
+				},
+			},
+		};
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			...asserted,
+			preferences: {
+				necessary: true,
+				measurement: true,
+			},
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(resolvePolicyDecision).not.toHaveBeenCalled();
+		expect(registry.findConsentPolicyById).not.toHaveBeenCalled();
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'runtimePolicyDecision',
+			expect.objectContaining({
+				policyId: 'eu_opt_in',
+				fingerprint: asserted.fingerprint,
+				matchedBy: 'country',
+				countryCode: 'DE',
+				regionCode: null,
+				jurisdiction: 'GDPR',
+				language: 'en',
+				model: 'opt-in',
+				policyI18n: {
+					json: {
+						language: 'en',
+						messageProfile: 'default',
+					},
+				},
+				preselectedCategories: {
+					json: ['necessary'],
+				},
+				proofConfig: {
+					json: {
+						storeIp: false,
+						storeUserAgent: true,
+						storeLanguage: true,
+					},
+				},
+			})
+		);
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'consent',
+			expect.objectContaining({
+				policyId: 'eu_opt_in',
+				ipAddress: null,
+				runtimePolicyDecisionId: 'rpd_1',
+				runtimePolicySource: 'manifest_recompute',
+				metadata: {
+					json: {
+						source: 'banner',
+						policyLanguage: 'en',
+					},
+				},
+			})
+		);
+	});
+
+	it('rejects a tampered fingerprint with the stale-policy contract', async () => {
+		const asserted = await createAssertedDecisionInput({
+			country: 'DE',
+			region: null,
+			language: 'en',
+		});
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.policyPacks = recomputePolicyPacks;
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			...asserted,
+			fingerprint: '0'.repeat(64),
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 409,
+			message:
+				'Policy decision is stale; refresh the consent manifest and retry',
+			cause: {
+				code: 'STALE_POLICY',
+				reason: 'fingerprint_mismatch',
+			},
+		});
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('rejects a stale fingerprint from an older pack version', async () => {
+		const oldPolicyPacks: PolicyConfig[] = [
+			{
+				...recomputePolicyPacks[0],
+				consent: {
+					...recomputePolicyPacks[0].consent,
+					categories: ['necessary', 'measurement'],
+				},
+			},
+			...recomputePolicyPacks.slice(1),
+		];
+		const asserted = await createAssertedDecisionInput({
+			policyPacks: oldPolicyPacks,
+			country: 'DE',
+			region: null,
+			language: 'en',
+		});
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.policyPacks = recomputePolicyPacks;
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			...asserted,
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 409,
+			cause: {
+				code: 'STALE_POLICY',
+				reason: 'fingerprint_mismatch',
+			},
+		});
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('rejects geo mismatch when asserted inputs resolve a different pack', async () => {
+		const asserted = await createAssertedDecisionInput({
+			country: 'DE',
+			region: null,
+			language: 'en',
+			gpc: false,
+		});
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.policyPacks = recomputePolicyPacks;
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			...asserted,
+			country: 'US',
+			region: 'CA',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 409,
+			cause: {
+				code: 'STALE_POLICY',
+				reason: 'policy_id_mismatch',
+			},
+		});
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('keeps legacy neither-token-nor-inputs behavior accepted', async () => {
+		vi.mocked(resolvePolicyDecision).mockResolvedValue({
+			policy: {
+				id: 'policy_current',
+				model: 'opt-in',
+				consent: { categories: ['measurement'] },
+			},
+			matchedBy: 'country',
+			fingerprint: 'l'.repeat(64),
+		});
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.policyPacks = recomputePolicyPacks;
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(resolvePolicyDecision).toHaveBeenCalled();
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'consent',
+			expect.objectContaining({
+				runtimePolicySource: 'write_time_fallback',
+			})
+		);
+	});
+
+	it('leaves the token path untouched when a valid snapshot is present', async () => {
+		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue({
+			valid: true,
+			payload: {
+				iss: 'c15t',
+				aud: 'c15t-policy-snapshot',
+				sub: 'policy_snapshot',
+				policyId: 'policy_snapshot',
+				fingerprint: 's'.repeat(64),
+				matchedBy: 'country',
+				country: 'DE',
+				region: null,
+				jurisdiction: 'GDPR',
+				language: 'en',
+				model: 'opt-in',
+				categories: ['measurement'],
+				iat: 1,
+				exp: 9_999_999_999,
+			},
+		});
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.policySnapshot = { signingKey: 'test-signing-key' };
+		mockCtx._ctx.policyPacks = recomputePolicyPacks;
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			policySnapshotToken: 'snapshot-token',
+			fingerprint: '0'.repeat(64),
+			country: 'US',
+			region: 'CA',
+			language: 'en',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+
+		expect(resolvePolicyDecision).not.toHaveBeenCalled();
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'runtimePolicyDecision',
+			expect.objectContaining({
+				policyId: 'policy_snapshot',
+				fingerprint: 's'.repeat(64),
+			})
+		);
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'consent',
+			expect.objectContaining({
+				runtimePolicySource: 'snapshot_token',
 			})
 		);
 	});

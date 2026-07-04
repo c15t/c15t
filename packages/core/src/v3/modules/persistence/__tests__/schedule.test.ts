@@ -1,6 +1,10 @@
 import { describe, expect, test, vi } from 'vitest';
 import { createWriteScheduler } from '../schedule';
 
+function flushScheduledWrite(): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 describe('createWriteScheduler', () => {
 	test('coalesces multiple schedule() calls within a microtask into one write', async () => {
 		const write = vi.fn();
@@ -9,7 +13,7 @@ describe('createWriteScheduler', () => {
 		scheduler.schedule();
 		scheduler.schedule();
 		expect(write).not.toHaveBeenCalled();
-		await Promise.resolve();
+		await flushScheduledWrite();
 		expect(write).toHaveBeenCalledOnce();
 	});
 
@@ -17,9 +21,9 @@ describe('createWriteScheduler', () => {
 		const write = vi.fn();
 		const scheduler = createWriteScheduler(write);
 		scheduler.schedule();
-		await Promise.resolve();
+		await flushScheduledWrite();
 		scheduler.schedule();
-		await Promise.resolve();
+		await flushScheduledWrite();
 		expect(write).toHaveBeenCalledTimes(2);
 	});
 
@@ -43,7 +47,7 @@ describe('createWriteScheduler', () => {
 		const scheduler = createWriteScheduler(write);
 		scheduler.schedule();
 		scheduler.flush();
-		await Promise.resolve();
+		await flushScheduledWrite();
 		expect(write).toHaveBeenCalledOnce();
 	});
 });

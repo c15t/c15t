@@ -25,7 +25,7 @@ export const consentSchema = v.object({
 	runtimePolicyDecisionId: v.nullish(v.string()),
 	/** Source of runtime policy decision evidence. */
 	runtimePolicySource: v.nullish(
-		v.picklist(['snapshot_token', 'write_time_fallback'])
+		v.picklist(['snapshot_token', 'write_time_fallback', 'manifest_recompute'])
 	),
 	tenantId: v.nullish(v.string()),
 });

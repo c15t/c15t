@@ -118,11 +118,69 @@ const baseSubjectConsentSchema = v.object({
 	),
 });
 
+const manifestDecisionInputEntries = {
+	/** Runtime policy ID asserted by manifest-mode clients for recompute-on-write validation */
+	policyId: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Runtime policy ID asserted by manifest-mode clients for recompute-on-write validation.'
+			),
+			v.examples(['eu_opt_in'])
+		)
+	),
+	/** Runtime policy fingerprint asserted by manifest-mode clients */
+	fingerprint: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Runtime policy fingerprint asserted by manifest-mode clients.'
+			)
+		)
+	),
+	/** Country input used by the manifest resolver */
+	country: v.optional(
+		v.nullable(
+			v.pipe(
+				v.string(),
+				v.description('Country input used by manifest-mode decision replay.'),
+				v.examples(['DE'])
+			)
+		)
+	),
+	/** Region input used by the manifest resolver */
+	region: v.optional(
+		v.nullable(
+			v.pipe(
+				v.string(),
+				v.description('Region input used by manifest-mode decision replay.'),
+				v.examples(['BE'])
+			)
+		)
+	),
+	/** Language input used by the manifest resolver */
+	language: v.optional(
+		v.pipe(
+			v.string(),
+			v.description('Language input used by manifest-mode decision replay.'),
+			v.examples(['en'])
+		)
+	),
+	/** Global Privacy Control input used by the manifest resolver */
+	gpc: v.optional(
+		v.pipe(
+			v.boolean(),
+			v.description('Global Privacy Control input used by manifest-mode saves.')
+		)
+	),
+};
+
 /**
  * Cookie banner consent - requires preferences
  */
 export const subjectCookieBannerInputSchema = v.object({
 	...baseSubjectConsentSchema.entries,
+	...manifestDecisionInputEntries,
 	type: v.literal('cookie_banner'),
 	preferences: v.pipe(
 		v.record(v.string(), v.boolean()),
@@ -248,6 +306,10 @@ export const postSubjectErrorSchemas = {
 	}),
 	legalDocumentProofRequired: v.object({
 		code: v.literal('LEGAL_DOCUMENT_PROOF_REQUIRED'),
+	}),
+	stalePolicy: v.object({
+		code: v.literal('STALE_POLICY'),
+		reason: v.optional(v.string()),
 	}),
 	purposeCreationFailed: v.object({
 		purposeCode: v.string(),

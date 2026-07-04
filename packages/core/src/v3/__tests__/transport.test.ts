@@ -700,6 +700,7 @@ describe('createManifestTransport: local init resolution', () => {
 				country: 'DE',
 				region: 'BE',
 				language: 'de',
+				gpc: true,
 			},
 		});
 
@@ -737,6 +738,7 @@ describe('createManifestTransport: local init resolution', () => {
 			country: 'DE',
 			region: 'BE',
 			language: 'de',
+			gpc: true,
 			preferences: {
 				necessary: true,
 				functionality: false,
@@ -745,5 +747,55 @@ describe('createManifestTransport: local init resolution', () => {
 				experience: false,
 			},
 		});
+	});
+
+	test('does not send asserted decision inputs when a snapshot token is present', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ ok: true, subjectId: 'sub-1' }), {
+				status: 200,
+			})
+		);
+		const transport = createManifestTransport({
+			manifest: MANIFEST_FIXTURE,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			inputs: {
+				country: 'DE',
+				region: 'BE',
+				language: 'de',
+				gpc: true,
+			},
+			initialInit: REALISTIC_INIT_OUTPUT,
+		});
+
+		await transport.save?.({
+			subjectId: 'sub_test',
+			consents: {
+				necessary: true,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				experience: false,
+			},
+			overrides: {},
+			user: null,
+			model: 'iab',
+			uiSource: 'banner',
+			consentAction: 'custom',
+			policySnapshotToken: 'snapshot-token',
+		});
+
+		const [, subjectsInit] = fetchSpy.mock.calls[0] ?? [];
+		const body = JSON.parse((subjectsInit as RequestInit).body as string);
+		expect(body).toMatchObject({
+			subjectId: 'sub_test',
+			policySnapshotToken: 'snapshot-token',
+		});
+		expect(body).not.toHaveProperty('policyId');
+		expect(body).not.toHaveProperty('fingerprint');
+		expect(body).not.toHaveProperty('country');
+		expect(body).not.toHaveProperty('region');
+		expect(body).not.toHaveProperty('language');
+		expect(body).not.toHaveProperty('gpc');
 	});
 });

@@ -29,9 +29,7 @@ afterEach(() => {
 });
 
 async function flushDebounce(): Promise<void> {
-	// Persistence uses Promise.resolve().then(...) as its debounce.
-	await Promise.resolve();
-	await Promise.resolve();
+	await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 describe('persistence: hydration', () => {

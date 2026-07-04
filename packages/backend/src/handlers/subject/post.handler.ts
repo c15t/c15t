@@ -4,12 +4,14 @@
  * @packageDocumentation
  */
 
-import type { PostSubjectInput } from '@c15t/schema';
+import type { InitOutput, PostSubjectInput } from '@c15t/schema';
+import { resolveInitFromManifest } from '@c15t/schema/types';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { LegalDocumentPolicyConflictError } from '~/db/registry/consent-policy';
 import { generateUniqueId } from '~/db/registry/utils';
 import { getJurisdiction, getLocation } from '~/handlers/init/geo';
+import { buildConsentManifestFromOptions } from '~/handlers/init/manifest';
 import {
 	type LegalDocumentSnapshotVerificationFailureReason,
 	verifyLegalDocumentSnapshotToken,
@@ -68,6 +70,7 @@ function buildDecisionPayload(params: {
 	proofConfig:
 		| { storeIp?: boolean; storeUserAgent?: boolean; storeLanguage?: boolean }
 		| undefined;
+	source?: 'write_time_fallback' | 'manifest_recompute';
 }) {
 	const {
 		tenantId,
@@ -138,11 +141,186 @@ function buildDecisionPayload(params: {
 				jurisdiction,
 				language,
 			}),
-			source: 'write_time_fallback' as const,
+			source: params.source ?? ('write_time_fallback' as const),
 		};
 	}
 
 	return undefined;
+}
+
+interface ManifestDecisionInputs {
+	policyId: string;
+	fingerprint: string;
+	country: string | null;
+	region: string | null;
+	language: string;
+	gpc?: boolean;
+}
+
+function hasOwn(input: object, key: string): boolean {
+	return Object.hasOwn(input, key);
+}
+
+function getStringInput(
+	input: PostSubjectInput,
+	key: 'policyId' | 'fingerprint' | 'language'
+): string | undefined {
+	const value = (input as Record<string, unknown>)[key];
+	return typeof value === 'string' ? value : undefined;
+}
+
+function getNullableStringInput(
+	input: PostSubjectInput,
+	key: 'country' | 'region'
+): string | null | undefined {
+	if (!(key in input)) {
+		return undefined;
+	}
+	const value = (input as Record<string, unknown>)[key];
+	return typeof value === 'string' || value === null ? value : undefined;
+}
+
+function getBooleanInput(
+	input: PostSubjectInput,
+	key: 'gpc'
+): boolean | undefined {
+	const value = (input as Record<string, unknown>)[key];
+	return typeof value === 'boolean' ? value : undefined;
+}
+
+function hasManifestDecisionInputSignal(input: PostSubjectInput): boolean {
+	return (
+		hasOwn(input, 'fingerprint') ||
+		hasOwn(input, 'country') ||
+		hasOwn(input, 'region') ||
+		hasOwn(input, 'language') ||
+		hasOwn(input, 'gpc')
+	);
+}
+
+function readManifestDecisionInputs(
+	input: PostSubjectInput
+): ManifestDecisionInputs | undefined {
+	if (!hasManifestDecisionInputSignal(input)) {
+		return undefined;
+	}
+
+	const policyId = getStringInput(input, 'policyId');
+	const fingerprint = getStringInput(input, 'fingerprint');
+	const country = getNullableStringInput(input, 'country');
+	const region = getNullableStringInput(input, 'region');
+	const language = getStringInput(input, 'language');
+	const gpc = getBooleanInput(input, 'gpc');
+
+	if (
+		!policyId ||
+		!fingerprint ||
+		country === undefined ||
+		region === undefined ||
+		!language
+	) {
+		throw new HTTPException(422, {
+			message:
+				'Manifest decision inputs are incomplete; refresh the consent manifest and retry',
+			cause: {
+				code: 'STALE_POLICY',
+				reason: 'incomplete_decision_inputs',
+				required: ['policyId', 'fingerprint', 'country', 'region', 'language'],
+			},
+		});
+	}
+
+	return {
+		policyId,
+		fingerprint,
+		country,
+		region,
+		language,
+		gpc,
+	};
+}
+
+function buildStalePolicyHttpException(params: {
+	reason: 'no_policy_match' | 'policy_id_mismatch' | 'fingerprint_mismatch';
+	asserted: ManifestDecisionInputs;
+	derived?: {
+		policyId?: string;
+		fingerprint?: string;
+		country: string | null;
+		region: string | null;
+		language: string;
+	};
+}): HTTPException {
+	return new HTTPException(409, {
+		message: 'Policy decision is stale; refresh the consent manifest and retry',
+		cause: {
+			code: 'STALE_POLICY',
+			reason: params.reason,
+			asserted: {
+				policyId: params.asserted.policyId,
+				fingerprint: params.asserted.fingerprint,
+				country: params.asserted.country,
+				region: params.asserted.region,
+				language: params.asserted.language,
+				gpc: params.asserted.gpc,
+			},
+			derived: params.derived,
+		},
+	});
+}
+
+async function validateManifestDecisionInputs(params: {
+	ctx: C15TContext;
+	inputs: ManifestDecisionInputs;
+}): Promise<{
+	payload: InitOutput;
+	decision: NonNullable<InitOutput['policyDecision']>;
+}> {
+	const manifest = await buildConsentManifestFromOptions(params.ctx);
+	const payload = resolveInitFromManifest(
+		manifest,
+		{
+			country: params.inputs.country,
+			region: params.inputs.region,
+			language: params.inputs.language,
+			gpc: params.inputs.gpc,
+		},
+		{ logger: params.ctx.logger }
+	);
+	const decision = payload.policyDecision;
+	const derived = {
+		policyId: decision?.policyId,
+		fingerprint: decision?.fingerprint,
+		country: payload.location.countryCode,
+		region: payload.location.regionCode,
+		language: payload.translations.language,
+	};
+
+	if (!decision || !payload.policy) {
+		throw buildStalePolicyHttpException({
+			reason: 'no_policy_match',
+			asserted: params.inputs,
+			derived,
+		});
+	}
+
+	if (decision.policyId !== params.inputs.policyId) {
+		throw buildStalePolicyHttpException({
+			reason: 'policy_id_mismatch',
+			asserted: params.inputs,
+			derived,
+		});
+	}
+
+	if (decision.fingerprint !== params.inputs.fingerprint) {
+		throw buildStalePolicyHttpException({
+			reason: 'fingerprint_mismatch',
+			asserted: params.inputs,
+			derived,
+		});
+	}
+
+	return { payload, decision };
 }
 
 function parseLanguageFromHeader(header: string | null): string | undefined {
@@ -293,6 +471,16 @@ export const postSubjectHandler = async (c: Context) => {
 		const location = await getLocation(request, ctx);
 		const resolvedJurisdiction = getJurisdiction(location, ctx);
 		const legalDocumentConsent = isLegalDocumentType(type);
+		const manifestDecisionInputs =
+			!input.policySnapshotToken && !legalDocumentConsent
+				? readManifestDecisionInputs(input)
+				: undefined;
+		const manifestDecisionValidation = manifestDecisionInputs
+			? await validateManifestDecisionInputs({
+					ctx,
+					inputs: manifestDecisionInputs,
+				})
+			: undefined;
 		const runtimeSnapshotVerification = legalDocumentConsent
 			? {
 					valid: false as const,
@@ -319,6 +507,7 @@ export const postSubjectHandler = async (c: Context) => {
 			: null;
 		const shouldRequireSnapshot =
 			!legalDocumentConsent &&
+			!manifestDecisionValidation &&
 			!!ctx.policySnapshot?.signingKey &&
 			resolveSnapshotFailureMode(ctx) === 'reject';
 		if (!hasValidSnapshot && shouldRequireSnapshot) {
@@ -338,13 +527,15 @@ export const postSubjectHandler = async (c: Context) => {
 			? undefined
 			: legalDocumentConsent
 				? undefined
-				: await resolvePolicyDecision({
-						policies: ctx.policyPacks,
-						countryCode: location.countryCode,
-						regionCode: location.regionCode,
-						jurisdiction: resolvedJurisdiction,
-						iabEnabled: ctx.iab?.enabled === true,
-					});
+				: manifestDecisionValidation
+					? undefined
+					: await resolvePolicyDecision({
+							policies: ctx.policyPacks,
+							countryCode: location.countryCode,
+							regionCode: location.regionCode,
+							jurisdiction: resolvedJurisdiction,
+							iabEnabled: ctx.iab?.enabled === true,
+						});
 		const effectivePolicy =
 			hasValidSnapshot && snapshotPayload
 				? {
@@ -365,7 +556,8 @@ export const postSubjectHandler = async (c: Context) => {
 						},
 						proof: snapshotPayload.proofConfig,
 					}
-				: resolvedPolicyDecision?.policy;
+				: (manifestDecisionValidation?.payload.policy ??
+					resolvedPolicyDecision?.policy);
 
 		const effectiveModel =
 			effectivePolicy?.model ??
@@ -496,6 +688,8 @@ export const postSubjectHandler = async (c: Context) => {
 
 				policyId = policy.id;
 			}
+		} else if (manifestDecisionValidation) {
+			policyId = manifestDecisionValidation.decision.policyId;
 		} else if (inputPolicyId) {
 			policyId = inputPolicyId;
 
@@ -612,7 +806,9 @@ export const postSubjectHandler = async (c: Context) => {
 		const effectiveLanguage =
 			(snapshotPayload?.language && hasValidSnapshot
 				? snapshotPayload.language
-				: requestLanguage) ?? undefined;
+				: manifestDecisionValidation
+					? manifestDecisionValidation.payload.translations.language
+					: requestLanguage) ?? undefined;
 
 		const metadataWithPolicy = {
 			...(metadata ?? {}),
@@ -623,7 +819,26 @@ export const postSubjectHandler = async (c: Context) => {
 		const effectiveJurisdiction =
 			hasValidSnapshot && snapshotPayload
 				? snapshotPayload.jurisdiction
-				: resolvedJurisdiction;
+				: (manifestDecisionValidation?.payload.jurisdiction ??
+					resolvedJurisdiction);
+		const manifestResolvedDecision =
+			manifestDecisionValidation?.payload.policy &&
+			manifestDecisionValidation.decision
+				? {
+						policy: manifestDecisionValidation.payload.policy,
+						matchedBy: manifestDecisionValidation.decision.matchedBy,
+						fingerprint: manifestDecisionValidation.decision.fingerprint,
+					}
+				: undefined;
+		const decisionLocation = manifestDecisionValidation
+			? {
+					countryCode: manifestDecisionValidation.payload.location.countryCode,
+					regionCode: manifestDecisionValidation.payload.location.regionCode,
+				}
+			: {
+					countryCode: location.countryCode,
+					regionCode: location.regionCode,
+				};
 
 		const decisionPayload = buildDecisionPayload({
 			tenantId: ctx.tenantId,
@@ -631,14 +846,12 @@ export const postSubjectHandler = async (c: Context) => {
 				hasValidSnapshot && snapshotPayload
 					? { valid: true, payload: snapshotPayload }
 					: null,
-			decision: resolvedPolicyDecision,
-			location: {
-				countryCode: location.countryCode,
-				regionCode: location.regionCode,
-			},
-			jurisdiction: resolvedJurisdiction,
+			decision: manifestResolvedDecision ?? resolvedPolicyDecision,
+			location: decisionLocation,
+			jurisdiction: effectiveJurisdiction,
 			language: effectiveLanguage,
 			proofConfig,
+			source: manifestResolvedDecision ? 'manifest_recompute' : undefined,
 		});
 
 		// Check for duplicate consent (idempotency)
