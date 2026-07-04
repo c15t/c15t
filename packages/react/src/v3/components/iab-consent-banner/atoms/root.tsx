@@ -12,9 +12,9 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import { LocalThemeContext } from '~/v3/context/theme-context';
-import { useConsentManager } from '~/v3/hooks/use-consent-manager';
 import { useStyles } from '~/v3/hooks/use-styles';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/v3/types/theme';

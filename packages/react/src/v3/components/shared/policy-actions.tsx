@@ -1,7 +1,7 @@
 'use client';
 
 import { type ComponentType, Fragment, type ReactNode } from 'react';
-import type { HeadlessConsentSurfaceState } from '~/v3/hooks/use-headless-consent-ui';
+import type { HeadlessConsentSurfaceState } from '~/v3/component-hooks/use-headless-consent-ui';
 import type { CSSPropertiesWithVars, CSSVariables } from '~/v3/types/theme';
 import { cnExt as cn } from '~/v3/utils/cn';
 

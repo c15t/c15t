@@ -13,10 +13,8 @@ import { render } from 'vitest-browser-react';
 import { ConsentBanner } from '~/v3/components/consent-banner';
 import { ConsentDialog } from '~/v3/components/consent-dialog';
 import { ConsentDialogTrigger } from '~/v3/components/consent-dialog-trigger';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/v3/providers/consent-manager-provider';
+import { ConsentProvider } from '~/v3/provider';
+import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
 
 // Mock localStorage
@@ -42,7 +40,48 @@ Object.defineProperty(window, 'localStorage', {
 
 const defaultOptions: ConsentManagerOptions = {
 	mode: 'offline',
+	consentCategories: [
+		'necessary',
+		'functionality',
+		'experience',
+		'marketing',
+		'measurement',
+	],
+	offlinePolicy: {
+		policy: {
+			id: 'active-ui-transitions-test',
+			model: 'opt-in',
+			consent: {
+				categories: [
+					'necessary',
+					'functionality',
+					'experience',
+					'marketing',
+					'measurement',
+				],
+				scopeMode: 'permissive',
+			},
+			ui: {
+				mode: 'banner',
+			},
+		},
+	},
 };
+
+const storedAcceptAllConsent = () => ({
+	consents: {
+		necessary: true,
+		functionality: true,
+		marketing: true,
+		measurement: true,
+		experience: true,
+	},
+	consentInfo: {
+		time: Date.now(),
+		type: 'accept-all',
+		subjectId: 'sub_123456789ABC',
+	},
+});
 
 describe('activeUI Transitions E2E Tests', () => {
 	beforeEach(() => {
@@ -60,9 +99,9 @@ describe('activeUI Transitions E2E Tests', () => {
 
 	test('banner shows on first visit (activeUI becomes banner)', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentProvider options={defaultOptions}>
 				<ConsentBanner />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		await vi.waitFor(
@@ -78,10 +117,10 @@ describe('activeUI Transitions E2E Tests', () => {
 
 	test('customize transitions banner → dialog', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentProvider options={defaultOptions}>
 				<ConsentBanner />
 				<ConsentDialog />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		// Wait for banner
@@ -121,10 +160,10 @@ describe('activeUI Transitions E2E Tests', () => {
 
 	test('save from dialog hides all UI', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentProvider options={defaultOptions}>
 				<ConsentBanner />
 				<ConsentDialog />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		// Wait for banner, then click customize
@@ -177,25 +216,15 @@ describe('activeUI Transitions E2E Tests', () => {
 
 	test('banner hidden for returning visitor', async () => {
 		// Pre-set localStorage consent
-		const consentData = {
-			consents: {
-				necessary: true,
-				functionality: true,
-				marketing: true,
-				measurement: true,
-				experience: true,
-			},
-			consentInfo: {
-				time: Date.now(),
-				type: 'accept-all',
-			},
-		};
-		window.localStorage.setItem('c15t', JSON.stringify(consentData));
+		window.localStorage.setItem(
+			'c15t',
+			JSON.stringify(storedAcceptAllConsent())
+		);
 
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentProvider options={defaultOptions}>
 				<ConsentBanner />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		// Wait long enough to confirm banner doesn't appear
@@ -209,11 +238,11 @@ describe('activeUI Transitions E2E Tests', () => {
 
 	test('trigger appears after consent, opens dialog on click', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentProvider options={defaultOptions}>
 				<ConsentBanner />
 				<ConsentDialog />
 				<ConsentDialogTrigger showWhen="always" />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		// Wait for banner
@@ -274,11 +303,11 @@ describe('activeUI Transitions E2E Tests', () => {
 
 	test('full lifecycle: banner → customize → dialog → save → trigger → dialog', async () => {
 		render(
-			<ConsentManagerProvider options={defaultOptions}>
+			<ConsentProvider options={defaultOptions}>
 				<ConsentBanner />
 				<ConsentDialog />
 				<ConsentDialogTrigger showWhen="always" />
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		);
 
 		// Step 1: Banner appears

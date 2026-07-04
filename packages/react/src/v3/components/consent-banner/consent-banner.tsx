@@ -13,12 +13,12 @@ import {
 	shouldFillPolicyActions,
 } from '@c15t/ui/utils';
 import { type FC, Fragment, type ReactNode } from 'react';
+import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useHeadlessConsentUI } from '~/v3/component-hooks/use-headless-consent-ui';
+import { useTranslations } from '~/v3/component-hooks/use-translations';
 import type { InlineLegalLinksProps } from '~/v3/components/shared/primitives/legal-links';
 import { BrandingLink } from '~/v3/components/shared/ui/branding';
 import { useComponentConfig } from '~/v3/hooks/use-component-config';
-import { useConsentManager } from '~/v3/hooks/use-consent-manager';
-import { useHeadlessConsentUI } from '~/v3/hooks/use-headless-consent-ui';
-import { useTranslations } from '~/v3/hooks/use-translations';
 import { cnExt as cn } from '~/v3/utils/cn';
 import { ConsentBannerRoot } from './atoms/root';
 import {

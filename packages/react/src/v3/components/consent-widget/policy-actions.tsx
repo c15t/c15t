@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import {
 	type HeadlessConsentDialogAction,
 	useHeadlessConsentUI,
-} from '~/v3/hooks/use-headless-consent-ui';
+} from '~/v3/component-hooks/use-headless-consent-ui';
 import {
 	type PolicyActionRenderProps,
 	PolicyActionsRenderer,

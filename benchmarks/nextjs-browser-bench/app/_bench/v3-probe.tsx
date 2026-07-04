@@ -1,6 +1,6 @@
 'use client';
 
-import { useConsentManager } from '@c15t/nextjs/v3/headless';
+import { useActiveUI } from '@c15t/nextjs/v3';
 import { useEffect, useRef } from 'react';
 import {
 	getState,
@@ -34,7 +34,7 @@ export function NextjsV3BenchmarkProbe({
 }: {
 	scenario: NextjsBenchScenario;
 }) {
-	const { activeUI } = useConsentManager();
+	const activeUI = useActiveUI();
 	const renderRef = useRef(0);
 	renderRef.current += 1;
 

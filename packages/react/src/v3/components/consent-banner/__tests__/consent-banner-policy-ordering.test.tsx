@@ -4,8 +4,7 @@ import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentBanner } from '~/v3/components/consent-banner';
-import { ConsentStateContext } from '~/v3/context/consent-manager-context';
-import { GlobalThemeContext } from '~/v3/context/theme-context';
+import { ConsentProvider } from '~/v3/provider';
 
 function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
@@ -65,8 +64,10 @@ function renderBanner(
 	const state = createMockState(stateOverrides);
 
 	render(
-		<GlobalThemeContext.Provider
-			value={{
+		<ConsentProvider
+			options={{
+				mode: 'offline',
+				persistence: false,
 				theme: {
 					slots: {
 						buttonPrimary: 'button-primary-marker',
@@ -74,22 +75,30 @@ function renderBanner(
 						...themeSlotOverrides,
 					},
 				},
+				prefetch: {
+					initialConsents: state.consents,
+					initialTranslations: {
+						language: 'en',
+						translations: defaultTranslationConfig.translations.en as never,
+					},
+					initialPolicy: {
+						id: 'banner-policy-ordering-test',
+						model: state.model,
+						consent: {
+							categories: state.consentCategories,
+							scopeMode: 'permissive',
+						},
+						ui: {
+							mode: 'banner',
+							banner: state.policyBanner,
+							dialog: state.policyDialog,
+						},
+					},
+				},
 			}}
 		>
-			<ConsentStateContext.Provider
-				value={{
-					state,
-					store: {
-						getState: () => state,
-						subscribe: () => () => undefined,
-						setState: () => undefined,
-					},
-					manager: null,
-				}}
-			>
-				<ConsentBanner {...props} />
-			</ConsentStateContext.Provider>
-		</GlobalThemeContext.Provider>
+			<ConsentBanner {...props} />
+		</ConsentProvider>
 	);
 }
 

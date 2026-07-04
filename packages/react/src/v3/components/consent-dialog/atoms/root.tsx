@@ -12,12 +12,12 @@ import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import {
 	LocalThemeContext,
 	type ThemeContextValue,
 } from '~/v3/context/theme-context';
-import { useConsentManager } from '~/v3/hooks/use-consent-manager';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
 import { useStyles } from '~/v3/hooks/use-styles';

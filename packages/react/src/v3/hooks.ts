@@ -37,7 +37,7 @@ import type {
 	PolicyUiSurfaceConfig,
 	ResolvedPolicy,
 } from 'c15t/v3';
-import { useContext, useSyncExternalStore } from 'react';
+import { useCallback, useContext, useSyncExternalStore } from 'react';
 import { KernelContext } from './context';
 
 function useKernel(): ConsentKernel {
@@ -251,6 +251,21 @@ export function useSetActiveUI(): (ui: KernelActiveUI) => void {
 export function useSaveConsents(): ConsentKernel['commands']['save'] {
 	const kernel = useKernel();
 	return kernel.commands.save;
+}
+
+/**
+ * Subscribe to consent changes. The callback receives the full consent record
+ * whenever the kernel emits a snapshot.
+ */
+export function useSubscribeToConsentChanges(): (
+	listener: (state: ConsentState) => void
+) => () => void {
+	const kernel = useKernel();
+	return useCallback(
+		(listener: (state: ConsentState) => void) =>
+			kernel.subscribe((snapshot) => listener(snapshot.consents)),
+		[kernel]
+	);
 }
 
 /**

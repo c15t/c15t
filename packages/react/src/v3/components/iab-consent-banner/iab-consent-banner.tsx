@@ -8,13 +8,13 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { type FC, type RefObject, useRef } from 'react';
+import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useHeadlessIABConsentUI } from '~/v3/component-hooks/use-headless-iab-consent-ui';
 import { Box } from '~/v3/components/shared/primitives/box';
 import { BrandingLink } from '~/v3/components/shared/ui/branding';
 import * as Button from '~/v3/components/shared/ui/button';
 import { useComponentConfig } from '~/v3/hooks/use-component-config';
-import { useConsentManager } from '~/v3/hooks/use-consent-manager';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
-import { useHeadlessIABConsentUI } from '~/v3/hooks/use-headless-iab-consent-ui';
 import { useIABTranslations } from '../iab-consent-dialog/use-iab-translations';
 import { IABConsentBannerRoot } from './atoms/root';
 

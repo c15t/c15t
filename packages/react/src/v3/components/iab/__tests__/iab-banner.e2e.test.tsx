@@ -12,10 +12,8 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { IABConsentBanner } from '~/v3/components/iab-consent-banner';
 import { IABConsentDialog } from '~/v3/components/iab-consent-dialog';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/v3/providers/consent-manager-provider';
+import { ConsentProvider } from '~/v3/provider';
+import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provider';
 import {
 	clearConsentState,
 	defaultIABOptions,
@@ -34,10 +32,10 @@ describe('IAB Banner E2E Tests', () => {
 	describe('Banner Display Requirements (IAB Appendix B)', () => {
 		test('should show IAB banner with correct initial display', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -56,10 +54,10 @@ describe('IAB Banner E2E Tests', () => {
 
 		test('should display partner/vendor count from GVL', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -75,10 +73,10 @@ describe('IAB Banner E2E Tests', () => {
 
 		test('should display purpose summary with stack grouping', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -92,10 +90,10 @@ describe('IAB Banner E2E Tests', () => {
 
 		test('should display legitimate interest notice', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -113,10 +111,10 @@ describe('IAB Banner E2E Tests', () => {
 	describe('Banner CTA Requirements', () => {
 		test('should have Accept, Reject, and Customize buttons', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -142,10 +140,10 @@ describe('IAB Banner E2E Tests', () => {
 	describe('Banner Actions', () => {
 		test('should accept all via banner and close', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const acceptButton = await waitForElement(
@@ -169,10 +167,10 @@ describe('IAB Banner E2E Tests', () => {
 
 		test('should reject all via banner and close', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const rejectButton = await waitForElement(
@@ -198,10 +196,10 @@ describe('IAB Banner E2E Tests', () => {
 
 		test('should open preference center from banner', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const customizeButton = await waitForElement(
@@ -218,10 +216,10 @@ describe('IAB Banner E2E Tests', () => {
 	describe('Banner Accessibility', () => {
 		test('should have ARIA labels', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const banner = await waitForElement(
@@ -237,10 +235,10 @@ describe('IAB Banner E2E Tests', () => {
 
 		test('should be keyboard accessible', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const rejectButton = await waitForElement(

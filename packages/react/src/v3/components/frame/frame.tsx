@@ -2,8 +2,8 @@
 
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, useEffect, useState } from 'react';
-import { useConsentManager } from '~/v3/hooks/use-consent-manager';
-import { useTranslations } from '~/v3/hooks/use-translations';
+import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { FrameButton, FrameRoot, FrameTitle } from './atoms';
 import type { FrameProps } from './types';
 
@@ -27,7 +27,7 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 		const hasPolicyScope =
 			Array.isArray(policyCategories) &&
 			policyCategories.length > 0 &&
-			!policyCategories.includes('*');
+			!(policyCategories as readonly string[]).includes('*');
 		const isOutOfPolicyCategory =
 			hasPolicyScope && !policyCategories.includes(category);
 		const isStrictPolicyBlocked =

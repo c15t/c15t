@@ -1,11 +1,10 @@
 import type { ConsentStoreState } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentBanner } from '~/v3/components/consent-banner';
-import { ConsentStateContext } from '~/v3/context/consent-manager-context';
-import { GlobalThemeContext } from '~/v3/context/theme-context';
+import { ConsentProvider } from '~/v3/provider';
 
 function createMockState(
 	overrides: Partial<ConsentStoreState> = {}
@@ -68,42 +67,28 @@ async function renderPolicyActions(
 	const state = createMockState(stateOverrides);
 
 	await render(
-		<GlobalThemeContext.Provider
-			value={{
-				noStyle: false,
-				theme: themeOverrides as never,
-			}}
+		<PolicyTestProvider
+			state={state}
+			themeOverrides={themeOverrides}
 		>
-			<ConsentStateContext.Provider
-				value={{
-					state,
-					store: {
-						getState: () => state,
-						subscribe: () => () => undefined,
-						setState: () => undefined,
-					},
-					manager: null,
-				}}
-			>
-				<ConsentBanner.PolicyActions
-					renderAction={
-						renderAction ??
-						((action, props) => (
-							<button
-								key={props.key}
-								data-testid={`banner-action-${action}`}
-								data-consent-action={props.consentAction}
-								data-primary={String(props.isPrimary)}
-								data-style={props.style ? 'styled' : 'plain'}
-								type="button"
-							>
-								{action}
-							</button>
-						))
-					}
-				/>
-			</ConsentStateContext.Provider>
-		</GlobalThemeContext.Provider>
+			<ConsentBanner.PolicyActions
+				renderAction={
+					renderAction ??
+					((action, props) => (
+						<button
+							key={props.key}
+							data-testid={`banner-action-${action}`}
+							data-consent-action={props.consentAction}
+							data-primary={String(props.isPrimary)}
+							data-style={props.style ? 'styled' : 'plain'}
+							type="button"
+						>
+							{action}
+						</button>
+					))
+				}
+			/>
+		</PolicyTestProvider>
 	);
 }
 
@@ -113,21 +98,51 @@ async function renderDefaultPolicyActions(
 	const state = createMockState(stateOverrides);
 
 	await render(
-		<GlobalThemeContext.Provider value={{ noStyle: false }}>
-			<ConsentStateContext.Provider
-				value={{
-					state,
-					store: {
-						getState: () => state,
-						subscribe: () => () => undefined,
-						setState: () => undefined,
+		<PolicyTestProvider state={state}>
+			<ConsentBanner.PolicyActions />
+		</PolicyTestProvider>
+	);
+}
+
+function PolicyTestProvider({
+	children,
+	state,
+	themeOverrides,
+}: {
+	children: ReactNode;
+	state: ConsentStoreState;
+	themeOverrides?: Record<string, unknown>;
+}) {
+	return (
+		<ConsentProvider
+			options={{
+				mode: 'offline',
+				persistence: false,
+				theme: themeOverrides as never,
+				prefetch: {
+					initialConsents: state.consents,
+					initialTranslations: {
+						language: 'en',
+						translations: defaultTranslationConfig.translations.en as never,
 					},
-					manager: null,
-				}}
-			>
-				<ConsentBanner.PolicyActions />
-			</ConsentStateContext.Provider>
-		</GlobalThemeContext.Provider>
+					initialPolicy: {
+						id: 'policy-actions-test',
+						model: state.model,
+						consent: {
+							categories: state.consentCategories,
+							scopeMode: 'permissive',
+						},
+						ui: {
+							mode: 'banner',
+							banner: state.policyBanner,
+							dialog: state.policyDialog,
+						},
+					},
+				},
+			}}
+		>
+			{children}
+		</ConsentProvider>
 	);
 }
 

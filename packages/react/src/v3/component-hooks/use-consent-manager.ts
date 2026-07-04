@@ -11,37 +11,38 @@ import {
 	type TranslationConfig,
 } from 'c15t';
 import type {
-	ConsentSnapshot,
 	ConsentState,
 	KernelActiveUI,
 	PolicyUiSurfaceConfig,
 } from 'c15t/v3';
-import { useCallback, useContext, useMemo, useSyncExternalStore } from 'react';
-import { KernelContext } from '../context';
+import { useCallback, useMemo } from 'react';
 import { useConsentDraft } from '../draft';
+import {
+	useActiveUI,
+	useBranding,
+	useConsents,
+	useHasConsented,
+	useModel,
+	usePolicyBanner,
+	usePolicyCategories,
+	usePolicyDialog,
+	usePolicyScopeMode,
+	useSaveConsents,
+	useSetActiveUI,
+	useSetConsent,
+	useSnapshot,
+	useSubscribeToConsentChanges,
+	useTranslations,
+} from '../hooks';
 import { useIAB } from '../iab-context';
 
 type SaveType = 'all' | 'custom' | 'necessary';
 
 const EMPTY_POLICY_SURFACE: PolicyUiSurfaceConfig = {};
 
-function useKernelSnapshot(): ConsentSnapshot {
-	const kernel = useContext(KernelContext);
-	if (!kernel) {
-		throw new Error(
-			'useConsentManager must be used within <ConsentProvider options={...}> from @c15t/react/v3'
-		);
-	}
-
-	return useSyncExternalStore(
-		(listener) => kernel.subscribe(listener),
-		() => kernel.getSnapshot(),
-		() => kernel.getSnapshot()
-	);
-}
-
-function toTranslationConfig(snapshot: ConsentSnapshot): TranslationConfig {
-	const resolved = snapshot.translations;
+function toTranslationConfig(
+	resolved: ReturnType<typeof useTranslations>
+): TranslationConfig {
 	if (!resolved) return defaultTranslationConfig;
 
 	return {
@@ -59,24 +60,31 @@ function toActiveUI(ui: KernelActiveUI): ActiveUI {
 }
 
 export function useConsentManager() {
-	const kernel = useContext(KernelContext);
-	if (!kernel) {
-		throw new Error(
-			'useConsentManager must be used within <ConsentProvider options={...}> from @c15t/react/v3'
-		);
-	}
-
-	const snapshot = useKernelSnapshot();
+	const snapshot = useSnapshot();
+	const consents = useConsents();
+	const activeUI = useActiveUI();
+	const branding = useBranding();
+	const hasConsentedValue = useHasConsented();
+	const model = useModel();
+	const policyBanner = usePolicyBanner();
+	const policyCategoriesSnapshot = usePolicyCategories();
+	const policyDialog = usePolicyDialog();
+	const policyScopeMode = usePolicyScopeMode();
+	const saveKernelConsents = useSaveConsents();
+	const setKernelActiveUI = useSetActiveUI();
+	const setKernelConsent = useSetConsent();
+	const subscribeToKernelConsentChanges = useSubscribeToConsentChanges();
+	const translations = useTranslations();
 	const draft = useConsentDraft();
 	const iab = useIAB();
 	const translationConfig = useMemo(
-		() => toTranslationConfig(snapshot),
-		[snapshot]
+		() => toTranslationConfig(translations),
+		[translations]
 	);
 
 	const policyCategories = useMemo(
-		() => Array.from(snapshot.policyCategories),
-		[snapshot.policyCategories]
+		() => Array.from(policyCategoriesSnapshot),
+		[policyCategoriesSnapshot]
 	);
 	const consentCategories = useMemo<AllConsentNames[]>(() => {
 		return policyCategories.length > 0
@@ -93,51 +101,47 @@ export function useConsentManager() {
 
 	const has = useCallback(
 		(condition: Parameters<typeof evaluateHas>[0]) =>
-			evaluateHas(condition, snapshot.consents as ConsentState, {
+			evaluateHas(condition, consents as ConsentState, {
 				policyCategories: policyCategories.length > 0 ? policyCategories : null,
-				policyScopeMode: snapshot.policyScopeMode,
+				policyScopeMode,
 			}),
-		[snapshot.consents, snapshot.policyScopeMode, policyCategories]
+		[consents, policyScopeMode, policyCategories]
 	);
 
 	const hasConsented = useCallback(
-		() => snapshot.hasConsented,
-		[snapshot.hasConsented]
+		() => hasConsentedValue,
+		[hasConsentedValue]
 	);
 
 	const setActiveUI = useCallback(
 		(ui: ActiveUI) => {
-			(
-				kernel.set as typeof kernel.set & {
-					activeUI(ui: KernelActiveUI): void;
-				}
-			).activeUI(ui as KernelActiveUI);
+			setKernelActiveUI(ui as KernelActiveUI);
 		},
-		[kernel]
+		[setKernelActiveUI]
 	);
 
 	const saveConsents = useCallback(
 		async (type: SaveType, _options?: { uiSource?: string }) => {
 			if (type === 'all') {
-				await kernel.commands.save('all');
+				await saveKernelConsents('all');
 				draft.reset();
 				return;
 			}
 			if (type === 'necessary') {
-				await kernel.commands.save('none');
+				await saveKernelConsents('none');
 				draft.reset();
 				return;
 			}
 			await draft.save();
 		},
-		[draft, kernel]
+		[draft, saveKernelConsents]
 	);
 
 	const setConsent = useCallback(
 		(name: AllConsentNames, value: boolean) => {
-			kernel.set.consent({ [name]: value } as Partial<ConsentState>);
+			setKernelConsent({ [name]: value } as Partial<ConsentState>);
 		},
-		[kernel]
+		[setKernelConsent]
 	);
 
 	const setSelectedConsent = useCallback(
@@ -153,17 +157,17 @@ export function useConsentManager() {
 
 	const subscribeToConsentChanges = useCallback(
 		(listener: (state: ConsentState) => void) =>
-			kernel.subscribe((next) => listener(next.consents as ConsentState)),
-		[kernel]
+			subscribeToKernelConsentChanges(listener),
+		[subscribeToKernelConsentChanges]
 	);
 
 	return {
 		...snapshot,
-		activeUI: toActiveUI(snapshot.activeUI),
-		branding: snapshot.branding ?? 'c15t',
-		consents: snapshot.consents as ConsentState,
+		activeUI: toActiveUI(activeUI),
+		branding: branding ?? 'c15t',
+		consents: consents as ConsentState,
 		selectedConsents: draft.values,
-		consentInfo: snapshot.hasConsented ? { type: 'v3' } : null,
+		consentInfo: hasConsentedValue ? { type: 'v3' } : null,
 		consentCategories,
 		consentTypes: getDisplayedConsents(),
 		getDisplayedConsents,
@@ -171,11 +175,11 @@ export function useConsentManager() {
 		hasConsented,
 		iab,
 		manager: null,
-		model: (snapshot.model ?? 'opt-in') as Model,
-		policyBanner: snapshot.policyBanner ?? EMPTY_POLICY_SURFACE,
+		model: (model ?? 'opt-in') as Model,
+		policyBanner: policyBanner ?? EMPTY_POLICY_SURFACE,
 		policyCategories,
-		policyDialog: snapshot.policyDialog ?? EMPTY_POLICY_SURFACE,
-		policyScopeMode: snapshot.policyScopeMode,
+		policyDialog: policyDialog ?? EMPTY_POLICY_SURFACE,
+		policyScopeMode,
 		saveConsents,
 		selectedConsentTypes: draft.values,
 		setActiveUI,

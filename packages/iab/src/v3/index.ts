@@ -263,6 +263,26 @@ export function createIAB(options: CreateIABOptions): IABHandle {
 		if (tcString) cmpApi.updateConsent(tcString);
 	});
 
+	function buildTCFConsentData() {
+		const iab = readIAB(kernel);
+		// `vendorsDisclosed` should reflect every vendor the CMP made
+		// available to the user, per TCF 2.3. For MVP we mirror the set
+		// of vendors whose consent has been considered.
+		const disclosed: Record<string, boolean> = {};
+		for (const id of Object.keys(iab.vendorConsents)) disclosed[id] = true;
+		for (const id of Object.keys(iab.vendorLegitimateInterests)) {
+			disclosed[id] = true;
+		}
+		return {
+			vendorConsents: iab.vendorConsents,
+			vendorLegitimateInterests: iab.vendorLegitimateInterests,
+			purposeConsents: iab.purposeConsents,
+			purposeLegitimateInterests: iab.purposeLegitimateInterests,
+			specialFeatureOptIns: iab.specialFeatureOptIns,
+			vendorsDisclosed: disclosed,
+		};
+	}
+
 	async function generateTC(): Promise<string> {
 		const iab = readIAB(kernel);
 		if (!iab.gvl) {
@@ -272,31 +292,13 @@ export function createIAB(options: CreateIABOptions): IABHandle {
 		}
 		// Lazy-load @iabtechlabtcf/core only when we actually encode.
 		await getTCFCore();
-		// `vendorsDisclosed` should reflect every vendor the CMP made
-		// available to the user, per TCF 2.3. For MVP we mirror the set
-		// of vendors whose consent has been considered.
-		const disclosed: Record<string, boolean> = {};
-		for (const id of Object.keys(iab.vendorConsents)) disclosed[id] = true;
-		for (const id of Object.keys(iab.vendorLegitimateInterests)) {
-			disclosed[id] = true;
-		}
-		const tcString = await generateTCString(
-			{
-				vendorConsents: iab.vendorConsents,
-				vendorLegitimateInterests: iab.vendorLegitimateInterests,
-				purposeConsents: iab.purposeConsents,
-				purposeLegitimateInterests: iab.purposeLegitimateInterests,
-				specialFeatureOptIns: iab.specialFeatureOptIns,
-				vendorsDisclosed: disclosed,
-			},
-			iab.gvl,
-			{
-				cmpId,
-				cmpVersion,
-				publisherCountryCode: options.publisherCountryCode ?? 'US',
-				isServiceSpecific: options.isServiceSpecific ?? true,
-			}
-		);
+		const consentData = buildTCFConsentData();
+		const tcString = await generateTCString(consentData, iab.gvl, {
+			cmpId,
+			cmpVersion,
+			publisherCountryCode: options.publisherCountryCode ?? 'US',
+			isServiceSpecific: options.isServiceSpecific ?? true,
+		});
 		kernel.set.iab({ tcString });
 		return tcString;
 	}
@@ -375,8 +377,10 @@ export function createIAB(options: CreateIABOptions): IABHandle {
 		},
 		generateTCString: generateTC,
 		async save() {
+			const consentData = buildTCFConsentData();
 			const tcString = await generateTC();
 			cmpApi?.saveToStorage(tcString);
+			cmpApi?.updateConsent(tcString, consentData);
 			// Map purposes → c15t consents one more time to make sure
 			// the final save payload reflects what we just generated.
 			const purposes = readIAB(kernel).purposeConsents;

@@ -30,15 +30,11 @@ import { renderToString } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
 import { KernelContext } from '~/v3/context';
 import {
+	ConsentBanner,
+	ConsentDialog,
 	ConsentProvider,
 	type ConsentProviderOptions,
-	useActiveUI,
-	useConsents,
-	usePolicyCategories,
-	useSaveConsents,
-	useSetActiveUI,
-	useSetConsent,
-	useTranslations,
+	ConsentWidget,
 } from '~/v3/index';
 
 type ProviderOptions = ConsentProviderOptions & {
@@ -262,103 +258,26 @@ function KernelCapture({
 	return null;
 }
 
-function ConformanceBanner(): ReactElement | null {
-	const activeUI = useActiveUI();
-	const translations = useTranslations();
-	const saveConsents = useSaveConsents();
-	const setActiveUI = useSetActiveUI();
-	if (activeUI !== 'banner') return null;
-	const t = translations?.translations ?? DEFAULT_TRANSLATIONS;
-
-	return (
-		<section data-testid="consent-banner-root">
-			<h2>{t.cookieBanner.title}</h2>
-			<p>{t.cookieBanner.description}</p>
-			<button
-				type="button"
-				data-testid="consent-banner-reject-button"
-				onClick={() => void saveConsents('none')}
-			>
-				{t.common.rejectAll}
-			</button>
-			<button
-				type="button"
-				data-testid="consent-banner-accept-button"
-				onClick={() => void saveConsents('all')}
-			>
-				{t.common.acceptAll}
-			</button>
-			<button
-				type="button"
-				data-testid="consent-banner-customize-button"
-				onClick={() => setActiveUI('dialog')}
-			>
-				{t.common.customize}
-			</button>
-		</section>
-	);
-}
-
-function ConformanceDialog(): ReactElement | null {
-	const activeUI = useActiveUI();
-	const translations = useTranslations();
-	if (activeUI !== 'dialog') return null;
-	const t = translations?.translations ?? DEFAULT_TRANSLATIONS;
-	return (
-		<section data-testid="consent-dialog-root">
-			<h2>{t.consentManagerDialog.title}</h2>
-			<p>{t.consentManagerDialog.description}</p>
-			<ConformanceWidget />
-		</section>
-	);
-}
-
-function ConformanceWidget(): ReactElement {
-	const consents = useConsents();
-	const categories = usePolicyCategories();
-	const setConsent = useSetConsent();
-	const translations = useTranslations();
-	const t = translations?.translations ?? DEFAULT_TRANSLATIONS;
-	const displayedCategories =
-		categories.length > 0
-			? categories
-			: (DEFAULT_CONSENT_CATEGORIES as readonly AllConsentNames[]);
-
-	return (
-		<section data-testid="consent-widget-root">
-			{displayedCategories.map((category) => {
-				const required = category === 'necessary';
-				return (
-					<label key={category}>
-						<span>{t.consentTypes[category]?.title ?? category}</span>
-						<button
-							type="button"
-							role="switch"
-							aria-checked={String(consents[category])}
-							aria-disabled={required ? 'true' : undefined}
-							disabled={required}
-							data-testid={`consent-widget-switch-${category}`}
-							onClick={() => {
-								if (!required) setConsent({ [category]: !consents[category] });
-							}}
-						>
-							{String(consents[category])}
-						</button>
-					</label>
-				);
-			})}
-		</section>
-	);
-}
-
 function componentFor(component: MountableComponent): ReactElement {
 	switch (component) {
 		case 'consent-banner':
-			return <ConformanceBanner />;
+			return (
+				<ConsentBanner
+					disableAnimation
+					trapFocus={false}
+					hideBranding
+				/>
+			);
 		case 'consent-dialog':
-			return <ConformanceDialog />;
+			return (
+				<ConsentDialog
+					disableAnimation
+					trapFocus={false}
+					hideBranding
+				/>
+			);
 		case 'consent-widget':
-			return <ConformanceWidget />;
+			return <ConsentWidget hideBranding />;
 		case 'iab-consent-banner':
 		case 'iab-consent-dialog':
 			throw new DriverNotImplementedError('react', `mount(${component})`);

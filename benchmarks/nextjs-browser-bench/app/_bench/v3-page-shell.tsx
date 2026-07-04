@@ -1,6 +1,6 @@
 'use client';
 
-import { useConsentManager } from '@c15t/nextjs/v3/headless';
+import { useSetActiveUI } from '@c15t/nextjs/v3';
 import Link from 'next/link';
 import { type NextjsBenchScenario } from './state';
 
@@ -9,7 +9,7 @@ export function V3BenchmarkPageShell({
 }: {
 	scenario: NextjsBenchScenario;
 }) {
-	const { setActiveUI } = useConsentManager();
+	const setActiveUI = useSetActiveUI();
 
 	return (
 		<main style={{ padding: '2rem', fontFamily: 'system-ui' }}>

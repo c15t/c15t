@@ -1,6 +1,6 @@
 'use client';
 
-import { useConsentManager } from '@c15t/react/v3/headless';
+import { useActiveUI } from '@c15t/react/v3';
 import { useEffect, useRef } from 'react';
 import {
 	getBenchState,
@@ -35,7 +35,7 @@ export function ReactV3BenchmarkProbe({
 }: {
 	scenario: ReactBenchScenario;
 }) {
-	const { activeUI } = useConsentManager();
+	const activeUI = useActiveUI();
 	const renderRef = useRef(0);
 	renderRef.current += 1;
 

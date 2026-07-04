@@ -10,13 +10,13 @@
  */
 
 import type { FC } from 'react';
+import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import {
 	ConsentDialogTrigger,
 	type ConsentDialogTriggerProps,
 } from '~/v3/components/consent-dialog-trigger';
 import type { InlineLegalLinksProps } from '~/v3/components/shared/primitives/legal-links';
 import { useComponentConfig } from '~/v3/hooks/use-component-config';
-import { useConsentManager } from '~/v3/hooks/use-consent-manager';
 import { ConsentCustomizationCard } from './atoms/card';
 import { Root as ConsentDialogRoot } from './atoms/root';
 

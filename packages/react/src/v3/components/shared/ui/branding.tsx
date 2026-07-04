@@ -3,9 +3,9 @@ import { resolveStyles, sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import type { Branding } from 'c15t';
 import type { SVGProps } from 'react';
 import { useMemo } from 'react';
-import { useConsentManager } from '~/v3/hooks/use-consent-manager';
+import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { useTheme } from '~/v3/hooks/use-theme';
-import { useTranslations } from '~/v3/hooks/use-translations';
 import type {
 	AllThemeKeys,
 	ClassNameStyle,

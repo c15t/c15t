@@ -100,10 +100,10 @@ export function useIAB(): ReactIABState | null {
 		return {
 			...iab,
 			config: {
-				enabled: iab.enabled,
+				enabled: iab.enabled && Boolean(handle),
 				cmpId: iab.cmpId,
 			},
-			isLoadingGVL: iab.enabled && !iab.gvl,
+			isLoadingGVL: iab.enabled && (!iab.gvl || !handle),
 			nonIABVendors: iab.customVendors,
 			preferenceCenterTab: iabContext?.tab ?? 'purposes',
 			setPreferenceCenterTab: iabContext?.setTab ?? noop,

@@ -74,6 +74,24 @@ describe('applyInitResponse', () => {
 		expect(patch?.activeUI).toBe('banner');
 	});
 
+	test('keeps activeUI none when hydrated consent already exists', () => {
+		const snap = buildInitialSnapshot({});
+		const hydrated = {
+			...snap,
+			hasConsented: true,
+			activeUI: 'none' as const,
+		};
+		const patch = applyInitResponse(hydrated, {
+			policy: {
+				model: 'opt-in',
+				ui: { mode: 'banner' },
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+		});
+		expect(patch?.model).toBe('opt-in');
+		expect(patch?.activeUI).toBe('none');
+	});
+
 	test('policy categories + scope mode are populated in the patch', () => {
 		const snap = buildInitialSnapshot({});
 		const patch = applyInitResponse(snap, {

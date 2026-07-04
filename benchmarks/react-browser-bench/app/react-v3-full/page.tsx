@@ -1,10 +1,10 @@
 'use client';
 
-import { useConsentManager } from '@c15t/react/v3/headless';
+import { useSetActiveUI } from '@c15t/react/v3';
 import { ReactV3BenchmarkProvider } from '../_bench/v3-provider';
 
 function BenchmarkControls() {
-	const { setActiveUI } = useConsentManager();
+	const setActiveUI = useSetActiveUI();
 
 	return (
 		<button

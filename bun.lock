@@ -220,6 +220,7 @@
       "name": "@c15t/nextjs-browser-bench",
       "dependencies": {
         "@c15t/benchmarking": "workspace:*",
+        "@c15t/iab": "workspace:*",
         "@c15t/nextjs": "workspace:*",
         "c15t": "workspace:*",
         "next": "16.2.3",
@@ -266,6 +267,7 @@
       "name": "@c15t/react-browser-bench",
       "dependencies": {
         "@c15t/benchmarking": "workspace:*",
+        "@c15t/iab": "workspace:*",
         "@c15t/react": "workspace:*",
         "c15t": "workspace:*",
         "next": "16.2.3",

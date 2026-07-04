@@ -9,10 +9,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { IABConsentBanner } from '~/v3/components/iab-consent-banner';
 import { IABConsentDialog } from '~/v3/components/iab-consent-dialog';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/v3/providers/consent-manager-provider';
+import { ConsentProvider } from '~/v3/provider';
+import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provider';
 import {
 	addCMPEventListener,
 	clearConsentState,
@@ -33,10 +31,10 @@ describe('IAB Events E2E Tests', () => {
 	describe('Event Status Values', () => {
 		test('should emit "tcloaded" when CMP is ready', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -50,10 +48,10 @@ describe('IAB Events E2E Tests', () => {
 			const events: string[] = [];
 
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -85,10 +83,10 @@ describe('IAB Events E2E Tests', () => {
 			const events: string[] = [];
 
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -127,10 +125,10 @@ describe('IAB Events E2E Tests', () => {
 	describe('Event Listener Lifecycle', () => {
 		test('should invoke listener immediately on registration', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -157,10 +155,10 @@ describe('IAB Events E2E Tests', () => {
 
 		test('should assign unique listenerIds', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -182,10 +180,10 @@ describe('IAB Events E2E Tests', () => {
 
 		test('should stop notifying after removeEventListener', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -235,10 +233,10 @@ describe('IAB Events E2E Tests', () => {
 
 		test('multiple listeners should all receive updates', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -285,10 +283,10 @@ describe('IAB Events E2E Tests', () => {
 	describe('Event Data Completeness', () => {
 		test('each event should include complete TCData', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');
@@ -319,10 +317,10 @@ describe('IAB Events E2E Tests', () => {
 
 		test('listenerId in callback should match assigned ID', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');

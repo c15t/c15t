@@ -9,12 +9,12 @@ import {
 	useCallback,
 	useContext,
 } from 'react';
+import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { Box, type BoxProps } from '~/v3/components/shared/primitives/box';
 import { LucideIcon } from '~/v3/components/shared/ui/icon';
 import * as PreferenceItem from '~/v3/components/shared/ui/preference-item';
 import * as RadixSwitch from '~/v3/components/shared/ui/switch';
-import { useConsentManager } from '~/v3/hooks/use-consent-manager';
-import { useTranslations } from '~/v3/hooks/use-translations';
 
 type ConsentWidgetAccordionContextValue = {
 	onToggleItem: (value: string, open: boolean) => void;

@@ -117,16 +117,18 @@ export function applyInitResponse(
 	const effectiveIabEnabled =
 		(patch.iab !== undefined ? patch.iab : current.iab)?.enabled ?? false;
 
-	const nextModel = deriveModel(effectivePolicy, effectiveIabEnabled);
-	patch.model = nextModel;
-	patch.activeUI = deriveActiveUI(nextModel, effectivePolicy);
-
-	const consentsForPolicy =
-		patch.consents !== undefined ? patch.consents : current.consents;
 	const hasConsentedForPolicy =
 		patch.hasConsented !== undefined
 			? patch.hasConsented
 			: current.hasConsented;
+	const nextModel = deriveModel(effectivePolicy, effectiveIabEnabled);
+	patch.model = nextModel;
+	patch.activeUI = hasConsentedForPolicy
+		? 'none'
+		: deriveActiveUI(nextModel, effectivePolicy);
+
+	const consentsForPolicy =
+		patch.consents !== undefined ? patch.consents : current.consents;
 	const policyResult = applyPolicyToConsents({
 		consents: consentsForPolicy,
 		hasConsented: hasConsentedForPolicy,

@@ -10,7 +10,7 @@ import {
 	useEffect,
 	useState,
 } from 'react';
-import { useConsentManager } from '~/v3/hooks/use-consent-manager';
+import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useStyles } from '~/v3/hooks/use-styles';
 import { useTheme } from '~/v3/hooks/use-theme';

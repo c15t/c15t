@@ -6,9 +6,9 @@
 
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 import { forwardRef, type Ref, type RefObject, useRef } from 'react';
+import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useTheme } from '~/v3/hooks/use-theme';
-import { useTranslations } from '~/v3/hooks/use-translations';
 import { Box, type BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';

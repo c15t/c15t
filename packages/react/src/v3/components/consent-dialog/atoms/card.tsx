@@ -8,6 +8,7 @@
 
 import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 import { forwardRef, type ReactNode, type Ref } from 'react';
+import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { ConsentWidget } from '~/v3/components/consent-widget/consent-widget';
 import { Box, type BoxProps } from '~/v3/components/shared/primitives/box';
 import type { InlineLegalLinksProps } from '~/v3/components/shared/primitives/legal-links';
@@ -16,7 +17,6 @@ import {
 	BrandingLink,
 	type BrandingVariant,
 } from '~/v3/components/shared/ui/branding';
-import { useTranslations } from '~/v3/hooks/use-translations';
 import type { ClassNameStyle } from '~/v3/types/theme';
 import { cnExt as cn } from '~/v3/utils/cn';
 

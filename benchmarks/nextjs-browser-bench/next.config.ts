@@ -7,6 +7,7 @@ const monorepoRoot = resolve(projectDir, '../..');
 
 const transpilePackages = [
 	'@c15t/benchmarking',
+	'@c15t/iab',
 	'@c15t/react',
 	'@c15t/nextjs',
 	'c15t',

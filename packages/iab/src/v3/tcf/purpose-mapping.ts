@@ -171,7 +171,7 @@ export function iabPurposesToC15tConsents(
 	purposeConsents: Record<number, boolean>
 ): Record<AllConsentNames, boolean> {
 	const c15tConsents: Record<AllConsentNames, boolean> = {
-		necessary: false,
+		necessary: true,
 		marketing: false,
 		experience: false,
 		measurement: false,
@@ -179,6 +179,7 @@ export function iabPurposesToC15tConsents(
 	};
 
 	for (const [category, purposes] of Object.entries(C15T_TO_IAB_PURPOSE_MAP)) {
+		if (category === 'necessary') continue;
 		// Category is consented if ALL its purposes are consented
 		const allConsented = purposes.every(
 			(purposeId) => purposeConsents[purposeId] === true

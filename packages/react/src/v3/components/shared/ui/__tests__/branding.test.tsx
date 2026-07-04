@@ -4,8 +4,7 @@ import type { ReactElement } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentDialogFooter } from '~/v3/components/consent-dialog/atoms/card';
-import { ConsentStateContext } from '~/v3/context/consent-manager-context';
-import { GlobalThemeContext } from '~/v3/context/theme-context';
+import { ConsentProvider } from '~/v3/provider';
 import { BrandingCompactLogo, BrandingLink } from '../branding';
 
 function createMockState(
@@ -66,21 +65,39 @@ async function renderWithConsentState(
 	const state = createMockState(stateOverrides);
 
 	await render(
-		<GlobalThemeContext.Provider value={themeOverrides}>
-			<ConsentStateContext.Provider
-				value={{
-					state,
-					store: {
-						getState: () => state,
-						subscribe: () => () => undefined,
-						setState: () => undefined,
+		<ConsentProvider
+			options={{
+				mode: 'offline',
+				persistence: false,
+				theme: themeOverrides.theme,
+				prefetch: {
+					initialBranding: state.branding,
+					initialConsents: state.consents,
+					initialPolicy: {
+						id: 'branding-test-policy',
+						model: state.model ?? 'opt-in',
+						consent: {
+							categories: state.consentCategories,
+							scopeMode: state.policyScopeMode ?? 'permissive',
+						},
+						ui: {
+							mode: state.activeUI === 'dialog' ? 'dialog' : 'banner',
+							banner: state.policyBanner,
+							dialog: state.policyDialog,
+						},
 					},
-					manager: null,
-				}}
-			>
-				{ui}
-			</ConsentStateContext.Provider>
-		</GlobalThemeContext.Provider>
+					initialTranslations: {
+						language: state.translationConfig.defaultLanguage,
+						translations:
+							state.translationConfig.translations[
+								state.translationConfig.defaultLanguage
+							] ?? state.translationConfig.translations.en,
+					},
+				},
+			}}
+		>
+			{ui}
+		</ConsentProvider>
 	);
 }
 

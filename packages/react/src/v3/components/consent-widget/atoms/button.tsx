@@ -1,7 +1,7 @@
 import { forwardRef, type Ref } from 'react';
+import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { ConsentButton } from '~/v3/components/shared/primitives/button';
 import type { ConsentButtonProps } from '~/v3/components/shared/primitives/button.types';
-import { useTranslations } from '~/v3/hooks/use-translations';
 
 /**
  * Button to accept all available cookies.

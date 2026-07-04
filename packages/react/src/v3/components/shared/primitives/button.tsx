@@ -1,7 +1,7 @@
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, type MouseEvent, useCallback } from 'react';
+import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { useConsentTracking } from '~/v3/context/consent-tracking-context';
-import { useConsentManager } from '~/v3/hooks/use-consent-manager';
 import { useStyles } from '~/v3/hooks/use-styles';
 import { useTheme } from '~/v3/hooks/use-theme';
 import type {

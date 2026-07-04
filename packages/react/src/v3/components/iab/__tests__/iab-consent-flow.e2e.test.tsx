@@ -9,10 +9,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { IABConsentBanner } from '~/v3/components/iab-consent-banner';
 import { IABConsentDialog } from '~/v3/components/iab-consent-dialog';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/v3/providers/consent-manager-provider';
+import { ConsentProvider } from '~/v3/provider';
+import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provider';
 import {
 	addCMPEventListener,
 	clearConsentState,
@@ -35,10 +33,10 @@ describe('IAB Consent Flow E2E Tests', () => {
 	describe('Accept All Flow', () => {
 		test('complete flow: display → accept → signal → storage', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			// 1. Display banner
@@ -65,10 +63,10 @@ describe('IAB Consent Flow E2E Tests', () => {
 
 		test('should set all purposes to consented', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const acceptButton = await waitForElement(
@@ -92,10 +90,10 @@ describe('IAB Consent Flow E2E Tests', () => {
 	describe('Reject All Flow', () => {
 		test('complete flow: display → reject → signal → storage', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const rejectButton = await waitForElement(
@@ -120,10 +118,10 @@ describe('IAB Consent Flow E2E Tests', () => {
 	describe('Granular Consent Flow', () => {
 		test('should open preference center for granular selection', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const customizeButton = await waitForElement(
@@ -139,10 +137,10 @@ describe('IAB Consent Flow E2E Tests', () => {
 
 		test('should save granular preferences', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const customizeButton = await waitForElement(
@@ -192,10 +190,10 @@ describe('IAB Consent Flow E2E Tests', () => {
 	describe('Persistence & Restoration Flow', () => {
 		test('consent should be stored in localStorage', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const acceptButton = await waitForElement(
@@ -218,10 +216,10 @@ describe('IAB Consent Flow E2E Tests', () => {
 
 		test('TC String should be stored', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			const acceptButton = await waitForElement(
@@ -249,10 +247,10 @@ describe('IAB Consent Flow E2E Tests', () => {
 	describe('First Visit vs Return Visit', () => {
 		test('first visit - banner should display', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			// Banner should show on first visit
@@ -263,10 +261,10 @@ describe('IAB Consent Flow E2E Tests', () => {
 	describe('Event Notifications', () => {
 		test('should fire useractioncomplete on Accept All', async () => {
 			render(
-				<ConsentManagerProvider options={defaultIABOptions}>
+				<ConsentProvider options={defaultIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await waitForElement('[data-testid="iab-consent-banner-card"]');

@@ -43,6 +43,7 @@ export function hydrateFromStorage(
 			kernel.set.subjectId(storedId);
 		}
 		kernel.set.hasConsented(true);
+		kernel.set.activeUI('none');
 	}
 	return true;
 }

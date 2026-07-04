@@ -6,8 +6,10 @@ import {
 	clearConsentRuntimeCache as baseClearCache,
 	type Callbacks,
 	type ConsentStoreState,
+	defaultTranslationConfig,
 	getOrCreateConsentRuntime,
 } from 'c15t';
+import type { KernelBranding } from 'c15t/v3';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { version } from '../../version';
 import {
@@ -16,6 +18,7 @@ import {
 } from '../context/consent-manager-context';
 import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
+import { ConsentProvider, type ConsentProviderOptions } from '../provider';
 import type { ConsentManagerProviderProps } from '../types/consent-manager';
 import { defaultTheme } from '../utils/theme-utils';
 
@@ -48,6 +51,60 @@ function pickCallbackProps(callbacks?: Callbacks): Callbacks {
 		onConsentChanged: callbacks?.onConsentChanged,
 		onError: callbacks?.onError,
 		onBeforeConsentRevocationReload: callbacks?.onBeforeConsentRevocationReload,
+	};
+}
+
+function toKernelBranding(
+	branding: ConsentStoreState['branding']
+): KernelBranding | undefined {
+	return branding === 'c15t' || branding === 'consent' || branding === 'inth'
+		? branding
+		: undefined;
+}
+
+function toKernelBridgeOptions(
+	options: ConsentManagerProviderProps['options'],
+	state: ConsentStoreState
+): ConsentProviderOptions {
+	const language = state.translationConfig.defaultLanguage ?? 'en';
+	return {
+		colorScheme: options.colorScheme,
+		consentCategories: state.consentCategories,
+		disableAnimation: options.disableAnimation,
+		iab: options.iab as ConsentProviderOptions['iab'],
+		legalLinks: options.store?.legalLinks,
+		mode: 'offline',
+		noStyle: options.noStyle,
+		overrides: options.overrides,
+		prefetch: {
+			initialBranding: toKernelBranding(state.branding),
+			initialConsents: state.consents,
+			initialPolicy: {
+				id: 'legacy-compat-policy',
+				model: state.model ?? 'opt-in',
+				consent: {
+					categories:
+						state.policyCategories && state.policyCategories.length > 0
+							? state.policyCategories
+							: state.consentCategories,
+					scopeMode: state.policyScopeMode ?? 'permissive',
+				},
+				ui: {
+					mode: state.activeUI === 'dialog' ? 'dialog' : state.activeUI,
+					banner: state.policyBanner,
+					dialog: state.policyDialog,
+				},
+			},
+			initialTranslations: {
+				language,
+				translations: (state.translationConfig.translations[language] ??
+					state.translationConfig.translations.en ??
+					defaultTranslationConfig.translations.en) as never,
+			},
+		},
+		scrollLock: options.scrollLock,
+		theme: options.theme,
+		trapFocus: options.trapFocus,
 	};
 }
 
@@ -238,6 +295,14 @@ export function ConsentManagerProvider({
 			manager: consentManager,
 		};
 	}, [state, consentStore, consentManager]);
+	const kernelBridgeKey = [
+		state.activeUI,
+		state.branding,
+		state.model,
+		state.policyScopeMode,
+		state.policyCategories?.join(',') ?? '',
+		state.consentCategories?.join(',') ?? '',
+	].join('|');
 
 	return (
 		<ConsentStateContext.Provider value={consentContextValue}>
@@ -249,7 +314,12 @@ export function ConsentManagerProvider({
 						dangerouslySetInnerHTML={{ __html: themeCSS }}
 					/>
 				) : null}
-				{children}
+				<ConsentProvider
+					key={kernelBridgeKey}
+					options={toKernelBridgeOptions(options, state)}
+				>
+					{children}
+				</ConsentProvider>
 			</GlobalThemeContext.Provider>
 		</ConsentStateContext.Provider>
 	);

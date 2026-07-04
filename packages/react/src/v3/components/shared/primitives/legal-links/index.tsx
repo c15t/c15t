@@ -4,7 +4,6 @@ import type { LegalLinks as LegalLinksType } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
 import { useContext, useMemo, useSyncExternalStore } from 'react';
 import { KernelContext } from '~/v3/context';
-import { ConsentStateContext } from '~/v3/context/consent-manager-context';
 import { useStyles } from '~/v3/hooks/use-styles';
 import type { AllThemeKeys } from '~/v3/types/theme/style-keys';
 import { V3UIConfigContext } from '~/v3/ui-config-context';
@@ -13,19 +12,16 @@ const noopSubscribe = () => () => undefined;
 
 function useLegalLinksConfig(): LegalLinksType | undefined {
 	const v3Config = useContext(V3UIConfigContext);
-	const legacyContext = useContext(ConsentStateContext);
-	return v3Config.legalLinks ?? legacyContext?.state.legalLinks;
+	return v3Config.legalLinks;
 }
 
 function useLegalLinkTranslations(): Record<string, string> | undefined {
 	const kernel = useContext(KernelContext);
-	const legacyContext = useContext(ConsentStateContext);
 	const kernelTranslations = useSyncExternalStore(
 		kernel ? (listener) => kernel.subscribe(listener) : noopSubscribe,
 		() => kernel?.getSnapshot().translations ?? null,
 		() => kernel?.getSnapshot().translations ?? null
 	);
-	const legacyTranslationConfig = legacyContext?.state.translationConfig;
 
 	return useMemo(() => {
 		if (kernelTranslations?.translations) {
@@ -35,11 +31,8 @@ function useLegalLinkTranslations(): Record<string, string> | undefined {
 			return translations.legalLinks;
 		}
 
-		return resolveTranslations(
-			legacyTranslationConfig ?? {},
-			defaultTranslationConfig
-		).legalLinks;
-	}, [kernelTranslations, legacyTranslationConfig]);
+		return resolveTranslations({}, defaultTranslationConfig).legalLinks;
+	}, [kernelTranslations]);
 }
 
 /**

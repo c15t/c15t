@@ -13,10 +13,8 @@ import { ConsentBanner } from '~/v3/components/consent-banner';
 import { ConsentDialog } from '~/v3/components/consent-dialog';
 import { ConsentDialogTrigger } from '~/v3/components/consent-dialog-trigger';
 import { ConsentWidget } from '~/v3/components/consent-widget';
-import {
-	ConsentManagerProvider,
-	clearConsentRuntimeCache,
-} from '~/v3/providers/consent-manager-provider';
+import { ConsentProvider } from '~/v3/provider';
+import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
 
 // Mock localStorage
@@ -42,7 +40,48 @@ Object.defineProperty(window, 'localStorage', {
 
 const defaultOptions: ConsentManagerOptions = {
 	mode: 'offline',
+	consentCategories: [
+		'necessary',
+		'functionality',
+		'experience',
+		'marketing',
+		'measurement',
+	],
+	offlinePolicy: {
+		policy: {
+			id: 'consent-flow-test',
+			model: 'opt-in',
+			consent: {
+				categories: [
+					'necessary',
+					'functionality',
+					'experience',
+					'marketing',
+					'measurement',
+				],
+				scopeMode: 'permissive',
+			},
+			ui: {
+				mode: 'banner',
+			},
+		},
+	},
 };
+
+const storedAcceptAllConsent = () => ({
+	consents: {
+		necessary: true,
+		functionality: true,
+		marketing: true,
+		measurement: true,
+		experience: true,
+	},
+	consentInfo: {
+		time: Date.now(),
+		type: 'accept-all',
+		subjectId: 'sub_123456789ABC',
+	},
+});
 
 describe('Consent Flow E2E Tests', () => {
 	beforeEach(() => {
@@ -62,9 +101,9 @@ describe('Consent Flow E2E Tests', () => {
 	describe('First Visit Flow', () => {
 		test('should show cookie banner to first-time visitor', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -80,9 +119,9 @@ describe('Consent Flow E2E Tests', () => {
 
 		test('should hide banner after accepting all', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -113,9 +152,9 @@ describe('Consent Flow E2E Tests', () => {
 
 		test('should hide banner after rejecting all', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -148,9 +187,9 @@ describe('Consent Flow E2E Tests', () => {
 	describe('Consent Persistence', () => {
 		test('should persist consent to localStorage on accept', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -182,9 +221,9 @@ describe('Consent Flow E2E Tests', () => {
 
 		test('should persist reject decision to localStorage', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -219,25 +258,15 @@ describe('Consent Flow E2E Tests', () => {
 	describe('Returning Visitor Flow', () => {
 		test('should not show banner if user has already consented', async () => {
 			// Set existing consent
-			const consentData = {
-				consents: {
-					necessary: true,
-					functionality: true,
-					marketing: true,
-					measurement: true,
-					experience: true,
-				},
-				consentInfo: {
-					time: Date.now(),
-					type: 'accept-all',
-				},
-			};
-			window.localStorage.setItem('c15t', JSON.stringify(consentData));
+			window.localStorage.setItem(
+				'c15t',
+				JSON.stringify(storedAcceptAllConsent())
+			);
 
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentBanner />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			// Wait a bit to ensure banner would have shown if it was going to
@@ -252,25 +281,15 @@ describe('Consent Flow E2E Tests', () => {
 
 	describe('Preference Center Trigger', () => {
 		test('should show trigger after consent given when showWhen is always', async () => {
-			const consentData = {
-				consents: {
-					necessary: true,
-					functionality: true,
-					marketing: true,
-					measurement: true,
-					experience: true,
-				},
-				consentInfo: {
-					time: Date.now(),
-					type: 'accept-all',
-				},
-			};
-			window.localStorage.setItem('c15t', JSON.stringify(consentData));
+			window.localStorage.setItem(
+				'c15t',
+				JSON.stringify(storedAcceptAllConsent())
+			);
 
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentDialogTrigger showWhen="always" />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -288,9 +307,9 @@ describe('Consent Flow E2E Tests', () => {
 	describe('Widget Integration', () => {
 		test('should render widget with all consent categories', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentWidget />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -315,9 +334,9 @@ describe('Consent Flow E2E Tests', () => {
 
 		test('should have disabled necessary consent toggle', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentWidget />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -337,9 +356,9 @@ describe('Consent Flow E2E Tests', () => {
 	describe('Dialog Integration', () => {
 		test('should show dialog when open prop is true', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentDialog open={true} />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -355,9 +374,9 @@ describe('Consent Flow E2E Tests', () => {
 
 		test('should contain widget inside dialog', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentDialog open={true} />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -373,9 +392,9 @@ describe('Consent Flow E2E Tests', () => {
 
 		test('should render stock dialog branding without an empty footer wrapper', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentDialog open={true} />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			await vi.waitFor(
@@ -395,10 +414,10 @@ describe('Consent Flow E2E Tests', () => {
 	describe('Complete Flow', () => {
 		test('should complete full consent flow: banner -> customize -> save', async () => {
 			render(
-				<ConsentManagerProvider options={defaultOptions}>
+				<ConsentProvider options={defaultOptions}>
 					<ConsentBanner />
 					<ConsentDialog />
-				</ConsentManagerProvider>
+				</ConsentProvider>
 			);
 
 			// Step 1: Banner should appear

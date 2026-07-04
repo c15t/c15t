@@ -5,8 +5,8 @@ import {
 	ConsentBoundary,
 	type ConsentBoundaryProps,
 	ConsentDialog,
-	ConsentManagerProvider,
-	type ConsentManagerProviderProps,
+	ConsentProvider,
+	type ConsentProviderOptions,
 	type InitialDataPromise,
 } from '@c15t/nextjs/v3';
 import type { ReactNode } from 'react';
@@ -19,13 +19,9 @@ const consentCategories = [
 	'experience',
 	'measurement',
 	'marketing',
-] satisfies NonNullable<
-	ConsentManagerProviderProps['options']['consentCategories']
->;
+] satisfies NonNullable<ConsentProviderOptions['consentCategories']>;
 
-function createOptions(
-	scenario: NextjsBenchScenario
-): ConsentManagerProviderProps['options'] {
+function createOptions(scenario: NextjsBenchScenario): ConsentProviderOptions {
 	return {
 		mode: 'c15t',
 		backendURL: '/api/bench-consent',
@@ -91,9 +87,9 @@ export function NextjsV3ClientBenchmarkProvider({
 	scenario: NextjsBenchScenario;
 }) {
 	return (
-		<ConsentManagerProvider options={createOptions(scenario)}>
+		<ConsentProvider options={createOptions(scenario)}>
 			<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
-		</ConsentManagerProvider>
+		</ConsentProvider>
 	);
 }
 
@@ -110,14 +106,14 @@ export function NextjsV3PrefetchedBenchmarkProvider({
 }) {
 	return (
 		<ConsentBoundary config={config}>
-			<ConsentManagerProvider
+			<ConsentProvider
 				options={{
 					...createOptions(scenario),
 					ssrData,
 				}}
 			>
 				<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
-			</ConsentManagerProvider>
+			</ConsentProvider>
 		</ConsentBoundary>
 	);
 }

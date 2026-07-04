@@ -3,8 +3,8 @@
 import {
 	ConsentBanner,
 	ConsentDialog,
-	ConsentManagerProvider,
-	type ConsentManagerProviderProps,
+	ConsentProvider,
+	type ConsentProviderOptions,
 } from '@c15t/react/v3';
 import type { ReactNode } from 'react';
 import { getBenchState, type ReactBenchScenario } from './state';
@@ -16,9 +16,7 @@ const consentCategories = [
 	'experience',
 	'measurement',
 	'marketing',
-] satisfies NonNullable<
-	ConsentManagerProviderProps['options']['consentCategories']
->;
+] satisfies NonNullable<ConsentProviderOptions['consentCategories']>;
 
 export function ReactV3BenchmarkProvider({
 	children,
@@ -27,7 +25,7 @@ export function ReactV3BenchmarkProvider({
 	children: ReactNode;
 	scenario: ReactBenchScenario;
 }) {
-	const options: ConsentManagerProviderProps['options'] = {
+	const options: ConsentProviderOptions = {
 		mode: 'c15t',
 		backendURL: '/api/bench-consent',
 		consentCategories,
@@ -69,11 +67,11 @@ export function ReactV3BenchmarkProvider({
 	};
 
 	return (
-		<ConsentManagerProvider options={options}>
+		<ConsentProvider options={options}>
 			<ReactV3BenchmarkProbe scenario={scenario} />
 			<ConsentBanner disableAnimation />
 			<ConsentDialog disableAnimation />
 			{children}
-		</ConsentManagerProvider>
+		</ConsentProvider>
 	);
 }
