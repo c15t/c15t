@@ -4,6 +4,8 @@ import ConsentDialog from '../../lib/components/consent-dialog.svelte';
 import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
 import ConsentWidget from '../../lib/components/consent-widget.svelte';
 import type { ConsentManagerOptions } from '../../lib/types';
+import type { ConsentKernel } from 'c15t/v3';
+import ConformanceKernelCapture from './conformance-kernel-capture.svelte';
 
 type MountableComponent =
 	| 'consent-banner'
@@ -13,13 +15,16 @@ type MountableComponent =
 let {
 	component,
 	options,
+	onKernel,
 }: {
 	component: MountableComponent;
 	options: ConsentManagerOptions;
+	onKernel?: (kernel: ConsentKernel) => void;
 } = $props();
 </script>
 
 <ConsentManagerProvider {options}>
+	<ConformanceKernelCapture {onKernel} />
 	{#if component === 'consent-banner'}
 		<ConsentBanner />
 	{:else if component === 'consent-dialog'}
