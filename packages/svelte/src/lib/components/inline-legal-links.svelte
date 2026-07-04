@@ -62,7 +62,7 @@ const linkEntries = $derived(
 {#if linkEntries.length > 0}
 	<span>
 		&nbsp;
-		{#each linkEntries as [type, link], index (type)}
+		{#each linkEntries as [ type, link ], index (type)}
 			{#if link}
 				<span>
 					<a
@@ -76,7 +76,9 @@ const linkEntries = $derived(
 							(translations.legalLinks as Record<string, string>)?.[type as string] ??
 							type}{index < linkEntries.length - 1 ? ',' : ''}
 					</a>
-					{#if index < linkEntries.length - 1}&nbsp;{/if}
+					{#if index < linkEntries.length - 1}
+						&nbsp;
+					{/if}
 				</span>
 			{/if}
 		{/each}

@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from 'node:timers/promises';
 import { NextResponse } from 'next/server';
 
 const response = {
@@ -30,6 +31,11 @@ const response = {
 };
 
 export async function GET() {
+	const latencyMs = Number(process.env.C15T_BENCH_INIT_LATENCY_MS ?? '0');
+	if (Number.isFinite(latencyMs) && latencyMs > 0) {
+		await sleep(latencyMs);
+	}
+
 	return NextResponse.json(response, {
 		headers: {
 			'cache-control': 'no-store',

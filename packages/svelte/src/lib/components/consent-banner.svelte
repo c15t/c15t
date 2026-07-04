@@ -278,8 +278,14 @@ const resolvedCustomizeText = $derived(
 					aria-label={resolvedTitle}
 					use:focusTrap={shouldTrapFocus}
 				>
-					<div class={noStyle ? '' : headerStyle.className || ''} data-testid="consent-banner-header">
-						<div class={noStyle ? '' : titleStyle.className || ''} data-testid="consent-banner-title">
+					<div
+						class={noStyle ? '' : headerStyle.className || ''}
+						data-testid="consent-banner-header"
+					>
+						<div
+							class={noStyle ? '' : titleStyle.className || ''}
+							data-testid="consent-banner-title"
+						>
 							{resolvedTitle}
 						</div>
 						<div
@@ -295,9 +301,9 @@ const resolvedCustomizeText = $derived(
 						</div>
 					</div>
 					<PolicyActionsRenderer
-						actionGroups={actionGroups}
-						primaryActions={primaryActions}
-						shouldFillActions={shouldFillActions}
+						{actionGroups}
+						{primaryActions}
+						{shouldFillActions}
 						{direction}
 						footerClassName={noStyle ? '' : footerStyle.className || ''}
 						footerFillClassName={styles.footerFill || ''}

@@ -233,7 +233,11 @@ export interface AccordionHeaderProps extends HTMLAttributes<HTMLDivElement> {}
 
 const AccordionHeader = forwardRef<HTMLDivElement, AccordionHeaderProps>(
 	({ children, ...rest }, forwardedRef) => (
-		<div ref={forwardedRef} data-slot="accordion-header" {...rest}>
+		<div
+			ref={forwardedRef}
+			data-slot="accordion-header"
+			{...rest}
+		>
 			{children}
 		</div>
 	)
@@ -303,7 +307,11 @@ function AccordionIcon<T extends ElementType>({
 	const Component = as || 'div';
 
 	return (
-		<Component className={iconClassName} data-slot="accordion-icon" {...rest} />
+		<Component
+			className={iconClassName}
+			data-slot="accordion-icon"
+			{...rest}
+		/>
 	);
 }
 

@@ -231,8 +231,18 @@ export const VendorList: FC<VendorListProps> = ({
 							stroke="currentColor"
 							strokeWidth="2"
 						>
-							<line x1="18" y1="6" x2="6" y2="18" />
-							<line x1="6" y1="6" x2="18" y2="18" />
+							<line
+								x1="18"
+								y1="6"
+								x2="6"
+								y2="18"
+							/>
+							<line
+								x1="6"
+								y1="6"
+								x2="18"
+								y2="18"
+							/>
 						</svg>
 						{iab.common.clearSelection}
 					</button>
@@ -247,8 +257,17 @@ export const VendorList: FC<VendorListProps> = ({
 							stroke="currentColor"
 							strokeWidth="2"
 						>
-							<circle cx="11" cy="11" r="8" />
-							<line x1="21" y1="21" x2="16.65" y2="16.65" />
+							<circle
+								cx="11"
+								cy="11"
+								r="8"
+							/>
+							<line
+								x1="21"
+								y1="21"
+								x2="16.65"
+								y2="16.65"
+							/>
 						</svg>
 						<input
 							type="text"
@@ -307,8 +326,17 @@ export const VendorList: FC<VendorListProps> = ({
 								stroke="currentColor"
 								strokeWidth="2"
 							>
-								<circle cx="12" cy="12" r="10" />
-								<line x1="2" y1="12" x2="22" y2="12" />
+								<circle
+									cx="12"
+									cy="12"
+									r="10"
+								/>
+								<line
+									x1="2"
+									y1="12"
+									x2="22"
+									y2="12"
+								/>
 								<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
 							</svg>
 							{iab.preferenceCenter.vendorList.customVendorsHeading} (
@@ -370,7 +398,10 @@ export const VendorList: FC<VendorListProps> = ({
 				open={isExpanded}
 			>
 				<div className={styles.vendorListItemHeader}>
-					<PreferenceItem.Trigger className={styles.vendorListTrigger} noStyle>
+					<PreferenceItem.Trigger
+						className={styles.vendorListTrigger}
+						noStyle
+					>
 						<div className={styles.vendorListInfo}>
 							<h3 className={styles.vendorListName}>
 								{vendor.name}
@@ -383,8 +414,17 @@ export const VendorList: FC<VendorListProps> = ({
 										strokeWidth="2"
 										aria-label={iab.common.customPartner}
 									>
-										<circle cx="12" cy="12" r="10" />
-										<line x1="2" y1="12" x2="22" y2="12" />
+										<circle
+											cx="12"
+											cy="12"
+											r="10"
+										/>
+										<line
+											x1="2"
+											y1="12"
+											x2="22"
+											y2="12"
+										/>
 										<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
 									</svg>
 								)}
@@ -461,7 +501,12 @@ export const VendorList: FC<VendorListProps> = ({
 							>
 								<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
 								<polyline points="15 3 21 3 21 9" />
-								<line x1="10" y1="14" x2="21" y2="3" />
+								<line
+									x1="10"
+									y1="14"
+									x2="21"
+									y2="3"
+								/>
 							</svg>
 							{iab.preferenceCenter.vendorList.privacyPolicy}
 						</a>
@@ -481,7 +526,12 @@ export const VendorList: FC<VendorListProps> = ({
 								>
 									<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
 									<polyline points="15 3 21 3 21 9" />
-									<line x1="10" y1="14" x2="21" y2="3" />
+									<line
+										x1="10"
+										y1="14"
+										x2="21"
+										y2="3"
+									/>
 								</svg>
 								{iab.preferenceCenter.purposeItem.legitimateInterest}
 							</a>
@@ -502,7 +552,12 @@ export const VendorList: FC<VendorListProps> = ({
 								>
 									<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
 									<polyline points="15 3 21 3 21 9" />
-									<line x1="10" y1="14" x2="21" y2="3" />
+									<line
+										x1="10"
+										y1="14"
+										x2="21"
+										y2="3"
+									/>
 								</svg>
 								{iab.preferenceCenter.vendorList.storageDisclosure}
 							</a>
@@ -670,7 +725,14 @@ export const VendorList: FC<VendorListProps> = ({
 									<title>
 										{iab.preferenceCenter.vendorList.specialPurposes}
 									</title>
-									<rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+									<rect
+										x="3"
+										y="11"
+										width="18"
+										height="11"
+										rx="2"
+										ry="2"
+									/>
 									<path d="M7 11V7a5 5 0 0 1 10 0v4" />
 								</svg>
 								{iab.preferenceCenter.vendorList.specialPurposes} (
@@ -685,7 +747,10 @@ export const VendorList: FC<VendorListProps> = ({
 										retentionDays = vendor.dataRetention.stdRetention;
 									}
 									return (
-										<li key={sp.id} className={styles.vendorPurposeItem}>
+										<li
+											key={sp.id}
+											className={styles.vendorPurposeItem}
+										>
 											<span>
 												{sp.name}
 												{retentionDays && (
@@ -716,7 +781,10 @@ export const VendorList: FC<VendorListProps> = ({
 							</h4>
 							<ul className={styles.vendorPurposesItems}>
 								{vendorSpecialFeatures.map((sf) => (
-									<li key={sf.id} className={styles.vendorPurposeItem}>
+									<li
+										key={sf.id}
+										className={styles.vendorPurposeItem}
+									>
 										{sf.name}
 									</li>
 								))}
@@ -732,7 +800,10 @@ export const VendorList: FC<VendorListProps> = ({
 							</h4>
 							<ul className={styles.vendorPurposesItems}>
 								{vendorFeatures.map((f) => (
-									<li key={f.id} className={styles.vendorPurposeItem}>
+									<li
+										key={f.id}
+										className={styles.vendorPurposeItem}
+									>
 										{f.name}
 									</li>
 								))}

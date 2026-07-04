@@ -161,6 +161,7 @@
     "benchmarks": {
       "name": "@c15t/benchmarks",
       "dependencies": {
+        "@c15t/benchmarking": "workspace:*",
         "@c15t/react": "workspace:*",
         "@c15t/translations": "workspace:*",
         "c15t": "workspace:*",

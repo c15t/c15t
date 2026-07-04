@@ -9,6 +9,26 @@ import {
 	type NextjsBenchScenario,
 } from './state';
 
+const BANNER_ELEMENT_TIMING_NAME = 'c15t-consent-banner';
+
+interface BenchmarkElementTimingEntry extends PerformanceEntry {
+	identifier?: string;
+	renderTime?: number;
+	loadTime?: number;
+}
+
+function readBannerPaintMs(): number | null {
+	const entries = performance
+		.getEntriesByType('element')
+		.filter(
+			(entry): entry is BenchmarkElementTimingEntry =>
+				(entry as BenchmarkElementTimingEntry).identifier ===
+				BANNER_ELEMENT_TIMING_NAME
+		);
+	const entry = entries.at(-1);
+	return entry ? entry.renderTime || entry.loadTime || entry.startTime : null;
+}
+
 export function NextjsBenchmarkProbe({
 	scenario,
 }: {
@@ -37,6 +57,36 @@ export function NextjsBenchmarkProbe({
 			return;
 		}
 
+		current.cls = current.cls ?? 0;
+		try {
+			const observer = new PerformanceObserver((list) => {
+				const latest = getState(scenario);
+				if (!latest) {
+					return;
+				}
+				for (const entry of list.getEntries()) {
+					const shift = entry as PerformanceEntry & {
+						value?: number;
+						hadRecentInput?: boolean;
+					};
+					if (!shift.hadRecentInput) {
+						latest.cls = (latest.cls ?? 0) + (shift.value ?? 0);
+					}
+				}
+			});
+			observer.observe({ type: 'layout-shift', buffered: true });
+			return () => observer.disconnect();
+		} catch {
+			return;
+		}
+	}, [scenario]);
+
+	useEffect(() => {
+		const current = getState(scenario);
+		if (!current) {
+			return;
+		}
+
 		current.activeUI = activeUI;
 		if (current.bannerVisibleMs !== undefined || activeUI !== 'banner') {
 			return;
@@ -52,6 +102,9 @@ export function NextjsBenchmarkProbe({
 			const bannerRoot = document.querySelector(
 				'[data-testid="consent-banner-root"]'
 			);
+			if (bannerRoot instanceof HTMLElement) {
+				bannerRoot.setAttribute('elementtiming', BANNER_ELEMENT_TIMING_NAME);
+			}
 			const acceptButton = document.querySelector(
 				'[data-testid="consent-banner-accept-button"]'
 			);
@@ -69,6 +122,7 @@ export function NextjsBenchmarkProbe({
 				!hasRunningAnimations(acceptButton)
 			) {
 				latest.bannerVisibleMs = performance.now();
+				latest.bannerPaintMs = readBannerPaintMs();
 				return;
 			}
 

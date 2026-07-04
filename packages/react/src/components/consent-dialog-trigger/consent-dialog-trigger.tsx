@@ -90,7 +90,10 @@ function ConsentDialogTriggerComponent({
 				className={className}
 				noStyle={noStyle}
 			>
-				<TriggerIcon icon={icon} noStyle={noStyle} />
+				<TriggerIcon
+					icon={icon}
+					noStyle={noStyle}
+				/>
 			</TriggerButton>
 		</TriggerRoot>
 	);

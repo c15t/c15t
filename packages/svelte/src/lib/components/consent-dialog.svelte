@@ -152,7 +152,10 @@ $effect(() => {
 	unmountOnExit
 >
 	<Portal>
-		<Dialog.Backdrop class={noStyle ? '' : styles.overlay || ''} data-testid="consent-dialog-overlay" />
+		<Dialog.Backdrop
+			class={noStyle ? '' : styles.overlay || ''}
+			data-testid="consent-dialog-overlay"
+		/>
 		<Dialog.Positioner
 			class={noStyle
 				? ''
@@ -206,7 +209,10 @@ $effect(() => {
 						class={noStyle ? '' : contentStyle.className || ''}
 						data-testid="consent-dialog-content"
 					>
-						<ConsentWidget hideBranding {noStyle} />
+						<ConsentWidget
+							hideBranding
+							{noStyle}
+						/>
 					</div>
 					<Branding
 						{hideBranding}

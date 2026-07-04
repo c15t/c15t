@@ -69,7 +69,9 @@
 			flex: none;
 		}
 
-		.actionRoot:not(:global(.headless))[data-fill] .actionGroup button[data-action],
+		.actionRoot:not(:global(.headless))[data-fill]
+			.actionGroup
+			button[data-action],
 		.actionRoot:not(:global(.headless))[data-direction="column"]
 			.actionGroup
 			button[data-action] {

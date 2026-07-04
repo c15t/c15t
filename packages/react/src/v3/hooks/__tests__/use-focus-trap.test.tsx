@@ -29,7 +29,10 @@ describe('useFocusTrap', () => {
 				onKeyDown={onKeyDown}
 			>
 				<button data-testid="button-1">First</button>
-				<input data-testid="input-1" type="text" />
+				<input
+					data-testid="input-1"
+					type="text"
+				/>
 				<button data-testid="button-2">Second</button>
 			</div>
 		);
@@ -49,7 +52,10 @@ describe('useFocusTrap', () => {
 				>
 					Toggle Trap ({trapEnabled ? 'enabled' : 'disabled'})
 				</button>
-				<div ref={containerRef} data-testid="trap-container">
+				<div
+					ref={containerRef}
+					data-testid="trap-container"
+				>
 					<button data-testid="button-1">First</button>
 					<button data-testid="button-2">Second</button>
 				</div>
@@ -155,7 +161,10 @@ describe('useFocusTrap', () => {
 				useFocusTrap(true, containerRef);
 
 				return (
-					<div ref={containerRef} data-testid="empty-container">
+					<div
+						ref={containerRef}
+						data-testid="empty-container"
+					>
 						<span>No focusable elements here</span>
 					</div>
 				);

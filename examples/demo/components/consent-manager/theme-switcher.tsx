@@ -75,7 +75,10 @@ export function ThemeSwitcherButton() {
 	}, [open]);
 
 	return (
-		<div ref={ref} className="relative">
+		<div
+			ref={ref}
+			className="relative"
+		>
 			<Button
 				size="sm"
 				variant="outline"

@@ -13,8 +13,10 @@ export interface NextjsBenchState {
 	renderCount: number;
 	activeUI: string;
 	onBannerFetchedMs?: number;
+	cls?: number;
 	bannerReadyMs?: number;
 	bannerVisibleMs?: number;
+	bannerPaintMs?: number | null;
 	onBannerFetchedCount: number;
 	onConsentSetCount: number;
 	onErrorCount: number;

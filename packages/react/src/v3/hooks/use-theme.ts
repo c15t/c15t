@@ -1,7 +1,10 @@
 'use client';
 
 import { useContext, useMemo } from 'react';
-import { GlobalThemeContext, LocalThemeContext } from '~/v3/context/theme-context';
+import {
+	GlobalThemeContext,
+	LocalThemeContext,
+} from '~/v3/context/theme-context';
 
 /**
  * Hook to access the current theme context.

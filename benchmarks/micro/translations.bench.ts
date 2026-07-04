@@ -5,7 +5,7 @@ import {
 	mergeTranslationConfigs,
 	prepareTranslationConfig,
 } from 'c15t';
-import { bench, run } from 'mitata';
+import { bench, runMicroBenchmarkSuite } from './wrapper';
 
 // Sample partial override (simulates user customization)
 const partialOverride = {
@@ -113,4 +113,4 @@ bench('prepareTranslationConfig - multi-language (4 languages)', () => {
 	prepareTranslationConfig(multiLangConfig, overrideConfig);
 });
 
-await run();
+await runMicroBenchmarkSuite('translations');

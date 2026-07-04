@@ -72,7 +72,11 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 		};
 
 		return (
-			<div ref={ref} className={className} {...props}>
+			<div
+				ref={ref}
+				className={className}
+				{...props}
+			>
 				{renderContent()}
 			</div>
 		);

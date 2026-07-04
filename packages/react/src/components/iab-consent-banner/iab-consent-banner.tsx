@@ -159,7 +159,11 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	const scopeNotice = iabT.banner.scopeServiceSpecific;
 
 	return (
-		<IABConsentBannerRoot {...config} models={models} uiSource={uiSource}>
+		<IABConsentBannerRoot
+			{...config}
+			models={models}
+			uiSource={uiSource}
+		>
 			<Box baseClassName={styles.cardShell}>
 				<BrandingLink
 					hideBranding={false}

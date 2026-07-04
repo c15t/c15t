@@ -48,7 +48,11 @@ const IABConsentDialogFooter = forwardRef<
 	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	return (
-		<div ref={ref} {...domStyleProps} {...props}>
+		<div
+			ref={ref}
+			{...domStyleProps}
+			{...props}
+		>
 			{children ? (
 				children
 			) : (

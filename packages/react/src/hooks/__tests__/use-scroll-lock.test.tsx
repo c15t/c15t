@@ -29,10 +29,16 @@ describe('useScrollLock', () => {
 
 		return (
 			<div>
-				<button data-testid="toggle" onClick={() => setLocked((prev) => !prev)}>
+				<button
+					data-testid="toggle"
+					onClick={() => setLocked((prev) => !prev)}
+				>
 					Toggle Lock ({locked ? 'locked' : 'unlocked'})
 				</button>
-				<div data-testid="content" style={{ height: '200vh' }}>
+				<div
+					data-testid="content"
+					style={{ height: '200vh' }}
+				>
 					<p>Scrollable content</p>
 				</div>
 			</div>
@@ -154,7 +160,10 @@ describe('useScrollLock', () => {
 
 				return (
 					<div>
-						<button data-testid="toggle" onClick={() => setShow((p) => !p)}>
+						<button
+							data-testid="toggle"
+							onClick={() => setShow((p) => !p)}
+						>
 							Toggle
 						</button>
 						<TestComponent shouldLock={true} />

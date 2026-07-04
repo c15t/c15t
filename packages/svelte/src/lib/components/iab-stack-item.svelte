@@ -101,7 +101,10 @@ const totalVendors = $derived(
 		<PreferenceItem.Control class={noStyle ? '' : styles.stackControls || ''}>
 			{#if someEnabled}
 				<span class="sr-only">Partially enabled</span>
-				<div class={noStyle ? '' : styles.partialIndicator || ''} aria-hidden={true}></div>
+				<div
+					class={noStyle ? '' : styles.partialIndicator || ''}
+					aria-hidden={true}
+				></div>
 			{/if}
 			<Switch.Root
 				aria-label={stack.name}

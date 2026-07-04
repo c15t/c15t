@@ -74,14 +74,20 @@ export function BrandingFullLogo({
 }: BrandingFullLogoProps) {
 	if (resolveBranding(branding) === 'inth') {
 		return (
-			<span dir="ltr" className={cn(styles.brandingWordmark, className)}>
+			<span
+				dir="ltr"
+				className={cn(styles.brandingWordmark, className)}
+			>
 				<InthLogo aria-hidden="true" />
 			</span>
 		);
 	}
 
 	return (
-		<span dir="ltr" className={cn(styles.brandingWordmark, className)}>
+		<span
+			dir="ltr"
+			className={cn(styles.brandingWordmark, className)}
+		>
 			<span className={styles.brandingC15TMark}>
 				<C15TIconOnly aria-hidden="true" />
 			</span>

@@ -150,7 +150,10 @@ describe('UI Source Tracking E2E Tests', () => {
 		test('should render dialog with custom uiSource prop', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
-					<ConsentDialog open={true} uiSource="custom_dialog" />
+					<ConsentDialog
+						open={true}
+						uiSource="custom_dialog"
+					/>
 				</ConsentManagerProvider>
 			);
 

@@ -1,5 +1,5 @@
 import { configureConsentManager, createConsentManagerStore } from 'c15t';
-import { bench, run } from 'mitata';
+import { bench, runMicroBenchmarkSuite } from './wrapper';
 
 // Pre-create a manager for benchmarks that need it
 const manager = configureConsentManager({ mode: 'offline' });
@@ -49,4 +49,4 @@ bench('setIsPrivacyDialogOpen', () => {
 	store.getState().setIsPrivacyDialogOpen(false);
 });
 
-await run();
+await runMicroBenchmarkSuite('store');

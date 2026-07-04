@@ -24,7 +24,11 @@ const IABConsentDialogContent = forwardRef<
 		: styles.content;
 
 	return (
-		<div ref={ref} className={contentClassName} {...props}>
+		<div
+			ref={ref}
+			className={contentClassName}
+			{...props}
+		>
 			{children}
 		</div>
 	);

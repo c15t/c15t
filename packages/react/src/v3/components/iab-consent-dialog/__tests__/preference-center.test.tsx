@@ -482,7 +482,10 @@ describe('IAB Consent Dialog Unit Tests', () => {
 		test('should accept hideBranding prop', async () => {
 			render(
 				<ConsentManagerProvider options={defaultIABOptions}>
-					<IABConsentDialog open hideBranding />
+					<IABConsentDialog
+						open
+						hideBranding
+					/>
 				</ConsentManagerProvider>
 			);
 

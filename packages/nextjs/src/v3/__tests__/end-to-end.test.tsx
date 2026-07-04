@@ -72,7 +72,10 @@ describe('ConsentBoundary: backendURL triggers auto-init', () => {
 
 		try {
 			const { getByTestId } = await render(
-				<ConsentBoundary config={{}} persistence={false}>
+				<ConsentBoundary
+					config={{}}
+					persistence={false}
+				>
 					<Probe />
 				</ConsentBoundary>
 			);

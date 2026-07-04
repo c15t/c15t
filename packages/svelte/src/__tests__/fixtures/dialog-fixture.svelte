@@ -18,5 +18,9 @@ let {
 </script>
 
 <ConsentManagerProvider {options}>
-	<ConsentDialog {open} {models} {hideBranding} />
+	<ConsentDialog
+		{open}
+		{models}
+		{hideBranding}
+	/>
 </ConsentManagerProvider>

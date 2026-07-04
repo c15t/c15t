@@ -9,6 +9,7 @@ import {
 	getOrCreateConsentRuntime,
 } from 'c15t';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
+import { version } from '../../version';
 import {
 	ConsentStateContext,
 	type ConsentStateContextValue,
@@ -17,7 +18,6 @@ import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import type { ConsentManagerProviderProps } from '../types/consent-manager';
 import { defaultTheme } from '../utils/theme-utils';
-import { version } from '../../version';
 
 /**
  * Clears all cached consent managers and stores.

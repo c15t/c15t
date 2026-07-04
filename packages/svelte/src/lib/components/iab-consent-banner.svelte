@@ -173,10 +173,14 @@ const descriptionParts = $derived(descriptionText.split(partnersLinkText));
 					aria-label={iabT.banner.title}
 				>
 					<!-- Header -->
-					<div class={noStyle ? '' : styles.header} data-testid="iab-consent-banner-header">
+					<div
+						class={noStyle ? '' : styles.header}
+						data-testid="iab-consent-banner-header"
+					>
 						<h2 class={noStyle ? '' : styles.title}>{iabT.banner.title}</h2>
 						<p class={noStyle ? '' : styles.description}>
-							{descriptionParts[0]}<button
+							{descriptionParts[0]}
+							<button
 								type="button"
 								class={noStyle ? '' : styles.partnersLink}
 								onclick={handleViewVendors}
@@ -201,7 +205,10 @@ const descriptionParts = $derived(descriptionText.split(partnersLinkText));
 					</div>
 
 					<!-- Footer with buttons -->
-					<div class={noStyle ? '' : styles.footer} data-testid="iab-consent-banner-footer">
+					<div
+						class={noStyle ? '' : styles.footer}
+						data-testid="iab-consent-banner-footer"
+					>
 						<div class={noStyle ? '' : styles.footerButtonGroup}>
 							<button
 								type="button"

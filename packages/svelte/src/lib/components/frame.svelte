@@ -70,7 +70,7 @@ function openDialog() {
 
 <div class={className}>
 	{#if !isMounted || !isReady}
-		<!-- Prevent FOUC: show nothing until ready -->
+	<!-- Prevent FOUC: show nothing until ready -->
 	{:else if hasConsent}
 		{#if children}
 			{@render children()}
@@ -79,10 +79,11 @@ function openDialog() {
 		{@render placeholder()}
 	{:else}
 		<!-- Default placeholder -->
-		<div class={noStyle ? '' : styles.placeholder || ''} data-testid="frame-placeholder">
-			<div class={noStyle ? '' : styles.title || ''}>
-				{frameTitle}
-			</div>
+		<div
+			class={noStyle ? '' : styles.placeholder || ''}
+			data-testid="frame-placeholder"
+		>
+			<div class={noStyle ? '' : styles.title || ''}>{frameTitle}</div>
 			<button
 				type="button"
 				class={noStyle ? '' : btn.root()}

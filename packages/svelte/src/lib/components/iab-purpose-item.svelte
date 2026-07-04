@@ -118,7 +118,10 @@ function handlePurposeToggle(value: boolean) {
 				<PreferenceItem.Title class={noStyle ? '' : styles.purposeName || ''}>
 					{purpose.name}
 					{#if isLocked}
-						<LockIcon class={noStyle ? '' : styles.lockIcon || ''} aria-hidden={true} />
+						<LockIcon
+							class={noStyle ? '' : styles.lockIcon || ''}
+							aria-hidden={true}
+						/>
 					{/if}
 				</PreferenceItem.Title>
 				<PreferenceItem.Meta class={noStyle ? '' : styles.purposeMeta || ''}>
@@ -128,7 +131,9 @@ function handlePurposeToggle(value: boolean) {
 					)}
 				</PreferenceItem.Meta>
 				{#if legIntVendors.length > 0}
-					<PreferenceItem.Auxiliary class={noStyle ? '' : styles.legitimateInterestBadge || ''}>
+					<PreferenceItem.Auxiliary
+						class={noStyle ? '' : styles.legitimateInterestBadge || ''}
+					>
 						<LegitimateInterestIcon
 							class={noStyle ? '' : styles.legitimateInterestIcon || ''}
 							aria-hidden={true}
@@ -150,7 +155,9 @@ function handlePurposeToggle(value: boolean) {
 				class={noStyle ? '' : sw.root()}
 			>
 				<Switch.Control class={noStyle ? '' : sw.track({ disabled: isLocked })}>
-					<Switch.Thumb class={noStyle ? '' : sw.thumb({ disabled: isLocked })} />
+					<Switch.Thumb
+						class={noStyle ? '' : sw.thumb({ disabled: isLocked })}
+					/>
 				</Switch.Control>
 				<Switch.HiddenInput />
 			</Switch.Root>
@@ -217,11 +224,18 @@ function handlePurposeToggle(value: boolean) {
 				bind:open={showExamples}
 				noStyle
 			>
-				<PreferenceItem.Trigger class={noStyle ? '' : styles.examplesToggle || ''}>
+				<PreferenceItem.Trigger
+					class={noStyle ? '' : styles.examplesToggle || ''}
+				>
 					<PreferenceItem.Leading>
-						<ChevronRightIcon width="12" height="12" aria-hidden={true} />
+						<ChevronRightIcon
+							width="12"
+							height="12"
+							aria-hidden={true}
+						/>
 					</PreferenceItem.Leading>
-					{iabT.preferenceCenter.purposeItem.examples} ({purpose.illustrations.length})
+					{iabT.preferenceCenter.purposeItem.examples}
+					({purpose.illustrations.length})
 				</PreferenceItem.Trigger>
 				<PreferenceItem.Content>
 					<ul class={noStyle ? '' : styles.examplesList || ''}>
@@ -240,16 +254,22 @@ function handlePurposeToggle(value: boolean) {
 		>
 			<PreferenceItem.Trigger class={noStyle ? '' : styles.vendorsToggle || ''}>
 				<PreferenceItem.Leading>
-					<ChevronRightIcon width="12" height="12" aria-hidden={true} />
+					<ChevronRightIcon
+						width="12"
+						height="12"
+						aria-hidden={true}
+					/>
 				</PreferenceItem.Leading>
-				{iabT.preferenceCenter.purposeItem.partnersUsingPurpose} ({purpose.vendors.length})
+				{iabT.preferenceCenter.purposeItem.partnersUsingPurpose}
+				({purpose.vendors.length})
 			</PreferenceItem.Trigger>
 			<PreferenceItem.Content>
 				<div class={noStyle ? '' : styles.vendorSection || ''}>
 					<!-- IAB Consent Vendors -->
 					{#if iabConsentVendors.length > 0}
 						<h5 class={noStyle ? '' : styles.vendorSectionTitle || ''}>
-							{iabT.preferenceCenter.purposeItem.withYourPermission} ({iabConsentVendors.length})
+							{iabT.preferenceCenter.purposeItem.withYourPermission}
+							({iabConsentVendors.length})
 						</h5>
 						{#each iabConsentVendors as vendor (vendor.id)}
 							{@const isConsented = getVendorConsent(vendor.id)}
@@ -300,7 +320,8 @@ function handlePurposeToggle(value: boolean) {
 								class={noStyle ? '' : styles.legitimateInterestIcon || ''}
 								aria-hidden={true}
 							/>
-							{iabT.preferenceCenter.purposeItem.legitimateInterest} ({iabLegIntVendors.length})
+							{iabT.preferenceCenter.purposeItem.legitimateInterest}
+							({iabLegIntVendors.length})
 						</h5>
 						<p class={noStyle ? '' : styles.liExplanation || ''}>
 							{iabT.preferenceCenter.purposeItem.rightToObject}
@@ -309,7 +330,9 @@ function handlePurposeToggle(value: boolean) {
 							{@const isConsented = getVendorConsent(vendor.id)}
 							{@const isLIAllowed = getVendorLegitimateInterest(vendor.id)}
 							{@const showLIControl = !!onVendorLegitimateInterestToggle}
-							<div class={noStyle ? '' : `${styles.vendorRow || ''} ${styles.vendorRowLI || ''}`}>
+							<div
+								class={noStyle ? '' : `${styles.vendorRow || ''} ${styles.vendorRowLI || ''}`}
+							>
 								<div class={noStyle ? '' : styles.vendorInfo || ''}>
 									<button
 										type="button"
@@ -370,7 +393,8 @@ function handlePurposeToggle(value: boolean) {
 									class={noStyle ? '' : styles.legitimateInterestIcon || ''}
 									aria-hidden={true}
 								/>
-								{iabT.preferenceCenter.vendorList.customVendorsHeading} ({customConsentVendors.length +
+								{iabT.preferenceCenter.vendorList.customVendorsHeading}
+								({customConsentVendors.length +
 									customLegIntVendors.length})
 							</h5>
 							{#each customConsentVendors as vendor (vendor.id)}
@@ -405,7 +429,9 @@ function handlePurposeToggle(value: boolean) {
 								{@const isConsented = getVendorConsent(vendor.id)}
 								{@const isLIAllowed = getVendorLegitimateInterest(vendor.id)}
 								{@const showLIControl = !!onVendorLegitimateInterestToggle}
-								<div class={noStyle ? '' : `${styles.vendorRow || ''} ${styles.vendorRowLI || ''}`}>
+								<div
+									class={noStyle ? '' : `${styles.vendorRow || ''} ${styles.vendorRowLI || ''}`}
+								>
 									<div class={noStyle ? '' : styles.vendorInfo || ''}>
 										<button
 											type="button"

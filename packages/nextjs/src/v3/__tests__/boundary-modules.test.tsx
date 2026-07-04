@@ -37,7 +37,10 @@ describe('ConsentBoundary module props', () => {
 
 	test('no module props → no extra DOM work beyond the children', async () => {
 		const { getByText } = await render(
-			<ConsentBoundary config={{}} persistence={false}>
+			<ConsentBoundary
+				config={{}}
+				persistence={false}
+			>
 				<div>{'plain boundary'}</div>
 			</ConsentBoundary>
 		);

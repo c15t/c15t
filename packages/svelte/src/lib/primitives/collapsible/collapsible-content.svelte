@@ -1,24 +1,24 @@
 <script lang="ts">
-	import { getCollapsibleState } from '@c15t/ui/primitives';
-	import type { Snippet } from 'svelte';
-	import type { HTMLAttributes } from 'svelte/elements';
-	import { getCollapsibleRootContext } from './context';
+import { getCollapsibleState } from '@c15t/ui/primitives';
+import type { Snippet } from 'svelte';
+import type { HTMLAttributes } from 'svelte/elements';
+import { getCollapsibleRootContext } from './context';
 
-	const root = getCollapsibleRootContext();
+const root = getCollapsibleRootContext();
 
-	const open = $derived(root.open);
-	const contentId = $derived(root.contentId);
-	const triggerId = $derived(root.triggerId);
-	const dataState = $derived(getCollapsibleState(open));
+const open = $derived(root.open);
+const contentId = $derived(root.contentId);
+const triggerId = $derived(root.triggerId);
+const dataState = $derived(getCollapsibleState(open));
 
-	let {
-		children,
-		class: className,
-		...restProps
-	}: HTMLAttributes<HTMLDivElement> & {
-		children?: Snippet;
-		class?: string;
-	} = $props();
+let {
+	children,
+	class: className,
+	...restProps
+}: HTMLAttributes<HTMLDivElement> & {
+	children?: Snippet;
+	class?: string;
+} = $props();
 </script>
 
 <div

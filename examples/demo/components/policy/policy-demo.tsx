@@ -647,8 +647,14 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 				</Button>
 			</div>
 
-			<JsonBlock label="Resolved policy" value={displayPolicySummary} />
-			<JsonBlock label="Runtime state" value={displayRuntimeState} />
+			<JsonBlock
+				label="Resolved policy"
+				value={displayPolicySummary}
+			/>
+			<JsonBlock
+				label="Runtime state"
+				value={displayRuntimeState}
+			/>
 		</div>
 	);
 }
@@ -866,7 +872,10 @@ export function PolicyDemo() {
 								</div>
 
 								{locationPresetSections.map((section) => (
-									<div key={section.label} className="space-y-3">
+									<div
+										key={section.label}
+										className="space-y-3"
+									>
 										<p className="text-sm font-medium">{section.label}</p>
 										<div className="flex flex-wrap gap-2">
 											{section.presets.map((preset) => {
@@ -907,7 +916,10 @@ export function PolicyDemo() {
 								</p>
 								<div className="flex flex-wrap items-end gap-3">
 									<div className="space-y-1.5">
-										<Label htmlFor="country" className="text-xs">
+										<Label
+											htmlFor="country"
+											className="text-xs"
+										>
 											Country
 										</Label>
 										<Input
@@ -922,7 +934,10 @@ export function PolicyDemo() {
 										/>
 									</div>
 									<div className="space-y-1.5">
-										<Label htmlFor="region" className="text-xs">
+										<Label
+											htmlFor="region"
+											className="text-xs"
+										>
 											Region
 										</Label>
 										<Input

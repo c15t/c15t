@@ -168,14 +168,20 @@ const ConsentWidgetAccordionItems = () => {
 						);
 					})()}
 					<PreferenceItem.Header noStyle>
-						<PreferenceItem.Title className={styles.accordionTitle} noStyle>
+						<PreferenceItem.Title
+							className={styles.accordionTitle}
+							noStyle
+						>
 							{consentTypes[consent.name]?.title ??
 								formatConsentName(consent.name)}
 						</PreferenceItem.Title>
 					</PreferenceItem.Header>
 				</ConsentWidgetAccordionTriggerInner>
 
-				<PreferenceItem.Control className={styles.switch} noStyle>
+				<PreferenceItem.Control
+					className={styles.switch}
+					noStyle
+				>
 					<ConsentWidgetSwitch
 						aria-label={
 							consentTypes[consent.name]?.title ??

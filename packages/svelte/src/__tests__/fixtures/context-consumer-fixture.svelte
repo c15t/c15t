@@ -6,6 +6,4 @@ import ContextReader from './context-reader.svelte';
 let { options }: { options: ConsentManagerOptions } = $props();
 </script>
 
-<ConsentManagerProvider {options}>
-	<ContextReader />
-</ConsentManagerProvider>
+<ConsentManagerProvider {options}> <ContextReader /> </ConsentManagerProvider>

@@ -71,7 +71,13 @@ export const Box = forwardRef<HTMLDivElement, BoxProps>(
 		const domStyleProps = sanitizeDOMStyleProps(descriptionStyle);
 
 		const Comp = asChild ? Slot : 'div';
-		return <Comp ref={ref} {...props} {...domStyleProps} />;
+		return (
+			<Comp
+				ref={ref}
+				{...props}
+				{...domStyleProps}
+			/>
+		);
 	}
 );
 

@@ -25,9 +25,9 @@
 	],
 	"scripts": {
 		"build": "tcm src -p \"*.module.css\" -o types --camelCase",
-		"prepack": "bun run build",
 		"fmt": "bun biome format --write .",
-		"lint": "bun biome lint ./src"
+		"lint": "bun biome lint ./src",
+		"prepack": "bun run build"
 	},
 	"devDependencies": {
 		"typed-css-modules": "0.9.1"

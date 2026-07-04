@@ -97,14 +97,22 @@ const brandingStyle = $derived(
 		data-testid={testId}
 	>
 		<span class={styles.brandingCopy || ''}>
-			<span class={styles.brandingText || ''}>{translations.common.securedBy}</span>
+			<span class={styles.brandingText || ''}
+				>{translations.common.securedBy}</span
+			>
 		</span>
 		{#if resolvedBranding === 'inth'}
-			<span dir="ltr" class={`${styles.brandingWordmark || ''} ${styles.brandingInth || ''}`}>
+			<span
+				dir="ltr"
+				class={`${styles.brandingWordmark || ''} ${styles.brandingInth || ''}`}
+			>
 				<InthLogo aria-hidden={true} />
 			</span>
 		{:else}
-			<span dir="ltr" class={`${styles.brandingWordmark || ''} ${styles.brandingC15T || ''}`}>
+			<span
+				dir="ltr"
+				class={`${styles.brandingWordmark || ''} ${styles.brandingC15T || ''}`}
+			>
 				<span class={styles.brandingC15TMark || ''}>
 					<C15TIconOnly aria-hidden={true} />
 				</span>

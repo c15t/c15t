@@ -3,7 +3,7 @@ import {
 	createConsentManagerStore,
 	type Script,
 } from 'c15t';
-import { bench, run } from 'mitata';
+import { bench, runMicroBenchmarkSuite } from './wrapper';
 
 // Mock DOM for Node.js environment
 if (typeof globalThis.document === 'undefined') {
@@ -274,4 +274,4 @@ bench('has() for each script - 15 mixed', () => {
 	}
 });
 
-await run();
+await runMicroBenchmarkSuite('script-loader');

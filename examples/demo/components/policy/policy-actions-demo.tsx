@@ -322,7 +322,10 @@ function PolicyActionsDemoContent() {
 			<div className="mx-auto flex max-w-7xl flex-col gap-8">
 				<div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
 					<div className="max-w-3xl space-y-3">
-						<Badge variant="outline" className="rounded-full px-3 py-1">
+						<Badge
+							variant="outline"
+							className="rounded-full px-3 py-1"
+						>
 							Examples / Demo
 						</Badge>
 						<h1 className="font-semibold text-4xl tracking-tight">
@@ -368,8 +371,15 @@ function PolicyActionsDemoContent() {
 						</CardHeader>
 						<CardContent className="flex flex-wrap gap-3">
 							{locationPresets.map((preset) => (
-								<Button key={preset.href} variant="outline" asChild>
-									<a href={preset.href} title={preset.description}>
+								<Button
+									key={preset.href}
+									variant="outline"
+									asChild
+								>
+									<a
+										href={preset.href}
+										title={preset.description}
+									>
 										{preset.label}
 									</a>
 								</Button>
@@ -404,18 +414,30 @@ function PolicyActionsDemoContent() {
 					className="gap-6"
 				>
 					<TabsList className="h-auto w-full flex-wrap justify-start gap-2 rounded-2xl bg-slate-200/70 p-2 dark:bg-slate-800/70">
-						<TabsTrigger value="default" className="rounded-xl px-4 py-2">
+						<TabsTrigger
+							value="default"
+							className="rounded-xl px-4 py-2"
+						>
 							Default helpers
 						</TabsTrigger>
-						<TabsTrigger value="stock" className="rounded-xl px-4 py-2">
+						<TabsTrigger
+							value="stock"
+							className="rounded-xl px-4 py-2"
+						>
 							renderAction + stock buttons
 						</TabsTrigger>
-						<TabsTrigger value="custom" className="rounded-xl px-4 py-2">
+						<TabsTrigger
+							value="custom"
+							className="rounded-xl px-4 py-2"
+						>
 							renderAction + custom DOM
 						</TabsTrigger>
 					</TabsList>
 
-					<TabsContent value="default" className="space-y-6">
+					<TabsContent
+						value="default"
+						className="space-y-6"
+					>
 						<Card className="border-slate-200/70 bg-white/80 shadow-lg backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
 							<CardHeader>
 								<CardTitle>Default helper rendering</CardTitle>
@@ -430,7 +452,10 @@ function PolicyActionsDemoContent() {
 						</Card>
 					</TabsContent>
 
-					<TabsContent value="stock" className="space-y-6">
+					<TabsContent
+						value="stock"
+						className="space-y-6"
+					>
 						<Card className="border-slate-200/70 bg-white/80 shadow-lg backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
 							<CardHeader>
 								<CardTitle>Custom mapping with stock c15t buttons</CardTitle>
@@ -445,7 +470,10 @@ function PolicyActionsDemoContent() {
 						</Card>
 					</TabsContent>
 
-					<TabsContent value="custom" className="space-y-6">
+					<TabsContent
+						value="custom"
+						className="space-y-6"
+					>
 						<Card className="border-slate-200/70 bg-white/80 shadow-lg backdrop-blur dark:border-slate-800 dark:bg-slate-900/70">
 							<CardHeader>
 								<CardTitle>Custom DOM with base c15t translations</CardTitle>

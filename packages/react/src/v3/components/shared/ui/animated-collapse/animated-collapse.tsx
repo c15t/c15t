@@ -233,7 +233,10 @@ export const AnimatedCollapse: FC<AnimatedCollapseProps> = ({
 			}}
 		>
 			{shouldRender && (
-				<div ref={contentRef} style={{ overflow: 'hidden' }}>
+				<div
+					ref={contentRef}
+					style={{ overflow: 'hidden' }}
+				>
 					{children}
 				</div>
 			)}

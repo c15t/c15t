@@ -6,6 +6,8 @@ This directory contains the internal benchmark platform for `c15t`, `@c15t/react
 
 - `core-benchmarks`
   Measures framework-agnostic runtime work such as store creation, `has()`, cookie round-trips, init, repeat-visitor init, and script updates.
+- `micro`
+  Runs mitata microbenchmarks and emits shared-schema JSON for the regression pipeline.
 - `bundle-test-app`
   Builds a dedicated Next app and records route-level client script size plus publish tarball sizes for `c15t`, `@c15t/react`, and `@c15t/nextjs`.
 - `react-browser-bench`
@@ -85,6 +87,20 @@ BENCH_ITERATIONS=10 bun run bench:banner-visibility
 cd ../script-lifecycle-bench
 BENCH_ITERATIONS=10 SCRIPT_COUNTS=5,10,25,50 bun run bench:script-count
 ```
+
+Browser benchmark runners also accept deterministic environment knobs:
+
+```bash
+C15T_BENCH_ITERATIONS=1 bun run bench -- --profile none --init-latency-ms 0
+C15T_BENCH_ITERATIONS=10 bun run bench -- --profile mobile --init-latency-ms 200
+```
+
+- `--profile none|mobile` selects the Playwright CDP throttle profile. `mobile`
+  applies 4x CPU throttling and Fast-4G-like network conditions.
+- `--init-latency-ms <n>` forwards to `C15T_BENCH_INIT_LATENCY_MS`, making the
+  local deterministic init route delay by `n` milliseconds.
+- Results record `metadata.profile` and `metadata.initLatencyMs` alongside CLS,
+  banner element timing, first-HTML banner presence, and long-task metrics.
 
 Bundle size is measured separately by `bundle-test-app` because it is build analysis rather than an iteration-based browser runtime benchmark.
 

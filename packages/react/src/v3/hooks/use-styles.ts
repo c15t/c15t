@@ -1,7 +1,11 @@
 import { resolveStyles } from '@c15t/ui/utils';
 import { useMemo } from 'react';
 import { useTheme } from '~/v3/hooks/use-theme';
-import type { AllThemeKeys, ClassNameStyle, ThemeValue } from '~/v3/types/theme';
+import type {
+	AllThemeKeys,
+	ClassNameStyle,
+	ThemeValue,
+} from '~/v3/types/theme';
 
 /**
  * Hook for retrieving and merging styles from theme context and component props.

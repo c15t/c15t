@@ -72,7 +72,10 @@ function mergeDefinedOptions(
 ): ConsentManagerOptions {
 	const merged = { ...base };
 	for (const [key, value] of Object.entries(overrides) as Array<
-		[keyof ConsentManagerOptions, ConsentManagerOptions[keyof ConsentManagerOptions]]
+		[
+			keyof ConsentManagerOptions,
+			ConsentManagerOptions[keyof ConsentManagerOptions],
+		]
 	>) {
 		if (value !== undefined) {
 			merged[key] = value as never;
@@ -110,9 +113,7 @@ function resolveI18nTranslations(
 	const fallbackTranslations = defaultTranslationConfig.translations
 		.en as TranslationsResponse;
 	const selected =
-		i18n.messages[language] ??
-		i18n.messages.en ??
-		fallbackTranslations;
+		i18n.messages[language] ?? i18n.messages.en ?? fallbackTranslations;
 	const base =
 		defaultTranslationConfig.translations[
 			language as keyof typeof defaultTranslationConfig.translations
@@ -263,9 +264,9 @@ function createProviderKernel(
 			enabled === false
 				? (prefetch.initialPolicy ?? buildNoBannerPolicy())
 				: (prefetch.initialPolicy ??
-						(policyPacks === undefined
-							? buildInlinePolicy(providerOptions.consentCategories)
-							: undefined)),
+					(policyPacks === undefined
+						? buildInlinePolicy(providerOptions.consentCategories)
+						: undefined)),
 		initialPolicyDecision: prefetch.initialPolicyDecision,
 		initialPolicySnapshotToken: prefetch.initialPolicySnapshotToken,
 	});
@@ -273,9 +274,7 @@ function createProviderKernel(
 
 const kernel = untrack(() => createProviderKernel(options));
 
-let earlyPersistence:
-	| ReturnType<typeof createPersistence>
-	| null = null;
+let earlyPersistence: ReturnType<typeof createPersistence> | null = null;
 const initialEnabled = untrack(() => getEnabled(options));
 const initialPersistenceOptions = untrack(() => normalizePersistenceOptions());
 
@@ -338,8 +337,7 @@ function getIABState(): SvelteIABState | null {
 			iabTab = tab;
 		},
 		setVendorConsent: iabHandle?.setVendorConsent ?? noop,
-		setVendorLegitimateInterest:
-			iabHandle?.setVendorLegitimateInterest ?? noop,
+		setVendorLegitimateInterest: iabHandle?.setVendorLegitimateInterest ?? noop,
 		setPurposeConsent: iabHandle?.setPurposeConsent ?? noop,
 		setPurposeLegitimateInterest:
 			iabHandle?.setPurposeLegitimateInterest ?? noop,

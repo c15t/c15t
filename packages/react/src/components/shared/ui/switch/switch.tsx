@@ -111,8 +111,14 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 				{...domStyleProps}
 				{...rest}
 			>
-				<span className={trackClassName} data-slot="switch-track">
-					<span className={thumbClassName} data-slot="switch-thumb" />
+				<span
+					className={trackClassName}
+					data-slot="switch-track"
+				>
+					<span
+						className={thumbClassName}
+						data-slot="switch-thumb"
+					/>
 				</span>
 			</button>
 		);

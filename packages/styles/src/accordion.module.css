@@ -208,10 +208,8 @@
 		color: var(--accordion-content-color-dark);
 	}
 
-	:global([data-disable-animation])
-		.content:not(:global(.headless)),
-	:global(.disable-animation)
-		.content:not(:global(.headless)) {
+	:global([data-disable-animation]) .content:not(:global(.headless)),
+	:global(.disable-animation) .content:not(:global(.headless)) {
 		transition: none;
 	}
 

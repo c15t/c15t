@@ -6,6 +6,4 @@ import type { ConsentManagerOptions } from '../../lib/types';
 let { options }: { options: ConsentManagerOptions } = $props();
 </script>
 
-<ConsentManagerProvider {options}>
-	<ConsentWidget />
-</ConsentManagerProvider>
+<ConsentManagerProvider {options}> <ConsentWidget /> </ConsentManagerProvider>

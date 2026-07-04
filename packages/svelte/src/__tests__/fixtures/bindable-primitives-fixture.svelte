@@ -17,9 +17,7 @@ let tabClicks = $state(0);
 		switchClicks += 1;
 	}}
 >
-	<Switch.Control>
-		<Switch.Thumb />
-	</Switch.Control>
+	<Switch.Control> <Switch.Thumb /> </Switch.Control>
 </Switch.Root>
 <div data-testid="checked-value">{String(checked)}</div>
 <div data-testid="switch-clicks">{switchClicks}</div>
@@ -52,7 +50,10 @@ let tabClicks = $state(0);
 >
 	Open dialog
 </button>
-<Dialog.Root bind:open={dialogOpen} trapFocus={false}>
+<Dialog.Root
+	bind:open={dialogOpen}
+	trapFocus={false}
+>
 	<Dialog.Content>
 		<Dialog.Title>Dialog title</Dialog.Title>
 		<Dialog.CloseTrigger

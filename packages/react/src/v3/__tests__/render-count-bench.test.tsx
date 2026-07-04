@@ -106,7 +106,10 @@ async function runV2(): Promise<Run> {
 	const { container } = await render(
 		<Tree>
 			{Array.from({ length: CHILDREN }, (_, i) => (
-				<V2Child key={i} index={i} />
+				<V2Child
+					key={i}
+					index={i}
+				/>
 			))}
 		</Tree>
 	);
@@ -189,7 +192,10 @@ async function runV3(): Promise<Run> {
 			}}
 		>
 			{Array.from({ length: CHILDREN }, (_, i) => (
-				<V3Child key={i} index={i} />
+				<V3Child
+					key={i}
+					index={i}
+				/>
 			))}
 			<V3Mutator />
 		</ConsentProvider>

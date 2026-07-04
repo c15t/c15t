@@ -812,12 +812,18 @@ export function ConsentProvider({ options, children }: ConsentProviderProps) {
 
 	const providerChildren = (
 		<>
-			<InitMount enabled={enabled} kernel={kernel} />
+			<InitMount
+				enabled={enabled}
+				kernel={kernel}
+			/>
 			{enabled && persistenceOptions ? (
 				<PersistenceMount options={persistenceOptions} />
 			) : null}
 			{enabled && scripts && scripts.length > 0 ? (
-				<ScriptsMount options={options.scriptLoader} scripts={scripts} />
+				<ScriptsMount
+					options={options.scriptLoader}
+					scripts={scripts}
+				/>
 			) : null}
 			{enabled && networkBlocker ? (
 				<NetworkBlockerMount options={networkBlocker} />
@@ -828,7 +834,10 @@ export function ConsentProvider({ options, children }: ConsentProviderProps) {
 
 	return (
 		<KernelContext.Provider value={kernel}>
-			<V3ThemeProvider themeConfig={themeContextValue} uiConfig={uiConfigValue}>
+			<V3ThemeProvider
+				themeConfig={themeContextValue}
+				uiConfig={uiConfigValue}
+			>
 				{themeCSS ? (
 					<style
 						id="c15t-theme"

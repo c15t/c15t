@@ -679,8 +679,18 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 								stroke="currentColor"
 								strokeWidth="2"
 							>
-								<line x1="18" y1="6" x2="6" y2="18" />
-								<line x1="6" y1="6" x2="18" y2="18" />
+								<line
+									x1="18"
+									y1="6"
+									x2="6"
+									y2="18"
+								/>
+								<line
+									x1="6"
+									y1="6"
+									x2="18"
+									y2="18"
+								/>
 							</svg>
 						</button>
 					</div>
@@ -695,7 +705,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					>
 						{/* Segmented Control Tabs */}
 						<div className={styles.tabsContainer}>
-							<Tabs.List className={styles.tabsList} noStyle>
+							<Tabs.List
+								className={styles.tabsList}
+								noStyle
+							>
 								<Tabs.Trigger
 									className={styles.tabButton}
 									noStyle
@@ -721,7 +734,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 							</Tabs.List>
 						</div>
 
-						<div ref={contentRef} className={styles.content}>
+						<div
+							ref={contentRef}
+							className={styles.content}
+						>
 							{isLoading ? (
 								<div className={styles.loadingContainer}>
 									<div className={styles.loadingSpinner} />
@@ -897,9 +913,23 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 																	.tooltip
 															}
 														>
-															<circle cx="12" cy="12" r="10" />
-															<line x1="12" y1="16" x2="12" y2="12" />
-															<line x1="12" y1="8" x2="12.01" y2="8" />
+															<circle
+																cx="12"
+																cy="12"
+																r="10"
+															/>
+															<line
+																x1="12"
+																y1="16"
+																x2="12"
+																y2="12"
+															/>
+															<line
+																x1="12"
+																y1="8"
+																x2="12.01"
+																y2="8"
+															/>
 														</svg>
 													</div>
 												</div>

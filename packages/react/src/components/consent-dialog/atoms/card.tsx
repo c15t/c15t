@@ -261,7 +261,11 @@ const ConsentCustomizationCard = ({
 				<ConsentDialogHeaderDescription legalLinks={legalLinks} />
 			</ConsentDialogHeader>
 			<ConsentDialogContent>
-				<ConsentWidget hideBranding noStyle={noStyle} useProvider={true} />
+				<ConsentWidget
+					hideBranding
+					noStyle={noStyle}
+					useProvider={true}
+				/>
 			</ConsentDialogContent>
 			<Branding
 				hideBranding={hideBranding ?? false}

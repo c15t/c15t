@@ -5,7 +5,10 @@ import ConsentManagerProvider from '../../lib/components/consent-manager-provide
 import ConsentWidget from '../../lib/components/consent-widget.svelte';
 import type { ConsentManagerOptions } from '../../lib/types';
 
-type MountableComponent = 'consent-banner' | 'consent-dialog' | 'consent-widget';
+type MountableComponent =
+	| 'consent-banner'
+	| 'consent-dialog'
+	| 'consent-widget';
 
 let {
 	component,

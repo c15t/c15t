@@ -146,7 +146,10 @@ const shouldFillActions = $derived(
 	dir={textDirection}
 	data-testid="consent-widget-root"
 >
-	<div class={noStyle ? '' : styles.accordionList || ''} data-testid="consent-widget-accordion">
+	<div
+		class={noStyle ? '' : styles.accordionList || ''}
+		data-testid="consent-widget-accordion"
+	>
 		{#each displayedConsents as consentType (consentType.name)}
 			{@const isOpen = openItems[consentType.name] ?? false}
 			{@const isChecked =
@@ -190,7 +193,9 @@ const shouldFillActions = $derived(
 							</svg>
 						</PreferenceItem.Leading>
 						<PreferenceItem.Header>
-							<PreferenceItem.Title class={noStyle ? '' : styles.accordionTitle || ''}>
+							<PreferenceItem.Title
+								class={noStyle ? '' : styles.accordionTitle || ''}
+							>
 								{translations.consentTypes[consentType.name]?.title ??
 									formatConsentName(consentType.name)}
 							</PreferenceItem.Title>
@@ -208,8 +213,12 @@ const shouldFillActions = $derived(
 							data-scope="switch"
 							data-testid={`consent-widget-switch-${consentType.name}`}
 						>
-							<Switch.Control class={noStyle ? '' : sw.track({ disabled: isDisabled })}>
-								<Switch.Thumb class={noStyle ? '' : sw.thumb({ disabled: isDisabled })} />
+							<Switch.Control
+								class={noStyle ? '' : sw.track({ disabled: isDisabled })}
+							>
+								<Switch.Thumb
+									class={noStyle ? '' : sw.thumb({ disabled: isDisabled })}
+								/>
 							</Switch.Control>
 						</Switch.Root>
 					</PreferenceItem.Control>
@@ -228,9 +237,9 @@ const shouldFillActions = $derived(
 	</div>
 
 	<PolicyActionsRenderer
-		actionGroups={actionGroups}
-		primaryActions={primaryActions}
-		shouldFillActions={shouldFillActions}
+		{actionGroups}
+		{primaryActions}
+		{shouldFillActions}
 		{direction}
 		footerClassName={noStyle ? '' : footerStyle.className || ''}
 		footerFillClassName={styles.footerFill || ''}

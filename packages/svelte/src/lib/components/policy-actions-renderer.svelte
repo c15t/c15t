@@ -65,7 +65,10 @@ const keyedActionGroups = $derived(
 );
 </script>
 
-<div class={resolvedFooterClassName} data-testid={footerTestId}>
+<div
+	class={resolvedFooterClassName}
+	data-testid={footerTestId}
+>
 	{#each keyedActionGroups as actionGroup (actionGroup.key)}
 		<div
 			class={resolvedFooterSubGroupClassName}

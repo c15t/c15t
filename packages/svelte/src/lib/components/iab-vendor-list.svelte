@@ -251,14 +251,20 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 				onclick={onClearSelection}
 				class={noStyle ? '' : styles.clearSelectionButton || ''}
 			>
-				<CloseIcon class={noStyle ? '' : styles.clearIcon || ''} aria-hidden={true} />
+				<CloseIcon
+					class={noStyle ? '' : styles.clearIcon || ''}
+					aria-hidden={true}
+				/>
 				{iabT.common.clearSelection}
 			</button>
 		</div>
 	{:else}
 		<div class={noStyle ? '' : styles.vendorListHeader || ''}>
 			<div class={noStyle ? '' : styles.searchContainer || ''}>
-				<SearchIcon class={noStyle ? '' : styles.searchIcon || ''} aria-hidden={true} />
+				<SearchIcon
+					class={noStyle ? '' : styles.searchIcon || ''}
+					aria-hidden={true}
+				/>
 				<input
 					type="text"
 					placeholder={iabT.preferenceCenter.vendorList.search}
@@ -279,8 +285,12 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 		<div class={noStyle ? '' : styles.vendorSection || ''}>
 			<div class={noStyle ? '' : styles.iabVendorSectionHeader || ''}>
 				<h3 class={noStyle ? '' : styles.vendorSectionHeading || ''}>
-					<LayersIcon class={noStyle ? '' : styles.vendorSectionIcon || ''} aria-hidden={true} />
-					{iabT.preferenceCenter.vendorList.iabVendorsHeading} ({filteredIABVendors.length})
+					<LayersIcon
+						class={noStyle ? '' : styles.vendorSectionIcon || ''}
+						aria-hidden={true}
+					/>
+					{iabT.preferenceCenter.vendorList.iabVendorsHeading}
+					({filteredIABVendors.length})
 				</h3>
 				<p class={noStyle ? '' : styles.iabVendorNotice || ''}>
 					{iabT.preferenceCenter.vendorList.iabVendorsNotice}
@@ -318,24 +328,42 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 										{vendor.name}
 									</h3>
 									<div class={noStyle ? '' : styles.vendorListMeta || ''}>
-										<span class={noStyle ? '' : styles.vendorListMetaText || ''}>
-											{vendorPurposes.length} purpose{vendorPurposes.length !== 1 ? 's' : ''}
-											{#if vendorSpecialPurposes.length > 0}, {vendorSpecialPurposes.length} special{/if}
-											{#if vendorSpecialFeatures.length > 0}, {vendorSpecialFeatures.length} feature{vendorSpecialFeatures.length !==
+										<span
+											class={noStyle ? '' : styles.vendorListMetaText || ''}
+										>
+											{vendorPurposes.length}
+											purpose{vendorPurposes.length !== 1 ? 's' : ''}
+											{#if vendorSpecialPurposes.length > 0}
+												, {vendorSpecialPurposes.length} special
+											{/if}
+											{#if vendorSpecialFeatures.length > 0}
+												,
+												{vendorSpecialFeatures.length}
+												feature{vendorSpecialFeatures.length !==
 												1
 													? 's'
-													: ''}{/if}
+													: ''}
+											{/if}
 										</span>
 										{#if legIntCount > 0}
-											<span class={noStyle ? '' : styles.vendorListLIBadge || ''}>
-												<LegitimateInterestIcon width="10" height="10" aria-hidden={true} />
+											<span
+												class={noStyle ? '' : styles.vendorListLIBadge || ''}
+											>
+												<LegitimateInterestIcon
+													width="10"
+													height="10"
+													aria-hidden={true}
+												/>
 												{legIntCount}
 												{iabT.preferenceCenter.vendorList.legitimateInterest}
 											</span>
 										{/if}
 									</div>
 								</div>
-								<div class={noStyle ? '' : styles.purposeArrow || ''} aria-hidden={true}>
+								<div
+									class={noStyle ? '' : styles.purposeArrow || ''}
+									aria-hidden={true}
+								>
 									<ChevronDownIcon aria-hidden={true} />
 								</div>
 							</PreferenceItem.Trigger>
@@ -366,7 +394,9 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 									rel="noopener noreferrer"
 									class={noStyle ? '' : styles.vendorLink || ''}
 								>
-									<ExternalLinkIcon class={noStyle ? '' : styles.vendorLinkIcon || ''} />
+									<ExternalLinkIcon
+										class={noStyle ? '' : styles.vendorLinkIcon || ''}
+									/>
 									{iabT.preferenceCenter.vendorList.privacyPolicy}
 								</a>
 								{#if vendor.legitimateInterestUrl}
@@ -376,7 +406,9 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 										rel="noopener noreferrer"
 										class={noStyle ? '' : styles.vendorLink || ''}
 									>
-										<ExternalLinkIcon class={noStyle ? '' : styles.vendorLinkIcon || ''} />
+										<ExternalLinkIcon
+											class={noStyle ? '' : styles.vendorLinkIcon || ''}
+										/>
 										{iabT.preferenceCenter.purposeItem.legitimateInterest}
 									</a>
 								{/if}
@@ -387,7 +419,9 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 										rel="noopener noreferrer"
 										class={noStyle ? '' : styles.vendorLink || ''}
 									>
-										<ExternalLinkIcon class={noStyle ? '' : styles.vendorLinkIcon || ''} />
+										<ExternalLinkIcon
+											class={noStyle ? '' : styles.vendorLinkIcon || ''}
+										/>
 										{iabT.preferenceCenter.vendorList.storageDisclosure}
 									</a>
 								{/if}
@@ -424,7 +458,8 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 							{#if vendorPurposes.length > 0}
 								<div class={noStyle ? '' : styles.vendorPurposesList || ''}>
 									<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
-										{iabT.preferenceCenter.vendorList.purposes} ({vendorPurposes.length})
+										{iabT.preferenceCenter.vendorList.purposes}
+										({vendorPurposes.length})
 									</h4>
 									<ul class={noStyle ? '' : styles.vendorPurposesItems || ''}>
 										{#each vendorPurposes as purpose (purpose.id)}
@@ -439,7 +474,9 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 												<span>
 													{purpose.name}
 													{#if retentionDays}
-														<span class={noStyle ? '' : styles.vendorRetention || ''}>
+														<span
+															class={noStyle ? '' : styles.vendorRetention || ''}
+														>
 															({iabT.preferenceCenter.vendorList.retainedDays.replace(
 																'{days}',
 																String(retentionDays),
@@ -448,8 +485,13 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 													{/if}
 												</span>
 												{#if purpose.usesLegitimateInterest}
-													<span class={noStyle ? '' : styles.vendorListLIBadge || ''}>
-														<LegitimateInterestIcon width="10" height="10" />
+													<span
+														class={noStyle ? '' : styles.vendorListLIBadge || ''}
+													>
+														<LegitimateInterestIcon
+															width="10"
+															height="10"
+														/>
 														{iabT.preferenceCenter.vendorList.legitimateInterest}
 													</span>
 												{/if}
@@ -462,7 +504,9 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 							<!-- Legitimate Interest Objection -->
 							{#if hasLegitimateInterest && onVendorLegitimateInterestToggle}
 								<div class={noStyle ? '' : styles.vendorLISection || ''}>
-									<div class={noStyle ? '' : styles.vendorLISectionHeader || ''}>
+									<div
+										class={noStyle ? '' : styles.vendorLISectionHeader || ''}
+									>
 										<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
 											<LegitimateInterestIcon
 												class={noStyle ? '' : styles.legitimateInterestIcon || ''}
@@ -493,7 +537,8 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 							{#if vendor.dataDeclaration && vendor.dataDeclaration.length > 0}
 								<div class={noStyle ? '' : styles.vendorPurposesList || ''}>
 									<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
-										{iabT.preferenceCenter.vendorList.dataCategories} ({vendor.dataDeclaration
+										{iabT.preferenceCenter.vendorList.dataCategories}
+										({vendor.dataDeclaration
 											.length})
 									</h4>
 									<ul class={noStyle ? '' : styles.vendorPurposesItems || ''}>
@@ -519,7 +564,8 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 											role="img"
 											class={noStyle ? '' : styles.legitimateInterestIcon || ''}
 										/>
-										{iabT.preferenceCenter.vendorList.specialPurposes} ({vendorSpecialPurposes.length})
+										{iabT.preferenceCenter.vendorList.specialPurposes}
+										({vendorSpecialPurposes.length})
 									</h4>
 									<ul class={noStyle ? '' : styles.vendorPurposesItems || ''}>
 										{#each vendorSpecialPurposes as sp (sp.id)}
@@ -530,7 +576,9 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 												<span>
 													{sp.name}
 													{#if retentionDays}
-														<span class={noStyle ? '' : styles.vendorRetention || ''}>
+														<span
+															class={noStyle ? '' : styles.vendorRetention || ''}
+														>
 															({iabT.preferenceCenter.vendorList.retainedDays.replace(
 																'{days}',
 																String(retentionDays),
@@ -551,7 +599,8 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 							{#if vendorSpecialFeatures.length > 0}
 								<div class={noStyle ? '' : styles.vendorPurposesList || ''}>
 									<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
-										{iabT.preferenceCenter.vendorList.specialFeatures} ({vendorSpecialFeatures.length})
+										{iabT.preferenceCenter.vendorList.specialFeatures}
+										({vendorSpecialFeatures.length})
 									</h4>
 									<ul class={noStyle ? '' : styles.vendorPurposesItems || ''}>
 										{#each vendorSpecialFeatures as sf (sf.id)}
@@ -567,7 +616,8 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 							{#if vendorFeatures.length > 0}
 								<div class={noStyle ? '' : styles.vendorPurposesList || ''}>
 									<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
-										{iabT.preferenceCenter.vendorList.features} ({vendorFeatures.length})
+										{iabT.preferenceCenter.vendorList.features}
+										({vendorFeatures.length})
 									</h4>
 									<ul class={noStyle ? '' : styles.vendorPurposesItems || ''}>
 										{#each vendorFeatures as f (f.id)}
@@ -590,8 +640,12 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 		<div class={noStyle ? '' : styles.vendorSection || ''}>
 			<div class={noStyle ? '' : styles.customVendorSectionHeader || ''}>
 				<h3 class={noStyle ? '' : styles.vendorSectionHeading || ''}>
-					<GlobeIcon class={noStyle ? '' : styles.vendorSectionIcon || ''} aria-hidden={true} />
-					{iabT.preferenceCenter.vendorList.customVendorsHeading} ({filteredCustomVendors.length})
+					<GlobeIcon
+						class={noStyle ? '' : styles.vendorSectionIcon || ''}
+						aria-hidden={true}
+					/>
+					{iabT.preferenceCenter.vendorList.customVendorsHeading}
+					({filteredCustomVendors.length})
 				</h3>
 				<p class={noStyle ? '' : styles.customVendorNotice || ''}>
 					{iabT.preferenceCenter.vendorList.customVendorsNotice}
@@ -628,7 +682,10 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 										/>
 									</h3>
 								</div>
-								<div class={noStyle ? '' : styles.purposeArrow || ''} aria-hidden={true}>
+								<div
+									class={noStyle ? '' : styles.purposeArrow || ''}
+									aria-hidden={true}
+								>
 									<ChevronDownIcon aria-hidden={true} />
 								</div>
 							</PreferenceItem.Trigger>
@@ -658,7 +715,9 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 									rel="noopener noreferrer"
 									class={noStyle ? '' : styles.vendorLink || ''}
 								>
-									<ExternalLinkIcon class={noStyle ? '' : styles.vendorLinkIcon || ''} />
+									<ExternalLinkIcon
+										class={noStyle ? '' : styles.vendorLinkIcon || ''}
+									/>
 									{iabT.preferenceCenter.vendorList.privacyPolicy}
 								</a>
 							</div>
@@ -675,14 +734,17 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 									>
 								{/if}
 								{#if maxAgeText}
-									<span class={noStyle ? '' : styles.vendorBadge || ''}>{maxAgeText}</span>
+									<span class={noStyle ? '' : styles.vendorBadge || ''}
+										>{maxAgeText}</span
+									>
 								{/if}
 							</div>
 
 							{#if vendorPurposes.length > 0}
 								<div class={noStyle ? '' : styles.vendorPurposesList || ''}>
 									<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
-										{iabT.preferenceCenter.vendorList.purposes} ({vendorPurposes.length})
+										{iabT.preferenceCenter.vendorList.purposes}
+										({vendorPurposes.length})
 									</h4>
 									<ul class={noStyle ? '' : styles.vendorPurposesItems || ''}>
 										{#each vendorPurposes as purpose (purpose.id)}
@@ -696,7 +758,9 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 
 							{#if hasLegitimateInterest && onVendorLegitimateInterestToggle}
 								<div class={noStyle ? '' : styles.vendorLISection || ''}>
-									<div class={noStyle ? '' : styles.vendorLISectionHeader || ''}>
+									<div
+										class={noStyle ? '' : styles.vendorLISectionHeader || ''}
+									>
 										<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
 											<LegitimateInterestIcon
 												class={noStyle ? '' : styles.legitimateInterestIcon || ''}
@@ -726,11 +790,14 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 							{#if vendorSpecialFeatures.length > 0}
 								<div class={noStyle ? '' : styles.vendorPurposesList || ''}>
 									<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
-										{iabT.preferenceCenter.vendorList.specialFeatures} ({vendorSpecialFeatures.length})
+										{iabT.preferenceCenter.vendorList.specialFeatures}
+										({vendorSpecialFeatures.length})
 									</h4>
 									<ul class={noStyle ? '' : styles.vendorPurposesItems || ''}>
 										{#each vendorSpecialFeatures as sf (sf.id)}
-											<li class={noStyle ? '' : styles.vendorPurposeItem || ''}>{sf.name}</li>
+											<li class={noStyle ? '' : styles.vendorPurposeItem || ''}>
+												{sf.name}
+											</li>
 										{/each}
 									</ul>
 								</div>
@@ -739,11 +806,14 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 							{#if vendorFeatures.length > 0}
 								<div class={noStyle ? '' : styles.vendorPurposesList || ''}>
 									<h4 class={noStyle ? '' : styles.vendorPurposesTitle || ''}>
-										{iabT.preferenceCenter.vendorList.features} ({vendorFeatures.length})
+										{iabT.preferenceCenter.vendorList.features}
+										({vendorFeatures.length})
 									</h4>
 									<ul class={noStyle ? '' : styles.vendorPurposesItems || ''}>
 										{#each vendorFeatures as f (f.id)}
-											<li class={noStyle ? '' : styles.vendorPurposeItem || ''}>{f.name}</li>
+											<li class={noStyle ? '' : styles.vendorPurposeItem || ''}>
+												{f.name}
+											</li>
 										{/each}
 									</ul>
 								</div>

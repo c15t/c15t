@@ -142,22 +142,31 @@
 		color: var(--button-background-color);
 	}
 
-	.button:not(:global(.headless))[data-variant="primary"][data-mode="filled"]:focus-visible {
+	.button:not(
+			:global(.headless)
+		)[data-variant="primary"][data-mode="filled"]:focus-visible {
 		box-shadow: var(--button-shadow-primary-focus);
 	}
 
-	:global(.c15t-dark) .button:not(:global(.headless))[data-variant="primary"][data-mode="filled"] {
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="primary"][data-mode="filled"] {
 		background-color: var(--button-primary-dark);
 		color: var(--button-background-color-dark);
 	}
 
-	.button:not(:global(.headless))[data-variant="primary"][data-mode="filled"]:hover:not(:disabled) {
+	.button:not(
+			:global(.headless)
+		)[data-variant="primary"][data-mode="filled"]:hover:not(:disabled) {
 		background-color: var(--button-primary-hover);
 		transition: var(--button-hover-transition-color);
 	}
 
 	:global(.c15t-dark)
-		.button:not(:global(.headless))[data-variant="primary"][data-mode="filled"]:hover:not(:disabled) {
+		.button:not(
+			:global(.headless)
+		)[data-variant="primary"][data-mode="filled"]:hover:not(:disabled) {
 		background-color: var(--button-primary-hover-dark);
 		transition: var(--button-hover-transition-color);
 	}
@@ -168,20 +177,27 @@
 		box-shadow: var(--button-shadow-primary);
 	}
 
-	:global(.c15t-dark) .button:not(:global(.headless))[data-variant="primary"][data-mode="stroke"] {
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="primary"][data-mode="stroke"] {
 		background-color: var(--button-background-color-dark);
 		color: var(--button-primary-dark);
 		box-shadow: var(--button-shadow-primary-dark);
 	}
 
-	.button:not(:global(.headless))[data-variant="primary"][data-mode="stroke"]:hover:not(:disabled) {
+	.button:not(
+			:global(.headless)
+		)[data-variant="primary"][data-mode="stroke"]:hover:not(:disabled) {
 		background-color: var(--button-primary-hover-tint);
 		box-shadow: var(--button-shadow-primary-hover);
 		transition: var(--button-hover-transition-full);
 	}
 
 	:global(.c15t-dark)
-		.button:not(:global(.headless))[data-variant="primary"][data-mode="stroke"]:hover:not(:disabled) {
+		.button:not(
+			:global(.headless)
+		)[data-variant="primary"][data-mode="stroke"]:hover:not(:disabled) {
 		background-color: var(--button-primary-hover-tint);
 		box-shadow: var(--button-shadow-primary-hover-dark);
 		transition: var(--button-hover-transition-full);
@@ -196,7 +212,10 @@
 		color: color-mix(in srgb, var(--button-primary) 85%, black);
 	}
 
-	:global(.c15t-dark) .button:not(:global(.headless))[data-variant="primary"][data-mode="lighter"] {
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="primary"][data-mode="lighter"] {
 		background-color: color-mix(
 			in srgb,
 			var(--button-primary-dark) 10%,
@@ -205,7 +224,9 @@
 		color: var(--button-primary-dark);
 	}
 
-	.button:not(:global(.headless))[data-variant="primary"][data-mode="lighter"]:hover:not(:disabled) {
+	.button:not(
+			:global(.headless)
+		)[data-variant="primary"][data-mode="lighter"]:hover:not(:disabled) {
 		background-color: color-mix(
 			in srgb,
 			var(--button-primary) 20%,
@@ -215,7 +236,9 @@
 	}
 
 	:global(.c15t-dark)
-		.button:not(:global(.headless))[data-variant="primary"][data-mode="lighter"]:hover:not(:disabled) {
+		.button:not(
+			:global(.headless)
+		)[data-variant="primary"][data-mode="lighter"]:hover:not(:disabled) {
 		background-color: color-mix(
 			in srgb,
 			var(--button-primary-dark) 20%,
@@ -228,17 +251,22 @@
 		color: var(--button-primary);
 	}
 
-	:global(.c15t-dark) .button:not(:global(.headless))[data-variant="primary"][data-mode="ghost"] {
+	:global(.c15t-dark)
+		.button:not(:global(.headless))[data-variant="primary"][data-mode="ghost"] {
 		color: var(--button-primary-dark);
 	}
 
-	.button:not(:global(.headless))[data-variant="primary"][data-mode="ghost"]:hover:not(:disabled) {
+	.button:not(
+			:global(.headless)
+		)[data-variant="primary"][data-mode="ghost"]:hover:not(:disabled) {
 		background-color: var(--button-primary-hover-tint);
 		transition: var(--button-hover-transition-color);
 	}
 
 	:global(.c15t-dark)
-		.button:not(:global(.headless))[data-variant="primary"][data-mode="ghost"]:hover:not(:disabled) {
+		.button:not(
+			:global(.headless)
+		)[data-variant="primary"][data-mode="ghost"]:hover:not(:disabled) {
 		background-color: var(--button-primary-hover-tint);
 		transition: var(--button-hover-transition-color);
 	}
@@ -249,23 +277,32 @@
 		color: var(--button-background-color);
 	}
 
-	.button:not(:global(.headless))[data-variant="neutral"][data-mode="filled"]:focus-visible {
+	.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode="filled"]:focus-visible {
 		box-shadow: var(--button-shadow-neutral-focus);
 	}
 
-	:global(.c15t-dark) .button:not(:global(.headless))[data-variant="neutral"][data-mode="filled"] {
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode="filled"] {
 		background-color: var(--button-neutral-dark);
 		color: var(--button-background-color-dark);
 	}
 
-	.button:not(:global(.headless))[data-variant="neutral"][data-mode="filled"]:hover:not(:disabled) {
+	.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode="filled"]:hover:not(:disabled) {
 		background-color: var(--button-neutral-hover);
 		box-shadow: none;
 		transition: var(--button-hover-transition-color);
 	}
 
 	:global(.c15t-dark)
-		.button:not(:global(.headless))[data-variant="neutral"][data-mode="filled"]:hover:not(:disabled) {
+		.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode="filled"]:hover:not(:disabled) {
 		background-color: var(--button-neutral-hover-dark);
 		box-shadow: none;
 		transition: var(--button-hover-transition-color);
@@ -276,12 +313,17 @@
 		box-shadow: var(--button-shadow-neutral);
 	}
 
-	:global(.c15t-dark) .button:not(:global(.headless))[data-variant="neutral"][data-mode="stroke"] {
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode="stroke"] {
 		background-color: var(--button-background-color-dark);
 		box-shadow: var(--button-shadow-neutral-dark);
 	}
 
-	.button:not(:global(.headless))[data-variant="neutral"][data-mode="stroke"]:hover:not(:disabled) {
+	.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode="stroke"]:hover:not(:disabled) {
 		background-color: var(--button-neutral-hover-tint);
 		box-shadow: none;
 		color: var(--button-text-hover);
@@ -289,7 +331,9 @@
 	}
 
 	:global(.c15t-dark)
-		.button:not(:global(.headless))[data-variant="neutral"][data-mode="stroke"]:hover:not(:disabled) {
+		.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode="stroke"]:hover:not(:disabled) {
 		background-color: var(--button-neutral-hover-tint);
 		box-shadow: none;
 		color: var(--button-text-hover-dark);
@@ -305,7 +349,10 @@
 		color: var(--button-neutral);
 	}
 
-	:global(.c15t-dark) .button:not(:global(.headless))[data-variant="neutral"][data-mode="lighter"] {
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode="lighter"] {
 		background-color: color-mix(
 			in srgb,
 			var(--button-neutral-dark) 10%,
@@ -314,7 +361,9 @@
 		color: var(--button-neutral-dark);
 	}
 
-	.button:not(:global(.headless))[data-variant="neutral"][data-mode="lighter"]:hover:not(:disabled) {
+	.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode="lighter"]:hover:not(:disabled) {
 		background-color: color-mix(
 			in srgb,
 			var(--button-neutral) 20%,
@@ -324,7 +373,9 @@
 	}
 
 	:global(.c15t-dark)
-		.button:not(:global(.headless))[data-variant="neutral"][data-mode="lighter"]:hover:not(:disabled) {
+		.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode="lighter"]:hover:not(:disabled) {
 		background-color: color-mix(
 			in srgb,
 			var(--button-neutral-dark) 20%,
@@ -337,18 +388,23 @@
 		color: var(--button-neutral);
 	}
 
-	:global(.c15t-dark) .button:not(:global(.headless))[data-variant="neutral"][data-mode="ghost"] {
+	:global(.c15t-dark)
+		.button:not(:global(.headless))[data-variant="neutral"][data-mode="ghost"] {
 		color: var(--button-neutral-dark);
 	}
 
-	.button:not(:global(.headless))[data-variant="neutral"][data-mode="ghost"]:hover:not(:disabled) {
+	.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode="ghost"]:hover:not(:disabled) {
 		background-color: var(--button-neutral-hover-tint);
 		box-shadow: none;
 		transition: var(--button-hover-transition-color);
 	}
 
 	:global(.c15t-dark)
-		.button:not(:global(.headless))[data-variant="neutral"][data-mode="ghost"]:hover:not(:disabled) {
+		.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode="ghost"]:hover:not(:disabled) {
 		background-color: var(--button-neutral-hover-tint);
 		box-shadow: none;
 		transition: var(--button-hover-transition-color);
@@ -364,30 +420,52 @@
 	/* Reduced motion preference */
 	@media (prefers-reduced-motion: reduce) {
 		.button:not(:global(.headless)),
-		.button:not(:global(.headless))[data-variant="primary"][data-mode="filled"]:hover:not(:disabled),
-		.button:not(:global(.headless))[data-variant="primary"][data-mode="stroke"]:hover:not(:disabled),
-		.button:not(:global(.headless))[data-variant="primary"][data-mode="lighter"]:hover:not(:disabled),
-		.button:not(:global(.headless))[data-variant="primary"][data-mode="ghost"]:hover:not(:disabled),
-		.button:not(:global(.headless))[data-variant="neutral"][data-mode="filled"]:hover:not(:disabled),
-		.button:not(:global(.headless))[data-variant="neutral"][data-mode="stroke"]:hover:not(:disabled),
-		.button:not(:global(.headless))[data-variant="neutral"][data-mode="lighter"]:hover:not(:disabled),
-		.button:not(:global(.headless))[data-variant="neutral"][data-mode="ghost"]:hover:not(:disabled) {
+		.button:not(
+				:global(.headless)
+			)[data-variant="primary"][data-mode="filled"]:hover:not(:disabled),
+		.button:not(
+				:global(.headless)
+			)[data-variant="primary"][data-mode="stroke"]:hover:not(:disabled),
+		.button:not(
+				:global(.headless)
+			)[data-variant="primary"][data-mode="lighter"]:hover:not(:disabled),
+		.button:not(
+				:global(.headless)
+			)[data-variant="primary"][data-mode="ghost"]:hover:not(:disabled),
+		.button:not(
+				:global(.headless)
+			)[data-variant="neutral"][data-mode="filled"]:hover:not(:disabled),
+		.button:not(
+				:global(.headless)
+			)[data-variant="neutral"][data-mode="stroke"]:hover:not(:disabled),
+		.button:not(
+				:global(.headless)
+			)[data-variant="neutral"][data-mode="lighter"]:hover:not(:disabled),
+		.button:not(
+				:global(.headless)
+			)[data-variant="neutral"][data-mode="ghost"]:hover:not(:disabled) {
 			transition: none;
 		}
 	}
 
 	/* Touch device hover reset - prevents "sticky" hover on tap */
 	@media (hover: none) {
-		.button:not(:global(.headless))[data-variant="primary"][data-mode="filled"]:hover:not(:disabled) {
+		.button:not(
+				:global(.headless)
+			)[data-variant="primary"][data-mode="filled"]:hover:not(:disabled) {
 			background-color: var(--button-primary);
 		}
 
-		.button:not(:global(.headless))[data-variant="primary"][data-mode="stroke"]:hover:not(:disabled) {
+		.button:not(
+				:global(.headless)
+			)[data-variant="primary"][data-mode="stroke"]:hover:not(:disabled) {
 			background-color: var(--button-background-color);
 			box-shadow: var(--button-shadow-primary);
 		}
 
-		.button:not(:global(.headless))[data-variant="primary"][data-mode="lighter"]:hover:not(:disabled) {
+		.button:not(
+				:global(.headless)
+			)[data-variant="primary"][data-mode="lighter"]:hover:not(:disabled) {
 			background-color: color-mix(
 				in srgb,
 				var(--button-primary) 10%,
@@ -395,20 +473,28 @@
 			);
 		}
 
-		.button:not(:global(.headless))[data-variant="primary"][data-mode="ghost"]:hover:not(:disabled) {
+		.button:not(
+				:global(.headless)
+			)[data-variant="primary"][data-mode="ghost"]:hover:not(:disabled) {
 			background-color: transparent;
 		}
 
-		.button:not(:global(.headless))[data-variant="neutral"][data-mode="filled"]:hover:not(:disabled) {
+		.button:not(
+				:global(.headless)
+			)[data-variant="neutral"][data-mode="filled"]:hover:not(:disabled) {
 			background-color: var(--button-neutral);
 		}
 
-		.button:not(:global(.headless))[data-variant="neutral"][data-mode="stroke"]:hover:not(:disabled) {
+		.button:not(
+				:global(.headless)
+			)[data-variant="neutral"][data-mode="stroke"]:hover:not(:disabled) {
 			background-color: var(--button-background-color);
 			box-shadow: var(--button-shadow-neutral);
 		}
 
-		.button:not(:global(.headless))[data-variant="neutral"][data-mode="lighter"]:hover:not(:disabled) {
+		.button:not(
+				:global(.headless)
+			)[data-variant="neutral"][data-mode="lighter"]:hover:not(:disabled) {
 			background-color: color-mix(
 				in srgb,
 				var(--button-neutral) 10%,
@@ -416,7 +502,9 @@
 			);
 		}
 
-		.button:not(:global(.headless))[data-variant="neutral"][data-mode="ghost"]:hover:not(:disabled) {
+		.button:not(
+				:global(.headless)
+			)[data-variant="neutral"][data-mode="ghost"]:hover:not(:disabled) {
 			background-color: transparent;
 		}
 	}

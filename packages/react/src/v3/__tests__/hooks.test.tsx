@@ -186,7 +186,10 @@ describe('v3 react: zero unrelated re-renders', () => {
 		function MarketingView() {
 			const allowed = useConsent('marketing');
 			return (
-				<Profiler id="marketing" onRender={() => marketingRenders.push(1)}>
+				<Profiler
+					id="marketing"
+					onRender={() => marketingRenders.push(1)}
+				>
 					<div data-testid="marketing">{String(allowed)}</div>
 				</Profiler>
 			);
@@ -195,7 +198,10 @@ describe('v3 react: zero unrelated re-renders', () => {
 		function MeasurementView() {
 			const allowed = useConsent('measurement');
 			return (
-				<Profiler id="measurement" onRender={() => measurementRenders.push(1)}>
+				<Profiler
+					id="measurement"
+					onRender={() => measurementRenders.push(1)}
+				>
 					<div data-testid="measurement">{String(allowed)}</div>
 				</Profiler>
 			);
@@ -255,7 +261,10 @@ describe('v3 react: zero unrelated re-renders', () => {
 					>
 						noop
 					</button>
-					<Profiler id="dump" onRender={() => renders.push(1)}>
+					<Profiler
+						id="dump"
+						onRender={() => renders.push(1)}
+					>
 						<pre>{JSON.stringify(consents)}</pre>
 					</Profiler>
 				</>

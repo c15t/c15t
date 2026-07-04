@@ -303,7 +303,11 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 		<ErrorBoundary
 			fallback={<div>Something went wrong with the Consent Banner.</div>}
 		>
-			<ConsentBannerRoot {...config} models={models} uiSource={uiSource}>
+			<ConsentBannerRoot
+				{...config}
+				models={models}
+				uiSource={uiSource}
+			>
 				<div className={styles.cardShell}>
 					<BrandingLink
 						hideBranding={hideBranding}
