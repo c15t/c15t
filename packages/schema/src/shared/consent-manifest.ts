@@ -70,6 +70,11 @@ export interface ResolveInitFromManifestOptions {
 	logger?: LoggerLike;
 }
 
+function normalizeLanguageSlice(value: string): string {
+	const normalized = value.split(',')[0]?.split(';')[0]?.trim().toLowerCase();
+	return normalized?.split('-')[0] ?? value;
+}
+
 function stripIabTranslations(
 	translations: Record<string, unknown>
 ): Record<string, unknown> {
@@ -223,6 +228,51 @@ export function createConsentManifestPolicyPack(input: {
 		policy: input.policy,
 		resolvedPolicy: createResolvedPolicyFromConfig(input.policy),
 		fingerprint: input.fingerprint,
+	};
+}
+
+export function sliceConsentManifestLanguage(
+	manifest: ConsentManifest,
+	language: string
+): ConsentManifest {
+	const normalizedLanguage = normalizeLanguageSlice(language);
+	const customTranslations = manifest.translations?.customTranslations;
+	const i18n = manifest.translations?.i18n;
+
+	return {
+		...manifest,
+		translations: {
+			customTranslations: customTranslations
+				? {
+						...(customTranslations[normalizedLanguage] && {
+							[normalizedLanguage]: customTranslations[normalizedLanguage],
+						}),
+					}
+				: undefined,
+			i18n: i18n
+				? {
+						...i18n,
+						messages: i18n.messages
+							? Object.fromEntries(
+									Object.entries(i18n.messages).map(
+										([profileName, profile]) => [
+											profileName,
+											{
+												...profile,
+												translations: {
+													...(profile.translations[normalizedLanguage] && {
+														[normalizedLanguage]:
+															profile.translations[normalizedLanguage],
+													}),
+												},
+											},
+										]
+									)
+								)
+							: undefined,
+					}
+				: undefined,
+		},
 	};
 }
 

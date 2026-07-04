@@ -24,6 +24,7 @@ export type C15TEdgeOptions = Pick<
 	| 'branding'
 	| 'iab'
 	| 'cache'
+	| 'manifestCache'
 	| 'policySnapshot'
 	| 'legalDocumentSnapshot'
 	| 'telemetry'

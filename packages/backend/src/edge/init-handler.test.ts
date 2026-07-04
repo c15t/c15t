@@ -1,6 +1,9 @@
 import type { GlobalVendorList } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { unstable_c15tEdgeInit } from './init-handler';
+import {
+	unstable_c15tEdgeInit,
+	unstable_c15tEdgeManifest,
+} from './init-handler';
 import type { C15TEdgeOptions } from './types';
 
 const { mockGVLGet, mockResolveInitPayload } = vi.hoisted(() => {
@@ -103,6 +106,12 @@ describe('unstable_c15tEdgeInit', () => {
 		expect(response.status).toBe(204);
 		expect(response.headers.get('access-control-allow-methods')).toBe(
 			'GET, OPTIONS'
+		);
+		expect(response.headers.get('access-control-allow-headers')).toContain(
+			'sec-gpc'
+		);
+		expect(response.headers.get('access-control-allow-headers')).toContain(
+			'x-vercel-ip-country'
 		);
 		expect(response.headers.get('access-control-allow-origin')).toBe(
 			'https://myapp.com'
@@ -214,5 +223,35 @@ describe('unstable_c15tEdgeInit', () => {
 		);
 
 		expect(response.headers.get('content-type')).toBe('application/json');
+	});
+});
+
+describe('unstable_c15tEdgeManifest', () => {
+	it('serves a cacheable manifest response', async () => {
+		const handler = unstable_c15tEdgeManifest({
+			...baseOptions,
+			manifestCache: {
+				sMaxAge: 60,
+				staleWhileRevalidate: 120,
+			},
+		});
+		const response = await handler(
+			makeRequest('/manifest?language=en', {
+				headers: {
+					origin: 'https://myapp.com',
+				},
+			})
+		);
+		const body = await response.json();
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get('cache-control')).toBe(
+			'public, s-maxage=60, stale-while-revalidate=120'
+		);
+		expect(response.headers.get('etag')).toMatch(/^"[a-f0-9]{64}"$/);
+		expect(response.headers.get('access-control-allow-origin')).toBe(
+			'https://myapp.com'
+		);
+		expect(body.policyPacks[0].fingerprint).toMatch(/^[a-f0-9]{64}$/);
 	});
 });

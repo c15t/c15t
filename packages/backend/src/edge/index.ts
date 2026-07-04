@@ -1,5 +1,8 @@
 export type { InitPayload } from './init-handler';
-export { unstable_c15tEdgeInit } from './init-handler';
+export {
+	unstable_c15tEdgeInit,
+	unstable_c15tEdgeManifest,
+} from './init-handler';
 export type {
 	C15TConsentResolverOptions,
 	CategoryConsent,

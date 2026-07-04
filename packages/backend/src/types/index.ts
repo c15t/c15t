@@ -479,6 +479,32 @@ export interface C15TOptions {
 	cache?: CacheOptions;
 
 	/**
+	 * CDN cache semantics for `GET /manifest`.
+	 *
+	 * The route always returns `Cache-Control: public` and uses these values for
+	 * `s-maxage` and `stale-while-revalidate`. After a policy/config edit,
+	 * tenants may observe stale manifest content for up to `sMaxAge` seconds
+	 * before CDN revalidation, with the stale response usable during background
+	 * revalidation for `staleWhileRevalidate` seconds.
+	 *
+	 * @default { sMaxAge: 300, staleWhileRevalidate: 86400 }
+	 */
+	manifestCache?: {
+		/**
+		 * Shared-cache freshness lifetime in seconds.
+		 *
+		 * @default 300
+		 */
+		sMaxAge?: number;
+		/**
+		 * Shared-cache background revalidation window in seconds.
+		 *
+		 * @default 86400
+		 */
+		staleWhileRevalidate?: number;
+	};
+
+	/**
 	 * API keys for authenticated endpoints.
 	 * Used for server-side endpoints like GET /subjects.
 	 *

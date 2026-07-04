@@ -95,6 +95,7 @@ export {
 	resolveNoPolicyFallback,
 	resolvePolicyDecision,
 	resolvePolicySync,
+	sliceConsentManifestLanguage,
 	UK_COUNTRY_CODES,
 	validateMessages,
 	validatePolicies,

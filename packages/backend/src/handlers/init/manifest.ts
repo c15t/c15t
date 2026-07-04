@@ -1,6 +1,7 @@
 import {
 	type ConsentManifest,
 	createConsentManifestPolicyPack,
+	createDeterministicFingerprintSync,
 	createPolicyFingerprint,
 	createResolvedPolicyFromConfig,
 } from '@c15t/schema/types';
@@ -39,9 +40,9 @@ export async function buildConsentManifestFromOptions(
 			)
 		: undefined;
 
-	return {
+	const manifest: ConsentManifest = {
 		schemaVersion: 1,
-		revision: options.tenantId ?? options.appName ?? 'default',
+		revision: '',
 		tenantId: options.tenantId,
 		appName: options.appName,
 		branding: options.branding || 'c15t',
@@ -55,5 +56,10 @@ export async function buildConsentManifestFromOptions(
 		},
 		cmpId: options.iab?.cmpId,
 		iab: buildGvlReference(options),
+	};
+
+	return {
+		...manifest,
+		revision: createDeterministicFingerprintSync(manifest),
 	};
 }

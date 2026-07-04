@@ -17,6 +17,7 @@ export {
 	type ResolveInitFromManifestOptions,
 	resolveInitFromManifest,
 	resolveNoPolicyFallback,
+	sliceConsentManifestLanguage,
 } from './consent-manifest';
 // Export constants separately for runtime-safe usage
 export {
