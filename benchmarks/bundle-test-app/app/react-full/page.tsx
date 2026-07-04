@@ -1,12 +1,12 @@
 'use client';
 
-import { ConsentBanner } from '@c15t/react/components/consent-banner';
-import { ConsentDialog } from '@c15t/react/components/consent-dialog';
-import { ConsentWidget } from '@c15t/react/components/consent-widget';
 import {
+	ConsentBanner,
+	ConsentDialog,
 	ConsentManagerProvider,
+	ConsentWidget,
 	useConsentManager,
-} from '@c15t/react/headless';
+} from '@c15t/react';
 
 export default function ReactFullPage() {
 	return (

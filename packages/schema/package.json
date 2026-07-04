@@ -33,6 +33,16 @@
 			"types": "./dist-types/types.d.ts",
 			"import": "./dist/types.js",
 			"require": "./dist/types.cjs"
+		},
+		"./config": {
+			"types": "./dist-types/config/index.d.ts",
+			"import": "./dist/config.js",
+			"require": "./dist/config.cjs"
+		},
+		"./geo": {
+			"types": "./dist-types/shared/geo-headers.d.ts",
+			"import": "./dist/geo.js",
+			"require": "./dist/geo.cjs"
 		}
 	},
 	"main": "./dist/index.cjs",
@@ -57,6 +67,7 @@
 		"not op_mini all"
 	],
 	"dependencies": {
+		"@c15t/translations": "workspace:*",
 		"valibot": "1.3.1"
 	},
 	"devDependencies": {

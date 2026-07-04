@@ -1,5 +1,6 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.3.8/schema.json",
+	"$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+	"extends": ["ultracite/svelte"],
 	"formatter": {
 		"enabled": true,
 		"formatWithErrors": true,
@@ -7,7 +8,7 @@
 		"indentWidth": 2,
 		"lineEnding": "lf",
 		"lineWidth": 80,
-		"attributePosition": "auto"
+		"attributePosition": "multiline"
 	},
 	"assist": { "actions": { "source": { "organizeImports": "on" } } },
 	"linter": {
@@ -77,7 +78,7 @@
 	"javascript": {
 		"formatter": {
 			"arrowParentheses": "always",
-			"attributePosition": "auto",
+			"attributePosition": "multiline",
 			"bracketSameLine": false,
 			"bracketSpacing": true,
 			"enabled": true,
@@ -90,6 +91,23 @@
 			"quoteStyle": "single",
 			"semicolons": "always",
 			"trailingCommas": "es5"
+		}
+	},
+	"html": {
+		"experimentalFullSupportEnabled": true,
+		"parser": {
+			"interpolation": true
+		},
+		"formatter": {
+			"enabled": true,
+			"indentStyle": "tab",
+			"indentWidth": 2,
+			"lineEnding": "lf",
+			"lineWidth": 80,
+			"attributePosition": "multiline",
+			"bracketSameLine": false,
+			"indentScriptAndStyle": false,
+			"selfCloseVoidElements": "always"
 		}
 	},
 	"css": {
@@ -128,5 +146,34 @@
 		"clientKind": "git",
 		"useIgnoreFile": true,
 		"defaultBranch": "main"
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["**/*.svelte"],
+			"linter": {
+				"rules": {
+					"a11y": {
+						"noSvgWithoutTitle": "off",
+						"useValidAriaRole": "off"
+					},
+					"correctness": {
+						"noUnusedVariables": "off"
+					}
+				}
+			}
+		},
+		{
+			"includes": [
+				"apps/storybook-svelte/**/*.svelte",
+				"examples/sveltekit-demo/**/*.svelte"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"useFilenamingConvention": "off"
+					}
+				}
+			}
+		}
+	]
 }

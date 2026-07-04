@@ -1,5 +1,5 @@
 import { configureConsentManager, createConsentManagerStore } from 'c15t';
-import { bench, run } from 'mitata';
+import { bench, runMicroBenchmarkSuite } from './wrapper';
 
 // Create store once for condition evaluation benchmarks
 const manager = configureConsentManager({ mode: 'offline' });
@@ -110,4 +110,4 @@ bench('has() - deeply nested (4 levels)', () => {
 	});
 });
 
-await run();
+await runMicroBenchmarkSuite('has-condition');

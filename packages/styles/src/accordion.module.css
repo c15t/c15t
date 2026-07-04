@@ -1,0 +1,239 @@
+:root {
+	--accordion-padding: var(--c15t-space-md);
+	--accordion-stack-gap: 0.75rem;
+	--accordion-radius: var(--c15t-radius-md);
+	--accordion-duration: var(--c15t-duration-normal);
+	--accordion-ease: var(--c15t-easing);
+	--accordion-icon-size: 1.25rem;
+	--accordion-gap: 0.625rem;
+
+	--accordion-background-color: var(--c15t-surface);
+	--accordion-background-color-dark: var(--c15t-surface);
+	--accordion-background-hover: var(--c15t-surface-hover);
+	--accordion-background-hover-dark: var(--c15t-surface-hover);
+	--accordion-border-color: var(--c15t-border);
+	--accordion-border-color-dark: var(--c15t-border);
+	--accordion-text-color: var(--c15t-text);
+	--accordion-text-color-dark: var(--c15t-text);
+	--accordion-arrow-color: var(--c15t-text-muted);
+	--accordion-arrow-color-dark: var(--c15t-text-muted);
+	--accordion-content-color: var(--c15t-text-muted);
+	--accordion-content-color-dark: var(--c15t-text-muted);
+	--accordion-focus-ring: var(--c15t-primary);
+	--accordion-focus-ring-dark: var(--c15t-primary);
+	--accordion-title-size: var(--c15t-font-size-sm);
+}
+
+@layer components {
+	.list:not(:global(.headless)) {
+		display: grid;
+		gap: var(--accordion-stack-gap);
+	}
+
+	.item:not(:global(.headless)) {
+		display: grid;
+		padding: 0;
+		border: 1px solid var(--accordion-border-color);
+		border-radius: var(--accordion-radius);
+		box-shadow: none;
+		background-color: var(--accordion-background-color);
+		overflow: visible;
+	}
+
+	:global(.c15t-dark) .item:not(:global(.headless)) {
+		border-color: var(--accordion-border-color-dark);
+		background-color: var(--accordion-background-color-dark);
+	}
+
+	.triggerRow:not(:global(.headless)) {
+		display: grid;
+		grid-column: 1 / -1;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		gap: var(--accordion-gap);
+		box-sizing: border-box;
+		width: 100%;
+		margin: 0;
+		padding: var(--accordion-padding);
+		border: 0;
+		border-radius: var(--accordion-radius);
+		appearance: none;
+		color: var(--accordion-text-color);
+		font: inherit;
+		font-weight: inherit;
+		text-align: left;
+		background-color: transparent;
+		cursor: pointer;
+		transition: background-color var(--accordion-duration) var(--accordion-ease);
+	}
+
+	.triggerRow:not(:global(.headless)):hover,
+	.item[data-state="open"] .triggerRow:not(:global(.headless)) {
+		background-color: var(--accordion-background-hover);
+	}
+
+	:global(.c15t-dark) .triggerRow:not(:global(.headless)) {
+		color: var(--accordion-text-color-dark);
+	}
+
+	:global(.c15t-dark) .triggerRow:not(:global(.headless)):hover,
+	:global(.c15t-dark)
+		.item[data-state="open"]
+		.triggerRow:not(:global(.headless)) {
+		background-color: var(--accordion-background-hover-dark);
+	}
+
+	.item:not(:global(.headless)):has(.triggerRow:focus-visible) {
+		outline: 2px solid var(--accordion-focus-ring);
+		outline-offset: -1px;
+	}
+
+	:global(.c15t-dark)
+		.item:not(:global(.headless)):has(.triggerRow:focus-visible) {
+		outline-color: var(--accordion-focus-ring-dark);
+	}
+
+	.triggerRow:not(:global(.headless)):focus-visible {
+		outline: none;
+	}
+
+	.item:not(:global(.headless)) > .content {
+		grid-column: 1 / -1;
+	}
+
+	.trigger:not(:global(.headless)) {
+		display: flex;
+		align-items: center;
+		gap: var(--accordion-gap);
+		min-width: 0;
+		min-height: calc(var(--accordion-icon-size) + 0.25rem);
+		font-size: var(--accordion-title-size);
+		line-height: 1.25rem;
+		letter-spacing: -0.006em;
+		font-weight: var(--c15t-font-weight-medium);
+	}
+
+	.arrow:not(:global(.headless)) {
+		display: inline-flex;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		color: var(--accordion-arrow-color);
+		width: var(--accordion-icon-size);
+		height: var(--accordion-icon-size);
+		transition: transform var(--accordion-duration) var(--accordion-ease);
+	}
+
+	.arrow:not(:global(.headless)) svg {
+		display: block;
+		width: 100%;
+		height: 100%;
+	}
+
+	:global(.c15t-dark) .arrow:not(:global(.headless)) {
+		color: var(--accordion-arrow-color-dark);
+	}
+
+	.item[data-state="open"] .arrow:not(:global(.headless)) {
+		transform: rotate(45deg);
+	}
+
+	.header:not(:global(.headless)) {
+		display: flex;
+		flex: 1;
+		flex-direction: column;
+		min-width: 0;
+	}
+
+	.title:not(:global(.headless)) {
+		margin: 0;
+		font: inherit;
+		font-weight: inherit;
+		line-height: inherit;
+		letter-spacing: inherit;
+		color: inherit;
+	}
+
+	.control:not(:global(.headless)) {
+		align-self: center;
+		flex-shrink: 0;
+		position: relative;
+		top: -1px;
+	}
+
+	.content:not(:global(.headless)) {
+		display: grid;
+		grid-template-rows: 0fr;
+		overflow: hidden;
+		padding: 0;
+		color: var(--accordion-content-color);
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+		letter-spacing: -0.006em;
+		transition: grid-template-rows var(--accordion-duration)
+			var(--accordion-ease);
+	}
+
+	.content:not(:global(.headless))[data-state="open"] {
+		grid-template-rows: 1fr;
+	}
+
+	.content:not(:global(.headless))[data-state="closed"] {
+		pointer-events: none;
+	}
+
+	.contentViewport:not(:global(.headless)) {
+		min-height: 0;
+		overflow: hidden;
+		padding-top: 0;
+		padding-inline-end: var(--accordion-padding);
+		padding-inline-start: calc(
+			var(--accordion-icon-size) +
+			var(--accordion-gap)
+		);
+		padding-bottom: var(--accordion-padding);
+	}
+
+	.contentInner:not(:global(.headless)) {
+		padding-top: 0.75rem;
+		opacity: 1;
+		transition: opacity calc(var(--accordion-duration) * 0.35) ease-out;
+	}
+
+	.content[data-state="closed"] .contentInner:not(:global(.headless)) {
+		opacity: 0;
+	}
+
+	:global(.c15t-dark) .content:not(:global(.headless)) {
+		color: var(--accordion-content-color-dark);
+	}
+
+	:global([data-disable-animation]) .content:not(:global(.headless)),
+	:global(.disable-animation) .content:not(:global(.headless)) {
+		transition: none;
+	}
+
+	:global([data-disable-animation]) .contentInner:not(:global(.headless)),
+	:global(.disable-animation) .contentInner:not(:global(.headless)) {
+		transition: none;
+	}
+
+	:global([data-disable-animation]) .arrow:not(:global(.headless)),
+	:global(.disable-animation) .arrow:not(:global(.headless)) {
+		transition: none;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.arrow:not(:global(.headless)) {
+			transition: none;
+		}
+
+		.content:not(:global(.headless)) {
+			transition: none;
+		}
+
+		.contentInner:not(:global(.headless)) {
+			transition: none;
+		}
+	}
+}

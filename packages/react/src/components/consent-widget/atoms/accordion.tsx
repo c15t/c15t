@@ -139,17 +139,14 @@ const ConsentWidgetAccordionItems = () => {
 			onOpenChange={(open) => onToggleItem(consent.name, open)}
 			open={openValues.includes(consent.name)}
 		>
-			<ConsentWidgetAccordionTrigger
-				data-testid={`consent-widget-accordion-trigger-${consent.name}`}
-			>
+			<ConsentWidgetAccordionTrigger>
 				<ConsentWidgetAccordionTriggerInner
 					className={styles.accordionTriggerInner}
-					data-testid={`consent-widget-accordion-trigger-inner-${consent.name}`}
+					data-testid={`consent-widget-accordion-trigger-${consent.name}`}
 					noStyle
 				>
 					{(() => {
 						const ArrowIcon = LucideIcon({
-							title: openValues.includes(consent.name) ? 'Close' : 'Open',
 							iconPath: openValues.includes(consent.name) ? (
 								<path d="M5 12h14" />
 							) : (
@@ -163,19 +160,29 @@ const ConsentWidgetAccordionItems = () => {
 								data-testid={`consent-widget-accordion-arrow-${consent.name}`}
 								noStyle
 							>
-								<ArrowIcon className={styles.accordionArrowIcon} />
+								<ArrowIcon
+									className={styles.accordionArrowIcon}
+									width={16}
+									height={16}
+								/>
 							</ConsentWidgetAccordionArrow>
 						);
 					})()}
 					<PreferenceItem.Header noStyle>
-						<PreferenceItem.Title className={styles.accordionTitle} noStyle>
+						<PreferenceItem.Title
+							className={styles.accordionTitle}
+							noStyle
+						>
 							{consentTypes[consent.name]?.title ??
 								formatConsentName(consent.name)}
 						</PreferenceItem.Title>
 					</PreferenceItem.Header>
 				</ConsentWidgetAccordionTriggerInner>
 
-				<PreferenceItem.Control className={styles.switch} noStyle>
+				<PreferenceItem.Control
+					className={styles.switch}
+					noStyle
+				>
 					<ConsentWidgetSwitch
 						aria-label={
 							consentTypes[consent.name]?.title ??

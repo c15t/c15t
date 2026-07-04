@@ -1,8 +1,8 @@
-import { collapsibleVariants, getOpenState } from '@c15t/solid';
 import {
 	startsClosedByDefault,
 	toggleOpenClose,
-} from '@c15t/storybook-tests/play/collapsible';
+} from '@c15t/conformance/play/collapsible';
+import { collapsibleVariants, getOpenState } from '@c15t/solid';
 import { createSignal } from 'solid-js';
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 import { enTranslations } from '../../../packages/translations/src';

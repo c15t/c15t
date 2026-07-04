@@ -2,6 +2,9 @@
 
 export type NextjsBenchScenario =
 	| 'client'
+	| 'nextjs-v3-client'
+	| 'nextjs-v3-repeat'
+	| 'nextjs-v3-ssr'
 	| 'ssr'
 	| 'prefetch'
 	| 'repeat-visitor';
@@ -13,8 +16,10 @@ export interface NextjsBenchState {
 	renderCount: number;
 	activeUI: string;
 	onBannerFetchedMs?: number;
+	cls?: number;
 	bannerReadyMs?: number;
 	bannerVisibleMs?: number;
+	bannerPaintMs?: number | null;
 	onBannerFetchedCount: number;
 	onConsentSetCount: number;
 	onErrorCount: number;

@@ -60,7 +60,10 @@ const IABConsentDialogHeader = forwardRef<
 		const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 		return (
-			<div ref={ref} {...domStyleProps}>
+			<div
+				ref={ref}
+				{...domStyleProps}
+			>
 				{children ? (
 					children
 				) : (
@@ -81,14 +84,25 @@ const IABConsentDialogHeader = forwardRef<
 								aria-label={common.close}
 							>
 								<svg
+									aria-hidden="true"
 									style={{ width: '1rem', height: '1rem' }}
 									viewBox="0 0 24 24"
 									fill="none"
 									stroke="currentColor"
 									strokeWidth="2"
 								>
-									<line x1="18" y1="6" x2="6" y2="18" />
-									<line x1="6" y1="6" x2="18" y2="18" />
+									<line
+										x1="18"
+										y1="6"
+										x2="6"
+										y2="18"
+									/>
+									<line
+										x1="6"
+										y1="6"
+										x2="18"
+										y2="18"
+									/>
 								</svg>
 							</button>
 						)}

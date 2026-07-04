@@ -9,27 +9,27 @@ import {
 const Icon = (
 	props: SVGProps<SVGSVGElement>,
 	ref: Ref<SVGSVGElement>,
-	title: string,
+	title: string | undefined,
 	iconPath: JSX.Element
 ) => (
 	<svg
-		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 24 24"
 		fill="none"
 		stroke="currentColor"
 		strokeLinecap="round"
 		strokeLinejoin="round"
 		strokeWidth={2}
+		aria-hidden={title ? undefined : true}
 		ref={ref}
 		{...props}
 	>
-		<title>{title}</title>
+		{title ? <title>{title}</title> : null}
 		{iconPath}
 	</svg>
 );
 
 type LucideIconProps = SVGProps<SVGSVGElement> & {
-	title: string;
+	title?: string;
 	iconPath: JSX.Element;
 };
 

@@ -65,7 +65,10 @@ export function VideoDemo({
 							allow the experience category.
 						</p>
 					</div>
-					<Frame category="experience" className="relative aspect-video w-full">
+					<Frame
+						category="experience"
+						className="relative aspect-video w-full"
+					>
 						<iframe
 							src="https://www.youtube.com/embed/gwqYfNWVPpk?si=eEtKAUke_JUXTMfl&amp;start=36"
 							title="Experience policy-gated video"

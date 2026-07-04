@@ -3,11 +3,28 @@ export {
 	brandingSchema,
 	brandingValues,
 } from './branding';
+export {
+	type ConsentManifest,
+	type ConsentManifestBranding,
+	type ConsentManifestDefaults,
+	type ConsentManifestGVLReference,
+	type ConsentManifestIAB,
+	type ConsentManifestPolicyPack,
+	type ConsentManifestTranslationInputs,
+	checkJurisdiction,
+	createConsentManifestPolicyPack,
+	type ResolveInitFromManifestInputs,
+	type ResolveInitFromManifestOptions,
+	resolveInitFromManifest,
+	resolveNoPolicyFallback,
+	sliceConsentManifestLanguage,
+} from './consent-manifest';
 // Export constants separately for runtime-safe usage
 export {
 	brandingValues as brandingValuesConst,
 	jurisdictionCodes as jurisdictionCodesConst,
 } from './constants';
+export { getRegionFromHeaders, headersToRecord } from './geo-headers';
 export {
 	type GlobalVendorList,
 	type GVLDataCategory,
@@ -63,6 +80,7 @@ export {
 	policyPackPresets,
 } from './policy-pack-defaults';
 export {
+	createResolvedPolicyFromConfig,
 	EEA_COUNTRY_CODES,
 	EU_COUNTRY_CODES,
 	type FingerprintHashStrategy,
@@ -84,6 +102,7 @@ export {
 	policyMatchers,
 	type ResolvedPolicyDecision,
 	resolvePolicyDecision,
+	resolvePolicySync,
 	UK_COUNTRY_CODES,
 	validatePolicies,
 } from './policy-runtime';
@@ -105,3 +124,13 @@ export {
 	dedupeTrimmedStrings,
 	hasRealPolicyUiHints,
 } from './policy-utils';
+export {
+	getTranslations,
+	getTranslationsData,
+	type I18nMessageProfile,
+	type I18nMessageProfiles,
+	type I18nOptions,
+	type LoggerLike,
+	listProfiles,
+	validateMessages,
+} from './translations-runtime';

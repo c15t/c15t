@@ -246,7 +246,10 @@ describe('BrandingLink', () => {
 describe('BrandingCompactLogo', () => {
 	test('renders the INTH compact mark for the deprecated consent alias', async () => {
 		render(
-			<BrandingCompactLogo branding="consent" data-testid="branding-icon" />
+			<BrandingCompactLogo
+				branding="consent"
+				data-testid="branding-icon"
+			/>
 		);
 
 		await vi.waitFor(() => {

@@ -5,15 +5,23 @@ import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import {
+	applyBenchThrottleProfile,
+	parseBenchInitLatencyMs,
+	parseBenchThrottleProfile,
+} from '@c15t/benchmarking/browser';
+import { browserBudgets } from '@c15t/benchmarking/budgets';
+import {
 	BENCHMARK_SCHEMA_VERSION,
 	type BenchmarkResult,
-	browserBudgets,
+} from '@c15t/benchmarking/schema';
+import {
 	getEnvironment,
+	median,
 	safeBaseSha,
 	safeCommitSha,
 	summarizeMetric,
 	writeJson,
-} from '@c15t/benchmarking';
+} from '@c15t/benchmarking/utils';
 import { chromium } from 'playwright';
 
 const HOST = '127.0.0.1';
@@ -23,23 +31,94 @@ const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const buildIdPath = join(appDir, '.next', 'BUILD_ID');
 const outputDir =
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/browser-runtime/react';
-const iterations = Number(process.env.BENCH_ITERATIONS ?? '7');
-const warmupIterations = Number(process.env.BENCH_WARMUP_ITERATIONS ?? '1');
 const expectedServerShutdownCodes = new Set([0, 137, 143]);
 const expectedServerShutdownSignals = new Set(['SIGTERM', 'SIGKILL']);
+const bannerRootTestId = 'consent-banner-root';
+const bannerElementTimingName = 'c15t-consent-banner';
 
-const scenarios = [
+function readCliFlag(name: string): string | undefined {
+	const index = process.argv.indexOf(name);
+	if (index >= 0) {
+		return process.argv[index + 1];
+	}
+
+	const prefix = `${name}=`;
+	const match = process.argv.find((arg) => arg.startsWith(prefix));
+	return match?.slice(prefix.length);
+}
+
+const iterations = Number(
+	readCliFlag('--iterations') ??
+		process.env.C15T_BENCH_ITERATIONS ??
+		process.env.BENCH_ITERATIONS ??
+		'7'
+);
+const warmupIterations = Number(
+	readCliFlag('--warmup') ??
+		process.env.C15T_BENCH_WARMUP_ITERATIONS ??
+		process.env.BENCH_WARMUP_ITERATIONS ??
+		'1'
+);
+const throttleProfile = parseBenchThrottleProfile(
+	readCliFlag('--profile') ?? process.env.C15T_BENCH_PROFILE
+);
+const initLatencyMs = parseBenchInitLatencyMs(
+	readCliFlag('--init-latency-ms') ??
+		readCliFlag('--init-latency') ??
+		process.env.C15T_BENCH_INIT_LATENCY_MS
+);
+const scenarioFilter =
+	readCliFlag('--scenario') ?? process.env.C15T_BENCH_SCENARIO;
+
+const allScenarios = [
 	{ name: 'full-ui', path: '/full-ui' },
 	{ name: 'headless', path: '/headless' },
+	{ name: 'react-v3-full', path: '/react-v3-full' },
+	{ name: 'react-v3-headless', path: '/react-v3-headless' },
 	{ name: 'vanilla-core', path: '/vanilla-core' },
 ] as const;
 
+const scenarios = scenarioFilter
+	? allScenarios.filter((scenario) => scenario.name === scenarioFilter)
+	: allScenarios;
+
+if (scenarioFilter && scenarios.length === 0) {
+	throw new Error(
+		`Unsupported scenario "${scenarioFilter}". Expected ${allScenarios
+			.map((scenario) => scenario.name)
+			.join(', ')}.`
+	);
+}
+
 async function measureInteractionLatency(
 	page: import('playwright').Page,
-	scenario: (typeof scenarios)[number]['name'] | 'repeat-visitor'
+	scenario:
+		| (typeof allScenarios)[number]['name']
+		| 'repeat-visitor'
+		| 'react-v3-repeat'
 ) {
 	switch (scenario) {
 		case 'full-ui': {
+			const before = await page.evaluate(
+				() => window.__c15tReactBench?.onConsentSetCount ?? 0
+			);
+			const startedAt = performance.now();
+			await page.click('[data-testid="consent-banner-accept-button"]');
+			await page.waitForFunction(
+				(expected) => {
+					const state = window.__c15tReactBench;
+					return (
+						!!state &&
+						state.onConsentSetCount > expected &&
+						state.activeUI === 'none'
+					);
+				},
+				before,
+				{ timeout: 30_000 }
+			);
+			return performance.now() - startedAt;
+		}
+		case 'react-v3-full': {
 			const before = await page.evaluate(
 				() => window.__c15tReactBench?.onConsentSetCount ?? 0
 			);
@@ -79,6 +158,26 @@ async function measureInteractionLatency(
 			);
 			return performance.now() - startedAt;
 		}
+		case 'react-v3-headless': {
+			const before = await page.evaluate(
+				() => window.__c15tReactBench?.onConsentSetCount ?? 0
+			);
+			const startedAt = performance.now();
+			await page.click('#react-v3-headless-accept');
+			await page.waitForFunction(
+				(expected) => {
+					const state = window.__c15tReactBench;
+					return (
+						!!state &&
+						state.onConsentSetCount > expected &&
+						state.activeUI === 'none'
+					);
+				},
+				before,
+				{ timeout: 30_000 }
+			);
+			return performance.now() - startedAt;
+		}
 		case 'vanilla-core': {
 			const before = await page.evaluate(
 				() => window.__c15tReactBench?.onConsentSetCount ?? 0
@@ -102,6 +201,19 @@ async function measureInteractionLatency(
 		case 'repeat-visitor': {
 			const startedAt = performance.now();
 			await page.click('#full-ui-open-preferences');
+			await page.waitForFunction(
+				() => {
+					const state = window.__c15tReactBench;
+					return !!state && state.activeUI === 'dialog';
+				},
+				undefined,
+				{ timeout: 30_000 }
+			);
+			return performance.now() - startedAt;
+		}
+		case 'react-v3-repeat': {
+			const startedAt = performance.now();
+			await page.click('#react-v3-full-open-preferences');
 			await page.waitForFunction(
 				() => {
 					const state = window.__c15tReactBench;
@@ -166,9 +278,123 @@ async function ensureBuild() {
 	await runCommand(['run', 'build'], 'react browser benchmark build');
 }
 
+async function applyPageProfile(
+	context: import('playwright').BrowserContext,
+	page: import('playwright').Page
+) {
+	const session = await context.newCDPSession(page);
+	await applyBenchThrottleProfile(session, throttleProfile);
+	await page.addInitScript(
+		({ bannerElementTimingName: timingName, bannerRootTestId: testId }) => {
+			const metrics = {
+				cls: 0,
+				longTaskCount: 0,
+				longTaskTotalMs: 0,
+				bannerPaintMs: null as number | null,
+			};
+			Object.defineProperty(window, '__c15tBenchPerfMetrics', {
+				value: metrics,
+				configurable: true,
+			});
+
+			const markBanner = () => {
+				const root = document.querySelector(`[data-testid="${testId}"]`);
+				if (root instanceof HTMLElement) {
+					root.setAttribute('elementtiming', timingName);
+				}
+			};
+
+			try {
+				new PerformanceObserver((list) => {
+					for (const entry of list.getEntries()) {
+						const shift = entry as PerformanceEntry & {
+							value?: number;
+							hadRecentInput?: boolean;
+						};
+						if (!shift.hadRecentInput) {
+							metrics.cls += shift.value ?? 0;
+						}
+					}
+				}).observe({ type: 'layout-shift', buffered: true });
+			} catch {}
+
+			try {
+				new PerformanceObserver((list) => {
+					for (const entry of list.getEntries()) {
+						metrics.longTaskCount += 1;
+						metrics.longTaskTotalMs += entry.duration;
+					}
+				}).observe({ type: 'longtask', buffered: true });
+			} catch {}
+
+			try {
+				new PerformanceObserver((list) => {
+					for (const entry of list.getEntries()) {
+						const elementEntry = entry as PerformanceEntry & {
+							identifier?: string;
+							renderTime?: number;
+							loadTime?: number;
+						};
+						if (elementEntry.identifier === timingName) {
+							metrics.bannerPaintMs =
+								elementEntry.renderTime ||
+								elementEntry.loadTime ||
+								elementEntry.startTime;
+						}
+					}
+				}).observe({ type: 'element', buffered: true });
+			} catch {}
+
+			markBanner();
+			try {
+				new MutationObserver(markBanner).observe(
+					document.documentElement ?? document,
+					{
+						childList: true,
+						subtree: true,
+					}
+				);
+			} catch {}
+		},
+		{ bannerElementTimingName, bannerRootTestId }
+	);
+}
+
+async function getBannerInFirstHtml(path: string): Promise<boolean> {
+	const response = await fetch(`${BASE_URL}${path}`);
+	const html = await response.text();
+	return (
+		html.includes(`data-testid="${bannerRootTestId}"`) ||
+		html.includes(`data-testid='${bannerRootTestId}'`)
+	);
+}
+
+function resultScenarioName(scenario: string): string {
+	if (throttleProfile === 'none' && initLatencyMs === 0) {
+		return scenario;
+	}
+
+	return `${scenario}:profile-${throttleProfile}:latency-${initLatencyMs}ms`;
+}
+
+function resultFileName(scenario: string): string {
+	return `${resultScenarioName(scenario).replaceAll(':', '-')}.json`;
+}
+
+function nullableMedian(
+	values: Array<number | null | undefined>
+): number | null {
+	const numbers = values.filter(
+		(value): value is number =>
+			typeof value === 'number' && Number.isFinite(value)
+	);
+	return numbers.length > 0 ? Number(median(numbers).toFixed(3)) : null;
+}
+
 async function collectPageMetrics(
 	page: import('playwright').Page,
-	scenario: string
+	scenario: string,
+	bannerInFirstHtml: boolean
 ) {
 	await page.waitForLoadState('domcontentloaded');
 	await page.waitForFunction(
@@ -183,6 +409,8 @@ async function collectPageMetrics(
 		scenario,
 		{ timeout: 30_000 }
 	);
+	await page.waitForLoadState('load');
+	await page.waitForTimeout(250);
 
 	const state = await page.evaluate(() => window.__c15tReactBench);
 	const navEntry = await page.evaluate(() => {
@@ -215,12 +443,22 @@ async function collectPageMetrics(
 			appScriptCount: ordered.length,
 		};
 	});
-	const longTaskInfo = await page.evaluate(() => {
-		const entries = performance.getEntriesByType('longtask');
-		const total = entries.reduce((sum, entry) => sum + entry.duration, 0);
+	const performanceObserverInfo = await page.evaluate(() => {
+		const metrics = (
+			window as typeof window & {
+				__c15tBenchPerfMetrics?: {
+					cls: number;
+					longTaskCount: number;
+					longTaskTotalMs: number;
+					bannerPaintMs: number | null;
+				};
+			}
+		).__c15tBenchPerfMetrics;
 		return {
-			longTaskCount: entries.length,
-			longTaskTotalMs: total,
+			cls: metrics?.cls ?? 0,
+			longTaskCount: metrics?.longTaskCount ?? 0,
+			longTaskTotalMs: metrics?.longTaskTotalMs ?? 0,
+			bannerPaintMs: metrics?.bannerPaintMs ?? null,
 			domNodeCount: document.querySelectorAll('*').length,
 		};
 	});
@@ -229,7 +467,10 @@ async function collectPageMetrics(
 		...state,
 		...navEntry,
 		...scriptEntry,
-		...longTaskInfo,
+		...performanceObserverInfo,
+		bannerPaintMs:
+			performanceObserverInfo.bannerPaintMs ?? state?.bannerPaintMs ?? null,
+		bannerInFirstHtml,
 	};
 }
 
@@ -245,6 +486,10 @@ async function run() {
 		['run', 'start', '--', '-H', HOST, '-p', `${PORT}`],
 		{
 			cwd: appDir,
+			env: {
+				...process.env,
+				C15T_BENCH_INIT_LATENCY_MS: `${initLatencyMs}`,
+			},
 			stdio: ['ignore', 'pipe', 'pipe'],
 		}
 	);
@@ -264,31 +509,47 @@ async function run() {
 
 		for (const scenario of scenarios) {
 			const samples: ReactBrowserSample[] = [];
+			const bannerInFirstHtml = await getBannerInFirstHtml(scenario.path);
 			for (let index = 0; index < warmupIterations + iterations; index += 1) {
 				const context = await browser.newContext({ baseURL: BASE_URL });
 				const page = await context.newPage();
+				await applyPageProfile(context, page);
 				await page.goto(scenario.path);
-				const metrics = await collectPageMetrics(page, scenario.name);
+				const metrics = await collectPageMetrics(
+					page,
+					scenario.name,
+					bannerInFirstHtml
+				);
 				const interactionLatencyMs = await measureInteractionLatency(
 					page,
 					scenario.name
 				);
 
-				if (scenario.name === 'full-ui' && index >= warmupIterations) {
+				if (
+					(scenario.name === 'full-ui' || scenario.name === 'react-v3-full') &&
+					index >= warmupIterations
+				) {
 					const repeatContext = await browser.newContext({ baseURL: BASE_URL });
 					const repeatPage = await repeatContext.newPage();
+					await applyPageProfile(repeatContext, repeatPage);
 					await repeatPage.goto(scenario.path);
 					const repeatMetrics = await collectPageMetrics(
 						repeatPage,
-						scenario.name
+						scenario.name,
+						bannerInFirstHtml
 					);
 					const repeatInteractionLatencyMs = await measureInteractionLatency(
 						repeatPage,
-						'repeat-visitor'
+						scenario.name === 'react-v3-full'
+							? 'react-v3-repeat'
+							: 'repeat-visitor'
 					);
 					samples.push({
 						...repeatMetrics,
-						scenario: 'repeat-visitor',
+						scenario:
+							scenario.name === 'react-v3-full'
+								? 'react-v3-repeat'
+								: 'repeat-visitor',
 						interactionLatencyMs: repeatInteractionLatencyMs,
 					});
 					await repeatContext.close();
@@ -312,23 +573,37 @@ async function run() {
 			}
 
 			for (const [groupScenario, groupedSamples] of grouped) {
+				const outputScenario = resultScenarioName(groupScenario);
 				const result: BenchmarkResult = {
 					schemaVersion: BENCHMARK_SCHEMA_VERSION,
 					suite: 'browser-runtime',
 					package: '@c15t/react-browser-bench',
 					framework: groupScenario === 'vanilla-core' ? 'core' : 'react',
 					runtime: 'playwright',
-					scenario: groupScenario,
+					scenario: outputScenario,
 					commitSha: safeCommitSha(),
 					baseSha: safeBaseSha(),
 					timestamp: new Date().toISOString(),
 					environment: getEnvironment(browser.version()),
 					fixture: {
-						name: groupScenario,
+						name: outputScenario,
 						consentCount: 5,
 						scriptCount: 0,
 						localeCount: 1,
 						themeComplexity: 'minimal',
+					},
+					metadata: {
+						profile: throttleProfile,
+						initLatencyMs,
+						bannerInFirstHtml: groupedSamples.every(
+							(sample) => sample.bannerInFirstHtml
+						),
+						bannerPaintMs: nullableMedian(
+							groupedSamples.map((sample) => sample.bannerPaintMs)
+						),
+						cls: Number(
+							median(groupedSamples.map((sample) => sample.cls ?? 0)).toFixed(4)
+						),
 					},
 					metrics: [
 						summarizeMetric(
@@ -340,6 +615,21 @@ async function run() {
 							'bannerVisibleMs',
 							'ms',
 							groupedSamples.map((sample) => sample.bannerVisibleMs ?? 0)
+						),
+						summarizeMetric(
+							'bannerPaintMs',
+							'ms',
+							groupedSamples.map((sample) => sample.bannerPaintMs ?? 0)
+						),
+						summarizeMetric(
+							'bannerInFirstHtml',
+							'count',
+							groupedSamples.map((sample) => (sample.bannerInFirstHtml ? 1 : 0))
+						),
+						summarizeMetric(
+							'cls',
+							'ratio',
+							groupedSamples.map((sample) => sample.cls ?? 0)
 						),
 						summarizeMetric(
 							'firstAppScriptStartMs',
@@ -411,7 +701,7 @@ async function run() {
 					],
 				};
 
-				writeJson(join(outputDir, `${groupScenario}.json`), result);
+				writeJson(join(outputDir, resultFileName(groupScenario)), result);
 			}
 		}
 

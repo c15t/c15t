@@ -1,0 +1,4 @@
+# Playwright specs live under ./tests and must NOT be loaded by bun test.
+# Constrain `bun test` to ./src where our unit tests live.
+[test]
+root = "src"

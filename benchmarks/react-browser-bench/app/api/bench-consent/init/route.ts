@@ -1,3 +1,4 @@
+import { setTimeout as sleep } from 'node:timers/promises';
 import { NextResponse } from 'next/server';
 
 const response = {
@@ -24,12 +25,75 @@ const response = {
 				title: 'Benchmark Preferences',
 				description: 'Benchmark preferences description.',
 			},
+			consentTypes: {
+				necessary: {
+					title: 'Necessary',
+					description: 'Required cookies.',
+				},
+				functionality: {
+					title: 'Functionality',
+					description: 'Feature cookies.',
+				},
+				experience: {
+					title: 'Experience',
+					description: 'Experience cookies.',
+				},
+				measurement: {
+					title: 'Measurement',
+					description: 'Analytics cookies.',
+				},
+				marketing: {
+					title: 'Marketing',
+					description: 'Advertising cookies.',
+				},
+			},
 		},
+	},
+	policy: {
+		id: 'react-browser-bench',
+		model: 'opt-in',
+		consent: {
+			model: 'opt-in',
+			categories: [
+				'necessary',
+				'functionality',
+				'experience',
+				'measurement',
+				'marketing',
+			],
+			scopeMode: 'strict',
+		},
+		ui: {
+			mode: 'banner',
+			banner: {
+				allowedActions: ['reject', 'accept', 'customize'],
+				primaryActions: ['accept'],
+				scrollLock: false,
+			},
+			dialog: {
+				allowedActions: ['reject', 'accept', 'customize'],
+				primaryActions: ['accept'],
+				scrollLock: false,
+			},
+		},
+	},
+	policyDecision: {
+		policyId: 'react-browser-bench',
+		fingerprint: 'fingerprint_react_browser_bench',
+		matchedBy: 'country',
+		country: 'DE',
+		region: 'BE',
+		jurisdiction: 'GDPR',
 	},
 	policySnapshotToken: 'react-browser-bench',
 };
 
 export async function GET() {
+	const latencyMs = Number(process.env.C15T_BENCH_INIT_LATENCY_MS ?? '0');
+	if (Number.isFinite(latencyMs) && latencyMs > 0) {
+		await sleep(latencyMs);
+	}
+
 	return NextResponse.json(response, {
 		headers: {
 			'cache-control': 'no-store',

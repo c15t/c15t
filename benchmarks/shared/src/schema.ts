@@ -65,6 +65,14 @@ export interface MetricBudgetResult {
 	message: string;
 }
 
+export type BenchmarkMetadataValue = string | number | boolean | null;
+
+export interface BenchmarkMetadata {
+	[key: string]: BenchmarkMetadataValue | BenchmarkMetadataValue[] | undefined;
+	profile?: string;
+	initLatencyMs?: number;
+}
+
 export interface BenchmarkResult {
 	schemaVersion: number;
 	suite: BenchmarkSuite;
@@ -77,6 +85,7 @@ export interface BenchmarkResult {
 	timestamp: string;
 	environment: BenchmarkEnvironment;
 	fixture: BenchmarkFixtureDescriptor;
+	metadata?: BenchmarkMetadata;
 	metrics: MetricSampleSet[];
 	budgetDefinitions?: MetricBudget[];
 	budgets: MetricBudgetResult[];

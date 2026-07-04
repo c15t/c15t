@@ -6,6 +6,8 @@ This directory contains the internal benchmark platform for `c15t`, `@c15t/react
 
 - `core-benchmarks`
   Measures framework-agnostic runtime work such as store creation, `has()`, cookie round-trips, init, repeat-visitor init, and script updates.
+- `micro`
+  Runs mitata microbenchmarks and emits shared-schema JSON for the regression pipeline.
 - `bundle-test-app`
   Builds a dedicated Next app and records route-level client script size plus publish tarball sizes for `c15t`, `@c15t/react`, and `@c15t/nextjs`.
 - `react-browser-bench`
@@ -43,6 +45,64 @@ Benchmark tasks write machine-readable JSON to:
 - `.benchmarks/compare/comparison.md`
 
 `.benchmarks/` is gitignored so local and CI benchmark artifacts do not dirty the worktree.
+
+## Important React v2/v3 Benchmarks
+
+See [`V3.md`](./V3.md) for the current React v3 benchmark notes, reference results, and interpretation.
+
+Use the combined React benchmark runner when comparing the important v2 and v3 browser paths during the React v3 migration:
+
+```bash
+bun run bench:important-react -- --iterations 10
+```
+
+This runs the following benchmark suites in parallel:
+
+- `react-browser-bench` via `bench:banner-visibility`
+  Measures how long it takes for the consent banner to become ready and visible after navigation.
+- `script-lifecycle-bench` via `bench:script-count`
+  Measures script loading after accepting consent for the configured script counts.
+
+Useful flags:
+
+```bash
+bun run bench:important-react -- -i 10 --warmup 1 --script-counts 5,10,25,50
+```
+
+- `-i, --iterations <n>` sets measured samples per metric.
+- `--warmup <n>` sets warmup samples before measurement.
+- `--script-counts <list>` sets the script-count cases for the script loading benchmark.
+
+The combined runner prefixes child process output with `[banner]` and `[scripts]`, exits nonzero if either benchmark fails, and writes the same JSON artifacts as the individual package scripts:
+
+- `.benchmarks/current/banner-visibility/react-v2-v3-banner-visibility.json`
+- `.benchmarks/current/script-count/react-v2-v3-script-count.json`
+
+Run the individual suites directly when iterating on one benchmark:
+
+```bash
+cd benchmarks/react-browser-bench
+BENCH_ITERATIONS=10 bun run bench:banner-visibility
+
+cd ../script-lifecycle-bench
+BENCH_ITERATIONS=10 SCRIPT_COUNTS=5,10,25,50 bun run bench:script-count
+```
+
+Browser benchmark runners also accept deterministic environment knobs:
+
+```bash
+C15T_BENCH_ITERATIONS=1 bun run bench -- --profile none --init-latency-ms 0
+C15T_BENCH_ITERATIONS=10 bun run bench -- --profile mobile --init-latency-ms 200
+```
+
+- `--profile none|mobile` selects the Playwright CDP throttle profile. `mobile`
+  applies 4x CPU throttling and Fast-4G-like network conditions.
+- `--init-latency-ms <n>` forwards to `C15T_BENCH_INIT_LATENCY_MS`, making the
+  local deterministic init route delay by `n` milliseconds.
+- Results record `metadata.profile` and `metadata.initLatencyMs` alongside CLS,
+  banner element timing, first-HTML banner presence, and long-task metrics.
+
+Bundle size is measured separately by `bundle-test-app` because it is build analysis rather than an iteration-based browser runtime benchmark.
 
 ## Fixture Model
 

@@ -56,7 +56,10 @@ describe('ConsentDialogLink', () => {
 			<ConsentManagerProvider options={{ mode: 'offline' }}>
 				<ConsentDialog />
 				<ConsentDialogLink asChild>
-					<a href="#privacy-settings" data-testid="consent-preferences-anchor">
+					<a
+						href="#privacy-settings"
+						data-testid="consent-preferences-anchor"
+					>
 						Manage Preferences
 					</a>
 				</ConsentDialogLink>

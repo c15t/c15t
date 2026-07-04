@@ -36,6 +36,16 @@
 			"types": "./dist-types/headless.d.ts",
 			"import": "./dist/headless.js",
 			"require": "./dist/headless.cjs"
+		},
+		"./v3": {
+			"types": "./dist-types/v3/index.d.ts",
+			"import": "./dist/v3.js",
+			"require": "./dist/v3.cjs"
+		},
+		"./v3/headless": {
+			"types": "./dist-types/v3/headless.d.ts",
+			"import": "./dist/v3/headless.js",
+			"require": "./dist/v3/headless.cjs"
 		}
 	},
 	"main": "dist/index.cjs",

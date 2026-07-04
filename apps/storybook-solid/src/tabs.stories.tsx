@@ -1,8 +1,5 @@
+import { keyboardNavigation, tabSwitching } from '@c15t/conformance/play/tabs';
 import { tabsVariants } from '@c15t/solid';
-import {
-	keyboardNavigation,
-	tabSwitching,
-} from '@c15t/storybook-tests/play/tabs';
 import { createSignal, For, Show } from 'solid-js';
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 

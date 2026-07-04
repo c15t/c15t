@@ -46,6 +46,7 @@ const SUPPORTED_HEADERS = [
 	'x-request-id',
 	'x-c15t-country',
 	'x-c15t-region',
+	'sec-gpc',
 	'accept-language',
 ] as const;
 

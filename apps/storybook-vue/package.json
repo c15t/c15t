@@ -10,7 +10,7 @@
 	"dependencies": {
 		"@c15t/ui": "workspace:*",
 		"@c15t/vue": "workspace:*",
-		"@c15t/storybook-tests": "workspace:*",
+		"@c15t/conformance": "workspace:*",
 		"vue": "^3.5.13"
 	},
 	"devDependencies": {

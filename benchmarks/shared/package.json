@@ -4,6 +4,7 @@
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",
+		"./browser": "./src/browser.ts",
 		"./budgets": "./src/budgets.ts",
 		"./css-layer-runtime": "./src/css-layer-runtime.tsx",
 		"./css-layer-scenarios": "./src/css-layer-scenarios.ts",

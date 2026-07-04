@@ -38,6 +38,13 @@
 		["cn\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
 	],
 
+	"[vue]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[css]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+
 	"files.associations": {
 		"*.css": "tailwindcss"
 	}

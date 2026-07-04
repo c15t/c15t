@@ -1,11 +1,15 @@
 import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
-import { resolveStyles, sanitizeDOMStyleProps } from '@c15t/ui/utils';
+import {
+	resolveStyles,
+	resolveTranslations,
+	sanitizeDOMStyleProps,
+} from '@c15t/ui/utils';
 import type { Branding } from 'c15t';
+import { defaultTranslationConfig } from 'c15t';
 import type { SVGProps } from 'react';
-import { useMemo } from 'react';
-import { useConsentManager } from '~/hooks/use-consent-manager';
+import { useContext, useMemo } from 'react';
+import { ConsentStateContext } from '~/context/consent-manager-context';
 import { useTheme } from '~/hooks/use-theme';
-import { useTranslations } from '~/hooks/use-translations';
 import type {
 	AllThemeKeys,
 	ClassNameStyle,
@@ -13,6 +17,7 @@ import type {
 } from '~/types/theme';
 import { cnExt as cn } from '~/utils/cn';
 import { mergeStyles } from '~/utils/merge-styles';
+import { KernelContext } from '~/v3/context';
 import { C15TIconOnly, InthIconOnly, InthLogo } from './logo';
 
 export type ResolvedBranding = 'c15t' | 'inth' | 'none';
@@ -69,14 +74,20 @@ export function BrandingFullLogo({
 }: BrandingFullLogoProps) {
 	if (resolveBranding(branding) === 'inth') {
 		return (
-			<span dir="ltr" className={cn(styles.brandingWordmark, className)}>
+			<span
+				dir="ltr"
+				className={cn(styles.brandingWordmark, className)}
+			>
 				<InthLogo aria-hidden="true" />
 			</span>
 		);
 	}
 
 	return (
-		<span dir="ltr" className={cn(styles.brandingWordmark, className)}>
+		<span
+			dir="ltr"
+			className={cn(styles.brandingWordmark, className)}
+		>
 			<span className={styles.brandingC15TMark}>
 				<C15TIconOnly aria-hidden="true" />
 			</span>
@@ -102,9 +113,28 @@ export function BrandingLink({
 	style,
 	'data-testid': testId,
 }: BrandingProps) {
-	const { branding } = useConsentManager();
+	const consentState = useContext(ConsentStateContext);
+	const kernel = useContext(KernelContext);
 	const { noStyle: contextNoStyle, theme } = useTheme();
-	const { common } = useTranslations();
+	const commonTranslations = useMemo(() => {
+		if (consentState) {
+			return resolveTranslations(
+				consentState.state.translationConfig,
+				defaultTranslationConfig
+			).common as { securedBy: string };
+		}
+
+		return (
+			(kernel?.getSnapshot().translations?.translations.common as
+				| { securedBy: string }
+				| undefined) ??
+			(defaultTranslationConfig.translations.en?.common as {
+				securedBy: string;
+			})
+		);
+	}, [consentState, kernel]);
+	const branding =
+		consentState?.state.branding ?? kernel?.getSnapshot().branding ?? 'c15t';
 	const resolvedBranding = resolveBranding(branding);
 	const refParam =
 		typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
@@ -145,7 +175,9 @@ export function BrandingLink({
 			data-testid={testId}
 		>
 			<span className={styles.brandingCopy}>
-				<span className={styles.brandingText}>{common.securedBy}</span>
+				<span className={styles.brandingText}>
+					{commonTranslations?.securedBy ?? 'Secured by'}
+				</span>
 			</span>
 			<BrandingFullLogo
 				branding={branding}

@@ -42,7 +42,7 @@ function renderDefaultAction(
 				<ConsentWidgetAcceptAllButton
 					key={key}
 					consentAction={consentAction}
-					data-testid="consent-widget-footer-accept-button"
+					data-testid="consent-widget-footer-accept-all-button"
 					{...buttonProps}
 				/>
 			);

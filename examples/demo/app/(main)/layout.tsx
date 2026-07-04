@@ -36,11 +36,17 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en" suppressHydrationWarning>
+		<html
+			lang="en"
+			suppressHydrationWarning
+		>
 			<body
 				className={`${GeistSans.variable} ${GeistMono.variable} ${GeistPixelSquare.variable} ${GeistPixelGrid.variable} ${GeistPixelCircle.variable} ${GeistPixelTriangle.variable} ${GeistPixelLine.variable} font-sans antialiased`}
 			>
-				<ThemeProvider defaultTheme="light" enableSystem>
+				<ThemeProvider
+					defaultTheme="light"
+					enableSystem
+				>
 					<ConsentManager>
 						{children}
 						<Analytics />

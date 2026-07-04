@@ -233,7 +233,11 @@ export interface AccordionHeaderProps extends HTMLAttributes<HTMLDivElement> {}
 
 const AccordionHeader = forwardRef<HTMLDivElement, AccordionHeaderProps>(
 	({ children, ...rest }, forwardedRef) => (
-		<div ref={forwardedRef} data-slot="accordion-header" {...rest}>
+		<div
+			ref={forwardedRef}
+			data-slot="accordion-header"
+			{...rest}
+		>
 			{children}
 		</div>
 	)
@@ -303,7 +307,11 @@ function AccordionIcon<T extends ElementType>({
 	const Component = as || 'div';
 
 	return (
-		<Component className={iconClassName} data-slot="accordion-icon" {...rest} />
+		<Component
+			className={iconClassName}
+			data-slot="accordion-icon"
+			{...rest}
+		/>
 	);
 }
 
@@ -317,13 +325,12 @@ type AccordionArrowProps = HTMLAttributes<HTMLDivElement> & {
 
 function AccordionArrow({
 	closeIcon = {
-		Element: LucideIcon({ title: 'Close', iconPath: <path d="M5 12h14" /> }),
+		Element: LucideIcon({ iconPath: <path d="M5 12h14" /> }),
 	},
 	className,
 	noStyle,
 	openIcon = {
 		Element: LucideIcon({
-			title: 'Open',
 			iconPath: <path d="M5 12h14M12 5v14" />,
 		}),
 	},

@@ -1,0 +1,96 @@
+import { describe, expect, test, vi } from 'vitest';
+import {
+	createManifestFetchInit,
+	createNextConsentRouteHandlers,
+	getSMaxAge,
+} from '../api';
+import { MANIFEST_FIXTURE } from './manifest-fixture';
+
+describe('@c15t/nextjs/v3/api', () => {
+	test('GET extracts geo, language, and GPC headers for local init', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(MANIFEST_FIXTURE), {
+				status: 200,
+				headers: {
+					'cache-control': 'public, s-maxage=120, stale-while-revalidate=60',
+					etag: '"manifest-revision"',
+				},
+			})
+		);
+		const { GET } = createNextConsentRouteHandlers({
+			backendURL: 'https://consent.example.com/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestRevalidateSeconds: 120,
+		});
+
+		const response = await GET(
+			new Request('https://app.example.com/api/c15t/init', {
+				headers: {
+					'x-vercel-ip-country': 'DE',
+					'x-vercel-ip-country-region': 'BE',
+					'accept-language': 'de-DE,de;q=0.9',
+					'sec-gpc': '1',
+				},
+			})
+		);
+
+		expect(response.headers.get('cache-control')).toBe('private, no-store');
+		expect(fetchSpy).toHaveBeenCalledWith(
+			'https://consent.example.com/api/c15t/manifest',
+			expect.objectContaining({
+				next: { revalidate: 120 },
+			})
+		);
+
+		const body = await response.json();
+		expect(body.location).toEqual({ countryCode: 'DE', regionCode: 'BE' });
+		expect(body.translations.language).toBe('de');
+		expect(body.policyDecision).toMatchObject({
+			policyId: 'eu-opt-in',
+			fingerprint: 'eu-fingerprint',
+			country: 'DE',
+		});
+	});
+
+	test('manifestGET mirrors backend cache headers', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(MANIFEST_FIXTURE), {
+				status: 200,
+				headers: {
+					'cache-control': 'public, s-maxage=90, stale-while-revalidate=45',
+					etag: '"manifest-revision"',
+				},
+			})
+		);
+		const { manifestGET } = createNextConsentRouteHandlers({
+			manifestURL: 'https://consent.example.com/manifest',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestRevalidateSeconds: 90,
+		});
+
+		const response = await manifestGET(
+			new Request('https://app.example.com/api/c15t/manifest?language=de')
+		);
+
+		expect(fetchSpy).toHaveBeenCalledWith(
+			'https://consent.example.com/manifest?language=de',
+			expect.objectContaining({
+				next: { revalidate: 90 },
+			})
+		);
+		expect(response.headers.get('cache-control')).toBe(
+			'public, s-maxage=90, stale-while-revalidate=45'
+		);
+		expect(response.headers.get('etag')).toBe('"manifest-revision"');
+		expect(response.headers.get('x-c15t-next-revalidate')).toBe('90');
+	});
+
+	test('cache helpers expose s-maxage and Next fetch config', () => {
+		expect(getSMaxAge('public, s-maxage=240, stale-while-revalidate=60')).toBe(
+			240
+		);
+		expect(
+			createManifestFetchInit({ manifestRevalidateSeconds: 15 }).next
+		).toEqual({ revalidate: 15 });
+	});
+});

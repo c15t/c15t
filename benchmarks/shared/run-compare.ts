@@ -1,21 +1,44 @@
 #!/usr/bin/env node
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+	evaluateBudget,
+	hasFailingBudgets,
+	indexMetrics,
+	toMarkdownComparison,
+} from './src/reporting';
 import {
 	BENCHMARK_SCHEMA_VERSION,
 	type BenchmarkComparisonResult,
 	type BenchmarkResult,
-	evaluateBudget,
-	hasFailingBudgets,
-	indexMetrics,
-	listJsonFiles,
-	readJson,
-	toMarkdownComparison,
-	writeJson,
-} from './src/index';
+} from './src/schema';
+import { listJsonFiles, readJson, writeJson } from './src/utils';
 
 const baseDir = process.env.BENCHMARK_BASE_DIR ?? '.benchmarks/base';
 const headDir = process.env.BENCHMARK_HEAD_DIR ?? '.benchmarks/head';
 const outputDir = process.env.BENCHMARK_COMPARE_DIR ?? '.benchmarks/compare';
+const defaultArmMapPath = join(
+	dirname(fileURLToPath(import.meta.url)),
+	'arm-map.json'
+);
+const armMapPath = process.env.BENCHMARK_ARM_MAP ?? defaultArmMapPath;
+
+interface ArmMapFile {
+	_comment?: string;
+	mappings?: Record<string, string>;
+}
+
+function loadArmMap(): Map<string, string> {
+	try {
+		const parsed = readJson<ArmMapFile | Record<string, string>>(armMapPath);
+		const mappings = 'mappings' in parsed ? parsed.mappings : parsed;
+		return new Map(
+			Object.entries(mappings ?? {}).filter(([key]) => key !== '_comment')
+		);
+	} catch {
+		return new Map();
+	}
+}
 
 async function main() {
 	const baseResults = new Map<string, BenchmarkResult>();
@@ -26,6 +49,7 @@ async function main() {
 			result
 		);
 	}
+	const armMap = loadArmMap();
 
 	const comparison: BenchmarkComparisonResult = {
 		schemaVersion: BENCHMARK_SCHEMA_VERSION,
@@ -38,7 +62,10 @@ async function main() {
 	for (const file of listJsonFiles(headDir)) {
 		const headResult = readJson<BenchmarkResult>(file);
 		const key = `${headResult.package}:${headResult.scenario}:${headResult.suite}`;
-		const baseResult = baseResults.get(key);
+		const mappedBaseKey = armMap.get(key);
+		const baseResult =
+			baseResults.get(key) ??
+			(mappedBaseKey ? baseResults.get(mappedBaseKey) : undefined);
 
 		const indexedHeadMetrics = indexMetrics(headResult);
 		const indexedBaseMetrics = baseResult

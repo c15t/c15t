@@ -15,6 +15,7 @@ import { createConsentRoutes } from './routes/consent';
 // Import route handlers
 import { createInitRoute } from './routes/init';
 import { createLegalDocumentRoutes } from './routes/legal-document';
+import { createManifestRoute } from './routes/manifest';
 import { createStatusRoute } from './routes/status';
 import { createSubjectRoutes } from './routes/subject';
 import {
@@ -241,6 +242,7 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 
 	// Mount routes - using plural nouns for REST conventions
 	app.route('/init', createInitRoute(options));
+	app.route('/manifest', createManifestRoute(options));
 	app.route('/legal-documents', createLegalDocumentRoutes());
 	app.route('/subjects', createSubjectRoutes());
 	app.route('/consents', createConsentRoutes());

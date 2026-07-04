@@ -75,9 +75,13 @@ export const StackItem: FC<StackItemProps> = ({
 			open={isExpanded}
 		>
 			<div className={styles.stackHeader}>
-				<PreferenceItem.Trigger className={styles.stackTrigger} noStyle>
+				<PreferenceItem.Trigger
+					className={styles.stackTrigger}
+					noStyle
+				>
 					<PreferenceItem.Leading noStyle>
 						<svg
+							aria-hidden="true"
 							className={styles.purposeArrow}
 							viewBox="0 0 24 24"
 							fill="none"
@@ -91,16 +95,28 @@ export const StackItem: FC<StackItemProps> = ({
 							)}
 						</svg>
 					</PreferenceItem.Leading>
-					<PreferenceItem.Header className={styles.stackInfo} noStyle>
-						<PreferenceItem.Title className={styles.stackName} noStyle>
+					<PreferenceItem.Header
+						className={styles.stackInfo}
+						noStyle
+					>
+						<PreferenceItem.Title
+							className={styles.stackName}
+							noStyle
+						>
 							{stack.name}
 						</PreferenceItem.Title>
-						<PreferenceItem.Meta className={styles.stackMeta} noStyle>
+						<PreferenceItem.Meta
+							className={styles.stackMeta}
+							noStyle
+						>
 							{totalVendors} {totalVendors === 1 ? 'partner' : 'partners'}
 						</PreferenceItem.Meta>
 					</PreferenceItem.Header>
 				</PreferenceItem.Trigger>
-				<PreferenceItem.Control className={styles.stackControls} noStyle>
+				<PreferenceItem.Control
+					className={styles.stackControls}
+					noStyle
+				>
 					{someEnabled && (
 						<div
 							className={styles.partialIndicator}

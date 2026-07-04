@@ -3,14 +3,17 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"bench": "bun run micro/*.bench.ts",
-		"bench:store": "bun run micro/store.bench.ts",
-		"bench:has": "bun run micro/has-condition.bench.ts",
-		"bench:translations": "bun run micro/translations.bench.ts",
-		"bench:cookie": "bun run micro/cookie.bench.ts",
-		"bench:script-loader": "bun run micro/script-loader.bench.ts"
+		"bench": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/*.bench.ts",
+		"bench:ci": "BENCH_OUTPUT_DIR=../.benchmarks/head/micro bun run micro/*.bench.ts",
+		"bench:nightly": "BENCH_OUTPUT_DIR=../.benchmarks/nightly/micro bun run micro/*.bench.ts",
+		"bench:store": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/store.bench.ts",
+		"bench:has": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/has-condition.bench.ts",
+		"bench:translations": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/translations.bench.ts",
+		"bench:cookie": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/cookie.bench.ts",
+		"bench:script-loader": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/script-loader.bench.ts"
 	},
 	"dependencies": {
+		"@c15t/benchmarking": "workspace:*",
 		"mitata": "^1.0.34",
 		"c15t": "workspace:*",
 		"@c15t/react": "workspace:*",

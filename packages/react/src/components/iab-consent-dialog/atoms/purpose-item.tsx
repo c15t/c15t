@@ -99,9 +99,13 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 			open={isExpanded}
 		>
 			<div className={styles.purposeHeader}>
-				<PreferenceItem.Trigger className={styles.purposeTrigger} noStyle>
+				<PreferenceItem.Trigger
+					className={styles.purposeTrigger}
+					noStyle
+				>
 					<PreferenceItem.Leading noStyle>
 						<svg
+							aria-hidden="true"
 							className={styles.purposeArrow}
 							viewBox="0 0 24 24"
 							fill="none"
@@ -115,23 +119,40 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 							)}
 						</svg>
 					</PreferenceItem.Leading>
-					<PreferenceItem.Header className={styles.purposeInfo} noStyle>
-						<PreferenceItem.Title className={styles.purposeName} noStyle>
+					<PreferenceItem.Header
+						className={styles.purposeInfo}
+						noStyle
+					>
+						<PreferenceItem.Title
+							className={styles.purposeName}
+							noStyle
+						>
 							{purpose.name}
 							{isLocked && (
 								<svg
+									aria-hidden="true"
 									className={styles.lockIcon}
 									viewBox="0 0 24 24"
 									fill="none"
 									stroke="currentColor"
 									strokeWidth="2"
 								>
-									<rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+									<rect
+										x="3"
+										y="11"
+										width="18"
+										height="11"
+										rx="2"
+										ry="2"
+									/>
 									<path d="M7 11V7a5 5 0 0 1 10 0v4" />
 								</svg>
 							)}
 						</PreferenceItem.Title>
-						<PreferenceItem.Meta className={styles.purposeMeta} noStyle>
+						<PreferenceItem.Meta
+							className={styles.purposeMeta}
+							noStyle
+						>
 							{iab.preferenceCenter.purposeItem.partners.replace(
 								'{count}',
 								String(purpose.vendors.length)
@@ -143,6 +164,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 								noStyle
 							>
 								<svg
+									aria-hidden="true"
 									className={styles.legitimateInterestIcon}
 									viewBox="0 0 24 24"
 									fill="none"
@@ -169,7 +191,10 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 				</PreferenceItem.Control>
 			</div>
 
-			<PreferenceItem.Content innerClassName={styles.purposeContent} noStyle>
+			<PreferenceItem.Content
+				innerClassName={styles.purposeContent}
+				noStyle
+			>
 				<p className={styles.purposeDescription}>{purpose.description}</p>
 
 				{/* Purpose-level Legitimate Interest Objection */}
@@ -178,6 +203,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 						<div className={styles.purposeLISectionHeader}>
 							<div className={styles.purposeLIInfo}>
 								<svg
+									aria-hidden="true"
 									className={styles.legitimateInterestIcon}
 									viewBox="0 0 24 24"
 									fill="none"
@@ -236,8 +262,12 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 							onOpenChange={setShowExamples}
 							open={showExamples}
 						>
-							<PreferenceItem.Trigger className={styles.examplesToggle} noStyle>
+							<PreferenceItem.Trigger
+								className={styles.examplesToggle}
+								noStyle
+							>
 								<svg
+									aria-hidden="true"
 									style={{ width: '0.75rem', height: '0.75rem' }}
 									viewBox="0 0 24 24"
 									fill="none"
@@ -270,7 +300,10 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 						onOpenChange={setShowVendors}
 						open={showVendors}
 					>
-						<PreferenceItem.Trigger className={styles.vendorsToggle} noStyle>
+						<PreferenceItem.Trigger
+							className={styles.vendorsToggle}
+							noStyle
+						>
 							<svg
 								style={{ width: '0.75rem', height: '0.75rem' }}
 								viewBox="0 0 24 24"
@@ -363,8 +396,17 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 											stroke="currentColor"
 											strokeWidth="2"
 										>
-											<circle cx="12" cy="12" r="10" />
-											<line x1="2" y1="12" x2="22" y2="12" />
+											<circle
+												cx="12"
+												cy="12"
+												r="10"
+											/>
+											<line
+												x1="2"
+												y1="12"
+												x2="22"
+												y2="12"
+											/>
 											<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
 										</svg>
 										{iab.preferenceCenter.vendorList.customVendorsHeading} (
@@ -439,19 +481,32 @@ const VendorRow: FC<VendorRowProps> = ({
 			className={`${styles.vendorRow} ${isLegitimateInterest ? styles.vendorRowLI : ''}`}
 		>
 			<div className={styles.vendorInfo}>
-				<button type="button" onClick={onClick} className={styles.vendorName}>
+				<button
+					type="button"
+					onClick={onClick}
+					className={styles.vendorName}
+				>
 					<span>{vendor.name}</span>
 					{vendor.isCustom && (
 						<svg
+							aria-hidden="true"
 							className={styles.customVendorIcon}
 							viewBox="0 0 24 24"
 							fill="none"
 							stroke="currentColor"
 							strokeWidth="2"
-							aria-label={iab.common.customPartner}
 						>
-							<circle cx="12" cy="12" r="10" />
-							<line x1="2" y1="12" x2="22" y2="12" />
+							<circle
+								cx="12"
+								cy="12"
+								r="10"
+							/>
+							<line
+								x1="2"
+								y1="12"
+								x2="22"
+								y2="12"
+							/>
 							<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
 						</svg>
 					)}

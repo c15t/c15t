@@ -1,3 +1,4 @@
+import { TEST_IDS } from '@c15t/conformance/contract/test-ids';
 import styles from '@c15t/ui/styles/components/frame.module.js';
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, type Ref } from 'react';
@@ -12,6 +13,7 @@ const FrameRoot = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
 				baseClassName={styles.placeholder}
+				data-testid={TEST_IDS.frame.placeholder}
 				themeKey="frame"
 				{...props}
 			>
@@ -39,7 +41,7 @@ const FrameTitle = forwardRef<
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={styles.placeholderTitle}
+			baseClassName={styles.title}
 			themeKey="frame"
 			{...props}
 		>
@@ -62,6 +64,10 @@ const FrameButton = forwardRef<
 			ref={ref}
 			action="set-consent"
 			category={category}
+			variant="primary"
+			mode="stroke"
+			size="small"
+			data-testid={TEST_IDS.frame.openDialog}
 		>
 			{children ?? defaultText}
 		</ConsentButton>

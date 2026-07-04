@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tabsVariants, getNextTabValue } from '@c15t/svelte';
+	import { Tabs, tabsVariants } from '@c15t/svelte';
 
 	interface Props {
 		overviewDescription?: string;
@@ -23,25 +23,6 @@
 		storage: 'Storage',
 	};
 
-	function handleKeydown(event: KeyboardEvent) {
-		const nextValue = getNextTabValue({
-			orientation: 'horizontal',
-			loop: true,
-			triggerValues: tabValues,
-			currentValue: activeTab,
-			key: event.key,
-		});
-
-		if (nextValue !== activeTab) {
-			activeTab = nextValue;
-			// Focus the newly active tab trigger
-			const target = (event.currentTarget as HTMLElement)
-				?.closest('[role="tablist"]')
-				?.querySelector(`[role="tab"][data-value="${nextValue}"]`) as HTMLElement | null;
-			target?.focus();
-		}
-	}
-
 	function getDescription(tab: string): string {
 		const descriptions: Record<string, string> = {
 			overview: overviewDescription,
@@ -52,34 +33,26 @@
 	}
 </script>
 
-<div class={classes.root()}>
-	<div class={classes.list()} role="tablist">
+<Tabs.Root bind:value={activeTab} class={classes.root()}>
+	<Tabs.List class={classes.list()}>
 		{#each tabValues as tab}
-			<button
+			<Tabs.Trigger
+				value={tab}
 				class={classes.trigger()}
-				role="tab"
-				type="button"
-				aria-selected={String(activeTab === tab)}
-				data-state={activeTab === tab ? 'active' : 'inactive'}
 				data-value={tab}
-				tabindex={activeTab === tab ? 0 : -1}
-				onclick={() => { activeTab = tab; }}
-				onkeydown={handleKeydown}
 			>
 				{tabLabels[tab]}
-			</button>
+			</Tabs.Trigger>
 		{/each}
-	</div>
+	</Tabs.List>
 	{#each tabValues as tab}
-		{#if activeTab === tab}
-			<div
-				class={classes.content()}
-				role="tabpanel"
-				style="border:1px solid var(--c15t-border);border-radius:var(--c15t-radius-md);display:grid;gap:0.5rem;padding:1rem;width:28rem;"
-			>
-				<strong>{tabLabels[tab]}</strong>
-				<p style="margin:0;">{getDescription(tab)}</p>
-			</div>
-		{/if}
+		<Tabs.Content
+			value={tab}
+			class={classes.content()}
+			style="border:1px solid var(--c15t-border);border-radius:var(--c15t-radius-md);display:grid;gap:0.5rem;padding:1rem;width:28rem;"
+		>
+			<strong>{tabLabels[tab]}</strong>
+			<p style="margin:0;">{getDescription(tab)}</p>
+		</Tabs.Content>
 	{/each}
-</div>
+</Tabs.Root>

@@ -13,6 +13,10 @@ import {
 } from '~/handlers/init/resolve-init';
 import { validateMessages } from '~/handlers/init/translations';
 import { isOriginTrusted } from '~/middleware/cors/is-origin-trusted';
+import {
+	createManifestCacheControl,
+	createManifestResponseBody,
+} from '~/routes/manifest';
 import type { C15TEdgeOptions } from './types';
 
 export type { InitPayload };
@@ -115,6 +119,71 @@ export function unstable_c15tEdgeInit(
 }
 
 /**
+ * Creates an edge-compatible /manifest handler.
+ *
+ * The returned function accepts a standard `Request` and returns a CDN-cacheable
+ * manifest `Response` with the same cache and CORS semantics as the Hono route.
+ *
+ * @experimental This API is unstable in 2.0 and may change or be removed.
+ */
+export function unstable_c15tEdgeManifest(
+	options: C15TEdgeOptions
+): (request: Request) => Promise<Response> {
+	const logger: Logger = createLogger(options.logger);
+
+	return async (request: Request): Promise<Response> => {
+		if (request.method === 'OPTIONS') {
+			return new Response(null, {
+				status: 204,
+				headers: buildCorsHeaders(request, options.trustedOrigins, logger),
+			});
+		}
+
+		try {
+			const url = new URL(request.url);
+			const manifest = await createManifestResponseBody(
+				options,
+				url.searchParams.get('language')
+			);
+			const etag = `"${manifest.revision}"`;
+			const headers = new Headers({
+				'content-type': 'application/json',
+				'cache-control': createManifestCacheControl(options),
+				etag,
+			});
+			applyCorsHeaders(headers, request, options.trustedOrigins, logger);
+
+			if (request.headers.get('if-none-match') === etag) {
+				return new Response(null, {
+					status: 304,
+					headers,
+				});
+			}
+
+			return new Response(JSON.stringify(manifest), {
+				status: 200,
+				headers,
+			});
+		} catch (error) {
+			logger.error('Edge manifest handler error', error);
+			const errorHeaders = new Headers({ 'content-type': 'application/json' });
+			applyCorsHeaders(errorHeaders, request, options.trustedOrigins, logger);
+			return new Response(
+				JSON.stringify({
+					code: 'INTERNAL_SERVER_ERROR',
+					message: 'Internal server error',
+					status: 500,
+				}),
+				{
+					status: 500,
+					headers: errorHeaders,
+				}
+			);
+		}
+	};
+}
+
+/**
  * Build CORS headers for a preflight response.
  */
 function buildCorsHeaders(
@@ -125,7 +194,8 @@ function buildCorsHeaders(
 	const origin = request.headers.get('origin');
 	const headers: Record<string, string> = {
 		'access-control-allow-methods': 'GET, OPTIONS',
-		'access-control-allow-headers': 'content-type, accept-language',
+		'access-control-allow-headers':
+			'content-type, accept-language, sec-gpc, x-c15t-country, x-c15t-region, cf-ipcountry, x-vercel-ip-country, x-vercel-ip-country-region, x-amz-cf-ipcountry, x-country-code, x-region-code',
 		'access-control-max-age': '86400',
 	};
 

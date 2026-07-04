@@ -16,7 +16,10 @@ export function C15tPrefetch({
 	...options
 }: C15tPrefetchProps) {
 	return (
-		<Script id={id} strategy="beforeInteractive">
+		<Script
+			id={id}
+			strategy="beforeInteractive"
+		>
 			{buildPrefetchScript(options)}
 		</Script>
 	);

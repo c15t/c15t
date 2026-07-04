@@ -6,10 +6,23 @@
 		"build": "echo 'core benchmarks are source-only'",
 		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/core-runtime bunx tsx src/run.ts",
 		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/core-runtime bunx tsx src/run.ts",
-		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/core-runtime bunx tsx src/run.ts"
+		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/core-runtime bunx tsx src/run.ts",
+		"bench:v3": "BENCH_OUTPUT_DIR=../../.benchmarks/current/core-v3-runtime bunx tsx src/run-v3.ts",
+		"bench:v3:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/core-v3-runtime bunx tsx src/run-v3.ts",
+		"bench:compare-v3": "bunx tsx src/compare-v3.ts",
+		"bench:hosted-init": "bunx tsx src/hosted-init-compare.ts",
+		"bench:script-loading": "bunx tsx src/script-loading-compare.ts",
+		"bench:network-blocker": "bunx tsx src/network-blocker-compare.ts",
+		"bench:iframe-blocker": "bunx tsx src/iframe-blocker-compare.ts",
+		"bench:persistence": "bunx tsx src/persistence-compare.ts",
+		"bench:rich-init": "bunx tsx src/rich-init-compare.ts",
+		"bench:iab": "bunx tsx src/iab-compare.ts",
+		"bench:modules": "bun run bench:script-loading && bun run bench:network-blocker && bun run bench:iframe-blocker && bun run bench:persistence && bun run bench:rich-init && bun run bench:iab",
+		"bench:full": "bun run bench && bun run bench:v3 && bun run bench:compare-v3 && bun run bench:hosted-init && bun run bench:modules"
 	},
 	"dependencies": {
 		"@c15t/benchmarking": "workspace:*",
+		"@c15t/iab": "workspace:*",
 		"c15t": "workspace:*"
 	},
 	"devDependencies": {

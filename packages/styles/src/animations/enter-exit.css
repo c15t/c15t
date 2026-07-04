@@ -1,0 +1,26 @@
+@keyframes enter {
+	from {
+		opacity: 0;
+		transform: scale(0.95);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@keyframes exit {
+	from {
+		opacity: 1;
+		transform: scale(1);
+	}
+	to {
+		opacity: 0;
+		transform: scale(0.95);
+	}
+}
+
+:root {
+	--c15t-enter-animation: enter var(--c15t-duration-fast) var(--c15t-easing);
+	--c15t-exit-animation: exit var(--c15t-duration-fast) var(--c15t-easing);
+}

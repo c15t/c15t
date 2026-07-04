@@ -1,36 +1,34 @@
 <script lang="ts">
-	import { collapsibleVariants, getOpenState } from '@c15t/svelte';
+	import { Collapsible, collapsibleVariants, getOpenState } from '@c15t/svelte';
 
 	interface Props {
-		defaultOpen?: boolean;
 		title?: string;
 		description?: string;
+		open?: boolean;
 	}
 
 	const {
-		defaultOpen = true,
 		title = 'Analytics',
 		description = 'These cookies help us understand how visitors interact with the website.',
+		open: initialOpen = true,
 	}: Props = $props();
 
-	let open = $state(defaultOpen);
+	let open = $state(initialOpen);
 	const classes = collapsibleVariants();
 </script>
 
-<div
+<Collapsible.Root
+	bind:open
 	class={classes.root()}
-	data-state={getOpenState(open)}
 	style="--collapsible-gap:0.75rem;border:1px solid var(--c15t-border);border-radius:var(--c15t-radius-md);padding:1rem;width:32rem;"
 >
-	<button
+	<Collapsible.Trigger
 		class={classes.trigger()}
-		type="button"
 		style="align-items:center;display:flex;font-weight:600;justify-content:space-between;width:100%;"
-		onclick={() => { open = !open; }}
 	>
 		<span>{title}</span>
 		<span aria-hidden="true">+</span>
-	</button>
+	</Collapsible.Trigger>
 	<div class={classes.content()} data-state={getOpenState(open)}>
 		<div class={classes.contentViewport()}>
 			<div class={classes.contentInner()}>
@@ -38,4 +36,4 @@
 			</div>
 		</div>
 	</div>
-</div>
+</Collapsible.Root>

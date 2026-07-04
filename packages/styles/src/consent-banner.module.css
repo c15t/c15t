@@ -1,0 +1,366 @@
+@import url("./animations/enter-exit.css");
+
+:root {
+	/* Typography */
+	--consent-banner-font-family: var(--c15t-font-family);
+	--consent-banner-line-height: var(--c15t-line-height-normal);
+	--consent-banner-text-size-adjust: 100%;
+	--consent-banner-tab-size: 4;
+
+	/* Layout variables */
+	--consent-banner-border-radius-sm: var(--c15t-radius-sm);
+	--consent-banner-border-radius: var(--c15t-radius-lg);
+	--consent-banner-max-width: 440px;
+	--consent-banner-branding-tag-offset: 2rem;
+
+	/* Animation variables */
+	--consent-banner-animation-duration: var(--c15t-duration-fast);
+	--consent-banner-animation-timing: var(--c15t-easing);
+	--consent-banner-entry-animation: var(--c15t-enter-animation);
+	--consent-banner-exit-animation: var(--c15t-exit-animation);
+
+	/* Border */
+	--consent-banner-border-width: 1px;
+	--consent-banner-border-width-hairline: 1px;
+
+	/* Shadow */
+	--consent-banner-shadow: var(--c15t-shadow-lg);
+	--consent-banner-shadow-dark: var(--c15t-shadow-lg);
+
+	/* Colors */
+	--consent-banner-background-color: var(--c15t-surface);
+	--consent-banner-background-color-dark: var(--c15t-surface);
+	--consent-banner-footer-background-color: var(--c15t-surface-hover);
+	--consent-banner-footer-background-color-dark: var(--c15t-surface-hover);
+	--consent-banner-text-color: var(--c15t-text);
+	--consent-banner-text-color-dark: var(--c15t-text);
+	--consent-banner-border-color: var(--c15t-border);
+	--consent-banner-border-color-dark: var(--c15t-border);
+	--consent-banner-title-color: var(--c15t-text);
+	--consent-banner-title-color-dark: var(--c15t-text);
+	--consent-banner-description-color: var(--c15t-text-muted);
+	--consent-banner-description-color-dark: var(--c15t-text-muted);
+	--consent-banner-overlay-background-color: var(--c15t-overlay);
+	--consent-banner-overlay-background-color-dark: var(--c15t-overlay);
+}
+
+/* Hairline borders for retina displays */
+@media only screen and (min-resolution: 192dpi) {
+	:root {
+		--consent-banner-border-width-hairline: 0.5px;
+	}
+}
+
+@layer components {
+	.root:not(:global(.headless)) {
+		box-sizing: border-box;
+		padding: 1rem;
+		flex-direction: column;
+		width: 100%;
+		display: flex;
+		z-index: 999999998;
+		position: fixed;
+		font-family: var(--consent-banner-font-family);
+		line-height: var(--consent-banner-line-height);
+		-webkit-text-size-adjust: var(--consent-banner-text-size-adjust);
+		-webkit-font-smoothing: antialiased;
+		tab-size: var(--consent-banner-tab-size);
+	}
+
+	/* Banner — Vue <Transition> enter/leave classes */
+	.bannerEnterActive:not(:global(.headless)) {
+		transition:
+			opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing),
+			transform var(--consent-banner-animation-duration)
+			cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+
+	.bannerLeaveActive:not(:global(.headless)) {
+		transition:
+			opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing),
+			transform var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing);
+	}
+
+	.bannerEnterFrom:not(:global(.headless)),
+	.bannerLeaveTo:not(:global(.headless)) {
+		opacity: 0;
+		transform: translateY(50px);
+	}
+
+	.bannerEnterTo:not(:global(.headless)),
+	.bannerLeaveFrom:not(:global(.headless)) {
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	/* Legacy/compat class toggles */
+	.bannerVisible:not(:global(.headless)) {
+		opacity: 1;
+		transform: translateY(0);
+		transition:
+			opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing),
+			transform var(--consent-banner-animation-duration)
+			cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+
+	.bannerHidden:not(:global(.headless)) {
+		opacity: 0;
+		transform: translateY(50px);
+		transition:
+			opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing),
+			transform var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing);
+	}
+
+	@media (min-width: 640px) {
+		.root:not(:global(.headless)) {
+			padding: 1.5rem;
+			width: auto;
+		}
+	}
+
+	.root[data-position="bottom-left"]:not(:global(.headless)) {
+		left: 0;
+		bottom: 0;
+	}
+
+	.root[data-position="bottom-right"]:not(:global(.headless)) {
+		right: 0;
+		bottom: 0;
+	}
+
+	.root[data-position="top-left"]:not(:global(.headless)) {
+		left: 0;
+		top: 0;
+	}
+
+	.root[data-position="top-right"]:not(:global(.headless)) {
+		right: 0;
+		top: 0;
+	}
+
+	/* Card styles */
+	.card:not(:global(.headless)) {
+		position: relative;
+		width: 100%;
+		border-radius: var(--consent-banner-border-radius);
+		border-width: var(--consent-banner-border-width);
+		border-color: var(--consent-banner-border-color);
+		background-color: var(--consent-banner-background-color);
+		box-shadow: var(--consent-banner-shadow);
+		overflow: hidden;
+	}
+
+	.cardShell:not(:global(.headless)) {
+		display: flex;
+		flex-direction: column;
+		width: min(100%, var(--consent-banner-max-width));
+	}
+
+	:global(.c15t-dark) .card:not(:global(.headless)) {
+		background-color: var(--consent-banner-background-color-dark);
+		border-color: var(--consent-banner-border-color-dark);
+		box-shadow: var(--consent-banner-shadow-dark);
+	}
+
+	/* Animation states */
+	.card:not(:global(.headless))[data-state="open"] {
+		animation: var(--consent-banner-entry-animation);
+	}
+
+	.card:not(:global(.headless))[data-state="closed"] {
+		animation: var(--consent-banner-exit-animation);
+	}
+
+	/* Divider between sections */
+	.card:not(:global(.headless)) > :not([hidden]) ~ :not([hidden]) {
+		border-top-width: var(--consent-banner-border-width);
+		border-color: var(--consent-banner-border-color);
+	}
+
+	:global(.c15t-dark)
+		.card:not(:global(.headless))
+		> :not([hidden])
+		~ :not([hidden]) {
+		border-color: var(--consent-banner-border-color-dark);
+	}
+
+	/* Focus styles */
+	.card:not(:global(.headless)):focus {
+		outline: none;
+		outline-offset: 2px;
+	}
+
+	.header:not(:global(.headless)) {
+		display: flex;
+		flex-direction: column;
+		padding: 1rem;
+		color: var(--consent-banner-text-color);
+	}
+
+	:global(.c15t-dark) .header:not(:global(.headless)) {
+		color: var(--consent-banner-text-color-dark);
+	}
+
+	@media (min-width: 640px) {
+		.header:not(:global(.headless)) {
+			padding: 1.5rem;
+		}
+	}
+
+	.header:not(:global(.headless)) > :not([hidden]) ~ :not([hidden]) {
+		--consent-banner-space-y-reverse: 0;
+		margin-top: calc(0.5rem * calc(1 - var(--consent-banner-space-y-reverse)));
+		margin-bottom: calc(0.5rem * var(--consent-banner-space-y-reverse));
+	}
+
+	.footer:not(:global(.headless)) {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		justify-content: space-between;
+		padding-left: 1.25rem;
+		padding-right: 1.25rem;
+		padding-top: 1rem;
+		padding-bottom: 1rem;
+		background-color: var(--consent-banner-footer-background-color);
+	}
+
+	:global(.c15t-dark) .footer:not(:global(.headless)) {
+		background-color: var(--consent-banner-footer-background-color-dark);
+	}
+
+	@media (min-width: 640px) {
+		.footer:not(:global(.headless)) {
+			flex-direction: row;
+		}
+	}
+
+	.description:not(:global(.headless)) {
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+		letter-spacing: -0.006em;
+		font-weight: 400;
+		color: var(--consent-banner-description-color);
+	}
+
+	:global(.c15t-dark) .description:not(:global(.headless)) {
+		color: var(--consent-banner-description-color-dark);
+	}
+
+	.description[data-context="banner"]:not(:global(.headless)) {
+		font-size: 0.875rem;
+		line-height: 1.25rem;
+		letter-spacing: -0.006em;
+		font-weight: 400;
+		color: var(--consent-banner-description-color);
+	}
+
+	:global(.c15t-dark)
+		.description[data-context="banner"]:not(:global(.headless)) {
+		color: var(--consent-banner-description-color-dark);
+	}
+
+	.description[data-context="dialog"]:not(:global(.headless)) {
+		color: var(--consent-dialog-muted-color);
+		font-size: var(--consent-dialog-description-font-size);
+		font-weight: var(--consent-dialog-description-font-weight);
+		line-height: var(--consent-dialog-description-line-height);
+	}
+
+	:global(.c15t-dark)
+		.description[data-context="dialog"]:not(:global(.headless)) {
+		color: var(--consent-dialog-muted-color-dark);
+	}
+
+	.description[data-context="manager"]:not(:global(.headless)) {
+		color: var(--consent-manager-text-muted-color);
+	}
+
+	:global(.c15t-dark)
+		.description[data-context="manager"]:not(:global(.headless)) {
+		color: var(--consent-manager-text-muted-color-dark);
+	}
+
+	.title:not(:global(.headless)) {
+		font-size: 1rem;
+		line-height: 1.5rem;
+		letter-spacing: -0.011em;
+		font-weight: 500;
+		color: var(--consent-banner-title-color);
+	}
+
+	:global(.c15t-dark) .title:not(:global(.headless)) {
+		color: var(--consent-banner-title-color-dark);
+	}
+
+	.overlay:not(:global(.headless)) {
+		position: fixed;
+		inset: 0px;
+		background-color: var(--consent-banner-overlay-background-color);
+		z-index: 999999997;
+	}
+
+	/* Overlay — Vue <Transition> enter/leave classes */
+	.overlayEnterActive:not(:global(.headless)),
+	.overlayLeaveActive:not(:global(.headless)) {
+		transition: opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing);
+	}
+
+	.overlayEnterFrom:not(:global(.headless)),
+	.overlayLeaveTo:not(:global(.headless)) {
+		opacity: 0;
+	}
+
+	.overlayEnterTo:not(:global(.headless)),
+	.overlayLeaveFrom:not(:global(.headless)) {
+		opacity: 1;
+	}
+
+	/* Legacy/compat class toggles */
+	.overlayVisible:not(:global(.headless)) {
+		opacity: 1;
+		transition: opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing);
+	}
+
+	.overlayHidden:not(:global(.headless)) {
+		opacity: 0;
+		transition: opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing);
+	}
+
+	:global(.c15t-dark) .overlay:not(:global(.headless)) {
+		background-color: var(--consent-banner-overlay-background-color-dark);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.bannerEnterActive,
+		.bannerLeaveActive,
+		.bannerEnterFrom,
+		.bannerEnterTo,
+		.bannerLeaveFrom,
+		.bannerLeaveTo,
+		.overlayEnterActive,
+		.overlayLeaveActive,
+		.overlayEnterFrom,
+		.overlayEnterTo,
+		.overlayLeaveFrom,
+		.overlayLeaveTo,
+		.bannerVisible,
+		.bannerHidden,
+		.overlayVisible,
+		.overlayHidden:not(:global(.headless)),
+		.card:not(:global(.headless))[data-state="open"],
+		.card:not(:global(.headless))[data-state="closed"] {
+			transition: none;
+			animation: none;
+		}
+	}
+}

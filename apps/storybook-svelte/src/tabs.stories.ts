@@ -1,7 +1,4 @@
-import {
-	keyboardNavigation,
-	tabSwitching,
-} from '@c15t/storybook-tests/play/tabs';
+import { keyboardNavigation, tabSwitching } from '@c15t/conformance/play/tabs';
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
 import TabsControlledDemo from './TabsControlledDemo.svelte';
 import TabsDemo from './TabsDemo.svelte';
@@ -11,7 +8,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Tabs',
+	title: 'PRIMITIVES - SVELTE/Tabs',
 } satisfies Meta<TabsDemo>;
 
 export default meta;

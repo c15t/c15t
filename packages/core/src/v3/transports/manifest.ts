@@ -1,0 +1,313 @@
+/**
+ * Manifest transport — fetches or accepts a consent manifest and resolves
+ * `/init` locally with @c15t/schema's shared resolver.
+ */
+
+import type {
+	ConsentManifest,
+	ConsentManifestGVLReference,
+	GlobalVendorList,
+	InitOutput,
+	ResolveInitFromManifestInputs,
+} from '@c15t/schema/types';
+import { resolveInitFromManifest } from '@c15t/schema/types';
+import type {
+	InitContext,
+	InitResponse,
+	KernelOverrides,
+	KernelTransport,
+	SavePayload,
+	SaveResult,
+} from '../types';
+import { mapInitOutputToInitResponse } from './init-output';
+
+export interface ManifestTransportOptions {
+	/**
+	 * URL for `GET /manifest`. Either `manifestURL` or `manifest` is required.
+	 */
+	manifestURL?: string;
+
+	/**
+	 * Inline manifest object. Either `manifestURL` or `manifest` is required.
+	 */
+	manifest?: ConsentManifest;
+
+	/**
+	 * Backend URL used for `POST /subjects`. Defaults to `manifestURL` with a
+	 * trailing `/manifest` segment removed.
+	 */
+	backendURL?: string;
+
+	/**
+	 * Fetch implementation. Defaults to `globalThis.fetch`.
+	 */
+	fetch?: typeof globalThis.fetch;
+
+	/**
+	 * Optional GVL fetcher. Called only when the locally resolved policy is IAB.
+	 */
+	fetchGvl?: (input: {
+		reference: ConsentManifestGVLReference;
+		language: string;
+		fetch: typeof globalThis.fetch;
+	}) => Promise<GlobalVendorList | null>;
+
+	/**
+	 * Caller-provided decision inputs, usually derived from request headers on
+	 * the host server/edge.
+	 */
+	inputs?: ResolveInitFromManifestInputs;
+
+	/**
+	 * Prefetched init output from a same-origin server route. Used to seed the
+	 * asserted decision inputs sent with the first manifest-mode save.
+	 */
+	initialInit?: InitOutput;
+
+	/**
+	 * Request headers for fetching `manifestURL`.
+	 */
+	headers?: Record<string, string>;
+
+	/**
+	 * Fetch credentials mode. Defaults to `'include'`.
+	 */
+	credentials?: RequestCredentials;
+
+	/**
+	 * Domain sent to POST /subjects. Defaults to the browser hostname, or the
+	 * backend URL hostname for absolute URLs in server runtimes.
+	 */
+	domain?: string;
+}
+
+interface LastDecisionInputs {
+	policyId?: string;
+	fingerprint?: string;
+	country: string | null;
+	region: string | null;
+	language: string;
+}
+
+function trimSlash(url: string): string {
+	return url.endsWith('/') ? url.slice(0, -1) : url;
+}
+
+function deriveBackendURL(options: ManifestTransportOptions): string {
+	if (options.backendURL) {
+		return trimSlash(options.backendURL);
+	}
+	if (!options.manifestURL) {
+		return '';
+	}
+
+	const withoutQuery =
+		options.manifestURL.split(/[?#]/)[0] ?? options.manifestURL;
+	const trimmed = trimSlash(withoutQuery);
+	return trimmed.endsWith('/manifest')
+		? trimmed.slice(0, -'/manifest'.length)
+		: trimmed;
+}
+
+function resolveDomain(
+	backendURL: string,
+	explicit: string | undefined
+): string {
+	if (explicit) return explicit;
+	if (typeof window !== 'undefined' && window.location?.hostname) {
+		return window.location.hostname;
+	}
+	try {
+		return new URL(backendURL).hostname;
+	} catch {
+		return 'localhost';
+	}
+}
+
+function toHeadersFromInputs(
+	inputs: ResolveInitFromManifestInputs
+): Record<string, string> {
+	const headers: Record<string, string> = {};
+	if (inputs.gpc === true) {
+		headers['sec-gpc'] = '1';
+	} else if (inputs.gpc === false) {
+		headers['sec-gpc'] = '0';
+	}
+	return headers;
+}
+
+function mergeInputs(
+	optionsInputs: ResolveInitFromManifestInputs | undefined,
+	overrides: Readonly<KernelOverrides>
+): ResolveInitFromManifestInputs {
+	return {
+		...optionsInputs,
+		country: overrides.country ?? optionsInputs?.country ?? null,
+		region: overrides.region ?? optionsInputs?.region ?? null,
+		language: overrides.language ?? optionsInputs?.language ?? 'en',
+		gpc: overrides.gpc ?? optionsInputs?.gpc,
+	};
+}
+
+function shouldFetchGvl(
+	manifest: ConsentManifest,
+	payload: InitOutput
+): boolean {
+	return (
+		manifest.iab?.enabled === true &&
+		manifest.iab.gvl !== undefined &&
+		(manifest.policyPacks === undefined || payload.policy?.model === 'iab')
+	);
+}
+
+async function defaultFetchGvl(input: {
+	reference: ConsentManifestGVLReference;
+	language: string;
+	fetch: typeof globalThis.fetch;
+}): Promise<GlobalVendorList | null> {
+	const response = await input.fetch(input.reference.url, {
+		method: 'GET',
+		headers: {
+			'accept-language': input.language,
+		},
+	});
+
+	if (response.status === 204) {
+		return null;
+	}
+	if (!response.ok) {
+		throw new Error(
+			`c15t manifest transport: GVL responded ${response.status} ${response.statusText}`
+		);
+	}
+
+	return (await response.json()) as GlobalVendorList;
+}
+
+function rememberDecision(payload: InitOutput): LastDecisionInputs {
+	return {
+		policyId: payload.policyDecision?.policyId,
+		fingerprint: payload.policyDecision?.fingerprint,
+		country: payload.location.countryCode,
+		region: payload.location.regionCode,
+		language: payload.translations.language,
+	};
+}
+
+export function createManifestTransport(
+	options: ManifestTransportOptions
+): KernelTransport {
+	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
+	if (!fetchImpl) {
+		throw new Error(
+			'createManifestTransport: no fetch available. Pass `fetch` in options.'
+		);
+	}
+	if (!options.manifest && !options.manifestURL) {
+		throw new Error(
+			'createManifestTransport: either `manifest` or `manifestURL` is required.'
+		);
+	}
+
+	const backendURL = deriveBackendURL(options);
+	const credentials = options.credentials ?? 'include';
+	const domain = resolveDomain(backendURL, options.domain);
+	let manifestPromise: Promise<ConsentManifest> | undefined;
+	let lastDecisionInputs: LastDecisionInputs | undefined = options.initialInit
+		? rememberDecision(options.initialInit)
+		: undefined;
+
+	async function getManifest(): Promise<ConsentManifest> {
+		if (options.manifest) {
+			return options.manifest;
+		}
+		if (!manifestPromise) {
+			manifestPromise = (async () => {
+				const response = await fetchImpl(options.manifestURL!, {
+					method: 'GET',
+					credentials,
+					headers: {
+						accept: 'application/json',
+						...options.headers,
+					},
+				});
+
+				if (!response.ok) {
+					throw new Error(
+						`c15t manifest transport: /manifest responded ${response.status} ${response.statusText}`
+					);
+				}
+
+				return (await response.json()) as ConsentManifest;
+			})();
+		}
+		return manifestPromise;
+	}
+
+	return {
+		async init(ctx: InitContext): Promise<InitResponse> {
+			const manifest = await getManifest();
+			const inputs = mergeInputs(options.inputs, ctx.overrides);
+			const payload: InitOutput = resolveInitFromManifest(manifest, inputs);
+
+			if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
+				const language = payload.translations.language.split('-')[0] || 'en';
+				payload.gvl = await (options.fetchGvl ?? defaultFetchGvl)({
+					reference: manifest.iab.gvl,
+					language,
+					fetch: fetchImpl,
+				});
+			}
+
+			lastDecisionInputs = rememberDecision(payload);
+			return mapInitOutputToInitResponse(payload, toHeadersFromInputs(inputs));
+		},
+
+		async save(payload: SavePayload): Promise<SaveResult> {
+			if (!backendURL) {
+				throw new Error(
+					'createManifestTransport: `backendURL` is required to save when using an inline manifest without `manifestURL`.'
+				);
+			}
+
+			const response = await fetchImpl(`${backendURL}/subjects`, {
+				method: 'POST',
+				credentials,
+				headers: {
+					'content-type': 'application/json',
+					accept: 'application/json',
+				},
+				body: JSON.stringify({
+					subjectId: payload.subjectId,
+					externalSubjectId: payload.user?.externalId,
+					identityProvider: payload.user?.identityProvider,
+					domain,
+					type: 'cookie_banner',
+					preferences: payload.consents,
+					givenAt: Date.now(),
+					jurisdictionModel: payload.model ?? undefined,
+					uiSource: payload.uiSource ?? undefined,
+					consentAction: payload.consentAction,
+					policySnapshotToken: payload.policySnapshotToken ?? undefined,
+					tcString: payload.tcString ?? undefined,
+					policyId: lastDecisionInputs?.policyId,
+					fingerprint: lastDecisionInputs?.fingerprint,
+					country: lastDecisionInputs?.country,
+					region: lastDecisionInputs?.region,
+					language: lastDecisionInputs?.language,
+					metadata: payload.user?.properties
+						? { userProperties: payload.user.properties }
+						: undefined,
+				}),
+			});
+
+			if (!response.ok) {
+				throw new Error(
+					`c15t manifest transport: /subjects responded ${response.status} ${response.statusText}`
+				);
+			}
+
+			return (await response.json()) as SaveResult;
+		},
+	};
+}

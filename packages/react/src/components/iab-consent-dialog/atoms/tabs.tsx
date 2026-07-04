@@ -58,12 +58,23 @@ const IABConsentDialogTabs = forwardRef<
 			{children ? (
 				children
 			) : (
-				<Tabs.List className={styles.tabsList} noStyle>
-					<Tabs.Trigger className={styles.tabButton} noStyle value="purposes">
+				<Tabs.List
+					className={styles.tabsList}
+					noStyle
+				>
+					<Tabs.Trigger
+						className={styles.tabButton}
+						noStyle
+						value="purposes"
+					>
 						{iabTranslations.preferenceCenter.tabs.purposes}
 						{!isLoading && ` (${purposeCount})`}
 					</Tabs.Trigger>
-					<Tabs.Trigger className={styles.tabButton} noStyle value="vendors">
+					<Tabs.Trigger
+						className={styles.tabButton}
+						noStyle
+						value="vendors"
+					>
 						{iabTranslations.preferenceCenter.tabs.vendors}
 						{!isLoading && ` (${totalVendors})`}
 					</Tabs.Trigger>

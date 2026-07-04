@@ -7,7 +7,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Components/Core/Frame',
+	title: 'COMPONENTS - REACT/Core/Frame',
 } satisfies Meta<typeof Frame>;
 
 export default meta;

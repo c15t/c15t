@@ -7,6 +7,9 @@ on:
       - 'packages/core/**'
       - 'packages/react/**'
       - 'packages/nextjs/**'
+      - 'packages/iab/**'
+      - 'packages/vue/**'
+      - 'packages/styles/**'
       - 'packages/translations/**'
       - 'packages/ui/**'
       - 'benchmarks/**'
@@ -16,11 +19,14 @@ on:
       - 'turbo.json'
       - 'internals/bundle-analysis-action/**'
   push:
-    branches: ['main', 'canary']
+    branches: ['main', 'canary', 'v3']
     paths:
       - 'packages/core/**'
       - 'packages/react/**'
       - 'packages/nextjs/**'
+      - 'packages/iab/**'
+      - 'packages/vue/**'
+      - 'packages/styles/**'
       - 'packages/translations/**'
       - 'packages/ui/**'
       - 'benchmarks/**'

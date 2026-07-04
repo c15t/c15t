@@ -32,6 +32,7 @@ describe('createCORSOptions (unit)', () => {
 				'x-request-id',
 				'x-c15t-country',
 				'x-c15t-region',
+				'sec-gpc',
 				'accept-language',
 			]);
 			expect(config.methods).toEqual([

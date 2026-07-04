@@ -7,7 +7,7 @@ import {
 	saveConsentToStorage,
 	setCookie,
 } from 'c15t';
-import { bench, run } from 'mitata';
+import { bench, runMicroBenchmarkSuite } from './wrapper';
 
 // Mock localStorage for Node.js environment
 if (typeof globalThis.localStorage === 'undefined') {
@@ -137,4 +137,4 @@ bench('full round-trip: save -> get -> delete', () => {
 	deleteConsentFromStorage();
 });
 
-await run();
+await runMicroBenchmarkSuite('cookie');

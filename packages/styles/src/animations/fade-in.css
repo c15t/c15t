@@ -1,0 +1,10 @@
+@keyframes fadeIn {
+	to {
+		opacity: 1;
+	}
+}
+
+:root {
+	--c15t-fade-in-animation: fadeIn 0.15s cubic-bezier(0.165, 0.84, 0.44, 1)
+		forwards;
+}

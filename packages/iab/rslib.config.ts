@@ -6,6 +6,8 @@ export default defineConfig({
 		entry: {
 			index: ['./src/index.ts'],
 			headless: ['./src/headless.ts'],
+			v3: ['./src/v3/index.ts'],
+			'v3/headless': ['./src/v3/headless.ts'],
 		},
 		exclude: [
 			'**/__tests__/**',

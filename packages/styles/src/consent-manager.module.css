@@ -1,0 +1,82 @@
+@import url("./animations/enter-exit.css");
+
+:root {
+	/* Manager Colors */
+	--consent-manager-background-color: var(--c15t-surface);
+	--consent-manager-background-color-dark: var(--c15t-surface);
+	--consent-manager-border-color: var(--c15t-border);
+	--consent-manager-border-color-dark: var(--c15t-border);
+	--consent-manager-text-color: var(--c15t-text);
+	--consent-manager-text-color-dark: var(--c15t-text);
+	--consent-manager-text-muted-color: var(--c15t-text-muted);
+	--consent-manager-text-muted-color-dark: var(--c15t-text-muted);
+	--consent-manager-footer-background-color: transparent;
+	--consent-manager-footer-background-color-dark: transparent;
+	--consent-manager-link-text-color: var(--c15t-text);
+	--consent-manager-link-text-color-dark: var(--c15t-text);
+	--consent-manager-branding-link-color: var(--c15t-primary);
+
+	/* Manager Layout */
+	--consent-manager-padding: 0;
+	--consent-manager-radius: 0;
+	--consent-manager-gap: var(--c15t-space-xs);
+	--consent-manager-border-width: 0;
+	--consent-manager-max-width: 32rem;
+	--consent-manager-z-index: 50;
+	--consent-manager-footer-padding: var(--c15t-space-lg) 0 0 0;
+
+	/* Typography */
+	--consent-manager-title-size: var(--c15t-font-size-sm);
+	--consent-manager-title-line-height: var(--c15t-line-height-tight);
+	--consent-manager-title-tracking: -0.006em;
+	--consent-manager-title-weight: var(--c15t-font-weight-semibold);
+
+	/* Animation */
+	--consent-manager-entry-animation: var(--c15t-enter-animation);
+	--consent-manager-exit-animation: var(--c15t-exit-animation);
+
+	--consent-manager-font-family:
+		system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif,
+		"Apple Color Emoji", "Segoe UI Emoji";
+	--consent-manager-line-height: 1.15;
+}
+
+@layer components {
+	.manager:not(:global(.headless)) {
+		position: relative;
+		width: 100%;
+		font-family: var(--consent-manager-font-family);
+		line-height: var(--consent-manager-line-height);
+		-webkit-font-smoothing: antialiased;
+	}
+
+	.manager:not(:global(.headless)) > :not([hidden]) ~ :not([hidden]) {
+		--space-y-reverse: 0;
+		margin-top: calc(1.5rem * calc(1 - var(--space-y-reverse)));
+		margin-bottom: calc(1.5rem * var(--space-y-reverse));
+	}
+
+	.footer:not(:global(.headless)) {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: var(--consent-manager-footer-padding);
+		background-color: var(--consent-manager-footer-background-color);
+	}
+
+	:global(.c15t-dark) .footer:not(:global(.headless)) {
+		background-color: var(--consent-manager-footer-background-color-dark);
+	}
+
+	@media (max-width: 640px) {
+		.footer:not(:global(.headless)) {
+			flex-direction: column;
+		}
+	}
+
+	@media (min-width: 640px) {
+		.footer:not(:global(.headless)) {
+			flex-direction: row;
+		}
+	}
+}

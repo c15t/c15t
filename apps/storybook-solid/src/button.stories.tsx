@@ -1,5 +1,5 @@
+import { buttonRenders } from '@c15t/conformance/play/button';
 import { buttonVariants } from '@c15t/solid';
-import { buttonRenders } from '@c15t/storybook-tests/play/button';
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 
 function Demo() {

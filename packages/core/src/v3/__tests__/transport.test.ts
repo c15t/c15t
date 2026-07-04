@@ -1,0 +1,749 @@
+/**
+ * Transport + commands.init / commands.save tests.
+ *
+ * These verify the pluggable transport wiring without hitting a real
+ * backend. createHostedTransport is also unit-tested against a mocked
+ * fetch so we know the request shape and error handling are correct.
+ */
+import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
+import { describe, expect, test, vi } from 'vitest';
+import {
+	createConsentKernel,
+	createHostedTransport,
+	createManifestTransport,
+	type InitResponse,
+	type KernelTransport,
+	type SaveResult,
+} from '../index';
+
+const REALISTIC_INIT_OUTPUT = {
+	jurisdiction: 'GDPR',
+	location: { countryCode: 'DE', regionCode: 'BE' },
+	translations: {
+		language: 'de',
+		translations: {
+			common: {
+				acceptAll: 'Alle akzeptieren',
+				rejectAll: 'Alle ablehnen',
+				customize: 'Anpassen',
+				save: 'Speichern',
+			},
+			cookieBanner: {
+				title: 'Cookies verwalten',
+				description: 'Waehlen Sie aus, welche Cookies verwendet werden.',
+			},
+			consentManagerDialog: {
+				title: 'Datenschutzeinstellungen',
+				description: 'Verwalten Sie Ihre Praeferenzen.',
+			},
+			consentTypes: {
+				experience: {
+					title: 'Erlebnis',
+					description: 'Personalisierte Funktionen.',
+				},
+				functionality: {
+					title: 'Funktionalitaet',
+					description: 'Verbesserte Websitefunktionen.',
+				},
+				marketing: {
+					title: 'Marketing',
+					description: 'Personalisierte Werbung.',
+				},
+				measurement: {
+					title: 'Analyse',
+					description: 'Nutzungsmessung.',
+				},
+				necessary: {
+					title: 'Notwendig',
+					description: 'Erforderliche Cookies.',
+				},
+			},
+			frame: {
+				title: 'Cookie-Einstellungen',
+				actionButton: 'Einstellungen oeffnen',
+			},
+			legalLinks: {
+				privacyPolicy: 'Datenschutz',
+				termsOfService: 'Nutzungsbedingungen',
+				cookiePolicy: 'Cookie-Richtlinie',
+			},
+		},
+	},
+	branding: 'c15t',
+	gvl: {
+		gvlSpecificationVersion: 3,
+		vendorListVersion: 42,
+		tcfPolicyVersion: 4,
+		lastUpdated: '2026-01-01T00:00:00Z',
+		purposes: {},
+		specialPurposes: {},
+		features: {},
+		specialFeatures: {},
+		stacks: {},
+		vendors: {},
+	},
+	customVendors: [
+		{
+			id: 'internal-analytics',
+			name: 'Internal Analytics',
+			privacyPolicyUrl: 'https://example.com/privacy',
+			purposes: [1, 7],
+			legIntPurposes: [2],
+			usesCookies: true,
+		},
+	],
+	cmpId: 28,
+	policy: {
+		id: 'de-iab',
+		model: 'iab',
+		i18n: {
+			language: 'de',
+			messageProfile: 'formal',
+		},
+		consent: {
+			expiryDays: 180,
+			scopeMode: 'strict',
+			categories: ['necessary', 'functionality', 'marketing', 'measurement'],
+			preselectedCategories: ['necessary'],
+			gpc: true,
+		},
+		ui: {
+			mode: 'dialog',
+			banner: {
+				allowedActions: ['accept', 'reject', 'customize'],
+				primaryActions: ['accept'],
+				direction: 'row',
+				uiProfile: 'balanced',
+				scrollLock: false,
+			},
+			dialog: {
+				allowedActions: ['accept', 'reject', 'customize'],
+				primaryActions: ['accept', 'customize'],
+				direction: 'column',
+				uiProfile: 'strict',
+				scrollLock: true,
+			},
+		},
+		proof: {
+			storeIp: false,
+			storeUserAgent: true,
+			storeLanguage: true,
+		},
+	},
+	policyDecision: {
+		policyId: 'de-iab',
+		fingerprint: 'policy-fingerprint',
+		matchedBy: 'region',
+		country: 'DE',
+		region: 'BE',
+		jurisdiction: 'GDPR',
+	},
+	policySnapshotToken: 'snapshot-token',
+} satisfies InitOutput;
+
+const MANIFEST_FIXTURE = {
+	schemaVersion: 1,
+	revision: 'manifest-revision',
+	branding: 'c15t',
+	cmpId: 28,
+	iab: {
+		enabled: true,
+		customVendors: [{ id: 'internal-analytics' }],
+		gvl: { version: 42, url: 'https://gvl.example.com' },
+	},
+	policyPacks: [
+		{
+			policy: {
+				id: 'de-iab',
+				match: { regions: [{ country: 'DE', region: 'BE' }] },
+				i18n: { language: 'de', messageProfile: 'formal' },
+				consent: {
+					model: 'iab',
+					expiryDays: 180,
+					scopeMode: 'strict',
+					gpc: true,
+				},
+			},
+			resolvedPolicy: {
+				id: 'de-iab',
+				model: 'iab',
+				i18n: { language: 'de', messageProfile: 'formal' },
+				consent: {
+					expiryDays: 180,
+					scopeMode: 'strict',
+					categories: ['*'],
+					gpc: true,
+				},
+				proof: {},
+			},
+			fingerprint: 'policy-fingerprint',
+		},
+	],
+	translations: {
+		i18n: {
+			defaultProfile: 'formal',
+			messages: {
+				formal: {
+					fallbackLanguage: 'en',
+					translations: {
+						de: {
+							common: {
+								acceptAll: 'Alle akzeptieren',
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+} satisfies ConsentManifest;
+
+describe('kernel transport: no transport = no-op commands', () => {
+	test('init returns ok without firing any network call', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(new Response());
+		vi.stubGlobal('fetch', fetchSpy);
+
+		try {
+			const kernel = createConsentKernel();
+			const result = await kernel.commands.init();
+
+			expect(result.ok).toBe(true);
+			expect(fetchSpy).not.toHaveBeenCalled();
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	test('save returns ok without firing any network call', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(new Response());
+		vi.stubGlobal('fetch', fetchSpy);
+
+		try {
+			const kernel = createConsentKernel();
+			const result = await kernel.commands.save('all');
+
+			expect(result.ok).toBe(true);
+			expect(fetchSpy).not.toHaveBeenCalled();
+			expect(kernel.getSnapshot().hasConsented).toBe(true);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+});
+
+describe('kernel transport: init applies response to snapshot', () => {
+	test('legacy jurisdiction + showConsentBanner init fields are ignored', async () => {
+		const transport: KernelTransport = {
+			async init() {
+				return {
+					jurisdiction: 'GDPR',
+					showConsentBanner: true,
+				} as InitResponse;
+			},
+		};
+		const kernel = createConsentKernel({ transport });
+
+		expect(kernel.getSnapshot().model).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+
+		await kernel.commands.init();
+
+		expect(kernel.getSnapshot().model).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+	});
+
+	test('resolvedOverrides merge into snapshot.overrides', async () => {
+		const transport: KernelTransport = {
+			async init() {
+				return {
+					resolvedOverrides: { country: 'DE', region: 'BE' },
+				};
+			},
+		};
+		const kernel = createConsentKernel({
+			initialOverrides: { language: 'de' },
+			transport,
+		});
+
+		await kernel.commands.init();
+
+		expect(kernel.getSnapshot().overrides).toEqual({
+			language: 'de',
+			country: 'DE',
+			region: 'BE',
+		});
+	});
+
+	test('server-side consents override config when returned', async () => {
+		const transport: KernelTransport = {
+			async init() {
+				return {
+					consents: { marketing: true, measurement: true },
+					hasConsented: true,
+				};
+			},
+		};
+		const kernel = createConsentKernel({ transport });
+
+		await kernel.commands.init();
+
+		const snap = kernel.getSnapshot();
+		expect(snap.consents.marketing).toBe(true);
+		expect(snap.consents.measurement).toBe(true);
+		expect(snap.hasConsented).toBe(true);
+	});
+
+	test('init passes current overrides + user as InitContext', async () => {
+		const initSpy = vi.fn<
+			[Parameters<NonNullable<KernelTransport['init']>>[0]],
+			Promise<InitResponse>
+		>();
+		initSpy.mockResolvedValue({});
+		const transport: KernelTransport = { init: initSpy };
+
+		const kernel = createConsentKernel({
+			initialOverrides: { country: 'US', language: 'en' },
+			initialUser: { externalId: 'user-42' },
+			transport,
+		});
+
+		await kernel.commands.init();
+
+		expect(initSpy).toHaveBeenCalledTimes(1);
+		const ctx = initSpy.mock.calls[0]?.[0];
+		expect(ctx?.overrides).toEqual({ country: 'US', language: 'en' });
+		expect(ctx?.user?.externalId).toBe('user-42');
+	});
+
+	test('init emits command:init:started then :completed', async () => {
+		const events: string[] = [];
+		const transport: KernelTransport = {
+			async init() {
+				return {};
+			},
+		};
+		const kernel = createConsentKernel({ transport });
+		kernel.events.on('command:init:started', () => events.push('started'));
+		kernel.events.on('command:init:completed', (e) =>
+			events.push(`completed:${String(e.result.ok)}`)
+		);
+
+		await kernel.commands.init();
+
+		expect(events).toEqual(['started', 'completed:true']);
+	});
+
+	test('init transport error → result.ok=false + command:error event', async () => {
+		const boom = new Error('backend on fire');
+		const transport: KernelTransport = {
+			async init() {
+				throw boom;
+			},
+		};
+		const kernel = createConsentKernel({ transport });
+
+		const errors: unknown[] = [];
+		kernel.events.on('command:error', (e) => errors.push(e.error));
+
+		const result = await kernel.commands.init();
+
+		expect(result.ok).toBe(false);
+		expect(result.error).toBe(boom);
+		expect(errors).toEqual([boom]);
+		// Snapshot should be unchanged.
+		expect(kernel.getSnapshot().model).toBeNull();
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+	});
+});
+
+describe('kernel transport: save flows consents to backend', () => {
+	test('save calls transport.save with current consent payload', async () => {
+		const saveSpy = vi.fn<
+			[Parameters<NonNullable<KernelTransport['save']>>[0]],
+			Promise<SaveResult>
+		>();
+		saveSpy.mockResolvedValue({ ok: true, subjectId: 'sub-1' });
+		const transport: KernelTransport = { save: saveSpy };
+
+		const kernel = createConsentKernel({ transport });
+		const result = await kernel.commands.save('all');
+
+		expect(result.ok).toBe(true);
+		expect(result.subjectId).toBe('sub-1');
+		expect(saveSpy).toHaveBeenCalledTimes(1);
+		const payload = saveSpy.mock.calls[0]?.[0];
+		expect(payload?.subjectId).toMatch(/^sub_/);
+		expect(payload?.consents.marketing).toBe(true);
+	});
+
+	test('save creates and reuses a subjectId', async () => {
+		const saveSpy = vi.fn<
+			[Parameters<NonNullable<KernelTransport['save']>>[0]],
+			Promise<SaveResult>
+		>();
+		saveSpy.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({ transport: { save: saveSpy } });
+
+		await kernel.commands.save('all');
+		const first = kernel.getSnapshot().subjectId;
+		await kernel.commands.save({ marketing: false });
+		const second = kernel.getSnapshot().subjectId;
+
+		expect(first).toMatch(/^sub_/);
+		expect(second).toBe(first);
+		expect(saveSpy.mock.calls[0]?.[0].subjectId).toBe(first);
+		expect(saveSpy.mock.calls[1]?.[0].subjectId).toBe(first);
+	});
+
+	test('save transport error → result.ok=false + command:error event', async () => {
+		const boom = new Error('save failed');
+		const transport: KernelTransport = {
+			async save() {
+				throw boom;
+			},
+		};
+		const kernel = createConsentKernel({ transport });
+
+		const errors: unknown[] = [];
+		kernel.events.on('command:error', (e) => errors.push(e.error));
+
+		const result = await kernel.commands.save('all');
+		expect(result.ok).toBe(false);
+		expect(errors).toEqual([boom]);
+		// Snapshot mutation still happened (local optimistic commit).
+		expect(kernel.getSnapshot().hasConsented).toBe(true);
+	});
+});
+
+describe('kernel transport: identify forwards to transport', () => {
+	test('identify calls transport.identify after updating snapshot', async () => {
+		const identifySpy = vi.fn<[unknown], Promise<void>>();
+		identifySpy.mockResolvedValue();
+		const transport: KernelTransport = { identify: identifySpy };
+
+		const kernel = createConsentKernel({ transport });
+		await kernel.commands.identify({ externalId: 'user-42' });
+
+		expect(kernel.getSnapshot().user?.externalId).toBe('user-42');
+		expect(identifySpy).toHaveBeenCalledTimes(1);
+	});
+
+	test('identify transport error emits command:error but snapshot still updated', async () => {
+		const boom = new Error('identify failed');
+		const transport: KernelTransport = {
+			async identify() {
+				throw boom;
+			},
+		};
+		const kernel = createConsentKernel({ transport });
+		const errors: unknown[] = [];
+		kernel.events.on('command:error', (e) => errors.push(e.error));
+
+		await kernel.commands.identify({ externalId: 'user-42' });
+
+		expect(kernel.getSnapshot().user?.externalId).toBe('user-42');
+		expect(errors).toEqual([boom]);
+	});
+});
+
+// ---- createHostedTransport unit tests ------------------------------------
+
+describe('createHostedTransport: request shape', () => {
+	test('init GETs `${backendURL}/init` with no body', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+			})
+		);
+		const transport = createHostedTransport({
+			backendURL: 'https://api.example.com/c15t/',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		const response = await transport.init?.({
+			overrides: { country: 'DE' },
+			user: { externalId: 'user-1' },
+		});
+
+		expect(response?.policy?.id).toBe('de-iab');
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url, init] = fetchSpy.mock.calls[0] ?? [];
+		// Trailing slash on backendURL is stripped.
+		expect(url).toBe('https://api.example.com/c15t/init');
+		expect((init as RequestInit).method).toBe('GET');
+		expect((init as RequestInit).body).toBeUndefined();
+	});
+
+	test('save POSTs to `${backendURL}/subjects` with backend body', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ ok: true, subjectId: 'sub-1' }), {
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+			})
+		);
+		const transport = createHostedTransport({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		const result = await transport.save?.({
+			subjectId: 'sub_test',
+			consents: {
+				necessary: true,
+				functionality: true,
+				marketing: true,
+				measurement: true,
+				experience: true,
+			},
+			overrides: {},
+			user: { externalId: 'user-1', identityProvider: 'app' },
+			model: 'opt-in',
+			uiSource: 'banner',
+			consentAction: 'all',
+			policySnapshotToken: 'snap-1',
+			tcString: 'tc-1',
+		});
+
+		expect(result?.subjectId).toBe('sub-1');
+		const [url, init] = fetchSpy.mock.calls[0] ?? [];
+		expect(url).toBe('/api/c15t/subjects');
+		const body = JSON.parse((init as RequestInit).body as string);
+		expect(body).toMatchObject({
+			subjectId: 'sub_test',
+			externalSubjectId: 'user-1',
+			identityProvider: 'app',
+			domain: 'localhost',
+			type: 'cookie_banner',
+			preferences: {
+				necessary: true,
+				functionality: true,
+				marketing: true,
+				measurement: true,
+				experience: true,
+			},
+			jurisdictionModel: 'opt-in',
+			uiSource: 'banner',
+			consentAction: 'all',
+			policySnapshotToken: 'snap-1',
+			tcString: 'tc-1',
+		});
+		expect(typeof body.givenAt).toBe('number');
+	});
+
+	test('init only forwards allowlisted backend input headers', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			headers: {
+				'accept-language': 'de-DE,de;q=0.9',
+				authorization: 'Bearer t',
+				cookie: 'session=secret',
+				'sec-gpc': '1',
+				'X-C15T-Region': 'BE',
+				'x-c15t-country': 'DE',
+				'x-forwarded-for': '203.0.113.1',
+			},
+		});
+
+		await transport.init?.({ overrides: {}, user: null });
+		const [, init] = fetchSpy.mock.calls[0] ?? [];
+		expect((init as RequestInit).headers).toEqual({
+			accept: 'application/json',
+			'accept-language': 'de-DE,de;q=0.9',
+			'sec-gpc': '1',
+			'x-c15t-country': 'DE',
+			'x-c15t-region': 'BE',
+		});
+	});
+
+	test('init maps backend InitOutput into the kernel init response shape', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+			})
+		);
+		const transport = createHostedTransport({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			headers: { 'sec-gpc': '1' },
+		});
+
+		const response = await transport.init?.({ overrides: {}, user: null });
+
+		expect(response).toMatchObject({
+			resolvedOverrides: {
+				country: 'DE',
+				region: 'BE',
+				language: 'de',
+				gpc: true,
+			},
+			location: { countryCode: 'DE', regionCode: 'BE' },
+			translations: { language: 'de' },
+			branding: 'c15t',
+			policy: { id: 'de-iab', model: 'iab' },
+			policyDecision: {
+				policyId: 'de-iab',
+				matchedBy: 'region',
+				jurisdiction: 'GDPR',
+			},
+			policySnapshotToken: 'snapshot-token',
+			gvl: { vendorListVersion: 42 },
+			customVendors: [{ id: 'internal-analytics' }],
+			cmpId: 28,
+		});
+		expect('jurisdiction' in (response ?? {})).toBe(false);
+	});
+
+	test('init maps omitted backend GVL to null so IAB is disabled', async () => {
+		const withoutIab = {
+			...REALISTIC_INIT_OUTPUT,
+			customVendors: undefined,
+			gvl: undefined,
+		};
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response(JSON.stringify(withoutIab), { status: 200 })
+			);
+		const transport = createHostedTransport({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		const response = await transport.init?.({ overrides: {}, user: null });
+
+		expect(response?.gvl).toBeNull();
+	});
+
+	test('non-2xx response throws an actionable error', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(
+				new Response('nope', { status: 500, statusText: 'Server Error' })
+			);
+		const transport = createHostedTransport({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		await expect(
+			transport.init?.({ overrides: {}, user: null })
+		).rejects.toThrow(/\/init responded 500/);
+	});
+});
+
+describe('createManifestTransport: local init resolution', () => {
+	test('resolves init from an inline manifest and lazily fetches GVL for IAB', async () => {
+		const fetchGvl = vi.fn().mockResolvedValue(REALISTIC_INIT_OUTPUT.gvl);
+		const transport = createManifestTransport({
+			manifest: MANIFEST_FIXTURE,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: vi.fn() as unknown as typeof globalThis.fetch,
+			fetchGvl,
+			inputs: {
+				country: 'DE',
+				region: 'BE',
+				language: 'de-DE,de;q=0.9',
+				gpc: true,
+			},
+		});
+
+		const response = await transport.init?.({ overrides: {}, user: null });
+
+		expect(response).toMatchObject({
+			resolvedOverrides: {
+				country: 'DE',
+				region: 'BE',
+				language: 'de',
+				gpc: true,
+			},
+			policy: { id: 'de-iab', model: 'iab' },
+			policyDecision: {
+				policyId: 'de-iab',
+				fingerprint: 'policy-fingerprint',
+				matchedBy: 'region',
+			},
+			gvl: { vendorListVersion: 42 },
+			customVendors: [{ id: 'internal-analytics' }],
+			cmpId: 28,
+		});
+		expect(fetchGvl).toHaveBeenCalledWith({
+			reference: { version: 42, url: 'https://gvl.example.com' },
+			language: 'de',
+			fetch: expect.any(Function),
+		});
+	});
+
+	test('fetches manifestURL and sends asserted decision inputs on save', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify(MANIFEST_FIXTURE), { status: 200 })
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ ok: true, subjectId: 'sub-1' }), {
+					status: 200,
+				})
+			);
+		const transport = createManifestTransport({
+			manifestURL: 'https://api.example.com/c15t/manifest',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			fetchGvl: vi.fn().mockResolvedValue(null),
+			inputs: {
+				country: 'DE',
+				region: 'BE',
+				language: 'de',
+			},
+		});
+
+		await transport.init?.({ overrides: {}, user: null });
+		const result = await transport.save?.({
+			subjectId: 'sub_test',
+			consents: {
+				necessary: true,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				experience: false,
+			},
+			overrides: {},
+			user: null,
+			model: 'iab',
+			uiSource: 'banner',
+			consentAction: 'custom',
+			policySnapshotToken: null,
+		});
+
+		expect(result).toEqual({ ok: true, subjectId: 'sub-1' });
+		expect(fetchSpy).toHaveBeenNthCalledWith(
+			1,
+			'https://api.example.com/c15t/manifest',
+			expect.objectContaining({ method: 'GET' })
+		);
+		const [subjectsUrl, subjectsInit] = fetchSpy.mock.calls[1] ?? [];
+		expect(subjectsUrl).toBe('https://api.example.com/c15t/subjects');
+		const body = JSON.parse((subjectsInit as RequestInit).body as string);
+		expect(body).toMatchObject({
+			subjectId: 'sub_test',
+			policyId: 'de-iab',
+			fingerprint: 'policy-fingerprint',
+			country: 'DE',
+			region: 'BE',
+			language: 'de',
+			preferences: {
+				necessary: true,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				experience: false,
+			},
+		});
+	});
+});

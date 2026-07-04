@@ -1,8 +1,8 @@
-import { Accordion } from '@c15t/react/primitives';
 import {
 	multipleModeToggle,
 	singleModeToggle,
-} from '@c15t/storybook-tests/play/accordion';
+} from '@c15t/conformance/play/accordion';
+import { Accordion } from '@c15t/react/primitives';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type React from 'react';
 import { enTranslations } from '../../../packages/translations/src';
@@ -12,7 +12,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Accordion',
+	title: 'PRIMITIVES - REACT/Accordion',
 } satisfies Meta<typeof Accordion.Root>;
 
 export default meta;

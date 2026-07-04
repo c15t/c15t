@@ -1,0 +1,10 @@
+/**
+ * @c15t/svelte — Non-IAB prebuilt component styles.
+ *
+ * Import this stylesheet once from your app-level CSS entrypoint
+ * when using prebuilt (styled) consent components.
+ *
+ * Usage (src/app.css):
+ *   @import "@c15t/svelte/styles.css";
+ */
+@import "@c15t/ui/styles.css";

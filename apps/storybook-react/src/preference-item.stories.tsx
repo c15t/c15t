@@ -1,8 +1,8 @@
-import { PreferenceItem, Switch } from '@c15t/react/primitives';
 import {
 	switchIndependentOfTrigger,
 	triggerExpandsContent,
-} from '@c15t/storybook-tests/play/preference-item';
+} from '@c15t/conformance/play/preference-item';
+import { PreferenceItem, Switch } from '@c15t/react/primitives';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type React from 'react';
 import { useState } from 'react';
@@ -13,7 +13,7 @@ const meta = {
 	parameters: {
 		layout: 'centered',
 	},
-	title: 'Primitives/Preference Item',
+	title: 'PRIMITIVES - REACT/Preference Item',
 } satisfies Meta<typeof PreferenceItem.Root>;
 
 export default meta;

@@ -4,6 +4,7 @@
 		getAccordionItemState,
 		toggleAccordionValue,
 	} from '@c15t/svelte';
+
 	interface Props {
 		item1Title?: string;
 		item1Description?: string;

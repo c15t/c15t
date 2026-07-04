@@ -248,7 +248,12 @@ const DialogTitle = forwardRef<
 >((props, forwardedRef) => {
 	const { titleId } = useDialogContext();
 	return (
-		<h2 ref={forwardedRef} id={titleId} data-slot="dialog-title" {...props} />
+		<h2
+			ref={forwardedRef}
+			id={titleId}
+			data-slot="dialog-title"
+			{...props}
+		/>
 	);
 });
 

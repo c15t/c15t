@@ -1,0 +1,13 @@
+{
+	"name": "@c15t/vue-playground",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "nuxt dev",
+		"build": "nuxt build"
+	},
+	"dependencies": {
+		"@c15t/vue": "workspace:*",
+		"nuxt": "^4.4.7"
+	}
+}

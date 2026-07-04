@@ -3,6 +3,9 @@
 export type ReactBenchScenario =
 	| 'full-ui'
 	| 'headless'
+	| 'react-v3-full'
+	| 'react-v3-headless'
+	| 'react-v3-repeat'
 	| 'repeat-visitor'
 	| 'vanilla-core';
 
@@ -20,8 +23,10 @@ export interface BenchState {
 	renderCount: number;
 	activeUI: string;
 	onBannerFetchedMs?: number;
+	cls?: number;
 	bannerReadyMs?: number;
 	bannerVisibleMs?: number;
+	bannerPaintMs?: number | null;
 	onBannerFetchedCount: number;
 	onConsentSetCount: number;
 	onErrorCount: number;
