@@ -7,12 +7,28 @@
  * @packageDocumentation
  */
 
-// Placeholder — will be populated when extracting from useHeadlessIABConsentUI
 export { resolveIABBannerSummary } from './headless/banner-summary';
-export { processGVLForDialog } from './headless/dialog-data';
+export {
+	type ProcessedFeature,
+	type ProcessedGVLData,
+	type ProcessedPurpose,
+	type ProcessedSpecialFeature,
+	type ProcessedStack,
+	type ProcessedVendor,
+	processGVLForDialog,
+} from './headless/dialog-data';
 export type {
 	HeadlessIABBannerAction,
 	HeadlessIABBannerState,
 	HeadlessIABDialogAction,
+	HeadlessIABDialogData,
 	HeadlessIABDialogState,
+	HeadlessIABPreferenceTab,
+	HeadlessIABProcessedFeature,
+	HeadlessIABProcessedPurpose,
+	HeadlessIABProcessedSpecialFeature,
+	HeadlessIABProcessedStack,
+	HeadlessIABProcessedVendor,
+	HeadlessIABStateInput,
+	HeadlessIABVendorId,
 } from './headless/types';
