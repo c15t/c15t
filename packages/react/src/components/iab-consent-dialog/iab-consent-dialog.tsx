@@ -673,7 +673,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 							aria-label={common.close}
 						>
 							<svg
-								aria-hidden="true"
 								style={{ width: '1rem', height: '1rem' }}
 								viewBox="0 0 24 24"
 								fill="none"
@@ -851,7 +850,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 														className={styles.purposeTrigger}
 													>
 														<svg
-															aria-hidden="true"
 															className={styles.purposeArrow}
 															viewBox="0 0 24 24"
 															fill="none"
@@ -871,7 +869,6 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 																		.specialPurposes.title
 																}
 																<svg
-																	aria-hidden="true"
 																	className={styles.lockIcon}
 																	viewBox="0 0 24 24"
 																	fill="none"

@@ -5,14 +5,12 @@ import {
 	type SwitchVariantsProps,
 	switchVariants,
 } from '@c15t/ui/styles/primitives/switch';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import {
 	type ButtonHTMLAttributes,
 	forwardRef,
 	type KeyboardEvent,
 } from 'react';
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
-import { useStyles } from '~/hooks/use-styles';
 import type { AllThemeKeys, ThemeValue } from '~/types/theme';
 
 export type { SwitchSize, SwitchVariantsProps };
@@ -47,7 +45,6 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 			onClick,
 			onKeyDown,
 			size = 'medium',
-			themeKey,
 			type = 'button',
 			...rest
 		},
@@ -90,16 +87,11 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 			onKeyDown?.(event);
 		};
 
-		const themedRoot = useStyles((themeKey ?? 'toggle') as AllThemeKeys, {
-			className: rootClassName,
-			noStyle,
-		});
-		const domStyleProps = sanitizeDOMStyleProps(themedRoot);
-
 		return (
 			<button
 				ref={forwardedRef}
 				aria-checked={isChecked}
+				className={rootClassName}
 				data-disabled={dataDisabled}
 				data-slot="switch"
 				data-state={dataState}
@@ -108,7 +100,6 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 				onKeyDown={handleKeyDown}
 				role="switch"
 				type={type}
-				{...domStyleProps}
 				{...rest}
 			>
 				<span
