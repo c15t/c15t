@@ -406,7 +406,9 @@ describe('v3 react: network blocker lifecycle', () => {
 				</StrictMode>
 			);
 
-			expect(window.fetch).not.toBe(fetch.fetchStub);
+			await vi.waitFor(() => {
+				expect(window.fetch).not.toBe(fetch.fetchStub);
+			});
 			view.unmount();
 			expect((await window.fetch('https://example.com/x')).status).toBe(200);
 			expect(fetch.fetchStub).toHaveBeenCalledOnce();
@@ -433,6 +435,9 @@ describe('v3 react: network blocker lifecycle', () => {
 				</ConsentProvider>
 			);
 
+			await vi.waitFor(() => {
+				expect(window.fetch).not.toBe(fetch.fetchStub);
+			});
 			expect((await window.fetch('https://first.example.com/x')).status).toBe(
 				451
 			);

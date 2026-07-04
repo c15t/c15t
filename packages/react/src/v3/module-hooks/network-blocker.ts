@@ -2,7 +2,6 @@
 
 import {
 	type BlockedRequestInfo,
-	createNetworkBlocker,
 	type NetworkBlockerHandle,
 	type NetworkBlockerRule,
 } from 'c15t/v3/modules/network-blocker';
@@ -62,20 +61,25 @@ export function useNetworkBlocker(
 	}, [handle, options.enabled]);
 
 	useEffect(() => {
-		const created = createNetworkBlocker({
-			kernel,
-			rules: latestRulesRef.current,
-			enabled: latestEnabledRef.current,
-			logBlockedRequests: options.logBlockedRequests,
-			onRequestBlocked: options.onRequestBlocked,
-		});
-		handleRef.current = created;
+		let disposed = false;
+		void import('c15t/v3/modules/network-blocker').then(
+			({ createNetworkBlocker }) => {
+				if (disposed) return;
+				const created = createNetworkBlocker({
+					kernel,
+					rules: latestRulesRef.current,
+					enabled: latestEnabledRef.current,
+					logBlockedRequests: options.logBlockedRequests,
+					onRequestBlocked: options.onRequestBlocked,
+				});
+				handleRef.current = created;
+			}
+		);
 
 		return () => {
-			if (handleRef.current === created) {
-				handleRef.current = null;
-			}
-			created.dispose();
+			disposed = true;
+			handleRef.current?.dispose();
+			handleRef.current = null;
 		};
 	}, [kernel, options.logBlockedRequests, options.onRequestBlocked]);
 

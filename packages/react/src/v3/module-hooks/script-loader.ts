@@ -1,7 +1,6 @@
 'use client';
 
 import {
-	createScriptLoader,
 	type Script,
 	type ScriptLoaderDebugEvent,
 	type ScriptLoaderHandle,
@@ -18,13 +17,26 @@ export function useScriptLoader(
 	options: UseScriptLoaderOptions = {}
 ): ScriptLoaderHandle {
 	const kernel = useRequiredKernel();
-	const [handle] = useState(() =>
-		createScriptLoader({
-			kernel,
-			scripts,
-			onDebug: options.onDebug,
-		})
-	);
+	const handleRef = useRef<ScriptLoaderHandle | null>(null);
+	const latestScriptsRef = useRef(scripts);
+	const latestOptionsRef = useRef(options);
+
+	latestScriptsRef.current = scripts;
+	latestOptionsRef.current = options;
+
+	const [handle] = useState<ScriptLoaderHandle>(() => ({
+		dispose() {
+			handleRef.current?.dispose();
+			handleRef.current = null;
+		},
+		updateScripts(next) {
+			latestScriptsRef.current = next;
+			handleRef.current?.updateScripts(next);
+		},
+		getLoadedScriptIds() {
+			return handleRef.current?.getLoadedScriptIds() ?? [];
+		},
+	}));
 
 	const firstRun = useRef(true);
 	useEffect(() => {
@@ -36,8 +48,25 @@ export function useScriptLoader(
 	}, [handle, scripts]);
 
 	useEffect(() => {
-		return () => handle.dispose();
-	}, [handle]);
+		let disposed = false;
+		void import('c15t/v3/modules/script-loader').then(
+			({ createScriptLoader }) => {
+				if (disposed) return;
+				const created = createScriptLoader({
+					kernel,
+					scripts: latestScriptsRef.current,
+					onDebug: latestOptionsRef.current.onDebug,
+				});
+				handleRef.current = created;
+			}
+		);
+
+		return () => {
+			disposed = true;
+			handleRef.current?.dispose();
+			handleRef.current = null;
+		};
+	}, [kernel]);
 
 	return handle;
 }

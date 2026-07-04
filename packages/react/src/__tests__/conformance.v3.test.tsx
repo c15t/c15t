@@ -28,13 +28,13 @@ import { type ReactElement, useContext, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
+import { ConsentDialog } from '~/v3/components/consent-dialog';
+import { ConsentWidget } from '~/v3/components/consent-widget';
 import { KernelContext } from '~/v3/context';
 import {
 	ConsentBanner,
-	ConsentDialog,
 	ConsentProvider,
 	type ConsentProviderOptions,
-	ConsentWidget,
 } from '~/v3/index';
 
 type ProviderOptions = ConsentProviderOptions & {

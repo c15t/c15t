@@ -707,6 +707,7 @@
       "version": "2.1.0",
       "dependencies": {
         "@c15t/iab": "workspace:*",
+        "@c15t/translations": "workspace:*",
         "@c15t/ui": "workspace:*",
         "c15t": "workspace:*",
       },

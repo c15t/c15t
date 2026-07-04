@@ -2,8 +2,10 @@ import { defaultTranslationConfig } from 'c15t';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { useConsentManager } from '~/v3/hooks/use-consent-manager';
-import { ConsentManagerProvider } from '~/v3/index';
-import { clearConsentRuntimeCache } from '../consent-manager-provider';
+import {
+	ConsentManagerProvider,
+	clearConsentRuntimeCache,
+} from '../consent-manager-provider';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -298,6 +300,10 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		);
 
 		await vi.runAllTimersAsync();
+
+		consentManager?.setConsent('measurement', false);
+		await vi.runAllTimersAsync();
+		secondOnConsentChanged.mockClear();
 
 		consentManager?.setConsent('measurement', true);
 		await vi.runAllTimersAsync();

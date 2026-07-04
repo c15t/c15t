@@ -15,7 +15,13 @@ import {
 	shouldFillPolicyActions,
 } from '@c15t/ui/utils';
 import { useCallback, useMemo } from 'react';
-import { useConsentManager } from './use-consent-manager';
+import {
+	useActiveUI,
+	usePolicyBanner,
+	usePolicyDialog,
+	useSaveConsents,
+	useSetActiveUI,
+} from '../hooks';
 
 export type HeadlessConsentSurface = 'banner' | 'dialog';
 export type HeadlessConsentSurfaceAction = PolicyUiAction;
@@ -84,9 +90,14 @@ function resolveSurfaceState(
 	};
 }
 
+const EMPTY_POLICY_SURFACE: PolicyUiSurfaceConfig = {};
+
 export function useHeadlessConsentUI() {
-	const { activeUI, policyBanner, policyDialog, saveConsents, setActiveUI } =
-		useConsentManager();
+	const activeUI = useActiveUI() ?? 'none';
+	const policyBanner = usePolicyBanner() ?? EMPTY_POLICY_SURFACE;
+	const policyDialog = usePolicyDialog() ?? EMPTY_POLICY_SURFACE;
+	const saveConsents = useSaveConsents();
+	const setActiveUI = useSetActiveUI();
 
 	const banner = useMemo(
 		() => resolveSurfaceState(activeUI, 'banner', policyBanner),
@@ -108,7 +119,7 @@ export function useHeadlessConsentUI() {
 				return;
 			}
 			if (action === 'reject') {
-				await saveConsents('necessary');
+				await saveConsents('none');
 				return;
 			}
 			setActiveUI('dialog');
@@ -126,6 +137,6 @@ export function useHeadlessConsentUI() {
 		performAction,
 		performBannerAction: performAction,
 		performDialogAction: performAction,
-		saveCustomPreferences: () => saveConsents('custom'),
+		saveCustomPreferences: () => saveConsents(),
 	};
 }

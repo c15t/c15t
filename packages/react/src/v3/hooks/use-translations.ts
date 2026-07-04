@@ -2,8 +2,8 @@
 
 import { resolveTranslations } from '@c15t/ui/utils';
 import type { Translations } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
 import { useMemo } from 'react';
+import { defaultTranslationConfig } from '../utils/default-translation-config';
 import { useConsentManager } from './use-consent-manager';
 
 /**

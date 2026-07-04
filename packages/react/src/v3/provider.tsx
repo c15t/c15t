@@ -1,7 +1,5 @@
 'use client';
 
-import { generateThemeCSS } from '@c15t/ui/theme';
-import { deepMerge } from '@c15t/ui/utils';
 import type {
 	AllConsentNames,
 	Callbacks,
@@ -18,7 +16,6 @@ import type {
 	TranslationConfig,
 	User,
 } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
 import {
 	type ConsentKernel,
 	type ConsentSnapshot,
@@ -36,23 +33,30 @@ import {
 } from 'c15t/v3';
 import type { Script } from 'c15t/v3/modules/script-loader';
 import type { ReactNode } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+	lazy,
+	Suspense,
+	useContext,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+	useSyncExternalStore,
+} from 'react';
 import { KernelContext } from './context';
 import { useColorScheme } from './hooks/use-color-scheme';
 import type { IABProviderProps } from './iab-context';
-import { IABProvider } from './iab-context';
-import {
-	type UseNetworkBlockerOptions,
-	type UsePersistenceOptions,
-	type UseScriptLoaderOptions,
-	useNetworkBlocker,
-	usePersistence,
-	useScriptLoader,
+import type {
+	UseNetworkBlockerOptions,
+	UsePersistenceOptions,
+	UseScriptLoaderOptions,
 } from './module-hooks';
+import { usePersistence } from './module-hooks/persistence';
 import { V3ThemeProvider } from './theme-provider';
 import type { ConsentManagerOptions } from './types/consent-manager';
+import type { Theme } from './types/theme';
 import type { V3UIConfigValue } from './ui-config-context';
-import { defaultTheme } from './utils/theme-utils';
+import { defaultTranslationConfig } from './utils/default-translation-config';
 
 type ProviderMode = 'hosted' | 'offline' | 'custom' | 'c15t';
 
@@ -140,6 +144,11 @@ const DEFAULT_TRANSLATIONS: KernelTranslations = {
 	language: 'en',
 	translations: defaultTranslationConfig.translations.en as never,
 };
+
+const LazyIABProvider = lazy(async () => {
+	const module = await import('./iab-context');
+	return { default: module.IABProvider };
+});
 
 function normalizeUser(
 	user: ConsentProviderOptions['user']
@@ -515,10 +524,46 @@ function useProviderCallbacks(
 ) {
 	const callbacksRef = useRef(callbacks);
 	const saveStartedSnapshotRef = useRef<ConsentSnapshot | null>(null);
+	const saveNotifiedRef = useRef(false);
 	callbacksRef.current = callbacks;
 
 	useEffect(() => {
+		const notifyConsentSaved = (
+			previous: ConsentSnapshot | null,
+			next: ConsentSnapshot
+		) => {
+			callbacksRef.current?.onConsentSet?.({
+				preferences: next.consents as never,
+			});
+			if (previous && snapshotConsentsChanged(previous, next)) {
+				callbacksRef.current?.onConsentChanged?.({
+					preferences: next.consents as never,
+					previousPreferences: previous.consents as never,
+					allowedCategories: categoriesWithValue(next, true),
+					deniedCategories: categoriesWithValue(next, false),
+					previousAllowedCategories: categoriesWithValue(previous, true),
+					previousDeniedCategories: categoriesWithValue(previous, false),
+				});
+				if (reloadOnConsentRevoked && hasRevokedConsent(previous, next)) {
+					callbacksRef.current?.onBeforeConsentRevocationReload?.({
+						preferences: next.consents as never,
+					});
+					if (typeof window !== 'undefined') {
+						window.location.reload();
+					}
+				}
+			}
+		};
+
 		const subscriptions = [
+			kernel.subscribe((next) => {
+				const previous = saveStartedSnapshotRef.current;
+				if (!previous || saveNotifiedRef.current || previous === next) {
+					return;
+				}
+				saveNotifiedRef.current = true;
+				notifyConsentSaved(previous, next);
+			}),
 			kernel.events.on('init:applied', ({ snapshot }) => {
 				const decision = snapshot.policyDecision as {
 					jurisdiction?: unknown;
@@ -539,32 +584,18 @@ function useProviderCallbacks(
 			}),
 			kernel.events.on('command:save:started', () => {
 				saveStartedSnapshotRef.current = kernel.getSnapshot();
+				saveNotifiedRef.current = false;
 			}),
 			kernel.events.on('command:save:completed', ({ result }) => {
 				if (!result.ok) return;
+				if (saveNotifiedRef.current) {
+					saveStartedSnapshotRef.current = null;
+					return;
+				}
 				const previous = saveStartedSnapshotRef.current;
 				const next = kernel.getSnapshot();
-				callbacksRef.current?.onConsentSet?.({
-					preferences: next.consents as never,
-				});
-				if (previous && snapshotConsentsChanged(previous, next)) {
-					callbacksRef.current?.onConsentChanged?.({
-						preferences: next.consents as never,
-						previousPreferences: previous.consents as never,
-						allowedCategories: categoriesWithValue(next, true),
-						deniedCategories: categoriesWithValue(next, false),
-						previousAllowedCategories: categoriesWithValue(previous, true),
-						previousDeniedCategories: categoriesWithValue(previous, false),
-					});
-					if (reloadOnConsentRevoked && hasRevokedConsent(previous, next)) {
-						callbacksRef.current?.onBeforeConsentRevocationReload?.({
-							preferences: next.consents as never,
-						});
-						if (typeof window !== 'undefined') {
-							window.location.reload();
-						}
-					}
-				}
+				notifyConsentSaved(previous, next);
+				saveStartedSnapshotRef.current = null;
 			}),
 			kernel.events.on(
 				'command:error',
@@ -693,7 +724,42 @@ function ScriptsMount({
 	options?: UseScriptLoaderOptions;
 	scripts: Script[];
 }) {
-	useScriptLoader(scripts, options);
+	const kernel = useContext(KernelContext);
+	const handleRef = useRef<{
+		dispose(): void;
+		updateScripts(scripts: Script[]): void;
+	} | null>(null);
+	const latestScriptsRef = useRef(scripts);
+	const latestOptionsRef = useRef(options);
+
+	latestScriptsRef.current = scripts;
+	latestOptionsRef.current = options;
+
+	useEffect(() => {
+		if (!kernel) return;
+		let disposed = false;
+		void import('c15t/v3/modules/script-loader').then(
+			({ createScriptLoader }) => {
+				if (disposed) return;
+				const created = createScriptLoader({
+					kernel,
+					scripts: latestScriptsRef.current,
+					onDebug: latestOptionsRef.current?.onDebug,
+				});
+				handleRef.current = created;
+			}
+		);
+		return () => {
+			disposed = true;
+			handleRef.current?.dispose();
+			handleRef.current = null;
+		};
+	}, [kernel]);
+
+	useEffect(() => {
+		handleRef.current?.updateScripts(scripts);
+	}, [scripts]);
+
 	return null;
 }
 
@@ -702,13 +768,119 @@ function NetworkBlockerMount({
 }: {
 	options: UseNetworkBlockerOptions;
 }) {
-	useNetworkBlocker(options);
+	const kernel = useContext(KernelContext);
+	const handleRef = useRef<{
+		dispose(): void;
+		updateRules(rules: UseNetworkBlockerOptions['rules']): void;
+		setEnabled(enabled: boolean): void;
+	} | null>(null);
+	const latestOptionsRef = useRef(options);
+	latestOptionsRef.current = options;
+
+	useEffect(() => {
+		if (!kernel) return;
+		let disposed = false;
+		void import('c15t/v3/modules/network-blocker').then(
+			({ createNetworkBlocker }) => {
+				if (disposed) return;
+				const latest = latestOptionsRef.current;
+				const created = createNetworkBlocker({
+					kernel,
+					rules: latest.rules,
+					enabled: latest.enabled,
+					logBlockedRequests: latest.logBlockedRequests,
+					onRequestBlocked: latest.onRequestBlocked,
+				});
+				handleRef.current = created;
+			}
+		);
+		return () => {
+			disposed = true;
+			handleRef.current?.dispose();
+			handleRef.current = null;
+		};
+	}, [kernel]);
+
+	useEffect(() => {
+		handleRef.current?.updateRules(options.rules);
+	}, [options.rules]);
+
+	useEffect(() => {
+		if (options.enabled !== undefined) {
+			handleRef.current?.setEnabled(options.enabled);
+		}
+	}, [options.enabled]);
+
 	return null;
 }
 
 function PersistenceMount({ options }: { options?: UsePersistenceOptions }) {
 	usePersistence(options);
 	return null;
+}
+
+function ThemeStyleMount({ theme }: { theme?: Theme }) {
+	const [themeCSS, setThemeCSS] = useState('');
+
+	useEffect(() => {
+		if (!theme) {
+			setThemeCSS('');
+			return;
+		}
+
+		let disposed = false;
+		void import('@c15t/ui/theme').then(({ generateThemeCSS }) => {
+			if (!disposed) {
+				setThemeCSS(generateThemeCSS(theme as never));
+			}
+		});
+
+		return () => {
+			disposed = true;
+		};
+	}, [theme]);
+
+	if (!themeCSS) return null;
+
+	return (
+		<style
+			id="c15t-theme"
+			// biome-ignore lint/security/noDangerouslySetInnerHtml: Generated CSS variables
+			dangerouslySetInnerHTML={{ __html: themeCSS }}
+		/>
+	);
+}
+
+function IABGate({
+	enabled,
+	initialModel,
+	kernel,
+	options,
+	children,
+}: {
+	enabled: boolean;
+	initialModel?: string | null;
+	kernel: ConsentKernel;
+	options: Omit<IABProviderProps, 'children'> | null;
+	children: ReactNode;
+}) {
+	const model = useSyncExternalStore(
+		(listener) => kernel.subscribe(listener),
+		() => kernel.getSnapshot().model,
+		() => kernel.getSnapshot().model
+	);
+	const shouldLoadIAB =
+		model === 'iab' || (model == null && initialModel === 'iab');
+
+	if (!enabled || !options || !shouldLoadIAB) {
+		return <>{children}</>;
+	}
+
+	return (
+		<Suspense fallback={<>{children}</>}>
+			<LazyIABProvider {...options}>{children}</LazyIABProvider>
+		</Suspense>
+	);
 }
 
 function normalizePersistenceOptions(
@@ -767,20 +939,11 @@ export function ConsentProvider({ options, children }: ConsentProviderProps) {
 	);
 	useProviderOptionSync(kernel, options, enabled);
 
-	// Merge the user's theme separately on its own reference so callers
-	// passing a fresh `options` object each render (but a stable `theme`)
-	// don't pay for a deepMerge on every render. generateThemeCSS below
-	// also depends on this, so stabilizing the merge keeps the <style>
-	// tag content stable.
 	const userTheme = options.theme;
-	const mergedTheme = useMemo(
-		() => deepMerge(defaultTheme, userTheme ?? {}),
-		[userTheme]
-	);
 
 	const themeContextValue = useMemo(
 		() => ({
-			theme: mergedTheme,
+			theme: userTheme,
 			noStyle: options.noStyle,
 			disableAnimation: options.disableAnimation,
 			scrollLock: options.scrollLock,
@@ -788,7 +951,7 @@ export function ConsentProvider({ options, children }: ConsentProviderProps) {
 			colorScheme: options.colorScheme,
 		}),
 		[
-			mergedTheme,
+			userTheme,
 			options.noStyle,
 			options.disableAnimation,
 			options.scrollLock,
@@ -803,10 +966,6 @@ export function ConsentProvider({ options, children }: ConsentProviderProps) {
 		}),
 		[options]
 	);
-
-	const themeCSS = useMemo(() => {
-		return generateThemeCSS(themeContextValue.theme);
-	}, [themeContextValue.theme]);
 
 	useColorScheme(options.colorScheme);
 
@@ -838,18 +997,18 @@ export function ConsentProvider({ options, children }: ConsentProviderProps) {
 				themeConfig={themeContextValue}
 				uiConfig={uiConfigValue}
 			>
-				{themeCSS ? (
-					<style
-						id="c15t-theme"
-						// biome-ignore lint/security/noDangerouslySetInnerHtml: Generated CSS variables
-						dangerouslySetInnerHTML={{ __html: themeCSS }}
-					/>
-				) : null}
-				{enabled && iabOptions ? (
-					<IABProvider {...iabOptions}>{providerChildren}</IABProvider>
-				) : (
-					providerChildren
-				)}
+				<ThemeStyleMount theme={userTheme} />
+				<IABGate
+					enabled={enabled}
+					initialModel={
+						options.prefetch?.initialPolicy?.model ??
+						getProviderOfflinePolicy(options)?.policy?.model
+					}
+					kernel={kernel}
+					options={iabOptions}
+				>
+					{providerChildren}
+				</IABGate>
 			</V3ThemeProvider>
 		</KernelContext.Provider>
 	);

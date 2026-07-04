@@ -12,12 +12,18 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import { LocalThemeContext } from '~/v3/context/theme-context';
+import {
+	useActiveUI,
+	useTranslations as useKernelTranslations,
+	useModel,
+	usePolicyBanner,
+} from '~/v3/hooks';
 import { useStyles } from '~/v3/hooks/use-styles';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/v3/types/theme';
+import { defaultTranslationConfig } from '~/v3/utils/default-translation-config';
 import { Overlay } from './overlay';
 
 /**
@@ -160,7 +166,7 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	uiSource,
 	...props
 }) => {
-	const { policyBanner } = useConsentManager();
+	const policyBanner = usePolicyBanner();
 
 	/**
 	 * Combine consent manager state with styling configuration
@@ -169,7 +175,7 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
 	const contextValue = {
 		disableAnimation,
 		noStyle,
-		scrollLock: scrollLock ?? policyBanner.scrollLock ?? undefined,
+		scrollLock: scrollLock ?? policyBanner?.scrollLock ?? undefined,
 		trapFocus,
 	};
 
@@ -284,8 +290,12 @@ const ConsentBannerRootChildren = forwardRef<
 		},
 		ref
 	) => {
-		const { activeUI, translationConfig, model } = useConsentManager();
-		const textDirection = useTextDirection(translationConfig.defaultLanguage);
+		const activeUI = useActiveUI();
+		const model = useModel() ?? 'opt-in';
+		const translations = useKernelTranslations();
+		const textDirection = useTextDirection(
+			translations?.language ?? defaultTranslationConfig.defaultLanguage
+		);
 		const [isVisible, setIsVisible] = useState(false);
 		const [hasAnimated, setHasAnimated] = useState(false);
 		const [animationDurationMs, setAnimationDurationMs] = useState(200); // Default fallback for SSR
@@ -307,6 +317,11 @@ const ConsentBannerRootChildren = forwardRef<
 		// Handle animation visibility state
 		useEffect(() => {
 			if (shouldShowBanner) {
+				if (disableAnimation) {
+					setIsVisible(true);
+					setHasAnimated(true);
+					return;
+				}
 				// If banner is showing but we haven't animated yet, trigger the animation
 				if (hasAnimated) {
 					setIsVisible(true);
@@ -363,7 +378,13 @@ const ConsentBannerRootChildren = forwardRef<
 		// Create a final class name that respects the noStyle flag
 		const finalClassName = noStyle
 			? contentStyle.className || ''
-			: `${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`;
+			: `${contentStyle.className || ''} ${
+					disableAnimation
+						? ''
+						: isVisible
+							? styles.bannerVisible
+							: styles.bannerHidden
+				}`;
 		const domStyleProps = sanitizeDOMStyleProps(contentStyle);
 
 		// Only render when the banner should be shown

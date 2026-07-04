@@ -3,8 +3,8 @@ import { resolveStyles, sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import type { Branding } from 'c15t';
 import type { SVGProps } from 'react';
 import { useMemo } from 'react';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
+import { useBranding } from '~/v3/hooks';
 import { useTheme } from '~/v3/hooks/use-theme';
 import type {
 	AllThemeKeys,
@@ -108,7 +108,7 @@ export function BrandingLink({
 	style,
 	'data-testid': testId,
 }: BrandingProps) {
-	const { branding } = useConsentManager();
+	const branding = useBranding() ?? 'c15t';
 	const { noStyle: contextNoStyle, theme } = useTheme();
 	const { common } = useTranslations();
 	const resolvedBranding = resolveBranding(branding);

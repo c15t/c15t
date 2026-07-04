@@ -2,7 +2,7 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { forwardRef, type HTMLAttributes, useEffect, useState } from 'react';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useActiveUI } from '~/v3/hooks';
 import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
 import { useStyles } from '~/v3/hooks/use-styles';
 import { useTheme } from '~/v3/hooks/use-theme';
@@ -14,7 +14,7 @@ interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
 
 const IABConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 	({ className, style, noStyle, ...props }, ref) => {
-		const { activeUI } = useConsentManager();
+		const activeUI = useActiveUI();
 		const {
 			disableAnimation,
 			noStyle: contextNoStyle,

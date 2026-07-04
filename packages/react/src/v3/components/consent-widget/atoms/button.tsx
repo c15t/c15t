@@ -2,6 +2,7 @@ import { forwardRef, type Ref } from 'react';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { ConsentButton } from '~/v3/components/shared/primitives/button';
 import type { ConsentButtonProps } from '~/v3/components/shared/primitives/button.types';
+import { useConsentDraft } from '~/v3/draft';
 
 /**
  * Button to accept all available cookies.
@@ -57,13 +58,20 @@ const ConsentWidgetSaveButton = forwardRef<
 	ConsentButtonProps
 >(({ children, ...props }, ref) => {
 	const { common } = useTranslations();
+	const draft = useConsentDraft();
+	const { onClick, ...buttonProps } = props;
 	return (
 		<ConsentButton
 			ref={ref as Ref<HTMLButtonElement>}
 			action="custom-consent"
 			consentAction="customize"
 			closeConsentDialog
-			{...props}
+			onClick={(event) => {
+				onClick?.(event);
+				void draft.save();
+			}}
+			performDefaultAction={false}
+			{...buttonProps}
 			themeKey="buttonPrimary"
 			data-testid="consent-widget-footer-save-button"
 		>

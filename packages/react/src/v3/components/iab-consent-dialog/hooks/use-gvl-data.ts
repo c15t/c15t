@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useIAB } from '~/v3/iab-context';
 import type {
 	ProcessedFeature,
 	ProcessedPurpose,
@@ -37,7 +37,7 @@ export interface GVLData {
  * @public
  */
 export function useGVLData(): GVLData {
-	const { iab: iabState } = useConsentManager();
+	const iabState = useIAB();
 
 	// Process GVL data into UI-friendly format
 	const {
