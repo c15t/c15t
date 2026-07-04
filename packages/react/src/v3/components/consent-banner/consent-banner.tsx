@@ -12,12 +12,11 @@ import {
 	type PolicyUiActionDirection,
 	shouldFillPolicyActions,
 } from '@c15t/ui/utils';
-import { type FC, Fragment, type ReactNode } from 'react';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { type FC, Fragment, lazy, type ReactNode, Suspense } from 'react';
 import { useHeadlessConsentUI } from '~/v3/component-hooks/use-headless-consent-ui';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import type { InlineLegalLinksProps } from '~/v3/components/shared/primitives/legal-links';
-import { BrandingLink } from '~/v3/components/shared/ui/branding';
+import { usePolicyBanner } from '~/v3/hooks';
 import { useComponentConfig } from '~/v3/hooks/use-component-config';
 import { cnExt as cn } from '~/v3/utils/cn';
 import { ConsentBannerRoot } from './atoms/root';
@@ -33,6 +32,11 @@ import {
 	ConsentBannerTitle,
 } from './components';
 import { ErrorBoundary } from './error-boundary';
+
+const BrandingLink = lazy(async () => {
+	const module = await import('~/v3/components/shared/ui/branding');
+	return { default: module.BrandingLink };
+});
 
 /**
  * Identifiers for the available buttons in the consent banner.
@@ -212,9 +216,9 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 }) => {
 	const { cookieBanner: consentBanner } = useTranslations();
 	const { banner } = useHeadlessConsentUI();
-	const { policyBanner } = useConsentManager();
+	const policyBanner = usePolicyBanner();
 	const resolvedScrollLock =
-		localScrollLock ?? policyBanner.scrollLock ?? false;
+		localScrollLock ?? policyBanner?.scrollLock ?? false;
 
 	// Merge local props with global theme context
 	const config = useComponentConfig({
@@ -309,12 +313,14 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 				uiSource={uiSource}
 			>
 				<div className={styles.cardShell}>
-					<BrandingLink
-						hideBranding={hideBranding}
-						variant="banner-tag"
-						themeKey="consentBannerTag"
-						data-testid="consent-banner-branding"
-					/>
+					<Suspense fallback={null}>
+						<BrandingLink
+							hideBranding={hideBranding}
+							variant="banner-tag"
+							themeKey="consentBannerTag"
+							data-testid="consent-banner-branding"
+						/>
+					</Suspense>
 					<ConsentBannerCard aria-label={consentBanner.title}>
 						<ConsentBannerHeader>
 							<ConsentBannerTitle>{title}</ConsentBannerTitle>

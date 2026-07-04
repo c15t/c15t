@@ -1,12 +1,12 @@
 import styles from '@c15t/ui/styles/primitives/legal-links.module.js';
 import { resolveTranslations } from '@c15t/ui/utils';
 import type { LegalLinks as LegalLinksType } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
 import { useContext, useMemo, useSyncExternalStore } from 'react';
 import { KernelContext } from '~/v3/context';
 import { useStyles } from '~/v3/hooks/use-styles';
 import type { AllThemeKeys } from '~/v3/types/theme/style-keys';
 import { V3UIConfigContext } from '~/v3/ui-config-context';
+import { defaultTranslationConfig } from '~/v3/utils/default-translation-config';
 
 const noopSubscribe = () => () => undefined;
 

@@ -53,6 +53,7 @@ export {
 	createHostedTransport,
 	createOfflineTransport,
 } from 'c15t/v3';
+export { ConsentDialog, ConsentWidget } from './aggregate-components';
 export type {
 	ConsentBannerButton,
 	ConsentBannerLayout,
@@ -63,17 +64,18 @@ export {
 	ConsentBanner,
 	type ConsentBannerCompoundComponent,
 } from './components/consent-banner';
-export type { ConsentDialogProps } from './components/consent-dialog';
-export {
-	ConsentDialog,
-	type ConsentDialogCompoundComponent,
+export type {
+	ConsentDialogCompoundComponent,
+	ConsentDialogProps,
 } from './components/consent-dialog';
 export type { ConsentDialogLinkProps } from './components/consent-dialog-link';
 export { ConsentDialogLink } from './components/consent-dialog-link';
 export type { ConsentDialogTriggerProps } from './components/consent-dialog-trigger';
 export { ConsentDialogTrigger } from './components/consent-dialog-trigger';
-export type { ConsentWidgetProps } from './components/consent-widget';
-export { ConsentWidget } from './components/consent-widget';
+export type {
+	ConsentWidgetCompoundComponent,
+	ConsentWidgetProps,
+} from './components/consent-widget';
 export type { FrameProps } from './components/frame';
 export { Frame } from './components/frame';
 export type { ConsentDraftHandle, ConsentDraftProviderProps } from './draft';
@@ -123,9 +125,7 @@ export {
 	useScriptLoader,
 } from './module-hooks';
 export type { ConsentProviderOptions, ConsentProviderProps } from './provider';
-export { ConsentProvider } from './provider';
-
-export { ConsentManagerProvider } from './providers/consent-manager-provider';
+export { ConsentManagerProvider, ConsentProvider } from './provider';
 export type {
 	ConsentManagerOptions,
 	ConsentManagerProviderProps,

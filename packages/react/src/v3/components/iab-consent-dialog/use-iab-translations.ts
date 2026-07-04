@@ -1,5 +1,5 @@
-import { defaultTranslationConfig } from 'c15t';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
+import { defaultTranslationConfig } from '~/v3/utils/default-translation-config';
 
 /**
  * IAB translations interface.

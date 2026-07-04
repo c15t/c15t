@@ -4,15 +4,14 @@ import {
 	type ActiveUI,
 	type AllConsentNames,
 	type ConsentType,
-	consentTypes as defaultConsentTypes,
-	defaultTranslationConfig,
-	has as evaluateHas,
+	type HasCondition,
 	type Model,
 	type TranslationConfig,
 } from 'c15t';
 import type {
 	ConsentState,
 	KernelActiveUI,
+	KernelIABState,
 	PolicyUiSurfaceConfig,
 } from 'c15t/v3';
 import { useCallback, useMemo } from 'react';
@@ -34,11 +33,50 @@ import {
 	useSubscribeToConsentChanges,
 	useTranslations,
 } from '../hooks';
-import { useIAB } from '../iab-context';
+import type { ReactIABState } from '../iab-context';
+import { defaultTranslationConfig } from '../utils/default-translation-config';
 
 type SaveType = 'all' | 'custom' | 'necessary';
 
 const EMPTY_POLICY_SURFACE: PolicyUiSurfaceConfig = {};
+const DEFAULT_CONSENT_TYPES: ConsentType[] = [
+	{
+		name: 'necessary',
+		gdprType: 1,
+		description: 'Required for basic site functionality',
+		defaultValue: true,
+		disabled: true,
+		display: true,
+	},
+	{
+		name: 'functionality',
+		gdprType: 2,
+		description: 'Enables enhanced features',
+		defaultValue: false,
+		display: true,
+	},
+	{
+		name: 'measurement',
+		gdprType: 4,
+		description: 'Analytics and performance measurement',
+		defaultValue: false,
+		display: true,
+	},
+	{
+		name: 'experience',
+		gdprType: 3,
+		description: 'Improves your experience',
+		defaultValue: false,
+		display: true,
+	},
+	{
+		name: 'marketing',
+		gdprType: 5,
+		description: 'Advertising and marketing',
+		defaultValue: false,
+		display: true,
+	},
+];
 
 function toTranslationConfig(
 	resolved: ReturnType<typeof useTranslations>
@@ -59,6 +97,71 @@ function toActiveUI(ui: KernelActiveUI): ActiveUI {
 	return (ui ?? 'none') as ActiveUI;
 }
 
+function evaluateHas(
+	condition: HasCondition<AllConsentNames>,
+	consents: ConsentState,
+	options: {
+		policyCategories: AllConsentNames[] | null;
+		policyScopeMode: 'strict' | 'permissive';
+	}
+): boolean {
+	if (typeof condition !== 'string') {
+		if ('and' in condition) {
+			const entries = Array.isArray(condition.and)
+				? condition.and
+				: [condition.and];
+			return entries.every((entry: HasCondition<AllConsentNames>) =>
+				evaluateHas(entry, consents, options)
+			);
+		}
+		if ('or' in condition) {
+			const entries = Array.isArray(condition.or)
+				? condition.or
+				: [condition.or];
+			return entries.some((entry: HasCondition<AllConsentNames>) =>
+				evaluateHas(entry, consents, options)
+			);
+		}
+		if ('not' in condition) {
+			return !evaluateHas(condition.not, consents, options);
+		}
+		return false;
+	}
+
+	const category = condition as AllConsentNames;
+	const allowed = options.policyCategories;
+	if (allowed && options.policyScopeMode === 'strict') {
+		return allowed.includes(category) && Boolean(consents[category]);
+	}
+	return Boolean(consents[category]);
+}
+
+function toLightweightIab(iab: KernelIABState | null): ReactIABState | null {
+	if (!iab) return null;
+	const noop = () => {};
+	const noopAsync = async () => {};
+
+	return {
+		...iab,
+		config: {
+			enabled: false,
+			cmpId: iab.cmpId,
+		},
+		isLoadingGVL: iab.enabled,
+		nonIABVendors: iab.customVendors,
+		preferenceCenterTab: 'purposes',
+		setPreferenceCenterTab: noop,
+		setVendorConsent: noop,
+		setVendorLegitimateInterest: noop,
+		setPurposeConsent: noop,
+		setPurposeLegitimateInterest: noop,
+		setSpecialFeatureOptIn: noop,
+		acceptAll: noop,
+		rejectAll: noop,
+		save: noopAsync,
+	};
+}
+
 export function useConsentManager() {
 	const snapshot = useSnapshot();
 	const consents = useConsents();
@@ -76,7 +179,7 @@ export function useConsentManager() {
 	const subscribeToKernelConsentChanges = useSubscribeToConsentChanges();
 	const translations = useTranslations();
 	const draft = useConsentDraft();
-	const iab = useIAB();
+	const iab = useMemo(() => toLightweightIab(snapshot.iab), [snapshot.iab]);
 	const translationConfig = useMemo(
 		() => toTranslationConfig(translations),
 		[translations]
@@ -89,18 +192,18 @@ export function useConsentManager() {
 	const consentCategories = useMemo<AllConsentNames[]>(() => {
 		return policyCategories.length > 0
 			? (policyCategories as AllConsentNames[])
-			: defaultConsentTypes.map((type) => type.name);
+			: DEFAULT_CONSENT_TYPES.map((type) => type.name);
 	}, [policyCategories]);
 
 	const getDisplayedConsents = useCallback((): ConsentType[] => {
 		const allowed = new Set(consentCategories);
-		return defaultConsentTypes
-			.filter((type) => allowed.has(type.name))
-			.map((type) => ({ ...type, display: true }));
+		return DEFAULT_CONSENT_TYPES.filter((type) => allowed.has(type.name)).map(
+			(type) => ({ ...type, display: true })
+		);
 	}, [consentCategories]);
 
 	const has = useCallback(
-		(condition: Parameters<typeof evaluateHas>[0]) =>
+		(condition: HasCondition<AllConsentNames>) =>
 			evaluateHas(condition, consents as ConsentState, {
 				policyCategories: policyCategories.length > 0 ? policyCategories : null,
 				policyScopeMode,
