@@ -5,6 +5,7 @@ import type { ConsentConfig } from '../runtime/config';
 import {
 	createVueConsentKernelContext,
 	getNuxtInitFetchTarget,
+	startVueConsentRuntime,
 } from '../runtime/kernel';
 import {
 	clearManifestRouteCache,
@@ -48,7 +49,7 @@ function createManifestFixture(): ConsentManifest {
 				fingerprint: 'fingerprint-eu',
 				policy: {
 					id: 'eu-opt-in',
-					match: { countries: ['DE'] },
+					match: { countries: ['DE'], fallback: true },
 					consent: {
 						model: 'opt-in',
 						expiryDays: 365,
@@ -80,6 +81,7 @@ function createManifestFixture(): ConsentManifest {
 afterEach(() => {
 	clearManifestRouteCache();
 	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
 });
 
 describe('@c15t/vue Nuxt manifest mode', () => {
@@ -201,6 +203,114 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		).toEqual({
 			url: '/internal/consent/init',
 		});
+		expect(
+			getNuxtInitFetchTarget({
+				backendURL: 'https://backend.example',
+				manifest: 'client',
+				manifestURL: 'https://cdn.example/manifest',
+			})
+		).toBeUndefined();
+	});
+
+	test('client manifest mode fetches the manifest in the browser and resolves init locally', async () => {
+		Object.defineProperty(window.navigator, 'language', {
+			value: 'de-DE',
+			configurable: true,
+		});
+		Object.defineProperty(window.navigator, 'globalPrivacyControl', {
+			value: true,
+			configurable: true,
+		});
+		const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+			expect(String(input)).toBe('https://cdn.example/manifest');
+			return new Response(JSON.stringify(createManifestFixture()), {
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+			});
+		});
+
+		const context = createVueConsentKernelContext({
+			config: {
+				backendURL: 'https://backend.example',
+				manifest: 'client',
+				manifestURL: 'https://cdn.example/manifest',
+				customFetch: fetchMock as unknown as typeof fetch,
+			} as ConsentConfig,
+		});
+
+		await context.kernel.commands.init();
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(context.snapshot.value).toMatchObject({
+			location: {
+				countryCode: null,
+				regionCode: null,
+			},
+			policy: {
+				id: 'eu-opt-in',
+				model: 'opt-in',
+			},
+			policyDecision: {
+				policyId: 'eu-opt-in',
+				matchedBy: 'fallback',
+			},
+			overrides: {
+				language: 'de',
+				gpc: true,
+			},
+		});
+		context.dispose();
+	});
+
+	test('client manifest mode applies strict unknown-geo policy before geo microfetch re-resolves', async () => {
+		const seenPolicyIds: string[] = [];
+		const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+			const url = String(input);
+			if (url === 'https://cdn.example/manifest') {
+				return new Response(JSON.stringify(createManifestFixture()), {
+					status: 200,
+					headers: { 'content-type': 'application/json' },
+				});
+			}
+			if (url === '/api/geo') {
+				return new Response(JSON.stringify({ country: 'US', region: 'CA' }), {
+					status: 200,
+					headers: { 'content-type': 'application/json' },
+				});
+			}
+			return new Response('not found', { status: 404 });
+		});
+		const config = {
+			backendURL: 'https://backend.example',
+			manifest: 'client',
+			manifestURL: 'https://cdn.example/manifest',
+			geoURL: '/api/geo',
+			customFetch: fetchMock as unknown as typeof fetch,
+		} as ConsentConfig;
+		const context = createVueConsentKernelContext({
+			config,
+		});
+		context.kernel.subscribe((snapshot) => {
+			if (snapshot.policy?.id) {
+				seenPolicyIds.push(snapshot.policy.id);
+			}
+		});
+
+		const dispose = startVueConsentRuntime(context, config);
+		await vi.waitFor(() => {
+			expect(context.snapshot.value.policy?.id).toBe('ca-opt-out');
+		});
+
+		expect(seenPolicyIds[0]).toBe('eu-opt-in');
+		expect(seenPolicyIds.at(-1)).toBe('ca-opt-out');
+		expect(context.snapshot.value.policyDecision).toMatchObject({
+			policyId: 'ca-opt-out',
+			matchedBy: 'region',
+			country: 'US',
+			region: 'CA',
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+		dispose();
 	});
 
 	test('prefetched manifest init seeds decision inputs for save', async () => {

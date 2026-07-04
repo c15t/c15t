@@ -17,7 +17,7 @@ import {
 	pickAllowedInitHeaders,
 	startVueConsentRuntime,
 } from './kernel';
-import { isManifestModeEnabled } from './manifest';
+import { resolveManifestMode } from './manifest';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -38,21 +38,25 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 		useRequestHeaders([...INIT_HEADER_NAMES])
 	);
 	const initFetchTarget = getNuxtInitFetchTarget(config.value);
-	const manifestMode = isManifestModeEnabled(config.value);
+	const manifestMode = resolveManifestMode(config.value);
 
-	const { data } = await useFetch<InitOutput>(initFetchTarget.url, {
-		baseURL: initFetchTarget.baseURL,
-		cache: manifestMode ? undefined : 'no-store',
-		headers,
-		key: 'c15t:init',
-	});
+	let prefetch: InitOutput | undefined;
+	if (initFetchTarget) {
+		const { data } = await useFetch<InitOutput>(initFetchTarget.url, {
+			baseURL: initFetchTarget.baseURL,
+			cache: manifestMode === 'server' ? undefined : 'no-store',
+			headers,
+			key: 'c15t:init',
+		});
+		prefetch = data.value ?? undefined;
+	}
 
 	nuxtApp.vueApp.provide(consentConfigKey, config);
 
 	const context = createVueConsentKernelContext({
 		config: config.value as ConsentConfig,
 		headers,
-		prefetch: data.value ?? undefined,
+		prefetch,
 	});
 
 	nuxtApp.vueApp.provide(symbolKernelContext, context);
@@ -62,6 +66,8 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 	nuxtApp.vueApp.provide(symbolActiveUI, context.activeUI);
 	nuxtApp.vueApp.provide(symbolConsent, context.storedConsent);
 	startVueConsentRuntime(context, config.value as ConsentConfig, {
-		runInit: !data.value,
+		runInit:
+			!prefetch &&
+			!(manifestMode === 'client' && typeof window === 'undefined'),
 	});
 });

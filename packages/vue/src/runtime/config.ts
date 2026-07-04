@@ -3,16 +3,26 @@ import type { HTMLAttributes } from 'vue';
 
 export interface ConsentManifestNuxtConfig {
 	/**
-	 * Enables Nuxt same-origin manifest mode. When true, the module registers
-	 * server routes and the client prefetches init from `initRoute`.
+	 * Enables Nuxt manifest mode. `server` registers same-origin init and
+	 * manifest routes; `client` resolves the manifest in the browser and never
+	 * fetches an init route. `true` is kept as an alias for `server`.
 	 */
-	manifest?: boolean;
+	manifest?: 'client' | 'server' | boolean;
 
 	/**
-	 * Backend manifest URL fetched by the Nuxt server route. Defaults to
-	 * `${backendURL}/manifest`.
+	 * Backend or CDN manifest URL. Server mode fetches this from the Nuxt route;
+	 * client mode fetches it directly in the browser. Defaults to
+	 * `${backendURL}/manifest` for server routes and `manifestRoute` in client
+	 * mode.
 	 */
 	manifestURL?: string;
+
+	/**
+	 * Optional browser-side geo microfetch used by client manifest mode. The
+	 * endpoint should return `{ country, region }`. Defaults to no geo fetch,
+	 * leaving the resolver on the manifest fallback/strict unknown-geo policy.
+	 */
+	geoURL?: string | false;
 
 	/**
 	 * Same-origin Nuxt init route used by the client. Defaults to
