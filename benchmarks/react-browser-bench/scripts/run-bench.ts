@@ -67,19 +67,58 @@ const initLatencyMs = parseBenchInitLatencyMs(
 		readCliFlag('--init-latency') ??
 		process.env.C15T_BENCH_INIT_LATENCY_MS
 );
+const scenarioFilter =
+	readCliFlag('--scenario') ?? process.env.C15T_BENCH_SCENARIO;
 
-const scenarios = [
+const allScenarios = [
 	{ name: 'full-ui', path: '/full-ui' },
 	{ name: 'headless', path: '/headless' },
+	{ name: 'react-v3-full', path: '/react-v3-full' },
+	{ name: 'react-v3-headless', path: '/react-v3-headless' },
 	{ name: 'vanilla-core', path: '/vanilla-core' },
 ] as const;
 
+const scenarios = scenarioFilter
+	? allScenarios.filter((scenario) => scenario.name === scenarioFilter)
+	: allScenarios;
+
+if (scenarioFilter && scenarios.length === 0) {
+	throw new Error(
+		`Unsupported scenario "${scenarioFilter}". Expected ${allScenarios
+			.map((scenario) => scenario.name)
+			.join(', ')}.`
+	);
+}
+
 async function measureInteractionLatency(
 	page: import('playwright').Page,
-	scenario: (typeof scenarios)[number]['name'] | 'repeat-visitor'
+	scenario:
+		| (typeof allScenarios)[number]['name']
+		| 'repeat-visitor'
+		| 'react-v3-repeat'
 ) {
 	switch (scenario) {
 		case 'full-ui': {
+			const before = await page.evaluate(
+				() => window.__c15tReactBench?.onConsentSetCount ?? 0
+			);
+			const startedAt = performance.now();
+			await page.click('[data-testid="consent-banner-accept-button"]');
+			await page.waitForFunction(
+				(expected) => {
+					const state = window.__c15tReactBench;
+					return (
+						!!state &&
+						state.onConsentSetCount > expected &&
+						state.activeUI === 'none'
+					);
+				},
+				before,
+				{ timeout: 30_000 }
+			);
+			return performance.now() - startedAt;
+		}
+		case 'react-v3-full': {
 			const before = await page.evaluate(
 				() => window.__c15tReactBench?.onConsentSetCount ?? 0
 			);
@@ -119,6 +158,26 @@ async function measureInteractionLatency(
 			);
 			return performance.now() - startedAt;
 		}
+		case 'react-v3-headless': {
+			const before = await page.evaluate(
+				() => window.__c15tReactBench?.onConsentSetCount ?? 0
+			);
+			const startedAt = performance.now();
+			await page.click('#react-v3-headless-accept');
+			await page.waitForFunction(
+				(expected) => {
+					const state = window.__c15tReactBench;
+					return (
+						!!state &&
+						state.onConsentSetCount > expected &&
+						state.activeUI === 'none'
+					);
+				},
+				before,
+				{ timeout: 30_000 }
+			);
+			return performance.now() - startedAt;
+		}
 		case 'vanilla-core': {
 			const before = await page.evaluate(
 				() => window.__c15tReactBench?.onConsentSetCount ?? 0
@@ -142,6 +201,19 @@ async function measureInteractionLatency(
 		case 'repeat-visitor': {
 			const startedAt = performance.now();
 			await page.click('#full-ui-open-preferences');
+			await page.waitForFunction(
+				() => {
+					const state = window.__c15tReactBench;
+					return !!state && state.activeUI === 'dialog';
+				},
+				undefined,
+				{ timeout: 30_000 }
+			);
+			return performance.now() - startedAt;
+		}
+		case 'react-v3-repeat': {
+			const startedAt = performance.now();
+			await page.click('#react-v3-full-open-preferences');
 			await page.waitForFunction(
 				() => {
 					const state = window.__c15tReactBench;
@@ -453,7 +525,10 @@ async function run() {
 					scenario.name
 				);
 
-				if (scenario.name === 'full-ui' && index >= warmupIterations) {
+				if (
+					(scenario.name === 'full-ui' || scenario.name === 'react-v3-full') &&
+					index >= warmupIterations
+				) {
 					const repeatContext = await browser.newContext({ baseURL: BASE_URL });
 					const repeatPage = await repeatContext.newPage();
 					await applyPageProfile(repeatContext, repeatPage);
@@ -465,11 +540,16 @@ async function run() {
 					);
 					const repeatInteractionLatencyMs = await measureInteractionLatency(
 						repeatPage,
-						'repeat-visitor'
+						scenario.name === 'react-v3-full'
+							? 'react-v3-repeat'
+							: 'repeat-visitor'
 					);
 					samples.push({
 						...repeatMetrics,
-						scenario: 'repeat-visitor',
+						scenario:
+							scenario.name === 'react-v3-full'
+								? 'react-v3-repeat'
+								: 'repeat-visitor',
 						interactionLatencyMs: repeatInteractionLatencyMs,
 					});
 					await repeatContext.close();

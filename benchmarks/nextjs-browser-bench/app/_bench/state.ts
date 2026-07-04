@@ -2,6 +2,9 @@
 
 export type NextjsBenchScenario =
 	| 'client'
+	| 'nextjs-v3-client'
+	| 'nextjs-v3-repeat'
+	| 'nextjs-v3-ssr'
 	| 'ssr'
 	| 'prefetch'
 	| 'repeat-visitor';
