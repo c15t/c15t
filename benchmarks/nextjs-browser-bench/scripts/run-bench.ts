@@ -69,20 +69,58 @@ const initLatencyMs = parseBenchInitLatencyMs(
 		readCliFlag('--init-latency') ??
 		process.env.C15T_BENCH_INIT_LATENCY_MS
 );
+const scenarioFilter =
+	readCliFlag('--scenario') ?? process.env.C15T_BENCH_SCENARIO;
 
-const scenarios = [
+const allScenarios = [
 	{ name: 'client', path: '/client' },
 	{ name: 'ssr', path: '/ssr' },
 	{ name: 'prefetch', path: '/prefetch' },
 ] as const;
 
+const v3Scenarios = [
+	{ name: 'nextjs-v3-client', path: '/v3-client' },
+	{ name: 'nextjs-v3-ssr', path: '/v3-ssr' },
+] as const;
+
+const allBenchmarkScenarios = [...allScenarios, ...v3Scenarios] as const;
+
+const scenarios = scenarioFilter
+	? allBenchmarkScenarios.filter((scenario) => scenario.name === scenarioFilter)
+	: allBenchmarkScenarios;
+
+if (scenarioFilter && scenarios.length === 0) {
+	throw new Error(
+		`Unsupported scenario "${scenarioFilter}". Expected ${allBenchmarkScenarios
+			.map((scenario) => scenario.name)
+			.join(', ')}.`
+	);
+}
+
 async function measureInteractionLatency(
 	page: import('playwright').Page,
-	scenario: (typeof scenarios)[number]['name'] | 'repeat-visitor'
+	scenario:
+		| (typeof allBenchmarkScenarios)[number]['name']
+		| 'repeat-visitor'
+		| 'nextjs-v3-repeat'
 ) {
 	if (scenario === 'repeat-visitor') {
 		const startedAt = performance.now();
 		await page.click('#open-preferences');
+		await page.waitForFunction(
+			() => {
+				const state = window.__c15tNextBench;
+				return !!state && state.activeUI === 'dialog';
+			},
+			undefined,
+			{ timeout: 30_000 }
+		);
+		return performance.now() - startedAt;
+	}
+
+	if (scenario === 'nextjs-v3-repeat') {
+		const startedAt = performance.now();
+		await page.click('#v3-open-preferences');
 		await page.waitForFunction(
 			() => {
 				const state = window.__c15tNextBench;
@@ -281,6 +319,7 @@ function nullableMedian(
 async function collectScenarioMetrics(
 	page: import('playwright').Page,
 	scenario: string,
+	path: string,
 	bannerInFirstHtml: boolean
 ) {
 	let initRequests = 0;
@@ -290,7 +329,7 @@ async function collectScenarioMetrics(
 		}
 	});
 
-	await page.goto(`/${scenario}`);
+	await page.goto(path);
 	await page.waitForFunction(
 		(targetScenario) => {
 			const state = window.__c15tNextBench;
@@ -385,7 +424,7 @@ function budgetsForScenario(scenario: string): MetricBudget[] {
 		].includes(budget.metric)
 	);
 
-	if (scenario === 'ssr') {
+	if (scenario === 'ssr' || scenario === 'nextjs-v3-ssr') {
 		return [
 			...shared,
 			{
@@ -398,7 +437,7 @@ function budgetsForScenario(scenario: string): MetricBudget[] {
 		];
 	}
 
-	if (scenario === 'repeat-visitor') {
+	if (scenario === 'repeat-visitor' || scenario === 'nextjs-v3-repeat') {
 		return shared;
 	}
 
@@ -453,6 +492,7 @@ async function run() {
 				const metrics = await collectScenarioMetrics(
 					page,
 					scenario.name,
+					scenario.path,
 					bannerInFirstHtml
 				);
 				const interactionLatencyMs = await measureInteractionLatency(
@@ -466,22 +506,32 @@ async function run() {
 					});
 				}
 
-				if (scenario.name === 'client' && index >= warmupIterations) {
+				if (
+					(scenario.name === 'client' ||
+						scenario.name === 'nextjs-v3-client') &&
+					index >= warmupIterations
+				) {
 					const repeatContext = await browser.newContext({ baseURL: BASE_URL });
 					const repeatPage = await repeatContext.newPage();
 					await applyPageProfile(repeatContext, repeatPage);
 					const repeatMetrics = await collectScenarioMetrics(
 						repeatPage,
 						scenario.name,
+						scenario.path,
 						bannerInFirstHtml
 					);
 					const repeatInteractionLatencyMs = await measureInteractionLatency(
 						repeatPage,
-						'repeat-visitor'
+						scenario.name === 'nextjs-v3-client'
+							? 'nextjs-v3-repeat'
+							: 'repeat-visitor'
 					);
 					samples.push({
 						...repeatMetrics,
-						scenario: 'repeat-visitor',
+						scenario:
+							scenario.name === 'nextjs-v3-client'
+								? 'nextjs-v3-repeat'
+								: 'repeat-visitor',
 						interactionLatencyMs: repeatInteractionLatencyMs,
 					});
 					await repeatContext.close();

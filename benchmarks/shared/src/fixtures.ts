@@ -141,6 +141,12 @@ export const browserScenarios = [
 	'prefetch',
 	'headless',
 	'full-ui',
+	'nextjs-v3-client',
+	'nextjs-v3-repeat',
+	'nextjs-v3-ssr',
+	'react-v3-full',
+	'react-v3-headless',
+	'react-v3-repeat',
 	'repeat-visitor',
 	'vanilla-core',
 ] as const;
