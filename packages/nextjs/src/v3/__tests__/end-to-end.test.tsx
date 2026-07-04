@@ -24,10 +24,19 @@ const POLICY = {
 describe('ConsentBoundary: backendURL triggers auto-init', () => {
 	test('boundary with backendURL fires kernel.commands.init on mount', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
-			new Response(JSON.stringify({ policy: POLICY }), {
-				status: 200,
-				headers: { 'content-type': 'application/json' },
-			})
+			new Response(
+				JSON.stringify({
+					jurisdiction: 'GDPR',
+					location: { countryCode: 'DE', regionCode: null },
+					translations: { language: 'en', translations: { common: {} } },
+					branding: 'c15t',
+					policy: POLICY,
+				}),
+				{
+					status: 200,
+					headers: { 'content-type': 'application/json' },
+				}
+			)
 		);
 		const originalFetch = globalThis.fetch;
 		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;

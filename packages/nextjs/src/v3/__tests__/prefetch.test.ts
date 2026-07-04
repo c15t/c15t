@@ -5,6 +5,7 @@
  */
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { prefetchInitialConsent } from '../server';
+import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 const cookieStore = new Map<string, string>();
 const headerStore = new Map<string, string>();
@@ -13,6 +14,16 @@ const POLICY = {
 	model: 'opt-in',
 	ui: { mode: 'banner' },
 };
+
+function createInitOutput(overrides: Record<string, unknown> = {}) {
+	return {
+		jurisdiction: 'GDPR',
+		location: { countryCode: null, regionCode: null },
+		translations: { language: 'en', translations: { common: {} } },
+		branding: 'c15t',
+		...overrides,
+	};
+}
 
 vi.mock('next/headers', () => ({
 	cookies: () =>
@@ -46,16 +57,18 @@ describe('prefetchInitialConsent: backend call', () => {
 
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(
-				JSON.stringify({
-					policy: POLICY,
-					policySnapshotToken: 'snap-1',
-					location: { countryCode: 'DE', regionCode: null },
-					translations: { language: 'de', translations: {} },
-					branding: 'c15t',
-					gvl: null,
-					customVendors: [],
-					cmpId: 28,
-				}),
+				JSON.stringify(
+					createInitOutput({
+						policy: POLICY,
+						policySnapshotToken: 'snap-1',
+						location: { countryCode: 'DE', regionCode: null },
+						translations: { language: 'de', translations: {} },
+						branding: 'c15t',
+						gvl: null,
+						customVendors: [],
+						cmpId: 28,
+					})
+				),
 				{ status: 200, headers: { 'content-type': 'application/json' } }
 			)
 		);
@@ -69,11 +82,11 @@ describe('prefetchInitialConsent: backend call', () => {
 		const [url, init] = fetchSpy.mock.calls[0] ?? [];
 		expect(url).toBe('https://app.example.com/api/c15t/init');
 
-		const body = JSON.parse((init as RequestInit).body as string);
-		expect(body.overrides).toEqual({ country: 'DE' });
+		const headers = (init as RequestInit).headers as Record<string, string>;
+		expect((init as RequestInit).method).toBe('GET');
+		expect(headers['x-c15t-country']).toBe('DE');
 
 		// Cookies are forwarded.
-		const headers = (init as RequestInit).headers as Record<string, string>;
 		expect(headers.cookie).toContain('sess=abc');
 
 		// Response was merged into config.
@@ -96,7 +109,9 @@ describe('prefetchInitialConsent: backend call', () => {
 	test('absolute backendURL bypasses host resolution', async () => {
 		const fetchSpy = vi
 			.fn()
-			.mockResolvedValue(new Response('{}', { status: 200 }));
+			.mockResolvedValue(
+				new Response(JSON.stringify(createInitOutput()), { status: 200 })
+			);
 		await prefetchInitialConsent({
 			backendURL: 'https://consent.example.com',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
@@ -135,27 +150,22 @@ describe('prefetchInitialConsent: backend call', () => {
 			)
 		);
 
-		const fetchSpy = vi
-			.fn()
-			.mockResolvedValue(
-				new Response(
-					JSON.stringify({ consents: { measurement: true, experience: true } }),
-					{ status: 200, headers: { 'content-type': 'application/json' } }
-				)
-			);
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(createInitOutput()), {
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+			})
+		);
 
 		const config = await prefetchInitialConsent({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
 
-		// Cookie marketing=true preserved (server didn't send marketing).
-		// Server measurement=true overrides cookie measurement=false.
-		// Server experience=true added.
-		expect(config.initialConsents).toMatchObject({
+		// /init does not carry consent preferences; cookie state is preserved.
+		expect(config.initialConsents).toEqual({
 			marketing: true,
-			measurement: true,
-			experience: true,
+			measurement: false,
 		});
 	});
 
@@ -164,9 +174,12 @@ describe('prefetchInitialConsent: backend call', () => {
 
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(
-				JSON.stringify({
-					resolvedOverrides: { country: 'DE', region: 'BE' },
-				}),
+				JSON.stringify(
+					createInitOutput({
+						location: { countryCode: 'DE', regionCode: 'BE' },
+						translations: { language: 'de', translations: {} },
+					})
+				),
 				{ status: 200, headers: { 'content-type': 'application/json' } }
 			)
 		);
@@ -190,7 +203,9 @@ describe('prefetchInitialConsent: backend call', () => {
 
 		const fetchSpy = vi
 			.fn()
-			.mockResolvedValue(new Response('{}', { status: 200 }));
+			.mockResolvedValue(
+				new Response(JSON.stringify(createInitOutput()), { status: 200 })
+			);
 
 		await prefetchInitialConsent({
 			backendURL: '/api/c15t',
@@ -202,5 +217,58 @@ describe('prefetchInitialConsent: backend call', () => {
 		const headers = (init as RequestInit).headers as Record<string, string>;
 		expect(headers.authorization).toBe('Bearer token-xyz');
 		expect(headers['x-trace-id']).toBe('trace-1');
+	});
+});
+
+describe('prefetchInitialConsent: manifest mode', () => {
+	test('resolves init from manifestURL without calling /init', async () => {
+		headerStore.set('x-vercel-ip-country', 'DE');
+		headerStore.set('accept-language', 'de-DE,de;q=0.9');
+		headerStore.set('host', 'app.example.com');
+		headerStore.set('x-forwarded-proto', 'https');
+
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(MANIFEST_FIXTURE), {
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+			})
+		);
+
+		const config = await prefetchInitialConsent({
+			backendURL: '/api/c15t',
+			manifestURL: '/api/c15t/manifest',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url] = fetchSpy.mock.calls[0] ?? [];
+		expect(url).toBe('https://app.example.com/api/c15t/manifest');
+		expect(String(url)).not.toContain('/init');
+		expect(config.initialPolicy?.id).toBe('eu-opt-in');
+		expect(config.initialPolicyDecision).toMatchObject({
+			policyId: 'eu-opt-in',
+			country: 'DE',
+		});
+		expect(config.initialTranslations?.language).toBe('de');
+	});
+
+	test('inline manifest keeps the prefetch request path backend-free', async () => {
+		headerStore.set('cf-ipcountry', 'US');
+		headerStore.set('x-region-code', 'CA');
+
+		const fetchSpy = vi.fn();
+
+		const config = await prefetchInitialConsent({
+			backendURL: 'https://consent.example.com/api/c15t',
+			manifest: MANIFEST_FIXTURE,
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(config.initialPolicy?.id).toBe('us-ca-opt-out');
+		expect(config.initialLocation).toEqual({
+			countryCode: 'US',
+			regionCode: 'CA',
+		});
 	});
 });

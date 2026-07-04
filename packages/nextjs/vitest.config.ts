@@ -31,22 +31,27 @@ export default mergeConfig(
 				c15t: resolve(__dirname, '../core/src/index.ts'),
 				'@c15t/react/v3/provider': resolve(
 					__dirname,
-					'../react/src/v3/provider.tsx'
+					'../react/dist/v3/provider.js'
 				),
-				'@c15t/react/v3/hooks': resolve(__dirname, '../react/src/v3/hooks.ts'),
+				'@c15t/react/v3/hooks': resolve(__dirname, '../react/dist/v3/hooks.js'),
 				'@c15t/react/v3/module-hooks': resolve(
 					__dirname,
-					'../react/src/v3/module-hooks.ts'
+					'../react/dist/v3/module-hooks.js'
 				),
 				'@c15t/react/v3/server': resolve(
 					__dirname,
-					'../react/src/v3/server/index.ts'
+					'../react/dist/v3/server/index.js'
 				),
 				'@c15t/react/v3/headless': resolve(
 					__dirname,
-					'../react/src/v3/headless.ts'
+					'../react/dist/v3/headless.js'
 				),
-				'@c15t/react/v3': resolve(__dirname, '../react/src/v3/index.ts'),
+				'@c15t/react/v3': resolve(__dirname, '../react/dist/v3/index.js'),
+				'@c15t/react/headless': resolve(__dirname, '../react/dist/headless.js'),
+				'@c15t/translations/all': resolve(
+					__dirname,
+					'../translations/src/all.ts'
+				),
 				'@c15t/translations': resolve(
 					__dirname,
 					'../translations/src/index.ts'
