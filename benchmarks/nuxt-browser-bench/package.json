@@ -1,0 +1,24 @@
+{
+	"name": "@c15t/nuxt-browser-bench",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "nuxt dev",
+		"build": "nuxt build",
+		"start": "node .output/server/index.mjs",
+		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/browser-runtime/nuxt bunx tsx scripts/run-bench.ts",
+		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/browser-runtime/nuxt bunx tsx scripts/run-bench.ts",
+		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/browser-runtime/nuxt bunx tsx scripts/run-bench.ts"
+	},
+	"dependencies": {
+		"@c15t/benchmarking": "workspace:*",
+		"@c15t/vue": "workspace:*",
+		"c15t": "workspace:*",
+		"nuxt": "4.4.8",
+		"vue": "3.5.38"
+	},
+	"devDependencies": {
+		"playwright": "1.58.2",
+		"typescript": "5.8.3"
+	}
+}

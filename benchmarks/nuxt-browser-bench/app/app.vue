@@ -1,0 +1,4 @@
+<template>
+	<ConsentRoot />
+	<NuxtPage />
+</template>

@@ -38,6 +38,18 @@ export interface BenchCdpSession {
 	send(method: string, params?: Record<string, unknown>): Promise<unknown>;
 }
 
+export interface BenchInitScriptPage {
+	addInitScript<Arg>(
+		script: string | ((arg: Arg) => void | Promise<void>),
+		arg?: Arg
+	): Promise<void>;
+}
+
+export interface BenchPerformanceObserverOptions {
+	bannerElementTimingName: string;
+	bannerRootTestId: string;
+}
+
 export function parseBenchThrottleProfile(
 	value: string | undefined
 ): BenchThrottleProfileName {
@@ -81,4 +93,87 @@ export async function applyBenchThrottleProfile(
 		downloadThroughput: profile.network.downloadThroughputBytesPerSecond,
 		uploadThroughput: profile.network.uploadThroughputBytesPerSecond,
 	});
+}
+
+export async function installBenchPerformanceObservers(
+	page: BenchInitScriptPage,
+	options: BenchPerformanceObserverOptions
+): Promise<void> {
+	await page.addInitScript(
+		({
+			bannerElementTimingName: timingName,
+			bannerRootTestId: testId,
+		}: BenchPerformanceObserverOptions) => {
+			const metrics = {
+				cls: 0,
+				longTaskCount: 0,
+				longTaskTotalMs: 0,
+				bannerPaintMs: null as number | null,
+			};
+			Object.defineProperty(window, '__c15tBenchPerfMetrics', {
+				value: metrics,
+				configurable: true,
+			});
+
+			const markBanner = () => {
+				const root = document.querySelector(`[data-testid="${testId}"]`);
+				if (root instanceof HTMLElement) {
+					root.setAttribute('elementtiming', timingName);
+				}
+			};
+
+			try {
+				new PerformanceObserver((list) => {
+					for (const entry of list.getEntries()) {
+						const shift = entry as PerformanceEntry & {
+							value?: number;
+							hadRecentInput?: boolean;
+						};
+						if (!shift.hadRecentInput) {
+							metrics.cls += shift.value ?? 0;
+						}
+					}
+				}).observe({ type: 'layout-shift', buffered: true });
+			} catch {}
+
+			try {
+				new PerformanceObserver((list) => {
+					for (const entry of list.getEntries()) {
+						metrics.longTaskCount += 1;
+						metrics.longTaskTotalMs += entry.duration;
+					}
+				}).observe({ type: 'longtask', buffered: true });
+			} catch {}
+
+			try {
+				new PerformanceObserver((list) => {
+					for (const entry of list.getEntries()) {
+						const elementEntry = entry as PerformanceEntry & {
+							identifier?: string;
+							renderTime?: number;
+							loadTime?: number;
+						};
+						if (elementEntry.identifier === timingName) {
+							metrics.bannerPaintMs =
+								elementEntry.renderTime ||
+								elementEntry.loadTime ||
+								elementEntry.startTime;
+						}
+					}
+				}).observe({ type: 'element', buffered: true });
+			} catch {}
+
+			markBanner();
+			try {
+				new MutationObserver(markBanner).observe(
+					document.documentElement ?? document,
+					{
+						childList: true,
+						subtree: true,
+					}
+				);
+			} catch {}
+		},
+		options
+	);
 }

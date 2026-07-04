@@ -1,10 +1,14 @@
 {
 	"_comment": "Placeholder mappings for upcoming v3 scenario/package keys. Add exact head package:scenario:suite keys here when v3 emits names that should compare against existing v2 baseline keys.",
+	"_vueComment": "@c15t/vue Nuxt browser host scenarios temporarily compare against the closest @c15t/react browser baseline counterparts until Vue-specific baselines are recorded.",
 	"mappings": {
 		"@c15t/core-benchmarks:v3-tiny:core-runtime": "@c15t/core-benchmarks:tiny:core-runtime",
 		"@c15t/core-benchmarks:v3-small:core-runtime": "@c15t/core-benchmarks:small:core-runtime",
 		"@c15t/core-benchmarks:v3-medium:core-runtime": "@c15t/core-benchmarks:medium:core-runtime",
 		"@c15t/react-browser-bench:v3-full-ui:browser-runtime": "@c15t/react-browser-bench:full-ui:browser-runtime",
-		"@c15t/nextjs-browser-bench:v3-client:browser-runtime": "@c15t/nextjs-browser-bench:client:browser-runtime"
+		"@c15t/nextjs-browser-bench:v3-client:browser-runtime": "@c15t/nextjs-browser-bench:client:browser-runtime",
+		"@c15t/vue:ssr:browser-runtime": "@c15t/react-browser-bench:full-ui:browser-runtime",
+		"@c15t/vue:client:browser-runtime": "@c15t/react-browser-bench:full-ui:browser-runtime",
+		"@c15t/vue:repeat-visitor:browser-runtime": "@c15t/react-browser-bench:repeat-visitor:browser-runtime"
 	}
 }

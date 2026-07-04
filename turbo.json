@@ -9,6 +9,8 @@
 			"outputs": [
 				".next/**",
 				"!.next/cache/**",
+				".nuxt/**",
+				".output/**",
 				"dist/**",
 				"dist-types/**",
 				"AGENTS.md",
@@ -109,6 +111,19 @@
 				"@c15t/schema#dev",
 				"@c15t/translations#dev",
 				"@c15t/ui#dev"
+			]
+		},
+		"@c15t/nuxt-browser-bench#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"with": [
+				"c15t#dev",
+				"@c15t/logger#dev",
+				"@c15t/schema#dev",
+				"@c15t/styles#dev",
+				"@c15t/translations#dev",
+				"@c15t/vue#dev"
 			]
 		},
 		"@c15t/css-layer-preview#dev": {
