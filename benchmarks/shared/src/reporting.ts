@@ -23,7 +23,18 @@ export function evaluateBudget(
 		};
 	}
 
-	const headMedian = headMetric.median;
+	const headMedian = headMetric.median as number | null;
+	if (headMedian === null) {
+		return {
+			metric: budget.metric,
+			pass: false,
+			comparator: budget.comparator,
+			actual: null,
+			threshold: budget.threshold,
+			secondaryThreshold: budget.secondaryThreshold,
+			message: `Metric "${budget.metric}" has no supported samples`,
+		};
+	}
 	const baseMedian = baseMetric?.median ?? 0;
 	const delta = headMedian - baseMedian;
 	const deltaPercent =
@@ -107,6 +118,10 @@ export function toMarkdownComparison(
 
 	for (const result of comparison.results) {
 		lines.push(`## ${result.package} :: ${result.scenario}`);
+		if (result.baseKey) {
+			lines.push('');
+			lines.push(`Base: ${result.baseKey}`);
+		}
 		lines.push('');
 		lines.push('| Metric | Base Median | Head Median | Delta | Delta % |');
 		lines.push('| --- | ---: | ---: | ---: | ---: |');

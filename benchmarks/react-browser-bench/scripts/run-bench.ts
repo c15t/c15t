@@ -20,6 +20,7 @@ import {
 	safeBaseSha,
 	safeCommitSha,
 	summarizeMetric,
+	summarizeNullableMetric,
 	writeJson,
 } from '@c15t/benchmarking/utils';
 import { chromium } from 'playwright';
@@ -616,10 +617,10 @@ async function run() {
 							'ms',
 							groupedSamples.map((sample) => sample.bannerVisibleMs ?? 0)
 						),
-						summarizeMetric(
+						summarizeNullableMetric(
 							'bannerPaintMs',
 							'ms',
-							groupedSamples.map((sample) => sample.bannerPaintMs ?? 0)
+							groupedSamples.map((sample) => sample.bannerPaintMs ?? null)
 						),
 						summarizeMetric(
 							'bannerInFirstHtml',

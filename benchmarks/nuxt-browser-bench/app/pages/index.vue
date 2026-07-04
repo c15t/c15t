@@ -3,6 +3,7 @@
 		<h1>@c15t/vue Nuxt Browser Bench</h1>
 		<ul>
 			<li><NuxtLink to="/ssr">/ssr</NuxtLink></li>
+			<li><NuxtLink to="/ssr-manifest">/ssr-manifest</NuxtLink></li>
 			<li><NuxtLink to="/client">/client</NuxtLink></li>
 			<li><NuxtLink to="/repeat-visitor">/repeat-visitor</NuxtLink></li>
 		</ul>

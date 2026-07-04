@@ -10,8 +10,16 @@
 		"@c15t/react-browser-bench:react-v3-repeat:browser-runtime": "@c15t/react-browser-bench:repeat-visitor:browser-runtime",
 		"@c15t/nextjs-browser-bench:nextjs-v3-client:browser-runtime": "@c15t/nextjs-browser-bench:client:browser-runtime",
 		"@c15t/nextjs-browser-bench:nextjs-v3-ssr:browser-runtime": "@c15t/nextjs-browser-bench:ssr:browser-runtime",
+		"@c15t/nextjs-browser-bench:nextjs-v3-manifest-ssr:browser-runtime": [
+			"@c15t/nextjs-browser-bench:nextjs-v3-ssr:browser-runtime",
+			"@c15t/nextjs-browser-bench:ssr:browser-runtime"
+		],
 		"@c15t/nextjs-browser-bench:nextjs-v3-repeat:browser-runtime": "@c15t/nextjs-browser-bench:repeat-visitor:browser-runtime",
 		"@c15t/vue:ssr:browser-runtime": "@c15t/react-browser-bench:full-ui:browser-runtime",
+		"@c15t/vue:ssr-manifest:browser-runtime": [
+			"@c15t/vue:ssr:browser-runtime",
+			"@c15t/react-browser-bench:full-ui:browser-runtime"
+		],
 		"@c15t/vue:client:browser-runtime": "@c15t/react-browser-bench:full-ui:browser-runtime",
 		"@c15t/vue:repeat-visitor:browser-runtime": "@c15t/react-browser-bench:repeat-visitor:browser-runtime"
 	}

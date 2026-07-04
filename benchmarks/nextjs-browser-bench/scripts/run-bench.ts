@@ -6,6 +6,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import {
 	applyBenchThrottleProfile,
+	installBenchPerformanceObservers,
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
@@ -21,6 +22,7 @@ import {
 	safeBaseSha,
 	safeCommitSha,
 	summarizeMetric,
+	summarizeNullableMetric,
 	writeJson,
 } from '@c15t/benchmarking/utils';
 import { chromium } from 'playwright';
@@ -32,7 +34,6 @@ const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const buildIdPath = join(appDir, '.next', 'BUILD_ID');
 const outputDir =
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/browser-runtime/nextjs';
-const initPrefix = `${BASE_URL}/api/bench-consent/init`;
 const expectedServerShutdownCodes = new Set([0, 137, 143]);
 const expectedServerShutdownSignals = new Set(['SIGTERM', 'SIGKILL']);
 const bannerRootTestId = 'consent-banner-root';
@@ -81,6 +82,7 @@ const allScenarios = [
 const v3Scenarios = [
 	{ name: 'nextjs-v3-client', path: '/v3-client' },
 	{ name: 'nextjs-v3-ssr', path: '/v3-ssr' },
+	{ name: 'nextjs-v3-manifest-ssr', path: '/v3-manifest-ssr' },
 ] as const;
 
 const allBenchmarkScenarios = [...allScenarios, ...v3Scenarios] as const;
@@ -209,80 +211,10 @@ async function applyPageProfile(
 ) {
 	const session = await context.newCDPSession(page);
 	await applyBenchThrottleProfile(session, throttleProfile);
-	await page.addInitScript(
-		({ bannerElementTimingName: timingName, bannerRootTestId: testId }) => {
-			const metrics = {
-				cls: 0,
-				longTaskCount: 0,
-				longTaskTotalMs: 0,
-				bannerPaintMs: null as number | null,
-			};
-			Object.defineProperty(window, '__c15tBenchPerfMetrics', {
-				value: metrics,
-				configurable: true,
-			});
-
-			const markBanner = () => {
-				const root = document.querySelector(`[data-testid="${testId}"]`);
-				if (root instanceof HTMLElement) {
-					root.setAttribute('elementtiming', timingName);
-				}
-			};
-
-			try {
-				new PerformanceObserver((list) => {
-					for (const entry of list.getEntries()) {
-						const shift = entry as PerformanceEntry & {
-							value?: number;
-							hadRecentInput?: boolean;
-						};
-						if (!shift.hadRecentInput) {
-							metrics.cls += shift.value ?? 0;
-						}
-					}
-				}).observe({ type: 'layout-shift', buffered: true });
-			} catch {}
-
-			try {
-				new PerformanceObserver((list) => {
-					for (const entry of list.getEntries()) {
-						metrics.longTaskCount += 1;
-						metrics.longTaskTotalMs += entry.duration;
-					}
-				}).observe({ type: 'longtask', buffered: true });
-			} catch {}
-
-			try {
-				new PerformanceObserver((list) => {
-					for (const entry of list.getEntries()) {
-						const elementEntry = entry as PerformanceEntry & {
-							identifier?: string;
-							renderTime?: number;
-							loadTime?: number;
-						};
-						if (elementEntry.identifier === timingName) {
-							metrics.bannerPaintMs =
-								elementEntry.renderTime ||
-								elementEntry.loadTime ||
-								elementEntry.startTime;
-						}
-					}
-				}).observe({ type: 'element', buffered: true });
-			} catch {}
-
-			markBanner();
-			try {
-				new MutationObserver(markBanner).observe(
-					document.documentElement ?? document,
-					{
-						childList: true,
-						subtree: true,
-					}
-				);
-			} catch {}
-		},
-		{ bannerElementTimingName, bannerRootTestId }
-	);
+	await installBenchPerformanceObservers(page, {
+		bannerElementTimingName,
+		bannerRootTestId,
+	});
 }
 
 async function getBannerInFirstHtml(path: string): Promise<boolean> {
@@ -324,7 +256,8 @@ async function collectScenarioMetrics(
 ) {
 	let initRequests = 0;
 	page.on('request', (request) => {
-		if (request.url().startsWith(initPrefix)) {
+		const url = new URL(request.url());
+		if (url.pathname.endsWith('/init')) {
 			initRequests += 1;
 		}
 	});
@@ -424,7 +357,11 @@ function budgetsForScenario(scenario: string): MetricBudget[] {
 		].includes(budget.metric)
 	);
 
-	if (scenario === 'ssr' || scenario === 'nextjs-v3-ssr') {
+	if (
+		scenario === 'ssr' ||
+		scenario === 'nextjs-v3-ssr' ||
+		scenario === 'nextjs-v3-manifest-ssr'
+	) {
 		return [
 			...shared,
 			{
@@ -592,10 +529,10 @@ async function run() {
 							'ms',
 							groupedSamples.map((sample) => sample.bannerVisibleMs ?? 0)
 						),
-						summarizeMetric(
+						summarizeNullableMetric(
 							'bannerPaintMs',
 							'ms',
-							groupedSamples.map((sample) => sample.bannerPaintMs ?? 0)
+							groupedSamples.map((sample) => sample.bannerPaintMs ?? null)
 						),
 						summarizeMetric(
 							'bannerInFirstHtml',

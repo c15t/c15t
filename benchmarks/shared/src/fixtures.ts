@@ -142,6 +142,7 @@ export const browserScenarios = [
 	'headless',
 	'full-ui',
 	'nextjs-v3-client',
+	'nextjs-v3-manifest-ssr',
 	'nextjs-v3-repeat',
 	'nextjs-v3-ssr',
 	'react-v3-full',

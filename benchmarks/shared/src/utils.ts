@@ -53,6 +53,25 @@ export function summarizeMetric(
 	};
 }
 
+export function summarizeNullableMetric(
+	name: string,
+	unit: MetricSampleSet['unit'],
+	samples: Array<number | null | undefined>
+): MetricSampleSet {
+	const values = samples.map((sample) =>
+		typeof sample === 'number' && Number.isFinite(sample) ? sample : null
+	);
+	const numbers = values.filter((sample): sample is number => sample !== null);
+	return {
+		name,
+		unit,
+		samples: values,
+		avg: numbers.length > 0 ? Number(average(numbers).toFixed(3)) : null,
+		median: numbers.length > 0 ? Number(median(numbers).toFixed(3)) : null,
+		p95: numbers.length > 0 ? Number(percentile(numbers, 95).toFixed(3)) : null,
+	} as unknown as MetricSampleSet;
+}
+
 export function getEnvironment(browserVersion?: string): BenchmarkEnvironment {
 	return {
 		os: process.platform,

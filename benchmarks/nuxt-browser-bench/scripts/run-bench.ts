@@ -22,11 +22,12 @@ import {
 	safeBaseSha,
 	safeCommitSha,
 	summarizeMetric,
+	summarizeNullableMetric,
 	writeJson,
 } from '@c15t/benchmarking/utils';
 import { chromium } from 'playwright';
 
-type NuxtBenchScenario = 'ssr' | 'client' | 'repeat-visitor';
+type NuxtBenchScenario = 'ssr' | 'ssr-manifest' | 'client' | 'repeat-visitor';
 
 interface NuxtBrowserBenchState {
 	scenario: NuxtBenchScenario;
@@ -63,7 +64,6 @@ const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const serverEntryPath = join(appDir, '.output', 'server', 'index.mjs');
 const outputDir =
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/browser-runtime/nuxt';
-const initPrefix = `${BASE_URL}/api/bench-consent/init`;
 const expectedServerShutdownCodes = new Set([0, 137, 143]);
 const expectedServerShutdownSignals = new Set(['SIGTERM', 'SIGKILL']);
 const bannerRootTestId = 'consent-banner-root';
@@ -115,6 +115,7 @@ const scenarioFilter =
 
 const allScenarios = [
 	{ name: 'ssr', path: '/ssr' },
+	{ name: 'ssr-manifest', path: '/ssr-manifest' },
 	{ name: 'client', path: '/client' },
 	{ name: 'repeat-visitor', path: '/repeat-visitor' },
 ] as const satisfies ReadonlyArray<{
@@ -128,7 +129,7 @@ const scenarios = scenarioFilter
 
 if (scenarioFilter && scenarios.length === 0) {
 	throw new Error(
-		`Unsupported scenario "${scenarioFilter}". Expected ssr, client, or repeat-visitor.`
+		`Unsupported scenario "${scenarioFilter}". Expected ssr, ssr-manifest, client, or repeat-visitor.`
 	);
 }
 
@@ -289,7 +290,8 @@ async function collectScenarioMetrics(
 ) {
 	let initRequests = 0;
 	page.on('request', (request) => {
-		if (request.url().startsWith(initPrefix)) {
+		const url = new URL(request.url());
+		if (url.pathname.endsWith('/init')) {
 			initRequests += 1;
 		}
 	});
@@ -379,7 +381,11 @@ function budgetsForScenario(scenario: string): MetricBudget[] {
 		].includes(budget.metric)
 	);
 
-	if (scenario === 'ssr' || scenario === 'repeat-visitor') {
+	if (
+		scenario === 'ssr' ||
+		scenario === 'ssr-manifest' ||
+		scenario === 'repeat-visitor'
+	) {
 		return [
 			...shared,
 			{
@@ -505,10 +511,10 @@ async function run() {
 						'ms',
 						samples.map((sample) => sample.bannerVisibleMs ?? 0)
 					),
-					summarizeMetric(
+					summarizeNullableMetric(
 						'bannerPaintMs',
 						'ms',
-						samples.map((sample) => sample.bannerPaintMs ?? 0)
+						samples.map((sample) => sample.bannerPaintMs ?? null)
 					),
 					summarizeMetric(
 						'bannerInFirstHtml',

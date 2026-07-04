@@ -25,15 +25,19 @@ const armMapPath = process.env.BENCHMARK_ARM_MAP ?? defaultArmMapPath;
 
 interface ArmMapFile {
 	_comment?: string;
-	mappings?: Record<string, string>;
+	mappings?: Record<string, string | string[]>;
 }
 
-function loadArmMap(): Map<string, string> {
+function loadArmMap(): Map<string, string[]> {
 	try {
-		const parsed = readJson<ArmMapFile | Record<string, string>>(armMapPath);
+		const parsed = readJson<ArmMapFile | Record<string, string | string[]>>(
+			armMapPath
+		);
 		const mappings = 'mappings' in parsed ? parsed.mappings : parsed;
 		return new Map(
-			Object.entries(mappings ?? {}).filter(([key]) => key !== '_comment')
+			Object.entries(mappings ?? {})
+				.filter(([key]) => key !== '_comment')
+				.map(([key, value]) => [key, Array.isArray(value) ? value : [value]])
 		);
 	} catch {
 		return new Map();
@@ -62,65 +66,71 @@ async function main() {
 	for (const file of listJsonFiles(headDir)) {
 		const headResult = readJson<BenchmarkResult>(file);
 		const key = `${headResult.package}:${headResult.scenario}:${headResult.suite}`;
-		const mappedBaseKey = armMap.get(key);
-		const baseResult =
-			baseResults.get(key) ??
-			(mappedBaseKey ? baseResults.get(mappedBaseKey) : undefined);
+		const mappedBaseKeys = armMap.get(key);
+		const comparisonBaseKeys = mappedBaseKeys ?? [key];
 
-		const indexedHeadMetrics = indexMetrics(headResult);
-		const indexedBaseMetrics = baseResult
-			? indexMetrics(baseResult)
-			: new Map();
+		for (const baseKey of comparisonBaseKeys) {
+			const baseResult = baseResults.get(baseKey);
+			const indexedHeadMetrics = indexMetrics(headResult);
+			const indexedBaseMetrics = baseResult
+				? indexMetrics(baseResult)
+				: new Map();
 
-		const budgets = headResult.budgetDefinitions ?? [];
+			const budgets = headResult.budgetDefinitions ?? [];
 
-		comparison.baseSha ??= baseResult?.commitSha ?? headResult.baseSha;
-		comparison.headSha ??= headResult.commitSha;
+			comparison.baseSha ??= baseResult?.commitSha ?? headResult.baseSha;
+			comparison.headSha ??= headResult.commitSha;
 
-		comparison.results.push({
-			key,
-			suite: headResult.suite,
-			package: headResult.package,
-			framework: headResult.framework,
-			scenario: headResult.scenario,
-			metrics: headResult.metrics.map((metric) => {
-				const baseMetric = indexedBaseMetrics.get(metric.name);
-				const delta = baseMetric
-					? Number((metric.median - baseMetric.median).toFixed(3))
-					: null;
-				const deltaPercent =
-					baseMetric && baseMetric.median > 0
-						? Number(
-								(
-									((metric.median - baseMetric.median) / baseMetric.median) *
-									100
-								).toFixed(3)
-							)
-						: null;
-				return {
-					name: metric.name,
-					unit: metric.unit,
-					baseMedian: baseMetric?.median ?? null,
-					headMedian: metric.median,
-					delta,
-					deltaPercent,
-				};
-			}),
-			budgets: budgets.map((budget) =>
-				evaluateBudget(
-					{
-						metric: budget.metric,
-						comparator: budget.comparator,
-						threshold: budget.threshold,
-						secondaryThreshold: budget.secondaryThreshold,
-						description: budget.description,
-					},
-					indexedHeadMetrics.get(budget.metric),
-					indexedBaseMetrics.get(budget.metric)
-				)
-			),
-			notes: headResult.notes,
-		});
+			comparison.results.push({
+				key,
+				baseKey: baseKey === key ? undefined : baseKey,
+				suite: headResult.suite,
+				package: headResult.package,
+				framework: headResult.framework,
+				scenario: headResult.scenario,
+				metrics: headResult.metrics.map((metric) => {
+					const baseMetric = indexedBaseMetrics.get(metric.name);
+					const delta =
+						typeof baseMetric?.median === 'number' &&
+						typeof metric.median === 'number'
+							? Number((metric.median - baseMetric.median).toFixed(3))
+							: null;
+					const deltaPercent =
+						typeof baseMetric?.median === 'number' &&
+						typeof metric.median === 'number' &&
+						baseMetric.median > 0
+							? Number(
+									(
+										((metric.median - baseMetric.median) / baseMetric.median) *
+										100
+									).toFixed(3)
+								)
+							: null;
+					return {
+						name: metric.name,
+						unit: metric.unit,
+						baseMedian: baseMetric?.median ?? null,
+						headMedian: metric.median,
+						delta,
+						deltaPercent,
+					};
+				}),
+				budgets: budgets.map((budget) =>
+					evaluateBudget(
+						{
+							metric: budget.metric,
+							comparator: budget.comparator,
+							threshold: budget.threshold,
+							secondaryThreshold: budget.secondaryThreshold,
+							description: budget.description,
+						},
+						indexedHeadMetrics.get(budget.metric),
+						indexedBaseMetrics.get(budget.metric)
+					)
+				),
+				notes: headResult.notes,
+			});
+		}
 	}
 
 	writeJson(join(outputDir, 'comparison.json'), comparison);

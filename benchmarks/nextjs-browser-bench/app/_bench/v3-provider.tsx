@@ -62,6 +62,15 @@ function createOptions(scenario: NextjsBenchScenario): ConsentProviderOptions {
 	};
 }
 
+function createBoundaryOptions(
+	scenario: NextjsBenchScenario
+): ConsentBoundaryProps['options'] {
+	const { backendURL, mode, ...options } = createOptions(scenario);
+	void backendURL;
+	void mode;
+	return options;
+}
+
 function BenchmarkContents({
 	children,
 	scenario,
@@ -114,6 +123,25 @@ export function NextjsV3PrefetchedBenchmarkProvider({
 			>
 				<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
 			</ConsentProvider>
+		</ConsentBoundary>
+	);
+}
+
+export function NextjsV3ManifestBenchmarkProvider({
+	children,
+	config,
+	scenario,
+}: {
+	children: ReactNode;
+	config: ConsentBoundaryProps['config'];
+	scenario: NextjsBenchScenario;
+}) {
+	return (
+		<ConsentBoundary
+			config={config}
+			options={createBoundaryOptions(scenario)}
+		>
+			<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
 		</ConsentBoundary>
 	);
 }

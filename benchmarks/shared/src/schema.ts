@@ -108,6 +108,7 @@ export interface BenchmarkComparisonResult {
 	headSha?: string;
 	results: Array<{
 		key: string;
+		baseKey?: string;
 		suite: BenchmarkSuite;
 		package: string;
 		framework: BenchmarkFramework;

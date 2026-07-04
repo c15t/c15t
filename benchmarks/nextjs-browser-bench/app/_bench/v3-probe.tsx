@@ -26,7 +26,13 @@ function readBannerPaintMs(): number | null {
 				BANNER_ELEMENT_TIMING_NAME
 		);
 	const entry = entries.at(-1);
-	return entry ? entry.renderTime || entry.loadTime || entry.startTime : null;
+	if (!entry) return null;
+	for (const value of [entry.renderTime, entry.loadTime, entry.startTime]) {
+		if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+			return value;
+		}
+	}
+	return null;
 }
 
 export function NextjsV3BenchmarkProbe({

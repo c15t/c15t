@@ -39,9 +39,11 @@ export interface BenchCdpSession {
 }
 
 export interface BenchInitScriptPage {
-	addInitScript<Arg>(
-		script: string | ((arg: Arg) => void | Promise<void>),
-		arg?: Arg
+	addInitScript(
+		script:
+			| string
+			| ((arg: BenchPerformanceObserverOptions) => void | Promise<void>),
+		arg?: BenchPerformanceObserverOptions
 	): Promise<void>;
 }
 
@@ -115,6 +117,43 @@ export async function installBenchPerformanceObservers(
 				configurable: true,
 			});
 
+			const toPaintTime = (entry: PerformanceEntry) => {
+				const elementEntry = entry as PerformanceEntry & {
+					renderTime?: number;
+					loadTime?: number;
+				};
+				for (const value of [
+					elementEntry.renderTime,
+					elementEntry.loadTime,
+					elementEntry.startTime,
+				]) {
+					if (
+						typeof value === 'number' &&
+						Number.isFinite(value) &&
+						value > 0
+					) {
+						return value;
+					}
+				}
+				return null;
+			};
+
+			const readBufferedBannerPaint = () => {
+				try {
+					const entries = performance.getEntriesByType('element').filter(
+						(entry) =>
+							(
+								entry as PerformanceEntry & {
+									identifier?: string;
+								}
+							).identifier === timingName
+					);
+					const entry = entries.at(-1);
+					if (!entry) return;
+					metrics.bannerPaintMs = toPaintTime(entry);
+				} catch {}
+			};
+
 			const markBanner = () => {
 				const root = document.querySelector(`[data-testid="${testId}"]`);
 				if (root instanceof HTMLElement) {
@@ -154,16 +193,22 @@ export async function installBenchPerformanceObservers(
 							loadTime?: number;
 						};
 						if (elementEntry.identifier === timingName) {
-							metrics.bannerPaintMs =
-								elementEntry.renderTime ||
-								elementEntry.loadTime ||
-								elementEntry.startTime;
+							metrics.bannerPaintMs = toPaintTime(entry);
 						}
 					}
 				}).observe({ type: 'element', buffered: true });
 			} catch {}
 
 			markBanner();
+			readBufferedBannerPaint();
+			document.addEventListener(
+				'DOMContentLoaded',
+				() => {
+					markBanner();
+					readBufferedBannerPaint();
+				},
+				{ once: true }
+			);
 			try {
 				new MutationObserver(markBanner).observe(
 					document.documentElement ?? document,

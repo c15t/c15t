@@ -13,7 +13,7 @@ const props = defineProps<{
 	scenario: NuxtBenchScenario;
 }>();
 
-type NuxtBenchScenario = 'ssr' | 'client' | 'repeat-visitor';
+type NuxtBenchScenario = 'ssr' | 'ssr-manifest' | 'client' | 'repeat-visitor';
 
 interface NuxtBenchState {
 	scenario: NuxtBenchScenario;
@@ -121,9 +121,15 @@ function readBannerPaintMs(): number | null {
 			(entry): entry is BenchmarkElementTimingEntry =>
 				(entry as BenchmarkElementTimingEntry).identifier ===
 				BANNER_ELEMENT_TIMING_NAME
-		);
+	);
 	const entry = entries.at(-1);
-	return entry ? entry.renderTime || entry.loadTime || entry.startTime : null;
+	if (!entry) return null;
+	for (const value of [entry.renderTime, entry.loadTime, entry.startTime]) {
+		if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+			return value;
+		}
+	}
+	return null;
 }
 
 function markRepeatVisitorReady() {
