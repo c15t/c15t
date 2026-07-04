@@ -290,11 +290,15 @@ async function collectScenarioMetrics(
 	path: string
 ) {
 	let initRequests = 0;
+	let sameOriginInitRequests = 0;
 	let manifestRequests = 0;
 	page.on('request', (request) => {
 		const url = new URL(request.url());
 		if (url.pathname.endsWith('/init')) {
 			initRequests += 1;
+			if (url.origin === BASE_URL) {
+				sameOriginInitRequests += 1;
+			}
 		}
 		if (url.pathname.endsWith('/manifest')) {
 			manifestRequests += 1;
@@ -373,6 +377,7 @@ async function collectScenarioMetrics(
 			performanceObserverInfo.bannerPaintMs ?? state?.bannerPaintMs ?? null,
 		bannerInFirstHtml,
 		initRequestsAfterLoad: initRequests,
+		sameOriginInitRequestsAfterLoad: sameOriginInitRequests,
 		manifestRequestsAfterLoad: manifestRequests,
 	};
 }
@@ -418,10 +423,17 @@ function budgetsForScenario(scenario: string): MetricBudget[] {
 			...shared,
 			{
 				metric: 'initRequestsAfterLoad',
-				comparator: 'count-lte',
-				threshold: 1,
+				comparator: 'count-eq',
+				threshold: 0,
 				description:
-					'Nuxt client manifest mode prefetches the same-origin manifest-backed init route at most once.',
+					'Nuxt client manifest mode resolves from the browser manifest transport without any init request.',
+			},
+			{
+				metric: 'sameOriginInitRequestsAfterLoad',
+				comparator: 'count-eq',
+				threshold: 0,
+				description:
+					'Nuxt client manifest mode must not call a same-origin init endpoint.',
 			},
 		];
 	}
@@ -640,6 +652,13 @@ async function run() {
 							'initRequestsAfterLoad',
 							'count',
 							groupedSamples.map((sample) => sample.initRequestsAfterLoad ?? 0)
+						),
+						summarizeMetric(
+							'sameOriginInitRequestsAfterLoad',
+							'count',
+							groupedSamples.map(
+								(sample) => sample.sameOriginInitRequestsAfterLoad ?? 0
+							)
 						),
 						summarizeMetric(
 							'manifestRequestsAfterLoad',

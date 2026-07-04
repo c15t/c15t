@@ -10,7 +10,7 @@ import {
 import { defu } from 'defu';
 import type { ConsentConfig } from './runtime/config';
 import {
-	isManifestModeEnabled,
+	resolveManifestMode,
 	resolveNuxtInitRoute,
 	resolveNuxtManifestRoute,
 } from './runtime/manifest';
@@ -28,7 +28,7 @@ export default defineNuxtModule<ConsentConfig>({
 	}),
 	async setup(options, nuxt) {
 		const resolver = createResolver(import.meta.url);
-		const manifestMode = isManifestModeEnabled(options);
+		const manifestMode = resolveManifestMode(options);
 		const initRoute = resolveNuxtInitRoute(options);
 		const manifestRoute = resolveNuxtManifestRoute(options);
 
@@ -58,12 +58,18 @@ export default defineNuxtModule<ConsentConfig>({
 
 		nuxt.options.build.transpile.push('@c15t/vue', '@c15t/styles');
 
-		if (manifestMode) {
+		if (manifestMode === 'server') {
 			addServerHandler({
 				route: initRoute,
 				method: 'get',
 				handler: resolver.resolve('./runtime/server/init.get'),
 			});
+			addServerHandler({
+				route: manifestRoute,
+				method: 'get',
+				handler: resolver.resolve('./runtime/server/manifest.get'),
+			});
+		} else if (manifestMode === 'client' && !options.manifestURL) {
 			addServerHandler({
 				route: manifestRoute,
 				method: 'get',

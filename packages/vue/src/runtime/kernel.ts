@@ -18,7 +18,12 @@ import {
 import { createScriptLoader, type Script } from 'c15t/v3/modules/script-loader';
 import { computed, type Ref, shallowRef } from 'vue';
 import type { ConsentConfig } from './config';
-import { isManifestModeEnabled, resolveNuxtManifestRoute } from './manifest';
+import {
+	isClientManifestModeEnabled,
+	isServerManifestModeEnabled,
+	resolveClientManifestURL,
+	resolveNuxtManifestRoute,
+} from './manifest';
 
 export const INIT_HEADER_NAMES = [
 	'accept-language',
@@ -141,11 +146,16 @@ function snapshotToStoredConsent(snapshot: ConsentSnapshot): Consent {
 	return { policies, categories };
 }
 
-export function getNuxtInitFetchTarget(config: Partial<RuntimeConsentConfig>): {
-	url: string;
-	baseURL?: string;
-} {
-	if (isManifestModeEnabled(config)) {
+export function getNuxtInitFetchTarget(config: Partial<RuntimeConsentConfig>):
+	| {
+			url: string;
+			baseURL?: string;
+	  }
+	| undefined {
+	if (isClientManifestModeEnabled(config)) {
+		return undefined;
+	}
+	if (isServerManifestModeEnabled(config)) {
 		return {
 			url: config.initRoute ?? '/api/c15t/init',
 		};
@@ -153,6 +163,54 @@ export function getNuxtInitFetchTarget(config: Partial<RuntimeConsentConfig>): {
 	return {
 		url: '/init',
 		baseURL: config.backendURL,
+	};
+}
+
+function getBrowserLanguage(): string | undefined {
+	if (typeof navigator === 'undefined') {
+		return undefined;
+	}
+	return navigator.language || navigator.languages?.[0];
+}
+
+function getBrowserGpc(): boolean | undefined {
+	if (typeof navigator === 'undefined') {
+		return undefined;
+	}
+	const value = (navigator as Navigator & { globalPrivacyControl?: boolean })
+		.globalPrivacyControl;
+	return typeof value === 'boolean' ? value : undefined;
+}
+
+function getGpcFromHeader(value: string | undefined): boolean | undefined {
+	if (value === '1') return true;
+	if (value === '0') return false;
+	return undefined;
+}
+
+function getManifestInputs(
+	config: RuntimeConsentConfig,
+	headers: Record<string, string>
+) {
+	if (isClientManifestModeEnabled(config)) {
+		return {
+			country: null,
+			region: null,
+			language: getBrowserLanguage() ?? headers['accept-language'] ?? 'en',
+			gpc: getBrowserGpc() ?? getGpcFromHeader(headers['sec-gpc']),
+		};
+	}
+
+	return {
+		country:
+			headers['x-c15t-country'] ??
+			headers['cf-ipcountry'] ??
+			headers['x-vercel-ip-country'] ??
+			null,
+		region:
+			headers['x-c15t-region'] ?? headers['x-vercel-ip-country-region'] ?? null,
+		language: headers['accept-language'] ?? 'en',
+		gpc: getGpcFromHeader(headers['sec-gpc']),
 	};
 }
 
@@ -207,28 +265,13 @@ function createVueManifestTransport(
 	const backendURL = config.backendURL ?? '/api/c15t';
 	return createManifestTransport({
 		backendURL,
-		manifestURL: resolveNuxtManifestRoute(config),
+		manifestURL: isClientManifestModeEnabled(config)
+			? resolveClientManifestURL(config)
+			: resolveNuxtManifestRoute(config),
 		domain: config.domain,
 		fetch: config.customFetch,
 		headers,
-		inputs: {
-			country:
-				headers['x-c15t-country'] ??
-				headers['cf-ipcountry'] ??
-				headers['x-vercel-ip-country'] ??
-				null,
-			region:
-				headers['x-c15t-region'] ??
-				headers['x-vercel-ip-country-region'] ??
-				null,
-			language: headers['accept-language'] ?? 'en',
-			gpc:
-				headers['sec-gpc'] === '1'
-					? true
-					: headers['sec-gpc'] === '0'
-						? false
-						: undefined,
-		},
+		inputs: getManifestInputs(config, headers),
 		initialInit: prefetch,
 	});
 }
@@ -239,9 +282,11 @@ export function createVueConsentKernelContext(options: {
 	prefetch?: InitOutput;
 }): VueConsentKernelContext {
 	const headers = pickAllowedInitHeaders(options.headers ?? {});
-	const transport = isManifestModeEnabled(options.config)
-		? createVueManifestTransport(options.config, headers, options.prefetch)
-		: createVueHostedTransport(options.config, headers);
+	const transport =
+		isClientManifestModeEnabled(options.config) ||
+		isServerManifestModeEnabled(options.config)
+			? createVueManifestTransport(options.config, headers, options.prefetch)
+			: createVueHostedTransport(options.config, headers);
 	const kernel = createConsentKernel({
 		...initOutputToKernelConfig(options.prefetch),
 		transport,
@@ -276,6 +321,58 @@ export function createVueConsentKernelContext(options: {
 	};
 }
 
+function normalizeGeoValue(value: unknown): string | undefined {
+	return typeof value === 'string' && value.trim()
+		? value.trim().toUpperCase()
+		: undefined;
+}
+
+async function refreshClientGeo(
+	context: VueConsentKernelContext,
+	config: RuntimeConsentConfig
+): Promise<void> {
+	if (
+		!isClientManifestModeEnabled(config) ||
+		!config.geoURL ||
+		typeof window === 'undefined'
+	) {
+		return;
+	}
+
+	const fetchImpl = config.customFetch ?? globalThis.fetch?.bind(globalThis);
+	if (!fetchImpl) {
+		return;
+	}
+
+	try {
+		const response = await fetchImpl(config.geoURL, {
+			method: 'GET',
+			credentials: 'same-origin',
+			headers: { accept: 'application/json' },
+		});
+		if (!response.ok) {
+			return;
+		}
+		const payload = (await response.json()) as {
+			country?: unknown;
+			region?: unknown;
+		};
+		const country = normalizeGeoValue(payload.country);
+		const region = normalizeGeoValue(payload.region);
+		if (!(country || region)) {
+			return;
+		}
+		context.kernel.set.overrides({
+			...(country ? { country } : {}),
+			...(region ? { region } : {}),
+		});
+		await context.kernel.commands.init();
+	} catch {
+		// Keep the strict unknown-geo manifest result when the optional geo
+		// microfetch is unavailable.
+	}
+}
+
 export function startVueConsentRuntime(
 	context: VueConsentKernelContext,
 	config: RuntimeConsentConfig,
@@ -302,7 +399,10 @@ export function startVueConsentRuntime(
 	}
 
 	if (options.runInit !== false) {
-		void context.kernel.commands.init();
+		void (async () => {
+			await context.kernel.commands.init();
+			await refreshClientGeo(context, config);
+		})();
 	}
 
 	return () => {
