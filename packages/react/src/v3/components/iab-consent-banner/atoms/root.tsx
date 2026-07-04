@@ -12,9 +12,14 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import { LocalThemeContext } from '~/v3/context/theme-context';
+import {
+	useActiveUI,
+	useModel,
+	usePolicyBanner,
+	useTranslations,
+} from '~/v3/hooks';
 import { useStyles } from '~/v3/hooks/use-styles';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/v3/types/theme';
@@ -49,11 +54,11 @@ const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
 	uiSource,
 	...props
 }) => {
-	const { policyBanner } = useConsentManager();
+	const policyBanner = usePolicyBanner();
 	const contextValue = {
 		disableAnimation,
 		noStyle,
-		scrollLock: scrollLock ?? policyBanner.scrollLock ?? undefined,
+		scrollLock: scrollLock ?? policyBanner?.scrollLock ?? undefined,
 		trapFocus,
 	};
 
@@ -108,8 +113,10 @@ const IABConsentBannerRootChildren = forwardRef<
 		},
 		ref
 	) => {
-		const { activeUI, translationConfig, model } = useConsentManager();
-		const textDirection = useTextDirection(translationConfig.defaultLanguage);
+		const activeUI = useActiveUI();
+		const model = useModel();
+		const translations = useTranslations();
+		const textDirection = useTextDirection(translations?.language ?? 'en');
 		const [isVisible, setIsVisible] = useState(false);
 		const [hasAnimated, setHasAnimated] = useState(false);
 		const [animationDurationMs, setAnimationDurationMs] = useState(200);

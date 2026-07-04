@@ -1,7 +1,6 @@
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, type MouseEvent, useCallback } from 'react';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
-import { useConsentTracking } from '~/v3/context/consent-tracking-context';
+import { useSaveConsents, useSetActiveUI, useSetConsent } from '~/v3/hooks';
 import { useStyles } from '~/v3/hooks/use-styles';
 import { useTheme } from '~/v3/hooks/use-theme';
 import type {
@@ -24,6 +23,7 @@ const NON_DOM_PROPS = [
 	'neutral',
 	'consentAction',
 	'isPrimary',
+	'performDefaultAction',
 ] as const;
 
 type ConsentActionThemeKey = 'accept' | 'reject' | 'customize';
@@ -104,6 +104,7 @@ export const ConsentButton = forwardRef<
 			category?: AllConsentNames;
 			closeConsentDialog?: boolean;
 			closeConsentBanner?: boolean;
+			performDefaultAction?: boolean;
 		}
 >(
 	(
@@ -123,13 +124,15 @@ export const ConsentButton = forwardRef<
 			onClick: forwardedOnClick,
 			closeConsentBanner = false,
 			closeConsentDialog = false,
+			performDefaultAction = true,
 			category,
 			...props
 		},
 		ref
 	) => {
-		const { saveConsents, setActiveUI, setConsent } = useConsentManager();
-		const { uiSource } = useConsentTracking();
+		const saveConsents = useSaveConsents();
+		const setActiveUI = useSetActiveUI();
+		const setConsent = useSetConsent();
 		const { noStyle: contextNoStyle, theme } = useTheme();
 		const resolvedButtonStyle = resolveConsentButtonStyle({
 			consentAction,
@@ -171,8 +174,12 @@ export const ConsentButton = forwardRef<
 
 		const buttonClick = useCallback(
 			(e: MouseEvent<HTMLButtonElement>) => {
+				const actionSavesConsent =
+					action === 'accept-consent' ||
+					action === 'reject-consent' ||
+					action === 'custom-consent';
 				// Handle UI first - prioritize closing dialogs/banners
-				if (closeConsentBanner || closeConsentDialog) {
+				if ((closeConsentBanner || closeConsentDialog) && !actionSavesConsent) {
 					setActiveUI('none');
 				}
 
@@ -186,24 +193,23 @@ export const ConsentButton = forwardRef<
 					forwardedOnClick(e);
 				}
 
-				if (action !== 'open-consent-dialog') {
-					const consentOptions = uiSource ? { uiSource } : undefined;
+				if (performDefaultAction && action !== 'open-consent-dialog') {
 					switch (action) {
 						case 'accept-consent':
-							saveConsents('all', consentOptions);
+							saveConsents('all');
 							break;
 						case 'reject-consent':
-							saveConsents('necessary', consentOptions);
+							saveConsents('none');
 							break;
 						case 'custom-consent':
-							saveConsents('custom', consentOptions);
+							saveConsents();
 							break;
 						case 'set-consent':
 							if (!category) {
 								throw new Error('Category is required for set-consent action');
 							}
 
-							setConsent(category, true);
+							setConsent({ [category]: true });
 							break;
 						default:
 							break;
@@ -219,7 +225,7 @@ export const ConsentButton = forwardRef<
 				action,
 				category,
 				setConsent,
-				uiSource,
+				performDefaultAction,
 			]
 		);
 

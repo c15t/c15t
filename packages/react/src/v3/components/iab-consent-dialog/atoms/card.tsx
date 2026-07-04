@@ -10,7 +10,7 @@ import {
 	useEffect,
 	useState,
 } from 'react';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useActiveUI } from '~/v3/hooks';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useStyles } from '~/v3/hooks/use-styles';
 import { useTheme } from '~/v3/hooks/use-theme';
@@ -34,7 +34,7 @@ const IABConsentDialogCard = forwardRef<
 	IABConsentDialogCardProps
 >(({ children, className, ...props }, ref) => {
 	const { trapFocus } = useTheme();
-	const { activeUI } = useConsentManager();
+	const activeUI = useActiveUI();
 	const iabTranslations = useIABTranslations();
 	const [isVisible, setIsVisible] = useState(false);
 	const showDialog = activeUI === 'dialog';

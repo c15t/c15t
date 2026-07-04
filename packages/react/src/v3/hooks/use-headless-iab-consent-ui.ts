@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
-import { useConsentManager } from './use-consent-manager';
+import { useIABConsentManager } from './use-iab-consent-manager';
 
 const MAX_BANNER_DISPLAY_ITEMS = 5;
 const STANDALONE_PURPOSE_ID = 1;
@@ -27,9 +27,9 @@ export interface HeadlessIABDialogState {
 }
 
 export interface UseHeadlessIABConsentUIResult {
-	activeUI: ReturnType<typeof useConsentManager>['activeUI'];
-	model: ReturnType<typeof useConsentManager>['model'];
-	iab: ReturnType<typeof useConsentManager>['iab'];
+	activeUI: ReturnType<typeof useIABConsentManager>['activeUI'];
+	model: ReturnType<typeof useIABConsentManager>['model'];
+	iab: ReturnType<typeof useIABConsentManager>['iab'];
 	isIABEnabled: boolean;
 	banner: HeadlessIABBannerState;
 	dialog: HeadlessIABDialogState;
@@ -50,7 +50,7 @@ export interface UseHeadlessIABConsentUIResult {
 }
 
 function resolveIABBannerSummary(
-	iab: ReturnType<typeof useConsentManager>['iab']
+	iab: ReturnType<typeof useIABConsentManager>['iab']
 ): Omit<HeadlessIABBannerState, 'isVisible' | 'scrollLock'> {
 	if (!iab?.gvl) {
 		return {
@@ -160,7 +160,7 @@ export function useHeadlessIABConsentUI(): UseHeadlessIABConsentUIResult {
 		policyBanner: { scrollLock: policyBannerScrollLock },
 		policyDialog: { scrollLock: policyDialogScrollLock },
 		setActiveUI,
-	} = useConsentManager();
+	} = useIABConsentManager();
 	const isIABEnabled = Boolean(iab?.config.enabled);
 
 	const bannerSummary = useMemo(() => resolveIABBannerSummary(iab), [iab]);

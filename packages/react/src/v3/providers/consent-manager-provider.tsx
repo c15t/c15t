@@ -67,6 +67,11 @@ function toKernelBridgeOptions(
 	state: ConsentStoreState
 ): ConsentProviderOptions {
 	const language = state.translationConfig.defaultLanguage ?? 'en';
+	const offlinePolicy = options.offlinePolicy?.policy;
+	const policyModel = offlinePolicy?.model ?? state.model ?? 'opt-in';
+	const policyMode =
+		offlinePolicy?.ui?.mode ??
+		(state.activeUI === 'dialog' ? 'dialog' : state.activeUI);
 	return {
 		colorScheme: options.colorScheme,
 		consentCategories: state.consentCategories,
@@ -80,17 +85,24 @@ function toKernelBridgeOptions(
 			initialBranding: toKernelBranding(state.branding),
 			initialConsents: state.consents,
 			initialPolicy: {
-				id: 'legacy-compat-policy',
-				model: state.model ?? 'opt-in',
+				...offlinePolicy,
+				id: offlinePolicy?.id ?? 'legacy-compat-policy',
+				model: policyModel,
 				consent: {
+					...offlinePolicy?.consent,
 					categories:
-						state.policyCategories && state.policyCategories.length > 0
+						offlinePolicy?.consent?.categories ??
+						(state.policyCategories && state.policyCategories.length > 0
 							? state.policyCategories
-							: state.consentCategories,
-					scopeMode: state.policyScopeMode ?? 'permissive',
+							: state.consentCategories),
+					scopeMode:
+						offlinePolicy?.consent?.scopeMode ??
+						state.policyScopeMode ??
+						'permissive',
 				},
 				ui: {
-					mode: state.activeUI === 'dialog' ? 'dialog' : state.activeUI,
+					...offlinePolicy?.ui,
+					mode: policyMode,
 					banner: state.policyBanner,
 					dialog: state.policyDialog,
 				},

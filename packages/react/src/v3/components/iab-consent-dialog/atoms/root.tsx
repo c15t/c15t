@@ -4,9 +4,9 @@ import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { type FC, type ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import { LocalThemeContext } from '~/v3/context/theme-context';
+import { useIABConsentManager } from '~/v3/hooks/use-iab-consent-manager';
 import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
 import { useStyles } from '~/v3/hooks/use-styles';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';
@@ -59,7 +59,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		iab: iabState,
 		policyDialog,
 		model,
-	} = useConsentManager();
+	} = useIABConsentManager();
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
 	const [isMounted, setIsMounted] = useState(false);

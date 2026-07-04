@@ -524,10 +524,46 @@ function useProviderCallbacks(
 ) {
 	const callbacksRef = useRef(callbacks);
 	const saveStartedSnapshotRef = useRef<ConsentSnapshot | null>(null);
+	const saveNotifiedRef = useRef(false);
 	callbacksRef.current = callbacks;
 
 	useEffect(() => {
+		const notifyConsentSaved = (
+			previous: ConsentSnapshot | null,
+			next: ConsentSnapshot
+		) => {
+			callbacksRef.current?.onConsentSet?.({
+				preferences: next.consents as never,
+			});
+			if (previous && snapshotConsentsChanged(previous, next)) {
+				callbacksRef.current?.onConsentChanged?.({
+					preferences: next.consents as never,
+					previousPreferences: previous.consents as never,
+					allowedCategories: categoriesWithValue(next, true),
+					deniedCategories: categoriesWithValue(next, false),
+					previousAllowedCategories: categoriesWithValue(previous, true),
+					previousDeniedCategories: categoriesWithValue(previous, false),
+				});
+				if (reloadOnConsentRevoked && hasRevokedConsent(previous, next)) {
+					callbacksRef.current?.onBeforeConsentRevocationReload?.({
+						preferences: next.consents as never,
+					});
+					if (typeof window !== 'undefined') {
+						window.location.reload();
+					}
+				}
+			}
+		};
+
 		const subscriptions = [
+			kernel.subscribe((next) => {
+				const previous = saveStartedSnapshotRef.current;
+				if (!previous || saveNotifiedRef.current || previous === next) {
+					return;
+				}
+				saveNotifiedRef.current = true;
+				notifyConsentSaved(previous, next);
+			}),
 			kernel.events.on('init:applied', ({ snapshot }) => {
 				const decision = snapshot.policyDecision as {
 					jurisdiction?: unknown;
@@ -548,32 +584,18 @@ function useProviderCallbacks(
 			}),
 			kernel.events.on('command:save:started', () => {
 				saveStartedSnapshotRef.current = kernel.getSnapshot();
+				saveNotifiedRef.current = false;
 			}),
 			kernel.events.on('command:save:completed', ({ result }) => {
 				if (!result.ok) return;
+				if (saveNotifiedRef.current) {
+					saveStartedSnapshotRef.current = null;
+					return;
+				}
 				const previous = saveStartedSnapshotRef.current;
 				const next = kernel.getSnapshot();
-				callbacksRef.current?.onConsentSet?.({
-					preferences: next.consents as never,
-				});
-				if (previous && snapshotConsentsChanged(previous, next)) {
-					callbacksRef.current?.onConsentChanged?.({
-						preferences: next.consents as never,
-						previousPreferences: previous.consents as never,
-						allowedCategories: categoriesWithValue(next, true),
-						deniedCategories: categoriesWithValue(next, false),
-						previousAllowedCategories: categoriesWithValue(previous, true),
-						previousDeniedCategories: categoriesWithValue(previous, false),
-					});
-					if (reloadOnConsentRevoked && hasRevokedConsent(previous, next)) {
-						callbacksRef.current?.onBeforeConsentRevocationReload?.({
-							preferences: next.consents as never,
-						});
-						if (typeof window !== 'undefined') {
-							window.location.reload();
-						}
-					}
-				}
+				notifyConsentSaved(previous, next);
+				saveStartedSnapshotRef.current = null;
 			}),
 			kernel.events.on(
 				'command:error',
@@ -831,11 +853,13 @@ function ThemeStyleMount({ theme }: { theme?: Theme }) {
 
 function IABGate({
 	enabled,
+	initialModel,
 	kernel,
 	options,
 	children,
 }: {
 	enabled: boolean;
+	initialModel?: string | null;
 	kernel: ConsentKernel;
 	options: Omit<IABProviderProps, 'children'> | null;
 	children: ReactNode;
@@ -845,8 +869,10 @@ function IABGate({
 		() => kernel.getSnapshot().model,
 		() => kernel.getSnapshot().model
 	);
+	const shouldLoadIAB =
+		model === 'iab' || (model == null && initialModel === 'iab');
 
-	if (!enabled || !options || model !== 'iab') {
+	if (!enabled || !options || !shouldLoadIAB) {
 		return <>{children}</>;
 	}
 
@@ -974,6 +1000,10 @@ export function ConsentProvider({ options, children }: ConsentProviderProps) {
 				<ThemeStyleMount theme={userTheme} />
 				<IABGate
 					enabled={enabled}
+					initialModel={
+						options.prefetch?.initialPolicy?.model ??
+						getProviderOfflinePolicy(options)?.policy?.model
+					}
 					kernel={kernel}
 					options={iabOptions}
 				>
