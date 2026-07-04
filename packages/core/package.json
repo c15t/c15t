@@ -57,6 +57,11 @@
 			"import": "./dist/v3-consent-record.js",
 			"require": "./dist/v3-consent-record.cjs"
 		},
+		"./v3/transports": {
+			"types": "./dist-types/v3/transports/index.d.ts",
+			"import": "./dist/v3-transports.js",
+			"require": "./dist/v3-transports.cjs"
+		},
 		"./v3/libs/generate-subject-id": {
 			"types": "./dist-types/v3/libs/generate-subject-id.d.ts",
 			"import": "./dist/v3-generate-subject-id.js",

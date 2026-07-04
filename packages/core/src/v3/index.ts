@@ -33,6 +33,8 @@ export {
 } from './libs/generate-subject-id';
 export type { HostedTransportOptions } from './transports/hosted';
 export { createHostedTransport } from './transports/hosted';
+export type { ManifestTransportOptions } from './transports/manifest';
+export { createManifestTransport } from './transports/manifest';
 export type { OfflineTransportOptions } from './transports/offline';
 export { createOfflineTransport } from './transports/offline';
 export type {

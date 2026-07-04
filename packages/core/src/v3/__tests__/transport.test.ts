@@ -5,11 +5,12 @@
  * backend. createHostedTransport is also unit-tested against a mocked
  * fetch so we know the request shape and error handling are correct.
  */
-import type { InitOutput } from '@c15t/schema/types';
+import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 import {
 	createConsentKernel,
 	createHostedTransport,
+	createManifestTransport,
 	type InitResponse,
 	type KernelTransport,
 	type SaveResult,
@@ -139,6 +140,63 @@ const REALISTIC_INIT_OUTPUT = {
 	},
 	policySnapshotToken: 'snapshot-token',
 } satisfies InitOutput;
+
+const MANIFEST_FIXTURE = {
+	schemaVersion: 1,
+	revision: 'manifest-revision',
+	branding: 'c15t',
+	cmpId: 28,
+	iab: {
+		enabled: true,
+		customVendors: [{ id: 'internal-analytics' }],
+		gvl: { version: 42, url: 'https://gvl.example.com' },
+	},
+	policyPacks: [
+		{
+			policy: {
+				id: 'de-iab',
+				match: { regions: [{ country: 'DE', region: 'BE' }] },
+				i18n: { language: 'de', messageProfile: 'formal' },
+				consent: {
+					model: 'iab',
+					expiryDays: 180,
+					scopeMode: 'strict',
+					gpc: true,
+				},
+			},
+			resolvedPolicy: {
+				id: 'de-iab',
+				model: 'iab',
+				i18n: { language: 'de', messageProfile: 'formal' },
+				consent: {
+					expiryDays: 180,
+					scopeMode: 'strict',
+					categories: ['*'],
+					gpc: true,
+				},
+				proof: {},
+			},
+			fingerprint: 'policy-fingerprint',
+		},
+	],
+	translations: {
+		i18n: {
+			defaultProfile: 'formal',
+			messages: {
+				formal: {
+					fallbackLanguage: 'en',
+					translations: {
+						de: {
+							common: {
+								acceptAll: 'Alle akzeptieren',
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+} satisfies ConsentManifest;
 
 describe('kernel transport: no transport = no-op commands', () => {
 	test('init returns ok without firing any network call', async () => {
@@ -578,5 +636,114 @@ describe('createHostedTransport: request shape', () => {
 		await expect(
 			transport.init?.({ overrides: {}, user: null })
 		).rejects.toThrow(/\/init responded 500/);
+	});
+});
+
+describe('createManifestTransport: local init resolution', () => {
+	test('resolves init from an inline manifest and lazily fetches GVL for IAB', async () => {
+		const fetchGvl = vi.fn().mockResolvedValue(REALISTIC_INIT_OUTPUT.gvl);
+		const transport = createManifestTransport({
+			manifest: MANIFEST_FIXTURE,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: vi.fn() as unknown as typeof globalThis.fetch,
+			fetchGvl,
+			inputs: {
+				country: 'DE',
+				region: 'BE',
+				language: 'de-DE,de;q=0.9',
+				gpc: true,
+			},
+		});
+
+		const response = await transport.init?.({ overrides: {}, user: null });
+
+		expect(response).toMatchObject({
+			resolvedOverrides: {
+				country: 'DE',
+				region: 'BE',
+				language: 'de',
+				gpc: true,
+			},
+			policy: { id: 'de-iab', model: 'iab' },
+			policyDecision: {
+				policyId: 'de-iab',
+				fingerprint: 'policy-fingerprint',
+				matchedBy: 'region',
+			},
+			gvl: { vendorListVersion: 42 },
+			customVendors: [{ id: 'internal-analytics' }],
+			cmpId: 28,
+		});
+		expect(fetchGvl).toHaveBeenCalledWith({
+			reference: { version: 42, url: 'https://gvl.example.com' },
+			language: 'de',
+			fetch: expect.any(Function),
+		});
+	});
+
+	test('fetches manifestURL and sends asserted decision inputs on save', async () => {
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify(MANIFEST_FIXTURE), { status: 200 })
+			)
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ ok: true, subjectId: 'sub-1' }), {
+					status: 200,
+				})
+			);
+		const transport = createManifestTransport({
+			manifestURL: 'https://api.example.com/c15t/manifest',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			fetchGvl: vi.fn().mockResolvedValue(null),
+			inputs: {
+				country: 'DE',
+				region: 'BE',
+				language: 'de',
+			},
+		});
+
+		await transport.init?.({ overrides: {}, user: null });
+		const result = await transport.save?.({
+			subjectId: 'sub_test',
+			consents: {
+				necessary: true,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				experience: false,
+			},
+			overrides: {},
+			user: null,
+			model: 'iab',
+			uiSource: 'banner',
+			consentAction: 'custom',
+			policySnapshotToken: null,
+		});
+
+		expect(result).toEqual({ ok: true, subjectId: 'sub-1' });
+		expect(fetchSpy).toHaveBeenNthCalledWith(
+			1,
+			'https://api.example.com/c15t/manifest',
+			expect.objectContaining({ method: 'GET' })
+		);
+		const [subjectsUrl, subjectsInit] = fetchSpy.mock.calls[1] ?? [];
+		expect(subjectsUrl).toBe('https://api.example.com/c15t/subjects');
+		const body = JSON.parse((subjectsInit as RequestInit).body as string);
+		expect(body).toMatchObject({
+			subjectId: 'sub_test',
+			policyId: 'de-iab',
+			fingerprint: 'policy-fingerprint',
+			country: 'DE',
+			region: 'BE',
+			language: 'de',
+			preferences: {
+				necessary: true,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				experience: false,
+			},
+		});
 	});
 });

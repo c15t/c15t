@@ -17,5 +17,7 @@ export type {
 } from './contract';
 export type { HostedTransportOptions } from './hosted';
 export { createHostedTransport } from './hosted';
+export type { ManifestTransportOptions } from './manifest';
+export { createManifestTransport } from './manifest';
 export type { OfflineTransportOptions } from './offline';
 export { createOfflineTransport } from './offline';
