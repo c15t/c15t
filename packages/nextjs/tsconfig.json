@@ -7,6 +7,8 @@
 		"paths": {
 			"@c15t/react": ["../react/dist-types/index.d.ts"],
 			"@c15t/react/*": ["../react/dist-types/*"],
+			"@c15t/schema": ["../schema/dist-types/index.d.ts"],
+			"@c15t/schema/*": ["../schema/dist-types/*"],
 			"c15t": ["../core/dist-types/index.d.ts"],
 			"c15t/*": ["../core/dist-types/*"],
 			"~/*": ["./src/*"]

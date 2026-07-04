@@ -80,6 +80,21 @@
 			"import": "./dist/v3/server.js",
 			"require": "./dist/v3/server.cjs"
 		},
+		"./v3/api": {
+			"types": "./dist-types/v3/api.d.ts",
+			"import": "./dist/v3/api.js",
+			"require": "./dist/v3/api.cjs"
+		},
+		"./v3/middleware": {
+			"types": "./dist-types/v3/middleware.d.ts",
+			"import": "./dist/v3/middleware.js",
+			"require": "./dist/v3/middleware.cjs"
+		},
+		"./v3/static": {
+			"types": "./dist-types/v3/static.d.ts",
+			"import": "./dist/v3/static.js",
+			"require": "./dist/v3/static.cjs"
+		},
 		"./v3/styles.css": "./dist/v3/styles.css",
 		"./v3/styles.tw3.css": "./dist/v3/styles.tw3.css",
 		"./v3/iab/styles.css": "./dist/v3/iab/styles.css",
@@ -126,6 +141,7 @@
 	},
 	"dependencies": {
 		"@c15t/react": "workspace:*",
+		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
 		"c15t": "workspace:*"
 	},
