@@ -5,7 +5,10 @@
 		"baseUrl": ".",
 		"paths": {
 			"#imports": ["./src/runtime/vue/stubs.ts"],
-			"#c15t/composables": ["./src/runtime/composables/index.ts"]
+			"#c15t/composables": ["./src/runtime/composables/index.ts"],
+			"@c15t/conformance": ["../../internals/conformance/src/index.ts"],
+			"@c15t/translations": ["../translations/src/index.ts"],
+			"@c15t/translations/all": ["../translations/src/all.ts"]
 		}
 	},
 	"include": [

@@ -59,6 +59,12 @@ export interface ManifestTransportOptions {
 	inputs?: ResolveInitFromManifestInputs;
 
 	/**
+	 * Prefetched init output from a same-origin server route. Used to seed the
+	 * asserted decision inputs sent with the first manifest-mode save.
+	 */
+	initialInit?: InitOutput;
+
+	/**
 	 * Request headers for fetching `manifestURL`.
 	 */
 	headers?: Record<string, string>;
@@ -207,7 +213,9 @@ export function createManifestTransport(
 	const credentials = options.credentials ?? 'include';
 	const domain = resolveDomain(backendURL, options.domain);
 	let manifestPromise: Promise<ConsentManifest> | undefined;
-	let lastDecisionInputs: LastDecisionInputs | undefined;
+	let lastDecisionInputs: LastDecisionInputs | undefined = options.initialInit
+		? rememberDecision(options.initialInit)
+		: undefined;
 
 	async function getManifest(): Promise<ConsentManifest> {
 		if (options.manifest) {
