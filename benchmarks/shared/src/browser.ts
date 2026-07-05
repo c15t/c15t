@@ -91,6 +91,37 @@ export function readBenchNavigationTiming(): BenchNavigationTimingMetrics | null
 	};
 }
 
+/**
+ * Self-contained page-context expression for reading navigation timing.
+ * Passed to Playwright's `page.evaluate(...)` as a string because imported
+ * functions do not survive serialization into the page (transpiler/coverage
+ * wrappers reference out-of-scope helpers). Keep in sync with
+ * `readBenchNavigationTiming` above.
+ */
+export const benchNavigationTimingExpression = `(() => {
+	const finiteTimingValue = (value) =>
+		Number.isFinite(value) && value >= 0 ? Number(value.toFixed(3)) : null;
+	const nav = performance.getEntriesByType('navigation')[0];
+	if (!nav) {
+		return null;
+	}
+	const activationStart =
+		typeof nav.activationStart === 'number' && nav.activationStart > 0
+			? nav.activationStart
+			: 0;
+	const navigationStart = activationStart > 0 ? activationStart : nav.startTime;
+	const responseStart = nav.responseStart - navigationStart;
+	const htmlDone = nav.domContentLoadedEventEnd - navigationStart;
+	return {
+		ttfbMs: nav.responseStart > 0 ? finiteTimingValue(responseStart) : null,
+		htmlDoneMs:
+			nav.domContentLoadedEventEnd > 0 ? finiteTimingValue(htmlDone) : null,
+		domContentLoadedMs: finiteTimingValue(nav.domContentLoadedEventEnd),
+		loadEventMs:
+			nav.loadEventEnd > 0 ? finiteTimingValue(nav.loadEventEnd) : null,
+	};
+})()`;
+
 export function parseBenchThrottleProfile(
 	value: string | undefined
 ): BenchThrottleProfileName {

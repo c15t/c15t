@@ -6,6 +6,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import {
 	applyBenchThrottleProfile,
+	benchNavigationTimingExpression,
 	installBenchPerformanceObservers,
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
@@ -284,7 +285,9 @@ async function collectScenarioMetrics(
 	await page.waitForTimeout(250);
 
 	const state = await page.evaluate(() => window.__c15tNextBench);
-	const navEntry = await page.evaluate(readBenchNavigationTiming);
+	const navEntry = (await page.evaluate(
+		benchNavigationTimingExpression
+	)) as Awaited<ReturnType<typeof readBenchNavigationTiming>>;
 	const scriptEntry = await page.evaluate(() => {
 		const entries = performance
 			.getEntriesByType('resource')
