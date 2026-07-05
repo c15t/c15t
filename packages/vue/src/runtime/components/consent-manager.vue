@@ -16,7 +16,7 @@ import {
 	DialogOverlay,
 	DialogPortal,
 	DialogRoot,
-} from 'reka-ui';
+} from '../primitives';
 import {
 	getConsentAvailableCategories,
 	type CONSENT_CATEGORY,

@@ -12,7 +12,7 @@ import {
 	useConsentInit,
 	useConsentSave,
 } from '../composables';
-import { FocusScope } from 'reka-ui';
+import { FocusScope } from '../primitives';
 import ConsentActions from './consent-actions.vue';
 import ConsentDescription from './consent-description.vue';
 import ConsentTag from './consent-tag.vue';

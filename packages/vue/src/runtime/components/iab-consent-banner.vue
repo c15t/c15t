@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, Teleport, Transition, toValue } from 'vue';
-import { FocusScope } from 'reka-ui';
+import { FocusScope } from '../primitives';
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import type { PolicyUiAction } from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/v3/iab-consent-banner.module.css';

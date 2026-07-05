@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, toValue, watch } from 'vue';
 import { Teleport, Transition } from 'vue';
-import { FocusScope } from 'reka-ui';
+import { FocusScope } from '../primitives';
 import type {
 	GlobalVendorList,
 	NonIABVendor,

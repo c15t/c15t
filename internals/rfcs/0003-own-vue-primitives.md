@@ -1,8 +1,23 @@
 # RFC 0003: Own Vue Primitives (Reka Replacement)
 
-Status: **Proposed — measurement complete, implementation scoped, not started.**
-Follows the React precedent (Radix → own primitives shrank the bundle) with
-per-primitive numbers.
+Status: **Implemented & measured.** All five primitives shipped
+(`packages/vue/src/runtime/primitives/`), Reka-compatible export names,
+`reka-ui` dependency removed. Results:
+
+| metric | Reka | own | delta |
+|---|---:|---:|---:|
+| bench app total JS | 548.4KB / 177.3KB gz | 511.9KB / 167.1KB gz | **-36.5KB / -10.2KB gz** |
+| banner visible (mobile+200ms, both manifest arms) | — | — | **±1ms (neutral)** |
+
+Honest read: the byte win is real (install weight, chunk sizes, one fewer
+dependency tree) but does NOT move banner-visible under throttle — the
+banner path's Reka share (FocusScope+Switch) was small, and the big Dialog/
+Accordion savings live in the lazy manager chunk, off the measured path.
+Wins land in: first-open latency of the manager chunk (-~9KB gz), eager path
+(~-4.5KB gz), dependency hygiene. Tests: vue 30 + conformance 20/20 green;
+`data-*` CSS contract unchanged.
+
+Original analysis follows.
 
 ## Measured head-to-head (tree-shaken, minified / gzip)
 
