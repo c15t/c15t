@@ -24,17 +24,36 @@
  *   with a microtask debounce so rapid flips produce one write.
  * - Dispose unsubscribes but does not clear storage.
  */
-import { deleteConsentFromStorage } from '../../libs/cookie';
+import {
+	deleteConsentFromStorage,
+	getConsentFromCookieHeader,
+} from '../../libs/cookie';
+import { STORAGE_KEY_V2 } from '../../libs/storage-keys';
 import { hydrateFromStorage } from './hydrate';
 import { createWriteScheduler } from './schedule';
-import type { PersistenceHandle, PersistenceOptions } from './types';
+import type {
+	PersistenceHandle,
+	PersistenceOptions,
+	StorageConfig,
+	StoredPayload,
+} from './types';
 import { writeToStorage } from './write';
 
 export type {
 	PersistenceHandle,
 	PersistenceOptions,
 	StorageConfig,
+	StoredPayload,
 } from './types';
+
+export const CONSENT_STORAGE_KEY = STORAGE_KEY_V2;
+
+export function readStoredConsentFromCookie(
+	cookieHeader: string | undefined,
+	storageConfig?: StorageConfig
+): StoredPayload | null {
+	return getConsentFromCookieHeader<StoredPayload>(cookieHeader, storageConfig);
+}
 
 export function createPersistence(
 	options: PersistenceOptions

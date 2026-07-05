@@ -53,7 +53,8 @@ describe('resolveSavePatch', () => {
 			necessary: true,
 		});
 		expect(consentAction).toBe('custom');
-		expect(patch.consents).toBeUndefined();
+		expect(patch.consents).toEqual(snap.consents);
+		expect(patch.consents).not.toBe(snap.consents);
 		expect(patch.hasConsented).toBe(true);
 		expect(patch.activeUI).toBe('none');
 		expect(patch.subjectId).toBe(subjectId);
@@ -73,9 +74,9 @@ describe('resolveSavePatch', () => {
 		expect(patch.subjectId).toBe(subjectId);
 	});
 
-	test('object input with no change and snapshot already finalized returns near-empty patch', () => {
+	test('object input with no change and snapshot already finalized still refreshes consents', () => {
 		// hasConsented=true, activeUI='none', subjectId already set, no
-		// category change → only the subjectId no-op path remains.
+		// category change → explicit save still advances for persistence.
 		const baseline = buildInitialSnapshot({});
 		// Manually construct a finalized snapshot via two patches.
 		const finalized = {
@@ -88,6 +89,10 @@ describe('resolveSavePatch', () => {
 		const { patch } = resolveSavePatch(finalized as any, subjectId, {
 			necessary: true,
 		});
-		expect(patch).toEqual({});
+		expect(patch.consents).toEqual(finalized.consents);
+		expect(patch.consents).not.toBe(finalized.consents);
+		expect(patch.hasConsented).toBe(true);
+		expect(patch.activeUI).toBe('none');
+		expect(patch.subjectId).toBe(subjectId);
 	});
 });

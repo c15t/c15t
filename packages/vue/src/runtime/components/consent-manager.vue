@@ -21,7 +21,7 @@ import {
 	getConsentAvailableCategories,
 	type CONSENT_CATEGORY,
 } from 'c15t/v3/consent-record';
-import { computed, type HTMLAttributes, ref, watch } from 'vue';
+import { computed, type HTMLAttributes, nextTick, ref, watch } from 'vue';
 import {
 	useConsentActiveUI,
 	useConsentConfig,
@@ -64,19 +64,39 @@ const draft = ref<Record<CONSENT_CATEGORY, boolean>>(
 );
 
 const disableAnimation = computed(() => Boolean(config.value.disableAnimation));
-const isOverlayVisible = ref(false);
-let hasObservedActiveUI = false;
+const isOverlayVisible = computed(() => activeUI.value === 'manager');
+const overlayFallbackStyle = ref<Record<string, string> | undefined>();
+
+async function refreshOverlayFallback() {
+	if (typeof window === 'undefined' || activeUI.value !== 'manager') {
+		overlayFallbackStyle.value = undefined;
+		return;
+	}
+
+	await nextTick();
+	const rootStyle = getComputedStyle(document.documentElement);
+	if (
+		rootStyle
+			.getPropertyValue('--consent-dialog-overlay-background-color')
+			.trim()
+	) {
+		overlayFallbackStyle.value = undefined;
+		return;
+	}
+
+	overlayFallbackStyle.value = {
+		position: 'fixed',
+		inset: '0',
+		backgroundColor:
+			'var(--c15t-overlay, hsla(0, 0%, 0%, 0.5))',
+		zIndex: '999999998',
+	};
+}
 
 watch(
 	activeUI,
-	(ui, previousUI) => {
-		if (ui === 'manager') {
-			isOverlayVisible.value =
-				hasObservedActiveUI && previousUI !== 'manager';
-		} else {
-			isOverlayVisible.value = false;
-		}
-		hasObservedActiveUI = true;
+	() => {
+		void refreshOverlayFallback();
 	},
 	{ immediate: true }
 );
@@ -171,7 +191,7 @@ function onAction(action: PolicyUiAction) {
 	>
 		<DialogPortal>
 			<DialogOverlay
-				v-if="config.trapFocus"
+				:style="overlayFallbackStyle"
 				v-bind="config.components?.dialog?.overlay"
 				data-testid="consent-dialog-overlay"
 				:class="[

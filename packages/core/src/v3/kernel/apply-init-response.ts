@@ -114,6 +114,8 @@ export function applyInitResponse(
 	// effective policy + iab.enabled, so compute them last.
 	const effectivePolicy =
 		patch.policy !== undefined ? patch.policy : current.policy;
+	const effectiveOverrides =
+		patch.overrides !== undefined ? patch.overrides : current.overrides;
 	const effectiveIabEnabled =
 		(patch.iab !== undefined ? patch.iab : current.iab)?.enabled ?? false;
 
@@ -133,6 +135,7 @@ export function applyInitResponse(
 		consents: consentsForPolicy,
 		hasConsented: hasConsentedForPolicy,
 		policy: effectivePolicy,
+		gpc: effectiveOverrides.gpc,
 	});
 	patch.consents = policyResult.consents;
 	patch.policyCategories = policyResult.policyCategories;

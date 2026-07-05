@@ -115,6 +115,30 @@ describe('persistence: write path', () => {
 		expect(read.getSnapshot().hasConsented).toBe(true);
 	});
 
+	test('writes after an explicit save whose object equals current consents', async () => {
+		const kernel = createConsentKernel();
+		createPersistence({ kernel });
+		await kernel.commands.save('all');
+		await flushDebounce();
+
+		deleteConsentFromStorage();
+		localStorage.clear();
+		await kernel.commands.save({
+			necessary: true,
+			functionality: true,
+			experience: true,
+			measurement: true,
+			marketing: true,
+		});
+		await flushDebounce();
+
+		const read = createConsentKernel();
+		createPersistence({ kernel: read });
+		expect(read.getSnapshot().hasConsented).toBe(true);
+		expect(read.getSnapshot().consents.marketing).toBe(true);
+		expect(read.getSnapshot().consents.measurement).toBe(true);
+	});
+
 	test('debounces rapid mutations into one write', async () => {
 		const kernel = createConsentKernel();
 		createPersistence({ kernel });

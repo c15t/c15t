@@ -132,14 +132,77 @@ export function applyPreselectedConsents(
 	return next;
 }
 
+function isOutOfPolicyCategory(
+	category: AllConsentNames,
+	policyCategories: readonly AllConsentNames[]
+): boolean {
+	return policyCategories.length > 0 && !policyCategories.includes(category);
+}
+
+function isTrackingCategory(category: AllConsentNames): boolean {
+	return category === 'marketing' || category === 'measurement';
+}
+
 /**
- * Convenience: apply all policy-derived transformations in one call.
+ * Applies model defaults before a subject has made an explicit choice.
+ *
+ * Pre-consent runtime state is an enforcement decision, not a UI draft:
+ * opt-in/IAB silence denies optional categories; opt-out silence grants
+ * categories unless strict scope or GPC says otherwise. This mirrors
+ * `interpretStoredConsent()` for the empty stored-consent case.
+ */
+export function applyModelDefaultsForNoConsent(params: {
+	consents: ConsentState;
+	policy: ResolvedPolicy | null;
+	policyCategories: readonly AllConsentNames[];
+	scopeMode: PolicyScopeMode;
+	hasConsented: boolean;
+	gpc?: boolean;
+}): ConsentState {
+	if (params.hasConsented || !params.policy?.model) {
+		return params.consents;
+	}
+
+	const model = params.policy.model;
+	if (model !== 'opt-in' && model !== 'opt-out' && model !== 'iab') {
+		return { ...params.consents, necessary: true };
+	}
+
+	const next = { ...params.consents } as ConsentState;
+	for (const category of allConsentNames) {
+		if (category === 'necessary') {
+			next[category] = true;
+			continue;
+		}
+
+		if (model === 'opt-out') {
+			next[category] =
+				!(
+					params.gpc === true &&
+					params.policy.consent?.gpc === true &&
+					isTrackingCategory(category)
+				) &&
+				!(
+					params.scopeMode === 'strict' &&
+					isOutOfPolicyCategory(category, params.policyCategories)
+				);
+			continue;
+		}
+
+		next[category] = false;
+	}
+
+	return next;
+}
+
+/**
+ * Convenience: apply all runtime policy-derived transformations in one call.
  * Mirrors what the kernel does inside `commands.init()`.
  *
- * Order matches v2:
+ * Order:
  *   1. Filter the category allowlist.
- *   2. Apply preselected consents (if no prior interaction).
- *   3. Apply scope mode for runtime gating.
+ *   2. Apply consent-model defaults for a fresh subject.
+ *   3. Apply scope mode for stored/explicit consent.
  *
  * Exported so parity tests can verify the flow in isolation.
  */
@@ -147,6 +210,7 @@ export interface PolicyApplyInputs {
 	consents: ConsentState;
 	hasConsented: boolean;
 	policy: ResolvedPolicy | null;
+	gpc?: boolean;
 }
 
 export interface PolicyApplyResult {
@@ -161,13 +225,17 @@ export function applyPolicyToConsents(
 	const policyCategories = deriveCategoryAllowlist(input.policy);
 	const scopeMode: PolicyScopeMode =
 		input.policy?.consent?.scopeMode ?? 'permissive';
-	const preselected = applyPreselectedConsents(
-		input.consents,
-		input.policy,
+	const modelDefaults = applyModelDefaultsForNoConsent({
+		consents: input.consents,
+		policy: input.policy,
 		policyCategories,
-		input.hasConsented
-	);
-	const scoped = applyPolicyScope(preselected, policyCategories, scopeMode);
+		scopeMode,
+		hasConsented: input.hasConsented,
+		gpc: input.gpc,
+	});
+	const scoped = input.hasConsented
+		? applyPolicyScope(modelDefaults, policyCategories, scopeMode)
+		: modelDefaults;
 	return {
 		consents: scoped,
 		policyCategories,

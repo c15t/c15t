@@ -108,4 +108,52 @@ describe('applyInitResponse', () => {
 		expect(patch?.policyCategories).toEqual(['necessary', 'marketing']);
 		expect(patch?.policyScopeMode).toBe('strict');
 	});
+
+	test('fresh opt-in init keeps preselected optional categories denied', () => {
+		const snap = buildInitialSnapshot({});
+		const patch = applyInitResponse(snap, {
+			policy: {
+				model: 'opt-in',
+				consent: {
+					categories: ['necessary', 'marketing', 'measurement'],
+					preselectedCategories: ['necessary', 'marketing', 'measurement'],
+					scopeMode: 'strict',
+				},
+				ui: { mode: 'banner' },
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+		});
+
+		expect(patch?.hasConsented).toBeUndefined();
+		expect(patch?.consents).toMatchObject({
+			necessary: true,
+			marketing: false,
+			measurement: false,
+		});
+	});
+
+	test('fresh opt-in permissive init denies out-of-policy optional categories', () => {
+		const snap = buildInitialSnapshot({});
+		const patch = applyInitResponse(snap, {
+			policy: {
+				model: 'opt-in',
+				consent: {
+					categories: ['necessary'],
+					preselectedCategories: ['necessary'],
+					scopeMode: 'permissive',
+				},
+				ui: { mode: 'banner' },
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+		});
+
+		expect(patch?.hasConsented).toBeUndefined();
+		expect(patch?.consents).toMatchObject({
+			necessary: true,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			experience: false,
+		});
+	});
 });

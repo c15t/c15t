@@ -132,6 +132,7 @@ export function buildInitialSnapshot(config: KernelConfig): ConsentSnapshot {
 		consents: buildInitialConsents(config.initialConsents),
 		hasConsented: initialHasConsented,
 		policy: initialPolicy,
+		gpc: config.initialOverrides?.gpc,
 	});
 
 	return freezeSnapshot({

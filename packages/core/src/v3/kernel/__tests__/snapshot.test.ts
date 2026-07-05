@@ -128,6 +128,95 @@ describe('buildInitialSnapshot', () => {
 		expect(snap.consents.measurement).toBe(true);
 	});
 
+	test('fresh opt-in policy denies optional consents even when preselected', () => {
+		const snap = buildInitialSnapshot({
+			initialPolicy: {
+				model: 'opt-in',
+				ui: { mode: 'banner' },
+				consent: {
+					categories: [
+						'necessary',
+						'functionality',
+						'measurement',
+						'marketing',
+					],
+					preselectedCategories: [
+						'necessary',
+						'functionality',
+						'measurement',
+						'marketing',
+					],
+					scopeMode: 'strict',
+				},
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+		});
+
+		expect(snap.hasConsented).toBe(false);
+		expect(snap.consents).toMatchObject({
+			necessary: true,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			experience: false,
+		});
+	});
+
+	test('fresh opt-in permissive policy denies out-of-policy optional consents', () => {
+		const snap = buildInitialSnapshot({
+			initialPolicy: {
+				model: 'opt-in',
+				ui: { mode: 'banner' },
+				consent: {
+					categories: ['necessary'],
+					preselectedCategories: ['necessary'],
+					scopeMode: 'permissive',
+				},
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+		});
+
+		expect(snap.hasConsented).toBe(false);
+		expect(snap.consents).toEqual({
+			necessary: true,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			experience: false,
+		});
+	});
+
+	test('fresh opt-out policy grants optional consents except GPC tracking categories', () => {
+		const snap = buildInitialSnapshot({
+			initialOverrides: { gpc: true },
+			initialPolicy: {
+				model: 'opt-out',
+				ui: { mode: 'banner' },
+				consent: {
+					categories: [
+						'necessary',
+						'functionality',
+						'experience',
+						'measurement',
+						'marketing',
+					],
+					gpc: true,
+					scopeMode: 'strict',
+				},
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+		});
+
+		expect(snap.hasConsented).toBe(false);
+		expect(snap.consents).toMatchObject({
+			necessary: true,
+			functionality: true,
+			experience: true,
+			measurement: false,
+			marketing: false,
+		});
+	});
+
 	test('initial banner/dialog UI hints are copied off the policy', () => {
 		const snap = buildInitialSnapshot({
 			initialPolicy: {

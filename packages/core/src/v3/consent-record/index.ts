@@ -79,16 +79,13 @@ export function interpretStoredConsent(
 			granted.add(category);
 			continue;
 		}
-		// Out of scope: scopeMode permissive grants, strict blocks.
-		if (
-			init.policy?.consent?.categories?.length &&
-			!init.policy.consent.categories.includes('*') &&
-			!init.policy.consent.categories.includes(category)
-		) {
-			if (init.policy.consent.scopeMode !== 'strict') granted.add(category);
-			continue;
-		}
-		// In-scope silence: model default; GPC opts out tracking.
+		const outOfScope =
+			Boolean(init.policy?.consent?.categories?.length) &&
+			!init.policy?.consent?.categories?.includes('*') &&
+			!init.policy?.consent?.categories?.includes(category);
+		if (outOfScope && init.policy?.consent?.scopeMode === 'strict') continue;
+
+		// Silence: model default; GPC opts out tracking.
 		const isTracking = category === 'marketing' || category === 'measurement';
 		if (
 			(init.policy?.model === 'opt-out' || init.policy?.model === 'none') &&

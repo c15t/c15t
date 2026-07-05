@@ -1,8 +1,27 @@
 import type { InitOutput } from '@c15t/schema/types';
 import { flushPromises, mount } from '@vue/test-utils';
+import { readStoredConsentFromCookie } from 'c15t/v3/modules/persistence';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { createSSRApp, defineComponent } from 'vue';
+import { renderToString } from 'vue/server-renderer';
 import { c15tVue } from '../index';
 import ConsentRoot from '../runtime/components/consent-root.vue';
+import { consentConfigKey } from '../runtime/composables/config';
+import { useHasConsent } from '../runtime/composables/consent';
+import type { ConsentConfig } from '../runtime/config';
+import {
+	createVueConsentKernelContext,
+	type RuntimeConsentConfig,
+	type VueConsentKernelContext,
+} from '../runtime/kernel';
+import {
+	symbolActiveUI,
+	symbolConsent,
+	symbolInit,
+	symbolKernel,
+	symbolKernelContext,
+	symbolSnapshot,
+} from '../runtime/utils/symbols';
 
 const initFixture: InitOutput = {
 	jurisdiction: 'GDPR',
@@ -66,6 +85,7 @@ const initFixture: InitOutput = {
 		model: 'opt-in',
 		consent: {
 			categories: ['necessary', 'measurement', 'marketing'],
+			preselectedCategories: ['necessary', 'measurement', 'marketing'],
 			scopeMode: 'strict',
 		},
 		ui: {
@@ -141,6 +161,82 @@ async function mountRoot() {
 	return { wrapper, fetchMock, subjectBodies };
 }
 
+async function mountRootWithConsentProbe() {
+	const { fetchMock, subjectBodies } = createFetchMock();
+	vi.stubGlobal('fetch', fetchMock);
+	const Probe = defineComponent({
+		components: { ConsentRoot },
+		setup() {
+			return { hasConsent: useHasConsent() };
+		},
+		template:
+			'<ConsentRoot /><div data-testid="granted-categories">{{ hasConsent.join(",") }}</div>',
+	});
+	const wrapper = mount(Probe, {
+		global: {
+			plugins: [
+				[
+					c15tVue,
+					{
+						backendURL: 'https://consent.example',
+						domain: 'consent.example',
+						consentCategories: ['necessary', 'measurement', 'marketing'],
+					},
+				],
+			],
+		},
+	});
+	await flushPromises();
+	return { wrapper, fetchMock, subjectBodies };
+}
+
+function provideContext(
+	app: ReturnType<typeof createSSRApp>,
+	context: VueConsentKernelContext,
+	config: ConsentConfig
+) {
+	app.provide(consentConfigKey, config);
+	app.provide(symbolKernelContext, context);
+	app.provide(symbolKernel, context.kernel);
+	app.provide(symbolSnapshot, context.snapshot);
+	app.provide(symbolInit, context.init);
+	app.provide(symbolActiveUI, context.activeUI);
+	app.provide(symbolConsent, context.storedConsent);
+}
+
+async function renderRootToString(cookieHeader?: string) {
+	const { fetchMock } = createFetchMock();
+	const config: RuntimeConsentConfig = {
+		backendURL: 'https://consent.example',
+		domain: 'consent.example',
+		consentCategories: ['necessary', 'measurement', 'marketing'],
+		customFetch: fetchMock as unknown as typeof fetch,
+	};
+	const initialStoredConsent = readStoredConsentFromCookie(
+		cookieHeader,
+		config.storageConfig
+	);
+	const context = createVueConsentKernelContext({
+		config,
+		initialStoredConsent,
+		prefetch: initFixture,
+	});
+
+	try {
+		const app = createSSRApp(ConsentRoot);
+		provideContext(app, context, config);
+		const ssrContext: { teleports?: Record<string, string> } = {};
+		const appHtml = await renderToString(app, ssrContext);
+		const html = [appHtml, ...Object.values(ssrContext.teleports ?? {})].join(
+			''
+		);
+		return { context, html };
+	} catch (error) {
+		context.dispose();
+		throw error;
+	}
+}
+
 beforeEach(() => {
 	document.body.innerHTML = '';
 	window.localStorage.clear();
@@ -163,6 +259,51 @@ describe('@c15t/vue kernel runtime', () => {
 			document.querySelector('[data-testid="consent-banner-root"]')
 		).toBeTruthy();
 		expect(document.body.textContent).toContain('Cookie choices');
+
+		wrapper.unmount();
+	});
+
+	test('server-render starts from stored consent cookie and omits banner', async () => {
+		const { context, html } = await renderRootToString(
+			'c15t=c.necessary:1,c.measurement:1,c.marketing:1,i.sid:sub_111AEMh5qpiLmhEcbnqwrmsB7X,i.t:1234567890,i.y:all'
+		);
+
+		try {
+			const snapshot = context.kernel.getSnapshot();
+			expect(snapshot.hasConsented).toBe(true);
+			expect(snapshot.activeUI).toBe('none');
+			expect(snapshot.consents).toMatchObject({
+				necessary: true,
+				measurement: true,
+				marketing: true,
+			});
+			expect(html).not.toContain('data-testid="consent-banner-root"');
+			expect(html).not.toContain('Cookie choices');
+		} finally {
+			context.dispose();
+		}
+	});
+
+	test('server-render keeps the banner for fresh visitors', async () => {
+		const { context, html } = await renderRootToString();
+
+		try {
+			const snapshot = context.kernel.getSnapshot();
+			expect(snapshot.hasConsented).toBe(false);
+			expect(snapshot.activeUI).toBe('banner');
+			expect(html).toContain('data-testid="consent-banner-root"');
+			expect(html).toContain('Cookie choices');
+		} finally {
+			context.dispose();
+		}
+	});
+
+	test('fresh visitor useHasConsent only reports necessary under opt-in policy', async () => {
+		const { wrapper } = await mountRootWithConsentProbe();
+
+		expect(wrapper.find('[data-testid="granted-categories"]').text()).toBe(
+			'necessary'
+		);
 
 		wrapper.unmount();
 	});
@@ -197,6 +338,50 @@ describe('@c15t/vue kernel runtime', () => {
 		wrapper.unmount();
 	});
 
+	test('persists consent when accepting all from the dialog', async () => {
+		const { wrapper } = await mountRoot();
+
+		document
+			.querySelector<HTMLButtonElement>(
+				'[data-testid="consent-banner-customize-button"]'
+			)
+			?.click();
+		await flushPromises();
+
+		await vi.waitFor(() => {
+			expect(
+				document.querySelector(
+					'[data-testid="consent-widget-footer-accept-all-button"]'
+				)
+			).toBeTruthy();
+		});
+		document
+			.querySelector<HTMLButtonElement>(
+				'[data-testid="consent-widget-footer-accept-all-button"]'
+			)
+			?.click();
+		await flushPromises();
+		await Promise.resolve();
+
+		await vi.waitFor(() => {
+			expect(window.localStorage.getItem('c15t')).toBeTruthy();
+		});
+		const stored = JSON.parse(window.localStorage.getItem('c15t') ?? '{}');
+		expect(stored).toMatchObject({
+			consents: {
+				necessary: true,
+				measurement: true,
+				marketing: true,
+			},
+			consentInfo: {
+				subjectId: expect.stringMatching(/^sub_/),
+			},
+		});
+		expect(document.cookie).toContain('c15t=');
+
+		wrapper.unmount();
+	});
+
 	test('persists consent with the v2-compatible c15t storage payload', async () => {
 		const { wrapper } = await mountRoot();
 
@@ -208,6 +393,9 @@ describe('@c15t/vue kernel runtime', () => {
 		await flushPromises();
 		await Promise.resolve();
 
+		await vi.waitFor(() => {
+			expect(window.localStorage.getItem('c15t')).toBeTruthy();
+		});
 		const stored = JSON.parse(window.localStorage.getItem('c15t') ?? '{}');
 		expect(stored).toMatchObject({
 			consents: {

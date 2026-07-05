@@ -296,6 +296,7 @@ describe('network-blocker: IAB evaluation when model="iab"', () => {
 				ui: { mode: 'banner' },
 			} as never,
 			initialConsents: { marketing: true },
+			initialHasConsented: true,
 		});
 		createNetworkBlocker({
 			kernel,

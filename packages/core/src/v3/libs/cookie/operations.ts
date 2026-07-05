@@ -91,6 +91,36 @@ export function setCookie(
 }
 
 /**
+ * Parses a stored c15t cookie value using the same compact format that
+ * `setCookie` writes. This is safe for server adapters that already have the
+ * raw cookie value from a request header and cannot read `document.cookie`.
+ *
+ * @internal
+ */
+export function parseCookieValue<ReturnType = unknown>(
+	cookieValue: string
+): ReturnType | null {
+	try {
+		// Check if it's the flat format (contains colons)
+		if (cookieValue.includes(':')) {
+			// 1. Parse flat string to object
+			const shortened = stringToFlat(cookieValue);
+			// 2. Expand shortened keys back to full keys
+			const expanded = expandFlatKeys(shortened);
+			// 3. Unflatten to nested object
+			const nested = unflattenObject(expanded);
+			return nested as ReturnType;
+		}
+
+		// Plain string value
+		return cookieValue as ReturnType;
+	} catch (error) {
+		console.warn('Failed to parse cookie value:', error);
+		return null;
+	}
+}
+
+/**
  * Retrieves a cookie value by name.
  *
  * @typeParam ReturnType - The expected type of the parsed cookie value
@@ -122,20 +152,7 @@ export function getCookie<ReturnType = unknown>(
 
 			if (c.indexOf(nameEQ) === 0) {
 				const cookieValue = c.substring(nameEQ.length);
-
-				// Check if it's the flat format (contains colons)
-				if (cookieValue.includes(':')) {
-					// 1. Parse flat string to object
-					const shortened = stringToFlat(cookieValue);
-					// 2. Expand shortened keys back to full keys
-					const expanded = expandFlatKeys(shortened);
-					// 3. Unflatten to nested object
-					const nested = unflattenObject(expanded);
-					return nested as ReturnType;
-				}
-
-				// Plain string value
-				return cookieValue as ReturnType;
+				return parseCookieValue<ReturnType>(cookieValue);
 			}
 		}
 

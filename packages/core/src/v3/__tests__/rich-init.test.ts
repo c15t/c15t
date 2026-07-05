@@ -6,7 +6,7 @@
  *    policy, policyDecision, policySnapshotToken) to the snapshot.
  * 2. Policy drives derived state: model, activeUI, policyCategories,
  *    policyScopeMode, policyBanner, policyDialog.
- * 3. Preselected consents apply when hasConsented=false.
+ * 3. Preselected consents do not become runtime grants before consent.
  * 4. IAB passthrough: gvl/customVendors/cmpId land on snapshot.iab.
  * 5. set.iab mutates snapshot.iab idempotently and re-derives model
  *    when enabled flips.
@@ -136,7 +136,7 @@ describe('rich init: applies full response to snapshot', () => {
 		expect(snap.policyDialog?.scrollLock).toBe(true);
 	});
 
-	test('applies policy.preselectedCategories when hasConsented is false', async () => {
+	test('does not grant policy.preselectedCategories when hasConsented is false', async () => {
 		const transport: KernelTransport = {
 			async init() {
 				return { policy: GDPR_POLICY };
@@ -148,9 +148,10 @@ describe('rich init: applies full response to snapshot', () => {
 		await kernel.commands.init();
 		const snap = kernel.getSnapshot();
 
-		// preselectedCategories = ['necessary', 'functionality']
+		// preselectedCategories can seed UI drafts, but opt-in silence is denied
+		// in the kernel's runtime gating snapshot.
 		expect(snap.consents.necessary).toBe(true);
-		expect(snap.consents.functionality).toBe(true);
+		expect(snap.consents.functionality).toBe(false);
 		expect(snap.consents.marketing).toBe(false);
 	});
 

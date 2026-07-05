@@ -160,6 +160,20 @@ describe('v3 kernel: commands', () => {
 		expect(snap.consents.measurement).toBe(false);
 	});
 
+	test('save(object equal to current) still marks consented and notifies subscribers', async () => {
+		const kernel = createConsentKernel();
+		const listener = vi.fn();
+		kernel.subscribe(listener);
+
+		await kernel.commands.save({ necessary: true });
+
+		const snap = kernel.getSnapshot();
+		expect(snap.hasConsented).toBe(true);
+		expect(snap.subjectId).toMatch(/^sub_/);
+		expect(listener).toHaveBeenCalledTimes(1);
+		expect(listener.mock.calls[0]?.[0]?.hasConsented).toBe(true);
+	});
+
 	test('identify writes user into snapshot', async () => {
 		const kernel = createConsentKernel();
 		await kernel.commands.identify({ externalId: 'user-42' });

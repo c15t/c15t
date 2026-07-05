@@ -15,7 +15,7 @@
 import type { AllConsentNames } from '../../consent/consent-types';
 import { allConsentNames } from '../../consent/consent-types';
 import type { ConsentSnapshot, ConsentState } from '../../types';
-import { type HasOptions, has } from '../has';
+import { has } from '../has';
 
 /**
  * Per-pass eligibility context. Built once per kernel tick / DOM scan
@@ -23,7 +23,6 @@ import { type HasOptions, has } from '../has';
  */
 export interface ReconcilePass {
 	consents: ConsentState;
-	hasOptions: HasOptions;
 }
 
 /**
@@ -32,13 +31,6 @@ export interface ReconcilePass {
 export function buildReconcilePass(snapshot: ConsentSnapshot): ReconcilePass {
 	return {
 		consents: snapshot.consents as ConsentState,
-		hasOptions: {
-			policyCategories:
-				snapshot.policyCategories.length > 0
-					? (snapshot.policyCategories as AllConsentNames[])
-					: null,
-			policyScopeMode: snapshot.policyScopeMode,
-		},
 	};
 }
 
@@ -76,7 +68,7 @@ export function reconcileIframe(
 	const category = determineCategory(iframe);
 	if (!category) return;
 
-	const allowed = has(category, pass.consents, pass.hasOptions);
+	const allowed = has(category, pass.consents);
 	const dataSrc = iframe.getAttribute('data-src');
 
 	if (allowed) {

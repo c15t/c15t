@@ -5,42 +5,22 @@
  * `ReconcilePass`), decide whether the script is allowed to mount.
  *
  * The pass shape is built once per reconcile and shared across every
- * script in that reconcile — this is the only place policy-scope
- * runtime gating is applied.
+ * script in that reconcile.
  */
 
-import type { AllConsentNames } from '../../consent/consent-types';
-import { applyPolicyScopeForRuntimeGating } from '../../libs/policy';
 import type { ConsentSnapshot, ConsentState } from '../../types';
 import { has, hasIABConsent } from '../has';
 import type { NormalizedScript, ReconcilePass } from './types';
 
 /**
- * Build the per-pass eligibility context from a snapshot. Resolves
- * policy-scope gating (in `permissive` mode, out-of-policy categories
- * are forced to `true` so gating treats them as granted) and freezes
- * the `consents` reference for the rest of this reconcile.
+ * Build the per-pass eligibility context from a snapshot. The kernel snapshot
+ * already contains policy-effective consents, so modules must not re-apply
+ * policy scope here.
  */
 export function buildReconcilePass(snapshot: ConsentSnapshot): ReconcilePass {
-	const policyCategories =
-		snapshot.policyCategories.length > 0
-			? (snapshot.policyCategories as AllConsentNames[])
-			: null;
-	const hasPolicyScope =
-		snapshot.policyScopeMode !== 'strict' &&
-		policyCategories !== null &&
-		!policyCategories.includes('*' as AllConsentNames);
-	const consents = hasPolicyScope
-		? applyPolicyScopeForRuntimeGating(
-				snapshot.consents as ConsentState,
-				policyCategories,
-				snapshot.policyScopeMode
-			)
-		: (snapshot.consents as ConsentState);
-
 	return {
 		snapshot,
-		consents,
+		consents: snapshot.consents as ConsentState,
 		isIabMode: snapshot.model === 'iab',
 		iab: snapshot.iab,
 	};

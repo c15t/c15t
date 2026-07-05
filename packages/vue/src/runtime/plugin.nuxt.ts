@@ -1,4 +1,5 @@
 import type { InitOutput } from '@c15t/schema/types';
+import { readStoredConsentFromCookie } from 'c15t/v3/modules/persistence';
 import { defu } from 'defu';
 import { computed } from 'vue';
 import {
@@ -15,6 +16,7 @@ import {
 	getNuxtInitFetchTarget,
 	INIT_HEADER_NAMES,
 	pickAllowedInitHeaders,
+	type RuntimeConsentConfig,
 	startVueConsentRuntime,
 } from './kernel';
 import { resolveManifestMode } from './manifest';
@@ -32,13 +34,24 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 	const runtimeConfig = useRuntimeConfig();
 	const config = computed(
 		() =>
-			defu(appConfig.c15t, runtimeConfig.public.c15t) as Partial<ConsentConfig>
+			defu(
+				appConfig.c15t,
+				runtimeConfig.public.c15t
+			) as Partial<RuntimeConsentConfig>
 	);
 	const headers = pickAllowedInitHeaders(
 		useRequestHeaders([...INIT_HEADER_NAMES])
 	);
+	const cookieHeader =
+		typeof document === 'undefined'
+			? useRequestHeaders(['cookie']).cookie
+			: document.cookie;
 	const initFetchTarget = getNuxtInitFetchTarget(config.value);
 	const manifestMode = resolveManifestMode(config.value);
+	const initialStoredConsent = readStoredConsentFromCookie(
+		cookieHeader,
+		config.value.storageConfig
+	);
 
 	let prefetch: InitOutput | undefined;
 	if (initFetchTarget) {
@@ -56,6 +69,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 	const context = createVueConsentKernelContext({
 		config: config.value as ConsentConfig,
 		headers,
+		initialStoredConsent,
 		prefetch,
 	});
 

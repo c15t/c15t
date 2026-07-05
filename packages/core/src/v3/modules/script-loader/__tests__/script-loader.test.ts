@@ -151,6 +151,58 @@ describe('script-loader: basic load/unload on consent change', () => {
 		expect(head.children).toHaveLength(0);
 	});
 
+	test('does NOT mount an in-policy marketing script before opt-in consent even when preselected', () => {
+		const kernel = createConsentKernel({
+			initialPolicy: {
+				model: 'opt-in',
+				ui: { mode: 'banner' },
+				consent: {
+					categories: ['necessary', 'marketing', 'measurement'],
+					preselectedCategories: ['necessary', 'marketing'],
+					scopeMode: 'strict',
+				},
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+		});
+
+		createScriptLoader({
+			kernel,
+			scripts: [
+				{ id: 'gtm', src: 'https://example.com/gtm.js', category: 'marketing' },
+			],
+		});
+
+		expect(kernel.getSnapshot().hasConsented).toBe(false);
+		expect(kernel.getSnapshot().consents.marketing).toBe(false);
+		expect(head.children).toHaveLength(0);
+	});
+
+	test('does NOT mount an out-of-policy marketing script before opt-in consent in permissive scope', () => {
+		const kernel = createConsentKernel({
+			initialPolicy: {
+				model: 'opt-in',
+				ui: { mode: 'banner' },
+				consent: {
+					categories: ['necessary'],
+					preselectedCategories: ['necessary'],
+					scopeMode: 'permissive',
+				},
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+		});
+
+		createScriptLoader({
+			kernel,
+			scripts: [
+				{ id: 'gtm', src: 'https://example.com/gtm.js', category: 'marketing' },
+			],
+		});
+
+		expect(kernel.getSnapshot().hasConsented).toBe(false);
+		expect(kernel.getSnapshot().consents.marketing).toBe(false);
+		expect(head.children).toHaveLength(0);
+	});
+
 	test('unmounts when consent is revoked', () => {
 		const kernel = createConsentKernel({
 			initialConsents: { marketing: true },

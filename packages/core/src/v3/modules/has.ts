@@ -114,7 +114,7 @@ export interface ConsentGate<
  * - If the kernel is in `model === 'iab'` AND the target declares ANY
  *   IAB metadata, evaluate via `hasIABConsent`. (Pure v2 parity.)
  * - Otherwise, evaluate `category` via the pure `has()` condition tree
- *   with the snapshot's policy scope applied.
+ *   against the kernel's already policy-effective consent snapshot.
  *
  * Returns `true` iff the target is allowed to load / fire / render.
  */
@@ -134,13 +134,7 @@ export function evaluateConsent<CategoryType extends AllConsentNames>(
 		return hasIABConsent(target, iab);
 	}
 
-	return has(target.category, snapshot.consents as ConsentState, {
-		policyCategories:
-			snapshot.policyCategories.length > 0
-				? Array.from(snapshot.policyCategories)
-				: null,
-		policyScopeMode: snapshot.policyScopeMode,
-	});
+	return has(target.category, snapshot.consents as ConsentState);
 }
 
 /**

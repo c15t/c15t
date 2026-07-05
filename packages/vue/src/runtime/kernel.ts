@@ -6,6 +6,7 @@ import {
 	createConsentKernel,
 	createHostedTransport,
 	createManifestTransport,
+	isValidSubjectId,
 	type KernelActiveUI,
 	type KernelConfig,
 	type KernelTransport,
@@ -14,6 +15,7 @@ import type { Consent } from 'c15t/v3/consent-record';
 import {
 	createPersistence,
 	type StorageConfig,
+	type StoredPayload,
 } from 'c15t/v3/modules/persistence';
 import { createScriptLoader, type Script } from 'c15t/v3/modules/script-loader';
 import { computed, type Ref, shallowRef } from 'vue';
@@ -46,7 +48,7 @@ export interface VueConsentKernelContext {
 	dispose(): void;
 }
 
-type RuntimeConsentConfig = ConsentConfig & {
+export type RuntimeConsentConfig = ConsentConfig & {
 	scripts?: Script[];
 	storageConfig?: StorageConfig;
 	customFetch?: typeof fetch;
@@ -144,6 +146,27 @@ function snapshotToStoredConsent(snapshot: ConsentSnapshot): Consent {
 		};
 	}
 	return { policies, categories };
+}
+
+function storedPayloadToKernelConfig(
+	stored: StoredPayload | null | undefined
+): KernelConfig {
+	if (!stored || typeof stored !== 'object') return {};
+
+	const config: KernelConfig = {};
+	if (stored.consents) {
+		config.initialConsents = stored.consents;
+		config.initialHasConsented = true;
+	}
+	if (stored.consentInfo) {
+		config.initialHasConsented = true;
+		const storedId = stored.consentInfo.subjectId;
+		if (storedId && isValidSubjectId(storedId)) {
+			config.initialSubjectId = storedId;
+		}
+	}
+
+	return config;
 }
 
 export function getNuxtInitFetchTarget(config: Partial<RuntimeConsentConfig>):
@@ -280,6 +303,7 @@ export function createVueConsentKernelContext(options: {
 	config: RuntimeConsentConfig;
 	headers?: Record<string, string | undefined>;
 	prefetch?: InitOutput;
+	initialStoredConsent?: StoredPayload | null;
 }): VueConsentKernelContext {
 	const headers = pickAllowedInitHeaders(options.headers ?? {});
 	const transport =
@@ -289,6 +313,7 @@ export function createVueConsentKernelContext(options: {
 			: createVueHostedTransport(options.config, headers);
 	const kernel = createConsentKernel({
 		...initOutputToKernelConfig(options.prefetch),
+		...storedPayloadToKernelConfig(options.initialStoredConsent),
 		transport,
 	});
 

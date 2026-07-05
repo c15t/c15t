@@ -109,25 +109,18 @@ export function resolveSavePatch(
 				consentAction: 'custom',
 			};
 		}
-		// No category changed — finalize metadata only. Pick the
-		// minimal patch that still reflects intent (consent finalized,
-		// UI dismissed, subject ID assigned).
-		if (!current.hasConsented) {
-			return {
-				patch: { subjectId, hasConsented: true, activeUI: 'none' },
-				consentAction: 'custom',
-			};
-		}
-		if (current.activeUI !== 'none') {
-			return {
-				patch: { subjectId, activeUI: 'none' },
-				consentAction: 'custom',
-			};
-		}
-		if (current.subjectId !== subjectId) {
-			return { patch: { subjectId }, consentAction: 'custom' };
-		}
-		return { patch: {}, consentAction: 'custom' };
+		// No category changed, but save() is still an explicit consent act.
+		// Advance with a fresh consent object so persistence subscribers can
+		// refresh storage timestamps and policy acknowledgements.
+		return {
+			patch: {
+				consents: next,
+				subjectId,
+				hasConsented: true,
+				activeUI: 'none',
+			},
+			consentAction: 'custom',
+		};
 	}
 
 	return {

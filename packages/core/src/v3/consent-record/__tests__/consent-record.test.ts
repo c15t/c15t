@@ -23,6 +23,8 @@ function makeInit(
 		fingerprint?: string;
 		expiryDays?: number;
 		gpc?: boolean;
+		categories?: Array<'*' | keyof Consent['categories']>;
+		scopeMode?: 'strict' | 'permissive';
 	} = {}
 ): InitOutput {
 	return {
@@ -30,9 +32,10 @@ function makeInit(
 			id: 'policy-1',
 			model: overrides.model ?? 'opt-in',
 			consent: {
-				categories: ['*'],
+				categories: overrides.categories ?? ['*'],
 				expiryDays: overrides.expiryDays,
 				gpc: overrides.gpc,
+				scopeMode: overrides.scopeMode,
 			},
 			ui: {
 				mode: overrides.uiMode ?? 'banner',
@@ -52,9 +55,40 @@ describe('interpretStoredConsent', () => {
 		]);
 	});
 
+	it('treats opt-in out-of-policy silence as denied even in permissive scope', () => {
+		expect(
+			interpretStoredConsent(
+				makeConsent(),
+				makeInit({
+					categories: ['necessary'],
+					scopeMode: 'permissive',
+				})
+			)
+		).toEqual(['necessary']);
+	});
+
 	it('treats opt-out silence as granted', () => {
 		expect(
 			interpretStoredConsent(makeConsent(), makeInit({ model: 'opt-out' }))
+		).toEqual([
+			'necessary',
+			'functionality',
+			'experience',
+			'measurement',
+			'marketing',
+		]);
+	});
+
+	it('keeps opt-out permissive out-of-policy silence granted', () => {
+		expect(
+			interpretStoredConsent(
+				makeConsent(),
+				makeInit({
+					model: 'opt-out',
+					categories: ['necessary'],
+					scopeMode: 'permissive',
+				})
+			)
 		).toEqual([
 			'necessary',
 			'functionality',
