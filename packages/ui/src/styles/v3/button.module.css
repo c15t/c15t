@@ -410,6 +410,149 @@
 		transition: var(--button-hover-transition-color);
 	}
 
+	/* Secondary aliases for consumers that use semantic variant names. */
+	.button:not(:global(.headless))[data-variant="secondary"][data-mode="filled"] {
+		background-color: var(--button-neutral);
+		color: var(--button-background-color);
+	}
+
+	.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="filled"]:focus-visible {
+		box-shadow: var(--button-shadow-neutral-focus);
+	}
+
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="filled"] {
+		background-color: var(--button-neutral-dark);
+		color: var(--button-background-color-dark);
+	}
+
+	.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="filled"]:hover:not(:disabled) {
+		background-color: var(--button-neutral-hover);
+		box-shadow: none;
+		transition: var(--button-hover-transition-color);
+	}
+
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="filled"]:hover:not(:disabled) {
+		background-color: var(--button-neutral-hover-dark);
+		box-shadow: none;
+		transition: var(--button-hover-transition-color);
+	}
+
+	.button:not(:global(.headless))[data-variant="secondary"][data-mode="stroke"] {
+		background-color: var(--button-background-color);
+		box-shadow: var(--button-shadow-neutral);
+	}
+
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="stroke"] {
+		background-color: var(--button-background-color-dark);
+		box-shadow: var(--button-shadow-neutral-dark);
+	}
+
+	.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="stroke"]:hover:not(:disabled) {
+		background-color: var(--button-neutral-hover-tint);
+		box-shadow: none;
+		color: var(--button-text-hover);
+		transition: var(--button-hover-transition-full);
+	}
+
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="stroke"]:hover:not(:disabled) {
+		background-color: var(--button-neutral-hover-tint);
+		box-shadow: none;
+		color: var(--button-text-hover-dark);
+		transition: var(--button-hover-transition-full);
+	}
+
+	.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="lighter"] {
+		background-color: color-mix(
+			in srgb,
+			var(--button-neutral) 10%,
+			transparent
+		);
+		color: var(--button-neutral);
+	}
+
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="lighter"] {
+		background-color: color-mix(
+			in srgb,
+			var(--button-neutral-dark) 10%,
+			transparent
+		);
+		color: var(--button-neutral-dark);
+	}
+
+	.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="lighter"]:hover:not(:disabled) {
+		background-color: color-mix(
+			in srgb,
+			var(--button-neutral) 20%,
+			transparent
+		);
+		transition: var(--button-hover-transition-color);
+	}
+
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="lighter"]:hover:not(:disabled) {
+		background-color: color-mix(
+			in srgb,
+			var(--button-neutral-dark) 20%,
+			transparent
+		);
+		transition: var(--button-hover-transition-color);
+	}
+
+	.button:not(:global(.headless))[data-variant="secondary"][data-mode="ghost"] {
+		color: var(--button-neutral);
+	}
+
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="ghost"] {
+		color: var(--button-neutral-dark);
+	}
+
+	.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="ghost"]:hover:not(:disabled) {
+		background-color: var(--button-neutral-hover-tint);
+		box-shadow: none;
+		transition: var(--button-hover-transition-color);
+	}
+
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="ghost"]:hover:not(:disabled) {
+		background-color: var(--button-neutral-hover-tint);
+		box-shadow: none;
+		transition: var(--button-hover-transition-color);
+	}
+
 	/* Icon Styles */
 	.buttonIcon:not(:global(.headless)) {
 		display: inline-flex;

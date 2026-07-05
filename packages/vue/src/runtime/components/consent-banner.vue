@@ -16,6 +16,7 @@ import { FocusScope } from '../primitives';
 import ConsentActions from './consent-actions.vue';
 import ConsentDescription from './consent-description.vue';
 import ConsentTag from './consent-tag.vue';
+import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 
 const activeUI = useConsentActiveUI();
@@ -26,6 +27,12 @@ const DEFAULT_ACTIONS: PolicyUiAction[] = ['reject', 'accept', 'customize'];
 const transitionStyles = bannerStyles as Record<string, string>;
 
 const surface = computed(() => init.value?.policy?.ui?.banner);
+const {
+	actionGroups,
+	direction,
+	primaryActions,
+	shouldFillActions,
+} = useConsentPolicyActions(surface);
 
 const isOpen = computed(() => {
 	const model = init.value?.policy?.model;
@@ -63,6 +70,12 @@ const labels = computed(() => {
 	} as const;
 });
 
+const actionTestIds = {
+	accept: 'consent-banner-accept-button',
+	reject: 'consent-banner-reject-button',
+	customize: 'consent-banner-customize-button',
+} as const;
+
 function onAction(action: PolicyUiAction) {
 	if (action === 'customize') {
 		activeUI.value = 'manager';
@@ -70,10 +83,12 @@ function onAction(action: PolicyUiAction) {
 	}
 	if (action === 'accept') {
 		save('all');
+		activeUI.value = null;
 		return;
 	}
 	if (action === 'reject') {
 		save('none');
+		activeUI.value = null;
 	}
 }
 </script>
@@ -149,12 +164,13 @@ function onAction(action: PolicyUiAction) {
 								:class="bannerStyles.footer"
 							>
 								<ConsentActions
-									:layout="surface?.layout"
-									:actions="surface?.allowedActions ?? DEFAULT_ACTIONS"
-									:direction="surface?.direction"
+									:action-groups="actionGroups.length ? actionGroups : [DEFAULT_ACTIONS]"
+									:direction="direction"
 									:ui-profile="surface?.uiProfile"
-									:primary-actions="surface?.primaryActions"
+									:primary-actions="primaryActions"
+									:fill="shouldFillActions"
 									:labels="labels"
+									:test-ids="actionTestIds"
 									:root-attrs="config.components?.banner?.actions as
 										object | undefined"
 									:group-attrs="config.components?.banner?.actionGroup as

@@ -48,13 +48,12 @@ export function useFocusTrap(
 	}
 	let previouslyFocused: HTMLElement | null = null;
 
-	function focusFirst() {
+	function focusContainer() {
 		const root = container.value;
 		if (!root) {
 			return;
 		}
-		const els = getFocusable(root);
-		(els[0] ?? root).focus({ preventScroll: true });
+		root.focus({ preventScroll: true });
 	}
 
 	function restore() {
@@ -83,7 +82,7 @@ export function useFocusTrap(
 		const inside = current ? root.contains(current) : false;
 
 		if (event.shiftKey) {
-			if (!inside || current === first) {
+			if (!inside || current === root || current === first) {
 				event.preventDefault();
 				if (options.loop()) {
 					last.focus({ preventScroll: true });
@@ -105,7 +104,7 @@ export function useFocusTrap(
 				// Wait a tick so the surface is rendered before focusing into it.
 				requestAnimationFrame(() => {
 					if (active()) {
-						focusFirst();
+						focusContainer();
 					}
 				});
 			} else if (!isActive && wasActive) {

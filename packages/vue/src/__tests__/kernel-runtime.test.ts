@@ -172,7 +172,7 @@ describe('@c15t/vue kernel runtime', () => {
 
 		document
 			.querySelector<HTMLButtonElement>(
-				'[data-testid="consent-actions-accept-button"]'
+				'[data-testid="consent-banner-accept-button"]'
 			)
 			?.click();
 		await flushPromises();
@@ -202,7 +202,7 @@ describe('@c15t/vue kernel runtime', () => {
 
 		document
 			.querySelector<HTMLButtonElement>(
-				'[data-testid="consent-actions-reject-button"]'
+				'[data-testid="consent-banner-reject-button"]'
 			)
 			?.click();
 		await flushPromises();

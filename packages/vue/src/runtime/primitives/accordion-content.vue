@@ -9,7 +9,8 @@ const item = inject(accordionItemContextKey);
 	<div
 		:data-state="item?.open() ? 'open' : 'closed'"
 		:inert="item?.open() ? undefined : true"
-		role="region"
+		:aria-hidden="item?.open() ? undefined : 'true'"
+		:role="item?.open() ? 'region' : undefined"
 	>
 		<slot />
 	</div>

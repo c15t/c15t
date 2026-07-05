@@ -32,6 +32,8 @@ function toggle() {
 		:data-disabled="props.disabled ? '' : undefined"
 		:disabled="props.disabled"
 		@click="toggle"
+		@keydown.enter.prevent="toggle"
+		@keydown.space.prevent="toggle"
 	>
 		<slot />
 	</button>

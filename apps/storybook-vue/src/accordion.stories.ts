@@ -3,11 +3,11 @@ import {
 	singleModeToggle,
 } from '@c15t/conformance/play/accordion';
 import {
-	accordionVariants,
 	getAccordionItemState,
 	isAccordionItemOpen,
 	toggleAccordionValue,
-} from '@c15t/vue';
+} from '@c15t/ui/primitives';
+import { accordionVariants } from '@c15t/ui/styles/primitives';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import { ref } from 'vue';
 import { enTranslations } from '../../../packages/translations/src';

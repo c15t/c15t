@@ -29,6 +29,7 @@ import {
 	useHasConsent,
 	useConsentSave,
 } from '../composables';
+import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import ConsentDescription from './consent-description.vue';
 import ConsentActions from './consent-actions.vue';
@@ -42,6 +43,12 @@ const config = useConsentConfig();
 const save = useConsentSave();
 const DEFAULT_ACTIONS: PolicyUiAction[] = ['reject', 'accept', 'customize'];
 const surface = computed(() => init.value?.policy?.ui?.dialog);
+const {
+	actionGroups,
+	direction,
+	primaryActions,
+	shouldFillActions,
+} = useConsentPolicyActions(surface);
 const managerComponents = computed(
 	() =>
 		config.value.components?.manager as
@@ -57,6 +64,22 @@ const draft = ref<Record<CONSENT_CATEGORY, boolean>>(
 );
 
 const disableAnimation = computed(() => Boolean(config.value.disableAnimation));
+const isOverlayVisible = ref(false);
+let hasObservedActiveUI = false;
+
+watch(
+	activeUI,
+	(ui, previousUI) => {
+		if (ui === 'manager') {
+			isOverlayVisible.value =
+				hasObservedActiveUI && previousUI !== 'manager';
+		} else {
+			isOverlayVisible.value = false;
+		}
+		hasObservedActiveUI = true;
+	},
+	{ immediate: true }
+);
 
 useConsentScrollLock(
 	computed(
@@ -109,6 +132,12 @@ const labels = computed(() => {
 	} as const;
 });
 
+const actionTestIds = {
+	accept: 'consent-widget-footer-accept-all-button',
+	reject: 'consent-widget-reject-button',
+	customize: 'consent-widget-footer-save-button',
+} as const;
+
 function savePreferences() {
 	const selected = Object.entries(draft.value)
 		.filter(([, enabled]) => enabled)
@@ -119,14 +148,17 @@ function savePreferences() {
 function onAction(action: PolicyUiAction) {
 	if (action === 'customize') {
 		savePreferences();
+		activeUI.value = null;
 		return;
 	}
 	if (action === 'accept') {
 		save('all');
+		activeUI.value = null;
 		return;
 	}
 	if (action === 'reject') {
 		save('none');
+		activeUI.value = null;
 	}
 }
 </script>
@@ -142,7 +174,12 @@ function onAction(action: PolicyUiAction) {
 				v-if="config.trapFocus"
 				v-bind="config.components?.dialog?.overlay"
 				data-testid="consent-dialog-overlay"
-				:class="dialogStyles.overlay"
+				:class="[
+					dialogStyles.overlay,
+					isOverlayVisible
+						? dialogStyles.overlayVisible
+						: dialogStyles.overlayHidden,
+				]"
 				:data-disable-animation="disableAnimation ? true : undefined"
 			/>
 			<DialogContent
@@ -151,6 +188,7 @@ function onAction(action: PolicyUiAction) {
 				data-mode="dialog"
 				:class="dialogStyles.root"
 				:data-disable-animation="disableAnimation ? true : undefined"
+				aria-labelledby="consent-dialog-title"
 			>
 				<div :class="dialogStyles.container">
 					<div
@@ -165,6 +203,7 @@ function onAction(action: PolicyUiAction) {
 							<div
 								v-bind="config.components?.dialog?.title"
 								data-testid="consent-dialog-title"
+								id="consent-dialog-title"
 								:class="dialogStyles.title"
 							>
 								{{ init?.translations?.translations?.consentManagerDialog?.title }}
@@ -206,12 +245,12 @@ function onAction(action: PolicyUiAction) {
 										:class="accordionStyles.item"
 									>
 										<AccordionHeader as-child>
-											<AccordionTrigger
-												as-child
-												v-bind="config.components?.['accordion-item']?.trigger"
-												:data-testid="`consent-manager-accordion-trigger-${category}`"
-											>
-												<div :class="accordionStyles.triggerRow">
+											<div :class="accordionStyles.triggerRow">
+												<AccordionTrigger
+													as-child
+													v-bind="config.components?.['accordion-item']?.trigger"
+													:data-testid="`consent-manager-accordion-trigger-${category}`"
+												>
 													<div :class="accordionStyles.trigger">
 														<span
 															:class="accordionStyles.arrow"
@@ -231,26 +270,22 @@ function onAction(action: PolicyUiAction) {
 															</svg>
 														</span>
 														<span :class="accordionStyles.header">
-															<span :class="accordionStyles.title">
+															<h3 :class="accordionStyles.title">
 																{{ consentTitle(category) }}
-															</span>
+															</h3>
 														</span>
 													</div>
-													<div
-														:class="accordionStyles.control"
-														@click.stop
-														@pointerdown.stop
-													>
-														<ConsentSwitch
-															size="small"
-															v-model="draft[category]"
-															:disabled="category === 'necessary'"
-															:aria-label="consentTitle(category)"
-															:data-testid="`consent-manager-switch-${category}`"
-														/>
-													</div>
+												</AccordionTrigger>
+												<div :class="accordionStyles.control">
+													<ConsentSwitch
+														size="small"
+														v-model="draft[category]"
+														:disabled="category === 'necessary'"
+														:aria-label="consentTitle(category)"
+														:data-testid="`consent-manager-switch-${category}`"
+													/>
 												</div>
-											</AccordionTrigger>
+											</div>
 										</AccordionHeader>
 										<AccordionContent
 											v-bind="config.components?.['accordion-item']?.content"
@@ -277,12 +312,13 @@ function onAction(action: PolicyUiAction) {
 									:class="managerStyles.footer"
 								>
 									<ConsentActions
-										:layout="surface?.layout"
-										:actions="surface?.allowedActions ?? DEFAULT_ACTIONS"
-										:direction="surface?.direction"
+										:action-groups="actionGroups.length ? actionGroups : [DEFAULT_ACTIONS]"
+										:direction="direction"
 										:ui-profile="surface?.uiProfile"
-										:primary-actions="surface?.primaryActions"
+										:primary-actions="primaryActions"
+										:fill="shouldFillActions"
 										:labels="labels"
+										:test-ids="actionTestIds"
 										:root-attrs="managerComponents?.actions"
 										:group-attrs="managerComponents?.actionGroup"
 										@action="onAction"

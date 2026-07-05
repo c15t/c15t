@@ -10,20 +10,25 @@ type ActionGroup = T | T[];
 const props = withDefaults(
 	defineProps<{
 		actions?: T[];
+		actionGroups?: T[][];
 		layout?: ActionGroup[];
 		direction?: ConsentActionsDirection;
 		uiProfile?: ConsentActionsProfile;
 		primaryActions?: T[];
 		labels?: Partial<Record<T, string>>;
+		testIds?: Partial<Record<T, string>>;
 		rootAttrs?: object;
 		groupAttrs?: object;
 		disabled?: boolean;
+		primaryMode?: 'stroke' | 'filled';
 		secondaryMode?: 'stroke' | 'filled';
+		fill?: boolean;
 	}>(),
 	{
 		direction: 'row',
 		uiProfile: 'compact',
-		secondaryMode: 'filled',
+		primaryMode: 'stroke',
+		secondaryMode: 'stroke',
 	},
 );
 
@@ -32,6 +37,9 @@ const emit = defineEmits<{
 }>();
 
 const actionGroups = computed<T[][]>(() => {
+	if (props.actionGroups && props.actionGroups.length > 0) {
+		return props.actionGroups;
+	}
 	if (props.layout && props.layout.length > 0) {
 		return props.layout.map((group) =>
 			Array.isArray(group) ? group : [group],
@@ -50,6 +58,9 @@ const resolvedDirection = computed<ConsentActionsDirection>(() =>
 const isSplitLayout = computed(() => actionGroups.value.length > 1);
 
 const shouldFill = computed(() => {
+	if (typeof props.fill === 'boolean') {
+		return props.fill;
+	}
 	const groups = actionGroups.value;
 	const actionCount = new Set(groups.flat()).size;
 	const isColumn = resolvedDirection.value === 'column';
@@ -84,12 +95,13 @@ function actionLabel(action: T) {
 	return props.labels?.[action] ?? String(action);
 }
 
+function actionTestId(action: T) {
+	return props.testIds?.[action] ?? `consent-actions-${action}-button`;
+}
+
 function buttonMode(action: T) {
-	if (String(action) === 'reject') {
-		return 'stroke';
-	}
 	if (isPrimary(action)) {
-		return 'filled';
+		return props.primaryMode;
 	}
 	return props.secondaryMode;
 }
@@ -119,7 +131,7 @@ function buttonMode(action: T) {
 				:mode="buttonMode(action)"
 				:disabled="disabled"
 				:data-action="action"
-				:data-testid="`consent-actions-${action}-button`"
+				:data-testid="actionTestId(action)"
 				@click="emit('action', action)"
 			>
 				{{ actionLabel(action) }}

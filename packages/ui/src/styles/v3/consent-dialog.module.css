@@ -102,6 +102,10 @@
 		direction: rtl;
 	}
 
+	.root:not(:global(.headless)):focus {
+		outline: none;
+	}
+
 	/* Dialog animation — Reka data-state keyframes (Presence waits for animationend) */
 	@keyframes consent-dialog-fade-in {
 		from {
@@ -425,12 +429,14 @@
 			inset 0 1px 0 rgb(255 255 255 / 0.16),
 			0 1px 2px rgb(15 23 42 / 0.12);
 		z-index: 2;
+		text-decoration: none;
 	}
 
 	.brandingTag:not(:global(.headless)) .brandingCopy {
 		font-size: var(--consent-dialog-branding-label-size);
 		letter-spacing: 0.01em;
 		color: var(--c15t-text-on-primary, #fff);
+		text-decoration: none;
 	}
 
 	.brandingTag .brandingText,
@@ -446,6 +452,7 @@
 	.brandingTag:not(:global(.headless)) .brandingWordmark {
 		gap: 0.3125rem;
 		color: var(--c15t-text-on-primary, #fff);
+		text-decoration: none;
 	}
 
 	.brandingTag:not(:global(.headless)) .brandingC15TMark {
