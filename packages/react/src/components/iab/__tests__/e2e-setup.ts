@@ -312,6 +312,27 @@ export function getStoredTCString(): string | null {
 }
 
 /**
+ * Waits for a localStorage key to be written (consent persistence is
+ * debounced, so reads immediately after a UI transition can race the write).
+ */
+export async function waitForStoredValue(
+	key: string,
+	timeout = 5000
+): Promise<string> {
+	const start = Date.now();
+	while (Date.now() - start < timeout) {
+		const value = window.localStorage.getItem(key);
+		if (value !== null) {
+			return value;
+		}
+		await new Promise((resolve) => setTimeout(resolve, 50));
+	}
+	throw new Error(
+		`Timed out after ${timeout}ms waiting for localStorage key "${key}"`
+	);
+}
+
+/**
  * Export the mock GVL for use in tests
  */
 export { mockGVL };

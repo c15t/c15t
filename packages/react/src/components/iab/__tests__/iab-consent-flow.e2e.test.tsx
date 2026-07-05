@@ -23,6 +23,7 @@ import {
 	waitForCMP,
 	waitForElement,
 	waitForElementRemoved,
+	waitForStoredValue,
 } from './e2e-setup';
 
 describe('IAB Consent Flow E2E Tests', () => {
@@ -232,8 +233,8 @@ describe('IAB Consent Flow E2E Tests', () => {
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// Verify TC string storage
-			const tcString = getStoredTCString();
+			// Verify TC string storage (persistence is debounced)
+			const tcString = await waitForStoredValue('euconsent-v2');
 			expect(tcString).toBeDefined();
 			expect(typeof tcString).toBe('string');
 			expect(tcString?.length).toBeGreaterThan(10);

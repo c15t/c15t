@@ -21,6 +21,7 @@ import {
 	waitForCMP,
 	waitForElement,
 	waitForElementRemoved,
+	waitForStoredValue,
 } from './e2e-setup';
 
 describe('IAB Storage E2E Tests', () => {
@@ -78,8 +79,8 @@ describe('IAB Storage E2E Tests', () => {
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// Verify TC string storage
-			const tcString = getStoredTCString();
+			// Verify TC string storage (persistence is debounced)
+			const tcString = await waitForStoredValue('euconsent-v2');
 			expect(tcString).toBeDefined();
 			expect(typeof tcString).toBe('string');
 		});
@@ -100,7 +101,7 @@ describe('IAB Storage E2E Tests', () => {
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			const tcString = getStoredTCString();
+			const tcString = await waitForStoredValue('euconsent-v2');
 
 			// TC strings are base64url encoded with dots as section separators
 			// Format: core.disclosedVendors.allowedVendors.publisherTC
@@ -248,8 +249,8 @@ describe('IAB Storage E2E Tests', () => {
 			await userEvent.click(acceptButton);
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// Should use c15t key
-			expect(window.localStorage.getItem('c15t')).not.toBeNull();
+			// Should use c15t key (persistence is debounced)
+			expect(await waitForStoredValue('c15t')).not.toBeNull();
 		});
 
 		test('should use "euconsent-v2" key for TC string', async () => {

@@ -22,6 +22,7 @@ import {
 	getStoredConsent,
 	waitForElement,
 	waitForElementRemoved,
+	waitForStoredValue,
 } from './e2e-setup';
 
 describe('IAB Banner E2E Tests', () => {
@@ -184,7 +185,8 @@ describe('IAB Banner E2E Tests', () => {
 			// Banner should close
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// Check localStorage for consent
+			// Check localStorage for consent (persistence is debounced)
+			await waitForStoredValue('c15t');
 			const consent = getStoredConsent();
 			expect(consent?.consents?.necessary).toBe(true);
 		});
