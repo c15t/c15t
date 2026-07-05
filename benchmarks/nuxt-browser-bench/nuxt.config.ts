@@ -8,33 +8,61 @@ function getBenchManifestURL() {
 		: base;
 }
 
+/**
+ * Zero-consent baseline build: C15T_BENCH_BASELINE=1 omits the @c15t/vue
+ * module (and its config) entirely so the /baseline scenario measures the
+ * page's own floor. Two-build pattern, same as the CSS experiment.
+ */
+const baselineBuild = process.env.C15T_BENCH_BASELINE === '1';
+
 export default defineNuxtConfig({
 	compatibilityDate: '2026-07-04',
-	modules: ['@c15t/vue', './modules/c15t-vue-dist-alias'],
-	c15t: {
-		backendURL: '/api/bench-consent',
-		manifest: true,
-		manifestURL: getBenchManifestURL(),
-		consentCategories: [
-			'necessary',
-			'functionality',
-			'experience',
-			'measurement',
-			'marketing',
-		],
-		disableAnimation: true,
-		trapFocus: false,
-	},
+	modules: baselineBuild
+		? ['./modules/c15t-vue-dist-alias']
+		: ['@c15t/vue', './modules/c15t-vue-dist-alias'],
+	...(baselineBuild
+		? {}
+		: {
+				c15t: {
+					backendURL: '/api/bench-consent',
+					manifest: true,
+					manifestURL: getBenchManifestURL(),
+					consentCategories: [
+						'necessary',
+						'functionality',
+						'experience',
+						'measurement',
+						'marketing',
+					],
+					disableAnimation: true,
+					trapFocus: false,
+				},
+			}),
 	runtimeConfig: {
 		public: {
 			c15t: {
 				manifest: false,
 			},
+			benchBaseline: baselineBuild,
 		},
 	},
+	...(baselineBuild
+		? {
+				ignore: [
+					'app/pages/ssr.vue',
+					'app/pages/ssr-manifest.vue',
+					'app/pages/client.vue',
+					'app/pages/client-manifest.vue',
+					'app/pages/repeat-visitor.vue',
+					'app/components/**',
+					'app/plugins/**',
+				],
+			}
+		: {}),
 	routeRules: {
 		'/client': { ssr: false },
 		'/client-manifest': { ssr: false },
+		'/baseline-client': { ssr: false },
 	},
 	typescript: {
 		strict: true,

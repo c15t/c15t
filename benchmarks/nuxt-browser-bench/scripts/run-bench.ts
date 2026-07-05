@@ -30,6 +30,8 @@ import {
 import { chromium } from 'playwright';
 
 type NuxtBenchScenario =
+	| 'baseline'
+	| 'baseline-client'
 	| 'ssr'
 	| 'ssr-manifest'
 	| 'client'
@@ -126,6 +128,8 @@ const coldManifestMode =
 	process.env.C15T_BENCH_COLD_MANIFEST === 'true';
 
 const allScenarios = [
+	{ name: 'baseline', path: '/baseline' },
+	{ name: 'baseline-client', path: '/baseline-client' },
 	{ name: 'ssr', path: '/ssr' },
 	{ name: 'ssr-manifest', path: '/ssr-manifest' },
 	{ name: 'client', path: '/client' },
@@ -150,6 +154,13 @@ async function measureInteractionLatency(
 	page: import('playwright').Page,
 	scenario: NuxtBenchScenario
 ) {
+	if (scenario === 'baseline' || scenario === 'baseline-client') {
+		// Zero-consent arm: trivial interaction = the floor.
+		const startedAt = performance.now();
+		await page.click('#baseline-noop');
+		return performance.now() - startedAt;
+	}
+
 	if (scenario === 'repeat-visitor') {
 		const startedAt = performance.now();
 		await page.click('#open-preferences');
