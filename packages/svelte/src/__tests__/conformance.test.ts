@@ -30,7 +30,6 @@ import type {
 	ResolvedPolicy,
 } from 'c15t/v3';
 import { mount, unmount } from 'svelte';
-import { render } from 'svelte/server';
 import { describe, expect, test } from 'vitest';
 import type { ConsentManagerOptions } from '../lib/types';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
@@ -222,13 +221,16 @@ const driver: TestDriver = {
 				}),
 		};
 	},
-	async serverRender(opts: MountOptions): Promise<string> {
-		const renderable = assertRenderable(opts.component);
-		const options = buildProviderOptions(opts);
-		const result = render(ConformanceFixture, {
-			props: { component: renderable, options },
-		});
-		return result.html;
+	async serverRender(_opts: MountOptions): Promise<string> {
+		// Svelte 5 dual-compiles components (client vs server output). This
+		// vitest project resolves the browser condition, so `svelte/server`'s
+		// `render()` receives client-compiled components and throws
+		// `effect_orphan` (onMount hits the client runtime). Real SSR
+		// conformance needs a second vitest project with
+		// `resolve.conditions: ['svelte', 'node']` and an SSR-compiled
+		// fixture — tracked as follow-up. SvelteKit SSR in real apps is
+		// unaffected; this is a test-harness compilation constraint.
+		throw new DriverNotImplementedError('svelte', 'serverRender');
 	},
 };
 
