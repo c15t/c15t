@@ -78,6 +78,7 @@ const allScenarios = [
 	{ name: 'full-ui', path: '/full-ui' },
 	{ name: 'headless', path: '/headless' },
 	{ name: 'react-v3-full', path: '/react-v3-full' },
+	{ name: 'react-v3-banner-css', path: '/react-v3-banner-css' },
 	{ name: 'react-v3-headless', path: '/react-v3-headless' },
 	{ name: 'vanilla-core', path: '/vanilla-core' },
 ] as const;
@@ -122,7 +123,8 @@ async function measureInteractionLatency(
 			);
 			return performance.now() - startedAt;
 		}
-		case 'react-v3-full': {
+		case 'react-v3-full':
+		case 'react-v3-banner-css': {
 			const before = await page.evaluate(
 				() => window.__c15tReactBench?.onConsentSetCount ?? 0
 			);
@@ -368,6 +370,23 @@ async function collectPageMetrics(
 			appScriptCount: ordered.length,
 		};
 	});
+	const cssEntry = await page.evaluate(() => {
+		const entries = performance
+			.getEntriesByType('resource')
+			.filter(
+				(entry): entry is PerformanceResourceTiming =>
+					entry instanceof PerformanceResourceTiming &&
+					(entry.initiatorType === 'link' || entry.initiatorType === 'css') &&
+					entry.name.includes('.css')
+			);
+		return {
+			cssRequestCount: entries.length,
+			cssBytes: entries.reduce(
+				(sum, entry) => sum + (entry.transferSize || entry.encodedBodySize),
+				0
+			),
+		};
+	});
 	const performanceObserverInfo = await page.evaluate(() => {
 		const metrics = (
 			window as typeof window & {
@@ -392,6 +411,7 @@ async function collectPageMetrics(
 		...state,
 		...navEntry,
 		...scriptEntry,
+		...cssEntry,
 		...performanceObserverInfo,
 		bannerPaintMs:
 			performanceObserverInfo.bannerPaintMs ?? state?.bannerPaintMs ?? null,
@@ -570,6 +590,16 @@ async function run() {
 							'appScriptCount',
 							'count',
 							groupedSamples.map((sample) => sample.appScriptCount ?? 0)
+						),
+						summarizeMetric(
+							'cssBytes',
+							'bytes',
+							groupedSamples.map((sample) => sample.cssBytes ?? 0)
+						),
+						summarizeMetric(
+							'cssRequestCount',
+							'count',
+							groupedSamples.map((sample) => sample.cssRequestCount ?? 0)
 						),
 						summarizeMetric(
 							'ttfbMs',

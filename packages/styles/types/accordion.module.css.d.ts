@@ -1,6 +1,4 @@
 declare const styles: {
-	readonly accordionSlideDown: string;
-	readonly accordionSlideUp: string;
 	readonly arrow: string;
 	readonly content: string;
 	readonly contentInner: string;
@@ -8,7 +6,6 @@ declare const styles: {
 	readonly control: string;
 	readonly header: string;
 	readonly item: string;
-	readonly itemHeader: string;
 	readonly list: string;
 	readonly title: string;
 	readonly trigger: string;

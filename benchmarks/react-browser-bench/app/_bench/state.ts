@@ -3,6 +3,7 @@
 export type ReactBenchScenario =
 	| 'full-ui'
 	| 'headless'
+	| 'react-v3-banner-css'
 	| 'react-v3-full'
 	| 'react-v3-headless'
 	| 'react-v3-repeat'

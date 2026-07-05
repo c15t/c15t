@@ -12,7 +12,6 @@ declare const styles: {
 	readonly overlayVisible: string;
 	readonly partnersLink: string;
 	readonly privacyLink: string;
-	readonly purposeMore: string;
 	readonly purposeList: string;
 	readonly root: string;
 	readonly title: string;
