@@ -167,128 +167,130 @@ export async function applyBenchThrottleProfile(
 	});
 }
 
+/**
+ * Builds the self-contained page-context init script that records CLS,
+ * long tasks, and the banner's first paint (Element Timing).
+ *
+ * Kept as a *string* for the same reason as
+ * `benchNavigationTimingExpression`: function-form init scripts are
+ * serialized with `Function.prototype.toString` after the transpiler has
+ * decorated them (tsx/esbuild `keepNames` injects `__name(...)` wrappers),
+ * so they throw `ReferenceError: __name is not defined` in the page and the
+ * observers silently never install.
+ *
+ * Element Timing notes (all measured against headless Chromium):
+ * - Entries are only delivered to `PerformanceObserver`s;
+ *   `performance.getEntriesByType('element')` is always empty.
+ * - Entries are only emitted for images and for elements that aggregate
+ *   text nodes — never for a bare container like the banner root. So the
+ *   root *and* every descendant are marked; whichever element Chromium
+ *   associates the banner's text/images with carries the attribute, and the
+ *   earliest entry is the banner's first paint.
+ * - The attribute must be present before the element's first paint (it
+ *   never retro-emits). That holds here: MutationObserver callbacks run at
+ *   microtask checkpoints — after parser/hydration insertion, before the
+ *   next rendering opportunity.
+ */
+export function benchPerformanceObserverScript(
+	options: BenchPerformanceObserverOptions
+): string {
+	const timingName = JSON.stringify(options.bannerElementTimingName);
+	const testId = JSON.stringify(options.bannerRootTestId);
+	return `(() => {
+	const timingName = ${timingName};
+	const testId = ${testId};
+	const metrics = {
+		cls: 0,
+		longTaskCount: 0,
+		longTaskTotalMs: 0,
+		bannerPaintMs: null,
+	};
+	Object.defineProperty(window, '__c15tBenchPerfMetrics', {
+		value: metrics,
+		configurable: true,
+	});
+
+	const toPaintTime = (entry) => {
+		for (const value of [entry.renderTime, entry.loadTime, entry.startTime]) {
+			if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+				return value;
+			}
+		}
+		return null;
+	};
+
+	const markBanner = () => {
+		const root = document.querySelector('[data-testid="' + testId + '"]');
+		if (!(root instanceof HTMLElement)) {
+			return;
+		}
+		if (!root.hasAttribute('elementtiming')) {
+			root.setAttribute('elementtiming', timingName);
+		}
+		const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+		let node = walker.nextNode();
+		while (node) {
+			if (node instanceof Element && !node.hasAttribute('elementtiming')) {
+				node.setAttribute('elementtiming', timingName);
+			}
+			node = walker.nextNode();
+		}
+	};
+
+	try {
+		new PerformanceObserver((list) => {
+			for (const entry of list.getEntries()) {
+				if (!entry.hadRecentInput) {
+					metrics.cls += entry.value ?? 0;
+				}
+			}
+		}).observe({ type: 'layout-shift', buffered: true });
+	} catch {}
+
+	try {
+		new PerformanceObserver((list) => {
+			for (const entry of list.getEntries()) {
+				metrics.longTaskCount += 1;
+				metrics.longTaskTotalMs += entry.duration;
+			}
+		}).observe({ type: 'longtask', buffered: true });
+	} catch {}
+
+	try {
+		new PerformanceObserver((list) => {
+			for (const entry of list.getEntries()) {
+				if (entry.identifier === timingName) {
+					// Every marked element reports; the banner's paint time is
+					// the earliest entry (first pixel of any banner content).
+					const paintMs = toPaintTime(entry);
+					if (
+						paintMs !== null &&
+						(metrics.bannerPaintMs === null || paintMs < metrics.bannerPaintMs)
+					) {
+						metrics.bannerPaintMs = paintMs;
+					}
+				}
+			}
+		}).observe({ type: 'element', buffered: true });
+	} catch {}
+
+	markBanner();
+	document.addEventListener('DOMContentLoaded', markBanner, { once: true });
+	try {
+		new MutationObserver(markBanner).observe(
+			document.documentElement ?? document,
+			{
+				childList: true,
+				subtree: true,
+			}
+		);
+	} catch {}
+})();`;
+}
+
 export async function installBenchPerformanceObservers(
 	page: BenchInitScriptPage,
 	options: BenchPerformanceObserverOptions
 ): Promise<void> {
-	await page.addInitScript(
-		({
-			bannerElementTimingName: timingName,
-			bannerRootTestId: testId,
-		}: BenchPerformanceObserverOptions) => {
-			const metrics = {
-				cls: 0,
-				longTaskCount: 0,
-				longTaskTotalMs: 0,
-				bannerPaintMs: null as number | null,
-			};
-			Object.defineProperty(window, '__c15tBenchPerfMetrics', {
-				value: metrics,
-				configurable: true,
-			});
-
-			const toPaintTime = (entry: PerformanceEntry) => {
-				const elementEntry = entry as PerformanceEntry & {
-					renderTime?: number;
-					loadTime?: number;
-				};
-				for (const value of [
-					elementEntry.renderTime,
-					elementEntry.loadTime,
-					elementEntry.startTime,
-				]) {
-					if (
-						typeof value === 'number' &&
-						Number.isFinite(value) &&
-						value > 0
-					) {
-						return value;
-					}
-				}
-				return null;
-			};
-
-			const readBufferedBannerPaint = () => {
-				try {
-					const entries = performance.getEntriesByType('element').filter(
-						(entry) =>
-							(
-								entry as PerformanceEntry & {
-									identifier?: string;
-								}
-							).identifier === timingName
-					);
-					const entry = entries.at(-1);
-					if (!entry) return;
-					metrics.bannerPaintMs = toPaintTime(entry);
-				} catch {}
-			};
-
-			const markBanner = () => {
-				const root = document.querySelector(`[data-testid="${testId}"]`);
-				if (root instanceof HTMLElement) {
-					root.setAttribute('elementtiming', timingName);
-				}
-			};
-
-			try {
-				new PerformanceObserver((list) => {
-					for (const entry of list.getEntries()) {
-						const shift = entry as PerformanceEntry & {
-							value?: number;
-							hadRecentInput?: boolean;
-						};
-						if (!shift.hadRecentInput) {
-							metrics.cls += shift.value ?? 0;
-						}
-					}
-				}).observe({ type: 'layout-shift', buffered: true });
-			} catch {}
-
-			try {
-				new PerformanceObserver((list) => {
-					for (const entry of list.getEntries()) {
-						metrics.longTaskCount += 1;
-						metrics.longTaskTotalMs += entry.duration;
-					}
-				}).observe({ type: 'longtask', buffered: true });
-			} catch {}
-
-			try {
-				new PerformanceObserver((list) => {
-					for (const entry of list.getEntries()) {
-						const elementEntry = entry as PerformanceEntry & {
-							identifier?: string;
-							renderTime?: number;
-							loadTime?: number;
-						};
-						if (elementEntry.identifier === timingName) {
-							metrics.bannerPaintMs = toPaintTime(entry);
-						}
-					}
-				}).observe({ type: 'element', buffered: true });
-			} catch {}
-
-			markBanner();
-			readBufferedBannerPaint();
-			document.addEventListener(
-				'DOMContentLoaded',
-				() => {
-					markBanner();
-					readBufferedBannerPaint();
-				},
-				{ once: true }
-			);
-			try {
-				new MutationObserver(markBanner).observe(
-					document.documentElement ?? document,
-					{
-						childList: true,
-						subtree: true,
-					}
-				);
-			} catch {}
-		},
-		options
-	);
+	await page.addInitScript(benchPerformanceObserverScript(options));
 }

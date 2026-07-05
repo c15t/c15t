@@ -76,7 +76,7 @@ const outputDir =
 const expectedServerShutdownCodes = new Set([0, 137, 143]);
 const expectedServerShutdownSignals = new Set(['SIGTERM', 'SIGKILL']);
 const bannerRootTestId = 'consent-banner-root';
-const bannerAcceptButtonTestId = 'consent-actions-accept-button';
+const bannerAcceptButtonTestId = 'consent-banner-accept-button';
 const bannerElementTimingName = 'c15t-consent-banner';
 const repeatVisitorCookieValue = [
 	'c.necessary:1',

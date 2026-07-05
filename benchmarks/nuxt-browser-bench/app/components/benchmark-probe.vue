@@ -177,7 +177,7 @@ function watchBannerVisibility() {
 			bannerRoot.setAttribute('elementtiming', BANNER_ELEMENT_TIMING_NAME);
 		}
 		const acceptButton = document.querySelector(
-			'[data-testid="consent-actions-accept-button"]'
+			'[data-testid="consent-banner-accept-button"]'
 		);
 
 		const ready =
