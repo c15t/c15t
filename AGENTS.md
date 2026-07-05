@@ -87,6 +87,15 @@ Conventions not enforced by tooling (hold new code to these; older code has exce
 
 To change package-bundled docs or READMEs, edit the source (`docs/**/*.mdx` or `readme.json`) and regenerate.
 
+## Change hygiene
+
+When adding or changing user-facing package behavior:
+
+- Update or add docs in `docs/**/*.mdx` when the change affects public APIs, integration behavior, setup steps, configuration, migration paths, or user-visible defaults. Use the `writing-docs` skill for docs work, and the `leadtype` skill when touching docs components, navigation/config, MDX conversion, linting, or generated package docs.
+- If the docs are bundled into packages, regenerate with `bun run generate:package-docs` or the relevant package `build:docs` script.
+- Add a changeset for user-facing published-package changes with `bun run changeset`. Write the summary as the changelog entry.
+- Do not hand-edit package `CHANGELOG.md` files during normal feature work; Changesets generates them. Only amend an unpublished generated changelog as part of release/version PR cleanup.
+
 ## Branches and releases
 
 - **`canary`** is the default branch and PR target; merges auto-publish `--tag canary` snapshots.
