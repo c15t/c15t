@@ -1,10 +1,4 @@
-import {
-	type ButtonMode,
-	type ButtonSize,
-	type ButtonVariant,
-	type ButtonVariantsProps,
-	buttonVariants,
-} from '@c15t/ui/styles/primitives/button';
+import { default as styles } from '@c15t/ui/styles/v3/button';
 import {
 	type ButtonHTMLAttributes,
 	type ElementType,
@@ -17,10 +11,22 @@ import { recursiveCloneChildren } from '../../libs/recursive-clone-children';
 import { Slot } from '../../libs/slot';
 
 // Re-export types for convenience
-export type { ButtonMode, ButtonSize, ButtonVariant, ButtonVariantsProps };
+export type ButtonVariant = 'primary' | 'neutral' | 'secondary';
+export type ButtonMode = 'filled' | 'stroke' | 'lighter' | 'ghost';
+export type ButtonSize = 'medium' | 'small' | 'xsmall' | 'xxsmall';
+export interface ButtonVariantsProps {
+	variant?: ButtonVariant;
+	mode?: ButtonMode;
+	size?: ButtonSize;
+}
 
 // Re-export the helper function
-export { buttonVariants };
+export const buttonVariants = (_props: ButtonVariantsProps = {}) => ({
+	root: (options?: { class?: string }) =>
+		[styles.button, options?.class].filter(Boolean).join(' '),
+	icon: (options?: { class?: string }) =>
+		[styles.buttonIcon, options?.class].filter(Boolean).join(' '),
+});
 
 /**
  * Constants for component display names
@@ -128,6 +134,9 @@ const ButtonRoot = forwardRef<HTMLButtonElement, ButtonRootProps>(
 			<Component
 				ref={forwardedRef}
 				className={finalClassName}
+				data-mode={variantClasses ? (mode ?? 'filled') : undefined}
+				data-size={variantClasses ? (size ?? 'medium') : undefined}
+				data-variant={variantClasses ? (variant ?? 'primary') : undefined}
 				type={type}
 				{...rest}
 			>

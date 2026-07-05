@@ -1,6 +1,6 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { type FC, type ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -98,15 +98,6 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		}
 	}, [isOpen, disableAnimation]);
 
-	// Don't render if not mounted or IAB is disabled
-	if (!isMounted || !iabState?.config.enabled) {
-		return null;
-	}
-
-	if (!isOpen && !isVisible) {
-		return null;
-	}
-
 	const themedStyle = useStyles('iabConsentDialog', {
 		baseClassName: cn(
 			styles.root,
@@ -118,6 +109,15 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		),
 	});
 	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
+
+	// Don't render if not mounted or IAB is disabled
+	if (!isMounted || !iabState?.config.enabled) {
+		return null;
+	}
+
+	if (!isOpen && !isVisible) {
+		return null;
+	}
 
 	const dialogContent = (
 		<ConsentTrackingContext.Provider

@@ -1,6 +1,5 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 import type { ReactNode } from 'react';
 import {
 	type HeadlessConsentBannerAction,
@@ -82,12 +81,7 @@ export function ConsentBannerPolicyActions({
 			state={banner}
 			Footer={ConsentBannerFooter}
 			FooterSubGroup={ConsentBannerFooterSubGroup}
-			classNames={{
-				footerFill: styles.footerFill,
-				footerColumn: styles.footerColumn,
-				footerSubGroupFill: styles.footerSubGroupFill,
-				footerSubGroupColumn: styles.footerSubGroupColumn,
-			}}
+			classNames={{}}
 			renderAction={renderAction}
 			renderDefaultAction={renderDefaultAction}
 		/>

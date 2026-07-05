@@ -1,4 +1,4 @@
-import styles from '@c15t/ui/styles/components/frame.module.js';
+import styles from '@c15t/ui/styles/v3/frame';
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, type Ref } from 'react';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
@@ -39,7 +39,7 @@ const FrameTitle = forwardRef<
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={styles.placeholderTitle}
+			baseClassName={styles.title}
 			themeKey="frame"
 			{...props}
 		>

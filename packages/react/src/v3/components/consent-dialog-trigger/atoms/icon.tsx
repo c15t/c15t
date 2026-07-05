@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 
-import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
+import styles from '@c15t/ui/styles/v3/consent-dialog-trigger';
 import { isValidElement, type ReactNode } from 'react';
 import { BrandingCompactLogo } from '~/v3/components/shared/ui/branding';
 import { FingerprintIcon, SettingsIcon } from '~/v3/components/shared/ui/logo';

@@ -4,7 +4,8 @@
  * Implements accessible, customizable components following GDPR requirements.
  */
 
-import styles from '@c15t/ui/styles/components/consent-banner.module.js';
+import actionStyles from '@c15t/ui/styles/v3/consent-actions';
+import styles from '@c15t/ui/styles/v3/consent-banner';
 import { forwardRef, type Ref, type RefObject, useRef } from 'react';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
@@ -240,7 +241,7 @@ const ConsentBannerFooterSubGroup = forwardRef<
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={styles.footerSubGroup}
+			baseClassName={actionStyles.actionGroup}
 			data-testid="consent-banner-footer-sub-group"
 			themeKey="consentBannerFooterSubGroup"
 			{...props}

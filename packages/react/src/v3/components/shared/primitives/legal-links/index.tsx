@@ -1,4 +1,4 @@
-import styles from '@c15t/ui/styles/primitives/legal-links.module.js';
+import styles from '@c15t/ui/styles/v3/legal-links';
 import { resolveTranslations } from '@c15t/ui/utils';
 import type { LegalLinks as LegalLinksType } from 'c15t';
 import { useContext, useMemo, useSyncExternalStore } from 'react';

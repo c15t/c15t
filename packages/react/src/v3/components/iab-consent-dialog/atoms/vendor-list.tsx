@@ -1,6 +1,6 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import type { GlobalVendorList } from 'c15t';
 import { type FC, useEffect, useState } from 'react';
 import * as PreferenceItem from '~/v3/components/shared/ui/preference-item';
@@ -441,7 +441,7 @@ export const VendorList: FC<VendorListProps> = ({
 										}`}
 								</span>
 								{legIntCount > 0 && (
-									<span className={styles.vendorListLIBadge}>
+									<span className={styles.vendorListLiBadge}>
 										<svg
 											style={{ width: '0.625rem', height: '0.625rem' }}
 											viewBox="0 0 24 24"
@@ -607,7 +607,7 @@ export const VendorList: FC<VendorListProps> = ({
 											key={purpose.id}
 											className={`${styles.vendorPurposeItem} ${
 												purpose.usesLegitimateInterest
-													? styles.vendorPurposeItemLI
+													? styles.vendorPurposeItemLi
 													: ''
 											}`}
 										>
@@ -621,7 +621,7 @@ export const VendorList: FC<VendorListProps> = ({
 												)}
 											</span>
 											{purpose.usesLegitimateInterest && (
-												<span className={styles.vendorListLIBadge}>
+												<span className={styles.vendorListLiBadge}>
 													<svg
 														style={{ width: '0.625rem', height: '0.625rem' }}
 														viewBox="0 0 24 24"
@@ -643,8 +643,8 @@ export const VendorList: FC<VendorListProps> = ({
 
 					{/* Legitimate Interest Objection */}
 					{hasLegitimateInterest && onVendorLegitimateInterestToggle && (
-						<div className={styles.vendorLISection}>
-							<div className={styles.vendorLISectionHeader}>
+						<div className={styles.vendorLiSection}>
+							<div className={styles.vendorLiSectionHeader}>
 								<h4 className={styles.vendorPurposesTitle}>
 									<svg
 										style={{

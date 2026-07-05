@@ -1,10 +1,6 @@
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import { getSwitchState, toggleSwitchValue } from '@c15t/ui/primitives/switch';
-import {
-	type SwitchSize,
-	type SwitchVariantsProps,
-	switchVariants,
-} from '@c15t/ui/styles/primitives/switch';
+import styles from '@c15t/ui/styles/v3/switch';
 import {
 	type ButtonHTMLAttributes,
 	forwardRef,
@@ -13,8 +9,18 @@ import {
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
 import type { AllThemeKeys, ThemeValue } from '~/v3/types/theme';
 
-export type { SwitchSize, SwitchVariantsProps };
-export { switchVariants };
+export type SwitchSize = 'medium' | 'small';
+export interface SwitchVariantsProps {
+	size?: SwitchSize;
+}
+export const switchVariants = () => ({
+	root: (options?: { class?: string }) =>
+		[styles.root, options?.class].filter(Boolean).join(' '),
+	thumb: (options?: { class?: string }) =>
+		[styles.thumb, options?.class].filter(Boolean).join(' '),
+	track: (options?: { class?: string }) =>
+		[styles.track, options?.class].filter(Boolean).join(' '),
+});
 
 export type SwitchStylesKeys = {
 	'switch.root': ThemeValue;
@@ -50,7 +56,7 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 		},
 		forwardedRef
 	) => {
-		const variants = switchVariants({ size });
+		const variants = switchVariants();
 		const [isChecked, setIsChecked] = useControllableState({
 			defaultValue: defaultChecked,
 			onChange: onCheckedChange,
@@ -59,9 +65,9 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 
 		const rootClassName = noStyle
 			? className
-			: variants.root({ class: className, disabled });
-		const thumbClassName = noStyle ? undefined : variants.thumb({ disabled });
-		const trackClassName = noStyle ? undefined : variants.track({ disabled });
+			: variants.root({ class: className });
+		const thumbClassName = noStyle ? undefined : variants.thumb();
+		const trackClassName = noStyle ? undefined : variants.track();
 		const dataState = getSwitchState(isChecked);
 		const dataDisabled = getDataDisabled(disabled);
 
@@ -93,6 +99,7 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 				aria-checked={isChecked}
 				className={rootClassName}
 				data-disabled={dataDisabled}
+				data-size={noStyle ? undefined : size}
 				data-slot="switch"
 				data-state={dataState}
 				disabled={disabled}

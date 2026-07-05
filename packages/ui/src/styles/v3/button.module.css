@@ -136,6 +136,25 @@
 		transform: scale(0.97);
 	}
 
+	/* Size Variants */
+	.button:not(:global(.headless))[data-size="small"] {
+		padding: 0.5rem 0.75rem;
+		font-size: var(--button-font-size);
+		line-height: var(--button-line-height);
+	}
+
+	.button:not(:global(.headless))[data-size="xsmall"] {
+		padding: 0.375rem 0.625rem;
+		font-size: var(--button-font-size);
+		line-height: var(--button-line-height);
+	}
+
+	.button:not(:global(.headless))[data-size="xxsmall"] {
+		padding: 0.25rem 0.5rem;
+		font-size: var(--button-font-size);
+		line-height: var(--button-line-height);
+	}
+
 	/* Primary Button Variants */
 	.button:not(:global(.headless))[data-variant="primary"][data-mode="filled"] {
 		background-color: var(--button-primary);

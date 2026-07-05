@@ -1,6 +1,6 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { type FC, useState } from 'react';
 import * as PreferenceItem from '~/v3/components/shared/ui/preference-item';
 import * as Switch from '~/v3/components/shared/ui/switch';
@@ -196,9 +196,9 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 
 				{/* Purpose-level Legitimate Interest Objection */}
 				{legIntVendors.length > 0 && onPurposeLegitimateInterestToggle && (
-					<div className={styles.purposeLISection}>
-						<div className={styles.purposeLISectionHeader}>
-							<div className={styles.purposeLIInfo}>
+					<div className={styles.purposeLiSection}>
+						<div className={styles.purposeLiSectionHeader}>
+							<div className={styles.purposeLiInfo}>
 								<svg
 									className={styles.legitimateInterestIcon}
 									viewBox="0 0 24 24"
@@ -341,7 +341,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 							{iabLegIntVendors.length > 0 && (
 								<>
 									<h5
-										className={`${styles.vendorSectionTitle} ${styles.vendorSectionTitleLI}`}
+										className={`${styles.vendorSectionTitle} ${styles.vendorSectionTitleLi}`}
 									>
 										<svg
 											style={{ width: '0.75rem', height: '0.75rem' }}
@@ -473,7 +473,7 @@ const VendorRow: FC<VendorRowProps> = ({
 
 	return (
 		<div
-			className={`${styles.vendorRow} ${isLegitimateInterest ? styles.vendorRowLI : ''}`}
+			className={`${styles.vendorRow} ${isLegitimateInterest ? styles.vendorRowLi : ''}`}
 		>
 			<div className={styles.vendorInfo}>
 				<button
@@ -508,7 +508,7 @@ const VendorRow: FC<VendorRowProps> = ({
 				</button>
 				<div className={styles.vendorDetails}>
 					{isLegitimateInterest && (
-						<span className={`${styles.vendorDetail} ${styles.vendorDetailLI}`}>
+						<span className={`${styles.vendorDetail} ${styles.vendorDetailLi}`}>
 							{iab.preferenceCenter.purposeItem.legitimateInterest}
 						</span>
 					)}

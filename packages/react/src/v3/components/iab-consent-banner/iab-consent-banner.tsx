@@ -6,7 +6,8 @@
  * Implements an accessible, pre-built banner following IAB requirements.
  */
 
-import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
+import actionStyles from '@c15t/ui/styles/v3/consent-actions';
+import styles from '@c15t/ui/styles/v3/iab-consent-banner';
 import { type FC, type RefObject, useRef } from 'react';
 import { useHeadlessIABConsentUI } from '~/v3/component-hooks/use-headless-iab-consent-ui';
 import { Box } from '~/v3/components/shared/primitives/box';
@@ -223,16 +224,22 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 					{/* Footer with buttons */}
 					<Box
 						baseClassName={styles.footer}
+						className={actionStyles.actionRoot}
+						data-direction="row"
+						data-split={true}
 						themeKey="iabConsentBannerFooter"
 						data-testid="iab-consent-banner-footer"
 					>
-						<div className={styles.footerButtonGroup}>
+						<div
+							className={actionStyles.actionGroup}
+							data-direction="row"
+						>
 							<Button.Root
 								variant={isPrimary('reject') ? 'primary' : 'neutral'}
 								mode="stroke"
 								size="small"
 								onClick={handleRejectAll}
-								className={styles.rejectButton}
+								data-action="reject"
 								data-testid="iab-consent-banner-reject-button"
 							>
 								{iabT.common.rejectAll}
@@ -242,19 +249,18 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 								mode={isPrimary('accept') ? 'filled' : 'stroke'}
 								size="small"
 								onClick={handleAcceptAll}
-								className={styles.acceptButton}
+								data-action="accept"
 								data-testid="iab-consent-banner-accept-button"
 							>
 								{iabT.common.acceptAll}
 							</Button.Root>
 						</div>
-						<div className={styles.footerSpacer} />
 						<Button.Root
 							variant={isPrimary('customize') ? 'primary' : 'neutral'}
 							mode={isPrimary('customize') ? 'filled' : 'stroke'}
 							size="small"
 							onClick={handleCustomize}
-							className={styles.customizeButton}
+							data-action="customize"
 							data-testid="iab-consent-banner-customize-button"
 						>
 							{iabT.common.customize}

@@ -1,6 +1,5 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/consent-widget.module.js';
 import type { ReactNode } from 'react';
 import {
 	type HeadlessConsentDialogAction,
@@ -81,12 +80,7 @@ export function ConsentWidgetPolicyActions({
 			state={dialog}
 			Footer={ConsentWidgetFooter}
 			FooterSubGroup={ConsentWidgetFooterSubGroup}
-			classNames={{
-				footerFill: styles.footerFill,
-				footerColumn: styles.footerColumn,
-				footerSubGroupFill: styles.footerSubGroupFill,
-				footerSubGroupColumn: styles.footerSubGroupColumn,
-			}}
+			classNames={{}}
 			renderAction={renderAction}
 			renderDefaultAction={renderDefaultAction}
 		/>

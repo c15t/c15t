@@ -1,4 +1,4 @@
-import styles from '@c15t/ui/styles/components/consent-widget.module.js';
+import accordionStyles from '@c15t/ui/styles/v3/accordion';
 import type { AllConsentNames, ConsentType } from 'c15t';
 import {
 	type ComponentPropsWithoutRef,
@@ -41,7 +41,7 @@ const ConsentWidgetAccordionTrigger = forwardRef<HTMLDivElement, BoxProps>(
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={styles.accordionTrigger}
+				baseClassName={accordionStyles.triggerRow}
 				{...props}
 			>
 				{children}
@@ -102,7 +102,7 @@ const ConsentWidgetAccordion = ({
 				noStyle={noStyle}
 				style={style}
 				themeKey="consentWidgetAccordion"
-				baseClassName={styles.accordionList}
+				baseClassName={accordionStyles.list}
 				{...props}
 			>
 				{children}
@@ -133,7 +133,7 @@ const ConsentWidgetAccordionItems = () => {
 	return getDisplayedConsents().map((consent: ConsentType) => (
 		<PreferenceItem.Root
 			key={consent.name}
-			className={styles.accordionItem}
+			className={accordionStyles.item}
 			data-testid={`consent-widget-accordion-item-${consent.name}`}
 			noStyle
 			onOpenChange={(open) => onToggleItem(consent.name, open)}
@@ -143,7 +143,7 @@ const ConsentWidgetAccordionItems = () => {
 				data-testid={`consent-widget-accordion-trigger-${consent.name}`}
 			>
 				<ConsentWidgetAccordionTriggerInner
-					className={styles.accordionTriggerInner}
+					className={accordionStyles.trigger}
 					data-testid={`consent-widget-accordion-trigger-inner-${consent.name}`}
 					noStyle
 				>
@@ -159,17 +159,17 @@ const ConsentWidgetAccordionItems = () => {
 
 						return (
 							<ConsentWidgetAccordionArrow
-								className={styles.accordionArrow}
+								className={accordionStyles.arrow}
 								data-testid={`consent-widget-accordion-arrow-${consent.name}`}
 								noStyle
 							>
-								<ArrowIcon className={styles.accordionArrowIcon} />
+								<ArrowIcon />
 							</ConsentWidgetAccordionArrow>
 						);
 					})()}
 					<PreferenceItem.Header noStyle>
 						<PreferenceItem.Title
-							className={styles.accordionTitle}
+							className={accordionStyles.title}
 							noStyle
 						>
 							{consentTypes[consent.name]?.title ??
@@ -179,7 +179,7 @@ const ConsentWidgetAccordionItems = () => {
 				</ConsentWidgetAccordionTriggerInner>
 
 				<PreferenceItem.Control
-					className={styles.switch}
+					className={accordionStyles.control}
 					noStyle
 				>
 					<ConsentWidgetSwitch
@@ -198,7 +198,7 @@ const ConsentWidgetAccordionItems = () => {
 				</PreferenceItem.Control>
 			</ConsentWidgetAccordionTrigger>
 			<ConsentWidgetAccordionContent
-				className={styles.accordionContent}
+				className={accordionStyles.content}
 				data-testid={`consent-widget-accordion-content-${consent.name}`}
 			>
 				{consentTypes[consent.name]?.description ?? consent.description}
@@ -214,7 +214,7 @@ const ConsentWidgetAccordionItem = forwardRef<
 	return (
 		<PreferenceItem.Root
 			ref={forwardedRef}
-			className={[styles.accordionItem, className].filter(Boolean).join(' ')}
+			className={[accordionStyles.item, className].filter(Boolean).join(' ')}
 			noStyle
 			{...rest}
 		/>

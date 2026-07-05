@@ -1,6 +1,6 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
+import styles from '@c15t/ui/styles/v3/iab-consent-banner';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import {
 	forwardRef,

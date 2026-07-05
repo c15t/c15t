@@ -1,5 +1,6 @@
 'use client';
 
+import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import { type ComponentType, Fragment, type ReactNode } from 'react';
 import type { HeadlessConsentSurfaceState } from '~/v3/component-hooks/use-headless-consent-ui';
 import type { CSSPropertiesWithVars, CSSVariables } from '~/v3/types/theme';
@@ -15,6 +16,9 @@ export interface PolicyActionRenderProps<TAction extends string> {
 interface PolicyActionsLayoutProps {
 	children?: ReactNode;
 	className?: string;
+	'data-direction'?: string;
+	'data-fill'?: true | undefined;
+	'data-split'?: true | undefined;
 }
 
 interface PolicyActionsClassNames {
@@ -52,6 +56,7 @@ export function PolicyActionsRenderer<TAction extends string>({
 }: PolicyActionsRendererProps<TAction>) {
 	const shouldFillActions = state.shouldFillActions;
 	const isColumn = state.direction === 'column';
+	const isSplit = state.actionGroups.length > 1;
 	const actionStyle = shouldFillActions
 		? ({
 				width: '100%',
@@ -62,17 +67,24 @@ export function PolicyActionsRenderer<TAction extends string>({
 	return (
 		<Footer
 			className={cn(
+				actionStyles.actionRoot,
 				shouldFillActions && classNames.footerFill,
 				isColumn && classNames.footerColumn
 			)}
+			data-direction={state.direction}
+			data-fill={shouldFillActions ? true : undefined}
+			data-split={isSplit && !shouldFillActions ? true : undefined}
 		>
 			{state.actionGroups.map((group, groupIndex) => (
 				<FooterSubGroup
 					key={`group-${group.join('-') || groupIndex}`}
 					className={cn(
+						actionStyles.actionGroup,
 						shouldFillActions && classNames.footerSubGroupFill,
 						isColumn && classNames.footerSubGroupColumn
 					)}
+					data-direction={state.direction}
+					data-fill={shouldFillActions ? true : undefined}
 				>
 					{group.map((action) => {
 						const itemKey = `action-${action}`;

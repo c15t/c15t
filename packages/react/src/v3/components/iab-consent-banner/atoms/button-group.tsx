@@ -1,6 +1,6 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
+import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 
 interface IABConsentBannerButtonGroupProps
@@ -25,9 +25,10 @@ const IABConsentBannerButtonGroup = forwardRef<
 			ref={ref}
 			className={
 				className
-					? `${styles.footerButtonGroup} ${className}`
-					: styles.footerButtonGroup
+					? `${actionStyles.actionGroup} ${className}`
+					: actionStyles.actionGroup
 			}
+			data-direction="row"
 			{...props}
 		>
 			{children}
@@ -49,9 +50,7 @@ const IABConsentBannerFooterSpacer = forwardRef<
 	return (
 		<div
 			ref={ref}
-			className={
-				className ? `${styles.footerSpacer} ${className}` : styles.footerSpacer
-			}
+			className={className}
 			{...props}
 		/>
 	);

@@ -1,6 +1,7 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import actionStyles from '@c15t/ui/styles/v3/consent-actions';
+import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 import { useHeadlessIABConsentUI } from '~/v3/component-hooks/use-headless-iab-consent-ui';
@@ -42,7 +43,7 @@ const IABConsentDialogFooter = forwardRef<
 	};
 
 	const themedStyle = useStyles('iabConsentDialogFooter', {
-		baseClassName: styles.footer,
+		baseClassName: [styles.footer, actionStyles.actionRoot],
 		className,
 	});
 	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
@@ -57,13 +58,17 @@ const IABConsentDialogFooter = forwardRef<
 				children
 			) : (
 				<>
-					<div className={styles.footerButtons}>
+					<div
+						className={actionStyles.actionGroup}
+						data-direction="row"
+					>
 						<Button.Root
 							variant="neutral"
 							mode="stroke"
 							size="small"
 							onClick={handleRejectAll}
 							disabled={isLoading}
+							data-action="reject"
 						>
 							{iabTranslations.common.rejectAll}
 						</Button.Root>
@@ -73,17 +78,18 @@ const IABConsentDialogFooter = forwardRef<
 							size="small"
 							onClick={handleAcceptAll}
 							disabled={isLoading}
+							data-action="accept"
 						>
 							{iabTranslations.common.acceptAll}
 						</Button.Root>
 					</div>
-					<div className={styles.footerSpacer} />
 					<Button.Root
 						variant="primary"
 						mode="filled"
 						size="small"
 						onClick={handleSave}
 						disabled={isLoading}
+						data-action="customize"
 					>
 						{iabTranslations.common.saveSettings}
 					</Button.Root>

@@ -7,10 +7,7 @@ import {
 	PREFERENCE_ITEM_SLOTS,
 	togglePreferenceItemValue,
 } from '@c15t/ui/primitives/preference-item';
-import {
-	type PreferenceItemVariantsProps,
-	preferenceItemVariants,
-} from '@c15t/ui/styles/primitives/preference-item';
+import styles from '@c15t/ui/styles/v3/preference-item';
 import {
 	createContext,
 	forwardRef,
@@ -21,6 +18,33 @@ import {
 } from 'react';
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/v3/hooks/use-theme';
+
+export type PreferenceItemVariantsProps = Record<never, never>;
+
+export const preferenceItemVariants = () => ({
+	auxiliary: (options?: { class?: string }) =>
+		[styles.auxiliary, options?.class].filter(Boolean).join(' '),
+	content: (options?: { class?: string }) =>
+		[styles.content, options?.class].filter(Boolean).join(' '),
+	contentInner: (options?: { class?: string }) =>
+		[styles.contentInner, options?.class].filter(Boolean).join(' '),
+	contentViewport: (options?: { class?: string }) =>
+		[styles.contentViewport, options?.class].filter(Boolean).join(' '),
+	control: (options?: { class?: string }) =>
+		[styles.control, options?.class].filter(Boolean).join(' '),
+	header: (options?: { class?: string }) =>
+		[styles.header, options?.class].filter(Boolean).join(' '),
+	leading: (options?: { class?: string }) =>
+		[styles.leading, options?.class].filter(Boolean).join(' '),
+	meta: (options?: { class?: string }) =>
+		[styles.meta, options?.class].filter(Boolean).join(' '),
+	root: (options?: { class?: string }) =>
+		[styles.root, options?.class].filter(Boolean).join(' '),
+	title: (options?: { class?: string }) =>
+		[styles.title, options?.class].filter(Boolean).join(' '),
+	trigger: (options?: { class?: string }) =>
+		[styles.trigger, options?.class].filter(Boolean).join(' '),
+});
 
 type PreferenceItemContextValue = {
 	contentId: string;
@@ -282,9 +306,9 @@ const PreferenceItemContent = forwardRef<
 			ref={forwardedRef}
 			aria-hidden={!open}
 			aria-labelledby={triggerId}
-			className={variants.content({
-				class: finalNoStyle ? className : className,
-			})}
+			className={
+				finalNoStyle ? className : variants.content({ class: className })
+			}
 			data-slot={PREFERENCE_ITEM_SLOTS.content}
 			data-state={getPreferenceItemState(open)}
 			id={contentId}
@@ -292,11 +316,15 @@ const PreferenceItemContent = forwardRef<
 			{...rest}
 		>
 			<div
-				className={variants.contentViewport()}
+				className={finalNoStyle ? undefined : variants.contentViewport()}
 				data-slot={PREFERENCE_ITEM_INTERNAL_SLOTS.contentViewport}
 			>
 				<div
-					className={variants.contentInner({ class: innerClassName })}
+					className={
+						finalNoStyle
+							? innerClassName
+							: variants.contentInner({ class: innerClassName })
+					}
 					data-slot={PREFERENCE_ITEM_INTERNAL_SLOTS.contentInner}
 				>
 					{children}

@@ -1,4 +1,5 @@
-import styles from '@c15t/ui/styles/components/consent-widget.module.js';
+import actionStyles from '@c15t/ui/styles/v3/consent-actions';
+import styles from '@c15t/ui/styles/v3/consent-manager';
 import { forwardRef, type Ref } from 'react';
 import { Box, type BoxProps } from '../../shared/primitives/box';
 
@@ -32,7 +33,7 @@ export const ConsentWidgetFooterSubGroup = forwardRef<HTMLDivElement, BoxProps>(
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={styles.footerSubGroup}
+				baseClassName={actionStyles.actionGroup}
 				data-testid="consent-widget-footer-sub-group"
 				{...props}
 				themeKey="consentWidgetFooter"

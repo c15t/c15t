@@ -1,6 +1,6 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, type ReactNode } from 'react';
 import { useTranslations } from '~/v3/component-hooks/use-translations';

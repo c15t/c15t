@@ -6,7 +6,8 @@
  * Implements an accessible, customizable banner following GDPR requirements.
  */
 
-import styles from '@c15t/ui/styles/components/consent-banner.module.js';
+import actionStyles from '@c15t/ui/styles/v3/consent-actions';
+import styles from '@c15t/ui/styles/v3/consent-banner';
 import {
 	type PolicyUiAction,
 	type PolicyUiActionDirection,
@@ -18,7 +19,6 @@ import { useTranslations } from '~/v3/component-hooks/use-translations';
 import type { InlineLegalLinksProps } from '~/v3/components/shared/primitives/legal-links';
 import { usePolicyBanner } from '~/v3/hooks';
 import { useComponentConfig } from '~/v3/hooks/use-component-config';
-import { cnExt as cn } from '~/v3/utils/cn';
 import { ConsentBannerRoot } from './atoms/root';
 import {
 	ConsentBannerAcceptButton,
@@ -269,6 +269,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 						consentAction="reject"
 						isPrimary={isPrimary}
 						className={className}
+						data-action="reject"
 						data-testid="consent-banner-reject-button"
 					>
 						{rejectButtonText}
@@ -280,6 +281,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 						consentAction="accept"
 						isPrimary={isPrimary}
 						className={className}
+						data-action="accept"
 						data-testid="consent-banner-accept-button"
 					>
 						{acceptButtonText}
@@ -291,6 +293,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 						consentAction="customize"
 						isPrimary={isPrimary}
 						className={className}
+						data-action="customize"
 						data-testid="consent-banner-customize-button"
 					>
 						{customizeButtonText}
@@ -329,10 +332,14 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 							</ConsentBannerDescription>
 						</ConsentBannerHeader>
 						<ConsentBannerFooter
-							className={cn(
-								shouldFillActions && styles.footerFill,
-								resolvedDirection === 'column' && styles.footerColumn
-							)}
+							className={actionStyles.actionRoot}
+							data-direction={resolvedDirection}
+							data-fill={shouldFillActions ? true : undefined}
+							data-split={
+								resolvedLayout.length > 1 && !shouldFillActions
+									? true
+									: undefined
+							}
 						>
 							{resolvedLayout.map((item, index) => {
 								if (Array.isArray(item)) {
@@ -346,20 +353,13 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 									return (
 										<ConsentBannerFooterSubGroup
 											key={groupKey ? `group-${groupKey}` : `group-${index}`}
-											className={cn(
-												shouldFillActions && styles.footerSubGroupFill,
-												resolvedDirection === 'column' &&
-													styles.footerSubGroupColumn
-											)}
+											className={actionStyles.actionGroup}
+											data-direction={resolvedDirection}
+											data-fill={shouldFillActions ? true : undefined}
 										>
 											{filteredItems.map((subItem) => (
 												<Fragment key={subItem}>
-													{renderButton(
-														subItem,
-														shouldFillActions
-															? styles.actionButtonFill
-															: undefined
-													)}
+													{renderButton(subItem)}
 												</Fragment>
 											))}
 										</ConsentBannerFooterSubGroup>
@@ -368,14 +368,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 								if (!allowedActions.has(item)) {
 									return null;
 								}
-								return (
-									<Fragment key={item}>
-										{renderButton(
-											item,
-											shouldFillActions ? styles.actionButtonFill : undefined
-										)}
-									</Fragment>
-								);
+								return <Fragment key={item}>{renderButton(item)}</Fragment>;
 							})}
 						</ConsentBannerFooter>
 					</ConsentBannerCard>

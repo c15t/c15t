@@ -5,7 +5,7 @@ import {
 	toggleCollapsibleValue,
 } from '@c15t/ui/primitives/collapsible';
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
-import { collapsibleVariants } from '@c15t/ui/styles/primitives/collapsible';
+import styles from '@c15t/ui/styles/v3/collapsible';
 import {
 	type ButtonHTMLAttributes,
 	createContext,
@@ -17,6 +17,19 @@ import {
 } from 'react';
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/v3/hooks/use-theme';
+
+export const collapsibleVariants = () => ({
+	root: (options?: { class?: string }) =>
+		[styles.root, options?.class].filter(Boolean).join(' '),
+	trigger: (options?: { class?: string }) =>
+		[styles.trigger, options?.class].filter(Boolean).join(' '),
+	content: (options?: { class?: string }) =>
+		[styles.content, options?.class].filter(Boolean).join(' '),
+	contentViewport: (options?: { class?: string }) =>
+		[styles.contentViewport, options?.class].filter(Boolean).join(' '),
+	contentInner: (options?: { class?: string }) =>
+		[styles.contentInner, options?.class].filter(Boolean).join(' '),
+});
 
 type CollapsibleContextValue = {
 	contentId: string;

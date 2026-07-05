@@ -6,7 +6,8 @@
  * Implements an accessible, pre-built consent dialog following IAB requirements.
  */
 
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+import actionStyles from '@c15t/ui/styles/v3/consent-actions';
+import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import {
 	type FC,
 	type RefObject,
@@ -737,14 +738,18 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					</Tabs.Root>
 
 					{/* Footer */}
-					<div className={styles.footer}>
-						<div className={styles.footerButtons}>
+					<div className={`${styles.footer} ${actionStyles.actionRoot}`}>
+						<div
+							className={actionStyles.actionGroup}
+							data-direction="row"
+						>
 							<Button.Root
 								variant="neutral"
 								mode="stroke"
 								size="small"
 								onClick={handleRejectAll}
 								disabled={isLoading}
+								data-action="reject"
 							>
 								{iabTranslations.common.rejectAll}
 							</Button.Root>
@@ -754,17 +759,18 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 								size="small"
 								onClick={handleAcceptAll}
 								disabled={isLoading}
+								data-action="accept"
 							>
 								{iabTranslations.common.acceptAll}
 							</Button.Root>
 						</div>
-						<div className={styles.footerSpacer} />
 						<Button.Root
 							variant="primary"
 							mode="filled"
 							size="small"
 							onClick={handleSave}
 							disabled={isLoading}
+							data-action="customize"
 						>
 							{iabTranslations.common.saveSettings}
 						</Button.Root>

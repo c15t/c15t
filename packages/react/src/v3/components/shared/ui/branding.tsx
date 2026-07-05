@@ -1,4 +1,4 @@
-import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
+import styles from '@c15t/ui/styles/v3/consent-dialog';
 import { resolveStyles, sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import type { Branding } from 'c15t';
 import type { SVGProps } from 'react';

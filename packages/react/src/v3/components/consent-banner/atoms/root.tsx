@@ -1,6 +1,6 @@
 'use client';
 
-import styles from '@c15t/ui/styles/components/consent-banner.module.js';
+import styles from '@c15t/ui/styles/v3/consent-banner';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import {
 	type CSSProperties,
@@ -367,10 +367,7 @@ const ConsentBannerRootChildren = forwardRef<
 		// Apply styles from the ConsentBanner context and merge with local styles.
 		// Uses the 'content' style key for consistent theming.
 		const contentStyle = useStyles('consentBanner', {
-			baseClassName: [
-				styles.root,
-				textDirection === 'ltr' ? styles.bottomLeft : styles.bottomRight,
-			],
+			baseClassName: styles.root,
 			style: style as CSSPropertiesWithVars<Record<string, never>>,
 			className: className || forwardedClassName,
 			noStyle,
@@ -397,6 +394,9 @@ const ConsentBannerRootChildren = forwardRef<
 					{...props}
 					{...domStyleProps}
 					className={finalClassName}
+					data-position={
+						textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'
+					}
 					data-testid="consent-banner-root"
 					dir={textDirection}
 				>

@@ -10,8 +10,5 @@ export type {
 	AccordionItemCSSVariables,
 	AccordionLayoutCSSVariables,
 	AccordionRootCSSVariables,
-	AccordionSize,
 	AccordionTriggerCSSVariables,
-	AccordionVariant,
-	AccordionVariantsProps,
 } from '@c15t/ui/styles/primitives';
