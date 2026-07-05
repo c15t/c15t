@@ -75,6 +75,7 @@ const scenarioFilter =
 	readCliFlag('--scenario') ?? process.env.C15T_BENCH_SCENARIO;
 
 const allScenarios = [
+	{ name: 'baseline', path: '/baseline' },
 	{ name: 'full-ui', path: '/full-ui' },
 	{ name: 'headless', path: '/headless' },
 	{ name: 'react-v3-full', path: '/react-v3-full' },
@@ -103,6 +104,12 @@ async function measureInteractionLatency(
 		| 'react-v3-repeat'
 ) {
 	switch (scenario) {
+		case 'baseline': {
+			// Zero-consent arm: measure a trivial interaction as the floor.
+			const startedAt = performance.now();
+			await page.click('#baseline-noop');
+			return performance.now() - startedAt;
+		}
 		case 'full-ui': {
 			const before = await page.evaluate(
 				() => window.__c15tReactBench?.onConsentSetCount ?? 0

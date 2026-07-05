@@ -1,6 +1,7 @@
 'use client';
 
 export type NextjsBenchScenario =
+	| 'baseline'
 	| 'client'
 	| 'nextjs-v3-client'
 	| 'nextjs-v3-manifest-client'

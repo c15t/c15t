@@ -81,6 +81,7 @@ const coldManifestMode =
 	process.env.C15T_BENCH_COLD_MANIFEST === 'true';
 
 const allScenarios = [
+	{ name: 'baseline', path: '/baseline' },
 	{ name: 'client', path: '/client' },
 	{ name: 'ssr', path: '/ssr' },
 	{ name: 'prefetch', path: '/prefetch' },
@@ -115,6 +116,12 @@ async function measureInteractionLatency(
 		| 'repeat-visitor'
 		| 'nextjs-v3-repeat'
 ) {
+	if (scenario === 'baseline') {
+		const startedAt = performance.now();
+		await page.click('#baseline-noop');
+		return performance.now() - startedAt;
+	}
+
 	if (scenario === 'repeat-visitor') {
 		const startedAt = performance.now();
 		await page.click('#open-preferences');

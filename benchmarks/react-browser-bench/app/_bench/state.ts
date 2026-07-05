@@ -1,6 +1,7 @@
 'use client';
 
 export type ReactBenchScenario =
+	| 'baseline'
 	| 'full-ui'
 	| 'headless'
 	| 'react-v3-banner-css'
