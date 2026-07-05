@@ -1,0 +1,117 @@
+<script setup lang="ts">
+/**
+ * The only required integration: mount <ConsentRoot /> once.
+ * Everything below it is demo chrome showing the consent state live.
+ */
+const activeUI = useConsentActiveUI();
+const hasConsent = useHasConsent();
+const init = useConsentInit();
+
+function reopenBanner() {
+	activeUI.value = 'banner';
+}
+
+function openPreferences() {
+	activeUI.value = 'manager';
+}
+</script>
+
+<template>
+	<ConsentRoot />
+
+	<main class="page">
+		<h1>c15t × Nuxt</h1>
+		<p>
+			Consent management with the banner server-rendered into the first HTML
+			(zero CLS) and consent resolved from a CDN-cacheable manifest — no
+			consent-backend round trip on the request path.
+		</p>
+
+		<section class="card">
+			<h2>Live consent state</h2>
+			<dl>
+				<dt>Active surface</dt>
+				<dd>
+					<code>{{ activeUI ?? 'none' }}</code>
+				</dd>
+				<dt>Granted categories</dt>
+				<dd>
+					<code>{{ hasConsent.join(', ') || '—' }}</code>
+				</dd>
+				<dt>Resolved location</dt>
+				<dd>
+					<code>
+						{{ init?.location?.countryCode ?? 'unknown'
+						}}{{ init?.location?.regionCode ? ` / ${init.location.regionCode}` : '' }}
+					</code>
+				</dd>
+				<dt>Policy model</dt>
+				<dd>
+					<code>{{ init?.policy?.model ?? '—' }}</code>
+				</dd>
+			</dl>
+		</section>
+
+		<section class="card">
+			<h2>Controls</h2>
+			<button type="button" @click="reopenBanner">Reopen banner</button>
+			<button type="button" @click="openPreferences">Open preferences</button>
+		</section>
+	</main>
+</template>
+
+<style>
+body {
+	margin: 0;
+	font-family: system-ui, sans-serif;
+	background: #fafafa;
+	color: #1a1a1a;
+}
+
+.page {
+	max-width: 40rem;
+	margin: 0 auto;
+	padding: 3rem 1.5rem;
+}
+
+.card {
+	background: #fff;
+	border: 1px solid #e5e5e5;
+	border-radius: 0.75rem;
+	padding: 1.25rem 1.5rem;
+	margin-top: 1.5rem;
+}
+
+.card h2 {
+	margin-top: 0;
+	font-size: 1rem;
+}
+
+.card dl {
+	display: grid;
+	grid-template-columns: max-content 1fr;
+	gap: 0.5rem 1.5rem;
+	margin: 0;
+}
+
+.card dt {
+	font-weight: 600;
+}
+
+.card dd {
+	margin: 0;
+}
+
+.card button {
+	margin-right: 0.75rem;
+	padding: 0.5rem 1rem;
+	border: 1px solid #d4d4d4;
+	border-radius: 0.5rem;
+	background: #fff;
+	cursor: pointer;
+}
+
+.card button:hover {
+	background: #f5f5f5;
+}
+</style>

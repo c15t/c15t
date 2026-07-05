@@ -451,6 +451,13 @@
         "typescript": "^6.0.2",
       },
     },
+    "examples/nuxt": {
+      "name": "@c15t/example-nuxt",
+      "dependencies": {
+        "@c15t/vue": "workspace:*",
+        "nuxt": "^4.4.7",
+      },
+    },
     "examples/sveltekit-demo": {
       "name": "sveltekit-demo",
       "version": "0.0.0",
@@ -1057,6 +1064,8 @@
     "@c15t/dev-tools": ["@c15t/dev-tools@workspace:packages/dev-tools"],
 
     "@c15t/example-demo": ["@c15t/example-demo@workspace:examples/demo"],
+
+    "@c15t/example-nuxt": ["@c15t/example-nuxt@workspace:examples/nuxt"],
 
     "@c15t/iab": ["@c15t/iab@workspace:packages/iab"],
 

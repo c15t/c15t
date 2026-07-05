@@ -1,0 +1,15 @@
+{
+	"name": "@c15t/example-nuxt",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "nuxt dev",
+		"build": "nuxt build",
+		"start": "node .output/server/index.mjs",
+		"check-types": "nuxt typecheck"
+	},
+	"dependencies": {
+		"@c15t/vue": "workspace:*",
+		"nuxt": "^4.4.7"
+	}
+}

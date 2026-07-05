@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { defaultConsentConfig } from '@c15t/schema/config';
 import {
 	addComponent,
@@ -32,9 +33,11 @@ export default defineNuxtModule<ConsentConfig>({
 		const initRoute = resolveNuxtInitRoute(options);
 		const manifestRoute = resolveNuxtManifestRoute(options);
 
-		nuxt.options.alias['#c15t/composables'] = resolver.resolve(
-			'./runtime/composables/index.ts'
-		);
+		// Source builds ship .ts, dist builds ship .js — alias whichever exists
+		// (hardcoding .ts broke every consumer of the published package).
+		nuxt.options.alias['#c15t/composables'] = ['index.ts', 'index.js']
+			.map((file) => resolver.resolve(`./runtime/composables/${file}`))
+			.find((path) => existsSync(path)) as string;
 
 		nuxt.options.runtimeConfig.c15t = defu(
 			nuxt.options.runtimeConfig.c15t ?? {},

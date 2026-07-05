@@ -17,9 +17,7 @@ const baselineBuild = process.env.C15T_BENCH_BASELINE === '1';
 
 export default defineNuxtConfig({
 	compatibilityDate: '2026-07-04',
-	modules: baselineBuild
-		? ['./modules/c15t-vue-dist-alias']
-		: ['@c15t/vue', './modules/c15t-vue-dist-alias'],
+	modules: baselineBuild ? [] : ['@c15t/vue'],
 	...(baselineBuild
 		? {}
 		: {
