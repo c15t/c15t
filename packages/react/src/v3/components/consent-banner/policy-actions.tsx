@@ -6,6 +6,7 @@ import {
 	type HeadlessConsentBannerAction,
 	useHeadlessConsentUI,
 } from '~/v3/component-hooks/use-headless-consent-ui';
+import { warmDialogChunk } from '../../chunk-warming';
 import {
 	type PolicyActionRenderProps,
 	PolicyActionsRenderer,
@@ -59,6 +60,8 @@ function renderDefaultAction(
 					key={key}
 					consentAction={consentAction}
 					data-testid="consent-banner-customize-button"
+					onPointerEnter={warmDialogChunk}
+					onFocus={warmDialogChunk}
 					{...buttonProps}
 				/>
 			);

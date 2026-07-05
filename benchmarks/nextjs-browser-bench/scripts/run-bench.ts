@@ -91,6 +91,7 @@ const v3Scenarios = [
 	{ name: 'nextjs-v3-manifest-client', path: '/v3-manifest-client' },
 	{ name: 'nextjs-v3-ssr', path: '/v3-ssr' },
 	{ name: 'nextjs-v3-manifest-ssr', path: '/v3-manifest-ssr' },
+	{ name: 'nextjs-v3-rsc-ssr', path: '/v3-rsc-ssr' },
 ] as const;
 
 const allBenchmarkScenarios = [...allScenarios, ...v3Scenarios] as const;
@@ -304,6 +305,10 @@ async function collectScenarioMetrics(
 			firstAppScriptStartMs: ordered[0]?.startTime ?? 0,
 			lastAppScriptEndMs: ordered[ordered.length - 1]?.responseEnd ?? 0,
 			appScriptCount: ordered.length,
+			jsBytes: ordered.reduce(
+				(sum, entry) => sum + (entry.transferSize || entry.encodedBodySize),
+				0
+			),
 		};
 	});
 	const performanceObserverInfo = await page.evaluate(() => {
@@ -361,7 +366,8 @@ function budgetsForScenario(scenario: string): MetricBudget[] {
 	if (
 		baseScenario === 'ssr' ||
 		baseScenario === 'nextjs-v3-ssr' ||
-		baseScenario === 'nextjs-v3-manifest-ssr'
+		baseScenario === 'nextjs-v3-manifest-ssr' ||
+		baseScenario === 'nextjs-v3-rsc-ssr'
 	) {
 		return [
 			...shared,
@@ -622,6 +628,11 @@ async function run() {
 							'appScriptCount',
 							'count',
 							groupedSamples.map((sample) => sample.appScriptCount ?? 0)
+						),
+						summarizeMetric(
+							'jsBytes',
+							'bytes',
+							groupedSamples.map((sample) => sample.jsBytes ?? 0)
 						),
 						summarizeMetric(
 							'ttfbMs',

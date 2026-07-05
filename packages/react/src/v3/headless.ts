@@ -38,7 +38,6 @@ export {
 // IAB headless hook — moved to @c15t/react/iab subpath.
 // Import from '@c15t/react/iab' instead of '@c15t/react/headless'.
 export { useTranslations } from './hooks/use-translations';
-export { ConsentManagerProvider } from './providers/consent-manager-provider';
 
 // Export types
 export type {

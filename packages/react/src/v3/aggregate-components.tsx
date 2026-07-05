@@ -7,6 +7,7 @@ import {
 	type ReactNode,
 	Suspense,
 } from 'react';
+import { registerDialogChunkWarmer } from './chunk-warming';
 import type {
 	ConsentDialogCompoundComponent,
 	ConsentDialogProps,
@@ -42,6 +43,12 @@ function lazyDialogExport(name: string) {
 		})
 	);
 }
+
+// Warm the dialog chunk on user intent (customize-button hover/focus) so the
+// first open never pays network+parse on the click path.
+registerDialogChunkWarmer(() => {
+	void import('./components/consent-dialog');
+});
 
 function lazyWidgetExport(name: string) {
 	return withSuspense(

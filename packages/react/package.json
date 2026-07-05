@@ -269,6 +269,11 @@
 			"types": "./dist-types/v3/utils/index.d.ts",
 			"import": "./dist/v3/utils/index.js",
 			"require": "./dist/v3/utils/index.cjs"
+		},
+		"./v3/compat": {
+			"types": "./dist-types/v3/compat.d.ts",
+			"import": "./dist/v3/compat.js",
+			"require": "./dist/v3/compat.cjs"
 		}
 	},
 	"main": "./dist/index.cjs",
@@ -289,7 +294,7 @@
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun run clean:dist:test-artifacts && bun ../../scripts/generate-package-docs.ts @c15t/react",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun run clean:dist:test-artifacts && bun ../../scripts/generate-package-docs.ts @c15t/react && node ../shared/restore-client-directives.mjs src dist",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/react",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"clean:dist:test-artifacts": "bun --eval \"import { rmSync } from 'node:fs'; rmSync('dist/mockServiceWorker.js', { force: true });\"",

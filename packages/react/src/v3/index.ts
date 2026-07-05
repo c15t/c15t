@@ -125,7 +125,7 @@ export {
 	useScriptLoader,
 } from './module-hooks';
 export type { ConsentProviderOptions, ConsentProviderProps } from './provider';
-export { ConsentManagerProvider, ConsentProvider } from './provider';
+export { ConsentProvider } from './provider';
 export type {
 	ConsentManagerOptions,
 	ConsentManagerProviderProps,

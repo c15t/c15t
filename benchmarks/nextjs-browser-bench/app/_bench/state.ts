@@ -6,6 +6,7 @@ export type NextjsBenchScenario =
 	| 'nextjs-v3-manifest-client'
 	| 'nextjs-v3-manifest-ssr'
 	| 'nextjs-v3-repeat'
+	| 'nextjs-v3-rsc-ssr'
 	| 'nextjs-v3-ssr'
 	| 'ssr'
 	| 'prefetch'

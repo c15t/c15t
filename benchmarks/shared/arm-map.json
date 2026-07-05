@@ -30,5 +30,6 @@
 			"@c15t/react-browser-bench:full-ui:browser-runtime"
 		],
 		"@c15t/vue:repeat-visitor:browser-runtime": "@c15t/react-browser-bench:repeat-visitor:browser-runtime"
-	}
+	},
+	"@c15t/nextjs-browser-bench:nextjs-v3-rsc-ssr:browser-runtime": "@c15t/nextjs-browser-bench:nextjs-v3-manifest-ssr:browser-runtime"
 }

@@ -1015,14 +1015,3 @@ export function ConsentProvider({ options, children }: ConsentProviderProps) {
 		</KernelContext.Provider>
 	);
 }
-
-/*
- * v3 ConsentProvider.
- * @deprecated use ConsentManager instead
- */
-export function ConsentManagerProvider({
-	options,
-	children,
-}: ConsentProviderProps) {
-	return ConsentProvider({ options, children });
-}

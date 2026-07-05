@@ -160,17 +160,31 @@ export function NextjsV3ManifestBenchmarkProvider({
 	children,
 	config,
 	scenario,
+	surfaces = 'client',
 }: {
 	children: ReactNode;
 	config: ConsentBoundaryProps['config'];
 	scenario: NextjsBenchScenario;
+	/**
+	 * 'client' renders the client ConsentBanner/Dialog; 'none' renders no
+	 * client surfaces (the RSC arm supplies the banner as a Server
+	 * Component child instead).
+	 */
+	surfaces?: 'client' | 'none';
 }) {
 	return (
 		<ConsentBoundary
 			config={config}
 			options={createBoundaryOptions(scenario)}
 		>
-			<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
+			{surfaces === 'client' ? (
+				<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
+			) : (
+				<>
+					<NextjsV3BenchmarkProbe scenario={scenario} />
+					{children}
+				</>
+			)}
 		</ConsentBoundary>
 	);
 }
