@@ -8,13 +8,13 @@ export default mergeConfig(
 		resolve: {
 			alias: {
 				'~': resolve(__dirname, './src'),
-				'@c15t/translations': resolve(
-					__dirname,
-					'../translations/src/index.ts'
-				),
 				'@c15t/translations/all': resolve(
 					__dirname,
 					'../translations/src/all.ts'
+				),
+				'@c15t/translations': resolve(
+					__dirname,
+					'../translations/src/index.ts'
 				),
 				c15t: resolve(__dirname, '../core/dist/index.js'),
 			},

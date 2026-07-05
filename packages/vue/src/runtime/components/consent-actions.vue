@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="T extends string">
-import actionStyles from '@c15t/styles/consent-actions.module.css';
+import actionStyles from '@c15t/ui/styles/v3/consent-actions.module.css';
 import { computed } from 'vue';
 import ConsentButton from './consent-button.vue';
 

@@ -2,7 +2,7 @@
 	setup
 	lang="ts"
 >
-import switchStyles from '@c15t/styles/switch.module.css';
+import switchStyles from '@c15t/ui/styles/v3/switch.module.css';
 import { SwitchRoot, SwitchThumb } from 'reka-ui';
 import { useConsentConfig } from '#c15t/composables';
 

@@ -95,6 +95,11 @@
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
+		},
+		"./styles/v3/*.module.css": {
+			"types": "./types/styles/v3/*.module.css.d.ts",
+			"import": "./src/styles/v3/*.module.css",
+			"default": "./src/styles/v3/*.module.css"
 		}
 	},
 	"main": "./dist/index.cjs",
@@ -109,10 +114,11 @@
 		"src/primitives",
 		"src/styles",
 		"!src/styles/**/__tests__/**",
-		"!src/styles/**/*.test.ts"
+		"!src/styles/**/*.test.ts",
+		"types"
 	],
 	"scripts": {
-		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && bun scripts/generate-css-entrypoints.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write .",
 		"lint": "bun biome lint ./src",
@@ -127,7 +133,8 @@
 		"@c15t/vitest-config": "workspace:*",
 		"@rslib/core": "0.20.2",
 		"typescript": "6.0.2",
-		"vitest": "4.1.2"
+		"vitest": "4.1.2",
+		"typed-css-modules": "0.9.1"
 	},
 	"publishConfig": {
 		"access": "public"

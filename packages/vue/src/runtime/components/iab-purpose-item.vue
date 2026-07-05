@@ -2,7 +2,7 @@
 	setup
 	lang="ts"
 >
-import dialogStyles from '@c15t/styles/iab-consent-dialog.module.css';
+import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog.module.css';
 import { computed, ref, toValue } from 'vue';
 import { useConsentInit } from '#c15t/composables';
 import ConsentSwitch from './consent-switch.vue';

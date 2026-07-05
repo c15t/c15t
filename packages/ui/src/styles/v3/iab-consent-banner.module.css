@@ -227,6 +227,12 @@
 		margin-bottom: 0.25rem;
 	}
 
+	.purposeMore {
+		font-style: italic;
+		opacity: 0.8;
+		list-style-type: none;
+	}
+
 	:global(.c15t-dark) .purposeList {
 		color: var(--iab-consent-banner-description-color-dark);
 	}

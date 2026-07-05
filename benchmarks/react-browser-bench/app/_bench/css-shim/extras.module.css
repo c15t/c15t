@@ -1,7 +1,7 @@
 /*
  * CSS-experiment extras: classes the @c15t/ui style-map exposes that
- * @c15t/styles models differently (data-attributes instead of classes).
- * Rules are cribbed from @c15t/styles source so visuals stay in-family.
+ * @c15t/ui/styles/v3 models differently (data-attributes instead of classes).
+ * Rules are cribbed from @c15t/ui/styles/v3 source so visuals stay in-family.
  * Experiment-only — not shipped.
  */
 
@@ -64,7 +64,7 @@
 }
 
 .benchButton {
-	composes: button from '@c15t/styles/button.module.css';
+	composes: button from '@c15t/ui/styles/v3/button.module.css';
 }
 
 .acceptButton {

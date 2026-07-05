@@ -13,6 +13,7 @@ declare const styles: {
 	readonly partnersLink: string;
 	readonly privacyLink: string;
 	readonly purposeList: string;
+	readonly purposeMore: string;
 	readonly root: string;
 	readonly title: string;
 };

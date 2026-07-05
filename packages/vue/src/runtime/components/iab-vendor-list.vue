@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, toValue, watch } from 'vue';
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
-import dialogStyles from '@c15t/styles/iab-consent-dialog.module.css';
+import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog.module.css';
 import { useConsentInit } from '#c15t/composables';
 import ConsentSwitch from './consent-switch.vue';
 import type { IabProcessedPurpose, IabVendorId } from './iab-purpose-item.vue';

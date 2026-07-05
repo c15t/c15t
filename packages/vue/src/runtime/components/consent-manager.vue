@@ -2,9 +2,9 @@
 	setup
 	lang="ts"
 >
-import accordionStyles from '@c15t/styles/accordion.module.css';
-import dialogStyles from '@c15t/styles/consent-dialog.module.css';
-import managerStyles from '@c15t/styles/consent-manager.module.css';
+import accordionStyles from '@c15t/ui/styles/v3/accordion.module.css';
+import dialogStyles from '@c15t/ui/styles/v3/consent-dialog.module.css';
+import managerStyles from '@c15t/ui/styles/v3/consent-manager.module.css';
 import type { PolicyUiAction } from '@c15t/schema/types';
 import {
 	AccordionContent,

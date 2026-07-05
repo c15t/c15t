@@ -2,7 +2,7 @@
 	setup
 	lang="ts"
 >
-import dialogStyles from '@c15t/styles/consent-dialog.module.css';
+import dialogStyles from '@c15t/ui/styles/v3/consent-dialog.module.css';
 import { computed } from 'vue';
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
 

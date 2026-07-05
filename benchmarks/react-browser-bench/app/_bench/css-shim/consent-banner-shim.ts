@@ -2,7 +2,7 @@
  * CSS-experiment shim: exposes the same style-map shape the v3
  * consent-banner components import from
  * `@c15t/ui/styles/components/consent-banner.module.js`, backed by
- * `@c15t/styles` CSS Modules (the Vue CSS approach) instead of the
+ * `@c15t/ui/styles/v3` CSS Modules (the Vue CSS approach) instead of the
  * precompiled `@c15t/ui` monolith.
  *
  * Swapped in via bundler alias when the bench app is built with
@@ -10,7 +10,7 @@
  * delivery differ. The bench mounts `<ConsentBanner disableAnimation />`,
  * so enter/exit map to empty strings.
  */
-import banner from '@c15t/styles/consent-banner.module.css';
+import banner from '@c15t/ui/styles/v3/consent-banner.module.css';
 import extras from './extras.module.css';
 
 const styles: Record<string, string> = {

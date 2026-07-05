@@ -3,7 +3,7 @@ import { computed, Teleport, Transition, toValue } from 'vue';
 import { FocusScope } from 'reka-ui';
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import type { PolicyUiAction } from '@c15t/schema/types';
-import bannerStyles from '@c15t/styles/iab-consent-banner.module.css';
+import bannerStyles from '@c15t/ui/styles/v3/iab-consent-banner.module.css';
 import {
 	useConsentActiveUI,
 	useConsentConfig,

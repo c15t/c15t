@@ -14,7 +14,7 @@ export default defineBuildConfig({
 		'vue',
 		'vite',
 		'@c15t/schema',
-		'@c15t/styles',
+		'@c15t/ui',
 		'c15t',
 		'@vueuse/core',
 		'reka-ui',

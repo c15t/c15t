@@ -9,7 +9,7 @@ const monorepoRoot = resolve(projectDir, '../..');
  * CSS experiment toggle (see app/react-v3-banner-css):
  * - default build: `bench-css-entry` -> the @c15t/ui monolith stylesheet
  * - C15T_CSS=styles build: `bench-css-entry` -> empty; the consent-banner
- *   style-map is aliased to the @c15t/styles CSS Modules shim.
+ *   style-map is aliased to the @c15t/ui/styles/v3 CSS Modules shim.
  * Aliases are defined for webpack AND turbopack so the experiment is
  * bundler-agnostic. JS is byte-identical between builds apart from these
  * two module resolutions.
@@ -28,7 +28,7 @@ const transpilePackages = [
 	'@c15t/iab',
 	'@c15t/react',
 	'@c15t/nextjs',
-	'@c15t/styles',
+	'@c15t/ui',
 	'c15t',
 ];
 

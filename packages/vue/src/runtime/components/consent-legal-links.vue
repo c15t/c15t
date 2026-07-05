@@ -4,7 +4,7 @@
 >
 import { computed } from 'vue';
 import type { ConsentLegalLinkKey } from '@c15t/schema/config';
-import legalStyles from '@c15t/styles/legal-links.module.css';
+import legalStyles from '@c15t/ui/styles/v3/legal-links.module.css';
 import ConsentLink from './consent-link.vue';
 
 const ALL_LEGAL_LINKS: ConsentLegalLinkKey[] = [

@@ -61,11 +61,6 @@
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
 			"outputs": []
 		},
-		"@c15t/styles#build": {
-			"dependsOn": ["^build"],
-			"inputs": ["src/**/*.module.css", "src/animations/**", "package.json"],
-			"outputs": ["types/**"]
-		},
 		"fmt": {
 			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc", "**/biome.json"],
 			"outputs": []
@@ -121,7 +116,6 @@
 				"c15t#dev",
 				"@c15t/logger#dev",
 				"@c15t/schema#dev",
-				"@c15t/styles#dev",
 				"@c15t/translations#dev",
 				"@c15t/vue#dev"
 			]

@@ -8,7 +8,7 @@
  * - control (default): `bench-css-entry` -> `@c15t/react/v3/styles.css`
  *   monolith (current React delivery: every surface's CSS, always)
  * - treatment (C15T_CSS=styles): the consent-banner style-map is aliased to
- *   the `@c15t/styles` shim (per-component CSS Modules, the Vue approach);
+ *   the `@c15t/ui/styles/v3` shim (per-component CSS Modules, the Vue approach);
  *   no monolith import — CSS follows the components actually rendered.
  * JS is otherwise byte-identical between builds.
  */
