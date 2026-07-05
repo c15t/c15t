@@ -1,11 +1,11 @@
-<script setup lang="ts">
+<script
+	setup
+	lang="ts"
+>
 import { computed, ref } from 'vue';
-import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog.module.css';
+import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import ConsentSwitch from './consent-switch.vue';
-import type {
-	IabProcessedPurpose,
-	IabVendorId,
-} from './iab-purpose-item.vue';
+import type { IabProcessedPurpose, IabVendorId } from './iab-purpose-item.vue';
 import IabPurposeItem from './iab-purpose-item.vue';
 
 export interface IabProcessedStack {
@@ -33,22 +33,23 @@ const emit = defineEmits<{
 const isExpanded = ref(false);
 
 const allEnabled = computed(() =>
-	props.stack.purposes.every((purpose) => props.consents[purpose.id] ?? false),
+	props.stack.purposes.every((purpose) => props.consents[purpose.id] ?? false)
 );
 
 const someEnabled = computed(
 	() =>
-		props.stack.purposes.some((purpose) => props.consents[purpose.id] ?? false) &&
-		!allEnabled.value,
+		props.stack.purposes.some(
+			(purpose) => props.consents[purpose.id] ?? false
+		) && !allEnabled.value
 );
 
 const totalVendors = computed(
 	() =>
 		new Set(
 			props.stack.purposes.flatMap((purpose) =>
-				purpose.vendors.map((vendor) => vendor.id),
-			),
-		).size,
+				purpose.vendors.map((vendor) => vendor.id)
+			)
+		).size
 );
 
 const stackChecked = computed({
@@ -67,7 +68,10 @@ const stackChecked = computed({
 </script>
 
 <template>
-	<div :class="dialogStyles.stackItem" :data-testid="`stack-item-${stack.id}`">
+	<div
+		:class="dialogStyles.stackItem"
+		:data-testid="`stack-item-${stack.id}`"
+	>
 		<div :class="dialogStyles.stackHeader">
 			<button
 				type="button"
@@ -82,8 +86,14 @@ const stackChecked = computed({
 					stroke="currentColor"
 					stroke-width="2"
 				>
-					<path v-if="isExpanded" d="M19 9l-7 7-7-7" />
-					<path v-else d="M9 5l7 7-7 7" />
+					<path
+						v-if="isExpanded"
+						d="M19 9l-7 7-7-7"
+					/>
+					<path
+						v-else
+						d="M9 5l7 7-7 7"
+					/>
 				</svg>
 				<div :class="dialogStyles.stackInfo">
 					<h3 :class="dialogStyles.stackName">{{ stack.name }}</h3>
@@ -100,7 +110,10 @@ const stackChecked = computed({
 			/>
 		</div>
 
-		<div v-if="isExpanded" :class="dialogStyles.stackContent">
+		<div
+			v-if="isExpanded"
+			:class="dialogStyles.stackContent"
+		>
 			<p :class="dialogStyles.stackDescription">{{ stack.description }}</p>
 			<IabPurposeItem
 				v-for="purpose in stack.purposes"

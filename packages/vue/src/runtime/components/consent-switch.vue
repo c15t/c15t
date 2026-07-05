@@ -2,7 +2,7 @@
 	setup
 	lang="ts"
 >
-import switchStyles from '@c15t/ui/styles/v3/switch.module.css';
+import switchStyles from '@c15t/ui/styles/v3/switch';
 import { SwitchRoot, SwitchThumb } from '../primitives';
 import { useConsentConfig } from '#c15t/composables';
 

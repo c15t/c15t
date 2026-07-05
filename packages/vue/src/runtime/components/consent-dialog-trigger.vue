@@ -6,7 +6,7 @@ import type {
 	ConsentDialogTriggerPosition,
 	ConsentDialogTriggerSize,
 } from '@c15t/schema/config';
-import triggerStyles from '@c15t/ui/styles/v3/consent-dialog-trigger.module.css';
+import triggerStyles from '@c15t/ui/styles/v3/consent-dialog-trigger';
 import {
 	useDraggable,
 	useMounted,

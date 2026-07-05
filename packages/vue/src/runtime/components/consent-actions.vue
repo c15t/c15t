@@ -1,5 +1,9 @@
-<script setup lang="ts" generic="T extends string">
-import actionStyles from '@c15t/ui/styles/v3/consent-actions.module.css';
+<script
+	setup
+	lang="ts"
+	generic="T extends string"
+>
+import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import { computed } from 'vue';
 import ConsentButton from './consent-button.vue';
 
@@ -29,7 +33,7 @@ const props = withDefaults(
 		uiProfile: 'compact',
 		primaryMode: 'stroke',
 		secondaryMode: 'stroke',
-	},
+	}
 );
 
 const emit = defineEmits<{
@@ -42,7 +46,7 @@ const actionGroups = computed<T[][]>(() => {
 	}
 	if (props.layout && props.layout.length > 0) {
 		return props.layout.map((group) =>
-			Array.isArray(group) ? group : [group],
+			Array.isArray(group) ? group : [group]
 		);
 	}
 	if (props.actions && props.actions.length > 0) {
@@ -52,7 +56,7 @@ const actionGroups = computed<T[][]>(() => {
 });
 
 const resolvedDirection = computed<ConsentActionsDirection>(() =>
-	props.direction === 'column' ? 'column' : 'row',
+	props.direction === 'column' ? 'column' : 'row'
 );
 
 const isSplitLayout = computed(() => actionGroups.value.length > 1);

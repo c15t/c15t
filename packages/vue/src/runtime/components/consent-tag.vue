@@ -2,7 +2,7 @@
 	setup
 	lang="ts"
 >
-import dialogStyles from '@c15t/ui/styles/v3/consent-dialog.module.css';
+import dialogStyles from '@c15t/ui/styles/v3/consent-dialog';
 import { computed } from 'vue';
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
 
@@ -22,9 +22,11 @@ const resolvedBranding = computed(() => {
 
 const securedBy = computed(
 	() =>
-		(init.value?.translations?.translations?.common as
-			| { securedBy?: string }
-			| undefined)?.securedBy ?? 'Secured by'
+		(
+			init.value?.translations?.translations?.common as
+				| { securedBy?: string }
+				| undefined
+		)?.securedBy ?? 'Secured by'
 );
 
 const refParam = computed(() =>
@@ -52,9 +54,7 @@ const href = computed(() =>
 		:data-context="context"
 	>
 		<span :class="dialogStyles.brandingCopy">
-			<span :class="dialogStyles.brandingText">
-				{{ securedBy }}
-			</span>
+			<span :class="dialogStyles.brandingText"> {{ securedBy }} </span>
 		</span>
 		<span
 			dir="ltr"

@@ -153,13 +153,22 @@ function runPack(packageDir: string): PackResult {
 	return firstPack;
 }
 
-function getBlockedReason(path: string): string | null {
+function getBlockedReason(packageName: string, path: string): string | null {
 	// Most accidental publish bloat in this repo comes from built output.
 	if (path.startsWith('dist/')) {
 		if (path.endsWith('.d.ts.map')) {
 			return 'declaration source map in runtime dist';
 		}
 		if (path.endsWith('.d.ts')) {
+			if (
+				packageName === '@c15t/ui' &&
+				/^dist\/styles\/v3\/[^/]+\.d\.ts$/.test(path)
+			) {
+				return null;
+			}
+			if (packageName === '@c15t/svelte') {
+				return null;
+			}
 			return 'declaration file in runtime dist';
 		}
 
@@ -253,6 +262,121 @@ function scanStyleEntrypointsContent(
 	return issues;
 }
 
+function scanUiV3StyleArtifacts(
+	packageDir: string,
+	packageName: string,
+	packedFilePaths: Set<string>
+): Array<{ path: string; size: number; reason: string }> {
+	if (packageName !== '@c15t/ui') {
+		return [];
+	}
+
+	const sourceDir = join(packageDir, 'src/styles/v3');
+	const styleNames = readdirSync(sourceDir)
+		.filter((file) => file.endsWith('.module.css'))
+		.map((file) => file.replace('.module.css', ''))
+		.sort();
+	const issues: Array<{ path: string; size: number; reason: string }> = [];
+
+	for (const name of styleNames) {
+		for (const extension of ['css', 'js', 'cjs', 'd.ts']) {
+			const path = `dist/styles/v3/${name}.${extension}`;
+			if (!packedFilePaths.has(path)) {
+				issues.push({
+					path,
+					size: 0,
+					reason: 'required v3 style artifact missing',
+				});
+			}
+		}
+
+		for (const stalePath of [
+			`dist/styles/v3/${name}_module.css`,
+			`dist/styles/v3/${name}.module.css`,
+			`dist/styles/v3/${name}.module.js`,
+			`dist/styles/v3/${name}.module.cjs`,
+		]) {
+			if (packedFilePaths.has(stalePath)) {
+				issues.push({
+					path: stalePath,
+					size: 0,
+					reason: 'stale v3 rslib artifact must not be published',
+				});
+			}
+		}
+
+		const cssPath = `dist/styles/v3/${name}.css`;
+		if (packedFilePaths.has(cssPath)) {
+			const filePath = join(packageDir, cssPath);
+			const content = existsSync(filePath)
+				? readFileSync(filePath, 'utf8')
+				: '';
+			if (/^\s*@import\s+["']\.\/animations\//m.test(content)) {
+				issues.push({
+					path: cssPath,
+					size: content.length,
+					reason: 'v3 CSS must inline local animation imports',
+				});
+			}
+			if (!content.includes('c15t-ui-')) {
+				issues.push({
+					path: cssPath,
+					size: content.length,
+					reason: 'v3 CSS must contain generated c15t UI class names',
+				});
+			}
+		}
+
+		const jsPath = `dist/styles/v3/${name}.js`;
+		if (packedFilePaths.has(jsPath)) {
+			const filePath = join(packageDir, jsPath);
+			const content = existsSync(filePath)
+				? readFileSync(filePath, 'utf8')
+				: '';
+			if (!content.includes(`./${name}.css`)) {
+				issues.push({
+					path: jsPath,
+					size: content.length,
+					reason: 'v3 ESM class map must import its CSS side effect',
+				});
+			}
+		}
+
+		const cjsPath = `dist/styles/v3/${name}.cjs`;
+		if (packedFilePaths.has(cjsPath)) {
+			const filePath = join(packageDir, cjsPath);
+			const content = existsSync(filePath)
+				? readFileSync(filePath, 'utf8')
+				: '';
+			if (!content.includes(`./${name}.css`)) {
+				issues.push({
+					path: cjsPath,
+					size: content.length,
+					reason: 'v3 CJS class map must require its CSS side effect',
+				});
+			}
+		}
+
+		const declarationPath = `dist/styles/v3/${name}.d.ts`;
+		if (packedFilePaths.has(declarationPath)) {
+			const filePath = join(packageDir, declarationPath);
+			const content = existsSync(filePath)
+				? readFileSync(filePath, 'utf8')
+				: '';
+			if (!content.includes('export default styles')) {
+				issues.push({
+					path: declarationPath,
+					size: content.length,
+					reason:
+						'v3 style declaration must describe the default class map export',
+				});
+			}
+		}
+	}
+
+	return issues;
+}
+
 const packageDirs = readdirSync(PACKAGES_DIR, { withFileTypes: true })
 	.filter((entry) => entry.isDirectory())
 	.map((entry) => join(PACKAGES_DIR, entry.name))
@@ -277,7 +401,7 @@ for (const packageDir of packageDirs) {
 
 	const blockedFiles = packed.files
 		.map((file) => {
-			const reason = getBlockedReason(file.path);
+			const reason = getBlockedReason(packed.name, file.path);
 			if (!reason) return null;
 			return { ...file, reason };
 		})
@@ -297,6 +421,9 @@ for (const packageDir of packageDirs) {
 	blockedFiles.push(...scanPackedManifestTargets(manifest, packedFilePaths));
 	blockedFiles.push(
 		...scanStyleEntrypointsContent(packageDir, packed.name, packedFilePaths)
+	);
+	blockedFiles.push(
+		...scanUiV3StyleArtifacts(packageDir, packed.name, packedFilePaths)
 	);
 
 	if (blockedFiles.length > 0) {

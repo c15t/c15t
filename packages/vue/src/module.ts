@@ -59,7 +59,7 @@ export default defineNuxtModule<ConsentConfig>({
 			}
 		);
 
-		nuxt.options.build.transpile.push('@c15t/vue', '@c15t/ui');
+		nuxt.options.build.transpile.push('@c15t/vue');
 
 		if (manifestMode === 'server') {
 			addServerHandler({

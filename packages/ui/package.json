@@ -96,10 +96,20 @@
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
 		},
+		"./styles/v3/*.css": "./dist/styles/v3/*.css",
+		"./styles/v3/*": {
+			"types": "./dist/styles/v3/*.d.ts",
+			"style": "./dist/styles/v3/*.css",
+			"import": "./dist/styles/v3/*.js",
+			"require": "./dist/styles/v3/*.cjs",
+			"default": "./dist/styles/v3/*.js"
+		},
 		"./styles/v3/*.module.css": {
-			"types": "./types/styles/v3/*.module.css.d.ts",
-			"import": "./src/styles/v3/*.module.css",
-			"default": "./src/styles/v3/*.module.css"
+			"types": "./dist/styles/v3/*.d.ts",
+			"style": "./dist/styles/v3/*.css",
+			"import": "./dist/styles/v3/*.js",
+			"require": "./dist/styles/v3/*.cjs",
+			"default": "./dist/styles/v3/*.js"
 		}
 	},
 	"main": "./dist/index.cjs",
@@ -118,8 +128,8 @@
 		"types"
 	],
 	"scripts": {
-		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase",
-		"dev": "sh -c 'rslib build --no-dts --no-clean && bun scripts/generate-css-entrypoints.ts && rslib build --watch --no-dts --no-clean'",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts",
+		"dev": "sh -c 'rslib build --no-dts --no-clean && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write .",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run"

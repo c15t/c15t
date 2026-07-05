@@ -5,7 +5,7 @@
 import { computed, Teleport, Transition } from 'vue';
 import { DEFAULT_BANNER_POSITION } from '@c15t/schema/config';
 import type { PolicyUiAction } from '@c15t/schema/types';
-import bannerStyles from '@c15t/ui/styles/v3/consent-banner.module.css';
+import bannerStyles from '@c15t/ui/styles/v3/consent-banner';
 import {
 	useConsentActiveUI,
 	useConsentConfig,
@@ -27,12 +27,8 @@ const DEFAULT_ACTIONS: PolicyUiAction[] = ['reject', 'accept', 'customize'];
 const transitionStyles = bannerStyles as Record<string, string>;
 
 const surface = computed(() => init.value?.policy?.ui?.banner);
-const {
-	actionGroups,
-	direction,
-	primaryActions,
-	shouldFillActions,
-} = useConsentPolicyActions(surface);
+const { actionGroups, direction, primaryActions, shouldFillActions } =
+	useConsentPolicyActions(surface);
 
 const isOpen = computed(() => {
 	const model = init.value?.policy?.model;

@@ -2,9 +2,9 @@
 	setup
 	lang="ts"
 >
-import accordionStyles from '@c15t/ui/styles/v3/accordion.module.css';
-import dialogStyles from '@c15t/ui/styles/v3/consent-dialog.module.css';
-import managerStyles from '@c15t/ui/styles/v3/consent-manager.module.css';
+import accordionStyles from '@c15t/ui/styles/v3/accordion';
+import dialogStyles from '@c15t/ui/styles/v3/consent-dialog';
+import managerStyles from '@c15t/ui/styles/v3/consent-manager';
 import type { PolicyUiAction } from '@c15t/schema/types';
 import {
 	AccordionContent,
@@ -43,12 +43,8 @@ const config = useConsentConfig();
 const save = useConsentSave();
 const DEFAULT_ACTIONS: PolicyUiAction[] = ['reject', 'accept', 'customize'];
 const surface = computed(() => init.value?.policy?.ui?.dialog);
-const {
-	actionGroups,
-	direction,
-	primaryActions,
-	shouldFillActions,
-} = useConsentPolicyActions(surface);
+const { actionGroups, direction, primaryActions, shouldFillActions } =
+	useConsentPolicyActions(surface);
 const managerComponents = computed(
 	() =>
 		config.value.components?.manager as
@@ -87,8 +83,7 @@ async function refreshOverlayFallback() {
 	overlayFallbackStyle.value = {
 		position: 'fixed',
 		inset: '0',
-		backgroundColor:
-			'var(--c15t-overlay, hsla(0, 0%, 0%, 0.5))',
+		backgroundColor: 'var(--c15t-overlay, hsla(0, 0%, 0%, 0.5))',
 		zIndex: '999999998',
 	};
 }

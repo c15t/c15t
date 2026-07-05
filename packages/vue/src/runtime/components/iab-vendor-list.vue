@@ -1,7 +1,10 @@
-<script setup lang="ts">
+<script
+	setup
+	lang="ts"
+>
 import { computed, ref, toValue, watch } from 'vue';
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
-import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog.module.css';
+import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { useConsentInit } from '#c15t/composables';
 import ConsentSwitch from './consent-switch.vue';
 import type { IabProcessedPurpose, IabVendorId } from './iab-purpose-item.vue';
@@ -25,19 +28,24 @@ const searchTerm = ref('');
 
 const iabT = computed(
 	() =>
-		(toValue(init)?.translations?.translations as { iab?: Record<string, unknown> })
-			?.iab as {
-			preferenceCenter?: {
-				vendorList?: {
-					search?: string;
-					showingCount?: string;
-					iabVendorsHeading?: string;
-					customVendorsHeading?: string;
-					privacyPolicy?: string;
-				};
-			};
-			common?: { showingSelectedVendor?: string };
-		} | undefined,
+		(
+			toValue(init)?.translations?.translations as {
+				iab?: Record<string, unknown>;
+			}
+		)?.iab as
+			| {
+					preferenceCenter?: {
+						vendorList?: {
+							search?: string;
+							showingCount?: string;
+							iabVendorsHeading?: string;
+							customVendorsHeading?: string;
+							privacyPolicy?: string;
+						};
+					};
+					common?: { showingSelectedVendor?: string };
+			  }
+			| undefined
 );
 
 const iabVendors = computed(() => {
@@ -53,19 +61,19 @@ const iabVendors = computed(() => {
 	}));
 });
 
-const customVendors = computed(() =>
+const customVendorItems = computed(() =>
 	(props.customVendors ?? []).map((vendor) => ({
 		id: vendor.id,
 		name: vendor.name,
 		policyUrl: vendor.privacyPolicyUrl,
 		isCustom: true,
-	})),
+	}))
 );
 
 const filteredIabVendors = computed(() => {
 	if (props.selectedVendorId !== null) {
 		return iabVendors.value.filter(
-			(vendor) => String(vendor.id) === String(props.selectedVendorId),
+			(vendor) => String(vendor.id) === String(props.selectedVendorId)
 		);
 	}
 
@@ -75,33 +83,33 @@ const filteredIabVendors = computed(() => {
 	}
 
 	return iabVendors.value.filter((vendor) =>
-		vendor.name.toLowerCase().includes(query),
+		vendor.name.toLowerCase().includes(query)
 	);
 });
 
 const filteredCustomVendors = computed(() => {
 	if (props.selectedVendorId !== null) {
-		return customVendors.value.filter(
-			(vendor) => String(vendor.id) === String(props.selectedVendorId),
+		return customVendorItems.value.filter(
+			(vendor) => String(vendor.id) === String(props.selectedVendorId)
 		);
 	}
 
 	const query = searchTerm.value.trim().toLowerCase();
 	if (!query) {
-		return customVendors.value;
+		return customVendorItems.value;
 	}
 
-	return customVendors.value.filter((vendor) =>
-		vendor.name.toLowerCase().includes(query),
+	return customVendorItems.value.filter((vendor) =>
+		vendor.name.toLowerCase().includes(query)
 	);
 });
 
 const totalCount = computed(
-	() => iabVendors.value.length + customVendors.value.length,
+	() => iabVendors.value.length + customVendorItems.value.length
 );
 
 const filteredCount = computed(
-	() => filteredIabVendors.value.length + filteredCustomVendors.value.length,
+	() => filteredIabVendors.value.length + filteredCustomVendors.value.length
 );
 
 function getVendorConsent(vendorId: IabVendorId) {
@@ -119,7 +127,7 @@ watch(
 			const element = document.getElementById(`vendor-${String(vendorId)}`);
 			element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 		}, 100);
-	},
+	}
 );
 </script>
 
@@ -135,8 +143,17 @@ watch(
 					stroke-width="2"
 					aria-hidden="true"
 				>
-					<circle cx="11" cy="11" r="8" />
-					<line x1="21" y1="21" x2="16.65" y2="16.65" />
+					<circle
+						cx="11"
+						cy="11"
+						r="8"
+					/>
+					<line
+						x1="21"
+						y1="21"
+						x2="16.65"
+						y2="16.65"
+					/>
 				</svg>
 				<input
 					v-model="searchTerm"
@@ -147,11 +164,9 @@ watch(
 				/>
 			</div>
 			<p :class="dialogStyles.vendorCount">
-				{{
-					(iabT?.preferenceCenter?.vendorList?.showingCount ?? '')
+				{{ (iabT?.preferenceCenter?.vendorList?.showingCount ?? '')
 						.replace('{filtered}', String(filteredCount))
-						.replace('{total}', String(totalCount))
-				}}
+						.replace('{total}', String(totalCount)) }}
 			</p>
 		</div>
 
@@ -174,8 +189,18 @@ watch(
 					stroke="currentColor"
 					stroke-width="2"
 				>
-					<line x1="18" y1="6" x2="6" y2="18" />
-					<line x1="6" y1="6" x2="18" y2="18" />
+					<line
+						x1="18"
+						y1="6"
+						x2="6"
+						y2="18"
+					/>
+					<line
+						x1="6"
+						y1="6"
+						x2="18"
+						y2="18"
+					/>
 				</svg>
 			</button>
 		</div>
@@ -205,7 +230,10 @@ watch(
 							/>
 						</div>
 					</div>
-					<div v-if="vendor.policyUrl" :class="dialogStyles.vendorListContent">
+					<div
+						v-if="vendor.policyUrl"
+						:class="dialogStyles.vendorListContent"
+					>
 						<a
 							:href="vendor.policyUrl"
 							target="_blank"
@@ -244,7 +272,10 @@ watch(
 							/>
 						</div>
 					</div>
-					<div v-if="vendor.policyUrl" :class="dialogStyles.vendorListContent">
+					<div
+						v-if="vendor.policyUrl"
+						:class="dialogStyles.vendorListContent"
+					>
 						<a
 							:href="vendor.policyUrl"
 							target="_blank"
