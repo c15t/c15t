@@ -6,8 +6,10 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import {
 	applyBenchThrottleProfile,
+	installBenchPerformanceObservers,
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
+	readBenchNavigationTiming,
 } from '@c15t/benchmarking/browser';
 import { browserBudgets } from '@c15t/benchmarking/budgets';
 import {
@@ -285,80 +287,10 @@ async function applyPageProfile(
 ) {
 	const session = await context.newCDPSession(page);
 	await applyBenchThrottleProfile(session, throttleProfile);
-	await page.addInitScript(
-		({ bannerElementTimingName: timingName, bannerRootTestId: testId }) => {
-			const metrics = {
-				cls: 0,
-				longTaskCount: 0,
-				longTaskTotalMs: 0,
-				bannerPaintMs: null as number | null,
-			};
-			Object.defineProperty(window, '__c15tBenchPerfMetrics', {
-				value: metrics,
-				configurable: true,
-			});
-
-			const markBanner = () => {
-				const root = document.querySelector(`[data-testid="${testId}"]`);
-				if (root instanceof HTMLElement) {
-					root.setAttribute('elementtiming', timingName);
-				}
-			};
-
-			try {
-				new PerformanceObserver((list) => {
-					for (const entry of list.getEntries()) {
-						const shift = entry as PerformanceEntry & {
-							value?: number;
-							hadRecentInput?: boolean;
-						};
-						if (!shift.hadRecentInput) {
-							metrics.cls += shift.value ?? 0;
-						}
-					}
-				}).observe({ type: 'layout-shift', buffered: true });
-			} catch {}
-
-			try {
-				new PerformanceObserver((list) => {
-					for (const entry of list.getEntries()) {
-						metrics.longTaskCount += 1;
-						metrics.longTaskTotalMs += entry.duration;
-					}
-				}).observe({ type: 'longtask', buffered: true });
-			} catch {}
-
-			try {
-				new PerformanceObserver((list) => {
-					for (const entry of list.getEntries()) {
-						const elementEntry = entry as PerformanceEntry & {
-							identifier?: string;
-							renderTime?: number;
-							loadTime?: number;
-						};
-						if (elementEntry.identifier === timingName) {
-							metrics.bannerPaintMs =
-								elementEntry.renderTime ||
-								elementEntry.loadTime ||
-								elementEntry.startTime;
-						}
-					}
-				}).observe({ type: 'element', buffered: true });
-			} catch {}
-
-			markBanner();
-			try {
-				new MutationObserver(markBanner).observe(
-					document.documentElement ?? document,
-					{
-						childList: true,
-						subtree: true,
-					}
-				);
-			} catch {}
-		},
-		{ bannerElementTimingName, bannerRootTestId }
-	);
+	await installBenchPerformanceObservers(page, {
+		bannerElementTimingName,
+		bannerRootTestId,
+	});
 }
 
 async function getBannerInFirstHtml(path: string): Promise<boolean> {
@@ -414,18 +346,7 @@ async function collectPageMetrics(
 	await page.waitForTimeout(250);
 
 	const state = await page.evaluate(() => window.__c15tReactBench);
-	const navEntry = await page.evaluate(() => {
-		const nav = performance.getEntriesByType('navigation')[0] as
-			| PerformanceNavigationTiming
-			| undefined;
-		if (!nav) {
-			return null;
-		}
-		return {
-			domContentLoadedMs: nav.domContentLoadedEventEnd,
-			loadEventMs: nav.loadEventEnd,
-		};
-	});
+	const navEntry = await page.evaluate(readBenchNavigationTiming);
 	const scriptEntry = await page.evaluate(() => {
 		const entries = performance
 			.getEntriesByType('resource')
@@ -646,6 +567,16 @@ async function run() {
 							'appScriptCount',
 							'count',
 							groupedSamples.map((sample) => sample.appScriptCount ?? 0)
+						),
+						summarizeMetric(
+							'ttfbMs',
+							'ms',
+							groupedSamples.map((sample) => sample.ttfbMs ?? 0)
+						),
+						summarizeMetric(
+							'htmlDoneMs',
+							'ms',
+							groupedSamples.map((sample) => sample.htmlDoneMs ?? 0)
 						),
 						summarizeMetric(
 							'domContentLoadedMs',

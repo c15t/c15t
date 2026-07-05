@@ -73,6 +73,13 @@ export interface BenchmarkMetadata {
 	initLatencyMs?: number;
 }
 
+export interface BrowserNavigationTimingMetrics {
+	ttfbMs: number | null;
+	htmlDoneMs: number | null;
+	domContentLoadedMs: number | null;
+	loadEventMs: number | null;
+}
+
 export interface BenchmarkResult {
 	schemaVersion: number;
 	suite: BenchmarkSuite;

@@ -52,6 +52,45 @@ export interface BenchPerformanceObserverOptions {
 	bannerRootTestId: string;
 }
 
+export interface BenchNavigationTimingMetrics {
+	ttfbMs: number | null;
+	htmlDoneMs: number | null;
+	domContentLoadedMs: number | null;
+	loadEventMs: number | null;
+}
+
+export function readBenchNavigationTiming(): BenchNavigationTimingMetrics | null {
+	const finiteTimingValue = (value: number): number | null =>
+		Number.isFinite(value) && value >= 0 ? Number(value.toFixed(3)) : null;
+	const nav = performance.getEntriesByType('navigation')[0] as
+		| PerformanceNavigationTiming
+		| undefined;
+	if (!nav) {
+		return null;
+	}
+
+	const navWithActivation = nav as PerformanceNavigationTiming & {
+		activationStart?: number;
+	};
+	const activationStart =
+		typeof navWithActivation.activationStart === 'number' &&
+		navWithActivation.activationStart > 0
+			? navWithActivation.activationStart
+			: 0;
+	const navigationStart = activationStart > 0 ? activationStart : nav.startTime;
+	const responseStart = nav.responseStart - navigationStart;
+	const htmlDone = nav.domContentLoadedEventEnd - navigationStart;
+
+	return {
+		ttfbMs: nav.responseStart > 0 ? finiteTimingValue(responseStart) : null,
+		htmlDoneMs:
+			nav.domContentLoadedEventEnd > 0 ? finiteTimingValue(htmlDone) : null,
+		domContentLoadedMs: finiteTimingValue(nav.domContentLoadedEventEnd),
+		loadEventMs:
+			nav.loadEventEnd > 0 ? finiteTimingValue(nav.loadEventEnd) : null,
+	};
+}
+
 export function parseBenchThrottleProfile(
 	value: string | undefined
 ): BenchThrottleProfileName {

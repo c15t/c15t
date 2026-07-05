@@ -9,6 +9,7 @@ import {
 	installBenchPerformanceObservers,
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
+	readBenchNavigationTiming,
 } from '@c15t/benchmarking/browser';
 import { browserBudgets } from '@c15t/benchmarking/budgets';
 import {
@@ -327,18 +328,7 @@ async function collectScenarioMetrics(
 	await page.waitForTimeout(250);
 
 	const state = await page.evaluate(() => window.__c15tNuxtBench);
-	const navEntry = await page.evaluate(() => {
-		const nav = performance.getEntriesByType('navigation')[0] as
-			| PerformanceNavigationTiming
-			| undefined;
-		if (!nav) {
-			return null;
-		}
-		return {
-			domContentLoadedMs: nav.domContentLoadedEventEnd,
-			loadEventMs: nav.loadEventEnd,
-		};
-	});
+	const navEntry = await page.evaluate(readBenchNavigationTiming);
 	const scriptEntry = await page.evaluate(() => {
 		const entries = performance
 			.getEntriesByType('resource')
@@ -637,6 +627,16 @@ async function run() {
 							'appScriptCount',
 							'count',
 							groupedSamples.map((sample) => sample.appScriptCount ?? 0)
+						),
+						summarizeMetric(
+							'ttfbMs',
+							'ms',
+							groupedSamples.map((sample) => sample.ttfbMs ?? 0)
+						),
+						summarizeMetric(
+							'htmlDoneMs',
+							'ms',
+							groupedSamples.map((sample) => sample.htmlDoneMs ?? 0)
 						),
 						summarizeMetric(
 							'domContentLoadedMs',
