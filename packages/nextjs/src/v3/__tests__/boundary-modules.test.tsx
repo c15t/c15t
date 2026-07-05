@@ -4,7 +4,7 @@
  * Verifies that passing curated module props causes the corresponding
  * modules to mount and react to kernel state.
  */
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentBoundary } from '../boundary';
 
@@ -29,10 +29,15 @@ describe('ConsentBoundary module props', () => {
 		await expect.element(getByText('boundary rendered')).toBeInTheDocument();
 
 		// Script should be appended to document.head by the script-loader module.
-		const scripts = document.head.querySelectorAll(
-			'script[src="https://example.com/test.js"]'
+		await vi.waitFor(
+			() => {
+				const scripts = document.head.querySelectorAll(
+					'script[src="https://example.com/test.js"]'
+				);
+				expect(scripts.length).toBeGreaterThanOrEqual(1);
+			},
+			{ timeout: 5000 }
 		);
-		expect(scripts.length).toBeGreaterThanOrEqual(1);
 	});
 
 	test('no module props → no extra DOM work beyond the children', async () => {

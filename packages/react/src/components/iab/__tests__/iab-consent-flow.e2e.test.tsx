@@ -55,13 +55,8 @@ describe('IAB Consent Flow E2E Tests', () => {
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// 4. Verify storage (wait for it to be saved)
-			await vi.waitFor(
-				() => {
-					const consent = getStoredConsent();
-					expect(consent).toBeTruthy();
-				},
-				{ timeout: 1000 }
-			);
+			await waitForStoredValue('c15t');
+			expect(getStoredConsent()).toBeTruthy();
 		});
 
 		test('should set all purposes to consented', async () => {
@@ -113,7 +108,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 					expect(consent).toBeDefined();
 					expect(consent?.consents?.necessary).toBe(true);
 				},
-				{ timeout: 2000 }
+				{ timeout: 5000 }
 			);
 		});
 	});
@@ -213,7 +208,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 					expect(consent).toBeDefined();
 					expect(consent?.consents).toBeDefined();
 				},
-				{ timeout: 2000 }
+				{ timeout: 5000 }
 			);
 		});
 

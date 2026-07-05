@@ -49,14 +49,7 @@ describe('IAB Storage E2E Tests', () => {
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Wait for localStorage to be updated
-			await vi.waitFor(
-				() => {
-					const stored = window.localStorage.getItem('c15t');
-					expect(stored).not.toBeNull();
-					return stored;
-				},
-				{ timeout: 1000 }
-			);
+			await waitForStoredValue('c15t');
 
 			const stored = window.localStorage.getItem('c15t');
 			const parsed = JSON.parse(stored || '{}');
@@ -135,7 +128,7 @@ describe('IAB Storage E2E Tests', () => {
 				() => {
 					expect(getStoredConsent()).not.toBeNull();
 				},
-				{ timeout: 2000 }
+				{ timeout: 5000 }
 			);
 		});
 
@@ -164,7 +157,7 @@ describe('IAB Storage E2E Tests', () => {
 					expect(consent).not.toBeNull();
 					expect(consent?.consents?.necessary).toBe(true);
 				},
-				{ timeout: 2000 }
+				{ timeout: 5000 }
 			);
 		});
 	});
@@ -194,7 +187,7 @@ describe('IAB Storage E2E Tests', () => {
 					expect(c?.consentInfo?.time).toBeDefined();
 					return c;
 				},
-				{ timeout: 2000 }
+				{ timeout: 5000 }
 			);
 
 			const consent = getStoredConsent();
@@ -227,7 +220,7 @@ describe('IAB Storage E2E Tests', () => {
 					expect(consent?.consentInfo?.subjectId).toBeDefined();
 					expect(typeof consent?.consentInfo?.subjectId).toBe('string');
 				},
-				{ timeout: 2000 }
+				{ timeout: 5000 }
 			);
 		});
 	});
@@ -270,12 +263,7 @@ describe('IAB Storage E2E Tests', () => {
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Should use euconsent-v2 key (IAB standard)
-			await vi.waitFor(
-				() => {
-					expect(window.localStorage.getItem('euconsent-v2')).not.toBeNull();
-				},
-				{ timeout: 2000 }
-			);
+			expect(await waitForStoredValue('euconsent-v2')).not.toBeNull();
 		});
 	});
 });

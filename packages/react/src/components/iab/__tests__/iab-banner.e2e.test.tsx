@@ -159,13 +159,8 @@ describe('IAB Banner E2E Tests', () => {
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Check localStorage for consent - wait for it to be saved
-			await vi.waitFor(
-				() => {
-					const consent = getStoredConsent();
-					expect(consent).toBeTruthy();
-				},
-				{ timeout: 1000 }
-			);
+			await waitForStoredValue('c15t');
+			expect(getStoredConsent()).toBeTruthy();
 		});
 
 		test('should reject all via banner and close', async () => {
