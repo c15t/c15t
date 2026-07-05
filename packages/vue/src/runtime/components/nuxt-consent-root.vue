@@ -9,11 +9,15 @@ import {
 	useConsentKernel,
 } from '../composables';
 import { useHead } from '#imports';
-import { computed, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import ConsentBanner from './consent-banner.vue';
-import ConsentManager from './consent-manager.vue';
-import IabConsentBanner from './iab-consent-banner.vue';
-import IabConsentDialog from './iab-consent-dialog.vue';
+import {
+	LazyConsentManager,
+	LazyIabConsentBanner,
+	LazyIabConsentDialog,
+	prefetchConsentManager,
+	prefetchIabConsentDialog,
+} from './lazy-surfaces';
 
 const props = defineProps<{
 	region?: string;
@@ -52,11 +56,30 @@ useHead(
 			: {};
 	})
 );
+// Mount dialog surfaces once first needed, then keep them mounted (close
+// animations, repeat opens). Chunks are prefetched on idle so the first
+// open never pays network+parse.
+const managerNeeded = ref(false);
+const iabDialogNeeded = ref(false);
+watch(
+	activeUI,
+	(ui) => {
+		if (ui === 'manager') {
+			if (init.value?.gvl) iabDialogNeeded.value = true;
+			else managerNeeded.value = true;
+		}
+	},
+	{ immediate: true }
+);
+onMounted(() => {
+	if (init.value?.gvl) prefetchIabConsentDialog();
+	else prefetchConsentManager();
+});
 </script>
 
 <template>
-	<IabConsentBanner v-if="init?.gvl" />
+	<LazyIabConsentBanner v-if="init?.gvl" />
 	<ConsentBanner v-else />
-	<IabConsentDialog v-if="init?.gvl" />
-	<ConsentManager v-else />
+	<LazyIabConsentDialog v-if="init?.gvl && iabDialogNeeded" />
+	<LazyConsentManager v-else-if="!init?.gvl && managerNeeded" />
 </template>

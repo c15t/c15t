@@ -83,6 +83,9 @@ export default defineNuxtModule<ConsentConfig>({
 		addPlugin(resolver.resolve('./runtime/plugin.nuxt'));
 
 		addComponent({
+			// Global so runtime resolution (<component :is="'ConsentRoot'">)
+			// works too — ConsentRoot is the documented mount-anywhere entry.
+			global: true,
 			name: 'ConsentRoot',
 			filePath: resolver.resolve('./runtime/components/nuxt-consent-root.vue'),
 		});

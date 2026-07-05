@@ -1,9 +1,13 @@
 <script lang="ts" setup>
 import { onMounted, watch } from 'vue';
 import ConsentBanner from './consent-banner.vue';
-import ConsentManager from './consent-manager.vue';
-import IabConsentBanner from './iab-consent-banner.vue';
-import IabConsentDialog from './iab-consent-dialog.vue';
+import {
+	LazyConsentManager,
+	LazyIabConsentBanner,
+	LazyIabConsentDialog,
+	prefetchConsentManager,
+	prefetchIabConsentDialog,
+} from './lazy-surfaces';
 import { useConsentConfig } from '../composables/config';
 import {
 	useConsentActiveUI,
@@ -26,6 +30,9 @@ onMounted(() => {
 	for (const [key, value] of Object.entries(config.value.tokens ?? {})) {
 		document.documentElement.style.setProperty(`--${key}`, String(value));
 	}
+	// Warm the dialog chunk during idle so the first open is instant.
+	if (init.value?.gvl) prefetchIabConsentDialog();
+	else prefetchConsentManager();
 });
 
 watch(
@@ -41,8 +48,8 @@ watch(
 </script>
 
 <template>
-	<IabConsentBanner v-if="init?.gvl && activeUI === 'banner'" />
-	<IabConsentDialog v-else-if="init?.gvl && activeUI === 'manager'" />
+	<LazyIabConsentBanner v-if="init?.gvl && activeUI === 'banner'" />
+	<LazyIabConsentDialog v-else-if="init?.gvl && activeUI === 'manager'" />
 	<ConsentBanner v-else-if="!init?.gvl && activeUI === 'banner'" />
-	<ConsentManager v-else-if="!init?.gvl && activeUI === 'manager'" />
+	<LazyConsentManager v-else-if="!init?.gvl && activeUI === 'manager'" />
 </template>
