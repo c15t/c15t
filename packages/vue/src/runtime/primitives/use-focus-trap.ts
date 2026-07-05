@@ -41,6 +41,11 @@ export function useFocusTrap(
 	active: () => boolean,
 	options: UseFocusTrapOptions
 ) {
+	// SSR: no document, no focus — return an inert handler. The trap
+	// activates on the client via the immediate watch after hydration.
+	if (typeof document === 'undefined') {
+		return { onKeydown: (_event: KeyboardEvent) => {} };
+	}
 	let previouslyFocused: HTMLElement | null = null;
 
 	function focusFirst() {

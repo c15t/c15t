@@ -7,11 +7,11 @@ import { useConsentConfig } from './config';
 import { useConsentInit } from './init';
 import { useConsentKernel, useConsentKernelContext } from './kernel';
 
-export function useStoredConsent() {
+function useStoredConsent() {
 	return useConsentKernelContext().storedConsent;
 }
 
-export function useConsent() {
+function useConsent() {
 	const context = useConsentKernelContext();
 	return computed({
 		get: () => context.snapshot.value.consents,
@@ -21,7 +21,7 @@ export function useConsent() {
 	});
 }
 
-export function useHasConsent() {
+function useHasConsent() {
 	const context = useConsentKernelContext();
 	return computed(() => {
 		const snapshot = context.snapshot.value;
@@ -33,7 +33,7 @@ export function useHasConsent() {
 
 export type ConsentSaveInput = Array<CONSENT_CATEGORY> | 'all' | 'none';
 
-export function useConsentSave() {
+function useConsentSave() {
 	const config = useConsentConfig();
 	const init = useConsentInit();
 	const kernel = useConsentKernel();
@@ -57,3 +57,9 @@ export function useConsentSave() {
 		void kernel.commands.save(next);
 	};
 }
+
+// Single grouped export: unimport/mlly's export scanner skipped ALTERNATING
+// inline `export function` declarations in the built output (kept #2/#4,
+// dropped #1/#3 -> useHasConsent/useStoredConsent undefined at runtime in
+// consumers). One export statement sidesteps the parser bug.
+export { useConsent, useConsentSave, useHasConsent, useStoredConsent };

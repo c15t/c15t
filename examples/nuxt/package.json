@@ -11,5 +11,9 @@
 	"dependencies": {
 		"@c15t/vue": "workspace:*",
 		"nuxt": "^4.4.7"
+	},
+	"devDependencies": {
+		"typescript": "^6.0.3",
+		"vue-tsc": "^3.3.6"
 	}
 }

@@ -90,55 +90,34 @@ export default defineNuxtModule<ConsentConfig>({
 			filePath: resolver.resolve('./runtime/components/nuxt-consent-root.vue'),
 		});
 
-		addImports([
-			{
-				from: resolver.resolve('./runtime/composables/config'),
-				name: 'useConsentConfig',
-			},
-			{
-				from: resolver.resolve('./runtime/composables/init'),
-				name: 'useConsentInit',
-			},
-			{
-				from: resolver.resolve('./runtime/composables/consent'),
-				name: 'useConsent',
-			},
-			{
-				from: resolver.resolve('./runtime/composables/consent'),
-				name: 'useConsentSave',
-			},
-			{
-				from: resolver.resolve('./runtime/composables/iabSelection'),
-				name: 'useConsentIabSelection',
-			},
-			{
-				from: resolver.resolve('./runtime/composables/iabSelection'),
-				name: 'useConsentIabSave',
-			},
-			{
-				from: resolver.resolve('./runtime/composables/language'),
-				name: 'useConsentLanguage',
-			},
-			{
-				from: resolver.resolve('./runtime/composables/activeUI'),
-				name: 'useConsentActiveUI',
-			},
-			{
-				from: resolver.resolve('./runtime/composables/component'),
-				name: 'useConsentComponent',
-			},
-			{
-				from: resolver.resolve('./runtime/composables/region'),
-				name: 'useRequestRegion',
-			},
-			{
-				from: resolver.resolve('./runtime/composables/kernel'),
-				name: 'useConsentKernel',
-			},
-			{
-				from: resolver.resolve('./runtime/composables/kernel'),
-				name: 'useConsentSnapshot',
-			},
-		]);
+		// Auto-import every public composable from the index entry. A single
+		// resolvable `from` avoids unimport's per-file registry quirks (three
+		// names registered from per-file paths were silently dropped — see
+		// examples/nuxt regression: useHasConsent undefined at runtime).
+		const composablesEntry = ['index.ts', 'index.js']
+			.map((file) => resolver.resolve(`./runtime/composables/${file}`))
+			.find((path) => existsSync(path)) as string;
+		addImports(
+			[
+				'useConsentConfig',
+				'useConsentInit',
+				'useConsent',
+				'useConsentSave',
+				'useHasConsent',
+				'useStoredConsent',
+				'useConsentKernel',
+				'useConsentSnapshot',
+				'useConsentIabSelection',
+				'useConsentIabSave',
+				'useConsentLanguage',
+				'useConsentActiveUI',
+				'useConsentComponent',
+				'useRequestRegion',
+			].map((name) => ({ from: composablesEntry, name }))
+		);
+		// Note: unimport's generated .nuxt/imports.d.ts omits
+		// useHasConsent/useStoredConsent even though the runtime registry
+		// (imports:context) contains them and `nuxt typecheck` passes —
+		// cosmetic generator quirk, tracked upstream-worthy.
 	},
 });
