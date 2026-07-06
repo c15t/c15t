@@ -17,9 +17,13 @@ raw inputs (headers, cookies), never to interpret them. Where practical, add a
 conformance/enforcement test so drift fails CI — the slot-contract tests and
 the cookie fix are the pattern.
 
-**Status: findings below are OPEN (audit only — no consolidation landed yet).**
-Suggested order: #1 with a cross-framework conformance case, then #2/#3/#4 (the
-highs), then the mediums. Multi-package refactor → dedicated branch/worktree.
+**Status: ALL 8 FINDINGS RESOLVED (2026-07-06, same day).** #1-#3 landed in
+`7a358a37` (canonical geo/language/GPC extractor in schema with x-c15t-first
+precedence pinned by test; shared resolveBackendURL); #4-#8 in the following
+commit (shared init fold, subject-body builder, React i18n deep-merge,
+buildDefaultOptInPolicy, Vue policy-action delegation). Framework-native
+acquisition retained throughout. The findings below are kept as the record of
+what drift looked like.
 
 ---
 
