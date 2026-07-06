@@ -176,9 +176,48 @@ Some integrations — Google Tag Manager is the clearest example — load immedi
 
 Loading the RudderStack SDK does not provide that guarantee on its own: once loaded normally it writes its `anonymousId` cookie and delivers events to your data plane, and the `consent()` API filters which downstream *destinations* receive those events rather than preventing collection. Even RudderStack's pre-consent mode defaults to `events.delivery: 'immediate'`, which still sends pre-decision events. "Loaded but consent-filtered" is still collection, so c15t treats blocking the load as the only default that reliably honors a missing or denied `measurement` consent.
 
-RudderStack v3 does offer a pre-consent mode (`preConsent` load options with storage disabled and buffered delivery) designed for CMP integrations, which would allow a GTM-style flow: load the SDK inert, then map c15t categories to RudderStack consent IDs and flush the buffer once consent is granted. c15t may add that as an explicit opt-in in a future release; it is not the default because it runs vendor code before consent and depends on vendor-side configuration (consent IDs on every destination) that c15t cannot verify from the browser.
+RudderStack v3 does offer a pre-consent mode (`preConsent` load options with storage disabled and buffered delivery) designed for CMP integrations, which allows a GTM-style flow. c15t supports it as an explicit opt-in — see below. It is not the default because it runs vendor code before consent and depends on vendor-side configuration (consent IDs on every destination) that c15t cannot verify from the browser.
 
 The same reasoning applies to the other customer-data-platform helpers (Segment, Hightouch): their consent surfaces are destination filters, not collection gates, so those helpers block the load too.
+
+### Opt-in: pre-consent mode with consent ID mapping
+
+Pass `consentManagement` to make c15t the consent provider for RudderStack's pre-consent flow:
+
+```ts
+import { rudderstack } from '@c15t/scripts/rudderstack';
+
+rudderstack({
+  writeKey: 'WRITE_KEY',
+  dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
+  consentManagement: {
+    // c15t category → RudderStack consent IDs (from your destination settings)
+    mapping: {
+      measurement: ['product-analytics'],
+      marketing: ['ad-destinations'],
+    },
+  },
+});
+```
+
+In this mode:
+
+- The SDK loads immediately for every visitor, but **inert**: `preConsent` is enabled with storage strategy `none` (no cookies, no localStorage) and buffered event delivery — nothing reaches your data plane before a consent decision.
+- On every consent decision and change, c15t calls `rudderanalytics.consent()` with `allowedConsentIds`/`deniedConsentIds` partitioned from your mapping. The initial signal is queued before the SDK loads, so consent state is known the moment the SDK initializes.
+- Consent revocation re-signals with the denied IDs instead of unloading the script.
+
+**Event attribution.** This is the reason to opt in: events fired before the user interacts with the consent banner (the initial `page()` call, early product events) are buffered and delivered once consent is granted, so consenting users keep their full journey. In the default blocked-load mode those pre-consent events are simply lost. If you want session stitching across the consent boundary as well, pass your own `preConsent` in `loadOptions` with storage strategy `'session'` — c15t keeps your storage choice but always forces `preConsent.enabled`, buffered event delivery, and the `custom` consent provider, since any of those falling back to SDK defaults would leak pre-consent events.
+
+**Requirements and caveats:**
+
+- Every destination in your RudderStack workspace must be assigned the consent IDs used in the mapping. Destinations without consent IDs receive events regardless of consent — that is RudderStack behavior c15t cannot detect or prevent from the browser.
+- Users who never consent have their buffered events discarded; nothing is persisted for them.
+- The daily [script vendor monitor](https://github.com/c15t/c15t/issues/899) probes this mode against the live SDK: it loads RudderStack with denied consent in a real browser and asserts zero data plane requests and zero `rl_*` storage, so a vendor-side change to pre-consent semantics is caught automatically.
+
+### Choosing a consent model for CDPs
+
+- **Default (blocked load)** — strictest interpretation of consent; no vendor code runs pre-consent. Pre-consent events are lost. Right when compliance posture outweighs attribution.
+- **Pre-consent mode (`consentManagement`)** — vendor-sanctioned CMP flow; pre-consent events are buffered and attributed for consenting users. Requires disciplined destination consent-ID configuration and accepts vendor code running before consent, with the live monitor verifying its inertness daily.
 
 ## Tracking events in your app
 

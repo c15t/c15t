@@ -771,15 +771,31 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 	{
 		vendor: 'rudderstack',
 		tier: 'full',
+		// Probes the opt-in pre-consent mode — the riskier surface, since the
+		// SDK loads for every visitor. The default blocked-load mode is covered
+		// by the jsdom contract tests. The fake data plane host doubles as the
+		// collection violation list: any request to it under denied consent
+		// proves the buffered pre-consent state leaked.
 		createScript: () =>
 			rudderstack({
 				writeKey: 'C15TFAKE',
 				dataPlaneUrl: 'https://c15t-live-probe.invalid',
-				loadOptions: {
-					useBeacon: true,
+				consentManagement: {
+					mapping: {
+						measurement: ['c15t-measurement'],
+						marketing: ['c15t-marketing'],
+					},
 				},
 			}),
 		loaderUrlSubstring: 'cdn.rudderlabs.com/v3/modern/rsa.min.js',
+		deniedConsentProbe: {
+			collectUrlSubstrings: ['c15t-live-probe.invalid'],
+			// rl_* covers cookies; rudder* covers the SDK's localStorage keys
+			// (rudder_<writeKey> batch queues and friends).
+			storagePrefixes: ['rl_', 'rudder'],
+			notes:
+				'Pre-consent mode: the SDK loads inert with buffered delivery and storage strategy none; any data-plane request or rl_* storage under denied consent is a violation.',
+		},
 		bootstrapCheck: () => {
 			const rudderanalytics = (window as RudderStackWindow).rudderanalytics;
 
