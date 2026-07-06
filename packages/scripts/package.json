@@ -14,6 +14,7 @@
 		"google-tag",
 		"ga4",
 		"google-ads",
+		"adobe-analytics",
 		"meta-pixel",
 		"posthog",
 		"pirsch",
@@ -41,6 +42,11 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
+		"./adobe-analytics": {
+			"types": "./dist-types/vendors/analytics/adobe-analytics.d.ts",
+			"import": "./dist/vendors/analytics/adobe-analytics.js",
+			"require": "./dist/vendors/analytics/adobe-analytics.cjs"
+		},
 		"./ahrefs-analytics": {
 			"types": "./dist-types/vendors/analytics/ahrefs-analytics.d.ts",
 			"import": "./dist/vendors/analytics/ahrefs-analytics.js",

@@ -72,7 +72,9 @@ export type TestWindow = Window &
 			hjsv: number;
 		};
 		_paq?: unknown[];
+		_satellite?: Record<string, unknown>;
 		_snaptr?: SnapchatQueueStub;
+		adobeDataLayer?: unknown[];
 		analytics?: unknown[] & Record<string, (...args: unknown[]) => void>;
 		clarity?: ((...args: unknown[]) => void) & {
 			q?: unknown[][];
@@ -199,7 +201,9 @@ function resetVendorGlobals() {
 		'_fbq',
 		'_hjSettings',
 		'_paq',
+		'_satellite',
 		'_snaptr',
+		'adobeDataLayer',
 		'analytics',
 		'clarity',
 		'dataLayer',

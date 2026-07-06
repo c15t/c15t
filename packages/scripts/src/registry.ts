@@ -127,6 +127,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'adobeAnalytics',
+		vendor: 'adobe-analytics',
+		label: 'Adobe Analytics',
+		hint: 'Adobe Experience Platform tags',
+		docsSlug: 'adobe-analytics',
+		packageSubpath: 'adobe-analytics',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'cloudflareWebAnalytics',
 		vendor: 'cloudflare-web-analytics',
 		label: 'Cloudflare Web Analytics',
