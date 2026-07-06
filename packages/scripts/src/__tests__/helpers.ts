@@ -276,6 +276,8 @@ function cleanupMockBrowser() {
 	const globalRef = getTestGlobal();
 	vi.unstubAllGlobals();
 	delete globalRef.dataLayer;
+	delete globalRef.adobeDataLayer;
+	delete globalRef._satellite;
 	delete globalRef.gtag;
 	delete globalRef._paq;
 	delete globalRef.mixpanel;

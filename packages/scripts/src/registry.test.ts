@@ -36,6 +36,10 @@ import {
 } from './vendors/ads-and-pixels/tiktok-pixel';
 import { xPixel, xPixelManifest } from './vendors/ads-and-pixels/x-pixel';
 import {
+	adobeAnalytics,
+	adobeAnalyticsManifest,
+} from './vendors/analytics/adobe-analytics';
+import {
 	ahrefsAnalytics,
 	ahrefsAnalyticsManifest,
 } from './vendors/analytics/ahrefs-analytics';
@@ -124,6 +128,17 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://analytics.ahrefs.com/analytics.js',
+		},
+	},
+	adobeAnalytics: {
+		script: adobeAnalytics({
+			scriptUrl:
+				'https://assets.adobedtm.com/c15tfake/c15tfake/launch-c15tfake.min.js',
+		}),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://assets.adobedtm.com/c15tfake/c15tfake/launch-c15tfake.min.js',
 		},
 	},
 	cloudflareWebAnalytics: {
@@ -351,6 +366,7 @@ const vendorManifests = [
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,
+	adobeAnalyticsManifest,
 	cloudflareWebAnalyticsManifest,
 	clearbitManifest,
 	clarityManifest,

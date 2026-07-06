@@ -18,6 +18,7 @@ import { redditPixel } from '../src/vendors/ads-and-pixels/reddit-pixel';
 import { snapchatPixel } from '../src/vendors/ads-and-pixels/snapchat-pixel';
 import { tiktokPixel } from '../src/vendors/ads-and-pixels/tiktok-pixel';
 import { xPixel } from '../src/vendors/ads-and-pixels/x-pixel';
+import { adobeAnalytics } from '../src/vendors/analytics/adobe-analytics';
 import { ahrefsAnalytics } from '../src/vendors/analytics/ahrefs-analytics';
 import { clearbit } from '../src/vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from '../src/vendors/analytics/cloudflare-web-analytics';
@@ -82,6 +83,10 @@ type XPixelRuntime = Window['twq'] & {
 	queue?: unknown[];
 };
 
+type AdobeAnalyticsWindow = Window & {
+	adobeDataLayer?: unknown[];
+};
+
 /**
  * Probe configs for every built-in integration, ordered by registry vendor id.
  */
@@ -144,6 +149,32 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				typeof window.AhrefsAnalytics?.sendEvent === 'function',
 				'window.AhrefsAnalytics.sendEvent present after loader executed'
 			),
+	},
+	{
+		vendor: 'adobe-analytics',
+		// Adobe Tags embed URLs are property-specific. Placeholder paths on the
+		// real host return 404 and can be ORB-filtered by Chromium, so the probe
+		// validates consent gating, bootstrap, and endpoint reachability only.
+		// Full-tier coverage needs a real Launch property embed URL from a repo
+		// secret as a follow-up.
+		tier: 'loader-only',
+		createScript: () =>
+			adobeAnalytics({
+				scriptUrl:
+					'https://assets.adobedtm.com/c15tfake/c15tfake/launch-c15tfake.min.js',
+			}),
+		loaderUrlSubstring:
+			'assets.adobedtm.com/c15tfake/c15tfake/launch-c15tfake.min.js',
+		bootstrapCheck: () => {
+			const adobeWindow = window as AdobeAnalyticsWindow;
+
+			return check(
+				Array.isArray(adobeWindow.adobeDataLayer),
+				'window.adobeDataLayer array seeded before load'
+			);
+		},
+		notes:
+			'Placeholder Adobe Tags embed paths return HTTP 404 from assets.adobedtm.com; runtime globals such as window._satellite require a real property.',
 	},
 	{
 		vendor: 'cloudflare-web-analytics',
