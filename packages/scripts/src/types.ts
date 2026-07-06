@@ -243,8 +243,12 @@ export type ManifestStep =
  * Consent signal type determines how consent state is communicated to the vendor.
  *
  * - `'gtag'` — Google Consent Mode pattern: calls `gtag('consent', 'default'|'update', state)`
+ * - `'rudderstack'` — RudderStack consent-management pattern: calls
+ *   `rudderanalytics.consent({ consentManagement: { enabled, provider: 'custom',
+ *   allowedConsentIds, deniedConsentIds } })` with the mapping's consent IDs
+ *   partitioned by the current c15t consent state
  */
-export type ConsentSignalType = 'gtag';
+export type ConsentSignalType = 'gtag' | 'rudderstack';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vendor Manifest — declarative vendor integration definition

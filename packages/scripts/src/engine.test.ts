@@ -843,6 +843,59 @@ describe('scripts engine', () => {
 		expect(liveTrack).toHaveBeenCalledWith('Signup');
 
 		delete globalRef.vendorQueue;
+
+	it('partitions consent IDs for the rudderstack consent signal', () => {
+		const globalRef = globalThis as TestGlobal;
+		const consentCalls: unknown[][] = [];
+		globalRef.rudderanalytics = {
+			consent: (...args: unknown[]) => {
+				consentCalls.push(args);
+			},
+		};
+
+		const manifest = createManifest({
+			vendor: 'rudderstack-signal',
+			category: 'measurement',
+			alwaysLoad: true,
+			install: [],
+			consentMapping: {
+				measurement: ['product-analytics'],
+				marketing: ['ad-destinations', 'retargeting'],
+			},
+			consentSignal: 'rudderstack',
+			consentSignalTarget: 'rudderanalytics',
+		});
+
+		const script = resolvedManifestToScript(compileManifest(manifest));
+
+		script.onConsentChange?.(
+			createCallbackInfo({
+				id: script.id,
+				hasConsent: true,
+				consents: {
+					necessary: true,
+					functionality: false,
+					measurement: true,
+					marketing: false,
+					experience: false,
+				},
+			})
+		);
+
+		expect(consentCalls).toEqual([
+			[
+				{
+					consentManagement: {
+						enabled: true,
+						provider: 'custom',
+						allowedConsentIds: ['product-analytics'],
+						deniedConsentIds: ['ad-destinations', 'retargeting'],
+					},
+				},
+			],
+		]);
+
+		delete globalRef.rudderanalytics;
 	});
 
 	it('emits phase and step debug events for manifest execution', () => {

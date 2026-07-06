@@ -519,6 +519,23 @@ function mapConsentState(
 	return result;
 }
 
+function partitionConsentIds(
+	mapping: Record<string, string[]>,
+	consents: ConsentState
+): { allowedConsentIds: string[]; deniedConsentIds: string[] } {
+	const allowedConsentIds: string[] = [];
+	const deniedConsentIds: string[] = [];
+
+	for (const [c15tCategory, consentIds] of Object.entries(mapping)) {
+		const isGranted = (consents as Record<string, boolean>)[c15tCategory];
+		for (const consentId of consentIds) {
+			(isGranted ? allowedConsentIds : deniedConsentIds).push(consentId);
+		}
+	}
+
+	return { allowedConsentIds, deniedConsentIds };
+}
+
 function getConsentSignalSteps(
 	resolvedManifest: ResolvedManifest,
 	mode: 'default' | 'update',
@@ -528,15 +545,45 @@ function getConsentSignalSteps(
 		return [];
 	}
 
-	const mapped = mapConsentState(resolvedManifest.consentMapping, consents);
-
 	switch (resolvedManifest.consentSignal) {
 		case 'gtag': {
+			const mapped = mapConsentState(resolvedManifest.consentMapping, consents);
+
 			return [
 				{
 					type: 'callGlobal',
 					global: resolvedManifest.consentSignalTarget ?? 'gtag',
 					args: ['consent', mode, mapped],
+				},
+			];
+		}
+
+		case 'rudderstack': {
+			// RudderStack's consent() call carries the full allow/deny partition
+			// each time, so the default and update modes share one shape. The
+			// pre-load call is captured by the snippet queue and replayed by the
+			// SDK as its initial consent state. c15t is the CMP, so the provider
+			// is always 'custom'.
+			const partition = partitionConsentIds(
+				resolvedManifest.consentMapping,
+				consents
+			);
+
+			return [
+				{
+					type: 'callGlobal',
+					global: resolvedManifest.consentSignalTarget ?? 'rudderanalytics',
+					method: 'consent',
+					args: [
+						{
+							consentManagement: {
+								enabled: true,
+								provider: 'custom',
+								allowedConsentIds: partition.allowedConsentIds,
+								deniedConsentIds: partition.deniedConsentIds,
+							},
+						},
+					],
 				},
 			];
 		}

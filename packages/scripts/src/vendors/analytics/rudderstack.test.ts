@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
 	createCallbackInfo,
+	deniedConsentState,
 	expectScriptMatchesIntegration,
 	getTestGlobal,
+	grantedMeasurementConsentState,
 	setupScriptHelperTest,
 	toArgumentsArray,
 } from '../../__tests__/helpers';
@@ -161,5 +163,163 @@ describe('rudderstack', () => {
 				dataPlaneUrl: 'http://c15t-live-probe.invalid',
 			})
 		).toThrowError('rudderstack: dataPlaneUrl must be a valid https URL');
+	});
+
+	it('loads inert with buffered events and signals denied IDs in pre-consent mode', () => {
+		const globalRef = getTestGlobal();
+		const script = rudderstack({
+			writeKey: 'WRITE_KEY',
+			dataPlaneUrl: 'https://c15t-live-probe.invalid',
+			consentManagement: {
+				mapping: {
+					measurement: ['product-analytics'],
+					marketing: [' ad-destinations '],
+				},
+			},
+		});
+
+		expect(script.alwaysLoad).toBe(true);
+		expect(script.persistAfterConsentRevoked).toBe(true);
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({ id: script.id, consents: deniedConsentState })
+		);
+		const rudderanalytics = globalRef.rudderanalytics as
+			| RudderStackQueue
+			| undefined;
+
+		// Consent default signal is queued before load(), so the SDK knows the
+		// denied state the moment it replays the queue.
+		expect(rudderanalytics?.[0]).toEqual(
+			toArgumentsArray([
+				'consent',
+				{
+					consentManagement: {
+						enabled: true,
+						provider: 'custom',
+						allowedConsentIds: [],
+						deniedConsentIds: ['product-analytics', 'ad-destinations'],
+					},
+				},
+			])
+		);
+		expect(rudderanalytics?.[1]).toEqual(
+			toArgumentsArray([
+				'load',
+				'WRITE_KEY',
+				'https://c15t-live-probe.invalid',
+				{
+					preConsent: {
+						enabled: true,
+						storage: { strategy: 'none' },
+						events: { delivery: 'buffered' },
+					},
+					consentManagement: {
+						enabled: true,
+						provider: 'custom',
+					},
+				},
+			])
+		);
+	});
+
+	it('signals partitioned consent IDs on consent changes in pre-consent mode', () => {
+		const globalRef = getTestGlobal();
+		const consentCalls: unknown[][] = [];
+		globalRef.rudderanalytics = {
+			consent: (...args: unknown[]) => {
+				consentCalls.push(args);
+			},
+		};
+
+		const script = rudderstack({
+			writeKey: 'WRITE_KEY',
+			dataPlaneUrl: 'https://c15t-live-probe.invalid',
+			consentManagement: {
+				mapping: {
+					measurement: ['product-analytics'],
+					marketing: ['ad-destinations'],
+				},
+			},
+		});
+
+		script.onConsentChange?.(
+			createCallbackInfo({
+				id: script.id,
+				hasConsent: true,
+				consents: grantedMeasurementConsentState,
+			})
+		);
+
+		expect(consentCalls).toEqual([
+			[
+				{
+					consentManagement: {
+						enabled: true,
+						provider: 'custom',
+						allowedConsentIds: ['product-analytics'],
+						deniedConsentIds: ['ad-destinations'],
+					},
+				},
+			],
+		]);
+	});
+
+	it('lets user preConsent load options win while forcing the custom provider', () => {
+		const globalRef = getTestGlobal();
+		const script = rudderstack({
+			writeKey: 'WRITE_KEY',
+			dataPlaneUrl: 'https://c15t-live-probe.invalid',
+			trackPageView: false,
+			loadOptions: {
+				preConsent: {
+					enabled: true,
+					storage: { strategy: 'session' },
+					events: { delivery: 'buffered' },
+				},
+				consentManagement: { provider: 'oneTrust' },
+			},
+			consentManagement: {
+				mapping: { measurement: ['product-analytics'] },
+			},
+		});
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({ id: script.id, consents: deniedConsentState })
+		);
+		const rudderanalytics = globalRef.rudderanalytics as
+			| RudderStackQueue
+			| undefined;
+
+		expect(rudderanalytics?.[1]).toEqual(
+			toArgumentsArray([
+				'load',
+				'WRITE_KEY',
+				'https://c15t-live-probe.invalid',
+				{
+					preConsent: {
+						enabled: true,
+						storage: { strategy: 'session' },
+						events: { delivery: 'buffered' },
+					},
+					consentManagement: {
+						enabled: true,
+						provider: 'custom',
+					},
+				},
+			])
+		);
+	});
+
+	it('throws for an empty consent mapping', () => {
+		expect(() =>
+			rudderstack({
+				writeKey: 'WRITE_KEY',
+				dataPlaneUrl: 'https://c15t-live-probe.invalid',
+				consentManagement: { mapping: { measurement: ['   '] } },
+			})
+		).toThrowError(
+			'rudderstack: consentManagement.mapping must map at least one c15t category to a non-empty list of RudderStack consent IDs'
+		);
 	});
 });

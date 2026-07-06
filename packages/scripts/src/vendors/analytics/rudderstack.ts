@@ -194,9 +194,11 @@ export interface RudderStackApi {
 	 * @returns The RudderStack runtime or a promise-like value from the SDK.
 	 *
 	 * @remarks
-	 * This API is for RudderStack's consent-management flow. It is not treated
-	 * as a c15t revocation hook; c15t unloads the SDK when measurement consent
-	 * is revoked.
+	 * This API is for RudderStack's consent-management flow. In the default
+	 * (blocked-load) mode it is not a c15t revocation hook; c15t unloads the
+	 * SDK when measurement consent is revoked. In the opt-in pre-consent mode
+	 * (`consentManagement` option) c15t calls it with the mapped consent IDs on
+	 * every consent decision and change.
 	 */
 	consent: (consentOptions?: Record<string, unknown>) => unknown;
 	/**
@@ -282,6 +284,48 @@ export const rudderstackManifest = {
 	],
 } as const satisfies VendorManifest;
 
+/**
+ * c15t consent categories accepted by the RudderStack consent mapping.
+ */
+export type RudderStackConsentCategory =
+	| 'necessary'
+	| 'functionality'
+	| 'experience'
+	| 'measurement'
+	| 'marketing';
+
+/**
+ * Opt-in pre-consent mode configuration.
+ *
+ * When provided, the SDK loads immediately for every visitor in RudderStack's
+ * pre-consent state (no persistent storage, events buffered in memory) and
+ * c15t signals consent decisions through `rudderanalytics.consent()` with the
+ * mapped consent IDs. This preserves pre-consent event attribution for users
+ * who go on to consent, at the cost of running vendor code before consent.
+ *
+ * Every destination in your RudderStack workspace must carry the consent IDs
+ * used here — c15t cannot verify that configuration from the browser, which is
+ * why this mode is opt-in and blocking the load stays the default.
+ */
+export interface RudderStackConsentManagementOptions {
+	/**
+	 * c15t consent category → RudderStack consent IDs.
+	 *
+	 * IDs come from your RudderStack destination consent settings. Categories
+	 * granted in c15t contribute their IDs to `allowedConsentIds`; everything
+	 * else lands in `deniedConsentIds`.
+	 *
+	 * @example
+	 * ```ts
+	 * {
+	 *   measurement: ['product-analytics'],
+	 *   marketing: ['ad-destinations'],
+	 * }
+	 * ```
+	 */
+	mapping: Partial<Record<RudderStackConsentCategory, string[]>>;
+}
+
 export interface RudderStackOptions {
 	/**
 	 * RudderStack source write key.
@@ -292,6 +336,16 @@ export interface RudderStackOptions {
 	 * RudderStack HTTPS data plane URL.
 	 */
 	dataPlaneUrl: string;
+
+	/**
+	 * Opt into RudderStack's pre-consent mode with c15t as the consent
+	 * provider instead of blocking the SDK load until consent.
+	 *
+	 * Defaults to `undefined`, which keeps the safe default: the SDK does not
+	 * load until `measurement` consent is granted. See
+	 * {@link RudderStackConsentManagementOptions} for the tradeoffs.
+	 */
+	consentManagement?: RudderStackConsentManagementOptions;
 
 	/**
 	 * Optional JSON-serializable RudderStack `load()` options.
@@ -348,6 +402,92 @@ function validateOptionalHttpsScriptUrl(
 	return scriptUrl;
 }
 
+function isJsonObjectValue(value: unknown): value is JsonObject {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function validateConsentMapping(
+	consentManagement: RudderStackConsentManagementOptions
+): Record<string, string[]> {
+	const normalized: Record<string, string[]> = {};
+
+	for (const [category, ids] of Object.entries(consentManagement.mapping)) {
+		if (!Array.isArray(ids)) {
+			throw new Error(
+				`rudderstack: consentManagement.mapping.${category} must be an array of consent IDs`
+			);
+		}
+
+		const trimmed = ids
+			.map((id) => {
+				if (typeof id === 'string') {
+					return id.trim();
+				}
+				return '';
+			})
+			.filter((id) => id.length > 0);
+
+		// A declared category with no usable IDs would silently leave its
+		// destinations receiving events regardless of consent — reject loudly.
+		if (trimmed.length === 0) {
+			throw new Error(
+				`rudderstack: consentManagement.mapping.${category} is declared but contains no valid consent IDs`
+			);
+		}
+
+		normalized[category] = trimmed;
+	}
+
+	if (Object.keys(normalized).length === 0) {
+		throw new Error(
+			'rudderstack: consentManagement.mapping must map at least one c15t category to a non-empty list of RudderStack consent IDs'
+		);
+	}
+
+	return normalized;
+}
+
+function buildPreConsentLoadOptions(
+	loadOptions: RudderStackLoadOptions
+): RudderStackLoadOptions {
+	let userConsentManagement: JsonObject = {};
+	if (isJsonObjectValue(loadOptions.consentManagement)) {
+		userConsentManagement = loadOptions.consentManagement;
+	}
+
+	let userPreConsent: JsonObject = {};
+	if (isJsonObjectValue(loadOptions.preConsent)) {
+		userPreConsent = loadOptions.preConsent;
+	}
+
+	// Storage strategy 'none' is the conservative default; a user preConsent
+	// may relax it (for example 'session' for session stitching).
+	let storage: JsonObject = { strategy: 'none' };
+	if (isJsonObjectValue(userPreConsent.storage)) {
+		storage = userPreConsent.storage;
+	}
+
+	return {
+		...loadOptions,
+		// Deep-merged so a partial user preConsent can never drop the
+		// safety-critical fields: enabled stays true and delivery stays
+		// 'buffer' — the SDK's only other DeliveryType, 'immediate', would
+		// send pre-consent events to the data plane.
+		preConsent: {
+			...userPreConsent,
+			enabled: true,
+			storage,
+			events: { delivery: 'buffer' },
+		},
+		consentManagement: {
+			...userConsentManagement,
+			enabled: true,
+			provider: 'custom',
+		},
+	};
+
+}
+
 function validateDataPlaneUrl(dataPlaneUrl: unknown): string {
 	const normalized = validateRequiredString(dataPlaneUrl, 'dataPlaneUrl');
 	let parsed: URL;
@@ -377,9 +517,16 @@ function validateDataPlaneUrl(dataPlaneUrl: unknown): string {
  *
  * @remarks
  * RudderStack collects customer behavior and sends it to destinations through
- * your configured data plane. c15t gates the browser SDK on `measurement`
- * consent and unloads it when that consent is revoked. `loadOptions` is passed
- * directly as the third `load()` argument and must be JSON-serializable.
+ * your configured data plane. By default c15t gates the browser SDK on
+ * `measurement` consent and unloads it when that consent is revoked.
+ * `loadOptions` is passed directly as the third `load()` argument and must be
+ * JSON-serializable.
+ *
+ * Pass `consentManagement` to opt into RudderStack's pre-consent mode instead:
+ * the SDK loads immediately with no persistent storage and buffered events,
+ * and c15t signals every consent decision through `rudderanalytics.consent()`
+ * with your mapped consent IDs — preserving pre-consent event attribution for
+ * users who consent. Requires consent IDs on every RudderStack destination.
  *
  * @example
  * ```ts
@@ -397,6 +544,7 @@ function validateDataPlaneUrl(dataPlaneUrl: unknown): string {
 export function rudderstack({
 	writeKey,
 	dataPlaneUrl,
+	consentManagement,
 	loadOptions = {},
 	trackPageView = true,
 	scriptUrl,
@@ -405,11 +553,29 @@ export function rudderstack({
 	const normalizedDataPlaneUrl = validateDataPlaneUrl(dataPlaneUrl);
 
 	let manifest: VendorManifest = rudderstackManifest;
+	let resolvedLoadOptions = loadOptions;
+
+	if (consentManagement) {
+		const consentMapping = validateConsentMapping(consentManagement);
+
+		// Pre-consent mode: the SDK loads immediately but inert (no persistent
+		// storage, buffered events) and c15t signals consent decisions through
+		// rudderanalytics.consent() — queued before load, live afterwards.
+		manifest = {
+			...manifest,
+			alwaysLoad: true,
+			persistAfterConsentRevoked: true,
+			consentMapping,
+			consentSignal: 'rudderstack',
+			consentSignalTarget: 'rudderanalytics',
+		} satisfies VendorManifest;
+		resolvedLoadOptions = buildPreConsentLoadOptions(loadOptions);
+	}
 
 	if (!trackPageView) {
 		manifest = {
-			...rudderstackManifest,
-			install: rudderstackManifest.install.filter(
+			...manifest,
+			install: manifest.install.filter(
 				(step) =>
 					!(
 						step.type === 'callGlobal' &&
@@ -422,7 +588,7 @@ export function rudderstack({
 
 	return resolveManifest(manifest, {
 		dataPlaneUrl: normalizedDataPlaneUrl,
-		loadOptions,
+		loadOptions: resolvedLoadOptions,
 		writeKey: normalizedWriteKey,
 		scriptUrl: resolveScriptUrl(
 			validateOptionalHttpsScriptUrl(trimToUndefined(scriptUrl)),
