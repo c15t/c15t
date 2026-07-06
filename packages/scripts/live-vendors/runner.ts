@@ -193,9 +193,11 @@ async function probeVendorAttempt(
 		});
 
 		// HTTP routing does not cover WebSockets; refuse every WS connection so
-		// realtime vendor channels cannot bypass the network guard.
-		await context.routeWebSocket('**', () => {
-			// Never connect to the remote server.
+		// realtime vendor channels cannot bypass the network guard. Closing the
+		// routed socket refuses it outright — an empty handler would mock an
+		// open socket instead.
+		await context.routeWebSocket('**', (ws) => {
+			ws.close();
 		});
 
 		const page = await context.newPage();

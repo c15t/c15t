@@ -49,7 +49,13 @@ const SIGNATURE_MARKER_PATTERN = /<!-- c15t-monitor-signature: ([a-z, ]*) -->/;
  * @returns A single-line, backtick-free, length-capped string.
  */
 function sanitizeInline(value: string): string {
-	const flattened = value.replaceAll('`', "'").replace(/\s+/g, ' ').trim();
+	const flattened = value
+		.replaceAll('`', "'")
+		// Neutralize Markdown/HTML syntax that would render outside code spans:
+		// links, images, autolinks, mentions, and issue references.
+		.replace(/[[\]<>*_~#@!\\]/g, (match) => `\\${match}`)
+		.replace(/\s+/g, ' ')
+		.trim();
 
 	if (flattened.length <= 300) {
 		return flattened;
