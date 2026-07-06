@@ -157,6 +157,48 @@ describe('applyInitResponse', () => {
 		});
 	});
 
+	test('provisional policy: empty response still finalizes and derives activeUI', () => {
+		const snap = buildInitialSnapshot({
+			initialPolicy: {
+				id: 'placeholder',
+				model: 'opt-in',
+				ui: { mode: 'banner' },
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+			initialPolicyProvisional: true,
+		});
+		expect(snap.activeUI).toBe('none');
+		expect(snap.policyProvisional).toBe(true);
+
+		const patch = applyInitResponse(snap, {});
+		expect(patch).not.toBeNull();
+		expect(patch?.policyProvisional).toBe(false);
+		expect(patch?.activeUI).toBe('banner');
+	});
+
+	test('provisional policy: applied response finalizes with the resolved policy', () => {
+		const snap = buildInitialSnapshot({
+			initialPolicy: {
+				id: 'placeholder',
+				model: 'opt-in',
+				ui: { mode: 'banner' },
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+			initialPolicyProvisional: true,
+		});
+		const patch = applyInitResponse(snap, {
+			policy: {
+				id: 'resolved',
+				model: 'none',
+				ui: { mode: 'none' },
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+		});
+		expect(patch?.policyProvisional).toBe(false);
+		// The resolved policy says no banner — the placeholder never showed one.
+		expect(patch?.activeUI).toBe('none');
+	});
+
 	test('same-language partial translations deep-merge over current copy', () => {
 		const snap = buildInitialSnapshot({
 			initialTranslations: {

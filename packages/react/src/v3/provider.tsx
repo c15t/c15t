@@ -479,6 +479,13 @@ function createProviderKernel(options: ConsentProviderOptions): ConsentKernel {
 					(buildInlinePolicy(
 						getProviderCategories(options)
 					) as KernelConfig['initialPolicy'])),
+		// The synthetic categories fallback is a placeholder for whatever the
+		// transport's init resolves — mark it provisional so no surface renders
+		// copy/actions that init may replace (mid-read copy swap, CLS, consent
+		// recorded against a placeholder policy). Real initial policies
+		// (prefetch/SSR/offline config) stay authoritative and render at once.
+		initialPolicyProvisional:
+			enabled !== false && !prefetch.initialPolicy && !offlinePolicy?.policy,
 		initialPolicyDecision:
 			prefetch.initialPolicyDecision ?? offlinePolicy?.policyDecision,
 		initialPolicySnapshotToken:
@@ -711,14 +718,24 @@ function useProviderOptionSync(
 function InitMount({
 	enabled,
 	kernel,
+	eagerInit = false,
 }: {
 	enabled: boolean;
 	kernel: ConsentKernel;
+	eagerInit?: boolean;
 }) {
+	const skippedEagerRef = useRef(false);
 	useEffect(() => {
 		if (!enabled) return;
+		// The provider may have dispatched init at kernel creation (eager,
+		// render-time) — skip this effect's first pass so init fires exactly
+		// once, while later `enabled` flips still re-init.
+		if (eagerInit && !skippedEagerRef.current) {
+			skippedEagerRef.current = true;
+			return;
+		}
 		void kernel.commands.init();
-	}, [enabled, kernel]);
+	}, [enabled, kernel, eagerInit]);
 	return null;
 }
 
@@ -927,7 +944,20 @@ function normalizeIabOptions(
  * the kernel through `useSyncExternalStore`.
  */
 export function ConsentProvider({ options, children }: ConsentProviderProps) {
-	const [kernel] = useState(() => createProviderKernel(options));
+	const [{ kernel, eagerInit }] = useState(() => {
+		const created = createProviderKernel(options);
+		// Kick the init roundtrip off during first client render so its
+		// network latency overlaps hydration instead of following it — with
+		// the banner gated on init resolution (authoritative-only rendering),
+		// dispatching init from a post-hydration effect would serialize
+		// throttled hydration and the backend roundtrip back-to-back.
+		const shouldEagerInit =
+			typeof window !== 'undefined' && getEnabled(options);
+		if (shouldEagerInit) {
+			void created.commands.init();
+		}
+		return { kernel: created, eagerInit: shouldEagerInit };
+	});
 	const enabled = getEnabled(options);
 	const reloadOnConsentRevoked =
 		(options.reloadOnConsentRevoked ??
@@ -980,6 +1010,7 @@ export function ConsentProvider({ options, children }: ConsentProviderProps) {
 			<InitMount
 				enabled={enabled}
 				kernel={kernel}
+				eagerInit={eagerInit}
 			/>
 			{enabled && persistenceOptions ? (
 				<PersistenceMount options={persistenceOptions} />

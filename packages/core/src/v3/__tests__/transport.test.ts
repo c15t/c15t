@@ -354,6 +354,84 @@ describe('kernel transport: init applies response to snapshot', () => {
 		expect(kernel.getSnapshot().model).toBeNull();
 		expect(kernel.getSnapshot().activeUI).toBe('none');
 	});
+
+	test('provisional policy suppresses activeUI until init resolves', async () => {
+		let resolveInit: (value: Record<string, never>) => void = () => {};
+		const transport: KernelTransport = {
+			init() {
+				return new Promise((resolve) => {
+					resolveInit = resolve;
+				});
+			},
+		};
+		const kernel = createConsentKernel({
+			transport,
+			initialPolicy: {
+				id: 'placeholder',
+				model: 'opt-in',
+				ui: { mode: 'banner' },
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+			initialPolicyProvisional: true,
+		});
+
+		// Model is populated for SSR ergonomics, but no surface renders.
+		expect(kernel.getSnapshot().model).toBe('opt-in');
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+		expect(kernel.getSnapshot().policyProvisional).toBe(true);
+
+		const pending = kernel.commands.init();
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+
+		resolveInit({});
+		await pending;
+
+		expect(kernel.getSnapshot().policyProvisional).toBe(false);
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
+	});
+
+	test('provisional policy becomes the compliance fallback when init fails', async () => {
+		const transport: KernelTransport = {
+			async init() {
+				throw new Error('backend unreachable');
+			},
+		};
+		const kernel = createConsentKernel({
+			transport,
+			initialPolicy: {
+				id: 'placeholder',
+				model: 'opt-in',
+				ui: { mode: 'banner' },
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+			initialPolicyProvisional: true,
+		});
+
+		const result = await kernel.commands.init();
+
+		expect(result.ok).toBe(false);
+		// Defaults are the best available policy — show the banner anyway.
+		expect(kernel.getSnapshot().policyProvisional).toBe(false);
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
+	});
+
+	test('provisional policy finalizes when the transport has no init', async () => {
+		const kernel = createConsentKernel({
+			transport: {},
+			initialPolicy: {
+				id: 'placeholder',
+				model: 'opt-in',
+				ui: { mode: 'banner' },
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+			initialPolicyProvisional: true,
+		});
+
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+		await kernel.commands.init();
+		expect(kernel.getSnapshot().policyProvisional).toBe(false);
+		expect(kernel.getSnapshot().activeUI).toBe('banner');
+	});
 });
 
 describe('kernel transport: save flows consents to backend', () => {

@@ -135,6 +135,8 @@ export function buildInitialSnapshot(config: KernelConfig): ConsentSnapshot {
 		gpc: config.initialOverrides?.gpc,
 	});
 
+	const initialPolicyProvisional = config.initialPolicyProvisional ?? false;
+
 	return freezeSnapshot({
 		consents: initialPolicyResult.consents,
 		overrides: { ...(config.initialOverrides ?? {}) },
@@ -153,9 +155,14 @@ export function buildInitialSnapshot(config: KernelConfig): ConsentSnapshot {
 			: null,
 		policySnapshotToken: config.initialPolicySnapshotToken ?? null,
 		model: initialModel,
-		activeUI: initialHasConsented
-			? 'none'
-			: deriveActiveUI(initialModel, initialPolicy),
+		// A provisional policy must not drive a visible surface — the copy
+		// and actions it would render can be replaced by the in-flight init
+		// (mid-read copy swap, CLS, consent recorded against a placeholder).
+		activeUI:
+			initialHasConsented || initialPolicyProvisional
+				? 'none'
+				: deriveActiveUI(initialModel, initialPolicy),
+		policyProvisional: initialPolicyProvisional,
 		policyCategories: initialPolicyResult.policyCategories,
 		policyScopeMode: initialPolicyResult.policyScopeMode,
 		policyBanner: config.initialPolicy?.ui?.banner

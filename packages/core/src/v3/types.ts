@@ -160,6 +160,16 @@ export interface ConsentSnapshot {
 	readonly model: KernelModel;
 	/** Which UI surface should render, if any. */
 	readonly activeUI: KernelActiveUI;
+	/**
+	 * `true` while the policy in the snapshot is a placeholder awaiting the
+	 * transport's init resolution (e.g. the React provider's synthetic
+	 * categories policy in hosted mode). While provisional, `activeUI`
+	 * stays `'none'` — surfaces must not render from copy or actions that
+	 * an in-flight `/init` may replace. Cleared when init completes
+	 * (applied, empty, or failed — a failed init makes the placeholder the
+	 * best available policy and the UI shows it as a compliance fallback).
+	 */
+	readonly policyProvisional: boolean;
 	/** Category allowlist from `policy.consent.categories`. Empty array means "all categories allowed". */
 	readonly policyCategories: readonly AllConsentNames[];
 	/** `strict` drops out-of-policy categories to false; `permissive` leaves them. */
@@ -197,6 +207,14 @@ export interface KernelConfig {
 	initialBranding?: KernelBranding;
 	/** Initial resolved policy (e.g. from prefetch). */
 	initialPolicy?: ResolvedPolicy;
+	/**
+	 * Marks `initialPolicy` as a placeholder pending init resolution.
+	 * Suppresses `activeUI` until init completes so no surface renders
+	 * provisional copy/actions. Defaults to `false`: a policy handed to
+	 * the kernel (prefetch, SSR, offline config) is treated as
+	 * authoritative and renders immediately.
+	 */
+	initialPolicyProvisional?: boolean;
 	/** Initial policy decision. */
 	initialPolicyDecision?: PolicyDecision;
 	/** Initial policy snapshot token. */

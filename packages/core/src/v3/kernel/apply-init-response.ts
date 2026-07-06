@@ -141,9 +141,15 @@ export function applyInitResponse(
 	}
 
 	// If nothing in the response touched the snapshot, return null so the
-	// caller can skip notifying subscribers and emitting `init:applied`.
-	if (Object.keys(patch).length === 0) {
+	// caller can skip notifying subscribers and emitting `init:applied` —
+	// unless the current policy is provisional: init completing (even with
+	// an empty response) finalizes the placeholder so `activeUI` can be
+	// derived and surfaces may render.
+	if (Object.keys(patch).length === 0 && !current.policyProvisional) {
 		return null;
+	}
+	if (current.policyProvisional) {
+		patch.policyProvisional = false;
 	}
 
 	// Derive model / activeUI / policy-filtered categories AFTER the

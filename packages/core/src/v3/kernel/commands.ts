@@ -13,6 +13,7 @@
 
 import { allConsentNames } from '../consent/consent-types';
 import { generateSubjectId } from '../libs/generate-subject-id';
+import { deriveActiveUI } from '../policy';
 import type {
 	ConsentSnapshot,
 	ConsentState,
@@ -26,6 +27,25 @@ import type {
 } from '../types';
 import { applyInitResponse } from './apply-init-response';
 import type { SnapshotPatch } from './patch';
+
+/**
+ * Finalize a provisional policy when init cannot improve on it — the
+ * transport has no `init`, or init failed. The placeholder becomes the
+ * effective policy and `activeUI` is derived so the UI can render it as
+ * the compliance fallback (an unstyled/missing banner is worse than a
+ * default-copy one when the backend is unreachable).
+ */
+function resolveProvisionalPolicy(
+	snapshot: ConsentSnapshot
+): SnapshotPatch | null {
+	if (!snapshot.policyProvisional) return null;
+	return {
+		policyProvisional: false,
+		activeUI: snapshot.hasConsented
+			? 'none'
+			: deriveActiveUI(snapshot.model, snapshot.policy),
+	};
+}
 
 /**
  * Result of resolving a `save()` input against the current snapshot.
@@ -152,6 +172,11 @@ export function buildCommands(deps: CommandDeps) {
 			emit({ type: 'command:init:started' });
 
 			if (!transport?.init) {
+				const finalize = resolveProvisionalPolicy(getSnapshot());
+				if (finalize) {
+					advance(finalize);
+					emit({ type: 'init:applied', snapshot: getSnapshot() });
+				}
 				const result: InitResult = { ok: true };
 				emit({ type: 'command:init:completed', result });
 				return result;
@@ -174,6 +199,11 @@ export function buildCommands(deps: CommandDeps) {
 				return result;
 			} catch (error) {
 				emit({ type: 'command:error', command: 'init', error });
+				const finalize = resolveProvisionalPolicy(getSnapshot());
+				if (finalize) {
+					advance(finalize);
+					emit({ type: 'init:applied', snapshot: getSnapshot() });
+				}
 				const result: InitResult = { ok: false, error };
 				emit({ type: 'command:init:completed', result });
 				return result;

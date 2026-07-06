@@ -58,6 +58,7 @@ export interface SnapshotPatch {
 	policySnapshotToken?: string | null;
 	model?: KernelModel;
 	activeUI?: KernelActiveUI;
+	policyProvisional?: boolean;
 	policyCategories?: AllConsentNames[];
 	policyScopeMode?: PolicyScopeMode;
 	policyBanner?: ConsentSnapshot['policyBanner'];
@@ -101,6 +102,7 @@ export function applyPatch(
 				: patch.policySnapshotToken,
 		model: patch.model === undefined ? current.model : patch.model,
 		activeUI: patch.activeUI === undefined ? current.activeUI : patch.activeUI,
+		policyProvisional: patch.policyProvisional ?? current.policyProvisional,
 		policyCategories:
 			patch.policyCategories === undefined
 				? current.policyCategories
