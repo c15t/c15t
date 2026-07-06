@@ -43,6 +43,7 @@ import {
 	ahrefsAnalytics,
 	ahrefsAnalyticsManifest,
 } from './vendors/analytics/ahrefs-analytics';
+import { amplitude, amplitudeManifest } from './vendors/analytics/amplitude';
 import { clearbit, clearbitManifest } from './vendors/analytics/clearbit';
 import {
 	cloudflareWebAnalytics,
@@ -145,6 +146,14 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://assets.adobedtm.com/c15tfake/c15tfake/launch-c15tfake.min.js',
+		},
+	},
+	amplitude: {
+		script: amplitude({ apiKey: 'AMPLITUDE-CONTRACT' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.amplitude.com/libs/analytics-browser-2.44.4-min.js.gz',
 		},
 	},
 	cloudflareWebAnalytics: {
@@ -400,6 +409,7 @@ const vendorManifests = [
 	gtagManifest,
 	ahrefsAnalyticsManifest,
 	adobeAnalyticsManifest,
+	amplitudeManifest,
 	cloudflareWebAnalyticsManifest,
 	clearbitManifest,
 	clarityManifest,

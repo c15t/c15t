@@ -20,6 +20,10 @@ import { tiktokPixel } from '../src/vendors/ads-and-pixels/tiktok-pixel';
 import { xPixel } from '../src/vendors/ads-and-pixels/x-pixel';
 import { adobeAnalytics } from '../src/vendors/analytics/adobe-analytics';
 import { ahrefsAnalytics } from '../src/vendors/analytics/ahrefs-analytics';
+import {
+	AMPLITUDE_QUEUE_METHODS,
+	amplitude,
+} from '../src/vendors/analytics/amplitude';
 import { clearbit } from '../src/vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from '../src/vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from '../src/vendors/analytics/databuddy';
@@ -94,6 +98,31 @@ type XPixelRuntime = Window['twq'] & {
 
 type AdobeAnalyticsWindow = Window & {
 	adobeDataLayer?: unknown[];
+};
+
+type AmplitudeWindow = Window & {
+	amplitude?: {
+		_q?: Array<{
+			name: string;
+			args: unknown[];
+			resolve: (value: unknown) => void;
+		}>;
+		_iq?: Record<string, unknown>;
+		invoked?: boolean;
+		Identify?: new () => {
+			_q?: Array<{
+				name: string;
+				args: unknown[];
+			}>;
+			set: (property: string, value: unknown) => unknown;
+		};
+		init?: (...args: unknown[]) => unknown;
+		track?: (...args: unknown[]) => unknown;
+		identify?: (...args: unknown[]) => unknown;
+		setUserId?: (...args: unknown[]) => unknown;
+		setOptOut?: (...args: unknown[]) => unknown;
+		flush?: (...args: unknown[]) => unknown;
+	};
 };
 
 type LogRocketWindow = Window & {
@@ -213,6 +242,73 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		},
 		notes:
 			'Placeholder Adobe Tags embed paths return HTTP 404 from assets.adobedtm.com; runtime globals such as window._satellite require a real property.',
+	},
+	{
+		vendor: 'amplitude',
+		tier: 'full',
+		createScript: () =>
+			amplitude({
+				apiKey: 'C15TFAKEAMPLITUDEKEY',
+				initOptions: {
+					autocapture: false,
+					defaultTracking: false,
+					fetchRemoteConfig: false,
+				},
+			}),
+		loaderUrlSubstring: 'cdn.amplitude.com/libs/analytics-browser-',
+		bootstrapCheck: () => {
+			const amplitudeRuntime = (window as AmplitudeWindow).amplitude;
+
+			if (!amplitudeRuntime?._q || !Array.isArray(amplitudeRuntime._q)) {
+				return check(false, 'expected window.amplitude._q queue array');
+			}
+
+			const hasMethods = AMPLITUDE_QUEUE_METHODS.every(
+				(method) => typeof amplitudeRuntime[method] === 'function'
+			);
+
+			amplitudeRuntime.track?.('c15t live probe', {
+				vendor: 'amplitude',
+			});
+			const identify = amplitudeRuntime.Identify
+				? new amplitudeRuntime.Identify().set('probe', true)
+				: undefined;
+			if (identify) {
+				amplitudeRuntime.identify?.(identify);
+			}
+
+			const queuedNames = amplitudeRuntime._q.map((entry) => entry.name);
+
+			return check(
+				hasMethods &&
+					amplitudeRuntime.invoked === true &&
+					JSON.stringify(amplitudeRuntime._iq) === JSON.stringify({}) &&
+					queuedNames.includes('init') &&
+					queuedNames.includes('track') &&
+					queuedNames.includes('identify'),
+				'amplitude method-call queue, invoked marker, _iq registry, init, pre-load track, and pre-load identify present before load'
+			);
+		},
+		runtimeCheck: () => {
+			const amplitudeRuntime = (window as AmplitudeWindow).amplitude;
+			const flushResult = amplitudeRuntime?.flush?.();
+			const hasFlushPromise =
+				typeof flushResult === 'object' &&
+				flushResult !== null &&
+				'promise' in flushResult;
+
+			return check(
+				typeof amplitudeRuntime?.init === 'function' &&
+					typeof amplitudeRuntime.track === 'function' &&
+					typeof amplitudeRuntime.setOptOut === 'function' &&
+					Array.isArray(amplitudeRuntime._q) &&
+					amplitudeRuntime._q.length === 0 &&
+					hasFlushPromise,
+				'amplitude SDK methods present after load, snippet queue drained, and flush returned an SDK promise wrapper'
+			);
+		},
+		notes:
+			'The probe allows only the CDN loader. Follow-up Amplitude collection or remote-config requests are blocked by the runner with empty 204 responses.',
 	},
 	{
 		vendor: 'cloudflare-web-analytics',

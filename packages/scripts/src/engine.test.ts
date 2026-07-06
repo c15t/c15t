@@ -448,6 +448,77 @@ describe('scripts engine', () => {
 		expect(document.head.appendChild).not.toHaveBeenCalled();
 	});
 
+	it('supports methodCall queue formats and queued helper classes', async () => {
+		const manifest = createManifest({
+			vendor: 'method-call-queue',
+			category: 'measurement',
+			bootstrap: [
+				{
+					type: 'setGlobal',
+					name: 'vendorSdk',
+					value: { _q: [] },
+					ifUndefined: true,
+				},
+				{
+					type: 'defineQueueMethods',
+					target: 'vendorSdk',
+					methods: ['track'],
+					queue: { property: '_q' },
+					queueFormat: 'methodCall',
+				},
+				{
+					type: 'defineQueueClass',
+					target: 'vendorSdk',
+					name: 'Identify',
+					methods: ['set'],
+				},
+			],
+			install: [
+				{
+					type: 'loadScript',
+					src: 'https://cdn.example.com/vendor.js',
+				},
+			],
+		});
+
+		const resolved = resolvedManifestToScript(compileManifest(manifest, {}));
+		const globalRef = globalThis as TestGlobal;
+
+		resolved.onBeforeLoad?.(
+			createCallbackInfo({
+				id: resolved.id,
+				consents: grantedMeasurementConsentState,
+			})
+		);
+
+		const sdk = globalRef.vendorSdk as {
+			_q: Array<{
+				name: string;
+				args: unknown[];
+				resolve: (value: unknown) => void;
+			}>;
+			track: (event: string) => Promise<unknown>;
+			Identify: new () => {
+				set: (key: string, value: unknown) => unknown;
+				_q: Array<{ name: string; args: unknown[] }>;
+			};
+		};
+
+		const pending = sdk.track('Signup');
+		expect(sdk._q).toHaveLength(1);
+		expect(sdk._q[0]?.name).toBe('track');
+		expect(sdk._q[0]?.args).toEqual(['Signup']);
+
+		sdk._q[0]?.resolve('replayed');
+		await expect(pending).resolves.toBe('replayed');
+
+		const identify = new sdk.Identify();
+		expect(identify.set('plan', 'pro')).toBe(identify);
+		expect(identify._q).toEqual([{ name: 'set', args: ['plan', 'pro'] }]);
+
+		delete globalRef.vendorSdk;
+	});
+
 	it('runs bootstrap before default consent signaling and setup', () => {
 		const manifest = createManifest({
 			vendor: 'ordered-google',

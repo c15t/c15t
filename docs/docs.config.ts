@@ -261,6 +261,7 @@ const generateDocsConfig = () => {
 							'google-tag',
 							'ahrefs-analytics',
 							'adobe-analytics',
+							'amplitude',
 							'cloudflare-web-analytics',
 							'clearbit',
 							'microsoft-clarity',

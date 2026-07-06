@@ -147,6 +147,33 @@ export interface DefineQueueMethodsStep {
 	queue?:
 		| { global: string; property?: never }
 		| { global?: never; property: string };
+	/**
+	 * Format used for each queued method call.
+	 *
+	 * - `tuple` pushes `[methodName, ...args]`, matching classic array queues.
+	 * - `methodCall` pushes `{ name, args, resolve }` and returns a `Promise`,
+	 *   matching SDK loaders that replay named calls and resolve the original
+	 *   pre-load promise after the real method runs.
+	 *
+	 * @default 'tuple'
+	 */
+	queueFormat?: 'tuple' | 'methodCall';
+}
+
+export interface DefineQueueClassStep {
+	type: 'defineQueueClass';
+	/** Global object that receives the queued helper class. */
+	target: string;
+	/** Constructor property name to define on the target object. */
+	name: string;
+	/**
+	 * Instance property that stores queued helper method calls.
+	 *
+	 * @default '_q'
+	 */
+	queueProperty?: string;
+	/** Helper instance method names to attach to the constructor prototype. */
+	methods: string[];
 }
 
 export type GlobalMethodBehavior =
@@ -191,6 +218,7 @@ export type ManifestStep =
 	| PushToQueueStep
 	| SetGlobalPathStep
 	| DefineQueueMethodsStep
+	| DefineQueueClassStep
 	| DefineGlobalMethodsStep
 	| ConstructGlobalStep;
 
