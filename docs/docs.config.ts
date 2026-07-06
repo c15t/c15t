@@ -275,6 +275,7 @@ const generateDocsConfig = () => {
 							'posthog',
 							'promptwatch',
 							'pirsch',
+							'rudderstack',
 							'segment',
 							'rybbit-analytics',
 							'umami-analytics',

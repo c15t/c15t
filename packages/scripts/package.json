@@ -16,6 +16,7 @@
 		"google-ads",
 		"adobe-analytics",
 		"hightouch",
+		"rudderstack",
 		"logrocket",
 		"meta-pixel",
 		"posthog",
@@ -88,6 +89,11 @@
 			"types": "./dist-types/vendors/analytics/hightouch.d.ts",
 			"import": "./dist/vendors/analytics/hightouch.js",
 			"require": "./dist/vendors/analytics/hightouch.cjs"
+		},
+		"./rudderstack": {
+			"types": "./dist-types/vendors/analytics/rudderstack.d.ts",
+			"import": "./dist/vendors/analytics/rudderstack.js",
+			"require": "./dist/vendors/analytics/rudderstack.cjs"
 		},
 		"./logrocket": {
 			"types": "./dist-types/vendors/analytics/logrocket.d.ts",

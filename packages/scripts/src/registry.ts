@@ -217,6 +217,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'rudderstack',
+		vendor: 'rudderstack',
+		label: 'RudderStack',
+		hint: 'Customer data platform events',
+		docsSlug: 'rudderstack',
+		packageSubpath: 'rudderstack',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'logRocket',
 		vendor: 'logrocket',
 		label: 'LogRocket',

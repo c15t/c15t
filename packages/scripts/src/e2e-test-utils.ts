@@ -123,6 +123,9 @@ export type TestWindow = Window &
 			callQueue?: unknown[][];
 			sendEvent?: (...args: unknown[]) => void;
 		};
+		rudderanalytics?: unknown[] & Record<string, (...args: unknown[]) => void>;
+		rudderAnalyticsBuildType?: string;
+		RudderSnippetVersion?: string;
 		snaptr?: SnapchatQueueStub;
 		ttq?: TikTokQueue;
 		twq?: ((...args: unknown[]) => void) & { queue?: unknown[] };
@@ -229,6 +232,9 @@ function resetVendorGlobals() {
 		'plausible',
 		'posthog',
 		'rdt',
+		'rudderanalytics',
+		'rudderAnalyticsBuildType',
+		'RudderSnippetVersion',
 		'snaptr',
 		'ttq',
 		'twq',

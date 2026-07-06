@@ -258,6 +258,14 @@ function executeStep(step: ManifestStep): void {
 				break;
 			}
 
+			// When the queue lives on the target itself, a non-array target means
+			// the real SDK already replaced the snippet queue (for example a
+			// grant → revoke → grant cycle without a page reload). Redefining the
+			// methods would overwrite live SDK methods with dead stubs.
+			if (!step.queue && !Array.isArray(target)) {
+				break;
+			}
+
 			const targetRecord = target as Record<string, unknown>;
 			for (const methodName of step.methods) {
 				targetRecord[methodName] = (...args: unknown[]) => {

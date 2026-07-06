@@ -80,6 +80,10 @@ import {
 	promptwatchManifest,
 } from './vendors/analytics/promptwatch';
 import {
+	rudderstack,
+	rudderstackManifest,
+} from './vendors/analytics/rudderstack';
+import {
 	rybbitAnalytics,
 	rybbitAnalyticsManifest,
 } from './vendors/analytics/rybbit-analytics';
@@ -211,6 +215,17 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://cdn.hightouch-events.com/browser/release/v1-latest/events.min.js',
+		},
+	},
+	rudderstack: {
+		script: rudderstack({
+			writeKey: 'abc123xyz456',
+			dataPlaneUrl: 'https://c15t-live-probe.invalid',
+		}),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.rudderlabs.com/v3/modern/rsa.min.js',
 		},
 	},
 	logRocket: {
@@ -398,6 +413,7 @@ const vendorManifests = [
 	posthogManifest,
 	promptwatchManifest,
 	pirschManifest,
+	rudderstackManifest,
 	segmentManifest,
 	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,
