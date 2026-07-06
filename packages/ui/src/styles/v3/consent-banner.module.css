@@ -161,7 +161,13 @@
 	.cardShell:not(:global(.headless)) {
 		display: flex;
 		flex-direction: column;
-		width: min(100%, var(--consent-banner-max-width));
+		width: min(calc(100vw - 2rem), var(--consent-banner-max-width));
+	}
+
+	@media (min-width: 640px) {
+		.cardShell:not(:global(.headless)) {
+			width: min(calc(100vw - 3rem), var(--consent-banner-max-width));
+		}
 	}
 
 	:global(.c15t-dark) .card:not(:global(.headless)) {
