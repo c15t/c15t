@@ -142,16 +142,20 @@ export function NextjsV3PrefetchedBenchmarkProvider({
 	scenario: NextjsBenchScenario;
 	ssrData: InitialDataPromise;
 }) {
+	// One provider: the boundary forwards the server-prefetched config as
+	// `options.prefetch` (authoritative → banner in first HTML). The old
+	// wiring nested a second ConsentProvider that shadowed the boundary's
+	// kernel — its banner-in-first-HTML came from the synthetic placeholder
+	// policy, which authoritative-only rendering correctly suppresses.
+	// backendURL keeps direct-init semantics (client refresh via hosted
+	// init); ssrData feeds that first client init without a second fetch.
 	return (
-		<ConsentBoundary config={config}>
-			<ConsentProvider
-				options={{
-					...createOptions(scenario),
-					ssrData,
-				}}
-			>
-				<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
-			</ConsentProvider>
+		<ConsentBoundary
+			backendURL="/api/bench-consent"
+			config={config}
+			options={{ ...createBoundaryOptions(scenario), ssrData }}
+		>
+			<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
 		</ConsentBoundary>
 	);
 }
