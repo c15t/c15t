@@ -269,6 +269,7 @@ const generateDocsConfig = () => {
 							'matomo-analytics',
 							'mixpanel-analytics',
 							'hotjar',
+							'logrocket',
 							'plausible-analytics',
 							'posthog',
 							'promptwatch',

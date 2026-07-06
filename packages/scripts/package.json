@@ -15,6 +15,7 @@
 		"ga4",
 		"google-ads",
 		"adobe-analytics",
+		"logrocket",
 		"meta-pixel",
 		"posthog",
 		"pirsch",
@@ -81,6 +82,11 @@
 			"types": "./dist-types/vendors/analytics/hotjar.d.ts",
 			"import": "./dist/vendors/analytics/hotjar.js",
 			"require": "./dist/vendors/analytics/hotjar.cjs"
+		},
+		"./logrocket": {
+			"types": "./dist-types/vendors/analytics/logrocket.d.ts",
+			"import": "./dist/vendors/analytics/logrocket.js",
+			"require": "./dist/vendors/analytics/logrocket.cjs"
 		},
 		"./google-tag": {
 			"types": "./dist-types/vendors/analytics/google-tag.d.ts",

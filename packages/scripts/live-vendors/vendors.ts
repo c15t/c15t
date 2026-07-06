@@ -26,6 +26,7 @@ import { databuddy } from '../src/vendors/analytics/databuddy';
 import { fathomAnalytics } from '../src/vendors/analytics/fathom-analytics';
 import { gtag } from '../src/vendors/analytics/google-tag';
 import { hotjar } from '../src/vendors/analytics/hotjar';
+import { logRocket } from '../src/vendors/analytics/logrocket';
 import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
 import { clarity } from '../src/vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../src/vendors/analytics/mixpanel-analytics';
@@ -85,6 +86,18 @@ type XPixelRuntime = Window['twq'] & {
 
 type AdobeAnalyticsWindow = Window & {
 	adobeDataLayer?: unknown[];
+};
+
+type LogRocketWindow = Window & {
+	LogRocket?: {
+		init?: unknown;
+		identify?: unknown;
+		track?: unknown;
+		getSessionURL?: unknown;
+		start?: unknown;
+		startNewSession?: unknown;
+		uninstall?: unknown;
+	};
 };
 
 /**
@@ -344,6 +357,37 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		},
 		notes:
 			'Placeholder site ids return an empty 200 JavaScript response from static.hotjar.com; runtime is not asserted.',
+	},
+	{
+		vendor: 'logrocket',
+		tier: 'full',
+		createScript: () =>
+			logRocket({
+				appId: 'c15tfake/c15tfake',
+				initOptions: {
+					dom: {
+						inputSanitizer: true,
+						textSanitizer: true,
+					},
+				},
+			}),
+		loaderUrlSubstring: 'cdn.logrocket.io/LogRocket.min.js',
+		runtimeCheck: () => {
+			const runtime = (window as LogRocketWindow).LogRocket;
+
+			return check(
+				typeof runtime?.init === 'function' &&
+					typeof runtime.identify === 'function' &&
+					typeof runtime.track === 'function' &&
+					typeof runtime.getSessionURL === 'function' &&
+					typeof runtime.start === 'function' &&
+					typeof runtime.startNewSession === 'function' &&
+					typeof runtime.uninstall === 'function',
+				'window.LogRocket init/identify/track/getSessionURL/start/startNewSession/uninstall present after loader executed'
+			);
+		},
+		notes:
+			'The probe allows only the SDK loader. Follow-up logger/ingest/API requests are blocked by the runner with empty 204 responses.',
 	},
 	{
 		vendor: 'matomo-analytics',

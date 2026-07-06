@@ -2,6 +2,7 @@ import { afterEach, vi } from 'vitest';
 import {
 	clearAllScripts,
 	loadScripts,
+	updateScripts,
 } from '../../core/src/libs/script-loader';
 
 export type GoogleTagDataState = {
@@ -92,6 +93,9 @@ export type TestWindow = Window &
 		hj?: ((...args: unknown[]) => void) & { q?: unknown[][] };
 		intercomSettings?: Record<string, unknown>;
 		lintrk?: ((...args: unknown[]) => void) & { q?: unknown[] };
+		LogRocket?: {
+			init: (appId: string, options?: Record<string, unknown>) => void;
+		};
 		mixpanel?: unknown[] & Record<string, (...args: unknown[]) => void>;
 		pirsch?: (
 			eventName: string,
@@ -126,7 +130,7 @@ export type TestWindow = Window &
 		vaq?: unknown[][];
 	};
 
-export { loadScripts };
+export { loadScripts, updateScripts };
 
 export const deniedConsents = {
 	necessary: true,
@@ -214,6 +218,7 @@ function resetVendorGlobals() {
 		'hj',
 		'intercomSettings',
 		'lintrk',
+		'LogRocket',
 		'mixpanel',
 		'pirsch',
 		'pirschClearSession',

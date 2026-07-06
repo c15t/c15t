@@ -55,6 +55,7 @@ import {
 } from './vendors/analytics/fathom-analytics';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
 import { hotjar, hotjarManifest } from './vendors/analytics/hotjar';
+import { logRocket, logRocketManifest } from './vendors/analytics/logrocket';
 import {
 	matomoAnalytics,
 	matomoAnalyticsManifest,
@@ -201,6 +202,14 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://static.hotjar.com/c/hotjar-1234567.js?sv=6',
+		},
+	},
+	logRocket: {
+		script: logRocket({ appId: 'c15tfake/c15tfake' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.logrocket.io/LogRocket.min.js',
 		},
 	},
 	matomoAnalytics: {
@@ -374,6 +383,7 @@ const vendorManifests = [
 	fathomAnalyticsManifest,
 	mixpanelAnalyticsManifest,
 	hotjarManifest,
+	logRocketManifest,
 	matomoAnalyticsManifest,
 	posthogManifest,
 	promptwatchManifest,
