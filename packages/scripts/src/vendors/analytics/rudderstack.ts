@@ -485,7 +485,6 @@ function buildPreConsentLoadOptions(
 			provider: 'custom',
 		},
 	};
-
 }
 
 function validateDataPlaneUrl(dataPlaneUrl: unknown): string {
