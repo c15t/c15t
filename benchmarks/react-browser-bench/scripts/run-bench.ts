@@ -76,6 +76,8 @@ const scenarioFilter =
 
 const allScenarios = [
 	{ name: 'baseline', path: '/baseline' },
+	{ name: 'css-v2-banner-monolith', path: '/css-v2-banner-monolith' },
+	{ name: 'css-v3-banner-modules', path: '/css-v3-banner-modules' },
 	{ name: 'full-ui', path: '/full-ui' },
 	{ name: 'headless', path: '/headless' },
 	{ name: 'react-v3-full', path: '/react-v3-full' },
@@ -130,7 +132,9 @@ async function measureInteractionLatency(
 			);
 			return performance.now() - startedAt;
 		}
+		case 'css-v2-banner-monolith':
 		case 'react-v3-full':
+		case 'css-v3-banner-modules':
 		case 'react-v3-banner-css': {
 			const before = await page.evaluate(
 				() => window.__c15tReactBench?.onConsentSetCount ?? 0

@@ -2,6 +2,8 @@
 
 export type ReactBenchScenario =
 	| 'baseline'
+	| 'css-v2-banner-monolith'
+	| 'css-v3-banner-modules'
 	| 'full-ui'
 	| 'headless'
 	| 'react-v3-banner-css'

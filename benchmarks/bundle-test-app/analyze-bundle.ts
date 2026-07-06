@@ -19,7 +19,9 @@ import {
 
 interface RouteSize {
 	route: string;
-	gzip: number;
+	jsGzip: number;
+	cssGzip: number;
+	totalGzip: number;
 	c15tAddition: number;
 }
 
@@ -30,6 +32,11 @@ const BASE_URL = `http://${HOST}:${PORT}`;
 const ROUTE_TO_SCENARIO: Record<string, string> = {
 	'/': 'baseline',
 	'/core-only': 'core-only',
+	'/css-v2-banner-monolith': 'css-v2-banner-monolith',
+	'/css-v3-banner-modules': 'css-v3-banner-modules',
+	'/css-v2-iab-monolith': 'css-v2-iab-monolith',
+	'/css-v3-iab-modules': 'css-v3-iab-modules',
+	'/css-v3-iab-lazy': 'css-v3-iab-lazy',
 	'/react-headless': 'react-headless',
 	'/react-banner-only': 'react-banner-only',
 	'/react-full': 'react-full',
@@ -89,25 +96,39 @@ async function analyzeRouteSizes() {
 		).filter((scriptPath): scriptPath is string =>
 			Boolean(scriptPath?.startsWith('/_next/'))
 		);
+		const styles = Array.from(
+			html.matchAll(/<link[^>]+href="([^"]+\.css[^"]*)"[^>]*>/g),
+			(match) => match[1]?.split('?')[0]
+		).filter((stylePath): stylePath is string =>
+			Boolean(stylePath?.startsWith('/_next/'))
+		);
 
-		let total = 0;
+		let jsTotal = 0;
 		for (const scriptPath of new Set(scripts)) {
-			total += await getGzipSize(scriptPath);
+			jsTotal += await getGzipSize(scriptPath);
+		}
+
+		let cssTotal = 0;
+		for (const stylePath of new Set(styles)) {
+			cssTotal += await getGzipSize(stylePath);
 		}
 
 		if (routeName === '/') {
-			baselineGzip = total;
+			baselineGzip = jsTotal + cssTotal;
 		}
 
 		routes.push({
 			route: routeName,
-			gzip: total,
+			jsGzip: jsTotal,
+			cssGzip: cssTotal,
+			totalGzip: jsTotal + cssTotal,
 			c15tAddition: 0,
 		});
 	}
 
 	for (const route of routes) {
-		route.c15tAddition = route.route === '/' ? 0 : route.gzip - baselineGzip;
+		route.c15tAddition =
+			route.route === '/' ? 0 : route.totalGzip - baselineGzip;
 	}
 
 	routes.sort((a, b) => a.route.localeCompare(b.route));
@@ -275,7 +296,9 @@ async function main() {
 			environment: getEnvironment(),
 			fixture: routeFixture(route),
 			metrics: [
-				summarizeMetric('gzipSize', 'bytes', [route.gzip]),
+				summarizeMetric('gzipSize', 'bytes', [route.totalGzip]),
+				summarizeMetric('jsGzipSize', 'bytes', [route.jsGzip]),
+				summarizeMetric('cssGzipSize', 'bytes', [route.cssGzip]),
 				summarizeMetric(routeFixture(route).name, 'bytes', [
 					route.c15tAddition,
 				]),
