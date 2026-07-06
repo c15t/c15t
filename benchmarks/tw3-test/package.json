@@ -3,14 +3,15 @@
 	"private": true,
 	"scripts": {
 		"dev": "next dev --port 3121",
-		"build": "next build",
+		"build": "rm -rf .next && next build",
 		"start": "next start --port 3121",
 		"verify:tailwind-override": "node scripts/verify-tailwind-override.mjs"
 	},
 	"dependencies": {
 		"@c15t/benchmarking": "workspace:*",
-		"@c15t/react": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
+		"@c15t/react": "workspace:*",
+		"@c15t/ui": "workspace:*",
 		"next": "15.5.15",
 		"react": "19.2.3",
 		"react-dom": "19.2.3"

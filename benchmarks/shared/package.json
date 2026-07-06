@@ -9,6 +9,7 @@
 		"./css-layer-runtime": "./src/css-layer-runtime.tsx",
 		"./css-layer-scenarios": "./src/css-layer-scenarios.ts",
 		"./css-layer-types": "./src/css-layer-types.ts",
+		"./css-layer-v3-runtime": "./src/css-layer-v3-runtime.tsx",
 		"./fixtures": "./src/fixtures.ts",
 		"./reporting": "./src/reporting.ts",
 		"./schema": "./src/schema.ts",
@@ -23,6 +24,7 @@
 	"dependencies": {
 		"@c15t/react": "workspace:*",
 		"@c15t/translations": "workspace:*",
+		"@c15t/ui": "workspace:*",
 		"react": "19.2.3"
 	},
 	"devDependencies": {

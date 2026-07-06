@@ -7,6 +7,9 @@ const routes = [
 	'/matrix/banner/baseline',
 	'/matrix/banner/relay',
 	'/matrix/dialog/relay',
+	'/v3-matrix/banner',
+	'/v3-matrix/dialog',
+	'/v3-matrix/widget',
 ];
 
 const apps = [

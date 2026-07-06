@@ -1,9 +1,18 @@
 @import "@c15t/nextjs/styles.css";
+@import "@c15t/ui/styles/v3/button.css";
+@import "@c15t/ui/styles/v3/consent-actions.css";
+@import "@c15t/ui/styles/v3/consent-banner.css";
+@import "@c15t/ui/styles/v3/consent-dialog.css";
+@import "@c15t/ui/styles/v3/consent-manager.css";
+@import "@c15t/ui/styles/v3/legal-links.css";
+@import "@c15t/ui/styles/v3/accordion.css";
+@import "@c15t/ui/styles/v3/switch.css";
+@import "@c15t/ui/styles/v3/preference-item.css";
 
 :root {
 	color-scheme: light;
 	font-family:
-		'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont,
+		"Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
 		sans-serif;
 }
 
@@ -30,8 +39,7 @@ a {
 
 code {
 	font-family:
-		'SFMono-Regular', ui-monospace, 'SFMono-Regular', 'Cascadia Code', Consolas,
-		monospace;
+		"SFMono-Regular", ui-monospace, "Cascadia Code", Consolas, monospace;
 }
 
 .css-layer-home,
@@ -302,7 +310,6 @@ code {
 	justify-content: space-between;
 	gap: 1rem;
 	border-top: 1px solid rgba(203, 213, 225, 0.8);
-	padding-top: 1.25rem;
 	padding: 1.25rem;
 	background: #fff1dc;
 }
@@ -312,14 +319,6 @@ code {
 	flex-direction: column;
 	width: 100%;
 	gap: 0.75rem;
-}
-
-.css-layer-relay-footer-group:first-child .css-layer-relay-button-primary {
-	width: 100%;
-}
-
-.css-layer-relay-footer-group:last-child .css-layer-relay-button-secondary {
-	width: 100%;
 }
 
 .css-layer-relay-button-primary,
@@ -340,6 +339,14 @@ code {
 	border: 1px solid #cbd5e1;
 	background-color: #ffffff;
 	color: #0f172a;
+}
+
+.css-layer-relay-footer-group:first-child .css-layer-relay-button-primary {
+	width: 100%;
+}
+
+.css-layer-relay-footer-group:last-child .css-layer-relay-button-secondary {
+	width: 100%;
 }
 
 .css-layer-relay-description a {

@@ -205,6 +205,7 @@
       "dependencies": {
         "@c15t/benchmarking": "workspace:*",
         "@c15t/react": "workspace:*",
+        "@c15t/ui": "workspace:*",
         "next": "15.5.15",
         "react": "19.2.3",
         "react-dom": "19.2.3",
@@ -238,6 +239,7 @@
         "@c15t/benchmarking": "workspace:*",
         "@c15t/nextjs": "workspace:*",
         "@c15t/react": "workspace:*",
+        "@c15t/ui": "workspace:*",
         "next": "15.5.15",
         "react": "19.2.3",
         "react-dom": "19.2.3",
@@ -300,6 +302,7 @@
       "dependencies": {
         "@c15t/react": "workspace:*",
         "@c15t/translations": "workspace:*",
+        "@c15t/ui": "workspace:*",
         "react": "19.2.3",
       },
       "devDependencies": {
@@ -312,6 +315,7 @@
         "@c15t/benchmarking": "workspace:*",
         "@c15t/nextjs": "workspace:*",
         "@c15t/react": "workspace:*",
+        "@c15t/ui": "workspace:*",
         "next": "15.5.15",
         "react": "19.2.3",
         "react-dom": "19.2.3",
@@ -333,6 +337,7 @@
         "@c15t/benchmarking": "workspace:*",
         "@c15t/nextjs": "workspace:*",
         "@c15t/react": "workspace:*",
+        "@c15t/ui": "workspace:*",
         "next": "15.5.15",
         "react": "19.2.3",
         "react-dom": "19.2.3",
@@ -5551,6 +5556,8 @@
     "@c15t/tw4-css-test/react": ["react@19.2.3", "", {}, "sha512-Ku/hhYbVjOQnXDZFv2+RibmLFGwFdeeKHFcOTlrt7xplBnya5OGn/hIRDsqDiSUcfORsDC7MPxwork8jBwsIWA=="],
 
     "@c15t/tw4-css-test/react-dom": ["react-dom@19.2.3", "", { "dependencies": { "scheduler": "^0.27.0" }, "peerDependencies": { "react": "^19.2.3" } }, "sha512-yELu4WmLPw5Mr/lmeEpox5rw3RETacE++JgHqQzd2dg+YbJuat3jH4ingc+WPZhxaoFzdv9y33G+F7Nl5O0GBg=="],
+
+    "@c15t/tw4-css-test/tailwindcss": ["tailwindcss@4.3.2", "", {}, "sha512-WtctNNSH8A9jlMIqxzuYumOHU5uGZyRv0Q5svQl+oEPy5w84YpBxdb7MdqyiSPQge5jTJ6zFQLq0PFygdccSBA=="],
 
     "@c15t/tw4-css-test/typescript": ["typescript@5.8.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ=="],
 
