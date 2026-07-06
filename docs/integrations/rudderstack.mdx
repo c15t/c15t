@@ -170,6 +170,16 @@ RudderStack exposes a `consent()` API for its own consent-management flow and pr
 
 c15t therefore uses the post-consent model recommended by RudderStack's docs: it does not load the SDK until `measurement` consent is granted, and it unloads the script if that consent is later revoked.
 
+### Why c15t blocks the load instead of mapping consent into RudderStack
+
+Some integrations — Google Tag Manager is the clearest example — load immediately and receive c15t's consent state through the vendor's own consent API (Google Consent Mode v2). That model is only safe when the vendor API provides denied-by-default semantics where **nothing identifying is stored or transmitted before consent**.
+
+RudderStack's `consent()` API does not provide that guarantee in its default flow: it filters which downstream *destinations* receive events, but the SDK itself still writes its `anonymousId` cookie and still delivers events to your data plane. "Loaded but consent-filtered" is still collection, so c15t treats blocking the load as the only default that reliably honors a missing or denied `measurement` consent.
+
+RudderStack v3 does offer a pre-consent mode (`preConsent` load options with storage disabled and buffered delivery) designed for CMP integrations, which would allow a GTM-style flow: load the SDK inert, then map c15t categories to RudderStack consent IDs and flush the buffer once consent is granted. c15t may add that as an explicit opt-in in a future release; it is not the default because it runs vendor code before consent and depends on vendor-side configuration (consent IDs on every destination) that c15t cannot verify from the browser.
+
+The same reasoning applies to the other customer-data-platform helpers (Segment, Hightouch): their consent surfaces are destination filters, not collection gates, so those helpers block the load too.
+
 ## Tracking events in your app
 
 c15t gates the RudderStack browser SDK from loading until `measurement` consent is granted. Your application code that calls RudderStack's runtime API (`window.rudderanalytics.track`, `identify`, etc.) is **not** automatically gated - `window.rudderanalytics` does not exist until the script is loaded, so unguarded calls before consent throw.
