@@ -310,4 +310,5 @@ function cleanupMockBrowser() {
 	delete globalRef.uetq;
 	delete globalRef.fbq;
 	delete globalRef._fbq;
+	delete globalRef.htevents;
 }

@@ -54,6 +54,7 @@ import {
 	fathomAnalyticsManifest,
 } from './vendors/analytics/fathom-analytics';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
+import { hightouch, hightouchManifest } from './vendors/analytics/hightouch';
 import { hotjar, hotjarManifest } from './vendors/analytics/hotjar';
 import { logRocket, logRocketManifest } from './vendors/analytics/logrocket';
 import {
@@ -202,6 +203,14 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://static.hotjar.com/c/hotjar-1234567.js?sv=6',
+		},
+	},
+	hightouch: {
+		script: hightouch({ writeKey: 'abc123xyz456' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.hightouch-events.com/browser/release/v1-latest/events.min.js',
 		},
 	},
 	logRocket: {
@@ -383,6 +392,7 @@ const vendorManifests = [
 	fathomAnalyticsManifest,
 	mixpanelAnalyticsManifest,
 	hotjarManifest,
+	hightouchManifest,
 	logRocketManifest,
 	matomoAnalyticsManifest,
 	posthogManifest,

@@ -207,6 +207,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'hightouch',
+		vendor: 'hightouch',
+		label: 'Hightouch',
+		hint: 'Customer data platform events',
+		docsSlug: 'hightouch',
+		packageSubpath: 'hightouch',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'logRocket',
 		vendor: 'logrocket',
 		label: 'LogRocket',
