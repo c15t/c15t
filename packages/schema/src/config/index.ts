@@ -56,7 +56,7 @@ export type ConsentCategory =
 	| 'marketing';
 
 export type ConsentComponentSlots<T = Record<string, unknown>> = {
-	banner: {
+	banner?: {
 		root?: T;
 		cardShell?: T;
 		card?: T;
@@ -67,7 +67,7 @@ export type ConsentComponentSlots<T = Record<string, unknown>> = {
 		actionGroup?: T;
 		overlay?: T;
 	};
-	dialog: {
+	dialog?: {
 		root?: T;
 		container?: T;
 		card?: T;
@@ -76,27 +76,27 @@ export type ConsentComponentSlots<T = Record<string, unknown>> = {
 		content?: T;
 		overlay?: T;
 	};
-	manager: {
+	manager?: {
 		root?: T;
 		footer?: T;
 		actions?: T;
 		actionGroup?: T;
 	};
-	button: {
+	button?: {
 		primary?: T;
 		secondary?: T;
 	};
-	switch: {
+	switch?: {
 		root?: T;
 		track?: T;
 		thumb?: T;
 	};
-	trigger: {
+	trigger?: {
 		root?: T;
 		icon?: T;
 		text?: T;
 	};
-	accordion: {
+	accordion?: {
 		root?: T;
 		triggerRow?: T;
 		arrow?: T;
@@ -106,17 +106,17 @@ export type ConsentComponentSlots<T = Record<string, unknown>> = {
 		contentViewport?: T;
 		contentInner?: T;
 	};
-	'accordion-item': {
+	'accordion-item'?: {
 		root?: T;
 		trigger?: T;
 		content?: T;
 	};
-	description: {
+	description?: {
 		banner?: T;
 		dialog?: T;
 		manager?: T;
 	};
-	tag: {
+	tag?: {
 		banner?: T;
 		dialog?: T;
 		manager?: T;
@@ -124,15 +124,15 @@ export type ConsentComponentSlots<T = Record<string, unknown>> = {
 		'iab-dialog'?: T;
 		content?: T;
 	};
-	link: {
+	link?: {
 		banner?: T;
 		dialog?: T;
 		manager?: T;
 	};
-	'legal-links': {
+	'legal-links'?: {
 		root?: T;
 	};
-	'iab-banner': {
+	'iab-banner'?: {
 		root?: T;
 		cardShell?: T;
 		card?: T;
@@ -148,7 +148,7 @@ export type ConsentComponentSlots<T = Record<string, unknown>> = {
 		actionGroup?: T;
 		overlay?: T;
 	};
-	'iab-dialog': {
+	'iab-dialog'?: {
 		root?: T;
 		card?: T;
 		header?: T;
@@ -171,7 +171,7 @@ export type ConsentComponentSlots<T = Record<string, unknown>> = {
 		actionGroup?: T;
 		overlay?: T;
 	};
-	'iab-purpose-item': {
+	'iab-purpose-item'?: {
 		root?: T;
 		header?: T;
 		trigger?: T;
@@ -180,13 +180,13 @@ export type ConsentComponentSlots<T = Record<string, unknown>> = {
 		examples?: T;
 		vendors?: T;
 	};
-	'iab-stack-item': {
+	'iab-stack-item'?: {
 		root?: T;
 		header?: T;
 		trigger?: T;
 		content?: T;
 	};
-	'iab-vendor-list': {
+	'iab-vendor-list'?: {
 		root?: T;
 		header?: T;
 		search?: T;
@@ -199,13 +199,14 @@ export type ConsentComponentSlots<T = Record<string, unknown>> = {
 
 type ConsentComponentSlotKeyMap = {
 	[Group in keyof ConsentComponentSlots]-?: {
-		[Slot in keyof ConsentComponentSlots[Group]]-?: true;
+		[Slot in keyof NonNullable<ConsentComponentSlots[Group]>]-?: true;
 	};
 };
 
 export type ConsentComponentSlotKey = {
 	[Group in keyof ConsentComponentSlots &
-		string]: `${Group}.${keyof ConsentComponentSlots[Group] & string}`;
+		string]-?: `${Group}.${keyof NonNullable<ConsentComponentSlots[Group]> &
+		string}`;
 }[keyof ConsentComponentSlots & string];
 
 export const CONSENT_COMPONENT_SLOT_KEY_MAP = {

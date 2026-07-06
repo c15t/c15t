@@ -51,23 +51,34 @@ const V3_THEME = {
 	consentActions: {
 		accept: { variant: 'primary' as const, mode: 'filled' as const },
 	},
-	slots: {
+} as const;
+
+const V3_COMPONENTS = {
+	button: {
 		/**
 		 * Bare Tailwind utilities. Contract: these win WITHOUT !important in
 		 * Tailwind 4 (cascade layers put c15t rules in `components`, utilities
 		 * later). In Tailwind 3 (no layers) c15t base styles legitimately win
 		 * by specificity — that env asserts the theme primary instead.
 		 */
-		buttonPrimary: 'bg-blue-600 text-red-500 rounded-none',
+		primary: { className: 'bg-blue-600 text-red-500 rounded-none' },
 		/**
 		 * Important-modifier utilities — the documented Tailwind 3 override
 		 * path. Must win in every Tailwind env.
 		 */
-		buttonSecondary: '!bg-blue-600 !text-red-500 !rounded-none',
-		consentBannerCard: 'css-layer-v3-banner-card',
-		consentDialogCard: 'css-layer-v3-dialog-card',
-		consentWidget: 'css-layer-v3-widget',
-		consentWidgetAccordion: 'css-layer-v3-widget-accordion',
+		secondary: { className: '!bg-blue-600 !text-red-500 !rounded-none' },
+	},
+	banner: {
+		card: { className: 'css-layer-v3-banner-card' },
+	},
+	dialog: {
+		card: { className: 'css-layer-v3-dialog-card' },
+	},
+	manager: {
+		root: { className: 'css-layer-v3-widget' },
+	},
+	accordion: {
+		root: { className: 'css-layer-v3-widget-accordion' },
 	},
 } as const;
 
@@ -136,6 +147,7 @@ export function CssLayerV3ScenarioRenderer({
 					},
 				},
 				theme: V3_THEME,
+				components: V3_COMPONENTS,
 			}}
 		>
 			<ConsentDraftProvider>
