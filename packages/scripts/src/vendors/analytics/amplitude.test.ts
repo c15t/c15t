@@ -134,9 +134,8 @@ describe('amplitude', () => {
 		expect(
 			typeof (identifyResult as { promise: Promise<unknown> }).promise.then
 		).toBe('function');
-		expect(
-			typeof (optOutResult as { promise: Promise<unknown> }).promise.then
-		).toBe('function');
+		// Snippet-synchronous methods queue but return nothing.
+		expect(optOutResult).toBeUndefined();
 		expect(identify?._q).toEqual([
 			{
 				name: 'set',

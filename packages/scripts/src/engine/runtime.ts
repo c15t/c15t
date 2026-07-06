@@ -280,7 +280,8 @@ function executeStep(step: ManifestStep): void {
 
 					if (
 						step.queueFormat === 'methodCall' ||
-						step.queueFormat === 'wrappedMethodCall'
+						step.queueFormat === 'wrappedMethodCall' ||
+						step.queueFormat === 'voidMethodCall'
 					) {
 						const promise = new Promise<unknown>((resolve) => {
 							queueTarget.push({
@@ -292,6 +293,10 @@ function executeStep(step: ManifestStep): void {
 
 						if (step.queueFormat === 'wrappedMethodCall') {
 							return { promise };
+						}
+
+						if (step.queueFormat === 'voidMethodCall') {
+							return undefined;
 						}
 
 						return promise;

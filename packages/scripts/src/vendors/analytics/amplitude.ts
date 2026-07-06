@@ -25,13 +25,22 @@ export const DEFAULT_AMPLITUDE_SCRIPT_URL = `https://cdn.amplitude.com/libs/anal
  * `window.amplitude._q` receives `{ name, args, resolve }` records, and the
  * loaded SDK drains that queue when `window.amplitude.invoked` is true.
  */
-export const AMPLITUDE_QUEUE_METHODS = [
+export const AMPLITUDE_PROMISE_QUEUE_METHODS = [
 	'init',
 	'track',
 	'identify',
-	'setUserId',
-	'setOptOut',
 	'flush',
+] as const;
+
+/**
+ * Queue methods Amplitude's snippet treats as synchronous — they queue the
+ * call but return nothing.
+ */
+export const AMPLITUDE_SYNC_QUEUE_METHODS = ['setUserId', 'setOptOut'] as const;
+
+export const AMPLITUDE_QUEUE_METHODS = [
+	...AMPLITUDE_PROMISE_QUEUE_METHODS,
+	...AMPLITUDE_SYNC_QUEUE_METHODS,
 ] as const;
 
 /**
@@ -99,6 +108,8 @@ export interface AmplitudeIdentify {
 	unset: (property: string) => this;
 	/** Queue a `$clearAll` identify operation. */
 	clearAll: () => this;
+	/** Queue a read of the accumulated user property operations. */
+	getUserProperties: () => this;
 }
 
 /**
@@ -184,7 +195,15 @@ export const amplitudeManifest = {
 			target: 'amplitude',
 			queue: { property: '_q' },
 			queueFormat: 'wrappedMethodCall',
-			methods: [...AMPLITUDE_QUEUE_METHODS],
+			methods: [...AMPLITUDE_PROMISE_QUEUE_METHODS],
+		},
+		{
+			// Amplitude's snippet treats these as synchronous: queue, return void.
+			type: 'defineQueueMethods',
+			target: 'amplitude',
+			queue: { property: '_q' },
+			queueFormat: 'voidMethodCall',
+			methods: [...AMPLITUDE_SYNC_QUEUE_METHODS],
 		},
 		{
 			type: 'callGlobal',

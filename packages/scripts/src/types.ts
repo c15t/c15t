@@ -157,10 +157,12 @@ export interface DefineQueueMethodsStep {
 	 * - `wrappedMethodCall` queues like `methodCall` but returns
 	 *   `{ promise }`, matching Amplitude's snippet contract where queued
 	 *   proxy calls expose the pending promise on a `promise` property.
+	 * - `voidMethodCall` queues like `methodCall` but returns nothing,
+	 *   matching snippet methods the vendor treats as synchronous.
 	 *
 	 * @default 'tuple'
 	 */
-	queueFormat?: 'tuple' | 'methodCall' | 'wrappedMethodCall';
+	queueFormat?: 'tuple' | 'methodCall' | 'wrappedMethodCall' | 'voidMethodCall';
 }
 
 export interface DefineQueueClassStep {
