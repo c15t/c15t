@@ -102,7 +102,7 @@ describe('amplitude', () => {
 		]);
 	});
 
-	it('queues method-call records and returns promises before load', () => {
+	it('queues method-call records and returns wrapped promises before load', () => {
 		const globalRef = getTestGlobal();
 		const script = amplitude({
 			apiKey: 'AMPLITUDE_API_KEY',
@@ -126,9 +126,17 @@ describe('amplitude', () => {
 			: undefined;
 		const optOutResult = amplitudeGlobal?.setOptOut(true);
 
-		expect(typeof (trackResult as Promise<unknown>).then).toBe('function');
-		expect(typeof (identifyResult as Promise<unknown>).then).toBe('function');
-		expect(typeof (optOutResult as Promise<unknown>).then).toBe('function');
+		// Amplitude's snippet contract exposes the pending promise on a
+		// `promise` property rather than returning a bare Promise.
+		expect(
+			typeof (trackResult as { promise: Promise<unknown> }).promise.then
+		).toBe('function');
+		expect(
+			typeof (identifyResult as { promise: Promise<unknown> }).promise.then
+		).toBe('function');
+		expect(
+			typeof (optOutResult as { promise: Promise<unknown> }).promise.then
+		).toBe('function');
 		expect(identify?._q).toEqual([
 			{
 				name: 'set',

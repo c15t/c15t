@@ -278,14 +278,23 @@ function executeStep(step: ManifestStep): void {
 						return;
 					}
 
-					if (step.queueFormat === 'methodCall') {
-						return new Promise<unknown>((resolve) => {
+					if (
+						step.queueFormat === 'methodCall' ||
+						step.queueFormat === 'wrappedMethodCall'
+					) {
+						const promise = new Promise<unknown>((resolve) => {
 							queueTarget.push({
 								name: methodName,
 								args,
 								resolve,
 							});
 						});
+
+						if (step.queueFormat === 'wrappedMethodCall') {
+							return { promise };
+						}
+
+						return promise;
 					}
 
 					queueTarget.push([methodName, ...args]);

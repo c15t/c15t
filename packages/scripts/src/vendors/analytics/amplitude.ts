@@ -48,6 +48,7 @@ export const AMPLITUDE_IDENTIFY_METHODS = [
 	'remove',
 	'unset',
 	'clearAll',
+	'getUserProperties',
 ] as const;
 
 /**
@@ -172,21 +173,6 @@ export const amplitudeManifest = {
 			ifUndefined: true,
 		},
 		{
-			type: 'setGlobalPath',
-			path: ['amplitude', 'invoked'],
-			value: true,
-		},
-		{
-			type: 'setGlobalPath',
-			path: ['amplitude', '_q'],
-			value: [],
-		},
-		{
-			type: 'setGlobalPath',
-			path: ['amplitude', '_iq'],
-			value: {},
-		},
-		{
 			type: 'defineQueueClass',
 			target: 'amplitude',
 			name: 'Identify',
@@ -197,7 +183,7 @@ export const amplitudeManifest = {
 			type: 'defineQueueMethods',
 			target: 'amplitude',
 			queue: { property: '_q' },
-			queueFormat: 'methodCall',
+			queueFormat: 'wrappedMethodCall',
 			methods: [...AMPLITUDE_QUEUE_METHODS],
 		},
 		{

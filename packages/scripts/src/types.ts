@@ -154,10 +154,13 @@ export interface DefineQueueMethodsStep {
 	 * - `methodCall` pushes `{ name, args, resolve }` and returns a `Promise`,
 	 *   matching SDK loaders that replay named calls and resolve the original
 	 *   pre-load promise after the real method runs.
+	 * - `wrappedMethodCall` queues like `methodCall` but returns
+	 *   `{ promise }`, matching Amplitude's snippet contract where queued
+	 *   proxy calls expose the pending promise on a `promise` property.
 	 *
 	 * @default 'tuple'
 	 */
-	queueFormat?: 'tuple' | 'methodCall';
+	queueFormat?: 'tuple' | 'methodCall' | 'wrappedMethodCall';
 }
 
 export interface DefineQueueClassStep {
