@@ -197,6 +197,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'heap',
+		vendor: 'heap',
+		label: 'Heap',
+		hint: 'Autocapture product analytics',
+		docsSlug: 'heap',
+		packageSubpath: 'heap',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'mixpanelAnalytics',
 		vendor: 'mixpanel-analytics',
 		label: 'Mixpanel Analytics',

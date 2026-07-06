@@ -267,6 +267,7 @@ const generateDocsConfig = () => {
 							'microsoft-clarity',
 							'databuddy',
 							'fathom-analytics',
+							'heap',
 							'matomo-analytics',
 							'mixpanel-analytics',
 							'hotjar',

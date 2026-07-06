@@ -55,6 +55,7 @@ import {
 	fathomAnalyticsManifest,
 } from './vendors/analytics/fathom-analytics';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
+import { heap, heapManifest } from './vendors/analytics/heap';
 import { hightouch, hightouchManifest } from './vendors/analytics/hightouch';
 import { hotjar, hotjarManifest } from './vendors/analytics/hotjar';
 import { logRocket, logRocketManifest } from './vendors/analytics/logrocket';
@@ -198,6 +199,14 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://cdn.usefathom.com/script.js',
+		},
+	},
+	heap: {
+		script: heap({ envId: '123456789' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.us.heap-api.com/config/123456789/heap_config.js',
 		},
 	},
 	mixpanelAnalytics: {
@@ -415,6 +424,7 @@ const vendorManifests = [
 	clarityManifest,
 	databuddyManifest,
 	fathomAnalyticsManifest,
+	heapManifest,
 	mixpanelAnalyticsManifest,
 	hotjarManifest,
 	hightouchManifest,

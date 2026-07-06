@@ -284,6 +284,8 @@ function cleanupMockBrowser() {
 	delete globalRef.mixpanel;
 	delete globalRef.analytics;
 	delete globalRef.clarity;
+	delete globalRef.heap;
+	delete globalRef.heapReadyCb;
 	delete globalRef.hj;
 	delete globalRef._hjSettings;
 	delete globalRef.posthog;

@@ -159,10 +159,18 @@ export interface DefineQueueMethodsStep {
 	 *   proxy calls expose the pending promise on a `promise` property.
 	 * - `voidMethodCall` queues like `methodCall` but returns nothing,
 	 *   matching snippet methods the vendor treats as synchronous.
+	 * - `callback` pushes `{ name, fn }`, where `fn` replays the captured call
+	 *   against the current global target, matching loaders that own a
+	 *   ready-callback queue.
 	 *
 	 * @default 'tuple'
 	 */
-	queueFormat?: 'tuple' | 'methodCall' | 'wrappedMethodCall' | 'voidMethodCall';
+	queueFormat?:
+		| 'tuple'
+		| 'methodCall'
+		| 'wrappedMethodCall'
+		| 'voidMethodCall'
+		| 'callback';
 }
 
 export interface DefineQueueClassStep {

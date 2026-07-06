@@ -519,6 +519,73 @@ describe('scripts engine', () => {
 		delete globalRef.vendorSdk;
 	});
 
+	it('supports callback queue formats that replay against the current global', () => {
+		const manifest = createManifest({
+			vendor: 'callback-queue',
+			category: 'measurement',
+			bootstrap: [
+				{
+					type: 'setGlobal',
+					name: 'vendorReadyCb',
+					value: [],
+					ifUndefined: true,
+				},
+				{
+					type: 'setGlobal',
+					name: 'vendorSdk',
+					value: [],
+					ifUndefined: true,
+				},
+				{
+					type: 'defineQueueMethods',
+					target: 'vendorSdk',
+					methods: ['track'],
+					queue: { global: 'vendorReadyCb' },
+					queueFormat: 'callback',
+				},
+			],
+			install: [
+				{
+					type: 'loadScript',
+					src: 'https://cdn.example.com/vendor.js',
+				},
+			],
+		});
+		const resolved = resolvedManifestToScript(compileManifest(manifest));
+		const globalRef = globalThis as TestGlobal;
+		const calls: unknown[][] = [];
+
+		resolved.onBeforeLoad?.(
+			createCallbackInfo({
+				id: resolved.id,
+				consents: grantedMeasurementConsentState,
+			})
+		);
+
+		const sdkStub = globalRef.vendorSdk as {
+			track: (event: string, properties?: Record<string, unknown>) => void;
+		};
+		sdkStub.track('Signup', { plan: 'pro' });
+
+		const readyQueue = globalRef.vendorReadyCb as Array<{
+			name: string;
+			fn: () => void;
+		}>;
+		globalRef.vendorSdk = {
+			track: (...args: unknown[]) => {
+				calls.push(args);
+			},
+		};
+
+		expect(readyQueue).toHaveLength(1);
+		expect(readyQueue[0]?.name).toBe('track');
+		readyQueue[0]?.fn();
+		expect(calls).toEqual([['Signup', { plan: 'pro' }]]);
+
+		delete globalRef.vendorReadyCb;
+		delete globalRef.vendorSdk;
+	});
+
 	it('runs bootstrap before default consent signaling and setup', () => {
 		const manifest = createManifest({
 			vendor: 'ordered-google',
