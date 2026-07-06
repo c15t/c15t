@@ -83,4 +83,27 @@ describe('logRocket', () => {
 			"logRocket: invalid appId - must be a non-empty string in 'org/app' format"
 		);
 	});
+
+	it('rejects app ids with missing or extra path segments', () => {
+		for (const appId of ['org/app/extra', 'org//app', '/app', 'org/', 'org']) {
+			expect(() => logRocket({ appId })).toThrowError(
+				"logRocket: invalid appId - must be a non-empty string in 'org/app' format"
+			);
+		}
+	});
+
+	it('seeds window._lrAsyncScript for proxy setups', () => {
+		const globalRef = getTestGlobal();
+		const script = logRocket({
+			appId: 'org/app',
+			scriptUrl: 'https://proxy.example.com/LogRocket.min.js',
+			asyncScriptUrl: 'https://proxy.example.com/logger.min.js',
+		});
+
+		script.onBeforeLoad?.(createCallbackInfo({ id: script.id }));
+
+		expect(globalRef._lrAsyncScript).toBe(
+			'https://proxy.example.com/logger.min.js'
+		);
+	});
 });

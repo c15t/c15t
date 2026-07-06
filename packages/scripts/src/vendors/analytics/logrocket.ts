@@ -22,12 +22,11 @@ const DEFAULT_LOGROCKET_SCRIPT_URL =
 
 function validateLogRocketAppId(appId: unknown): string {
 	const normalized = typeof appId === 'string' ? appId.trim() : '';
+	const segments = normalized.split('/');
 
 	if (
-		normalized.length === 0 ||
-		!normalized.includes('/') ||
-		normalized.startsWith('/') ||
-		normalized.endsWith('/')
+		segments.length !== 2 ||
+		segments.some((segment) => segment.length === 0)
 	) {
 		throw new Error(
 			"logRocket: invalid appId - must be a non-empty string in 'org/app' format"
@@ -88,6 +87,18 @@ export interface LogRocketOptions {
 	 * @default 'https://cdn.logrocket.io/LogRocket.min.js'
 	 */
 	scriptUrl?: string;
+
+	/**
+	 * Proxied URL for LogRocket's asynchronously loaded logger bundle.
+	 *
+	 * LogRocket's proxy setup requires `window._lrAsyncScript` in addition to
+	 * the main `scriptUrl`, because the SDK chain-loads its logger bundle from
+	 * this location. Only needed when proxying traffic through your own
+	 * domain.
+	 *
+	 * @see https://docs.logrocket.com/docs/proxying-traffic-through-your-own-domain
+	 */
+	asyncScriptUrl?: string;
 }
 
 /**
@@ -121,9 +132,28 @@ export interface LogRocketOptions {
  */
 export function logRocket(options: LogRocketOptions): Script {
 	const appId = validateLogRocketAppId(options?.appId);
+	const asyncScriptUrl = trimToUndefined(options.asyncScriptUrl);
 
-	return resolveManifest(logRocketManifest, {
+	let manifest: VendorManifest = logRocketManifest;
+	if (asyncScriptUrl) {
+		// Proxy setups chain-load the logger bundle from _lrAsyncScript; seed it
+		// before the main SDK executes.
+		manifest = {
+			...logRocketManifest,
+			bootstrap: [
+				{
+					type: 'setGlobal',
+					name: '_lrAsyncScript',
+					value: '{{asyncScriptUrl}}',
+					ifUndefined: false,
+				},
+			],
+		} satisfies VendorManifest;
+	}
+
+	return resolveManifest(manifest, {
 		appId,
+		asyncScriptUrl,
 		initOptions: options.initOptions ?? {},
 		scriptUrl: resolveScriptUrl(
 			trimToUndefined(options.scriptUrl),

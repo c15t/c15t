@@ -146,12 +146,13 @@ logRocket({
 
 Only pass values that can safely cross the manifest boundary. Avoid functions, class instances, prototypes, `Map`, `Set`, or other non-JSON types unless you are constructing a manual `Script` outside the manifest helper. LogRocket also supports function-based network sanitizers; use a manual `Script` if you need those callbacks.
 
-To proxy or self-host the loader, pass a custom URL:
+To proxy or self-host the loader, pass a custom URL. LogRocket's proxy setup also chain-loads a logger bundle, so set `asyncScriptUrl` as well — otherwise the async bundle is still fetched from LogRocket's CDN:
 
 ```ts
 logRocket({
   appId: 'YOUR_ORG_SLUG/YOUR_APP_SLUG',
   scriptUrl: 'https://analytics.example.com/LogRocket.min.js',
+  asyncScriptUrl: 'https://analytics.example.com/logger.min.js',
 })
 ```
 
