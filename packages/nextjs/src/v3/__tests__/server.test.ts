@@ -71,6 +71,33 @@ describe('readInitialConsentConfig: cookies', () => {
 		expect(config.initialSubjectId).toBe('sub_123');
 	});
 
+	test('reads the persistence module cookie (c15t, v2 compact format)', async () => {
+		// This is what the v3 persistence module actually writes client-side.
+		// The server MUST see it, or every SSR repeat visitor gets the banner
+		// re-rendered into the first HTML (the re-prompt zombie).
+		headerStore.set(
+			'cookie',
+			'c15t=c.necessary:1,c.marketing:1,c.measurement:0,i.t:1234567890'
+		);
+		const config = await readInitialConsentConfig();
+		expect(config.initialHasConsented).toBe(true);
+		expect(config.initialConsents).toMatchObject({
+			necessary: true,
+			marketing: true,
+			measurement: false,
+		});
+	});
+
+	test('persistence cookie wins over the legacy JSON cookie', async () => {
+		headerStore.set('cookie', 'c15t=c.necessary:1,c.marketing:1,i.t:1');
+		cookieStore.set(
+			'c15t-consent',
+			encodeURIComponent(JSON.stringify({ marketing: false }))
+		);
+		const config = await readInitialConsentConfig();
+		expect(config.initialConsents).toMatchObject({ marketing: true });
+	});
+
 	test('ignores malformed cookies', async () => {
 		cookieStore.set('c15t-consent', 'not-json');
 		const config = await readInitialConsentConfig();

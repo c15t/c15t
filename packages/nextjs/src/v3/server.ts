@@ -28,6 +28,7 @@ import {
 	type KernelConfig,
 	type KernelOverrides,
 } from 'c15t/v3';
+import { readStoredConsentFromCookie } from 'c15t/v3/modules/persistence';
 import { cookies, headers } from 'next/headers';
 import {
 	consentInputsToOverrides,
@@ -119,9 +120,26 @@ export async function readInitialConsentConfig(
 ): Promise<KernelConfig> {
 	const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
 
+	// The persistence module writes the `c15t` cookie in the v2-compatible
+	// compact format — read it with the shared parser first, so the server
+	// sees exactly what the client persisted (returning visitors must not
+	// get the banner re-rendered into the first HTML). The legacy JSON
+	// cookie (`c15t-consent` or a custom name) remains as a fallback for
+	// consumers that serialize consent themselves.
+	const cookieHeader = (headerStore as Headers).get?.('cookie') ?? undefined;
+	const persisted = readStoredConsentFromCookie(cookieHeader);
 	const cookieName = options.cookieName ?? CONSENT_COOKIE_DEFAULT;
 	const consentCookie = cookieStore.get(cookieName)?.value;
-	const storedConsent = parseConsentCookie(consentCookie);
+	const storedConsent =
+		persisted?.consents && persisted.consentInfo
+			? {
+					consents: persisted.consents,
+					subjectId:
+						typeof persisted.consentInfo.subjectId === 'string'
+							? persisted.consentInfo.subjectId
+							: undefined,
+				}
+			: parseConsentCookie(consentCookie);
 
 	const inputs = extractConsentRequestInputs(headerStore as Headers, {
 		country: options.country,
