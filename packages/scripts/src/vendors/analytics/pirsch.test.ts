@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
+	createCallbackInfo,
 	expectScriptMatchesIntegration,
+	getTestGlobal,
 	setupScriptHelperTest,
 } from '../../__tests__/helpers';
 import { pirsch } from './pirsch';
@@ -76,6 +78,32 @@ describe('pirsch', () => {
 		});
 
 		expect(script.src).toBe('https://api.pirsch.io/pa.js');
+	});
+
+	it('calls pirschInit on load when the document is already interactive', () => {
+		const globalRef = getTestGlobal();
+		const pirschInit = vi.fn();
+		globalRef.pirschInit = pirschInit;
+		globalRef.document = { readyState: 'complete' };
+
+		const script = pirsch({ identificationCode: 'PIRSCH-CONTRACT' });
+		script.onLoad?.(createCallbackInfo({ id: script.id }));
+
+		// pa.js only self-initializes from DOMContentLoaded, which has already
+		// fired by the time c15t injects the script post-consent.
+		expect(pirschInit).toHaveBeenCalledTimes(1);
+	});
+
+	it('leaves pirschInit to the native DOMContentLoaded listener while loading', () => {
+		const globalRef = getTestGlobal();
+		const pirschInit = vi.fn();
+		globalRef.pirschInit = pirschInit;
+		globalRef.document = { readyState: 'loading' };
+
+		const script = pirsch({ identificationCode: 'PIRSCH-CONTRACT' });
+		script.onLoad?.(createCallbackInfo({ id: script.id }));
+
+		expect(pirschInit).not.toHaveBeenCalled();
 	});
 
 	it('throws for an empty identificationCode', () => {

@@ -181,5 +181,18 @@ export function pirsch(options: PirschOptions): Script {
 		scriptUrl: getPirschScriptUrl(options),
 	});
 
+	// pa.js only runs pirschInit() from a DOMContentLoaded listener, but c15t
+	// usually injects the script after that event has already fired (consent
+	// granted post-load), so custom event bindings would never initialize.
+	// Call it ourselves exactly when the native listener can no longer fire.
+	const manifestOnLoad = resolved.onLoad;
+	resolved.onLoad = (info) => {
+		manifestOnLoad?.(info);
+
+		if (document.readyState !== 'loading') {
+			window.pirschInit?.();
+		}
+	};
+
 	return resolved;
 }
