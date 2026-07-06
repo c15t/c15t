@@ -11,6 +11,12 @@ import type {
  * and the page's storage snapshot are checked against the vendor's explicit
  * violation lists. A collection request is a violation even when the runner
  * blocked it — the attempt itself proves the vendor tried to send data.
+ *
+ * @param config - Per-vendor violation lists.
+ * @param observedRequestUrls - Every third-party request URL seen during the
+ * denied-consent window, blocked or allowed.
+ * @param storage - Cookie names and localStorage keys snapshotted in the page.
+ * @returns The consent-phase result with violation details on failure.
  */
 export function evaluateDeniedConsentProbe(
 	config: DeniedConsentProbeConfig,

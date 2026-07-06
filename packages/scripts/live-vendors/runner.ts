@@ -39,6 +39,17 @@ const RUNTIME_TIMEOUT_MS = 10_000;
 const RUNTIME_POLL_MS = 250;
 const CONSENT_QUIET_MS = 750;
 
+/**
+ * Builds the loader allowlist for a probe config. Everything outside this
+ * list (and the local harness origin) is answered with an empty 204.
+ */
+function buildAllowList(config: LiveVendorProbeConfig): string[] {
+	return [
+		config.loaderUrlSubstring,
+		...(config.allowUrlSubstrings ?? []),
+	].filter((value): value is string => Boolean(value));
+}
+
 const PAGE_HTML = `<!doctype html>
 <html lang="en">
 	<head>
@@ -186,10 +197,7 @@ async function probeDeniedConsentEgress(
 	}
 
 	const observedRequests: string[] = [];
-	const allow = [
-		config.loaderUrlSubstring,
-		...(config.allowUrlSubstrings ?? []),
-	].filter((value): value is string => Boolean(value));
+	const allow = buildAllowList(config);
 
 	const context = await browser.newContext();
 
@@ -210,6 +218,11 @@ async function probeDeniedConsentEgress(
 			return route.fulfill({ status: 204, body: '' });
 		});
 
+		// Refuse WebSockets here too — HTTP routing does not cover them.
+		await context.routeWebSocket('**', () => {
+			// Never connect to the remote server.
+		});
+
 		const page = await context.newPage();
 		await page.goto(baseUrl, { waitUntil: 'load' });
 
@@ -227,6 +240,16 @@ async function probeDeniedConsentEgress(
 
 		if (outcome.error) {
 			return { ok: false, detail: `harness error: ${outcome.error}` };
+		}
+
+		// A zero-violation result is only meaningful if the vendor actually
+		// loaded — otherwise a loader regression would read as a pass.
+		if (!outcome.requested) {
+			return {
+				ok: false,
+				detail:
+					'alwaysLoad script was not injected under denied consent; egress assertion could not run',
+			};
 		}
 
 		// Give the vendor runtime time to initialize and attempt collection.
@@ -256,10 +279,7 @@ async function probeVendorAttempt(
 	const blocked: string[] = [];
 	const consoleErrors: string[] = [];
 	const pageErrors: string[] = [];
-	const allow = [
-		config.loaderUrlSubstring,
-		...(config.allowUrlSubstrings ?? []),
-	].filter((value): value is string => Boolean(value));
+	const allow = buildAllowList(config);
 
 	const context = await browser.newContext();
 

@@ -41,6 +41,22 @@ describe('live vendor probe configs', () => {
 		}
 	});
 
+	it('requires a denied-consent probe for every alwaysLoad vendor', () => {
+		for (const config of liveVendorProbeConfigs) {
+			if (config.tier === 'skip' || !config.createScript) {
+				continue;
+			}
+
+			const script = config.createScript();
+			if (script.alwaysLoad === true) {
+				expect(
+					config.deniedConsentProbe,
+					`${config.vendor} loads for every visitor and must assert denied-consent egress`
+				).toBeDefined();
+			}
+		}
+	});
+
 	it('constructs scripts whose ids match the configured vendor', () => {
 		for (const config of liveVendorProbeConfigs) {
 			if (config.tier === 'skip') {
