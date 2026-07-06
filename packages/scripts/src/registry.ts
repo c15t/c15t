@@ -137,6 +137,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'clearbit',
+		vendor: 'clearbit',
+		label: 'Clearbit',
+		hint: 'Visitor and company enrichment',
+		docsSlug: 'clearbit',
+		packageSubpath: 'clearbit',
+		integrationCategory: 'analytics',
+		consentCategory: 'marketing',
+	},
+	{
 		key: 'microsoft-clarity',
 		vendor: 'microsoft-clarity',
 		label: 'Microsoft Clarity',
