@@ -19,10 +19,12 @@
  */
 import { type Browser, chromium, type Response } from 'playwright';
 import { getBuiltInScriptIntegrationByVendor } from '../src/registry';
+import { evaluateDeniedConsentProbe } from './denied-consent';
 import { failedPhases } from './report';
 import type {
 	LiveProbeCheckResult,
 	LiveProbeLoadOutcome,
+	LiveStorageSnapshot,
 	LiveVendorProbeConfig,
 	LiveVendorProbeHarness,
 	LiveVendorReport,
@@ -160,6 +162,91 @@ async function fetchLoaderDetails(
 	}
 }
 
+const DENIED_EGRESS_QUIET_MS = 4_000;
+
+/**
+ * Loads an `alwaysLoad` vendor with denied consent in an isolated context and
+ * evaluates its egress and storage against the vendor's violation lists.
+ *
+ * Uses its own browser context so the warmed cache and any vendor state never
+ * leak into the granted-consent probe that follows.
+ */
+async function probeDeniedConsentEgress(
+	browser: Browser,
+	baseUrl: string,
+	config: LiveVendorProbeConfig
+): Promise<LiveProbeCheckResult> {
+	const deniedProbe = config.deniedConsentProbe;
+	if (!deniedProbe) {
+		return {
+			ok: true,
+			detail:
+				'script declares alwaysLoad and manages consent internally; denied-consent gating not asserted',
+		};
+	}
+
+	const observedRequests: string[] = [];
+	const allow = [
+		config.loaderUrlSubstring,
+		...(config.allowUrlSubstrings ?? []),
+	].filter((value): value is string => Boolean(value));
+
+	const context = await browser.newContext();
+
+	try {
+		await context.route('**/*', (route) => {
+			const url = route.request().url();
+
+			if (url.startsWith(baseUrl)) {
+				return route.continue();
+			}
+
+			observedRequests.push(url);
+
+			if (allow.some((substring) => url.includes(substring))) {
+				return route.continue();
+			}
+
+			return route.fulfill({ status: 204, body: '' });
+		});
+
+		const page = await context.newPage();
+		await page.goto(baseUrl, { waitUntil: 'load' });
+
+		const outcome = await page.evaluate<LiveProbeLoadOutcome, string>(
+			(vendor) => {
+				const harness = (globalThis as unknown as ProbeWindow)
+					.__c15tLiveVendorProbe;
+				if (!harness) {
+					throw new Error('harness missing');
+				}
+				return harness.load(vendor, false);
+			},
+			config.vendor
+		);
+
+		if (outcome.error) {
+			return { ok: false, detail: `harness error: ${outcome.error}` };
+		}
+
+		// Give the vendor runtime time to initialize and attempt collection.
+		await page.waitForTimeout(DENIED_EGRESS_QUIET_MS);
+
+		const storage = await page.evaluate<LiveStorageSnapshot>(() => {
+			const harness = (globalThis as unknown as ProbeWindow)
+				.__c15tLiveVendorProbe;
+			if (!harness) {
+				throw new Error('harness missing');
+			}
+			return harness.inspectStorage();
+		});
+
+		return evaluateDeniedConsentProbe(deniedProbe, observedRequests, storage);
+	} finally {
+		await context.close();
+	}
+}
+
 async function probeVendorAttempt(
 	browser: Browser,
 	baseUrl: string,
@@ -241,14 +328,11 @@ async function probeVendorAttempt(
 
 		// Phase: consent — load with denied consent; nothing should hit the wire.
 		// alwaysLoad scripts manage consent internally and load regardless, so
-		// probing them here would only warm the browser cache and swallow the
-		// network events the load phase waits for.
+		// they get the denied-consent egress assertion in an isolated context
+		// instead of the gating check (which would also warm this context's
+		// cache and swallow the network events the load phase waits for).
 		if (alwaysLoad) {
-			phases.consent = {
-				ok: true,
-				detail:
-					'script declares alwaysLoad and manages consent internally; denied-consent gating not asserted',
-			};
+			phases.consent = await probeDeniedConsentEgress(browser, baseUrl, config);
 		} else {
 			const deniedOutcome = await page.evaluate<LiveProbeLoadOutcome, string>(
 				(vendor) => {

@@ -198,6 +198,18 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				`dataLayer seeded with ${dataLayer.length} entries before load`
 			);
 		},
+		deniedConsentProbe: {
+			// Google Consent Mode's cookieless pings are consent-safe by design;
+			// only real collection endpoints and ad-storage cookies are
+			// violations. Weak until a real container id lands as a repo secret
+			// (placeholder ids 404 before any tag can run).
+			collectUrlSubstrings: [
+				'google-analytics.com/g/collect',
+				'analytics.google.com/g/collect',
+				'doubleclick.net',
+			],
+			storagePrefixes: ['_ga', '_gid', '_gcl'],
+		},
 		notes:
 			'Placeholder container ids return HTTP 404 from googletagmanager.com; runtime is not asserted.',
 	},
@@ -498,6 +510,17 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				},
 			}),
 		loaderUrlSubstring: 'cdn.mxpnl.com/libs/mixpanel-2-latest.min.js',
+		deniedConsentProbe: {
+			// Denied consent replays opt_out_tracking through the queue, and the
+			// probe's initOptions set opt_out_tracking_by_default so the SDK
+			// never persists before that call lands — the configuration our docs
+			// recommend for alwaysLoad usage. The live SDK must produce zero
+			// collection traffic and no mp_* storage. Mixpanel's
+			// __mp_opt_in_out_* opt-out marker is legitimate consent-state
+			// storage and intentionally not a violation prefix.
+			collectUrlSubstrings: ['api-js.mixpanel.com', 'api.mixpanel.com'],
+			storagePrefixes: ['mp_'],
+		},
 		bootstrapCheck: () => {
 			const mixpanel = window.mixpanel;
 

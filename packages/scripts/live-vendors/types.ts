@@ -81,8 +81,49 @@ export interface LiveVendorProbeConfig {
 	 * the runtime phase, before any custom `runtimeCheck` runs.
 	 */
 	runtimeReplacedGlobals?: string[];
+	/**
+	 * Denied-consent egress assertion for `alwaysLoad` vendors.
+	 *
+	 * These vendors load for every visitor and manage consent internally, so
+	 * the probe loads them with denied consent in an isolated browser context
+	 * and asserts that no collection request leaves the page and no vendor
+	 * storage is written. Config/CDN fetches stay allowed — only the explicit
+	 * violation lists below fail the phase.
+	 */
+	deniedConsentProbe?: DeniedConsentProbeConfig;
 	/** Free-form caveats surfaced in reports. */
 	notes?: string;
+}
+
+/**
+ * Violation lists for the denied-consent egress assertion.
+ */
+export interface DeniedConsentProbeConfig {
+	/**
+	 * URL substrings of the vendor's collection/beacon endpoints. Any request
+	 * matching one of these under denied consent fails the consent phase —
+	 * whether the runner blocked it or not, the attempt itself is the
+	 * violation.
+	 */
+	collectUrlSubstrings: string[];
+	/**
+	 * Cookie-name / localStorage-key prefixes that must not appear under
+	 * denied consent. Exclude vendor opt-out markers (for example Mixpanel's
+	 * `__mp_opt_in_out_*`), which are legitimate consent-state storage.
+	 */
+	storagePrefixes?: string[];
+	/** Extra context surfaced in reports. */
+	notes?: string;
+}
+
+/**
+ * Storage observed in the page during the denied-consent probe.
+ */
+export interface LiveStorageSnapshot {
+	/** Cookie names visible via document.cookie. */
+	cookieNames: string[];
+	/** localStorage keys. */
+	localStorageKeys: string[];
 }
 
 /**
@@ -109,6 +150,8 @@ export interface LiveVendorProbeHarness {
 	load(vendor: string, granted: boolean): LiveProbeLoadOutcome;
 	/** Runs the vendor's runtime check. */
 	check(vendor: string): LiveProbeCheckResult;
+	/** Snapshots cookie names and localStorage keys in the probed page. */
+	inspectStorage(): LiveStorageSnapshot;
 }
 
 /**

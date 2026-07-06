@@ -38,8 +38,12 @@ Each vendor runs through five phases in a fresh browser context, with one
 retry before a failure is reported:
 
 1. **consent** — with denied consent, the script must not load and no loader
-   request may leave the page. Skipped for `alwaysLoad` vendors, which manage
-   consent internally.
+   request may leave the page. `alwaysLoad` vendors (which manage consent
+   internally) instead get a denied-consent **egress assertion** in an
+   isolated context: the script loads, and the probe asserts zero requests to
+   the vendor's collection endpoints and no vendor cookies/localStorage
+   (per-vendor violation lists in `vendors.ts`; consent-safe traffic like
+   Google Consent Mode pings and opt-out markers is excluded by design).
 2. **bootstrap** — immediately after `loadScripts()` with granted consent,
    the manifest's queue stubs/globals must exist (before the network answers).
 3. **load** — the real vendor loader must respond. `full` tier requires a
