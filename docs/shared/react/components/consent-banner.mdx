@@ -68,14 +68,14 @@ group: reference
   ## Styling First
 
   <Callout type="info">
-    For pure theming, stay inside the pre-built banner. Start with layout props, `theme.consentActions`, design tokens, and `theme.slots` before reaching for compound components. See [Styling Overview](/docs/frameworks/react/styling/overview).
+    For pure theming, stay inside the pre-built banner. Start with layout props, `theme.consentActions`, design tokens, and component slots before reaching for compound components. See [Styling Overview](/docs/frameworks/react/styling/overview).
   </Callout>
 
   The stock banner maps common visual changes to the theme system:
 
   - Card background -> `theme.colors.surface`
   - Footer background -> `theme.colors.surfaceHover`
-  - Card, footer, and title tweaks -> `theme.slots.consentBannerCard`, `consentBannerFooter`, and `consentBannerTitle`
+  - Card, footer, and title tweaks -> `components.banner.card`, `components.banner.footer`, and `components.banner.title`
 
   ```tsx
   <ConsentManagerProvider
@@ -85,10 +85,12 @@ group: reference
           surface: '#fffdf8',
           surfaceHover: '#f6f3ee',
         },
-        slots: {
-          consentBannerCard: 'rounded-[28px] shadow-xl',
-          consentBannerFooter: 'border-t border-black/10 px-6',
-          consentBannerTitle: 'tracking-tight',
+      },
+      components: {
+        banner: {
+          card: { className: 'rounded-[28px] shadow-xl' },
+          footer: { className: 'border-t border-black/10 px-6' },
+          title: { className: 'tracking-tight' },
         },
       },
     }}
@@ -238,7 +240,7 @@ group: reference
 
   `renderAction` is still meant for stock button compounds. If you want completely custom button elements and click handling, use `useHeadlessConsentUI()` and render `banner.actionGroups` manually instead of `ConsentBanner.PolicyActions`.
 
-  If you only need styling changes, stay with tokens and slots instead of rebuilding the banner layout.
+  If you only need styling changes, stay with tokens and component slots instead of rebuilding the banner layout.
 </section>
 
 <section id="props">

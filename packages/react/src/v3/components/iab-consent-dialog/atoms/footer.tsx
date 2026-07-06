@@ -2,11 +2,12 @@
 
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 import { useHeadlessIABConsentUI } from '~/v3/component-hooks/use-headless-iab-consent-ui';
 import * as Button from '~/v3/components/shared/ui/button';
-import { useStyles } from '~/v3/hooks/use-styles';
+import { useTheme } from '~/v3/hooks/use-theme';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import { useGVLData } from '../hooks/use-gvl-data';
 import { useIABTranslations } from '../use-iab-translations';
 
@@ -27,6 +28,8 @@ const IABConsentDialogFooter = forwardRef<
 	IABConsentDialogFooterProps
 >(({ children, className, ...props }, ref) => {
 	const { performDialogAction } = useHeadlessIABConsentUI();
+	const { components } = useUIConfig();
+	const { noStyle } = useTheme();
 	const iabTranslations = useIABTranslations();
 	const { isLoading } = useGVLData();
 
@@ -42,17 +45,17 @@ const IABConsentDialogFooter = forwardRef<
 		void performDialogAction('customize');
 	};
 
-	const themedStyle = useStyles('iabConsentDialogFooter', {
+	const themedStyle = mergeSlotProps(components?.['iab-dialog']?.footer, {
 		baseClassName: [styles.footer, actionStyles.actionRoot],
 		className,
+		noStyle,
+		...props,
 	});
-	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	return (
 		<div
 			ref={ref}
-			{...domStyleProps}
-			{...props}
+			{...themedStyle}
 		>
 			{children ? (
 				children

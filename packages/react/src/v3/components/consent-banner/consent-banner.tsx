@@ -16,6 +16,7 @@ import {
 import { type FC, Fragment, type ReactNode } from 'react';
 import { useHeadlessConsentUI } from '~/v3/component-hooks/use-headless-consent-ui';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
+import { Box } from '~/v3/components/shared/primitives/box';
 import type { InlineLegalLinksProps } from '~/v3/components/shared/primitives/legal-links';
 import { BrandingLink } from '~/v3/components/shared/ui/branding';
 import { usePolicyBanner } from '~/v3/hooks';
@@ -311,11 +312,14 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 				models={models}
 				uiSource={uiSource}
 			>
-				<div className={styles.cardShell}>
+				<Box
+					baseClassName={styles.cardShell}
+					slotKey="banner.cardShell"
+				>
 					<BrandingLink
 						hideBranding={hideBranding}
 						variant="banner-tag"
-						themeKey="consentBannerTag"
+						slotContext="banner"
 						data-testid="consent-banner-branding"
 					/>
 					<ConsentBannerCard aria-label={consentBanner.title}>
@@ -366,7 +370,7 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 							})}
 						</ConsentBannerFooter>
 					</ConsentBannerCard>
-				</div>
+				</Box>
 			</ConsentBannerRoot>
 		</ErrorBoundary>
 	);

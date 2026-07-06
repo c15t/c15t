@@ -128,7 +128,7 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 		<Box
 			baseClassName={styles.manager}
 			data-testid="consent-widget-root"
-			themeKey="consentWidget"
+			slotKey="manager.root"
 			dir={textDirection}
 		>
 			{children}

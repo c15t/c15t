@@ -16,7 +16,7 @@ group: reference
   - `useHeadlessConsentUI()` when you need fully manual action rendering, custom controls, or non-standard flow
 
   <Callout type="warning">
-    Headless is the last step in the customization ladder. Use this guide only when pre-built components, tokens, slots, compound components, and `noStyle` are no longer sufficient.
+    Headless is the last step in the customization ladder. Use this guide only when pre-built components, tokens, component slots, compound components, and `noStyle` are no longer sufficient.
   </Callout>
 
   The headless stack underneath that is:
@@ -55,7 +55,7 @@ group: reference
   - Use `layout`, `direction`, `primaryButton`, and `legalLinks` before you rebuild banner markup
   - Use `theme.consentActions` before you swap out stock actions
   - Use tokens such as `colors.surface` and `colors.surfaceHover` before raw CSS overrides
-  - Use slots such as `consentBannerCard`, `consentBannerFooter`, and `consentDialogCard` before compound components
+  - Use component slots such as `banner.card`, `banner.footer`, and `dialog.card` before compound components
   - Use `ConsentManagerProvider.options.i18n` before rebuilding UI just to change text
 
   A good rule: if the stock banner or dialog structure is still correct, you probably do not need headless mode.
@@ -98,7 +98,7 @@ group: reference
   - restyling stock banner or dialog buttons
   - changing consent copy
 
-  Those should stay in the pre-built stack with tokens, slots, `theme.consentActions`, and provider `i18n`.
+  Those should stay in the pre-built stack with tokens, component slots, `theme.consentActions`, and provider `i18n`.
 </section>
 
 <section id="checklist">

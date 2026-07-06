@@ -5,16 +5,13 @@ import type {
 	ThemeValue as BaseThemeValue,
 } from '@c15t/ui/theme';
 import type { CSSProperties } from 'react';
-import type { AllThemeKeys } from './style-keys';
 
 export type {
 	ColorTokens,
-	ComponentSlots,
 	CSSVariables,
 	MotionTokens,
 	RadiusTokens,
 	ShadowTokens,
-	SlotStyle,
 	SpacingTokens,
 	TypographyTokens,
 } from '@c15t/ui/theme';
@@ -50,10 +47,7 @@ export type ThemeValue<VariableMap = Record<string, string | number>> =
  * @public
  */
 export interface ExtendThemeKeys<VariableMap = Record<string, string | number>>
-	extends ClassNameStyle<VariableMap> {
-	/** Optional key to reference a specific part of the global theme. */
-	themeKey?: AllThemeKeys;
-}
+	extends ClassNameStyle<VariableMap> {}
 
 /**
  * Complete theme configuration for c15t consent components (v2).
@@ -62,8 +56,6 @@ export interface ExtendThemeKeys<VariableMap = Record<string, string | number>>
 export interface Theme extends Omit<BaseTheme, 'slots'> {
 	/** Semantic button styling for consent actions. */
 	consentActions?: BaseTheme['consentActions'];
-	/** Component-specific style overrides. */
-	slots?: BaseTheme['slots'];
 }
 
 /**

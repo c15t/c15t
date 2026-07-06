@@ -1,7 +1,6 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import {
 	forwardRef,
 	type HTMLAttributes,
@@ -12,13 +11,15 @@ import {
 } from 'react';
 import { useActiveUI } from '~/v3/hooks';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
-import { useStyles } from '~/v3/hooks/use-styles';
 import { useTheme } from '~/v3/hooks/use-theme';
+import { useUIConfig } from '~/v3/ui-config-context';
 import { cnExt as cn } from '~/v3/utils/cn';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import { useIABTranslations } from '../use-iab-translations';
 
 interface IABConsentDialogCardProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
+	'data-testid'?: string;
 }
 
 /**
@@ -32,8 +33,9 @@ interface IABConsentDialogCardProps extends HTMLAttributes<HTMLDivElement> {
 const IABConsentDialogCard = forwardRef<
 	HTMLDivElement,
 	IABConsentDialogCardProps
->(({ children, className, ...props }, ref) => {
+>(({ children, className, 'data-testid': dataTestId, ...props }, ref) => {
 	const { trapFocus } = useTheme();
+	const { components } = useUIConfig();
 	const activeUI = useActiveUI();
 	const iabTranslations = useIABTranslations();
 	const [isVisible, setIsVisible] = useState(false);
@@ -52,25 +54,24 @@ const IABConsentDialogCard = forwardRef<
 		}
 	}, [showDialog]);
 
-	const themedStyle = useStyles('iabConsentDialogCard', {
+	const themedStyle = mergeSlotProps(components?.['iab-dialog']?.card, {
 		baseClassName: cn(
 			styles.card,
 			isVisible ? styles.contentVisible : styles.contentHidden
 		),
 		className,
+		'data-testid': dataTestId ?? 'iab-consent-dialog-card',
+		...props,
 	});
-	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	return (
 		<div
 			ref={ref}
-			{...domStyleProps}
+			{...themedStyle}
 			role="dialog"
 			aria-modal={trapFocus ? 'true' : undefined}
 			aria-label={iabTranslations.preferenceCenter.title}
 			tabIndex={0}
-			data-testid="iab-consent-dialog-card"
-			{...props}
 		>
 			{children}
 		</div>

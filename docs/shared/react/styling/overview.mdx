@@ -13,7 +13,7 @@ group: reference
 
   1. **Pre-built component APIs** — provider options and component props such as `layout`, `direction`, `primaryButton`, `legalLinks`, and `theme.consentActions`
   2. **Design tokens** — global colors, typography, spacing, radius, shadows, and motion
-  3. **Slots** — targeted styling for specific parts such as the banner card, footer, or title
+  3. **Component slots** — targeted attributes for specific parts such as the banner card, footer, or title
   4. **CSS variables or className-level overrides** — when you need to integrate with external CSS systems
   5. **Compound components** — when you must rearrange markup while still using c15t primitives
   6. **`noStyle`** — when you want c15t structure but you need to own all visual styling
@@ -21,7 +21,7 @@ group: reference
 
   Keep styling and escalation as separate decisions:
 
-  - If you are still using the stock banner, dialog, or widget, stay with props, tokens, and slots.
+  - If you are still using the stock banner, dialog, or widget, stay with props, tokens, and component slots.
   - Escalate to compound components, `noStyle`, or headless only when the structure or behavior itself must change.
 
   ## Styling Approaches
@@ -30,8 +30,8 @@ group: reference
   |----------|---------|----------|
   | **Component and provider APIs** | High | Reordering actions, changing button emphasis, configuring links, hiding branding, changing copy via `i18n` |
   | **Tokens** | High | Changing global colors, typography, spacing, radius, shadows, or motion |
-  | **Slots** | Medium | Targeting specific component parts (for example `consentBannerFooter` or `consentDialogCard`) |
-  | **CSS variables / className** | Medium | Integrating with an existing stylesheet or utility classes after tokens and slots |
+  | **Component slots** | Medium | Targeting specific component parts (for example `banner.footer` or `dialog.card`) |
+  | **CSS variables / className** | Medium | Integrating with an existing stylesheet or utility classes after tokens and component slots |
   | **Compound components** | Structure | Rearranging existing c15t primitives without going fully custom |
   | **noStyle** | Full visuals | Keeping c15t structure but replacing all visual defaults |
   | **Headless** | Full | Replacing both markup and behavior |
@@ -86,33 +86,33 @@ group: reference
 
   ### 3. Component slots
 
-  Target specific component parts via the `slots` object:
+  Target specific component parts via the provider `components` object:
 
   ```tsx
   options={{
-    theme: {
-      slots: {
-        consentBannerCard: 'rounded-[28px] shadow-xl',
-        consentBannerFooter: 'border-t border-black/10',
-        consentBannerTitle: 'tracking-tight',
+    components: {
+      banner: {
+        card: { className: 'rounded-[28px] shadow-xl' },
+        footer: { className: 'border-t border-black/10' },
+        title: { className: 'tracking-tight' },
       },
     },
   }}
   ```
 
-  Use slots when the component part is right but the local styling needs adjustment.
+  Use component slots when the component part is right but the local styling needs adjustment.
 
   ### 4. CSS variables and className-level overrides
 
-  Override `--c15t-*` custom properties in your stylesheet or attach classes through slots when your app styling is driven externally.
+  Override `--c15t-*` custom properties in your stylesheet or attach classes through component slots when your app styling is driven externally.
 
-  Reach for this after tokens and slots, not before.
+  Reach for this after tokens and component slots, not before.
 
   ```tsx
   options={{
-    theme: {
-      slots: {
-        consentBannerFooter: 'bg-[var(--banner-footer)]',
+    components: {
+      banner: {
+        footer: { className: 'bg-[var(--banner-footer)]' },
       },
     },
   }}
@@ -190,11 +190,11 @@ group: reference
 
   ```tsx
   options={{
-    theme: {
-      slots: {
-        consentBannerCard: 'rounded-[28px] shadow-xl',
-        consentBannerFooter: 'border-t border-black/10 px-6',
-        consentBannerTitle: 'text-xl tracking-tight',
+    components: {
+      banner: {
+        card: { className: 'rounded-[28px] shadow-xl' },
+        footer: { className: 'border-t border-black/10 px-6' },
+        title: { className: 'text-xl tracking-tight' },
       },
     },
   }}
@@ -259,11 +259,11 @@ group: reference
     - Do not jump to CSS overrides or `!important` because a token did not appear to work at first glance.
     - `noStyle: true` removes layout and visual defaults. Treat it as an advanced opt-out, not a normal theming step.
     - Headless mode is for replacing markup and behavior, not for styling-only requests.
-    - Use either tokens/slots or raw CSS variable overrides intentionally to avoid conflicting style sources.
+    - Use either tokens/component slots or raw CSS variable overrides intentionally to avoid conflicting style sources.
     - For dark mode, c15t supports `.dark` and `.c15t-dark`.
   </Callout>
 
   ## API Reference
 
-  <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="Theme" />
+  <AutoTypeTable path="./packages/react/src/v3/types/theme/style-types.ts" name="Theme" />
 </section>

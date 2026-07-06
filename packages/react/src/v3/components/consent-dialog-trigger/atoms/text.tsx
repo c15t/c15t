@@ -8,6 +8,9 @@
 
 import styles from '@c15t/ui/styles/v3/consent-dialog-trigger';
 import type { ReactNode } from 'react';
+import { useTheme } from '~/v3/hooks/use-theme';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 
 /**
  * Props for the Text component.
@@ -41,13 +44,17 @@ export interface TriggerTextProps {
 export function TriggerText({
 	children,
 	className,
-	noStyle = false,
+	noStyle,
 }: TriggerTextProps): ReactNode {
-	const textClasses = noStyle
-		? className
-		: [styles.text, className].filter(Boolean).join(' ');
+	const { components } = useUIConfig();
+	const { noStyle: contextNoStyle } = useTheme();
+	const textProps = mergeSlotProps(components?.trigger?.text, {
+		baseClassName: styles.text,
+		className,
+		noStyle: noStyle ?? contextNoStyle,
+	});
 
-	return <span className={textClasses}>{children}</span>;
+	return <span {...textProps}>{children}</span>;
 }
 
 TriggerText.displayName = 'ConsentDialogTrigger.Text';

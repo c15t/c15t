@@ -59,7 +59,9 @@ function createMockState(
 function renderBanner(
 	props: ComponentProps<typeof ConsentBanner>,
 	stateOverrides: Partial<ConsentStoreState> = {},
-	themeSlotOverrides: Record<string, string> = {}
+	componentOverrides: ComponentProps<
+		typeof ConsentProvider
+	>['options']['components'] = {}
 ) {
 	const state = createMockState(stateOverrides);
 
@@ -68,12 +70,12 @@ function renderBanner(
 			options={{
 				mode: 'offline',
 				persistence: false,
-				theme: {
-					slots: {
-						buttonPrimary: 'button-primary-marker',
-						buttonSecondary: 'button-secondary-marker',
-						...themeSlotOverrides,
+				components: {
+					button: {
+						primary: { className: 'button-primary-marker' },
+						secondary: { className: 'button-secondary-marker' },
 					},
+					...componentOverrides,
 				},
 				prefetch: {
 					initialConsents: state.consents,
@@ -233,8 +235,12 @@ describe('ConsentBanner policy ordering', () => {
 		).not.toBeInTheDocument();
 	});
 
-	test('applies the consentBannerTag theme slot to the stock banner tag', async () => {
-		renderBanner({}, {}, { consentBannerTag: 'consent-banner-tag-marker' });
+	test('applies the banner tag component slot to the stock banner tag', async () => {
+		renderBanner(
+			{},
+			{},
+			{ tag: { banner: { className: 'consent-banner-tag-marker' } } }
+		);
 
 		await waitForBanner();
 

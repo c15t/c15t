@@ -1,33 +1,28 @@
 import styles from '@c15t/ui/styles/v3/consent-dialog';
-import { resolveStyles, sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import type { Branding } from 'c15t';
 import type { SVGProps } from 'react';
-import { useMemo } from 'react';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { useBranding } from '~/v3/hooks';
 import { useTheme } from '~/v3/hooks/use-theme';
-import type {
-	AllThemeKeys,
-	ClassNameStyle,
-	CSSPropertiesWithVars,
-} from '~/v3/types/theme';
+import type { CSSPropertiesWithVars } from '~/v3/types/theme';
+import { useUIConfig } from '~/v3/ui-config-context';
 import { cnExt as cn } from '~/v3/utils/cn';
-import { mergeStyles } from '~/v3/utils/merge-styles';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import { C15TIconOnly, InthIconOnly, InthLogo } from './logo';
 
 export type ResolvedBranding = 'c15t' | 'inth' | 'none';
 export type BrandingVariant = 'footer' | 'dialog-tag' | 'banner-tag';
-export type BrandingThemeKey =
-	| 'consentBannerTag'
-	| 'consentDialogTag'
-	| 'consentWidgetTag'
-	| 'iabConsentBannerTag'
-	| 'iabConsentDialogTag';
+export type BrandingSlotContext =
+	| 'banner'
+	| 'dialog'
+	| 'manager'
+	| 'iab-banner'
+	| 'iab-dialog';
 
 type BrandingProps = {
 	hideBranding: boolean;
 	variant?: BrandingVariant;
-	themeKey?: BrandingThemeKey;
+	slotContext?: BrandingSlotContext;
 	className?: string;
 	style?: CSSPropertiesWithVars;
 	'data-testid'?: string;
@@ -103,19 +98,22 @@ export function BrandingCompactLogo({
 export function BrandingLink({
 	hideBranding,
 	variant = 'footer',
-	themeKey,
+	slotContext,
 	className,
 	style,
 	'data-testid': testId,
 }: BrandingProps) {
 	const branding = useBranding() ?? 'c15t';
-	const { noStyle: contextNoStyle, theme } = useTheme();
+	const { components } = useUIConfig();
+	const { noStyle } = useTheme();
 	const { common } = useTranslations();
 	const resolvedBranding = resolveBranding(branding);
 	const refParam =
 		typeof window !== 'undefined' ? `?ref=${window.location.hostname}` : '';
-	const brandingStyle = useMemo(() => {
-		const componentStyle: ClassNameStyle = {
+	const context = slotContext;
+	const brandingStyle = mergeSlotProps(
+		context ? components?.tag?.[context] : undefined,
+		{
 			baseClassName: cn(
 				styles.branding,
 				variant !== 'footer' && styles.brandingTag,
@@ -123,20 +121,18 @@ export function BrandingLink({
 				variant === 'banner-tag' && styles.brandingTagBanner
 			),
 			className,
+			noStyle,
 			style,
-		};
-		if (themeKey && theme?.slots && themeKey in theme.slots) {
-			return resolveStyles(
-				themeKey as AllThemeKeys,
-				theme,
-				componentStyle,
-				contextNoStyle
-			);
+			'data-testid': testId,
 		}
-
-		return mergeStyles({}, componentStyle);
-	}, [className, contextNoStyle, style, theme, themeKey, variant]);
-	const domStyleProps = sanitizeDOMStyleProps(brandingStyle);
+	);
+	const contentStyle = mergeSlotProps(
+		context ? components?.tag?.content : undefined,
+		{
+			baseClassName: styles.brandingContent,
+			noStyle,
+		}
+	);
 
 	if (resolvedBranding === 'none' || hideBranding) {
 		return null;
@@ -144,23 +140,27 @@ export function BrandingLink({
 
 	return (
 		<a
-			{...domStyleProps}
+			{...brandingStyle}
 			href={getBrandingHref(branding, refParam)}
 			data-branding={resolvedBranding}
 			data-variant={variant}
-			data-testid={testId}
 		>
-			<span className={styles.brandingCopy}>
-				<span className={styles.brandingText}>{common.securedBy}</span>
+			<span
+				{...contentStyle}
+				data-slot="tag-content"
+			>
+				<span className={styles.brandingCopy}>
+					<span className={styles.brandingText}>{common.securedBy}</span>
+				</span>
+				<BrandingFullLogo
+					branding={branding}
+					className={
+						resolvedBranding === 'inth'
+							? styles.brandingInth
+							: styles.brandingC15T
+					}
+				/>
 			</span>
-			<BrandingFullLogo
-				branding={branding}
-				className={
-					resolvedBranding === 'inth'
-						? styles.brandingInth
-						: styles.brandingC15T
-				}
-			/>
 		</a>
 	);
 }

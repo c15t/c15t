@@ -1,10 +1,14 @@
 import type { BaseConsentManagerOptions, UIOptions } from '@c15t/ui/theme';
 import type { ReactNode } from 'react';
+import type { ReactComponentSlots } from './slots';
 
 /**
  * React-specific configuration options
  */
-export interface ReactUIOptions extends UIOptions {}
+export interface ReactUIOptions extends UIOptions {
+	/** Per-component slot attribute overrides (shared contract with @c15t/vue). */
+	components?: ReactComponentSlots;
+}
 
 /**
  * Extended configuration options for the React consent manager.

@@ -1,3 +1,4 @@
+import type { ConsentComponentSlotKey } from '@c15t/schema/config';
 import type { ButtonMode } from '@c15t/ui/styles/primitives';
 import type { ComponentRef, HTMLAttributes, MouseEvent } from 'react';
 import type { CSSVariables, ExtendThemeKeys } from '~/v3/types/theme';
@@ -12,6 +13,7 @@ export type ConsentButtonElement = ComponentRef<'button'>;
 export interface ConsentButtonProps
 	extends Omit<HTMLAttributes<HTMLButtonElement>, 'style'>,
 		ExtendThemeKeys<CSSVariables> {
+	slotKey?: ConsentComponentSlotKey;
 	/**
 	 * @remarks
 	 * When true, the button will not apply any styles.

@@ -1,6 +1,6 @@
 import type { ConsentStoreState } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentWidget } from '~/v3/components/consent-widget';
@@ -96,14 +96,16 @@ async function renderDefaultPolicyActions(
 
 async function renderWidget(
 	stateOverrides: Partial<ConsentStoreState> = {},
-	themeSlots: Record<string, string> = {}
+	providerOverrides: Partial<
+		ComponentProps<typeof ConsentProvider>['options']
+	> = {}
 ) {
 	const state = createMockState(stateOverrides);
 
 	await render(
 		<PolicyTestProvider
 			state={state}
-			themeOverrides={{ slots: themeSlots }}
+			providerOverrides={providerOverrides}
 		>
 			<ConsentWidget hideBranding={false} />
 		</PolicyTestProvider>
@@ -113,18 +115,21 @@ async function renderWidget(
 function PolicyTestProvider({
 	children,
 	state,
-	themeOverrides,
+	providerOverrides,
 }: {
 	children: ReactNode;
 	state: ConsentStoreState;
-	themeOverrides?: Record<string, unknown>;
+	providerOverrides?: Partial<
+		ComponentProps<typeof ConsentProvider>['options']
+	>;
 }) {
 	return (
 		<ConsentProvider
 			options={{
 				mode: 'offline',
 				persistence: false,
-				theme: themeOverrides as never,
+				components: providerOverrides?.components,
+				theme: providerOverrides?.theme,
 				prefetch: {
 					initialConsents: state.consents,
 					initialTranslations: {
@@ -272,8 +277,17 @@ describe('ConsentWidget.PolicyActions', () => {
 		).not.toBeInTheDocument();
 	});
 
-	test('applies the consentWidgetTag theme slot to the stock widget tag', async () => {
-		await renderWidget({}, { consentWidgetTag: 'consent-widget-tag-marker' });
+	test('applies the manager tag component slot to the stock widget tag', async () => {
+		await renderWidget(
+			{},
+			{
+				components: {
+					tag: {
+						manager: { className: 'consent-widget-tag-marker' },
+					},
+				},
+			}
+		);
 
 		expect(
 			document.querySelector('[data-testid="consent-widget-branding"]')

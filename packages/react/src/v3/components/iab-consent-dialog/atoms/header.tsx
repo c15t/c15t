@@ -1,11 +1,11 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, type ReactNode } from 'react';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { useSetActiveUI } from '~/v3/hooks';
-import { useStyles } from '~/v3/hooks/use-styles';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import { useIABTranslations } from '../use-iab-translations';
 
 interface IABConsentDialogHeaderProps {
@@ -46,6 +46,7 @@ const IABConsentDialogHeader = forwardRef<
 		ref
 	) => {
 		const setActiveUI = useSetActiveUI();
+		const { components } = useUIConfig();
 		const iabTranslations = useIABTranslations();
 		const { common } = useTranslations();
 
@@ -53,16 +54,15 @@ const IABConsentDialogHeader = forwardRef<
 			setActiveUI('none');
 		};
 
-		const themedStyle = useStyles('iabConsentDialogHeader', {
+		const themedStyle = mergeSlotProps(components?.['iab-dialog']?.header, {
 			baseClassName: styles.header,
 			className,
 		});
-		const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 		return (
 			<div
 				ref={ref}
-				{...domStyleProps}
+				{...themedStyle}
 			>
 				{children ? (
 					children

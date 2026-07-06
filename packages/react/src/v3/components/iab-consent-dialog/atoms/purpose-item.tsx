@@ -4,6 +4,9 @@ import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { type FC, useState } from 'react';
 import * as PreferenceItem from '~/v3/components/shared/ui/preference-item';
 import * as Switch from '~/v3/components/shared/ui/switch';
+import { useTheme } from '~/v3/hooks/use-theme';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import type { ProcessedPurpose, ProcessedVendor, VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
 
@@ -44,6 +47,8 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 	purposeLegitimateInterests = {},
 	onPurposeLegitimateInterestToggle,
 }) => {
+	const { components } = useUIConfig();
+	const { noStyle } = useTheme();
 	const [isExpanded, setIsExpanded] = useState(false);
 	const [showExamples, setShowExamples] = useState(false);
 	const [showVendors, setShowVendors] = useState(false);
@@ -89,19 +94,44 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 			onVendorToggle(vendor.id, value);
 		}
 	};
+	const headerProps = mergeSlotProps(components?.['iab-purpose-item']?.header, {
+		baseClassName: styles.purposeHeader,
+		noStyle,
+	});
+	const legitimateInterestProps = mergeSlotProps(
+		components?.['iab-purpose-item']?.legitimateInterest,
+		{
+			baseClassName: styles.purposeLiSection,
+			noStyle,
+		}
+	);
+	const examplesProps = mergeSlotProps(
+		components?.['iab-purpose-item']?.examples,
+		{
+			noStyle,
+		}
+	);
+	const vendorsProps = mergeSlotProps(
+		components?.['iab-purpose-item']?.vendors,
+		{
+			noStyle,
+		}
+	);
 
 	return (
 		<PreferenceItem.Root
-			className={styles.purposeItem}
+			className={noStyle ? undefined : styles.purposeItem}
 			data-testid={`purpose-item-${purpose.id}`}
 			noStyle
 			onOpenChange={setIsExpanded}
 			open={isExpanded}
+			slotKey="iab-purpose-item.root"
 		>
-			<div className={styles.purposeHeader}>
+			<div {...headerProps}>
 				<PreferenceItem.Trigger
-					className={styles.purposeTrigger}
+					className={noStyle ? undefined : styles.purposeTrigger}
 					noStyle
+					slotKey="iab-purpose-item.trigger"
 				>
 					<PreferenceItem.Leading noStyle>
 						<svg
@@ -189,14 +219,15 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 			</div>
 
 			<PreferenceItem.Content
-				innerClassName={styles.purposeContent}
+				innerClassName={noStyle ? undefined : styles.purposeContent}
+				innerSlotKey="iab-purpose-item.content"
 				noStyle
 			>
 				<p className={styles.purposeDescription}>{purpose.description}</p>
 
 				{/* Purpose-level Legitimate Interest Objection */}
 				{legIntVendors.length > 0 && onPurposeLegitimateInterestToggle && (
-					<div className={styles.purposeLiSection}>
+					<div {...legitimateInterestProps}>
 						<div className={styles.purposeLiSectionHeader}>
 							<div className={styles.purposeLiInfo}>
 								<svg
@@ -252,7 +283,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 				)}
 
 				{purpose.illustrations && purpose.illustrations.length > 0 && (
-					<div>
+					<div {...examplesProps}>
 						<PreferenceItem.Root
 							noStyle
 							onOpenChange={setShowExamples}
@@ -289,7 +320,7 @@ export const PurposeItem: FC<PurposeItemProps> = ({
 					</div>
 				)}
 
-				<div>
+				<div {...vendorsProps}>
 					<PreferenceItem.Root
 						noStyle
 						onOpenChange={setShowVendors}

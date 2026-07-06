@@ -74,7 +74,7 @@ export interface ConsentBannerCompoundComponent extends FC<ConsentBannerProps> {
  * ```
  *
  * @example
- * Preferred customization via provider `i18n`, theme tokens, and slots:
+ * Preferred customization via provider `i18n`, theme tokens, and components:
  * ```tsx
  * <ConsentManagerProvider
  *   options={{
@@ -91,9 +91,11 @@ export interface ConsentBannerCompoundComponent extends FC<ConsentBannerProps> {
  *         surface: '#fffdf8',
  *         surfaceHover: '#f6f3ee',
  *       },
- *       slots: {
- *         consentBannerCard: 'rounded-3xl',
- *         consentBannerFooter: 'border-t border-black/10',
+ *     },
+ *     components: {
+ *       banner: {
+ *         card: { className: 'rounded-3xl' },
+ *         footer: { className: 'border-t border-black/10' },
  *       },
  *     },
  *   }}

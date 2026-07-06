@@ -4,6 +4,9 @@ import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { type FC, useState } from 'react';
 import * as PreferenceItem from '~/v3/components/shared/ui/preference-item';
 import * as Switch from '~/v3/components/shared/ui/switch';
+import { useTheme } from '~/v3/hooks/use-theme';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import type { ProcessedStack, VendorId } from '../types';
 import { PurposeItem } from './purpose-item';
 
@@ -42,6 +45,8 @@ export const StackItem: FC<StackItemProps> = ({
 	purposeLegitimateInterests = {},
 	onPurposeLegitimateInterestToggle,
 }) => {
+	const { components } = useUIConfig();
+	const { noStyle } = useTheme();
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	const allEnabled = stack.purposes.every((p) => consents[p.id] ?? false);
@@ -61,6 +66,10 @@ export const StackItem: FC<StackItemProps> = ({
 			}
 		}
 	};
+	const headerProps = mergeSlotProps(components?.['iab-stack-item']?.header, {
+		baseClassName: styles.stackHeader,
+		noStyle,
+	});
 
 	const totalVendors = new Set(
 		stack.purposes.flatMap((p) => p.vendors.map((v) => v.id))
@@ -68,16 +77,18 @@ export const StackItem: FC<StackItemProps> = ({
 
 	return (
 		<PreferenceItem.Root
-			className={styles.stackItem}
+			className={noStyle ? undefined : styles.stackItem}
 			data-testid={`stack-item-${stack.id}`}
 			noStyle
 			onOpenChange={setIsExpanded}
 			open={isExpanded}
+			slotKey="iab-stack-item.root"
 		>
-			<div className={styles.stackHeader}>
+			<div {...headerProps}>
 				<PreferenceItem.Trigger
-					className={styles.stackTrigger}
+					className={noStyle ? undefined : styles.stackTrigger}
 					noStyle
+					slotKey="iab-stack-item.trigger"
 				>
 					<PreferenceItem.Leading noStyle>
 						<svg
@@ -133,7 +144,12 @@ export const StackItem: FC<StackItemProps> = ({
 				<div className={styles.stackDescription}>
 					<p>{stack.description}</p>
 				</div>
-				<div className={styles.stackContent}>
+				<div
+					{...mergeSlotProps(components?.['iab-stack-item']?.content, {
+						baseClassName: styles.stackContent,
+						noStyle,
+					})}
+				>
 					{stack.purposes.map((purpose) => (
 						<PurposeItem
 							key={purpose.id}

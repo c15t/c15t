@@ -3,10 +3,9 @@ import { resolveTranslations } from '@c15t/ui/utils';
 import type { LegalLinks as LegalLinksType } from 'c15t';
 import { useContext, useMemo, useSyncExternalStore } from 'react';
 import { KernelContext } from '~/v3/context';
-import { useStyles } from '~/v3/hooks/use-styles';
-import type { AllThemeKeys } from '~/v3/types/theme/style-keys';
-import { V3UIConfigContext } from '~/v3/ui-config-context';
+import { useUIConfig, V3UIConfigContext } from '~/v3/ui-config-context';
 import { defaultTranslationConfig } from '~/v3/utils/default-translation-config';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 
 const noopSubscribe = () => () => undefined;
 
@@ -72,10 +71,7 @@ export interface InlineLegalLinksProps {
 	 */
 	links?: (keyof LegalLinksType)[] | null;
 
-	/**
-	 * Theme key for styling the links. Must be one of the valid legal-links parent keys.
-	 */
-	themeKey: LegalLinksThemeKey;
+	context: LegalLinksContext;
 
 	/**
 	 * Optional test ID prefix for the links.
@@ -92,19 +88,21 @@ export interface InlineLegalLinksProps {
  * ```tsx
  * <InlineLegalLinks
  *   links={['privacyPolicy', 'cookiePolicy']}
- *   themeKey="dialog.legal-links"
+ *   context="dialog"
  *   testIdPrefix="consent-manager-dialog-legal-link"
  * />
  * ```
  */
 export function InlineLegalLinks({
 	links,
-	themeKey,
+	context,
 	testIdPrefix,
 }: InlineLegalLinksProps) {
 	const filteredLinks = useFilteredLegalLinks(links);
 	const t = useLegalLinkTranslations();
-	const linkStyles = useStyles(themeKey as any, {
+	const { components } = useUIConfig();
+	const rootStyles = mergeSlotProps(components?.['legal-links']?.root, {});
+	const linkStyles = mergeSlotProps(components?.link?.[context], {
 		baseClassName: styles.legalLink,
 	});
 
@@ -113,7 +111,7 @@ export function InlineLegalLinks({
 	}
 
 	return (
-		<span>
+		<span {...rootStyles}>
 			{' '}
 			{(
 				Object.entries(filteredLinks) as [
@@ -146,6 +144,6 @@ export function InlineLegalLinks({
 }
 
 /**
- * Valid theme key prefixes for the LegalLinks component.
+ * Valid link slot contexts for inline legal links.
  */
-type LegalLinksThemeKey = AllThemeKeys;
+type LegalLinksContext = 'banner' | 'dialog' | 'manager';

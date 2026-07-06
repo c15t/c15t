@@ -86,14 +86,16 @@ export interface ConsentWidgetCompoundComponent extends FC<ConsentWidgetProps> {
  * ```
  *
  * @example
- * Preferred stock customization with theme slots:
+ * Preferred stock customization with component slots:
  * ```tsx
  * <ConsentManagerProvider
  *   options={{
- *     theme: {
- *       slots: {
- *         consentWidgetAccordion: 'rounded-3xl border border-black/10',
- *         consentWidgetFooter: 'border-t border-black/10',
+ *     components: {
+ *       accordion: {
+ *         root: { className: 'rounded-3xl border border-black/10' },
+ *       },
+ *       manager: {
+ *         footer: { className: 'border-t border-black/10' },
  *       },
  *     },
  *   }}

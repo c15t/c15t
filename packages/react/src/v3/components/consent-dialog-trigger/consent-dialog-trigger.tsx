@@ -72,7 +72,7 @@ function ConsentDialogTriggerComponent({
 	showWhen = 'always',
 	size = 'md',
 	className,
-	noStyle = false,
+	noStyle,
 	onClick,
 	onPositionChange,
 }: ConsentDialogTriggerProps): ReactNode {

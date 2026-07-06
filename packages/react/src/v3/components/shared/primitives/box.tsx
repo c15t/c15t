@@ -1,11 +1,13 @@
 'use client';
 
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
+import type { ConsentComponentSlotKey } from '@c15t/schema/config';
 import { forwardRef, type HTMLAttributes } from 'react';
 
 import { Slot } from '~/v3/components/shared/libs/slot';
-import { useStyles } from '~/v3/hooks/use-styles';
-import type { AllThemeKeys, ExtendThemeKeys } from '~/v3/types/theme';
+import { useTheme } from '~/v3/hooks/use-theme';
+import type { ExtendThemeKeys } from '~/v3/types/theme';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { getSlotProps, mergeSlotProps } from '~/v3/utils/merge-slot-props';
 
 /**
  * Props for the description text component of the CookieBanner.
@@ -17,6 +19,7 @@ export interface BoxProps
 	extends Omit<HTMLAttributes<HTMLDivElement>, 'style'>,
 		ExtendThemeKeys {
 	asChild?: boolean;
+	slotKey?: ConsentComponentSlotKey;
 }
 
 /**
@@ -55,27 +58,24 @@ export interface BoxProps
  */
 export const Box = forwardRef<HTMLDivElement, BoxProps>(
 	(
-		{ asChild, className, style, themeKey, baseClassName, noStyle, ...props },
+		{ asChild, className, style, slotKey, baseClassName, noStyle, ...props },
 		ref
 	) => {
-		/**
-		 * Apply styles from the CookieBanner context and merge with local styles.
-		 * Uses the 'description' style key for consistent theming.
-		 */
-		const descriptionStyle = useStyles(themeKey as AllThemeKeys, {
+		const { components } = useUIConfig();
+		const { noStyle: contextNoStyle } = useTheme();
+		const slotProps = getSlotProps(components, slotKey);
+		const mergedProps = mergeSlotProps(slotProps, {
 			baseClassName,
 			className,
+			noStyle: noStyle ?? contextNoStyle,
 			style,
-			noStyle,
+			...props,
 		});
-		const domStyleProps = sanitizeDOMStyleProps(descriptionStyle);
-
 		const Comp = asChild ? Slot : 'div';
 		return (
 			<Comp
 				ref={ref}
-				{...props}
-				{...domStyleProps}
+				{...mergedProps}
 			/>
 		);
 	}

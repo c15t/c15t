@@ -1,13 +1,10 @@
 import type { AllConsentNames } from 'c15t';
 import { forwardRef, type MouseEvent, useCallback } from 'react';
 import { useSaveConsents, useSetActiveUI, useSetConsent } from '~/v3/hooks';
-import { useStyles } from '~/v3/hooks/use-styles';
 import { useTheme } from '~/v3/hooks/use-theme';
-import type {
-	AllThemeKeys,
-	CSSPropertiesWithVars,
-	CSSVariables,
-} from '~/v3/types/theme';
+import type { CSSPropertiesWithVars, CSSVariables } from '~/v3/types/theme';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { getSlotProps, mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import { Slot } from '../libs/slot';
 import * as Button from '../ui/button';
 import type { ButtonVariantsProps } from '../ui/button/button';
@@ -114,7 +111,7 @@ export const ConsentButton = forwardRef<
 			style,
 			noStyle,
 			action,
-			themeKey,
+			slotKey,
 			baseClassName,
 			variant,
 			mode,
@@ -134,6 +131,7 @@ export const ConsentButton = forwardRef<
 		const setActiveUI = useSetActiveUI();
 		const setConsent = useSetConsent();
 		const { noStyle: contextNoStyle, theme } = useTheme();
+		const { components } = useUIConfig();
 		const resolvedButtonStyle = resolveConsentButtonStyle({
 			consentAction,
 			isPrimary,
@@ -142,30 +140,27 @@ export const ConsentButton = forwardRef<
 			mode,
 		});
 
-		const defaultThemeKey =
+		const defaultSlotKey =
 			resolvedButtonStyle.variant === 'primary'
-				? 'buttonPrimary'
-				: 'buttonSecondary';
+				? 'button.primary'
+				: 'button.secondary';
 
-		const buttonStyle = useStyles(
-			(themeKey as AllThemeKeys) ?? defaultThemeKey,
-			{
-				baseClassName: [
-					!(contextNoStyle || noStyle) &&
-						Button.buttonVariants({
-							variant: resolvedButtonStyle.variant,
-							mode: resolvedButtonStyle.mode,
-							size,
-						}).root(),
-				],
-				style: {
-					...(style as CSSPropertiesWithVars<CSSVariables>),
-				},
-				className: forwardedClassName,
-				noStyle: contextNoStyle || noStyle,
-			}
-		);
-		const { noStyle: _resolvedNoStyle, ...buttonStyleProps } = buttonStyle;
+		const slotProps = getSlotProps(components, slotKey ?? defaultSlotKey);
+		const buttonStyleProps = mergeSlotProps(slotProps, {
+			baseClassName: [
+				Button.buttonVariants({
+					variant: resolvedButtonStyle.variant,
+					mode: resolvedButtonStyle.mode,
+					size,
+				}).root(),
+				baseClassName,
+			],
+			style: {
+				...(style as CSSPropertiesWithVars<CSSVariables>),
+			},
+			className: forwardedClassName,
+			noStyle: contextNoStyle || noStyle,
+		});
 
 		// Need to know what category to set
 		if (!category && action === 'set-consent') {

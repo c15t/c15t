@@ -41,7 +41,7 @@ group: reference
   ## Styling First
 
   <Callout type="info">
-    If you are only changing visuals, stay with the stock dialog and use the theme system first. Start with tokens and slots such as `consentDialogCard`, `consentWidgetFooter`, and `consentDialogTag`. See [Styling Overview](/docs/frameworks/react/styling/overview).
+    If you are only changing visuals, stay with the stock dialog and use the theme system first. Start with tokens and component slots such as `dialog.card`, `manager.footer`, and `tag.dialog`. See [Styling Overview](/docs/frameworks/react/styling/overview).
   </Callout>
 
   ```tsx
@@ -52,11 +52,17 @@ group: reference
           surface: '#fffdf8',
           surfaceHover: '#f6f3ee',
         },
-        slots: {
-          consentDialogCard: 'rounded-[32px] shadow-xl',
-          consentDialogHeader: 'gap-3',
-          consentWidgetFooter: 'gap-3 pt-6',
-          consentDialogTag: 'shadow-none',
+      },
+      components: {
+        dialog: {
+          card: { className: 'rounded-[32px] shadow-xl' },
+          header: { className: 'gap-3' },
+        },
+        manager: {
+          footer: { className: 'gap-3 pt-6' },
+        },
+        tag: {
+          dialog: { className: 'shadow-none' },
         },
       },
     }}
@@ -114,7 +120,7 @@ group: reference
 
   For fully manual control over dialog action rendering, use `useHeadlessConsentUI()` and map `dialog.actionGroups` yourself.
 
-  If the stock dialog structure still works, prefer tokens, slots, and provider configuration instead.
+  If the stock dialog structure still works, prefer tokens, component slots, and provider configuration instead.
 </section>
 
 <section id="props">

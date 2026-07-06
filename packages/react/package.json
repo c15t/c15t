@@ -312,6 +312,7 @@
 	],
 	"dependencies": {
 		"@c15t/iab": "workspace:*",
+		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"c15t": "workspace:*"

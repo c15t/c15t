@@ -8,7 +8,6 @@
  */
 
 import styles from '@c15t/ui/styles/v3/consent-dialog';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -20,11 +19,12 @@ import {
 } from '~/v3/context/theme-context';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
-import { useStyles } from '~/v3/hooks/use-styles';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';
 import { useTheme } from '~/v3/hooks/use-theme';
 import type { CSSPropertiesWithVars } from '~/v3/types/theme';
+import { useUIConfig } from '~/v3/ui-config-context';
 import { cnExt as cn } from '~/v3/utils/cn';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import { Overlay } from './overlay';
 
 /**
@@ -116,6 +116,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 }) => {
 	// Global theme from provider (if any)
 	const globalTheme = useTheme();
+	const { components } = useUIConfig();
 
 	const disableAnimation =
 		localDisableAnimation ?? globalTheme.disableAnimation ?? false;
@@ -169,23 +170,27 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	// Lock scroll when required
 	useScrollLock(isOpen && scrollLock);
 
-	// Compose class names
 	const rootClasses = cn(
 		styles.root,
 		!disableAnimation &&
-			(isVisible ? styles.dialogVisible : styles.dialogHidden),
-		className
+			(isVisible ? styles.dialogVisible : styles.dialogHidden)
 	);
 
-	// Styles (using theme util)
-	const themedStyle = useStyles('consentDialog', {
-		baseClassName: undefined,
-		className: rootClasses,
+	const themedStyle = mergeSlotProps(components?.dialog?.root, {
+		baseClassName: rootClasses,
+		className,
 		style: style as CSSPropertiesWithVars<Record<string, never>>,
 		noStyle,
+		...rest,
 	});
-	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
-
+	const containerStyle = mergeSlotProps(components?.dialog?.container, {
+		baseClassName: cn(
+			styles.container,
+			!disableAnimation &&
+				(isVisible ? styles.contentVisible : styles.contentHidden)
+		),
+		noStyle,
+	});
 	const contextValue: ThemeContextValue = {
 		disableAnimation,
 		noStyle,
@@ -204,8 +209,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 
 						<dialog
 							ref={dialogRef}
-							{...rest}
-							{...domStyleProps}
+							{...themedStyle}
 							className={themedStyle.className}
 							aria-labelledby="consent-dialog-title"
 							tabIndex={-1}
@@ -215,18 +219,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 						>
 							<div
 								ref={contentRef}
-								className={
-									noStyle
-										? undefined
-										: cn(
-												styles.container,
-												disableAnimation
-													? undefined
-													: isVisible
-														? styles.contentVisible
-														: styles.contentHidden
-											)
-								}
+								{...containerStyle}
 							>
 								{children}
 							</div>

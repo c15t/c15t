@@ -74,6 +74,7 @@ function toKernelBridgeOptions(
 		(state.activeUI === 'dialog' ? 'dialog' : state.activeUI);
 	return {
 		colorScheme: options.colorScheme,
+		components: options.components,
 		consentCategories: state.consentCategories,
 		disableAnimation: options.disableAnimation,
 		iab: options.iab as ConsentProviderOptions['iab'],

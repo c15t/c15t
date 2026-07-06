@@ -1,6 +1,6 @@
 import type { ConsentStoreState } from 'c15t';
 import { defaultTranslationConfig } from 'c15t';
-import type { ReactElement } from 'react';
+import type { ComponentProps, ReactElement } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentDialogFooter } from '~/v3/components/consent-dialog/atoms/card';
@@ -56,11 +56,9 @@ function createMockState(
 async function renderWithConsentState(
 	ui: ReactElement,
 	stateOverrides: Partial<ConsentStoreState> = {},
-	themeOverrides: {
-		theme?: {
-			slots?: Record<string, string>;
-		};
-	} = {}
+	providerOverrides: Partial<
+		ComponentProps<typeof ConsentProvider>['options']
+	> = {}
 ) {
 	const state = createMockState(stateOverrides);
 
@@ -69,7 +67,8 @@ async function renderWithConsentState(
 			options={{
 				mode: 'offline',
 				persistence: false,
-				theme: themeOverrides.theme,
+				components: providerOverrides.components,
+				theme: providerOverrides.theme,
 				prefetch: {
 					initialBranding: state.branding,
 					initialConsents: state.consents,
@@ -178,14 +177,16 @@ describe('BrandingLink', () => {
 			<BrandingLink
 				hideBranding={false}
 				variant="banner-tag"
-				themeKey="consentBannerTag"
+				slotContext="banner"
 				data-testid="branding-link"
 			/>,
 			{},
 			{
-				theme: {
-					slots: {
-						consentBannerTag: 'branding-theme-marker',
+				components: {
+					tag: {
+						banner: {
+							className: 'branding-theme-marker',
+						},
 					},
 				},
 			}

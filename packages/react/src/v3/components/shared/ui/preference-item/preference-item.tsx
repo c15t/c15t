@@ -1,5 +1,6 @@
 'use client';
 
+import type { ConsentComponentSlotKey } from '@c15t/schema/config';
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import {
 	getPreferenceItemState,
@@ -18,6 +19,8 @@ import {
 } from 'react';
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/v3/hooks/use-theme';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { getSlotProps, mergeSlotProps } from '~/v3/utils/merge-slot-props';
 
 export type PreferenceItemVariantsProps = Record<never, never>;
 
@@ -80,6 +83,7 @@ export interface PreferenceItemRootProps
 	noStyle?: boolean;
 	onOpenChange?: (open: boolean) => void;
 	open?: boolean;
+	slotKey?: ConsentComponentSlotKey;
 }
 
 const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
@@ -92,10 +96,12 @@ const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
 			noStyle,
 			onOpenChange,
 			open,
+			slotKey,
 			...rest
 		},
 		forwardedRef
 	) => {
+		const { components } = useUIConfig();
 		const { noStyle: contextNoStyle } = useTheme();
 		const variants = preferenceItemVariants();
 		const [isOpen, setIsOpen] = useControllableState({
@@ -104,7 +110,13 @@ const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
 			value: open,
 		});
 		const reactId = useId().replace(/:/g, '');
-		const finalNoStyle = contextNoStyle || noStyle;
+		const finalNoStyle = noStyle ?? contextNoStyle;
+		const rootProps = mergeSlotProps(getSlotProps(components, slotKey), {
+			baseClassName: variants.root(),
+			className,
+			noStyle: finalNoStyle,
+			...rest,
+		});
 
 		return (
 			<PreferenceItemContext.Provider
@@ -118,14 +130,11 @@ const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
 				}}
 			>
 				<div
+					{...rootProps}
 					ref={forwardedRef}
-					className={
-						finalNoStyle ? className : variants.root({ class: className })
-					}
 					data-disabled={getDataDisabled(disabled)}
 					data-slot={PREFERENCE_ITEM_SLOTS.root}
 					data-state={getPreferenceItemState(isOpen)}
-					{...rest}
 				>
 					{children}
 				</div>
@@ -139,57 +148,68 @@ PreferenceItemRoot.displayName = 'PreferenceItemRoot';
 export interface PreferenceItemTriggerProps
 	extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
 	noStyle?: boolean;
+	slotKey?: ConsentComponentSlotKey;
 }
 
 const PreferenceItemTrigger = forwardRef<
 	HTMLButtonElement,
 	PreferenceItemTriggerProps
->(({ children, className, noStyle, onClick, ...rest }, forwardedRef) => {
-	const { noStyle: contextNoStyle } = useTheme();
-	const variants = preferenceItemVariants();
-	const {
-		contentId,
-		disabled,
-		noStyle: rootNoStyle,
-		open,
-		setOpen,
-		triggerId,
-	} = usePreferenceItemContext();
-	const finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
+>(
+	(
+		{ children, className, noStyle, onClick, slotKey, ...rest },
+		forwardedRef
+	) => {
+		const { components } = useUIConfig();
+		const { noStyle: contextNoStyle } = useTheme();
+		const variants = preferenceItemVariants();
+		const {
+			contentId,
+			disabled,
+			noStyle: rootNoStyle,
+			open,
+			setOpen,
+			triggerId,
+		} = usePreferenceItemContext();
+		const finalNoStyle = noStyle ?? rootNoStyle ?? contextNoStyle;
+		const triggerProps = mergeSlotProps(getSlotProps(components, slotKey), {
+			baseClassName: variants.trigger(),
+			className,
+			noStyle: finalNoStyle,
+			...rest,
+		});
 
-	return (
-		<button
-			ref={forwardedRef}
-			aria-controls={contentId}
-			aria-disabled={disabled || undefined}
-			aria-expanded={open}
-			className={
-				finalNoStyle ? className : variants.trigger({ class: className })
-			}
-			data-disabled={getDataDisabled(disabled)}
-			data-slot={PREFERENCE_ITEM_SLOTS.trigger}
-			data-state={getPreferenceItemState(open)}
-			disabled={disabled}
-			id={triggerId}
-			onClick={(event) => {
-				if (!disabled) {
-					setOpen(togglePreferenceItemValue(open));
-				}
-				onClick?.(event);
-			}}
-			type="button"
-			{...rest}
-		>
-			{children}
-		</button>
-	);
-});
+		return (
+			<button
+				{...triggerProps}
+				ref={forwardedRef}
+				aria-controls={contentId}
+				aria-disabled={disabled || undefined}
+				aria-expanded={open}
+				data-disabled={getDataDisabled(disabled)}
+				data-slot={PREFERENCE_ITEM_SLOTS.trigger}
+				data-state={getPreferenceItemState(open)}
+				disabled={disabled}
+				id={triggerId}
+				onClick={(event) => {
+					if (!disabled) {
+						setOpen(togglePreferenceItemValue(open));
+					}
+					onClick?.(event);
+				}}
+				type="button"
+			>
+				{children}
+			</button>
+		);
+	}
+);
 
 PreferenceItemTrigger.displayName = 'PreferenceItemTrigger';
 
 export interface PreferenceItemSlotProps
 	extends HTMLAttributes<HTMLDivElement> {
 	noStyle?: boolean;
+	slotKey?: ConsentComponentSlotKey;
 }
 
 function createSlotComponent(
@@ -198,22 +218,24 @@ function createSlotComponent(
 	variantKey: 'leading' | 'header' | 'meta' | 'auxiliary' | 'control'
 ) {
 	const Component = forwardRef<HTMLDivElement, PreferenceItemSlotProps>(
-		({ className, noStyle, ...rest }, forwardedRef) => {
+		({ className, noStyle, slotKey, ...rest }, forwardedRef) => {
+			const { components } = useUIConfig();
 			const { noStyle: contextNoStyle } = useTheme();
 			const { noStyle: rootNoStyle } = usePreferenceItemContext();
 			const variants = preferenceItemVariants();
-			const finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
+			const finalNoStyle = noStyle ?? rootNoStyle ?? contextNoStyle;
+			const slotProps = mergeSlotProps(getSlotProps(components, slotKey), {
+				baseClassName: variants[variantKey](),
+				className,
+				noStyle: finalNoStyle,
+				...rest,
+			});
 
 			return (
 				<div
+					{...slotProps}
 					ref={forwardedRef}
-					className={
-						finalNoStyle
-							? className
-							: variants[variantKey]({ class: className })
-					}
 					data-slot={slot}
-					{...rest}
 				/>
 			);
 		}
@@ -256,25 +278,31 @@ const PreferenceItemControl = createSlotComponent(
 export interface PreferenceItemTitleProps
 	extends HTMLAttributes<HTMLHeadingElement> {
 	noStyle?: boolean;
+	slotKey?: ConsentComponentSlotKey;
 }
 
 const PreferenceItemTitle = forwardRef<
 	HTMLHeadingElement,
 	PreferenceItemTitleProps
 >(({ className, noStyle, ...rest }, forwardedRef) => {
+	const { components } = useUIConfig();
 	const { noStyle: contextNoStyle } = useTheme();
 	const { noStyle: rootNoStyle } = usePreferenceItemContext();
 	const variants = preferenceItemVariants();
-	const finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
+	const finalNoStyle = noStyle ?? rootNoStyle ?? contextNoStyle;
+	const { slotKey, ...ownRest } = rest;
+	const titleProps = mergeSlotProps(getSlotProps(components, slotKey), {
+		baseClassName: variants.title(),
+		className,
+		noStyle: finalNoStyle,
+		...ownRest,
+	});
 
 	return (
 		<h3
+			{...titleProps}
 			ref={forwardedRef}
-			className={
-				finalNoStyle ? className : variants.title({ class: className })
-			}
 			data-slot={PREFERENCE_ITEM_SLOTS.title}
-			{...rest}
 		/>
 	);
 });
@@ -284,55 +312,87 @@ PreferenceItemTitle.displayName = 'PreferenceItemTitle';
 export interface PreferenceItemContentProps
 	extends HTMLAttributes<HTMLDivElement> {
 	innerClassName?: string;
+	innerSlotKey?: ConsentComponentSlotKey;
 	noStyle?: boolean;
+	slotKey?: ConsentComponentSlotKey;
+	viewportClassName?: string;
+	viewportSlotKey?: ConsentComponentSlotKey;
 }
 
 const PreferenceItemContent = forwardRef<
 	HTMLDivElement,
 	PreferenceItemContentProps
->(({ children, className, innerClassName, noStyle, ...rest }, forwardedRef) => {
-	const { noStyle: contextNoStyle } = useTheme();
-	const variants = preferenceItemVariants();
-	const {
-		contentId,
-		noStyle: rootNoStyle,
-		open,
-		triggerId,
-	} = usePreferenceItemContext();
-	const finalNoStyle = rootNoStyle || contextNoStyle || noStyle;
-
-	return (
-		<div
-			ref={forwardedRef}
-			aria-hidden={!open}
-			aria-labelledby={triggerId}
-			className={
-				finalNoStyle ? className : variants.content({ class: className })
+>(
+	(
+		{
+			children,
+			className,
+			innerClassName,
+			innerSlotKey,
+			noStyle,
+			slotKey,
+			viewportClassName,
+			viewportSlotKey,
+			...rest
+		},
+		forwardedRef
+	) => {
+		const { components } = useUIConfig();
+		const { noStyle: contextNoStyle } = useTheme();
+		const variants = preferenceItemVariants();
+		const {
+			contentId,
+			noStyle: rootNoStyle,
+			open,
+			triggerId,
+		} = usePreferenceItemContext();
+		const finalNoStyle = noStyle ?? rootNoStyle ?? contextNoStyle;
+		const contentProps = mergeSlotProps(getSlotProps(components, slotKey), {
+			baseClassName: variants.content(),
+			className,
+			noStyle: finalNoStyle,
+			...rest,
+		});
+		const viewportProps = mergeSlotProps(
+			getSlotProps(components, viewportSlotKey),
+			{
+				baseClassName: variants.contentViewport(),
+				className: viewportClassName,
+				noStyle: finalNoStyle,
 			}
-			data-slot={PREFERENCE_ITEM_SLOTS.content}
-			data-state={getPreferenceItemState(open)}
-			id={contentId}
-			inert={!open}
-			{...rest}
-		>
+		);
+		const innerProps = mergeSlotProps(getSlotProps(components, innerSlotKey), {
+			baseClassName: variants.contentInner(),
+			className: innerClassName,
+			noStyle: finalNoStyle,
+		});
+
+		return (
 			<div
-				className={finalNoStyle ? undefined : variants.contentViewport()}
-				data-slot={PREFERENCE_ITEM_INTERNAL_SLOTS.contentViewport}
+				{...contentProps}
+				ref={forwardedRef}
+				aria-hidden={!open}
+				aria-labelledby={triggerId}
+				data-slot={PREFERENCE_ITEM_SLOTS.content}
+				data-state={getPreferenceItemState(open)}
+				id={contentId}
+				inert={!open}
 			>
 				<div
-					className={
-						finalNoStyle
-							? innerClassName
-							: variants.contentInner({ class: innerClassName })
-					}
-					data-slot={PREFERENCE_ITEM_INTERNAL_SLOTS.contentInner}
+					{...viewportProps}
+					data-slot={PREFERENCE_ITEM_INTERNAL_SLOTS.contentViewport}
 				>
-					{children}
+					<div
+						{...innerProps}
+						data-slot={PREFERENCE_ITEM_INTERNAL_SLOTS.contentInner}
+					>
+						{children}
+					</div>
 				</div>
 			</div>
-		</div>
-	);
-});
+		);
+	}
+);
 
 PreferenceItemContent.displayName = 'PreferenceItemContent';
 

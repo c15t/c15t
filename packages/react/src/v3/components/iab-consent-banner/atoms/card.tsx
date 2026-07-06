@@ -1,7 +1,6 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import {
 	forwardRef,
 	type HTMLAttributes,
@@ -9,11 +8,13 @@ import {
 	type RefObject,
 } from 'react';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
-import { useStyles } from '~/v3/hooks/use-styles';
 import { useTheme } from '~/v3/hooks/use-theme';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 
 interface IABConsentBannerCardProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
+	'data-testid'?: string;
 }
 
 /**
@@ -27,26 +28,27 @@ interface IABConsentBannerCardProps extends HTMLAttributes<HTMLDivElement> {
 const IABConsentBannerCard = forwardRef<
 	HTMLDivElement,
 	IABConsentBannerCardProps
->(({ children, className, ...props }, ref) => {
-	const { trapFocus } = useTheme();
+>(({ children, className, 'data-testid': dataTestId, ...props }, ref) => {
+	const { noStyle, trapFocus } = useTheme();
+	const { components } = useUIConfig();
 
 	useFocusTrap(Boolean(trapFocus), ref as RefObject<HTMLElement>);
 
-	const themedStyle = useStyles('iabConsentBannerCard', {
+	const themedStyle = mergeSlotProps(components?.['iab-banner']?.card, {
 		baseClassName: styles.card,
 		className,
+		noStyle,
+		'data-testid': dataTestId ?? 'iab-consent-banner-card',
+		...props,
 	});
-	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	return (
 		<div
 			ref={ref}
-			{...domStyleProps}
+			{...themedStyle}
 			tabIndex={0}
 			role="dialog"
 			aria-modal={trapFocus ? 'true' : undefined}
-			data-testid="iab-consent-banner-card"
-			{...props}
 		>
 			{children}
 		</div>

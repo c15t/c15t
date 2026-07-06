@@ -16,6 +16,7 @@ import {
 	useTranslations,
 	useUser,
 } from '../index';
+import { useUIConfig } from '../ui-config-context';
 
 const STORAGE_KEY = 'c15t-provider-test';
 
@@ -98,7 +99,7 @@ describe('v3 ConsentProvider options API', () => {
 				options={{
 					persistence: false,
 					prefetch: { initialConsents: { marketing: false } },
-					theme: { slots: { bannerCard: 'updated' } },
+					components: { banner: { card: { className: 'updated' } } },
 				}}
 			>
 				<Probe />
@@ -343,9 +344,8 @@ describe('v3 ConsentProvider options API', () => {
 	test('provides theme and v3 UI config without changing kernel context', async () => {
 		function ThemeProbe() {
 			const theme = useTheme();
-			const slot = theme.theme?.slots?.consentBannerCard;
-			const className =
-				typeof slot === 'object' && slot !== null ? slot.className : '';
+			const uiConfig = useUIConfig();
+			const className = uiConfig.components?.banner?.card?.className ?? '';
 
 			return (
 				<div data-testid="theme">
@@ -365,9 +365,9 @@ describe('v3 ConsentProvider options API', () => {
 					persistence: false,
 					prefetch: { initialConsents: { marketing: true } },
 					noStyle: true,
-					theme: {
-						slots: {
-							consentBannerCard: {
+					components: {
+						banner: {
+							card: {
 								className: 'provider-theme-card',
 							},
 						},
@@ -385,7 +385,7 @@ describe('v3 ConsentProvider options API', () => {
 				<InlineLegalLinks
 					links={['privacyPolicy']}
 					testIdPrefix="provider-legal-link"
-					themeKey="consentBannerDescription"
+					context="banner"
 				/>
 			</ConsentProvider>
 		);
@@ -458,7 +458,7 @@ describe('v3 ConsentProvider options API', () => {
 				<InlineLegalLinks
 					links={['privacyPolicy']}
 					testIdPrefix="store-legal-link"
-					themeKey="consentBannerDescription"
+					context="banner"
 				/>
 			</ConsentProvider>
 		);

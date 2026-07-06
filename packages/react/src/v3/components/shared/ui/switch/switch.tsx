@@ -7,7 +7,10 @@ import {
 	type KeyboardEvent,
 } from 'react';
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
-import type { AllThemeKeys, ThemeValue } from '~/v3/types/theme';
+import { useTheme } from '~/v3/hooks/use-theme';
+import type { ThemeValue } from '~/v3/types/theme';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 
 export type SwitchSize = 'medium' | 'small';
 export interface SwitchVariantsProps {
@@ -36,7 +39,6 @@ export interface SwitchProps
 	noStyle?: boolean;
 	onCheckedChange?: (checked: boolean) => void;
 	size?: SwitchSize;
-	themeKey?: AllThemeKeys;
 }
 
 const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
@@ -56,18 +58,30 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 		},
 		forwardedRef
 	) => {
+		const { components } = useUIConfig();
+		const { noStyle: contextNoStyle } = useTheme();
 		const variants = switchVariants();
 		const [isChecked, setIsChecked] = useControllableState({
 			defaultValue: defaultChecked,
 			onChange: onCheckedChange,
 			value: checked,
 		});
+		const finalNoStyle = noStyle ?? contextNoStyle;
 
-		const rootClassName = noStyle
-			? className
-			: variants.root({ class: className });
-		const thumbClassName = noStyle ? undefined : variants.thumb();
-		const trackClassName = noStyle ? undefined : variants.track();
+		const rootProps = mergeSlotProps(components?.switch?.root, {
+			baseClassName: variants.root(),
+			className,
+			noStyle: finalNoStyle,
+			...rest,
+		});
+		const trackProps = mergeSlotProps(components?.switch?.track, {
+			baseClassName: variants.track(),
+			noStyle: finalNoStyle,
+		});
+		const thumbProps = mergeSlotProps(components?.switch?.thumb, {
+			baseClassName: variants.thumb(),
+			noStyle: finalNoStyle,
+		});
 		const dataState = getSwitchState(isChecked);
 		const dataDisabled = getDataDisabled(disabled);
 
@@ -95,11 +109,11 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 
 		return (
 			<button
+				{...rootProps}
 				ref={forwardedRef}
 				aria-checked={isChecked}
-				className={rootClassName}
 				data-disabled={dataDisabled}
-				data-size={noStyle ? undefined : size}
+				data-size={finalNoStyle ? undefined : size}
 				data-slot="switch"
 				data-state={dataState}
 				disabled={disabled}
@@ -107,14 +121,13 @@ const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
 				onKeyDown={handleKeyDown}
 				role="switch"
 				type={type}
-				{...rest}
 			>
 				<span
-					className={trackClassName}
+					{...trackProps}
 					data-slot="switch-track"
 				>
 					<span
-						className={thumbClassName}
+						{...thumbProps}
 						data-slot="switch-thumb"
 					/>
 				</span>

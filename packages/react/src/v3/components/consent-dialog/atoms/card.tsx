@@ -10,6 +10,7 @@ import styles from '@c15t/ui/styles/v3/consent-dialog';
 import { forwardRef, type ReactNode, type Ref } from 'react';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { ConsentWidget } from '~/v3/components/consent-widget/consent-widget';
+import { Slot } from '~/v3/components/shared/libs/slot';
 import { Box, type BoxProps } from '~/v3/components/shared/primitives/box';
 import type { InlineLegalLinksProps } from '~/v3/components/shared/primitives/legal-links';
 import { InlineLegalLinks } from '~/v3/components/shared/primitives/legal-links';
@@ -17,8 +18,11 @@ import {
 	BrandingLink,
 	type BrandingVariant,
 } from '~/v3/components/shared/ui/branding';
+import { useTheme } from '~/v3/hooks/use-theme';
 import type { ClassNameStyle } from '~/v3/types/theme';
+import { useUIConfig } from '~/v3/ui-config-context';
 import { cnExt as cn } from '~/v3/utils/cn';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 
 /**
  * Props for the ConsentDialogCard and related components
@@ -36,7 +40,7 @@ const ConsentDialogCard = forwardRef<HTMLDivElement, ConsentDialogCardProps>(
 				ref={ref as Ref<HTMLDivElement>}
 				baseClassName={styles.card}
 				{...props}
-				themeKey="consentDialogCard"
+				slotKey="dialog.card"
 				data-testid="consent-dialog-card"
 			>
 				{children}
@@ -56,14 +60,14 @@ const ConsentDialogCard = forwardRef<HTMLDivElement, ConsentDialogCardProps>(
  */
 const ConsentDialogHeader = forwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'>
+	Omit<BoxProps, 'slotKey'>
 >(({ children, ...props }, ref) => {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.header}
 			{...props}
-			themeKey="consentDialogHeader"
+			slotKey="dialog.header"
 			data-testid="consent-dialog-header"
 		>
 			{children}
@@ -82,14 +86,14 @@ const ConsentDialogHeader = forwardRef<
  */
 const ConsentDialogHeaderTitle = forwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'>
+	Omit<BoxProps, 'slotKey'>
 >(({ children, ...props }, ref) => {
 	const { consentManagerDialog: consentDialog } = useTranslations();
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.title}
-			themeKey="consentDialogTitle"
+			slotKey="dialog.title"
 			{...props}
 			id="consent-dialog-title"
 			data-testid="consent-dialog-title"
@@ -111,42 +115,56 @@ const ConsentDialogHeaderTitle = forwardRef<
  */
 const ConsentDialogHeaderDescription = forwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'> & {
+	Omit<BoxProps, 'slotKey'> & {
 		legalLinks?: InlineLegalLinksProps['links'];
 	}
->(({ children, legalLinks, asChild, ...props }, ref) => {
-	const { consentManagerDialog: consentDialog } = useTranslations();
-	if (asChild) {
+>(
+	(
+		{ children, legalLinks, asChild, className, style, noStyle, ...props },
+		ref
+	) => {
+		const { consentManagerDialog: consentDialog } = useTranslations();
+		const { components } = useUIConfig();
+		const { noStyle: contextNoStyle } = useTheme();
+		const context = 'dialog';
+		const descriptionProps = mergeSlotProps(
+			components?.description?.[context],
+			{
+				baseClassName: styles.description,
+				className,
+				'data-testid': 'consent-dialog-description',
+				noStyle: noStyle ?? contextNoStyle,
+				style,
+				...props,
+			}
+		);
+
+		if (asChild) {
+			const Comp = Slot;
+			return (
+				<Comp
+					ref={ref as Ref<HTMLDivElement>}
+					{...descriptionProps}
+				>
+					{children ?? consentDialog.description}
+				</Comp>
+			);
+		}
 		return (
-			<Box
+			<div
 				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={styles.description}
-				themeKey="consentDialogDescription"
-				asChild={asChild}
-				{...props}
+				{...descriptionProps}
 			>
 				{children ?? consentDialog.description}
-			</Box>
+				<InlineLegalLinks
+					links={legalLinks}
+					context="dialog"
+					testIdPrefix="consent-dialog-legal-link"
+				/>
+			</div>
 		);
 	}
-	return (
-		<Box
-			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={styles.description}
-			themeKey="consentDialogDescription"
-			asChild={asChild}
-			{...props}
-			data-testid="consent-dialog-description"
-		>
-			{children ?? consentDialog.description}
-			<InlineLegalLinks
-				links={legalLinks}
-				themeKey="consentDialogContent"
-				testIdPrefix="consent-dialog-legal-link"
-			/>
-		</Box>
-	);
-});
+);
 
 /**
  * The main content area of the consent dialog.
@@ -159,13 +177,13 @@ const ConsentDialogHeaderDescription = forwardRef<
  */
 const ConsentDialogContent = forwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'>
+	Omit<BoxProps, 'slotKey'>
 >(({ children, ...props }, ref) => {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.content}
-			themeKey="consentDialogContent"
+			slotKey="dialog.content"
 			data-testid="consent-dialog-content"
 			{...props}
 		>
@@ -181,39 +199,34 @@ const ConsentDialogContent = forwardRef<
 const ConsentDialogFooter = forwardRef<
 	HTMLDivElement,
 	BoxProps & { hideBranding?: boolean; 'data-testid'?: string }
->(
-	(
-		{ children, themeKey, hideBranding, 'data-testid': testId, ...props },
-		ref
-	) => {
-		return (
-			<Box
-				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={cn(
-					styles.footer,
-					children == null && !hideBranding && styles.brandingFooter
-				)}
-				data-testid={testId ?? 'consent-dialog-footer'}
-				{...props}
-				themeKey={themeKey ?? 'consentDialogFooter'}
-			>
-				{children ?? (
-					<Branding
-						hideBranding={hideBranding ?? false}
-						variant="dialog-tag"
-						themeKey="consentDialogTag"
-						data-testid="consent-dialog-branding"
-					/>
-				)}
-			</Box>
-		);
-	}
-);
+>(({ children, hideBranding, 'data-testid': testId, ...props }, ref) => {
+	return (
+		<Box
+			ref={ref as Ref<HTMLDivElement>}
+			baseClassName={cn(
+				styles.footer,
+				children == null && !hideBranding && styles.brandingFooter
+			)}
+			data-testid={testId ?? 'consent-dialog-footer'}
+			{...props}
+			slotKey="manager.footer"
+		>
+			{children ?? (
+				<Branding
+					hideBranding={hideBranding ?? false}
+					variant="dialog-tag"
+					slotContext="dialog"
+					data-testid="consent-dialog-branding"
+				/>
+			)}
+		</Box>
+	);
+});
 
 type BrandingProps = {
 	hideBranding: boolean;
 	variant?: BrandingVariant;
-	themeKey?: import('~/v3/components/shared/ui/branding').BrandingThemeKey;
+	slotContext?: import('~/v3/components/shared/ui/branding').BrandingSlotContext;
 	className?: string;
 	'data-testid'?: string;
 };
@@ -270,7 +283,7 @@ const ConsentCustomizationCard = ({
 			<Branding
 				hideBranding={hideBranding ?? false}
 				variant="dialog-tag"
-				themeKey="consentDialogTag"
+				slotContext="dialog"
 				data-testid="consent-dialog-branding"
 			/>
 		</ConsentDialogCard>

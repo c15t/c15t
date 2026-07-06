@@ -1,12 +1,14 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
-import { useStyles } from '~/v3/hooks/use-styles';
+import { useTheme } from '~/v3/hooks/use-theme';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 
 interface IABConsentBannerHeaderProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
+	'data-testid'?: string;
 }
 
 /**
@@ -20,19 +22,21 @@ interface IABConsentBannerHeaderProps extends HTMLAttributes<HTMLDivElement> {
 const IABConsentBannerHeader = forwardRef<
 	HTMLDivElement,
 	IABConsentBannerHeaderProps
->(({ children, className, ...props }, ref) => {
-	const themedStyle = useStyles('iabConsentBannerHeader', {
+>(({ children, className, 'data-testid': dataTestId, ...props }, ref) => {
+	const { components } = useUIConfig();
+	const { noStyle } = useTheme();
+	const themedStyle = mergeSlotProps(components?.['iab-banner']?.header, {
 		baseClassName: styles.header,
 		className,
+		noStyle,
+		'data-testid': dataTestId ?? 'iab-consent-banner-header',
+		...props,
 	});
-	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
 
 	return (
 		<div
 			ref={ref}
-			{...domStyleProps}
-			data-testid="iab-consent-banner-header"
-			{...props}
+			{...themedStyle}
 		>
 			{children}
 		</div>

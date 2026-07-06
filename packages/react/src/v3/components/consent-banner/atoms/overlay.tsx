@@ -7,9 +7,10 @@ import styles from '@c15t/ui/styles/v3/consent-banner';
 import { forwardRef, type HTMLAttributes, useEffect, useState } from 'react';
 import { useActiveUI } from '~/v3/hooks';
 import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
-import { useStyles } from '~/v3/hooks/use-styles';
 import { useTheme } from '~/v3/hooks/use-theme';
+import { useUIConfig } from '~/v3/ui-config-context';
 import { cnExt as cn } from '~/v3/utils/cn';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 
 /**
  * Props for the Overlay component.
@@ -57,6 +58,7 @@ const ConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 			noStyle: contextNoStyle,
 			scrollLock,
 		} = useTheme();
+		const { components } = useUIConfig();
 
 		const showBanner = activeUI === 'banner';
 		const [isVisible, setIsVisible] = useState(false);
@@ -81,11 +83,12 @@ const ConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 			}
 		}, [showBanner, disableAnimation]);
 
-		// Apply theme styles
-		const theme = useStyles('consentBannerOverlay', {
-			baseClassName: !(contextNoStyle || noStyle) && styles.overlay,
+		const theme = mergeSlotProps(components?.banner?.overlay, {
+			baseClassName: styles.overlay,
 			className, // Always pass custom className
 			noStyle: contextNoStyle || noStyle,
+			style,
+			...props,
 		});
 
 		// Animations are handled with CSS classes
@@ -107,9 +110,8 @@ const ConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 		return showBanner && scrollLock ? (
 			<div
 				ref={ref}
-				{...props}
+				{...theme}
 				className={finalClassName}
-				style={{ ...theme.style, ...style }}
 				data-testid="consent-banner-overlay"
 			/>
 		) : null;

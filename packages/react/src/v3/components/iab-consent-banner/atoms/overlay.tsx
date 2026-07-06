@@ -4,9 +4,10 @@ import styles from '@c15t/ui/styles/v3/iab-consent-banner';
 import { forwardRef, type HTMLAttributes, useEffect, useState } from 'react';
 import { useActiveUI } from '~/v3/hooks';
 import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
-import { useStyles } from '~/v3/hooks/use-styles';
 import { useTheme } from '~/v3/hooks/use-theme';
+import { useUIConfig } from '~/v3/ui-config-context';
 import { cnExt as cn } from '~/v3/utils/cn';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 
 interface OverlayProps extends HTMLAttributes<HTMLDivElement> {
 	noStyle?: boolean;
@@ -20,6 +21,7 @@ const IABConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 			noStyle: contextNoStyle,
 			scrollLock,
 		} = useTheme();
+		const { components } = useUIConfig();
 
 		const [isVisible, setIsVisible] = useState(false);
 
@@ -45,10 +47,12 @@ const IABConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 			}
 		}, [shouldShow, disableAnimation]);
 
-		const theme = useStyles('iabConsentBannerOverlay', {
-			baseClassName: !(contextNoStyle || noStyle) && styles.overlay,
+		const theme = mergeSlotProps(components?.['iab-banner']?.overlay, {
+			baseClassName: styles.overlay,
 			className,
 			noStyle: contextNoStyle || noStyle,
+			style,
+			...props,
 		});
 
 		const shouldApplyAnimation =
@@ -70,9 +74,8 @@ const IABConsentBannerOverlay = forwardRef<HTMLDivElement, OverlayProps>(
 		return (
 			<div
 				ref={ref}
-				{...props}
+				{...theme}
 				className={finalClassName}
-				style={{ ...theme.style, ...style }}
 				data-testid="iab-consent-banner-overlay"
 			/>
 		);

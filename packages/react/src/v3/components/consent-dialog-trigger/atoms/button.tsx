@@ -8,6 +8,9 @@
 
 import styles from '@c15t/ui/styles/v3/consent-dialog-trigger';
 import { forwardRef, type ReactNode } from 'react';
+import { useTheme } from '~/v3/hooks/use-theme';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import type { CornerPosition, TriggerSize } from '../types';
 import { useTriggerContext } from './root';
 
@@ -58,6 +61,8 @@ export interface TriggerButtonProps {
 	 * @default false
 	 */
 	noStyle?: boolean;
+
+	'data-testid'?: string;
 }
 
 /**
@@ -78,10 +83,13 @@ export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
 			size = 'md',
 			ariaLabel = 'Open privacy settings',
 			className,
-			noStyle = false,
+			'data-testid': dataTestId,
+			noStyle,
 		},
 		ref
 	) => {
+		const { components } = useUIConfig();
+		const { noStyle: contextNoStyle } = useTheme();
 		const {
 			corner,
 			isDragging,
@@ -107,30 +115,31 @@ export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
 			}
 		};
 
-		const buttonClasses = noStyle
-			? className
-			: [
-					styles.trigger,
-					cornerClassMap[corner],
-					sizeClassMap[size],
-					isDragging && styles.dragging,
-					isSnapping && styles.snapping,
-					className,
-				]
-					.filter(Boolean)
-					.join(' ');
+		const finalNoStyle = noStyle ?? contextNoStyle;
+		const buttonStyle = mergeSlotProps(components?.trigger?.root, {
+			baseClassName: [
+				styles.trigger,
+				cornerClassMap[corner],
+				sizeClassMap[size],
+				isDragging && styles.dragging,
+				isSnapping && styles.snapping,
+			],
+			className,
+			noStyle: finalNoStyle,
+			style: dragStyle,
+			'data-testid': dataTestId,
+			...handlers,
+		});
 
 		return (
 			<button
+				{...buttonStyle}
 				ref={ref}
 				type="button"
-				className={buttonClasses}
 				data-c15t-trigger="true"
 				aria-label={ariaLabel}
 				onClick={handleClick}
 				onKeyDown={handleKeyDown}
-				style={dragStyle}
-				{...handlers}
 			>
 				{children}
 			</button>

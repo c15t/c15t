@@ -1,16 +1,16 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { type FC, type ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import { LocalThemeContext } from '~/v3/context/theme-context';
 import { useIABConsentManager } from '~/v3/hooks/use-iab-consent-manager';
 import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
-import { useStyles } from '~/v3/hooks/use-styles';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';
+import { useUIConfig } from '~/v3/ui-config-context';
 import { cnExt as cn } from '~/v3/utils/cn';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import { IABConsentDialogOverlay } from './overlay';
 
 interface IABConsentDialogRootProps {
@@ -60,6 +60,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		policyDialog,
 		model,
 	} = useIABConsentManager();
+	const { components } = useUIConfig();
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
 	const [isMounted, setIsMounted] = useState(false);
@@ -98,7 +99,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		}
 	}, [isOpen, disableAnimation]);
 
-	const themedStyle = useStyles('iabConsentDialog', {
+	const themedStyle = mergeSlotProps(components?.['iab-dialog']?.root, {
 		baseClassName: cn(
 			styles.root,
 			disableAnimation
@@ -108,8 +109,6 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 					: styles.dialogHidden
 		),
 	});
-	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
-
 	// Don't render if not mounted or IAB is disabled
 	if (!isMounted || !iabState?.config.enabled) {
 		return null;
@@ -126,7 +125,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 			<LocalThemeContext.Provider value={contextValue}>
 				<IABConsentDialogOverlay isOpen={isOpen} />
 				<div
-					{...domStyleProps}
+					{...themedStyle}
 					data-testid="iab-consent-dialog-root"
 					dir={textDirection}
 				>

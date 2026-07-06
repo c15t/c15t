@@ -62,14 +62,14 @@ async function renderPolicyActions(
 	renderAction?: ComponentProps<
 		typeof ConsentBanner.PolicyActions
 	>['renderAction'],
-	themeOverrides?: Record<string, unknown>
+	providerOverrides?: Partial<ComponentProps<typeof ConsentProvider>['options']>
 ) {
 	const state = createMockState(stateOverrides);
 
 	await render(
 		<PolicyTestProvider
 			state={state}
-			themeOverrides={themeOverrides}
+			providerOverrides={providerOverrides}
 		>
 			<ConsentBanner.PolicyActions
 				renderAction={
@@ -107,18 +107,21 @@ async function renderDefaultPolicyActions(
 function PolicyTestProvider({
 	children,
 	state,
-	themeOverrides,
+	providerOverrides,
 }: {
 	children: ReactNode;
 	state: ConsentStoreState;
-	themeOverrides?: Record<string, unknown>;
+	providerOverrides?: Partial<
+		ComponentProps<typeof ConsentProvider>['options']
+	>;
 }) {
 	return (
 		<ConsentProvider
 			options={{
 				mode: 'offline',
 				persistence: false,
-				theme: themeOverrides as never,
+				components: providerOverrides?.components,
+				theme: providerOverrides?.theme,
 				prefetch: {
 					initialConsents: state.consents,
 					initialTranslations: {
@@ -295,13 +298,17 @@ describe('ConsentBanner.PolicyActions', () => {
 				}
 			},
 			{
-				consentActions: {
-					default: { variant: 'neutral' },
-					accept: { variant: 'primary' },
+				theme: {
+					consentActions: {
+						default: { variant: 'neutral' },
+						accept: { variant: 'primary' },
+					},
 				},
-				slots: {
-					buttonPrimary: 'button-primary-marker',
-					buttonSecondary: 'button-secondary-marker',
+				components: {
+					button: {
+						primary: { className: 'button-primary-marker' },
+						secondary: { className: 'button-secondary-marker' },
+					},
 				},
 			}
 		);

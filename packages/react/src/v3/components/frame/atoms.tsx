@@ -6,13 +6,12 @@ import { Box, type BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
 
-const FrameRoot = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
+const FrameRoot = forwardRef<HTMLDivElement, Omit<BoxProps, 'slotKey'>>(
 	({ children, ...props }, ref) => {
 		return (
 			<Box
 				ref={ref as Ref<HTMLDivElement>}
 				baseClassName={styles.placeholder}
-				themeKey="frame"
 				{...props}
 			>
 				{children}
@@ -23,7 +22,7 @@ const FrameRoot = forwardRef<HTMLDivElement, Omit<BoxProps, 'themeKey'>>(
 
 const FrameTitle = forwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'> & { category?: AllConsentNames }
+	Omit<BoxProps, 'slotKey'> & { category?: AllConsentNames }
 >(({ children, category, ...props }, ref) => {
 	const { frame, consentTypes } = useTranslations();
 
@@ -40,7 +39,6 @@ const FrameTitle = forwardRef<
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.title}
-			themeKey="frame"
 			{...props}
 		>
 			{children ?? defaultTitle}
@@ -50,7 +48,7 @@ const FrameTitle = forwardRef<
 
 const FrameButton = forwardRef<
 	HTMLButtonElement,
-	Omit<ConsentButtonProps, 'themeKey'> & { category: AllConsentNames }
+	Omit<ConsentButtonProps, 'slotKey'> & { category: AllConsentNames }
 >(({ children, category, ...props }, ref) => {
 	const { frame } = useTranslations();
 

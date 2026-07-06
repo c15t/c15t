@@ -79,11 +79,15 @@ export interface ConsentDialogCompoundComponent extends FC<ConsentDialogProps> {
  * ```tsx
  * <ConsentManagerProvider
  *   options={{
- *     theme: {
- *       slots: {
- *         consentDialogCard: 'rounded-3xl shadow-xl',
- *         consentWidgetFooter: 'gap-3 pt-6',
- *         consentDialogTag: 'shadow-none',
+ *     components: {
+ *       dialog: {
+ *         card: { className: 'rounded-3xl shadow-xl' },
+ *       },
+ *       manager: {
+ *         footer: { className: 'gap-3 pt-6' },
+ *       },
+ *       tag: {
+ *         dialog: { className: 'shadow-none' },
  *       },
  *     },
  *   }}

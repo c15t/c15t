@@ -54,6 +54,7 @@ import type {
 import { usePersistence } from './module-hooks/persistence';
 import { V3ThemeProvider } from './theme-provider';
 import type { ConsentManagerOptions } from './types/consent-manager';
+import type { ReactComponentSlots } from './types/slots';
 import type { Theme } from './types/theme';
 import type { V3UIConfigValue } from './ui-config-context';
 import { defaultTranslationConfig } from './utils/default-translation-config';
@@ -96,6 +97,8 @@ export interface ConsentProviderOptions
 	policies?: PolicyConfig[];
 	i18n?: Partial<I18nConfig>;
 	consentCategories?: AllConsentNames[];
+	/** Per-component slot attribute overrides (shared contract with @c15t/vue). */
+	components?: ReactComponentSlots;
 	legalLinks?: LegalLinks;
 	/**
 	 * @deprecated Use `prefetch` with v3 server helpers. Kept so v2-shaped
@@ -964,6 +967,7 @@ export function ConsentProvider({ options, children }: ConsentProviderProps) {
 
 	const uiConfigValue = useMemo<V3UIConfigValue>(
 		() => ({
+			components: options.components,
 			legalLinks: getProviderLegalLinks(options),
 		}),
 		[options]

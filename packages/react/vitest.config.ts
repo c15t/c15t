@@ -41,6 +41,10 @@ export default mergeConfig(
 				'c15t/v3': resolve(__dirname, '../core/src/v3/index.ts'),
 				c15t: resolve(__dirname, '../core/src/index.ts'),
 				'@c15t/schema/types': resolve(__dirname, '../schema/src/types.ts'),
+				'@c15t/schema/config': resolve(
+					__dirname,
+					'../schema/src/config/index.ts'
+				),
 				'@c15t/schema': resolve(__dirname, '../schema/src/index.ts'),
 				'@c15t/translations/all': resolve(
 					__dirname,

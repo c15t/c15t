@@ -8,8 +8,11 @@ import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import styles from '@c15t/ui/styles/v3/consent-banner';
 import { forwardRef, type Ref, type RefObject, useRef } from 'react';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
+import { Slot } from '~/v3/components/shared/libs/slot';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useTheme } from '~/v3/hooks/use-theme';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import { Box, type BoxProps } from '../shared/primitives/box';
 import { ConsentButton } from '../shared/primitives/button';
 import type { ConsentButtonProps } from '../shared/primitives/button.types';
@@ -42,7 +45,7 @@ const CONSENT_BANNER_ACCEPT_BUTTON_NAME = 'ConsentBannerAcceptButton';
  */
 const ConsentBannerTitle = forwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'>
+	Omit<BoxProps, 'slotKey'>
 >(({ children, ...props }, ref) => {
 	const { cookieBanner: consentBanner } = useTranslations();
 	return (
@@ -50,7 +53,7 @@ const ConsentBannerTitle = forwardRef<
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.title}
 			data-testid="consent-banner-title"
-			themeKey="consentBannerTitle"
+			slotKey="banner.title"
 			{...props}
 		>
 			{children ?? consentBanner.title}
@@ -77,45 +80,57 @@ ConsentBannerTitle.displayName = CONSENT_BANNER_TITLE_NAME;
  */
 const ConsentBannerDescription = forwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'> & {
+	Omit<BoxProps, 'slotKey'> & {
 		legalLinks?: InlineLegalLinksProps['links'];
 	}
->(({ children, legalLinks, asChild, ...props }, ref) => {
-	const { cookieBanner: consentBanner } = useTranslations();
+>(
+	(
+		{ children, legalLinks, asChild, className, style, noStyle, ...props },
+		ref
+	) => {
+		const { cookieBanner: consentBanner } = useTranslations();
+		const { components } = useUIConfig();
+		const { noStyle: contextNoStyle } = useTheme();
+		const context = 'banner';
+		const descriptionProps = mergeSlotProps(
+			components?.description?.[context],
+			{
+				baseClassName: styles.description,
+				className,
+				'data-testid': 'consent-banner-description',
+				noStyle: noStyle ?? contextNoStyle,
+				style,
+				...props,
+			}
+		);
 
-	if (asChild) {
+		if (asChild) {
+			const Comp = Slot;
+			return (
+				<Comp
+					ref={ref as Ref<HTMLDivElement>}
+					{...descriptionProps}
+				>
+					{children ?? consentBanner.description}
+				</Comp>
+			);
+		}
+
 		return (
-			<Box
+			<div
 				ref={ref as Ref<HTMLDivElement>}
-				baseClassName={styles.description}
-				data-testid="consent-banner-description"
-				themeKey="consentBannerDescription"
-				asChild={asChild}
-				{...props}
+				{...descriptionProps}
 			>
 				{children ?? consentBanner.description}
-			</Box>
+				<InlineLegalLinks
+					links={legalLinks}
+					context="banner"
+					testIdPrefix="consent-banner-legal-link"
+				/>
+			</div>
 		);
 	}
-
-	return (
-		<Box
-			ref={ref as Ref<HTMLDivElement>}
-			baseClassName={styles.description}
-			data-testid="consent-banner-description"
-			themeKey="consentBannerDescription"
-			asChild={asChild}
-			{...props}
-		>
-			{children ?? consentBanner.description}
-			<InlineLegalLinks
-				links={legalLinks}
-				themeKey="consentBannerDescription"
-				testIdPrefix="consent-banner-legal-link"
-			/>
-		</Box>
-	);
-});
+);
 
 ConsentBannerDescription.displayName = CONSENT_BANNER_DESCRIPTION_NAME;
 
@@ -136,15 +151,24 @@ ConsentBannerDescription.displayName = CONSENT_BANNER_DESCRIPTION_NAME;
  */
 const ConsentBannerFooter = forwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'>
->(({ children, ...props }, ref) => {
+	Omit<BoxProps, 'slotKey'>
+>(({ children, className, style, ...props }, ref) => {
+	const { components } = useUIConfig();
+	const { noStyle } = useTheme();
+	const actionProps = mergeSlotProps(components?.banner?.actions, {
+		baseClassName: className,
+		noStyle,
+		style,
+		...props,
+	});
+
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.footer}
 			data-testid="consent-banner-footer"
-			themeKey="consentBannerFooter"
-			{...props}
+			slotKey="banner.footer"
+			{...actionProps}
 		>
 			{children}
 		</Box>
@@ -169,35 +193,34 @@ ConsentBannerFooter.displayName = CONSENT_BANNER_FOOTER_NAME;
  * </ConsentBannerCard>
  * ```
  */
-const ConsentBannerCard = forwardRef<
-	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'>
->(({ children, ...props }, ref) => {
-	const { trapFocus } = useTheme();
-	const { cookieBanner } = useTranslations();
-	const localRef = useRef<HTMLDivElement>(null);
-	const cardRef = (ref || localRef) as RefObject<HTMLElement>;
+const ConsentBannerCard = forwardRef<HTMLDivElement, Omit<BoxProps, 'slotKey'>>(
+	({ children, ...props }, ref) => {
+		const { trapFocus } = useTheme();
+		const { cookieBanner } = useTranslations();
+		const localRef = useRef<HTMLDivElement>(null);
+		const cardRef = (ref || localRef) as RefObject<HTMLElement>;
 
-	// Call the useFocusTrap hook with the appropriate parameters
-	const shouldTrapFocus = Boolean(trapFocus);
-	useFocusTrap(shouldTrapFocus, cardRef);
+		// Call the useFocusTrap hook with the appropriate parameters
+		const shouldTrapFocus = Boolean(trapFocus);
+		useFocusTrap(shouldTrapFocus, cardRef);
 
-	return (
-		<Box
-			ref={cardRef as Ref<HTMLDivElement>}
-			tabIndex={0}
-			baseClassName={styles.card}
-			data-testid="consent-banner-card"
-			themeKey="consentBannerCard"
-			aria-label={props['aria-label'] || cookieBanner.title}
-			aria-modal={shouldTrapFocus ? 'true' : undefined}
-			role={shouldTrapFocus ? 'dialog' : undefined}
-			{...props}
-		>
-			{children}
-		</Box>
-	);
-});
+		return (
+			<Box
+				ref={cardRef as Ref<HTMLDivElement>}
+				tabIndex={0}
+				baseClassName={styles.card}
+				data-testid="consent-banner-card"
+				slotKey="banner.card"
+				aria-label={props['aria-label'] || cookieBanner.title}
+				aria-modal={shouldTrapFocus ? 'true' : undefined}
+				role={shouldTrapFocus ? 'dialog' : undefined}
+				{...props}
+			>
+				{children}
+			</Box>
+		);
+	}
+);
 
 ConsentBannerCard.displayName = CONSENT_BANNER_CARD_NAME;
 
@@ -210,14 +233,14 @@ ConsentBannerCard.displayName = CONSENT_BANNER_CARD_NAME;
  */
 const ConsentBannerHeader = forwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'>
+	Omit<BoxProps, 'slotKey'>
 >(({ children, ...props }, ref) => {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.header}
 			data-testid="consent-banner-header"
-			themeKey="consentBannerHeader"
+			slotKey="banner.header"
 			{...props}
 		>
 			{children}
@@ -236,14 +259,14 @@ ConsentBannerHeader.displayName = CONSENT_BANNER_HEADER_NAME;
  */
 const ConsentBannerFooterSubGroup = forwardRef<
 	HTMLDivElement,
-	Omit<BoxProps, 'themeKey'>
+	Omit<BoxProps, 'slotKey'>
 >(({ children, ...props }, ref) => {
 	return (
 		<Box
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={actionStyles.actionGroup}
 			data-testid="consent-banner-footer-sub-group"
-			themeKey="consentBannerFooterSubGroup"
+			slotKey="banner.actionGroup"
 			{...props}
 		>
 			{children}

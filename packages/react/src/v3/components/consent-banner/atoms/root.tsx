@@ -1,7 +1,6 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/consent-banner';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import {
 	type CSSProperties,
 	type FC,
@@ -19,10 +18,11 @@ import {
 	useModel,
 	usePolicyBanner,
 } from '~/v3/hooks';
-import { useStyles } from '~/v3/hooks/use-styles';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/v3/types/theme';
+import { useUIConfig } from '~/v3/ui-config-context';
 import { defaultTranslationConfig } from '~/v3/utils/default-translation-config';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import { Overlay } from './overlay';
 
 /**
@@ -117,7 +117,7 @@ interface ConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
  * ```
  *
  * @example
- * Preferred styling with provider theme tokens and slots:
+ * Preferred styling with provider theme tokens and components:
  * ```tsx
  * <ConsentManagerProvider
  *   options={{
@@ -126,10 +126,12 @@ interface ConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
  *         surface: '#fffdf8',
  *         surfaceHover: '#f6f3ee',
  *       },
- *       slots: {
- *         consentBannerCard: 'rounded-3xl shadow-xl',
- *         consentBannerFooter: 'border-t border-black/10 px-6',
- *         consentBannerTitle: 'tracking-tight',
+ *     },
+ *     components: {
+ *       banner: {
+ *         card: { className: 'rounded-3xl shadow-xl' },
+ *         footer: { className: 'border-t border-black/10 px-6' },
+ *         title: { className: 'tracking-tight' },
  *       },
  *     },
  *   }}
@@ -290,6 +292,7 @@ const ConsentBannerRootChildren = forwardRef<
 		ref
 	) => {
 		const activeUI = useActiveUI();
+		const { components } = useUIConfig();
 		const model = useModel() ?? 'opt-in';
 		const translations = useKernelTranslations();
 		const textDirection = useTextDirection(
@@ -364,13 +367,12 @@ const ConsentBannerRootChildren = forwardRef<
 			hasInitializedVisibility,
 		]);
 
-		// Apply styles from the ConsentBanner context and merge with local styles.
-		// Uses the 'content' style key for consistent theming.
-		const contentStyle = useStyles('consentBanner', {
+		const contentStyle = mergeSlotProps(components?.banner?.root, {
 			baseClassName: styles.root,
 			style: style as CSSPropertiesWithVars<Record<string, never>>,
 			className: className || forwardedClassName,
 			noStyle,
+			...props,
 		});
 
 		// Create a final class name that respects the noStyle flag
@@ -383,16 +385,13 @@ const ConsentBannerRootChildren = forwardRef<
 							? styles.bannerVisible
 							: styles.bannerHidden
 				}`;
-		const domStyleProps = sanitizeDOMStyleProps(contentStyle);
-
 		// Only render when the banner should be shown
 		return shouldShowBanner ? (
 			<>
 				<Overlay />
 				<div
 					ref={ref}
-					{...props}
-					{...domStyleProps}
+					{...contentStyle}
 					className={finalClassName}
 					data-position={
 						textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'

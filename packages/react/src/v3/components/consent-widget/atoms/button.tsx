@@ -24,7 +24,7 @@ const ConsentWidgetAcceptAllButton = forwardRef<
 			action="accept-consent"
 			consentAction="accept"
 			{...props}
-			themeKey="buttonSecondary"
+			slotKey="button.secondary"
 			data-testid="consent-widget-footer-accept-button"
 			closeConsentBanner={true}
 			closeConsentDialog={true}
@@ -45,7 +45,7 @@ const ConsentWidgetCustomizeButton = forwardRef<
 			action="open-consent-dialog"
 			consentAction="customize"
 			{...props}
-			themeKey="buttonSecondary"
+			slotKey="button.secondary"
 			data-testid="consent-widget-footer-customize-button"
 		>
 			{children ?? common.customize}
@@ -72,7 +72,7 @@ const ConsentWidgetSaveButton = forwardRef<
 			}}
 			performDefaultAction={false}
 			{...buttonProps}
-			themeKey="buttonPrimary"
+			slotKey="button.primary"
 			data-testid="consent-widget-footer-save-button"
 		>
 			{children ?? common.save}
@@ -100,7 +100,7 @@ const ConsentWidgetRejectButton = forwardRef<
 			action="reject-consent"
 			consentAction="reject"
 			{...props}
-			themeKey="buttonSecondary"
+			slotKey="button.secondary"
 			data-testid="consent-widget-reject-button"
 			closeConsentBanner={true}
 			closeConsentDialog={true}

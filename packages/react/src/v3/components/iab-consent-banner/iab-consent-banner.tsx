@@ -16,6 +16,8 @@ import * as Button from '~/v3/components/shared/ui/button';
 import { useComponentConfig } from '~/v3/hooks/use-component-config';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useIABConsentManager } from '~/v3/hooks/use-iab-consent-manager';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import { useIABTranslations } from '../iab-consent-dialog/use-iab-translations';
 import { IABConsentBannerRoot } from './atoms/root';
 
@@ -105,6 +107,7 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 		performBannerAction,
 	} = useHeadlessIABConsentUI();
 	const { policyBanner } = useIABConsentManager();
+	const { components } = useUIConfig();
 	const resolvedScrollLock = localScrollLock ?? policyBanner.scrollLock ?? true;
 
 	const cardRef = useRef<HTMLDivElement>(null);
@@ -158,6 +161,59 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 	);
 
 	const scopeNotice = iabT.banner.scopeServiceSpecific;
+	const titleProps = mergeSlotProps(components?.['iab-banner']?.title, {
+		baseClassName: styles.title,
+		noStyle: config.noStyle,
+	});
+	const descriptionProps = mergeSlotProps(
+		components?.['iab-banner']?.description,
+		{
+			baseClassName: styles.description,
+			noStyle: config.noStyle,
+		}
+	);
+	const partnersLinkProps = mergeSlotProps(
+		components?.['iab-banner']?.partnersLink,
+		{
+			baseClassName: styles.partnersLink,
+			noStyle: config.noStyle,
+		}
+	);
+	const purposeListProps = mergeSlotProps(
+		components?.['iab-banner']?.purposeList,
+		{
+			baseClassName: styles.purposeList,
+			noStyle: config.noStyle,
+		}
+	);
+	const purposeMoreProps = mergeSlotProps(
+		components?.['iab-banner']?.purposeMore,
+		{
+			baseClassName: styles.purposeMore,
+			noStyle: config.noStyle,
+		}
+	);
+	const legitimateInterestNoticeProps = mergeSlotProps(
+		components?.['iab-banner']?.legitimateInterestNotice,
+		{
+			baseClassName: styles.legitimateInterestNotice,
+			noStyle: config.noStyle,
+		}
+	);
+	const actionsProps = mergeSlotProps(components?.['iab-banner']?.actions, {
+		baseClassName: actionStyles.actionRoot,
+		'data-direction': 'row',
+		'data-split': true,
+		noStyle: config.noStyle,
+	});
+	const actionGroupProps = mergeSlotProps(
+		components?.['iab-banner']?.actionGroup,
+		{
+			baseClassName: actionStyles.actionGroup,
+			'data-direction': 'row',
+			noStyle: config.noStyle,
+		}
+	);
 
 	return (
 		<IABConsentBannerRoot
@@ -165,17 +221,20 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 			models={models}
 			uiSource={uiSource}
 		>
-			<Box baseClassName={styles.cardShell}>
+			<Box
+				baseClassName={styles.cardShell}
+				slotKey="iab-banner.cardShell"
+			>
 				<BrandingLink
 					hideBranding={false}
 					variant="banner-tag"
-					themeKey="iabConsentBannerTag"
+					slotContext="iab-banner"
 					data-testid="iab-consent-banner-branding"
 				/>
 				<Box
 					ref={cardRef}
 					baseClassName={styles.card}
-					themeKey="iabConsentBannerCard"
+					slotKey="iab-banner.card"
 					tabIndex={0}
 					role="dialog"
 					aria-modal={config.trapFocus ? 'true' : undefined}
@@ -185,15 +244,15 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 					{/* Header */}
 					<Box
 						baseClassName={styles.header}
-						themeKey="iabConsentBannerHeader"
+						slotKey="iab-banner.header"
 						data-testid="iab-consent-banner-header"
 					>
-						<h2 className={styles.title}>{iabT.banner.title}</h2>
-						<p className={styles.description}>
+						<h2 {...titleProps}>{iabT.banner.title}</h2>
+						<p {...descriptionProps}>
 							{descriptionText.split(partnersLinkText)[0]}
 							<button
+								{...partnersLinkProps}
 								type="button"
-								className={styles.partnersLink}
 								onClick={handleViewVendors}
 								onMouseEnter={() => {
 									// Prefetch vendor list on hover
@@ -203,12 +262,12 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 							</button>
 							{descriptionText.split(partnersLinkText)[1]}
 						</p>
-						<ul className={styles.purposeList}>
+						<ul {...purposeListProps}>
 							{banner.displayItems.map((name, index) => (
 								<li key={index}>{name}</li>
 							))}
 							{banner.remainingCount > 0 && (
-								<li className={styles.purposeMore}>
+								<li {...purposeMoreProps}>
 									{iabT.banner.andMore.replace(
 										'{count}',
 										String(banner.remainingCount)
@@ -216,7 +275,7 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 								</li>
 							)}
 						</ul>
-						<p className={styles.legitimateInterestNotice}>
+						<p {...legitimateInterestNoticeProps}>
 							{iabT.banner.legitimateInterestNotice} {scopeNotice}
 						</p>
 					</Box>
@@ -224,16 +283,11 @@ export const IABConsentBanner: FC<IABConsentBannerProps> = ({
 					{/* Footer with buttons */}
 					<Box
 						baseClassName={styles.footer}
-						className={actionStyles.actionRoot}
-						data-direction="row"
-						data-split={true}
-						themeKey="iabConsentBannerFooter"
+						slotKey="iab-banner.footer"
 						data-testid="iab-consent-banner-footer"
+						{...actionsProps}
 					>
-						<div
-							className={actionStyles.actionGroup}
-							data-direction="row"
-						>
+						<div {...actionGroupProps}>
 							<Button.Root
 								variant={isPrimary('reject') ? 'primary' : 'neutral'}
 								mode="stroke"

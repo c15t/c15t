@@ -27,7 +27,7 @@ interface ComponentStyles {
  * ```tsx
  * await testComponentStyles({
  *   component: <MyComponent />,
- *   theme: { slots: { root: 'custom-class' } },
+ *   components: { banner: { root: { className: 'custom-class' } } },
  *   testCases: [{ testId: 'my-component-root', styles: 'custom-class' }]
  * });
  * ```

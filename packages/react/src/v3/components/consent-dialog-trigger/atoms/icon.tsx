@@ -10,6 +10,9 @@ import styles from '@c15t/ui/styles/v3/consent-dialog-trigger';
 import { isValidElement, type ReactNode } from 'react';
 import { BrandingCompactLogo } from '~/v3/components/shared/ui/branding';
 import { FingerprintIcon, SettingsIcon } from '~/v3/components/shared/ui/logo';
+import { useTheme } from '~/v3/hooks/use-theme';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import type { TriggerIcon as TriggerIconType } from '../types';
 import { useTriggerContext } from './root';
 
@@ -58,17 +61,20 @@ export interface TriggerIconProps {
 export function TriggerIcon({
 	icon = 'branding',
 	className,
-	noStyle = false,
+	noStyle,
 }: TriggerIconProps): ReactNode {
+	const { components } = useUIConfig();
+	const { noStyle: contextNoStyle } = useTheme();
 	const { branding } = useTriggerContext();
-
-	const iconClasses = noStyle
-		? className
-		: [styles.icon, className].filter(Boolean).join(' ');
+	const iconProps = mergeSlotProps(components?.trigger?.icon, {
+		baseClassName: styles.icon,
+		className,
+		noStyle: noStyle ?? contextNoStyle,
+	});
 
 	// Render custom ReactNode
 	if (isValidElement(icon)) {
-		return <span className={iconClasses}>{icon}</span>;
+		return <span {...iconProps}>{icon}</span>;
 	}
 
 	// Render built-in icons
@@ -85,7 +91,7 @@ export function TriggerIcon({
 			iconElement = <BrandingCompactLogo branding={branding} />;
 	}
 
-	return <span className={iconClasses}>{iconElement}</span>;
+	return <span {...iconProps}>{iconElement}</span>;
 }
 
 TriggerIcon.displayName = 'ConsentDialogTrigger.Icon';

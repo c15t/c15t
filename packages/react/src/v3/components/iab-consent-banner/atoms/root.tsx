@@ -1,7 +1,6 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import {
 	type CSSProperties,
 	type FC,
@@ -20,9 +19,10 @@ import {
 	usePolicyBanner,
 	useTranslations,
 } from '~/v3/hooks';
-import { useStyles } from '~/v3/hooks/use-styles';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/v3/types/theme';
+import { useUIConfig } from '~/v3/ui-config-context';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 import { IABConsentBannerOverlay } from './overlay';
 
 interface IABConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
@@ -114,6 +114,7 @@ const IABConsentBannerRootChildren = forwardRef<
 		ref
 	) => {
 		const activeUI = useActiveUI();
+		const { components } = useUIConfig();
 		const model = useModel();
 		const translations = useTranslations();
 		const textDirection = useTextDirection(translations?.language ?? 'en');
@@ -159,11 +160,12 @@ const IABConsentBannerRootChildren = forwardRef<
 			}
 		}, [shouldShowBanner, disableAnimation, hasAnimated, animationDurationMs]);
 
-		const contentStyle = useStyles('iabConsentBanner', {
+		const contentStyle = mergeSlotProps(components?.['iab-banner']?.root, {
 			baseClassName: [styles.root],
 			style: style as CSSPropertiesWithVars<Record<string, never>>,
 			className: className || forwardedClassName,
 			noStyle,
+			...props,
 		});
 
 		const [isMounted, setIsMounted] = useState(false);
@@ -179,8 +181,6 @@ const IABConsentBannerRootChildren = forwardRef<
 		const finalClassName = noStyle
 			? contentStyle.className || ''
 			: `${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`;
-		const domStyleProps = sanitizeDOMStyleProps(contentStyle);
-
 		if (!shouldShowBanner) {
 			return null;
 		}
@@ -190,8 +190,7 @@ const IABConsentBannerRootChildren = forwardRef<
 				<IABConsentBannerOverlay />
 				<div
 					ref={ref}
-					{...props}
-					{...domStyleProps}
+					{...contentStyle}
 					className={finalClassName}
 					data-testid="iab-consent-banner-root"
 					dir={textDirection}

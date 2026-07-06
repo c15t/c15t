@@ -7,10 +7,11 @@
 import styles from '@c15t/ui/styles/v3/consent-dialog';
 import { type FC, type PropsWithChildren, useEffect, useState } from 'react';
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
-import { useStyles } from '~/v3/hooks/use-styles';
 import { useTheme } from '~/v3/hooks/use-theme';
 import type { ThemeValue } from '~/v3/types/theme';
+import { useUIConfig } from '~/v3/ui-config-context';
 import { cnExt as cn } from '~/v3/utils/cn';
+import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 
 /**
  * Props for the Overlay component.
@@ -56,6 +57,7 @@ export type OverlayProps = PropsWithChildren<{
 
 const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 	const { activeUI } = useConsentManager();
+	const { components } = useUIConfig();
 	const {
 		disableAnimation,
 		noStyle: isThemeNoStyle,
@@ -88,11 +90,12 @@ const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 	// Get custom className from style prop
 	const customClassName = typeof style === 'string' ? style : style?.className;
 
-	// Apply theme styles
-	const theme = useStyles('consentDialogOverlay', {
-		baseClassName: !(isThemeNoStyle || noStyle) && styles.overlay,
+	const theme = mergeSlotProps(components?.dialog?.overlay, {
+		baseClassName: styles.overlay,
 		className: customClassName,
 		noStyle: isThemeNoStyle || noStyle,
+		style:
+			typeof style === 'object' && 'style' in style ? style.style : undefined,
 	});
 
 	// Animations are handled with CSS classes
@@ -112,13 +115,9 @@ const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style }) => {
 
 	return (
 		<div
+			{...theme}
 			role="presentation"
 			aria-hidden="true"
-			style={
-				typeof style === 'object' && 'style' in style
-					? { ...theme.style, ...style.style }
-					: theme.style
-			}
 			className={finalClassName}
 			data-testid="consent-dialog-overlay"
 		/>
