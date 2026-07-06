@@ -27,6 +27,7 @@ import { hotjar } from '../src/vendors/analytics/hotjar';
 import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
 import { clarity } from '../src/vendors/analytics/microsoft-clarity';
 import { mixpanelAnalytics } from '../src/vendors/analytics/mixpanel-analytics';
+import { pirsch } from '../src/vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../src/vendors/analytics/plausible-analytics';
 import { posthog } from '../src/vendors/analytics/posthog';
 import { promptwatch } from '../src/vendors/analytics/promptwatch';
@@ -379,6 +380,24 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 					(window as PromptwatchWindow).pwc !== null,
 				'window.pwc present after loader executed'
 			),
+	},
+	{
+		vendor: 'pirsch',
+		tier: 'full',
+		createScript: () =>
+			pirsch({
+				identificationCode: 'c15t-live-probe',
+				dev: 'c15t-live-probe.invalid',
+			}),
+		loaderUrlSubstring: 'api.pirsch.io/pa.js',
+		runtimeCheck: () =>
+			check(
+				typeof window.pirsch === 'function' &&
+					typeof window.pirschInit === 'function',
+				'window.pirsch and window.pirschInit present after loader executed'
+			),
+		notes:
+			'The probe uses data-dev to avoid Pirsch localhost suppression; the runner blocks the pageview hit request with an empty 204.',
 	},
 	{
 		vendor: 'segment',

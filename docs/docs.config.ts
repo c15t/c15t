@@ -270,6 +270,7 @@ const generateDocsConfig = () => {
 							'plausible-analytics',
 							'posthog',
 							'promptwatch',
+							'pirsch',
 							'segment',
 							'rybbit-analytics',
 							'umami-analytics',

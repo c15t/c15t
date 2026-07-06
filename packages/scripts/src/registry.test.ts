@@ -62,6 +62,7 @@ import {
 	mixpanelAnalytics,
 	mixpanelAnalyticsManifest,
 } from './vendors/analytics/mixpanel-analytics';
+import { pirsch, pirschManifest } from './vendors/analytics/pirsch';
 import {
 	plausibleAnalytics,
 	plausibleAnalyticsManifest,
@@ -207,6 +208,14 @@ const helperParityCases = {
 			src: 'https://ingest.promptwatch.com/js/client.min.js',
 		},
 	},
+	pirsch: {
+		script: pirsch({ identificationCode: 'PIRSCH-CONTRACT' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://api.pirsch.io/pa.js',
+		},
+	},
 	segment: {
 		script: segment({ writeKey: 'abc123xyz456' }),
 		expected: {
@@ -342,6 +351,7 @@ const vendorManifests = [
 	matomoAnalyticsManifest,
 	posthogManifest,
 	promptwatchManifest,
+	pirschManifest,
 	segmentManifest,
 	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,
