@@ -156,4 +156,62 @@ describe('applyInitResponse', () => {
 			experience: false,
 		});
 	});
+
+	test('same-language partial translations deep-merge over current copy', () => {
+		const snap = buildInitialSnapshot({
+			initialTranslations: {
+				language: 'en',
+				translations: {
+					common: { securedBy: 'Secured by', acceptAll: 'Accept All' },
+					cookieBanner: {
+						title: 'We value your privacy',
+						description: 'Default description',
+					},
+					// biome-ignore lint/suspicious/noExplicitAny: minimal fixture
+				} as any,
+			},
+		});
+		const patch = applyInitResponse(snap, {
+			translations: {
+				language: 'en',
+				translations: {
+					cookieBanner: { title: 'Custom title' },
+					// biome-ignore lint/suspicious/noExplicitAny: partial payload
+				} as any,
+			},
+		});
+
+		// biome-ignore lint/suspicious/noExplicitAny: fixture shape
+		const merged = patch?.translations?.translations as any;
+		expect(merged.cookieBanner.title).toBe('Custom title');
+		// Omitted keys must keep their current values, not vanish.
+		expect(merged.cookieBanner.description).toBe('Default description');
+		expect(merged.common.securedBy).toBe('Secured by');
+	});
+
+	test('language switch replaces translations outright (no cross-language merge)', () => {
+		const snap = buildInitialSnapshot({
+			initialTranslations: {
+				language: 'en',
+				translations: {
+					common: { securedBy: 'Secured by' },
+					// biome-ignore lint/suspicious/noExplicitAny: minimal fixture
+				} as any,
+			},
+		});
+		const patch = applyInitResponse(snap, {
+			translations: {
+				language: 'de',
+				translations: {
+					cookieBanner: { title: 'Wir schätzen Ihre Privatsphäre' },
+					// biome-ignore lint/suspicious/noExplicitAny: partial payload
+				} as any,
+			},
+		});
+
+		// biome-ignore lint/suspicious/noExplicitAny: fixture shape
+		const replaced = patch?.translations?.translations as any;
+		expect(patch?.translations?.language).toBe('de');
+		expect(replaced.common?.securedBy).toBeUndefined();
+	});
 });

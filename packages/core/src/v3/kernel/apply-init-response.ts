@@ -9,6 +9,8 @@
  * are derived AFTER all input fields are merged so they reflect the
  * effective post-patch policy + IAB enablement, not the pre-patch state.
  */
+import type { Translations } from '@c15t/translations';
+import { deepMergeTranslations } from '@c15t/translations';
 import { allConsentNames } from '../consent/consent-types';
 import { applyPolicyToConsents, deriveActiveUI, deriveModel } from '../policy';
 import type {
@@ -16,9 +18,42 @@ import type {
 	ConsentState,
 	InitResponse,
 	KernelIABState,
+	KernelTranslations,
 } from '../types';
 import type { SnapshotPatch } from './patch';
 import { DEFAULT_IAB } from './snapshot';
+
+/**
+ * Merge incoming init translations over the snapshot's current ones.
+ *
+ * Transports built on the shared resolver deliver complete per-language
+ * sets, but custom transports and hand-rolled fixtures can send partial
+ * payloads. Wholesale replacement would silently blank every omitted key
+ * (e.g. `common.securedBy` disappearing from the branding tag), so when
+ * the language matches we deep-merge the response over the current copy —
+ * complete responses win per-key and omissions keep their current value.
+ * A language switch replaces outright: mixing languages is worse than
+ * trusting the transport.
+ */
+function mergeInitTranslations(
+	current: Readonly<KernelTranslations> | null,
+	incoming: KernelTranslations
+): KernelTranslations {
+	if (
+		!current?.translations ||
+		!incoming?.translations ||
+		current.language !== incoming.language
+	) {
+		return incoming;
+	}
+	return {
+		...incoming,
+		translations: deepMergeTranslations(
+			current.translations as Translations,
+			incoming.translations as Partial<Translations>
+		) as KernelTranslations['translations'],
+	};
+}
 
 /**
  * Build a `SnapshotPatch` from an init response. Returns `null` if the
@@ -40,7 +75,9 @@ export function applyInitResponse(
 		patch.location = response.location;
 	}
 	if (response.translations !== undefined) {
-		patch.translations = response.translations;
+		patch.translations = response.translations
+			? mergeInitTranslations(current.translations, response.translations)
+			: response.translations;
 	}
 	if (response.branding !== undefined) {
 		patch.branding = response.branding;
