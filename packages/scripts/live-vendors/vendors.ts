@@ -38,6 +38,10 @@ import { pirsch } from '../src/vendors/analytics/pirsch';
 import { plausibleAnalytics } from '../src/vendors/analytics/plausible-analytics';
 import { posthog } from '../src/vendors/analytics/posthog';
 import { promptwatch } from '../src/vendors/analytics/promptwatch';
+import {
+	RUDDERSTACK_QUEUE_METHODS,
+	rudderstack,
+} from '../src/vendors/analytics/rudderstack';
 import { rybbitAnalytics } from '../src/vendors/analytics/rybbit-analytics';
 import { segment } from '../src/vendors/analytics/segment';
 import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
@@ -107,6 +111,16 @@ type LogRocketWindow = Window & {
 type HightouchWindow = Window & {
 	htevents?: {
 		initialized?: boolean;
+		[key: string]: unknown;
+	};
+};
+
+type RudderStackWindow = Window & {
+	rudderanalytics?: {
+		load?: unknown;
+		page?: unknown;
+		track?: unknown;
+		snippetExecuted?: boolean;
 		[key: string]: unknown;
 	};
 };
@@ -539,6 +553,51 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 			),
 		notes:
 			'The probe uses data-dev to avoid Pirsch localhost suppression; the runner blocks the pageview hit request with an empty 204.',
+	},
+	{
+		vendor: 'rudderstack',
+		tier: 'full',
+		createScript: () =>
+			rudderstack({
+				writeKey: 'C15TFAKE',
+				dataPlaneUrl: 'https://c15t-live-probe.invalid',
+				loadOptions: {
+					useBeacon: true,
+				},
+			}),
+		loaderUrlSubstring: 'cdn.rudderlabs.com/v3/modern/rsa.min.js',
+		bootstrapCheck: () => {
+			const rudderanalytics = (window as RudderStackWindow).rudderanalytics;
+
+			if (!Array.isArray(rudderanalytics)) {
+				return check(false, 'expected window.rudderanalytics queue array');
+			}
+
+			const hasMethods = RUDDERSTACK_QUEUE_METHODS.every(
+				(method) => typeof rudderanalytics[method] === 'function'
+			);
+
+			return check(
+				hasMethods &&
+					rudderanalytics.snippetExecuted === true &&
+					window.RudderSnippetVersion === '3.0.32' &&
+					window.rudderAnalyticsBuildType === 'modern',
+				'rudderstack queue methods and snippet globals present before load'
+			);
+		},
+		runtimeCheck: () => {
+			const rudderanalytics = (window as RudderStackWindow).rudderanalytics;
+
+			return check(
+				Array.isArray(rudderanalytics) === false &&
+					typeof rudderanalytics?.load === 'function' &&
+					typeof rudderanalytics.page === 'function' &&
+					typeof rudderanalytics.track === 'function',
+				'window.rudderanalytics replaced with runtime methods after loader executed'
+			);
+		},
+		notes:
+			'The probe allows only the CDN loader. The fake data plane is intentionally invalid and follow-up requests are blocked by the runner with empty 204 responses.',
 	},
 	{
 		vendor: 'segment',

@@ -311,4 +311,7 @@ function cleanupMockBrowser() {
 	delete globalRef.fbq;
 	delete globalRef._fbq;
 	delete globalRef.htevents;
+	delete globalRef.rudderanalytics;
+	delete globalRef.rudderAnalyticsBuildType;
+	delete globalRef.RudderSnippetVersion;
 }

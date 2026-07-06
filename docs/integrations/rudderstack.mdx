@@ -1,0 +1,214 @@
+---
+title: RudderStack
+description: Load RudderStack's JavaScript SDK with c15t and gate the browser SDK behind measurement consent.
+group: integrations
+icon: rudderstack
+---
+
+[RudderStack](https://www.rudderstack.com/) collects customer data from websites and routes it through your RudderStack data plane to downstream destinations. The `rudderstack()` helper creates RudderStack's `window.rudderanalytics` v3 queue, queues the required `load()` call with your write key and data plane URL, optionally queues the initial `page()` call, and loads the browser SDK when `measurement` consent is available.
+
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { rudderstack } from '@c15t/scripts/rudderstack';
+
+    const scripts = [
+      rudderstack({
+        writeKey: 'WRITE_KEY',
+        dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { rudderstack } from '@c15t/scripts/rudderstack';
+
+    const scripts = [
+      rudderstack({
+        writeKey: 'WRITE_KEY',
+        dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
+      }),
+    ];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { rudderstack } from '@c15t/scripts/rudderstack';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [
+        rudderstack({
+          writeKey: 'WRITE_KEY',
+          dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
+        }),
+      ],
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## How c15t loads it
+
+- **Category:** `measurement` (Analytics)
+- **Loads when:** measurement consent is granted
+- **On revocation:** unloaded - c15t removes the script element from the DOM and clears RudderStack globals until consent is granted again.
+
+The helper maps RudderStack's v3 browser snippet into the manifest engine:
+
+```ts
+rudderstack({
+  writeKey: 'WRITE_KEY',
+  dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
+});
+```
+
+It creates `window.rudderanalytics`, defines the v3 snippet queue methods, queues:
+
+```ts
+window.rudderanalytics.load(
+  'WRITE_KEY',
+  'https://example.dataplane.rudderstack.com',
+  {}
+);
+window.rudderanalytics.page();
+```
+
+and loads:
+
+```txt
+https://cdn.rudderlabs.com/v3/modern/rsa.min.js
+```
+
+`writeKey` and `dataPlaneUrl` are both required and must be non-empty strings after trimming. `dataPlaneUrl` must be a valid HTTPS URL.
+
+## Configure load options
+
+Pass `loadOptions` to provide RudderStack SDK options as the third `load()` argument. Values must be JSON-serializable: plain objects, arrays, strings, numbers, booleans, and `null`.
+
+```ts
+import { rudderstack } from '@c15t/scripts/rudderstack';
+
+rudderstack({
+  writeKey: 'WRITE_KEY',
+  dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
+  loadOptions: {
+    useBeacon: true,
+    plugins: ['BeaconQueue'],
+  },
+});
+```
+
+Do not pass functions, Dates, Maps, Sets, class instances, symbols, or other non-JSON values in `loadOptions`.
+
+## Configure page tracking
+
+By default the helper queues `rudderanalytics.page()` before the vendor bundle loads. If you want to handle page views yourself, set `trackPageView` to `false`.
+
+```ts
+rudderstack({
+  writeKey: 'WRITE_KEY',
+  dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
+  trackPageView: false,
+});
+```
+
+To proxy or self-host the loader, pass a custom URL:
+
+```ts
+rudderstack({
+  writeKey: 'WRITE_KEY',
+  dataPlaneUrl: 'https://example.dataplane.rudderstack.com',
+  scriptUrl: 'https://analytics.example.com/rsa.min.js',
+});
+```
+
+## Consent behavior
+
+RudderStack exposes a `consent()` API for its own consent-management flow and pre-consent event handling. That API is not a simple runtime opt-out or revocation API for c15t to call after a user withdraws `measurement` consent.
+
+c15t therefore uses the post-consent model recommended by RudderStack's docs: it does not load the SDK until `measurement` consent is granted, and it unloads the script if that consent is later revoked.
+
+## Tracking events in your app
+
+c15t gates the RudderStack browser SDK from loading until `measurement` consent is granted. Your application code that calls RudderStack's runtime API (`window.rudderanalytics.track`, `identify`, etc.) is **not** automatically gated - `window.rudderanalytics` does not exist until the script is loaded, so unguarded calls before consent throw.
+
+Guard event calls by checking consent state. From React:
+
+```tsx
+import { useCallback } from 'react';
+import { useConsentManager } from '@c15t/react';
+
+function SignupExample() {
+  const { has } = useConsentManager();
+
+  const trackSignup = useCallback(() => {
+    if (has('measurement')) {
+      window.rudderanalytics?.track('Signup Completed', { plan: 'pro' });
+    }
+  }, [has]);
+}
+```
+
+From plain JavaScript:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime();
+
+if (consentStore.getState().has('measurement')) {
+  window.rudderanalytics?.track('Signup Completed', { plan: 'pro' });
+}
+```
+
+## Types
+
+### RudderStackOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/rudderstack.ts" name="RudderStackOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
