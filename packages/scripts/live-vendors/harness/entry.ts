@@ -185,6 +185,27 @@ const harness: LiveVendorProbeHarness = {
 
 		return runCheck(config.runtimeCheck, 'no runtime check defined');
 	},
+
+	inspectStorage() {
+		const cookieNames = document.cookie
+			.split(';')
+			.map((entry) => entry.split('=')[0]?.trim() ?? '')
+			.filter((name) => name.length > 0);
+
+		const localStorageKeys: string[] = [];
+		try {
+			for (let index = 0; index < window.localStorage.length; index++) {
+				const key = window.localStorage.key(index);
+				if (key !== null) {
+					localStorageKeys.push(key);
+				}
+			}
+		} catch {
+			// Storage access can throw in exotic contexts; report what we have.
+		}
+
+		return { cookieNames, localStorageKeys };
+	},
 };
 
 window.__c15tLiveVendorProbe = harness;

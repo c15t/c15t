@@ -198,6 +198,18 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				`dataLayer seeded with ${dataLayer.length} entries before load`
 			);
 		},
+		deniedConsentProbe: {
+			// Google Consent Mode's cookieless pings are consent-safe by design;
+			// only real collection endpoints and ad-storage cookies are
+			// violations. Weak until a real container id lands as a repo secret
+			// (placeholder ids 404 before any tag can run).
+			collectUrlSubstrings: [
+				'google-analytics.com/g/collect',
+				'analytics.google.com/g/collect',
+				'doubleclick.net',
+			],
+			storagePrefixes: ['_ga', '_gid', '_gcl'],
+		},
 		notes:
 			'Placeholder container ids return HTTP 404 from googletagmanager.com; runtime is not asserted.',
 	},
@@ -206,6 +218,14 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		tier: 'full',
 		createScript: () => gtag({ id: 'G-C15TFAKE', category: 'measurement' }),
 		loaderUrlSubstring: 'googletagmanager.com/gtag/js',
+		deniedConsentProbe: {
+			// Consent Mode's cookieless pings (gcs=G100) are consent-safe by
+			// design, so /g/collect is deliberately NOT a violation here; the
+			// assertion is that no ad requests fire and no Google cookies are
+			// written while consent is denied.
+			collectUrlSubstrings: ['doubleclick.net', 'googleadservices.com'],
+			storagePrefixes: ['_ga', '_gid', '_gcl'],
+		},
 		bootstrapCheck: () => {
 			const dataLayer = window.dataLayer;
 
@@ -411,6 +431,11 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				},
 			}),
 		loaderUrlSubstring: 'cdn.databuddy.cc/databuddy.js',
+		deniedConsentProbe: {
+			// configWhenDenied sets disabled: true, so the SDK must send nothing
+			// to Databuddy's collection API while consent is denied.
+			collectUrlSubstrings: ['basket.databuddy.cc', 'api.databuddy.cc'],
+		},
 		bootstrapCheck: () =>
 			check(
 				window.databuddyConfig?.clientId === 'db_c15tfake',
@@ -498,6 +523,17 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				},
 			}),
 		loaderUrlSubstring: 'cdn.mxpnl.com/libs/mixpanel-2-latest.min.js',
+		deniedConsentProbe: {
+			// Denied consent replays opt_out_tracking through the queue, and the
+			// probe's initOptions set opt_out_tracking_by_default so the SDK
+			// never persists before that call lands — the configuration our docs
+			// recommend for alwaysLoad usage. The live SDK must produce zero
+			// collection traffic and no mp_* storage. Mixpanel's
+			// __mp_opt_in_out_* opt-out marker is legitimate consent-state
+			// storage and intentionally not a violation prefix.
+			collectUrlSubstrings: ['api-js.mixpanel.com', 'api.mixpanel.com'],
+			storagePrefixes: ['mp_'],
+		},
 		bootstrapCheck: () => {
 			const mixpanel = window.mixpanel;
 
@@ -641,6 +677,14 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				siteId: '999999',
 			}),
 		loaderUrlSubstring: 'cdn.matomo.cloud/c15t-live-probe/matomo.js',
+		deniedConsentProbe: {
+			// defaultConsent 'required' queues requireConsent before load, so no
+			// matomo.php tracker hit and no _pk_* cookies may appear while
+			// consent is denied. Weak until a real cloud id lands as a secret
+			// (placeholder ids 404 before the tracker can run).
+			collectUrlSubstrings: ['matomo.php'],
+			storagePrefixes: ['_pk_'],
+		},
 		bootstrapCheck: () =>
 			check(
 				Array.isArray(window._paq) && window._paq.length >= 5,
@@ -1035,6 +1079,15 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		tier: 'full',
 		createScript: () => microsoftUet({ id: '123456789' }),
 		loaderUrlSubstring: 'bat.bing.com/bat.js',
+		deniedConsentProbe: {
+			// The queued consent default denies ad storage, so UET must not fire
+			// action beacons (bat.bing.com/action/...) or write _uet* cookies
+			// while consent is denied. The /p/action/{tag}.js request is the
+			// per-tag config script — a resource fetch, not a data beacon — and
+			// is deliberately not a violation.
+			collectUrlSubstrings: ['bat.bing.com/action'],
+			storagePrefixes: ['_uet'],
+		},
 		bootstrapCheck: () =>
 			check(
 				Array.isArray(window.uetq) && window.uetq.length > 0,
