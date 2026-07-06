@@ -121,6 +121,8 @@
 		width: 100%;
 		border-radius: var(--consent-banner-border-radius);
 		border-width: var(--consent-banner-border-width);
+		/* Explicit style: never rely on Tailwind preflight's `border-style`. */
+		border-style: solid;
 		border-color: var(--consent-banner-border-color);
 		background-color: var(--consent-banner-background-color);
 		box-shadow: var(--consent-banner-shadow);
