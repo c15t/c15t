@@ -144,6 +144,16 @@ describe('rudderstack', () => {
 		).toThrowError('rudderstack: missing or invalid dataPlaneUrl');
 	});
 
+	it('throws for a non-HTTPS scriptUrl override', () => {
+		expect(() =>
+			rudderstack({
+				writeKey: 'WRITE_KEY',
+				dataPlaneUrl: 'https://c15t-live-probe.invalid',
+				scriptUrl: 'http://cdn.example.com/rsa.min.js',
+			})
+		).toThrowError('rudderstack: scriptUrl must be a valid https URL');
+	});
+
 	it('throws for a non-HTTPS data plane URL', () => {
 		expect(() =>
 			rudderstack({

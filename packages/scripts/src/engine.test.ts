@@ -660,6 +660,53 @@ describe('scripts engine', () => {
 		]);
 	});
 
+	it('does not overwrite an initialized SDK object with queue stubs', () => {
+		const globalRef = globalThis as TestGlobal;
+		const liveTrack = vi.fn();
+		// Simulates a grant → revoke → grant cycle without a page reload: the
+		// SDK already replaced the snippet queue array with a runtime object.
+		globalRef.vendorQueue = { track: liveTrack };
+
+		const manifest = createManifest({
+			vendor: 'queue-regrant',
+			category: 'measurement',
+			bootstrap: [
+				{
+					type: 'setGlobal',
+					name: 'vendorQueue',
+					value: [],
+					ifUndefined: true,
+				},
+				{
+					type: 'defineQueueMethods',
+					target: 'vendorQueue',
+					methods: ['track'],
+				},
+			],
+			install: [
+				{
+					type: 'loadScript',
+					src: 'https://cdn.example.com/vendor.js',
+				},
+			],
+		});
+
+		const script = resolvedManifestToScript(compileManifest(manifest, {}));
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: grantedMeasurementConsentState,
+			})
+		);
+
+		const sdk = globalRef.vendorQueue as { track: (event: string) => void };
+		sdk.track('Signup');
+
+		expect(liveTrack).toHaveBeenCalledWith('Signup');
+
+		delete globalRef.vendorQueue;
+	});
+
 	it('emits phase and step debug events for manifest execution', () => {
 		const events: ScriptDebugEvent[] = [];
 		const unsubscribe = subscribeToScriptDebugEvents((event) => {

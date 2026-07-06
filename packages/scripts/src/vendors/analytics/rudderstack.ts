@@ -20,6 +20,7 @@ export const RUDDERSTACK_QUEUE_METHODS = [
 	'startSession',
 	'endSession',
 	'consent',
+	'addCustomIntegration',
 ] as const;
 
 type JsonPrimitive = string | number | boolean | null;
@@ -198,6 +199,16 @@ export interface RudderStackApi {
 	 * is revoked.
 	 */
 	consent: (consentOptions?: Record<string, unknown>) => unknown;
+	/**
+	 * Registers a custom device-mode integration. RudderStack only accepts
+	 * registrations made before `load()` completes, which is why this is part
+	 * of the pre-load queue.
+	 *
+	 * @param name - Integration name.
+	 * @param integration - Integration implementation object.
+	 * @returns The RudderStack runtime or a promise-like value from the SDK.
+	 */
+	addCustomIntegration: (name: string, integration: unknown) => unknown;
 }
 
 declare global {
@@ -316,6 +327,27 @@ function validateRequiredString(value: unknown, label: string): string {
 	return normalized;
 }
 
+function validateOptionalHttpsScriptUrl(
+	scriptUrl: string | undefined
+): string | undefined {
+	if (scriptUrl === undefined) {
+		return undefined;
+	}
+
+	let parsed: URL;
+	try {
+		parsed = new URL(scriptUrl);
+	} catch {
+		throw new Error('rudderstack: scriptUrl must be a valid https URL');
+	}
+
+	if (parsed.protocol !== 'https:') {
+		throw new Error('rudderstack: scriptUrl must be a valid https URL');
+	}
+
+	return scriptUrl;
+}
+
 function validateDataPlaneUrl(dataPlaneUrl: unknown): string {
 	const normalized = validateRequiredString(dataPlaneUrl, 'dataPlaneUrl');
 	let parsed: URL;
@@ -393,7 +425,7 @@ export function rudderstack({
 		loadOptions,
 		writeKey: normalizedWriteKey,
 		scriptUrl: resolveScriptUrl(
-			trimToUndefined(scriptUrl),
+			validateOptionalHttpsScriptUrl(trimToUndefined(scriptUrl)),
 			DEFAULT_RUDDERSTACK_SCRIPT_URL
 		),
 	});
