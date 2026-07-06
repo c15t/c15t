@@ -93,7 +93,7 @@ icon: hightouch
 
 - **Category:** `measurement` (Analytics)
 - **Loads when:** measurement consent is granted
-- **On revocation:** unloaded - c15t removes the script element from the DOM and clears Hightouch globals until consent is granted again.
+- **On revocation:** unloaded - c15t removes the script element it created. The `window.htevents` runtime object is left in place until the next page load (c15t reloads the page on revocation by default), so treat the load gate as the consent boundary.
 
 The helper maps Hightouch's browser snippet into the manifest engine:
 
@@ -145,7 +145,7 @@ hightouch({
 
 ## Tracking events in your app
 
-c15t gates the Hightouch browser SDK from loading until `measurement` consent is granted. Your application code that calls Hightouch's runtime API (`window.htevents.track`, `identify`, etc.) is **not** automatically gated - `window.htevents` does not exist until the script is loaded, so unguarded calls before consent throw.
+c15t gates the Hightouch browser SDK from loading until `measurement` consent is granted. Your application code that calls Hightouch's runtime API (`window.htevents.track`, `identify`, etc.) is **not** automatically gated - `window.htevents` does not exist until c15t initializes the integration, so unguarded calls made before that (or while consent is denied) throw. Once the integration is initialized with consent, early calls queue normally until the SDK finishes loading.
 
 Guard event calls by checking consent state. From React:
 
