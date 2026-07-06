@@ -29,6 +29,7 @@ import { cloudflareWebAnalytics } from '../src/vendors/analytics/cloudflare-web-
 import { databuddy } from '../src/vendors/analytics/databuddy';
 import { fathomAnalytics } from '../src/vendors/analytics/fathom-analytics';
 import { gtag } from '../src/vendors/analytics/google-tag';
+import { HEAP_QUEUE_METHODS, heap } from '../src/vendors/analytics/heap';
 import {
 	HIGHTOUCH_QUEUE_METHODS,
 	hightouch,
@@ -142,6 +143,26 @@ type HightouchWindow = Window & {
 		initialized?: boolean;
 		[key: string]: unknown;
 	};
+};
+
+type HeapWindow = Window & {
+	heap?: {
+		appid?: string;
+		clientConfig?: Record<string, unknown>;
+		envId?: string;
+		serverConfig?: {
+			sdk?: {
+				version?: string;
+			};
+		};
+		getSessionId?: (...args: unknown[]) => unknown;
+		track?: (...args: unknown[]) => unknown;
+		[key: string]: unknown;
+	};
+	heapReadyCb?: Array<{
+		name: string;
+		fn: () => void;
+	}>;
 };
 
 type RudderStackWindow = Window & {
@@ -411,6 +432,59 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				typeof window.fathom?.trackPageview === 'function',
 				'window.fathom.trackPageview present after loader executed'
 			),
+	},
+	{
+		vendor: 'heap',
+		tier: 'full',
+		createScript: () =>
+			heap({
+				envId: '123456789',
+				clientConfig: {
+					disableSessionReplay: true,
+					disableTextCapture: true,
+					logLevel: 'none',
+				},
+			}),
+		loaderUrlSubstring: 'cdn.us.heap-api.com/config/123456789/heap_config.js',
+		allowUrlSubstrings: ['cdn.us.heap-api.com/v5/'],
+		bootstrapCheck: () => {
+			const heapWindow = window as HeapWindow;
+			const heapRuntime = heapWindow.heap;
+
+			if (!Array.isArray(heapRuntime)) {
+				return check(false, 'expected window.heap queue array before load');
+			}
+
+			const hasMethods = HEAP_QUEUE_METHODS.every(
+				(method) => typeof heapRuntime[method] === 'function'
+			);
+
+			heapRuntime.track?.('c15t live probe', {
+				vendor: 'heap',
+			});
+			const queuedNames = heapWindow.heapReadyCb?.map((entry) => entry.name);
+
+			return check(
+				hasMethods &&
+					heapRuntime.envId === '123456789' &&
+					heapRuntime.appid === '123456789' &&
+					heapRuntime.clientConfig?.shouldFetchServerConfig === false &&
+					queuedNames?.includes('track') === true,
+				'heap callback queue, env id, client config, and pre-load track callback present before load'
+			);
+		},
+		runtimeCheck: () => {
+			const heapRuntime = (window as HeapWindow).heap;
+
+			return check(
+				typeof heapRuntime?.track === 'function' &&
+					typeof heapRuntime.getSessionId === 'function' &&
+					typeof heapRuntime.serverConfig?.sdk?.version === 'string',
+				'heap SDK methods and server config present after heap_config.js chain-loaded heap.js'
+			);
+		},
+		notes:
+			'The probe allows the Heap config loader and chained heap.js bundle. Follow-up collection requests to c.us.heap-api.com are blocked by the runner with empty 204 responses.',
 	},
 	{
 		vendor: 'mixpanel-analytics',

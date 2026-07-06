@@ -112,6 +112,17 @@ export type TestWindow = Window &
 		databuddyConfig?: Record<string, unknown>;
 		fbq?: Record<string, unknown>;
 		google_tag_data?: GoogleTagDataState;
+		heap?: (unknown[] | Record<string, unknown>) & {
+			appid?: string;
+			clientConfig?: Record<string, unknown>;
+			envId?: string;
+			identify?: (...args: unknown[]) => unknown;
+			track?: (...args: unknown[]) => unknown;
+		};
+		heapReadyCb?: Array<{
+			name: string;
+			fn: () => void;
+		}>;
 		htevents?: unknown[] & Record<string, (...args: unknown[]) => void>;
 		hj?: ((...args: unknown[]) => void) & { q?: unknown[][] };
 		intercomSettings?: Record<string, unknown>;
@@ -242,6 +253,8 @@ function resetVendorGlobals() {
 		'databuddyConfig',
 		'fbq',
 		'google_tag_data',
+		'heap',
+		'heapReadyCb',
 		'htevents',
 		'hj',
 		'intercomSettings',

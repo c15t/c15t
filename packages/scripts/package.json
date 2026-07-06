@@ -16,6 +16,7 @@
 		"google-ads",
 		"adobe-analytics",
 		"amplitude",
+		"heap",
 		"hightouch",
 		"rudderstack",
 		"logrocket",
@@ -85,6 +86,11 @@
 			"types": "./dist-types/vendors/analytics/fathom-analytics.d.ts",
 			"import": "./dist/vendors/analytics/fathom-analytics.js",
 			"require": "./dist/vendors/analytics/fathom-analytics.cjs"
+		},
+		"./heap": {
+			"types": "./dist-types/vendors/analytics/heap.d.ts",
+			"import": "./dist/vendors/analytics/heap.js",
+			"require": "./dist/vendors/analytics/heap.cjs"
 		},
 		"./hotjar": {
 			"types": "./dist-types/vendors/analytics/hotjar.d.ts",

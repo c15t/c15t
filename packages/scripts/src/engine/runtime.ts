@@ -302,6 +302,33 @@ function executeStep(step: ManifestStep): void {
 						return promise;
 					}
 
+					if (step.queueFormat === 'callback') {
+						queueTarget.push({
+							name: methodName,
+							fn: () => {
+								const latestTarget = win[step.target];
+								if (
+									latestTarget === null ||
+									(typeof latestTarget !== 'object' &&
+										typeof latestTarget !== 'function')
+								) {
+									return;
+								}
+
+								const method = (
+									latestTarget as Record<
+										string,
+										(...methodArgs: unknown[]) => unknown
+									>
+								)[methodName];
+								if (typeof method === 'function') {
+									method.apply(latestTarget, args);
+								}
+							},
+						});
+						return;
+					}
+
 					queueTarget.push([methodName, ...args]);
 				};
 			}
