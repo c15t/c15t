@@ -19,7 +19,7 @@ function useLegalLinkTranslations(): Record<string, string> | undefined {
 	const kernelTranslations = useSyncExternalStore(
 		kernel ? (listener) => kernel.subscribe(listener) : noopSubscribe,
 		() => kernel?.getSnapshot().translations ?? null,
-		() => kernel?.getSnapshot().translations ?? null
+		() => kernel?.getServerSnapshot().translations ?? null
 	);
 
 	return useMemo(() => {

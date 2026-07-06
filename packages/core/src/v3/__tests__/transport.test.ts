@@ -415,6 +415,36 @@ describe('kernel transport: init applies response to snapshot', () => {
 		expect(kernel.getSnapshot().activeUI).toBe('banner');
 	});
 
+	test('getServerSnapshot stays at revision 0 through client mutations', async () => {
+		const kernel = createConsentKernel({
+			transport: {
+				async init() {
+					return {};
+				},
+			},
+			initialPolicy: {
+				id: 'placeholder',
+				model: 'opt-in',
+				ui: { mode: 'banner' },
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+			} as any,
+		});
+		const server = kernel.getServerSnapshot();
+		expect(server.revision).toBe(0);
+		expect(server.activeUI).toBe('banner');
+
+		// Simulate the client boot mutations that land before hydration
+		// completes: persistence hydrate flips the UI off…
+		kernel.set.hasConsented(true);
+		kernel.set.activeUI('none');
+		await kernel.commands.init();
+
+		// …but hydration must still be able to render what the server saw.
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+		expect(kernel.getServerSnapshot()).toBe(server);
+		expect(kernel.getServerSnapshot().activeUI).toBe('banner');
+	});
+
 	test('provisional policy finalizes when the transport has no init', async () => {
 		const kernel = createConsentKernel({
 			transport: {},

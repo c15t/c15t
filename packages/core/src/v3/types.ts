@@ -363,6 +363,16 @@ export interface ConsentKernel {
 	getSnapshot(): ConsentSnapshot;
 
 	/**
+	 * Returns the immutable revision-0 snapshot — the state a server render
+	 * saw. Hydration-time consumers (React `useSyncExternalStore`'s
+	 * `getServerSnapshot`) must render from this, not the live snapshot:
+	 * client boot mutations (sync persistence hydrate, eager init) can land
+	 * before hydration completes, and rendering the mutated state during
+	 * hydration strands server-rendered consent UI as unowned DOM.
+	 */
+	getServerSnapshot(): ConsentSnapshot;
+
+	/**
 	 * Subscribe to snapshot changes. Called with the new snapshot on
 	 * every state mutation. Returns an unsubscribe function.
 	 */

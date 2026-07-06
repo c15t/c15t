@@ -51,10 +51,19 @@ export function createConsentKernel(config: KernelConfig = {}): ConsentKernel {
 	const transport = config.transport;
 
 	let snapshot: ConsentSnapshot = buildInitialSnapshot(config);
+	// The revision-0 snapshot, held immutably. This is what a server render
+	// saw (no persistence hydrate, no init application run server-side), so
+	// hydration-time consumers (React's useSyncExternalStore
+	// getServerSnapshot) can render EXACTLY what the server rendered even
+	// when client boot mutations (sync persistence hydrate, eager init)
+	// land before hydration completes. Without it, a mid-hydration state
+	// flip strands server-rendered consent UI as unowned DOM.
+	const serverSnapshot: ConsentSnapshot = snapshot;
 	const snapshotListeners = new Set<Listener<ConsentSnapshot>>();
 	const eventBus = createEventBus();
 
 	const getSnapshot = () => snapshot;
+	const getServerSnapshot = () => serverSnapshot;
 
 	function notifySnapshot(): void {
 		for (const listener of snapshotListeners) {
@@ -77,6 +86,7 @@ export function createConsentKernel(config: KernelConfig = {}): ConsentKernel {
 
 	return {
 		getSnapshot,
+		getServerSnapshot,
 		subscribe(listener) {
 			snapshotListeners.add(listener);
 			return () => {

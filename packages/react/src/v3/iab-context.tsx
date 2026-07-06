@@ -88,7 +88,7 @@ export function useIAB(): ReactIABState | null {
 	const iab = useSyncExternalStore(
 		(listener) => kernel.subscribe(listener),
 		() => kernel.getSnapshot().iab,
-		() => kernel.getSnapshot().iab
+		() => kernel.getServerSnapshot().iab
 	);
 
 	return useMemo(() => {

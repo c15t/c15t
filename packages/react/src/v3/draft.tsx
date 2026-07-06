@@ -208,7 +208,7 @@ export function useConsentDraft(): ConsentDraftHandle {
 	const kernelConsents = useSyncExternalStore(
 		(listener) => kernel.subscribe(listener),
 		() => kernel.getSnapshot().consents as ConsentState,
-		() => kernel.getSnapshot().consents as ConsentState
+		() => kernel.getServerSnapshot().consents as ConsentState
 	);
 
 	const isDirty = useMemo(() => {

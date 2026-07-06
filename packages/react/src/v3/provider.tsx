@@ -889,7 +889,7 @@ function IABGate({
 	const model = useSyncExternalStore(
 		(listener) => kernel.subscribe(listener),
 		() => kernel.getSnapshot().model,
-		() => kernel.getSnapshot().model
+		() => kernel.getServerSnapshot().model
 	);
 	const shouldLoadIAB =
 		model === 'iab' || (model == null && initialModel === 'iab');
