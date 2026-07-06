@@ -25,7 +25,7 @@ group: reference
 
   ### Tailwind v4
 
-  Tailwind v4 automatically scans your source files. Import Tailwind normally, then keep the c15t stylesheet last in the top-level `@import` block so Fumadocs, `tw-animate-css`, or other preset styles load first. c15t component styles join Tailwind's `components` layer automatically, so no extra c15t-specific layer declaration is needed:
+  Tailwind v4 needs no c15t-specific PostCSS config. Import Tailwind normally, then keep the c15t stylesheet last in the top-level `@import` block so Fumadocs, `tw-animate-css`, or other preset styles load first. c15t component styles join Tailwind's `components` cascade layer automatically, so bare utilities in `slots` override c15t component defaults without the `!` important modifier:
 
   ```css title="src/index.css"
   @import "tailwindcss";
@@ -56,6 +56,31 @@ group: reference
   @import "@c15t/nextjs/styles.tw3.css";
   @tailwind utilities;
   ```
+
+  If you use the c15t v3 styles system (`@c15t/ui/styles/v3/*.css`) with Tailwind 3, add the `@c15t/ui` compatibility plugin before `tailwindcss` in your PostCSS config:
+
+  <Tabs items={['ESM', 'CJS']}>
+    <Tab value="ESM">
+
+      ```js title="postcss.config.mjs"
+      export default {
+        plugins: ['@c15t/ui/postcss-tailwind3', 'tailwindcss', 'autoprefixer'],
+      };
+      ```
+
+    </Tab>
+    <Tab value="CJS">
+
+      ```js title="postcss.config.cjs"
+      module.exports = {
+        plugins: [require('@c15t/ui/postcss-tailwind3'), require('tailwindcss'), require('autoprefixer')],
+      };
+      ```
+
+    </Tab>
+  </Tabs>
+
+  Tailwind 3 takes ownership of `@layer components`: it expects a matching `@tailwind components` directive and tree-shakes layer contents against your content scan. c15t's generated CSS Module class names live in built class maps, not in your source files, so the plugin unwraps only c15t-built layer blocks before Tailwind runs. With Tailwind 3, override c15t styles with important modifier utilities such as `!bg-blue-600`, or prefer c15t theme slots for durable styling.
 </section>
 
 <section id="dark-mode-to-nostyle">

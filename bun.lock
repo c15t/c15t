@@ -822,6 +822,7 @@
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
         "@rslib/core": "0.20.2",
+        "postcss": "8.5.10",
         "typed-css-modules": "0.9.1",
         "typescript": "6.0.2",
         "vitest": "4.1.2",

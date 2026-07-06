@@ -34,6 +34,11 @@
 		"./styles.tw3.css": "./dist/styles.tw3.css",
 		"./iab/styles.css": "./dist/iab/styles.css",
 		"./iab/styles.tw3.css": "./dist/iab/styles.tw3.css",
+		"./postcss-tailwind3": {
+			"types": "./dist-types/postcss-tailwind3.d.ts",
+			"import": "./dist/postcss-tailwind3.js",
+			"require": "./dist/postcss-tailwind3.cjs"
+		},
 		"./primitives": {
 			"types": "./dist-types/primitives/index.d.ts",
 			"import": "./dist/primitives/index.js",
@@ -128,8 +133,8 @@
 		"types"
 	],
 	"scripts": {
-		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts",
-		"dev": "sh -c 'rslib build --no-dts --no-clean && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts && rslib build --watch --no-dts --no-clean'",
+		"build": "rslib build && bun scripts/generate-postcss-tailwind3-cjs.ts && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts",
+		"dev": "sh -c 'rslib build --no-dts --no-clean && bun scripts/generate-postcss-tailwind3-cjs.ts && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write .",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run"
@@ -142,6 +147,7 @@
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"@rslib/core": "0.20.2",
+		"postcss": "8.5.10",
 		"typescript": "6.0.2",
 		"vitest": "4.1.2",
 		"typed-css-modules": "0.9.1"
