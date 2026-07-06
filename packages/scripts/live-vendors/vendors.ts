@@ -25,6 +25,10 @@ import { cloudflareWebAnalytics } from '../src/vendors/analytics/cloudflare-web-
 import { databuddy } from '../src/vendors/analytics/databuddy';
 import { fathomAnalytics } from '../src/vendors/analytics/fathom-analytics';
 import { gtag } from '../src/vendors/analytics/google-tag';
+import {
+	HIGHTOUCH_QUEUE_METHODS,
+	hightouch,
+} from '../src/vendors/analytics/hightouch';
 import { hotjar } from '../src/vendors/analytics/hotjar';
 import { logRocket } from '../src/vendors/analytics/logrocket';
 import { matomoAnalytics } from '../src/vendors/analytics/matomo-analytics';
@@ -97,6 +101,13 @@ type LogRocketWindow = Window & {
 		start?: unknown;
 		startNewSession?: unknown;
 		uninstall?: unknown;
+	};
+};
+
+type HightouchWindow = Window & {
+	htevents?: {
+		initialized?: boolean;
+		[key: string]: unknown;
 	};
 };
 
@@ -357,6 +368,49 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		},
 		notes:
 			'Placeholder site ids return an empty 200 JavaScript response from static.hotjar.com; runtime is not asserted.',
+	},
+	{
+		vendor: 'hightouch',
+		tier: 'full',
+		createScript: () =>
+			hightouch({
+				writeKey: 'C15TFAKE',
+				apiHost: 'us-east-1.hightouch-events.com',
+			}),
+		loaderUrlSubstring:
+			'cdn.hightouch-events.com/browser/release/v1-latest/events.min.js',
+		bootstrapCheck: () => {
+			const htevents = (window as HightouchWindow).htevents;
+
+			if (!Array.isArray(htevents)) {
+				return check(false, 'expected window.htevents queue array');
+			}
+
+			const hasMethods = HIGHTOUCH_QUEUE_METHODS.every(
+				(method) => typeof htevents[method] === 'function'
+			);
+
+			return check(
+				hasMethods &&
+					htevents._writeKey === 'C15TFAKE' &&
+					JSON.stringify(htevents._loadOptions) ===
+						JSON.stringify({ apiHost: 'us-east-1.hightouch-events.com' }),
+				'hightouch queue methods, write key, and load options present before load'
+			);
+		},
+		runtimeCheck: () => {
+			const htevents = (window as HightouchWindow).htevents;
+
+			return check(
+				Array.isArray(htevents) === false &&
+					htevents?.initialized === true &&
+					typeof htevents.track === 'function' &&
+					typeof htevents.page === 'function',
+				'window.htevents replaced with initialized runtime after loader executed'
+			);
+		},
+		notes:
+			'The probe allows only the CDN loader. Follow-up collection requests to hightouch-events.com are blocked by the runner with empty 204 responses.',
 	},
 	{
 		vendor: 'logrocket',

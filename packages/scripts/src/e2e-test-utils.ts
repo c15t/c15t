@@ -90,6 +90,7 @@ export type TestWindow = Window &
 		databuddyConfig?: Record<string, unknown>;
 		fbq?: Record<string, unknown>;
 		google_tag_data?: GoogleTagDataState;
+		htevents?: unknown[] & Record<string, (...args: unknown[]) => void>;
 		hj?: ((...args: unknown[]) => void) & { q?: unknown[][] };
 		intercomSettings?: Record<string, unknown>;
 		lintrk?: ((...args: unknown[]) => void) & { q?: unknown[] };
@@ -215,6 +216,7 @@ function resetVendorGlobals() {
 		'databuddyConfig',
 		'fbq',
 		'google_tag_data',
+		'htevents',
 		'hj',
 		'intercomSettings',
 		'lintrk',

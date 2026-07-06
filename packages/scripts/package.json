@@ -15,6 +15,7 @@
 		"ga4",
 		"google-ads",
 		"adobe-analytics",
+		"hightouch",
 		"logrocket",
 		"meta-pixel",
 		"posthog",
@@ -82,6 +83,11 @@
 			"types": "./dist-types/vendors/analytics/hotjar.d.ts",
 			"import": "./dist/vendors/analytics/hotjar.js",
 			"require": "./dist/vendors/analytics/hotjar.cjs"
+		},
+		"./hightouch": {
+			"types": "./dist-types/vendors/analytics/hightouch.d.ts",
+			"import": "./dist/vendors/analytics/hightouch.js",
+			"require": "./dist/vendors/analytics/hightouch.cjs"
 		},
 		"./logrocket": {
 			"types": "./dist-types/vendors/analytics/logrocket.d.ts",
