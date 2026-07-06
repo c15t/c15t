@@ -206,7 +206,7 @@ In this mode:
 - On every consent decision and change, c15t calls `rudderanalytics.consent()` with `allowedConsentIds`/`deniedConsentIds` partitioned from your mapping. The initial signal is queued before the SDK loads, so consent state is known the moment the SDK initializes.
 - Consent revocation re-signals with the denied IDs instead of unloading the script.
 
-**Event attribution.** This is the reason to opt in: events fired before the user interacts with the consent banner (the initial `page()` call, early product events) are buffered and delivered once consent is granted, so consenting users keep their full journey. In the default blocked-load mode those pre-consent events are simply lost. If you want session stitching across the consent boundary as well, pass your own `preConsent` in `loadOptions` with storage strategy `'session'` — c15t keeps your value and only forces `consentManagement.enabled` and the `custom` provider.
+**Event attribution.** This is the reason to opt in: events fired before the user interacts with the consent banner (the initial `page()` call, early product events) are buffered and delivered once consent is granted, so consenting users keep their full journey. In the default blocked-load mode those pre-consent events are simply lost. If you want session stitching across the consent boundary as well, pass your own `preConsent` in `loadOptions` with storage strategy `'session'` — c15t keeps your storage choice but always forces `preConsent.enabled`, buffered event delivery, and the `custom` consent provider, since any of those falling back to SDK defaults would leak pre-consent events.
 
 **Requirements and caveats:**
 

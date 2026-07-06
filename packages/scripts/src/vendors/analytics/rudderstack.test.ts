@@ -212,7 +212,7 @@ describe('rudderstack', () => {
 					preConsent: {
 						enabled: true,
 						storage: { strategy: 'none' },
-						events: { delivery: 'buffered' },
+						events: { delivery: 'buffer' },
 					},
 					consentManagement: {
 						enabled: true,
@@ -275,7 +275,7 @@ describe('rudderstack', () => {
 				preConsent: {
 					enabled: true,
 					storage: { strategy: 'session' },
-					events: { delivery: 'buffered' },
+					events: { delivery: 'buffer' },
 				},
 				consentManagement: { provider: 'oneTrust' },
 			},
@@ -300,7 +300,7 @@ describe('rudderstack', () => {
 					preConsent: {
 						enabled: true,
 						storage: { strategy: 'session' },
-						events: { delivery: 'buffered' },
+						events: { delivery: 'buffer' },
 					},
 					consentManagement: {
 						enabled: true,
@@ -311,12 +311,24 @@ describe('rudderstack', () => {
 		);
 	});
 
-	it('throws for an empty consent mapping', () => {
+	it('throws when a declared category has no valid consent IDs', () => {
 		expect(() =>
 			rudderstack({
 				writeKey: 'WRITE_KEY',
 				dataPlaneUrl: 'https://c15t-live-probe.invalid',
 				consentManagement: { mapping: { measurement: ['   '] } },
+			})
+		).toThrowError(
+			'rudderstack: consentManagement.mapping.measurement is declared but contains no valid consent IDs'
+		);
+	});
+
+	it('throws for an empty consent mapping', () => {
+		expect(() =>
+			rudderstack({
+				writeKey: 'WRITE_KEY',
+				dataPlaneUrl: 'https://c15t-live-probe.invalid',
+				consentManagement: { mapping: {} },
 			})
 		).toThrowError(
 			'rudderstack: consentManagement.mapping must map at least one c15t category to a non-empty list of RudderStack consent IDs'

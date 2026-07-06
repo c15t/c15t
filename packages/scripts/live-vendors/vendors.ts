@@ -790,7 +790,9 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		loaderUrlSubstring: 'cdn.rudderlabs.com/v3/modern/rsa.min.js',
 		deniedConsentProbe: {
 			collectUrlSubstrings: ['c15t-live-probe.invalid'],
-			storagePrefixes: ['rl_'],
+			// rl_* covers cookies; rudder* covers the SDK's localStorage keys
+			// (rudder_<writeKey> batch queues and friends).
+			storagePrefixes: ['rl_', 'rudder'],
 			notes:
 				'Pre-consent mode: the SDK loads inert with buffered delivery and storage strategy none; any data-plane request or rl_* storage under denied consent is a violation.',
 		},

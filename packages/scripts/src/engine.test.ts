@@ -843,6 +843,7 @@ describe('scripts engine', () => {
 		expect(liveTrack).toHaveBeenCalledWith('Signup');
 
 		delete globalRef.vendorQueue;
+	});
 
 	it('partitions consent IDs for the rudderstack consent signal', () => {
 		const globalRef = globalThis as TestGlobal;
