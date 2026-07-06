@@ -189,11 +189,12 @@
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/scripts",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/scripts",
-		"check-types": "tsc --noEmit",
+		"check-types": "tsc --noEmit && tsc -p live-vendors --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./src",
+		"lint": "bun biome lint ./src ./live-vendors",
 		"test": "vitest run",
+		"test:live-vendors": "bun --tsconfig-override live-vendors/tsconfig.json live-vendors/runner.ts",
 		"test:watch": "vitest"
 	},
 	"browserslist": [
@@ -204,7 +205,8 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"c15t": "workspace:*"
+		"c15t": "workspace:*",
+		"playwright": "1.58.2"
 	},
 	"publishConfig": {
 		"access": "public"

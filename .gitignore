@@ -85,3 +85,6 @@ debug-storybook.log
 
 # Agent worktrees
 .claude/worktrees/
+
+# Live vendor monitor output
+live-vendors-report.json
