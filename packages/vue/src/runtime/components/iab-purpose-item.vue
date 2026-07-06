@@ -4,7 +4,7 @@
 >
 import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { computed, ref, toValue } from 'vue';
-import { useConsentInit } from '#c15t/composables';
+import { useConsentConfig, useConsentInit } from '#c15t/composables';
 import ConsentSwitch from './consent-switch.vue';
 
 export type IabVendorId = number | string;
@@ -41,6 +41,7 @@ const emit = defineEmits<{
 }>();
 
 const init = useConsentInit();
+const config = useConsentConfig();
 const isExpanded = ref(false);
 const showExamples = ref(false);
 const showVendors = ref(false);
@@ -105,17 +106,23 @@ function handlePurposeLiObjection() {
 
 <template>
 	<div
+		v-bind="config.components?.['iab-purpose-item']?.root"
 		:class="dialogStyles.purposeItem"
 		:data-testid="`purpose-item-${purpose.id}`"
 	>
-		<div :class="dialogStyles.purposeHeader">
+		<div
+			v-bind="config.components?.['iab-purpose-item']?.header"
+			:class="dialogStyles.purposeHeader"
+		>
 			<button
+				v-bind="config.components?.['iab-purpose-item']?.trigger"
 				type="button"
 				:class="dialogStyles.purposeTrigger"
 				:aria-expanded="isExpanded"
 				@click="isExpanded = !isExpanded"
 			>
 				<svg
+					aria-hidden="true"
 					:class="dialogStyles.purposeArrow"
 					viewBox="0 0 24 24"
 					fill="none"
@@ -136,6 +143,7 @@ function handlePurposeLiObjection() {
 						{{ purpose.name }}
 						<svg
 							v-if="isLocked"
+							aria-hidden="true"
 							:class="dialogStyles.lockIcon"
 							viewBox="0 0 24 24"
 							fill="none"
@@ -170,12 +178,14 @@ function handlePurposeLiObjection() {
 
 		<div
 			v-if="isExpanded"
+			v-bind="config.components?.['iab-purpose-item']?.content"
 			:class="dialogStyles.purposeContent"
 		>
 			<p :class="dialogStyles.purposeDescription">{{ purpose.description }}</p>
 
 			<div
 				v-if="legIntVendors.length > 0"
+				v-bind="config.components?.['iab-purpose-item']?.legitimateInterest"
 				:class="dialogStyles.purposeLiSection"
 			>
 				<div :class="dialogStyles.purposeLiSectionHeader">
@@ -204,7 +214,10 @@ function handlePurposeLiObjection() {
 				</p>
 			</div>
 
-			<div v-if="purpose.illustrations.length > 0">
+			<div
+				v-if="purpose.illustrations.length > 0"
+				v-bind="config.components?.['iab-purpose-item']?.examples"
+			>
 				<button
 					type="button"
 					:class="dialogStyles.examplesToggle"
@@ -226,7 +239,7 @@ function handlePurposeLiObjection() {
 				</ul>
 			</div>
 
-			<div>
+			<div v-bind="config.components?.['iab-purpose-item']?.vendors">
 				<button
 					type="button"
 					:class="dialogStyles.vendorsToggle"

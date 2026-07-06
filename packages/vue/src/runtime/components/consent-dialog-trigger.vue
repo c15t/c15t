@@ -157,6 +157,7 @@ function openDialog() {
 	<button
 		v-if="isVisible"
 		ref="triggerRef"
+		v-bind="config.components?.trigger?.root"
 		type="button"
 		data-testid="consent-dialog-trigger"
 		:class="triggerStyles.trigger"
@@ -167,11 +168,13 @@ function openDialog() {
 		@click="openDialog"
 	>
 		<span
+			v-bind="config.components?.trigger?.icon"
 			:class="triggerStyles.icon"
 			aria-hidden="true"
 		>
 			<svg
 				v-if="config.triggerIcon === 'fingerprint'"
+				aria-hidden="true"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
@@ -186,6 +189,7 @@ function openDialog() {
 			</svg>
 			<svg
 				v-else-if="config.triggerIcon === 'settings'"
+				aria-hidden="true"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
@@ -210,6 +214,7 @@ function openDialog() {
 			</svg>
 			<svg
 				v-else
+				aria-hidden="true"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"
@@ -219,6 +224,13 @@ function openDialog() {
 				<path d="M4 6h16" />
 				<path d="M4 18h16" />
 			</svg>
+		</span>
+		<span
+			v-if="config.components?.trigger?.text"
+			v-bind="config.components?.trigger?.text"
+			:class="triggerStyles.text"
+		>
+			{{ config.triggerAriaLabel }}
 		</span>
 	</button>
 </template>

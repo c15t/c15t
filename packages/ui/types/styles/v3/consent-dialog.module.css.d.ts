@@ -3,6 +3,7 @@ declare const styles: {
 	readonly brandingBy: string;
 	readonly brandingC15T: string;
 	readonly brandingC15TMark: string;
+	readonly brandingContent: string;
 	readonly brandingCopy: string;
 	readonly brandingFooter: string;
 	readonly brandingInth: string;

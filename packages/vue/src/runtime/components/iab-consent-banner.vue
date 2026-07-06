@@ -2,21 +2,24 @@
 	setup
 	lang="ts"
 >
-import { computed, Teleport, Transition, toValue } from 'vue';
-import { FocusScope } from '../primitives';
-import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
-import type { PolicyUiAction } from '@c15t/schema/types';
+import type {
+	GlobalVendorList,
+	NonIABVendor,
+	PolicyUiAction,
+} from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/v3/iab-consent-banner';
+import { computed, Teleport, Transition, toValue } from 'vue';
 import {
 	useConsentActiveUI,
 	useConsentConfig,
-	useConsentInit,
 	useConsentIabSave,
 	useConsentIabSelection,
+	useConsentInit,
 } from '#c15t/composables';
+import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
+import { FocusScope } from '../primitives';
 import ConsentActions from './consent-actions.vue';
 import ConsentTag from './consent-tag.vue';
-import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 
 const MAX_DISPLAY_ITEMS = 5;
 const STANDALONE_PURPOSE_ID = 1;
@@ -288,7 +291,10 @@ const shouldTrapFocus = computed(() =>
 				data-testid="iab-consent-banner-root"
 				:class="bannerStyles.root"
 			>
-				<div :class="bannerStyles.cardShell">
+				<div
+					v-bind="config.components?.['iab-banner']?.cardShell"
+					:class="bannerStyles.cardShell"
+				>
 					<ConsentTag
 						v-if="!config.iabBannerHideBranding"
 						context="iab-banner"
@@ -317,9 +323,13 @@ const shouldTrapFocus = computed(() =>
 								>
 									{{ iabT?.banner?.title }}
 								</h2>
-								<p :class="bannerStyles.description">
+								<p
+									v-bind="config.components?.['iab-banner']?.description"
+									:class="bannerStyles.description"
+								>
 									{{ descriptionParts.before }}
 									<button
+										v-bind="config.components?.['iab-banner']?.partnersLink"
 										type="button"
 										:class="bannerStyles.partnersLink"
 										data-testid="iab-consent-banner-partners-link"
@@ -329,7 +339,10 @@ const shouldTrapFocus = computed(() =>
 									</button>
 									{{ descriptionParts.after }}
 								</p>
-								<ul :class="bannerStyles.purposeList">
+								<ul
+									v-bind="config.components?.['iab-banner']?.purposeList"
+									:class="bannerStyles.purposeList"
+								>
 									<li
 										v-for="(name, index) in bannerSummary.displayItems"
 										:key="`${name}-${index}`"
@@ -338,6 +351,7 @@ const shouldTrapFocus = computed(() =>
 									</li>
 									<li
 										v-if="bannerSummary.remainingCount > 0"
+										v-bind="config.components?.['iab-banner']?.purposeMore"
 										:class="bannerStyles.purposeMore"
 									>
 										{{ (iabT?.banner?.andMore ?? '').replace(
@@ -346,7 +360,12 @@ const shouldTrapFocus = computed(() =>
 									) }}
 									</li>
 								</ul>
-								<p :class="bannerStyles.legitimateInterestNotice">
+								<p
+									v-bind="
+										config.components?.['iab-banner']?.legitimateInterestNotice
+									"
+									:class="bannerStyles.legitimateInterestNotice"
+								>
 									{{ iabT?.banner?.legitimateInterestNotice }}
 									{{ iabT?.banner?.scopeServiceSpecific }}
 								</p>
@@ -361,6 +380,10 @@ const shouldTrapFocus = computed(() =>
 									:primary-actions="[primaryButton]"
 									:labels="labels"
 									secondary-mode="stroke"
+									:root-attrs="config.components?.['iab-banner']?.actions as
+										object | undefined"
+									:group-attrs="config.components?.['iab-banner']?.actionGroup as
+										object | undefined"
 									@action="onAction"
 								/>
 							</div>

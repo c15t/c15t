@@ -2,8 +2,9 @@
 	setup
 	lang="ts"
 >
-import { computed, ref } from 'vue';
 import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
+import { computed, ref } from 'vue';
+import { useConsentConfig } from '#c15t/composables';
 import ConsentSwitch from './consent-switch.vue';
 import type { IabProcessedPurpose, IabVendorId } from './iab-purpose-item.vue';
 import IabPurposeItem from './iab-purpose-item.vue';
@@ -31,6 +32,7 @@ const emit = defineEmits<{
 }>();
 
 const isExpanded = ref(false);
+const config = useConsentConfig();
 
 const allEnabled = computed(() =>
 	props.stack.purposes.every((purpose) => props.consents[purpose.id] ?? false)
@@ -69,17 +71,23 @@ const stackChecked = computed({
 
 <template>
 	<div
+		v-bind="config.components?.['iab-stack-item']?.root"
 		:class="dialogStyles.stackItem"
 		:data-testid="`stack-item-${stack.id}`"
 	>
-		<div :class="dialogStyles.stackHeader">
+		<div
+			v-bind="config.components?.['iab-stack-item']?.header"
+			:class="dialogStyles.stackHeader"
+		>
 			<button
+				v-bind="config.components?.['iab-stack-item']?.trigger"
 				type="button"
 				:class="dialogStyles.stackTrigger"
 				:aria-expanded="isExpanded"
 				@click="isExpanded = !isExpanded"
 			>
 				<svg
+					aria-hidden="true"
 					:class="dialogStyles.purposeArrow"
 					viewBox="0 0 24 24"
 					fill="none"
@@ -112,6 +120,7 @@ const stackChecked = computed({
 
 		<div
 			v-if="isExpanded"
+			v-bind="config.components?.['iab-stack-item']?.content"
 			:class="dialogStyles.stackContent"
 		>
 			<p :class="dialogStyles.stackDescription">{{ stack.description }}</p>

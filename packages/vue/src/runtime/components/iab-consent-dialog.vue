@@ -2,37 +2,37 @@
 	setup
 	lang="ts"
 >
-import { computed, ref, toValue, watch } from 'vue';
-import { Teleport, Transition } from 'vue';
-import { FocusScope } from '../primitives';
 import type {
 	GlobalVendorList,
 	NonIABVendor,
 	PolicyUiAction,
 } from '@c15t/schema/types';
 import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
+import { computed, ref, Teleport, Transition, toValue, watch } from 'vue';
 import {
+	type ConsentIabSelection,
 	createDefaultIabSelection,
 	useConsentActiveUI,
 	useConsentConfig,
-	useConsentInit,
 	useConsentIabSave,
 	useConsentIabSelection,
-	type ConsentIabSelection,
+	useConsentInit,
 } from '#c15t/composables';
+import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
+import { FocusScope } from '../primitives';
 import ConsentActions from './consent-actions.vue';
+import ConsentDialogTrigger from './consent-dialog-trigger.vue';
 import ConsentTag from './consent-tag.vue';
-import IabPurposeItem from './iab-purpose-item.vue';
-import IabStackItem from './iab-stack-item.vue';
-import type { IabProcessedStack } from './iab-stack-item.vue';
-import IabVendorList from './iab-vendor-list.vue';
 import type {
 	IabProcessedPurpose,
 	IabProcessedVendor,
 	IabVendorId,
 } from './iab-purpose-item.vue';
-import ConsentDialogTrigger from './consent-dialog-trigger.vue';
-import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
+import IabPurposeItem from './iab-purpose-item.vue';
+import type { IabProcessedStack } from './iab-stack-item.vue';
+import IabStackItem from './iab-stack-item.vue';
+import IabVendorList from './iab-vendor-list.vue';
+
 const STANDALONE_PURPOSE_ID = 1;
 const IAB_DIALOG_LAYOUT: (PolicyUiAction | PolicyUiAction[])[] = [
 	['reject', 'accept'],
@@ -105,7 +105,7 @@ const labels = computed(() => ({
 }));
 
 function mapVendor(
-	gvl: GlobalVendorList,
+	_gvl: GlobalVendorList,
 	vendorId: string,
 	vendor: GlobalVendorList['vendors'][string],
 	purposeId?: number
@@ -482,18 +482,25 @@ const shouldTrapFocus = computed(() =>
 								v-bind="config.components?.['iab-dialog']?.header"
 								:class="dialogStyles.header"
 							>
-								<div :class="dialogStyles.headerContent">
+								<div
+									v-bind="config.components?.['iab-dialog']?.headerContent"
+									:class="dialogStyles.headerContent"
+								>
 									<h2
 										v-bind="config.components?.['iab-dialog']?.title"
 										:class="dialogStyles.title"
 									>
 										{{ iabT?.preferenceCenter?.title }}
 									</h2>
-									<p :class="dialogStyles.description">
+									<p
+										v-bind="config.components?.['iab-dialog']?.description"
+										:class="dialogStyles.description"
+									>
 										{{ iabT?.preferenceCenter?.description }}
 									</p>
 								</div>
 								<button
+									v-bind="config.components?.['iab-dialog']?.closeButton"
 									type="button"
 									:class="dialogStyles.closeButton"
 									:aria-label="iabT?.common?.close"
@@ -501,6 +508,7 @@ const shouldTrapFocus = computed(() =>
 									@click="closeDialog"
 								>
 									<svg
+										aria-hidden="true"
 										style="width: 1rem; height: 1rem"
 										viewBox="0 0 24 24"
 										fill="none"
@@ -523,16 +531,21 @@ const shouldTrapFocus = computed(() =>
 								</button>
 							</div>
 
-							<div :class="dialogStyles.body">
+							<div
+								v-bind="config.components?.['iab-dialog']?.body"
+								:class="dialogStyles.body"
+							>
 								<div
 									v-bind="config.components?.['iab-dialog']?.tabs"
 									:class="dialogStyles.tabsContainer"
 								>
 									<div
+										v-bind="config.components?.['iab-dialog']?.tabsList"
 										:class="dialogStyles.tabsList"
 										role="tablist"
 									>
 										<button
+											v-bind="config.components?.['iab-dialog']?.tabTrigger"
 											type="button"
 											:class="dialogStyles.tabButton"
 											role="tab"
@@ -544,6 +557,7 @@ const shouldTrapFocus = computed(() =>
 											<span v-if="!isLoading"> ({{ purposeTabCount }})</span>
 										</button>
 										<button
+											v-bind="config.components?.['iab-dialog']?.tabTrigger"
 											type="button"
 											:class="dialogStyles.tabButton"
 											role="tab"
@@ -555,6 +569,7 @@ const shouldTrapFocus = computed(() =>
 											<span v-if="!isLoading"> ({{ totalVendors }})</span>
 										</button>
 										<div
+											v-bind="config.components?.['iab-dialog']?.tabIndicator"
 											aria-hidden="true"
 											:class="dialogStyles.tabIndicator"
 											:data-active-tab="activeTab"
@@ -568,6 +583,7 @@ const shouldTrapFocus = computed(() =>
 								>
 									<div
 										v-if="isLoading"
+										v-bind="config.components?.['iab-dialog']?.loading"
 										:class="dialogStyles.loadingContainer"
 									>
 										<div :class="dialogStyles.loadingSpinner" />
@@ -578,6 +594,7 @@ const shouldTrapFocus = computed(() =>
 									<template v-else>
 										<div
 											v-show="activeTab === 'purposes'"
+											v-bind="config.components?.['iab-dialog']?.tabPanel"
 											:class="dialogStyles.tabPanel"
 											role="tabpanel"
 										>
@@ -642,6 +659,9 @@ const shouldTrapFocus = computed(() =>
 										processed.specialPurposes.length > 0 ||
 										processed.features.length > 0
 									"
+												v-bind="
+													config.components?.['iab-dialog']?.specialPurposes
+												"
 												:class="dialogStyles.specialPurposesSection"
 											>
 												<div :class="dialogStyles.specialPurposesHeader">
@@ -654,6 +674,7 @@ const shouldTrapFocus = computed(() =>
 											"
 													>
 														<svg
+															aria-hidden="true"
 															:class="dialogStyles.purposeArrow"
 															viewBox="0 0 24 24"
 															fill="none"
@@ -673,6 +694,7 @@ const shouldTrapFocus = computed(() =>
 															<h3 :class="dialogStyles.specialPurposesTitle">
 																{{ iabT?.preferenceCenter?.specialPurposes?.title }}
 																<svg
+																	aria-hidden="true"
 																	:class="dialogStyles.lockIcon"
 																	viewBox="0 0 24 24"
 																	fill="none"
@@ -697,14 +719,12 @@ const shouldTrapFocus = computed(() =>
 														</div>
 													</button>
 													<svg
+														aria-hidden="true"
 														:class="dialogStyles.infoIcon"
 														viewBox="0 0 24 24"
 														fill="none"
 														stroke="currentColor"
 														stroke-width="2"
-														:aria-label="
-												iabT?.preferenceCenter?.specialPurposes?.tooltip
-											"
 													>
 														<circle
 															cx="12"
@@ -757,7 +777,10 @@ const shouldTrapFocus = computed(() =>
 												</div>
 											</div>
 
-											<div :class="dialogStyles.consentNotice">
+											<div
+												v-bind="config.components?.['iab-dialog']?.consentNotice"
+												:class="dialogStyles.consentNotice"
+											>
 												<p :class="dialogStyles.consentNoticeText">
 													{{ iabT?.preferenceCenter?.footer?.consentStorage }}
 												</p>
@@ -766,6 +789,7 @@ const shouldTrapFocus = computed(() =>
 
 										<div
 											v-show="activeTab === 'vendors'"
+											v-bind="config.components?.['iab-dialog']?.tabPanel"
 											:class="dialogStyles.tabPanel"
 											role="tabpanel"
 										>
@@ -796,6 +820,10 @@ const shouldTrapFocus = computed(() =>
 									:labels="labels"
 									secondary-mode="stroke"
 									:disabled="isLoading"
+									:root-attrs="config.components?.['iab-dialog']?.actions as
+										object | undefined"
+									:group-attrs="config.components?.['iab-dialog']?.actionGroup as
+										object | undefined"
 									@action="onAction"
 								/>
 							</div>

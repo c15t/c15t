@@ -58,34 +58,29 @@ export type ConsentCategory =
 export type ConsentComponentSlots<T = Record<string, unknown>> = {
 	banner: {
 		root?: T;
+		cardShell?: T;
 		card?: T;
 		header?: T;
 		title?: T;
-		description?: T;
 		footer?: T;
 		actions?: T;
 		actionGroup?: T;
-		tag?: T;
 		overlay?: T;
 	};
 	dialog: {
 		root?: T;
+		container?: T;
 		card?: T;
 		header?: T;
 		title?: T;
-		description?: T;
 		content?: T;
-		footer?: T;
-		tag?: T;
 		overlay?: T;
 	};
 	manager: {
 		root?: T;
-		accordion?: T;
 		footer?: T;
 		actions?: T;
 		actionGroup?: T;
-		tag?: T;
 	};
 	button: {
 		primary?: T;
@@ -93,9 +88,23 @@ export type ConsentComponentSlots<T = Record<string, unknown>> = {
 	};
 	switch: {
 		root?: T;
+		track?: T;
+		thumb?: T;
+	};
+	trigger: {
+		root?: T;
+		icon?: T;
+		text?: T;
 	};
 	accordion: {
 		root?: T;
+		triggerRow?: T;
+		arrow?: T;
+		header?: T;
+		title?: T;
+		control?: T;
+		contentViewport?: T;
+		contentInner?: T;
 	};
 	'accordion-item': {
 		root?: T;
@@ -113,38 +122,241 @@ export type ConsentComponentSlots<T = Record<string, unknown>> = {
 		manager?: T;
 		'iab-banner'?: T;
 		'iab-dialog'?: T;
+		content?: T;
 	};
 	link: {
 		banner?: T;
 		dialog?: T;
 		manager?: T;
 	};
-	badge: {
+	'legal-links': {
 		root?: T;
 	};
 	'iab-banner': {
 		root?: T;
+		cardShell?: T;
 		card?: T;
 		header?: T;
 		title?: T;
 		description?: T;
+		partnersLink?: T;
+		purposeList?: T;
+		purposeMore?: T;
+		legitimateInterestNotice?: T;
 		footer?: T;
-		tag?: T;
+		actions?: T;
+		actionGroup?: T;
 		overlay?: T;
 	};
 	'iab-dialog': {
 		root?: T;
 		card?: T;
 		header?: T;
+		headerContent?: T;
 		title?: T;
 		description?: T;
+		closeButton?: T;
+		body?: T;
 		content?: T;
+		loading?: T;
 		footer?: T;
 		tabs?: T;
-		tag?: T;
+		tabsList?: T;
+		tabTrigger?: T;
+		tabIndicator?: T;
+		tabPanel?: T;
+		specialPurposes?: T;
+		consentNotice?: T;
+		actions?: T;
+		actionGroup?: T;
 		overlay?: T;
 	};
+	'iab-purpose-item': {
+		root?: T;
+		header?: T;
+		trigger?: T;
+		content?: T;
+		legitimateInterest?: T;
+		examples?: T;
+		vendors?: T;
+	};
+	'iab-stack-item': {
+		root?: T;
+		header?: T;
+		trigger?: T;
+		content?: T;
+	};
+	'iab-vendor-list': {
+		root?: T;
+		header?: T;
+		search?: T;
+		selectedVendor?: T;
+		row?: T;
+		rowHeader?: T;
+		rowContent?: T;
+	};
 };
+
+type ConsentComponentSlotKeyMap = {
+	[Group in keyof ConsentComponentSlots]-?: {
+		[Slot in keyof ConsentComponentSlots[Group]]-?: true;
+	};
+};
+
+export type ConsentComponentSlotKey = {
+	[Group in keyof ConsentComponentSlots &
+		string]: `${Group}.${keyof ConsentComponentSlots[Group] & string}`;
+}[keyof ConsentComponentSlots & string];
+
+export const CONSENT_COMPONENT_SLOT_KEY_MAP = {
+	banner: {
+		root: true,
+		cardShell: true,
+		card: true,
+		header: true,
+		title: true,
+		footer: true,
+		actions: true,
+		actionGroup: true,
+		overlay: true,
+	},
+	dialog: {
+		root: true,
+		container: true,
+		card: true,
+		header: true,
+		title: true,
+		content: true,
+		overlay: true,
+	},
+	manager: {
+		root: true,
+		footer: true,
+		actions: true,
+		actionGroup: true,
+	},
+	button: {
+		primary: true,
+		secondary: true,
+	},
+	switch: {
+		root: true,
+		track: true,
+		thumb: true,
+	},
+	trigger: {
+		root: true,
+		icon: true,
+		text: true,
+	},
+	accordion: {
+		root: true,
+		triggerRow: true,
+		arrow: true,
+		header: true,
+		title: true,
+		control: true,
+		contentViewport: true,
+		contentInner: true,
+	},
+	'accordion-item': {
+		root: true,
+		trigger: true,
+		content: true,
+	},
+	description: {
+		banner: true,
+		dialog: true,
+		manager: true,
+	},
+	tag: {
+		banner: true,
+		dialog: true,
+		manager: true,
+		'iab-banner': true,
+		'iab-dialog': true,
+		content: true,
+	},
+	link: {
+		banner: true,
+		dialog: true,
+		manager: true,
+	},
+	'legal-links': {
+		root: true,
+	},
+	'iab-banner': {
+		root: true,
+		cardShell: true,
+		card: true,
+		header: true,
+		title: true,
+		description: true,
+		partnersLink: true,
+		purposeList: true,
+		purposeMore: true,
+		legitimateInterestNotice: true,
+		footer: true,
+		actions: true,
+		actionGroup: true,
+		overlay: true,
+	},
+	'iab-dialog': {
+		root: true,
+		card: true,
+		header: true,
+		headerContent: true,
+		title: true,
+		description: true,
+		closeButton: true,
+		body: true,
+		content: true,
+		loading: true,
+		footer: true,
+		tabs: true,
+		tabsList: true,
+		tabTrigger: true,
+		tabIndicator: true,
+		tabPanel: true,
+		specialPurposes: true,
+		consentNotice: true,
+		actions: true,
+		actionGroup: true,
+		overlay: true,
+	},
+	'iab-purpose-item': {
+		root: true,
+		header: true,
+		trigger: true,
+		content: true,
+		legitimateInterest: true,
+		examples: true,
+		vendors: true,
+	},
+	'iab-stack-item': {
+		root: true,
+		header: true,
+		trigger: true,
+		content: true,
+	},
+	'iab-vendor-list': {
+		root: true,
+		header: true,
+		search: true,
+		selectedVendor: true,
+		row: true,
+		rowHeader: true,
+		rowContent: true,
+	},
+} as const satisfies ConsentComponentSlotKeyMap;
+
+export const CONSENT_COMPONENT_SLOT_KEYS = Object.entries(
+	CONSENT_COMPONENT_SLOT_KEY_MAP
+).flatMap(([group, slots]) =>
+	Object.keys(slots).map(
+		(slot) => `${group}.${slot}` as ConsentComponentSlotKey
+	)
+);
 
 /**
  * Central consent configuration contract shared across framework packages.

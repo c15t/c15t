@@ -2,10 +2,10 @@
 	setup
 	lang="ts"
 >
-import { computed, ref, toValue, watch } from 'vue';
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import { useConsentInit } from '#c15t/composables';
+import { computed, ref, toValue, watch } from 'vue';
+import { useConsentConfig, useConsentInit } from '#c15t/composables';
 import ConsentSwitch from './consent-switch.vue';
 import type { IabProcessedPurpose, IabVendorId } from './iab-purpose-item.vue';
 
@@ -24,6 +24,7 @@ const emit = defineEmits<{
 }>();
 
 const init = useConsentInit();
+const config = useConsentConfig();
 const searchTerm = ref('');
 
 const iabT = computed(
@@ -132,9 +133,15 @@ watch(
 </script>
 
 <template>
-	<div>
-		<div :class="dialogStyles.vendorListHeader">
-			<div :class="dialogStyles.searchContainer">
+	<div v-bind="config.components?.['iab-vendor-list']?.root">
+		<div
+			v-bind="config.components?.['iab-vendor-list']?.header"
+			:class="dialogStyles.vendorListHeader"
+		>
+			<div
+				v-bind="config.components?.['iab-vendor-list']?.search"
+				:class="dialogStyles.searchContainer"
+			>
 				<svg
 					:class="dialogStyles.searchIcon"
 					viewBox="0 0 24 24"
@@ -172,6 +179,7 @@ watch(
 
 		<div
 			v-if="selectedVendorId !== null"
+			v-bind="config.components?.['iab-vendor-list']?.selectedVendor"
 			:class="dialogStyles.selectedVendorBanner"
 		>
 			<p :class="dialogStyles.selectedVendorText">
@@ -183,6 +191,7 @@ watch(
 				@click="emit('clearSelection')"
 			>
 				<svg
+					aria-hidden="true"
 					:class="dialogStyles.clearIcon"
 					viewBox="0 0 24 24"
 					fill="none"
@@ -214,9 +223,13 @@ watch(
 					v-for="vendor in filteredIabVendors"
 					:id="`vendor-${String(vendor.id)}`"
 					:key="String(vendor.id)"
+					v-bind="config.components?.['iab-vendor-list']?.row"
 					:class="dialogStyles.vendorListItem"
 				>
-					<div :class="dialogStyles.vendorListItemHeader">
+					<div
+						v-bind="config.components?.['iab-vendor-list']?.rowHeader"
+						:class="dialogStyles.vendorListItemHeader"
+					>
 						<div :class="dialogStyles.vendorListInfo">
 							<p :class="dialogStyles.vendorListName">{{ vendor.name }}</p>
 						</div>
@@ -232,6 +245,7 @@ watch(
 					</div>
 					<div
 						v-if="vendor.policyUrl"
+						v-bind="config.components?.['iab-vendor-list']?.rowContent"
 						:class="dialogStyles.vendorListContent"
 					>
 						<a
@@ -256,9 +270,13 @@ watch(
 					v-for="vendor in filteredCustomVendors"
 					:id="`vendor-${String(vendor.id)}`"
 					:key="String(vendor.id)"
+					v-bind="config.components?.['iab-vendor-list']?.row"
 					:class="dialogStyles.vendorListItem"
 				>
-					<div :class="dialogStyles.vendorListItemHeader">
+					<div
+						v-bind="config.components?.['iab-vendor-list']?.rowHeader"
+						:class="dialogStyles.vendorListItemHeader"
+					>
 						<div :class="dialogStyles.vendorListInfo">
 							<p :class="dialogStyles.vendorListName">{{ vendor.name }}</p>
 						</div>
@@ -274,6 +292,7 @@ watch(
 					</div>
 					<div
 						v-if="vendor.policyUrl"
+						v-bind="config.components?.['iab-vendor-list']?.rowContent"
 						:class="dialogStyles.vendorListContent"
 					>
 						<a

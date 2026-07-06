@@ -2,22 +2,22 @@
 	setup
 	lang="ts"
 >
-import { computed, Teleport, Transition } from 'vue';
 import { DEFAULT_BANNER_POSITION } from '@c15t/schema/config';
 import type { PolicyUiAction } from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/v3/consent-banner';
+import { computed, Teleport, Transition } from 'vue';
 import {
 	useConsentActiveUI,
 	useConsentConfig,
 	useConsentInit,
 	useConsentSave,
 } from '../composables';
+import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
+import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { FocusScope } from '../primitives';
 import ConsentActions from './consent-actions.vue';
 import ConsentDescription from './consent-description.vue';
 import ConsentTag from './consent-tag.vue';
-import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
-import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 
 const activeUI = useConsentActiveUI();
 const config = useConsentConfig();
@@ -123,7 +123,10 @@ function onAction(action: PolicyUiAction) {
 				:data-position="bannerPosition"
 				:class="bannerStyles.root"
 			>
-				<div :class="bannerStyles.cardShell">
+				<div
+					v-bind="config.components?.banner?.cardShell"
+					:class="bannerStyles.cardShell"
+				>
 					<ConsentTag
 						v-if="!(config.bannerHideBranding ?? config.hideBranding)"
 						context="banner"

@@ -2,10 +2,24 @@
 	setup
 	lang="ts"
 >
+import type { PolicyUiAction } from '@c15t/schema/types';
 import accordionStyles from '@c15t/ui/styles/v3/accordion';
 import dialogStyles from '@c15t/ui/styles/v3/consent-dialog';
 import managerStyles from '@c15t/ui/styles/v3/consent-manager';
-import type { PolicyUiAction } from '@c15t/schema/types';
+import {
+	type CONSENT_CATEGORY,
+	getConsentAvailableCategories,
+} from 'c15t/v3/consent-record';
+import { computed, type HTMLAttributes, nextTick, ref, watch } from 'vue';
+import {
+	useConsentActiveUI,
+	useConsentConfig,
+	useConsentInit,
+	useConsentSave,
+	useHasConsent,
+} from '../composables';
+import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
+import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import {
 	AccordionContent,
 	AccordionHeader,
@@ -17,22 +31,8 @@ import {
 	DialogPortal,
 	DialogRoot,
 } from '../primitives';
-import {
-	getConsentAvailableCategories,
-	type CONSENT_CATEGORY,
-} from 'c15t/v3/consent-record';
-import { computed, type HTMLAttributes, nextTick, ref, watch } from 'vue';
-import {
-	useConsentActiveUI,
-	useConsentConfig,
-	useConsentInit,
-	useHasConsent,
-	useConsentSave,
-} from '../composables';
-import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
-import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
-import ConsentDescription from './consent-description.vue';
 import ConsentActions from './consent-actions.vue';
+import ConsentDescription from './consent-description.vue';
 import ConsentSwitch from './consent-switch.vue';
 import ConsentTag from './consent-tag.vue';
 
@@ -45,16 +45,6 @@ const DEFAULT_ACTIONS: PolicyUiAction[] = ['reject', 'accept', 'customize'];
 const surface = computed(() => init.value?.policy?.ui?.dialog);
 const { actionGroups, direction, primaryActions, shouldFillActions } =
 	useConsentPolicyActions(surface);
-const managerComponents = computed(
-	() =>
-		config.value.components?.manager as
-			| {
-					actions?: Record<string, unknown>;
-					actionGroup?: Record<string, unknown>;
-			  }
-			| undefined
-);
-
 const draft = ref<Record<CONSENT_CATEGORY, boolean>>(
 	{} as Record<CONSENT_CATEGORY, boolean>
 );
@@ -205,7 +195,10 @@ function onAction(action: PolicyUiAction) {
 				:data-disable-animation="disableAnimation ? true : undefined"
 				aria-labelledby="consent-dialog-title"
 			>
-				<div :class="dialogStyles.container">
+				<div
+					v-bind="config.components?.dialog?.container"
+					:class="dialogStyles.container"
+				>
 					<div
 						v-bind="config.components?.dialog?.card"
 						data-testid="consent-dialog-card"
@@ -260,7 +253,10 @@ function onAction(action: PolicyUiAction) {
 										:class="accordionStyles.item"
 									>
 										<AccordionHeader as-child>
-											<div :class="accordionStyles.triggerRow">
+											<div
+												v-bind="config.components?.accordion?.triggerRow"
+												:class="accordionStyles.triggerRow"
+											>
 												<AccordionTrigger
 													as-child
 													v-bind="config.components?.['accordion-item']?.trigger"
@@ -268,12 +264,14 @@ function onAction(action: PolicyUiAction) {
 												>
 													<div :class="accordionStyles.trigger">
 														<span
+															v-bind="config.components?.accordion?.arrow"
 															:class="accordionStyles.arrow"
 															:data-testid="`consent-manager-accordion-arrow-${category}`"
 															aria-hidden="true"
 														>
 															<svg
 																xmlns="http://www.w3.org/2000/svg"
+																aria-hidden="true"
 																viewBox="0 0 24 24"
 																fill="none"
 																stroke="currentColor"
@@ -284,14 +282,23 @@ function onAction(action: PolicyUiAction) {
 																<path d="M5 12h14M12 5v14" />
 															</svg>
 														</span>
-														<span :class="accordionStyles.header">
-															<h3 :class="accordionStyles.title">
+														<span
+															v-bind="config.components?.accordion?.header"
+															:class="accordionStyles.header"
+														>
+															<h3
+																v-bind="config.components?.accordion?.title"
+																:class="accordionStyles.title"
+															>
 																{{ consentTitle(category) }}
 															</h3>
 														</span>
 													</div>
 												</AccordionTrigger>
-												<div :class="accordionStyles.control">
+												<div
+													v-bind="config.components?.accordion?.control"
+													:class="accordionStyles.control"
+												>
 													<ConsentSwitch
 														size="small"
 														v-model="draft[category]"
@@ -307,8 +314,14 @@ function onAction(action: PolicyUiAction) {
 											:data-testid="`consent-manager-accordion-content-${category}`"
 											:class="accordionStyles.content"
 										>
-											<div :class="accordionStyles.contentViewport">
-												<div :class="accordionStyles.contentInner">
+											<div
+												v-bind="config.components?.accordion?.contentViewport"
+												:class="accordionStyles.contentViewport"
+											>
+												<div
+													v-bind="config.components?.accordion?.contentInner"
+													:class="accordionStyles.contentInner"
+												>
 													{{ (
 															init?.translations?.translations
 																?.consentTypes as Record<
@@ -334,8 +347,10 @@ function onAction(action: PolicyUiAction) {
 										:fill="shouldFillActions"
 										:labels="labels"
 										:test-ids="actionTestIds"
-										:root-attrs="managerComponents?.actions"
-										:group-attrs="managerComponents?.actionGroup"
+										:root-attrs="config.components?.manager?.actions as
+											object | undefined"
+										:group-attrs="config.components?.manager?.actionGroup as
+											object | undefined"
 										@action="onAction"
 									/>
 								</div>

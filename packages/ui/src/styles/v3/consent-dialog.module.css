@@ -432,6 +432,15 @@
 		text-decoration: none;
 	}
 
+	/* Layout-preserving wrapper for the tag.content slot: carries the same
+	   flex treatment the anchor applied before the wrapper existed. */
+	.brandingContent:not(:global(.headless)) {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		min-width: 0;
+	}
+
 	.brandingTag:not(:global(.headless)) .brandingCopy {
 		font-size: var(--consent-dialog-branding-label-size);
 		letter-spacing: 0.01em;

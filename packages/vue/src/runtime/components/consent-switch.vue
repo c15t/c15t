@@ -3,8 +3,8 @@
 	lang="ts"
 >
 import switchStyles from '@c15t/ui/styles/v3/switch';
-import { SwitchRoot, SwitchThumb } from '../primitives';
 import { useConsentConfig } from '#c15t/composables';
+import { SwitchRoot, SwitchThumb } from '../primitives';
 
 withDefaults(
 	defineProps<{
@@ -34,8 +34,14 @@ const config = useConsentConfig();
 		data-testid="consent-switch"
 		:class="switchStyles.root"
 	>
-		<span :class="switchStyles.track">
-			<SwitchThumb :class="switchStyles.thumb" />
+		<span
+			v-bind="config.components?.switch?.track"
+			:class="switchStyles.track"
+		>
+			<SwitchThumb
+				v-bind="config.components?.switch?.thumb"
+				:class="switchStyles.thumb"
+			/>
 		</span>
 	</SwitchRoot>
 </template>

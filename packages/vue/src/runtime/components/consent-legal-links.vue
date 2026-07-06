@@ -2,9 +2,10 @@
 	setup
 	lang="ts"
 >
-import { computed } from 'vue';
 import type { ConsentLegalLinkKey } from '@c15t/schema/config';
 import legalStyles from '@c15t/ui/styles/v3/legal-links';
+import { computed } from 'vue';
+import { useConsentConfig } from '#c15t/composables';
 import ConsentLink from './consent-link.vue';
 
 const ALL_LEGAL_LINKS: ConsentLegalLinkKey[] = [
@@ -21,11 +22,14 @@ const props = defineProps<{
 const resolvedLinks = computed(() =>
 	props.links.filter((link) => ALL_LEGAL_LINKS.includes(link))
 );
+
+const config = useConsentConfig();
 </script>
 
 <template>
 	<span
 		v-if="resolvedLinks.length > 0"
+		v-bind="config.components?.['legal-links']?.root"
 		data-testid="consent-legal-links"
 		:class="legalStyles.legalLinks"
 	>
