@@ -236,9 +236,7 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 	},
 	{
 		vendor: 'mixpanel-analytics',
-		// Mixpanel serves the public SDK for fake tokens, but that SDK rejects
-		// this manifest queue stub with a snippet version mismatch before init.
-		tier: 'loader-only',
+		tier: 'full',
 		createScript: () =>
 			mixpanelAnalytics({
 				token: 'c15fc15fc15fc15fc15fc15fc15fc15f',
@@ -255,10 +253,17 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				return check(false, 'expected window.mixpanel queue array');
 			}
 
+			if (mixpanel.__SV !== 1.2 || !Array.isArray(mixpanel._i)) {
+				return check(
+					false,
+					'expected snippet contract (__SV and _i) on the stub before load'
+				);
+			}
+
 			return check(
 				typeof mixpanel.track === 'function' &&
 					typeof mixpanel.opt_out_tracking === 'function',
-				'mixpanel queue methods present before load'
+				'mixpanel snippet contract and queue methods present before load'
 			);
 		},
 		runtimeCheck: () => {
@@ -269,12 +274,10 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				| undefined;
 
 			return check(
-				runtime?.__loaded === true || typeof runtime?.init === 'function',
-				'mixpanel SDK API present after loader executed'
+				runtime?.__loaded === true,
+				'mixpanel SDK reports __loaded after init_from_snippet'
 			);
 		},
-		notes:
-			"The SDK returns HTTP 200 JavaScript for fake tokens, but logs Mixpanel's snippet version mismatch and does not initialize against the current manifest stub.",
 	},
 	{
 		vendor: 'hotjar',

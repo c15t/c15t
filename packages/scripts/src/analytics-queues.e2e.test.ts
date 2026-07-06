@@ -100,9 +100,10 @@ describe('analytics queue contracts', () => {
 		]);
 	});
 
-	it('boots Mixpanel queue methods and load-time consent handoff', () => {
-		const initCalls: unknown[][] = [];
+	it('boots Mixpanel snippet contract and load-time consent handoff', () => {
 		let methodTypes: Record<string, string> | undefined;
+		let snippetVersion: number | undefined;
+		let pendingInits: unknown[][] | undefined;
 		let queueBeforeLoad: unknown[] | undefined;
 		let queueAfterLoad: unknown[] | undefined;
 
@@ -111,7 +112,12 @@ describe('analytics queue contracts', () => {
 				return;
 			}
 
-			const mixpanel = win.mixpanel;
+			const mixpanel = win.mixpanel as
+				| (NonNullable<TestWindow['mixpanel']> & {
+						__SV?: number;
+						_i?: unknown[][];
+				  })
+				| undefined;
 			methodTypes = {
 				identify: typeof mixpanel?.identify,
 				init: typeof mixpanel?.init,
@@ -122,13 +128,10 @@ describe('analytics queue contracts', () => {
 				track: typeof mixpanel?.track,
 			};
 
+			snippetVersion = mixpanel?.__SV;
+			pendingInits = mixpanel?._i?.map((entry) => [...entry]);
 			mixpanel?.track?.('Signup', { plan: 'pro' });
 			queueBeforeLoad = Array.from(mixpanel ?? []);
-			if (mixpanel) {
-				mixpanel.init = (...args: unknown[]) => {
-					initCalls.push(args);
-				};
-			}
 			node.dispatchEvent(new Event('load'));
 			queueAfterLoad = Array.from(mixpanel ?? []);
 		});
@@ -156,8 +159,9 @@ describe('analytics queue contracts', () => {
 			track: 'function',
 		});
 		expect(queueBeforeLoad).toEqual([['track', 'Signup', { plan: 'pro' }]]);
-		expect(initCalls).toEqual([
-			['1234567890abcdef1234567890abcdef', { debug: true }],
+		expect(snippetVersion).toBe(1.2);
+		expect(pendingInits).toEqual([
+			['1234567890abcdef1234567890abcdef', { debug: true }, 'mixpanel'],
 		]);
 		expect(queueAfterLoad).toEqual([
 			['track', 'Signup', { plan: 'pro' }],

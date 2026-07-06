@@ -12,12 +12,22 @@ declare global {
 			register: (properties: Record<string, unknown>) => void;
 			opt_in_tracking: () => void;
 			opt_out_tracking: () => void;
+			/** Snippet version marker consumed by `init_from_snippet`. */
+			__SV?: number;
+			/** Pending `[token, config]` init tuples consumed at SDK load. */
+			_i?: unknown[][];
 		};
 	}
 }
 
 /**
  * Mixpanel vendor manifest.
+ *
+ * Implements the official snippet contract: the stub array carries the
+ * snippet version marker (`__SV`) and the pending `[token, config]` init
+ * tuple in `_i`, which `mixpanel-2-latest.min.js` consumes at load time via
+ * `init_from_snippet`. Without `__SV` the SDK logs "Mixpanel error: Version
+ * mismatch" and never initializes, silently dropping queued calls.
  *
  * Mixpanel can stay loaded across consent changes and toggle tracking with its
  * own opt-in and opt-out APIs.
@@ -35,6 +45,19 @@ export const mixpanelAnalyticsManifest = {
 			ifUndefined: true,
 		},
 		{
+			type: 'setGlobalPath',
+			path: ['mixpanel', '__SV'],
+			value: 1.2,
+		},
+		{
+			// The official snippet always pushes an explicit instance name; the
+			// SDK's create_mplib resolves the queue stub through that name, so a
+			// two-element tuple would leave the queue unreplayed.
+			type: 'setGlobalPath',
+			path: ['mixpanel', '_i'],
+			value: [['{{token}}', '{{initOptions}}', 'mixpanel']],
+		},
+		{
 			type: 'defineQueueMethods',
 			target: 'mixpanel',
 			methods: [
@@ -50,14 +73,6 @@ export const mixpanelAnalyticsManifest = {
 			type: 'loadScript',
 			src: '{{scriptUrl}}',
 			async: true,
-		},
-	],
-	afterLoad: [
-		{
-			type: 'callGlobal',
-			global: 'mixpanel',
-			method: 'init',
-			args: ['{{token}}', '{{initOptions}}'],
 		},
 	],
 	onLoadGranted: [
