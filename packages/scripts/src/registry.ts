@@ -207,6 +207,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'logRocket',
+		vendor: 'logrocket',
+		label: 'LogRocket',
+		hint: 'Session replay and monitoring',
+		docsSlug: 'logrocket',
+		packageSubpath: 'logrocket',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'matomoAnalytics',
 		vendor: 'matomo-analytics',
 		label: 'Matomo Analytics',
