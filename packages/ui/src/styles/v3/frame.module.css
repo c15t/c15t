@@ -45,6 +45,8 @@
 		text-align: center;
 		border-radius: var(--frame-placeholder-border-radius);
 		border-width: var(--frame-placeholder-border-width);
+		/* Explicit style: never rely on Tailwind preflight's `border-style`. */
+		border-style: solid;
 		border-color: var(--frame-placeholder-border-color);
 		background-color: var(--frame-placeholder-background-color);
 		opacity: var(--frame-placeholder-opacity);

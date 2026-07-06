@@ -239,10 +239,15 @@ export const ConsentButton = forwardRef<
 			)
 		);
 
+		const isStyled = !(contextNoStyle || noStyle);
+
 		return (
 			<Comp
 				ref={ref}
 				type={asChild ? undefined : 'button'}
+				data-variant={isStyled ? resolvedButtonStyle.variant : undefined}
+				data-mode={isStyled ? resolvedButtonStyle.mode : undefined}
+				data-size={isStyled ? size : undefined}
 				{...buttonStyleProps}
 				onClick={buttonClick}
 				{...domProps}
