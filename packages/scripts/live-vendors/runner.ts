@@ -31,6 +31,7 @@ import type {
 import { liveVendorProbeConfigs } from './vendors';
 
 const MAX_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 2_000;
 const LOADER_TIMEOUT_MS = 20_000;
 const RUNTIME_TIMEOUT_MS = 10_000;
 const RUNTIME_POLL_MS = 250;
@@ -55,6 +56,14 @@ interface CliOptions {
 	reportPath: string;
 }
 
+/**
+ * Parses runner CLI arguments.
+ *
+ * @param argv - Arguments after the script path (`--vendor id`, `--report path`).
+ * @returns The parsed vendor filter and report path.
+ * @throws `Error` when `--vendor`/`--report` is missing its value or an
+ * unknown argument is passed.
+ */
 function parseArgs(argv: string[]): CliOptions {
 	const options: CliOptions = { reportPath: 'live-vendors-report.json' };
 
@@ -84,6 +93,12 @@ function parseArgs(argv: string[]): CliOptions {
 	return options;
 }
 
+/**
+ * Bundles the browser-side harness with `Bun.build`.
+ *
+ * @returns The bundled harness JavaScript served to the probe page.
+ * @throws `Error` with the collected build logs when bundling fails.
+ */
 async function buildHarnessBundle(): Promise<string> {
 	const entrypoint = new URL('./harness/entry.ts', import.meta.url).pathname;
 	const result = await Bun.build({
@@ -177,6 +192,12 @@ async function probeVendorAttempt(
 			return route.fulfill({ status: 204, body: '' });
 		});
 
+		// HTTP routing does not cover WebSockets; refuse every WS connection so
+		// realtime vendor channels cannot bypass the network guard.
+		await context.routeWebSocket('**', () => {
+			// Never connect to the remote server.
+		});
+
 		const page = await context.newPage();
 		page.on('console', (message) => {
 			if (message.type() === 'error') {
@@ -256,9 +277,13 @@ async function probeVendorAttempt(
 				};
 			}
 
-			// Reset to a fresh document before the granted-consent probe.
+			// Reset to a fresh document before the granted-consent probe, and
+			// clear every loader observation so denied-phase network events can
+			// never feed the granted-phase load assertions.
 			await page.reload({ waitUntil: 'load' });
 			sawLoaderRequest = false;
+			loaderRequestUrl = undefined;
+			loaderFailure = undefined;
 		}
 
 		const loaderResponsePromise = config.loaderUrlSubstring
@@ -331,7 +356,7 @@ async function probeVendorAttempt(
 				}
 			} else if (
 				config.tier === 'loader-only' &&
-				loaderFailure?.includes('ERR_BLOCKED_BY_ORB') &&
+				loaderFailure?.toUpperCase().includes('ERR_BLOCKED_BY_ORB') &&
 				loaderRequestUrl
 			) {
 				// Chromium ORB-filters cross-origin error pages before the renderer
@@ -453,6 +478,12 @@ async function probeVendor(
 	let lastError: string | undefined;
 
 	for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+		if (attempt > 1) {
+			// Retries exist to absorb transient third-party failures; give the
+			// vendor endpoint a moment before hitting it again.
+			await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+		}
+
 		try {
 			lastOutcome = await probeVendorAttempt(
 				browser,
@@ -503,6 +534,13 @@ async function probeVendor(
 	};
 }
 
+/**
+ * Resolves the probe configs for a `--vendor` filter.
+ *
+ * @param vendors - Vendor ids from the CLI, or `undefined` for all vendors.
+ * @returns The matching probe configs, in filter order.
+ * @throws `Error` listing the known vendors when an id has no probe config.
+ */
 function resolveConfigs(
 	vendors: string[] | undefined
 ): LiveVendorProbeConfig[] {

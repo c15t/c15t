@@ -422,6 +422,7 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		createScript: () =>
 			plausibleAnalytics({ domain: 'c15t-live-probe.invalid' }),
 		loaderUrlSubstring: 'plausible.io/js/script.js',
+		runtimeReplacedGlobals: ['plausible'],
 		bootstrapCheck: () => {
 			const stub = window.plausible;
 
@@ -456,7 +457,10 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 	},
 	{
 		vendor: 'vercel-analytics',
-		tier: 'full',
+		// script.js serves real JS but leaves the va stub untouched outside a
+		// real Vercel deployment context; runtime is not observable with
+		// placeholder config.
+		tier: 'loader-only',
 		createScript: () =>
 			vercelAnalytics({
 				dsn: 'https://c15t-live-probe.invalid',
@@ -482,7 +486,10 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 	},
 	{
 		vendor: 'crisp',
-		tier: 'full',
+		// l.js loads for any website id but the client keeps the $crisp queue
+		// untouched for placeholder ids; runtime needs a real website id
+		// (repo-secret follow-up).
+		tier: 'loader-only',
 		createScript: () =>
 			crisp({
 				safeMode: true,
@@ -505,7 +512,10 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 	},
 	{
 		vendor: 'intercom',
-		tier: 'full',
+		// The widget bootstrap serves real JS for any app id but boots nothing
+		// observable for placeholder ids, so runtime cannot be asserted without
+		// a real workspace id (repo-secret follow-up).
+		tier: 'loader-only',
 		createScript: () => intercom({ appId: 'c15tfake' }),
 		loaderUrlSubstring: 'widget.intercom.io/widget/c15tfake',
 		// The widget loader pulls its runtime from Intercom's CDN path.
@@ -593,15 +603,26 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				'tiktok queue methods present before load'
 			);
 		},
-		runtimeCheck: () =>
-			check(
-				typeof window.ttq?.page === 'function',
-				'window.ttq.page callable after loader executed'
-			),
+		runtimeCheck: () => {
+			const queue = window.ttq as
+				| (Window['ttq'] & { _env?: unknown; _plugins?: unknown })
+				| undefined;
+
+			// events.js decorates the queue object with runtime metadata even for
+			// placeholder pixel ids — a marker the pre-load stub never has.
+			return check(
+				queue !== undefined &&
+					(queue._env !== undefined || queue._plugins !== undefined),
+				'ttq decorated with runtime metadata after events.js executed'
+			);
+		},
 	},
 	{
 		vendor: 'linkedin-insights',
-		tier: 'full',
+		// insight.min.js serves real JS but initializes nothing observable for
+		// placeholder partner ids; runtime needs a real partner id
+		// (repo-secret follow-up).
+		tier: 'loader-only',
 		createScript: () => linkedinInsights({ id: '123456789' }),
 		loaderUrlSubstring: 'snap.licdn.com/li.lms-analytics/insight.min.js',
 		bootstrapCheck: () =>

@@ -13,7 +13,7 @@ The probes exercise the built `c15t` package, so build core first:
 
 ```sh
 bun turbo run build --filter=c15t
-bunx playwright install chromium
+bunx playwright install --with-deps chromium
 ```
 
 Then:

@@ -51,9 +51,31 @@ function runCheck(
 	}
 }
 
+/**
+ * Pre-load global references captured per vendor, keyed by vendor id. Used to
+ * prove the remote runtime replaced the bootstrap stub rather than the stub
+ * merely still existing.
+ */
+const capturedStubRefs = new Map<string, Map<string, unknown>>();
+
+function windowRecord(): Record<string, unknown> {
+	return window as unknown as Record<string, unknown>;
+}
+
 const harness: LiveVendorProbeHarness = {
 	vendors: liveVendorProbeConfigs.map((config) => config.vendor),
 
+	/**
+	 * Loads one vendor through the production script loader.
+	 *
+	 * @param vendor - Registry vendor id with a probe config.
+	 * @param granted - Whether to load with granted (all categories) or denied
+	 * (necessary-only) consent.
+	 * @returns Whether the loader injected the script, its `alwaysLoad` flag,
+	 * and the bootstrap assertion captured synchronously — before the remote
+	 * loader can respond. Harness failures are serialized into `error` instead
+	 * of throwing across the `page.evaluate` boundary.
+	 */
 	load(vendor: string, granted: boolean): LiveProbeLoadOutcome {
 		const config = getLiveVendorProbeConfig(vendor);
 
@@ -68,17 +90,36 @@ const harness: LiveVendorProbeHarness = {
 
 		try {
 			const script = config.createScript();
-			const loadedIds = loadScripts(
-				[script],
-				granted ? grantedConsents : deniedConsents
-			);
+			let consents = deniedConsents;
+			if (granted) {
+				consents = grantedConsents;
+			}
+			const loadedIds = loadScripts([script], consents);
 			const requested = loadedIds.includes(script.id);
+
+			// Snapshot stub identities so the runtime phase can prove the real
+			// SDK replaced them (a stub passing `typeof x === 'function'` is not
+			// evidence the vendor runtime ever executed).
+			if (requested && config.runtimeReplacedGlobals) {
+				const snapshot = new Map<string, unknown>();
+				for (const name of config.runtimeReplacedGlobals) {
+					snapshot.set(name, windowRecord()[name]);
+				}
+				capturedStubRefs.set(vendor, snapshot);
+			}
 
 			// Bootstrap steps run synchronously in onBeforeLoad, so the queue
 			// stubs must already exist here — before the remote loader responds.
-			const bootstrap = requested
-				? runCheck(config.bootstrapCheck, 'no bootstrap check defined')
-				: { ok: true, detail: 'script not loaded; bootstrap not asserted' };
+			let bootstrap: LiveProbeCheckResult = {
+				ok: true,
+				detail: 'script not loaded; bootstrap not asserted',
+			};
+			if (requested) {
+				bootstrap = runCheck(
+					config.bootstrapCheck,
+					'no bootstrap contract declared for this vendor (attribute-based loaders seed no globals)'
+				);
+			}
 
 			return {
 				requested,
@@ -95,11 +136,51 @@ const harness: LiveVendorProbeHarness = {
 		}
 	},
 
+	/**
+	 * Runs the vendor's runtime assertion.
+	 *
+	 * When the config declares `runtimeReplacedGlobals`, every listed global
+	 * must be defined and differ by identity from the pre-load stub snapshot
+	 * before any custom `runtimeCheck` runs — proving the remote bundle
+	 * actually executed.
+	 *
+	 * @param vendor - Registry vendor id with a probe config.
+	 * @returns The runtime assertion result; never throws across the
+	 * `page.evaluate` boundary.
+	 */
 	check(vendor: string): LiveProbeCheckResult {
 		const config = getLiveVendorProbeConfig(vendor);
 
 		if (!config) {
 			return { ok: false, detail: `unknown vendor "${vendor}"` };
+		}
+
+		if (config.runtimeReplacedGlobals) {
+			const snapshot = capturedStubRefs.get(vendor);
+			for (const name of config.runtimeReplacedGlobals) {
+				const current = windowRecord()[name];
+				if (current === undefined) {
+					return {
+						ok: false,
+						detail: `window.${name} is undefined after load`,
+					};
+				}
+				if (snapshot && current === snapshot.get(name)) {
+					return {
+						ok: false,
+						detail: `window.${name} still references the pre-load stub; the vendor runtime never replaced it`,
+					};
+				}
+			}
+
+			if (!config.runtimeCheck) {
+				return {
+					ok: true,
+					detail: `vendor runtime replaced ${config.runtimeReplacedGlobals
+						.map((name) => `window.${name}`)
+						.join(', ')}`,
+				};
+			}
 		}
 
 		return runCheck(config.runtimeCheck, 'no runtime check defined');

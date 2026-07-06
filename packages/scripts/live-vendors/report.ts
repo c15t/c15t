@@ -30,6 +30,34 @@ export function buildMonitorIssueTitle(vendor: string): string {
 	return `${MONITOR_ISSUE_TITLE_PREFIX} ${vendor} live script contract failed`;
 }
 
+function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+const MONITOR_ISSUE_TITLE_PATTERN = new RegExp(
+	`^${escapeRegExp(MONITOR_ISSUE_TITLE_PREFIX)} (\\S+) live script contract failed$`
+);
+
+const SIGNATURE_MARKER_PATTERN = /<!-- c15t-monitor-signature: ([a-z, ]*) -->/;
+
+/**
+ * Escapes third-party text (vendor URLs, error messages, probe details)
+ * before it is interpolated into GitHub-flavored Markdown, so a hostile or
+ * malformed vendor response cannot inject links, references, or formatting.
+ *
+ * @param value - Untrusted text destined for an issue body.
+ * @returns A single-line, backtick-free, length-capped string.
+ */
+function sanitizeInline(value: string): string {
+	const flattened = value.replaceAll('`', "'").replace(/\s+/g, ' ').trim();
+
+	if (flattened.length <= 300) {
+		return flattened;
+	}
+
+	return `${flattened.slice(0, 300)}…`;
+}
+
 /**
  * Extracts the vendor id from a monitor issue title.
  *
@@ -37,12 +65,33 @@ export function buildMonitorIssueTitle(vendor: string): string {
  * issue title.
  */
 export function vendorFromMonitorIssueTitle(title: string): string | undefined {
-	const match =
-		/^\[vendor-script-monitor\] (\S+) live script contract failed$/.exec(
-			title.trim()
-		);
+	const match = MONITOR_ISSUE_TITLE_PATTERN.exec(title.trim());
 
 	return match?.[1];
+}
+
+/**
+ * Builds the stable failure signature for a result — the ordered list of
+ * failing phases. Embedded in issue bodies so subsequent runs can tell
+ * "still failing the same way" apart from "failing differently".
+ */
+export function buildMonitorSignature(result: LiveVendorResult): string {
+	return failedPhases(result).join(',');
+}
+
+/**
+ * Reads the failure signature marker out of an existing issue body.
+ *
+ * @returns The signature, or `undefined` when the body has no marker.
+ */
+export function signatureFromIssueBody(
+	body: string | undefined
+): string | undefined {
+	if (!body) {
+		return undefined;
+	}
+
+	return SIGNATURE_MARKER_PATTERN.exec(body)?.[1]?.trim();
 }
 
 /**
@@ -57,7 +106,7 @@ function formatPhaseLines(result: LiveVendorResult): string {
 		.map((phase) => {
 			const check = result.phases[phase];
 			const status = check?.ok ? '✅' : '❌';
-			const detail = check?.detail ? ` — ${check.detail}` : '';
+			const detail = check?.detail ? ` — ${sanitizeInline(check.detail)}` : '';
 			return `- ${status} \`${phase}\`${detail}`;
 		})
 		.join('\n');
@@ -68,12 +117,16 @@ function formatErrorList(heading: string, errors: string[]): string {
 		return '';
 	}
 
-	const items = errors
-		.slice(0, 10)
-		.map((error) => `- \`${error.replaceAll('`', "'")}\``)
+	const shown = errors.slice(0, 10);
+	const items = shown
+		.map((error) => `- \`${sanitizeInline(error)}\``)
 		.join('\n');
+	let overflow = '';
+	if (errors.length > shown.length) {
+		overflow = `\n- …and ${errors.length - shown.length} more`;
+	}
 
-	return `\n### ${heading}\n\n${items}\n`;
+	return `\n### ${heading}\n\n${items}${overflow}\n`;
 }
 
 /**
@@ -86,10 +139,13 @@ export function buildMonitorIssueBody(
 	result: LiveVendorResult,
 	report: LiveVendorReport
 ): string {
+	const signature = buildMonitorSignature(result);
 	const failing = failedPhases(result).join(', ') || 'unknown';
 	const loaderLine = result.loader
-		? `\`${result.loader.url}\` → HTTP ${result.loader.status}${
-				result.loader.contentType ? ` (${result.loader.contentType})` : ''
+		? `\`${sanitizeInline(result.loader.url)}\` → HTTP ${result.loader.status}${
+				result.loader.contentType
+					? ` (${sanitizeInline(result.loader.contentType)})`
+					: ''
 			}`
 		: 'No loader response captured.';
 
@@ -109,9 +165,10 @@ export function buildMonitorIssueBody(
 		metadataLines.push(`- **Workflow run**: ${report.runUrl}`);
 	}
 
-	const notes = result.notes ? `\n> ${result.notes}\n` : '';
+	const notes = result.notes ? `\n> ${sanitizeInline(result.notes)}\n` : '';
 
-	return `The daily live vendor monitor detected a contract failure for **${result.label}**.
+	return `<!-- c15t-monitor-signature: ${signature} -->
+The daily live vendor monitor detected a contract failure for **${result.label}**.
 
 ${metadataLines.join('\n')}
 ${notes}
@@ -151,6 +208,8 @@ export interface ExistingMonitorIssue {
 	number: number;
 	/** Issue title, matched against the monitor title format. */
 	title: string;
+	/** Issue body, used to compare failure signatures across runs. */
+	body?: string;
 }
 
 /**
@@ -158,7 +217,7 @@ export interface ExistingMonitorIssue {
  */
 export interface MonitorIssueAction {
 	vendor: string;
-	/** Present for `comment` and `close` actions. */
+	/** Present for `update` and `close` actions. */
 	issueNumber?: number;
 	title?: string;
 	body: string;
@@ -170,8 +229,12 @@ export interface MonitorIssueAction {
 export interface MonitorIssuePlan {
 	/** New issues for failing vendors without an open monitor issue. */
 	create: MonitorIssueAction[];
-	/** Follow-up comments for failing vendors with an open monitor issue. */
-	comment: MonitorIssueAction[];
+	/**
+	 * Body edits for vendors that are still failing but whose failure
+	 * signature changed. Sustained identical failures produce no action, so
+	 * long-running incidents do not accumulate daily comment noise.
+	 */
+	update: MonitorIssueAction[];
 	/** Close actions for recovered vendors with an open monitor issue. */
 	close: MonitorIssueAction[];
 }
@@ -196,7 +259,7 @@ export function planMonitorIssueActions(
 		}
 	}
 
-	const plan: MonitorIssuePlan = { create: [], comment: [], close: [] };
+	const plan: MonitorIssuePlan = { create: [], update: [], close: [] };
 
 	for (const result of report.results) {
 		if (result.skipped) {
@@ -209,11 +272,16 @@ export function planMonitorIssueActions(
 			const body = buildMonitorIssueBody(result, report);
 
 			if (openIssue) {
-				plan.comment.push({
-					vendor: result.vendor,
-					issueNumber: openIssue.number,
-					body,
-				});
+				// Sustained failures with an unchanged signature stay silent —
+				// only a different failure shape is worth a fresh notification.
+				const previousSignature = signatureFromIssueBody(openIssue.body);
+				if (previousSignature !== buildMonitorSignature(result)) {
+					plan.update.push({
+						vendor: result.vendor,
+						issueNumber: openIssue.number,
+						body,
+					});
+				}
 			} else {
 				plan.create.push({
 					vendor: result.vendor,

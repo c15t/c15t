@@ -73,6 +73,14 @@ export interface LiveVendorProbeConfig {
 	 * the real vendor runtime replaced or initialized the bootstrap stub.
 	 */
 	runtimeCheck?: () => LiveProbeCheckResult;
+	/**
+	 * Globals whose pre-load stub identity must be replaced by the vendor
+	 * runtime for the runtime phase to pass. Stronger than a `typeof` check in
+	 * `runtimeCheck`, which a still-unreplaced stub can satisfy. The harness
+	 * snapshots these references at load time and compares identities during
+	 * the runtime phase, before any custom `runtimeCheck` runs.
+	 */
+	runtimeReplacedGlobals?: string[];
 	/** Free-form caveats surfaced in reports. */
 	notes?: string;
 }

@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
 	buildMonitorIssueBody,
 	buildMonitorIssueTitle,
+	buildMonitorSignature,
 	failedPhases,
 	planMonitorIssueActions,
+	signatureFromIssueBody,
 	vendorFromMonitorIssueTitle,
 } from './report';
 import type { LiveVendorReport, LiveVendorResult } from './types';
@@ -67,6 +69,24 @@ describe('failedPhases', () => {
 	});
 });
 
+describe('failure signatures', () => {
+	it('round-trips through the issue body marker', () => {
+		const result = makeResult({
+			ok: false,
+			phases: {
+				load: { ok: false },
+				runtime: { ok: false },
+			},
+		});
+		const body = buildMonitorIssueBody(result, makeReport([result]));
+
+		expect(buildMonitorSignature(result)).toBe('load,runtime');
+		expect(signatureFromIssueBody(body)).toBe('load,runtime');
+		expect(signatureFromIssueBody(undefined)).toBeUndefined();
+		expect(signatureFromIssueBody('no marker here')).toBeUndefined();
+	});
+});
+
 describe('buildMonitorIssueBody', () => {
 	it('includes vendor, phases, loader, run metadata, and repro command', () => {
 		const result = makeResult({
@@ -96,6 +116,33 @@ describe('buildMonitorIssueBody', () => {
 		);
 		expect(body).toContain('Console errors');
 	});
+
+	it('sanitizes third-party text and notes overflowed error lists', () => {
+		const errors = Array.from(
+			{ length: 12 },
+			(_, index) => `error ${index} with \`backticks\`\nand newlines`
+		);
+		const result = makeResult({
+			ok: false,
+			phases: {
+				load: {
+					ok: false,
+					detail: 'loader said `<img src=x onerror=alert(1)>`',
+				},
+			},
+			loader: {
+				url: 'https://evil.example/`payload`',
+				status: 500,
+			},
+			consoleErrors: errors,
+		});
+		const body = buildMonitorIssueBody(result, makeReport([result]));
+
+		expect(body).not.toContain('`<img');
+		expect(body).not.toContain('```payload');
+		expect(body).toContain('…and 2 more');
+		expect(body).not.toContain('and newlines\n-');
+	});
 });
 
 describe('planMonitorIssueActions', () => {
@@ -113,18 +160,46 @@ describe('planMonitorIssueActions', () => {
 
 		expect(plan.create).toHaveLength(1);
 		expect(plan.create[0]?.title).toBe(buildMonitorIssueTitle('posthog'));
-		expect(plan.comment).toHaveLength(0);
+		expect(plan.update).toHaveLength(0);
 		expect(plan.close).toHaveLength(0);
 	});
 
-	it('comments instead of duplicating an open issue', () => {
+	it('stays silent when a vendor keeps failing with the same signature', () => {
+		const existingBody = buildMonitorIssueBody(failing, makeReport([failing]));
 		const plan = planMonitorIssueActions(makeReport([failing]), [
-			{ number: 42, title: buildMonitorIssueTitle('posthog') },
+			{
+				number: 42,
+				title: buildMonitorIssueTitle('posthog'),
+				body: existingBody,
+			},
 		]);
 
 		expect(plan.create).toHaveLength(0);
-		expect(plan.comment).toHaveLength(1);
-		expect(plan.comment[0]?.issueNumber).toBe(42);
+		expect(plan.update).toHaveLength(0);
+		expect(plan.close).toHaveLength(0);
+	});
+
+	it('updates the issue when the failure signature changes', () => {
+		const previous = makeResult({
+			vendor: 'posthog',
+			ok: false,
+			phases: { runtime: { ok: false } },
+		});
+		const existingBody = buildMonitorIssueBody(
+			previous,
+			makeReport([previous])
+		);
+		const plan = planMonitorIssueActions(makeReport([failing]), [
+			{
+				number: 42,
+				title: buildMonitorIssueTitle('posthog'),
+				body: existingBody,
+			},
+		]);
+
+		expect(plan.update).toHaveLength(1);
+		expect(plan.update[0]?.issueNumber).toBe(42);
+		expect(signatureFromIssueBody(plan.update[0]?.body)).toBe('load');
 	});
 
 	it('closes the open issue when the vendor recovers', () => {
@@ -159,7 +234,7 @@ describe('planMonitorIssueActions', () => {
 		]);
 
 		expect(plan.create).toHaveLength(0);
-		expect(plan.comment).toHaveLength(0);
+		expect(plan.update).toHaveLength(0);
 		expect(plan.close).toHaveLength(0);
 	});
 });
