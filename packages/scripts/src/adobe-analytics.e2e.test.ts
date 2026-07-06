@@ -51,6 +51,35 @@ describe('adobeAnalytics contract', () => {
 		expect(window.adobeDataLayer).toEqual([]);
 	});
 
+	it('forwards async: false to the script element for legacy sync embeds', () => {
+		let asyncAttribute: boolean | undefined;
+
+		installHeadProbe((node) => {
+			if (!node.src.includes('assets.adobedtm.com')) {
+				return;
+			}
+
+			asyncAttribute = node.async;
+			node.dispatchEvent(new Event('load'));
+		});
+
+		loadScripts(
+			[
+				{
+					...adobeAnalytics({
+						scriptUrl:
+							'https://assets.adobedtm.com/c15tfake/c15tfake/launch-sync.min.js',
+						async: false,
+					}),
+					id: 'adobe-analytics-sync-contract',
+				},
+			],
+			grantedMeasurementConsents
+		);
+
+		expect(asyncAttribute).toBe(false);
+	});
+
 	it('throws for a non-https scriptUrl', () => {
 		expect(() =>
 			adobeAnalytics({
