@@ -21,7 +21,9 @@ describe('adobeAnalytics contract', () => {
 		let seededBeforeAppend = false;
 
 		installHeadProbe((node) => {
-			if (!node.src.includes('assets.adobedtm.com/c15tfake/c15tfake')) {
+			if (
+				!node.src.startsWith('https://assets.adobedtm.com/c15tfake/c15tfake')
+			) {
 				return;
 			}
 
@@ -55,7 +57,7 @@ describe('adobeAnalytics contract', () => {
 		let asyncAttribute: boolean | undefined;
 
 		installHeadProbe((node) => {
-			if (!node.src.includes('assets.adobedtm.com')) {
+			if (!node.src.startsWith('https://assets.adobedtm.com/')) {
 				return;
 			}
 
