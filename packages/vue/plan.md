@@ -164,11 +164,11 @@ styled in CSS via `[data-state="open"]` etc., never from config. Do not use `dat
 
 | Component | Default CSS source |
 |-----------|-------------------|
-| banner, dialog, manager shell | `@c15t/styles/consent-*.module.css` |
-| accordion (consent categories) | `@c15t/styles/accordion.module.css` |
-| button | `@c15t/styles/button.module.css` |
-| switch, toggle | `@c15t/styles/switch.module.css` |
-| link | `@c15t/styles/legal-links.module.css` |
+| banner, dialog, manager shell | `@c15t/ui/styles/v3/consent-*` |
+| accordion (consent categories) | `@c15t/ui/styles/v3/accordion` |
+| button | `@c15t/ui/styles/v3/button` |
+| switch, toggle | `@c15t/ui/styles/v3/switch` |
+| link | `@c15t/ui/styles/v3/legal-links` |
 | description, tag, badge | consent modules + `context` prop where needed |
 
 ### Config example
@@ -192,14 +192,14 @@ styled in CSS via `[data-state="open"]` etc., never from config. Do not use `dat
 ```
 
 - `useConsentComponent('banner')` returns bindable slot attrs per key.
-- CSS modules always apply via `:class`; class `headless` skips module styles (`:not(.headless)` in `@c15t/styles`).
+- CSS modules always apply via `:class`; class `headless` skips module styles (`:not(.headless)` in the `@c15t/ui/styles/v3` modules).
 
 ### Binding pattern
 
 ```vue
 <script setup lang="ts">
 import { mergeProps } from 'vue';
-import buttonStyles from '@c15t/styles/button.module.css';
+import buttonStyles from '@c15t/ui/styles/v3/button';
 import type { ButtonMode, ButtonVariant } from '@c15t/schema/config';
 import { useConsentComponent } from '../composables';
 
