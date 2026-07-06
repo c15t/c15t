@@ -91,6 +91,17 @@ export type TestWindow = Window &
 		intercomSettings?: Record<string, unknown>;
 		lintrk?: ((...args: unknown[]) => void) & { q?: unknown[] };
 		mixpanel?: unknown[] & Record<string, (...args: unknown[]) => void>;
+		pirsch?: (
+			eventName: string,
+			options?: {
+				duration?: number;
+				meta?: Record<string, unknown>;
+				non_interactive?: boolean;
+			}
+		) => Promise<null | undefined>;
+		pirschClearSession?: () => void;
+		pirschInit?: () => void;
+		pirschNotFound?: () => void;
 		plausible?: ((...args: unknown[]) => void) & {
 			o?: Record<string, unknown>;
 			q?: unknown[][];
@@ -200,6 +211,10 @@ function resetVendorGlobals() {
 		'intercomSettings',
 		'lintrk',
 		'mixpanel',
+		'pirsch',
+		'pirschClearSession',
+		'pirschInit',
+		'pirschNotFound',
 		'plausible',
 		'posthog',
 		'rdt',

@@ -217,6 +217,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'pirsch',
+		vendor: 'pirsch',
+		label: 'Pirsch',
+		hint: 'Privacy-friendly cookieless analytics',
+		docsSlug: 'pirsch',
+		packageSubpath: 'pirsch',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'segment',
 		vendor: 'segment',
 		label: 'Segment',

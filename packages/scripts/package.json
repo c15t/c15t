@@ -16,6 +16,7 @@
 		"google-ads",
 		"meta-pixel",
 		"posthog",
+		"pirsch",
 		"tiktok-pixel",
 		"linkedin-insights",
 		"microsoft-uet",
@@ -83,6 +84,11 @@
 			"types": "./dist-types/vendors/analytics/mixpanel-analytics.d.ts",
 			"import": "./dist/vendors/analytics/mixpanel-analytics.js",
 			"require": "./dist/vendors/analytics/mixpanel-analytics.cjs"
+		},
+		"./pirsch": {
+			"types": "./dist-types/vendors/analytics/pirsch.d.ts",
+			"import": "./dist/vendors/analytics/pirsch.js",
+			"require": "./dist/vendors/analytics/pirsch.cjs"
 		},
 		"./plausible-analytics": {
 			"types": "./dist-types/vendors/analytics/plausible-analytics.d.ts",
