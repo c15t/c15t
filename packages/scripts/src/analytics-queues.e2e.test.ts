@@ -113,10 +113,7 @@ describe('analytics queue contracts', () => {
 			}
 
 			const mixpanel = win.mixpanel as
-				| (NonNullable<TestWindow['mixpanel']> & {
-						__SV?: number;
-						_i?: unknown[][];
-				  })
+				| NonNullable<TestWindow['mixpanel']>
 				| undefined;
 			methodTypes = {
 				identify: typeof mixpanel?.identify,

@@ -14,7 +14,7 @@ declare global {
 			opt_out_tracking: () => void;
 			/** Snippet version marker consumed by `init_from_snippet`. */
 			__SV?: number;
-			/** Pending `[token, config]` init tuples consumed at SDK load. */
+			/** Pending `[token, config, instanceName]` init tuples consumed at SDK load. */
 			_i?: unknown[][];
 		};
 	}
@@ -24,8 +24,8 @@ declare global {
  * Mixpanel vendor manifest.
  *
  * Implements the official snippet contract: the stub array carries the
- * snippet version marker (`__SV`) and the pending `[token, config]` init
- * tuple in `_i`, which `mixpanel-2-latest.min.js` consumes at load time via
+ * snippet version marker (`__SV`) and the pending `[token, config, 'mixpanel']`
+ * init tuple in `_i`, which `mixpanel-2-latest.min.js` consumes at load time via
  * `init_from_snippet`. Without `__SV` the SDK logs "Mixpanel error: Version
  * mismatch" and never initializes, silently dropping queued calls.
  *
