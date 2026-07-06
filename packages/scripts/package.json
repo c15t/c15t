@@ -15,6 +15,7 @@
 		"ga4",
 		"google-ads",
 		"adobe-analytics",
+		"amplitude",
 		"hightouch",
 		"rudderstack",
 		"logrocket",
@@ -54,6 +55,11 @@
 			"types": "./dist-types/vendors/analytics/ahrefs-analytics.d.ts",
 			"import": "./dist/vendors/analytics/ahrefs-analytics.js",
 			"require": "./dist/vendors/analytics/ahrefs-analytics.cjs"
+		},
+		"./amplitude": {
+			"types": "./dist-types/vendors/analytics/amplitude.d.ts",
+			"import": "./dist/vendors/analytics/amplitude.js",
+			"require": "./dist/vendors/analytics/amplitude.cjs"
 		},
 		"./cloudflare-web-analytics": {
 			"types": "./dist-types/vendors/analytics/cloudflare-web-analytics.d.ts",

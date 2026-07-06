@@ -76,6 +76,28 @@ export type TestWindow = Window &
 		_satellite?: Record<string, unknown>;
 		_snaptr?: SnapchatQueueStub;
 		adobeDataLayer?: unknown[];
+		amplitude?: {
+			_q?: Array<{
+				name: string;
+				args: unknown[];
+				resolve: (value: unknown) => void;
+			}>;
+			_iq?: Record<string, unknown>;
+			invoked?: boolean;
+			Identify?: new () => {
+				_q?: Array<{
+					name: string;
+					args: unknown[];
+				}>;
+				set: (property: string, value: unknown) => unknown;
+			};
+			init?: (...args: unknown[]) => unknown;
+			track?: (...args: unknown[]) => unknown;
+			identify?: (...args: unknown[]) => unknown;
+			setUserId?: (...args: unknown[]) => unknown;
+			setOptOut?: (...args: unknown[]) => unknown;
+			flush?: (...args: unknown[]) => unknown;
+		};
 		analytics?: unknown[] & Record<string, (...args: unknown[]) => void>;
 		clarity?: ((...args: unknown[]) => void) & {
 			q?: unknown[][];
@@ -212,6 +234,7 @@ function resetVendorGlobals() {
 		'_satellite',
 		'_snaptr',
 		'adobeDataLayer',
+		'amplitude',
 		'analytics',
 		'clarity',
 		'dataLayer',

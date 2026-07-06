@@ -36,12 +36,12 @@ c15t can run with a hosted backend on [inth.com](https://inth.com), a self-hoste
 
 ## Integrations
 
-Load analytics, pixels, tag managers, and widgets through c15t so consent state controls when they run. [@c15t/scripts](https://www.npmjs.com/package/@c15t/scripts) ships prebuilt, consent-aware loaders for 25+ tools:
+Load analytics, pixels, tag managers, and widgets through c15t so consent state controls when they run. [@c15t/scripts](https://www.npmjs.com/package/@c15t/scripts) ships prebuilt, consent-aware loaders for 26+ tools:
 
 - **Google Tag Manager** - loads at page start with Google Consent Mode v2 defaults set to denied; GTM-managed tags fire only once matching consent is granted ([guide](https://c15t.com/docs/integrations/google-tag-manager))
 - **Google Analytics 4 + Google Ads (gtag.js)** - automatic Consent Mode v2 defaults and consent updates when users make a choice ([guide](https://c15t.com/docs/integrations/google-tag))
 - **Conversion pixels** gated behind marketing consent: Meta Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET (Microsoft Ads), X Pixel, Reddit Pixel, Snapchat Pixel
-- **Analytics** gated behind measurement consent: Adobe Analytics, PostHog, Segment, RudderStack, Hightouch, Mixpanel, Microsoft Clarity, Hotjar, LogRocket, Plausible, Pirsch, Fathom, Matomo, Umami, Vercel Analytics
+- **Analytics** gated behind measurement consent: Adobe Analytics, Amplitude, PostHog, Segment, RudderStack, Hightouch, Mixpanel, Microsoft Clarity, Hotjar, LogRocket, Plausible, Pirsch, Fathom, Matomo, Umami, Vercel Analytics
 - **Enrichment** gated behind marketing consent: Clearbit
 - **Chat widgets** gated behind functional consent: Intercom, Crisp
 

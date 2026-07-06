@@ -278,9 +278,71 @@ function executeStep(step: ManifestStep): void {
 						return;
 					}
 
+					if (
+						step.queueFormat === 'methodCall' ||
+						step.queueFormat === 'wrappedMethodCall' ||
+						step.queueFormat === 'voidMethodCall'
+					) {
+						const promise = new Promise<unknown>((resolve) => {
+							queueTarget.push({
+								name: methodName,
+								args,
+								resolve,
+							});
+						});
+
+						if (step.queueFormat === 'wrappedMethodCall') {
+							return { promise };
+						}
+
+						if (step.queueFormat === 'voidMethodCall') {
+							return undefined;
+						}
+
+						return promise;
+					}
+
 					queueTarget.push([methodName, ...args]);
 				};
 			}
+			break;
+		}
+
+		case 'defineQueueClass': {
+			const target = win[step.target];
+			if (
+				target === null ||
+				(typeof target !== 'object' && typeof target !== 'function')
+			) {
+				break;
+			}
+
+			const queueProperty = step.queueProperty ?? '_q';
+			const QueueClass = function queuedHelperClass(
+				this: Record<string, unknown>
+			) {
+				this[queueProperty] = [];
+			};
+			const prototype = QueueClass.prototype as Record<string, unknown>;
+
+			for (const methodName of step.methods) {
+				prototype[methodName] = function queuedHelperMethod(
+					this: Record<string, unknown>,
+					...args: unknown[]
+				) {
+					const queueTarget = this[queueProperty];
+					if (Array.isArray(queueTarget)) {
+						queueTarget.push({
+							name: methodName,
+							args,
+						});
+					}
+
+					return this;
+				};
+			}
+
+			(target as Record<string, unknown>)[step.name] = QueueClass;
 			break;
 		}
 

@@ -137,6 +137,16 @@ export const builtInScriptIntegrations = [
 		consentCategory: 'measurement',
 	},
 	{
+		key: 'amplitude',
+		vendor: 'amplitude',
+		label: 'Amplitude',
+		hint: 'Product analytics',
+		docsSlug: 'amplitude',
+		packageSubpath: 'amplitude',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
+	{
 		key: 'cloudflareWebAnalytics',
 		vendor: 'cloudflare-web-analytics',
 		label: 'Cloudflare Web Analytics',
