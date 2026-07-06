@@ -99,7 +99,7 @@ icon: heap
 
 - **Category:** `measurement` (Analytics)
 - **Loads when:** measurement consent is granted
-- **On revocation:** unloaded - c15t removes the script element from the DOM and clears Heap globals until consent is granted again.
+- **On revocation:** unloaded - c15t removes the script element it created. `window.heap` and `window.heapReadyCb` remain until the next page load (c15t reloads the page on revocation by default), and Heap has no documented browser opt-out API — treat the load gate as the consent boundary.
 
 The helper maps Heap's current web installation snippet into the manifest engine:
 
