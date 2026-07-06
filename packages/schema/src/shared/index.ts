@@ -4,6 +4,7 @@ export {
 	brandingValues,
 } from './branding';
 export {
+	buildDefaultOptInPolicy,
 	type ConsentManifest,
 	type ConsentManifestBranding,
 	type ConsentManifestDefaults,

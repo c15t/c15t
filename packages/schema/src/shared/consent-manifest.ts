@@ -92,6 +92,31 @@ export function resolveNoPolicyFallback(): ResolvedPolicy {
 	};
 }
 
+const DEFAULT_CONSENT_CATEGORIES = [
+	'necessary',
+	'functionality',
+	'marketing',
+	'measurement',
+	'experience',
+] as const;
+
+export function buildDefaultOptInPolicy(categories?: string[]): ResolvedPolicy {
+	return {
+		id: 'default-opt-in',
+		model: 'opt-in',
+		consent: {
+			categories:
+				categories && categories.length > 0
+					? categories
+					: [...DEFAULT_CONSENT_CATEGORIES],
+			scopeMode: 'permissive',
+		},
+		ui: {
+			mode: 'banner',
+		},
+	};
+}
+
 function normalizeCountryCode(countryCode: string | null): string | null {
 	if (!countryCode) {
 		return null;

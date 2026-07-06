@@ -11,7 +11,11 @@ import type {
 	NonIABVendor,
 	PolicyDecision,
 	PolicyScopeMode,
+	PolicyUiAction,
+	PolicyUiActionDirection,
+	PolicyUiActionGroup,
 	PolicyUiMode,
+	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
 	ResolvedPolicy,
 	TranslationsResponse,
@@ -26,7 +30,11 @@ export type {
 	NonIABVendor,
 	PolicyDecision,
 	PolicyScopeMode,
+	PolicyUiAction,
+	PolicyUiActionDirection,
+	PolicyUiActionGroup,
 	PolicyUiMode,
+	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
 	ResolvedPolicy,
 	TranslationsResponse,
@@ -255,6 +263,8 @@ export interface InitResponse {
 	consents?: Partial<ConsentState>;
 	/** Server-side hasConsented hint. */
 	hasConsented?: boolean;
+	/** Server-side subject ID, if the user already has one. */
+	subjectId?: string;
 
 	// -- New in the rich-init phase ------------------------------------------
 	/** Geographic context reported by the transport (country + region). */

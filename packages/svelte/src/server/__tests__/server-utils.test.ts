@@ -347,6 +347,7 @@ describe('v3 server helpers', () => {
 			gvl: { vendors: {}, purposes: {}, stacks: {}, specialFeatures: {} },
 			customVendors: [],
 			cmpId: 123,
+			consents: { marketing: true },
 		};
 		mockFetch.mockResolvedValue(
 			new Response(JSON.stringify(initData), {
@@ -370,6 +371,8 @@ describe('v3 server helpers', () => {
 		expect(result.initialPolicy).toEqual(initData.policy);
 		expect(result.initialPolicySnapshotToken).toBe('token');
 		expect(result.initialIab?.cmpId).toBe(123);
+		expect(result.initialConsents).toMatchObject({ marketing: true });
+		expect(result.initialHasConsented).toBe(true);
 	});
 
 	test('prefetchInitialConsent returns base config on non-OK response', async () => {

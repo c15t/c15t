@@ -1,5 +1,6 @@
 <script lang="ts">
 import { createIAB, type IABHandle } from '@c15t/iab/v3';
+import { buildDefaultOptInPolicy } from '@c15t/schema/types';
 import { generateThemeCSS } from '@c15t/ui/theme';
 import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
 import {
@@ -151,26 +152,7 @@ function getProviderIab(
 function buildInlinePolicy(
 	categories: AllConsentNames[] | undefined
 ): KernelConfig['initialPolicy'] {
-	return {
-		id: 'inline-consent-categories',
-		model: 'opt-in',
-		consent: {
-			categories:
-				categories && categories.length > 0
-					? categories
-					: [
-							'necessary',
-							'functionality',
-							'marketing',
-							'measurement',
-							'experience',
-						],
-			scopeMode: 'permissive',
-		},
-		ui: {
-			mode: 'banner',
-		},
-	};
+	return buildDefaultOptInPolicy(categories);
 }
 
 function buildNoBannerPolicy(): KernelConfig['initialPolicy'] {

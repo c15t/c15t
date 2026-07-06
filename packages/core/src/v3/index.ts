@@ -19,6 +19,17 @@
  * - packages/core/src/__tests__/v3-correctness-gates.test.ts for invariants
  */
 
+export {
+	flattenPolicyActionGroups,
+	hasPolicyHints,
+	resolvePolicyActionGroups,
+	resolvePolicyAllowedActions,
+	resolvePolicyDirection,
+	resolvePolicyOrderedActions,
+	resolvePolicyPrimaryActions,
+	resolvePolicyUiProfile,
+	shouldFillPolicyActions,
+} from '../libs/policy-actions';
 export type { CONSENT_CATEGORY, Consent } from './consent-record';
 export {
 	CONSENT_CATEGORIES,
@@ -33,10 +44,18 @@ export {
 } from './libs/generate-subject-id';
 export type { HostedTransportOptions } from './transports/hosted';
 export { createHostedTransport } from './transports/hosted';
+export {
+	initOutputToKernelConfig,
+	initResponseToKernelConfig,
+	mapInitOutputToInitResponse,
+	mergeInitOutputIntoKernelConfig,
+	mergeInitResponseIntoKernelConfig,
+} from './transports/init-output';
 export type { ManifestTransportOptions } from './transports/manifest';
 export { createManifestTransport } from './transports/manifest';
 export type { OfflineTransportOptions } from './transports/offline';
 export { createOfflineTransport } from './transports/offline';
+export { buildSubjectPostBody } from './transports/subject-body';
 export type {
 	ConsentKernel,
 	ConsentSnapshot,
@@ -60,7 +79,11 @@ export type {
 	NonIABVendor,
 	PolicyDecision,
 	PolicyScopeMode,
+	PolicyUiAction,
+	PolicyUiActionDirection,
+	PolicyUiActionGroup,
 	PolicyUiMode,
+	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
 	ResolvedPolicy,
 	SavePayload,

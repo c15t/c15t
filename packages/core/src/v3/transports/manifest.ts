@@ -20,6 +20,7 @@ import type {
 	SaveResult,
 } from '../types';
 import { mapInitOutputToInitResponse } from './init-output';
+import { buildSubjectPostBody } from './subject-body';
 
 export interface ManifestTransportOptions {
 	/**
@@ -284,18 +285,7 @@ export function createManifestTransport(
 					accept: 'application/json',
 				},
 				body: JSON.stringify({
-					subjectId: payload.subjectId,
-					externalSubjectId: payload.user?.externalId,
-					identityProvider: payload.user?.identityProvider,
-					domain,
-					type: 'cookie_banner',
-					preferences: payload.consents,
-					givenAt: Date.now(),
-					jurisdictionModel: payload.model ?? undefined,
-					uiSource: payload.uiSource ?? undefined,
-					consentAction: payload.consentAction,
-					policySnapshotToken: payload.policySnapshotToken ?? undefined,
-					tcString: payload.tcString ?? undefined,
+					...buildSubjectPostBody(payload, { domain }),
 					...(shouldAssertDecisionInputs && {
 						policyId: lastDecisionInputs?.policyId,
 						fingerprint: lastDecisionInputs?.fingerprint,
@@ -304,9 +294,6 @@ export function createManifestTransport(
 						language: lastDecisionInputs?.language,
 						gpc: lastDecisionInputs?.gpc,
 					}),
-					metadata: payload.user?.properties
-						? { userProperties: payload.user.properties }
-						: undefined,
 				}),
 			});
 

@@ -10,6 +10,7 @@ import {
 	createConsentKernel,
 	createHostedTransport,
 	createManifestTransport,
+	initOutputToKernelConfig,
 	isValidSubjectId,
 	type KernelActiveUI,
 	type KernelConfig,
@@ -74,33 +75,6 @@ function toVueActiveUI(ui: KernelActiveUI): ConsentActiveUI {
 	if (ui === 'dialog') return 'manager';
 	if (ui === 'none') return null;
 	return ui;
-}
-
-function initOutputToKernelConfig(init: InitOutput | undefined): KernelConfig {
-	if (!init) return {};
-	const config: KernelConfig = {
-		initialLocation: init.location,
-		initialTranslations: init.translations,
-		initialPolicy: init.policy,
-		initialPolicyDecision: init.policyDecision,
-		initialPolicySnapshotToken: init.policySnapshotToken,
-	};
-	if (init.branding !== 'none') {
-		config.initialBranding = init.branding;
-	}
-	if (
-		init.gvl !== undefined ||
-		init.customVendors !== undefined ||
-		init.cmpId !== undefined
-	) {
-		config.initialIab = {
-			enabled: Boolean(init.gvl),
-			gvl: init.gvl ?? null,
-			customVendors: init.customVendors ?? [],
-			cmpId: init.cmpId ?? null,
-		};
-	}
-	return config;
 }
 
 function snapshotToInitOutput(

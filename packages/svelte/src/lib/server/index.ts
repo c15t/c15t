@@ -2,7 +2,11 @@ import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
 } from '@c15t/schema/types';
-import { createHostedTransport, type KernelConfig } from 'c15t/v3';
+import {
+	createHostedTransport,
+	type KernelConfig,
+	mergeInitResponseIntoKernelConfig,
+} from 'c15t/v3';
 import { readStoredConsentFromCookie } from 'c15t/v3/modules/persistence';
 import { normalizeBackendURL } from './normalize-url';
 import type {
@@ -81,52 +85,7 @@ export async function prefetchInitialConsent(
 			user: base.initialUser ?? null,
 		});
 		if (!response) return base;
-
-		const merged: KernelConfig = { ...base };
-		if (response.resolvedOverrides) {
-			merged.initialOverrides = {
-				...(base.initialOverrides ?? {}),
-				...response.resolvedOverrides,
-			};
-		}
-		if (response.consents) {
-			merged.initialConsents = {
-				...(base.initialConsents ?? {}),
-				...response.consents,
-			};
-		}
-		if (response.location !== undefined) {
-			merged.initialLocation = response.location;
-		}
-		if (response.translations !== undefined) {
-			merged.initialTranslations = response.translations;
-		}
-		if (response.branding !== undefined)
-			merged.initialBranding = response.branding;
-		if (response.policy !== undefined) merged.initialPolicy = response.policy;
-		if (response.policyDecision !== undefined) {
-			merged.initialPolicyDecision = response.policyDecision;
-		}
-		if (response.policySnapshotToken !== undefined) {
-			merged.initialPolicySnapshotToken = response.policySnapshotToken;
-		}
-		if (
-			response.gvl !== undefined ||
-			response.customVendors !== undefined ||
-			response.cmpId !== undefined
-		) {
-			merged.initialIab = {
-				...(merged.initialIab ?? {}),
-				...(response.gvl !== undefined
-					? { gvl: response.gvl, enabled: response.gvl !== null }
-					: {}),
-				...(response.customVendors !== undefined
-					? { customVendors: response.customVendors }
-					: {}),
-				...(response.cmpId !== undefined ? { cmpId: response.cmpId } : {}),
-			};
-		}
-		return merged;
+		return mergeInitResponseIntoKernelConfig(base, response);
 	} catch {
 		return base;
 	}

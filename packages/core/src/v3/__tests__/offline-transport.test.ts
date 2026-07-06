@@ -9,17 +9,34 @@ import { describe, expect, test } from 'vitest';
 import { createConsentKernel, createOfflineTransport } from '../index';
 
 describe('createOfflineTransport: basic behavior', () => {
-	test('no policy packs → returns no-banner policy', async () => {
+	test('no policy packs → returns shared default opt-in policy', async () => {
 		const transport = createOfflineTransport();
 		const response = await transport.init?.({
 			overrides: {},
 			user: null,
 		});
-		expect(response?.policy?.id).toBe('no_banner');
-		expect(response?.policy?.model).toBe('none');
-		expect(response?.policy?.ui?.mode).toBe('none');
+		expect(response?.policy?.id).toBe('default-opt-in');
+		expect(response?.policy?.model).toBe('opt-in');
+		expect(response?.policy?.ui?.mode).toBe('banner');
+		expect(response?.policy?.consent?.categories).toEqual([
+			'necessary',
+			'functionality',
+			'marketing',
+			'measurement',
+			'experience',
+		]);
 		expect(response?.branding).toBe('c15t');
 		expect(response?.translations?.language).toBe('en');
+	});
+
+	test('empty policy packs → returns shared default opt-in policy', async () => {
+		const transport = createOfflineTransport({ policyPacks: [] });
+		const response = await transport.init?.({
+			overrides: {},
+			user: null,
+		});
+		expect(response?.policy?.id).toBe('default-opt-in');
+		expect(response?.policy?.ui?.mode).toBe('banner');
 	});
 
 	test('custom defaultLanguage + branding honored', async () => {

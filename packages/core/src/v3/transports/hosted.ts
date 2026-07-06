@@ -33,6 +33,7 @@ import type {
 	SaveResult,
 } from '../types';
 import { mapInitOutputToInitResponse } from './init-output';
+import { buildSubjectPostBody } from './subject-body';
 
 export interface HostedTransportOptions {
 	/**
@@ -164,23 +165,7 @@ export function createHostedTransport(
 					'content-type': 'application/json',
 					accept: 'application/json',
 				},
-				body: JSON.stringify({
-					subjectId: payload.subjectId,
-					externalSubjectId: payload.user?.externalId,
-					identityProvider: payload.user?.identityProvider,
-					domain,
-					type: 'cookie_banner',
-					preferences: payload.consents,
-					givenAt: Date.now(),
-					jurisdictionModel: payload.model ?? undefined,
-					uiSource: payload.uiSource ?? undefined,
-					consentAction: payload.consentAction,
-					policySnapshotToken: payload.policySnapshotToken ?? undefined,
-					tcString: payload.tcString ?? undefined,
-					metadata: payload.user?.properties
-						? { userProperties: payload.user.properties }
-						: undefined,
-				}),
+				body: JSON.stringify(buildSubjectPostBody(payload, { domain })),
 			});
 
 			if (!response.ok) {

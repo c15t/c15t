@@ -23,10 +23,11 @@
 
 import { type InitOutput, resolveBackendURL } from '@c15t/schema/types';
 import {
-	type ConsentState,
 	createManifestTransport,
 	type KernelConfig,
 	type KernelOverrides,
+	mergeInitOutputIntoKernelConfig,
+	mergeInitResponseIntoKernelConfig,
 } from 'c15t/v3';
 import { readStoredConsentFromCookie } from 'c15t/v3/modules/persistence';
 import { cookies, headers } from 'next/headers';
@@ -234,7 +235,7 @@ export async function prefetchInitialConsent(
 				user: base.initialUser ?? null,
 			});
 			if (!response) return base;
-			return mergeInitResponseIntoConfig(base, response);
+			return mergeInitResponseIntoKernelConfig(base, response);
 		} catch {
 			return base;
 		}
@@ -249,7 +250,7 @@ export async function prefetchInitialConsent(
 				...createInitHeadersFromOverrides(base.initialOverrides ?? {}),
 			},
 		});
-		return mergeInitOutputIntoConfig(base, response);
+		return mergeInitOutputIntoKernelConfig(base, response);
 	} catch {
 		// Silent degradation. Client-side init will retry.
 		return base;
@@ -292,92 +293,4 @@ async function fetchHostedInit(input: {
 		);
 	}
 	return (await response.json()) as InitOutput;
-}
-
-function mergeInitOutputIntoConfig(
-	base: KernelConfig,
-	response: InitOutput
-): KernelConfig {
-	return mergeInitResponseIntoConfig(base, {
-		resolvedOverrides: {
-			language: response.translations.language,
-			...(response.location.countryCode
-				? { country: response.location.countryCode }
-				: {}),
-			...(response.location.regionCode
-				? { region: response.location.regionCode }
-				: {}),
-		},
-		location: response.location,
-		translations: response.translations,
-		branding: response.branding === 'none' ? undefined : response.branding,
-		policy: response.policy,
-		policyDecision: response.policyDecision,
-		policySnapshotToken: response.policySnapshotToken,
-		gvl: response.gvl ?? null,
-		customVendors: response.customVendors,
-		cmpId: response.cmpId,
-	});
-}
-
-function mergeInitResponseIntoConfig(
-	base: KernelConfig,
-	response: {
-		resolvedOverrides?: KernelOverrides;
-		consents?: Partial<ConsentState>;
-		location?: KernelConfig['initialLocation'];
-		translations?: KernelConfig['initialTranslations'];
-		branding?: KernelConfig['initialBranding'];
-		policy?: KernelConfig['initialPolicy'];
-		policyDecision?: KernelConfig['initialPolicyDecision'];
-		policySnapshotToken?: KernelConfig['initialPolicySnapshotToken'];
-		gvl?: NonNullable<KernelConfig['initialIab']>['gvl'];
-		customVendors?: NonNullable<KernelConfig['initialIab']>['customVendors'];
-		cmpId?: NonNullable<KernelConfig['initialIab']>['cmpId'];
-	}
-): KernelConfig {
-	const merged: KernelConfig = { ...base };
-	if (response.resolvedOverrides) {
-		merged.initialOverrides = {
-			...(base.initialOverrides ?? {}),
-			...response.resolvedOverrides,
-		};
-	}
-	if (response.consents) {
-		merged.initialConsents = {
-			...(base.initialConsents ?? {}),
-			...response.consents,
-		};
-	}
-	if (response.location !== undefined)
-		merged.initialLocation = response.location;
-	if (response.translations !== undefined) {
-		merged.initialTranslations = response.translations;
-	}
-	if (response.branding !== undefined)
-		merged.initialBranding = response.branding;
-	if (response.policy !== undefined) merged.initialPolicy = response.policy;
-	if (response.policyDecision !== undefined) {
-		merged.initialPolicyDecision = response.policyDecision;
-	}
-	if (response.policySnapshotToken !== undefined) {
-		merged.initialPolicySnapshotToken = response.policySnapshotToken;
-	}
-	if (
-		response.gvl !== undefined ||
-		response.customVendors !== undefined ||
-		response.cmpId !== undefined
-	) {
-		merged.initialIab = {
-			...(merged.initialIab ?? {}),
-			...(response.gvl !== undefined
-				? { gvl: response.gvl, enabled: response.gvl !== null }
-				: {}),
-			...(response.customVendors !== undefined
-				? { customVendors: response.customVendors }
-				: {}),
-			...(response.cmpId !== undefined ? { cmpId: response.cmpId } : {}),
-		};
-	}
-	return merged;
 }

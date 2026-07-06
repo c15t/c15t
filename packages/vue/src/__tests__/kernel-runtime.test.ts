@@ -298,6 +298,33 @@ describe('@c15t/vue kernel runtime', () => {
 		}
 	});
 
+	test('prefetch seeds overrides from init location and language', () => {
+		const context = createVueConsentKernelContext({
+			config: {
+				backendURL: 'https://consent.example',
+				customFetch: vi.fn() as unknown as typeof fetch,
+			},
+			prefetch: {
+				...initFixture,
+				location: { countryCode: 'US', regionCode: 'CA' },
+				translations: {
+					...initFixture.translations,
+					language: 'de',
+				},
+			},
+		});
+
+		try {
+			expect(context.kernel.getSnapshot().overrides).toMatchObject({
+				country: 'US',
+				region: 'CA',
+				language: 'de',
+			});
+		} finally {
+			context.dispose();
+		}
+	});
+
 	test('fresh visitor useHasConsent only reports necessary under opt-in policy', async () => {
 		const { wrapper } = await mountRootWithConsentProbe();
 

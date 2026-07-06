@@ -139,6 +139,9 @@ export function applyInitResponse(
 	if (response.hasConsented !== undefined) {
 		patch.hasConsented = response.hasConsented;
 	}
+	if (response.subjectId !== undefined) {
+		patch.subjectId = response.subjectId;
+	}
 
 	// If nothing in the response touched the snapshot, return null so the
 	// caller can skip notifying subscribers and emitting `init:applied` —

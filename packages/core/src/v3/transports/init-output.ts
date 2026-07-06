@@ -1,5 +1,15 @@
 import type { InitOutput } from '@c15t/schema/types';
-import type { InitResponse, KernelBranding, KernelOverrides } from '../types';
+import type {
+	ConsentState,
+	InitResponse,
+	KernelBranding,
+	KernelConfig,
+	KernelIABState,
+	KernelOverrides,
+} from '../types';
+
+type RichInitOutput = InitOutput &
+	Partial<Pick<InitResponse, 'consents' | 'hasConsented' | 'subjectId'>>;
 
 function mapBranding(
 	branding: InitOutput['branding']
@@ -8,7 +18,7 @@ function mapBranding(
 }
 
 function mapResolvedOverrides(
-	payload: InitOutput,
+	payload: Pick<InitOutput, 'location' | 'translations'>,
 	headers: Record<string, string>
 ): KernelOverrides {
 	const overrides: KernelOverrides = {
@@ -31,7 +41,7 @@ function mapResolvedOverrides(
 }
 
 export function mapInitOutputToInitResponse(
-	payload: InitOutput,
+	payload: RichInitOutput,
 	headers: Record<string, string>
 ): InitResponse {
 	const mapped: InitResponse = {
@@ -62,6 +72,131 @@ export function mapInitOutputToInitResponse(
 	if (payload.cmpId !== undefined) {
 		mapped.cmpId = payload.cmpId;
 	}
+	if (payload.consents !== undefined) {
+		mapped.consents = payload.consents;
+		// A consent-bearing init payload implies a subject who has consented
+		// unless the backend explicitly says otherwise — without this, the
+		// opt-in fresh-visitor defaults reset the returned values and the
+		// banner re-shows. Keeps the client fold consistent with the server
+		// prefetch merge, which makes the same inference.
+		mapped.hasConsented = payload.hasConsented ?? true;
+	} else if (payload.hasConsented !== undefined) {
+		mapped.hasConsented = payload.hasConsented;
+	}
+	if (payload.subjectId !== undefined && payload.subjectId !== null) {
+		mapped.subjectId = payload.subjectId;
+	}
 
 	return mapped;
+}
+
+export function mergeInitResponseIntoKernelConfig(
+	base: KernelConfig,
+	response: InitResponse | undefined
+): KernelConfig {
+	if (!response) return base;
+
+	const merged: KernelConfig = { ...base };
+	const derivedOverrides: KernelOverrides = {};
+
+	if (response.location?.countryCode) {
+		derivedOverrides.country = response.location.countryCode;
+	}
+	if (response.location?.regionCode) {
+		derivedOverrides.region = response.location.regionCode;
+	}
+	if (response.translations?.language) {
+		derivedOverrides.language = response.translations.language;
+	}
+
+	const nextOverrides = {
+		...(base.initialOverrides ?? {}),
+		...derivedOverrides,
+		...(response.resolvedOverrides ?? {}),
+	};
+	if (Object.keys(nextOverrides).length > 0) {
+		merged.initialOverrides = nextOverrides;
+	}
+
+	if (response.consents) {
+		merged.initialConsents = {
+			...(base.initialConsents ?? {}),
+			...(response.consents as Partial<ConsentState>),
+		};
+	}
+	if (response.hasConsented !== undefined) {
+		merged.initialHasConsented = response.hasConsented;
+	} else if (response.consents) {
+		merged.initialHasConsented = true;
+	}
+	if (response.subjectId) {
+		merged.initialSubjectId = response.subjectId;
+	}
+	if (response.location !== undefined) {
+		merged.initialLocation = response.location;
+	}
+	if (response.translations !== undefined) {
+		merged.initialTranslations = response.translations;
+	}
+	if (
+		response.branding !== undefined &&
+		(response.branding as KernelBranding | 'none') !== 'none'
+	) {
+		merged.initialBranding = response.branding;
+	}
+	if (response.policy !== undefined) {
+		merged.initialPolicy = response.policy;
+	}
+	if (response.policyDecision !== undefined) {
+		merged.initialPolicyDecision = response.policyDecision;
+	}
+	if (response.policySnapshotToken !== undefined) {
+		merged.initialPolicySnapshotToken = response.policySnapshotToken;
+	}
+	if (
+		response.gvl !== undefined ||
+		response.customVendors !== undefined ||
+		response.cmpId !== undefined
+	) {
+		const nextIab: Partial<KernelIABState> = {
+			...(merged.initialIab ?? {}),
+		};
+		if (response.gvl !== undefined) {
+			nextIab.gvl = response.gvl;
+			nextIab.enabled = response.gvl !== null;
+		}
+		if (response.customVendors !== undefined) {
+			nextIab.customVendors = response.customVendors;
+		}
+		if (response.cmpId !== undefined) {
+			nextIab.cmpId = response.cmpId;
+		}
+		merged.initialIab = nextIab;
+	}
+
+	return merged;
+}
+
+export function initResponseToKernelConfig(
+	response: InitResponse | undefined
+): KernelConfig {
+	return mergeInitResponseIntoKernelConfig({}, response);
+}
+
+export function mergeInitOutputIntoKernelConfig(
+	base: KernelConfig,
+	payload: RichInitOutput | undefined,
+	headers: Record<string, string> = {}
+): KernelConfig {
+	return mergeInitResponseIntoKernelConfig(
+		base,
+		payload ? mapInitOutputToInitResponse(payload, headers) : undefined
+	);
+}
+
+export function initOutputToKernelConfig(
+	payload: RichInitOutput | undefined,
+	headers: Record<string, string> = {}
+): KernelConfig {
+	return mergeInitOutputIntoKernelConfig({}, payload, headers);
 }

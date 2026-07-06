@@ -1,5 +1,7 @@
 'use client';
 
+import { buildDefaultOptInPolicy, type InitOutput } from '@c15t/schema/types';
+import { deepMergeTranslations, type Translations } from '@c15t/translations';
 import type {
 	AllConsentNames,
 	Callbacks,
@@ -17,6 +19,7 @@ import type {
 	User,
 } from 'c15t';
 import {
+	buildSubjectPostBody,
 	type ConsentKernel,
 	type ConsentSnapshot,
 	createConsentKernel,
@@ -29,6 +32,7 @@ import {
 	type KernelTranslations,
 	type KernelTransport,
 	type KernelUser,
+	mapInitOutputToInitResponse,
 	type TranslationsResponse,
 } from 'c15t/v3';
 import type { Script } from 'c15t/v3/modules/script-loader';
@@ -199,13 +203,20 @@ function resolveI18nTranslations(
 	if (!i18n?.messages) return undefined;
 	const language =
 		i18n.locale ?? defaultTranslationConfig.defaultLanguage ?? 'en';
-	const translations =
-		i18n.messages[language] ??
-		i18n.messages.en ??
-		defaultTranslationConfig.translations.en;
+	const fallbackTranslations = defaultTranslationConfig.translations
+		.en as TranslationsResponse;
+	const selected =
+		i18n.messages[language] ?? i18n.messages.en ?? fallbackTranslations;
+	const base =
+		defaultTranslationConfig.translations[
+			language as keyof typeof defaultTranslationConfig.translations
+		] ?? fallbackTranslations;
 	return {
 		language,
-		translations: translations as TranslationsResponse,
+		translations: deepMergeTranslations(
+			base as Translations,
+			selected as Partial<Translations>
+		) as TranslationsResponse,
 	};
 }
 
@@ -276,18 +287,7 @@ function getProviderOfflinePolicy(
 }
 
 function buildInlinePolicy(categories: AllConsentNames[] | undefined) {
-	if (!categories || categories.length === 0) return undefined;
-	return {
-		id: 'inline-consent-categories',
-		model: 'opt-in',
-		consent: {
-			categories,
-			scopeMode: 'permissive',
-		},
-		ui: {
-			mode: 'banner',
-		},
-	};
+	return buildDefaultOptInPolicy(categories);
 }
 
 function buildNoBannerPolicy(): KernelConfig['initialPolicy'] {
@@ -305,19 +305,13 @@ function mapSSRInitialData(
 ): InitResponse | null {
 	if (!data?.init) return null;
 	const init = data.init as Record<string, unknown>;
-	return {
-		location: init.location as never,
-		translations: init.translations as never,
-		branding: init.branding as never,
-		gvl: (data.gvl ?? init.gvl) as never,
-		customVendors: init.customVendors as never,
-		cmpId: init.cmpId as never,
-		policy: init.policy as never,
-		policyDecision: init.policyDecision as never,
-		policySnapshotToken: init.policySnapshotToken as never,
-		consents: init.consents as never,
-		hasConsented: init.hasConsented as never,
-	};
+	return mapInitOutputToInitResponse(
+		{
+			...init,
+			gvl: data.gvl ?? init.gvl,
+		} as InitOutput,
+		{}
+	);
 }
 
 function withSSRData(
@@ -350,10 +344,18 @@ function createCustomTransport(
 				throw response.error ?? new Error('c15t custom transport: init failed');
 			}
 			const init = response.data as Record<string, unknown>;
+			if (init.location && init.translations && init.branding) {
+				return mapInitOutputToInitResponse(init as InitOutput, {});
+			}
 			return {
+				resolvedOverrides: init.resolvedOverrides as never,
+				consents: init.consents as never,
+				hasConsented: init.hasConsented as never,
+				subjectId: init.subjectId as never,
 				location: init.location as never,
 				translations: init.translations as never,
-				branding: init.branding as never,
+				branding:
+					init.branding === 'none' ? undefined : (init.branding as never),
 				gvl: init.gvl as never,
 				customVendors: init.customVendors as never,
 				cmpId: init.cmpId as never,
@@ -364,23 +366,12 @@ function createCustomTransport(
 		},
 		async save(payload) {
 			const response = await endpointHandlers.setConsent({
-				body: {
-					subjectId: payload.subjectId,
-					externalSubjectId: payload.user?.externalId,
-					identityProvider: payload.user?.identityProvider,
+				body: buildSubjectPostBody(payload, {
 					domain:
 						typeof window === 'undefined'
 							? 'localhost'
 							: window.location.hostname,
-					type: 'cookie_banner',
-					preferences: payload.consents,
-					givenAt: Date.now(),
-					jurisdictionModel: payload.model ?? undefined,
-					uiSource: payload.uiSource ?? undefined,
-					consentAction: payload.consentAction,
-					policySnapshotToken: payload.policySnapshotToken ?? undefined,
-					tcString: payload.tcString ?? undefined,
-				},
+				}),
 			});
 			return {
 				ok: response.ok,

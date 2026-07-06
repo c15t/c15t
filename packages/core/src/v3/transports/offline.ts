@@ -17,7 +17,7 @@ import type {
 	ResolvedPolicy,
 	TranslationsResponse,
 } from '@c15t/schema/types';
-import { resolvePolicySync } from '@c15t/schema/types';
+import { buildDefaultOptInPolicy, resolvePolicySync } from '@c15t/schema/types';
 import type {
 	InitContext,
 	InitResponse,
@@ -122,11 +122,17 @@ export function createOfflineTransport(
 					})
 				: undefined;
 
-			const policy: ResolvedPolicy = match?.policy ?? {
-				id: 'no_banner',
-				model: 'none',
-				ui: { mode: 'none' },
-			};
+			const hasPolicyPacks =
+				options.policyPacks !== undefined && options.policyPacks.length > 0;
+			const policy: ResolvedPolicy =
+				match?.policy ??
+				(hasPolicyPacks
+					? {
+							id: 'no_banner',
+							model: 'none',
+							ui: { mode: 'none' },
+						}
+					: buildDefaultOptInPolicy());
 
 			const policyDecision: PolicyDecision | undefined = match
 				? ({

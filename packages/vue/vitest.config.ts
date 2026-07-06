@@ -9,6 +9,16 @@ export default mergeConfig(
 		plugins: [vue()],
 		resolve: {
 			alias: {
+				'~/libs/determine-model': resolve(
+					__dirname,
+					'../core/src/libs/determine-model.ts'
+				),
+				'~/store/type': resolve(__dirname, '../core/src/store/type.ts'),
+				'~/types/compliance': resolve(
+					__dirname,
+					'../core/src/types/compliance.ts'
+				),
+				'~/version': resolve(__dirname, '../core/src/version.ts'),
 				'~': resolve(__dirname, './src'),
 				'#imports': resolve(__dirname, './src/runtime/vue/stubs.ts'),
 				'#c15t/composables': resolve(

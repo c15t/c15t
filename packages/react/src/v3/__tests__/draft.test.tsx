@@ -39,7 +39,14 @@ function wrapWithProvider(options = {}) {
 describe('useConsentDraft — basic staging', () => {
 	test('initial values match kernel.consents', async () => {
 		const { Wrapper } = wrap({
-			prefetch: { initialConsents: { marketing: true } },
+			prefetch: {
+				initialConsents: { marketing: true },
+				initialPolicy: {
+					id: 'draft-test-no-banner',
+					model: 'none',
+					ui: { mode: 'none' },
+				},
+			},
 		});
 
 		function Probe() {

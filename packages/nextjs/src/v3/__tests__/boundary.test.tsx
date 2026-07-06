@@ -21,7 +21,11 @@ describe('ConsentBoundary: config is honored', () => {
 
 		const { getByTestId } = await render(
 			<ConsentBoundary
-				config={{ initialConsents: { marketing: true, measurement: true } }}
+				config={{
+					initialConsents: { marketing: true, measurement: true },
+					initialHasConsented: true,
+				}}
+				persistence={false}
 			>
 				<MarketingStatus />
 			</ConsentBoundary>
@@ -68,10 +72,19 @@ describe('ConsentBoundary: kernel is per-mount', () => {
 		// the other.
 		const screen = await render(
 			<div>
-				<ConsentBoundary config={{ initialConsents: { marketing: true } }}>
+				<ConsentBoundary
+					config={{
+						initialConsents: { marketing: true },
+						initialHasConsented: true,
+					}}
+					persistence={false}
+				>
 					<MarketingStatus label="a" />
 				</ConsentBoundary>
-				<ConsentBoundary config={{ initialConsents: { marketing: false } }}>
+				<ConsentBoundary
+					config={{ initialConsents: { marketing: false } }}
+					persistence={false}
+				>
 					<MarketingStatus label="b" />
 				</ConsentBoundary>
 			</div>

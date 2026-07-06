@@ -81,6 +81,7 @@ export type {
 	ResolveInitFromManifestOptions,
 } from './shared';
 export {
+	buildDefaultOptInPolicy,
 	CONSENT_REQUEST_HEADER_NAMES,
 	COUNTRY_HEADERS,
 	checkJurisdiction,

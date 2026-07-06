@@ -363,7 +363,10 @@ describe('v3 ConsentProvider options API', () => {
 			<ConsentProvider
 				options={{
 					persistence: false,
-					prefetch: { initialConsents: { marketing: true } },
+					prefetch: {
+						initialConsents: { marketing: true },
+						initialHasConsented: true,
+					},
 					noStyle: true,
 					components: {
 						banner: {
@@ -471,6 +474,47 @@ describe('v3 ConsentProvider options API', () => {
 			.toHaveAttribute('href', '/store-privacy');
 	});
 
+	test('deep-merges selected i18n messages over the default language base', async () => {
+		function Probe() {
+			const translations = useTranslations();
+			const marketing =
+				translations?.translations.consentTypes?.marketing ?? {};
+			return (
+				<div data-testid="copy">
+					{marketing.title}|{marketing.description}
+				</div>
+			);
+		}
+
+		const { getByTestId } = await render(
+			<ConsentProvider
+				options={{
+					persistence: false,
+					i18n: {
+						locale: 'en',
+						messages: {
+							en: {
+								consentTypes: {
+									marketing: {
+										title: 'Advertising',
+									},
+								},
+							},
+						},
+					},
+				}}
+			>
+				<Probe />
+			</ConsentProvider>
+		);
+
+		await expect
+			.element(getByTestId('copy'))
+			.toHaveTextContent(
+				'Advertising|These cookies are used to deliver relevant advertisements and track their effectiveness.'
+			);
+	});
+
 	test('uses deprecated ssrData as a v3 prefetch bridge', async () => {
 		const fetchSpy = vi
 			.fn()
@@ -516,6 +560,57 @@ describe('v3 ConsentProvider options API', () => {
 		expect(fetchSpy).not.toHaveBeenCalled();
 	});
 
+	test('ssrData bridge preserves rich init fields through the shared mapper', async () => {
+		function Probe() {
+			const snapshot = useSnapshot();
+			return (
+				<div data-testid="ssr-rich">
+					{snapshot.branding ?? 'none'}|{String(snapshot.hasConsented)}|
+					{snapshot.subjectId ?? 'none'}|{snapshot.overrides.country}|
+					{snapshot.overrides.language}|{snapshot.activeUI}
+				</div>
+			);
+		}
+
+		const { getByTestId } = await render(
+			<ConsentProvider
+				options={{
+					mode: 'hosted',
+					backendURL: '/api/c15t',
+					customFetch: vi.fn(),
+					persistence: false,
+					ssrData: Promise.resolve({
+						init: {
+							policy: {
+								id: 'gdpr',
+								model: 'opt-in',
+								ui: { mode: 'banner' },
+							},
+							location: {
+								countryCode: 'DE',
+								regionCode: null,
+							},
+							translations: {
+								language: 'de',
+								translations: {},
+							},
+							branding: 'none',
+							consents: { marketing: true },
+							hasConsented: true,
+							subjectId: 'sub_ssr',
+						},
+					} as never),
+				}}
+			>
+				<Probe />
+			</ConsentProvider>
+		);
+
+		await expect
+			.element(getByTestId('ssr-rich'))
+			.toHaveTextContent('none|true|sub_ssr|DE|de|none');
+	});
+
 	test('maps hosted v2 transport options into the v3 hosted transport', async () => {
 		const fetchSpy = vi
 			.fn()
@@ -556,6 +651,63 @@ describe('v3 ConsentProvider options API', () => {
 			})
 		);
 		expect((init as RequestInit).headers).not.toHaveProperty('x-test');
+	});
+
+	test('custom transport save uses the shared subject POST body', async () => {
+		const setConsent = vi.fn().mockResolvedValue({
+			ok: true,
+			data: { subjectId: 'sub_custom' },
+		});
+
+		function SaveAll() {
+			const save = useSaveConsents();
+			return (
+				<button
+					data-testid="save"
+					onClick={() => void save('all')}
+					type="button"
+				>
+					save
+				</button>
+			);
+		}
+
+		const { getByTestId } = await render(
+			<ConsentProvider
+				options={{
+					mode: 'custom',
+					persistence: false,
+					user: {
+						externalId: 'user-1',
+						identityProvider: 'app',
+						properties: { plan: 'pro' },
+					},
+					endpointHandlers: {
+						init: vi.fn().mockResolvedValue({
+							ok: true,
+							data: hostedInitOutput(),
+						}),
+						setConsent,
+					},
+				}}
+			>
+				<SaveAll />
+			</ConsentProvider>
+		);
+
+		await getByTestId('save').click();
+		await vi.waitFor(() => expect(setConsent).toHaveBeenCalled());
+		expect(setConsent.mock.calls[0]?.[0].body).toMatchObject({
+			subjectId: expect.any(String),
+			externalSubjectId: 'user-1',
+			identityProvider: 'app',
+			domain: 'localhost',
+			type: 'cookie_banner',
+			consentAction: 'all',
+			metadata: {
+				userProperties: { plan: 'pro' },
+			},
+		});
 	});
 
 	test('bridges init, save, change, and error callbacks', async () => {

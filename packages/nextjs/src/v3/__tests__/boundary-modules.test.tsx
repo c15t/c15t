@@ -12,7 +12,10 @@ describe('ConsentBoundary module props', () => {
 	test('scripts prop mounts <script> tags for eligible categories', async () => {
 		const { getByText } = await render(
 			<ConsentBoundary
-				config={{ initialConsents: { marketing: true } }}
+				config={{
+					initialConsents: { marketing: true },
+					initialHasConsented: true,
+				}}
 				persistence={false}
 				scripts={[
 					{

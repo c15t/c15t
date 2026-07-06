@@ -627,7 +627,11 @@ describe('createHostedTransport: request shape', () => {
 				experience: true,
 			},
 			overrides: {},
-			user: { externalId: 'user-1', identityProvider: 'app' },
+			user: {
+				externalId: 'user-1',
+				identityProvider: 'app',
+				properties: { plan: 'pro', beta: true },
+			},
 			model: 'opt-in',
 			uiSource: 'banner',
 			consentAction: 'all',
@@ -657,6 +661,9 @@ describe('createHostedTransport: request shape', () => {
 			consentAction: 'all',
 			policySnapshotToken: 'snap-1',
 			tcString: 'tc-1',
+			metadata: {
+				userProperties: { plan: 'pro', beta: true },
+			},
 		});
 		expect(typeof body.givenAt).toBe('number');
 	});
@@ -845,7 +852,10 @@ describe('createManifestTransport: local init resolution', () => {
 				experience: false,
 			},
 			overrides: {},
-			user: null,
+			user: {
+				externalId: 'user-2',
+				properties: { segment: 'docs' },
+			},
 			model: 'iab',
 			uiSource: 'banner',
 			consentAction: 'custom',
@@ -865,6 +875,10 @@ describe('createManifestTransport: local init resolution', () => {
 			subjectId: 'sub_test',
 			policyId: 'de-iab',
 			fingerprint: 'policy-fingerprint',
+			externalSubjectId: 'user-2',
+			metadata: {
+				userProperties: { segment: 'docs' },
+			},
 			country: 'DE',
 			region: 'BE',
 			language: 'de',

@@ -141,16 +141,28 @@ describe('prefetchInitialConsent: backend call', () => {
 	});
 
 	test('server-returned consents merge with cookie consents', async () => {
+		headerStore.set('host', 'app.example.com');
+		headerStore.set('x-forwarded-proto', 'https');
 		headerStore.set(
 			'cookie',
 			'c15t=c.necessary:1,c.marketing:1,c.measurement:0,i.t:1'
 		);
 
 		const fetchSpy = vi.fn().mockResolvedValue(
-			new Response(JSON.stringify(createInitOutput()), {
-				status: 200,
-				headers: { 'content-type': 'application/json' },
-			})
+			new Response(
+				JSON.stringify(
+					createInitOutput({
+						consents: {
+							marketing: false,
+							functionality: true,
+						},
+					})
+				),
+				{
+					status: 200,
+					headers: { 'content-type': 'application/json' },
+				}
+			)
 		);
 
 		const config = await prefetchInitialConsent({
@@ -158,11 +170,12 @@ describe('prefetchInitialConsent: backend call', () => {
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
 
-		// /init does not carry consent preferences; cookie state is preserved.
-		// (The shared parser expands to the full consent record.)
+		// /init consent preferences overlay cookie state, and a consent-bearing
+		// init response marks the user as consented for first paint.
 		expect(config.initialConsents).toMatchObject({
-			marketing: true,
+			marketing: false,
 			measurement: false,
+			functionality: true,
 		});
 		expect(config.initialHasConsented).toBe(true);
 	});
