@@ -174,7 +174,7 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		).toEqual({
 			country: 'US',
 			region: 'CA',
-			language: 'en-US,en;q=0.9',
+			language: 'en',
 			gpc: true,
 		});
 	});

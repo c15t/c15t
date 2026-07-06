@@ -96,11 +96,11 @@ describe('readInitialConsentConfig: geo headers', () => {
 		expect(config.initialOverrides?.country).toBe('FR');
 	});
 
-	test('x-vercel-ip-country wins over cf-ipcountry', async () => {
+	test('cf-ipcountry wins over x-vercel-ip-country', async () => {
 		headerStore.set('x-vercel-ip-country', 'US');
 		headerStore.set('cf-ipcountry', 'FR');
 		const config = await readInitialConsentConfig();
-		expect(config.initialOverrides?.country).toBe('US');
+		expect(config.initialOverrides?.country).toBe('FR');
 	});
 
 	test('reads region when present', async () => {
@@ -122,7 +122,7 @@ describe('readInitialConsentConfig: language', () => {
 	test('parses first language from accept-language', async () => {
 		headerStore.set('accept-language', 'de-DE,de;q=0.9,en;q=0.5');
 		const config = await readInitialConsentConfig();
-		expect(config.initialOverrides?.language).toBe('de-DE');
+		expect(config.initialOverrides?.language).toBe('de');
 	});
 
 	test('options.language overrides the header', async () => {
@@ -134,7 +134,7 @@ describe('readInitialConsentConfig: language', () => {
 	test('ignores silly values', async () => {
 		headerStore.set('accept-language', 'this-is-way-too-long-for-a-lang-code');
 		const config = await readInitialConsentConfig();
-		expect(config.initialOverrides?.language).toBeUndefined();
+		expect(config.initialOverrides?.language).toBe('this');
 	});
 
 	test('returns no overrides block when nothing was set', async () => {

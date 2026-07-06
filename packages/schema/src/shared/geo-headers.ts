@@ -1,16 +1,131 @@
-const COUNTRY_HEADERS = [
+/**
+ * Canonical consent request-input extraction.
+ *
+ * THE single source of truth for which HTTP headers carry consent-relevant
+ * request context (geo, language, GPC) and in which precedence order.
+ * Framework packages must not re-declare these lists or re-implement the
+ * extraction — they use their framework-native API to OBTAIN the raw
+ * headers, then call into here to INTERPRET them. (The 2026-07-06
+ * shared-logic drift audit found four diverged hand-rolled copies of
+ * these rules; see `internals/audits/2026-07-06-shared-logic-drift.md`.)
+ *
+ * Precedence rule: the explicit `x-c15t-*` override headers ALWAYS win
+ * over infrastructure-derived headers (Cloudflare, Vercel, CloudFront,
+ * generic proxies). Infra order after that: Cloudflare → Vercel →
+ * CloudFront → generic.
+ */
+import { parseAcceptLanguage } from '@c15t/translations';
+
+/** Country headers, highest priority first. `x-c15t-country` always wins. */
+export const COUNTRY_HEADERS = [
 	'x-c15t-country',
 	'cf-ipcountry',
 	'x-vercel-ip-country',
 	'x-amz-cf-ipcountry',
 	'x-country-code',
+	'x-country',
 ] as const;
 
-const REGION_HEADERS = [
+/** Region headers, highest priority first. `x-c15t-region` always wins. */
+export const REGION_HEADERS = [
 	'x-c15t-region',
+	'cf-region-code',
 	'x-vercel-ip-country-region',
 	'x-region-code',
 ] as const;
+
+/**
+ * Every header name that carries a consent request input. This is the
+ * canonical allowlist for forwarding to a c15t backend and for cache-key
+ * derivation. Framework adapters may append transport-specific extras
+ * (e.g. `user-agent`, prefetch hints) but must include all of these.
+ */
+export const CONSENT_REQUEST_HEADER_NAMES = [
+	...COUNTRY_HEADERS,
+	...REGION_HEADERS,
+	'accept-language',
+	'sec-gpc',
+] as const;
+
+/** Consent-relevant context extracted from request headers. */
+export interface ConsentRequestHeaderInputs {
+	country?: string;
+	region?: string;
+	/**
+	 * Primary language subtag, lowercase (`de`, not `de-DE`) — the shape
+	 * translation selection and the backend resolver operate on. Derived
+	 * from the full q-value-aware Accept-Language negotiation in
+	 * `@c15t/translations`, not a naive first-token split.
+	 */
+	language?: string;
+	gpc?: boolean;
+}
+
+type HeaderSource = Headers | Record<string, string | undefined>;
+
+function getHeader(source: HeaderSource, name: string): string | undefined {
+	if (typeof (source as Headers).get === 'function') {
+		return (source as Headers).get(name) ?? undefined;
+	}
+	const record = source as Record<string, string | undefined>;
+	return record[name] ?? record[name.toLowerCase()];
+}
+
+function pickHeader(
+	source: HeaderSource,
+	names: readonly string[]
+): string | undefined {
+	for (const name of names) {
+		const value = getHeader(source, name);
+		if (value) return value;
+	}
+	return undefined;
+}
+
+/** Parse a `Sec-GPC` header value. Only `'1'`/`'0'` are meaningful. */
+export function parseGlobalPrivacyControl(
+	value: string | null | undefined
+): boolean | undefined {
+	if (value === '1') return true;
+	if (value === '0') return false;
+	return undefined;
+}
+
+/**
+ * Extract the consent request inputs from request headers.
+ *
+ * Accepts either a `Headers` instance or a plain lowercase-keyed record so
+ * every server runtime (Next.js, SvelteKit, Nitro/H3, edge, Node) can feed
+ * whatever its native API returns.
+ */
+export function extractConsentRequestInputs(
+	headers: HeaderSource,
+	overrides: Partial<ConsentRequestHeaderInputs> = {}
+): ConsentRequestHeaderInputs {
+	const acceptLanguage = getHeader(headers, 'accept-language');
+	return {
+		country: overrides.country ?? pickHeader(headers, COUNTRY_HEADERS),
+		region: overrides.region ?? pickHeader(headers, REGION_HEADERS),
+		language: overrides.language ?? parseAcceptLanguage(acceptLanguage)[0],
+		gpc:
+			overrides.gpc ?? parseGlobalPrivacyControl(getHeader(headers, 'sec-gpc')),
+	};
+}
+
+/**
+ * Inputs → kernel-overrides record, dropping absent fields. Shared by the
+ * server helpers that seed `KernelConfig.initialOverrides`.
+ */
+export function consentInputsToOverrides(
+	inputs: ConsentRequestHeaderInputs
+): Record<string, string | boolean> {
+	const overrides: Record<string, string | boolean> = {};
+	if (inputs.country) overrides.country = inputs.country;
+	if (inputs.region) overrides.region = inputs.region;
+	if (inputs.language) overrides.language = inputs.language;
+	if (inputs.gpc !== undefined) overrides.gpc = inputs.gpc;
+	return overrides;
+}
 
 export function headersToRecord(headers: Headers): Record<string, string> {
 	const record: Record<string, string> = {};
@@ -20,18 +135,11 @@ export function headersToRecord(headers: Headers): Record<string, string> {
 	return record;
 }
 
-function pickHeader(
-	headers: Record<string, string | undefined>,
-	names: readonly string[]
-): string | undefined {
-	return names.reduce<string | undefined>(
-		(value, name) => value ?? headers[name.toLowerCase()] ?? headers[name],
-		undefined
-	);
-}
-
 /**
  * Resolves country and region from common geo IP headers.
+ *
+ * @deprecated Use {@link extractConsentRequestInputs} — same precedence,
+ * plus language and GPC. Kept for the backend's existing call sites.
  */
 export function getRegionFromHeaders(
 	headers: Record<string, string | undefined>

@@ -45,6 +45,18 @@ export default mergeConfig(
 					replacement: resolve(__dirname, '../iab/src/v3/index.ts'),
 				},
 				{
+					find: '@c15t/schema/types',
+					replacement: resolve(__dirname, '../schema/src/types.ts'),
+				},
+				{
+					find: '@c15t/schema/config',
+					replacement: resolve(__dirname, '../schema/src/config/index.ts'),
+				},
+				{
+					find: '@c15t/schema',
+					replacement: resolve(__dirname, '../schema/src/index.ts'),
+				},
+				{
 					find: 'c15t/v3',
 					replacement: resolve(__dirname, '../core/src/v3/index.ts'),
 				},

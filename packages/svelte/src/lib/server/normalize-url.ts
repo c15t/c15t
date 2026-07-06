@@ -1,3 +1,5 @@
+import { resolveBackendURL } from '@c15t/schema/types';
+
 const ABSOLUTE_URL_REGEX = /^https?:\/\//;
 
 function trimTrailingSlash(url: string): string {
@@ -56,31 +58,5 @@ export function normalizeBackendURL(
 	backendURL: string,
 	headersList: Headers
 ): string | null {
-	try {
-		const { normalizedURL: validated, isAbsolute } =
-			validateBackendURL(backendURL);
-
-		if (isAbsolute) {
-			return validated;
-		}
-
-		const referer = headersList.get('referer');
-		const protocol = headersList.get('x-forwarded-proto') || 'https';
-		const host = headersList.get('x-forwarded-host') || headersList.get('host');
-
-		if (host) {
-			return trimTrailingSlash(`${protocol}://${host}${validated}`);
-		}
-
-		if (referer) {
-			const refererUrl = new URL(referer);
-			return trimTrailingSlash(
-				`${refererUrl.protocol}//${refererUrl.host}${validated}`
-			);
-		}
-
-		return null;
-	} catch {
-		return null;
-	}
+	return resolveBackendURL(backendURL, headersList);
 }

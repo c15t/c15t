@@ -21,7 +21,10 @@
  * backwards-compatible way means adding optional fields; the kernel
  * ignores unknown fields.
  */
-import type { InitOutput } from '@c15t/schema/types';
+import {
+	CONSENT_REQUEST_HEADER_NAMES,
+	type InitOutput,
+} from '@c15t/schema/types';
 import type {
 	InitContext,
 	InitResponse,
@@ -98,18 +101,7 @@ function resolveDomain(
 	}
 }
 
-const INIT_HEADER_ALLOWLIST = new Set([
-	'accept-language',
-	'sec-gpc',
-	'x-c15t-country',
-	'x-c15t-region',
-	'cf-ipcountry',
-	'x-vercel-ip-country',
-	'x-vercel-ip-country-region',
-	'x-amz-cf-ipcountry',
-	'x-country-code',
-	'x-region-code',
-]);
+const INIT_HEADER_ALLOWLIST = new Set<string>(CONSENT_REQUEST_HEADER_NAMES);
 
 function buildAllowedInitHeaders(
 	headers: Record<string, string> | undefined

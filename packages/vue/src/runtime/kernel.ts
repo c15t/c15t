@@ -1,5 +1,9 @@
 import type { ConsentActiveUI } from '@c15t/schema/config';
-import type { InitOutput } from '@c15t/schema/types';
+import {
+	CONSENT_REQUEST_HEADER_NAMES,
+	extractConsentRequestInputs,
+	type InitOutput,
+} from '@c15t/schema/types';
 import {
 	type ConsentKernel,
 	type ConsentSnapshot,
@@ -27,15 +31,7 @@ import {
 	resolveNuxtManifestRoute,
 } from './manifest';
 
-export const INIT_HEADER_NAMES = [
-	'accept-language',
-	'sec-gpc',
-	'x-c15t-country',
-	'x-c15t-region',
-	'cf-ipcountry',
-	'x-vercel-ip-country',
-	'x-vercel-ip-country-region',
-] as const;
+export const INIT_HEADER_NAMES = [...CONSENT_REQUEST_HEADER_NAMES] as const;
 
 const INIT_HEADER_ALLOWLIST = new Set<string>(INIT_HEADER_NAMES);
 
@@ -205,35 +201,31 @@ function getBrowserGpc(): boolean | undefined {
 	return typeof value === 'boolean' ? value : undefined;
 }
 
-function getGpcFromHeader(value: string | undefined): boolean | undefined {
-	if (value === '1') return true;
-	if (value === '0') return false;
-	return undefined;
-}
-
 function getManifestInputs(
 	config: RuntimeConsentConfig,
 	headers: Record<string, string>
 ) {
 	if (isClientManifestModeEnabled(config)) {
+		const inputs = extractConsentRequestInputs({
+			...headers,
+			...(getBrowserLanguage()
+				? { 'accept-language': getBrowserLanguage() }
+				: {}),
+		});
 		return {
 			country: null,
 			region: null,
-			language: getBrowserLanguage() ?? headers['accept-language'] ?? 'en',
-			gpc: getBrowserGpc() ?? getGpcFromHeader(headers['sec-gpc']),
+			language: inputs.language ?? 'en',
+			gpc: getBrowserGpc() ?? inputs.gpc,
 		};
 	}
 
+	const inputs = extractConsentRequestInputs(headers);
 	return {
-		country:
-			headers['x-c15t-country'] ??
-			headers['cf-ipcountry'] ??
-			headers['x-vercel-ip-country'] ??
-			null,
-		region:
-			headers['x-c15t-region'] ?? headers['x-vercel-ip-country-region'] ?? null,
-		language: headers['accept-language'] ?? 'en',
-		gpc: getGpcFromHeader(headers['sec-gpc']),
+		country: inputs.country ?? null,
+		region: inputs.region ?? null,
+		language: inputs.language ?? 'en',
+		gpc: inputs.gpc,
 	};
 }
 

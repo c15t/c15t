@@ -85,6 +85,35 @@ describe('@c15t/nextjs/v3/api', () => {
 		expect(response.headers.get('x-c15t-next-revalidate')).toBe('90');
 	});
 
+	test('relative backendURL resolves from forwarded headers before request URL host', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify(MANIFEST_FIXTURE), {
+				status: 200,
+				headers: {
+					'cache-control': 'public, s-maxage=120',
+				},
+			})
+		);
+		const { manifestGET } = createNextConsentRouteHandlers({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+		});
+
+		await manifestGET(
+			new Request('https://app.example.com/api/c15t/manifest', {
+				headers: {
+					'x-forwarded-proto': 'https',
+					'x-forwarded-host': 'edge.example.com',
+				},
+			})
+		);
+
+		expect(fetchSpy).toHaveBeenCalledWith(
+			'https://edge.example.com/api/c15t/manifest',
+			expect.any(Object)
+		);
+	});
+
 	test('cache helpers expose s-maxage and Next fetch config', () => {
 		expect(getSMaxAge('public, s-maxage=240, stale-while-revalidate=60')).toBe(
 			240

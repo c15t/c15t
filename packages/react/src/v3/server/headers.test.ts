@@ -151,4 +151,19 @@ describe('extractRelevantHeaders', () => {
 			'x-c15t-region': 'WEST',
 		});
 	});
+
+	it('should preserve explicit x-c15t override headers over infra headers', () => {
+		const headers = new Headers();
+		headers.set('x-c15t-country', 'NL');
+		headers.set('cf-ipcountry', 'US');
+		headers.set('x-c15t-region', 'NH');
+		headers.set('cf-region-code', 'CA');
+
+		const result = extractRelevantHeaders(headers);
+
+		expect(result).toMatchObject({
+			'x-c15t-country': 'NL',
+			'x-c15t-region': 'NH',
+		});
+	});
 });

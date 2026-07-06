@@ -21,7 +21,7 @@
  * is a plain async function, not an action.
  */
 
-import type { InitOutput } from '@c15t/schema/types';
+import { type InitOutput, resolveBackendURL } from '@c15t/schema/types';
 import {
 	type ConsentState,
 	createManifestTransport,
@@ -175,25 +175,6 @@ export interface PrefetchInitialConsentOptions
 }
 
 /**
- * Resolve a `backendURL` that might be relative into an absolute URL
- * the server-side fetch can call without a protocol/host error.
- */
-function resolveBackendURL(
-	backendURL: string,
-	requestHeaders: Headers
-): string {
-	if (/^https?:\/\//i.test(backendURL)) return backendURL;
-	const proto =
-		requestHeaders.get('x-forwarded-proto') ??
-		(requestHeaders.get('x-forwarded-ssl') === 'on' ? 'https' : 'http');
-	const host =
-		requestHeaders.get('x-forwarded-host') ??
-		requestHeaders.get('host') ??
-		'localhost';
-	return `${proto}://${host}${backendURL.startsWith('/') ? '' : '/'}${backendURL}`;
-}
-
-/**
  * Server-side consent prefetch.
  *
  * 1. Reads cookies + geo headers like `readInitialConsentConfig`.
@@ -212,9 +193,11 @@ export async function prefetchInitialConsent(
 	const requestCookies = await cookies();
 
 	const absoluteBackend = resolveBackendURL(options.backendURL, requestHeaders);
+	if (!absoluteBackend) return base;
 	const absoluteManifest = options.manifestURL
 		? resolveBackendURL(options.manifestURL, requestHeaders)
 		: undefined;
+	if (options.manifestURL && !absoluteManifest) return base;
 
 	// Build forwarding headers: cookies + any explicitly-forwarded keys.
 	const forward: Record<string, string> = {};
@@ -235,7 +218,7 @@ export async function prefetchInitialConsent(
 		);
 		const transport = createManifestTransport({
 			backendURL: absoluteBackend,
-			manifestURL: absoluteManifest,
+			manifestURL: absoluteManifest ?? undefined,
 			manifest: options.manifest,
 			fetch: options.fetch,
 			headers: forward,

@@ -4,7 +4,7 @@ import type {
 	GlobalVendorList,
 	InitOutput,
 } from '@c15t/schema/types';
-import { resolveInitFromManifest } from '@c15t/schema/types';
+import { resolveBackendURL, resolveInitFromManifest } from '@c15t/schema/types';
 import { extractConsentRequestInputs } from './headers';
 
 const DEFAULT_MANIFEST_REVALIDATE_SECONDS = 300;
@@ -55,10 +55,6 @@ export interface ManifestFetchResult {
 	status: number;
 }
 
-function trimSlash(value: string) {
-	return value.endsWith('/') ? value.slice(0, -1) : value;
-}
-
 function getEnv(name: string): string | undefined {
 	if (typeof process === 'undefined') return undefined;
 	return process.env?.[name];
@@ -72,10 +68,29 @@ function readManifestRevalidateFromEnv(): number | false | undefined {
 	return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
 }
 
-function resolveBackendURL(backendURL: string, request: Request): string {
-	if (/^https?:\/\//i.test(backendURL)) return trimSlash(backendURL);
+function getRequestResolutionHeaders(request: Request): Record<string, string> {
 	const url = new URL(request.url);
-	return `${url.protocol}//${url.host}${backendURL.startsWith('/') ? '' : '/'}${trimSlash(backendURL)}`;
+	const headers: Record<string, string> = {
+		host: url.host,
+	};
+	for (const name of [
+		'x-forwarded-proto',
+		'x-forwarded-ssl',
+		'x-forwarded-host',
+		'host',
+		'referer',
+	]) {
+		const value = request.headers.get(name);
+		if (value) headers[name] = value;
+	}
+	return headers;
+}
+
+function resolveRequestURL(
+	backendURL: string,
+	request: Request
+): string | null {
+	return resolveBackendURL(backendURL, getRequestResolutionHeaders(request));
 }
 
 function resolveManifestURL(
@@ -84,9 +99,11 @@ function resolveManifestURL(
 ): string {
 	const manifestURL = options.manifestURL ?? getEnv('C15T_MANIFEST_URL');
 	if (manifestURL) {
-		if (/^https?:\/\//i.test(manifestURL)) return manifestURL;
-		const url = new URL(request.url);
-		return `${url.protocol}//${url.host}${manifestURL.startsWith('/') ? '' : '/'}${manifestURL}`;
+		const resolved = resolveRequestURL(manifestURL, request);
+		if (!resolved) {
+			throw new Error('@c15t/nextjs/v3/api: invalid C15T_MANIFEST_URL.');
+		}
+		return resolved;
 	}
 
 	const backendURL =
@@ -98,7 +115,11 @@ function resolveManifestURL(
 			'@c15t/nextjs/v3/api: configure C15T_BACKEND_URL or C15T_MANIFEST_URL.'
 		);
 	}
-	return `${resolveBackendURL(backendURL, request)}/manifest`;
+	const resolved = resolveRequestURL(backendURL, request);
+	if (!resolved) {
+		throw new Error('@c15t/nextjs/v3/api: invalid C15T_BACKEND_URL.');
+	}
+	return `${resolved}/manifest`;
 }
 
 function withLanguage(url: string, language: string | null) {

@@ -1,22 +1,14 @@
 import {
-	createHostedTransport,
-	type KernelConfig,
-	type KernelOverrides,
-} from 'c15t/v3';
+	consentInputsToOverrides,
+	extractConsentRequestInputs,
+} from '@c15t/schema/types';
+import { createHostedTransport, type KernelConfig } from 'c15t/v3';
 import { readStoredConsentFromCookie } from 'c15t/v3/modules/persistence';
 import { normalizeBackendURL } from './normalize-url';
 import type {
 	PrefetchInitialConsentOptions,
 	ReadInitialConsentConfigOptions,
 } from './types';
-
-function parseAcceptLanguage(header: string | null): string | undefined {
-	if (!header) return undefined;
-	const first = header.split(',')[0]?.trim();
-	if (!first) return undefined;
-	const code = first.split(';')[0]?.trim();
-	return code && code.length <= 10 ? code : undefined;
-}
 
 export async function readInitialConsentConfig(
 	options: ReadInitialConsentConfigOptions
@@ -38,27 +30,12 @@ export async function readInitialConsentConfig(
 			? persisted.consentInfo.subjectId
 			: undefined;
 
-	const country =
-		options.country ??
-		options.headers.get('x-vercel-ip-country') ??
-		options.headers.get('cf-ipcountry') ??
-		options.headers.get('x-country') ??
-		undefined;
-
-	const region =
-		options.region ??
-		options.headers.get('x-vercel-ip-country-region') ??
-		options.headers.get('cf-region-code') ??
-		undefined;
-
-	const language =
-		options.language ??
-		parseAcceptLanguage(options.headers.get('accept-language'));
-
-	const overrides: KernelOverrides = {};
-	if (country) overrides.country = country;
-	if (region) overrides.region = region;
-	if (language) overrides.language = language;
+	const inputs = extractConsentRequestInputs(options.headers, {
+		country: options.country,
+		region: options.region,
+		language: options.language,
+	});
+	const overrides = consentInputsToOverrides(inputs);
 
 	const config: KernelConfig = {};
 	if (initialConsents) config.initialConsents = initialConsents;

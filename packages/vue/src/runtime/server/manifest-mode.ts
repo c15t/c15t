@@ -3,7 +3,10 @@ import type {
 	InitOutput,
 	ResolveInitFromManifestInputs,
 } from '@c15t/schema/types';
-import { resolveInitFromManifest } from '@c15t/schema/types';
+import {
+	extractConsentRequestInputs,
+	resolveInitFromManifest,
+} from '@c15t/schema/types';
 import type { ConsentConfig } from '../config';
 import { DEFAULT_MANIFEST_ROUTE, DEFAULT_NUXT_INIT_ROUTE } from '../manifest';
 
@@ -186,24 +189,17 @@ export function clearManifestRouteCache(): void {
 export function getResolverInputsFromHeaders(
 	headers: Record<string, string | string[] | undefined>
 ): ResolveInitFromManifestInputs {
-	const country =
-		normalizeHeader(headers['x-c15t-country']) ??
-		normalizeHeader(headers['cf-ipcountry']) ??
-		normalizeHeader(headers['x-vercel-ip-country']) ??
-		normalizeHeader(headers['x-amz-cf-ipcountry']) ??
-		normalizeHeader(headers['x-country-code']);
-	const region =
-		normalizeHeader(headers['x-c15t-region']) ??
-		normalizeHeader(headers['x-vercel-ip-country-region']) ??
-		normalizeHeader(headers['x-region-code']);
-	const language = normalizeHeader(headers['accept-language']) ?? 'en';
-	const secGpc = normalizeHeader(headers['sec-gpc']);
+	const normalized: Record<string, string | undefined> = {};
+	for (const [key, value] of Object.entries(headers)) {
+		normalized[key.toLowerCase()] = normalizeHeader(value) ?? undefined;
+	}
+	const inputs = extractConsentRequestInputs(normalized);
 
 	return {
-		country,
-		region,
-		language,
-		gpc: secGpc === '1' ? true : secGpc === '0' ? false : undefined,
+		country: inputs.country,
+		region: inputs.region,
+		language: inputs.language ?? 'en',
+		gpc: inputs.gpc,
 	};
 }
 

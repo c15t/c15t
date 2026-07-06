@@ -24,7 +24,17 @@ export {
 	brandingValues as brandingValuesConst,
 	jurisdictionCodes as jurisdictionCodesConst,
 } from './constants';
-export { getRegionFromHeaders, headersToRecord } from './geo-headers';
+export {
+	CONSENT_REQUEST_HEADER_NAMES,
+	COUNTRY_HEADERS,
+	type ConsentRequestHeaderInputs,
+	consentInputsToOverrides,
+	extractConsentRequestInputs,
+	getRegionFromHeaders,
+	headersToRecord,
+	parseGlobalPrivacyControl,
+	REGION_HEADERS,
+} from './geo-headers';
 export {
 	type GlobalVendorList,
 	type GVLDataCategory,
@@ -124,6 +134,7 @@ export {
 	dedupeTrimmedStrings,
 	hasRealPolicyUiHints,
 } from './policy-utils';
+export { resolveBackendURL } from './server-url';
 export {
 	getTranslations,
 	getTranslationsData,

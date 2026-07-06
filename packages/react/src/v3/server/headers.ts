@@ -1,33 +1,24 @@
-const COUNTRY_PRIORITY = [
-	'cf-ipcountry',
-	'x-vercel-ip-country',
-	'x-amz-cf-ipcountry',
-	'x-country-code',
-] as const;
+import {
+	CONSENT_REQUEST_HEADER_NAMES,
+	extractConsentRequestInputs,
+} from '@c15t/schema/types';
 
-const REGION_PRIORITY = [
-	'x-vercel-ip-country-region',
-	'x-region-code',
-] as const;
-
-const FORWARDED_HEADERS = [
-	...COUNTRY_PRIORITY,
-	...REGION_PRIORITY,
-	'accept-language',
+const REACT_EXTRA_HEADERS = [
 	'user-agent',
 	'x-forwarded-host',
 	'x-forwarded-for',
-	'sec-gpc',
 	'purpose',
 	'sec-purpose',
 	'next-router-prefetch',
 	'x-middleware-prefetch',
 ] as const;
 
-type ForwardedHeader =
-	| (typeof FORWARDED_HEADERS)[number]
-	| 'x-c15t-country'
-	| 'x-c15t-region';
+const FORWARDED_HEADERS = [
+	...CONSENT_REQUEST_HEADER_NAMES,
+	...REACT_EXTRA_HEADERS,
+] as const;
+
+type ForwardedHeader = (typeof FORWARDED_HEADERS)[number];
 
 type RelevantHeaders = Partial<Record<ForwardedHeader, string>>;
 
@@ -61,7 +52,6 @@ type RelevantHeaders = Partial<Record<ForwardedHeader, string>>;
 export function extractRelevantHeaders(headersList: Headers): RelevantHeaders {
 	const relevantHeaders: RelevantHeaders = {};
 
-	// Extract all relevant headers
 	for (const headerName of FORWARDED_HEADERS) {
 		const value = headersList.get(headerName);
 		if (value) {
@@ -69,21 +59,9 @@ export function extractRelevantHeaders(headersList: Headers): RelevantHeaders {
 		}
 	}
 
-	// Set country based on priority
-	const countryHeader = COUNTRY_PRIORITY.find(
-		(header) => relevantHeaders[header]
-	);
-	if (countryHeader) {
-		relevantHeaders['x-c15t-country'] = relevantHeaders[countryHeader];
-	}
-
-	// Set region based on priority
-	const regionHeader = REGION_PRIORITY.find(
-		(header) => relevantHeaders[header]
-	);
-	if (regionHeader) {
-		relevantHeaders['x-c15t-region'] = relevantHeaders[regionHeader];
-	}
+	const inputs = extractConsentRequestInputs(headersList);
+	if (inputs.country) relevantHeaders['x-c15t-country'] = inputs.country;
+	if (inputs.region) relevantHeaders['x-c15t-region'] = inputs.region;
 
 	return relevantHeaders;
 }

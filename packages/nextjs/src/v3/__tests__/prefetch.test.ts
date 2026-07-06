@@ -169,6 +169,7 @@ describe('prefetchInitialConsent: backend call', () => {
 
 	test('resolvedOverrides from server merge into overrides', async () => {
 		headerStore.set('accept-language', 'de');
+		headerStore.set('host', 'app.example.com');
 
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(

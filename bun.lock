@@ -782,6 +782,7 @@
       "version": "2.0.0-rc.4",
       "dependencies": {
         "@c15t/iab": "workspace:*",
+        "@c15t/schema": "workspace:*",
         "@c15t/ui": "workspace:*",
         "c15t": "workspace:*",
         "clsx": "2.1.1",

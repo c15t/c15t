@@ -115,6 +115,18 @@ describe('extractRelevantHeaders', () => {
 		expect(result['x-c15t-country']).toBe('DE');
 		expect(result['x-c15t-region']).toBe('BY');
 	});
+
+	test('preserves explicit x-c15t override headers over infra headers', () => {
+		const headers = new Headers({
+			'x-c15t-country': 'NL',
+			'cf-ipcountry': 'DE',
+			'x-c15t-region': 'NH',
+			'cf-region-code': 'BY',
+		});
+		const result = extractRelevantHeaders(headers);
+		expect(result['x-c15t-country']).toBe('NL');
+		expect(result['x-c15t-region']).toBe('NH');
+	});
 });
 
 // ─── validateBackendURL ──────────────────────────────────────────────────────
@@ -281,7 +293,7 @@ describe('v3 server helpers', () => {
 		expect(result.initialOverrides).toEqual({
 			country: 'DE',
 			region: 'BE',
-			language: 'de-DE',
+			language: 'de',
 		});
 		expect(result.initialConsents?.marketing).toBe(true);
 	});
