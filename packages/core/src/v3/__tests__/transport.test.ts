@@ -395,6 +395,28 @@ describe('kernel transport: save flows consents to backend', () => {
 		expect(saveSpy.mock.calls[1]?.[0].subjectId).toBe(first);
 	});
 
+	test('save commits the snapshot synchronously but defers transport.save off the commit task', async () => {
+		const saveSpy = vi.fn<
+			[Parameters<NonNullable<KernelTransport['save']>>[0]],
+			Promise<SaveResult>
+		>();
+		saveSpy.mockResolvedValue({ ok: true });
+		const kernel = createConsentKernel({ transport: { save: saveSpy } });
+
+		const pending = kernel.commands.save('all');
+
+		// The optimistic commit is synchronous — UI can flip and paint…
+		expect(kernel.getSnapshot().hasConsented).toBe(true);
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+		// …while the network call is deferred a macrotask so it never
+		// contends with the commit/paint task.
+		expect(saveSpy).not.toHaveBeenCalled();
+
+		const result = await pending;
+		expect(result.ok).toBe(true);
+		expect(saveSpy).toHaveBeenCalledTimes(1);
+	});
+
 	test('save transport error → result.ok=false + command:error event', async () => {
 		const boom = new Error('save failed');
 		const transport: KernelTransport = {

@@ -218,6 +218,13 @@ export function buildCommands(deps: CommandDeps) {
 					policySnapshotToken: after.policySnapshotToken,
 					tcString: after.iab?.tcString ?? null,
 				};
+				// Yield one macrotask before the network call so the UI commit
+				// from `advance()` above can paint first — starting the fetch in
+				// the click task contends with the banner-dismiss frame under
+				// CPU throttle. Mirrors v2's yielded background save.
+				await new Promise((resolve) => {
+					setTimeout(resolve, 0);
+				});
 				const result = await transport.save(payload);
 				if (result.subjectId && result.subjectId !== getSnapshot().subjectId) {
 					advance({ subjectId: result.subjectId });

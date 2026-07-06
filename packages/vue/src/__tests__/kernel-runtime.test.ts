@@ -322,7 +322,11 @@ describe('@c15t/vue kernel runtime', () => {
 		expect(
 			document.querySelector('[data-testid="consent-banner-root"]')
 		).toBeNull();
-		expect(subjectBodies).toHaveLength(1);
+		// The kernel defers transport.save a macrotask so the UI commit paints
+		// first — the POST lands shortly after the banner is gone.
+		await vi.waitFor(() => {
+			expect(subjectBodies).toHaveLength(1);
+		});
 		expect(subjectBodies[0]).toMatchObject({
 			domain: 'consent.example',
 			type: 'cookie_banner',
