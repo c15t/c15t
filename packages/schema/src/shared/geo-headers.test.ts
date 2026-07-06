@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+	consentInputsToOverrides,
 	extractConsentRequestInputs,
 	getRegionFromHeaders,
+	headersToRecord,
 	parseGlobalPrivacyControl,
 } from './geo-headers';
 
@@ -92,5 +94,23 @@ describe('extractConsentRequestInputs', () => {
 			{ country: 'JP' }
 		);
 		expect(inputs.country).toBe('JP');
+	});
+});
+
+describe('consentInputsToOverrides / headersToRecord', () => {
+	it('drops absent fields and keeps gpc=false', () => {
+		expect(consentInputsToOverrides({ country: 'DE', gpc: false })).toEqual({
+			country: 'DE',
+			gpc: false,
+		});
+		expect(consentInputsToOverrides({})).toEqual({});
+	});
+
+	it('headersToRecord lowercases keys', () => {
+		const record = headersToRecord(
+			new Headers({ 'X-C15T-Country': 'DE', 'Accept-Language': 'de' })
+		);
+		expect(record['x-c15t-country']).toBe('DE');
+		expect(record['accept-language']).toBe('de');
 	});
 });

@@ -3,7 +3,11 @@
  * server helper and transport uses (shared-logic audit #4).
  */
 import { describe, expect, test } from 'vitest';
-import { mapInitOutputToInitResponse } from '../transports/init-output';
+import {
+	initOutputToKernelConfig,
+	mapInitOutputToInitResponse,
+	mergeInitResponseIntoKernelConfig,
+} from '../transports/init-output';
 
 const BASE_PAYLOAD = {
 	location: { countryCode: 'DE', regionCode: null },
@@ -43,5 +47,109 @@ describe('mapInitOutputToInitResponse: consent inference', () => {
 			mapInitOutputToInitResponse({ ...BASE_PAYLOAD, hasConsented: true }, {})
 				.hasConsented
 		).toBe(true);
+	});
+});
+
+describe('mergeInitResponseIntoKernelConfig', () => {
+	test('undefined response returns base untouched', () => {
+		const base = { initialSubjectId: 'sub_1' };
+		expect(mergeInitResponseIntoKernelConfig(base, undefined)).toBe(base);
+	});
+
+	test('derives overrides from location/translations; resolvedOverrides win', () => {
+		const merged = mergeInitResponseIntoKernelConfig(
+			{ initialOverrides: { language: 'en', gpc: true } },
+			{
+				location: { countryCode: 'DE', regionCode: 'BE' },
+				translations: { language: 'de', translations: {} },
+				resolvedOverrides: { country: 'FR' },
+			}
+		);
+		// base < derived < resolvedOverrides
+		expect(merged.initialOverrides).toEqual({
+			language: 'de',
+			gpc: true,
+			country: 'FR',
+			region: 'BE',
+		});
+	});
+
+	test('consents merge implies hasConsented; explicit false wins', () => {
+		const inferred = mergeInitResponseIntoKernelConfig(
+			{},
+			{ consents: { marketing: true } }
+		);
+		expect(inferred.initialConsents).toEqual({ marketing: true });
+		expect(inferred.initialHasConsented).toBe(true);
+
+		const explicit = mergeInitResponseIntoKernelConfig(
+			{},
+			{ consents: { marketing: true }, hasConsented: false }
+		);
+		expect(explicit.initialHasConsented).toBe(false);
+	});
+
+	test("branding 'none' is filtered — KernelBranding has no 'none'", () => {
+		const merged = mergeInitResponseIntoKernelConfig(
+			{},
+			// biome-ignore lint/suspicious/noExplicitAny: backend can send 'none'
+			{ branding: 'none' as any }
+		);
+		expect(merged.initialBranding).toBeUndefined();
+		expect(
+			mergeInitResponseIntoKernelConfig({}, { branding: 'c15t' })
+				.initialBranding
+		).toBe('c15t');
+	});
+
+	test('policy trio + subjectId fold through', () => {
+		const merged = mergeInitResponseIntoKernelConfig(
+			{},
+			{
+				subjectId: 'sub_9',
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				policy: { id: 'p1', model: 'opt-in', ui: { mode: 'banner' } } as any,
+				// biome-ignore lint/suspicious/noExplicitAny: minimal fixture
+				policyDecision: { policyId: 'p1' } as any,
+				policySnapshotToken: 'tok',
+			}
+		);
+		expect(merged.initialSubjectId).toBe('sub_9');
+		expect(merged.initialPolicy?.id).toBe('p1');
+		expect(merged.initialPolicyDecision).toBeDefined();
+		expect(merged.initialPolicySnapshotToken).toBe('tok');
+	});
+
+	test('IAB folding: gvl null disables, fields accumulate', () => {
+		const withGvl = mergeInitResponseIntoKernelConfig(
+			{},
+			// biome-ignore lint/suspicious/noExplicitAny: minimal gvl fixture
+			{ gvl: { vendors: {} } as any, cmpId: 28 }
+		);
+		expect(withGvl.initialIab?.enabled).toBe(true);
+		expect(withGvl.initialIab?.cmpId).toBe(28);
+
+		const disabled = mergeInitResponseIntoKernelConfig({}, { gvl: null });
+		expect(disabled.initialIab?.enabled).toBe(false);
+	});
+
+	test('initOutputToKernelConfig wraps the full pipeline', () => {
+		const config = initOutputToKernelConfig(
+			{
+				location: { countryCode: 'DE', regionCode: null },
+				translations: { language: 'de', translations: {} },
+				branding: 'c15t',
+				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				policy: { id: 'p1', model: 'opt-in', ui: { mode: 'banner' } } as any,
+			},
+			{ 'sec-gpc': '1' }
+		);
+		expect(config.initialOverrides).toMatchObject({
+			country: 'DE',
+			language: 'de',
+			gpc: true,
+		});
+		expect(config.initialPolicy?.id).toBe('p1');
+		expect(config.initialBranding).toBe('c15t');
 	});
 });
