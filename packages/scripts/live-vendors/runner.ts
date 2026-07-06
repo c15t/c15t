@@ -219,8 +219,8 @@ async function probeDeniedConsentEgress(
 		});
 
 		// Refuse WebSockets here too — HTTP routing does not cover them.
-		await context.routeWebSocket('**', () => {
-			// Never connect to the remote server.
+		await context.routeWebSocket('**', (ws) => {
+			ws.close();
 		});
 
 		const page = await context.newPage();
