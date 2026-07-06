@@ -111,7 +111,7 @@ Concepts, legal templates, open-source policies, and contributor documentation.
 - [Color Scheme](./docs/shared/react/styling/color-scheme.md): Reference page for color scheme.
 - [CSS Variables](./docs/shared/react/styling/css-variables.md): Reference page for css variables.
 - [Overview](./docs/shared/react/styling/overview.md): Reference page for overview.
-- [Slots](./docs/shared/react/styling/slots.md): Reference page for slots.
+- [Slots](./docs/shared/react/styling/slots.md): Reference page for component slots.
 - [Stylesheet Entrypoint](./docs/shared/react/styling/stylesheet-entrypoint.md): Reference page for stylesheet entrypoint.
 - [Tailwind](./docs/shared/react/styling/tailwind.md): Reference page for tailwind.
 - [Tokens](./docs/shared/react/styling/tokens.md): Reference page for tokens.

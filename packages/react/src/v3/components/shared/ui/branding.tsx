@@ -1,4 +1,4 @@
-import styles from '@c15t/ui/styles/v3/consent-dialog';
+import styles from '@c15t/ui/styles/v3/branding';
 import type { Branding } from 'c15t';
 import type { SVGProps } from 'react';
 import { useTranslations } from '~/v3/component-hooks/use-translations';

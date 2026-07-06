@@ -2,7 +2,7 @@
 	setup
 	lang="ts"
 >
-import dialogStyles from '@c15t/ui/styles/v3/consent-dialog';
+import brandingStyles from '@c15t/ui/styles/v3/branding';
 import { computed } from 'vue';
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
 
@@ -50,24 +50,24 @@ const href = computed(() =>
 		:data-branding="resolvedBranding"
 		:data-variant="context === 'banner' || context === 'iab-banner' ? 'banner-tag' : 'dialog-tag'"
 		data-testid="consent-tag"
-		:class="dialogStyles.brandingTag"
+		:class="brandingStyles.brandingTag"
 		:data-context="context"
 	>
 		<span
 			v-bind="config.components?.tag?.content"
 			data-slot="tag-content"
-			:class="dialogStyles.brandingContent"
+			:class="brandingStyles.brandingContent"
 		>
-			<span :class="dialogStyles.brandingCopy">
-				<span :class="dialogStyles.brandingText"> {{ securedBy }} </span>
+			<span :class="brandingStyles.brandingCopy">
+				<span :class="brandingStyles.brandingText"> {{ securedBy }} </span>
 			</span>
 			<span
 				dir="ltr"
 				:class="[
-					dialogStyles.brandingWordmark,
+					brandingStyles.brandingWordmark,
 					resolvedBranding === 'inth'
-						? dialogStyles.brandingInth
-						: dialogStyles.brandingC15T,
+						? brandingStyles.brandingInth
+						: brandingStyles.brandingC15T,
 				]"
 			>
 				<template v-if="resolvedBranding === 'inth'">
@@ -94,7 +94,7 @@ const href = computed(() =>
 					</svg>
 				</template>
 				<template v-else>
-					<span :class="dialogStyles.brandingC15TMark">
+					<span :class="brandingStyles.brandingC15TMark">
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
 							viewBox="0 0 446 445"
@@ -106,7 +106,7 @@ const href = computed(() =>
 							/>
 						</svg>
 					</span>
-					<span :class="dialogStyles.brandingWordmarkLabel">c15t</span>
+					<span :class="brandingStyles.brandingWordmarkLabel">c15t</span>
 				</template>
 			</span>
 		</span>

@@ -6,6 +6,7 @@
  * Built with accessibility and customization in mind, following GDPR and other privacy regulation requirements.
  */
 
+import brandingStyles from '@c15t/ui/styles/v3/branding';
 import styles from '@c15t/ui/styles/v3/consent-dialog';
 import { forwardRef, type ReactNode, type Ref } from 'react';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
@@ -205,7 +206,7 @@ const ConsentDialogFooter = forwardRef<
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={cn(
 				styles.footer,
-				children == null && !hideBranding && styles.brandingFooter
+				children == null && !hideBranding && brandingStyles.brandingFooter
 			)}
 			data-testid={testId ?? 'consent-dialog-footer'}
 			{...props}
