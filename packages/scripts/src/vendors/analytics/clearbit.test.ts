@@ -23,6 +23,23 @@ describe('clearbit', () => {
 		});
 	});
 
+	it('URL-encodes reserved characters in the publishable key', () => {
+		const script = clearbit({ publishableKey: 'pk/with?chars' });
+
+		expect(script.src).toBe(
+			'https://tag.clearbitscripts.com/v1/pk%2Fwith%3Fchars/tags.js'
+		);
+	});
+
+	it('throws for non-string publishable keys', () => {
+		expect(() =>
+			clearbit({ publishableKey: null as unknown as string })
+		).toThrow();
+		expect(() =>
+			clearbit({ publishableKey: 42 as unknown as string })
+		).toThrow();
+	});
+
 	it('trims the publishable key before building the loader URL', () => {
 		const script = clearbit({
 			publishableKey: ' pk_contract ',

@@ -4,7 +4,7 @@ import { type VendorManifest, vendorManifestContract } from '../../types';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 function getDefaultClearbitScriptUrl(publishableKey: string): string {
-	return `https://tag.clearbitscripts.com/v1/${publishableKey}/tags.js`;
+	return `https://tag.clearbitscripts.com/v1/${encodeURIComponent(publishableKey)}/tags.js`;
 }
 
 /**
@@ -47,7 +47,7 @@ export interface ClearbitOptions {
 /**
  * Creates a Clearbit enrichment script.
  *
- * @see https://tag.clearbitscripts.com/v1/{publishableKey}/tags.js
+ * @see https://help.clearbit.com/hc/en-us/articles/4420022080783 — installing the Clearbit tag
  *
  * @param options - The options for the Clearbit script.
  * @returns The Clearbit script.
