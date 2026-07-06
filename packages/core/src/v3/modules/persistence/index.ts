@@ -85,6 +85,11 @@ export function createPersistence(
 	return {
 		dispose() {
 			unsubscribe();
+			// A write queued in the current tick must not fire after dispose —
+			// it would flush the (possibly stale) snapshot into storage after a
+			// newer provider took over. Flushing synchronously keeps the last
+			// consent change durable without leaving a timer behind.
+			scheduler.flush();
 		},
 		hydrate() {
 			return hydrateFromStorage(kernel, storageConfig);
