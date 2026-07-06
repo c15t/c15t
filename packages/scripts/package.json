@@ -17,6 +17,7 @@
 		"meta-pixel",
 		"posthog",
 		"pirsch",
+		"clearbit",
 		"tiktok-pixel",
 		"linkedin-insights",
 		"microsoft-uet",
@@ -49,6 +50,11 @@
 			"types": "./dist-types/vendors/analytics/cloudflare-web-analytics.d.ts",
 			"import": "./dist/vendors/analytics/cloudflare-web-analytics.js",
 			"require": "./dist/vendors/analytics/cloudflare-web-analytics.cjs"
+		},
+		"./clearbit": {
+			"types": "./dist-types/vendors/analytics/clearbit.d.ts",
+			"import": "./dist/vendors/analytics/clearbit.js",
+			"require": "./dist/vendors/analytics/clearbit.cjs"
 		},
 		"./microsoft-clarity": {
 			"types": "./dist-types/vendors/analytics/microsoft-clarity.d.ts",

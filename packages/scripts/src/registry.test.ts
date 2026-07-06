@@ -39,6 +39,7 @@ import {
 	ahrefsAnalytics,
 	ahrefsAnalyticsManifest,
 } from './vendors/analytics/ahrefs-analytics';
+import { clearbit, clearbitManifest } from './vendors/analytics/clearbit';
 import {
 	cloudflareWebAnalytics,
 	cloudflareWebAnalyticsManifest,
@@ -131,6 +132,14 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://static.cloudflareinsights.com/beacon.min.js',
+		},
+	},
+	clearbit: {
+		script: clearbit({ publishableKey: 'pk_contract' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://tag.clearbitscripts.com/v1/pk_contract/tags.js',
 		},
 	},
 	'microsoft-clarity': {
@@ -343,6 +352,7 @@ const vendorManifests = [
 	gtagManifest,
 	ahrefsAnalyticsManifest,
 	cloudflareWebAnalyticsManifest,
+	clearbitManifest,
 	clarityManifest,
 	databuddyManifest,
 	fathomAnalyticsManifest,

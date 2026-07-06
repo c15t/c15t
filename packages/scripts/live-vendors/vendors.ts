@@ -19,6 +19,7 @@ import { snapchatPixel } from '../src/vendors/ads-and-pixels/snapchat-pixel';
 import { tiktokPixel } from '../src/vendors/ads-and-pixels/tiktok-pixel';
 import { xPixel } from '../src/vendors/ads-and-pixels/x-pixel';
 import { ahrefsAnalytics } from '../src/vendors/analytics/ahrefs-analytics';
+import { clearbit } from '../src/vendors/analytics/clearbit';
 import { cloudflareWebAnalytics } from '../src/vendors/analytics/cloudflare-web-analytics';
 import { databuddy } from '../src/vendors/analytics/databuddy';
 import { fathomAnalytics } from '../src/vendors/analytics/fathom-analytics';
@@ -157,6 +158,17 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				window.__cfBeacon?.token === 'c15tfake000000000000000000000000',
 				'window.__cfBeacon token present after loader executed'
 			),
+	},
+	{
+		vendor: 'clearbit',
+		// Clearbit returns JavaScript with an "Invalid tags.js configuration:
+		// 404" console error for placeholder publishable keys, so the probe
+		// validates consent gating and endpoint reachability but not runtime.
+		tier: 'loader-only',
+		createScript: () => clearbit({ publishableKey: 'pk_c15tfake' }),
+		loaderUrlSubstring: 'tag.clearbitscripts.com/v1/pk_c15tfake/tags.js',
+		notes:
+			'Placeholder publishable keys return HTTP 404 JavaScript from tag.clearbitscripts.com; runtime globals are not asserted.',
 	},
 	{
 		vendor: 'microsoft-clarity',

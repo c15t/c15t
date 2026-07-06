@@ -261,6 +261,7 @@ const generateDocsConfig = () => {
 							'google-tag',
 							'ahrefs-analytics',
 							'cloudflare-web-analytics',
+							'clearbit',
 							'microsoft-clarity',
 							'databuddy',
 							'fathom-analytics',
