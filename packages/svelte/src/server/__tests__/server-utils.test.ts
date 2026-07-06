@@ -271,9 +271,8 @@ describe('v3 server helpers', () => {
 			'cf-ipcountry': 'DE',
 			'x-vercel-ip-country-region': 'BE',
 			'accept-language': 'de-DE,de;q=0.9',
-			cookie: `c15t-consent=${encodeURIComponent(
-				JSON.stringify({ necessary: true, marketing: true })
-			)}`,
+			// The persistence module's cookie — v2-compatible compact format.
+			cookie: 'c15t=c.necessary:1,c.marketing:1,i.t:1234567890',
 		});
 		const result = await readInitialConsentConfig({
 			headers,
@@ -323,7 +322,7 @@ describe('v3 server helpers', () => {
 
 		expect(mockFetch).toHaveBeenCalledOnce();
 		expect(mockFetch.mock.calls[0][0]).toBe('https://api.example.com/init');
-		expect(mockFetch.mock.calls[0][1].method).toBe('POST');
+		expect(mockFetch.mock.calls[0][1].method).toBe('GET');
 	});
 
 	test('prefetchInitialConsent folds init response into KernelConfig', async () => {

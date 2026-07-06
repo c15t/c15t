@@ -122,10 +122,7 @@ describe('prefetchInitialConsent: backend call', () => {
 
 	test('failed backend call returns baseline config (silent degradation)', async () => {
 		headerStore.set('cf-ipcountry', 'US');
-		cookieStore.set(
-			'c15t-consent',
-			encodeURIComponent(JSON.stringify({ marketing: true }))
-		);
+		headerStore.set('cookie', 'c15t=c.necessary:1,c.marketing:1,i.t:1');
 
 		const fetchSpy = vi.fn().mockRejectedValue(new Error('network down'));
 
@@ -144,11 +141,9 @@ describe('prefetchInitialConsent: backend call', () => {
 	});
 
 	test('server-returned consents merge with cookie consents', async () => {
-		cookieStore.set(
-			'c15t-consent',
-			encodeURIComponent(
-				JSON.stringify({ marketing: true, measurement: false })
-			)
+		headerStore.set(
+			'cookie',
+			'c15t=c.necessary:1,c.marketing:1,c.measurement:0,i.t:1'
 		);
 
 		const fetchSpy = vi.fn().mockResolvedValue(
@@ -164,7 +159,8 @@ describe('prefetchInitialConsent: backend call', () => {
 		});
 
 		// /init does not carry consent preferences; cookie state is preserved.
-		expect(config.initialConsents).toEqual({
+		// (The shared parser expands to the full consent record.)
+		expect(config.initialConsents).toMatchObject({
 			marketing: true,
 			measurement: false,
 		});

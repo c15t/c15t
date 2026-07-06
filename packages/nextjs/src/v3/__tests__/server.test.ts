@@ -42,35 +42,6 @@ describe('readInitialConsentConfig: cookies', () => {
 		expect(config).toEqual({});
 	});
 
-	test('parses a valid consent cookie', async () => {
-		cookieStore.set(
-			'c15t-consent',
-			encodeURIComponent(JSON.stringify({ marketing: true, measurement: true }))
-		);
-		const config = await readInitialConsentConfig();
-		expect(config.initialConsents).toEqual({
-			marketing: true,
-			measurement: true,
-		});
-		expect(config.initialHasConsented).toBe(true);
-	});
-
-	test('parses persisted v2/v3 storage payloads', async () => {
-		cookieStore.set(
-			'c15t-consent',
-			encodeURIComponent(
-				JSON.stringify({
-					consents: { marketing: true },
-					consentInfo: { subjectId: 'sub_123' },
-				})
-			)
-		);
-		const config = await readInitialConsentConfig();
-		expect(config.initialConsents).toEqual({ marketing: true });
-		expect(config.initialHasConsented).toBe(true);
-		expect(config.initialSubjectId).toBe('sub_123');
-	});
-
 	test('reads the persistence module cookie (c15t, v2 compact format)', async () => {
 		// This is what the v3 persistence module actually writes client-side.
 		// The server MUST see it, or every SSR repeat visitor gets the banner
@@ -88,36 +59,27 @@ describe('readInitialConsentConfig: cookies', () => {
 		});
 	});
 
-	test('persistence cookie wins over the legacy JSON cookie', async () => {
-		headerStore.set('cookie', 'c15t=c.necessary:1,c.marketing:1,i.t:1');
-		cookieStore.set(
-			'c15t-consent',
-			encodeURIComponent(JSON.stringify({ marketing: false }))
-		);
+	test('ignores malformed cookie values', async () => {
+		headerStore.set('cookie', 'c15t=not-a-consent-payload');
 		const config = await readInitialConsentConfig();
-		expect(config.initialConsents).toMatchObject({ marketing: true });
+		expect(config.initialConsents).toBeUndefined();
+		expect(config.initialHasConsented).toBeUndefined();
 	});
 
-	test('ignores malformed cookies', async () => {
-		cookieStore.set('c15t-consent', 'not-json');
+	test('ignores unrelated cookies', async () => {
+		headerStore.set('cookie', 'session=abc; theme=dark');
 		const config = await readInitialConsentConfig();
 		expect(config.initialConsents).toBeUndefined();
 	});
 
-	test('ignores array payloads', async () => {
-		cookieStore.set('c15t-consent', encodeURIComponent('[]'));
-		const config = await readInitialConsentConfig();
-		expect(config.initialConsents).toBeUndefined();
-	});
-
-	test('respects custom cookie name', async () => {
-		cookieStore.set(
-			'my-consent',
-			encodeURIComponent(JSON.stringify({ marketing: true }))
-		);
-		const config = await readInitialConsentConfig({ cookieName: 'my-consent' });
-		expect(config.initialConsents).toEqual({ marketing: true });
+	test('respects a customized storage key', async () => {
+		// Mirrors a client that set storageConfig.storageKey = 'my-consent'.
+		headerStore.set('cookie', 'my-consent=c.necessary:1,c.marketing:1,i.t:1');
+		const config = await readInitialConsentConfig({
+			cookieName: 'my-consent',
+		});
 		expect(config.initialHasConsented).toBe(true);
+		expect(config.initialConsents).toMatchObject({ marketing: true });
 	});
 });
 

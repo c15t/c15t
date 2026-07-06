@@ -1,16 +1,14 @@
 import {
-	type ConsentState,
 	createHostedTransport,
 	type KernelConfig,
 	type KernelOverrides,
 } from 'c15t/v3';
+import { readStoredConsentFromCookie } from 'c15t/v3/modules/persistence';
 import { normalizeBackendURL } from './normalize-url';
 import type {
 	PrefetchInitialConsentOptions,
 	ReadInitialConsentConfigOptions,
 } from './types';
-
-const CONSENT_COOKIE_DEFAULT = 'c15t-consent';
 
 function parseAcceptLanguage(header: string | null): string | undefined {
 	if (!header) return undefined;
@@ -20,46 +18,25 @@ function parseAcceptLanguage(header: string | null): string | undefined {
 	return code && code.length <= 10 ? code : undefined;
 }
 
-function parseCookieValue(
-	cookieHeader: string | null | undefined,
-	name: string
-): string | undefined {
-	if (!cookieHeader) return undefined;
-	for (const part of cookieHeader.split(';')) {
-		const [rawKey, ...valueParts] = part.trim().split('=');
-		if (rawKey === name) return valueParts.join('=');
-	}
-	return undefined;
-}
-
-function parseConsentCookie(
-	value: string | undefined
-): Partial<ConsentState> | undefined {
-	if (!value) return undefined;
-	try {
-		const decoded = decodeURIComponent(value);
-		const parsed = JSON.parse(decoded) as
-			| Partial<ConsentState>
-			| { consents?: Partial<ConsentState> };
-		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-			return undefined;
-		}
-		if ('consents' in parsed && parsed.consents) return parsed.consents;
-		return parsed as Partial<ConsentState>;
-	} catch {
-		return undefined;
-	}
-}
-
 export async function readInitialConsentConfig(
 	options: ReadInitialConsentConfigOptions
 ): Promise<KernelConfig> {
-	const cookieName = options.cookieName ?? CONSENT_COOKIE_DEFAULT;
-	const consentCookie = parseCookieValue(
-		options.cookieHeader ?? options.headers.get('cookie'),
-		cookieName
+	// The persistence module writes the `c15t` cookie in the v2-compatible
+	// compact format — read it with the same shared parser the client uses.
+	// `cookieName` only matters if the consumer customized
+	// `storageConfig.storageKey` client-side.
+	const cookieHeader =
+		options.cookieHeader ?? options.headers.get('cookie') ?? undefined;
+	const persisted = readStoredConsentFromCookie(
+		cookieHeader,
+		options.cookieName ? { storageKey: options.cookieName } : undefined
 	);
-	const initialConsents = parseConsentCookie(consentCookie);
+	const initialConsents = persisted?.consents;
+	const hasConsented = Boolean(persisted?.consents && persisted.consentInfo);
+	const subjectId =
+		typeof persisted?.consentInfo?.subjectId === 'string'
+			? persisted.consentInfo.subjectId
+			: undefined;
 
 	const country =
 		options.country ??
@@ -85,6 +62,12 @@ export async function readInitialConsentConfig(
 
 	const config: KernelConfig = {};
 	if (initialConsents) config.initialConsents = initialConsents;
+	if (hasConsented) {
+		// Without this the server still renders the banner for returning
+		// visitors (activeUI derives from hasConsented).
+		config.initialHasConsented = true;
+		if (subjectId) config.initialSubjectId = subjectId;
+	}
 	if (Object.keys(overrides).length > 0) {
 		config.initialOverrides = overrides;
 	}

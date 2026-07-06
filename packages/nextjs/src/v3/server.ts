@@ -35,12 +35,11 @@ import {
 	extractConsentRequestInputs,
 } from './headers';
 
-const CONSENT_COOKIE_DEFAULT = 'c15t-consent';
-
 export interface ReadInitialConsentConfigOptions {
 	/**
-	 * Cookie name holding serialized consent state. Defaults to `c15t-consent`.
-	 * Must match whatever the persistence boot module writes client-side.
+	 * Cookie name holding persisted consent. Defaults to `c15t` — the
+	 * persistence module's storage key. Set this only if you customized
+	 * `storageConfig.storageKey` client-side; it must match.
 	 */
 	cookieName?: string;
 
@@ -57,52 +56,11 @@ export interface ReadInitialConsentConfigOptions {
 }
 
 /**
- * Extract consent state from a cookie value. Accepts the JSON shape
- * `{ "necessary": true, "marketing": false, ... }`. Silently ignores
- * malformed cookies — consent defaults to all-false-except-necessary.
- */
-function parseConsentCookie(value: string | undefined):
-	| {
-			consents: Partial<ConsentState>;
-			subjectId?: string;
-	  }
-	| undefined {
-	if (!value) return undefined;
-	try {
-		const decoded = decodeURIComponent(value);
-		const parsed = JSON.parse(decoded) as
-			| Partial<ConsentState>
-			| {
-					consents?: Partial<ConsentState>;
-					consentInfo?: { subjectId?: unknown } | null;
-			  };
-		if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-			const payloadConsents =
-				'consents' in parsed && parsed.consents
-					? parsed.consents
-					: (parsed as Partial<ConsentState>);
-			const subjectId =
-				'consentInfo' in parsed &&
-				parsed.consentInfo &&
-				typeof parsed.consentInfo.subjectId === 'string'
-					? parsed.consentInfo.subjectId
-					: undefined;
-			return {
-				consents: payloadConsents,
-				subjectId,
-			};
-		}
-	} catch {
-		// Malformed cookie — consumer will get defaults.
-	}
-	return undefined;
-}
-
-/**
  * Derive a `KernelConfig` from the current Next.js request.
  *
  * What it reads:
- * - Cookie (default: `c15t-consent`) — deserializes prior consent state.
+ * - Cookie (default: `c15t`, the persistence storage key) — read via the
+ *   shared v2-compatible parser, exactly as the client persists it.
  * - `x-vercel-ip-country` / `cf-ipcountry` / `x-country` — geo override.
  * - `x-vercel-ip-country-region` / `cf-region-code` — region override.
  * - `accept-language` — language override (first entry only).
@@ -118,18 +76,19 @@ function parseConsentCookie(value: string | undefined):
 export async function readInitialConsentConfig(
 	options: ReadInitialConsentConfigOptions = {}
 ): Promise<KernelConfig> {
-	const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
+	const headerStore = await headers();
 
 	// The persistence module writes the `c15t` cookie in the v2-compatible
-	// compact format — read it with the shared parser first, so the server
-	// sees exactly what the client persisted (returning visitors must not
-	// get the banner re-rendered into the first HTML). The legacy JSON
-	// cookie (`c15t-consent` or a custom name) remains as a fallback for
-	// consumers that serialize consent themselves.
+	// compact format — read it with the same shared parser the client uses,
+	// so the server sees exactly what the client persisted (returning
+	// visitors must not get the banner re-rendered into the first HTML).
+	// `cookieName` only matters if the consumer customized
+	// `storageConfig.storageKey` client-side.
 	const cookieHeader = (headerStore as Headers).get?.('cookie') ?? undefined;
-	const persisted = readStoredConsentFromCookie(cookieHeader);
-	const cookieName = options.cookieName ?? CONSENT_COOKIE_DEFAULT;
-	const consentCookie = cookieStore.get(cookieName)?.value;
+	const persisted = readStoredConsentFromCookie(
+		cookieHeader,
+		options.cookieName ? { storageKey: options.cookieName } : undefined
+	);
 	const storedConsent =
 		persisted?.consents && persisted.consentInfo
 			? {
@@ -139,7 +98,7 @@ export async function readInitialConsentConfig(
 							? persisted.consentInfo.subjectId
 							: undefined,
 				}
-			: parseConsentCookie(consentCookie);
+			: undefined;
 
 	const inputs = extractConsentRequestInputs(headerStore as Headers, {
 		country: options.country,

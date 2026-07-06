@@ -192,6 +192,9 @@ function createCompatState(
 		get activeUI() {
 			return toActiveUI(getSnapshot().activeUI);
 		},
+		get policyProvisional() {
+			return getSnapshot().policyProvisional;
+		},
 		get branding() {
 			return getSnapshot().branding ?? 'c15t';
 		},
