@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import process from 'node:process';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright';
@@ -31,6 +31,30 @@ const apps = [
 			{ command: 'bun', args: ['run', 'build'], cwd: 'packages/core' },
 			{ command: 'bun', args: ['run', 'build'], cwd: 'packages/vue' },
 		],
+		extraChecks: [verifyNuxtNitroRoutes],
+	},
+	{
+		label: 'SvelteKit manifest SSR',
+		dir: 'benchmarks/sveltekit-browser-bench',
+		port: 4314,
+		path: '/ssr-manifest',
+		probeName: '__c15tSvelteBench',
+		buildOutput: 'benchmarks/sveltekit-browser-bench/build/index.js',
+		startCommand: ['node', ['build/index.js']],
+		env: { PORT: '4314' },
+		prebuild: [
+			{ command: 'bun', args: ['run', 'build'], cwd: 'packages/core' },
+			{ command: 'bun', args: ['run', 'build'], cwd: 'packages/svelte' },
+		],
+		skips: {
+			// Do not fake a pass: @c15t/svelte's ConsentBanner mounts
+			// client-side only (useBannerVisibility gates rendering on
+			// onMount, and the portal action needs `document`). The server
+			// prefetch prevents banner flash and zombie banners, but the
+			// banner markup itself is not in the first HTML yet.
+			ssrBannerHtml:
+				'@c15t/svelte does not render banner markup during SSR yet (ConsentBanner gates on onMount); prefetch only seeds the kernel',
+		},
 	},
 ];
 
@@ -167,16 +191,26 @@ async function readProbe(page, app) {
 async function verifyFreshVisit(browser, app) {
 	const { context, page, url } = await newPage(browser, app);
 	try {
-		const html = await fetchHtml(context, url);
-		assert(
-			countBannerRoots(html) > 0,
-			`${app.label}: response HTML did not contain ${bannerSelector}`
-		);
+		if (app.skips?.ssrBannerHtml) {
+			console.log(
+				`⊘ ${app.label}: SKIPPED banner-in-first-HTML check — ${app.skips.ssrBannerHtml}`
+			);
+		} else {
+			const html = await fetchHtml(context, url);
+			assert(
+				countBannerRoots(html) > 0,
+				`${app.label}: response HTML did not contain ${bannerSelector}`
+			);
+		}
 		await gotoSettled(page, url);
 		await page.locator(bannerSelector).first().waitFor({ state: 'visible' });
 		const cls = await page.evaluate(() => window.__c15tLayoutShiftScore ?? 0);
 		assertEqual(cls, 0, `${app.label}: layout shift score`);
-		console.log(`✓ ${app.label}: fresh visit renders the banner server-side`);
+		console.log(
+			app.skips?.ssrBannerHtml
+				? `✓ ${app.label}: fresh visit shows the banner after hydration (zero layout shift)`
+				: `✓ ${app.label}: fresh visit renders the banner server-side`
+		);
 	} finally {
 		await context.close();
 	}
@@ -283,6 +317,178 @@ async function verifyNoZombie(browser, app) {
 	}
 }
 
+function readC15tVersion() {
+	const packageJson = JSON.parse(
+		readFileSync(new URL('../packages/core/package.json', import.meta.url))
+	);
+	return packageJson.version;
+}
+
+async function fetchJsonResponse(app, url, headers = {}) {
+	const response = await fetch(url, { headers });
+	assertEqual(response.status, 200, `${app.label}: ${url} status`);
+	const contentType = response.headers.get('content-type') ?? '';
+	assert(
+		contentType.includes('application/json'),
+		`${app.label}: ${url} content-type was ${contentType || '<empty>'}`
+	);
+	return { response, body: await response.json() };
+}
+
+/**
+ * Direct HTTP assertions against the Nitro server routes the @c15t/vue
+ * Nuxt module registers (packages/vue/src/module.ts →
+ * runtime/server/{init,manifest}.get.ts). Runs against the already-booted
+ * Nuxt server — no browser involved.
+ */
+async function verifyNuxtNitroRoutes(app) {
+	const base = `http://127.0.0.1:${app.port}`;
+
+	// --- /api/c15t/manifest: cached proxy of the upstream manifest ---
+	const { response: manifestResponse, body: manifest } =
+		await fetchJsonResponse(app, `${base}/api/c15t/manifest`);
+	assertEqual(
+		manifest.schemaVersion,
+		1,
+		`${app.label}: nitro manifest schemaVersion`
+	);
+	assertEqual(
+		manifest.revision,
+		'nuxt-browser-bench-manifest',
+		`${app.label}: nitro manifest revision`
+	);
+	assert(
+		Array.isArray(manifest.policyPacks) && manifest.policyPacks.length === 1,
+		`${app.label}: nitro manifest policyPacks`
+	);
+	const pack = manifest.policyPacks[0];
+	assertEqual(
+		pack.fingerprint,
+		'fingerprint_nuxt_browser_bench',
+		`${app.label}: nitro manifest pack fingerprint`
+	);
+	assertEqual(
+		pack.resolvedPolicy?.ui?.mode,
+		'banner',
+		`${app.label}: nitro manifest resolvedPolicy ui mode`
+	);
+	assert(
+		Boolean(
+			manifest.translations?.i18n?.messages?.default?.translations?.en
+				?.cookieBanner?.title
+		),
+		`${app.label}: nitro manifest translations payload`
+	);
+	// Nitro's defineCachedEventHandler wrapper replaces the upstream
+	// cache-control passthrough with its own maxAge directive, so only
+	// assert a cache-control header is present — etag/304 below cover the
+	// revalidation contract.
+	assert(
+		Boolean(manifestResponse.headers.get('cache-control')),
+		`${app.label}: nitro manifest cache-control header missing`
+	);
+	const etag = manifestResponse.headers.get('etag');
+	assertEqual(
+		etag,
+		'"nuxt-browser-bench-manifest"',
+		`${app.label}: nitro manifest etag passthrough`
+	);
+	const conditional = await fetch(`${base}/api/c15t/manifest`, {
+		headers: { 'if-none-match': etag },
+	});
+	assertEqual(
+		conditional.status,
+		304,
+		`${app.label}: nitro manifest if-none-match status`
+	);
+	console.log(
+		`✓ ${app.label}: Nitro /api/c15t/manifest proxies the manifest (schema fields, cache headers, 304)`
+	);
+
+	// --- /api/c15t/init: manifest-resolved init, geo/GPC/language aware ---
+	const { body: init } = await fetchJsonResponse(app, `${base}/api/c15t/init`, {
+		'x-c15t-country': 'FR',
+		'cf-ipcountry': 'US',
+		'x-c15t-region': 'BRE',
+		'sec-gpc': '1',
+		'accept-language': 'en;q=0.2, de-DE;q=0.9',
+	});
+	assertEqual(
+		init.translations?.language,
+		'de',
+		`${app.label}: nitro init negotiated translations language`
+	);
+	assert(
+		Boolean(init.translations?.translations?.cookieBanner?.title),
+		`${app.label}: nitro init translations payload`
+	);
+	assertEqual(init.branding, 'c15t', `${app.label}: nitro init branding`);
+	assert(
+		typeof init.jurisdiction === 'string' && init.jurisdiction.length > 0,
+		`${app.label}: nitro init jurisdiction`
+	);
+	assertEqual(
+		init.location?.countryCode,
+		'FR',
+		`${app.label}: nitro init location country`
+	);
+	assertEqual(
+		init.policy?.ui?.mode,
+		'banner',
+		`${app.label}: nitro init resolved policy ui mode`
+	);
+	assert(
+		Array.isArray(init.policy?.consent?.categories) &&
+			init.policy.consent.categories.includes('marketing'),
+		`${app.label}: nitro init resolved policy categories`
+	);
+	assertEqual(
+		init.policyDecision?.fingerprint,
+		'fingerprint_nuxt_browser_bench',
+		`${app.label}: nitro init policyDecision fingerprint`
+	);
+	assertEqual(
+		init.resolvedOverrides?.country,
+		'FR',
+		`${app.label}: nitro init override country (x-c15t beats cf-ipcountry)`
+	);
+	assertEqual(
+		init.resolvedOverrides?.region,
+		'BRE',
+		`${app.label}: nitro init override region`
+	);
+	assertEqual(
+		init.resolvedOverrides?.gpc,
+		true,
+		`${app.label}: nitro init GPC override`
+	);
+	assertEqual(
+		init.resolvedOverrides?.language,
+		'de',
+		`${app.label}: nitro init language override`
+	);
+	console.log(
+		`✓ ${app.label}: Nitro /api/c15t/init resolves init from the manifest (geo/GPC/language aware)`
+	);
+
+	// --- x-c15t-version on the proxy's upstream manifest fetch ---
+	// The Nitro handlers fetch the upstream manifest (the bench fixture)
+	// with `c15tVersionHeaders`; the fixture records what it received.
+	const { body: versionHeaders } = await fetchJsonResponse(
+		app,
+		`${base}/api/bench-consent/version-headers`
+	);
+	const expectedVersion = readC15tVersion();
+	assertEqual(
+		versionHeaders.manifest,
+		expectedVersion,
+		`${app.label}: upstream manifest fetch x-c15t-version`
+	);
+	console.log(
+		`✓ ${app.label}: upstream manifest fetch carries x-c15t-version=${expectedVersion}`
+	);
+}
+
 async function verifyApp(browser, app) {
 	await ensureBuilt(app);
 	const { server, stderr } = await startServer(app);
@@ -292,6 +498,9 @@ async function verifyApp(browser, app) {
 		await verifyGpc(browser, app);
 		await verifyLanguage(browser, app);
 		await verifyNoZombie(browser, app);
+		for (const extraCheck of app.extraChecks ?? []) {
+			await extraCheck(app);
+		}
 	} catch (error) {
 		if (stderr.length > 0) {
 			console.error(stderr.join(''));
@@ -303,6 +512,7 @@ async function verifyApp(browser, app) {
 }
 
 async function main() {
+	const startedAt = Date.now();
 	const browser = await chromium.launch({ headless: true });
 	try {
 		for (const app of apps) {
@@ -311,6 +521,9 @@ async function main() {
 	} finally {
 		await browser.close();
 	}
+	console.log(
+		`Total e2e wall time: ${((Date.now() - startedAt) / 1000).toFixed(1)}s`
+	);
 }
 
 main().catch((error) => {
