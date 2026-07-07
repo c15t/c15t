@@ -17,16 +17,17 @@ export type VerifyConsentRequestBody = VerifyConsentInput;
 export type VerifyConsentResponse = VerifyConsentOutput;
 
 // Hoist shared state so vi.mock factory can access it
+const hoistedMocks = vi.hoisted(() => ({
+	mockFetch: vi.fn(),
+	mockConfigureConsentManager: vi.fn(),
+	fetchCallMap: new Map<string, boolean>(),
+	runtimeCache: new Map<
+		string,
+		{ consentManager: unknown; consentStore: unknown }
+	>(),
+}));
 const { mockFetch, mockConfigureConsentManager, fetchCallMap, runtimeCache } =
-	vi.hoisted(() => ({
-		mockFetch: vi.fn(),
-		mockConfigureConsentManager: vi.fn(),
-		fetchCallMap: new Map<string, boolean>(),
-		runtimeCache: new Map<
-			string,
-			{ consentManager: unknown; consentStore: unknown }
-		>(),
-	}));
+	hoistedMocks;
 
 // Mock c15t module at module level (hoisted by vitest)
 vi.mock('c15t', async () => {

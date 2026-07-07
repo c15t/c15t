@@ -76,6 +76,9 @@ export default mergeConfig(
 				'src/**/*.spec.ts',
 				'src/**/*.e2e.test.tsx',
 			],
+			coverage: {
+				exclude: ['src/providers/__tests__/test-helpers.tsx'],
+			},
 			browser: {
 				enabled: true,
 				provider: playwright(),
