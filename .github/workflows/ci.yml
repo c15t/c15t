@@ -184,7 +184,11 @@ jobs:
           SVELTE_STORYBOOK_URL: http://127.0.0.1:6007
           VUE_STORYBOOK_URL: http://127.0.0.1:6008
           PARITY_FRAMEWORKS: react,svelte,vue
-        run: bun run test:parity
+        # --ignore-snapshots: committed screenshot baselines are darwin-only;
+        # DOM/a11y/computed-style parity is still fully enforced. Drop the
+        # flag once linux baselines are generated (e.g. via the Playwright
+        # docker image) and committed.
+        run: bun run --cwd apps/parity-runner test:parity --ignore-snapshots
 
       - name: 📖 Run Storybook interaction tests (react)
         if: ${{ !cancelled() }}
