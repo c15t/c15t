@@ -479,7 +479,8 @@ function createLifecycleTransport(opts: MountOptions) {
 				return {
 					location: init.location,
 					translations: init.translations,
-					branding: init.branding,
+					// InitOutput branding includes 'none'; InitResponse does not.
+					branding: init.branding === 'none' ? undefined : init.branding,
 					policy: init.policy,
 					policyDecision: init.policyDecision,
 					policySnapshotToken: init.policySnapshotToken,
