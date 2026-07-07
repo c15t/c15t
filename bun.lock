@@ -636,6 +636,7 @@
         "@types/express": "^5.0.6",
         "@types/node": "25.5.0",
         "@types/pg": "8.20.0",
+        "genversion": "3.2.0",
         "kysely-pglite": "^0.6.1",
         "msw": "^2.12.14",
         "typescript": "^6.0.2",
