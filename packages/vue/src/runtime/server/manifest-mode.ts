@@ -4,6 +4,7 @@ import type {
 	ResolveInitFromManifestInputs,
 } from '@c15t/schema/types';
 import {
+	consentInputsToOverrides,
 	extractConsentRequestInputs,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
@@ -207,8 +208,9 @@ export function resolveManifestInit(input: {
 	manifest: ConsentManifest;
 	headers: Record<string, string | string[] | undefined>;
 }): InitOutput {
-	return resolveInitFromManifest(
-		input.manifest,
-		getResolverInputsFromHeaders(input.headers)
-	);
+	const inputs = getResolverInputsFromHeaders(input.headers);
+	return {
+		...resolveInitFromManifest(input.manifest, inputs),
+		resolvedOverrides: consentInputsToOverrides(inputs),
+	} as InitOutput;
 }

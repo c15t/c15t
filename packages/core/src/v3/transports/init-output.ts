@@ -9,7 +9,12 @@ import type {
 } from '../types';
 
 type RichInitOutput = InitOutput &
-	Partial<Pick<InitResponse, 'consents' | 'hasConsented' | 'subjectId'>>;
+	Partial<
+		Pick<
+			InitResponse,
+			'consents' | 'hasConsented' | 'resolvedOverrides' | 'subjectId'
+		>
+	>;
 
 function mapBranding(
 	branding: InitOutput['branding']
@@ -45,7 +50,10 @@ export function mapInitOutputToInitResponse(
 	headers: Record<string, string>
 ): InitResponse {
 	const mapped: InitResponse = {
-		resolvedOverrides: mapResolvedOverrides(payload, headers),
+		resolvedOverrides: {
+			...mapResolvedOverrides(payload, headers),
+			...(payload.resolvedOverrides ?? {}),
+		},
 		location: payload.location,
 		translations: payload.translations,
 		// On the real backend, omitted `gvl` on a 200 response means IAB is not

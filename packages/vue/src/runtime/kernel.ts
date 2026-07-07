@@ -278,7 +278,7 @@ export function createVueConsentKernelContext(options: {
 			? createVueManifestTransport(options.config, headers, options.prefetch)
 			: createVueHostedTransport(options.config, headers);
 	const kernel = createConsentKernel({
-		...initOutputToKernelConfig(options.prefetch),
+		...initOutputToKernelConfig(options.prefetch, headers),
 		...storedPayloadToKernelConfig(options.initialStoredConsent),
 		transport,
 	});
