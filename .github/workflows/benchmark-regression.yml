@@ -30,6 +30,11 @@ on:
       - 'turbo.json'
       - 'internals/bundle-analysis-action/**'
 
+env:
+  # leadtype package-docs generation exceeds the default Node heap on
+  # cache-miss builds of larger packages (core, react).
+  NODE_OPTIONS: --max-old-space-size=6144
+
 jobs:
   benchmark:
     name: Run Benchmarks

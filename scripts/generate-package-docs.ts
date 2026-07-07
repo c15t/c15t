@@ -123,6 +123,14 @@ async function runLeadtype(config: PackageDocsConfig) {
 		cwd: ROOT_DIR,
 		stderr: 'inherit',
 		stdout: 'inherit',
+		env: {
+			...process.env,
+			// leadtype's MDX bundling exceeds Node's default heap on the larger
+			// packages (core, react); raise it here so every caller — all CI
+			// workflows and local builds — gets the fix in one place.
+			NODE_OPTIONS:
+				`${process.env.NODE_OPTIONS ?? ''} --max-old-space-size=6144`.trim(),
+		},
 	});
 	const exitCode = await proc.exited;
 	if (exitCode !== 0) {

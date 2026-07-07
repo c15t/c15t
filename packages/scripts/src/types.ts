@@ -147,6 +147,46 @@ export interface DefineQueueMethodsStep {
 	queue?:
 		| { global: string; property?: never }
 		| { global?: never; property: string };
+	/**
+	 * Format used for each queued method call.
+	 *
+	 * - `tuple` pushes `[methodName, ...args]`, matching classic array queues.
+	 * - `methodCall` pushes `{ name, args, resolve }` and returns a `Promise`,
+	 *   matching SDK loaders that replay named calls and resolve the original
+	 *   pre-load promise after the real method runs.
+	 * - `wrappedMethodCall` queues like `methodCall` but returns
+	 *   `{ promise }`, matching Amplitude's snippet contract where queued
+	 *   proxy calls expose the pending promise on a `promise` property.
+	 * - `voidMethodCall` queues like `methodCall` but returns nothing,
+	 *   matching snippet methods the vendor treats as synchronous.
+	 * - `callback` pushes `{ name, fn }`, where `fn` replays the captured call
+	 *   against the current global target, matching loaders that own a
+	 *   ready-callback queue.
+	 *
+	 * @default 'tuple'
+	 */
+	queueFormat?:
+		| 'tuple'
+		| 'methodCall'
+		| 'wrappedMethodCall'
+		| 'voidMethodCall'
+		| 'callback';
+}
+
+export interface DefineQueueClassStep {
+	type: 'defineQueueClass';
+	/** Global object that receives the queued helper class. */
+	target: string;
+	/** Constructor property name to define on the target object. */
+	name: string;
+	/**
+	 * Instance property that stores queued helper method calls.
+	 *
+	 * @default '_q'
+	 */
+	queueProperty?: string;
+	/** Helper instance method names to attach to the constructor prototype. */
+	methods: string[];
 }
 
 export type GlobalMethodBehavior =
@@ -191,6 +231,7 @@ export type ManifestStep =
 	| PushToQueueStep
 	| SetGlobalPathStep
 	| DefineQueueMethodsStep
+	| DefineQueueClassStep
 	| DefineGlobalMethodsStep
 	| ConstructGlobalStep;
 
@@ -202,8 +243,12 @@ export type ManifestStep =
  * Consent signal type determines how consent state is communicated to the vendor.
  *
  * - `'gtag'` — Google Consent Mode pattern: calls `gtag('consent', 'default'|'update', state)`
+ * - `'rudderstack'` — RudderStack consent-management pattern: calls
+ *   `rudderanalytics.consent({ consentManagement: { enabled, provider: 'custom',
+ *   allowedConsentIds, deniedConsentIds } })` with the mapping's consent IDs
+ *   partitioned by the current c15t consent state
  */
-export type ConsentSignalType = 'gtag';
+export type ConsentSignalType = 'gtag' | 'rudderstack';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vendor Manifest — declarative vendor integration definition
