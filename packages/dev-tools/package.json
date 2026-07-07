@@ -49,12 +49,13 @@
 		"dist-types"
 	],
 	"scripts": {
-		"prebuild": "bunx genversion --esm --semi src/version.ts",
+		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./src"
+		"lint": "bun biome lint ./src",
+		"test": "bun prebuild && vitest run"
 	},
 	"browserslist": [
 		">0.2%",
@@ -81,7 +82,10 @@
 		"@c15t/typescript-config": "workspace:*",
 		"@types/react": "19.2.14",
 		"@types/react-dom": "19.2.3",
-		"postcss": "^8.5.8"
+		"genversion": "3.2.0",
+		"jsdom": "^25.0.0",
+		"postcss": "^8.5.8",
+		"vitest": "4.0.15"
 	},
 	"peerDependencies": {
 		"react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0",

@@ -13,6 +13,7 @@
 				".output/**",
 				"dist/**",
 				"dist-types/**",
+				"storybook-static/**",
 				"AGENTS.md",
 				"docs/**"
 			],

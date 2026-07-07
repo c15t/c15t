@@ -54,6 +54,8 @@
 		"setup:docs": "tsx scripts/setup-docs.ts",
 		"test": "turbo run test",
 		"test:parity": "turbo run test:parity --filter=@c15t/parity-runner",
+		"test:scripts": "vitest run --root scripts --config vitest.config.ts",
+		"test:storybook": "turbo run test-storybook --filter=@c15t/storybook-react --filter=@c15t/storybook-svelte --filter=@c15t/storybook-vue",
 		"vercel-build": "tsx scripts/setup-docs.ts --vercel",
 		"version": "changeset version && bun install",
 		"version:canary": "changeset version --snapshot canary && bun install",
