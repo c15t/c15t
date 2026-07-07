@@ -26,6 +26,17 @@ interface NuxtBenchState {
 	mountCount: number;
 	renderCount: number;
 	activeUI: string;
+	overrides?: {
+		country?: string;
+		region?: string;
+		language?: string;
+		gpc?: boolean;
+	};
+	location?: {
+		countryCode?: string | null;
+		regionCode?: string | null;
+	} | null;
+	hasConsented?: boolean;
 	onBannerFetchedMs?: number;
 	cls?: number;
 	bannerReadyMs?: number;
@@ -86,6 +97,17 @@ function normalizeActiveUI(value: unknown): string {
 		return 'none';
 	}
 	return String(value);
+}
+
+function updateSnapshotProbe(state: NuxtBenchState) {
+	state.overrides = { ...snapshot.value.overrides };
+	state.location = snapshot.value.location
+		? {
+				countryCode: snapshot.value.location.countryCode,
+				regionCode: snapshot.value.location.regionCode,
+			}
+		: null;
+	state.hasConsented = snapshot.value.hasConsented;
 }
 
 function isElementVisible(element: Element): boolean {
@@ -212,6 +234,7 @@ if (import.meta.client) {
 	const state = getBenchState();
 	if (state) {
 		state.renderCount += 1;
+		updateSnapshotProbe(state);
 	}
 }
 
@@ -219,6 +242,7 @@ onBeforeUpdate(() => {
 	const state = getBenchState();
 	if (state) {
 		state.renderCount += 1;
+		updateSnapshotProbe(state);
 	}
 });
 
@@ -249,6 +273,17 @@ watch(
 			state.onConsentSetCount += 1;
 		}
 		void nextTick(markRepeatVisitorReady);
+	},
+	{ immediate: true }
+);
+
+watch(
+	snapshot,
+	() => {
+		const state = getBenchState();
+		if (state) {
+			updateSnapshotProbe(state);
+		}
 	},
 	{ immediate: true }
 );

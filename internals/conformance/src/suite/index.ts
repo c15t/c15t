@@ -13,6 +13,7 @@ import type { SuiteApi } from './helpers';
 import { runI18nConformance } from './i18n';
 import { runPoliciesConformance } from './policies';
 import { runProviderConformance } from './provider';
+import { runRequestLifecycleConformance } from './request-lifecycle';
 import { runSsrConformance } from './ssr';
 import { runStoreConformance } from './store';
 
@@ -22,6 +23,7 @@ export type { SuiteApi } from './helpers';
 export { runI18nConformance } from './i18n';
 export { runPoliciesConformance } from './policies';
 export { runProviderConformance } from './provider';
+export { runRequestLifecycleConformance } from './request-lifecycle';
 export { runSsrConformance } from './ssr';
 export { runStoreConformance } from './store';
 
@@ -33,4 +35,5 @@ export function runConformanceSuite(driver: TestDriver, api: SuiteApi): void {
 	runEventContractConformance(driver, api);
 	runErrorConformance(driver, api);
 	runSsrConformance(driver, api);
+	runRequestLifecycleConformance(driver, api);
 }

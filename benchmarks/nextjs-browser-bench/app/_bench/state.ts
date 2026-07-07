@@ -19,6 +19,17 @@ export interface NextjsBenchState {
 	mountCount: number;
 	renderCount: number;
 	activeUI: string;
+	overrides?: {
+		country?: string;
+		region?: string;
+		language?: string;
+		gpc?: boolean;
+	};
+	location?: {
+		countryCode?: string | null;
+		regionCode?: string | null;
+	} | null;
+	hasConsented?: boolean;
 	onBannerFetchedMs?: number;
 	cls?: number;
 	bannerReadyMs?: number;

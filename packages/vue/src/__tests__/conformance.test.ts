@@ -17,8 +17,23 @@ import {
 } from '@c15t/conformance';
 import type { InitOutput, TranslationsResponse } from '@c15t/schema/types';
 import { flushPromises } from '@vue/test-utils';
+import {
+	type ConsentKernel,
+	type ConsentSnapshot,
+	createConsentKernel,
+	type KernelConfig,
+	type KernelTransport,
+} from 'c15t/v3';
 import { describe, expect, test, vi } from 'vitest';
-import { type App, createApp, createSSRApp, defineComponent, h } from 'vue';
+import {
+	type App,
+	computed,
+	createApp,
+	createSSRApp,
+	defineComponent,
+	h,
+	shallowRef,
+} from 'vue';
 import { renderToString } from 'vue/server-renderer';
 import ConsentManager from '../runtime/components/consent-manager.vue';
 import ConsentRoot from '../runtime/components/consent-root.vue';
@@ -204,6 +219,82 @@ function buildInitOutput(
 	};
 }
 
+function buildKernelConfig(
+	opts: MountOptions,
+	options: ProviderOptions,
+	transport: KernelTransport
+): KernelConfig {
+	const state = opts.initialState as
+		| {
+				consents?: Record<string, boolean>;
+				hasConsented?: boolean;
+		  }
+		| undefined;
+	const initMode = opts.initMode ?? 'authoritative';
+	const base: KernelConfig = {
+		initialConsents: state?.consents,
+		initialHasConsented: state?.hasConsented,
+		initialTranslations: resolveTranslations(options, opts.locale),
+		transport,
+	};
+	if (initMode === 'authoritative') {
+		return {
+			...base,
+			initialLocation: {
+				countryCode: 'DE',
+				regionCode: null,
+			},
+			initialBranding: 'c15t',
+			initialPolicy: buildInitOutput(opts, options).policy,
+			initialPolicyDecision: {
+				policyId: 'vue_conformance_policy',
+				fingerprint: 'vue_conformance_fingerprint',
+				matchedBy: 'default',
+				country: 'DE',
+				region: null,
+				jurisdiction: 'GDPR',
+			},
+			initialPolicySnapshotToken: 'vue_conformance_token',
+		};
+	}
+	return {
+		...base,
+		initialPolicy: buildInitOutput(opts, options).policy,
+		initialPolicyProvisional: true,
+	};
+}
+
+function snapshotToInitOutputForTest(
+	snapshot: ConsentSnapshot
+): InitOutput | undefined {
+	if (!(snapshot.translations || snapshot.policy || snapshot.location)) {
+		return undefined;
+	}
+	return {
+		jurisdiction: snapshot.policyDecision?.jurisdiction ?? 'NONE',
+		location: snapshot.location ?? {
+			countryCode: null,
+			regionCode: null,
+		},
+		translations:
+			snapshot.translations ?? resolveTranslations({} as ProviderOptions),
+		branding: snapshot.branding ?? 'c15t',
+		policy: snapshot.policy ?? undefined,
+		policyDecision: snapshot.policyDecision ?? undefined,
+		policySnapshotToken: snapshot.policySnapshotToken ?? undefined,
+	} as InitOutput;
+}
+
+function snapshotToStoredConsentForTest(snapshot: ConsentSnapshot) {
+	const categories: Record<string, boolean> = {};
+	if (snapshot.hasConsented) {
+		for (const [category, enabled] of Object.entries(snapshot.consents)) {
+			categories[category] = enabled;
+		}
+	}
+	return { policies: {}, categories };
+}
+
 function mockFetch(init: InitOutput): typeof fetch {
 	return vi.fn(async (input: RequestInfo | URL, request?: RequestInit) => {
 		const url = String(input);
@@ -288,21 +379,27 @@ function createHarness(
 	context: VueConsentKernelContext
 ) {
 	const Child = componentFor(opts.component);
-	if (
-		opts.component === 'consent-dialog' ||
-		opts.component === 'consent-widget'
-	) {
-		context.kernel.set.activeUI('dialog');
-	} else {
-		context.kernel.set.activeUI('banner');
+	if ((opts.initMode ?? 'authoritative') === 'authoritative') {
+		if (
+			opts.component === 'consent-dialog' ||
+			opts.component === 'consent-widget'
+		) {
+			context.kernel.set.activeUI('dialog');
+		} else {
+			context.kernel.set.activeUI('banner');
+		}
 	}
 
 	if (opts.initialState && typeof opts.initialState === 'object') {
 		const state = opts.initialState as {
 			consents?: Record<string, boolean>;
+			hasConsented?: boolean;
 			activeUI?: 'none' | 'banner' | 'dialog';
 		};
 		if (state.consents) context.kernel.set.consent(state.consents);
+		if (state.hasConsented !== undefined) {
+			context.kernel.set.hasConsented(state.hasConsented);
+		}
 		if (state.activeUI) context.kernel.set.activeUI(state.activeUI);
 	}
 
@@ -324,6 +421,12 @@ function createHarness(
 
 function createContext(opts: MountOptions) {
 	const options = (opts.providerOptions ?? {}) as ProviderOptions;
+	if ((opts.initMode ?? 'authoritative') !== 'authoritative') {
+		throw new DriverNotImplementedError(
+			'vue',
+			`createContext(${opts.initMode}) requires a controlled lifecycle context`
+		);
+	}
 	const init = buildInitOutput(opts, options);
 	const config = buildConfig(opts, init);
 	const context = createVueConsentKernelContext({
@@ -335,6 +438,101 @@ function createContext(opts: MountOptions) {
 		context,
 		config,
 		options,
+	};
+}
+
+function createPendingInit() {
+	let resolve!: () => void;
+	const promise = new Promise<Record<string, never>>((settle) => {
+		resolve = () => settle({});
+	});
+	return { promise, resolve };
+}
+
+function createLifecycleTransport(opts: MountOptions) {
+	if ((opts.initMode ?? 'authoritative') === 'pending') {
+		const deferred = createPendingInit();
+		return {
+			transport: {
+				init: () => deferred.promise,
+			},
+			resolve: deferred.resolve,
+		};
+	}
+	if (opts.initMode === 'failing') {
+		return {
+			transport: {
+				async init() {
+					throw new Error('conformance: init failed');
+				},
+			},
+			resolve: undefined,
+		};
+	}
+	const init = buildInitOutput(
+		opts,
+		(opts.providerOptions ?? {}) as ProviderOptions
+	);
+	return {
+		transport: {
+			async init() {
+				return {
+					location: init.location,
+					translations: init.translations,
+					branding: init.branding,
+					policy: init.policy,
+					policyDecision: init.policyDecision,
+					policySnapshotToken: init.policySnapshotToken,
+				};
+			},
+		},
+		resolve: undefined,
+	};
+}
+
+function createControlledContext(opts: MountOptions) {
+	const options = (opts.providerOptions ?? {}) as ProviderOptions;
+	const lifecycle = createLifecycleTransport(opts);
+	const config = buildConfig(opts, buildInitOutput(opts, options));
+	const kernel: ConsentKernel = createConsentKernel(
+		buildKernelConfig(opts, options, lifecycle.transport)
+	);
+	const snapshot = shallowRef(kernel.getSnapshot());
+	const unsubscribe = kernel.subscribe((next) => {
+		snapshot.value = next;
+	});
+	const context: VueConsentKernelContext = {
+		kernel,
+		snapshot,
+		init: computed(() => snapshotToInitOutputForTest(snapshot.value)),
+		activeUI: computed({
+			get: () => {
+				const activeUI = snapshot.value.activeUI;
+				if (activeUI === 'dialog') return 'manager';
+				if (activeUI === 'none') return null;
+				return activeUI;
+			},
+			set: (value) => {
+				if (value === 'manager') kernel.set.activeUI('dialog');
+				else if (value === null) kernel.set.activeUI('none');
+				else kernel.set.activeUI(value);
+			},
+		}),
+		storedConsent: computed({
+			get: () => snapshotToStoredConsentForTest(snapshot.value),
+			set: (value) => {
+				kernel.set.consent(value.categories);
+			},
+		}),
+		dispose() {
+			unsubscribe();
+		},
+	};
+	return {
+		context,
+		config,
+		options,
+		resolveInit: lifecycle.resolve,
 	};
 }
 
@@ -360,7 +558,8 @@ let lastContext: VueConsentKernelContext | null = null;
 const driver: TestDriver = {
 	framework: 'vue',
 	async mount(opts: MountOptions): Promise<MountResult> {
-		const { context, config, options } = createContext(opts);
+		const { context, config, options, resolveInit } =
+			createControlledContext(opts);
 		lastContext = context;
 
 		const container = document.createElement('div');
@@ -371,9 +570,21 @@ const driver: TestDriver = {
 		app.mount(container);
 		await flushPromises();
 		await new Promise((resolve) => setTimeout(resolve, 0));
+		if ((opts.initMode ?? 'authoritative') !== 'authoritative') {
+			void context.kernel.commands.init();
+			await flushPromises();
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		}
 
 		return {
 			root: opts.component === 'consent-widget' ? document.body : container,
+			resolveInit: resolveInit
+				? async () => {
+						resolveInit();
+						await flushPromises();
+						await new Promise((resolve) => setTimeout(resolve, 0));
+					}
+				: undefined,
 			unmount: async () => {
 				app.unmount();
 				await flushPromises();
@@ -398,7 +609,10 @@ const driver: TestDriver = {
 		};
 	},
 	async serverRender(opts: MountOptions): Promise<string> {
-		const { context, config, options } = createContext(opts);
+		const { context, config, options } =
+			(opts.initMode ?? 'authoritative') === 'authoritative'
+				? createContext(opts)
+				: createControlledContext(opts);
 		try {
 			const app = createSSRApp(createHarness(opts, options, context));
 			provideContext(app, context, config);

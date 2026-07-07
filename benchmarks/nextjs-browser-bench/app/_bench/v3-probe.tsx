@@ -1,6 +1,6 @@
 'use client';
 
-import { useActiveUI } from '@c15t/nextjs/v3';
+import { useActiveUI, useSnapshot } from '@c15t/nextjs/v3';
 import { useEffect, useRef } from 'react';
 import {
 	getState,
@@ -41,12 +41,21 @@ export function NextjsV3BenchmarkProbe({
 	scenario: NextjsBenchScenario;
 }) {
 	const activeUI = useActiveUI();
+	const snapshot = useSnapshot();
 	const renderRef = useRef(0);
 	renderRef.current += 1;
 
 	const state = getState(scenario);
 	if (state) {
 		state.renderCount = renderRef.current;
+		state.overrides = { ...snapshot.overrides };
+		state.location = snapshot.location
+			? {
+					countryCode: snapshot.location.countryCode,
+					regionCode: snapshot.location.regionCode,
+				}
+			: null;
+		state.hasConsented = snapshot.hasConsented;
 	}
 
 	useEffect(() => {
@@ -94,6 +103,14 @@ export function NextjsV3BenchmarkProbe({
 		}
 
 		current.activeUI = activeUI ?? 'none';
+		current.overrides = { ...snapshot.overrides };
+		current.location = snapshot.location
+			? {
+					countryCode: snapshot.location.countryCode,
+					regionCode: snapshot.location.regionCode,
+				}
+			: null;
+		current.hasConsented = snapshot.hasConsented;
 		if (current.bannerVisibleMs !== undefined || activeUI !== 'banner') {
 			return;
 		}
@@ -137,7 +154,7 @@ export function NextjsV3BenchmarkProbe({
 
 		frameId = window.requestAnimationFrame(check);
 		return () => window.cancelAnimationFrame(frameId);
-	}, [activeUI, scenario]);
+	}, [activeUI, scenario, snapshot]);
 
 	return null;
 }

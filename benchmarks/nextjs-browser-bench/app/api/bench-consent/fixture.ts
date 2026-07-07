@@ -160,6 +160,7 @@ export const benchConsentManifestResponse = {
 					fallbackLanguage: 'en',
 					translations: {
 						en: benchConsentTranslations,
+						de: benchConsentTranslations,
 					},
 				},
 			},

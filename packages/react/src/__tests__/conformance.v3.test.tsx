@@ -208,31 +208,41 @@ function buildProviderOptions(opts: MountOptions): ConsentProviderOptions {
 	const state = opts.initialState as
 		| {
 				consents?: Record<string, boolean>;
+				hasConsented?: boolean;
 		  }
 		| undefined;
-	const prefetch: KernelConfig = {
+	const initMode = opts.initMode ?? 'authoritative';
+	const basePrefetch: KernelConfig = {
 		...(provided.prefetch ?? {}),
 		initialConsents: {
 			...(provided.prefetch?.initialConsents ?? {}),
 			...(state?.consents ?? {}),
 		},
+		initialHasConsented:
+			state?.hasConsented ?? provided.prefetch?.initialHasConsented,
 		initialTranslations: resolveTranslations(provided, opts.locale),
-		initialLocation: {
-			countryCode: 'DE',
-			regionCode: null,
-		},
-		initialBranding: 'c15t',
-		initialPolicy: buildPolicy(opts, provided),
-		initialPolicyDecision: {
-			policyId: 'react_v3_conformance_policy',
-			fingerprint: 'react_v3_conformance_fingerprint',
-			matchedBy: 'default',
-			country: 'DE',
-			region: null,
-			jurisdiction: 'GDPR',
-		},
-		initialPolicySnapshotToken: 'react_v3_conformance_token',
 	};
+	const prefetch: KernelConfig =
+		initMode === 'authoritative'
+			? {
+					...basePrefetch,
+					initialLocation: {
+						countryCode: 'DE',
+						regionCode: null,
+					},
+					initialBranding: 'c15t',
+					initialPolicy: buildPolicy(opts, provided),
+					initialPolicyDecision: {
+						policyId: 'react_v3_conformance_policy',
+						fingerprint: 'react_v3_conformance_fingerprint',
+						matchedBy: 'default',
+						country: 'DE',
+						region: null,
+						jurisdiction: 'GDPR',
+					},
+					initialPolicySnapshotToken: 'react_v3_conformance_token',
+				}
+			: basePrefetch;
 
 	return {
 		...provided,
@@ -243,6 +253,42 @@ function buildProviderOptions(opts: MountOptions): ConsentProviderOptions {
 		consentCategories: consentCategoriesFor(provided),
 		prefetch,
 	};
+}
+
+function createPendingInit() {
+	let resolve!: () => void;
+	const promise = new Promise<Record<string, never>>((settle) => {
+		resolve = () => settle({});
+	});
+	return { promise, resolve };
+}
+
+function lifecycleTransportFor(opts: MountOptions) {
+	if ((opts.initMode ?? 'authoritative') === 'pending') {
+		const deferred = createPendingInit();
+		return {
+			transport: {
+				init: () => deferred.promise,
+			},
+			resolve: deferred.resolve,
+		};
+	}
+	if (opts.initMode === 'failing') {
+		return {
+			transport: {
+				async init() {
+					throw new Error('conformance: init failed');
+				},
+			},
+			resolve: undefined,
+		};
+	}
+	return { transport: undefined, resolve: undefined };
+}
+
+async function flushScheduler() {
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
 function KernelCapture({
@@ -348,7 +394,11 @@ let lastKernel: ConsentKernel | null = null;
 const driver: TestDriver = {
 	framework: 'react',
 	async mount(opts: MountOptions): Promise<MountResult> {
-		const options = buildProviderOptions(opts);
+		const lifecycle = lifecycleTransportFor(opts);
+		const options = {
+			...buildProviderOptions(opts),
+			...(lifecycle.transport ? { transport: lifecycle.transport } : {}),
+		};
 		let mountedKernel: ConsentKernel | null = null;
 		let resolveSettled: () => void = () => {};
 		const settled = new Promise<void>((resolve) => {
@@ -371,7 +421,7 @@ const driver: TestDriver = {
 			)
 		);
 		await settled;
-		await new Promise((resolve) => setTimeout(resolve, 0));
+		await flushScheduler();
 
 		if (!mountedKernel) {
 			throw new Error('React v3 driver: mount completed without kernel');
@@ -379,9 +429,15 @@ const driver: TestDriver = {
 
 		return {
 			root: container,
+			resolveInit: lifecycle.resolve
+				? async () => {
+						lifecycle.resolve?.();
+						await flushScheduler();
+					}
+				: undefined,
 			unmount: async () => {
 				root.unmount();
-				await new Promise((resolve) => setTimeout(resolve, 0));
+				await flushScheduler();
 				container.replaceChildren();
 				container.remove();
 				if (lastKernel === mountedKernel) lastKernel = null;

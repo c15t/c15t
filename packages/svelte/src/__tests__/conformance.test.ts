@@ -112,6 +112,14 @@ function buildPolicy(
 }
 
 function buildProviderOptions(opts: MountOptions): ProviderOptions {
+	if (opts.initMode) {
+		// TODO: implement request-lifecycle once the Svelte provider exposes an
+		// equivalent initialPolicyProvisional path for deferred transport init.
+		throw new DriverNotImplementedError(
+			'svelte',
+			`request lifecycle initMode (${opts.initMode})`
+		);
+	}
 	const provided = (opts.providerOptions ?? {}) as Partial<ProviderOptions>;
 	const state = opts.initialState as
 		| {
@@ -222,6 +230,14 @@ const driver: TestDriver = {
 		};
 	},
 	async serverRender(_opts: MountOptions): Promise<string> {
+		if (_opts.initMode) {
+			// TODO: see buildProviderOptions; SSR also needs an SSR-compiled
+			// fixture before this lifecycle contract can run for Svelte.
+			throw new DriverNotImplementedError(
+				'svelte',
+				`request lifecycle initMode (${_opts.initMode})`
+			);
+		}
 		// Svelte 5 dual-compiles components (client vs server output). This
 		// vitest project resolves the browser condition, so `svelte/server`'s
 		// `render()` receives client-compiled components and throws

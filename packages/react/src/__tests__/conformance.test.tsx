@@ -53,6 +53,12 @@ function renderFor(component: MountableComponent): ReactElement {
 }
 
 function buildProviderOptions(opts: MountOptions): ConsentManagerOptions {
+	if (opts.initMode) {
+		throw new DriverNotImplementedError(
+			'react',
+			`request lifecycle initMode (${opts.initMode}) is implemented by the v3 conformance driver only`
+		);
+	}
 	const provided = (opts.providerOptions ??
 		{}) as Partial<ConsentManagerOptions>;
 	return {
@@ -120,6 +126,12 @@ const driver: TestDriver = {
 		};
 	},
 	async serverRender(opts: MountOptions): Promise<string> {
+		if (opts.initMode) {
+			throw new DriverNotImplementedError(
+				'react',
+				`request lifecycle initMode (${opts.initMode}) is implemented by the v3 conformance driver only`
+			);
+		}
 		const options = buildProviderOptions(opts);
 		return renderToString(
 			<ConsentManagerProvider options={options}>

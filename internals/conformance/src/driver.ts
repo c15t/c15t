@@ -26,6 +26,13 @@ export type MountableComponent =
 export type MountOptions = {
 	component: MountableComponent;
 	/**
+	 * Controls how the provider receives its initial policy data.
+	 * - authoritative: current behavior, first render has authoritative data.
+	 * - pending: no authoritative init data yet; driver exposes resolveInit.
+	 * - failing: init rejects and the runtime must fall back safely.
+	 */
+	initMode?: 'authoritative' | 'pending' | 'failing';
+	/**
 	 * Options passed to the framework provider. The shape mirrors
 	 * `ConsentManagerOptions` from `@c15t/core` — we reference it loosely
 	 * (`unknown`) so this package stays zero-import on runtime framework code.
@@ -40,6 +47,11 @@ export type MountOptions = {
 export type MountResult = {
 	/** Root element the component was rendered into. */
 	root: HTMLElement;
+	/**
+	 * Present only for `initMode: 'pending'`. Resolves the driver's deferred
+	 * transport init and waits for the framework scheduler to settle.
+	 */
+	resolveInit?: () => Promise<void>;
 	/** Tear down the component, remove listeners, detach from DOM. */
 	unmount: () => void | Promise<void>;
 };
