@@ -79,9 +79,20 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 	nuxtApp.vueApp.provide(symbolInit, context.init);
 	nuxtApp.vueApp.provide(symbolActiveUI, context.activeUI);
 	nuxtApp.vueApp.provide(symbolConsent, context.storedConsent);
-	startVueConsentRuntime(context, config.value as ConsentConfig, {
-		runInit:
-			!prefetch &&
-			!(manifestMode === 'client' && typeof window === 'undefined'),
-	});
+	const disposeRuntime = startVueConsentRuntime(
+		context,
+		config.value as ConsentConfig,
+		{
+			runInit:
+				!prefetch &&
+				!(manifestMode === 'client' && typeof window === 'undefined'),
+		}
+	);
+	// A Nuxt app normally lives until page unload, but hosts that unmount the
+	// Vue app explicitly (tests, microfrontends) should tear the runtime down
+	// with it — mirrors the plain Vue plugin in src/index.ts. `onUnmount` is
+	// Vue 3.5+; Nuxt 3 apps on older Vue runtimes skip cleanup registration.
+	if (typeof nuxtApp.vueApp.onUnmount === 'function') {
+		nuxtApp.vueApp.onUnmount(disposeRuntime);
+	}
 });

@@ -66,6 +66,7 @@ export interface ConsentBoundaryProps {
 		| 'prefetch'
 		| 'scriptLoader'
 		| 'scripts'
+		| '__debugPkg'
 	>;
 
 	children: ReactNode;
@@ -92,6 +93,7 @@ export function ConsentBoundary({
 				scriptLoader,
 				networkBlocker,
 				persistence,
+				__debugPkg: '@c15t/nextjs',
 			}}
 		>
 			{children}

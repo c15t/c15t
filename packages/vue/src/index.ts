@@ -35,6 +35,11 @@ export const c15tVue: Plugin<[Partial<ConsentConfig>?]> = {
 		app.provide(symbolInit, context.init);
 		app.provide(symbolActiveUI, context.activeUI);
 		app.provide(symbolConsent, context.storedConsent);
-		startVueConsentRuntime(context, config);
+		const disposeRuntime = startVueConsentRuntime(context, config);
+		// `app.onUnmount` is Vue 3.5+. On older runtimes skip cleanup
+		// registration rather than throwing during plugin install.
+		if (typeof app.onUnmount === 'function') {
+			app.onUnmount(disposeRuntime);
+		}
 	},
 };

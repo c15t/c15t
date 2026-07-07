@@ -23,6 +23,14 @@ import {
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
 
+type WindowWithC15t = Window & {
+	c15t?: {
+		version: string;
+		pkg: string;
+		mode: string;
+	};
+};
+
 const initFixture: InitOutput = {
 	jurisdiction: 'GDPR',
 	location: {
@@ -238,6 +246,7 @@ async function renderRootToString(cookieHeader?: string) {
 }
 
 beforeEach(() => {
+	delete (window as WindowWithC15t).c15t;
 	document.body.innerHTML = '';
 	window.localStorage.clear();
 	document.cookie = 'c15t=; max-age=0; path=/';
@@ -246,12 +255,26 @@ beforeEach(() => {
 afterEach(() => {
 	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
+	delete (window as WindowWithC15t).c15t;
 	document.body.innerHTML = '';
 	window.localStorage.clear();
 	document.cookie = 'c15t=; max-age=0; path=/';
 });
 
 describe('@c15t/vue kernel runtime', () => {
+	test('installs window.c15t with Vue hosted identity', async () => {
+		const { wrapper } = await mountRoot();
+
+		expect((window as WindowWithC15t).c15t).toMatchObject({
+			pkg: '@c15t/vue',
+			mode: 'hosted',
+		});
+		expect(typeof (window as WindowWithC15t).c15t?.version).toBe('string');
+
+		wrapper.unmount();
+		expect((window as WindowWithC15t).c15t).toBeUndefined();
+	});
+
 	test('renders the banner from kernel init state', async () => {
 		const { wrapper } = await mountRoot();
 

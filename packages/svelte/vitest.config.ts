@@ -41,6 +41,13 @@ export default mergeConfig(
 					),
 				},
 				{
+					find: 'c15t/v3/modules/window-debug',
+					replacement: resolve(
+						__dirname,
+						'../core/src/v3/modules/window-debug/index.ts'
+					),
+				},
+				{
 					find: '@c15t/iab/v3',
 					replacement: resolve(__dirname, '../iab/src/v3/index.ts'),
 				},

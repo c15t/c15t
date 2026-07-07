@@ -43,6 +43,10 @@ export default mergeConfig(
 					__dirname,
 					'../core/src/v3/modules/persistence/index.ts'
 				),
+				'c15t/v3/modules/window-debug': resolve(
+					__dirname,
+					'../core/src/v3/modules/window-debug/index.ts'
+				),
 				'c15t/v3/consent-record': resolve(
 					__dirname,
 					'../core/src/v3/consent-record/index.ts'

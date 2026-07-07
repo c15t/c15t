@@ -87,6 +87,11 @@
 			"types": "./dist-types/v3/modules/persistence/index.d.ts",
 			"import": "./dist/v3-persistence.js",
 			"require": "./dist/v3-persistence.cjs"
+		},
+		"./v3/modules/window-debug": {
+			"types": "./dist-types/v3/modules/window-debug/index.d.ts",
+			"import": "./dist/v3-window-debug.js",
+			"require": "./dist/v3-window-debug.cjs"
 		}
 	},
 	"main": "dist/index.cjs",

@@ -36,6 +36,11 @@ import {
 	type TranslationsResponse,
 } from 'c15t/v3';
 import type { Script } from 'c15t/v3/modules/script-loader';
+import {
+	createWindowDebug,
+	resolveWindowDebugMode,
+	type WindowDebugMode,
+} from 'c15t/v3/modules/window-debug';
 import type { ReactNode } from 'react';
 import {
 	lazy,
@@ -133,6 +138,8 @@ export interface ConsentProviderOptions
 	 * compatibility and bridged through a minimal custom transport.
 	 */
 	endpointHandlers?: CustomClientOptions['endpointHandlers'];
+	/** @internal Adapter package name reported by `window.c15t`. */
+	__debugPkg?: string;
 }
 
 export interface ConsentProviderProps {
@@ -832,6 +839,23 @@ function PersistenceMount({ options }: { options?: UsePersistenceOptions }) {
 	return null;
 }
 
+function WindowDebugMount({
+	pkg,
+	mode,
+}: {
+	pkg: string;
+	mode: WindowDebugMode;
+}) {
+	useEffect(() => {
+		// The module is tiny and dependency-free; `createWindowDebug` itself
+		// guards against pages that made `window.c15t` non-writable.
+		const handle = createWindowDebug({ pkg, mode });
+		return () => handle.dispose();
+	}, [mode, pkg]);
+
+	return null;
+}
+
 function ThemeStyleMount({ theme }: { theme?: Theme }) {
 	const [themeCSS, setThemeCSS] = useState('');
 
@@ -957,6 +981,8 @@ export function ConsentProvider({ options, children }: ConsentProviderProps) {
 	const iabOptions = normalizeIabOptions(getProviderIab(options));
 	const scripts = getProviderScripts(options);
 	const networkBlocker = getProviderNetworkBlocker(options);
+	const windowDebugPkg = options.__debugPkg ?? '@c15t/react';
+	const windowDebugMode = resolveWindowDebugMode(options);
 
 	useProviderCallbacks(
 		kernel,
@@ -1002,6 +1028,10 @@ export function ConsentProvider({ options, children }: ConsentProviderProps) {
 				enabled={enabled}
 				kernel={kernel}
 				eagerInit={eagerInit}
+			/>
+			<WindowDebugMount
+				pkg={windowDebugPkg}
+				mode={windowDebugMode}
 			/>
 			{enabled && persistenceOptions ? (
 				<PersistenceMount options={persistenceOptions} />

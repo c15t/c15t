@@ -29,6 +29,10 @@ import { createIframeBlocker } from 'c15t/v3/modules/iframe-blocker';
 import { createNetworkBlocker } from 'c15t/v3/modules/network-blocker';
 import { createPersistence } from 'c15t/v3/modules/persistence';
 import { createScriptLoader } from 'c15t/v3/modules/script-loader';
+import {
+	createWindowDebug,
+	resolveWindowDebugMode,
+} from 'c15t/v3/modules/window-debug';
 import type { Snippet } from 'svelte';
 import { onDestroy, onMount, untrack } from 'svelte';
 import {
@@ -481,6 +485,12 @@ onMount(() => {
 	const disposers: Array<() => void> = [];
 	const enabled = getEnabled(options);
 	const persistenceOptions = normalizePersistenceOptions();
+
+	const windowDebug = createWindowDebug({
+		pkg: '@c15t/svelte',
+		mode: resolveWindowDebugMode(options),
+	});
+	disposers.push(() => windowDebug.dispose());
 
 	if (enabled && persistenceOptions) {
 		const persistence =
