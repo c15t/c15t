@@ -42,6 +42,13 @@ export {
 	generateSubjectId,
 	isValidSubjectId,
 } from './libs/generate-subject-id';
+export type {
+	C15tWindowDebug,
+	WindowDebugHandle,
+	WindowDebugMode,
+	WindowDebugOptions,
+} from './modules/window-debug';
+export { createWindowDebug } from './modules/window-debug';
 export type { HostedTransportOptions } from './transports/hosted';
 export { createHostedTransport } from './transports/hosted';
 export {

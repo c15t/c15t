@@ -38,6 +38,10 @@ export default mergeConfig(
 					__dirname,
 					'../core/src/v3/modules/persistence/index.ts'
 				),
+				'c15t/v3/modules/window-debug': resolve(
+					__dirname,
+					'../core/src/v3/modules/window-debug/index.ts'
+				),
 				'c15t/v3': resolve(__dirname, '../core/src/v3/index.ts'),
 				c15t: resolve(__dirname, '../core/src/index.ts'),
 				'@c15t/schema/types': resolve(__dirname, '../schema/src/types.ts'),

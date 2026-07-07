@@ -23,6 +23,7 @@ import {
 	type StoredPayload,
 } from 'c15t/v3/modules/persistence';
 import { createScriptLoader, type Script } from 'c15t/v3/modules/script-loader';
+import { createWindowDebug } from 'c15t/v3/modules/window-debug';
 import { computed, type Ref, shallowRef } from 'vue';
 import type { ConsentConfig } from './config';
 import {
@@ -370,6 +371,18 @@ export function startVueConsentRuntime(
 	options: { runInit?: boolean } = {}
 ): () => void {
 	const disposers: Array<() => void> = [];
+
+	if (typeof document !== 'undefined') {
+		const windowDebug = createWindowDebug({
+			pkg: '@c15t/vue',
+			mode:
+				isClientManifestModeEnabled(config) ||
+				isServerManifestModeEnabled(config)
+					? 'manifest'
+					: 'hosted',
+		});
+		disposers.push(() => windowDebug.dispose());
+	}
 
 	if (typeof document !== 'undefined' && typeof localStorage !== 'undefined') {
 		const persistence = createPersistence({

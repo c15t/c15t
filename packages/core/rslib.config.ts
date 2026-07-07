@@ -14,6 +14,7 @@ export default defineConfig({
 			'v3-network-blocker': ['./src/v3/modules/network-blocker/index.ts'],
 			'v3-iframe-blocker': ['./src/v3/modules/iframe-blocker/index.ts'],
 			'v3-persistence': ['./src/v3/modules/persistence/index.ts'],
+			'v3-window-debug': ['./src/v3/modules/window-debug/index.ts'],
 		},
 		exclude: [
 			'**/__tests__/**',
