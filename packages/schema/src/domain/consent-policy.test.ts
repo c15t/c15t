@@ -2,9 +2,13 @@ import * as v from 'valibot';
 import { describe, expect, it } from 'vitest';
 import {
 	postSubjectInputSchema,
+	postSubjectOutputSchema,
 	subjectPolicyBasedInputSchema,
 } from '../api/subject/post';
-import { legalDocumentPolicyTypeSchema } from './consent-policy';
+import {
+	consentPolicySchema,
+	legalDocumentPolicyTypeSchema,
+} from './consent-policy';
 
 describe('legalDocumentPolicyTypeSchema', () => {
 	it.each([
@@ -67,6 +71,23 @@ describe('subjectPolicyBasedInputSchema', () => {
 	});
 });
 
+describe('consentPolicySchema', () => {
+	it('accepts a stored policy with a suffixed legal-document type', () => {
+		const result = v.safeParse(consentPolicySchema, {
+			id: 'pol_123',
+			version: '2026-04-07',
+			type: 'terms_and_conditions_b2b',
+			hash: 'sha256:abc123',
+			effectiveDate: new Date('2026-04-07T00:00:00.000Z'),
+			isActive: true,
+			createdAt: new Date('2026-04-07T00:00:00.000Z'),
+			tenantId: null,
+		});
+
+		expect(result.success).toBe(true);
+	});
+});
+
 describe('postSubjectInputSchema variant routing', () => {
 	it('routes a suffixed legal-document type to the policy-based branch', () => {
 		const result = v.safeParse(postSubjectInputSchema, {
@@ -88,5 +109,20 @@ describe('postSubjectInputSchema variant routing', () => {
 		});
 
 		expect(result.success).toBe(false);
+	});
+});
+
+describe('postSubjectOutputSchema', () => {
+	it('accepts a response with a suffixed legal-document type', () => {
+		const result = v.safeParse(postSubjectOutputSchema, {
+			subjectId: 'sub_2jv6z8n4q9',
+			consentId: 'cns_123',
+			domainId: 'dom_123',
+			domain: 'example.com',
+			type: 'terms_and_conditions_b2b',
+			givenAt: new Date('2026-04-07T00:00:00.000Z'),
+		});
+
+		expect(result.success).toBe(true);
 	});
 });

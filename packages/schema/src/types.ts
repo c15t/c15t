@@ -52,13 +52,19 @@ export type {
 	AuditLog,
 	Consent,
 	ConsentPolicy,
+	ConsentPolicyType,
 	ConsentPurpose,
 	Domain,
 	LegalDocumentPolicyType,
+	LegalDocumentTypePrefix,
 	PolicyType,
 	RuntimePolicyDecision,
 	Subject,
 } from './domain';
+export {
+	isLegalDocumentType,
+	LEGAL_DOCUMENT_TYPE_PREFIXES,
+} from './shared/legal-document-types';
 
 // Shared types - derived from constants without Zod
 export type Branding = (typeof brandingValues)[number];

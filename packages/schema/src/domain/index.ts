@@ -10,10 +10,13 @@ export {
 
 export {
 	type ConsentPolicy,
+	type ConsentPolicyType,
 	consentPolicySchema,
+	consentPolicyTypeSchema,
 	isLegalDocumentType,
 	LEGAL_DOCUMENT_TYPE_PREFIXES,
 	type LegalDocumentPolicyType,
+	type LegalDocumentTypePrefix,
 	legalDocumentPolicyTypeSchema,
 	type PolicyType,
 	policyTypeSchema,

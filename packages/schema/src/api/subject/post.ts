@@ -6,6 +6,7 @@
 
 import * as v from 'valibot';
 import {
+	consentPolicyTypeSchema,
 	legalDocumentPolicyTypeSchema,
 	policyTypeSchema,
 } from '../../domain/consent-policy';
@@ -199,7 +200,7 @@ export const postSubjectOutputSchema = v.object({
 	consentId: v.string(),
 	domainId: v.string(),
 	domain: v.string(),
-	type: policyTypeSchema,
+	type: consentPolicyTypeSchema,
 	metadata: v.optional(v.record(v.string(), v.unknown())),
 	appliedPreferences: v.optional(v.record(v.string(), v.boolean())),
 	uiSource: v.optional(v.string()),
