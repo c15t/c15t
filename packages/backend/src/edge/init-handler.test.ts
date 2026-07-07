@@ -104,6 +104,9 @@ describe('unstable_c15tEdgeInit', () => {
 		expect(response.headers.get('access-control-allow-methods')).toBe(
 			'GET, OPTIONS'
 		);
+		expect(response.headers.get('access-control-allow-headers')).toBe(
+			'content-type, accept-language, x-c15t-version'
+		);
 		expect(response.headers.get('access-control-allow-origin')).toBe(
 			'https://myapp.com'
 		);
