@@ -62,11 +62,7 @@
 		"test:watch": "bun prebuild && vitest"
 	},
 	"dependencies": {
-		"@c15t/backend": "workspace:*",
-		"@orpc/client": "1.13.13",
-		"@orpc/contract": "1.13.13",
-		"@orpc/openapi-client": "^1.13.13",
-		"@orpc/server": "1.13.13"
+		"@c15t/backend": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
@@ -79,7 +75,7 @@
 		"@types/pg": "8.20.0",
 		"genversion": "3.2.0",
 		"kysely-pglite": "^0.6.1",
-		"msw": "^2.12.14",
-		"typescript": "^6.0.2"
+		"msw": "^2.14.6",
+		"typescript": "7.0.1-rc"
 	}
 }
