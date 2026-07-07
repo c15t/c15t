@@ -4,7 +4,6 @@
 		"jsx": "preserve",
 		"jsxImportSource": "solid-js",
 		"moduleResolution": "bundler",
-		"baseUrl": ".",
 		"paths": {
 			"~/*": ["./src/*"]
 		}
