@@ -7,6 +7,7 @@ import type {
 	IABConfig,
 	LegalLinks,
 	NetworkBlockerConfig,
+	OfflinePolicyConfig,
 	PolicyConfig,
 	StorageConfig,
 	User,
@@ -72,6 +73,16 @@ export interface ConsentManagerOptions
 	iab?: ProviderIABOptions;
 	persistence?: boolean | UsePersistenceOptions;
 	policies?: PolicyConfig[];
+	/**
+	 * Offline policy preview configuration.
+	 *
+	 * @remarks
+	 * Mirrors the React provider's `offlinePolicy` option: in `mode: 'offline'`
+	 * it lets you inject a synthetic resolved policy (`policy`,
+	 * `policyDecision`, `policySnapshotToken`) or backend-compatible
+	 * `policyPacks` without a live `/init` endpoint.
+	 */
+	offlinePolicy?: OfflinePolicyConfig;
 	i18n?: Partial<I18nConfig>;
 	consentCategories?: AllConsentNames[];
 	legalLinks?: LegalLinks;

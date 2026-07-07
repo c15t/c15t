@@ -112,7 +112,7 @@ function handlePurposeToggle(value: boolean) {
 	<div class={noStyle ? '' : styles.purposeHeader || ''}>
 		<PreferenceItem.Trigger class={noStyle ? '' : styles.purposeTrigger || ''}>
 			<PreferenceItem.Leading class={noStyle ? '' : styles.purposeArrow || ''}>
-				<ChevronRightIcon aria-hidden={true} />
+				<ChevronRightIcon />
 			</PreferenceItem.Leading>
 			<PreferenceItem.Header class={noStyle ? '' : styles.purposeInfo || ''}>
 				<PreferenceItem.Title class={noStyle ? '' : styles.purposeName || ''}>
@@ -120,7 +120,6 @@ function handlePurposeToggle(value: boolean) {
 					{#if isLocked}
 						<LockIcon
 							class={noStyle ? '' : styles.lockIcon || ''}
-							aria-hidden={true}
 						/>
 					{/if}
 				</PreferenceItem.Title>
@@ -136,7 +135,6 @@ function handlePurposeToggle(value: boolean) {
 					>
 						<LegitimateInterestIcon
 							class={noStyle ? '' : styles.legitimateInterestIcon || ''}
-							aria-hidden={true}
 						/>
 						{iabT.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
 							'{count}',
@@ -159,7 +157,6 @@ function handlePurposeToggle(value: boolean) {
 						class={noStyle ? '' : sw.thumb({ disabled: isLocked })}
 					/>
 				</Switch.Control>
-				<Switch.HiddenInput />
 			</Switch.Root>
 		</PreferenceItem.Control>
 	</div>
@@ -176,7 +173,6 @@ function handlePurposeToggle(value: boolean) {
 					<div class={noStyle ? '' : styles.purposeLIInfo || ''}>
 						<LegitimateInterestIcon
 							class={noStyle ? '' : styles.legitimateInterestIcon || ''}
-							aria-hidden={true}
 						/>
 						<span>
 							{iabT.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
@@ -209,7 +205,6 @@ function handlePurposeToggle(value: boolean) {
 			<div class={noStyle ? '' : styles.legitimateInterestBadge || ''}>
 				<LegitimateInterestIcon
 					class={noStyle ? '' : styles.legitimateInterestIcon || ''}
-					aria-hidden={true}
 				/>
 				{iabT.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
 					'{count}',
@@ -231,7 +226,6 @@ function handlePurposeToggle(value: boolean) {
 						<ChevronRightIcon
 							width="12"
 							height="12"
-							aria-hidden={true}
 						/>
 					</PreferenceItem.Leading>
 					{iabT.preferenceCenter.purposeItem.examples}
@@ -257,7 +251,6 @@ function handlePurposeToggle(value: boolean) {
 					<ChevronRightIcon
 						width="12"
 						height="12"
-						aria-hidden={true}
 					/>
 				</PreferenceItem.Leading>
 				{iabT.preferenceCenter.purposeItem.partnersUsingPurpose}
@@ -303,7 +296,6 @@ function handlePurposeToggle(value: boolean) {
 									<Switch.Control class={noStyle ? '' : swSmall.track()}>
 										<Switch.Thumb class={noStyle ? '' : swSmall.thumb()} />
 									</Switch.Control>
-									<Switch.HiddenInput />
 								</Switch.Root>
 							</div>
 						{/each}
@@ -318,7 +310,6 @@ function handlePurposeToggle(value: boolean) {
 						>
 							<LegitimateInterestIcon
 								class={noStyle ? '' : styles.legitimateInterestIcon || ''}
-								aria-hidden={true}
 							/>
 							{iabT.preferenceCenter.purposeItem.legitimateInterest}
 							({iabLegIntVendors.length})
@@ -378,7 +369,6 @@ function handlePurposeToggle(value: boolean) {
 										<Switch.Control class={noStyle ? '' : swSmall.track()}>
 											<Switch.Thumb class={noStyle ? '' : swSmall.thumb()} />
 										</Switch.Control>
-										<Switch.HiddenInput />
 									</Switch.Root>
 								{/if}
 							</div>
@@ -391,7 +381,6 @@ function handlePurposeToggle(value: boolean) {
 							<h5 class={noStyle ? '' : styles.vendorSectionTitleCustom || ''}>
 								<GlobeIcon
 									class={noStyle ? '' : styles.legitimateInterestIcon || ''}
-									aria-hidden={true}
 								/>
 								{iabT.preferenceCenter.vendorList.customVendorsHeading}
 								({customConsentVendors.length +
@@ -421,7 +410,6 @@ function handlePurposeToggle(value: boolean) {
 										<Switch.Control class={noStyle ? '' : swSmall.track()}>
 											<Switch.Thumb class={noStyle ? '' : swSmall.thumb()} />
 										</Switch.Control>
-										<Switch.HiddenInput />
 									</Switch.Root>
 								</div>
 							{/each}
@@ -467,7 +455,6 @@ function handlePurposeToggle(value: boolean) {
 											<Switch.Control class={noStyle ? '' : swSmall.track()}>
 												<Switch.Thumb class={noStyle ? '' : swSmall.thumb()} />
 											</Switch.Control>
-											<Switch.HiddenInput />
 										</Switch.Root>
 									{/if}
 								</div>

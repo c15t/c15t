@@ -1,7 +1,7 @@
 <script lang="ts">
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
-import { getTextDirection } from '@c15t/ui/utils';
-import type { Model } from 'c15t';
+import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
+import { defaultTranslationConfig, type Model } from 'c15t';
 import { getConsentContext, getThemeContext } from '../context.svelte';
 import { getIABTranslations } from '../iab-translations';
 import { processGVLData, type VendorId } from '../iab-types';
@@ -39,6 +39,9 @@ const iabState = $derived(consent.state.iab);
 
 // Translations
 const iabT = $derived(getIABTranslations(consent.state.translationConfig));
+const coreTranslations = $derived(
+	resolveTranslations(consent.state.translationConfig, defaultTranslationConfig)
+);
 const textDirection = $derived(
 	getTextDirection(consent.state.translationConfig?.defaultLanguage)
 );
@@ -198,12 +201,16 @@ function handleVendorClick(vendorId: VendorId) {
 					</div>
 					<Dialog.CloseTrigger
 						class={noStyle ? '' : styles.closeButton || ''}
-						aria-label="Close"
+						aria-label={coreTranslations.common.close}
 					>
+						<!--
+							Intentionally not aria-hidden: the React implementation exposes
+							this decorative close glyph as an `img` node in the a11y tree,
+							and cross-framework parity keys on identical ARIA snapshots.
+						-->
 						<CloseIcon
 							width="16"
 							height="16"
-							aria-hidden={true}
 						/>
 					</Dialog.CloseTrigger>
 				</div>
@@ -330,7 +337,7 @@ function handleVendorClick(vendorId: VendorId) {
 												<Collapsible.Indicator
 													class={noStyle ? '' : styles.purposeArrow || ''}
 												>
-													<ChevronRightIcon aria-hidden={true} />
+													<ChevronRightIcon />
 												</Collapsible.Indicator>
 												<div class={noStyle ? '' : styles.purposeInfo || ''}>
 													<h3
@@ -339,7 +346,6 @@ function handleVendorClick(vendorId: VendorId) {
 														{iabT.preferenceCenter.specialPurposes.title}
 														<LockIcon
 															class={noStyle ? '' : styles.lockIcon || ''}
-															aria-hidden={true}
 														/>
 													</h3>
 													<p class={noStyle ? '' : styles.purposeMeta || ''}>

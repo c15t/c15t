@@ -1,3 +1,4 @@
+import Portal from '../portal/portal.svelte';
 import Backdrop from './dialog-backdrop.svelte';
 import CloseTrigger from './dialog-close-trigger.svelte';
 import Content from './dialog-content.svelte';
@@ -11,6 +12,7 @@ export const Dialog = {
 	CloseTrigger,
 	Content,
 	Description,
+	Portal,
 	Positioner,
 	Root,
 	Title,
@@ -21,6 +23,7 @@ export {
 	CloseTrigger,
 	Content,
 	Description,
+	Portal,
 	Positioner,
 	Root,
 	Title,
