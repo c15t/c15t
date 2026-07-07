@@ -105,6 +105,8 @@ export const initialState: StoreRuntimeState = {
 
 	networkBlocker: undefined,
 
+	clearOnRevocation: undefined,
+
 	storageConfig: undefined,
 
 	includeNonDisplayedConsents: false,

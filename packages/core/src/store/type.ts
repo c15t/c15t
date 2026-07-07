@@ -17,6 +17,7 @@ import type {
 	PostSubjectOutput,
 } from '@c15t/schema/types';
 import type { Model } from '~/libs/determine-model';
+import type { ClearOnRevocationConfig } from '../libs/clear-on-revocation';
 import type { StorageConfig } from '../libs/cookie';
 import type { HasCondition } from '../libs/has';
 import type { IABConfig, IABManager } from '../libs/iab-tcf/types';
@@ -419,6 +420,19 @@ export interface StoreConfig {
 	 * @see {@link NetworkBlockerConfig} for available options
 	 */
 	networkBlocker?: NetworkBlockerConfig;
+
+	/**
+	 * Configuration for clearing first-party cookies and Web Storage keys
+	 * per consent category.
+	 *
+	 * @remarks
+	 * Runs whenever a category is not granted - both immediately after a
+	 * revocation and for categories that are already denied (e.g. a
+	 * returning visitor).
+	 *
+	 * @see {@link ClearOnRevocationConfig} for available options
+	 */
+	clearOnRevocation?: ClearOnRevocationConfig;
 
 	/**
 	 * Event callbacks for consent actions.
@@ -1061,6 +1075,15 @@ export interface StoreActions {
 
 	/** Destroys the network blocker instance and cleans up resources. */
 	destroyNetworkBlocker: () => void;
+
+	/**
+	 * Clears the cookies/storage keys configured for every currently
+	 * denied consent category.
+	 */
+	sweepClearOnRevocation: () => void;
+
+	/** Updates the clear-on-revocation configuration and sweeps denied categories. */
+	setClearOnRevocation: (config: StoreConfig['clearOnRevocation']) => void;
 
 	/**
 	 * Extends the active GDPR consent categories with any categories used by
