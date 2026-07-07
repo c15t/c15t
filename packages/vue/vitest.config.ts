@@ -76,6 +76,16 @@ export default mergeConfig(
 		test: {
 			environment: 'jsdom',
 			include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+			coverage: {
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				// Statements/functions/branches currently measure below 30%
+				// (untested files in the include glob inflate the denominator),
+				// so only lines is enforced for now.
+				thresholds: {
+					lines: 45,
+				},
+			},
 		},
 	})
 );

@@ -120,6 +120,16 @@ export default mergeConfig(
 				'./src/v3/test-setup.browser.ts',
 			],
 			retry: 2,
+			coverage: {
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				thresholds: {
+					lines: 65,
+					statements: 60,
+					functions: 60,
+					branches: 50,
+				},
+			},
 		},
 	})
 );

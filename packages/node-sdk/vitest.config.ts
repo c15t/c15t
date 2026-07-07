@@ -12,6 +12,16 @@ export default mergeConfig(
 		},
 		test: {
 			environment: 'node',
+			coverage: {
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				thresholds: {
+					lines: 75,
+					statements: 75,
+					functions: 65,
+					branches: 75,
+				},
+			},
 		},
 	})
 );

@@ -19,6 +19,16 @@ export default mergeConfig(
 				'src/**/*.spec.ts',
 				'src/**/*.e2e.test.tsx',
 			],
+			coverage: {
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				thresholds: {
+					lines: 60,
+					statements: 60,
+					functions: 85,
+					branches: 65,
+				},
+			},
 		},
 	})
 );

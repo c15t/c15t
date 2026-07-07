@@ -83,6 +83,16 @@ export default mergeConfig(
 			],
 			environment: 'jsdom',
 			setupFiles: ['./src/__tests__/setup.ts'],
+			coverage: {
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				thresholds: {
+					lines: 50,
+					statements: 50,
+					functions: 45,
+					branches: 30,
+				},
+			},
 		},
 	})
 );

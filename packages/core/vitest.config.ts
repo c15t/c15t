@@ -18,6 +18,16 @@ export default mergeConfig(
 			],
 			setupFiles: ['./vitest.setup.ts'],
 			mockReset: true,
+			coverage: {
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				thresholds: {
+					lines: 65,
+					statements: 65,
+					functions: 65,
+					branches: 65,
+				},
+			},
 		},
 	})
 );
