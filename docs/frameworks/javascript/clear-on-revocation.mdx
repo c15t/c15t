@@ -1,0 +1,47 @@
+---
+title: Clear on Revocation
+description: Delete first-party cookies and Web Storage keys when a user revokes consent for a category.
+group: frameworks
+---
+
+<import src="../../shared/react/guides/clear-on-revocation.mdx#intro" />
+
+## Configuration
+
+Add `clearOnRevocation` to your runtime options:
+
+```ts
+import { getOrCreateConsentRuntime } from 'c15t';
+
+const { consentStore } = getOrCreateConsentRuntime({
+  mode: 'hosted',
+  backendURL: 'https://your-instance.c15t.dev',
+  clearOnRevocation: {
+    marketing: {
+      cookies: ['_fbq', '_fbp'],
+    },
+    measurement: {
+      cookies: ['_ga', '_ga_*'],
+      localStorage: ['ga_disable_*'],
+    },
+  },
+});
+```
+
+<import src="../../shared/react/guides/clear-on-revocation.mdx#reference" />
+
+## Runtime Updates
+
+Update the configuration at runtime - this immediately sweeps any category that is already denied:
+
+```ts
+const state = consentStore.getState();
+
+state.setClearOnRevocation({
+  marketing: {
+    cookies: ['_fbq', '_fbp', 'new-tracker-cookie'],
+  },
+});
+```
+
+<import src="../../shared/react/guides/clear-on-revocation.mdx#api-reference" />

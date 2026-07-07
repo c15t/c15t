@@ -1,0 +1,62 @@
+---
+title: Clear on Revocation
+description: Delete first-party cookies and Web Storage keys when a user revokes consent for a category.
+group: frameworks
+---
+
+<import src="../../shared/react/guides/clear-on-revocation.mdx#intro" />
+
+## Configuration
+
+Add `clearOnRevocation` to your provider options:
+
+```tsx
+import { type ReactNode } from 'react';
+import { ConsentManagerProvider } from '@c15t/nextjs';
+
+export function ConsentManager({ children }: { children: ReactNode }) {
+  return (
+    <ConsentManagerProvider
+      options={{
+        mode: 'hosted',
+        backendURL: '/api/c15t',
+        clearOnRevocation: {
+          marketing: {
+            cookies: ['_fbq', '_fbp'],
+          },
+          measurement: {
+            cookies: ['_ga', '_ga_*'],
+            localStorage: ['ga_disable_*'],
+          },
+        },
+      }}
+    >
+      {children}
+    </ConsentManagerProvider>
+  );
+}
+```
+
+<import src="../../shared/react/guides/clear-on-revocation.mdx#reference" />
+
+## Runtime Updates
+
+Update the configuration at runtime - this immediately sweeps any category that is already denied:
+
+```tsx
+import { useConsentManager } from '@c15t/nextjs';
+
+function ClearOnRevocationManager() {
+  const { setClearOnRevocation } = useConsentManager();
+
+  const addRule = () => {
+    setClearOnRevocation({
+      marketing: {
+        cookies: ['_fbq', '_fbp', 'new-tracker-cookie'],
+      },
+    });
+  };
+}
+```
+
+<import src="../../shared/react/guides/clear-on-revocation.mdx#api-reference" />
