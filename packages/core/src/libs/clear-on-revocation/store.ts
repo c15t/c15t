@@ -13,7 +13,7 @@ type SetState = (partial: Partial<ConsentStoreState>) => void;
 
 function getDeniedCategories(state: ConsentStoreState): AllConsentNames[] {
 	return state.consentCategories.filter(
-		(category) => !state.consents[category]
+		(category) => state.consents[category] === false
 	);
 }
 

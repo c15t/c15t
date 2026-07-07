@@ -223,7 +223,11 @@ export async function saveConsents({
 		previousConsentCategoryLists.allowedCategories.filter((category) =>
 			nextConsentCategoryLists.deniedCategories.includes(category)
 		);
-	runClearOnRevocation(clearOnRevocation, revokedCategories);
+	try {
+		runClearOnRevocation(clearOnRevocation, revokedCategories);
+	} catch (error) {
+		console.error('clearOnRevocation failed:', error);
+	}
 
 	const consentChangedPayload: OnConsentChangedPayload | null = didChange
 		? {

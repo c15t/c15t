@@ -667,10 +667,7 @@ export const createConsentManagerStore = (
 
 	// Sweep already-denied categories after the store is created
 	if (options.clearOnRevocation) {
-		store.setState({
-			clearOnRevocation: options.clearOnRevocation,
-		});
-		store.getState().sweepClearOnRevocation();
+		store.getState().setClearOnRevocation(options.clearOnRevocation);
 	}
 
 	if (typeof window !== 'undefined') {
