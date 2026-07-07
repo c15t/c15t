@@ -251,18 +251,14 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 				onclick={onClearSelection}
 				class={noStyle ? '' : styles.clearSelectionButton || ''}
 			>
-				<CloseIcon
-					class={noStyle ? '' : styles.clearIcon || ''}
-				/>
+				<CloseIcon class={noStyle ? '' : styles.clearIcon || ''} />
 				{iabT.common.clearSelection}
 			</button>
 		</div>
 	{:else}
 		<div class={noStyle ? '' : styles.vendorListHeader || ''}>
 			<div class={noStyle ? '' : styles.searchContainer || ''}>
-				<SearchIcon
-					class={noStyle ? '' : styles.searchIcon || ''}
-				/>
+				<SearchIcon class={noStyle ? '' : styles.searchIcon || ''} />
 				<input
 					type="text"
 					placeholder={iabT.preferenceCenter.vendorList.search}
@@ -283,9 +279,7 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 		<div class={noStyle ? '' : styles.vendorSection || ''}>
 			<div class={noStyle ? '' : styles.iabVendorSectionHeader || ''}>
 				<h3 class={noStyle ? '' : styles.vendorSectionHeading || ''}>
-					<LayersIcon
-						class={noStyle ? '' : styles.vendorSectionIcon || ''}
-					/>
+					<LayersIcon class={noStyle ? '' : styles.vendorSectionIcon || ''} />
 					{iabT.preferenceCenter.vendorList.iabVendorsHeading}
 					({filteredIABVendors.length})
 				</h3>
@@ -356,9 +350,7 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 										{/if}
 									</div>
 								</div>
-								<div
-									class={noStyle ? '' : styles.purposeArrow || ''}
-								>
+								<div class={noStyle ? '' : styles.purposeArrow || ''}>
 									<ChevronDownIcon />
 								</div>
 							</PreferenceItem.Trigger>
@@ -634,9 +626,7 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 		<div class={noStyle ? '' : styles.vendorSection || ''}>
 			<div class={noStyle ? '' : styles.customVendorSectionHeader || ''}>
 				<h3 class={noStyle ? '' : styles.vendorSectionHeading || ''}>
-					<GlobeIcon
-						class={noStyle ? '' : styles.vendorSectionIcon || ''}
-					/>
+					<GlobeIcon class={noStyle ? '' : styles.vendorSectionIcon || ''} />
 					{iabT.preferenceCenter.vendorList.customVendorsHeading}
 					({filteredCustomVendors.length})
 				</h3>
@@ -675,9 +665,7 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 										/>
 									</h3>
 								</div>
-								<div
-									class={noStyle ? '' : styles.purposeArrow || ''}
-								>
+								<div class={noStyle ? '' : styles.purposeArrow || ''}>
 									<ChevronDownIcon />
 								</div>
 							</PreferenceItem.Trigger>

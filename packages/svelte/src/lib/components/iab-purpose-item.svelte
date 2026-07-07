@@ -118,9 +118,7 @@ function handlePurposeToggle(value: boolean) {
 				<PreferenceItem.Title class={noStyle ? '' : styles.purposeName || ''}>
 					{purpose.name}
 					{#if isLocked}
-						<LockIcon
-							class={noStyle ? '' : styles.lockIcon || ''}
-						/>
+						<LockIcon class={noStyle ? '' : styles.lockIcon || ''} />
 					{/if}
 				</PreferenceItem.Title>
 				<PreferenceItem.Meta class={noStyle ? '' : styles.purposeMeta || ''}>
