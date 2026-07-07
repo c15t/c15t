@@ -378,42 +378,57 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 	},
 	{
 		vendor: 'microsoft-clarity',
-		// clarity.ms answers unknown project ids with an empty 204, so runtime
-		// behavior can only be asserted with a real project id (planned as a
-		// repo-secret follow-up). Bootstrap and consent gating still run against
-		// the live endpoint.
-		tier: 'loader-only',
-		createScript: () =>
-			clarity({
-				id: 'c15tfake00',
-				defaultConsent: {
-					ad_storage: 'denied',
-					analytics_storage: 'denied',
-				},
-			}),
+		// Real project id: Clarity ids are public by nature (visible in the
+		// page source of every site using Clarity) and the runner blocks all
+		// collect endpoints, so probes send no analytics data to the project.
+		// A real id means the tag serves the real runtime — full tier.
+		tier: 'full',
+		createScript: () => clarity({ id: 'xin9eohwfp' }),
 		loaderUrlSubstring: 'clarity.ms/tag/',
-		allowUrlSubstrings: ['clarity.ms/s/'],
+		// The tag chain-loads the versioned runtime bundle from
+		// scripts.clarity.ms; collect endpoints stay blocked.
+		allowUrlSubstrings: ['clarity.ms/s/', 'scripts.clarity.ms/'],
+		runtimeReplacedGlobals: ['clarity'],
 		bootstrapCheck: () => {
-			const stub = window.clarity;
+			const stub = window.clarity as
+				| (Window['clarity'] & { v?: unknown })
+				| undefined;
 
 			if (typeof stub !== 'function') {
 				return check(false, 'expected window.clarity stub function');
 			}
 
-			if (stub.v !== '0.7.0') {
-				return check(false, `expected stub version 0.7.0, got ${stub.v}`);
+			// The stub must NOT carry the runtime version marker: clarity.js
+			// refuses to start when `v` is pre-set ("Error CL001: Multiple
+			// Clarity tags detected") — the production bug fixed in #898.
+			if (stub.v !== undefined) {
+				return check(
+					false,
+					`stub carries v=${String(stub.v)}; clarity.js treats this as a duplicate install (CL001) and never starts`
+				);
 			}
 
+			const firstCall = stub.q?.[0];
+			const isConsentV2 =
+				Array.isArray(firstCall) && firstCall[0] === 'consentv2';
+
 			return check(
-				Array.isArray(stub.q) && stub.q.length > 0,
-				'clarity queue seeded with default consent before load'
+				isConsentV2,
+				'clarity queue seeded with a consentv2 call before load'
 			);
 		},
-		runtimeCheck: () =>
-			check(
-				typeof window.clarity === 'function',
-				'window.clarity callable after loader executed'
-			),
+		runtimeCheck: () => {
+			const runtime = window.clarity as
+				| (Window['clarity'] & { v?: unknown })
+				| undefined;
+
+			// clarity.js assigns `v` only after the real runtime replaces the
+			// queued stub — its presence proves the runtime actually started.
+			return check(
+				typeof runtime === 'function' && typeof runtime.v === 'string',
+				'clarity runtime installed and stamped its version after load'
+			);
+		},
 	},
 	{
 		vendor: 'databuddy',
