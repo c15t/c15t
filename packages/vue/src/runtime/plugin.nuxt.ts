@@ -90,6 +90,9 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 	);
 	// A Nuxt app normally lives until page unload, but hosts that unmount the
 	// Vue app explicitly (tests, microfrontends) should tear the runtime down
-	// with it — mirrors the plain Vue plugin in src/index.ts.
-	nuxtApp.vueApp.onUnmount(disposeRuntime);
+	// with it — mirrors the plain Vue plugin in src/index.ts. `onUnmount` is
+	// Vue 3.5+; Nuxt 3 apps on older Vue runtimes skip cleanup registration.
+	if (typeof nuxtApp.vueApp.onUnmount === 'function') {
+		nuxtApp.vueApp.onUnmount(disposeRuntime);
+	}
 });

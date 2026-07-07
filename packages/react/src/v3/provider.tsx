@@ -36,7 +36,11 @@ import {
 	type TranslationsResponse,
 } from 'c15t/v3';
 import type { Script } from 'c15t/v3/modules/script-loader';
-import type { WindowDebugMode } from 'c15t/v3/modules/window-debug';
+import {
+	createWindowDebug,
+	resolveWindowDebugMode,
+	type WindowDebugMode,
+} from 'c15t/v3/modules/window-debug';
 import type { ReactNode } from 'react';
 import {
 	lazy,
@@ -487,20 +491,6 @@ function createProviderKernel(options: ConsentProviderOptions): ConsentKernel {
 	});
 }
 
-function resolveWindowDebugMode(
-	options: ConsentProviderOptions
-): WindowDebugMode {
-	const mode: ProviderMode =
-		options.mode ?? (options.backendURL ? 'hosted' : 'offline');
-	if (options.transport || (mode === 'custom' && options.endpointHandlers)) {
-		return 'custom';
-	}
-	if (mode === 'hosted' || mode === 'c15t') {
-		return 'hosted';
-	}
-	return 'offline';
-}
-
 function snapshotConsentsChanged(
 	previous: ConsentSnapshot,
 	next: ConsentSnapshot
@@ -857,22 +847,10 @@ function WindowDebugMount({
 	mode: WindowDebugMode;
 }) {
 	useEffect(() => {
-		let disposed = false;
-		let handle: { dispose(): void } | null = null;
-		import('c15t/v3/modules/window-debug')
-			.then(({ createWindowDebug }) => {
-				if (disposed) return;
-				handle = createWindowDebug({ pkg, mode });
-			})
-			.catch(() => {
-				// The debug hook is best-effort — a failed chunk load must not
-				// surface as an unhandled rejection or affect consent behavior.
-			});
-		return () => {
-			disposed = true;
-			handle?.dispose();
-			handle = null;
-		};
+		// The module is tiny and dependency-free; `createWindowDebug` itself
+		// guards against pages that made `window.c15t` non-writable.
+		const handle = createWindowDebug({ pkg, mode });
+		return () => handle.dispose();
 	}, [mode, pkg]);
 
 	return null;

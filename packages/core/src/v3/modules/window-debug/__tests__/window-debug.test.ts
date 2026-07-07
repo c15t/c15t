@@ -3,7 +3,7 @@
  */
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { version } from '../../../../version';
-import { createWindowDebug } from '../index';
+import { createWindowDebug, resolveWindowDebugMode } from '../index';
 
 type WindowWithC15t = Window & {
 	c15t?: {
@@ -17,6 +17,24 @@ afterEach(() => {
 	if (typeof window !== 'undefined') {
 		delete (window as WindowWithC15t).c15t;
 	}
+});
+
+describe('resolveWindowDebugMode', () => {
+	test('maps provider options to the reported transport kind', () => {
+		expect(resolveWindowDebugMode({})).toBe('offline');
+		expect(resolveWindowDebugMode({ backendURL: '/api/c15t' })).toBe('hosted');
+		expect(resolveWindowDebugMode({ mode: 'hosted' })).toBe('hosted');
+		expect(resolveWindowDebugMode({ mode: 'c15t' })).toBe('hosted');
+		expect(
+			resolveWindowDebugMode({ mode: 'offline', backendURL: '/api/c15t' })
+		).toBe('offline');
+		expect(resolveWindowDebugMode({ transport: {} })).toBe('custom');
+		expect(
+			resolveWindowDebugMode({ mode: 'custom', endpointHandlers: {} })
+		).toBe('custom');
+		// `mode: 'custom'` without handlers falls back to the offline transport.
+		expect(resolveWindowDebugMode({ mode: 'custom' })).toBe('offline');
+	});
 });
 
 describe('window-debug', () => {
@@ -66,6 +84,31 @@ describe('window-debug', () => {
 		expect((window as WindowWithC15t).c15t?.pkg).toBe('@c15t/nextjs');
 
 		second.dispose();
+	});
+
+	test('degrades to an inert handle when window.c15t is non-writable', () => {
+		Object.defineProperty(window, 'c15t', {
+			value: 'host-owned',
+			writable: false,
+			configurable: true,
+		});
+
+		try {
+			let handle: { dispose(): void } | undefined;
+			expect(() => {
+				handle = createWindowDebug({ pkg: '@c15t/vue', mode: 'hosted' });
+			}).not.toThrow();
+			expect((window as WindowWithC15t).c15t).toBe('host-owned');
+			expect(() => handle?.dispose()).not.toThrow();
+			expect((window as WindowWithC15t).c15t).toBe('host-owned');
+		} finally {
+			Object.defineProperty(window, 'c15t', {
+				value: undefined,
+				writable: true,
+				configurable: true,
+			});
+			delete (window as WindowWithC15t).c15t;
+		}
 	});
 
 	test('returns an inert handle when window is undefined', () => {

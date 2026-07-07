@@ -31,7 +31,7 @@ import { createPersistence } from 'c15t/v3/modules/persistence';
 import { createScriptLoader } from 'c15t/v3/modules/script-loader';
 import {
 	createWindowDebug,
-	type WindowDebugMode,
+	resolveWindowDebugMode,
 } from 'c15t/v3/modules/window-debug';
 import type { Snippet } from 'svelte';
 import { onDestroy, onMount, untrack } from 'svelte';
@@ -256,16 +256,6 @@ function createProviderKernel(
 		initialPolicyDecision: prefetch.initialPolicyDecision,
 		initialPolicySnapshotToken: prefetch.initialPolicySnapshotToken,
 	});
-}
-
-function resolveWindowDebugMode(
-	providerOptions: ConsentManagerOptions
-): WindowDebugMode {
-	const mode: ProviderMode =
-		providerOptions.mode ?? (providerOptions.backendURL ? 'hosted' : 'offline');
-	if (providerOptions.transport) return 'custom';
-	if (mode === 'hosted' || mode === 'c15t') return 'hosted';
-	return 'offline';
 }
 
 const kernel = untrack(() => createProviderKernel(options));
