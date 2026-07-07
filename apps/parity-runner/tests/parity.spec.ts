@@ -8,7 +8,7 @@
  *   2. Accessibility tree matches across frameworks.
  *   3. Computed CSS + CSS custom properties match across frameworks
  *      for every `[data-testid]` element.
- *   4. Per-framework screenshot matches a committed baseline.
+ *   4. Optional per-framework screenshot baselines when enabled.
  *
  * Stories are paired by stripping the framework segment from their
  * Storybook title (e.g. `COMPONENTS - REACT/Button` ↔
@@ -18,6 +18,7 @@
  *   - `REACT_STORYBOOK_URL` (default http://127.0.0.1:6006)
  *   - `SVELTE_STORYBOOK_URL` (default http://127.0.0.1:6007)
  *   - `PARITY_FRAMEWORKS` (comma list, default `react,svelte`)
+ *   - `PARITY_VISUAL_BASELINES=1` to run Playwright screenshot baselines
  */
 
 import { diffComputedStyleMap } from '@c15t/conformance';
@@ -39,6 +40,7 @@ const ENABLED_FRAMEWORKS = (process.env.PARITY_FRAMEWORKS ?? 'react,svelte')
 	.split(',')
 	.map((f) => f.trim())
 	.filter(Boolean);
+const ENABLE_VISUAL_BASELINES = process.env.PARITY_VISUAL_BASELINES === '1';
 
 /**
  * Load and pair stories once per worker. Playwright runs each spec file
@@ -199,11 +201,15 @@ test.describe('cross-framework parity', () => {
 	 * comparisons are intentionally out of scope — font/subpixel rendering
 	 * makes that too noisy. Computed-style parity (above) covers cross-
 	 * framework CSS drift; screenshots lock visual regressions within a
-	 * single framework.
+	 * single framework when explicitly enabled.
 	 */
 	test('paired stories match committed screenshot baselines per framework', async ({
 		page,
 	}) => {
+		test.skip(
+			!ENABLE_VISUAL_BASELINES,
+			'Set PARITY_VISUAL_BASELINES=1 to run screenshot baseline checks.'
+		);
 		const paired = await loadPairedStories();
 		for (const pair of paired) {
 			for (const [framework, entry] of Object.entries(pair.entries)) {

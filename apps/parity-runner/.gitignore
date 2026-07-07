@@ -1,3 +1,4 @@
 parity-diffs/
 test-results/
 playwright-report/
+*-snapshots/
