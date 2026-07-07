@@ -133,6 +133,37 @@ describe('Consent Store', () => {
 		});
 	});
 
+	describe('unstable_acceptPolicyConsent', () => {
+		it('passes proof fields for suffixed legal-document types', async () => {
+			mockManager.setConsent.mockResolvedValueOnce({
+				ok: true,
+				data: {
+					subjectId: 'sub_2jv6z8n4q9',
+					consentId: 'cns_123',
+					domainId: 'dom_123',
+					domain: 'example.com',
+					type: 'terms_and_conditions_b2b',
+					givenAt: new Date('2026-04-07T00:00:00.000Z'),
+				},
+			});
+			const store = createConsentManagerStore(mockManager);
+
+			await store.getState().unstable_acceptPolicyConsent({
+				type: 'terms_and_conditions_b2b',
+				policyHash: 'sha256:abc123',
+				domain: 'example.com',
+				givenAt: 1_775_520_000_000,
+			});
+
+			expect(mockManager.setConsent).toHaveBeenCalledWith({
+				body: expect.objectContaining({
+					type: 'terms_and_conditions_b2b',
+					policyHash: 'sha256:abc123',
+				}),
+			});
+		});
+	});
+
 	describe('Consent Actions', () => {
 		it('should update selected consent with setSelectedConsent', () => {
 			const store = createConsentManagerStore(mockManager);

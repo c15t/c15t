@@ -17,6 +17,7 @@
 		"@c15t/nextjs": "workspace:*",
 		"@c15t/react": "workspace:*",
 		"@c15t/scripts": "workspace:*",
+		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"@hookform/resolvers": "^5.4.0",

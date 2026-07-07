@@ -1028,6 +1028,30 @@ describe('postSubjectHandler legal document snapshots', () => {
 		expect(db.transaction).not.toHaveBeenCalled();
 	});
 
+	it('treats a suffixed legal-document type as legal document consent', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.legalDocumentSnapshot = {
+			signingKey: 'test-signing-key',
+		};
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			type: 'terms_and_conditions_b2b',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 409,
+			message: 'Legal document snapshot token is required',
+			cause: {
+				code: 'LEGAL_DOCUMENT_SNAPSHOT_REQUIRED',
+			},
+		});
+
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
 	it('rejects missing legal document snapshot tokens when verification is enabled', async () => {
 		const db = createMockDb(null);
 		const registry = createMockRegistry();
