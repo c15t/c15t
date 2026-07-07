@@ -211,6 +211,13 @@ export function resolveManifestInit(input: {
 	const inputs = getResolverInputsFromHeaders(input.headers);
 	return {
 		...resolveInitFromManifest(input.manifest, inputs),
-		resolvedOverrides: consentInputsToOverrides(inputs),
+		// Resolver inputs use `null` for absent; the overrides record wants
+		// the fields dropped instead.
+		resolvedOverrides: consentInputsToOverrides({
+			country: inputs.country ?? undefined,
+			region: inputs.region ?? undefined,
+			language: inputs.language ?? undefined,
+			gpc: inputs.gpc,
+		}),
 	} as InitOutput;
 }
