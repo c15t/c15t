@@ -430,7 +430,9 @@
 	}
 
 	/* Secondary aliases for consumers that use semantic variant names. */
-	.button:not(:global(.headless))[data-variant="secondary"][data-mode="filled"] {
+	.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="filled"] {
 		background-color: var(--button-neutral);
 		color: var(--button-background-color);
 	}
@@ -466,7 +468,9 @@
 		transition: var(--button-hover-transition-color);
 	}
 
-	.button:not(:global(.headless))[data-variant="secondary"][data-mode="stroke"] {
+	.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode="stroke"] {
 		background-color: var(--button-background-color);
 		box-shadow: var(--button-shadow-neutral);
 	}

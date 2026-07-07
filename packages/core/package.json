@@ -40,6 +40,7 @@
 		"directory": "packages/core"
 	},
 	"license": "Apache-2.0",
+	"sideEffects": false,
 	"type": "module",
 	"exports": {
 		".": {
@@ -130,6 +131,5 @@
 	},
 	"publishConfig": {
 		"access": "public"
-	},
-	"sideEffects": false
+	}
 }

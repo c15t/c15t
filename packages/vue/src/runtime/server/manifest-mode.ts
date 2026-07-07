@@ -8,6 +8,7 @@ import {
 	extractConsentRequestInputs,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
+import { c15tVersionHeaders } from 'c15t/v3';
 import type { ConsentConfig } from '../config';
 import { DEFAULT_MANIFEST_ROUTE, DEFAULT_NUXT_INIT_ROUTE } from '../manifest';
 
@@ -135,6 +136,7 @@ export async function fetchCachedManifest(input: {
 
 	const headers: Record<string, string> = {
 		accept: 'application/json',
+		...c15tVersionHeaders,
 	};
 	if (cached?.headers.etag) {
 		headers['if-none-match'] = cached.headers.etag;

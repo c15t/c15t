@@ -29,3 +29,7 @@ export { createManifestTransport } from './manifest';
 export type { OfflineTransportOptions } from './offline';
 export { createOfflineTransport } from './offline';
 export { buildSubjectPostBody } from './subject-body';
+export {
+	C15T_VERSION_HEADER,
+	c15tVersionHeaders,
+} from './version-header';

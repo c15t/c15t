@@ -5,6 +5,7 @@ import type {
 	InitOutput,
 } from '@c15t/schema/types';
 import { resolveBackendURL, resolveInitFromManifest } from '@c15t/schema/types';
+import { c15tVersionHeaders } from 'c15t/v3';
 import { extractConsentRequestInputs } from './headers';
 
 const DEFAULT_MANIFEST_REVALIDATE_SECONDS = 300;
@@ -156,7 +157,7 @@ export function createManifestFetchInit(
 	const revalidate = getManifestRevalidate(options);
 	return {
 		method: 'GET',
-		headers: { accept: 'application/json' },
+		headers: { accept: 'application/json', ...c15tVersionHeaders },
 		next: { revalidate },
 	};
 }

@@ -56,6 +56,10 @@ export { createManifestTransport } from './transports/manifest';
 export type { OfflineTransportOptions } from './transports/offline';
 export { createOfflineTransport } from './transports/offline';
 export { buildSubjectPostBody } from './transports/subject-body';
+export {
+	C15T_VERSION_HEADER,
+	c15tVersionHeaders,
+} from './transports/version-header';
 export type {
 	ConsentKernel,
 	ConsentSnapshot,

@@ -21,6 +21,7 @@ import type {
 } from '../types';
 import { mapInitOutputToInitResponse } from './init-output';
 import { buildSubjectPostBody } from './subject-body';
+import { c15tVersionHeaders } from './version-header';
 
 export interface ManifestTransportOptions {
 	/**
@@ -171,6 +172,7 @@ async function defaultFetchGvl(input: {
 		method: 'GET',
 		headers: {
 			'accept-language': input.language,
+			...c15tVersionHeaders,
 		},
 	});
 
@@ -234,6 +236,7 @@ export function createManifestTransport(
 					credentials,
 					headers: {
 						accept: 'application/json',
+						...c15tVersionHeaders,
 						...options.headers,
 					},
 				});
@@ -283,6 +286,7 @@ export function createManifestTransport(
 				headers: {
 					'content-type': 'application/json',
 					accept: 'application/json',
+					...c15tVersionHeaders,
 				},
 				body: JSON.stringify({
 					...buildSubjectPostBody(payload, { domain }),
