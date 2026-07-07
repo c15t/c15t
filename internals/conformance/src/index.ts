@@ -45,6 +45,11 @@ export * from './contract';
 export * from './dom-snapshot';
 export * from './driver';
 export {
+	IAB_FIXTURE_CMP_ID,
+	IAB_FIXTURE_CMP_VERSION,
+	MINIMAL_GVL,
+} from './fixtures/gvl';
+export {
 	editableConsentOptions,
 	editableStoredConsent,
 } from './fixtures/index';

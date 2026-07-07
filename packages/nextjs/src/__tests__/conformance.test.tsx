@@ -1,16 +1,27 @@
 /**
- * React v3 conformance entry point.
+ * Next.js conformance entry point.
  *
- * This driver targets the v3 kernel adapter: `ConsentProvider` plus the
- * useSyncExternalStore-backed selector hooks. The package still contains a
- * v2-surface conformance driver in `conformance.test.tsx`; keep both so the
- * shared suite compares the legacy provider and the v3 adapter behavior.
+ * This driver targets the exported @c15t/nextjs surface: the nextjs-specific
+ * `ConsentBoundary` (which forwards a server-produced `KernelConfig` to the
+ * React v3 provider) plus the UI components and hooks the package re-exports
+ * from `@c15t/react/v3`. Running the shared suite here validates both the
+ * re-export and the nextjs-specific wrapping.
+ *
+ * Deliberate differences from the React v3 driver:
+ * - The provider layer is `ConsentBoundary`, not `ConsentProvider`, so the
+ *   nextjs `config` -> `options.prefetch` plumbing is on the tested path.
+ * - `KernelContext` is not part of the public surface, so the store is
+ *   observed through the public `useSnapshot` hook via a bridge component
+ *   instead of reading the kernel directly.
+ * - We import from `~/v3/boundary` and `@c15t/react/v3` (the exact module
+ *   `@c15t/nextjs/v3` re-exports with `export *`) rather than `~/v3/index`,
+ *   because the barrel also pulls in `next/headers`/`next/cache` which need
+ *   a real Next.js server context. Existing nextjs tests follow the same
+ *   convention.
  */
 
 import {
-	IAB_FIXTURE_CMP_ID,
-	IAB_FIXTURE_CMP_VERSION,
-	MINIMAL_GVL,
+	DriverNotImplementedError,
 	type MountableComponent,
 	type MountOptions,
 	type MountResult,
@@ -18,30 +29,31 @@ import {
 	type SuiteApi,
 	type TestDriver,
 } from '@c15t/conformance';
-import type { GlobalVendorList } from '@c15t/schema/types';
+import {
+	ConsentBanner,
+	ConsentDialog,
+	type ConsentSnapshot,
+	ConsentWidget,
+	useSnapshot,
+} from '@c15t/react/v3';
 import type { AllConsentNames } from 'c15t';
 import type {
-	ConsentKernel,
 	KernelActiveUI,
 	KernelConfig,
 	ResolvedPolicy,
 	TranslationsResponse,
 } from 'c15t/v3';
-import { type ReactElement, useContext, useEffect } from 'react';
+import { type ReactElement, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
-import { ConsentDialog } from '~/v3/components/consent-dialog';
-import { ConsentWidget } from '~/v3/components/consent-widget';
-import { KernelContext } from '~/v3/context';
-import { IABConsentBanner, IABConsentDialog } from '~/v3/iab';
-import {
-	ConsentBanner,
-	ConsentProvider,
-	type ConsentProviderOptions,
-} from '~/v3/index';
+import { ConsentBoundary, type ConsentBoundaryProps } from '~/v3/boundary';
 
-type ProviderOptions = ConsentProviderOptions & {
+type BoundaryOptions = NonNullable<ConsentBoundaryProps['options']>;
+
+type ProviderOptions = BoundaryOptions & {
+	consentCategories?: AllConsentNames[];
+	prefetch?: KernelConfig;
 	i18n?: {
 		locale?: string;
 		messages?: Record<string, Partial<TranslationsResponse>>;
@@ -165,21 +177,19 @@ function consentCategoriesFor(options: ProviderOptions): AllConsentNames[] {
 		: [...(options.consentCategories ?? DEFAULT_CONSENT_CATEGORIES)];
 }
 
-function isIabComponent(component: MountableComponent): boolean {
-	return (
-		component === 'iab-consent-banner' || component === 'iab-consent-dialog'
-	);
-}
-
-function activeUIForComponent(component: MountableComponent): KernelActiveUI {
+function activeUIForComponent(
+	component: MountableComponent
+): 'banner' | 'dialog' {
 	switch (component) {
 		case 'consent-dialog':
 		case 'consent-widget':
-		case 'iab-consent-dialog':
 			return 'dialog';
 		case 'consent-banner':
-		case 'iab-consent-banner':
 			return 'banner';
+		case 'iab-consent-banner':
+		case 'iab-consent-dialog':
+			// @c15t/nextjs does not re-export the IAB components.
+			throw new DriverNotImplementedError('nextjs', `mount(${component})`);
 	}
 }
 
@@ -192,7 +202,7 @@ function buildPolicy(
 		| undefined;
 	const mode = state?.activeUI ?? activeUIForComponent(opts.component);
 	return {
-		id: 'react_v3_conformance_policy',
+		id: 'nextjs_conformance_policy',
 		model: opts.policy?.model ?? 'opt-in',
 		consent: {
 			categories: consentCategoriesFor(options),
@@ -216,41 +226,14 @@ function buildPolicy(
 }
 
 /**
- * IAB mounts mirror the production wiring (and the v3 IAB unit tests):
- * offline mode with an `iab` model `offlinePolicy` plus the provider's
- * `iab` option, which routes through `createIAB` and seeds the kernel's
- * IAB slice with the shared minimal GVL fixture.
+ * Split the suite-provided provider options into the two channels the
+ * nextjs surface exposes: the serializable `config` prop (what a Server
+ * Component would produce) and the remaining client provider options.
  */
-function buildIabProviderOptions(opts: MountOptions): ConsentProviderOptions {
-	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
-	return {
-		...provided,
-		mode: 'offline',
-		persistence: opts.persistence ?? false,
-		disableAnimation: true,
-		trapFocus: false,
-		iab: {
-			enabled: true,
-			cmpId: IAB_FIXTURE_CMP_ID,
-			cmpVersion: IAB_FIXTURE_CMP_VERSION,
-			gvl: MINIMAL_GVL as unknown as GlobalVendorList,
-		},
-		offlinePolicy: {
-			policy: {
-				id: 'react_v3_conformance_iab_policy',
-				model: 'iab',
-				ui: {
-					mode: activeUIForComponent(opts.component),
-				},
-			},
-		},
-	};
-}
-
-function buildProviderOptions(opts: MountOptions): ConsentProviderOptions {
-	if (isIabComponent(opts.component)) {
-		return buildIabProviderOptions(opts);
-	}
+function buildBoundaryProps(opts: MountOptions): {
+	config: KernelConfig;
+	options: BoundaryOptions;
+} {
 	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
 	const state = opts.initialState as
 		| {
@@ -268,8 +251,18 @@ function buildProviderOptions(opts: MountOptions): ConsentProviderOptions {
 		initialHasConsented:
 			state?.hasConsented ?? provided.prefetch?.initialHasConsented,
 		initialTranslations: resolveTranslations(provided, opts.locale),
+		// GPC arrives in the serializable server config — exactly the field
+		// the nextjs server plumbing derives from the `sec-gpc` header.
+		...(opts.gpc === undefined
+			? {}
+			: {
+					initialOverrides: {
+						...(provided.prefetch?.initialOverrides ?? {}),
+						gpc: opts.gpc,
+					},
+				}),
 	};
-	const prefetch: KernelConfig =
+	const config: KernelConfig =
 		initMode === 'authoritative'
 			? {
 					...basePrefetch,
@@ -280,28 +273,26 @@ function buildProviderOptions(opts: MountOptions): ConsentProviderOptions {
 					initialBranding: 'c15t',
 					initialPolicy: buildPolicy(opts, provided),
 					initialPolicyDecision: {
-						policyId: 'react_v3_conformance_policy',
-						fingerprint: 'react_v3_conformance_fingerprint',
+						policyId: 'nextjs_conformance_policy',
+						fingerprint: 'nextjs_conformance_fingerprint',
 						matchedBy: 'default',
 						country: 'DE',
 						region: null,
 						jurisdiction: 'GDPR',
 					},
-					initialPolicySnapshotToken: 'react_v3_conformance_token',
+					initialPolicySnapshotToken: 'nextjs_conformance_token',
 				}
 			: basePrefetch;
 
+	const { prefetch: _prefetch, ...rest } = provided;
 	return {
-		...provided,
-		mode: 'offline',
-		persistence: opts.persistence ?? false,
-		disableAnimation: true,
-		trapFocus: false,
-		consentCategories: consentCategoriesFor(provided),
-		// GPC uses the provider's public `overrides` input — the same channel
-		// a real app (or the nextjs server plumbing) delivers the signal on.
-		...(opts.gpc === undefined ? {} : { overrides: { gpc: opts.gpc } }),
-		prefetch,
+		config,
+		options: {
+			...rest,
+			disableAnimation: true,
+			trapFocus: false,
+			consentCategories: consentCategoriesFor(provided),
+		},
 	};
 }
 
@@ -341,16 +332,57 @@ async function flushScheduler() {
 	await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-function KernelCapture({
-	onKernel,
-}: {
-	onKernel: (kernel: ConsentKernel) => void;
-}) {
-	const kernel = useContext(KernelContext);
-	if (!kernel) {
-		throw new Error('React v3 driver: missing kernel context');
+/**
+ * `ConsentDialog` and `ConsentWidget` on the public surface are lazy
+ * (React.lazy + Suspense). After mount, wait for their root to appear so
+ * suites can assert against a fully rendered tree. Never throws — if the
+ * component legitimately does not render, the suite's own assertion fails
+ * with a meaningful message.
+ */
+const LAZY_COMPONENT_ROOTS: Partial<Record<MountableComponent, string>> = {
+	'consent-dialog': '[data-testid="consent-dialog-root"]',
+	'consent-widget': '[data-testid="consent-widget-root"]',
+};
+
+async function waitForLazyComponent(
+	component: MountableComponent
+): Promise<void> {
+	const selector = LAZY_COMPONENT_ROOTS[component];
+	if (!selector) return;
+	const deadline = Date.now() + 5000;
+	while (Date.now() < deadline) {
+		if (document.querySelector(selector)) return;
+		await new Promise((resolve) => setTimeout(resolve, 10));
 	}
-	onKernel(kernel);
+}
+
+/**
+ * The nextjs surface does not expose the kernel (no `KernelContext`
+ * re-export), so the driver observes the store exclusively through the
+ * public `useSnapshot` hook. Each mount gets its own bridge; the bridge
+ * records the latest snapshot on every render and notifies suite
+ * subscribers after each commit.
+ */
+type SnapshotBridge = {
+	snapshot: ConsentSnapshot | null;
+	listeners: Set<() => void>;
+};
+
+function createBridge(): SnapshotBridge {
+	return { snapshot: null, listeners: new Set() };
+}
+
+function StoreBridge({ bridge }: { bridge: SnapshotBridge }) {
+	const snapshot = useSnapshot();
+	// Assign during render (like the React driver's KernelCapture) so
+	// getState() is correct immediately after mount settles.
+	bridge.snapshot = snapshot;
+	useEffect(() => {
+		bridge.snapshot = snapshot;
+		for (const listener of bridge.listeners) {
+			listener();
+		}
+	}, [bridge, snapshot]);
 	return null;
 }
 
@@ -375,25 +407,17 @@ function componentFor(component: MountableComponent): ReactElement {
 		case 'consent-widget':
 			return <ConsentWidget hideBranding />;
 		case 'iab-consent-banner':
-			return <IABConsentBanner />;
 		case 'iab-consent-dialog':
-			return <IABConsentDialog />;
+			throw new DriverNotImplementedError('nextjs', `mount(${component})`);
 	}
 }
 
-function Harness({
-	opts,
-	onKernel,
-}: {
-	opts: MountOptions;
-	onKernel: (kernel: ConsentKernel) => void;
-}) {
+function Harness({ opts }: { opts: MountOptions }) {
 	return (
 		<div
-			data-testid="react-v3-conformance-root"
+			data-testid="nextjs-conformance-root"
 			dir={opts.locale === 'ar' ? 'rtl' : undefined}
 		>
-			<KernelCapture onKernel={onKernel} />
 			{componentFor(opts.component)}
 		</div>
 	);
@@ -408,18 +432,21 @@ function ClientSettled({ onSettled }: { onSettled: () => void }) {
 
 function renderTree(
 	opts: MountOptions,
-	options: ConsentProviderOptions,
-	onKernel: (kernel: ConsentKernel) => void,
+	config: KernelConfig,
+	options: BoundaryOptions,
+	bridge: SnapshotBridge,
 	onSettled?: () => void
 ) {
 	return (
-		<ConsentProvider options={options}>
+		<ConsentBoundary
+			config={config}
+			persistence={opts.persistence ?? false}
+			options={options}
+		>
 			{onSettled ? <ClientSettled onSettled={onSettled} /> : null}
-			<Harness
-				opts={opts}
-				onKernel={onKernel}
-			/>
-		</ConsentProvider>
+			<StoreBridge bridge={bridge} />
+			<Harness opts={opts} />
+		</ConsentBoundary>
 	);
 }
 
@@ -428,8 +455,7 @@ function activeUIForStore(activeUI: KernelActiveUI): StoreState['activeUI'] {
 	return 'none';
 }
 
-function projectStoreState(kernel: ConsentKernel): StoreState {
-	const snapshot = kernel.getSnapshot();
+function projectStoreState(snapshot: ConsentSnapshot): StoreState {
 	const consents = { ...snapshot.consents } as Record<string, boolean>;
 	return {
 		...(snapshot as unknown as Record<string, unknown>),
@@ -440,17 +466,17 @@ function projectStoreState(kernel: ConsentKernel): StoreState {
 	};
 }
 
-let lastKernel: ConsentKernel | null = null;
+let lastBridge: SnapshotBridge | null = null;
 
 const driver: TestDriver = {
-	framework: 'react',
+	framework: 'nextjs',
 	async mount(opts: MountOptions): Promise<MountResult> {
 		const lifecycle = lifecycleTransportFor(opts);
-		const options = {
-			...buildProviderOptions(opts),
-			...(lifecycle.transport ? { transport: lifecycle.transport } : {}),
-		};
-		let mountedKernel: ConsentKernel | null = null;
+		const { config, options: baseOptions } = buildBoundaryProps(opts);
+		const options: BoundaryOptions = lifecycle.transport
+			? { ...baseOptions, transport: lifecycle.transport }
+			: baseOptions;
+		const bridge = createBridge();
 		let resolveSettled: () => void = () => {};
 		const settled = new Promise<void>((resolve) => {
 			resolveSettled = resolve;
@@ -460,23 +486,17 @@ const driver: TestDriver = {
 		document.body.appendChild(container);
 
 		const root: Root = createRoot(container);
-		root.render(
-			renderTree(
-				opts,
-				options,
-				(kernel) => {
-					mountedKernel = kernel;
-					lastKernel = kernel;
-				},
-				resolveSettled
-			)
-		);
+		root.render(renderTree(opts, config, options, bridge, resolveSettled));
 		await settled;
 		await flushScheduler();
+		await waitForLazyComponent(opts.component);
 
-		if (!mountedKernel) {
-			throw new Error('React v3 driver: mount completed without kernel');
+		if (!bridge.snapshot) {
+			throw new Error(
+				'Next.js driver: mount completed without a kernel snapshot'
+			);
 		}
+		lastBridge = bridge;
 
 		return {
 			root: container,
@@ -491,29 +511,34 @@ const driver: TestDriver = {
 				await flushScheduler();
 				container.replaceChildren();
 				container.remove();
-				if (lastKernel === mountedKernel) lastKernel = null;
+				if (lastBridge === bridge) lastBridge = null;
 			},
 		};
 	},
 	getStore() {
-		if (!lastKernel) {
-			throw new Error('React v3 driver: getStore called before mount');
+		const bridge = lastBridge;
+		if (!bridge) {
+			throw new Error('Next.js driver: getStore called before mount');
 		}
 		return {
-			getState: () => projectStoreState(lastKernel as ConsentKernel),
-			subscribe: (listener) =>
-				(lastKernel as ConsentKernel).subscribe(() => {
-					listener();
-				}),
+			getState: () => {
+				if (!bridge.snapshot) {
+					throw new Error('Next.js driver: no snapshot available');
+				}
+				return projectStoreState(bridge.snapshot);
+			},
+			subscribe: (listener) => {
+				bridge.listeners.add(listener);
+				return () => {
+					bridge.listeners.delete(listener);
+				};
+			},
 		};
 	},
 	async serverRender(opts: MountOptions): Promise<string> {
-		const options = buildProviderOptions(opts);
-		return renderToString(
-			renderTree(opts, options, () => {
-				// Server render does not expose a live store to the conformance suite.
-			})
-		);
+		const { config, options } = buildBoundaryProps(opts);
+		// Throwaway bridge: server render does not expose a live store.
+		return renderToString(renderTree(opts, config, options, createBridge()));
 	},
 };
 

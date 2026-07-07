@@ -52,6 +52,40 @@ function renderFor(component: MountableComponent): ReactElement {
 	}
 }
 
+/**
+ * Offline policy fixture used when a mount shapes the policy (GPC suite)
+ * or exercises persistence. `ui.mode: 'banner'` makes the surface follow
+ * the real lifecycle instead of the driver's forced `setActiveUI`.
+ */
+function buildOfflinePolicy(opts: MountOptions) {
+	return {
+		policy: {
+			id: 'react_v2_conformance_policy',
+			model: opts.policy?.model ?? 'opt-in',
+			consent: {
+				categories: [
+					'necessary',
+					'functionality',
+					'experience',
+					'measurement',
+					'marketing',
+				],
+				scopeMode: 'permissive',
+				...(opts.policy?.respectGpc === undefined
+					? {}
+					: { gpc: opts.policy.respectGpc }),
+			},
+			ui: {
+				mode: 'banner',
+			},
+		},
+	} as NonNullable<ConsentManagerOptions['offlinePolicy']>;
+}
+
+function usesPolicyLifecycle(opts: MountOptions): boolean {
+	return Boolean(opts.policy || opts.persistence || opts.gpc !== undefined);
+}
+
 function buildProviderOptions(opts: MountOptions): ConsentManagerOptions {
 	if (opts.initMode) {
 		throw new DriverNotImplementedError(
@@ -63,8 +97,72 @@ function buildProviderOptions(opts: MountOptions): ConsentManagerOptions {
 		{}) as Partial<ConsentManagerOptions>;
 	return {
 		mode: 'offline',
+		...(usesPolicyLifecycle(opts)
+			? {
+					offlinePolicy: buildOfflinePolicy(opts),
+					// v2 defaults `consentCategories` to `['necessary']`; real apps
+					// configure the categories they use, and `saveConsents('all')`
+					// only grants configured categories.
+					consentCategories: [
+						'necessary',
+						'functionality',
+						'experience',
+						'measurement',
+						'marketing',
+					] as ConsentManagerOptions['consentCategories'],
+				}
+			: {}),
 		...provided,
 	} as ConsentManagerOptions;
+}
+
+/**
+ * Stub `navigator.globalPrivacyControl` — the v2 runtime reads the browser
+ * signal directly via `hasGlobalPrivacyControlSignal()`. Returns a restore
+ * function.
+ */
+function stubGpcSignal(value: boolean): () => void {
+	const nav = navigator as Navigator & { globalPrivacyControl?: boolean };
+	const hadOwn = Object.hasOwn(nav, 'globalPrivacyControl');
+	const previous = nav.globalPrivacyControl;
+	Object.defineProperty(nav, 'globalPrivacyControl', {
+		value,
+		configurable: true,
+	});
+	return () => {
+		if (hadOwn) {
+			Object.defineProperty(nav, 'globalPrivacyControl', {
+				value: previous,
+				configurable: true,
+			});
+		} else {
+			delete nav.globalPrivacyControl;
+		}
+	};
+}
+
+/**
+ * Seed the v2 storage payload for `initialState` mounts. This is the same
+ * `c15t` localStorage entry the runtime writes via `saveConsentToStorage`,
+ * so the store hydrates it through its real read path.
+ */
+function seedStoredConsent(opts: MountOptions): () => void {
+	const state = opts.initialState as
+		| { consents?: Record<string, boolean>; hasConsented?: boolean }
+		| undefined;
+	if (!state?.hasConsented || !state.consents) {
+		return () => {};
+	}
+	localStorage.setItem(
+		'c15t',
+		JSON.stringify({
+			consents: state.consents,
+			consentInfo: { time: Date.now(), type: 'all' },
+		})
+	);
+	return () => {
+		localStorage.removeItem('c15t');
+	};
 }
 
 let lastOptions: ConsentManagerOptions | null = null;
@@ -73,6 +171,8 @@ const driver: TestDriver = {
 	framework: 'react',
 	async mount(opts: MountOptions): Promise<MountResult> {
 		clearConsentRuntimeCache();
+		const restoreGpc = opts.gpc === undefined ? null : stubGpcSignal(opts.gpc);
+		const removeSeededConsent = seedStoredConsent(opts);
 		const options = buildProviderOptions(opts);
 		lastOptions = options;
 
@@ -90,14 +190,18 @@ const driver: TestDriver = {
 
 		// Force the surface visible so the banner/dialog actually mounts in
 		// offline mode (default activeUI is 'none'). Widgets render regardless.
+		// Policy-lifecycle mounts (gpc / persistence / shaped policy) skip the
+		// force: their offline policy drives activeUI through the real flow.
 		const { consentStore } = getOrCreateConsentRuntime(options, {
 			pkg: '@c15t/react',
 			version,
 		});
-		if (opts.component === 'consent-banner') {
-			consentStore.getState().setActiveUI('banner', { force: true });
-		} else if (opts.component === 'consent-dialog') {
-			consentStore.getState().setActiveUI('dialog');
+		if (!usesPolicyLifecycle(opts)) {
+			if (opts.component === 'consent-banner') {
+				consentStore.getState().setActiveUI('banner', { force: true });
+			} else if (opts.component === 'consent-dialog') {
+				consentStore.getState().setActiveUI('dialog');
+			}
 		}
 		await new Promise((r) => setTimeout(r, 0));
 
@@ -107,6 +211,8 @@ const driver: TestDriver = {
 				root.unmount();
 				await new Promise((r) => setTimeout(r, 0));
 				container.remove();
+				removeSeededConsent();
+				restoreGpc?.();
 				lastOptions = null;
 			},
 		};

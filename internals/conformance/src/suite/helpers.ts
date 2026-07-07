@@ -60,3 +60,58 @@ export type SuiteContext = {
 	driver: TestDriver;
 	api: SuiteApi;
 };
+
+/**
+ * Query by test-id in the mounted root, falling back to the document body.
+ * Several frameworks portal surfaces (banner/dialog) to `document.body`, so
+ * suites must not assume the element lives inside the mount container.
+ */
+export function queryByTestId(
+	root: HTMLElement,
+	testId: string
+): HTMLElement | null {
+	const selector = `[data-testid="${testId}"]`;
+	return (
+		root.querySelector<HTMLElement>(selector) ??
+		root.ownerDocument.body.querySelector<HTMLElement>(selector)
+	);
+}
+
+/**
+ * Poll until `predicate` returns true or the deadline passes. Resolves with
+ * the final predicate result so callers can make one last hard assertion
+ * (which surfaces the actual mismatch instead of a generic timeout).
+ */
+export async function waitForCondition(
+	predicate: () => boolean,
+	timeoutMs = 2000,
+	intervalMs = 10
+): Promise<boolean> {
+	const deadline = Date.now() + timeoutMs;
+	for (;;) {
+		if (predicate()) return true;
+		if (Date.now() >= deadline) return predicate();
+		await new Promise((resolve) => setTimeout(resolve, intervalMs));
+	}
+}
+
+/**
+ * Clear the browser storage surfaces the consent runtimes persist to
+ * (localStorage + cookies). No-ops outside a DOM environment. Suites that
+ * exercise persistence call this at the start and end of each test so
+ * state cannot leak between tests or drivers sharing a page.
+ */
+export function clearBrowserConsentStorage(): void {
+	if (typeof document === 'undefined') return;
+	try {
+		globalThis.localStorage?.clear();
+	} catch {
+		// Storage may be unavailable (SSR-ish env) — nothing to clear.
+	}
+	for (const cookie of document.cookie.split(';')) {
+		const name = cookie.split('=')[0]?.trim();
+		if (name) {
+			document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+		}
+	}
+}

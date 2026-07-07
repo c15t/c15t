@@ -3,13 +3,18 @@
  *
  * Each framework package implements this interface once; the conformance
  * suites consume it to exercise behavior without knowing whether the
- * underlying UI is React, Svelte, Vue, or Solid.
+ * underlying UI is React, Next.js, Svelte, Vue, or Solid.
  *
  * The driver's job is to own the framework-specific rendering lifecycle
  * and expose a uniform surface for the suites to interact with.
  */
 
-export type SupportedFramework = 'react' | 'svelte' | 'vue' | 'solid';
+export type SupportedFramework =
+	| 'react'
+	| 'nextjs'
+	| 'svelte'
+	| 'vue'
+	| 'solid';
 
 /**
  * Component kinds the driver can mount. Keys map 1:1 with our prebuilt UI
@@ -23,6 +28,25 @@ export type MountableComponent =
 	| 'iab-consent-banner'
 	| 'iab-consent-dialog';
 
+/**
+ * Shapes the resolved-policy fixture a driver builds for a mount. Drivers
+ * that hardcode an opt-in policy fixture extend it with these fields; stub
+ * drivers throw `DriverNotImplementedError` so suites degrade to todo.
+ */
+export type MountPolicyOptions = {
+	/**
+	 * Consent model of the policy fixture. Defaults to the driver's existing
+	 * `'opt-in'` fixture.
+	 */
+	model?: 'opt-in' | 'opt-out';
+	/**
+	 * Mirrors `policy.consent.gpc` — whether the policy respects the Global
+	 * Privacy Control signal (core only honors GPC when the active policy
+	 * opts in).
+	 */
+	respectGpc?: boolean;
+};
+
 export type MountOptions = {
 	component: MountableComponent;
 	/**
@@ -32,6 +56,25 @@ export type MountOptions = {
 	 * - failing: init rejects and the runtime must fall back safely.
 	 */
 	initMode?: 'authoritative' | 'pending' | 'failing';
+	/**
+	 * Simulate the Global Privacy Control signal for this mount. Drivers
+	 * apply it through their framework's real GPC path (stubbing
+	 * `navigator.globalPrivacyControl` before init for runtimes that read
+	 * the browser signal, or the public `overrides.gpc` / kernel
+	 * `initialOverrides.gpc` input for adapters that receive GPC from the
+	 * embedding app/server). Drivers that cannot honor the option must
+	 * throw `DriverNotImplementedError`.
+	 */
+	gpc?: boolean;
+	/**
+	 * Enable the framework's public persistence path for this mount
+	 * (storage hydration on mount + storage writes on save). Defaults to
+	 * each driver's isolated no-persistence behavior. Drivers that cannot
+	 * honor the option must throw `DriverNotImplementedError`.
+	 */
+	persistence?: boolean;
+	/** Policy fixture shaping. See {@link MountPolicyOptions}. */
+	policy?: MountPolicyOptions;
 	/**
 	 * Options passed to the framework provider. The shape mirrors
 	 * `ConsentManagerOptions` from `@c15t/core` — we reference it loosely
