@@ -57,19 +57,20 @@
 		"view-report": "turbo run view-report"
 	},
 	"overrides": {
+		"@grpc/grpc-js": ">=1.14.4",
 		"defu": "6.1.7",
 		"hono": "4.12.27",
+		"kysely": "0.28.17",
 		"next@>=15.3.0-canary.0 <15.5.16": "15.5.16",
 		"next@>=16.0.0-beta.0 <16.2.3": "16.2.3",
 		"postcss": "8.5.16",
-		"typeorm": ">=0.3.26",
-		"kysely": "0.28.17",
 		"protobufjs": "7.6.5",
 		"shell-quote": ">=1.9.0",
-		"@grpc/grpc-js": ">=1.14.4",
+		"typeorm": ">=0.3.26",
 		"vite@>=7.0.0 <=7.3.1": "7.3.2",
 		"vite@>=8.0.0 <8.1.3": "8.1.3"
 	},
+	"dependencies": {},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.2",
 		"@changesets/changelog-github": "0.7.0",
@@ -128,6 +129,5 @@
 	"packageManager": "bun@1.3.11",
 	"engines": {
 		"node": ">=18.17.0"
-	},
-	"dependencies": {}
+	}
 }
