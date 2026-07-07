@@ -34,6 +34,7 @@ import type {
 } from '../types';
 import { mapInitOutputToInitResponse } from './init-output';
 import { buildSubjectPostBody } from './subject-body';
+import { c15tVersionHeaders } from './version-header';
 
 export interface HostedTransportOptions {
 	/**
@@ -143,6 +144,7 @@ export function createHostedTransport(
 				credentials,
 				headers: {
 					accept: 'application/json',
+					...c15tVersionHeaders,
 					...initHeaders,
 				},
 			});
@@ -164,6 +166,7 @@ export function createHostedTransport(
 				headers: {
 					'content-type': 'application/json',
 					accept: 'application/json',
+					...c15tVersionHeaders,
 				},
 				body: JSON.stringify(buildSubjectPostBody(payload, { domain })),
 			});

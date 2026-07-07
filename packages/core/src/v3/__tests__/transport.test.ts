@@ -696,6 +696,8 @@ describe('createHostedTransport: request shape', () => {
 			'sec-gpc': '1',
 			'x-c15t-country': 'DE',
 			'x-c15t-region': 'BE',
+			// Always attached by the transport itself, not consumer-forwarded.
+			'x-c15t-version': expect.stringMatching(/^\d+\.\d+\.\d+/),
 		});
 	});
 
@@ -941,5 +943,88 @@ describe('createManifestTransport: local init resolution', () => {
 		expect(body).not.toHaveProperty('region');
 		expect(body).not.toHaveProperty('language');
 		expect(body).not.toHaveProperty('gpc');
+	});
+});
+
+describe('x-c15t-version header (issue #916)', () => {
+	test('hosted init and save carry the client version', async () => {
+		const fetchSpy = vi.fn(async (url: RequestInfo | URL) => {
+			const s = String(url);
+			if (s.endsWith('/init')) {
+				return new Response(JSON.stringify(REALISTIC_INIT_OUTPUT), {
+					status: 200,
+					headers: { 'content-type': 'application/json' },
+				});
+			}
+			return new Response(JSON.stringify({ ok: true }), {
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+			});
+		});
+		const kernel = createConsentKernel({
+			transport: createHostedTransport({
+				backendURL: 'https://backend.example',
+				fetch: fetchSpy as unknown as typeof fetch,
+			}),
+		});
+
+		await kernel.commands.init();
+		await kernel.commands.save('all');
+
+		expect(fetchSpy).toHaveBeenCalledTimes(2);
+		for (const call of fetchSpy.mock.calls) {
+			const headers = (call[1] as RequestInit).headers as Record<
+				string,
+				string
+			>;
+			expect(headers['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/);
+		}
+	});
+
+	test('manifest save carries the client version; manifest fetch does not', async () => {
+		const fetchSpy = vi.fn(async (url: RequestInfo | URL) => {
+			const s = String(url);
+			if (s.endsWith('/manifest')) {
+				return new Response(JSON.stringify(MANIFEST_FIXTURE), {
+					status: 200,
+					headers: { 'content-type': 'application/json' },
+				});
+			}
+			return new Response(JSON.stringify({ ok: true }), {
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+			});
+		});
+		const kernel = createConsentKernel({
+			transport: createManifestTransport({
+				backendURL: 'https://backend.example',
+				manifestURL: 'https://cdn.example/manifest',
+				inputs: { country: 'DE', region: 'BE', language: 'de' },
+				fetch: fetchSpy as unknown as typeof fetch,
+			}),
+		});
+
+		await kernel.commands.init();
+		await kernel.commands.save('all');
+
+		const manifestCall = fetchSpy.mock.calls.find((c) =>
+			String(c[0]).endsWith('/manifest')
+		);
+		const saveCall = fetchSpy.mock.calls.find((c) =>
+			String(c[0]).endsWith('/subjects')
+		);
+		expect(manifestCall).toBeDefined();
+		expect(saveCall).toBeDefined();
+
+		const manifestHeaders = ((manifestCall?.[1] as RequestInit)?.headers ??
+			{}) as Record<string, string>;
+		// CDN-bound document fetch stays header-clean (third-party CORS).
+		expect(manifestHeaders['x-c15t-version']).toBeUndefined();
+
+		const saveHeaders = (saveCall?.[1] as RequestInit).headers as Record<
+			string,
+			string
+		>;
+		expect(saveHeaders['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/);
 	});
 });
