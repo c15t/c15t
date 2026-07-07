@@ -7,7 +7,7 @@
 	} from './storybook-consent-fixtures';
 
 	let {
-		open = false,
+		open = undefined,
 		withBanner = false,
 		useStoredConsent = false,
 	}: {

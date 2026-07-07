@@ -8,6 +8,8 @@
 
 import {
 	DriverNotImplementedError,
+	IAB_FIXTURE_CMP_ID,
+	MINIMAL_GVL,
 	type MountableComponent,
 	type MountOptions,
 	type MountResult,
@@ -15,7 +17,11 @@ import {
 	type SuiteApi,
 	type TestDriver,
 } from '@c15t/conformance';
-import type { InitOutput, TranslationsResponse } from '@c15t/schema/types';
+import type {
+	GlobalVendorList,
+	InitOutput,
+	TranslationsResponse,
+} from '@c15t/schema/types';
 import { flushPromises } from '@vue/test-utils';
 import {
 	type ConsentKernel,
@@ -24,6 +30,7 @@ import {
 	type KernelConfig,
 	type KernelTransport,
 } from 'c15t/v3';
+import { createPersistence } from 'c15t/v3/modules/persistence';
 import { describe, expect, test, vi } from 'vitest';
 import {
 	type App,
@@ -35,8 +42,10 @@ import {
 	shallowRef,
 } from 'vue';
 import { renderToString } from 'vue/server-renderer';
-import ConsentManager from '../runtime/components/consent-manager.vue';
 import ConsentRoot from '../runtime/components/consent-root.vue';
+import ConsentWidget from '../runtime/components/consent-widget.vue';
+import IabConsentBanner from '../runtime/components/iab-consent-banner.vue';
+import IabConsentDialog from '../runtime/components/iab-consent-dialog.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
 import {
@@ -171,6 +180,17 @@ function resolveTranslations(options: ProviderOptions, locale?: string) {
 	};
 }
 
+function isIabComponent(component: MountableComponent): boolean {
+	return (
+		component === 'iab-consent-banner' || component === 'iab-consent-dialog'
+	);
+}
+
+function policyModelFor(opts: MountOptions): 'opt-in' | 'opt-out' | 'iab' {
+	if (isIabComponent(opts.component)) return 'iab';
+	return opts.policy?.model ?? 'opt-in';
+}
+
 function buildInitOutput(
 	opts: MountOptions,
 	options: ProviderOptions
@@ -190,10 +210,13 @@ function buildInitOutput(
 		branding: 'c15t',
 		policy: {
 			id: 'vue_conformance_policy',
-			model: 'opt-in',
+			model: policyModelFor(opts),
 			consent: {
 				categories: consentCategories,
 				scopeMode: 'permissive',
+				...(opts.policy?.respectGpc === undefined
+					? {}
+					: { gpc: opts.policy.respectGpc }),
 			},
 			ui: {
 				mode: 'banner',
@@ -235,6 +258,16 @@ function buildKernelConfig(
 		initialConsents: state?.consents,
 		initialHasConsented: state?.hasConsented,
 		initialTranslations: resolveTranslations(options, opts.locale),
+		...(opts.gpc === undefined ? {} : { initialOverrides: { gpc: opts.gpc } }),
+		...(isIabComponent(opts.component)
+			? {
+					initialIab: {
+						enabled: true,
+						gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+						cmpId: IAB_FIXTURE_CMP_ID,
+					},
+				}
+			: {}),
 		transport,
 	};
 	if (initMode === 'authoritative') {
@@ -279,6 +312,9 @@ function snapshotToInitOutputForTest(
 		translations:
 			snapshot.translations ?? resolveTranslations({} as ProviderOptions),
 		branding: snapshot.branding ?? 'c15t',
+		gvl: snapshot.iab?.gvl ?? undefined,
+		customVendors: snapshot.iab?.customVendors,
+		cmpId: snapshot.iab?.cmpId ?? undefined,
 		policy: snapshot.policy ?? undefined,
 		policyDecision: snapshot.policyDecision ?? undefined,
 		policySnapshotToken: snapshot.policySnapshotToken ?? undefined,
@@ -356,18 +392,11 @@ function componentFor(component: MountableComponent) {
 		case 'consent-dialog':
 			return ConsentRoot;
 		case 'consent-widget':
-			return defineComponent({
-				name: 'VueConformanceWidget',
-				setup() {
-					return () =>
-						h('div', { 'data-testid': 'consent-widget-root' }, [
-							h(ConsentManager),
-						]);
-				},
-			});
+			return ConsentWidget;
 		case 'iab-consent-banner':
+			return IabConsentBanner;
 		case 'iab-consent-dialog':
-			throw new DriverNotImplementedError('vue', `mount(${component})`);
+			return IabConsentDialog;
 		default:
 			throw new DriverNotImplementedError('vue', `mount(${component})`);
 	}
@@ -379,10 +408,16 @@ function createHarness(
 	context: VueConsentKernelContext
 ) {
 	const Child = componentFor(opts.component);
-	if ((opts.initMode ?? 'authoritative') === 'authoritative') {
+	// Persistence mounts follow the real lifecycle: the kernel derives
+	// `activeUI` from the policy and storage hydration may dismiss it.
+	if (
+		(opts.initMode ?? 'authoritative') === 'authoritative' &&
+		!opts.persistence
+	) {
 		if (
 			opts.component === 'consent-dialog' ||
-			opts.component === 'consent-widget'
+			opts.component === 'consent-widget' ||
+			opts.component === 'iab-consent-dialog'
 		) {
 			context.kernel.set.activeUI('dialog');
 		} else {
@@ -563,6 +598,13 @@ const driver: TestDriver = {
 			createControlledContext(opts);
 		lastContext = context;
 
+		// Public persistence path: same module `startVueConsentRuntime` wires —
+		// hydrate stored consent before the app mounts, write on every save.
+		const persistence = opts.persistence
+			? createPersistence({ kernel: context.kernel, skipHydration: true })
+			: null;
+		persistence?.hydrate();
+
 		const container = document.createElement('div');
 		document.body.appendChild(container);
 
@@ -578,7 +620,7 @@ const driver: TestDriver = {
 		}
 
 		return {
-			root: opts.component === 'consent-widget' ? document.body : container,
+			root: container,
 			resolveInit: resolveInit
 				? async () => {
 						resolveInit();
@@ -592,6 +634,7 @@ const driver: TestDriver = {
 				await new Promise((resolve) => setTimeout(resolve, 0));
 				container.replaceChildren();
 				container.remove();
+				persistence?.dispose();
 				context.dispose();
 				if (lastContext === context) lastContext = null;
 			},

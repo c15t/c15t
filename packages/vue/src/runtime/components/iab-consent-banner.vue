@@ -28,6 +28,13 @@ const IAB_BANNER_LAYOUT: (PolicyUiAction | PolicyUiAction[])[] = [
 	'customize',
 ];
 
+/** Canonical contract test-ids (parity with the React/Svelte IAB banners). */
+const IAB_BANNER_ACTION_TEST_IDS: Partial<Record<PolicyUiAction, string>> = {
+	accept: 'iab-consent-banner-accept-button',
+	reject: 'iab-consent-banner-reject-button',
+	customize: 'iab-consent-banner-customize-button',
+};
+
 const props = withDefaults(
 	defineProps<{
 		primaryButton?: 'reject' | 'accept' | 'customize';
@@ -379,6 +386,7 @@ const shouldTrapFocus = computed(() =>
 									:layout="IAB_BANNER_LAYOUT"
 									:primary-actions="[primaryButton]"
 									:labels="labels"
+									:test-ids="IAB_BANNER_ACTION_TEST_IDS"
 									secondary-mode="stroke"
 									:root-attrs="config.components?.['iab-banner']?.actions as
 										object | undefined"

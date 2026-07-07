@@ -210,7 +210,6 @@ const shouldFillActions = $derived(
 							onclick={() => toggleConsent(consentType.name, !isChecked)}
 							disabled={isDisabled}
 							class={noStyle ? '' : sw.root()}
-							data-scope="switch"
 							data-testid={`consent-widget-switch-${consentType.name}`}
 						>
 							<Switch.Control

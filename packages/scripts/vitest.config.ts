@@ -30,6 +30,16 @@ export default mergeConfig(
 				'**/.cache/**',
 				'**/coverage/**',
 			],
+			coverage: {
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				thresholds: {
+					lines: 85,
+					statements: 85,
+					functions: 90,
+					branches: 80,
+				},
+			},
 		},
 	})
 );

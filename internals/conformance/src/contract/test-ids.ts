@@ -47,8 +47,24 @@ export const TEST_IDS = {
 		footerSubGroup: 'consent-widget-footer-sub-group',
 		rejectButton: 'consent-widget-reject-button',
 		footerAcceptAllButton: 'consent-widget-footer-accept-all-button',
+		/** React v3 widget variant of the accept action. */
+		footerAcceptButton: 'consent-widget-footer-accept-button',
 		footerCustomizeButton: 'consent-widget-footer-customize-button',
 		footerSaveButton: 'consent-widget-footer-save-button',
+	},
+	consentManager: {
+		root: 'consent-manager-root',
+		accordion: 'consent-manager-accordion',
+		footer: 'consent-manager-footer',
+	},
+	/** Standalone consent atoms rendered by the Vue kernel components. */
+	consentAtoms: {
+		actions: 'consent-actions',
+		description: 'consent-description',
+		legalLinks: 'consent-legal-links',
+		link: 'consent-link',
+		switch: 'consent-switch',
+		tag: 'consent-tag',
 	},
 	iabConsentBanner: {
 		root: 'iab-consent-banner-root',
@@ -60,12 +76,14 @@ export const TEST_IDS = {
 		acceptButton: 'iab-consent-banner-accept-button',
 		rejectButton: 'iab-consent-banner-reject-button',
 		customizeButton: 'iab-consent-banner-customize-button',
+		partnersLink: 'iab-consent-banner-partners-link',
 	},
 	iabConsentDialog: {
 		root: 'iab-consent-dialog-root',
 		card: 'iab-consent-dialog-card',
 		overlay: 'iab-consent-dialog-overlay',
 		branding: 'iab-consent-dialog-branding',
+		closeButton: 'iab-consent-dialog-close',
 	},
 	frame: {
 		placeholder: 'frame-placeholder',

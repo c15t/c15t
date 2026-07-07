@@ -13,6 +13,12 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
 	testDir: './tests',
+	/**
+	 * Each test iterates every paired story (x every enabled framework), so
+	 * the default 30s budget is too tight — the screenshot test alone takes
+	 * ~30s with react+svelte+vue enabled.
+	 */
+	timeout: 120_000,
 	/** Each spec owns its own tmp dir; no need for isolation via parallelism. */
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,

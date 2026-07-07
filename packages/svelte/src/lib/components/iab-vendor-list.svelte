@@ -251,20 +251,14 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 				onclick={onClearSelection}
 				class={noStyle ? '' : styles.clearSelectionButton || ''}
 			>
-				<CloseIcon
-					class={noStyle ? '' : styles.clearIcon || ''}
-					aria-hidden={true}
-				/>
+				<CloseIcon class={noStyle ? '' : styles.clearIcon || ''} />
 				{iabT.common.clearSelection}
 			</button>
 		</div>
 	{:else}
 		<div class={noStyle ? '' : styles.vendorListHeader || ''}>
 			<div class={noStyle ? '' : styles.searchContainer || ''}>
-				<SearchIcon
-					class={noStyle ? '' : styles.searchIcon || ''}
-					aria-hidden={true}
-				/>
+				<SearchIcon class={noStyle ? '' : styles.searchIcon || ''} />
 				<input
 					type="text"
 					placeholder={iabT.preferenceCenter.vendorList.search}
@@ -285,10 +279,7 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 		<div class={noStyle ? '' : styles.vendorSection || ''}>
 			<div class={noStyle ? '' : styles.iabVendorSectionHeader || ''}>
 				<h3 class={noStyle ? '' : styles.vendorSectionHeading || ''}>
-					<LayersIcon
-						class={noStyle ? '' : styles.vendorSectionIcon || ''}
-						aria-hidden={true}
-					/>
+					<LayersIcon class={noStyle ? '' : styles.vendorSectionIcon || ''} />
 					{iabT.preferenceCenter.vendorList.iabVendorsHeading}
 					({filteredIABVendors.length})
 				</h3>
@@ -352,7 +343,6 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 												<LegitimateInterestIcon
 													width="10"
 													height="10"
-													aria-hidden={true}
 												/>
 												{legIntCount}
 												{iabT.preferenceCenter.vendorList.legitimateInterest}
@@ -360,11 +350,8 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 										{/if}
 									</div>
 								</div>
-								<div
-									class={noStyle ? '' : styles.purposeArrow || ''}
-									aria-hidden={true}
-								>
-									<ChevronDownIcon aria-hidden={true} />
+								<div class={noStyle ? '' : styles.purposeArrow || ''}>
+									<ChevronDownIcon />
 								</div>
 							</PreferenceItem.Trigger>
 							<div class={noStyle ? '' : styles.vendorConsentControl || ''}>
@@ -378,7 +365,6 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 									<Switch.Control class={noStyle ? '' : sw.track()}>
 										<Switch.Thumb class={noStyle ? '' : sw.thumb()} />
 									</Switch.Control>
-									<Switch.HiddenInput />
 								</Switch.Root>
 							</div>
 						</div>
@@ -640,10 +626,7 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 		<div class={noStyle ? '' : styles.vendorSection || ''}>
 			<div class={noStyle ? '' : styles.customVendorSectionHeader || ''}>
 				<h3 class={noStyle ? '' : styles.vendorSectionHeading || ''}>
-					<GlobeIcon
-						class={noStyle ? '' : styles.vendorSectionIcon || ''}
-						aria-hidden={true}
-					/>
+					<GlobeIcon class={noStyle ? '' : styles.vendorSectionIcon || ''} />
 					{iabT.preferenceCenter.vendorList.customVendorsHeading}
 					({filteredCustomVendors.length})
 				</h3>
@@ -682,11 +665,8 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 										/>
 									</h3>
 								</div>
-								<div
-									class={noStyle ? '' : styles.purposeArrow || ''}
-									aria-hidden={true}
-								>
-									<ChevronDownIcon aria-hidden={true} />
+								<div class={noStyle ? '' : styles.purposeArrow || ''}>
+									<ChevronDownIcon />
 								</div>
 							</PreferenceItem.Trigger>
 							<div class={noStyle ? '' : styles.vendorConsentControl || ''}>
@@ -700,7 +680,6 @@ function getMaxAgeText(vendor: ProcessedVendor): string | null {
 									<Switch.Control class={noStyle ? '' : sw.track()}>
 										<Switch.Thumb class={noStyle ? '' : sw.thumb()} />
 									</Switch.Control>
-									<Switch.HiddenInput />
 								</Switch.Root>
 							</div>
 						</div>

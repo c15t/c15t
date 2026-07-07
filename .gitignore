@@ -40,7 +40,7 @@ packages/backend/docs
 .merge_file_*
 dist-types
 apps/bundle-bench-react/.bundle-bench-dist/
-packages/svelte/.svelte-kit/
+.svelte-kit/
 
 
 # Debug

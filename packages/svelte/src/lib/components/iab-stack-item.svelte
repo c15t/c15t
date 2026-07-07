@@ -82,7 +82,7 @@ const totalVendors = $derived(
 	<div class={noStyle ? '' : styles.stackHeader || ''}>
 		<PreferenceItem.Trigger class={noStyle ? '' : styles.stackTrigger || ''}>
 			<PreferenceItem.Leading class={noStyle ? '' : styles.purposeArrow || ''}>
-				<ChevronRightIcon aria-hidden={true} />
+				<ChevronRightIcon />
 			</PreferenceItem.Leading>
 			<PreferenceItem.Header class={noStyle ? '' : styles.stackInfo || ''}>
 				<PreferenceItem.Title class={noStyle ? '' : styles.stackName || ''}>
@@ -101,10 +101,7 @@ const totalVendors = $derived(
 		<PreferenceItem.Control class={noStyle ? '' : styles.stackControls || ''}>
 			{#if someEnabled}
 				<span class="sr-only">Partially enabled</span>
-				<div
-					class={noStyle ? '' : styles.partialIndicator || ''}
-					aria-hidden={true}
-				></div>
+				<div class={noStyle ? '' : styles.partialIndicator || ''}></div>
 			{/if}
 			<Switch.Root
 				aria-label={stack.name}
@@ -115,7 +112,6 @@ const totalVendors = $derived(
 				<Switch.Control class={noStyle ? '' : sw.track()}>
 					<Switch.Thumb class={noStyle ? '' : sw.thumb()} />
 				</Switch.Control>
-				<Switch.HiddenInput />
 			</Switch.Root>
 		</PreferenceItem.Control>
 	</div>

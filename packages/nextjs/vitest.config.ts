@@ -81,6 +81,16 @@ export default mergeConfig(
 				provider: playwright(),
 				instances: [{ browser: 'chromium' }],
 			},
+			coverage: {
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				thresholds: {
+					lines: 45,
+					statements: 45,
+					functions: 50,
+					branches: 40,
+				},
+			},
 		},
 	})
 );
