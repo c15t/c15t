@@ -172,6 +172,7 @@ async function defaultFetchGvl(input: {
 		method: 'GET',
 		headers: {
 			'accept-language': input.language,
+			...c15tVersionHeaders,
 		},
 	});
 
@@ -235,6 +236,7 @@ export function createManifestTransport(
 					credentials,
 					headers: {
 						accept: 'application/json',
+						...c15tVersionHeaders,
 						...options.headers,
 					},
 				});

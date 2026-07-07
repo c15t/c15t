@@ -981,7 +981,7 @@ describe('x-c15t-version header (issue #916)', () => {
 		}
 	});
 
-	test('manifest save carries the client version; manifest fetch does not', async () => {
+	test('manifest fetch and save both carry the client version', async () => {
 		const fetchSpy = vi.fn(async (url: RequestInfo | URL) => {
 			const s = String(url);
 			if (s.endsWith('/manifest')) {
@@ -1018,8 +1018,9 @@ describe('x-c15t-version header (issue #916)', () => {
 
 		const manifestHeaders = ((manifestCall?.[1] as RequestInit)?.headers ??
 			{}) as Record<string, string>;
-		// CDN-bound document fetch stays header-clean (third-party CORS).
-		expect(manifestHeaders['x-c15t-version']).toBeUndefined();
+		// The manifest/GVL hosts are c15t/tenant-controlled (IAB requires
+		// self-hosting the GVL), so version telemetry rides here too.
+		expect(manifestHeaders['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/);
 
 		const saveHeaders = (saveCall?.[1] as RequestInit).headers as Record<
 			string,

@@ -3,11 +3,12 @@
  * request (issue #916). Lets the backend attribute traffic to a client
  * version for telemetry and compatibility gating.
  *
- * Scope: requests to the c15t BACKEND only (hosted `/init` + `/subjects`,
- * manifest-mode `/subjects`). Deliberately NOT attached to manifest/GVL
- * document fetches — those may target third-party CDNs whose CORS policy
- * won't allow an unexpected custom header, and the backend can't read
- * telemetry from a CDN hit anyway.
+ * Scope: every c15t-bound request — hosted `/init` + `/subjects`,
+ * manifest-mode `/subjects`, the manifest document fetch, the GVL fetch,
+ * and the Next/Nuxt server proxies' upstream manifest calls. The manifest
+ * and GVL hosts are c15t/tenant-controlled infrastructure (IAB TCF policy
+ * requires CMPs to self-host the GVL rather than hotlink IAB's), so the
+ * header is safe and version-gated manifest serving stays possible.
  *
  * CORS note: the backend allowlists this header (`SUPPORTED_HEADERS` in
  * @c15t/backend cors middleware). On cross-origin hosted mode this turns
