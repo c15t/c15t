@@ -90,6 +90,14 @@ export default defineNuxtModule<ConsentConfig>({
 			filePath: resolver.resolve('./runtime/components/nuxt-consent-root.vue'),
 		});
 
+		addComponent({
+			// Inline consent widget for settings/privacy pages — same DOM
+			// contract as @c15t/react and @c15t/svelte ConsentWidget.
+			global: true,
+			name: 'ConsentWidget',
+			filePath: resolver.resolve('./runtime/components/consent-widget.vue'),
+		});
+
 		// Auto-import every public composable from the index entry. A single
 		// resolvable `from` avoids unimport's per-file registry quirks (three
 		// names registered from per-file paths were silently dropped — see

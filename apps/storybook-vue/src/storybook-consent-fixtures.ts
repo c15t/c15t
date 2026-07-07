@@ -52,6 +52,12 @@ export const storybookInit: InitOutput = {
 			},
 			dialog: {
 				allowedActions: ['reject', 'accept', 'customize'],
+				// Mirrors the react/svelte offline compact profile so the
+				// widget/dialog footers group actions identically across
+				// frameworks ([reject, accept] + [customize]).
+				layout: [['reject', 'accept'], 'customize'],
+				direction: 'row',
+				uiProfile: 'compact',
 				primaryActions: ['customize'],
 				scrollLock: false,
 			},
