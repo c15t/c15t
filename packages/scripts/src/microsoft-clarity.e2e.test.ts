@@ -19,14 +19,10 @@ type ClarityStub = ((...args: unknown[]) => void) & {
 describe('microsoft clarity contract', () => {
 	registerVendorContractCleanup();
 
-	it('preserves the stub metadata and object default consent payload', () => {
-		const defaultConsent = {
-			ad_storage: 'denied',
-			analytics_storage: 'denied',
-		};
+	it('queues Consent V2 before load without duplicate-install metadata', () => {
 		let queueSnapshot: unknown[][] | undefined;
 		let scriptSrc: string | undefined;
-		let stubVersion: string | undefined;
+		let stubVersion: unknown;
 
 		installHeadProbe((node, win) => {
 			if (!node.src.includes('clarity.ms/tag/CLARITY-CONTRACT')) {
@@ -44,10 +40,7 @@ describe('microsoft clarity contract', () => {
 		loadScripts(
 			[
 				{
-					...clarity({
-						id: 'CLARITY-CONTRACT',
-						defaultConsent,
-					}),
+					...clarity({ id: 'CLARITY-CONTRACT' }),
 					id: 'microsoft-clarity-contract',
 				},
 			],
@@ -55,7 +48,15 @@ describe('microsoft clarity contract', () => {
 		);
 
 		expect(scriptSrc).toContain('/tag/CLARITY-CONTRACT');
-		expect(stubVersion).toBe('0.7.0');
-		expect(queueSnapshot).toEqual([['consent', defaultConsent]]);
+		expect(stubVersion).toBeUndefined();
+		expect(queueSnapshot).toEqual([
+			[
+				'consentv2',
+				{
+					ad_Storage: 'denied',
+					analytics_Storage: 'granted',
+				},
+			],
+		]);
 	});
 });

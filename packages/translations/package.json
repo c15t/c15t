@@ -69,7 +69,7 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"lingo.dev": "^0.133.7"
+		"lingo.dev": "^0.137.8"
 	},
 	"publishConfig": {
 		"access": "public"

@@ -4,7 +4,11 @@
  * @packageDocumentation
  */
 
-import type { PostSubjectInput } from '@c15t/schema';
+import {
+	isLegalDocumentType,
+	type PolicyType,
+	type PostSubjectInput,
+} from '@c15t/schema';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { LegalDocumentPolicyConflictError } from '~/db/registry/consent-policy';
@@ -156,16 +160,6 @@ function parseLanguageFromHeader(header: string | null): string | undefined {
 	}
 
 	return firstLanguage.split('-')[0]?.toLowerCase();
-}
-
-function isLegalDocumentType(
-	type: string
-): type is 'privacy_policy' | 'terms_and_conditions' | 'dpa' {
-	return (
-		type === 'privacy_policy' ||
-		type === 'terms_and_conditions' ||
-		type === 'dpa'
-	);
 }
 
 function resolveSnapshotFailureMode(
@@ -514,7 +508,7 @@ export const postSubjectHandler = async (c: Context) => {
 				});
 			}
 		} else {
-			const policy = await registry.findOrCreatePolicy(type);
+			const policy = await registry.findOrCreatePolicy(type as PolicyType);
 			if (!policy) {
 				throw new HTTPException(500, {
 					message: 'Failed to create policy',

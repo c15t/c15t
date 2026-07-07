@@ -1,4 +1,5 @@
 import type { InitOutput } from '@c15t/schema/types';
+import { C15T_VERSION_HEADERS } from '../../client/headers';
 import type { SSRInitialData } from '../../store/type';
 import {
 	buildRequestContextHeaders,
@@ -54,7 +55,10 @@ function buildPrefetchConfig(options: PrefetchOptions): PrefetchConfig {
 
 	const url = buildInitURL(requestContext.backendURL);
 	const credentials = requestContext.credentials ?? 'include';
-	const headers = buildRequestContextHeaders(options.overrides);
+	const headers = {
+		...C15T_VERSION_HEADERS,
+		...buildRequestContextHeaders(options.overrides),
+	};
 
 	return {
 		url,
@@ -178,7 +182,10 @@ export function buildPrefetchScript(options: PrefetchOptions): string {
 	const payload = {
 		backendURL: options.backendURL,
 		credentials: options.credentials ?? 'include',
-		headers: buildRequestContextHeaders(options.overrides),
+		headers: {
+			...C15T_VERSION_HEADERS,
+			...buildRequestContextHeaders(options.overrides),
+		},
 		requestContext: {
 			country: options.overrides?.country ?? null,
 			region: options.overrides?.region ?? null,

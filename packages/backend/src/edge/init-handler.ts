@@ -125,7 +125,8 @@ function buildCorsHeaders(
 	const origin = request.headers.get('origin');
 	const headers: Record<string, string> = {
 		'access-control-allow-methods': 'GET, OPTIONS',
-		'access-control-allow-headers': 'content-type, accept-language',
+		'access-control-allow-headers':
+			'content-type, accept-language, x-c15t-version',
 		'access-control-max-age': '86400',
 	};
 

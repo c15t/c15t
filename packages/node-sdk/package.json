@@ -51,21 +51,18 @@
 		"dist-types"
 	],
 	"scripts": {
-		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
-		"check-types": "tsc --noEmit",
-		"check-types:test": "tsc -p tsconfig.test.json",
-		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
+		"prebuild": "genversion --esm --semi src/version.ts",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"check-types": "bun prebuild && tsc --noEmit",
+		"check-types:test": "bun prebuild && tsc -p tsconfig.test.json",
+		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
-		"test": "vitest run",
-		"test:watch": "vitest"
+		"test": "bun prebuild && vitest run",
+		"test:watch": "bun prebuild && vitest"
 	},
 	"dependencies": {
-		"@c15t/backend": "workspace:*",
-		"@orpc/client": "1.13.13",
-		"@orpc/contract": "1.13.13",
-		"@orpc/openapi-client": "^1.13.13",
-		"@orpc/server": "1.13.13"
+		"@c15t/backend": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
@@ -76,8 +73,9 @@
 		"@types/express": "^5.0.6",
 		"@types/node": "25.5.0",
 		"@types/pg": "8.20.0",
+		"genversion": "3.2.0",
 		"kysely-pglite": "^0.6.1",
-		"msw": "^2.12.14",
-		"typescript": "^6.0.2"
+		"msw": "^2.14.6",
+		"typescript": "7.0.1-rc"
 	}
 }

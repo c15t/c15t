@@ -28,7 +28,7 @@ Consent-aware script integrations for Google Tag Manager, Google Consent Mode v2
 - Consent-gated Meta Pixel and conversion pixel loading
 - Easy integration with c15t's script loader
 - Configuration options for each supported vendor
-- Supported vendors include Google Tag Manager, Meta Pixel, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, Snapchat Pixel, Intercom, Crisp, and more
+- Supported vendors include Google Tag Manager, Meta Pixel, Amplitude, Heap, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, Snapchat Pixel, Intercom, Crisp, and more
 
 ## Documentation
 
@@ -39,7 +39,7 @@ For further information, guides, and examples visit the [reference documentation
 - **Google Tag Manager**: Loads with Google Consent Mode v2 defaults set to denied; GTM-managed tags fire only once matching consent is granted ([guide](https://c15t.com/docs/integrations/google-tag-manager))
 - **Google Analytics 4 + Google Ads (gtag.js)**: Consent Mode v2 defaults and consent updates when users make a choice ([guide](https://c15t.com/docs/integrations/google-tag))
 - **Conversion pixels**: Meta Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET (Microsoft Ads), X Pixel, Reddit Pixel, Snapchat Pixel
-- **Analytics**: PostHog, Segment, Mixpanel, Microsoft Clarity, Hotjar, Plausible, Fathom, Matomo, Umami, Vercel Analytics
+- **Analytics**: PostHog, Amplitude, Heap, Segment, RudderStack, Hightouch, Mixpanel, Microsoft Clarity, Hotjar, Plausible, Fathom, Matomo, Umami, Vercel Analytics
 - **Chat widgets**: Intercom, Crisp
 
 ## Example

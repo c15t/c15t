@@ -334,7 +334,8 @@ describe('Fetcher', () => {
 			const requestInit = fetchCall[1] as RequestInit;
 			const headers = requestInit.headers as Record<string, string>;
 
-			expect(headers['Authorization']).toBe('Bearer token123');
+			expect(headers.Authorization).toBe('Bearer token123');
+			expect(headers['x-c15t-version']).toEqual(expect.any(String));
 			expect(headers['X-Custom']).toBe('value');
 		});
 	});

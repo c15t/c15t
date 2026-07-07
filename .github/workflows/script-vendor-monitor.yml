@@ -1,0 +1,88 @@
+name: Script Vendor Monitor
+
+# Daily live browser probes for every built-in @c15t/scripts integration.
+# Runs outside normal CI so transient third-party/network failures never
+# block PRs. Failures open one deduped issue per vendor; recoveries close
+# that vendor's issue automatically.
+
+on:
+  schedule:
+    - cron: '30 6 * * *'
+  workflow_dispatch:
+    inputs:
+      vendor:
+        description: 'Probe a single vendor id (for example microsoft-clarity). Leave empty for all vendors.'
+        required: false
+        type: string
+
+permissions: {}
+
+# Overlapping scheduled/manual runs could race to open duplicate issues for
+# the same vendor; queue them instead.
+concurrency:
+  group: script-vendor-monitor
+  cancel-in-progress: false
+
+jobs:
+  live-vendor-probes:
+    name: Live Vendor Probes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
+        with:
+          bun-version: "1.3.11"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        # Derive the version from the package devDependency so browser builds
+        # can never drift from the API version runner.ts links against.
+        run: |
+          PLAYWRIGHT_VERSION=$(bun -e "console.log(require('./packages/scripts/package.json').devDependencies.playwright)")
+          bunx "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium
+
+      - name: Build c15t core
+        run: bun turbo run build --filter=c15t
+
+      - name: Run live vendor probes
+        working-directory: packages/scripts
+        env:
+          VENDOR_FILTER: ${{ inputs.vendor }}
+        run: |
+          if [ -n "$VENDOR_FILTER" ]; then
+            bun run test:live-vendors -- --vendor "$VENDOR_FILTER"
+          else
+            bun run test:live-vendors
+          fi
+
+      - name: Upload probe report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: live-vendors-report
+          path: packages/scripts/live-vendors-report.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Sync monitor issues
+        if: always()
+        working-directory: packages/scripts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f live-vendors-report.json ]; then
+            bun --tsconfig-override live-vendors/tsconfig.json live-vendors/manage-issues.ts --report live-vendors-report.json
+          else
+            echo "No report produced; skipping issue sync."
+          fi

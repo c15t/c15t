@@ -14,6 +14,7 @@ describe('extractRelevantHeaders', () => {
 		headers.set('user-agent', 'Mozilla/5.0');
 		headers.set('x-forwarded-host', 'example.com');
 		headers.set('x-forwarded-for', '127.0.0.1');
+		headers.set('x-c15t-version', '2.1.0');
 		headers.set('purpose', 'prefetch');
 		headers.set('sec-purpose', 'prefetch');
 		headers.set('next-router-prefetch', '1');
@@ -34,6 +35,7 @@ describe('extractRelevantHeaders', () => {
 			'x-c15t-region': 'CA-ON',
 			'x-forwarded-host': 'example.com',
 			'x-forwarded-for': '127.0.0.1',
+			'x-c15t-version': '2.1.0',
 			purpose: 'prefetch',
 			'sec-purpose': 'prefetch',
 			'next-router-prefetch': '1',

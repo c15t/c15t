@@ -11,6 +11,9 @@ env:
   # PRs still execute arbitrary branch code). Fork PRs already omit repo secrets.
   TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
   TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
+  # The leadtype package-docs generation inside package builds exceeds Node's
+  # default heap on cache-miss builds of the larger packages (core, react).
+  NODE_OPTIONS: --max-old-space-size=6144
 
 jobs:
   lint_and_check:
