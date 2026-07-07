@@ -233,10 +233,15 @@ describe('IAB Consent Flow E2E Tests', () => {
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
 			// Verify TC string storage
-			const tcString = getStoredTCString();
-			expect(tcString).toBeDefined();
-			expect(typeof tcString).toBe('string');
-			expect(tcString?.length).toBeGreaterThan(10);
+			await vi.waitFor(
+				() => {
+					const tcString = getStoredTCString();
+					expect(tcString).toBeDefined();
+					expect(typeof tcString).toBe('string');
+					expect(tcString?.length).toBeGreaterThan(10);
+				},
+				{ timeout: 2000 }
+			);
 		});
 	});
 
