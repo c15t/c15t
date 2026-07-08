@@ -4,6 +4,10 @@ import {
 	assertDomContract,
 	assertStableElements,
 } from '../assertions/dom-contract';
+import {
+	assertInitialFocus,
+	assertVisibleFocusIndicator,
+} from '../assertions/focus';
 
 /**
  * Full DOM contract check for the consent banner: every declared element is
@@ -44,4 +48,29 @@ export const bannerAcceptViaKeyboard: PlayFunction = async () => {
 	await waitFor(() => {
 		expect(body.queryByTestId('consent-banner-root')).not.toBeInTheDocument();
 	});
+};
+
+/**
+ * Verifies focus lands on the semantic banner card when trapping is enabled,
+ * and that every action button renders a visible keyboard-focus indicator.
+ */
+export const bannerFocusManagement: PlayFunction = async () => {
+	const body = within(document.body);
+	await body.findByTestId('consent-banner-card');
+	await assertInitialFocus(document.body, 'consent-banner-card');
+
+	// Visible focus rings: the shared button CSS uses high-specificity
+	// variant selectors that can silently override the :focus-visible ring.
+	await assertVisibleFocusIndicator(
+		document.body,
+		'consent-banner-reject-button'
+	);
+	await assertVisibleFocusIndicator(
+		document.body,
+		'consent-banner-accept-button'
+	);
+	await assertVisibleFocusIndicator(
+		document.body,
+		'consent-banner-customize-button'
+	);
 };

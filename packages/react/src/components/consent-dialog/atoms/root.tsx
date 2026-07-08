@@ -7,6 +7,7 @@
  * focus trapping, scroll locking and portal rendering.
  */
 
+import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
@@ -20,6 +21,7 @@ import {
 import { useTextDirection } from '~/hooks';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
+import { useHeadlessConsentUI } from '~/hooks/use-headless-consent-ui';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
@@ -124,6 +126,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	// Consent manager state
 	const { activeUI, translationConfig, model, policyDialog } =
 		useConsentManager();
+	const { closeUI } = useHeadlessConsentUI();
 	const scrollLock = localScrollLock ?? policyDialog.scrollLock ?? true;
 	const trapFocus = localTrapFocus ?? globalTheme.trapFocus ?? true;
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
@@ -165,6 +168,22 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 
 	// Trap focus when dialog open
 	useFocusTrap(isOpen && trapFocus, dialogRef as RefObject<HTMLElement>);
+
+	useEffect(() => {
+		if (!isOpen) {
+			return;
+		}
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (isDialogDismissKey(event.key)) {
+				event.preventDefault();
+				closeUI();
+			}
+		};
+
+		document.addEventListener('keydown', handleKeyDown);
+		return () => document.removeEventListener('keydown', handleKeyDown);
+	}, [closeUI, isOpen]);
 
 	// Lock scroll when required
 	useScrollLock(isOpen && scrollLock);
@@ -208,6 +227,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 							{...domStyleProps}
 							className={themedStyle.className}
 							aria-labelledby="consent-dialog-title"
+							aria-modal={trapFocus ? 'true' : undefined}
 							tabIndex={-1}
 							dir={textDirection}
 							data-testid="consent-dialog-root"

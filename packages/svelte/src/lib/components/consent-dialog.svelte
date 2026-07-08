@@ -160,7 +160,6 @@ $effect(() => {
 			class={noStyle
 				? ''
 				: `${styles.root || ''} ${!disableAnimation ? (isOpen ? styles.dialogVisible || '' : styles.dialogHidden || '') : ''}`}
-			data-testid="consent-dialog-root"
 		>
 			<Dialog.Content
 				class={noStyle
@@ -169,13 +168,13 @@ $effect(() => {
 				dir={textDirection}
 				aria-labelledby="consent-dialog-title"
 				aria-describedby="consent-dialog-description"
+				data-testid="consent-dialog-root"
 			>
 				<!-- Card -->
 				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 				<div
 					class={noStyle ? '' : cardStyle.className || ''}
 					data-testid="consent-dialog-card"
-					data-c15t-dialog-focus="true"
 					tabindex={-1}
 				>
 					<!-- Header -->
@@ -187,6 +186,8 @@ $effect(() => {
 							class={noStyle ? '' : titleStyle.className || ''}
 							data-testid="consent-dialog-title"
 							id="consent-dialog-title"
+							role="heading"
+							aria-level="2"
 						>
 							{translations.consentManagerDialog.title}
 						</div>

@@ -90,6 +90,9 @@
 		direction: rtl;
 	}
 
+	/* The dialog root is tabindex="-1": programmatic focus target only
+	   (trap + screen-reader announcement), never a keyboard tab stop — no
+	   ring. Interactive children carry the focus indicators. */
 	.root:not(:global(.headless)):focus {
 		outline: none;
 	}

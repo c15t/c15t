@@ -280,7 +280,7 @@ describe('IAB Consent Banner Unit Tests', () => {
 					const banner = document.querySelector(
 						'[data-testid="iab-consent-banner-card"]'
 					) as HTMLElement;
-					expect(banner?.tabIndex).toBe(0);
+					expect(banner?.tabIndex).toBe(-1);
 				},
 				{ timeout: 3000 }
 			);

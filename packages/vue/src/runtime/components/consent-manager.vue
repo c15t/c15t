@@ -213,6 +213,8 @@ function onAction(action: PolicyUiAction) {
 								data-testid="consent-dialog-title"
 								id="consent-dialog-title"
 								:class="dialogStyles.title"
+								role="heading"
+								aria-level="2"
 							>
 								{{ init?.translations?.translations?.consentManagerDialog?.title }}
 							</div>
@@ -220,11 +222,12 @@ function onAction(action: PolicyUiAction) {
 						</div>
 						<div
 							v-bind="config.components?.dialog?.content"
+							data-testid="consent-dialog-content"
 							:class="dialogStyles.content"
 						>
 							<div
 								v-bind="config.components?.manager?.root"
-								data-testid="consent-manager-root"
+								data-testid="consent-widget-root"
 								:class="managerStyles.manager"
 								:data-disable-animation="
 									config?.disableAnimation ? true : undefined
@@ -240,7 +243,7 @@ function onAction(action: PolicyUiAction) {
 									type="single"
 									collapsible
 									:unmount-on-hide="false"
-									data-testid="consent-manager-accordion"
+									data-testid="consent-widget-accordion"
 									:class="accordionStyles.list"
 								>
 									<AccordionItem
@@ -248,7 +251,7 @@ function onAction(action: PolicyUiAction) {
 										:key="category"
 										:value="category"
 										v-bind="config.components?.['accordion-item']?.root"
-										:data-testid="`consent-manager-accordion-item-${category}`"
+										:data-testid="`consent-widget-accordion-item-${category}`"
 										:unmount-on-hide="false"
 										:class="accordionStyles.item"
 									>
@@ -260,13 +263,13 @@ function onAction(action: PolicyUiAction) {
 												<AccordionTrigger
 													as-child
 													v-bind="config.components?.['accordion-item']?.trigger"
-													:data-testid="`consent-manager-accordion-trigger-${category}`"
+													:data-testid="`consent-widget-accordion-trigger-${category}`"
 												>
 													<div :class="accordionStyles.trigger">
 														<span
 															v-bind="config.components?.accordion?.arrow"
 															:class="accordionStyles.arrow"
-															:data-testid="`consent-manager-accordion-arrow-${category}`"
+															:data-testid="`consent-widget-accordion-arrow-${category}`"
 															aria-hidden="true"
 														>
 															<svg
@@ -304,14 +307,14 @@ function onAction(action: PolicyUiAction) {
 														v-model="draft[category]"
 														:disabled="category === 'necessary'"
 														:aria-label="consentTitle(category)"
-														:data-testid="`consent-manager-switch-${category}`"
+														:data-testid="`consent-widget-switch-${category}`"
 													/>
 												</div>
 											</div>
 										</AccordionHeader>
 										<AccordionContent
 											v-bind="config.components?.['accordion-item']?.content"
-											:data-testid="`consent-manager-accordion-content-${category}`"
+											:data-testid="`consent-widget-accordion-content-${category}`"
 											:class="accordionStyles.content"
 										>
 											<div
@@ -336,7 +339,7 @@ function onAction(action: PolicyUiAction) {
 								</AccordionRoot>
 								<div
 									v-bind="config.components?.manager?.footer"
-									data-testid="consent-manager-footer"
+									data-testid="consent-widget-footer"
 									:class="managerStyles.footer"
 								>
 									<ConsentActions

@@ -6,6 +6,7 @@
  * Implements an accessible, pre-built consent dialog following IAB requirements.
  */
 
+import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import {
 	type FC,
@@ -46,6 +47,8 @@ import type {
 	VendorId,
 } from './types';
 import { useIABTranslations } from './use-iab-translations';
+
+const dialogFocusTargetProps = { tabIndex: -1 } as const;
 
 /**
  * Props for the IABConsentDialog component.
@@ -497,9 +500,9 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		void performDialogAction('customize');
 	};
 
-	const handleClose = () => {
+	const handleClose = useCallback(() => {
 		closeUI();
-	};
+	}, [closeUI]);
 
 	const handleVendorClick = (vendorId: VendorId) => {
 		setSelectedVendorId(vendorId);
@@ -515,6 +518,22 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 
 	// Scroll lock
 	useScrollLock(Boolean(isOpen && config.scrollLock));
+
+	useEffect(() => {
+		if (!isOpen) {
+			return;
+		}
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (isDialogDismissKey(event.key)) {
+				event.preventDefault();
+				handleClose();
+			}
+		};
+
+		document.addEventListener('keydown', handleKeyDown);
+		return () => document.removeEventListener('keydown', handleKeyDown);
+	}, [handleClose, isOpen]);
 
 	// Mount state for portal
 	useEffect(() => {
@@ -653,7 +672,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 					role="dialog"
 					aria-modal={config.trapFocus ? 'true' : undefined}
 					aria-label={iabTranslations.preferenceCenter.title}
-					tabIndex={0}
+					{...dialogFocusTargetProps}
 					data-testid="iab-consent-dialog-card"
 				>
 					{/* Header */}
@@ -673,6 +692,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 							aria-label={common.close}
 						>
 							<svg
+								aria-hidden="true"
 								style={{ width: '1rem', height: '1rem' }}
 								viewBox="0 0 24 24"
 								fill="none"
@@ -850,6 +870,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 														className={styles.purposeTrigger}
 													>
 														<svg
+															aria-hidden="true"
 															className={styles.purposeArrow}
 															viewBox="0 0 24 24"
 															fill="none"
@@ -869,6 +890,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 																		.specialPurposes.title
 																}
 																<svg
+																	aria-hidden="true"
 																	className={styles.lockIcon}
 																	viewBox="0 0 24 24"
 																	fill="none"

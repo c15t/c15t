@@ -41,7 +41,12 @@ import { version } from '~/version';
 function renderFor(component: MountableComponent): ReactElement {
 	switch (component) {
 		case 'consent-banner':
-			return <ConsentBanner />;
+			return (
+				<>
+					<ConsentBanner />
+					<ConsentDialog />
+				</>
+			);
 		case 'consent-dialog':
 			return <ConsentDialog />;
 		case 'consent-widget':

@@ -2,9 +2,9 @@
 	setup
 	lang="ts"
 >
-import { computed } from 'vue';
 import type { ConsentLegalLinkKey } from '@c15t/schema/config';
 import legalStyles from '@c15t/ui/styles/v3/legal-links';
+import { computed } from 'vue';
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
 
 const props = defineProps<{
@@ -18,6 +18,12 @@ const config = useConsentConfig();
 const entry = computed(() => config.value.legalLinks?.[props.link]);
 
 const resolvedHref = computed(() => entry.value?.href ?? '#');
+
+const testId = computed(() => {
+	const surface =
+		props.context === 'banner' ? 'consent-banner' : 'consent-dialog';
+	return `${surface}-legal-link-${props.link}`;
+});
 </script>
 
 <template>
@@ -26,7 +32,7 @@ const resolvedHref = computed(() => entry.value?.href ?? '#');
 		:href="resolvedHref"
 		:target="entry?.target"
 		:rel="entry?.rel"
-		data-testid="consent-link"
+		:data-testid="testId"
 		:class="legalStyles.legalLink"
 	>
 		<slot>

@@ -108,3 +108,53 @@ export async function assertFocusTrap(
 		last
 	);
 }
+
+/**
+ * Assert that an element renders a visible keyboard-focus indicator.
+ *
+ * Focuses the element (in a fresh story with no preceding pointer
+ * interaction, script focus matches `:focus-visible` in Chromium), captures
+ * its computed outline/box-shadow, blurs, and asserts the indicator styles
+ * actually changed — catching regressions where a higher-specificity variant
+ * rule crushes the `:focus-visible` ring (e.g. stroke/ghost button modes).
+ *
+ * Only use this for elements that render the indicator on THEMSELVES
+ * (buttons, cards, links). Composite widgets render it elsewhere — the
+ * switch rings its `.track` child and the accordion rings the enclosing
+ * `.item` via `:has()` — and would false-fail this assertion.
+ */
+export async function assertVisibleFocusIndicator(
+	root: ParentNode,
+	testId: string
+): Promise<void> {
+	const element = root.querySelector(
+		`[data-testid="${testId}"]`
+	) as HTMLElement | null;
+	expect(element, `element [data-testid="${testId}"] not found`).not.toBeNull();
+	if (!element) return;
+
+	element.focus();
+	expect(document.activeElement, 'element should be focusable').toBe(element);
+	expect(
+		element.matches(':focus-visible'),
+		'focus should be keyboard-visible (no pointer interaction expected before this assertion)'
+	).toBe(true);
+
+	const focused = getComputedStyle(element);
+	const focusedIndicator = {
+		boxShadow: focused.boxShadow,
+		outline: `${focused.outlineStyle} ${focused.outlineWidth} ${focused.outlineColor}`,
+	};
+
+	element.blur();
+	const blurred = getComputedStyle(element);
+	const changed =
+		blurred.boxShadow !== focusedIndicator.boxShadow ||
+		`${blurred.outlineStyle} ${blurred.outlineWidth} ${blurred.outlineColor}` !==
+			focusedIndicator.outline;
+
+	expect(
+		changed,
+		`[data-testid="${testId}"] must render a visible focus indicator (outline or box-shadow must differ from the unfocused state)`
+	).toBe(true);
+}

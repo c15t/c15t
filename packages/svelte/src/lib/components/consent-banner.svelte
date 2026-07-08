@@ -285,6 +285,8 @@ const resolvedCustomizeText = $derived(
 						<div
 							class={noStyle ? '' : titleStyle.className || ''}
 							data-testid="consent-banner-title"
+							role="heading"
+							aria-level="2"
 						>
 							{resolvedTitle}
 						</div>

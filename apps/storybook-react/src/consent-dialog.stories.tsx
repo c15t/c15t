@@ -1,4 +1,8 @@
-import { saveFlow } from '@c15t/conformance/play/consent-dialog';
+import {
+	dialogContract,
+	dialogEscapeCloses,
+	saveFlow,
+} from '@c15t/conformance/play/consent-dialog';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
 	ConsentBanner,
@@ -33,6 +37,16 @@ export const Default: Story = {
 	),
 };
 
+export const DialogContract: Story = {
+	render: () => (
+		<StorybookConsentProvider options={editableConsentOptions}>
+			<ConsentBanner />
+			<ConsentDialog />
+		</StorybookConsentProvider>
+	),
+	play: dialogContract,
+};
+
 export const SaveFlow: Story = {
 	render: () => (
 		<StorybookConsentProvider options={editableConsentOptions}>
@@ -41,4 +55,14 @@ export const SaveFlow: Story = {
 		</StorybookConsentProvider>
 	),
 	play: saveFlow,
+};
+
+export const DialogEscapeCloses: Story = {
+	render: () => (
+		<StorybookConsentProvider options={editableConsentOptions}>
+			<ConsentBanner />
+			<ConsentDialog />
+		</StorybookConsentProvider>
+	),
+	play: dialogEscapeCloses,
 };

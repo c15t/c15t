@@ -1,28 +1,33 @@
 <script lang="ts">
-	import { ConsentBanner, ConsentDialog } from '@c15t/svelte';
-	import StorybookConsentProvider from './StorybookConsentProvider.svelte';
-	import {
-		editableConsentOptions,
-		editableStoredConsent,
-	} from './storybook-consent-fixtures';
+import { ConsentBanner, ConsentDialog } from '@c15t/svelte';
+import StorybookConsentProvider from './StorybookConsentProvider.svelte';
+import {
+	editableConsentOptions,
+	editableStoredConsent,
+} from './storybook-consent-fixtures';
 
-	let {
-		open = false,
-		withBanner = false,
-		useStoredConsent = false,
-	}: {
-		open?: boolean;
-		withBanner?: boolean;
-		useStoredConsent?: boolean;
-	} = $props();
+let {
+	open,
+	trapFocus = false,
+	withBanner = false,
+	useStoredConsent = false,
+}: {
+	open?: boolean;
+	trapFocus?: boolean;
+	withBanner?: boolean;
+	useStoredConsent?: boolean;
+} = $props();
 </script>
 
 <StorybookConsentProvider
-	options={editableConsentOptions}
+	options={{ ...editableConsentOptions, trapFocus }}
 	storedConsent={useStoredConsent ? editableStoredConsent : undefined}
 >
 	{#if withBanner}
-		<ConsentBanner />
+		<ConsentBanner {trapFocus} />
 	{/if}
-	<ConsentDialog {open} />
+	<ConsentDialog
+		{open}
+		{trapFocus}
+	/>
 </StorybookConsentProvider>

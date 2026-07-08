@@ -674,4 +674,67 @@
 			background-color: transparent;
 		}
 	}
+
+	/*
+	 * Keyboard focus ring — catch-all for every variant/mode combination.
+	 *
+	 * The variant rules above use [data-variant][data-mode] attribute
+	 * selectors, which outrank the generic `.button:focus-visible` rule at
+	 * the top of this layer. Only the `filled` modes declare their own
+	 * focus-visible shadow, so without this block every stroke/lighter/ghost
+	 * button silently loses its focus indicator to the variant's base or
+	 * hover box-shadow. Keep this block last in the layer.
+	 */
+	.button:not(:global(.headless)):focus-visible,
+	.button:not(:global(.headless))[data-variant][data-mode]:focus-visible,
+	.button:not(
+			:global(.headless)
+		)[data-variant][data-mode]:focus-visible:hover:not(:disabled) {
+		outline: none;
+		box-shadow: var(--button-shadow-primary-focus);
+	}
+
+	.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode]:focus-visible,
+	.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode]:focus-visible:hover:not(:disabled),
+	.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode]:focus-visible,
+	.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode]:focus-visible:hover:not(:disabled) {
+		box-shadow: var(--button-shadow-neutral-focus);
+	}
+
+	:global(.c15t-dark) .button:not(:global(.headless)):focus-visible,
+	:global(.c15t-dark)
+		.button:not(:global(.headless))[data-variant][data-mode]:focus-visible,
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant][data-mode]:focus-visible:hover:not(:disabled) {
+		box-shadow: var(--button-shadow-primary-focus-dark);
+	}
+
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode]:focus-visible,
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="neutral"][data-mode]:focus-visible:hover:not(:disabled),
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode]:focus-visible,
+	:global(.c15t-dark)
+		.button:not(
+			:global(.headless)
+		)[data-variant="secondary"][data-mode]:focus-visible:hover:not(:disabled) {
+		box-shadow: var(--button-shadow-neutral-focus-dark);
+	}
 }

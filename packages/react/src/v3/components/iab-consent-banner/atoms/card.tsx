@@ -46,7 +46,7 @@ const IABConsentBannerCard = forwardRef<
 		<div
 			ref={ref}
 			{...themedStyle}
-			tabIndex={0}
+			tabIndex={-1}
 			role="dialog"
 			aria-modal={trapFocus ? 'true' : undefined}
 		>

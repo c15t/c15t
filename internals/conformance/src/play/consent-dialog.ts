@@ -4,6 +4,7 @@ import {
 	assertDomContract,
 	assertStableElements,
 } from '../assertions/dom-contract';
+import { assertFocusReturnsTo, assertInitialFocus } from '../assertions/focus';
 import { assertEscapeDismisses } from '../assertions/keyboard';
 
 /**
@@ -46,4 +47,30 @@ export const dialogEscapeCloses: PlayFunction = async () => {
 	);
 	await body.findByTestId('consent-dialog-root');
 	await assertEscapeDismisses(document.body, 'consent-dialog-root');
+};
+
+/**
+ * Opens the dialog from the persistent floating trigger, verifies initial
+ * focus lands on the dialog container, then verifies Escape returns focus to
+ * the trigger.
+ *
+ * Uses the trigger (not the banner customize button) because the banner is
+ * dismissed for good when the dialog closes, so it is the only opener that
+ * exists again after close. The trigger itself unmounts while the dialog is
+ * open and re-renders on close; `setupFocusTrap` re-targets it by testid.
+ */
+export const dialogFocusManagement: PlayFunction = async () => {
+	const body = within(document.body);
+	const trigger = await body.findByTestId('consent-dialog-trigger');
+	(trigger as HTMLElement).focus();
+	await userEvent.click(trigger);
+	await body.findByTestId('consent-dialog-root');
+	await assertInitialFocus(document.body, 'consent-dialog-root');
+	await assertFocusReturnsTo(
+		document.body,
+		'consent-dialog-trigger',
+		async () => {
+			await userEvent.keyboard('{Escape}');
+		}
+	);
 };

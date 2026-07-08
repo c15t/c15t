@@ -1,4 +1,9 @@
-import { bannerToDialogFlow } from '@c15t/conformance/play/consent-banner';
+import {
+	bannerAcceptViaKeyboard,
+	bannerContract,
+	bannerFocusManagement,
+	bannerToDialogFlow,
+} from '@c15t/conformance/play/consent-banner';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
 	ConsentBanner,
@@ -29,6 +34,15 @@ export const Default: Story = {
 	),
 };
 
+export const BannerContract: Story = {
+	render: () => (
+		<StorybookConsentProvider options={editableConsentOptions}>
+			<ConsentBanner />
+		</StorybookConsentProvider>
+	),
+	play: bannerContract,
+};
+
 export const BannerToDialogFlow: Story = {
 	render: () => (
 		<StorybookConsentProvider options={editableConsentOptions}>
@@ -37,4 +51,22 @@ export const BannerToDialogFlow: Story = {
 		</StorybookConsentProvider>
 	),
 	play: bannerToDialogFlow,
+};
+
+export const BannerAcceptViaKeyboard: Story = {
+	render: () => (
+		<StorybookConsentProvider options={editableConsentOptions}>
+			<ConsentBanner />
+		</StorybookConsentProvider>
+	),
+	play: bannerAcceptViaKeyboard,
+};
+
+export const BannerFocusManagement: Story = {
+	render: () => (
+		<StorybookConsentProvider options={editableConsentOptions}>
+			<ConsentBanner trapFocus />
+		</StorybookConsentProvider>
+	),
+	play: bannerFocusManagement,
 };

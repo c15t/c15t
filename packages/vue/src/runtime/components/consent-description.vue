@@ -24,12 +24,18 @@ const legalLinks = computed(() => {
 const linkContext = computed(() =>
 	props.context === 'manager' ? 'manager' : props.context
 );
+
+const testId = computed(() =>
+	props.context === 'banner'
+		? 'consent-banner-description'
+		: 'consent-dialog-description'
+);
 </script>
 
 <template>
 	<div
 		v-bind="config.components?.description?.[context]"
-		data-testid="consent-description"
+		:data-testid="testId"
 		:class="bannerStyles.description"
 		:data-context="context"
 	>

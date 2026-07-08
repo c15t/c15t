@@ -42,7 +42,7 @@ const IABConsentBannerCard = forwardRef<
 		<div
 			ref={ref}
 			{...domStyleProps}
-			tabIndex={0}
+			tabIndex={-1}
 			role="dialog"
 			aria-modal={trapFocus ? 'true' : undefined}
 			data-testid="iab-consent-banner-card"

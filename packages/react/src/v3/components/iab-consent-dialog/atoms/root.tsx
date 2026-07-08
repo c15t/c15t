@@ -1,10 +1,12 @@
 'use client';
 
+import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { type FC, type ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import { LocalThemeContext } from '~/v3/context/theme-context';
+import { useSetActiveUI } from '~/v3/hooks';
 import { useIABConsentManager } from '~/v3/hooks/use-iab-consent-manager';
 import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';
@@ -60,6 +62,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		policyDialog,
 		model,
 	} = useIABConsentManager();
+	const setActiveUI = useSetActiveUI();
 	const { components } = useUIConfig();
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
@@ -79,6 +82,22 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 
 	// Scroll lock
 	useScrollLock(Boolean(isOpen && resolvedScrollLock));
+
+	useEffect(() => {
+		if (!isOpen) {
+			return;
+		}
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (isDialogDismissKey(event.key)) {
+				event.preventDefault();
+				setActiveUI('none');
+			}
+		};
+
+		document.addEventListener('keydown', handleKeyDown);
+		return () => document.removeEventListener('keydown', handleKeyDown);
+	}, [isOpen, setActiveUI]);
 
 	// Mount state for portal
 	useEffect(() => {

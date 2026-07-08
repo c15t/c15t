@@ -49,6 +49,8 @@ const ConsentBannerTitle = forwardRef<
 			ref={ref as Ref<HTMLDivElement>}
 			baseClassName={styles.title}
 			data-testid="consent-banner-title"
+			role="heading"
+			aria-level={2}
 			themeKey="consentBannerTitle"
 			{...props}
 		>
@@ -184,7 +186,7 @@ const ConsentBannerCard = forwardRef<
 	return (
 		<Box
 			ref={cardRef as Ref<HTMLDivElement>}
-			tabIndex={0}
+			tabIndex={-1}
 			baseClassName={styles.card}
 			data-testid="consent-banner-card"
 			themeKey="consentBannerCard"

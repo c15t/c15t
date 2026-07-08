@@ -104,7 +104,10 @@ export const storybookConsentConfig: ConsentConfig = {
 		'marketing',
 	],
 	customFetch: storybookFetch(),
-	disableAnimation: true,
+	// Animations left ON to match the React/Svelte storybooks (their fixtures
+	// don't disable them) so the Vue stories showcase the real dialog +
+	// accordion motion. The parity-runner freezes animations itself via
+	// Playwright's `animations: 'disabled'`, so screenshots stay stable.
 	trapFocus: true,
 	hideBranding: false,
 } as ConsentConfig;
@@ -134,13 +137,19 @@ export function provideStorybookConsentContext(
 	provide(symbolConsent, context.storedConsent);
 }
 
-export function useStorybookConsent(activeUI: StoryActiveUI) {
+export function useStorybookConsent(
+	activeUI: StoryActiveUI,
+	configOverrides?: Partial<ConsentConfig>
+) {
+	const config = configOverrides
+		? ({ ...storybookConsentConfig, ...configOverrides } as ConsentConfig)
+		: storybookConsentConfig;
 	const context = createVueConsentKernelContext({
-		config: storybookConsentConfig,
+		config,
 		prefetch: storybookInit,
 	});
 	context.activeUI.value = activeUI;
-	provideStorybookConsentContext(null, context, storybookConsentConfig);
+	provideStorybookConsentContext(null, context, config);
 	onUnmounted(() => context.dispose());
 	return context;
 }

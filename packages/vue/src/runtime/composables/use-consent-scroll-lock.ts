@@ -1,18 +1,28 @@
-import { useScrollLock } from '@vueuse/core';
+import { setupScrollLock } from '@c15t/ui/utils';
 import { type ComputedRef, onMounted, onUnmounted, watch } from 'vue';
 
 export function useConsentScrollLock(shouldLock: ComputedRef<boolean>): void {
 	onMounted(() => {
-		const el = (document.scrollingElement ??
-			document.documentElement) as HTMLElement;
-		const isScrollLocked = useScrollLock(el);
+		let cleanup: (() => void) | undefined;
+		function unlock() {
+			cleanup?.();
+			cleanup = undefined;
+		}
+
 		const stop = watch(
 			shouldLock,
 			(locked) => {
-				isScrollLocked.value = locked;
+				if (locked && !cleanup) {
+					cleanup = setupScrollLock();
+				} else if (!locked) {
+					unlock();
+				}
 			},
 			{ immediate: true }
 		);
-		onUnmounted(stop);
+		onUnmounted(() => {
+			stop();
+			unlock();
+		});
 	});
 }

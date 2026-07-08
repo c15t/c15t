@@ -67,7 +67,13 @@ $effect(() => {
 	}
 
 	if (!open && lastOpen) {
-		restoreFocusElement?.focus();
+		if (
+			restoreFocusElement &&
+			restoreFocusElement !== document.body &&
+			restoreFocusElement !== document.documentElement
+		) {
+			restoreFocusElement.focus();
+		}
 	}
 
 	lastOpen = open;

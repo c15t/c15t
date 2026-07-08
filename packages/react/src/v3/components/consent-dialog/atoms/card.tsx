@@ -98,6 +98,8 @@ const ConsentDialogHeaderTitle = forwardRef<
 			{...props}
 			id="consent-dialog-title"
 			data-testid="consent-dialog-title"
+			role="heading"
+			aria-level={2}
 		>
 			{children ?? consentDialog.title}
 		</Box>

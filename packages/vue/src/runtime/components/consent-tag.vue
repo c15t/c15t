@@ -6,7 +6,7 @@ import brandingStyles from '@c15t/ui/styles/v3/branding';
 import { computed } from 'vue';
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
 
-defineProps<{
+const props = defineProps<{
 	context: 'banner' | 'dialog' | 'manager' | 'iab-banner' | 'iab-dialog';
 }>();
 
@@ -38,6 +38,19 @@ const href = computed(() =>
 		? `https://inth.com${refParam.value}`
 		: `https://c15t.com${refParam.value}`
 );
+
+const testId = computed(() => {
+	switch (props.context) {
+		case 'banner':
+			return 'consent-banner-branding';
+		case 'iab-banner':
+			return 'iab-consent-banner-branding';
+		case 'iab-dialog':
+			return 'iab-consent-dialog-branding';
+		default:
+			return 'consent-dialog-branding';
+	}
+});
 </script>
 
 <template>
@@ -49,7 +62,7 @@ const href = computed(() =>
 		rel="noopener noreferrer"
 		:data-branding="resolvedBranding"
 		:data-variant="context === 'banner' || context === 'iab-banner' ? 'banner-tag' : 'dialog-tag'"
-		data-testid="consent-tag"
+		:data-testid="testId"
 		:class="brandingStyles.brandingTag"
 		:data-context="context"
 	>

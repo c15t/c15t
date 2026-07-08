@@ -126,6 +126,7 @@ export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
 				type="button"
 				className={buttonClasses}
 				data-c15t-trigger="true"
+				data-testid="consent-dialog-trigger"
 				aria-label={ariaLabel}
 				onClick={handleClick}
 				onKeyDown={handleKeyDown}

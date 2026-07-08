@@ -1,10 +1,16 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import {
 	getFocusableElements,
 	getTextDirection,
+	setupFocusTrap,
 	setupScrollLock,
 	setupTextDirection,
 } from '../dom';
+
+/** Flushes the trap's deferred (setTimeout 0) focus operations. */
+function flushFocusTimers(): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, 0));
+}
 
 describe('getTextDirection', () => {
 	test('returns ltr for undefined language', () => {
@@ -111,19 +117,6 @@ describe('setupScrollLock', () => {
 describe('getFocusableElements', () => {
 	let container: HTMLDivElement;
 
-	// Helper to make elements visible to the focusable check
-	// jsdom doesn't render elements with actual dimensions, so we mock offsetWidth/offsetHeight
-	const makeVisible = (element: HTMLElement) => {
-		Object.defineProperty(element, 'offsetWidth', {
-			value: 100,
-			configurable: true,
-		});
-		Object.defineProperty(element, 'offsetHeight', {
-			value: 50,
-			configurable: true,
-		});
-	};
-
 	beforeEach(() => {
 		container = document.createElement('div');
 		document.body.appendChild(container);
@@ -135,8 +128,6 @@ describe('getFocusableElements', () => {
 
 	test('finds buttons when visible', () => {
 		container.innerHTML = '<button>Click me</button>';
-		const button = container.querySelector('button') as HTMLElement;
-		makeVisible(button);
 		const elements = getFocusableElements(container);
 		expect(elements).toHaveLength(1);
 		expect(elements[0]?.tagName).toBe('BUTTON');
@@ -144,8 +135,6 @@ describe('getFocusableElements', () => {
 
 	test('finds links with href when visible', () => {
 		container.innerHTML = '<a href="#">Link</a>';
-		const link = container.querySelector('a') as HTMLElement;
-		makeVisible(link);
 		const elements = getFocusableElements(container);
 		expect(elements).toHaveLength(1);
 		expect(elements[0]?.tagName).toBe('A');
@@ -153,8 +142,6 @@ describe('getFocusableElements', () => {
 
 	test('finds inputs when visible', () => {
 		container.innerHTML = '<input type="text" />';
-		const input = container.querySelector('input') as HTMLElement;
-		makeVisible(input);
 		const elements = getFocusableElements(container);
 		expect(elements).toHaveLength(1);
 		expect(elements[0]?.tagName).toBe('INPUT');
@@ -165,8 +152,6 @@ describe('getFocusableElements', () => {
 			<button id="enabled">Enabled</button>
 			<button disabled>Disabled</button>
 		`;
-		const enabledButton = container.querySelector('#enabled') as HTMLElement;
-		makeVisible(enabledButton);
 		const elements = getFocusableElements(container);
 		expect(elements).toHaveLength(1);
 		expect(elements[0]?.id).toBe('enabled');
@@ -177,14 +162,6 @@ describe('getFocusableElements', () => {
 			<button id="focusable">Focusable</button>
 			<button id="not-focusable" tabindex="-1">Not focusable</button>
 		`;
-		const focusableButton = container.querySelector(
-			'#focusable'
-		) as HTMLElement;
-		const notFocusableButton = container.querySelector(
-			'#not-focusable'
-		) as HTMLElement;
-		makeVisible(focusableButton);
-		makeVisible(notFocusableButton);
 		const elements = getFocusableElements(container);
 		expect(elements).toHaveLength(1);
 		expect(elements[0]?.id).toBe('focusable');
@@ -197,15 +174,6 @@ describe('getFocusableElements', () => {
 			<button id="inactive-tab-2" tabindex="-1" role="tab">Tab 3</button>
 			<div id="panel" tabindex="0" role="tabpanel">Content</div>
 		`;
-		const activeTab = container.querySelector('#active-tab') as HTMLElement;
-		const inactiveTab1 = container.querySelector(
-			'#inactive-tab-1'
-		) as HTMLElement;
-		const inactiveTab2 = container.querySelector(
-			'#inactive-tab-2'
-		) as HTMLElement;
-		const panel = container.querySelector('#panel') as HTMLElement;
-		[activeTab, inactiveTab1, inactiveTab2, panel].forEach(makeVisible);
 		const elements = getFocusableElements(container);
 		expect(elements).toHaveLength(2);
 		expect(elements[0]?.id).toBe('active-tab');
@@ -214,8 +182,6 @@ describe('getFocusableElements', () => {
 
 	test('includes elements with positive tabindex when visible', () => {
 		container.innerHTML = '<div tabindex="0">Focusable div</div>';
-		const div = container.querySelector('div') as HTMLElement;
-		makeVisible(div);
 		const elements = getFocusableElements(container);
 		expect(elements).toHaveLength(1);
 	});
@@ -228,13 +194,6 @@ describe('getFocusableElements', () => {
 			<select><option>Option</option></select>
 			<textarea></textarea>
 		`;
-		// Make all elements visible
-		const button = container.querySelector('button') as HTMLElement;
-		const link = container.querySelector('a') as HTMLElement;
-		const input = container.querySelector('input') as HTMLElement;
-		const select = container.querySelector('select') as HTMLElement;
-		const textarea = container.querySelector('textarea') as HTMLElement;
-		[button, link, input, select, textarea].forEach(makeVisible);
 		const elements = getFocusableElements(container);
 		expect(elements).toHaveLength(5);
 	});
@@ -245,10 +204,231 @@ describe('getFocusableElements', () => {
 		expect(elements).toHaveLength(0);
 	});
 
-	test('excludes invisible elements (offsetWidth/offsetHeight = 0)', () => {
-		container.innerHTML = '<button>Invisible button</button>';
-		// Don't call makeVisible - element has 0 dimensions by default in jsdom
+	test('excludes elements inside hidden ancestors in the fallback branch', () => {
+		container.innerHTML = '<div hidden><button>Hidden button</button></div>';
 		const elements = getFocusableElements(container);
 		expect(elements).toHaveLength(0);
+	});
+
+	test('excludes inline display none elements in the fallback branch', () => {
+		container.innerHTML =
+			'<button style="display: none">Hidden button</button>';
+		const elements = getFocusableElements(container);
+		expect(elements).toHaveLength(0);
+	});
+
+	test('does not require layout dimensions in the fallback branch', () => {
+		container.innerHTML = '<button>Dimensionless button</button>';
+		const button = container.querySelector('button') as HTMLElement;
+		expect(button.offsetWidth).toBe(0);
+		expect(button.offsetHeight).toBe(0);
+		const elements = getFocusableElements(container);
+		expect(elements).toHaveLength(1);
+		expect(elements[0]).toBe(button);
+	});
+});
+
+describe('setupFocusTrap focus restore', () => {
+	let dialog: HTMLDivElement;
+
+	beforeEach(() => {
+		dialog = document.createElement('div');
+		document.body.appendChild(dialog);
+	});
+
+	afterEach(() => {
+		document.body.innerHTML = '';
+	});
+
+	test('restores focus to the opener when it stays mounted', async () => {
+		const trigger = document.createElement('button');
+		document.body.appendChild(trigger);
+		trigger.focus();
+
+		const cleanup = setupFocusTrap(dialog);
+		await flushFocusTimers();
+		expect(document.activeElement).toBe(dialog);
+
+		cleanup();
+		await flushFocusTimers();
+		expect(document.activeElement).toBe(trigger);
+	});
+
+	test('does not steal focus already moved inside the trap before initial focus runs', async () => {
+		const button = document.createElement('button');
+		dialog.appendChild(button);
+
+		setupFocusTrap(dialog);
+		button.focus();
+		await flushFocusTimers();
+
+		expect(document.activeElement).toBe(button);
+	});
+
+	test('restores focus to a re-rendered opener matched by data-testid', async () => {
+		const trigger = document.createElement('button');
+		trigger.setAttribute('data-testid', 'consent-dialog-trigger');
+		document.body.appendChild(trigger);
+		trigger.focus();
+
+		const cleanup = setupFocusTrap(dialog);
+		await flushFocusTimers();
+
+		// The opener unmounts while the dialog is open (activeUI switches),
+		// then re-renders as a brand new node when the dialog closes.
+		trigger.remove();
+		const remounted = document.createElement('button');
+		remounted.setAttribute('data-testid', 'consent-dialog-trigger');
+		document.body.appendChild(remounted);
+
+		cleanup();
+		await flushFocusTimers();
+		expect(document.activeElement).toBe(remounted);
+	});
+
+	test('restores focus when the opener unmounts before trap setup runs', async () => {
+		const trigger = document.createElement('button');
+		trigger.setAttribute('data-testid', 'consent-dialog-trigger');
+		document.body.appendChild(trigger);
+		trigger.focus();
+		trigger.remove();
+
+		const cleanup = setupFocusTrap(dialog);
+		await flushFocusTimers();
+
+		const remounted = document.createElement('button');
+		remounted.setAttribute('data-testid', 'consent-dialog-trigger');
+		document.body.appendChild(remounted);
+
+		cleanup();
+		await flushFocusTimers();
+		expect(document.activeElement).toBe(remounted);
+	});
+
+	test('restores focus to a re-rendered opener matched by id', async () => {
+		const trigger = document.createElement('button');
+		trigger.id = 'privacy-settings';
+		document.body.appendChild(trigger);
+		trigger.focus();
+
+		const cleanup = setupFocusTrap(dialog);
+		await flushFocusTimers();
+
+		trigger.remove();
+		const remounted = document.createElement('button');
+		remounted.id = 'privacy-settings';
+		document.body.appendChild(remounted);
+
+		cleanup();
+		await flushFocusTimers();
+		expect(document.activeElement).toBe(remounted);
+	});
+
+	test('leaves focus alone when the opener is gone with no equivalent', async () => {
+		const trigger = document.createElement('button');
+		document.body.appendChild(trigger);
+		trigger.focus();
+
+		const cleanup = setupFocusTrap(dialog);
+		await flushFocusTimers();
+
+		trigger.remove();
+		dialog.remove();
+		cleanup();
+		await flushFocusTimers();
+		expect(document.activeElement).toBe(document.body);
+	});
+});
+
+describe('setupFocusTrap tab wrapping', () => {
+	let dialog: HTMLDivElement;
+	let first: HTMLButtonElement;
+	let last: HTMLButtonElement;
+	let outside: HTMLButtonElement;
+	let cleanup: (() => void) | undefined;
+
+	function pressTab(shiftKey = false) {
+		document.dispatchEvent(
+			new KeyboardEvent('keydown', {
+				bubbles: true,
+				cancelable: true,
+				key: 'Tab',
+				shiftKey,
+			})
+		);
+	}
+
+	beforeEach(() => {
+		outside = document.createElement('button');
+		dialog = document.createElement('div');
+		first = document.createElement('button');
+		last = document.createElement('button');
+		dialog.append(first, last);
+		document.body.append(outside, dialog);
+	});
+
+	afterEach(() => {
+		cleanup?.();
+		cleanup = undefined;
+		document.body.innerHTML = '';
+	});
+
+	test('Shift+Tab from the focused container wraps to the last focusable', async () => {
+		cleanup = setupFocusTrap(dialog);
+		await flushFocusTimers();
+		expect(document.activeElement).toBe(dialog);
+
+		pressTab(true);
+		expect(document.activeElement).toBe(last);
+	});
+
+	test('Shift+Tab from the first focusable wraps to the last', async () => {
+		cleanup = setupFocusTrap(dialog);
+		await flushFocusTimers();
+
+		first.focus();
+		pressTab(true);
+		expect(document.activeElement).toBe(last);
+	});
+
+	test('Tab from the last focusable wraps to the first', async () => {
+		cleanup = setupFocusTrap(dialog);
+		await flushFocusTimers();
+
+		last.focus();
+		pressTab();
+		expect(document.activeElement).toBe(first);
+	});
+
+	test('Tab pulls focus back inside when it escaped the trap', async () => {
+		cleanup = setupFocusTrap(dialog);
+		await flushFocusTimers();
+
+		outside.focus();
+		pressTab();
+		expect(document.activeElement).toBe(first);
+
+		outside.focus();
+		pressTab(true);
+		expect(document.activeElement).toBe(last);
+	});
+});
+
+describe('getFocusableElements fallback ancestor visibility', () => {
+	let container: HTMLDivElement;
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		document.body.appendChild(container);
+	});
+
+	afterEach(() => {
+		container.remove();
+	});
+
+	test('excludes elements inside inline display:none ancestors', () => {
+		container.innerHTML =
+			'<div style="display: none"><button>Hidden child</button></div>';
+		expect(getFocusableElements(container)).toHaveLength(0);
 	});
 });

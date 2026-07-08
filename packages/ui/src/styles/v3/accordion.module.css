@@ -80,7 +80,11 @@
 
 	.item:not(:global(.headless)):has(.trigger:focus-visible) {
 		outline: 2px solid var(--accordion-focus-ring);
-		outline-offset: -1px;
+		/* Fully inset: the first/last items sit flush against the dialog's
+		   scroll container edge, so any part of the ring outside the item's
+		   border box gets clipped by overflow. -2px keeps the 2px ring
+		   entirely within bounds (it covers the 1px item border). */
+		outline-offset: -2px;
 	}
 
 	:global(.c15t-dark)
