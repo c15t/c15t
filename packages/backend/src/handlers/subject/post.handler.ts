@@ -204,6 +204,37 @@ function isMissingConsentDedupeKeyColumnError(error: unknown): boolean {
 	);
 }
 
+/**
+ * Detects unique-constraint violations across the supported adapters
+ * (Postgres `23505`, MySQL `ER_DUP_ENTRY`/1062, SQLite `SQLITE_CONSTRAINT*`,
+ * Prisma `P2002`) plus a message-based fallback for wrapped errors.
+ */
+function isUniqueConstraintViolationError(error: unknown): boolean {
+	const code =
+		typeof error === 'object' && error !== null && 'code' in error
+			? String((error as { code: unknown }).code)
+			: undefined;
+
+	if (
+		code === '23505' ||
+		code === 'ER_DUP_ENTRY' ||
+		code === '1062' ||
+		code === 'P2002' ||
+		code?.startsWith('SQLITE_CONSTRAINT')
+	) {
+		return true;
+	}
+
+	const message = extractErrorMessage(error).toLowerCase();
+	return (
+		message.includes('unique constraint') ||
+		message.includes('unique violation') ||
+		message.includes('duplicate key') ||
+		message.includes('duplicate entry') ||
+		message.includes('unique conflict')
+	);
+}
+
 function resolveSnapshotFailureMode(
 	ctx: C15TContext
 ): 'reject' | 'resolve_current' {
@@ -718,35 +749,40 @@ export const postSubjectHandler = async (c: Context) => {
 			});
 		}
 
-		const result = await db.transaction(async (tx) => {
-			const existingConsentInTransaction = await findExistingConsent(tx);
+		const runConsentTransaction = (options: { withDedupeKey: boolean }) =>
+			db.transaction(async (tx) => {
+				// Re-check inside the transaction: a concurrent identical request
+				// may have committed between the pre-check and this point.
+				const existingConsentInTransaction = await findExistingConsent(tx);
 
-			if (existingConsentInTransaction) {
-				logger.debug(
-					'Duplicate consent detected in transaction, returning existing record',
-					{
-						consentId: existingConsentInTransaction.id,
-					}
-				);
-				return {
-					consent: existingConsentInTransaction,
-					created: false,
-				};
-			}
+				if (existingConsentInTransaction) {
+					logger.debug(
+						'Duplicate consent detected in transaction, returning existing record',
+						{
+							consentId: existingConsentInTransaction.id,
+						}
+					);
+					return {
+						consent: existingConsentInTransaction,
+						created: false,
+					};
+				}
 
-			logger.debug('Creating consent record', {
-				subjectId: subject.id,
-				domainId: domainRecord.id,
-				policyId,
-				purposeIds,
-			});
+				logger.debug('Creating consent record', {
+					subjectId: subject.id,
+					domainId: domainRecord.id,
+					policyId,
+					purposeIds,
+				});
 
-			const runtimePolicyDecision = decisionPayload
-				? ((await tx.findFirst('runtimePolicyDecision', {
-						where: (b) => b('dedupeKey', '=', decisionPayload.dedupeKey),
-					})) ??
-					(await tx
-						.create('runtimePolicyDecision', {
+				// No error recovery inside the transaction: a failed statement
+				// aborts the whole transaction on Postgres (25P02), so unique
+				// conflicts are handled by the retry loop below instead.
+				const runtimePolicyDecision = decisionPayload
+					? ((await tx.findFirst('runtimePolicyDecision', {
+							where: (b) => b('dedupeKey', '=', decisionPayload.dedupeKey),
+						})) ??
+						(await tx.create('runtimePolicyDecision', {
 							id: `rpd_${crypto.randomUUID().replaceAll('-', '')}`,
 							tenantId: decisionPayload.tenantId,
 							policyId: decisionPayload.policyId,
@@ -777,93 +813,121 @@ export const postSubjectHandler = async (c: Context) => {
 								? { json: decisionPayload.proofConfig }
 								: undefined,
 							dedupeKey: decisionPayload.dedupeKey,
-						})
-						.catch(async () =>
-							// Race: another request may have inserted the same dedupeKey
-							tx.findFirst('runtimePolicyDecision', {
-								where: (b) => b('dedupeKey', '=', decisionPayload.dedupeKey),
-							})
-						)))
-				: undefined;
+						})))
+					: undefined;
 
-			// Create the append-only consent record unless another identical request won the race.
-			let created = true;
-			const consentCreateData = {
-				id: await generateUniqueId(tx, 'consent', ctx),
-				subjectId: subject.id,
-				domainId: domainRecord.id,
-				policyId,
-				purposeIds: { json: purposeIds },
-				metadata:
-					Object.keys(metadataWithPolicy).length > 0
-						? { json: metadataWithPolicy }
-						: undefined,
-				ipAddress: shouldStoreIp ? ctx.ipAddress : null,
-				userAgent: shouldStoreUserAgent ? ctx.userAgent : null,
-				jurisdiction: effectiveJurisdiction,
-				jurisdictionModel: effectiveModel,
-				tcString: input.tcString,
-				uiSource: input.uiSource,
-				consentAction: derivedConsentAction,
-				givenAt,
-				validUntil,
-				runtimePolicyDecisionId: runtimePolicyDecision?.id,
-				runtimePolicySource: decisionPayload?.source,
-				dedupeKey: consentDedupeKey,
-			};
-			const consentRecord = await tx
-				.create('consent', consentCreateData)
-				.catch(async (error) => {
-					const concurrentConsent = await findExistingConsent(tx);
+				// Always create a new consent record (append-only)
+				const consentRecord = await tx.create('consent', {
+					id: await generateUniqueId(tx, 'consent', ctx),
+					subjectId: subject.id,
+					domainId: domainRecord.id,
+					policyId,
+					purposeIds: { json: purposeIds },
+					metadata:
+						Object.keys(metadataWithPolicy).length > 0
+							? { json: metadataWithPolicy }
+							: undefined,
+					ipAddress: shouldStoreIp ? ctx.ipAddress : null,
+					userAgent: shouldStoreUserAgent ? ctx.userAgent : null,
+					jurisdiction: effectiveJurisdiction,
+					jurisdictionModel: effectiveModel,
+					tcString: input.tcString,
+					uiSource: input.uiSource,
+					consentAction: derivedConsentAction,
+					givenAt,
+					validUntil,
+					runtimePolicyDecisionId: runtimePolicyDecision?.id,
+					runtimePolicySource: decisionPayload?.source,
+					...(options.withDedupeKey ? { dedupeKey: consentDedupeKey } : {}),
+				});
+
+				if (!consentRecord) {
+					throw new HTTPException(500, {
+						message: 'Failed to create consent',
+						cause: {
+							code: 'CONSENT_CREATION_FAILED',
+							subjectId: subject.id,
+							domain,
+						},
+					});
+				}
+
+				logger.debug('Created consent', { consentRecord: consentRecord.id });
+
+				return {
+					consent: consentRecord,
+					created: true,
+				};
+			});
+
+		// Unique conflicts (consent dedupeKey or runtimePolicyDecision dedupeKey)
+		// roll the transaction back, so recovery happens out here: return the
+		// winner's consent if it is already visible, otherwise retry so the
+		// in-transaction re-check and decision lookup can pick up the winner's
+		// rows. A missing dedupeKey column (database not migrated yet) retries
+		// without the column to stay patch-upgrade compatible.
+		const maxTransactionAttempts = 3;
+		let withDedupeKey = true;
+		let result: Awaited<ReturnType<typeof runConsentTransaction>> | undefined;
+
+		for (
+			let attempt = 1;
+			result === undefined && attempt <= maxTransactionAttempts;
+			attempt++
+		) {
+			try {
+				result = await runConsentTransaction({ withDedupeKey });
+			} catch (error) {
+				if (withDedupeKey && isMissingConsentDedupeKeyColumnError(error)) {
+					logger.warn(
+						'Consent dedupe key column is unavailable, creating consent without dedupe key',
+						{
+							subjectId: subject.id,
+							domainId: domainRecord.id,
+							policyId,
+						}
+					);
+					withDedupeKey = false;
+					continue;
+				}
+
+				if (
+					attempt < maxTransactionAttempts &&
+					isUniqueConstraintViolationError(error)
+				) {
+					const concurrentConsent = await findExistingConsent(db);
+
 					if (concurrentConsent) {
-						created = false;
 						logger.debug(
 							'Consent insert conflicted, returning existing record',
 							{
 								consentId: concurrentConsent.id,
 							}
 						);
-						return concurrentConsent;
+						result = {
+							consent: concurrentConsent,
+							created: false,
+						};
+						break;
 					}
 
-					if (isMissingConsentDedupeKeyColumnError(error)) {
-						const { dedupeKey: _dedupeKey, ...legacyConsentCreateData } =
-							consentCreateData;
-						logger.warn(
-							'Consent dedupe key column is unavailable, creating consent without dedupe key',
-							{
-								subjectId: subject.id,
-								domainId: domainRecord.id,
-								policyId,
-							}
-						);
-						return tx.create('consent', legacyConsentCreateData);
-					}
+					continue;
+				}
 
-					throw error;
-				});
-
-			logger.debug('Resolved consent', {
-				consentRecord: consentRecord.id,
-				created,
-			});
-
-			if (!consentRecord) {
-				throw new HTTPException(500, {
-					message: 'Failed to create consent',
-					cause: {
-						code: 'CONSENT_CREATION_FAILED',
-						subjectId: subject.id,
-						domain,
-					},
-				});
+				throw error;
 			}
+		}
 
-			return {
-				consent: consentRecord,
-				created,
-			};
-		});
+		if (!result) {
+			throw new HTTPException(500, {
+				message: 'Failed to create consent',
+				cause: {
+					code: 'CONSENT_CREATION_FAILED',
+					subjectId: subject.id,
+					domain,
+				},
+			});
+		}
 
 		// Record telemetry metrics
 		if (result.created) {

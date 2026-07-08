@@ -276,6 +276,54 @@ describe('postSubjectHandler idempotency', () => {
 			givenAt: GIVEN_AT_DATE,
 		};
 		const db = createMockDb(null);
+		// Pre-check misses, then the post-rollback recovery lookup finds the
+		// record committed by the concurrent request.
+		db.findFirst = vi
+			.fn()
+			.mockResolvedValueOnce(null)
+			.mockResolvedValueOnce(existingConsent);
+		db.__tx.create = vi
+			.fn()
+			.mockRejectedValueOnce(
+				Object.assign(new Error('duplicate key value'), { code: '23505' })
+			);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		const result = mockCtx.getJsonData() as {
+			consentId: string;
+			subjectId: string;
+		};
+
+		expect(result.consentId).toBe('con_existing');
+		expect(result.subjectId).toBe('sub_user1');
+		expect(db.transaction).toHaveBeenCalledTimes(1);
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'consent',
+			expect.objectContaining({
+				dedupeKey: buildConsentDedupeKey({
+					subjectId: 'sub_user1',
+					domainId: 'dom_1',
+					policyId: 'pol_1',
+					givenAt: GIVEN_AT_DATE,
+				}),
+			})
+		);
+	});
+
+	it('should retry the transaction when the winning record is not yet visible', async () => {
+		const existingConsent = {
+			id: 'con_existing',
+			givenAt: GIVEN_AT_DATE,
+		};
+		const db = createMockDb(null);
+		// Neither the pre-check nor the recovery lookup sees the winner yet
+		// (its transaction has not committed), so the handler retries and the
+		// in-transaction re-check finds it.
+		db.findFirst = vi.fn().mockResolvedValue(null);
 		db.__tx.findFirst = vi
 			.fn()
 			.mockResolvedValueOnce(null)
@@ -291,22 +339,23 @@ describe('postSubjectHandler idempotency', () => {
 
 		const result = mockCtx.getJsonData() as {
 			consentId: string;
-			subjectId: string;
 		};
 
 		expect(result.consentId).toBe('con_existing');
-		expect(result.subjectId).toBe('sub_user1');
-		expect(db.__tx.create).toHaveBeenCalledWith(
-			'consent',
-			expect.objectContaining({
-				dedupeKey: buildConsentDedupeKey({
-					subjectId: 'sub_user1',
-					domainId: 'dom_1',
-					policyId: 'pol_1',
-					givenAt: GIVEN_AT_DATE,
-				}),
-			})
-		);
+		expect(db.transaction).toHaveBeenCalledTimes(2);
+		expect(db.__tx.create).toHaveBeenCalledTimes(1);
+	});
+
+	it('should not retry or swallow non-unique-constraint errors', async () => {
+		const db = createMockDb(null);
+		db.__tx.create = vi.fn().mockRejectedValue(new Error('connection reset'));
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toThrow();
+
+		expect(db.transaction).toHaveBeenCalledTimes(1);
 	});
 
 	it('should create consent without dedupe key when the column is unavailable', async () => {
@@ -338,6 +387,9 @@ describe('postSubjectHandler idempotency', () => {
 		>;
 
 		expect(result.consentId).toBe('con_new');
+		// The whole transaction is retried without the dedupe key: recovery
+		// cannot run inside an aborted Postgres transaction.
+		expect(db.transaction).toHaveBeenCalledTimes(2);
 		expect(db.__tx.create).toHaveBeenCalledTimes(2);
 		expect(db.__tx.create.mock.calls[0]?.[1]).toEqual(
 			expect.objectContaining({
