@@ -285,4 +285,58 @@ describe('ConsentBanner.PolicyActions', () => {
 				?.className
 		).toContain('button-secondary-marker');
 	});
+
+	test('consentActions.primary styles whichever action the policy marks primary', async () => {
+		await renderPolicyActions(
+			{
+				policyBanner: {
+					allowedActions: ['reject', 'accept', 'customize'],
+					primaryActions: ['customize'],
+					layout: ['customize', ['reject', 'accept']],
+					direction: 'row',
+				},
+			},
+			(action, props) => {
+				const { key, ...buttonProps } = props;
+
+				switch (action) {
+					case 'accept':
+						return <ConsentBanner.AcceptButton key={key} {...buttonProps} />;
+					case 'reject':
+						return <ConsentBanner.RejectButton key={key} {...buttonProps} />;
+					case 'customize':
+						return <ConsentBanner.CustomizeButton key={key} {...buttonProps} />;
+					default: {
+						const _exhaustive: never = action;
+						throw new Error(`Unhandled banner action: ${_exhaustive}`);
+					}
+				}
+			},
+			{
+				consentActions: {
+					default: { variant: 'neutral' },
+					primary: { variant: 'primary' },
+				},
+				slots: {
+					buttonPrimary: 'button-primary-marker',
+					buttonSecondary: 'button-secondary-marker',
+				},
+			}
+		);
+
+		// The policy marks customize as primary, so the theme's `primary`
+		// treatment lands there — not on accept.
+		expect(
+			document.querySelector('[data-testid="consent-banner-customize-button"]')
+				?.className
+		).toContain('button-primary-marker');
+		expect(
+			document.querySelector('[data-testid="consent-banner-accept-button"]')
+				?.className
+		).toContain('button-secondary-marker');
+		expect(
+			document.querySelector('[data-testid="consent-banner-reject-button"]')
+				?.className
+		).toContain('button-secondary-marker');
+	});
 });

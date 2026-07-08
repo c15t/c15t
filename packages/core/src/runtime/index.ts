@@ -70,6 +70,7 @@ function generateRuntimeCacheKey(options: {
 	defaultLanguage?: string;
 	languageSetKey?: string;
 	offlinePolicyKey?: string;
+	headersKey?: string;
 	enabled?: boolean;
 }): string {
 	const enabledKey = options.enabled === false ? 'disabled' : 'enabled';
@@ -85,10 +86,33 @@ function generateRuntimeCacheKey(options: {
 		options.defaultLanguage ?? 'default',
 		options.languageSetKey ?? 'default',
 		options.offlinePolicyKey ?? 'default',
+		options.headersKey ?? 'default',
 		enabledKey,
 	];
 
 	return cacheParts.join(':');
+}
+
+/**
+ * Stable cache-key fragment for custom HTTP headers, so hosted clients with
+ * different headers never share a cached runtime.
+ */
+function generateHeadersKey(
+	headers?: Record<string, string>
+): string | undefined {
+	if (!headers) {
+		return undefined;
+	}
+
+	const entries = Object.entries(headers).sort(([a], [b]) =>
+		a.localeCompare(b)
+	);
+
+	if (entries.length === 0) {
+		return undefined;
+	}
+
+	return entries.map(([key, value]) => `${key}=${value}`).join(',');
 }
 
 export function getOrCreateConsentRuntime(
@@ -120,7 +144,7 @@ export function getOrCreateConsentRuntime(
 		offlinePolicy,
 		consentCategories,
 		debug,
-		headers: _unusedHeaders,
+		headers,
 		customFetch: _unusedCustomFetch,
 		retryConfig: _unusedRetryConfig,
 		endpointHandlers: _unusedEndpointHandlers,
@@ -180,6 +204,7 @@ export function getOrCreateConsentRuntime(
 		offlinePolicyKey: resolvedOfflinePolicy
 			? JSON.stringify(resolvedOfflinePolicy)
 			: undefined,
+		headersKey: generateHeadersKey(headers),
 		enabled: resolvedEnabled,
 	});
 
@@ -209,6 +234,7 @@ export function getOrCreateConsentRuntime(
 			consentManager = configureConsentManager({
 				mode: mode === 'c15t' ? 'c15t' : 'hosted',
 				backendURL: backendURL || DEFAULT_BACKEND_URL,
+				headers,
 				store: normalizedStoreOptions,
 				storageConfig: resolvedStorageConfig,
 			});
