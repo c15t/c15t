@@ -440,7 +440,19 @@ export function getScenarioPolicyPacks(id: string): PolicyConfig[] {
 	return [scenario.policy, worldFallbackPolicy];
 }
 
-/** Every demo policy, used by the CLI backend config. */
-export const demoPolicies: PolicyConfig[] = demoScenarios.map(
-	(scenario) => scenario.policy
-);
+/**
+ * Every demo policy, used by the CLI backend config.
+ *
+ * Custom scenarios come first: within a matcher type, first match wins by
+ * array order, so the country-specific customs (FR/DE/ES) must be resolved
+ * before the broad Europe presets that also match those countries — and
+ * likewise `custom-ca-do-not-sell` before the California presets.
+ */
+export const demoPolicies: PolicyConfig[] = [...demoScenarios]
+	.sort((a, b) => {
+		if (a.group === b.group) {
+			return 0;
+		}
+		return a.group === 'custom' ? -1 : 1;
+	})
+	.map((scenario) => scenario.policy);

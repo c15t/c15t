@@ -97,6 +97,7 @@ function ThemeSwitcherPanel() {
 							key={presetKey}
 							type="button"
 							onClick={() => setThemePreset(presetKey)}
+							aria-pressed={isActive}
 							className={cn(
 								'flex items-start justify-between rounded-2xl border px-3 py-3 text-left transition-colors',
 								isActive
@@ -141,6 +142,7 @@ function ThemeSwitcherPanel() {
 								key={mode.value}
 								type="button"
 								onClick={() => setColorMode(mode.value)}
+								aria-pressed={colorMode === mode.value}
 								className={cn(
 									'flex items-center justify-center gap-2 rounded-full border px-3 py-2 font-medium text-xs transition-colors',
 									colorMode === mode.value

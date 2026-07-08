@@ -172,6 +172,7 @@ export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
 								key={option.label}
 								variant={isActive ? 'default' : 'outline'}
 								size="sm"
+								aria-pressed={isActive}
 								className="rounded-full"
 								onClick={() => {
 									if (!option.value) {

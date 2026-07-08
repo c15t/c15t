@@ -61,16 +61,16 @@ export function VideoDemo({
 				<div className="space-y-3">
 					<div>
 						<h3 className="font-medium text-base">
-							<code className="font-mono text-sm">category="experience"</code>
+							<code className="font-mono text-sm">category="marketing"</code>
 						</h3>
 						<p className="text-muted-foreground text-sm">
-							Unlocks when experience consent is given.
+							Unlocks when marketing consent is given.
 						</p>
 					</div>
-					<Frame category="experience" className="relative aspect-video w-full">
+					<Frame category="marketing" className="relative aspect-video w-full">
 						<iframe
 							src="https://www.youtube.com/embed/gwqYfNWVPpk?si=eEtKAUke_JUXTMfl&amp;start=36"
-							title="Experience policy-gated video"
+							title="Marketing policy-gated video"
 							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 							allowFullScreen
 							className="inset-0 h-full w-full"

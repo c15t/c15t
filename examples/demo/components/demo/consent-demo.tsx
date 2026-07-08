@@ -403,6 +403,7 @@ function PillButton({
 		<button
 			type="button"
 			onClick={onClick}
+			aria-pressed={active}
 			className={cn(
 				'rounded-full border px-4 py-2 text-left text-sm transition',
 				active
@@ -446,6 +447,7 @@ function ScenarioGroup({
 							key={scenario.id}
 							type="button"
 							onClick={() => onSelect(scenario.id)}
+							aria-pressed={isActive}
 							className={cn(
 								'rounded-full border px-4 py-2 text-left text-sm transition',
 								isActive
