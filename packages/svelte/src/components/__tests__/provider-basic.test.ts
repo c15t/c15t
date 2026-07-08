@@ -14,8 +14,17 @@ import ConsentManagerProvider from '../../lib/components/consent-manager-provide
 const mockFetch = vi.fn();
 window.fetch = mockFetch;
 
+type WindowWithC15t = Window & {
+	c15t?: {
+		version: string;
+		pkg: string;
+		mode: string;
+	};
+};
+
 describe('ConsentManagerProvider Basic Request Behavior', () => {
 	beforeEach(() => {
+		delete (window as WindowWithC15t).c15t;
 		vi.resetAllMocks();
 		clearConsentRuntimeCache();
 
@@ -35,6 +44,43 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 
 	afterEach(() => {
 		vi.clearAllMocks();
+		delete (window as WindowWithC15t).c15t;
+	});
+
+	test('should install window.c15t with Svelte offline identity', async () => {
+		const result = render(ProviderOnlyFixture, {
+			options: {
+				mode: 'offline',
+			},
+		});
+
+		await vi.waitFor(() => {
+			expect((window as WindowWithC15t).c15t).toMatchObject({
+				pkg: '@c15t/svelte',
+				mode: 'offline',
+			});
+		});
+		expect(typeof (window as WindowWithC15t).c15t?.version).toBe('string');
+
+		result.unmount();
+		expect((window as WindowWithC15t).c15t).toBeUndefined();
+	});
+
+	test('should report hosted mode on window.c15t when backendURL is set', async () => {
+		const result = render(ProviderOnlyFixture, {
+			options: {
+				backendURL: '/api/c15t',
+			},
+		});
+
+		await vi.waitFor(() => {
+			expect((window as WindowWithC15t).c15t).toMatchObject({
+				pkg: '@c15t/svelte',
+				mode: 'hosted',
+			});
+		});
+
+		result.unmount();
 	});
 
 	test('should not make fetch calls in offline mode', async () => {

@@ -12,6 +12,7 @@ import type { ConsentConfig } from '../runtime/config';
 import {
 	createVueConsentKernelContext,
 	type RuntimeConsentConfig,
+	startVueConsentRuntime,
 	type VueConsentKernelContext,
 } from '../runtime/kernel';
 import {
@@ -22,6 +23,14 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
+
+type WindowWithC15t = Window & {
+	c15t?: {
+		version: string;
+		pkg: string;
+		mode: string;
+	};
+};
 
 const initFixture: InitOutput = {
 	jurisdiction: 'GDPR',
@@ -238,6 +247,7 @@ async function renderRootToString(cookieHeader?: string) {
 }
 
 beforeEach(() => {
+	delete (window as WindowWithC15t).c15t;
 	document.body.innerHTML = '';
 	window.localStorage.clear();
 	document.cookie = 'c15t=; max-age=0; path=/';
@@ -246,12 +256,26 @@ beforeEach(() => {
 afterEach(() => {
 	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
+	delete (window as WindowWithC15t).c15t;
 	document.body.innerHTML = '';
 	window.localStorage.clear();
 	document.cookie = 'c15t=; max-age=0; path=/';
 });
 
 describe('@c15t/vue kernel runtime', () => {
+	test('installs window.c15t with Vue hosted identity', async () => {
+		const { wrapper } = await mountRoot();
+
+		expect((window as WindowWithC15t).c15t).toMatchObject({
+			pkg: '@c15t/vue',
+			mode: 'hosted',
+		});
+		expect(typeof (window as WindowWithC15t).c15t?.version).toBe('string');
+
+		wrapper.unmount();
+		expect((window as WindowWithC15t).c15t).toBeUndefined();
+	});
+
 	test('renders the banner from kernel init state', async () => {
 		const { wrapper } = await mountRoot();
 
@@ -441,5 +465,94 @@ describe('@c15t/vue kernel runtime', () => {
 		expect(document.cookie).toContain('c15t=');
 
 		wrapper.unmount();
+	});
+
+	test('network blocker wiring blocks matched requests until consent', async () => {
+		const { fetchMock } = createFetchMock();
+		const onRequestBlocked = vi.fn();
+		const config: RuntimeConsentConfig = {
+			backendURL: 'https://consent.example',
+			domain: 'consent.example',
+			consentCategories: ['necessary', 'measurement', 'marketing'],
+			customFetch: fetchMock as unknown as typeof fetch,
+			networkBlocker: {
+				rules: [{ domain: 'tracker.example', category: 'marketing' }],
+				logBlockedRequests: false,
+				onRequestBlocked,
+			},
+			iframeBlocker: false,
+		};
+		const context = createVueConsentKernelContext({
+			config,
+			prefetch: initFixture,
+		});
+		const stop = startVueConsentRuntime(context, config, { runInit: false });
+
+		try {
+			const blocked = await window.fetch('https://tracker.example/pixel');
+			expect(blocked.status).toBe(451);
+			expect(onRequestBlocked).toHaveBeenCalledTimes(1);
+
+			context.kernel.set.consent({ marketing: true });
+			// jsdom has no real network — reaching the (failing) transport is
+			// enough to prove the request was allowed through the blocker.
+			await window.fetch('https://tracker.example/pixel').catch(() => null);
+			expect(onRequestBlocked).toHaveBeenCalledTimes(1);
+		} finally {
+			stop();
+		}
+	});
+
+	test('iframe blocker is wired by default and honors opting out', async () => {
+		const { fetchMock } = createFetchMock();
+		const baseConfig: RuntimeConsentConfig = {
+			backendURL: 'https://consent.example',
+			domain: 'consent.example',
+			consentCategories: ['necessary', 'measurement', 'marketing'],
+			customFetch: fetchMock as unknown as typeof fetch,
+		};
+
+		const gated = document.createElement('iframe');
+		gated.setAttribute('data-category', 'marketing');
+		gated.setAttribute('src', 'https://embed.example/video');
+		document.body.appendChild(gated);
+
+		const context = createVueConsentKernelContext({
+			config: baseConfig,
+			prefetch: initFixture,
+		});
+		const stop = startVueConsentRuntime(context, baseConfig, {
+			runInit: false,
+		});
+		try {
+			// Default wiring strips the src of consent-gated iframes.
+			expect(gated.getAttribute('src')).toBeNull();
+		} finally {
+			stop();
+			gated.remove();
+		}
+
+		const untouched = document.createElement('iframe');
+		untouched.setAttribute('data-category', 'marketing');
+		untouched.setAttribute('src', 'https://embed.example/video');
+		document.body.appendChild(untouched);
+
+		const optOutConfig: RuntimeConsentConfig = {
+			...baseConfig,
+			iframeBlocker: false,
+		};
+		const optOutContext = createVueConsentKernelContext({
+			config: optOutConfig,
+			prefetch: initFixture,
+		});
+		const stopOptOut = startVueConsentRuntime(optOutContext, optOutConfig, {
+			runInit: false,
+		});
+		try {
+			expect(untouched.getAttribute('src')).toBe('https://embed.example/video');
+		} finally {
+			stopOptOut();
+			untouched.remove();
+		}
 	});
 });

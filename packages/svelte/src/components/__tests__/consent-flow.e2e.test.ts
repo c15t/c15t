@@ -183,7 +183,7 @@ describe('Consent Flow E2E Tests', () => {
 			});
 
 			await waitFor(() => {
-				const switches = document.querySelectorAll('[data-scope="switch"]');
+				const switches = document.querySelectorAll('[data-slot="switch"]');
 				expect(switches.length).toBeGreaterThan(0);
 			});
 		});

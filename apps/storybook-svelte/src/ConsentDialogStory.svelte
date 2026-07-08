@@ -7,7 +7,7 @@ import {
 } from './storybook-consent-fixtures';
 
 let {
-	open,
+	open = undefined,
 	trapFocus = false,
 	withBanner = false,
 	useStoredConsent = false,

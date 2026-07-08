@@ -18,11 +18,21 @@ import {
 } from 'c15t/v3';
 import type { Consent } from 'c15t/v3/consent-record';
 import {
+	createIframeBlocker,
+	type IframeBlockerOptions,
+} from 'c15t/v3/modules/iframe-blocker';
+import {
+	type BlockedRequestInfo,
+	createNetworkBlocker,
+	type NetworkBlockerRule,
+} from 'c15t/v3/modules/network-blocker';
+import {
 	createPersistence,
 	type StorageConfig,
 	type StoredPayload,
 } from 'c15t/v3/modules/persistence';
 import { createScriptLoader, type Script } from 'c15t/v3/modules/script-loader';
+import { createWindowDebug } from 'c15t/v3/modules/window-debug';
 import { computed, type Ref, shallowRef } from 'vue';
 import type { ConsentConfig } from './config';
 import {
@@ -45,11 +55,34 @@ export interface VueConsentKernelContext {
 	dispose(): void;
 }
 
+/**
+ * Network-blocker options, mirroring `UseNetworkBlockerOptions` in
+ * `@c15t/react` (v3 provider) and `@c15t/svelte`.
+ */
+export interface UseNetworkBlockerOptions {
+	rules: NetworkBlockerRule[];
+	enabled?: boolean;
+	logBlockedRequests?: boolean;
+	onRequestBlocked?: (info: BlockedRequestInfo) => void;
+}
+
 export type RuntimeConsentConfig = ConsentConfig & {
 	scripts?: Script[];
 	storageConfig?: StorageConfig;
 	customFetch?: typeof fetch;
 	domain?: string;
+	/**
+	 * Block matching network requests until the mapped consent category is
+	 * granted. Same shape as the react/svelte `networkBlocker` option;
+	 * omitted/`false` disables the module.
+	 */
+	networkBlocker?: UseNetworkBlockerOptions | false;
+	/**
+	 * Consent-gate iframes (YouTube, maps, social embeds). Enabled by default
+	 * to match `@c15t/svelte`; pass `false` to opt out or an options object to
+	 * tune automatic blocking.
+	 */
+	iframeBlocker?: Omit<IframeBlockerOptions, 'kernel'> | false;
 };
 
 export function pickAllowedInitHeaders(
@@ -371,6 +404,18 @@ export function startVueConsentRuntime(
 ): () => void {
 	const disposers: Array<() => void> = [];
 
+	if (typeof document !== 'undefined') {
+		const windowDebug = createWindowDebug({
+			pkg: '@c15t/vue',
+			mode:
+				isClientManifestModeEnabled(config) ||
+				isServerManifestModeEnabled(config)
+					? 'manifest'
+					: 'hosted',
+		});
+		disposers.push(() => windowDebug.dispose());
+	}
+
 	if (typeof document !== 'undefined' && typeof localStorage !== 'undefined') {
 		const persistence = createPersistence({
 			kernel: context.kernel,
@@ -387,6 +432,25 @@ export function startVueConsentRuntime(
 			scripts: config.scripts,
 		});
 		disposers.push(() => scriptLoader.dispose());
+	}
+
+	if (typeof document !== 'undefined' && config.networkBlocker) {
+		const networkBlocker = createNetworkBlocker({
+			kernel: context.kernel,
+			rules: config.networkBlocker.rules,
+			enabled: config.networkBlocker.enabled,
+			logBlockedRequests: config.networkBlocker.logBlockedRequests,
+			onRequestBlocked: config.networkBlocker.onRequestBlocked,
+		});
+		disposers.push(() => networkBlocker.dispose());
+	}
+
+	if (typeof document !== 'undefined' && config.iframeBlocker !== false) {
+		const iframeBlocker = createIframeBlocker({
+			kernel: context.kernel,
+			...(config.iframeBlocker ?? {}),
+		});
+		disposers.push(() => iframeBlocker.dispose());
 	}
 
 	if (options.runInit !== false) {

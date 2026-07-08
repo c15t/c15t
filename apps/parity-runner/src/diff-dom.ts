@@ -16,11 +16,13 @@ const INLINE_NORMALIZER = /* js */ `
 	const AUTO_ID = /^(?::r[0-9a-z]+:|radix-[a-z0-9-]+|ark-[a-z0-9-]+)$/;
 	// Framework-auto-id suffixes appended to stable prefixes. React's useId()
 	// (with ':' stripped) emits tokens like "_r_0_" / "r0"; Svelte's $props.id()
-	// emits tokens like "c1". The prefix portion ("c15t-preference-item-content-")
-	// is identical across frameworks and stable; only the suffix differs. Replace
-	// just the suffix with __AUTO__ so id/aria-controls/for attributes compare
-	// equal without masking other drift.
-	const AUTO_ID_SUFFIX = /-(?:_r_[0-9a-z]+_|r[0-9a-z]+|c[0-9]+)$/;
+	// emits tokens like "c1"; Vue's useId() emits tokens like "v-0" (and
+	// "v-0-1" inside async boundaries). The prefix portion
+	// ("c15t-preference-item-content-") is identical across frameworks and
+	// stable; only the suffix differs. Replace just the suffix with __AUTO__
+	// so id/aria-controls/for attributes compare equal without masking other
+	// drift.
+	const AUTO_ID_SUFFIX = /-(?:_r_[0-9a-z]+_|r[0-9a-z]+|c[0-9]+|v(?:-[0-9]+)+)$/;
 	const STRIP = new Set(['data-reactroot','data-reactid','data-svelte-h','data-v-app']);
 	function isProviderArtifact(el){
 		// <style id="c15t-theme"> is emitted by the theme provider. React renders

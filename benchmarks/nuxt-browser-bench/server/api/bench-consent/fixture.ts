@@ -32,6 +32,42 @@ export function getBenchConsentFixtureCounts(): BenchConsentFixtureCounts {
 	return { ...getMutableBenchConsentFixtureCounts() };
 }
 
+export type BenchConsentFixtureVersionHeaders = Record<
+	BenchConsentFixtureEndpoint,
+	string | null
+>;
+
+const globalWithVersionHeaders = globalThis as typeof globalThis & {
+	__c15tNuxtBenchFixtureVersionHeaders?: BenchConsentFixtureVersionHeaders;
+};
+
+function getMutableBenchConsentFixtureVersionHeaders(): BenchConsentFixtureVersionHeaders {
+	globalWithVersionHeaders.__c15tNuxtBenchFixtureVersionHeaders ??= {
+		init: null,
+		manifest: null,
+		subjects: null,
+	};
+	return globalWithVersionHeaders.__c15tNuxtBenchFixtureVersionHeaders;
+}
+
+/**
+ * Records the `x-c15t-version` request header the fixture endpoint
+ * received. The @c15t/vue Nitro manifest proxy (and the core transports)
+ * send it on every c15t-bound request — the e2e suite asserts the value
+ * observed upstream matches the built c15t version.
+ */
+export function recordBenchConsentVersionHeader(
+	endpoint: BenchConsentFixtureEndpoint,
+	value: string | null | undefined
+): void {
+	const versions = getMutableBenchConsentFixtureVersionHeaders();
+	versions[endpoint] = value ?? null;
+}
+
+export function getBenchConsentFixtureVersionHeaders(): BenchConsentFixtureVersionHeaders {
+	return { ...getMutableBenchConsentFixtureVersionHeaders() };
+}
+
 export function resetBenchConsentFixtureCounts(): BenchConsentFixtureCounts {
 	const counts = getMutableBenchConsentFixtureCounts();
 	counts.init = 0;

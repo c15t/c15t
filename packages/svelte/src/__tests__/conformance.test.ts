@@ -9,12 +9,16 @@
  *   v2-compatible shape asserted by the shared suite.
  * - `serverRender` invokes `svelte/server.render` against the same fixture.
  *
- * IAB variants still throw `DriverNotImplementedError` — they need CMP ID
- * + GVL wiring that isn't worth fanning out the conformance matrix for yet.
+ * IAB variants mount the real `IABConsentBanner`/`IABConsentDialog` with the
+ * shared minimal GVL fixture and an `iab` policy (the provider's `iab`
+ * option wires `createIAB` exactly like production).
  */
 
 import {
 	DriverNotImplementedError,
+	IAB_FIXTURE_CMP_ID,
+	IAB_FIXTURE_CMP_VERSION,
+	MINIMAL_GVL,
 	type MountableComponent,
 	type MountOptions,
 	type MountResult,
@@ -22,6 +26,7 @@ import {
 	type SuiteApi,
 	type TestDriver,
 } from '@c15t/conformance';
+import type { GlobalVendorList } from '@c15t/schema/types';
 import type { AllConsentNames } from 'c15t';
 import type {
 	ConsentKernel,
@@ -51,16 +56,10 @@ const DEFAULT_CONSENT_CATEGORIES = [
 	'marketing',
 ] as const satisfies readonly AllConsentNames[];
 
-function assertRenderable(
-	component: MountableComponent
-): 'consent-banner' | 'consent-dialog' | 'consent-widget' {
-	if (
-		component === 'iab-consent-banner' ||
-		component === 'iab-consent-dialog'
-	) {
-		throw new DriverNotImplementedError('svelte', `mount(${component})`);
-	}
-	return component;
+function isIabComponent(component: MountableComponent): boolean {
+	return (
+		component === 'iab-consent-banner' || component === 'iab-consent-dialog'
+	);
 }
 
 function consentCategoriesFor(options: Partial<ProviderOptions>) {
@@ -73,12 +72,11 @@ function activeUIForComponent(component: MountableComponent): KernelActiveUI {
 	switch (component) {
 		case 'consent-dialog':
 		case 'consent-widget':
+		case 'iab-consent-dialog':
 			return 'dialog';
 		case 'consent-banner':
-			return 'banner';
 		case 'iab-consent-banner':
-		case 'iab-consent-dialog':
-			throw new DriverNotImplementedError('svelte', `mount(${component})`);
+			return 'banner';
 	}
 }
 
@@ -92,10 +90,15 @@ function buildPolicy(
 	const mode = state?.activeUI ?? activeUIForComponent(opts.component);
 	return {
 		id: 'svelte_conformance_policy',
-		model: 'opt-in',
+		model: isIabComponent(opts.component)
+			? 'iab'
+			: (opts.policy?.model ?? 'opt-in'),
 		consent: {
 			categories: consentCategoriesFor(options),
 			scopeMode: 'permissive',
+			...(opts.policy?.respectGpc === undefined
+				? {}
+				: { gpc: opts.policy.respectGpc }),
 		},
 		ui: {
 			mode,
@@ -124,6 +127,7 @@ function buildProviderOptions(opts: MountOptions): ProviderOptions {
 	const state = opts.initialState as
 		| {
 				consents?: Record<string, boolean>;
+				hasConsented?: boolean;
 		  }
 		| undefined;
 	const prefetch: KernelConfig = {
@@ -132,6 +136,8 @@ function buildProviderOptions(opts: MountOptions): ProviderOptions {
 			...(provided.prefetch?.initialConsents ?? {}),
 			...(state?.consents ?? {}),
 		},
+		initialHasConsented:
+			state?.hasConsented ?? provided.prefetch?.initialHasConsented,
 		initialPolicy: buildPolicy(opts, provided),
 		initialLocation: {
 			countryCode: 'DE',
@@ -152,10 +158,26 @@ function buildProviderOptions(opts: MountOptions): ProviderOptions {
 	return {
 		...provided,
 		mode: provided.mode ?? 'offline',
-		persistence: provided.persistence ?? false,
+		persistence: opts.persistence ?? provided.persistence ?? false,
 		disableAnimation: provided.disableAnimation ?? true,
 		trapFocus: provided.trapFocus ?? false,
 		consentCategories: consentCategoriesFor(provided),
+		// GPC flows through the public `overrides` option — the same input an
+		// embedding app uses — which the provider merges into the kernel's
+		// `initialOverrides` (consent-manager-provider.svelte).
+		...(opts.gpc === undefined ? {} : { overrides: { gpc: opts.gpc } }),
+		// Real IAB wiring: the provider normalizes this into `createIAB`,
+		// which seeds the kernel's IAB slice (enabled + GVL + CMP id).
+		...(isIabComponent(opts.component)
+			? {
+					iab: {
+						enabled: true,
+						cmpId: IAB_FIXTURE_CMP_ID,
+						cmpVersion: IAB_FIXTURE_CMP_VERSION,
+						gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+					},
+				}
+			: {}),
 		prefetch,
 	} as ProviderOptions;
 }
@@ -182,7 +204,6 @@ let lastKernel: ConsentKernel | null = null;
 const driver: TestDriver = {
 	framework: 'svelte',
 	async mount(opts: MountOptions): Promise<MountResult> {
-		const renderable = assertRenderable(opts.component);
 		const options = buildProviderOptions(opts);
 		let mountedKernel: ConsentKernel | null = null;
 
@@ -192,7 +213,7 @@ const driver: TestDriver = {
 		const app = mount(ConformanceFixture, {
 			target: container,
 			props: {
-				component: renderable,
+				component: opts.component,
 				options,
 				onKernel: (kernel: ConsentKernel) => {
 					mountedKernel = kernel;

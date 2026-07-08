@@ -1,6 +1,10 @@
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import { computed, type Ref } from 'vue';
-import { useConsentInit, useState } from '#imports';
+import { useState } from '#imports';
+// Imported from the sibling module (not `#imports`) to avoid a circular
+// evaluation through the plain-Vue `#imports` shim, which re-exports this
+// file: `iabSelection -> #imports -> composables/index -> iabSelection`.
+import { useConsentInit } from './init';
 import { useConsentKernel, useConsentKernelContext } from './kernel';
 
 export type IabPreferenceTab = 'purposes' | 'vendors';

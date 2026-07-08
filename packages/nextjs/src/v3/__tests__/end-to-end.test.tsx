@@ -15,6 +15,14 @@ import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentBoundary } from '../boundary';
 
+type WindowWithC15t = Window & {
+	c15t?: {
+		version: string;
+		pkg: string;
+		mode: string;
+	};
+};
+
 const POLICY = {
 	id: 'gdpr',
 	model: 'opt-in',
@@ -22,6 +30,42 @@ const POLICY = {
 } as const;
 
 describe('ConsentBoundary: backendURL triggers auto-init', () => {
+	test('boundary reports Next.js adapter identity on window.c15t', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ policy: POLICY }), {
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+			})
+		);
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+		delete (window as WindowWithC15t).c15t;
+
+		try {
+			const { unmount } = await render(
+				<ConsentBoundary
+					config={{}}
+					backendURL="/api/c15t"
+					persistence={false}
+				>
+					<div data-testid="probe">ready</div>
+				</ConsentBoundary>
+			);
+
+			await vi.waitFor(() => {
+				expect((window as WindowWithC15t).c15t).toMatchObject({
+					pkg: '@c15t/nextjs',
+					mode: 'hosted',
+				});
+			});
+			expect(typeof (window as WindowWithC15t).c15t?.version).toBe('string');
+			unmount();
+		} finally {
+			globalThis.fetch = originalFetch;
+			delete (window as WindowWithC15t).c15t;
+		}
+	});
+
 	test('boundary with backendURL fires kernel.commands.init on mount', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			new Response(

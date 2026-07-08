@@ -3,7 +3,8 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"test": "playwright test",
+		"test": "bun test src",
+		"test:parity": "playwright test",
 		"test:update-snapshots": "playwright test --update-snapshots",
 		"report": "playwright show-report"
 	},

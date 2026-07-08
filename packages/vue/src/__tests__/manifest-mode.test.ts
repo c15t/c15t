@@ -15,6 +15,14 @@ import {
 	resolveManifestInit,
 } from '../runtime/server/manifest-mode';
 
+type WindowWithC15t = Window & {
+	c15t?: {
+		version: string;
+		pkg: string;
+		mode: string;
+	};
+};
+
 function createManifestFixture(): ConsentManifest {
 	return {
 		schemaVersion: 1,
@@ -82,6 +90,7 @@ afterEach(() => {
 	clearManifestRouteCache();
 	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
+	delete (window as WindowWithC15t).c15t;
 });
 
 describe('@c15t/vue Nuxt manifest mode', () => {
@@ -301,6 +310,10 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 			expect(context.snapshot.value.policy?.id).toBe('ca-opt-out');
 		});
 
+		expect((window as WindowWithC15t).c15t).toMatchObject({
+			pkg: '@c15t/vue',
+			mode: 'manifest',
+		});
 		expect(seenPolicyIds[0]).toBe('eu-opt-in');
 		expect(seenPolicyIds.at(-1)).toBe('ca-opt-out');
 		expect(context.snapshot.value.policyDecision).toMatchObject({
@@ -311,6 +324,7 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		});
 		expect(fetchMock).toHaveBeenCalledTimes(2);
 		dispose();
+		expect((window as WindowWithC15t).c15t).toBeUndefined();
 	});
 
 	test('prefetched manifest init seeds decision inputs for save', async () => {

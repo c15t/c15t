@@ -8,7 +8,9 @@
  */
 
 import {
-	DriverNotImplementedError,
+	IAB_FIXTURE_CMP_ID,
+	IAB_FIXTURE_CMP_VERSION,
+	MINIMAL_GVL,
 	type MountableComponent,
 	type MountOptions,
 	type MountResult,
@@ -16,6 +18,7 @@ import {
 	type SuiteApi,
 	type TestDriver,
 } from '@c15t/conformance';
+import type { GlobalVendorList } from '@c15t/schema/types';
 import type { AllConsentNames } from 'c15t';
 import type {
 	ConsentKernel,
@@ -31,6 +34,7 @@ import { describe, expect, test } from 'vitest';
 import { ConsentDialog } from '~/v3/components/consent-dialog';
 import { ConsentWidget } from '~/v3/components/consent-widget';
 import { KernelContext } from '~/v3/context';
+import { IABConsentBanner, IABConsentDialog } from '~/v3/iab';
 import {
 	ConsentBanner,
 	ConsentProvider,
@@ -161,16 +165,21 @@ function consentCategoriesFor(options: ProviderOptions): AllConsentNames[] {
 		: [...(options.consentCategories ?? DEFAULT_CONSENT_CATEGORIES)];
 }
 
+function isIabComponent(component: MountableComponent): boolean {
+	return (
+		component === 'iab-consent-banner' || component === 'iab-consent-dialog'
+	);
+}
+
 function activeUIForComponent(component: MountableComponent): KernelActiveUI {
 	switch (component) {
 		case 'consent-dialog':
 		case 'consent-widget':
+		case 'iab-consent-dialog':
 			return 'dialog';
 		case 'consent-banner':
-			return 'banner';
 		case 'iab-consent-banner':
-		case 'iab-consent-dialog':
-			throw new DriverNotImplementedError('react', `mount(${component})`);
+			return 'banner';
 	}
 }
 
@@ -184,10 +193,13 @@ function buildPolicy(
 	const mode = state?.activeUI ?? activeUIForComponent(opts.component);
 	return {
 		id: 'react_v3_conformance_policy',
-		model: 'opt-in',
+		model: opts.policy?.model ?? 'opt-in',
 		consent: {
 			categories: consentCategoriesFor(options),
 			scopeMode: 'permissive',
+			...(opts.policy?.respectGpc === undefined
+				? {}
+				: { gpc: opts.policy.respectGpc }),
 		},
 		ui: {
 			mode,
@@ -203,7 +215,42 @@ function buildPolicy(
 	};
 }
 
+/**
+ * IAB mounts mirror the production wiring (and the v3 IAB unit tests):
+ * offline mode with an `iab` model `offlinePolicy` plus the provider's
+ * `iab` option, which routes through `createIAB` and seeds the kernel's
+ * IAB slice with the shared minimal GVL fixture.
+ */
+function buildIabProviderOptions(opts: MountOptions): ConsentProviderOptions {
+	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
+	return {
+		...provided,
+		mode: 'offline',
+		persistence: opts.persistence ?? false,
+		disableAnimation: true,
+		trapFocus: false,
+		iab: {
+			enabled: true,
+			cmpId: IAB_FIXTURE_CMP_ID,
+			cmpVersion: IAB_FIXTURE_CMP_VERSION,
+			gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+		},
+		offlinePolicy: {
+			policy: {
+				id: 'react_v3_conformance_iab_policy',
+				model: 'iab',
+				ui: {
+					mode: activeUIForComponent(opts.component),
+				},
+			},
+		},
+	};
+}
+
 function buildProviderOptions(opts: MountOptions): ConsentProviderOptions {
+	if (isIabComponent(opts.component)) {
+		return buildIabProviderOptions(opts);
+	}
 	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
 	const state = opts.initialState as
 		| {
@@ -247,10 +294,13 @@ function buildProviderOptions(opts: MountOptions): ConsentProviderOptions {
 	return {
 		...provided,
 		mode: 'offline',
-		persistence: false,
+		persistence: opts.persistence ?? false,
 		disableAnimation: true,
 		trapFocus: false,
 		consentCategories: consentCategoriesFor(provided),
+		// GPC uses the provider's public `overrides` input — the same channel
+		// a real app (or the nextjs server plumbing) delivers the signal on.
+		...(opts.gpc === undefined ? {} : { overrides: { gpc: opts.gpc } }),
 		prefetch,
 	};
 }
@@ -335,8 +385,9 @@ function componentFor(opts: MountOptions): ReactElement {
 		case 'consent-widget':
 			return <ConsentWidget hideBranding />;
 		case 'iab-consent-banner':
+			return <IABConsentBanner />;
 		case 'iab-consent-dialog':
-			throw new DriverNotImplementedError('react', `mount(${opts.component})`);
+			return <IABConsentDialog />;
 	}
 }
 

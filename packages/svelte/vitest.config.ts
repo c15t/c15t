@@ -41,6 +41,13 @@ export default mergeConfig(
 					),
 				},
 				{
+					find: 'c15t/v3/modules/window-debug',
+					replacement: resolve(
+						__dirname,
+						'../core/src/v3/modules/window-debug/index.ts'
+					),
+				},
+				{
 					find: '@c15t/iab/v3',
 					replacement: resolve(__dirname, '../iab/src/v3/index.ts'),
 				},
@@ -76,6 +83,16 @@ export default mergeConfig(
 			],
 			environment: 'jsdom',
 			setupFiles: ['./src/__tests__/setup.ts'],
+			coverage: {
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				thresholds: {
+					lines: 50,
+					statements: 50,
+					functions: 45,
+					branches: 30,
+				},
+			},
 		},
 	})
 );

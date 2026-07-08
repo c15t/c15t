@@ -1,6 +1,6 @@
 <script lang="ts">
 import { createIAB, type IABHandle } from '@c15t/iab/v3';
-import { buildDefaultOptInPolicy } from '@c15t/schema/types';
+import { buildDefaultOptInPolicy, policyDefaults } from '@c15t/schema/types';
 import { generateThemeCSS } from '@c15t/ui/theme';
 import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
 import {
@@ -8,6 +8,7 @@ import {
 	type Callbacks,
 	defaultTranslationConfig,
 	type I18nConfig,
+	type OfflinePolicyConfig,
 	type User,
 } from 'c15t';
 import {
@@ -29,6 +30,10 @@ import { createIframeBlocker } from 'c15t/v3/modules/iframe-blocker';
 import { createNetworkBlocker } from 'c15t/v3/modules/network-blocker';
 import { createPersistence } from 'c15t/v3/modules/persistence';
 import { createScriptLoader } from 'c15t/v3/modules/script-loader';
+import {
+	createWindowDebug,
+	resolveWindowDebugMode,
+} from 'c15t/v3/modules/window-debug';
 import type { Snippet } from 'svelte';
 import { onDestroy, onMount, untrack } from 'svelte';
 import {
@@ -152,7 +157,20 @@ function getProviderIab(
 function buildInlinePolicy(
 	categories: AllConsentNames[] | undefined
 ): KernelConfig['initialPolicy'] {
-	return buildDefaultOptInPolicy(categories);
+	// Match the React runtime's offline fallback (`offlineOptInBanner`), which
+	// ships compact banner/dialog UI profiles (button layout, primary actions).
+	// Without these surface hints the widget/dialog footers render every
+	// action in a single group, diverging from React's grouped layout.
+	const fallback = policyDefaults.offlineOptInBanner();
+	const inline = buildDefaultOptInPolicy(categories);
+	return {
+		...inline,
+		consent: {
+			...fallback.consent,
+			...inline.consent,
+		},
+		ui: fallback.ui,
+	};
 }
 
 function buildNoBannerPolicy(): KernelConfig['initialPolicy'] {
@@ -169,10 +187,12 @@ function createStaticOfflineTransport(
 	prefetch: KernelConfig,
 	translations: KernelTranslations,
 	categories: AllConsentNames[] | undefined,
-	useInlineFallback: boolean
+	useInlineFallback: boolean,
+	offlinePolicy: OfflinePolicyConfig | undefined
 ): KernelTransport | null {
 	const policy =
 		prefetch.initialPolicy ??
+		offlinePolicy?.policy ??
 		(useInlineFallback ? buildInlinePolicy(categories) : undefined);
 	if (!policy) return null;
 	return {
@@ -189,8 +209,11 @@ function createStaticOfflineTransport(
 						: translations),
 				branding: prefetch.initialBranding ?? 'c15t',
 				policy,
-				policyDecision: prefetch.initialPolicyDecision,
-				policySnapshotToken: prefetch.initialPolicySnapshotToken,
+				policyDecision:
+					prefetch.initialPolicyDecision ?? offlinePolicy?.policyDecision,
+				policySnapshotToken:
+					prefetch.initialPolicySnapshotToken ??
+					offlinePolicy?.policySnapshotToken,
 			};
 		},
 		async save(payload) {
@@ -206,7 +229,12 @@ function createProviderKernel(
 	const mode: ProviderMode =
 		providerOptions.mode ?? (providerOptions.backendURL ? 'hosted' : 'offline');
 	const prefetch = providerOptions.prefetch ?? {};
-	const policyPacks = getProviderPolicies(providerOptions);
+	const offlinePolicy =
+		mode === 'hosted' || mode === 'c15t'
+			? undefined
+			: providerOptions.offlinePolicy;
+	const policyPacks =
+		getProviderPolicies(providerOptions) ?? offlinePolicy?.policyPacks;
 	const i18nTranslations =
 		resolveI18nTranslations(providerOptions.i18n) ?? DEFAULT_TRANSLATIONS;
 
@@ -223,7 +251,8 @@ function createProviderKernel(
 					prefetch,
 					i18nTranslations,
 					providerOptions.consentCategories,
-					policyPacks === undefined
+					policyPacks === undefined,
+					offlinePolicy
 				) ??
 				createOfflineTransport({
 					policyPacks,
@@ -246,11 +275,14 @@ function createProviderKernel(
 			enabled === false
 				? (prefetch.initialPolicy ?? buildNoBannerPolicy())
 				: (prefetch.initialPolicy ??
+					offlinePolicy?.policy ??
 					(policyPacks === undefined
 						? buildInlinePolicy(providerOptions.consentCategories)
 						: undefined)),
-		initialPolicyDecision: prefetch.initialPolicyDecision,
-		initialPolicySnapshotToken: prefetch.initialPolicySnapshotToken,
+		initialPolicyDecision:
+			prefetch.initialPolicyDecision ?? offlinePolicy?.policyDecision,
+		initialPolicySnapshotToken:
+			prefetch.initialPolicySnapshotToken ?? offlinePolicy?.policySnapshotToken,
 	});
 }
 
@@ -481,6 +513,12 @@ onMount(() => {
 	const disposers: Array<() => void> = [];
 	const enabled = getEnabled(options);
 	const persistenceOptions = normalizePersistenceOptions();
+
+	const windowDebug = createWindowDebug({
+		pkg: '@c15t/svelte',
+		mode: resolveWindowDebugMode(options),
+	});
+	disposers.push(() => windowDebug.dispose());
 
 	if (enabled && persistenceOptions) {
 		const persistence =

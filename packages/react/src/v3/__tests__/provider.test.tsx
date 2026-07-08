@@ -20,6 +20,14 @@ import { useUIConfig } from '../ui-config-context';
 
 const STORAGE_KEY = 'c15t-provider-test';
 
+type WindowWithC15t = Window & {
+	c15t?: {
+		version: string;
+		pkg: string;
+		mode: string;
+	};
+};
+
 function hostedInitOutput(
 	policy: InitOutput['policy'] = {
 		id: 'gdpr',
@@ -55,12 +63,83 @@ function withProvider(options = {}) {
 }
 
 beforeEach(() => {
+	delete (window as WindowWithC15t).c15t;
 	localStorage.clear();
 	clearCookies();
 	vi.restoreAllMocks();
 });
 
 describe('v3 ConsentProvider options API', () => {
+	test('installs window.c15t after mount with React adapter identity', async () => {
+		const { unmount } = await render(
+			<ConsentProvider
+				options={{
+					mode: 'c15t',
+					backendURL: '/api/c15t',
+					persistence: false,
+				}}
+			>
+				<div data-testid="child">ready</div>
+			</ConsentProvider>
+		);
+
+		await vi.waitFor(() => {
+			expect((window as WindowWithC15t).c15t).toMatchObject({
+				pkg: '@c15t/react',
+				mode: 'hosted',
+			});
+		});
+		expect(typeof (window as WindowWithC15t).c15t?.version).toBe('string');
+
+		unmount();
+		await vi.waitFor(() => {
+			expect((window as WindowWithC15t).c15t).toBeUndefined();
+		});
+	});
+
+	test('reports offline mode when no backend is configured', async () => {
+		const { unmount } = await render(
+			<ConsentProvider options={{ persistence: false }}>
+				<div data-testid="child">ready</div>
+			</ConsentProvider>
+		);
+
+		await vi.waitFor(() => {
+			expect((window as WindowWithC15t).c15t).toMatchObject({
+				pkg: '@c15t/react',
+				mode: 'offline',
+			});
+		});
+
+		unmount();
+	});
+
+	test('reports custom mode when endpointHandlers select the custom transport', async () => {
+		const { unmount } = await render(
+			<ConsentProvider
+				options={{
+					mode: 'custom',
+					endpointHandlers: {
+						init: async () => ({ ok: true, data: hostedInitOutput() }),
+						setConsent: async () => ({ ok: true, data: {} }),
+					},
+					persistence: false,
+				}}
+			>
+				<div data-testid="child">ready</div>
+			</ConsentProvider>
+		);
+
+		await vi.waitFor(() => {
+			expect((window as WindowWithC15t).c15t).toMatchObject({
+				pkg: '@c15t/react',
+				mode: 'custom',
+			});
+		});
+
+		unmount();
+	});
+
 	test('keeps one kernel instance across provider rerenders', async () => {
 		function Probe() {
 			const marketing = useConsent('marketing');

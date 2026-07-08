@@ -23,6 +23,16 @@ export default mergeConfig(
 					inline: ['fumadb'],
 				},
 			},
+			coverage: {
+				// Coverage ratchet: floors below current coverage so regressions
+				// fail CI. Raise as coverage improves; never lower.
+				thresholds: {
+					lines: 55,
+					statements: 55,
+					functions: 50,
+					branches: 60,
+				},
+			},
 		},
 	})
 );
