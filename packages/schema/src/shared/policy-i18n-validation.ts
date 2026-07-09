@@ -15,6 +15,7 @@ const SUPPORTED_BASE_LANGUAGES = new Set([
 	'fr',
 	'ga',
 	'he',
+	'hi',
 	'hr',
 	'hu',
 	'id',

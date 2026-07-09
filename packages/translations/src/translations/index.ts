@@ -11,6 +11,7 @@ import { translations as fi } from './fi';
 import { translations as fr } from './fr';
 import { translations as ga } from './ga';
 import { translations as he } from './he';
+import { translations as hi } from './hi';
 import { translations as hr } from './hr';
 import { translations as hu } from './hu';
 import { translations as id } from './id';
@@ -58,6 +59,7 @@ const baseTranslations = {
 	fr,
 	ga,
 	he,
+	hi,
 	hr,
 	hu,
 	id,
