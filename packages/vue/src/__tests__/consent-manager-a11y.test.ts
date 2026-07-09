@@ -176,7 +176,7 @@ describe('ConsentManager accordion accessibility', () => {
 		const { context, wrapper } = await renderManager();
 		try {
 			const switchEl = document.querySelector(
-				'[data-testid="consent-manager-switch-functionality"]'
+				'[data-testid="consent-widget-switch-functionality"]'
 			);
 			expect(switchEl).toBeInstanceOf(HTMLElement);
 			expect(switchEl?.closest('[role="button"]')).toBeNull();
@@ -189,10 +189,10 @@ describe('ConsentManager accordion accessibility', () => {
 		const { context, wrapper } = await renderManager();
 		try {
 			const switchEl = document.querySelector(
-				'[data-testid="consent-manager-switch-functionality"]'
+				'[data-testid="consent-widget-switch-functionality"]'
 			) as HTMLElement;
 			const content = document.querySelector(
-				'[data-testid="consent-manager-accordion-content-functionality"]'
+				'[data-testid="consent-widget-accordion-content-functionality"]'
 			);
 
 			expect(switchEl.getAttribute('aria-checked')).toBe('false');
@@ -214,10 +214,10 @@ describe('ConsentManager accordion accessibility', () => {
 		const { context, wrapper } = await renderManager();
 		try {
 			const trigger = document.querySelector(
-				'[data-testid="consent-manager-accordion-trigger-functionality"]'
+				'[data-testid="consent-widget-accordion-trigger-functionality"]'
 			) as HTMLElement;
 			const content = document.querySelector(
-				'[data-testid="consent-manager-accordion-content-functionality"]'
+				'[data-testid="consent-widget-accordion-content-functionality"]'
 			);
 
 			expect(trigger.getAttribute('aria-expanded')).toBe('false');
@@ -239,13 +239,13 @@ describe('ConsentManager accordion accessibility', () => {
 		const { context, wrapper } = await renderManager();
 		try {
 			const trigger = document.querySelector(
-				'[data-testid="consent-manager-accordion-trigger-functionality"]'
+				'[data-testid="consent-widget-accordion-trigger-functionality"]'
 			) as HTMLElement;
 			const switchEl = document.querySelector(
-				'[data-testid="consent-manager-switch-functionality"]'
+				'[data-testid="consent-widget-switch-functionality"]'
 			) as HTMLElement;
 			const measurementTrigger = document.querySelector(
-				'[data-testid="consent-manager-accordion-trigger-measurement"]'
+				'[data-testid="consent-widget-accordion-trigger-measurement"]'
 			) as HTMLElement;
 			const focusables = Array.from(
 				document.querySelectorAll<HTMLElement>(

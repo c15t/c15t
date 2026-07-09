@@ -83,7 +83,7 @@ export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
 			size = 'md',
 			ariaLabel = 'Open privacy settings',
 			className,
-			'data-testid': dataTestId,
+			'data-testid': dataTestId = 'consent-dialog-trigger',
 			noStyle,
 		},
 		ref

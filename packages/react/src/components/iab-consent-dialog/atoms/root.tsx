@@ -1,5 +1,6 @@
 'use client';
 
+import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { type FC, type ReactNode, useEffect, useState } from 'react';
@@ -59,6 +60,7 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		iab: iabState,
 		policyDialog,
 		model,
+		setActiveUI,
 	} = useConsentManager();
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
 
@@ -79,6 +81,22 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	// Scroll lock
 	useScrollLock(Boolean(isOpen && resolvedScrollLock));
 
+	useEffect(() => {
+		if (!isOpen) {
+			return;
+		}
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (isDialogDismissKey(event.key)) {
+				event.preventDefault();
+				setActiveUI('none');
+			}
+		};
+
+		document.addEventListener('keydown', handleKeyDown);
+		return () => document.removeEventListener('keydown', handleKeyDown);
+	}, [isOpen, setActiveUI]);
+
 	// Mount state for portal
 	useEffect(() => {
 		setIsMounted(true);
@@ -98,15 +116,6 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		}
 	}, [isOpen, disableAnimation]);
 
-	// Don't render if not mounted or IAB is disabled
-	if (!isMounted || !iabState?.config.enabled) {
-		return null;
-	}
-
-	if (!isOpen && !isVisible) {
-		return null;
-	}
-
 	const themedStyle = useStyles('iabConsentDialog', {
 		baseClassName: cn(
 			styles.root,
@@ -118,6 +127,15 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 		),
 	});
 	const domStyleProps = sanitizeDOMStyleProps(themedStyle);
+
+	// Don't render if not mounted or IAB is disabled
+	if (!isMounted || !iabState?.config.enabled) {
+		return null;
+	}
+
+	if (!isOpen && !isVisible) {
+		return null;
+	}
 
 	const dialogContent = (
 		<ConsentTrackingContext.Provider

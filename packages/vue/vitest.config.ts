@@ -77,6 +77,7 @@ export default mergeConfig(
 			environment: 'jsdom',
 			include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
 			coverage: {
+				exclude: ['playground/**'],
 				// Coverage ratchet: floors below current coverage so regressions
 				// fail CI. Raise as coverage improves; never lower.
 				// Statements/functions/branches currently measure below 30%

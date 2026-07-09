@@ -38,6 +38,8 @@ export const TEST_IDS = {
 		branding: 'consent-dialog-branding',
 		link: 'consent-dialog-link',
 		trigger: 'consent-dialog-trigger',
+		// Vue reusable legal-links wrapper; React exposes per-link ids only.
+		legalLinks: 'consent-legal-links',
 	},
 	consentWidget: {
 		root: 'consent-widget-root',
@@ -76,6 +78,7 @@ export const TEST_IDS = {
 		acceptButton: 'iab-consent-banner-accept-button',
 		rejectButton: 'iab-consent-banner-reject-button',
 		customizeButton: 'iab-consent-banner-customize-button',
+		// Opens the IAB dialog on the vendors tab; Vue-only surface affordance.
 		partnersLink: 'iab-consent-banner-partners-link',
 	},
 	iabConsentDialog: {
@@ -83,7 +86,14 @@ export const TEST_IDS = {
 		card: 'iab-consent-dialog-card',
 		overlay: 'iab-consent-dialog-overlay',
 		branding: 'iab-consent-dialog-branding',
+		// Close affordance rendered by the Vue IAB dialog card.
 		closeButton: 'iab-consent-dialog-close',
+	},
+	vuePrimitive: {
+		// Generic Vue wrapper around rendered policy action buttons.
+		actions: 'consent-actions',
+		// Generic Vue switch story/IAB switch id; consent-widget switches use patterned ids.
+		switch: 'consent-switch',
 	},
 	frame: {
 		placeholder: 'frame-placeholder',
@@ -102,6 +112,8 @@ export const TEST_IDS = {
  * kebab-case identifier ([a-z][a-z0-9-]*).
  */
 export const TEST_ID_PATTERNS = [
+	/^consent-banner-legal-link-(privacyPolicy|cookiePolicy|termsOfService)$/,
+	/^consent-dialog-legal-link-(privacyPolicy|cookiePolicy|termsOfService)$/,
 	/^consent-widget-accordion-item-[a-z][a-z0-9-]*$/,
 	/^consent-widget-accordion-trigger-[a-z][a-z0-9-]*$/,
 	/^consent-widget-accordion-arrow-[a-z][a-z0-9-]*$/,

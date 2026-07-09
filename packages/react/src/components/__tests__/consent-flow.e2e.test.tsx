@@ -353,6 +353,25 @@ describe('Consent Flow E2E Tests', () => {
 			);
 		});
 
+		test('should add aria-modal when focus trap is enabled', async () => {
+			render(
+				<ConsentManagerProvider options={defaultOptions}>
+					<ConsentDialog open={true} />
+				</ConsentManagerProvider>
+			);
+
+			await vi.waitFor(
+				() => {
+					const dialog = document.querySelector(
+						'[data-testid="consent-dialog-root"]'
+					);
+					expect(dialog).toBeInTheDocument();
+					expect(dialog?.getAttribute('aria-modal')).toBe('true');
+				},
+				{ timeout: 3000 }
+			);
+		});
+
 		test('should contain widget inside dialog', async () => {
 			render(
 				<ConsentManagerProvider options={defaultOptions}>
@@ -385,6 +404,58 @@ describe('Consent Flow E2E Tests', () => {
 					).toBeInTheDocument();
 					expect(
 						document.querySelector('[data-testid="consent-dialog-footer"]')
+					).not.toBeInTheDocument();
+				},
+				{ timeout: 3000 }
+			);
+		});
+
+		test('should close managed dialog on Escape', async () => {
+			render(
+				<ConsentManagerProvider options={defaultOptions}>
+					<ConsentBanner />
+					<ConsentDialog />
+				</ConsentManagerProvider>
+			);
+
+			await vi.waitFor(
+				() => {
+					expect(
+						document.querySelector(
+							'[data-testid="consent-banner-customize-button"]'
+						)
+					).toBeInTheDocument();
+				},
+				{ timeout: 3000 }
+			);
+
+			await userEvent.click(
+				document.querySelector(
+					'[data-testid="consent-banner-customize-button"]'
+				)!
+			);
+
+			await vi.waitFor(
+				() => {
+					expect(
+						document.querySelector('[data-testid="consent-dialog-root"]')
+					).toBeInTheDocument();
+				},
+				{ timeout: 3000 }
+			);
+
+			document.dispatchEvent(
+				new KeyboardEvent('keydown', {
+					bubbles: true,
+					cancelable: true,
+					key: 'Escape',
+				})
+			);
+
+			await vi.waitFor(
+				() => {
+					expect(
+						document.querySelector('[data-testid="consent-dialog-root"]')
 					).not.toBeInTheDocument();
 				},
 				{ timeout: 3000 }

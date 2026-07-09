@@ -31,6 +31,7 @@ let {
 	<ConformanceKernelCapture {onKernel} />
 	{#if component === 'consent-banner'}
 		<ConsentBanner />
+		<ConsentDialog />
 	{:else if component === 'consent-dialog'}
 		<ConsentDialog />
 	{:else if component === 'consent-widget'}

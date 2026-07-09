@@ -42,7 +42,8 @@ import {
 	shallowRef,
 } from 'vue';
 import { renderToString } from 'vue/server-renderer';
-import ConsentRoot from '../runtime/components/consent-root.vue';
+import ConsentBanner from '../runtime/components/consent-banner.vue';
+import ConsentManager from '../runtime/components/consent-manager.vue';
 import ConsentWidget from '../runtime/components/consent-widget.vue';
 import IabConsentBanner from '../runtime/components/iab-consent-banner.vue';
 import IabConsentDialog from '../runtime/components/iab-consent-dialog.vue';
@@ -367,7 +368,7 @@ function buildConfig(opts: MountOptions, init: InitOutput): ConsentConfig {
 		],
 		customFetch: mockFetch(init),
 		disableAnimation: true,
-		trapFocus: false,
+		trapFocus: provided.trapFocus ?? false,
 		hideBranding: true,
 	} as ConsentConfig;
 }
@@ -389,8 +390,14 @@ function provideContext(
 function componentFor(component: MountableComponent) {
 	switch (component) {
 		case 'consent-banner':
+			return defineComponent({
+				name: 'VueConformanceBannerAndDialog',
+				setup() {
+					return () => [h(ConsentBanner), h(ConsentManager)];
+				},
+			});
 		case 'consent-dialog':
-			return ConsentRoot;
+			return ConsentManager;
 		case 'consent-widget':
 			return ConsentWidget;
 		case 'iab-consent-banner':
@@ -404,7 +411,7 @@ function componentFor(component: MountableComponent) {
 
 function createHarness(
 	opts: MountOptions,
-	options: ProviderOptions,
+	_options: ProviderOptions,
 	context: VueConsentKernelContext
 ) {
 	const Child = componentFor(opts.component);
@@ -448,7 +455,7 @@ function createHarness(
 						'data-testid': 'vue-conformance-root',
 						dir: opts.locale === 'ar' ? 'rtl' : undefined,
 					},
-					[h(Child, { language: opts.locale })]
+					[h(Child)]
 				);
 		},
 	});
@@ -589,6 +596,12 @@ function projectStoreState(context: VueConsentKernelContext): StoreState {
 	};
 }
 
+async function flushScheduler() {
+	await flushPromises();
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 let lastContext: VueConsentKernelContext | null = null;
 
 const driver: TestDriver = {
@@ -611,12 +624,10 @@ const driver: TestDriver = {
 		const app = createApp(createHarness(opts, options, context));
 		provideContext(app, context, config);
 		app.mount(container);
-		await flushPromises();
-		await new Promise((resolve) => setTimeout(resolve, 0));
+		await flushScheduler();
 		if ((opts.initMode ?? 'authoritative') !== 'authoritative') {
 			void context.kernel.commands.init();
-			await flushPromises();
-			await new Promise((resolve) => setTimeout(resolve, 0));
+			await flushScheduler();
 		}
 
 		return {
@@ -624,16 +635,21 @@ const driver: TestDriver = {
 			resolveInit: resolveInit
 				? async () => {
 						resolveInit();
-						await flushPromises();
-						await new Promise((resolve) => setTimeout(resolve, 0));
+						await flushScheduler();
 					}
 				: undefined,
 			unmount: async () => {
 				app.unmount();
-				await flushPromises();
-				await new Promise((resolve) => setTimeout(resolve, 0));
+				await flushScheduler();
 				container.replaceChildren();
 				container.remove();
+				document.body
+					.querySelectorAll(
+						'[data-testid^="consent-"], [data-testid^="iab-consent-"]'
+					)
+					.forEach((element) => {
+						element.remove();
+					});
 				persistence?.dispose();
 				context.dispose();
 				if (lastContext === context) lastContext = null;

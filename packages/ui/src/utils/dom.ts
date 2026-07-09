@@ -67,6 +67,24 @@ export function setupColorScheme(colorScheme?: 'light' | 'dark' | 'system') {
 
 const RTL_LANGUAGES = ['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'ku', 'dv'];
 
+let lastFocusedElement: HTMLElement | null = null;
+
+if (typeof document !== 'undefined') {
+	document.addEventListener(
+		'focusin',
+		(event) => {
+			if (
+				event.target instanceof HTMLElement &&
+				event.target !== document.body &&
+				event.target !== document.documentElement
+			) {
+				lastFocusedElement = event.target;
+			}
+		},
+		true
+	);
+}
+
 /**
  * Gets text direction based on the language.
  */
@@ -113,8 +131,26 @@ export function getFocusableElements(container: HTMLElement): HTMLElement[] {
 			if (typeof el.checkVisibility === 'function') {
 				return el.checkVisibility({ checkVisibilityCSS: true });
 			}
-			// Fallback for environments without checkVisibility (JSDOM, older browsers)
-			return el.offsetWidth > 0 || el.offsetHeight > 0;
+			// Fallback for browsers without checkVisibility: rendered elements
+			// have at least one layout box.
+			if (el.getClientRects().length > 0) {
+				return true;
+			}
+			// No layout box. In a real browser that means the element is not
+			// rendered — but jsdom (used by the conformance suites) never
+			// produces layout boxes, so detect layout-less environments and use
+			// an attribute-based visibility heuristic there instead.
+			const environmentHasLayout =
+				document.documentElement.getClientRects().length > 0;
+			if (environmentHasLayout) {
+				return false;
+			}
+			for (let node: HTMLElement | null = el; node; node = node.parentElement) {
+				if (node.hidden || node.style.display === 'none') {
+					return false;
+				}
+			}
+			return true;
 		}
 	);
 }
@@ -144,11 +180,45 @@ export function setupScrollLock() {
 }
 
 /**
+ * Finds a rendered equivalent of an element that was unmounted while a focus
+ * trap was active. Consent surfaces often unmount their opener while open
+ * (e.g. the floating dialog trigger hides while the dialog is shown and
+ * re-renders as a new node on close), so restoring focus to the original
+ * node would silently no-op and drop keyboard users at `<body>`. Matching by
+ * `id`, then by `data-testid`, re-targets the remounted opener instead.
+ */
+function findFocusRestoreEquivalent(element: HTMLElement): HTMLElement | null {
+	if (element.id) {
+		const byId = document.getElementById(element.id);
+		if (byId) {
+			return byId;
+		}
+	}
+
+	const testId = element.getAttribute('data-testid');
+	if (testId) {
+		const escaped =
+			typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+				? CSS.escape(testId)
+				: testId;
+		return document.querySelector<HTMLElement>(`[data-testid="${escaped}"]`);
+	}
+
+	return null;
+}
+
+/**
  * Traps focus within a container.
  * @returns Cleanup function to remove listeners and restore focus
  */
 export function setupFocusTrap(container: HTMLElement) {
-	const previousFocus = document.activeElement as HTMLElement;
+	const activeElement = document.activeElement as HTMLElement | null;
+	const previousFocus =
+		activeElement &&
+		activeElement !== document.body &&
+		activeElement !== document.documentElement
+			? activeElement
+			: lastFocusedElement;
 
 	// Focus the container itself so the user can read the content first,
 	// then Tab into interactive elements (links, then buttons).
@@ -158,7 +228,15 @@ export function setupFocusTrap(container: HTMLElement) {
 	}
 	setTimeout(() => {
 		try {
-			container.focus();
+			const activeElement = document.activeElement;
+			if (
+				activeElement instanceof HTMLElement &&
+				activeElement !== document.body &&
+				container.contains(activeElement)
+			) {
+				return;
+			}
+			container.focus({ preventScroll: true });
 		} catch {
 			// Silently handle focus errors
 		}
@@ -177,16 +255,28 @@ export function setupFocusTrap(container: HTMLElement) {
 
 		const firstElement = elements[0];
 		const lastElement = elements[elements.length - 1];
+		const active = document.activeElement as HTMLElement | null;
+		const inside = active
+			? active === container || container.contains(active)
+			: false;
 
-		// Shift+Tab on first element cycles to last element
-		if (e.shiftKey && document.activeElement === firstElement) {
+		// Shift+Tab wraps to the last focusable when focus would otherwise
+		// escape: from the first focusable, from the focused container itself
+		// (its previous sibling in tab order is outside the trap), or when
+		// focus already ended up outside the trap.
+		if (
+			e.shiftKey &&
+			(!inside || active === container || active === firstElement)
+		) {
 			e.preventDefault();
-			lastElement?.focus();
+			lastElement?.focus({ preventScroll: true });
 		}
-		// Tab on last element cycles to first element
-		else if (!e.shiftKey && document.activeElement === lastElement) {
+		// Tab wraps to the first focusable from the last one, or pulls focus
+		// back in when it escaped. Tab from the focused container proceeds
+		// natively into the first focusable descendant.
+		else if (!e.shiftKey && (!inside || active === lastElement)) {
 			e.preventDefault();
-			firstElement?.focus();
+			firstElement?.focus({ preventScroll: true });
 		}
 	};
 
@@ -195,9 +285,16 @@ export function setupFocusTrap(container: HTMLElement) {
 	return () => {
 		document.removeEventListener('keydown', handleKeyDown);
 
-		// Restore focus when trap is disabled
+		// Restore focus when trap is disabled. If the previously-focused
+		// element was unmounted while the trap was active, fall back to its
+		// re-rendered equivalent (matched by id/data-testid) when one exists.
 		if (previousFocus && typeof previousFocus.focus === 'function') {
-			setTimeout(() => previousFocus.focus(), 0);
+			setTimeout(() => {
+				const target = previousFocus.isConnected
+					? previousFocus
+					: findFocusRestoreEquivalent(previousFocus);
+				target?.focus({ preventScroll: true });
+			}, 0);
 		}
 	};
 }

@@ -8,7 +8,7 @@ import type {
 	PolicyUiAction,
 } from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/v3/iab-consent-banner';
-import { computed, Teleport, Transition, toValue } from 'vue';
+import { computed, ref, Teleport, Transition, toValue } from 'vue';
 import {
 	useConsentActiveUI,
 	useConsentConfig,
@@ -17,7 +17,7 @@ import {
 	useConsentInit,
 } from '#c15t/composables';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
-import { FocusScope } from '../primitives';
+import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';
 import ConsentTag from './consent-tag.vue';
 
@@ -263,6 +263,8 @@ useConsentScrollLock(computed(() => Boolean(isOpen.value && scrollLock.value)));
 const shouldTrapFocus = computed(() =>
 	Boolean(isOpen.value && (toValue(config).trapFocus ?? true))
 );
+const card = ref<HTMLElement | null>(null);
+useFocusTrap(card, () => shouldTrapFocus.value);
 </script>
 
 <template>
@@ -306,97 +308,93 @@ const shouldTrapFocus = computed(() =>
 						v-if="!config.iabBannerHideBranding"
 						context="iab-banner"
 					/>
-					<FocusScope
-						:trapped="shouldTrapFocus"
-						:loop="shouldTrapFocus"
+					<div
+						ref="card"
+						v-bind="config.components?.['iab-banner']?.card"
+						data-testid="iab-consent-banner-card"
+						:class="bannerStyles.card"
+						role="dialog"
+						:aria-modal="shouldTrapFocus ? 'true' : undefined"
+						:aria-label="iabT?.banner?.title"
+						tabindex="-1"
 					>
 						<div
-							v-bind="config.components?.['iab-banner']?.card"
-							data-testid="iab-consent-banner-card"
-							:class="bannerStyles.card"
-							:role="shouldTrapFocus ? 'dialog' : undefined"
-							:aria-modal="shouldTrapFocus ? 'true' : undefined"
-							:aria-label="iabT?.banner?.title"
-							tabindex="0"
+							v-bind="config.components?.['iab-banner']?.header"
+							data-testid="iab-consent-banner-header"
+							:class="bannerStyles.header"
 						>
-							<div
-								v-bind="config.components?.['iab-banner']?.header"
-								data-testid="iab-consent-banner-header"
-								:class="bannerStyles.header"
+							<h2
+								v-bind="config.components?.['iab-banner']?.title"
+								:class="bannerStyles.title"
 							>
-								<h2
-									v-bind="config.components?.['iab-banner']?.title"
-									:class="bannerStyles.title"
+								{{ iabT?.banner?.title }}
+							</h2>
+							<p
+								v-bind="config.components?.['iab-banner']?.description"
+								:class="bannerStyles.description"
+							>
+								{{ descriptionParts.before }}
+								<button
+									v-bind="config.components?.['iab-banner']?.partnersLink"
+									type="button"
+									:class="bannerStyles.partnersLink"
+									data-testid="iab-consent-banner-partners-link"
+									@click="openVendors"
 								>
-									{{ iabT?.banner?.title }}
-								</h2>
-								<p
-									v-bind="config.components?.['iab-banner']?.description"
-									:class="bannerStyles.description"
+									{{ partnersLinkText }}
+								</button>
+								{{ descriptionParts.after }}
+							</p>
+							<ul
+								v-bind="config.components?.['iab-banner']?.purposeList"
+								:class="bannerStyles.purposeList"
+							>
+								<li
+									v-for="(name, index) in bannerSummary.displayItems"
+									:key="`${name}-${index}`"
 								>
-									{{ descriptionParts.before }}
-									<button
-										v-bind="config.components?.['iab-banner']?.partnersLink"
-										type="button"
-										:class="bannerStyles.partnersLink"
-										data-testid="iab-consent-banner-partners-link"
-										@click="openVendors"
-									>
-										{{ partnersLinkText }}
-									</button>
-									{{ descriptionParts.after }}
-								</p>
-								<ul
-									v-bind="config.components?.['iab-banner']?.purposeList"
-									:class="bannerStyles.purposeList"
+									{{ name }}
+								</li>
+								<li
+									v-if="bannerSummary.remainingCount > 0"
+									v-bind="config.components?.['iab-banner']?.purposeMore"
+									:class="bannerStyles.purposeMore"
 								>
-									<li
-										v-for="(name, index) in bannerSummary.displayItems"
-										:key="`${name}-${index}`"
-									>
-										{{ name }}
-									</li>
-									<li
-										v-if="bannerSummary.remainingCount > 0"
-										v-bind="config.components?.['iab-banner']?.purposeMore"
-										:class="bannerStyles.purposeMore"
-									>
-										{{ (iabT?.banner?.andMore ?? '').replace(
+									{{ (iabT?.banner?.andMore ?? '').replace(
 										'{count}',
 										String(bannerSummary.remainingCount),
 									) }}
-									</li>
-								</ul>
-								<p
-									v-bind="
+								</li>
+							</ul>
+							<p
+								v-bind="
 										config.components?.['iab-banner']?.legitimateInterestNotice
 									"
-									:class="bannerStyles.legitimateInterestNotice"
-								>
-									{{ iabT?.banner?.legitimateInterestNotice }}
-									{{ iabT?.banner?.scopeServiceSpecific }}
-								</p>
-							</div>
-							<div
-								v-bind="config.components?.['iab-banner']?.footer"
-								data-testid="iab-consent-banner-footer"
-								:class="bannerStyles.footer"
+								:class="bannerStyles.legitimateInterestNotice"
 							>
-								<ConsentActions
-									:layout="IAB_BANNER_LAYOUT"
-									:primary-actions="[primaryButton]"
-									:labels="labels"
-									:test-ids="IAB_BANNER_ACTION_TEST_IDS"
-									secondary-mode="stroke"
-									:root-attrs="config.components?.['iab-banner']?.actions as
-										object | undefined"
-									:group-attrs="config.components?.['iab-banner']?.actionGroup as
-										object | undefined"
-									@action="onAction"
-								/>
-							</div>
+								{{ iabT?.banner?.legitimateInterestNotice }}
+								{{ iabT?.banner?.scopeServiceSpecific }}
+							</p>
 						</div>
-					</FocusScope>
+						<div
+							v-bind="config.components?.['iab-banner']?.footer"
+							data-testid="iab-consent-banner-footer"
+							:class="bannerStyles.footer"
+						>
+							<ConsentActions
+								:layout="IAB_BANNER_LAYOUT"
+								:primary-actions="[primaryButton]"
+								:labels="labels"
+								:test-ids="IAB_BANNER_ACTION_TEST_IDS"
+								secondary-mode="stroke"
+								:root-attrs="config.components?.['iab-banner']?.actions as
+										object | undefined"
+								:group-attrs="config.components?.['iab-banner']?.actionGroup as
+										object | undefined"
+								@action="onAction"
+							/>
+						</div>
+					</div>
 				</div>
 			</div>
 		</Transition>

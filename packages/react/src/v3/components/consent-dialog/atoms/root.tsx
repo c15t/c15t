@@ -7,11 +7,13 @@
  * focus trapping, scroll locking and portal rendering.
  */
 
+import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import styles from '@c15t/ui/styles/v3/consent-dialog';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
+import { useHeadlessConsentUI } from '~/v3/component-hooks/use-headless-consent-ui';
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import {
 	LocalThemeContext,
@@ -125,6 +127,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	// Consent manager state
 	const { activeUI, translationConfig, model, policyDialog } =
 		useConsentManager();
+	const { closeUI } = useHeadlessConsentUI();
 	const scrollLock = localScrollLock ?? policyDialog.scrollLock ?? true;
 	const trapFocus = localTrapFocus ?? globalTheme.trapFocus ?? true;
 	const textDirection = useTextDirection(translationConfig.defaultLanguage);
@@ -166,6 +169,22 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 
 	// Trap focus when dialog open
 	useFocusTrap(isOpen && trapFocus, dialogRef as RefObject<HTMLElement>);
+
+	useEffect(() => {
+		if (!isOpen) {
+			return;
+		}
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			if (isDialogDismissKey(event.key)) {
+				event.preventDefault();
+				closeUI();
+			}
+		};
+
+		document.addEventListener('keydown', handleKeyDown);
+		return () => document.removeEventListener('keydown', handleKeyDown);
+	}, [closeUI, isOpen]);
 
 	// Lock scroll when required
 	useScrollLock(isOpen && scrollLock);
@@ -212,6 +231,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 							{...themedStyle}
 							className={themedStyle.className}
 							aria-labelledby="consent-dialog-title"
+							aria-modal={trapFocus ? 'true' : undefined}
 							tabIndex={-1}
 							dir={textDirection}
 							data-testid="consent-dialog-root"

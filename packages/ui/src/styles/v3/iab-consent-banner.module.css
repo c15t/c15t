@@ -145,10 +145,12 @@
 		border-color: var(--iab-consent-banner-border-color-dark);
 	}
 
-	/* Focus styles */
-	.card:focus {
+	/* Focus styles: the card is tabindex="-1" — it only receives
+	   programmatic focus (the trap moves focus here on open so screen
+	   readers announce the surface) and is never a keyboard tab stop, so it
+	   renders no ring. Interactive children carry the focus indicators. */
+	.card:not(:global(.headless)):focus {
 		outline: none;
-		outline-offset: 2px;
 	}
 
 	.header {

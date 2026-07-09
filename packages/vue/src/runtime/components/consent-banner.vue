@@ -5,7 +5,7 @@
 import { DEFAULT_BANNER_POSITION } from '@c15t/schema/config';
 import type { PolicyUiAction } from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/v3/consent-banner';
-import { computed, Teleport, Transition } from 'vue';
+import { computed, ref, Teleport, Transition } from 'vue';
 import {
 	useConsentActiveUI,
 	useConsentConfig,
@@ -14,7 +14,7 @@ import {
 } from '../composables';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
-import { FocusScope } from '../primitives';
+import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';
 import ConsentDescription from './consent-description.vue';
 import ConsentTag from './consent-tag.vue';
@@ -48,6 +48,8 @@ useConsentScrollLock(computed(() => isOpen.value && scrollLock.value));
 const shouldTrapFocus = computed(() =>
 	Boolean(isOpen.value && config.value.trapFocus)
 );
+const card = ref<HTMLElement | null>(null);
+useFocusTrap(card, () => shouldTrapFocus.value);
 
 const bannerTitle = computed(
 	() => init.value?.translations?.translations?.cookieBanner?.title
@@ -131,54 +133,52 @@ function onAction(action: PolicyUiAction) {
 						v-if="!(config.bannerHideBranding ?? config.hideBranding)"
 						context="banner"
 					/>
-					<FocusScope
-						:trapped="shouldTrapFocus"
-						:loop="shouldTrapFocus"
+					<div
+						ref="card"
+						v-bind="config.components?.banner?.card"
+						data-testid="consent-banner-card"
+						:class="bannerStyles.card"
+						:role="shouldTrapFocus ? 'dialog' : undefined"
+						:aria-modal="shouldTrapFocus ? 'true' : undefined"
+						:aria-label="bannerTitle"
+						tabindex="-1"
 					>
 						<div
-							v-bind="config.components?.banner?.card"
-							data-testid="consent-banner-card"
-							:class="bannerStyles.card"
-							:role="shouldTrapFocus ? 'dialog' : undefined"
-							:aria-modal="shouldTrapFocus ? 'true' : undefined"
-							:aria-label="shouldTrapFocus ? bannerTitle : undefined"
-							tabindex="0"
+							v-bind="config.components?.banner?.header"
+							:class="bannerStyles.header"
 						>
 							<div
-								v-bind="config.components?.banner?.header"
-								:class="bannerStyles.header"
+								v-bind="config.components?.banner?.title"
+								data-testid="consent-banner-title"
+								:class="bannerStyles.title"
+								role="heading"
+								aria-level="2"
 							>
-								<div
-									v-bind="config.components?.banner?.title"
-									data-testid="consent-banner-title"
-									:class="bannerStyles.title"
-								>
-									{{ init?.translations?.translations?.cookieBanner?.title }}
-								</div>
-								<ConsentDescription context="banner" />
+								{{ init?.translations?.translations?.cookieBanner?.title }}
 							</div>
-							<div
-								v-bind="config.components?.banner?.footer"
-								data-testid="consent-banner-footer"
-								:class="bannerStyles.footer"
-							>
-								<ConsentActions
-									:action-groups="actionGroups.length ? actionGroups : [DEFAULT_ACTIONS]"
-									:direction="direction"
-									:ui-profile="surface?.uiProfile"
-									:primary-actions="primaryActions"
-									:fill="shouldFillActions"
-									:labels="labels"
-									:test-ids="actionTestIds"
-									:root-attrs="config.components?.banner?.actions as
-										object | undefined"
-									:group-attrs="config.components?.banner?.actionGroup as
-										object | undefined"
-									@action="onAction"
-								/>
-							</div>
+							<ConsentDescription context="banner" />
 						</div>
-					</FocusScope>
+						<div
+							v-bind="config.components?.banner?.footer"
+							data-testid="consent-banner-footer"
+							:class="bannerStyles.footer"
+						>
+							<ConsentActions
+								:action-groups="actionGroups.length ? actionGroups : [DEFAULT_ACTIONS]"
+								:direction="direction"
+								:ui-profile="surface?.uiProfile"
+								:primary-actions="primaryActions"
+								:fill="shouldFillActions"
+								:labels="labels"
+								:test-ids="actionTestIds"
+								:root-attrs="config.components?.banner?.actions as
+										object | undefined"
+								:group-attrs="config.components?.banner?.actionGroup as
+										object | undefined"
+								@action="onAction"
+							/>
+						</div>
+					</div>
 				</div>
 			</div>
 		</Transition>

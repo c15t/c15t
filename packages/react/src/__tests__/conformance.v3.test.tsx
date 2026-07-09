@@ -354,21 +354,31 @@ function KernelCapture({
 	return null;
 }
 
-function componentFor(component: MountableComponent): ReactElement {
-	switch (component) {
+function componentFor(opts: MountOptions): ReactElement {
+	const provided = (opts.providerOptions ?? {}) as ProviderOptions;
+	const trapFocus = provided.trapFocus ?? false;
+
+	switch (opts.component) {
 		case 'consent-banner':
 			return (
-				<ConsentBanner
-					disableAnimation
-					trapFocus={false}
-					hideBranding
-				/>
+				<>
+					<ConsentBanner
+						disableAnimation
+						trapFocus={trapFocus}
+						hideBranding
+					/>
+					<ConsentDialog
+						disableAnimation
+						trapFocus={trapFocus}
+						hideBranding
+					/>
+				</>
 			);
 		case 'consent-dialog':
 			return (
 				<ConsentDialog
 					disableAnimation
-					trapFocus={false}
+					trapFocus={trapFocus}
 					hideBranding
 				/>
 			);
@@ -394,7 +404,7 @@ function Harness({
 			dir={opts.locale === 'ar' ? 'rtl' : undefined}
 		>
 			<KernelCapture onKernel={onKernel} />
-			{componentFor(opts.component)}
+			{componentFor(opts)}
 		</div>
 	);
 }

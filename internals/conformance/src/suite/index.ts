@@ -7,6 +7,7 @@
  */
 
 import type { TestDriver } from '../driver';
+import { runA11yConformance } from './a11y';
 import { runErrorConformance } from './errors';
 import { runEventContractConformance } from './events';
 import { runGpcConformance } from './gpc';
@@ -20,6 +21,7 @@ import { runRequestLifecycleConformance } from './request-lifecycle';
 import { runSsrConformance } from './ssr';
 import { runStoreConformance } from './store';
 
+export { runA11yConformance } from './a11y';
 export { runErrorConformance } from './errors';
 export { runEventContractConformance } from './events';
 export { runGpcConformance } from './gpc';
@@ -47,6 +49,7 @@ export function runConformanceSuite(driver: TestDriver, api: SuiteApi): void {
 	runErrorConformance(driver, api);
 	runSsrConformance(driver, api);
 	runRequestLifecycleConformance(driver, api);
+	runA11yConformance(driver, api);
 	runGpcConformance(driver, api);
 	runPersistenceConformance(driver, api);
 	runIabConformance(driver, api);

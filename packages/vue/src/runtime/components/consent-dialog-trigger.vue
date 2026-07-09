@@ -83,7 +83,7 @@ const initialValue = computed(
 		)
 );
 
-const { x, y, style, isDragging } = useDraggable(triggerRef, {
+const { position, isDragging } = useDraggable(triggerRef, {
 	initialValue: initialValue.value,
 	onEnd: (position) => {
 		if (!config.value.triggerPersistPosition) {
@@ -110,8 +110,7 @@ watch(
 			config.value.triggerDefaultPosition ?? 'bottom-right',
 			config.value.triggerSize ?? 'md'
 		);
-		x.value = next.x;
-		y.value = next.y;
+		position.value = next;
 	},
 	{ immediate: true }
 );
@@ -133,6 +132,11 @@ const isVisible = computed(() => {
 	if (!mounted.value) {
 		return false;
 	}
+	// Match React/Svelte: the trigger hides while any consent surface
+	// (banner or manager) is open and re-renders once it closes.
+	if (activeUI.value !== null) {
+		return false;
+	}
 	if (config.value.triggerShowWhen === 'never') {
 		return false;
 	}
@@ -145,7 +149,8 @@ const isVisible = computed(() => {
 const triggerStyle = computed(() => ({
 	position: 'fixed' as const,
 	zIndex: 9999,
-	...(style.value as unknown as Record<string, string | number>),
+	left: `${position.value.x}px`,
+	top: `${position.value.y}px`,
 }));
 
 function openDialog() {

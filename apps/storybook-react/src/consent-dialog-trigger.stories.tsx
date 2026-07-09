@@ -1,3 +1,4 @@
+import { dialogFocusManagement } from '@c15t/conformance/play/consent-dialog';
 import { triggerOpensDialog } from '@c15t/conformance/play/consent-dialog-trigger';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import {
@@ -33,6 +34,19 @@ export const Default: Story = {
 		</StorybookConsentProvider>
 	),
 	play: triggerOpensDialog,
+};
+
+export const DialogFocusManagement: Story = {
+	render: () => (
+		<StorybookConsentProvider
+			options={editableConsentOptions}
+			storedConsent={editableStoredConsent}
+		>
+			<ConsentDialog />
+			<ConsentDialogTrigger showWhen="always" />
+		</StorybookConsentProvider>
+	),
+	play: dialogFocusManagement,
 };
 
 export const Mobile: Story = {

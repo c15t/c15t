@@ -259,7 +259,7 @@ describe('ConsentWidget.PolicyActions', () => {
 		);
 		expect(
 			document.querySelector(
-				'[data-testid="consent-widget-footer-accept-button"]'
+				'[data-testid="consent-widget-footer-accept-all-button"]'
 			)
 		).toHaveTextContent(
 			defaultTranslationConfig.translations.en.common.acceptAll

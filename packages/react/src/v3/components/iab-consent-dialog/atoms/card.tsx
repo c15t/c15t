@@ -71,7 +71,7 @@ const IABConsentDialogCard = forwardRef<
 			role="dialog"
 			aria-modal={trapFocus ? 'true' : undefined}
 			aria-label={iabTranslations.preferenceCenter.title}
-			tabIndex={0}
+			tabIndex={-1}
 		>
 			{children}
 		</div>
