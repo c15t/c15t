@@ -13,6 +13,7 @@ const REGION_PRIORITY = [
 const FORWARDED_HEADERS = [
 	...COUNTRY_PRIORITY,
 	...REGION_PRIORITY,
+	'x-c15t-version',
 	'accept-language',
 	'user-agent',
 	'x-forwarded-host',

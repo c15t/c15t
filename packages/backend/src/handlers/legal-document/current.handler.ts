@@ -1,6 +1,6 @@
 import type {
 	LegalDocumentCurrentInput,
-	LegalDocumentCurrentParams,
+	LegalDocumentPolicyType,
 } from '@c15t/schema';
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
@@ -20,7 +20,7 @@ export const syncCurrentLegalDocumentHandler = async (c: Context) => {
 		});
 	}
 
-	const type = c.req.param('type') as LegalDocumentCurrentParams['type'];
+	const type = c.req.param('type') as LegalDocumentPolicyType;
 	const body = await c.req.json<LegalDocumentCurrentInput>();
 	const effectiveDate = new Date(body.effectiveDate);
 	if (Number.isNaN(effectiveDate.getTime())) {

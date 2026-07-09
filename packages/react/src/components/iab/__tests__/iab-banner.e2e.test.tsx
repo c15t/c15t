@@ -184,9 +184,14 @@ describe('IAB Banner E2E Tests', () => {
 			// Banner should close
 			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
 
-			// Check localStorage for consent
-			const consent = getStoredConsent();
-			expect(consent?.consents?.necessary).toBe(true);
+			// Check localStorage for consent - wait for it to be saved
+			await vi.waitFor(
+				() => {
+					const consent = getStoredConsent();
+					expect(consent?.consents?.necessary).toBe(true);
+				},
+				{ timeout: 2000 }
+			);
 		});
 
 		test('should open preference center from banner', async () => {

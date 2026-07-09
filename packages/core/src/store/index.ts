@@ -4,6 +4,7 @@
  * This module provides the main store creation and management functionality.
  */
 
+import { isLegalDocumentType } from '@c15t/schema/types';
 import { resolveTranslationInput } from '@c15t/translations';
 import { createStore } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
@@ -45,7 +46,12 @@ import {
 	consentTypes,
 } from '../types/consent-types';
 import { initialState } from './initial-state';
-import type { ConsentStoreState, StoreOptions } from './type';
+import type {
+	ConsentStoreState,
+	StoreOptions,
+	UnstableLegalDocumentConsentInput,
+	UnstablePolicyConsentInput,
+} from './type';
 
 /**
  * Structure of consent data stored in localStorage.
@@ -64,6 +70,12 @@ interface StoredConsent {
 
 	/** Stored custom vendor LI state (IAB mode only) */
 	iabCustomVendorLegitimateInterests?: Record<string, boolean>;
+}
+
+function isLegalDocumentConsentInput(
+	input: UnstablePolicyConsentInput
+): input is UnstableLegalDocumentConsentInput {
+	return isLegalDocumentType(input.type);
 }
 
 /**
@@ -502,13 +514,10 @@ export const createConsentManagerStore = (
 				(typeof window !== 'undefined'
 					? window.location.hostname
 					: 'localhost');
-			const isLegalDocumentType =
-				input.type === 'privacy_policy' ||
-				input.type === 'terms_and_conditions' ||
-				input.type === 'dpa';
+			const legalDocumentConsent = isLegalDocumentConsentInput(input);
 			let legalDocumentFields: Record<string, string> = {};
 
-			if (isLegalDocumentType) {
+			if (legalDocumentConsent) {
 				if (input.documentSnapshotToken) {
 					legalDocumentFields = {
 						documentSnapshotToken: input.documentSnapshotToken,

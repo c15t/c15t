@@ -125,9 +125,9 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"@rslib/core": "0.22.0",
-		"typescript": "6.0.2",
-		"vitest": "4.1.2"
+		"@rslib/core": "0.23.2",
+		"typescript": "7.0.1-rc",
+		"vitest": "4.1.9"
 	},
 	"publishConfig": {
 		"access": "public"

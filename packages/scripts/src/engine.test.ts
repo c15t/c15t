@@ -448,6 +448,144 @@ describe('scripts engine', () => {
 		expect(document.head.appendChild).not.toHaveBeenCalled();
 	});
 
+	it('supports methodCall queue formats and queued helper classes', async () => {
+		const manifest = createManifest({
+			vendor: 'method-call-queue',
+			category: 'measurement',
+			bootstrap: [
+				{
+					type: 'setGlobal',
+					name: 'vendorSdk',
+					value: { _q: [] },
+					ifUndefined: true,
+				},
+				{
+					type: 'defineQueueMethods',
+					target: 'vendorSdk',
+					methods: ['track'],
+					queue: { property: '_q' },
+					queueFormat: 'methodCall',
+				},
+				{
+					type: 'defineQueueClass',
+					target: 'vendorSdk',
+					name: 'Identify',
+					methods: ['set'],
+				},
+			],
+			install: [
+				{
+					type: 'loadScript',
+					src: 'https://cdn.example.com/vendor.js',
+				},
+			],
+		});
+
+		const resolved = resolvedManifestToScript(compileManifest(manifest, {}));
+		const globalRef = globalThis as TestGlobal;
+
+		resolved.onBeforeLoad?.(
+			createCallbackInfo({
+				id: resolved.id,
+				consents: grantedMeasurementConsentState,
+			})
+		);
+
+		const sdk = globalRef.vendorSdk as {
+			_q: Array<{
+				name: string;
+				args: unknown[];
+				resolve: (value: unknown) => void;
+			}>;
+			track: (event: string) => Promise<unknown>;
+			Identify: new () => {
+				set: (key: string, value: unknown) => unknown;
+				_q: Array<{ name: string; args: unknown[] }>;
+			};
+		};
+
+		const pending = sdk.track('Signup');
+		expect(sdk._q).toHaveLength(1);
+		expect(sdk._q[0]?.name).toBe('track');
+		expect(sdk._q[0]?.args).toEqual(['Signup']);
+
+		sdk._q[0]?.resolve('replayed');
+		await expect(pending).resolves.toBe('replayed');
+
+		const identify = new sdk.Identify();
+		expect(identify.set('plan', 'pro')).toBe(identify);
+		expect(identify._q).toEqual([{ name: 'set', args: ['plan', 'pro'] }]);
+
+		delete globalRef.vendorSdk;
+	});
+
+	it('supports callback queue formats that replay against the current global', () => {
+		const manifest = createManifest({
+			vendor: 'callback-queue',
+			category: 'measurement',
+			bootstrap: [
+				{
+					type: 'setGlobal',
+					name: 'vendorReadyCb',
+					value: [],
+					ifUndefined: true,
+				},
+				{
+					type: 'setGlobal',
+					name: 'vendorSdk',
+					value: [],
+					ifUndefined: true,
+				},
+				{
+					type: 'defineQueueMethods',
+					target: 'vendorSdk',
+					methods: ['track'],
+					queue: { global: 'vendorReadyCb' },
+					queueFormat: 'callback',
+				},
+			],
+			install: [
+				{
+					type: 'loadScript',
+					src: 'https://cdn.example.com/vendor.js',
+				},
+			],
+		});
+		const resolved = resolvedManifestToScript(compileManifest(manifest));
+		const globalRef = globalThis as TestGlobal;
+		const calls: unknown[][] = [];
+
+		resolved.onBeforeLoad?.(
+			createCallbackInfo({
+				id: resolved.id,
+				consents: grantedMeasurementConsentState,
+			})
+		);
+
+		const sdkStub = globalRef.vendorSdk as {
+			track: (event: string, properties?: Record<string, unknown>) => void;
+		};
+		sdkStub.track('Signup', { plan: 'pro' });
+
+		const readyQueue = globalRef.vendorReadyCb as Array<{
+			name: string;
+			fn: () => void;
+		}>;
+		globalRef.vendorSdk = {
+			track: (...args: unknown[]) => {
+				calls.push(args);
+			},
+		};
+
+		expect(readyQueue).toHaveLength(1);
+		expect(readyQueue[0]?.name).toBe('track');
+		readyQueue[0]?.fn();
+		expect(calls).toEqual([['Signup', { plan: 'pro' }]]);
+
+		delete globalRef.vendorReadyCb;
+		delete globalRef.vendorSdk;
+	});
+
 	it('runs bootstrap before default consent signaling and setup', () => {
 		const manifest = createManifest({
 			vendor: 'ordered-google',
@@ -658,6 +796,107 @@ describe('scripts engine', () => {
 			['change'],
 			['granted'],
 		]);
+	});
+
+	it('does not overwrite an initialized SDK object with queue stubs', () => {
+		const globalRef = globalThis as TestGlobal;
+		const liveTrack = vi.fn();
+		// Simulates a grant → revoke → grant cycle without a page reload: the
+		// SDK already replaced the snippet queue array with a runtime object.
+		globalRef.vendorQueue = { track: liveTrack };
+
+		const manifest = createManifest({
+			vendor: 'queue-regrant',
+			category: 'measurement',
+			bootstrap: [
+				{
+					type: 'setGlobal',
+					name: 'vendorQueue',
+					value: [],
+					ifUndefined: true,
+				},
+				{
+					type: 'defineQueueMethods',
+					target: 'vendorQueue',
+					methods: ['track'],
+				},
+			],
+			install: [
+				{
+					type: 'loadScript',
+					src: 'https://cdn.example.com/vendor.js',
+				},
+			],
+		});
+
+		const script = resolvedManifestToScript(compileManifest(manifest, {}));
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: grantedMeasurementConsentState,
+			})
+		);
+
+		const sdk = globalRef.vendorQueue as { track: (event: string) => void };
+		sdk.track('Signup');
+
+		expect(liveTrack).toHaveBeenCalledWith('Signup');
+
+		delete globalRef.vendorQueue;
+	});
+
+	it('partitions consent IDs for the rudderstack consent signal', () => {
+		const globalRef = globalThis as TestGlobal;
+		const consentCalls: unknown[][] = [];
+		globalRef.rudderanalytics = {
+			consent: (...args: unknown[]) => {
+				consentCalls.push(args);
+			},
+		};
+
+		const manifest = createManifest({
+			vendor: 'rudderstack-signal',
+			category: 'measurement',
+			alwaysLoad: true,
+			install: [],
+			consentMapping: {
+				measurement: ['product-analytics'],
+				marketing: ['ad-destinations', 'retargeting'],
+			},
+			consentSignal: 'rudderstack',
+			consentSignalTarget: 'rudderanalytics',
+		});
+
+		const script = resolvedManifestToScript(compileManifest(manifest));
+
+		script.onConsentChange?.(
+			createCallbackInfo({
+				id: script.id,
+				hasConsent: true,
+				consents: {
+					necessary: true,
+					functionality: false,
+					measurement: true,
+					marketing: false,
+					experience: false,
+				},
+			})
+		);
+
+		expect(consentCalls).toEqual([
+			[
+				{
+					consentManagement: {
+						enabled: true,
+						provider: 'custom',
+						allowedConsentIds: ['product-analytics'],
+						deniedConsentIds: ['ad-destinations', 'retargeting'],
+					},
+				},
+			],
+		]);
+
+		delete globalRef.rudderanalytics;
 	});
 
 	it('emits phase and step debug events for manifest execution', () => {

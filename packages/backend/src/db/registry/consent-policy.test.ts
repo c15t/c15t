@@ -524,6 +524,64 @@ describe('policyRegistry', () => {
 			);
 		});
 
+		it('syncCurrentLegalDocumentPolicy scopes suffixed variant deactivation to the exact type', async () => {
+			const policyId = await buildLegalDocumentPolicyId({
+				tenantId: 'ins_123',
+				type: 'terms_and_conditions_b2b',
+				hash: 'hash_b2b',
+			});
+			const createdPolicy = createMockConsentPolicy({
+				id: policyId,
+				type: 'terms_and_conditions_b2b',
+				version: '2026-04-07',
+				hash: 'hash_b2b',
+				effectiveDate: new Date('2026-04-07T00:00:00.000Z'),
+				isActive: true,
+			});
+			const tx = {
+				findFirst: vi.fn().mockResolvedValue(null),
+				updateMany: vi.fn().mockResolvedValue(undefined),
+				create: vi.fn().mockResolvedValue(createdPolicy),
+			};
+			const db = {
+				transaction: vi.fn(async (fn: (tx: typeof tx) => unknown) => fn(tx)),
+			};
+
+			const registry = policyRegistry({
+				db,
+				ctx: { logger: mockLogger, tenantId: 'ins_123' },
+			} as unknown as Registry);
+
+			const result = await registry.syncCurrentLegalDocumentPolicy({
+				type: 'terms_and_conditions_b2b',
+				version: '2026-04-07',
+				hash: 'hash_b2b',
+				effectiveDate: new Date('2026-04-07T00:00:00.000Z'),
+			});
+			const comparisons: Array<[string, string, unknown]> = [];
+			const builder = ((field: string, operator: string, value: unknown) => {
+				comparisons.push([field, operator, value]);
+				return { field, operator, value };
+			}) as ((field: string, operator: string, value: unknown) => unknown) & {
+				and: (...conditions: unknown[]) => unknown;
+			};
+			builder.and = (...conditions: unknown[]) => ({ and: conditions });
+
+			tx.updateMany.mock.calls[0]?.[1].where(builder);
+
+			expect(result).toEqual(createdPolicy);
+			expect(comparisons).toContainEqual([
+				'type',
+				'=',
+				'terms_and_conditions_b2b',
+			]);
+			expect(comparisons).not.toContainEqual([
+				'type',
+				'=',
+				'terms_and_conditions_b2c',
+			]);
+		});
+
 		it('syncCurrentLegalDocumentPolicy is idempotent for the same release metadata', async () => {
 			const policyId = await buildLegalDocumentPolicyId({
 				tenantId: 'ins_123',

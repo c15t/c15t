@@ -1,4 +1,5 @@
 import { getDebugLogger } from '../../libs/debug';
+import { C15T_VERSION_HEADERS } from '../headers';
 import type { FetchOptions, ResponseContext, RetryConfig } from '../types';
 import { createResponseContext as createResponseContextShared } from '../utils';
 import {
@@ -137,6 +138,7 @@ export async function fetcher<
 			mode: context.corsMode, // Use configured CORS mode
 			credentials: 'include', // Always include credentials by default
 			headers: {
+				...C15T_VERSION_HEADERS,
 				...context.headers,
 				'X-Request-ID': requestId,
 				...options?.headers,
