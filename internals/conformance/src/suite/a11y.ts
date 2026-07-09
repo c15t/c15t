@@ -108,6 +108,25 @@ async function waitForElementRemoved(
 	throw new Error(`Timed out waiting for [data-testid="${testId}"] removal`);
 }
 
+/**
+ * Polls until `document.activeElement` satisfies `predicate`, then returns it.
+ * Focus moves asynchronously (setTimeout/rAF in the trap), so a fixed sleep is
+ * flaky on slow CI — poll instead, matching `assertInitialFocus` in focus.ts.
+ */
+async function waitForActiveElement(
+	doc: Document,
+	predicate: (active: Element | null) => boolean
+): Promise<Element | null> {
+	const started = Date.now();
+	while (Date.now() - started < 1000) {
+		if (predicate(doc.activeElement)) {
+			return doc.activeElement;
+		}
+		await wait(10);
+	}
+	return doc.activeElement;
+}
+
 async function mountBanner(driver: TestDriver): Promise<MountResult> {
 	return driver.mount({
 		component: 'consent-banner',
@@ -144,8 +163,11 @@ export function runA11yConformance(driver: TestDriver, api: SuiteApi): void {
 				try {
 					const body = ownerBody(mounted);
 					const card = await waitForElement(body, TEST_IDS.consentBanner.card);
-					await wait(20);
-					api.expect(body.ownerDocument.activeElement).toBe(card);
+					const active = await waitForActiveElement(
+						body.ownerDocument,
+						(el) => el === card
+					);
+					api.expect(active).toBe(card);
 				} finally {
 					await mounted.unmount();
 				}
@@ -157,7 +179,7 @@ export function runA11yConformance(driver: TestDriver, api: SuiteApi): void {
 			try {
 				const body = ownerBody(mounted);
 				const card = await waitForElement(body, TEST_IDS.consentBanner.card);
-				await wait(20);
+				await waitForActiveElement(body.ownerDocument, (el) => el === card);
 
 				const focusable = getFocusableElements(card);
 				api.expect(focusable.length).toBeGreaterThanOrEqual(2);
@@ -184,8 +206,11 @@ export function runA11yConformance(driver: TestDriver, api: SuiteApi): void {
 				try {
 					const body = ownerBody(mounted);
 					const card = await waitForElement(body, TEST_IDS.consentBanner.card);
-					await wait(20);
-					api.expect(body.ownerDocument.activeElement).toBe(card);
+					const active = await waitForActiveElement(
+						body.ownerDocument,
+						(el) => el === card
+					);
+					api.expect(active).toBe(card);
 
 					// The element before the card in tab order is outside the
 					// trap; Shift+Tab must wrap to the last focusable instead
@@ -292,11 +317,17 @@ export function runA11yConformance(driver: TestDriver, api: SuiteApi): void {
 
 				keydown(dialog, 'Escape');
 				await waitForElementRemoved(body, TEST_IDS.consentDialog.root);
-				await wait(20);
 
-				api
-					.expect(body.ownerDocument.activeElement)
-					.toBe(returnTarget.isConnected ? returnTarget : body);
+				// Focus restore runs on a deferred (setTimeout 0) tick; poll for
+				// the expected target rather than a fixed sleep.
+				const expected = returnTarget.isConnected
+					? returnTarget
+					: body.ownerDocument.body;
+				const active = await waitForActiveElement(
+					body.ownerDocument,
+					(el) => el === expected
+				);
+				api.expect(active).toBe(expected);
 			} finally {
 				await mounted.unmount();
 			}

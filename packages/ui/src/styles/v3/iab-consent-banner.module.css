@@ -149,7 +149,7 @@
 	   programmatic focus (the trap moves focus here on open so screen
 	   readers announce the surface) and is never a keyboard tab stop, so it
 	   renders no ring. Interactive children carry the focus indicators. */
-	.card:focus {
+	.card:not(:global(.headless)):focus {
 		outline: none;
 	}
 
