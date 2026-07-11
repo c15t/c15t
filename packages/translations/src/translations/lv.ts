@@ -120,7 +120,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Piekrišanas preferences tiek glabātas sīkdatnē ar nosaukumu "euconsent-v2" 13 mēnešus. Glabāšanas ilgums var tikt atjaunots, kad jūs atjaunināt savas preferences.',
+					'Piekrišanas iestatījumi tiek glabāti sīkdatnē ar nosaukumu "euconsent-v2" 13 mēnešus. Glabāšanas ilgums var tikt atjaunots, kad jūs atjaunināt savus iestatījumus.',
 			},
 		},
 		common: {
