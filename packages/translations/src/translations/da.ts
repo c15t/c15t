@@ -121,7 +121,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Samtykkepræferencer gemmes i en cookie med navnet "euconsent-v2" i 13 måneder. The storage duration may be refreshed when you update your preferences.',
+					'Samtykkepræferencer gemmes i en cookie med navnet "euconsent-v2" i 13 måneder. Opbevaringsperioden kan blive fornyet, når du opdaterer dine præferencer.',
 			},
 		},
 		common: {

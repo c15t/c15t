@@ -121,7 +121,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Les préférences de consentement sont stockées dans un cookie nommé « euconsent-v2 » pendant 13 mois. The storage duration may be refreshed when you update your preferences.',
+					'Les préférences de consentement sont stockées dans un cookie nommé « euconsent-v2 » pendant 13 mois. La durée de stockage peut être renouvelée lorsque vous mettez à jour vos préférences.',
 			},
 		},
 		common: {
