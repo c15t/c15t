@@ -103,7 +103,7 @@ export const translations: CompleteTranslations = {
 					'Šie partneri ir reģistrēti IAB Transparency & Consent Framework (TCF) — nozares standartā piekrišanas pārvaldībai',
 				customVendorsHeading: 'Pielāgoti partneri',
 				customVendorsNotice:
-					'Šie ir pielāgoti partneri, kas nav reģistrēti IAB Transparency & Consent Framework (TCF). Viņi apstrādā datus, pamatojoties auf jūsu piekrišanu, un viņiem var būt atšķirīga privātuma prakse nekā IAB reģistrētajiem piegādātājiem.',
+					'Šie ir pielāgoti partneri, kas nav reģistrēti IAB Transparency & Consent Framework (TCF). Viņi apstrādā datus, pamatojoties uz jūsu piekrišanu, un viņiem var būt atšķirīga privātuma prakse nekā IAB reģistrētajiem piegādātājiem.',
 				purposes: 'Mērķi',
 				specialPurposes: 'Īpašie mērķi',
 				specialFeatures: 'Īpašās funkcijas',
