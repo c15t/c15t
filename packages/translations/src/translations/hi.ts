@@ -7,7 +7,7 @@ export const translations: CompleteTranslations = {
 		customize: 'अनुकूलित करें',
 		save: 'सेटिंग्स सेव करें',
 		close: 'बंद करें',
-		securedBy: 'द्वारा सुरक्षित',
+		securedBy: 'सुरक्षित द्वारा',
 	},
 	cookieBanner: {
 		title: 'हम आपकी गोपनीयता को महत्व देते हैं',
