@@ -7,7 +7,10 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, type ReactNode } from 'react';
+import { useStyles } from '~/hooks/use-styles';
+import type { ClassNameStyle } from '~/types/theme';
 import type { CornerPosition, TriggerSize } from '../types';
 import { useTriggerContext } from './root';
 
@@ -33,7 +36,8 @@ const sizeClassMap = {
 /**
  * Props for the Button component.
  */
-export interface TriggerButtonProps {
+export interface TriggerButtonProps
+	extends Omit<ClassNameStyle, 'baseClassName'> {
 	children: ReactNode;
 
 	/**
@@ -47,17 +51,6 @@ export interface TriggerButtonProps {
 	 * @default 'Open privacy settings'
 	 */
 	ariaLabel?: string;
-
-	/**
-	 * Additional CSS class names.
-	 */
-	className?: string;
-
-	/**
-	 * When true, removes default styling.
-	 * @default false
-	 */
-	noStyle?: boolean;
 }
 
 /**
@@ -78,6 +71,7 @@ export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
 			size = 'md',
 			ariaLabel = 'Open privacy settings',
 			className,
+			style,
 			noStyle = false,
 		},
 		ref
@@ -107,29 +101,30 @@ export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
 			}
 		};
 
-		const buttonClasses = noStyle
-			? className
-			: [
-					styles.trigger,
-					cornerClassMap[corner],
-					sizeClassMap[size],
-					isDragging && styles.dragging,
-					isSnapping && styles.snapping,
-					className,
-				]
-					.filter(Boolean)
-					.join(' ');
+		const buttonStyle = useStyles('consentDialogTrigger', {
+			baseClassName: [
+				styles.button,
+				cornerClassMap[corner],
+				sizeClassMap[size],
+				isDragging && styles.dragging,
+				isSnapping && styles.snapping,
+			],
+			className,
+			style,
+			noStyle,
+		});
+		const buttonDOMStyle = sanitizeDOMStyleProps(buttonStyle);
 
 		return (
 			<button
 				ref={ref}
 				type="button"
-				className={buttonClasses}
+				className={buttonDOMStyle.className}
 				data-c15t-trigger="true"
 				aria-label={ariaLabel}
 				onClick={handleClick}
 				onKeyDown={handleKeyDown}
-				style={dragStyle}
+				style={{ ...buttonDOMStyle.style, ...dragStyle }}
 				{...handlers}
 			>
 				{children}

@@ -1,387 +1,419 @@
 /**
  * ConsentDialogTrigger Component Styles
  *
- * A draggable floating button that opens the consent dialog.
+ * A draggable floating toolbar that opens the consent dialog and custom actions.
  * Uses CSS variables from the c15t design system.
  */
 
-.trigger {
-	/* Component-specific variables */
-	--cdt-size-sm: 32px;
-	--cdt-size-md: 40px;
-	--cdt-size-lg: 48px;
-	--cdt-bg: var(--c15t-surface, #ffffff);
-	--cdt-bg-hover: var(--c15t-surface-hover, var(--cdt-bg));
-	--cdt-border: var(--c15t-border, #e5e5e5);
-	--cdt-shadow: var(
-		--c15t-shadow-lg,
-		0 10px 15px -3px rgb(0 0 0 / 0.1),
-		0 4px 6px -4px rgb(0 0 0 / 0.1)
-	);
-	--cdt-shadow-hover: var(
-		--c15t-shadow-xl,
-		0 20px 25px -5px rgb(0 0 0 / 0.1),
-		0 8px 10px -6px rgb(0 0 0 / 0.1)
-	);
-	--cdt-radius: var(--c15t-radius-full, 9999px);
-	--cdt-offset: var(--c15t-space-md, 20px);
-	--cdt-transition-duration: var(--c15t-duration-normal, 200ms);
-	--cdt-transition-easing: var(--c15t-easing-out, ease-out);
-	--cdt-snap-duration: var(--c15t-duration-normal, 200ms);
-	--cdt-snap-easing: var(--c15t-easing-out, cubic-bezier(0.22, 1, 0.36, 1));
-	--cdt-icon-color: var(--c15t-text, #171717);
-	--cdt-focus-ring: var(--c15t-primary, #3b82f6);
+@layer components {
+	.button {
+		/* Component-specific variables */
+		--consent-dialog-trigger-size-sm: 32px;
+		--consent-dialog-trigger-size-md: 40px;
+		--consent-dialog-trigger-size-lg: 48px;
+		--consent-dialog-trigger-bg: var(--c15t-surface, #ffffff);
+		--consent-dialog-trigger-bg-hover: var(
+			--c15t-surface-hover,
+			var(--consent-dialog-trigger-bg)
+		);
+		--consent-dialog-trigger-border: var(--c15t-border, #e5e5e5);
+		--consent-dialog-trigger-shadow: var(
+			--c15t-shadow-lg,
+			0 10px 15px -3px rgb(0 0 0 / 0.1),
+			0 4px 6px -4px rgb(0 0 0 / 0.1)
+		);
+		--consent-dialog-trigger-shadow-hover: var(
+			--c15t-shadow-xl,
+			0 20px 25px -5px rgb(0 0 0 / 0.1),
+			0 8px 10px -6px rgb(0 0 0 / 0.1)
+		);
+		--consent-dialog-trigger-radius: var(--c15t-radius-full, 9999px);
+		--consent-dialog-trigger-offset: var(--c15t-space-md, 20px);
+		--consent-dialog-trigger-transition-duration: var(
+			--c15t-duration-normal,
+			200ms
+		);
+		--consent-dialog-trigger-transition-easing: var(
+			--c15t-easing-out,
+			ease-out
+		);
+		--consent-dialog-trigger-snap-duration: var(--c15t-duration-normal, 200ms);
+		--consent-dialog-trigger-snap-easing: var(
+			--c15t-easing-out,
+			cubic-bezier(0.22, 1, 0.36, 1)
+		);
+		--consent-dialog-trigger-icon-color: var(--c15t-text, #171717);
+		--consent-dialog-trigger-focus-ring: var(--c15t-primary, #3b82f6);
 
-	/* Base styles */
-	position: fixed;
-	z-index: 9999;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: var(--cdt-size-md);
-	height: var(--cdt-size-md);
-	padding: 0;
-	margin: 0;
-	border: 1px solid var(--cdt-border);
-	border-radius: var(--cdt-radius);
-	background: var(--cdt-bg);
-	box-shadow: var(--cdt-shadow);
-	cursor: grab;
-	transition:
-		box-shadow var(--cdt-transition-duration) var(--cdt-transition-easing),
-		background var(--cdt-transition-duration) var(--cdt-transition-easing);
-	touch-action: none;
-	user-select: none;
-	-webkit-user-select: none;
-	-webkit-tap-highlight-color: transparent;
-	will-change: left, top;
-}
-
-/* Segmented toolbar */
-.toolbar {
-	--cdt-size-sm: 32px;
-	--cdt-size-md: 40px;
-	--cdt-size-lg: 48px;
-	--cdt-bg: var(--c15t-surface, #ffffff);
-	--cdt-bg-hover: var(--c15t-surface-hover, #f5f5f5);
-	--cdt-border: var(--c15t-border, #d4d4d4);
-	--cdt-primary: var(--c15t-primary, #16a779);
-	--cdt-primary-hover: var(--c15t-primary-hover, #128866);
-	--cdt-primary-text: var(--c15t-text-on-primary, #ffffff);
-	--cdt-icon-color: var(--c15t-text, #262626);
-	--cdt-focus-ring: var(--c15t-primary, #16a779);
-	--cdt-offset: var(--c15t-space-md, 20px);
-	--cdt-transition-duration: var(--c15t-duration-fast, 160ms);
-	--cdt-transition-easing: var(--c15t-easing-out, ease-out);
-	--cdt-snap-duration: var(--c15t-duration-normal, 200ms);
-	--cdt-snap-easing: var(--c15t-easing-out, cubic-bezier(0.22, 1, 0.36, 1));
-	--cdt-shadow: var(
-		--c15t-shadow-md,
-		0 4px 10px rgb(0 0 0 / 0.08),
-		0 1px 2px rgb(0 0 0 / 0.06)
-	);
-
-	position: fixed;
-	z-index: 9999;
-	display: inline-flex;
-	align-items: stretch;
-	width: max-content;
-	padding: 0;
-	margin: 0;
-	overflow: hidden;
-	background: var(--cdt-bg);
-	border: 1px solid var(--cdt-border);
-	border-radius: var(--c15t-radius-md, 6px);
-	box-shadow: var(--cdt-shadow);
-	cursor: grab;
-	touch-action: none;
-	user-select: none;
-	-webkit-user-select: none;
-	-webkit-tap-highlight-color: transparent;
-	will-change: left, top;
-	transition:
-		box-shadow var(--cdt-transition-duration) var(--cdt-transition-easing),
-		background var(--cdt-transition-duration) var(--cdt-transition-easing);
-}
-
-.toolbar.dragging {
-	cursor: grabbing;
-	box-shadow: var(
-		--c15t-shadow-lg,
-		0 10px 20px rgb(0 0 0 / 0.14),
-		0 3px 6px rgb(0 0 0 / 0.08)
-	);
-}
-
-.toolbarVertical {
-	flex-direction: column;
-}
-
-.toolbarItem {
-	position: relative;
-	display: flex;
-	flex: 0 0 auto;
-	align-items: center;
-	justify-content: center;
-	width: var(--cdt-size-md);
-	height: var(--cdt-size-md);
-	padding: 0;
-	margin: 0;
-	color: var(--cdt-icon-color);
-	background: transparent;
-	border: 0;
-	border-inline-start: 1px solid var(--cdt-border);
-	border-radius: 0;
-	cursor: inherit;
-	transition:
-		color var(--cdt-transition-duration) var(--cdt-transition-easing),
-		background var(--cdt-transition-duration) var(--cdt-transition-easing);
-}
-
-.toolbarItem:first-child {
-	border-inline-start: 0;
-}
-
-.toolbarVertical .toolbarItem {
-	border-top: 1px solid var(--cdt-border);
-	border-inline-start: 0;
-}
-
-.toolbarVertical .toolbarItem:first-child {
-	border-top: 0;
-}
-
-.toolbarItem[data-c15t-trigger-action="preferences"] {
-	color: var(--cdt-primary-text);
-	background: var(--cdt-primary);
-}
-
-.toolbarItem:focus {
-	outline: none;
-}
-
-.toolbarItem:focus-visible {
-	z-index: 1;
-	outline: 2px solid var(--cdt-focus-ring);
-	outline-offset: -3px;
-}
-
-.toolbarItem:disabled {
-	cursor: not-allowed;
-	opacity: 0.45;
-}
-
-@media (hover: hover) and (pointer: fine) {
-	.toolbarItem:hover:not(:disabled) {
-		background: var(--cdt-bg-hover);
+		/* Base styles */
+		position: fixed;
+		z-index: 9999;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: var(--consent-dialog-trigger-size-md);
+		height: var(--consent-dialog-trigger-size-md);
+		padding: 0;
+		margin: 0;
+		border: 1px solid var(--consent-dialog-trigger-border);
+		border-radius: var(--consent-dialog-trigger-radius);
+		background: var(--consent-dialog-trigger-bg);
+		box-shadow: var(--consent-dialog-trigger-shadow);
+		cursor: grab;
+		transition:
+			box-shadow var(--consent-dialog-trigger-transition-duration)
+			var(--consent-dialog-trigger-transition-easing),
+			background var(--consent-dialog-trigger-transition-duration)
+			var(--consent-dialog-trigger-transition-easing);
+		touch-action: none;
+		user-select: none;
+		-webkit-user-select: none;
+		-webkit-tap-highlight-color: transparent;
+		will-change: left, top;
 	}
 
-	.toolbarItem[data-c15t-trigger-action="preferences"]:hover:not(:disabled) {
-		background: var(--cdt-primary-hover);
-	}
-}
+	/* Segmented toolbar */
+	.toolbar {
+		--consent-dialog-trigger-size-sm: 32px;
+		--consent-dialog-trigger-size-md: 40px;
+		--consent-dialog-trigger-size-lg: 48px;
+		--consent-dialog-trigger-bg: var(--c15t-surface, #ffffff);
+		--consent-dialog-trigger-bg-hover: var(--c15t-surface-hover, #f5f5f5);
+		--consent-dialog-trigger-border: var(--c15t-border, #d4d4d4);
+		--consent-dialog-trigger-primary: var(--c15t-primary, #16a779);
+		--consent-dialog-trigger-primary-hover: var(--c15t-primary-hover, #128866);
+		--consent-dialog-trigger-primary-text: var(--c15t-text-on-primary, #ffffff);
+		--consent-dialog-trigger-icon-color: var(--c15t-text, #262626);
+		--consent-dialog-trigger-focus-ring: var(--c15t-primary, #16a779);
+		--consent-dialog-trigger-offset: var(--c15t-space-md, 20px);
+		--consent-dialog-trigger-transition-duration: var(
+			--c15t-duration-fast,
+			160ms
+		);
+		--consent-dialog-trigger-transition-easing: var(
+			--c15t-easing-out,
+			ease-out
+		);
+		--consent-dialog-trigger-snap-duration: var(--c15t-duration-normal, 200ms);
+		--consent-dialog-trigger-snap-easing: var(
+			--c15t-easing-out,
+			cubic-bezier(0.22, 1, 0.36, 1)
+		);
+		--consent-dialog-trigger-shadow: var(
+			--c15t-shadow-md,
+			0 4px 10px rgb(0 0 0 / 0.08),
+			0 1px 2px rgb(0 0 0 / 0.06)
+		);
 
-.toolbarItem:active:not(:disabled) {
-	box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.16);
-}
-
-/* Only apply hover effects on devices that support hover */
-@media (hover: hover) and (pointer: fine) {
-	.trigger:hover {
-		background: var(--cdt-bg-hover);
-		box-shadow: var(--cdt-shadow-hover);
-	}
-}
-
-.trigger:active,
-.trigger.dragging {
-	cursor: grabbing;
-}
-
-.trigger:focus {
-	outline: none;
-}
-
-.trigger:focus-visible {
-	outline: 2px solid var(--cdt-focus-ring);
-	outline-offset: 2px;
-}
-
-/* Size variants */
-.sm {
-	width: var(--cdt-size-sm);
-	height: var(--cdt-size-sm);
-}
-
-.md {
-	width: var(--cdt-size-md);
-	height: var(--cdt-size-md);
-}
-
-.lg {
-	width: var(--cdt-size-lg);
-	height: var(--cdt-size-lg);
-}
-
-/* Icon container */
-.icon {
-	display: flex;
-	flex-shrink: 0;
-	align-items: center;
-	justify-content: center;
-	width: 50%;
-	height: 50%;
-	color: var(--cdt-icon-color);
-	pointer-events: none;
-}
-
-.icon svg {
-	width: 100%;
-	height: 100%;
-}
-
-.toolbarItem[data-c15t-trigger-action="preferences"] .icon {
-	color: var(--cdt-primary-text);
-}
-
-.lightIcon,
-.darkIcon {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 100%;
-	height: 100%;
-}
-
-.darkIcon {
-	display: none;
-}
-
-/* Text label */
-.text {
-	margin-left: var(--c15t-space-xs, 6px);
-	font-family: var(--c15t-font-family, system-ui, sans-serif);
-	font-size: var(--c15t-font-size-sm, 14px);
-	font-weight: var(--c15t-font-weight-medium, 500);
-	line-height: 1;
-	color: var(--cdt-icon-color);
-	white-space: nowrap;
-	pointer-events: none;
-}
-
-/* When trigger has text, adjust sizing */
-.trigger:has(.text) {
-	width: auto;
-	height: auto;
-	padding: var(--c15t-space-sm, 8px) var(--c15t-space-md, 16px);
-	border-radius: var(--c15t-radius-lg, 12px);
-	gap: var(--c15t-space-xs, 6px);
-}
-
-.trigger:has(.text) .icon {
-	width: 16px;
-	height: 16px;
-}
-
-.trigger:has(.text).sm {
-	padding: var(--c15t-space-xs, 6px) var(--c15t-space-sm, 10px);
-}
-
-.trigger:has(.text).sm .icon {
-	width: 14px;
-	height: 14px;
-}
-
-.trigger:has(.text).sm .text {
-	font-size: var(--c15t-font-size-xs, 12px);
-}
-
-.trigger:has(.text).lg {
-	padding: var(--c15t-space-md, 12px) var(--c15t-space-lg, 20px);
-}
-
-.trigger:has(.text).lg .icon {
-	width: 20px;
-	height: 20px;
-}
-
-.trigger:has(.text).lg .text {
-	font-size: var(--c15t-font-size-md, 16px);
-}
-
-/* Corner positioning utilities */
-.bottomRight {
-	right: var(--cdt-offset);
-	bottom: var(--cdt-offset);
-}
-
-.bottomLeft {
-	bottom: var(--cdt-offset);
-	left: var(--cdt-offset);
-}
-
-.topRight {
-	top: var(--cdt-offset);
-	right: var(--cdt-offset);
-}
-
-.topLeft {
-	top: var(--cdt-offset);
-	left: var(--cdt-offset);
-}
-
-/* Transition state for snapping to corners */
-.snapping {
-	transition:
-		top var(--cdt-snap-duration) var(--cdt-snap-easing),
-		left var(--cdt-snap-duration) var(--cdt-snap-easing);
-}
-
-/* Hidden state */
-.hidden {
-	display: none;
-}
-
-/* Dark mode support */
-:global(.c15t-dark) .trigger {
-	--cdt-bg: var(--c15t-surface, #262626);
-	--cdt-bg-hover: var(--c15t-surface-hover, #404040);
-	--cdt-border: var(--c15t-border, #404040);
-	--cdt-icon-color: var(--c15t-text, #fafafa);
-	--cdt-shadow:
-		0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
-	--cdt-shadow-hover:
-		0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
-}
-
-:global(.c15t-dark) .toolbar {
-	--cdt-bg: var(--c15t-surface, #262626);
-	--cdt-bg-hover: var(--c15t-surface-hover, #343434);
-	--cdt-border: var(--c15t-border, #525252);
-	--cdt-icon-color: var(--c15t-text, #fafafa);
-	--cdt-shadow: 0 8px 18px rgb(0 0 0 / 0.32), 0 2px 5px rgb(0 0 0 / 0.22);
-}
-
-:global(.c15t-dark) .lightIcon {
-	display: none;
-}
-
-:global(.c15t-dark) .darkIcon {
-	display: flex;
-}
-
-/* Reduced motion preference */
-@media (prefers-reduced-motion: reduce) {
-	.trigger {
-		transition: none;
+		position: fixed;
+		z-index: 9999;
+		display: inline-flex;
+		align-items: stretch;
+		width: max-content;
+		padding: 0;
+		margin: 0;
+		overflow: hidden;
+		background: var(--consent-dialog-trigger-bg);
+		border: 1px solid var(--consent-dialog-trigger-border);
+		border-radius: var(--c15t-radius-md, 6px);
+		box-shadow: var(--consent-dialog-trigger-shadow);
+		cursor: grab;
+		touch-action: none;
+		user-select: none;
+		-webkit-user-select: none;
+		-webkit-tap-highlight-color: transparent;
+		will-change: left, top;
+		transition:
+			box-shadow var(--consent-dialog-trigger-transition-duration)
+			var(--consent-dialog-trigger-transition-easing),
+			background var(--consent-dialog-trigger-transition-duration)
+			var(--consent-dialog-trigger-transition-easing);
 	}
 
-	.toolbar,
+	.toolbar.dragging {
+		cursor: grabbing;
+		box-shadow: var(
+			--c15t-shadow-lg,
+			0 10px 20px rgb(0 0 0 / 0.14),
+			0 3px 6px rgb(0 0 0 / 0.08)
+		);
+	}
+
+	.toolbarVertical {
+		flex-direction: column;
+	}
+
 	.toolbarItem {
-		transition: none;
+		position: relative;
+		display: flex;
+		flex: 0 0 auto;
+		align-items: center;
+		justify-content: center;
+		width: var(--consent-dialog-trigger-size-md);
+		height: var(--consent-dialog-trigger-size-md);
+		padding: 0;
+		margin: 0;
+		color: var(--consent-dialog-trigger-icon-color);
+		background: transparent;
+		border: 0;
+		border-inline-start: 1px solid var(--consent-dialog-trigger-border);
+		border-radius: 0;
+		cursor: inherit;
+		transition:
+			color var(--consent-dialog-trigger-transition-duration)
+			var(--consent-dialog-trigger-transition-easing),
+			background var(--consent-dialog-trigger-transition-duration)
+			var(--consent-dialog-trigger-transition-easing);
 	}
 
+	.toolbarItem:first-child {
+		border-inline-start: 0;
+	}
+
+	.toolbarVertical .toolbarItem {
+		border-top: 1px solid var(--consent-dialog-trigger-border);
+		border-inline-start: 0;
+	}
+
+	.toolbarVertical .toolbarItem:first-child {
+		border-top: 0;
+	}
+
+	.toolbarItem[data-c15t-trigger-action="preferences"] {
+		color: var(--consent-dialog-trigger-primary-text);
+		background: var(--consent-dialog-trigger-primary);
+	}
+
+	.toolbarItem:focus {
+		outline: none;
+	}
+
+	.toolbarItem:focus-visible {
+		z-index: 1;
+		outline: 2px solid var(--consent-dialog-trigger-focus-ring);
+		outline-offset: -3px;
+	}
+
+	.toolbarItem:disabled {
+		cursor: not-allowed;
+		opacity: 0.45;
+	}
+
+	@media (hover: hover) and (pointer: fine) {
+		.toolbarItem:hover:not(:disabled) {
+			background: var(--consent-dialog-trigger-bg-hover);
+		}
+
+		.toolbarItem[data-c15t-trigger-action="preferences"]:hover:not(:disabled) {
+			background: var(--consent-dialog-trigger-primary-hover);
+		}
+	}
+
+	.toolbarItem:active:not(:disabled) {
+		box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.16);
+	}
+
+	/* Only apply hover effects on devices that support hover */
+	@media (hover: hover) and (pointer: fine) {
+		.button:hover {
+			background: var(--consent-dialog-trigger-bg-hover);
+			box-shadow: var(--consent-dialog-trigger-shadow-hover);
+		}
+	}
+
+	.button:active,
+	.button.dragging {
+		cursor: grabbing;
+	}
+
+	.button:focus {
+		outline: none;
+	}
+
+	.button:focus-visible {
+		outline: 2px solid var(--consent-dialog-trigger-focus-ring);
+		outline-offset: 2px;
+	}
+
+	/* Size variants */
+	.sm {
+		width: var(--consent-dialog-trigger-size-sm);
+		height: var(--consent-dialog-trigger-size-sm);
+	}
+
+	.md {
+		width: var(--consent-dialog-trigger-size-md);
+		height: var(--consent-dialog-trigger-size-md);
+	}
+
+	.lg {
+		width: var(--consent-dialog-trigger-size-lg);
+		height: var(--consent-dialog-trigger-size-lg);
+	}
+
+	/* Icon container */
+	.icon {
+		display: flex;
+		flex-shrink: 0;
+		align-items: center;
+		justify-content: center;
+		width: 50%;
+		height: 50%;
+		color: var(--consent-dialog-trigger-icon-color);
+		pointer-events: none;
+	}
+
+	.icon svg {
+		width: 100%;
+		height: 100%;
+	}
+
+	.toolbarItem[data-c15t-trigger-action="preferences"] .icon {
+		color: var(--consent-dialog-trigger-primary-text);
+	}
+
+	.lightIcon,
+	.darkIcon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		height: 100%;
+	}
+
+	.darkIcon {
+		display: none;
+	}
+
+	/* Text label */
+	.text {
+		margin-left: var(--c15t-space-xs, 6px);
+		font-family: var(--c15t-font-family, system-ui, sans-serif);
+		font-size: var(--c15t-font-size-sm, 14px);
+		font-weight: var(--c15t-font-weight-medium, 500);
+		line-height: 1;
+		color: var(--consent-dialog-trigger-icon-color);
+		white-space: nowrap;
+		pointer-events: none;
+	}
+
+	/* When trigger has text, adjust sizing */
+	.button:has(.text) {
+		width: auto;
+		height: auto;
+		padding: var(--c15t-space-sm, 8px) var(--c15t-space-md, 16px);
+		border-radius: var(--c15t-radius-lg, 12px);
+		gap: var(--c15t-space-xs, 6px);
+	}
+
+	.button:has(.text) .icon {
+		width: 16px;
+		height: 16px;
+	}
+
+	.button:has(.text).sm {
+		padding: var(--c15t-space-xs, 6px) var(--c15t-space-sm, 10px);
+	}
+
+	.button:has(.text).sm .icon {
+		width: 14px;
+		height: 14px;
+	}
+
+	.button:has(.text).sm .text {
+		font-size: var(--c15t-font-size-xs, 12px);
+	}
+
+	.button:has(.text).lg {
+		padding: var(--c15t-space-md, 12px) var(--c15t-space-lg, 20px);
+	}
+
+	.button:has(.text).lg .icon {
+		width: 20px;
+		height: 20px;
+	}
+
+	.button:has(.text).lg .text {
+		font-size: var(--c15t-font-size-md, 16px);
+	}
+
+	/* Corner positioning utilities */
+	.bottomRight {
+		right: var(--consent-dialog-trigger-offset);
+		bottom: var(--consent-dialog-trigger-offset);
+	}
+
+	.bottomLeft {
+		bottom: var(--consent-dialog-trigger-offset);
+		left: var(--consent-dialog-trigger-offset);
+	}
+
+	.topRight {
+		top: var(--consent-dialog-trigger-offset);
+		right: var(--consent-dialog-trigger-offset);
+	}
+
+	.topLeft {
+		top: var(--consent-dialog-trigger-offset);
+		left: var(--consent-dialog-trigger-offset);
+	}
+
+	/* Transition state for snapping to corners */
 	.snapping {
-		transition: none;
+		transition:
+			top var(--consent-dialog-trigger-snap-duration)
+			var(--consent-dialog-trigger-snap-easing),
+			left var(--consent-dialog-trigger-snap-duration)
+			var(--consent-dialog-trigger-snap-easing);
+	}
+
+	/* Hidden state */
+	.hidden {
+		display: none;
+	}
+
+	/* Dark mode support */
+	:global(.c15t-dark) .button {
+		--consent-dialog-trigger-bg: var(--c15t-surface, #262626);
+		--consent-dialog-trigger-bg-hover: var(--c15t-surface-hover, #404040);
+		--consent-dialog-trigger-border: var(--c15t-border, #404040);
+		--consent-dialog-trigger-icon-color: var(--c15t-text, #fafafa);
+		--consent-dialog-trigger-shadow:
+			0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+		--consent-dialog-trigger-shadow-hover:
+			0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+	}
+
+	:global(.c15t-dark) .toolbar {
+		--consent-dialog-trigger-bg: var(--c15t-surface, #262626);
+		--consent-dialog-trigger-bg-hover: var(--c15t-surface-hover, #343434);
+		--consent-dialog-trigger-border: var(--c15t-border, #525252);
+		--consent-dialog-trigger-icon-color: var(--c15t-text, #fafafa);
+		--consent-dialog-trigger-shadow:
+			0 8px 18px rgb(0 0 0 / 0.32), 0 2px 5px rgb(0 0 0 / 0.22);
+	}
+
+	:global(.c15t-dark) .lightIcon {
+		display: none;
+	}
+
+	:global(.c15t-dark) .darkIcon {
+		display: flex;
+	}
+
+	/* Reduced motion preference */
+	@media (prefers-reduced-motion: reduce) {
+		.button {
+			transition: none;
+		}
+
+		.toolbar,
+		.toolbarItem {
+			transition: none;
+		}
+
+		.snapping {
+			transition: none;
+		}
 	}
 }

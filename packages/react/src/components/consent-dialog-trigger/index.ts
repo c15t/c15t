@@ -19,6 +19,8 @@ export {
 	type TriggerRootProps,
 	TriggerText,
 	type TriggerTextProps,
+	TriggerToolbar,
+	type TriggerToolbarProps,
 	useTriggerContext,
 } from './consent-dialog-trigger';
 // Types

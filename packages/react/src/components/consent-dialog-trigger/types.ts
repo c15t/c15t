@@ -5,7 +5,8 @@
  */
 
 import type { CornerPosition } from '@c15t/ui/utils/trigger-utils';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import type { ClassNameStyle } from '~/types/theme';
 
 /**
  * Icon options for the trigger button.
@@ -49,6 +50,12 @@ interface ConsentDialogTriggerItemBase {
 
 	/** Whether the item is disabled. */
 	disabled?: boolean;
+
+	/** Additional CSS class names for this action button. */
+	className?: string;
+
+	/** Inline styles for this action button. */
+	style?: CSSProperties;
 }
 
 /**
@@ -102,10 +109,11 @@ export type TriggerOrientation = 'horizontal' | 'vertical';
 /**
  * Props for the ConsentDialogTrigger component.
  */
-export interface ConsentDialogTriggerProps {
+export interface ConsentDialogTriggerProps
+	extends Omit<ClassNameStyle, 'baseClassName'> {
 	/**
-	 * Actions to render as a segmented toolbar. When omitted, the component
-	 * keeps its original single-button appearance and behavior.
+	 * Actions to render in the segmented toolbar. When omitted, the toolbar
+	 * contains one built-in preferences action using the `icon` prop.
 	 *
 	 * @example
 	 * ```tsx
@@ -129,15 +137,14 @@ export interface ConsentDialogTriggerProps {
 	items?: readonly ConsentDialogTriggerItem[];
 
 	/**
-	 * Layout direction for the segmented toolbar. Only applies when `items` are
-	 * provided.
+	 * Layout direction for the segmented toolbar.
 	 *
 	 * @default 'horizontal'
 	 */
 	orientation?: TriggerOrientation;
 
 	/**
-	 * Icon to display in the trigger button.
+	 * Icon for the default preferences item when `items` are omitted.
 	 *
 	 * @default 'branding'
 	 */
@@ -159,25 +166,11 @@ export interface ConsentDialogTriggerProps {
 	persistPosition?: boolean;
 
 	/**
-	 * Accessible label for the trigger button, or for the toolbar when `items`
-	 * are provided.
+	 * Accessible label for the toolbar.
 	 *
-	 * @default 'Open privacy settings' for the single button; 'Privacy controls'
-	 * for the toolbar.
+	 * @default 'Privacy controls'
 	 */
 	ariaLabel?: string;
-
-	/**
-	 * Additional CSS class names.
-	 */
-	className?: string;
-
-	/**
-	 * When true, removes default styling.
-	 *
-	 * @default false
-	 */
-	noStyle?: boolean;
 
 	/**
 	 * Controls when the trigger is visible.

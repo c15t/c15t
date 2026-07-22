@@ -7,7 +7,7 @@ group: reference
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-  `ConsentDialogTrigger` is a floating button that opens the consent dialog when clicked. It can also render a segmented toolbar for privacy, theme, support, and other developer-defined actions. Users can drag either version to any corner of the screen, and the position persists across sessions.
+  `ConsentDialogTrigger` is a floating, draggable toolbar that keeps privacy controls within reach. By default it contains one action that opens the consent dialog; developers can add theme, accessibility, support, and other app-defined actions. Users can drag it to any corner of the screen, and the position persists across sessions.
 </section>
 
 <section id="customization">
@@ -25,7 +25,7 @@ group: reference
 
   ## Segmented Toolbar
 
-  Pass `items` to turn the trigger into a toolbar. Use the `preferences` action to open c15t options and `custom` actions for controls owned by your app, such as theme switching or support chat.
+  The trigger renders as a one-item toolbar by default. Pass `items` to add more actions. Use the `preferences` action to open c15t options and `custom` actions for controls owned by your app, such as theme switching or support chat.
 
   ```tsx
   <ConsentDialogTrigger
@@ -68,6 +68,40 @@ group: reference
     items={toolbarItems}
   />
   ```
+
+  ## Styling
+
+  The trigger follows the same styling precedence as the other c15t components: internal CSS module styles, provider theme slots, then direct component overrides. Use `className` and `style` on the toolbar, or on an individual item, and use `noStyle` for a fully custom implementation.
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      theme: {
+        slots: {
+          consentDialogTrigger: 'my-toolbar',
+          consentDialogTriggerItem: 'my-toolbar-item',
+          consentDialogTriggerIcon: 'my-toolbar-icon',
+        },
+      },
+    }}
+  >
+    <ConsentDialogTrigger
+      className="fixed-toolbar"
+      style={{ '--consent-dialog-trigger-offset': '24px' }}
+      items={[
+        {
+          id: 'privacy',
+          label: 'Open privacy settings',
+          icon: 'branding',
+          action: 'preferences',
+          className: 'privacy-action',
+        },
+      ]}
+    />
+  </ConsentManagerProvider>
+  ```
+
+  Available theme slots are `consentDialogTrigger`, `consentDialogTriggerItem`, `consentDialogTriggerIcon`, and `consentDialogTriggerText`.
 
   ## Visibility
 
@@ -118,7 +152,8 @@ group: reference
   ```
 
   - `ConsentDialogTrigger.Root` — Portal wrapper with drag handling and position persistence
-  - `ConsentDialogTrigger.Button` — Draggable button element with size variants
+  - `ConsentDialogTrigger.Toolbar` — Default draggable toolbar with orientation-aware keyboard navigation
+  - `ConsentDialogTrigger.Button` — Legacy single-button primitive for custom compound layouts
   - `ConsentDialogTrigger.Icon` — Icon display (branding, fingerprint, settings, or custom)
   - `ConsentDialogTrigger.Text` — Optional text label
 </section>

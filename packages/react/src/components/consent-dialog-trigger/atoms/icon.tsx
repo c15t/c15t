@@ -7,9 +7,12 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { isValidElement, type ReactNode } from 'react';
 import { BrandingCompactLogo } from '~/components/shared/ui/branding';
 import { FingerprintIcon, SettingsIcon } from '~/components/shared/ui/logo';
+import { useStyles } from '~/hooks/use-styles';
+import type { ClassNameStyle } from '~/types/theme';
 import type {
 	TriggerIconPair,
 	TriggerIconSource,
@@ -20,7 +23,8 @@ import { useTriggerContext } from './root';
 /**
  * Props for the Icon component.
  */
-export interface TriggerIconProps {
+export interface TriggerIconProps
+	extends Omit<ClassNameStyle, 'baseClassName'> {
 	/**
 	 * Icon to display.
 	 * - 'branding' - c15t or INTH logo based on branding setting
@@ -31,17 +35,6 @@ export interface TriggerIconProps {
 	 * @default 'branding'
 	 */
 	icon?: TriggerIconType;
-
-	/**
-	 * Additional CSS class names.
-	 */
-	className?: string;
-
-	/**
-	 * When true, removes default styling.
-	 * @default false
-	 */
-	noStyle?: boolean;
 }
 
 function isTriggerIconPair(icon: TriggerIconType): icon is TriggerIconPair {
@@ -90,17 +83,21 @@ function renderIconSource(
 export function TriggerIcon({
 	icon = 'branding',
 	className,
+	style,
 	noStyle = false,
 }: TriggerIconProps): ReactNode {
 	const { branding } = useTriggerContext();
-
-	const iconClasses = noStyle
-		? className
-		: [styles.icon, className].filter(Boolean).join(' ');
+	const iconStyle = useStyles('consentDialogTriggerIcon', {
+		baseClassName: styles.icon,
+		className,
+		style,
+		noStyle,
+	});
+	const iconDOMStyle = sanitizeDOMStyleProps(iconStyle);
 
 	if (isTriggerIconPair(icon)) {
 		return (
-			<span className={iconClasses} aria-hidden="true">
+			<span {...iconDOMStyle} aria-hidden="true">
 				<span className={styles.lightIcon}>
 					{renderIconSource(icon.light, branding)}
 				</span>
@@ -112,7 +109,7 @@ export function TriggerIcon({
 	}
 
 	return (
-		<span className={iconClasses} aria-hidden="true">
+		<span {...iconDOMStyle} aria-hidden="true">
 			{renderIconSource(icon, branding)}
 		</span>
 	);

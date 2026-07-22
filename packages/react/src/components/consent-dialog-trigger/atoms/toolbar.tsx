@@ -7,8 +7,11 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
+import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { useMemo, useRef, useState } from 'react';
+import { useStyles } from '~/hooks/use-styles';
+import type { ClassNameStyle } from '~/types/theme';
 import type {
 	ConsentDialogTriggerItem,
 	CornerPosition,
@@ -59,7 +62,8 @@ function orderItemsForCorner(
 		: [...remainingItems, preferencesItem];
 }
 
-export interface TriggerToolbarProps {
+export interface TriggerToolbarProps
+	extends Omit<ClassNameStyle, 'baseClassName'> {
 	/** Actions rendered in toolbar order. */
 	items: readonly ConsentDialogTriggerItem[];
 
@@ -71,12 +75,6 @@ export interface TriggerToolbarProps {
 
 	/** Accessible name for the toolbar group. @default 'Privacy controls' */
 	ariaLabel?: string;
-
-	/** Additional CSS class names for the toolbar container. */
-	className?: string;
-
-	/** When true, removes default toolbar and item styling. @default false */
-	noStyle?: boolean;
 }
 
 /**
@@ -89,6 +87,7 @@ export function TriggerToolbar({
 	orientation = 'horizontal',
 	ariaLabel = 'Privacy controls',
 	className,
+	style,
 	noStyle = false,
 }: TriggerToolbarProps): ReactNode {
 	const {
@@ -108,22 +107,24 @@ export function TriggerToolbar({
 	const [activeItemId, setActiveItemId] = useState(firstEnabledId);
 	const itemRefs = useRef(new Map<string, HTMLButtonElement>());
 
-	const toolbarClasses = noStyle
-		? className
-		: [
-				styles.toolbar,
-				orientation === 'vertical' && styles.toolbarVertical,
-				cornerClassMap[corner],
-				isDragging && styles.dragging,
-				isSnapping && styles.snapping,
-				className,
-			]
-				.filter(Boolean)
-				.join(' ');
-
-	const itemClasses = noStyle
-		? undefined
-		: [styles.toolbarItem, sizeClassMap[size]].filter(Boolean).join(' ');
+	const toolbarStyle = useStyles('consentDialogTrigger', {
+		baseClassName: [
+			styles.toolbar,
+			orientation === 'vertical' && styles.toolbarVertical,
+			cornerClassMap[corner],
+			isDragging && styles.dragging,
+			isSnapping && styles.snapping,
+		],
+		className,
+		style,
+		noStyle,
+	});
+	const toolbarDOMStyle = sanitizeDOMStyleProps(toolbarStyle);
+	const itemStyle = useStyles('consentDialogTriggerItem', {
+		baseClassName: [styles.toolbarItem, sizeClassMap[size]],
+		noStyle,
+	});
+	const itemDOMStyle = sanitizeDOMStyleProps(itemStyle);
 	const resolvedActiveItemId = orderedItems.some(
 		(item) => item.id === activeItemId && !item.disabled
 	)
@@ -177,10 +178,10 @@ export function TriggerToolbar({
 			role="toolbar"
 			aria-label={ariaLabel}
 			aria-orientation={orientation}
-			className={toolbarClasses}
+			className={toolbarDOMStyle.className}
 			data-c15t-trigger="true"
 			data-c15t-trigger-toolbar="true"
-			style={dragStyle}
+			style={{ ...toolbarDOMStyle.style, ...dragStyle }}
 			onKeyDown={handleToolbarKeyDown}
 			{...handlers}
 		>
@@ -207,8 +208,12 @@ export function TriggerToolbar({
 							}
 						}}
 						type="button"
-						className={itemClasses}
+						className={[itemDOMStyle.className, item.className]
+							.filter(Boolean)
+							.join(' ')}
+						style={{ ...itemDOMStyle.style, ...item.style }}
 						data-c15t-trigger-action={item.action}
+						data-c15t-trigger-item={item.id}
 						aria-label={item.label}
 						disabled={item.disabled}
 						tabIndex={item.id === resolvedActiveItemId ? 0 : -1}

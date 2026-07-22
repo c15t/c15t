@@ -54,6 +54,8 @@ export {
 	type TriggerSize,
 	TriggerText,
 	type TriggerTextProps,
+	TriggerToolbar,
+	type TriggerToolbarProps,
 	type TriggerVisibility,
 	type UseDraggableOptions,
 	type UseDraggableReturn,

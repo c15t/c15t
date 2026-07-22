@@ -259,6 +259,11 @@ describe('activeUI Transitions E2E Tests', () => {
 					'button[aria-label="Open privacy settings"]'
 				);
 				expect(trigger).toBeInTheDocument();
+				expect(
+					document.querySelector(
+						'[role="toolbar"][aria-label="Privacy controls"]'
+					)
+				).toBeInTheDocument();
 			},
 			{ timeout: 3000 }
 		);
