@@ -7,7 +7,7 @@ group: reference
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-  `ConsentDialogTrigger` is a floating button that opens the consent dialog when clicked. Users can drag it to any corner of the screen, and the position persists across sessions. Use it to give users a persistent way to manage their privacy settings.
+  `ConsentDialogTrigger` is a floating button that opens the consent dialog when clicked. It can also render a segmented toolbar for privacy, theme, support, and other developer-defined actions. Users can drag either version to any corner of the screen, and the position persists across sessions.
 </section>
 
 <section id="customization">
@@ -21,6 +21,52 @@ group: reference
 
   {/* Custom icon */}
   <ConsentDialogTrigger icon={<MyCustomIcon />} />
+  ```
+
+  ## Segmented Toolbar
+
+  Pass `items` to turn the trigger into a toolbar. Use the `preferences` action to open c15t options and `custom` actions for controls owned by your app, such as theme switching or support chat.
+
+  ```tsx
+  <ConsentDialogTrigger
+    ariaLabel="Site controls"
+    items={[
+      {
+        id: 'privacy',
+        label: 'Open privacy settings',
+        icon: 'branding',
+        action: 'preferences',
+      },
+      {
+        id: 'theme',
+        label: 'Toggle color scheme',
+        icon: {
+          light: <MoonIcon />,
+          dark: <SunIcon />,
+        },
+        action: 'custom',
+        onSelect: toggleColorScheme,
+      },
+      {
+        id: 'support',
+        label: 'Open support chat',
+        icon: <ChatIcon />,
+        action: 'custom',
+        onSelect: openSupportChat,
+      },
+    ]}
+  />
+  ```
+
+  Each item requires a stable `id`, an accessible `label`, and an icon. An icon can be a built-in name, a React element, or a `{ light, dark }` pair. c15t handles the toolbar layout and preferences action; your callbacks remain in control of app-specific behavior and third-party chat providers. The preferences item automatically moves to the edge nearest the toolbar's snapped corner while custom actions keep their configured order.
+
+  Toolbars are horizontal by default. Set `orientation="vertical"` to stack the actions and enable Up/Down arrow-key navigation:
+
+  ```tsx
+  <ConsentDialogTrigger
+    orientation="vertical"
+    items={toolbarItems}
+  />
   ```
 
   ## Visibility

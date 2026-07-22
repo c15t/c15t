@@ -23,9 +23,15 @@ export {
 } from './consent-dialog-trigger';
 // Types
 export type {
+	ConsentDialogTriggerCustomItem,
+	ConsentDialogTriggerItem,
+	ConsentDialogTriggerPreferencesItem,
 	ConsentDialogTriggerProps,
 	CornerPosition,
 	TriggerIcon as TriggerIconType,
+	TriggerIconPair,
+	TriggerIconSource,
+	TriggerOrientation,
 	TriggerSize,
 	TriggerVisibility,
 } from './types';

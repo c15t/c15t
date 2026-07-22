@@ -44,6 +44,14 @@ const defaultOptions: ConsentManagerOptions = {
 	mode: 'offline',
 };
 
+function queryRequiredElement(selector: string): HTMLElement {
+	const element = document.querySelector<HTMLElement>(selector);
+	if (!element) {
+		throw new Error(`Expected element matching ${selector}`);
+	}
+	return element;
+}
+
 describe('activeUI Transitions E2E Tests', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
@@ -267,6 +275,122 @@ describe('activeUI Transitions E2E Tests', () => {
 					'[data-testid="consent-dialog-root"]'
 				);
 				expect(dialog).toBeInTheDocument();
+			},
+			{ timeout: 3000 }
+		);
+	});
+
+	test.each([
+		['horizontal', 'bottom-right', '{ArrowRight}', -1],
+		['horizontal', 'top-left', '{ArrowRight}', 0],
+		['vertical', 'bottom-right', '{ArrowDown}', -1],
+		['vertical', 'top-left', '{ArrowDown}', 0],
+	] as const)('trigger %s toolbar at %s runs custom actions and opens preferences', async (orientation, defaultPosition, navigationKey, preferencesIndex) => {
+		const openSupport = vi.fn();
+
+		render(
+			<ConsentManagerProvider options={defaultOptions}>
+				<ConsentBanner />
+				<ConsentDialog />
+				<ConsentDialogTrigger
+					showWhen="always"
+					ariaLabel="Site controls"
+					defaultPosition={defaultPosition}
+					orientation={orientation}
+					items={[
+						{
+							id: 'privacy',
+							label: 'Open privacy settings',
+							icon: 'branding',
+							action: 'preferences',
+						},
+						{
+							id: 'theme',
+							label: 'Toggle color scheme',
+							icon: {
+								light: <span data-testid="light-theme-icon" />,
+								dark: <span data-testid="dark-theme-icon" />,
+							},
+							action: 'custom',
+							onSelect: vi.fn(),
+						},
+						{
+							id: 'support',
+							label: 'Open support chat',
+							icon: <span />,
+							action: 'custom',
+							onSelect: openSupport,
+						},
+					]}
+				/>
+			</ConsentManagerProvider>
+		);
+
+		await vi.waitFor(
+			() => {
+				expect(
+					document.querySelector('[data-testid="consent-banner-accept-button"]')
+				).toBeInTheDocument();
+			},
+			{ timeout: 3000 }
+		);
+
+		await userEvent.click(
+			queryRequiredElement('[data-testid="consent-banner-accept-button"]')
+		);
+
+		await vi.waitFor(
+			() => {
+				expect(
+					document.querySelector(
+						`[role="toolbar"][aria-label="Site controls"][aria-orientation="${orientation}"]`
+					)
+				).toBeInTheDocument();
+			},
+			{ timeout: 3000 }
+		);
+
+		const toolbarButtons = Array.from(
+			queryRequiredElement(
+				'[role="toolbar"][aria-label="Site controls"]'
+			).querySelectorAll('button')
+		);
+		expect(toolbarButtons.at(preferencesIndex)).toHaveAttribute(
+			'aria-label',
+			'Open privacy settings'
+		);
+
+		expect(
+			document.querySelector('[data-testid="light-theme-icon"]')
+		).toBeInTheDocument();
+		expect(
+			document.querySelector('[data-testid="dark-theme-icon"]')
+		).toBeInTheDocument();
+		const privacyButton = queryRequiredElement(
+			'button[aria-label="Open privacy settings"]'
+		);
+		const themeButton = queryRequiredElement(
+			'button[aria-label="Toggle color scheme"]'
+		);
+		privacyButton.focus();
+		await userEvent.keyboard(navigationKey);
+		expect(themeButton).toHaveFocus();
+
+		await userEvent.click(
+			queryRequiredElement('button[aria-label="Open support chat"]')
+		);
+		expect(openSupport).toHaveBeenCalledOnce();
+		expect(
+			document.querySelector('[data-testid="consent-dialog-root"]')
+		).not.toBeInTheDocument();
+
+		await userEvent.click(privacyButton);
+
+		await vi.waitFor(
+			() => {
+				expect(
+					document.querySelector('[data-testid="consent-dialog-root"]')
+				).toBeInTheDocument();
 			},
 			{ timeout: 3000 }
 		);

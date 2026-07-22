@@ -15,7 +15,70 @@ import type { ReactNode } from 'react';
  * - `'settings'` - Generic settings/gear icon
  * - `ReactNode` - Custom icon element
  */
-export type TriggerIcon = 'branding' | 'fingerprint' | 'settings' | ReactNode;
+export type TriggerIconSource =
+	| 'branding'
+	| 'fingerprint'
+	| 'settings'
+	| ReactNode;
+
+/**
+ * A light/dark icon pair. Both icons are rendered and CSS selects the active
+ * one, which keeps theme changes hydration-safe.
+ */
+export interface TriggerIconPair {
+	/** Icon shown in light mode. */
+	light: TriggerIconSource;
+	/** Icon shown in dark mode. */
+	dark: TriggerIconSource;
+}
+
+export type TriggerIcon = TriggerIconSource | TriggerIconPair;
+
+/**
+ * Shared fields for an item in the segmented trigger toolbar.
+ */
+interface ConsentDialogTriggerItemBase {
+	/** Stable key for the item. */
+	id: string;
+
+	/** Accessible name announced for the item button. */
+	label: string;
+
+	/** Icon displayed in the item. Supports light and dark variants. */
+	icon: TriggerIcon;
+
+	/** Whether the item is disabled. */
+	disabled?: boolean;
+}
+
+/**
+ * An item that opens the c15t consent preferences dialog.
+ */
+export interface ConsentDialogTriggerPreferencesItem
+	extends ConsentDialogTriggerItemBase {
+	action: 'preferences';
+
+	/** Callback fired before the preferences dialog opens. */
+	onSelect?: () => void;
+}
+
+/**
+ * A custom toolbar action, such as theme switching or support chat.
+ */
+export interface ConsentDialogTriggerCustomItem
+	extends ConsentDialogTriggerItemBase {
+	action: 'custom';
+
+	/** Callback fired when the item is selected. */
+	onSelect: () => void;
+}
+
+/**
+ * An action displayed in the segmented trigger toolbar.
+ */
+export type ConsentDialogTriggerItem =
+	| ConsentDialogTriggerPreferencesItem
+	| ConsentDialogTriggerCustomItem;
 
 /**
  * Visibility options for when to show the trigger.
@@ -32,9 +95,47 @@ export type TriggerVisibility = 'always' | 'after-consent' | 'never';
 export type TriggerSize = 'sm' | 'md' | 'lg';
 
 /**
+ * Layout direction for a segmented trigger toolbar.
+ */
+export type TriggerOrientation = 'horizontal' | 'vertical';
+
+/**
  * Props for the ConsentDialogTrigger component.
  */
 export interface ConsentDialogTriggerProps {
+	/**
+	 * Actions to render as a segmented toolbar. When omitted, the component
+	 * keeps its original single-button appearance and behavior.
+	 *
+	 * @example
+	 * ```tsx
+	 * items={[
+	 *   {
+	 *     id: 'support',
+	 *     label: 'Open support chat',
+	 *     icon: <ChatIcon />,
+	 *     action: 'custom',
+	 *     onSelect: openSupportChat,
+	 *   },
+	 *   {
+	 *     id: 'privacy',
+	 *     label: 'Open privacy settings',
+	 *     icon: 'settings',
+	 *     action: 'preferences',
+	 *   },
+	 * ]}
+	 * ```
+	 */
+	items?: readonly ConsentDialogTriggerItem[];
+
+	/**
+	 * Layout direction for the segmented toolbar. Only applies when `items` are
+	 * provided.
+	 *
+	 * @default 'horizontal'
+	 */
+	orientation?: TriggerOrientation;
+
 	/**
 	 * Icon to display in the trigger button.
 	 *
@@ -58,9 +159,11 @@ export interface ConsentDialogTriggerProps {
 	persistPosition?: boolean;
 
 	/**
-	 * Accessible label for the trigger button.
+	 * Accessible label for the trigger button, or for the toolbar when `items`
+	 * are provided.
 	 *
-	 * @default 'Open privacy settings'
+	 * @default 'Open privacy settings' for the single button; 'Privacy controls'
+	 * for the toolbar.
 	 */
 	ariaLabel?: string;
 

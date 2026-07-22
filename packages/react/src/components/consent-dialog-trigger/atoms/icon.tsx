@@ -10,7 +10,11 @@ import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js'
 import { isValidElement, type ReactNode } from 'react';
 import { BrandingCompactLogo } from '~/components/shared/ui/branding';
 import { FingerprintIcon, SettingsIcon } from '~/components/shared/ui/logo';
-import type { TriggerIcon as TriggerIconType } from '../types';
+import type {
+	TriggerIconPair,
+	TriggerIconSource,
+	TriggerIcon as TriggerIconType,
+} from '../types';
 import { useTriggerContext } from './root';
 
 /**
@@ -40,6 +44,34 @@ export interface TriggerIconProps {
 	noStyle?: boolean;
 }
 
+function isTriggerIconPair(icon: TriggerIconType): icon is TriggerIconPair {
+	return (
+		typeof icon === 'object' &&
+		icon !== null &&
+		!isValidElement(icon) &&
+		'light' in icon &&
+		'dark' in icon
+	);
+}
+
+function renderIconSource(
+	icon: TriggerIconSource,
+	branding: string
+): ReactNode {
+	if (isValidElement(icon)) {
+		return icon;
+	}
+
+	switch (icon) {
+		case 'fingerprint':
+			return <FingerprintIcon />;
+		case 'settings':
+			return <SettingsIcon />;
+		default:
+			return <BrandingCompactLogo branding={branding} />;
+	}
+}
+
 /**
  * Icon component that renders the appropriate icon based on branding.
  *
@@ -66,26 +98,24 @@ export function TriggerIcon({
 		? className
 		: [styles.icon, className].filter(Boolean).join(' ');
 
-	// Render custom ReactNode
-	if (isValidElement(icon)) {
-		return <span className={iconClasses}>{icon}</span>;
+	if (isTriggerIconPair(icon)) {
+		return (
+			<span className={iconClasses} aria-hidden="true">
+				<span className={styles.lightIcon}>
+					{renderIconSource(icon.light, branding)}
+				</span>
+				<span className={styles.darkIcon}>
+					{renderIconSource(icon.dark, branding)}
+				</span>
+			</span>
+		);
 	}
 
-	// Render built-in icons
-	let iconElement: ReactNode;
-	switch (icon) {
-		case 'fingerprint':
-			iconElement = <FingerprintIcon />;
-			break;
-		case 'settings':
-			iconElement = <SettingsIcon />;
-			break;
-		default:
-			// Branding-based icon (using icon-only for compact display)
-			iconElement = <BrandingCompactLogo branding={branding} />;
-	}
-
-	return <span className={iconClasses}>{iconElement}</span>;
+	return (
+		<span className={iconClasses} aria-hidden="true">
+			{renderIconSource(icon, branding)}
+		</span>
+	);
 }
 
 TriggerIcon.displayName = 'ConsentDialogTrigger.Icon';

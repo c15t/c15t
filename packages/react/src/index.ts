@@ -36,12 +36,18 @@ export {
 export {
 	ConsentDialogTrigger,
 	type ConsentDialogTriggerCompound,
+	type ConsentDialogTriggerCustomItem,
+	type ConsentDialogTriggerItem,
+	type ConsentDialogTriggerPreferencesItem,
 	type ConsentDialogTriggerProps,
 	TriggerButton,
 	type TriggerButtonProps,
 	TriggerIcon,
+	type TriggerIconPair,
 	type TriggerIconProps,
+	type TriggerIconSource,
 	type TriggerIconType,
+	type TriggerOrientation,
 	// Atom components for direct usage
 	TriggerRoot,
 	type TriggerRootProps,

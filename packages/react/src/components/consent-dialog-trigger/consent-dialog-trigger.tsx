@@ -18,6 +18,7 @@ import {
 	useTriggerContext,
 } from './atoms/root';
 import { TriggerText, type TriggerTextProps } from './atoms/text';
+import { TriggerToolbar } from './atoms/toolbar';
 import type { ConsentDialogTriggerProps } from './types';
 
 /**
@@ -65,10 +66,12 @@ import type { ConsentDialogTriggerProps } from './types';
  * ```
  */
 function ConsentDialogTriggerComponent({
+	items,
+	orientation = 'horizontal',
 	icon = 'branding',
 	defaultPosition = 'bottom-right',
 	persistPosition = true,
-	ariaLabel = 'Open privacy settings',
+	ariaLabel,
 	showWhen = 'always',
 	size = 'md',
 	className,
@@ -76,6 +79,10 @@ function ConsentDialogTriggerComponent({
 	onClick,
 	onPositionChange,
 }: ConsentDialogTriggerProps): ReactNode {
+	if (items && items.length === 0) {
+		return null;
+	}
+
 	return (
 		<TriggerRoot
 			defaultPosition={defaultPosition}
@@ -84,14 +91,25 @@ function ConsentDialogTriggerComponent({
 			onClick={onClick}
 			onPositionChange={onPositionChange}
 		>
-			<TriggerButton
-				size={size}
-				ariaLabel={ariaLabel}
-				className={className}
-				noStyle={noStyle}
-			>
-				<TriggerIcon icon={icon} noStyle={noStyle} />
-			</TriggerButton>
+			{items ? (
+				<TriggerToolbar
+					items={items}
+					size={size}
+					orientation={orientation}
+					ariaLabel={ariaLabel ?? 'Privacy controls'}
+					className={className}
+					noStyle={noStyle}
+				/>
+			) : (
+				<TriggerButton
+					size={size}
+					ariaLabel={ariaLabel ?? 'Open privacy settings'}
+					className={className}
+					noStyle={noStyle}
+				>
+					<TriggerIcon icon={icon} noStyle={noStyle} />
+				</TriggerButton>
+			)}
 		</TriggerRoot>
 	);
 }

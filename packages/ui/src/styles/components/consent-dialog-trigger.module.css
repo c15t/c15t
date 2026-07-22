@@ -25,14 +25,10 @@
 	);
 	--cdt-radius: var(--c15t-radius-full, 9999px);
 	--cdt-offset: var(--c15t-space-md, 20px);
-	--cdt-transition-duration: var(--c15t-motion-duration, 200ms);
-	--cdt-transition-easing: var(--c15t-motion-easing, ease-out);
-	--cdt-snap-duration: var(--c15t-motion-duration-slow, 200ms);
-	/* ease-in-out-quart: best for on-screen movement */
-	--cdt-snap-easing: var(
-		--c15t-motion-easing-smooth,
-		cubic-bezier(0.77, 0, 0.175, 1)
-	);
+	--cdt-transition-duration: var(--c15t-duration-normal, 200ms);
+	--cdt-transition-easing: var(--c15t-easing-out, ease-out);
+	--cdt-snap-duration: var(--c15t-duration-normal, 200ms);
+	--cdt-snap-easing: var(--c15t-easing-out, cubic-bezier(0.22, 1, 0.36, 1));
 	--cdt-icon-color: var(--c15t-text, #171717);
 	--cdt-focus-ring: var(--c15t-primary, #3b82f6);
 
@@ -52,14 +48,141 @@
 	box-shadow: var(--cdt-shadow);
 	cursor: grab;
 	transition:
-		transform var(--cdt-transition-duration) var(--cdt-transition-easing),
 		box-shadow var(--cdt-transition-duration) var(--cdt-transition-easing),
 		background var(--cdt-transition-duration) var(--cdt-transition-easing);
 	touch-action: none;
 	user-select: none;
 	-webkit-user-select: none;
 	-webkit-tap-highlight-color: transparent;
-	will-change: transform;
+	will-change: left, top;
+}
+
+/* Segmented toolbar */
+.toolbar {
+	--cdt-size-sm: 32px;
+	--cdt-size-md: 40px;
+	--cdt-size-lg: 48px;
+	--cdt-bg: var(--c15t-surface, #ffffff);
+	--cdt-bg-hover: var(--c15t-surface-hover, #f5f5f5);
+	--cdt-border: var(--c15t-border, #d4d4d4);
+	--cdt-primary: var(--c15t-primary, #16a779);
+	--cdt-primary-hover: var(--c15t-primary-hover, #128866);
+	--cdt-primary-text: var(--c15t-text-on-primary, #ffffff);
+	--cdt-icon-color: var(--c15t-text, #262626);
+	--cdt-focus-ring: var(--c15t-primary, #16a779);
+	--cdt-offset: var(--c15t-space-md, 20px);
+	--cdt-transition-duration: var(--c15t-duration-fast, 160ms);
+	--cdt-transition-easing: var(--c15t-easing-out, ease-out);
+	--cdt-snap-duration: var(--c15t-duration-normal, 200ms);
+	--cdt-snap-easing: var(--c15t-easing-out, cubic-bezier(0.22, 1, 0.36, 1));
+	--cdt-shadow: var(
+		--c15t-shadow-md,
+		0 4px 10px rgb(0 0 0 / 0.08),
+		0 1px 2px rgb(0 0 0 / 0.06)
+	);
+
+	position: fixed;
+	z-index: 9999;
+	display: inline-flex;
+	align-items: stretch;
+	width: max-content;
+	padding: 0;
+	margin: 0;
+	overflow: hidden;
+	background: var(--cdt-bg);
+	border: 1px solid var(--cdt-border);
+	border-radius: var(--c15t-radius-md, 6px);
+	box-shadow: var(--cdt-shadow);
+	cursor: grab;
+	touch-action: none;
+	user-select: none;
+	-webkit-user-select: none;
+	-webkit-tap-highlight-color: transparent;
+	will-change: left, top;
+	transition:
+		box-shadow var(--cdt-transition-duration) var(--cdt-transition-easing),
+		background var(--cdt-transition-duration) var(--cdt-transition-easing);
+}
+
+.toolbar.dragging {
+	cursor: grabbing;
+	box-shadow: var(
+		--c15t-shadow-lg,
+		0 10px 20px rgb(0 0 0 / 0.14),
+		0 3px 6px rgb(0 0 0 / 0.08)
+	);
+}
+
+.toolbarVertical {
+	flex-direction: column;
+}
+
+.toolbarItem {
+	position: relative;
+	display: flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	width: var(--cdt-size-md);
+	height: var(--cdt-size-md);
+	padding: 0;
+	margin: 0;
+	color: var(--cdt-icon-color);
+	background: transparent;
+	border: 0;
+	border-inline-start: 1px solid var(--cdt-border);
+	border-radius: 0;
+	cursor: inherit;
+	transition:
+		color var(--cdt-transition-duration) var(--cdt-transition-easing),
+		background var(--cdt-transition-duration) var(--cdt-transition-easing);
+}
+
+.toolbarItem:first-child {
+	border-inline-start: 0;
+}
+
+.toolbarVertical .toolbarItem {
+	border-top: 1px solid var(--cdt-border);
+	border-inline-start: 0;
+}
+
+.toolbarVertical .toolbarItem:first-child {
+	border-top: 0;
+}
+
+.toolbarItem[data-c15t-trigger-action="preferences"] {
+	color: var(--cdt-primary-text);
+	background: var(--cdt-primary);
+}
+
+.toolbarItem:focus {
+	outline: none;
+}
+
+.toolbarItem:focus-visible {
+	z-index: 1;
+	outline: 2px solid var(--cdt-focus-ring);
+	outline-offset: -3px;
+}
+
+.toolbarItem:disabled {
+	cursor: not-allowed;
+	opacity: 0.45;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.toolbarItem:hover:not(:disabled) {
+		background: var(--cdt-bg-hover);
+	}
+
+	.toolbarItem[data-c15t-trigger-action="preferences"]:hover:not(:disabled) {
+		background: var(--cdt-primary-hover);
+	}
+}
+
+.toolbarItem:active:not(:disabled) {
+	box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.16);
 }
 
 /* Only apply hover effects on devices that support hover */
@@ -73,7 +196,6 @@
 .trigger:active,
 .trigger.dragging {
 	cursor: grabbing;
-	transform: scale(1.02);
 }
 
 .trigger:focus {
@@ -116,6 +238,23 @@
 .icon svg {
 	width: 100%;
 	height: 100%;
+}
+
+.toolbarItem[data-c15t-trigger-action="preferences"] .icon {
+	color: var(--cdt-primary-text);
+}
+
+.lightIcon,
+.darkIcon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+}
+
+.darkIcon {
+	display: none;
 }
 
 /* Text label */
@@ -195,10 +334,7 @@
 .snapping {
 	transition:
 		top var(--cdt-snap-duration) var(--cdt-snap-easing),
-		right var(--cdt-snap-duration) var(--cdt-snap-easing),
-		bottom var(--cdt-snap-duration) var(--cdt-snap-easing),
-		left var(--cdt-snap-duration) var(--cdt-snap-easing),
-		transform var(--cdt-snap-duration) var(--cdt-snap-easing);
+		left var(--cdt-snap-duration) var(--cdt-snap-easing);
 }
 
 /* Hidden state */
@@ -218,9 +354,30 @@
 		0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
 }
 
+:global(.c15t-dark) .toolbar {
+	--cdt-bg: var(--c15t-surface, #262626);
+	--cdt-bg-hover: var(--c15t-surface-hover, #343434);
+	--cdt-border: var(--c15t-border, #525252);
+	--cdt-icon-color: var(--c15t-text, #fafafa);
+	--cdt-shadow: 0 8px 18px rgb(0 0 0 / 0.32), 0 2px 5px rgb(0 0 0 / 0.22);
+}
+
+:global(.c15t-dark) .lightIcon {
+	display: none;
+}
+
+:global(.c15t-dark) .darkIcon {
+	display: flex;
+}
+
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
 	.trigger {
+		transition: none;
+	}
+
+	.toolbar,
+	.toolbarItem {
 		transition: none;
 	}
 
