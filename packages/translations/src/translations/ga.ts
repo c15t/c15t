@@ -122,7 +122,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Stóráiltear roghanna toilithe i bhfianán darb ainm "euconsent-v2" ar feadh 13 mhí. The storage duration may be refreshed when you update your preferences.',
+					'Stóráiltear roghanna toilithe i bhfianán darb ainm "euconsent-v2" ar feadh 13 mhí. D\'fhéadfaí an tréimhse stórála a athnuachan nuair a nuashonraíonn tú do roghanna.',
 			},
 		},
 		common: {

@@ -112,7 +112,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'同意偏好存储在名为 "euconsent-v2" 的 cookie 中，有效期为 13 个月。 The storage duration may be refreshed when you update your preferences.',
+					'同意偏好存储在名为 "euconsent-v2" 的 cookie 中，有效期为 13 个月。当您更新同意偏好时，该有效期可能会重新开始计算。',
 			},
 		},
 		common: {

@@ -122,7 +122,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Las preferenzas da consentiment vegnan memorisadas en in cookie numnà "euconsent-v2" per 13 mais. The storage duration may be refreshed when you update your preferences.',
+					'Las preferenzas da consentiment vegnan memorisadas en in cookie numnà "euconsent-v2" per 13 mais. La durada da memorisaziun po vegnir renovada, cur che vus actualisais vossas preferenzas.',
 			},
 		},
 		common: {
