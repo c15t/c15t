@@ -191,6 +191,32 @@ describe('Consent Store', () => {
 			const [firstResult, secondResult] = await Promise.all([first, second]);
 			expect(secondResult.consentId).toBe(firstResult.consentId);
 		});
+
+		it('stores the server-recorded consent time after clamping', async () => {
+			const clientGivenAt = Date.parse('2026-04-08T00:00:00.000Z');
+			const serverGivenAt = new Date('2026-04-07T00:00:00.000Z');
+			mockManager.setConsent.mockResolvedValue({
+				ok: true,
+				data: {
+					subjectId: 'sub_123',
+					consentId: 'cns_123',
+					domainId: 'dom_123',
+					domain: 'example.com',
+					type: 'other',
+					givenAt: serverGivenAt,
+				},
+			});
+			const store = createConsentManagerStore(mockManager);
+
+			const consent = await store.getState().unstable_acceptPolicyConsent({
+				type: 'other',
+				domain: 'example.com',
+				givenAt: clientGivenAt,
+			});
+
+			expect(consent.givenAt).toEqual(serverGivenAt);
+			expect(store.getState().consentInfo?.time).toBe(serverGivenAt.getTime());
+		});
 	});
 
 	describe('Consent Actions', () => {

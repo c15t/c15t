@@ -31,6 +31,7 @@ import {
 	findExistingConsentSubmission,
 	isUniqueConstraintViolationError,
 } from './consent-idempotency';
+import { clampConsentGivenAt } from './consent-time';
 
 export function buildRuntimeDecisionDedupeKey(input: {
 	tenantId?: string;
@@ -264,7 +265,25 @@ export const postSubjectHandler = async (c: Context) => {
 	} = input;
 
 	const preferences = 'preferences' in input ? input.preferences : undefined;
-	const givenAt = new Date(givenAtEpoch);
+
+	// `requestedGivenAt` is the client's claim and identifies the submission;
+	// `givenAt` is what gets recorded. They differ only when the client's clock
+	// runs far ahead. Deriving identity from the claim rather than the recorded
+	// value is what keeps retries of a skewed submission idempotent — the
+	// recorded value moves with server time, the claim does not.
+	const requestedGivenAt = new Date(givenAtEpoch);
+	const givenAt = clampConsentGivenAt(requestedGivenAt);
+	const wasGivenAtClamped = givenAt.getTime() !== requestedGivenAt.getTime();
+
+	if (wasGivenAtClamped) {
+		logger.warn(
+			'Consent givenAt was too far in the future and was clamped to server time',
+			{
+				requestedGivenAt: requestedGivenAt.toISOString(),
+				clampedGivenAt: givenAt.toISOString(),
+			}
+		);
+	}
 
 	// Derive model-aware consent action from the raw frontend type
 	const rawConsentAction =
@@ -618,6 +637,12 @@ export const postSubjectHandler = async (c: Context) => {
 			...(shouldStoreLanguage && effectiveLanguage
 				? { policyLanguage: effectiveLanguage }
 				: {}),
+			// Keep the client's original claim on the record itself: `givenAt` no
+			// longer holds it once clamped, and an audit trail should not depend on
+			// log retention to explain why.
+			...(wasGivenAtClamped
+				? { clientGivenAt: requestedGivenAt.toISOString() }
+				: {}),
 		};
 		const effectiveJurisdiction =
 			hasValidSnapshot && snapshotPayload
@@ -641,13 +666,15 @@ export const postSubjectHandler = async (c: Context) => {
 		});
 
 		// Derived from the request, so concurrent identical submissions collide on
-		// the consent primary key instead of both inserting.
+		// the consent primary key instead of both inserting. Built from the
+		// client's claimed timestamp, not the recorded one, so that retries of a
+		// clamped submission keep deriving the same id.
 		const consentIdentity = {
 			tenantId: ctx.tenantId,
 			subjectId: subject.id,
 			domainId: domainRecord.id,
 			policyId,
-			givenAt,
+			givenAt: requestedGivenAt,
 		};
 		const consentId = await buildConsentId(consentIdentity);
 
