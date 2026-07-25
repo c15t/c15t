@@ -121,7 +121,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Samtyckesinställningar lagras i en cookie med namnet "euconsent-v2" i 13 månader. The storage duration may be refreshed when you update your preferences.',
+					'Samtyckesinställningar lagras i en cookie med namnet "euconsent-v2" i 13 månader. Lagringstiden kan förnyas när du uppdaterar dina inställningar.',
 			},
 		},
 		common: {

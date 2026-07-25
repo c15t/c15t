@@ -122,7 +122,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Preferensi persetujuan disimpan dalam cookie bernama "euconsent-v2" selama 13 bulan. The storage duration may be refreshed when you update your preferences.',
+					'Preferensi persetujuan disimpan dalam cookie bernama "euconsent-v2" selama 13 bulan. Masa penyimpanan tersebut dapat dimulai ulang saat Anda memperbarui preferensi Anda.',
 			},
 		},
 		common: {

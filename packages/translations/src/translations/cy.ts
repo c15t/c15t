@@ -122,7 +122,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Mae dewisiadau cydsyniad yn cael eu storio mewn cwci o’r enw "euconsent-v2" am 13 mis. The storage duration may be refreshed when you update your preferences.',
+					'Mae dewisiadau cydsyniad yn cael eu storio mewn cwci o’r enw "euconsent-v2" am 13 mis. Gall y cyfnod storio gael ei adnewyddu pan fyddwch yn diweddaru eich dewisiadau.',
 			},
 		},
 		common: {

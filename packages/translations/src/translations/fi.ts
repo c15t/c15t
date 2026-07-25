@@ -121,7 +121,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Suostumusasetukset tallennetaan evästeeseen nimeltä "euconsent-v2" 13 kuukaudeksi. The storage duration may be refreshed when you update your preferences.',
+					'Suostumusasetukset tallennetaan evästeeseen nimeltä "euconsent-v2" 13 kuukaudeksi. Säilytysaika voi alkaa alusta, kun päivität asetuksiasi.',
 			},
 		},
 		common: {
