@@ -315,6 +315,58 @@ describe('postSubjectHandler givenAt clamping', () => {
 		expect(secondPayload?.givenAt).not.toEqual(firstPayload?.givenAt);
 	});
 
+	it('finds a pre-deterministic row by the raw timestamp after clamping', async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(GIVEN_AT));
+		const { db, mockCtx } = createClampContext(FAR_FUTURE);
+		const legacyConsent = {
+			id: 'con_legacy',
+			subjectId: 'sub_user1',
+			domainId: 'dom_1',
+			policyId: 'pol_1',
+			givenAt: new Date(FAR_FUTURE),
+		};
+		type ConditionBuilder = ((
+			column: string,
+			operator: string,
+			value: unknown
+		) => boolean) & {
+			and: (...conditions: boolean[]) => boolean;
+		};
+		const conditionBuilder = ((
+			column: string,
+			_operator: string,
+			value: unknown
+		) => {
+			const rowValue = legacyConsent[column as keyof typeof legacyConsent];
+			return rowValue instanceof Date && value instanceof Date
+				? rowValue.getTime() === value.getTime()
+				: rowValue === value;
+		}) as ConditionBuilder;
+		conditionBuilder.and = (...conditions) => conditions.every(Boolean);
+
+		db.findFirst = vi.fn(
+			async (
+				_table: string,
+				options: { where: (builder: ConditionBuilder) => boolean }
+			) => (options.where(conditionBuilder) ? legacyConsent : null)
+		);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		expect(mockCtx.getJsonData()).toEqual(
+			expect.objectContaining({
+				consentId: 'con_legacy',
+				givenAt: new Date(FAR_FUTURE),
+			})
+		);
+		// The deterministic ID misses the older random-ID row, then the legacy
+		// lookup finds it using the raw timestamp stored before clamping existed.
+		expect(db.findFirst).toHaveBeenCalledTimes(2);
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
 	it('keeps the client’s original claim on the record when clamped', async () => {
 		vi.useFakeTimers();
 		vi.setSystemTime(new Date(GIVEN_AT));
