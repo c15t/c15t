@@ -332,6 +332,7 @@ describe('postSubjectHandler givenAt clamping', () => {
 			value: unknown
 		) => boolean) & {
 			and: (...conditions: boolean[]) => boolean;
+			isNull: (column: string) => boolean;
 		};
 		const conditionBuilder = ((
 			column: string,
@@ -344,6 +345,8 @@ describe('postSubjectHandler givenAt clamping', () => {
 				: rowValue === value;
 		}) as ConditionBuilder;
 		conditionBuilder.and = (...conditions) => conditions.every(Boolean);
+		conditionBuilder.isNull = (column) =>
+			legacyConsent[column as keyof typeof legacyConsent] == null;
 
 		db.findFirst = vi.fn(
 			async (
