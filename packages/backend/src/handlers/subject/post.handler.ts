@@ -748,7 +748,10 @@ export const postSubjectHandler = async (c: Context) => {
 						b('subjectId', '=', subject.id),
 						b('domainId', '=', domainRecord.id),
 						b('policyId', '=', policyId),
-						b('givenAt', '=', givenAt)
+						b('givenAt', '=', givenAt),
+						ctx.tenantId === undefined
+							? b.isNull('tenantId')
+							: b('tenantId', '=', ctx.tenantId)
 					),
 			});
 		};

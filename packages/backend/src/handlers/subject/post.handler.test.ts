@@ -102,7 +102,7 @@ function createMockContext(db: unknown, registry: unknown) {
 			onValidationFailure: 'reject' as const,
 		},
 		legalDocumentSnapshot: undefined,
-		tenantId: undefined,
+		tenantId: undefined as string | undefined,
 	};
 
 	let jsonData: unknown;
@@ -317,6 +317,38 @@ describe('postSubjectHandler idempotency', () => {
 		expect(mockCtx.getJsonData()).toEqual(
 			expect.objectContaining({ consentId: 'con_legacy_random' })
 		);
+		const legacyWhere = db.findFirst.mock.calls[1]?.[1].where;
+		const conditionBuilder = Object.assign(
+			vi.fn(() => true),
+			{
+				and: vi.fn(() => true),
+				isNull: vi.fn(() => true),
+			}
+		);
+		legacyWhere(conditionBuilder);
+		expect(conditionBuilder.isNull).toHaveBeenCalledWith('tenantId');
+	});
+
+	it('scopes the legacy fallback to the current tenant', async () => {
+		const db = createMockDb(null);
+		db.findFirst = vi.fn().mockResolvedValue(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.tenantId = 'ins_123';
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		const legacyWhere = db.findFirst.mock.calls[1]?.[1].where;
+		const conditionBuilder = Object.assign(
+			vi.fn(() => true),
+			{
+				and: vi.fn(() => true),
+				isNull: vi.fn(() => true),
+			}
+		);
+		legacyWhere(conditionBuilder);
+		expect(conditionBuilder).toHaveBeenCalledWith('tenantId', '=', 'ins_123');
 	});
 
 	it('should return existing consent when a concurrent insert wins the race', async () => {

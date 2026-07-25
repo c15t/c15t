@@ -489,7 +489,7 @@
         "@upstash/redis": "^1.38.0",
         "genversion": "3.2.0",
         "kysely": "0.28.17",
-        "kysely-pglite": "^0.6.1",
+        "kysely-pglite": "0.6.1",
         "typescript": "7.0.1-rc",
       },
       "peerDependencies": {
