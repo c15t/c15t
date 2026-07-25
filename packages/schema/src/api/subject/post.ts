@@ -62,6 +62,11 @@ const baseSubjectConsentSchema = v.object({
 	/** When the consent was given in epoch milliseconds */
 	givenAt: v.pipe(
 		v.number(),
+		// Keep the timestamp within the range JavaScript Date can represent.
+		// The backend derives an ID with Date#toISOString, which throws for an
+		// out-of-range value.
+		v.minValue(-8_640_000_000_000_000),
+		v.maxValue(8_640_000_000_000_000),
 		v.description('Timestamp when consent was given, in epoch milliseconds.'),
 		v.examples([1_735_689_600_000])
 	),

@@ -93,25 +93,14 @@ describe('POST /subjects consent idempotency (Postgres integration)', () => {
 				}) as typeof realOrm.findFirst;
 
 				realOrm.transaction = (async (run) => {
-					const hideConsentReads = forceConflict;
+					const observeConflict = forceConflict;
 					transactionStarted = true;
 
 					try {
-						return await transaction(async (tx) => {
-							if (!hideConsentReads) {
-								return run(tx);
-							}
-
-							const findFirstInTransaction = tx.findFirst.bind(tx);
-							tx.findFirst = (async (...args) =>
-								args[0] === 'consent'
-									? null
-									: findFirstInTransaction(...args)) as typeof tx.findFirst;
-							return run(tx);
-						});
+						return await transaction(run);
 					} catch (error) {
 						if (
-							hideConsentReads &&
+							observeConflict &&
 							typeof error === 'object' &&
 							error !== null &&
 							'code' in error &&
@@ -121,7 +110,7 @@ describe('POST /subjects consent idempotency (Postgres integration)', () => {
 						}
 						throw error;
 					} finally {
-						if (hideConsentReads) {
+						if (observeConflict) {
 							forceConflict = false;
 						}
 					}

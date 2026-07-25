@@ -27,6 +27,12 @@ import { extractErrorMessage } from '~/utils/extract-error-message';
 import { getMetrics } from '~/utils/metrics';
 import { resolvePolicyDecision } from '../init/policy';
 
+/**
+ * Timestamps at or after module initialization cannot belong to consent rows
+ * written by a pre-deterministic-ID version running in this process.
+ */
+const DETERMINISTIC_CONSENT_ID_ENABLED_AT = Date.now();
+
 export function buildRuntimeDecisionDedupeKey(input: {
 	tenantId?: string;
 	fingerprint: string;
@@ -706,10 +712,37 @@ export const postSubjectHandler = async (c: Context) => {
 			givenAt,
 		});
 
-		const findExistingConsent = (
-			database: Pick<C15TContext['db'], 'findFirst'>
-		) =>
+		const findConsentById = (database: Pick<C15TContext['db'], 'findFirst'>) =>
 			database.findFirst('consent', {
+				where: (b) => b('id', '=', consentId),
+			});
+
+		/**
+		 * Reads deterministic rows by their indexed primary key. A field-based
+		 * fallback is needed only for a submission timestamp that may have been
+		 * written by an older process using random IDs.
+		 *
+		 * Future timestamps also use the fallback because an older release could
+		 * have stored a clock-skewed value after this process's start time.
+		 */
+		const findExistingConsent = async (
+			database: Pick<C15TContext['db'], 'findFirst'>
+		) => {
+			const deterministicConsent = await findConsentById(database);
+			if (deterministicConsent) {
+				return deterministicConsent;
+			}
+
+			const givenAtTimestamp = givenAt.getTime();
+			const couldHaveLegacyId =
+				givenAtTimestamp < DETERMINISTIC_CONSENT_ID_ENABLED_AT ||
+				givenAtTimestamp > Date.now();
+
+			if (!couldHaveLegacyId) {
+				return null;
+			}
+
+			return database.findFirst('consent', {
 				where: (b) =>
 					b.and(
 						b('subjectId', '=', subject.id),
@@ -718,6 +751,7 @@ export const postSubjectHandler = async (c: Context) => {
 						b('givenAt', '=', givenAt)
 					),
 			});
+		};
 
 		// Check for duplicate consent (idempotency)
 		const existingConsent = await findExistingConsent(db);
@@ -741,23 +775,6 @@ export const postSubjectHandler = async (c: Context) => {
 
 		const runConsentTransaction = () =>
 			db.transaction(async (tx) => {
-				// Re-check inside the transaction: a concurrent identical request
-				// may have committed between the pre-check and this point.
-				const existingConsentInTransaction = await findExistingConsent(tx);
-
-				if (existingConsentInTransaction) {
-					logger.debug(
-						'Duplicate consent detected in transaction, returning existing record',
-						{
-							consentId: existingConsentInTransaction.id,
-						}
-					);
-					return {
-						consent: existingConsentInTransaction,
-						created: false,
-					};
-				}
-
 				logger.debug('Creating consent record', {
 					subjectId: subject.id,
 					domainId: domainRecord.id,
@@ -869,7 +886,7 @@ export const postSubjectHandler = async (c: Context) => {
 				// `runtimePolicyDecision.dedupeKey` leaves no consent to find, so
 				// retry instead: the transaction's own lookups then see the winner's
 				// decision row.
-				const concurrentConsent = await findExistingConsent(db);
+				const concurrentConsent = await findConsentById(db);
 
 				if (concurrentConsent) {
 					logger.debug('Consent insert conflicted, returning existing record', {

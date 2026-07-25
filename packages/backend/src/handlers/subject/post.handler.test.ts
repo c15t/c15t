@@ -278,6 +278,47 @@ describe('postSubjectHandler idempotency', () => {
 		expect(db.transaction).toHaveBeenCalled();
 	});
 
+	it('uses one indexed consent lookup for a current submission', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			givenAt: Date.now(),
+		});
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		expect(db.findFirst).toHaveBeenCalledTimes(1);
+		expect(db.__tx.findFirst).not.toHaveBeenCalledWith('consent', {
+			where: expect.any(Function),
+		});
+	});
+
+	it('falls back to submission fields for a legacy random-id record', async () => {
+		const existingConsent = {
+			id: 'con_legacy_random',
+			givenAt: GIVEN_AT_DATE,
+		};
+		const db = createMockDb(null);
+		db.findFirst = vi
+			.fn()
+			.mockResolvedValueOnce(null)
+			.mockResolvedValueOnce(existingConsent);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		expect(db.findFirst).toHaveBeenCalledTimes(2);
+		expect(db.transaction).not.toHaveBeenCalled();
+		expect(mockCtx.getJsonData()).toEqual(
+			expect.objectContaining({ consentId: 'con_legacy_random' })
+		);
+	});
+
 	it('should return existing consent when a concurrent insert wins the race', async () => {
 		const existingConsent = {
 			id: 'con_existing',
@@ -288,6 +329,7 @@ describe('postSubjectHandler idempotency', () => {
 		// record committed by the concurrent request.
 		db.findFirst = vi
 			.fn()
+			.mockResolvedValueOnce(null)
 			.mockResolvedValueOnce(null)
 			.mockResolvedValueOnce(existingConsent);
 		db.__tx.create = vi
@@ -330,17 +372,14 @@ describe('postSubjectHandler idempotency', () => {
 			givenAt: GIVEN_AT_DATE,
 		};
 		const db = createMockDb(null);
-		// Neither the pre-check nor the recovery lookup sees the winner yet
-		// (its transaction has not committed), so the handler retries and the
-		// in-transaction re-check finds it.
+		// Neither the pre-check nor the recovery lookup sees the winner yet,
+		// so the handler retries the insert instead of reading again inside
+		// the transaction.
 		db.findFirst = vi.fn().mockResolvedValue(null);
-		db.__tx.findFirst = vi
-			.fn()
-			.mockResolvedValueOnce(null)
-			.mockResolvedValueOnce(existingConsent);
 		db.__tx.create = vi
 			.fn()
-			.mockRejectedValueOnce(new Error('unique conflict'));
+			.mockRejectedValueOnce(new Error('unique conflict'))
+			.mockResolvedValueOnce(existingConsent);
 		const registry = createMockRegistry();
 		const mockCtx = createMockContext(db, registry);
 
@@ -353,7 +392,7 @@ describe('postSubjectHandler idempotency', () => {
 
 		expect(result.consentId).toBe('con_existing');
 		expect(db.transaction).toHaveBeenCalledTimes(2);
-		expect(db.__tx.create).toHaveBeenCalledTimes(1);
+		expect(db.__tx.create).toHaveBeenCalledTimes(2);
 	});
 
 	it('should not retry or swallow non-unique-constraint errors', async () => {
