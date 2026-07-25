@@ -26,11 +26,12 @@ const TIMESTAMP_BYTE_LENGTH = 8;
 
 /**
  * Writes `timestamp` into the first 8 bytes of `buf` as a big-endian offset
- * from {@link EPOCH_TIMESTAMP}, so that lexicographic ID order matches
- * chronological order.
+ * from {@link EPOCH_TIMESTAMP}. For timestamps at or after the epoch,
+ * lexicographic ID order matches chronological order.
  *
- * Timestamps before the epoch (or non-finite ones) clamp to zero; the
- * remaining bytes still keep such IDs distinct.
+ * Timestamps before the epoch (or non-finite ones) share a zero timestamp
+ * prefix; the remaining bytes still keep such IDs distinct, but those IDs are
+ * not chronologically ordered relative to each other.
  */
 function writeTimestamp(buf: Uint8Array, timestamp: number): void {
 	const offset = timestamp - EPOCH_TIMESTAMP;
@@ -64,13 +65,13 @@ function generateId(model: keyof typeof prefixes): string {
 
 /**
  * Builds an ID that is fully determined by `identity`, in the same shape as
- * {@link generateId}: the timestamp prefix keeps rows chronologically ordered,
- * and a 96-bit SHA-256 digest of `identity` replaces the random tail.
+ * {@link generateId}: the timestamp prefix preserves chronological order for
+ * timestamps at or after {@link EPOCH_TIMESTAMP}, and a 96-bit SHA-256 digest
+ * of `identity` replaces the random tail.
  *
  * Because the ID is the table's primary key, two concurrent requests carrying
  * the same identity derive the same ID and the database rejects the second
- * insert. This makes an operation idempotent using only the primary key that
- * every deployed database already has — no schema change or migration.
+ * insert.
  *
  * `identity` must include every field that distinguishes one row from another —
  * the tenant included, since the primary key is global rather than per-tenant.

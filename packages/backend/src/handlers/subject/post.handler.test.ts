@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolvePolicyDecision } from '~/handlers/init/policy';
 import { verifyLegalDocumentSnapshotToken } from '~/handlers/legal-document/snapshot';
 import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
+import { buildConsentId } from './consent-idempotency';
 import {
-	buildConsentId,
 	buildRuntimeDecisionDedupeKey,
 	postSubjectHandler,
 } from './post.handler';
@@ -278,7 +278,7 @@ describe('postSubjectHandler idempotency', () => {
 		expect(db.transaction).toHaveBeenCalled();
 	});
 
-	it('uses one indexed consent lookup for a current submission', async () => {
+	it('checks legacy rows after a deterministic lookup misses', async () => {
 		const db = createMockDb(null);
 		const registry = createMockRegistry();
 		const mockCtx = createMockContext(db, registry);
@@ -290,7 +290,9 @@ describe('postSubjectHandler idempotency', () => {
 		// @ts-expect-error - simplified test context
 		await postSubjectHandler(mockCtx);
 
-		expect(db.findFirst).toHaveBeenCalledTimes(1);
+		// This second lookup is required during rolling deployments: an older
+		// process can write a random-ID row after this process has started.
+		expect(db.findFirst).toHaveBeenCalledTimes(2);
 		expect(db.__tx.findFirst).not.toHaveBeenCalledWith('consent', {
 			where: expect.any(Function),
 		});

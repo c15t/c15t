@@ -48,6 +48,7 @@ import {
 	type ConsentInfo,
 	consentTypes,
 } from '../types/consent-types';
+import { coalesceInFlight } from './coalesce-in-flight';
 import { initialState } from './initial-state';
 import type {
 	ConsentStoreState,
@@ -262,33 +263,23 @@ export const createConsentManagerStore = (
 				options?.uiSource ?? null,
 				type === 'custom' ? get().selectedConsents : null,
 			]);
-			const inFlightRequest = inFlightConsentSaves.get(requestKey);
 
-			if (inFlightRequest) {
-				return inFlightRequest;
-			}
+			return coalesceInFlight(inFlightConsentSaves, requestKey, () =>
+				saveConsents({
+					manager,
+					type,
+					get,
+					set,
+					options,
+					emitConsentChanged: (payload) => {
+						get().callbacks.onConsentChanged?.(payload);
 
-			const request = saveConsents({
-				manager,
-				type,
-				get,
-				set,
-				options,
-				emitConsentChanged: (payload) => {
-					get().callbacks.onConsentChanged?.(payload);
-
-					for (const listener of consentChangeListeners) {
-						listener(payload);
-					}
-				},
-			}).finally(() => {
-				if (inFlightConsentSaves.get(requestKey) === request) {
-					inFlightConsentSaves.delete(requestKey);
-				}
-			});
-
-			inFlightConsentSaves.set(requestKey, request);
-			return request;
+						for (const listener of consentChangeListeners) {
+							listener(payload);
+						}
+					},
+				})
+			);
 		},
 
 		setConsent: (name, value) => {
@@ -513,12 +504,8 @@ export const createConsentManagerStore = (
 				get().consentInfo?.subjectId ?? null,
 				input,
 			]);
-			const inFlightRequest = inFlightPolicyConsents.get(requestKey);
-			if (inFlightRequest) {
-				return inFlightRequest;
-			}
 
-			const request = (async () => {
+			return coalesceInFlight(inFlightPolicyConsents, requestKey, async () => {
 				const currentState = get();
 				const currentInfo = currentState.consentInfo;
 				const subjectId = currentInfo?.subjectId ?? generateSubjectId();
@@ -644,14 +631,7 @@ export const createConsentManagerStore = (
 				);
 
 				return consent;
-			})().finally(() => {
-				if (inFlightPolicyConsents.get(requestKey) === request) {
-					inFlightPolicyConsents.delete(requestKey);
-				}
 			});
-
-			inFlightPolicyConsents.set(requestKey, request);
-			return request;
 		},
 
 		setOverrides: async (

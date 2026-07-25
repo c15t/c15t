@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type C15TInstance, c15tInstance } from '~/core';
 import { kyselyAdapter } from '~/db/adapters/kysely';
 import { DB } from '~/db/schema';
-import { buildConsentId } from './post.handler';
+import { buildConsentId } from './consent-idempotency';
 
 const GIVEN_AT = 1_700_000_000_000;
 

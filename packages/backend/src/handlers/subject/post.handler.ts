@@ -12,7 +12,6 @@ import {
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { LegalDocumentPolicyConflictError } from '~/db/registry/consent-policy';
-import { generateDeterministicId } from '~/db/registry/utils/generate-id';
 import { getJurisdiction, getLocation } from '~/handlers/init/geo';
 import {
 	type LegalDocumentSnapshotVerificationFailureReason,
@@ -26,12 +25,12 @@ import type { C15TContext } from '~/types';
 import { extractErrorMessage } from '~/utils/extract-error-message';
 import { getMetrics } from '~/utils/metrics';
 import { resolvePolicyDecision } from '../init/policy';
-
-/**
- * Timestamps at or after module initialization cannot belong to consent rows
- * written by a pre-deterministic-ID version running in this process.
- */
-const DETERMINISTIC_CONSENT_ID_ENABLED_AT = Date.now();
+import {
+	buildConsentId,
+	findConsentById,
+	findExistingConsentSubmission,
+	isUniqueConstraintViolationError,
+} from './consent-idempotency';
 
 export function buildRuntimeDecisionDedupeKey(input: {
 	tenantId?: string;
@@ -51,35 +50,6 @@ export function buildRuntimeDecisionDedupeKey(input: {
 		input.jurisdiction,
 		input.language ?? 'none',
 	].join('|');
-}
-
-/**
- * Derives the consent record's primary key from the fields that identify a
- * single consent submission.
- *
- * Two concurrent identical `POST /subjects` requests therefore derive the same
- * primary key, and the database rejects whichever insert loses the race — which
- * is what makes consent creation idempotent. The tenant is part of the identity
- * because `consent.id` is a global primary key, so omitting it would let one
- * tenant's writes collide with another's.
- *
- * @param input - Fields identifying the consent submission
- * @returns The deterministic `cns_`-prefixed consent ID
- */
-export function buildConsentId(input: {
-	tenantId?: string;
-	subjectId: string;
-	domainId: string;
-	policyId?: string | null;
-	givenAt: Date;
-}): Promise<string> {
-	return generateDeterministicId('consent', input.givenAt.getTime(), [
-		input.tenantId ?? null,
-		input.subjectId,
-		input.domainId,
-		input.policyId ?? null,
-		input.givenAt.toISOString(),
-	]);
 }
 
 /**
@@ -195,38 +165,6 @@ function parseLanguageFromHeader(header: string | null): string | undefined {
 	}
 
 	return firstLanguage.split('-')[0]?.toLowerCase();
-}
-
-/**
- * Detects unique-constraint violations — including primary-key conflicts —
- * across the supported adapters (Postgres `23505`, MySQL `ER_DUP_ENTRY`/1062,
- * SQLite `SQLITE_CONSTRAINT*`, Prisma `P2002`) plus a message-based fallback
- * for wrapped errors.
- */
-function isUniqueConstraintViolationError(error: unknown): boolean {
-	const code =
-		typeof error === 'object' && error !== null && 'code' in error
-			? String((error as { code: unknown }).code)
-			: undefined;
-
-	if (
-		code === '23505' ||
-		code === 'ER_DUP_ENTRY' ||
-		code === '1062' ||
-		code === 'P2002' ||
-		code?.startsWith('SQLITE_CONSTRAINT')
-	) {
-		return true;
-	}
-
-	const message = extractErrorMessage(error).toLowerCase();
-	return (
-		message.includes('unique constraint') ||
-		message.includes('unique violation') ||
-		message.includes('duplicate key') ||
-		message.includes('duplicate entry') ||
-		message.includes('unique conflict')
-	);
 }
 
 function resolveSnapshotFailureMode(
@@ -704,60 +642,21 @@ export const postSubjectHandler = async (c: Context) => {
 
 		// Derived from the request, so concurrent identical submissions collide on
 		// the consent primary key instead of both inserting.
-		const consentId = await buildConsentId({
+		const consentIdentity = {
 			tenantId: ctx.tenantId,
 			subjectId: subject.id,
 			domainId: domainRecord.id,
 			policyId,
 			givenAt,
-		});
-
-		const findConsentById = (database: Pick<C15TContext['db'], 'findFirst'>) =>
-			database.findFirst('consent', {
-				where: (b) => b('id', '=', consentId),
-			});
-
-		/**
-		 * Reads deterministic rows by their indexed primary key. A field-based
-		 * fallback is needed only for a submission timestamp that may have been
-		 * written by an older process using random IDs.
-		 *
-		 * Future timestamps also use the fallback because an older release could
-		 * have stored a clock-skewed value after this process's start time.
-		 */
-		const findExistingConsent = async (
-			database: Pick<C15TContext['db'], 'findFirst'>
-		) => {
-			const deterministicConsent = await findConsentById(database);
-			if (deterministicConsent) {
-				return deterministicConsent;
-			}
-
-			const givenAtTimestamp = givenAt.getTime();
-			const couldHaveLegacyId =
-				givenAtTimestamp < DETERMINISTIC_CONSENT_ID_ENABLED_AT ||
-				givenAtTimestamp > Date.now();
-
-			if (!couldHaveLegacyId) {
-				return null;
-			}
-
-			return database.findFirst('consent', {
-				where: (b) =>
-					b.and(
-						b('subjectId', '=', subject.id),
-						b('domainId', '=', domainRecord.id),
-						b('policyId', '=', policyId),
-						b('givenAt', '=', givenAt),
-						ctx.tenantId === undefined
-							? b.isNull('tenantId')
-							: b('tenantId', '=', ctx.tenantId)
-					),
-			});
 		};
+		const consentId = await buildConsentId(consentIdentity);
 
 		// Check for duplicate consent (idempotency)
-		const existingConsent = await findExistingConsent(db);
+		const existingConsent = await findExistingConsentSubmission(
+			db,
+			consentId,
+			consentIdentity
+		);
 
 		if (existingConsent) {
 			logger.debug('Duplicate consent detected, returning existing record', {
@@ -889,7 +788,7 @@ export const postSubjectHandler = async (c: Context) => {
 				// `runtimePolicyDecision.dedupeKey` leaves no consent to find, so
 				// retry instead: the transaction's own lookups then see the winner's
 				// decision row.
-				const concurrentConsent = await findConsentById(db);
+				const concurrentConsent = await findConsentById(db, consentId);
 
 				if (concurrentConsent) {
 					logger.debug('Consent insert conflicted, returning existing record', {
