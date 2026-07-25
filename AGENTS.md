@@ -87,6 +87,8 @@ Conventions not enforced by tooling (hold new code to these; older code has exce
 
 To change package-bundled docs or READMEs, edit the source (`docs/**/*.mdx` or `readme.json`) and regenerate.
 
+The package-level `AGENTS.md` files are **consumer-facing** documentation indexes that ship in the published tarballs (they are listed in each package's `files`), so an agent in a user's app can read the docs offline from `node_modules`. They are not contribution guidance, they are gitignored here, and they only appear after a build. Keep them useful to that audience — don't add monorepo-only instructions to them. This file's rules still apply when you work inside those packages.
+
 ## Change hygiene
 
 When adding or changing user-facing package behavior:
