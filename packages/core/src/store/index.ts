@@ -603,7 +603,7 @@ export const createConsentManagerStore = (
 				const latestInfo = latestState.consentInfo;
 				const nextConsentInfo = {
 					...latestInfo,
-					time: givenAt,
+					time: consent.givenAt.getTime(),
 					subjectId,
 					...(externalId ? { externalId } : {}),
 					...(identityProvider ? { identityProvider } : {}),
