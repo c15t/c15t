@@ -148,10 +148,13 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
+		"@electric-sql/pglite": "0.4.2",
 		"@opentelemetry/sdk-trace-base": "^2.9.0",
 		"@types/node": "25.5.0",
 		"@upstash/redis": "^1.38.0",
 		"genversion": "3.2.0",
+		"kysely": "0.28.17",
+		"kysely-pglite": "^0.6.1",
 		"typescript": "7.0.1-rc"
 	},
 	"peerDependencies": {
