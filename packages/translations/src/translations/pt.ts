@@ -122,7 +122,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'As preferências de consentimento são armazenadas num cookie chamado "euconsent-v2" durante 13 meses. The storage duration may be refreshed when you update your preferences.',
+					'As preferências de consentimento são armazenadas num cookie chamado "euconsent-v2" durante 13 meses. O período de armazenamento pode ser renovado quando atualizar as suas preferências.',
 			},
 		},
 		common: {

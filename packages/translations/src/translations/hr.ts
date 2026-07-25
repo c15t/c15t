@@ -121,7 +121,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Postavke privole pohranjuju se u kolačiću pod nazivom "euconsent-v2" tijekom 13 mjeseci. The storage duration may be refreshed when you update your preferences.',
+					'Postavke privole pohranjuju se u kolačiću pod nazivom "euconsent-v2" tijekom 13 mjeseci. Trajanje pohrane može se obnoviti kada ažurirate svoje postavke.',
 			},
 		},
 		common: {
