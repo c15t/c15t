@@ -12,7 +12,7 @@ import {
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { LegalDocumentPolicyConflictError } from '~/db/registry/consent-policy';
-import { generateUniqueId } from '~/db/registry/utils';
+import { generateDeterministicId } from '~/db/registry/utils/generate-id';
 import { getJurisdiction, getLocation } from '~/handlers/init/geo';
 import {
 	type LegalDocumentSnapshotVerificationFailureReason,
@@ -47,20 +47,33 @@ export function buildRuntimeDecisionDedupeKey(input: {
 	].join('|');
 }
 
-export function buildConsentDedupeKey(input: {
+/**
+ * Derives the consent record's primary key from the fields that identify a
+ * single consent submission.
+ *
+ * Two concurrent identical `POST /subjects` requests therefore derive the same
+ * primary key, and the database rejects whichever insert loses the race — which
+ * is what makes consent creation idempotent. The tenant is part of the identity
+ * because `consent.id` is a global primary key, so omitting it would let one
+ * tenant's writes collide with another's.
+ *
+ * @param input - Fields identifying the consent submission
+ * @returns The deterministic `cns_`-prefixed consent ID
+ */
+export function buildConsentId(input: {
 	tenantId?: string;
 	subjectId: string;
 	domainId: string;
 	policyId?: string | null;
 	givenAt: Date;
-}): string {
-	return [
-		input.tenantId ?? 'default',
+}): Promise<string> {
+	return generateDeterministicId('consent', input.givenAt.getTime(), [
+		input.tenantId ?? null,
 		input.subjectId,
 		input.domainId,
-		input.policyId ?? 'none',
+		input.policyId ?? null,
 		input.givenAt.toISOString(),
-	].join('|');
+	]);
 }
 
 /**
@@ -178,36 +191,11 @@ function parseLanguageFromHeader(header: string | null): string | undefined {
 	return firstLanguage.split('-')[0]?.toLowerCase();
 }
 
-function isMissingConsentDedupeKeyColumnError(error: unknown): boolean {
-	const message = extractErrorMessage(error).toLowerCase();
-	if (!message.includes('dedupekey')) {
-		return false;
-	}
-
-	const code =
-		typeof error === 'object' &&
-		error !== null &&
-		'code' in error &&
-		typeof error.code === 'string'
-			? error.code
-			: undefined;
-
-	return (
-		code === '42703' ||
-		code === 'ER_BAD_FIELD_ERROR' ||
-		code === 'SQLITE_ERROR' ||
-		code === 'P2022' ||
-		message.includes('unknown column') ||
-		message.includes('no such column') ||
-		message.includes('does not exist') ||
-		message.includes('invalid column name')
-	);
-}
-
 /**
- * Detects unique-constraint violations across the supported adapters
- * (Postgres `23505`, MySQL `ER_DUP_ENTRY`/1062, SQLite `SQLITE_CONSTRAINT*`,
- * Prisma `P2002`) plus a message-based fallback for wrapped errors.
+ * Detects unique-constraint violations — including primary-key conflicts —
+ * across the supported adapters (Postgres `23505`, MySQL `ER_DUP_ENTRY`/1062,
+ * SQLite `SQLITE_CONSTRAINT*`, Prisma `P2002`) plus a message-based fallback
+ * for wrapped errors.
  */
 function isUniqueConstraintViolationError(error: unknown): boolean {
 	const code =
@@ -708,7 +696,9 @@ export const postSubjectHandler = async (c: Context) => {
 			proofConfig,
 		});
 
-		const consentDedupeKey = buildConsentDedupeKey({
+		// Derived from the request, so concurrent identical submissions collide on
+		// the consent primary key instead of both inserting.
+		const consentId = await buildConsentId({
 			tenantId: ctx.tenantId,
 			subjectId: subject.id,
 			domainId: domainRecord.id,
@@ -749,7 +739,7 @@ export const postSubjectHandler = async (c: Context) => {
 			});
 		}
 
-		const runConsentTransaction = (options: { withDedupeKey: boolean }) =>
+		const runConsentTransaction = () =>
 			db.transaction(async (tx) => {
 				// Re-check inside the transaction: a concurrent identical request
 				// may have committed between the pre-check and this point.
@@ -818,7 +808,7 @@ export const postSubjectHandler = async (c: Context) => {
 
 				// Always create a new consent record (append-only)
 				const consentRecord = await tx.create('consent', {
-					id: await generateUniqueId(tx, 'consent', ctx),
+					id: consentId,
 					subjectId: subject.id,
 					domainId: domainRecord.id,
 					policyId,
@@ -838,7 +828,6 @@ export const postSubjectHandler = async (c: Context) => {
 					validUntil,
 					runtimePolicyDecisionId: runtimePolicyDecision?.id,
 					runtimePolicySource: decisionPayload?.source,
-					...(options.withDedupeKey ? { dedupeKey: consentDedupeKey } : {}),
 				});
 
 				if (!consentRecord) {
@@ -860,61 +849,42 @@ export const postSubjectHandler = async (c: Context) => {
 				};
 			});
 
-		// Unique conflicts (consent dedupeKey or runtimePolicyDecision dedupeKey)
-		// roll the transaction back, so recovery happens out here: return the
-		// winner's consent if it is already visible, otherwise retry so the
-		// in-transaction re-check and decision lookup can pick up the winner's
-		// rows. A missing dedupeKey column (database not migrated yet) retries
-		// without the column to stay patch-upgrade compatible.
+		// A failed statement aborts the whole transaction on Postgres (25P02), so
+		// conflict recovery has to happen out here rather than in a `.catch()`
+		// inside the transaction.
 		const maxTransactionAttempts = 3;
-		let withDedupeKey = true;
 		let result: Awaited<ReturnType<typeof runConsentTransaction>> | undefined;
 
-		for (
-			let attempt = 1;
-			result === undefined && attempt <= maxTransactionAttempts;
-			attempt++
-		) {
+		for (let attempt = 1; attempt <= maxTransactionAttempts; attempt++) {
 			try {
-				result = await runConsentTransaction({ withDedupeKey });
+				result = await runConsentTransaction();
+				break;
 			} catch (error) {
-				if (withDedupeKey && isMissingConsentDedupeKeyColumnError(error)) {
-					logger.warn(
-						'Consent dedupe key column is unavailable, creating consent without dedupe key',
-						{
-							subjectId: subject.id,
-							domainId: domainRecord.id,
-							policyId,
-						}
-					);
-					withDedupeKey = false;
-					continue;
+				if (!isUniqueConstraintViolationError(error)) {
+					throw error;
 				}
 
-				if (
-					attempt < maxTransactionAttempts &&
-					isUniqueConstraintViolationError(error)
-				) {
-					const concurrentConsent = await findExistingConsent(db);
+				// A conflict on the consent primary key means a concurrent identical
+				// request committed first, so return its record. A conflict on
+				// `runtimePolicyDecision.dedupeKey` leaves no consent to find, so
+				// retry instead: the transaction's own lookups then see the winner's
+				// decision row.
+				const concurrentConsent = await findExistingConsent(db);
 
-					if (concurrentConsent) {
-						logger.debug(
-							'Consent insert conflicted, returning existing record',
-							{
-								consentId: concurrentConsent.id,
-							}
-						);
-						result = {
-							consent: concurrentConsent,
-							created: false,
-						};
-						break;
-					}
-
-					continue;
+				if (concurrentConsent) {
+					logger.debug('Consent insert conflicted, returning existing record', {
+						consentId: concurrentConsent.id,
+					});
+					result = {
+						consent: concurrentConsent,
+						created: false,
+					};
+					break;
 				}
 
-				throw error;
+				if (attempt === maxTransactionAttempts) {
+					throw error;
+				}
 			}
 		}
 

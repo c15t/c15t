@@ -3,7 +3,7 @@ import { resolvePolicyDecision } from '~/handlers/init/policy';
 import { verifyLegalDocumentSnapshotToken } from '~/handlers/legal-document/snapshot';
 import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
 import {
-	buildConsentDedupeKey,
+	buildConsentId,
 	buildRuntimeDecisionDedupeKey,
 	postSubjectHandler,
 } from './post.handler';
@@ -14,10 +14,6 @@ vi.mock('~/utils/metrics', () => ({
 		recordConsentAccepted: vi.fn(),
 		recordConsentRejected: vi.fn(),
 	})),
-}));
-
-vi.mock('~/db/registry/utils', () => ({
-	generateUniqueId: vi.fn().mockResolvedValue('con_new'),
 }));
 
 vi.mock('~/handlers/init/policy', () => ({
@@ -181,43 +177,55 @@ describe('buildRuntimeDecisionDedupeKey', () => {
 	});
 });
 
-describe('buildConsentDedupeKey', () => {
-	it('stays stable for identical consent submissions', () => {
-		const first = buildConsentDedupeKey({
-			tenantId: 'ins_123',
-			subjectId: 'sub_user1',
-			domainId: 'dom_1',
-			policyId: 'pol_1',
-			givenAt: GIVEN_AT_DATE,
-		});
-		const second = buildConsentDedupeKey({
-			tenantId: 'ins_123',
-			subjectId: 'sub_user1',
-			domainId: 'dom_1',
-			policyId: 'pol_1',
-			givenAt: GIVEN_AT_DATE,
-		});
+describe('buildConsentId', () => {
+	const baseIdentity = {
+		tenantId: 'ins_123',
+		subjectId: 'sub_user1',
+		domainId: 'dom_1',
+		policyId: 'pol_1',
+		givenAt: GIVEN_AT_DATE,
+	};
 
-		expect(first).toBe(second);
+	it('stays stable for identical consent submissions', async () => {
+		await expect(buildConsentId(baseIdentity)).resolves.toBe(
+			await buildConsentId(baseIdentity)
+		);
 	});
 
-	it('changes across tenants', () => {
-		const tenantA = buildConsentDedupeKey({
-			tenantId: 'ins_a',
-			subjectId: 'sub_user1',
-			domainId: 'dom_1',
-			policyId: 'pol_1',
-			givenAt: GIVEN_AT_DATE,
-		});
-		const tenantB = buildConsentDedupeKey({
-			tenantId: 'ins_b',
-			subjectId: 'sub_user1',
-			domainId: 'dom_1',
-			policyId: 'pol_1',
-			givenAt: GIVEN_AT_DATE,
+	it('produces a prefixed base58 id in the same shape as random ids', async () => {
+		await expect(buildConsentId(baseIdentity)).resolves.toMatch(
+			/^cns_[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$/
+		);
+	});
+
+	it.each([
+		['tenant', { tenantId: 'ins_other' }],
+		['subject', { subjectId: 'sub_user2' }],
+		['domain', { domainId: 'dom_2' }],
+		['policy', { policyId: 'pol_2' }],
+		['givenAt', { givenAt: new Date(GIVEN_AT + 1) }],
+	])('changes when the %s changes', async (_field, override) => {
+		await expect(
+			buildConsentId({ ...baseIdentity, ...override })
+		).resolves.not.toBe(await buildConsentId(baseIdentity));
+	});
+
+	it('distinguishes a missing tenant from a tenant literally named "default"', async () => {
+		await expect(
+			buildConsentId({ ...baseIdentity, tenantId: undefined })
+		).resolves.not.toBe(
+			await buildConsentId({ ...baseIdentity, tenantId: 'default' })
+		);
+	});
+
+	it('orders ids chronologically by givenAt', async () => {
+		const earlier = await buildConsentId(baseIdentity);
+		const later = await buildConsentId({
+			...baseIdentity,
+			givenAt: new Date(GIVEN_AT + 60_000),
 		});
 
-		expect(tenantA).not.toBe(tenantB);
+		expect(earlier < later).toBe(true);
 	});
 });
 
@@ -301,10 +309,12 @@ describe('postSubjectHandler idempotency', () => {
 		expect(result.consentId).toBe('con_existing');
 		expect(result.subjectId).toBe('sub_user1');
 		expect(db.transaction).toHaveBeenCalledTimes(1);
+		// The losing insert used the deterministic id, which is what made the
+		// database reject it instead of writing a duplicate.
 		expect(db.__tx.create).toHaveBeenCalledWith(
 			'consent',
 			expect.objectContaining({
-				dedupeKey: buildConsentDedupeKey({
+				id: await buildConsentId({
 					subjectId: 'sub_user1',
 					domainId: 'dom_1',
 					policyId: 'pol_1',
@@ -358,50 +368,47 @@ describe('postSubjectHandler idempotency', () => {
 		expect(db.transaction).toHaveBeenCalledTimes(1);
 	});
 
-	it('should create consent without dedupe key when the column is unavailable', async () => {
+	it('should give up after exhausting retries on a persistent conflict', async () => {
 		const db = createMockDb(null);
-		db.__tx.findFirst = vi.fn().mockResolvedValue(null);
+		// Every attempt conflicts and the winner is never visible, so the handler
+		// must surface the error rather than loop forever.
+		db.findFirst = vi.fn().mockResolvedValue(null);
 		db.__tx.create = vi
 			.fn()
-			.mockRejectedValueOnce(
-				Object.assign(new Error("Unknown column 'dedupeKey'"), {
-					code: 'ER_BAD_FIELD_ERROR',
-				})
-			)
-			.mockResolvedValueOnce({
-				id: 'con_new',
-				givenAt: GIVEN_AT_DATE,
-			});
+			.mockRejectedValue(
+				Object.assign(new Error('duplicate key value'), { code: '23505' })
+			);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toThrow();
+
+		// Bounded: the retry loop stops instead of spinning on the conflict.
+		expect(db.transaction).toHaveBeenCalledTimes(3);
+	});
+
+	it('should write the consent record under a deterministic id', async () => {
+		const db = createMockDb(null);
 		const registry = createMockRegistry();
 		const mockCtx = createMockContext(db, registry);
 
 		// @ts-expect-error - simplified test context
 		await postSubjectHandler(mockCtx);
 
-		const result = mockCtx.getJsonData() as {
-			consentId: string;
-		};
-		const retryPayload = db.__tx.create.mock.calls[1]?.[1] as Record<
-			string,
-			unknown
-		>;
+		const payload = db.__tx.create.mock.calls.find(
+			(call) => call[0] === 'consent'
+		)?.[1] as Record<string, unknown>;
 
-		expect(result.consentId).toBe('con_new');
-		// The whole transaction is retried without the dedupe key: recovery
-		// cannot run inside an aborted Postgres transaction.
-		expect(db.transaction).toHaveBeenCalledTimes(2);
-		expect(db.__tx.create).toHaveBeenCalledTimes(2);
-		expect(db.__tx.create.mock.calls[0]?.[1]).toEqual(
-			expect.objectContaining({
-				dedupeKey: buildConsentDedupeKey({
-					subjectId: 'sub_user1',
-					domainId: 'dom_1',
-					policyId: 'pol_1',
-					givenAt: GIVEN_AT_DATE,
-				}),
+		expect(payload.id).toBe(
+			await buildConsentId({
+				subjectId: 'sub_user1',
+				domainId: 'dom_1',
+				policyId: 'pol_1',
+				givenAt: GIVEN_AT_DATE,
 			})
 		);
-		expect(retryPayload).not.toHaveProperty('dedupeKey');
+		expect(payload).not.toHaveProperty('dedupeKey');
 	});
 
 	it('should create separate records for different givenAt timestamps', async () => {
