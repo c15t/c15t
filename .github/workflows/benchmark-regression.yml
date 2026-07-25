@@ -1,20 +1,23 @@
 name: Benchmark Regression
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - 'packages/core/**'
-      - 'packages/react/**'
-      - 'packages/nextjs/**'
-      - 'packages/translations/**'
-      - 'packages/ui/**'
-      - 'benchmarks/**'
-      - 'package.json'
-      - 'bun.lock'
-      - 'bun.lockb'
-      - 'turbo.json'
-      - 'internals/bundle-analysis-action/**'
+  # TODO: re-enable the pull_request trigger once the report is less noisy.
+  # Disabled for now — the per-PR comparison comment is too spammy.
+  # pull_request:
+  #   types: [opened, synchronize, reopened]
+  #   paths:
+  #     - 'packages/core/**'
+  #     - 'packages/react/**'
+  #     - 'packages/nextjs/**'
+  #     - 'packages/translations/**'
+  #     - 'packages/ui/**'
+  #     - 'benchmarks/**'
+  #     - 'package.json'
+  #     - 'bun.lock'
+  #     - 'bun.lockb'
+  #     - 'turbo.json'
+  #     - 'internals/bundle-analysis-action/**'
+  workflow_dispatch:
   push:
     branches: ['main', 'canary']
     paths:
