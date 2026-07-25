@@ -1,6 +1,12 @@
 {
 	"version": 1,
 	"skills": {
+		"c15t": {
+			"source": "c15t/skills",
+			"sourceType": "github",
+			"skillPath": "c15t/SKILL.md",
+			"computedHash": "031b918ecb7f15c96e690412c79e2ebb8f4a2bcea5c5fac3d87d9752d4153660"
+		},
 		"leadtype": {
 			"source": "inthhq/leadtype",
 			"sourceType": "github",
@@ -11,7 +17,13 @@
 			"source": "vercel/turborepo",
 			"sourceType": "github",
 			"skillPath": "skills/turborepo/SKILL.md",
-			"computedHash": "7fcd5ac3e11b30b86907ab9a81af6888954d9f14c72f3e09f5cc2afcbd50956d"
+			"computedHash": "91ca859d13834ab4103eff55bfd66ae43ef0823a8339664dd1cccc5a9ddfd7cb"
+		},
+		"ultracite": {
+			"source": "haydenbleasel/ultracite",
+			"sourceType": "github",
+			"skillPath": "skills/ultracite/SKILL.md",
+			"computedHash": "e061f8c74bb2ee6ceb57d4a904fc83be81fd559febe6e76971f055913910df75"
 		},
 		"vercel-composition-patterns": {
 			"source": "vercel-labs/agent-skills",
