@@ -85,7 +85,7 @@ describe('runtime', () => {
 		const result = getOrCreateConsentRuntime(options, pkgInfo);
 
 		expect(result.cacheKey).toBe(
-			'hosted:default:none:default:default:default:default:enabled'
+			'hosted:default:none:default:default:default:default:default:enabled'
 		);
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -282,7 +282,7 @@ describe('runtime', () => {
 		});
 
 		expect(result.cacheKey).toBe(
-			'hosted:default:none:default:default:default:default:enabled'
+			'hosted:default:none:default:default:default:default:default:enabled'
 		);
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -384,5 +384,51 @@ describe('runtime', () => {
 		expect(first.consentStore).toBe(second.consentStore);
 		expect(getMatchingPrefetchedInitialDataMock).toHaveBeenCalledTimes(1);
 		expect(createConsentManagerStoreMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('forwards custom headers to the hosted client', () => {
+		// Regression: headers used to be dropped on the floor, so options like
+		// `headers: { 'x-tenant': '...' }` silently never reached the backend.
+		const options = {
+			mode: 'c15t',
+			backendURL: '/api/c15t',
+			headers: { 'x-demo-scenario': 'custom-fr-iab' },
+		} as ConsentRuntimeOptions;
+
+		getOrCreateConsentRuntime(options, {
+			pkg: '@c15t/react',
+			version: '2.0.0',
+		});
+
+		expect(configureConsentManagerMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				mode: 'c15t',
+				backendURL: '/api/c15t',
+				headers: { 'x-demo-scenario': 'custom-fr-iab' },
+			})
+		);
+	});
+
+	it('creates separate runtimes for different headers', () => {
+		const pkgInfo = { pkg: '@c15t/react', version: '2.0.0' };
+		const base = {
+			mode: 'c15t',
+			backendURL: '/api/c15t',
+		} as ConsentRuntimeOptions;
+
+		const first = getOrCreateConsentRuntime(
+			{ ...base, headers: { 'x-demo-scenario': 'a' } } as ConsentRuntimeOptions,
+			pkgInfo
+		);
+		const second = getOrCreateConsentRuntime(
+			{ ...base, headers: { 'x-demo-scenario': 'b' } } as ConsentRuntimeOptions,
+			pkgInfo
+		);
+		const third = getOrCreateConsentRuntime(base, pkgInfo);
+
+		expect(first.cacheKey).not.toBe(second.cacheKey);
+		expect(first.cacheKey).not.toBe(third.cacheKey);
+		expect(first.consentManager).not.toBe(second.consentManager);
+		expect(configureConsentManagerMock).toHaveBeenCalledTimes(3);
 	});
 });

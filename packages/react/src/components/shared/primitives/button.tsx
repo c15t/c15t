@@ -42,15 +42,20 @@ type ConsentActionThemeKey = 'accept' | 'reject' | 'customize';
  * Resolution order:
  * 1. Explicit `variant` / `mode` props
  * 2. `theme.consentActions[consentAction]`
- * 3. `theme.consentActions.default`
- * 4. Hardcoded fallback based on `isPrimary`
+ * 3. `theme.consentActions.primary` (when the policy marks the action primary)
+ * 4. `theme.consentActions.default`
+ * 5. `params.fallback`, or the hardcoded fallback based on `isPrimary`
  */
-function resolveConsentButtonStyle(params: {
+export function resolveConsentButtonStyle(params: {
 	consentAction?: ConsentActionThemeKey;
 	isPrimary?: boolean;
 	theme?: ReturnType<typeof useTheme>['theme'];
 	variant?: ButtonVariantsProps['variant'];
 	mode?: ButtonVariantsProps['mode'];
+	fallback?: {
+		variant: NonNullable<ButtonVariantsProps['variant']>;
+		mode: NonNullable<ButtonVariantsProps['mode']>;
+	};
 }) {
 	if (params.variant || params.mode) {
 		return {
@@ -59,18 +64,32 @@ function resolveConsentButtonStyle(params: {
 		};
 	}
 
-	const defaultStyle = params.isPrimary
-		? { variant: 'primary' as const, mode: 'stroke' as const }
-		: { variant: 'neutral' as const, mode: 'stroke' as const };
+	const defaultStyle =
+		params.fallback ??
+		(params.isPrimary
+			? { variant: 'primary' as const, mode: 'stroke' as const }
+			: { variant: 'neutral' as const, mode: 'stroke' as const });
 	const themedDefault = params.theme?.consentActions?.default ?? {};
+	// The policy decides which action is primary; the theme decides how a
+	// primary action looks.
+	const themedPrimary = params.isPrimary
+		? (params.theme?.consentActions?.primary ?? {})
+		: {};
 	const themedAction = params.consentAction
 		? params.theme?.consentActions?.[params.consentAction]
 		: undefined;
 
 	return {
 		variant:
-			themedAction?.variant ?? themedDefault.variant ?? defaultStyle.variant,
-		mode: themedAction?.mode ?? themedDefault.mode ?? defaultStyle.mode,
+			themedAction?.variant ??
+			themedPrimary.variant ??
+			themedDefault.variant ??
+			defaultStyle.variant,
+		mode:
+			themedAction?.mode ??
+			themedPrimary.mode ??
+			themedDefault.mode ??
+			defaultStyle.mode,
 	};
 }
 
