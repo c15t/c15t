@@ -12,7 +12,6 @@ import {
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import { LegalDocumentPolicyConflictError } from '~/db/registry/consent-policy';
-import { generateUniqueId } from '~/db/registry/utils';
 import { getJurisdiction, getLocation } from '~/handlers/init/geo';
 import {
 	type LegalDocumentSnapshotVerificationFailureReason,
@@ -26,6 +25,12 @@ import type { C15TContext } from '~/types';
 import { extractErrorMessage } from '~/utils/extract-error-message';
 import { getMetrics } from '~/utils/metrics';
 import { resolvePolicyDecision } from '../init/policy';
+import {
+	buildConsentId,
+	findConsentById,
+	findExistingConsentSubmission,
+	isUniqueConstraintViolationError,
+} from './consent-idempotency';
 
 export function buildRuntimeDecisionDedupeKey(input: {
 	tenantId?: string;
@@ -635,16 +640,23 @@ export const postSubjectHandler = async (c: Context) => {
 			proofConfig,
 		});
 
+		// Derived from the request, so concurrent identical submissions collide on
+		// the consent primary key instead of both inserting.
+		const consentIdentity = {
+			tenantId: ctx.tenantId,
+			subjectId: subject.id,
+			domainId: domainRecord.id,
+			policyId,
+			givenAt,
+		};
+		const consentId = await buildConsentId(consentIdentity);
+
 		// Check for duplicate consent (idempotency)
-		const existingConsent = await db.findFirst('consent', {
-			where: (b) =>
-				b.and(
-					b('subjectId', '=', subject.id),
-					b('domainId', '=', domainRecord.id),
-					b('policyId', '=', policyId),
-					b('givenAt', '=', givenAt)
-				),
-		});
+		const existingConsent = await findExistingConsentSubmission(
+			db,
+			consentId,
+			consentIdentity
+		);
 
 		if (existingConsent) {
 			logger.debug('Duplicate consent detected, returning existing record', {
@@ -663,20 +675,23 @@ export const postSubjectHandler = async (c: Context) => {
 			});
 		}
 
-		const result = await db.transaction(async (tx) => {
-			logger.debug('Creating consent record', {
-				subjectId: subject.id,
-				domainId: domainRecord.id,
-				policyId,
-				purposeIds,
-			});
+		const runConsentTransaction = () =>
+			db.transaction(async (tx) => {
+				logger.debug('Creating consent record', {
+					subjectId: subject.id,
+					domainId: domainRecord.id,
+					policyId,
+					purposeIds,
+				});
 
-			const runtimePolicyDecision = decisionPayload
-				? ((await tx.findFirst('runtimePolicyDecision', {
-						where: (b) => b('dedupeKey', '=', decisionPayload.dedupeKey),
-					})) ??
-					(await tx
-						.create('runtimePolicyDecision', {
+				// No error recovery inside the transaction: a failed statement
+				// aborts the whole transaction on Postgres (25P02), so unique
+				// conflicts are handled by the retry loop below instead.
+				const runtimePolicyDecision = decisionPayload
+					? ((await tx.findFirst('runtimePolicyDecision', {
+							where: (b) => b('dedupeKey', '=', decisionPayload.dedupeKey),
+						})) ??
+						(await tx.create('runtimePolicyDecision', {
 							id: `rpd_${crypto.randomUUID().replaceAll('-', '')}`,
 							tenantId: decisionPayload.tenantId,
 							policyId: decisionPayload.policyId,
@@ -707,70 +722,117 @@ export const postSubjectHandler = async (c: Context) => {
 								? { json: decisionPayload.proofConfig }
 								: undefined,
 							dedupeKey: decisionPayload.dedupeKey,
-						})
-						.catch(async () =>
-							// Race: another request may have inserted the same dedupeKey
-							tx.findFirst('runtimePolicyDecision', {
-								where: (b) => b('dedupeKey', '=', decisionPayload.dedupeKey),
-							})
-						)))
-				: undefined;
+						})))
+					: undefined;
 
-			// Always create a new consent record (append-only)
-			const consentRecord = await tx.create('consent', {
-				id: await generateUniqueId(tx, 'consent', ctx),
-				subjectId: subject.id,
-				domainId: domainRecord.id,
-				policyId,
-				purposeIds: { json: purposeIds },
-				metadata:
-					Object.keys(metadataWithPolicy).length > 0
-						? { json: metadataWithPolicy }
-						: undefined,
-				ipAddress: shouldStoreIp ? ctx.ipAddress : null,
-				userAgent: shouldStoreUserAgent ? ctx.userAgent : null,
-				jurisdiction: effectiveJurisdiction,
-				jurisdictionModel: effectiveModel,
-				tcString: input.tcString,
-				uiSource: input.uiSource,
-				consentAction: derivedConsentAction,
-				givenAt,
-				validUntil,
-				runtimePolicyDecisionId: runtimePolicyDecision?.id,
-				runtimePolicySource: decisionPayload?.source,
+				// Always create a new consent record (append-only)
+				const consentRecord = await tx.create('consent', {
+					id: consentId,
+					subjectId: subject.id,
+					domainId: domainRecord.id,
+					policyId,
+					purposeIds: { json: purposeIds },
+					metadata:
+						Object.keys(metadataWithPolicy).length > 0
+							? { json: metadataWithPolicy }
+							: undefined,
+					ipAddress: shouldStoreIp ? ctx.ipAddress : null,
+					userAgent: shouldStoreUserAgent ? ctx.userAgent : null,
+					jurisdiction: effectiveJurisdiction,
+					jurisdictionModel: effectiveModel,
+					tcString: input.tcString,
+					uiSource: input.uiSource,
+					consentAction: derivedConsentAction,
+					givenAt,
+					validUntil,
+					runtimePolicyDecisionId: runtimePolicyDecision?.id,
+					runtimePolicySource: decisionPayload?.source,
+				});
+
+				if (!consentRecord) {
+					throw new HTTPException(500, {
+						message: 'Failed to create consent',
+						cause: {
+							code: 'CONSENT_CREATION_FAILED',
+							subjectId: subject.id,
+							domain,
+						},
+					});
+				}
+
+				logger.debug('Created consent', { consentRecord: consentRecord.id });
+
+				return {
+					consent: consentRecord,
+					created: true,
+				};
 			});
 
-			logger.debug('Created consent', { consentRecord: consentRecord.id });
+		// A failed statement aborts the whole transaction on Postgres (25P02), so
+		// conflict recovery has to happen out here rather than in a `.catch()`
+		// inside the transaction.
+		const maxTransactionAttempts = 3;
+		let result: Awaited<ReturnType<typeof runConsentTransaction>> | undefined;
 
-			if (!consentRecord) {
-				throw new HTTPException(500, {
-					message: 'Failed to create consent',
-					cause: {
-						code: 'CONSENT_CREATION_FAILED',
-						subjectId: subject.id,
-						domain,
-					},
-				});
+		for (let attempt = 1; attempt <= maxTransactionAttempts; attempt++) {
+			try {
+				result = await runConsentTransaction();
+				break;
+			} catch (error) {
+				if (!isUniqueConstraintViolationError(error)) {
+					throw error;
+				}
+
+				// A conflict on the consent primary key means a concurrent identical
+				// request committed first, so return its record. A conflict on
+				// `runtimePolicyDecision.dedupeKey` leaves no consent to find, so
+				// retry instead: the transaction's own lookups then see the winner's
+				// decision row.
+				const concurrentConsent = await findConsentById(db, consentId);
+
+				if (concurrentConsent) {
+					logger.debug('Consent insert conflicted, returning existing record', {
+						consentId: concurrentConsent.id,
+					});
+					result = {
+						consent: concurrentConsent,
+						created: false,
+					};
+					break;
+				}
+
+				if (attempt === maxTransactionAttempts) {
+					throw error;
+				}
 			}
+		}
 
-			return {
-				consent: consentRecord,
-			};
-		});
+		if (!result) {
+			throw new HTTPException(500, {
+				message: 'Failed to create consent',
+				cause: {
+					code: 'CONSENT_CREATION_FAILED',
+					subjectId: subject.id,
+					domain,
+				},
+			});
+		}
 
 		// Record telemetry metrics
-		const metrics = getMetrics();
-		if (metrics) {
-			const jurisdiction = effectiveJurisdiction;
-			metrics.recordConsentCreated({ type, jurisdiction });
+		if (result.created) {
+			const metrics = getMetrics();
+			if (metrics) {
+				const jurisdiction = effectiveJurisdiction;
+				metrics.recordConsentCreated({ type, jurisdiction });
 
-			// Determine accepted vs rejected based on preferences
-			const hasAccepted =
-				preferences && Object.values(preferences).some(Boolean);
-			if (hasAccepted) {
-				metrics.recordConsentAccepted({ type, jurisdiction });
-			} else {
-				metrics.recordConsentRejected({ type, jurisdiction });
+				// Determine accepted vs rejected based on preferences
+				const hasAccepted =
+					preferences && Object.values(preferences).some(Boolean);
+				if (hasAccepted) {
+					metrics.recordConsentAccepted({ type, jurisdiction });
+				} else {
+					metrics.recordConsentRejected({ type, jurisdiction });
+				}
 			}
 		}
 

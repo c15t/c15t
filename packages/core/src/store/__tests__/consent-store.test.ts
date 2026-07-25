@@ -162,6 +162,35 @@ describe('Consent Store', () => {
 				}),
 			});
 		});
+
+		it('coalesces concurrent identical policy consent submissions', async () => {
+			mockManager.setConsent.mockResolvedValue({
+				ok: true,
+				data: {
+					subjectId: 'sub_123',
+					consentId: 'cns_123',
+					domainId: 'dom_123',
+					domain: 'example.com',
+					type: 'other',
+					givenAt: new Date('2026-04-07T00:00:00.000Z'),
+				},
+			});
+			const store = createConsentManagerStore(mockManager);
+			const input = {
+				type: 'other' as const,
+				domain: 'example.com',
+				preferences: { necessary: true },
+			};
+
+			const first = store.getState().unstable_acceptPolicyConsent(input);
+			const second = store.getState().unstable_acceptPolicyConsent(input);
+
+			expect(second).toBe(first);
+			expect(mockManager.setConsent).toHaveBeenCalledTimes(1);
+
+			const [firstResult, secondResult] = await Promise.all([first, second]);
+			expect(secondResult.consentId).toBe(firstResult.consentId);
+		});
 	});
 
 	describe('Consent Actions', () => {
@@ -213,6 +242,21 @@ describe('Consent Store', () => {
 			await new Promise((resolve) => setTimeout(resolve, 100));
 
 			expect(store.getState().selectedConsents.marketing).toBe(true);
+		});
+
+		it('coalesces concurrent identical banner consent saves', async () => {
+			const store = createConsentManagerStore(mockManager);
+
+			const first = store.getState().saveConsents('all', {
+				uiSource: 'banner',
+			});
+			const second = store.getState().saveConsents('all', {
+				uiSource: 'banner',
+			});
+
+			expect(second).toBe(first);
+			await Promise.all([first, second]);
+			expect(mockManager.setConsent).toHaveBeenCalledTimes(1);
 		});
 
 		it('should reset all consents with resetConsents', () => {
