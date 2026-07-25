@@ -31,9 +31,7 @@ import {
 	findExistingConsentSubmission,
 	isUniqueConstraintViolationError,
 } from './consent-idempotency';
-
-/** How far ahead of server time a client-supplied `givenAt` may be. */
-const MAX_FUTURE_CONSENT_TIME_DRIFT_MS = 5 * 60 * 1000;
+import { clampConsentGivenAt } from './consent-time';
 
 export function buildRuntimeDecisionDedupeKey(input: {
 	tenantId?: string;
@@ -232,28 +230,6 @@ function buildLegalDocumentSnapshotHttpException(
 			);
 		}
 	}
-}
-
-/**
- * Clamps a client-supplied `givenAt` to server time when it is more than
- * {@link MAX_FUTURE_CONSENT_TIME_DRIFT_MS} in the future.
- *
- * `givenAt` comes from the client's clock, so devices with skewed clocks report
- * consent times far in the future, which would distort audit records and push
- * derived validity windows out indefinitely. Rejecting those requests would
- * stop affected users from recording consent at all, so the timestamp is
- * recorded as server time instead. Small skews within the drift window and past
- * timestamps (offline fallback replay) are preserved as-is.
- *
- * @param givenAt - The client-supplied consent timestamp
- * @param now - Server time in epoch milliseconds
- * @returns `givenAt` when within tolerance, otherwise a `Date` at `now`
- */
-export function clampConsentGivenAt(givenAt: Date, now = Date.now()): Date {
-	if (givenAt.getTime() > now + MAX_FUTURE_CONSENT_TIME_DRIFT_MS) {
-		return new Date(now);
-	}
-	return givenAt;
 }
 
 function buildLegalDocumentProofHttpException(message: string): HTTPException {

@@ -5,7 +5,6 @@ import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
 import { buildConsentId } from './consent-idempotency';
 import {
 	buildRuntimeDecisionDedupeKey,
-	clampConsentGivenAt,
 	postSubjectHandler,
 } from './post.handler';
 
@@ -227,26 +226,6 @@ describe('buildConsentId', () => {
 		});
 
 		expect(earlier < later).toBe(true);
-	});
-});
-
-describe('clampConsentGivenAt', () => {
-	const now = GIVEN_AT;
-
-	it('clamps timestamps beyond the drift window to server time', () => {
-		expect(clampConsentGivenAt(new Date(now + 300_001), now)).toEqual(
-			new Date(now)
-		);
-	});
-
-	it('preserves timestamps at the edge of the drift window', () => {
-		const atLimit = new Date(now + 300_000);
-		expect(clampConsentGivenAt(atLimit, now)).toBe(atLimit);
-	});
-
-	it('preserves past timestamps for offline fallback replay', () => {
-		const old = new Date(now - 30 * 86_400_000);
-		expect(clampConsentGivenAt(old, now)).toBe(old);
 	});
 });
 
