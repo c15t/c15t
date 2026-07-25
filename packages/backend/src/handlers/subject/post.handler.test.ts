@@ -5,6 +5,7 @@ import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
 import { buildConsentId } from './consent-idempotency';
 import {
 	buildRuntimeDecisionDedupeKey,
+	clampConsentGivenAt,
 	postSubjectHandler,
 } from './post.handler';
 
@@ -226,6 +227,126 @@ describe('buildConsentId', () => {
 		});
 
 		expect(earlier < later).toBe(true);
+	});
+});
+
+describe('clampConsentGivenAt', () => {
+	const now = GIVEN_AT;
+
+	it('clamps timestamps beyond the drift window to server time', () => {
+		expect(clampConsentGivenAt(new Date(now + 300_001), now)).toEqual(
+			new Date(now)
+		);
+	});
+
+	it('preserves timestamps at the edge of the drift window', () => {
+		const atLimit = new Date(now + 300_000);
+		expect(clampConsentGivenAt(atLimit, now)).toBe(atLimit);
+	});
+
+	it('preserves past timestamps for offline fallback replay', () => {
+		const old = new Date(now - 30 * 86_400_000);
+		expect(clampConsentGivenAt(old, now)).toBe(old);
+	});
+});
+
+describe('postSubjectHandler givenAt clamping', () => {
+	const FAR_FUTURE = GIVEN_AT + 300_001;
+
+	afterEach(() => {
+		vi.clearAllMocks();
+		vi.restoreAllMocks();
+		vi.useRealTimers();
+	});
+
+	function createClampContext(givenAt: number) {
+		const db = createMockDb(null);
+		const mockCtx = createMockContext(db, createMockRegistry());
+		mockCtx.req.json = vi.fn().mockResolvedValue({ ...baseInput, givenAt });
+		return { db, mockCtx };
+	}
+
+	function consentPayload(db: ReturnType<typeof createMockDb>) {
+		return db.__tx.create.mock.calls.find(
+			(call) => call[0] === 'consent'
+		)?.[1] as Record<string, unknown> | undefined;
+	}
+
+	it('records server time when the client clock runs far ahead', async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(GIVEN_AT));
+		const { db, mockCtx } = createClampContext(FAR_FUTURE);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		expect(consentPayload(db)?.givenAt).toEqual(new Date(GIVEN_AT));
+		expect(mockCtx._ctx.logger.warn).toHaveBeenCalledWith(
+			'Consent givenAt was too far in the future and was clamped to server time',
+			expect.objectContaining({
+				requestedGivenAt: new Date(FAR_FUTURE).toISOString(),
+				clampedGivenAt: new Date(GIVEN_AT).toISOString(),
+			})
+		);
+	});
+
+	it('keeps the consent id stable across retries of a clamped submission', async () => {
+		// Regression: clamping to `Date.now()` moves the recorded timestamp on
+		// every attempt. If the id were derived from the recorded value, a client
+		// with a skewed clock would write a new row per retry.
+		vi.useFakeTimers();
+
+		vi.setSystemTime(new Date(GIVEN_AT));
+		const first = createClampContext(FAR_FUTURE);
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(first.mockCtx);
+
+		vi.setSystemTime(new Date(GIVEN_AT + 90_000));
+		const second = createClampContext(FAR_FUTURE);
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(second.mockCtx);
+
+		const firstPayload = consentPayload(first.db);
+		const secondPayload = consentPayload(second.db);
+
+		expect(secondPayload?.id).toBe(firstPayload?.id);
+		// The recorded timestamps really did differ — the ids matching is not
+		// because the clamp was a no-op.
+		expect(secondPayload?.givenAt).not.toEqual(firstPayload?.givenAt);
+	});
+
+	it('keeps the client’s original claim on the record when clamped', async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(GIVEN_AT));
+		const { db, mockCtx } = createClampContext(FAR_FUTURE);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		expect(consentPayload(db)?.metadata).toEqual({
+			json: expect.objectContaining({
+				clientGivenAt: new Date(FAR_FUTURE).toISOString(),
+			}),
+		});
+	});
+
+	it('does not annotate metadata when the timestamp is within tolerance', async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(GIVEN_AT));
+		const { db, mockCtx } = createClampContext(GIVEN_AT + 300_000);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		const payload = consentPayload(db);
+		expect(payload?.givenAt).toEqual(new Date(GIVEN_AT + 300_000));
+		expect(payload?.metadata).toEqual({
+			json: expect.not.objectContaining({ clientGivenAt: expect.anything() }),
+		});
+		expect(mockCtx._ctx.logger.warn).not.toHaveBeenCalledWith(
+			'Consent givenAt was too far in the future and was clamped to server time',
+			expect.anything()
+		);
 	});
 });
 

@@ -32,6 +32,9 @@ import {
 	isUniqueConstraintViolationError,
 } from './consent-idempotency';
 
+/** How far ahead of server time a client-supplied `givenAt` may be. */
+const MAX_FUTURE_CONSENT_TIME_DRIFT_MS = 5 * 60 * 1000;
+
 export function buildRuntimeDecisionDedupeKey(input: {
 	tenantId?: string;
 	fingerprint: string;
@@ -231,6 +234,28 @@ function buildLegalDocumentSnapshotHttpException(
 	}
 }
 
+/**
+ * Clamps a client-supplied `givenAt` to server time when it is more than
+ * {@link MAX_FUTURE_CONSENT_TIME_DRIFT_MS} in the future.
+ *
+ * `givenAt` comes from the client's clock, so devices with skewed clocks report
+ * consent times far in the future, which would distort audit records and push
+ * derived validity windows out indefinitely. Rejecting those requests would
+ * stop affected users from recording consent at all, so the timestamp is
+ * recorded as server time instead. Small skews within the drift window and past
+ * timestamps (offline fallback replay) are preserved as-is.
+ *
+ * @param givenAt - The client-supplied consent timestamp
+ * @param now - Server time in epoch milliseconds
+ * @returns `givenAt` when within tolerance, otherwise a `Date` at `now`
+ */
+export function clampConsentGivenAt(givenAt: Date, now = Date.now()): Date {
+	if (givenAt.getTime() > now + MAX_FUTURE_CONSENT_TIME_DRIFT_MS) {
+		return new Date(now);
+	}
+	return givenAt;
+}
+
 function buildLegalDocumentProofHttpException(message: string): HTTPException {
 	return new HTTPException(409, {
 		message,
@@ -264,7 +289,25 @@ export const postSubjectHandler = async (c: Context) => {
 	} = input;
 
 	const preferences = 'preferences' in input ? input.preferences : undefined;
-	const givenAt = new Date(givenAtEpoch);
+
+	// `requestedGivenAt` is the client's claim and identifies the submission;
+	// `givenAt` is what gets recorded. They differ only when the client's clock
+	// runs far ahead. Deriving identity from the claim rather than the recorded
+	// value is what keeps retries of a skewed submission idempotent — the
+	// recorded value moves with server time, the claim does not.
+	const requestedGivenAt = new Date(givenAtEpoch);
+	const givenAt = clampConsentGivenAt(requestedGivenAt);
+	const wasGivenAtClamped = givenAt.getTime() !== requestedGivenAt.getTime();
+
+	if (wasGivenAtClamped) {
+		logger.warn(
+			'Consent givenAt was too far in the future and was clamped to server time',
+			{
+				requestedGivenAt: requestedGivenAt.toISOString(),
+				clampedGivenAt: givenAt.toISOString(),
+			}
+		);
+	}
 
 	// Derive model-aware consent action from the raw frontend type
 	const rawConsentAction =
@@ -618,6 +661,12 @@ export const postSubjectHandler = async (c: Context) => {
 			...(shouldStoreLanguage && effectiveLanguage
 				? { policyLanguage: effectiveLanguage }
 				: {}),
+			// Keep the client's original claim on the record itself: `givenAt` no
+			// longer holds it once clamped, and an audit trail should not depend on
+			// log retention to explain why.
+			...(wasGivenAtClamped
+				? { clientGivenAt: requestedGivenAt.toISOString() }
+				: {}),
 		};
 		const effectiveJurisdiction =
 			hasValidSnapshot && snapshotPayload
@@ -641,13 +690,15 @@ export const postSubjectHandler = async (c: Context) => {
 		});
 
 		// Derived from the request, so concurrent identical submissions collide on
-		// the consent primary key instead of both inserting.
+		// the consent primary key instead of both inserting. Built from the
+		// client's claimed timestamp, not the recorded one, so that retries of a
+		// clamped submission keep deriving the same id.
 		const consentIdentity = {
 			tenantId: ctx.tenantId,
 			subjectId: subject.id,
 			domainId: domainRecord.id,
 			policyId,
-			givenAt,
+			givenAt: requestedGivenAt,
 		};
 		const consentId = await buildConsentId(consentIdentity);
 
