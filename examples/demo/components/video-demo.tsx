@@ -22,7 +22,7 @@ export function VideoDemo({
 		<GoogleMap
 			apiKey={googleMapsApiKey}
 			center={{ lat: 40.7128, lng: -74.006 }}
-			className="overflow-hidden rounded-lg border border-border/80"
+			className="overflow-hidden rounded-[var(--frame-placeholder-border-radius)]"
 			consentCategory="measurement"
 			zoom={12}
 		/>
