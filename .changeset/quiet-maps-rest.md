@@ -4,11 +4,13 @@
 "@c15t/translations": minor
 ---
 
-Add consent-aware renderable integrations for Google Maps and YouTube embeds,
-plus a shared SDK readiness hook. Google Maps now uses the official API types,
-supports all direct-loader options, adopts an existing Maps singleton, retains
-one manager-owned loader across component remounts, and renders a useful default
-height and initialization fallback. Failed SDK registrations can be retried
-without changing their singleton id. The renderable integrations also include
-localized loading and error states, responsive YouTube defaults, and stricter
-source configuration types.
+Add consent-aware Google Maps and YouTube components for React and Next.js,
+plus `useConsentScript` for building custom SDK integrations.
+
+- `GoogleMap` keeps the Maps JavaScript API off the page until consent, shares
+  one page-level loader across map instances, supports retries and loader
+  configuration, and provides accessible blocked, loading, and error states.
+- `YouTubeEmbed` keeps the iframe unmounted until consent and provides a
+  responsive, privacy-enhanced embed with type-safe URL configuration.
+- Add customizable `frame.loading` and `frame.error` messages for integration
+  loading and failure states.
