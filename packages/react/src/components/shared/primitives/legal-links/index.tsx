@@ -102,7 +102,9 @@ export function InlineLegalLinks({
 								(link.target === '_blank' ? 'noopener noreferrer' : undefined)
 							}
 							{...linkStyles}
-							data-testid={testIdPrefix ? `${testIdPrefix}-${type}` : undefined}
+							data-testid={
+								testIdPrefix ? `${testIdPrefix}-${String(type)}` : undefined
+							}
 						>
 							{link.label ?? (t as Record<string, string>)?.[type as string]}
 							{index < array.length - 1 && ','}

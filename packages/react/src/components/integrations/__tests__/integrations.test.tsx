@@ -1,4 +1,4 @@
-import type { ConsentStoreState } from 'c15t';
+import { type ConsentStoreState, defaultTranslationConfig } from 'c15t';
 import { createRef, type ReactNode, useRef, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -9,7 +9,7 @@ import {
 	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
 import { GoogleMap } from '../google-map';
-import { YouTubeEmbed } from '../youtube-embed';
+import { YouTubeEmbed, type YouTubeEmbedProps } from '../youtube-embed';
 
 async function waitFor(assertion: () => undefined | boolean, timeoutMs = 1000) {
 	const start = Date.now();
@@ -62,6 +62,7 @@ function createMockConsentState(overrides: Partial<ConsentStoreState> = {}) {
 		policyCategories: ['*'],
 		policyScopeMode: 'permissive',
 		scripts: [],
+		translationConfig: defaultTranslationConfig,
 		removeScript: vi.fn(),
 		setScripts: vi.fn(),
 		subscribeToConsentChanges: () => () => undefined,
@@ -101,11 +102,13 @@ function MockConsentProvider({
 }
 
 function ConsentScriptProbe({
+	retryKey,
 	script,
 }: {
+	retryKey?: string | number;
 	script: Parameters<typeof useConsentScript>[0]['script'];
 }) {
-	const result = useConsentScript({ script });
+	const result = useConsentScript({ retryKey, script });
 	let readyText = 'missing-ready-promise';
 	if (result.ready) {
 		readyText = 'has-ready-promise';
@@ -180,7 +183,7 @@ describe('renderable integrations', () => {
 		await new Promise((resolve) => requestAnimationFrame(resolve));
 
 		expect(container.querySelector('iframe')).toBeNull();
-		expect(container.textContent).toContain('marketing');
+		expect(container.textContent).toContain('Marketing');
 	});
 
 	test('renders YouTube iframe through Frame when consent is available', async () => {
@@ -190,8 +193,9 @@ describe('renderable integrations', () => {
 				<YouTubeEmbed
 					className="video-frame"
 					consentCategory="necessary"
-					params={{ autoplay: false, controls: true }}
+					params={{ autoplay: false, controls: true, start: 5 }}
 					ref={iframeRef}
+					start={15}
 					videoId="abc123"
 					title="Allowed video"
 					wrapperClassName="video-wrapper"
@@ -207,27 +211,42 @@ describe('renderable integrations', () => {
 		expect(iframe?.src).toContain('youtube-nocookie.com/embed/abc123');
 		expect(iframe?.src).toContain('autoplay=0');
 		expect(iframe?.src).toContain('controls=1');
+		expect(iframe?.src).toContain('start=15');
+		expect(iframe?.src).not.toContain('start=5');
 		expect(iframe?.className).toBe('video-frame');
 		expect(iframe?.loading).toBe('lazy');
 		expect(iframeRef.current).toBe(iframe);
-		expect(iframe?.parentElement?.className).toBe('video-wrapper');
+		const wrapper = iframe?.closest('.video-wrapper') as HTMLDivElement | null;
+		expect(wrapper?.style.aspectRatio).toBe('16 / 9');
+		expect(wrapper?.style.minHeight).toBe('200px');
+		expect(wrapper?.style.width).toBe('100%');
+		expect(iframe?.style.borderWidth).toBe('0px');
+		expect(iframe?.style.height).toBe('100%');
+		expect(iframe?.style.width).toBe('100%');
 	});
 
 	test('renders an error fallback instead of throwing when no videoId or src is provided', async () => {
+		const invalidProps = {
+			consentCategory: 'necessary',
+			title: 'Misconfigured video',
+		} as unknown as YouTubeEmbedProps;
 		const { container } = await render(
 			<Provider>
-				<YouTubeEmbed
-					consentCategory="necessary"
-					errorFallback={<div>Missing video source</div>}
-					title="Misconfigured video"
-				/>
+				<YouTubeEmbed {...invalidProps} />
 			</Provider>
 		);
 
 		await new Promise((resolve) => requestAnimationFrame(resolve));
 
 		expect(container.querySelector('iframe')).toBeNull();
-		expect(container.textContent).toContain('Missing video source');
+		expect(container.textContent).toContain(
+			'This content could not be loaded.'
+		);
+		expect(
+			container
+				.querySelector('[data-c15t-integration="youtube-embed"]')
+				?.getAttribute('data-c15t-status')
+		).toBe('error');
 	});
 
 	test('keeps Google Maps script unregistered until consent is available', async () => {
@@ -263,6 +282,63 @@ describe('renderable integrations', () => {
 		expect(setScripts).not.toHaveBeenCalled();
 		expect(removeScript).not.toHaveBeenCalled();
 		expect(container.textContent).toContain('measurement');
+	});
+
+	test('uses localized category copy for the default Google Maps placeholder', async () => {
+		const setScripts = vi.fn();
+		const state = createMockConsentState({ setScripts });
+
+		const { container } = await render(
+			<MockConsentProvider state={state}>
+				<GoogleMap
+					apiKey="test-key"
+					center={{ lat: 51.5, lng: -0.12 }}
+					consentCategory="measurement"
+					scriptId="localized-google-map"
+				/>
+			</MockConsentProvider>
+		);
+
+		await new Promise((resolve) => requestAnimationFrame(resolve));
+
+		expect(setScripts).not.toHaveBeenCalled();
+		expect(container.textContent).toContain(
+			'Accept Analytics consent to view this content.'
+		);
+		expect(container.textContent).toContain('Enable Analytics consent');
+		expect(container.textContent).not.toContain('Allow measurement');
+	});
+
+	test('renders an accessible default Google Maps loading state', async () => {
+		const setScripts = vi.fn();
+		const state = createMockConsentState({ setScripts });
+
+		const { container } = await render(
+			<MockConsentProvider state={state}>
+				<GoogleMap
+					apiKey="test-key"
+					center={{ lat: 51.5, lng: -0.12 }}
+					consentCategory="necessary"
+					scriptId="loading-google-map"
+				/>
+			</MockConsentProvider>
+		);
+
+		await waitFor(() => {
+			expect(container.textContent).toContain('Loading content…');
+		});
+		expect(container.querySelector('[role="status"]')).not.toBeNull();
+		expect(
+			container
+				.querySelector('[data-c15t-integration="google-map"]')
+				?.getAttribute('data-c15t-status')
+		).toBe('loading');
+		expect(
+			container
+				.querySelector('[data-c15t-integration="google-map"]')
+				?.getAttribute('aria-busy')
+		).toBe('true');
+		expect(setScripts).toHaveBeenCalledTimes(1);
 	});
 
 	test('keeps Google Maps script unregistered when the API key is missing', async () => {
@@ -403,6 +479,181 @@ describe('renderable integrations', () => {
 				'Conflicting consent script options'
 			);
 		});
+		expect(container.textContent).toContain(
+			'choose a different id only when the vendor supports multiple page-level loaders'
+		);
+		expect(container.textContent).not.toContain(
+			'Use a unique script id for each vendor configuration'
+		);
+	});
+
+	test('retries a failed consent script when retryKey changes', async () => {
+		let attempt = 0;
+		const removeScript = vi.fn();
+		const setScripts = vi.fn((scripts) => {
+			const script = scripts[0];
+			attempt += 1;
+
+			setTimeout(() => {
+				const info = {
+					id: script?.id ?? 'retry-script',
+					elementId: script?.id ?? 'retry-script',
+					hasConsent: true,
+					consents: {
+						experience: false,
+						functionality: false,
+						marketing: false,
+						measurement: false,
+						necessary: true,
+					},
+				};
+
+				if (attempt === 1) {
+					script?.onError?.({
+						...info,
+						error: new Error('Temporary loader failure'),
+					});
+					return;
+				}
+
+				script?.onLoad?.(info);
+			}, 0);
+		});
+		const state = createMockConsentState({ removeScript, setScripts });
+		const script = {
+			id: 'retry-script',
+			src: 'https://example.com/retry.js',
+			category: 'necessary' as const,
+		};
+		const rendered = await render(
+			<MockConsentProvider state={state}>
+				<ConsentScriptProbe retryKey={0} script={script} />
+			</MockConsentProvider>
+		);
+
+		await waitFor(() => {
+			expect(rendered.container.textContent).toContain(
+				'Temporary loader failure'
+			);
+		});
+
+		await rendered.rerender(
+			<MockConsentProvider state={state}>
+				<ConsentScriptProbe retryKey={1} script={script} />
+			</MockConsentProvider>
+		);
+
+		await waitFor(() => {
+			expect(rendered.container.textContent).toContain('ready');
+		});
+		expect(setScripts).toHaveBeenCalledTimes(2);
+		expect(removeScript).toHaveBeenCalledWith('retry-script');
+	});
+
+	test('retries one consumer of a failed shared consent script', async () => {
+		let attempt = 0;
+		const removeScript = vi.fn();
+		const setScripts = vi.fn((scripts) => {
+			const script = scripts[0];
+			attempt += 1;
+
+			setTimeout(() => {
+				const info = {
+					id: script?.id ?? 'shared-retry-script',
+					elementId: script?.id ?? 'shared-retry-script',
+					hasConsent: true,
+					consents: {
+						experience: false,
+						functionality: false,
+						marketing: false,
+						measurement: false,
+						necessary: true,
+					},
+				};
+
+				if (attempt === 1) {
+					script?.onError?.({
+						...info,
+						error: new Error('Shared loader failure'),
+					});
+					return;
+				}
+
+				script?.onLoad?.(info);
+			}, 0);
+		});
+		const state = createMockConsentState({ removeScript, setScripts });
+		const script = {
+			id: 'shared-retry-script',
+			src: 'https://example.com/shared-retry.js',
+			category: 'necessary' as const,
+		};
+		const rendered = await render(
+			<MockConsentProvider state={state}>
+				<ConsentScriptProbe retryKey={0} script={script} />
+				<ConsentScriptProbe retryKey={0} script={script} />
+			</MockConsentProvider>
+		);
+
+		await waitFor(() => {
+			expect(rendered.container.textContent).toContain('Shared loader failure');
+		});
+
+		await rendered.rerender(
+			<MockConsentProvider state={state}>
+				<ConsentScriptProbe retryKey={1} script={script} />
+				<ConsentScriptProbe retryKey={0} script={script} />
+			</MockConsentProvider>
+		);
+
+		await waitFor(() => {
+			expect(rendered.container.textContent).toContain('ready');
+		});
+		expect(setScripts).toHaveBeenCalledTimes(2);
+		expect(removeScript).toHaveBeenCalledTimes(1);
+		expect(removeScript).toHaveBeenCalledWith('shared-retry-script');
+	});
+
+	test('gives singleton-safe guidance for conflicting Google Maps loaders', async () => {
+		const onError = vi.fn();
+		const state = createMockConsentState();
+
+		const { container } = await render(
+			<MockConsentProvider state={state}>
+				<GoogleMap
+					apiKey="test-key"
+					center={{ lat: 51.5, lng: -0.12 }}
+					consentCategory="necessary"
+					language="en"
+					scriptId="conflicting-google-map"
+				/>
+				<GoogleMap
+					apiKey="test-key"
+					center={{ lat: 40.71, lng: -74 }}
+					consentCategory="necessary"
+					language="fr"
+					onError={onError}
+					scriptId="conflicting-google-map"
+				/>
+			</MockConsentProvider>
+		);
+
+		await waitFor(() => {
+			expect(onError).toHaveBeenCalled();
+		});
+		expect(onError).toHaveBeenCalledWith(
+			expect.objectContaining({
+				message: expect.stringContaining('one page-level loader'),
+			})
+		);
+		expect(onError).toHaveBeenCalledWith(
+			expect.objectContaining({
+				message: expect.stringContaining(
+					'Do not work around this conflict by changing scriptId'
+				),
+			})
+		);
+		expect(container.querySelector('[role="alert"]')).not.toBeNull();
 	});
 
 	test('isolates shared script ids between consent managers', async () => {

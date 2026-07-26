@@ -48,6 +48,14 @@ export interface FrameTranslations {
 	 * Message shown when the frame category is blocked by active policy scope.
 	 */
 	policyBlocked: string;
+	/**
+	 * Message shown while consent-gated content is loading.
+	 */
+	loading?: string;
+	/**
+	 * Message shown when consent-gated content cannot be loaded.
+	 */
+	error?: string;
 }
 
 export interface IABBannerTranslations {

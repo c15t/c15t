@@ -153,7 +153,8 @@
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
 		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
-		"test": "bun prebuild && vitest run",
+		"test": "bun prebuild && bun run test:types && vitest run",
+		"test:types": "tsc --noEmit --project tsconfig.type-tests.json",
 		"test:watch": "bun prebuild && vitest"
 	},
 	"browserslist": [

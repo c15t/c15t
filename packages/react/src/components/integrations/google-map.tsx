@@ -12,10 +12,11 @@ import {
 	useState,
 } from 'react';
 import {
+	ConsentScriptConflictError,
 	type ConsentScriptReadyControls,
 	useConsentScript,
 } from '~/hooks/use-consent-script';
-import { IntegrationPlaceholder } from './shared';
+import { IntegrationPlaceholder, IntegrationStatus } from './shared';
 
 export type GoogleMapCoordinates = google.maps.LatLngLiteral;
 export type GoogleMapsApi = typeof google;
@@ -46,7 +47,11 @@ export interface GoogleMapProps
 	/** Initial and controlled center of the map. */
 	center: GoogleMapCoordinates;
 
-	/** Initial and controlled zoom level. */
+	/**
+	 * Initial and controlled zoom level.
+	 *
+	 * @default 12
+	 */
 	zoom?: number;
 
 	/**
@@ -58,22 +63,77 @@ export interface GoogleMapProps
 	/** Additional options passed to the Google Maps constructor. */
 	options?: Omit<GoogleMapOptions, 'center' | 'zoom' | 'mapId'>;
 
+	/**
+	 * Consent category required before the Maps SDK loads.
+	 *
+	 * @default 'measurement'
+	 */
 	consentCategory?: AllConsentNames;
+
+	/** Google Maps libraries to load with the shared page-level SDK. */
 	libraries?: GoogleMapsLibrary[];
+
+	/** Language used by Maps controls and service responses. */
 	language?: string;
+
+	/** Two-character region code used for Maps localization and biasing. */
 	region?: string;
+
+	/** Google Maps JavaScript API version channel. */
 	version?: string;
+
+	/** Limits referrer information sent to Google to the current origin. */
 	authReferrerPolicy?: 'origin';
+
+	/** Google Maps usage-tracking channel. */
 	channel?: string;
+
+	/** Cloud map ids to preload with the Maps SDK. */
 	mapIds?: string[];
+
+	/** Google Maps solution-channel identifier. */
 	solutionChannel?: string;
+
+	/** CSP nonce applied to the Maps script registration. */
 	nonce?: string;
+
+	/**
+	 * Shared c15t script registration id.
+	 *
+	 * Keep this id and all loader options consistent across the page.
+	 *
+	 * @default 'c15t-google-maps'
+	 */
 	scriptId?: string;
+
+	/**
+	 * Time to wait for the Maps readiness callback before reporting an error.
+	 *
+	 * @default 15000
+	 */
 	timeoutMs?: number;
+
+	/**
+	 * Change this value to retry a failed loader or map initialization.
+	 * Successful page-level loader registrations remain shared.
+	 *
+	 * @default 0
+	 */
+	retryKey?: string | number;
+
+	/** Content shown before the configured consent category is allowed. */
 	placeholder?: ReactNode;
+
+	/** Content shown while the Maps SDK or map instance is loading. */
 	loadingFallback?: ReactNode;
+
+	/** Content shown when configuration, loading, authentication, or setup fails. */
 	errorFallback?: ReactNode;
+
+	/** Called when the map instance is ready. */
 	onReady?: (map: GoogleMapInstance, api: GoogleMapsApi) => void;
+
+	/** Called when configuration, loading, authentication, or setup fails. */
 	onError?: (error: Error) => void;
 }
 
@@ -292,6 +352,7 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			nonce,
 			scriptId = 'c15t-google-maps',
 			timeoutMs = 15_000,
+			retryKey = 0,
 			placeholder,
 			loadingFallback,
 			errorFallback,
@@ -401,11 +462,15 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			resolveReady: getGoogleMapsApi,
 			registerReadyCallback: registerGoogleMapsCallback,
 			readinessKey: callbackName,
+			retryKey,
 			timeoutMs,
 			unmountBehavior: 'keep',
 		});
 
 		useEffect(() => {
+			// Retry clears an authentication failure even when consent is unchanged.
+			void retryKey;
+
 			setAuthenticationError(null);
 			if (!hasApiKey || !mapsScript.hasConsent) {
 				return;
@@ -415,9 +480,12 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 				setAuthenticationError(nextError);
 				latestCallbacksRef.current.onError?.(nextError);
 			});
-		}, [hasApiKey, mapsScript.hasConsent]);
+		}, [hasApiKey, mapsScript.hasConsent, retryKey]);
 
 		useEffect(() => {
+			// Retry reconstructs a failed map even when the shared SDK is still ready.
+			void retryKey;
+
 			if (
 				authenticationError ||
 				mapsScript.status !== 'ready' ||
@@ -460,7 +528,13 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 					mapRef.current = null;
 				}
 			};
-		}, [authenticationError, mapId, mapsScript.readyValue, mapsScript.status]);
+		}, [
+			authenticationError,
+			mapId,
+			mapsScript.readyValue,
+			mapsScript.status,
+			retryKey,
+		]);
 
 		useEffect(() => {
 			if (mapsScript.status !== 'ready') {
@@ -477,53 +551,57 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			map.setZoom(zoom);
 		}, [center, mapsScript.status, options, zoom]);
 
+		const configurationError = useMemo(
+			() =>
+				hasApiKey ? null : new Error('Google Maps requires a browser API key.'),
+			[hasApiKey]
+		);
+		const scriptError = useMemo(
+			() => toGoogleMapsScriptError(mapsScript.error, scriptId),
+			[mapsScript.error, scriptId]
+		);
+
 		useEffect(() => {
-			if (mapsScript.error) {
-				latestCallbacksRef.current.onError?.(mapsScript.error);
+			const nextError = configurationError ?? scriptError;
+			if (nextError) {
+				latestCallbacksRef.current.onError?.(nextError);
 			}
-		}, [mapsScript.error]);
+		}, [configurationError, scriptError]);
 
 		const displayError =
-			mapsScript.error ?? authenticationError ?? initializationError;
+			configurationError ??
+			scriptError ??
+			authenticationError ??
+			initializationError;
 		const fallback = (() => {
 			if (!hasApiKey) {
 				return (
 					errorFallback ?? (
-						<IntegrationPlaceholder
-							category={consentCategory}
-							showButton={false}
-						>
-							Google Maps requires an API key.
-						</IntegrationPlaceholder>
+						<IntegrationStatus category={consentCategory} status="error" />
 					)
 				);
 			}
 
 			if (mapsScript.status === 'blocked') {
 				return (
-					placeholder ?? (
-						<IntegrationPlaceholder category={consentCategory}>
-							Allow {consentCategory} consent to view this map.
-						</IntegrationPlaceholder>
-					)
+					placeholder ?? <IntegrationPlaceholder category={consentCategory} />
 				);
 			}
 
 			if (displayError) {
 				return (
 					errorFallback ?? (
-						<IntegrationPlaceholder
-							category={consentCategory}
-							showButton={false}
-						>
-							The map could not be loaded.
-						</IntegrationPlaceholder>
+						<IntegrationStatus category={consentCategory} status="error" />
 					)
 				);
 			}
 
 			if (mapsScript.status === 'loading') {
-				return loadingFallback ?? null;
+				return (
+					loadingFallback ?? (
+						<IntegrationStatus category={consentCategory} status="loading" />
+					)
+				);
 			}
 
 			return null;
@@ -566,4 +644,21 @@ function toError(error: unknown): Error {
 	}
 
 	return new Error(String(error));
+}
+
+function toGoogleMapsScriptError(
+	error: Error | null,
+	scriptId: string
+): Error | null {
+	if (!error) {
+		return null;
+	}
+
+	if (error instanceof ConsentScriptConflictError) {
+		return new Error(
+			`Conflicting Google Maps loader options were registered for '${scriptId}'. Google Maps supports one page-level loader: use the same apiKey, language, region, libraries, and loader options for every GoogleMap in this ConsentManagerProvider. Do not work around this conflict by changing scriptId.`
+		);
+	}
+
+	return error;
 }

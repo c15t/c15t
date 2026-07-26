@@ -155,11 +155,9 @@ export function ConsentAwareMedia() {
       )}
 
       <YouTubeEmbed
-        className="absolute inset-0 h-full w-full"
         consentCategory="marketing"
         title="Product demo"
         videoId="dQw4w9WgXcQ"
-        wrapperClassName="relative aspect-video"
       />
     </>
   );
@@ -176,7 +174,18 @@ Google Maps is SDK-backed and uses one shared c15t-managed script plus per-compo
 
 All maps with the same `scriptId` must use the same loader configuration. `mapId` changes recreate the instance; `center`, `zoom`, and updateable `options` update it in place. You can pass Google's direct-loader options through `libraries`, `language`, `region`, `version`, `authReferrerPolicy`, `mapIds`, `channel`, and `solutionChannel`.
 
-YouTube is iframe-only and uses the existing `Frame` boundary rather than the YouTube iframe API. Its `className` and forwarded ref target the iframe; `wrapperClassName` targets the `Frame`. Boolean `params` become `1` or `0`, and the iframe defaults to native lazy loading.
+YouTube is iframe-only and uses the existing `Frame` boundary rather than the
+YouTube iframe API. It defaults to a responsive, borderless 16:9 frame with a
+localized loading state, stable placeholder dimensions, native lazy loading,
+and the privacy-enhanced host. Its `className` and forwarded ref target the
+iframe; `wrapperClassName` and `frameProps` target the `Frame`. Boolean `params`
+become `1` or `0`.
+
+For a custom client-side SDK, `useConsentScript()` exposes `blocked`, `loading`,
+`ready`, and `error` states plus `readyValue`, `error`, and `ready`. Change its
+`retryKey` after a failed attempt to retry the same script id. Registrations
+with one id must use compatible script and readiness options; conflicts surface
+as `ConsentScriptConflictError`.
 
 For iframe-only embeds, use the [iframe blocking](/docs/frameworks/next/iframe-blocking) pattern or `YouTubeEmbed`. For SDK-backed widgets, load the SDK once and let each component instance create and clean up its own widget. Avoid mixing `next/script` with c15t for the same vendor.
 

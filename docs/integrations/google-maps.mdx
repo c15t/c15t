@@ -96,10 +96,15 @@ to your users.
 - **Existing SDK:** if another part of the application already loaded a
   compatible Google Maps global, the component adopts it instead of adding a
   duplicate script.
+- **Visible states:** the blocked, loading, and error states are accessible and
+  use the active c15t translations by default.
 
 Keep one `scriptId` and one loader configuration across the page. Override the
 default `scriptId` only to coordinate with a known c15t script registration, not
-to load a second Maps SDK configuration.
+to load a second Maps SDK configuration. If two maps register conflicting
+loader options, c15t reports the conflict and tells you to align the key,
+language, region, libraries, and other loader options. A different `scriptId`
+does not make a second Google loader safe.
 
 ## Configure the map
 
@@ -146,7 +151,13 @@ component instance.
 
 ## Handle loading and errors
 
-Use the fallback props for each visible state and `onError` for reporting:
+The built-in loading and error states use `frame.loading` and `frame.error` from
+your c15t messages. The consent placeholder uses the localized consent-type
+title in both its message and button—for example, an `Analytics` title produces
+“Enable Analytics consent.”
+
+Use the fallback props when you need integration-specific content and `onError`
+for reporting:
 
 ```tsx
 import { Frame, GoogleMap } from '@c15t/react';
@@ -179,6 +190,38 @@ that is not allowed.
 If you provide a custom `placeholder`, include `Frame.Button` or another way to
 reopen consent preferences or grant the required category.
 
+### Retry a failed map
+
+Increment `retryKey` to retry the same map after a loader, authentication, or
+constructor failure:
+
+```tsx
+import { GoogleMap } from '@c15t/react';
+import { useState } from 'react';
+
+function RetryableMap({ apiKey }: { apiKey: string }) {
+  const [retryKey, setRetryKey] = useState(0);
+
+  return (
+    <>
+      <GoogleMap
+        apiKey={apiKey}
+        center={{ lat: 40.7128, lng: -74.006 }}
+        retryKey={retryKey}
+      />
+
+      <button type="button" onClick={() => setRetryKey((key) => key + 1)}>
+        Retry map
+      </button>
+    </>
+  );
+}
+```
+
+Changing `retryKey` clears the failed attempt and retries with the same
+`scriptId`. A successful page-level SDK registration remains shared and is not
+loaded again.
+
 ## Secure the browser key
 
 For production:
@@ -210,6 +253,8 @@ restrictions without URL paths.
 5. Revoke consent and confirm each map instance is removed.
 6. Test a rejected key or referrer and confirm `errorFallback` and `onError`
    receive the failure.
+7. Fix the rejected configuration, change `retryKey`, and confirm the map can
+   recover without changing `scriptId`.
 
 ## Types
 

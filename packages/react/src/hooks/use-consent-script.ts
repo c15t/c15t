@@ -22,6 +22,18 @@ export type ConsentScriptStatus =
 
 export type ConsentScriptUnmountBehavior = 'keep' | 'remove';
 
+export class ConsentScriptConflictError extends Error {
+	readonly scriptId: string;
+
+	constructor(scriptId: string) {
+		super(
+			`Conflicting consent script options were registered for '${scriptId}'. Reuse the same options for this script id, or choose a different id only when the vendor supports multiple page-level loaders.`
+		);
+		this.name = 'ConsentScriptConflictError';
+		this.scriptId = scriptId;
+	}
+}
+
 export interface ConsentScriptReadyControls<TReady> {
 	resolve: (value: TReady) => void;
 	reject: (error: Error) => void;
@@ -68,6 +80,14 @@ export interface UseConsentScriptOptions<TReady = unknown> {
 	 * Optional timeout for SDK readiness after the script is registered.
 	 */
 	timeoutMs?: number;
+
+	/**
+	 * Changing this value retries a failed registration with the same script id.
+	 * Successful singleton registrations remain shared.
+	 *
+	 * @default 0
+	 */
+	retryKey?: string | number;
 
 	/**
 	 * Whether c15t should retain an owned script registration after the final
@@ -341,6 +361,7 @@ function getOrCreateRegistryEntry<TReady>({
 	consumer,
 	signature,
 	readinessKey,
+	retryFailed,
 	timeoutMs,
 	unmountBehavior,
 }: {
@@ -349,11 +370,27 @@ function getOrCreateRegistryEntry<TReady>({
 	consumer: ScriptConsumer<TReady>;
 	signature: string;
 	readinessKey: string;
+	retryFailed: boolean;
 	timeoutMs?: number;
 	unmountBehavior: ConsentScriptUnmountBehavior;
 }): ScriptRegistryEntry<TReady> {
 	const registry = getRegistry(store);
-	const existing = registry.get(options.script.id);
+	let existing = registry.get(options.script.id);
+
+	if (existing?.error && retryFailed) {
+		cleanupReadiness(existing);
+		if (registry.get(existing.script.id) === existing) {
+			registry.delete(existing.script.id);
+		}
+
+		if (existing.ownsRegistration && existing.registered) {
+			store.getState().removeScript(existing.script.id);
+			existing.ownsRegistration = false;
+			existing.registered = false;
+		}
+
+		existing = undefined;
+	}
 
 	if (existing) {
 		if (
@@ -362,9 +399,7 @@ function getOrCreateRegistryEntry<TReady>({
 			existing.timeoutMs !== timeoutMs ||
 			existing.unmountBehavior !== unmountBehavior
 		) {
-			throw new Error(
-				`Conflicting consent script options were registered for '${options.script.id}'. Use a unique script id for each vendor configuration.`
-			);
+			throw new ConsentScriptConflictError(options.script.id);
 		}
 
 		return existing as ScriptRegistryEntry<TReady>;
@@ -375,9 +410,7 @@ function getOrCreateRegistryEntry<TReady>({
 		.scripts.filter((candidate) => candidate.id === options.script.id);
 	for (const managerScript of managerScripts) {
 		if (createScriptSignature(managerScript) !== signature) {
-			throw new Error(
-				`Conflicting consent script options were registered for '${options.script.id}'. Use a unique script id for each vendor configuration.`
-			);
+			throw new ConsentScriptConflictError(options.script.id);
 		}
 	}
 
@@ -464,7 +497,10 @@ function releaseRegistryEntry<TReady>({
 	}
 
 	cleanupReadiness(entry as unknown as ScriptRegistryEntry<unknown>);
-	getRegistry(store).delete(entry.script.id);
+	const registry = getRegistry(store);
+	if (registry.get(entry.script.id) === entry) {
+		registry.delete(entry.script.id);
+	}
 
 	if (entry.ownsRegistration && entry.registered) {
 		store.getState().removeScript(entry.script.id);
@@ -487,6 +523,7 @@ export function useConsentScript<TReady = unknown>(
 		script,
 		enabled = true,
 		readinessKey = script.id,
+		retryKey = 0,
 		unmountBehavior = 'remove',
 	} = options;
 	const context = useContext(ConsentStateContext);
@@ -504,6 +541,7 @@ export function useConsentScript<TReady = unknown>(
 	const timeoutMs = normalizeTimeout(options.timeoutMs);
 	const latestOptionsRef = useRef<UseConsentScriptOptions<TReady>>(options);
 	latestOptionsRef.current = options;
+	const previousRetryKeyRef = useRef(retryKey);
 	const activeEntryRef = useRef<ScriptRegistryEntry<TReady> | null>(null);
 	const [readyValue, setReadyValue] = useState<TReady | null>(null);
 	const [isReady, setIsReady] = useState(false);
@@ -511,6 +549,9 @@ export function useConsentScript<TReady = unknown>(
 	const [ready, setReady] = useState<Promise<TReady> | null>(null);
 
 	useEffect(() => {
+		const retryFailed = previousRetryKeyRef.current !== retryKey;
+		previousRetryKeyRef.current = retryKey;
+
 		if (!enabled || !hasConsent) {
 			activeEntryRef.current = null;
 			setReadyValue(null);
@@ -530,6 +571,7 @@ export function useConsentScript<TReady = unknown>(
 				consumer,
 				signature,
 				readinessKey,
+				retryFailed,
 				timeoutMs,
 				unmountBehavior,
 			});
@@ -608,6 +650,7 @@ export function useConsentScript<TReady = unknown>(
 		enabled,
 		hasConsent,
 		readinessKey,
+		retryKey,
 		signature,
 		timeoutMs,
 		unmountBehavior,

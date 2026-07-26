@@ -35,6 +35,8 @@ describe('deepMergeTranslations', () => {
 		frame: {
 			title: 'Frame Title',
 			actionButton: 'Frame Button',
+			loading: 'Loading content',
+			error: 'Content failed',
 		},
 	};
 
@@ -74,6 +76,8 @@ describe('deepMergeTranslations', () => {
 			frame: {
 				title: 'Frame Title',
 				actionButton: 'Frame Button',
+				loading: 'Loading content',
+				error: 'Content failed',
 			},
 		});
 	});

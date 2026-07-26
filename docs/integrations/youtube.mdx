@@ -26,12 +26,10 @@ standard iframe embeds and keeps script readiness separate from iframe gating.
     export function ProductVideo() {
       return (
         <YouTubeEmbed
-          className="block size-full rounded-[var(--frame-placeholder-border-radius)] border-0"
           consentCategory="marketing"
           params={{ controls: true, playsinline: true }}
           title="Product overview"
           videoId="dQw4w9WgXcQ"
-          wrapperClassName="aspect-video"
         />
       );
     }
@@ -47,12 +45,10 @@ standard iframe embeds and keeps script readiness separate from iframe gating.
     export function ProductVideo() {
       return (
         <YouTubeEmbed
-          className="block size-full rounded-[var(--frame-placeholder-border-radius)] border-0"
           consentCategory="marketing"
           params={{ controls: true, playsinline: true }}
           title="Product overview"
           videoId="dQw4w9WgXcQ"
-          wrapperClassName="aspect-video"
         />
       );
     }
@@ -69,7 +65,10 @@ matches the purpose of the embed and the policy presented to your users.
 - **After consent:** the iframe mounts with its final embed URL.
 - **On revocation:** the `Frame` boundary unmounts the iframe, stopping the
   embedded player and future requests from that document.
-- **Loading behavior:** the iframe uses native lazy loading by default.
+- **Loading behavior:** c15t reserves the final player size, shows a localized
+  loading state, and uses native iframe lazy loading by default.
+- **Default layout:** the placeholder and player share a responsive 16:9,
+  borderless frame with a `200px` minimum height.
 - **Privacy-enhanced mode:** URLs built from `videoId` use
   `youtube-nocookie.com` by default.
 
@@ -96,7 +95,8 @@ Prefer `videoId` when you control the video:
 ```
 
 Boolean `params` are serialized as YouTube's `1` and `0` values. `start` is
-serialized as the player's start time in seconds.
+serialized as the player's start time in seconds. If `params.start` is also
+present, the top-level `start` prop takes precedence.
 
 Set `privacyEnhanced={false}` only when you intentionally need the regular
 `youtube.com` host.
@@ -113,29 +113,30 @@ Use `src` when you already have a complete embed URL:
 />
 ```
 
-When `src` is provided, c15t uses it unchanged. `videoId`, `start`, `params`, and
-`privacyEnhanced` only affect URLs that the component builds for you.
+When `src` is provided, c15t uses it unchanged. TypeScript treats `src` and
+`videoId` as mutually exclusive source modes: `start`, `params`, and
+`privacyEnhanced` are available only with `videoId`.
 
 ## Style the wrapper and iframe
 
 `wrapperClassName` targets the consent-gated `Frame`. `className` and the
 forwarded ref target the iframe itself.
 
-Give the wrapper a stable size so the placeholder and player do not cause a
-layout shift:
+The defaults are responsive and stable without utility classes. Override them
+only when your layout needs a different aspect ratio or height:
 
 ```tsx
 <YouTubeEmbed
-  wrapperClassName="aspect-video"
-  className="block size-full rounded-[var(--frame-placeholder-border-radius)] border-0"
   consentCategory="marketing"
+  frameProps={{ style: { aspectRatio: '4 / 3', minHeight: 280 } }}
+  style={{ borderRadius: 4 }}
   title="Product overview"
   videoId="dQw4w9WgXcQ"
 />
 ```
 
-The example reuses the default placeholder radius for the loaded iframe, so the
-shape does not change when consent is granted.
+`frameProps.style` is merged after the wrapper defaults. The iframe fills that
+wrapper, has no border, and inherits the wrapper radius by default.
 
 ## Customize the placeholder
 
@@ -158,8 +159,15 @@ import { Frame, YouTubeEmbed } from '@c15t/react';
 Custom placeholders should explain why the content is blocked and provide a
 clear way to change consent. Always give the iframe a meaningful `title`.
 
-If neither `videoId` nor `src` is supplied, the component renders
-`errorFallback` instead of mounting an iframe.
+Use `loadingFallback` to replace the post-consent loading message and
+`errorFallback` to replace the configuration error state. If neither `videoId`
+nor `src` is supplied at runtime, the component renders that error state instead
+of mounting an iframe.
+
+Standard cross-origin iframes do not provide a reliable player-error signal.
+`YouTubeEmbed` forwards the iframe's native `onError` when a browser emits it,
+but player-level errors require the YouTube IFrame Player API and are outside
+this iframe-only component.
 
 ## Verify setup
 
@@ -169,8 +177,8 @@ If neither `videoId` nor `src` is supplied, the component renders
 4. Confirm a `videoId` embed uses `youtube-nocookie.com` unless
    `privacyEnhanced={false}`.
 5. Revoke consent and confirm the iframe is removed.
-6. Confirm the placeholder and loaded player reserve the same space at mobile
-   and desktop widths.
+6. Confirm the default 16:9 frame is borderless and reserves the same space at
+   mobile and desktop widths.
 
 See YouTube's [embedded player parameters](https://developers.google.com/youtube/player_parameters)
 for the supported query parameters.

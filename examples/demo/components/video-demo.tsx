@@ -61,11 +61,11 @@ export function VideoDemo({
 						</p>
 					</div>
 					<YouTubeEmbed
-						className="absolute inset-0 h-full w-full"
 						consentCategory="measurement"
-						src="https://www.youtube.com/embed/gwqYfNWVPpk?si=eEtKAUke_JUXTMfl&start=36"
+						params={{ playsinline: true }}
+						start={36}
 						title="Measurement policy-gated video"
-						wrapperClassName="relative aspect-video w-full"
+						videoId="gwqYfNWVPpk"
 					/>
 				</div>
 
@@ -79,11 +79,11 @@ export function VideoDemo({
 						</p>
 					</div>
 					<YouTubeEmbed
-						className="absolute inset-0 h-full w-full"
 						consentCategory="marketing"
-						src="https://www.youtube.com/embed/gwqYfNWVPpk?si=eEtKAUke_JUXTMfl&start=36"
+						params={{ playsinline: true }}
+						start={36}
 						title="Marketing policy-gated video"
-						wrapperClassName="relative aspect-video w-full"
+						videoId="gwqYfNWVPpk"
 					/>
 				</div>
 

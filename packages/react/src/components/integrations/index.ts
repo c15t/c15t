@@ -9,4 +9,10 @@ export {
 	type GoogleMapsApi,
 	type GoogleMapsLibrary,
 } from './google-map';
-export { YouTubeEmbed, type YouTubeEmbedProps } from './youtube-embed';
+export {
+	YouTubeEmbed,
+	type YouTubeEmbedParams,
+	type YouTubeEmbedProps,
+	type YouTubeSrcSource,
+	type YouTubeVideoIdSource,
+} from './youtube-embed';

@@ -149,12 +149,10 @@ function Page() {
       )}
 
       <YouTubeEmbed
-        className="absolute inset-0 h-full w-full"
         consentCategory="marketing"
         params={{ controls: true, playsinline: true }}
         title="Product demo"
         videoId="dQw4w9WgXcQ"
-        wrapperClassName="relative aspect-video"
       />
     </>
   );
@@ -177,32 +175,78 @@ The Maps JavaScript API is a page singleton. Before consent, c15t makes no Maps 
 
 `GoogleMap` reports network, timeout, constructor, and Google's global authentication failures through `onError` and `errorFallback`. Authentication errors commonly mean the browser key, billing, or allowed referrers need attention.
 
-For `YouTubeEmbed`, `className` and the forwarded ref target the iframe. Use `wrapperClassName` for the consent-gated `Frame`. Boolean values in `params` are serialized as YouTube's documented `1` and `0` values, and the iframe defaults to native lazy loading.
+`YouTubeEmbed` defaults to a responsive, borderless 16:9 frame with stable
+placeholder dimensions, a localized loading state, native lazy loading, and
+the privacy-enhanced `youtube-nocookie.com` host. For overrides, `className` and
+the forwarded ref target the iframe while `wrapperClassName` and `frameProps`
+target the consent-gated `Frame`. Boolean values in `params` are serialized as
+YouTube's documented `1` and `0` values.
 
-For custom SDK-backed widgets, call `useConsentScript()` with a c15t `Script` object. The hook uses the consent manager as the source of truth, shares compatible registrations inside that provider, and exposes a promise-shaped readiness result:
+For custom SDK-backed widgets, call `useConsentScript()` with a c15t `Script`
+object. The hook uses the consent manager as the source of truth, shares
+compatible registrations inside that provider, and exposes status, consent,
+the ready SDK value, errors, and a promise:
 
 ```tsx
-const analytics = useConsentScript({
-  script: {
-    id: 'vendor-sdk',
-    src: 'https://cdn.example.com/sdk.js',
-    category: 'measurement',
-  },
-  resolveReady: () => window.vendorSdk ?? false,
-  registerReadyCallback: ({ resolve }) => {
-    window.onVendorReady = () => resolve(window.vendorSdk);
+import { useState } from 'react';
+import { useConsentScript } from '@c15t/react';
 
-    return () => {
-      delete window.onVendorReady;
-    };
-  },
-  readinessKey: 'vendor-sdk-v1',
-  timeoutMs: 10_000,
-  unmountBehavior: 'keep',
-});
+export function VendorWidget() {
+  const [retryKey, setRetryKey] = useState(0);
+  const vendor = useConsentScript({
+    script: {
+      id: 'vendor-sdk',
+      src: 'https://cdn.example.com/sdk.js',
+      category: 'measurement',
+    },
+    resolveReady: () => window.vendorSdk ?? false,
+    registerReadyCallback: ({ resolve }) => {
+      window.onVendorReady = () => resolve(window.vendorSdk);
+
+      return () => {
+        delete window.onVendorReady;
+      };
+    },
+    readinessKey: 'vendor-sdk-v1',
+    retryKey,
+    timeoutMs: 10_000,
+    unmountBehavior: 'keep',
+  });
+
+  if (vendor.status === 'blocked') {
+    return <p>Enable Analytics consent to use this widget.</p>;
+  }
+
+  if (vendor.status === 'loading') {
+    return <p role="status">Loading widget…</p>;
+  }
+
+  if (vendor.status === 'error') {
+    return (
+      <div role="alert">
+        <p>The widget could not be loaded.</p>
+        <button type="button" onClick={() => setRetryKey((key) => key + 1)}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (vendor.status !== 'ready' || !vendor.readyValue) {
+    return null;
+  }
+
+  return <div ref={(node) => node && vendor.readyValue.mount(node)} />;
+}
 ```
 
 Inline script objects and lifecycle callbacks are safe. The hook compares the complete non-function script configuration, reads callbacks from the latest render, adopts a compatible script already owned by the provider, and never removes a registration it did not create. Use `unmountBehavior: 'remove'` (the default) for route-local scripts, or `'keep'` for a genuine page-level singleton.
+
+Change `retryKey` after a failed attempt to retry the same registration.
+Consumers sharing a script id must use identical script options,
+`readinessKey`, timeout, and unmount behavior. Conflicts throw
+`ConsentScriptConflictError`; choose another id only when the vendor genuinely
+supports multiple page-level loaders.
 
 For iframe-only embeds, use the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern or `YouTubeEmbed` instead of loading a JavaScript SDK to hide an iframe. For SDK-backed widgets, treat the SDK as a singleton and each rendered component as its own instance.
 

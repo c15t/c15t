@@ -23,6 +23,7 @@ export {
 // Export hooks
 export { useConsentManager } from './hooks/use-consent-manager';
 export {
+	ConsentScriptConflictError,
 	type ConsentScriptReadyControls,
 	type ConsentScriptStatus,
 	type ConsentScriptUnmountBehavior,

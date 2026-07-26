@@ -52,9 +52,11 @@ const FrameButton = forwardRef<
 	HTMLButtonElement,
 	Omit<ConsentButtonProps, 'themeKey'> & { category: AllConsentNames }
 >(({ children, category, ...props }, ref) => {
-	const { frame } = useTranslations();
+	const { consentTypes, frame } = useTranslations();
+	const categoryTitle =
+		consentTypes?.[category as keyof typeof consentTypes]?.title ?? category;
 
-	const defaultText = frame?.actionButton?.replace('{category}', category);
+	const defaultText = frame?.actionButton?.replace('{category}', categoryTitle);
 
 	return (
 		<ConsentButton

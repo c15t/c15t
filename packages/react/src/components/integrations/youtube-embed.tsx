@@ -1,21 +1,27 @@
 'use client';
 
 import type { AllConsentNames } from 'c15t';
-import { type ComponentPropsWithRef, forwardRef, type ReactNode } from 'react';
+import {
+	type ComponentPropsWithRef,
+	type CSSProperties,
+	forwardRef,
+	type ReactNode,
+	useState,
+} from 'react';
 import { Frame, type FrameProps } from '../frame';
-import { IntegrationPlaceholder } from './shared';
+import { IntegrationStatus } from './shared';
 
-export interface YouTubeEmbedProps
-	extends Omit<ComponentPropsWithRef<'iframe'>, 'src' | 'children'> {
-	/**
-	 * YouTube video id. Use this for first-party construction of the embed URL.
-	 */
-	videoId?: string;
+export type YouTubeEmbedParams = Record<
+	string,
+	string | number | boolean | null | undefined
+>;
 
+interface YouTubeEmbedBaseProps
+	extends Omit<ComponentPropsWithRef<'iframe'>, 'children' | 'src' | 'title'> {
 	/**
-	 * Fully formed YouTube embed URL. Use this when migrating existing embeds.
+	 * Accessible title for the embedded player.
 	 */
-	src?: string;
+	title: string;
 
 	/**
 	 * Consent category required before the iframe mounts.
@@ -23,23 +29,6 @@ export interface YouTubeEmbedProps
 	 * @default 'marketing'
 	 */
 	consentCategory?: AllConsentNames;
-
-	/**
-	 * Whether to use youtube-nocookie.com when `videoId` is provided.
-	 *
-	 * @default true
-	 */
-	privacyEnhanced?: boolean;
-
-	/**
-	 * Optional start time in seconds.
-	 */
-	start?: number;
-
-	/**
-	 * Additional query params for the generated embed URL.
-	 */
-	params?: Record<string, string | number | boolean | null | undefined>;
 
 	/**
 	 * Class name for the iframe element targeted by the forwarded ref.
@@ -57,9 +46,18 @@ export interface YouTubeEmbedProps
 	placeholder?: ReactNode;
 
 	/**
-	 * Fallback rendered when neither `videoId` nor `src` is provided.
+	 * Fallback rendered when the iframe cannot be configured or when the
+	 * browser reports a native iframe loading error.
+	 *
+	 * YouTube player-level errors require the IFrame Player API and are not
+	 * reported reliably by a standard cross-origin iframe.
 	 */
 	errorFallback?: ReactNode;
+
+	/**
+	 * Fallback rendered after consent while the iframe is loading.
+	 */
+	loadingFallback?: ReactNode;
 
 	/**
 	 * Additional props passed to the underlying Frame component.
@@ -70,6 +68,47 @@ export interface YouTubeEmbedProps
 	>;
 }
 
+export interface YouTubeVideoIdSource {
+	/**
+	 * YouTube video id. Use this for first-party construction of the embed URL.
+	 */
+	videoId: string;
+
+	src?: never;
+
+	/**
+	 * Whether to use youtube-nocookie.com.
+	 *
+	 * @default true
+	 */
+	privacyEnhanced?: boolean;
+
+	/**
+	 * Optional start time in seconds. This takes precedence over `params.start`.
+	 */
+	start?: number;
+
+	/**
+	 * Additional query params for the generated embed URL.
+	 */
+	params?: YouTubeEmbedParams;
+}
+
+export interface YouTubeSrcSource {
+	/**
+	 * Fully formed YouTube embed URL. Use this when migrating existing embeds.
+	 */
+	src: string;
+
+	videoId?: never;
+	privacyEnhanced?: never;
+	start?: never;
+	params?: never;
+}
+
+export type YouTubeEmbedProps = YouTubeEmbedBaseProps &
+	(YouTubeVideoIdSource | YouTubeSrcSource);
+
 function buildYouTubeEmbedUrl({
 	videoId,
 	privacyEnhanced,
@@ -79,13 +118,9 @@ function buildYouTubeEmbedUrl({
 	videoId: string;
 	privacyEnhanced: boolean;
 	start?: number;
-	params?: YouTubeEmbedProps['params'];
+	params?: YouTubeEmbedParams;
 }) {
 	const query = new URLSearchParams();
-
-	if (start != null) {
-		query.set('start', String(start));
-	}
 
 	if (params) {
 		for (const [key, value] of Object.entries(params)) {
@@ -98,28 +133,43 @@ function buildYouTubeEmbedUrl({
 		}
 	}
 
-	let host = 'https://www.youtube.com';
-	if (privacyEnhanced) {
-		host = 'https://www.youtube-nocookie.com';
+	if (start != null) {
+		query.set('start', String(start));
 	}
 
-	let suffix = '';
-	if (query.size > 0) {
-		suffix = `?${query.toString()}`;
-	}
+	const host = privacyEnhanced
+		? 'https://www.youtube-nocookie.com'
+		: 'https://www.youtube.com';
+	const suffix = query.size > 0 ? `?${query.toString()}` : '';
 
 	return `${host}/embed/${encodeURIComponent(videoId)}${suffix}`;
 }
 
+const defaultWrapperStyle: CSSProperties = {
+	aspectRatio: '16 / 9',
+	borderRadius: 'var(--frame-placeholder-border-radius)',
+	minHeight: 200,
+	overflow: 'hidden',
+	width: '100%',
+};
+
+const defaultIframeStyle: CSSProperties = {
+	border: 0,
+	borderRadius: 'inherit',
+	display: 'block',
+	height: '100%',
+	inset: 0,
+	position: 'absolute',
+	width: '100%',
+};
+
 /**
  * Renders a YouTube iframe behind c15t consent gating.
  *
- * Use this helper for iframe-only YouTube embeds. The iframe is mounted only
- * after the configured consent category is allowed, so YouTube network requests
- * are avoided while consent is missing.
- *
- * When neither `videoId` nor `src` is provided, an error fallback is rendered
- * instead of throwing, mirroring the fallback behavior of `GoogleMap`.
+ * Use `videoId` for a privacy-enhanced URL built by c15t, or `src` to migrate
+ * an existing complete embed URL. The two source modes are mutually exclusive.
+ * The iframe is mounted only after consent and includes responsive 16:9 layout,
+ * native lazy loading, and a visible loading state by default.
  *
  * @example
  * ```tsx
@@ -143,52 +193,104 @@ export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
 			wrapperClassName,
 			placeholder,
 			errorFallback,
+			loadingFallback,
 			frameProps,
 			title = 'YouTube video',
 			allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
 			allowFullScreen = true,
 			loading = 'lazy',
+			onError,
+			onLoad,
+			style,
 			...iframeProps
 		},
 		forwardedRef
 	) => {
-		let embedSrc = src;
-		if (!embedSrc && videoId) {
-			embedSrc = buildYouTubeEmbedUrl({
-				videoId,
-				privacyEnhanced,
-				start,
-				params,
-			});
-		}
+		const embedSrc =
+			src ??
+			(videoId
+				? buildYouTubeEmbedUrl({
+						videoId,
+						privacyEnhanced,
+						start,
+						params,
+					})
+				: undefined);
+		const [loadState, setLoadState] = useState<{
+			source: string | undefined;
+			status: 'error' | 'loading' | 'ready';
+		}>({ source: embedSrc, status: 'loading' });
+		const currentLoadState =
+			loadState.source === embedSrc ? loadState.status : 'loading';
+		const { style: frameStyle, ...restFrameProps } = frameProps ?? {};
+		const wrapperStyle = {
+			...defaultWrapperStyle,
+			...frameStyle,
+		};
 
 		if (!embedSrc) {
 			return (
-				errorFallback ?? (
-					<IntegrationPlaceholder category={consentCategory} showButton={false}>
-						This embed requires a YouTube videoId or src.
-					</IntegrationPlaceholder>
-				)
+				<div
+					className={wrapperClassName}
+					data-c15t-integration="youtube-embed"
+					data-c15t-status="error"
+					style={wrapperStyle}
+				>
+					{errorFallback ?? (
+						<IntegrationStatus category={consentCategory} status="error" />
+					)}
+				</div>
 			);
 		}
 
 		return (
 			<Frame
+				{...restFrameProps}
 				category={consentCategory}
 				className={wrapperClassName}
 				placeholder={placeholder}
-				{...frameProps}
+				style={wrapperStyle}
 			>
-				<iframe
-					allow={allow}
-					allowFullScreen={allowFullScreen}
-					className={className}
-					loading={loading}
-					ref={forwardedRef}
-					src={embedSrc}
-					title={title}
-					{...iframeProps}
-				/>
+				<div
+					aria-busy={currentLoadState === 'loading' || undefined}
+					data-c15t-integration="youtube-embed"
+					data-c15t-status={currentLoadState}
+					style={{ height: '100%', position: 'relative', width: '100%' }}
+				>
+					{currentLoadState === 'loading' &&
+						(loadingFallback ?? (
+							<IntegrationStatus category={consentCategory} status="loading" />
+						))}
+					{currentLoadState === 'error' &&
+						(errorFallback ?? (
+							<IntegrationStatus category={consentCategory} status="error" />
+						))}
+					<iframe
+						{...iframeProps}
+						allow={allow}
+						allowFullScreen={allowFullScreen}
+						aria-hidden={currentLoadState === 'ready' ? undefined : true}
+						className={className}
+						key={embedSrc}
+						loading={loading}
+						onError={(event) => {
+							setLoadState({ source: embedSrc, status: 'error' });
+							onError?.(event);
+						}}
+						onLoad={(event) => {
+							setLoadState({ source: embedSrc, status: 'ready' });
+							onLoad?.(event);
+						}}
+						ref={forwardedRef}
+						src={embedSrc}
+						style={{
+							...defaultIframeStyle,
+							visibility: currentLoadState === 'ready' ? 'visible' : 'hidden',
+							...style,
+						}}
+						title={title}
+					/>
+				</div>
 			</Frame>
 		);
 	}
