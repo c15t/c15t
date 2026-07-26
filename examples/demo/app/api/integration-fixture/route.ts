@@ -1,21 +1,39 @@
-const RETRY_ATTEMPTS_KEY = '__c15tDemoRetryAttempts';
-
-type FixtureGlobals = typeof globalThis & {
-	[RETRY_ATTEMPTS_KEY]?: Map<string, number>;
-};
-
-const fixtureGlobals = globalThis as FixtureGlobals;
-let retryAttempts = fixtureGlobals[RETRY_ATTEMPTS_KEY];
-if (!retryAttempts) {
-	retryAttempts = new Map();
-	fixtureGlobals[RETRY_ATTEMPTS_KEY] = retryAttempts;
-}
+const RETRY_SESSIONS_COOKIE = 'c15t_demo_retry_sessions';
+const MAX_RETRY_SESSIONS = 12;
 
 function noStoreHeaders(contentType: string) {
 	return {
 		'Cache-Control': 'no-store',
 		'Content-Type': contentType,
 	};
+}
+
+function readRetrySessions(request: Request) {
+	const cookie = request.headers
+		.get('cookie')
+		?.split(';')
+		.map((part) => part.trim())
+		.find((part) => part.startsWith(`${RETRY_SESSIONS_COOKIE}=`));
+	if (!cookie) {
+		return [];
+	}
+
+	try {
+		const value = cookie.slice(RETRY_SESSIONS_COOKIE.length + 1);
+		const parsed = JSON.parse(decodeURIComponent(value));
+		return Array.isArray(parsed)
+			? parsed.filter((item): item is string => typeof item === 'string')
+			: [];
+	} catch {
+		return [];
+	}
+}
+
+function createRetrySessionsCookie(sessions: string[]) {
+	const value = encodeURIComponent(
+		JSON.stringify(sessions.slice(-MAX_RETRY_SESSIONS))
+	);
+	return `${RETRY_SESSIONS_COOKIE}=${value}; Path=/api/integration-fixture; Max-Age=300; HttpOnly; SameSite=Lax`;
 }
 
 export async function GET(request: Request) {
@@ -60,24 +78,23 @@ export async function GET(request: Request) {
 
 	if (fixture === 'retry-script') {
 		const session = url.searchParams.get('session');
-		if (!session) {
-			return new Response('// Missing fixture session.', {
+		if (!session || session.length > 128) {
+			return new Response('// Invalid or missing fixture session.', {
 				headers: noStoreHeaders('application/javascript; charset=utf-8'),
 				status: 400,
 			});
 		}
 
-		const attempt = (retryAttempts.get(session) ?? 0) + 1;
-		retryAttempts.set(session, attempt);
-
-		if (retryAttempts.size > 100) {
-			retryAttempts.clear();
-			retryAttempts.set(session, attempt);
-		}
-
-		if (attempt === 1) {
+		const attemptedSessions = readRetrySessions(request);
+		if (!attemptedSessions.includes(session)) {
 			return new Response('// Intentional first-attempt failure.', {
-				headers: noStoreHeaders('application/javascript; charset=utf-8'),
+				headers: {
+					...noStoreHeaders('application/javascript; charset=utf-8'),
+					'Set-Cookie': createRetrySessionsCookie([
+						...attemptedSessions,
+						session,
+					]),
+				},
 				status: 503,
 			});
 		}
@@ -86,7 +103,7 @@ export async function GET(request: Request) {
 		return new Response(
 			`window.__c15tIntegrationFixtures ??= {};
 			window.__c15tIntegrationFixtures[${encodedSession}] = {
-				attempt: ${attempt},
+				attempt: 2,
 				session: ${encodedSession}
 			};`,
 			{ headers: noStoreHeaders('application/javascript; charset=utf-8') }

@@ -51,6 +51,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'Povoliť súhlas pre {category}',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Zásady ochrany osobných údajov',

@@ -50,6 +50,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'Ativar consentimento {category}',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Política de Privacidade',

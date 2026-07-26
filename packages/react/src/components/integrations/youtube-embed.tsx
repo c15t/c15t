@@ -140,7 +140,8 @@ function buildYouTubeEmbedUrl({
 	const host = privacyEnhanced
 		? 'https://www.youtube-nocookie.com'
 		: 'https://www.youtube.com';
-	const suffix = query.size > 0 ? `?${query.toString()}` : '';
+	const serializedQuery = query.toString();
+	const suffix = serializedQuery ? `?${serializedQuery}` : '';
 
 	return `${host}/embed/${encodeURIComponent(videoId)}${suffix}`;
 }

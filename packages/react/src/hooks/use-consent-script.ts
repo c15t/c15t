@@ -540,13 +540,16 @@ export function useConsentScript<TReady = unknown>(
 	const signature = createScriptSignature(script);
 	const timeoutMs = normalizeTimeout(options.timeoutMs);
 	const latestOptionsRef = useRef<UseConsentScriptOptions<TReady>>(options);
-	latestOptionsRef.current = options;
 	const previousRetryKeyRef = useRef(retryKey);
 	const activeEntryRef = useRef<ScriptRegistryEntry<TReady> | null>(null);
 	const [readyValue, setReadyValue] = useState<TReady | null>(null);
 	const [isReady, setIsReady] = useState(false);
 	const [error, setError] = useState<Error | null>(null);
 	const [ready, setReady] = useState<Promise<TReady> | null>(null);
+
+	useEffect(() => {
+		latestOptionsRef.current = options;
+	}, [options]);
 
 	useEffect(() => {
 		const retryFailed = previousRetryKeyRef.current !== retryKey;

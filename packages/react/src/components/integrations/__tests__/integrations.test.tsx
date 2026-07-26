@@ -157,10 +157,54 @@ function ToggleGoogleMap({ onReady }: { onReady: () => void }) {
 	);
 }
 
+function UpdatingGoogleMap() {
+	const [renderCount, setRenderCount] = useState(0);
+	const [useAlternateView, setUseAlternateView] = useState(false);
+
+	return (
+		<>
+			<button
+				data-action="rerender"
+				onClick={() => setRenderCount((value) => value + 1)}
+				type="button"
+			>
+				Rerender parent
+			</button>
+			<button
+				data-action="update"
+				onClick={() => setUseAlternateView(true)}
+				type="button"
+			>
+				Update map props
+			</button>
+			<span>renders: {renderCount}</span>
+			<GoogleMap
+				apiKey="test-key"
+				center={
+					useAlternateView
+						? { lat: 40.7128, lng: -74.006 }
+						: { lat: 51.5072, lng: -0.1276 }
+				}
+				consentCategory="necessary"
+				options={{
+					disableDefaultUI: true,
+					gestureHandling: useAlternateView ? 'greedy' : 'cooperative',
+					styles: [
+						{
+							featureType: 'poi',
+							stylers: [{ visibility: useAlternateView ? 'on' : 'off' }],
+						},
+					],
+				}}
+				zoom={useAlternateView ? 11 : 10}
+			/>
+		</>
+	);
+}
+
 describe('renderable integrations', () => {
 	beforeEach(() => {
 		clearConsentRuntimeCache();
-		document.body.innerHTML = '';
 	});
 
 	afterEach(() => {
@@ -223,6 +267,49 @@ describe('renderable integrations', () => {
 		expect(iframe?.style.borderWidth).toBe('0px');
 		expect(iframe?.style.height).toBe('100%');
 		expect(iframe?.style.width).toBe('100%');
+	});
+
+	test('preserves YouTube params when URLSearchParams.size is unavailable', async () => {
+		const sizeDescriptor = Object.getOwnPropertyDescriptor(
+			URLSearchParams.prototype,
+			'size'
+		);
+		Object.defineProperty(URLSearchParams.prototype, 'size', {
+			configurable: true,
+			get: () => undefined,
+		});
+
+		try {
+			const { container } = await render(
+				<Provider>
+					<YouTubeEmbed
+						consentCategory="necessary"
+						params={{ playsinline: true }}
+						start={36}
+						title="Legacy browser video"
+						videoId="legacy-browser"
+					/>
+				</Provider>
+			);
+
+			await waitFor(() => {
+				expect(container.querySelector('iframe')).not.toBeNull();
+			});
+
+			const iframe = container.querySelector('iframe');
+			expect(iframe?.src).toContain('playsinline=1');
+			expect(iframe?.src).toContain('start=36');
+		} finally {
+			if (sizeDescriptor) {
+				Object.defineProperty(
+					URLSearchParams.prototype,
+					'size',
+					sizeDescriptor
+				);
+			} else {
+				Reflect.deleteProperty(URLSearchParams.prototype, 'size');
+			}
+		}
 	});
 
 	test('shows the accessible YouTube loading state until the iframe loads', async () => {
@@ -397,6 +484,35 @@ describe('renderable integrations', () => {
 
 		expect(setScripts).not.toHaveBeenCalled();
 		expect(container.textContent).toContain('requires an API key');
+	});
+
+	test('keeps configuration errors behind the consent placeholder', async () => {
+		const setScripts = vi.fn();
+		const state = createMockConsentState({ setScripts });
+
+		const { container } = await render(
+			<MockConsentProvider state={state}>
+				<GoogleMap
+					apiKey=""
+					center={{ lat: 51.5, lng: -0.12 }}
+					consentCategory="measurement"
+					errorFallback={<div>Missing browser key</div>}
+					placeholder={<div>Consent required first</div>}
+					scriptId="blocked-missing-key-google-map"
+				/>
+			</MockConsentProvider>
+		);
+
+		await new Promise((resolve) => requestAnimationFrame(resolve));
+
+		expect(setScripts).not.toHaveBeenCalled();
+		expect(container.textContent).toContain('Consent required first');
+		expect(container.textContent).not.toContain('Missing browser key');
+		expect(
+			container
+				.querySelector('[data-c15t-integration="google-map"]')
+				?.getAttribute('data-c15t-status')
+		).toBe('blocked');
 	});
 
 	test('exposes a ready promise while a consent script is loading', async () => {
@@ -846,6 +962,73 @@ describe('renderable integrations', () => {
 		expect(mapInstance.setOptions).toHaveBeenCalledWith(
 			expect.not.objectContaining({ mapId: 'test-map-id' })
 		);
+	});
+
+	test('preserves the map viewport across unrelated parent renders', async () => {
+		const mapInstance = {
+			setCenter: vi.fn(),
+			setOptions: vi.fn(),
+			setZoom: vi.fn(),
+		};
+		const mapConstructor = vi.fn(function GoogleMapConstructor() {
+			return mapInstance;
+		});
+		(window as unknown as Record<string, unknown>).google = {
+			maps: {
+				Map: mapConstructor,
+				event: {
+					clearInstanceListeners: vi.fn(),
+				},
+			},
+		};
+		const state = createMockConsentState();
+
+		const { container } = await render(
+			<MockConsentProvider state={state}>
+				<UpdatingGoogleMap />
+			</MockConsentProvider>
+		);
+
+		await waitFor(() => {
+			expect(mapConstructor).toHaveBeenCalledTimes(1);
+			expect(mapInstance.setCenter).toHaveBeenCalled();
+		});
+
+		mapInstance.setCenter.mockClear();
+		mapInstance.setOptions.mockClear();
+		mapInstance.setZoom.mockClear();
+
+		const rerenderButton = container.querySelector<HTMLButtonElement>(
+			'[data-action="rerender"]'
+		);
+		rerenderButton?.click();
+		await waitFor(() => {
+			expect(container.textContent).toContain('renders: 1');
+		});
+		await new Promise((resolve) => requestAnimationFrame(resolve));
+
+		expect(mapConstructor).toHaveBeenCalledTimes(1);
+		expect(mapInstance.setCenter).not.toHaveBeenCalled();
+		expect(mapInstance.setOptions).not.toHaveBeenCalled();
+		expect(mapInstance.setZoom).not.toHaveBeenCalled();
+
+		const updateButton = container.querySelector<HTMLButtonElement>(
+			'[data-action="update"]'
+		);
+		updateButton?.click();
+		await waitFor(() => {
+			expect(mapInstance.setCenter).toHaveBeenCalledWith({
+				lat: 40.7128,
+				lng: -74.006,
+			});
+			expect(mapInstance.setZoom).toHaveBeenCalledWith(11);
+			expect(mapInstance.setOptions).toHaveBeenCalledWith(
+				expect.objectContaining({
+					gestureHandling: 'greedy',
+				})
+			);
+		});
+		expect(mapConstructor).toHaveBeenCalledTimes(1);
 	});
 
 	test('shares one Google Maps script across multiple map instances', async () => {

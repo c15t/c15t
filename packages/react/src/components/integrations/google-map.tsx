@@ -11,6 +11,7 @@ import {
 	useRef,
 	useState,
 } from 'react';
+import { useConsentManager } from '~/hooks/use-consent-manager';
 import {
 	ConsentScriptConflictError,
 	type ConsentScriptReadyControls,
@@ -332,6 +333,65 @@ function createMapUpdateOptions(
 	return nextOptions;
 }
 
+function areMapOptionValuesEqual(
+	left: unknown,
+	right: unknown,
+	seen = new WeakMap<object, object>()
+): boolean {
+	if (Object.is(left, right)) {
+		return true;
+	}
+	if (
+		left === null ||
+		right === null ||
+		typeof left !== 'object' ||
+		typeof right !== 'object'
+	) {
+		return false;
+	}
+
+	const seenRight = seen.get(left);
+	if (seenRight) {
+		return seenRight === right;
+	}
+	seen.set(left, right);
+
+	if (Array.isArray(left) || Array.isArray(right)) {
+		if (
+			!Array.isArray(left) ||
+			!Array.isArray(right) ||
+			left.length !== right.length
+		) {
+			return false;
+		}
+		return left.every((value, index) =>
+			areMapOptionValuesEqual(value, right[index], seen)
+		);
+	}
+
+	const leftPrototype = Object.getPrototypeOf(left);
+	if (
+		leftPrototype !== Object.getPrototypeOf(right) ||
+		(leftPrototype !== Object.prototype && leftPrototype !== null)
+	) {
+		return false;
+	}
+
+	const leftRecord = left as Record<string, unknown>;
+	const rightRecord = right as Record<string, unknown>;
+	const leftKeys = Object.keys(leftRecord);
+	const rightKeys = Object.keys(rightRecord);
+	if (leftKeys.length !== rightKeys.length) {
+		return false;
+	}
+
+	return leftKeys.every(
+		(key) =>
+			rightKeys.includes(key) &&
+			areMapOptionValuesEqual(leftRecord[key], rightRecord[key], seen)
+	);
+}
+
 export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 	(
 		{
@@ -364,21 +424,34 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 		forwardedRef
 	) => {
 		const hasApiKey = apiKey.trim().length > 0;
+		const { has } = useConsentManager();
+		const hasMapConsent = has(consentCategory);
 		const mapCanvasRef = useRef<HTMLDivElement | null>(null);
 		const mapRef = useRef<GoogleMapInstance | null>(null);
 		const latestCallbacksRef = useRef({ onError, onReady });
 		const latestOptionsRef = useRef({ center, mapId, options, zoom });
+		const appliedMapStateRef = useRef<{
+			center: GoogleMapCoordinates;
+			options: GoogleMapOptions;
+			zoom: number;
+		} | null>(null);
 		const [initializationError, setInitializationError] =
 			useState<Error | null>(null);
 		const [authenticationError, setAuthenticationError] =
 			useState<Error | null>(null);
+
+		useEffect(() => {
+			latestCallbacksRef.current = { onError, onReady };
+		}, [onError, onReady]);
+
+		useEffect(() => {
+			latestOptionsRef.current = { center, mapId, options, zoom };
+		}, [center, mapId, options, zoom]);
+
 		const callbackName = useMemo(
 			() => createCallbackName(scriptId),
 			[scriptId]
 		);
-
-		latestCallbacksRef.current = { onError, onReady };
-		latestOptionsRef.current = { center, mapId, options, zoom };
 
 		const setWrapperRef = useCallback(
 			(node: HTMLDivElement | null) => {
@@ -519,6 +592,7 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			}
 
 			mapRef.current = map;
+			appliedMapStateRef.current = null;
 			latestCallbacksRef.current.onReady?.(map, mapsScript.readyValue);
 
 			return () => {
@@ -526,6 +600,7 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 				container.innerHTML = '';
 				if (mapRef.current === map) {
 					mapRef.current = null;
+					appliedMapStateRef.current = null;
 				}
 			};
 		}, [
@@ -546,9 +621,31 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 				return;
 			}
 
-			map.setOptions(createMapUpdateOptions(options));
-			map.setCenter(center);
-			map.setZoom(zoom);
+			const nextOptions = createMapUpdateOptions(options);
+			const previousState = appliedMapStateRef.current;
+
+			if (
+				!previousState ||
+				!areMapOptionValuesEqual(previousState.options, nextOptions)
+			) {
+				map.setOptions(nextOptions);
+			}
+			if (
+				!previousState ||
+				previousState.center.lat !== center.lat ||
+				previousState.center.lng !== center.lng
+			) {
+				map.setCenter(center);
+			}
+			if (!previousState || previousState.zoom !== zoom) {
+				map.setZoom(zoom);
+			}
+
+			appliedMapStateRef.current = {
+				center: { lat: center.lat, lng: center.lng },
+				options: nextOptions,
+				zoom,
+			};
 		}, [center, mapsScript.status, options, zoom]);
 
 		const configurationError = useMemo(
@@ -574,6 +671,12 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			authenticationError ??
 			initializationError;
 		const fallback = (() => {
+			if (!hasMapConsent) {
+				return (
+					placeholder ?? <IntegrationPlaceholder category={consentCategory} />
+				);
+			}
+
 			if (!hasApiKey) {
 				return (
 					errorFallback ?? (
@@ -611,13 +714,18 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			mapsScript.status === 'ready' &&
 			authenticationError === null &&
 			initializationError === null;
+		const displayStatus = !hasMapConsent
+			? 'blocked'
+			: displayError
+				? 'error'
+				: mapsScript.status;
 
 		return (
 			<div
 				ref={setWrapperRef}
 				aria-busy={mapsScript.status === 'loading' || undefined}
 				data-c15t-integration="google-map"
-				data-c15t-status={displayError ? 'error' : mapsScript.status}
+				data-c15t-status={displayStatus}
 				style={{ height: 320, width: '100%', ...style }}
 				{...props}
 			>
