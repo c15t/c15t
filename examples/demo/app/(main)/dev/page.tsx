@@ -6,6 +6,12 @@ import Link from 'next/link';
  */
 const devPages = [
 	{
+		href: '/dev/integrations',
+		title: 'Integration states',
+		description:
+			'Deterministically inspect loading, error, retry, and ready behavior for consent-aware integrations.',
+	},
+	{
 		href: '/self-host',
 		title: 'Self-hosted backend',
 		description:

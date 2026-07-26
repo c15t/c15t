@@ -225,6 +225,41 @@ describe('renderable integrations', () => {
 		expect(iframe?.style.width).toBe('100%');
 	});
 
+	test('shows the accessible YouTube loading state until the iframe loads', async () => {
+		const { container } = await render(
+			<Provider>
+				<YouTubeEmbed
+					consentCategory="necessary"
+					src="https://www.youtube-nocookie.com/embed/loading-fixture"
+					title="Loading video"
+				/>
+			</Provider>
+		);
+
+		await waitFor(() => {
+			expect(container.querySelector('iframe')).not.toBeNull();
+			expect(container.textContent).toContain('Loading content…');
+		});
+
+		const iframe = container.querySelector('iframe');
+		expect(container.querySelector('[role="status"]')).not.toBeNull();
+		expect(iframe?.getAttribute('aria-hidden')).toBe('true');
+		expect(iframe?.style.visibility).toBe('hidden');
+
+		iframe?.dispatchEvent(new Event('load', { bubbles: true }));
+
+		await waitFor(() => {
+			expect(
+				container
+					.querySelector('[data-c15t-integration="youtube-embed"]')
+					?.getAttribute('data-c15t-status')
+			).toBe('ready');
+		});
+		expect(container.querySelector('[role="status"]')).toBeNull();
+		expect(iframe?.getAttribute('aria-hidden')).toBeNull();
+		expect(iframe?.style.visibility).toBe('visible');
+	});
+
 	test('renders an error fallback instead of throwing when no videoId or src is provided', async () => {
 		const invalidProps = {
 			consentCategory: 'necessary',
