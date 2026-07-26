@@ -42,7 +42,7 @@ const generateDocsConfig = () => {
 				slug: 'integrations',
 				title: 'Integrations',
 				description:
-					'Connect analytics, advertising, and tag-management tools behind consent.',
+					'Connect analytics, advertising, maps, media, and other third-party tools behind consent.',
 			},
 			{
 				slug: 'cli',
@@ -251,6 +251,10 @@ const generateDocsConfig = () => {
 				base: 'integrations',
 				pages: ['overview', 'building-integrations'],
 				children: [
+					{
+						title: 'Renderable',
+						pages: ['google-maps', 'youtube'],
+					},
 					{
 						title: 'Tag Managers',
 						pages: ['google-tag-manager'],

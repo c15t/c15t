@@ -1,0 +1,182 @@
+---
+title: YouTube
+description: Keep YouTube iframes unmounted until consent with a privacy-enhanced, lazy-loaded React or Next.js embed.
+icon: youtube
+group: integrations
+---
+
+`YouTubeEmbed` is a renderable integration for React and Next.js. It uses c15t's
+`Frame` consent boundary, so the YouTube iframe is not mounted and no YouTube
+request is made until the configured consent category is allowed.
+
+The component does not load the YouTube IFrame Player API. It is intended for
+standard iframe embeds and keeps script readiness separate from iframe gating.
+
+## Integrate with c15t
+
+`YouTubeEmbed` must render inside a `ConsentManagerProvider`. Complete the
+[React quickstart](/docs/frameworks/react/quickstart) or
+[Next.js quickstart](/docs/frameworks/next/quickstart) first.
+
+<Tabs items={['React', 'Next.js']}>
+  <Tab value="React">
+    ```tsx
+    import { YouTubeEmbed } from '@c15t/react';
+
+    export function ProductVideo() {
+      return (
+        <YouTubeEmbed
+          className="block size-full rounded-[var(--frame-placeholder-border-radius)] border-0"
+          consentCategory="marketing"
+          params={{ controls: true, playsinline: true }}
+          title="Product overview"
+          videoId="dQw4w9WgXcQ"
+          wrapperClassName="aspect-video"
+        />
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { YouTubeEmbed } from '@c15t/nextjs';
+
+    export function ProductVideo() {
+      return (
+        <YouTubeEmbed
+          className="block size-full rounded-[var(--frame-placeholder-border-radius)] border-0"
+          consentCategory="marketing"
+          params={{ controls: true, playsinline: true }}
+          title="Product overview"
+          videoId="dQw4w9WgXcQ"
+          wrapperClassName="aspect-video"
+        />
+      );
+    }
+    ```
+  </Tab>
+</Tabs>
+
+`marketing` is the default category. Choose a different category only when it
+matches the purpose of the embed and the policy presented to your users.
+
+## How c15t loads it
+
+- **Before consent:** c15t renders a placeholder and does not mount the iframe.
+- **After consent:** the iframe mounts with its final embed URL.
+- **On revocation:** the `Frame` boundary unmounts the iframe, stopping the
+  embedded player and future requests from that document.
+- **Loading behavior:** the iframe uses native lazy loading by default.
+- **Privacy-enhanced mode:** URLs built from `videoId` use
+  `youtube-nocookie.com` by default.
+
+Privacy-enhanced mode changes the YouTube host but does not replace consent
+gating. Keep the iframe behind the category required by your privacy policy.
+
+## Build the embed URL
+
+Prefer `videoId` when you control the video:
+
+```tsx
+<YouTubeEmbed
+  consentCategory="marketing"
+  params={{
+    autoplay: false,
+    controls: true,
+    playsinline: true,
+    rel: false,
+  }}
+  start={36}
+  title="Quarterly product update"
+  videoId="dQw4w9WgXcQ"
+/>
+```
+
+Boolean `params` are serialized as YouTube's `1` and `0` values. `start` is
+serialized as the player's start time in seconds.
+
+Set `privacyEnhanced={false}` only when you intentionally need the regular
+`youtube.com` host.
+
+### Migrate an existing iframe URL
+
+Use `src` when you already have a complete embed URL:
+
+```tsx
+<YouTubeEmbed
+  consentCategory="marketing"
+  src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?start=36"
+  title="Quarterly product update"
+/>
+```
+
+When `src` is provided, c15t uses it unchanged. `videoId`, `start`, `params`, and
+`privacyEnhanced` only affect URLs that the component builds for you.
+
+## Style the wrapper and iframe
+
+`wrapperClassName` targets the consent-gated `Frame`. `className` and the
+forwarded ref target the iframe itself.
+
+Give the wrapper a stable size so the placeholder and player do not cause a
+layout shift:
+
+```tsx
+<YouTubeEmbed
+  wrapperClassName="aspect-video"
+  className="block size-full rounded-[var(--frame-placeholder-border-radius)] border-0"
+  consentCategory="marketing"
+  title="Product overview"
+  videoId="dQw4w9WgXcQ"
+/>
+```
+
+The example reuses the default placeholder radius for the loaded iframe, so the
+shape does not change when consent is granted.
+
+## Customize the placeholder
+
+```tsx
+import { Frame, YouTubeEmbed } from '@c15t/react';
+
+<YouTubeEmbed
+  consentCategory="marketing"
+  placeholder={
+    <Frame.Root>
+      <Frame.Title>Allow marketing consent to watch this video.</Frame.Title>
+      <Frame.Button category="marketing" />
+    </Frame.Root>
+  }
+  title="Product overview"
+  videoId="dQw4w9WgXcQ"
+/>
+```
+
+Custom placeholders should explain why the content is blocked and provide a
+clear way to change consent. Always give the iframe a meaningful `title`.
+
+If neither `videoId` nor `src` is supplied, the component renders
+`errorFallback` instead of mounting an iframe.
+
+## Verify setup
+
+1. Clear saved consent and reload the page.
+2. Confirm there is no YouTube iframe or YouTube network request before consent.
+3. Grant the configured category and confirm exactly one iframe mounts.
+4. Confirm a `videoId` embed uses `youtube-nocookie.com` unless
+   `privacyEnhanced={false}`.
+5. Revoke consent and confirm the iframe is removed.
+6. Confirm the placeholder and loaded player reserve the same space at mobile
+   and desktop widths.
+
+See YouTube's [embedded player parameters](https://developers.google.com/youtube/player_parameters)
+for the supported query parameters.
+
+## Types
+
+### YouTubeEmbedProps
+
+<AutoTypeTable path="./packages/react/src/components/integrations/youtube-embed.tsx" name="YouTubeEmbedProps" />
