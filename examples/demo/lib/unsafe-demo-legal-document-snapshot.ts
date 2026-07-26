@@ -32,7 +32,7 @@ export interface UnsafeDemoLegalDocumentSnapshotResult {
 const DEFAULT_ISSUER = 'c15t';
 const DEFAULT_TTL_SECONDS = 1800;
 
-function resolveAudience(input: UnsafeDemoLegalDocumentSnapshotInput) {
+function resolveAudience(_input: UnsafeDemoLegalDocumentSnapshotInput) {
 	return DEMO_LEGAL_DOCUMENT_SNAPSHOT_AUDIENCE;
 }
 

@@ -9,6 +9,7 @@ import {
 	useEffect,
 	useMemo,
 	useRef,
+	useState,
 } from 'react';
 import {
 	type ConsentScriptReadyControls,
@@ -16,50 +17,56 @@ import {
 } from '~/hooks/use-consent-script';
 import { IntegrationPlaceholder } from './shared';
 
-export interface GoogleMapCoordinates {
-	lat: number;
-	lng: number;
-}
-
-export interface GoogleMapsApi {
-	maps: {
-		Map: new (
-			element: HTMLElement,
-			options: GoogleMapOptions
-		) => GoogleMapInstance;
-		event?: {
-			clearInstanceListeners?: (instance: GoogleMapInstance) => void;
-		};
-	};
-}
-
-export interface GoogleMapInstance {
-	getCenter?: () => unknown;
-	getZoom?: () => number | undefined;
-	setCenter?: (center: GoogleMapCoordinates) => void;
-	setOptions?: (options: Record<string, unknown>) => void;
-	setZoom?: (zoom: number) => void;
-}
-
-export interface GoogleMapOptions {
-	center: GoogleMapCoordinates;
-	zoom?: number;
-	mapId?: string;
-	[key: string]: unknown;
-}
+export type GoogleMapCoordinates = google.maps.LatLngLiteral;
+export type GoogleMapsApi = typeof google;
+export type GoogleMapInstance = google.maps.Map;
+export type GoogleMapOptions = google.maps.MapOptions;
+export type GoogleMapsLibrary =
+	| 'addressValidation'
+	| 'airQuality'
+	| 'core'
+	| 'drawing'
+	| 'elevation'
+	| 'geocoding'
+	| 'geometry'
+	| 'journeySharing'
+	| 'maps'
+	| 'maps3d'
+	| 'marker'
+	| 'places'
+	| 'routes'
+	| 'streetView'
+	| 'visualization';
 
 export interface GoogleMapProps
 	extends Omit<ComponentPropsWithRef<'div'>, 'children' | 'onError'> {
+	/** Browser API key for the Google Maps JavaScript API. */
 	apiKey: string;
+
+	/** Initial and controlled center of the map. */
 	center: GoogleMapCoordinates;
+
+	/** Initial and controlled zoom level. */
 	zoom?: number;
+
+	/**
+	 * Cloud map id. Changing this value recreates the map because Google treats
+	 * it as construction-time configuration.
+	 */
 	mapId?: string;
+
+	/** Additional options passed to the Google Maps constructor. */
 	options?: Omit<GoogleMapOptions, 'center' | 'zoom' | 'mapId'>;
+
 	consentCategory?: AllConsentNames;
-	libraries?: string[];
+	libraries?: GoogleMapsLibrary[];
 	language?: string;
 	region?: string;
 	version?: string;
+	authReferrerPolicy?: 'origin';
+	channel?: string;
+	mapIds?: string[];
+	solutionChannel?: string;
 	nonce?: string;
 	scriptId?: string;
 	timeoutMs?: number;
@@ -79,33 +86,123 @@ function getWindowRecord(): Record<string, unknown> | null {
 }
 
 function getGoogleMapsApi(): GoogleMapsApi | null {
-	const win = getWindowRecord();
-	const google = win?.google as GoogleMapsApi | undefined;
+	const googleApi = getWindowRecord()?.google as GoogleMapsApi | undefined;
 
-	if (google?.maps?.Map) {
-		return google;
+	if (googleApi?.maps?.Map) {
+		return googleApi;
 	}
 
 	return null;
 }
 
-function sanitizeCallbackName(value: string): string {
-	return value.replace(/[^A-Za-z0-9_$]/g, '_');
+const googleMapsAuthFailureListeners = new Set<(error: Error) => void>();
+let authFailureWindow: Record<string, unknown> | null = null;
+let installedAuthFailureCallback: (() => void) | null = null;
+let previousAuthFailureCallback: (() => void) | null = null;
+
+function subscribeToGoogleMapsAuthFailure(
+	listener: (error: Error) => void
+): () => void {
+	const win = getWindowRecord();
+	if (!win) {
+		return () => undefined;
+	}
+
+	if (googleMapsAuthFailureListeners.size === 0) {
+		authFailureWindow = win;
+		const existingCallback = win.gm_authFailure;
+		previousAuthFailureCallback =
+			typeof existingCallback === 'function'
+				? (existingCallback as () => void)
+				: null;
+
+		installedAuthFailureCallback = () => {
+			const authenticationError = new Error(
+				'Google Maps failed to authenticate. Check the API key, billing, and allowed referrers.'
+			);
+			let callbackError: unknown;
+
+			try {
+				previousAuthFailureCallback?.();
+			} catch (error) {
+				callbackError = error;
+			}
+
+			for (const authFailureListener of googleMapsAuthFailureListeners) {
+				try {
+					authFailureListener(authenticationError);
+				} catch (error) {
+					callbackError ??= error;
+				}
+			}
+
+			if (callbackError !== undefined) {
+				throw callbackError;
+			}
+		};
+		win.gm_authFailure = installedAuthFailureCallback;
+	}
+
+	googleMapsAuthFailureListeners.add(listener);
+
+	return () => {
+		googleMapsAuthFailureListeners.delete(listener);
+		if (
+			googleMapsAuthFailureListeners.size > 0 ||
+			!authFailureWindow ||
+			authFailureWindow.gm_authFailure !== installedAuthFailureCallback
+		) {
+			return;
+		}
+
+		if (previousAuthFailureCallback) {
+			authFailureWindow.gm_authFailure = previousAuthFailureCallback;
+		} else {
+			delete authFailureWindow.gm_authFailure;
+		}
+
+		authFailureWindow = null;
+		installedAuthFailureCallback = null;
+		previousAuthFailureCallback = null;
+	};
+}
+
+function hashString(value: string): string {
+	let hash = 2_166_136_261;
+	for (let index = 0; index < value.length; index += 1) {
+		hash ^= value.charCodeAt(index);
+		hash = Math.imul(hash, 16_777_619);
+	}
+
+	return (hash >>> 0).toString(36);
+}
+
+function createCallbackName(scriptId: string): string {
+	const readableId = scriptId.replace(/[^A-Za-z0-9_$]/g, '_').slice(0, 32);
+	return `__c15tGoogleMapsReady_${readableId}_${hashString(scriptId)}`;
 }
 
 function buildGoogleMapsScriptUrl({
 	apiKey,
+	authReferrerPolicy,
 	callbackName,
+	channel,
 	libraries,
 	language,
+	mapIds,
 	region,
+	solutionChannel,
 	version,
 }: {
 	apiKey: string;
+	authReferrerPolicy?: 'origin';
 	callbackName: string;
-	libraries?: string[];
+	channel?: string;
+	libraries?: GoogleMapsLibrary[];
 	language?: string;
+	mapIds?: string[];
 	region?: string;
+	solutionChannel?: string;
 	version?: string;
 }) {
 	const params = new URLSearchParams({
@@ -126,6 +223,18 @@ function buildGoogleMapsScriptUrl({
 	if (version) {
 		params.set('v', version);
 	}
+	if (authReferrerPolicy) {
+		params.set('auth_referrer_policy', authReferrerPolicy);
+	}
+	if (mapIds?.length) {
+		params.set('map_ids', mapIds.join(','));
+	}
+	if (channel) {
+		params.set('channel', channel);
+	}
+	if (solutionChannel) {
+		params.set('solution_channel', solutionChannel);
+	}
 
 	return `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
 }
@@ -141,33 +250,24 @@ function createMapOptions({
 	options?: Omit<GoogleMapOptions, 'center' | 'zoom' | 'mapId'>;
 	zoom: number;
 }): GoogleMapOptions {
-	const nextOptions: GoogleMapOptions = {
+	return {
 		...options,
 		center,
+		mapId,
 		zoom,
 	};
-
-	if (mapId) {
-		nextOptions.mapId = mapId;
-	}
-
-	return nextOptions;
 }
 
-function createMapUpdateOptions({
-	mapId,
-	options,
-}: {
-	mapId?: string;
-	options?: Omit<GoogleMapOptions, 'center' | 'zoom' | 'mapId'>;
-}): Record<string, unknown> {
-	const nextOptions: Record<string, unknown> = {
-		...options,
-	};
+function createMapUpdateOptions(
+	options?: Omit<GoogleMapOptions, 'center' | 'zoom' | 'mapId'>
+): GoogleMapOptions {
+	const nextOptions: GoogleMapOptions = { ...options };
 
-	if (mapId) {
-		nextOptions.mapId = mapId;
-	}
+	// Google documents these as construction-time options.
+	delete nextOptions.backgroundColor;
+	delete nextOptions.colorScheme;
+	delete nextOptions.controlSize;
+	delete nextOptions.renderingType;
 
 	return nextOptions;
 }
@@ -185,6 +285,10 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			language,
 			region,
 			version,
+			authReferrerPolicy,
+			channel,
+			mapIds,
+			solutionChannel,
 			nonce,
 			scriptId = 'c15t-google-maps',
 			timeoutMs = 15_000,
@@ -193,6 +297,7 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			errorFallback,
 			onReady,
 			onError,
+			style,
 			...props
 		},
 		forwardedRef
@@ -202,7 +307,14 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 		const mapRef = useRef<GoogleMapInstance | null>(null);
 		const latestCallbacksRef = useRef({ onError, onReady });
 		const latestOptionsRef = useRef({ center, mapId, options, zoom });
-		const callbackName = `__c15tGoogleMapsReady_${sanitizeCallbackName(scriptId)}`;
+		const [initializationError, setInitializationError] =
+			useState<Error | null>(null);
+		const [authenticationError, setAuthenticationError] =
+			useState<Error | null>(null);
+		const callbackName = useMemo(
+			() => createCallbackName(scriptId),
+			[scriptId]
+		);
 
 		latestCallbacksRef.current = { onError, onReady };
 		latestOptionsRef.current = { center, mapId, options, zoom };
@@ -223,25 +335,34 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 				id: scriptId,
 				src: buildGoogleMapsScriptUrl({
 					apiKey,
+					authReferrerPolicy,
 					callbackName,
+					channel,
 					libraries,
 					language,
+					mapIds,
 					region,
+					solutionChannel,
 					version,
 				}),
 				category: consentCategory,
 				async: true,
 				nonce,
+				persistAfterConsentRevoked: true,
 			}),
 			[
 				apiKey,
+				authReferrerPolicy,
 				callbackName,
+				channel,
 				consentCategory,
 				language,
 				libraries,
+				mapIds,
 				nonce,
 				region,
 				scriptId,
+				solutionChannel,
 				version,
 			]
 		);
@@ -259,6 +380,7 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 						resolve(api);
 						return;
 					}
+
 					reject(new Error('Google Maps callback fired before API was ready'));
 				};
 
@@ -278,11 +400,29 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			script,
 			resolveReady: getGoogleMapsApi,
 			registerReadyCallback: registerGoogleMapsCallback,
+			readinessKey: callbackName,
 			timeoutMs,
+			unmountBehavior: 'keep',
 		});
 
 		useEffect(() => {
-			if (mapsScript.status !== 'ready' || !mapsScript.readyValue) {
+			setAuthenticationError(null);
+			if (!hasApiKey || !mapsScript.hasConsent) {
+				return;
+			}
+
+			return subscribeToGoogleMapsAuthFailure((nextError) => {
+				setAuthenticationError(nextError);
+				latestCallbacksRef.current.onError?.(nextError);
+			});
+		}, [hasApiKey, mapsScript.hasConsent]);
+
+		useEffect(() => {
+			if (
+				authenticationError ||
+				mapsScript.status !== 'ready' ||
+				!mapsScript.readyValue
+			) {
 				return;
 			}
 
@@ -291,24 +431,21 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 				return;
 			}
 
-			if (mapRef.current) {
-				return;
-			}
-
-			const initialOptions = latestOptionsRef.current;
+			setInitializationError(null);
 			container.innerHTML = '';
 
 			let map: GoogleMapInstance;
 			try {
 				map = new mapsScript.readyValue.maps.Map(
 					container,
-					createMapOptions(initialOptions)
+					createMapOptions({
+						...latestOptionsRef.current,
+						mapId,
+					})
 				);
 			} catch (error) {
-				let nextError = new Error(String(error));
-				if (error instanceof Error) {
-					nextError = error;
-				}
+				const nextError = toError(error);
+				setInitializationError(nextError);
 				latestCallbacksRef.current.onError?.(nextError);
 				return;
 			}
@@ -317,15 +454,13 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			latestCallbacksRef.current.onReady?.(map, mapsScript.readyValue);
 
 			return () => {
-				if (mapRef.current) {
-					mapsScript.readyValue?.maps.event?.clearInstanceListeners?.(
-						mapRef.current
-					);
-				}
+				mapsScript.readyValue?.maps.event?.clearInstanceListeners?.(map);
 				container.innerHTML = '';
-				mapRef.current = null;
+				if (mapRef.current === map) {
+					mapRef.current = null;
+				}
 			};
-		}, [mapsScript.readyValue, mapsScript.status]);
+		}, [authenticationError, mapId, mapsScript.readyValue, mapsScript.status]);
 
 		useEffect(() => {
 			if (mapsScript.status !== 'ready') {
@@ -337,17 +472,19 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 				return;
 			}
 
-			map.setOptions?.(createMapUpdateOptions({ mapId, options }));
-			map.setCenter?.(center);
-			map.setZoom?.(zoom);
-		}, [center, mapId, mapsScript.status, options, zoom]);
+			map.setOptions(createMapUpdateOptions(options));
+			map.setCenter(center);
+			map.setZoom(zoom);
+		}, [center, mapsScript.status, options, zoom]);
 
 		useEffect(() => {
 			if (mapsScript.error) {
-				onError?.(mapsScript.error);
+				latestCallbacksRef.current.onError?.(mapsScript.error);
 			}
-		}, [mapsScript.error, onError]);
+		}, [mapsScript.error]);
 
+		const displayError =
+			mapsScript.error ?? authenticationError ?? initializationError;
 		const fallback = (() => {
 			if (!hasApiKey) {
 				return (
@@ -372,7 +509,7 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 				);
 			}
 
-			if (mapsScript.status === 'error') {
+			if (displayError) {
 				return (
 					errorFallback ?? (
 						<IntegrationPlaceholder
@@ -392,20 +529,26 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			return null;
 		})();
 
-		const isMapReady = mapsScript.status === 'ready';
-		let mapCanvasDisplay = 'none';
-		if (isMapReady) {
-			mapCanvasDisplay = 'block';
-		}
+		const isMapReady =
+			mapsScript.status === 'ready' &&
+			authenticationError === null &&
+			initializationError === null;
 
 		return (
-			<div ref={setWrapperRef} data-c15t-integration="google-map" {...props}>
+			<div
+				ref={setWrapperRef}
+				aria-busy={mapsScript.status === 'loading' || undefined}
+				data-c15t-integration="google-map"
+				data-c15t-status={displayError ? 'error' : mapsScript.status}
+				style={{ height: 320, width: '100%', ...style }}
+				{...props}
+			>
 				{fallback}
 				<div
 					ref={mapCanvasRef}
 					aria-hidden={!isMapReady}
 					style={{
-						display: mapCanvasDisplay,
+						display: isMapReady ? 'block' : 'none',
 						height: '100%',
 						width: '100%',
 					}}
@@ -416,3 +559,11 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 );
 
 GoogleMap.displayName = 'GoogleMap';
+
+function toError(error: unknown): Error {
+	if (error instanceof Error) {
+		return error;
+	}
+
+	return new Error(String(error));
+}

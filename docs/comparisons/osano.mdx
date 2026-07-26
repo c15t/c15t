@@ -1,0 +1,53 @@
+---
+title: c15t vs Osano
+description: Compare c15t with Osano CookieConsent and Osano's hosted CMP for developer-owned consent, records, policy, and app integration.
+---
+
+[Osano CookieConsent](https://github.com/osano/cookieconsent/) has two common
+meanings: the open-source JavaScript plugin and Osano's hosted CMP. The
+open-source README notes that production use often needs GeoIP lookups, regional
+consent rules, callbacks, saved consents, and script loading. Osano's hosted CMP
+adds a commercial control plane and privacy-operations workflow.
+
+c15t is the better starting point when you want a developer-owned consent stack
+that can be hosted, self-hosted, or wired into your own backend. Osano is useful
+when a hosted commercial CMP and privacy-operations workflow are the priority.
+[CookieBench](https://cookiebench.com/) also lists c15t's Next.js and React
+examples above Osano on score, banner visibility, and network impact.
+
+<Callout type="warn">
+  Consent tooling does not guarantee legal compliance by itself. Your policies,
+  disclosures, vendor list, regional behavior, and record-keeping still need to
+  match your legal requirements.
+</Callout>
+
+## Why c15t wins here
+
+- c15t supports JavaScript, React, Next.js, scripts, backend, and CLI workflows.
+- c15t can keep durable consent records in hosted or self-hosted modes.
+- c15t gives engineering teams direct framework integration and server-visible
+  consent state.
+- c15t supports policy packs, script loading, iframe blocking, and network
+  blocking from one consent layer.
+- c15t keeps deployment choices open instead of centering the workflow on a
+  SaaS-first dashboard.
+
+## Comparison
+
+| Area | c15t | Osano |
+| --- | --- | --- |
+| Primary shape | Developer-first consent platform | Open-source plugin or hosted CMP |
+| Framework support | First-class JavaScript, React, and Next.js packages | Plugin script or hosted script |
+| Backend records | Hosted or self-hosted records | Hosted CMP records or app-owned plugin storage |
+| Regional policy | Policy packs and backend state | Hosted rules or app-owned plugin config |
+| Script control | Loader, iframe blocker, and network blocker | Hosted CMP or plugin callbacks |
+| CookieBench speed | [Score 95](https://cookiebench.com/), 89ms/148ms banner visibility, 0-byte network impact | [Score 72](https://cookiebench.com/), 214ms banner visibility, 253-byte network impact |
+| Control model | Open-source packages and deployable backend paths | Commercial CMP workflow for hosted use |
+
+## Bottom line
+
+Start with c15t when you want consent to live in your application and backend
+architecture. It covers the simple banner path while keeping records, policy,
+framework APIs, and custom backend options available.
+
+See the full overview in [Compare c15t](/docs/comparison).

@@ -612,6 +612,9 @@ export const createConsentManagerStore = (
 				backendURL: internalOptions.__internal?.backendURL,
 				requestCredentials: internalOptions.__internal?.requestCredentials,
 				initialTranslationConfig: normalizedInitialTranslationConfig,
+				// Without the IAB config, re-initialization skips IAB entirely
+				// and the store keeps a stale GVL (e.g. after a language change).
+				iabConfig: iab as IABConfig | undefined,
 				get,
 				set,
 			});

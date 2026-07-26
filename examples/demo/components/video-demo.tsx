@@ -12,33 +12,26 @@ export function VideoDemo({
 	className?: string;
 	inline?: boolean;
 }) {
-	let sectionClassName = 'space-y-6 border-border/80 border-t pt-8';
-	let headingClassName = 'text-2xl';
-	let gridClassName = 'gap-8 lg:grid-cols-2';
-	let googleMapsDemo = (
+	const sectionClassName = inline
+		? 'space-y-5'
+		: 'space-y-6 border-border/80 border-t pt-8';
+	const headingClassName = inline ? 'text-xl' : 'text-2xl';
+	const gridClassName = inline ? 'gap-6' : 'gap-8 lg:grid-cols-2';
+
+	const googleMapsDemo = googleMapsApiKey ? (
+		<GoogleMap
+			apiKey={googleMapsApiKey}
+			center={{ lat: 40.7128, lng: -74.006 }}
+			className="overflow-hidden rounded-lg border border-border/80"
+			consentCategory="measurement"
+			zoom={12}
+		/>
+	) : (
 		<div className="flex h-80 items-center justify-center rounded-lg border border-border/80 bg-muted/20 px-6 text-center text-muted-foreground text-sm">
 			Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to validate the Google Maps SDK
 			wrapper locally.
 		</div>
 	);
-
-	if (inline) {
-		sectionClassName = 'space-y-5';
-		headingClassName = 'text-xl';
-		gridClassName = 'gap-6';
-	}
-
-	if (googleMapsApiKey) {
-		googleMapsDemo = (
-			<GoogleMap
-				apiKey={googleMapsApiKey}
-				center={{ lat: 40.7128, lng: -74.006 }}
-				consentCategory="measurement"
-				style={{ height: 320, width: '100%' }}
-				zoom={12}
-			/>
-		);
-	}
 
 	return (
 		<section className={cn(sectionClassName, className)}>
@@ -47,52 +40,61 @@ export function VideoDemo({
 					Renderable integrations
 				</p>
 				<h2 className={cn('font-semibold tracking-tight', headingClassName)}>
-					Policy-gated media and maps
+					Consent-aware embeds and SDK widgets
 				</h2>
 				<p className="text-muted-foreground text-sm leading-6 sm:text-base">
-					These examples use <code className="font-mono">YouTubeEmbed</code> for
-					iframe media and <code className="font-mono">GoogleMap</code> for an
-					SDK-backed widget behind the active consent policy.
+					<code className="font-mono">YouTubeEmbed</code> keeps its iframe
+					unmounted until consent is granted, while{' '}
+					<code className="font-mono">GoogleMap</code> gates one shared SDK
+					loader and creates a map per component.
 				</p>
 			</div>
 
 			<div className={cn('grid', gridClassName)}>
 				<div className="space-y-3">
 					<div>
-						<h3 className="font-medium text-base">Measurement category</h3>
+						<h3 className="font-medium text-base">
+							<code className="font-mono text-sm">category="measurement"</code>
+						</h3>
 						<p className="text-muted-foreground text-sm">
-							Use this to validate media that should unlock only when
-							measurement is allowed.
+							Unlocks when measurement consent is given.
 						</p>
 					</div>
 					<YouTubeEmbed
+						className="absolute inset-0 h-full w-full"
 						consentCategory="measurement"
-						className="relative aspect-video w-full"
-						iframeClassName="inset-0 h-full w-full"
 						src="https://www.youtube.com/embed/gwqYfNWVPpk?si=eEtKAUke_JUXTMfl&start=36"
 						title="Measurement policy-gated video"
+						wrapperClassName="relative aspect-video w-full"
 					/>
-					<div className="space-y-3">
-						<h3 className="font-medium text-base">Google Maps SDK</h3>
-						{googleMapsDemo}
-					</div>
 				</div>
 
 				<div className="space-y-3">
 					<div>
-						<h3 className="font-medium text-base">Experience category</h3>
+						<h3 className="font-medium text-base">
+							<code className="font-mono text-sm">category="marketing"</code>
+						</h3>
 						<p className="text-muted-foreground text-sm">
-							This one stays blocked until the active policy and consent state
-							allow the experience category.
+							Unlocks when marketing consent is given.
 						</p>
 					</div>
 					<YouTubeEmbed
-						consentCategory="experience"
-						className="relative aspect-video w-full"
-						iframeClassName="inset-0 h-full w-full"
+						className="absolute inset-0 h-full w-full"
+						consentCategory="marketing"
 						src="https://www.youtube.com/embed/gwqYfNWVPpk?si=eEtKAUke_JUXTMfl&start=36"
-						title="Experience policy-gated video"
+						title="Marketing policy-gated video"
+						wrapperClassName="relative aspect-video w-full"
 					/>
+				</div>
+
+				<div className={cn('space-y-3', !inline && 'lg:col-span-2')}>
+					<div>
+						<h3 className="font-medium text-base">Google Maps SDK</h3>
+						<p className="text-muted-foreground text-sm">
+							Loads one page-level Maps SDK after measurement consent.
+						</p>
+					</div>
+					{googleMapsDemo}
 				</div>
 			</div>
 		</section>

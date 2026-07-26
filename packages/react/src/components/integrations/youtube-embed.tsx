@@ -42,14 +42,14 @@ export interface YouTubeEmbedProps
 	params?: Record<string, string | number | boolean | null | undefined>;
 
 	/**
-	 * Class name for the consent-gated frame wrapper.
+	 * Class name for the iframe element targeted by the forwarded ref.
 	 */
 	className?: string;
 
 	/**
-	 * Class name for the iframe element.
+	 * Class name for the consent-gated frame wrapper.
 	 */
-	iframeClassName?: string;
+	wrapperClassName?: string;
 
 	/**
 	 * Placeholder rendered while consent is missing.
@@ -90,7 +90,10 @@ function buildYouTubeEmbedUrl({
 	if (params) {
 		for (const [key, value] of Object.entries(params)) {
 			if (value != null) {
-				query.set(key, String(value));
+				query.set(
+					key,
+					typeof value === 'boolean' ? String(Number(value)) : String(value)
+				);
 			}
 		}
 	}
@@ -137,13 +140,14 @@ export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
 			start,
 			params,
 			className,
-			iframeClassName,
+			wrapperClassName,
 			placeholder,
 			errorFallback,
 			frameProps,
 			title = 'YouTube video',
 			allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
 			allowFullScreen = true,
+			loading = 'lazy',
 			...iframeProps
 		},
 		forwardedRef
@@ -171,14 +175,15 @@ export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
 		return (
 			<Frame
 				category={consentCategory}
-				className={className}
+				className={wrapperClassName}
 				placeholder={placeholder}
 				{...frameProps}
 			>
 				<iframe
 					allow={allow}
 					allowFullScreen={allowFullScreen}
-					className={iframeClassName}
+					className={className}
+					loading={loading}
 					ref={forwardedRef}
 					src={embedSrc}
 					title={title}

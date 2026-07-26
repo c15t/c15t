@@ -144,16 +144,20 @@ export function ConsentAwareMedia() {
       {googleMapsApiKey && (
         <GoogleMap
           apiKey={googleMapsApiKey}
+          authReferrerPolicy="origin"
           center={{ lat: 40.7128, lng: -74.006 }}
+          className="overflow-hidden rounded-xl"
           consentCategory="measurement"
           zoom={12}
         />
       )}
 
       <YouTubeEmbed
+        className="absolute inset-0 h-full w-full"
         consentCategory="marketing"
         title="Product demo"
         videoId="dQw4w9WgXcQ"
+        wrapperClassName="relative aspect-video"
       />
     </>
   );
@@ -166,7 +170,11 @@ The implementation splits the problem into three layers:
 2. Use `useConsentScript()` for SDK readiness when a vendor uses a callback-style loader.
 3. Create the widget instance only on the client and clean it up on unmount.
 
-Google Maps is SDK-backed and uses one shared c15t-managed script plus per-component map instances. YouTube is iframe-only and uses the existing `Frame` boundary rather than the YouTube iframe API.
+Google Maps is SDK-backed and uses one shared c15t-managed script plus per-component map instances. The script is never requested before consent. Once loaded, its manager registration is retained to respect Google's one-loader-per-page constraint, while each map instance is destroyed on unmount or when consent becomes unavailable. The component adopts an existing Google Maps global, has a visible `320px` default height, uses the official API types, and reports loader, authentication, and constructor failures through `onError` and `errorFallback`.
+
+All maps with the same `scriptId` must use the same loader configuration. `mapId` changes recreate the instance; `center`, `zoom`, and updateable `options` update it in place. You can pass Google's direct-loader options through `libraries`, `language`, `region`, `version`, `authReferrerPolicy`, `mapIds`, `channel`, and `solutionChannel`.
+
+YouTube is iframe-only and uses the existing `Frame` boundary rather than the YouTube iframe API. Its `className` and forwarded ref target the iframe; `wrapperClassName` targets the `Frame`. Boolean `params` become `1` or `0`, and the iframe defaults to native lazy loading.
 
 For iframe-only embeds, use the [iframe blocking](/docs/frameworks/next/iframe-blocking) pattern or `YouTubeEmbed`. For SDK-backed widgets, load the SDK once and let each component instance create and clean up its own widget. Avoid mixing `next/script` with c15t for the same vendor.
 

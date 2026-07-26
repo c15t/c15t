@@ -1,0 +1,48 @@
+---
+title: c15t vs react-cookie-consent
+description: Compare c15t with react-cookie-consent for React banners, hooks, consent categories, script blocking, backend records, and app state.
+---
+
+[react-cookie-consent](https://www.npmjs.com/package/react-cookie-consent) is a
+small React package for showing a cookie consent bar. It fits the narrow
+requirement to show a banner and remember that the user clicked it.
+
+c15t is the better starting point for React sites, including simple cookie
+notices. Consent often expands into analytics, ads, embeds, regional policy, app
+state, granular categories, server-visible consent, script blocking, IAB TCF,
+and durable records.
+
+<Callout type="warn">
+  Consent tooling does not guarantee legal compliance by itself. Your policies,
+  disclosures, vendor list, regional behavior, and record-keeping still need to
+  match your legal requirements.
+</Callout>
+
+## Why c15t wins here
+
+- `@c15t/react` includes providers, hooks, UI components, headless primitives,
+  styling hooks, and TypeScript APIs.
+- c15t can share the same consent model with JavaScript and Next.js packages.
+- c15t supports script loading, iframe blocking, network blocking, and consent
+  categories.
+- c15t supports hosted, self-hosted, custom backend, and offline browser modes.
+- c15t gives React apps a path to durable records, policy packs, and IAB TCF.
+
+## Comparison
+
+| Area | c15t | react-cookie-consent |
+| --- | --- | --- |
+| Primary shape | React-ready consent platform | React banner component |
+| React APIs | Providers, hooks, components, and headless primitives | Banner props and styles |
+| Consent categories | Built-in model and APIs | App-owned |
+| Script control | Loader, iframe blocker, and network blocker | App-owned callbacks |
+| Backend records | Hosted or self-hosted records | Cookie value for the banner decision |
+| Growth path | Framework state, records, policy packs, and IAB TCF | Simple notice UI |
+
+## Bottom line
+
+Start with c15t for React apps. It gives you the simple banner path without
+locking consent into a narrow component that has to be replaced when the project
+needs categories, scripts, backend records, or server-visible state.
+
+See the full overview in [Compare c15t](/docs/comparison).

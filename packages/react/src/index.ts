@@ -67,6 +67,7 @@ export {
 	type GoogleMapOptions,
 	type GoogleMapProps,
 	type GoogleMapsApi,
+	type GoogleMapsLibrary,
 	YouTubeEmbed,
 	type YouTubeEmbedProps,
 } from './components/integrations';
@@ -87,6 +88,7 @@ export { useConsentManager } from './hooks/use-consent-manager';
 export {
 	type ConsentScriptReadyControls,
 	type ConsentScriptStatus,
+	type ConsentScriptUnmountBehavior,
 	type UseConsentScriptOptions,
 	type UseConsentScriptResult,
 	useConsentScript,

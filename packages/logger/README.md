@@ -57,6 +57,7 @@ logger.warn('Warning message');
 logger.error('Error occurred', new Error('Something went wrong'));
 logger.success('Operation completed successfully');
 ```
+
 ## Configuration
 
 ### LoggerOptions
@@ -76,6 +77,7 @@ interface LoggerOptions {
   appName?: string;
 }
 ```
+
 ## Advanced Usage
 
 ### Custom Log Handler
@@ -106,6 +108,7 @@ const extendedLogger = extendLogger(baseLogger, {
 extendedLogger.http('GET /api/users');
 extendedLogger.database('Query executed in 10ms');
 ```
+
 ## API Reference
 
 ### Core Functions

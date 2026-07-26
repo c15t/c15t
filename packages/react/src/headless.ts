@@ -25,6 +25,7 @@ export { useConsentManager } from './hooks/use-consent-manager';
 export {
 	type ConsentScriptReadyControls,
 	type ConsentScriptStatus,
+	type ConsentScriptUnmountBehavior,
 	type UseConsentScriptOptions,
 	type UseConsentScriptResult,
 	useConsentScript,

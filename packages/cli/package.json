@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/cli",
 	"version": "2.1.0",
-	"description": "CLI for rapid c15t setup. Scaffold React and Next.js cookie banners and a preference center, generate types and config, and run migration tooling for self-hosted deployments.",
+	"description": "CLI for c15t setup. Scaffold React and Next.js cookie banners, choose hosted/self-hosted/offline mode, and add consent integrations.",
 	"keywords": [
 		"c15t",
 		"cli",
@@ -21,7 +21,9 @@
 		"codemod",
 		"nextjs",
 		"react",
-		"typescript"
+		"typescript",
+		"consent-mode-v2",
+		"self-hosted-cmp"
 	],
 	"homepage": "https://c15t.com/docs/cli/overview",
 	"bugs": {

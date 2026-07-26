@@ -9,6 +9,7 @@
 
 import type { IABConfig, IABModule } from 'c15t';
 import { initializeIABMode } from './init/iab-initializer';
+import { fetchGVL } from './tcf/fetch-gvl';
 import { createIABManager } from './tcf/store';
 
 /**
@@ -20,6 +21,7 @@ export type IABUserConfig = Omit<IABConfig, 'enabled' | '_module'>;
 const iabModule: IABModule = {
 	createIABManager,
 	initializeIABMode,
+	fetchGVL,
 };
 
 /**

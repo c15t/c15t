@@ -7,5 +7,6 @@ export {
 	type GoogleMapOptions,
 	type GoogleMapProps,
 	type GoogleMapsApi,
+	type GoogleMapsLibrary,
 } from './google-map';
 export { YouTubeEmbed, type YouTubeEmbedProps } from './youtube-embed';

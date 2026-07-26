@@ -1,7 +1,7 @@
 {
 	"name": "c15t",
 	"version": "2.1.0",
-	"description": "Headless cookie banner, consent manager & preference center for JavaScript / TypeScript. GDPR, CCPA, LGPD and IAB TCF compliant.",
+	"description": "Headless JavaScript consent management platform for cookie banners, privacy preferences, consent storage, and script gating.",
 	"keywords": [
 		"consent",
 		"privacy",
@@ -25,7 +25,10 @@
 		"ssr",
 		"server-side-rendering",
 		"tracking-consent",
-		"eu-cookie-law"
+		"eu-cookie-law",
+		"google-consent-mode",
+		"consent-mode-v2",
+		"self-hosted-cmp"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/javascript/quickstart",
 	"bugs": {

@@ -32,7 +32,7 @@ const { consentManager, consentStore } = getOrCreateConsentRuntime({
 
 ## Subscribe to State Changes
 
-The store is a [Zustand vanilla store](https://zustand.docs.pmnd.rs/guides/extracting-actions). Use `subscribe()` for UI and general state updates, `subscribeToConsentChanges()` for change-only consent integrations, and `getState()` to read the current state:
+The store is a [Zustand vanilla store](https://zustand.docs.pmnd.rs/reference/apis/create-store). Use `subscribe()` for UI and general state updates, `subscribeToConsentChanges()` for change-only consent integrations, and `getState()` to read the current state:
 
 ```ts
 // React to every state change
