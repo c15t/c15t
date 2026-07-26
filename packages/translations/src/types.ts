@@ -51,11 +51,11 @@ export interface FrameTranslations {
 	/**
 	 * Message shown while consent-gated content is loading.
 	 */
-	loading: string;
+	loading?: string;
 	/**
 	 * Message shown when consent-gated content cannot be loaded.
 	 */
-	error: string;
+	error?: string;
 }
 
 export interface IABBannerTranslations {
