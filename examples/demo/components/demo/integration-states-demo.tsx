@@ -2,18 +2,15 @@
 
 import {
 	ConsentManagerProvider,
+	Frame,
 	GoogleMap,
 	useConsentScript,
 	YouTubeEmbed,
 	type YouTubeEmbedProps,
 } from '@c15t/react';
+import { Button as C15tButton } from '@c15t/react/primitives';
 import type { AllConsentNames } from 'c15t';
-import {
-	CircleAlert,
-	CircleCheck,
-	LoaderCircle,
-	RotateCcw,
-} from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -178,8 +175,7 @@ function RetryState() {
 		setSession(crypto.randomUUID());
 	};
 
-	const firstAttemptState = getFirstAttemptState(result.status, retryKey);
-	const retryAttemptState = getRetryAttemptState(result.status, retryKey);
+	const hasRetried = retryKey > 0;
 
 	return (
 		<section className="space-y-5">
@@ -199,37 +195,41 @@ function RetryState() {
 				</p>
 			)}
 
-			<div className="divide-y divide-border/80 border-border/80 border-y">
-				<RetryAttemptRow
-					description={getFirstAttemptDescription(firstAttemptState)}
-					number={1}
-					state={firstAttemptState}
-					title="Initial request"
-				/>
-				<RetryAttemptRow
-					description={getRetryAttemptDescription(
-						retryAttemptState,
-						result.readyValue?.attempt
-					)}
-					number={2}
-					state={retryAttemptState}
-					title="Retry request"
-				>
+			<div
+				aria-busy={result.status === 'loading' || undefined}
+				className="h-80"
+				data-c15t-integration="retry-fixture"
+				data-c15t-status={result.status}
+			>
+				<Frame.Root>
+					<Frame.Title>
+						{getRetryFrameTitle(
+							result.status,
+							hasRetried,
+							result.readyValue?.attempt
+						)}
+					</Frame.Title>
 					{result.status === 'error' && (
-						<Button
-							className="min-h-11"
+						<C15tButton.Root
+							mode="stroke"
 							onClick={() => setRetryKey((value) => value + 1)}
+							size="small"
+							variant="neutral"
 						>
 							{retryKey === 0 ? 'Retry request' : 'Retry again'}
-						</Button>
+						</C15tButton.Root>
 					)}
 					{result.status === 'ready' && (
-						<Button className="min-h-11" onClick={restart} variant="outline">
-							<RotateCcw aria-hidden />
+						<C15tButton.Root
+							mode="stroke"
+							onClick={restart}
+							size="small"
+							variant="neutral"
+						>
 							Run again
-						</Button>
+						</C15tButton.Root>
 					)}
-				</RetryAttemptRow>
+				</Frame.Root>
 			</div>
 
 			{result.status === 'error' && (
@@ -244,98 +244,6 @@ function RetryState() {
 			)}
 		</section>
 	);
-}
-
-type RetryAttemptState = 'blocked' | 'failed' | 'loading' | 'ready' | 'waiting';
-
-function RetryAttemptRow({
-	children,
-	description,
-	number,
-	state,
-	title,
-}: {
-	children?: React.ReactNode;
-	description: string;
-	number: number;
-	state: RetryAttemptState;
-	title: string;
-}) {
-	return (
-		<div
-			className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between"
-			data-state={state}
-		>
-			<div className="flex min-w-0 gap-3">
-				<RetryAttemptIcon number={number} state={state} />
-				<div>
-					<div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-						<h3 className="font-medium text-base">{title}</h3>
-						<span className="font-mono text-muted-foreground text-xs">
-							{getRetryAttemptLabel(state, number)}
-						</span>
-					</div>
-					<p className="mt-1 max-w-2xl text-muted-foreground text-sm leading-6">
-						{description}
-					</p>
-				</div>
-			</div>
-			{children && <div className="shrink-0 pl-10 sm:pl-0">{children}</div>}
-		</div>
-	);
-}
-
-function RetryAttemptIcon({
-	number,
-	state,
-}: {
-	number: number;
-	state: RetryAttemptState;
-}) {
-	const className =
-		'flex size-7 shrink-0 items-center justify-center rounded-full border font-mono text-xs';
-
-	switch (state) {
-		case 'failed':
-			return (
-				<span
-					aria-hidden
-					className={`${className} border-destructive/40 text-destructive`}
-				>
-					<CircleAlert aria-hidden className="size-4" />
-				</span>
-			);
-		case 'ready':
-			return (
-				<span
-					aria-hidden
-					className={`${className} border-foreground text-foreground`}
-				>
-					<CircleCheck aria-hidden className="size-4" />
-				</span>
-			);
-		case 'loading':
-			return (
-				<span
-					aria-hidden
-					className={`${className} border-foreground text-foreground`}
-				>
-					<LoaderCircle
-						aria-hidden
-						className="size-4 motion-safe:animate-spin"
-					/>
-				</span>
-			);
-		default:
-			return (
-				<span
-					aria-hidden
-					className={`${className} border-border text-muted-foreground`}
-				>
-					{number}
-				</span>
-			);
-	}
 }
 
 function StateIntroduction({
@@ -385,79 +293,26 @@ function CheckList({ items }: { items: string[] }) {
 	);
 }
 
-function getFirstAttemptState(
+function getRetryFrameTitle(
 	status: string,
-	retryKey: number
-): RetryAttemptState {
-	if (retryKey === 0 && (status === 'idle' || status === 'loading')) {
-		return 'loading';
-	}
-	if (status === 'blocked') {
-		return 'blocked';
-	}
-	return 'failed';
-}
-
-function getRetryAttemptState(
-	status: string,
-	retryKey: number
-): RetryAttemptState {
-	if (retryKey === 0) {
-		return 'waiting';
-	}
-	switch (status) {
-		case 'ready':
-			return 'ready';
-		case 'error':
-			return 'failed';
-		case 'blocked':
-			return 'blocked';
-		default:
-			return 'loading';
-	}
-}
-
-function getRetryAttemptLabel(state: RetryAttemptState, number: number) {
-	switch (state) {
-		case 'failed':
-			return number === 1 ? 'Expected failure' : 'Failed';
-		case 'loading':
-			return 'In progress';
-		case 'ready':
-			return 'Ready';
-		case 'blocked':
-			return 'Blocked';
-		default:
-			return 'Waiting';
-	}
-}
-
-function getFirstAttemptDescription(state: RetryAttemptState) {
-	switch (state) {
-		case 'loading':
-			return 'Requesting the local fixture.';
-		case 'blocked':
-			return 'Waiting for the configured consent category.';
-		default:
-			return 'Returned HTTP 503 as designed.';
-	}
-}
-
-function getRetryAttemptDescription(
-	state: RetryAttemptState,
+	hasRetried: boolean,
 	attempt?: number
 ) {
-	switch (state) {
-		case 'loading':
-			return 'Sending request 2 with the same script id.';
+	switch (status) {
+		case 'error':
+			return hasRetried
+				? 'The retry could not be completed.'
+				: 'The first request failed as expected.';
 		case 'ready':
-			return `Resolved readyValue successfully on request ${attempt ?? 2}.`;
-		case 'failed':
-			return 'The retry failed unexpectedly. Open the technical error below for details.';
+			return `The fixture script loaded successfully on request ${attempt ?? 2}.`;
 		case 'blocked':
-			return 'Waiting for the configured consent category.';
+			return 'Consent is required to load this script.';
+		case 'idle':
+			return 'Preparing the fixture script…';
 		default:
-			return 'Reuses the script id and replaces only the failed owned registration.';
+			return hasRetried
+				? 'Retrying the fixture script…'
+				: 'Loading the fixture script…';
 	}
 }
 
