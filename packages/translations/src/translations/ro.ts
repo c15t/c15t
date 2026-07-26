@@ -125,7 +125,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Preferințele de consimțământ sunt stocate într-un cookie numit „euconsent-v2” timp de 13 luni. The storage duration may be refreshed when you update your preferences.',
+					'Preferințele de consimțământ sunt stocate într-un cookie numit „euconsent-v2” timp de 13 luni. Durata de stocare poate fi reînnoită atunci când îți actualizezi preferințele.',
 			},
 		},
 		common: {

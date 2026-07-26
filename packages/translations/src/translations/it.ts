@@ -124,7 +124,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Le preferenze di consenso vengono memorizzate in un cookie denominato "euconsent-v2" per 13 mesi. The storage duration may be refreshed when you update your preferences.',
+					'Le preferenze di consenso vengono memorizzate in un cookie denominato "euconsent-v2" per 13 mesi. La durata di memorizzazione può essere rinnovata quando aggiorni le tue preferenze.',
 			},
 		},
 		common: {

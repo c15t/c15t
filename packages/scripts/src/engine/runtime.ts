@@ -258,6 +258,14 @@ function executeStep(step: ManifestStep): void {
 				break;
 			}
 
+			// When the queue lives on the target itself, a non-array target means
+			// the real SDK already replaced the snippet queue (for example a
+			// grant → revoke → grant cycle without a page reload). Redefining the
+			// methods would overwrite live SDK methods with dead stubs.
+			if (!step.queue && !Array.isArray(target)) {
+				break;
+			}
+
 			const targetRecord = target as Record<string, unknown>;
 			for (const methodName of step.methods) {
 				targetRecord[methodName] = (...args: unknown[]) => {
@@ -270,9 +278,98 @@ function executeStep(step: ManifestStep): void {
 						return;
 					}
 
+					if (
+						step.queueFormat === 'methodCall' ||
+						step.queueFormat === 'wrappedMethodCall' ||
+						step.queueFormat === 'voidMethodCall'
+					) {
+						const promise = new Promise<unknown>((resolve) => {
+							queueTarget.push({
+								name: methodName,
+								args,
+								resolve,
+							});
+						});
+
+						if (step.queueFormat === 'wrappedMethodCall') {
+							return { promise };
+						}
+
+						if (step.queueFormat === 'voidMethodCall') {
+							return undefined;
+						}
+
+						return promise;
+					}
+
+					if (step.queueFormat === 'callback') {
+						queueTarget.push({
+							name: methodName,
+							fn: () => {
+								const latestTarget = win[step.target];
+								if (
+									latestTarget === null ||
+									(typeof latestTarget !== 'object' &&
+										typeof latestTarget !== 'function')
+								) {
+									return;
+								}
+
+								const method = (
+									latestTarget as Record<
+										string,
+										(...methodArgs: unknown[]) => unknown
+									>
+								)[methodName];
+								if (typeof method === 'function') {
+									method.apply(latestTarget, args);
+								}
+							},
+						});
+						return;
+					}
+
 					queueTarget.push([methodName, ...args]);
 				};
 			}
+			break;
+		}
+
+		case 'defineQueueClass': {
+			const target = win[step.target];
+			if (
+				target === null ||
+				(typeof target !== 'object' && typeof target !== 'function')
+			) {
+				break;
+			}
+
+			const queueProperty = step.queueProperty ?? '_q';
+			const QueueClass = function queuedHelperClass(
+				this: Record<string, unknown>
+			) {
+				this[queueProperty] = [];
+			};
+			const prototype = QueueClass.prototype as Record<string, unknown>;
+
+			for (const methodName of step.methods) {
+				prototype[methodName] = function queuedHelperMethod(
+					this: Record<string, unknown>,
+					...args: unknown[]
+				) {
+					const queueTarget = this[queueProperty];
+					if (Array.isArray(queueTarget)) {
+						queueTarget.push({
+							name: methodName,
+							args,
+						});
+					}
+
+					return this;
+				};
+			}
+
+			(target as Record<string, unknown>)[step.name] = QueueClass;
 			break;
 		}
 
@@ -422,6 +519,23 @@ function mapConsentState(
 	return result;
 }
 
+function partitionConsentIds(
+	mapping: Record<string, string[]>,
+	consents: ConsentState
+): { allowedConsentIds: string[]; deniedConsentIds: string[] } {
+	const allowedConsentIds: string[] = [];
+	const deniedConsentIds: string[] = [];
+
+	for (const [c15tCategory, consentIds] of Object.entries(mapping)) {
+		const isGranted = (consents as Record<string, boolean>)[c15tCategory];
+		for (const consentId of consentIds) {
+			(isGranted ? allowedConsentIds : deniedConsentIds).push(consentId);
+		}
+	}
+
+	return { allowedConsentIds, deniedConsentIds };
+}
+
 function getConsentSignalSteps(
 	resolvedManifest: ResolvedManifest,
 	mode: 'default' | 'update',
@@ -431,15 +545,45 @@ function getConsentSignalSteps(
 		return [];
 	}
 
-	const mapped = mapConsentState(resolvedManifest.consentMapping, consents);
-
 	switch (resolvedManifest.consentSignal) {
 		case 'gtag': {
+			const mapped = mapConsentState(resolvedManifest.consentMapping, consents);
+
 			return [
 				{
 					type: 'callGlobal',
 					global: resolvedManifest.consentSignalTarget ?? 'gtag',
 					args: ['consent', mode, mapped],
+				},
+			];
+		}
+
+		case 'rudderstack': {
+			// RudderStack's consent() call carries the full allow/deny partition
+			// each time, so the default and update modes share one shape. The
+			// pre-load call is captured by the snippet queue and replayed by the
+			// SDK as its initial consent state. c15t is the CMP, so the provider
+			// is always 'custom'.
+			const partition = partitionConsentIds(
+				resolvedManifest.consentMapping,
+				consents
+			);
+
+			return [
+				{
+					type: 'callGlobal',
+					global: resolvedManifest.consentSignalTarget ?? 'rudderanalytics',
+					method: 'consent',
+					args: [
+						{
+							consentManagement: {
+								enabled: true,
+								provider: 'custom',
+								allowedConsentIds: partition.allowedConsentIds,
+								deniedConsentIds: partition.deniedConsentIds,
+							},
+						},
+					],
 				},
 			];
 		}

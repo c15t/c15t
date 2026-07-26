@@ -125,7 +125,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Sutikimo nuostatos saugomos slapuke pavadinimu „euconsent-v2“ 13 mėnesių. The storage duration may be refreshed when you update your preferences.',
+					'Sutikimo nuostatos saugomos slapuke pavadinimu „euconsent-v2“ 13 mėnesių. Kai atnaujinate savo nuostatas, saugojimo trukmė gali būti pradėta skaičiuoti iš naujo.',
 			},
 		},
 		common: {

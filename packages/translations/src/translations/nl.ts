@@ -123,7 +123,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Toestemmingsvoorkeuren worden gedurende 13 maanden opgeslagen in een cookie genaamd "euconsent-v2". The storage duration may be refreshed when you update your preferences.',
+					'Toestemmingsvoorkeuren worden gedurende 13 maanden opgeslagen in een cookie genaamd "euconsent-v2". De bewaartermijn kan opnieuw ingaan wanneer u uw voorkeuren aanpast.',
 			},
 		},
 		common: {

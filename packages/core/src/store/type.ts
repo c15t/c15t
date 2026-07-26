@@ -6,6 +6,7 @@
 import type {
 	Branding,
 	InitOutput,
+	LegalDocumentPolicyType,
 	PolicyConfig,
 	PolicyScopeMode,
 	PolicyUiAction,
@@ -121,7 +122,7 @@ type RequireAtLeastOne<T, Keys extends keyof T = keyof T> = Keys extends keyof T
  * @experimental
  */
 type UnstableLegalDocumentConsentInputBase = {
-	type: 'privacy_policy' | 'terms_and_conditions' | 'dpa';
+	type: LegalDocumentPolicyType;
 	policyId?: string;
 	policyHash?: string;
 	documentSnapshotToken?: string;

@@ -5,7 +5,11 @@
  */
 
 import * as v from 'valibot';
-import { policyTypeSchema } from '../../domain/consent-policy';
+import {
+	consentPolicyTypeSchema,
+	legalDocumentPolicyTypeSchema,
+	policyTypeSchema,
+} from '../../domain/consent-policy';
 
 /**
  * Base subject ID validation - must be in sub_xxx format
@@ -58,6 +62,11 @@ const baseSubjectConsentSchema = v.object({
 	/** When the consent was given in epoch milliseconds */
 	givenAt: v.pipe(
 		v.number(),
+		// Keep the timestamp within the range JavaScript Date can represent.
+		// The backend derives an ID with Date#toISOString, which throws for an
+		// out-of-range value.
+		v.minValue(-8_640_000_000_000_000),
+		v.maxValue(8_640_000_000_000_000),
 		v.description('Timestamp when consent was given, in epoch milliseconds.'),
 		v.examples([1_735_689_600_000])
 	),
@@ -140,7 +149,7 @@ export const subjectCookieBannerInputSchema = v.object({
  */
 export const subjectPolicyBasedInputSchema = v.object({
 	...baseSubjectConsentSchema.entries,
-	type: v.picklist(['privacy_policy', 'dpa', 'terms_and_conditions']),
+	type: legalDocumentPolicyTypeSchema,
 	policyId: v.optional(
 		v.pipe(
 			v.string(),
@@ -196,7 +205,7 @@ export const postSubjectOutputSchema = v.object({
 	consentId: v.string(),
 	domainId: v.string(),
 	domain: v.string(),
-	type: policyTypeSchema,
+	type: consentPolicyTypeSchema,
 	metadata: v.optional(v.record(v.string(), v.unknown())),
 	appliedPreferences: v.optional(v.record(v.string(), v.boolean())),
 	uiSource: v.optional(v.string()),

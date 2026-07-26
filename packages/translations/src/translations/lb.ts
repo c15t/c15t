@@ -123,7 +123,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Zoustëmmungsvirléiften ginn an engem Cookie mam Numm "euconsent-v2" fir 13 Méint gespäichert. The storage duration may be refreshed when you update your preferences.',
+					'Zoustëmmungsvirléiften ginn an engem Cookie mam Numm "euconsent-v2" fir 13 Méint gespäichert. D’Späicherdauer kann erneiert ginn, wann Dir Är Virléiften aktualiséiert.',
 			},
 		},
 		common: {

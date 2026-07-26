@@ -458,9 +458,13 @@ export function loadScripts(
 			scriptElement.fetchPriority = script.fetchPriority;
 		}
 
-		// Add async/defer attributes
+		// Add async/defer attributes. Dynamically injected scripts are async by
+		// default, so an explicit `false` must be forwarded for ordered
+		// execution (e.g. legacy synchronous Adobe Tags embeds).
 		if (script.async) {
 			scriptElement.async = true;
+		} else if (script.async === false) {
+			scriptElement.async = false;
 		}
 
 		if (script.defer) {

@@ -124,7 +124,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Samtykkepreferansar blir lagra i ein informasjonskapsel kalla "euconsent-v2" i 13 månader. The storage duration may be refreshed when you update your preferences.',
+					'Samtykkepreferansar blir lagra i ein informasjonskapsel kalla "euconsent-v2" i 13 månader. Lagringstida kan fornyast når du oppdaterer preferansane dine.',
 			},
 		},
 		common: {

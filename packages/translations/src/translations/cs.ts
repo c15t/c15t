@@ -126,7 +126,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Předvolby souhlasu jsou uloženy v cookie s názvem "euconsent-v2" po dobu 13 měsíců. The storage duration may be refreshed when you update your preferences.',
+					'Předvolby souhlasu jsou uloženy v cookie s názvem "euconsent-v2" po dobu 13 měsíců. Doba uložení se může obnovit, když aktualizujete své předvolby.',
 			},
 		},
 		common: {

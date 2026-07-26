@@ -123,7 +123,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Preference glede soglasja so shranjene v piškotku z imenom "euconsent-v2" 13 mesecev. The storage duration may be refreshed when you update your preferences.',
+					'Preference glede soglasja so shranjene v piškotku z imenom "euconsent-v2" 13 mesecev. Obdobje hrambe se lahko obnovi, ko posodobite svoje preference.',
 			},
 		},
 		common: {

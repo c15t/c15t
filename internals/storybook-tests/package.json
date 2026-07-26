@@ -7,11 +7,11 @@
 		"./fixtures": "./src/fixtures/index.ts"
 	},
 	"dependencies": {
-		"storybook": "10.3.1"
+		"storybook": "10.4.6"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
-		"typescript": "5.9.3"
+		"typescript": "6.0.3"
 	},
 	"version": "0.0.1"
 }

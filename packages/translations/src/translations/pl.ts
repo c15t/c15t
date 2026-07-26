@@ -124,7 +124,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Preferencje dotyczące zgody są przechowywane w pliku cookie o nazwie „euconsent-v2” przez 13 miesięcy. The storage duration may be refreshed when you update your preferences.',
+					'Preferencje dotyczące zgody są przechowywane w pliku cookie o nazwie „euconsent-v2” przez 13 miesięcy. Okres przechowywania może zostać odnowiony, gdy zaktualizujesz swoje preferencje.',
 			},
 		},
 		common: {

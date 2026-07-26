@@ -1,3 +1,4 @@
+import { isLegalDocumentType } from '@c15t/schema';
 import {
 	type JWTHeaderParameters,
 	type JWTPayload,
@@ -51,16 +52,6 @@ const LEGAL_DOCUMENT_SNAPSHOT_JWT_HEADER: JwtHeader = {
 const DEFAULT_ISSUER = 'c15t';
 const DEFAULT_AUDIENCE = 'c15t-legal-document-snapshot';
 
-function isLegalDocumentPolicyType(
-	type: unknown
-): type is LegalDocumentPolicyType {
-	return (
-		type === 'privacy_policy' ||
-		type === 'terms_and_conditions' ||
-		type === 'dpa'
-	);
-}
-
 function resolveSnapshotIssuer(options?: LegalDocumentSnapshotOptions): string {
 	return options?.issuer?.trim() || DEFAULT_ISSUER;
 }
@@ -90,7 +81,7 @@ function isLegalDocumentSnapshotPayload(
 		typeof payload.iss === 'string' &&
 		typeof payload.aud === 'string' &&
 		typeof payload.sub === 'string' &&
-		isLegalDocumentPolicyType(payload.type) &&
+		isLegalDocumentType(payload.type) &&
 		typeof payload.version === 'string' &&
 		typeof payload.hash === 'string' &&
 		typeof payload.effectiveDate === 'string' &&

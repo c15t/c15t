@@ -1,3 +1,4 @@
+import { hashSha256Hex } from '@c15t/schema/types';
 import baseX from 'base-x';
 import type { InferFumaDB } from 'fumadb';
 import type { LatestDB } from '~/db/schema';
@@ -17,21 +18,25 @@ const prefixes: Record<keyof Tables, string> = {
 
 const b58 = baseX('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz');
 
+const EPOCH_TIMESTAMP = 1_700_000_000_000;
+
+/** Total ID payload size: 8 timestamp bytes + 12 discriminator bytes. */
+const ID_BYTE_LENGTH = 20;
+const TIMESTAMP_BYTE_LENGTH = 8;
+
 /**
- * Creates time-ordered, prefixed, base58-encoded identifiers that:
- * - Start with the provided prefix for clear identification
- * - Embed a timestamp for chronological ordering
- * - Include random data for uniqueness
+ * Writes `timestamp` into the first 8 bytes of `buf` as a big-endian offset
+ * from {@link EPOCH_TIMESTAMP}. For timestamps at or after the epoch,
+ * lexicographic ID order matches chronological order.
+ *
+ * Timestamps before the epoch (or non-finite ones) share a zero timestamp
+ * prefix; the remaining bytes still keep such IDs distinct, but those IDs are
+ * not chronologically ordered relative to each other.
  */
-function generateId(model: keyof typeof prefixes): string {
-	const buf = crypto.getRandomValues(new Uint8Array(20));
-	const prefix = prefixes[model];
+function writeTimestamp(buf: Uint8Array, timestamp: number): void {
+	const offset = timestamp - EPOCH_TIMESTAMP;
+	const t = Number.isFinite(offset) ? Math.max(0, offset) : 0;
 
-	const EPOCH_TIMESTAMP = 1_700_000_000_000;
-
-	const t = Date.now() - EPOCH_TIMESTAMP;
-
-	// Use 8 bytes for the timestamp (0..7) and shift accordingly:
 	const high = Math.floor(t / 0x100000000);
 	const low = t >>> 0;
 	buf[0] = (high >>> 24) & 255;
@@ -42,8 +47,68 @@ function generateId(model: keyof typeof prefixes): string {
 	buf[5] = (low >>> 16) & 255;
 	buf[6] = (low >>> 8) & 255;
 	buf[7] = low & 255;
+}
 
-	return `${prefix}_${b58.encode(buf)}`;
+/**
+ * Creates time-ordered, prefixed, base58-encoded identifiers that:
+ * - Start with the provided prefix for clear identification
+ * - Embed a timestamp for chronological ordering
+ * - Include random data for uniqueness
+ */
+function generateId(model: keyof typeof prefixes): string {
+	const buf = crypto.getRandomValues(new Uint8Array(ID_BYTE_LENGTH));
+
+	writeTimestamp(buf, Date.now());
+
+	return `${prefixes[model]}_${b58.encode(buf)}`;
+}
+
+/**
+ * Builds an ID that is fully determined by `identity`, in the same shape as
+ * {@link generateId}: the timestamp prefix preserves chronological order for
+ * timestamps at or after {@link EPOCH_TIMESTAMP}, and a 96-bit SHA-256 digest
+ * of `identity` replaces the random tail.
+ *
+ * Because the ID is the table's primary key, two concurrent requests carrying
+ * the same identity derive the same ID and the database rejects the second
+ * insert.
+ *
+ * `identity` must include every field that distinguishes one row from another —
+ * the tenant included, since the primary key is global rather than per-tenant.
+ * Values are JSON-encoded rather than concatenated, so a `null` field is never
+ * mistaken for the string `"null"` and values containing separators cannot be
+ * re-partitioned into a different identity.
+ *
+ * @param model - Table the ID belongs to, used for the prefix
+ * @param timestamp - Epoch milliseconds embedded for chronological ordering
+ * @param identity - Field values that uniquely identify the row
+ * @returns A prefixed base58 ID, stable for a given `model`/`timestamp`/`identity`
+ *
+ * @example
+ * ```ts
+ * const id = await generateDeterministicId('consent', givenAt.getTime(), [
+ *   tenantId ?? null,
+ *   subjectId,
+ *   domainId,
+ * ]);
+ * ```
+ */
+export async function generateDeterministicId(
+	model: keyof typeof prefixes,
+	timestamp: number,
+	identity: readonly (string | null)[]
+): Promise<string> {
+	const digest = await hashSha256Hex(JSON.stringify(identity));
+	const buf = new Uint8Array(ID_BYTE_LENGTH);
+
+	writeTimestamp(buf, timestamp);
+
+	for (let i = TIMESTAMP_BYTE_LENGTH; i < ID_BYTE_LENGTH; i++) {
+		const offset = (i - TIMESTAMP_BYTE_LENGTH) * 2;
+		buf[i] = Number.parseInt(digest.slice(offset, offset + 2), 16);
+	}
+
+	return `${prefixes[model]}_${b58.encode(buf)}`;
 }
 
 /**

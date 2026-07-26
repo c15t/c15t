@@ -11,6 +11,9 @@ env:
   # PRs still execute arbitrary branch code). Fork PRs already omit repo secrets.
   TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
   TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
+  # The leadtype package-docs generation inside package builds exceeds Node's
+  # default heap on cache-miss builds of the larger packages (core, react).
+  NODE_OPTIONS: --max-old-space-size=6144
 
 jobs:
   lint_and_check:
@@ -94,13 +97,14 @@ jobs:
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('**/bun.lockb') }}
+          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('bun.lock') }}
           restore-keys: |
             playwright-browsers-${{ runner.os }}-
 
       - name: 🎭 Install Playwright browsers
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: bunx playwright@1.58.2 install
+        run: |
+          PLAYWRIGHT_VERSION=$(bun -e "console.log(require('./package.json').devDependencies.playwright)")
+          bunx "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium chromium-headless-shell
 
       - name: 🧪 Run Tests
         run: bun turbo run test --filter="./packages/*"

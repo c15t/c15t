@@ -124,7 +124,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'A hozzájárulási beállításokat egy "euconsent-v2" nevű sütiben tároljuk 13 hónapig. The storage duration may be refreshed when you update your preferences.',
+					'A hozzájárulási beállításokat egy "euconsent-v2" nevű sütiben tároljuk 13 hónapig. A tárolási időtartam megújulhat, amikor Ön frissíti a beállításait.',
 			},
 		},
 		common: {

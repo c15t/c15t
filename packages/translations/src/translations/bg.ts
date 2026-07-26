@@ -125,7 +125,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Предпочитанията за съгласие се съхраняват в бисквитка с име "euconsent-v2" за 13 месеца. The storage duration may be refreshed when you update your preferences.',
+					'Предпочитанията за съгласие се съхраняват в бисквитка с име "euconsent-v2" за 13 месеца. Срокът на съхранение може да бъде подновен, когато актуализирате вашите предпочитания.',
 			},
 		},
 		common: {
