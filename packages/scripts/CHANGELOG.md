@@ -1,5 +1,24 @@
 # @c15t/scripts
 
+## 2.2.0-canary-20260727202135
+
+### Minor Changes
+
+- e4315bd: Add a built-in Adobe Analytics integration for Adobe Experience Platform Data Collection Tags embed scripts.
+- 2556f76: Add a built-in Amplitude Browser SDK 2 integration with measurement-consent gating, snippet-compatible pre-load queueing, runtime opt-out lifecycle hooks, docs, and live-vendor coverage.
+- f98e83d: Add a built-in Clearbit integration gated on marketing consent.
+- 584bb09: Add a built-in Heap integration with the current heap.js callback queue contract.
+- ea4c0e4: Add a built-in Hightouch Events browser SDK integration.
+- 585d84d: Add a built-in LogRocket integration that loads the browser SDK after measurement consent and initializes it with the configured app ID and options.
+- 4f965cb: Add a built-in Pirsch analytics integration.
+- cbf8b37: Add a built-in RudderStack integration with the v3 `rudderanalytics` queue, required write key and HTTPS data plane URL validation, optional load options and page tracking, docs, registry metadata, and live vendor probe coverage.
+- ab8ecad: Fix Microsoft Clarity integration: the pre-load stub no longer sets the `v` version marker — Clarity's runtime treats a pre-set `v` as a duplicate install ("Error CL001: Multiple Clarity tags detected") and never starts, so installs collected no data. Consent synchronization now uses Clarity Consent V2 (`consentv2` with `ad_Storage`/`analytics_Storage`), mapping c15t `marketing` to `ad_Storage` and `measurement` to `analytics_Storage`. The `defaultConsent` option now accepts a Consent V2 payload; boolean values are still supported and expand to both storage channels.
+- 613ba22: Add an opt-in pre-consent mode to the RudderStack helper: `consentManagement.mapping` maps c15t categories to RudderStack consent IDs, loads the SDK inert (`preConsent` with storage strategy `none` and buffered delivery), and signals every consent decision through `rudderanalytics.consent()` — preserving pre-consent event attribution for consenting users. Blocking the load remains the default. The manifest engine gains a `rudderstack` consent signal type alongside `gtag`.
+
+### Patch Changes
+
+- c89ce28: Fix Mixpanel integration: implement the official snippet contract (`__SV` version marker and `_i` init registry) so `mixpanel-2-latest.min.js` initializes from the stub instead of logging "Mixpanel error: Version mismatch" and silently dropping queued events.
+
 ## 2.1.0
 
 ### Minor Changes
