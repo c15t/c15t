@@ -26,77 +26,111 @@ function MyComponent() {
 
 ## User Identification
 
-You can link consent records to your own internal user IDs or anonymous visitor tokens (such as a UUID stored in a first-party cookie). This maps the consent history to the `externalId` field on the subject row in the database, allowing you to include consent records in GDPR Article 15 exports.
+You can link a consent subject to your own internal user ID or a non-secret anonymous visitor ID. c15t stores the identifier in the subject row's `externalId` field. Consent records remain associated with that subject through `subjectId`, so your backend can find the subject and its related consent records by external ID for GDPR Article 15 exports.
 
-### 1. Setting the Initial User ID (Server Component Example)
+### 1. Providing the Current User ID
 
-If you store a visitor token in an HttpOnly cookie, you can read it server-side in Next.js and pass it to the `ConsentManagerProvider` options.
+When using Clerk, prefer the Clerk `userId` whenever the visitor is signed in. Before sign-in, you can fall back to a non-secret visitor ID stored in a first-party cookie:
+
+<Callout type="warn">
+  `ConsentManagerProvider` runs on the client. Values passed through
+  `options.user` are therefore available to client-side JavaScript, even when
+  they were read from an HttpOnly cookie on the server. Pass only a non-secret
+  identifier, such as a Clerk `userId` or an opaque visitor ID. Never pass a
+  Clerk session token or a value returned by `getToken()`.
+</Callout>
 
 <Callout type="info">
-  This example uses the asynchronous `cookies()` API available in **Next.js 15+**. For **Next.js 14 and earlier**, use the synchronous form `const cookieStore = cookies();` (without `await`) and remove `async` from the `RootLayout` signature if no other async operations exist.
+  Clerk's `auth()` helper requires `clerkMiddleware()` to be configured. This
+  example also uses the asynchronous `cookies()` API from **Next.js 15+**. For
+  **Next.js 14 and earlier**, use `const cookieStore = cookies();` without
+  `await`. Keep the layout asynchronous because Clerk's `auth()` is
+  asynchronous.
 </Callout>
 
 ```tsx
 // app/layout.tsx
-import { cookies } from 'next/headers';
+import { ClerkProvider } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { ConsentManagerProvider } from '@c15t/nextjs';
+import { cookies } from 'next/headers';
+import { ClerkConsentSync } from './clerk-consent-sync';
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const { userId } = await auth();
   const cookieStore = await cookies();
-  const visitorToken = cookieStore.get('visitor_token')?.value;
+  const visitorId = cookieStore.get('consent_visitor_id')?.value;
+  const consentUser = userId
+    ? { id: userId, identityProvider: 'clerk' }
+    : visitorId
+      ? { id: visitorId, identityProvider: 'anonymous-visitor' }
+      : undefined;
 
   return (
-    <ConsentManagerProvider
-      options={{
-        mode: 'hosted',
-        backendURL: '/api/c15t',
-        consentCategories: ['necessary', 'measurement', 'marketing'],
-        user: visitorToken ? { id: visitorToken, identityProvider: 'cookie' } : undefined,
-      }}
-    >
-      {children}
-    </ConsentManagerProvider>
+    <html lang="en">
+      <body>
+        <ClerkProvider>
+          <ConsentManagerProvider
+            options={{
+              mode: 'hosted',
+              backendURL: '/api/c15t',
+              consentCategories: ['necessary', 'measurement', 'marketing'],
+              user: consentUser,
+            }}
+          >
+            <ClerkConsentSync />
+            {children}
+          </ConsentManagerProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }
 ```
 
-### 2. Updating the ID After Login (`identifyUser`)
+### 2. Synchronizing Clerk Sign-ins
 
-When a user logs in, call the `identifyUser()` method to link their previous anonymous consent history to their new authenticated account:
+Clerk can complete a sign-in without reloading the page. Add a client component inside `ConsentManagerProvider` to update the current consent subject as soon as Clerk exposes the authenticated `userId`:
 
 ```tsx
+// app/clerk-consent-sync.tsx
 'use client';
 
+import { useAuth } from '@clerk/nextjs';
 import { useConsentManager } from '@c15t/nextjs';
+import { useEffect } from 'react';
 
-function LoginForm() {
+export function ClerkConsentSync() {
+  const { isLoaded, isSignedIn, userId } = useAuth();
   const { identifyUser } = useConsentManager();
 
-  async function handleLogin(email: string) {
-    // ... your login logic
-    const user = await api.login(email);
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !userId) {
+      return;
+    }
 
-    // Link the current subject's consent history to the authenticated user ID
-    await identifyUser({
-      id: user.id,
-      identityProvider: 'your-auth-provider', // e.g. 'clerk', 'auth0', 'custom'
+    void identifyUser({
+      id: userId,
+      identityProvider: 'clerk',
+    }).then(() => {
+      // Prevent the old anonymous ID from replacing the Clerk ID after sign-out.
+      document.cookie =
+        'consent_visitor_id=; Max-Age=0; Path=/; SameSite=Lax';
     });
-  }
+  }, [identifyUser, isLoaded, isSignedIn, userId]);
 
-  return (
-    <form onSubmit={(e) => {
-      e.preventDefault();
-      handleLogin(new FormData(e.currentTarget).get('email') as string);
-    }}>
-      <input name="email" type="email" placeholder="Email" />
-      <button type="submit">Log in</button>
-    </form>
-  );
+  return null;
 }
 ```
 
+`identifyUser()` replaces the subject's current `externalId`; it does not retain the anonymous ID as an alias. Once a visitor is linked to Clerk, stop supplying the former visitor ID. The example clears its client-readable cookie only after `identifyUser()` succeeds so a later render cannot change the subject back to the anonymous ID.
+
 <Callout type="info">
-  User identification (`options.user` and `identifyUser`) requires hosted mode (`mode: 'hosted'`). In `mode: 'offline'`, these configurations are a no-op as consent is stored locally in client-side cookies only.
+  Backend subject identification requires hosted mode (`mode: 'hosted'`). In
+  offline mode, `identifyUser()` cannot update a backend subject. Identifiers
+  supplied through `options.user` can still be held in client state and
+  persisted with locally stored consent, so do not place sensitive values
+  there.
 </Callout>
 
 <import src="../../../../shared/react/hooks/use-consent-manager/overview.mdx#key-types" />
