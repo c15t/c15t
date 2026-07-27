@@ -5,9 +5,6 @@
 "c15t": patch
 "@c15t/dev-tools": patch
 "@c15t/schema": patch
-"@c15t/solid": patch
-"@c15t/svelte": patch
-"@c15t/vue": patch
 "@c15t/react": patch
 "@c15t/nextjs": patch
 "@c15t/translations": patch
