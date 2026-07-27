@@ -1,5 +1,16 @@
 # @c15t/schema
 
+## 2.1.1-canary-20260727202135
+
+### Patch Changes
+
+- 1d24803: Add Gujarati (`gu`) translations for cookie banner, consent dialog, and IAB TCF consent UI copy.
+- 05b0abb: Add Hindi (`hi`) translations for cookie banner, consent dialog, and IAB TCF consent UI copy.
+- 8c004cf: Improve generated OpenAPI request schemas for consent, subject, and legal-document endpoints.
+- 16a1f82: Dependency audit for the next release: remove unused `@orpc/*` dependencies from `@c15t/backend` and `@c15t/node-sdk`, update runtime dependencies (hono 4.12.27, valibot 1.4.2, defu 6.1.7, jose 6.2.3, zod 4.4.3, zustand 5.0.14, xstate 5.32.4, and more), and force security floors for kysely (SQL injection fixes) and protobufjs via workspace overrides. Builds now use TypeScript 7 (native compiler) with rslib 0.23 for type checking and declaration emit; emitted types are semantically unchanged.
+- 5406a8d: Match legal-document policy types (`privacy_policy`, `dpa`, `terms_and_conditions`) by prefix so suffixed variants like `terms_and_conditions_b2b` are accepted, letting multiple policies of one family be active at once. Unknown types are still rejected.
+- ca7784f: Prevent duplicate consent records from concurrent identical submissions. Concurrent in-flight client saves with the same intent are coalesced, and backend submissions derive the consent primary key from tenant, subject, domain, policy, and `givenAt`, so identical requests collide on the key every deployed database already enforces. Scope legacy duplicate lookups to the current tenant, and reject timestamps outside JavaScript's representable `Date` range before deriving the ID.
+
 ## 2.1.0
 
 ### Minor Changes

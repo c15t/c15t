@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/scripts",
-	"version": "2.1.0",
+	"version": "2.2.0-canary-20260727202135",
 	"description": "Consent-aware script integrations for Google Tag Manager, Google Consent Mode v2, GA4, Google Ads, Meta Pixel, and more.",
 	"keywords": [
 		"c15t",
