@@ -1,8 +1,8 @@
 ---
-title: "v2.2.0 - Consent-Aware Embeds, More Integrations, and Reliability Fixes"
+title: "v2.2.0 - Consent-Aware Embeds, Configurable Controls, and More Integrations"
 version: "2.2.0"
 date: 2026-07-29
-description: "Minor release adding consent-aware Google Maps and YouTube components, eight script integrations, a reusable SDK hook, policy-aware action styling, IAB and consent reliability fixes, and Hindi and Gujarati translations."
+description: "Minor release adding consent-aware Google Maps and YouTube components, a configurable consent controls toolbar, eight script integrations, a reusable SDK hook, policy-aware action styling, reliability fixes, and new translations."
 group: changelog
 tags:
   - release
@@ -20,13 +20,14 @@ draft: false
 authors: [KayleeWilliams]
 ---
 
-c15t 2.2 expands consent-aware integrations beyond background scripts and into the parts of your product that people interact with. The release adds ready-to-use Google Maps and YouTube components, eight new script providers, a reusable hook for custom SDK integrations, and improvements across consent storage, IAB TCF, theming, translations, and the self-hosted backend.
+c15t 2.2 expands consent-aware integrations beyond background scripts and into the parts of your product that people interact with. The release adds ready-to-use Google Maps and YouTube components, a configurable consent controls toolbar, eight new script providers, a reusable hook for custom SDK integrations, and improvements across consent storage, IAB TCF, theming, translations, and the self-hosted backend.
 
 This is a minor release with no breaking changes.
 
 ## Highlights
 
 - New consent-aware `GoogleMap` and `YouTubeEmbed` components for React and Next.js
+- New opt-in `ConsentDialogTriggerToolbar` for combining privacy preferences with app-owned controls
 - New `useConsentScript` hook for custom SDK-backed integrations
 - Eight new built-in providers: Adobe Analytics, Amplitude, Clearbit, Heap, Hightouch, LogRocket, Pirsch, and RudderStack
 - RudderStack pre-consent buffering with category-to-consent-ID mapping
@@ -64,6 +65,41 @@ The hook:
 This keeps custom widgets connected to the same consent and script lifecycle as c15t's built-in integrations.
 
 → [React Script Loader](/docs/frameworks/react/script-loader) · [Next.js Script Loader](/docs/frameworks/next/script-loader)
+
+## Configurable consent controls toolbar
+
+React and Next.js now include `ConsentDialogTriggerToolbar`, an opt-in alternative to the existing single-button `ConsentDialogTrigger`. It combines one built-in privacy preferences action with app-owned controls such as theme, accessibility, or support actions.
+
+```tsx
+<ConsentDialogTriggerToolbar
+  ariaLabel="Site controls"
+  actions={[
+    {
+      id: 'theme',
+      label: 'Dark color scheme',
+      icon: isDark ? <SunIcon /> : <MoonIcon />,
+      pressed: isDark,
+      onSelect: toggleColorScheme,
+    },
+    {
+      id: 'support',
+      label: 'Open support chat',
+      icon: <ChatIcon />,
+      onSelect: openSupportChat,
+    },
+  ]}
+  preferences={{
+    icon: 'fingerprint',
+    label: 'Manage privacy settings',
+  }}
+/>
+```
+
+The toolbar supports horizontal and vertical layouts, drag-to-corner positioning, keyboard navigation, disabled and pressed action states, theme slots, direct style overrides, and fully custom styling with `noStyle`. Your application owns custom action state and behavior, while c15t always provides exactly one action that opens consent preferences.
+
+The existing `ConsentDialogTrigger` API and single-button behavior are unchanged, so adopting the toolbar does not require a migration.
+
+→ [React Consent Dialog Trigger](/docs/frameworks/react/components/consent-dialog-trigger) · [Next.js Consent Dialog Trigger](/docs/frameworks/next/components/consent-dialog-trigger)
 
 ## Eight new script integrations
 
