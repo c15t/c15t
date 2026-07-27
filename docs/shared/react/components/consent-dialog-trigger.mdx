@@ -7,7 +7,7 @@ group: reference
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="intro">
-  `ConsentDialogTrigger` is a floating, draggable toolbar that keeps privacy controls within reach. By default it contains one action that opens the consent dialog; developers can add theme, accessibility, support, and other app-defined actions. Users can drag it to any corner of the screen, and the position persists across sessions.
+  `ConsentDialogTrigger` is a floating button that opens the consent dialog when clicked. Users can drag it to any corner of the screen, and the position persists across sessions. Use it to give users a persistent way to manage their privacy settings.
 </section>
 
 <section id="customization">
@@ -23,85 +23,81 @@ group: reference
   <ConsentDialogTrigger icon={<MyCustomIcon />} />
   ```
 
-  ## Segmented Toolbar
+  ## Configurable Toolbar
 
-  The trigger renders as a one-item toolbar by default. Pass `items` to add more actions. Use the `preferences` action to open c15t options and `custom` actions for controls owned by your app, such as theme switching or support chat.
+  Use the separate `ConsentDialogTriggerToolbar` when you want to place app-owned controls beside the privacy trigger. It always renders exactly one built-in action that opens consent preferences, so `actions` only contains controls your app owns.
 
   ```tsx
-  <ConsentDialogTrigger
+  <ConsentDialogTriggerToolbar
     ariaLabel="Site controls"
-    items={[
-      {
-        id: 'privacy',
-        label: 'Open privacy settings',
-        icon: 'branding',
-        action: 'preferences',
-      },
+    actions={[
       {
         id: 'theme',
-        label: 'Toggle color scheme',
-        icon: {
-          light: <MoonIcon />,
-          dark: <SunIcon />,
-        },
-        action: 'custom',
+        label: isDark ? 'Switch to light theme' : 'Switch to dark theme',
+        icon: isDark ? <SunIcon /> : <MoonIcon />,
+        pressed: isDark,
         onSelect: toggleColorScheme,
       },
       {
         id: 'support',
         label: 'Open support chat',
         icon: <ChatIcon />,
-        action: 'custom',
         onSelect: openSupportChat,
       },
     ]}
+    preferences={{
+      icon: 'fingerprint',
+      label: 'Manage privacy settings',
+    }}
   />
   ```
 
-  Each item requires a stable `id`, an accessible `label`, and an icon. An icon can be a built-in name, a React element, or a `{ light, dark }` pair. c15t handles the toolbar layout and preferences action; your callbacks remain in control of app-specific behavior and third-party chat providers. The preferences item automatically moves to the edge nearest the toolbar's snapped corner while custom actions keep their configured order.
+  Each custom action requires a stable `id`, accessible `label`, `icon`, and `onSelect` callback. Use `pressed` for toggle actions and `disabled` for unavailable actions. Your app remains responsible for state, integrations, and changing the icon or label. The preferences action automatically moves to the edge nearest the toolbar's snapped corner while custom actions keep their configured order.
 
   Toolbars are horizontal by default. Set `orientation="vertical"` to stack the actions and enable Up/Down arrow-key navigation:
 
   ```tsx
-  <ConsentDialogTrigger
+  <ConsentDialogTriggerToolbar
     orientation="vertical"
-    items={toolbarItems}
+    actions={toolbarActions}
   />
   ```
 
-  ## Styling
+  ### Toolbar Styling
 
-  The trigger follows the same styling precedence as the other c15t components: internal CSS module styles, provider theme slots, then direct component overrides. Use `className` and `style` on the toolbar, or on an individual item, and use `noStyle` for a fully custom implementation.
+  The toolbar follows the standard styling precedence: internal CSS module styles, provider theme slots, then direct component overrides. Use `className` and `style` on the toolbar, or on an individual action, and use `noStyle` for a fully custom implementation.
 
   ```tsx
   <ConsentManagerProvider
     options={{
       theme: {
         slots: {
-          consentDialogTrigger: 'my-toolbar',
-          consentDialogTriggerItem: 'my-toolbar-item',
-          consentDialogTriggerIcon: 'my-toolbar-icon',
+          consentDialogTriggerToolbar: 'my-toolbar',
+          consentDialogTriggerToolbarItem: 'my-toolbar-item',
+          consentDialogTriggerToolbarIcon: 'my-toolbar-icon',
         },
       },
     }}
   >
-    <ConsentDialogTrigger
+    <ConsentDialogTriggerToolbar
       className="fixed-toolbar"
-      style={{ '--consent-dialog-trigger-offset': '24px' }}
-      items={[
+      style={{ '--cdtt-offset': '24px' }}
+      actions={[
         {
-          id: 'privacy',
-          label: 'Open privacy settings',
-          icon: 'branding',
-          action: 'preferences',
-          className: 'privacy-action',
+          id: 'support',
+          label: 'Open support chat',
+          icon: <ChatIcon />,
+          onSelect: openSupportChat,
+          className: 'support-action',
         },
       ]}
     />
   </ConsentManagerProvider>
   ```
 
-  Available theme slots are `consentDialogTrigger`, `consentDialogTriggerItem`, `consentDialogTriggerIcon`, and `consentDialogTriggerText`.
+  Available toolbar theme slots are `consentDialogTriggerToolbar`, `consentDialogTriggerToolbarItem`, and `consentDialogTriggerToolbarIcon`.
+
+  With `noStyle`, use `data-corner`, `data-dragging`, and `data-snapping` on the toolbar to style its current position and interaction state.
 
   ## Visibility
 
@@ -152,8 +148,7 @@ group: reference
   ```
 
   - `ConsentDialogTrigger.Root` — Portal wrapper with drag handling and position persistence
-  - `ConsentDialogTrigger.Toolbar` — Default draggable toolbar with orientation-aware keyboard navigation
-  - `ConsentDialogTrigger.Button` — Legacy single-button primitive for custom compound layouts
+  - `ConsentDialogTrigger.Button` — Draggable button element with size variants
   - `ConsentDialogTrigger.Icon` — Icon display (branding, fingerprint, settings, or custom)
   - `ConsentDialogTrigger.Text` — Optional text label
 </section>
@@ -161,5 +156,19 @@ group: reference
 <section id="props">
   ## Props
 
+  ### ConsentDialogTrigger
+
   <AutoTypeTable path="./packages/react/src/components/consent-dialog-trigger/types.ts" name="ConsentDialogTriggerProps" />
+
+  ### ConsentDialogTriggerToolbar
+
+  <AutoTypeTable path="./packages/react/src/components/consent-dialog-trigger/types.ts" name="ConsentDialogTriggerToolbarProps" />
+
+  ### Toolbar Actions
+
+  <AutoTypeTable path="./packages/react/src/components/consent-dialog-trigger/types.ts" name="ConsentDialogTriggerToolbarAction" />
+
+  ### Preferences Action
+
+  <AutoTypeTable path="./packages/react/src/components/consent-dialog-trigger/types.ts" name="ConsentDialogTriggerToolbarPreferences" />
 </section>

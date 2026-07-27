@@ -19,20 +19,17 @@ export {
 	type TriggerRootProps,
 	TriggerText,
 	type TriggerTextProps,
-	TriggerToolbar,
-	type TriggerToolbarProps,
 	useTriggerContext,
 } from './consent-dialog-trigger';
+export { ConsentDialogTriggerToolbar } from './consent-dialog-trigger-toolbar';
 // Types
 export type {
-	ConsentDialogTriggerCustomItem,
-	ConsentDialogTriggerItem,
-	ConsentDialogTriggerPreferencesItem,
 	ConsentDialogTriggerProps,
+	ConsentDialogTriggerToolbarAction,
+	ConsentDialogTriggerToolbarPreferences,
+	ConsentDialogTriggerToolbarProps,
 	CornerPosition,
 	TriggerIcon as TriggerIconType,
-	TriggerIconPair,
-	TriggerIconSource,
 	TriggerOrientation,
 	TriggerSize,
 	TriggerVisibility,

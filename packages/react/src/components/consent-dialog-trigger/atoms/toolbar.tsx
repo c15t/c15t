@@ -1,19 +1,20 @@
 'use client';
 
 /**
- * Segmented toolbar for the ConsentDialogTrigger compound component.
+ * Internal toolbar view for ConsentDialogTriggerToolbar.
  *
  * @packageDocumentation
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
-import type { KeyboardEvent, ReactNode } from 'react';
+import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { useMemo, useRef, useState } from 'react';
 import { useStyles } from '~/hooks/use-styles';
 import type { ClassNameStyle } from '~/types/theme';
 import type {
-	ConsentDialogTriggerItem,
+	ConsentDialogTriggerToolbarAction,
+	ConsentDialogTriggerToolbarPreferences,
 	CornerPosition,
 	TriggerOrientation,
 	TriggerSize,
@@ -34,38 +35,82 @@ const sizeClassMap = {
 	lg: styles.lg,
 } as const;
 
+interface ToolbarItemBase {
+	className?: string;
+	disabled?: boolean;
+	focusId: string;
+	icon: ConsentDialogTriggerToolbarAction['icon'];
+	id: string;
+	label: string;
+	style?: ConsentDialogTriggerToolbarAction['style'];
+}
+
+interface ToolbarPreferencesItem extends ToolbarItemBase {
+	kind: 'preferences';
+	onSelect?: () => void;
+}
+
+interface ToolbarCustomItem extends ToolbarItemBase {
+	kind: 'custom';
+	onSelect: () => void;
+	pressed?: boolean;
+}
+
+type ToolbarItem = ToolbarPreferencesItem | ToolbarCustomItem;
+
+function createToolbarItems(
+	actions: readonly ConsentDialogTriggerToolbarAction[],
+	preferences: ConsentDialogTriggerToolbarPreferences
+): readonly ToolbarItem[] {
+	const customItems: ToolbarCustomItem[] = actions.map((action) => ({
+		...action,
+		focusId: `custom:${action.id}`,
+		kind: 'custom',
+	}));
+
+	return [
+		...customItems,
+		{
+			className: preferences.className,
+			focusId: 'preferences',
+			icon: preferences.icon ?? 'branding',
+			id: 'preferences',
+			kind: 'preferences',
+			label: preferences.label ?? 'Open privacy settings',
+			onSelect: preferences.onSelect,
+			style: preferences.style,
+		},
+	];
+}
+
 function orderItemsForCorner(
-	items: readonly ConsentDialogTriggerItem[],
+	items: readonly ToolbarItem[],
 	orientation: TriggerOrientation,
 	corner: CornerPosition
-): readonly ConsentDialogTriggerItem[] {
-	const preferencesIndex = items.findIndex(
-		(item) => item.action === 'preferences'
-	);
-	if (preferencesIndex === -1) {
-		return items;
-	}
-
-	const preferencesItem = items[preferencesIndex];
+): readonly ToolbarItem[] {
+	const preferencesItem = items.find((item) => item.kind === 'preferences');
 	if (!preferencesItem) {
 		return items;
 	}
 
-	const remainingItems = items.filter((_, index) => index !== preferencesIndex);
+	const customItems = items.filter((item) => item.kind === 'custom');
 	const cornerFacesStart =
 		orientation === 'horizontal'
 			? corner.endsWith('left')
 			: corner.startsWith('top');
 
 	return cornerFacesStart
-		? [preferencesItem, ...remainingItems]
-		: [...remainingItems, preferencesItem];
+		? [preferencesItem, ...customItems]
+		: [...customItems, preferencesItem];
 }
 
 export interface TriggerToolbarProps
 	extends Omit<ClassNameStyle, 'baseClassName'> {
-	/** Actions rendered in toolbar order. */
-	items: readonly ConsentDialogTriggerItem[];
+	/** App-owned actions rendered alongside the preferences action. */
+	actions: readonly ConsentDialogTriggerToolbarAction[];
+
+	/** Customization for the built-in preferences action. */
+	preferences: ConsentDialogTriggerToolbarPreferences;
 
 	/** Size of each toolbar item. @default 'md' */
 	size?: TriggerSize;
@@ -78,11 +123,11 @@ export interface TriggerToolbarProps
 }
 
 /**
- * A draggable group of actions that can open consent preferences or run a
- * developer-provided callback.
+ * A draggable group of app-owned actions and one built-in preferences action.
  */
 export function TriggerToolbar({
-	items,
+	actions,
+	preferences,
 	size = 'md',
 	orientation = 'horizontal',
 	ariaLabel = 'Privacy controls',
@@ -100,14 +145,19 @@ export function TriggerToolbar({
 		openDialog,
 	} = useTriggerContext();
 	const orderedItems = useMemo(
-		() => orderItemsForCorner(items, orientation, corner),
-		[items, orientation, corner]
+		() =>
+			orderItemsForCorner(
+				createToolbarItems(actions, preferences),
+				orientation,
+				corner
+			),
+		[actions, corner, orientation, preferences]
 	);
-	const firstEnabledId = orderedItems.find((item) => !item.disabled)?.id;
+	const firstEnabledId = orderedItems.find((item) => !item.disabled)?.focusId;
 	const [activeItemId, setActiveItemId] = useState(firstEnabledId);
 	const itemRefs = useRef(new Map<string, HTMLButtonElement>());
 
-	const toolbarStyle = useStyles('consentDialogTrigger', {
+	const toolbarStyle = useStyles('consentDialogTriggerToolbar', {
 		baseClassName: [
 			styles.toolbar,
 			orientation === 'vertical' && styles.toolbarVertical,
@@ -120,13 +170,18 @@ export function TriggerToolbar({
 		noStyle,
 	});
 	const toolbarDOMStyle = sanitizeDOMStyleProps(toolbarStyle);
-	const itemStyle = useStyles('consentDialogTriggerItem', {
+	const itemStyle = useStyles('consentDialogTriggerToolbarItem', {
 		baseClassName: [styles.toolbarItem, sizeClassMap[size]],
 		noStyle,
 	});
 	const itemDOMStyle = sanitizeDOMStyleProps(itemStyle);
+	const iconStyle = useStyles('consentDialogTriggerToolbarIcon', {
+		baseClassName: styles.toolbarIcon,
+		noStyle,
+	});
+	const iconDOMStyle = sanitizeDOMStyleProps(iconStyle);
 	const resolvedActiveItemId = orderedItems.some(
-		(item) => item.id === activeItemId && !item.disabled
+		(item) => item.focusId === activeItemId && !item.disabled
 	)
 		? activeItemId
 		: firstEnabledId;
@@ -151,7 +206,7 @@ export function TriggerToolbar({
 
 		event.preventDefault();
 		const currentIndex = enabledItems.findIndex(
-			(item) => item.id === resolvedActiveItemId
+			(item) => item.focusId === resolvedActiveItemId
 		);
 		let nextIndex: number;
 
@@ -168,64 +223,73 @@ export function TriggerToolbar({
 
 		const nextItem = enabledItems[nextIndex];
 		if (nextItem) {
-			setActiveItemId(nextItem.id);
-			itemRefs.current.get(nextItem.id)?.focus();
+			setActiveItemId(nextItem.focusId);
+			itemRefs.current.get(nextItem.focusId)?.focus();
+		}
+	};
+
+	const handleItemClick = (
+		event: MouseEvent<HTMLButtonElement>,
+		item: ToolbarItem
+	) => {
+		const isPointerClick = event.detail !== 0;
+		if (isPointerClick && wasDragged()) {
+			return;
+		}
+
+		item.onSelect?.();
+		if (item.kind === 'preferences') {
+			openDialog();
 		}
 	};
 
 	return (
 		<div
-			role="toolbar"
 			aria-label={ariaLabel}
 			aria-orientation={orientation}
 			className={toolbarDOMStyle.className}
-			data-c15t-trigger="true"
+			data-corner={corner}
 			data-c15t-trigger-toolbar="true"
-			style={{ ...toolbarDOMStyle.style, ...dragStyle }}
+			data-c15t-trigger="true"
+			data-dragging={isDragging || undefined}
+			data-snapping={isSnapping || undefined}
+			dir="ltr"
 			onKeyDown={handleToolbarKeyDown}
+			role="toolbar"
+			style={{ ...toolbarDOMStyle.style, ...dragStyle }}
 			{...handlers}
 		>
-			{orderedItems.map((item) => {
-				const handleClick = () => {
-					if (wasDragged()) {
-						return;
-					}
-
-					item.onSelect?.();
-					if (item.action === 'preferences') {
-						openDialog();
-					}
-				};
-
-				return (
-					<button
-						key={item.id}
-						ref={(element) => {
-							if (element) {
-								itemRefs.current.set(item.id, element);
-							} else {
-								itemRefs.current.delete(item.id);
-							}
-						}}
-						type="button"
-						className={[itemDOMStyle.className, item.className]
-							.filter(Boolean)
-							.join(' ')}
-						style={{ ...itemDOMStyle.style, ...item.style }}
-						data-c15t-trigger-action={item.action}
-						data-c15t-trigger-item={item.id}
-						aria-label={item.label}
-						disabled={item.disabled}
-						tabIndex={item.id === resolvedActiveItemId ? 0 : -1}
-						onFocus={() => setActiveItemId(item.id)}
-						onClick={handleClick}
-					>
-						<TriggerIcon icon={item.icon} noStyle={noStyle} />
-					</button>
-				);
-			})}
+			{orderedItems.map((item) => (
+				<button
+					key={item.focusId}
+					ref={(element) => {
+						if (element) {
+							itemRefs.current.set(item.focusId, element);
+						} else {
+							itemRefs.current.delete(item.focusId);
+						}
+					}}
+					aria-label={item.label}
+					aria-pressed={item.kind === 'custom' ? item.pressed : undefined}
+					className={[itemDOMStyle.className, item.className]
+						.filter(Boolean)
+						.join(' ')}
+					data-c15t-trigger-action={item.kind}
+					data-c15t-trigger-item={item.id}
+					disabled={item.disabled}
+					onClick={(event) => handleItemClick(event, item)}
+					onFocus={() => setActiveItemId(item.focusId)}
+					style={{ ...itemDOMStyle.style, ...item.style }}
+					tabIndex={item.focusId === resolvedActiveItemId ? 0 : -1}
+					type="button"
+				>
+					<span {...iconDOMStyle} aria-hidden="true">
+						<TriggerIcon icon={item.icon} noStyle />
+					</span>
+				</button>
+			))}
 		</div>
 	);
 }
 
-TriggerToolbar.displayName = 'ConsentDialogTrigger.Toolbar';
+TriggerToolbar.displayName = 'ConsentDialogTriggerToolbar';

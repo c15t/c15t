@@ -10,74 +10,13 @@
 
 import {
 	type CornerPosition,
-	calculateNearestCorner,
+	calculateCornerFromDrag,
+	createInitialDragState,
+	type DragState,
 	getPersistedPosition,
 	persistPosition as persistToStorage,
 } from '@c15t/ui/utils/trigger-utils';
-import { useCallback, useEffect, useRef, useState } from 'react';
-
-const DRAG_ACTIVATION_DISTANCE = 5;
-const VIEWPORT_PADDING = 8;
-const SNAP_DURATION = 320;
-
-interface Position {
-	left: number;
-	top: number;
-}
-
-interface DragSession {
-	pointerId: number;
-	startPointerX: number;
-	startPointerY: number;
-	startLeft: number;
-	startTop: number;
-	width: number;
-	height: number;
-}
-
-function clamp(value: number, min: number, max: number): number {
-	return Math.min(Math.max(value, min), Math.max(min, max));
-}
-
-function getDraggedPosition(
-	session: DragSession,
-	clientX: number,
-	clientY: number,
-	viewportWidth: number,
-	viewportHeight: number
-): Position {
-	return {
-		left: clamp(
-			session.startLeft + clientX - session.startPointerX,
-			VIEWPORT_PADDING,
-			viewportWidth - session.width - VIEWPORT_PADDING
-		),
-		top: clamp(
-			session.startTop + clientY - session.startPointerY,
-			VIEWPORT_PADDING,
-			viewportHeight - session.height - VIEWPORT_PADDING
-		),
-	};
-}
-
-function getSnappedPosition(
-	corner: CornerPosition,
-	width: number,
-	height: number,
-	horizontalOffset: number,
-	verticalOffset: number,
-	viewportWidth: number,
-	viewportHeight: number
-): Position {
-	return {
-		left: corner.includes('right')
-			? viewportWidth - width - horizontalOffset
-			: horizontalOffset,
-		top: corner.includes('bottom')
-			? viewportHeight - height - verticalOffset
-			: verticalOffset,
-	};
-}
+import { useCallback, useRef, useState } from 'react';
 
 /**
  * Options for the useDraggable hook.
@@ -125,7 +64,7 @@ export interface UseDraggableReturn {
 		onPointerCancel: (e: React.PointerEvent) => void;
 	};
 
-	/** Current fixed-position style while dragging or snapping */
+	/** Current transform style for drag offset */
 	dragStyle: React.CSSProperties;
 }
 
@@ -175,18 +114,14 @@ export function useDraggable(
 		return defaultPosition;
 	});
 
-	const [position, setPosition] = useState<Position | null>(null);
-	const [isDragging, setIsDragging] = useState(false);
+	const [dragState, setDragState] = useState<DragState>(createInitialDragState);
 	const [isSnapping, setIsSnapping] = useState(false);
 
+	// Ref to track if we've moved enough to consider it a drag vs click
 	const hasDraggedRef = useRef(false);
 	const elementRef = useRef<HTMLElement | null>(null);
-	const captureTargetRef = useRef<Element | null>(null);
-	const dragSessionRef = useRef<DragSession | null>(null);
-	const coordinateModeRef = useRef(false);
-	const cornerOffsetRef = useRef({ horizontal: 20, vertical: 20 });
-	const snapFrameRef = useRef<number | null>(null);
-	const snapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	// Track drag start time for velocity calculation
+	const dragStartTimeRef = useRef<number>(0);
 
 	// Update corner and optionally persist
 	const updateCorner = useCallback(
@@ -200,225 +135,108 @@ export function useDraggable(
 		[persistPosition, onPositionChange]
 	);
 
-	const clearSnapAnimation = useCallback(() => {
-		if (snapFrameRef.current !== null) {
-			cancelAnimationFrame(snapFrameRef.current);
-			snapFrameRef.current = null;
-		}
-		if (snapTimerRef.current !== null) {
-			clearTimeout(snapTimerRef.current);
-			snapTimerRef.current = null;
-		}
-	}, []);
-
-	const animateToPosition = useCallback(
-		(target: Position) => {
-			clearSnapAnimation();
-			setIsDragging(false);
-			setIsSnapping(true);
-			snapFrameRef.current = requestAnimationFrame(() => {
-				setPosition(target);
-				snapFrameRef.current = null;
-			});
-			snapTimerRef.current = setTimeout(() => {
-				setIsSnapping(false);
-				snapTimerRef.current = null;
-			}, SNAP_DURATION);
-		},
-		[clearSnapAnimation]
-	);
-
-	const releasePointerCapture = useCallback((pointerId: number) => {
-		const captureTarget = captureTargetRef.current;
-		if (captureTarget?.hasPointerCapture(pointerId)) {
-			captureTarget.releasePointerCapture(pointerId);
-		}
-		captureTargetRef.current = null;
-	}, []);
-
 	// Handle pointer down - start tracking
-	const handlePointerDown = useCallback(
-		(e: React.PointerEvent) => {
-			if (e.button !== 0) {
-				return;
-			}
-
-			clearSnapAnimation();
-			const element = e.currentTarget as HTMLElement;
-			const captureTarget = e.target as Element;
-			const rect = element.getBoundingClientRect();
-
-			captureTarget.setPointerCapture(e.pointerId);
-			elementRef.current = element;
-			captureTargetRef.current = captureTarget;
-			hasDraggedRef.current = false;
-			dragSessionRef.current = {
-				pointerId: e.pointerId,
-				startPointerX: e.clientX,
-				startPointerY: e.clientY,
-				startLeft: rect.left,
-				startTop: rect.top,
-				width: rect.width,
-				height: rect.height,
-			};
-
-			if (!coordinateModeRef.current) {
-				cornerOffsetRef.current = {
-					horizontal: Math.max(
-						0,
-						corner.includes('right')
-							? window.innerWidth - rect.right
-							: rect.left
-					),
-					vertical: Math.max(
-						0,
-						corner.includes('bottom')
-							? window.innerHeight - rect.bottom
-							: rect.top
-					),
-				};
-				coordinateModeRef.current = true;
-			}
-
-			setPosition({ left: rect.left, top: rect.top });
-			setIsDragging(true);
-			setIsSnapping(false);
-		},
-		[clearSnapAnimation, corner]
-	);
-
-	// Handle pointer move - update position
-	const handlePointerMove = useCallback((e: React.PointerEvent) => {
-		const session = dragSessionRef.current;
-		if (!session || session.pointerId !== e.pointerId) {
+	const handlePointerDown = useCallback((e: React.PointerEvent) => {
+		// Only handle primary button (left click / single touch)
+		if (e.button !== 0) {
 			return;
 		}
 
-		const deltaX = Math.abs(e.clientX - session.startPointerX);
-		const deltaY = Math.abs(e.clientY - session.startPointerY);
-		if (
-			deltaX > DRAG_ACTIVATION_DISTANCE ||
-			deltaY > DRAG_ACTIVATION_DISTANCE
-		) {
-			hasDraggedRef.current = true;
-		}
+		// Capture pointer for tracking outside element
+		(e.target as HTMLElement).setPointerCapture(e.pointerId);
+		elementRef.current = e.target as HTMLElement;
+		hasDraggedRef.current = false;
+		dragStartTimeRef.current = Date.now();
 
-		setPosition(
-			getDraggedPosition(
-				session,
-				e.clientX,
-				e.clientY,
-				window.innerWidth,
-				window.innerHeight
-			)
-		);
+		setDragState({
+			isDragging: true,
+			startX: e.clientX,
+			startY: e.clientY,
+			currentX: e.clientX,
+			currentY: e.clientY,
+		});
+
+		setIsSnapping(false);
 	}, []);
 
-	// Snap to the nearest viewport corner from the release position.
+	// Handle pointer move - update position
+	const handlePointerMove = useCallback((e: React.PointerEvent) => {
+		setDragState((prev: DragState) => {
+			if (!prev.isDragging) {
+				return prev;
+			}
+
+			// Check if we've moved enough to be considered a drag
+			const dx = Math.abs(e.clientX - prev.startX);
+			const dy = Math.abs(e.clientY - prev.startY);
+			if (dx > 5 || dy > 5) {
+				hasDraggedRef.current = true;
+			}
+
+			return {
+				...prev,
+				currentX: e.clientX,
+				currentY: e.clientY,
+			};
+		});
+	}, []);
+
+	// Handle pointer up - snap based on drag direction
 	const handlePointerUp = useCallback(
 		(e: React.PointerEvent) => {
-			const session = dragSessionRef.current;
-			if (!session || session.pointerId !== e.pointerId) {
-				return;
+			if (elementRef.current) {
+				elementRef.current.releasePointerCapture(e.pointerId);
 			}
 
-			releasePointerCapture(e.pointerId);
-			dragSessionRef.current = null;
-			const releasePosition = getDraggedPosition(
-				session,
-				e.clientX,
-				e.clientY,
-				window.innerWidth,
-				window.innerHeight
-			);
-			setPosition(releasePosition);
+			setDragState((prev: DragState) => {
+				if (!prev.isDragging) {
+					return prev;
+				}
 
-			if (!hasDraggedRef.current) {
-				setIsDragging(false);
-				return;
-			}
+				// Only snap if we actually dragged
+				if (hasDraggedRef.current) {
+					// Calculate drag direction and velocity
+					const dragX = e.clientX - prev.startX;
+					const dragY = e.clientY - prev.startY;
+					const dragDuration = Date.now() - dragStartTimeRef.current;
 
-			const newCorner = calculateNearestCorner(
-				releasePosition.left + session.width / 2,
-				releasePosition.top + session.height / 2,
-				window.innerWidth,
-				window.innerHeight
-			);
-			const target = getSnappedPosition(
-				newCorner,
-				session.width,
-				session.height,
-				cornerOffsetRef.current.horizontal,
-				cornerOffsetRef.current.vertical,
-				window.innerWidth,
-				window.innerHeight
-			);
+					// Calculate velocity (pixels per millisecond)
+					const velocityX = dragDuration > 0 ? dragX / dragDuration : 0;
+					const velocityY = dragDuration > 0 ? dragY / dragDuration : 0;
 
-			if (newCorner !== corner) {
-				updateCorner(newCorner);
-			}
-			animateToPosition(target);
+					// Get new corner based on drag direction and velocity
+					const newCorner = calculateCornerFromDrag(corner, dragX, dragY, {
+						velocityX,
+						velocityY,
+					});
+
+					// Only animate if actually changing corners
+					if (newCorner !== corner) {
+						setIsSnapping(true);
+						setTimeout(() => setIsSnapping(false), 300);
+						updateCorner(newCorner);
+					}
+				}
+
+				return createInitialDragState();
+			});
 		},
-		[animateToPosition, corner, releasePointerCapture, updateCorner]
+		[corner, updateCorner]
 	);
 
-	const handlePointerCancel = useCallback(
-		(e: React.PointerEvent) => {
-			const session = dragSessionRef.current;
-			if (!session || session.pointerId !== e.pointerId) {
-				return;
-			}
+	// Handle pointer cancel
+	const handlePointerCancel = useCallback((e: React.PointerEvent) => {
+		if (elementRef.current) {
+			elementRef.current.releasePointerCapture(e.pointerId);
+		}
+		setDragState(createInitialDragState());
+	}, []);
 
-			releasePointerCapture(e.pointerId);
-			dragSessionRef.current = null;
-			const target = getSnappedPosition(
-				corner,
-				session.width,
-				session.height,
-				cornerOffsetRef.current.horizontal,
-				cornerOffsetRef.current.vertical,
-				window.innerWidth,
-				window.innerHeight
-			);
-			animateToPosition(target);
-		},
-		[animateToPosition, corner, releasePointerCapture]
-	);
-
-	useEffect(() => {
-		const handleResize = () => {
-			const element = elementRef.current;
-			if (!coordinateModeRef.current || !element || dragSessionRef.current) {
-				return;
-			}
-
-			const rect = element.getBoundingClientRect();
-			setPosition(
-				getSnappedPosition(
-					corner,
-					rect.width,
-					rect.height,
-					cornerOffsetRef.current.horizontal,
-					cornerOffsetRef.current.vertical,
-					window.innerWidth,
-					window.innerHeight
-				)
-			);
-		};
-
-		window.addEventListener('resize', handleResize);
-		return () => window.removeEventListener('resize', handleResize);
-	}, [corner]);
-
-	useEffect(() => clearSnapAnimation, [clearSnapAnimation]);
-
-	const dragStyle: React.CSSProperties = position
+	// Calculate transform style for drag offset
+	const dragStyle: React.CSSProperties = dragState.isDragging
 		? {
-				left: position.left,
-				top: position.top,
-				right: 'auto',
-				bottom: 'auto',
-				...(isDragging ? { transition: 'none' } : {}),
+				transform: `translate(${dragState.currentX - dragState.startX}px, ${dragState.currentY - dragState.startY}px)`,
+				transition: 'none',
 			}
 		: {};
 
@@ -427,7 +245,7 @@ export function useDraggable(
 
 	return {
 		corner,
-		isDragging,
+		isDragging: dragState.isDragging,
 		isSnapping,
 		wasDragged,
 		handlers: {

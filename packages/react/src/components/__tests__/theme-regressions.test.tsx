@@ -4,7 +4,7 @@ import { createRef } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentDialogOverlay } from '~/components/consent-dialog/atoms/overlay';
-import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
+import { ConsentDialogTriggerToolbar } from '~/components/consent-dialog-trigger';
 import { ConsentWidgetAccordion } from '~/components/consent-widget/atoms/accordion';
 import { IABConsentBannerFooter } from '~/components/iab-consent-banner/atoms/footer';
 import { IABConsentBannerHeader } from '~/components/iab-consent-banner/atoms/header';
@@ -70,12 +70,12 @@ describe('Theme regressions', () => {
 					noStyle: false,
 					theme: {
 						slots: {
-							consentDialogTrigger: {
+							consentDialogTriggerToolbar: {
 								className: 'themed-trigger',
 								style: { backgroundColor: 'rgb(1, 2, 3)' },
 							},
-							consentDialogTriggerItem: 'themed-trigger-item',
-							consentDialogTriggerIcon: 'themed-trigger-icon',
+							consentDialogTriggerToolbarItem: 'themed-trigger-item',
+							consentDialogTriggerToolbarIcon: 'themed-trigger-icon',
 						},
 					},
 				}}
@@ -91,22 +91,23 @@ describe('Theme regressions', () => {
 						manager: null,
 					}}
 				>
-					<ConsentDialogTrigger.Root showWhen="always">
-						<ConsentDialogTrigger.Toolbar
-							className="direct-trigger"
-							style={{ borderRadius: '12px' }}
-							items={[
-								{
-									id: 'privacy',
-									label: 'Open privacy settings',
-									icon: 'branding',
-									action: 'preferences',
-									className: 'direct-trigger-item',
-									style: { color: 'rgb(4, 5, 6)' },
-								},
-							]}
-						/>
-					</ConsentDialogTrigger.Root>
+					<ConsentDialogTriggerToolbar
+						actions={[
+							{
+								id: 'support',
+								label: 'Open support chat',
+								icon: 'settings',
+								onSelect: vi.fn(),
+							},
+						]}
+						className="direct-trigger"
+						preferences={{
+							className: 'direct-trigger-item',
+							style: { color: 'rgb(4, 5, 6)' },
+						}}
+						showWhen="always"
+						style={{ borderRadius: '12px' }}
+					/>
 				</ConsentStateContext.Provider>
 			</GlobalThemeContext.Provider>
 		);
@@ -116,7 +117,7 @@ describe('Theme regressions', () => {
 				'[role="toolbar"][aria-label="Privacy controls"]'
 			);
 			const item = document.querySelector<HTMLElement>(
-				'[data-c15t-trigger-item="privacy"]'
+				'[data-c15t-trigger-item="preferences"]'
 			);
 			const icon = item?.querySelector<HTMLElement>('[aria-hidden="true"]');
 

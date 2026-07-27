@@ -3,9 +3,8 @@
 /**
  * ConsentDialogTrigger compound component.
  *
- * A draggable floating toolbar that opens the consent dialog and can expose
- * developer-defined actions. Supports drag-to-corner positioning,
- * horizontal or vertical layouts, and configurable icons.
+ * A draggable floating button that opens the consent dialog.
+ * Supports drag-to-corner positioning and configurable icons.
  *
  * @packageDocumentation
  */
@@ -19,13 +18,12 @@ import {
 	useTriggerContext,
 } from './atoms/root';
 import { TriggerText, type TriggerTextProps } from './atoms/text';
-import { TriggerToolbar, type TriggerToolbarProps } from './atoms/toolbar';
 import type { ConsentDialogTriggerProps } from './types';
 
 /**
  * Convenience component that composes the compound components.
  *
- * For simple usage, this renders a one-item preferences toolbar.
+ * For simple usage, this provides a single-component API.
  * For advanced customization, use the compound components directly.
  *
  * @example
@@ -67,50 +65,33 @@ import type { ConsentDialogTriggerProps } from './types';
  * ```
  */
 function ConsentDialogTriggerComponent({
-	items,
-	orientation = 'horizontal',
 	icon = 'branding',
 	defaultPosition = 'bottom-right',
 	persistPosition = true,
-	ariaLabel,
+	ariaLabel = 'Open privacy settings',
 	showWhen = 'always',
 	size = 'md',
 	className,
-	style,
 	noStyle = false,
 	onClick,
 	onPositionChange,
 }: ConsentDialogTriggerProps): ReactNode {
-	if (items && items.length === 0) {
-		return null;
-	}
-	const toolbarItems = items ?? [
-		{
-			id: 'preferences',
-			label: 'Open privacy settings',
-			icon,
-			action: 'preferences' as const,
-		},
-	];
-
 	return (
 		<TriggerRoot
 			defaultPosition={defaultPosition}
 			persistPosition={persistPosition}
 			showWhen={showWhen}
-			noStyle={noStyle}
 			onClick={onClick}
 			onPositionChange={onPositionChange}
 		>
-			<TriggerToolbar
-				items={toolbarItems}
+			<TriggerButton
 				size={size}
-				orientation={orientation}
-				ariaLabel={ariaLabel ?? 'Privacy controls'}
+				ariaLabel={ariaLabel}
 				className={className}
-				style={style}
 				noStyle={noStyle}
-			/>
+			>
+				<TriggerIcon icon={icon} noStyle={noStyle} />
+			</TriggerButton>
 		</TriggerRoot>
 	);
 }
@@ -130,8 +111,6 @@ export interface ConsentDialogTriggerCompound
 	Icon: typeof TriggerIcon;
 	/** Text component - for adding labels */
 	Text: typeof TriggerText;
-	/** Toolbar component - renders a draggable group of trigger actions */
-	Toolbar: typeof TriggerToolbar;
 }
 
 /**
@@ -163,7 +142,6 @@ export const ConsentDialogTrigger = Object.assign(
 		Button: TriggerButton,
 		Icon: TriggerIcon,
 		Text: TriggerText,
-		Toolbar: TriggerToolbar,
 	}
 ) as ConsentDialogTriggerCompound;
 
@@ -172,7 +150,6 @@ export type {
 	TriggerIconProps,
 	TriggerRootProps,
 	TriggerTextProps,
-	TriggerToolbarProps,
 };
 // Re-export atom components for direct imports
 export {
@@ -180,6 +157,5 @@ export {
 	TriggerIcon,
 	TriggerRoot,
 	TriggerText,
-	TriggerToolbar,
 	useTriggerContext,
 };

@@ -369,15 +369,13 @@ export interface ComponentSlots {
 	/** Backdrop overlay rendered behind the dialog. */
 	consentDialogOverlay?: SlotStyle;
 
-	// --- CONSENT DIALOG TRIGGER SLOTS ---
-	/** Floating trigger container, including its toolbar or legacy button. */
-	consentDialogTrigger?: SlotStyle;
+	// --- CONSENT DIALOG TRIGGER TOOLBAR SLOTS ---
+	/** Floating consent dialog trigger toolbar. */
+	consentDialogTriggerToolbar?: SlotStyle;
 	/** Individual action button inside the trigger toolbar. */
-	consentDialogTriggerItem?: SlotStyle;
-	/** Icon wrapper used by trigger buttons and toolbar items. */
-	consentDialogTriggerIcon?: SlotStyle;
-	/** Optional text rendered inside the legacy trigger button. */
-	consentDialogTriggerText?: SlotStyle;
+	consentDialogTriggerToolbarItem?: SlotStyle;
+	/** Icon wrapper used by trigger toolbar actions. */
+	consentDialogTriggerToolbarIcon?: SlotStyle;
 
 	// --- CONSENT WIDGET SLOTS ---
 	/** Root wrapper for the consent widget/preferences panel. */

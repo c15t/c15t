@@ -7,17 +7,24 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import type { ReactNode } from 'react';
-import { useStyles } from '~/hooks/use-styles';
-import type { ClassNameStyle } from '~/types/theme';
 
 /**
  * Props for the Text component.
  */
-export interface TriggerTextProps
-	extends Omit<ClassNameStyle, 'baseClassName'> {
+export interface TriggerTextProps {
 	children: ReactNode;
+
+	/**
+	 * Additional CSS class names.
+	 */
+	className?: string;
+
+	/**
+	 * When true, removes default styling.
+	 * @default false
+	 */
+	noStyle?: boolean;
 }
 
 /**
@@ -34,18 +41,13 @@ export interface TriggerTextProps
 export function TriggerText({
 	children,
 	className,
-	style,
 	noStyle = false,
 }: TriggerTextProps): ReactNode {
-	const textStyle = useStyles('consentDialogTriggerText', {
-		baseClassName: styles.text,
-		className,
-		style,
-		noStyle,
-	});
-	const textDOMStyle = sanitizeDOMStyleProps(textStyle);
+	const textClasses = noStyle
+		? className
+		: [styles.text, className].filter(Boolean).join(' ');
 
-	return <span {...textDOMStyle}>{children}</span>;
+	return <span className={textClasses}>{children}</span>;
 }
 
 TriggerText.displayName = 'ConsentDialogTrigger.Text';

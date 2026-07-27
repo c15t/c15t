@@ -7,10 +7,7 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
-import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
-import { forwardRef, type ReactNode } from 'react';
-import { useStyles } from '~/hooks/use-styles';
-import type { ClassNameStyle } from '~/types/theme';
+import { forwardRef, type MouseEvent, type ReactNode } from 'react';
 import type { CornerPosition, TriggerSize } from '../types';
 import { useTriggerContext } from './root';
 
@@ -36,8 +33,7 @@ const sizeClassMap = {
 /**
  * Props for the Button component.
  */
-export interface TriggerButtonProps
-	extends Omit<ClassNameStyle, 'baseClassName'> {
+export interface TriggerButtonProps {
 	children: ReactNode;
 
 	/**
@@ -51,6 +47,17 @@ export interface TriggerButtonProps
 	 * @default 'Open privacy settings'
 	 */
 	ariaLabel?: string;
+
+	/**
+	 * Additional CSS class names.
+	 */
+	className?: string;
+
+	/**
+	 * When true, removes default styling.
+	 * @default false
+	 */
+	noStyle?: boolean;
 }
 
 /**
@@ -71,7 +78,6 @@ export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
 			size = 'md',
 			ariaLabel = 'Open privacy settings',
 			className,
-			style,
 			noStyle = false,
 		},
 		ref
@@ -86,45 +92,36 @@ export const TriggerButton = forwardRef<HTMLButtonElement, TriggerButtonProps>(
 			openDialog,
 		} = useTriggerContext();
 
-		const handleClick = () => {
+		const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
 			// Don't open dialog if this was a drag interaction
-			if (wasDragged()) {
+			if (event.detail !== 0 && wasDragged()) {
 				return;
 			}
 			openDialog();
 		};
 
-		const handleKeyDown = (e: React.KeyboardEvent) => {
-			if (e.key === 'Enter' || e.key === ' ') {
-				e.preventDefault();
-				handleClick();
-			}
-		};
-
-		const buttonStyle = useStyles('consentDialogTrigger', {
-			baseClassName: [
-				styles.button,
-				cornerClassMap[corner],
-				sizeClassMap[size],
-				isDragging && styles.dragging,
-				isSnapping && styles.snapping,
-			],
-			className,
-			style,
-			noStyle,
-		});
-		const buttonDOMStyle = sanitizeDOMStyleProps(buttonStyle);
+		const buttonClasses = noStyle
+			? className
+			: [
+					styles.trigger,
+					cornerClassMap[corner],
+					sizeClassMap[size],
+					isDragging && styles.dragging,
+					isSnapping && styles.snapping,
+					className,
+				]
+					.filter(Boolean)
+					.join(' ');
 
 		return (
 			<button
 				ref={ref}
 				type="button"
-				className={buttonDOMStyle.className}
+				className={buttonClasses}
 				data-c15t-trigger="true"
 				aria-label={ariaLabel}
 				onClick={handleClick}
-				onKeyDown={handleKeyDown}
-				style={{ ...buttonDOMStyle.style, ...dragStyle }}
+				style={dragStyle}
 				{...handlers}
 			>
 				{children}

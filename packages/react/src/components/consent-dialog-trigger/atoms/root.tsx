@@ -15,13 +15,8 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import {
-	LocalThemeContext,
-	type ThemeContextValue,
-} from '~/context/theme-context';
 import { useConsentDialogTrigger } from '~/hooks/use-consent-dialog-trigger';
 import { useConsentManager } from '~/hooks/use-consent-manager';
-import { useTheme } from '~/hooks/use-theme';
 import type { CornerPosition, TriggerVisibility } from '../types';
 import { type UseDraggableReturn, useDraggable } from '../use-draggable';
 
@@ -89,9 +84,6 @@ export interface TriggerRootProps {
 	 */
 	showWhen?: TriggerVisibility;
 
-	/** When true, removes default styles from all trigger atoms. */
-	noStyle?: boolean;
-
 	/**
 	 * Callback when position changes.
 	 */
@@ -120,13 +112,10 @@ export function TriggerRoot({
 	defaultPosition = 'bottom-right',
 	persistPosition: shouldPersist = true,
 	showWhen = 'after-consent',
-	noStyle: localNoStyle,
 	onPositionChange,
 	onClick,
 }: TriggerRootProps): ReactNode {
 	const { branding } = useConsentManager();
-	const globalTheme = useTheme();
-	const noStyle = localNoStyle ?? globalTheme.noStyle ?? false;
 	const { isVisible, openDialog } = useConsentDialogTrigger({
 		showWhen,
 		onClick,
@@ -162,17 +151,11 @@ export function TriggerRoot({
 		openDialog,
 		isVisible,
 	};
-	const themeContextValue: ThemeContextValue = {
-		...globalTheme,
-		noStyle,
-	};
 
 	return createPortal(
-		<LocalThemeContext.Provider value={themeContextValue}>
-			<TriggerContext.Provider value={contextValue}>
-				{children}
-			</TriggerContext.Provider>
-		</LocalThemeContext.Provider>,
+		<TriggerContext.Provider value={contextValue}>
+			{children}
+		</TriggerContext.Provider>,
 		document.body
 	);
 }

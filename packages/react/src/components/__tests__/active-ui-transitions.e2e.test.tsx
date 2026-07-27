@@ -12,7 +12,10 @@ import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
-import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
+import {
+	ConsentDialogTrigger,
+	ConsentDialogTriggerToolbar,
+} from '~/components/consent-dialog-trigger';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
@@ -263,7 +266,7 @@ describe('activeUI Transitions E2E Tests', () => {
 					document.querySelector(
 						'[role="toolbar"][aria-label="Privacy controls"]'
 					)
-				).toBeInTheDocument();
+				).not.toBeInTheDocument();
 			},
 			{ timeout: 3000 }
 		);
@@ -297,33 +300,22 @@ describe('activeUI Transitions E2E Tests', () => {
 			<ConsentManagerProvider options={defaultOptions}>
 				<ConsentBanner />
 				<ConsentDialog />
-				<ConsentDialogTrigger
+				<ConsentDialogTriggerToolbar
 					showWhen="always"
 					ariaLabel="Site controls"
 					defaultPosition={defaultPosition}
 					orientation={orientation}
-					items={[
-						{
-							id: 'privacy',
-							label: 'Open privacy settings',
-							icon: 'branding',
-							action: 'preferences',
-						},
+					actions={[
 						{
 							id: 'theme',
 							label: 'Toggle color scheme',
-							icon: {
-								light: <span data-testid="light-theme-icon" />,
-								dark: <span data-testid="dark-theme-icon" />,
-							},
-							action: 'custom',
+							icon: <span data-testid="theme-icon" />,
 							onSelect: vi.fn(),
 						},
 						{
 							id: 'support',
 							label: 'Open support chat',
 							icon: <span />,
-							action: 'custom',
 							onSelect: openSupport,
 						},
 					]}
@@ -366,10 +358,7 @@ describe('activeUI Transitions E2E Tests', () => {
 		);
 
 		expect(
-			document.querySelector('[data-testid="light-theme-icon"]')
-		).toBeInTheDocument();
-		expect(
-			document.querySelector('[data-testid="dark-theme-icon"]')
+			document.querySelector('[data-testid="theme-icon"]')
 		).toBeInTheDocument();
 		const privacyButton = queryRequiredElement(
 			'button[aria-label="Open privacy settings"]'
