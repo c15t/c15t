@@ -4,6 +4,7 @@ import { createRef } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentDialogOverlay } from '~/components/consent-dialog/atoms/overlay';
+import { ConsentDialogTriggerToolbar } from '~/components/consent-dialog-trigger';
 import { ConsentWidgetAccordion } from '~/components/consent-widget/atoms/accordion';
 import { IABConsentBannerFooter } from '~/components/iab-consent-banner/atoms/footer';
 import { IABConsentBannerHeader } from '~/components/iab-consent-banner/atoms/header';
@@ -57,6 +58,83 @@ function createMockState(
 }
 
 describe('Theme regressions', () => {
+	test('styles trigger toolbar atoms through theme slots and direct overrides', async () => {
+		const state = createMockState({
+			activeUI: 'none',
+			hasConsented: vi.fn(() => true),
+		});
+
+		await render(
+			<GlobalThemeContext.Provider
+				value={{
+					noStyle: false,
+					theme: {
+						slots: {
+							consentDialogTriggerToolbar: {
+								className: 'themed-trigger',
+								style: { backgroundColor: 'rgb(1, 2, 3)' },
+							},
+							consentDialogTriggerToolbarItem: 'themed-trigger-item',
+							consentDialogTriggerToolbarIcon: 'themed-trigger-icon',
+						},
+					},
+				}}
+			>
+				<ConsentStateContext.Provider
+					value={{
+						state,
+						store: {
+							getState: () => state,
+							subscribe: () => () => undefined,
+							setState: () => undefined,
+						},
+						manager: null,
+					}}
+				>
+					<ConsentDialogTriggerToolbar
+						actions={[
+							{
+								id: 'support',
+								label: 'Open support chat',
+								icon: 'settings',
+								onSelect: vi.fn(),
+							},
+						]}
+						className="direct-trigger"
+						preferences={{
+							className: 'direct-trigger-item',
+							style: { color: 'rgb(4, 5, 6)' },
+						}}
+						showWhen="always"
+						style={{ borderRadius: '12px' }}
+					/>
+				</ConsentStateContext.Provider>
+			</GlobalThemeContext.Provider>
+		);
+
+		await vi.waitFor(() => {
+			const toolbar = document.querySelector<HTMLElement>(
+				'[role="toolbar"][aria-label="Privacy controls"]'
+			);
+			const item = document.querySelector<HTMLElement>(
+				'[data-c15t-trigger-item="preferences"]'
+			);
+			const icon = item?.querySelector<HTMLElement>('[aria-hidden="true"]');
+
+			expect(toolbar).toBeInTheDocument();
+			expect(toolbar?.className).toContain('themed-trigger');
+			expect(toolbar?.className).toContain('direct-trigger');
+			expect(toolbar).toHaveStyle({
+				backgroundColor: 'rgb(1, 2, 3)',
+				borderRadius: '12px',
+			});
+			expect(item?.className).toContain('themed-trigger-item');
+			expect(item?.className).toContain('direct-trigger-item');
+			expect(item).toHaveStyle({ color: 'rgb(4, 5, 6)' });
+			expect(icon?.className).toContain('themed-trigger-icon');
+		});
+	});
+
 	test('does not forward slot noStyle to the DOM', async () => {
 		await render(
 			<GlobalThemeContext.Provider
