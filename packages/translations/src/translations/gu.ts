@@ -49,6 +49,8 @@ export const translations: CompleteTranslations = {
 		title: 'આ સામગ્રી જોવા માટે {category} સંમતિ સ્વીકારો.',
 		actionButton: '{category} સંમતિ સક્ષમ કરો',
 		policyBlocked: 'આ સામગ્રી તમારા પ્રદેશની સંમતિ નીતિ હેઠળ ઉપલબ્ધ નથી.',
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'ગોપનીયતા નીતિ',

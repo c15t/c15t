@@ -60,6 +60,20 @@ export {
 	type ConsentWidgetProps,
 } from './components/consent-widget';
 export { Frame, type FrameProps } from './components/frame';
+export {
+	GoogleMap,
+	type GoogleMapCoordinates,
+	type GoogleMapInstance,
+	type GoogleMapOptions,
+	type GoogleMapProps,
+	type GoogleMapsApi,
+	type GoogleMapsLibrary,
+	YouTubeEmbed,
+	type YouTubeEmbedParams,
+	type YouTubeEmbedProps,
+	type YouTubeSrcSource,
+	type YouTubeVideoIdSource,
+} from './components/integrations';
 // IAB TCF 2.3 Components — moved to @c15t/react/iab subpath.
 // Import from '@c15t/react/iab' instead of '@c15t/react'.
 
@@ -74,6 +88,15 @@ export {
 	useConsentDialogTrigger,
 } from './hooks/use-consent-dialog-trigger';
 export { useConsentManager } from './hooks/use-consent-manager';
+export {
+	ConsentScriptConflictError,
+	type ConsentScriptReadyControls,
+	type ConsentScriptStatus,
+	type ConsentScriptUnmountBehavior,
+	type UseConsentScriptOptions,
+	type UseConsentScriptResult,
+	useConsentScript,
+} from './hooks/use-consent-script';
 export { useFocusTrap } from './hooks/use-focus-trap';
 export {
 	type HeadlessConsentBannerAction,

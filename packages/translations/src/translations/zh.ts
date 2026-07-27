@@ -45,6 +45,8 @@ export const translations: CompleteTranslations = {
 		actionButton: '启用 {category} 同意',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: '隐私政策',

@@ -47,6 +47,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'הפעל {category} רשות',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'מדיניות פרטיות',

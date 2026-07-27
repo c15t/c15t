@@ -50,6 +50,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'Активирайте съгласие за {category}',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Политика за поверителност',

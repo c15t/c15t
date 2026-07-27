@@ -50,6 +50,8 @@ export const translations: CompleteTranslations = {
 		title: 'इस सामग्री को देखने के लिए {category} सहमति स्वीकार करें।',
 		actionButton: '{category} सहमति सक्षम करें',
 		policyBlocked: 'यह सामग्री आपके क्षेत्र की सहमति नीति के अंतर्गत उपलब्ध नहीं है।',
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'गोपनीयता नीति',

@@ -42,7 +42,7 @@ lifecycles.
 
 ## Built-In Helpers
 
-c15t ships prebuilt helpers in
+c15t ships prebuilt script helpers in
 [`@c15t/scripts`](https://www.npmjs.com/package/@c15t/scripts) for the
 third-party tools developers integrate most often. Prefer them over copied
 vendor snippets whenever c15t already supports the vendor.
@@ -66,6 +66,19 @@ Most apps mix more than one style. Pick the smallest one that keeps consent beha
 | **Iframe / renderable integration** | Vendor exposes an iframe or React component, not just a script tag. |
 
 Setup is the same shape in every framework: import the helper, call it with vendor options, and pass the result to the consent runtime through your provider's `scripts` option. See the framework guides for end-to-end snippets — [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), [Next.js](/docs/frameworks/next/script-loader).
+
+## Renderable Integrations
+
+Maps and video embeds need a visible component as well as consent-aware loading.
+The React and Next.js packages include components that own the placeholder,
+vendor loading, and rendered surface. They are imported from the framework
+package rather than `@c15t/scripts`.
+
+<Cards className="my-10 grid-cols-1 sm:grid-cols-2 @container not-prose grid gap-4">
+  <Card variant="interactive" title="Google Maps" description="Load the Maps JavaScript API once, then create and clean up consent-aware map instances." icon={<Icon name="google-maps" />} href="/docs/integrations/google-maps" />
+
+  <Card variant="interactive" title="YouTube" description="Keep privacy-enhanced YouTube iframes unmounted until the required consent is granted." icon={<Icon name="youtube" />} href="/docs/integrations/youtube" />
+</Cards>
 
 ## Analytics
 
@@ -176,5 +189,6 @@ Learn when to use a raw `Script`, when to use a manifest, and how to debug and t
 ## Where To Next
 
 - Read the script loader guide for your framework: [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), [Next.js](/docs/frameworks/next/script-loader).
-- See the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern for visible embeds (YouTube, maps, calendars).
+- Use the [Google Maps](/docs/integrations/google-maps) and [YouTube](/docs/integrations/youtube) components for built-in renderable integrations.
+- See the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern for other visible embeds such as calendars and social widgets.
 - Use [`has()`](/docs/frameworks/javascript/api/checking-consent) to conditionally run app code based on consent state.

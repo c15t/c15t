@@ -1,6 +1,7 @@
 export * from './use-component-config';
 export * from './use-consent-dialog-trigger';
 export * from './use-consent-manager';
+export * from './use-consent-script';
 export * from './use-focus-trap';
 export * from './use-headless-consent-ui';
 export * from './use-headless-iab-consent-ui';
