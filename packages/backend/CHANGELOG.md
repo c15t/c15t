@@ -1,5 +1,11 @@
 # @c15t/backend
 
+## 2.2.0-canary-20260728085441
+
+### Patch Changes
+
+- ee39d2c: Fix database timeouts when listing subjects with `GET /subjects`.
+
 ## 2.2.0-canary-20260727202135
 
 ### Patch Changes
