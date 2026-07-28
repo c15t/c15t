@@ -48,23 +48,48 @@ export const listSubjectsHandler = async (c: Context) => {
 			where: (b) => b('externalId', '=', externalId),
 		});
 
-		// Get consents for each subject
-		const subjectItems = await Promise.all(
-			subjects.map(async (subject) => {
-				const consents = await db.findMany('consent', {
-					where: (b) => b('subjectId', '=', subject.id),
-				});
+		if (subjects.length === 0) {
+			logger.info('Found subjects for externalId', {
+				externalId,
+				count: 0,
+			});
 
-				const consentItems = await enrichConsents(consents, { db, registry });
+			return c.json({ subjects: [] });
+		}
 
-				return {
-					id: subject.id,
-					externalId: subject.externalId ?? externalId,
-					createdAt: subject.createdAt,
-					consents: consentItems,
-				};
-			})
-		);
+		// Batch the remaining work so this request has at most one outstanding
+		// database acquisition, regardless of the number of matching subjects.
+		const consents = await db.findMany('consent', {
+			where: (b) =>
+				b(
+					'subjectId',
+					'in',
+					subjects.map((subject) => subject.id)
+				),
+		});
+		const consentItems = await enrichConsents(consents, { db, registry });
+
+		const consentsBySubjectId = new Map<
+			string,
+			(typeof consentItems)[number][]
+		>();
+		for (const [index, consent] of consents.entries()) {
+			const consentItem = consentItems[index];
+			if (!consentItem) {
+				throw new Error('Consent enrichment returned an incomplete result');
+			}
+
+			const subjectConsents = consentsBySubjectId.get(consent.subjectId) ?? [];
+			subjectConsents.push(consentItem);
+			consentsBySubjectId.set(consent.subjectId, subjectConsents);
+		}
+
+		const subjectItems = subjects.map((subject) => ({
+			id: subject.id,
+			externalId: subject.externalId ?? externalId,
+			createdAt: subject.createdAt,
+			consents: consentsBySubjectId.get(subject.id) ?? [],
+		}));
 
 		logger.info('Found subjects for externalId', {
 			externalId,
