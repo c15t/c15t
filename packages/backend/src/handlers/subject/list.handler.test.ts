@@ -23,6 +23,16 @@ interface TestData {
 	consents: ConsentRow[];
 }
 
+type TestWhereBuilder = (
+	column: string,
+	operator: string,
+	value: unknown
+) => unknown;
+
+interface TestFindManyOptions {
+	where?: (builder: TestWhereBuilder) => unknown;
+}
+
 function createTestData(
 	subjectCount: number,
 	consentsPerSubject: number
@@ -45,12 +55,32 @@ function createTestData(
 	return { subjects, consents };
 }
 
-function tableResult(table: string, data: TestData) {
+function subjectIdsFromWhere(options?: TestFindManyOptions) {
+	let subjectIds: string[] | undefined;
+	options?.where?.((column, operator, value) => {
+		if (column === 'subjectId' && operator === 'in' && Array.isArray(value)) {
+			subjectIds = value as string[];
+		}
+	});
+	return subjectIds;
+}
+
+function tableResult(
+	table: string,
+	data: TestData,
+	options?: TestFindManyOptions
+) {
 	switch (table) {
 		case 'subject':
 			return data.subjects;
-		case 'consent':
-			return data.consents;
+		case 'consent': {
+			const subjectIds = subjectIdsFromWhere(options);
+			return subjectIds
+				? data.consents.filter((consent) =>
+						subjectIds.includes(consent.subjectId)
+					)
+				: data.consents;
+		}
 		case 'consentPolicy':
 			return [
 				{
@@ -69,8 +99,8 @@ function tableResult(table: string, data: TestData) {
 
 function createContext(data: TestData) {
 	const db = {
-		findMany: vi.fn((table: string) =>
-			Promise.resolve(tableResult(table, data))
+		findMany: vi.fn((table: string, options?: TestFindManyOptions) =>
+			Promise.resolve(tableResult(table, data, options))
 		),
 		transaction: vi.fn(),
 	};
@@ -222,10 +252,10 @@ function createPooledContext(
 	failTable?: string
 ) {
 	const db = {
-		findMany: vi.fn((table: string) =>
+		findMany: vi.fn((table: string, options?: TestFindManyOptions) =>
 			pool.query(requestId, () => {
 				if (table === failTable) throw new Error('forced query failure');
-				return tableResult(table, data);
+				return tableResult(table, data, options);
 			})
 		),
 		transaction: vi.fn(),
@@ -296,7 +326,7 @@ describe('listSubjectsHandler', () => {
 			'consentPurpose',
 		]);
 		expect(registry.findLatestPolicyByType).toHaveBeenCalledTimes(1);
-		expect(db.findMany.mock.calls.length + 1).toBe(5);
+		expect(db.findMany).toHaveBeenCalledTimes(4);
 		expect(result.subjects).toHaveLength(subjectCount);
 		expect(
 			result.subjects.every(
@@ -317,6 +347,26 @@ describe('listSubjectsHandler', () => {
 		expect(db.transaction).not.toHaveBeenCalled();
 	});
 
+	it('queries large subject lists in bounded batches', async () => {
+		const data = createTestData(501, 1);
+		const { context, db } = createContext(data);
+
+		const result = (await listSubjectsHandler(context as never)) as {
+			subjects: Array<{ consents: unknown[] }>;
+		};
+
+		const consentCalls = db.findMany.mock.calls.filter(
+			([table]) => table === 'consent'
+		);
+		expect(
+			consentCalls.map(([, options]) => subjectIdsFromWhere(options)?.length)
+		).toEqual([500, 1]);
+		expect(
+			result.subjects.every((subject) => subject.consents.length === 1)
+		).toBe(true);
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
 	it('bounds concurrent GET workload to one acquisition per request', async () => {
 		const requestCount = 4;
 		const pool = new ConstrainedPool({
@@ -327,7 +377,7 @@ describe('listSubjectsHandler', () => {
 		const requests = Array.from({ length: requestCount }, (_, index) => {
 			const requestId = `request_${index}`;
 			const { context } = createPooledContext(
-				createTestData(50, 2),
+				createTestData(501, 2),
 				pool,
 				requestId
 			);

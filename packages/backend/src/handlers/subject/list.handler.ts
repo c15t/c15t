@@ -10,6 +10,8 @@ import type { C15TContext } from '~/types';
 import { extractErrorMessage } from '~/utils/extract-error-message';
 import { enrichConsents } from '../utils/consent-enrichment';
 
+const SUBJECT_ID_BATCH_SIZE = 500;
+
 /**
  * Handles listing all subjects linked to an external ID.
  *
@@ -59,14 +61,24 @@ export const listSubjectsHandler = async (c: Context) => {
 
 		// Batch the remaining work so this request has at most one outstanding
 		// database acquisition, regardless of the number of matching subjects.
-		const consents = await db.findMany('consent', {
-			where: (b) =>
-				b(
-					'subjectId',
-					'in',
-					subjects.map((subject) => subject.id)
-				),
-		});
+		const subjectIds = subjects.map((subject) => subject.id);
+		const findConsents = (batch: string[]) =>
+			db.findMany('consent', {
+				where: (b) => b('subjectId', 'in', batch),
+			});
+		const consents = await findConsents(
+			subjectIds.slice(0, SUBJECT_ID_BATCH_SIZE)
+		);
+		for (
+			let index = SUBJECT_ID_BATCH_SIZE;
+			index < subjectIds.length;
+			index += SUBJECT_ID_BATCH_SIZE
+		) {
+			const batch = await findConsents(
+				subjectIds.slice(index, index + SUBJECT_ID_BATCH_SIZE)
+			);
+			consents.push(...batch);
+		}
 		const consentItems = await enrichConsents(consents, { db, registry });
 
 		const consentsBySubjectId = new Map<
