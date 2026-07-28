@@ -1,5 +1,12 @@
 # @c15t/cli
 
+## 2.2.0-canary-20260728085441
+
+### Patch Changes
+
+- Updated dependencies [ee39d2c]
+  - @c15t/backend@2.2.0-canary-20260728085441
+
 ## 2.2.0-canary-20260727202135
 
 ### Patch Changes
