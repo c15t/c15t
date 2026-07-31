@@ -185,7 +185,6 @@ Legacy duplicate lookups are now scoped to the current tenant, and timestamps ou
 
 ## Backend, API, and compatibility improvements
 
-- The backend now prioritizes `x-forwarded-for` over `x-client-ip` when resolving client IP addresses with the default header order.
 - Browser, SSR, prefetch, and Node SDK requests now forward `x-c15t-version`, and the backend allows it through CORS preflight handling.
 - Custom `headers` configured for hosted clients are no longer dropped. They are included in the runtime cache key so differently configured clients cannot share an instance.
 - Explicit ports in `trustedOrigins` are now matched exactly, while host-only entries remain port-agnostic.
