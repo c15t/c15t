@@ -61,6 +61,10 @@ Browser tests (react, nextjs) need Chromium: `bunx playwright@1.58.2 install`.
 
 `bun run test` selects affected packages **and their dependents** against `origin/canary`, counting committed, staged, unstaged, and untracked non-ignored changes. Because `c15t` and `@c15t/ui` sit near the root of the graph, a change to either still fans out to most packages; the saving is real for leaf packages (`cli`, `node-sdk`, `dev-tools`, the `vue`/`svelte`/`solid` wrappers) and docs-only work. Use `bun run test:full` before a release or when you want the whole suite. On a stacked branch, override the base with `TURBO_SCM_BASE=origin/<parent> bun run test`, and fetch `origin/canary` in long-lived worktrees so the remote-tracking ref is current.
 
+Touching `bun.lock` or the root `package.json` marks **every** package affected, so dependency bumps always get a full run — intended, since a dependency change can affect anything. If `--affected` unexpectedly selects everything, check for an uncommitted lockfile change first.
+
+`--affected` combined with `--filter` requires turbo ≥ 2.10; 2.9.x rejects the two flags together.
+
 Keep `cacheDir` and `TURBO_CACHE_DIR` unset — Turborepo 2.8+ automatically shares the main worktree's local cache with linked Git worktrees. Install dependencies separately in each worktree rather than symlinking `node_modules`; Bun's global cache already deduplicates package contents.
 
 ## Code style
