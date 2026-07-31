@@ -1,8 +1,8 @@
 import type { C15TOptions } from '~/types';
 
 const DEFAULT_IP_HEADERS = [
-	'x-forwarded-for',
 	'x-client-ip',
+	'x-forwarded-for',
 	'cf-connecting-ip',
 	'fastly-client-ip',
 	'x-real-ip',
