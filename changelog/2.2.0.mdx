@@ -2,7 +2,7 @@
 title: "v2.2.0 - Consent-Aware Embeds, Configurable Controls, and More Integrations"
 version: "2.2.0"
 date: 2026-07-29
-description: "Minor release adding consent-aware Google Maps and YouTube components, a configurable consent controls toolbar, eight script integrations, a reusable SDK hook, policy-aware action styling, reliability fixes, and new translations."
+description: "Minor release adding consent-aware Google Maps and YouTube components, a configurable consent controls toolbar, eight script integrations, a reusable SDK hook, policy-aware action styling, CSP nonce support, reliability fixes, and new translations."
 group: changelog
 tags:
   - release
@@ -33,6 +33,7 @@ This is a minor release with no breaking changes.
 - RudderStack pre-consent buffering with category-to-consent-ID mapping
 - Microsoft Clarity Consent V2 support and a corrected Mixpanel bootstrap
 - Policy-aware primary action styling, including IAB consent surfaces
+- New `nonce` option applying your CSP nonce to injected styles and scripts
 - Reliable offline IAB GVL loading and language refreshes
 - Stronger consent submission deduplication and timestamp handling
 - Hindi and Gujarati translations for the full consent experience
@@ -147,6 +148,24 @@ The core script loader also now preserves an explicit `async: false`, which is r
 Themes can now define `consentActions.primary` to style whichever action the active policy marks as primary. The policy continues to decide whether that action is accept, reject, or customize, while the theme controls how primary actions look.
 
 Explicit component props and per-action theme keys still take precedence. The IAB consent banner now uses the same resolution rules instead of bypassing `consentActions` with hard-coded button variants.
+
+## Content Security Policy support
+
+c15t injects a `<style>` element for your theme tokens and a `<script>` element for each consented vendor. Neither carried a nonce, so a nonce-based Content Security Policy blocked both — and because a directive that specifies a nonce ignores `'unsafe-inline'`, the only escape was to abandon nonces for that directive.
+
+The provider now accepts a `nonce` and applies it to everything c15t injects:
+
+```tsx
+<ConsentManagerProvider options={{ mode: 'offline', nonce }}>
+  {children}
+</ConsentManagerProvider>
+```
+
+A `nonce` set on an individual script definition still takes precedence, so you can override a single vendor without changing the provider.
+
+This covers the elements c15t injects. Inline `style` attributes are governed by `style-src-attr`, a directive that ignores nonces entirely, so a policy that restricts it is unaffected by this option.
+
+→ [React ConsentManagerProvider](/docs/frameworks/react/components/consent-manager-provider) · [Next.js ConsentManagerProvider](/docs/frameworks/next/components/consent-manager-provider)
 
 ## IAB TCF reliability
 

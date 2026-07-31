@@ -41,6 +41,14 @@ export interface ScriptLoaderOptions {
 	model?: Model;
 	/** IAB consent state (required when model is 'iab') */
 	iabConsent?: IABConsentState;
+	/**
+	 * Default Content Security Policy nonce for injected script elements.
+	 *
+	 * @remarks
+	 * Applied to every generated `<script>` that does not declare its own
+	 * {@link Script.nonce}. A per-script value always takes precedence.
+	 */
+	nonce?: string;
 }
 
 /**
@@ -471,9 +479,11 @@ export function loadScripts(
 			scriptElement.defer = true;
 		}
 
-		// Add CSP nonce if provided
-		if (script.nonce) {
-			scriptElement.nonce = script.nonce;
+		// Add CSP nonce if provided. A per-script nonce wins over the
+		// provider-level default so individual scripts stay overridable.
+		const nonce = script.nonce ?? options?.nonce;
+		if (nonce) {
+			scriptElement.nonce = nonce;
 		}
 
 		// Add any additional attributes

@@ -145,6 +145,7 @@ export function getOrCreateConsentRuntime(
 		consentCategories,
 		debug,
 		headers,
+		nonce,
 		customFetch: _unusedCustomFetch,
 		retryConfig: _unusedRetryConfig,
 		endpointHandlers: _unusedEndpointHandlers,
@@ -187,6 +188,9 @@ export function getOrCreateConsentRuntime(
 	const resolvedStorageConfig =
 		storageConfig ?? storeWithoutTranslationInputs.storageConfig;
 	const resolvedEnabled = enabled ?? storeWithoutTranslationInputs.enabled;
+	// A top-level `nonce` wins over `store.nonce` so the value the provider
+	// applies to the theme stylesheet always matches the one scripts receive.
+	const resolvedNonce = nonce ?? storeWithoutTranslationInputs.nonce;
 	const resolvedBackendURL = backendURL || DEFAULT_BACKEND_URL;
 	const explicitSSRData = topLevelSSRData ?? storeSSRData;
 
@@ -284,6 +288,7 @@ export function getOrCreateConsentRuntime(
 			offlinePolicy: resolvedOfflinePolicy,
 			storageConfig: resolvedStorageConfig,
 			enabled: resolvedEnabled,
+			nonce: resolvedNonce,
 			initialTranslationConfig: normalizedInitialTranslationConfig,
 			initialConsentCategories: consentCategories,
 			ssrData: resolvedSSRData,
@@ -298,6 +303,13 @@ export function getOrCreateConsentRuntime(
 		} as InternalStoreOptions);
 
 		storeCache.set(cacheKey, consentStore);
+	} else if (consentStore.getState().nonce !== resolvedNonce) {
+		// A nonce is per-request, so a cached store can outlive the one it was
+		// created with. Sync it rather than adding the nonce to the cache key:
+		// keying on it would allocate a fresh manager and store for every request
+		// during SSR, and neither cache evicts. Leaving it stale would let the
+		// theme stylesheet and injected scripts carry different nonces.
+		consentStore.setState({ nonce: resolvedNonce });
 	}
 
 	return {

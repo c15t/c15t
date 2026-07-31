@@ -36,13 +36,96 @@ describe('runtime', () => {
 		configureConsentManagerMock.mockImplementation(() => ({
 			id: `manager-${++managerCount}`,
 		}));
-		createConsentManagerStoreMock.mockImplementation(() => ({
-			id: `store-${++storeCount}`,
-		}));
+		// Minimal stateful store stub: the runtime reads and writes state on
+		// cached stores, so an inert object would not exercise that path.
+		createConsentManagerStoreMock.mockImplementation(
+			(_manager: unknown, storeOptions: unknown) => {
+				let state = { ...(storeOptions as Record<string, unknown>) };
+
+				return {
+					id: `store-${++storeCount}`,
+					getState: () => state,
+					setState: (partial: Record<string, unknown>) => {
+						state = { ...state, ...partial };
+					},
+				};
+			}
+		);
 	});
 
 	afterEach(() => {
 		vi.unstubAllGlobals();
+	});
+
+	describe('nonce resolution', () => {
+		const pkgInfo = { pkg: '@c15t/react', version: '2.0.0' };
+
+		function storeOptionsFor(options: ConsentRuntimeOptions) {
+			getOrCreateConsentRuntime(options, pkgInfo);
+
+			return createConsentManagerStoreMock.mock.calls[0]?.[1] as {
+				nonce?: string;
+			};
+		}
+
+		it('passes a top-level nonce to the store', () => {
+			const storeOptions = storeOptionsFor({
+				mode: 'offline',
+				nonce: 'top-level',
+			} satisfies ConsentRuntimeOptions);
+
+			expect(storeOptions.nonce).toBe('top-level');
+		});
+
+		it('falls back to a nonce nested under store', () => {
+			const storeOptions = storeOptionsFor({
+				mode: 'offline',
+				store: { nonce: 'nested-store' },
+			} satisfies ConsentRuntimeOptions);
+
+			expect(storeOptions.nonce).toBe('nested-store');
+		});
+
+		it('prefers the top-level nonce over a nested one', () => {
+			const storeOptions = storeOptionsFor({
+				mode: 'offline',
+				nonce: 'top-level',
+				store: { nonce: 'nested-store' },
+			} satisfies ConsentRuntimeOptions);
+
+			expect(storeOptions.nonce).toBe('top-level');
+		});
+
+		it('refreshes the nonce on a cached store instead of reusing a stale one', () => {
+			const first = getOrCreateConsentRuntime(
+				{
+					mode: 'offline',
+					nonce: 'nonce-request-a',
+				} satisfies ConsentRuntimeOptions,
+				pkgInfo
+			);
+			const second = getOrCreateConsentRuntime(
+				{
+					mode: 'offline',
+					nonce: 'nonce-request-b',
+				} satisfies ConsentRuntimeOptions,
+				pkgInfo
+			);
+
+			// The nonce is deliberately not part of the cache key — see the runtime
+			// comment — so the same store must be handed back with a fresh nonce.
+			expect(second.consentStore).toBe(first.consentStore);
+			expect(createConsentManagerStoreMock).toHaveBeenCalledTimes(1);
+			expect(second.consentStore.getState().nonce).toBe('nonce-request-b');
+		});
+
+		it('leaves the nonce undefined when neither form is set', () => {
+			const storeOptions = storeOptionsFor({
+				mode: 'offline',
+			} satisfies ConsentRuntimeOptions);
+
+			expect(storeOptions.nonce).toBeUndefined();
+		});
 	});
 
 	it('reuses runtime instances for the same cache key', () => {
