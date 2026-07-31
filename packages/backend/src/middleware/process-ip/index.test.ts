@@ -102,6 +102,16 @@ describe('getIpAddress', () => {
 			expect(getIpAddress(headers, options)).toBe('192.168.1.0');
 		});
 
+		it('should prioritize x-forwarded-for over x-client-ip by default', () => {
+			const headers = createMockHeaders({
+				'x-client-ip': '10.0.0.1',
+				'x-forwarded-for': '192.168.1.100',
+			});
+			const options = createBaseOptions();
+
+			expect(getIpAddress(headers, options)).toBe('192.168.1.0');
+		});
+
 		it('should extract and mask IP from cf-connecting-ip header by default', () => {
 			const headers = createMockHeaders({
 				'cf-connecting-ip': '8.8.8.8',
