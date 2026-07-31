@@ -40,6 +40,7 @@ bun turbo run build --filter=@c15t/react             # one package (+ its deps)
 
 bun run test                                         # affected packages + dependents vs origin/canary
 bun run test:full                                    # every package, via turbo (builds first)
+bun run test:scripts                                 # root repository tooling tests
 bun turbo run test --filter=@c15t/react              # one package
 bun run --cwd packages/react test src/foo.test.tsx   # one file — runs the package's `test` script
                                                      # (handles prebuild/version.ts); build deps once first.
@@ -59,7 +60,7 @@ Browser tests (react, nextjs) need Chromium: `bunx playwright@1.58.2 install`.
 
 `check-types` and `test` depend on `build` in `turbo.json` — if types look stale or imports of workspace packages fail, build first.
 
-`bun run test` selects affected packages **and their dependents** against `origin/canary`, counting committed, staged, unstaged, and untracked non-ignored changes. Because `c15t` and `@c15t/ui` sit near the root of the graph, a change to either still fans out to most packages; the saving is real for leaf packages (`cli`, `node-sdk`, `dev-tools`, the `vue`/`svelte`/`solid` wrappers) and docs-only work. Use `bun run test:full` before a release or when you want the whole suite. On a stacked branch, override the base with `TURBO_SCM_BASE=origin/<parent> bun run test`, and fetch `origin/canary` in long-lived worktrees so the remote-tracking ref is current.
+`bun run test` selects affected packages **and their dependents** against `origin/canary`, counting committed, staged, unstaged, and untracked non-ignored changes. Its Bun wrapper forwards additional Turbo arguments unchanged. Because `c15t` and `@c15t/ui` sit near the root of the graph, a change to either still fans out to most packages; the saving is real for leaf packages (`cli`, `node-sdk`, `dev-tools`, the `vue`/`svelte`/`solid` wrappers) and docs-only work. Use `bun run test:full` before a release or when you want the whole suite. On a stacked branch, override the base with `TURBO_SCM_BASE=origin/<parent> bun run test`, and fetch `origin/canary` in long-lived worktrees so the remote-tracking ref is current. `bun run test:scripts` covers root repository tooling outside the package Turbo graph and runs on every CI event.
 
 Touching `bun.lock` or the root `package.json` marks **every** package affected, so dependency bumps always get a full run — intended, since a dependency change can affect anything. If `--affected` unexpectedly selects everything, check for an uncommitted lockfile change first.
 
@@ -116,7 +117,7 @@ When adding or changing user-facing package behavior:
 
 ## CI on pull requests
 
-- **CI** (`ci.yml`): `turbo run check-types`, Biome via reviewdog, `turbo run build --filter="./packages/*"`, `turbo run test --filter="./packages/*"`; separate coverage workflows post per-package coverage comments afterwards. Build and test are `--affected` on pull requests and run in full on pushes to `canary` and `main`; `check-types` always runs in full as the cross-package backstop. A PR that affects no package tests nothing and posts no coverage comment — that is expected, not a failure.
+- **CI** (`ci.yml`): `turbo run check-types`, Biome via reviewdog, root script tests, `turbo run build --filter="./packages/*"`, and `turbo run test --filter="./packages/*"`; separate coverage workflows post per-package coverage comments afterwards. Build and package tests are `--affected` on pull requests and run in full on pushes to `canary`, `main`, and `2.0.0`; `check-types` and root script tests always run in full as cross-package backstops. Successful push CI then calls the release workflow, so publishing cannot start before every CI job passes. A PR that affects no package tests nothing and posts no coverage comment — that is expected, not a failure.
 - **autofix.ci**: runs `bun fmt` + `bun fmt:docs` and pushes fixes to your branch — pull before adding commits after CI runs.
 - **Bundle Analysis** (every PR) and **Benchmark Regression** (path-filtered: core/react/nextjs/translations/ui/benchmarks/lockfile/turbo.json) post bundle-size and perf comparisons. For perf work, include before/after benchmark numbers (`bun run bench`).
 - **PR Preview**: publishes preview packages to pkg.pr.new for package-path changes, but only for org members or PRs labeled `deploy:preview`.

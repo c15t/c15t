@@ -2,14 +2,10 @@
 name: Release
 
 on:
-  push:
-    branches:
-      - main # Matches your config.json baseBranch
-      - canary # Canary releases
-      - 2.0.0 # RC pre-releases
+  workflow_call:
 
-# Prevent multiple concurrent release workflows
-concurrency: ${{ github.workflow }}-${{ github.ref }}
+# Prevent multiple concurrent releases for the same publishing branch.
+concurrency: release-${{ github.ref }}
 
 permissions: {}
 
@@ -22,7 +18,11 @@ jobs:
       pull-requests: write # Needed by changesets/action to create the "Version Packages" PR
       id-token: write # Required for OIDC trusted publishing with npm (bypasses 2FA requirement)
 
-    if: github.repository == 'c15t/c15t'
+    if: >-
+      github.repository == 'c15t/c15t' &&
+      (github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/canary' ||
+      github.ref == 'refs/heads/2.0.0')
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
