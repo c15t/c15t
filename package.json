@@ -117,7 +117,7 @@
 		"remark-preset-lint-consistent": "6.0.1",
 		"remark-preset-lint-recommended": "7.0.1",
 		"tsx": "4.23.0",
-		"turbo": "2.10.3",
+		"turbo": "2.10.7",
 		"typescript": "7.0.1-rc",
 		"unified": "11.0.5",
 		"unist-builder": "4.0.0",
