@@ -149,11 +149,9 @@ jobs:
         run: |
           echo "version=$(bun -e "console.log(require('./package.json').devDependencies.playwright)")" >> "$GITHUB_OUTPUT"
 
-      - name: 🎭 Cache Playwright browsers
-        # `actions/cache`, not `actions/cache/restore`: the restore-only step
-        # had no counterpart save anywhere in the repo, so the key was never
-        # written and every run re-downloaded the browsers.
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+      - name: 🎭 Restore Playwright browsers
+        id: playwright-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ~/.cache/ms-playwright
           # Keyed on the Playwright version rather than the lockfile hash —
@@ -163,6 +161,15 @@ jobs:
 
       - name: 🎭 Install Playwright browsers
         run: bunx "playwright@${{ steps.playwright.outputs.version }}" install --with-deps chromium chromium-headless-shell
+
+      # Save immediately after installation so a later test failure does not
+      # discard a successfully prepared browser cache.
+      - name: 🎭 Save Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-browsers-${{ runner.os }}-${{ steps.playwright.outputs.version }}
 
       - name: 🧪 Run Tests
         env:
@@ -177,25 +184,15 @@ jobs:
 
       # Restored entries are carried into the next save, so the cache would
       # grow without bound across pushes and thrash the repo's 10GB budget.
-      # Keep the newest entries up to a fixed ceiling and drop the rest.
-      # Runs on every event, not just pushes: on a PR the pruned cache is
-      # discarded anyway, but running it here means this script is exercised on
-      # every PR instead of only on the pushes that actually save. Non-fatal —
-      # a failure to prune must never fail CI, it only means a larger cache.
+      # Prune complete task entries to a 1 GiB ceiling. This runs on every event
+      # so the script is exercised on PRs, but remains non-fatal because a prune
+      # failure should only produce a larger cache, never failed product CI.
       - name: ♻️ Prune Turborepo cache
         continue-on-error: true
-        run: |
-          [ -d .turbo/cache ] || exit 0
-          before=$(du -sh .turbo/cache | cut -f1)
-          find .turbo/cache -type f -printf '%T@\t%s\t%p\n' \
-            | sort -rn \
-            | awk -F'\t' -v limit=$((1024 * 1024 * 1024)) \
-                '{ total += $2; if (total > limit) print $3 }' \
-            | xargs -r rm -f
-          echo "turbo cache: $before -> $(du -sh .turbo/cache | cut -f1)"
+        run: bun scripts/prune-turbo-cache.ts
 
-      # Written only from pushes to canary/main. PR runs restore read-only so
-      # they cannot churn the cache budget, matching the posture already chosen
+      # Written only from pushes to publishing branches. PR runs restore
+      # read-only so they cannot churn the cache budget, matching the posture
       # for TURBO_TOKEN.
       - name: ♻️ Save Turborepo cache
         if: github.event_name == 'push'
