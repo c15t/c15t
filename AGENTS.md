@@ -65,7 +65,7 @@ Touching `bun.lock` or the root `package.json` marks **every** package affected,
 
 `--affected` combined with `--filter` requires turbo ≥ 2.10; 2.9.x rejects the two flags together.
 
-Keep `cacheDir` and `TURBO_CACHE_DIR` unset — Turborepo 2.8+ automatically shares the main worktree's local cache with linked Git worktrees. Install dependencies separately in each worktree rather than symlinking `node_modules`; Bun's global cache already deduplicates package contents.
+Keep `cacheDir` unset — Turborepo detects a linked Git worktree and automatically redirects its cache to the **main** worktree's `.turbo/cache`, so worktrees share build artifacts for free. Setting an explicit `cacheDir` disables that sharing and gives each worktree its own cache. This is local-only: CI runners do a fresh clone, not a linked worktree, so it does nothing for CI. Install dependencies separately in each worktree rather than symlinking `node_modules`; Bun's global cache already deduplicates package contents.
 
 ## Code style
 
