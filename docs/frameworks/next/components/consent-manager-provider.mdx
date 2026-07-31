@@ -63,20 +63,31 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const nonce = crypto.randomUUID();
+  const isDev = process.env.NODE_ENV === 'development';
+
+  const csp = [
+    `default-src 'self'`,
+    // Next.js dev tooling (React Refresh and HMR) requires 'unsafe-eval'.
+    `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ''}`,
+    `style-src 'self' 'nonce-${nonce}'`,
+    // Nonces cannot authorize inline style attributes — see above.
+    `style-src-attr 'unsafe-inline'`,
+  ].join('; ');
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('Content-Security-Policy', csp);
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
-
-  response.headers.set(
-    'Content-Security-Policy',
-    `style-src 'self' 'nonce-${nonce}'; script-src 'self' 'nonce-${nonce}'`
-  );
+  response.headers.set('Content-Security-Policy', csp);
 
   return response;
 }
 ```
+
+<Callout type="warn">
+  Set the same policy on **both** the forwarded request headers and the response. Next.js reads the nonce for its own runtime and hydration scripts from the `Content-Security-Policy` request header during rendering. Setting it only on the response leaves those scripts without a nonce, and the enforced policy then blocks them, so the page never hydrates.
+</Callout>
 
 ```tsx title="app/layout.tsx"
 import { headers } from 'next/headers';

@@ -48,7 +48,24 @@ group: reference
 
   ### Inline style attributes
 
-  The `nonce` option covers elements c15t injects. It does not cover inline `style="..."` attributes, which CSP governs through `style-src-attr` — a directive that ignores nonces entirely. If your policy sets `style-src-attr` without `'unsafe-inline'`, some component styling is affected regardless of the nonce.
+  The `nonce` option covers the elements c15t injects. It cannot cover inline `style="..."` attributes, which several components rely on — a nonce never authorizes a style attribute, because nonces apply to elements only.
+
+  Style attributes are governed by `style-src-attr`, and when that directive is absent CSP falls back to `style-src`. A nonce-based style policy therefore blocks them:
+
+  ```http
+  style-src 'self' 'nonce-abc123';
+  ```
+
+  To keep the nonce requirement for stylesheets while still allowing style attributes, set `style-src-attr` explicitly:
+
+  ```http
+  style-src 'self' 'nonce-abc123';
+  style-src-attr 'unsafe-inline';
+  ```
+
+  <Callout type="warn">
+    `'unsafe-inline'` on `style-src-attr` permits any inline style attribute on the page. That is weaker than a nonce, but far narrower than putting `'unsafe-inline'` on `style-src`, which would additionally authorize arbitrary injected `<style>` elements. If your threat model does not allow it, expect components that use inline styles to render unstyled.
+  </Callout>
 </section>
 
 <section id="legal-links">

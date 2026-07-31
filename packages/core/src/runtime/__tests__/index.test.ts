@@ -45,6 +45,54 @@ describe('runtime', () => {
 		vi.unstubAllGlobals();
 	});
 
+	describe('nonce resolution', () => {
+		const pkgInfo = { pkg: '@c15t/react', version: '2.0.0' };
+
+		function storeOptionsFor(options: ConsentRuntimeOptions) {
+			getOrCreateConsentRuntime(options, pkgInfo);
+
+			return createConsentManagerStoreMock.mock.calls[0]?.[1] as {
+				nonce?: string;
+			};
+		}
+
+		it('passes a top-level nonce to the store', () => {
+			const storeOptions = storeOptionsFor({
+				mode: 'offline',
+				nonce: 'top-level',
+			} satisfies ConsentRuntimeOptions);
+
+			expect(storeOptions.nonce).toBe('top-level');
+		});
+
+		it('falls back to a nonce nested under store', () => {
+			const storeOptions = storeOptionsFor({
+				mode: 'offline',
+				store: { nonce: 'nested-store' },
+			} satisfies ConsentRuntimeOptions);
+
+			expect(storeOptions.nonce).toBe('nested-store');
+		});
+
+		it('prefers the top-level nonce over a nested one', () => {
+			const storeOptions = storeOptionsFor({
+				mode: 'offline',
+				nonce: 'top-level',
+				store: { nonce: 'nested-store' },
+			} satisfies ConsentRuntimeOptions);
+
+			expect(storeOptions.nonce).toBe('top-level');
+		});
+
+		it('leaves the nonce undefined when neither form is set', () => {
+			const storeOptions = storeOptionsFor({
+				mode: 'offline',
+			} satisfies ConsentRuntimeOptions);
+
+			expect(storeOptions.nonce).toBeUndefined();
+		});
+	});
+
 	it('reuses runtime instances for the same cache key', () => {
 		const options = {
 			mode: 'offline',

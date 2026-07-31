@@ -707,5 +707,16 @@ describe('Store Script Loader Integration', () => {
 
 			expect(lastCreatedScriptElement()?.nonce).toBe('');
 		});
+
+		it('applies the store-level nonce when reloading a script', () => {
+			const store = createStoreWithNonce('store-nonce');
+
+			store.getState().setScripts([scripts[0]]);
+			store.getState().reloadScript('necessary-script');
+
+			// reloadScript recreates the element, so the most recent one must
+			// still carry the nonce.
+			expect(lastCreatedScriptElement()?.nonce).toBe('store-nonce');
+		});
 	});
 });
