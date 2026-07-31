@@ -17,22 +17,16 @@ jobs:
     # Specifying `permissions` sets every unlisted scope to `none`, so each
     # scope this job actually needs has to be listed explicitly.
     permissions:
-      actions: read # read artifacts from the triggering CI run
-      contents: read # resolve the pull request for the run's head SHA
-      pull-requests: write # post the coverage comment
+      actions: read # inspect the triggering CI run and its artifacts
+      pull-requests: read # resolve the pull request for the run
 
     outputs: # Define outputs for the matrix generation job
       matrix: ${{ steps.generate-matrix.outputs.matrix }}
       pr_number: ${{ steps.pr.outputs.number }}
 
     steps:
-      # Checkout is needed to potentially read thresholds from vite config later? Optional otherwise.
-      - name: Checkout code (optional, for context)
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-
-      # `workflow_run` carries no pull_request payload, so the reporting action
-      # cannot work out which PR to comment on by itself. Resolve it here once
-      # and pass it down explicitly.
+      # The reporting action cannot reliably infer a PR from workflow_run, so
+      # resolve exactly one matching PR and pass it down explicitly.
       - name: Resolve pull request number
         id: pr
         # Values reach the script through the environment rather than template
@@ -41,19 +35,67 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPOSITORY: ${{ github.repository }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
-          EVENT_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
-          number="$EVENT_PR_NUMBER"
-          if [ -z "$number" ]; then
-            # Fork pull requests come through with an empty pull_requests array,
-            # so fall back to looking the PR up by the run's head SHA.
-            number=$(gh api \
-              "repos/${REPOSITORY}/commits/${HEAD_SHA}/pulls" \
-              --jq 'map(select(.state == "open")) | .[0].number // ""')
+          set -euo pipefail
+
+          run_json=$(gh api "repos/${REPOSITORY}/actions/runs/${RUN_ID}")
+          head_sha=$(jq -er \
+            '.head_sha | select(type == "string" and length > 0)' \
+            <<< "$run_json")
+          head_branch=$(jq -er \
+            '.head_branch | select(type == "string" and length > 0)' \
+            <<< "$run_json")
+          head_repository_url=$(jq -er \
+            '.head_repository.url | select(type == "string" and length > 0)' \
+            <<< "$run_json")
+
+          candidates=$(jq -c \
+            --arg repository "$head_repository_url" \
+            --arg branch "$head_branch" \
+            '[
+              .pull_requests[]?
+              | select(
+                  .head.repo.url == $repository and
+                  .head.ref == $branch
+                )
+              | .number
+            ] | unique' \
+            <<< "$run_json")
+          candidate_count=$(jq -r 'length' <<< "$candidates")
+
+          if [ "$candidate_count" -eq 0 ]; then
+            pull_pages=$(gh api --paginate --slurp \
+              "repos/${REPOSITORY}/commits/${head_sha}/pulls?per_page=100")
+            candidates=$(jq -c \
+              --arg repository "$head_repository_url" \
+              --arg branch "$head_branch" \
+              '[
+                .[][]
+                | select(
+                    .head.repo.url == $repository and
+                    .head.ref == $branch
+                  )
+                | .number
+              ] | unique' \
+              <<< "$pull_pages")
+            candidate_count=$(jq -r 'length' <<< "$candidates")
           fi
-          echo "Resolved pull request: ${number:-<none>}"
-          echo "number=$number" >> "$GITHUB_OUTPUT"
+
+          if [ "$candidate_count" -ne 1 ]; then
+            printf \
+              'Expected one PR for %s:%s at %s; found %s: %s\n' \
+              "$head_repository_url" \
+              "$head_branch" \
+              "$head_sha" \
+              "$candidate_count" \
+              "$candidates" >&2
+            exit 1
+          fi
+
+          number=$(jq -r '.[0]' <<< "$candidates")
+          printf 'Resolved pull request: %s\n' "$number"
+          printf 'number=%s\n' "$number" >> "$GITHUB_OUTPUT"
 
       # An affected-only CI run can legitimately test nothing (a docs-only PR),
       # and then no artifact exists. Probe for it rather than blanket-tolerating
@@ -65,14 +107,25 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
-          count=$(gh api --paginate \
-            "repos/${REPOSITORY}/actions/runs/${RUN_ID}/artifacts" \
-            --jq '[.artifacts[] | select(.name == "individual-coverage-data")] | length')
-          echo "Matching artifacts: $count"
+          set -euo pipefail
+
+          artifact_pages=$(gh api --paginate --slurp \
+            "repos/${REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100")
+          count=$(jq -r \
+            '[
+              .[].artifacts[]
+              | select(
+                  .name == "individual-coverage-data" and
+                  .expired == false
+                )
+            ] | length' \
+            <<< "$artifact_pages")
+
+          printf 'Matching artifacts: %s\n' "$count"
           if [ "$count" -gt 0 ]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
+            printf 'exists=true\n' >> "$GITHUB_OUTPUT"
           else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
+            printf 'exists=false\n' >> "$GITHUB_OUTPUT"
           fi
 
       # Download the coverage artifacts uploaded by the CI workflow
