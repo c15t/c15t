@@ -35,15 +35,21 @@ jobs:
       # and pass it down explicitly.
       - name: Resolve pull request number
         id: pr
+        # Values reach the script through the environment rather than template
+        # expansion — interpolating `${{ }}` straight into `run:` lets
+        # attacker-influenced fields expand into executable shell.
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          EVENT_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
         run: |
-          number='${{ github.event.workflow_run.pull_requests[0].number }}'
+          number="$EVENT_PR_NUMBER"
           if [ -z "$number" ]; then
             # Fork pull requests come through with an empty pull_requests array,
             # so fall back to looking the PR up by the run's head SHA.
             number=$(gh api \
-              "repos/${{ github.repository }}/commits/${{ github.event.workflow_run.head_sha }}/pulls" \
+              "repos/${REPOSITORY}/commits/${HEAD_SHA}/pulls" \
               --jq 'map(select(.state == "open")) | .[0].number // ""')
           fi
           echo "Resolved pull request: ${number:-<none>}"
@@ -56,9 +62,11 @@ jobs:
         id: artifact
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
           count=$(gh api --paginate \
-            "repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}/artifacts" \
+            "repos/${REPOSITORY}/actions/runs/${RUN_ID}/artifacts" \
             --jq '[.artifacts[] | select(.name == "individual-coverage-data")] | length')
           echo "Matching artifacts: $count"
           if [ "$count" -gt 0 ]; then
