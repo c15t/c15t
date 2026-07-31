@@ -22,6 +22,35 @@ group: reference
   <AutoTypeTable path="./packages/ui/src/theme/types.ts" name="UIOptions" />
 </section>
 
+<section id="csp-nonce">
+  ## Content Security Policy
+
+  c15t injects a `<style id="c15t-theme">` element for your theme tokens, and the [script loader](/docs/frameworks/react/script-loader) injects a `<script>` element per consented vendor. Under a nonce-based Content Security Policy, both are blocked unless they carry your nonce.
+
+  Pass it once through the `nonce` option and c15t applies it to everything it injects:
+
+  ```tsx
+  <ConsentManagerProvider
+    options={{
+      mode: 'offline',
+      nonce: yourRequestNonce,
+    }}
+  >
+    {children}
+  </ConsentManagerProvider>
+  ```
+
+  A `nonce` set on an individual script definition still wins, so you can override a single vendor without changing the provider.
+
+  <Callout type="note">
+    Browsers hide the `nonce` content attribute once a policy is active. Inspecting the element shows no `nonce=""`, but `element.nonce` still returns the value — this is expected and not a sign that c15t dropped it.
+  </Callout>
+
+  ### Inline style attributes
+
+  The `nonce` option covers elements c15t injects. It does not cover inline `style="..."` attributes, which CSP governs through `style-src-attr` — a directive that ignores nonces entirely. If your policy sets `style-src-attr` without `'unsafe-inline'`, some component styling is affected regardless of the nonce.
+</section>
+
 <section id="legal-links">
   ## Legal Links
 

@@ -194,6 +194,6 @@ For iframe-only embeds, use the [iframe blocking](/docs/frameworks/next/iframe-b
 - The provider and any component that calls `useConsentManager()` must be client components.
 - Keep vendor ids out of static examples when they differ per environment — read them from `process.env.NEXT_PUBLIC_*` or runtime config.
 - If a script must be available before a page becomes interactive, prefer a built-in helper that models denied-consent defaults rather than adding a separate `next/script` tag.
-- If you use CSP nonces, pass the nonce through the `Script` object so c15t applies it to the generated script element.
+- If you use CSP nonces, set `nonce` on the provider options so c15t applies it to every injected script element and the theme stylesheet. See [Content Security Policy](/docs/frameworks/next/components/consent-manager-provider#content-security-policy) for reading the nonce in the App Router.
 
 <import src="../../shared/react/guides/script-loader.mdx#api-reference" />

@@ -239,6 +239,8 @@ group: reference
 
   Set `anonymizeId: false` only when another script or test needs a stable DOM id. Pass `nonce` when your CSP requires it; c15t applies it directly to the generated `<script>` element.
 
+  You usually do not need a per-script `nonce`. Setting `nonce` once on the provider covers every injected script (and the theme stylesheet); a per-script value overrides it for that script alone.
+
   ## Dynamic Management
 
   Framework packages expose script-manager methods so integrations can be added, removed, or inspected at runtime. Use this for tenant-specific tools, feature-flagged scripts, or vendors that are configured after sign-in:

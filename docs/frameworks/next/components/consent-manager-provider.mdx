@@ -52,6 +52,55 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
 
 See [Client Modes](/docs/frameworks/next/concepts/client-modes) for a detailed comparison.
 
+<import src="../../../shared/react/components/consent-manager-provider.mdx#csp-nonce" />
+
+### Reading the nonce in the App Router
+
+Next.js does not expose the request nonce to client components, so read it in a server component and pass it down. Generate the nonce in middleware, forward it on a request header, then hand it to the provider from your layout:
+
+```ts title="middleware.ts"
+import { NextResponse, type NextRequest } from 'next/server';
+
+export function middleware(request: NextRequest) {
+  const nonce = crypto.randomUUID();
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+
+  response.headers.set(
+    'Content-Security-Policy',
+    `style-src 'self' 'nonce-${nonce}'; script-src 'self' 'nonce-${nonce}'`
+  );
+
+  return response;
+}
+```
+
+```tsx title="app/layout.tsx"
+import { headers } from 'next/headers';
+import { ConsentManagerProvider } from '@c15t/nextjs';
+
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+
+  return (
+    <html lang="en">
+      <body>
+        <ConsentManagerProvider options={{ mode: 'offline', nonce }}>
+          {children}
+        </ConsentManagerProvider>
+      </body>
+    </html>
+  );
+}
+```
+
 <import src="../../../shared/react/components/consent-manager-provider.mdx#legal-links" />
 
 <import src="../../../shared/react/components/consent-manager-provider.mdx#overrides" />

@@ -245,6 +245,7 @@ export function ConsentManagerProvider({
 				{themeCSS ? (
 					<style
 						id="c15t-theme"
+						nonce={options.nonce}
 						// biome-ignore lint/security/noDangerouslySetInnerHtml: It's safe to set innerHTML here
 						dangerouslySetInnerHTML={{ __html: themeCSS }}
 					/>
