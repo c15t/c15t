@@ -2,18 +2,21 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
+    # `canary` is the default branch and PR target, so it needs the full suite
+    # as the backstop for the affected-only checks that run on pull requests.
+    branches: ["main", "canary", "2.0.0"]
   pull_request:
     types: [opened, synchronize]
 
 env:
-  # Do not pass Turbo remote-cache creds when running untrusted PR code (same-repo
-  # PRs still execute arbitrary branch code). Fork PRs already omit repo secrets.
-  TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
-  TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
   # The leadtype package-docs generation inside package builds exceeds Node's
   # default heap on cache-miss builds of the larger packages (core, react).
   NODE_OPTIONS: --max-old-space-size=6144
+  # Pull-request checkouts are detached merge commits, so Turborepo cannot
+  # resolve the base as a local branch even with full history. Track the PR's
+  # real target so release PRs into `main` or `2.0.0` diff against the right
+  # branch instead of always against `canary`.
+  TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'origin/canary' }}
 
 jobs:
   lint_and_check:
@@ -38,7 +41,12 @@ jobs:
       - name: 📦 Install dependencies
         run: bun install --frozen-lockfile
 
+      # Deliberately not affected-scoped: this is the always-on cross-package
+      # signal that catches breakage in packages a PR does not touch directly.
       - name: 👀 Type Check
+        env:
+          TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+          TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
         run: bun turbo run check-types
 
       - name: 🧹 Run Biome with Reviewdog
@@ -57,7 +65,8 @@ jobs:
       - name: ⬇️ Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          fetch-depth: 2
+          # Full history so Turborepo can resolve the base branch for --affected.
+          fetch-depth: 0
           persist-credentials: false
 
       - name: 🟢 Setup Bun
@@ -69,7 +78,15 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: 🏗️ Build
-        run: bun turbo run build --filter="./packages/*"
+        env:
+          TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+          TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            bun turbo run build --filter="./packages/*" --affected
+          else
+            bun turbo run build --filter="./packages/*"
+          fi
 
   test:
     name: 🧪 Run Tests & Coverage
@@ -81,7 +98,8 @@ jobs:
       - name: ⬇️ Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          fetch-depth: 2
+          # Full history so Turborepo can resolve the base branch for --affected.
+          fetch-depth: 0
           persist-credentials: false
 
       - name: 🟢 Setup Bun
@@ -91,6 +109,11 @@ jobs:
 
       - name: 📦 Install dependencies
         run: bun install --frozen-lockfile
+
+      # Root repository tooling is not part of the package Turbo graph, so run
+      # its focused tests on every CI event before installing browsers.
+      - name: 🧰 Test repository scripts
+        run: bun run test:scripts
 
       - name: 🎭 Cache Playwright browsers
         id: playwright-cache
@@ -107,7 +130,15 @@ jobs:
           bunx "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium chromium-headless-shell
 
       - name: 🧪 Run Tests
-        run: bun turbo run test --filter="./packages/*"
+        env:
+          TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+          TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            bun turbo run test --filter="./packages/*" --affected
+          else
+            bun turbo run test --filter="./packages/*"
+          fi
 
       - name: ⬆️ Upload Individual Coverage Reports
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -122,3 +153,18 @@ jobs:
           retention-days: 7
           # Optional: Handle case where no files are found gracefully
           if-no-files-found: warn # 'warn', 'error', or 'ignore'
+
+  release:
+    name: 🚀 Release
+    needs: [lint_and_check, build, test]
+    if: >-
+      github.event_name == 'push' &&
+      github.repository == 'c15t/c15t' &&
+      (github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/canary' ||
+      github.ref == 'refs/heads/2.0.0')
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: write
+    uses: ./.github/workflows/release.yml

@@ -28,16 +28,22 @@ jobs:
 
       # Download the coverage artifacts uploaded by the CI workflow
       - name: Download Individual Coverage Reports
+        # Affected-only PR runs can legitimately test nothing (docs-only changes),
+        # in which case CI uploads no artifact and the download 404s. Tolerate it
+        # so the matrix resolves to [] and the report jobs skip cleanly.
+        continue-on-error: true
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: individual-coverage-data # Match upload name
           # Download to a predictable directory, maintaining structure
-          path: coverage-artifacts 
+          path: coverage-artifacts
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ github.event.workflow_run.id }}
 
       - name: List Downloaded Files (for debugging)
-        run: find coverage-artifacts -type f
+        run: |
+          mkdir -p coverage-artifacts
+          find coverage-artifacts -type f
 
       - name: Generate Matrix from Found Reports
         id: generate-matrix
