@@ -14,24 +14,123 @@ jobs:
     # Only run this job if the triggering workflow run was successful AND was triggered by a pull_request event
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request' }}
 
-    # Permissions needed to write comments on PRs
+    # Specifying `permissions` sets every unlisted scope to `none`, so each
+    # scope this job actually needs has to be listed explicitly.
     permissions:
-      pull-requests: write
+      actions: read # inspect the triggering CI run and its artifacts
+      pull-requests: read # resolve the pull request for the run
 
     outputs: # Define outputs for the matrix generation job
       matrix: ${{ steps.generate-matrix.outputs.matrix }}
+      pr_number: ${{ steps.pr.outputs.number }}
 
     steps:
-      # Checkout is needed to potentially read thresholds from vite config later? Optional otherwise.
-      - name: Checkout code (optional, for context)
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      # The reporting action cannot reliably infer a PR from workflow_run, so
+      # resolve exactly one matching PR and pass it down explicitly.
+      - name: Resolve pull request number
+        id: pr
+        # Values reach the script through the environment rather than template
+        # expansion — interpolating `${{ }}` straight into `run:` lets
+        # attacker-influenced fields expand into executable shell.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+
+          run_json=$(gh api "repos/${REPOSITORY}/actions/runs/${RUN_ID}")
+          head_sha=$(jq -er \
+            '.head_sha | select(type == "string" and length > 0)' \
+            <<< "$run_json")
+          head_branch=$(jq -er \
+            '.head_branch | select(type == "string" and length > 0)' \
+            <<< "$run_json")
+          head_repository_url=$(jq -er \
+            '.head_repository.url | select(type == "string" and length > 0)' \
+            <<< "$run_json")
+
+          candidates=$(jq -c \
+            --arg repository "$head_repository_url" \
+            --arg branch "$head_branch" \
+            '[
+              .pull_requests[]?
+              | select(
+                  .head.repo.url == $repository and
+                  .head.ref == $branch
+                )
+              | .number
+            ] | unique' \
+            <<< "$run_json")
+          candidate_count=$(jq -r 'length' <<< "$candidates")
+
+          if [ "$candidate_count" -eq 0 ]; then
+            pull_pages=$(gh api --paginate --slurp \
+              "repos/${REPOSITORY}/commits/${head_sha}/pulls?per_page=100")
+            candidates=$(jq -c \
+              --arg repository "$head_repository_url" \
+              --arg branch "$head_branch" \
+              '[
+                .[][]
+                | select(
+                    .head.repo.url == $repository and
+                    .head.ref == $branch
+                  )
+                | .number
+              ] | unique' \
+              <<< "$pull_pages")
+            candidate_count=$(jq -r 'length' <<< "$candidates")
+          fi
+
+          if [ "$candidate_count" -ne 1 ]; then
+            printf \
+              'Expected one PR for %s:%s at %s; found %s: %s\n' \
+              "$head_repository_url" \
+              "$head_branch" \
+              "$head_sha" \
+              "$candidate_count" \
+              "$candidates" >&2
+            exit 1
+          fi
+
+          number=$(jq -r '.[0]' <<< "$candidates")
+          printf 'Resolved pull request: %s\n' "$number"
+          printf 'number=%s\n' "$number" >> "$GITHUB_OUTPUT"
+
+      # An affected-only CI run can legitimately test nothing (a docs-only PR),
+      # and then no artifact exists. Probe for it rather than blanket-tolerating
+      # download failures, so a genuine download error still fails loudly.
+      - name: Check for coverage artifact
+        id: artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+
+          artifact_pages=$(gh api --paginate --slurp \
+            "repos/${REPOSITORY}/actions/runs/${RUN_ID}/artifacts?per_page=100")
+          count=$(jq -r \
+            '[
+              .[].artifacts[]
+              | select(
+                  .name == "individual-coverage-data" and
+                  .expired == false
+                )
+            ] | length' \
+            <<< "$artifact_pages")
+
+          printf 'Matching artifacts: %s\n' "$count"
+          if [ "$count" -gt 0 ]; then
+            printf 'exists=true\n' >> "$GITHUB_OUTPUT"
+          else
+            printf 'exists=false\n' >> "$GITHUB_OUTPUT"
+          fi
 
       # Download the coverage artifacts uploaded by the CI workflow
       - name: Download Individual Coverage Reports
-        # Affected-only PR runs can legitimately test nothing (docs-only changes),
-        # in which case CI uploads no artifact and the download 404s. Tolerate it
-        # so the matrix resolves to [] and the report jobs skip cleanly.
-        continue-on-error: true
+        if: steps.artifact.outputs.exists == 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: individual-coverage-data # Match upload name
@@ -76,7 +175,8 @@ jobs:
     runs-on: ubuntu-latest
     if: needs.report.outputs.matrix != '[]' # Only run if matrix is not empty
     permissions:
-      pull-requests: write
+      actions: read # re-download artifacts from the triggering CI run
+      pull-requests: write # post the coverage comment
     strategy:
       fail-fast: false
       matrix:
@@ -96,6 +196,12 @@ jobs:
         uses: davelosert/vitest-coverage-report-action@02f3c2e641286b7fa308cd3e430783103ce6103b
         with:
           name: ${{ matrix.package.name }} # Use package name for comment section title
-          json_summary_path: ${{ matrix.package.summary_path }}
+          # These inputs are hyphenated, not underscored. They were previously
+          # passed as `json_summary_path`/`json_final_path`, which Actions
+          # silently discards as unknown inputs — the action then fell back to
+          # its default `coverage/coverage-summary.json` and every matrix job
+          # failed with ENOENT.
+          json-summary-path: ${{ matrix.package.summary_path }}
           # Only include final path if it exists (not empty string)
-          json_final_path: ${{ matrix.package.final_path || '' }}
+          json-final-path: ${{ matrix.package.final_path || '' }}
+          pr-number: ${{ needs.report.outputs.pr_number }}
