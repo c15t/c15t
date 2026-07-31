@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/ui",
-	"version": "2.2.0-canary-20260727202135",
+	"version": "2.2.0-canary-20260731105620",
 	"description": "Framework-agnostic primitives, CSS, and theme system powering c15t consent UIs (React, Solid, Svelte, Vue).",
 	"keywords": [
 		"c15t",
