@@ -151,7 +151,7 @@ Explicit component props and per-action theme keys still take precedence. The IA
 
 ## Content Security Policy support
 
-c15t injects a `<style>` element for your theme tokens and a `<script>` element for each consented vendor. Under a nonce-based Content Security Policy, browsers refused both unless the page allowed `'unsafe-inline'`.
+c15t injects a `<style>` element for your theme tokens and a `<script>` element for each consented vendor. Neither carried a nonce, so a nonce-based Content Security Policy blocked both — and because a directive that specifies a nonce ignores `'unsafe-inline'`, the only escape was to abandon nonces for that directive.
 
 The provider now accepts a `nonce` and applies it to everything c15t injects:
 

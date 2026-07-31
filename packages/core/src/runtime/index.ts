@@ -303,6 +303,13 @@ export function getOrCreateConsentRuntime(
 		} as InternalStoreOptions);
 
 		storeCache.set(cacheKey, consentStore);
+	} else if (consentStore.getState().nonce !== resolvedNonce) {
+		// A nonce is per-request, so a cached store can outlive the one it was
+		// created with. Sync it rather than adding the nonce to the cache key:
+		// keying on it would allocate a fresh manager and store for every request
+		// during SSR, and neither cache evicts. Leaving it stale would let the
+		// theme stylesheet and injected scripts carry different nonces.
+		consentStore.setState({ nonce: resolvedNonce });
 	}
 
 	return {

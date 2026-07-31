@@ -25,7 +25,7 @@ group: reference
 <section id="csp-nonce">
   ## Content Security Policy
 
-  c15t injects a `<style id="c15t-theme">` element for your theme tokens, and the [script loader](/docs/frameworks/react/script-loader) injects a `<script>` element per consented vendor. Under a nonce-based Content Security Policy, both are blocked unless they carry your nonce.
+  c15t injects a `<style id="c15t-theme">` element for your theme tokens, and the script loader injects a `<script>` element per consented vendor. Under a nonce-based Content Security Policy, both are blocked unless they carry your nonce.
 
   Pass it once through the `nonce` option and c15t applies it to everything it injects:
 
@@ -64,7 +64,7 @@ group: reference
   ```
 
   <Callout type="warn">
-    `'unsafe-inline'` on `style-src-attr` permits any inline style attribute on the page. That is weaker than a nonce, but far narrower than putting `'unsafe-inline'` on `style-src`, which would additionally authorize arbitrary injected `<style>` elements. If your threat model does not allow it, expect components that use inline styles to render unstyled.
+    `'unsafe-inline'` on `style-src-attr` permits any inline style attribute on the page. That is weaker than a nonce, but far narrower than replacing your nonce-based `style-src` with `'unsafe-inline'`, which would additionally authorize arbitrary injected `<style>` elements. Note that adding `'unsafe-inline'` *alongside* a nonce achieves nothing — a directive that specifies a nonce ignores it. If your threat model does not allow this, expect components that use inline styles to render unstyled.
   </Callout>
 </section>
 
