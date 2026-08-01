@@ -518,5 +518,101 @@
 			]
 		}
 	],
+	"indexes": [
+		{
+			"table": "auditLog",
+			"name": "auditLog_pkey",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consent",
+			"name": "consent_pkey",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consentPolicy",
+			"name": "consentPolicy_pkey",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consentPurpose",
+			"name": "consentPurpose_pkey",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consentRecord",
+			"name": "consentRecord_pkey",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "domain",
+			"name": "domain_pkey",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "domain",
+			"name": "domain_name_key",
+			"columns": ["name"],
+			"isUnique": true,
+			"isPrimary": false
+		},
+		{
+			"table": "subject",
+			"name": "subject_pkey",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		}
+	],
+	"foreignKeys": [
+		{
+			"table": "auditLog",
+			"columns": ["subjectId"],
+			"referencedTable": "subject",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consent",
+			"columns": ["domainId"],
+			"referencedTable": "domain",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consent",
+			"columns": ["policyId"],
+			"referencedTable": "consentPolicy",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consent",
+			"columns": ["subjectId"],
+			"referencedTable": "subject",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consentRecord",
+			"columns": ["consentId"],
+			"referencedTable": "consent",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consentRecord",
+			"columns": ["subjectId"],
+			"referencedTable": "subject",
+			"referencedColumns": ["id"]
+		}
+	],
 	"ddl": {}
 }

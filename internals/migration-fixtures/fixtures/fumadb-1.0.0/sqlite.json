@@ -1054,6 +1054,109 @@
 			]
 		}
 	],
+	"indexes": [
+		{
+			"table": "auditLog",
+			"name": "sqlite_primary_key",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consent",
+			"name": "sqlite_primary_key",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consentPolicy",
+			"name": "sqlite_primary_key",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consentPurpose",
+			"name": "sqlite_primary_key",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consentRecord",
+			"name": "sqlite_primary_key",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "domain",
+			"name": "sqlite_primary_key",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "domain",
+			"name": "unique_c_domain_name",
+			"columns": ["name"],
+			"isUnique": true,
+			"isPrimary": false
+		},
+		{
+			"table": "private_c15t_settings",
+			"name": "sqlite_primary_key",
+			"columns": ["key"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "subject",
+			"name": "sqlite_primary_key",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		}
+	],
+	"foreignKeys": [
+		{
+			"table": "auditLog",
+			"columns": ["subjectId"],
+			"referencedTable": "subject",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consent",
+			"columns": ["domainId"],
+			"referencedTable": "domain",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consent",
+			"columns": ["policyId"],
+			"referencedTable": "consentPolicy",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consent",
+			"columns": ["subjectId"],
+			"referencedTable": "subject",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consentRecord",
+			"columns": ["consentId"],
+			"referencedTable": "consent",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consentRecord",
+			"columns": ["subjectId"],
+			"referencedTable": "subject",
+			"referencedColumns": ["id"]
+		}
+	],
 	"ddl": {
 		"auditLog": "CREATE TABLE \"auditLog\" (\"id\" text not null primary key, \"entityType\" text not null, \"entityId\" text not null, \"actionType\" text not null, \"subjectId\" text, \"ipAddress\" text, \"userAgent\" text, \"changes\" text, \"metadata\" text, \"createdAt\" integer default CURRENT_TIMESTAMP not null, \"eventTimezone\" text not null, constraint \"auditLog_subject_subject_fk\" foreign key (\"subjectId\") references \"subject\" (\"id\") on delete restrict on update restrict)",
 		"consent": "CREATE TABLE \"consent\" (\"id\" text not null primary key, \"subjectId\" text not null, \"domainId\" text not null, \"policyId\" text, \"purposeIds\" text not null, \"metadata\" text, \"ipAddress\" text, \"userAgent\" text, \"status\" text not null, \"withdrawalReason\" text, \"givenAt\" integer default CURRENT_TIMESTAMP not null, \"validUntil\" integer, \"isActive\" integer not null, constraint \"consent_subject_subject_fk\" foreign key (\"subjectId\") references \"subject\" (\"id\") on delete restrict on update restrict, constraint \"consent_domain_domain_fk\" foreign key (\"domainId\") references \"domain\" (\"id\") on delete restrict on update restrict, constraint \"consent_consentPolicy_policy_fk\" foreign key (\"policyId\") references \"consentPolicy\" (\"id\") on delete restrict on update restrict)",

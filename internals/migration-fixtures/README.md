@@ -68,11 +68,31 @@ of the rewrite.
 Those cells are committed as `mysql.unsupported.json` so the absence is a
 recorded finding rather than a coverage gap.
 
-**Scope of these claims.** Captured metadata is tables and columns (name, data
-type, nullability, auto-increment, default presence). **Indexes, foreign keys
-and check constraints are not yet captured**, so drift could still hide there.
-Treat "one legacy shape" as established for columns and unproven for
-constraints until that gap is closed.
+**No foreign key column is indexed, in any shipped version.** Across both
+eras, the only non-primary indexes that exist anywhere are `domain.name`
+(legacy) and `runtimePolicyDecision.dedupeKey` (2.0.0). Postgres does not
+create an index on the referencing side of a foreign key, so
+`consent.subjectId`, `consent.domainId`, `consent.policyId` and
+`auditLog.subjectId` are all unindexed.
+
+That is likely the dominant scaling problem, ahead of the join-less query
+surface: the chunked `subjectId in (…)` fan-out in `list.handler.ts` is a
+sequential scan of `consent` per chunk. Adding those indexes is a
+post-cutover change (the baseline has to reproduce the shipped shape, not
+improve on it), but it belongs in the benchmark story — RFC §7 measures query
+count and latency precisely so this shows up as a number.
+
+**Foreign keys exist on Postgres and SQLite but not on MySQL.** The legacy
+migrator emits 6 foreign keys on Postgres and SQLite and **zero** on MySQL, so
+referential integrity in shipped c15t depends on which engine you chose. The
+adoption step has to treat adding foreign keys to a MySQL database as a
+migration that can *fail* on pre-existing data, not as a formality.
+
+**Scope of these claims.** Captured metadata is tables, columns (name, data
+type, nullability, auto-increment, default presence), indexes and foreign
+keys. Check constraints and column defaults' actual expressions are still not
+captured. The "one legacy shape" finding now holds **including indexes and
+foreign keys** on all three engines.
 
 ## Regenerating
 

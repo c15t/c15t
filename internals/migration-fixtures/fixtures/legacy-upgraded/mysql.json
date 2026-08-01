@@ -518,6 +518,65 @@
 			]
 		}
 	],
+	"indexes": [
+		{
+			"table": "auditLog",
+			"name": "PRIMARY",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consent",
+			"name": "PRIMARY",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consentPolicy",
+			"name": "PRIMARY",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consentPurpose",
+			"name": "PRIMARY",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consentRecord",
+			"name": "PRIMARY",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "domain",
+			"name": "PRIMARY",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "domain",
+			"name": "name",
+			"columns": ["name"],
+			"isUnique": true,
+			"isPrimary": false
+		},
+		{
+			"table": "subject",
+			"name": "PRIMARY",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		}
+	],
+	"foreignKeys": [],
 	"ddl": {
 		"auditLog": "CREATE TABLE `auditLog` (\n  `id` varchar(36) NOT NULL,\n  `entityType` text NOT NULL,\n  `entityId` text NOT NULL,\n  `actionType` text NOT NULL,\n  `subjectId` varchar(36) DEFAULT NULL,\n  `ipAddress` text,\n  `userAgent` text,\n  `changes` json DEFAULT NULL,\n  `metadata` json DEFAULT NULL,\n  `createdAt` datetime NOT NULL,\n  `eventTimezone` varchar(50) NOT NULL,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",
 		"consent": "CREATE TABLE `consent` (\n  `id` varchar(36) NOT NULL,\n  `subjectId` varchar(36) NOT NULL,\n  `domainId` varchar(36) NOT NULL,\n  `purposeIds` json DEFAULT NULL,\n  `metadata` json DEFAULT NULL,\n  `policyId` varchar(36) DEFAULT NULL,\n  `ipAddress` text,\n  `userAgent` text,\n  `status` text NOT NULL,\n  `withdrawalReason` text,\n  `givenAt` datetime NOT NULL,\n  `validUntil` datetime DEFAULT NULL,\n  `isActive` tinyint(1) NOT NULL,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci",

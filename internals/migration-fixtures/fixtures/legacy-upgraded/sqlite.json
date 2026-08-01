@@ -518,6 +518,102 @@
 			]
 		}
 	],
+	"indexes": [
+		{
+			"table": "auditLog",
+			"name": "sqlite_primary_key",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consent",
+			"name": "sqlite_primary_key",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consentPolicy",
+			"name": "sqlite_primary_key",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consentPurpose",
+			"name": "sqlite_primary_key",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consentRecord",
+			"name": "sqlite_primary_key",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "domain",
+			"name": "sqlite_primary_key",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "domain",
+			"name": "sqlite_autoindex_domain_2",
+			"columns": ["name"],
+			"isUnique": true,
+			"isPrimary": false
+		},
+		{
+			"table": "subject",
+			"name": "sqlite_primary_key",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		}
+	],
+	"foreignKeys": [
+		{
+			"table": "auditLog",
+			"columns": ["subjectId"],
+			"referencedTable": "subject",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consent",
+			"columns": ["domainId"],
+			"referencedTable": "domain",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consent",
+			"columns": ["policyId"],
+			"referencedTable": "consentPolicy",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consent",
+			"columns": ["subjectId"],
+			"referencedTable": "subject",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consentRecord",
+			"columns": ["consentId"],
+			"referencedTable": "consent",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consentRecord",
+			"columns": ["subjectId"],
+			"referencedTable": "subject",
+			"referencedColumns": ["id"]
+		}
+	],
 	"ddl": {
 		"auditLog": "CREATE TABLE \"auditLog\" (\"id\" text not null primary key, \"entityType\" text not null, \"entityId\" text not null, \"actionType\" text not null, \"subjectId\" text references \"subject\" (\"id\"), \"ipAddress\" text, \"userAgent\" text, \"changes\" text, \"metadata\" text, \"createdAt\" date not null, \"eventTimezone\" text not null)",
 		"consent": "CREATE TABLE \"consent\" (\"id\" text not null primary key, \"subjectId\" text not null references \"subject\" (\"id\"), \"domainId\" text not null references \"domain\" (\"id\"), \"purposeIds\" text, \"metadata\" text, \"policyId\" text references \"consentPolicy\" (\"id\"), \"ipAddress\" text, \"userAgent\" text, \"status\" text not null, \"withdrawalReason\" text, \"givenAt\" date not null, \"validUntil\" date, \"isActive\" integer not null)",
