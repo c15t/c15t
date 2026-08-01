@@ -94,3 +94,6 @@ packages/vue/playground/.output
 
 # Live vendor monitor output
 live-vendors-report.json
+
+# Vendored Effect source (effect-ts skill prerequisite)
+.repos/effect

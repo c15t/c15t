@@ -1,6 +1,7 @@
 # RFC 0004: Backend Rewrite — Effect SQL and a Measured Parallel Package
 
-Status: **Draft — investigation complete, decisions open (§10).**
+Status: **Draft — MongoDB removal confirmed; Effect v4 is the working
+assumption. Remaining decisions in §10.**
 
 ## Problem
 
@@ -387,7 +388,11 @@ artifact.
 
 ## 10. Open decisions
 
-1. **Mongo — confirmed gone?** Everything else follows from this.
+1. ~~**Mongo — confirmed gone?**~~ **Decided: MongoDB support is dropped.**
+   The new package has no Mongo path. The existing `@c15t/backend` keeps its
+   Mongo adapter until cutover, since it stays on the shipping line
+   untouched (§1); removal is announced with the major, together with the
+   export/import script (§2).
 2. **Effect v4 beta, pinned — or v3 stable?** No longer a pure risk question,
    because the two paths give different storage layers. v4: `SqlClient` +
    `Migrator` in core, all three dialects and PGlite on the beta line, no
