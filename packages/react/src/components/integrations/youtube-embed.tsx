@@ -238,7 +238,10 @@ export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
 					style={wrapperStyle}
 				>
 					{errorFallback ?? (
-						<IntegrationStatus category={consentCategory} status="error" />
+						<IntegrationStatus
+							category={consentCategory}
+							status="error"
+						/>
 					)}
 				</div>
 			);
@@ -260,11 +263,17 @@ export const YouTubeEmbed = forwardRef<HTMLIFrameElement, YouTubeEmbedProps>(
 				>
 					{currentLoadState === 'loading' &&
 						(loadingFallback ?? (
-							<IntegrationStatus category={consentCategory} status="loading" />
+							<IntegrationStatus
+								category={consentCategory}
+								status="loading"
+							/>
 						))}
 					{currentLoadState === 'error' &&
 						(errorFallback ?? (
-							<IntegrationStatus category={consentCategory} status="error" />
+							<IntegrationStatus
+								category={consentCategory}
+								status="error"
+							/>
 						))}
 					<iframe
 						{...iframeProps}

@@ -244,7 +244,10 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 					</div>
 				</header>
 
-				<ConsentManagerProvider key={providerKey} options={providerOptions}>
+				<ConsentManagerProvider
+					key={providerKey}
+					options={providerOptions}
+				>
 					<div className="grid gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(20rem,0.95fr)]">
 						<section className="space-y-8">
 							{/* Mode — dev-only control. Hidden on the sales-facing page
@@ -303,7 +306,10 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 								</p>
 								<div className="flex flex-wrap items-end gap-3">
 									<div className="space-y-1.5">
-										<Label htmlFor="country" className="text-xs">
+										<Label
+											htmlFor="country"
+											className="text-xs"
+										>
 											Country
 										</Label>
 										<Input
@@ -320,7 +326,10 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 										/>
 									</div>
 									<div className="space-y-1.5">
-										<Label htmlFor="region" className="text-xs">
+										<Label
+											htmlFor="region"
+											className="text-xs"
+										>
 											Region
 										</Label>
 										<Input
@@ -364,7 +373,10 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 
 					<ConsentBanner />
 					<ConsentDialog />
-					<IABConsentBanner trapFocus={false} scrollLock={false} />
+					<IABConsentBanner
+						trapFocus={false}
+						scrollLock={false}
+					/>
 					<IABConsentDialog />
 				</ConsentManagerProvider>
 			</div>

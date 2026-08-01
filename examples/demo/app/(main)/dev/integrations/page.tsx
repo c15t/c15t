@@ -24,11 +24,17 @@ export default function IntegrationStatesPage() {
 
 				<p className="text-muted-foreground text-xs">
 					Back to the{' '}
-					<Link href="/dev" className="underline">
+					<Link
+						href="/dev"
+						className="underline"
+					>
 						development pages
 					</Link>{' '}
 					or the{' '}
-					<Link href="/" className="underline">
+					<Link
+						href="/"
+						className="underline"
+					>
 						live integration demo
 					</Link>
 					.

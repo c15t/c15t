@@ -141,7 +141,10 @@ function ToggleGoogleMap({ onReady }: { onReady: () => void }) {
 
 	return (
 		<>
-			<button onClick={() => setVisible((value) => !value)} type="button">
+			<button
+				onClick={() => setVisible((value) => !value)}
+				type="button"
+			>
 				Toggle map
 			</button>
 			{visible && (
@@ -678,7 +681,10 @@ describe('renderable integrations', () => {
 		};
 		const rendered = await render(
 			<MockConsentProvider state={state}>
-				<ConsentScriptProbe retryKey={0} script={script} />
+				<ConsentScriptProbe
+					retryKey={0}
+					script={script}
+				/>
 			</MockConsentProvider>
 		);
 
@@ -690,7 +696,10 @@ describe('renderable integrations', () => {
 
 		await rendered.rerender(
 			<MockConsentProvider state={state}>
-				<ConsentScriptProbe retryKey={1} script={script} />
+				<ConsentScriptProbe
+					retryKey={1}
+					script={script}
+				/>
 			</MockConsentProvider>
 		);
 
@@ -741,8 +750,14 @@ describe('renderable integrations', () => {
 		};
 		const rendered = await render(
 			<MockConsentProvider state={state}>
-				<ConsentScriptProbe retryKey={0} script={script} />
-				<ConsentScriptProbe retryKey={0} script={script} />
+				<ConsentScriptProbe
+					retryKey={0}
+					script={script}
+				/>
+				<ConsentScriptProbe
+					retryKey={0}
+					script={script}
+				/>
 			</MockConsentProvider>
 		);
 
@@ -752,8 +767,14 @@ describe('renderable integrations', () => {
 
 		await rendered.rerender(
 			<MockConsentProvider state={state}>
-				<ConsentScriptProbe retryKey={1} script={script} />
-				<ConsentScriptProbe retryKey={0} script={script} />
+				<ConsentScriptProbe
+					retryKey={1}
+					script={script}
+				/>
+				<ConsentScriptProbe
+					retryKey={0}
+					script={script}
+				/>
 			</MockConsentProvider>
 		);
 

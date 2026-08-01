@@ -122,11 +122,26 @@ export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
 	return (
 		<div className="space-y-6">
 			<div className="grid gap-3 text-sm sm:grid-cols-2">
-				<StatusRow label="Policy" value={display.policyId} />
-				<StatusRow label="Model" value={display.model} />
-				<StatusRow label="Location" value={display.location} />
-				<StatusRow label="Language" value={display.language} />
-				<StatusRow label="Copy" value={display.copy} />
+				<StatusRow
+					label="Policy"
+					value={display.policyId}
+				/>
+				<StatusRow
+					label="Model"
+					value={display.model}
+				/>
+				<StatusRow
+					label="Location"
+					value={display.location}
+				/>
+				<StatusRow
+					label="Language"
+					value={display.language}
+				/>
+				<StatusRow
+					label="Copy"
+					value={display.copy}
+				/>
 				<StatusRow
 					label="IAB TCF"
 					value={display.iabEnabled ? 'enabled' : 'off'}

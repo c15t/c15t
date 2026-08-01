@@ -113,7 +113,12 @@ export function LiquidGlassFilter() {
 	}
 
 	return (
-		<svg aria-hidden width="0" height="0" style={{ position: 'absolute' }}>
+		<svg
+			aria-hidden
+			width="0"
+			height="0"
+			style={{ position: 'absolute' }}
+		>
 			<title>Liquid glass refraction filter</title>
 			<filter
 				id="c15t-liquid-glass"

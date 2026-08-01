@@ -41,7 +41,10 @@ declare global {
 export function IntegrationStatesDemo() {
 	return (
 		<ConsentManagerProvider options={providerOptions}>
-			<Tabs defaultValue="loading" className="gap-6">
+			<Tabs
+				defaultValue="loading"
+				className="gap-6"
+			>
 				<TabsList
 					aria-label="Integration state to inspect"
 					className="h-auto max-w-full flex-wrap justify-start"
@@ -186,11 +189,18 @@ function RetryState() {
 			/>
 
 			{result.status === 'error' ? (
-				<p className="sr-only" role="alert">
+				<p
+					className="sr-only"
+					role="alert"
+				>
 					{getRetryAnnouncement(result.status, retryKey)}
 				</p>
 			) : (
-				<p aria-atomic="true" className="sr-only" role="status">
+				<p
+					aria-atomic="true"
+					className="sr-only"
+					role="status"
+				>
 					{getRetryAnnouncement(result.status, retryKey)}
 				</p>
 			)}
@@ -281,8 +291,14 @@ function CheckList({ items }: { items: string[] }) {
 			<p className="font-medium text-sm">What to verify</p>
 			<ul className="mt-2 space-y-1 text-muted-foreground text-sm leading-6">
 				{items.map((item) => (
-					<li key={item} className="flex gap-2">
-						<span aria-hidden className="text-foreground">
+					<li
+						key={item}
+						className="flex gap-2"
+					>
+						<span
+							aria-hidden
+							className="text-foreground"
+						>
 							✓
 						</span>
 						<span>{item}</span>

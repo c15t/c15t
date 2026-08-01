@@ -66,7 +66,10 @@ export default function DevIndexPage() {
 
 				<p className="text-muted-foreground text-xs">
 					Back to the{' '}
-					<Link href="/" className="underline">
+					<Link
+						href="/"
+						className="underline"
+					>
 						main demo
 					</Link>
 					.

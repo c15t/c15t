@@ -316,11 +316,26 @@ describe('ConsentBanner.PolicyActions', () => {
 
 				switch (action) {
 					case 'accept':
-						return <ConsentBanner.AcceptButton key={key} {...buttonProps} />;
+						return (
+							<ConsentBanner.AcceptButton
+								key={key}
+								{...buttonProps}
+							/>
+						);
 					case 'reject':
-						return <ConsentBanner.RejectButton key={key} {...buttonProps} />;
+						return (
+							<ConsentBanner.RejectButton
+								key={key}
+								{...buttonProps}
+							/>
+						);
 					case 'customize':
-						return <ConsentBanner.CustomizeButton key={key} {...buttonProps} />;
+						return (
+							<ConsentBanner.CustomizeButton
+								key={key}
+								{...buttonProps}
+							/>
+						);
 					default: {
 						const _exhaustive: never = action;
 						throw new Error(`Unhandled banner action: ${_exhaustive}`);

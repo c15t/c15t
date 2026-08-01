@@ -680,7 +680,10 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			if (!hasApiKey) {
 				return (
 					errorFallback ?? (
-						<IntegrationStatus category={consentCategory} status="error" />
+						<IntegrationStatus
+							category={consentCategory}
+							status="error"
+						/>
 					)
 				);
 			}
@@ -694,7 +697,10 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			if (displayError) {
 				return (
 					errorFallback ?? (
-						<IntegrationStatus category={consentCategory} status="error" />
+						<IntegrationStatus
+							category={consentCategory}
+							status="error"
+						/>
 					)
 				);
 			}
@@ -702,7 +708,10 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 			if (mapsScript.status === 'loading') {
 				return (
 					loadingFallback ?? (
-						<IntegrationStatus category={consentCategory} status="loading" />
+						<IntegrationStatus
+							category={consentCategory}
+							status="loading"
+						/>
 					)
 				);
 			}

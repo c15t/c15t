@@ -283,8 +283,14 @@ export function TriggerToolbar({
 					tabIndex={item.focusId === resolvedActiveItemId ? 0 : -1}
 					type="button"
 				>
-					<span {...iconDOMStyle} aria-hidden="true">
-						<TriggerIcon icon={item.icon} noStyle />
+					<span
+						{...iconDOMStyle}
+						aria-hidden="true"
+					>
+						<TriggerIcon
+							icon={item.icon}
+							noStyle
+						/>
 					</span>
 				</button>
 			))}
