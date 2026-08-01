@@ -2,7 +2,7 @@
 	"name": "@c15t/backend-next",
 	"version": "0.0.0",
 	"private": true,
-	"description": "Effect rewrite of @c15t/backend, developed in parallel until it reaches parity. Renamed to @c15t/backend at cutover — see internals/rfcs/0004-backend-effect-rewrite.md.",
+	"description": "Effect rewrite of @c15t/backend, developed in parallel until it reaches parity. Renamed to @c15t/backend at cutover \u2014 see internals/rfcs/0004-backend-effect-rewrite.md.",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
@@ -31,6 +31,11 @@
 			"types": "./dist-types/sql/sqlite.d.ts",
 			"import": "./dist/sql/sqlite.js",
 			"require": "./dist/sql/sqlite.cjs"
+		},
+		"./db/migrations/*": {
+			"types": "./dist-types/db/migrations/*.d.ts",
+			"import": "./dist/db/migrations/*.js",
+			"require": "./dist/db/migrations/*.cjs"
 		}
 	},
 	"main": "./dist/index.cjs",
