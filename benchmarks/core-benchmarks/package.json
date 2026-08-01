@@ -26,6 +26,6 @@
 		"c15t": "workspace:*"
 	},
 	"devDependencies": {
-		"typescript": "5.8.3"
+		"typescript": "6.0.3"
 	}
 }

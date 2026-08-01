@@ -51,6 +51,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'Povolit souhlas s kategorií {category}',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Zásady ochrany osobních údajů',
@@ -124,7 +126,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Předvolby souhlasu jsou uloženy v cookie s názvem "euconsent-v2" po dobu 13 měsíců. The storage duration may be refreshed when you update your preferences.',
+					'Předvolby souhlasu jsou uloženy v cookie s názvem "euconsent-v2" po dobu 13 měsíců. Doba uložení se může obnovit, když aktualizujete své předvolby.',
 			},
 		},
 		common: {

@@ -40,6 +40,7 @@ export function createScriptManager(
 			scriptIdMap,
 			model,
 			iab,
+			nonce,
 			policyCategories,
 			policyScopeMode,
 		} = getState();
@@ -62,6 +63,7 @@ export function createScriptManager(
 		const result = updateScripts(scripts, runtimeConsents, scriptIdMap, {
 			model,
 			iabConsent,
+			nonce,
 		});
 
 		// Update loadedScripts state
@@ -189,6 +191,7 @@ export function createScriptManager(
 				{
 					model: state.model,
 					iabConsent,
+					nonce: state.nonce,
 				}
 			);
 		},

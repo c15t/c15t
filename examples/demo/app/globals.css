@@ -139,35 +139,17 @@
 }
 
 @layer utilities {
-	.font-pixel {
-		font-family:
-			var(--font-geist-pixel-square), var(--font-geist-sans), sans-serif;
-		font-optical-sizing: auto;
+	/* Liquid Glass preset: frosted fallback everywhere... */
+	.liquid-glass-card {
+		-webkit-backdrop-filter: blur(28px) saturate(190%) brightness(1.06);
+		backdrop-filter: blur(28px) saturate(190%) brightness(1.06);
 	}
 
-	.font-pixel-square {
-		font-family:
-			var(--font-geist-pixel-square), var(--font-geist-sans), sans-serif;
-	}
-
-	.font-pixel-grid {
-		font-family:
-			var(--font-geist-pixel-grid), var(--font-geist-sans), sans-serif;
-	}
-
-	.font-pixel-circle {
-		font-family:
-			var(--font-geist-pixel-circle), var(--font-geist-sans), sans-serif;
-	}
-
-	.font-pixel-triangle {
-		font-family:
-			var(--font-geist-pixel-triangle), var(--font-geist-sans), sans-serif;
-	}
-
-	.font-pixel-line {
-		font-family:
-			var(--font-geist-pixel-line), var(--font-geist-sans), sans-serif;
+	/* ...true edge refraction where SVG-referenced backdrop filters work
+	   (the .lg-refract class is set by LiquidGlassFilter on Chromium). */
+	.lg-refract .liquid-glass-card {
+		backdrop-filter: url("#c15t-liquid-glass") blur(4px) saturate(175%)
+			brightness(1.05);
 	}
 
 	.label-pixel {

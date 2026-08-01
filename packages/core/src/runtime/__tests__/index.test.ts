@@ -36,13 +36,96 @@ describe('runtime', () => {
 		configureConsentManagerMock.mockImplementation(() => ({
 			id: `manager-${++managerCount}`,
 		}));
-		createConsentManagerStoreMock.mockImplementation(() => ({
-			id: `store-${++storeCount}`,
-		}));
+		// Minimal stateful store stub: the runtime reads and writes state on
+		// cached stores, so an inert object would not exercise that path.
+		createConsentManagerStoreMock.mockImplementation(
+			(_manager: unknown, storeOptions: unknown) => {
+				let state = { ...(storeOptions as Record<string, unknown>) };
+
+				return {
+					id: `store-${++storeCount}`,
+					getState: () => state,
+					setState: (partial: Record<string, unknown>) => {
+						state = { ...state, ...partial };
+					},
+				};
+			}
+		);
 	});
 
 	afterEach(() => {
 		vi.unstubAllGlobals();
+	});
+
+	describe('nonce resolution', () => {
+		const pkgInfo = { pkg: '@c15t/react', version: '2.0.0' };
+
+		function storeOptionsFor(options: ConsentRuntimeOptions) {
+			getOrCreateConsentRuntime(options, pkgInfo);
+
+			return createConsentManagerStoreMock.mock.calls[0]?.[1] as {
+				nonce?: string;
+			};
+		}
+
+		it('passes a top-level nonce to the store', () => {
+			const storeOptions = storeOptionsFor({
+				mode: 'offline',
+				nonce: 'top-level',
+			} satisfies ConsentRuntimeOptions);
+
+			expect(storeOptions.nonce).toBe('top-level');
+		});
+
+		it('falls back to a nonce nested under store', () => {
+			const storeOptions = storeOptionsFor({
+				mode: 'offline',
+				store: { nonce: 'nested-store' },
+			} satisfies ConsentRuntimeOptions);
+
+			expect(storeOptions.nonce).toBe('nested-store');
+		});
+
+		it('prefers the top-level nonce over a nested one', () => {
+			const storeOptions = storeOptionsFor({
+				mode: 'offline',
+				nonce: 'top-level',
+				store: { nonce: 'nested-store' },
+			} satisfies ConsentRuntimeOptions);
+
+			expect(storeOptions.nonce).toBe('top-level');
+		});
+
+		it('refreshes the nonce on a cached store instead of reusing a stale one', () => {
+			const first = getOrCreateConsentRuntime(
+				{
+					mode: 'offline',
+					nonce: 'nonce-request-a',
+				} satisfies ConsentRuntimeOptions,
+				pkgInfo
+			);
+			const second = getOrCreateConsentRuntime(
+				{
+					mode: 'offline',
+					nonce: 'nonce-request-b',
+				} satisfies ConsentRuntimeOptions,
+				pkgInfo
+			);
+
+			// The nonce is deliberately not part of the cache key — see the runtime
+			// comment — so the same store must be handed back with a fresh nonce.
+			expect(second.consentStore).toBe(first.consentStore);
+			expect(createConsentManagerStoreMock).toHaveBeenCalledTimes(1);
+			expect(second.consentStore.getState().nonce).toBe('nonce-request-b');
+		});
+
+		it('leaves the nonce undefined when neither form is set', () => {
+			const storeOptions = storeOptionsFor({
+				mode: 'offline',
+			} satisfies ConsentRuntimeOptions);
+
+			expect(storeOptions.nonce).toBeUndefined();
+		});
 	});
 
 	it('reuses runtime instances for the same cache key', () => {
@@ -85,7 +168,7 @@ describe('runtime', () => {
 		const result = getOrCreateConsentRuntime(options, pkgInfo);
 
 		expect(result.cacheKey).toBe(
-			'hosted:default:none:default:default:default:default:enabled'
+			'hosted:default:none:default:default:default:default:default:enabled'
 		);
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -282,7 +365,7 @@ describe('runtime', () => {
 		});
 
 		expect(result.cacheKey).toBe(
-			'hosted:default:none:default:default:default:default:enabled'
+			'hosted:default:none:default:default:default:default:default:enabled'
 		);
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -384,5 +467,51 @@ describe('runtime', () => {
 		expect(first.consentStore).toBe(second.consentStore);
 		expect(getMatchingPrefetchedInitialDataMock).toHaveBeenCalledTimes(1);
 		expect(createConsentManagerStoreMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('forwards custom headers to the hosted client', () => {
+		// Regression: headers used to be dropped on the floor, so options like
+		// `headers: { 'x-tenant': '...' }` silently never reached the backend.
+		const options = {
+			mode: 'c15t',
+			backendURL: '/api/c15t',
+			headers: { 'x-demo-scenario': 'custom-fr-iab' },
+		} as ConsentRuntimeOptions;
+
+		getOrCreateConsentRuntime(options, {
+			pkg: '@c15t/react',
+			version: '2.0.0',
+		});
+
+		expect(configureConsentManagerMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				mode: 'c15t',
+				backendURL: '/api/c15t',
+				headers: { 'x-demo-scenario': 'custom-fr-iab' },
+			})
+		);
+	});
+
+	it('creates separate runtimes for different headers', () => {
+		const pkgInfo = { pkg: '@c15t/react', version: '2.0.0' };
+		const base = {
+			mode: 'c15t',
+			backendURL: '/api/c15t',
+		} as ConsentRuntimeOptions;
+
+		const first = getOrCreateConsentRuntime(
+			{ ...base, headers: { 'x-demo-scenario': 'a' } } as ConsentRuntimeOptions,
+			pkgInfo
+		);
+		const second = getOrCreateConsentRuntime(
+			{ ...base, headers: { 'x-demo-scenario': 'b' } } as ConsentRuntimeOptions,
+			pkgInfo
+		);
+		const third = getOrCreateConsentRuntime(base, pkgInfo);
+
+		expect(first.cacheKey).not.toBe(second.cacheKey);
+		expect(first.cacheKey).not.toBe(third.cacheKey);
+		expect(first.consentManager).not.toBe(second.consentManager);
+		expect(configureConsentManagerMock).toHaveBeenCalledTimes(3);
 	});
 });

@@ -61,23 +61,23 @@
 		"c15t": "workspace:*",
 		"defu": "^6.1.4",
 		"ufo": "^1.6.1",
-		"vue": "^3.5.13"
+		"vue": "^3.5.39"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"@nuxt/kit": "^4.4.7",
+		"@nuxt/kit": "^4.5.1",
 		"@nuxt/module-builder": "^1.0.2",
 		"@vitejs/plugin-vue": "6.0.7",
 		"@vue/test-utils": "^2.4.6",
 		"h3": "1.15.11",
 		"jsdom": "^25.0.0",
 		"nitropack": "2.13.4",
-		"nuxt": "^4.4.7",
+		"nuxt": "^4.5.1",
 		"pathe": "^2.0.3",
-		"typescript": "5.9.3",
+		"typescript": "6.0.3",
 		"unbuild": "^3.6.1",
-		"vitest": "4.0.15",
+		"vitest": "4.1.9",
 		"vue-tsc": "^3.3.3"
 	},
 	"peerDependencies": {

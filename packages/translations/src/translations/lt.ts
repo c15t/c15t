@@ -51,6 +51,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'Įgalinti {category} sutikimą',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Privatumo politika',
@@ -123,7 +125,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Sutikimo nuostatos saugomos slapuke pavadinimu „euconsent-v2“ 13 mėnesių. The storage duration may be refreshed when you update your preferences.',
+					'Sutikimo nuostatos saugomos slapuke pavadinimu „euconsent-v2“ 13 mėnesių. Kai atnaujinate savo nuostatas, saugojimo trukmė gali būti pradėta skaičiuoti iš naujo.',
 			},
 		},
 		common: {

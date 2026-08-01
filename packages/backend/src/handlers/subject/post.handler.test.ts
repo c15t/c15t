@@ -4,6 +4,7 @@ import { buildConsentManifestFromOptions } from '~/handlers/init/manifest';
 import { resolvePolicyDecision } from '~/handlers/init/policy';
 import { verifyLegalDocumentSnapshotToken } from '~/handlers/legal-document/snapshot';
 import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
+import { buildConsentId } from './consent-idempotency';
 import {
 	buildRuntimeDecisionDedupeKey,
 	postSubjectHandler,
@@ -15,10 +16,6 @@ vi.mock('~/utils/metrics', () => ({
 		recordConsentAccepted: vi.fn(),
 		recordConsentRejected: vi.fn(),
 	})),
-}));
-
-vi.mock('~/db/registry/utils', () => ({
-	generateUniqueId: vi.fn().mockResolvedValue('con_new'),
 }));
 
 vi.mock('~/handlers/init/policy', () => ({
@@ -107,7 +104,7 @@ function createMockContext(db: unknown, registry: unknown) {
 			onValidationFailure: 'reject' as const,
 		},
 		legalDocumentSnapshot: undefined,
-		tenantId: undefined,
+		tenantId: undefined as string | undefined,
 	};
 
 	let jsonData: unknown;
@@ -285,6 +282,213 @@ describe('buildRuntimeDecisionDedupeKey', () => {
 	});
 });
 
+describe('buildConsentId', () => {
+	const baseIdentity = {
+		tenantId: 'ins_123',
+		subjectId: 'sub_user1',
+		domainId: 'dom_1',
+		policyId: 'pol_1',
+		givenAt: GIVEN_AT_DATE,
+	};
+
+	it('stays stable for identical consent submissions', async () => {
+		await expect(buildConsentId(baseIdentity)).resolves.toBe(
+			await buildConsentId(baseIdentity)
+		);
+	});
+
+	it('produces a prefixed base58 id in the same shape as random ids', async () => {
+		await expect(buildConsentId(baseIdentity)).resolves.toMatch(
+			/^cns_[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$/
+		);
+	});
+
+	it.each([
+		['tenant', { tenantId: 'ins_other' }],
+		['subject', { subjectId: 'sub_user2' }],
+		['domain', { domainId: 'dom_2' }],
+		['policy', { policyId: 'pol_2' }],
+		['givenAt', { givenAt: new Date(GIVEN_AT + 1) }],
+	])('changes when the %s changes', async (_field, override) => {
+		await expect(
+			buildConsentId({ ...baseIdentity, ...override })
+		).resolves.not.toBe(await buildConsentId(baseIdentity));
+	});
+
+	it('distinguishes a missing tenant from a tenant literally named "default"', async () => {
+		await expect(
+			buildConsentId({ ...baseIdentity, tenantId: undefined })
+		).resolves.not.toBe(
+			await buildConsentId({ ...baseIdentity, tenantId: 'default' })
+		);
+	});
+
+	it('orders ids chronologically by givenAt', async () => {
+		const earlier = await buildConsentId(baseIdentity);
+		const later = await buildConsentId({
+			...baseIdentity,
+			givenAt: new Date(GIVEN_AT + 60_000),
+		});
+
+		expect(earlier < later).toBe(true);
+	});
+});
+
+describe('postSubjectHandler givenAt clamping', () => {
+	const FAR_FUTURE = GIVEN_AT + 300_001;
+
+	afterEach(() => {
+		vi.clearAllMocks();
+		vi.restoreAllMocks();
+		vi.useRealTimers();
+	});
+
+	function createClampContext(givenAt: number) {
+		const db = createMockDb(null);
+		const mockCtx = createMockContext(db, createMockRegistry());
+		mockCtx.req.json = vi.fn().mockResolvedValue({ ...baseInput, givenAt });
+		return { db, mockCtx };
+	}
+
+	function consentPayload(db: ReturnType<typeof createMockDb>) {
+		return db.__tx.create.mock.calls.find(
+			(call) => call[0] === 'consent'
+		)?.[1] as Record<string, unknown> | undefined;
+	}
+
+	it('records server time when the client clock runs far ahead', async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(GIVEN_AT));
+		const { db, mockCtx } = createClampContext(FAR_FUTURE);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		expect(consentPayload(db)?.givenAt).toEqual(new Date(GIVEN_AT));
+		expect(mockCtx._ctx.logger.warn).toHaveBeenCalledWith(
+			'Consent givenAt was too far in the future and was clamped to server time',
+			expect.objectContaining({
+				requestedGivenAt: new Date(FAR_FUTURE).toISOString(),
+				clampedGivenAt: new Date(GIVEN_AT).toISOString(),
+			})
+		);
+	});
+
+	it('keeps the consent id stable across retries of a clamped submission', async () => {
+		// Regression: clamping to `Date.now()` moves the recorded timestamp on
+		// every attempt. If the id were derived from the recorded value, a client
+		// with a skewed clock would write a new row per retry.
+		vi.useFakeTimers();
+
+		vi.setSystemTime(new Date(GIVEN_AT));
+		const first = createClampContext(FAR_FUTURE);
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(first.mockCtx);
+
+		vi.setSystemTime(new Date(GIVEN_AT + 90_000));
+		const second = createClampContext(FAR_FUTURE);
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(second.mockCtx);
+
+		const firstPayload = consentPayload(first.db);
+		const secondPayload = consentPayload(second.db);
+
+		expect(secondPayload?.id).toBe(firstPayload?.id);
+		// The recorded timestamps really did differ — the ids matching is not
+		// because the clamp was a no-op.
+		expect(secondPayload?.givenAt).not.toEqual(firstPayload?.givenAt);
+	});
+
+	it('finds a pre-deterministic row by the raw timestamp after clamping', async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(GIVEN_AT));
+		const { db, mockCtx } = createClampContext(FAR_FUTURE);
+		const legacyConsent = {
+			id: 'con_legacy',
+			subjectId: 'sub_user1',
+			domainId: 'dom_1',
+			policyId: 'pol_1',
+			givenAt: new Date(FAR_FUTURE),
+		};
+		type ConditionBuilder = ((
+			column: string,
+			operator: string,
+			value: unknown
+		) => boolean) & {
+			and: (...conditions: boolean[]) => boolean;
+			isNull: (column: string) => boolean;
+		};
+		const conditionBuilder = ((
+			column: string,
+			_operator: string,
+			value: unknown
+		) => {
+			const rowValue = legacyConsent[column as keyof typeof legacyConsent];
+			return rowValue instanceof Date && value instanceof Date
+				? rowValue.getTime() === value.getTime()
+				: rowValue === value;
+		}) as ConditionBuilder;
+		conditionBuilder.and = (...conditions) => conditions.every(Boolean);
+		conditionBuilder.isNull = (column) =>
+			legacyConsent[column as keyof typeof legacyConsent] == null;
+
+		db.findFirst = vi.fn(
+			async (
+				_table: string,
+				options: { where: (builder: ConditionBuilder) => boolean }
+			) => (options.where(conditionBuilder) ? legacyConsent : null)
+		);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		expect(mockCtx.getJsonData()).toEqual(
+			expect.objectContaining({
+				consentId: 'con_legacy',
+				givenAt: new Date(FAR_FUTURE),
+			})
+		);
+		// The deterministic ID misses the older random-ID row, then the legacy
+		// lookup finds it using the raw timestamp stored before clamping existed.
+		expect(db.findFirst).toHaveBeenCalledTimes(2);
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('keeps the client’s original claim on the record when clamped', async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(GIVEN_AT));
+		const { db, mockCtx } = createClampContext(FAR_FUTURE);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		expect(consentPayload(db)?.metadata).toEqual({
+			json: expect.objectContaining({
+				clientGivenAt: new Date(FAR_FUTURE).toISOString(),
+			}),
+		});
+	});
+
+	it('does not annotate metadata when the timestamp is within tolerance', async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(GIVEN_AT));
+		const { db, mockCtx } = createClampContext(GIVEN_AT + 300_000);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		const payload = consentPayload(db);
+		expect(payload?.givenAt).toEqual(new Date(GIVEN_AT + 300_000));
+		expect(payload?.metadata).toEqual({
+			json: expect.not.objectContaining({ clientGivenAt: expect.anything() }),
+		});
+		expect(mockCtx._ctx.logger.warn).not.toHaveBeenCalledWith(
+			'Consent givenAt was too far in the future and was clamped to server time',
+			expect.anything()
+		);
+	});
+});
+
 describe('postSubjectHandler idempotency', () => {
 	afterEach(() => {
 		vi.clearAllMocks();
@@ -334,6 +538,212 @@ describe('postSubjectHandler idempotency', () => {
 		expect(db.transaction).toHaveBeenCalled();
 	});
 
+	it('checks legacy rows after a deterministic lookup misses', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			givenAt: Date.now(),
+		});
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		// This second lookup is required during rolling deployments: an older
+		// process can write a random-ID row after this process has started.
+		expect(db.findFirst).toHaveBeenCalledTimes(2);
+		expect(db.__tx.findFirst).not.toHaveBeenCalledWith('consent', {
+			where: expect.any(Function),
+		});
+	});
+
+	it('falls back to submission fields for a legacy random-id record', async () => {
+		const existingConsent = {
+			id: 'con_legacy_random',
+			givenAt: GIVEN_AT_DATE,
+		};
+		const db = createMockDb(null);
+		db.findFirst = vi
+			.fn()
+			.mockResolvedValueOnce(null)
+			.mockResolvedValueOnce(existingConsent);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		expect(db.findFirst).toHaveBeenCalledTimes(2);
+		expect(db.transaction).not.toHaveBeenCalled();
+		expect(mockCtx.getJsonData()).toEqual(
+			expect.objectContaining({ consentId: 'con_legacy_random' })
+		);
+		const legacyWhere = db.findFirst.mock.calls[1]?.[1].where;
+		const conditionBuilder = Object.assign(
+			vi.fn(() => true),
+			{
+				and: vi.fn(() => true),
+				isNull: vi.fn(() => true),
+			}
+		);
+		legacyWhere(conditionBuilder);
+		expect(conditionBuilder.isNull).toHaveBeenCalledWith('tenantId');
+	});
+
+	it('scopes the legacy fallback to the current tenant', async () => {
+		const db = createMockDb(null);
+		db.findFirst = vi.fn().mockResolvedValue(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.tenantId = 'ins_123';
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		const legacyWhere = db.findFirst.mock.calls[1]?.[1].where;
+		const conditionBuilder = Object.assign(
+			vi.fn(() => true),
+			{
+				and: vi.fn(() => true),
+				isNull: vi.fn(() => true),
+			}
+		);
+		legacyWhere(conditionBuilder);
+		expect(conditionBuilder).toHaveBeenCalledWith('tenantId', '=', 'ins_123');
+	});
+
+	it('should return existing consent when a concurrent insert wins the race', async () => {
+		const existingConsent = {
+			id: 'con_existing',
+			givenAt: GIVEN_AT_DATE,
+		};
+		const db = createMockDb(null);
+		// Pre-check misses, then the post-rollback recovery lookup finds the
+		// record committed by the concurrent request.
+		db.findFirst = vi
+			.fn()
+			.mockResolvedValueOnce(null)
+			.mockResolvedValueOnce(null)
+			.mockResolvedValueOnce(existingConsent);
+		db.__tx.create = vi
+			.fn()
+			.mockRejectedValueOnce(
+				Object.assign(new Error('duplicate key value'), { code: '23505' })
+			);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		const result = mockCtx.getJsonData() as {
+			consentId: string;
+			subjectId: string;
+		};
+
+		expect(result.consentId).toBe('con_existing');
+		expect(result.subjectId).toBe('sub_user1');
+		expect(db.transaction).toHaveBeenCalledTimes(1);
+		// The losing insert used the deterministic id, which is what made the
+		// database reject it instead of writing a duplicate.
+		expect(db.__tx.create).toHaveBeenCalledWith(
+			'consent',
+			expect.objectContaining({
+				id: await buildConsentId({
+					subjectId: 'sub_user1',
+					domainId: 'dom_1',
+					policyId: 'pol_1',
+					givenAt: GIVEN_AT_DATE,
+				}),
+			})
+		);
+	});
+
+	it('should retry the transaction when the winning record is not yet visible', async () => {
+		const existingConsent = {
+			id: 'con_existing',
+			givenAt: GIVEN_AT_DATE,
+		};
+		const db = createMockDb(null);
+		// Neither the pre-check nor the recovery lookup sees the winner yet,
+		// so the handler retries the insert instead of reading again inside
+		// the transaction.
+		db.findFirst = vi.fn().mockResolvedValue(null);
+		db.__tx.create = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('unique conflict'))
+			.mockResolvedValueOnce(existingConsent);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		const result = mockCtx.getJsonData() as {
+			consentId: string;
+		};
+
+		expect(result.consentId).toBe('con_existing');
+		expect(db.transaction).toHaveBeenCalledTimes(2);
+		expect(db.__tx.create).toHaveBeenCalledTimes(2);
+	});
+
+	it('should not retry or swallow non-unique-constraint errors', async () => {
+		const db = createMockDb(null);
+		db.__tx.create = vi.fn().mockRejectedValue(new Error('connection reset'));
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toThrow();
+
+		expect(db.transaction).toHaveBeenCalledTimes(1);
+	});
+
+	it('should give up after exhausting retries on a persistent conflict', async () => {
+		const db = createMockDb(null);
+		// Every attempt conflicts and the winner is never visible, so the handler
+		// must surface the error rather than loop forever.
+		db.findFirst = vi.fn().mockResolvedValue(null);
+		db.__tx.create = vi
+			.fn()
+			.mockRejectedValue(
+				Object.assign(new Error('duplicate key value'), { code: '23505' })
+			);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toThrow();
+
+		// Bounded: the retry loop stops instead of spinning on the conflict.
+		expect(db.transaction).toHaveBeenCalledTimes(3);
+	});
+
+	it('should write the consent record under a deterministic id', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		const payload = db.__tx.create.mock.calls.find(
+			(call) => call[0] === 'consent'
+		)?.[1] as Record<string, unknown>;
+
+		expect(payload.id).toBe(
+			await buildConsentId({
+				subjectId: 'sub_user1',
+				domainId: 'dom_1',
+				policyId: 'pol_1',
+				givenAt: GIVEN_AT_DATE,
+			})
+		);
+		expect(payload).not.toHaveProperty('dedupeKey');
+	});
+
 	it('should create separate records for different givenAt timestamps', async () => {
 		const db = createMockDb(null);
 		const registry = createMockRegistry();
@@ -373,6 +783,7 @@ describe('postSubjectHandler idempotency', () => {
 		// Get the tx.create call
 		const transactionFn = db.transaction.mock.calls[0][0];
 		const tx = {
+			findFirst: vi.fn().mockResolvedValue(null),
 			create: vi
 				.fn()
 				.mockResolvedValue({ id: 'con_new', givenAt: GIVEN_AT_DATE }),
@@ -450,6 +861,7 @@ describe('postSubjectHandler idempotency', () => {
 		// Get the tx.create call
 		const transactionFn = db.transaction.mock.calls[0][0];
 		const tx = {
+			findFirst: vi.fn().mockResolvedValue(null),
 			create: vi
 				.fn()
 				.mockResolvedValue({ id: 'con_new', givenAt: GIVEN_AT_DATE }),
@@ -1409,6 +1821,30 @@ describe('postSubjectHandler legal document snapshots', () => {
 		});
 
 		expect(registry.findOrCreatePolicy).not.toHaveBeenCalled();
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('treats a suffixed legal-document type as legal document consent', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.legalDocumentSnapshot = {
+			signingKey: 'test-signing-key',
+		};
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			type: 'terms_and_conditions_b2b',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 409,
+			message: 'Legal document snapshot token is required',
+			cause: {
+				code: 'LEGAL_DOCUMENT_SNAPSHOT_REQUIRED',
+			},
+		});
+
 		expect(db.transaction).not.toHaveBeenCalled();
 	});
 

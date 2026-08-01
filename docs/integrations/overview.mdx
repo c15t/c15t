@@ -42,7 +42,7 @@ lifecycles.
 
 ## Built-In Helpers
 
-c15t ships prebuilt helpers in
+c15t ships prebuilt script helpers in
 [`@c15t/scripts`](https://www.npmjs.com/package/@c15t/scripts) for the
 third-party tools developers integrate most often. Prefer them over copied
 vendor snippets whenever c15t already supports the vendor.
@@ -67,6 +67,19 @@ Most apps mix more than one style. Pick the smallest one that keeps consent beha
 
 Setup is the same shape in every framework: import the helper, call it with vendor options, and pass the result to the consent runtime through your provider's `scripts` option. See the framework guides for end-to-end snippets — [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), [Next.js](/docs/frameworks/next/script-loader).
 
+## Renderable Integrations
+
+Maps and video embeds need a visible component as well as consent-aware loading.
+The React and Next.js packages include components that own the placeholder,
+vendor loading, and rendered surface. They are imported from the framework
+package rather than `@c15t/scripts`.
+
+<Cards className="my-10 grid-cols-1 sm:grid-cols-2 @container not-prose grid gap-4">
+  <Card variant="interactive" title="Google Maps" description="Load the Maps JavaScript API once, then create and clean up consent-aware map instances." icon={<Icon name="google-maps" />} href="/docs/integrations/google-maps" />
+
+  <Card variant="interactive" title="YouTube" description="Keep privacy-enhanced YouTube iframes unmounted until the required consent is granted." icon={<Icon name="youtube" />} href="/docs/integrations/youtube" />
+</Cards>
+
 ## Analytics
 
 Analytics integrations usually require `measurement` consent. Some vendors can run in a consent-aware or cookieless mode; others should stay fully blocked until measurement consent is granted.
@@ -76,7 +89,13 @@ Analytics integrations usually require `measurement` consent. Some vendors can r
 
   <Card variant="interactive" title="Ahrefs Analytics" description="Cookieless web analytics from Ahrefs configured with a single project key." icon={<Icon name="ahrefs" />} href="/docs/integrations/ahrefs-analytics" />
 
+  <Card variant="interactive" title="Adobe Analytics" description="Load an Adobe Data Collection Tags property behind measurement consent." icon={<Icon name="adobe-analytics" />} href="/docs/integrations/adobe-analytics" />
+
+  <Card variant="interactive" title="Amplitude" description="Product analytics with a Browser SDK 2 method-call queue and runtime opt-out synchronization." icon={<Icon name="amplitude" />} href="/docs/integrations/amplitude" />
+
   <Card variant="interactive" title="Cloudflare Web Analytics" description="Cookieless analytics from Cloudflare configured with a single beacon token." icon={<Icon name="cloudflare-web-analytics" />} href="/docs/integrations/cloudflare-web-analytics" />
+
+  <Card variant="interactive" title="Clearbit" description="Visitor and company enrichment gated on marketing consent." icon={<Icon name="clearbit" />} href="/docs/integrations/clearbit" />
 
   <Card variant="interactive" title="Microsoft Clarity" description="Session replay and heatmap analytics with queue stubs and consent-state synchronization." icon={<Icon name="microsoft-clarity" />} href="/docs/integrations/microsoft-clarity" />
 
@@ -86,15 +105,25 @@ Analytics integrations usually require `measurement` consent. Some vendors can r
 
   <Card variant="interactive" title="Fathom Analytics" description="Lightweight, cookieless analytics configured entirely through script data attributes." icon={<Icon name="fathom-analytics" />} href="/docs/integrations/fathom-analytics" />
 
+  <Card variant="interactive" title="Heap" description="Autocapture product analytics with the heap.js callback queue gated behind measurement consent." icon={<Icon name="heap" />} href="/docs/integrations/heap" />
+
   <Card variant="interactive" title="Mixpanel Analytics" description="Product analytics with always-on loading and consent toggled via Mixpanel opt-in and opt-out APIs." icon={<Icon name="mixpanel" />} href="/docs/integrations/mixpanel-analytics" />
 
   <Card variant="interactive" title="Hotjar" description="Heatmaps, recordings, and feedback tools with Hotjar globals bootstrapped before script load." icon={<Icon name="hotjar" />} href="/docs/integrations/hotjar" />
+
+  <Card variant="interactive" title="Hightouch" description="Customer data platform events with an htevents queue bootstrap and optional initial page call." icon={<Icon name="hightouch" />} href="/docs/integrations/hightouch" />
+
+  <Card variant="interactive" title="LogRocket" description="Session replay and monitoring initialized after measurement consent." icon={<Icon name="logrocket" />} href="/docs/integrations/logrocket" />
 
   <Card variant="interactive" title="Matomo Analytics" description="Self-hosted or cloud analytics with queue-based tracking and optional consent-mode commands." icon={<Icon name="matomo" />} href="/docs/integrations/matomo-analytics" />
 
   <Card variant="interactive" title="PostHog" description="Open-source product analytics with cookieless tracking that works even without consent." icon={<Icon name="posthog" />} href="/docs/integrations/posthog" />
 
   <Card variant="interactive" title="Promptwatch" description="Artificial Intelligence (AI)-focused website analytics loaded with a project-id script attribute." icon={<Icon name="promptwatch" />} href="/docs/integrations/promptwatch" />
+
+  <Card variant="interactive" title="Pirsch" description="Privacy-friendly, cookieless analytics loaded with Pirsch's fixed script id and identification code." icon={<Icon name="pirsch" />} href="/docs/integrations/pirsch" />
+
+  <Card variant="interactive" title="RudderStack" description="Customer data platform events with a v3 rudderanalytics queue bootstrap and required data plane URL." icon={<Icon name="rudderstack" />} href="/docs/integrations/rudderstack" />
 
   <Card variant="interactive" title="Segment" description="Customer data platform with an analytics queue bootstrap and optional initial page call." icon={<Icon name="segment" />} href="/docs/integrations/segment" />
 
@@ -160,5 +189,6 @@ Learn when to use a raw `Script`, when to use a manifest, and how to debug and t
 ## Where To Next
 
 - Read the script loader guide for your framework: [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), [Next.js](/docs/frameworks/next/script-loader).
-- See the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern for visible embeds (YouTube, maps, calendars).
+- Use the [Google Maps](/docs/integrations/google-maps) and [YouTube](/docs/integrations/youtube) components for built-in renderable integrations.
+- See the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern for other visible embeds such as calendars and social widgets.
 - Use [`has()`](/docs/frameworks/javascript/api/checking-consent) to conditionally run app code based on consent state.

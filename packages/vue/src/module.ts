@@ -8,6 +8,7 @@ import {
 	createResolver,
 	defineNuxtModule,
 } from '@nuxt/kit';
+import type { NuxtModule } from '@nuxt/schema';
 import { defu } from 'defu';
 import type { ConsentConfig } from './runtime/config';
 import {
@@ -16,7 +17,9 @@ import {
 	resolveNuxtManifestRoute,
 } from './runtime/manifest';
 
-export default defineNuxtModule<ConsentConfig>({
+// Annotated explicitly: the inferred type names `NuxtModule` through
+// @nuxt/schema's store path, which is not portable across installs (TS2883).
+const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
 	meta: {
 		name: '@c15t/vue',
 		configKey: 'c15t',
@@ -129,3 +132,5 @@ export default defineNuxtModule<ConsentConfig>({
 		// cosmetic generator quirk, tracked upstream-worthy.
 	},
 });
+
+export default module;

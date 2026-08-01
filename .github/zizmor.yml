@@ -6,5 +6,4 @@ rules:
       # triggering workflow_run metadata, and do not execute PR-controlled code.
       - benchmark-comment.yml:3
       - bundle-analysis-comment.yml:6
-      - ci-coverage.yml:3
       - coverage-report.yml:3

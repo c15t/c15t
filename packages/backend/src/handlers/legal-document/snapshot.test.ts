@@ -48,6 +48,29 @@ describe('legal document snapshot token', () => {
 		expect(verified.payload.effectiveDate).toBe('2026-04-07T00:00:00.000Z');
 	});
 
+	it('creates and verifies a suffixed legal-document type variant', async () => {
+		const tokenResult = await createLegalDocumentSnapshotToken({
+			options: { signingKey: 'test-signing-key' },
+			tenantId: 'ins_123',
+			type: 'terms_and_conditions_b2b',
+			version: '2026-04-07',
+			hash: 'hash_123',
+			effectiveDate: '2026-04-07T00:00:00.000Z',
+		});
+
+		const verified = await verifyLegalDocumentSnapshotToken({
+			token: tokenResult?.token,
+			options: { signingKey: 'test-signing-key' },
+			tenantId: 'ins_123',
+		});
+
+		expect(verified.valid).toBe(true);
+		if (!verified.valid) {
+			throw new Error('Expected valid legal document snapshot');
+		}
+		expect(verified.payload.type).toBe('terms_and_conditions_b2b');
+	});
+
 	it('rejects tampered token payloads', async () => {
 		const tokenResult = await createLegalDocumentSnapshotToken({
 			options: { signingKey: 'test-signing-key' },

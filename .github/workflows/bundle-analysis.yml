@@ -10,6 +10,9 @@ env:
   # Never expose remote-cache credentials while PR code is running.
   TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
   TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
+  # leadtype package-docs generation exceeds the default Node heap on
+  # cache-miss builds of larger packages (core, react).
+  NODE_OPTIONS: --max-old-space-size=6144
 
 jobs:
   bundle-analysis:

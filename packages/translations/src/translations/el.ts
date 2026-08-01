@@ -51,6 +51,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'Ενεργοποίηση συγκατάθεσης {category}',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Πολιτική απορρήτου',
@@ -123,7 +125,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Οι προτιμήσεις συγκατάθεσης αποθηκεύονται σε cookie με το όνομα "euconsent-v2" για 13 μήνες. The storage duration may be refreshed when you update your preferences.',
+					'Οι προτιμήσεις συγκατάθεσης αποθηκεύονται σε cookie με το όνομα "euconsent-v2" για 13 μήνες. Η διάρκεια αποθήκευσης ενδέχεται να ανανεωθεί όταν ενημερώνετε τις προτιμήσεις σας.',
 			},
 		},
 		common: {

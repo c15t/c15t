@@ -36,9 +36,15 @@ import {
 } from './vendors/ads-and-pixels/tiktok-pixel';
 import { xPixel, xPixelManifest } from './vendors/ads-and-pixels/x-pixel';
 import {
+	adobeAnalytics,
+	adobeAnalyticsManifest,
+} from './vendors/analytics/adobe-analytics';
+import {
 	ahrefsAnalytics,
 	ahrefsAnalyticsManifest,
 } from './vendors/analytics/ahrefs-analytics';
+import { amplitude, amplitudeManifest } from './vendors/analytics/amplitude';
+import { clearbit, clearbitManifest } from './vendors/analytics/clearbit';
 import {
 	cloudflareWebAnalytics,
 	cloudflareWebAnalyticsManifest,
@@ -49,7 +55,10 @@ import {
 	fathomAnalyticsManifest,
 } from './vendors/analytics/fathom-analytics';
 import { gtag, gtagManifest } from './vendors/analytics/google-tag';
+import { heap, heapManifest } from './vendors/analytics/heap';
+import { hightouch, hightouchManifest } from './vendors/analytics/hightouch';
 import { hotjar, hotjarManifest } from './vendors/analytics/hotjar';
+import { logRocket, logRocketManifest } from './vendors/analytics/logrocket';
 import {
 	matomoAnalytics,
 	matomoAnalyticsManifest,
@@ -62,6 +71,7 @@ import {
 	mixpanelAnalytics,
 	mixpanelAnalyticsManifest,
 } from './vendors/analytics/mixpanel-analytics';
+import { pirsch, pirschManifest } from './vendors/analytics/pirsch';
 import {
 	plausibleAnalytics,
 	plausibleAnalyticsManifest,
@@ -71,6 +81,10 @@ import {
 	promptwatch,
 	promptwatchManifest,
 } from './vendors/analytics/promptwatch';
+import {
+	rudderstack,
+	rudderstackManifest,
+} from './vendors/analytics/rudderstack';
 import {
 	rybbitAnalytics,
 	rybbitAnalyticsManifest,
@@ -124,12 +138,39 @@ const helperParityCases = {
 			src: 'https://analytics.ahrefs.com/analytics.js',
 		},
 	},
+	adobeAnalytics: {
+		script: adobeAnalytics({
+			scriptUrl:
+				'https://assets.adobedtm.com/c15tfake/c15tfake/launch-c15tfake.min.js',
+		}),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://assets.adobedtm.com/c15tfake/c15tfake/launch-c15tfake.min.js',
+		},
+	},
+	amplitude: {
+		script: amplitude({ apiKey: 'AMPLITUDE-CONTRACT' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.amplitude.com/libs/analytics-browser-2.44.4-min.js.gz',
+		},
+	},
 	cloudflareWebAnalytics: {
 		script: cloudflareWebAnalytics({ token: 'tok-abc' }),
 		expected: {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://static.cloudflareinsights.com/beacon.min.js',
+		},
+	},
+	clearbit: {
+		script: clearbit({ publishableKey: 'pk_contract' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://tag.clearbitscripts.com/v1/pk_contract/tags.js',
 		},
 	},
 	'microsoft-clarity': {
@@ -160,6 +201,14 @@ const helperParityCases = {
 			src: 'https://cdn.usefathom.com/script.js',
 		},
 	},
+	heap: {
+		script: heap({ envId: '123456789' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.us.heap-api.com/config/123456789/heap_config.js',
+		},
+	},
 	mixpanelAnalytics: {
 		script: mixpanelAnalytics({
 			token: '1234567890abcdef1234567890abcdef',
@@ -176,6 +225,33 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://static.hotjar.com/c/hotjar-1234567.js?sv=6',
+		},
+	},
+	hightouch: {
+		script: hightouch({ writeKey: 'abc123xyz456' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.hightouch-events.com/browser/release/v1-latest/events.min.js',
+		},
+	},
+	rudderstack: {
+		script: rudderstack({
+			writeKey: 'abc123xyz456',
+			dataPlaneUrl: 'https://c15t-live-probe.invalid',
+		}),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.rudderlabs.com/v3/modern/rsa.min.js',
+		},
+	},
+	logRocket: {
+		script: logRocket({ appId: 'c15tfake/c15tfake' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://cdn.logrocket.io/LogRocket.min.js',
 		},
 	},
 	matomoAnalytics: {
@@ -205,6 +281,14 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://ingest.promptwatch.com/js/client.min.js',
+		},
+	},
+	pirsch: {
+		script: pirsch({ identificationCode: 'PIRSCH-CONTRACT' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://api.pirsch.io/pa.js',
 		},
 	},
 	segment: {
@@ -333,15 +417,23 @@ const vendorManifests = [
 	googleTagManagerManifest,
 	gtagManifest,
 	ahrefsAnalyticsManifest,
+	adobeAnalyticsManifest,
+	amplitudeManifest,
 	cloudflareWebAnalyticsManifest,
+	clearbitManifest,
 	clarityManifest,
 	databuddyManifest,
 	fathomAnalyticsManifest,
+	heapManifest,
 	mixpanelAnalyticsManifest,
 	hotjarManifest,
+	hightouchManifest,
+	logRocketManifest,
 	matomoAnalyticsManifest,
 	posthogManifest,
 	promptwatchManifest,
+	pirschManifest,
+	rudderstackManifest,
 	segmentManifest,
 	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,

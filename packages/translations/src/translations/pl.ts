@@ -50,6 +50,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'Włącz zgodę na {category}',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Polityka prywatności',
@@ -122,7 +124,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Preferencje dotyczące zgody są przechowywane w pliku cookie o nazwie „euconsent-v2” przez 13 miesięcy. The storage duration may be refreshed when you update your preferences.',
+					'Preferencje dotyczące zgody są przechowywane w pliku cookie o nazwie „euconsent-v2” przez 13 miesięcy. Okres przechowywania może zostać odnowiony, gdy zaktualizujesz swoje preferencje.',
 			},
 		},
 		common: {

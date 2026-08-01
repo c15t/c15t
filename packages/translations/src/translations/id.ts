@@ -50,6 +50,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'Aktifkan persetujuan {category}',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Kebijakan Privasi',
@@ -122,7 +124,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Preferensi persetujuan disimpan dalam cookie bernama "euconsent-v2" selama 13 bulan. The storage duration may be refreshed when you update your preferences.',
+					'Preferensi persetujuan disimpan dalam cookie bernama "euconsent-v2" selama 13 bulan. Masa penyimpanan tersebut dapat dimulai ulang saat Anda memperbarui preferensi Anda.',
 			},
 		},
 		common: {

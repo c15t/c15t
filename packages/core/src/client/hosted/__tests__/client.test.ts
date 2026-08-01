@@ -160,6 +160,7 @@ describe('c15t Client Tests', () => {
 		expect(url).toContain('/api/c15t/init');
 
 		// Check that our custom headers were included
+		expect(options.headers['x-c15t-version']).toEqual(expect.any(String));
 		expect(options.headers['X-Custom-Header']).toBe('test-value');
 		expect(options.headers.Authorization).toBe('Bearer test-token');
 	});

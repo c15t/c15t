@@ -50,6 +50,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'Iespējot {category} piekrišanu',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Privātuma politika',
@@ -103,7 +105,7 @@ export const translations: CompleteTranslations = {
 					'Šie partneri ir reģistrēti IAB Transparency & Consent Framework (TCF) — nozares standartā piekrišanas pārvaldībai',
 				customVendorsHeading: 'Pielāgoti partneri',
 				customVendorsNotice:
-					'Šie ir pielāgoti partneri, kas nav reģistrēti IAB Transparency & Consent Framework (TCF). Viņi apstrādā datus, pamatojoties auf jūsu piekrišanu, un viņiem var būt atšķirīga privātuma prakse nekā IAB reģistrētajiem piegādātājiem.',
+					'Šie ir pielāgoti partneri, kas nav reģistrēti IAB Transparency & Consent Framework (TCF). Viņi apstrādā datus, pamatojoties uz jūsu piekrišanu, un viņiem var būt atšķirīga privātuma prakse nekā IAB reģistrētajiem piegādātājiem.',
 				purposes: 'Mērķi',
 				specialPurposes: 'Īpašie mērķi',
 				specialFeatures: 'Īpašās funkcijas',
@@ -120,7 +122,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Piekrišanas preferences tiek glabātas sīkdatnē ar nosaukumu "euconsent-v2" 13 mēnešus. The storage duration may be refreshed when you update your preferences.',
+					'Piekrišanas iestatījumi tiek glabāti sīkdatnē ar nosaukumu "euconsent-v2" 13 mēnešus. Glabāšanas ilgums var tikt atjaunots, kad jūs atjaunināt savus iestatījumus.',
 			},
 		},
 		common: {

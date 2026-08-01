@@ -69,7 +69,7 @@ export const createSubjectRoutes = () => {
 
 **Request body by \`type\`:**
 - \`cookie_banner\` – Requires \`preferences\` object
-- \`privacy_policy\`, \`dpa\`, \`terms_and_conditions\` – Prefer a signed \`documentSnapshotToken\`; otherwise use a release \`policyHash\`, with \`policyId\` kept only for compatibility
+- \`privacy_policy\`, \`dpa\`, \`terms_and_conditions\`, and suffixed legal-document variants such as \`terms_and_conditions_b2b\` – Prefer a signed \`documentSnapshotToken\`; otherwise use a release \`policyHash\`, with \`policyId\` kept only for compatibility
 - \`marketing_communications\`, \`age_verification\`, \`other\` – Optional \`preferences\``,
 			tags: ['Subject', 'Consent'],
 			responses: {

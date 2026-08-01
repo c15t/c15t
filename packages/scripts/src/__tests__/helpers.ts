@@ -276,11 +276,16 @@ function cleanupMockBrowser() {
 	const globalRef = getTestGlobal();
 	vi.unstubAllGlobals();
 	delete globalRef.dataLayer;
+	delete globalRef.adobeDataLayer;
+	delete globalRef.amplitude;
+	delete globalRef._satellite;
 	delete globalRef.gtag;
 	delete globalRef._paq;
 	delete globalRef.mixpanel;
 	delete globalRef.analytics;
 	delete globalRef.clarity;
+	delete globalRef.heap;
+	delete globalRef.heapReadyCb;
 	delete globalRef.hj;
 	delete globalRef._hjSettings;
 	delete globalRef.posthog;
@@ -308,4 +313,8 @@ function cleanupMockBrowser() {
 	delete globalRef.uetq;
 	delete globalRef.fbq;
 	delete globalRef._fbq;
+	delete globalRef.htevents;
+	delete globalRef.rudderanalytics;
+	delete globalRef.rudderAnalyticsBuildType;
+	delete globalRef.RudderSnippetVersion;
 }

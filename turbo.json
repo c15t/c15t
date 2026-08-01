@@ -186,7 +186,7 @@
 			"outputs": ["report/**", "dist/**"]
 		},
 		"test": {
-			"dependsOn": ["build", "^build", "transit", "@c15t/vitest-config#build"],
+			"dependsOn": ["build", "^build", "transit"],
 			"outputs": [
 				"coverage/coverage-summary.json",
 				"coverage/coverage-final.json",
@@ -224,7 +224,7 @@
 			"outputs": [".benchmarks/**"]
 		},
 		"@c15t/scripts#test": {
-			"dependsOn": ["build", "^build", "transit", "@c15t/vitest-config#build"],
+			"dependsOn": ["build", "^build", "transit"],
 			"outputs": [
 				"coverage/coverage-summary.json",
 				"coverage/coverage-final.json",

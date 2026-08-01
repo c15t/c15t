@@ -82,3 +82,9 @@ packages/vue/playground/.nuxt
 packages/vue/playground/.output
 /inrepo_modules/
 /.inrepo/
+
+# Agent worktrees
+.claude/worktrees/
+
+# Live vendor monitor output
+live-vendors-report.json

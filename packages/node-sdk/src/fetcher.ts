@@ -1,4 +1,5 @@
 import { C15TError } from './error';
+import { C15T_VERSION_HEADERS } from './headers';
 import type { FetchOptions, ResponseContext, RetryConfig } from './types';
 
 /**
@@ -213,6 +214,7 @@ export async function fetcher<
 			method: options?.method || 'GET',
 			headers: {
 				'Content-Type': 'application/json',
+				...C15T_VERSION_HEADERS,
 				...context.headers,
 				'X-Request-ID': requestId,
 				...options?.headers,

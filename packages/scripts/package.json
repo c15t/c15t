@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/scripts",
-	"version": "2.1.0",
+	"version": "2.2.0-canary-20260727202135",
 	"description": "Consent-aware script integrations for Google Tag Manager, Google Consent Mode v2, GA4, Google Ads, Meta Pixel, and more.",
 	"keywords": [
 		"c15t",
@@ -14,8 +14,16 @@
 		"google-tag",
 		"ga4",
 		"google-ads",
+		"adobe-analytics",
+		"amplitude",
+		"heap",
+		"hightouch",
+		"rudderstack",
+		"logrocket",
 		"meta-pixel",
 		"posthog",
+		"pirsch",
+		"clearbit",
 		"tiktok-pixel",
 		"linkedin-insights",
 		"microsoft-uet",
@@ -39,15 +47,30 @@
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
+		"./adobe-analytics": {
+			"types": "./dist-types/vendors/analytics/adobe-analytics.d.ts",
+			"import": "./dist/vendors/analytics/adobe-analytics.js",
+			"require": "./dist/vendors/analytics/adobe-analytics.cjs"
+		},
 		"./ahrefs-analytics": {
 			"types": "./dist-types/vendors/analytics/ahrefs-analytics.d.ts",
 			"import": "./dist/vendors/analytics/ahrefs-analytics.js",
 			"require": "./dist/vendors/analytics/ahrefs-analytics.cjs"
 		},
+		"./amplitude": {
+			"types": "./dist-types/vendors/analytics/amplitude.d.ts",
+			"import": "./dist/vendors/analytics/amplitude.js",
+			"require": "./dist/vendors/analytics/amplitude.cjs"
+		},
 		"./cloudflare-web-analytics": {
 			"types": "./dist-types/vendors/analytics/cloudflare-web-analytics.d.ts",
 			"import": "./dist/vendors/analytics/cloudflare-web-analytics.js",
 			"require": "./dist/vendors/analytics/cloudflare-web-analytics.cjs"
+		},
+		"./clearbit": {
+			"types": "./dist-types/vendors/analytics/clearbit.d.ts",
+			"import": "./dist/vendors/analytics/clearbit.js",
+			"require": "./dist/vendors/analytics/clearbit.cjs"
 		},
 		"./microsoft-clarity": {
 			"types": "./dist-types/vendors/analytics/microsoft-clarity.d.ts",
@@ -64,10 +87,30 @@
 			"import": "./dist/vendors/analytics/fathom-analytics.js",
 			"require": "./dist/vendors/analytics/fathom-analytics.cjs"
 		},
+		"./heap": {
+			"types": "./dist-types/vendors/analytics/heap.d.ts",
+			"import": "./dist/vendors/analytics/heap.js",
+			"require": "./dist/vendors/analytics/heap.cjs"
+		},
 		"./hotjar": {
 			"types": "./dist-types/vendors/analytics/hotjar.d.ts",
 			"import": "./dist/vendors/analytics/hotjar.js",
 			"require": "./dist/vendors/analytics/hotjar.cjs"
+		},
+		"./hightouch": {
+			"types": "./dist-types/vendors/analytics/hightouch.d.ts",
+			"import": "./dist/vendors/analytics/hightouch.js",
+			"require": "./dist/vendors/analytics/hightouch.cjs"
+		},
+		"./rudderstack": {
+			"types": "./dist-types/vendors/analytics/rudderstack.d.ts",
+			"import": "./dist/vendors/analytics/rudderstack.js",
+			"require": "./dist/vendors/analytics/rudderstack.cjs"
+		},
+		"./logrocket": {
+			"types": "./dist-types/vendors/analytics/logrocket.d.ts",
+			"import": "./dist/vendors/analytics/logrocket.js",
+			"require": "./dist/vendors/analytics/logrocket.cjs"
 		},
 		"./google-tag": {
 			"types": "./dist-types/vendors/analytics/google-tag.d.ts",
@@ -83,6 +126,11 @@
 			"types": "./dist-types/vendors/analytics/mixpanel-analytics.d.ts",
 			"import": "./dist/vendors/analytics/mixpanel-analytics.js",
 			"require": "./dist/vendors/analytics/mixpanel-analytics.cjs"
+		},
+		"./pirsch": {
+			"types": "./dist-types/vendors/analytics/pirsch.d.ts",
+			"import": "./dist/vendors/analytics/pirsch.js",
+			"require": "./dist/vendors/analytics/pirsch.cjs"
 		},
 		"./plausible-analytics": {
 			"types": "./dist-types/vendors/analytics/plausible-analytics.d.ts",
@@ -189,11 +237,12 @@
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/scripts",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/scripts",
-		"check-types": "tsc --noEmit",
+		"check-types": "tsc --noEmit && tsc -p live-vendors --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./src",
+		"lint": "bun biome lint ./src ./live-vendors",
 		"test": "vitest run",
+		"test:live-vendors": "bun --tsconfig-override live-vendors/tsconfig.json live-vendors/runner.ts",
 		"test:watch": "vitest"
 	},
 	"browserslist": [
@@ -204,7 +253,9 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"c15t": "workspace:*"
+		"c15t": "workspace:*",
+		"playwright": "1.58.2",
+		"typescript": "7.0.2"
 	},
 	"publishConfig": {
 		"access": "public"

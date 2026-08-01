@@ -1,6 +1,8 @@
 import {
 	type ConsentPolicy,
+	type ConsentPolicyType,
 	consentPolicySchema,
+	consentPolicyTypeSchema,
 	type LegalDocumentPolicyType,
 	legalDocumentPolicyTypeSchema,
 	type PolicyType,
@@ -22,7 +24,9 @@ export const consentPolicyTable = table('consentPolicy', {
 // Re-export for backward compatibility
 export {
 	type ConsentPolicy,
+	type ConsentPolicyType,
 	consentPolicySchema,
+	consentPolicyTypeSchema,
 	type LegalDocumentPolicyType,
 	legalDocumentPolicyTypeSchema,
 	type PolicyType,
