@@ -334,3 +334,43 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 		};
 	}
 );
+
+/**
+ * Finds a subject by client-supplied id, or creates it.
+ *
+ * The v2.0 flow has the client generate the subject id, so this is an upsert
+ * keyed on it. `on conflict do nothing` rather than read-then-create: two
+ * requests from the same device arriving together must produce one subject,
+ * and the returning clause tells us which call won without a second query.
+ *
+ * A subject that already exists is returned untouched. Overwriting its
+ * externalId here would silently re-identify someone as a side effect of
+ * recording consent, which is what PATCH exists to do explicitly.
+ */
+export const findOrCreate = Effect.fn('repository.findOrCreate')(
+	function* (input: {
+		subjectId: string;
+		externalId?: string | null;
+		identityProvider?: string | null;
+		tenantId?: string | null;
+	}) {
+		const sql = yield* SqlClient.SqlClient;
+		const now = new Date();
+
+		const inserted = yield* sql<{ id: string }>`
+		insert into "subject"
+			("id","externalId","identityProvider","tenantId","createdAt","updatedAt")
+		values (
+			${input.subjectId},
+			${input.externalId ?? null},
+			${input.externalId ? (input.identityProvider ?? 'external') : 'anonymous'},
+			${input.tenantId ?? null},
+			${now}, ${now}
+		)
+		on conflict ("id") do nothing
+		returning "id"
+	`;
+
+		return { id: input.subjectId, created: inserted.length > 0 };
+	}
+);

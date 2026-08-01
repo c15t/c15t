@@ -565,3 +565,88 @@ describe('PATCH /subjects/:id', () => {
 		assert.strictEqual(Number(entries[0]?.total), 0);
 	});
 });
+
+describe('POST /subjects', () => {
+	const post = (body: unknown) =>
+		app.request('/subjects', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'x-forwarded-for': '203.0.113.42',
+			},
+			body: JSON.stringify(body),
+		});
+
+	const submission = {
+		subjectId: 'sub_client',
+		domainId: 'dom_1',
+		policyId: 'pol_1',
+		purposeIds: ['analytics'],
+		givenAt: new Date(1_800_000_000_000).toISOString(),
+	};
+
+	it('records a consent', async () => {
+		await seed();
+		const response = await post(submission);
+
+		assert.strictEqual(response.status, 200);
+		const body = await response.json();
+		assert.match(body.consentId, /^cns_/);
+		assert.strictEqual(body.subjectId, 'sub_client');
+	});
+
+	it('is unauthenticated', async () => {
+		// A visitor's own browser submits its own consent; requiring an API key
+		// would mean shipping one to every client.
+		await seed();
+		assert.strictEqual((await post(submission)).status, 200);
+	});
+
+	it('returns the same consent id on a replay', async () => {
+		await seed();
+		const first = await (await post(submission)).json();
+		const second = await (await post(submission)).json();
+
+		assert.strictEqual(second.consentId, first.consentId);
+
+		// Scoped to this submission: seed() already inserted an unrelated
+		// consent, so a bare count would measure the fixture, not the replay.
+		const rows = await runtime.runPromise(
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				return yield* sql<{ total: string }>`
+					select count(*) as total from "consent" where "id" = ${first.consentId}
+				`;
+			})
+		);
+		assert.strictEqual(Number(rows[0]?.total), 1);
+	});
+
+	it('masks the recorded IP', async () => {
+		await seed();
+		const { consentId } = await (await post(submission)).json();
+
+		const rows = await runtime.runPromise(
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				return yield* sql<{ ipAddress: string | null }>`
+					select "ipAddress" from "consent" where "id" = ${consentId}
+				`;
+			})
+		);
+		assert.strictEqual(rows[0]?.ipAddress, '203.0.113.0');
+	});
+
+	it('rejects a submission missing its identifiers', async () => {
+		assert.strictEqual((await post({ domainId: 'dom_1' })).status, 400);
+		assert.strictEqual((await post({ subjectId: 'sub_1' })).status, 400);
+	});
+
+	it('rejects an unparseable givenAt rather than defaulting to now', async () => {
+		await seed();
+		// Defaulting would make a malformed retry a distinct consent, since
+		// givenAt is part of the deterministic id.
+		const response = await post({ ...submission, givenAt: 'not-a-date' });
+		assert.strictEqual(response.status, 400);
+	});
+});

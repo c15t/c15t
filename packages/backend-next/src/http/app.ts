@@ -34,6 +34,7 @@ import {
 	LegalDocumentConflictError,
 	syncCurrent,
 } from '../repository/legal-document';
+import { submit } from '../repository/record-consent';
 import {
 	findById,
 	linkExternalId,
@@ -276,6 +277,65 @@ export function createApp(
 				}
 
 				return { results };
+			})
+		);
+
+		if (!result.ok) {
+			return c.json(result.failure.body, result.failure.status);
+		}
+
+		return c.json(result.value);
+	});
+
+	app.post('/subjects', async (c) => {
+		const body = await c.req.json().catch(() => undefined);
+
+		const result = await run(
+			Effect.gen(function* () {
+				if (!body?.subjectId) {
+					return yield* new BadRequestError({
+						message: 'subjectId is required',
+						code: 'SUBJECT_ID_REQUIRED',
+					});
+				}
+				if (!body?.domainId) {
+					return yield* new BadRequestError({
+						message: 'domainId is required',
+						code: 'DOMAIN_ID_REQUIRED',
+					});
+				}
+
+				// givenAt is client-supplied so a queued submission records when
+				// consent was *given*, not when it arrived. It is also part of
+				// the consent's deterministic id, so an absent one would make
+				// every retry a distinct consent.
+				const givenAt = body.givenAt ? new Date(body.givenAt) : new Date();
+				if (Number.isNaN(givenAt.getTime())) {
+					return yield* new BadRequestError({
+						message: 'givenAt must be a valid ISO-8601 string',
+						code: 'INPUT_VALIDATION_FAILED',
+					});
+				}
+
+				const submission = yield* submit({
+					subjectId: body.subjectId,
+					domainId: body.domainId,
+					externalId: body.externalId ?? null,
+					identityProvider: body.identityProvider ?? null,
+					policyId: body.policyId ?? null,
+					purposeIds: body.purposeIds ?? [],
+					givenAt,
+					metadata: body.metadata,
+					ipAddress: getIpAddress(c.req.raw.headers, options.ipAddress),
+					userAgent: c.req.header('user-agent') ?? null,
+					decision: body.decision,
+				});
+
+				return {
+					subjectId: submission.subjectId,
+					consentId: submission.consentId,
+					givenAt,
+				};
 			})
 		);
 
