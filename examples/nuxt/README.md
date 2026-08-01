@@ -18,7 +18,33 @@ consent-backend round trip on the request path — see
 the first HTML with zero CLS; live state is read via auto-imported
 composables (`useConsentActiveUI`, `useHasConsent`, `useConsentInit`).
 
-Storage: Postgres when `DATABASE_URL` is set (production/Vercel), otherwise
-the committed `c15t.db` SQLite file so local dev needs zero setup. Set
-`NUXT_PUBLIC_C15T_BACKEND_URL` to point at a hosted c15t instance instead of
-the self-hosted route.
+Try the region preview from the page itself, or by hand — `?country=DE`
+resolves GDPR/opt-in with a banner, `?country=US&region=CA` resolves
+CCPA/opt-out with no banner at all. The resolved jurisdiction, policy pack and
+surface are shown on the page so you can see the manifest re-resolve.
+
+## Storage
+
+Selection lives in `lib/adapter.ts`, shared by the server route, the CLI
+config and migrations. Both modes speak Postgres through the same `pg` driver
+and Kysely dialect — only the destination changes:
+
+- **Local dev** — [PGlite](https://pglite.dev), Postgres compiled to WASM,
+  running in-process behind a unix socket in `.pgdata/`. Gitignored, created
+  and migrated on first request, so `bun run dev` needs zero setup.
+- **Deployed** — Postgres via `DATABASE_URL`. Deploys fail fast without it
+  rather than falling back to an embedded database a read-only filesystem
+  can't write. Migrate with `bun run db:migrate`, which runs
+  `@c15t/cli self-host migrate` against `c15t-backend.config.ts`.
+
+PGlite rather than SQLite on purpose: SQLite ships with `PRAGMA foreign_keys`
+off, so a consent row referencing a policy that doesn't exist inserts happily
+locally and only fails once deployed. Running real Postgres in dev means
+constraint bugs surface here. Delete `.pgdata/` to reset the demo.
+
+Set `NUXT_PUBLIC_C15T_BACKEND_URL` to point at a hosted c15t instance instead
+of the self-hosted route.
+
+The `vite.ssr.noExternal` entry in `nuxt.config.ts` is a workaround for a
+`@c15t/vue` packaging issue, not part of the integration — see the comment
+there.

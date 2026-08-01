@@ -82,4 +82,9 @@ packages/vue/playground/.nuxt
 packages/vue/playground/.output
 /inrepo_modules/
 /.inrepo/
+
+# Catch env files the explicit list above misses (.env.production,
+# .env.staging, …) while keeping the committed templates.
 .env*
+!.env.example
+!.env.*.example

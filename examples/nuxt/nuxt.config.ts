@@ -24,10 +24,20 @@ export default defineNuxtConfig({
 	typescript: { strict: true },
 	vite: {
 		ssr: {
-			// The SSR graph pulls in @vue/compiler-core's CJS build, whose
-			// `require('estree-walker')` becomes a default-import when left
-			// external — and estree-walker v2 is named-exports-only under
-			// Node ESM. Bundling it lets Vite generate correct interop.
+			// Workaround, not a required part of the integration.
+			//
+			// @c15t/vue ships precompiled `.vue` SSR renders whose
+			// `vue/server-renderer` import resolves to that package's CJS build.
+			// Vite inlines it, and the CJS build carries @vue/compiler-ssr →
+			// @vue/compiler-core → `require('estree-walker')`. Left external that
+			// require becomes a default-import, and estree-walker v2 is
+			// named-exports-only under Node ESM, so the built server throws
+			// `does not provide an export named 'default'` on the first render.
+			// Bundling it lets Vite generate correct interop.
+			//
+			// The real fix belongs upstream in @c15t/vue's build (the Vue
+			// compiler has no business in a consumer's server bundle); remove
+			// this block once `vue/server-renderer` resolves to ESM there.
 			noExternal: ['estree-walker'],
 		},
 	},

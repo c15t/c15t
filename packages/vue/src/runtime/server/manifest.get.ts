@@ -19,11 +19,15 @@ type C15TNitroRuntimeConfig = NitroRuntimeConfig & {
 	};
 };
 
+// `vary` is deliberately NOT forwarded. This route sends no request headers
+// upstream and returns no CORS headers downstream, so its body is a pure
+// function of the request URL. The backend's `Vary: Origin` (paired with an
+// `Access-Control-Allow-Origin` we do not pass through) would only fragment
+// the edge cache for no benefit.
 const PASSTHROUGH_HEADERS = [
 	'cache-control',
 	'etag',
 	'last-modified',
-	'vary',
 	'content-language',
 ] as const;
 
@@ -33,8 +37,9 @@ const PASSTHROUGH_HEADERS = [
 // forwarding those verbatim lets Vercel's CDN cache the document at the edge.
 // nitro's cached-handler wrapper instead stamped its own `max-age=1` over the
 // backend header and emitted `Vary: Accept-Language`, both of which defeated
-// edge caching. Function-level dedupe of the upstream fetch is already handled
-// by the in-process cache in `fetchCachedManifest`.
+// edge caching. Function-level dedupe of the upstream fetch is handled by the
+// in-process cache in `fetchCachedManifest`, which falls back to a short TTL
+// (`MANIFEST_DEDUPE_TTL_SECONDS`) for backends that send no `s-maxage`.
 export default defineEventHandler(async (event) => {
 	const runtimeConfig = useRuntimeConfig<C15TNitroRuntimeConfig>(event);
 	const config = {
@@ -54,17 +59,6 @@ export default defineEventHandler(async (event) => {
 		if (value) {
 			setResponseHeader(event, header, value);
 		}
-	}
-
-	// Fallback for older backends that serve the manifest without a
-	// Cache-Control header: derive a shared-cache TTL from the parsed s-maxage
-	// so the route is still edge-cacheable rather than defaulting to no-cache.
-	if (!manifest.headers['cache-control'] && manifest.sMaxAge > 0) {
-		setResponseHeader(
-			event,
-			'cache-control',
-			`public, s-maxage=${manifest.sMaxAge}, stale-while-revalidate=${manifest.sMaxAge}`
-		);
 	}
 
 	const etag = manifest.headers.etag;

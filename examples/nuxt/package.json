@@ -3,6 +3,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
+		"db:migrate": "bunx @c15t/cli self-host migrate",
 		"dev": "nuxt dev",
 		"build": "nuxt build",
 		"start": "node .output/server/index.mjs",
@@ -11,12 +12,14 @@
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/vue": "workspace:*",
-		"@libsql/kysely-libsql": "^0.4.1",
+		"@electric-sql/pglite": "^0.5.4",
+		"@electric-sql/pglite-socket": "^0.2.7",
 		"kysely": "0.28.15",
 		"nuxt": "^4.4.7",
 		"pg": "^8.20.0"
 	},
 	"devDependencies": {
+		"@types/pg": "^8.20.0",
 		"estree-walker": "^2.0.2",
 		"typescript": "^6.0.3",
 		"vue-tsc": "^3.3.6"

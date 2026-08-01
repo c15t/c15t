@@ -6,51 +6,67 @@
  * fetch `GET ${backendURL}/manifest` from here — same origin, no external
  * consent backend on the request path.
  *
- * Storage: Postgres when `DATABASE_URL` is set (production), otherwise the
- * committed local SQLite file (`c15t.db`) so `bun run dev` works with zero
- * setup — same pattern as examples/sveltekit-demo.
+ * Storage selection lives in `lib/adapter.ts`, shared with the CLI config and
+ * the migration script so the three cannot drift.
  */
 import { c15tInstance, policyPackPresets } from '@c15t/backend';
-import { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
+import { migrator } from '@c15t/backend/db/migrator';
+import { DB } from '@c15t/backend/db/schema';
 import { toWebRequest } from 'h3';
-import { Kysely, PostgresDialect } from 'kysely';
-import { Pool } from 'pg';
+import { createAdapter, type ResolvedAdapter } from '../../../lib/adapter';
 
-async function createAdapter() {
-	const connectionString = process.env.DATABASE_URL;
-	if (connectionString) {
-		const hostname = new URL(connectionString).hostname;
-		const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(hostname);
-		return kyselyAdapter({
-			db: new Kysely({
-				dialect: new PostgresDialect({
-					pool: new Pool({
-						connectionString,
-						ssl: { rejectUnauthorized: !isLocalhost },
-					}),
-				}),
-			}),
-			provider: 'postgresql',
-		});
+/**
+ * Origins allowed to call this backend cross-origin.
+ *
+ * The demo is same-origin, so this only matters if you point another site at
+ * it. `isOriginTrusted` compares hostnames exactly unless the entry starts with
+ * `*.`, so the deployment's own host has to be named: a bare `vercel.app` entry
+ * matches nothing, and `*.vercel.app` would trust every deployment on Vercel.
+ */
+function trustedOrigins(): string[] {
+	const origins = ['localhost', '*.localhost'];
+	for (const host of [
+		process.env.VERCEL_PROJECT_PRODUCTION_URL,
+		process.env.VERCEL_BRANCH_URL,
+		process.env.VERCEL_URL,
+	]) {
+		if (host && !origins.includes(host)) {
+			origins.push(host);
+		}
 	}
-	// Dynamic import: @libsql/client loads a platform-native binding at module
-	// load, which serverless bundlers don't always trace. Keeping it out of
-	// the static graph means the Postgres path never touches it.
-	const { LibsqlDialect } = await import('@libsql/kysely-libsql');
-	return kyselyAdapter({
-		db: new Kysely({
-			dialect: new LibsqlDialect({ url: 'file:c15t.db' }),
-		}),
-		provider: 'sqlite',
-	});
+	return origins;
 }
 
-const instancePromise = createAdapter().then((adapter) =>
-	c15tInstance({
+/**
+ * Create the embedded PGlite schema on first boot so `bun run dev` needs zero
+ * setup and the data directory can stay out of git.
+ *
+ * Embedded-only. Migrating on boot against a shared Postgres would race across
+ * instances — for deploys run `bun run db:migrate`, which reads the same
+ * adapter from `c15t-backend.config.ts`.
+ */
+async function ensureLocalSchema({ adapter, mode }: ResolvedAdapter) {
+	if (mode !== 'embedded') {
+		return;
+	}
+	const result = await migrator({ db: DB.client(adapter), schema: 'latest' });
+	if ('path' in result) {
+		throw new Error(
+			`Expected an executable migration, got an ORM schema at ${result.path}.`
+		);
+	}
+	await result.execute();
+}
+
+async function createInstance() {
+	const resolved = await createAdapter();
+	await ensureLocalSchema(resolved);
+
+	return c15tInstance({
 		appName: 'c15t-nuxt-demo',
 		basePath: '/api/self-host',
-		adapter,
-		trustedOrigins: ['localhost', '*.localhost', 'vercel.app'],
+		adapter: resolved.adapter,
+		trustedOrigins: trustedOrigins(),
 		tenantId: 'ins_1',
 		branding: 'c15t',
 		// Real policy packs so the manifest carries fingerprints + matching
@@ -65,10 +81,25 @@ const instancePromise = createAdapter().then((adapter) =>
 			sMaxAge: 120,
 			staleWhileRevalidate: 600,
 		},
-	})
-);
+	});
+}
+
+let instancePromise: ReturnType<typeof createInstance> | undefined;
+
+function getInstance() {
+	if (!instancePromise) {
+		instancePromise = createInstance().catch((error) => {
+			// Drop the memo so a transient failure (database asleep, credentials
+			// since corrected) doesn't poison every later request for the
+			// lifetime of the process.
+			instancePromise = undefined;
+			throw error;
+		});
+	}
+	return instancePromise;
+}
 
 export default defineEventHandler(async (event) => {
-	const instance = await instancePromise;
+	const instance = await getInstance();
 	return instance.handler(toWebRequest(event));
 });
