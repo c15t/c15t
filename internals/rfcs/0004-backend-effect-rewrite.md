@@ -278,7 +278,36 @@ needs to talk to all three engines.
 **Sequencing:** generate these fixtures *before* the fumadb removal lands.
 Afterwards, reproducing those shapes faithfully gets much harder.
 
-### 3.5 Open question inherited from 2.0
+### 3.5 MySQL is already broken on the fumadb path
+
+Measured while generating fixtures: **fumadb cannot migrate a blank MySQL
+database**, on either schema version.
+
+```
+BLOB/TEXT column '…' used in key specification without a key length
+```
+
+fumadb maps a `string` column to MySQL `TEXT` and then indexes it; MySQL
+requires a prefix length for TEXT/BLOB indexes. Schema 1.0.0 trips on
+`domain.name`, schema 2.0.0 on `runtimePolicyDecision.dedupeKey`. Reproduced
+against `fumadb@0.2.2` (pinned by the released 2.1.0) **and `fumadb@0.3.0`,
+which this repo pins on the v3 line** — so it is not fixed upstream. A minimal
+schema with an `idColumn` migrates cleanly on both versions, so this is
+specific to c15t's schema rather than a blanket fumadb defect.
+
+Two consequences:
+
+- **For this RFC:** fumadb-managed MySQL databases almost certainly do not
+  exist in the wild, because the documented migrator could never have created
+  one. The migration matrix loses two cells (§3.4 records them as
+  `mysql.unsupported.json` rather than leaving a silent hole), and §3.3's
+  adoption step only has to handle MySQL arriving from the legacy path.
+- **Outside this RFC:** `docs/self-host/guides/database-setup.mdx` advertises
+  MySQL, and it is broken on the current v3 line today. That is a live bug
+  worth fixing or documenting independently of the rewrite — it should not
+  wait on cutover.
+
+### 3.6 Open question inherited from 2.0
 
 `consentRecord` is in the 1.0.0 schema, absent from 2.0.0, and there is no
 data-migration code anywhere in the repo — the only other reference is an
@@ -456,5 +485,5 @@ artifact.
    than a builder — but this is the call to make consciously.
 3. **Working package name** during the private phase (it is renamed at
    cutover, so this is low-stakes).
-4. **`consentRecord` (§3.5)** — reproduce current behaviour first, then decide
+4. **`consentRecord` (§3.6)** — reproduce current behaviour first, then decide
    whether to preserve that data on upgrade.
