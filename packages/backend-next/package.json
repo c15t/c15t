@@ -2,7 +2,7 @@
 	"name": "@c15t/backend-next",
 	"version": "0.0.0",
 	"private": true,
-	"description": "Effect rewrite of @c15t/backend, developed in parallel until it reaches parity. Renamed to @c15t/backend at cutover \u2014 see internals/rfcs/0004-backend-effect-rewrite.md.",
+	"description": "Effect rewrite of @c15t/backend, developed in parallel until it reaches parity. Renamed to @c15t/backend at cutover — see internals/rfcs/0004-backend-effect-rewrite.md.",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
