@@ -1,4 +1,7 @@
-<script setup lang="ts">
+<script
+	setup
+	lang="ts"
+>
 /**
  * The only required integration: mount <ConsentRoot /> once.
  * Everything below it is demo chrome showing the consent state live.
@@ -31,31 +34,62 @@ function openPreferences() {
 			<h2>Live consent state</h2>
 			<dl>
 				<dt>Active surface</dt>
-				<dd>
-					<code>{{ activeUI ?? 'none' }}</code>
-				</dd>
+				<dd><code>{{ activeUI ?? 'none' }}</code></dd>
 				<dt>Granted categories</dt>
-				<dd>
-					<code>{{ hasConsent.join(', ') || '—' }}</code>
-				</dd>
+				<dd><code>{{ hasConsent.join(', ') || '—' }}</code></dd>
 				<dt>Resolved location</dt>
 				<dd>
 					<code>
-						{{ init?.location?.countryCode ?? 'unknown'
-						}}{{ init?.location?.regionCode ? ` / ${init.location.regionCode}` : '' }}
+						{{ init?.location?.countryCode ?? 'unknown' }}
+						{{ init?.location?.regionCode ? ` / ${init.location.regionCode}` : '' }}
 					</code>
 				</dd>
+				<dt>Jurisdiction</dt>
+				<dd><code>{{ init?.jurisdiction ?? '—' }}</code></dd>
+				<dt>Policy pack</dt>
+				<dd><code>{{ init?.policy?.id ?? '—' }}</code></dd>
 				<dt>Policy model</dt>
-				<dd>
-					<code>{{ init?.policy?.model ?? '—' }}</code>
-				</dd>
+				<dd><code>{{ init?.policy?.model ?? '—' }}</code></dd>
+				<dt>Consent surface</dt>
+				<dd><code>{{ init?.policy?.ui?.mode ?? '—' }}</code></dd>
 			</dl>
 		</section>
 
 		<section class="card">
+			<h2>Region preview</h2>
+			<p class="hint">
+				Override the resolved location with a query parameter — the policy pack
+				above is re-resolved from the manifest on the server, so two of these
+				legitimately render no banner at all.
+			</p>
+			<ul class="regions">
+				<li><a href="/">Auto-detect</a> — your real location</li>
+				<li><a href="/?country=DE">?country=DE</a> — GDPR, opt-in, banner</li>
+				<li>
+					<a href="/?country=US&amp;region=CA">?country=US&amp;region=CA</a>
+					— CCPA, opt-out, no banner
+				</li>
+				<li>
+					<a href="/?country=JP">?country=JP</a>
+					— world fallback, no banner
+				</li>
+			</ul>
+		</section>
+
+		<section class="card">
 			<h2>Controls</h2>
-			<button type="button" @click="reopenBanner">Reopen banner</button>
-			<button type="button" @click="openPreferences">Open preferences</button>
+			<button
+				type="button"
+				@click="reopenBanner"
+			>
+				Reopen banner
+			</button>
+			<button
+				type="button"
+				@click="openPreferences"
+			>
+				Open preferences
+			</button>
 		</section>
 	</main>
 </template>
@@ -100,6 +134,24 @@ body {
 
 .card dd {
 	margin: 0;
+}
+
+.card .hint {
+	margin: 0 0 0.75rem;
+	color: #525252;
+	font-size: 0.875rem;
+}
+
+.card .regions {
+	margin: 0;
+	padding-left: 1.25rem;
+	font-size: 0.875rem;
+	line-height: 1.8;
+}
+
+.card .regions code,
+.card .regions a {
+	font-family: ui-monospace, monospace;
 }
 
 .card button {

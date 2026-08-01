@@ -1,3 +1,6 @@
 .output
 .nuxt
 node_modules
+
+# Embedded PGlite dev database (data dir + unix socket) — recreated on boot.
+.pgdata

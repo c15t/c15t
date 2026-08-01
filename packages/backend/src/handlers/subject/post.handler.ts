@@ -708,7 +708,20 @@ export const postSubjectHandler = async (c: Context) => {
 				policyId = policy.id;
 			}
 		} else if (manifestDecisionValidation) {
-			policyId = manifestDecisionValidation.decision.policyId;
+			// consent.policyId is an FK into consentPolicy; the runtime pack id
+			// (e.g. `europe_opt_in`) is not a consentPolicy row and would fail
+			// the constraint on any FK-enforcing database. The pack identity +
+			// fingerprint are recorded on the runtimePolicyDecision row; anchor
+			// the consent row to the find-or-created policy record for its type
+			// like the legacy path does.
+			const policy = await registry.findOrCreatePolicy(type as PolicyType);
+			if (!policy) {
+				throw new HTTPException(500, {
+					message: 'Failed to create policy',
+					cause: { code: 'POLICY_CREATION_FAILED', type },
+				});
+			}
+			policyId = policy.id;
 		} else if (inputPolicyId) {
 			policyId = inputPolicyId;
 

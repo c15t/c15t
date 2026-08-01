@@ -1598,7 +1598,9 @@ describe('postSubjectHandler manifest recompute-on-write validation', () => {
 		expect(db.__tx.create).toHaveBeenCalledWith(
 			'consent',
 			expect.objectContaining({
-				policyId: 'eu_opt_in',
+				// FK-safe consentPolicy row — the pack id ('eu_opt_in') lives on
+				// the runtimePolicyDecision row, not consent.policyId.
+				policyId: 'pol_1',
 				ipAddress: null,
 				runtimePolicyDecisionId: 'rpd_1',
 				runtimePolicySource: 'manifest_recompute',

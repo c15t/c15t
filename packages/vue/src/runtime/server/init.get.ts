@@ -3,6 +3,7 @@ import { defineCachedEventHandler, useRuntimeConfig } from 'nitropack/runtime';
 import type { NitroRuntimeConfig } from 'nitropack/types';
 import { joinURL } from 'ufo';
 import type { ConsentConfig } from '../config';
+import { serverFetch } from './local-fetch';
 import { fetchCachedManifest, resolveManifestInit } from './manifest-mode';
 
 type C15TNitroRuntimeConfig = NitroRuntimeConfig & {
@@ -23,7 +24,10 @@ export default defineCachedEventHandler(
 		const headers = getRequestHeaders(event);
 
 		try {
-			const manifest = await fetchCachedManifest({ config });
+			const manifest = await fetchCachedManifest({
+				config,
+				fetch: serverFetch,
+			});
 			return resolveManifestInit({
 				manifest: manifest.manifest,
 				headers,
@@ -52,7 +56,7 @@ export default defineCachedEventHandler(
 					forward[key] = value;
 				}
 			}
-			const response = await fetch(joinURL(config.backendURL, '/init'), {
+			const response = await serverFetch(joinURL(config.backendURL, '/init'), {
 				headers: forward,
 			});
 			if (!response.ok) {

@@ -18,6 +18,18 @@ export interface ManifestModeRuntimeConfig
 		'backendURL' | 'manifestURL' | 'initRoute' | 'manifestRoute'
 	> {}
 
+/**
+ * Just the call signature the manifest routes need.
+ *
+ * Deliberately narrower than `typeof globalThis.fetch`, which carries static
+ * members (`fetch.preconnect` under recent `@types/node`) that no sensible
+ * custom implementation provides — nitro's `localFetch` included.
+ */
+export type ManifestFetch = (
+	input: string | URL | Request,
+	init?: RequestInit
+) => Promise<Response>;
+
 export interface CachedManifestResponse {
 	manifest: ConsentManifest;
 	headers: Record<string, string>;
@@ -76,6 +88,42 @@ export function getManifestStaleWhileRevalidate(
 	);
 }
 
+/**
+ * In-process dedupe floor, in seconds, for backends that serve `/manifest`
+ * without a shared-cache TTL. `manifest.get.ts` deliberately does not wrap the
+ * route in `defineCachedEventHandler` (it stamped its own `max-age` over the
+ * backend's header and defeated edge caching), so without this floor every
+ * request to an older backend would hit the network. Kept deliberately short:
+ * it only collapses concurrent/bursty requests, it is never advertised
+ * downstream as a `Cache-Control` value.
+ */
+export const MANIFEST_DEDUPE_TTL_SECONDS = 5;
+
+/** `true` when the backend explicitly forbids reusing the response. */
+function forbidsReuse(cacheControl: string | undefined): boolean {
+	if (!cacheControl) return false;
+	return cacheControl
+		.split(',')
+		.some((part) =>
+			['no-store', 'no-cache', 'private'].includes(
+				part.trim().split('=')[0]?.toLowerCase() ?? ''
+			)
+		);
+}
+
+/**
+ * How long to keep an entry in the in-process cache. Prefers the backend's
+ * `s-maxage`, falls back to the dedupe floor, and honours an explicit
+ * `no-store`/`no-cache`/`private` by not caching at all.
+ */
+function resolveCacheTtlSeconds(
+	cacheControl: string | undefined,
+	sMaxAge: number
+): number {
+	if (sMaxAge > 0) return sMaxAge;
+	return forbidsReuse(cacheControl) ? 0 : MANIFEST_DEDUPE_TTL_SECONDS;
+}
+
 export function resolveManifestSourceURL(
 	config: ManifestModeRuntimeConfig
 ): string {
@@ -113,7 +161,7 @@ export function createManifestRequestURL(input: {
 
 export async function fetchCachedManifest(input: {
 	config: ManifestModeRuntimeConfig;
-	fetch?: typeof globalThis.fetch;
+	fetch?: ManifestFetch;
 	query?: string;
 	now?: number;
 }): Promise<CachedManifestResponse> {
@@ -153,13 +201,21 @@ export async function fetchCachedManifest(input: {
 			...normalizeHeaders(response.headers),
 		};
 		const sMaxAge = getManifestSMaxAge(responseHeaders['cache-control']);
+		const ttl = resolveCacheTtlSeconds(
+			responseHeaders['cache-control'],
+			sMaxAge
+		);
 		const refreshed = {
 			...cached,
 			headers: responseHeaders,
 			sMaxAge,
-			expiresAt: now + sMaxAge * 1000,
+			expiresAt: now + ttl * 1000,
 		};
-		manifestCache.set(sourceURL, refreshed);
+		if (ttl > 0) {
+			manifestCache.set(sourceURL, refreshed);
+		} else {
+			manifestCache.delete(sourceURL);
+		}
 		return refreshed;
 	}
 
@@ -172,14 +228,15 @@ export async function fetchCachedManifest(input: {
 	const manifest = (await response.json()) as ConsentManifest;
 	const responseHeaders = normalizeHeaders(response.headers);
 	const sMaxAge = getManifestSMaxAge(responseHeaders['cache-control']);
+	const ttl = resolveCacheTtlSeconds(responseHeaders['cache-control'], sMaxAge);
 	const entry: CacheEntry = {
 		sourceURL,
 		manifest,
 		headers: responseHeaders,
 		sMaxAge,
-		expiresAt: now + sMaxAge * 1000,
+		expiresAt: now + ttl * 1000,
 	};
-	if (sMaxAge > 0) {
+	if (ttl > 0) {
 		manifestCache.set(sourceURL, entry);
 	}
 	return entry;

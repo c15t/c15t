@@ -279,7 +279,13 @@ export function createManifestTransport(
 				);
 			}
 
-			const shouldAssertDecisionInputs = !payload.policySnapshotToken;
+			// Only assert decision inputs when the manifest actually resolved a
+			// policy pack. Sending partial inputs (country/language without
+			// policyId/fingerprint — e.g. a manifest with no packs configured)
+			// is rejected by the backend as incomplete (422 STALE_POLICY).
+			const shouldAssertDecisionInputs =
+				!payload.policySnapshotToken &&
+				Boolean(lastDecisionInputs?.policyId && lastDecisionInputs.fingerprint);
 			const response = await fetchImpl(`${backendURL}/subjects`, {
 				method: 'POST',
 				credentials,
