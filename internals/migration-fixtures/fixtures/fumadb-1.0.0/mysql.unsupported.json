@@ -1,0 +1,7 @@
+{
+	"shape": "fumadb-1.0.0",
+	"engine": "mysql",
+	"versions": ["1.8.6"],
+	"era": "fumadb-v2-subpath",
+	"unsupported": "fumadb migration fails on MySQL: \"ID columns must not be updated, not every database supports updating primary keys and often requires workarounds.\" Fails inside execute(), not just SQL rendering."
+}

@@ -30,7 +30,25 @@ export interface Shape {
 	readonly era: MigratorEra;
 	/** Why this shape exists — copied into the fixture manifest. */
 	readonly rationale: string;
+	/**
+	 * Engines this shape provably cannot be produced on, with the observed
+	 * reason. Recorded rather than silently skipped: "this release could never
+	 * migrate this engine" is a fact the v3 migrator needs, not a gap in
+	 * coverage.
+	 */
+	readonly unsupported?: Readonly<Record<string, string>>;
 }
+
+/**
+ * Both fumadb eras fail to migrate a blank MySQL database, in `execute()` as
+ * well as `getSQL()`. Verified against the exact dependency each release pins
+ * (2.1.0 pins fumadb 0.2.2), so this is the released behaviour rather than a
+ * resolution artifact. The implication is that fumadb-managed MySQL databases
+ * most likely do not exist in the wild — the documented migrator could never
+ * have created one.
+ */
+const FUMADB_MYSQL_FAILURE =
+	'fumadb migration fails on MySQL: "ID columns must not be updated, not every database supports updating primary keys and often requires workarounds." Fails inside execute(), not just SQL rendering.';
 
 export const SHAPES: readonly Shape[] = [
 	{
@@ -60,12 +78,14 @@ export const SHAPES: readonly Shape[] = [
 		era: 'fumadb-v2-subpath',
 		rationale:
 			'The opt-in /v2 path shipped inside 1.8.x. Writes c15t_settings = 1.0.0.',
+		unsupported: { mysql: FUMADB_MYSQL_FAILURE },
 	},
 	{
 		name: 'fumadb-2.0.0',
 		versions: ['2.1.0'],
 		era: 'fumadb-root',
 		rationale: 'Current shipping shape. Writes c15t_settings = 2.0.0.',
+		unsupported: { mysql: FUMADB_MYSQL_FAILURE },
 	},
 ] as const;
 

@@ -156,14 +156,28 @@ function driverSource(shape: Shape, engine: Engine): string {
       kyselyAdapter_${alias}({ db, provider: '${engine.fumadbProvider}' })
     );
     const plan = await migrator_${alias}({ db: client, schema: 'latest' });
-    const planSql = typeof plan?.getSQL === 'function' ? plan.getSQL() : '';
+    // getSQL() is best-effort: on MySQL, fumadb's SQL preprocessing throws
+    // ("ID columns must not be updated") even where execute() succeeds, so a
+    // failure to render SQL must not fail the capture.
+    let planSql = '';
+    let planSqlError = null;
+    try {
+      if (typeof plan?.getSQL === 'function') planSql = plan.getSQL();
+    } catch (error) {
+      planSqlError = error instanceof Error ? error.message : String(error);
+    }
     if (typeof plan?.execute !== 'function') {
       throw new Error(
         'migrator() returned no execute(); adapter likely unsupported for migrations'
       );
     }
     await plan.execute();
-    applied.push({ version: '${version}', era: '${shape.era}', sql: planSql });
+    applied.push({
+      version: '${version}',
+      era: '${shape.era}',
+      sql: planSql,
+      ...(planSqlError ? { sqlRenderError: planSqlError } : {}),
+    });
   }`);
 		}
 	}
@@ -193,10 +207,35 @@ async function generateOne(
 	engine: Engine,
 	args: Args
 ): Promise<void> {
+	process.stderr.write(`  ${shape.name} / ${engine.name} … `);
+
+	// A combination the release provably cannot produce is recorded as such,
+	// so the absent fixture reads as a finding rather than missing coverage.
+	const blocker = shape.unsupported?.[engine.name];
+	if (blocker) {
+		const outDir = join(FIXTURES_DIR, shape.name);
+		mkdirSync(outDir, { recursive: true });
+		await writeFile(
+			join(outDir, `${engine.name}.unsupported.json`),
+			`${JSON.stringify(
+				{
+					shape: shape.name,
+					engine: engine.name,
+					versions: shape.versions,
+					era: shape.era,
+					unsupported: blocker,
+				},
+				null,
+				'\t'
+			)}\n`
+		);
+		process.stderr.write('unsupported by the release (recorded)\n');
+		return;
+	}
+
 	const workspace = await mkdtemp(
 		join(tmpdir(), `c15t-fixture-${shape.name}-`)
 	);
-	process.stderr.write(`  ${shape.name} / ${engine.name} … `);
 
 	try {
 		const dependencies: Record<string, string> = {};
