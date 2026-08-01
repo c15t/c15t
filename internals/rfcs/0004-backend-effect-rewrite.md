@@ -104,9 +104,6 @@ engines c15t cares about are published on the v4 beta line at
 `@effect/sql-sqlite-node` (plus `-bun`). There is no `@effect/sql` install on
 v4; it folded into core, which is why that package has no beta tag.
 
-This replaces an earlier draft of this RFC that specified Kysely as the single
-driver. Kysely is no longer a dependency of the design.
-
 **The tension to be honest about: `@effect/sql-kysely` has no v4 release**
 (`latest` is `0.48.0`, v3-era). On v4 the idiomatic path is `SqlClient` with
 typed template-literal SQL, not a query builder:
