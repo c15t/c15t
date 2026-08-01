@@ -52,12 +52,27 @@ function createPostgresAdapter(connectionString: string) {
 	);
 }
 
+/**
+ * Specifiers are held in variables so Nitro's dependency tracer cannot follow
+ * them. A literal `import('@electric-sql/pglite')` — even guarded behind a
+ * runtime check — copies ~16 MB of WASM (`pglite.wasm`, `pglite.data`) into
+ * `.output`, where `DATABASE_URL` is mandatory and PGlite is never
+ * constructed. These are real dependencies, so Node resolves them fine at
+ * runtime under `nuxt dev`.
+ */
+const EMBEDDED_POSTGRES_MODULES = [
+	'@electric-sql/pglite',
+	'@electric-sql/pglite-socket',
+] as const;
+
 async function createEmbeddedPostgresAdapter() {
-	// Dynamic import keeps the WASM build out of the production graph, where
-	// `DATABASE_URL` is mandatory and PGlite is never constructed.
 	const [{ PGlite }, { PGLiteSocketServer }] = await Promise.all([
-		import('@electric-sql/pglite'),
-		import('@electric-sql/pglite-socket'),
+		import(/* @vite-ignore */ EMBEDDED_POSTGRES_MODULES[0]) as Promise<
+			typeof import('@electric-sql/pglite')
+		>,
+		import(/* @vite-ignore */ EMBEDDED_POSTGRES_MODULES[1]) as Promise<
+			typeof import('@electric-sql/pglite-socket')
+		>,
 	]);
 
 	mkdirSync(LOCAL_DATA_DIR, { recursive: true });
