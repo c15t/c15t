@@ -567,7 +567,23 @@ Also: the legacy migrator emitted foreign keys on Postgres and SQLite but
 engine. Adoption validates every foreign key before adding it and refuses with
 a report rather than failing part-way.
 
-### 11.4 Indexes ship as migration 2, not in the baseline
+### 11.4 The indexes ship with v3, not backported
+
+**Decided: the index migration is not backported to `@c15t/backend` 2.x.**
+
+It could be. Migration 2 is independent of Effect, and the measurement below
+puts it at ~2× on the read path on its own, so 2.x users could have it now.
+The call is to ship it with v3 anyway.
+
+Two consequences worth stating, since neither is free:
+
+- Users on 2.x stay on the unindexed schema until v3 lands. That is the
+  accepted cost, and it makes v3's timeline a performance question as well as
+  a correctness one.
+- The benchmark baseline stays 2.x-as-shipped, so the A/B stays clean and the
+  decomposition in §11.5 keeps its meaning.
+
+### 11.5 Indexes ship as migration 2, not in the baseline
 
 §7 originally deferred the missing indexes to post-cutover to protect
 fresh-equals-adopted. They are instead a separate migration immediately after
@@ -577,3 +593,44 @@ before cutover.
 It also makes the improvement measurable in isolation. The benchmark arms must
 report migration 1 and migration 2 separately, or a large indexing win will be
 silently attributed to Effect.
+
+**Measured** (`benchmarks/backend-bench`, 1000 subjects against 20k background
+rows, PGlite):
+
+| arm | indexed | queries | median ms |
+| --- | --- | ---: | ---: |
+| chunked fan-out | no | 9 | 5.814 |
+| joined | no | 2 | 2.989 |
+| chunked fan-out | yes | 9 | 2.894 |
+| joined | yes | 2 | 2.297 |
+
+Join alone 1.94×, indexes alone 2.01×, both 2.53×. **Roughly half the total
+improvement is the index migration rather than the rewrite**, and the two do
+not compose multiplicatively, so they are attacking overlapping cost. A single
+before/after number would have credited all 2.53× to Effect — which is exactly
+what this 2×2 exists to prevent.
+
+Both caveats point the same way, understating the rewrite: PGlite is
+in-process, so nine sequential round trips cost almost nothing here and would
+dominate against a networked Postgres; and the fan-out arm reproduces the
+query pattern rather than calling `@c15t/backend`, so it excludes fumadb's own
+overhead.
+
+### 11.6 Tenant scoping is unindexed everywhere
+
+`withTenantScope` (`packages/backend/src/db/tenant-scope.ts`) proxies the ORM
+and injects a `tenantId` filter into every `findFirst`, `findMany`, `count`,
+`updateMany` and `deleteMany` on every table — the proxy throws rather than
+let an unscoped method through. Every table carries `tenantId`. **No shipped
+version indexes it anywhere.**
+
+So in a multi-tenant deployment every read in the system filters on an
+unindexed column. That is a wider gap than the missing foreign key indexes,
+which only affected join paths. Migration 2 covers all seven tables.
+
+These are plain single-column indexes rather than `(tenantId, x)` composites:
+single-tenant deployments never set `tenantId` and never reach the proxy, so
+they need the bare column indexes, and keeping both sets serves both shapes.
+Unlike the foreign key indexes, this rests on reading the query code rather
+than on measurement — the benchmark has no multi-tenant arm yet, and adding
+one is what should settle the composite question.
