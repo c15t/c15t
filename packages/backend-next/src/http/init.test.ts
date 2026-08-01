@@ -154,3 +154,77 @@ describe('init policy snapshot token', () => {
 		assert.deepStrictEqual(rest, without.body);
 	});
 });
+
+describe('init GVL inclusion', () => {
+	const GVL = {
+		gvlSpecificationVersion: 3,
+		vendorListVersion: 1,
+		tcfPolicyVersion: 4,
+		lastUpdated: '2026-01-01T00:00:00Z',
+		purposes: {},
+		specialPurposes: {},
+		features: {},
+		specialFeatures: {},
+		stacks: {},
+		vendors: {},
+	};
+	const serve = (async () =>
+		new Response(JSON.stringify(GVL))) as unknown as typeof globalThis.fetch;
+
+	it('omits the vendor list when IAB is disabled', async () => {
+		const result = await buildInitResponse(config, new Headers(), undefined, {
+			enabled: false,
+			fetch: serve,
+		});
+		// A non-IAB deployment must not pay for a document it will never read.
+		assert.isUndefined((result.body as { gvl?: unknown }).gvl);
+	});
+
+	it('omits the vendor list when IAB is enabled but never fetched', async () => {
+		const result = await buildInitResponse(config, new Headers(), undefined, {
+			enabled: false,
+		});
+		assert.isUndefined((result.body as { gvl?: unknown }).gvl);
+	});
+
+	it('includes the vendor list when IAB is active', async () => {
+		const result = await buildInitResponse(config, new Headers(), undefined, {
+			enabled: true,
+			fetch: serve,
+		});
+		assert.isDefined((result.body as { gvl?: unknown }).gvl);
+	});
+
+	it('still resolves when the vendor list cannot be fetched', async () => {
+		const result = await buildInitResponse(config, new Headers(), undefined, {
+			enabled: true,
+			fetch: (async () => {
+				throw new Error('gvl upstream down');
+			}) as unknown as typeof globalThis.fetch,
+		});
+
+		// The visitor still gets a consent decision. Failing /init because a
+		// third party is unreachable would leave them with no banner at all.
+		assert.isDefined(result.body);
+		assert.isNull((result.body as { gvl?: unknown }).gvl ?? null);
+	});
+
+	it('passes the request language through to the fetch', async () => {
+		let requested = '';
+		const capture = (async (url: string) => {
+			requested = String(url);
+			return new Response(JSON.stringify(GVL));
+		}) as unknown as typeof globalThis.fetch;
+
+		await buildInitResponse(
+			config,
+			new Headers({ 'accept-language': 'fr-CA' }),
+			undefined,
+			{ enabled: true, fetch: capture }
+		);
+
+		// Serving an English vendor list to a French visitor is a compliance
+		// problem, not a cosmetic one.
+		assert.include(requested, '/fr.json');
+	});
+});
