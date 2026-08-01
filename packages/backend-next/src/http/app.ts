@@ -20,15 +20,20 @@
  * possible at all.
  */
 
-import { listSubjectsOutputSchema } from '@c15t/schema';
+import { getSubjectOutputSchema, listSubjectsOutputSchema } from '@c15t/schema';
 import { getIpAddress, type IpAddressConfig } from '@c15t/schema/geo';
 import { Effect, ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
 import { Hono } from 'hono';
 import * as v from 'valibot';
-import { listByExternalId } from '../repository/subject';
+import { findById, listByExternalId } from '../repository/subject';
 import { validateRequestAuth } from './auth';
-import { BadRequestError, type RouteError, toHttp } from './errors';
+import {
+	BadRequestError,
+	NotFoundError,
+	type RouteError,
+	toHttp,
+} from './errors';
 import { status } from './status';
 
 export interface AppLayers {
@@ -104,6 +109,80 @@ export function createApp(
 					cause: { code: 'SERVICE_UNAVAILABLE' },
 				},
 				503
+			);
+		}
+
+		return c.json(result.value);
+	});
+
+	app.get('/subjects/:id', async (c) => {
+		// Unauthenticated, matching @c15t/backend: a visitor's own device reads
+		// its own consent status by subject id, and the id is the capability.
+		const subjectId = c.req.param('id');
+		// `?type=a,b` narrows to those policy types and additionally decides
+		// isValid — with no filter every subject is trivially valid.
+		const typeFilter = (c.req.query('type') ?? '')
+			.split(',')
+			.map((entry) => entry.trim())
+			.filter(Boolean);
+
+		const result = await run(
+			Effect.gen(function* () {
+				const subject = yield* findById(subjectId);
+				if (subject === undefined) {
+					return yield* new NotFoundError({
+						resource: 'Subject',
+						id: subjectId,
+					});
+				}
+
+				const consents = subject.consents
+					.filter(
+						(consent) =>
+							typeFilter.length === 0 || typeFilter.includes(consent.type)
+					)
+					.map((consent) => ({
+						id: consent.id,
+						type: consent.type,
+						policyId: consent.policyId,
+						policyVersion: consent.policyVersion,
+						policyHash: consent.policyHash,
+						policyEffectiveDate: consent.policyEffectiveDate,
+						givenAt: consent.givenAt,
+						isLatestPolicy: consent.isLatestPolicy,
+					}));
+
+				return {
+					subject: {
+						id: subject.id,
+						externalId: subject.externalId ?? undefined,
+						createdAt: subject.createdAt,
+					},
+					consents,
+					// Valid only if every requested type has consent against the
+					// *current* policy — consent to a superseded policy does not
+					// count, which is the whole point of tracking isLatestPolicy.
+					isValid:
+						typeFilter.length === 0 ||
+						typeFilter.every((type) =>
+							consents.some(
+								(consent) => consent.type === type && consent.isLatestPolicy
+							)
+						),
+				};
+			})
+		);
+
+		if (!result.ok) {
+			return c.json(result.failure.body, result.failure.status);
+		}
+
+		const parsedSubject = v.safeParse(getSubjectOutputSchema, result.value);
+		if (!parsedSubject.success) {
+			throw new Error(
+				`Response does not satisfy getSubjectOutputSchema: ${JSON.stringify(
+					v.flatten(parsedSubject.issues)
+				)}`
 			);
 		}
 

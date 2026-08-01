@@ -191,3 +191,69 @@ export const countByExternalId = Effect.fn('repository.countByExternalId')(
 );
 
 export type RepositoryError = SqlError.SqlError;
+
+/**
+ * One subject and its consents, by primary key.
+ *
+ * Same single-query shape as `listByExternalId` — subject joined to consents
+ * joined to their policies — rather than the three round trips the shipped
+ * handler makes (subject, then consents, then policy enrichment).
+ */
+export const findById = Effect.fn('repository.findById')(function* (
+	subjectId: string
+) {
+	const sql = yield* SqlClient.SqlClient;
+
+	const rows = yield* sql<JoinedRow>`
+		select
+			s."id"          as "subject_id",
+			s."externalId"  as "subject_externalId",
+			s."createdAt"   as "subject_createdAt",
+			c."id"          as "consent_id",
+			c."policyId"    as "consent_policyId",
+			c."purposeIds"  as "consent_purposeIds",
+			c."givenAt"     as "consent_givenAt",
+			p."type"          as "policy_type",
+			p."version"       as "policy_version",
+			p."hash"          as "policy_hash",
+			p."effectiveDate" as "policy_effectiveDate"
+		from "subject" s
+		left join "consent" c on c."subjectId" = s."id"
+		left join "consentPolicy" p on p."id" = c."policyId"
+		where s."id" = ${subjectId}
+		order by c."givenAt" desc
+	`;
+
+	const first = rows[0];
+	if (first === undefined) {
+		return undefined;
+	}
+
+	const latest = yield* latestPolicyIdByType();
+	const latestIds = new Set(latest.values());
+
+	const consents: ConsentRow[] = [];
+	for (const row of rows) {
+		if (row.consent_id === null || row.consent_givenAt === null) continue;
+		consents.push({
+			id: row.consent_id,
+			subjectId: row.subject_id,
+			type: row.policy_type ?? '',
+			policyId: orUndefined(row.consent_policyId),
+			policyVersion: orUndefined(row.policy_version),
+			policyHash: orUndefined(row.policy_hash),
+			policyEffectiveDate: orUndefined(row.policy_effectiveDate),
+			purposeIds: row.consent_purposeIds,
+			givenAt: row.consent_givenAt,
+			isLatestPolicy:
+				row.consent_policyId !== null && latestIds.has(row.consent_policyId),
+		});
+	}
+
+	return {
+		id: first.subject_id,
+		externalId: first.subject_externalId,
+		createdAt: first.subject_createdAt,
+		consents,
+	} satisfies SubjectWithConsents;
+});

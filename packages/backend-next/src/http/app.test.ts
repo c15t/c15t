@@ -213,3 +213,82 @@ describe('GET /status', () => {
 		});
 	});
 });
+
+describe('GET /subjects/:id', () => {
+	it('returns a body satisfying the shared output schema', async () => {
+		await seed();
+		const response = await app.request('/subjects/sub_1');
+
+		assert.strictEqual(response.status, 200);
+		const body = await response.json();
+		assert.strictEqual(body.subject.id, 'sub_1');
+		assert.strictEqual(body.consents.length, 1);
+	});
+
+	it('404s for a subject that does not exist', async () => {
+		const response = await app.request('/subjects/sub_absent');
+
+		// Distinct from an empty consent list, which would wrongly assert the
+		// subject exists and has consented to nothing.
+		assert.strictEqual(response.status, 404);
+		assert.deepStrictEqual(await response.json(), {
+			message: 'Subject not found',
+			cause: { code: 'NOT_FOUND' },
+		});
+	});
+
+	it('narrows to the requested policy types', async () => {
+		await seed();
+		const matched = await (
+			await app.request('/subjects/sub_1?type=cookie')
+		).json();
+		assert.strictEqual(matched.consents.length, 1);
+
+		const unmatched = await (
+			await app.request('/subjects/sub_1?type=marketing')
+		).json();
+		assert.strictEqual(unmatched.consents.length, 0);
+	});
+
+	it('is valid only against the current policy', async () => {
+		await seed();
+
+		// With no filter there is nothing to be invalid about.
+		const unfiltered = await (await app.request('/subjects/sub_1')).json();
+		assert.isTrue(unfiltered.isValid);
+
+		const matched = await (
+			await app.request('/subjects/sub_1?type=cookie')
+		).json();
+		assert.isTrue(matched.isValid);
+
+		// A type the subject has never consented to cannot be valid.
+		const missing = await (
+			await app.request('/subjects/sub_1?type=marketing')
+		).json();
+		assert.isFalse(missing.isValid);
+	});
+
+	it('does not count consent given against a superseded policy', async () => {
+		await seed();
+		await runtime.runPromise(
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				// A newer active policy of the same type supersedes pol_1.
+				yield* sql.unsafe(`insert into "consentPolicy"
+					("id","version","type","effectiveDate","isActive","createdAt")
+					values ('pol_2','2.0','cookie',now() + interval '1 day',true,now())`);
+			})
+		);
+
+		const body = await (
+			await app.request('/subjects/sub_1?type=cookie')
+		).json();
+
+		// The consent still exists, but it is against an outdated policy — which
+		// is exactly the case a compliance check has to catch.
+		assert.strictEqual(body.consents.length, 1);
+		assert.isFalse(body.consents[0].isLatestPolicy);
+		assert.isFalse(body.isValid);
+	});
+});
