@@ -64,6 +64,7 @@
 	},
 	"devDependencies": {
 		"@c15t/backend": "workspace:*",
+		"@c15t/backend-conformance": "workspace:*",
 		"@c15t/migration-fixtures": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",

@@ -20,6 +20,7 @@
  * possible at all.
  */
 
+import type { ConsentManifestConfig } from '@c15t/schema';
 import { getSubjectOutputSchema, listSubjectsOutputSchema } from '@c15t/schema';
 import {
 	getIpAddress,
@@ -48,6 +49,10 @@ import {
 	type RouteError,
 	toHttp,
 } from './errors';
+import type { GvlOptions } from './gvl';
+import { buildInitResponse } from './init';
+import { buildManifestResponse, type ManifestCacheOptions } from './manifest';
+import type { PolicySnapshotOptions } from './policy-snapshot';
 import { status } from './status';
 
 export interface AppLayers {
@@ -92,6 +97,11 @@ export interface AppOptions {
 	 * this should reject rather than default open.
 	 */
 	readonly trustedOrigins?: readonly string[];
+	/** Per-tenant configuration the manifest and /init are built from. */
+	readonly manifest?: ConsentManifestConfig;
+	readonly manifestCache?: ManifestCacheOptions;
+	readonly policySnapshot?: PolicySnapshotOptions;
+	readonly gvl?: GvlOptions & { enabled?: boolean };
 	/**
 	 * Keys accepted on `Authorization: Bearer <key>`.
 	 *
@@ -162,6 +172,52 @@ export function createApp(
 			? { ok: true, value: result.success }
 			: { ok: false, failure: toHttp(result.failure) };
 	};
+
+	app.get(
+		'/init',
+		describeRoute({
+			summary: 'Resolve the consent decision for this request',
+			tags: ['Init'],
+		}),
+		async (c) => {
+			const { body } = await buildInitResponse(
+				options.manifest ?? {},
+				c.req.raw.headers,
+				options.policySnapshot,
+				options.gvl
+			);
+			// Geo-dependent by definition, so it must never be cached across
+			// visitors the way /manifest is.
+			c.header('Cache-Control', 'no-store');
+			return c.json(body);
+		}
+	);
+
+	app.get(
+		'/manifest',
+		describeRoute({
+			summary: 'Get the geo-independent consent manifest',
+			tags: ['Manifest'],
+		}),
+		async (c) => {
+			const manifest = await buildManifestResponse(
+				options.manifest ?? {},
+				options.manifestCache,
+				c.req.query('language') ?? null
+			);
+
+			c.header('Cache-Control', manifest.cacheControl);
+			c.header('ETag', manifest.etag);
+
+			// A matching etag means the client already has this manifest; 304
+			// saves re-sending a document that can be large.
+			if (c.req.header('If-None-Match') === manifest.etag) {
+				return c.body(null, 304);
+			}
+
+			return c.json(manifest.body);
+		}
+	);
 
 	app.get(
 		'/status',
