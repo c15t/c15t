@@ -595,26 +595,38 @@ report migration 1 and migration 2 separately, or a large indexing win will be
 silently attributed to Effect.
 
 **Measured** (`benchmarks/backend-bench`, 1000 subjects against 20k background
-rows, PGlite):
+rows, PGlite). Three arms: the real `@c15t/backend` data layer, the same query
+pattern against a bare SQL client, and the rewrite.
 
 | arm | indexed | queries | median ms |
 | --- | --- | ---: | ---: |
-| chunked fan-out | no | 9 | 5.814 |
-| joined | no | 2 | 2.989 |
-| chunked fan-out | yes | 9 | 2.894 |
-| joined | yes | 2 | 2.297 |
+| `v2-backend` (real fumadb) | no | 9 | 16.516 |
+| chunked fan-out (pattern only) | no | 9 | 8.513 |
+| joined | no | 2 | 4.337 |
+| `v2-backend` (real fumadb) | yes | 9 | 11.927 |
+| chunked fan-out (pattern only) | yes | 9 | 4.489 |
+| joined | yes | 2 | 3.273 |
 
-Join alone 1.94×, indexes alone 2.01×, both 2.53×. **Roughly half the total
-improvement is the index migration rather than the rewrite**, and the two do
-not compose multiplicatively, so they are attacking overlapping cost. A single
-before/after number would have credited all 2.53× to Effect — which is exactly
-what this 2×2 exists to prevent.
+The like-for-like comparison — same schema, same indexes, different
+implementation — is **3.64×** (11.927 → 3.273). Unindexed it is 3.81×
+(16.516 → 4.337), so the implementation win is roughly constant either way and
+indexes add about 1.35× on top of either implementation.
 
-Both caveats point the same way, understating the rewrite: PGlite is
-in-process, so nine sequential round trips cost almost nothing here and would
-dominate against a networked Postgres; and the fan-out arm reproduces the
-query pattern rather than calling `@c15t/backend`, so it excludes fumadb's own
-overhead.
+Decomposed against the real baseline: **fumadb's own overhead accounts for
+about half the v2 cost** (16.516 → 8.513 for the identical nine queries
+against identical data), the join accounts for a further ~1.96×, and the
+indexes ~1.35×.
+
+**This supersedes an earlier reading in this section**, which used the
+pattern-only arm as the baseline and concluded that roughly half the total
+improvement was the index migration. Against the real package that is wrong:
+the implementation change dominates, because the pattern-only arm silently
+excluded fumadb's overhead. Keeping both arms is what surfaced the error —
+running one would have left it invisible in either direction.
+
+One caveat still understates the rewrite: PGlite is in-process, so nine
+sequential round trips cost almost nothing here and would dominate against a
+networked Postgres.
 
 ### 11.6 Tenant scoping is unindexed everywhere
 
