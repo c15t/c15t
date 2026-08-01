@@ -4,9 +4,11 @@ export {
 	brandingValues,
 } from './branding';
 export {
+	buildConsentManifestFromConfig,
 	buildDefaultOptInPolicy,
 	type ConsentManifest,
 	type ConsentManifestBranding,
+	type ConsentManifestConfig,
 	type ConsentManifestDefaults,
 	type ConsentManifestGVLReference,
 	type ConsentManifestIAB,

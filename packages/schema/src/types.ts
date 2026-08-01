@@ -73,6 +73,7 @@ export type JurisdictionCode = (typeof jurisdictionCodes)[number];
 export type {
 	ConsentManifest,
 	ConsentManifestBranding,
+	ConsentManifestConfig,
 	ConsentManifestDefaults,
 	ConsentManifestGVLReference,
 	ConsentManifestIAB,
@@ -87,6 +88,7 @@ export type {
 	ResolveInitFromManifestOptions,
 } from './shared';
 export {
+	buildConsentManifestFromConfig,
 	buildDefaultOptInPolicy,
 	CONSENT_REQUEST_HEADER_NAMES,
 	COUNTRY_HEADERS,
