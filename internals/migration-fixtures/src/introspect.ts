@@ -163,7 +163,7 @@ function constraintsSource(engine: string): string {
 		case 'mysql':
 			return MYSQL_CONSTRAINTS;
 		default:
-			return `async function constraints() { return { indexes: [], foreignKeys: [] }; }`;
+			return 'async function constraints() { return { indexes: [], foreignKeys: [] }; }';
 	}
 }
 
