@@ -3,7 +3,7 @@
 	lang="ts"
 >
 import brandingStyles from '@c15t/ui/styles/v3/branding';
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
 
 const props = defineProps<{
@@ -29,8 +29,14 @@ const securedBy = computed(
 		)?.securedBy ?? 'Secured by'
 );
 
+// Resolved after mount so server-rendered and hydrated HTML match — reading
+// window.location during hydration produces a mismatch warning.
+const refHostname = ref('');
+onMounted(() => {
+	refHostname.value = window.location.hostname;
+});
 const refParam = computed(() =>
-	typeof window === 'undefined' ? '' : `?ref=${window.location.hostname}`
+	refHostname.value ? `?ref=${refHostname.value}` : ''
 );
 
 const href = computed(() =>

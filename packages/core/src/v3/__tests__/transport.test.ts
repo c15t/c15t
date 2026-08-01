@@ -944,6 +944,60 @@ describe('createManifestTransport: local init resolution', () => {
 		expect(body).not.toHaveProperty('language');
 		expect(body).not.toHaveProperty('gpc');
 	});
+
+	test('does not send asserted decision inputs when the manifest resolved no policy pack', async () => {
+		const fetchSpy = vi.fn().mockResolvedValue(
+			new Response(JSON.stringify({ ok: true, subjectId: 'sub-1' }), {
+				status: 200,
+			})
+		);
+		const packlessManifest = {
+			...MANIFEST_FIXTURE,
+			iab: undefined,
+			policyPacks: [],
+		};
+		const transport = createManifestTransport({
+			manifest: packlessManifest as never,
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			inputs: {
+				country: null,
+				region: null,
+				language: 'en',
+				gpc: undefined,
+			},
+		});
+
+		await transport.init?.({ overrides: {}, user: null });
+		await transport.save?.({
+			subjectId: 'sub_test',
+			consents: {
+				necessary: true,
+				functionality: false,
+				marketing: false,
+				measurement: false,
+				experience: false,
+			},
+			overrides: {},
+			user: null,
+			model: 'opt-in',
+			uiSource: 'banner',
+			consentAction: 'custom',
+			policySnapshotToken: null,
+		});
+
+		const [, subjectsInit] = fetchSpy.mock.calls[0] ?? [];
+		const body = JSON.parse((subjectsInit as RequestInit).body as string);
+		expect(body).toMatchObject({ subjectId: 'sub_test' });
+		// Partial inputs (country/language without policyId/fingerprint) are
+		// rejected by the backend as incomplete — none may be sent.
+		expect(body).not.toHaveProperty('policyId');
+		expect(body).not.toHaveProperty('fingerprint');
+		expect(body).not.toHaveProperty('country');
+		expect(body).not.toHaveProperty('region');
+		expect(body).not.toHaveProperty('language');
+		expect(body).not.toHaveProperty('gpc');
+	});
 });
 
 describe('x-c15t-version header (issue #916)', () => {
