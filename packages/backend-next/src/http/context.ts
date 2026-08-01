@@ -30,6 +30,7 @@ import {
 import { Effect, ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
 import * as v from 'valibot';
+import { Tenant, layer as tenantLayer } from '../db/tenant';
 import {
 	LegalDocumentConflictError,
 	syncCurrent,
@@ -97,6 +98,15 @@ export interface AppOptions {
 	 * this should reject rather than default open.
 	 */
 	readonly trustedOrigins?: readonly string[];
+	/**
+	 * The tenant this instance serves, matching @c15t/backend where tenantId is
+	 * instance configuration rather than per-request.
+	 *
+	 * Undefined means a single-tenant deployment whose rows hold NULL. That is
+	 * still a scope — queries filter on `is null` — so there is no unscoped
+	 * mode to fall into.
+	 */
+	readonly tenantId?: string;
 	/** Per-tenant configuration the manifest and /init are built from. */
 	readonly manifest?: ConsentManifestConfig;
 	readonly manifestCache?: ManifestCacheOptions;
@@ -125,13 +135,20 @@ export interface RouteContext {
 }
 
 export const makeRun =
-	(runtime: ManagedRuntime.ManagedRuntime<SqlClient.SqlClient, never>) =>
+	(
+		runtime: ManagedRuntime.ManagedRuntime<SqlClient.SqlClient, never>,
+		tenantId: string | undefined
+	) =>
 	async <A>(
-		effect: Effect.Effect<A, RouteError, SqlClient.SqlClient>
+		effect: Effect.Effect<A, RouteError, SqlClient.SqlClient | Tenant>
 	): Promise<
 		{ ok: true; value: A } | { ok: false; failure: ReturnType<typeof toHttp> }
 	> => {
-		const result = await runtime.runPromise(Effect.result(effect));
+		// Provided here, once, rather than at each call site: a route cannot
+		// forget what it never has to remember.
+		const result = await runtime.runPromise(
+			Effect.result(Effect.provide(effect, tenantLayer(tenantId)))
+		);
 		return result._tag === 'Success'
 			? { ok: true, value: result.success }
 			: { ok: false, failure: toHttp(result.failure) };

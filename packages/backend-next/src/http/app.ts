@@ -71,7 +71,11 @@ export function createApp(
 	 * distinction the typed channel exists to make.
 	 */
 
-	const context: RouteContext = { app, options, run: makeRun(runtime) };
+	const context: RouteContext = {
+		app,
+		options,
+		run: makeRun(runtime, options.tenantId),
+	};
 
 	registerInit(context);
 	registerManifest(context);

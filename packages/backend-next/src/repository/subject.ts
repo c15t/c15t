@@ -28,6 +28,7 @@
 import { generateEntityId } from '@c15t/schema';
 import { Effect } from 'effect';
 import { SqlClient, SqlError } from 'effect/unstable/sql';
+import { tenantScope } from '../db/tenant';
 
 export interface ConsentRow {
 	readonly id: string;
@@ -94,7 +95,7 @@ export const latestPolicyIdByType = Effect.fn(
 						partition by "type" order by "effectiveDate" desc
 					) as rn
 				from "consentPolicy"
-				where "isActive" = ${true}
+				where "isActive" = ${true} and ${yield* tenantScope()}
 			) ranked
 			where rn = 1
 		`;
@@ -128,7 +129,7 @@ export const listByExternalId = Effect.fn('repository.listByExternalId')(
 			from "subject" s
 			left join "consent" c on c."subjectId" = s."id"
 			left join "consentPolicy" p on p."id" = c."policyId"
-			where s."externalId" = ${externalId}
+			where s."externalId" = ${externalId} and ${yield* tenantScope('s')}
 			order by s."id", c."givenAt" desc
 		`;
 
@@ -185,7 +186,8 @@ export const countByExternalId = Effect.fn('repository.countByExternalId')(
 	function* (externalId: string) {
 		const sql = yield* SqlClient.SqlClient;
 		const rows = yield* sql<{ total: number | string }>`
-			select count(*) as total from "subject" where "externalId" = ${externalId}
+			select count(*) as total from "subject"
+			where "externalId" = ${externalId} and ${yield* tenantScope()}
 		`;
 		return Number(rows[0]?.total ?? 0);
 	}
@@ -221,7 +223,7 @@ export const findById = Effect.fn('repository.findById')(function* (
 		from "subject" s
 		left join "consent" c on c."subjectId" = s."id"
 		left join "consentPolicy" p on p."id" = c."policyId"
-		where s."id" = ${subjectId}
+		where s."id" = ${subjectId} and ${yield* tenantScope('s')}
 		order by c."givenAt" desc
 	`;
 
@@ -276,13 +278,14 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 		userAgent: string | null;
 	}) {
 		const sql = yield* SqlClient.SqlClient;
+		const scope = yield* tenantScope();
 
 		const found = yield* sql<{
 			externalId: string | null;
 			identityProvider: string | null;
 		}>`
 		select "externalId", "identityProvider" from "subject"
-		where "id" = ${input.subjectId}
+		where "id" = ${input.subjectId} and ${scope}
 	`;
 		const before = found[0];
 		if (before === undefined) {
@@ -296,7 +299,7 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 					"externalId" = ${input.externalId},
 					"identityProvider" = ${input.identityProvider},
 					"updatedAt" = ${new Date()}
-				where "id" = ${input.subjectId}
+				where "id" = ${input.subjectId} and ${scope}
 			`;
 
 				// Records what changed, not just that something did: a trail that

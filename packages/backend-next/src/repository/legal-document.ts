@@ -14,6 +14,7 @@
 import { hashSha256Hex } from '@c15t/schema';
 import { Data, Effect } from 'effect';
 import { SqlClient, SqlError } from 'effect/unstable/sql';
+import { type Tenant, tenantScope } from '../db/tenant';
 
 export interface LegalDocumentRelease {
 	readonly tenantId?: string;
@@ -74,7 +75,7 @@ export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(function* (
 	Effect.Effect<
 		unknown,
 		SqlError.SqlError | LegalDocumentConflictError,
-		SqlClient.SqlClient
+		SqlClient.SqlClient | Tenant
 	>,
 	SyncedPolicy
 > {
@@ -87,6 +88,8 @@ export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(function* (
 		})
 	);
 
+	const scope = yield* tenantScope();
+
 	return yield* sql.withTransaction(
 		Effect.gen(function* () {
 			const existing = yield* sql<{
@@ -96,7 +99,7 @@ export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(function* (
 				hash: string | null;
 				effectiveDate: Date;
 				isActive: boolean;
-			}>`select * from "consentPolicy" where "id" = ${id}`;
+			}>`select * from "consentPolicy" where "id" = ${id} and ${scope}`;
 
 			const found = existing[0];
 
@@ -112,13 +115,16 @@ export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(function* (
 					});
 				}
 
+				// Scoped: without this, syncing a release for one tenant would
+				// deactivate another tenant's active policy of the same type.
 				yield* sql`
 					update "consentPolicy" set "isActive" = ${false}
-					where "type" = ${release.type} and "isActive" = ${true} and "id" <> ${id}
+					where "type" = ${release.type} and "isActive" = ${true}
+						and "id" <> ${id} and ${scope}
 				`;
 
 				if (!found.isActive) {
-					yield* sql`update "consentPolicy" set "isActive" = ${true} where "id" = ${id}`;
+					yield* sql`update "consentPolicy" set "isActive" = ${true} where "id" = ${id} and ${scope}`;
 				}
 
 				return {
@@ -133,7 +139,7 @@ export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(function* (
 
 			yield* sql`
 				update "consentPolicy" set "isActive" = ${false}
-				where "type" = ${release.type} and "isActive" = ${true}
+				where "type" = ${release.type} and "isActive" = ${true} and ${scope}
 			`;
 
 			yield* sql`
