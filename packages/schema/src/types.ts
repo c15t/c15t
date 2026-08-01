@@ -136,6 +136,10 @@ export type {
 	GVLVendor,
 	GVLVendorUrl,
 } from './shared/gvl';
+export {
+	type GlobalVendorList,
+	globalVendorListSchema,
+} from './shared/gvl';
 // Non-IAB vendor types - Custom vendors not registered with IAB
 export type {
 	NonIABVendor,
@@ -182,6 +186,5 @@ export type {
 	ResolvedPolicyDecision,
 	ResolvedPolicyMatch,
 } from './shared/policy-runtime';
-
 // Re-export constants for runtime checks (no Zod involved)
 export { brandingValues, jurisdictionCodes };
