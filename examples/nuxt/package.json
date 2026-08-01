@@ -10,10 +10,10 @@
 	},
 	"dependencies": {
 		"@c15t/vue": "workspace:*",
-		"nuxt": "^4.4.7"
+		"nuxt": "^4.5.1"
 	},
 	"devDependencies": {
-		"typescript": "^6.0.3",
+		"typescript": "6.0.3",
 		"vue-tsc": "^3.3.6"
 	}
 }

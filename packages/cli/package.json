@@ -85,7 +85,8 @@
 		"@types/figlet": "1.7.0",
 		"@types/fs-extra": "11.0.4",
 		"@types/prettier": "^3.0.0",
-		"prettier": "^3.9.4"
+		"prettier": "^3.9.4",
+		"typescript": "7.0.2"
 	},
 	"publishConfig": {
 		"access": "public",

@@ -85,6 +85,7 @@
 		"genversion": "3.2.0",
 		"jsdom": "^25.0.0",
 		"postcss": "^8.5.16",
+		"typescript": "7.0.2",
 		"vitest": "4.1.9"
 	},
 	"peerDependencies": {

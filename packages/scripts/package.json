@@ -254,7 +254,8 @@
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"c15t": "workspace:*",
-		"playwright": "1.58.2"
+		"playwright": "1.58.2",
+		"typescript": "7.0.2"
 	},
 	"publishConfig": {
 		"access": "public"

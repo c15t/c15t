@@ -76,6 +76,6 @@
 		"genversion": "3.2.0",
 		"kysely-pglite": "^0.6.1",
 		"msw": "^2.14.6",
-		"typescript": "7.0.1-rc"
+		"typescript": "7.0.2"
 	}
 }

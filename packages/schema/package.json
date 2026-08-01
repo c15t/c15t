@@ -72,7 +72,8 @@
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
-		"@c15t/vitest-config": "workspace:*"
+		"@c15t/vitest-config": "workspace:*",
+		"typescript": "7.0.2"
 	},
 	"publishConfig": {
 		"access": "public"
