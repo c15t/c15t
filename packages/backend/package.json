@@ -146,6 +146,7 @@
 		"valibot": "1.4.2"
 	},
 	"devDependencies": {
+		"@c15t/backend-conformance": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"@electric-sql/pglite": "0.4.2",

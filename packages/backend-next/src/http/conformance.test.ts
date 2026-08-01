@@ -81,6 +81,9 @@ afterEach(async () => {
 
 describe('conformance: backend-next', () => {
 	for (const testCase of CASES) {
+		const known = testCase.knownGap?.backend === 'backend-next';
+		// A recorded gap still runs — if it starts passing, the record is stale
+		// and should be removed rather than left to rot.
 		it(testCase.name, async () => {
 			if (testCase.seed) {
 				await backend.seed(testCase.seed);
@@ -96,7 +99,15 @@ describe('conformance: backend-next', () => {
 
 			try {
 				await testCase.expect(response, body);
+				if (known) {
+					assert.fail(
+						`${testCase.name} now passes — remove its knownGap entry`
+					);
+				}
 			} catch (error) {
+				if (known) {
+					return;
+				}
 				// Surface the rationale on failure: a conformance break should
 				// say what behaviour was lost, not just which assertion tripped.
 				assert.fail(

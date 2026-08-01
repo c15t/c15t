@@ -261,6 +261,19 @@ export const CASES: readonly ConformanceCase[] = [
 		name: 'init is never cached across visitors',
 		rationale:
 			'The response depends on geo and GPC, so a shared cache would serve one visitor the decision made for another.',
+		// Found by running this suite against the shipped backend: it sets no
+		// cache headers on /init at all. Most CDNs treat an uncached 200 GET as
+		// cacheable, so a visitor in one jurisdiction can receive the decision
+		// computed for another — the wrong banner, or none.
+		//
+		// Kept as a case rather than relaxed to match: the expectation is
+		// correct and the rewrite satisfies it. Recording the gap makes it a
+		// tracked defect instead of an inconsistency someone later "fixes" by
+		// deleting the assertion.
+		knownGap: {
+			backend: '@c15t/backend',
+			why: 'Sets no Cache-Control on /init; a shared cache may serve one visitor the decision computed for another.',
+		},
 		request: () => json('/init'),
 		expect: (response) => {
 			assertStatus(response, 200);
