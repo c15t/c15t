@@ -31,7 +31,17 @@ import { SqlClient, SqlError } from 'effect/unstable/sql';
 export interface ConsentRow {
 	readonly id: string;
 	readonly subjectId: string;
-	readonly policyId: string | null;
+	/**
+	 * The policy's type, which the wire contract requires on every consent.
+	 *
+	 * 2.x fetched this in a second pass inside `consent-enrichment.ts`; joining
+	 * it here costs nothing extra and keeps the whole read at one query.
+	 */
+	readonly type: string;
+	readonly policyId: string | undefined;
+	readonly policyVersion: string | undefined;
+	readonly policyHash: string | undefined;
+	readonly policyEffectiveDate: Date | undefined;
 	readonly purposeIds: unknown;
 	readonly givenAt: Date;
 	/** True when this consent points at the newest active policy of its type. */
@@ -53,7 +63,14 @@ interface JoinedRow {
 	readonly consent_policyId: string | null;
 	readonly consent_purposeIds: unknown;
 	readonly consent_givenAt: Date | null;
+	readonly policy_type: string | null;
+	readonly policy_version: string | null;
+	readonly policy_hash: string | null;
+	readonly policy_effectiveDate: Date | null;
 }
+
+/** Valibot `optional` means absent, not null; the database means null. */
+const orUndefined = <T>(value: T | null): T | undefined => value ?? undefined;
 
 /**
  * The newest active policy for each type, in one query.
@@ -102,9 +119,14 @@ export const listByExternalId = Effect.fn('repository.listByExternalId')(
 				c."id"          as "consent_id",
 				c."policyId"    as "consent_policyId",
 				c."purposeIds"  as "consent_purposeIds",
-				c."givenAt"     as "consent_givenAt"
+				c."givenAt"     as "consent_givenAt",
+				p."type"          as "policy_type",
+				p."version"       as "policy_version",
+				p."hash"          as "policy_hash",
+				p."effectiveDate" as "policy_effectiveDate"
 			from "subject" s
 			left join "consent" c on c."subjectId" = s."id"
+			left join "consentPolicy" p on p."id" = c."policyId"
 			where s."externalId" = ${externalId}
 			order by s."id", c."givenAt" desc
 		`;
@@ -128,7 +150,14 @@ export const listByExternalId = Effect.fn('repository.listByExternalId')(
 				(subject.consents as ConsentRow[]).push({
 					id: row.consent_id,
 					subjectId: row.subject_id,
-					policyId: row.consent_policyId,
+					// A consent whose policy row is gone still has to satisfy the
+					// contract's required `type`; '' is the honest answer rather
+					// than inventing one.
+					type: row.policy_type ?? '',
+					policyId: orUndefined(row.consent_policyId),
+					policyVersion: orUndefined(row.policy_version),
+					policyHash: orUndefined(row.policy_hash),
+					policyEffectiveDate: orUndefined(row.policy_effectiveDate),
 					purposeIds: row.consent_purposeIds,
 					givenAt: row.consent_givenAt,
 					isLatestPolicy:
