@@ -41,7 +41,28 @@ additive migrator converges on the same result either way.
 `legacy-upgraded` is kept anyway — it is the regression test for that claim,
 and it costs nothing to keep generating.
 
-**Scope of that claim.** Captured metadata is tables and columns (name, data
+Verified on sqlite, postgres **and** mysql.
+
+**fumadb cannot migrate MySQL at all.** Both `fumadb-1.0.0` and `fumadb-2.0.0`
+fail on a blank MySQL database with:
+
+> ID columns must not be updated, not every database supports updating primary
+> keys and often requires workarounds.
+
+The failure is inside `plan.execute()`, not merely SQL rendering, and it
+reproduces against the exact dependency each release pins — 2.1.0 pins
+`fumadb@0.2.2` — so it is released behaviour, not a resolution artifact.
+MySQL is advertised in `docs/self-host/guides/database-setup.mdx`, so the
+practical implication is that **fumadb-managed MySQL databases most likely do
+not exist in the wild**: the documented migrator could never have created one.
+Those cells are committed as `mysql.unsupported.json` so the absence is a
+recorded finding rather than a coverage gap.
+
+Not yet checked: whether `fumadb@0.3.0`, which this repo pins on the v3 line,
+still has the bug. If it does, MySQL is broken on the current shipping line
+too — worth confirming independently of the rewrite.
+
+**Scope of these claims.** Captured metadata is tables and columns (name, data
 type, nullability, auto-increment, default presence). **Indexes, foreign keys
 and check constraints are not yet captured**, so drift could still hide there.
 Treat "one legacy shape" as established for columns and unproven for
