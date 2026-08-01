@@ -115,6 +115,68 @@ export function createApp(
 		return c.json(result.value);
 	});
 
+	app.get('/consents/check', async (c) => {
+		const externalId = c.req.query('externalId');
+		const type = c.req.query('type');
+
+		const result = await run(
+			Effect.gen(function* () {
+				if (!externalId) {
+					return yield* new BadRequestError({
+						message: 'externalId query parameter is required',
+						code: 'EXTERNAL_ID_REQUIRED',
+					});
+				}
+				if (!type) {
+					return yield* new BadRequestError({
+						message: 'type query parameter is required',
+						code: 'TYPE_REQUIRED',
+					});
+				}
+
+				const types = type
+					.split(',')
+					.map((entry) => entry.trim())
+					.filter(Boolean);
+
+				// Every requested type is reported, present or not. Omitting the
+				// absent ones would make "no consent" indistinguishable from "you
+				// asked about a type I do not know", and a caller gating script
+				// execution on this must be able to tell those apart.
+				const results: Record<
+					string,
+					{ hasConsent: boolean; isLatestPolicy: boolean }
+				> = {};
+				for (const entry of types) {
+					results[entry] = { hasConsent: false, isLatestPolicy: false };
+				}
+
+				// The shipped handler issues one query per subject plus policy
+				// resolution on top. This is the same two-query read the list path
+				// uses, projected down.
+				const subjects = yield* listByExternalId(externalId);
+				for (const subject of subjects) {
+					for (const consent of subject.consents) {
+						const entry = results[consent.type];
+						if (!entry) continue;
+						entry.hasConsent = true;
+						if (consent.isLatestPolicy) {
+							entry.isLatestPolicy = true;
+						}
+					}
+				}
+
+				return { results };
+			})
+		);
+
+		if (!result.ok) {
+			return c.json(result.failure.body, result.failure.status);
+		}
+
+		return c.json(result.value);
+	});
+
 	app.get('/subjects/:id', async (c) => {
 		// Unauthenticated, matching @c15t/backend: a visitor's own device reads
 		// its own consent status by subject id, and the id is the capability.

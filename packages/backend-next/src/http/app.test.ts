@@ -292,3 +292,67 @@ describe('GET /subjects/:id', () => {
 		assert.isFalse(body.isValid);
 	});
 });
+
+describe('GET /consents/check', () => {
+	it('reports every requested type, present or not', async () => {
+		await seed();
+		const body = await (
+			await app.request(
+				'/consents/check?externalId=ext_1&type=cookie,marketing'
+			)
+		).json();
+
+		// An absent type must appear as false rather than be omitted: a caller
+		// gating script execution has to tell "no consent" from "unknown type".
+		assert.deepStrictEqual(body.results, {
+			cookie: { hasConsent: true, isLatestPolicy: true },
+			marketing: { hasConsent: false, isLatestPolicy: false },
+		});
+	});
+
+	it('separates having consent from it being current', async () => {
+		await seed();
+		await runtime.runPromise(
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				yield* sql.unsafe(`insert into "consentPolicy"
+					("id","version","type","effectiveDate","isActive","createdAt")
+					values ('pol_2','2.0','cookie',now() + interval '1 day',true,now())`);
+			})
+		);
+
+		const body = await (
+			await app.request('/consents/check?externalId=ext_1&type=cookie')
+		).json();
+
+		// Consent exists but is against a superseded policy — the two flags
+		// exist precisely so a caller can act on that difference.
+		assert.deepStrictEqual(body.results.cookie, {
+			hasConsent: true,
+			isLatestPolicy: false,
+		});
+	});
+
+	it('requires both query parameters', async () => {
+		const noExternal = await app.request('/consents/check?type=cookie');
+		assert.strictEqual(noExternal.status, 400);
+		assert.strictEqual(
+			(await noExternal.json()).cause.code,
+			'EXTERNAL_ID_REQUIRED'
+		);
+
+		const noType = await app.request('/consents/check?externalId=ext_1');
+		assert.strictEqual(noType.status, 400);
+		assert.strictEqual((await noType.json()).cause.code, 'TYPE_REQUIRED');
+	});
+
+	it('reports all types false for an unknown subject', async () => {
+		const body = await (
+			await app.request('/consents/check?externalId=nobody&type=cookie')
+		).json();
+		assert.deepStrictEqual(body.results.cookie, {
+			hasConsent: false,
+			isLatestPolicy: false,
+		});
+	});
+});
