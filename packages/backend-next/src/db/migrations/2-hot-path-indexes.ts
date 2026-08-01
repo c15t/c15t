@@ -118,6 +118,37 @@ export const INDEXES: readonly IndexSpec[] = [
 		columns: ['code'],
 		reason: 'Purpose lookup by code.',
 	},
+
+	// Every table carries tenantId, and `withTenantScope`
+	// (packages/backend/src/db/tenant-scope.ts) injects a tenantId filter into
+	// every findFirst, findMany, count, updateMany and deleteMany on every
+	// table — the proxy throws rather than let an unscoped method through. So
+	// in a multi-tenant deployment *every read in the system* filters on
+	// tenantId, and no shipped version indexes it anywhere.
+	//
+	// These are plain single-column indexes rather than (tenantId, x)
+	// composites on purpose. Single-tenant deployments never set tenantId and
+	// so never go through the scoping proxy; they need the bare column indexes
+	// above. Keeping the two sets separate serves both, and Postgres can
+	// bitmap-AND them where a query filters on both. Composites are worth
+	// revisiting once the benchmark has multi-tenant arms to justify them.
+	...(
+		[
+			'subject',
+			'domain',
+			'consentPolicy',
+			'consentPurpose',
+			'runtimePolicyDecision',
+			'consent',
+			'auditLog',
+		] as const
+	).map((table) => ({
+		name: `c15t_${table}_tenantId_idx`,
+		table,
+		columns: ['tenantId'] as const,
+		reason:
+			'Tenant scoping filters every query on this table on tenantId; no shipped version indexed it.',
+	})),
 ] as const;
 
 export const up = Effect.gen(function* () {
