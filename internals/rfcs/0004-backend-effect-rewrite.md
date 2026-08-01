@@ -146,21 +146,39 @@ majors/minors of `@c15t/backend`: `0.0`, `1.0`–`1.8`, `2.0`–`2.2` (`latest` 
 `2.1.0`). That is a wider surface than the two schema versions suggest, for a
 reason that only shows up in history.
 
-### 3.1 `schema/1.0.0/` is a reconstruction, not history
+### 3.1 Three shapes shipped; only one is unreproducible
 
-`packages/backend/src/db/schema/1.0.0/` has exactly one commit — `236360c2`
-(`feat: 2.0 (#533)`, Apr 2026). The directory was **created during the 2.0
-work**, written in fumadb's DSL to describe what 1.x looked like in
-retrospect. Before that commit the backend had an entirely different data
-layer: `pkgs/migrations`, `pkgs/db-adapters`, `pkgs/data-model`, and a flat
-`schema/*`. **fumadb never touched a 1.x database.**
+Inspecting the published tarballs (`npm pack @c15t/backend@<v>`) shows three
+distinct eras, not two:
 
-Consequence: fixtures generated from `schema/1.0.0/` would validate the
-reconstruction against itself. Green tests, broken upgrades.
+| Era | Package versions | Data layer | Version marker |
+| --- | --- | --- | --- |
+| Legacy | 1.0.x–1.8.x (root export) | `pkgs/migrations` + `pkgs/db-adapters` (kysely, drizzle, prisma, memory) | none |
+| fumadb 1.0.0 | 1.8.x via the opt-in `/v2` subpath | fumadb, namespace `c15t` | `c15t_settings` = `1.0.0` |
+| fumadb 2.0.0 | 2.x (the `/v2` surface promoted to root) | fumadb, namespace `c15t` | `c15t_settings` = `2.0.0` |
 
-### 3.2 1.x is a family of shapes, not a version
+The middle row matters. 1.8.6 ships **both** systems: its root export is
+`dist/core.js` (legacy), while `./v2/db/schema`, `./v2/db/migrator` and
+`./v2/db/adapters/*` expose a fumadb schema at version `1.0.0` with exactly
+the seven tables in `packages/backend/src/db/schema/1.0.0/` — `auditLog`,
+`consent`, `consentPolicy`, `consentPurpose`, `consentRecord`, `domain`,
+`subject`.
 
-The pre-2.0 system diffed code against the live database and applied what was
+So `schema/1.0.0/` is **real shipped code, not a retrospective
+reconstruction**. Its single-commit history (`236360c2`, `feat: 2.0 (#533)`)
+is an artifact of the long-lived 2.0 branch being squash-merged, not evidence
+that the schema was invented after the fact. Fixtures for the two fumadb
+shapes can be generated faithfully from shipped code.
+
+This also makes detection more tractable than it first appeared: read
+`c15t_settings` and you have the exact schema version; its absence means
+legacy. The genuinely unreproducible shape is the legacy one — and since
+`/v2` was opt-in, it is also likely the most common.
+
+### 3.2 The legacy shape is a family, not a version
+
+Within the legacy era specifically, there is no single "1.x schema". That
+system diffed code against the live database and applied whatever was
 missing. It was strictly additive — `migration-builders.ts` exports only
 `buildColumnAddMigrations` and `buildTableCreateMigrations`, and
 `schema-comparison.ts:188` states:
@@ -170,11 +188,16 @@ missing. It was strictly additive — `migration-builders.ts` exports only
 ```
 
 No drops, no type changes, no ledger table. So a database created at 1.0 and
-walked up to 1.8 can carry columns a fresh 1.8 install never had, and both
-report as "1.x". There is no version marker to read: `c15t_settings` (fumadb
-writes `${namespace}_settings`, namespace `c15t`) only exists on 2.x
-databases. This is why `src/db/migrator/index.ts:45` catches and falls back to
-`version = 'legacy'` with `mode: 'from-database'`.
+walked up to 1.8 can carry columns a fresh 1.8 install never had, and nothing
+on disk distinguishes them. There is no version marker to read either —
+`c15t_settings` (fumadb writes `${namespace}_settings`, namespace `c15t`)
+only exists once a database has been through the fumadb path, whether via
+1.8.x's `/v2` opt-in or 2.x. This is why `src/db/migrator/index.ts:45`
+catches and falls back to `version = 'legacy'` with `mode: 'from-database'`.
+
+Practical consequence: legacy fixtures cannot be derived from any schema
+definition in this repo. They have to be produced by running the real
+packages (§3.4).
 
 ### 3.3 Design — use Effect's `Migrator`, own the adoption step
 
@@ -215,11 +238,27 @@ bespoke logic is a one-time on-ramp, not permanent infrastructure.
 
 ### 3.4 Ground truth comes from npm
 
-Fixtures are built by installing real old packages — `@c15t/backend@1.0`,
-`@1.4`, `@1.8`, `@2.1` — running each one's own migrator against blank
-sqlite/mysql/postgres, and dumping the resulting DDL. Include at least one
-*upgraded* fixture (created at 1.0, walked to 1.8) alongside fresh installs,
-because §3.2 means they differ.
+Fixtures are produced by installing real published packages, running each
+one's own migrator against blank sqlite/mysql/postgres, and dumping the
+resulting DDL. Published stable versions are `1.0.0, 1.0.5, 1.2.0, 1.2.1,
+1.3.0, 1.3.1, 1.4.1, 1.4.2, 1.5.0, 1.6.0, 1.7.0, 1.7.1, 1.8.0, 1.8.4, 1.8.5,
+1.8.6, 2.0.0, 2.0.2, 2.0.4, 2.1.0`.
+
+| Fixture | Produced by | Path |
+| --- | --- | --- |
+| `legacy-fresh-1.0` | `@c15t/backend@1.0.0` | root export, `pkgs/migrations` |
+| `legacy-fresh-1.8` | `@c15t/backend@1.8.6` | root export, `pkgs/migrations` |
+| `legacy-upgraded` | `1.0.0` → `1.4.2` → `1.8.6` in sequence | root export, same database |
+| `fumadb-1.0.0` | `@c15t/backend@1.8.6` | `/v2/db/migrator` |
+| `fumadb-2.0.0` | `@c15t/backend@2.1.0` | `db/migrator` |
+
+`legacy-upgraded` is the one that cannot be substituted by a fresh install —
+§3.2 is precisely the claim that it differs, and if it turns out not to, that
+is a finding worth recording rather than an assumption worth making.
+
+Driver availability is not a blocker: `@c15t/backend@1.0.0` already depends on
+`better-sqlite3`, `mysql2`, `pg` and `kysely`, so each package brings what it
+needs to talk to all three engines.
 
 **Sequencing:** generate these fixtures *before* the fumadb removal lands.
 Afterwards, reproducing those shapes faithfully gets much harder.
@@ -307,9 +346,9 @@ test-only workaround.
 | Smoke | Boot, health, one write, one read | Built artifact |
 | E2E | CLI `self-host migrate` → server → client SDK | Full stack |
 
-Migration matrix: ~5 source shapes (legacy 0.x, fresh 1.x, upgraded 1.x, 2.x,
-empty) × 3 engines. Seed every fixture with real rows and assert **data
-preservation and FK integrity**, not merely that the DDL executed.
+Migration matrix: the five fixtures in §3.4 plus `empty` (fresh install)
+× 3 engines. Seed every fixture with real rows and assert **data preservation
+and FK integrity**, not merely that the DDL executed.
 
 Coverage floor for the new package starts at the old package's 55% and
 ratchets up; it never ships below parity.
