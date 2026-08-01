@@ -9,7 +9,8 @@
 		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/backend-runtime bunx tsx src/run.ts",
 		"check-types": "tsc --noEmit",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./src"
+		"lint": "bun biome lint ./src",
+		"bench:write": "bunx tsx src/run-write.ts"
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
