@@ -199,6 +199,21 @@ Practical consequence: legacy fixtures cannot be derived from any schema
 definition in this repo. They have to be produced by running the real
 packages (§3.4).
 
+**Measured (`internals/migration-fixtures`): the drift does not occur.**
+`legacy-fresh-1.0`, `legacy-fresh-1.8` and `legacy-upgraded`
+(`1.0.0` → `1.4.2` → `1.8.6`) are byte-identical in tables and columns on both
+sqlite and postgres. The legacy schema simply never changed across the 1.x
+line, so an additive migrator converges on the same result whichever route a
+database took. There is **one** legacy shape to migrate, not a family.
+
+That is a materially easier problem than this section originally assumed, and
+it simplifies §3.3's adoption step: the legacy branch has a single known
+source shape rather than an open-ended one. Two bounds on the claim — captured
+metadata is tables and columns only, so indexes, foreign keys and check
+constraints could still differ; and only the `1.0.0 → 1.4.2 → 1.8.6` chain was
+walked. `legacy-upgraded` stays in the matrix as the regression test that keeps
+this true.
+
 ### 3.3 Design — use Effect's `Migrator`, own the adoption step
 
 `effect/unstable/sql/Migrator` already provides most of what an earlier draft
@@ -252,9 +267,9 @@ resulting DDL. Published stable versions are `1.0.0, 1.0.5, 1.2.0, 1.2.1,
 | `fumadb-1.0.0` | `@c15t/backend@1.8.6` | `/v2/db/migrator` |
 | `fumadb-2.0.0` | `@c15t/backend@2.1.0` | `db/migrator` |
 
-`legacy-upgraded` is the one that cannot be substituted by a fresh install —
-§3.2 is precisely the claim that it differs, and if it turns out not to, that
-is a finding worth recording rather than an assumption worth making.
+`legacy-upgraded` was included because §3.2 predicted it would differ from a
+fresh install. Measured, it does not — see §3.2. It stays as the regression
+test for that result.
 
 Driver availability is not a blocker: `@c15t/backend@1.0.0` already depends on
 `better-sqlite3`, `mysql2`, `pg` and `kysely`, so each package brings what it
