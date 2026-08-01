@@ -28,6 +28,12 @@ export {
 	jurisdictionCodes as jurisdictionCodesConst,
 } from './constants';
 export {
+	buildConsentId,
+	type ConsentSubmissionIdentity,
+	type EntityKind,
+	generateDeterministicId,
+} from './entity-id';
+export {
 	CONSENT_REQUEST_HEADER_NAMES,
 	COUNTRY_HEADERS,
 	type ConsentRequestHeaderInputs,

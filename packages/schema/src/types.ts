@@ -117,6 +117,12 @@ export {
 	validateMessages,
 	validatePolicies,
 } from './shared';
+export {
+	buildConsentId,
+	type ConsentSubmissionIdentity,
+	type EntityKind,
+	generateDeterministicId,
+} from './shared/entity-id';
 // GVL types - IAB TCF Global Vendor List
 export type {
 	GlobalVendorList,

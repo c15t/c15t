@@ -795,6 +795,7 @@
       "version": "2.1.1-canary-20260727202135",
       "dependencies": {
         "@c15t/translations": "workspace:*",
+        "base-x": "5.0.1",
         "valibot": "1.4.2",
       },
       "devDependencies": {
