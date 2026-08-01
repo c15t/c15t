@@ -1,0 +1,25 @@
+{
+	"name": "@c15t/backend-bench",
+	"private": true,
+	"type": "module",
+	"description": "Head-to-head query benchmarks for the backend rewrite (RFC 0004 §7).",
+	"scripts": {
+		"build": "echo 'backend benchmarks are source-only'",
+		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/backend-runtime bun src/run.ts",
+		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/backend-runtime bun src/run.ts",
+		"check-types": "tsc --noEmit",
+		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
+		"lint": "bun biome lint ./src"
+	},
+	"dependencies": {
+		"@c15t/backend-next": "workspace:*",
+		"@c15t/benchmarking": "workspace:*",
+		"@effect/sql-pglite": "4.0.0-beta.102",
+		"effect": "4.0.0-beta.102"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@types/node": "^24.10.1",
+		"typescript": "7.0.2"
+	}
+}
