@@ -1,7 +1,8 @@
 # RFC 0004: Backend Rewrite — Effect SQL and a Measured Parallel Package
 
-Status: **Draft — MongoDB removal confirmed; Effect v4 is the working
-assumption. Remaining decisions in §10.**
+Status: **In progress.** MongoDB removal confirmed, Effect v4 taken. Steps 1–4
+of §8 are implemented and measured; §11 records what building them changed
+about this document. Remaining decisions in §10.
 
 ## Problem
 
@@ -511,5 +512,68 @@ artifact.
    than a builder — but this is the call to make consciously.
 3. **Working package name** during the private phase (it is renamed at
    cutover, so this is low-stakes).
-4. **`consentRecord` (§3.6)** — reproduce current behaviour first, then decide
-   whether to preserve that data on upgrade.
+4. ~~**`consentRecord` (§3.6)**~~ **Resolved by §11.2: adoption never drops
+   anything**, so `consentRecord` and every removed column stay in place and
+   are reported to the operator.
+
+## 11. What implementation changed
+
+Recorded as it happened, because several of these contradict what earlier
+sections of this document originally claimed.
+
+### 11.1 Predictions that did not survive contact
+
+- **Legacy schema drift does not occur.** §3.2 reasoned that a strictly
+  additive migrator with no ledger would let a 1.0→1.8 database keep columns a
+  fresh 1.8 install never had. Measured across all three engines, including
+  indexes and foreign keys: it does not. The legacy schema never changed
+  across the 1.x line, so there is **one** legacy shape.
+- **`schema/1.0.0/` is shipped code, not a reconstruction** (§3.1). The
+  single-commit history was a squash-merge artifact.
+- **Marker absence does not mean legacy** (§3.5). The `generateSchema()` ORM
+  path produced fumadb-shaped databases fumadb never touched.
+
+### 11.2 Adoption is additive, and that is a hard rule
+
+Going 1.0.0 → 2.0.0 removed columns holding real data — `consent.status`,
+`consent.withdrawalReason`, `consentPolicy.content` — and dropped
+`consentRecord` outright. On a consent platform those are withdrawal history
+and audit records.
+
+Adoption therefore creates tables and adds columns and **never drops a table,
+drops a column, or changes a type**. An adopted database is baseline *plus
+whatever it already had*, with the extras reported so an operator can remove
+them deliberately later.
+
+This weakens the fresh-equals-adopted claim in §8 and the wording should be
+read accordingly: the two are identical **in the columns the contract covers**,
+not byte-identical. That is the parity that matters, and it is what
+`baseline.test.ts` asserts.
+
+### 11.3 Two defects found in the shipped product
+
+Neither is caused by this rewrite; both are live on `v3` today.
+
+- **fumadb cannot migrate MySQL at all** (§3.5). Not fixed in `fumadb@0.3.0`.
+- **No foreign key column is indexed in any shipped version.** The only
+  non-primary indexes anywhere are `domain.name` (legacy, lost in 2.0.0) and
+  `runtimePolicyDecision.dedupeKey`. Postgres does not index the referencing
+  side of a foreign key, so the chunked fan-out in `list.handler.ts` was a
+  sequential scan per chunk. This is plausibly a larger scaling problem than
+  the join-less query surface that motivated the rewrite.
+
+Also: the legacy migrator emitted foreign keys on Postgres and SQLite but
+**none on MySQL**, so referential integrity in shipped c15t depends on the
+engine. Adoption validates every foreign key before adding it and refuses with
+a report rather than failing part-way.
+
+### 11.4 Indexes ship as migration 2, not in the baseline
+
+§7 originally deferred the missing indexes to post-cutover to protect
+fresh-equals-adopted. They are instead a separate migration immediately after
+the baseline, which keeps convergence at migration 1 *and* fixes the problem
+before cutover.
+
+It also makes the improvement measurable in isolation. The benchmark arms must
+report migration 1 and migration 2 separately, or a large indexing win will be
+silently attributed to Effect.
