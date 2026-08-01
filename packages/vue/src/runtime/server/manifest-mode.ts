@@ -18,6 +18,18 @@ export interface ManifestModeRuntimeConfig
 		'backendURL' | 'manifestURL' | 'initRoute' | 'manifestRoute'
 	> {}
 
+/**
+ * Just the call signature the manifest routes need.
+ *
+ * Deliberately narrower than `typeof globalThis.fetch`, which carries static
+ * members (`fetch.preconnect` under recent `@types/node`) that no sensible
+ * custom implementation provides — nitro's `localFetch` included.
+ */
+export type ManifestFetch = (
+	input: string | URL | Request,
+	init?: RequestInit
+) => Promise<Response>;
+
 export interface CachedManifestResponse {
 	manifest: ConsentManifest;
 	headers: Record<string, string>;
@@ -149,7 +161,7 @@ export function createManifestRequestURL(input: {
 
 export async function fetchCachedManifest(input: {
 	config: ManifestModeRuntimeConfig;
-	fetch?: typeof globalThis.fetch;
+	fetch?: ManifestFetch;
 	query?: string;
 	now?: number;
 }): Promise<CachedManifestResponse> {

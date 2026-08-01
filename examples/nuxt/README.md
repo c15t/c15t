@@ -25,13 +25,12 @@ surface are shown on the page so you can see the manifest re-resolve.
 
 ## Storage
 
-Selection lives in `lib/adapter.ts`, shared by the server route, the CLI
-config and migrations. Both modes speak Postgres through the same `pg` driver
-and Kysely dialect — only the destination changes:
+Selection lives in `lib/adapter.ts`, shared by the server route and the CLI
+config. Both modes are Postgres — only the destination changes:
 
 - **Local dev** — [PGlite](https://pglite.dev), Postgres compiled to WASM,
-  running in-process behind a unix socket in `.pgdata/`. Gitignored, created
-  and migrated on first request, so `bun run dev` needs zero setup.
+  running in-process with its data directory in `.pgdata/`. Gitignored,
+  created and migrated on first request, so `bun run dev` needs zero setup.
 - **Deployed** — Postgres via `DATABASE_URL`. Deploys fail fast without it
   rather than falling back to an embedded database a read-only filesystem
   can't write. Migrate with `bun run db:migrate`, which runs

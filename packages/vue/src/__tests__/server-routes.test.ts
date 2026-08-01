@@ -73,14 +73,21 @@ function manifestResponse(headers: Record<string, string>) {
 	});
 }
 
-/** Drives the real handler through h3 so we assert on a real Response. */
-function callRoute(
-	path: string,
-	handler: Parameters<ReturnType<typeof createApp>['use']>[1]
-) {
+/**
+ * Drives the real handler through h3 so we assert on a real Response.
+ *
+ * The mounting call is cast because the workspace currently resolves h3 v1 at
+ * runtime while type resolution picks up the h3 v2 pulled in transitively by
+ * nitro, and their `app.use` overloads disagree. Runtime behaviour is
+ * unaffected — this is the v1 `use(route, handler)` form the installed h3
+ * actually implements.
+ */
+type MountRoute = (route: string, handler: unknown) => unknown;
+
+function callRoute(path: string, handler: unknown) {
 	return (requestHeaders: Record<string, string> = {}) => {
 		const app = createApp();
-		app.use(path, handler);
+		(app.use as unknown as MountRoute)(path, handler);
 		return toWebHandler(app)(
 			new Request(`http://localhost${path}`, { headers: requestHeaders })
 		);

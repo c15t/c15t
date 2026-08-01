@@ -714,7 +714,7 @@ export const postSubjectHandler = async (c: Context) => {
 			// fingerprint are recorded on the runtimePolicyDecision row; anchor
 			// the consent row to the find-or-created policy record for its type
 			// like the legacy path does.
-			const policy = await registry.findOrCreatePolicy(type);
+			const policy = await registry.findOrCreatePolicy(type as PolicyType);
 			if (!policy) {
 				throw new HTTPException(500, {
 					message: 'Failed to create policy',

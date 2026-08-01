@@ -1,4 +1,5 @@
 import { useNitroApp } from 'nitropack/runtime';
+import type { ManifestFetch } from './manifest-mode';
 
 /**
  * `globalThis.fetch` rejects relative URLs in Node (`ERR_INVALID_URL`), but a
@@ -7,9 +8,5 @@ import { useNitroApp } from 'nitropack/runtime';
  * `localFetch` serves relative URLs in-process (no self-HTTP hop, works
  * behind deployment protection) and delegates absolute URLs to real fetch.
  */
-export function serverFetch(
-	input: string | URL | Request,
-	init?: RequestInit
-): Promise<Response> {
-	return useNitroApp().localFetch(input, init);
-}
+export const serverFetch: ManifestFetch = (input, init) =>
+	useNitroApp().localFetch(input, init);
