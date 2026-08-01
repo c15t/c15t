@@ -411,3 +411,85 @@ describe('CORS', () => {
 		);
 	});
 });
+
+describe('PUT /legal-documents/:type/current', () => {
+	const release = {
+		version: '1.0',
+		hash: 'sha256-abc',
+		effectiveDate: new Date(1_800_000_000_000).toISOString(),
+	};
+	const put = (body: unknown, auth = true) =>
+		app.request('/legal-documents/privacy_policy/current', {
+			method: 'PUT',
+			headers: {
+				'Content-Type': 'application/json',
+				...(auth ? { Authorization: `Bearer ${API_KEY}` } : {}),
+			},
+			body: JSON.stringify(body),
+		});
+
+	it('requires an API key', async () => {
+		const response = await put(release, false);
+		// This decides which policy every later consent is measured against,
+		// so it is an administrative operation.
+		assert.strictEqual(response.status, 401);
+	});
+
+	it('creates and activates a release', async () => {
+		const body = await (await put(release)).json();
+		assert.strictEqual(body.policy.version, '1.0');
+		assert.isTrue(body.policy.isActive);
+	});
+
+	it('is idempotent', async () => {
+		const first = await (await put(release)).json();
+		const second = await (await put(release)).json();
+
+		assert.strictEqual(second.policy.id, first.policy.id);
+
+		const rows = await runtime.runPromise(
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				return yield* sql<{
+					total: string;
+				}>`select count(*) as total from "consentPolicy"`;
+			})
+		);
+		assert.strictEqual(Number(rows[0]?.total), 1);
+	});
+
+	it('leaves exactly one active policy per type', async () => {
+		await put(release);
+		await put({ ...release, version: '2.0', hash: 'sha256-def' });
+
+		const active = await runtime.runPromise(
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				return yield* sql<{ version: string }>`
+					select "version" from "consentPolicy"
+					where "type" = 'privacy_policy' and "isActive" = true
+				`;
+			})
+		);
+
+		// isLatestPolicy on every consent is derived from this invariant, so
+		// two actives would silently break validity checks system-wide.
+		assert.strictEqual(active.length, 1);
+		assert.strictEqual(active[0]?.version, '2.0');
+	});
+
+	it('rejects a hash reused under different metadata', async () => {
+		await put(release);
+		const response = await put({ ...release, version: '9.9' });
+
+		// The hash identifies the content; the same hash claiming a different
+		// version means the caller has two ideas about what the document says.
+		assert.strictEqual(response.status, 400);
+		assert.strictEqual((await response.json()).cause.code, 'CONFLICT');
+	});
+
+	it('rejects an unparseable effectiveDate', async () => {
+		const response = await put({ ...release, effectiveDate: 'not-a-date' });
+		assert.strictEqual(response.status, 422);
+	});
+});
