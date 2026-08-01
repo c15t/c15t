@@ -88,6 +88,131 @@ describe('baseline migration', () => {
 		{ timeout: 60_000 }
 	);
 
+	/**
+	 * Comparing columns alone is not enough — an earlier version of this
+	 * baseline created every column correctly and no foreign keys at all, and
+	 * the column tests passed. Constraints are part of the shape.
+	 */
+	it.effect(
+		'reproduces every foreign key',
+		() =>
+			Effect.gen(function* () {
+				yield* up;
+				const sql = yield* SqlClient.SqlClient;
+
+				const loaded = yield* Effect.promise(() =>
+					loadFixture('fumadb-2.0.0', 'postgres')
+				);
+				if (loaded.kind !== 'captured') {
+					assert.fail('expected a captured fixture');
+					return;
+				}
+
+				const expected = loaded.fixture.foreignKeys
+					.map(
+						(fk) =>
+							`${fk.table}.${fk.columns.join('+')}->${fk.referencedTable}.${fk.referencedColumns.join('+')}`
+					)
+					.sort();
+
+				const rows = yield* sql<{
+					table_name: string;
+					column_name: string;
+					referenced_table: string;
+					referenced_column: string;
+				}>`
+					select
+						cl.relname as table_name,
+						att.attname as column_name,
+						fcl.relname as referenced_table,
+						fatt.attname as referenced_column
+					from pg_constraint con
+					join pg_class cl on cl.oid = con.conrelid
+					join pg_class fcl on fcl.oid = con.confrelid
+					join unnest(con.conkey) with ordinality as k(attnum, ord) on true
+					join unnest(con.confkey) with ordinality as f(attnum, ord) on f.ord = k.ord
+					join pg_attribute att on att.attrelid = con.conrelid and att.attnum = k.attnum
+					join pg_attribute fatt on fatt.attrelid = con.confrelid and fatt.attnum = f.attnum
+					where con.contype = 'f'
+				`;
+
+				const actual = rows
+					.map(
+						(row) =>
+							`${row.table_name}.${row.column_name}->${row.referenced_table}.${row.referenced_column}`
+					)
+					.sort();
+
+				assert.deepStrictEqual(actual, expected);
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'reproduces every unique and primary key constraint',
+		() =>
+			Effect.gen(function* () {
+				yield* up;
+				const sql = yield* SqlClient.SqlClient;
+
+				const loaded = yield* Effect.promise(() =>
+					loadFixture('fumadb-2.0.0', 'postgres')
+				);
+				if (loaded.kind !== 'captured') {
+					assert.fail('expected a captured fixture');
+					return;
+				}
+
+				// Index *names* are engine-generated and not worth pinning; the
+				// behaviour is (table, columns, unique, primary).
+				const describe_ = (index: {
+					table: string;
+					columns: readonly string[];
+					isUnique: boolean;
+					isPrimary: boolean;
+				}) =>
+					`${index.table}.${index.columns.join('+')} unique=${index.isUnique} pk=${index.isPrimary}`;
+
+				const expected = loaded.fixture.indexes
+					.filter((index) => !/(^|_)c15t_settings$/.test(index.table))
+					.map(describe_)
+					.sort();
+
+				const rows = yield* sql<{
+					table_name: string;
+					column_name: string;
+					is_unique: boolean;
+					is_primary: boolean;
+				}>`
+					select
+						t.relname as table_name,
+						a.attname as column_name,
+						ix.indisunique as is_unique,
+						ix.indisprimary as is_primary
+					from pg_class t
+					join pg_namespace n on n.oid = t.relnamespace
+					join pg_index ix on t.oid = ix.indrelid
+					join unnest(ix.indkey) with ordinality as k(attnum, ord) on true
+					join pg_attribute a on a.attrelid = t.oid and a.attnum = k.attnum
+					where n.nspname = 'public' and t.relkind = 'r'
+				`;
+
+				const actual = rows
+					.map((row) =>
+						describe_({
+							table: row.table_name,
+							columns: [row.column_name],
+							isUnique: row.is_unique,
+							isPrimary: row.is_primary,
+						})
+					)
+					.sort();
+
+				assert.deepStrictEqual(actual, expected);
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
 	for (const table of EXPECTED_TABLES) {
 		it.effect(
 			`reproduces every column of "${table}"`,

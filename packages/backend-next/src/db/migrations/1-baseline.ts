@@ -19,6 +19,15 @@
  * has to be a bounded `varchar` on MySQL because MySQL cannot index `TEXT`
  * without a prefix length. That single constraint is why fumadb cannot migrate
  * MySQL at all (RFC 0004 §3.5); see `../dialect.ts`.
+ *
+ * **What is deliberately absent:** any index on a foreign key column. No
+ * shipped version has one — the only non-primary indexes in any captured
+ * fixture are `domain.name` (legacy) and `dedupeKey` (2.0.0) — and Postgres
+ * does not create them implicitly. That is very likely the dominant scaling
+ * problem in the current backend, but adding them here would mean a fresh
+ * install no longer matches an adopted database, which is the one property
+ * this migration exists to guarantee. They belong immediately after cutover,
+ * measured by the §7 benchmark arms rather than assumed.
  */
 
 import { Effect } from 'effect';
@@ -132,7 +141,11 @@ export const up = Effect.gen(function* () {
 			"consentAction" ${t.text},
 			"runtimePolicyDecisionId" ${t.text},
 			"runtimePolicySource" ${t.text},
-			"tenantId" ${t.text}
+			"tenantId" ${t.text},
+			foreign key ("subjectId") references "subject"("id"),
+			foreign key ("domainId") references "domain"("id"),
+			foreign key ("policyId") references "consentPolicy"("id"),
+			foreign key ("runtimePolicyDecisionId") references "runtimePolicyDecision"("id")
 		)
 	`);
 
@@ -148,7 +161,8 @@ export const up = Effect.gen(function* () {
 			"changes" ${t.json},
 			"metadata" ${t.json},
 			"tenantId" ${t.text},
-			"createdAt" ${t.timestamp} not null
+			"createdAt" ${t.timestamp} not null,
+			foreign key ("subjectId") references "subject"("id")
 		)
 	`);
 });
