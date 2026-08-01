@@ -136,10 +136,7 @@ export type {
 	GVLVendor,
 	GVLVendorUrl,
 } from './shared/gvl';
-export {
-	type GlobalVendorList,
-	globalVendorListSchema,
-} from './shared/gvl';
+export { globalVendorListSchema } from './shared/gvl';
 // Non-IAB vendor types - Custom vendors not registered with IAB
 export type {
 	NonIABVendor,
