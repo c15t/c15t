@@ -14,6 +14,7 @@ import {
 	type ConsentManifestConfig,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
+import { decodeJwt } from 'jose';
 import { assert, describe, it } from 'vitest';
 import { buildInitResponse, readInitSignals } from './init';
 import {
@@ -226,5 +227,93 @@ describe('init GVL inclusion', () => {
 		// Serving an English vendor list to a French visitor is a compliance
 		// problem, not a cosmetic one.
 		assert.include(requested, '/fr.json');
+	});
+});
+
+/**
+ * The snapshot-token path, which needs a policy that actually matches.
+ *
+ * Every other init case uses a bare config, so no policy resolves and the
+ * token branch never runs — the branch that mints signed evidence of a
+ * decision was the least exercised code in the module.
+ */
+describe('init with a matching policy', () => {
+	const snapshot = { signingKey: 'test-signing-key-at-least-32-chars-long' };
+
+	const withPolicy: ConsentManifestConfig = {
+		tenantId: 'tenant_1',
+		appName: 'Example',
+		policyPacks: [
+			{
+				id: 'pol_default',
+				// isDefault so it matches regardless of geo, which keeps the case
+				// about the token rather than about jurisdiction matching.
+				match: { isDefault: true },
+				consent: { model: 'opt-in' },
+			},
+		],
+	};
+
+	it('resolves a policy decision', async () => {
+		const { body } = await buildInitResponse(withPolicy, new Headers());
+		assert.isDefined(
+			(body as { policyDecision?: unknown }).policyDecision,
+			'expected a default policy to match'
+		);
+	});
+
+	it('mints a snapshot token when signing is configured', async () => {
+		const { body } = await buildInitResponse(
+			withPolicy,
+			new Headers(),
+			snapshot
+		);
+		const token = (body as { policySnapshotToken?: string })
+			.policySnapshotToken;
+
+		assert.isString(token);
+		// Three segments: it is a real signed JWT, not a placeholder.
+		assert.strictEqual(token?.split('.').length, 3);
+	});
+
+	it('omits the token when signing is not configured', async () => {
+		const { body } = await buildInitResponse(withPolicy, new Headers());
+		assert.isUndefined(
+			(body as { policySnapshotToken?: string }).policySnapshotToken
+		);
+	});
+
+	it('binds the token to the decision it attests to', async () => {
+		const { body } = await buildInitResponse(
+			withPolicy,
+			new Headers(),
+			snapshot
+		);
+		const typed = body as {
+			policySnapshotToken?: string;
+			policyDecision?: { policyId: string; fingerprint: string };
+		};
+		const claims = decodeJwt(typed.policySnapshotToken ?? '');
+
+		// A token attesting to a different decision than the one returned would
+		// be worse than none — the server would verify evidence for a decision
+		// the visitor never saw.
+		assert.strictEqual(claims.policyId, typed.policyDecision?.policyId);
+		assert.strictEqual(claims.fingerprint, typed.policyDecision?.fingerprint);
+		assert.strictEqual(claims.tenantId, 'tenant_1');
+	});
+
+	it('carries the tenant into the token audience', async () => {
+		const { body } = await buildInitResponse(
+			withPolicy,
+			new Headers(),
+			snapshot
+		);
+		const claims = decodeJwt(
+			(body as { policySnapshotToken?: string }).policySnapshotToken ?? ''
+		);
+		// Tenant-scoped audience is what stops evidence being portable between
+		// tenants.
+		assert.strictEqual(claims.aud, 'c15t-policy-snapshot:tenant_1');
 	});
 });

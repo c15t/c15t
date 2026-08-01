@@ -27,10 +27,10 @@ import {
 	type IpAddressConfig,
 	isOriginTrusted,
 } from '@c15t/schema/geo';
-import { Effect, ManagedRuntime } from 'effect';
+import { Effect, type ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
 import * as v from 'valibot';
-import { Tenant, layer as tenantLayer } from '../db/tenant';
+import { type Tenant, layer as tenantLayer } from '../db/tenant';
 import {
 	LegalDocumentConflictError,
 	syncCurrent,
