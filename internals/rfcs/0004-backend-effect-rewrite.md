@@ -1,4 +1,4 @@
-# RFC 0004: Backend Rewrite — Effect, Kysely, and a Measured Parallel Package
+# RFC 0004: Backend Rewrite — Effect SQL and a Measured Parallel Package
 
 Status: **Draft — investigation complete, decisions open (§10).**
 
@@ -94,11 +94,40 @@ runnable in the same process, benchmarked head-to-head on identical fixtures.
 An in-place refactor can only be compared against git history, which means
 comparing across an environment change — worthless for latency numbers.
 
-## 2. Storage: Kysely only
+## 2. Storage: `effect/unstable/sql`, three dialects
 
-One driver. Kysely covers sqlite, mysql and postgres with real SQL — joins,
-CTEs, window functions, `ON CONFLICT` with a conflict target — and it is
-already what the one existing integration test runs on.
+In Effect v4 the SQL stack lives in the core package — `SqlClient`,
+`Migrator`, `SqlResolver`, `SqlSchema`, `SqlModel` under
+`effect/unstable/sql/*` — with thin per-dialect driver packages. All three
+engines c15t cares about are published on the v4 beta line at
+`4.0.0-beta.102`: `@effect/sql-pg`, `@effect/sql-mysql2`,
+`@effect/sql-sqlite-node` (plus `-bun`). There is no `@effect/sql` install on
+v4; it folded into core, which is why that package has no beta tag.
+
+This replaces an earlier draft of this RFC that specified Kysely as the single
+driver. Kysely is no longer a dependency of the design.
+
+**The tension to be honest about: `@effect/sql-kysely` has no v4 release**
+(`latest` is `0.48.0`, v3-era). On v4 the idiomatic path is `SqlClient` with
+typed template-literal SQL, not a query builder:
+
+```ts
+const rows = yield* sql<{ id: string; name: string }>`SELECT ...`
+```
+
+For a backend whose entire query surface is currently join-less single-table
+calls, hand-written SQL is the point rather than a regression — we are
+rewriting these queries as real SQL either way. Where a builder would
+genuinely earn its keep is dynamic predicate construction in the list
+endpoints. Mitigations in the stack: `SqlResolver` for batched
+`findById`-style access with schema-validated requests and responses, and
+`SqlSchema`/`SqlModel` for decoded row shapes instead of `as`-casts. If
+dynamic composition turns out to be painful in practice, that is the strongest
+argument for taking Effect v3 plus `@effect/sql-kysely` instead (§10.2).
+
+Real SQL — joins, CTEs, window functions, `ON CONFLICT` with a conflict
+target — is available on all three engines regardless of which of those two
+paths we take.
 
 **What is dropped, honestly:**
 
@@ -107,7 +136,7 @@ already what the one existing integration test runs on.
   a migration — there is no DDL path from Mongo to SQL. That script is part of
   the deliverable, not an exercise for the user.
 - **The Drizzle/Prisma/TypeORM adapters.** Those users keep their database;
-  they lose the shared connection pool, since c15t opens its own Kysely
+  they lose the shared connection pool, since c15t opens its own `SqlClient`
   connection against the same server. In exchange they get a migrator that
   actually runs, which they have never had (see Problem). Net positive, but
   the extra pool is a real cost and should be documented as one.
@@ -149,21 +178,42 @@ writes `${namespace}_settings`, namespace `c15t`) only exists on 2.x
 databases. This is why `src/db/migrator/index.ts:45` catches and falls back to
 `version = 'legacy'` with `mode: 'from-database'`.
 
-### 3.3 Design
+### 3.3 Design — use Effect's `Migrator`, own the adoption step
+
+`effect/unstable/sql/Migrator` already provides most of what an earlier draft
+of this RFC specified by hand: a dedicated migrations table with dialect-aware
+creation, duplicate-ID detection, concurrent-run guarding, per-migration logs
+and spans, and transaction/locking semantics from the client. Migrations are
+an ordered record of effects, loaded and run through the runtime:
+
+```ts
+const migrations = PgMigrator.fromRecord({
+  '1_baseline': Effect.gen(function* () { /* … */ }),
+  '2_add_index': Effect.gen(function* () { /* … */ }),
+})
+```
+
+We do not rebuild that. What Migrator does *not* cover is the reason §3.2
+exists: it assumes a linear list against a ledger it owns. A 1.x database has
+no ledger and an unknown shape. So the piece we own is a **baseline adoption
+step** that runs before the ordered list:
 
 - **Detect by introspection, not lookup.** Read `c15t_settings` when present
   (2.x); otherwise sniff tables and columns. "1.x-ish with unknown extra
   columns" is a legitimate, expected input state.
-- **Converge to a target, don't step through versions.** Diff the live
-  database against 3.0.0 and emit the delta. Unlike the old system, this one
-  may drop and retype deliberately — after moving data.
-- **Own ledger.** A `c15t_migrations` table, seeded once from `c15t_settings`
-  where it exists, so v3 stops inheriting fumadb's bookkeeping.
+- **Converge, then stamp.** Bring the live database to the 3.0.0 baseline —
+  dropping and retyping deliberately, after moving data — then write the
+  ledger row so Migrator takes over cleanly from that point forward. Unlike
+  the pre-2.0 system, convergence is allowed to be destructive; unlike a naive
+  linear chain, it does not assume where it started.
 - **`--dry-run` prints the exact SQL** before anything is touched.
 - **Idempotent and resumable** — safe to re-run after a mid-flight failure.
 - **Per-step transactions on Postgres/SQLite.** MySQL DDL is not
   transactional; that path needs per-step checkpointing rather than pretending
   it can roll back.
+
+After adoption, every future migration is an ordinary Migrator entry. The
+bespoke logic is a one-time on-ramp, not permanent infrastructure.
 
 ### 3.4 Ground truth comes from npm
 
@@ -197,11 +247,20 @@ Where it earns its place:
   failure modes are in the type signature.
 - **`Effect.forEach` with bounded concurrency** replacing the hand-rolled
   batch loops in `list.handler.ts` and `consent-enrichment.ts`.
+- **`SqlResolver`** for the batched lookups those loops are badly
+  approximating — request-style batching with schema-validated inputs and
+  outputs is a direct answer to the N+1s in the Problem section.
 - **`Schedule`** replacing the bespoke retry/backoff in `generateUniqueId`.
 
 **Version.** Effect v4 is `4.0.0-beta.102`; `latest` is still `3.22.1`. Pin
 exact and bump deliberately — `bunfig.toml` sets `minimumReleaseAge: 3 days`,
 so a freshly cut beta will not resolve.
+
+The SQL story sharpens this choice rather than complicating it. v4 ships
+`SqlClient` and `Migrator` in core with all three dialects published on the
+beta line, so taking v4 means the storage layer and the migrator both come
+from the framework. v3's counter-offer is `@effect/sql-kysely`, which v4 does
+not have. See §10.2.
 
 **Pilot surface: the migrator.** CLI-invoked, side-effecting, failure-prone,
 wants retries and resume, and has zero hot-path performance concerns. It
@@ -237,7 +296,10 @@ backend.
 The right primitive already exists and was used exactly once:
 `post.handler.integration.test.ts` (190 lines) spins up PGlite, runs real
 migrations, and asserts against real constraint codes. That becomes the house
-pattern rather than a one-off.
+pattern rather than a one-off — and it carries over natively:
+**`@effect/sql-pglite` is v4-only** (its `latest` *is* `4.0.0-beta.102`), so
+the in-process Postgres harness is a first-class Layer rather than a
+test-only workaround.
 
 | Level | Boundary | Runs against |
 | --- | --- | --- |
@@ -300,8 +362,8 @@ artifact.
 
 ## 8. Rollout
 
-1. Scaffold the private package; port types and the frozen 2.0.0 schema as
-   Kysely table definitions.
+1. Scaffold the private package; port types and express the frozen 2.0.0
+   schema as the `1_baseline` migration plus `SqlModel` row definitions.
 2. **Generate migration fixtures from real npm packages (§3.4) — before any
    fumadb removal.**
 3. Build the migrator in Effect (pilot surface, §4).
@@ -329,7 +391,13 @@ artifact.
 ## 10. Open decisions
 
 1. **Mongo — confirmed gone?** Everything else follows from this.
-2. **Effect v4 beta, pinned — or v3 stable and migrate later?**
+2. **Effect v4 beta, pinned — or v3 stable?** No longer a pure risk question,
+   because the two paths give different storage layers. v4: `SqlClient` +
+   `Migrator` in core, all three dialects and PGlite on the beta line, no
+   query builder. v3: stable, plus `@effect/sql-kysely` if a typed query
+   builder for dynamic predicates turns out to matter. Recommend v4 — the
+   built-in migrator and the v4-native PGlite harness are worth more here
+   than a builder — but this is the call to make consciously.
 3. **Working package name** during the private phase (it is renamed at
    cutover, so this is low-stakes).
 4. **`consentRecord` (§3.5)** — reproduce current behaviour first, then decide
