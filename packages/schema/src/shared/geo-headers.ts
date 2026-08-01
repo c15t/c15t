@@ -155,3 +155,12 @@ export function getRegionFromHeaders(
 		...(region && { region }),
 	};
 }
+
+// Client IP derivation lives alongside geo: both recover request metadata
+// from proxy headers, and both are shared so two backends cannot disagree.
+export {
+	DEFAULT_IP_HEADERS_LIST,
+	getIpAddress,
+	type IpAddressConfig,
+	maskIpAddress,
+} from './client-ip';

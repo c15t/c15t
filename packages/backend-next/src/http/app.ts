@@ -21,6 +21,7 @@
  */
 
 import { listSubjectsOutputSchema } from '@c15t/schema';
+import { getIpAddress, type IpAddressConfig } from '@c15t/schema/geo';
 import { Effect, ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
 import { Hono } from 'hono';
@@ -40,6 +41,14 @@ export interface AppLayers {
  * building a layer per request would open a connection pool per request.
  */
 export interface AppOptions {
+	/**
+	 * Client IP handling, passed through to `@c15t/schema`'s shared derivation.
+	 *
+	 * The IP ends up on consent records, so this is a compliance setting rather
+	 * than a diagnostic one: masking is on unless explicitly disabled, and
+	 * `tracking: false` records nothing at all.
+	 */
+	readonly ipAddress?: IpAddressConfig;
 	/**
 	 * Keys accepted on `Authorization: Bearer <key>`.
 	 *
