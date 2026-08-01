@@ -29,6 +29,7 @@ import * as v from 'valibot';
 import { listByExternalId } from '../repository/subject';
 import { validateRequestAuth } from './auth';
 import { BadRequestError, type RouteError, toHttp } from './errors';
+import { status } from './status';
 
 export interface AppLayers {
 	readonly sql: SqlClient.SqlClient;
@@ -49,6 +50,8 @@ export interface AppOptions {
 	 * `tracking: false` records nothing at all.
 	 */
 	readonly ipAddress?: IpAddressConfig;
+	/** Reported by `GET /status`. */
+	readonly version?: string;
 	/**
 	 * Keys accepted on `Authorization: Bearer <key>`.
 	 *
@@ -82,6 +85,30 @@ export function createApp(
 			? { ok: true, value: result.success }
 			: { ok: false, failure: toHttp(result.failure) };
 	};
+
+	app.get('/status', async (c) => {
+		// Unauthenticated on purpose, matching @c15t/backend: a health check a
+		// load balancer cannot reach without credentials is not a health check.
+		// It exposes only version and the caller's own request metadata.
+		const result = await run(
+			status(c.req.raw.headers, options.version ?? '0.0.0', options.ipAddress)
+		);
+
+		if (!result.ok) {
+			// 503 rather than the generic 500 a SqlError would otherwise map to:
+			// orchestrators read 503 as "retry me" and 500 as "I am broken", and
+			// an unreachable database is the former.
+			return c.json(
+				{
+					message: 'Database health check failed',
+					cause: { code: 'SERVICE_UNAVAILABLE' },
+				},
+				503
+			);
+		}
+
+		return c.json(result.value);
+	});
 
 	app.get('/subjects', async (c) => {
 		// Listing subjects by external id exposes consent records for a named

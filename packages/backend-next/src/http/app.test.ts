@@ -169,3 +169,47 @@ describe('GET /subjects', () => {
 		assert.strictEqual(response.status, 401);
 	});
 });
+
+describe('GET /status', () => {
+	it('reports version and client context', async () => {
+		const response = await app.request('/status', {
+			headers: {
+				'accept-language': 'de-DE',
+				'x-forwarded-for': '203.0.113.42',
+			},
+		});
+
+		assert.strictEqual(response.status, 200);
+		const body = await response.json();
+		assert.strictEqual(body.client.acceptLanguage, 'de-DE');
+		// The IP is masked on the way in, as it is everywhere else.
+		assert.strictEqual(body.client.ip, '203.0.113.0');
+		assert.isString(body.version);
+	});
+
+	it('needs no API key', async () => {
+		// A health check a load balancer cannot reach without credentials is
+		// not a health check.
+		const response = await app.request('/status');
+		assert.strictEqual(response.status, 200);
+	});
+
+	it('reports 503 rather than 500 when the database is unreachable', async () => {
+		await runtime.runPromise(
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				yield* sql.unsafe('drop table "subject" cascade');
+			})
+		);
+
+		const response = await app.request('/status');
+
+		// Orchestrators read 503 as "retry me" and 500 as "I am broken". An
+		// unreachable database is the former.
+		assert.strictEqual(response.status, 503);
+		assert.deepStrictEqual(await response.json(), {
+			message: 'Database health check failed',
+			cause: { code: 'SERVICE_UNAVAILABLE' },
+		});
+	});
+});
