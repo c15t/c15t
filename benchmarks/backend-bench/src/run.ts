@@ -39,6 +39,21 @@ interface Sample {
 	readonly durations: number[];
 }
 
+/**
+ * Background rows per targeted subject.
+ *
+ * Without this every subject shares one `externalId`, so `where "externalId" =
+ * ?` selects 100% of the table — the one shape where an index cannot help and
+ * the planner pays for it anyway. An earlier revision of this benchmark did
+ * exactly that and reported indexes making the query *slower*, which said
+ * nothing about the indexes and everything about the fixture.
+ *
+ * A real deployment has many external ids and reads one. 20× background gives
+ * roughly 5% selectivity, which is where an index is supposed to earn its
+ * keep.
+ */
+const BACKGROUND_RATIO = 20;
+
 const seed = Effect.fn('seed')(function* (subjects: number) {
 	const sql = yield* SqlClient.SqlClient;
 
@@ -72,6 +87,34 @@ const seed = Effect.fn('seed')(function* (subjects: number) {
 	yield* sql.unsafe(
 		`insert into "consent" ("id","subjectId","domainId","policyId","purposeIds","givenAt") values ${consentRows}`
 	);
+
+	// Background population under other external ids, so the measured query
+	// reads a slice of the table rather than all of it.
+	const background = subjects * BACKGROUND_RATIO;
+	for (let offset = 0; offset < background; offset += 5000) {
+		const size = Math.min(5000, background - offset);
+		const bgSubjects = Array.from(
+			{ length: size },
+			(_, index) =>
+				`('bg_${offset + index}','ext_other_${offset + index}',now(),now())`
+		).join(',');
+		yield* sql.unsafe(
+			`insert into "subject" ("id","externalId","createdAt","updatedAt") values ${bgSubjects}`
+		);
+
+		const bgConsents = Array.from(
+			{ length: size },
+			(_, index) =>
+				`('bgc_${offset + index}','bg_${offset + index}','dom_1','pol_${(offset + index) % POLICY_TYPES}_0','[]',now())`
+		).join(',');
+		yield* sql.unsafe(
+			`insert into "consent" ("id","subjectId","domainId","policyId","purposeIds","givenAt") values ${bgConsents}`
+		);
+	}
+
+	// Planner statistics are what decide index vs sequential scan; without
+	// this the first queries run against an empty pg_statistic.
+	yield* sql.unsafe('analyze');
 });
 
 const measure = Effect.fn('measure')(function* (
