@@ -164,3 +164,11 @@ export {
 	type IpAddressConfig,
 	maskIpAddress,
 } from './client-ip';
+
+// Origin allowlisting: shared for the same reason as the rest of this
+// module — a security decision that two live backends must not disagree on.
+export {
+	isOriginTrusted,
+	type LoggerLike,
+	matchesWildcard,
+} from './trusted-origin';

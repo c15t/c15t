@@ -21,7 +21,11 @@
  */
 
 import { getSubjectOutputSchema, listSubjectsOutputSchema } from '@c15t/schema';
-import { getIpAddress, type IpAddressConfig } from '@c15t/schema/geo';
+import {
+	getIpAddress,
+	type IpAddressConfig,
+	isOriginTrusted,
+} from '@c15t/schema/geo';
 import { Effect, ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
 import { Hono } from 'hono';
@@ -58,6 +62,14 @@ export interface AppOptions {
 	/** Reported by `GET /status`. */
 	readonly version?: string;
 	/**
+	 * Origins permitted to call this backend from a browser.
+	 *
+	 * Empty or absent means no cross-origin request is allowed. The banner is
+	 * loaded from the host's own page, so a deployment that has not configured
+	 * this should reject rather than default open.
+	 */
+	readonly trustedOrigins?: readonly string[];
+	/**
 	 * Keys accepted on `Authorization: Bearer <key>`.
 	 *
 	 * Absent or empty means no request authenticates. A deployment that has
@@ -71,6 +83,43 @@ export function createApp(
 	options: AppOptions = {}
 ) {
 	const app = new Hono();
+
+	// CORS before anything else: a preflight must be answered without touching
+	// a route, and a disallowed origin must not reach one either. Origin
+	// matching is the shared implementation, so this backend and @c15t/backend
+	// cannot disagree about who is allowed in.
+	app.use('*', async (c, next) => {
+		const origin = c.req.header('Origin');
+		const allowed =
+			origin !== undefined &&
+			isOriginTrusted(origin, [...(options.trustedOrigins ?? [])]);
+
+		if (allowed && origin) {
+			c.header('Access-Control-Allow-Origin', origin);
+			c.header('Vary', 'Origin');
+			c.header('Access-Control-Allow-Credentials', 'true');
+		}
+
+		if (c.req.method === 'OPTIONS') {
+			if (!allowed) {
+				// No CORS headers, so the browser blocks it. 204 rather than 403
+				// because the preflight itself is well-formed.
+				return c.body(null, 204);
+			}
+			c.header(
+				'Access-Control-Allow-Methods',
+				'GET, POST, PUT, DELETE, PATCH, OPTIONS'
+			);
+			c.header(
+				'Access-Control-Allow-Headers',
+				'Content-Type, Authorization, x-request-id, x-c15t-version, x-c15t-country, x-c15t-region, sec-gpc, accept-language'
+			);
+			c.header('Access-Control-Max-Age', '86400');
+			return c.body(null, 204);
+		}
+
+		await next();
+	});
 
 	/**
 	 * Runs a handler and maps its typed failure onto a response.

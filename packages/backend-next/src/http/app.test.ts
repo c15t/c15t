@@ -32,7 +32,10 @@ beforeEach(async () => {
 			yield* indexes;
 		})
 	);
-	app = createApp(runtime, { apiKeys: [API_KEY] });
+	app = createApp(runtime, {
+		apiKeys: [API_KEY],
+		trustedOrigins: ['https://app.example.com'],
+	});
 });
 
 afterEach(async () => {
@@ -354,5 +357,57 @@ describe('GET /consents/check', () => {
 			hasConsent: false,
 			isLatestPolicy: false,
 		});
+	});
+});
+
+describe('CORS', () => {
+	it('allows a trusted origin', async () => {
+		const response = await app.request('/status', {
+			headers: { Origin: 'https://app.example.com' },
+		});
+		assert.strictEqual(
+			response.headers.get('Access-Control-Allow-Origin'),
+			'https://app.example.com'
+		);
+		// Without Vary, a shared cache could serve one origin's response to
+		// another.
+		assert.strictEqual(response.headers.get('Vary'), 'Origin');
+	});
+
+	it('sends no CORS headers for an untrusted origin', async () => {
+		const response = await app.request('/status', {
+			headers: { Origin: 'https://evil.example.com' },
+		});
+		// Absence is the rejection — the browser blocks it. Echoing the origin
+		// back would defeat the allowlist entirely.
+		assert.isNull(response.headers.get('Access-Control-Allow-Origin'));
+	});
+
+	it('rejects every origin when none are configured', async () => {
+		const closed = createApp(runtime, { apiKeys: [API_KEY] });
+		const response = await closed.request('/status', {
+			headers: { Origin: 'https://app.example.com' },
+		});
+		// A deployment that has not configured origins should reject rather
+		// than default open.
+		assert.isNull(response.headers.get('Access-Control-Allow-Origin'));
+	});
+
+	it('answers a preflight without reaching a route', async () => {
+		const response = await app.request('/subjects', {
+			method: 'OPTIONS',
+			headers: {
+				Origin: 'https://app.example.com',
+				'Access-Control-Request-Method': 'GET',
+			},
+		});
+
+		// 204 and not 401: the preflight carries no credentials by design, so
+		// requiring auth here would break every browser client.
+		assert.strictEqual(response.status, 204);
+		assert.include(
+			response.headers.get('Access-Control-Allow-Methods') ?? '',
+			'GET'
+		);
 	});
 });
