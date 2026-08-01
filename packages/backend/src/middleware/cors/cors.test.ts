@@ -30,6 +30,7 @@ describe('createCORSOptions (unit)', () => {
 				'Content-Type',
 				'Authorization',
 				'x-request-id',
+				'x-c15t-version',
 				'x-c15t-country',
 				'x-c15t-region',
 				'x-c15t-version',

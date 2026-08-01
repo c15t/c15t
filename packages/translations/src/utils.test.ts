@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { baseTranslations as bundledTranslations } from './translations';
 import type { I18nConfig, TranslationConfig, Translations } from './types';
 import {
 	deepMergeTranslations,
@@ -10,6 +11,17 @@ import {
 	selectLanguage,
 	toTranslationConfig,
 } from './utils';
+
+describe('bundled frame translations', () => {
+	it.each(
+		Object.entries(bundledTranslations)
+	)('%s defines loading and error copy', (_language, translations) => {
+		expect(translations.frame.loading).toEqual(expect.any(String));
+		expect(translations.frame.loading).not.toBe('');
+		expect(translations.frame.error).toEqual(expect.any(String));
+		expect(translations.frame.error).not.toBe('');
+	});
+});
 
 describe('deepMergeTranslations', () => {
 	const baseTranslations: Translations = {
@@ -35,6 +47,8 @@ describe('deepMergeTranslations', () => {
 		frame: {
 			title: 'Frame Title',
 			actionButton: 'Frame Button',
+			loading: 'Loading content',
+			error: 'Content failed',
 		},
 	};
 
@@ -74,6 +88,8 @@ describe('deepMergeTranslations', () => {
 			frame: {
 				title: 'Frame Title',
 				actionButton: 'Frame Button',
+				loading: 'Loading content',
+				error: 'Content failed',
 			},
 		});
 	});

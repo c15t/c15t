@@ -259,7 +259,8 @@ export interface IABModule {
 
 	/** Fetches the Global Vendor List. Used by client fallback paths. */
 	fetchGVL?: (
-		vendorIds?: number[]
+		vendorIds?: number[],
+		options?: { headers?: Record<string, string> }
 	) => Promise<import('../../types/iab-tcf').GlobalVendorList | null>;
 }
 

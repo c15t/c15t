@@ -26,26 +26,22 @@ describe('mixpanelAnalytics', () => {
 		});
 	});
 
-	it('trims valid tokens before resolving the manifest', () => {
+	it('seeds the snippet contract with the trimmed token before load', () => {
 		const globalRef = getTestGlobal();
-		const init = vi.fn();
-		globalRef.mixpanel = {
-			init,
-			opt_in_tracking: vi.fn(),
-			opt_out_tracking: vi.fn(),
-		};
 		const script = mixpanelAnalytics({
 			token: ` ${MOCK_MIXPANEL_TOKEN} `,
 		});
 
-		script.onLoad?.(
+		script.onBeforeLoad?.(
 			createCallbackInfo({
 				id: script.id,
 				consents: deniedConsentState,
 			})
 		);
 
-		expect(init).toHaveBeenCalledWith(MOCK_MIXPANEL_TOKEN, {});
+		const mixpanel = globalRef.mixpanel as Window['mixpanel'];
+		expect(mixpanel?.__SV).toBe(1.2);
+		expect(mixpanel?._i).toEqual([[MOCK_MIXPANEL_TOKEN, {}, 'mixpanel']]);
 	});
 
 	it('throws for blank or malformed tokens', () => {
@@ -57,13 +53,30 @@ describe('mixpanelAnalytics', () => {
 		);
 	});
 
-	it('initializes mixpanel and syncs consent state through opt methods', () => {
+	it('registers init options in _i for the snippet init registry', () => {
 		const globalRef = getTestGlobal();
-		const init = vi.fn();
+		const script = mixpanelAnalytics({
+			token: MOCK_MIXPANEL_TOKEN,
+			initOptions: { debug: true },
+		});
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: deniedConsentState,
+			})
+		);
+
+		expect((globalRef.mixpanel as Window['mixpanel'])?._i).toEqual([
+			[MOCK_MIXPANEL_TOKEN, { debug: true }, 'mixpanel'],
+		]);
+	});
+
+	it('syncs consent state through the SDK opt methods', () => {
+		const globalRef = getTestGlobal();
 		const optIn = vi.fn();
 		const optOut = vi.fn();
 		globalRef.mixpanel = {
-			init,
 			opt_in_tracking: optIn,
 			opt_out_tracking: optOut,
 		};
@@ -79,9 +92,6 @@ describe('mixpanelAnalytics', () => {
 				consents: deniedConsentState,
 			})
 		);
-		expect(init).toHaveBeenCalledWith(MOCK_MIXPANEL_TOKEN, {
-			debug: true,
-		});
 		expect(optOut).toHaveBeenCalledTimes(1);
 
 		script.onConsentChange?.(

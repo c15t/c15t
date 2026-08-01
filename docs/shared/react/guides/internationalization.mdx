@@ -51,7 +51,7 @@ group: reference
   | `cookieBanner` | Banner title and description |
   | `consentManagerDialog` | Dialog title and description |
   | `consentTypes` | Per-category title and description (keyed by AllConsentNames) |
-  | `frame` | Frame placeholder title and button text (supports `{category}` placeholder) |
+  | `frame` | Frame placeholder title, button, loading, and error text (title and button support `{category}`) |
   | `legalLinks` | Privacy policy, cookie policy, terms of service link text |
   | `iab` | IAB TCF banner, preference center, vendor list translations |
 </section>
@@ -81,7 +81,9 @@ group: reference
 
   ## Custom Consent Type Labels
 
-  Override the title and description for individual consent categories:
+  Override the title and description for individual consent categories. Frame
+  placeholders use that title anywhere their message contains `{category}`, so
+  the title and action stay consistent:
 
   ```tsx
   i18n: {
@@ -96,6 +98,12 @@ group: reference
             title: 'Advertising',
             description: 'Used to deliver relevant ads and measure campaign effectiveness.',
           },
+        },
+        frame: {
+          title: 'Allow {category} consent to view this content.',
+          actionButton: 'Enable {category} consent',
+          loading: 'Loading content…',
+          error: 'This content could not be loaded.',
         },
       },
     },

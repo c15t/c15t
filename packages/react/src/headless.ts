@@ -22,6 +22,15 @@ export {
 } from './hooks/use-consent-dialog-trigger';
 // Export hooks
 export { useConsentManager } from './hooks/use-consent-manager';
+export {
+	ConsentScriptConflictError,
+	type ConsentScriptReadyControls,
+	type ConsentScriptStatus,
+	type ConsentScriptUnmountBehavior,
+	type UseConsentScriptOptions,
+	type UseConsentScriptResult,
+	useConsentScript,
+} from './hooks/use-consent-script';
 export { useFocusTrap } from './hooks/use-focus-trap';
 export {
 	type HeadlessConsentBannerAction,

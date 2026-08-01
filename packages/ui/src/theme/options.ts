@@ -47,6 +47,20 @@ export interface CommonInlineStoreOptions {
 	scripts?: Script[];
 
 	/**
+	 * Content Security Policy nonce applied to DOM nodes c15t injects.
+	 *
+	 * @remarks
+	 * Set this when your CSP uses a nonce-based policy instead of
+	 * `'unsafe-inline'`. c15t forwards it to the injected theme `<style>`
+	 * element and to every `<script>` element created by the script loader.
+	 *
+	 * A per-script `nonce` still takes precedence over this value.
+	 *
+	 * @see https://c15t.com/docs/frameworks/react/components/consent-manager-provider
+	 */
+	nonce?: string;
+
+	/**
 	 * Configuration for the legal links.
 	 *
 	 * @remarks

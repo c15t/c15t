@@ -50,6 +50,8 @@ export const translations: CompleteTranslations = {
 		actionButton: "Attiva l-kunsens ta' {category}",
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Politika tal-Privatezza',
@@ -122,7 +124,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Il-preferenzi tal-kunsens huma maħżuna f’cookie msemmija "euconsent-v2" għal 13-il xahar. The storage duration may be refreshed when you update your preferences.',
+					'Il-preferenzi tal-kunsens huma maħżuna f’cookie msemmija "euconsent-v2" għal 13-il xahar. Il-perjodu tal-ħażna jista’ jiġġedded meta taġġorna l-preferenzi tiegħek.',
 			},
 		},
 		common: {

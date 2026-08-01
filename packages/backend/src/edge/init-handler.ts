@@ -195,7 +195,7 @@ function buildCorsHeaders(
 	const headers: Record<string, string> = {
 		'access-control-allow-methods': 'GET, OPTIONS',
 		'access-control-allow-headers':
-			'content-type, accept-language, sec-gpc, x-c15t-country, x-c15t-region, cf-ipcountry, x-vercel-ip-country, x-vercel-ip-country-region, x-amz-cf-ipcountry, x-country-code, x-region-code',
+			'content-type, accept-language, x-c15t-version, sec-gpc, x-c15t-country, x-c15t-region, cf-ipcountry, x-vercel-ip-country, x-vercel-ip-country-region, x-amz-cf-ipcountry, x-country-code, x-region-code',
 		'access-control-max-age': '86400',
 	};
 

@@ -2,6 +2,7 @@ import { afterEach, vi } from 'vitest';
 import {
 	clearAllScripts,
 	loadScripts,
+	updateScripts,
 } from '../../core/src/libs/script-loader';
 
 export type GoogleTagDataState = {
@@ -72,7 +73,31 @@ export type TestWindow = Window &
 			hjsv: number;
 		};
 		_paq?: unknown[];
+		_satellite?: Record<string, unknown>;
 		_snaptr?: SnapchatQueueStub;
+		adobeDataLayer?: unknown[];
+		amplitude?: {
+			_q?: Array<{
+				name: string;
+				args: unknown[];
+				resolve: (value: unknown) => void;
+			}>;
+			_iq?: Record<string, unknown>;
+			invoked?: boolean;
+			Identify?: new () => {
+				_q?: Array<{
+					name: string;
+					args: unknown[];
+				}>;
+				set: (property: string, value: unknown) => unknown;
+			};
+			init?: (...args: unknown[]) => unknown;
+			track?: (...args: unknown[]) => unknown;
+			identify?: (...args: unknown[]) => unknown;
+			setUserId?: (...args: unknown[]) => unknown;
+			setOptOut?: (...args: unknown[]) => unknown;
+			flush?: (...args: unknown[]) => unknown;
+		};
 		analytics?: unknown[] & Record<string, (...args: unknown[]) => void>;
 		clarity?: ((...args: unknown[]) => void) & {
 			q?: unknown[][];
@@ -87,10 +112,36 @@ export type TestWindow = Window &
 		databuddyConfig?: Record<string, unknown>;
 		fbq?: Record<string, unknown>;
 		google_tag_data?: GoogleTagDataState;
+		heap?: (unknown[] | Record<string, unknown>) & {
+			appid?: string;
+			clientConfig?: Record<string, unknown>;
+			envId?: string;
+			identify?: (...args: unknown[]) => unknown;
+			track?: (...args: unknown[]) => unknown;
+		};
+		heapReadyCb?: Array<{
+			name: string;
+			fn: () => void;
+		}>;
+		htevents?: unknown[] & Record<string, (...args: unknown[]) => void>;
 		hj?: ((...args: unknown[]) => void) & { q?: unknown[][] };
 		intercomSettings?: Record<string, unknown>;
 		lintrk?: ((...args: unknown[]) => void) & { q?: unknown[] };
+		LogRocket?: {
+			init: (appId: string, options?: Record<string, unknown>) => void;
+		};
 		mixpanel?: unknown[] & Record<string, (...args: unknown[]) => void>;
+		pirsch?: (
+			eventName: string,
+			options?: {
+				duration?: number;
+				meta?: Record<string, unknown>;
+				non_interactive?: boolean;
+			}
+		) => Promise<null | undefined>;
+		pirschClearSession?: () => void;
+		pirschInit?: () => void;
+		pirschNotFound?: () => void;
 		plausible?: ((...args: unknown[]) => void) & {
 			o?: Record<string, unknown>;
 			q?: unknown[][];
@@ -105,6 +156,9 @@ export type TestWindow = Window &
 			callQueue?: unknown[][];
 			sendEvent?: (...args: unknown[]) => void;
 		};
+		rudderanalytics?: unknown[] & Record<string, (...args: unknown[]) => void>;
+		rudderAnalyticsBuildType?: string;
+		RudderSnippetVersion?: string;
 		snaptr?: SnapchatQueueStub;
 		ttq?: TikTokQueue;
 		twq?: ((...args: unknown[]) => void) & { queue?: unknown[] };
@@ -113,7 +167,7 @@ export type TestWindow = Window &
 		vaq?: unknown[][];
 	};
 
-export { loadScripts };
+export { loadScripts, updateScripts };
 
 export const deniedConsents = {
 	necessary: true,
@@ -188,7 +242,10 @@ function resetVendorGlobals() {
 		'_fbq',
 		'_hjSettings',
 		'_paq',
+		'_satellite',
 		'_snaptr',
+		'adobeDataLayer',
+		'amplitude',
 		'analytics',
 		'clarity',
 		'dataLayer',
@@ -196,13 +253,24 @@ function resetVendorGlobals() {
 		'databuddyConfig',
 		'fbq',
 		'google_tag_data',
+		'heap',
+		'heapReadyCb',
+		'htevents',
 		'hj',
 		'intercomSettings',
 		'lintrk',
+		'LogRocket',
 		'mixpanel',
+		'pirsch',
+		'pirschClearSession',
+		'pirschInit',
+		'pirschNotFound',
 		'plausible',
 		'posthog',
 		'rdt',
+		'rudderanalytics',
+		'rudderAnalyticsBuildType',
+		'RudderSnippetVersion',
 		'snaptr',
 		'ttq',
 		'twq',

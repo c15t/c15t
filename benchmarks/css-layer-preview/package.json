@@ -12,13 +12,13 @@
 		"@c15t/benchmarking": "workspace:*",
 		"@c15t/react": "workspace:*",
 		"@c15t/ui": "workspace:*",
-		"next": "15.5.15",
-		"react": "19.2.3",
-		"react-dom": "19.2.3"
+		"next": "15.5.16",
+		"react": "19.2.7",
+		"react-dom": "19.2.7"
 	},
 	"devDependencies": {
 		"@types/node": "22.14.1",
-		"@types/react": "19.2.3",
+		"@types/react": "19.2.17",
 		"@types/react-dom": "19.2.3",
 		"typescript": "5.8.3"
 	}

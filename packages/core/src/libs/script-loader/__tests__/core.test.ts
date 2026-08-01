@@ -204,6 +204,71 @@ fbq('track', 'PageView');
 			);
 		});
 
+		it('should apply the loader-level nonce to scripts without their own', () => {
+			loadScripts(
+				[
+					{
+						id: 'default-nonce-script',
+						src: 'https://example.com/test.js',
+						category: 'necessary',
+					},
+				],
+				sampleConsents,
+				{},
+				{ nonce: 'provider-nonce' }
+			);
+
+			const mockCreateElement = document.createElement as unknown as {
+				mock: { results: Array<{ value: HTMLScriptElement }> };
+			};
+			const scriptElement = mockCreateElement.mock.results[0].value;
+
+			expect(scriptElement.nonce).toBe('provider-nonce');
+		});
+
+		it('should let a per-script nonce override the loader-level nonce', () => {
+			loadScripts(
+				[
+					{
+						id: 'own-nonce-script',
+						src: 'https://example.com/test.js',
+						category: 'necessary',
+						nonce: 'script-nonce',
+					},
+				],
+				sampleConsents,
+				{},
+				{ nonce: 'provider-nonce' }
+			);
+
+			const mockCreateElement = document.createElement as unknown as {
+				mock: { results: Array<{ value: HTMLScriptElement }> };
+			};
+			const scriptElement = mockCreateElement.mock.results[0].value;
+
+			expect(scriptElement.nonce).toBe('script-nonce');
+		});
+
+		it('should leave the nonce unset when neither source provides one', () => {
+			loadScripts(
+				[
+					{
+						id: 'no-nonce-script',
+						src: 'https://example.com/test.js',
+						category: 'necessary',
+					},
+				],
+				sampleConsents
+			);
+
+			const mockCreateElement = document.createElement as unknown as {
+				mock: { results: Array<{ value: HTMLScriptElement }> };
+			};
+			const scriptElement = mockCreateElement.mock.results[0].value;
+
+			expect(scriptElement.nonce).toBe('');
+		});
+
 		it('should use anonymized IDs by default', () => {
 			// Mock the generateRandomScriptId function to return a predictable value
 			mockRandomForTesting();

@@ -61,7 +61,7 @@
 		"c15t": "workspace:*",
 		"defu": "^6.1.4",
 		"ufo": "^1.6.1",
-		"vue": "^3.5.13"
+		"vue": "^3.5.39"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
@@ -77,7 +77,7 @@
 		"pathe": "^2.0.3",
 		"typescript": "5.9.3",
 		"unbuild": "^3.6.1",
-		"vitest": "4.0.15",
+		"vitest": "4.1.9",
 		"vue-tsc": "^3.3.3"
 	},
 	"peerDependencies": {

@@ -1,23 +1,26 @@
 name: Benchmark Regression
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - 'packages/core/**'
-      - 'packages/react/**'
-      - 'packages/nextjs/**'
-      - 'packages/iab/**'
-      - 'packages/vue/**'
-      - 'packages/styles/**'
-      - 'packages/translations/**'
-      - 'packages/ui/**'
-      - 'benchmarks/**'
-      - 'package.json'
-      - 'bun.lock'
-      - 'bun.lockb'
-      - 'turbo.json'
-      - 'internals/bundle-analysis-action/**'
+  # TODO: re-enable the pull_request trigger once the report is less noisy.
+  # Disabled for now — the per-PR comparison comment is too spammy.
+  # pull_request:
+  #   types: [opened, synchronize, reopened]
+  #   paths:
+  #     - 'packages/core/**'
+  #     - 'packages/react/**'
+  #     - 'packages/nextjs/**'
+  #     - 'packages/iab/**'
+  #     - 'packages/vue/**'
+  #     - 'packages/styles/**'
+  #     - 'packages/translations/**'
+  #     - 'packages/ui/**'
+  #     - 'benchmarks/**'
+  #     - 'package.json'
+  #     - 'bun.lock'
+  #     - 'bun.lockb'
+  #     - 'turbo.json'
+  #     - 'internals/bundle-analysis-action/**'
+  workflow_dispatch:
   push:
     branches: ['main', 'canary', 'v3']
     paths:
@@ -35,6 +38,11 @@ on:
       - 'bun.lockb'
       - 'turbo.json'
       - 'internals/bundle-analysis-action/**'
+
+env:
+  # leadtype package-docs generation exceeds the default Node heap on
+  # cache-miss builds of larger packages (core, react).
+  NODE_OPTIONS: --max-old-space-size=6144
 
 jobs:
   benchmark:
@@ -59,7 +67,9 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Install Playwright Chromium
-        run: bunx playwright@1.58.2 install --with-deps chromium chromium-headless-shell
+        run: |
+          PLAYWRIGHT_VERSION=$(bun -e "console.log(require('./package.json').devDependencies.playwright)")
+          bunx "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium chromium-headless-shell
 
       - name: Clean benchmark output
         run: rm -rf .benchmarks .perf
@@ -91,7 +101,9 @@ jobs:
 
       - name: Reinstall Playwright Chromium for PR branch
         if: github.event_name == 'pull_request'
-        run: bunx playwright@1.58.2 install --with-deps chromium chromium-headless-shell
+        run: |
+          PLAYWRIGHT_VERSION=$(bun -e "console.log(require('./package.json').devDependencies.playwright)")
+          bunx "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium chromium-headless-shell
 
       - name: Run head benchmark suite
         if: github.event_name == 'pull_request'

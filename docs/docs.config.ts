@@ -42,7 +42,7 @@ const generateDocsConfig = () => {
 				slug: 'integrations',
 				title: 'Integrations',
 				description:
-					'Connect analytics, advertising, and tag-management tools behind consent.',
+					'Connect analytics, advertising, maps, media, and other third-party tools behind consent.',
 			},
 			{
 				slug: 'cli',
@@ -252,6 +252,10 @@ const generateDocsConfig = () => {
 				pages: ['overview', 'building-integrations'],
 				children: [
 					{
+						title: 'Renderable',
+						pages: ['google-maps', 'youtube'],
+					},
+					{
 						title: 'Tag Managers',
 						pages: ['google-tag-manager'],
 					},
@@ -260,16 +264,24 @@ const generateDocsConfig = () => {
 						pages: [
 							'google-tag',
 							'ahrefs-analytics',
+							'adobe-analytics',
+							'amplitude',
 							'cloudflare-web-analytics',
+							'clearbit',
 							'microsoft-clarity',
 							'databuddy',
 							'fathom-analytics',
+							'heap',
 							'matomo-analytics',
 							'mixpanel-analytics',
 							'hotjar',
+							'hightouch',
+							'logrocket',
 							'plausible-analytics',
 							'posthog',
 							'promptwatch',
+							'pirsch',
+							'rudderstack',
 							'segment',
 							'rybbit-analytics',
 							'umami-analytics',

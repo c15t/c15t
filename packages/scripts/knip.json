@@ -1,6 +1,12 @@
 {
 	"$schema": "https://unpkg.com/knip@latest/schema.json",
-	"entry": ["./src/index.ts", "./src/adapters/next.ts"],
+	"entry": [
+		"./src/index.ts",
+		"./src/adapters/next.ts",
+		"./live-vendors/runner.ts",
+		"./live-vendors/manage-issues.ts",
+		"./live-vendors/harness/entry.ts"
+	],
 	"ignoreBinaries": ["biome", "rslib", "tsc", "vitest"],
 	"ignore": [
 		"**/*.spec.{js,ts,tsx}",

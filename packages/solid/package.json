@@ -11,12 +11,12 @@
 	},
 	"dependencies": {
 		"@c15t/ui": "workspace:*",
-		"solid-js": "^1.9.5"
+		"solid-js": "^1.9.14"
 	},
 	"devDependencies": {
 		"@c15t/conformance": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
-		"typescript": "5.9.3",
-		"vitest": "4.0.15"
+		"typescript": "7.0.1-rc",
+		"vitest": "4.1.9"
 	}
 }

@@ -51,6 +51,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'A(z) {category} hozzájárulás engedélyezése',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Adatvédelmi szabályzat',
@@ -122,7 +124,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'A hozzájárulási beállításokat egy "euconsent-v2" nevű sütiben tároljuk 13 hónapig. The storage duration may be refreshed when you update your preferences.',
+					'A hozzájárulási beállításokat egy "euconsent-v2" nevű sütiben tároljuk 13 hónapig. A tárolási időtartam megújulhat, amikor Ön frissíti a beállításait.',
 			},
 		},
 		common: {

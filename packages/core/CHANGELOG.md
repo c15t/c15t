@@ -1,5 +1,48 @@
 # c15t
 
+## 2.2.0-canary-20260731105620
+
+### Patch Changes
+
+- c187c9d: Add a `nonce` option for nonce-based Content Security Policies
+
+  The injected `<style id="c15t-theme">` element previously carried no nonce, so a strict CSP blocked it unless you allowed `'unsafe-inline'`. Setting `nonce` on the provider options now applies it to that stylesheet and to every `<script>` element created by the script loader. A per-script `nonce` still takes precedence.
+
+  ```tsx
+  <ConsentManagerProvider options={{ mode: "offline", nonce }}>
+    {children}
+  </ConsentManagerProvider>
+  ```
+
+## 2.2.0-canary-20260727202135
+
+### Patch Changes
+
+- 16a1f82: Dependency audit for the next release: remove unused `@orpc/*` dependencies from `@c15t/backend` and `@c15t/node-sdk`, update runtime dependencies (hono 4.12.27, valibot 1.4.2, defu 6.1.7, jose 6.2.3, zod 4.4.3, zustand 5.0.14, xstate 5.32.4, and more), and force security floors for kysely (SQL injection fixes) and protobufjs via workspace overrides. Builds now use TypeScript 7 (native compiler) with rslib 0.23 for type checking and declaration emit; emitted types are semantically unchanged.
+- ace6760: Fix IAB TCF in offline mode and on override-driven re-initialization:
+
+  - The `iab()` factory now injects `fetchGVL` into the runtime module, so offline mode (and the hosted fallback path) can load the Global Vendor List. Previously the GVL never loaded and the IAB banner silently never rendered in offline mode.
+  - The GVL is requested with the resolved language (`Accept-Language`), so purpose and feature names match the rest of the consent UI.
+  - `setOverrides`/`setLanguage` now pass the IAB config through re-initialization, so a language or location change refreshes the GVL instead of keeping a stale one.
+
+- c7e53ff: Forward `x-c15t-version` on backend-bound requests from browser, SSR, prefetch, and Node SDK clients, and allow the header through backend CORS preflight handling.
+- ace6760: `getOrCreateConsentRuntime` (the shared runtime behind `ConsentManagerProvider`) now forwards the `headers` option to hosted clients instead of silently dropping it, and includes the headers in the runtime cache key so clients with different headers never share a cached instance.
+- e4315bd: Script loader: forward an explicit `async: false` to the injected script element. Dynamically injected scripts are async by default, so vendor helpers documenting synchronous loading (for example legacy Adobe Tags embeds) previously had no effect.
+- 5406a8d: Match legal-document policy types (`privacy_policy`, `dpa`, `terms_and_conditions`) by prefix so suffixed variants like `terms_and_conditions_b2b` are accepted, letting multiple policies of one family be active at once. Unknown types are still rejected.
+- ca7784f: Prevent duplicate consent records from concurrent identical submissions. Concurrent in-flight client saves with the same intent are coalesced, and backend submissions derive the consent primary key from tenant, subject, domain, policy, and `givenAt`, so identical requests collide on the key every deployed database already enforces. Scope legacy duplicate lookups to the current tenant, and reject timestamps outside JavaScript's representable `Date` range before deriving the ID.
+- 30cb116: Clamp client consent `givenAt` timestamps more than five minutes ahead of the server clock to server time before deriving consent validity. Preserve the client's original claim as `metadata.clientGivenAt` and use that claim for consent identity so retries remain idempotent. Sync local consent state to the timestamp recorded by the server. Leave timestamps within the five-minute tolerance and past timestamps unchanged.
+- Updated dependencies [1d24803]
+- Updated dependencies [05b0abb]
+- Updated dependencies [8c004cf]
+- Updated dependencies [16a1f82]
+- Updated dependencies [c8690f9]
+- Updated dependencies [5406a8d]
+- Updated dependencies [0c97773]
+- Updated dependencies [ca7784f]
+- Updated dependencies [c8690f9]
+  - @c15t/translations@2.2.0-canary-20260727202135
+  - @c15t/schema@2.1.1-canary-20260727202135
+
 ## 2.1.0
 
 ### Minor Changes

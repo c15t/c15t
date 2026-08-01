@@ -50,6 +50,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'Virkja {category} samþykki',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Persónuverndarstefna',
@@ -121,7 +123,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Samþykkisstillingar eru geymdar í vafraköku sem heitir "euconsent-v2" í 13 mánuði. The storage duration may be refreshed when you update your preferences.',
+					'Samþykkisstillingar eru geymdar í vafraköku sem heitir "euconsent-v2" í 13 mánuði. Geymslutíminn kann að endurnýjast þegar þú uppfærir stillingar þínar.',
 			},
 		},
 		common: {

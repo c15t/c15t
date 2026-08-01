@@ -369,6 +369,14 @@ export interface ComponentSlots {
 	/** Backdrop overlay rendered behind the dialog. */
 	consentDialogOverlay?: SlotStyle;
 
+	// --- CONSENT DIALOG TRIGGER TOOLBAR SLOTS ---
+	/** Floating consent dialog trigger toolbar. */
+	consentDialogTriggerToolbar?: SlotStyle;
+	/** Individual action button inside the trigger toolbar. */
+	consentDialogTriggerToolbarItem?: SlotStyle;
+	/** Icon wrapper used by trigger toolbar actions. */
+	consentDialogTriggerToolbarIcon?: SlotStyle;
+
 	// --- CONSENT WIDGET SLOTS ---
 	/** Root wrapper for the consent widget/preferences panel. */
 	consentWidget?: SlotStyle;
@@ -497,7 +505,15 @@ export interface Theme {
 	motion?: MotionTokens;
 	/** Semantic button styling for consent actions. */
 	consentActions?: {
+		/** Base treatment for every action button. */
 		default?: ConsentActionStyle;
+		/**
+		 * Treatment for whichever action(s) the active policy marks as
+		 * primary (`ui.banner.primaryActions`). Lets a theme decide how a
+		 * primary action looks while the policy decides which action that
+		 * is. Overrides `default`; per-action keys override this.
+		 */
+		primary?: ConsentActionStyle;
 		accept?: ConsentActionStyle;
 		reject?: ConsentActionStyle;
 		customize?: ConsentActionStyle;

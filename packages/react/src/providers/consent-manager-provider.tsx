@@ -223,6 +223,11 @@ export function ConsentManagerProvider({
 		return generateThemeCSS(themeContextValue.theme);
 	}, [themeContextValue.theme]);
 
+	// `nonce` is accepted at the top level and via the `store` escape hatch.
+	// Resolve it with the same precedence the core runtime uses, so the theme
+	// stylesheet and injected scripts never end up with different nonces.
+	const nonce = options.nonce ?? options.store?.nonce;
+
 	useColorScheme(options.colorScheme);
 
 	// Create consent context value - without theme properties
@@ -245,6 +250,7 @@ export function ConsentManagerProvider({
 				{themeCSS ? (
 					<style
 						id="c15t-theme"
+						nonce={nonce}
 						// biome-ignore lint/security/noDangerouslySetInnerHtml: It's safe to set innerHTML here
 						dangerouslySetInnerHTML={{ __html: themeCSS }}
 					/>

@@ -22,6 +22,7 @@ export default mergeConfig(
 				'src/**/*.spec.ts',
 				'src/**/*.e2e.test.tsx',
 				'src/**/*.e2e.test.ts',
+				'live-vendors/**/*.test.ts',
 			],
 			exclude: [
 				'**/node_modules/**',

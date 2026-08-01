@@ -113,6 +113,9 @@ describe('unstable_c15tEdgeInit', () => {
 		expect(response.headers.get('access-control-allow-headers')).toContain(
 			'x-vercel-ip-country'
 		);
+		expect(response.headers.get('access-control-allow-headers')).toContain(
+			'x-c15t-version'
+		);
 		expect(response.headers.get('access-control-allow-origin')).toBe(
 			'https://myapp.com'
 		);

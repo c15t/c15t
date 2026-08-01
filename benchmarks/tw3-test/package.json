@@ -12,9 +12,9 @@
 		"@c15t/nextjs": "workspace:*",
 		"@c15t/react": "workspace:*",
 		"@c15t/ui": "workspace:*",
-		"next": "15.5.15",
-		"react": "19.2.3",
-		"react-dom": "19.2.3"
+		"next": "15.5.16",
+		"react": "19.2.7",
+		"react-dom": "19.2.7"
 	},
 	"devDependencies": {
 		"@types/node": "22.14.1",

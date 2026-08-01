@@ -50,6 +50,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'Активирайте съгласие за {category}',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Политика за поверителност',
@@ -123,7 +125,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Предпочитанията за съгласие се съхраняват в бисквитка с име "euconsent-v2" за 13 месеца. The storage duration may be refreshed when you update your preferences.',
+					'Предпочитанията за съгласие се съхраняват в бисквитка с име "euconsent-v2" за 13 месеца. Срокът на съхранение може да бъде подновен, когато актуализирате вашите предпочитания.',
 			},
 		},
 		common: {
