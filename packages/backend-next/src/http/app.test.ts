@@ -650,3 +650,49 @@ describe('POST /subjects', () => {
 		assert.strictEqual(response.status, 400);
 	});
 });
+
+describe('OpenAPI spec', () => {
+	it('publishes a spec listing every route', async () => {
+		const response = await app.request('/spec.json');
+		assert.strictEqual(response.status, 200);
+
+		const spec = await response.json();
+		assert.strictEqual(spec.openapi, '3.1.0');
+
+		// Every endpoint the backend serves should be discoverable — a spec
+		// that silently omits routes is worse than none, because an integrator
+		// concludes they do not exist.
+		for (const path of [
+			'/subjects',
+			'/subjects/{id}',
+			'/consents/check',
+			'/legal-documents/{type}/current',
+			'/status',
+		]) {
+			assert.property(spec.paths, path, path);
+		}
+	});
+
+	it('declares the bearer scheme the authenticated routes use', async () => {
+		const spec = await (await app.request('/spec.json')).json();
+		assert.deepStrictEqual(spec.components.securitySchemes.bearerAuth, {
+			type: 'http',
+			scheme: 'bearer',
+		});
+	});
+
+	it('can be turned off', async () => {
+		const quiet = createApp(runtime, {
+			apiKeys: [API_KEY],
+			openapi: { enabled: false },
+		});
+		assert.strictEqual((await quiet.request('/spec.json')).status, 404);
+	});
+
+	it('is enabled by default', async () => {
+		// The spec documents a public API; an integrator should not have to opt
+		// in to discovering the endpoints.
+		const bare = createApp(runtime, {});
+		assert.strictEqual((await bare.request('/spec.json')).status, 200);
+	});
+});
