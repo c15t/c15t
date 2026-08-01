@@ -170,10 +170,11 @@ is an artifact of the long-lived 2.0 branch being squash-merged, not evidence
 that the schema was invented after the fact. Fixtures for the two fumadb
 shapes can be generated faithfully from shipped code.
 
-This also makes detection more tractable than it first appeared: read
-`c15t_settings` and you have the exact schema version; its absence means
-legacy. The genuinely unreproducible shape is the legacy one — and since
-`/v2` was opt-in, it is also likely the most common.
+This also makes detection more tractable than it first appeared: where
+`private_c15t_settings` exists it names the exact schema version, no guessing
+required. **Its absence does not mean legacy, though** — see §3.5. The
+genuinely unreproducible shape is the legacy one, and since `/v2` was opt-in,
+it is also likely the most common.
 
 ### 3.2 The legacy shape is a family, not a version
 
@@ -234,9 +235,28 @@ exists: it assumes a linear list against a ledger it owns. A 1.x database has
 no ledger and an unknown shape. So the piece we own is a **baseline adoption
 step** that runs before the ordered list:
 
-- **Detect by introspection, not lookup.** Read `c15t_settings` when present
-  (2.x); otherwise sniff tables and columns. "1.x-ish with unknown extra
-  columns" is a legitimate, expected input state.
+- **Detect by introspection, not lookup — and never by marker absence.**
+  `private_c15t_settings` is authoritative *when present*: it names the schema
+  version outright. When it is missing, the database must be classified by its
+  actual tables and columns, because absence covers at least three different
+  populations: a legacy database, an empty database, and a fumadb-shaped
+  database created through the `generateSchema()` ORM path that fumadb's
+  migrator never touched (§3.5). Treating "no marker" as "legacy" would apply
+  a legacy convergence to a database already at 2.0.0.
+
+  The fixtures make this cheap to get right, and every marker-less population
+  is separable:
+
+  - **2.0.0 vs everything else** by table set — `runtimePolicyDecision` exists
+    only at 2.0.0, `consentRecord` only in the legacy and 1.0.0 shapes.
+  - **Legacy vs fumadb 1.0.0** by column type. They carry the *same* seven
+    tables, but legacy emits `jsonb` and `text` where fumadb emits `json` and
+    `varchar`, and they disagree on which columns have defaults (verified on
+    postgres fixtures).
+
+  So classification is a comparison against committed fixtures, not
+  heuristics — which is a second reason to close the index/FK capture gap
+  before the adoption step relies on it.
 - **Converge, then stamp.** Bring the live database to the 3.0.0 baseline —
   dropping and retyping deliberately, after moving data — then write the
   ledger row so Migrator takes over cleanly from that point forward. Unlike
@@ -297,11 +317,17 @@ specific to c15t's schema rather than a blanket fumadb defect.
 
 Two consequences:
 
-- **For this RFC:** fumadb-managed MySQL databases almost certainly do not
-  exist in the wild, because the documented migrator could never have created
-  one. The migration matrix loses two cells (§3.4 records them as
-  `mysql.unsupported.json` rather than leaving a silent hole), and §3.3's
-  adoption step only has to handle MySQL arriving from the legacy path.
+- **For this RFC:** no MySQL database was ever created *by fumadb's migrator*,
+  so the migration matrix loses two cells (§3.4 records them as
+  `mysql.unsupported.json` rather than leaving a silent hole).
+
+  That is **not** the same as "no MySQL database has the fumadb shape". The
+  Drizzle/Prisma/TypeORM path never used fumadb's migrator at all — it printed
+  schema code via `generateSchema()` for the user to apply with their own ORM
+  tooling. A MySQL user on that path ends up with a database that has the
+  fumadb *shape* but was never touched by fumadb, and therefore has **no
+  `private_c15t_settings` row**. Marker-absence and legacy are not the same
+  population, and §3.3's detection must not conflate them.
 - **Outside this RFC:** `docs/self-host/guides/database-setup.mdx` advertises
   MySQL, and it is broken on the current v3 line today. That is a live bug
   worth fixing or documenting independently of the rewrite — it should not
