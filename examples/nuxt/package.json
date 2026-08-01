@@ -9,10 +9,15 @@
 		"check-types": "nuxt typecheck"
 	},
 	"dependencies": {
+		"@c15t/backend": "workspace:*",
 		"@c15t/vue": "workspace:*",
-		"nuxt": "^4.4.7"
+		"@libsql/kysely-libsql": "^0.4.1",
+		"kysely": "0.28.15",
+		"nuxt": "^4.4.7",
+		"pg": "^8.20.0"
 	},
 	"devDependencies": {
+		"estree-walker": "^2.0.2",
 		"typescript": "^6.0.3",
 		"vue-tsc": "^3.3.6"
 	}

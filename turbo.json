@@ -43,6 +43,12 @@
 			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
+		"@c15t/example-nuxt#build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": [".nuxt/**", ".output/**", ".vercel/output/**"],
+			"env": ["VERCEL", "NITRO_PRESET", "NUXT_PUBLIC_C15T_BACKEND_URL"]
+		},
 		"@c15t/benchmarking#build": {
 			"dependsOn": ["^build"],
 			"outputs": []

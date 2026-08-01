@@ -82,3 +82,4 @@ packages/vue/playground/.nuxt
 packages/vue/playground/.output
 /inrepo_modules/
 /.inrepo/
+.env*
