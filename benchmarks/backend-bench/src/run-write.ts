@@ -128,6 +128,6 @@ for (let index = 0; index < ITERATIONS; index++) {
 const manifest = stats(manifestDurations);
 
 process.stdout.write(
-	`\nManifest build (shared by both packages — identical code, not a comparison)\n` +
+	'\nManifest build (shared by both packages — identical code, not a comparison)\n' +
 		`  median ${manifest.median.toFixed(3)} ms, p95 ${manifest.p95.toFixed(3)} ms\n\n`
 );
