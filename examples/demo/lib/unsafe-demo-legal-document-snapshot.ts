@@ -1,13 +1,12 @@
+import type { LegalDocumentPolicyType } from '@c15t/schema/types';
 import { SignJWT } from 'jose';
 import {
 	DEMO_LEGAL_DOCUMENT_SNAPSHOT,
 	DEMO_LEGAL_DOCUMENT_SNAPSHOT_AUDIENCE,
 } from './demo-legal-document-snapshot';
 
-type LegalDocumentType = 'privacy_policy' | 'terms_and_conditions' | 'dpa';
-
 export interface UnsafeDemoLegalDocumentSnapshotInput {
-	type: LegalDocumentType;
+	type: LegalDocumentPolicyType;
 	version: string;
 	hash: string;
 	effectiveDate: string;
@@ -20,7 +19,7 @@ export interface UnsafeDemoLegalDocumentSnapshotResult {
 		aud: string;
 		sub: string;
 		tenantId?: string;
-		type: LegalDocumentType;
+		type: LegalDocumentPolicyType;
 		version: string;
 		hash: string;
 		effectiveDate: string;
@@ -32,7 +31,7 @@ export interface UnsafeDemoLegalDocumentSnapshotResult {
 const DEFAULT_ISSUER = 'c15t';
 const DEFAULT_TTL_SECONDS = 1800;
 
-function resolveAudience(input: UnsafeDemoLegalDocumentSnapshotInput) {
+function resolveAudience(_input: UnsafeDemoLegalDocumentSnapshotInput) {
 	return DEMO_LEGAL_DOCUMENT_SNAPSHOT_AUDIENCE;
 }
 

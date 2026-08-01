@@ -15,12 +15,12 @@
 		"@c15t/benchmarking": "workspace:*",
 		"@c15t/react": "workspace:*",
 		"c15t": "workspace:*",
-		"next": "16.2.3",
-		"react": "19.2.3",
-		"react-dom": "19.2.3"
+		"next": "16.2.10",
+		"react": "19.2.7",
+		"react-dom": "19.2.7"
 	},
 	"devDependencies": {
-		"playwright": "1.58.2",
-		"typescript": "5.8.3"
+		"playwright": "1.61.1",
+		"typescript": "6.0.3"
 	}
 }

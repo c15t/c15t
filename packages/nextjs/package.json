@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/nextjs",
-	"version": "2.1.0",
+	"version": "2.2.0-canary-20260731105620",
 	"description": "Next.js cookie banner and consent management platform for App Router, Pages Router, SSR, IAB TCF, and Consent Mode.",
 	"keywords": [
 		"nextjs",
@@ -64,6 +64,11 @@
 			"types": "./dist-types/index.d.ts",
 			"import": "./client/components/consent-dialog-link.js",
 			"require": "./dist/index.cjs"
+		},
+		"./components/integrations": {
+			"types": "./dist-types/components/integrations/index.d.ts",
+			"import": "./client/components/integrations.js",
+			"require": "./dist/components/integrations/index.cjs"
 		},
 		".": {
 			"types": "./dist-types/index.d.ts",
@@ -155,7 +160,7 @@
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"genversion": "3.2.0",
-		"typescript": "6.0.2"
+		"typescript": "7.0.2"
 	},
 	"peerDependencies": {
 		"next": "^16.0.0 || ^15.0.0 || ^14.0.0 || ^13.0.0",

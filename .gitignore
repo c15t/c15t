@@ -88,3 +88,9 @@ packages/vue/playground/.output
 .env*
 !.env.example
 !.env.*.example
+
+# Agent worktrees
+.claude/worktrees/
+
+# Live vendor monitor output
+live-vendors-report.json

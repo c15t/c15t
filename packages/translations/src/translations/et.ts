@@ -50,6 +50,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'Luba kategooria {category} nõusolek',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Privaatsuspoliitika',
@@ -120,7 +122,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Nõusoleku eelistused salvestatakse küpsisesse nimega "euconsent-v2" 13 kuuks. The storage duration may be refreshed when you update your preferences.',
+					'Nõusoleku eelistused salvestatakse küpsisesse nimega "euconsent-v2" 13 kuuks. Salvestusaeg võib teie eelistuste uuendamisel uuesti alata.',
 			},
 		},
 		common: {

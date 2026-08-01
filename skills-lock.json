@@ -1,0 +1,47 @@
+{
+	"version": 1,
+	"skills": {
+		"c15t": {
+			"source": "c15t/skills",
+			"sourceType": "github",
+			"skillPath": "c15t/SKILL.md",
+			"computedHash": "031b918ecb7f15c96e690412c79e2ebb8f4a2bcea5c5fac3d87d9752d4153660"
+		},
+		"leadtype": {
+			"source": "inthhq/leadtype",
+			"sourceType": "github",
+			"skillPath": ".agents/skills/leadtype/SKILL.md",
+			"computedHash": "ed918b36b6be9316fa51b58a6f90b555fde3b4a3b1c8577f3c8875e8691ce584"
+		},
+		"turborepo": {
+			"source": "vercel/turborepo",
+			"sourceType": "github",
+			"skillPath": "skills/turborepo/SKILL.md",
+			"computedHash": "91ca859d13834ab4103eff55bfd66ae43ef0823a8339664dd1cccc5a9ddfd7cb"
+		},
+		"ultracite": {
+			"source": "haydenbleasel/ultracite",
+			"sourceType": "github",
+			"skillPath": "skills/ultracite/SKILL.md",
+			"computedHash": "e061f8c74bb2ee6ceb57d4a904fc83be81fd559febe6e76971f055913910df75"
+		},
+		"vercel-composition-patterns": {
+			"source": "vercel-labs/agent-skills",
+			"sourceType": "github",
+			"skillPath": "skills/composition-patterns/SKILL.md",
+			"computedHash": "575757e3e25761c8c562d6e395d29f0b76c98b1273c0bd72d88e6ab1bc9c7d42"
+		},
+		"vercel-react-best-practices": {
+			"source": "vercel-labs/agent-skills",
+			"sourceType": "github",
+			"skillPath": "skills/react-best-practices/SKILL.md",
+			"computedHash": "ca7b0c0c6e5f2750043f7f0cd72d16ac4e2abc48f9b5500d047a4b77a2506212"
+		},
+		"web-design-guidelines": {
+			"source": "vercel-labs/agent-skills",
+			"sourceType": "github",
+			"skillPath": "skills/web-design-guidelines/SKILL.md",
+			"computedHash": "f3bc47f890f42a44db1007ab390709ec368e4b8c089baee6b0007182236ac474"
+		}
+	}
+}

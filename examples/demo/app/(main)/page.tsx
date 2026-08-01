@@ -1,10 +1,10 @@
 import { Suspense } from 'react';
-import { PolicyDemo } from '../../components/policy/policy-demo';
+import { ConsentDemo } from '../../components/demo/consent-demo';
 
 export default function Home() {
 	return (
 		<Suspense>
-			<PolicyDemo />
+			<ConsentDemo />
 		</Suspense>
 	);
 }

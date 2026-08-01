@@ -47,6 +47,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'הפעל {category} רשות',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'מדיניות פרטיות',
@@ -115,7 +117,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'העדפות הסכמה נשמרות בעוגייה בשם "euconsent-v2" למשך 13 חודשים. The storage duration may be refreshed when you update your preferences.',
+					'העדפות הסכמה נשמרות בעוגייה בשם "euconsent-v2" למשך 13 חודשים. משך השמירה עשוי להתחדש כאשר תעדכן את ההעדפות שלך.',
 			},
 		},
 		common: {

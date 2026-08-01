@@ -1,5 +1,51 @@
 # @c15t/nextjs
 
+## 2.2.0-canary-20260731105620
+
+### Patch Changes
+
+- Updated dependencies [c187c9d]
+  - @c15t/react@2.2.0-canary-20260731105620
+  - c15t@2.2.0-canary-20260731105620
+
+## 2.2.0-canary-20260727202135
+
+### Minor Changes
+
+- b032a69: Add `ConsentDialogTriggerToolbar` to React and Next.js as an opt-in, draggable toolbar with app-owned actions and exactly one built-in consent preferences action. The existing `ConsentDialogTrigger` remains unchanged.
+- 0c97773: Add consent-aware Google Maps and YouTube components for React and Next.js,
+  plus `useConsentScript` for building custom SDK integrations.
+
+  - `GoogleMap` keeps the Maps JavaScript API off the page until consent, shares
+    one page-level loader across map instances, supports retries and loader
+    configuration, and provides accessible blocked, loading, and error states.
+  - `YouTubeEmbed` keeps the iframe unmounted until consent and provides a
+    responsive, privacy-enhanced embed with type-safe URL configuration.
+  - Add customizable `frame.loading` and `frame.error` messages for integration
+    loading and failure states.
+
+### Patch Changes
+
+- 16a1f82: Dependency audit for the next release: remove unused `@orpc/*` dependencies from `@c15t/backend` and `@c15t/node-sdk`, update runtime dependencies (hono 4.12.27, valibot 1.4.2, defu 6.1.7, jose 6.2.3, zod 4.4.3, zustand 5.0.14, xstate 5.32.4, and more), and force security floors for kysely (SQL injection fixes) and protobufjs via workspace overrides. Builds now use TypeScript 7 (native compiler) with rslib 0.23 for type checking and declaration emit; emitted types are semantically unchanged.
+- Updated dependencies [1d24803]
+- Updated dependencies [05b0abb]
+- Updated dependencies [b032a69]
+- Updated dependencies [16a1f82]
+- Updated dependencies [c8690f9]
+- Updated dependencies [ace6760]
+- Updated dependencies [c7e53ff]
+- Updated dependencies [ace6760]
+- Updated dependencies [e4315bd]
+- Updated dependencies [ace6760]
+- Updated dependencies [5406a8d]
+- Updated dependencies [0c97773]
+- Updated dependencies [ca7784f]
+- Updated dependencies [30cb116]
+- Updated dependencies [c8690f9]
+  - @c15t/translations@2.2.0-canary-20260727202135
+  - @c15t/react@2.2.0-canary-20260727202135
+  - c15t@2.2.0-canary-20260727202135
+
 ## 2.1.0
 
 ### Minor Changes

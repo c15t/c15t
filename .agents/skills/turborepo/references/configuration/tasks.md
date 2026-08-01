@@ -11,9 +11,9 @@ Controls task execution order.
   "tasks": {
     "build": {
       "dependsOn": [
-        "^build",        // Dependencies' build tasks first
-        "codegen",       // Same package's codegen task first
-        "shared#build"   // Specific package's build task
+        "^build", // Dependencies' build tasks first
+        "codegen", // Same package's codegen task first
+        "shared#build" // Specific package's build task
       ]
     }
   }
@@ -65,7 +65,7 @@ Glob patterns for files to cache. **If omitted, nothing is cached.**
 
 ```json
 // Next.js
-"outputs": [".next/**", "!.next/cache/**"]
+"outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"]
 
 // Vite
 "outputs": ["dist/**"]
@@ -114,6 +114,46 @@ Files considered when calculating task hash. Defaults to all tracked files in pa
 }
 ```
 
+### Interaction with `global.inputs`
+
+When `futureFlags.globalConfiguration` is enabled, files listed in `global.inputs` are prepended to every task's `inputs`. The combined list is then used to compute the task hash.
+
+This is different from `globalDependencies`, where files were hashed into the **global** hash and could not be influenced by task-level `inputs`.
+
+**With `globalDependencies` (old behavior):**
+
+- `globalDependencies` files contribute to the global hash
+- Task `inputs` only control which **package** files are hashed
+- There is no way for a task to "opt out" of a `globalDependencies` file
+
+**With `global.inputs` (new behavior):**
+
+- `global.inputs` files are merged into each task's `inputs` globs
+- Task `inputs` and `global.inputs` are combined, then the full list is hashed into the **task** hash
+- Tasks can exclude specific global files with negation globs
+
+```json
+{
+  "futureFlags": { "globalConfiguration": true },
+  "global": {
+    "inputs": ["tsconfig.json", ".env"]
+  },
+  "tasks": {
+    "build": {},
+    "lint": {
+      "inputs": ["$TURBO_DEFAULT$", "!$TURBO_ROOT$/.env"]
+    }
+  }
+}
+```
+
+In this example:
+
+- `build` hashes all package files + `tsconfig.json` + `.env` (from `global.inputs`)
+- `lint` hashes all package files + `tsconfig.json`, but **excludes** `.env` because of the negation glob
+
+Tasks with no explicit `inputs` key still hash all package files (the default behavior) plus the `global.inputs` files.
+
 ## env
 
 Environment variables to include in task hash.
@@ -124,8 +164,8 @@ Environment variables to include in task hash.
     "build": {
       "env": [
         "API_URL",
-        "NEXT_PUBLIC_*",  // Wildcard matching
-        "!DEBUG"          // Exclude from hash
+        "NEXT_PUBLIC_*", // Wildcard matching
+        "!DEBUG" // Exclude from hash
       ]
     }
   }
@@ -189,7 +229,7 @@ Control when logs are shown. Options: `full`, `hash-only`, `new-only`, `errors-o
 {
   "tasks": {
     "build": {
-      "outputLogs": "new-only"  // Only show logs on cache miss
+      "outputLogs": "new-only" // Only show logs on cache miss
     }
   }
 }
@@ -231,7 +271,7 @@ Allow `turbo watch` to restart the task on changes. Default: `false`.
 
 Use for dev servers that don't automatically detect dependency changes.
 
-## description (Pre-release)
+## description
 
 Human-readable description of the task.
 
@@ -273,7 +313,7 @@ Control task inheritance in Package Configurations.
   "extends": ["//"],
   "tasks": {
     "lint": {
-      "extends": false  // Exclude from this package
+      "extends": false // Exclude from this package
     }
   }
 }

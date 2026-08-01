@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/iab",
-	"version": "2.1.0",
+	"version": "2.2.0-canary-20260731105620",
 	"description": "IAB TCF 2.3 addon for c15t with TC String generation, GVL support, and programmatic advertising consent.",
 	"keywords": [
 		"iab",
@@ -73,7 +73,8 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"genversion": "3.2.0"
+		"genversion": "3.2.0",
+		"typescript": "7.0.2"
 	},
 	"publishConfig": {
 		"access": "public"

@@ -286,7 +286,11 @@ export async function init(
 			try {
 				const fetchGVL = iabConfig._module?.fetchGVL;
 				if (fetchGVL) {
-					gvl = await fetchGVL(iabConfig.vendorIds);
+					// Request the GVL in the resolved language so purpose and
+					// feature names match the rest of the consent UI.
+					gvl = await fetchGVL(iabConfig.vendorIds, {
+						headers: { 'accept-language': language },
+					});
 				}
 			} catch (error) {
 				console.warn('Failed to fetch GVL in offline mode:', error);

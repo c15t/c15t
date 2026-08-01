@@ -12,12 +12,12 @@
  * PGlite, so the foreign keys in the schema are actually enforced.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { c15tInstance } from '~/core';
+import { policyPackPresets } from '~/policies/defaults';
 import {
 	createPgliteDatabase,
 	type PgliteDatabase,
 } from '../../__tests__/utils/pglite-database';
-import { c15tInstance } from '../../core';
-import { policyPackPresets } from '../../policies/defaults';
 
 const BASE_PATH = '/api/c15t';
 const ORIGIN = 'http://localhost:3000';

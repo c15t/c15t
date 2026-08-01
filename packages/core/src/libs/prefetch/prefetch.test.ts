@@ -4,6 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+	buildPrefetchScript,
 	getMatchingPrefetchedInitialData,
 	primePrefetchedInitialData,
 } from './prefetch';
@@ -24,26 +25,24 @@ describe('prefetch utilities', () => {
 			configurable: true,
 			value: true,
 		});
-		vi.stubGlobal(
-			'fetch',
-			vi.fn().mockResolvedValue(
-				new Response(
-					JSON.stringify({
-						jurisdiction: 'CCPA',
-						location: { countryCode: 'US', regionCode: 'CA' },
-						translations: { language: 'de', translations: {} },
-						branding: 'c15t',
-						gvl: null,
-					}),
-					{
-						status: 200,
-						headers: {
-							'content-type': 'application/json',
-						},
-					}
-				)
+		const fetchMock = vi.fn().mockResolvedValue(
+			new Response(
+				JSON.stringify({
+					jurisdiction: 'CCPA',
+					location: { countryCode: 'US', regionCode: 'CA' },
+					translations: { language: 'de', translations: {} },
+					branding: 'c15t',
+					gvl: null,
+				}),
+				{
+					status: 200,
+					headers: {
+						'content-type': 'application/json',
+					},
+				}
 			)
 		);
+		vi.stubGlobal('fetch', fetchMock);
 
 		const result = primePrefetchedInitialData({
 			backendURL: '/api/c15t/',
@@ -63,6 +62,23 @@ describe('prefetch utilities', () => {
 				},
 			},
 		});
+		expect(fetchMock).toHaveBeenCalledWith(
+			expect.any(String),
+			expect.objectContaining({
+				headers: expect.objectContaining({
+					'x-c15t-version': expect.any(String),
+				}),
+			})
+		);
+	});
+
+	it('includes the c15t version header in generated prefetch scripts', () => {
+		const script = buildPrefetchScript({
+			backendURL: '/api/c15t',
+			overrides: { country: 'DE' },
+		});
+
+		expect(script).toContain('"x-c15t-version"');
 	});
 
 	it('finds only exact runtime-context matches', async () => {

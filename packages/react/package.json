@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/react",
-	"version": "2.1.0",
+	"version": "2.2.0-canary-20260731105620",
 	"description": "React cookie banner, consent manager, preference center, and headless CMP components with IAB TCF and Consent Mode support.",
 	"keywords": [
 		"react",
@@ -105,6 +105,11 @@
 			"types": "./dist-types/components/frame/index.d.ts",
 			"import": "./client/components/frame.js",
 			"require": "./dist/components/frame/index.cjs"
+		},
+		"./components/integrations": {
+			"types": "./dist-types/components/integrations/index.d.ts",
+			"import": "./client/components/integrations.js",
+			"require": "./dist/components/integrations/index.cjs"
 		},
 		"./iab": {
 			"types": "./dist-types/iab.d.ts",
@@ -302,7 +307,8 @@
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
 		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
-		"test": "bun prebuild && vitest run",
+		"test": "bun prebuild && bun run test:types && vitest run",
+		"test:types": "tsc --noEmit --project tsconfig.type-tests.json",
 		"test:watch": "bun prebuild && vitest"
 	},
 	"browserslist": [
@@ -315,6 +321,7 @@
 		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
 		"@c15t/ui": "workspace:*",
+		"@types/google.maps": "3.65.3",
 		"c15t": "workspace:*"
 	},
 	"devDependencies": {
@@ -324,7 +331,8 @@
 		"@c15t/vitest-config": "workspace:*",
 		"@iabtechlabtcf/core": "^1.5.20",
 		"genversion": "3.2.0",
-		"msw": "^2.12.14"
+		"msw": "^2.14.6",
+		"typescript": "7.0.2"
 	},
 	"peerDependencies": {
 		"react": "^19.0.0 || ^19.0.0-rc || ^18.0.0 || ^17.0.0 || ^16.8.0",

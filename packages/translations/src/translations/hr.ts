@@ -50,6 +50,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'Omogući {category} privolu',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Pravila o privatnosti',
@@ -121,7 +123,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Postavke privole pohranjuju se u kolačiću pod nazivom "euconsent-v2" tijekom 13 mjeseci. The storage duration may be refreshed when you update your preferences.',
+					'Postavke privole pohranjuju se u kolačiću pod nazivom "euconsent-v2" tijekom 13 mjeseci. Trajanje pohrane može se obnoviti kada ažurirate svoje postavke.',
 			},
 		},
 		common: {

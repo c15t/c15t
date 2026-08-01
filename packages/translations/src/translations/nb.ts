@@ -50,6 +50,8 @@ export const translations: CompleteTranslations = {
 		actionButton: 'Aktiver {category}-samtykke',
 		policyBlocked:
 			"This content is unavailable under your region's consent policy.",
+		loading: 'Loading content…',
+		error: 'This content could not be loaded.',
 	},
 	legalLinks: {
 		privacyPolicy: 'Personvernerklæring',
@@ -122,7 +124,7 @@ export const translations: CompleteTranslations = {
 			},
 			footer: {
 				consentStorage:
-					'Samtykkepreferanser lagres i en informasjonskapsel kalt "euconsent-v2" i 13 måneder. The storage duration may be refreshed when you update your preferences.',
+					'Samtykkepreferanser lagres i en informasjonskapsel kalt "euconsent-v2" i 13 måneder. Lagringsperioden kan fornyes når du oppdaterer preferansene dine.',
 			},
 		},
 		common: {

@@ -1,7 +1,10 @@
 import type { InitOutput, SSRInitialData } from 'c15t';
+import { version } from '../version';
 import { extractRelevantHeaders } from './headers';
 import { normalizeBackendURL } from './normalize-url';
 import type { FetchSSRDataOptions } from './types';
+
+const C15T_VERSION_HEADER = 'x-c15t-version';
 
 interface SSRFetchResult {
 	init?: InitOutput;
@@ -252,6 +255,9 @@ export async function fetchSSRData(
 		if (debug) {
 			console.log(`[c15t/server] Language override: ${overrides.language}`);
 		}
+	}
+	if (!initHeaders[C15T_VERSION_HEADER]) {
+		initHeaders[C15T_VERSION_HEADER] = version;
 	}
 
 	// Fetch init data (GVL is included in response when server has it configured)

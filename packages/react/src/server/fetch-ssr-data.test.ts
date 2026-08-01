@@ -137,6 +137,14 @@ describe('fetchSSRData', () => {
 			init: { gvl: null, categories: [] },
 			gvl: null,
 		});
+		expect(fetchMock).toHaveBeenCalledWith(
+			'https://consent.example.com/api/c15t/init',
+			expect.objectContaining({
+				headers: expect.objectContaining({
+					'x-c15t-version': expect.any(String),
+				}),
+			})
+		);
 		expect(result?.metadata).toEqual({
 			requestContext: {
 				backendURL: 'https://consent.example.com/api/c15t',
@@ -187,6 +195,30 @@ describe('fetchSSRData', () => {
 			language: 'de',
 			gpc: true,
 		});
+	});
+
+	it('forwards an incoming c15t version header during SSR init', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(createResponse({ gvl: null, categories: [] }));
+		vi.stubGlobal('fetch', fetchMock);
+
+		const headers = createRequestHeaders();
+		headers.set('x-c15t-version', '1.2.3');
+
+		await fetchSSRData({
+			backendURL: 'https://consent.example.com/api/c15t',
+			headers,
+		});
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			'https://consent.example.com/api/c15t/init',
+			expect.objectContaining({
+				headers: expect.objectContaining({
+					'x-c15t-version': '1.2.3',
+				}),
+			})
+		);
 	});
 
 	it('returns undefined when backend responds with non-ok status', async () => {

@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/cli",
-	"version": "2.1.0",
+	"version": "2.2.0-canary-20260731105620",
 	"description": "CLI for c15t setup. Scaffold React and Next.js cookie banners, choose hosted/self-hosted/offline mode, and add consent integrations.",
 	"keywords": [
 		"c15t",
@@ -65,19 +65,19 @@
 		"@c15t/backend": "workspace:*",
 		"@c15t/logger": "workspace:*",
 		"@c15t/scripts": "workspace:*",
-		"@clack/prompts": "1.1.0",
+		"@clack/prompts": "1.7.0",
 		"@modelcontextprotocol/sdk": "^1.29.0",
 		"c12": "3.3.3",
-		"dotenv": "17.3.1",
-		"evlog": "^2.11.1",
+		"dotenv": "17.4.2",
+		"evlog": "^2.19.2",
 		"figlet": "1.11.0",
-		"fs-extra": "11.3.4",
+		"fs-extra": "11.3.6",
 		"open": "11.0.0",
-		"package-manager-detector": "1.6.0",
+		"package-manager-detector": "1.7.0",
 		"picocolors": "1.1.1",
 		"ts-morph": "27.0.2",
-		"xstate": "^5.30.0",
-		"zod": "4.3.6"
+		"xstate": "^5.32.4",
+		"zod": "4.4.3"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
@@ -85,7 +85,8 @@
 		"@types/figlet": "1.7.0",
 		"@types/fs-extra": "11.0.4",
 		"@types/prettier": "^3.0.0",
-		"prettier": "^3.8.1"
+		"prettier": "^3.9.4",
+		"typescript": "7.0.2"
 	},
 	"publishConfig": {
 		"access": "public",

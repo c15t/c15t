@@ -1,0 +1,208 @@
+---
+title: "v2.2.0 - Consent-Aware Embeds, Configurable Controls, and More Integrations"
+version: "2.2.0"
+date: 2026-07-29
+description: "Minor release adding consent-aware Google Maps and YouTube components, a configurable consent controls toolbar, eight script integrations, a reusable SDK hook, policy-aware action styling, CSP nonce support, reliability fixes, and new translations."
+group: changelog
+tags:
+  - release
+  - stable
+  - integrations
+  - scripts
+  - react
+  - nextjs
+  - backend
+  - iab
+  - i18n
+type: release
+breaking: false
+draft: false
+authors: [KayleeWilliams]
+---
+
+c15t 2.2 expands consent-aware integrations beyond background scripts and into the parts of your product that people interact with. The release adds ready-to-use Google Maps and YouTube components, a configurable consent controls toolbar, eight new script providers, a reusable hook for custom SDK integrations, and improvements across consent storage, IAB TCF, theming, translations, and the self-hosted backend.
+
+This is a minor release with no breaking changes.
+
+## Highlights
+
+- New consent-aware `GoogleMap` and `YouTubeEmbed` components for React and Next.js
+- New opt-in `ConsentDialogTriggerToolbar` for combining privacy preferences with app-owned controls
+- New `useConsentScript` hook for custom SDK-backed integrations
+- Eight new built-in providers: Adobe Analytics, Amplitude, Clearbit, Heap, Hightouch, LogRocket, Pirsch, and RudderStack
+- RudderStack pre-consent buffering with category-to-consent-ID mapping
+- Microsoft Clarity Consent V2 support and a corrected Mixpanel bootstrap
+- Policy-aware primary action styling, including IAB consent surfaces
+- New `nonce` option applying your CSP nonce to injected styles and scripts
+- Reliable offline IAB GVL loading and language refreshes
+- Stronger consent submission deduplication and timestamp handling
+- Hindi and Gujarati translations for the full consent experience
+
+## Consent-aware Google Maps and YouTube
+
+The new renderable integrations handle both consent and the interface shown while third-party content is blocked or loading.
+
+`GoogleMap` keeps the Google Maps JavaScript API off the page until the configured consent category is allowed. It shares one page-level loader across map instances, adopts an existing compatible Maps SDK, and provides accessible blocked, loading, and error states. Loader failures can be retried without creating duplicate Google Maps registrations.
+
+`YouTubeEmbed` keeps the iframe unmounted until consent, so no YouTube request is made while the content is blocked. It defaults to the privacy-enhanced `youtube-nocookie.com` host, lazy loading, a responsive 16:9 frame, and type-safe options for video IDs, start times, and player parameters.
+
+Both components are available from `@c15t/react` and `@c15t/nextjs`. Their loading and error messages use the active c15t translations and can be replaced with custom fallbacks.
+
+→ [Google Maps](/docs/integrations/google-maps) · [YouTube](/docs/integrations/youtube)
+
+## Build custom SDK integrations with `useConsentScript`
+
+The new `useConsentScript` hook provides the lifecycle foundation used by `GoogleMap`. Use it when a third-party SDK needs more than a script element and your component must wait for a callback or global API before it can render.
+
+The hook:
+
+- registers the script through the consent manager
+- shares compatible registrations within one provider
+- exposes blocked, loading, ready, and error states
+- resolves callback-based or global SDK readiness
+- supports timeouts and explicit retries
+- cleans up registrations according to the selected unmount behavior
+
+This keeps custom widgets connected to the same consent and script lifecycle as c15t's built-in integrations.
+
+→ [React Script Loader](/docs/frameworks/react/script-loader) · [Next.js Script Loader](/docs/frameworks/next/script-loader)
+
+## Configurable consent controls toolbar
+
+React and Next.js now include `ConsentDialogTriggerToolbar`, an opt-in alternative to the existing single-button `ConsentDialogTrigger`. It combines one built-in privacy preferences action with app-owned controls such as theme, accessibility, or support actions.
+
+![Custom-styled consent controls toolbar with theme, support, and privacy actions](https://lgfiy5dnwualqura.public.blob.vercel-storage.com/changelogs/2.2.0-consent-dialog-trigger-toolbar-closeup-09yglfWBRtIoFjhSJ6qmxm21NRLoAK.png)
+
+```tsx
+<ConsentDialogTriggerToolbar
+  ariaLabel="Site controls"
+  actions={[
+    {
+      id: 'theme',
+      label: 'Dark color scheme',
+      icon: isDark ? <SunIcon /> : <MoonIcon />,
+      pressed: isDark,
+      onSelect: toggleColorScheme,
+    },
+    {
+      id: 'support',
+      label: 'Open support chat',
+      icon: <ChatIcon />,
+      onSelect: openSupportChat,
+    },
+  ]}
+  preferences={{
+    icon: 'fingerprint',
+    label: 'Manage privacy settings',
+  }}
+/>
+```
+
+The toolbar supports horizontal and vertical layouts, drag-to-corner positioning, keyboard navigation, disabled and pressed action states, theme slots, direct style overrides, and fully custom styling with `noStyle`. Your application owns custom action state and behavior, while c15t always provides exactly one action that opens consent preferences.
+
+The existing `ConsentDialogTrigger` API and single-button behavior are unchanged, so adopting the toolbar does not require a migration.
+
+→ [React Consent Dialog Trigger](/docs/frameworks/react/components/consent-dialog-trigger) · [Next.js Consent Dialog Trigger](/docs/frameworks/next/components/consent-dialog-trigger)
+
+## Eight new script integrations
+
+`@c15t/scripts` adds eight built-in, registry-backed helpers, growing the provider registry from 28 to 36 integrations:
+
+- **Adobe Analytics** — loads an Adobe Experience Platform Data Collection Tags embed behind measurement consent
+- **Amplitude** — reproduces the Browser SDK 2 queue and synchronizes runtime opt-out state
+- **Clearbit** — gates visitor and company enrichment on marketing consent
+- **Heap** — implements the current heap.js callback queue contract
+- **Hightouch** — queues the Events browser SDK with optional host and initial page tracking
+- **LogRocket** — loads and initializes session replay after measurement consent
+- **Pirsch** — preserves Pirsch's required script ID and identification-code attributes
+- **RudderStack** — implements the v3 queue with validated write-key and data-plane configuration
+
+Each provider includes registry metadata, framework examples, lifecycle guidance, and contract coverage against the vendor's current loader behavior.
+
+→ [Integrations Overview](/docs/integrations/overview)
+
+## RudderStack pre-consent mode
+
+RudderStack still blocks its SDK until consent by default. 2.2 also adds an explicit pre-consent mode for teams that need to preserve event attribution before a decision is made.
+
+With `consentManagement.mapping`, you can map c15t categories to RudderStack consent IDs. c15t then loads RudderStack in its inert pre-consent mode, disables storage, buffers delivery, and sends every consent decision through `rudderanalytics.consent()`.
+
+The default remains the stricter load gate. Pre-consent mode is opt-in because it should only be used when the mapped behavior matches your privacy policy.
+
+→ [RudderStack](/docs/integrations/rudderstack)
+
+## Microsoft Clarity and Mixpanel fixes
+
+The Microsoft Clarity helper now uses Consent V2. c15t maps `marketing` consent to `ad_Storage` and `measurement` consent to `analytics_Storage`, and `defaultConsent` accepts a Consent V2 payload.
+
+The helper also no longer adds Clarity's `v` marker before the vendor runtime loads. Clarity treated that marker as a duplicate installation, raised `CL001`, and could silently collect no data.
+
+The Mixpanel helper now implements the official snippet contract, including the `__SV` version marker and `_i` initialization registry. This prevents the SDK from reporting a version mismatch and dropping events queued before it finishes loading.
+
+The core script loader also now preserves an explicit `async: false`, which is required by synchronous vendor embeds such as legacy Adobe Tags configurations.
+
+→ [Microsoft Clarity](/docs/integrations/microsoft-clarity) · [Mixpanel](/docs/integrations/mixpanel-analytics)
+
+## Policy-aware primary action styling
+
+Themes can now define `consentActions.primary` to style whichever action the active policy marks as primary. The policy continues to decide whether that action is accept, reject, or customize, while the theme controls how primary actions look.
+
+Explicit component props and per-action theme keys still take precedence. The IAB consent banner now uses the same resolution rules instead of bypassing `consentActions` with hard-coded button variants.
+
+## Content Security Policy support
+
+c15t injects a `<style>` element for your theme tokens and a `<script>` element for each consented vendor. Neither carried a nonce, so a nonce-based Content Security Policy blocked both — and because a directive that specifies a nonce ignores `'unsafe-inline'`, the only escape was to abandon nonces for that directive.
+
+The provider now accepts a `nonce` and applies it to everything c15t injects:
+
+```tsx
+<ConsentManagerProvider options={{ mode: 'offline', nonce }}>
+  {children}
+</ConsentManagerProvider>
+```
+
+A `nonce` set on an individual script definition still takes precedence, so you can override a single vendor without changing the provider.
+
+This covers the elements c15t injects. Inline `style` attributes are governed by `style-src-attr`, a directive that ignores nonces entirely, so a policy that restricts it is unaffected by this option.
+
+→ [React ConsentManagerProvider](/docs/frameworks/react/components/consent-manager-provider) · [Next.js ConsentManagerProvider](/docs/frameworks/next/components/consent-manager-provider)
+
+## IAB TCF reliability
+
+IAB TCF now works correctly when c15t runs in offline mode or falls back from the hosted service. The IAB runtime receives the GVL fetcher directly, allowing the Global Vendor List to load so the banner can render.
+
+GVL requests now use the resolved consent language, keeping vendor purposes and features aligned with the rest of the interface. Changing language or location overrides also carries the IAB configuration through re-initialization and refreshes the GVL instead of retaining stale content.
+
+→ [React IAB](/docs/frameworks/react/iab/overview) · [Next.js IAB](/docs/frameworks/next/iab/overview) · [Self-Hosted IAB](/docs/self-host/guides/iab-tcf)
+
+## More reliable consent submissions
+
+Concurrent saves with the same consent decision are now coalesced in the client and resolve to the same deterministic record in the backend. This prevents duplicate consent rows when identical requests arrive together while preserving idempotent retries across every supported database.
+
+The backend also handles incorrect client clocks more safely. Timestamps more than five minutes in the future are clamped to server time for consent validity, while the original client value is retained in metadata and used to keep retries idempotent. The client then synchronizes its local consent state to the timestamp accepted by the server.
+
+Legacy duplicate lookups are now scoped to the current tenant, and timestamps outside JavaScript's representable `Date` range are rejected before an ID is derived.
+
+## Backend, API, and compatibility improvements
+
+- Browser, SSR, prefetch, and Node SDK requests now forward `x-c15t-version`, and the backend allows it through CORS preflight handling.
+- Custom `headers` configured for hosted clients are no longer dropped. They are included in the runtime cache key so differently configured clients cannot share an instance.
+- Explicit ports in `trustedOrigins` are now matched exactly, while host-only entries remain port-agnostic.
+- Legal document types now accept suffixed variants such as `terms_and_conditions_b2b`, allowing multiple policies from the same family.
+- Generated OpenAPI request schemas are more accurate for consent, subject, and legal-document endpoints.
+- `@c15t/backend` now supports `drizzle-orm` 0.45.x, Prisma 7, and MongoDB 7 through updated optional peer ranges.
+- A dependency and security audit updates core runtime dependencies, removes unused oRPC packages, and raises patched dependency floors. Published declaration types remain semantically unchanged after the move to TypeScript 7 and rslib 0.23.
+
+## Hindi, Gujarati, and translation fixes
+
+Hindi (`hi`) and Gujarati (`gu`) are now available across cookie banners, consent dialogs, preference centers, and IAB TCF consent UI, bringing the translation catalog to 35 languages.
+
+The second sentence of the IAB consent-storage notice is now translated in all 32 non-English locales instead of falling back to English. This release also fixes a stray German word in the Latvian custom-vendors notice.
+
+## Documentation and integration checks
+
+Every new script and renderable integration has a dedicated guide with React and Next.js examples, lifecycle behavior, configuration, and verification steps. The docs also clarify consent subject identification and add 11 comparison guides for teams evaluating c15t alongside other consent tools.
+
+Built-in script providers are now exercised by a daily live-vendor monitor, with additional checks that always-loaded providers do not send data while consent is denied. This helps catch upstream loader changes that static tests cannot see.
+
+<ContributorBlock usernames={["devcool20", "IshaanXCoder", "d180", "lyricwulf", "sorodrigo", "BurnedChris", "kgarg2468", "KayleeWilliams"]} title="Thank you to our contributors" />

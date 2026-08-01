@@ -20,6 +20,6 @@
 		"@c15t/translations": "workspace:*"
 	},
 	"devDependencies": {
-		"typescript": "6.0.2"
+		"typescript": "6.0.3"
 	}
 }

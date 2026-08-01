@@ -2,15 +2,21 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
+    # `canary` is the default branch and PR target, so it needs the full suite
+    # as the backstop for the affected-only checks that run on pull requests.
+    branches: ["main", "canary", "2.0.0"]
   pull_request:
     types: [opened, synchronize]
 
 env:
-  # Do not pass Turbo remote-cache creds when running untrusted PR code (same-repo
-  # PRs still execute arbitrary branch code). Fork PRs already omit repo secrets.
-  TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
-  TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
+  # The leadtype package-docs generation inside package builds exceeds Node's
+  # default heap on cache-miss builds of the larger packages (core, react).
+  NODE_OPTIONS: --max-old-space-size=6144
+  # Pull-request checkouts are detached merge commits, so Turborepo cannot
+  # resolve the base as a local branch even with full history. Track the PR's
+  # real target so release PRs into `main` or `2.0.0` diff against the right
+  # branch instead of always against `canary`.
+  TURBO_SCM_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'origin/canary' }}
 
 jobs:
   lint_and_check:
@@ -35,7 +41,21 @@ jobs:
       - name: 📦 Install dependencies
         run: bun install --frozen-lockfile
 
+      # Read-only: the test job is the single writer of this cache (see below).
+      - name: ♻️ Restore Turborepo cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
+      # Deliberately not affected-scoped: this is the always-on cross-package
+      # signal that catches breakage in packages a PR does not touch directly.
       - name: 👀 Type Check
+        env:
+          TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+          TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
         run: bun turbo run check-types
 
       - name: 🧹 Run Biome with Reviewdog
@@ -54,7 +74,8 @@ jobs:
       - name: ⬇️ Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          fetch-depth: 2
+          # Full history so Turborepo can resolve the base branch for --affected.
+          fetch-depth: 0
           persist-credentials: false
 
       - name: 🟢 Setup Bun
@@ -65,8 +86,25 @@ jobs:
       - name: 📦 Install dependencies
         run: bun install --frozen-lockfile
 
+      # Read-only: the test job is the single writer of this cache (see below).
+      - name: ♻️ Restore Turborepo cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
       - name: 🏗️ Build
-        run: bun turbo run build --filter="./packages/*"
+        env:
+          TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+          TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            bun turbo run build --filter="./packages/*" --affected
+          else
+            bun turbo run build --filter="./packages/*"
+          fi
 
   test:
     name: 🧪 Run Tests & Coverage
@@ -78,7 +116,8 @@ jobs:
       - name: ⬇️ Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          fetch-depth: 2
+          # Full history so Turborepo can resolve the base branch for --affected.
+          fetch-depth: 0
           persist-credentials: false
 
       - name: 🟢 Setup Bun
@@ -89,24 +128,81 @@ jobs:
       - name: 📦 Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: 🎭 Cache Playwright browsers
+      # Root repository tooling is not part of the package Turbo graph, so run
+      # its focused tests on every CI event before installing browsers.
+      - name: 🧰 Test repository scripts
+        run: bun run test:scripts
+
+      # This job is the single writer of the shared Turborepo cache: it builds
+      # every package as a dependency of `test`, so its cache is the most
+      # complete, and one writer means no concurrent-save conflicts.
+      - name: ♻️ Restore Turborepo cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
+      - name: 🎭 Resolve Playwright version
+        id: playwright
+        run: |
+          echo "version=$(bun -e "console.log(require('./package.json').devDependencies.playwright)")" >> "$GITHUB_OUTPUT"
+
+      - name: 🎭 Restore Playwright browsers
         id: playwright-cache
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-browsers-${{ runner.os }}-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            playwright-browsers-${{ runner.os }}-
+          # Keyed on the Playwright version rather than the lockfile hash —
+          # browsers only change when Playwright does, and lockfile churn was
+          # invalidating them on every unrelated dependency bump.
+          key: playwright-browsers-${{ runner.os }}-${{ steps.playwright.outputs.version }}
 
       - name: 🎭 Install Playwright browsers
+        run: bunx "playwright@${{ steps.playwright.outputs.version }}" install --with-deps chromium chromium-headless-shell
+
+      # Save immediately after installation so a later test failure does not
+      # discard a successfully prepared browser cache.
+      - name: 🎭 Save Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: bunx playwright@1.58.2 install
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-browsers-${{ runner.os }}-${{ steps.playwright.outputs.version }}
 
       - name: 🧪 Run Tests
-        run: bun turbo run test --filter="./packages/*" --filter="./internals/*" --filter="./apps/*"
+        env:
+          TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
+          TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            bun turbo run test --filter="./packages/*" --filter="./internals/*" --filter="./apps/*" --affected
+          else
+            bun turbo run test --filter="./packages/*" --filter="./internals/*" --filter="./apps/*"
+          fi
 
       - name: 🧪 Run Root Script Tests
         run: bun run test:scripts
+
+      # Restored entries are carried into the next save, so the cache would
+      # grow without bound across pushes and thrash the repo's 10GB budget.
+      # Prune complete task entries to a 1 GiB ceiling. This runs on every event
+      # so the script is exercised on PRs, but remains non-fatal because a prune
+      # failure should only produce a larger cache, never failed product CI.
+      - name: ♻️ Prune Turborepo cache
+        continue-on-error: true
+        run: bun scripts/prune-turbo-cache.ts
+
+      # Written only from pushes to publishing branches. PR runs restore
+      # read-only so they cannot churn the cache budget, matching the posture
+      # for TURBO_TOKEN.
+      - name: ♻️ Save Turborepo cache
+        if: github.event_name == 'push'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
 
       - name: ⬆️ Upload Individual Coverage Reports
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -153,12 +249,12 @@ jobs:
 
       - name: 🎭 Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        # Both resolved Playwright versions need browsers: 1.58.2 (root
-        # `playwright`, storybook test-runner) and 1.61.1 (@playwright/test
+        # Both resolved Playwright versions need browsers: 1.61.1 (root
+        # `playwright`, storybook test-runner) and 1.62.0 (@playwright/test
         # in the parity runner).
         run: |
-          bunx playwright@1.58.2 install --with-deps chromium
           bunx playwright@1.61.1 install --with-deps chromium
+          bunx playwright@1.62.0 install --with-deps chromium
 
       - name: 🏗️ Build Storybooks
         # Use turbo so workspace deps (notably @c15t/ui CSS dist) build
@@ -248,10 +344,25 @@ jobs:
 
       - name: 🎭 Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: bunx playwright@1.58.2 install --with-deps chromium
+        run: bunx playwright@1.61.1 install --with-deps chromium
 
       - name: 🏗️ Build packages
         run: bun turbo run build --filter="./packages/*"
 
       - name: 🌍 Run consent journey e2e
         run: bun e2e:consent
+
+  release:
+    name: 🚀 Release
+    needs: [lint_and_check, build, test]
+    if: >-
+      github.event_name == 'push' &&
+      github.repository == 'c15t/c15t' &&
+      (github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/canary' ||
+      github.ref == 'refs/heads/2.0.0')
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: write
+    uses: ./.github/workflows/release.yml
