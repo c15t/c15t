@@ -61,6 +61,7 @@
 		"valibot": "1.4.2"
 	},
 	"devDependencies": {
+		"@c15t/backend": "workspace:*",
 		"@c15t/migration-fixtures": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
