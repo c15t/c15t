@@ -1,0 +1,1142 @@
+{
+	"shape": "fumadb-2.0.0",
+	"engine": "postgres",
+	"versions": ["2.1.0"],
+	"era": "fumadb-root",
+	"rationale": "Current shipping shape. Writes c15t_settings = 2.0.0.",
+	"applied": [
+		{
+			"version": "2.1.0",
+			"era": "fumadb-root",
+			"sql": "create table \"subject\" (\"id\" varchar(255) not null primary key, \"externalId\" text, \"identityProvider\" text, \"createdAt\" timestamp default CURRENT_TIMESTAMP not null, \"updatedAt\" timestamp default CURRENT_TIMESTAMP not null, \"tenantId\" text);\n\ncreate table \"domain\" (\"id\" varchar(255) not null primary key, \"name\" text not null, \"createdAt\" timestamp default CURRENT_TIMESTAMP not null, \"updatedAt\" timestamp default CURRENT_TIMESTAMP not null, \"tenantId\" text);\n\ncreate table \"consentPolicy\" (\"id\" varchar(255) not null primary key, \"version\" text not null, \"type\" text not null, \"hash\" text, \"effectiveDate\" timestamp not null, \"isActive\" boolean not null, \"createdAt\" timestamp default CURRENT_TIMESTAMP not null, \"tenantId\" text);\n\ncreate table \"runtimePolicyDecision\" (\"id\" varchar(255) not null primary key, \"tenantId\" text, \"policyId\" text not null, \"fingerprint\" text not null, \"matchedBy\" text not null, \"countryCode\" text, \"regionCode\" text, \"jurisdiction\" text not null, \"language\" text, \"model\" text not null, \"policyI18n\" json, \"uiMode\" text, \"bannerUi\" json, \"dialogUi\" json, \"categories\" json, \"preselectedCategories\" json, \"proofConfig\" json, \"dedupeKey\" text not null, \"createdAt\" timestamp default CURRENT_TIMESTAMP not null);\n\nalter table \"runtimePolicyDecision\" add constraint \"unique_c_runtimePolicyDecision_dedupeKey\" unique (\"dedupeKey\");\n\ncreate table \"consentPurpose\" (\"id\" varchar(255) not null primary key, \"code\" text not null, \"createdAt\" timestamp default CURRENT_TIMESTAMP not null, \"updatedAt\" timestamp default CURRENT_TIMESTAMP not null, \"tenantId\" text);\n\ncreate table \"consent\" (\"id\" varchar(255) not null primary key, \"subjectId\" text not null, \"domainId\" text not null, \"policyId\" text, \"purposeIds\" json not null, \"metadata\" json, \"ipAddress\" text, \"userAgent\" text, \"givenAt\" timestamp default CURRENT_TIMESTAMP not null, \"validUntil\" timestamp, \"jurisdiction\" text, \"jurisdictionModel\" text, \"tcString\" text, \"uiSource\" text, \"consentAction\" text, \"runtimePolicyDecisionId\" text, \"runtimePolicySource\" text, \"tenantId\" text, constraint \"consent_subject_subject_fk\" foreign key (\"subjectId\") references \"subject\" (\"id\") on delete restrict on update restrict, constraint \"consent_domain_domain_fk\" foreign key (\"domainId\") references \"domain\" (\"id\") on delete restrict on update restrict, constraint \"consent_consentPolicy_policy_fk\" foreign key (\"policyId\") references \"consentPolicy\" (\"id\") on delete restrict on update restrict, constraint \"consent_runtimePolicyDecision_runtimePolicyDecision_fk\" foreign key (\"runtimePolicyDecisionId\") references \"runtimePolicyDecision\" (\"id\") on delete restrict on update restrict);\n\ncreate table \"auditLog\" (\"id\" varchar(255) not null primary key, \"entityType\" text not null, \"entityId\" text not null, \"actionType\" text not null, \"subjectId\" text, \"ipAddress\" text, \"userAgent\" text, \"changes\" json, \"metadata\" json, \"createdAt\" timestamp default CURRENT_TIMESTAMP not null, \"tenantId\" text, constraint \"auditLog_subject_subject_fk\" foreign key (\"subjectId\") references \"subject\" (\"id\") on delete restrict on update restrict);\n\ncreate table \"private_c15t_settings\" (\"key\" varchar(255) primary key, \"value\" text not null);\n\ninsert into \"private_c15t_settings\" (\"key\", \"value\") values ('version', '2.0.0');\n\ninsert into \"private_c15t_settings\" (\"key\", \"value\") values ('name-variants', '{\"subject\":{\"convex\":\"subject\",\"drizzle\":\"subject\",\"prisma\":\"subject\",\"mongodb\":\"subject\",\"sql\":\"subject\"},\"subject.id\":{\"convex\":\"id\",\"drizzle\":\"id\",\"prisma\":\"id\",\"mongodb\":\"_id\",\"sql\":\"id\"},\"subject.externalId\":{\"convex\":\"externalId\",\"drizzle\":\"externalId\",\"prisma\":\"externalId\",\"mongodb\":\"externalId\",\"sql\":\"externalId\"},\"subject.identityProvider\":{\"convex\":\"identityProvider\",\"drizzle\":\"identityProvider\",\"prisma\":\"identityProvider\",\"mongodb\":\"identityProvider\",\"sql\":\"identityProvider\"},\"subject.createdAt\":{\"convex\":\"createdAt\",\"drizzle\":\"createdAt\",\"prisma\":\"createdAt\",\"mongodb\":\"createdAt\",\"sql\":\"createdAt\"},\"subject.updatedAt\":{\"convex\":\"updatedAt\",\"drizzle\":\"updatedAt\",\"prisma\":\"updatedAt\",\"mongodb\":\"updatedAt\",\"sql\":\"updatedAt\"},\"subject.tenantId\":{\"convex\":\"tenantId\",\"drizzle\":\"tenantId\",\"prisma\":\"tenantId\",\"mongodb\":\"tenantId\",\"sql\":\"tenantId\"},\"domain\":{\"convex\":\"domain\",\"drizzle\":\"domain\",\"prisma\":\"domain\",\"mongodb\":\"domain\",\"sql\":\"domain\"},\"domain.id\":{\"convex\":\"id\",\"drizzle\":\"id\",\"prisma\":\"id\",\"mongodb\":\"_id\",\"sql\":\"id\"},\"domain.name\":{\"convex\":\"name\",\"drizzle\":\"name\",\"prisma\":\"name\",\"mongodb\":\"name\",\"sql\":\"name\"},\"domain.createdAt\":{\"convex\":\"createdAt\",\"drizzle\":\"createdAt\",\"prisma\":\"createdAt\",\"mongodb\":\"createdAt\",\"sql\":\"createdAt\"},\"domain.updatedAt\":{\"convex\":\"updatedAt\",\"drizzle\":\"updatedAt\",\"prisma\":\"updatedAt\",\"mongodb\":\"updatedAt\",\"sql\":\"updatedAt\"},\"domain.tenantId\":{\"convex\":\"tenantId\",\"drizzle\":\"tenantId\",\"prisma\":\"tenantId\",\"mongodb\":\"tenantId\",\"sql\":\"tenantId\"},\"consentPolicy\":{\"convex\":\"consentPolicy\",\"drizzle\":\"consentPolicy\",\"prisma\":\"consentPolicy\",\"mongodb\":\"consentPolicy\",\"sql\":\"consentPolicy\"},\"consentPolicy.id\":{\"convex\":\"id\",\"drizzle\":\"id\",\"prisma\":\"id\",\"mongodb\":\"_id\",\"sql\":\"id\"},\"consentPolicy.version\":{\"convex\":\"version\",\"drizzle\":\"version\",\"prisma\":\"version\",\"mongodb\":\"version\",\"sql\":\"version\"},\"consentPolicy.type\":{\"convex\":\"type\",\"drizzle\":\"type\",\"prisma\":\"type\",\"mongodb\":\"type\",\"sql\":\"type\"},\"consentPolicy.hash\":{\"convex\":\"hash\",\"drizzle\":\"hash\",\"prisma\":\"hash\",\"mongodb\":\"hash\",\"sql\":\"hash\"},\"consentPolicy.effectiveDate\":{\"convex\":\"effectiveDate\",\"drizzle\":\"effectiveDate\",\"prisma\":\"effectiveDate\",\"mongodb\":\"effectiveDate\",\"sql\":\"effectiveDate\"},\"consentPolicy.isActive\":{\"convex\":\"isActive\",\"drizzle\":\"isActive\",\"prisma\":\"isActive\",\"mongodb\":\"isActive\",\"sql\":\"isActive\"},\"consentPolicy.createdAt\":{\"convex\":\"createdAt\",\"drizzle\":\"createdAt\",\"prisma\":\"createdAt\",\"mongodb\":\"createdAt\",\"sql\":\"createdAt\"},\"consentPolicy.tenantId\":{\"convex\":\"tenantId\",\"drizzle\":\"tenantId\",\"prisma\":\"tenantId\",\"mongodb\":\"tenantId\",\"sql\":\"tenantId\"},\"runtimePolicyDecision\":{\"convex\":\"runtimePolicyDecision\",\"drizzle\":\"runtimePolicyDecision\",\"prisma\":\"runtimePolicyDecision\",\"mongodb\":\"runtimePolicyDecision\",\"sql\":\"runtimePolicyDecision\"},\"runtimePolicyDecision.id\":{\"convex\":\"id\",\"drizzle\":\"id\",\"prisma\":\"id\",\"mongodb\":\"_id\",\"sql\":\"id\"},\"runtimePolicyDecision.tenantId\":{\"convex\":\"tenantId\",\"drizzle\":\"tenantId\",\"prisma\":\"tenantId\",\"mongodb\":\"tenantId\",\"sql\":\"tenantId\"},\"runtimePolicyDecision.policyId\":{\"convex\":\"policyId\",\"drizzle\":\"policyId\",\"prisma\":\"policyId\",\"mongodb\":\"policyId\",\"sql\":\"policyId\"},\"runtimePolicyDecision.fingerprint\":{\"convex\":\"fingerprint\",\"drizzle\":\"fingerprint\",\"prisma\":\"fingerprint\",\"mongodb\":\"fingerprint\",\"sql\":\"fingerprint\"},\"runtimePolicyDecision.matchedBy\":{\"convex\":\"matchedBy\",\"drizzle\":\"matchedBy\",\"prisma\":\"matchedBy\",\"mongodb\":\"matchedBy\",\"sql\":\"matchedBy\"},\"runtimePolicyDecision.countryCode\":{\"convex\":\"countryCode\",\"drizzle\":\"countryCode\",\"prisma\":\"countryCode\",\"mongodb\":\"countryCode\",\"sql\":\"countryCode\"},\"runtimePolicyDecision.regionCode\":{\"convex\":\"regionCode\",\"drizzle\":\"regionCode\",\"prisma\":\"regionCode\",\"mongodb\":\"regionCode\",\"sql\":\"regionCode\"},\"runtimePolicyDecision.jurisdiction\":{\"convex\":\"jurisdiction\",\"drizzle\":\"jurisdiction\",\"prisma\":\"jurisdiction\",\"mongodb\":\"jurisdiction\",\"sql\":\"jurisdiction\"},\"runtimePolicyDecision.language\":{\"convex\":\"language\",\"drizzle\":\"language\",\"prisma\":\"language\",\"mongodb\":\"language\",\"sql\":\"language\"},\"runtimePolicyDecision.model\":{\"convex\":\"model\",\"drizzle\":\"model\",\"prisma\":\"model\",\"mongodb\":\"model\",\"sql\":\"model\"},\"runtimePolicyDecision.policyI18n\":{\"convex\":\"policyI18n\",\"drizzle\":\"policyI18n\",\"prisma\":\"policyI18n\",\"mongodb\":\"policyI18n\",\"sql\":\"policyI18n\"},\"runtimePolicyDecision.uiMode\":{\"convex\":\"uiMode\",\"drizzle\":\"uiMode\",\"prisma\":\"uiMode\",\"mongodb\":\"uiMode\",\"sql\":\"uiMode\"},\"runtimePolicyDecision.bannerUi\":{\"convex\":\"bannerUi\",\"drizzle\":\"bannerUi\",\"prisma\":\"bannerUi\",\"mongodb\":\"bannerUi\",\"sql\":\"bannerUi\"},\"runtimePolicyDecision.dialogUi\":{\"convex\":\"dialogUi\",\"drizzle\":\"dialogUi\",\"prisma\":\"dialogUi\",\"mongodb\":\"dialogUi\",\"sql\":\"dialogUi\"},\"runtimePolicyDecision.categories\":{\"convex\":\"categories\",\"drizzle\":\"categories\",\"prisma\":\"categories\",\"mongodb\":\"categories\",\"sql\":\"categories\"},\"runtimePolicyDecision.preselectedCategories\":{\"convex\":\"preselectedCategories\",\"drizzle\":\"preselectedCategories\",\"prisma\":\"preselectedCategories\",\"mongodb\":\"preselectedCategories\",\"sql\":\"preselectedCategories\"},\"runtimePolicyDecision.proofConfig\":{\"convex\":\"proofConfig\",\"drizzle\":\"proofConfig\",\"prisma\":\"proofConfig\",\"mongodb\":\"proofConfig\",\"sql\":\"proofConfig\"},\"runtimePolicyDecision.dedupeKey\":{\"convex\":\"dedupeKey\",\"drizzle\":\"dedupeKey\",\"prisma\":\"dedupeKey\",\"mongodb\":\"dedupeKey\",\"sql\":\"dedupeKey\"},\"runtimePolicyDecision.createdAt\":{\"convex\":\"createdAt\",\"drizzle\":\"createdAt\",\"prisma\":\"createdAt\",\"mongodb\":\"createdAt\",\"sql\":\"createdAt\"},\"consentPurpose\":{\"convex\":\"consentPurpose\",\"drizzle\":\"consentPurpose\",\"prisma\":\"consentPurpose\",\"mongodb\":\"consentPurpose\",\"sql\":\"consentPurpose\"},\"consentPurpose.id\":{\"convex\":\"id\",\"drizzle\":\"id\",\"prisma\":\"id\",\"mongodb\":\"_id\",\"sql\":\"id\"},\"consentPurpose.code\":{\"convex\":\"code\",\"drizzle\":\"code\",\"prisma\":\"code\",\"mongodb\":\"code\",\"sql\":\"code\"},\"consentPurpose.createdAt\":{\"convex\":\"createdAt\",\"drizzle\":\"createdAt\",\"prisma\":\"createdAt\",\"mongodb\":\"createdAt\",\"sql\":\"createdAt\"},\"consentPurpose.updatedAt\":{\"convex\":\"updatedAt\",\"drizzle\":\"updatedAt\",\"prisma\":\"updatedAt\",\"mongodb\":\"updatedAt\",\"sql\":\"updatedAt\"},\"consentPurpose.tenantId\":{\"convex\":\"tenantId\",\"drizzle\":\"tenantId\",\"prisma\":\"tenantId\",\"mongodb\":\"tenantId\",\"sql\":\"tenantId\"},\"consent\":{\"convex\":\"consent\",\"drizzle\":\"consent\",\"prisma\":\"consent\",\"mongodb\":\"consent\",\"sql\":\"consent\"},\"consent.id\":{\"convex\":\"id\",\"drizzle\":\"id\",\"prisma\":\"id\",\"mongodb\":\"_id\",\"sql\":\"id\"},\"consent.subjectId\":{\"convex\":\"subjectId\",\"drizzle\":\"subjectId\",\"prisma\":\"subjectId\",\"mongodb\":\"subjectId\",\"sql\":\"subjectId\"},\"consent.domainId\":{\"convex\":\"domainId\",\"drizzle\":\"domainId\",\"prisma\":\"domainId\",\"mongodb\":\"domainId\",\"sql\":\"domainId\"},\"consent.policyId\":{\"convex\":\"policyId\",\"drizzle\":\"policyId\",\"prisma\":\"policyId\",\"mongodb\":\"policyId\",\"sql\":\"policyId\"},\"consent.purposeIds\":{\"convex\":\"purposeIds\",\"drizzle\":\"purposeIds\",\"prisma\":\"purposeIds\",\"mongodb\":\"purposeIds\",\"sql\":\"purposeIds\"},\"consent.metadata\":{\"convex\":\"metadata\",\"drizzle\":\"metadata\",\"prisma\":\"metadata\",\"mongodb\":\"metadata\",\"sql\":\"metadata\"},\"consent.ipAddress\":{\"convex\":\"ipAddress\",\"drizzle\":\"ipAddress\",\"prisma\":\"ipAddress\",\"mongodb\":\"ipAddress\",\"sql\":\"ipAddress\"},\"consent.userAgent\":{\"convex\":\"userAgent\",\"drizzle\":\"userAgent\",\"prisma\":\"userAgent\",\"mongodb\":\"userAgent\",\"sql\":\"userAgent\"},\"consent.givenAt\":{\"convex\":\"givenAt\",\"drizzle\":\"givenAt\",\"prisma\":\"givenAt\",\"mongodb\":\"givenAt\",\"sql\":\"givenAt\"},\"consent.validUntil\":{\"convex\":\"validUntil\",\"drizzle\":\"validUntil\",\"prisma\":\"validUntil\",\"mongodb\":\"validUntil\",\"sql\":\"validUntil\"},\"consent.jurisdiction\":{\"convex\":\"jurisdiction\",\"drizzle\":\"jurisdiction\",\"prisma\":\"jurisdiction\",\"mongodb\":\"jurisdiction\",\"sql\":\"jurisdiction\"},\"consent.jurisdictionModel\":{\"convex\":\"jurisdictionModel\",\"drizzle\":\"jurisdictionModel\",\"prisma\":\"jurisdictionModel\",\"mongodb\":\"jurisdictionModel\",\"sql\":\"jurisdictionModel\"},\"consent.tcString\":{\"convex\":\"tcString\",\"drizzle\":\"tcString\",\"prisma\":\"tcString\",\"mongodb\":\"tcString\",\"sql\":\"tcString\"},\"consent.uiSource\":{\"convex\":\"uiSource\",\"drizzle\":\"uiSource\",\"prisma\":\"uiSource\",\"mongodb\":\"uiSource\",\"sql\":\"uiSource\"},\"consent.consentAction\":{\"convex\":\"consentAction\",\"drizzle\":\"consentAction\",\"prisma\":\"consentAction\",\"mongodb\":\"consentAction\",\"sql\":\"consentAction\"},\"consent.runtimePolicyDecisionId\":{\"convex\":\"runtimePolicyDecisionId\",\"drizzle\":\"runtimePolicyDecisionId\",\"prisma\":\"runtimePolicyDecisionId\",\"mongodb\":\"runtimePolicyDecisionId\",\"sql\":\"runtimePolicyDecisionId\"},\"consent.runtimePolicySource\":{\"convex\":\"runtimePolicySource\",\"drizzle\":\"runtimePolicySource\",\"prisma\":\"runtimePolicySource\",\"mongodb\":\"runtimePolicySource\",\"sql\":\"runtimePolicySource\"},\"consent.tenantId\":{\"convex\":\"tenantId\",\"drizzle\":\"tenantId\",\"prisma\":\"tenantId\",\"mongodb\":\"tenantId\",\"sql\":\"tenantId\"},\"auditLog\":{\"convex\":\"auditLog\",\"drizzle\":\"auditLog\",\"prisma\":\"auditLog\",\"mongodb\":\"auditLog\",\"sql\":\"auditLog\"},\"auditLog.id\":{\"convex\":\"id\",\"drizzle\":\"id\",\"prisma\":\"id\",\"mongodb\":\"_id\",\"sql\":\"id\"},\"auditLog.entityType\":{\"convex\":\"entityType\",\"drizzle\":\"entityType\",\"prisma\":\"entityType\",\"mongodb\":\"entityType\",\"sql\":\"entityType\"},\"auditLog.entityId\":{\"convex\":\"entityId\",\"drizzle\":\"entityId\",\"prisma\":\"entityId\",\"mongodb\":\"entityId\",\"sql\":\"entityId\"},\"auditLog.actionType\":{\"convex\":\"actionType\",\"drizzle\":\"actionType\",\"prisma\":\"actionType\",\"mongodb\":\"actionType\",\"sql\":\"actionType\"},\"auditLog.subjectId\":{\"convex\":\"subjectId\",\"drizzle\":\"subjectId\",\"prisma\":\"subjectId\",\"mongodb\":\"subjectId\",\"sql\":\"subjectId\"},\"auditLog.ipAddress\":{\"convex\":\"ipAddress\",\"drizzle\":\"ipAddress\",\"prisma\":\"ipAddress\",\"mongodb\":\"ipAddress\",\"sql\":\"ipAddress\"},\"auditLog.userAgent\":{\"convex\":\"userAgent\",\"drizzle\":\"userAgent\",\"prisma\":\"userAgent\",\"mongodb\":\"userAgent\",\"sql\":\"userAgent\"},\"auditLog.changes\":{\"convex\":\"changes\",\"drizzle\":\"changes\",\"prisma\":\"changes\",\"mongodb\":\"changes\",\"sql\":\"changes\"},\"auditLog.metadata\":{\"convex\":\"metadata\",\"drizzle\":\"metadata\",\"prisma\":\"metadata\",\"mongodb\":\"metadata\",\"sql\":\"metadata\"},\"auditLog.createdAt\":{\"convex\":\"createdAt\",\"drizzle\":\"createdAt\",\"prisma\":\"createdAt\",\"mongodb\":\"createdAt\",\"sql\":\"createdAt\"},\"auditLog.tenantId\":{\"convex\":\"tenantId\",\"drizzle\":\"tenantId\",\"prisma\":\"tenantId\",\"mongodb\":\"tenantId\",\"sql\":\"tenantId\"}}');"
+		}
+	],
+	"settings": {
+		"table": "private_c15t_settings",
+		"rows": [
+			{
+				"key": "version",
+				"value": "2.0.0"
+			},
+			{
+				"key": "name-variants",
+				"value": {
+					"subject": {
+						"convex": "subject",
+						"drizzle": "subject",
+						"prisma": "subject",
+						"mongodb": "subject",
+						"sql": "subject"
+					},
+					"subject.id": {
+						"convex": "id",
+						"drizzle": "id",
+						"prisma": "id",
+						"mongodb": "_id",
+						"sql": "id"
+					},
+					"subject.externalId": {
+						"convex": "externalId",
+						"drizzle": "externalId",
+						"prisma": "externalId",
+						"mongodb": "externalId",
+						"sql": "externalId"
+					},
+					"subject.identityProvider": {
+						"convex": "identityProvider",
+						"drizzle": "identityProvider",
+						"prisma": "identityProvider",
+						"mongodb": "identityProvider",
+						"sql": "identityProvider"
+					},
+					"subject.createdAt": {
+						"convex": "createdAt",
+						"drizzle": "createdAt",
+						"prisma": "createdAt",
+						"mongodb": "createdAt",
+						"sql": "createdAt"
+					},
+					"subject.updatedAt": {
+						"convex": "updatedAt",
+						"drizzle": "updatedAt",
+						"prisma": "updatedAt",
+						"mongodb": "updatedAt",
+						"sql": "updatedAt"
+					},
+					"subject.tenantId": {
+						"convex": "tenantId",
+						"drizzle": "tenantId",
+						"prisma": "tenantId",
+						"mongodb": "tenantId",
+						"sql": "tenantId"
+					},
+					"domain": {
+						"convex": "domain",
+						"drizzle": "domain",
+						"prisma": "domain",
+						"mongodb": "domain",
+						"sql": "domain"
+					},
+					"domain.id": {
+						"convex": "id",
+						"drizzle": "id",
+						"prisma": "id",
+						"mongodb": "_id",
+						"sql": "id"
+					},
+					"domain.name": {
+						"convex": "name",
+						"drizzle": "name",
+						"prisma": "name",
+						"mongodb": "name",
+						"sql": "name"
+					},
+					"domain.createdAt": {
+						"convex": "createdAt",
+						"drizzle": "createdAt",
+						"prisma": "createdAt",
+						"mongodb": "createdAt",
+						"sql": "createdAt"
+					},
+					"domain.updatedAt": {
+						"convex": "updatedAt",
+						"drizzle": "updatedAt",
+						"prisma": "updatedAt",
+						"mongodb": "updatedAt",
+						"sql": "updatedAt"
+					},
+					"domain.tenantId": {
+						"convex": "tenantId",
+						"drizzle": "tenantId",
+						"prisma": "tenantId",
+						"mongodb": "tenantId",
+						"sql": "tenantId"
+					},
+					"consentPolicy": {
+						"convex": "consentPolicy",
+						"drizzle": "consentPolicy",
+						"prisma": "consentPolicy",
+						"mongodb": "consentPolicy",
+						"sql": "consentPolicy"
+					},
+					"consentPolicy.id": {
+						"convex": "id",
+						"drizzle": "id",
+						"prisma": "id",
+						"mongodb": "_id",
+						"sql": "id"
+					},
+					"consentPolicy.version": {
+						"convex": "version",
+						"drizzle": "version",
+						"prisma": "version",
+						"mongodb": "version",
+						"sql": "version"
+					},
+					"consentPolicy.type": {
+						"convex": "type",
+						"drizzle": "type",
+						"prisma": "type",
+						"mongodb": "type",
+						"sql": "type"
+					},
+					"consentPolicy.hash": {
+						"convex": "hash",
+						"drizzle": "hash",
+						"prisma": "hash",
+						"mongodb": "hash",
+						"sql": "hash"
+					},
+					"consentPolicy.effectiveDate": {
+						"convex": "effectiveDate",
+						"drizzle": "effectiveDate",
+						"prisma": "effectiveDate",
+						"mongodb": "effectiveDate",
+						"sql": "effectiveDate"
+					},
+					"consentPolicy.isActive": {
+						"convex": "isActive",
+						"drizzle": "isActive",
+						"prisma": "isActive",
+						"mongodb": "isActive",
+						"sql": "isActive"
+					},
+					"consentPolicy.createdAt": {
+						"convex": "createdAt",
+						"drizzle": "createdAt",
+						"prisma": "createdAt",
+						"mongodb": "createdAt",
+						"sql": "createdAt"
+					},
+					"consentPolicy.tenantId": {
+						"convex": "tenantId",
+						"drizzle": "tenantId",
+						"prisma": "tenantId",
+						"mongodb": "tenantId",
+						"sql": "tenantId"
+					},
+					"runtimePolicyDecision": {
+						"convex": "runtimePolicyDecision",
+						"drizzle": "runtimePolicyDecision",
+						"prisma": "runtimePolicyDecision",
+						"mongodb": "runtimePolicyDecision",
+						"sql": "runtimePolicyDecision"
+					},
+					"runtimePolicyDecision.id": {
+						"convex": "id",
+						"drizzle": "id",
+						"prisma": "id",
+						"mongodb": "_id",
+						"sql": "id"
+					},
+					"runtimePolicyDecision.tenantId": {
+						"convex": "tenantId",
+						"drizzle": "tenantId",
+						"prisma": "tenantId",
+						"mongodb": "tenantId",
+						"sql": "tenantId"
+					},
+					"runtimePolicyDecision.policyId": {
+						"convex": "policyId",
+						"drizzle": "policyId",
+						"prisma": "policyId",
+						"mongodb": "policyId",
+						"sql": "policyId"
+					},
+					"runtimePolicyDecision.fingerprint": {
+						"convex": "fingerprint",
+						"drizzle": "fingerprint",
+						"prisma": "fingerprint",
+						"mongodb": "fingerprint",
+						"sql": "fingerprint"
+					},
+					"runtimePolicyDecision.matchedBy": {
+						"convex": "matchedBy",
+						"drizzle": "matchedBy",
+						"prisma": "matchedBy",
+						"mongodb": "matchedBy",
+						"sql": "matchedBy"
+					},
+					"runtimePolicyDecision.countryCode": {
+						"convex": "countryCode",
+						"drizzle": "countryCode",
+						"prisma": "countryCode",
+						"mongodb": "countryCode",
+						"sql": "countryCode"
+					},
+					"runtimePolicyDecision.regionCode": {
+						"convex": "regionCode",
+						"drizzle": "regionCode",
+						"prisma": "regionCode",
+						"mongodb": "regionCode",
+						"sql": "regionCode"
+					},
+					"runtimePolicyDecision.jurisdiction": {
+						"convex": "jurisdiction",
+						"drizzle": "jurisdiction",
+						"prisma": "jurisdiction",
+						"mongodb": "jurisdiction",
+						"sql": "jurisdiction"
+					},
+					"runtimePolicyDecision.language": {
+						"convex": "language",
+						"drizzle": "language",
+						"prisma": "language",
+						"mongodb": "language",
+						"sql": "language"
+					},
+					"runtimePolicyDecision.model": {
+						"convex": "model",
+						"drizzle": "model",
+						"prisma": "model",
+						"mongodb": "model",
+						"sql": "model"
+					},
+					"runtimePolicyDecision.policyI18n": {
+						"convex": "policyI18n",
+						"drizzle": "policyI18n",
+						"prisma": "policyI18n",
+						"mongodb": "policyI18n",
+						"sql": "policyI18n"
+					},
+					"runtimePolicyDecision.uiMode": {
+						"convex": "uiMode",
+						"drizzle": "uiMode",
+						"prisma": "uiMode",
+						"mongodb": "uiMode",
+						"sql": "uiMode"
+					},
+					"runtimePolicyDecision.bannerUi": {
+						"convex": "bannerUi",
+						"drizzle": "bannerUi",
+						"prisma": "bannerUi",
+						"mongodb": "bannerUi",
+						"sql": "bannerUi"
+					},
+					"runtimePolicyDecision.dialogUi": {
+						"convex": "dialogUi",
+						"drizzle": "dialogUi",
+						"prisma": "dialogUi",
+						"mongodb": "dialogUi",
+						"sql": "dialogUi"
+					},
+					"runtimePolicyDecision.categories": {
+						"convex": "categories",
+						"drizzle": "categories",
+						"prisma": "categories",
+						"mongodb": "categories",
+						"sql": "categories"
+					},
+					"runtimePolicyDecision.preselectedCategories": {
+						"convex": "preselectedCategories",
+						"drizzle": "preselectedCategories",
+						"prisma": "preselectedCategories",
+						"mongodb": "preselectedCategories",
+						"sql": "preselectedCategories"
+					},
+					"runtimePolicyDecision.proofConfig": {
+						"convex": "proofConfig",
+						"drizzle": "proofConfig",
+						"prisma": "proofConfig",
+						"mongodb": "proofConfig",
+						"sql": "proofConfig"
+					},
+					"runtimePolicyDecision.dedupeKey": {
+						"convex": "dedupeKey",
+						"drizzle": "dedupeKey",
+						"prisma": "dedupeKey",
+						"mongodb": "dedupeKey",
+						"sql": "dedupeKey"
+					},
+					"runtimePolicyDecision.createdAt": {
+						"convex": "createdAt",
+						"drizzle": "createdAt",
+						"prisma": "createdAt",
+						"mongodb": "createdAt",
+						"sql": "createdAt"
+					},
+					"consentPurpose": {
+						"convex": "consentPurpose",
+						"drizzle": "consentPurpose",
+						"prisma": "consentPurpose",
+						"mongodb": "consentPurpose",
+						"sql": "consentPurpose"
+					},
+					"consentPurpose.id": {
+						"convex": "id",
+						"drizzle": "id",
+						"prisma": "id",
+						"mongodb": "_id",
+						"sql": "id"
+					},
+					"consentPurpose.code": {
+						"convex": "code",
+						"drizzle": "code",
+						"prisma": "code",
+						"mongodb": "code",
+						"sql": "code"
+					},
+					"consentPurpose.createdAt": {
+						"convex": "createdAt",
+						"drizzle": "createdAt",
+						"prisma": "createdAt",
+						"mongodb": "createdAt",
+						"sql": "createdAt"
+					},
+					"consentPurpose.updatedAt": {
+						"convex": "updatedAt",
+						"drizzle": "updatedAt",
+						"prisma": "updatedAt",
+						"mongodb": "updatedAt",
+						"sql": "updatedAt"
+					},
+					"consentPurpose.tenantId": {
+						"convex": "tenantId",
+						"drizzle": "tenantId",
+						"prisma": "tenantId",
+						"mongodb": "tenantId",
+						"sql": "tenantId"
+					},
+					"consent": {
+						"convex": "consent",
+						"drizzle": "consent",
+						"prisma": "consent",
+						"mongodb": "consent",
+						"sql": "consent"
+					},
+					"consent.id": {
+						"convex": "id",
+						"drizzle": "id",
+						"prisma": "id",
+						"mongodb": "_id",
+						"sql": "id"
+					},
+					"consent.subjectId": {
+						"convex": "subjectId",
+						"drizzle": "subjectId",
+						"prisma": "subjectId",
+						"mongodb": "subjectId",
+						"sql": "subjectId"
+					},
+					"consent.domainId": {
+						"convex": "domainId",
+						"drizzle": "domainId",
+						"prisma": "domainId",
+						"mongodb": "domainId",
+						"sql": "domainId"
+					},
+					"consent.policyId": {
+						"convex": "policyId",
+						"drizzle": "policyId",
+						"prisma": "policyId",
+						"mongodb": "policyId",
+						"sql": "policyId"
+					},
+					"consent.purposeIds": {
+						"convex": "purposeIds",
+						"drizzle": "purposeIds",
+						"prisma": "purposeIds",
+						"mongodb": "purposeIds",
+						"sql": "purposeIds"
+					},
+					"consent.metadata": {
+						"convex": "metadata",
+						"drizzle": "metadata",
+						"prisma": "metadata",
+						"mongodb": "metadata",
+						"sql": "metadata"
+					},
+					"consent.ipAddress": {
+						"convex": "ipAddress",
+						"drizzle": "ipAddress",
+						"prisma": "ipAddress",
+						"mongodb": "ipAddress",
+						"sql": "ipAddress"
+					},
+					"consent.userAgent": {
+						"convex": "userAgent",
+						"drizzle": "userAgent",
+						"prisma": "userAgent",
+						"mongodb": "userAgent",
+						"sql": "userAgent"
+					},
+					"consent.givenAt": {
+						"convex": "givenAt",
+						"drizzle": "givenAt",
+						"prisma": "givenAt",
+						"mongodb": "givenAt",
+						"sql": "givenAt"
+					},
+					"consent.validUntil": {
+						"convex": "validUntil",
+						"drizzle": "validUntil",
+						"prisma": "validUntil",
+						"mongodb": "validUntil",
+						"sql": "validUntil"
+					},
+					"consent.jurisdiction": {
+						"convex": "jurisdiction",
+						"drizzle": "jurisdiction",
+						"prisma": "jurisdiction",
+						"mongodb": "jurisdiction",
+						"sql": "jurisdiction"
+					},
+					"consent.jurisdictionModel": {
+						"convex": "jurisdictionModel",
+						"drizzle": "jurisdictionModel",
+						"prisma": "jurisdictionModel",
+						"mongodb": "jurisdictionModel",
+						"sql": "jurisdictionModel"
+					},
+					"consent.tcString": {
+						"convex": "tcString",
+						"drizzle": "tcString",
+						"prisma": "tcString",
+						"mongodb": "tcString",
+						"sql": "tcString"
+					},
+					"consent.uiSource": {
+						"convex": "uiSource",
+						"drizzle": "uiSource",
+						"prisma": "uiSource",
+						"mongodb": "uiSource",
+						"sql": "uiSource"
+					},
+					"consent.consentAction": {
+						"convex": "consentAction",
+						"drizzle": "consentAction",
+						"prisma": "consentAction",
+						"mongodb": "consentAction",
+						"sql": "consentAction"
+					},
+					"consent.runtimePolicyDecisionId": {
+						"convex": "runtimePolicyDecisionId",
+						"drizzle": "runtimePolicyDecisionId",
+						"prisma": "runtimePolicyDecisionId",
+						"mongodb": "runtimePolicyDecisionId",
+						"sql": "runtimePolicyDecisionId"
+					},
+					"consent.runtimePolicySource": {
+						"convex": "runtimePolicySource",
+						"drizzle": "runtimePolicySource",
+						"prisma": "runtimePolicySource",
+						"mongodb": "runtimePolicySource",
+						"sql": "runtimePolicySource"
+					},
+					"consent.tenantId": {
+						"convex": "tenantId",
+						"drizzle": "tenantId",
+						"prisma": "tenantId",
+						"mongodb": "tenantId",
+						"sql": "tenantId"
+					},
+					"auditLog": {
+						"convex": "auditLog",
+						"drizzle": "auditLog",
+						"prisma": "auditLog",
+						"mongodb": "auditLog",
+						"sql": "auditLog"
+					},
+					"auditLog.id": {
+						"convex": "id",
+						"drizzle": "id",
+						"prisma": "id",
+						"mongodb": "_id",
+						"sql": "id"
+					},
+					"auditLog.entityType": {
+						"convex": "entityType",
+						"drizzle": "entityType",
+						"prisma": "entityType",
+						"mongodb": "entityType",
+						"sql": "entityType"
+					},
+					"auditLog.entityId": {
+						"convex": "entityId",
+						"drizzle": "entityId",
+						"prisma": "entityId",
+						"mongodb": "entityId",
+						"sql": "entityId"
+					},
+					"auditLog.actionType": {
+						"convex": "actionType",
+						"drizzle": "actionType",
+						"prisma": "actionType",
+						"mongodb": "actionType",
+						"sql": "actionType"
+					},
+					"auditLog.subjectId": {
+						"convex": "subjectId",
+						"drizzle": "subjectId",
+						"prisma": "subjectId",
+						"mongodb": "subjectId",
+						"sql": "subjectId"
+					},
+					"auditLog.ipAddress": {
+						"convex": "ipAddress",
+						"drizzle": "ipAddress",
+						"prisma": "ipAddress",
+						"mongodb": "ipAddress",
+						"sql": "ipAddress"
+					},
+					"auditLog.userAgent": {
+						"convex": "userAgent",
+						"drizzle": "userAgent",
+						"prisma": "userAgent",
+						"mongodb": "userAgent",
+						"sql": "userAgent"
+					},
+					"auditLog.changes": {
+						"convex": "changes",
+						"drizzle": "changes",
+						"prisma": "changes",
+						"mongodb": "changes",
+						"sql": "changes"
+					},
+					"auditLog.metadata": {
+						"convex": "metadata",
+						"drizzle": "metadata",
+						"prisma": "metadata",
+						"mongodb": "metadata",
+						"sql": "metadata"
+					},
+					"auditLog.createdAt": {
+						"convex": "createdAt",
+						"drizzle": "createdAt",
+						"prisma": "createdAt",
+						"mongodb": "createdAt",
+						"sql": "createdAt"
+					},
+					"auditLog.tenantId": {
+						"convex": "tenantId",
+						"drizzle": "tenantId",
+						"prisma": "tenantId",
+						"mongodb": "tenantId",
+						"sql": "tenantId"
+					}
+				}
+			}
+		]
+	},
+	"tables": [
+		{
+			"name": "auditLog",
+			"columns": [
+				{
+					"name": "actionType",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "changes",
+					"dataType": "json",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "createdAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": true
+				},
+				{
+					"name": "entityId",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "entityType",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "id",
+					"dataType": "varchar",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "ipAddress",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "metadata",
+					"dataType": "json",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "subjectId",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "tenantId",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "userAgent",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				}
+			]
+		},
+		{
+			"name": "consent",
+			"columns": [
+				{
+					"name": "consentAction",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "domainId",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "givenAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": true
+				},
+				{
+					"name": "id",
+					"dataType": "varchar",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "ipAddress",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "jurisdiction",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "jurisdictionModel",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "metadata",
+					"dataType": "json",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "policyId",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "purposeIds",
+					"dataType": "json",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "runtimePolicyDecisionId",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "runtimePolicySource",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "subjectId",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "tcString",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "tenantId",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "uiSource",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "userAgent",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "validUntil",
+					"dataType": "timestamp",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				}
+			]
+		},
+		{
+			"name": "consentPolicy",
+			"columns": [
+				{
+					"name": "createdAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": true
+				},
+				{
+					"name": "effectiveDate",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "hash",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "id",
+					"dataType": "varchar",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "isActive",
+					"dataType": "bool",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "tenantId",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "type",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "version",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				}
+			]
+		},
+		{
+			"name": "consentPurpose",
+			"columns": [
+				{
+					"name": "code",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "createdAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": true
+				},
+				{
+					"name": "id",
+					"dataType": "varchar",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "tenantId",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "updatedAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": true
+				}
+			]
+		},
+		{
+			"name": "domain",
+			"columns": [
+				{
+					"name": "createdAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": true
+				},
+				{
+					"name": "id",
+					"dataType": "varchar",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "name",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "tenantId",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "updatedAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": true
+				}
+			]
+		},
+		{
+			"name": "private_c15t_settings",
+			"columns": [
+				{
+					"name": "key",
+					"dataType": "varchar",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "value",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				}
+			]
+		},
+		{
+			"name": "runtimePolicyDecision",
+			"columns": [
+				{
+					"name": "bannerUi",
+					"dataType": "json",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "categories",
+					"dataType": "json",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "countryCode",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "createdAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": true
+				},
+				{
+					"name": "dedupeKey",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "dialogUi",
+					"dataType": "json",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "fingerprint",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "id",
+					"dataType": "varchar",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "jurisdiction",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "language",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "matchedBy",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "model",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "policyI18n",
+					"dataType": "json",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "policyId",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "preselectedCategories",
+					"dataType": "json",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "proofConfig",
+					"dataType": "json",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "regionCode",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "tenantId",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "uiMode",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				}
+			]
+		},
+		{
+			"name": "subject",
+			"columns": [
+				{
+					"name": "createdAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": true
+				},
+				{
+					"name": "externalId",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "id",
+					"dataType": "varchar",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "identityProvider",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "tenantId",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "updatedAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": true
+				}
+			]
+		}
+	],
+	"ddl": {}
+}
