@@ -22,7 +22,8 @@
 
 import { generateEntityId } from '@c15t/schema';
 import { Effect } from 'effect';
-import { SqlClient, SqlError } from 'effect/unstable/sql';
+import { SqlClient, type SqlError } from 'effect/unstable/sql';
+import { encodeRow, encoder } from '../db/values';
 import { type ConsentSubmission, record } from './consent';
 import { type DecisionInput, recordDecision } from './runtime-policy-decision';
 import { findOrCreate } from './subject';
@@ -89,22 +90,25 @@ export const submit = Effect.fn('consent.submit')(function* (
 		// than per *event* would make the trail assert the subject consented
 		// twice, which is precisely the claim the trail exists to get right.
 		yield* sql`
-			insert into "auditLog" (
-				"id","subjectId","entityType","entityId","actionType",
-				"ipAddress","userAgent","changes","metadata","tenantId","createdAt"
-			) values (
-				${generateEntityId('auditLog')},
-				${subject.id}, ${'consent'}, ${consent.id}, ${'consent_given'},
-				${request.ipAddress}, ${request.userAgent},
-				${JSON.stringify({ purposeIds: request.purposeIds })},
-				${JSON.stringify({
-					policyId: request.policyId ?? null,
-					domainId: request.domainId,
-					decisionId: decision?.id ?? null,
-				})},
-				${request.tenantId ?? null},
-				${new Date()}
-			)
+			insert into ${sql('auditLog')} ${sql.insert(
+				encodeRow(yield* encoder, {
+					id: generateEntityId('auditLog'),
+					subjectId: subject.id,
+					entityType: 'consent',
+					entityId: consent.id,
+					actionType: 'consent_given',
+					ipAddress: request.ipAddress,
+					userAgent: request.userAgent,
+					changes: JSON.stringify({ purposeIds: request.purposeIds }),
+					metadata: JSON.stringify({
+						policyId: request.policyId ?? null,
+						domainId: request.domainId,
+						decisionId: decision?.id ?? null,
+					}),
+					tenantId: request.tenantId ?? null,
+					createdAt: new Date(),
+				})
+			)}
 		`;
 	}
 
@@ -114,8 +118,9 @@ export const submit = Effect.fn('consent.submit')(function* (
 	// make an otherwise identical resubmission look like a different consent.
 	if (decision && consent.created) {
 		yield* sql`
-			update "consent" set "runtimePolicyDecisionId" = ${decision.id}
-			where "id" = ${consent.id}
+			update ${sql('consent')}
+			set ${sql('runtimePolicyDecisionId')} = ${decision.id}
+			where ${sql('id')} = ${consent.id}
 		`;
 	}
 

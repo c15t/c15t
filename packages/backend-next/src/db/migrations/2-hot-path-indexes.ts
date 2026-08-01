@@ -151,16 +151,105 @@ export const INDEXES: readonly IndexSpec[] = [
 	})),
 ] as const;
 
+/**
+ * Index names already present, for the engine that cannot say
+ * `if not exists`.
+ *
+ * MySQL supports `create index if not exists` for nothing — re-running the
+ * migration would fail with "Duplicate key name" rather than no-op — so the
+ * check has to happen before the DDL. Postgres and SQLite both accept the
+ * clause and get an empty set, keeping one code path for all three.
+ */
+const existingIndexNames = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	return yield* sql.onDialectOrElse({
+		mysql: () =>
+			Effect.map(
+				sql<{ name: string }>`
+					select distinct index_name as name
+					from information_schema.statistics
+					where table_schema = database()
+				`,
+				(rows) => new Set(rows.map((row) => row.name))
+			),
+		orElse: () => Effect.succeed(new Set<string>()),
+	});
+});
+
+/**
+ * How many leading characters of a MySQL `TEXT` column to index.
+ *
+ * 191 is the largest prefix that fits the 767-byte index limit of InnoDB's
+ * older `COMPACT` row format under `utf8mb4` (191 × 4 = 764). Modern
+ * `DYNAMIC` tables allow far more, but the smaller bound works on both and
+ * this is a selectivity aid, not a uniqueness constraint.
+ */
+const TEXT_PREFIX = 191;
+
+/**
+ * The MySQL columns that must be indexed by prefix rather than whole.
+ *
+ * A **fresh** MySQL install has no such columns: the baseline declares
+ * everything indexed here as `varchar(255)`. An **adopted** one can, because
+ * adoption is add-only and the legacy migrator declared `subject.externalId`
+ * and `consentPurpose.code` as `TEXT` — which MySQL refuses to index without
+ * a length.
+ *
+ * Widening those columns instead would be the tidier schema and the wrong
+ * trade: `alter table … modify` rewrites the table under a lock, on exactly
+ * the tables most likely to be large, to buy nothing this index does not
+ * already buy.
+ */
+const blobColumns = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	return yield* sql.onDialectOrElse({
+		mysql: () =>
+			Effect.map(
+				// Aliased explicitly: MySQL uppercases `information_schema`
+				// labels regardless of the case written here.
+				sql<{ table_name: string; column_name: string }>`
+					select table_name as table_name, column_name as column_name
+					from information_schema.columns
+					where table_schema = database()
+						and data_type in ('tinytext', 'text', 'mediumtext', 'longtext',
+							'tinyblob', 'blob', 'mediumblob', 'longblob')
+				`,
+				(rows) =>
+					new Set(rows.map((row) => `${row.table_name}.${row.column_name}`))
+			),
+		orElse: () => Effect.succeed(new Set<string>()),
+	});
+});
+
 export const up = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	// Resolved so an unsupported dialect fails here rather than part-way
 	// through emitting DDL.
-	yield* Dialect.current;
+	const dialect = yield* Dialect.current;
+	const quote = Dialect.escaperFor(dialect);
+	const existing = yield* existingIndexNames;
+	const needsPrefix = yield* blobColumns;
+
+	// MySQL rejects the clause outright; the pre-flight check above covers it.
+	const ifNotExists = dialect === 'mysql' ? '' : 'if not exists ';
 
 	for (const index of INDEXES) {
-		const columns = index.columns.map((column) => `"${column}"`).join(', ');
+		if (existing.has(index.name)) {
+			continue;
+		}
+
+		const columns = index.columns
+			.map((column) =>
+				needsPrefix.has(`${index.table}.${column}`)
+					? `${quote(column)}(${TEXT_PREFIX})`
+					: quote(column)
+			)
+			.join(', ');
+
 		yield* sql.unsafe(
-			`create index if not exists "${index.name}" on "${index.table}" (${columns})`
+			`create index ${ifNotExists}${quote(index.name)} on ${quote(
+				index.table
+			)} (${columns})`
 		);
 	}
 });

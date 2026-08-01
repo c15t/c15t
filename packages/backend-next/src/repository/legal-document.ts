@@ -13,8 +13,9 @@
 
 import { hashSha256Hex } from '@c15t/schema';
 import { Data, Effect } from 'effect';
-import { SqlClient, SqlError } from 'effect/unstable/sql';
+import { SqlClient, type SqlError } from 'effect/unstable/sql';
 import { type Tenant, tenantScope } from '../db/tenant';
+import { encodeRow, encoder, toBoolean, toDate } from '../db/values';
 
 export interface LegalDocumentRelease {
 	readonly tenantId?: string;
@@ -80,6 +81,8 @@ export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(function* (
 	SyncedPolicy
 > {
 	const sql = yield* SqlClient.SqlClient;
+	// SQLite binds neither a Date nor a boolean; see `../db/values.ts`.
+	const encode = yield* encoder;
 	const id = yield* Effect.promise(() =>
 		buildLegalDocumentPolicyId({
 			tenantId: release.tenantId,
@@ -97,9 +100,12 @@ export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(function* (
 				type: string;
 				version: string;
 				hash: string | null;
-				effectiveDate: Date;
-				isActive: boolean;
-			}>`select * from "consentPolicy" where "id" = ${id} and ${scope}`;
+				// Engine-shaped rather than decoded: SQLite returns epoch
+				// milliseconds and `0`/`1` where the others return a Date and a
+				// boolean.
+				effectiveDate: unknown;
+				isActive: unknown;
+			}>`select * from ${sql('consentPolicy')} where ${sql('id')} = ${id} and ${scope}`;
 
 			const found = existing[0];
 
@@ -108,7 +114,8 @@ export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(function* (
 				// two different ideas about what this document says.
 				if (
 					found.version !== release.version ||
-					found.effectiveDate.getTime() !== release.effectiveDate.getTime()
+					toDate(found.effectiveDate).getTime() !==
+						release.effectiveDate.getTime()
 				) {
 					return yield* new LegalDocumentConflictError({
 						message: 'Release metadata conflicts with existing consent policy',
@@ -118,13 +125,17 @@ export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(function* (
 				// Scoped: without this, syncing a release for one tenant would
 				// deactivate another tenant's active policy of the same type.
 				yield* sql`
-					update "consentPolicy" set "isActive" = ${false}
-					where "type" = ${release.type} and "isActive" = ${true}
-						and "id" <> ${id} and ${scope}
+					update ${sql('consentPolicy')} set ${sql('isActive')} = ${encode(false)}
+					where ${sql('type')} = ${release.type}
+						and ${sql('isActive')} = ${encode(true)}
+						and ${sql('id')} <> ${id} and ${scope}
 				`;
 
-				if (!found.isActive) {
-					yield* sql`update "consentPolicy" set "isActive" = ${true} where "id" = ${id} and ${scope}`;
+				if (!toBoolean(found.isActive)) {
+					yield* sql`
+						update ${sql('consentPolicy')} set ${sql('isActive')} = ${encode(true)}
+						where ${sql('id')} = ${id} and ${scope}
+					`;
 				}
 
 				return {
@@ -132,21 +143,31 @@ export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(function* (
 					type: found.type,
 					version: found.version,
 					hash: found.hash ?? release.hash,
-					effectiveDate: found.effectiveDate,
+					effectiveDate: toDate(found.effectiveDate),
 					isActive: true,
 				};
 			}
 
 			yield* sql`
-				update "consentPolicy" set "isActive" = ${false}
-				where "type" = ${release.type} and "isActive" = ${true} and ${scope}
+				update ${sql('consentPolicy')} set ${sql('isActive')} = ${encode(false)}
+				where ${sql('type')} = ${release.type}
+					and ${sql('isActive')} = ${encode(true)}
+					and ${scope}
 			`;
 
 			yield* sql`
-				insert into "consentPolicy"
-					("id","version","type","hash","effectiveDate","isActive","createdAt","tenantId")
-				values (${id}, ${release.version}, ${release.type}, ${release.hash},
-					${release.effectiveDate}, ${true}, ${new Date()}, ${release.tenantId ?? null})
+				insert into ${sql('consentPolicy')} ${sql.insert(
+					encodeRow(encode, {
+						id,
+						version: release.version,
+						type: release.type,
+						hash: release.hash,
+						effectiveDate: release.effectiveDate,
+						isActive: true,
+						createdAt: new Date(),
+						tenantId: release.tenantId ?? null,
+					})
+				)}
 			`;
 
 			return {

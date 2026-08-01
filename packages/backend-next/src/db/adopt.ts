@@ -42,7 +42,7 @@
  */
 
 import { Effect } from 'effect';
-import { SqlClient, SqlError } from 'effect/unstable/sql';
+import { SqlClient, type SqlError } from 'effect/unstable/sql';
 import { classify, type Shape } from './classify';
 import * as Dialect from './dialect';
 import {
@@ -52,6 +52,7 @@ import {
 	TABLES,
 	type TableSpec,
 } from './schema';
+import { encodeRow, encoder } from './values';
 
 /** Name of the ledger this package owns, distinct from fumadb's marker. */
 export const LEDGER_TABLE = 'c15t_migrations';
@@ -99,9 +100,15 @@ const observeExisting = Effect.fn('adopt.observe')(function* () {
 				join pragma_table_info(m.name) c
 				where m.type = 'table'
 			`,
+		// Aliased explicitly. MySQL returns `information_schema` labels
+		// uppercased (`TABLE_NAME`) whatever case the query used, so an
+		// unaliased projection reads back as `undefined` here — which looks
+		// exactly like an empty database, and would have adoption stamp a
+		// legacy MySQL schema as baseline without adding a single column.
 		mysql: () =>
 			sql<{ table_name: string; column_name: string }>`
-				select table_name, column_name from information_schema.columns
+				select table_name as table_name, column_name as column_name
+				from information_schema.columns
 				where table_schema = database()
 			`,
 		orElse: () =>
@@ -130,8 +137,10 @@ const observeExisting = Effect.fn('adopt.observe')(function* () {
 				`,
 			mysql: () =>
 				sql<{ table_name: string; column_name: string }>`
-					select table_name, column_name from information_schema.key_column_usage
-					where table_schema = database() and referenced_table_name is not null
+					select table_name as table_name, column_name as column_name
+					from information_schema.key_column_usage
+					where table_schema = database()
+						and referenced_table_name is not null
 				`,
 			orElse: () =>
 				sql<{ table_name: string; column_name: string }>`
@@ -160,14 +169,14 @@ const countOrphans = Effect.fn('adopt.countOrphans')(function* (
 	fk: ForeignKeySpec
 ) {
 	const sql = yield* SqlClient.SqlClient;
-	const rows = yield* sql<{ orphans: number | string }>`${sql.unsafe(`
+	const rows = yield* sql<{ orphans: number | string }>`
 		select count(*) as orphans
-		from "${table.name}" child
-		left join "${fk.referencesTable}" parent
-			on parent."${fk.referencesColumn}" = child."${fk.column}"
-		where child."${fk.column}" is not null
-			and parent."${fk.referencesColumn}" is null
-	`)}`;
+		from ${sql(table.name)} child
+		left join ${sql(fk.referencesTable)} parent
+			on ${sql(`parent.${fk.referencesColumn}`)} = ${sql(`child.${fk.column}`)}
+		where ${sql(`child.${fk.column}`)} is not null
+			and ${sql(`parent.${fk.referencesColumn}`)} is null
+	`;
 	return Number(rows[0]?.orphans ?? 0);
 });
 
@@ -183,6 +192,7 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 			Effect.orElseSucceed(() => 'postgres' as const)
 		);
 		const types = Dialect.typesFor(dialect);
+		const quote = Dialect.escaperFor(dialect);
 		const existing = yield* observeExisting();
 
 		if (shape._tag === 'Unknown') {
@@ -213,7 +223,7 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 				steps.push({
 					kind: 'create-table',
 					description: `Create "${table.name}"`,
-					sql: createTableSql(table, types),
+					sql: createTableSql(table, types, quote),
 				});
 				continue;
 			}
@@ -224,7 +234,7 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 				steps.push({
 					kind: 'add-column',
 					description: `Add "${table.name}"."${column.name}"`,
-					sql: addColumnSql(table.name, column, types),
+					sql: addColumnSql(table.name, column, types, quote),
 				});
 			}
 
@@ -253,7 +263,11 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 				steps.push({
 					kind: 'add-foreign-key',
 					description: `Add foreign key "${table.name}"."${fk.column}" -> "${fk.referencesTable}"`,
-					sql: `alter table "${table.name}" add foreign key ("${fk.column}") references "${fk.referencesTable}"("${fk.referencesColumn}")`,
+					sql: `alter table ${quote(table.name)} add foreign key (${quote(
+						fk.column
+					)}) references ${quote(fk.referencesTable)}(${quote(
+						fk.referencesColumn
+					)})`,
 				});
 			}
 		}
@@ -261,7 +275,11 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 		steps.push({
 			kind: 'stamp',
 			description: 'Record the baseline in the migration ledger',
-			sql: `create table if not exists "${LEDGER_TABLE}" ("id" integer primary key, "name" ${types.text} not null, "appliedAt" ${types.timestamp} not null)`,
+			sql: `create table if not exists ${quote(LEDGER_TABLE)} (${quote(
+				'id'
+			)} integer primary key, ${quote('name')} ${types.text} not null, ${quote(
+				'appliedAt'
+			)} ${types.timestamp} not null)`,
 		});
 
 		const specTables = new Set(TABLES.map((table) => table.name));
@@ -363,7 +381,15 @@ export const apply = Effect.fn('adopt.apply')(function* (
 		yield* sql.unsafe(step.sql);
 	}
 
-	yield* sql`insert into ${sql.unsafe(`"${LEDGER_TABLE}"`)} ("id", "name", "appliedAt") values (1, '1-baseline', ${new Date()})`.pipe(
+	yield* sql`
+		insert into ${sql(LEDGER_TABLE)} ${sql.insert(
+			encodeRow(yield* encoder, {
+				id: 1,
+				name: '1-baseline',
+				appliedAt: new Date(),
+			})
+		)}
+	`.pipe(
 		// Re-running adoption should not fail on the ledger row it already
 		// wrote. Idempotency matters here: RFC §3.3 requires the step be safe
 		// to re-run after a mid-flight failure.

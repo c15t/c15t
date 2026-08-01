@@ -646,3 +646,49 @@ they need the bare column indexes, and keeping both sets serves both shapes.
 Unlike the foreign key indexes, this rests on reading the query code rather
 than on measurement — the benchmark has no multi-tenant arm yet, and adding
 one is what should settle the composite question.
+
+### 11.7 Two of the three supported engines did not work
+
+The suite reached 180 passing tests, ~95% statement coverage, and a
+cross-backend conformance runner while **the package could not execute a single
+statement against MySQL, and could not write to SQLite at all.**
+
+Every test used PGlite. SQLite appeared covered, but only for DDL and adoption;
+MySQL had no arm at all. So the suite proved that Postgres worked and was read
+as proving that the package worked.
+
+What was actually broken:
+
+| Defect | Effect |
+| --- | --- |
+| Identifiers quoted `"like this"` | MySQL rejects the syntax. Nothing ran. |
+| `on conflict … do nothing returning` | MySQL 8 has neither clause. Every idempotent write. |
+| `create index if not exists` | MySQL has no such clause for indexes. Migration 2. |
+| Indexed and foreign key columns declared `text` | MySQL cannot index TEXT. The baseline itself failed. |
+| `information_schema` read unaliased | MySQL uppercases the labels, so adoption saw an *empty* database, added no columns, and stamped the ledger as baseline anyway. |
+| `consent.metadata` used to detect fumadb | Legacy MySQL declares it `json`, so a legacy database classified as fumadb 1.0.0. |
+| `Date` and `boolean` bound directly | `node:sqlite` binds neither. Every SQLite write. |
+
+Two are worth calling out beyond "it did not run". The adoption one is silent:
+a legacy MySQL database would be *marked* as migrated while missing most of its
+2.0.0 columns. And `mysql.timestamp` was mapped to MySQL's `timestamp` type,
+which stops at 2038 and shifts through the session time zone — a `validUntil`
+past 2038 and a time-zone-dependent `givenAt` on a legal record. It is now
+`datetime(3)`, which is also what every legacy MySQL database already holds.
+
+The fix that matters is not any of the above; it is
+`repository/cross-engine.test.ts`. Behaviour is asserted against every engine
+present, MySQL joining when `C15T_TEST_MYSQL_URL` is set. Not one of these
+defects can recur silently, and none of them were findable by reading the code
+— each was found by running it.
+
+**Revision to §3.5.** That section says fumadb cannot migrate MySQL. True, and
+incomplete: the MySQL column of the physical type table had no fixture behind
+it, because the fumadb-era MySQL fixtures record a failure rather than a
+schema. The evidence for MySQL is the `legacy-…` fixtures, which is what
+`dialect.ts` now cites.
+
+**Testing note for §6.** Opting into MySQL also disables vitest's file
+parallelism. PGlite and SQLite get a fresh in-process database per test; MySQL
+is one shared schema, and two files migrating it concurrently fail depending on
+scheduling — passing individually, failing together.

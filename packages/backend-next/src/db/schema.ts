@@ -8,9 +8,23 @@
  * install and an adopted database would eventually disagree and nothing would
  * catch it.
  *
- * Every column and type is verified against
- * `internals/migration-fixtures/fixtures/fumadb-2.0.0/*.json`, captured from
- * the real published `@c15t/backend@2.1.0`.
+ * Every column and type is verified against the `fumadb-2.0.0` fixtures under
+ * `internals/migration-fixtures`, captured from the real published
+ * `@c15t/backend@2.1.0` — except on MySQL, which fumadb cannot migrate, and
+ * where the `legacy-…` fixtures are the evidence instead. See `./dialect.ts`.
+ *
+ * ## `text` versus `indexedText`
+ *
+ * A column is `indexedText` when something indexes it: a unique constraint, an
+ * entry in `2-hot-path-indexes`, or a foreign key — MySQL indexes the
+ * referencing side implicitly, and cannot do so on a `TEXT` column. The two
+ * logical types are identical on Postgres and SQLite and differ only on MySQL,
+ * so this distinction costs the other two engines nothing and is the
+ * difference between MySQL working and not.
+ *
+ * Getting it wrong is loud rather than subtle — `create table` fails with
+ * "BLOB/TEXT column … used in key specification without a key length" — so
+ * `db/mysql.test.ts` catches a column that should have been marked.
  */
 
 import type { PhysicalTypes } from './dialect';
@@ -48,9 +62,9 @@ export const TABLES: readonly TableSpec[] = [
 		name: 'subject',
 		columns: [
 			id,
-			{ name: 'externalId', type: 'text', nullable: true },
+			{ name: 'externalId', type: 'indexedText', nullable: true },
 			{ name: 'identityProvider', type: 'text', nullable: true },
-			{ name: 'tenantId', type: 'text', nullable: true },
+			{ name: 'tenantId', type: 'indexedText', nullable: true },
 			{ name: 'createdAt', type: 'timestamp', nullable: false },
 			{ name: 'updatedAt', type: 'timestamp', nullable: false },
 		],
@@ -60,8 +74,8 @@ export const TABLES: readonly TableSpec[] = [
 		name: 'domain',
 		columns: [
 			id,
-			{ name: 'name', type: 'text', nullable: false },
-			{ name: 'tenantId', type: 'text', nullable: true },
+			{ name: 'name', type: 'indexedText', nullable: false },
+			{ name: 'tenantId', type: 'indexedText', nullable: true },
 			{ name: 'createdAt', type: 'timestamp', nullable: false },
 			{ name: 'updatedAt', type: 'timestamp', nullable: false },
 		],
@@ -72,11 +86,11 @@ export const TABLES: readonly TableSpec[] = [
 		columns: [
 			id,
 			{ name: 'version', type: 'text', nullable: false },
-			{ name: 'type', type: 'text', nullable: false },
+			{ name: 'type', type: 'indexedText', nullable: false },
 			{ name: 'hash', type: 'text', nullable: true },
 			{ name: 'effectiveDate', type: 'timestamp', nullable: false },
 			{ name: 'isActive', type: 'bool', nullable: false },
-			{ name: 'tenantId', type: 'text', nullable: true },
+			{ name: 'tenantId', type: 'indexedText', nullable: true },
 			{ name: 'createdAt', type: 'timestamp', nullable: false },
 		],
 		foreignKeys: [],
@@ -85,8 +99,8 @@ export const TABLES: readonly TableSpec[] = [
 		name: 'consentPurpose',
 		columns: [
 			id,
-			{ name: 'code', type: 'text', nullable: false },
-			{ name: 'tenantId', type: 'text', nullable: true },
+			{ name: 'code', type: 'indexedText', nullable: false },
+			{ name: 'tenantId', type: 'indexedText', nullable: true },
 			{ name: 'createdAt', type: 'timestamp', nullable: false },
 			{ name: 'updatedAt', type: 'timestamp', nullable: false },
 		],
@@ -96,7 +110,7 @@ export const TABLES: readonly TableSpec[] = [
 		name: 'runtimePolicyDecision',
 		columns: [
 			id,
-			{ name: 'tenantId', type: 'text', nullable: true },
+			{ name: 'tenantId', type: 'indexedText', nullable: true },
 			{ name: 'policyId', type: 'text', nullable: false },
 			{ name: 'fingerprint', type: 'text', nullable: false },
 			{ name: 'matchedBy', type: 'text', nullable: false },
@@ -128,9 +142,9 @@ export const TABLES: readonly TableSpec[] = [
 		name: 'consent',
 		columns: [
 			id,
-			{ name: 'subjectId', type: 'text', nullable: false },
-			{ name: 'domainId', type: 'text', nullable: false },
-			{ name: 'policyId', type: 'text', nullable: true },
+			{ name: 'subjectId', type: 'indexedText', nullable: false },
+			{ name: 'domainId', type: 'indexedText', nullable: false },
+			{ name: 'policyId', type: 'indexedText', nullable: true },
 			{ name: 'purposeIds', type: 'json', nullable: false },
 			{ name: 'metadata', type: 'json', nullable: true },
 			{ name: 'ipAddress', type: 'text', nullable: true },
@@ -142,9 +156,9 @@ export const TABLES: readonly TableSpec[] = [
 			{ name: 'tcString', type: 'text', nullable: true },
 			{ name: 'uiSource', type: 'text', nullable: true },
 			{ name: 'consentAction', type: 'text', nullable: true },
-			{ name: 'runtimePolicyDecisionId', type: 'text', nullable: true },
+			{ name: 'runtimePolicyDecisionId', type: 'indexedText', nullable: true },
 			{ name: 'runtimePolicySource', type: 'text', nullable: true },
-			{ name: 'tenantId', type: 'text', nullable: true },
+			{ name: 'tenantId', type: 'indexedText', nullable: true },
 		],
 		foreignKeys: [
 			{
@@ -172,12 +186,12 @@ export const TABLES: readonly TableSpec[] = [
 			{ name: 'entityType', type: 'text', nullable: false },
 			{ name: 'entityId', type: 'text', nullable: false },
 			{ name: 'actionType', type: 'text', nullable: false },
-			{ name: 'subjectId', type: 'text', nullable: true },
+			{ name: 'subjectId', type: 'indexedText', nullable: true },
 			{ name: 'ipAddress', type: 'text', nullable: true },
 			{ name: 'userAgent', type: 'text', nullable: true },
 			{ name: 'changes', type: 'json', nullable: true },
 			{ name: 'metadata', type: 'json', nullable: true },
-			{ name: 'tenantId', type: 'text', nullable: true },
+			{ name: 'tenantId', type: 'indexedText', nullable: true },
 			{ name: 'createdAt', type: 'timestamp', nullable: false },
 		],
 		foreignKeys: [
@@ -190,22 +204,34 @@ export const TABLES: readonly TableSpec[] = [
 	},
 ] as const;
 
-/** `create table` for one spec, in the given dialect's physical types. */
-export function createTableSql(table: TableSpec, types: PhysicalTypes): string {
+/**
+ * `create table` for one spec, in the given dialect's physical types.
+ *
+ * `quote` comes from `Dialect.escaperFor` rather than being hardcoded to `"`:
+ * MySQL delimits identifiers with backticks and rejects double-quoted ones
+ * outright.
+ */
+export function createTableSql(
+	table: TableSpec,
+	types: PhysicalTypes,
+	quote: (name: string) => string
+): string {
 	const columns = table.columns.map((column) => {
 		const physical = types[column.type];
 		const nullability = column.nullable ? '' : ' not null';
 		const primary = column.name === 'id' ? ' primary key' : '';
 		const unique = column.unique ? ' unique' : '';
-		return `"${column.name}" ${physical}${nullability}${primary}${unique}`;
+		return `${quote(column.name)} ${physical}${nullability}${primary}${unique}`;
 	});
 
 	const foreignKeys = table.foreignKeys.map(
 		(fk) =>
-			`foreign key ("${fk.column}") references "${fk.referencesTable}"("${fk.referencesColumn}")`
+			`foreign key (${quote(fk.column)}) references ${quote(
+				fk.referencesTable
+			)}(${quote(fk.referencesColumn)})`
 	);
 
-	return `create table if not exists "${table.name}" (\n\t${[
+	return `create table if not exists ${quote(table.name)} (\n\t${[
 		...columns,
 		...foreignKeys,
 	].join(',\n\t')}\n)`;
@@ -223,7 +249,10 @@ export function createTableSql(table: TableSpec, types: PhysicalTypes): string {
 export function addColumnSql(
 	table: string,
 	column: ColumnSpec,
-	types: PhysicalTypes
+	types: PhysicalTypes,
+	quote: (name: string) => string
 ): string {
-	return `alter table "${table}" add column "${column.name}" ${types[column.type]}`;
+	return `alter table ${quote(table)} add column ${quote(column.name)} ${
+		types[column.type]
+	}`;
 }

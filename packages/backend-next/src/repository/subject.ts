@@ -23,12 +23,20 @@
  * The second could be folded into the first, but keeping it separate means it
  * is cacheable per tenant and independent of the subject being queried — the
  * shape of the data, not an accident of the query.
+ *
+ * ## On the identifier noise
+ *
+ * Columns are written `${sql('s.externalId')}` rather than `s."externalId"`.
+ * The literal form is a syntax error on MySQL, which delimits identifiers with
+ * backticks; `sql(…)` defers the choice to the connected dialect's compiler.
  */
 
 import { generateEntityId } from '@c15t/schema';
 import { Effect } from 'effect';
-import { SqlClient, SqlError } from 'effect/unstable/sql';
+import { SqlClient, type SqlError, Statement } from 'effect/unstable/sql';
+import { insertOnce } from '../db/insert-once';
 import { tenantScope } from '../db/tenant';
+import { encodeRow, encoder, toDate, toDateOrNull } from '../db/values';
 
 export interface ConsentRow {
 	readonly id: string;
@@ -60,19 +68,112 @@ export interface SubjectWithConsents {
 interface JoinedRow {
 	readonly subject_id: string;
 	readonly subject_externalId: string | null;
-	readonly subject_createdAt: Date;
+	// Engine-shaped: SQLite returns epoch milliseconds where the others
+	// return a Date. Decoded on the way out by `groupSubjects`.
+	readonly subject_createdAt: unknown;
 	readonly consent_id: string | null;
 	readonly consent_policyId: string | null;
 	readonly consent_purposeIds: unknown;
-	readonly consent_givenAt: Date | null;
+	readonly consent_givenAt: unknown;
 	readonly policy_type: string | null;
 	readonly policy_version: string | null;
 	readonly policy_hash: string | null;
-	readonly policy_effectiveDate: Date | null;
+	readonly policy_effectiveDate: unknown;
 }
 
 /** Valibot `optional` means absent, not null; the database means null. */
 const orUndefined = <T>(value: T | null): T | undefined => value ?? undefined;
+
+/**
+ * The joined column list, as `[column, alias]` pairs.
+ *
+ * Shared by both read paths so their projections cannot drift — `JoinedRow`
+ * describes one row shape, and two hand-written select lists would eventually
+ * stop agreeing with it in different ways.
+ */
+const JOINED_COLUMNS: readonly (readonly [column: string, alias: string])[] = [
+	['s.id', 'subject_id'],
+	['s.externalId', 'subject_externalId'],
+	['s.createdAt', 'subject_createdAt'],
+	['c.id', 'consent_id'],
+	['c.policyId', 'consent_policyId'],
+	['c.purposeIds', 'consent_purposeIds'],
+	['c.givenAt', 'consent_givenAt'],
+	['p.type', 'policy_type'],
+	['p.version', 'policy_version'],
+	['p.hash', 'policy_hash'],
+	['p.effectiveDate', 'policy_effectiveDate'],
+];
+
+/**
+ * `select … from subject left join consent left join consentPolicy`, up to but
+ * not including the `where`.
+ *
+ * Both read paths differ only in how they filter and order, so the join itself
+ * is built once.
+ */
+const joinedSelect = Effect.fn('repository.joinedSelect')(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	const projection = Statement.csv(
+		JOINED_COLUMNS.map(
+			([column, alias]) => sql`${sql(column)} as ${sql(alias)}`
+		)
+	);
+
+	return sql`
+		select ${projection}
+		from ${sql('subject')} s
+		left join ${sql('consent')} c on ${sql('c.subjectId')} = ${sql('s.id')}
+		left join ${sql('consentPolicy')} p on ${sql('p.id')} = ${sql('c.policyId')}
+	`;
+});
+
+/**
+ * Turns joined rows into subjects, each with its consents.
+ *
+ * A left join yields one all-null consent row for a subject with no consents;
+ * that is an absence, not a record. Insertion order is preserved, so the
+ * caller's `order by` decides the result order.
+ */
+const groupSubjects = (
+	rows: readonly JoinedRow[],
+	latestIds: ReadonlySet<string>
+): SubjectWithConsents[] => {
+	const bySubject = new Map<string, SubjectWithConsents>();
+
+	for (const row of rows) {
+		const subject: SubjectWithConsents = bySubject.get(row.subject_id) ?? {
+			id: row.subject_id,
+			externalId: row.subject_externalId,
+			createdAt: toDate(row.subject_createdAt),
+			consents: [],
+		};
+
+		if (row.consent_id !== null && row.consent_givenAt !== null) {
+			(subject.consents as ConsentRow[]).push({
+				id: row.consent_id,
+				subjectId: row.subject_id,
+				// A consent whose policy row is gone still has to satisfy the
+				// contract's required `type`; '' is the honest answer rather
+				// than inventing one.
+				type: row.policy_type ?? '',
+				policyId: orUndefined(row.consent_policyId),
+				policyVersion: orUndefined(row.policy_version),
+				policyHash: orUndefined(row.policy_hash),
+				policyEffectiveDate:
+					orUndefined(toDateOrNull(row.policy_effectiveDate)) ?? undefined,
+				purposeIds: row.consent_purposeIds,
+				givenAt: toDate(row.consent_givenAt),
+				isLatestPolicy:
+					row.consent_policyId !== null && latestIds.has(row.consent_policyId),
+			});
+		}
+
+		bySubject.set(row.subject_id, subject);
+	}
+
+	return [...bySubject.values()];
+};
 
 /**
  * The newest active policy for each type, in one query.
@@ -85,22 +186,32 @@ export const latestPolicyIdByType = Effect.fn(
 	'repository.latestPolicyIdByType'
 )(function* () {
 	const sql = yield* SqlClient.SqlClient;
+	// SQLite has no boolean to bind; `true` has to become `1` there.
+	const encode = yield* encoder;
+	const scope = yield* tenantScope();
+
 	const rows = yield* sql<{ id: string; type: string }>`
-			select "id", "type"
-			from (
-				select
-					"id",
-					"type",
-					row_number() over (
-						partition by "type" order by "effectiveDate" desc
-					) as rn
-				from "consentPolicy"
-				where "isActive" = ${true} and ${yield* tenantScope()}
-			) ranked
-			where rn = 1
-		`;
+		select ${sql('id')}, ${sql('type')}
+		from (
+			select
+				${sql('id')},
+				${sql('type')},
+				row_number() over (
+					partition by ${sql('type')} order by ${sql('effectiveDate')} desc
+				) as rn
+			from ${sql('consentPolicy')}
+			where ${sql('isActive')} = ${encode(true)} and ${scope}
+		) ranked
+		where rn = 1
+	`;
 
 	return new Map(rows.map((row) => [row.type, row.id]));
+});
+
+/** The ids of the newest active policy of every type, for `isLatestPolicy`. */
+const latestPolicyIds = Effect.fn('repository.latestPolicyIds')(function* () {
+	const latest = yield* latestPolicyIdByType();
+	return new Set(latest.values());
 });
 
 /**
@@ -112,66 +223,15 @@ export const latestPolicyIdByType = Effect.fn(
 export const listByExternalId = Effect.fn('repository.listByExternalId')(
 	function* (externalId: string) {
 		const sql = yield* SqlClient.SqlClient;
+		const select = yield* joinedSelect();
 
 		const rows = yield* sql<JoinedRow>`
-			select
-				s."id"          as "subject_id",
-				s."externalId"  as "subject_externalId",
-				s."createdAt"   as "subject_createdAt",
-				c."id"          as "consent_id",
-				c."policyId"    as "consent_policyId",
-				c."purposeIds"  as "consent_purposeIds",
-				c."givenAt"     as "consent_givenAt",
-				p."type"          as "policy_type",
-				p."version"       as "policy_version",
-				p."hash"          as "policy_hash",
-				p."effectiveDate" as "policy_effectiveDate"
-			from "subject" s
-			left join "consent" c on c."subjectId" = s."id"
-			left join "consentPolicy" p on p."id" = c."policyId"
-			where s."externalId" = ${externalId} and ${yield* tenantScope('s')}
-			order by s."id", c."givenAt" desc
+			${select}
+			where ${sql('s.externalId')} = ${externalId} and ${yield* tenantScope('s')}
+			order by ${sql('s.id')}, ${sql('c.givenAt')} desc
 		`;
 
-		const latest = yield* latestPolicyIdByType();
-		const latestIds = new Set(latest.values());
-
-		const bySubject = new Map<string, SubjectWithConsents>();
-		for (const row of rows) {
-			const existing = bySubject.get(row.subject_id);
-			const subject: SubjectWithConsents = existing ?? {
-				id: row.subject_id,
-				externalId: row.subject_externalId,
-				createdAt: row.subject_createdAt,
-				consents: [],
-			};
-
-			// A left join yields one all-null consent row for a subject with no
-			// consents; that is an absence, not a record.
-			if (row.consent_id !== null && row.consent_givenAt !== null) {
-				(subject.consents as ConsentRow[]).push({
-					id: row.consent_id,
-					subjectId: row.subject_id,
-					// A consent whose policy row is gone still has to satisfy the
-					// contract's required `type`; '' is the honest answer rather
-					// than inventing one.
-					type: row.policy_type ?? '',
-					policyId: orUndefined(row.consent_policyId),
-					policyVersion: orUndefined(row.policy_version),
-					policyHash: orUndefined(row.policy_hash),
-					policyEffectiveDate: orUndefined(row.policy_effectiveDate),
-					purposeIds: row.consent_purposeIds,
-					givenAt: row.consent_givenAt,
-					isLatestPolicy:
-						row.consent_policyId !== null &&
-						latestIds.has(row.consent_policyId),
-				});
-			}
-
-			bySubject.set(row.subject_id, subject);
-		}
-
-		return [...bySubject.values()];
+		return groupSubjects(rows, yield* latestPolicyIds());
 	}
 );
 
@@ -186,8 +246,8 @@ export const countByExternalId = Effect.fn('repository.countByExternalId')(
 	function* (externalId: string) {
 		const sql = yield* SqlClient.SqlClient;
 		const rows = yield* sql<{ total: number | string }>`
-			select count(*) as total from "subject"
-			where "externalId" = ${externalId} and ${yield* tenantScope()}
+			select count(*) as total from ${sql('subject')}
+			where ${sql('externalId')} = ${externalId} and ${yield* tenantScope()}
 		`;
 		return Number(rows[0]?.total ?? 0);
 	}
@@ -206,59 +266,20 @@ export const findById = Effect.fn('repository.findById')(function* (
 	subjectId: string
 ) {
 	const sql = yield* SqlClient.SqlClient;
+	const select = yield* joinedSelect();
 
 	const rows = yield* sql<JoinedRow>`
-		select
-			s."id"          as "subject_id",
-			s."externalId"  as "subject_externalId",
-			s."createdAt"   as "subject_createdAt",
-			c."id"          as "consent_id",
-			c."policyId"    as "consent_policyId",
-			c."purposeIds"  as "consent_purposeIds",
-			c."givenAt"     as "consent_givenAt",
-			p."type"          as "policy_type",
-			p."version"       as "policy_version",
-			p."hash"          as "policy_hash",
-			p."effectiveDate" as "policy_effectiveDate"
-		from "subject" s
-		left join "consent" c on c."subjectId" = s."id"
-		left join "consentPolicy" p on p."id" = c."policyId"
-		where s."id" = ${subjectId} and ${yield* tenantScope('s')}
-		order by c."givenAt" desc
+		${select}
+		where ${sql('s.id')} = ${subjectId} and ${yield* tenantScope('s')}
+		order by ${sql('c.givenAt')} desc
 	`;
 
-	const first = rows[0];
-	if (first === undefined) {
+	if (rows.length === 0) {
 		return undefined;
 	}
 
-	const latest = yield* latestPolicyIdByType();
-	const latestIds = new Set(latest.values());
-
-	const consents: ConsentRow[] = [];
-	for (const row of rows) {
-		if (row.consent_id === null || row.consent_givenAt === null) continue;
-		consents.push({
-			id: row.consent_id,
-			subjectId: row.subject_id,
-			type: row.policy_type ?? '',
-			policyId: orUndefined(row.consent_policyId),
-			policyVersion: orUndefined(row.policy_version),
-			policyHash: orUndefined(row.policy_hash),
-			policyEffectiveDate: orUndefined(row.policy_effectiveDate),
-			purposeIds: row.consent_purposeIds,
-			givenAt: row.consent_givenAt,
-			isLatestPolicy:
-				row.consent_policyId !== null && latestIds.has(row.consent_policyId),
-		});
-	}
-
-	return {
-		id: first.subject_id,
-		externalId: first.subject_externalId,
-		createdAt: first.subject_createdAt,
-		consents,
-	} satisfies SubjectWithConsents;
+	// A primary-key lookup, so the join can only produce rows for one subject.
+	return groupSubjects(rows, yield* latestPolicyIds())[0];
 });
 
 /**
@@ -278,15 +299,17 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 		userAgent: string | null;
 	}) {
 		const sql = yield* SqlClient.SqlClient;
+		const encode = yield* encoder;
 		const scope = yield* tenantScope();
 
 		const found = yield* sql<{
 			externalId: string | null;
 			identityProvider: string | null;
 		}>`
-		select "externalId", "identityProvider" from "subject"
-		where "id" = ${input.subjectId} and ${scope}
-	`;
+			select ${sql('externalId')}, ${sql('identityProvider')}
+			from ${sql('subject')}
+			where ${sql('id')} = ${input.subjectId} and ${scope}
+		`;
 		const before = found[0];
 		if (before === undefined) {
 			return undefined;
@@ -295,38 +318,41 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 		yield* sql.withTransaction(
 			Effect.gen(function* () {
 				yield* sql`
-				update "subject" set
-					"externalId" = ${input.externalId},
-					"identityProvider" = ${input.identityProvider},
-					"updatedAt" = ${new Date()}
-				where "id" = ${input.subjectId} and ${scope}
-			`;
+					update ${sql('subject')} set
+						${sql('externalId')} = ${input.externalId},
+						${sql('identityProvider')} = ${input.identityProvider},
+						${sql('updatedAt')} = ${encode(new Date())}
+					where ${sql('id')} = ${input.subjectId} and ${scope}
+				`;
 
 				// Records what changed, not just that something did: a trail that
-				// cannot answer "from what?" cannot support a subject access request.
+				// cannot answer "from what?" cannot support a subject access
+				// request.
 				yield* sql`
-				insert into "auditLog" (
-					"id","subjectId","entityType","entityId","actionType",
-					"ipAddress","userAgent","changes","metadata","createdAt"
-				) values (
-					${generateEntityId('auditLog')},
-					${input.subjectId}, ${'subject'}, ${input.subjectId},
-					${'identify_user'},
-					${input.ipAddress}, ${input.userAgent},
-					${JSON.stringify({
-						externalId: { from: before.externalId, to: input.externalId },
-						identityProvider: {
-							from: before.identityProvider,
-							to: input.identityProvider,
-						},
-					})},
-					${JSON.stringify({
-						externalId: input.externalId,
-						identityProvider: input.identityProvider,
-					})},
-					${new Date()}
-				)
-			`;
+					insert into ${sql('auditLog')} ${sql.insert(
+						encodeRow(encode, {
+							id: generateEntityId('auditLog'),
+							subjectId: input.subjectId,
+							entityType: 'subject',
+							entityId: input.subjectId,
+							actionType: 'identify_user',
+							ipAddress: input.ipAddress,
+							userAgent: input.userAgent,
+							changes: JSON.stringify({
+								externalId: { from: before.externalId, to: input.externalId },
+								identityProvider: {
+									from: before.identityProvider,
+									to: input.identityProvider,
+								},
+							}),
+							metadata: JSON.stringify({
+								externalId: input.externalId,
+								identityProvider: input.identityProvider,
+							}),
+							createdAt: new Date(),
+						})
+					)}
+				`;
 			})
 		);
 
@@ -342,9 +368,9 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
  * Finds a subject by client-supplied id, or creates it.
  *
  * The v2.0 flow has the client generate the subject id, so this is an upsert
- * keyed on it. `on conflict do nothing` rather than read-then-create: two
- * requests from the same device arriving together must produce one subject,
- * and the returning clause tells us which call won without a second query.
+ * keyed on it. Insert-if-absent rather than read-then-create: two requests
+ * from the same device arriving together must produce one subject, and the
+ * statement itself reports which call won without a second query.
  *
  * A subject that already exists is returned untouched. Overwriting its
  * externalId here would silently re-identify someone as a side effect of
@@ -357,23 +383,23 @@ export const findOrCreate = Effect.fn('repository.findOrCreate')(
 		identityProvider?: string | null;
 		tenantId?: string | null;
 	}) {
-		const sql = yield* SqlClient.SqlClient;
 		const now = new Date();
 
-		const inserted = yield* sql<{ id: string }>`
-		insert into "subject"
-			("id","externalId","identityProvider","tenantId","createdAt","updatedAt")
-		values (
-			${input.subjectId},
-			${input.externalId ?? null},
-			${input.externalId ? (input.identityProvider ?? 'external') : 'anonymous'},
-			${input.tenantId ?? null},
-			${now}, ${now}
-		)
-		on conflict ("id") do nothing
-		returning "id"
-	`;
+		const created = yield* insertOnce({
+			into: 'subject',
+			conflictOn: 'id',
+			values: {
+				id: input.subjectId,
+				externalId: input.externalId ?? null,
+				identityProvider: input.externalId
+					? (input.identityProvider ?? 'external')
+					: 'anonymous',
+				tenantId: input.tenantId ?? null,
+				createdAt: now,
+				updatedAt: now,
+			},
+		});
 
-		return { id: input.subjectId, created: inserted.length > 0 };
+		return { id: input.subjectId, created };
 	}
 );

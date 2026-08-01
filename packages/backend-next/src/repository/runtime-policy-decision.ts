@@ -15,6 +15,7 @@
 import { generateEntityId } from '@c15t/schema';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+import { insertOnce } from '../db/insert-once';
 
 export interface DecisionInput {
 	readonly tenantId?: string | null;
@@ -52,33 +53,42 @@ export const recordDecision = Effect.fn('decision.record')(function* (
 	const sql = yield* SqlClient.SqlClient;
 	const id = generateEntityId('runtimePolicyDecision');
 
-	const inserted = yield* sql<{ id: string }>`
-		insert into "runtimePolicyDecision" (
-			"id","tenantId","policyId","fingerprint","matchedBy","countryCode",
-			"regionCode","jurisdiction","language","model","policyI18n","uiMode",
-			"bannerUi","dialogUi","categories","preselectedCategories",
-			"proofConfig","dedupeKey","createdAt"
-		) values (
-			${id}, ${input.tenantId ?? null}, ${input.policyId}, ${input.fingerprint},
-			${input.matchedBy}, ${input.countryCode ?? null}, ${input.regionCode ?? null},
-			${input.jurisdiction}, ${input.language ?? null}, ${input.model},
-			${json(input.policyI18n)}, ${input.uiMode ?? null}, ${json(input.bannerUi)},
-			${json(input.dialogUi)}, ${json(input.categories)},
-			${json(input.preselectedCategories)}, ${json(input.proofConfig)},
-			${input.dedupeKey}, ${new Date()}
-		)
-		on conflict ("dedupeKey") do nothing
-		returning "id"
-	`;
+	const created = yield* insertOnce({
+		into: 'runtimePolicyDecision',
+		conflictOn: 'dedupeKey',
+		values: {
+			id,
+			tenantId: input.tenantId ?? null,
+			policyId: input.policyId,
+			fingerprint: input.fingerprint,
+			matchedBy: input.matchedBy,
+			countryCode: input.countryCode ?? null,
+			regionCode: input.regionCode ?? null,
+			jurisdiction: input.jurisdiction,
+			language: input.language ?? null,
+			model: input.model,
+			policyI18n: json(input.policyI18n),
+			uiMode: input.uiMode ?? null,
+			bannerUi: json(input.bannerUi),
+			dialogUi: json(input.dialogUi),
+			categories: json(input.categories),
+			preselectedCategories: json(input.preselectedCategories),
+			proofConfig: json(input.proofConfig),
+			dedupeKey: input.dedupeKey,
+			createdAt: new Date(),
+		},
+	});
 
-	const created = inserted[0];
 	if (created) {
-		return { id: created.id, created: true };
+		return { id, created: true };
 	}
 
-	// Lost the conflict: someone already recorded this exact decision.
+	// Lost the conflict: someone already recorded this exact decision. Unlike
+	// consent, the id here is random rather than derived, so the existing
+	// row's id has to be read back rather than recomputed.
 	const existing = yield* sql<{ id: string }>`
-		select "id" from "runtimePolicyDecision" where "dedupeKey" = ${input.dedupeKey}
+		select ${sql('id')} from ${sql('runtimePolicyDecision')}
+		where ${sql('dedupeKey')} = ${input.dedupeKey}
 	`;
 
 	return { id: existing[0]?.id ?? id, created: false };

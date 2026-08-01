@@ -72,9 +72,11 @@ export const tenantScope = Effect.fn('tenant.scope')(function* (
 > {
 	const sql = yield* SqlClient.SqlClient;
 	const { tenantId } = yield* Tenant;
-	const column = table
-		? sql.unsafe(`"${table}"."tenantId"`)
-		: sql.unsafe('"tenantId"');
+	// `sql(name)` rather than `sql.unsafe('"name"')`: the dialect's own
+	// compiler picks the delimiter, so this is backticked on MySQL and
+	// double-quoted on Postgres and SQLite. It also splits on the dot, so
+	// `subject.tenantId` becomes a qualified pair rather than one odd name.
+	const column = table ? sql(`${table}.tenantId`) : sql('tenantId');
 
 	return tenantId === undefined
 		? sql`${column} is null`
