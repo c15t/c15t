@@ -40,15 +40,19 @@ export interface Shape {
 }
 
 /**
- * Both fumadb eras fail to migrate a blank MySQL database, in `execute()` as
- * well as `getSQL()`. Verified against the exact dependency each release pins
- * (2.1.0 pins fumadb 0.2.2), so this is the released behaviour rather than a
- * resolution artifact. The implication is that fumadb-managed MySQL databases
- * most likely do not exist in the wild — the documented migrator could never
- * have created one.
+ * Both fumadb eras fail to migrate a blank MySQL database. fumadb maps a
+ * `string` column to MySQL `TEXT` and then puts an index on it, and MySQL
+ * requires a prefix length to index TEXT/BLOB. Different eras trip over
+ * different columns — `domain.name` at schema 1.0.0, and
+ * `runtimePolicyDecision.dedupeKey` at 2.0.0 — but the cause is the same.
+ *
+ * Reproduced on fumadb 0.2.2 (pinned by 2.1.0) *and* 0.3.0 (pinned by this
+ * repo on the v3 line), so it is not fixed upstream. The implication is that
+ * fumadb-managed MySQL databases most likely do not exist in the wild: the
+ * documented migrator could never have created one.
  */
 const FUMADB_MYSQL_FAILURE =
-	'fumadb migration fails on MySQL: "ID columns must not be updated, not every database supports updating primary keys and often requires workarounds." Fails inside execute(), not just SQL rendering.';
+	'fumadb migration fails on MySQL: "BLOB/TEXT column used in key specification without a key length". fumadb maps string columns to TEXT and indexes them; MySQL needs a prefix length. Trips on domain.name at schema 1.0.0 and runtimePolicyDecision.dedupeKey at 2.0.0. Reproduced on fumadb 0.2.2 and 0.3.0.';
 
 export const SHAPES: readonly Shape[] = [
 	{

@@ -97,12 +97,26 @@ export const teardown = async () => { await db.destroy(); };
 						'  bun run generate --engine mysql --mysql-url mysql://root:c15t@127.0.0.1:3399/c15t'
 				);
 			}
+			// Unlike sqlite and postgres, which get a fresh in-process database per
+			// run, MySQL is a shared server. Every shape must start from a blank
+			// schema or it captures whatever the previous shape left behind — and
+			// a dirty database changes the migration path, not just the result.
 			return `
-import { Kysely, MysqlDialect } from 'kysely';
+import { Kysely, MysqlDialect, sql } from 'kysely';
 import { createPool } from 'mysql2';
 
 const pool = createPool(${JSON.stringify(mysqlUrl)});
 export const db = new Kysely({ dialect: new MysqlDialect({ pool }) });
+
+const existing = await db.introspection.getTables();
+if (existing.length > 0) {
+  await sql\`set foreign_key_checks = 0\`.execute(db);
+  for (const table of existing) {
+    await sql.raw(\`drop table if exists \\\`\${table.name}\\\`\`).execute(db);
+  }
+  await sql\`set foreign_key_checks = 1\`.execute(db);
+}
+
 export const teardown = async () => { await db.destroy(); };
 `;
 		}

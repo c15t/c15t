@@ -3,5 +3,5 @@
 	"engine": "mysql",
 	"versions": ["1.8.6"],
 	"era": "fumadb-v2-subpath",
-	"unsupported": "fumadb migration fails on MySQL: \"ID columns must not be updated, not every database supports updating primary keys and often requires workarounds.\" Fails inside execute(), not just SQL rendering."
+	"unsupported": "fumadb migration fails on MySQL: \"BLOB/TEXT column used in key specification without a key length\". fumadb maps string columns to TEXT and indexes them; MySQL needs a prefix length. Trips on domain.name at schema 1.0.0 and runtimePolicyDecision.dedupeKey at 2.0.0. Reproduced on fumadb 0.2.2 and 0.3.0."
 }

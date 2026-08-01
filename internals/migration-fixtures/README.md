@@ -41,26 +41,32 @@ additive migrator converges on the same result either way.
 `legacy-upgraded` is kept anyway — it is the regression test for that claim,
 and it costs nothing to keep generating.
 
-Verified on sqlite, postgres **and** mysql.
+Verified on sqlite, postgres **and** mysql, each shape against a genuinely
+blank database.
 
-**fumadb cannot migrate MySQL at all.** Both `fumadb-1.0.0` and `fumadb-2.0.0`
-fail on a blank MySQL database with:
+**fumadb cannot migrate MySQL at all, and it is not fixed on the v3 line.**
+Both `fumadb-1.0.0` and `fumadb-2.0.0` fail on a blank MySQL database with:
 
-> ID columns must not be updated, not every database supports updating primary
-> keys and often requires workarounds.
+> BLOB/TEXT column '…' used in key specification without a key length
 
-The failure is inside `plan.execute()`, not merely SQL rendering, and it
-reproduces against the exact dependency each release pins — 2.1.0 pins
-`fumadb@0.2.2` — so it is released behaviour, not a resolution artifact.
-MySQL is advertised in `docs/self-host/guides/database-setup.mdx`, so the
-practical implication is that **fumadb-managed MySQL databases most likely do
-not exist in the wild**: the documented migrator could never have created one.
+fumadb maps a `string` column to MySQL `TEXT` and then indexes it; MySQL
+requires a prefix length to index TEXT/BLOB. Different eras trip over
+different columns — `domain.name` at schema 1.0.0,
+`runtimePolicyDecision.dedupeKey` at 2.0.0 — but the cause is the same.
+
+Reproduced against **both** `fumadb@0.2.2` (pinned by the released 2.1.0) and
+`fumadb@0.3.0` (pinned by this repo on the v3 line), using the real c15t
+schema. A minimal schema with an `idColumn` migrates fine on both versions, so
+this is specific to c15t's schema rather than a blanket fumadb defect.
+
+MySQL is advertised in `docs/self-host/guides/database-setup.mdx`. Two
+implications: fumadb-managed MySQL databases most likely **do not exist in the
+wild**, since the documented migrator could never have created one; and MySQL
+self-hosting is broken on the current v3 line, which is a live bug independent
+of the rewrite.
+
 Those cells are committed as `mysql.unsupported.json` so the absence is a
 recorded finding rather than a coverage gap.
-
-Not yet checked: whether `fumadb@0.3.0`, which this repo pins on the v3 line,
-still has the bug. If it does, MySQL is broken on the current shipping line
-too — worth confirming independently of the rewrite.
 
 **Scope of these claims.** Captured metadata is tables and columns (name, data
 type, nullability, auto-increment, default presence). **Indexes, foreign keys
@@ -114,3 +120,9 @@ Things that are load-bearing and non-obvious:
 - **`migrator()` returns a plan, not a result.** Nothing touches the database
   until `plan.execute()` — the CLI does the same thing at
   `packages/cli/src/commands/self-host/migrate/migrator-result.ts:51`.
+- **MySQL is dropped to a blank schema before every shape.** sqlite and
+  postgres get a fresh in-process database per run; MySQL is a shared server,
+  so without this each shape migrates whatever the previous one left behind.
+  That changes the migration *path*, not just the result — an earlier version
+  of this tool reused one database and produced both a spurious failure mode
+  and a spurious "all legacy shapes are identical" result.
