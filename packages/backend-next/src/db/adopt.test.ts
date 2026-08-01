@@ -155,6 +155,69 @@ describe('adopt', () => {
 	);
 
 	it.effect(
+		'emits no destructive statement for any shape it can encounter',
+		() =>
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				const destructive = /\b(drop|truncate)\b|\bdelete\s+from\b/i;
+
+				// Empty database.
+				for (const step of (yield* plan).steps) {
+					assert.notMatch(step.sql, destructive, step.description);
+				}
+
+				// A 1.0.0-era database with data.
+				yield* legacyish;
+				for (const step of (yield* plan).steps) {
+					assert.notMatch(step.sql, destructive, step.description);
+				}
+
+				// A 2.0.0-shaped database missing only the newer columns.
+				yield* sql.unsafe('drop schema public cascade');
+				yield* sql.unsafe('create schema public');
+				yield* baseline;
+				yield* sql.unsafe(`alter table "consent" drop column "tenantId"`);
+				for (const step of (yield* plan).steps) {
+					assert.notMatch(step.sql, destructive, step.description);
+				}
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'refuses to apply a plan carrying a destructive statement',
+		() =>
+			Effect.gen(function* () {
+				yield* legacyish;
+				const adoption = yield* plan;
+
+				// Simulates a future edit smuggling a drop into an additive step.
+				const tampered = {
+					...adoption,
+					steps: [
+						...adoption.steps,
+						{
+							kind: 'add-column' as const,
+							description: 'sneaky',
+							sql: 'drop table "consentRecord"',
+						},
+					],
+				};
+
+				const outcome = yield* Effect.exit(apply(tampered));
+				assert.isTrue(outcome._tag === 'Failure');
+
+				// And the table it targeted is untouched.
+				const sql = yield* SqlClient.SqlClient;
+				const rows = yield* sql<{
+					count: string;
+				}>`select count(*) as count from "consentRecord"`;
+				assert.strictEqual(Number(rows[0]?.count), 1);
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
 		'reports the database as ours once adopted',
 		() =>
 			Effect.gen(function* () {

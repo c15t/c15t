@@ -316,12 +316,38 @@ export interface ApplyOptions {
 	readonly skipForeignKeys?: boolean;
 }
 
+/**
+ * Statement-level verbs that would destroy data.
+ *
+ * `AdoptionStep['kind']` already has no destructive member, but `sql` is a
+ * free-form string — nothing in the type system stops a future edit putting a
+ * `drop` into a step tagged `add-column`. This is the backstop that makes
+ * "adoption never deletes anything" an enforced invariant rather than a
+ * convention, on the one code path that runs against other people's data.
+ *
+ * Word boundaries matter: a column legitimately named `dropdown` must not trip
+ * it, and does not.
+ */
+const DESTRUCTIVE = /\b(drop|truncate)\b|\bdelete\s+from\b/i;
+
 /** Applies a plan. Refuses a blocked one unless the blocker is opted out of. */
 export const apply = Effect.fn('adopt.apply')(function* (
 	adoption: Plan,
 	options: ApplyOptions = {}
 ) {
 	const sql = yield* SqlClient.SqlClient;
+
+	const destructive = adoption.steps.filter((step) =>
+		DESTRUCTIVE.test(step.sql)
+	);
+	if (destructive.length > 0) {
+		return yield* Effect.die(
+			new Error(
+				'Adoption is add-only and must never delete. Refusing to run: ' +
+					destructive.map((step) => step.description).join('; ')
+			)
+		);
+	}
 
 	const skippable =
 		adoption.orphans.length > 0 && options.skipForeignKeys === true;
