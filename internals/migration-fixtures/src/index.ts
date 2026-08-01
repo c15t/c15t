@@ -14,4 +14,10 @@ export type {
 	CapturedShape,
 	CapturedTable,
 } from './introspect';
+export {
+	columnNames,
+	domainTableNames,
+	loadFixture,
+	type UnsupportedShape,
+} from './load';
 export { type MigratorEra, SHAPES, type Shape, shapeByName } from './shapes';
