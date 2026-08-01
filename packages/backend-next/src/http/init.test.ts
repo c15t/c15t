@@ -121,3 +121,36 @@ describe('manifest cache control', () => {
 		);
 	});
 });
+
+describe('init policy snapshot token', () => {
+	const snapshot = { signingKey: 'test-signing-key-at-least-32-chars-long' };
+
+	it('omits the token when signing is not configured', async () => {
+		const result = await buildInitResponse(config, new Headers());
+		// The field is optional in the contract precisely because signing is
+		// opt-in; an unsigned placeholder would be worse than its absence.
+		assert.isUndefined(
+			(result.body as { policySnapshotToken?: string }).policySnapshotToken
+		);
+	});
+
+	it('omits the token when no policy matched', async () => {
+		// Nothing was decided, so there is nothing to attest to.
+		const result = await buildInitResponse(config, new Headers(), snapshot);
+		assert.isUndefined(
+			(result.body as { policySnapshotToken?: string }).policySnapshotToken
+		);
+	});
+
+	it('still resolves identically to a local resolve', async () => {
+		// The token is additive: adding it must not change the decision a host
+		// computing locally would reach.
+		const withToken = await buildInitResponse(config, new Headers(), snapshot);
+		const without = await buildInitResponse(config, new Headers());
+
+		const { policySnapshotToken: _omitted, ...rest } = withToken.body as {
+			policySnapshotToken?: string;
+		} & Record<string, unknown>;
+		assert.deepStrictEqual(rest, without.body);
+	});
+});

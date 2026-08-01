@@ -25,6 +25,10 @@ import {
 	type InitOutput,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
+import {
+	createPolicySnapshotToken,
+	type PolicySnapshotOptions,
+} from './policy-snapshot';
 
 export interface InitRequestSignals {
 	readonly country: string | null;
@@ -64,18 +68,47 @@ export function readInitSignals(headers: Headers): InitRequestSignals {
  */
 export async function buildInitResponse(
 	config: ConsentManifestConfig,
-	headers: Headers
+	headers: Headers,
+	snapshot?: PolicySnapshotOptions
 ): Promise<{ body: InitOutput; signals: InitRequestSignals }> {
 	const signals = readInitSignals(headers);
 	const manifest = await buildConsentManifestFromConfig(config);
 
-	return {
-		body: resolveInitFromManifest(manifest, {
+	const resolved = resolveInitFromManifest(manifest, {
+		country: signals.country,
+		region: signals.region,
+		language: signals.language,
+		gpc: signals.gpc,
+	});
+
+	// Signed evidence of the decision just made, so the consent submitted
+	// against it can be checked to be the one this server actually issued.
+	// Absent when no signing key is configured — `policySnapshotToken` is
+	// optional in the contract precisely because signing is opt-in.
+	// policyDecision carries the *why* — which policy matched and how — while
+	// `policy` carries the resolved content. The token attests to the former.
+	const decision = resolved.policyDecision;
+	if (!decision || !snapshot?.signingKey) {
+		return { body: resolved, signals };
+	}
+
+	const token = await createPolicySnapshotToken(
+		{
+			policyId: decision.policyId,
+			fingerprint: decision.fingerprint,
+			matchedBy: decision.matchedBy,
 			country: signals.country,
 			region: signals.region,
+			jurisdiction: resolved.jurisdiction,
+			model: resolved.policy?.model ?? 'none',
+			tenantId: config.tenantId,
 			language: signals.language,
-			gpc: signals.gpc,
-		}),
+		},
+		snapshot
+	);
+
+	return {
+		body: token ? { ...resolved, policySnapshotToken: token.token } : resolved,
 		signals,
 	};
 }
