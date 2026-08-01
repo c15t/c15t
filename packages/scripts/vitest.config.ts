@@ -32,6 +32,10 @@ export default mergeConfig(
 				'**/coverage/**',
 			],
 			coverage: {
+				// The live-vendor monitor drives real vendor endpoints from a
+				// scheduled workflow rather than from unit tests, so it is
+				// measured by its own run, not by this package's ratchet.
+				exclude: ['live-vendors/**'],
 				// Coverage ratchet: floors below current coverage so regressions
 				// fail CI. Raise as coverage improves; never lower.
 				thresholds: {
