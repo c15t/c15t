@@ -34,7 +34,11 @@ import {
 	LegalDocumentConflictError,
 	syncCurrent,
 } from '../repository/legal-document';
-import { findById, listByExternalId } from '../repository/subject';
+import {
+	findById,
+	linkExternalId,
+	listByExternalId,
+} from '../repository/subject';
 import { validateRequestAuth } from './auth';
 import {
 	BadRequestError,
@@ -272,6 +276,47 @@ export function createApp(
 				}
 
 				return { results };
+			})
+		);
+
+		if (!result.ok) {
+			return c.json(result.failure.body, result.failure.status);
+		}
+
+		return c.json(result.value);
+	});
+
+	app.patch('/subjects/:id', async (c) => {
+		const subjectId = c.req.param('id');
+		const body = await c.req.json().catch(() => undefined);
+
+		const result = await run(
+			Effect.gen(function* () {
+				if (!body?.externalId) {
+					return yield* new BadRequestError({
+						message: 'externalId is required',
+						code: 'EXTERNAL_ID_REQUIRED',
+					});
+				}
+
+				const linked = yield* linkExternalId({
+					subjectId,
+					externalId: body.externalId,
+					// Matches @c15t/backend's default: an identity supplied
+					// without a named provider is still externally sourced.
+					identityProvider: body.identityProvider ?? 'external',
+					ipAddress: getIpAddress(c.req.raw.headers, options.ipAddress),
+					userAgent: c.req.header('user-agent') ?? null,
+				});
+
+				if (linked === undefined) {
+					return yield* new NotFoundError({
+						resource: 'Subject',
+						id: subjectId,
+					});
+				}
+
+				return { subject: linked };
 			})
 		);
 

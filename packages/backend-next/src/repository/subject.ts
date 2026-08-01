@@ -25,6 +25,7 @@
  * shape of the data, not an accident of the query.
  */
 
+import { generateEntityId } from '@c15t/schema';
 import { Effect } from 'effect';
 import { SqlClient, SqlError } from 'effect/unstable/sql';
 
@@ -257,3 +258,79 @@ export const findById = Effect.fn('repository.findById')(function* (
 		consents,
 	} satisfies SubjectWithConsents;
 });
+
+/**
+ * Links a subject to an external identity.
+ *
+ * The update and its audit entry are one transaction. An audit log that can
+ * disagree with the row it describes is worse than none — it makes the trail
+ * untrustworthy rather than merely incomplete — and on a consent platform the
+ * trail is the product.
+ */
+export const linkExternalId = Effect.fn('repository.linkExternalId')(
+	function* (input: {
+		subjectId: string;
+		externalId: string;
+		identityProvider: string;
+		ipAddress: string | null;
+		userAgent: string | null;
+	}) {
+		const sql = yield* SqlClient.SqlClient;
+
+		const found = yield* sql<{
+			externalId: string | null;
+			identityProvider: string | null;
+		}>`
+		select "externalId", "identityProvider" from "subject"
+		where "id" = ${input.subjectId}
+	`;
+		const before = found[0];
+		if (before === undefined) {
+			return undefined;
+		}
+
+		yield* sql.withTransaction(
+			Effect.gen(function* () {
+				yield* sql`
+				update "subject" set
+					"externalId" = ${input.externalId},
+					"identityProvider" = ${input.identityProvider},
+					"updatedAt" = ${new Date()}
+				where "id" = ${input.subjectId}
+			`;
+
+				// Records what changed, not just that something did: a trail that
+				// cannot answer "from what?" cannot support a subject access request.
+				yield* sql`
+				insert into "auditLog" (
+					"id","subjectId","entityType","entityId","actionType",
+					"ipAddress","userAgent","changes","metadata","createdAt"
+				) values (
+					${generateEntityId('auditLog')},
+					${input.subjectId}, ${'subject'}, ${input.subjectId},
+					${'identify_user'},
+					${input.ipAddress}, ${input.userAgent},
+					${JSON.stringify({
+						externalId: { from: before.externalId, to: input.externalId },
+						identityProvider: {
+							from: before.identityProvider,
+							to: input.identityProvider,
+						},
+					})},
+					${JSON.stringify({
+						externalId: input.externalId,
+						identityProvider: input.identityProvider,
+					})},
+					${new Date()}
+				)
+			`;
+			})
+		);
+
+		return {
+			id: input.subjectId,
+			externalId: input.externalId,
+			identityProvider: input.identityProvider,
+		};
+	}
+);

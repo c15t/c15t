@@ -122,6 +122,7 @@ export {
 	type ConsentSubmissionIdentity,
 	type EntityKind,
 	generateDeterministicId,
+	generateEntityId,
 } from './shared/entity-id';
 // GVL types - IAB TCF Global Vendor List
 export type {

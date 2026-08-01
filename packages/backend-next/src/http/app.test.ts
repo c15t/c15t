@@ -493,3 +493,75 @@ describe('PUT /legal-documents/:type/current', () => {
 		assert.strictEqual(response.status, 422);
 	});
 });
+
+describe('PATCH /subjects/:id', () => {
+	const patch = (id: string, body: unknown) =>
+		app.request(`/subjects/${id}`, {
+			method: 'PATCH',
+			headers: {
+				'Content-Type': 'application/json',
+				'x-forwarded-for': '203.0.113.42',
+			},
+			body: JSON.stringify(body),
+		});
+
+	it('links a subject to an external identity', async () => {
+		await seed();
+		const body = await (await patch('sub_1', { externalId: 'ext_new' })).json();
+		assert.strictEqual(body.subject.externalId, 'ext_new');
+		assert.strictEqual(body.subject.identityProvider, 'external');
+	});
+
+	it('writes an audit entry recording what changed', async () => {
+		await seed();
+		await patch('sub_1', { externalId: 'ext_new', identityProvider: 'auth0' });
+
+		const entries = await runtime.runPromise(
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				return yield* sql<{
+					actionType: string;
+					changes: unknown;
+					ipAddress: string | null;
+				}>`select "actionType","changes","ipAddress" from "auditLog"`;
+			})
+		);
+
+		assert.strictEqual(entries.length, 1);
+		assert.strictEqual(entries[0]?.actionType, 'identify_user');
+		// From-and-to, not just "changed": a trail that cannot answer "from
+		// what?" cannot support a subject access request.
+		const changes = entries[0]?.changes as {
+			externalId: { from: string | null; to: string };
+		};
+		assert.strictEqual(changes.externalId.from, 'ext_1');
+		assert.strictEqual(changes.externalId.to, 'ext_new');
+		// The recorded IP is masked, as everywhere else.
+		assert.strictEqual(entries[0]?.ipAddress, '203.0.113.0');
+	});
+
+	it('404s for a subject that does not exist', async () => {
+		const response = await patch('sub_absent', { externalId: 'ext_new' });
+		assert.strictEqual(response.status, 404);
+	});
+
+	it('requires an externalId', async () => {
+		await seed();
+		const response = await patch('sub_1', {});
+		assert.strictEqual(response.status, 400);
+	});
+
+	it('writes no audit entry when the subject is missing', async () => {
+		await patch('sub_absent', { externalId: 'ext_new' });
+		const entries = await runtime.runPromise(
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				return yield* sql<{
+					total: string;
+				}>`select count(*) as total from "auditLog"`;
+			})
+		);
+		// An audit entry for a change that never happened is worse than none.
+		assert.strictEqual(Number(entries[0]?.total), 0);
+	});
+});
