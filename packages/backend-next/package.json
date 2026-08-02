@@ -2,7 +2,7 @@
 	"name": "@c15t/backend-next",
 	"version": "0.0.0",
 	"private": true,
-	"description": "Effect rewrite of @c15t/backend, developed in parallel until it reaches parity. Renamed to @c15t/backend at cutover — see internals/rfcs/0004-backend-effect-rewrite.md.",
+	"description": "Effect rewrite of @c15t/backend, developed in parallel until it reaches parity. Renamed to @c15t/backend at cutover \u2014 see internals/rfcs/0004-backend-effect-rewrite.md.",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
@@ -52,7 +52,8 @@
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run --passWithNoTests",
-		"test:watch": "vitest"
+		"test:watch": "vitest",
+		"prebuild": "genversion --esm --semi src/version.ts"
 	},
 	"dependencies": {
 		"@c15t/schema": "workspace:*",
@@ -75,6 +76,7 @@
 		"@effect/sql-sqlite-node": "4.0.0-beta.102",
 		"@effect/vitest": "4.0.0-beta.102",
 		"@types/node": "^24.10.1",
+		"genversion": "3.2.0",
 		"typescript": "7.0.2"
 	},
 	"peerDependencies": {
