@@ -713,13 +713,28 @@ removes capability from an existing user rather than relocating it.
 to replace: `backend-next` never had logging at all, so this was additive, and
 that changed what the right default is.
 
-**Off unless asked for.** `@c15t/backend` builds its logger with
-`level ?? 'error'`, so a default deployment emits nothing per request. This
-package replaces it in place, so defaulting a wide event per request to *on*
-would mean an operator who upgraded a version discovers new stdout volume, and
-a new bill on a hosted log pipeline. `observability.enabled` is `false` unless
-set. Redaction goes the other way — on by default whenever logging is on,
-because the failure mode of forgetting is a compliance incident.
+**On by default, quiet by default.** The first cut of this defaulted logging
+*off*, reasoning that 2.x emits nothing per request. That was half right and
+the wrong conclusion: 2.x defaults to `level: 'error'`, so it does report
+failures — and a backend that tells a new self-hoster nothing when their
+requests are being rejected is one they debug by guesswork.
+
+So the default is `level: 'warn'`: **silent when requests succeed, a line when
+they do not.** The full per-request stream is `level: 'info'`, `'silent'` is
+off, and `'inherit'` leaves evlog's global config to a host application that
+configures it themselves.
+
+Getting that default to actually work took two mechanisms, which is worth
+knowing before changing any of it. Hono answers a thrown handler error with a
+500 *response* rather than propagating it, so evlog's middleware sees a status
+and never an exception, and the event's level stays `info` even for a 500.
+Head sampling alone therefore drops exactly the requests worth keeping —
+observed, not predicted: with `rates: { info: 0 }` the 500 vanished. It needs
+a status-grading middleware running inside evlog's wrapper *and* a keep rule
+from 400 up.
+
+Redaction is on by default whenever logging is on, because the failure mode of
+forgetting is a compliance incident.
 
 **A narrow service, not evlog's logger.** The Effect service is `RequestLog`,
 two methods wide, adapted from evlog at the HTTP boundary. Handlers depend on

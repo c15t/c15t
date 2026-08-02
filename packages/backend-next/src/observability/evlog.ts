@@ -4,19 +4,43 @@
  * Everything that knows evlog exists lives here and in `./log.ts`. The rest of
  * the package sees the `Log` service.
  *
- * ## Opt-in, and why
+ * ## On by default, quiet by default
  *
- * `@c15t/backend` builds its logger with `level ?? 'error'`, so a default
- * deployment emits nothing per request. This package is a drop-in replacement
- * for it, so turning on a wide event per request by default would change
- * observable behaviour at cutover — new stdout volume, and potentially new
- * cost, for someone who only upgraded a version. `observability.enabled` is
- * therefore `false` unless asked for.
+ * Logging is **on** out of the box, because a backend that tells a new
+ * self-hoster nothing when a request fails is a backend they debug with
+ * guesswork. `@c15t/backend` 2.x defaults its logger to `level: 'error'`, so
+ * it already reports failures; this keeps that and adds warnings.
  *
- * Redaction is the opposite: on by default whenever logging is on. This
- * service handles IP addresses and puts them on consent records, so the
- * failure mode of forgetting is a compliance incident rather than an untidy
- * log. Turning it off has to be deliberate.
+ * What it does *not* do by default is emit a line per successful request.
+ * That is the part which would be a real change on upgrade — new stdout
+ * volume and a bigger bill on a hosted log pipeline — and it is one option
+ * away (`level: 'info'`) for anyone who wants the full wide-event stream.
+ *
+ * So the default is: **silence when things work, a line when they do not.**
+ *
+ * ## How the level is actually enforced
+ *
+ * Two mechanisms, because one is not enough, and the reason is worth knowing
+ * before changing any of it.
+ *
+ * Hono catches a thrown handler error and turns it into a 500 *response*
+ * rather than letting it propagate, so evlog's middleware sees a status and
+ * never an exception. The wide event's level therefore stays `info` even for
+ * a 500 — head sampling alone would drop the very requests worth keeping.
+ *
+ * - `gradeLevel` runs inside evlog's wrapper, reads the final status, and
+ *   marks the event `warn` (4xx) or `error` (5xx) before it is emitted.
+ * - A `keep` callback force-keeps anything from 400 up, so a failure survives
+ *   head sampling regardless.
+ *
+ * Verified end to end rather than reasoned about: with `rates: { info: 0 }`
+ * alone, a 500 was silently dropped.
+ *
+ * ## Redaction
+ *
+ * On by default whenever logging is on. This service handles IP addresses and
+ * puts them on consent records, so the failure mode of forgetting is a
+ * compliance incident rather than an untidy log. Turning it off is deliberate.
  */
 
 import { type AuditableLogger, initLogger } from 'evlog';
@@ -24,22 +48,34 @@ import { type EvlogHonoOptions, evlog } from 'evlog/hono';
 import type { MiddlewareHandler } from 'hono';
 import type { RequestLog } from './log';
 
+/**
+ * How much of the request stream reaches the log.
+ *
+ * - `silent` — nothing. No middleware is registered at all.
+ * - `error` — failed requests only (5xx).
+ * - `warn` — failures and rejections (4xx and 5xx). **The default.**
+ * - `info` — every request, the full wide-event stream.
+ * - `inherit` — leave evlog's global configuration alone and log whatever the
+ *   host application already decided. For an app that configures evlog itself
+ *   and does not want a library overriding it.
+ */
+export type ObservabilityLevel =
+	| 'silent'
+	| 'error'
+	| 'warn'
+	| 'info'
+	| 'inherit';
+
 export interface ObservabilityOptions {
-	/**
-	 * Emit one wide event per request.
-	 *
-	 * Off by default, matching `@c15t/backend`'s error-only logger. See the
-	 * note at the top of this file.
-	 */
-	readonly enabled?: boolean;
+	/** Defaults to `'warn'` — failures and rejections, nothing else. */
+	readonly level?: ObservabilityLevel;
 	/**
 	 * Service name on every event.
 	 *
-	 * **Sets global evlog state** via `initLogger`, because evlog resolves the
-	 * service name from process-level configuration rather than per
-	 * middleware. Left unset, whatever the host application configured wins —
-	 * which is the right default for an embedded backend, and the reason this
-	 * is not defaulted to `'c15t'`.
+	 * **Sets global evlog state**, as does any `level` other than `'inherit'`:
+	 * evlog resolves sampling and service name from process-level
+	 * configuration rather than per middleware. Two instances in one process
+	 * share it, and the last one built wins. `level: 'inherit'` is the way out.
 	 */
 	readonly service?: string;
 	/** Route globs to log. Unset logs every route. */
@@ -56,22 +92,60 @@ export interface ObservabilityOptions {
 	readonly drain?: EvlogHonoOptions['drain'];
 	/** Adds fields to every event after emit, before drain. */
 	readonly enrich?: EvlogHonoOptions['enrich'];
-	/** Tail sampling — force-keep an event that would otherwise be dropped. */
+	/** Force-keeps an event that sampling would otherwise drop. */
 	readonly keep?: EvlogHonoOptions['keep'];
 }
+
+const DEFAULT_LEVEL: ObservabilityLevel = 'warn';
+
+/** The lowest status that counts as worth keeping, per level. */
+const keepFrom: Record<Exclude<ObservabilityLevel, 'silent'>, number> = {
+	error: 500,
+	warn: 400,
+	// Everything is kept anyway; the threshold is unreachable rather than
+	// special-cased.
+	info: 0,
+	inherit: Number.POSITIVE_INFINITY,
+};
+
+/**
+ * Head-sampling rates for a level.
+ *
+ * `undefined` means "do not touch the global configuration" — only
+ * `'inherit'`, whose whole purpose is to leave the host's settings alone.
+ */
+const ratesFor = (
+	level: ObservabilityLevel
+): Record<string, number> | undefined => {
+	switch (level) {
+		case 'error':
+			return { info: 0, debug: 0, warn: 0 };
+		case 'warn':
+			return { info: 0, debug: 0 };
+		case 'info':
+			return { info: 100, debug: 100, warn: 100 };
+		default:
+			return undefined;
+	}
+};
 
 /**
  * Turns our options into evlog's.
  *
- * Separate from `middleware` so the defaults are assertable directly. The one
- * that matters is `redact`, which is a policy decision rather than a
- * pass-through, and which nothing else can catch regressing: no field this
- * package currently sets on an event contains PII, so an end-to-end test of
- * redaction would pass whether it were on or off.
+ * Separate from `middleware` so the defaults are assertable directly. Two of
+ * them are policy rather than pass-through, and nothing else can catch either
+ * regressing: `redact`, because no field this package sets on an event
+ * contains PII today so an end-to-end test would pass either way; and `keep`,
+ * because it is what stops the default level discarding failures.
  */
 export function resolveOptions(
 	options: ObservabilityOptions
 ): EvlogHonoOptions {
+	const level = options.level ?? DEFAULT_LEVEL;
+	const threshold =
+		level === 'silent' ? Number.POSITIVE_INFINITY : keepFrom[level];
+	const caller = options.keep;
+
 	return {
 		include: options.include ? [...options.include] : undefined,
 		exclude: options.exclude ? [...options.exclude] : undefined,
@@ -79,36 +153,75 @@ export function resolveOptions(
 		redact: options.redact ?? true,
 		drain: options.drain,
 		enrich: options.enrich,
-		keep: options.keep,
+		keep: async (ctx) => {
+			if ((ctx.status ?? 200) >= threshold) {
+				ctx.shouldKeep = true;
+			}
+			// The caller's own rule runs too, and can only ever keep more.
+			await caller?.(ctx);
+		},
 	};
 }
 
 /**
- * The middleware, or `undefined` when observability is off.
+ * Marks the event `warn` or `error` from the response status.
  *
- * `undefined` rather than a pass-through middleware so the disabled path costs
- * nothing per request and does not appear in a stack trace.
+ * Registered immediately after evlog's middleware so it runs *inside* that
+ * wrapper: it needs the final status, and the event has to be graded before
+ * evlog emits it.
+ *
+ * Without this every event is `info`, including 500s, because Hono answers a
+ * thrown handler error with a response rather than propagating it.
+ */
+export const gradeLevel: MiddlewareHandler = async (c, next) => {
+	await next();
+
+	const log: AuditableLogger | undefined = c.get('log');
+	if (log === undefined) {
+		return;
+	}
+
+	const status = c.res.status;
+	if (status >= 500) {
+		log.setLevel('error');
+	} else if (status >= 400) {
+		log.setLevel('warn');
+	}
+};
+
+/**
+ * The middleware, or `undefined` when logging is off.
+ *
+ * `undefined` rather than a pass-through so `level: 'silent'` costs nothing
+ * per request and does not appear in a stack trace.
  */
 export function middleware(
 	options: ObservabilityOptions | undefined
 ): MiddlewareHandler | undefined {
-	if (options?.enabled !== true) {
+	const level = options?.level ?? DEFAULT_LEVEL;
+	if (level === 'silent') {
 		return undefined;
 	}
 
-	if (options.service !== undefined) {
-		initLogger({ env: { service: options.service } });
+	const rates = ratesFor(level);
+	if (rates !== undefined || options?.service !== undefined) {
+		initLogger({
+			...(options?.service === undefined
+				? {}
+				: { env: { service: options.service } }),
+			...(rates === undefined ? {} : { sampling: { rates } }),
+		});
 	}
 
-	return evlog(resolveOptions(options));
+	return evlog(resolveOptions(options ?? {}));
 }
 
 /**
  * Adapts evlog's request logger to the narrow `RequestLog` the app depends on.
  *
- * Tolerates its absence: when the middleware is not registered, or skipped the
- * route via `include`/`exclude`, `c.get('log')` is undefined and handlers
- * still need somewhere to write.
+ * Tolerates its absence: when logging is off, or the route was skipped via
+ * `include`/`exclude`, `c.get('log')` is undefined and handlers still need
+ * somewhere to write.
  */
 export function toRequestLog(
 	logger: AuditableLogger | undefined

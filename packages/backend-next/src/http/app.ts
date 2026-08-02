@@ -13,7 +13,10 @@ import type { ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
 import { Hono } from 'hono';
 import { openAPIRouteHandler } from 'hono-openapi';
-import { middleware as observability } from '../observability/evlog';
+import {
+	gradeLevel,
+	middleware as observability,
+} from '../observability/evlog';
 import { type AppOptions, makeRun, type RouteContext } from './context';
 import { register as registerConsent } from './routes/consent';
 import { register as registerInit } from './routes/init';
@@ -35,6 +38,9 @@ export function createApp(
 	const observe = observability(options.observability);
 	if (observe) {
 		app.use('*', observe);
+		// Immediately after, so it runs inside evlog's wrapper and can grade
+		// the event from the final status before it is emitted.
+		app.use('*', gradeLevel);
 	}
 
 	app.use('*', async (c, next) => {

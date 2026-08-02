@@ -101,8 +101,9 @@ export interface AppOptions {
 	/**
 	 * Wide-event logging (RFC 0004 §5).
 	 *
-	 * Off unless enabled — `@c15t/backend` emits nothing per request by
-	 * default, and a drop-in replacement must not change that on upgrade.
+	 * On by default at `level: 'warn'` — silent when requests succeed, a line
+	 * when they fail. `level: 'info'` gives the full per-request stream;
+	 * `'silent'` turns it off.
 	 */
 	readonly observability?: ObservabilityOptions;
 }

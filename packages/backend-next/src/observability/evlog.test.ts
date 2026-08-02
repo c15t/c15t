@@ -1,17 +1,21 @@
 /**
  * Wide-event logging.
  *
- * Two properties matter here, and they pull in opposite directions.
+ * The default is the interesting case, and it is two claims at once: logging
+ * is **on**, so a new self-hoster is not debugging failures by guesswork, and
+ * a **successful request is silent**, so nobody upgrading discovers a line per
+ * request and a bigger log bill.
  *
- * The first is that **the default is silence**. `@c15t/backend` builds its
- * logger with `level ?? 'error'` and so emits nothing per request; this
- * package replaces it in place, so an operator who upgrades a version must not
- * discover a new line of stdout per request. That is a behaviour change, and a
- * costed one on a hosted log pipeline.
+ * That combination is not one setting. Hono answers a thrown handler error
+ * with a 500 *response* rather than propagating it, so evlog sees a status and
+ * never an exception, and the event's level stays `info` even for a 500 —
+ * head sampling alone drops exactly the requests worth keeping. It takes
+ * status-based grading *and* a keep rule, which is why both are asserted here
+ * rather than trusted.
  *
- * The second is that when it *is* on, the event has to carry the facts worth
- * querying — otherwise it is a slower `console.log`. So these assert the
- * domain fields land, not merely that something was emitted.
+ * When the full stream is on, the event also has to carry the facts worth
+ * querying, or it is a slower `console.log`. So the domain fields are asserted
+ * too.
  */
 
 import { PgliteClient } from '@effect/sql-pglite';
@@ -63,46 +67,68 @@ const withApp = async <A>(
 
 const seed = { appName: 'Example', policyPacks: [] } as const;
 
-describe('observability: off by default', () => {
-	it('emits nothing when unconfigured', async () => {
+describe('observability: the default', () => {
+	it('stays quiet on a successful request', async () => {
 		const { events, drain } = collect();
 
 		await withApp(
-			// `drain` is wired but `observability` is absent, so the middleware is
-			// never registered and the drain can never be called. If a future
-			// change flips the default, this fails rather than quietly costing
-			// someone money.
-			{ manifest: seed, observability: undefined },
+			// No `level` — the default must be quiet when nothing is wrong.
+			{ manifest: seed, observability: { drain } },
 			async (app) => {
 				const response = await app.request('/status');
 				assert.strictEqual(response.status, 200);
 			}
 		);
 
-		void drain;
 		assert.strictEqual(events.length, 0);
 	}, 60_000);
 
-	it('emits nothing when explicitly disabled', async () => {
+	it('reports a rejected request at warn', async () => {
 		const { events, drain } = collect();
 
 		await withApp(
-			{ manifest: seed, observability: { enabled: false, drain } },
+			{ manifest: seed, observability: { drain }, apiKeys: [] },
 			async (app) => {
-				await app.request('/status');
+				// 401: no API key configured, so nothing authenticates.
+				const response = await app.request('/subjects?externalId=ext_1');
+				assert.strictEqual(response.status, 401);
 			}
 		);
 
+		// Kept despite head sampling, and graded from the status rather than
+		// left at info — without both, a new self-hoster sees nothing at all
+		// when their requests are being rejected.
+		assert.strictEqual(events.length, 1);
+		assert.strictEqual(events[0]?.status, 401);
+		assert.strictEqual(events[0]?.level, 'warn');
+	}, 60_000);
+
+	it('emits nothing at all when silenced', async () => {
+		const { events, drain } = collect();
+
+		await withApp(
+			{
+				manifest: seed,
+				observability: { level: 'silent', drain },
+				apiKeys: [],
+			},
+			async (app) => {
+				await app.request('/status');
+				await app.request('/subjects?externalId=ext_1');
+			}
+		);
+
+		// Not even the failure. `silent` registers no middleware at all.
 		assert.strictEqual(events.length, 0);
-	});
+	}, 60_000);
 });
 
-describe('observability: enabled', () => {
+describe("observability: level 'info'", () => {
 	it('emits one event per request', async () => {
 		const { events, drain } = collect();
 
 		await withApp(
-			{ manifest: seed, observability: { enabled: true, drain } },
+			{ manifest: seed, observability: { level: 'info', drain } },
 			async (app) => {
 				await app.request('/status');
 				await app.request('/status');
@@ -132,7 +158,7 @@ describe('observability: enabled', () => {
 			});
 
 		await withApp(
-			{ manifest: seed, observability: { enabled: true, drain } },
+			{ manifest: seed, observability: { level: 'info', drain } },
 			async (app) => {
 				const first = await app.request(post());
 				assert.strictEqual(first.status, 200, await first.text());
@@ -157,7 +183,7 @@ describe('observability: enabled', () => {
 		await withApp(
 			{
 				manifest: seed,
-				observability: { enabled: true, drain, exclude: ['/status'] },
+				observability: { level: 'info', drain, exclude: ['/status'] },
 			},
 			async (app) => {
 				await app.request('/status');
@@ -178,16 +204,12 @@ describe('observability: enabled', () => {
 		// It still defaults on, because the failure mode of forgetting once a
 		// field *does* carry an IP is a compliance incident rather than an
 		// untidy log.
-		assert.strictEqual(resolveOptions({ enabled: true }).redact, true);
-		assert.strictEqual(
-			resolveOptions({ enabled: true, redact: false }).redact,
-			false
-		);
+		assert.strictEqual(resolveOptions({}).redact, true);
+		assert.strictEqual(resolveOptions({ redact: false }).redact, false);
 	}, 60_000);
 
 	it('passes route filters through verbatim', () => {
 		const resolved = resolveOptions({
-			enabled: true,
 			include: ['/subjects/**'],
 			exclude: ['/status'],
 		});
