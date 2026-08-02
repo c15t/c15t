@@ -25,6 +25,7 @@ export function register({ app, options, run }: RouteContext): void {
 			const type = c.req.query('type');
 
 			const result = await run(
+				c,
 				Effect.gen(function* () {
 					if (!externalId) {
 						return yield* new BadRequestError({

@@ -597,6 +597,7 @@
       "dependencies": {
         "@c15t/schema": "workspace:*",
         "effect": "4.0.0-beta.102",
+        "evlog": "2.22.4",
         "hono": "4.12.27",
         "hono-openapi": "1.3.0",
         "jose": "6.2.3",

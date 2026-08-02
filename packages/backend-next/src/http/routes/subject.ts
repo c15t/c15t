@@ -12,6 +12,7 @@ import { getIpAddress } from '@c15t/schema/geo';
 import { Effect } from 'effect';
 import { describeRoute } from 'hono-openapi';
 import * as v from 'valibot';
+import { setFields } from '../../observability/log';
 import { submit } from '../../repository/record-consent';
 import {
 	findById,
@@ -44,6 +45,7 @@ export function register({ app, options, run }: RouteContext): void {
 			const externalId = c.req.query('externalId');
 
 			const result = await run(
+				c,
 				Effect.gen(function* () {
 					if (externalId === undefined || externalId === '') {
 						// Matches 2.x's error shape exactly, code included.
@@ -54,6 +56,9 @@ export function register({ app, options, run }: RouteContext): void {
 					}
 
 					const subjects = yield* listByExternalId(externalId);
+					yield* setFields({
+						subject: { matched: subjects.length },
+					});
 
 					return {
 						subjects: subjects.map((subject) => ({
@@ -114,6 +119,7 @@ export function register({ app, options, run }: RouteContext): void {
 				.filter(Boolean);
 
 			const result = await run(
+				c,
 				Effect.gen(function* () {
 					const subject = yield* findById(subjectId);
 					if (subject === undefined) {
@@ -187,6 +193,7 @@ export function register({ app, options, run }: RouteContext): void {
 			const body = await c.req.json().catch(() => undefined);
 
 			const result = await run(
+				c,
 				Effect.gen(function* () {
 					if (!body?.subjectId) {
 						return yield* new BadRequestError({
@@ -227,6 +234,17 @@ export function register({ app, options, run }: RouteContext): void {
 						decision: body.decision,
 					});
 
+					// `created` is the fact worth querying on: a replay is a normal,
+					// expected outcome here, and telling the two apart is how you
+					// see a client stuck in a retry loop.
+					yield* setFields({
+						consent: {
+							created: submission.created,
+							id: submission.consentId,
+							decisionId: submission.decisionId ?? null,
+						},
+					});
+
 					return {
 						subjectId: submission.subjectId,
 						consentId: submission.consentId,
@@ -254,6 +272,7 @@ export function register({ app, options, run }: RouteContext): void {
 			const body = await c.req.json().catch(() => undefined);
 
 			const result = await run(
+				c,
 				Effect.gen(function* () {
 					if (!body?.externalId) {
 						return yield* new BadRequestError({
