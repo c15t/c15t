@@ -13,33 +13,15 @@ import {
 } from 'vitest';
 import { C15TClient, c15tClient } from './index';
 
-// Create a minimal in-memory adapter for tests
-const testAdapter = {
-	async createORM() {
-		return {
-			findFirst: async () => null,
-			create: async () => null,
-			update: async () => null,
-			delete: async () => null,
-		} as unknown;
-	},
-	async getSchemaVersion() {
-		return '1.0.0';
-	},
-} as C15TOptions['adapter'];
-
-// Server configuration for integration tests
+// An in-memory SQLite database, which is all these tests need: they exercise
+// the client against a real handler, not the storage layer. 3.0 replaced the
+// hand-rolled mock adapter this used to pass — there is no adapter interface
+// to mock any more, and a real database is simpler than faking one.
 const mockOptions: C15TOptions = {
-	appName: 'C15T Test Server',
+	database: { dialect: 'sqlite', filename: ':memory:' },
 	basePath: '/',
 	trustedOrigins: ['localhost', 'test.example.com'],
-	adapter: testAdapter,
-	cors: true,
-	advanced: {
-		cors: {
-			allowHeaders: ['content-type', 'x-request-id'],
-		},
-	},
+	manifest: { appName: 'C15T Test Server' },
 };
 
 describe('C15T Node SDK', () => {
@@ -134,13 +116,12 @@ describe('C15T Node SDK', () => {
 	});
 
 	afterAll(async () => {
-		// Clean up server
 		await new Promise<void>((resolve) => {
-			httpServer.close(() => {
-				console.log('Test server closed');
-				resolve();
-			});
+			httpServer.close(() => resolve());
 		});
+		// The instance owns a connection pool; a process that leaves one open
+		// does not exit.
+		await server.dispose();
 	});
 
 	beforeEach(() => {

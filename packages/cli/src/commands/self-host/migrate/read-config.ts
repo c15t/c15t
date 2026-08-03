@@ -12,7 +12,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { DatabaseOption } from '@c15t/backend-next';
+import type { DatabaseOption } from '@c15t/backend';
 import { loadConfig } from 'c12';
 import type { CliContext } from '~/context/types';
 

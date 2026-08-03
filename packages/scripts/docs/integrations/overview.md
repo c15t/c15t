@@ -38,7 +38,7 @@ lifecycles.
 
 ## Built-In Helpers
 
-c15t ships prebuilt helpers in
+c15t ships prebuilt script helpers in
 [`@c15t/scripts`](https://www.npmjs.com/package/@c15t/scripts) for the
 third-party tools developers integrate most often. Prefer them over copied
 vendor snippets whenever c15t already supports the vendor.
@@ -63,22 +63,40 @@ Most apps mix more than one style. Pick the smallest one that keeps consent beha
 
 Setup is the same shape in every framework: import the helper, call it with vendor options, and pass the result to the consent runtime through your provider's `scripts` option. See the framework guides for end-to-end snippets — [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), [Next.js](/docs/frameworks/next/script-loader).
 
+## Renderable Integrations
+
+Maps and video embeds need a visible component as well as consent-aware loading.
+The React and Next.js packages include components that own the placeholder,
+vendor loading, and rendered surface. They are imported from the framework
+package rather than `@c15t/scripts`.
+
+* [Google Maps](/docs/integrations/google-maps)
+* [YouTube](/docs/integrations/youtube)
+
 ## Analytics
 
 Analytics integrations usually require `measurement` consent. Some vendors can run in a consent-aware or cookieless mode; others should stay fully blocked until measurement consent is granted.
 
 * [Google Tag (gtag.js)](/docs/integrations/google-tag)
 * [Ahrefs Analytics](/docs/integrations/ahrefs-analytics)
+* [Adobe Analytics](/docs/integrations/adobe-analytics)
+* [Amplitude](/docs/integrations/amplitude)
 * [Cloudflare Web Analytics](/docs/integrations/cloudflare-web-analytics)
+* [Clearbit](/docs/integrations/clearbit)
 * [Microsoft Clarity](/docs/integrations/microsoft-clarity)
 * [Databuddy](/docs/integrations/databuddy)
 * [Rybbit Analytics](/docs/integrations/rybbit-analytics)
 * [Fathom Analytics](/docs/integrations/fathom-analytics)
+* [Heap](/docs/integrations/heap)
 * [Mixpanel Analytics](/docs/integrations/mixpanel-analytics)
 * [Hotjar](/docs/integrations/hotjar)
+* [Hightouch](/docs/integrations/hightouch)
+* [LogRocket](/docs/integrations/logrocket)
 * [Matomo Analytics](/docs/integrations/matomo-analytics)
 * [PostHog](/docs/integrations/posthog)
 * [Promptwatch](/docs/integrations/promptwatch)
+* [Pirsch](/docs/integrations/pirsch)
+* [RudderStack](/docs/integrations/rudderstack)
 * [Segment](/docs/integrations/segment)
 * [Plausible Analytics](/docs/integrations/plausible-analytics)
 * [Umami Analytics](/docs/integrations/umami-analytics)
@@ -126,5 +144,6 @@ Learn when to use a raw `Script`, when to use a manifest, and how to debug and t
 ## Where To Next
 
 * Read the script loader guide for your framework: [JavaScript](/docs/frameworks/javascript/script-loader), [React](/docs/frameworks/react/script-loader), [Next.js](/docs/frameworks/next/script-loader).
-* See the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern for visible embeds (YouTube, maps, calendars).
+* Use the [Google Maps](/docs/integrations/google-maps) and [YouTube](/docs/integrations/youtube) components for built-in renderable integrations.
+* See the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern for other visible embeds such as calendars and social widgets.
 * Use [`has()`](/docs/frameworks/javascript/api/checking-consent) to conditionally run app code based on consent state.

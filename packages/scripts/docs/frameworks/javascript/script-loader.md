@@ -138,6 +138,8 @@ Some vendors are not just script tags. YouTube embeds, maps, calendars, and chec
 
 * For iframe-only embeds, gate the iframe `src` with the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern instead of loading a script just to hide an iframe.
 * For SDK-backed UI, use the script loader for the shared SDK and render the component only when consent and SDK readiness agree.
+* Use `YouTubeEmbed` for the iframe-only YouTube candidate and `GoogleMap` for the callback-based SDK candidate.
+* Use `useConsentScript()` when building custom wrappers. It registers scripts through the consent store, follows `loadedScripts`, and returns a promise-shaped readiness contract for callback-based SDKs.
 
 ## Lifecycle Callbacks
 
@@ -249,6 +251,8 @@ Control where the script is injected and whether the element id is anonymized:
 ```
 
 Set `anonymizeId: false` only when another script or test needs a stable DOM id. Pass `nonce` when your CSP requires it; c15t applies it directly to the generated `<script>` element.
+
+You usually do not need a per-script `nonce`. Setting `nonce` once on the provider covers every injected script (and the theme stylesheet); a per-script value overrides it for that script alone.
 
 ## Dynamic Management
 

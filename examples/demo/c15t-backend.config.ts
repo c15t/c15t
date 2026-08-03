@@ -4,7 +4,7 @@
  * Only `database` matters to the migrator; the rest is here so the config
  * stays a faithful description of the deployment.
  */
-import { defineConfig } from '@c15t/backend-next';
+import { defineConfig } from '@c15t/backend';
 import {
 	DEMO_POLICY_SNAPSHOT_KEY,
 	demoI18nMessages,

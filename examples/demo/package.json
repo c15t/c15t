@@ -11,7 +11,7 @@
 		"fmt": "biome format --write"
 	},
 	"dependencies": {
-		"@c15t/backend-next": "workspace:*",
+		"@c15t/backend": "workspace:*",
 		"@c15t/dev-tools": "workspace:*",
 		"@c15t/iab": "workspace:*",
 		"@c15t/nextjs": "workspace:*",

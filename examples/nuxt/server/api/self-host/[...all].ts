@@ -9,11 +9,7 @@
  * Storage selection lives in `lib/adapter.ts`, shared with the CLI config and
  * the migration script so the three cannot drift.
  */
-import {
-	c15tInstance,
-	createMigrator,
-	policyPackPresets,
-} from '@c15t/backend-next';
+import { c15tInstance, createMigrator, policyPackPresets } from '@c15t/backend';
 import { toWebRequest } from 'h3';
 import { createAdapter, type ResolvedAdapter } from '../../../lib/adapter';
 

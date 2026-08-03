@@ -4,7 +4,7 @@
  * No Kysely instance to build: c15t opens its own connection from this
  * description.
  */
-import { defineConfig } from '@c15t/backend-next';
+import { defineConfig } from '@c15t/backend';
 
 export default defineConfig({
 	database: { dialect: 'sqlite', filename: 'c15t.db' },

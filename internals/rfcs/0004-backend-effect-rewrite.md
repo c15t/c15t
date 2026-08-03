@@ -1002,3 +1002,39 @@ With `./cache` ported (§11.14), `./edge` dropped, and the demo apps moved
   already recorded in §11.5, and the conformance *cases* survive against the
   new backend, so this loses the A/B rather than the guarantee. Restoring it
   later means depending on the published 2.x under an alias.
+
+### 11.19 Cutover
+
+`@c15t/backend-next` is `@c15t/backend`. The old package is deleted; the new
+one keeps its version (`2.2.0-canary-…`) so Changesets takes the linked group
+to 3.0.0 from the recorded major.
+
+Four things the rename surfaced that a find-and-replace would not have:
+
+- **`packages/cli` ended up with a duplicate `@c15t/backend` key**, having
+  depended on both packages during the parallel phase.
+- **The new package briefly depended on itself**, because it listed
+  `@c15t/backend` as a devDependency so its conformance runner could compare
+  against 2.x.
+- **Three parity tests reached into `../../../backend/src`** to compare
+  implementations directly — auth, client IP, policy snapshots. That was the
+  right shape while two implementations existed and is meaningless now, so the
+  comparison halves are gone and the direct assertions remain.
+- **Omitting `database` produced `Cannot use 'in' operator to search for
+  'dialect' in undefined`.** It is the first thing anyone upgrading hits, since
+  `adapter` no longer exists and its replacement is required, so it now names
+  the field and the 2.x one it replaced.
+
+**The benchmark loses its `v2-backend` arm**, which measured the real fumadb
+data layer and dies with the package. `chunked-fanout` remains and still earns
+its keep — it reproduces the shipped *query pattern* against a bare client — but
+it cannot show fumadb's own overhead, which was about half the v2 cost. Treat
+what is left as a floor on the improvement rather than the whole of it; §11.5
+has the numbers as measured. Restoring the arm means depending on the published
+2.x under an alias.
+
+**Test timeouts are now set per package rather than per test.** Almost every
+test here stands up a PGlite database, and vitest's 5s default is enough when
+the package runs alone and is not when the whole monorepo competes for the same
+cores — which is CI. Found by running the full suite with `--force` after the
+rename, where six backend tests failed that pass in isolation.

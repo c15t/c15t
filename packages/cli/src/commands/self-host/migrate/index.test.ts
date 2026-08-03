@@ -2,7 +2,7 @@
  * The migrate command's control flow.
  *
  * The database work itself is tested against real Postgres, MySQL and SQLite
- * in `@c15t/backend-next`. What matters here is the decision-making around it,
+ * in `@c15t/backend`. What matters here is the decision-making around it,
  * because this is the one command that writes to a production database:
  *
  * - a blocked plan stops, and nothing is applied;
@@ -18,7 +18,7 @@ const apply = vi.fn();
 const dispose = vi.fn(async () => undefined);
 const confirmApply = vi.fn();
 
-vi.mock('@c15t/backend-next', () => ({
+vi.mock('@c15t/backend', () => ({
 	createMigrator: vi.fn(() => ({ plan, apply, dispose })),
 }));
 vi.mock('./ensure-backend-config', () => ({
