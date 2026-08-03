@@ -126,6 +126,63 @@ describe('c15tInstance', () => {
 	}, 60_000);
 });
 
+describe('basePath', () => {
+	it('routes a request that arrives with the mount prefix', async () => {
+		const { layer, dispose } = await migrated();
+		const instance = c15tInstance({
+			database: layer,
+			basePath: '/api/self-host',
+		});
+
+		try {
+			// How a Next.js catch-all actually delivers it. Without stripping,
+			// every route 404s and the cause is not obvious.
+			const response = await instance.handler(
+				new Request('http://localhost/api/self-host/status')
+			);
+			assert.strictEqual(response.status, 200);
+		} finally {
+			await instance.dispose();
+			await dispose();
+		}
+	}, 60_000);
+
+	it('leaves a request alone when no basePath is set', async () => {
+		const { layer, dispose } = await migrated();
+		const instance = c15tInstance({ database: layer });
+
+		try {
+			const response = await instance.handler(
+				new Request('http://localhost/status')
+			);
+			assert.strictEqual(response.status, 200);
+		} finally {
+			await instance.dispose();
+			await dispose();
+		}
+	}, 60_000);
+
+	it('ignores a path that does not carry the prefix', async () => {
+		const { layer, dispose } = await migrated();
+		const instance = c15tInstance({
+			database: layer,
+			basePath: '/api/self-host',
+		});
+
+		try {
+			// Stripping must be conditional: a request that already lacks the
+			// prefix would otherwise have its first path segment eaten.
+			const response = await instance.handler(
+				new Request('http://localhost/status')
+			);
+			assert.strictEqual(response.status, 200);
+		} finally {
+			await instance.dispose();
+			await dispose();
+		}
+	}, 60_000);
+});
+
 describe('policy authoring', () => {
 	it('builds and composes packs', () => {
 		const pack = policyBuilder.createPack([

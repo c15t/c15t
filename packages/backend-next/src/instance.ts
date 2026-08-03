@@ -86,6 +86,28 @@ export interface C15TInstance {
  * export const POST = (request: Request) => instance.handler(request);
  * ```
  */
+/**
+ * Removes the mount prefix so the routes can be declared without it.
+ *
+ * A backend mounted at `/api/c15t` receives `/api/c15t/status`, while the
+ * route is registered as `/status`. Stripping here rather than prefixing every
+ * route keeps the routes readable and matches what `@c15t/backend` does.
+ */
+const stripBasePath = (request: Request, basePath?: string): Request => {
+	if (!basePath || basePath === '/') {
+		return request;
+	}
+
+	const prefix = basePath.replace(/\/$/, '');
+	const url = new URL(request.url);
+	if (!url.pathname.startsWith(prefix)) {
+		return request;
+	}
+
+	url.pathname = url.pathname.slice(prefix.length) || '/';
+	return new Request(url, request);
+};
+
 export const c15tInstance = (options: C15TOptions): C15TInstance => {
 	const { database, ...app } = options;
 
@@ -96,7 +118,8 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 
 	return {
 		// `fetch` may answer synchronously; the contract is a promise.
-		handler: async (request) => hono.fetch(request),
+		handler: async (request) =>
+			hono.fetch(stripBasePath(request, app.basePath)),
 		dispose: () => runtime.dispose(),
 	};
 };

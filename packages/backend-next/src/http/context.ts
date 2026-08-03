@@ -99,6 +99,18 @@ export interface AppOptions {
 	 */
 	readonly apiKeys?: readonly string[];
 	/**
+	 * Where this backend is mounted, when it is not at the root.
+	 *
+	 * A self-hoster typically mounts it under a catch-all — `/api/c15t` in
+	 * Next.js, `/api/self-host` in the demo — so requests arrive with that
+	 * prefix while the routes are declared without it. The prefix is stripped
+	 * before dispatch, which is what `@c15t/backend` does too.
+	 *
+	 * Without this, a mounted deployment 404s on every route, which is a
+	 * confusing way to discover the setting.
+	 */
+	readonly basePath?: string;
+	/**
 	 * Wide-event logging (RFC 0004 §5).
 	 *
 	 * On by default at `level: 'warn'` — silent when requests succeed, a line
