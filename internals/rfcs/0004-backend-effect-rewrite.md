@@ -967,3 +967,38 @@ The scan count was never the claim. One statement that scans a lot is still one
 round trip, and round trips are what cost against a networked database: the
 shipped backend's problem is nine of them, not nine scans. It counts statements
 via `xact_commit` now and asserts two, flat, at either size.
+
+### 11.17 Edge is dropped, not ported
+
+**Decided: `@c15t/backend/edge` does not ship in 3.0.** §11.14 listed it as a
+port blocking the rename; it is a removal instead.
+
+`unstable_resolveConsent` and the edge init handler resolved consent from a
+manifest without touching storage. Nothing in the repository imports them
+outside the old package itself — no example, no framework package, no
+benchmark — and the export was marked `unstable_`, which is the signal that
+carried the risk of exactly this.
+
+Two docs pages cover it (`self-host/guides/edge-deployment`,
+`self-host/api/configuration`) and go with it before the 3.0 release.
+
+Worth being precise about what is and is not lost. The *capability* survives:
+`resolveInitFromManifest` in `@c15t/schema` is the resolver both the edge
+handler and the real `/init` were built on, and it runs anywhere — a host that
+wants edge resolution calls it directly against a fetched manifest. What goes
+is the packaged handler around it.
+
+### 11.18 What the cutover is now waiting on
+
+With `./cache` ported (§11.14), `./edge` dropped, and the demo apps moved
+(§11.15), the remaining work is mechanical rather than architectural:
+
+- the rename itself — directory move, `private` removed, joining the linked
+  version group, a major changeset;
+- `@c15t/logger`'s two JSDoc examples pointing at `@c15t/backend/telemetry`,
+  now corrected to the root export;
+- the benchmark's `v2-backend` arm and `@c15t/backend`'s conformance runner,
+  which import the real 2.x package and die with it. The measured comparison is
+  already recorded in §11.5, and the conformance *cases* survive against the
+  new backend, so this loses the A/B rather than the guarantee. Restoring it
+  later means depending on the published 2.x under an alias.
