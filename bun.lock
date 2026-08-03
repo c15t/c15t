@@ -622,11 +622,13 @@
         "@effect/sql-mysql2": "4.0.0-beta.102",
         "@effect/sql-pg": "4.0.0-beta.102",
         "@effect/sql-sqlite-node": "4.0.0-beta.102",
+        "@upstash/redis": "",
       },
       "optionalPeers": [
         "@effect/sql-mysql2",
         "@effect/sql-pg",
         "@effect/sql-sqlite-node",
+        "@upstash/redis",
       ],
     },
     "packages/cli": {
@@ -637,6 +639,7 @@
       },
       "dependencies": {
         "@c15t/backend": "workspace:*",
+        "@c15t/backend-next": "workspace:*",
         "@c15t/logger": "workspace:*",
         "@c15t/scripts": "workspace:*",
         "@clack/prompts": "1.7.0",

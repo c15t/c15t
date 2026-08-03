@@ -887,3 +887,34 @@ backend at a database (§11.10), and the same reasoning applies to a
 self-hoster's deploy script.
 
 Imports still say `@c15t/backend-next`; the rename flips them in one pass.
+
+### 11.14 Deleting the old package needs two subsystems ported first
+
+The rename is not a rename. `@c15t/backend` ships two things the rewrite has no
+equivalent for, both user-facing and both reachable from the demo apps and the
+docs:
+
+| Subsystem | Size | What it is |
+| --- | ---: | --- |
+| `./cache` | 774 lines | Memory, Upstash Redis and Cloudflare KV adapters behind a four-method interface, plus GVL cache keys |
+| `./edge` | 501 lines | `unstable_resolveConsent` and an edge init handler — consent resolution with no database |
+
+Neither is a from-scratch build, which is only clear once you look:
+
+**Cache was a straight move.** The adapters depend on nothing the rewrite
+replaced — no fumadb, no ORM adapters — and `http/gvl.ts` here had already
+declared the *identical* `CacheAdapter` interface and accepted one. What was
+missing was any concrete adapter to hand it. v2's `gvl-resolver.ts` is
+deliberately left behind: GVL fetching lives in `http/gvl.ts` in this package,
+and a second resolver would mean two code paths deciding when a vendor list is
+stale.
+
+It shipped with no tests, which is how the memory adapter's module-level `Map`
+went unremarked — it is a *process-wide* cache, so two instances share entries.
+Defensible, surprising, and now pinned by a test.
+
+**Edge is a rewrite against shared code**, not a move: it builds on v2 internals
+(`handlers/init/geo`, `handlers/init/policy`, `middleware/cors`) that are all
+covered here by `@c15t/schema`'s `resolveInitFromManifest` and `isOriginTrusted`
+— the same resolver the real `/init` uses, which is the property that matters
+(§ "one resolver" in `http/init.ts`).

@@ -13,14 +13,9 @@
 
 import { type GlobalVendorList, globalVendorListSchema } from '@c15t/schema';
 import * as v from 'valibot';
+import type { CacheAdapter } from '../cache/types';
 
-/** The subset of a cache this needs. Matches `@c15t/backend`'s adapter. */
-export interface CacheAdapter {
-	get<T>(key: string): Promise<T | null>;
-	set<T>(key: string, value: T, ttlMs?: number): Promise<void>;
-	delete(key: string): Promise<void>;
-	has(key: string): Promise<boolean>;
-}
+export type { CacheAdapter };
 
 export interface GvlOptions {
 	readonly endpoint?: string;

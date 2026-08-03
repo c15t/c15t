@@ -36,6 +36,11 @@
 			"types": "./dist-types/db/migrations/*.d.ts",
 			"import": "./dist/db/migrations/*.js",
 			"require": "./dist/db/migrations/*.cjs"
+		},
+		"./cache": {
+			"types": "./dist-types/cache/index.d.ts",
+			"import": "./dist/cache/index.js",
+			"require": "./dist/cache/index.cjs"
 		}
 	},
 	"main": "./dist/index.cjs",
@@ -82,7 +87,8 @@
 	"peerDependencies": {
 		"@effect/sql-mysql2": "4.0.0-beta.102",
 		"@effect/sql-pg": "4.0.0-beta.102",
-		"@effect/sql-sqlite-node": "4.0.0-beta.102"
+		"@effect/sql-sqlite-node": "4.0.0-beta.102",
+		"@upstash/redis": "^1.38.0"
 	},
 	"peerDependenciesMeta": {
 		"@effect/sql-mysql2": {
@@ -92,6 +98,9 @@
 			"optional": true
 		},
 		"@effect/sql-sqlite-node": {
+			"optional": true
+		},
+		"@upstash/redis": {
 			"optional": true
 		}
 	}
