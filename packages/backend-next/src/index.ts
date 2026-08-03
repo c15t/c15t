@@ -72,6 +72,14 @@ export type {
 export { MIGRATIONS, migrate } from './db/migrate';
 export { defineConfig } from './define-config';
 export type { AppOptions } from './http/context';
+export type {
+	LegalDocumentSnapshotClaims,
+	LegalDocumentSnapshotOptions,
+} from './http/legal-document-snapshot';
+export {
+	createLegalDocumentSnapshotToken,
+	verifyLegalDocumentSnapshotToken,
+} from './http/legal-document-snapshot';
 export type { C15TInstance, C15TOptions } from './instance';
 export { c15tInstance } from './instance';
 export type { Migrator } from './migrator';

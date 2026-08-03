@@ -1,6 +1,5 @@
-import { policyPackPresets } from '@c15t/backend';
-import type { PolicyConfig } from '@c15t/backend/types';
-import { policyPackPresets as test } from '@c15t/react';
+import { policyPackPresets } from '@c15t/backend-next';
+import type { PolicyConfig } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
 import { translations } from '@c15t/translations/en';
 

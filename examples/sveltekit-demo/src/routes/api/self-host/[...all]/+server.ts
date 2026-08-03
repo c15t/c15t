@@ -1,31 +1,25 @@
-import { c15tInstance } from '@c15t/backend';
-import { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
-import { LibsqlDialect } from '@libsql/kysely-libsql';
-import { Kysely } from 'kysely';
+import { c15tInstance } from '@c15t/backend-next';
 import type { RequestHandler } from './$types';
 
-const db = kyselyAdapter({
-	db: new Kysely({
-		dialect: new LibsqlDialect({
-			url: 'file:c15t.db',
-		}),
-	}),
-	provider: 'sqlite',
-});
-
 const handler = c15tInstance({
-	appName: 'c15t-self-host',
+	// No Kysely instance to build: c15t opens its own connection.
+	database: { dialect: 'sqlite', filename: 'c15t.db' },
 	basePath: '/api/self-host',
-	adapter: db,
 	trustedOrigins: ['localhost'],
 	tenantId: 'ins_1',
-	branding: 'c15t',
 	openapi: {
 		enabled: true,
 	},
-	iab: {
-		enabled: true,
-		cmpId: 10,
+	manifest: {
+		tenantId: 'ins_1',
+		appName: 'c15t-self-host',
+		branding: 'c15t',
+		iab: {
+			enabled: true,
+			cmpId: 10,
+		},
+	},
+	gvl: {
 		vendorIds: [
 			1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
 			22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,

@@ -16,9 +16,7 @@
  */
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
-import { Kysely, PostgresDialect } from 'kysely';
-import { Pool } from 'pg';
+import type { DatabaseOption } from '@c15t/backend-next';
 
 /**
  * Where PGlite keeps its data directory.
@@ -32,54 +30,43 @@ export const LOCAL_DATA_DIR = resolve(process.cwd(), '.pgdata');
 
 /**
  * Specifier held in a variable so Nitro's dependency tracer cannot follow it.
- * A literal `import('kysely-pglite')` — even guarded behind a runtime check —
- * copies ~16 MB of WASM (`pglite.wasm`, `pglite.data`) into `.output`, where
- * `DATABASE_URL` is mandatory and PGlite is never constructed. It is a real
- * dependency, so Node resolves it fine at runtime under `nuxt dev`.
+ * A literal `import('@effect/sql-pglite')` — even guarded behind a runtime
+ * check — copies ~16 MB of WASM (`pglite.wasm`, `pglite.data`) into `.output`,
+ * where `DATABASE_URL` is mandatory and PGlite is never constructed. It is a
+ * real dependency, so Node resolves it fine at runtime under `nuxt dev`.
  */
-const EMBEDDED_POSTGRES_MODULE = 'kysely-pglite';
+const EMBEDDED_POSTGRES_MODULE = '@effect/sql-pglite';
 
 export type ResolvedAdapter = {
-	adapter: ReturnType<typeof kyselyAdapter>;
+	database: DatabaseOption;
 	/** `embedded` runs migrations on boot; a real Postgres must not. */
 	mode: 'postgres' | 'embedded';
 };
 
-function createPostgresAdapter(connectionString: string) {
-	const { hostname } = new URL(connectionString);
-	const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(hostname);
-	return kyselyAdapter({
-		db: new Kysely({
-			dialect: new PostgresDialect({
-				pool: new Pool({
-					connectionString,
-					ssl: { rejectUnauthorized: !isLocalhost },
-				}),
-			}),
-		}),
-		provider: 'postgresql',
-	});
-}
-
-async function createEmbeddedPostgresAdapter() {
-	const { KyselyPGlite } = (await import(
+/**
+ * The embedded case is why `database` accepts a layer as well as a config.
+ *
+ * `{ dialect: 'postgres', url }` covers a real server, but PGlite is Postgres
+ * compiled to WASM with no URL to point at — it is constructed, not dialled.
+ * Handing c15t the client directly is the escape hatch working as intended.
+ */
+async function createEmbeddedDatabase(): Promise<DatabaseOption> {
+	const { PgliteClient } = (await import(
 		/* @vite-ignore */ EMBEDDED_POSTGRES_MODULE
-	)) as typeof import('kysely-pglite');
+	)) as typeof import('@effect/sql-pglite');
 
 	// PGlite mkdirs the data directory itself but not its parent.
 	mkdirSync(LOCAL_DATA_DIR, { recursive: true });
-	const pglite = await KyselyPGlite.create(resolve(LOCAL_DATA_DIR, 'db'));
-	return kyselyAdapter({
-		db: new Kysely({ dialect: pglite.dialect }),
-		provider: 'postgresql',
-	});
+	return PgliteClient.layer({ dataDir: resolve(LOCAL_DATA_DIR, 'db') });
 }
 
 export async function createAdapter(): Promise<ResolvedAdapter> {
 	const connectionString = process.env.DATABASE_URL;
 	if (connectionString) {
+		// SSL negotiation and pooling move behind the driver, so the demo no
+		// longer has to construct either.
 		return {
-			adapter: createPostgresAdapter(connectionString),
+			database: { dialect: 'postgres', url: connectionString },
 			mode: 'postgres',
 		};
 	}
@@ -95,5 +82,5 @@ export async function createAdapter(): Promise<ResolvedAdapter> {
 		);
 	}
 
-	return { adapter: await createEmbeddedPostgresAdapter(), mode: 'embedded' };
+	return { database: await createEmbeddedDatabase(), mode: 'embedded' };
 }

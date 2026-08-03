@@ -30,6 +30,7 @@ import { toRequestLog } from '../observability/evlog';
 import { type Log, layer as logLayer, silent } from '../observability/log';
 import { type RouteError, toHttp } from './errors';
 import type { GvlOptions } from './gvl';
+import type { LegalDocumentSnapshotOptions } from './legal-document-snapshot';
 import type { ManifestCacheOptions } from './manifest';
 import type { PolicySnapshotOptions } from './policy-snapshot';
 
@@ -90,6 +91,15 @@ export interface AppOptions {
 	readonly manifest?: ConsentManifestConfig;
 	readonly manifestCache?: ManifestCacheOptions;
 	readonly policySnapshot?: PolicySnapshotOptions;
+	/**
+	 * Signing for legal-document snapshots.
+	 *
+	 * Separate from `policySnapshot` because they attest to different things
+	 * and have very different lifetimes — a policy decision is consumed
+	 * immediately, a terms snapshot is held by a client across a session — so
+	 * one signing key and TTL cannot serve both.
+	 */
+	readonly legalDocumentSnapshot?: LegalDocumentSnapshotOptions;
 	readonly gvl?: GvlOptions & { enabled?: boolean };
 	/**
 	 * Keys accepted on `Authorization: Bearer <key>`.

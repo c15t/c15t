@@ -9,9 +9,11 @@
  * Storage selection lives in `lib/adapter.ts`, shared with the CLI config and
  * the migration script so the three cannot drift.
  */
-import { c15tInstance, policyPackPresets } from '@c15t/backend';
-import { migrator } from '@c15t/backend/db/migrator';
-import { DB } from '@c15t/backend/db/schema';
+import {
+	c15tInstance,
+	createMigrator,
+	policyPackPresets,
+} from '@c15t/backend-next';
 import { toWebRequest } from 'h3';
 import { createAdapter, type ResolvedAdapter } from '../../../lib/adapter';
 
@@ -45,17 +47,20 @@ function trustedOrigins(): string[] {
  * instances — for deploys run `bun run db:migrate`, which reads the same
  * adapter from `c15t-backend.config.ts`.
  */
-async function ensureLocalSchema({ adapter, mode }: ResolvedAdapter) {
+async function ensureLocalSchema({ database, mode }: ResolvedAdapter) {
 	if (mode !== 'embedded') {
 		return;
 	}
-	const result = await migrator({ db: DB.client(adapter), schema: 'latest' });
-	if ('path' in result) {
-		throw new Error(
-			`Expected an executable migration, got an ORM schema at ${result.path}.`
-		);
+	// One call: it classifies the database, adopts it to the baseline if it is
+	// behind, and applies whatever migrations the ledger has not recorded.
+	// There is no ORM branch to handle any more — every supported engine
+	// migrates.
+	const migrator = createMigrator(database);
+	try {
+		await migrator.apply();
+	} finally {
+		await migrator.dispose();
 	}
-	await result.execute();
 }
 
 async function createInstance() {
@@ -63,20 +68,23 @@ async function createInstance() {
 	await ensureLocalSchema(resolved);
 
 	return c15tInstance({
-		appName: 'c15t-nuxt-demo',
+		database: resolved.database,
 		basePath: '/api/self-host',
-		adapter: resolved.adapter,
 		trustedOrigins: trustedOrigins(),
 		tenantId: 'ins_1',
-		branding: 'c15t',
-		// Real policy packs so the manifest carries fingerprints + matching
-		// rules and POST /subjects exercises recompute-on-write. The world
-		// fallback guarantees every visitor resolves a policy decision.
-		policyPacks: [
-			policyPackPresets.europeOptIn(),
-			policyPackPresets.californiaOptOut(),
-			policyPackPresets.worldNoBanner(),
-		],
+		manifest: {
+			tenantId: 'ins_1',
+			appName: 'c15t-nuxt-demo',
+			branding: 'c15t',
+			// Real policy packs so the manifest carries fingerprints + matching
+			// rules and POST /subjects exercises recompute-on-write. The world
+			// fallback guarantees every visitor resolves a policy decision.
+			policyPacks: [
+				policyPackPresets.europeOptIn(),
+				policyPackPresets.californiaOptOut(),
+				policyPackPresets.worldNoBanner(),
+			],
+		},
 		manifestCache: {
 			sMaxAge: 120,
 			staleWhileRevalidate: 600,

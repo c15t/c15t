@@ -918,3 +918,52 @@ Defensible, surprising, and now pinned by a test.
 covered here by `@c15t/schema`'s `resolveInitFromManifest` and `isOriginTrusted`
 — the same resolver the real `/init` uses, which is the property that matters
 (§ "one resolver" in `http/init.ts`).
+
+### 11.15 Two more gaps, found by moving the demos
+
+Rewiring the three example apps onto the new backend surfaced two options they
+depend on that had no equivalent, both small and both load-bearing:
+
+- **`basePath`** was accepted as OpenAPI metadata only, never used for routing.
+  Every demo mounts under a catch-all — `/api/self-host` — so requests arrive
+  with a prefix the routes are not declared with, and a mounted deployment
+  would have 404d on every route. Stripped before dispatch now, conditionally,
+  so a request that already lacks the prefix does not lose its first segment.
+- **`legalDocumentSnapshot`** was absent entirely. It is the sibling of
+  `policy-snapshot.ts` and is built the same way: where a policy snapshot
+  attests to the *decision* shown, this attests to the version and content hash
+  of the terms accepted. A consent record says someone agreed; it does not, by
+  itself, say what to. The TTL differs deliberately — a day rather than half an
+  hour, because a client holds this between being shown the terms and
+  submitting acceptance.
+
+Everything else mapped. `appName`, `branding`, `i18n`, `policyPacks` and `iab`
+all move into `manifest`, which is the shape `@c15t/schema` already builds, so
+server and browser resolve a manifest identically. `cache` moves under `gvl`,
+which is the only thing in the backend worth caching across instances.
+
+**The Nuxt demo is the case that justifies the layer escape hatch** (§11.10).
+It runs embedded PGlite in development — Postgres compiled to WASM, with no URL
+to dial — so `{ dialect, url }` cannot describe it. Handing c15t a
+`PgliteClient.layer` directly is the escape hatch doing exactly what it exists
+for, and the demo lost forty lines of Kysely dialect and pool construction in
+the process.
+
+### 11.16 A test that was passing for the wrong reason
+
+`subject.test.ts` asserted that a subject listing costs the same number of
+queries at 250 subjects as at 1, by counting `seq_scan + idx_scan` from
+`pg_stat_user_tables`. It failed roughly one run in ten under full-suite load
+and passed in isolation.
+
+Postgres accumulates those counters in backend-local memory and flushes them on
+its own schedule, so a read taken straight after a query often missed the scans
+it was meant to count. **That miss is why the assertion passed.** Forcing a
+flush made it deterministic — and it then failed every time, 4 against 502,
+because the planner runs the join as a nested loop and scans the inner side
+once per row.
+
+The scan count was never the claim. One statement that scans a lot is still one
+round trip, and round trips are what cost against a networked database: the
+shipped backend's problem is nine of them, not nine scans. It counts statements
+via `xact_commit` now and asserts two, flat, at either size.

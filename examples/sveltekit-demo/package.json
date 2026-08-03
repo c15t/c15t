@@ -12,11 +12,11 @@
 		"bench:script-count": "bun run ./scripts/run-script-count-bench.ts"
 	},
 	"dependencies": {
-		"@c15t/backend": "workspace:*",
+		"@c15t/backend-next": "workspace:*",
+		"@c15t/dev-tools": "workspace:*",
 		"@c15t/iab": "workspace:*",
 		"@c15t/node-sdk": "workspace:*",
 		"@c15t/svelte": "workspace:*",
-		"@c15t/dev-tools": "workspace:*",
 		"@c15t/translations": "workspace:*",
 		"@libsql/kysely-libsql": "^0.4.1",
 		"c15t": "workspace:*",
