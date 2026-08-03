@@ -63,6 +63,7 @@
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
+		"@c15t/backend-next": "workspace:*",
 		"@c15t/logger": "workspace:*",
 		"@c15t/scripts": "workspace:*",
 		"@clack/prompts": "1.7.0",

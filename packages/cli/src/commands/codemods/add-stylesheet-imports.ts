@@ -246,7 +246,6 @@ function detectImports(project: Project, filePaths: string[]): DetectionResult {
 				usesStyledUi = true;
 				usesNextjs = true;
 				hasAnyC15tImport = true;
-				continue;
 			}
 		}
 	}
