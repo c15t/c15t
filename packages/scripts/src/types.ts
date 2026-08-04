@@ -135,6 +135,8 @@ export interface SetGlobalPathStep {
 	path: string[];
 	/** Value to assign at the target path */
 	value: unknown;
+	/** Only assign while the root global is still a snippet queue array. */
+	ifGlobalIsQueue?: boolean;
 }
 
 export interface DefineQueueMethodsStep {
@@ -205,6 +207,8 @@ export interface DefineGlobalMethodsStep {
 	/** Global object name to receive the methods */
 	target: string;
 	methods: Array<GlobalMethodBehavior>;
+	/** Only define methods while the target is still a snippet queue array. */
+	ifGlobalIsQueue?: boolean;
 }
 
 export interface ConstructGlobalStep {

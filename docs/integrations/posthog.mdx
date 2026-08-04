@@ -102,7 +102,7 @@ If you want to load PostHog via a script tag, it's recommended to use this appro
   <Step>
     ### Choose a region and loading mode
 
-    The c15t helper loads PostHog's bootstrap script, calls `posthog.init()` for you, and then synchronizes consent through `posthog.opt_in_capturing()` / `posthog.opt_out_capturing()`. You do not need to call `posthog.init()` separately.
+    The c15t helper seeds PostHog's initialization queue, loads the bootstrap script, and synchronizes consent through `posthog.opt_in_capturing()` / `posthog.opt_out_capturing()`. You do not need to call `posthog.init()` separately.
 
     Use `region` to keep PostHog's API, UI, and bootstrap script hosts aligned. c15t defaults to `region: 'eu'`; set `region: 'us'` for PostHog Cloud US. You can still pass `apiHost`, `uiHost`, or `scriptUrl` for self-hosted or proxied setups.
 
@@ -267,7 +267,7 @@ posthog({
 The behavior depends on which pattern you chose:
 
 - **SDK Implementation** — your app loaded `posthog-js` itself, so `posthog.capture(...)` is available once your SDK setup has run. c15t calls `opt_in_capturing()` / `opt_out_capturing()` for you. Pending events before c15t syncs consent may be dropped; after denial, PostHog captures cookieless events.
-- **Script Implementation with `loadMode: 'always'`** — `window.posthog` is defined early. c15t calls `opt_in_capturing()` / `opt_out_capturing()` based on consent. Pending events before the PostHog bootstrap finishes may be dropped; after denial, PostHog captures cookieless events when your PostHog project supports cookieless mode.
+- **Script Implementation with `loadMode: 'always'`** — `window.posthog` is defined early as a queue. Calls to `posthog.capture(...)` before the bootstrap finishes are replayed after the SDK installs instead of being dropped. c15t queues the current consent decision ahead of those calls, then keeps calling `opt_in_capturing()` / `opt_out_capturing()` as consent changes. After denial, PostHog captures cookieless events when your PostHog project supports cookieless mode.
 - **Script Implementation with `loadMode: 'after-consent'`** — PostHog is unavailable until measurement consent is granted. Guard `posthog.capture(...)` calls or call them only after consent.
 
 <Callout type="warning">
