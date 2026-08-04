@@ -123,6 +123,34 @@ const safeParse = (value: string): unknown => {
 const sameIds = (a: readonly string[], b: readonly string[]): boolean =>
 	a.length === b.length && a.every((id, index) => id === b[index]);
 
+/**
+ * Fails when a stored consent covers different purposes from the one submitted.
+ *
+ * Used on both paths that can find an existing row — the pre-insert lookup and
+ * a lost insert race — because answering success in either case tells a client
+ * its purposes were recorded when the stored record says otherwise.
+ */
+/**
+ * @internal Exported for the tests that cover the lost-race branch, which no
+ * engine in the matrix can be made to interleave on demand.
+ */
+export const assertSamePurposes = Effect.fn('consent.assertSamePurposes')(
+	function* (storedRaw: unknown, submitted: readonly string[]) {
+		const stored = normalisePurposeIds(storedRaw);
+		const incoming = [...submitted].sort();
+		if (stored === undefined || sameIds(stored, incoming)) {
+			return;
+		}
+		return yield* new ConsentPurposeConflictError({
+			message:
+				`A consent with this identity was already recorded with different ` +
+				`purposes (stored: [${stored.join(', ')}], submitted: ` +
+				`[${incoming.join(', ')}]). Withdraw or supersede it rather than ` +
+				'resubmitting the same act with a different scope.',
+		});
+	}
+);
+
 export const record = Effect.fn('consent.record')(function* (
 	submission: ConsentSubmission
 ): Generator<
@@ -156,17 +184,7 @@ export const record = Effect.fn('consent.record')(function* (
 		// Reported rather than folded in. Overwriting would rewrite a legal record
 		// in place with no audit entry, and changing the id to cover purposes
 		// would break the parity the derivation exists to preserve.
-		const stored = normalisePurposeIds(existing[0]?.purposeIds);
-		const incoming = [...submission.purposeIds].sort();
-		if (stored !== undefined && !sameIds(stored, incoming)) {
-			return yield* new ConsentPurposeConflictError({
-				message:
-					`A consent with this identity was already recorded with different ` +
-					`purposes (stored: [${stored.join(', ')}], submitted: ` +
-					`[${incoming.join(', ')}]). Withdraw or supersede it rather than ` +
-					'resubmitting the same act with a different scope.',
-			});
-		}
+		yield* assertSamePurposes(existing[0]?.purposeIds, submission.purposeIds);
 		return { id, created: false };
 	}
 
@@ -200,6 +218,21 @@ export const record = Effect.fn('consent.record')(function* (
 			tenantId: submission.tenantId ?? null,
 		},
 	});
+
+	if (created) {
+		return { id, created };
+	}
+
+	// Lost the conflict, which the read above did not see: two submissions with
+	// the same identity and *different* purposes can both pass that check while
+	// neither row exists yet, and the loser would then be told its purposes were
+	// accepted while the winner's are what is stored. Rare, and precisely the
+	// case a deterministic key makes possible, so it is checked rather than
+	// reasoned about.
+	const winner = yield* sql<{ purposeIds: unknown }>`
+		select ${sql('purposeIds')} from ${sql('consent')} where ${sql('id')} = ${id}
+	`;
+	yield* assertSamePurposes(winner[0]?.purposeIds, submission.purposeIds);
 
 	return { id, created };
 });

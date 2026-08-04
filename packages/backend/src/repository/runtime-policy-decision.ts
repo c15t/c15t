@@ -37,7 +37,7 @@
  * after the upgrade.
  */
 
-import { generateEntityId } from '@c15t/schema';
+import { generateEntityId, hashSha256Hex } from '@c15t/schema';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import { insertOnce } from '../db/insert-once';
@@ -63,17 +63,34 @@ export interface DecisionInput {
 }
 
 /**
- * The stored key: tenant-qualified when there is a tenant, untouched when
- * there is not.
+ * The stored key: bounded and tenant-qualified when there is a tenant,
+ * untouched when there is not.
  *
- * The separator is a pipe to match `buildLegalDocumentPolicyId`, and tenant ids
- * containing one are not a concern for collisions here because the tenant is a
- * deployment's own configuration rather than user input.
+ * Concatenating `${tenantId}|${dedupeKey}` was the obvious form and overflows:
+ * the column is `indexedText`, which is `varchar(255)` on MySQL because MySQL
+ * cannot index TEXT without a prefix length. A client-supplied key already near
+ * that width would push past it once prefixed, so a key that recorded fine
+ * before scoping would start failing. Hashing bounds it at 71 characters
+ * whatever goes in — the same thing `buildLegalDocumentPolicyId` does, for the
+ * same reason.
+ *
+ * The lengths are part of the hashed input, so `("a|b", "c")` and `("a", "b|c")`
+ * cannot collide on a shared separator.
+ *
+ * Untouched without a tenant, deliberately: a single-tenant database adopted
+ * from 2.x keeps producing byte-identical keys, so its existing rows still
+ * deduplicate rather than every decision being written a second time after the
+ * upgrade.
  */
 export const scopedDedupeKey = (
 	tenantId: string | undefined,
 	dedupeKey: string
-): string => (tenantId === undefined ? dedupeKey : `${tenantId}|${dedupeKey}`);
+): Promise<string> =>
+	tenantId === undefined
+		? Promise.resolve(dedupeKey)
+		: hashSha256Hex(JSON.stringify([tenantId, dedupeKey])).then(
+				(digest) => `t_${digest}`
+			);
 
 const json = (value: unknown) =>
 	value === undefined || value === null ? null : JSON.stringify(value);
@@ -93,7 +110,9 @@ export const recordDecision = Effect.fn('decision.record')(function* (
 	// From the scope rather than the input: the key arrives in the request body,
 	// so a caller could otherwise namespace itself into another tenant.
 	const tenantId = yield* currentTenantId;
-	const dedupeKey = scopedDedupeKey(tenantId, input.dedupeKey);
+	const dedupeKey = yield* Effect.promise(() =>
+		scopedDedupeKey(tenantId, input.dedupeKey)
+	);
 
 	const created = yield* insertOnce({
 		into: 'runtimePolicyDecision',

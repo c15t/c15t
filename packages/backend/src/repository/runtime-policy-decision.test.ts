@@ -31,15 +31,37 @@ const input = {
 };
 
 describe('scopedDedupeKey', () => {
-	it('leaves a single-tenant key untouched', () => {
+	it('leaves a single-tenant key untouched', async () => {
 		// Load-bearing for adoption: a 2.x database upgraded in place keeps
 		// producing byte-identical keys, so its existing decision rows still
 		// deduplicate instead of every decision being recorded a second time.
-		assert.strictEqual(scopedDedupeKey(undefined, 'abc'), 'abc');
+		assert.strictEqual(await scopedDedupeKey(undefined, 'abc'), 'abc');
 	});
 
-	it('qualifies a tenanted key', () => {
-		assert.strictEqual(scopedDedupeKey('tenant_a', 'abc'), 'tenant_a|abc');
+	it('qualifies a tenanted key', async () => {
+		const key = await scopedDedupeKey('tenant_a', 'abc');
+		assert.notStrictEqual(key, 'abc');
+		assert.match(key, /^t_[0-9a-f]{64}$/);
+	});
+
+	it('stays within the MySQL column width whatever goes in', async () => {
+		// `dedupeKey` is `indexedText`, which is varchar(255) on MySQL because
+		// MySQL cannot index TEXT without a prefix length. Concatenating the
+		// tenant would push a key that already fitted past the limit, so a
+		// submission that recorded fine before scoping would start failing.
+		const key = await scopedDedupeKey('tenant_a', 'x'.repeat(4000));
+		assert.isBelow(key.length, 255);
+	});
+
+	it('does not collide across a shared separator', async () => {
+		// Hashing a joined string rather than a structured value would make
+		// ('a|b', 'c') and ('a', 'b|c') the same key, and so make two tenants'
+		// decisions one row again.
+		const [left, right] = await Promise.all([
+			scopedDedupeKey('a|b', 'c'),
+			scopedDedupeKey('a', 'b|c'),
+		]);
+		assert.notStrictEqual(left, right);
 	});
 });
 

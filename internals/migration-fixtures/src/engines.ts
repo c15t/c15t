@@ -69,11 +69,13 @@ export function engineByName(name: string): Engine {
 /**
  * Names that read as a scratch database rather than someone's data.
  *
- * Deliberately narrow. The documented container uses `c15t`, and anything else
- * has to be opted into — a generous pattern would defeat the point, because
- * the failure this guards against is a plausible-looking URL.
+ * Deliberately narrow: the exact name the documented container uses, or an
+ * explicit scratch suffix. An earlier version allowed any `c15t_*` / `c15t-*`,
+ * which waved through `c15t_production` and `c15t-prod` — the plausible-looking
+ * names this exists to stop, since a real deployment's database is far more
+ * likely to be called that than `unrelated_db`.
  */
-const DISPOSABLE = /^(c15t|c15t[_-].*|.*[_-](fixture|fixtures|test|tmp))$/i;
+const DISPOSABLE = /^(c15t|.*[_-](fixture|fixtures|test|tests|tmp|scratch))$/i;
 
 /**
  * Refuses to reset a database that does not look disposable.
