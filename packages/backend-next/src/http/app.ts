@@ -26,6 +26,7 @@ import type { SqlClient } from 'effect/unstable/sql';
 import { Hono } from 'hono';
 import * as v from 'valibot';
 import { listByExternalId } from '../repository/subject';
+import { validateRequestAuth } from './auth';
 import { BadRequestError, type RouteError, toHttp } from './errors';
 
 export interface AppLayers {
@@ -38,8 +39,19 @@ export interface AppLayers {
  * The runtime is constructed once by the caller and reused for every request —
  * building a layer per request would open a connection pool per request.
  */
+export interface AppOptions {
+	/**
+	 * Keys accepted on `Authorization: Bearer <key>`.
+	 *
+	 * Absent or empty means no request authenticates. A deployment that has
+	 * not configured keys should expose nothing, not everything.
+	 */
+	readonly apiKeys?: readonly string[];
+}
+
 export function createApp(
-	runtime: ManagedRuntime.ManagedRuntime<SqlClient.SqlClient, never>
+	runtime: ManagedRuntime.ManagedRuntime<SqlClient.SqlClient, never>,
+	options: AppOptions = {}
 ) {
 	const app = new Hono();
 
@@ -63,6 +75,16 @@ export function createApp(
 	};
 
 	app.get('/subjects', async (c) => {
+		// Listing subjects by external id exposes consent records for a named
+		// person, so it is API-key only — matching @c15t/backend, where the
+		// route is documented as requiring a key.
+		if (!validateRequestAuth(c.req.raw.headers, options.apiKeys)) {
+			return c.json(
+				{ message: 'Unauthorized', cause: { code: 'UNAUTHORIZED' } },
+				401
+			);
+		}
+
 		const externalId = c.req.query('externalId');
 
 		const result = await run(

@@ -21,6 +21,9 @@ import { createApp } from './app';
 let runtime: ManagedRuntime.ManagedRuntime<SqlClient.SqlClient, never>;
 let app: ReturnType<typeof createApp>;
 
+const API_KEY = 'sk_test_key';
+const authed = { headers: { Authorization: `Bearer ${API_KEY}` } };
+
 beforeEach(async () => {
 	runtime = ManagedRuntime.make(PgliteClient.layer({}));
 	await runtime.runPromise(
@@ -29,7 +32,7 @@ beforeEach(async () => {
 			yield* indexes;
 		})
 	);
-	app = createApp(runtime);
+	app = createApp(runtime, { apiKeys: [API_KEY] });
 });
 
 afterEach(async () => {
@@ -58,7 +61,7 @@ describe('GET /subjects', () => {
 	it('returns a body satisfying the shared output schema', async () => {
 		await seed();
 
-		const response = await app.request('/subjects?externalId=ext_1');
+		const response = await app.request('/subjects?externalId=ext_1', authed);
 		assert.strictEqual(response.status, 200);
 
 		const body = await response.json();
@@ -89,7 +92,7 @@ describe('GET /subjects', () => {
 	});
 
 	it('reports a missing externalId the way 2.x does', async () => {
-		const response = await app.request('/subjects');
+		const response = await app.request('/subjects', authed);
 
 		assert.strictEqual(response.status, 400);
 		assert.deepStrictEqual(await response.json(), {
@@ -101,13 +104,16 @@ describe('GET /subjects', () => {
 	it('treats an empty externalId as missing rather than matching nothing', async () => {
 		// A bare `?externalId=` is a client bug, and answering it with an empty
 		// list would hide that. 2.x rejects it, so this does too.
-		const response = await app.request('/subjects?externalId=');
+		const response = await app.request('/subjects?externalId=', authed);
 		assert.strictEqual(response.status, 400);
 	});
 
 	it('returns an empty list for an externalId nobody has', async () => {
 		await seed();
-		const response = await app.request('/subjects?externalId=ext_absent');
+		const response = await app.request(
+			'/subjects?externalId=ext_absent',
+			authed
+		);
 
 		assert.strictEqual(response.status, 200);
 		assert.deepStrictEqual(await response.json(), { subjects: [] });
@@ -122,7 +128,7 @@ describe('GET /subjects', () => {
 			})
 		);
 
-		const response = await app.request('/subjects?externalId=ext_1');
+		const response = await app.request('/subjects?externalId=ext_1', authed);
 		const body = await response.json();
 
 		assert.strictEqual(response.status, 500);
@@ -133,5 +139,33 @@ describe('GET /subjects', () => {
 			cause: { code: 'DATABASE_ERROR' },
 		});
 		assert.notInclude(JSON.stringify(body), 'consent');
+	});
+
+	it('refuses a request with no API key', async () => {
+		await seed();
+		const response = await app.request('/subjects?externalId=ext_1');
+
+		// Listing subjects exposes consent records for a named person, so an
+		// unauthenticated caller must get nothing — not an empty list, which
+		// would imply the person has no consents.
+		assert.strictEqual(response.status, 401);
+		assert.deepStrictEqual(await response.json(), {
+			message: 'Unauthorized',
+			cause: { code: 'UNAUTHORIZED' },
+		});
+	});
+
+	it('refuses a wrong API key', async () => {
+		const response = await app.request('/subjects?externalId=ext_1', {
+			headers: { Authorization: 'Bearer sk_test_wrong' },
+		});
+		assert.strictEqual(response.status, 401);
+	});
+
+	it('authenticates before validating input', async () => {
+		// A missing externalId must not leak that the endpoint exists in a
+		// usable state to an unauthenticated caller.
+		const response = await app.request('/subjects');
+		assert.strictEqual(response.status, 401);
 	});
 });
