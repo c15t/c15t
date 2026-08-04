@@ -38,6 +38,7 @@ interface Args {
 	shapes: readonly Shape[];
 	engines: readonly Engine[];
 	mysqlUrl: string | undefined;
+	allowAnyDatabase: boolean;
 	keepWorkspace: boolean;
 }
 
@@ -50,6 +51,9 @@ function parseArgs(argv: readonly string[]): Args {
 	const shapeName = flag('shape');
 	const engineName = flag('engine');
 	const mysqlUrl = flag('mysql-url');
+	// The fixture run drops every table in the MySQL database it is given, so a
+	// name that does not look disposable is refused unless this is passed.
+	const allowAnyDatabase = process.argv.includes('--allow-any-database');
 
 	const engines = engineName
 		? [engineByName(engineName)]
@@ -61,6 +65,7 @@ function parseArgs(argv: readonly string[]): Args {
 		shapes: shapeName ? [shapeByName(shapeName)] : SHAPES,
 		engines,
 		mysqlUrl,
+		allowAnyDatabase,
 		keepWorkspace: argv.includes('--keep-workspace'),
 	};
 }
@@ -70,6 +75,27 @@ function parseArgs(argv: readonly string[]): Args {
  * kysely through fumadb), so fall back to the last range that was declared
  * explicitly.
  */
+/**
+ * The driver versions fixtures are captured with.
+ *
+ * Pinned rather than `latest`, because these decide the physical `dataType`
+ * strings the fixtures record. On `latest`, regenerating after a driver release
+ * moves the fixtures with no c15t release having changed — which destroys the
+ * only property they are for: a fixture diff means a c15t shape really changed.
+ * A `latest` driver can also resolve to something the pinned kysely below
+ * cannot work with, breaking generation outright.
+ *
+ * Set to what `latest` resolved to when this was introduced, so pinning was a
+ * no-op at the time rather than a silent recapture. Bump deliberately, and
+ * expect to review the fixture diff that comes with it.
+ */
+const DRIVER_VERSIONS: Record<string, string> = {
+	'better-sqlite3': '13.0.2',
+	'@electric-sql/pglite': '0.5.4',
+	'kysely-pglite': '0.6.1',
+	mysql2: '3.23.2',
+};
+
 const KYSELY_FALLBACK = '^0.28.15';
 
 async function kyselyRangeFor(version: string): Promise<string> {
@@ -242,8 +268,25 @@ async function generateOne(
 		for (const version of shape.versions) {
 			dependencies[aliasFor(version)] = `npm:@c15t/backend@${version}`;
 		}
+		// Pinned, not `latest`. These drivers decide the `dataType` strings the
+		// fixtures capture, so a driver bump would move the fixtures without any
+		// c15t release having changed — which is exactly the signal the fixtures
+		// exist to give. A `latest` driver can also resolve to something the
+		// pinned kysely below cannot work with, breaking generation outright.
 		for (const dep of engine.deps) {
-			dependencies[dep] = 'latest';
+			// `kysely` is pinned just below, to the range the release itself was
+			// built against — a stronger constraint than a fixed version here.
+			if (dep === 'kysely') {
+				continue;
+			}
+			const pinned = DRIVER_VERSIONS[dep];
+			if (pinned === undefined) {
+				throw new Error(
+					`No pinned version for fixture driver "${dep}". Add one to ` +
+						'DRIVER_VERSIONS so regeneration stays reproducible.'
+				);
+			}
+			dependencies[dep] = pinned;
 		}
 		// Use the kysely the release itself was built against rather than
 		// `latest`. 0.29 dropped the `Migrator` export that kysely-pglite still
@@ -269,7 +312,7 @@ async function generateOne(
 		);
 		await writeFile(
 			join(workspace, 'connection.mjs'),
-			connectionSource(engine, args.mysqlUrl)
+			connectionSource(engine, args.mysqlUrl, args.allowAnyDatabase)
 		);
 		await writeFile(
 			join(workspace, 'introspect.mjs'),

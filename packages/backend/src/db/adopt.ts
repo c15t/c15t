@@ -188,6 +188,25 @@ const countOrphans = Effect.fn('adopt.countOrphans')(function* (
 });
 
 /**
+ * Rows that would orphan against a table this plan creates.
+ *
+ * `countOrphans` joins the referenced table, which does not exist yet in that
+ * case. It will be created empty, so every non-null value in the child column
+ * is an orphan by definition.
+ */
+const countUnmatchable = Effect.fn('adopt.countUnmatchable')(function* (
+	table: TableSpec,
+	fk: ForeignKeySpec
+) {
+	const sql = yield* SqlClient.SqlClient;
+	const rows = yield* sql<{ orphans: number | string }>`
+		select count(*) as orphans from ${sql(table.name)}
+		where ${sql(fk.column)} is not null
+	`;
+	return Number(rows[0]?.orphans ?? 0);
+});
+
+/**
  * Works out what adoption would do, without doing any of it.
  *
  * Safe against production, and intended to be exactly what `--dry-run` prints.
@@ -223,6 +242,11 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 		}
 
 		const steps: AdoptionStep[] = [];
+		// Held back and appended after the whole table loop. Steps are built
+		// per table, so a foreign key on an existing table can otherwise be
+		// emitted before the `create table` for the table it points at — which
+		// depends on the order of `TABLES` rather than on anything meaningful.
+		const foreignKeySteps: AdoptionStep[] = [];
 		const orphans: OrphanReport[] = [];
 
 		for (const table of TABLES) {
@@ -249,14 +273,32 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 			// a freshly created one carries them inline.
 			for (const fk of table.foreignKeys) {
 				if (existing.foreignKeys.has(fkKey(table.name, fk.column))) continue;
-				// The referenced table must exist before it can be pointed at. If
-				// we are creating it in this same plan, there is nothing to orphan.
-				if (!existing.tables.has(fk.referencesTable)) continue;
-				if (!present.has(fk.column)) continue;
 
-				const count = yield* countOrphans(table, fk).pipe(
-					Effect.orElseSucceed(() => 0)
-				);
+				// A column or referenced table this plan is about to create counts
+				// as present: both loops above run before these steps do. Skipping
+				// on "does not exist yet" made the gap permanent, because a re-plan
+				// after adoption classifies the database as Baseline and
+				// short-circuits — so `consent.runtimePolicyDecisionId` never got
+				// its foreign key at all, while a fresh install had it.
+				const columnKnown =
+					present.has(fk.column) ||
+					table.columns.some((column) => column.name === fk.column);
+				const referenceKnown =
+					existing.tables.has(fk.referencesTable) ||
+					TABLES.some((spec) => spec.name === fk.referencesTable);
+				if (!columnKnown || !referenceKnown) continue;
+
+				const count = yield* (
+					!present.has(fk.column)
+						? // The column is being added now, so every row is null and
+							// nothing can orphan.
+							Effect.succeed(0)
+						: existing.tables.has(fk.referencesTable)
+							? countOrphans(table, fk)
+							: // The referenced table is created empty by this same plan,
+								// so every non-null value in an existing column orphans.
+								countUnmatchable(table, fk)
+				).pipe(Effect.orElseSucceed(() => 0));
 				if (count > 0) {
 					orphans.push({
 						table: table.name,
@@ -267,7 +309,7 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 					continue;
 				}
 
-				steps.push({
+				foreignKeySteps.push({
 					kind: 'add-foreign-key',
 					description: `Add foreign key "${table.name}"."${fk.column}" -> "${fk.referencesTable}"`,
 					sql: `alter table ${quote(table.name)} add foreign key (${quote(
@@ -278,6 +320,10 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 				});
 			}
 		}
+
+		// After every create-table and add-column, so a key can reference a
+		// table this plan is about to create regardless of `TABLES` order.
+		steps.push(...foreignKeySteps);
 
 		steps.push({
 			kind: 'stamp',
