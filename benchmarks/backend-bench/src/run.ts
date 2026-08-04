@@ -24,7 +24,15 @@ import { up as hotPathIndexes } from '@c15t/backend-next/db/migrations/2-hot-pat
 import { PgliteClient } from '@effect/sql-pglite';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+import { Kysely } from 'kysely';
+import { KyselyPGlite } from 'kysely-pglite';
 import { type ArmResult, chunkedFanout, joined } from './arms';
+import {
+	applyV2Schema,
+	createV2Orm,
+	seedV2,
+	v2ListByExternalId,
+} from './v2-arm';
 
 const SUBJECT_COUNTS = [1, 10, 100, 1000] as const;
 const POLICY_TYPES = 5;
@@ -118,7 +126,9 @@ const seed = Effect.fn('seed')(function* (subjects: number) {
 });
 
 const measure = Effect.fn('measure')(function* (
-	arm: (externalId: string) => Effect.Effect<ArmResult, unknown, never>,
+	arm: (
+		externalId: string
+	) => Effect.Effect<ArmResult, unknown, SqlClient.SqlClient | never>,
 	label: string,
 	migrations: string[],
 	subjects: number
@@ -145,7 +155,12 @@ const measure = Effect.fn('measure')(function* (
 	} satisfies Sample;
 });
 
-/** One isolated database per cell, so no arm inherits another's cache state. */
+/**
+ * One isolated database per cell, so no arm inherits another's cache state.
+ *
+ * All three arms run against the *same* seeded database within a cell, so the
+ * only difference between them is how they query it.
+ */
 const cell = (subjects: number, indexed: boolean) =>
 	Effect.gen(function* () {
 		yield* baseline;
@@ -156,7 +171,28 @@ const cell = (subjects: number, indexed: boolean) =>
 			? ['1-baseline', '2-hot-path-indexes']
 			: ['1-baseline'];
 
+		// The real @c15t/backend data layer, sharing this cell's database
+		// through its own fumadb client so its overhead is included.
+		const pglite = yield* Effect.promise(() => KyselyPGlite.create());
+		const kyselyDb: Kysely<Record<string, never>> = new Kysely({
+			dialect: pglite.dialect,
+		});
+		const orm = createV2Orm(kyselyDb);
+		yield* Effect.promise(() => applyV2Schema(kyselyDb, indexed));
+		yield* Effect.promise(() =>
+			seedV2(kyselyDb, subjects, POLICY_TYPES, BACKGROUND_RATIO)
+		);
+
+		const v2 = yield* measure(
+			() => Effect.promise(() => v2ListByExternalId(orm, 'ext_bench')),
+			'v2-backend',
+			migrations,
+			subjects
+		);
+		yield* Effect.promise(() => kyselyDb.destroy());
+
 		return [
+			v2,
 			yield* measure(chunkedFanout, 'chunked-fanout', migrations, subjects),
 			yield* measure(joined, 'joined', migrations, subjects),
 		];
