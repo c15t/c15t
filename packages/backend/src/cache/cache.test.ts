@@ -17,9 +17,12 @@ import { afterEach, assert, describe, it } from '@effect/vitest';
 import {
 	clearMemoryCache,
 	createCacheKey,
+	createCloudflareKVAdapter,
 	createGVLCacheKey,
 	createMemoryCacheAdapter,
+	createUpstashRedisAdapterFromClient,
 	getMemoryCacheSize,
+	type KVNamespace,
 } from './index';
 
 afterEach(() => {
@@ -104,5 +107,137 @@ describe('cache keys', () => {
 			createCacheKey('app', 'translations', 'en', 'banner'),
 			'app:translations:en:banner'
 		);
+	});
+});
+
+/**
+ * The two remote adapters, against fakes.
+ *
+ * Both were ported with no tests, and both convert between this package's
+ * milliseconds and their backend's own unit — the kind of arithmetic that is
+ * silently wrong by a factor of a thousand and only shows up as a cache that
+ * never hits, or one that never expires.
+ */
+describe('cloudflare KV adapter', () => {
+	const fakeKv = () => {
+		const store = new Map<string, string>();
+		const puts: { key: string; ttl?: number }[] = [];
+		const kv: KVNamespace = {
+			// Real KV parses when asked for `type: 'json'` and returns the raw
+			// string otherwise; the adapter relies on both halves of that.
+			get: async (key, options) => {
+				const raw = store.get(key);
+				if (raw === undefined) {
+					return null;
+				}
+				return options?.type === 'json' ? JSON.parse(raw) : raw;
+			},
+			put: async (key, value, options) => {
+				store.set(key, value);
+				puts.push({ key, ttl: options?.expirationTtl });
+			},
+			delete: async (key) => {
+				store.delete(key);
+			},
+		};
+		return { kv, store, puts };
+	};
+
+	it('round-trips a value as JSON', async () => {
+		const { kv, store } = fakeKv();
+		const cache = createCloudflareKVAdapter(kv);
+
+		await cache.set('k', { hello: 'world' });
+
+		// KV stores strings; the adapter owns the serialisation.
+		assert.strictEqual(store.get('k'), JSON.stringify({ hello: 'world' }));
+		assert.deepStrictEqual(await cache.get('k'), { hello: 'world' });
+	});
+
+	it('converts the ttl from milliseconds to seconds', async () => {
+		const { kv, puts } = fakeKv();
+		await createCloudflareKVAdapter(kv).set('k', 'v', 60_000);
+
+		// KV counts seconds. Passing milliseconds straight through would ask for
+		// a 60,000-second entry — sixteen hours instead of a minute.
+		assert.strictEqual(puts[0]?.ttl, 60);
+	});
+
+	it('reports a miss as null and deletes', async () => {
+		const { kv } = fakeKv();
+		const cache = createCloudflareKVAdapter(kv);
+
+		assert.isNull(await cache.get('absent'));
+		assert.isFalse(await cache.has('absent'));
+
+		await cache.set('k', 'v');
+		assert.isTrue(await cache.has('k'));
+		await cache.delete('k');
+		assert.isNull(await cache.get('k'));
+	});
+});
+
+describe('upstash redis adapter', () => {
+	const fakeRedis = () => {
+		const store = new Map<string, unknown>();
+		const sets: { key: string; ex?: number }[] = [];
+		const client = {
+			get: async <T>(key: string) => (store.get(key) ?? null) as T | null,
+			set: async <T>(key: string, value: T, options?: { ex?: number }) => {
+				store.set(key, value);
+				sets.push({ key, ex: options?.ex });
+			},
+			del: async (key: string) => {
+				store.delete(key);
+			},
+			exists: async (key: string) => (store.has(key) ? 1 : 0),
+		};
+		return { client, sets };
+	};
+
+	it('round-trips a value', async () => {
+		const { client } = fakeRedis();
+		const cache = createUpstashRedisAdapterFromClient(
+			client as unknown as Parameters<
+				typeof createUpstashRedisAdapterFromClient
+			>[0]
+		);
+
+		await cache.set('k', { hello: 'world' });
+		assert.deepStrictEqual(await cache.get('k'), { hello: 'world' });
+		assert.isTrue(await cache.has('k'));
+	});
+
+	it('converts the ttl from milliseconds to seconds', async () => {
+		const { client, sets } = fakeRedis();
+		const cache = createUpstashRedisAdapterFromClient(
+			client as unknown as Parameters<
+				typeof createUpstashRedisAdapterFromClient
+			>[0]
+		);
+
+		await cache.set('k', 'v', 60_000);
+		// Redis EX counts seconds.
+		assert.strictEqual(sets[0]?.ex, 60);
+
+		// And rounds up rather than to zero, which would mean "no expiry".
+		await cache.set('k2', 'v', 1);
+		assert.strictEqual(sets[1]?.ex, 1);
+	});
+
+	it('reports a miss as null and deletes', async () => {
+		const { client } = fakeRedis();
+		const cache = createUpstashRedisAdapterFromClient(
+			client as unknown as Parameters<
+				typeof createUpstashRedisAdapterFromClient
+			>[0]
+		);
+
+		assert.isNull(await cache.get('absent'));
+		assert.isFalse(await cache.has('absent'));
+
+		await cache.set('k', 'v');
+		await cache.delete('k');
+		assert.isFalse(await cache.has('k'));
 	});
 });

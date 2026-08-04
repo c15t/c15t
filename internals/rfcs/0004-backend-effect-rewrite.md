@@ -1248,3 +1248,46 @@ so adding the services was the first thing to lint that file, and it surfaced
 seven pre-existing unpinned action references alongside my two images. The
 action SHAs are the ones the file and repo already use elsewhere, so this pins
 rather than upgrades.
+
+### 11.25 Covering the parts users touch
+
+§11.22 and §11.23 made the *data* layer trustworthy across four engines. A
+coverage read afterwards showed the weakness had moved to the opposite end:
+89% statements overall, but the **public API layer at 64%**, with
+`createMigrator` and `defineConfig` at **zero**. The layer with the least
+coverage was the only layer anybody imports.
+
+Three things closed it, and the choice of what to test was as important as the
+count:
+
+- **`createMigrator` end to end**, against SQLite, Postgres and MySQL, driven
+  by a *connection description* rather than a `Layer`. That form is what a
+  deploy script writes, and it is the only thing that exercises
+  `db/connect.ts`'s driver loading. It asserts the properties that matter to
+  someone running it against production: `plan` writes nothing, `apply` is
+  idempotent across separate processes, the pool is released, and an
+  unrecognisable database is **reported rather than thrown** — so a deploy
+  script can tell "I do not recognise this" from "the network is down".
+- **The driver-missing path**, which is what a self-hoster meets first if they
+  configure an engine whose optional peer they did not install. All three are
+  present in this repo, so the loader is exported `@internal` and handed an
+  importer that fails — the same failure a missing module produces.
+- **The published artifact.** Every other test in the package imports from
+  `src/`, which proves the code works and says nothing about whether the thing
+  on npm does. `./cache` and `./db/migrations/*` were both added to the exports
+  map during this rewrite and had never once been resolved the way npm
+  resolves them. It now checks that every entry has a built file, that `files`
+  covers everything the map references, that each subpath loads, that the
+  named exports are present, and that `require.resolve` succeeds through the
+  map rather than by file path. Verified to fail by adding a bogus subpath:
+  three of the seven catch it.
+
+Also covered the two remote cache adapters, ported at §11.14 with no tests at
+all. Both convert this package's milliseconds into their backend's seconds —
+arithmetic that is silently wrong by a factor of a thousand and shows up only
+as a cache that never hits or never expires.
+
+**95.9% statements, 94% functions, 388 tests across four engines**, stable over
+consecutive runs; 281 without Docker. `version.ts` is generated and
+`src/policy/builder.ts` — ported wholesale from 2.x — is the remaining soft
+spot at 69%.

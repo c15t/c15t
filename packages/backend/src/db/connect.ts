@@ -128,7 +128,16 @@ const driver = {
 	sqlite: '@effect/sql-sqlite-node',
 } as const;
 
-const load = <A>(
+/**
+ * Imports a driver, turning "not installed" into an actionable message.
+ *
+ * Exported for its test: the failure only happens when an optional peer is
+ * absent, and all three are present in this repo, so the only way to exercise
+ * it is to hand it an importer that fails. Not part of the public API.
+ *
+ * @internal
+ */
+export const loadDriver = <A>(
 	dialect: DatabaseConfig['dialect'],
 	importer: () => Promise<A>
 ): Effect.Effect<A> =>
@@ -191,7 +200,7 @@ const fromConfig = (
 		case 'postgres':
 			return Layer.unwrap(
 				Effect.map(
-					load('postgres', () => import('@effect/sql-pg')),
+					loadDriver('postgres', () => import('@effect/sql-pg')),
 					// Redacted because the URL carries credentials, and Effect keeps
 					// them out of logs and error messages by construction.
 					({ PgClient }) =>
@@ -203,7 +212,7 @@ const fromConfig = (
 		case 'mysql':
 			return Layer.unwrap(
 				Effect.map(
-					load('mysql', () => import('@effect/sql-mysql2')),
+					loadDriver('mysql', () => import('@effect/sql-mysql2')),
 					({ MysqlClient }) =>
 						MysqlClient.layer({ url: Redacted.make(config.url) })
 				)
@@ -211,7 +220,7 @@ const fromConfig = (
 		case 'sqlite':
 			return Layer.unwrap(
 				Effect.map(
-					load('sqlite', () => import('@effect/sql-sqlite-node')),
+					loadDriver('sqlite', () => import('@effect/sql-sqlite-node')),
 					({ SqliteClient }) =>
 						SqliteClient.layer({ filename: config.filename })
 				)

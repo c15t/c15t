@@ -30,6 +30,13 @@ export default mergeConfig(
 			// timeouts on individual tests and finding the next one under load.
 			testTimeout: 60_000,
 			hookTimeout: 60_000,
+			coverage: {
+				// `__tests__/packaged.test.ts` imports the built artifact on
+				// purpose, which would otherwise drag `dist/` into the coverage
+				// report and halve every number for no reason — it is the same
+				// code, compiled.
+				exclude: ['dist/**', 'dist-types/**'],
+			},
 			// No coverage thresholds yet: the package has no behaviour to cover.
 			// RFC 0004 §6 sets the floor at the old package's 55% once the first
 			// handlers land, and it ratchets up from there — it never ships below
