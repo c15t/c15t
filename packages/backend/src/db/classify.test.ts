@@ -5,17 +5,25 @@
  * RFC 0004 would have misfiled as legacy and converged destructively.
  */
 
-import { PgliteClient } from '@effect/sql-pglite';
 import { assert, describe, it } from '@effect/vitest';
 import { Effect, Layer } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+import { ENGINES, resetDatabase } from '../__tests__/engines';
 import { singleTenant } from '../db/tenant';
 import { classify } from './classify';
+import * as Dialect from './dialect';
 import { up as baseline } from './migrations/1-baseline';
 
-// Tests run single-tenant unless a case says otherwise; the scope is a
-// service, so a query cannot run without one.
-const Pglite = Layer.merge(PgliteClient.layer({}), singleTenant);
+/**
+ * DDL quoted for the connected engine.
+ *
+ * These fixtures build legacy shapes by hand, so they emit their own DDL
+ * rather than going through `schema.ts`. MySQL delimits with backticks and
+ * rejects the double quotes the other two want.
+ */
+const quoted = Effect.gen(function* () {
+	return Dialect.escaperFor(yield* Dialect.current);
+});
 
 /**
  * The seven tables legacy and fumadb 1.0.0 share, differing only in whether
@@ -25,6 +33,13 @@ const Pglite = Layer.merge(PgliteClient.layer({}), singleTenant);
 const sevenTables = (metadataType: 'json' | 'jsonb') =>
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
+		const q = yield* quoted;
+		// MySQL has no `jsonb`; both eras store `json` there, which is exactly
+		// why classify cannot tell them apart on MySQL and answers by
+		// elimination instead (§11.7).
+		const metadata =
+			(yield* Dialect.current) === 'mysql' ? 'json' : metadataType;
+
 		for (const table of [
 			'subject',
 			'domain',
@@ -33,180 +48,213 @@ const sevenTables = (metadataType: 'json' | 'jsonb') =>
 			'auditLog',
 		]) {
 			yield* sql.unsafe(
-				`create table "${table}" ("id" varchar(255) primary key)`
+				`create table ${q(table)} (${q('id')} varchar(255) primary key)`
 			);
 		}
 		yield* sql.unsafe(
-			`create table "consent" ("id" varchar(255) primary key, "metadata" ${metadataType})`
+			`create table ${q('consent')} (${q('id')} varchar(255) primary key, ${q('metadata')} ${metadata})`
 		);
 		yield* sql.unsafe(
-			`create table "consentRecord" ("id" varchar(255) primary key)`
+			`create table ${q('consentRecord')} (${q('id')} varchar(255) primary key)`
 		);
 	});
 
 const withMarker = (version: string) =>
 	Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
+		const q = yield* quoted;
+		// `key` is reserved on MySQL, and the value column must be bounded to
+		// be a primary key there.
 		yield* sql.unsafe(
-			`create table "private_c15t_settings" ("key" text primary key, "value" text)`
+			`create table ${q('private_c15t_settings')} (${q('key')} varchar(255) primary key, ${q('value')} text)`
 		);
-		yield* sql.unsafe(
-			`insert into "private_c15t_settings" ("key", "value") values ('version', '${version}')`
+		yield* sql`
+			insert into ${sql('private_c15t_settings')} ${sql.insert({
+				key: 'version',
+				value: version,
+			})}
+		`;
+	});
+
+/**
+ * Telling legacy from fumadb 1.0.0 by column type only works on Postgres.
+ *
+ * The distinction is `jsonb` against `json`, and it exists nowhere else:
+ * SQLite collapses both to TEXT, and MySQL has no `jsonb` at all — which is
+ * why classify answers by elimination there instead (§11.7). Running these
+ * cases on the other engines would assert behaviour the code deliberately
+ * does not have.
+ */
+const distinguishesByColumnType = (engine: (typeof ENGINES)[number]) =>
+	engine.name === 'pglite' || engine.name === 'postgres';
+
+for (const engine of ENGINES) {
+	describe('classify', () => {
+		it.effect(
+			'reports Empty for a database with no c15t tables',
+			() =>
+				Effect.gen(function* () {
+					yield* resetDatabase;
+					const shape = yield* classify;
+					assert.strictEqual(shape._tag, 'Empty');
+				}).pipe(Effect.provide(engine.layer)),
+			{ timeout: 60_000 }
+		);
+
+		it.effect(
+			'recognises our own baseline output as the 2.0.0 shape',
+			() =>
+				Effect.gen(function* () {
+					yield* resetDatabase;
+					// Expected, and worth stating: the baseline reproduces 2.0.0
+					// exactly, so before the ledger is stamped it is indistinguishable
+					// from an adopted 2.0.0 database. That is the whole point.
+					yield* baseline;
+					const shape = yield* classify;
+					assert.strictEqual(shape._tag, 'Fumadb200');
+					if (shape._tag === 'Fumadb200') {
+						assert.isFalse(shape.hasMarker);
+					}
+				}).pipe(Effect.provide(engine.layer)),
+			{ timeout: 60_000 }
+		);
+
+		it.effect(
+			'reports Baseline once the ledger exists',
+			() =>
+				Effect.gen(function* () {
+					yield* resetDatabase;
+					const sql = yield* SqlClient.SqlClient;
+					const q = yield* quoted;
+					yield* baseline;
+					yield* sql.unsafe(
+						`create table ${q('c15t_migrations')} (${q('id')} integer primary key, ${q('name')} text)`
+					);
+					const shape = yield* classify;
+					assert.strictEqual(shape._tag, 'Baseline');
+				}).pipe(Effect.provide(engine.layer)),
+			{ timeout: 60_000 }
+		);
+
+		(distinguishesByColumnType(engine) ? it.effect : it.effect.skip)(
+			'distinguishes legacy from fumadb 1.0.0 by column type when neither has a marker',
+			() =>
+				Effect.gen(function* () {
+					yield* resetDatabase;
+					yield* sevenTables('jsonb');
+					const shape = yield* classify;
+					assert.strictEqual(shape._tag, 'Legacy');
+				}).pipe(Effect.provide(engine.layer)),
+			{ timeout: 60_000 }
+		);
+
+		(distinguishesByColumnType(engine) ? it.effect : it.effect.skip)(
+			'does not mistake an unmarked fumadb 1.0.0 database for legacy',
+			() =>
+				Effect.gen(function* () {
+					yield* resetDatabase;
+					// The ORM codegen path: c15t printed schema for the user to apply
+					// with Drizzle/Prisma/TypeORM, so fumadb's migrator never ran and
+					// never wrote a marker — but the schema is fumadb-shaped. Treating
+					// this as legacy would converge it destructively.
+					yield* sevenTables('json');
+					const shape = yield* classify;
+					assert.strictEqual(shape._tag, 'Fumadb100');
+					if (shape._tag === 'Fumadb100') {
+						assert.isFalse(shape.hasMarker);
+					}
+				}).pipe(Effect.provide(engine.layer)),
+			{ timeout: 60_000 }
+		);
+
+		it.effect(
+			'trusts the marker over shape inference when one is present',
+			() =>
+				Effect.gen(function* () {
+					yield* resetDatabase;
+					yield* sevenTables('jsonb');
+					yield* withMarker('1.0.0');
+					const shape = yield* classify;
+					assert.strictEqual(shape._tag, 'Fumadb100');
+					if (shape._tag === 'Fumadb100') {
+						assert.isTrue(shape.hasMarker);
+					}
+				}).pipe(Effect.provide(engine.layer)),
+			{ timeout: 60_000 }
+		);
+
+		it.effect(
+			'refuses to guess at a marker naming an unknown schema version',
+			() =>
+				Effect.gen(function* () {
+					yield* resetDatabase;
+					yield* sevenTables('json');
+					yield* withMarker('3.7.0');
+					const shape = yield* classify;
+					assert.strictEqual(shape._tag, 'Unknown');
+					if (shape._tag === 'Unknown') {
+						assert.include(shape.why, '3.7.0');
+					}
+				}).pipe(Effect.provide(engine.layer)),
+			{ timeout: 60_000 }
 		);
 	});
 
-describe('classify', () => {
-	it.effect(
-		'reports Empty for a database with no c15t tables',
-		() =>
-			Effect.gen(function* () {
-				const shape = yield* classify;
-				assert.strictEqual(shape._tag, 'Empty');
-			}).pipe(Effect.provide(Pglite)),
-		{ timeout: 60_000 }
-	);
+	describe('a 2.x database created with tablePrefix', () => {
+		it.effect(
+			'refuses rather than reporting it empty',
+			() =>
+				Effect.gen(function* () {
+					yield* resetDatabase;
+					const sql = yield* SqlClient.SqlClient;
+					// What `tablePrefix: 'acme_'` produced in 2.x.
+					const q = yield* quoted;
+					for (const table of ['subject', 'consent', 'domain']) {
+						yield* sql.unsafe(
+							`create table ${q(`acme_${table}`)} (${q('id')} varchar(255) primary key)`
+						);
+					}
 
-	it.effect(
-		'recognises our own baseline output as the 2.0.0 shape',
-		() =>
-			Effect.gen(function* () {
-				// Expected, and worth stating: the baseline reproduces 2.0.0
-				// exactly, so before the ledger is stamped it is indistinguishable
-				// from an adopted 2.0.0 database. That is the whole point.
-				yield* baseline;
-				const shape = yield* classify;
-				assert.strictEqual(shape._tag, 'Fumadb200');
-				if (shape._tag === 'Fumadb200') {
-					assert.isFalse(shape.hasMarker);
-				}
-			}).pipe(Effect.provide(Pglite)),
-		{ timeout: 60_000 }
-	);
+					const shape = yield* classify;
 
-	it.effect(
-		'reports Baseline once the ledger exists',
-		() =>
-			Effect.gen(function* () {
-				const sql = yield* SqlClient.SqlClient;
-				yield* baseline;
-				yield* sql.unsafe(
-					`create table "c15t_migrations" ("id" integer primary key, "name" text)`
-				);
-				const shape = yield* classify;
-				assert.strictEqual(shape._tag, 'Baseline');
-			}).pipe(Effect.provide(Pglite)),
-		{ timeout: 60_000 }
-	);
+					// Reporting Empty here is the dangerous answer, not a harmless one:
+					// the migrator would create a parallel schema and leave every
+					// existing consent record orphaned while the deployment came up
+					// looking healthy.
+					assert.strictEqual(shape._tag, 'Unknown');
+					if (shape._tag === 'Unknown') {
+						assert.include(shape.why, 'acme_');
+						assert.include(shape.why, 'tablePrefix');
+					}
+				}).pipe(Effect.provide(engine.layer)),
+			{ timeout: 60_000 }
+		);
 
-	it.effect(
-		'distinguishes legacy from fumadb 1.0.0 by column type when neither has a marker',
-		() =>
-			Effect.gen(function* () {
-				yield* sevenTables('jsonb');
-				const shape = yield* classify;
-				assert.strictEqual(shape._tag, 'Legacy');
-			}).pipe(Effect.provide(Pglite)),
-		{ timeout: 60_000 }
-	);
-
-	it.effect(
-		'does not mistake an unmarked fumadb 1.0.0 database for legacy',
-		() =>
-			Effect.gen(function* () {
-				// The ORM codegen path: c15t printed schema for the user to apply
-				// with Drizzle/Prisma/TypeORM, so fumadb's migrator never ran and
-				// never wrote a marker — but the schema is fumadb-shaped. Treating
-				// this as legacy would converge it destructively.
-				yield* sevenTables('json');
-				const shape = yield* classify;
-				assert.strictEqual(shape._tag, 'Fumadb100');
-				if (shape._tag === 'Fumadb100') {
-					assert.isFalse(shape.hasMarker);
-				}
-			}).pipe(Effect.provide(Pglite)),
-		{ timeout: 60_000 }
-	);
-
-	it.effect(
-		'trusts the marker over shape inference when one is present',
-		() =>
-			Effect.gen(function* () {
-				yield* sevenTables('jsonb');
-				yield* withMarker('1.0.0');
-				const shape = yield* classify;
-				assert.strictEqual(shape._tag, 'Fumadb100');
-				if (shape._tag === 'Fumadb100') {
-					assert.isTrue(shape.hasMarker);
-				}
-			}).pipe(Effect.provide(Pglite)),
-		{ timeout: 60_000 }
-	);
-
-	it.effect(
-		'refuses to guess at a marker naming an unknown schema version',
-		() =>
-			Effect.gen(function* () {
-				yield* sevenTables('json');
-				yield* withMarker('3.7.0');
-				const shape = yield* classify;
-				assert.strictEqual(shape._tag, 'Unknown');
-				if (shape._tag === 'Unknown') {
-					assert.include(shape.why, '3.7.0');
-				}
-			}).pipe(Effect.provide(Pglite)),
-		{ timeout: 60_000 }
-	);
-});
-
-describe('a 2.x database created with tablePrefix', () => {
-	it.effect(
-		'refuses rather than reporting it empty',
-		() =>
-			Effect.gen(function* () {
-				const sql = yield* SqlClient.SqlClient;
-				// What `tablePrefix: 'acme_'` produced in 2.x.
-				for (const table of ['subject', 'consent', 'domain']) {
+		it.effect(
+			'is not fooled by one unrelated table that happens to end in a known name',
+			() =>
+				Effect.gen(function* () {
+					yield* resetDatabase;
+					const sql = yield* SqlClient.SqlClient;
+					// Someone else's billing table. One match is not evidence.
+					const q = yield* quoted;
 					yield* sql.unsafe(
-						`create table "acme_${table}" ("id" varchar(255) primary key)`
+						`create table ${q('billing_consent')} (${q('id')} varchar(255) primary key)`
 					);
-				}
 
-				const shape = yield* classify;
+					assert.strictEqual((yield* classify)._tag, 'Empty');
+				}).pipe(Effect.provide(engine.layer)),
+			{ timeout: 60_000 }
+		);
 
-				// Reporting Empty here is the dangerous answer, not a harmless one:
-				// the migrator would create a parallel schema and leave every
-				// existing consent record orphaned while the deployment came up
-				// looking healthy.
-				assert.strictEqual(shape._tag, 'Unknown');
-				if (shape._tag === 'Unknown') {
-					assert.include(shape.why, 'acme_');
-					assert.include(shape.why, 'tablePrefix');
-				}
-			}).pipe(Effect.provide(Pglite)),
-		{ timeout: 60_000 }
-	);
-
-	it.effect(
-		'is not fooled by one unrelated table that happens to end in a known name',
-		() =>
-			Effect.gen(function* () {
-				const sql = yield* SqlClient.SqlClient;
-				// Someone else's billing table. One match is not evidence.
-				yield* sql.unsafe(
-					'create table "billing_consent" ("id" varchar(255) primary key)'
-				);
-
-				assert.strictEqual((yield* classify)._tag, 'Empty');
-			}).pipe(Effect.provide(Pglite)),
-		{ timeout: 60_000 }
-	);
-
-	it.effect(
-		'still recognises an ordinary empty database',
-		() =>
-			Effect.gen(function* () {
-				assert.strictEqual((yield* classify)._tag, 'Empty');
-			}).pipe(Effect.provide(Pglite)),
-		{ timeout: 60_000 }
-	);
-});
+		it.effect(
+			'still recognises an ordinary empty database',
+			() =>
+				Effect.gen(function* () {
+					yield* resetDatabase;
+					assert.strictEqual((yield* classify)._tag, 'Empty');
+				}).pipe(Effect.provide(engine.layer)),
+			{ timeout: 60_000 }
+		);
+	});
+}

@@ -1140,3 +1140,45 @@ table, not the unique-index-on-`TEXT` case that actually failed. Re-running the
 fixture generator against it is the way to settle it. It would not change much
 either way: MySQL was one defect among the join-less surface, the total absence
 of indexes, and three of five adapters having no working migrator.
+
+### 11.22 The engine matrix, and CI that actually runs it
+
+§11.7 added a cross-engine suite after finding the package could not execute a
+statement against MySQL. That suite covered one file. Twelve others were still
+PGlite-only, real Postgres was **not in the matrix at all**, and neither MySQL
+nor Postgres ran in CI — so the MySQL arm and every schema-scoping test skipped
+silently on every pull request. Opt-in coverage that nothing opts into is not
+coverage.
+
+**Both Postgres engines are in the matrix now, deliberately.** PGlite is
+Postgres compiled to WASM and stands in for it almost everywhere — but it runs
+a single in-process connection, so it cannot exhibit anything pool-shaped.
+Schema scoping is the worked example: a one-off `SET search_path` passes on
+PGlite and scopes exactly one connection of a real pool.
+
+CI gained `postgres:16` and `mysql:8` services with health checks, so all four
+run on every pull request. A contributor without Docker still gets 255 tests
+across PGlite and SQLite; with servers it is 327.
+
+**What converting the suites found**, all of it invisible on PGlite:
+
+- `tenant-isolation` — the security suite — seeded `Date` values SQLite cannot
+  bind, wrote raw double-quoted SQL that MySQL rejects, and asserted
+  `isActive === true` where MySQL returns a tinyint `1` and SQLite an integer
+  `1`. Every one of those was a test-level assumption about Postgres, and the
+  suite that proves tenants cannot see each other ran on exactly one engine.
+- `classify` built its fixtures with double-quoted DDL and a `key` column,
+  which is reserved on MySQL.
+
+**Two classification cases are now explicitly Postgres-only**, rather than
+quietly passing. Telling legacy from fumadb 1.0.0 by column type depends on
+`jsonb` versus `json`, which exists nowhere else — SQLite collapses both to
+TEXT and MySQL has no `jsonb`, which is why §11.7 made MySQL answer by
+elimination. Running them elsewhere would assert behaviour the code
+deliberately does not have, so they skip with the reason stated in code.
+
+**One test was passing on ordering luck.** `migrates into the schema and leaves
+public alone` asserted `public` held no `subject` table. That was true only
+because the pg `resetDatabase` happened to run first; once other suites shared
+the server it was a coin flip. It establishes its own precondition now — the
+difference between evidence and coincidence.

@@ -112,6 +112,38 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read # Needed for checkout
+    # @c15t/backend supports Postgres, MySQL and SQLite, and its test matrix
+    # runs against whichever of them the environment provides. Without these
+    # services the MySQL and real-Postgres arms silently skip — which is how
+    # the package once shipped unable to execute a single statement against
+    # MySQL with a green suite (RFC 0004 §11.7).
+    #
+    # SQLite and PGlite need nothing: both run in-process.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: c15t
+          POSTGRES_DB: c15t
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: c15t
+          MYSQL_DATABASE: c15t
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -uroot -pc15t --silent"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 15
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -175,6 +207,9 @@ jobs:
         env:
           TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
           TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
+          # Opt the backend's matrix into the two engines that need a server.
+          C15T_TEST_PG_URL: postgres://postgres:c15t@127.0.0.1:5432/c15t
+          C15T_TEST_MYSQL_URL: mysql://root:c15t@127.0.0.1:3306/c15t
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             bun turbo run test --filter="./packages/*" --filter="./internals/*" --filter="./apps/*" --affected
