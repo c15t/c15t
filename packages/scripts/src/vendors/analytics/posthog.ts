@@ -19,6 +19,12 @@ declare global {
 			opt_out_capturing: () => void;
 			get_explicit_consent_status: () => string;
 			capture: (event: string, properties?: Record<string, unknown>) => void;
+			/**
+			 * Pending `init(...)` argument tuples, as seeded by the official
+			 * PostHog snippet. `array.js` only installs its runtime over an
+			 * existing `window.posthog` when this is an array.
+			 */
+			_i?: unknown[][];
 		};
 	}
 }
@@ -152,9 +158,13 @@ export const posthogManifest = {
 	alwaysLoad: true,
 	bootstrap: [
 		{
+			// `_i` must be an array: since posthog-js 1.410.2, `array.js` skips
+			// installing its runtime entirely when `window.posthog` already
+			// exists without a snippet-shaped pending-init queue, which would
+			// leave the stub methods below in place and drop every event.
 			type: 'setGlobal',
 			name: 'posthog',
-			value: {},
+			value: { _i: [] },
 			ifUndefined: true,
 		},
 		{
