@@ -142,14 +142,21 @@ const observeExisting = Effect.fn('adopt.observe')(function* () {
 					where table_schema = database()
 						and referenced_table_name is not null
 				`,
+			// Scoped to the current schema. `pg_constraint` is database-wide, so
+			// without the namespace join a second c15t installation in another
+			// schema of the same database — which `database.schema` now makes a
+			// supported configuration — would look like foreign keys already
+			// present here. Adoption would then skip adding them *and* skip the
+			// orphan check that guards them.
 			orElse: () =>
 				sql<{ table_name: string; column_name: string }>`
 					select cl.relname as table_name, att.attname as column_name
 					from pg_constraint con
 					join pg_class cl on cl.oid = con.conrelid
+					join pg_namespace ns on ns.oid = cl.relnamespace
 					join unnest(con.conkey) as k(attnum) on true
 					join pg_attribute att on att.attrelid = con.conrelid and att.attnum = k.attnum
-					where con.contype = 'f'
+					where con.contype = 'f' and ns.nspname = current_schema()
 				`,
 		})
 		.pipe(Effect.orElseSucceed(() => []));

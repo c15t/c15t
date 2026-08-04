@@ -80,6 +80,11 @@ suite('schema scoping against real Postgres', () => {
 				Effect.gen(function* () {
 					const sql = yield* SqlClient.SqlClient;
 					yield* sql.unsafe(`drop schema if exists ${schema} cascade`);
+					// Establish the precondition rather than inherit it. The rest of
+					// the suite now runs against this same server and leaves its own
+					// tables in `public`, so this passing without the drop would be
+					// luck about test ordering rather than evidence.
+					yield* sql.unsafe('drop table if exists public.subject cascade');
 				})
 			);
 		});

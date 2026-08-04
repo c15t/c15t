@@ -1140,3 +1140,111 @@ table, not the unique-index-on-`TEXT` case that actually failed. Re-running the
 fixture generator against it is the way to settle it. It would not change much
 either way: MySQL was one defect among the join-less surface, the total absence
 of indexes, and three of five adapters having no working migrator.
+
+### 11.22 The engine matrix, and CI that actually runs it
+
+§11.7 added a cross-engine suite after finding the package could not execute a
+statement against MySQL. That suite covered one file. Twelve others were still
+PGlite-only, real Postgres was **not in the matrix at all**, and neither MySQL
+nor Postgres ran in CI — so the MySQL arm and every schema-scoping test skipped
+silently on every pull request. Opt-in coverage that nothing opts into is not
+coverage.
+
+**Both Postgres engines are in the matrix now, deliberately.** PGlite is
+Postgres compiled to WASM and stands in for it almost everywhere — but it runs
+a single in-process connection, so it cannot exhibit anything pool-shaped.
+Schema scoping is the worked example: a one-off `SET search_path` passes on
+PGlite and scopes exactly one connection of a real pool.
+
+CI gained `postgres:16` and `mysql:8` services with health checks, so all four
+run on every pull request. A contributor without Docker still gets 255 tests
+across PGlite and SQLite; with servers it is 327.
+
+**What converting the suites found**, all of it invisible on PGlite:
+
+- `tenant-isolation` — the security suite — seeded `Date` values SQLite cannot
+  bind, wrote raw double-quoted SQL that MySQL rejects, and asserted
+  `isActive === true` where MySQL returns a tinyint `1` and SQLite an integer
+  `1`. Every one of those was a test-level assumption about Postgres, and the
+  suite that proves tenants cannot see each other ran on exactly one engine.
+- `classify` built its fixtures with double-quoted DDL and a `key` column,
+  which is reserved on MySQL.
+
+**Two classification cases are now explicitly Postgres-only**, rather than
+quietly passing. Telling legacy from fumadb 1.0.0 by column type depends on
+`jsonb` versus `json`, which exists nowhere else — SQLite collapses both to
+TEXT and MySQL has no `jsonb`, which is why §11.7 made MySQL answer by
+elimination. Running them elsewhere would assert behaviour the code
+deliberately does not have, so they skip with the reason stated in code.
+
+**One test was passing on ordering luck.** `migrates into the schema and leaves
+public alone` asserted `public` held no `subject` table. That was true only
+because the pg `resetDatabase` happened to run first; once other suites shared
+the server it was a coin flip. It establishes its own precondition now — the
+difference between evidence and coincidence.
+
+### 11.23 Converting the adoption suite found a schema-scoping bug
+
+`adopt.test.ts` is the suite guarding the riskiest code in the package — the
+only part that touches a database someone else's production data lives in — and
+it ran on PGlite, with a small SQLite annex. It runs on all four engines now,
+and its fixtures build each legacy shape with that engine's own physical types
+rather than Postgres's: `datetime` and `varchar` on MySQL, epoch integers and
+TEXT on SQLite. Postgres types everywhere would have tested a database that has
+never existed, and on MySQL would not have created at all — it cannot index a
+`TEXT` foreign key column.
+
+**The conversion surfaced a genuine bug in `adopt.ts`.** Its Postgres
+foreign-key introspection read `pg_constraint` without joining `pg_namespace`,
+so it was **database-wide rather than schema-scoped**. That was harmless while
+c15t only ever lived in `public`. It stopped being harmless the moment
+§11.21 made a second installation in another schema a supported configuration:
+adoption would see that installation's foreign keys, conclude this one already
+had them, and skip both adding them *and* the orphan check that guards them.
+
+It surfaced as two tests failing only after the schema-scoping suite had run
+against the same server — a shape that is invisible when every test gets a
+fresh in-process database.
+
+**Twelve cases are now explicitly engine-gated** rather than quietly passing:
+
+- Six need to classify an *unmarked legacy* database, which SQLite cannot do —
+  legacy and fumadb 1.0.0 share seven tables and differ by `jsonb` against
+  `json`. SQLite answers `Unknown` and refuses, which is documented behaviour
+  and the reason `--assume-shape` exists.
+- Three manufacture an orphan row by dropping a named foreign key constraint,
+  which SQLite cannot do at all and MySQL names differently. The behaviour
+  under test is engine-independent; only that way of arranging the precondition
+  is not.
+
+The standalone `adopt: sqlite` block is gone — the matrix covers what it
+asserted, on more engines than it did.
+
+### 11.24 The services were wired up and still did nothing
+
+The first CI run with `postgres:16` and `mysql:8` reported the backend at
+**22 passed, 1 skipped** — which is the *no-servers* count. The services were
+running, the URLs were set on the step, and the matrix still saw neither
+engine.
+
+Turborepo's default `envMode` is `strict`: a task only receives environment
+variables declared in `turbo.json`. `C15T_TEST_PG_URL` and
+`C15T_TEST_MYSQL_URL` were filtered out before vitest ever started, so
+`ENGINES` fell back to PGlite and SQLite and every MySQL and real-Postgres case
+skipped — silently, with a green backend suite.
+
+They are declared on the `test` task now, under `env` rather than
+`passThroughEnv`, because results genuinely differ with and without the
+servers and the cache key has to differ too.
+
+This is the same failure the whole exercise exists to prevent, one level up:
+coverage that looks present and is not. The tell was the count, not a failure —
+worth remembering that a passing suite is only evidence if you know how many
+tests it was supposed to run.
+
+**Also pinned every action and image in `ci.yml`.** The repo's action-security
+policy requires digests, and `zizmor` only audits workflows when one changes —
+so adding the services was the first thing to lint that file, and it surfaced
+seven pre-existing unpinned action references alongside my two images. The
+action SHAs are the ones the file and repo already use elsewhere, so this pins
+rather than upgrades.
