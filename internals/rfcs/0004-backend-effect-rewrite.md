@@ -1038,3 +1038,40 @@ test here stands up a PGlite database, and vitest's 5s default is enough when
 the package runs alone and is not when the whole monorepo competes for the same
 cores — which is CI. Found by running the full suite with `--force` after the
 rename, where six backend tests failed that pass in isolation.
+
+### 11.20 `tablePrefix` is dropped, and silently orphaned data on the way out
+
+fumadb supports custom table and column naming through name variants.
+`@c15t/backend` exposed **one** of those: `tablePrefix`, applied in `init.ts`
+as `DB.names.prefix(options.tablePrefix)` and documented in
+`self-host/guides/database-setup` for sharing a database with other
+applications. Arbitrary column renaming was never exposed, so no c15t
+deployment can be relying on it.
+
+`tablePrefix` is a different matter, and dropping it turned out to be worse
+than a missing feature. A 2.x database created with `tablePrefix: 'c15t_'`
+holds `c15t_subject`, `c15t_consent` and so on. `classify` matches table names
+exactly, found none of them, and reported **`Empty`** — so `migrate` was not
+blocked and would have created a full parallel schema beside the real one,
+leaving every existing consent record orphaned while the deployment came up
+looking healthy. Measured before fixing:
+
+```
+shape=Empty  blocked=none  wouldCreate=8  existingTables=5
+```
+
+On a consent platform that is a compliance incident: the audit trail is still
+in the database and the backend can no longer see it.
+
+`classify` now detects a common prefix across known table names and returns
+`Unknown` naming it, so the migrator refuses. Conservative by design — a lone
+`billing_consent` is not evidence, so it takes two matching names sharing a
+prefix, or fumadb's own marker table under that prefix, before it claims to
+have found a prefixed installation.
+
+**Still to decide: whether 3.0 supports `tablePrefix` at all.** Every query in
+this package names its table through `sql('subject')`, so supporting it means a
+prefix-aware resolver threaded through the query layer — the same shape as
+`Tenant`, and roughly the same reach. The alternative is a documented break
+with a rename step in the upgrade guide, which is what the refusal message
+currently tells operators to do.

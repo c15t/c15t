@@ -73,6 +73,50 @@ interface Observed {
 	readonly tables: ReadonlySet<string>;
 	readonly markerTable: string | undefined;
 	readonly ledger: boolean;
+	/**
+	 * A prefix that c15t's tables appear to carry, if any.
+	 *
+	 * `@c15t/backend` 2.x had a `tablePrefix` option, so a shared database
+	 * could hold `acme_subject` and `acme_consent` rather than `subject` and
+	 * `consent`. Those tables are invisible to the exact-name match above, and
+	 * without this the database looks **empty** — so migrating it would create
+	 * a second, parallel schema and leave every existing consent record
+	 * orphaned. Verified before fixing: `shape=Empty`, nothing blocked, eight
+	 * tables to create alongside the five already holding data.
+	 */
+	readonly prefix: string | undefined;
+}
+
+/**
+ * Looks for c15t's tables hiding behind a common prefix.
+ *
+ * Conservative on purpose. A lone `billing_consent` in someone's database is
+ * not evidence of anything, so it takes **two** known table names sharing one
+ * prefix — or fumadb's own marker table, which is unambiguous — before this
+ * claims to have found a prefixed installation.
+ */
+function detectPrefix(all: readonly string[]): string | undefined {
+	const counts = new Map<string, number>();
+
+	for (const name of all) {
+		for (const known of C15T_TABLES) {
+			if (name.length > known.length && name.endsWith(known)) {
+				const prefix = name.slice(0, name.length - known.length);
+				counts.set(prefix, (counts.get(prefix) ?? 0) + 1);
+			}
+		}
+	}
+
+	for (const [prefix, count] of counts) {
+		// fumadb's marker under the same prefix settles it on its own.
+		const hasMarker = all.some(
+			(name) => name.startsWith(prefix) && MARKER.test(name)
+		);
+		if (count >= 2 || hasMarker) {
+			return prefix;
+		}
+	}
+	return undefined;
 }
 
 const observe = Effect.fn('classify.observe')(function* () {
@@ -94,10 +138,14 @@ const observe = Effect.fn('classify.observe')(function* () {
 	});
 
 	const all = rows.map((row) => row.name);
+	const tables = new Set(all.filter((name) => C15T_TABLES.has(name)));
 	return {
-		tables: new Set(all.filter((name) => C15T_TABLES.has(name))),
+		tables,
 		markerTable: all.find((name) => MARKER.test(name)),
 		ledger: all.includes('c15t_migrations'),
+		// Only interesting when the unprefixed names found nothing; a database
+		// holding both is answering as itself.
+		prefix: tables.size === 0 ? detectPrefix(all) : undefined,
 	} satisfies Observed;
 });
 
@@ -166,6 +214,21 @@ export const classify: Effect.Effect<
 	const observed = yield* observe();
 
 	if (observed.tables.size === 0) {
+		if (observed.prefix !== undefined) {
+			// Refusing beats guessing, and here the guess is expensive: treating
+			// this as empty creates a parallel schema and orphans every consent
+			// record already in the database.
+			return {
+				_tag: 'Unknown',
+				tables: [],
+				why:
+					`Found c15t tables prefixed with "${observed.prefix}", which is ` +
+					"what @c15t/backend 2.x's `tablePrefix` option produced. c15t 3.0 " +
+					'does not support prefixed tables, so migrating would create a ' +
+					'second, empty schema beside your data rather than upgrade it. ' +
+					'Rename the tables to drop the prefix before migrating.',
+			} as const;
+		}
 		return { _tag: 'Empty' } as const;
 	}
 

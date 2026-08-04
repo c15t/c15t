@@ -157,3 +157,56 @@ describe('classify', () => {
 		{ timeout: 60_000 }
 	);
 });
+
+describe('a 2.x database created with tablePrefix', () => {
+	it.effect(
+		'refuses rather than reporting it empty',
+		() =>
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				// What `tablePrefix: 'acme_'` produced in 2.x.
+				for (const table of ['subject', 'consent', 'domain']) {
+					yield* sql.unsafe(
+						`create table "acme_${table}" ("id" varchar(255) primary key)`
+					);
+				}
+
+				const shape = yield* classify;
+
+				// Reporting Empty here is the dangerous answer, not a harmless one:
+				// the migrator would create a parallel schema and leave every
+				// existing consent record orphaned while the deployment came up
+				// looking healthy.
+				assert.strictEqual(shape._tag, 'Unknown');
+				if (shape._tag === 'Unknown') {
+					assert.include(shape.why, 'acme_');
+					assert.include(shape.why, 'tablePrefix');
+				}
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'is not fooled by one unrelated table that happens to end in a known name',
+		() =>
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				// Someone else's billing table. One match is not evidence.
+				yield* sql.unsafe(
+					'create table "billing_consent" ("id" varchar(255) primary key)'
+				);
+
+				assert.strictEqual((yield* classify)._tag, 'Empty');
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'still recognises an ordinary empty database',
+		() =>
+			Effect.gen(function* () {
+				assert.strictEqual((yield* classify)._tag, 'Empty');
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+});
