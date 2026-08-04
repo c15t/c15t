@@ -1,0 +1,7 @@
+{
+	"shape": "fumadb-2.0.0",
+	"engine": "mysql",
+	"versions": ["2.1.0"],
+	"era": "fumadb-root",
+	"unsupported": "fumadb migration fails on MySQL: \"BLOB/TEXT column used in key specification without a key length\". fumadb maps string columns to TEXT and indexes them; MySQL needs a prefix length. Trips on domain.name at schema 1.0.0 and runtimePolicyDecision.dedupeKey at 2.0.0. Reproduced on fumadb 0.2.2 and 0.3.0."
+}

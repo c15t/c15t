@@ -1,0 +1,618 @@
+{
+	"shape": "legacy-upgraded",
+	"engine": "postgres",
+	"versions": ["1.0.0", "1.4.2", "1.8.6"],
+	"era": "legacy",
+	"rationale": "A database created at 1.0 and walked forward. The legacy migrator only ever added tables and columns (RFC §3.2), so this can retain columns a fresh 1.8 install never had. Cannot be reproduced from any schema definition in the repo.",
+	"applied": [
+		{
+			"version": "1.0.0",
+			"era": "legacy"
+		},
+		{
+			"version": "1.4.2",
+			"era": "legacy"
+		},
+		{
+			"version": "1.8.6",
+			"era": "legacy"
+		}
+	],
+	"settings": null,
+	"tables": [
+		{
+			"name": "auditLog",
+			"columns": [
+				{
+					"name": "actionType",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "changes",
+					"dataType": "jsonb",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "createdAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "entityId",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "entityType",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "eventTimezone",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "id",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "ipAddress",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "metadata",
+					"dataType": "jsonb",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "subjectId",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "userAgent",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				}
+			]
+		},
+		{
+			"name": "consent",
+			"columns": [
+				{
+					"name": "domainId",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "givenAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "id",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "ipAddress",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "isActive",
+					"dataType": "bool",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "metadata",
+					"dataType": "jsonb",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "policyId",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "purposeIds",
+					"dataType": "jsonb",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "status",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "subjectId",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "userAgent",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "validUntil",
+					"dataType": "timestamp",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "withdrawalReason",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				}
+			]
+		},
+		{
+			"name": "consentPolicy",
+			"columns": [
+				{
+					"name": "content",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "contentHash",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "createdAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "effectiveDate",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "expirationDate",
+					"dataType": "timestamp",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "id",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "isActive",
+					"dataType": "bool",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "name",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "type",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "version",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				}
+			]
+		},
+		{
+			"name": "consentPurpose",
+			"columns": [
+				{
+					"name": "code",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "createdAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "dataCategory",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "description",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "id",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "isActive",
+					"dataType": "bool",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "isEssential",
+					"dataType": "bool",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "legalBasis",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "name",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "updatedAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				}
+			]
+		},
+		{
+			"name": "consentRecord",
+			"columns": [
+				{
+					"name": "actionType",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "consentId",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "createdAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "details",
+					"dataType": "jsonb",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "id",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "subjectId",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				}
+			]
+		},
+		{
+			"name": "domain",
+			"columns": [
+				{
+					"name": "allowedOrigins",
+					"dataType": "jsonb",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "createdAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "description",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "id",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "isActive",
+					"dataType": "bool",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "isVerified",
+					"dataType": "bool",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "name",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "updatedAt",
+					"dataType": "timestamp",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				}
+			]
+		},
+		{
+			"name": "subject",
+			"columns": [
+				{
+					"name": "createdAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "externalId",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "id",
+					"dataType": "text",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "identityProvider",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "isIdentified",
+					"dataType": "bool",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "lastIpAddress",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "subjectTimezone",
+					"dataType": "text",
+					"isNullable": true,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				},
+				{
+					"name": "updatedAt",
+					"dataType": "timestamp",
+					"isNullable": false,
+					"isAutoIncrementing": false,
+					"hasDefaultValue": false
+				}
+			]
+		}
+	],
+	"indexes": [
+		{
+			"table": "auditLog",
+			"name": "auditLog_pkey",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consent",
+			"name": "consent_pkey",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consentPolicy",
+			"name": "consentPolicy_pkey",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consentPurpose",
+			"name": "consentPurpose_pkey",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "consentRecord",
+			"name": "consentRecord_pkey",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "domain",
+			"name": "domain_pkey",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		},
+		{
+			"table": "domain",
+			"name": "domain_name_key",
+			"columns": ["name"],
+			"isUnique": true,
+			"isPrimary": false
+		},
+		{
+			"table": "subject",
+			"name": "subject_pkey",
+			"columns": ["id"],
+			"isUnique": true,
+			"isPrimary": true
+		}
+	],
+	"foreignKeys": [
+		{
+			"table": "auditLog",
+			"columns": ["subjectId"],
+			"referencedTable": "subject",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consent",
+			"columns": ["domainId"],
+			"referencedTable": "domain",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consent",
+			"columns": ["policyId"],
+			"referencedTable": "consentPolicy",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consent",
+			"columns": ["subjectId"],
+			"referencedTable": "subject",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consentRecord",
+			"columns": ["consentId"],
+			"referencedTable": "consent",
+			"referencedColumns": ["id"]
+		},
+		{
+			"table": "consentRecord",
+			"columns": ["subjectId"],
+			"referencedTable": "subject",
+			"referencedColumns": ["id"]
+		}
+	],
+	"ddl": {}
+}
