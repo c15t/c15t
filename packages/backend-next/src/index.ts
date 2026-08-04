@@ -60,12 +60,22 @@ export {
 	policyPackPresets,
 	UK_COUNTRY_CODES,
 } from '@c15t/schema';
+export type { Shape } from './db/classify';
+export { classify } from './db/classify';
 export type { DatabaseConfig, DatabaseOption } from './db/connect';
-export { DriverNotInstalledError } from './db/connect';
+export { DriverNotInstalledError, toLayer } from './db/connect';
+export type {
+	MigrateOptions,
+	MigrateReport,
+	Migration,
+} from './db/migrate';
+export { MIGRATIONS, migrate } from './db/migrate';
 export { defineConfig } from './define-config';
 export type { AppOptions } from './http/context';
 export type { C15TInstance, C15TOptions } from './instance';
 export { c15tInstance } from './instance';
+export type { Migrator } from './migrator';
+export { createMigrator } from './migrator';
 export type { ObservabilityOptions } from './observability/evlog';
 export type { PolicyBuilderInput } from './policy/builder';
 export { composePacks, policyBuilder } from './policy/builder';

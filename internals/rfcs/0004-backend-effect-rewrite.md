@@ -820,3 +820,39 @@ Also outstanding:
   comparison is worth keeping past cutover, they need to depend on the
   published 2.x under an alias instead of on the workspace.
 - Docs, which land before the 3.0 release.
+
+### 11.12 Migration 2 was never actually runnable
+
+Adoption stamped `1-baseline` and stopped. Nothing walked the numbered
+migrations, so `2-hot-path-indexes` — the change worth roughly 1.35× on the
+read path, and the answer to §11.6's unindexed tenant scoping — ran only in its
+own tests. A migration nothing invokes is not shipped.
+
+`db/migrate.ts` closes that: classify, adopt to the baseline if behind, then
+apply whatever the ledger has not recorded. It is what the CLI will call and
+what a self-hoster can call programmatically, and it takes `dryRun` because
+this is the one code path in the package that touches other people's data.
+
+**Not Effect's `Migrator`**, despite each `@effect/sql-*` exporting one. They
+own a second ledger table — and `c15t_migrations` already exists, so two
+ledgers would mean two disagreeing answers to "what has been applied" — and
+they resolve migrations by scanning a directory at runtime, which does not
+survive a consumer's bundler. Migrations are an explicit, statically imported
+array instead.
+
+**A driver bug found on the way.** `@effect/sql-sqlite-node` caches prepared
+statements by SQL text and caches the **failures**: probing a table that does
+not exist yet poisons that exact query for the life of the connection, so it
+keeps failing after the table is created. Demonstrated directly — the same
+query with one character of different whitespace succeeds, which is what a
+cache-key collision looks like.
+
+That is squarely in `migrate`'s path, since it reads the ledger before creating
+it. Worked around by asking whether the ledger exists before reading it, which
+is better code regardless. Worth reporting upstream.
+
+Also corrected while testing this: a bare `subject` table is **not**
+unclassifiable on MySQL. §11.7 made MySQL answer "legacy" by elimination,
+because fumadb cannot migrate MySQL in either era — so the "refuse rather than
+guess" case needs a fumadb marker naming an unknown schema version, which is
+unrecognisable on all three engines.
