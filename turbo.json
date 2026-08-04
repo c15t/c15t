@@ -197,7 +197,8 @@
 				"coverage/coverage-summary.json",
 				"coverage/coverage-final.json",
 				"coverage/html/**"
-			]
+			],
+			"env": ["C15T_TEST_PG_URL", "C15T_TEST_MYSQL_URL"]
 		},
 		"test-storybook": {
 			"dependsOn": ["build", "^build"],

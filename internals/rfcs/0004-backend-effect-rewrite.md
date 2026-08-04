@@ -1219,3 +1219,32 @@ fresh in-process database.
 
 The standalone `adopt: sqlite` block is gone — the matrix covers what it
 asserted, on more engines than it did.
+
+### 11.24 The services were wired up and still did nothing
+
+The first CI run with `postgres:16` and `mysql:8` reported the backend at
+**22 passed, 1 skipped** — which is the *no-servers* count. The services were
+running, the URLs were set on the step, and the matrix still saw neither
+engine.
+
+Turborepo's default `envMode` is `strict`: a task only receives environment
+variables declared in `turbo.json`. `C15T_TEST_PG_URL` and
+`C15T_TEST_MYSQL_URL` were filtered out before vitest ever started, so
+`ENGINES` fell back to PGlite and SQLite and every MySQL and real-Postgres case
+skipped — silently, with a green backend suite.
+
+They are declared on the `test` task now, under `env` rather than
+`passThroughEnv`, because results genuinely differ with and without the
+servers and the cache key has to differ too.
+
+This is the same failure the whole exercise exists to prevent, one level up:
+coverage that looks present and is not. The tell was the count, not a failure —
+worth remembering that a passing suite is only evidence if you know how many
+tests it was supposed to run.
+
+**Also pinned every action and image in `ci.yml`.** The repo's action-security
+policy requires digests, and `zizmor` only audits workflows when one changes —
+so adding the services was the first thing to lint that file, and it surfaced
+seven pre-existing unpinned action references alongside my two images. The
+action SHAs are the ones the file and repo already use elsewhere, so this pins
+rather than upgrades.
