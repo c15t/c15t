@@ -1,5 +1,11 @@
 # @c15t/backend
 
+## 2.2.0-canary-20260804162155
+
+### Patch Changes
+
+- a29544d: Revert prioritizing `x-forwarded-for` over `x-client-ip` in the default client IP header order.
+
 ## 2.2.0-canary-20260731105620
 
 ### Patch Changes
