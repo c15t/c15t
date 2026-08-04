@@ -23,6 +23,7 @@ export function register({ app, options, run }: RouteContext): void {
 			// load balancer cannot reach without credentials is not a health check.
 			// It exposes only version and the caller's own request metadata.
 			const result = await run(
+				c,
 				status(c.req.raw.headers, options.version ?? '0.0.0', options.ipAddress)
 			);
 

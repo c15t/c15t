@@ -21,38 +21,17 @@
  */
 
 import type { ConsentManifestConfig } from '@c15t/schema';
-import { getSubjectOutputSchema, listSubjectsOutputSchema } from '@c15t/schema';
-import {
-	getIpAddress,
-	type IpAddressConfig,
-	isOriginTrusted,
-} from '@c15t/schema/geo';
-import { Effect, type ManagedRuntime } from 'effect';
+import type { IpAddressConfig } from '@c15t/schema/geo';
+import { Effect, Layer, type ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
-import * as v from 'valibot';
 import { type Tenant, layer as tenantLayer } from '../db/tenant';
-import {
-	LegalDocumentConflictError,
-	syncCurrent,
-} from '../repository/legal-document';
-import { submit } from '../repository/record-consent';
-import {
-	findById,
-	linkExternalId,
-	listByExternalId,
-} from '../repository/subject';
-import { validateRequestAuth } from './auth';
-import {
-	BadRequestError,
-	NotFoundError,
-	type RouteError,
-	toHttp,
-} from './errors';
+import type { ObservabilityOptions } from '../observability/evlog';
+import { toRequestLog } from '../observability/evlog';
+import { type Log, layer as logLayer, silent } from '../observability/log';
+import { type RouteError, toHttp } from './errors';
 import type { GvlOptions } from './gvl';
-import { buildInitResponse } from './init';
-import { buildManifestResponse, type ManifestCacheOptions } from './manifest';
+import type { ManifestCacheOptions } from './manifest';
 import type { PolicySnapshotOptions } from './policy-snapshot';
-import { status } from './status';
 
 export interface AppLayers {
 	readonly sql: SqlClient.SqlClient;
@@ -64,7 +43,7 @@ export interface AppLayers {
  * The runtime is constructed once by the caller and reused for every request —
  * building a layer per request would open a connection pool per request.
  */
-import type { Hono } from 'hono';
+import type { Context, Hono } from 'hono';
 
 export interface AppOptions {
 	/**
@@ -119,6 +98,14 @@ export interface AppOptions {
 	 * not configured keys should expose nothing, not everything.
 	 */
 	readonly apiKeys?: readonly string[];
+	/**
+	 * Wide-event logging (RFC 0004 §5).
+	 *
+	 * On by default at `level: 'warn'` — silent when requests succeed, a line
+	 * when they fail. `level: 'info'` gives the full per-request stream;
+	 * `'silent'` turns it off.
+	 */
+	readonly observability?: ObservabilityOptions;
 }
 
 /**
@@ -140,14 +127,25 @@ export const makeRun =
 		tenantId: string | undefined
 	) =>
 	async <A>(
-		effect: Effect.Effect<A, RouteError, SqlClient.SqlClient | Tenant>
+		c: Context,
+		effect: Effect.Effect<A, RouteError, SqlClient.SqlClient | Tenant | Log>
 	): Promise<
 		{ ok: true; value: A } | { ok: false; failure: ReturnType<typeof toHttp> }
 	> => {
-		// Provided here, once, rather than at each call site: a route cannot
-		// forget what it never has to remember.
+		// Both provided here, once, rather than at each call site: a route
+		// cannot forget what it never has to remember.
+		//
+		// The logger comes from the Hono context rather than a module-level
+		// singleton because it is per-request — evlog's Hono binding attaches
+		// it with `c.set('log', …)` and offers no async-storage lookup.
+		const log = toRequestLog(c.get('log'));
+		const request = Layer.merge(
+			tenantLayer(tenantId),
+			log === undefined ? silent : logLayer(log)
+		);
+
 		const result = await runtime.runPromise(
-			Effect.result(Effect.provide(effect, tenantLayer(tenantId)))
+			Effect.result(Effect.provide(effect, request))
 		);
 		return result._tag === 'Success'
 			? { ok: true, value: result.success }

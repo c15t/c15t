@@ -55,6 +55,7 @@ export function register({ app, options, run }: RouteContext): void {
 			}
 
 			const result = await run(
+				c,
 				syncCurrent({
 					type,
 					version: body.version,

@@ -132,8 +132,8 @@ paths we take.
 
 - **MongoDB.** The only genuine casualty, and the thing forcing the join-less
   design on every other user. Dropping it needs an export/import script, not
-  a migration — there is no DDL path from Mongo to SQL. That script is part of
-  the deliverable, not an exercise for the user.
+  a migration — there is no DDL path from Mongo to SQL. **Superseded by
+  §11.8: that script is not being written.**
 - **The Drizzle/Prisma/TypeORM adapters.** Those users keep their database;
   they lose the shared connection pool, since c15t opens its own `SqlClient`
   connection against the same server. In exchange they get a migrator that
@@ -692,3 +692,77 @@ schema. The evidence for MySQL is the `legacy-…` fixtures, which is what
 parallelism. PGlite and SQLite get a fresh in-process database per test; MySQL
 is one shared schema, and two files migrating it concurrently fail depending on
 scheduling — passing individually, failing together.
+
+### 11.8 No MongoDB migration path ships
+
+**Decided: the Mongo export/import script promised in §2 is not being
+written.** §8 step 8 loses it as a cutover deliverable.
+
+The consequence, stated plainly so it is not discovered later: a 2.x
+deployment on MongoDB has **no supported upgrade path to 3.0**. Not a lossy
+one or a manual one — none. Those users stay on 2.x, or export and reshape
+their data themselves against the schema in `db/schema.ts`.
+
+This needs to be in the 3.0 release notes and the upgrade guide as a stated
+break, not left as an omission. It is the one drop in this rewrite that
+removes capability from an existing user rather than relocating it.
+
+### 11.9 evlog is opt-in, and narrower than §5 described
+
+§5 says "replace `@c15t/logger` in the backend with evlog". There was nothing
+to replace: `backend-next` never had logging at all, so this was additive, and
+that changed what the right default is.
+
+**On by default, quiet by default.** The first cut of this defaulted logging
+*off*, reasoning that 2.x emits nothing per request. That was half right and
+the wrong conclusion: 2.x defaults to `level: 'error'`, so it does report
+failures — and a backend that tells a new self-hoster nothing when their
+requests are being rejected is one they debug by guesswork.
+
+So the default is `level: 'warn'`: **silent when requests succeed, a line when
+they do not.** The full per-request stream is `level: 'info'`, `'silent'` is
+off, and `'inherit'` leaves evlog's global config to a host application that
+configures it themselves.
+
+Getting that default to actually work took two mechanisms, which is worth
+knowing before changing any of it. Hono answers a thrown handler error with a
+500 *response* rather than propagating it, so evlog's middleware sees a status
+and never an exception, and the event's level stays `info` even for a 500.
+Head sampling alone therefore drops exactly the requests worth keeping —
+observed, not predicted: with `rates: { info: 0 }` the 500 vanished. It needs
+a status-grading middleware running inside evlog's wrapper *and* a keep rule
+from 400 up.
+
+Redaction is on by default whenever logging is on, because the failure mode of
+forgetting is a compliance incident.
+
+**A narrow service, not evlog's logger.** The Effect service is `RequestLog`,
+two methods wide, adapted from evlog at the HTTP boundary. Handlers depend on
+"somewhere to record fields" rather than on evlog, the disabled case is a
+two-line no-op instead of a stub of someone else's interface, and tests assert
+against a recording implementation.
+
+§5's caveat about `useLogger()` was checked rather than assumed, and holds at
+2.22.4: the Hono integration only does `c.set('log', logger)` and sets up no
+async storage. `makeRun` therefore takes the Hono context and provides `Log`
+alongside `Tenant`, which is the same shape tenant scoping already uses.
+
+**Two things §5 promised that this does not do.**
+
+- **`log.audit` is not wired to the `auditLog` table.** That table is the
+  product's legal record, written transactionally beside the row it describes.
+  Making it depend on a logging library — sampled, drained, best-effort — would
+  be a regression dressed as an integration. Audit entries stay in the
+  database; the wide event records that one was written.
+- **No OTLP drain is configured.** `drain` is exposed as an option instead. A
+  library that picks its own telemetry destination is a library fighting its
+  host; the deployment chooses.
+
+**A vacuous test, caught.** The first redaction test asserted an IP header
+never appeared in the emitted event, and passed — but it also passed with
+`redact: false`, because no field this package sets carries PII and evlog does
+not put request headers in the event body. It proved nothing. Replaced with a
+direct assertion on the resolved default, which is the decision that can
+actually regress. Worth recording as the same failure mode as §11.7: a test
+that cannot fail is indistinguishable from coverage until someone tries to
+break it.

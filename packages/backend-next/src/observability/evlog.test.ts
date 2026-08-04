@@ -1,0 +1,219 @@
+/**
+ * Wide-event logging.
+ *
+ * The default is the interesting case, and it is two claims at once: logging
+ * is **on**, so a new self-hoster is not debugging failures by guesswork, and
+ * a **successful request is silent**, so nobody upgrading discovers a line per
+ * request and a bigger log bill.
+ *
+ * That combination is not one setting. Hono answers a thrown handler error
+ * with a 500 *response* rather than propagating it, so evlog sees a status and
+ * never an exception, and the event's level stays `info` even for a 500 —
+ * head sampling alone drops exactly the requests worth keeping. It takes
+ * status-based grading *and* a keep rule, which is why both are asserted here
+ * rather than trusted.
+ *
+ * When the full stream is on, the event also has to carry the facts worth
+ * querying, or it is a slower `console.log`. So the domain fields are asserted
+ * too.
+ */
+
+import { PgliteClient } from '@effect/sql-pglite';
+import { assert, describe, it } from '@effect/vitest';
+import { Effect, type Layer, ManagedRuntime } from 'effect';
+import { SqlClient } from 'effect/unstable/sql';
+import type { DrainContext } from 'evlog';
+import { up as baseline } from '../db/migrations/1-baseline';
+import { createApp } from '../http/app';
+import type { AppOptions } from '../http/context';
+import { resolveOptions } from './evlog';
+
+/** Every event a run produced, in order. */
+const collect = () => {
+	const events: Record<string, unknown>[] = [];
+	const drain = (ctx: DrainContext) => {
+		events.push(ctx.event as unknown as Record<string, unknown>);
+	};
+	return { events, drain };
+};
+
+const withApp = async <A>(
+	options: AppOptions,
+	use: (app: ReturnType<typeof createApp>) => Promise<A>
+): Promise<A> => {
+	const runtime = ManagedRuntime.make(
+		PgliteClient.layer({}) as unknown as Layer.Layer<SqlClient.SqlClient>
+	);
+	await runtime.runPromise(
+		Effect.gen(function* () {
+			yield* baseline;
+			const sql = yield* SqlClient.SqlClient;
+			yield* sql`
+				insert into ${sql('domain')} ${sql.insert({
+					id: 'dom_1',
+					name: 'example.com',
+					createdAt: new Date(1_800_000_000_000),
+					updatedAt: new Date(1_800_000_000_000),
+				})}
+			`;
+		})
+	);
+	try {
+		return await use(createApp(runtime, options));
+	} finally {
+		await runtime.dispose();
+	}
+};
+
+const seed = { appName: 'Example', policyPacks: [] } as const;
+
+describe('observability: the default', () => {
+	it('stays quiet on a successful request', async () => {
+		const { events, drain } = collect();
+
+		await withApp(
+			// No `level` — the default must be quiet when nothing is wrong.
+			{ manifest: seed, observability: { drain } },
+			async (app) => {
+				const response = await app.request('/status');
+				assert.strictEqual(response.status, 200);
+			}
+		);
+
+		assert.strictEqual(events.length, 0);
+	}, 60_000);
+
+	it('reports a rejected request at warn', async () => {
+		const { events, drain } = collect();
+
+		await withApp(
+			{ manifest: seed, observability: { drain }, apiKeys: [] },
+			async (app) => {
+				// 401: no API key configured, so nothing authenticates.
+				const response = await app.request('/subjects?externalId=ext_1');
+				assert.strictEqual(response.status, 401);
+			}
+		);
+
+		// Kept despite head sampling, and graded from the status rather than
+		// left at info — without both, a new self-hoster sees nothing at all
+		// when their requests are being rejected.
+		assert.strictEqual(events.length, 1);
+		assert.strictEqual(events[0]?.status, 401);
+		assert.strictEqual(events[0]?.level, 'warn');
+	}, 60_000);
+
+	it('emits nothing at all when silenced', async () => {
+		const { events, drain } = collect();
+
+		await withApp(
+			{
+				manifest: seed,
+				observability: { level: 'silent', drain },
+				apiKeys: [],
+			},
+			async (app) => {
+				await app.request('/status');
+				await app.request('/subjects?externalId=ext_1');
+			}
+		);
+
+		// Not even the failure. `silent` registers no middleware at all.
+		assert.strictEqual(events.length, 0);
+	}, 60_000);
+});
+
+describe("observability: level 'info'", () => {
+	it('emits one event per request', async () => {
+		const { events, drain } = collect();
+
+		await withApp(
+			{ manifest: seed, observability: { level: 'info', drain } },
+			async (app) => {
+				await app.request('/status');
+				await app.request('/status');
+			}
+		);
+
+		assert.strictEqual(events.length, 2);
+		assert.strictEqual(events[0]?.path, '/status');
+		assert.strictEqual(events[0]?.status, 200);
+		assert.strictEqual(events[0]?.method, 'GET');
+	}, 60_000);
+
+	it('records whether a consent was created or replayed', async () => {
+		const { events, drain } = collect();
+
+		const body = {
+			subjectId: 'sub_wide_event',
+			domainId: 'dom_1',
+			purposeIds: ['analytics'],
+			givenAt: new Date(1_800_000_000_000).toISOString(),
+		};
+		const post = () =>
+			new Request('http://localhost/subjects', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify(body),
+			});
+
+		await withApp(
+			{ manifest: seed, observability: { level: 'info', drain } },
+			async (app) => {
+				const first = await app.request(post());
+				assert.strictEqual(first.status, 200, await first.text());
+				await app.request(post());
+			}
+		);
+
+		const consents = events
+			.map((event) => event.consent as { created?: boolean } | undefined)
+			.filter((consent): consent is { created?: boolean } => Boolean(consent));
+
+		// A replay is a normal outcome, not an error — the event has to
+		// distinguish them or a client stuck retrying looks like healthy traffic.
+		assert.strictEqual(consents.length, 2);
+		assert.strictEqual(consents[0]?.created, true);
+		assert.strictEqual(consents[1]?.created, false);
+	}, 60_000);
+
+	it('skips routes excluded by glob', async () => {
+		const { events, drain } = collect();
+
+		await withApp(
+			{
+				manifest: seed,
+				observability: { level: 'info', drain, exclude: ['/status'] },
+			},
+			async (app) => {
+				await app.request('/status');
+			}
+		);
+
+		// Health checks are the highest-volume, least-informative traffic a
+		// backend sees; being able to drop them is why `exclude` is exposed.
+		assert.strictEqual(events.length, 0);
+	}, 60_000);
+
+	it('defaults redaction on, and lets it be turned off deliberately', () => {
+		// A policy decision, and one nothing else can catch regressing: no field
+		// this package sets on an event contains PII today, so an end-to-end
+		// assertion would pass with redaction either way. Verified by trying —
+		// the earlier version of this test passed with `redact: false`.
+		//
+		// It still defaults on, because the failure mode of forgetting once a
+		// field *does* carry an IP is a compliance incident rather than an
+		// untidy log.
+		assert.strictEqual(resolveOptions({}).redact, true);
+		assert.strictEqual(resolveOptions({ redact: false }).redact, false);
+	}, 60_000);
+
+	it('passes route filters through verbatim', () => {
+		const resolved = resolveOptions({
+			include: ['/subjects/**'],
+			exclude: ['/status'],
+		});
+		assert.deepStrictEqual(resolved.include, ['/subjects/**']);
+		assert.deepStrictEqual(resolved.exclude, ['/status']);
+	});
+});
