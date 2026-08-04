@@ -11,7 +11,7 @@
 
 import { getIpAddress, type IpAddressConfig } from '@c15t/schema/geo';
 import { Effect } from 'effect';
-import { SqlClient, SqlError } from 'effect/unstable/sql';
+import { SqlClient, type SqlError } from 'effect/unstable/sql';
 import { readInitSignals } from './init';
 
 export interface StatusResponse {
@@ -49,7 +49,7 @@ export const status = Effect.fn('status')(function* (
 	// The cheapest query that proves the connection works and the schema is
 	// present. `limit 1` rather than a count so it stays constant-time on a
 	// large table.
-	yield* sql`select 1 from "subject" limit 1`;
+	yield* sql`select 1 from ${sql('subject')} limit 1`;
 
 	return {
 		version,

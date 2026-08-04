@@ -15,10 +15,11 @@
  * read and the write, and it treats "is this a duplicate?" as a question to be
  * answered by parsing prose.
  *
- * Here the database answers it. `insert … on conflict do nothing returning *`
- * is atomic: either this call inserted the row or someone already had, and the
- * return value says which. No window, and no error-string sniffing — the error
- * never happens.
+ * Here the database answers it, in one atomic statement: either this call
+ * inserted the row or someone already had, and the return value says which. No
+ * window, and no error-string sniffing — the error never happens. See
+ * `db/insert-once.ts`, which also explains why that statement is spelled
+ * differently on MySQL.
  *
  * The legacy identity lookup is kept, because it is not redundant: rows
  * written before deterministic ids existed have unrelated primary keys, and
@@ -27,7 +28,9 @@
 
 import { buildConsentId, type ConsentSubmissionIdentity } from '@c15t/schema';
 import { Effect } from 'effect';
-import { SqlClient, SqlError } from 'effect/unstable/sql';
+import { SqlClient, type SqlError } from 'effect/unstable/sql';
+import { insertOnce } from '../db/insert-once';
+import { encoder } from '../db/values';
 
 export interface ConsentSubmission extends ConsentSubmissionIdentity {
 	readonly purposeIds: readonly string[];
@@ -59,21 +62,23 @@ const findLegacySubmission = Effect.fn('consent.findLegacy')(function* (
 	identity: ConsentSubmissionIdentity
 ) {
 	const sql = yield* SqlClient.SqlClient;
+	// SQLite stores this column as epoch milliseconds and cannot bind a Date.
+	const encode = yield* encoder;
 
 	const rows = yield* sql<{ id: string }>`
-		select "id" from "consent"
-		where "subjectId" = ${identity.subjectId}
-			and "domainId" = ${identity.domainId}
-			and "givenAt" = ${identity.givenAt}
+		select ${sql('id')} from ${sql('consent')}
+		where ${sql('subjectId')} = ${identity.subjectId}
+			and ${sql('domainId')} = ${identity.domainId}
+			and ${sql('givenAt')} = ${encode(identity.givenAt)}
 			and ${
 				identity.policyId === undefined || identity.policyId === null
-					? sql`"policyId" is null`
-					: sql`"policyId" = ${identity.policyId}`
+					? sql`${sql('policyId')} is null`
+					: sql`${sql('policyId')} = ${identity.policyId}`
 			}
 			and ${
 				identity.tenantId === undefined
-					? sql`"tenantId" is null`
-					: sql`"tenantId" = ${identity.tenantId}`
+					? sql`${sql('tenantId')} is null`
+					: sql`${sql('tenantId')} = ${identity.tenantId}`
 			}
 		limit 1
 	`;
@@ -101,7 +106,7 @@ export const record = Effect.fn('consent.record')(function* (
 	// in one indexed query. Measured: skipping this short-circuit and going
 	// straight to the legacy lookup made retries about twice as slow.
 	const existing = yield* sql<{ id: string }>`
-		select "id" from "consent" where "id" = ${id}
+		select ${sql('id')} from ${sql('consent')} where ${sql('id')} = ${id}
 	`;
 	if (existing.length > 0) {
 		return { id, created: false };
@@ -115,28 +120,28 @@ export const record = Effect.fn('consent.record')(function* (
 		return { id: legacyId, created: false };
 	}
 
-	const inserted = yield* sql<{ id: string }>`
-		insert into "consent" (
-			"id", "subjectId", "domainId", "policyId", "purposeIds",
-			"metadata", "ipAddress", "userAgent", "givenAt", "tenantId"
-		) values (
-			${id},
-			${submission.subjectId},
-			${submission.domainId},
-			${submission.policyId ?? null},
-			${JSON.stringify(submission.purposeIds)},
-			${submission.metadata === undefined ? null : JSON.stringify(submission.metadata)},
-			${submission.ipAddress ?? null},
-			${submission.userAgent ?? null},
-			${submission.givenAt},
-			${submission.tenantId ?? null}
-		)
-		on conflict ("id") do nothing
-		returning "id"
-	`;
-
-	// An empty result means the conflict target matched — someone else wrote
-	// this exact submission, possibly concurrently. That is success, not
+	// `created: false` here means the conflict target matched — someone else
+	// wrote this exact submission, possibly concurrently. That is success, not
 	// failure, and it is the whole reason this is one statement.
-	return inserted.length > 0 ? { id, created: true } : { id, created: false };
+	const created = yield* insertOnce({
+		into: 'consent',
+		conflictOn: 'id',
+		values: {
+			id,
+			subjectId: submission.subjectId,
+			domainId: submission.domainId,
+			policyId: submission.policyId ?? null,
+			purposeIds: JSON.stringify(submission.purposeIds),
+			metadata:
+				submission.metadata === undefined
+					? null
+					: JSON.stringify(submission.metadata),
+			ipAddress: submission.ipAddress ?? null,
+			userAgent: submission.userAgent ?? null,
+			givenAt: submission.givenAt,
+			tenantId: submission.tenantId ?? null,
+		},
+	});
+
+	return { id, created };
 });

@@ -42,8 +42,9 @@ export const up = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const dialect = yield* Dialect.current;
 	const types = Dialect.typesFor(dialect);
+	const quote = Dialect.escaperFor(dialect);
 
 	for (const table of TABLES) {
-		yield* sql.unsafe(createTableSql(table, types));
+		yield* sql.unsafe(createTableSql(table, types, quote));
 	}
 });

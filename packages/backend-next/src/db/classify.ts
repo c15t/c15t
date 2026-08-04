@@ -34,7 +34,7 @@
  */
 
 import { Effect } from 'effect';
-import { SqlClient, SqlError } from 'effect/unstable/sql';
+import { SqlClient, type SqlError } from 'effect/unstable/sql';
 
 /** A database shape the migrator knows how to handle. */
 export type Shape =
@@ -112,9 +112,9 @@ const markerVersion = Effect.fn('classify.markerVersion')(function* (
 	table: string
 ) {
 	const sql = yield* SqlClient.SqlClient;
-	const rows = yield* sql<{ key: string; value: string }>`${sql.unsafe(
-		`select "key", "value" from "${table}"`
-	)}`;
+	const rows = yield* sql<{ key: string; value: string }>`
+		select ${sql('key')}, ${sql('value')} from ${sql(table)}
+	`;
 	return rows.find((row) => row.key === 'version')?.value;
 });
 
@@ -139,6 +139,16 @@ const looksLikeFumadb = Effect.fn('classify.looksLikeFumadb')(function* () {
 				return type === undefined ? undefined : type === 'json';
 			}),
 		sqlite: () => Effect.succeed(undefined),
+		// On MySQL the question does not arise: fumadb cannot migrate MySQL in
+		// either era, so no fumadb-shaped MySQL database exists to confuse this
+		// with. Both `fumadb-1.0.0/mysql` and `fumadb-2.0.0/mysql` fixtures
+		// record a migration failure rather than a schema.
+		//
+		// Answering by column type would get it wrong rather than merely be
+		// unhelpful: legacy MySQL declares `consent.metadata` as `json`, the
+		// same as the `orElse` branch treats as proof of fumadb. Postgres is
+		// where that test works, because legacy declares `jsonb` there.
+		mysql: () => Effect.succeed(false),
 	});
 });
 
@@ -210,8 +220,9 @@ export const classify: Effect.Effect<
 		_tag: 'Unknown',
 		tables: [...observed.tables].sort(),
 		why:
-			'No version marker, and this engine cannot distinguish a legacy schema ' +
-			'from an ORM-applied fumadb 1.0.0 by column type (SQLite collapses both ' +
-			'to TEXT). Re-run with --assume-shape to state which it is.',
+			'No version marker, and a legacy schema cannot be told apart from an ' +
+			'ORM-applied fumadb 1.0.0 by column type here — SQLite collapses both ' +
+			'to TEXT, and elsewhere the deciding column is missing. Re-run with ' +
+			'--assume-shape to state which it is.',
 	} as const;
 });
