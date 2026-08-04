@@ -27,6 +27,7 @@ import { getMetrics } from '~/utils/metrics';
 import { enforceWriteAbuseControl } from '~/write-integrity/abuse-control';
 import { resolveWriteIntegrityOptions } from '~/write-integrity/configuration';
 import { resolveWriteDomain } from '~/write-integrity/domain';
+import { linkSubjectIdentity } from '~/write-integrity/identity-linking';
 import {
 	buildWriteRequestFingerprint,
 	consumeWriteReplay,
@@ -429,7 +430,12 @@ export const postSubjectHandler = async (c: Context) => {
 				throw buildCapabilityHttpException(capability.reason);
 			}
 
-			const { subjectCapability: _proof, ...requestInput } = input;
+			const {
+				subjectCapability: _proof,
+				identitySubjectCapability: _identityCapability,
+				identityAssertion: _identityAssertion,
+				...requestInput
+			} = input;
 			const requestFingerprint = await buildWriteRequestFingerprint({
 				action: 'consent:create',
 				tenantId: ctx.tenantId ?? null,
@@ -573,8 +579,14 @@ export const postSubjectHandler = async (c: Context) => {
 		// Find or create subject with the client-provided ID
 		const subject = await registry.findOrCreateSubject({
 			subjectId,
-			externalSubjectId,
-			identityProvider,
+			externalSubjectId:
+				writeIntegrity.identityLinking.mode === 'legacy'
+					? externalSubjectId
+					: undefined,
+			identityProvider:
+				writeIntegrity.identityLinking.mode === 'legacy'
+					? identityProvider
+					: undefined,
 			ipAddress: ctx.ipAddress,
 		});
 
@@ -586,6 +598,22 @@ export const postSubjectHandler = async (c: Context) => {
 		}
 
 		logger.debug('Subject found/created', { subjectId: subject.id });
+
+		if (externalSubjectId && writeIntegrity.identityLinking.mode !== 'legacy') {
+			await linkSubjectIdentity({
+				ctx,
+				writeIntegrity,
+				input: {
+					subjectId,
+					externalId: externalSubjectId,
+					identityProvider: identityProvider ?? 'external',
+					domain: resolvedDomain.domain,
+					subjectCapability: input.identitySubjectCapability,
+					identityAssertion: input.identityAssertion,
+					request,
+				},
+			});
+		}
 
 		const domainRecord =
 			resolvedDomain.mode === 'configured'

@@ -125,6 +125,24 @@ const baseSubjectConsentSchema = v.object({
 			)
 		)
 	),
+	/** Short-lived capability authorizing the optional identity link */
+	identitySubjectCapability: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Short-lived subject capability authorizing the optional identity link.'
+			)
+		)
+	),
+	/** App-server assertion binding the optional external identity */
+	identityAssertion: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Application-server assertion binding this subject to the optional external identity.'
+			)
+		)
+	),
 	/** Signed legal-document snapshot token from a rendered document view */
 	documentSnapshotToken: v.optional(
 		v.pipe(

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchMock, mockLocalStorage } from '../../../../vitest.setup';
 import { setDebugEnabled } from '../../../libs/debug';
 import { STORAGE_KEY_V2 } from '../../../store/initial-state';
@@ -39,7 +39,7 @@ describe('Hosted Client identifyUser Tests', () => {
 		const response = await client.identifyUser({
 			body: {
 				subjectId: 'sub_test123abc',
-				externalId: 'user_123',
+				externalId: 'secure_rejected_user',
 				identityProvider: 'clerk',
 			},
 		});
@@ -230,6 +230,69 @@ describe('Hosted Client identifyUser Tests', () => {
 
 		// Assertions - 404 should use fallback (optimistic)
 		expect(response.ok).toBe(true);
+	});
+
+	it('does not turn secure identity rejection into offline success', async () => {
+		fetchMock.mockResolvedValueOnce(
+			new Response(
+				JSON.stringify({
+					message: 'Subject capability is required',
+					code: 'SUBJECT_CAPABILITY_REQUIRED',
+				}),
+				{
+					status: 401,
+					headers: { 'Content-Type': 'application/json' },
+				}
+			)
+		);
+		const client = configureConsentManager({
+			mode: 'hosted',
+			backendURL: '/api/c15t',
+		});
+
+		const response = await client.identifyUser({
+			body: {
+				subjectId: 'sub_test123abc',
+				externalId: 'user_123',
+			},
+		});
+
+		expect(response.ok).toBe(false);
+		expect(response.error?.code).toBe('SUBJECT_CAPABILITY_REQUIRED');
+		expect(
+			mockLocalStorage.getItem('c15t-pending-identify-submissions')
+		).toBeNull();
+		expect(mockLocalStorage.getItem(STORAGE_KEY_V2)).not.toContain(
+			'secure_rejected_user'
+		);
+	});
+
+	it('does not queue short-lived identity proofs after a network failure', async () => {
+		fetchMock.mockRejectedValueOnce(new Error('Network error'));
+		const client = configureConsentManager({
+			mode: 'hosted',
+			backendURL: '/api/c15t',
+			retryConfig: { maxRetries: 0, retryOnNetworkError: false },
+		});
+
+		const response = await client.identifyUser({
+			body: {
+				subjectId: 'sub_test123abc',
+				externalId: 'secure_network_user',
+				domain: 'example.com',
+				subjectCapability: 'short-lived-proof',
+				identityAssertion: 'short-lived-assertion',
+			},
+		});
+
+		expect(response.ok).toBe(false);
+		expect(response.error?.code).toBe('NETWORK_ERROR');
+		expect(
+			mockLocalStorage.getItem('c15t-pending-identify-submissions')
+		).toBeNull();
+		expect(mockLocalStorage.getItem(STORAGE_KEY_V2)).not.toContain(
+			'secure_network_user'
+		);
 	});
 
 	it('should still support the legacy id alias for subjectId', async () => {

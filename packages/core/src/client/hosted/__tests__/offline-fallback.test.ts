@@ -129,6 +129,45 @@ describe('Hosted Client Offline Fallback Tests', () => {
 		);
 	});
 
+	it('does not queue proof-bound consent after a secure rejection', async () => {
+		fetchMock.mockResolvedValueOnce(
+			new Response(
+				JSON.stringify({
+					message: 'Subject capability is invalid',
+					code: 'SUBJECT_CAPABILITY_INVALID',
+				}),
+				{
+					status: 403,
+					headers: { 'Content-Type': 'application/json' },
+				}
+			)
+		);
+		const client = configureConsentManager({
+			mode: 'hosted',
+			backendURL: '/api/c15t',
+		});
+
+		const response = await client.setConsent({
+			body: {
+				subjectId: 'sub_test123abc',
+				type: 'other',
+				domain: 'example.com',
+				givenAt: Date.now(),
+				subjectCapability: 'short-lived-proof',
+				preferences: { secureRejectedCategory: true },
+			},
+		});
+
+		expect(response.ok).toBe(false);
+		expect(response.error?.code).toBe('SUBJECT_CAPABILITY_INVALID');
+		expect(
+			mockLocalStorage.getItem('c15t-pending-consent-submissions')
+		).toBeNull();
+		expect(mockLocalStorage.getItem(STORAGE_KEY_V2)).not.toContain(
+			'secureRejectedCategory'
+		);
+	});
+
 	it('should store multiple pending submissions of different types', async () => {
 		// Mock multiple failed API responses
 		fetchMock.mockRejectedValue(new Error('Network error'));

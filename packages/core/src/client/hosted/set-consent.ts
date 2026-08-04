@@ -1,4 +1,8 @@
-import { saveConsentToStorage } from '../../libs/cookie';
+import {
+	deleteConsentFromStorage,
+	getConsentFromStorage,
+	saveConsentToStorage,
+} from '../../libs/cookie';
 import { getDebugLogger } from '../../libs/debug';
 import type {
 	SetConsentRequestBody,
@@ -110,19 +114,45 @@ export async function setConsent(
 	storageConfig: import('../../libs/cookie').StorageConfig | undefined,
 	options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 ): Promise<ResponseContext<SetConsentResponse>> {
-	saveConsentToStorage(
-		{
-			consents: options?.body?.preferences || {},
-			consentInfo: {
-				time: Date.now(),
-				subjectId: options?.body?.subjectId,
-				externalId: options?.body?.externalSubjectId,
-				identityProvider: options?.body?.identityProvider,
-			},
-		},
-		undefined,
-		storageConfig
+	const existingData = getConsentFromStorage<{
+		consents?: import('../../types/compliance').ConsentState;
+		consentInfo?: import('../../types/consent-types').ConsentInfo;
+	}>(storageConfig);
+	const hasWriteProof = Boolean(
+		options?.body?.subjectCapability ||
+			options?.body?.identitySubjectCapability ||
+			options?.body?.identityAssertion
 	);
+	const persistConsent = () =>
+		saveConsentToStorage(
+			{
+				consents: options?.body?.preferences || {},
+				consentInfo: {
+					time: Date.now(),
+					subjectId: options?.body?.subjectId,
+					externalId: options?.body?.externalSubjectId,
+					identityProvider: options?.body?.identityProvider,
+				},
+			},
+			undefined,
+			storageConfig
+		);
+	const restoreConsent = () => {
+		deleteConsentFromStorage(undefined, storageConfig);
+		if (existingData?.consentInfo) {
+			saveConsentToStorage(
+				{
+					consents: existingData.consents || {},
+					consentInfo: existingData.consentInfo,
+				},
+				undefined,
+				storageConfig
+			);
+		}
+	};
+	if (!hasWriteProof) {
+		persistConsent();
+	}
 
 	const response = await withFallback<
 		SetConsentResponse,
@@ -134,8 +164,25 @@ export async function setConsent(
 		options,
 		async (fallbackOptions) => {
 			return offlineFallbackForSetConsent(storageConfig, fallbackOptions);
+		},
+		{
+			shouldFallback: (failedResponse) => {
+				const status = failedResponse.error?.status;
+				return (
+					!hasWriteProof && status !== 401 && status !== 403 && status !== 409
+				);
+			},
+			fallbackOnError: !hasWriteProof,
 		}
 	);
+	if (response.ok && hasWriteProof) {
+		persistConsent();
+	} else if (
+		!response.ok &&
+		[401, 403, 409].includes(response.error?.status ?? 0)
+	) {
+		restoreConsent();
+	}
 
 	return response;
 }

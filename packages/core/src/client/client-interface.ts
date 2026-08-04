@@ -52,6 +52,15 @@ type IdentifyUserRequestBodyBase = {
 
 	/** Identity provider name (optional) */
 	identityProvider?: string;
+
+	/** Domain the identity link is authorized for */
+	domain?: string;
+
+	/** Short-lived capability authorizing this identity operation */
+	subjectCapability?: string;
+
+	/** App-server assertion binding the requested external identity */
+	identityAssertion?: string;
 };
 
 type IdentifyUserRequestBodyWithSubjectId = IdentifyUserRequestBodyBase & {

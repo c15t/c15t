@@ -2,6 +2,13 @@ import type { FetchOptions, ResponseContext } from '../types';
 import type { FetcherContext } from './fetcher';
 import { fetcher } from './fetcher';
 
+interface FallbackPolicy<ResponseType> {
+	/** Whether a non-success response should be replaced by offline fallback. */
+	shouldFallback?: (response: ResponseContext<ResponseType>) => boolean;
+	/** Whether thrown request errors should use offline fallback. */
+	fallbackOnError?: boolean;
+}
+
 /**
  * Generic fallback/retry wrapper for API requests.
  * Attempts to call the API, and if it fails, calls the provided fallback function.
@@ -25,7 +32,8 @@ export async function withFallback<
 	options: FetchOptions<ResponseType, BodyType, QueryType> | undefined,
 	fallbackFn: (
 		options?: FetchOptions<ResponseType, BodyType, QueryType>
-	) => Promise<ResponseContext<ResponseType>>
+	) => Promise<ResponseContext<ResponseType>>,
+	policy: FallbackPolicy<ResponseType> = {}
 ): Promise<ResponseContext<ResponseType>> {
 	try {
 		// First try the actual API request
@@ -42,6 +50,9 @@ export async function withFallback<
 		if (response.ok) {
 			return response;
 		}
+		if (policy.shouldFallback && !policy.shouldFallback(response)) {
+			return response;
+		}
 
 		// If we got here, the request failed but didn't throw - fall back to offline mode
 		console.warn(
@@ -49,6 +60,9 @@ export async function withFallback<
 		);
 		return fallbackFn(options);
 	} catch (error) {
+		if (policy.fallbackOnError === false) {
+			throw error;
+		}
 		// If an error was thrown, fall back to offline mode
 		console.warn(
 			`Error calling ${endpoint}, falling back to offline mode:`,

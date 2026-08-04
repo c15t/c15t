@@ -1,5 +1,9 @@
 import type { StorageConfig } from '../../libs/cookie';
-import { getConsentFromStorage, saveConsentToStorage } from '../../libs/cookie';
+import {
+	deleteConsentFromStorage,
+	getConsentFromStorage,
+	saveConsentToStorage,
+} from '../../libs/cookie';
 import { getDebugLogger } from '../../libs/debug';
 import type { ConsentState } from '../../types/compliance';
 import type { ConsentInfo } from '../../types/consent-types';
@@ -103,6 +107,9 @@ export async function identifyUser(
 ): Promise<ResponseContext<IdentifyUserResponse>> {
 	const { body, ...restOptions } = options;
 	const subjectId = getIdentifySubjectId(body);
+	const hasWriteProof = Boolean(
+		body?.subjectCapability || body?.identityAssertion
+	);
 
 	if (!body || !subjectId) {
 		return {
@@ -117,7 +124,9 @@ export async function identifyUser(
 		};
 	}
 
-	// 1. Save externalId to storage FIRST (optimistic update)
+	// 1. Preserve the legacy optimistic update for proofless requests. Proofs
+	// are short-lived and must never turn a rejected server write into local
+	// success.
 	// This ensures the externalId is persisted even if the API call fails
 	// Read existing data to preserve consents
 	const existingData = getConsentFromStorage<{
@@ -125,20 +134,38 @@ export async function identifyUser(
 		consentInfo?: ConsentInfo;
 	}>(storageConfig);
 
-	saveConsentToStorage(
-		{
-			consents: existingData?.consents || {},
-			consentInfo: {
-				...existingData?.consentInfo,
-				time: existingData?.consentInfo?.time || Date.now(),
-				subjectId,
-				externalId: body.externalId,
-				identityProvider: body.identityProvider,
+	const persistIdentity = () => {
+		saveConsentToStorage(
+			{
+				consents: existingData?.consents || {},
+				consentInfo: {
+					...existingData?.consentInfo,
+					time: existingData?.consentInfo?.time || Date.now(),
+					subjectId,
+					externalId: body.externalId,
+					identityProvider: body.identityProvider,
+				},
 			},
-		},
-		undefined,
-		storageConfig
-	);
+			undefined,
+			storageConfig
+		);
+	};
+	const restoreIdentity = () => {
+		deleteConsentFromStorage(undefined, storageConfig);
+		if (existingData?.consentInfo) {
+			saveConsentToStorage(
+				{
+					consents: existingData.consents || {},
+					consentInfo: existingData.consentInfo,
+				},
+				undefined,
+				storageConfig
+			);
+		}
+	};
+	if (!hasWriteProof) {
+		persistIdentity();
+	}
 
 	// 2. Build the path with the subject ID
 	const path = `${API_ENDPOINTS.PATCH_SUBJECT}/${subjectId}`;
@@ -147,7 +174,7 @@ export async function identifyUser(
 	const { subjectId: _subjectId, id: _legacySubjectId, ...patchBody } = body;
 
 	// 3. Make API call with fallback
-	return withFallback<IdentifyUserResponse, typeof patchBody>(
+	const response = await withFallback<IdentifyUserResponse, typeof patchBody>(
 		context,
 		path,
 		'PATCH',
@@ -162,6 +189,26 @@ export async function identifyUser(
 				...fallbackOptions,
 				body: fullBody as IdentifyUserRequestBody,
 			});
+		},
+		{
+			shouldFallback: (failedResponse) => {
+				const status = failedResponse.error?.status;
+				return (
+					!hasWriteProof && status !== 401 && status !== 403 && status !== 409
+				);
+			},
+			fallbackOnError: !hasWriteProof,
 		}
 	);
+
+	if (response.ok && hasWriteProof) {
+		persistIdentity();
+	} else if (
+		!response.ok &&
+		[401, 403, 409].includes(response.error?.status ?? 0)
+	) {
+		restoreIdentity();
+	}
+
+	return response;
 }

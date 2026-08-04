@@ -6,10 +6,11 @@
 
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { generateUniqueId } from '~/db/registry/utils';
 import type { C15TContext } from '~/types';
 import { extractErrorMessage } from '~/utils/extract-error-message';
 import { getMetrics } from '~/utils/metrics';
+import { resolveWriteIntegrityOptions } from '~/write-integrity/configuration';
+import { linkSubjectIdentity } from '~/write-integrity/identity-linking';
 
 /**
  * Handles linking an external ID to a subject.
@@ -23,15 +24,22 @@ export const patchSubjectHandler = async (c: Context) => {
 	const logger = ctx.logger;
 	logger.info('Handling PATCH /subjects/:id request');
 
-	const { db } = ctx;
-
 	// Get input from validated params and body
 	const subjectId = c.req.param('id');
 	const body = await c.req.json<{
 		externalId: string;
 		identityProvider?: string;
+		domain?: string;
+		subjectCapability?: string;
+		identityAssertion?: string;
 	}>();
-	const { externalId, identityProvider = 'external' } = body;
+	const {
+		externalId,
+		identityProvider = 'external',
+		domain,
+		subjectCapability,
+		identityAssertion,
+	} = body;
 
 	if (!subjectId) {
 		throw new HTTPException(400, {
@@ -47,56 +55,29 @@ export const patchSubjectHandler = async (c: Context) => {
 	});
 
 	try {
-		// Find the subject
-		const subject = await db.findFirst('subject', {
-			where: (b) => b('id', '=', subjectId),
-		});
-
-		if (!subject) {
-			throw new HTTPException(404, {
-				message: 'Subject not found',
-				cause: { code: 'SUBJECT_NOT_FOUND', subjectId },
-			});
-		}
-
-		// Update the subject with externalId (no merge logic)
-		await db.transaction(async (tx) => {
-			await tx.updateMany('subject', {
-				where: (b) => b('id', '=', subjectId),
-				set: {
-					externalId,
-					identityProvider,
-					updatedAt: new Date(),
-				},
-			});
-
-			// Create audit log
-			await tx.create('auditLog', {
-				id: await generateUniqueId(tx, 'auditLog', ctx),
+		const request = c.req.raw ?? new Request('https://c15t.local/subjects');
+		const writeIntegrity = resolveWriteIntegrityOptions(
+			ctx.writeIntegrity
+		).config;
+		const result = await linkSubjectIdentity({
+			ctx,
+			writeIntegrity,
+			input: {
 				subjectId,
-				entityType: 'subject',
-				entityId: subjectId,
-				actionType: 'identify_user',
-				ipAddress: ctx.ipAddress || null,
-				userAgent: ctx.userAgent || null,
-				changes: {
-					externalId: { from: subject.externalId, to: externalId },
-					identityProvider: {
-						from: subject.identityProvider,
-						to: identityProvider,
-					},
-				},
-				metadata: {
-					externalId,
-					identityProvider,
-				},
-			});
+				externalId,
+				identityProvider,
+				domain,
+				subjectCapability,
+				identityAssertion,
+				request,
+			},
 		});
 
 		logger.info('Subject linked to external ID', {
 			subjectId,
 			externalId,
 			identityProvider,
+			status: result.status,
 		});
 
 		getMetrics()?.recordSubjectLinked(identityProvider);

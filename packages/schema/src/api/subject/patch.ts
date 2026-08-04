@@ -31,6 +31,34 @@ export const patchSubjectInputSchema = v.object({
 			v.examples(['auth0', 'clerk'])
 		)
 	),
+	/** Domain the identity link is authorized for */
+	domain: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Domain for identity-link authorization. May be omitted when the backend resolves it from trusted request context.'
+			),
+			v.examples(['example.com'])
+		)
+	),
+	/** Short-lived capability authorizing this identity operation */
+	subjectCapability: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Short-lived subject capability authorizing this identity operation.'
+			)
+		)
+	),
+	/** App-server assertion binding the requested external identity */
+	identityAssertion: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Application-server assertion binding this subject to the requested external identity.'
+			)
+		)
+	),
 });
 
 /**
