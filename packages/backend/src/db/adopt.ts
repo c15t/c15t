@@ -114,7 +114,7 @@ const observeExisting = Effect.fn('adopt.observe')(function* () {
 		orElse: () =>
 			sql<{ table_name: string; column_name: string }>`
 				select table_name, column_name from information_schema.columns
-				where table_schema = 'public'
+				where table_schema = current_schema()
 			`,
 	});
 

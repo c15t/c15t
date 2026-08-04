@@ -121,7 +121,7 @@ const ledgerExists = Effect.gen(function* () {
 		orElse: () =>
 			sql<{ name: string }>`
 				select table_name as name from information_schema.tables
-				where table_schema = 'public' and table_name = ${LEDGER_TABLE}
+				where table_schema = current_schema() and table_name = ${LEDGER_TABLE}
 			`,
 	});
 	return rows.length > 0;
@@ -155,6 +155,48 @@ const stamp = Effect.fn('migrate.stamp')(function* (migration: Migration) {
 });
 
 /**
+ * Creates the configured Postgres schema if it is missing.
+ *
+ * A `search_path` naming a schema that does not exist leaves
+ * `current_schema()` null, and every `create table` then fails with something
+ * that does not mention schemas at all. Creating it is what a migration tool
+ * is for — Flyway, Liquibase and Prisma all do the same — and it is a no-op
+ * once it exists.
+ *
+ * Postgres only: MySQL scopes by database and SQLite by file, neither of
+ * which a migrator should be creating behind the operator's back.
+ */
+const ensureSchema = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+
+	yield* sql.onDialectOrElse({
+		pg: () =>
+			Effect.gen(function* () {
+				const rows = yield* sql<{ schema: string | null }>`
+					select current_schema() as ${sql('schema')}
+				`;
+				if (rows[0]?.schema !== null && rows[0]?.schema !== undefined) {
+					return;
+				}
+
+				// `search_path` points somewhere that does not exist yet. Its head
+				// is the name to create.
+				const path = yield* sql<{ search_path: string }>`show search_path`;
+				const head = (path[0]?.search_path ?? '')
+					.split(',')[0]
+					?.trim()
+					.replace(/^"|"$/g, '');
+
+				if (!head || head === '$user') {
+					return;
+				}
+				yield* sql.unsafe(`create schema if not exists "${head}"`);
+			}),
+		orElse: () => Effect.void,
+	});
+});
+
+/**
  * Migrates a database to the current schema.
  *
  * Safe to re-run: a database already up to date does nothing and reports an
@@ -172,6 +214,8 @@ const stamp = Effect.fn('migrate.stamp')(function* (migration: Migration) {
 export const migrate = Effect.fn('db.migrate')(function* (
 	options: MigrateOptions = {}
 ) {
+	yield* ensureSchema;
+
 	const shape = yield* classify;
 	const adoption = yield* plan;
 

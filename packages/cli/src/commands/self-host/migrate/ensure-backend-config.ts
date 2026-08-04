@@ -73,13 +73,22 @@ export async function pathExists(filePath: string): Promise<boolean> {
 export function buildConfig(dialect: Dialect): string {
 	const { envVar, placeholder, field } = DIALECTS[dialect];
 
+	// Postgres is the only engine that needs an isolation option: MySQL scopes
+	// by database and SQLite by file, both of which the connection already
+	// names. Commented rather than omitted so it is discoverable by whoever
+	// shares a database with another application.
+	const scoping =
+		dialect === 'postgres'
+			? "\n\t\t// Keep c15t's tables out of `public`, if you share this database:\n\t\t// schema: 'c15t',"
+			: '';
+
 	return `import { defineConfig } from '@c15t/backend';
 
 export default defineConfig({
 	database: {
 		dialect: '${dialect}',
 		// e.g. ${placeholder}
-		${field}: process.env.${envVar} ?? '',
+		${field}: process.env.${envVar} ?? '',${scoping}
 	},
 });
 `;

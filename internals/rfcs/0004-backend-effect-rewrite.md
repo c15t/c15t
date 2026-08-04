@@ -1075,3 +1075,68 @@ prefix-aware resolver threaded through the query layer — the same shape as
 `Tenant`, and roughly the same reach. The alternative is a documented break
 with a rename step in the upgrade guide, which is what the refusal message
 currently tells operators to do.
+
+### 11.21 Schema scoping, and why only Postgres gets an option
+
+Raised on #980: a self-hoster running c15t in the same process as their app
+wants it scoped rather than "cannibalising `public`". Two related asks came
+with it — bring-your-own-database with renameable columns, and not bundling a
+second copy of the user's ORM.
+
+**The ORM one is already answered by the rewrite**, and is worth stating
+plainly because it is the clearest external validation of it. The package's
+runtime dependencies are `@c15t/schema`, `effect`, `evlog`, `hono`,
+`hono-openapi`, `jose` and `valibot`. No Kysely, Drizzle, fumadb, Prisma,
+TypeORM or MongoDB — the drivers are optional peers. Two copies of the same
+ORM drifting out of sync is structurally impossible. The trade, already noted
+in §2, is that c15t opens its own pool rather than borrowing the caller's.
+
+**Schema scoping is implemented, and it turned out to be small.** The
+mechanism is `search_path` on the connection, not qualified table names:
+
+- a pool hands out many connections, so a one-off `SET search_path` would
+  scope exactly one of them — and would pass a PGlite test, which has a single
+  connection, while failing in production;
+- put on the connection string instead, it applies to every checkout.
+  Verified against a real pooled Postgres: `current_schema()` reports the
+  configured schema on all of them and an unqualified `create table` lands
+  there.
+
+The consequence is that **no query in the package had to change**. All 24
+unqualified table references resolve into the schema by themselves. Only the
+three introspection queries needed touching, and they now ask
+`current_schema()` rather than assuming `public` — which also means a caller
+who sets `search_path` their own way is handled without knowing about our
+option. `migrate` creates the schema when it is missing, as migration tools
+do, because a `search_path` pointing at a schema that does not exist fails
+with an error that never mentions schemas.
+
+**No equivalent option for MySQL or SQLite, deliberately.** Each already has
+an isolation primitive that the connection names:
+
+| Engine | Unit of isolation | How you scope c15t |
+| --- | --- | --- |
+| Postgres | schema, within one database | `schema: 'c15t'` |
+| MySQL | the database itself | point `url` at a different database |
+| SQLite | the file | point `filename` at a different file |
+
+Offering one `schema` option that meant three different things — a namespace,
+a database, an `ATTACH`-ed file — would be worse than not offering it, so it
+lives on the Postgres member of the config union and is a type error elsewhere.
+
+**Column renaming is not implemented and should not be.** fumadb supports it;
+`@c15t/backend` never exposed it, so nothing depends on it. Adding it means a
+name resolver at all 80 column references plus every `sql.insert` key —
+reintroducing exactly the indirection layer §2 argues produced the join-less
+query surface. The stated motivations behind the ask — adding indexes,
+timestamps and triggers — need no such thing: those are changes to the
+operator's own database, and adoption is add-only with a runtime guard against
+destructive DDL, so it will not fight them.
+
+**On the upstream fumadb MySQL fix.** 0.4.0 and 0.5.x have published since the
+0.3.0 that §3.5 tested. Unpacking 0.5.1 was inconclusive — the only
+`varchar(255)` is a type-prediction fallback for primary keys and the settings
+table, not the unique-index-on-`TEXT` case that actually failed. Re-running the
+fixture generator against it is the way to settle it. It would not change much
+either way: MySQL was one defect among the join-less surface, the total absence
+of indexes, and three of five adapters having no working migrator.
