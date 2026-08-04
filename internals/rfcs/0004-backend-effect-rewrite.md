@@ -856,3 +856,34 @@ unclassifiable on MySQL. §11.7 made MySQL answer "legacy" by elimination,
 because fumadb cannot migrate MySQL in either era — so the "refuse rather than
 guess" case needs a fumadb marker naming an unknown schema version, which is
 unrecognisable on all three engines.
+
+### 11.13 The CLI's migrate command, rewritten
+
+§11.11 called `@c15t/cli` the real remaining cutover work. It was smaller than
+it looked, because most of what the command did existed only to work around
+fumadb.
+
+`self-host migrate` in 2.x asked which of five ORM adapters you used, then
+which provider that adapter supported, then assembled a matching `adapter:`
+expression and worked out which packages to install — 481 lines of it. Then it
+branched: a real migration for Kysely and Mongo, or, for Drizzle, Prisma and
+TypeORM, **writing a schema file for the operator to apply themselves**. And on
+MySQL it could not migrate at all, whichever adapter was chosen.
+
+There is one path now. One question — which engine, of three — and all three
+migrate. The ORM branch is deleted outright rather than ported, along with
+`orm-result.ts` and `migrator-result.ts`.
+
+The command dry-runs first and always: it plans, prints what it found, and asks
+before writing. `MigrateReport.retained` is surfaced in that output, because a
+1.x database keeps the columns 2.0.0 dropped — `consent.status`,
+`consentRecord` and the rest — and an operator should be told those survived
+rather than discover it later.
+
+**`createMigrator` exists so the CLI never imports Effect.** It wraps
+`migrate()` as `plan`/`apply`/`dispose`. Requiring a `ManagedRuntime` to run one
+migration would have been the same mistake as requiring a `Layer` to point the
+backend at a database (§11.10), and the same reasoning applies to a
+self-hoster's deploy script.
+
+Imports still say `@c15t/backend-next`; the rename flips them in one pass.

@@ -215,7 +215,7 @@ function getNextSteps(
 			break;
 
 		case STORAGE_MODES.SELF_HOSTED:
-			steps.push(`Set up your c15t backend server`);
+			steps.push('Set up your c15t backend server');
 			steps.push(
 				`Update ${color.cyan('c15t.config.ts')} with your backend URL`
 			);
@@ -232,9 +232,9 @@ function getNextSteps(
 
 	// Framework-specific steps
 	if (framework === 'Next.js') {
-		steps.push(`Add the ConsentManager to your layout or _app file`);
+		steps.push('Add the ConsentManager to your layout or _app file');
 	} else if (framework === 'React' || framework === 'Vite + React') {
-		steps.push(`Import ConsentManager in your App.tsx/main.tsx`);
+		steps.push('Import ConsentManager in your App.tsx/main.tsx');
 	}
 
 	// Common steps

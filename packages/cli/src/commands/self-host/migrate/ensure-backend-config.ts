@@ -1,95 +1,21 @@
+/**
+ * Finding, or creating, `c15t-backend.config.ts`.
+ *
+ * This replaces a 481-line adapter picker, and the shrinkage is the point
+ * rather than a tidy-up. c15t 2.x asked which of five ORM adapters you used,
+ * then which provider that adapter supported, then assembled a matching
+ * `adapter:` expression and worked out the packages to install. Three of those
+ * five adapters had no working migrator at the end of it, so the command
+ * printed schema code at you to apply yourself.
+ *
+ * 3.0 connects to the database directly. There is one question worth asking —
+ * which engine — and the answer is one of three. All three migrate.
+ */
+
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { drizzleAdapter } from '@c15t/backend/db/adapters/drizzle';
-import type { kyselyAdapter } from '@c15t/backend/db/adapters/kysely';
-import type { mongoAdapter } from '@c15t/backend/db/adapters/mongo';
-import type { prismaAdapter } from '@c15t/backend/db/adapters/prisma';
-import type { typeormAdapter } from '@c15t/backend/db/adapters/typeorm';
 import * as p from '@clack/prompts';
 import type { CliContext } from '~/context/types';
-
-type AdapterKey =
-	| 'kyselyAdapter'
-	| 'drizzleAdapter'
-	| 'prismaAdapter'
-	| 'typeormAdapter'
-	| 'mongoAdapter';
-
-type KysleyProviders = Parameters<typeof kyselyAdapter>[0]['provider'];
-type DrizzleProviders = Parameters<typeof drizzleAdapter>[0]['provider'];
-type PrismaProviders = Parameters<typeof prismaAdapter>[0]['provider'];
-type TypeormProviders = Parameters<typeof typeormAdapter>[0]['provider'];
-type MongoProviders = Parameters<typeof mongoAdapter>[0] extends {
-	provider: infer P;
-}
-	? P
-	: 'mongodb';
-
-const ADAPTER_LABELS: Record<AdapterKey, string> = {
-	kyselyAdapter: 'kysely',
-	drizzleAdapter: 'drizzle',
-	prismaAdapter: 'prisma',
-	typeormAdapter: 'typeorm',
-	mongoAdapter: 'mongo',
-};
-
-type ProviderOption<ProviderUnion extends string> = {
-	label: string;
-	value: ProviderUnion;
-};
-
-const PROVIDERS_BY_ADAPTER: {
-	kyselyAdapter: ProviderOption<KysleyProviders>[];
-	drizzleAdapter: ProviderOption<DrizzleProviders>[];
-	prismaAdapter: ProviderOption<PrismaProviders>[];
-	typeormAdapter: ProviderOption<TypeormProviders>[];
-	mongoAdapter: ProviderOption<'mongodb'>[];
-} = {
-	kyselyAdapter: [
-		{ label: 'PostgreSQL', value: 'postgresql' },
-		{ label: 'MySQL', value: 'mysql' },
-		{ label: 'SQLite', value: 'sqlite' },
-		{ label: 'CockroachDB', value: 'cockroachdb' },
-		{ label: 'Microsoft SQL Server', value: 'mssql' },
-	],
-	drizzleAdapter: [
-		{ label: 'PostgreSQL', value: 'postgresql' },
-		{ label: 'MySQL', value: 'mysql' },
-		{ label: 'SQLite', value: 'sqlite' },
-	],
-	prismaAdapter: [
-		{ label: 'PostgreSQL', value: 'postgresql' },
-		{ label: 'MySQL', value: 'mysql' },
-		{ label: 'SQLite', value: 'sqlite' },
-		{ label: 'MongoDB', value: 'mongodb' },
-	],
-	typeormAdapter: [
-		{ label: 'PostgreSQL', value: 'postgresql' },
-		{ label: 'MySQL', value: 'mysql' },
-		{ label: 'SQLite', value: 'sqlite' },
-		{ label: 'SQL Server', value: 'mssql' },
-	],
-	mongoAdapter: [{ label: 'MongoDB', value: 'mongodb' }],
-};
-
-type ConnectionInput = {
-	useEnv: boolean;
-	envVar?: string;
-	value?: string;
-	sqliteFile?: string;
-};
-
-type ProviderFor<Adapter extends AdapterKey> = Adapter extends 'kyselyAdapter'
-	? KysleyProviders
-	: Adapter extends 'drizzleAdapter'
-		? DrizzleProviders
-		: Adapter extends 'prismaAdapter'
-			? PrismaProviders
-			: Adapter extends 'typeormAdapter'
-				? TypeormProviders
-				: Adapter extends 'mongoAdapter'
-					? MongoProviders
-					: never;
 
 class Cancelled extends Error {
 	stage: string;
@@ -99,28 +25,34 @@ class Cancelled extends Error {
 	}
 }
 
-const CONFIG_BUILDERS: {
-	[K in AdapterKey]: (
-		provider: ProviderFor<K>,
-		connection: ConnectionInput
-	) => string;
-} = {
-	kyselyAdapter: (provider) => {
-		return `kyselyAdapter({ provider: '${provider}', db })`;
+export const CONFIG_FILENAME = 'c15t-backend.config.ts';
+
+/** The engines c15t supports, and what each needs to connect. */
+export const DIALECTS = {
+	postgres: {
+		label: 'PostgreSQL',
+		driver: '@effect/sql-pg',
+		envVar: 'DATABASE_URL',
+		field: 'url',
+		placeholder: 'postgres://user:password@localhost:5432/c15t',
 	},
-	drizzleAdapter: (provider) => {
-		return `drizzleAdapter({ provider: '${provider}', db })`;
+	mysql: {
+		label: 'MySQL',
+		driver: '@effect/sql-mysql2',
+		envVar: 'DATABASE_URL',
+		field: 'url',
+		placeholder: 'mysql://user:password@localhost:3306/c15t',
 	},
-	prismaAdapter: (provider) => {
-		return `prismaAdapter({ provider: '${provider}', prisma })`;
+	sqlite: {
+		label: 'SQLite',
+		driver: '@effect/sql-sqlite-node',
+		envVar: 'DATABASE_PATH',
+		field: 'filename',
+		placeholder: './c15t.db',
 	},
-	typeormAdapter: (provider) => {
-		return `typeormAdapter({ provider: '${provider}', source })`;
-	},
-	mongoAdapter: () => {
-		return 'mongoAdapter({ client })';
-	},
-};
+} as const;
+
+export type Dialect = keyof typeof DIALECTS;
 
 export async function pathExists(filePath: string): Promise<boolean> {
 	try {
@@ -131,344 +63,79 @@ export async function pathExists(filePath: string): Promise<boolean> {
 	}
 }
 
-function buildDatabaseConfig<A extends AdapterKey>(
-	adapter: A,
-	provider: ProviderFor<A>,
-	connection: ConnectionInput
-): string {
-	const builder = CONFIG_BUILDERS[adapter] as (
-		provider: ProviderFor<A>,
-		connection: ConnectionInput
-	) => string;
-	return builder(provider, connection);
-}
+/**
+ * The generated config file.
+ *
+ * The connection is read from the environment rather than written into a file
+ * that lands in version control — a database URL carries credentials. The 2.x
+ * templates did the same, for the same reason.
+ */
+export function buildConfig(dialect: Dialect): string {
+	const { envVar, placeholder, field } = DIALECTS[dialect];
 
-function buildKyselyPrelude(
-	provider: ProviderFor<'kyselyAdapter'>,
-	connection: ConnectionInput
-): { imports: string; prelude: string } {
-	const connExpr = connection.useEnv
-		? `process.env.${connection.envVar || 'DATABASE_URL'}!`
-		: `"${connection.value || ''}"`;
-	if (provider === 'postgresql' || provider === 'cockroachdb') {
-		return {
-			imports:
-				"import { Kysely, PostgresDialect } from 'kysely';\nimport { Pool } from 'pg';",
-			prelude: `const db = new Kysely({\n\tdialect: new PostgresDialect({\n\t\tpool: new Pool({ connectionString: ${connExpr} }),\n\t}),\n});`,
-		};
-	}
-	if (provider === 'mysql') {
-		return {
-			imports:
-				"import { Kysely, MysqlDialect } from 'kysely';\nimport mysql from 'mysql2/promise';",
-			prelude: `const db = new Kysely({\n\tdialect: new MysqlDialect({\n\t\tpool: mysql.createPool(${connExpr}),\n\t}),\n});`,
-		};
-	}
-	if (provider === 'mssql') {
-		return {
-			imports:
-				"import { Kysely, MssqlDialect } from 'kysely';\nimport mssql from 'mssql';",
-			prelude: `const db = new Kysely({\n\tdialect: new MssqlDialect({\n\t\tpool: new mssql.ConnectionPool(${connExpr}),\n\t}),\n});`,
-		};
-	}
-	return { imports: '', prelude: '' };
-}
+	return `import { defineConfig } from '@c15t/backend-next';
 
-function buildSqliteKyselyPrelude(file: string): {
-	imports: string;
-	prelude: string;
-} {
-	return {
-		imports:
-			"import { Kysely, SqliteDialect } from 'kysely';\nimport Database from 'better-sqlite3';",
-		prelude: `const db = new Kysely({\n\tdialect: new SqliteDialect({\n\t\tdatabase: new Database("${file}"),\n\t}),\n});`,
-	};
-}
-
-function buildDrizzlePrelude(
-	provider: ProviderFor<'drizzleAdapter'>,
-	connection: ConnectionInput
-): { imports: string; prelude: string } {
-	const connExpr = connection.useEnv
-		? `process.env.${connection.envVar || 'DATABASE_URL'}!`
-		: `"${connection.value || ''}"`;
-	if (provider === 'postgresql') {
-		return {
-			imports:
-				"import { drizzle } from 'drizzle-orm/node-postgres';\nimport { Pool } from 'pg';",
-			prelude: `const db = drizzle(new Pool({ connectionString: ${connExpr} }));`,
-		};
-	}
-	if (provider === 'mysql') {
-		return {
-			imports:
-				"import { drizzle } from 'drizzle-orm/mysql2';\nimport mysql from 'mysql2/promise';",
-			prelude: `const db = drizzle(await mysql.createConnection(${connExpr}));`,
-		};
-	}
-	if (provider === 'sqlite') {
-		const file = connection.sqliteFile || './db.sqlite';
-		return {
-			imports:
-				"import { drizzle } from 'drizzle-orm/better-sqlite3';\nimport Database from 'better-sqlite3';",
-			prelude: `const db = drizzle(new Database("${file}"));`,
-		};
-	}
-	return { imports: '', prelude: '' };
-}
-
-function buildPrismaPrelude(
-	_provider: ProviderFor<'prismaAdapter'>,
-	_connection: ConnectionInput
-): { imports: string; prelude: string } {
-	return {
-		imports: "import { PrismaClient } from '@prisma/client';",
-		prelude: 'const prisma = new PrismaClient();',
-	};
-}
-
-function buildTypeormPrelude(
-	provider: ProviderFor<'typeormAdapter'>,
-	connection: ConnectionInput
-): { imports: string; prelude: string } {
-	const connExpr = connection.useEnv
-		? `process.env.${connection.envVar || 'DATABASE_URL'}!`
-		: `"${connection.value || ''}"`;
-	if (provider === 'sqlite') {
-		const file = connection.sqliteFile || './db.sqlite';
-		return {
-			imports: "import { DataSource } from 'typeorm';",
-			prelude: `const source = new DataSource({ type: 'sqlite', database: "${file}" });`,
-		};
-	}
-	const typeMap: Record<string, string> = {
-		postgresql: 'postgres',
-		mysql: 'mysql',
-		mssql: 'mssql',
-	};
-	return {
-		imports: "import { DataSource } from 'typeorm';",
-		prelude: `const source = new DataSource({ type: '${typeMap[String(provider)]}', url: ${connExpr} });`,
-	};
-}
-
-function buildMongoPrelude(connection: ConnectionInput): {
-	imports: string;
-	prelude: string;
-} {
-	const urlExpr = connection.useEnv
-		? `process.env.${connection.envVar || 'MONGODB_URI'}!`
-		: `"${connection.value || ''}"`;
-	return {
-		imports: "import { MongoClient } from 'mongodb';",
-		prelude: `const client = new MongoClient(${urlExpr});`,
-	};
-}
-
-function buildFileContent(
-	adapter: AdapterKey,
-	provider: string,
-	dbConfig: string,
-	connection: ConnectionInput
-): string {
-	const adapterPath =
-		adapter === 'mongoAdapter' ? 'mongo' : adapter.replace('Adapter', '');
-	const importAdapter = `import { ${adapter} } from '@c15t/backend/db/adapters/${adapterPath}';`;
-	let extras = { imports: '', prelude: '' };
-	if (adapter === 'kyselyAdapter') {
-		if (provider === 'sqlite') {
-			const file = connection.sqliteFile || './db.sqlite';
-			extras = buildSqliteKyselyPrelude(file);
-		} else {
-			extras = buildKyselyPrelude(
-				provider as ProviderFor<'kyselyAdapter'>,
-				connection
-			);
-		}
-	} else if (adapter === 'drizzleAdapter') {
-		extras = buildDrizzlePrelude(
-			provider as ProviderFor<'drizzleAdapter'>,
-			connection
-		);
-	} else if (adapter === 'prismaAdapter') {
-		extras = buildPrismaPrelude(
-			provider as ProviderFor<'prismaAdapter'>,
-			connection
-		);
-	} else if (adapter === 'typeormAdapter') {
-		extras = buildTypeormPrelude(
-			provider as ProviderFor<'typeormAdapter'>,
-			connection
-		);
-	} else if (adapter === 'mongoAdapter') {
-		extras = buildMongoPrelude(connection);
-	}
-	return `import { defineConfig } from '@c15t/backend';
-${importAdapter}
-${extras.imports ? `${extras.imports}\n` : ''}
-${extras.prelude ? `${extras.prelude}\n` : ''}
 export default defineConfig({
-	adapter: ${dbConfig},
+	database: {
+		dialect: '${dialect}',
+		// e.g. ${placeholder}
+		${field}: process.env.${envVar} ?? '',
+	},
 });
 `;
 }
 
-async function promptSelectAdapter(): Promise<AdapterKey> {
-	const selection = (await p.select({
-		message: 'Select database adapter:',
-		options: (Object.keys(ADAPTER_LABELS) as AdapterKey[]).map((key) => ({
-			value: key,
-			label: ADAPTER_LABELS[key],
+async function promptDialect(): Promise<Dialect> {
+	const selected = await p.select({
+		message: 'Which database?',
+		options: (Object.keys(DIALECTS) as Dialect[]).map((dialect) => ({
+			value: dialect,
+			label: DIALECTS[dialect].label,
 		})),
-	})) as AdapterKey | symbol;
-	if (p.isCancel(selection)) {
-		throw new Cancelled('adapter_select');
+	});
+
+	if (p.isCancel(selected)) {
+		throw new Cancelled('dialect_select');
 	}
-	return selection as AdapterKey;
+	return selected;
 }
 
-async function promptSelectProvider<A extends AdapterKey>(
-	adapter: A
-): Promise<ProviderFor<A>> {
-	const providers = PROVIDERS_BY_ADAPTER[adapter];
-	if (providers.length === 0) {
-		throw new Error('No providers available for selected adapter');
-	}
-	if (providers.length === 1) {
-		const [first] = providers;
-		return (first as (typeof providers)[number]).value as ProviderFor<A>;
-	}
-	const selection = await p.select({
-		message: 'Select database provider:',
-		options: providers.map((opt) => ({ value: opt.value, label: opt.label })),
-	});
-	if (p.isCancel(selection)) {
-		throw new Cancelled('provider_select');
-	}
-	return selection as ProviderFor<A>;
+export interface EnsuredConfig {
+	readonly path: string;
+	/** Driver packages to install. Empty when the config already existed. */
+	readonly dependencies: string[];
 }
 
-async function promptConnection<A extends AdapterKey>(
-	adapter: A,
-	provider: ProviderFor<A>
-): Promise<ConnectionInput> {
-	const connection: ConnectionInput = { useEnv: true };
-	if (provider === 'sqlite') {
-		const sqliteFile = await p.text({
-			message: 'SQLite file path:',
-			initialValue: './db.sqlite',
-		});
-		if (p.isCancel(sqliteFile)) {
-			throw new Cancelled('sqlite_path');
-		}
-		connection.sqliteFile = String(sqliteFile);
-		return connection;
-	}
-
-	const useEnv = await p.confirm({
-		message: 'Store connection string in an environment variable?',
-		initialValue: true,
-	});
-	if (p.isCancel(useEnv)) {
-		throw new Cancelled('use_env_confirm');
-	}
-	connection.useEnv = Boolean(useEnv);
-
-	if (connection.useEnv) {
-		const defaultVar =
-			adapter === 'mongoAdapter' ? 'MONGODB_URI' : 'DATABASE_URL';
-		const envVarName = await p.text({
-			message: 'Env var name for connection string:',
-			initialValue: defaultVar,
-		});
-		if (p.isCancel(envVarName)) {
-			throw new Cancelled('env_var_name');
-		}
-		connection.envVar = String(envVarName);
-		return connection;
-	}
-
-	const placeholder =
-		adapter === 'mongoAdapter'
-			? 'mongodb+srv://user:pass@host/db'
-			: 'postgresql://user:pass@host:5432/db';
-	const connectionString = await p.text({
-		message: 'Connection string:',
-		placeholder,
-	});
-	if (p.isCancel(connectionString)) {
-		throw new Cancelled('connection_string');
-	}
-	connection.value = String(connectionString);
-	return connection;
-}
-
+/**
+ * Returns the path to the backend config, creating one if there is none.
+ *
+ * @returns `null` when the operator cancels.
+ */
 export async function ensureBackendConfig(
 	context: CliContext
-): Promise<{ path: string; dependencies: string[] } | null> {
+): Promise<EnsuredConfig | null> {
 	const { cwd, logger } = context;
-	const targetPath = path.join(cwd, 'c15t-backend.config.ts');
+	const targetPath = path.join(cwd, CONFIG_FILENAME);
 
 	if (await pathExists(targetPath)) {
 		logger.debug(`Backend config already exists at ${targetPath}`);
+		// Nothing to install: whatever an existing config needs is already a
+		// dependency, or it would never have loaded.
 		return { path: targetPath, dependencies: [] };
 	}
 
 	try {
-		const adapter = await promptSelectAdapter();
-		const provider = await promptSelectProvider(adapter);
-		const connection = await promptConnection(adapter, provider);
+		const dialect = await promptDialect();
+		await fs.writeFile(targetPath, buildConfig(dialect), 'utf8');
+		logger.success(`Created ${path.relative(cwd, targetPath)}`);
 
-		// Determine dependencies based on adapter and provider
-		const dependencies: string[] = [];
-
-		if (adapter === 'kyselyAdapter') {
-			dependencies.push('kysely');
-			if (provider === 'postgresql' || provider === 'cockroachdb') {
-				dependencies.push('pg');
-			} else if (provider === 'mysql') {
-				dependencies.push('mysql2');
-			} else if (provider === 'mssql') {
-				dependencies.push('mssql');
-			} else if (provider === 'sqlite') {
-				dependencies.push('better-sqlite3');
-			}
-		} else if (adapter === 'drizzleAdapter') {
-			dependencies.push('drizzle-orm');
-			if (provider === 'postgresql') {
-				dependencies.push('pg');
-			} else if (provider === 'mysql') {
-				dependencies.push('mysql2');
-			} else if (provider === 'sqlite') {
-				dependencies.push('better-sqlite3');
-			}
-		} else if (adapter === 'prismaAdapter') {
-			dependencies.push('@prisma/client');
-		} else if (adapter === 'typeormAdapter') {
-			dependencies.push('typeorm');
-		} else if (adapter === 'mongoAdapter') {
-			dependencies.push('mongodb');
-		}
-
-		const dbConfig = buildDatabaseConfig(adapter, provider, connection);
-		const fileContent = buildFileContent(
-			adapter,
-			String(provider),
-			dbConfig,
-			connection
+		const { envVar } = DIALECTS[dialect];
+		logger.note(
+			`Remember to set ${envVar} in your environment or .env file.`,
+			'Environment'
 		);
 
-		await fs.writeFile(targetPath, fileContent, 'utf8');
-		context.logger.success(`Created ${path.relative(cwd, targetPath)}`);
-
-		if (provider !== 'sqlite' && connection.useEnv && connection.envVar) {
-			context.logger.note(
-				`Remember to set ${connection.envVar} in your environment or .env file.`,
-				'Environment'
-			);
-		}
-
-		return { path: targetPath, dependencies };
+		return { path: targetPath, dependencies: [DIALECTS[dialect].driver] };
 	} catch (err) {
 		if (err instanceof Cancelled) {
 			return context.error.handleCancel('Operation cancelled.', {
