@@ -77,6 +77,8 @@ getOrCreateConsentRuntime({
 * **Loads when:** measurement consent is granted
 * **On revocation:** unloaded - c15t removes the script from the DOM and clears Segment globals until consent is granted again.
 
+c15t deliberately blocks the load rather than mapping consent into Segment's consent tooling: Segment's consent object and consent wrappers control which downstream destinations receive events, but Analytics.js itself still writes identifiers and delivers events to Segment once loaded. Gating the load is the only default that reliably honors missing or denied `measurement` consent. See the [RudderStack consent notes](/docs/integrations/rudderstack#consent-behavior) for the full reasoning behind this model versus vendor consent-API mapping (as used for Google Tag Manager).
+
 ## Configure the integration
 
 By default the helper queues `analytics.page()` before the vendor bundle loads. If you want to handle page views yourself, set `trackPageView` to `false`.

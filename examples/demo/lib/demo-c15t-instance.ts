@@ -1,7 +1,7 @@
 import 'server-only';
 
-import { c15tInstance } from '@c15t/backend-next';
-import { createUpstashRedisAdapter } from '@c15t/backend-next/cache';
+import { c15tInstance } from '@c15t/backend';
+import { createUpstashRedisAdapter } from '@c15t/backend/cache';
 import { DEMO_LEGAL_DOCUMENT_SNAPSHOT } from './demo-legal-document-snapshot';
 import {
 	DEFAULT_SCENARIO_ID,

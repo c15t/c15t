@@ -268,5 +268,5 @@ If the vendor snippet is tiny, unique to one app, or mostly static, a plain `Scr
 |onConsentGranted|ManifestStep\[] \|undefined|Steps to run when this vendor's category consent is granted|-|Optional|
 |onConsentDenied|ManifestStep\[] \|undefined|Steps to run when this vendor's category consent is denied|-|Optional|
 |consentMapping|Record\<string, string\[]> \|undefined|Maps c15t consent categories to vendor-specific consent type names.&#xA;&#xA;Used with \`consentSignal\` to translate c15t consent state into&#xA;the vendor's consent API format.|-|Optional|
-|consentSignal|"gtag" \|undefined|How to signal consent state to the vendor|-|Optional|
+|consentSignal|ConsentSignalType \|undefined|How to signal consent state to the vendor|-|Optional|
 |consentSignalTarget|string \|undefined|Target global for consent signaling (defaults based on signal type)|-|Optional|

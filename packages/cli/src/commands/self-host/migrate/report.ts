@@ -10,7 +10,7 @@
  * plan is worth reading before it is applied.
  */
 
-import type { MigrateReport } from '@c15t/backend-next';
+import type { MigrateReport } from '@c15t/backend';
 import * as p from '@clack/prompts';
 import type { CliContext } from '~/context/types';
 

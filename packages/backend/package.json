@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/backend",
 	"version": "2.2.0-canary-20260731105620",
-	"description": "Self-hostable consent management backend for c15t with policy resolution, audit logs, geolocation, and storage adapters.",
+	"description": "Self-hostable consent management backend for c15t with policy resolution, audit logs, geolocation, and Postgres, MySQL and SQLite storage.",
 	"keywords": [
 		"consent",
 		"privacy",
@@ -31,115 +31,61 @@
 		"directory": "packages/backend"
 	},
 	"license": "Apache-2.0",
+	"sideEffects": false,
 	"type": "module",
 	"exports": {
 		".": {
-			"types": "./dist-types/core.d.ts",
-			"import": "./dist/core.js",
-			"require": "./dist/core.cjs"
+			"types": "./dist-types/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
 		},
-		"./define-config": {
-			"types": "./dist-types/define-config.d.ts",
-			"import": "./dist/define-config.js",
-			"require": "./dist/define-config.cjs"
+		"./sql/pg": {
+			"types": "./dist-types/sql/pg.d.ts",
+			"import": "./dist/sql/pg.js",
+			"require": "./dist/sql/pg.cjs"
 		},
-		"./router": {
-			"types": "./dist-types/router.d.ts",
-			"import": "./dist/router.js",
-			"require": "./dist/router.cjs"
+		"./sql/mysql": {
+			"types": "./dist-types/sql/mysql.d.ts",
+			"import": "./dist/sql/mysql.js",
+			"require": "./dist/sql/mysql.cjs"
 		},
-		"./db/schema": {
-			"types": "./dist-types/db/schema/index.d.ts",
-			"import": "./dist/db/schema.js",
-			"require": "./dist/db/schema.cjs"
+		"./sql/sqlite": {
+			"types": "./dist-types/sql/sqlite.d.ts",
+			"import": "./dist/sql/sqlite.js",
+			"require": "./dist/sql/sqlite.cjs"
 		},
-		"./db/adapters": {
-			"types": "./dist-types/db/adapters/index.d.ts",
-			"import": "./dist/db/adapters.js",
-			"require": "./dist/db/adapters.cjs"
-		},
-		"./db/adapters/kysely": {
-			"types": "./dist-types/db/adapters/kysely.d.ts",
-			"import": "./dist/db/adapters/kysely.js",
-			"require": "./dist/db/adapters/kysely.cjs"
-		},
-		"./db/adapters/drizzle": {
-			"types": "./dist-types/db/adapters/drizzle.d.ts",
-			"import": "./dist/db/adapters/drizzle.js",
-			"require": "./dist/db/adapters/drizzle.cjs"
-		},
-		"./db/adapters/prisma": {
-			"types": "./dist-types/db/adapters/prisma.d.ts",
-			"import": "./dist/db/adapters/prisma.js",
-			"require": "./dist/db/adapters/prisma.cjs"
-		},
-		"./db/adapters/typeorm": {
-			"types": "./dist-types/db/adapters/typeorm.d.ts",
-			"import": "./dist/db/adapters/typeorm.js",
-			"require": "./dist/db/adapters/typeorm.cjs"
-		},
-		"./db/adapters/mongo": {
-			"types": "./dist-types/db/adapters/mongo.d.ts",
-			"import": "./dist/db/adapters/mongo.js",
-			"require": "./dist/db/adapters/mongo.cjs"
-		},
-		"./db/migrator": {
-			"types": "./dist-types/db/migrator/index.d.ts",
-			"import": "./dist/db/migrator.js",
-			"require": "./dist/db/migrator.cjs"
-		},
-		"./types": {
-			"types": "./dist-types/types/index.d.ts",
-			"import": "./dist/types/index.js",
-			"require": "./dist/types/index.cjs"
+		"./db/migrations/*": {
+			"types": "./dist-types/db/migrations/*.d.ts",
+			"import": "./dist/db/migrations/*.js",
+			"require": "./dist/db/migrations/*.cjs"
 		},
 		"./cache": {
 			"types": "./dist-types/cache/index.d.ts",
-			"import": "./dist/cache.js",
-			"require": "./dist/cache.cjs"
-		},
-		"./edge": {
-			"types": "./dist-types/edge/index.d.ts",
-			"import": "./dist/edge.js",
-			"require": "./dist/edge.cjs"
+			"import": "./dist/cache/index.js",
+			"require": "./dist/cache/index.cjs"
 		}
 	},
-	"main": "./dist/core.cjs",
-	"module": "./dist/core.js",
-	"types": "./dist-types/core.d.ts",
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",
-		"dist-types",
-		"AGENTS.md",
-		"docs",
-		"README.md"
+		"dist-types"
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/backend",
-		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/backend",
-		"check-types": "bun prebuild && tsc --noEmit",
-		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"check-types": "tsc --noEmit",
+		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"knip": "knip",
 		"lint": "bun biome lint ./src",
-		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
-		"start": "node dist/server.cjs",
-		"test": "bun prebuild && vitest run",
-		"test:watch": "bun prebuild && vitest"
+		"test": "vitest run --passWithNoTests",
+		"test:watch": "vitest"
 	},
 	"dependencies": {
-		"@c15t/logger": "workspace:*",
 		"@c15t/schema": "workspace:*",
-		"@c15t/translations": "workspace:*",
-		"@hono/standard-validator": "^0.2.3",
-		"@hono/valibot-validator": "0.6.1",
-		"@opentelemetry/api": "1.9.1",
-		"@scalar/hono-api-reference": "0.11.8",
-		"@valibot/to-json-schema": "1.7.1",
-		"base-x": "5.0.1",
-		"defu": "6.1.7",
-		"fumadb": "0.3.0",
+		"effect": "4.0.0-beta.102",
+		"evlog": "2.22.4",
 		"hono": "4.12.27",
 		"hono-openapi": "1.3.0",
 		"jose": "6.2.3",
@@ -147,19 +93,37 @@
 	},
 	"devDependencies": {
 		"@c15t/backend-conformance": "workspace:*",
+		"@c15t/migration-fixtures": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"@electric-sql/pglite": "0.4.2",
-		"@opentelemetry/sdk-trace-base": "^2.9.0",
-		"@types/node": "25.5.0",
-		"@upstash/redis": "^1.38.0",
+		"@effect/sql-mysql2": "4.0.0-beta.102",
+		"@effect/sql-pg": "4.0.0-beta.102",
+		"@effect/sql-pglite": "4.0.0-beta.102",
+		"@effect/sql-sqlite-node": "4.0.0-beta.102",
+		"@effect/vitest": "4.0.0-beta.102",
+		"@types/node": "^24.10.1",
 		"genversion": "3.2.0",
-		"kysely": "0.28.17",
-		"kysely-pglite": "0.6.1",
 		"typescript": "7.0.2"
 	},
 	"peerDependencies": {
-		"@upstash/redis": ">=1.0.0"
+		"@effect/sql-mysql2": "4.0.0-beta.102",
+		"@effect/sql-pg": "4.0.0-beta.102",
+		"@effect/sql-sqlite-node": "4.0.0-beta.102",
+		"@upstash/redis": "^1.38.0"
+	},
+	"peerDependenciesMeta": {
+		"@effect/sql-mysql2": {
+			"optional": true
+		},
+		"@effect/sql-pg": {
+			"optional": true
+		},
+		"@effect/sql-sqlite-node": {
+			"optional": true
+		},
+		"@upstash/redis": {
+			"optional": true
+		}
 	},
 	"publishConfig": {
 		"access": "public"

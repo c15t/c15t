@@ -182,6 +182,8 @@ Some vendors are not just script tags. YouTube embeds, maps, calendars, and chec
 
 * For iframe-only embeds, gate the iframe `src` with the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern instead of loading a script just to hide an iframe.
 * For SDK-backed UI, use the script loader for the shared SDK and render the component only when consent and SDK readiness agree.
+* Use `YouTubeEmbed` for the iframe-only YouTube candidate and `GoogleMap` for the callback-based SDK candidate.
+* Use `useConsentScript()` when building custom wrappers. It registers scripts through the consent store, follows `loadedScripts`, and returns a promise-shaped readiness contract for callback-based SDKs.
 
 ## Lifecycle Callbacks
 
@@ -293,6 +295,8 @@ Control where the script is injected and whether the element id is anonymized:
 ```
 
 Set `anonymizeId: false` only when another script or test needs a stable DOM id. Pass `nonce` when your CSP requires it; c15t applies it directly to the generated `<script>` element.
+
+You usually do not need a per-script `nonce`. Setting `nonce` once on the provider covers every injected script (and the theme stylesheet); a per-script value overrides it for that script alone.
 
 ## Dynamic Management
 
@@ -416,13 +420,130 @@ export function TenantAnalytics({ siteId }: { siteId: string }) {
 
 Some vendors need a render surface as well as a script — maps, video players, calendars, and checkout widgets all fall in this bucket.
 
-Split the problem into three layers:
+Use the built-in [Google Maps](/docs/integrations/google-maps) and
+[YouTube](/docs/integrations/youtube) renderable helpers when they fit:
+
+```tsx
+import { GoogleMap, YouTubeEmbed } from '@c15t/react';
+
+function Page() {
+  const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+  return (
+    <>
+      {googleMapsApiKey && (
+        <GoogleMap
+          apiKey={googleMapsApiKey}
+          authReferrerPolicy="origin"
+          center={{ lat: 40.7128, lng: -74.006 }}
+          className="overflow-hidden rounded-xl"
+          consentCategory="measurement"
+          mapId="YOUR_MAP_ID"
+          zoom={12}
+        />
+      )}
+
+      <YouTubeEmbed
+        consentCategory="marketing"
+        params={{ controls: true, playsinline: true }}
+        title="Product demo"
+        videoId="dQw4w9WgXcQ"
+      />
+    </>
+  );
+}
+```
+
+The design splits the problem into three layers:
 
 1. Use the script loader to gate and load the shared SDK once.
-2. Use React state (or a custom hook) to render a placeholder until consent is granted.
+2. Use `useConsentScript()` for SDK readiness when a vendor uses a callback-style loader.
 3. Create the widget instance only after the SDK is ready and clean it up on unmount.
 
-For iframe-only embeds, use the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern instead of loading a JavaScript SDK to hide an iframe. For SDK-backed widgets, treat the SDK as a singleton and each rendered component as its own instance.
+Google Maps is SDK-backed, so `GoogleMap` registers one shared Google Maps script through the c15t script manager and waits for the callback-shaped SDK readiness signal before creating each map instance. It uses the official Google Maps types and accepts the direct-loader options `libraries`, `language`, `region`, `version`, `authReferrerPolicy`, `mapIds`, `channel`, and `solutionChannel`.
+
+YouTube is iframe-only, so `YouTubeEmbed` builds on the existing `Frame` consent boundary instead of loading the YouTube iframe API. That keeps iframe media separate from SDK widgets and avoids a second source of truth for script readiness.
+
+`GoogleMap` has a default height of `320px`; override `style.height` or supply a class that sets an inline-compatible height when your layout needs another size. `mapId` is construction-time configuration in the Google Maps API, so changing it recreates the map. Other controlled values such as `center`, `zoom`, and updateable `options` are applied to the existing instance.
+
+The Maps JavaScript API is a page singleton. Before consent, c15t makes no Maps script request. After the first approved load, the SDK registration is retained for the consent-manager lifetime to avoid Google's duplicate-loader warning; map instances are still destroyed as soon as the component unmounts or consent becomes unavailable. All `GoogleMap` instances that share a `scriptId` must therefore use the same loader options. If another part of the application already loaded Maps, the component adopts that global API without injecting a second script.
+
+`GoogleMap` reports network, timeout, constructor, and Google's global authentication failures through `onError` and `errorFallback`. Authentication errors commonly mean the browser key, billing, or allowed referrers need attention.
+
+`YouTubeEmbed` defaults to a responsive, borderless 16:9 frame with stable
+placeholder dimensions, a localized loading state, native lazy loading, and
+the privacy-enhanced `youtube-nocookie.com` host. For overrides, `className` and
+the forwarded ref target the iframe while `wrapperClassName` and `frameProps`
+target the consent-gated `Frame`. Boolean values in `params` are serialized as
+YouTube's documented `1` and `0` values.
+
+For custom SDK-backed widgets, call `useConsentScript()` with a c15t `Script`
+object. The hook uses the consent manager as the source of truth, shares
+compatible registrations inside that provider, and exposes status, consent,
+the ready SDK value, errors, and a promise:
+
+```tsx
+import { useState } from 'react';
+import { useConsentScript } from '@c15t/react';
+
+export function VendorWidget() {
+  const [retryKey, setRetryKey] = useState(0);
+  const vendor = useConsentScript({
+    script: {
+      id: 'vendor-sdk',
+      src: 'https://cdn.example.com/sdk.js',
+      category: 'measurement',
+    },
+    resolveReady: () => window.vendorSdk ?? false,
+    registerReadyCallback: ({ resolve }) => {
+      window.onVendorReady = () => resolve(window.vendorSdk);
+
+      return () => {
+        delete window.onVendorReady;
+      };
+    },
+    readinessKey: 'vendor-sdk-v1',
+    retryKey,
+    timeoutMs: 10_000,
+    unmountBehavior: 'keep',
+  });
+
+  if (vendor.status === 'blocked') {
+    return <p>Enable Analytics consent to use this widget.</p>;
+  }
+
+  if (vendor.status === 'loading') {
+    return <p role="status">Loading widget…</p>;
+  }
+
+  if (vendor.status === 'error') {
+    return (
+      <div role="alert">
+        <p>The widget could not be loaded.</p>
+        <button type="button" onClick={() => setRetryKey((key) => key + 1)}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (vendor.status !== 'ready' || !vendor.readyValue) {
+    return null;
+  }
+
+  return <div ref={(node) => node && vendor.readyValue.mount(node)} />;
+}
+```
+
+Inline script objects and lifecycle callbacks are safe. The hook compares the complete non-function script configuration, reads callbacks from the latest render, adopts a compatible script already owned by the provider, and never removes a registration it did not create. Use `unmountBehavior: 'remove'` (the default) for route-local scripts, or `'keep'` for a genuine page-level singleton.
+
+Change `retryKey` after a failed attempt to retry the same registration.
+Consumers sharing a script id must use identical script options,
+`readinessKey`, timeout, and unmount behavior. Conflicts throw
+`ConsentScriptConflictError`; choose another id only when the vendor genuinely
+supports multiple page-level loaders.
+
+For iframe-only embeds, use the [iframe blocking](/docs/frameworks/react/iframe-blocking) pattern or `YouTubeEmbed` instead of loading a JavaScript SDK to hide an iframe. For SDK-backed widgets, treat the SDK as a singleton and each rendered component as its own instance.
 
 ## API Reference
 

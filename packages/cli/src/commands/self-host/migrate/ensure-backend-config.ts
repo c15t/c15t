@@ -73,7 +73,7 @@ export async function pathExists(filePath: string): Promise<boolean> {
 export function buildConfig(dialect: Dialect): string {
 	const { envVar, placeholder, field } = DIALECTS[dialect];
 
-	return `import { defineConfig } from '@c15t/backend-next';
+	return `import { defineConfig } from '@c15t/backend';
 
 export default defineConfig({
 	database: {

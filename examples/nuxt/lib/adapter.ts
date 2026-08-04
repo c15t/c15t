@@ -16,7 +16,7 @@
  */
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { DatabaseOption } from '@c15t/backend-next';
+import type { DatabaseOption } from '@c15t/backend';
 
 /**
  * Where PGlite keeps its data directory.

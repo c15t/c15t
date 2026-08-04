@@ -159,7 +159,7 @@ if (consentStore.getState().has('measurement')) {
 |Property|Type|Description|Default|Required|
 |:--|:--|:--|:--|:--:|
 |id|string|Your Microsoft Clarity project ID.|-|✅ Required|
-|defaultConsent|ClarityConsentValue \|undefined|Optional initial consent value queued before the script loads.&#xA;&#xA;Object-shaped advanced consent vectors are supported only for this initial&#xA;boot-time value. Later c15t consent changes are mapped to simple booleans.|-|Optional|
+|defaultConsent|ClarityConsentValue \|undefined|Optional initial Consent V2 value queued before the script loads.&#xA;&#xA;By default, c15t maps \`measurement\` to \`analytics\_Storage\` and \`marketing\`&#xA;to \`ad\_Storage\`. Pass this only when boot-time consent must override the&#xA;current c15t consent state.|-|Optional|
 |scriptUrl|string \|undefined|Clarity loader URL.|-|Optional|
 
 ### Script

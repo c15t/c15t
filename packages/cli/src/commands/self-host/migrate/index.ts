@@ -18,7 +18,7 @@
  * production database, and adopting a 1.x schema is not a small change.
  */
 
-import { createMigrator } from '@c15t/backend-next';
+import { createMigrator } from '@c15t/backend';
 import { installDependencies } from '~/commands/generate/options/utils/dependencies';
 import { ensureBackendConfig } from '~/commands/self-host/migrate/ensure-backend-config';
 import { readDatabaseConfig } from '~/commands/self-host/migrate/read-config';

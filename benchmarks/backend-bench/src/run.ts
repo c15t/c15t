@@ -19,20 +19,12 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { up as baseline } from '@c15t/backend-next/db/migrations/1-baseline';
-import { up as hotPathIndexes } from '@c15t/backend-next/db/migrations/2-hot-path-indexes';
+import { up as baseline } from '@c15t/backend/db/migrations/1-baseline';
+import { up as hotPathIndexes } from '@c15t/backend/db/migrations/2-hot-path-indexes';
 import { PgliteClient } from '@effect/sql-pglite';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
-import { Kysely } from 'kysely';
-import { KyselyPGlite } from 'kysely-pglite';
 import { type ArmResult, chunkedFanout, joined } from './arms';
-import {
-	applyV2Schema,
-	createV2Orm,
-	seedV2,
-	v2ListByExternalId,
-} from './v2-arm';
 
 const SUBJECT_COUNTS = [1, 10, 100, 1000] as const;
 const POLICY_TYPES = 5;
@@ -171,28 +163,19 @@ const cell = (subjects: number, indexed: boolean) =>
 			? ['1-baseline', '2-hot-path-indexes']
 			: ['1-baseline'];
 
-		// The real @c15t/backend data layer, sharing this cell's database
-		// through its own fumadb client so its overhead is included.
-		const pglite = yield* Effect.promise(() => KyselyPGlite.create());
-		const kyselyDb: Kysely<Record<string, never>> = new Kysely({
-			dialect: pglite.dialect,
-		});
-		const orm = createV2Orm(kyselyDb);
-		yield* Effect.promise(() => applyV2Schema(kyselyDb, indexed));
-		yield* Effect.promise(() =>
-			seedV2(kyselyDb, subjects, POLICY_TYPES, BACKGROUND_RATIO)
-		);
-
-		const v2 = yield* measure(
-			() => Effect.promise(() => v2ListByExternalId(orm, 'ext_bench')),
-			'v2-backend',
-			migrations,
-			subjects
-		);
-		yield* Effect.promise(() => kyselyDb.destroy());
-
+		// The `v2-backend` arm — the real fumadb data layer — went with the
+		// package at cutover. Its numbers are recorded in RFC 0004 §11.5:
+		// 16.516ms unindexed and 11.927ms indexed against this join's 4.337 and
+		// 3.273, which is where the 3.64x like-for-like figure comes from.
+		//
+		// What remains still earns its keep: `chunked-fanout` reproduces the
+		// shipped query *pattern* against a bare client, so the join can be
+		// compared against the shape it replaced. What it cannot show any more
+		// is fumadb's own overhead, which was about half the v2 cost — so
+		// treat these as a floor on the improvement rather than the whole of
+		// it. Restoring the arm means depending on the published 2.x package
+		// under an alias.
 		return [
-			v2,
 			yield* measure(chunkedFanout, 'chunked-fanout', migrations, subjects),
 			yield* measure(joined, 'joined', migrations, subjects),
 		];

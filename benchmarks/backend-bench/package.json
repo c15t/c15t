@@ -14,14 +14,11 @@
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
-		"@c15t/backend-next": "workspace:*",
 		"@c15t/benchmarking": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@effect/sql-pglite": "4.0.0-beta.102",
 		"@electric-sql/pglite": "latest",
-		"effect": "4.0.0-beta.102",
-		"kysely": "0.28.17",
-		"kysely-pglite": "latest"
+		"effect": "4.0.0-beta.102"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

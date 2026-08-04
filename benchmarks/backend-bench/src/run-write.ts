@@ -11,8 +11,8 @@
  * rewrite. It goes in once those land.
  */
 
-import { up as baseline } from '@c15t/backend-next/db/migrations/1-baseline';
-import { up as hotPathIndexes } from '@c15t/backend-next/db/migrations/2-hot-path-indexes';
+import { up as baseline } from '@c15t/backend/db/migrations/1-baseline';
+import { up as hotPathIndexes } from '@c15t/backend/db/migrations/2-hot-path-indexes';
 import { buildConsentManifestFromConfig } from '@c15t/schema';
 import { PgliteClient } from '@effect/sql-pglite';
 import { Effect } from 'effect';

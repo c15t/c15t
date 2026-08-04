@@ -1002,3 +1002,76 @@ With `./cache` ported (§11.14), `./edge` dropped, and the demo apps moved
   already recorded in §11.5, and the conformance *cases* survive against the
   new backend, so this loses the A/B rather than the guarantee. Restoring it
   later means depending on the published 2.x under an alias.
+
+### 11.19 Cutover
+
+`@c15t/backend-next` is `@c15t/backend`. The old package is deleted; the new
+one keeps its version (`2.2.0-canary-…`) so Changesets takes the linked group
+to 3.0.0 from the recorded major.
+
+Four things the rename surfaced that a find-and-replace would not have:
+
+- **`packages/cli` ended up with a duplicate `@c15t/backend` key**, having
+  depended on both packages during the parallel phase.
+- **The new package briefly depended on itself**, because it listed
+  `@c15t/backend` as a devDependency so its conformance runner could compare
+  against 2.x.
+- **Three parity tests reached into `../../../backend/src`** to compare
+  implementations directly — auth, client IP, policy snapshots. That was the
+  right shape while two implementations existed and is meaningless now, so the
+  comparison halves are gone and the direct assertions remain.
+- **Omitting `database` produced `Cannot use 'in' operator to search for
+  'dialect' in undefined`.** It is the first thing anyone upgrading hits, since
+  `adapter` no longer exists and its replacement is required, so it now names
+  the field and the 2.x one it replaced.
+
+**The benchmark loses its `v2-backend` arm**, which measured the real fumadb
+data layer and dies with the package. `chunked-fanout` remains and still earns
+its keep — it reproduces the shipped *query pattern* against a bare client — but
+it cannot show fumadb's own overhead, which was about half the v2 cost. Treat
+what is left as a floor on the improvement rather than the whole of it; §11.5
+has the numbers as measured. Restoring the arm means depending on the published
+2.x under an alias.
+
+**Test timeouts are now set per package rather than per test.** Almost every
+test here stands up a PGlite database, and vitest's 5s default is enough when
+the package runs alone and is not when the whole monorepo competes for the same
+cores — which is CI. Found by running the full suite with `--force` after the
+rename, where six backend tests failed that pass in isolation.
+
+### 11.20 `tablePrefix` is dropped, and silently orphaned data on the way out
+
+fumadb supports custom table and column naming through name variants.
+`@c15t/backend` exposed **one** of those: `tablePrefix`, applied in `init.ts`
+as `DB.names.prefix(options.tablePrefix)` and documented in
+`self-host/guides/database-setup` for sharing a database with other
+applications. Arbitrary column renaming was never exposed, so no c15t
+deployment can be relying on it.
+
+`tablePrefix` is a different matter, and dropping it turned out to be worse
+than a missing feature. A 2.x database created with `tablePrefix: 'c15t_'`
+holds `c15t_subject`, `c15t_consent` and so on. `classify` matches table names
+exactly, found none of them, and reported **`Empty`** — so `migrate` was not
+blocked and would have created a full parallel schema beside the real one,
+leaving every existing consent record orphaned while the deployment came up
+looking healthy. Measured before fixing:
+
+```
+shape=Empty  blocked=none  wouldCreate=8  existingTables=5
+```
+
+On a consent platform that is a compliance incident: the audit trail is still
+in the database and the backend can no longer see it.
+
+`classify` now detects a common prefix across known table names and returns
+`Unknown` naming it, so the migrator refuses. Conservative by design — a lone
+`billing_consent` is not evidence, so it takes two matching names sharing a
+prefix, or fumadb's own marker table under that prefix, before it claims to
+have found a prefixed installation.
+
+**Still to decide: whether 3.0 supports `tablePrefix` at all.** Every query in
+this package names its table through `sql('subject')`, so supporting it means a
+prefix-aware resolver threaded through the query layer — the same shape as
+`Tenant`, and roughly the same reach. The alternative is a documented break
+with a rename step in the upgrade guide, which is what the refusal message
+currently tells operators to do.

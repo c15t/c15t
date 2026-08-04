@@ -9,7 +9,7 @@
  * database on first boot. Reach for the CLI (`bun run db:migrate`) when
  * pointing the demo at a real Postgres.
  */
-import { defineConfig } from '@c15t/backend-next';
+import { defineConfig } from '@c15t/backend';
 import { createAdapter } from './lib/adapter';
 
 const { database } = await createAdapter();

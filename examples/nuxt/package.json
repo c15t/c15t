@@ -10,7 +10,7 @@
 		"check-types": "nuxt typecheck"
 	},
 	"dependencies": {
-		"@c15t/backend-next": "workspace:*",
+		"@c15t/backend": "workspace:*",
 		"@c15t/vue": "workspace:*",
 		"@effect/sql-pglite": "4.0.0-beta.102",
 		"@electric-sql/pglite": "0.4.2",
