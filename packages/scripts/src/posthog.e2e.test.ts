@@ -74,4 +74,32 @@ describe('posthog contract', () => {
 		]);
 		expect(consentCalls).toEqual(['opt_out']);
 	});
+
+	it('bootstraps a snippet-shaped stub that array.js will install over', () => {
+		let acceptedBySnippetGuard: boolean | undefined;
+
+		installHeadProbe((node, win) => {
+			if (!node.src.includes('posthog.com/static/array.js')) {
+				return;
+			}
+
+			// The guard `array.js` applies before installing its runtime over an
+			// existing global (posthog-js >= 1.410.2). A stub that fails it is
+			// left in place, so every call — including `init` — becomes a no-op.
+			const stub = win.posthog as Window['posthog'] | undefined;
+			acceptedBySnippetGuard = !stub || Array.isArray(stub._i);
+		});
+
+		loadScripts(
+			[
+				{
+					...posthog({ id: 'phc_snippet_guard' }),
+					id: 'posthog-snippet-guard',
+				},
+			],
+			deniedConsents
+		);
+
+		expect(acceptedBySnippetGuard).toBe(true);
+	});
 });
