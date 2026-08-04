@@ -569,6 +569,7 @@
         "effect": "4.0.0-beta.102",
       },
       "devDependencies": {
+        "@c15t/migration-fixtures": "workspace:*",
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
         "@effect/sql-mysql2": "4.0.0-beta.102",
