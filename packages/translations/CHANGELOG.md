@@ -1,5 +1,11 @@
 # @c15t/translations
 
+## 2.2.0
+
+### Patch Changes
+
+- Read the [c15t 2.2.0 changelog](https://c15t.com/changelog/2.2.0) for the complete release notes and upgrade context.
+
 ## 2.2.0-canary-20260727202135
 
 ### Minor Changes

@@ -1,5 +1,14 @@
 # @c15t/iab
 
+## 2.2.0
+
+### Patch Changes
+
+- Read the [c15t 2.2.0 changelog](https://c15t.com/changelog/2.2.0) for the complete release notes and upgrade context.
+- Updated dependencies
+  - c15t@2.2.0
+  - @c15t/schema@2.2.0
+
 ## 2.2.0-canary-20260731105620
 
 ### Patch Changes

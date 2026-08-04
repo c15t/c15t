@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/react",
-	"version": "2.2.0-canary-20260731105620",
+	"version": "2.2.0",
 	"description": "React cookie banner, consent manager, preference center, and headless CMP components with IAB TCF and Consent Mode support.",
 	"keywords": [
 		"react",
