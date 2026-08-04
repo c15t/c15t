@@ -21,9 +21,18 @@ import {
 	type PolicySnapshotVerificationFailureReason,
 	verifyPolicySnapshotToken,
 } from '~/handlers/policy/snapshot';
-import type { C15TContext } from '~/types';
+import type { C15TContext, WriteProvenance } from '~/types';
 import { extractErrorMessage } from '~/utils/extract-error-message';
 import { getMetrics } from '~/utils/metrics';
+import { enforceWriteAbuseControl } from '~/write-integrity/abuse-control';
+import { resolveWriteIntegrityOptions } from '~/write-integrity/configuration';
+import { resolveWriteDomain } from '~/write-integrity/domain';
+import {
+	buildWriteRequestFingerprint,
+	consumeWriteReplay,
+} from '~/write-integrity/replay';
+import { verifySubjectCapability } from '~/write-integrity/subject-capability';
+import type { WriteIntegrityVerificationFailureReason } from '~/write-integrity/token';
 import { resolvePolicyDecision } from '../init/policy';
 import {
 	buildConsentId,
@@ -239,6 +248,60 @@ function buildLegalDocumentProofHttpException(message: string): HTTPException {
 	});
 }
 
+function buildCapabilityHttpException(
+	reason: WriteIntegrityVerificationFailureReason
+): HTTPException {
+	switch (reason) {
+		case 'missing':
+			return new HTTPException(401, {
+				message: 'Subject capability is required',
+				cause: { code: 'SUBJECT_CAPABILITY_REQUIRED' },
+			});
+		case 'expired':
+			return new HTTPException(401, {
+				message: 'Subject capability has expired',
+				cause: { code: 'SUBJECT_CAPABILITY_EXPIRED' },
+			});
+		case 'malformed':
+		case 'invalid':
+			return new HTTPException(403, {
+				message: 'Subject capability is invalid',
+				cause: { code: 'SUBJECT_CAPABILITY_INVALID' },
+			});
+		default: {
+			const _exhaustive: never = reason;
+			throw new Error(
+				`Unhandled subject capability verification failure reason: ${_exhaustive}`
+			);
+		}
+	}
+}
+
+function snapshotBindingsMatch(
+	bindings: {
+		domain?: string;
+		subjectId?: string;
+		consentType?: string;
+		consentAction?: string;
+	},
+	request: {
+		domain: string;
+		subjectId: string;
+		consentType: string;
+		consentAction?: string;
+	}
+): boolean {
+	return (
+		(bindings.domain === undefined || bindings.domain === request.domain) &&
+		(bindings.subjectId === undefined ||
+			bindings.subjectId === request.subjectId) &&
+		(bindings.consentType === undefined ||
+			bindings.consentType === request.consentType) &&
+		(bindings.consentAction === undefined ||
+			bindings.consentAction === request.consentAction)
+	);
+}
+
 /**
  * Handles the creation of a new consent record for a subject.
  *
@@ -306,6 +369,100 @@ export const postSubjectHandler = async (c: Context) => {
 		}
 
 		const request = c.req.raw ?? new Request('https://c15t.local/subjects');
+		const writeIntegrity = resolveWriteIntegrityOptions(
+			ctx.writeIntegrity
+		).config;
+		const anonymousConsentMode = writeIntegrity.anonymousConsent.mode;
+		if (anonymousConsentMode === 'disabled') {
+			throw new HTTPException(403, {
+				message: 'Consent writes are disabled',
+				cause: { code: 'CONSENT_WRITE_DISABLED' },
+			});
+		}
+
+		const writeOrigin =
+			ctx.origin ?? request.headers.get('origin') ?? undefined;
+		const resolvedDomain = await resolveWriteDomain({
+			options: writeIntegrity.domains,
+			context: {
+				action: 'consent:create',
+				requestedDomain: domain,
+				origin: writeOrigin,
+				subjectId,
+				tenantId: ctx.tenantId,
+				request,
+			},
+		});
+
+		await enforceWriteAbuseControl(writeIntegrity.abuseControl, {
+			action: 'consent:create',
+			subjectId,
+			domain: resolvedDomain.domain,
+			origin: writeOrigin,
+			ipAddress: ctx.ipAddress,
+			tenantId: ctx.tenantId,
+			request,
+		});
+
+		let writeProvenance: WriteProvenance = {
+			source: anonymousConsentMode === 'legacy' ? 'legacy' : 'anonymous',
+			origin: writeOrigin,
+		};
+		if (anonymousConsentMode === 'capability') {
+			const capabilityOptions = writeIntegrity.subjectCapability;
+			if (!capabilityOptions) {
+				throw new HTTPException(500, {
+					message: 'Subject capability verification is not configured',
+					cause: { code: 'SUBJECT_CAPABILITY_NOT_CONFIGURED' },
+				});
+			}
+
+			const capability = await verifySubjectCapability({
+				token: input.subjectCapability,
+				options: capabilityOptions,
+				tenantId: ctx.tenantId,
+				subjectId,
+				action: 'consent:create',
+				domain: resolvedDomain.domain,
+			});
+			if (!capability.valid) {
+				throw buildCapabilityHttpException(capability.reason);
+			}
+
+			const { subjectCapability: _proof, ...requestInput } = input;
+			const requestFingerprint = await buildWriteRequestFingerprint({
+				action: 'consent:create',
+				tenantId: ctx.tenantId ?? null,
+				subjectId,
+				domain: resolvedDomain.domain,
+				input: { ...requestInput, domain: resolvedDomain.domain },
+			});
+			const replay = await consumeWriteReplay({
+				claim: {
+					tokenId: capability.payload.jti,
+					tenantId: ctx.tenantId,
+					audience: capability.payload.aud,
+					requestFingerprint,
+					expiresAt: new Date(capability.payload.exp * 1000),
+				},
+				database: db,
+				replayStore: writeIntegrity.replayStore,
+			});
+			if (replay.status === 'replayed') {
+				throw new HTTPException(409, {
+					message: 'Subject capability has already been used',
+					cause: { code: 'SUBJECT_CAPABILITY_REPLAYED' },
+				});
+			}
+
+			writeProvenance = {
+				source: 'subject_capability',
+				credentialId: capability.payload.jti,
+				issuer: capability.payload.iss,
+				origin: writeOrigin,
+			};
+		}
+
 		const acceptLanguage = request.headers.get('accept-language');
 		const requestLanguage = parseLanguageFromHeader(acceptLanguage);
 		const location = await getLocation(request, ctx);
@@ -335,6 +492,17 @@ export const postSubjectHandler = async (c: Context) => {
 		const snapshotPayload = runtimeSnapshotVerification.valid
 			? runtimeSnapshotVerification.payload
 			: null;
+		if (
+			snapshotPayload?.writeBindings &&
+			!snapshotBindingsMatch(snapshotPayload.writeBindings, {
+				domain: resolvedDomain.domain,
+				subjectId,
+				consentType: type,
+				consentAction: rawConsentAction,
+			})
+		) {
+			throw buildSnapshotHttpException('invalid');
+		}
 		const shouldRequireSnapshot =
 			!legalDocumentConsent &&
 			!!ctx.policySnapshot?.signingKey &&
@@ -419,12 +587,21 @@ export const postSubjectHandler = async (c: Context) => {
 
 		logger.debug('Subject found/created', { subjectId: subject.id });
 
-		const domainRecord = await registry.findOrCreateDomain(domain);
+		const domainRecord =
+			resolvedDomain.mode === 'configured'
+				? await registry.findOrCreateScopedDomain({
+						name: resolvedDomain.domain,
+						scopeKey: resolvedDomain.scopeKey,
+					})
+				: await registry.findOrCreateDomain(resolvedDomain.domain);
 
 		if (!domainRecord) {
 			throw new HTTPException(500, {
 				message: 'Failed to create domain',
-				cause: { code: 'DOMAIN_CREATION_FAILED', domain },
+				cause: {
+					code: 'DOMAIN_CREATION_FAILED',
+					domain: resolvedDomain.domain,
+				},
 			});
 		}
 
@@ -774,6 +951,10 @@ export const postSubjectHandler = async (c: Context) => {
 					validUntil,
 					runtimePolicyDecisionId: runtimePolicyDecision?.id,
 					runtimePolicySource: decisionPayload?.source,
+					writeSource: writeProvenance.source,
+					writeCredentialId: writeProvenance.credentialId,
+					writeIssuer: writeProvenance.issuer,
+					writeOrigin: writeProvenance.origin,
 				});
 
 				if (!consentRecord) {
@@ -782,7 +963,7 @@ export const postSubjectHandler = async (c: Context) => {
 						cause: {
 							code: 'CONSENT_CREATION_FAILED',
 							subjectId: subject.id,
-							domain,
+							domain: resolvedDomain.domain,
 						},
 					});
 				}
@@ -840,7 +1021,7 @@ export const postSubjectHandler = async (c: Context) => {
 				cause: {
 					code: 'CONSENT_CREATION_FAILED',
 					subjectId: subject.id,
-					domain,
+					domain: resolvedDomain.domain,
 				},
 			});
 		}

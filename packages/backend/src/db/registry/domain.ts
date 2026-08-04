@@ -40,6 +40,57 @@ export function domainRegistry({ db, ctx }: Registry) {
 
 	return {
 		findDomainByName,
+		findOrCreateScopedDomain: async (input: {
+			name: string;
+			scopeKey: string;
+		}) => {
+			const start = Date.now();
+			try {
+				const result = await withDatabaseSpan(
+					{ operation: 'findOrCreate', entity: 'domain' },
+					async () => {
+						const findByScopeKey = () =>
+							db.findFirst('domain', {
+								where: (b) => b('scopeKey', '=', input.scopeKey),
+							});
+						const existingDomain = await findByScopeKey();
+
+						if (existingDomain) {
+							logger.debug('Found existing scoped domain', input);
+							return existingDomain;
+						}
+
+						logger.debug('Creating scoped domain', input);
+						try {
+							return await db.create('domain', {
+								id: await generateUniqueId(db, 'domain', ctx),
+								name: input.name,
+								scopeKey: input.scopeKey,
+							});
+						} catch (error) {
+							// The unique scope key is the concurrency boundary. If another
+							// request inserted the same canonical domain first, return it.
+							const concurrentDomain = await findByScopeKey();
+							if (concurrentDomain) {
+								return concurrentDomain;
+							}
+							throw error;
+						}
+					}
+				);
+				getMetrics()?.recordDbQuery(
+					{ operation: 'findOrCreate', entity: 'domain' },
+					Date.now() - start
+				);
+				return result;
+			} catch (error) {
+				getMetrics()?.recordDbError({
+					operation: 'findOrCreate',
+					entity: 'domain',
+				});
+				throw error;
+			}
+		},
 		findOrCreateDomain: async (name: string) => {
 			const start = Date.now();
 			try {

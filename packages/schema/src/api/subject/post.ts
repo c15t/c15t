@@ -116,6 +116,15 @@ const baseSubjectConsentSchema = v.object({
 			v.description('Signed policy snapshot token returned by /init.')
 		)
 	),
+	/** Short-lived capability authorizing this subject consent write */
+	subjectCapability: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Short-lived subject capability authorizing this consent write.'
+			)
+		)
+	),
 	/** Signed legal-document snapshot token from a rendered document view */
 	documentSnapshotToken: v.optional(
 		v.pipe(

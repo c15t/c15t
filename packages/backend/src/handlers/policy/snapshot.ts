@@ -1,3 +1,4 @@
+import type { PolicyType } from '@c15t/schema/types';
 import {
 	type JWTHeaderParameters,
 	type JWTPayload,
@@ -41,6 +42,20 @@ export interface PolicySnapshotUiSurface {
 }
 
 /**
+ * Optional request fields a snapshot issuer may bind into a policy snapshot.
+ *
+ * @remarks
+ * These claims only make the signed policy snapshot specific to the supplied
+ * values. They do not prove that a user performed an action or owns a subject.
+ */
+export interface PolicySnapshotWriteBindings {
+	domain?: string;
+	subjectId?: string;
+	consentType?: PolicyType;
+	consentAction?: string;
+}
+
+/**
  * JWT payload for a policy snapshot token.
  *
  * @remarks
@@ -80,6 +95,10 @@ export interface PolicySnapshotPayload extends JWTPayload {
 		storeUserAgent?: boolean;
 		storeLanguage?: boolean;
 	};
+	/** Request bindings supplied by the trusted snapshot issuer, when any. */
+	writeBindings?: PolicySnapshotWriteBindings;
+	/** Replay/audit identifier. Optional while rolling forward older v2 tokens. */
+	jti?: string;
 	iat: number;
 	exp: number;
 }
@@ -130,8 +149,44 @@ function isPolicySnapshotPayload(
 		typeof payload.iss === 'string' &&
 		typeof payload.aud === 'string' &&
 		typeof payload.sub === 'string' &&
+		(payload.jti === undefined ||
+			(typeof payload.jti === 'string' && payload.jti.length > 0)) &&
+		(payload.writeBindings === undefined ||
+			isPolicySnapshotWriteBindings(payload.writeBindings)) &&
 		typeof payload.iat === 'number' &&
 		typeof payload.exp === 'number'
+	);
+}
+
+function isPolicySnapshotWriteBindings(
+	value: unknown
+): value is PolicySnapshotWriteBindings {
+	if (typeof value !== 'object' || value === null) {
+		return false;
+	}
+
+	const bindings = value as Record<string, unknown>;
+	return (
+		(bindings.domain === undefined || typeof bindings.domain === 'string') &&
+		(bindings.subjectId === undefined ||
+			typeof bindings.subjectId === 'string') &&
+		(bindings.consentType === undefined ||
+			typeof bindings.consentType === 'string') &&
+		(bindings.consentAction === undefined ||
+			typeof bindings.consentAction === 'string')
+	);
+}
+
+function matchesExpectedWriteBindings(
+	payload: PolicySnapshotPayload,
+	expected: PolicySnapshotWriteBindings | undefined
+): boolean {
+	if (!expected) {
+		return true;
+	}
+
+	return (Object.keys(expected) as (keyof PolicySnapshotWriteBindings)[]).every(
+		(key) => payload.writeBindings?.[key] === expected[key]
 	);
 }
 
@@ -163,6 +218,7 @@ export async function createPolicySnapshotToken(params: {
 		storeUserAgent?: boolean;
 		storeLanguage?: boolean;
 	};
+	writeBindings?: PolicySnapshotWriteBindings;
 }): Promise<{ token: string; payload: PolicySnapshotPayload } | undefined> {
 	const { options } = params;
 	if (!options?.signingKey) {
@@ -172,6 +228,7 @@ export async function createPolicySnapshotToken(params: {
 	const iat = Math.floor(Date.now() / 1000);
 	const ttlSeconds = options.ttlSeconds ?? 1800;
 	const exp = iat + ttlSeconds;
+	const jti = crypto.randomUUID();
 	const iss = resolveSnapshotIssuer(options);
 	const aud = resolveSnapshotAudience({
 		options,
@@ -200,6 +257,8 @@ export async function createPolicySnapshotToken(params: {
 		preselectedCategories: params.preselectedCategories,
 		gpc: params.gpc,
 		proofConfig: params.proofConfig,
+		writeBindings: params.writeBindings,
+		jti,
 		iat,
 		exp,
 	};
@@ -208,6 +267,7 @@ export async function createPolicySnapshotToken(params: {
 		.setProtectedHeader(POLICY_SNAPSHOT_JWT_HEADER)
 		.setIssuedAt(iat)
 		.setExpirationTime(exp)
+		.setJti(jti)
 		.sign(getSigningKey(options.signingKey));
 
 	return {
@@ -220,8 +280,9 @@ export async function verifyPolicySnapshotToken(params: {
 	token?: string;
 	options?: PolicySnapshotOptions;
 	tenantId?: string;
+	expectedWriteBindings?: PolicySnapshotWriteBindings;
 }): Promise<PolicySnapshotVerificationResult> {
-	const { token, options, tenantId } = params;
+	const { token, options, tenantId, expectedWriteBindings } = params;
 	if (!options?.signingKey) {
 		return {
 			valid: false,
@@ -272,6 +333,12 @@ export async function verifyPolicySnapshotToken(params: {
 			};
 		}
 		if ((tenantId ?? undefined) !== (payload.tenantId ?? undefined)) {
+			return {
+				valid: false,
+				reason: 'invalid',
+			};
+		}
+		if (!matchesExpectedWriteBindings(payload, expectedWriteBindings)) {
 			return {
 				valid: false,
 				reason: 'invalid',

@@ -40,3 +40,16 @@ describe('postSubjectInputSchema givenAt', () => {
 		expect(parseGivenAt(1e18).success).toBe(false);
 	});
 });
+
+describe('postSubjectInputSchema write integrity', () => {
+	it('accepts an optional subject capability without requiring it for legacy writes', () => {
+		expect(
+			v.safeParse(postSubjectInputSchema, {
+				...baseInput,
+				givenAt: 1_735_689_600_000,
+				subjectCapability: 'header.payload.signature',
+			}).success
+		).toBe(true);
+		expect(parseGivenAt(1_735_689_600_000).success).toBe(true);
+	});
+});

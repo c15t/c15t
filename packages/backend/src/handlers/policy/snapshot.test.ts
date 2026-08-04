@@ -218,4 +218,65 @@ describe('policy snapshot token', () => {
 		expect(verified.payload.iss).toBe('consent.example.com');
 		expect(verified.payload.aud).toBe('policy-snapshot-api');
 	});
+
+	it('binds optional write fields and emits a replay identifier', async () => {
+		const writeBindings = {
+			domain: 'example.com',
+			subjectId: 'sub_123',
+			consentType: 'other' as const,
+			consentAction: 'custom',
+		};
+		const tokenResult = await createPolicySnapshotToken({
+			options: { signingKey: 'test-signing-key', ttlSeconds: 60 },
+			policyId: 'policy_default',
+			fingerprint: 'abc123',
+			matchedBy: 'default',
+			country: null,
+			region: null,
+			jurisdiction: 'GDPR',
+			model: 'opt-in',
+			writeBindings,
+		});
+
+		const verified = await verifyPolicySnapshotToken({
+			token: tokenResult?.token,
+			options: { signingKey: 'test-signing-key' },
+			expectedWriteBindings: writeBindings,
+		});
+
+		expect(verified.valid).toBe(true);
+		if (!verified.valid) {
+			throw new Error('Expected valid snapshot payload');
+		}
+		expect(verified.payload.writeBindings).toEqual(writeBindings);
+		expect(verified.payload.jti).toMatch(/^[0-9a-f-]{36}$/);
+	});
+
+	it('rejects a write binding mismatch without changing legacy verification', async () => {
+		const tokenResult = await createPolicySnapshotToken({
+			options: { signingKey: 'test-signing-key', ttlSeconds: 60 },
+			policyId: 'policy_default',
+			fingerprint: 'abc123',
+			matchedBy: 'default',
+			country: null,
+			region: null,
+			jurisdiction: 'GDPR',
+			model: 'opt-in',
+			writeBindings: { domain: 'example.com' },
+		});
+
+		await expect(
+			verifyPolicySnapshotToken({
+				token: tokenResult?.token,
+				options: { signingKey: 'test-signing-key' },
+				expectedWriteBindings: { domain: 'other.example' },
+			})
+		).resolves.toEqual({ valid: false, reason: 'invalid' });
+		await expect(
+			verifyPolicySnapshotToken({
+				token: tokenResult?.token,
+				options: { signingKey: 'test-signing-key' },
+			})
+		).resolves.toMatchObject({ valid: true });
+	});
 });

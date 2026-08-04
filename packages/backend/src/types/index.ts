@@ -515,6 +515,11 @@ export interface WriteReplayClaim {
 	expiresAt: Date;
 }
 
+/** Result returned by an atomic custom replay store. */
+export type WriteReplayStoreResult =
+	| boolean
+	| { status: 'consumed' | 'idempotent' | 'replayed' };
+
 /**
  * Atomic storage used to reject replayed write credentials.
  */
@@ -523,13 +528,14 @@ export interface WriteReplayStore {
 	 * Atomically records a replay claim if its token identifier is unused.
 	 *
 	 * Implementations must perform the existence check and insert as one atomic
-	 * operation. Return `true` only for the first accepted claim and `false` when
-	 * the token identifier was already consumed.
+	 * operation. Rich results can preserve exact-retry idempotency. Boolean
+	 * results remain supported: `true` means consumed and `false` is treated as
+	 * a replay.
 	 *
 	 * @param claim - Credential and request details to claim
-	 * @returns Whether the claim was recorded for the first time
+	 * @returns The consumption outcome, or a backwards-compatible boolean
 	 */
-	consume(claim: WriteReplayClaim): Promise<boolean>;
+	consume(claim: WriteReplayClaim): Promise<WriteReplayStoreResult>;
 }
 
 /**

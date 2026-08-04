@@ -442,4 +442,80 @@ describe('domainRegistry', () => {
 			expect(result.name).toBe(upperCaseDomain);
 		});
 	});
+
+	describe('findOrCreateScopedDomain', () => {
+		it('finds an existing domain by canonical scope key', async () => {
+			const existing = createMockDomain({
+				name: 'example.com',
+				scopeKey: 'default:example.com',
+			});
+			const db = {
+				findFirst: vi.fn().mockResolvedValue(existing),
+				create: vi.fn(),
+			};
+			const registry = domainRegistry({
+				db,
+				ctx: { logger: mockLogger },
+			} as unknown as Registry);
+
+			await expect(
+				registry.findOrCreateScopedDomain({
+					name: 'example.com',
+					scopeKey: 'default:example.com',
+				})
+			).resolves.toEqual(existing);
+			expect(db.create).not.toHaveBeenCalled();
+		});
+
+		it('creates a domain with its canonical scope key', async () => {
+			const created = createMockDomain({
+				name: 'example.com',
+				scopeKey: 'tenant_1:example.com',
+			});
+			const db = {
+				findFirst: vi.fn().mockResolvedValue(null),
+				create: vi.fn().mockResolvedValue(created),
+			};
+			const registry = domainRegistry({
+				db,
+				ctx: { logger: mockLogger, tenantId: 'tenant_1' },
+			} as unknown as Registry);
+
+			await registry.findOrCreateScopedDomain({
+				name: 'example.com',
+				scopeKey: 'tenant_1:example.com',
+			});
+
+			expect(db.create).toHaveBeenCalledWith('domain', {
+				id: 'dom_test',
+				name: 'example.com',
+				scopeKey: 'tenant_1:example.com',
+			});
+		});
+
+		it('returns the concurrent winner after a scope-key conflict', async () => {
+			const concurrent = createMockDomain({
+				name: 'example.com',
+				scopeKey: 'default:example.com',
+			});
+			const db = {
+				findFirst: vi
+					.fn()
+					.mockResolvedValueOnce(null)
+					.mockResolvedValueOnce(concurrent),
+				create: vi.fn().mockRejectedValue(new Error('unique conflict')),
+			};
+			const registry = domainRegistry({
+				db,
+				ctx: { logger: mockLogger },
+			} as unknown as Registry);
+
+			await expect(
+				registry.findOrCreateScopedDomain({
+					name: 'example.com',
+					scopeKey: 'default:example.com',
+				})
+			).resolves.toEqual(concurrent);
+		});
+	});
 });

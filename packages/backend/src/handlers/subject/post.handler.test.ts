@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolvePolicyDecision } from '~/handlers/init/policy';
 import { verifyLegalDocumentSnapshotToken } from '~/handlers/legal-document/snapshot';
 import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
+import type { WriteIntegrityOptions } from '~/types';
+import { createSubjectCapability } from '~/write-integrity/subject-capability';
 import { buildConsentId } from './consent-idempotency';
 import {
 	buildRuntimeDecisionDedupeKey,
@@ -53,6 +55,7 @@ function createMockRegistry() {
 	return {
 		findOrCreateSubject: vi.fn().mockResolvedValue(mockSubject),
 		findOrCreateDomain: vi.fn().mockResolvedValue(mockDomain),
+		findOrCreateScopedDomain: vi.fn().mockResolvedValue(mockDomain),
 		findOrCreatePolicy: vi.fn().mockResolvedValue(mockPolicy),
 		findOrCreateLegalDocumentPolicy: vi
 			.fn()
@@ -103,6 +106,8 @@ function createMockContext(db: unknown, registry: unknown) {
 		},
 		legalDocumentSnapshot: undefined,
 		tenantId: undefined as string | undefined,
+		origin: undefined as string | undefined,
+		writeIntegrity: undefined as WriteIntegrityOptions | undefined,
 	};
 
 	let jsonData: unknown;
@@ -174,6 +179,302 @@ describe('buildRuntimeDecisionDedupeKey', () => {
 		});
 
 		expect(first).toBe(second);
+	});
+});
+
+describe('postSubjectHandler write integrity', () => {
+	const capabilitySecret = 'capability-secret-for-write-integrity-tests';
+
+	beforeEach(() => {
+		vi.mocked(resolvePolicyDecision).mockResolvedValue(undefined);
+		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue({
+			valid: false,
+			reason: 'missing',
+		});
+		vi.mocked(verifyLegalDocumentSnapshotToken).mockResolvedValue({
+			valid: false,
+			reason: 'missing',
+		});
+	});
+
+	afterEach(() => {
+		vi.clearAllMocks();
+		vi.useRealTimers();
+		vi.mocked(resolvePolicyDecision).mockResolvedValue(undefined);
+		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue({
+			valid: false,
+			reason: 'missing',
+		});
+		vi.mocked(verifyLegalDocumentSnapshotToken).mockResolvedValue({
+			valid: false,
+			reason: 'missing',
+		});
+	});
+
+	function secureOptions(
+		overrides: Partial<WriteIntegrityOptions> = {}
+	): WriteIntegrityOptions {
+		return {
+			anonymousConsent: { mode: 'public' },
+			identityLinking: { mode: 'disabled' },
+			domains: { allowlist: ['example.com'] },
+			...overrides,
+		};
+	}
+
+	function consentPayload(db: ReturnType<typeof createMockDb>) {
+		return db.__tx.create.mock.calls.find(
+			(call) => call[0] === 'consent'
+		)?.[1] as Record<string, unknown> | undefined;
+	}
+
+	it('keeps the omitted configuration on the legacy path', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		expect(registry.findOrCreateDomain).toHaveBeenCalledWith('example.com');
+		expect(registry.findOrCreateScopedDomain).not.toHaveBeenCalled();
+		expect(consentPayload(db)).toEqual(
+			expect.objectContaining({ writeSource: 'legacy' })
+		);
+	});
+
+	it('canonicalizes allowlisted public writes and records provenance', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.writeIntegrity = secureOptions();
+		mockCtx._ctx.origin = 'https://app.example.com';
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			domain: 'EXAMPLE.COM.',
+		});
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		expect(registry.findOrCreateScopedDomain).toHaveBeenCalledWith({
+			name: 'example.com',
+			scopeKey: expect.stringMatching(/^domain:[a-f0-9]{64}$/),
+		});
+		expect(consentPayload(db)).toEqual(
+			expect.objectContaining({
+				writeSource: 'anonymous',
+				writeCredentialId: undefined,
+				writeOrigin: 'https://app.example.com',
+			})
+		);
+	});
+
+	it('rejects an unconfigured domain before database work', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.writeIntegrity = secureOptions();
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			domain: 'attacker.example',
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 403,
+			cause: { code: 'WRITE_DOMAIN_NOT_ALLOWED' },
+		});
+		expect(registry.findOrCreateSubject).not.toHaveBeenCalled();
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('supports a server-derived domain without an Origin header', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		const resolve = vi.fn(() => 'example.com');
+		mockCtx._ctx.writeIntegrity = secureOptions({
+			domains: { allowlist: ['example.com'], resolve },
+		});
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			domain: 'ignored.example',
+		});
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		expect(resolve).toHaveBeenCalledWith(
+			expect.objectContaining({
+				requestedDomain: 'ignored.example',
+				origin: undefined,
+			})
+		);
+		expect(registry.findOrCreateScopedDomain).toHaveBeenCalledWith(
+			expect.objectContaining({ name: 'example.com' })
+		);
+	});
+
+	it('fails closed when abuse controls deny the write', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		const abuseControl = vi.fn(() => ({
+			allowed: false,
+			retryAfterSeconds: 30,
+		}));
+		mockCtx._ctx.writeIntegrity = secureOptions({ abuseControl });
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 429,
+			cause: { code: 'WRITE_ABUSE_CONTROL_DENIED' },
+		});
+		expect(registry.findOrCreateSubject).not.toHaveBeenCalled();
+		expect(db.transaction).not.toHaveBeenCalled();
+	});
+
+	it('requires a capability in capability mode', async () => {
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.writeIntegrity = secureOptions({
+			anonymousConsent: { mode: 'capability' },
+			subjectCapability: { signingKey: capabilitySecret },
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 401,
+			cause: { code: 'SUBJECT_CAPABILITY_REQUIRED' },
+		});
+		expect(registry.findOrCreateSubject).not.toHaveBeenCalled();
+	});
+
+	it('records capability provenance and allows an exact retry only', async () => {
+		const replayClaims = new Map<string, string>();
+		const replayStore = {
+			consume: vi.fn(
+				async (claim: { tokenId: string; requestFingerprint: string }) => {
+					const existing = replayClaims.get(claim.tokenId);
+					if (!existing) {
+						replayClaims.set(claim.tokenId, claim.requestFingerprint);
+						return { status: 'consumed' as const };
+					}
+					return existing === claim.requestFingerprint
+						? { status: 'idempotent' as const }
+						: { status: 'replayed' as const };
+				}
+			),
+		};
+		const capability = await createSubjectCapability({
+			options: { signingKey: capabilitySecret },
+			subjectId: 'sub_user1',
+			action: 'consent:create',
+			domain: 'example.com',
+		});
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.origin = 'https://app.example.com';
+		mockCtx._ctx.writeIntegrity = secureOptions({
+			anonymousConsent: { mode: 'capability' },
+			subjectCapability: { signingKey: capabilitySecret },
+			replayStore,
+		});
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			subjectCapability: capability.token,
+		});
+
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+		// @ts-expect-error - simplified test context
+		await postSubjectHandler(mockCtx);
+
+		expect(consentPayload(db)).toEqual(
+			expect.objectContaining({
+				writeSource: 'subject_capability',
+				writeCredentialId: capability.payload.jti,
+				writeIssuer: capability.payload.iss,
+				writeOrigin: 'https://app.example.com',
+			})
+		);
+		expect(replayStore.consume).toHaveBeenCalledTimes(2);
+
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			metadata: { changed: true },
+			subjectCapability: capability.token,
+		});
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 409,
+			cause: { code: 'SUBJECT_CAPABILITY_REPLAYED' },
+		});
+	});
+
+	it('rejects expired capabilities', async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+		const capability = await createSubjectCapability({
+			options: { signingKey: capabilitySecret, ttlSeconds: 1 },
+			subjectId: 'sub_user1',
+			action: 'consent:create',
+			domain: 'example.com',
+		});
+		vi.setSystemTime(new Date('2026-01-01T00:00:02.000Z'));
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.writeIntegrity = secureOptions({
+			anonymousConsent: { mode: 'capability' },
+			subjectCapability: { signingKey: capabilitySecret },
+		});
+		mockCtx.req.json = vi.fn().mockResolvedValue({
+			...baseInput,
+			subjectCapability: capability.token,
+		});
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 401,
+			cause: { code: 'SUBJECT_CAPABILITY_EXPIRED' },
+		});
+		expect(registry.findOrCreateSubject).not.toHaveBeenCalled();
+	});
+
+	it('rejects a mismatched snapshot write binding', async () => {
+		vi.mocked(verifyPolicySnapshotToken).mockResolvedValue({
+			valid: true,
+			payload: {
+				iss: 'c15t',
+				aud: 'c15t-policy-snapshot',
+				sub: 'policy_default',
+				policyId: 'policy_default',
+				fingerprint: 'abc123',
+				matchedBy: 'default',
+				country: null,
+				region: null,
+				jurisdiction: 'GDPR',
+				model: 'opt-in',
+				writeBindings: { domain: 'other.example' },
+				iat: 1,
+				exp: 9_999_999_999,
+			},
+		});
+		const db = createMockDb(null);
+		const registry = createMockRegistry();
+		const mockCtx = createMockContext(db, registry);
+		mockCtx._ctx.writeIntegrity = secureOptions();
+
+		// @ts-expect-error - simplified test context
+		await expect(postSubjectHandler(mockCtx)).rejects.toMatchObject({
+			status: 409,
+			cause: { code: 'POLICY_SNAPSHOT_INVALID' },
+		});
+		expect(registry.findOrCreateSubject).not.toHaveBeenCalled();
 	});
 });
 

@@ -6,7 +6,7 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { openAPIRouteHandler } from 'hono-openapi';
 import { validateRequestAuth } from '~/middleware/auth';
-import { createCORSOptions } from '~/middleware/cors';
+import { createCORSOptions, processCors } from '~/middleware/cors';
 import { createOpenAPIConfig } from '~/middleware/openapi';
 import { getIpAddress } from '~/middleware/process-ip';
 import type { C15TContext, C15TOptions } from '~/types';
@@ -134,15 +134,19 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 			options.apiKeys
 		);
 
-		const enrichedContext: C15TContext = {
-			...context,
-			ipAddress: getIpAddress(request, options),
-			userAgent: request.headers.get('user-agent') || undefined,
-			apiKeyAuthenticated,
-			path: c.req.path,
-			method: c.req.method,
-			headers: request.headers,
-		};
+		const enrichedContext = processCors(
+			request,
+			{
+				...context,
+				ipAddress: getIpAddress(request, options),
+				userAgent: request.headers.get('user-agent') || undefined,
+				apiKeyAuthenticated,
+				path: c.req.path,
+				method: c.req.method,
+				headers: request.headers,
+			},
+			options.trustedOrigins
+		);
 
 		c.set('c15tContext', enrichedContext);
 
