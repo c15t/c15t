@@ -30,6 +30,7 @@ import { toRequestLog } from '../observability/evlog';
 import { type Log, layer as logLayer, silent } from '../observability/log';
 import { type RouteError, toHttp } from './errors';
 import type { GvlOptions } from './gvl';
+import type { LegalDocumentSnapshotOptions } from './legal-document-snapshot';
 import type { ManifestCacheOptions } from './manifest';
 import type { PolicySnapshotOptions } from './policy-snapshot';
 
@@ -90,6 +91,15 @@ export interface AppOptions {
 	readonly manifest?: ConsentManifestConfig;
 	readonly manifestCache?: ManifestCacheOptions;
 	readonly policySnapshot?: PolicySnapshotOptions;
+	/**
+	 * Signing for legal-document snapshots.
+	 *
+	 * Separate from `policySnapshot` because they attest to different things
+	 * and have very different lifetimes — a policy decision is consumed
+	 * immediately, a terms snapshot is held by a client across a session — so
+	 * one signing key and TTL cannot serve both.
+	 */
+	readonly legalDocumentSnapshot?: LegalDocumentSnapshotOptions;
 	readonly gvl?: GvlOptions & { enabled?: boolean };
 	/**
 	 * Keys accepted on `Authorization: Bearer <key>`.
@@ -98,6 +108,18 @@ export interface AppOptions {
 	 * not configured keys should expose nothing, not everything.
 	 */
 	readonly apiKeys?: readonly string[];
+	/**
+	 * Where this backend is mounted, when it is not at the root.
+	 *
+	 * A self-hoster typically mounts it under a catch-all — `/api/c15t` in
+	 * Next.js, `/api/self-host` in the demo — so requests arrive with that
+	 * prefix while the routes are declared without it. The prefix is stripped
+	 * before dispatch, which is what `@c15t/backend` does too.
+	 *
+	 * Without this, a mounted deployment 404s on every route, which is a
+	 * confusing way to discover the setting.
+	 */
+	readonly basePath?: string;
 	/**
 	 * Wide-event logging (RFC 0004 §5).
 	 *

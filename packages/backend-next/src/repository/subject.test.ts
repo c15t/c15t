@@ -161,40 +161,64 @@ describe('subject repository', () => {
 	);
 
 	it.effect(
-		'costs the same number of queries at 1 subject as at 250',
+		'issues the same number of queries at 1 subject as at 250',
 		() =>
 			Effect.gen(function* () {
 				yield* migrate;
 				const sql = yield* SqlClient.SqlClient;
 
-				// pg_stat_statements is unavailable in PGlite, so count actual
-				// executions against the tables of interest instead.
-				const executions = Effect.fn('executions')(function* () {
-					const rows = yield* sql<{ total: string }>`
-						select coalesce(sum(seq_scan + idx_scan), 0) as total
-						from pg_stat_user_tables
-						where relname in ('subject', 'consent', 'consentPolicy')
+				// Round trips, not scans.
+				//
+				// This counted `seq_scan + idx_scan` from pg_stat_user_tables and
+				// was wrong twice over. Postgres flushes those counters on its own
+				// schedule, so a read taken straight afterwards often missed the
+				// scans it was meant to count — which is why it passed at all, and
+				// why it failed about one run in ten under load. Forcing a flush
+				// makes it deterministic, and reveals the second problem: the
+				// counts genuinely do grow, 4 against 502 at 250 subjects, because
+				// the planner runs the join as a nested loop and scans the inner
+				// side once per row.
+				//
+				// That is not the claim being made. One statement that scans a lot
+				// is still one round trip, and round trips are what cost on a
+				// networked database — the shipped backend's problem is nine of
+				// them, not nine scans. `xact_commit` counts statements, each of
+				// which runs in its own implicit transaction.
+				const statements = Effect.fn('statements')(function* () {
+					yield* sql`select pg_stat_force_next_flush()`;
+					const rows = yield* sql<{ n: string }>`
+						select xact_commit as n from pg_stat_database
+						where datname = current_database()
 					`;
-					return Number(rows[0]?.total ?? 0);
+					return Number(rows[0]?.n ?? 0);
 				});
 
+				// Measuring costs two statements of its own; subtract them.
+				const first = yield* statements();
+				const overhead = (yield* statements()) - first;
+
 				yield* seed('ext_small', 1, 1);
-				const beforeSmall = yield* executions();
+				const beforeSmall = yield* statements();
 				yield* listByExternalId('ext_small');
-				const smallCost = (yield* executions()) - beforeSmall;
+				const smallCost = (yield* statements()) - beforeSmall - overhead;
 
-				// 250 subjects across 5 policy types. Under the old
-				// implementation this was 1 + ceil(250/100) + 5 = 9 sequential
-				// round trips; the point is that this number does not move.
+				// 250 subjects across 5 policy types. The shipped implementation
+				// needs 1 + ceil(250/100) + 5 = 9 sequential round trips for this;
+				// the point is that the number here does not move.
 				yield* seed('ext_large', 250, 5);
-				const beforeLarge = yield* executions();
+				const beforeLarge = yield* statements();
 				yield* listByExternalId('ext_large');
-				const largeCost = (yield* executions()) - beforeLarge;
+				const largeCost = (yield* statements()) - beforeLarge - overhead;
 
+				assert.strictEqual(
+					smallCost,
+					2,
+					'expected the join plus the policy rank'
+				);
 				assert.strictEqual(
 					largeCost,
 					smallCost,
-					`scan count grew with the data: ${smallCost} -> ${largeCost}`
+					`round trips grew with the data: ${smallCost} -> ${largeCost}`
 				);
 			}).pipe(Effect.provide(Pglite)),
 		{ timeout: 120_000 }

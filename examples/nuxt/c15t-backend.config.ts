@@ -1,7 +1,7 @@
 /**
  * Used by `@c15t/cli self-host migrate` to create/upgrade the database schema.
  *
- * The adapter selection is shared with the Nitro route
+ * The database selection is shared with the Nitro route
  * (`server/api/self-host/[...all].ts`) via `lib/adapter.ts`: `DATABASE_URL`
  * when set, the embedded PGlite database otherwise.
  *
@@ -9,12 +9,12 @@
  * database on first boot. Reach for the CLI (`bun run db:migrate`) when
  * pointing the demo at a real Postgres.
  */
-import { defineConfig } from '@c15t/backend';
+import { defineConfig } from '@c15t/backend-next';
 import { createAdapter } from './lib/adapter';
 
-const { adapter } = await createAdapter();
+const { database } = await createAdapter();
 
 export default defineConfig({
-	adapter,
+	database,
 	trustedOrigins: ['localhost'],
 });

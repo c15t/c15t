@@ -32,11 +32,14 @@ import type {
  * @example
  * ```ts
  * // Create a logger with trace context for log correlation
- * import { getTraceContext } from '@c15t/backend/telemetry';
+ * import { trace } from '@opentelemetry/api';
  *
  * const logger = createLogger({
  *   level: 'info',
- *   getTraceContext: () => getTraceContext(),
+ *   getTraceContext: () => {
+ *     const span = trace.getActiveSpan()?.spanContext();
+ *     return span ? { traceId: span.traceId, spanId: span.spanId } : null;
+ *   },
  * });
  *
  * // Logs will include traceId and spanId when available

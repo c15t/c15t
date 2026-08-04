@@ -887,3 +887,118 @@ backend at a database (§11.10), and the same reasoning applies to a
 self-hoster's deploy script.
 
 Imports still say `@c15t/backend-next`; the rename flips them in one pass.
+
+### 11.14 Deleting the old package needs two subsystems ported first
+
+The rename is not a rename. `@c15t/backend` ships two things the rewrite has no
+equivalent for, both user-facing and both reachable from the demo apps and the
+docs:
+
+| Subsystem | Size | What it is |
+| --- | ---: | --- |
+| `./cache` | 774 lines | Memory, Upstash Redis and Cloudflare KV adapters behind a four-method interface, plus GVL cache keys |
+| `./edge` | 501 lines | `unstable_resolveConsent` and an edge init handler — consent resolution with no database |
+
+Neither is a from-scratch build, which is only clear once you look:
+
+**Cache was a straight move.** The adapters depend on nothing the rewrite
+replaced — no fumadb, no ORM adapters — and `http/gvl.ts` here had already
+declared the *identical* `CacheAdapter` interface and accepted one. What was
+missing was any concrete adapter to hand it. v2's `gvl-resolver.ts` is
+deliberately left behind: GVL fetching lives in `http/gvl.ts` in this package,
+and a second resolver would mean two code paths deciding when a vendor list is
+stale.
+
+It shipped with no tests, which is how the memory adapter's module-level `Map`
+went unremarked — it is a *process-wide* cache, so two instances share entries.
+Defensible, surprising, and now pinned by a test.
+
+**Edge is a rewrite against shared code**, not a move: it builds on v2 internals
+(`handlers/init/geo`, `handlers/init/policy`, `middleware/cors`) that are all
+covered here by `@c15t/schema`'s `resolveInitFromManifest` and `isOriginTrusted`
+— the same resolver the real `/init` uses, which is the property that matters
+(§ "one resolver" in `http/init.ts`).
+
+### 11.15 Two more gaps, found by moving the demos
+
+Rewiring the three example apps onto the new backend surfaced two options they
+depend on that had no equivalent, both small and both load-bearing:
+
+- **`basePath`** was accepted as OpenAPI metadata only, never used for routing.
+  Every demo mounts under a catch-all — `/api/self-host` — so requests arrive
+  with a prefix the routes are not declared with, and a mounted deployment
+  would have 404d on every route. Stripped before dispatch now, conditionally,
+  so a request that already lacks the prefix does not lose its first segment.
+- **`legalDocumentSnapshot`** was absent entirely. It is the sibling of
+  `policy-snapshot.ts` and is built the same way: where a policy snapshot
+  attests to the *decision* shown, this attests to the version and content hash
+  of the terms accepted. A consent record says someone agreed; it does not, by
+  itself, say what to. The TTL differs deliberately — a day rather than half an
+  hour, because a client holds this between being shown the terms and
+  submitting acceptance.
+
+Everything else mapped. `appName`, `branding`, `i18n`, `policyPacks` and `iab`
+all move into `manifest`, which is the shape `@c15t/schema` already builds, so
+server and browser resolve a manifest identically. `cache` moves under `gvl`,
+which is the only thing in the backend worth caching across instances.
+
+**The Nuxt demo is the case that justifies the layer escape hatch** (§11.10).
+It runs embedded PGlite in development — Postgres compiled to WASM, with no URL
+to dial — so `{ dialect, url }` cannot describe it. Handing c15t a
+`PgliteClient.layer` directly is the escape hatch doing exactly what it exists
+for, and the demo lost forty lines of Kysely dialect and pool construction in
+the process.
+
+### 11.16 A test that was passing for the wrong reason
+
+`subject.test.ts` asserted that a subject listing costs the same number of
+queries at 250 subjects as at 1, by counting `seq_scan + idx_scan` from
+`pg_stat_user_tables`. It failed roughly one run in ten under full-suite load
+and passed in isolation.
+
+Postgres accumulates those counters in backend-local memory and flushes them on
+its own schedule, so a read taken straight after a query often missed the scans
+it was meant to count. **That miss is why the assertion passed.** Forcing a
+flush made it deterministic — and it then failed every time, 4 against 502,
+because the planner runs the join as a nested loop and scans the inner side
+once per row.
+
+The scan count was never the claim. One statement that scans a lot is still one
+round trip, and round trips are what cost against a networked database: the
+shipped backend's problem is nine of them, not nine scans. It counts statements
+via `xact_commit` now and asserts two, flat, at either size.
+
+### 11.17 Edge is dropped, not ported
+
+**Decided: `@c15t/backend/edge` does not ship in 3.0.** §11.14 listed it as a
+port blocking the rename; it is a removal instead.
+
+`unstable_resolveConsent` and the edge init handler resolved consent from a
+manifest without touching storage. Nothing in the repository imports them
+outside the old package itself — no example, no framework package, no
+benchmark — and the export was marked `unstable_`, which is the signal that
+carried the risk of exactly this.
+
+Two docs pages cover it (`self-host/guides/edge-deployment`,
+`self-host/api/configuration`) and go with it before the 3.0 release.
+
+Worth being precise about what is and is not lost. The *capability* survives:
+`resolveInitFromManifest` in `@c15t/schema` is the resolver both the edge
+handler and the real `/init` were built on, and it runs anywhere — a host that
+wants edge resolution calls it directly against a fetched manifest. What goes
+is the packaged handler around it.
+
+### 11.18 What the cutover is now waiting on
+
+With `./cache` ported (§11.14), `./edge` dropped, and the demo apps moved
+(§11.15), the remaining work is mechanical rather than architectural:
+
+- the rename itself — directory move, `private` removed, joining the linked
+  version group, a major changeset;
+- `@c15t/logger`'s two JSDoc examples pointing at `@c15t/backend/telemetry`,
+  now corrected to the root export;
+- the benchmark's `v2-backend` arm and `@c15t/backend`'s conformance runner,
+  which import the real 2.x package and die with it. The measured comparison is
+  already recorded in §11.5, and the conformance *cases* survive against the
+  new backend, so this loses the A/B rather than the guarantee. Restoring it
+  later means depending on the published 2.x under an alias.

@@ -408,7 +408,7 @@
       "name": "@c15t/example-demo",
       "version": "0.1.0",
       "dependencies": {
-        "@c15t/backend": "workspace:*",
+        "@c15t/backend-next": "workspace:*",
         "@c15t/dev-tools": "workspace:*",
         "@c15t/iab": "workspace:*",
         "@c15t/nextjs": "workspace:*",
@@ -451,11 +451,10 @@
     "examples/nuxt": {
       "name": "@c15t/example-nuxt",
       "dependencies": {
-        "@c15t/backend": "workspace:*",
+        "@c15t/backend-next": "workspace:*",
         "@c15t/vue": "workspace:*",
+        "@effect/sql-pglite": "4.0.0-beta.102",
         "@electric-sql/pglite": "0.4.2",
-        "kysely": "0.28.17",
-        "kysely-pglite": "^0.6.1",
         "nuxt": "^4.5.1",
         "pg": "^8.20.0",
       },
@@ -470,7 +469,7 @@
       "name": "sveltekit-demo",
       "version": "0.0.0",
       "dependencies": {
-        "@c15t/backend": "workspace:*",
+        "@c15t/backend-next": "workspace:*",
         "@c15t/dev-tools": "workspace:*",
         "@c15t/iab": "workspace:*",
         "@c15t/node-sdk": "workspace:*",
@@ -622,11 +621,13 @@
         "@effect/sql-mysql2": "4.0.0-beta.102",
         "@effect/sql-pg": "4.0.0-beta.102",
         "@effect/sql-sqlite-node": "4.0.0-beta.102",
+        "@upstash/redis": "^1.38.0",
       },
       "optionalPeers": [
         "@effect/sql-mysql2",
         "@effect/sql-pg",
         "@effect/sql-sqlite-node",
+        "@upstash/redis",
       ],
     },
     "packages/cli": {
@@ -637,6 +638,7 @@
       },
       "dependencies": {
         "@c15t/backend": "workspace:*",
+        "@c15t/backend-next": "workspace:*",
         "@c15t/logger": "workspace:*",
         "@c15t/scripts": "workspace:*",
         "@clack/prompts": "1.7.0",
