@@ -155,6 +155,15 @@ export function buildMonitorIssueBody(
 			}`
 		: 'No loader response captured.';
 
+	// Provenance: which upstream build this failure was observed against.
+	// Comparing these two lines against the last green report identifies a
+	// vendor-side change without diffing published CDN bundles by hand.
+	const bundleLine = result.loader?.bodyHash
+		? `\`${sanitizeInline(result.loader.bodyHash)}\`${
+				result.loader.bytes ? ` (${result.loader.bytes} bytes)` : ''
+			}`
+		: undefined;
+
 	const metadataLines = [
 		`- **Vendor**: \`${result.vendor}\` (\`@c15t/scripts/${result.packageSubpath}\`)`,
 		`- **Probe tier**: \`${result.tier}\``,
@@ -162,6 +171,16 @@ export function buildMonitorIssueBody(
 		`- **Attempts**: ${result.attempts}`,
 		`- **Loader**: ${loaderLine}`,
 	];
+
+	if (bundleLine) {
+		metadataLines.push(`- **Loader bundle**: ${bundleLine}`);
+	}
+
+	if (result.sdkVersion) {
+		metadataLines.push(
+			`- **Vendor SDK version**: \`${sanitizeInline(result.sdkVersion)}\``
+		);
+	}
 
 	if (report.commitSha) {
 		metadataLines.push(`- **Commit**: ${report.commitSha}`);
@@ -174,7 +193,7 @@ export function buildMonitorIssueBody(
 	const notes = result.notes ? `\n> ${sanitizeInline(result.notes)}\n` : '';
 
 	return `<!-- c15t-monitor-signature: ${signature} -->
-The daily live vendor monitor detected a contract failure for **${result.label}**.
+The live vendor monitor detected a contract failure for **${result.label}**.
 
 ${metadataLines.join('\n')}
 ${notes}

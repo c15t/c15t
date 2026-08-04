@@ -41,6 +41,48 @@ describe('live vendor probe configs', () => {
 		}
 	});
 
+	it('documents every vendor that asserts no runtime behavior', () => {
+		// A vendor whose loader answers placeholder credentials with an error
+		// page cannot prove its SDK started, so the probe reduces to "the
+		// endpoint exists". That is a real coverage gap — the exact kind that
+		// hides a loader contract change — so it has to be written down rather
+		// than inferred from an absent field.
+		const gaps: string[] = [];
+
+		for (const config of liveVendorProbeConfigs) {
+			if (config.tier === 'skip') {
+				continue;
+			}
+
+			const assertsRuntime =
+				Boolean(config.runtimeCheck) || Boolean(config.runtimeReplacedGlobals);
+			if (assertsRuntime) {
+				continue;
+			}
+
+			expect(
+				config.notes,
+				`${config.vendor} asserts no runtime behavior and must explain the gap in notes`
+			).toBeTypeOf('string');
+			gaps.push(config.vendor);
+		}
+
+		// Snapshot the gap list so shrinking it is deliberate and growing it is
+		// impossible to land unnoticed.
+		expect(gaps.sort()).toEqual([
+			'adobe-analytics',
+			'clearbit',
+			'crisp',
+			'google-tag-manager',
+			'hotjar',
+			'intercom',
+			'linkedin-insights',
+			'matomo-analytics',
+			'segment',
+			'vercel-analytics',
+		]);
+	});
+
 	it('requires a denied-consent probe for every alwaysLoad vendor', () => {
 		for (const config of liveVendorProbeConfigs) {
 			if (config.tier === 'skip' || !config.createScript) {

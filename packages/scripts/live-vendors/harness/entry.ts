@@ -186,6 +186,14 @@ const harness: LiveVendorProbeHarness = {
 		return runCheck(config.runtimeCheck, 'no runtime check defined');
 	},
 
+	version(vendor: string): string | undefined {
+		try {
+			return getLiveVendorProbeConfig(vendor)?.runtimeVersion?.();
+		} catch {
+			return undefined;
+		}
+	},
+
 	inspectStorage() {
 		const cookieNames = document.cookie
 			.split(';')

@@ -64,12 +64,6 @@ type PromptwatchWindow = Window & {
 	pwc?: unknown;
 };
 
-type MatomoWindow = Window & {
-	Matomo?: {
-		getTracker?: unknown;
-	};
-};
-
 type GoogleTagWindow = Window & {
 	google_tag_data?: {
 		ics?: {
@@ -173,6 +167,11 @@ type RudderStackWindow = Window & {
 		snippetExecuted?: boolean;
 		[key: string]: unknown;
 	};
+};
+
+type PosthogProbeWindow = Window & {
+	__c15tPosthogQueueReplayExpected?: boolean;
+	__c15tPosthogQueueReplayed?: boolean;
 };
 
 /**
@@ -391,20 +390,21 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		runtimeReplacedGlobals: ['clarity'],
 		bootstrapCheck: () => {
 			const stub = window.clarity as
-				| (Window['clarity'] & { v?: unknown })
+				| (Window['clarity'] & { v?: unknown; t?: unknown })
 				| undefined;
 
 			if (typeof stub !== 'function') {
 				return check(false, 'expected window.clarity stub function');
 			}
 
-			// The stub must NOT carry the runtime version marker: clarity.js
-			// refuses to start when `v` is pre-set ("Error CL001: Multiple
-			// Clarity tags detected") — the production bug fixed in #898.
-			if (stub.v !== undefined) {
+			// The stub must carry NEITHER runtime marker: the tag guards with
+			// `if (clarity.v || clarity.t) return` and refuses to start when
+			// either is pre-set ("Error CL001: Multiple Clarity tags detected")
+			// — the production bug fixed in #898.
+			if (stub.v !== undefined || stub.t !== undefined) {
 				return check(
 					false,
-					`stub carries v=${String(stub.v)}; clarity.js treats this as a duplicate install (CL001) and never starts`
+					`stub carries v=${String(stub.v)}/t=${String(stub.t)}; the tag's \`if (clarity.v || clarity.t) return\` guard treats this as a duplicate install (CL001) and never starts`
 				);
 			}
 
@@ -428,6 +428,13 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				typeof runtime === 'function' && typeof runtime.v === 'string',
 				'clarity runtime installed and stamped its version after load'
 			);
+		},
+		runtimeVersion: () => {
+			const runtime = window.clarity as
+				| (Window['clarity'] & { v?: unknown })
+				| undefined;
+
+			return typeof runtime?.v === 'string' ? runtime.v : undefined;
 		},
 	},
 	{
@@ -523,6 +530,8 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				'heap SDK methods and server config present after heap_config.js chain-loaded heap.js'
 			);
 		},
+		runtimeVersion: () =>
+			(window as HeapWindow).heap?.serverConfig?.sdk?.version,
 		notes:
 			'The probe allows the Heap config loader and chained heap.js bundle. Follow-up collection requests to c.us.heap-api.com are blocked by the runner with empty 204 responses.',
 	},
@@ -705,16 +714,11 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				Array.isArray(window._paq) && window._paq.length >= 5,
 				`matomo queue seeded with ${window._paq?.length ?? 0} entries before load`
 			),
-		runtimeCheck: () => {
-			const matomo = (window as MatomoWindow).Matomo;
-
-			return check(
-				typeof matomo?.getTracker === 'function',
-				'window.Matomo.getTracker present after loader executed'
-			);
-		},
+		// No runtimeCheck: cdn.matomo.cloud answers a placeholder cloud id with a
+		// 404 HTML page, so no Matomo runtime can ever exist here. Declaring an
+		// unreachable check would misreport this vendor as runtime-covered.
 		notes:
-			'Placeholder Matomo Cloud ids return HTTP 404 from cdn.matomo.cloud; runtime is not asserted.',
+			'Placeholder Matomo Cloud ids return HTTP 404 from cdn.matomo.cloud, so no runtime is asserted. Upgrading to full tier needs a real cloud id supplied as a secret.',
 	},
 	{
 		vendor: 'posthog',
@@ -728,26 +732,72 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		// array.js chain-loads versioned SDK bundles from the same assets host.
 		allowUrlSubstrings: ['assets.i.posthog.com/static/'],
 		bootstrapCheck: () => {
-			const stub = window.posthog;
+			const stub = window.posthog as unknown;
 
-			if (!stub || typeof stub.init !== 'function') {
+			if (Array.isArray(stub)) {
+				const queuedStub = stub as unknown[] & { _i?: unknown[][] };
+				if (!Array.isArray(queuedStub._i) || queuedStub._i.length === 0) {
+					return check(false, 'expected posthog pending init queue');
+				}
+
+				const probeWindow = window as PosthogProbeWindow;
+				probeWindow.__c15tPosthogQueueReplayExpected = true;
+				queuedStub.push(() => {
+					probeWindow.__c15tPosthogQueueReplayed = true;
+				});
+
+				return check(
+					true,
+					'posthog snippet queue carries init and a live replay probe'
+				);
+			}
+
+			if (
+				typeof stub !== 'object' ||
+				stub === null ||
+				!('init' in stub) ||
+				typeof stub.init !== 'function'
+			) {
 				return check(false, 'expected window.posthog stub with init()');
 			}
 
 			return check(
-				stub.get_explicit_consent_status() === 'pending',
+				'get_explicit_consent_status' in stub &&
+					typeof stub.get_explicit_consent_status === 'function' &&
+					stub.get_explicit_consent_status() === 'pending',
 				'posthog stub reports pending consent before load'
 			);
 		},
 		runtimeCheck: () => {
+			const probeWindow = window as PosthogProbeWindow;
 			const sdk = window.posthog as
 				| (Window['posthog'] & { __loaded?: boolean })
 				| undefined;
 
+			if (sdk?.__loaded !== true) {
+				return check(false, 'posthog SDK has not reported __loaded after init');
+			}
+
+			if (
+				probeWindow.__c15tPosthogQueueReplayExpected &&
+				probeWindow.__c15tPosthogQueueReplayed !== true
+			) {
+				return check(false, 'posthog SDK did not replay the snippet queue');
+			}
+
 			return check(
-				sdk?.__loaded === true,
-				'posthog SDK reports __loaded after init'
+				true,
+				probeWindow.__c15tPosthogQueueReplayExpected
+					? 'posthog SDK initialized and replayed the snippet queue'
+					: 'posthog SDK reports __loaded after init'
 			);
+		},
+		runtimeVersion: () => {
+			const sdk = window.posthog as
+				| (Window['posthog'] & { version?: unknown })
+				| undefined;
+
+			return typeof sdk?.version === 'string' ? sdk.version : undefined;
 		},
 	},
 	{
@@ -945,11 +995,12 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				'vercel queue present before load'
 			);
 		},
-		runtimeCheck: () =>
-			check(
-				typeof window.va === 'function',
-				'window.va callable after loader executed'
-			),
+		// No runtimeCheck: probed live, script.js needs a Vercel deployment
+		// context and leaves `window.va` as our bare stub (no added properties,
+		// no new globals). `typeof window.va === 'function'` only re-asserts the
+		// bootstrap stub.
+		notes:
+			'Vercel Analytics installs no runtime outside a Vercel deployment, so no runtime is asserted. Upgrading to full tier needs the probe served from a Vercel deployment.',
 	},
 	{
 		vendor: 'crisp',
@@ -971,11 +1022,11 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 					window.CRISP_WEBSITE_ID === '00000000-0000-4000-8000-c15c15c15c15',
 				'crisp queue and website id seeded before load'
 			),
-		runtimeCheck: () =>
-			check(
-				Array.isArray(window.$crisp),
-				'window.$crisp queue remains available after loader executed'
-			),
+		// No runtimeCheck: probed live, l.js adds no global and leaves the queue
+		// untouched for a placeholder website id. Asserting `$crisp` is still an
+		// array would only re-assert our own bootstrap stub.
+		notes:
+			'Crisp adds no observable global for placeholder website ids, so no runtime is asserted. Upgrading to full tier needs a real website id supplied as a secret.',
 	},
 	{
 		vendor: 'intercom',
@@ -999,11 +1050,11 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				'intercomSettings seeded before load'
 			);
 		},
-		runtimeCheck: () =>
-			check(
-				typeof window.Intercom === 'function',
-				'window.Intercom callable after loader executed'
-			),
+		// No runtimeCheck: probed live, the widget bundle adds no global for a
+		// placeholder app id. `typeof window.Intercom === 'function'` is
+		// satisfied by the bootstrap queue stub alone.
+		notes:
+			'Intercom adds no observable global for placeholder app ids, so no runtime is asserted. Upgrading to full tier needs a real workspace id supplied as a secret.',
 	},
 	{
 		vendor: 'meta-pixel',
@@ -1028,6 +1079,7 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 					'function',
 				'fbq.callMethod present after loader executed'
 			),
+		runtimeVersion: () => (window.fbq as MetaPixelRuntime | undefined)?.version,
 	},
 	{
 		vendor: 'reddit-pixel',
@@ -1099,11 +1151,11 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 					typeof window.lintrk === 'function',
 				'linkedin partner globals and lintrk stub seeded before load'
 			),
-		runtimeCheck: () =>
-			check(
-				typeof window.lintrk === 'function',
-				'window.lintrk callable after loader executed'
-			),
+		// No runtimeCheck: probed live, insight.min.js fires one beacon and adds
+		// no global for a placeholder partner id. `typeof window.lintrk ===
+		// 'function'` is satisfied by the bootstrap queue stub alone.
+		notes:
+			'LinkedIn adds no observable global for placeholder partner ids, so no runtime is asserted. Upgrading to full tier needs a real partner id supplied as a secret.',
 	},
 	{
 		vendor: 'microsoft-uet',

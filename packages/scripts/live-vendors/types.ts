@@ -5,10 +5,14 @@ import type { Script } from 'c15t';
  *
  * - `full`: the vendor loader must respond successfully and the runtime check
  *   must pass after the remote script executes.
- * - `loader-only`: the loader request must complete with an HTTP response, but
- *   no runtime behavior is asserted. Use this for vendors whose loader rejects
- *   placeholder account ids (for example with a 404) so the probe still proves
- *   bootstrap and consent gating against the real endpoint.
+ * - `loader-only`: the loader request only has to complete with an HTTP
+ *   response, rather than the 2xx JavaScript body the full tier demands. Use
+ *   this for vendors whose loader rejects placeholder account ids (for example
+ *   with a 404) so the probe still proves bootstrap and consent gating against
+ *   the real endpoint. Runtime is still asserted whenever the vendor declares
+ *   `runtimeCheck` or `runtimeReplacedGlobals` — some loaders serve a usable
+ *   runtime even for unknown ids, and skipping those assertions would leave
+ *   the vendor with no coverage of the SDK actually starting.
  * - `skip`: the vendor cannot be probed live (for example edge-injected
  *   scripts). Skipped vendors are reported with `skipReason` so coverage gaps
  *   stay visible instead of silently disappearing.
@@ -66,6 +70,18 @@ export interface LiveVendorProbeConfig {
 	/**
 	 * Runs in the page synchronously after `loadScripts`, before the remote
 	 * loader executes. Assert queue stubs and globals seeded by bootstrap steps.
+	 *
+	 * This is the right home for a vendor's duplicate-install guard. Several
+	 * loaders inspect the global the page already has and silently return if it
+	 * does not look like their official snippet — a stub that fails such a guard
+	 * leaves the vendor uninstalled with no error anywhere, because the loader
+	 * still answers 200 and the page still looks healthy. Transcribe the
+	 * predicate from their loader source and cite it in a comment.
+	 *
+	 * Bootstrap state is a pure function of our own manifest, so
+	 * `stub-contract.test.ts` replays every one of these in jsdom on each PR.
+	 * A stub that drifts out of contract fails there rather than a day later in
+	 * the monitor.
 	 */
 	bootstrapCheck?: () => LiveProbeCheckResult;
 	/**
@@ -73,6 +89,16 @@ export interface LiveVendorProbeConfig {
 	 * the real vendor runtime replaced or initialized the bootstrap stub.
 	 */
 	runtimeCheck?: () => LiveProbeCheckResult;
+	/**
+	 * Reads the version the vendor runtime reports about itself, when it
+	 * exposes one (for example `posthog.config` / `mixpanel.__SV`).
+	 *
+	 * Recorded in the report purely as provenance: it pins which upstream build
+	 * a green run actually validated, so a later failure can be bisected by
+	 * comparing two reports instead of diffing published CDN bundles. Never
+	 * asserted — a vendor bumping their version is not a failure.
+	 */
+	runtimeVersion?: () => string | undefined;
 	/**
 	 * Globals whose pre-load stub identity must be replaced by the vendor
 	 * runtime for the runtime phase to pass. Stronger than a `typeof` check in
@@ -150,6 +176,8 @@ export interface LiveVendorProbeHarness {
 	load(vendor: string, granted: boolean): LiveProbeLoadOutcome;
 	/** Runs the vendor's runtime check. */
 	check(vendor: string): LiveProbeCheckResult;
+	/** Reads the vendor runtime's self-reported version, if it exposes one. */
+	version(vendor: string): string | undefined;
 	/** Snapshots cookie names and localStorage keys in the probed page. */
 	inspectStorage(): LiveStorageSnapshot;
 }
@@ -161,6 +189,18 @@ export interface LiveLoaderResponse {
 	url: string;
 	status: number;
 	contentType?: string;
+	/** Response body size in bytes, when the body was readable. */
+	bytes?: number;
+	/**
+	 * Short SHA-256 of the loader response body.
+	 *
+	 * Vendors ship breaking changes to these bundles without notice, so the
+	 * question after a failure is always "what changed, and when did it start".
+	 * Comparing this digest between a passing and a failing report answers the
+	 * second half directly, and a digest that moves while the probe still
+	 * passes is advance warning that the contract is in motion.
+	 */
+	bodyHash?: string;
 }
 
 /**
@@ -187,6 +227,8 @@ export interface LiveVendorResult {
 	phases: Partial<Record<LiveProbePhase, LiveProbeCheckResult>>;
 	/** Loader response captured during the load phase, when one arrived. */
 	loader?: LiveLoaderResponse;
+	/** Version the vendor runtime reported, when `runtimeVersion` is declared. */
+	sdkVersion?: string;
 	/** Count of third-party requests answered with an empty 204. */
 	blockedRequests: number;
 	/** Console error messages emitted by the probed page. */
