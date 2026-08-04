@@ -51,6 +51,13 @@ export interface TestEngine {
 	readonly name: 'pglite' | 'postgres' | 'sqlite' | 'mysql';
 	/** A client plus a single-tenant scope, which most tests want. */
 	readonly layer: Layer.Layer<SqlClient.SqlClient | Tenant>;
+	/**
+	 * The client alone.
+	 *
+	 * For the HTTP tests: `createApp` takes a runtime carrying only the SQL
+	 * client, because `makeRun` provides the tenant scope itself, per request.
+	 */
+	readonly client: Layer.Layer<SqlClient.SqlClient>;
 	/** The same client, scoped to a named tenant. */
 	readonly asTenant: (
 		tenantId: string | undefined
@@ -68,6 +75,7 @@ const client = {
 
 const engine = (name: TestEngine['name']): TestEngine => ({
 	name,
+	client: client[name]() as Layer.Layer<SqlClient.SqlClient>,
 	layer: Layer.merge(client[name](), singleTenant),
 	asTenant: (tenantId) => Layer.merge(client[name](), tenantLayer(tenantId)),
 });

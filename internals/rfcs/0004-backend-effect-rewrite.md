@@ -1291,3 +1291,32 @@ as a cache that never hits or never expires.
 consecutive runs; 281 without Docker. `version.ts` is generated and
 `src/policy/builder.ts` — ported wholesale from 2.x — is the remaining soft
 spot at 69%.
+
+### 11.26 The HTTP surface on every engine
+
+The last PGlite-only suites were the HTTP ones — including `app.test.ts`, 45
+tests of the actual route surface, and the conformance runner that enforces
+wire compatibility with 2.x. Both now run on all four engines, which is where
+that guarantee belongs: "the wire contract holds" meant "on Postgres" until
+now.
+
+Converting them turned up nothing new about the *backend* and a good deal about
+the tests, which had absorbed Postgres assumptions the way the earlier suites
+had: `now()`, `drop table … cascade`, double-quoted identifiers, `isActive =
+true` as a literal, and a JSON column read as an object — true on Postgres and
+MySQL, a string on SQLite, where the driver does not parse it.
+
+`src/policy/builder.ts` is covered too, at 100% statements. It arrived from 2.x
+untested, and the gap was `createPackWithDefault` — the function that guarantees
+**every visitor resolves to some policy**. A pack with no default leaves anyone
+who matches no country rule with no decision at all, which means either no
+banner where one is required or a blocked page.
+
+**576 tests across four engines, 96.8% statements, 94.8% functions.**
+
+One consequence worth flagging: the suite now takes long enough that a full
+four-engine run exceeds ten minutes locally. That is the cost of running the
+HTTP surface four times, and it will show up in CI wall-clock. If it becomes a
+problem, the lever is running the HTTP suites on one Postgres engine rather than
+both PGlite and real Postgres — but only once something has been paying that
+cost long enough to say it is not earning it.
