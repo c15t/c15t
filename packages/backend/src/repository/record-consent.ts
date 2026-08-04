@@ -74,12 +74,10 @@ export const submit = Effect.fn('consent.submit')(function* (
 		tenantId,
 	});
 
+	// `recordDecision` takes its own tenant from the scope and namespaces the
+	// dedupe key with it, so there is nothing to inject here.
 	const decision = request.decision
-		? // The decision arrives in the request body, so its tenant is
-			// client-supplied. Overriding it keeps a caller from filing a
-			// decision against another tenant, and keeps `dedupeKey`'s global
-			// uniqueness from colliding across tenants by accident.
-			yield* recordDecision({ ...request.decision, tenantId })
+		? yield* recordDecision(request.decision)
 		: undefined;
 
 	const submission: ConsentSubmission = {
