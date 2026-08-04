@@ -96,8 +96,20 @@ export const record = Effect.fn('consent.record')(function* (
 	const sql = yield* SqlClient.SqlClient;
 	const id = yield* Effect.promise(() => buildConsentId(submission));
 
-	// A row written by an older process has a random primary key, so the
-	// conflict target below cannot see it. Check for it first.
+	// Primary-key lookup first. A retry — a client retrying, or a visitor
+	// double-clicking — is the common case in production, and this answers it
+	// in one indexed query. Measured: skipping this short-circuit and going
+	// straight to the legacy lookup made retries about twice as slow.
+	const existing = yield* sql<{ id: string }>`
+		select "id" from "consent" where "id" = ${id}
+	`;
+	if (existing.length > 0) {
+		return { id, created: false };
+	}
+
+	// Only now check for a row written by an older process. It has a random
+	// primary key, so the conflict target below cannot see it — but this costs
+	// a query, so it must not run on the hot retry path above.
 	const legacyId = yield* findLegacySubmission(submission);
 	if (legacyId !== undefined) {
 		return { id: legacyId, created: false };
