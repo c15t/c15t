@@ -580,7 +580,10 @@
       "name": "@c15t/backend-next",
       "version": "0.0.0",
       "dependencies": {
+        "@c15t/schema": "workspace:*",
         "effect": "4.0.0-beta.102",
+        "hono": "4.12.27",
+        "valibot": "1.4.2",
       },
       "devDependencies": {
         "@c15t/migration-fixtures": "workspace:*",
@@ -792,6 +795,7 @@
       "version": "2.1.1-canary-20260727202135",
       "dependencies": {
         "@c15t/translations": "workspace:*",
+        "base-x": "5.0.1",
         "valibot": "1.4.2",
       },
       "devDependencies": {

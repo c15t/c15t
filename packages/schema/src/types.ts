@@ -73,6 +73,7 @@ export type JurisdictionCode = (typeof jurisdictionCodes)[number];
 export type {
 	ConsentManifest,
 	ConsentManifestBranding,
+	ConsentManifestConfig,
 	ConsentManifestDefaults,
 	ConsentManifestGVLReference,
 	ConsentManifestIAB,
@@ -87,6 +88,7 @@ export type {
 	ResolveInitFromManifestOptions,
 } from './shared';
 export {
+	buildConsentManifestFromConfig,
 	buildDefaultOptInPolicy,
 	CONSENT_REQUEST_HEADER_NAMES,
 	COUNTRY_HEADERS,
@@ -115,6 +117,12 @@ export {
 	validateMessages,
 	validatePolicies,
 } from './shared';
+export {
+	buildConsentId,
+	type ConsentSubmissionIdentity,
+	type EntityKind,
+	generateDeterministicId,
+} from './shared/entity-id';
 // GVL types - IAB TCF Global Vendor List
 export type {
 	GlobalVendorList,

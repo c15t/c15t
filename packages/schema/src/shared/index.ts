@@ -4,9 +4,11 @@ export {
 	brandingValues,
 } from './branding';
 export {
+	buildConsentManifestFromConfig,
 	buildDefaultOptInPolicy,
 	type ConsentManifest,
 	type ConsentManifestBranding,
+	type ConsentManifestConfig,
 	type ConsentManifestDefaults,
 	type ConsentManifestGVLReference,
 	type ConsentManifestIAB,
@@ -25,6 +27,12 @@ export {
 	brandingValues as brandingValuesConst,
 	jurisdictionCodes as jurisdictionCodesConst,
 } from './constants';
+export {
+	buildConsentId,
+	type ConsentSubmissionIdentity,
+	type EntityKind,
+	generateDeterministicId,
+} from './entity-id';
 export {
 	CONSENT_REQUEST_HEADER_NAMES,
 	COUNTRY_HEADERS,

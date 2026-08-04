@@ -68,6 +68,7 @@
 	],
 	"dependencies": {
 		"@c15t/translations": "workspace:*",
+		"base-x": "5.0.1",
 		"valibot": "1.4.2"
 	},
 	"devDependencies": {

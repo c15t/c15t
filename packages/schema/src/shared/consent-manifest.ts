@@ -6,6 +6,10 @@ import {
 	getJurisdictionFromLocation,
 } from './jurisdiction-runtime';
 import {
+	createDeterministicFingerprintSync,
+	createPolicyFingerprint,
+} from './policy-fingerprint';
+import {
 	createResolvedPolicyFromConfig,
 	type JurisdictionCode,
 	type PolicyConfig,
@@ -381,3 +385,103 @@ export function resolveInitFromManifest(
 }
 
 export { checkJurisdiction };
+
+/**
+ * The configuration a consent manifest is built from.
+ *
+ * Declared structurally rather than as the backend's options type, so this can
+ * live here without the schema package depending on the backend. Any config
+ * object carrying these fields will do.
+ */
+export interface ConsentManifestConfig {
+	readonly tenantId?: string;
+	readonly appName?: string;
+	readonly branding?: ConsentManifest['branding'];
+	readonly disableGeoLocation?: boolean;
+	readonly policyPacks?: Parameters<
+		typeof createConsentManifestPolicyPack
+	>[0]['policy'][];
+	readonly customTranslations?: ConsentManifest['translations'] extends
+		| { customTranslations?: infer T }
+		| undefined
+		? T
+		: never;
+	readonly i18n?: ConsentManifest['translations'] extends
+		| { i18n?: infer T }
+		| undefined
+		? T
+		: never;
+	readonly iab?: {
+		readonly enabled?: boolean;
+		readonly cmpId?: number;
+		readonly customVendors?: NonNullable<
+			ConsentManifest['iab']
+		>['customVendors'];
+		readonly endpoint?: string;
+	};
+}
+
+const DEFAULT_GVL_ENDPOINT = 'https://gvl.inth.app';
+
+function buildGvlReference(
+	config: ConsentManifestConfig
+): ConsentManifest['iab'] {
+	if (config.iab?.enabled !== true) {
+		return undefined;
+	}
+
+	return {
+		enabled: true,
+		customVendors: config.iab.customVendors,
+		gvl: { url: config.iab.endpoint ?? DEFAULT_GVL_ENDPOINT },
+	};
+}
+
+/**
+ * Builds a consent manifest from per-tenant configuration.
+ *
+ * Lives here rather than in a backend so that every implementation serving
+ * `/manifest` produces a byte-identical document from the same config. RFC
+ * 0001 makes that a design principle — "there is exactly one resolver
+ * implementation" — and it matters more during RFC 0004's parallel phase,
+ * where two backends serve the same tenants and any divergence would
+ * invalidate both the contract tests and the benchmark comparison.
+ *
+ * Pure and geo-independent by construction: nothing here reads a request.
+ */
+export async function buildConsentManifestFromConfig(
+	config: ConsentManifestConfig
+): Promise<ConsentManifest> {
+	const policyPacks = config.policyPacks
+		? await Promise.all(
+				config.policyPacks.map(async (policy) => {
+					const resolvedPolicy = createResolvedPolicyFromConfig(policy);
+					const fingerprint = await createPolicyFingerprint(resolvedPolicy);
+					return createConsentManifestPolicyPack({ policy, fingerprint });
+				})
+			)
+		: undefined;
+
+	const manifest: ConsentManifest = {
+		schemaVersion: 1,
+		revision: '',
+		tenantId: config.tenantId,
+		appName: config.appName,
+		branding: config.branding || 'c15t',
+		defaults: { disableGeoLocation: config.disableGeoLocation },
+		policyPacks,
+		translations: {
+			customTranslations: config.customTranslations,
+			i18n: config.i18n,
+		},
+		cmpId: config.iab?.cmpId,
+		iab: buildGvlReference(config),
+	};
+
+	// The revision is a fingerprint of the manifest itself, so a client can
+	// tell two manifests apart without diffing them.
+	return {
+		...manifest,
+		revision: createDeterministicFingerprintSync(manifest),
+	};
+}
