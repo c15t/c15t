@@ -6,7 +6,7 @@
  * During the parallel phase both backends serve the same tenants with the same
  * configured keys, and an auth decision that differed between them would mean
  * a key accepted by one and rejected by the other — or worse, the reverse.
- * `auth.parity.test.ts` pins the agreement across a matrix of inputs.
+ * `auth.test.ts` pins the agreement across a matrix of inputs.
  *
  * The comparison is timing-safe in the same way and to the same degree as the
  * original: equal-length keys are compared in constant time, and unequal

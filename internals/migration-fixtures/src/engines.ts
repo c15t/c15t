@@ -66,9 +66,51 @@ export function engineByName(name: string): Engine {
  * its own copy of kysely — sharing an instance across installs would risk
  * dual-package hazards between the generator and the release under test.
  */
+/**
+ * Names that read as a scratch database rather than someone's data.
+ *
+ * Deliberately narrow: the exact name the documented container uses, or an
+ * explicit scratch suffix. An earlier version allowed any `c15t_*` / `c15t-*`,
+ * which waved through `c15t_production` and `c15t-prod` — the plausible-looking
+ * names this exists to stop, since a real deployment's database is far more
+ * likely to be called that than `unrelated_db`.
+ */
+const DISPOSABLE = /^(c15t|.*[_-](fixture|fixtures|test|tests|tmp|scratch))$/i;
+
+/**
+ * Refuses to reset a database that does not look disposable.
+ *
+ * The generated MySQL harness drops every table it finds. Postgres and SQLite
+ * cannot hit this — they get a fresh in-process database per run — so the check
+ * lives with the one engine that talks to a server the operator supplied.
+ */
+export function assertDisposable(url: string, allowAnyDatabase: boolean): void {
+	const name = new URL(url).pathname.replace(/^\//, '');
+
+	if (name === '') {
+		throw new Error(
+			`--mysql-url has no database name (${url}). Point it at a throwaway ` +
+				'database; the fixture run drops every table it finds.'
+		);
+	}
+
+	if (allowAnyDatabase || DISPOSABLE.test(name)) {
+		return;
+	}
+
+	throw new Error(
+		`Refusing to reset MySQL database "${name}": the fixture run drops every ` +
+			'table in it, and that name does not look like a throwaway.\n' +
+			'  Use a disposable database (for example "c15t", "c15t_fixtures" or ' +
+			'anything ending in _test), or pass --allow-any-database if you are ' +
+			'certain.'
+	);
+}
+
 export function connectionSource(
 	engine: Engine,
-	mysqlUrl: string | undefined
+	mysqlUrl: string | undefined,
+	allowAnyDatabase = false
 ): string {
 	switch (engine.name) {
 		case 'sqlite':
@@ -101,6 +143,13 @@ export const teardown = async () => { await db.destroy(); };
 			// run, MySQL is a shared server. Every shape must start from a blank
 			// schema or it captures whatever the previous shape left behind — and
 			// a dirty database changes the migration path, not just the result.
+			//
+			// That reset drops every table it finds, so the URL had better name a
+			// throwaway. Checked here rather than trusted: `--mysql-url` is a
+			// string on a command line, and the cost of getting it wrong is
+			// someone's database rather than a failed run. The name must look
+			// disposable, or the operator has to say so explicitly.
+			assertDisposable(mysqlUrl, allowAnyDatabase);
 			return `
 import { Kysely, MysqlDialect, sql } from 'kysely';
 import { createPool } from 'mysql2';

@@ -14,11 +14,10 @@
 import { hashSha256Hex } from '@c15t/schema';
 import { Data, Effect } from 'effect';
 import { SqlClient, type SqlError } from 'effect/unstable/sql';
-import { type Tenant, tenantScope } from '../db/tenant';
+import { currentTenantId, type Tenant, tenantScope } from '../db/tenant';
 import { encodeRow, encoder, toBoolean, toDate } from '../db/values';
 
 export interface LegalDocumentRelease {
-	readonly tenantId?: string;
 	readonly type: string;
 	readonly version: string;
 	readonly hash: string;
@@ -83,9 +82,13 @@ export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(function* (
 	const sql = yield* SqlClient.SqlClient;
 	// SQLite binds neither a Date nor a boolean; see `../db/values.ts`.
 	const encode = yield* encoder;
+	// From the scope, for the same reason the consent write path takes its
+	// tenant from there: the reads below filter on the scope, and a route that
+	// forgot to pass one wrote rows the instance could not then see.
+	const tenantId = yield* currentTenantId;
 	const id = yield* Effect.promise(() =>
 		buildLegalDocumentPolicyId({
-			tenantId: release.tenantId,
+			tenantId,
 			type: release.type,
 			hash: release.hash,
 		})
@@ -165,7 +168,7 @@ export const syncCurrent = Effect.fn('legalDocument.syncCurrent')(function* (
 						effectiveDate: release.effectiveDate,
 						isActive: true,
 						createdAt: new Date(),
-						tenantId: release.tenantId ?? null,
+						tenantId: tenantId ?? null,
 					})
 				)}
 			`;

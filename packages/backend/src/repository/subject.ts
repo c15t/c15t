@@ -32,7 +32,7 @@
  */
 
 import { generateEntityId } from '@c15t/schema';
-import { Effect } from 'effect';
+import { Data, Effect } from 'effect';
 import { SqlClient, type SqlError, Statement } from 'effect/unstable/sql';
 import { insertOnce } from '../db/insert-once';
 import { tenantScope } from '../db/tenant';
@@ -106,6 +106,19 @@ const JOINED_COLUMNS: readonly (readonly [column: string, alias: string])[] = [
 ];
 
 /**
+ * A subject id that exists but under a different tenant.
+ *
+ * `subject.id` is the primary key and the client chooses it, so it is unique
+ * across the whole table rather than per tenant. Changing that is a migration
+ * against a column every foreign key references; refusing the collision is not.
+ */
+export class SubjectTenantConflictError extends Data.TaggedError(
+	'SubjectTenantConflictError'
+)<{
+	readonly message: string;
+}> {}
+
+/**
  * `select … from subject left join consent left join consentPolicy`, up to but
  * not including the `where`.
  *
@@ -120,11 +133,23 @@ const joinedSelect = Effect.fn('repository.joinedSelect')(function* () {
 		)
 	);
 
+	// Every joined table carries its own tenant predicate, not just `subject`.
+	// Scoping the driving table alone is only sufficient while `subjectId` is
+	// unique across tenants, and it is client-supplied — so two tenants can name
+	// the same subject, and an unscoped join then hands one tenant the other's
+	// consent rows. Measured before fixing: tenant A read 2 consents where one
+	// was tenant B's.
+	//
+	// On the join rather than in `where`, because these are left joins: a
+	// predicate in `where` would drop subjects that have no consent instead of
+	// returning them with none.
 	return sql`
 		select ${projection}
 		from ${sql('subject')} s
-		left join ${sql('consent')} c on ${sql('c.subjectId')} = ${sql('s.id')}
-		left join ${sql('consentPolicy')} p on ${sql('p.id')} = ${sql('c.policyId')}
+		left join ${sql('consent')} c
+			on ${sql('c.subjectId')} = ${sql('s.id')} and ${yield* tenantScope('c')}
+		left join ${sql('consentPolicy')} p
+			on ${sql('p.id')} = ${sql('c.policyId')} and ${yield* tenantScope('p')}
 	`;
 });
 
@@ -383,6 +408,7 @@ export const findOrCreate = Effect.fn('repository.findOrCreate')(
 		identityProvider?: string | null;
 		tenantId?: string | null;
 	}) {
+		const sql = yield* SqlClient.SqlClient;
 		const now = new Date();
 
 		const created = yield* insertOnce({
@@ -399,6 +425,32 @@ export const findOrCreate = Effect.fn('repository.findOrCreate')(
 				updatedAt: now,
 			},
 		});
+
+		if (created) {
+			return { id: input.subjectId, created };
+		}
+
+		// The row already existed — but `id` is the primary key and is supplied
+		// by the client, so "already existed" does not imply "is ours". Two
+		// tenants naming the same subject would otherwise share one row: the
+		// second tenant's consent would hang off the first tenant's subject,
+		// which the first tenant then reads and the second cannot.
+		//
+		// Refused rather than reconciled. Silently writing under another
+		// tenant's subject is the disclosure; quietly dropping the submission
+		// would lose a consent record. The caller is told the id is taken.
+		const owner = yield* sql<{ tenantId: string | null }>`
+			select ${sql('tenantId')} from ${sql('subject')}
+			where ${sql('id')} = ${input.subjectId}
+		`;
+		const ownerTenant = owner[0]?.tenantId ?? null;
+		const mine = input.tenantId ?? null;
+
+		if (owner.length > 0 && ownerTenant !== mine) {
+			return yield* new SubjectTenantConflictError({
+				message: `subjectId "${input.subjectId}" already belongs to another tenant`,
+			});
+		}
 
 		return { id: input.subjectId, created };
 	}

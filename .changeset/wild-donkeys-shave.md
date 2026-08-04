@@ -38,3 +38,17 @@ embedding c15t in an Effect application.
 - `GET /subjects?externalId=` is two queries regardless of how many subjects
   and policy types are involved, rather than one plus a chunk per hundred
   subjects plus one per policy type.
+
+**New responses on `POST /subjects`**
+
+Both are `400` with `cause.code: "CONFLICT"`, and both replace a silent wrong
+answer rather than rejecting something that used to work:
+
+- A `subjectId` already owned by another tenant. `subject.id` is the primary
+  key and the client chooses it, so two tenants can pick the same one; reusing
+  the row would file one tenant's consent against the other's subject.
+- A resubmission of an already-recorded consent that carries different
+  `purposeIds`. The consent id covers identity and not purposes, so this is
+  indistinguishable from a retry at the key level — answering `200` would tell
+  a client its purposes were stored while the record still said otherwise.
+  Withdraw or supersede the consent instead of resubmitting it.

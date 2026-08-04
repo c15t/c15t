@@ -8,7 +8,7 @@
  * @packageDocumentation
  */
 
-import { Redis } from '@upstash/redis';
+import type { Redis } from '@upstash/redis';
 import type { CacheAdapter } from '../types';
 import { GVL_TTL_MS } from '../types';
 
@@ -55,12 +55,42 @@ export interface UpstashRedisAdapterOptions {
 export function createUpstashRedisAdapter(
 	options: UpstashRedisAdapterOptions
 ): CacheAdapter {
-	const client = new Redis({
-		url: options.url,
-		token: options.token,
-	});
+	// Imported on first use rather than at module load. `@upstash/redis` is an
+	// optional peer, and `./cache` re-exports this module unconditionally — so a
+	// top-level import made `import '@c15t/backend/cache'` fail outright for
+	// every deployment that uses only the memory adapter and never installed it.
+	//
+	// The factory stays synchronous because the adapter's methods are already
+	// async; the client is a memoised promise the first call awaits.
+	let pending: Promise<Redis> | undefined;
+	const client = (): Promise<Redis> => {
+		pending ??= import('@upstash/redis').then(
+			(module) => new module.Redis({ url: options.url, token: options.token }),
+			() => {
+				throw new Error(
+					'createUpstashRedisAdapter requires the optional peer dependency ' +
+						'"@upstash/redis". Install it, or pass your own client to ' +
+						'createUpstashRedisAdapterFromClient.'
+				);
+			}
+		);
+		return pending;
+	};
 
-	return createUpstashRedisAdapterFromClient(client);
+	return {
+		async get<T>(key: string): Promise<T | null> {
+			return (await (await client()).get<T>(key)) ?? null;
+		},
+		async set<T>(key: string, value: T, ttlMs = GVL_TTL_MS): Promise<void> {
+			await (await client()).set(key, value, { ex: Math.ceil(ttlMs / 1000) });
+		},
+		async delete(key: string): Promise<void> {
+			await (await client()).del(key);
+		},
+		async has(key: string): Promise<boolean> {
+			return (await (await client()).exists(key)) > 0;
+		},
+	};
 }
 
 /**
@@ -73,7 +103,7 @@ export function createUpstashRedisAdapter(
  *
  * @example
  * ```typescript
- * import { Redis } from '@upstash/redis';
+ * import type { Redis } from '@upstash/redis';
  * import { createUpstashRedisAdapterFromClient } from '@c15t/backend/cache';
  *
  * const redis = new Redis({

@@ -211,33 +211,40 @@ for (const engine of ENGINES) {
 					yield* baseline;
 					const sql = yield* SqlClient.SqlClient;
 					const encode = yield* encoder;
-					for (const tenant of ['tenant_a', 'tenant_b']) {
-						yield* sql`insert into ${sql('domain')} ${sql.insert(
-							encodeRow(encode, {
-								id: `dom_${tenant}`,
-								name: 'd',
-								tenantId: tenant,
-								createdAt: new Date(1_800_000_000_000),
-								updatedAt: new Date(1_800_000_000_000),
-							})
-						)}`;
-					}
+					// One domain both tenants reference, so the *only* thing that
+					// differs between the two submissions below is the scope they
+					// run under. Seeding a domain per tenant would leave the test
+					// unable to tell "the tenant is in the id" from "the domain is".
+					yield* sql`insert into ${sql('domain')} ${sql.insert(
+						encodeRow(encode, {
+							id: 'dom_shared',
+							name: 'd',
+							createdAt: new Date(1_800_000_000_000),
+							updatedAt: new Date(1_800_000_000_000),
+						})
+					)}`;
 
 					const submission = {
-						subjectId: 'sub_shared',
-						domainId: 'dom_tenant_a',
+						domainId: 'dom_shared',
 						purposeIds: ['analytics'],
 						givenAt: new Date(1_800_000_000_000),
 						ipAddress: null,
 						userAgent: null,
 					};
 
-					yield* submit({ ...submission, tenantId: 'tenant_a' });
-					yield* submit({
-						...submission,
-						domainId: 'dom_tenant_b',
-						tenantId: 'tenant_b',
-					});
+					// Identical but for the subject id, which each tenant generates
+					// for itself — `subject.id` is the primary key and globally
+					// unique, so a shared one is a conflict rather than two subjects
+					// (`http/tenant.test.ts` covers that). `submit` takes its tenant
+					// from the scope rather than from its argument, so a test that
+					// passed one in would run both writes as the same tenant while
+					// claiming to prove they are two.
+					yield* submit({ ...submission, subjectId: 'sub_a' }).pipe(
+						Effect.provide(tenantLayer('tenant_a'))
+					);
+					yield* submit({ ...submission, subjectId: 'sub_b' }).pipe(
+						Effect.provide(tenantLayer('tenant_b'))
+					);
 
 					// Structurally identical consent from two tenants is two separate
 					// legal records, so the deterministic id must include the tenant.
@@ -245,6 +252,17 @@ for (const engine of ENGINES) {
 					select count(*) as total from ${sql('consent')}
 				`;
 					assert.strictEqual(Number(rows[0]?.total), 2);
+
+					// And each row carries its own tenant rather than both landing
+					// under one — the failure the HTTP path actually had.
+					const tenants = yield* sql<{ tenantId: string | null }>`
+					select ${sql('tenantId')} from ${sql('consent')}
+					order by ${sql('tenantId')}
+				`;
+					assert.deepStrictEqual(
+						tenants.map((row) => row.tenantId),
+						['tenant_a', 'tenant_b']
+					);
 				}).pipe(Effect.provide(engine.asTenant('tenant_a'))),
 			{ timeout: 60_000 }
 		);

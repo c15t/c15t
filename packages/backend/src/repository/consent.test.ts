@@ -13,7 +13,7 @@ import { Effect, Layer } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { singleTenant } from '../db/tenant';
-import { record } from './consent';
+import { assertSamePurposes, record } from './consent';
 
 // Tests run single-tenant unless a case says otherwise; the scope is a
 // service, so a query cannot run without one.
@@ -163,4 +163,50 @@ describe('consent.record', () => {
 			}).pipe(Effect.provide(Pglite)),
 		{ timeout: 60_000 }
 	);
+});
+
+describe('assertSamePurposes', () => {
+	// The comparison `record` applies on both paths that can find an existing
+	// row. The second — a lost insert race — cannot be forced end to end: PGlite
+	// serialises every query, so the second caller always sees the first's row in
+	// the pre-insert check instead. Covered here so the branch is not merely
+	// written and never executed.
+	const run = <A>(effect: Effect.Effect<A, unknown, never>) =>
+		Effect.runPromise(Effect.result(effect));
+
+	it('accepts an identical set', async () => {
+		const result = await run(assertSamePurposes('["a","b"]', ['a', 'b']));
+		assert.strictEqual(result._tag, 'Success');
+	});
+
+	it('accepts the same set in a different order', async () => {
+		// Order is not part of what was consented to; treating it as a change
+		// would refuse ordinary retries.
+		const result = await run(assertSamePurposes('["b","a"]', ['a', 'b']));
+		assert.strictEqual(result._tag, 'Success');
+	});
+
+	it('refuses a different set', async () => {
+		const result = await run(assertSamePurposes('["a"]', ['a', 'b']));
+		assert.strictEqual(result._tag, 'Failure');
+	});
+
+	it('accepts an already-decoded array', async () => {
+		// Postgres and MySQL hand back JSON as a value; SQLite as a string.
+		const result = await run(assertSamePurposes(['a', 'b'], ['b', 'a']));
+		assert.strictEqual(result._tag, 'Success');
+	});
+
+	it('says nothing about a row it cannot read', async () => {
+		// Unparseable or absent is not evidence of a mismatch, and refusing on
+		// it would turn a storage oddity into a rejected consent.
+		assert.strictEqual(
+			(await run(assertSamePurposes(null, ['a'])))._tag,
+			'Success'
+		);
+		assert.strictEqual(
+			(await run(assertSamePurposes('not json', ['a'])))._tag,
+			'Success'
+		);
+	});
 });

@@ -23,17 +23,21 @@
 import { generateEntityId } from '@c15t/schema';
 import { Effect } from 'effect';
 import { SqlClient, type SqlError } from 'effect/unstable/sql';
+import { currentTenantId, type Tenant } from '../db/tenant';
 import { encodeRow, encoder } from '../db/values';
-import { type ConsentSubmission, record } from './consent';
+import {
+	ConsentPurposeConflictError,
+	type ConsentSubmission,
+	record,
+} from './consent';
 import { type DecisionInput, recordDecision } from './runtime-policy-decision';
-import { findOrCreate } from './subject';
+import { findOrCreate, SubjectTenantConflictError } from './subject';
 
 export interface ConsentSubmissionRequest {
 	readonly subjectId: string;
 	readonly domainId: string;
 	readonly externalId?: string | null;
 	readonly identityProvider?: string | null;
-	readonly tenantId?: string;
 	readonly policyId?: string | null;
 	readonly purposeIds: readonly string[];
 	readonly givenAt: Date;
@@ -55,24 +59,39 @@ export interface SubmissionResult {
 export const submit = Effect.fn('consent.submit')(function* (
 	request: ConsentSubmissionRequest
 ): Generator<
-	Effect.Effect<unknown, SqlError.SqlError, SqlClient.SqlClient>,
+	Effect.Effect<
+		unknown,
+		| SqlError.SqlError
+		| SubjectTenantConflictError
+		| ConsentPurposeConflictError,
+		SqlClient.SqlClient | Tenant
+	>,
 	SubmissionResult
 > {
 	const sql = yield* SqlClient.SqlClient;
+	// From the scope, never from the request. The reads filter on the scope's
+	// tenant, so a write that took its tenant from anywhere else can disagree
+	// with them — and did: the route never passed one, so every row was
+	// written with a NULL tenant that the instance's own reads then could not
+	// see. Deriving it here is what makes the two halves the same value by
+	// construction rather than by the caller remembering.
+	const tenantId = yield* currentTenantId;
 
 	const subject = yield* findOrCreate({
 		subjectId: request.subjectId,
 		externalId: request.externalId,
 		identityProvider: request.identityProvider,
-		tenantId: request.tenantId,
+		tenantId,
 	});
 
+	// `recordDecision` takes its own tenant from the scope and namespaces the
+	// dedupe key with it, so there is nothing to inject here.
 	const decision = request.decision
 		? yield* recordDecision(request.decision)
 		: undefined;
 
 	const submission: ConsentSubmission = {
-		tenantId: request.tenantId,
+		tenantId,
 		subjectId: subject.id,
 		domainId: request.domainId,
 		policyId: request.policyId,
@@ -105,7 +124,7 @@ export const submit = Effect.fn('consent.submit')(function* (
 						domainId: request.domainId,
 						decisionId: decision?.id ?? null,
 					}),
-					tenantId: request.tenantId ?? null,
+					tenantId: tenantId ?? null,
 					createdAt: new Date(),
 				})
 			)}

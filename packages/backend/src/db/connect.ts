@@ -184,7 +184,17 @@ export function withSearchPath(
 	}
 
 	const parsed = new URL(url);
-	parsed.searchParams.set('options', `-c search_path=${schema}`);
+	// Appended to any existing `options`, not substituted for them. A connection
+	// string carrying `?options=-c timezone=UTC` would otherwise lose that
+	// silently — the same class of bug as dropping `sslmode`, which this
+	// function already takes care to preserve.
+	const existing = parsed.searchParams.get('options');
+	parsed.searchParams.set(
+		'options',
+		existing
+			? `${existing} -c search_path=${schema}`
+			: `-c search_path=${schema}`
+	);
 	return parsed.toString();
 }
 

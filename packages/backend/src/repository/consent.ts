@@ -27,7 +27,7 @@
  */
 
 import { buildConsentId, type ConsentSubmissionIdentity } from '@c15t/schema';
-import { Effect } from 'effect';
+import { Data, Effect } from 'effect';
 import { SqlClient, type SqlError } from 'effect/unstable/sql';
 import { insertOnce } from '../db/insert-once';
 import { encoder } from '../db/values';
@@ -92,10 +92,73 @@ const findLegacySubmission = Effect.fn('consent.findLegacy')(function* (
  * Safe to call repeatedly with the same submission: the second and subsequent
  * calls return the existing id with `created: false`.
  */
+/**
+ * A consent whose identity already exists, recorded with different purposes.
+ *
+ * The deterministic id covers identity and not purposes, by design — it must
+ * match `@c15t/backend`'s derivation exactly. That makes this case
+ * indistinguishable from a retry at the key level, so it is detected on the
+ * stored row instead.
+ */
+export class ConsentPurposeConflictError extends Data.TaggedError(
+	'ConsentPurposeConflictError'
+)<{
+	readonly message: string;
+}> {}
+
+/** Stored `purposeIds`, which SQLite hands back as a JSON string. */
+const normalisePurposeIds = (value: unknown): string[] | undefined => {
+	const parsed = typeof value === 'string' ? safeParse(value) : value;
+	return Array.isArray(parsed) ? [...parsed].map(String).sort() : undefined;
+};
+
+const safeParse = (value: string): unknown => {
+	try {
+		return JSON.parse(value);
+	} catch {
+		return undefined;
+	}
+};
+
+const sameIds = (a: readonly string[], b: readonly string[]): boolean =>
+	a.length === b.length && a.every((id, index) => id === b[index]);
+
+/**
+ * Fails when a stored consent covers different purposes from the one submitted.
+ *
+ * Used on both paths that can find an existing row — the pre-insert lookup and
+ * a lost insert race — because answering success in either case tells a client
+ * its purposes were recorded when the stored record says otherwise.
+ */
+/**
+ * @internal Exported for the tests that cover the lost-race branch, which no
+ * engine in the matrix can be made to interleave on demand.
+ */
+export const assertSamePurposes = Effect.fn('consent.assertSamePurposes')(
+	function* (storedRaw: unknown, submitted: readonly string[]) {
+		const stored = normalisePurposeIds(storedRaw);
+		const incoming = [...submitted].sort();
+		if (stored === undefined || sameIds(stored, incoming)) {
+			return;
+		}
+		return yield* new ConsentPurposeConflictError({
+			message:
+				`A consent with this identity was already recorded with different ` +
+				`purposes (stored: [${stored.join(', ')}], submitted: ` +
+				`[${incoming.join(', ')}]). Withdraw or supersede it rather than ` +
+				'resubmitting the same act with a different scope.',
+		});
+	}
+);
+
 export const record = Effect.fn('consent.record')(function* (
 	submission: ConsentSubmission
 ): Generator<
-	Effect.Effect<unknown, SqlError.SqlError, SqlClient.SqlClient>,
+	Effect.Effect<
+		unknown,
+		SqlError.SqlError | ConsentPurposeConflictError,
+		SqlClient.SqlClient
+	>,
 	RecordedConsent
 > {
 	const sql = yield* SqlClient.SqlClient;
@@ -105,10 +168,23 @@ export const record = Effect.fn('consent.record')(function* (
 	// double-clicking — is the common case in production, and this answers it
 	// in one indexed query. Measured: skipping this short-circuit and going
 	// straight to the legacy lookup made retries about twice as slow.
-	const existing = yield* sql<{ id: string }>`
-		select ${sql('id')} from ${sql('consent')} where ${sql('id')} = ${id}
+	const existing = yield* sql<{ id: string; purposeIds: unknown }>`
+		select ${sql('id')}, ${sql('purposeIds')} from ${sql('consent')}
+		where ${sql('id')} = ${id}
 	`;
 	if (existing.length > 0) {
+		// The id covers identity — tenant, subject, domain, policy, givenAt — and
+		// deliberately not the purposes, because it has to stay byte-identical to
+		// the one `@c15t/backend` derives. So a resubmission carrying *different*
+		// purposes lands here looking exactly like a retry, and returning
+		// `created: false` would answer 200 while silently keeping the original
+		// set. On a consent platform that means the record says a subject agreed
+		// to something other than what they submitted.
+		//
+		// Reported rather than folded in. Overwriting would rewrite a legal record
+		// in place with no audit entry, and changing the id to cover purposes
+		// would break the parity the derivation exists to preserve.
+		yield* assertSamePurposes(existing[0]?.purposeIds, submission.purposeIds);
 		return { id, created: false };
 	}
 
@@ -142,6 +218,21 @@ export const record = Effect.fn('consent.record')(function* (
 			tenantId: submission.tenantId ?? null,
 		},
 	});
+
+	if (created) {
+		return { id, created };
+	}
+
+	// Lost the conflict, which the read above did not see: two submissions with
+	// the same identity and *different* purposes can both pass that check while
+	// neither row exists yet, and the loser would then be told its purposes were
+	// accepted while the winner's are what is stored. Rare, and precisely the
+	// case a deterministic key makes possible, so it is checked rather than
+	// reasoned about.
+	const winner = yield* sql<{ purposeIds: unknown }>`
+		select ${sql('purposeIds')} from ${sql('consent')} where ${sql('id')} = ${id}
+	`;
+	yield* assertSamePurposes(winner[0]?.purposeIds, submission.purposeIds);
 
 	return { id, created };
 });

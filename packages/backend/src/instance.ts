@@ -100,11 +100,17 @@ const stripBasePath = (request: Request, basePath?: string): Request => {
 
 	const prefix = basePath.replace(/\/$/, '');
 	const url = new URL(request.url);
-	if (!url.pathname.startsWith(prefix)) {
+	// On a segment boundary, not a string prefix: a mount at `/api/c15t` must
+	// not also swallow `/api/c15t2/status` and hand the router `2/status`.
+	const rest = url.pathname.slice(prefix.length);
+	if (
+		!url.pathname.startsWith(prefix) ||
+		(rest !== '' && !rest.startsWith('/'))
+	) {
 		return request;
 	}
 
-	url.pathname = url.pathname.slice(prefix.length) || '/';
+	url.pathname = rest || '/';
 	return new Request(url, request);
 };
 

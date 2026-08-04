@@ -52,12 +52,11 @@ export class Log extends Context.Service<Log, RequestLog>()('Log') {}
 /**
  * Records nothing.
  *
- * The default. `@c15t/backend` defaults its logger to `level: 'error'`, so it
- * emits nothing per request, and a deployment upgrading to this package must
- * not suddenly start writing a line per request to stdout. Observability is
- * opt-in for exactly that reason — see `AppOptions.observability`.
+ * Not the default — `AppOptions.observability` defaults to `level: 'warn'`,
+ * which is quiet for a successful request and prints a line for a failed one.
+ * This is what you get by asking for `level: 'silent'`.
  *
- * Also what non-request code gets: migrations, benchmarks and repository
+ * It is also what non-request code gets: migrations, benchmarks and repository
  * tests have no wide event to attach to.
  */
 export const silent: Layer.Layer<Log> = Layer.succeed(Log, {

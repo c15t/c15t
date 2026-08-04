@@ -65,6 +65,47 @@ const counts = Effect.fn('counts')(function* () {
 
 describe('consent submission', () => {
 	it.effect(
+		'tells the loser of a purpose race that its purposes were not stored',
+		() =>
+			Effect.gen(function* () {
+				yield* setup;
+
+				// Two submissions with the same identity and different purposes.
+				// The id covers identity and not purposes, so one of them has to
+				// be refused however the two interleave.
+				//
+				// What this does *not* isolate is the post-insert branch in
+				// `record`. `@effect/sql-pglite` serialises every query through a
+				// single-permit semaphore, so the second submission always sees the
+				// first's row in the pre-insert check and is refused there; removing
+				// the post-insert re-check leaves this test passing. That branch is
+				// only reachable when two callers genuinely interleave between the
+				// read and the write, which no engine in this matrix can be made to
+				// do on demand — so it is asserted at the unit level below instead.
+				const results = yield* Effect.all(
+					[
+						Effect.result(submit({ ...request, purposeIds: ['analytics'] })),
+						Effect.result(
+							submit({ ...request, purposeIds: ['analytics', 'marketing'] })
+						),
+					],
+					{ concurrency: 'unbounded' }
+				);
+
+				const failures = results.filter((r) => r._tag === 'Failure');
+				assert.strictEqual(
+					failures.length,
+					1,
+					'exactly one submission should be refused'
+				);
+
+				// And one consent, not two: the race is still deduplicated.
+				assert.strictEqual((yield* counts()).consents, 1);
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
 		'writes one of each on a first submission',
 		() =>
 			Effect.gen(function* () {

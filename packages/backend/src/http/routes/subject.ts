@@ -250,7 +250,26 @@ export function register({ app, options, run }: RouteContext): void {
 						consentId: submission.consentId,
 						givenAt,
 					};
-				})
+				}).pipe(
+					// The client chose this `subjectId` and it is already taken by
+					// another tenant. Reported rather than absorbed: writing under the
+					// other tenant's subject would disclose its consents, and dropping
+					// the submission would lose a legal record.
+					Effect.catchTag('SubjectTenantConflictError', (error) =>
+						Effect.fail(
+							new BadRequestError({ message: error.message, code: 'CONFLICT' })
+						)
+					),
+					// Same shape, different cause: the identity exists but the
+					// submitted purposes differ from what was recorded. Answering 200
+					// would tell the client its purposes were stored when they were
+					// not.
+					Effect.catchTag('ConsentPurposeConflictError', (error) =>
+						Effect.fail(
+							new BadRequestError({ message: error.message, code: 'CONFLICT' })
+						)
+					)
+				)
 			);
 
 			if (!result.ok) {

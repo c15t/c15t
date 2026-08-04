@@ -30,6 +30,7 @@ import { SqlClient } from 'effect/unstable/sql';
 import { ENGINES, resetDatabase } from '../__tests__/engines';
 import { apply, plan } from './adopt';
 import { classify } from './classify';
+import { insertOnce } from './insert-once';
 import { up as baseline } from './migrations/1-baseline';
 import { up as indexes } from './migrations/2-hot-path-indexes';
 
@@ -273,5 +274,71 @@ suite('mysql', () => {
 				assert.strictEqual((yield* classify)._tag, 'Baseline');
 			}).pipe(Effect.provide(Mysql)),
 		{ timeout: 120_000 }
+	);
+});
+
+suite('insert-once only suppresses the duplicate', () => {
+	it.effect(
+		'a non-duplicate failure is not swallowed',
+		() =>
+			Effect.gen(function* () {
+				yield* reset;
+				yield* baseline;
+
+				// `insert ignore` — the obvious MySQL equivalent of
+				// `on conflict do nothing` — downgrades every error to a warning,
+				// so this row would be silently truncated to 255 characters here
+				// and rejected outright on Postgres and SQLite. Two engines
+				// disagreeing about what was stored is worse than either answer.
+				const result = yield* Effect.result(
+					insertOnce({
+						into: 'subject',
+						conflictOn: 'id',
+						values: {
+							id: 'x'.repeat(300),
+							externalId: null,
+							identityProvider: 'anonymous',
+							tenantId: null,
+							createdAt: new Date(1_800_000_000_000),
+							updatedAt: new Date(1_800_000_000_000),
+						},
+					})
+				);
+
+				assert.isTrue(result._tag === 'Failure', 'overflow was suppressed');
+
+				const sql = yield* SqlClient.SqlClient;
+				const rows = yield* sql<{ n: number | string }>`
+					select count(*) as n from ${sql('subject')}
+				`;
+				assert.strictEqual(Number(rows[0]?.n), 0, 'wrote a truncated row');
+			}).pipe(Effect.provide(Mysql ?? ENGINES[0]?.layer ?? Mysql!)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'a duplicate still reports "not created" rather than failing',
+		() =>
+			Effect.gen(function* () {
+				yield* reset;
+				yield* baseline;
+
+				const row = {
+					id: 'sub_dup',
+					externalId: null,
+					identityProvider: 'anonymous',
+					tenantId: null,
+					createdAt: new Date(1_800_000_000_000),
+					updatedAt: new Date(1_800_000_000_000),
+				};
+
+				assert.isTrue(
+					yield* insertOnce({ into: 'subject', conflictOn: 'id', values: row })
+				);
+				assert.isFalse(
+					yield* insertOnce({ into: 'subject', conflictOn: 'id', values: row })
+				);
+			}).pipe(Effect.provide(Mysql ?? ENGINES[0]?.layer ?? Mysql!)),
+		{ timeout: 60_000 }
 	);
 });

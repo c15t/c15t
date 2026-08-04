@@ -148,6 +148,44 @@ const classifiesUnmarkedLegacy = (engine: (typeof ENGINES)[number]) =>
 const canDropNamedConstraint = (engine: (typeof ENGINES)[number]) =>
 	engine.name === 'pglite' || engine.name === 'postgres';
 
+/**
+ * Every foreign key in the database, as `table.column`.
+ *
+ * The same three queries `adopt.ts` uses to observe them — deliberately, so
+ * this compares what the database actually has rather than what our planner
+ * believes it put there.
+ */
+const foreignKeys = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	const rows = yield* sql.onDialectOrElse({
+		sqlite: () =>
+			sql<{ table_name: string; column_name: string }>`
+				select m.name as table_name, f."from" as column_name
+				from sqlite_master m join pragma_foreign_key_list(m.name) f
+				where m.type = 'table'
+			`,
+		mysql: () =>
+			sql<{ table_name: string; column_name: string }>`
+				select table_name as table_name, column_name as column_name
+				from information_schema.key_column_usage
+				where table_schema = database()
+					and referenced_table_name is not null
+			`,
+		orElse: () =>
+			sql<{ table_name: string; column_name: string }>`
+				select cl.relname as table_name, att.attname as column_name
+				from pg_constraint con
+				join pg_class cl on cl.oid = con.conrelid
+				join pg_namespace ns on ns.oid = cl.relnamespace
+				join unnest(con.conkey) as k(attnum) on true
+				join pg_attribute att on att.attrelid = con.conrelid
+					and att.attnum = k.attnum
+				where con.contype = 'f' and ns.nspname = current_schema()
+			`,
+	});
+	return new Set(rows.map((row) => `${row.table_name}.${row.column_name}`));
+});
+
 for (const engine of ENGINES) {
 	describe('adopt', () => {
 		it.effect(
@@ -384,6 +422,45 @@ for (const engine of ENGINES) {
 						select ${sql('name')} from ${sql(LEDGER_TABLE)}
 					`;
 					assert.strictEqual(ledger[0]?.name, '1-baseline');
+				}).pipe(Effect.provide(engine.layer)),
+			{ timeout: 60_000 }
+		);
+	});
+
+	describe('adopt: convergence with a fresh install', () => {
+		// SQLite cannot add a foreign key to an existing table at all, so an
+		// adopted SQLite database is legitimately missing them and this
+		// comparison does not apply there.
+		const canAddForeignKeys = engine.name !== 'sqlite';
+
+		(canAddForeignKeys && classifiesUnmarkedLegacy(engine)
+			? it.effect
+			: it.effect.skip)(
+			'an adopted database ends with the same foreign keys as a fresh one',
+			() =>
+				Effect.gen(function* () {
+					// The convergence property adoption exists for, checked on the
+					// constraints rather than the columns. A foreign key skipped
+					// during adoption is never added later: a re-plan classifies the
+					// database as Baseline and short-circuits, so "not yet" is
+					// permanent.
+					yield* resetDatabase;
+					yield* legacyish;
+					const adoption = yield* plan;
+					assert.isUndefined(adoption.blocked);
+					yield* apply(adoption);
+					const adopted = yield* foreignKeys;
+
+					yield* resetDatabase;
+					yield* baseline;
+					const fresh = yield* foreignKeys;
+
+					const missing = [...fresh].filter((fk) => !adopted.has(fk)).sort();
+					assert.deepStrictEqual(
+						missing,
+						[],
+						'foreign keys a fresh install has and an adopted database never gets'
+					);
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 60_000 }
 		);
