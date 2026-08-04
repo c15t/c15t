@@ -93,6 +93,11 @@
 			"import": "./dist/types/index.js",
 			"require": "./dist/types/index.cjs"
 		},
+		"./write-integrity": {
+			"types": "./dist-types/write-integrity.d.ts",
+			"import": "./dist/write-integrity.js",
+			"require": "./dist/write-integrity.cjs"
+		},
 		"./cache": {
 			"types": "./dist-types/cache/index.d.ts",
 			"import": "./dist/cache.js",

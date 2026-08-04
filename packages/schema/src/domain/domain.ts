@@ -6,6 +6,8 @@ export const domainSchema = v.object({
 	createdAt: v.optional(v.date(), () => new Date()),
 	updatedAt: v.optional(v.date(), () => new Date()),
 	tenantId: v.nullish(v.string()),
+	/** Canonical tenant/domain lookup key. Legacy rows may not have one. */
+	scopeKey: v.nullish(v.string()),
 });
 
 export type Domain = v.InferOutput<typeof domainSchema>;

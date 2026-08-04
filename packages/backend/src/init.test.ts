@@ -72,6 +72,54 @@ describe('init', () => {
 
 		expect(context.appName).toBe('c15t');
 		expect(mockClient).toHaveBeenCalledTimes(1);
+		expect(mockClient().orm).toHaveBeenCalledWith('2.1.0');
+	});
+
+	it('preserves legacy write behavior and warns when configuration is omitted', () => {
+		const context = init(createOptions());
+
+		expect(context.writeIntegrity).toMatchObject({
+			anonymousConsent: { mode: 'legacy' },
+			identityLinking: { mode: 'legacy', reassignment: 'legacy' },
+			domains: { mode: 'legacy', allowlist: [] },
+		});
+		expect(mockLogger.warn).toHaveBeenCalledWith(
+			expect.stringMatching(/^writeIntegrity: .*deprecated legacy behavior/)
+		);
+	});
+
+	it('stores validated secure write configuration on the context', () => {
+		const context = init(
+			createOptions({
+				writeIntegrity: {
+					anonymousConsent: { mode: 'public' },
+					identityLinking: { mode: 'disabled' },
+					domains: { allowlist: ['example.com'] },
+				},
+			})
+		);
+
+		expect(context.writeIntegrity).toMatchObject({
+			anonymousConsent: { mode: 'public' },
+			identityLinking: { mode: 'disabled', reassignment: 'disabled' },
+			domains: { mode: 'configured', allowlist: ['example.com'] },
+		});
+		expect(mockLogger.warn).not.toHaveBeenCalledWith(
+			expect.stringContaining('writeIntegrity:')
+		);
+	});
+
+	it('rejects incomplete secure write configuration', () => {
+		expect(() =>
+			init(
+				createOptions({
+					writeIntegrity: {
+						anonymousConsent: { mode: 'capability' },
+						identityLinking: { mode: 'disabled' },
+					},
+				})
+			)
+		).toThrow('Invalid write-integrity configuration');
 	});
 
 	it('uses the provided appName', () => {

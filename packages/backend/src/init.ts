@@ -9,6 +9,7 @@ import {
 	isTelemetryEnabled,
 } from './utils/create-telemetry-options';
 import { initLogger } from './utils/logger';
+import { resolveWriteIntegrityOptions } from './write-integrity/configuration';
 
 /**
  * Initializes the c15t backend context.
@@ -42,6 +43,21 @@ export const init = (options: C15TOptions): C15TContext => {
 		...options.logger,
 		appName: String(appName),
 	});
+	const writeIntegrityValidation = resolveWriteIntegrityOptions(
+		options.writeIntegrity
+	);
+
+	for (const warning of writeIntegrityValidation.warnings) {
+		logger.warn(`writeIntegrity: ${warning}`);
+	}
+
+	if (writeIntegrityValidation.errors.length > 0) {
+		throw new Error(
+			`Invalid write-integrity configuration:\n${writeIntegrityValidation.errors
+				.map((error) => `- ${error}`)
+				.join('\n')}`
+		);
+	}
 
 	// Create telemetry options (validates and merges with defaults)
 	const telemetryOptions = createTelemetryOptions(
@@ -65,7 +81,7 @@ export const init = (options: C15TOptions): C15TContext => {
 	const db = options.tablePrefix ? DB.names.prefix(options.tablePrefix) : DB;
 	const client = db.client(options.adapter);
 
-	const rawOrm = client.orm('2.0.0');
+	const rawOrm = client.orm('2.1.0');
 	const orm = options.tenantId
 		? withTenantScope(rawOrm, options.tenantId)
 		: rawOrm;
@@ -106,6 +122,7 @@ export const init = (options: C15TOptions): C15TContext => {
 	const context: C15TContext = {
 		...baseOptions,
 		appName,
+		writeIntegrity: writeIntegrityValidation.config,
 		logger,
 		db: orm,
 		registry: createRegistry({

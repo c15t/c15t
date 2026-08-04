@@ -2,6 +2,7 @@ import type { createLogger, LoggerOptions } from '@c15t/logger';
 import {
 	type Branding,
 	brandingValues,
+	type ConsentWriteSource,
 	type GlobalVendorList,
 	type NonIABVendor,
 	type PolicyConfig,
@@ -345,6 +346,273 @@ export interface BackgroundOptions {
 	run: (task: () => Promise<void>) => void;
 }
 
+/**
+ * A write operation protected by the write-integrity configuration.
+ */
+export type WriteIntegrityAction =
+	| 'consent:create'
+	| 'identity:link'
+	| 'identity:reassign';
+
+/**
+ * How anonymous consent submissions are accepted.
+ *
+ * `legacy` preserves the v2 behavior and is deprecated. `public` keeps consent
+ * submission anonymous while requiring configured domain resolution.
+ */
+export type AnonymousConsentSubmissionMode =
+	| 'legacy'
+	| 'public'
+	| 'capability'
+	| 'disabled';
+
+/**
+ * Anonymous consent submission configuration.
+ */
+export interface AnonymousConsentSubmissionOptions {
+	/**
+	 * Proof required to submit consent.
+	 */
+	mode: AnonymousConsentSubmissionMode;
+}
+
+/**
+ * How external identities may be linked to a subject.
+ */
+export type IdentityLinkingMode =
+	| 'legacy'
+	| 'capability'
+	| 'assertion'
+	| 'capability-and-assertion'
+	| 'disabled';
+
+/**
+ * Proof required to replace an external identity after its initial link.
+ */
+export type IdentityReassignmentMode =
+	| 'legacy'
+	| 'disabled'
+	| 'capability-and-assertion';
+
+/**
+ * External identity linking configuration.
+ */
+export interface IdentityLinkingOptions {
+	/**
+	 * Proof required for the initial, set-once identity link.
+	 */
+	mode: IdentityLinkingMode;
+
+	/**
+	 * Whether an existing external identity may be replaced.
+	 *
+	 * Secure modes default to `disabled`. Legacy mode continues to allow the
+	 * existing public replacement behavior for v2 compatibility.
+	 *
+	 * @default "disabled" for secure modes, "legacy" behavior otherwise
+	 */
+	reassignment?: IdentityReassignmentMode;
+}
+
+/**
+ * Context supplied to a trusted server-side domain resolver.
+ */
+export interface WriteDomainResolverContext {
+	/** Write operation being authorized. */
+	action: WriteIntegrityAction;
+	/** Domain supplied by the write request, when present. */
+	requestedDomain?: string;
+	/** Request origin after backend request enrichment. */
+	origin?: string;
+	/** Subject targeted by the write, when known. */
+	subjectId?: string;
+	/** Active tenant identifier. */
+	tenantId?: string;
+	/** Raw request for server-specific routing or authentication context. */
+	request: Request;
+}
+
+/**
+ * Resolves the authoritative domain for a write on the server.
+ *
+ * Returning `null` or `undefined` rejects domain resolution. When an allowlist
+ * is also configured, the resolved domain must be present in that allowlist.
+ */
+export type WriteDomainResolver = (
+	context: WriteDomainResolverContext
+) => Promise<string | null | undefined> | string | null | undefined;
+
+/**
+ * Domain controls for consent and identity writes.
+ */
+export interface WriteDomainOptions {
+	/**
+	 * Domains that may be associated with writes.
+	 *
+	 * When `resolve` is also provided, its output is checked against this list.
+	 */
+	allowlist?: readonly string[];
+
+	/**
+	 * Trusted server-side resolver for deriving a write's authoritative domain.
+	 */
+	resolve?: WriteDomainResolver;
+}
+
+/**
+ * Signing and verification configuration for short-lived subject capabilities.
+ */
+export interface SubjectCapabilityOptions {
+	/** Shared secret used to issue HS256 subject capabilities. */
+	signingKey: string;
+	/**
+	 * Verification secret when it differs from `signingKey`.
+	 *
+	 * Omit this for symmetric signing algorithms.
+	 */
+	verificationKey?: string;
+	/** Expected issuer and issuer claim for capabilities. */
+	issuer?: string;
+	/** Expected audience and audience claim for capabilities. */
+	audience?: string;
+	/**
+	 * Capability lifetime in seconds.
+	 * @default 300
+	 */
+	ttlSeconds?: number;
+}
+
+/**
+ * Verification configuration for assertions signed by an application server.
+ */
+export interface IdentityAssertionOptions {
+	/** Shared secret used to verify HS256 application-server assertions. */
+	verificationKey: string;
+	/** Expected assertion issuer. */
+	issuer?: string;
+	/** Expected assertion audience. */
+	audience?: string;
+	/**
+	 * Maximum accepted assertion age in seconds.
+	 * @default 300
+	 */
+	maxAgeSeconds?: number;
+}
+
+/**
+ * A replay identifier to claim before applying a credential-authorized write.
+ */
+export interface WriteReplayClaim {
+	/** Unique token identifier from the verified credential. */
+	tokenId: string;
+	/** Tenant associated with the credential. */
+	tenantId?: string;
+	/** Audience associated with the credential. */
+	audience: string;
+	/** Stable fingerprint of the action and request fields being authorized. */
+	requestFingerprint: string;
+	/** Time after which the replay claim may be discarded. */
+	expiresAt: Date;
+}
+
+/**
+ * Atomic storage used to reject replayed write credentials.
+ */
+export interface WriteReplayStore {
+	/**
+	 * Atomically records a replay claim if its token identifier is unused.
+	 *
+	 * Implementations must perform the existence check and insert as one atomic
+	 * operation. Return `true` only for the first accepted claim and `false` when
+	 * the token identifier was already consumed.
+	 *
+	 * @param claim - Credential and request details to claim
+	 * @returns Whether the claim was recorded for the first time
+	 */
+	consume(claim: WriteReplayClaim): Promise<boolean>;
+}
+
+/**
+ * Input supplied to the write abuse-control hook.
+ */
+export interface WriteAbuseControlContext {
+	/** Write operation being attempted. */
+	action: WriteIntegrityAction;
+	/** Subject targeted by the write, when known. */
+	subjectId?: string;
+	/** Authoritative domain resolved for the write, when known. */
+	domain?: string;
+	/** Request origin after backend request enrichment. */
+	origin?: string;
+	/** Request IP after the configured masking behavior. */
+	ipAddress?: string | null;
+	/** Active tenant identifier. */
+	tenantId?: string;
+	/** Raw request for adapter-specific rate-limit keys or metadata. */
+	request: Request;
+}
+
+/**
+ * Decision returned by a write abuse-control hook.
+ */
+export interface WriteAbuseControlDecision {
+	/** Whether the write may proceed. */
+	allowed: boolean;
+	/** Optional retry delay for rejected requests. */
+	retryAfterSeconds?: number;
+	/** Optional stable, non-sensitive reason for logs and telemetry. */
+	reason?: string;
+}
+
+/**
+ * Application-provided rate-limit or abuse-control integration.
+ */
+export type WriteAbuseControl = (
+	context: WriteAbuseControlContext
+) => Promise<WriteAbuseControlDecision> | WriteAbuseControlDecision;
+
+/**
+ * Authority used to accept a consent or identity write.
+ */
+export type WriteProvenanceSource = ConsentWriteSource;
+
+/**
+ * Audit provenance for a consent or identity write.
+ *
+ * This describes write authorization and is separate from runtime policy
+ * provenance, which describes how the consent experience was selected.
+ */
+export interface WriteProvenance {
+	/** Authority used to accept the write. */
+	source: WriteProvenanceSource;
+	/** Credential identifier, such as a capability or assertion token ID. */
+	credentialId?: string | null;
+	/** Issuer recorded from the verified credential. */
+	issuer?: string | null;
+	/** Request origin associated with the write. */
+	origin?: string | null;
+}
+
+/**
+ * Consent-write integrity and compatibility configuration.
+ */
+export interface WriteIntegrityOptions {
+	/** Anonymous consent submission behavior. */
+	anonymousConsent?: AnonymousConsentSubmissionOptions;
+	/** External identity linking and reassignment behavior. */
+	identityLinking?: IdentityLinkingOptions;
+	/** Domain allowlist and/or trusted server-side domain resolver. */
+	domains?: WriteDomainOptions;
+	/** Subject capability issuance and verification settings. */
+	subjectCapability?: SubjectCapabilityOptions;
+	/** Application-server identity assertion verification settings. */
+	identityAssertion?: IdentityAssertionOptions;
+	/** Optional custom atomic replay store. */
+	replayStore?: WriteReplayStore;
+	/** Optional rate-limit or abuse-control integration. */
+	abuseControl?: WriteAbuseControl;
+}
+
 export interface C15TOptions {
 	/**
 	 * The database adapter to use.
@@ -512,6 +780,14 @@ export interface C15TOptions {
 	 * Optional background task runner for non-critical side effects.
 	 */
 	background?: BackgroundOptions;
+
+	/**
+	 * Consent-write authorization, domain, replay, and abuse controls.
+	 *
+	 * Omit this field to preserve legacy v2 behavior. The legacy modes are
+	 * deprecated; configure explicit secure modes to prepare for v3.
+	 */
+	writeIntegrity?: WriteIntegrityOptions;
 }
 
 export interface C15TContext
@@ -546,3 +822,10 @@ export type DeepPartial<T> = T extends (...args: unknown[]) => unknown
 	: T extends object
 		? { [K in keyof T]?: DeepPartial<T[K]> }
 		: T;
+
+export {
+	type ResolvedWriteDomainOptions,
+	type ResolvedWriteIntegrityOptions,
+	resolveWriteIntegrityOptions,
+	type WriteIntegrityConfigurationResult,
+} from '../write-integrity/configuration';

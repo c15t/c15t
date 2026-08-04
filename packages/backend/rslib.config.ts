@@ -59,6 +59,7 @@ export default defineConfig({
 			'db/migrator': ['./src/db/migrator/index.ts'],
 			'define-config': ['./src/define-config.ts'],
 			'types/index': ['./src/types/index.ts'],
+			'write-integrity': ['./src/write-integrity/index.ts'],
 			cache: ['./src/cache/index.ts'],
 			edge: ['./src/edge/index.ts'],
 		},

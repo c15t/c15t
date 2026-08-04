@@ -14,6 +14,7 @@ const prefixes: Record<keyof Tables, string> = {
 	domain: 'dom',
 	runtimePolicyDecision: 'rpd',
 	subject: 'sub',
+	writeReplay: 'wrp',
 } as const;
 
 const b58 = baseX('123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz');

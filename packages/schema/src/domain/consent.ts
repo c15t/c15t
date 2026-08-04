@@ -1,5 +1,16 @@
 import * as v from 'valibot';
 
+/** Authority used to accept a consent write. */
+export const consentWriteSourceSchema = v.picklist([
+	'legacy',
+	'anonymous',
+	'subject_capability',
+	'identity_assertion',
+	'api_key',
+]);
+
+export type ConsentWriteSource = v.InferOutput<typeof consentWriteSourceSchema>;
+
 export const consentSchema = v.object({
 	id: v.string(),
 	subjectId: v.string(),
@@ -27,6 +38,14 @@ export const consentSchema = v.object({
 	runtimePolicySource: v.nullish(
 		v.picklist(['snapshot_token', 'write_time_fallback'])
 	),
+	/** Authority used to accept this write, independent of policy provenance. */
+	writeSource: v.nullish(consentWriteSourceSchema),
+	/** Credential or replay identifier associated with the accepted write. */
+	writeCredentialId: v.nullish(v.string()),
+	/** Issuer that authorized the accepted write. */
+	writeIssuer: v.nullish(v.string()),
+	/** Request origin associated with the accepted write. */
+	writeOrigin: v.nullish(v.string()),
 	tenantId: v.nullish(v.string()),
 });
 

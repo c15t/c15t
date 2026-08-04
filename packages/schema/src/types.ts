@@ -54,12 +54,14 @@ export type {
 	ConsentPolicy,
 	ConsentPolicyType,
 	ConsentPurpose,
+	ConsentWriteSource,
 	Domain,
 	LegalDocumentPolicyType,
 	LegalDocumentTypePrefix,
 	PolicyType,
 	RuntimePolicyDecision,
 	Subject,
+	WriteReplay,
 } from './domain';
 export {
 	isLegalDocumentType,

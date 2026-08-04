@@ -5,7 +5,9 @@ export {
 
 export {
 	type Consent,
+	type ConsentWriteSource,
 	consentSchema,
+	consentWriteSourceSchema,
 } from './consent';
 
 export {
@@ -39,3 +41,7 @@ export {
 	type Subject,
 	subjectSchema,
 } from './subject';
+export {
+	type WriteReplay,
+	writeReplaySchema,
+} from './write-replay';
