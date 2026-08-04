@@ -188,7 +188,9 @@ const harness: LiveVendorProbeHarness = {
 
 	version(vendor: string): string | undefined {
 		try {
-			return getLiveVendorProbeConfig(vendor)?.runtimeVersion?.();
+			const runtimeVersion =
+				getLiveVendorProbeConfig(vendor)?.runtimeVersion?.();
+			return typeof runtimeVersion === 'string' ? runtimeVersion : undefined;
 		} catch {
 			return undefined;
 		}

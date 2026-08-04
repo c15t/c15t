@@ -139,6 +139,28 @@ interface ProbeAttemptOutcome {
 	pageErrors: string[];
 }
 
+async function withTimeout<Value>(
+	promise: Promise<Value>,
+	timeoutMs: number
+): Promise<Value> {
+	return new Promise((resolve, reject) => {
+		const timeout = setTimeout(() => {
+			reject(new Error(`operation timed out after ${timeoutMs}ms`));
+		}, timeoutMs);
+
+		promise.then(
+			(value) => {
+				clearTimeout(timeout);
+				resolve(value);
+			},
+			(error: unknown) => {
+				clearTimeout(timeout);
+				reject(error);
+			}
+		);
+	});
+}
+
 async function loaderResponseDetails(
 	response: Response
 ): Promise<NonNullable<LiveVendorResult['loader']>> {
@@ -147,8 +169,11 @@ async function loaderResponseDetails(
 		.catch(() => ({}));
 
 	// Redirects and cached/aborted responses can have no readable body; the
-	// status and content type are still worth reporting on their own.
-	const body = await response.body().catch(() => undefined);
+	// status and content type are still worth reporting on their own. Bound the
+	// read as a response can deliver headers while its body stalls indefinitely.
+	const body = await withTimeout(response.body(), LOADER_TIMEOUT_MS).catch(
+		() => undefined
+	);
 
 	return {
 		url: response.url(),

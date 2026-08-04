@@ -141,6 +141,22 @@ describe('buildMonitorIssueBody', () => {
 		expect(body).toContain('**Vendor SDK version**: `1.410.2`');
 	});
 
+	it('reports a known zero-byte loader body', () => {
+		const result = makeResult({
+			ok: false,
+			phases: { load: { ok: false, detail: 'empty response' } },
+			loader: {
+				url: 'https://example.test/empty.js',
+				status: 200,
+				bytes: 0,
+				bodyHash: 'e3b0c44298fc1c14',
+			},
+		});
+		const body = buildMonitorIssueBody(result, makeReport([result]));
+
+		expect(body).toContain('**Loader bundle**: `e3b0c44298fc1c14` (0 bytes)');
+	});
+
 	it('omits provenance lines when the loader body was unreadable', () => {
 		// Redirects and cached/aborted responses carry no body, and not every
 		// vendor declares `runtimeVersion` — neither should print an empty row.

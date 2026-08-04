@@ -160,7 +160,9 @@ export function buildMonitorIssueBody(
 	// vendor-side change without diffing published CDN bundles by hand.
 	const bundleLine = result.loader?.bodyHash
 		? `\`${sanitizeInline(result.loader.bodyHash)}\`${
-				result.loader.bytes ? ` (${result.loader.bytes} bytes)` : ''
+				result.loader.bytes !== undefined
+					? ` (${result.loader.bytes} bytes)`
+					: ''
 			}`
 		: undefined;
 
