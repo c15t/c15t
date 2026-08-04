@@ -5,7 +5,9 @@ export type BenchmarkSuite =
 	| 'bundle'
 	| 'browser-runtime'
 	| 'script-lifecycle'
-	| 'artifact';
+	| 'artifact'
+	// Server-side query benchmarks for the backend rewrite (RFC 0004 §7).
+	| 'backend-runtime';
 
 export type BenchmarkFramework =
 	| 'core'
@@ -13,7 +15,8 @@ export type BenchmarkFramework =
 	| 'nextjs'
 	| 'svelte'
 	| 'solid'
-	| 'vue';
+	| 'vue'
+	| 'backend';
 
 export interface BenchmarkEnvironment {
 	os: string;
@@ -31,6 +34,19 @@ export interface BenchmarkFixtureDescriptor {
 	localeCount: number;
 	themeComplexity: 'minimal' | 'complex';
 	notes?: string[];
+	/**
+	 * Server-side shape, for `backend-runtime` arms. Optional so existing
+	 * browser and bundle reports keep validating unchanged.
+	 */
+	engine?: 'postgres' | 'mysql' | 'sqlite';
+	/** Seeded row counts, keyed by table. */
+	rowCounts?: Record<string, number>;
+	/**
+	 * Which migrations were applied. Load-bearing: RFC 0004 §11.4 requires
+	 * migration 1 and migration 2 be reported separately, or an indexing win
+	 * is silently attributed to the rewrite.
+	 */
+	migrations?: string[];
 }
 
 export interface MetricSampleSet {
