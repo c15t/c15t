@@ -766,3 +766,57 @@ direct assertion on the resolved default, which is the decision that can
 actually regress. Worth recording as the same failure mode as §11.7: a test
 that cannot fail is indistinguishable from coverage until someone tries to
 break it.
+
+### 11.10 The cutover blocker was a missing public API, not the rename
+
+§8 step 8 describes cutover as "rename to `@c15t/backend`, join the linked
+group, major release". Checking what the rename would actually require turned
+up something that section assumes and never states: **`backend-next` had no
+public API at all.** Its `index.ts` was `export {}`. A complete, tested backend
+with no way to use it — and no internal coverage could have caught that,
+because every test reached past the entry point.
+
+The nine dependents import `c15tInstance`, `policyPackPresets`, `composePacks`,
+`policyBuilder`, `defineConfig` and `C15TOptions`. None existed.
+
+**Now built** (`instance.ts`, `db/connect.ts`, `define-config.ts`,
+`policy/builder.ts`, a real `index.ts`):
+
+- `c15tInstance(options).handler(request)` — deliberately the same two-call
+  shape as 2.x, so no host integration is rewritten by the cutover.
+- **`database` replaces `adapter`.** Either `{ dialect, url }` or a `SqlClient`
+  layer. The config form exists so a self-hoster never has to learn `Layer`,
+  `Redacted` and `@effect/sql-pg` to point the backend at a database; the layer
+  form exists so that config form is not a dead end for anyone sharing a pool
+  or embedding this in an Effect application. Drivers load dynamically, so a
+  Postgres deployment does not pull `mysql2`.
+- Policy authoring is **re-exported from `@c15t/schema`**, not reimplemented.
+  Only `composePacks` and `policyBuilder` had to move; the matchers, presets
+  and `inspectPolicies` were already shared, which is why a policy pack means
+  the same thing in the browser and on the server.
+
+**Decided: the adapter subpaths are removed outright**, not stubbed. There is
+no `@c15t/backend/db/adapters/*` in 3.0 for Drizzle, Prisma, TypeORM, Kysely or
+Mongo.
+
+### 11.11 What cutover still needs
+
+Mapped rather than estimated, by grepping every subpath import in the repo.
+
+**`@c15t/cli` is the real remaining work.** Its `self-host migrate` command is
+built on v2's internals — `db/migrator` in four files, `db/schema`, and all
+five `db/adapters/*` in `ensure-backend-config.ts`. None of those exist here:
+this package's migrator is `db/adopt.ts` plus Effect's `Migrator`, and there
+are no adapters. That command needs rewriting against the new surface, and it
+is a piece of work in its own right rather than a step in a rename.
+
+Also outstanding:
+
+- `@c15t/logger` reaches for `@c15t/backend/telemetry`.
+- The rename itself: directory move, `private` removed, joining the linked
+  version group, a major changeset.
+- The benchmark and conformance harnesses import the real `@c15t/backend`,
+  which is the point of them. Deleting the old package deletes the A/B. If the
+  comparison is worth keeping past cutover, they need to depend on the
+  published 2.x under an alias instead of on the workspace.
+- Docs, which land before the 3.0 release.
