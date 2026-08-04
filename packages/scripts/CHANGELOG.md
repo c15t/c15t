@@ -1,5 +1,15 @@
 # @c15t/scripts
 
+## 2.2.0-canary-20260804162155
+
+### Patch Changes
+
+- 1116dce: Preserve `posthog.capture(...)` calls made after c15t bootstraps PostHog but before its SDK finishes loading.
+
+  The helper now uses PostHog's root snippet queue and pending init tuple, with the current consent decision queued before captured events replay. It also leaves an already-installed PostHog SDK unchanged during later consent revoke and re-grant cycles.
+
+- d481939: Fix the PostHog integration loading no analytics runtime at all. Since posthog-js 1.410.2, `array.js` refuses to install itself over an existing `window.posthog` that has no snippet-shaped pending-init queue, so c15t's bootstrap stub was left in place and every call — including `init` — silently became a no-op. The stub now seeds `_i` like the official snippet does.
+
 ## 2.2.0-canary-20260727202135
 
 ### Minor Changes
