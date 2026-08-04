@@ -2,27 +2,33 @@
 name: Release
 
 on:
-  workflow_call:
-
-# Prevent multiple concurrent releases for the same publishing branch.
-concurrency: release-${{ github.ref }}
+  push:
+    branches: ["main", "canary", "2.0.0"]
 
 permissions: {}
 
 jobs:
-  release:
+  checks:
+    name: Checks
+    if: github.repository == 'c15t/c15t'
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: write
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  publish:
     name: Release ${{ github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
+    needs: checks
     runs-on: ubuntu-latest
+    concurrency: release-${{ github.ref }}
     permissions:
       contents: write # Needed by changesets/action to create releases/tags and commit version bumps
       pull-requests: write # Needed by changesets/action to create the "Version Packages" PR
       id-token: write # Required for OIDC trusted publishing with npm (bypasses 2FA requirement)
 
-    if: >-
-      github.repository == 'c15t/c15t' &&
-      (github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/canary' ||
-      github.ref == 'refs/heads/2.0.0')
+    if: github.repository == 'c15t/c15t'
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -32,7 +38,7 @@ jobs:
           # Optionally persist credentials for commit/push by the action
           # persist-credentials: false # Uncomment if you have issues with GITHUB_TOKEN permissions
 
-      # Setup Bun using versions consistent with your ci.yml
+      # Setup Bun using the version from the shared checks workflow.
       - name: Setup Bun
         uses: oven-sh/setup-bun@f4d14e03ff726c06358e5557344e1da148b56cf7
         with:
