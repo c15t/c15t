@@ -25,7 +25,11 @@ import { Effect } from 'effect';
 import { SqlClient, type SqlError } from 'effect/unstable/sql';
 import { currentTenantId, type Tenant } from '../db/tenant';
 import { encodeRow, encoder } from '../db/values';
-import { type ConsentSubmission, record } from './consent';
+import {
+	ConsentPurposeConflictError,
+	type ConsentSubmission,
+	record,
+} from './consent';
 import { type DecisionInput, recordDecision } from './runtime-policy-decision';
 import { findOrCreate, SubjectTenantConflictError } from './subject';
 
@@ -57,7 +61,9 @@ export const submit = Effect.fn('consent.submit')(function* (
 ): Generator<
 	Effect.Effect<
 		unknown,
-		SqlError.SqlError | SubjectTenantConflictError,
+		| SqlError.SqlError
+		| SubjectTenantConflictError
+		| ConsentPurposeConflictError,
 		SqlClient.SqlClient | Tenant
 	>,
 	SubmissionResult

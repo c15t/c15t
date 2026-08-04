@@ -147,6 +147,47 @@ describe('basePath', () => {
 		}
 	}, 60_000);
 
+	it('does not strip a prefix that is not a whole segment', async () => {
+		const { layer, dispose } = await migrated();
+		const instance = c15tInstance({
+			database: layer,
+			basePath: '/api/c15t',
+		});
+
+		try {
+			// `startsWith` alone also matches `/api/c15t2/...`, which would be
+			// rewritten to `2/status` and dispatched as if it belonged to this
+			// mount. A neighbouring route on the same host is not ours.
+			const response = await instance.handler(
+				new Request('http://localhost/api/c15t2/status')
+			);
+			assert.strictEqual(response.status, 404);
+		} finally {
+			await instance.dispose();
+			await dispose();
+		}
+	}, 60_000);
+
+	it('routes the mount root itself', async () => {
+		const { layer, dispose } = await migrated();
+		const instance = c15tInstance({
+			database: layer,
+			basePath: '/api/self-host',
+		});
+
+		try {
+			// The prefix with nothing after it must still strip to `/` rather
+			// than being treated as a non-match.
+			const response = await instance.handler(
+				new Request('http://localhost/api/self-host')
+			);
+			assert.notStrictEqual(response.status, 500);
+		} finally {
+			await instance.dispose();
+			await dispose();
+		}
+	}, 60_000);
+
 	it('leaves a request alone when no basePath is set', async () => {
 		const { layer, dispose } = await migrated();
 		const instance = c15tInstance({ database: layer });

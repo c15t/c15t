@@ -18,8 +18,8 @@
  *
  * MySQL 8 supports **neither** clause. `on conflict` is Postgres/SQLite
  * syntax, and `returning` is MariaDB's, not MySQL's. Its equivalent is
- * `insert ignore`, which reports the outcome out-of-band as `affectedRows`
- * rather than as a result set.
+ * `on duplicate key update`, which reports the outcome out-of-band as
+ * `affectedRows` rather than as a result set.
  *
  * So the shape of the answer genuinely differs per engine and the branch is
  * real rather than incidental. It is confined to this one function, and the
@@ -41,16 +41,16 @@
  */
 
 import { Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient, type SqlError } from 'effect/unstable/sql';
 import { encodeRow, encoder } from './values';
 
 /**
  * How many rows MySQL actually wrote.
  *
- * `insert ignore` returns an OK packet rather than rows: 1 when it inserted,
- * 0 when it skipped a duplicate. Read defensively — this is driver-shaped
- * data crossing into typed code, and a missing field must read as "did not
- * insert" rather than throw.
+ * The statement returns an OK packet rather than rows: 1 when it inserted, 0
+ * when the duplicate's no-op update changed nothing. Read defensively — this
+ * is driver-shaped data crossing into typed code, and a missing field must
+ * read as "did not insert" rather than throw.
  */
 const affectedRows = (result: unknown): number =>
 	typeof result === 'object' &&
@@ -100,9 +100,31 @@ export const insertOnce = Effect.fn('db.insertOnce')(function* (
 
 	return yield* sql.onDialectOrElse({
 		mysql: () =>
-			Effect.map(
-				sql`insert ignore into ${into} ${values}`.raw,
-				(result) => affectedRows(result) > 0
+			// A plain insert, with only the duplicate recovered.
+			//
+			// `insert ignore` was the obvious equivalent and is the wrong one: it
+			// downgrades *every* error to a warning, so a varchar overflow or a
+			// bad date silently truncates on MySQL while the same row errors on
+			// Postgres and SQLite. The engines would then disagree about what was
+			// stored rather than merely about syntax.
+			//
+			// `on duplicate key update <col> = <col>` narrows that correctly but
+			// cannot be read back: mysql2 connects with CLIENT_FOUND_ROWS, so
+			// `affectedRows` is 1 for both a fresh insert and a matched duplicate.
+			// Measured — the cross-tenant subject test passed on three engines and
+			// failed on MySQL because every call reported "created".
+			//
+			// So the duplicate is caught. The objection recorded above is specific
+			// to Postgres, where a failed statement poisons the enclosing
+			// transaction; MySQL rolls back only the statement, so there is no
+			// savepoint to pay for here. Any other failure propagates untouched.
+			sql`insert into ${into} ${values}`.raw.pipe(
+				Effect.as(true),
+				Effect.catchTag('SqlError', (error: SqlError.SqlError) =>
+					error.reason._tag === 'UniqueViolation'
+						? Effect.succeed(false)
+						: Effect.fail(error)
+				)
 			),
 		orElse: () =>
 			Effect.map(

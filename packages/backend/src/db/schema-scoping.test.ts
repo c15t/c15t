@@ -46,6 +46,20 @@ describe('withSearchPath', () => {
 		assert.strictEqual(out.searchParams.get('options'), '-c search_path=c15t');
 	});
 
+	it('keeps an existing options parameter', () => {
+		const out = new URL(
+			withSearchPath(
+				'postgres://u:p@host:5432/db?options=-c timezone%3DUTC',
+				'c15t'
+			)
+		);
+		// Overwriting would silently drop startup options the operator set —
+		// the same class of loss the sslmode case above guards against.
+		const options = out.searchParams.get('options') ?? '';
+		assert.include(options, '-c timezone=UTC');
+		assert.include(options, '-c search_path=c15t');
+	});
+
 	it('rejects a name that is not a plain identifier', () => {
 		// This lands in a startup parameter rather than a bound value, so it is
 		// refused rather than escaped.

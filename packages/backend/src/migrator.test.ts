@@ -185,10 +185,15 @@ for (const [name, makeConfig] of CONFIGS) {
 			await migrator.apply();
 			await migrator.dispose();
 
-			// Nothing to assert beyond "this returned" — a pool that cannot be
+			// `dispose` resolving is most of the claim — a pool that cannot be
 			// released hangs the process that opened it, which for a CLI or a
-			// deploy step means a job that never finishes.
-			assert.isTrue(true);
+			// deploy step means a job that never finishes, and this test would
+			// then time out rather than pass.
+			//
+			// What it can still assert is that the pool is actually gone: using
+			// the migrator afterwards must not quietly work off a live
+			// connection.
+			await expect(migrator.plan()).rejects.toThrow();
 		}, 120_000);
 
 		it('reports a refusal rather than throwing', async () => {

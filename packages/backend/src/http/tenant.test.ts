@@ -232,6 +232,39 @@ for (const engine of ENGINES) {
 			assert.deepStrictEqual(await rowTenants('consent'), ['tenant_a']);
 		});
 
+		it('refuses a resubmission that changes the purposes', async () => {
+			// The consent id covers identity and not purposes, so this arrives
+			// looking exactly like a retry. Answering 200 would tell the client
+			// its purposes were recorded while the stored record still said
+			// something else.
+			const first = await post(appFor('tenant_a'), submission);
+			assert.strictEqual(first.status, 200);
+
+			const changed = await post(appFor('tenant_a'), {
+				...submission,
+				purposeIds: ['analytics', 'marketing'],
+			});
+			assert.strictEqual(changed.status, 400);
+			const body = (await changed.json()) as { cause?: { code?: string } };
+			assert.strictEqual(body.cause?.code, 'CONFLICT');
+		});
+
+		it('still treats an identical resubmission as a replay', async () => {
+			// The conflict check must not cost idempotency: the same purposes in
+			// a different order are the same act.
+			await post(appFor('tenant_a'), {
+				...submission,
+				purposeIds: ['analytics', 'marketing'],
+			});
+			const replay = await post(appFor('tenant_a'), {
+				...submission,
+				purposeIds: ['marketing', 'analytics'],
+			});
+
+			assert.strictEqual(replay.status, 200);
+			assert.deepStrictEqual(await rowTenants('consent'), ['tenant_a']);
+		});
+
 		it('does not join another tenant consent onto its own subject', async () => {
 			// Defence in depth for the same disclosure, independent of the write
 			// path refusing: a cross-tenant consent row planted directly must not

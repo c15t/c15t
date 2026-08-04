@@ -169,7 +169,18 @@ export const makeRun =
 		const result = await runtime.runPromise(
 			Effect.result(Effect.provide(effect, request))
 		);
-		return result._tag === 'Success'
-			? { ok: true, value: result.success }
-			: { ok: false, failure: toHttp(result.failure) };
+		if (result._tag === 'Success') {
+			return { ok: true, value: result.success };
+		}
+
+		// The client is told nothing about a database failure on purpose — the
+		// message carries table and column names. That only works if the detail
+		// goes *somewhere*, and until now it went nowhere: `toHttp` dropped it
+		// and the response said `DATABASE_ERROR` with no cause recorded, so an
+		// operator debugging a 500 had the status and nothing else.
+		if (result.failure._tag === 'SqlError' && log !== undefined) {
+			log.error(result.failure);
+		}
+
+		return { ok: false, failure: toHttp(result.failure) };
 	};

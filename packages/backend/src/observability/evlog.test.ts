@@ -217,3 +217,46 @@ describe("observability: level 'info'", () => {
 		assert.deepStrictEqual(resolved.exclude, ['/status']);
 	});
 });
+
+describe('a database failure', () => {
+	it('records the cause in the wide event', async () => {
+		const { events, drain } = collect();
+
+		// Its own runtime, because the shared harness migrates a working schema
+		// and this needs a broken one.
+		const runtime = ManagedRuntime.make(
+			PgliteClient.layer({}) as unknown as Layer.Layer<SqlClient.SqlClient>
+		);
+		try {
+			const app = createApp(runtime, {
+				manifest: seed,
+				observability: { drain },
+				apiKeys: ['sk_test'],
+			});
+
+			// No baseline at all, so the read path's first query fails. The
+			// response is deliberately opaque — table and column names in a body
+			// are information disclosure — which only works if the detail is
+			// recorded somewhere. It was not: `toHttp` dropped the error and
+			// nothing else looked at it, so a 500 left an operator with the
+			// status and nothing else.
+			const response = await app.request('/subjects?externalId=ext_1', {
+				headers: { Authorization: 'Bearer sk_test' },
+			});
+			assert.strictEqual(response.status, 500);
+			assert.notInclude(await response.text(), 'subject');
+		} finally {
+			await runtime.dispose();
+		}
+
+		const event = events.at(-1);
+		assert.isDefined(event, 'a failed request emitted no event');
+		// Specifically the SQL failure. A looser check — "the event mentions
+		// error somewhere" — passes either way, because a 500 already sets
+		// `level: 'error'`; the first version of this test did exactly that and
+		// proved nothing. Verified by removing the fix and watching this fail.
+		const recorded = (event as { error?: { name?: string } }).error;
+		assert.isDefined(recorded, 'the wide event carried no error');
+		assert.include(recorded?.name ?? '', 'SqlError');
+	});
+});

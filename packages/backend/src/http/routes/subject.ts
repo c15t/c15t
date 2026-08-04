@@ -259,6 +259,15 @@ export function register({ app, options, run }: RouteContext): void {
 						Effect.fail(
 							new BadRequestError({ message: error.message, code: 'CONFLICT' })
 						)
+					),
+					// Same shape, different cause: the identity exists but the
+					// submitted purposes differ from what was recorded. Answering 200
+					// would tell the client its purposes were stored when they were
+					// not.
+					Effect.catchTag('ConsentPurposeConflictError', (error) =>
+						Effect.fail(
+							new BadRequestError({ message: error.message, code: 'CONFLICT' })
+						)
 					)
 				)
 			);
