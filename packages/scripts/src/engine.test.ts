@@ -845,6 +845,73 @@ describe('scripts engine', () => {
 		delete globalRef.vendorQueue;
 	});
 
+	it('limits snippet-only properties and methods to queue globals', () => {
+		const globalRef = globalThis as TestGlobal;
+		const manifest = createManifest({
+			vendor: 'guarded-queue-bootstrap',
+			category: 'measurement',
+			bootstrap: [
+				{
+					type: 'setGlobal',
+					name: 'guardedQueue',
+					value: [],
+					ifUndefined: true,
+				},
+				{
+					type: 'setGlobalPath',
+					path: ['guardedQueue', 'pending'],
+					value: [['init']],
+					ifGlobalIsQueue: true,
+				},
+				{
+					type: 'defineGlobalMethods',
+					target: 'guardedQueue',
+					ifGlobalIsQueue: true,
+					methods: [
+						{
+							name: 'status',
+							behavior: 'return',
+							value: 'pending',
+						},
+					],
+				},
+			],
+			install: [],
+		});
+		const script = resolvedManifestToScript(compileManifest(manifest));
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: grantedMeasurementConsentState,
+			})
+		);
+
+		const queue = globalRef.guardedQueue as unknown[] & {
+			pending: unknown[][];
+			status: () => string;
+		};
+		expect(queue.pending).toEqual([['init']]);
+		expect(queue.status()).toBe('pending');
+
+		const liveStatus = vi.fn(() => 'granted');
+		const installed = { status: liveStatus };
+		globalRef.guardedQueue = installed;
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({
+				id: script.id,
+				consents: grantedMeasurementConsentState,
+			})
+		);
+
+		expect(globalRef.guardedQueue).toBe(installed);
+		expect(installed.status()).toBe('granted');
+		expect(installed).not.toHaveProperty('pending');
+
+		delete globalRef.guardedQueue;
+	});
+
 	it('partitions consent IDs for the rudderstack consent signal', () => {
 		const globalRef = globalThis as TestGlobal;
 		const consentCalls: unknown[][] = [];

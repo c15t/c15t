@@ -32,6 +32,7 @@ This is a minor release with no breaking changes.
 - Eight new built-in providers: Adobe Analytics, Amplitude, Clearbit, Heap, Hightouch, LogRocket, Pirsch, and RudderStack
 - RudderStack pre-consent buffering with category-to-consent-ID mapping
 - Microsoft Clarity Consent V2 support and a corrected Mixpanel bootstrap
+- PostHog initialization and pre-load event queue fixes
 - Policy-aware primary action styling, including IAB consent surfaces
 - New `nonce` option applying your CSP nonce to injected styles and scripts
 - Reliable offline IAB GVL loading and language refreshes
@@ -131,7 +132,7 @@ The default remains the stricter load gate. Pre-consent mode is opt-in because i
 
 → [RudderStack](/docs/integrations/rudderstack)
 
-## Microsoft Clarity and Mixpanel fixes
+## Microsoft Clarity, Mixpanel, and PostHog fixes
 
 The Microsoft Clarity helper now uses Consent V2. c15t maps `marketing` consent to `ad_Storage` and `measurement` consent to `analytics_Storage`, and `defaultConsent` accepts a Consent V2 payload.
 
@@ -139,9 +140,11 @@ The helper also no longer adds Clarity's `v` marker before the vendor runtime lo
 
 The Mixpanel helper now implements the official snippet contract, including the `__SV` version marker and `_i` initialization registry. This prevents the SDK from reporting a version mismatch and dropping events queued before it finishes loading.
 
+The PostHog helper now seeds the pending initialization tuple expected by current `array.js` releases. It also keeps `posthog.capture(...)` calls made before the SDK arrives in PostHog's root queue and applies the consent decision before those events replay. Existing installed SDK methods remain untouched if an `after-consent` integration loads again after consent is revoked and restored.
+
 The core script loader also now preserves an explicit `async: false`, which is required by synchronous vendor embeds such as legacy Adobe Tags configurations.
 
-→ [Microsoft Clarity](/docs/integrations/microsoft-clarity) · [Mixpanel](/docs/integrations/mixpanel-analytics)
+→ [Microsoft Clarity](/docs/integrations/microsoft-clarity) · [Mixpanel](/docs/integrations/mixpanel-analytics) · [PostHog](/docs/integrations/posthog)
 
 ## Policy-aware primary action styling
 

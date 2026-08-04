@@ -20,9 +20,9 @@ declare global {
 			get_explicit_consent_status: () => string;
 			capture: (event: string, properties?: Record<string, unknown>) => void;
 			/**
-			 * Pending `init(...)` argument tuples, as seeded by the official
-			 * PostHog snippet. `array.js` only installs its runtime over an
-			 * existing `window.posthog` when this is an array.
+			 * Pending `[token, config, instanceName]` init tuples, as seeded by
+			 * the official PostHog snippet. `array.js` only installs its runtime
+			 * over an existing `window.posthog` when this is an array.
 			 */
 			_i?: unknown[][];
 		};
@@ -158,23 +158,39 @@ export const posthogManifest = {
 	alwaysLoad: true,
 	bootstrap: [
 		{
-			// `_i` must be an array: since posthog-js 1.410.2, `array.js` skips
-			// installing its runtime entirely when `window.posthog` already
-			// exists without a snippet-shaped pending-init queue, which would
-			// leave the stub methods below in place and drop every event.
 			type: 'setGlobal',
 			name: 'posthog',
-			value: { _i: [] },
+			value: [],
 			ifUndefined: true,
+		},
+		{
+			// Since posthog-js 1.410.2, array.js installs over an existing
+			// global only when `_i` is an array. Seeding the full tuple also lets
+			// the loader initialize before replaying calls captured on this queue.
+			type: 'setGlobalPath',
+			path: ['posthog', '_i'],
+			value: [['{{id}}', '{{initOptions}}', 'posthog']],
+			ifGlobalIsQueue: true,
+		},
+		{
+			// PostHog's loader reads the people sub-queue during installation.
+			// Keep the required shape without exposing or emulating its API.
+			type: 'setGlobalPath',
+			path: ['posthog', 'people'],
+			value: [],
+			ifGlobalIsQueue: true,
+		},
+		{
+			type: 'defineQueueMethods',
+			target: 'posthog',
+			methods: ['capture', 'opt_in_capturing', 'opt_out_capturing'],
 		},
 		{
 			type: 'defineGlobalMethods',
 			target: 'posthog',
+			ifGlobalIsQueue: true,
 			methods: [
 				{ name: 'init', behavior: 'noop' },
-				{ name: 'capture', behavior: 'noop' },
-				{ name: 'opt_in_capturing', behavior: 'noop' },
-				{ name: 'opt_out_capturing', behavior: 'noop' },
 				{
 					name: 'get_explicit_consent_status',
 					behavior: 'return',
@@ -195,12 +211,18 @@ export const posthogManifest = {
 			},
 		},
 	],
-	afterLoad: [
+	onBeforeLoadGranted: [
 		{
-			type: 'callGlobal',
-			global: 'posthog',
-			method: 'init',
-			args: ['{{id}}', '{{initOptions}}'],
+			type: 'pushToQueue',
+			queue: 'posthog',
+			value: ['opt_in_capturing', { captureEventName: null }],
+		},
+	],
+	onBeforeLoadDenied: [
+		{
+			type: 'pushToQueue',
+			queue: 'posthog',
+			value: ['opt_out_capturing'],
 		},
 	],
 	onLoadGranted: [
