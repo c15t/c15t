@@ -225,7 +225,6 @@ for (const engine of ENGINES) {
 					)}`;
 
 					const submission = {
-						subjectId: 'sub_shared',
 						domainId: 'dom_shared',
 						purposeIds: ['analytics'],
 						givenAt: new Date(1_800_000_000_000),
@@ -233,14 +232,17 @@ for (const engine of ENGINES) {
 						userAgent: null,
 					};
 
-					// Byte-identical arguments; different scopes. `submit` takes its
-					// tenant from the scope rather than from its argument, so a test
-					// that passed one in would run both writes as the same tenant
-					// while claiming to prove they are two.
-					yield* submit(submission).pipe(
+					// Identical but for the subject id, which each tenant generates
+					// for itself — `subject.id` is the primary key and globally
+					// unique, so a shared one is a conflict rather than two subjects
+					// (`http/tenant.test.ts` covers that). `submit` takes its tenant
+					// from the scope rather than from its argument, so a test that
+					// passed one in would run both writes as the same tenant while
+					// claiming to prove they are two.
+					yield* submit({ ...submission, subjectId: 'sub_a' }).pipe(
 						Effect.provide(tenantLayer('tenant_a'))
 					);
-					yield* submit(submission).pipe(
+					yield* submit({ ...submission, subjectId: 'sub_b' }).pipe(
 						Effect.provide(tenantLayer('tenant_b'))
 					);
 

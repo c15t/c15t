@@ -27,7 +27,7 @@ import { currentTenantId, type Tenant } from '../db/tenant';
 import { encodeRow, encoder } from '../db/values';
 import { type ConsentSubmission, record } from './consent';
 import { type DecisionInput, recordDecision } from './runtime-policy-decision';
-import { findOrCreate } from './subject';
+import { findOrCreate, SubjectTenantConflictError } from './subject';
 
 export interface ConsentSubmissionRequest {
 	readonly subjectId: string;
@@ -55,7 +55,11 @@ export interface SubmissionResult {
 export const submit = Effect.fn('consent.submit')(function* (
 	request: ConsentSubmissionRequest
 ): Generator<
-	Effect.Effect<unknown, SqlError.SqlError, SqlClient.SqlClient | Tenant>,
+	Effect.Effect<
+		unknown,
+		SqlError.SqlError | SubjectTenantConflictError,
+		SqlClient.SqlClient | Tenant
+	>,
 	SubmissionResult
 > {
 	const sql = yield* SqlClient.SqlClient;

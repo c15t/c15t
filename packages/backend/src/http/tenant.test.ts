@@ -198,16 +198,77 @@ for (const engine of ENGINES) {
 		});
 
 		it('keeps an identical submission from two tenants as two records', async () => {
-			await post(appFor('tenant_a'), submission);
-			await post(appFor('tenant_b'), submission);
+			// Same everything except the subject id, which each tenant generates
+			// for itself. `subject.id` is the primary key and globally unique, so
+			// a shared one is a conflict rather than two subjects — covered
+			// separately below.
+			await post(appFor('tenant_a'), { ...submission, subjectId: 'sub_a' });
+			await post(appFor('tenant_b'), { ...submission, subjectId: 'sub_b' });
 
-			// Byte-identical bodies. The consent id is deterministic, so if the
-			// tenant were not part of it the second would be treated as a replay
-			// and one tenant's consent would go unrecorded.
+			// The consent id is deterministic, so if the tenant were not part of
+			// it the second would be treated as a replay and one tenant's consent
+			// would go unrecorded.
 			assert.deepStrictEqual((await rowTenants('consent')).sort(), [
 				'tenant_a',
 				'tenant_b',
 			]);
+		});
+
+		it('refuses a subjectId another tenant already owns', async () => {
+			// `subject.id` is the primary key and the client chooses it, so two
+			// tenants can name the same subject. Reusing the existing row would
+			// hang tenant B's consent off tenant A's subject — which tenant A then
+			// reads and tenant B cannot. Measured before the fix: tenant A saw 2
+			// consents, one of them tenant B's.
+			const first = await post(appFor('tenant_a'), submission);
+			assert.strictEqual(first.status, 200);
+
+			const second = await post(appFor('tenant_b'), submission);
+			assert.strictEqual(second.status, 400);
+			const body = (await second.json()) as { cause?: { code?: string } };
+			assert.strictEqual(body.cause?.code, 'CONFLICT');
+
+			// And nothing was written under the second tenant.
+			assert.deepStrictEqual(await rowTenants('consent'), ['tenant_a']);
+		});
+
+		it('does not join another tenant consent onto its own subject', async () => {
+			// Defence in depth for the same disclosure, independent of the write
+			// path refusing: a cross-tenant consent row planted directly must not
+			// appear in a tenant's read. The join carries its own tenant
+			// predicate rather than relying on the driving table's.
+			await post(appFor('tenant_a'), submission);
+
+			await runtime.runPromise(
+				Effect.gen(function* () {
+					const sql = yield* SqlClient.SqlClient;
+					const encode = yield* encoder;
+					yield* sql`insert into ${sql('consent')} ${sql.insert(
+						encodeRow(encode, {
+							id: 'cns_planted',
+							subjectId: 'sub_tenanted',
+							domainId: 'dom_1',
+							policyId: 'pol_1',
+							purposeIds: '[]',
+							givenAt: GIVEN_AT,
+							tenantId: 'tenant_b',
+						})
+					)}`;
+				})
+			);
+
+			const read = await appFor('tenant_a').request(
+				'/subjects?externalId=ext_tenanted',
+				{ headers: { Authorization: `Bearer ${API_KEY}` } }
+			);
+			const body = (await read.json()) as {
+				subjects: { consents: unknown[] }[];
+			};
+			assert.strictEqual(
+				body.subjects[0]?.consents.length,
+				1,
+				'leaked another tenant consent through the join'
+			);
 		});
 	});
 }
