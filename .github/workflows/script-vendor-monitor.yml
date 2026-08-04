@@ -1,13 +1,22 @@
 name: Script Vendor Monitor
 
-# Daily live browser probes for every built-in @c15t/scripts integration.
+# Live browser probes for every built-in @c15t/scripts integration.
 # Runs outside normal CI so transient third-party/network failures never
 # block PRs. Failures open one deduped issue per vendor; recoveries close
 # that vendor's issue automatically.
+#
+# Vendors ship breaking loader changes on their own schedule, and a broken
+# integration is invisible to consumers until it is probed, so the schedule
+# runs every six hours, capping the exposure window at a quarter of a day.
+# Canary pushes probe as well, which catches breakage we introduce ourselves
+# as soon as it lands.
 
 on:
   schedule:
-    - cron: '30 6 * * *'
+    - cron: '30 */6 * * *'
+  push:
+    branches:
+      - canary
   workflow_dispatch:
     inputs:
       vendor:

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { builtInScriptIntegrations } from '../src/registry';
+import { assertsRuntime } from './probe-policy';
 import type { LiveVendorProbeConfig } from './types';
 import { liveVendorProbeConfigs } from './vendors';
 
@@ -39,6 +40,46 @@ describe('live vendor probe configs', () => {
 			expect(config.skipReason, config.vendor).toBeTypeOf('string');
 			expect(config.skipReason, config.vendor).not.toBe('');
 		}
+	});
+
+	it('documents every vendor that asserts no runtime behavior', () => {
+		// A vendor whose loader answers placeholder credentials with an error
+		// page cannot prove its SDK started, so the probe reduces to "the
+		// endpoint exists". That is a real coverage gap — the exact kind that
+		// hides a loader contract change — so it has to be written down rather
+		// than inferred from an absent field.
+		const gaps: string[] = [];
+
+		for (const config of liveVendorProbeConfigs) {
+			if (config.tier === 'skip') {
+				continue;
+			}
+
+			if (assertsRuntime(config)) {
+				continue;
+			}
+
+			expect(
+				config.notes?.trim(),
+				`${config.vendor} asserts no runtime behavior and must explain the gap in notes`
+			).toBeTruthy();
+			gaps.push(config.vendor);
+		}
+
+		// Snapshot the gap list so shrinking it is deliberate and growing it is
+		// impossible to land unnoticed.
+		expect(gaps.sort()).toEqual([
+			'adobe-analytics',
+			'clearbit',
+			'crisp',
+			'google-tag-manager',
+			'hotjar',
+			'intercom',
+			'linkedin-insights',
+			'matomo-analytics',
+			'segment',
+			'vercel-analytics',
+		]);
 	});
 
 	it('requires a denied-consent probe for every alwaysLoad vendor', () => {
