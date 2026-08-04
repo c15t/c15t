@@ -32,6 +32,7 @@ export {
 	type ConsentSubmissionIdentity,
 	type EntityKind,
 	generateDeterministicId,
+	generateEntityId,
 } from './entity-id';
 export {
 	CONSENT_REQUEST_HEADER_NAMES,

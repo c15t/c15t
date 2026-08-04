@@ -10,7 +10,7 @@
  */
 
 import { Data } from 'effect';
-import { SqlError } from 'effect/unstable/sql';
+import type { SqlError } from 'effect/unstable/sql';
 
 /** A request referenced something that does not exist. */
 export class NotFoundError extends Data.TaggedError('NotFoundError')<{

@@ -14,6 +14,7 @@ import {
 	type ConsentManifestConfig,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
+import { decodeJwt } from 'jose';
 import { assert, describe, it } from 'vitest';
 import { buildInitResponse, readInitSignals } from './init';
 import {
@@ -119,5 +120,200 @@ describe('manifest cache control', () => {
 			createManifestCacheControl({ sMaxAge: 60, staleWhileRevalidate: 120 }),
 			's-maxage=60, stale-while-revalidate=120'
 		);
+	});
+});
+
+describe('init policy snapshot token', () => {
+	const snapshot = { signingKey: 'test-signing-key-at-least-32-chars-long' };
+
+	it('omits the token when signing is not configured', async () => {
+		const result = await buildInitResponse(config, new Headers());
+		// The field is optional in the contract precisely because signing is
+		// opt-in; an unsigned placeholder would be worse than its absence.
+		assert.isUndefined(
+			(result.body as { policySnapshotToken?: string }).policySnapshotToken
+		);
+	});
+
+	it('omits the token when no policy matched', async () => {
+		// Nothing was decided, so there is nothing to attest to.
+		const result = await buildInitResponse(config, new Headers(), snapshot);
+		assert.isUndefined(
+			(result.body as { policySnapshotToken?: string }).policySnapshotToken
+		);
+	});
+
+	it('still resolves identically to a local resolve', async () => {
+		// The token is additive: adding it must not change the decision a host
+		// computing locally would reach.
+		const withToken = await buildInitResponse(config, new Headers(), snapshot);
+		const without = await buildInitResponse(config, new Headers());
+
+		const { policySnapshotToken: _omitted, ...rest } = withToken.body as {
+			policySnapshotToken?: string;
+		} & Record<string, unknown>;
+		assert.deepStrictEqual(rest, without.body);
+	});
+});
+
+describe('init GVL inclusion', () => {
+	const GVL = {
+		gvlSpecificationVersion: 3,
+		vendorListVersion: 1,
+		tcfPolicyVersion: 4,
+		lastUpdated: '2026-01-01T00:00:00Z',
+		purposes: {},
+		specialPurposes: {},
+		features: {},
+		specialFeatures: {},
+		stacks: {},
+		vendors: {},
+	};
+	const serve = (async () =>
+		new Response(JSON.stringify(GVL))) as unknown as typeof globalThis.fetch;
+
+	it('omits the vendor list when IAB is disabled', async () => {
+		const result = await buildInitResponse(config, new Headers(), undefined, {
+			enabled: false,
+			fetch: serve,
+		});
+		// A non-IAB deployment must not pay for a document it will never read.
+		assert.isUndefined((result.body as { gvl?: unknown }).gvl);
+	});
+
+	it('omits the vendor list when IAB is enabled but never fetched', async () => {
+		const result = await buildInitResponse(config, new Headers(), undefined, {
+			enabled: false,
+		});
+		assert.isUndefined((result.body as { gvl?: unknown }).gvl);
+	});
+
+	it('includes the vendor list when IAB is active', async () => {
+		const result = await buildInitResponse(config, new Headers(), undefined, {
+			enabled: true,
+			fetch: serve,
+		});
+		assert.isDefined((result.body as { gvl?: unknown }).gvl);
+	});
+
+	it('still resolves when the vendor list cannot be fetched', async () => {
+		const result = await buildInitResponse(config, new Headers(), undefined, {
+			enabled: true,
+			fetch: (async () => {
+				throw new Error('gvl upstream down');
+			}) as unknown as typeof globalThis.fetch,
+		});
+
+		// The visitor still gets a consent decision. Failing /init because a
+		// third party is unreachable would leave them with no banner at all.
+		assert.isDefined(result.body);
+		assert.isNull((result.body as { gvl?: unknown }).gvl ?? null);
+	});
+
+	it('passes the request language through to the fetch', async () => {
+		let requested = '';
+		const capture = (async (url: string) => {
+			requested = String(url);
+			return new Response(JSON.stringify(GVL));
+		}) as unknown as typeof globalThis.fetch;
+
+		await buildInitResponse(
+			config,
+			new Headers({ 'accept-language': 'fr-CA' }),
+			undefined,
+			{ enabled: true, fetch: capture }
+		);
+
+		// Serving an English vendor list to a French visitor is a compliance
+		// problem, not a cosmetic one.
+		assert.include(requested, '/fr.json');
+	});
+});
+
+/**
+ * The snapshot-token path, which needs a policy that actually matches.
+ *
+ * Every other init case uses a bare config, so no policy resolves and the
+ * token branch never runs — the branch that mints signed evidence of a
+ * decision was the least exercised code in the module.
+ */
+describe('init with a matching policy', () => {
+	const snapshot = { signingKey: 'test-signing-key-at-least-32-chars-long' };
+
+	const withPolicy: ConsentManifestConfig = {
+		tenantId: 'tenant_1',
+		appName: 'Example',
+		policyPacks: [
+			{
+				id: 'pol_default',
+				// isDefault so it matches regardless of geo, which keeps the case
+				// about the token rather than about jurisdiction matching.
+				match: { isDefault: true },
+				consent: { model: 'opt-in' },
+			},
+		],
+	};
+
+	it('resolves a policy decision', async () => {
+		const { body } = await buildInitResponse(withPolicy, new Headers());
+		assert.isDefined(
+			(body as { policyDecision?: unknown }).policyDecision,
+			'expected a default policy to match'
+		);
+	});
+
+	it('mints a snapshot token when signing is configured', async () => {
+		const { body } = await buildInitResponse(
+			withPolicy,
+			new Headers(),
+			snapshot
+		);
+		const token = (body as { policySnapshotToken?: string })
+			.policySnapshotToken;
+
+		assert.isString(token);
+		// Three segments: it is a real signed JWT, not a placeholder.
+		assert.strictEqual(token?.split('.').length, 3);
+	});
+
+	it('omits the token when signing is not configured', async () => {
+		const { body } = await buildInitResponse(withPolicy, new Headers());
+		assert.isUndefined(
+			(body as { policySnapshotToken?: string }).policySnapshotToken
+		);
+	});
+
+	it('binds the token to the decision it attests to', async () => {
+		const { body } = await buildInitResponse(
+			withPolicy,
+			new Headers(),
+			snapshot
+		);
+		const typed = body as {
+			policySnapshotToken?: string;
+			policyDecision?: { policyId: string; fingerprint: string };
+		};
+		const claims = decodeJwt(typed.policySnapshotToken ?? '');
+
+		// A token attesting to a different decision than the one returned would
+		// be worse than none — the server would verify evidence for a decision
+		// the visitor never saw.
+		assert.strictEqual(claims.policyId, typed.policyDecision?.policyId);
+		assert.strictEqual(claims.fingerprint, typed.policyDecision?.fingerprint);
+		assert.strictEqual(claims.tenantId, 'tenant_1');
+	});
+
+	it('carries the tenant into the token audience', async () => {
+		const { body } = await buildInitResponse(
+			withPolicy,
+			new Headers(),
+			snapshot
+		);
+		const claims = decodeJwt(
+			(body as { policySnapshotToken?: string }).policySnapshotToken ?? ''
+		);
+		// Tenant-scoped audience is what stops evidence being portable between
+		// tenants.
+		assert.strictEqual(claims.aud, 'c15t-policy-snapshot:tenant_1');
 	});
 });

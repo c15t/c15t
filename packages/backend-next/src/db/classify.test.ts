@@ -7,12 +7,15 @@
 
 import { PgliteClient } from '@effect/sql-pglite';
 import { assert, describe, it } from '@effect/vitest';
-import { Effect } from 'effect';
+import { Effect, Layer } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+import { singleTenant } from '../db/tenant';
 import { classify } from './classify';
 import { up as baseline } from './migrations/1-baseline';
 
-const Pglite = PgliteClient.layer({});
+// Tests run single-tenant unless a case says otherwise; the scope is a
+// service, so a query cannot run without one.
+const Pglite = Layer.merge(PgliteClient.layer({}), singleTenant);
 
 /**
  * The seven tables legacy and fumadb 1.0.0 share, differing only in whether

@@ -5,14 +5,18 @@
  */
 
 import { PgliteClient } from '@effect/sql-pglite';
+import { SqliteClient } from '@effect/sql-sqlite-node';
 import { assert, describe, it } from '@effect/vitest';
-import { Effect } from 'effect';
+import { Effect, Layer } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+import { singleTenant } from '../db/tenant';
 import { apply, LEDGER_TABLE, plan } from './adopt';
 import { classify } from './classify';
 import { up as baseline } from './migrations/1-baseline';
 
-const Pglite = PgliteClient.layer({});
+// Tests run single-tenant unless a case says otherwise; the scope is a
+// service, so a query cannot run without one.
+const Pglite = Layer.merge(PgliteClient.layer({}), singleTenant);
 
 /** A 1.0.0-era database: seven tables, no runtimePolicyDecision, with data. */
 const legacyish = Effect.gen(function* () {
@@ -305,6 +309,199 @@ describe('adopt', () => {
 				)}`;
 				assert.strictEqual(ledger[0]?.name, '1-baseline');
 			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+});
+
+describe('adopt: refusals and edge cases', () => {
+	it.effect(
+		'refuses an unrecognised database rather than guessing',
+		() =>
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				// A c15t-shaped database claiming a schema version we have no
+				// fixture for. Migrating it would be acting on an assumption
+				// about a shape nobody has seen.
+				yield* sql.unsafe(
+					`create table "subject" ("id" varchar(255) primary key)`
+				);
+				yield* sql.unsafe(
+					`create table "consent" ("id" varchar(255) primary key)`
+				);
+				yield* sql.unsafe(
+					`create table "private_c15t_settings" ("key" text primary key, "value" text)`
+				);
+				yield* sql.unsafe(
+					`insert into "private_c15t_settings" values ('version','9.9.9')`
+				);
+
+				const adoption = yield* plan;
+
+				assert.strictEqual(adoption.shape._tag, 'Unknown');
+				assert.isDefined(adoption.blocked);
+				assert.deepStrictEqual(adoption.steps, [], 'must plan nothing');
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'dies rather than applying a blocked plan',
+		() =>
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				yield* baseline;
+				yield* sql.unsafe(
+					`alter table "consent" drop constraint "consent_subjectId_fkey"`
+				);
+				yield* sql.unsafe(`insert into "domain" ("id","name","createdAt","updatedAt")
+					values ('dom_1','a.com',now(),now())`);
+				yield* sql.unsafe(`insert into "consent"
+					("id","subjectId","domainId","purposeIds","givenAt")
+					values ('cns_1','sub_missing','dom_1','[]',now())`);
+
+				const adoption = yield* plan;
+				const outcome = yield* Effect.exit(apply(adoption));
+
+				// Refusing loudly beats a partial migration an operator has to
+				// unpick by hand.
+				assert.strictEqual(outcome._tag, 'Failure');
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'plans nothing for a database already at the baseline',
+		() =>
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				yield* baseline;
+				yield* sql.unsafe(
+					`create table "c15t_migrations" ("id" integer primary key, "name" text)`
+				);
+
+				const adoption = yield* plan;
+
+				// Re-running adoption against our own output must be inert, or a
+				// retried deploy would churn the schema.
+				assert.strictEqual(adoption.shape._tag, 'Baseline');
+				assert.deepStrictEqual(adoption.steps, []);
+				assert.isUndefined(adoption.blocked);
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'adds only the columns a partial database is missing',
+		() =>
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				yield* baseline;
+				yield* sql.unsafe(`alter table "consent" drop column "tenantId"`);
+				yield* sql.unsafe(`alter table "consent" drop column "uiSource"`);
+
+				const adoption = yield* plan;
+				const added = adoption.steps.filter(
+					(step) => step.kind === 'add-column'
+				);
+
+				// Precisely two, not a wholesale rewrite: adoption must touch as
+				// little as it can get away with.
+				assert.strictEqual(added.length, 2);
+				yield* apply(adoption);
+
+				const columns = yield* sql<{ column_name: string }>`
+					select column_name from information_schema.columns
+					where table_name = 'consent'
+				`;
+				const names = columns.map((row) => row.column_name);
+				assert.include(names, 'tenantId');
+				assert.include(names, 'uiSource');
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'reports retained columns so an operator can prune deliberately',
+		() =>
+			Effect.gen(function* () {
+				yield* legacyish;
+				const adoption = yield* plan;
+
+				// The operator has to be told what was kept, or "additive" just
+				// means the extra columns are invisible instead of absent.
+				assert.isAbove(adoption.retained.length, 0);
+				assert.include(adoption.retained.join(' '), 'consentRecord');
+			}).pipe(Effect.provide(Pglite)),
+		{ timeout: 60_000 }
+	);
+});
+
+/**
+ * SQLite adoption.
+ *
+ * Every other case here runs on Postgres, which left the SQLite branches of
+ * introspection and classification unexecuted — on the one code path that
+ * touches a real deployment's data. SQLite is in-process, so there is no
+ * excuse for not covering it.
+ */
+describe('adopt: sqlite', () => {
+	const Sqlite = Layer.merge(
+		SqliteClient.layer({ filename: ':memory:' }),
+		singleTenant
+	);
+
+	it.effect(
+		'plans a full create for an empty sqlite database',
+		() =>
+			Effect.gen(function* () {
+				const adoption = yield* plan;
+
+				assert.strictEqual(adoption.shape._tag, 'Empty');
+				assert.strictEqual(
+					adoption.steps.filter((step) => step.kind === 'create-table').length,
+					7
+				);
+			}).pipe(Effect.provide(Sqlite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'adopts and then reports itself as baseline',
+		() =>
+			Effect.gen(function* () {
+				yield* apply(yield* plan);
+				const second = yield* plan;
+
+				assert.strictEqual(second.shape._tag, 'Baseline');
+				assert.deepStrictEqual(second.steps, []);
+			}).pipe(Effect.provide(Sqlite)),
+		{ timeout: 60_000 }
+	);
+
+	it.effect(
+		'emits no destructive statement on sqlite either',
+		() =>
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				// A 1.0.0-era sqlite database, columns and all.
+				yield* sql.unsafe(
+					`create table "subject" ("id" text primary key, "externalId" text)`
+				);
+				yield* sql.unsafe(
+					`create table "consent" ("id" text primary key, "status" text)`
+				);
+				yield* sql.unsafe(
+					`create table "consentRecord" ("id" text primary key)`
+				);
+
+				for (const step of (yield* plan).steps) {
+					assert.notMatch(
+						step.sql,
+						/\b(drop|truncate)\b|\bdelete\s+from\b/i,
+						step.description
+					);
+				}
+			}).pipe(Effect.provide(Sqlite)),
 		{ timeout: 60_000 }
 	);
 });

@@ -116,3 +116,21 @@ export function buildConsentId(
 		input.givenAt.toISOString(),
 	]);
 }
+
+/**
+ * A fresh, time-ordered id for a record that is not deduplicated.
+ *
+ * Audit entries use this rather than a deterministic id on purpose: two
+ * identical changes at different moments are two events and both belong in the
+ * trail. Deduplicating them would lose history, which is the one thing an
+ * audit log exists to keep.
+ *
+ * Same layout as the deterministic form — timestamp prefix then random bytes —
+ * so ids remain chronologically sortable and visually consistent.
+ */
+export function generateEntityId(kind: EntityKind, now = Date.now()): string {
+	const buf = new Uint8Array(ID_BYTE_LENGTH);
+	writeTimestamp(buf, now);
+	crypto.getRandomValues(buf.subarray(TIMESTAMP_BYTE_LENGTH));
+	return `${PREFIXES[kind]}_${b58.encode(buf)}`;
+}

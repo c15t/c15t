@@ -25,6 +25,11 @@ import {
 	type InitOutput,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
+import { type GvlOptions, resolveGvl } from './gvl';
+import {
+	createPolicySnapshotToken,
+	type PolicySnapshotOptions,
+} from './policy-snapshot';
 
 export interface InitRequestSignals {
 	readonly country: string | null;
@@ -64,18 +69,61 @@ export function readInitSignals(headers: Headers): InitRequestSignals {
  */
 export async function buildInitResponse(
 	config: ConsentManifestConfig,
-	headers: Headers
+	headers: Headers,
+	snapshot?: PolicySnapshotOptions,
+	gvl?: GvlOptions & { enabled?: boolean }
 ): Promise<{ body: InitOutput; signals: InitRequestSignals }> {
 	const signals = readInitSignals(headers);
 	const manifest = await buildConsentManifestFromConfig(config);
 
-	return {
-		body: resolveInitFromManifest(manifest, {
+	const resolved = resolveInitFromManifest(manifest, {
+		country: signals.country,
+		region: signals.region,
+		language: signals.language,
+		gpc: signals.gpc,
+	});
+
+	// Signed evidence of the decision just made, so the consent submitted
+	// against it can be checked to be the one this server actually issued.
+	// Absent when no signing key is configured — `policySnapshotToken` is
+	// optional in the contract precisely because signing is opt-in.
+	// policyDecision carries the *why* — which policy matched and how — while
+	// `policy` carries the resolved content. The token attests to the former.
+	// IAB deployments get the vendor list inline. Matching @c15t/backend, this
+	// is fetched only when IAB is enabled *and* the resolved policy is an IAB
+	// one — a non-IAB visitor on an IAB-enabled tenant should not pay for it.
+	const wantsGvl =
+		gvl?.enabled === true &&
+		(resolved.policy === undefined || resolved.policy.model === 'iab');
+	const gvlDocument = wantsGvl
+		? await resolveGvl(signals.language, gvl)
+		: undefined;
+
+	const withGvl =
+		gvlDocument === undefined ? resolved : { ...resolved, gvl: gvlDocument };
+
+	const decision = resolved.policyDecision;
+	if (!decision || !snapshot?.signingKey) {
+		return { body: withGvl, signals };
+	}
+
+	const token = await createPolicySnapshotToken(
+		{
+			policyId: decision.policyId,
+			fingerprint: decision.fingerprint,
+			matchedBy: decision.matchedBy,
 			country: signals.country,
 			region: signals.region,
+			jurisdiction: resolved.jurisdiction,
+			model: resolved.policy?.model ?? 'none',
+			tenantId: config.tenantId,
 			language: signals.language,
-			gpc: signals.gpc,
-		}),
+		},
+		snapshot
+	);
+
+	return {
+		body: token ? { ...withGvl, policySnapshotToken: token.token } : withGvl,
 		signals,
 	};
 }

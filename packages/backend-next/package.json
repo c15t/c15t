@@ -58,10 +58,13 @@
 		"@c15t/schema": "workspace:*",
 		"effect": "4.0.0-beta.102",
 		"hono": "4.12.27",
+		"hono-openapi": "1.3.0",
+		"jose": "6.2.3",
 		"valibot": "1.4.2"
 	},
 	"devDependencies": {
 		"@c15t/backend": "workspace:*",
+		"@c15t/backend-conformance": "workspace:*",
 		"@c15t/migration-fixtures": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",

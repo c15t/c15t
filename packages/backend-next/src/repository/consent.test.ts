@@ -9,12 +9,15 @@
 
 import { PgliteClient } from '@effect/sql-pglite';
 import { assert, describe, it } from '@effect/vitest';
-import { Effect } from 'effect';
+import { Effect, Layer } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import { up as baseline } from '../db/migrations/1-baseline';
+import { singleTenant } from '../db/tenant';
 import { record } from './consent';
 
-const Pglite = PgliteClient.layer({});
+// Tests run single-tenant unless a case says otherwise; the scope is a
+// service, so a query cannot run without one.
+const Pglite = Layer.merge(PgliteClient.layer({}), singleTenant);
 
 const GIVEN_AT = new Date(1_800_000_000_000);
 

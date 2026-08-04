@@ -122,6 +122,7 @@ export {
 	type ConsentSubmissionIdentity,
 	type EntityKind,
 	generateDeterministicId,
+	generateEntityId,
 } from './shared/entity-id';
 // GVL types - IAB TCF Global Vendor List
 export type {
@@ -135,6 +136,7 @@ export type {
 	GVLVendor,
 	GVLVendorUrl,
 } from './shared/gvl';
+export { globalVendorListSchema } from './shared/gvl';
 // Non-IAB vendor types - Custom vendors not registered with IAB
 export type {
 	NonIABVendor,
@@ -181,6 +183,5 @@ export type {
 	ResolvedPolicyDecision,
 	ResolvedPolicyMatch,
 } from './shared/policy-runtime';
-
 // Re-export constants for runtime checks (no Zod involved)
 export { brandingValues, jurisdictionCodes };
