@@ -27,7 +27,7 @@ export function assertsRuntime(
 	return (
 		config.tier === 'full' ||
 		Boolean(config.runtimeCheck) ||
-		Boolean(config.runtimeReplacedGlobals)
+		(config.runtimeReplacedGlobals?.length ?? 0) > 0
 	);
 }
 

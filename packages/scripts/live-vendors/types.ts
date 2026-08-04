@@ -97,6 +97,8 @@ export interface LiveVendorProbeConfig {
 	 * a green run actually validated, so a later failure can be bisected by
 	 * comparing two reports instead of diffing published CDN bundles. Never
 	 * asserted — a vendor bumping their version is not a failure.
+	 *
+	 * @returns The runtime version, or `undefined` when it is unavailable.
 	 */
 	runtimeVersion?: () => string | undefined;
 	/**
@@ -176,7 +178,12 @@ export interface LiveVendorProbeHarness {
 	load(vendor: string, granted: boolean): LiveProbeLoadOutcome;
 	/** Runs the vendor's runtime check. */
 	check(vendor: string): LiveProbeCheckResult;
-	/** Reads the vendor runtime's self-reported version, if it exposes one. */
+	/**
+	 * Reads the vendor runtime's self-reported version, if it exposes one.
+	 *
+	 * @param vendor - Registry vendor id with a probe config.
+	 * @returns The runtime version, or `undefined` when it is unavailable.
+	 */
 	version(vendor: string): string | undefined;
 	/** Snapshots cookie names and localStorage keys in the probed page. */
 	inspectStorage(): LiveStorageSnapshot;

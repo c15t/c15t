@@ -401,7 +401,7 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 			// `if (clarity.v || clarity.t) return` and refuses to start when
 			// either is pre-set ("Error CL001: Multiple Clarity tags detected")
 			// — the production bug fixed in #898.
-			if (stub.v !== undefined || stub.t !== undefined) {
+			if (stub.v || stub.t) {
 				return check(
 					false,
 					`stub carries v=${String(stub.v)}/t=${String(stub.t)}; the tag's \`if (clarity.v || clarity.t) return\` guard treats this as a duplicate install (CL001) and never starts`

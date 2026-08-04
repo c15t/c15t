@@ -22,6 +22,12 @@ describe('assertsRuntime', () => {
 				runtimeReplacedGlobals: ['va'],
 			})
 		).toBe(true);
+		expect(
+			assertsRuntime({
+				tier: 'loader-only',
+				runtimeReplacedGlobals: [],
+			})
+		).toBe(false);
 	});
 
 	it('never asserts runtime for a skipped vendor without checks', () => {

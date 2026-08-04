@@ -117,7 +117,7 @@ describe('vendor stub contracts', () => {
 		// any custom check runs, which the stub can never satisfy. Their
 		// `runtimeCheck` is then free to be a plain shape assertion.
 		const unprotected = runtimeConfigs.filter(
-			([, config]) => !config.runtimeReplacedGlobals
+			([, config]) => (config.runtimeReplacedGlobals?.length ?? 0) === 0
 		);
 
 		it.each(unprotected)('%s', (_vendor, config) => {

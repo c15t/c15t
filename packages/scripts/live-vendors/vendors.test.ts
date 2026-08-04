@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { builtInScriptIntegrations } from '../src/registry';
+import { assertsRuntime } from './probe-policy';
 import type { LiveVendorProbeConfig } from './types';
 import { liveVendorProbeConfigs } from './vendors';
 
@@ -54,16 +55,14 @@ describe('live vendor probe configs', () => {
 				continue;
 			}
 
-			const assertsRuntime =
-				Boolean(config.runtimeCheck) || Boolean(config.runtimeReplacedGlobals);
-			if (assertsRuntime) {
+			if (assertsRuntime(config)) {
 				continue;
 			}
 
 			expect(
-				config.notes,
+				config.notes?.trim(),
 				`${config.vendor} asserts no runtime behavior and must explain the gap in notes`
-			).toBeTypeOf('string');
+			).toBeTruthy();
 			gaps.push(config.vendor);
 		}
 
