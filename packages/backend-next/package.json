@@ -1,0 +1,87 @@
+{
+	"name": "@c15t/backend-next",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Effect rewrite of @c15t/backend, developed in parallel until it reaches parity. Renamed to @c15t/backend at cutover — see internals/rfcs/0004-backend-effect-rewrite.md.",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/backend-next"
+	},
+	"license": "Apache-2.0",
+	"sideEffects": false,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist-types/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		},
+		"./sql/pg": {
+			"types": "./dist-types/sql/pg.d.ts",
+			"import": "./dist/sql/pg.js",
+			"require": "./dist/sql/pg.cjs"
+		},
+		"./sql/mysql": {
+			"types": "./dist-types/sql/mysql.d.ts",
+			"import": "./dist/sql/mysql.js",
+			"require": "./dist/sql/mysql.cjs"
+		},
+		"./sql/sqlite": {
+			"types": "./dist-types/sql/sqlite.d.ts",
+			"import": "./dist/sql/sqlite.js",
+			"require": "./dist/sql/sqlite.cjs"
+		},
+		"./db/migrations/*": {
+			"types": "./dist-types/db/migrations/*.d.ts",
+			"import": "./dist/db/migrations/*.js",
+			"require": "./dist/db/migrations/*.cjs"
+		}
+	},
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"files": [
+		"dist",
+		"dist-types"
+	],
+	"scripts": {
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
+		"check-types": "tsc --noEmit",
+		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
+		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
+		"lint": "bun biome lint ./src",
+		"test": "vitest run --passWithNoTests",
+		"test:watch": "vitest"
+	},
+	"dependencies": {
+		"effect": "4.0.0-beta.102"
+	},
+	"devDependencies": {
+		"@c15t/typescript-config": "workspace:*",
+		"@c15t/vitest-config": "workspace:*",
+		"@effect/sql-mysql2": "4.0.0-beta.102",
+		"@effect/sql-pg": "4.0.0-beta.102",
+		"@effect/sql-pglite": "4.0.0-beta.102",
+		"@effect/sql-sqlite-node": "4.0.0-beta.102",
+		"@effect/vitest": "4.0.0-beta.102",
+		"@types/node": "^24.10.1",
+		"typescript": "7.0.2"
+	},
+	"peerDependencies": {
+		"@effect/sql-mysql2": "4.0.0-beta.102",
+		"@effect/sql-pg": "4.0.0-beta.102",
+		"@effect/sql-sqlite-node": "4.0.0-beta.102"
+	},
+	"peerDependenciesMeta": {
+		"@effect/sql-mysql2": {
+			"optional": true
+		},
+		"@effect/sql-pg": {
+			"optional": true
+		},
+		"@effect/sql-sqlite-node": {
+			"optional": true
+		}
+	}
+}
