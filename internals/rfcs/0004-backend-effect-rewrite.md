@@ -1182,3 +1182,40 @@ public alone` asserted `public` held no `subject` table. That was true only
 because the pg `resetDatabase` happened to run first; once other suites shared
 the server it was a coin flip. It establishes its own precondition now — the
 difference between evidence and coincidence.
+
+### 11.23 Converting the adoption suite found a schema-scoping bug
+
+`adopt.test.ts` is the suite guarding the riskiest code in the package — the
+only part that touches a database someone else's production data lives in — and
+it ran on PGlite, with a small SQLite annex. It runs on all four engines now,
+and its fixtures build each legacy shape with that engine's own physical types
+rather than Postgres's: `datetime` and `varchar` on MySQL, epoch integers and
+TEXT on SQLite. Postgres types everywhere would have tested a database that has
+never existed, and on MySQL would not have created at all — it cannot index a
+`TEXT` foreign key column.
+
+**The conversion surfaced a genuine bug in `adopt.ts`.** Its Postgres
+foreign-key introspection read `pg_constraint` without joining `pg_namespace`,
+so it was **database-wide rather than schema-scoped**. That was harmless while
+c15t only ever lived in `public`. It stopped being harmless the moment
+§11.21 made a second installation in another schema a supported configuration:
+adoption would see that installation's foreign keys, conclude this one already
+had them, and skip both adding them *and* the orphan check that guards them.
+
+It surfaced as two tests failing only after the schema-scoping suite had run
+against the same server — a shape that is invisible when every test gets a
+fresh in-process database.
+
+**Twelve cases are now explicitly engine-gated** rather than quietly passing:
+
+- Six need to classify an *unmarked legacy* database, which SQLite cannot do —
+  legacy and fumadb 1.0.0 share seven tables and differ by `jsonb` against
+  `json`. SQLite answers `Unknown` and refuses, which is documented behaviour
+  and the reason `--assume-shape` exists.
+- Three manufacture an orphan row by dropping a named foreign key constraint,
+  which SQLite cannot do at all and MySQL names differently. The behaviour
+  under test is engine-independent; only that way of arranging the precondition
+  is not.
+
+The standalone `adopt: sqlite` block is gone — the matrix covers what it
+asserted, on more engines than it did.
