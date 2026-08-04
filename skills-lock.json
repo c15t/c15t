@@ -7,6 +7,12 @@
 			"skillPath": "c15t/SKILL.md",
 			"computedHash": "031b918ecb7f15c96e690412c79e2ebb8f4a2bcea5c5fac3d87d9752d4153660"
 		},
+		"effect-ts": {
+			"source": "Effect-TS/skills",
+			"sourceType": "github",
+			"skillPath": "skills/effect-ts/SKILL.md",
+			"computedHash": "16dc62c9087d4b74035d4071fe931ff43c4218acb414407a17066045a80762fa"
+		},
 		"leadtype": {
 			"source": "inthhq/leadtype",
 			"sourceType": "github",

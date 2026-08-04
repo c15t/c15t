@@ -47,6 +47,7 @@
 		"lint:docs": "bunx remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
 		"lint:fix": "turbo run lint -- --write",
 		"lint:testids": "bun internals/conformance/src/lint/testid-lint.ts",
+		"prepare": "./scripts/prepare-effect.sh",
 		"release": "bun run build && bun run check:publish-artifacts && bun scripts/resolve-workspace-deps.ts && changeset publish",
 		"release:canary": "bun run build && bun run check:publish-artifacts && bun scripts/resolve-workspace-deps.ts && changeset publish --tag canary",
 		"release:rc": "bun run build:libs && bun run check:publish-artifacts && bun scripts/resolve-workspace-deps.ts && changeset publish",
