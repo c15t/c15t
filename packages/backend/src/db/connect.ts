@@ -37,6 +37,25 @@ export type DatabaseConfig =
 			readonly dialect: 'postgres';
 			/** e.g. `postgres://user:pass@host:5432/db` */
 			readonly url: string;
+			/**
+			 * A Postgres schema to keep c15t's tables in.
+			 *
+			 * For sharing a database with another application: c15t's tables
+			 * land in this schema rather than `public`, which gives real
+			 * isolation — separate grants, `pg_dump -n c15t`, and
+			 * `DROP SCHEMA c15t CASCADE` to uninstall — rather than just a
+			 * naming convention.
+			 *
+			 * Created if it does not exist when you migrate.
+			 *
+			 * **Postgres only, and deliberately.** MySQL has no schemas: a
+			 * database *is* the unit of isolation, so point `url` at a
+			 * different one. SQLite's unit is the file, so use a different
+			 * `filename`. Both already scope c15t without a new option, and
+			 * offering one that meant three different things would be worse
+			 * than not offering it.
+			 */
+			readonly schema?: string;
 	  }
 	| {
 			readonly dialect: 'mysql';
@@ -123,6 +142,43 @@ const load = <A>(
 		Effect.orDie
 	);
 
+/**
+ * Puts a schema on the connection's `search_path`.
+ *
+ * Done on the connection rather than by qualifying every table name, because
+ * a pool hands out many connections and a one-off `SET search_path` would
+ * scope exactly one of them. Verified against a real pool: `current_schema()`
+ * reports the configured schema on every checkout, and an unqualified
+ * `create table` lands there rather than in `public`.
+ *
+ * The upshot is that no query in this package has to know about schemas —
+ * every unqualified name resolves into it — and the introspection queries ask
+ * `current_schema()` rather than assuming `public`.
+ */
+export function withSearchPath(
+	url: string,
+	schema: string | undefined
+): string {
+	if (schema === undefined || schema.trim() === '') {
+		return url;
+	}
+
+	// Rejected rather than escaped: this ends up in a startup parameter, not a
+	// bound value, and a schema name is a short identifier in every legitimate
+	// use. Anything else is a mistake worth surfacing loudly.
+	if (!/^[A-Za-z_][A-Za-z0-9_$]*$/.test(schema)) {
+		throw new Error(
+			`Invalid Postgres schema name "${schema}". Expected an unquoted ` +
+				'identifier: a letter or underscore followed by letters, digits, ' +
+				'underscores or dollar signs.'
+		);
+	}
+
+	const parsed = new URL(url);
+	parsed.searchParams.set('options', `-c search_path=${schema}`);
+	return parsed.toString();
+}
+
 const fromConfig = (
 	config: DatabaseConfig
 	// The three drivers do not agree on an error channel — MySQL's adds
@@ -138,7 +194,10 @@ const fromConfig = (
 					load('postgres', () => import('@effect/sql-pg')),
 					// Redacted because the URL carries credentials, and Effect keeps
 					// them out of logs and error messages by construction.
-					({ PgClient }) => PgClient.layer({ url: Redacted.make(config.url) })
+					({ PgClient }) =>
+						PgClient.layer({
+							url: Redacted.make(withSearchPath(config.url, config.schema)),
+						})
 				)
 			);
 		case 'mysql':

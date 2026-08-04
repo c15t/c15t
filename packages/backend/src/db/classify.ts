@@ -134,7 +134,7 @@ const observe = Effect.fn('classify.observe')(function* () {
 		orElse: () =>
 			sql<{
 				name: string;
-			}>`select table_name as name from information_schema.tables where table_schema = 'public' and table_type = 'BASE TABLE'`,
+			}>`select table_name as name from information_schema.tables where table_schema = current_schema() and table_type = 'BASE TABLE'`,
 	});
 
 	const all = rows.map((row) => row.name);
