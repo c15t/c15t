@@ -91,6 +91,9 @@ Records a consent event. This is an append-only operation — every call creates
 | `metadata` | object | No | Arbitrary metadata |
 | `externalSubjectId` | string | No | External user ID for cross-device linking |
 | `identityProvider` | string | No | Identity provider name |
+| `subjectCapability` | string | No | Short-lived capability for the consent write when `anonymousConsent.mode` is `capability` |
+| `identitySubjectCapability` | string | No | Separate subject capability for an initial external identity link |
+| `identityAssertion` | string | No | App-server assertion for an initial external identity link |
 
 **Response:**
 
@@ -138,9 +141,24 @@ Links a subject to an external user ID for cross-device consent resolution.
 ```json
 {
   "externalId": "user_12345",
-  "identityProvider": "auth0"
+  "identityProvider": "auth0",
+  "domain": "example.com",
+  "subjectCapability": "eyJ...",
+  "identityAssertion": "eyJ..."
 }
 ```
+
+`domain`, `subjectCapability`, and `identityAssertion` are required according to
+the configured identity-linking mode. A trusted domain resolver can supply the
+domain instead of the request. Secure initial links are set-once and exact
+retries are idempotent. Replacing a different identity is disabled by default
+for secure modes and returns `409`.
+
+<Callout type="warn">
+  With omitted or explicit `legacy` configuration, this endpoint preserves the
+  v2 public overwrite behavior. Migrate to a proof mode or disable identity
+  linking before v3. See the [configuration reference](/docs/self-host/api/configuration#consent-write-integrity).
+</Callout>
 
 **Response:**
 

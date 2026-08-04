@@ -20,6 +20,192 @@ All options are passed to `c15tInstance()`. Only `adapter` and `trustedOrigins` 
 
 <AutoTypeTable path="./packages/backend/src/types/index.ts" name="IABOptions" />
 
+<AutoTypeTable path="./packages/backend/src/types/index.ts" name="WriteIntegrityOptions" />
+
+## Consent Write Integrity
+
+`writeIntegrity` separates anonymous consent submission from external identity
+linking. All of its controls are optional in v2. When it is omitted, c15t keeps
+the existing public consent and identity-write behavior and logs deprecation
+warnings. Set the legacy modes explicitly if you need a temporary compatibility
+configuration:
+
+```ts title="c15t.config.ts"
+export default defineConfig({
+  adapter,
+  trustedOrigins: ['https://app.example.com'],
+  writeIntegrity: {
+    anonymousConsent: { mode: 'legacy' },
+    identityLinking: {
+      mode: 'legacy',
+      reassignment: 'legacy',
+    },
+  },
+});
+```
+
+Legacy identity writes remain public overwrites. This compatibility path is
+deprecated and is planned to be removed in v3.
+
+### Recommended Secure Baseline
+
+Start by making the consent domain authoritative on the server and disabling
+browser identity linking:
+
+```ts title="c15t.config.ts"
+export default defineConfig({
+  adapter,
+  trustedOrigins: ['https://app.example.com'],
+  writeIntegrity: {
+    anonymousConsent: { mode: 'public' },
+    identityLinking: { mode: 'disabled' },
+    domains: {
+      allowlist: ['example.com', 'app.example.com'],
+    },
+  },
+});
+```
+
+`public` still accepts anonymous consent, but only for a configured domain. A
+trusted resolver can derive the domain from gateway routing, authenticated
+tenant context, or another server-owned signal:
+
+```ts
+domains: {
+  allowlist: ['example.com'],
+  resolve: ({ request }) => {
+    const project = getProjectFromGatewayRequest(request);
+    return project?.consentDomain;
+  },
+},
+```
+
+When both `resolve` and `allowlist` are present, the resolved value must be in
+the allowlist. Domain values are normalized before comparison and storage.
+
+### Subject Capabilities and Identity Assertions
+
+Use `capability` when the gateway can authorize a write for one subject. Use
+`assertion` when the application server can attest the exact authenticated
+external identity. `capability-and-assertion` requires both:
+
+```ts title="c15t.config.ts"
+export default defineConfig({
+  adapter,
+  trustedOrigins: ['https://app.example.com'],
+  writeIntegrity: {
+    anonymousConsent: { mode: 'capability' },
+    identityLinking: {
+      mode: 'capability-and-assertion',
+      reassignment: 'disabled',
+    },
+    domains: { allowlist: ['example.com'] },
+    subjectCapability: {
+      signingKey: env.C15T_CAPABILITY_SECRET,
+      issuer: 'project-gateway',
+    },
+    identityAssertion: {
+      verificationKey: env.APP_IDENTITY_SECRET,
+      issuer: 'example-app',
+    },
+  },
+});
+```
+
+Initial secure links are set once. An exact retry is idempotent. A different
+external identity returns `409` unless `reassignment` is
+`capability-and-assertion`, in which case both credentials must authorize the
+`identity:reassign` action. Credentials are short-lived, bound to their exact
+tenant, subject, action, and domain claims, and consumed through replay
+storage.
+
+Issue credentials only from trusted server code. The helpers are public so a
+hosted Project Gateway can use the controls without changing backend internals:
+
+```ts title="gateway.ts"
+import {
+  createIdentityAssertion,
+  createSubjectCapability,
+} from '@c15t/backend/write-integrity';
+
+const capability = await createSubjectCapability({
+  options: {
+    signingKey: env.C15T_CAPABILITY_SECRET,
+    issuer: 'project-gateway',
+  },
+  tenantId: project.id,
+  subjectId,
+  action: 'identity:link',
+  domain: project.consentDomain,
+});
+
+const assertion = await createIdentityAssertion({
+  options: {
+    signingKey: env.APP_IDENTITY_SECRET,
+    issuer: 'example-app',
+  },
+  tenantId: project.id,
+  subjectId,
+  action: 'identity:link',
+  domain: project.consentDomain,
+  externalId: authenticatedUser.id,
+  identityProvider: 'custom',
+});
+```
+
+Send the capability as `subjectCapability` and the assertion as
+`identityAssertion` to `PATCH /subjects/:id`. For an identity included in
+`POST /subjects`, use `identitySubjectCapability` to keep it separate from the
+consent-write capability.
+
+Never place signing keys in browser code. Proof-bound hosted-client requests do
+not fall back to optimistic offline success or persist short-lived proofs for a
+later retry.
+
+### Abuse Controls
+
+Use `abuseControl` to connect a rate limiter, bot check, or gateway quota. The
+hook receives trusted request context and runs before a write mutation:
+
+```ts
+writeIntegrity: {
+  // Other write-integrity options...
+  abuseControl: async ({ tenantId, subjectId, action, ipAddress }) => {
+    const decision = await limiter.check({
+      key: `${tenantId}:${subjectId}:${action}:${ipAddress}`,
+    });
+
+    return decision.allowed
+      ? { allowed: true }
+      : {
+          allowed: false,
+          reason: 'rate_limit',
+          retryAfterSeconds: decision.retryAfterSeconds,
+        };
+  },
+},
+```
+
+A denial returns `429`; hook failure returns `503` and fails closed. In
+production, rate limit at the gateway as well, expire replay records after the
+credential expiry time, and avoid logging credential strings or raw external
+identifiers.
+
+### What Each Check Attests
+
+- Trusted-origin checks decide which browser origins may call the backend. They
+  do not prove the requested domain, subject ownership, or authenticated user.
+- Domain controls decide the canonical domain stored with the write. They do
+  not authenticate a user.
+- Policy snapshot signatures attest the policy decision rendered by c15t. The
+  optional write bindings can bind domain, subject, consent type, and action,
+  but the snapshot is not an identity assertion or a substitute for replay
+  protection.
+- Subject capabilities authorize one subject action. Identity assertions also
+  bind the exact external ID and provider.
+- Write provenance records why the backend accepted a write. Runtime policy
+  provenance separately records how c15t selected the consent experience.
+
 ## Return Value
 
 `c15tInstance()` returns:

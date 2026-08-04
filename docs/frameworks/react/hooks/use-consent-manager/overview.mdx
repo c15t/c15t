@@ -104,7 +104,13 @@ function ClerkConsentSync() {
 }
 ```
 
-`identifyUser()` replaces the subject's current `externalId`; it does not retain the anonymous ID as an alias. Once a visitor is linked to Clerk, clear the previous visitor ID from the application state or storage used by `getVisitorId()` so it cannot replace the Clerk ID later.
+With the v2 compatibility configuration, `identifyUser()` replaces the
+subject's current `externalId`; it does not retain the anonymous ID as an alias.
+Secure self-hosted identity linking is set-once by default and requires
+server-issued proof. See [Consent Write Integrity](/docs/self-host/api/configuration#consent-write-integrity)
+before enabling a secure mode. When using the compatibility mode, clear the
+previous visitor ID from the application state or storage used by
+`getVisitorId()` so it cannot replace the Clerk ID later.
 
 <Callout type="info">
   Backend subject identification requires hosted mode (`mode: 'hosted'`). In

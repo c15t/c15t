@@ -90,3 +90,8 @@ The `identityProvider` field indicates which auth system provided the ID (e.g., 
 <Callout type="warn">
   `identifyUser()` sends the user ID to the c15t backend. Only call this after the user has authenticated and consented to being identified.
 </Callout>
+
+Self-hosted backends keep this proofless call for v2 compatibility. For secure
+identity-linking modes, issue credentials on a trusted server and use the
+low-level hosted client request with `domain`, `subjectCapability`, and
+`identityAssertion`. See [Consent Write Integrity](/docs/self-host/api/configuration#consent-write-integrity).
