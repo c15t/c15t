@@ -27,7 +27,12 @@ const TAILWIND_V4_IMPORT_RE = /^\s*@import\s+['"]tailwindcss['"];\s*$/;
 const TAILWIND_COMPONENTS_RE = /^\s*@tailwind\s+components\s*;\s*$/;
 const TAILWIND_UTILITIES_RE = /^\s*@tailwind\s+utilities\s*;\s*$/;
 
-export type StyledPackageName = '@c15t/react' | '@c15t/nextjs' | '@c15t/ui';
+export type StyledPackageName =
+	| 'c15t/react'
+	| 'c15t/next'
+	| '@c15t/react'
+	| '@c15t/nextjs'
+	| '@c15t/ui';
 
 export interface EnsureGlobalCssStylesheetImportsOptions {
 	projectRoot: string;
@@ -71,11 +76,14 @@ function isNonModuleLocalCssImport(moduleSpecifier: string): boolean {
 function getManagedPackages(
 	packageName: StyledPackageName
 ): StyledPackageName[] {
-	if (packageName === '@c15t/react' || packageName === '@c15t/nextjs') {
-		return ['@c15t/react', '@c15t/nextjs'];
+	if (packageName === '@c15t/ui') {
+		return ['@c15t/ui'];
 	}
 
-	return ['@c15t/ui'];
+	// Umbrella (c15t/react, c15t/next) and scoped (@c15t/react, @c15t/nextjs)
+	// stylesheet imports are interchangeable — manage all variants so re-runs
+	// normalize an existing import to the requested package.
+	return ['c15t/react', 'c15t/next', '@c15t/react', '@c15t/nextjs'];
 }
 
 function getImportVariants(

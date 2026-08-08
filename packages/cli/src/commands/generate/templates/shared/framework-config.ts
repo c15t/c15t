@@ -16,9 +16,9 @@ export interface FrameworkConfig {
 }
 
 export const NEXTJS_CONFIG: FrameworkConfig = {
-	importSource: '@c15t/nextjs',
-	consentBannerImport: '@c15t/nextjs',
-	consentDialogImport: '@c15t/nextjs',
+	importSource: 'c15t/next',
+	consentBannerImport: 'c15t/next',
+	consentDialogImport: 'c15t/next',
 	frameworkName: 'Next.js App Router',
 	ssrMechanism: 'Next.js headers() API',
 	docsSlug: 'nextjs',
@@ -27,9 +27,9 @@ export const NEXTJS_CONFIG: FrameworkConfig = {
 };
 
 export const REACT_CONFIG: FrameworkConfig = {
-	importSource: '@c15t/react',
-	consentBannerImport: '@c15t/react',
-	consentDialogImport: '@c15t/react',
+	importSource: 'c15t/react',
+	consentBannerImport: 'c15t/react',
+	consentDialogImport: 'c15t/react',
 	frameworkName: 'React',
 	ssrMechanism: '',
 	docsSlug: 'react',

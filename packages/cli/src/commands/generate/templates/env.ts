@@ -7,7 +7,7 @@ import type { AvailablePackages } from '~/context/framework-detection';
  * @returns The environment variable name to use
  */
 export function getEnvVarName(pkg: AvailablePackages): string {
-	return pkg === '@c15t/nextjs' ? 'NEXT_PUBLIC_C15T_URL' : 'PUBLIC_C15T_URL';
+	return pkg === 'c15t/next' ? 'NEXT_PUBLIC_C15T_URL' : 'PUBLIC_C15T_URL';
 }
 
 /**

@@ -167,7 +167,7 @@ async function createConsentManagerComponent(
 		true
 	);
 	const providerContent = generateConsentComponent({
-		importSource: '@c15t/react',
+		importSource: 'c15t/react',
 		optionsText,
 		selectedScripts,
 		enableDevTools,
@@ -333,7 +333,7 @@ export async function updateReactLayout(
 	componentFiles?: ComponentFilePaths;
 }> {
 	// Check package type first to determine which implementation to use
-	if (options.pkg === '@c15t/nextjs') {
+	if (options.pkg === 'c15t/next') {
 		const nextResult = await updateNextLayout(options);
 
 		if (nextResult.structureType) {

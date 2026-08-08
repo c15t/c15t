@@ -100,7 +100,7 @@ async function createConsentManagerComponent(
 
 	// Generate component file content
 	const consentManagerContent = generateConsentComponent({
-		importSource: '@c15t/nextjs',
+		importSource: 'c15t/next',
 		optionsText,
 		selectedScripts,
 		initialDataProp: true,
@@ -143,7 +143,7 @@ function addServerSideDataComment(
 	const serverSideComment = `/**
  * Note: To get the initial server-side data on other pages, add this to each page:
  *
- * import { withInitialC15TData } from '@c15t/nextjs';
+ * import { withInitialC15TData } from 'c15t/next';
  *
  * export const getServerSideProps = withInitialC15TData(${urlExample});
  *

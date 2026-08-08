@@ -331,7 +331,7 @@ export async function generateFiles({
 		framework: { pkg },
 	} = context;
 
-	if (pkg === '@c15t/nextjs' || pkg === '@c15t/react') {
+	if (pkg === 'c15t/next' || pkg === 'c15t/react') {
 		const layoutResult = await handleReactLayout({
 			projectRoot,
 			mode,
@@ -353,7 +353,7 @@ export async function generateFiles({
 
 	// Update Next.js config for hosted/self-hosted Next.js projects only
 	if (
-		pkg === '@c15t/nextjs' &&
+		pkg === 'c15t/next' &&
 		proxyNextjs &&
 		(mode === 'hosted' || mode === 'c15t' || mode === 'self-hosted')
 	) {
@@ -395,7 +395,7 @@ export async function generateFiles({
 		});
 	}
 
-	if (pkg === '@c15t/react' || pkg === '@c15t/nextjs') {
+	if (pkg === 'c15t/react' || pkg === 'c15t/next') {
 		spinner.start('Configuring app stylesheet...');
 		const stylesheetResult = await updateAppStylesheetImports({
 			projectRoot,

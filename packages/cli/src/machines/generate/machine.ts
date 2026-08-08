@@ -5,7 +5,7 @@
  */
 
 import { assign, setup } from 'xstate';
-import type { StorageMode } from '~/constants';
+import { type StorageMode, UMBRELLA_PACKAGE } from '~/constants';
 import type { CliContext } from '~/context/types';
 import { CliError } from '~/core/errors';
 import {
@@ -365,7 +365,8 @@ export const generateMachine = setup({
 						addScripts: ({ event }) => event.output.addScripts,
 						selectedScripts: ({ event }) => event.output.selectedScripts ?? [],
 						dependenciesToAdd: ({ context, event }) => {
-							const deps: string[] = [context.framework?.pkg ?? 'c15t'];
+							// Frontend targets always install the c15t umbrella package.
+							const deps: string[] = [UMBRELLA_PACKAGE];
 							if (event.output.addScripts) {
 								deps.push('@c15t/scripts');
 							}

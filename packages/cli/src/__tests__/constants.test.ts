@@ -64,10 +64,10 @@ describe('constants', () => {
 	});
 
 	describe('PACKAGES', () => {
-		test('should have all package names', () => {
+		test('should expose the umbrella entry points', () => {
 			expect(PACKAGES.CORE).toBe('c15t');
-			expect(PACKAGES.REACT).toBe('@c15t/react');
-			expect(PACKAGES.NEXTJS).toBe('@c15t/nextjs');
+			expect(PACKAGES.REACT).toBe('c15t/react');
+			expect(PACKAGES.NEXTJS).toBe('c15t/next');
 		});
 	});
 

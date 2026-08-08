@@ -120,13 +120,19 @@ export const STORAGE_MODES = {
 
 export type StorageMode = (typeof STORAGE_MODES)[keyof typeof STORAGE_MODES];
 
-// --- Package Names ---
+// --- Package Entry Points ---
+// The CLI installs the single `c15t` umbrella package for JavaScript, React,
+// and Next.js projects; CORE/REACT/NEXTJS are the entry points generated code
+// imports from. BACKEND remains its own installable package.
 export const PACKAGES = {
 	CORE: 'c15t',
-	REACT: '@c15t/react',
-	NEXTJS: '@c15t/nextjs',
+	REACT: 'c15t/react',
+	NEXTJS: 'c15t/next',
 	BACKEND: '@c15t/backend',
 } as const;
+
+/** The npm package installed for every frontend framework target. */
+export const UMBRELLA_PACKAGE = 'c15t';
 
 export type AvailablePackage = (typeof PACKAGES)[keyof typeof PACKAGES];
 

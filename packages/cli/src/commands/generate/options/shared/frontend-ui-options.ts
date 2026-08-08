@@ -33,16 +33,16 @@ interface FrontendUIOptionsResult {
 /**
  * Composes all frontend UI-related prompts based on detected framework:
  *
- * @c15t/nextjs (with backend):
+ * c15t/next (with backend):
  *   - SSR option (fetchInitialData)
  *   - UI style (prebuilt vs expanded)
  *   - Expanded theme (if expanded selected)
  *
- * @c15t/nextjs (without backend - offline/custom):
+ * c15t/next (without backend - offline/custom):
  *   - UI style (prebuilt vs expanded)
  *   - Expanded theme (if expanded selected)
  *
- * @c15t/react:
+ * c15t/react:
  *   - UI style (prebuilt vs expanded)
  *   - Expanded theme (if expanded selected)
  *   - DevTools option
@@ -63,7 +63,7 @@ export async function getFrontendUIOptions({
 	const pkg = context.framework.pkg;
 
 	// Next.js: SSR (only with backend) + UI style + theme
-	if (pkg === '@c15t/nextjs') {
+	if (pkg === 'c15t/next') {
 		// SSR only makes sense when there's a backend to fetch data from
 		if (hasBackend) {
 			enableSSR = await getSSROption({ context, handleCancel });
@@ -77,7 +77,7 @@ export async function getFrontendUIOptions({
 	}
 
 	// React: UI style + theme (no SSR - it's client-side only)
-	if (pkg === '@c15t/react') {
+	if (pkg === 'c15t/react') {
 		uiStyle = await promptForUIStyle(context, handleCancel);
 
 		if (uiStyle === 'expanded') {
@@ -86,7 +86,7 @@ export async function getFrontendUIOptions({
 	}
 
 	// Core c15t: no UI prompts
-	if (pkg === 'c15t' || pkg === '@c15t/react' || pkg === '@c15t/nextjs') {
+	if (pkg === 'c15t' || pkg === 'c15t/react' || pkg === 'c15t/next') {
 		enableDevTools = await getDevToolsOption({
 			context,
 			handleCancel,
