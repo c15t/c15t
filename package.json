@@ -41,6 +41,7 @@
 		"fmt:docs": "bunx remark ./docs --ext mdx --output --use remark-mdx --use remark-frontmatter --use remark-preset-lint-recommended --use remark-preset-lint-consistent",
 		"generate:package-docs": "bun scripts/generate-package-docs.ts",
 		"generate:readmes": "tsx scripts/generate-readme.ts",
+		"generate:umbrella": "bun scripts/generate-umbrella-exports.ts",
 		"postinstall": "git rev-parse --git-dir >/dev/null 2>&1 && lefthook install || true",
 		"knip": "knip",
 		"lint": "turbo run lint && bun run lint:testids",

@@ -1,0 +1,37 @@
+{
+	"title": "c15t: The Consent Management Platform",
+	"description": "One install for the whole c15t consent management platform: the headless consent engine, React cookie banner and consent components, and the Next.js integration — cookie banners, preference centers, Consent Mode v2, and IAB TCF.",
+	"features": [
+		"Single dependency: `c15t` installs @c15t/core, @c15t/react, and @c15t/nextjs together, always on matching versions",
+		"Import `c15t` for the headless JavaScript consent engine",
+		"Import `c15t/react` for React cookie banner, consent dialog, and preference center components",
+		"Import `c15t/next` for the Next.js App Router and Pages Router integration",
+		"Every subpath mirrors the scoped package one-to-one — the scoped packages stay published and permanently supported",
+		"Framework peers are optional, so plain JavaScript projects install without React or Next.js"
+	],
+	"prerequisites": [
+		"Node.js 18.17.0 or later",
+		"A hosted [c15t instance](https://inth.com) (free sign-up), [self-hosted deployment](https://c15t.com/docs/self-host/quickstart), or offline mode for local-only storage"
+	],
+	"manualInstallation": [
+		"",
+		"```bash\npnpm add c15t\n```",
+		"",
+		"Prefer granular installs? The scoped packages ship the same code: `@c15t/core` (headless engine), `@c15t/react`, and `@c15t/nextjs`.",
+		"",
+		"To manually install, follow the guide in our [docs – manual setup](https://c15t.com/docs/frameworks/javascript/quickstart#manual-setup)."
+	],
+	"usage": [
+		"Use the headless engine from `c15t`, or the framework entrypoints from `c15t/react` and `c15t/next`",
+		"Every export matches its scoped package: `c15t/react/hooks` is `@c15t/react/hooks`, `c15t/next` is `@c15t/nextjs`",
+		"For full implementation details, see the [quickstart docs](https://c15t.com/docs)",
+
+		"```tsx\n// React\nimport {\n  ConsentManagerProvider,\n  ConsentBanner,\n  ConsentDialog,\n} from 'c15t/react'\nimport 'c15t/react/styles.css'\n\nfunction App() {\n  return (\n    <ConsentManagerProvider>\n      <YourApp />\n      <ConsentBanner />\n      <ConsentDialog />\n    </ConsentManagerProvider>\n  )\n}\n```"
+	],
+	"docsLink": "https://c15t.com/docs",
+	"quickStartLink": "https://c15t.com/docs",
+	"showCLIGeneration": true,
+	"customSections": {
+		"Package Layout": "- `c15t` — headless consent engine, same exports as [`@c15t/core`](https://www.npmjs.com/package/@c15t/core)\n- `c15t/react` — React components and hooks, same exports as [`@c15t/react`](https://www.npmjs.com/package/@c15t/react)\n- `c15t/next` — Next.js integration, same exports as [`@c15t/nextjs`](https://www.npmjs.com/package/@c15t/nextjs)\n\nThe scoped packages remain published and permanently supported — use them directly when you want tighter dependency control."
+	}
+}

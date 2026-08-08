@@ -4,6 +4,9 @@
 		"packages/core": {
 			"$include": "./packages/core/knip.json"
 		},
+		"packages/c15t": {
+			"$include": "./packages/c15t/knip.json"
+		},
 		"packages/backend": {
 			"$include": "./packages/backend/knip.json"
 		},

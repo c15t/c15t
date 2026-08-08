@@ -19,6 +19,11 @@
 			],
 			"env": ["WITH_RSDOCTOR"]
 		},
+		"c15t#build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": ["dist/**"]
+		},
 		"@c15t/core#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
