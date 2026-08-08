@@ -40,6 +40,7 @@ const distBlockedPathPatterns: Array<{ reason: string; pattern: RegExp }> = [
 
 const requiredPackedFilesByPackage: Record<string, string[]> = {
 	c15t: ['AGENTS.md', 'docs/README.md'],
+	'@c15t/core': ['AGENTS.md', 'docs/README.md'],
 	'@c15t/ui': [
 		'styles.css',
 		'styles.tw3.css',

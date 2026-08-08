@@ -408,11 +408,13 @@
 		"dist",
 		"shims",
 		"AGENTS.md",
+		"docs",
 		"README.md",
 		"CHANGELOG.md"
 	],
 	"scripts": {
-		"build": "bun scripts/copy-distribution-css.ts",
+		"build": "bun scripts/copy-distribution-css.ts && bun ../../scripts/generate-package-docs.ts c15t",
+		"build:docs": "bun ../../scripts/generate-package-docs.ts c15t",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./scripts",
 		"prepack": "bun ../../scripts/verify-package-artifacts.ts"

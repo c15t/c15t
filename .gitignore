@@ -33,6 +33,7 @@ out/
 build
 dist
 !internals/bundle-analysis-action/dist
+packages/c15t/docs
 packages/core/docs
 packages/react/docs
 packages/nextjs/docs
