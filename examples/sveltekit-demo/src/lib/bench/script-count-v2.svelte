@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { ConsentStoreState } from 'c15t';
+	import type { ConsentStoreState } from '@c15t/core';
 	import {
 		clearConsentRuntimeCache,
 		getOrCreateConsentRuntime,
-	} from 'c15t';
+	} from '@c15t/core';
 	import { onMount } from 'svelte';
 	import {
 		createInitialBenchState,

@@ -3,7 +3,7 @@
  * Displays and manages consent state
  */
 
-import type { ConsentStoreState } from 'c15t';
+import type { ConsentStoreState } from '@c15t/core';
 import {
 	createButton,
 	createDisconnectedState,

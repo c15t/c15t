@@ -4,7 +4,7 @@ import {
 	type Script,
 	type ScriptLoaderDebugEvent,
 	type ScriptLoaderHandle,
-} from 'c15t/v3/modules/script-loader';
+} from '@c15t/core/v3/modules/script-loader';
 import { useEffect, useRef, useState } from 'react';
 import { useRequiredKernel } from './shared';
 
@@ -49,7 +49,7 @@ export function useScriptLoader(
 
 	useEffect(() => {
 		let disposed = false;
-		void import('c15t/v3/modules/script-loader').then(
+		void import('@c15t/core/v3/modules/script-loader').then(
 			({ createScriptLoader }) => {
 				if (disposed) return;
 				const created = createScriptLoader({

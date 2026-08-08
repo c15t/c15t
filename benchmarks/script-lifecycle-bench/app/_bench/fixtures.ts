@@ -1,4 +1,4 @@
-import type { Script } from 'c15t';
+import type { Script } from '@c15t/core';
 
 export type ScriptLifecycleScenarioName =
 	| 'grant-standard'

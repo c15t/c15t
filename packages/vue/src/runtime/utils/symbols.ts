@@ -1,7 +1,7 @@
+import type { ConsentKernel, ConsentSnapshot } from '@c15t/core/v3';
+import type { Consent } from '@c15t/core/v3/consent-record';
 import type { InitOutput } from '@c15t/schema';
 import type { ConsentActiveUI } from '@c15t/schema/config';
-import type { ConsentKernel, ConsentSnapshot } from 'c15t/v3';
-import type { Consent } from 'c15t/v3/consent-record';
 import type { InjectionKey, Ref } from 'vue';
 import type { VueConsentKernelContext } from '../kernel';
 

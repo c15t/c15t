@@ -1,4 +1,4 @@
-import type { Overrides } from 'c15t';
+import type { Overrides } from '@c15t/core';
 import { extractRelevantHeaders } from './headers';
 
 /**

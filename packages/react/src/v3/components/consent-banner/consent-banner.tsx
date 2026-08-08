@@ -184,7 +184,7 @@ export interface ConsentBannerProps {
 	 * Which consent models this banner responds to.
 	 * @default ['opt-in']
 	 */
-	models?: import('c15t').Model[];
+	models?: import('@c15t/core').Model[];
 
 	/**
 	 * Override the UI source identifier sent with consent API calls.

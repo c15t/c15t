@@ -3,7 +3,7 @@
  * Scans the DOM for external scripts and iframes, cross-referencing with c15t config
  */
 
-import type { ConsentStoreState } from 'c15t';
+import type { ConsentStoreState } from '@c15t/core';
 import { createButton, createSection } from '../components/ui';
 import { div, span } from '../core/renderer';
 

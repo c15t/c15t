@@ -10,8 +10,8 @@ import {
 	resolveTranslations,
 	shouldFillPolicyActions,
 } from '@c15t/ui/utils';
-import type { LegalLinks as LegalLinksType, Model } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
+import type { LegalLinks as LegalLinksType, Model } from '@c15t/core';
+import { defaultTranslationConfig } from '@c15t/core';
 import { focusTrap } from '../actions/focus-trap';
 // Banner uses custom portal/focus-trap/scroll-lock actions (not Ark UI's built-in)
 // because the banner is not an Ark Dialog - it's a simpler container that

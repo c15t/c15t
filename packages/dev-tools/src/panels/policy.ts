@@ -3,7 +3,7 @@
  * Displays detailed runtime policy-pack diagnostics from /init
  */
 
-import type { ConsentStoreState } from 'c15t';
+import type { ConsentStoreState } from '@c15t/core';
 import { createDisconnectedState, createSection } from '../components/ui';
 import { clearElement, div, span } from '../core/renderer';
 import componentStyles from '../styles/components.module.css';

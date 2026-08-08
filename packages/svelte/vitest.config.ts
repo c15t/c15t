@@ -13,35 +13,35 @@ export default mergeConfig(
 		resolve: {
 			alias: [
 				{
-					find: 'c15t/v3/modules/iframe-blocker',
+					find: '@c15t/core/v3/modules/iframe-blocker',
 					replacement: resolve(
 						__dirname,
 						'../core/src/v3/modules/iframe-blocker/index.ts'
 					),
 				},
 				{
-					find: 'c15t/v3/modules/network-blocker',
+					find: '@c15t/core/v3/modules/network-blocker',
 					replacement: resolve(
 						__dirname,
 						'../core/src/v3/modules/network-blocker/index.ts'
 					),
 				},
 				{
-					find: 'c15t/v3/modules/persistence',
+					find: '@c15t/core/v3/modules/persistence',
 					replacement: resolve(
 						__dirname,
 						'../core/src/v3/modules/persistence/index.ts'
 					),
 				},
 				{
-					find: 'c15t/v3/modules/script-loader',
+					find: '@c15t/core/v3/modules/script-loader',
 					replacement: resolve(
 						__dirname,
 						'../core/src/v3/modules/script-loader/index.ts'
 					),
 				},
 				{
-					find: 'c15t/v3/modules/window-debug',
+					find: '@c15t/core/v3/modules/window-debug',
 					replacement: resolve(
 						__dirname,
 						'../core/src/v3/modules/window-debug/index.ts'
@@ -64,7 +64,7 @@ export default mergeConfig(
 					replacement: resolve(__dirname, '../schema/src/index.ts'),
 				},
 				{
-					find: 'c15t/v3',
+					find: '@c15t/core/v3',
 					replacement: resolve(__dirname, '../core/src/v3/index.ts'),
 				},
 				{

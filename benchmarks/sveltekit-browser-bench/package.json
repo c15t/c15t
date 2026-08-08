@@ -9,9 +9,9 @@
 		"check-types": "svelte-check --tsconfig ./tsconfig.json"
 	},
 	"dependencies": {
+		"@c15t/core": "workspace:*",
 		"@c15t/schema": "workspace:*",
-		"@c15t/svelte": "workspace:*",
-		"c15t": "workspace:*"
+		"@c15t/svelte": "workspace:*"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^5.2.12",

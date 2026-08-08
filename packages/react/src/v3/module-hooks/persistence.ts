@@ -4,7 +4,7 @@ import {
 	createPersistence,
 	type PersistenceHandle,
 	type PersistenceOptions,
-} from 'c15t/v3/modules/persistence';
+} from '@c15t/core/v3/modules/persistence';
 import { useEffect, useState } from 'react';
 import { useRequiredKernel } from './shared';
 

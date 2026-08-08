@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { PolicyUiActionDirection } from 'c15t';
+import type { PolicyUiActionDirection } from '@c15t/core';
 import type { Snippet } from 'svelte';
 
 let {

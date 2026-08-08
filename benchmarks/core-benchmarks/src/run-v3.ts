@@ -20,7 +20,7 @@ import {
 	summarizeMetric,
 	writeJson,
 } from '@c15t/benchmarking';
-import { createConsentKernel } from 'c15t/v3';
+import { createConsentKernel } from '@c15t/core/v3';
 
 function measureSync(iterations: number, fn: () => void): number[] {
 	const samples: number[] = [];

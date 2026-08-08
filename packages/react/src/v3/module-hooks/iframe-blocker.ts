@@ -1,6 +1,6 @@
 'use client';
 
-import type { IframeBlockerHandle } from 'c15t/v3/modules/iframe-blocker';
+import type { IframeBlockerHandle } from '@c15t/core/v3/modules/iframe-blocker';
 import { useEffect, useRef } from 'react';
 import { useRequiredKernel } from './shared';
 
@@ -32,7 +32,7 @@ export function useIframeBlocker(
 
 	useEffect(() => {
 		let disposed = false;
-		void import('c15t/v3/modules/iframe-blocker').then(
+		void import('@c15t/core/v3/modules/iframe-blocker').then(
 			({ createIframeBlocker }) => {
 				if (disposed) return;
 				const created = createIframeBlocker({

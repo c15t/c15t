@@ -1,5 +1,5 @@
 {
-	"name": "c15t",
+	"name": "@c15t/core",
 	"version": "2.2.0-canary-20260731105620",
 	"description": "Headless JavaScript consent management platform for cookie banners, privacy preferences, consent storage, and script gating.",
 	"keywords": [
@@ -107,8 +107,8 @@
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts c15t",
-		"build:docs": "bun ../../scripts/generate-package-docs.ts c15t",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/core",
+		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/core",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"check-types:test": "tsc -p tsconfig.test.json",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",

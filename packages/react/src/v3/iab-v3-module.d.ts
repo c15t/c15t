@@ -1,6 +1,10 @@
 declare module '@c15t/iab/v3' {
-	import type { CMPApi, IABConfig } from 'c15t';
-	import type { ConsentKernel, GlobalVendorList, NonIABVendor } from 'c15t/v3';
+	import type { CMPApi, IABConfig } from '@c15t/core';
+	import type {
+		ConsentKernel,
+		GlobalVendorList,
+		NonIABVendor,
+	} from '@c15t/core/v3';
 
 	export interface CreateIABOptions
 		extends Partial<
@@ -33,7 +37,7 @@ declare module '@c15t/iab/v3' {
 }
 
 declare module '@c15t/iab/v3/headless' {
-	import type { GlobalVendorList, NonIABVendor } from 'c15t/v3';
+	import type { GlobalVendorList, NonIABVendor } from '@c15t/core/v3';
 
 	export type HeadlessIABBannerAction = 'accept' | 'reject' | 'customize';
 	export type HeadlessIABDialogAction = 'accept' | 'reject' | 'customize';

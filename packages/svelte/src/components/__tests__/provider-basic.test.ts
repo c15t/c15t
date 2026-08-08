@@ -4,8 +4,8 @@
  * Mirrors: packages/react/src/providers/__tests__/provider-basic.test.tsx
  */
 
+import { clearConsentRuntimeCache } from '@c15t/core';
 import { render } from '@testing-library/svelte';
-import { clearConsentRuntimeCache } from 'c15t';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
 import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';

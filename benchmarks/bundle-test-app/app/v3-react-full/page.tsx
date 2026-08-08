@@ -17,6 +17,7 @@ import '@c15t/react/styles.css';
  * below for live confirmation.
  */
 
+import type { Script } from '@c15t/core/v3/modules/script-loader';
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -24,7 +25,6 @@ import {
 	ConsentProvider,
 	ConsentWidget,
 } from '@c15t/react/v3';
-import type { Script } from 'c15t/v3/modules/script-loader';
 import { lazy, Suspense } from 'react';
 
 const Diagnostics = lazy(() => import('./diagnostics'));

@@ -9,7 +9,7 @@ import managerStyles from '@c15t/ui/styles/v3/consent-manager';
 import {
 	type CONSENT_CATEGORY,
 	getConsentAvailableCategories,
-} from 'c15t/v3/consent-record';
+} from '@c15t/core/v3/consent-record';
 import { computed, type HTMLAttributes, nextTick, ref, watch } from 'vue';
 import {
 	useConsentActiveUI,

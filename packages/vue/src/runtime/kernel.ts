@@ -1,9 +1,3 @@
-import type { ConsentActiveUI } from '@c15t/schema/config';
-import {
-	CONSENT_REQUEST_HEADER_NAMES,
-	extractConsentRequestInputs,
-	type InitOutput,
-} from '@c15t/schema/types';
 import {
 	type ConsentKernel,
 	type ConsentSnapshot,
@@ -15,24 +9,33 @@ import {
 	type KernelActiveUI,
 	type KernelConfig,
 	type KernelTransport,
-} from 'c15t/v3';
-import type { Consent } from 'c15t/v3/consent-record';
+} from '@c15t/core/v3';
+import type { Consent } from '@c15t/core/v3/consent-record';
 import {
 	createIframeBlocker,
 	type IframeBlockerOptions,
-} from 'c15t/v3/modules/iframe-blocker';
+} from '@c15t/core/v3/modules/iframe-blocker';
 import {
 	type BlockedRequestInfo,
 	createNetworkBlocker,
 	type NetworkBlockerRule,
-} from 'c15t/v3/modules/network-blocker';
+} from '@c15t/core/v3/modules/network-blocker';
 import {
 	createPersistence,
 	type StorageConfig,
 	type StoredPayload,
-} from 'c15t/v3/modules/persistence';
-import { createScriptLoader, type Script } from 'c15t/v3/modules/script-loader';
-import { createWindowDebug } from 'c15t/v3/modules/window-debug';
+} from '@c15t/core/v3/modules/persistence';
+import {
+	createScriptLoader,
+	type Script,
+} from '@c15t/core/v3/modules/script-loader';
+import { createWindowDebug } from '@c15t/core/v3/modules/window-debug';
+import type { ConsentActiveUI } from '@c15t/schema/config';
+import {
+	CONSENT_REQUEST_HEADER_NAMES,
+	extractConsentRequestInputs,
+	type InitOutput,
+} from '@c15t/schema/types';
 import { computed, type Ref, shallowRef } from 'vue';
 import type { ConsentConfig } from './config';
 import {

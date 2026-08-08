@@ -5,7 +5,7 @@ import type {
 	HasCondition,
 	Script,
 	ScriptCallbackInfo,
-} from 'c15t';
+} from '@c15t/core';
 import { useContext, useEffect, useRef, useState } from 'react';
 import {
 	ConsentStateContext,

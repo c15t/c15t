@@ -29,9 +29,8 @@
  * - No module-level runtime cache — Fluid Compute safe by construction.
  */
 
+export { buildPrefetchScript, type PrefetchOptions } from '@c15t/core';
 export * from '@c15t/react/v3';
-
-export { buildPrefetchScript, type PrefetchOptions } from 'c15t';
 export type { ConsentBoundaryProps } from './boundary';
 export { ConsentBoundary } from './boundary';
 export { C15tPrefetch } from './libs/browser-initial-data';

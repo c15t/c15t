@@ -3,7 +3,7 @@
  * Displays IAB TCF information including TC String, purposes, and vendors
  */
 
-import type { ConsentStoreState } from 'c15t';
+import type { ConsentStoreState } from '@c15t/core';
 import {
 	createBadge,
 	createButton,

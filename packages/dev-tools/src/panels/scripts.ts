@@ -3,7 +3,7 @@
  * Displays script loading status and configuration
  */
 
-import type { ConsentStoreState } from 'c15t';
+import type { ConsentStoreState } from '@c15t/core';
 import {
 	createBadge,
 	createDisconnectedState,

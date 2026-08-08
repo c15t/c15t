@@ -1,6 +1,6 @@
 'use client';
 
-import type { AllConsentNames } from 'c15t';
+import type { AllConsentNames } from '@c15t/core';
 import { forwardRef, useEffect, useState } from 'react';
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { useTranslations } from '~/v3/component-hooks/use-translations';

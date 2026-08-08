@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { ConsentKernel } from 'c15t/v3';
+import type { ConsentKernel } from '@c15t/core/v3';
 import { getConsentKernel } from '../../lib/context.svelte';
 
 let {

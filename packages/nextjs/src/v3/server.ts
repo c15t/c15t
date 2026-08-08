@@ -21,15 +21,15 @@
  * is a plain async function, not an action.
  */
 
-import { type InitOutput, resolveBackendURL } from '@c15t/schema/types';
 import {
 	createManifestTransport,
 	type KernelConfig,
 	type KernelOverrides,
 	mergeInitOutputIntoKernelConfig,
 	mergeInitResponseIntoKernelConfig,
-} from 'c15t/v3';
-import { readStoredConsentFromCookie } from 'c15t/v3/modules/persistence';
+} from '@c15t/core/v3';
+import { readStoredConsentFromCookie } from '@c15t/core/v3/modules/persistence';
+import { type InitOutput, resolveBackendURL } from '@c15t/schema/types';
 import { cookies, headers } from 'next/headers';
 import {
 	consentInputsToOverrides,
@@ -131,7 +131,7 @@ export async function readInitialConsentConfig(
  * Type alias re-exported for convenience — consumers never need to import
  * from `c15t/v3` directly for SSR.
  */
-export type { KernelConfig } from 'c15t/v3';
+export type { KernelConfig } from '@c15t/core/v3';
 
 // -- Optional: server-side prefetch of the init roundtrip -------------------
 

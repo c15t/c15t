@@ -1,4 +1,4 @@
-import { buildPrefetchScript } from 'c15t';
+import { buildPrefetchScript } from '@c15t/core';
 import Script from 'next/script';
 import type { C15tPrefetchProps } from '~/v3/types';
 

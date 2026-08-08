@@ -317,12 +317,12 @@
 		"not op_mini all"
 	],
 	"dependencies": {
+		"@c15t/core": "workspace:*",
 		"@c15t/iab": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
 		"@c15t/ui": "workspace:*",
-		"@types/google.maps": "3.65.3",
-		"c15t": "workspace:*"
+		"@types/google.maps": "3.65.3"
 	},
 	"devDependencies": {
 		"@c15t/backend": "workspace:*",

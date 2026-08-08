@@ -77,7 +77,7 @@ interface ConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	 * Which consent models this banner responds to.
 	 * @default ['opt-in', 'opt-out']
 	 */
-	models?: import('c15t').Model[];
+	models?: import('@c15t/core').Model[];
 
 	/**
 	 * Override the UI source identifier sent with consent API calls.
@@ -230,7 +230,7 @@ interface ConsentBannerRootChildrenProps
 	 * Which consent models this banner responds to.
 	 * @default ['opt-in', 'opt-out']
 	 */
-	models?: import('c15t').Model[];
+	models?: import('@c15t/core').Model[];
 }
 
 /**

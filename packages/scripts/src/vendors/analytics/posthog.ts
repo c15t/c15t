@@ -1,4 +1,4 @@
-import type { Script } from 'c15t';
+import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
 import { stripTrailingSlashes } from '../_shared/script-url';

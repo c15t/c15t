@@ -1,4 +1,4 @@
-import type { GlobalVendorList } from 'c15t';
+import type { GlobalVendorList } from '@c15t/core';
 
 export type VendorId = number | string;
 

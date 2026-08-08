@@ -24,7 +24,7 @@ import { getTextDirection } from '@c15t/ui/utils/dom';
 import {
 	type CONSENT_CATEGORY,
 	getConsentAvailableCategories,
-} from 'c15t/v3/consent-record';
+} from '@c15t/core/v3/consent-record';
 import { computed, ref, useId, watch } from 'vue';
 import {
 	useConsentActiveUI,

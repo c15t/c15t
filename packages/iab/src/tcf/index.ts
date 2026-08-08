@@ -8,7 +8,12 @@
  */
 
 // Types (re-exported from core for convenience)
-export type { CMPApi, CMPApiConfig, FetchGVLResult, IABConfig } from 'c15t';
+export type {
+	CMPApi,
+	CMPApiConfig,
+	FetchGVLResult,
+	IABConfig,
+} from '@c15t/core';
 // CMP API
 export { createCMPApi } from './cmp-api';
 // Constants

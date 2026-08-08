@@ -1,4 +1,4 @@
-import type { ConsentStoreState } from 'c15t';
+import type { ConsentStoreState } from '@c15t/core';
 
 export function formatInitSource(
 	source: ConsentStoreState['initDataSource'],

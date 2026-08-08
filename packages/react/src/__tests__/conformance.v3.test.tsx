@@ -18,15 +18,15 @@ import {
 	type SuiteApi,
 	type TestDriver,
 } from '@c15t/conformance';
-import type { GlobalVendorList } from '@c15t/schema/types';
-import type { AllConsentNames } from 'c15t';
+import type { AllConsentNames } from '@c15t/core';
 import type {
 	ConsentKernel,
 	KernelActiveUI,
 	KernelConfig,
 	ResolvedPolicy,
 	TranslationsResponse,
-} from 'c15t/v3';
+} from '@c15t/core/v3';
+import type { GlobalVendorList } from '@c15t/schema/types';
 import { type ReactElement, useContext, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';

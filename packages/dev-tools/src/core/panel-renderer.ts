@@ -3,7 +3,7 @@
  * Shared logic for rendering DevTools panels
  */
 
-import type { ConsentStoreState } from 'c15t';
+import type { ConsentStoreState } from '@c15t/core';
 import { renderActionsPanel } from '../panels/actions';
 import { renderConsentsPanel } from '../panels/consents';
 import { renderEventsPanel } from '../panels/events';

@@ -55,10 +55,10 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
+		"@c15t/core": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"@vueuse/core": "^14.3.0",
-		"c15t": "workspace:*",
 		"defu": "^6.1.4",
 		"ufo": "^1.6.1",
 		"vue": "^3.5.39"

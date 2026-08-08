@@ -6,7 +6,7 @@
  * headers independently. No real Next.js request context is needed.
  */
 
-import type { KernelConfig } from 'c15t/v3';
+import type { KernelConfig } from '@c15t/core/v3';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { readInitialConsentConfig } from '../server';
 

@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 
-import type { IABConfig, IABModule } from 'c15t';
+import type { IABConfig, IABModule } from '@c15t/core';
 import { initializeIABMode } from './init/iab-initializer';
 import { fetchGVL } from './tcf/fetch-gvl';
 import { createIABManager } from './tcf/store';

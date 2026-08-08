@@ -1,5 +1,6 @@
 'use client';
 
+import { createManifestTransport } from '@c15t/core/v3';
 import {
 	ConsentBanner,
 	ConsentBoundary,
@@ -9,7 +10,6 @@ import {
 	type ConsentProviderOptions,
 	type InitialDataPromise,
 } from '@c15t/nextjs/v3';
-import { createManifestTransport } from 'c15t/v3';
 import { type ReactNode, useMemo } from 'react';
 import { getState, type NextjsBenchScenario } from './state';
 import { NextjsV3BenchmarkProbe } from './v3-probe';

@@ -1,5 +1,3 @@
-import type { CreateIABOptions } from '@c15t/iab/v3';
-import type { Theme, UIOptions } from '@c15t/ui/theme';
 import type {
 	AllConsentNames,
 	Callbacks,
@@ -11,20 +9,22 @@ import type {
 	PolicyConfig,
 	StorageConfig,
 	User,
-} from 'c15t';
+} from '@c15t/core';
 import type {
 	KernelConfig,
 	KernelOverrides,
 	KernelTransport,
 	KernelUser,
-} from 'c15t/v3';
-import type { IframeBlockerOptions } from 'c15t/v3/modules/iframe-blocker';
-import type { NetworkBlockerRule } from 'c15t/v3/modules/network-blocker';
-import type { PersistenceOptions } from 'c15t/v3/modules/persistence';
+} from '@c15t/core/v3';
+import type { IframeBlockerOptions } from '@c15t/core/v3/modules/iframe-blocker';
+import type { NetworkBlockerRule } from '@c15t/core/v3/modules/network-blocker';
+import type { PersistenceOptions } from '@c15t/core/v3/modules/persistence';
 import type {
 	Script,
 	ScriptLoaderDebugEvent,
-} from 'c15t/v3/modules/script-loader';
+} from '@c15t/core/v3/modules/script-loader';
+import type { CreateIABOptions } from '@c15t/iab/v3';
+import type { Theme, UIOptions } from '@c15t/ui/theme';
 
 export type ProviderMode = 'hosted' | 'offline' | 'c15t';
 

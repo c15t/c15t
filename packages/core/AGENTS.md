@@ -1,4 +1,4 @@
-# c15t
+# @c15t/core
 
 > Core JavaScript consent management docs for c15t, including client modes, script loading, callbacks, and integrations.
 

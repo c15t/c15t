@@ -7,7 +7,7 @@ import {
 	generateSubjectId,
 	type Script,
 	saveConsentToStorage,
-} from 'c15t';
+} from '@c15t/core';
 import {
 	createContext,
 	type ReactNode,

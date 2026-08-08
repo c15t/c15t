@@ -19,7 +19,7 @@
 			],
 			"env": ["WITH_RSDOCTOR"]
 		},
-		"c15t#build": {
+		"@c15t/core#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
 			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
@@ -89,7 +89,7 @@
 			"persistent": true,
 			"interruptible": true,
 			"with": [
-				"c15t#dev",
+				"@c15t/core#dev",
 				"@c15t/backend#dev",
 				"@c15t/iab#dev",
 				"@c15t/logger#dev",
@@ -106,7 +106,7 @@
 			"persistent": true,
 			"interruptible": true,
 			"with": [
-				"c15t#dev",
+				"@c15t/core#dev",
 				"@c15t/logger#dev",
 				"@c15t/nextjs#dev",
 				"@c15t/react#dev",
@@ -120,7 +120,7 @@
 			"persistent": true,
 			"interruptible": true,
 			"with": [
-				"c15t#dev",
+				"@c15t/core#dev",
 				"@c15t/logger#dev",
 				"@c15t/schema#dev",
 				"@c15t/translations#dev",
@@ -132,7 +132,7 @@
 			"persistent": true,
 			"interruptible": true,
 			"with": [
-				"c15t#dev",
+				"@c15t/core#dev",
 				"@c15t/logger#dev",
 				"@c15t/nextjs#dev",
 				"@c15t/react#dev",
@@ -146,7 +146,7 @@
 			"persistent": true,
 			"interruptible": true,
 			"with": [
-				"c15t#dev",
+				"@c15t/core#dev",
 				"@c15t/logger#dev",
 				"@c15t/nextjs#dev",
 				"@c15t/react#dev",
@@ -160,7 +160,7 @@
 			"persistent": true,
 			"interruptible": true,
 			"with": [
-				"c15t#dev",
+				"@c15t/core#dev",
 				"@c15t/logger#dev",
 				"@c15t/nextjs#dev",
 				"@c15t/react#dev",
@@ -174,7 +174,7 @@
 			"persistent": true,
 			"interruptible": true,
 			"with": [
-				"c15t#dev",
+				"@c15t/core#dev",
 				"@c15t/logger#dev",
 				"@c15t/nextjs#dev",
 				"@c15t/react#dev",

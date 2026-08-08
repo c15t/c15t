@@ -6,7 +6,7 @@
  * production `c15t` script loader and runs the probe checks defined in
  * `../vendors`.
  */
-import { type ConsentState, loadScripts } from 'c15t';
+import { type ConsentState, loadScripts } from '@c15t/core';
 import type {
 	LiveProbeCheckResult,
 	LiveProbeLoadOutcome,

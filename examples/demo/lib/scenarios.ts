@@ -9,9 +9,9 @@
  * - The c15t CLI config (`c15t-backend.config.ts`)
  */
 
+import { type PolicyConfig, policyPackPresets } from '@c15t/core';
 import type { Translations } from '@c15t/translations';
 import { baseTranslations } from '@c15t/translations/all';
-import { type PolicyConfig, policyPackPresets } from 'c15t';
 
 export const DEMO_POLICY_SNAPSHOT_KEY =
 	process.env.C15T_POLICY_SNAPSHOT_KEY ?? 'demo-policy-snapshot-key';

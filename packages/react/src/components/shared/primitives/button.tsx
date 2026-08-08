@@ -1,4 +1,4 @@
-import type { AllConsentNames } from 'c15t';
+import type { AllConsentNames } from '@c15t/core';
 import { forwardRef, type MouseEvent, useCallback } from 'react';
 import { useConsentTracking } from '~/context/consent-tracking-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';

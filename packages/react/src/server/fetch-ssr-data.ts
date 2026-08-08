@@ -1,4 +1,4 @@
-import type { InitOutput, SSRInitialData } from 'c15t';
+import type { InitOutput, SSRInitialData } from '@c15t/core';
 import { version } from '../version';
 import { extractRelevantHeaders } from './headers';
 import { normalizeBackendURL } from './normalize-url';

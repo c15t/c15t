@@ -13,9 +13,9 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  *   - 100 iframes, install + consent grant
  */
 import { join } from 'node:path';
-import { configureConsentManager, createConsentManagerStore } from 'c15t';
-import { createConsentKernel } from 'c15t/v3';
-import { createIframeBlocker } from 'c15t/v3/modules/iframe-blocker';
+import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
+import { createConsentKernel } from '@c15t/core/v3';
+import { createIframeBlocker } from '@c15t/core/v3/modules/iframe-blocker';
 import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();

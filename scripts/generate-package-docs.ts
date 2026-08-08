@@ -15,7 +15,7 @@ type PackageDocsConfig = {
 
 const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
-		name: 'c15t',
+		name: '@c15t/core',
 		outDir: 'packages/core',
 		summary:
 			'Core JavaScript consent management docs for c15t, including client modes, script loading, callbacks, and integrations.',

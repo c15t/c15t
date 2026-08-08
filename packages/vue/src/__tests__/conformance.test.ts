@@ -17,20 +17,20 @@ import {
 	type SuiteApi,
 	type TestDriver,
 } from '@c15t/conformance';
-import type {
-	GlobalVendorList,
-	InitOutput,
-	TranslationsResponse,
-} from '@c15t/schema/types';
-import { flushPromises } from '@vue/test-utils';
 import {
 	type ConsentKernel,
 	type ConsentSnapshot,
 	createConsentKernel,
 	type KernelConfig,
 	type KernelTransport,
-} from 'c15t/v3';
-import { createPersistence } from 'c15t/v3/modules/persistence';
+} from '@c15t/core/v3';
+import { createPersistence } from '@c15t/core/v3/modules/persistence';
+import type {
+	GlobalVendorList,
+	InitOutput,
+	TranslationsResponse,
+} from '@c15t/schema/types';
+import { flushPromises } from '@vue/test-utils';
 import { describe, expect, test, vi } from 'vitest';
 import {
 	type App,

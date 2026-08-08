@@ -251,9 +251,9 @@
 		"not op_mini all"
 	],
 	"devDependencies": {
+		"@c15t/core": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"c15t": "workspace:*",
 		"playwright": "1.58.2",
 		"typescript": "7.0.2"
 	},

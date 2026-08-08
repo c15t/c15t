@@ -2,8 +2,8 @@
 import legalLinkStyles from '@c15t/ui/styles/primitives/legal-links.module.js';
 import type { AllThemeKeys } from '@c15t/ui/theme';
 import { resolveTranslations } from '@c15t/ui/utils';
-import type { LegalLinks as LegalLinksType } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
+import type { LegalLinks as LegalLinksType } from '@c15t/core';
+import { defaultTranslationConfig } from '@c15t/core';
 import { getConsentContext, getThemeContext } from '../context.svelte';
 import { resolveComponentStyles } from '../utils';
 

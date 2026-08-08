@@ -1,5 +1,5 @@
-import type { ConsentStoreState } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
+import type { ConsentStoreState } from '@c15t/core';
+import { defaultTranslationConfig } from '@c15t/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 import { ConsentStateContext } from '~/context/consent-manager-context';
@@ -10,9 +10,10 @@ import {
 import { useConsentManager } from '../use-consent-manager';
 
 // Mock the c15t package
-vi.mock('c15t', async () => {
-	const originalModule = await vi.importActual('c15t');
-	const { createConsentManagerStore } = originalModule as typeof import('c15t');
+vi.mock('@c15t/core', async () => {
+	const originalModule = await vi.importActual('@c15t/core');
+	const { createConsentManagerStore } =
+		originalModule as typeof import('@c15t/core');
 
 	const createMockConsentManager = () => ({
 		getCallbacks: () => ({}),

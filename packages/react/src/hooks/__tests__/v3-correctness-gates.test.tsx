@@ -23,8 +23,8 @@
  * `useConsent('marketing')` returns a fresh value after consent
  * changes, with no useCallback dance required.
  */
-import type { ConsentManagerInterface } from 'c15t';
-import { createConsentManagerStore } from 'c15t';
+import type { ConsentManagerInterface } from '@c15t/core';
+import { createConsentManagerStore } from '@c15t/core';
 import { describe, expect, test, vi } from 'vitest';
 
 const createMockConsentManager = (): ConsentManagerInterface => ({

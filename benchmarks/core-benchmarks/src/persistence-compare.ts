@@ -18,9 +18,9 @@ import {
 	configureConsentManager,
 	createConsentManagerStore,
 	deleteConsentFromStorage,
-} from 'c15t';
-import { createConsentKernel } from 'c15t/v3';
-import { createPersistence } from 'c15t/v3/modules/persistence';
+} from '@c15t/core';
+import { createConsentKernel } from '@c15t/core/v3';
+import { createPersistence } from '@c15t/core/v3/modules/persistence';
 import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();

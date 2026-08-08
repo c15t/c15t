@@ -1,24 +1,10 @@
-export * from '@c15t/ui/primitives';
-export * from '@c15t/ui/styles/primitives';
-
-export type {
-	ColorTokens,
-	ComponentSlots,
-	MotionTokens,
-	RadiusTokens,
-	ShadowTokens,
-	SlotStyle,
-	SpacingTokens,
-	Theme,
-	TypographyTokens,
-} from '@c15t/ui/theme';
 export type {
 	AllConsentNames,
 	ConsentType,
 	I18nConfig,
 	LegalLinks,
 	Translations,
-} from 'c15t';
+} from '@c15t/core';
 export {
 	configureConsentManager,
 	defaultTranslationConfig,
@@ -26,7 +12,7 @@ export {
 	mergeTranslationConfigs,
 	policyPackPresets,
 	prepareTranslationConfig,
-} from 'c15t';
+} from '@c15t/core';
 export type {
 	ConsentKernel,
 	ConsentSnapshot,
@@ -52,7 +38,20 @@ export type {
 	SavePayload,
 	SaveResult,
 	TranslationsResponse,
-} from 'c15t/v3';
+} from '@c15t/core/v3';
+export * from '@c15t/ui/primitives';
+export * from '@c15t/ui/styles/primitives';
+export type {
+	ColorTokens,
+	ComponentSlots,
+	MotionTokens,
+	RadiusTokens,
+	ShadowTokens,
+	SlotStyle,
+	SpacingTokens,
+	Theme,
+	TypographyTokens,
+} from '@c15t/ui/theme';
 export { focusTrap } from './actions/focus-trap';
 export { portal } from './actions/portal';
 export { scrollLock } from './actions/scroll-lock';

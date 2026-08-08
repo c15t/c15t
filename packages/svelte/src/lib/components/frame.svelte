@@ -2,8 +2,8 @@
 import styles from '@c15t/ui/styles/components/frame.module.js';
 import { buttonVariants } from '@c15t/ui/styles/primitives';
 import { resolveTranslations } from '@c15t/ui/utils';
-import type { AllConsentNames } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
+import type { AllConsentNames } from '@c15t/core';
+import { defaultTranslationConfig } from '@c15t/core';
 import type { Snippet } from 'svelte';
 import { onMount } from 'svelte';
 import { getConsentContext, getThemeContext } from '../context.svelte';

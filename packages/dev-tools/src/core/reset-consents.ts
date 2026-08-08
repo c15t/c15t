@@ -3,7 +3,7 @@
  * Centralized logic for resetting all consent data
  */
 
-import type { ConsentStoreState } from 'c15t';
+import type { ConsentStoreState } from '@c15t/core';
 import type { StoreApi } from 'zustand/vanilla';
 import type { StateManager } from './state-manager';
 

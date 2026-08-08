@@ -11,8 +11,8 @@ import {
 	resolveTranslations,
 	shouldFillPolicyActions,
 } from '@c15t/ui/utils';
-import type { AllConsentNames } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
+import type { AllConsentNames } from '@c15t/core';
+import { defaultTranslationConfig } from '@c15t/core';
 import { getConsentContext, getThemeContext } from '../context.svelte';
 import { PreferenceItem, Switch } from '../primitives';
 import { resolveComponentStyles } from '../utils';

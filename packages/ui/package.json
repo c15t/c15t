@@ -140,8 +140,8 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
-		"@c15t/translations": "workspace:*",
-		"c15t": "workspace:*"
+		"@c15t/core": "workspace:*",
+		"@c15t/translations": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

@@ -1,4 +1,4 @@
-import type { Overrides, SSRInitialData } from 'c15t';
+import type { Overrides, SSRInitialData } from '@c15t/core';
 
 /**
  * Base options for SSR data fetching, shared across framework integrations.

@@ -1,4 +1,4 @@
-import { configureConsentManager, createConsentManagerStore } from 'c15t';
+import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
 import { bench, runMicroBenchmarkSuite } from './wrapper';
 
 // Create store once for condition evaluation benchmarks

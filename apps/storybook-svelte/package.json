@@ -9,7 +9,7 @@
 		"test-storybook": "test-storybook --url ${STORYBOOK_URL:-http://127.0.0.1:6006}"
 	},
 	"dependencies": {
-		"c15t": "workspace:*",
+		"@c15t/core": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"@c15t/svelte": "workspace:*",
 		"@c15t/conformance": "workspace:*",

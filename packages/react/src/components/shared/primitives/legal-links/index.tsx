@@ -1,7 +1,7 @@
+import type { LegalLinks as LegalLinksType } from '@c15t/core';
+import { defaultTranslationConfig } from '@c15t/core';
 import styles from '@c15t/ui/styles/primitives/legal-links.module.js';
 import { resolveTranslations } from '@c15t/ui/utils';
-import type { LegalLinks as LegalLinksType } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
 import { useContext, useMemo } from 'react';
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { useStyles } from '~/hooks/use-styles';

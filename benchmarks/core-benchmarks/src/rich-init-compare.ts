@@ -8,12 +8,12 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  * it onto the store/snapshot. Isolates framework overhead from network.
  */
 import { join } from 'node:path';
-import { configureConsentManager, createConsentManagerStore } from 'c15t';
+import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
 import {
 	createConsentKernel,
 	type InitResponse,
 	type KernelTransport,
-} from 'c15t/v3';
+} from '@c15t/core/v3';
 import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();

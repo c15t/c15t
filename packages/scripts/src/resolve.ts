@@ -1,4 +1,4 @@
-import type { Script } from 'c15t';
+import type { Script } from '@c15t/core';
 import { compileManifest } from './engine/compile';
 import { resolvedManifestToScript } from './engine/runtime';
 import type { ResolvedManifest, VendorManifest } from './types';

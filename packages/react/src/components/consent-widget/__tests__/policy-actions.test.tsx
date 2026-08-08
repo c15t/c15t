@@ -1,5 +1,5 @@
-import type { ConsentStoreState } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
+import type { ConsentStoreState } from '@c15t/core';
+import { defaultTranslationConfig } from '@c15t/core';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentWidget } from '~/components/consent-widget';

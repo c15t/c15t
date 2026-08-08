@@ -27,7 +27,7 @@ import {
 	type ConsentManagerOptions,
 	clearConsentRuntimeCache,
 	getOrCreateConsentRuntime,
-} from 'c15t';
+} from '@c15t/core';
 import type { ReactElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';

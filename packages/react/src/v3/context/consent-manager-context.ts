@@ -5,7 +5,7 @@
  * Provides the context for sharing consent management state across components.
  */
 
-import type { ConsentManagerInterface, ConsentStoreState } from 'c15t';
+import type { ConsentManagerInterface, ConsentStoreState } from '@c15t/core';
 import { createContext } from 'react';
 
 /**

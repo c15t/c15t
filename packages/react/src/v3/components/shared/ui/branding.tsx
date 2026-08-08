@@ -1,5 +1,5 @@
+import type { Branding } from '@c15t/core';
 import styles from '@c15t/ui/styles/v3/branding';
-import type { Branding } from 'c15t';
 import type { SVGProps } from 'react';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { useBranding } from '~/v3/hooks';

@@ -52,7 +52,7 @@ export interface ConsentDialogRootProps
 	 * Which consent models this dialog responds to.
 	 * @default ['opt-in', 'opt-out']
 	 */
-	models?: import('c15t').Model[];
+	models?: import('@c15t/core').Model[];
 
 	/**
 	 * When true, the component will not apply any internal styles.

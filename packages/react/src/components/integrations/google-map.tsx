@@ -1,6 +1,6 @@
 'use client';
 
-import type { AllConsentNames, Script } from 'c15t';
+import type { AllConsentNames, Script } from '@c15t/core';
 import {
 	type ComponentPropsWithRef,
 	forwardRef,

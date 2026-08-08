@@ -9,8 +9,8 @@
 			"@c15t/react/*": ["../react/dist-types/*"],
 			"@c15t/schema": ["../schema/dist-types/index.d.ts"],
 			"@c15t/schema/*": ["../schema/dist-types/*"],
-			"c15t": ["../core/dist-types/index.d.ts"],
-			"c15t/*": ["../core/dist-types/*"],
+			"@c15t/core": ["../core/dist-types/index.d.ts"],
+			"@c15t/core/*": ["../core/dist-types/*"],
 			"~/*": ["./src/*"]
 		}
 	},

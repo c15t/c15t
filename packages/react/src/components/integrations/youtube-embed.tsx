@@ -1,6 +1,6 @@
 'use client';
 
-import type { AllConsentNames } from 'c15t';
+import type { AllConsentNames } from '@c15t/core';
 import {
 	type ComponentPropsWithRef,
 	type CSSProperties,

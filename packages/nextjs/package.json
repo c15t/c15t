@@ -150,10 +150,10 @@
 		"test:watch": "bun prebuild && vitest --passWithNoTests"
 	},
 	"dependencies": {
+		"@c15t/core": "workspace:*",
 		"@c15t/react": "workspace:*",
 		"@c15t/schema": "workspace:*",
-		"@c15t/translations": "workspace:*",
-		"c15t": "workspace:*"
+		"@c15t/translations": "workspace:*"
 	},
 	"devDependencies": {
 		"@c15t/conformance": "workspace:*",

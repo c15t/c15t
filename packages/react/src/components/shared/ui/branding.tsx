@@ -1,11 +1,11 @@
+import type { Branding } from '@c15t/core';
+import { defaultTranslationConfig } from '@c15t/core';
 import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 import {
 	resolveStyles,
 	resolveTranslations,
 	sanitizeDOMStyleProps,
 } from '@c15t/ui/utils';
-import type { Branding } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
 import type { SVGProps } from 'react';
 import { useContext, useMemo } from 'react';
 import { ConsentStateContext } from '~/context/consent-manager-context';

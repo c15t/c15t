@@ -22,8 +22,8 @@
 		"test": "bun test --preload ./test-setup.ts"
 	},
 	"dependencies": {
+		"@c15t/core": "workspace:*",
 		"axe-core": "4.11.0",
-		"c15t": "workspace:*",
 		"storybook": "10.3.1"
 	},
 	"devDependencies": {

@@ -39,7 +39,7 @@ inputs:
     required: false
   transitive_roots:
     description: "Comma-separated package names to report transitive workspace impact for"
-    default: "c15t,@c15t/react"
+    default: "@c15t/core,@c15t/react"
     required: false
 
 outputs:

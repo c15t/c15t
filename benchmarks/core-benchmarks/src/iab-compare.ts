@@ -14,9 +14,9 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  * framework overhead is the acceptAll/rejectAll orchestration.
  */
 import { join } from 'node:path';
+import type { GlobalVendorList } from '@c15t/core/v3';
+import { createConsentKernel } from '@c15t/core/v3';
 import { createIAB } from '@c15t/iab/v3';
-import type { GlobalVendorList } from 'c15t/v3';
-import { createConsentKernel } from 'c15t/v3';
 import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();

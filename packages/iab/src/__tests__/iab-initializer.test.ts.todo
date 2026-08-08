@@ -6,7 +6,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ConsentStoreState, GlobalVendorList } from 'c15t';
+import type { ConsentStoreState, GlobalVendorList } from '@c15t/core';
 import { initializeIABMode } from '../init/iab-initializer';
 import { createMockStoreState } from './tcf/test-setup';
 
@@ -28,7 +28,7 @@ vi.mock('../tcf', () => ({
 }));
 
 // Mock cookie module (imported from c15t in iab-initializer)
-vi.mock('c15t', async (importOriginal) => {
+vi.mock('@c15t/core', async (importOriginal) => {
 	const actual = await importOriginal<Record<string, unknown>>();
 	return {
 		...actual,
@@ -328,7 +328,7 @@ describe('initializeIABMode', () => {
 
 	describe('Persisted consent restoration', () => {
 		it('should merge stored custom vendor consents', async () => {
-			const { getConsentFromStorage } = await import('c15t');
+			const { getConsentFromStorage } = await import('@c15t/core');
 			vi.mocked(getConsentFromStorage).mockReturnValue({
 				iabCustomVendorConsents: {
 					'custom-1': true,

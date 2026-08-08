@@ -15,12 +15,12 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  *   - install/dispose lifecycle cost
  */
 import { join } from 'node:path';
-import { configureConsentManager, createConsentManagerStore } from 'c15t';
-import { createConsentKernel } from 'c15t/v3';
+import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
+import { createConsentKernel } from '@c15t/core/v3';
 import {
 	createNetworkBlocker,
 	type NetworkBlockerRule,
-} from 'c15t/v3/modules/network-blocker';
+} from '@c15t/core/v3/modules/network-blocker';
 import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();

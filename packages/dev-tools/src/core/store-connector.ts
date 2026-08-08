@@ -3,7 +3,7 @@
  * Connects to the c15tStore exposed on the window object
  */
 
-import type { ConsentStoreState } from 'c15t';
+import type { ConsentStoreState } from '@c15t/core';
 import type { StoreApi } from 'zustand/vanilla';
 
 /**

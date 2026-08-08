@@ -1,6 +1,6 @@
+import type { LegalLinks as LegalLinksType } from '@c15t/core';
 import styles from '@c15t/ui/styles/v3/legal-links';
 import { resolveTranslations } from '@c15t/ui/utils';
-import type { LegalLinks as LegalLinksType } from 'c15t';
 import { useContext, useMemo, useSyncExternalStore } from 'react';
 import { KernelContext } from '~/v3/context';
 import { useUIConfig, V3UIConfigContext } from '~/v3/ui-config-context';
