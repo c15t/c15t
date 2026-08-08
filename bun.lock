@@ -589,6 +589,15 @@
         "@upstash/redis",
       ],
     },
+    "packages/c15t": {
+      "name": "c15t",
+      "version": "2.2.0-canary-20260731105620",
+      "dependencies": {
+        "@c15t/core": "workspace:*",
+        "@c15t/nextjs": "workspace:*",
+        "@c15t/react": "workspace:*",
+      },
+    },
     "packages/cli": {
       "name": "@c15t/cli",
       "version": "2.2.0-canary-20260731105620",
@@ -723,6 +732,11 @@
         "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
         "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc",
       },
+      "optionalPeers": [
+        "next",
+        "react",
+        "react-dom",
+      ],
     },
     "packages/node-sdk": {
       "name": "@c15t/node-sdk",
@@ -770,6 +784,10 @@
         "react": "^19.0.0 || ^19.0.0-rc || ^18.0.0 || ^17.0.0 || ^16.8.0",
         "react-dom": "^19.0.0 || ^19.0.0-rc || ^18.0.0 || ^17.0.0 || ^16.8.0",
       },
+      "optionalPeers": [
+        "react",
+        "react-dom",
+      ],
     },
     "packages/schema": {
       "name": "@c15t/schema",
@@ -2755,6 +2773,8 @@
     "bytes": ["bytes@3.1.2", "", {}, "sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg=="],
 
     "c12": ["c12@3.3.3", "", { "dependencies": { "chokidar": "^5.0.0", "confbox": "^0.2.2", "defu": "^6.1.4", "dotenv": "^17.2.3", "exsolve": "^1.0.8", "giget": "^2.0.0", "jiti": "^2.6.1", "ohash": "^2.0.11", "pathe": "^2.0.3", "perfect-debounce": "^2.0.0", "pkg-types": "^2.3.0", "rc9": "^2.1.2" }, "peerDependencies": { "magicast": "*" }, "optionalPeers": ["magicast"] }, "sha512-750hTRvgBy5kcMNPdh95Qo+XUBeGo8C7nsKSmedDmaQI+E0r82DwHeM6vBewDe4rGFbnxoa4V9pw+sPh5+Iz8Q=="],
+
+    "c15t": ["c15t@workspace:packages/c15t"],
 
     "cac": ["cac@7.0.0", "", {}, "sha512-tixWYgm5ZoOD+3g6UTea91eow5z6AAHaho3g0V9CNSNb45gM8SmflpAc+GRd1InC4AqN/07Unrgp56Y94N9hJQ=="],
 
