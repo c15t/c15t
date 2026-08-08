@@ -4,9 +4,10 @@
 	"commit": false,
 	"linked": [
 		[
-			"@c15t/core",
+			"c15t",
 			"@c15t/backend",
 			"@c15t/cli",
+			"@c15t/core",
 			"@c15t/dev-tools",
 			"@c15t/iab",
 			"@c15t/nextjs",
