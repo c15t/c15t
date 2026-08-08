@@ -4,7 +4,7 @@ description: Pre-fetch consent data in Server Components with fetchInitialData f
 group: frameworks
 ---
 
-The `@c15t/nextjs` package provides `fetchInitialData`, a server-side function that fetches consent data before rendering. Use it when the route is already dynamic, or when you want the fastest first banner and are okay opting the route into dynamic rendering. If you need to keep a route fully static, use `C15tPrefetch` instead.
+The `c15t/next` package provides `fetchInitialData`, a server-side function that fetches consent data before rendering. Use it when the route is already dynamic, or when you want the fastest first banner and are okay opting the route into dynamic rendering. If you need to keep a route fully static, use `C15tPrefetch` instead.
 
 Because `fetchInitialData()` resolves request headers from `next/headers`, using it opts the route into dynamic rendering.
 
@@ -13,7 +13,7 @@ Because `fetchInitialData()` resolves request headers from `next/headers`, using
 </Callout>
 
 ```ts
-import { fetchInitialData } from '@c15t/nextjs';
+import { fetchInitialData } from 'c15t/next';
 ```
 
 ## fetchInitialData
@@ -21,7 +21,7 @@ import { fetchInitialData } from '@c15t/nextjs';
 The primary function for fetching consent data on the server. It calls the c15t backend's `/init` endpoint with the user's request headers (resolved automatically from `next/headers`) and returns the initial consent data.
 
 ```ts title="app/layout.tsx"
-import { fetchInitialData } from '@c15t/nextjs';
+import { fetchInitialData } from 'c15t/next';
 
 // In a Server Component — do NOT await
 const ssrData = fetchInitialData({
@@ -80,8 +80,8 @@ Pass the unresolved Promise to the provider's `ssrData` option via a client comp
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/nextjs';
-import type { InitialDataPromise } from '@c15t/nextjs';
+import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from 'c15t/next';
+import type { InitialDataPromise } from 'c15t/next';
 
 export default function ConsentManager({
   children,
@@ -107,7 +107,7 @@ export default function ConsentManager({
 ```
 
 ```tsx title="app/layout.tsx"
-import { fetchInitialData } from '@c15t/nextjs';
+import { fetchInitialData } from 'c15t/next';
 import ConsentManager from '@/components/consent-manager';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -129,7 +129,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 ## How Headers Are Resolved
 
-Unlike `@c15t/react/server` where you must pass headers manually, `fetchInitialData` uses `next/headers` to automatically resolve the incoming request headers. This means geo-location headers from Vercel, Cloudflare, or AWS CloudFront are forwarded to the c15t backend without any extra configuration.
+Unlike `c15t/react/server` where you must pass headers manually, `fetchInitialData` uses `next/headers` to automatically resolve the incoming request headers. This means geo-location headers from Vercel, Cloudflare, or AWS CloudFront are forwarded to the c15t backend without any extra configuration.
 
 | Header | Source | Contains |
 |--------|--------|----------|
@@ -141,9 +141,9 @@ Unlike `@c15t/react/server` where you must pass headers manually, `fetchInitialD
 | `x-forwarded-host` | Proxy | Original host |
 | `x-forwarded-for` | Proxy | Client IP |
 
-## Advanced: Using @c15t/react/server Directly
+## Advanced: Using c15t/react/server Directly
 
-For advanced use cases (custom server frameworks, edge functions, or non-standard header resolution), the underlying utilities from `@c15t/react/server` are available:
+For advanced use cases (custom server frameworks, edge functions, or non-standard header resolution), the underlying utilities from `c15t/react/server` are available:
 
 ```ts
 import {
@@ -151,7 +151,7 @@ import {
   extractRelevantHeaders,
   normalizeBackendURL,
   validateBackendURL,
-} from '@c15t/react/server';
+} from 'c15t/react/server';
 ```
 
 See the [React Server-Side Utilities](/docs/frameworks/react/server-side) docs for full API details.
@@ -161,7 +161,7 @@ See the [React Server-Side Utilities](/docs/frameworks/react/server-side) docs f
 Use the [useSSRStatus](/docs/frameworks/next/hooks/use-ssr-status) hook on the client to verify SSR data was consumed:
 
 ```tsx
-import { useSSRStatus } from '@c15t/nextjs';
+import { useSSRStatus } from 'c15t/next';
 
 function DebugSSR() {
   const { ssrDataUsed, ssrSkippedReason } = useSSRStatus();

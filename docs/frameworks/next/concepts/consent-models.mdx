@@ -11,7 +11,7 @@ Read the current consent model from the hook:
 ```tsx
 'use client';
 
-import { useConsentManager } from '@c15t/nextjs';
+import { useConsentManager } from 'c15t/next';
 
 function ConsentStatus() {
   const { model, policy } = useConsentManager();
@@ -34,7 +34,7 @@ Override the detected jurisdiction for testing:
 ```tsx
 'use client';
 
-import { useConsentManager } from '@c15t/nextjs';
+import { useConsentManager } from 'c15t/next';
 
 function JurisdictionTester() {
   const { setOverrides } = useConsentManager();

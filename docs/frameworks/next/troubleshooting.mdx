@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Solutions for common issues with @c15t/nextjs — provider errors, missing banners, consent persistence, and more.
+description: Solutions for common issues with c15t/next — provider errors, missing banners, consent persistence, and more.
 group: frameworks
 ---
 
@@ -21,7 +21,7 @@ group: frameworks
 1. **Missing `ssrData`** — Ensure you're passing the SSR data Promise to the provider. Do **not** `await` `fetchInitialData()` in Server Components:
 
 ```tsx title="app/layout.tsx"
-import { fetchInitialData } from '@c15t/nextjs';
+import { fetchInitialData } from 'c15t/next';
 import ConsentManager from '@/components/consent-manager';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -55,13 +55,13 @@ See [Server-Side Data Fetching](/docs/frameworks/next/server-side) for full SSR 
 
 ```tsx
 // Components and hooks — main entry point
-import { ConsentManagerProvider, useConsentManager } from '@c15t/nextjs';
+import { ConsentManagerProvider, useConsentManager } from 'c15t/next';
 
 // Server-side data fetching
-import { fetchInitialData } from '@c15t/nextjs';
+import { fetchInitialData } from 'c15t/next';
 
 // Headless (hooks only, no components)
-import { useConsentManager } from '@c15t/nextjs/headless';
+import { useConsentManager } from 'c15t/next/headless';
 ```
 
 If you see type errors after updating, try:

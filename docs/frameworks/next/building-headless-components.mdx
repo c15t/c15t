@@ -19,7 +19,7 @@ If your goal is "custom layout, same policy behavior", start here before droppin
 ```tsx title="components/consent-manager/banner-shell.tsx"
 'use client';
 
-import { ConsentBanner } from '@c15t/nextjs';
+import { ConsentBanner } from 'c15t/next';
 
 export function BannerShell() {
   return (
@@ -41,7 +41,7 @@ Use `renderAction` only when you want to remap actions to stock button compounds
 ```tsx title="components/consent-manager/banner-actions.tsx"
 'use client';
 
-import { ConsentBanner } from '@c15t/nextjs';
+import { ConsentBanner } from 'c15t/next';
 
 export function BannerActionsWithCustomMapping() {
   return (
@@ -79,7 +79,7 @@ import type { ReactNode } from 'react';
 import {
   ConsentManagerProvider,
   policyPackPresets,
-} from '@c15t/nextjs';
+} from 'c15t/next';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
@@ -109,7 +109,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 ```tsx title="components/consent-manager/custom-banner.tsx"
 'use client';
 
-import { useHeadlessConsentUI, useTranslations } from '@c15t/nextjs/headless';
+import { useHeadlessConsentUI, useTranslations } from 'c15t/next/headless';
 
 export function CustomConsentBanner() {
   const { banner, openDialog, performBannerAction } = useHeadlessConsentUI();
@@ -171,7 +171,7 @@ import {
   useConsentManager,
   useHeadlessConsentUI,
   useTranslations,
-} from '@c15t/nextjs/headless';
+} from 'c15t/next/headless';
 
 export function CustomConsentDialog() {
   const { dialog, performDialogAction, saveCustomPreferences } = useHeadlessConsentUI();

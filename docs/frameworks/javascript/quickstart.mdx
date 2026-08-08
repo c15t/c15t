@@ -8,6 +8,8 @@ group: frameworks
 
 <PackageCommandTabs mode="install" command="c15t" />
 
+The root `c15t` entry point is the headless engine; the same package also provides `c15t/react` and `c15t/next`. Only need the engine? See [Granular Installs](/docs/granular-installs) for installing the scoped `@c15t/core` package alone.
+
 ## Initialize the Runtime
 
 `getOrCreateConsentRuntime()` creates a consent client and a Zustand vanilla store in a single call. The store holds all consent state and exposes methods for checking, setting, and subscribing to consent changes.
@@ -117,7 +119,7 @@ console.log('Location:', state?.locationInfo);
 ```
 
 <Callout type="info">
-  **No UI included** — the `c15t` core package is fully headless. See [Building UI](/docs/frameworks/javascript/building-ui) for creating your own components, or use [`@c15t/react`](/docs/frameworks/react/quickstart) / [`@c15t/nextjs`](/docs/frameworks/next/quickstart) for pre-built UI.
+  **No UI included** — the `c15t` core package is fully headless. See [Building UI](/docs/frameworks/javascript/building-ui) for creating your own components, or use [`c15t/react`](/docs/frameworks/react/quickstart) / [`c15t/next`](/docs/frameworks/next/quickstart) for pre-built UI.
 </Callout>
 
 ## Optional: Install Agent Skills

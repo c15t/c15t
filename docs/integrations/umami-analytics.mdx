@@ -13,7 +13,7 @@ Umami is an open-source, cookieless analytics product configured entirely throug
   <Tab value="React">
     ```tsx
     import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
+    import { ConsentManagerProvider } from 'c15t/react';
     import { umamiAnalytics } from '@c15t/scripts/umami-analytics';
 
     const scripts = [umamiAnalytics({ websiteId: 'site-abc-123' })];
@@ -39,7 +39,7 @@ Umami is an open-source, cookieless analytics product configured entirely throug
     'use client';
 
     import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { ConsentManagerProvider } from 'c15t/next';
     import { umamiAnalytics } from '@c15t/scripts/umami-analytics';
 
     const scripts = [umamiAnalytics({ websiteId: 'site-abc-123' })];
@@ -105,7 +105,7 @@ c15t gates the Umami script from loading until `measurement` consent is granted.
 Guard event calls by checking consent state. From React:
 
 ```tsx
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function useTrackSignup() {
   const { has } = useConsentManager();

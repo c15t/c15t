@@ -13,7 +13,7 @@ Plausible Analytics is a privacy-friendly, cookieless analytics product with a l
   <Tab value="React">
     ```tsx
     import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
+    import { ConsentManagerProvider } from 'c15t/react';
     import { plausibleAnalytics } from '@c15t/scripts/plausible-analytics';
 
     const scripts = [plausibleAnalytics({ domain: 'example.com' })];
@@ -39,7 +39,7 @@ Plausible Analytics is a privacy-friendly, cookieless analytics product with a l
     'use client';
 
     import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { ConsentManagerProvider } from 'c15t/next';
     import { plausibleAnalytics } from '@c15t/scripts/plausible-analytics';
 
     const scripts = [plausibleAnalytics({ domain: 'example.com' })];
@@ -100,7 +100,7 @@ Guard event calls by checking consent state. From React:
 
 ```tsx
 import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function useTrackSignup() {
   const { has } = useConsentManager();

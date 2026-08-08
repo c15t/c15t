@@ -11,15 +11,15 @@ group: frameworks
 If you use the prebuilt styled IAB UI, import the IAB stylesheet alongside the base stylesheet in your global CSS entrypoint:
 
 ```css title="src/app/globals.css"
-@import "@c15t/nextjs/styles.css";
-@import "@c15t/nextjs/iab/styles.css";
+@import "c15t/next/styles.css";
+@import "c15t/next/iab/styles.css";
 ```
 
 ```tsx
 import { type ReactNode } from 'react';
 import { iab } from '@c15t/iab';
-import { ConsentManagerProvider } from '@c15t/nextjs';
-import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
+import { ConsentManagerProvider } from 'c15t/next';
+import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
   return (
@@ -54,6 +54,6 @@ export default function ConsentManager({ children }: { children: ReactNode }) {
 
 <Callout type="info">
   For lower-level custom IAB flows, use `useHeadlessIABConsentUI()` from
-  `@c15t/react/iab`. `useGVLData()` is currently internal and is not part of
+  `c15t/react/iab`. `useGVLData()` is currently internal and is not part of
   the public package surface.
 </Callout>

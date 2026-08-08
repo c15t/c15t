@@ -10,7 +10,7 @@ group: frameworks
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/nextjs';
+import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from 'c15t/next';
 
 export default function ConsentManager({ children }: { children: ReactNode }) {
   return (
@@ -91,7 +91,7 @@ export function middleware(request: NextRequest) {
 
 ```tsx title="app/layout.tsx"
 import { headers } from 'next/headers';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 
 export default async function RootLayout({
   children,

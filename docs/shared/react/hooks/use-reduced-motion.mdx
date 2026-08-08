@@ -12,7 +12,7 @@ group: reference
   The hook returns `false` during SSR to avoid hydration mismatches, then updates to the actual preference on the client.
 
   ```tsx
-  import { useReducedMotion } from '@c15t/react/hooks';
+  import { useReducedMotion } from 'c15t/react/hooks';
 
   function AnimatedBanner() {
     const prefersReducedMotion = useReducedMotion();

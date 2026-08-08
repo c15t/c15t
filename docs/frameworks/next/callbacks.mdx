@@ -14,7 +14,7 @@ group: frameworks
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
@@ -58,7 +58,7 @@ Use `subscribeToConsentChanges()` when you want a stable listener for real prefe
 
 ```tsx
 import { useEffect } from 'react';
-import { useConsentManager } from '@c15t/nextjs';
+import { useConsentManager } from 'c15t/next';
 
 function ConsentAnalytics() {
   const { subscribeToConsentChanges } = useConsentManager();
@@ -79,7 +79,7 @@ Register or update callbacks at runtime using `setCallback()`:
 
 ```tsx
 import { useEffect } from 'react';
-import { useConsentManager } from '@c15t/nextjs';
+import { useConsentManager } from 'c15t/next';
 
 function ConsentAnalytics() {
   const { setCallback } = useConsentManager();

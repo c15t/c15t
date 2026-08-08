@@ -7,7 +7,7 @@ group: frameworks
 `useConsentManager()` is the primary hook for interacting with the consent system. It returns the complete consent store state and all action methods.
 
 ```tsx
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function MyComponent() {
   const {
@@ -41,7 +41,7 @@ When using Clerk, wait for Clerk to load and prefer its authenticated `userId`. 
 
 ```tsx
 import { useAuth } from '@clerk/react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 
 function ConsentApp() {
   // Render this component beneath your existing ClerkProvider.
@@ -80,7 +80,7 @@ Use a component inside `ConsentManagerProvider` to update the current consent su
 
 ```tsx
 import { useAuth } from '@clerk/react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 import { useEffect } from 'react';
 
 function ClerkConsentSync() {
