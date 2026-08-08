@@ -20,7 +20,7 @@ calls until the widget bundle loads.
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { intercom } from '@c15t/scripts/intercom';
 
 const scripts = [intercom({ appId: 'abc123' })];
@@ -46,7 +46,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { intercom } from '@c15t/scripts/intercom';
 
 const scripts = [intercom({ appId: 'abc123' })];

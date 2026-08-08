@@ -280,7 +280,7 @@ The safe pattern in React is to read consent state through `useConsentManager().
 
 ```tsx
 import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function useTrackSignup() {
   const { has } = useConsentManager();

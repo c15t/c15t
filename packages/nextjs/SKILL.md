@@ -6,7 +6,7 @@ metadata:
 ---
 # @c15t/nextjs documentation
 
-Next.js consent management docs for c15t, including App Router setup, consent UI, SSR behavior, script loading, and integrations.
+Next.js consent management docs for c15t, including App Router setup, consent UI, SSR behavior, script loading, and integrations. These docs use umbrella imports (c15t/next); when installing @c15t/nextjs directly, substitute @c15t/nextjs for c15t/next.
 
 To work with @c15t/nextjs, read its bundled docs — they ship with the package and are version-matched to the installed code:
 

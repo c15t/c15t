@@ -13,7 +13,7 @@ Reddit Pixel is Reddit's conversion tracking tool for ads and remarketing. It se
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { redditPixel } from '@c15t/scripts/reddit-pixel';
 
 const scripts = [redditPixel({ pixelId: 't2_abcdef' })];
@@ -39,7 +39,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { redditPixel } from '@c15t/scripts/reddit-pixel';
 
 const scripts = [redditPixel({ pixelId: 't2_abcdef' })];
@@ -98,7 +98,7 @@ Guard event calls by checking consent state. From React:
 
 ```tsx
 import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 import { redditPixelEvent } from '@c15t/scripts/reddit-pixel';
 
 function CheckoutExample() {

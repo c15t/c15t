@@ -13,7 +13,7 @@ Meta Pixel (formerly Facebook Pixel) is Meta's conversion tracking and audience 
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
 const scripts = [
@@ -43,7 +43,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
 const scripts = [
@@ -210,7 +210,7 @@ is currently revoked, even though Meta also suppresses tracking after initial
 load.
 
 ```tsx
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 import { metaPixelEvent } from '@c15t/scripts/meta-pixel';
 
 function useTrackPurchase() {
@@ -236,7 +236,7 @@ function PurchaseButton() {
 Meta's [SPA guidance](https://developers.facebook.com/docs/facebook-pixel/implementation/tag_spa) recommends tracking meaningful URL changes from your router. Disable the install-time `PageView`, then emit page views after navigation while marketing consent is granted.
 
 ```tsx
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 import { metaPixelEvent } from '@c15t/scripts/meta-pixel';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';

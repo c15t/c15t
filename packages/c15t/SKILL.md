@@ -6,7 +6,7 @@ metadata:
 ---
 # c15t documentation
 
-Complete consent management docs for the c15t umbrella package — the headless consent engine, React consent UI, and the Next.js integration. Every subpath mirrors its scoped package one-to-one, so where these docs import from @c15t/core, @c15t/react, or @c15t/nextjs, substitute c15t, c15t/react, or c15t/next.
+Complete consent management docs for the c15t umbrella package — the headless consent engine, React consent UI, and the Next.js integration. These docs import from c15t, c15t/react, and c15t/next; every subpath mirrors its scoped package one-to-one.
 
 To work with c15t, read its bundled docs — they ship with the package and are version-matched to the installed code:
 

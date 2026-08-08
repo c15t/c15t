@@ -1,6 +1,6 @@
 # @c15t/react
 
-> React consent management docs for c15t, including consent UI, hooks, styling, script loading, and integrations.
+> React consent management docs for c15t, including consent UI, hooks, styling, script loading, and integrations. These docs use umbrella imports (c15t/react); when installing @c15t/react directly, substitute @c15t/react for c15t/react.
 
 These docs ship inside the package so coding agents can read them offline. Open the topic file you need from the list below — paths are relative to this file.
 
@@ -56,7 +56,7 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Component Slots](./docs/frameworks/react/styling/slots.md): Target individual component parts with styles using the slot system - className strings or inline style objects.
 - [Tailwind CSS](./docs/frameworks/react/styling/tailwind.md): Use Tailwind CSS utility classes to style consent components via component slots.
 - [Design Tokens](./docs/frameworks/react/styling/tokens.md): The six base token categories that control colors, typography, spacing, radius, shadows, and motion, plus optional dark-mode overrides.
-- [Troubleshooting](./docs/frameworks/react/troubleshooting.md): Solutions for common issues with @c15t/react — provider errors, missing banners, consent persistence, and more.
+- [Troubleshooting](./docs/frameworks/react/troubleshooting.md): Solutions for common issues with c15t/react — provider errors, missing banners, consent persistence, and more.
 
 ## Integrations
 

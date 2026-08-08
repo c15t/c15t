@@ -13,7 +13,7 @@ icon: logrocket
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { logRocket } from '@c15t/scripts/logrocket';
 
 const scripts = [
@@ -48,7 +48,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { logRocket } from '@c15t/scripts/logrocket';
 
 const scripts = [

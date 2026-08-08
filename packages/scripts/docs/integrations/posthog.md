@@ -114,7 +114,7 @@ If you want to load PostHog via a script tag, it's recommended to use this appro
 3. **Add the script helper**
 
    import \{ type ReactNode } from 'react';
-   import \{ ConsentManagerProvider } from '@c15t/react';
+   import \{ ConsentManagerProvider } from 'c15t/react';
    import \{ posthog } from '@c15t/scripts/posthog';
 
    const scripts = \[
@@ -140,7 +140,7 @@ If you want to load PostHog via a script tag, it's recommended to use this appro
    }'use client';
 
    import \{ type ReactNode } from 'react';
-   import \{ ConsentManagerProvider } from '@c15t/nextjs';
+   import \{ ConsentManagerProvider } from 'c15t/next';
    import \{ posthog } from '@c15t/scripts/posthog';
 
    const scripts = \[

@@ -22,7 +22,7 @@ LinkedIn Insight Tag is LinkedIn's conversion tracking and audience matching too
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
 
 const scripts = [
@@ -52,7 +52,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { linkedinInsights } from '@c15t/scripts/linkedin-insights';
 
 const scripts = [
@@ -115,7 +115,7 @@ Guard custom conversion calls by checking consent state:
 
 ```tsx
 import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function useTrackSignup() {
   const { has } = useConsentManager();

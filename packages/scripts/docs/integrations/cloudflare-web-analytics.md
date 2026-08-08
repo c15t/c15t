@@ -13,7 +13,7 @@ Cloudflare Web Analytics is a cookieless analytics product configured through a 
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { cloudflareWebAnalytics } from '@c15t/scripts/cloudflare-web-analytics';
 
 const scripts = [
@@ -43,7 +43,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { cloudflareWebAnalytics } from '@c15t/scripts/cloudflare-web-analytics';
 
 const scripts = [

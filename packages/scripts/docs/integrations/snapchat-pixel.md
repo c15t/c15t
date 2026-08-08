@@ -13,7 +13,7 @@ Snapchat Pixel is Snapchat's website conversion tracking and audience-building t
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { snapchatPixel } from '@c15t/scripts/snapchat-pixel';
 
 const scripts = [snapchatPixel({ pixelId: '123456789012345' })];
@@ -39,7 +39,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { snapchatPixel } from '@c15t/scripts/snapchat-pixel';
 
 const scripts = [snapchatPixel({ pixelId: '123456789012345' })];
@@ -99,7 +99,7 @@ event calls by checking consent state. From React:
 
 ```tsx
 import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 import { snapchatPixelEvent } from '@c15t/scripts/snapchat-pixel';
 
 function CheckoutExample() {

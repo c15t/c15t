@@ -13,7 +13,7 @@ icon: adobe-analytics
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { adobeAnalytics } from '@c15t/scripts/adobe-analytics';
 
 const scripts = [
@@ -44,7 +44,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { adobeAnalytics } from '@c15t/scripts/adobe-analytics';
 
 const scripts = [

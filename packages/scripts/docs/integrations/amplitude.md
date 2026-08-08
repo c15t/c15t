@@ -13,7 +13,7 @@ icon: amplitude
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { amplitude } from '@c15t/scripts/amplitude';
 
 const scripts = [
@@ -46,7 +46,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { amplitude } from '@c15t/scripts/amplitude';
 
 const scripts = [
@@ -184,7 +184,7 @@ Guard event calls by checking consent state. From React:
 
 ```tsx
 import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function SignupExample() {
   const { has } = useConsentManager();

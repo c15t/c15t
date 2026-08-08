@@ -26,7 +26,7 @@ Pass an array of scripts to `ConsentManagerProvider`. Built-in helpers from `@c1
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
@@ -59,7 +59,7 @@ Define your script list once and keep it next to the consent provider so vendor 
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { gtag } from '@c15t/scripts/google-tag';
 import { metaPixel } from '@c15t/scripts/meta-pixel';
 
@@ -324,7 +324,7 @@ The safe pattern in React is to read consent state through `useConsentManager().
 
 ```tsx
 import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function useTrackSignup() {
   const { has } = useConsentManager();
@@ -373,7 +373,7 @@ When a script does not behave as expected:
 The shared guide above lists what the script-manager methods do. In React they are exposed through `useConsentManager()`:
 
 ```tsx
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function ScriptManager() {
   const {
@@ -391,7 +391,7 @@ Register dynamic scripts from an effect or event handler — never directly in t
 
 ```tsx
 import { useEffect } from 'react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 export function TenantAnalytics({ siteId }: { siteId: string }) {
   const { setScripts, removeScript } = useConsentManager();
@@ -424,7 +424,7 @@ Use the built-in [Google Maps](/docs/integrations/google-maps) and
 [YouTube](/docs/integrations/youtube) renderable helpers when they fit:
 
 ```tsx
-import { GoogleMap, YouTubeEmbed } from '@c15t/react';
+import { GoogleMap, YouTubeEmbed } from 'c15t/react';
 
 function Page() {
   const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -484,7 +484,7 @@ the ready SDK value, errors, and a promise:
 
 ```tsx
 import { useState } from 'react';
-import { useConsentScript } from '@c15t/react';
+import { useConsentScript } from 'c15t/react';
 
 export function VendorWidget() {
   const [retryKey, setRetryKey] = useState(0);

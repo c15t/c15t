@@ -25,7 +25,7 @@ effectiveness, and enables remarketing campaigns.
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { microsoftUet } from '@c15t/scripts/microsoft-uet';
 
 const scripts = [microsoftUet({ id: '123456789012345' })];
@@ -51,7 +51,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { microsoftUet } from '@c15t/scripts/microsoft-uet';
 
 const scripts = [microsoftUet({ id: '123456789012345' })];
@@ -109,7 +109,7 @@ visits and custom events, and event payloads can include revenue fields such as
 
 ```tsx
 import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function useTrackPurchase() {
   const { has } = useConsentManager();
