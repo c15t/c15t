@@ -49,7 +49,9 @@
 	},
 	"license": "Apache-2.0",
 	"sideEffects": [
-		"**/*.css"
+		"**/*.css",
+		"shims/vue.*",
+		"shims/vue/**"
 	],
 	"type": "module",
 	"exports": {

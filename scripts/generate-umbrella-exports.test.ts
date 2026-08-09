@@ -38,6 +38,7 @@ function fixtureSource(options: {
 	entryInfo?: Record<string, EntryModuleInfo>;
 	wildcards?: Record<string, string[]>;
 	stringWildcards?: Record<string, string[]>;
+	sideEffects?: unknown;
 }): SourcePackage {
 	const config: UmbrellaSource = {
 		directory: 'fixture',
@@ -52,6 +53,7 @@ function fixtureSource(options: {
 		expandStringWildcard: (subpath) => options.stringWildcards?.[subpath] ?? [],
 		expandWildcard: (subpath) => options.wildcards?.[subpath] ?? [],
 		exports: options.exports,
+		sideEffects: options.sideEffects,
 	};
 }
 
@@ -407,6 +409,60 @@ describe('deriveUmbrellaArtifacts', () => {
 			])
 		).toThrow(/Unsupported export condition "browser"/);
 	});
+
+	it('keeps a CSS-only sideEffects claim for CSS-only and effect-free sources', () => {
+		const artifacts = deriveUmbrellaArtifacts([
+			fixtureSource({
+				exports: { '.': { import: './dist/index.js' } },
+				sideEffects: false,
+			}),
+			fixtureSource({
+				config: {
+					directory: 'react',
+					packageName: '@c15t/react',
+					prefix: 'react',
+				},
+				exports: { '.': { import: './dist/index.js' } },
+				sideEffects: ['**/*.css'],
+			}),
+		]);
+
+		expect(artifacts.sideEffects).toEqual(['**/*.css']);
+	});
+
+	it('claims the shims of a source that declares no sideEffects field', () => {
+		const artifacts = deriveUmbrellaArtifacts([
+			fixtureSource({
+				config: { directory: 'vue', packageName: '@c15t/vue', prefix: 'vue' },
+				exports: { '.': { import: './dist/module.mjs' } },
+			}),
+		]);
+
+		expect(artifacts.sideEffects).toEqual([
+			'**/*.css',
+			'shims/vue.*',
+			'shims/vue/**',
+		]);
+	});
+
+	it('claims every shim when a root-mounted source declares no sideEffects', () => {
+		const artifacts = deriveUmbrellaArtifacts([
+			fixtureSource({ exports: { '.': { import: './dist/index.js' } } }),
+		]);
+
+		expect(artifacts.sideEffects).toEqual(['**/*.css', 'shims/**']);
+	});
+
+	it('rejects sideEffects declarations it cannot mirror', () => {
+		expect(() =>
+			deriveUmbrellaArtifacts([
+				fixtureSource({
+					exports: { '.': { import: './dist/index.js' } },
+					sideEffects: ['./src/register.js'],
+				}),
+			])
+		).toThrow(/Unsupported sideEffects declaration/);
+	});
 });
 
 describe('createSourcePackages', () => {
@@ -499,6 +555,7 @@ describe('committed umbrella package', () => {
 		main: string;
 		module: string;
 		types: string;
+		sideEffects: unknown;
 	};
 
 	it('has the derived exports map, in order', () => {
@@ -506,6 +563,10 @@ describe('committed umbrella package', () => {
 		expect(Object.keys(manifest.exports)).toEqual(
 			Object.keys(artifacts.exports)
 		);
+	});
+
+	it('claims the derived sideEffects', () => {
+		expect(manifest.sideEffects).toEqual(artifacts.sideEffects);
 	});
 
 	it('points main, module, and types at the root shims', () => {

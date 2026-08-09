@@ -12,8 +12,11 @@
  *
  * What gets generated into `packages/c15t`:
  *
- * - The `exports` map (plus `main`/`module`/`types`), written into
- *   `package.json` in place.
+ * - The `exports` map (plus `main`/`module`/`types`/`sideEffects`), written
+ *   into `package.json` in place. `sideEffects` is derived from the mirrored
+ *   packages' own declarations: a scoped package that declares none is fully
+ *   side-effectful, so its shims are carved out of the umbrella's
+ *   side-effect-free claim.
  * - Committed re-export shims under `shims/` — one `.js`/`.cjs`/`.d.ts`
  *   triplet per conditional subpath. They are committed (not built) for the
  *   same reason `packages/react/client/` is: the repo stays reviewable and
@@ -165,6 +168,13 @@ export interface SourcePackage {
 	config: UmbrellaSource;
 	exports: ExportsMap;
 	/**
+	 * The scoped package's `sideEffects` manifest field, verbatim. Absent
+	 * (`undefined`) means bundlers treat every module in the package as
+	 * side-effectful, and the umbrella must claim the mirrored shims the same
+	 * way.
+	 */
+	sideEffects?: unknown;
+	/**
 	 * Analyzes the module behind a concrete (wildcard-substituted) subpath.
 	 */
 	analyzeEntry(subpath: string, entry: ConditionalExport): EntryModuleInfo;
@@ -197,6 +207,11 @@ export interface UmbrellaArtifacts {
 	shimFiles: Record<string, string>;
 	/** CSS files the umbrella build step copies from scoped `dist/`. */
 	cssCopies: CssCopy[];
+	/**
+	 * The umbrella's `sideEffects` manifest field, derived from the mirrored
+	 * packages' own declarations (see {@link deriveSideEffects}).
+	 */
+	sideEffects: string[];
 }
 
 const GENERATED_BANNER =
@@ -454,9 +469,58 @@ function buildWildcardEntry(
 }
 
 /**
- * Derives the umbrella exports map, shim files, and CSS copy list from the
- * prepared scoped packages. Pure with respect to the file system — all file
- * access goes through the injected {@link SourcePackage} callbacks.
+ * Derives the umbrella's `sideEffects` claim from the mirrored packages' own
+ * declarations. The umbrella defaults to claiming only CSS as side-effectful
+ * (matching the CSS-only claims of `@c15t/react` and friends, and safely
+ * stricter than `sideEffects: false`), but a scoped package that declares
+ * **no** `sideEffects` field is treated by bundlers as fully side-effectful —
+ * so its mirrored shims must be carved out of the umbrella's side-effect-free
+ * claim, or a bare `import 'c15t/<prefix>/…'` could be pruned where the
+ * scoped import survives. Any declaration shape this mapping cannot mirror
+ * fails generation loudly.
+ */
+function deriveSideEffects(sources: SourcePackage[]): string[] {
+	const sideEffects: string[] = ['**/*.css'];
+
+	for (const source of sources) {
+		const declared = source.sideEffects;
+		if (declared === false) {
+			continue;
+		}
+		if (
+			Array.isArray(declared) &&
+			declared.every(
+				(pattern) => typeof pattern === 'string' && pattern.endsWith('.css')
+			)
+		) {
+			// CSS-only claims are covered by the umbrella's own `**/*.css`:
+			// the mirrored CSS subpaths are real files under `dist/`.
+			continue;
+		}
+		if (declared === undefined || declared === true) {
+			// The whole scoped package is side-effectful, so every shim that
+			// re-exports it must stay side-effectful too.
+			const prefix = source.config.prefix;
+			if (prefix) {
+				sideEffects.push(`shims/${prefix}.*`, `shims/${prefix}/**`);
+			} else {
+				sideEffects.push('shims/**');
+			}
+			continue;
+		}
+		throw new Error(
+			`Unsupported sideEffects declaration ${JSON.stringify(declared)} on ${source.config.packageName}. Teach generate-umbrella-exports.ts how to mirror it.`
+		);
+	}
+
+	return sideEffects;
+}
+
+/**
+ * Derives the umbrella exports map, shim files, CSS copy list, and
+ * `sideEffects` claim from the prepared scoped packages. Pure with respect to
+ * the file system — all file access goes through the injected
+ * {@link SourcePackage} callbacks.
  */
 export function deriveUmbrellaArtifacts(
 	sources: SourcePackage[]
@@ -510,7 +574,12 @@ export function deriveUmbrellaArtifacts(
 		}
 	}
 
-	return { cssCopies, exports, shimFiles };
+	return {
+		cssCopies,
+		exports,
+		shimFiles,
+		sideEffects: deriveSideEffects(sources),
+	};
 }
 
 function stripComments(source: string): string {
@@ -793,7 +862,7 @@ export function createSourcePackages(
 		const packageDir = join(packagesRoot, config.directory);
 		const manifest = JSON.parse(
 			readFileSync(join(packageDir, 'package.json'), 'utf8')
-		) as { name?: string; exports?: ExportsMap };
+		) as { name?: string; exports?: ExportsMap; sideEffects?: unknown };
 
 		if (manifest.name !== config.packageName) {
 			console.warn(
@@ -831,6 +900,7 @@ export function createSourcePackages(
 			expandWildcard: (subpath, entry) =>
 				listWildcardModules(packageDir, config.packageName, subpath, entry),
 			exports: manifest.exports,
+			sideEffects: manifest.sideEffects,
 		};
 	});
 }
@@ -853,6 +923,7 @@ function writeUmbrellaPackage(
 		string,
 		unknown
 	>;
+	manifest.sideEffects = artifacts.sideEffects;
 	manifest.exports = artifacts.exports;
 
 	const rootEntry = artifacts.exports['.'];
