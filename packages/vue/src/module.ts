@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, realpathSync } from 'node:fs';
 import { defaultConsentConfig } from '@c15t/schema/config';
 import {
 	addComponent,
@@ -62,7 +62,29 @@ const module: NuxtModule<ConsentConfig> = defineNuxtModule<ConsentConfig>({
 			}
 		);
 
+		// Transpile/inline the module runtime by directory, not just package
+		// name. When the module is registered through an aliasing package
+		// (e.g. the `c15t` umbrella re-exporting `@c15t/vue`), the runtime
+		// files can resolve through a symlink chain whose real path carries no
+		// `node_modules/@c15t/vue` segment, so a name-only pattern misses them
+		// and Nitro externalizes server-handler imports with broken relative
+		// paths. Registering the resolved runtime directory and its real path
+		// keeps every runtime file inlined regardless of how the package was
+		// reached (the official module template's `transpile.push(runtimeDir)`
+		// pattern, hardened for symlinked installs).
 		nuxt.options.build.transpile.push('@c15t/vue');
+		const runtimeDir = resolver.resolve('./runtime');
+		nuxt.options.build.transpile.push(runtimeDir);
+		try {
+			const realRuntimeDir = realpathSync(runtimeDir);
+			if (realRuntimeDir !== runtimeDir) {
+				nuxt.options.build.transpile.push(realRuntimeDir);
+			}
+		} catch {
+			// The runtime directory always exists next to the module entry;
+			// realpath can only fail on exotic filesystems — the resolved path
+			// is already registered above.
+		}
 
 		if (manifestMode === 'server') {
 			addServerHandler({
