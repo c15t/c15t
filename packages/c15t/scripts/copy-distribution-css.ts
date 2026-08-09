@@ -12,6 +12,12 @@
  * The scoped packages must be built first; Turborepo's `^build` dependency
  * guarantees that ordering, so a missing source here means the build graph
  * was bypassed.
+ *
+ * The copied stylesheets are thin proxies that `@import "@c15t/ui/…"` — the
+ * scoped packages resolve those through their own `@c15t/ui` dependency, so
+ * the umbrella declares `@c15t/ui` too; strict CSS resolvers (e.g.
+ * Tailwind's enhanced-resolve) resolve bare imports from the importing
+ * file's package and accept no hoisting fallback.
  */
 
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs';

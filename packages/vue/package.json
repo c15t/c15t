@@ -1,6 +1,32 @@
 {
 	"name": "@c15t/vue",
-	"private": true,
+	"version": "2.0.0-rc.4",
+	"description": "Developer-first CMP for Vue and Nuxt: cookie banner, consent manager, preference center composables. GDPR ready with minimal setup and rich customization",
+	"keywords": [
+		"vue",
+		"nuxt",
+		"consent",
+		"privacy",
+		"gdpr",
+		"ccpa",
+		"lgpd",
+		"headless",
+		"typescript",
+		"cookie-banner",
+		"consent-management-platform",
+		"cmp",
+		"consent-banner",
+		"user-consent",
+		"privacy-compliance",
+		"web-privacy"
+	],
+	"homepage": "https://c15t.com",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/vue"
+	},
+	"license": "Apache-2.0",
 	"type": "module",
 	"exports": {
 		".": {
@@ -41,7 +67,8 @@
 		}
 	},
 	"files": [
-		"dist"
+		"dist",
+		"schema"
 	],
 	"scripts": {
 		"build": "nuxt-module-build build",
@@ -87,6 +114,9 @@
 		"nuxt": {
 			"optional": true
 		}
+	},
+	"publishConfig": {
+		"access": "public"
 	},
 	"nuxt": "./dist/module.mjs",
 	"schema": "./schema/nuxt.schema.d.ts"

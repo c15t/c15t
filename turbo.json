@@ -66,12 +66,12 @@
 		"@c15t/svelte#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": []
+			"outputs": ["dist/**"]
 		},
 		"@c15t/vue#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": []
+			"outputs": ["dist/**"]
 		},
 		"fmt": {
 			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc", "**/biome.json"],

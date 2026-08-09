@@ -29,6 +29,7 @@ function fixtureSource(options: {
 	exports: ExportsMap;
 	entryInfo?: Record<string, EntryModuleInfo>;
 	wildcards?: Record<string, string[]>;
+	stringWildcards?: Record<string, string[]>;
 }): SourcePackage {
 	const config: UmbrellaSource = {
 		directory: 'fixture',
@@ -40,6 +41,7 @@ function fixtureSource(options: {
 	return {
 		analyzeEntry: (subpath) => options.entryInfo?.[subpath] ?? PLAIN_ENTRY,
 		config,
+		expandStringWildcard: (subpath) => options.stringWildcards?.[subpath] ?? [],
 		expandWildcard: (subpath) => options.wildcards?.[subpath] ?? [],
 		exports: options.exports,
 	};
@@ -224,6 +226,109 @@ describe('deriveUmbrellaArtifacts', () => {
 		expect(artifacts.shimFiles['shims/react/primitives/button.js']).toContain(
 			"export * from '@c15t/react/primitives/button';"
 		);
+	});
+
+	it('mirrors svelte and default conditions as shared ESM shims', () => {
+		const artifacts = deriveUmbrellaArtifacts([
+			fixtureSource({
+				config: {
+					directory: 'svelte',
+					packageName: '@c15t/svelte',
+					prefix: 'svelte',
+				},
+				exports: {
+					'.': {
+						types: './dist/index.d.ts',
+						svelte: './dist/index.js',
+						default: './dist/index.js',
+					},
+				},
+			}),
+		]);
+
+		expect(artifacts.exports['./svelte']).toEqual({
+			types: './shims/svelte.d.ts',
+			svelte: './shims/svelte.js',
+			default: './shims/svelte.js',
+		});
+		expect(Object.keys(artifacts.shimFiles).sort()).toEqual([
+			'shims/svelte.d.ts',
+			'shims/svelte.js',
+		]);
+		expect(artifacts.shimFiles['shims/svelte.js']).toContain(
+			"export * from '@c15t/svelte';"
+		);
+	});
+
+	it('mirrors raw string wildcards with extension-carrying shims', () => {
+		const artifacts = deriveUmbrellaArtifacts([
+			fixtureSource({
+				config: { directory: 'vue', packageName: '@c15t/vue', prefix: 'vue' },
+				entryInfo: {
+					'./runtime/composables/consent.js': {
+						hasDefaultExport: true,
+						isClientModule: false,
+					},
+				},
+				exports: { './runtime/*': './dist/runtime/*' },
+				stringWildcards: {
+					'./runtime/*': [
+						'components/consent-banner.vue',
+						'composables/consent.js',
+					],
+				},
+			}),
+		]);
+
+		expect(artifacts.exports['./vue/runtime/*']).toBe('./shims/vue/runtime/*');
+		expect(Object.keys(artifacts.shimFiles).sort()).toEqual([
+			'shims/vue/runtime/components/consent-banner.d.vue.ts',
+			'shims/vue/runtime/components/consent-banner.vue',
+			'shims/vue/runtime/components/consent-banner.vue.d.ts',
+			'shims/vue/runtime/composables/consent.d.ts',
+			'shims/vue/runtime/composables/consent.js',
+		]);
+
+		const wrapper =
+			artifacts.shimFiles['shims/vue/runtime/components/consent-banner.vue'];
+		expect(wrapper).toMatch(/^<script>\n/);
+		expect(wrapper).toContain(
+			"import Component from '@c15t/vue/runtime/components/consent-banner.vue';"
+		);
+		expect(wrapper).toContain('export default Component;');
+		expect(
+			artifacts.shimFiles[
+				'shims/vue/runtime/components/consent-banner.d.vue.ts'
+			]
+		).toContain(
+			"export { default } from '@c15t/vue/runtime/components/consent-banner.vue';"
+		);
+		expect(
+			artifacts.shimFiles['shims/vue/runtime/composables/consent.js']
+		).toContain(
+			"export { default } from '@c15t/vue/runtime/composables/consent.js';"
+		);
+	});
+
+	it('rejects string wildcard modules it cannot mirror', () => {
+		expect(() =>
+			deriveUmbrellaArtifacts([
+				fixtureSource({
+					exports: { './runtime/*': './dist/runtime/*' },
+					stringWildcards: { './runtime/*': ['styles/base.css'] },
+				}),
+			])
+		).toThrow(/Unsupported string wildcard module/);
+	});
+
+	it('rejects string wildcard exports that match no modules', () => {
+		expect(() =>
+			deriveUmbrellaArtifacts([
+				fixtureSource({
+					exports: { './runtime/*': './dist/runtime/*' },
+				}),
+			])
+		).toThrow(/matched no modules/);
 	});
 
 	it('rejects wildcard exports that match no modules', () => {

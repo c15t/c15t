@@ -167,7 +167,9 @@ function getBlockedReason(packageName: string, path: string): string | null {
 			) {
 				return null;
 			}
-			if (packageName === '@c15t/svelte') {
+			// svelte-package and nuxt-module-build ship declarations inside
+			// dist/ by design (no dist-types/ directory).
+			if (packageName === '@c15t/svelte' || packageName === '@c15t/vue') {
 				return null;
 			}
 			return 'declaration file in runtime dist';

@@ -1,7 +1,7 @@
 {
 	"name": "c15t",
 	"version": "2.2.0-canary-20260731105620",
-	"description": "The c15t consent management platform — one install for every framework: headless consent engine, React components, and Next.js integration.",
+	"description": "The c15t consent management platform — one install for every framework: headless consent engine, React components, Next.js integration, Vue/Nuxt module, and Svelte components.",
 	"keywords": [
 		"consent",
 		"privacy",
@@ -32,7 +32,11 @@
 		"react",
 		"react-cookie-banner",
 		"nextjs",
-		"next-cookie-banner"
+		"next-cookie-banner",
+		"vue",
+		"nuxt",
+		"svelte",
+		"sveltekit"
 	],
 	"homepage": "https://c15t.com",
 	"bugs": {
@@ -399,6 +403,45 @@
 			"types": "./shims/next/v3/rsc.d.ts",
 			"import": "./shims/next/v3/rsc.js",
 			"require": "./shims/next/v3/rsc.cjs"
+		},
+		"./vue": {
+			"types": "./shims/vue.d.ts",
+			"import": "./shims/vue.js"
+		},
+		"./vue/vite": {
+			"types": "./shims/vue/vite.d.ts",
+			"import": "./shims/vue/vite.js"
+		},
+		"./vue/vue-plugin": {
+			"types": "./shims/vue/vue-plugin.d.ts",
+			"import": "./shims/vue/vue-plugin.js"
+		},
+		"./vue/consent-root": {
+			"types": "./shims/vue/consent-root.d.ts",
+			"import": "./shims/vue/consent-root.js"
+		},
+		"./vue/consent-widget": {
+			"types": "./shims/vue/consent-widget.d.ts",
+			"import": "./shims/vue/consent-widget.js"
+		},
+		"./vue/runtime/*": "./shims/vue/runtime/*",
+		"./vue/composables/*": "./shims/vue/composables/*",
+		"./svelte/styles.css": "./dist/svelte/styles.css",
+		"./svelte/iab/styles.css": "./dist/svelte/iab/styles.css",
+		"./svelte/headless": {
+			"types": "./shims/svelte/headless.d.ts",
+			"svelte": "./shims/svelte/headless.js",
+			"default": "./shims/svelte/headless.js"
+		},
+		"./svelte/server": {
+			"types": "./shims/svelte/server.d.ts",
+			"import": "./shims/svelte/server.js",
+			"default": "./shims/svelte/server.js"
+		},
+		"./svelte": {
+			"types": "./shims/svelte.d.ts",
+			"svelte": "./shims/svelte.js",
+			"default": "./shims/svelte.js"
 		}
 	},
 	"main": "./shims/index.cjs",
@@ -422,7 +465,10 @@
 	"dependencies": {
 		"@c15t/core": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
-		"@c15t/react": "workspace:*"
+		"@c15t/react": "workspace:*",
+		"@c15t/svelte": "workspace:*",
+		"@c15t/ui": "workspace:*",
+		"@c15t/vue": "workspace:*"
 	},
 	"publishConfig": {
 		"access": "public"

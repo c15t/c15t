@@ -2,7 +2,14 @@
 	"$schema": "https://unpkg.com/knip@latest/schema.json",
 	"entry": ["shims/**/*.js", "scripts/copy-distribution-css.ts"],
 	"project": ["scripts/**/*.ts"],
-	"ignoreDependencies": ["@c15t/core", "@c15t/nextjs", "@c15t/react"],
+	"ignoreDependencies": [
+		"@c15t/core",
+		"@c15t/nextjs",
+		"@c15t/react",
+		"@c15t/svelte",
+		"@c15t/ui",
+		"@c15t/vue"
+	],
 	"ignoreBinaries": ["biome"],
 	"rules": {
 		"exports": "warn",

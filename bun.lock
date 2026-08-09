@@ -447,9 +447,9 @@
       "name": "@c15t/example-nuxt",
       "dependencies": {
         "@c15t/backend": "workspace:*",
-        "@c15t/vue": "workspace:*",
         "@effect/sql-pglite": "4.0.0-beta.102",
         "@electric-sql/pglite": "0.4.2",
+        "c15t": "workspace:*",
         "nuxt": "^4.5.1",
         "pg": "^8.20.0",
       },
@@ -465,13 +465,11 @@
       "version": "0.0.0",
       "dependencies": {
         "@c15t/backend": "workspace:*",
-        "@c15t/core": "workspace:*",
         "@c15t/dev-tools": "workspace:*",
-        "@c15t/iab": "workspace:*",
         "@c15t/node-sdk": "workspace:*",
-        "@c15t/svelte": "workspace:*",
         "@c15t/translations": "workspace:*",
         "@libsql/kysely-libsql": "^0.4.1",
+        "c15t": "workspace:*",
         "kysely": "^0.28.11",
       },
       "devDependencies": {
@@ -594,6 +592,9 @@
         "@c15t/core": "workspace:*",
         "@c15t/nextjs": "workspace:*",
         "@c15t/react": "workspace:*",
+        "@c15t/svelte": "workspace:*",
+        "@c15t/ui": "workspace:*",
+        "@c15t/vue": "workspace:*",
       },
     },
     "packages/cli": {
@@ -881,6 +882,7 @@
     },
     "packages/vue": {
       "name": "@c15t/vue",
+      "version": "2.0.0-rc.4",
       "dependencies": {
         "@c15t/core": "workspace:*",
         "@c15t/schema": "workspace:*",
