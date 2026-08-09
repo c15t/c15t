@@ -107,6 +107,36 @@
 				"@c15t/ui#dev"
 			]
 		},
+		"@c15t/example-nuxt#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"dependsOn": ["c15t#build"],
+			"with": [
+				"@c15t/core#dev",
+				"@c15t/backend#dev",
+				"@c15t/logger#dev",
+				"@c15t/schema#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
+		},
+		"sveltekit-demo#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"dependsOn": ["c15t#build"],
+			"with": [
+				"@c15t/core#dev",
+				"@c15t/backend#dev",
+				"@c15t/iab#dev",
+				"@c15t/logger#dev",
+				"@c15t/schema#dev",
+				"@c15t/svelte#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
+		},
 		"@c15t/nextjs-browser-bench#dev": {
 			"cache": false,
 			"persistent": true,

@@ -6,7 +6,7 @@
 		ConsentManagerProvider,
 		IABConsentBanner,
 		IABConsentDialog,
-	} from '@c15t/svelte';
+	} from 'c15t/svelte';
 	import { baseTranslations } from '@c15t/translations/all';
 
 	let { children } = $props();

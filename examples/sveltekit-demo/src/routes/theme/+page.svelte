@@ -3,7 +3,7 @@
 		ConsentBanner,
 		ConsentManagerProvider,
 		type Theme,
-	} from '@c15t/svelte';
+	} from 'c15t/svelte';
 	import ForceBannerShow from '$lib/components/ForceBannerShow.svelte';
 	import {
 		minimalTheme,

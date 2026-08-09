@@ -1,5 +1,6 @@
 /**
- * Minimal @c15t/vue setup.
+ * Minimal c15t Nuxt setup, through the `c15t` umbrella package
+ * (`c15t/vue` ≡ `@c15t/vue`).
  *
  * - `backendURL`: your c15t instance (or self-hosted @c15t/backend). This
  *   demo self-hosts the backend at `/api/self-host` (see
@@ -15,7 +16,7 @@
  */
 export default defineNuxtConfig({
 	compatibilityDate: '2026-07-04',
-	modules: ['@c15t/vue'],
+	modules: ['c15t/vue'],
 	c15t: {
 		backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL ?? '/api/self-host',
 		manifest: true,

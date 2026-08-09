@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Frame } from '@c15t/svelte';
+	import { Frame } from 'c15t/svelte';
 </script>
 
 <section id="video-demo" class="py-24 bg-background">
