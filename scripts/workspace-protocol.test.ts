@@ -41,6 +41,9 @@ describe('c15t umbrella dependencies', () => {
 		'@c15t/core',
 		'@c15t/react',
 		'@c15t/nextjs',
+		'@c15t/vue',
+		'@c15t/svelte',
+		'@c15t/ui',
 	])('depends on %s via workspace:* so publish pins the exact version', (dependency) => {
 		expect(manifest.dependencies?.[dependency]).toBe('workspace:*');
 	});
