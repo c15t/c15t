@@ -596,6 +596,9 @@
         "@c15t/ui": "workspace:*",
         "@c15t/vue": "workspace:*",
       },
+      "devDependencies": {
+        "vitest": "4.1.9",
+      },
     },
     "packages/cli": {
       "name": "@c15t/cli",

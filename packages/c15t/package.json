@@ -462,7 +462,9 @@
 		"build:docs": "bun ../../scripts/generate-package-docs.ts c15t",
 		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
 		"lint": "bun biome lint ./scripts",
-		"prepack": "bun ../../scripts/verify-package-artifacts.ts"
+		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"dependencies": {
 		"@c15t/core": "workspace:*",
@@ -471,6 +473,9 @@
 		"@c15t/svelte": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"@c15t/vue": "workspace:*"
+	},
+	"devDependencies": {
+		"vitest": "4.1.9"
 	},
 	"publishConfig": {
 		"access": "public"

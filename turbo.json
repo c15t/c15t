@@ -266,6 +266,10 @@
 			"cache": false,
 			"outputs": [".benchmarks/**"]
 		},
+		"c15t#test": {
+			"dependsOn": ["build", "^build", "transit"],
+			"outputs": []
+		},
 		"@c15t/scripts#test": {
 			"dependsOn": ["build", "^build", "transit"],
 			"outputs": [
