@@ -1,4 +1,12 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import {
+	mkdirSync,
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -228,6 +236,35 @@ describe('deriveUmbrellaArtifacts', () => {
 		);
 	});
 
+	it('mirrors nested wildcard modules with nested shim files', () => {
+		const artifacts = deriveUmbrellaArtifacts([
+			fixtureSource({
+				config: {
+					directory: 'react',
+					packageName: '@c15t/react',
+					prefix: 'react',
+				},
+				exports: {
+					'./primitives/*': {
+						types: './dist-types/primitives/*.d.ts',
+						import: './dist/primitives/*.js',
+					},
+				},
+				wildcards: { './primitives/*': ['accordion', 'nested/button'] },
+			}),
+		]);
+
+		expect(Object.keys(artifacts.shimFiles).sort()).toEqual([
+			'shims/react/primitives/accordion.d.ts',
+			'shims/react/primitives/accordion.js',
+			'shims/react/primitives/nested/button.d.ts',
+			'shims/react/primitives/nested/button.js',
+		]);
+		expect(
+			artifacts.shimFiles['shims/react/primitives/nested/button.js']
+		).toContain("export * from '@c15t/react/primitives/nested/button';");
+	});
+
 	it('mirrors svelte and default conditions as shared ESM shims', () => {
 		const artifacts = deriveUmbrellaArtifacts([
 			fixtureSource({
@@ -369,6 +406,44 @@ describe('deriveUmbrellaArtifacts', () => {
 				}),
 			])
 		).toThrow(/Unsupported export condition "browser"/);
+	});
+});
+
+describe('createSourcePackages', () => {
+	it('enumerates nested modules behind a conditional wildcard', () => {
+		const root = mkdtempSync(join(tmpdir(), 'umbrella-wildcard-'));
+		try {
+			const sourceDir = join(root, 'fixture', 'src', 'primitives');
+			mkdirSync(join(sourceDir, 'nested'), { recursive: true });
+			mkdirSync(join(sourceDir, '__tests__'), { recursive: true });
+			writeFileSync(
+				join(root, 'fixture', 'package.json'),
+				JSON.stringify({
+					name: '@c15t/fixture',
+					exports: {},
+				})
+			);
+			writeFileSync(join(sourceDir, 'button.ts'), 'export const b = 1;\n');
+			writeFileSync(
+				join(sourceDir, 'nested', 'switch.tsx'),
+				'export const s = 1;\n'
+			);
+			writeFileSync(join(sourceDir, 'nested', 'switch.test.tsx'), '');
+			writeFileSync(join(sourceDir, '__tests__', 'button.test.ts'), '');
+			writeFileSync(join(sourceDir, 'types.d.ts'), '');
+
+			const sources = createSourcePackages(root, [
+				{ directory: 'fixture', packageName: '@c15t/fixture', prefix: '' },
+			]);
+			expect(
+				sources[0]?.expandWildcard('./primitives/*', {
+					types: './dist-types/primitives/*.d.ts',
+					import: './dist/primitives/*.js',
+				})
+			).toEqual(['button', 'nested/switch']);
+		} finally {
+			rmSync(root, { force: true, recursive: true });
+		}
 	});
 });
 

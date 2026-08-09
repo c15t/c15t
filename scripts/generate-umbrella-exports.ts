@@ -678,18 +678,34 @@ function listWildcardModules(
 		);
 	}
 
+	// Node's `*` in an exports wildcard matches across `/`, so nested source
+	// directories must be enumerated too — a flat listing would silently drop
+	// their shims and the umbrella subpath would 404 where the scoped one
+	// resolves.
 	const names = new Set<string>();
-	for (const fileName of readdirSync(sourceDir)) {
-		const moduleMatch = fileName.match(/^(.+?)\.tsx?$/);
-		if (
-			!moduleMatch ||
-			fileName.endsWith('.d.ts') ||
-			fileName.includes('.test.')
-		) {
-			continue;
+	const walk = (directory: string, prefix: string) => {
+		for (const dirent of readdirSync(directory, { withFileTypes: true })) {
+			const relativePath = prefix ? `${prefix}/${dirent.name}` : dirent.name;
+			if (dirent.isDirectory()) {
+				if (dirent.name === '__tests__') {
+					continue;
+				}
+				walk(join(directory, dirent.name), relativePath);
+				continue;
+			}
+			const moduleMatch = dirent.name.match(/^(.+?)\.tsx?$/);
+			if (
+				!moduleMatch ||
+				dirent.name.endsWith('.d.ts') ||
+				dirent.name.includes('.test.') ||
+				dirent.name.includes('.spec.')
+			) {
+				continue;
+			}
+			names.add(prefix ? `${prefix}/${moduleMatch[1]}` : moduleMatch[1]);
 		}
-		names.add(moduleMatch[1]);
-	}
+	};
+	walk(sourceDir, '');
 	return [...names].sort();
 }
 
