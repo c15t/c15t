@@ -1,22 +1,22 @@
 <p align="center">
-  <a href="https://c15t.com?utm_source=github&utm_medium=repopage_%40c15t%2Fsvelte" target="_blank" rel="noopener noreferrer">
+  <a href="https://c15t.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fsvelte" target="_blank" rel="noopener noreferrer">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset="../../docs/assets/c15t-banner-readme-dark.svg" type="image/svg+xml">
       <img src="../../docs/assets/c15t-banner-readme-light.svg" alt="c15t Banner" type="image/svg+xml">
     </picture>
   </a>
-  <br />
-  <h1 align="center">@c15t/svelte: Svelte Consent Components</h1>
 </p>
 
-[![GitHub stars](https://img.shields.io/github/stars/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![CI](https://img.shields.io/github/actions/workflow/status/c15t/c15t/ci.yml?style=flat-square)](https://github.com/c15t/c15t/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg?style=flat-square)](https://github.com/c15t/c15t/blob/main/LICENSE.md)
-[![Discord](https://img.shields.io/discord/1312171102268690493?style=flat-square)](https://c15t.link/discord)
-[![npm version](https://img.shields.io/npm/v/%40c15t%2Fsvelte?style=flat-square)](https://www.npmjs.com/package/@c15t/svelte)
-[![Top Language](https://img.shields.io/github/languages/top/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t)
-[![Last Commit](https://img.shields.io/github/last-commit/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/commits/main)
-[![Open Issues](https://img.shields.io/github/issues/c15t/c15t?style=flat-square)](https://github.com/c15t/c15t/issues)
+# @c15t/svelte: Svelte Consent Components
+
+<p>
+<a href="https://www.npmjs.com/package/@c15t/svelte"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/%40c15t%2Fsvelte.svg?variant=outline&mode=dark"><img src="https://shieldcn.dev/npm/%40c15t%2Fsvelte.svg?variant=outline&mode=light" alt="Latest NPM Version"></picture></a>
+<a href="https://github.com/c15t/c15t"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/c15t/c15t/stars.svg?variant=outline&mode=dark"><img src="https://shieldcn.dev/github/c15t/c15t/stars.svg?variant=outline&mode=light" alt="Stars"></picture></a>
+<a href="https://github.com/c15t/c15t/blob/main/LICENSE.md"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/github/c15t/c15t/license.svg?variant=outline&mode=dark"><img src="https://shieldcn.dev/github/c15t/c15t/license.svg?variant=outline&mode=light" alt="License"></picture></a>
+<a href="https://c15t.link/discord"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/discord/1312171102268690493.svg?variant=outline&mode=dark"><img src="https://shieldcn.dev/discord/1312171102268690493.svg?variant=outline&mode=light" alt="Discord"></picture></a>
+<a href="https://skills.sh/c15t/skills/c15t"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/skills/c15t/skills/c15t.svg?variant=outline&mode=dark"><img src="https://shieldcn.dev/skills/c15t/skills/c15t.svg?variant=outline&mode=light" alt="Skills"></picture></a>
+<a href="https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fsvelte"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&color=ffc803&labelTextColor=000000&valueColor=000000&mode=dark"><img src="https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&color=ffc803&labelTextColor=000000&valueColor=000000&mode=light" alt="Made by Inth"></picture></a>
+</p>
 
 Developer-first CMP for Svelte: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization
 
@@ -42,11 +42,11 @@ Developer-first CMP for Svelte: cookie banner, consent manager, preferences cent
 Easiest setup with @c15t/cli:
 
 ```bash
-# Generate schema and code
-pnpm dlx @c15t/cli generate
+# Set up c15t in your project
+pnpm dlx @c15t/cli setup
 # Alternatives:
-# npx @c15t/cli generate
-# bunx --bun @c15t/cli generate
+# npx @c15t/cli setup
+# bunx --bun @c15t/cli setup
 ```
 
 The CLI will:
@@ -66,21 +66,21 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
 
 ## Usage
 
-1. Wrap your app with `ConsentManagerProvider`
+1. Wrap your app with `ConsentProvider`
 2. Add `ConsentBanner` and `ConsentDialog` near the root
-3. Read and update consent in your own components with `getConsentManager()`
+3. Customise styling and behaviour to fit your app
 4. For full implementation details, see the [Svelte quickstart docs](https://c15t.com/docs/frameworks/svelte/quickstart)
 
 ```svelte
 <!-- src/routes/+layout.svelte -->
 <script>
-  import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/svelte'
+  import { ConsentProvider, ConsentBanner, ConsentDialog } from '@c15t/svelte'
   import '../app.css'
 
   let { children } = $props()
 </script>
 
-<ConsentManagerProvider
+<ConsentProvider
   mode="hosted"
   backendURL="https://your-instance.c15t.dev"
   consentCategories={['necessary', 'measurement', 'marketing']}
@@ -88,42 +88,10 @@ To manually install, follow the guide in our [docs – manual setup](https://c15
   {@render children()}
   <ConsentBanner />
   <ConsentDialog />
-</ConsentManagerProvider>
+</ConsentProvider>
 ```
 
-Import `@c15t/svelte/styles.css` once from your global CSS, such as SvelteKit's
-`src/app.css`. When using IAB components, also import
-`@c15t/svelte/iab/styles.css` alongside the base stylesheet.
-
-Top-level props are the canonical configuration form. If you prefer a single
-shared config object, pass `options={...}` instead; matching top-level props
-win over `options` fields.
-
-### Reading consent in your components
-
-```svelte
-<script lang="ts">
-  import { getConsentManager } from '@c15t/svelte'
-
-  const consent = getConsentManager()
-</script>
-
-{#if consent.consents.measurement}
-  <!-- Analytics embed -->
-{/if}
-
-<button onclick={() => consent.setActiveUI('dialog')}>
-  Manage cookies
-</button>
-```
-
-Primitive state follows Svelte conventions: use `bind:checked` for
-`Switch.Root`, `bind:open` for dialog/disclosure primitives, and `bind:value`
-for tabs and accordions.
-
-For SvelteKit, you can also prefetch consent on the server via
-`@c15t/svelte/server` — see the
-[quickstart's SSR section](https://c15t.com/docs/frameworks/svelte/quickstart#sveltekit-ssr-optional).
+Import `@c15t/svelte/styles.css` once from your global CSS, such as SvelteKit's `src/app.css`.
 
 ## Documentation
 
@@ -133,24 +101,24 @@ For further information, guides, and examples visit the [reference documentation
 
 - Join our [Discord community](https://c15t.link/discord)
 - Open an issue on our [GitHub repository](https://github.com/c15t/c15t/issues)
-- Visit [consent.io](https://consent.io) and use the chat widget
-- Contact our support team via email [support@consent.io](mailto:support@consent.io)
+- Visit [inth.com](https://inth.com) and use the chat widget
+- Contact our support team via email [support@inth.com](mailto:support@inth.com)
 
 ## Contributing
 
-- We're open to all community contributions!
+- We're open to all community contributions.
 - Read our [Contribution Guidelines](https://c15t.com/docs/oss/contributing)
 - Review our [Code of Conduct](https://c15t.com/docs/oss/code-of-conduct)
 - Fork the repository
 - Create a new branch for your feature
 - Submit a pull request
-- **All contributions, big or small, are welcome and appreciated!**
+- **All contributions, big or small, are welcome and appreciated.**
 
 ## Security
 
 If you believe you have found a security vulnerability in c15t, we encourage you to **_responsibly disclose this and NOT open a public issue_**. We will investigate all legitimate reports.
 
-Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our Open Source Software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
+Our preference is that you make use of GitHub's private vulnerability reporting feature to disclose potential security vulnerabilities in our open-source software. To do this, please visit [https://github.com/c15t/c15t/security](https://github.com/c15t/c15t/security) and click the "Report a vulnerability" button.
 
 ### Security Policy
 
@@ -161,8 +129,8 @@ Our preference is that you make use of GitHub's private vulnerability reporting 
 
 ## License
 
-[GNU General Public License v3.0](https://github.com/c15t/c15t/blob/main/LICENSE.md)
+[Apache License 2.0](https://github.com/c15t/c15t/blob/main/LICENSE.md)
 
 ---
 
-**Built with ❤️ by the [consent.io](https://www.consent.io?utm_source=github&utm_medium=repopage_%40c15t%2Fsvelte) team**
+**Built by [Inth](https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fsvelte)**

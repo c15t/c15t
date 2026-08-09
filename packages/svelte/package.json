@@ -26,7 +26,7 @@
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/svelte"
 	},
-	"license": "GPL-3.0-only",
+	"license": "Apache-2.0",
 	"sideEffects": [
 		"**/*.css"
 	],
@@ -64,7 +64,6 @@
 		}
 	},
 	"files": [
-		"LICENSE.md",
 		"dist",
 		"styles.css",
 		"iab",
