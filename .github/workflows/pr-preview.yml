@@ -8,6 +8,7 @@ on:
       - 'packages/**/package.json'
       - 'packages/**/tsconfig.json'
       - 'packages/**/rslib.config.ts'
+      - 'packages/c15t/shims/**'
 
 concurrency:
   group: pr-preview-${{ github.event.pull_request.number }}
