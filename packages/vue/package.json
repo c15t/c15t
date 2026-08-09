@@ -87,8 +87,7 @@
 		"@c15t/ui": "workspace:*",
 		"@vueuse/core": "^14.3.0",
 		"defu": "^6.1.4",
-		"ufo": "^1.6.1",
-		"vue": "^3.5.39"
+		"ufo": "^1.6.1"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
@@ -105,13 +104,18 @@
 		"typescript": "6.0.3",
 		"unbuild": "^3.6.1",
 		"vitest": "4.1.9",
+		"vue": "^3.5.39",
 		"vue-tsc": "^3.3.3"
 	},
 	"peerDependencies": {
-		"nuxt": "^3.0.0 || ^4.0.0"
+		"nuxt": "^3.0.0 || ^4.0.0",
+		"vue": "^3.5.39"
 	},
 	"peerDependenciesMeta": {
 		"nuxt": {
+			"optional": true
+		},
+		"vue": {
 			"optional": true
 		}
 	},
