@@ -1,6 +1,6 @@
 'use client';
 
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 import { useEffect, useState } from 'react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';

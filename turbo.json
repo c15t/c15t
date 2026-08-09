@@ -93,6 +93,7 @@
 			"cache": false,
 			"persistent": true,
 			"interruptible": true,
+			"dependsOn": ["c15t#build"],
 			"with": [
 				"@c15t/core#dev",
 				"@c15t/backend#dev",

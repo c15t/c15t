@@ -5,8 +5,8 @@ import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentManagerProvider,
-} from '@c15t/react';
-import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
+} from 'c15t/react';
+import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 import { createDemoScripts } from '../../lib/demo-scripts';

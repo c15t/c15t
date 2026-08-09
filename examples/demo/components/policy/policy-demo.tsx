@@ -7,8 +7,8 @@ import {
 	ConsentManagerProvider,
 	policyPackPresets,
 	useConsentManager,
-} from '@c15t/react';
-import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
+} from 'c15t/react';
+import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -400,7 +400,7 @@ function JsonBlock({ label, value }: { label: string; value: unknown }) {
 	return (
 		<div className="space-y-2">
 			<p className="label-pixel text-muted-foreground">{label}</p>
-			<pre className="overflow-x-auto rounded-xl border border-border/80 bg-muted/20 p-3 font-mono text-[12px] leading-5 text-foreground/90">
+			<pre className="overflow-x-auto rounded-xl border border-border/80 bg-muted/20 p-3 font-mono text-[12px] text-foreground/90 leading-5">
 				{JSON.stringify(value ?? null, null, 2)}
 			</pre>
 		</div>
@@ -544,26 +544,26 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 	return (
 		<div className="space-y-6">
 			<div className="grid gap-3 text-sm sm:grid-cols-2">
-				<div className="border-b border-border/70 pb-2">
+				<div className="border-border/70 border-b pb-2">
 					<p className="label-pixel text-muted-foreground">Policy</p>
 					<p className="mt-1 font-mono text-xs">{displayPolicyId}</p>
 				</div>
-				<div className="border-b border-border/70 pb-2">
+				<div className="border-border/70 border-b pb-2">
 					<p className="label-pixel text-muted-foreground">Model</p>
 					<p className="mt-1 font-mono text-xs">{displayModel}</p>
 				</div>
-				<div className="border-b border-border/70 pb-2">
+				<div className="border-border/70 border-b pb-2">
 					<p className="label-pixel text-muted-foreground">Location</p>
 					<p className="mt-1 font-mono text-xs">
 						{displayLocationCountry}
 						{displayLocationRegion ? `-${displayLocationRegion}` : ''}
 					</p>
 				</div>
-				<div className="border-b border-border/70 pb-2">
+				<div className="border-border/70 border-b pb-2">
 					<p className="label-pixel text-muted-foreground">Source</p>
 					<p className="mt-1 font-mono text-xs">{displaySource}</p>
 				</div>
-				<div className="border-b border-border/70 pb-2">
+				<div className="border-border/70 border-b pb-2">
 					<p className="label-pixel text-muted-foreground">Language</p>
 					<p className="mt-1 font-mono text-xs">
 						{displayResolvedLanguage}
@@ -572,7 +572,7 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 							: ' / auto'}
 					</p>
 				</div>
-				<div className="border-b border-border/70 pb-2">
+				<div className="border-border/70 border-b pb-2">
 					<p className="label-pixel text-muted-foreground">Layout</p>
 					<p className="mt-1 font-mono text-xs">{displayLayoutText}</p>
 				</div>
@@ -604,7 +604,7 @@ function RuntimeInfo({ demoMode }: { demoMode: DemoMode }) {
 						);
 					})}
 				</div>
-				<p className="text-xs text-muted-foreground">
+				<p className="text-muted-foreground text-xs">
 					Allowed for this profile: {displayAllowedLanguages.join(', ')}
 				</p>
 			</div>
@@ -763,22 +763,22 @@ export function PolicyDemo() {
 	return (
 		<main className="min-h-screen bg-background">
 			<div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
-				<header className="flex flex-col gap-6 border-b border-border/80 pb-8 lg:flex-row lg:items-end lg:justify-between">
+				<header className="flex flex-col gap-6 border-border/80 border-b pb-8 lg:flex-row lg:items-end lg:justify-between">
 					<div className="max-w-2xl space-y-3">
 						<p className="label-pixel text-muted-foreground">
 							c15t / example demo
 						</p>
-						<h1 className="max-w-[14ch] text-3xl font-semibold tracking-[-0.04em] text-balance sm:text-4xl">
+						<h1 className="max-w-[14ch] text-balance font-semibold text-3xl tracking-[-0.04em] sm:text-4xl">
 							Policy-first consent flows.
 						</h1>
-						<p className="max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">
+						<p className="max-w-xl text-muted-foreground text-sm leading-6 sm:text-base">
 							Switch geography, policy source, and language. This page resolves
 							the active policy, shows current consent state, and turns on IAB
 							TCF 2.3 when the selected policy requires it.
 						</p>
 					</div>
 
-					<div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+					<div className="flex flex-wrap items-center gap-3 text-muted-foreground text-sm">
 						<nav className="flex flex-wrap gap-x-5 gap-y-2">
 							<Link
 								href="/policy-actions"
@@ -859,7 +859,7 @@ export function PolicyDemo() {
 										Hosted
 									</button>
 								</div>
-								<p className="text-sm text-muted-foreground">
+								<p className="text-muted-foreground text-sm">
 									{demoMode === 'hosted'
 										? 'Hosted mode resolves policies through the self-hosted backend route.'
 										: 'Offline mode runs the same scenarios from the local policy pack config.'}
@@ -876,7 +876,7 @@ export function PolicyDemo() {
 										key={section.label}
 										className="space-y-3"
 									>
-										<p className="text-sm font-medium">{section.label}</p>
+										<p className="font-medium text-sm">{section.label}</p>
 										<div className="flex flex-wrap gap-2">
 											{section.presets.map((preset) => {
 												const isActive = preset.id === activePreset?.id;
@@ -957,15 +957,15 @@ export function PolicyDemo() {
 							<VideoDemo inline />
 						</section>
 
-						<section className="space-y-6 border-t border-border/80 pt-8 lg:border-t-0 lg:border-l lg:pl-8 lg:pt-0">
+						<section className="space-y-6 border-border/80 border-t pt-8 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
 							<div className="space-y-2">
 								<p className="label-pixel text-muted-foreground">
 									Current scenario
 								</p>
-								<h2 className="text-2xl font-semibold tracking-tight">
+								<h2 className="font-semibold text-2xl tracking-tight">
 									{activePreset?.label ?? 'Custom override'}
 								</h2>
-								<p className="text-sm leading-6 text-muted-foreground">
+								<p className="text-muted-foreground text-sm leading-6">
 									{activePreset?.description ??
 										'The policy is being resolved from the manual country and region override.'}
 								</p>

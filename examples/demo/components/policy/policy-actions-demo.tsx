@@ -1,5 +1,6 @@
 'use client';
 
+import type { PolicyConfig } from '@c15t/schema/types';
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -9,8 +10,7 @@ import {
 	useConsentManager,
 	useHeadlessConsentUI,
 	useTranslations,
-} from '@c15t/react';
-import type { PolicyConfig } from '@c15t/schema/types';
+} from 'c15t/react';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { Badge } from '../ui/badge';
