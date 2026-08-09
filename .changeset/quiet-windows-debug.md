@@ -1,5 +1,5 @@
 ---
-"c15t": minor
+"@c15t/core": minor
 "@c15t/react": minor
 "@c15t/nextjs": minor
 "@c15t/vue": minor
