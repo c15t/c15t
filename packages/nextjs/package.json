@@ -120,7 +120,7 @@
 			"require": "./dist/v3/rsc/index.cjs"
 		}
 	},
-	"main": "./dist/index.js",
+	"main": "./dist/index.cjs",
 	"module": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
 	"files": [
