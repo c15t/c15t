@@ -1,15 +1,13 @@
 // Loads every conditional umbrella subpath and its scoped counterpart with
-// plain-Node semantics — real `import()` and `require()`, outside Vitest's
-// Vite pipeline, so module resolution behaves exactly as it does for a
-// consumer — and prints a JSON report to stdout. Spawned by
-// `facade-parity.test.ts`; not a test file itself.
+// plain-Node semantics — real `import()`, outside Vitest's Vite pipeline, so
+// module resolution behaves exactly as it does for a consumer — and prints a
+// JSON report to stdout. Spawned by `facade-parity.test.ts`; not a test file
+// itself.
 import { readdirSync, readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const packageDir = dirname(dirname(fileURLToPath(import.meta.url)));
-const requireFromPackage = createRequire(join(packageDir, 'package.json'));
 const manifest = JSON.parse(
 	readFileSync(join(packageDir, 'package.json'), 'utf8')
 );
@@ -73,15 +71,6 @@ async function probeImport(specifier) {
 	}
 }
 
-function probeRequire(specifier) {
-	try {
-		const exported = requireFromPackage(specifier);
-		return { keys: Object.keys(exported).sort(), ok: true };
-	} catch (error) {
-		return toFailure(error);
-	}
-}
-
 const rows = [];
 for (const [subpath, value] of Object.entries(manifest.exports)) {
 	if (typeof value === 'string') {
@@ -110,12 +99,6 @@ for (const [subpath, value] of Object.entries(manifest.exports)) {
 			row.esm = {
 				scoped: await probeImport(scoped),
 				umbrella: await probeImport(umbrella),
-			};
-		}
-		if (value.require) {
-			row.cjs = {
-				scoped: probeRequire(scoped),
-				umbrella: probeRequire(umbrella),
 			};
 		}
 		rows.push(row);

@@ -7,8 +7,8 @@
  *
  * Loading happens in a plain-Node subprocess (`parity-runner.mjs`), outside
  * Vitest's Vite pipeline, so resolution semantics match a real consumer. For
- * each conditional subpath the runner imports (ESM) and/or requires (CJS)
- * the umbrella entry and the scoped entry and reports the namespace keys.
+ * each conditional subpath the runner imports the umbrella entry and the
+ * scoped entry and reports the namespace keys.
  *
  * Some scoped entries cannot load in plain Node at all — the v3 component
  * dists import raw `.css` files, and the vue runtime needs a Nuxt/Vite
@@ -53,7 +53,6 @@ interface ParityRow {
 	umbrella: string;
 	scoped: string;
 	esm?: LoadPair;
-	cjs?: LoadPair;
 }
 
 const manifest = JSON.parse(
@@ -71,8 +70,7 @@ const rows = JSON.parse(
 /**
  * The `@c15t/react`/`@c15t/nextjs` v3 component dists import raw `.css`
  * files (pre-existing; bundler-only entries), so plain Node rejects them on
- * both sides — ESM with `ERR_UNKNOWN_FILE_EXTENSION`, CJS with a
- * `SyntaxError` from lexing CSS.
+ * both sides with `ERR_UNKNOWN_FILE_EXTENSION`.
  */
 const V3_CSS_IMPORTERS = [
 	'./react/v3',
@@ -104,7 +102,7 @@ const V3_CSS_IMPORTERS = [
 const EXPECTED_ESM_FAILURES = new Set<string>([
 	...V3_CSS_IMPORTERS,
 	// The @c15t/nextjs ESM dist resolves `next/*` subpaths that only exist
-	// inside a bundler; the CJS dist loads fine.
+	// inside a bundler.
 	'./next',
 	'./next/v3/server',
 	'./next/v3/middleware',
@@ -114,8 +112,6 @@ const EXPECTED_ESM_FAILURES = new Set<string>([
 	'./vue/consent-root',
 	'./vue/consent-widget',
 ]);
-
-const EXPECTED_CJS_FAILURES = new Set<string>(V3_CSS_IMPORTERS);
 
 function describeResult(result: LoadResult): string {
 	return result.ok
@@ -192,10 +188,7 @@ describe('umbrella facade parity', () => {
 
 	it('lists only real subpaths as expected failures', () => {
 		const probed = new Set(rows.map((row) => row.subpath));
-		for (const subpath of [
-			...EXPECTED_ESM_FAILURES,
-			...EXPECTED_CJS_FAILURES,
-		]) {
+		for (const subpath of EXPECTED_ESM_FAILURES) {
 			expect(probed.has(subpath), `${subpath} is not a probed subpath`).toBe(
 				true
 			);
@@ -210,14 +203,6 @@ describe('umbrella facade parity', () => {
 	});
 	it.each(esmRows)('$subpath (ESM) matches the scoped entry', (row) => {
 		assertParity(row.subpath, row.esm as LoadPair, EXPECTED_ESM_FAILURES);
-	});
-
-	const cjsRows = rows.filter((row) => row.cjs);
-	it('probes at least one subpath as CJS', () => {
-		expect(cjsRows.length).toBeGreaterThan(0);
-	});
-	it.each(cjsRows)('$subpath (CJS) matches the scoped entry', (row) => {
-		assertParity(row.subpath, row.cjs as LoadPair, EXPECTED_CJS_FAILURES);
 	});
 });
 

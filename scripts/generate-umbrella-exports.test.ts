@@ -132,7 +132,7 @@ describe('deriveUmbrellaArtifacts', () => {
 					'./server': {
 						types: './dist-types/server/index.d.ts',
 						import: './dist/server/index.js',
-						require: './dist/server/index.cjs',
+						default: './dist/server/index.js',
 					},
 				},
 			}),
@@ -141,18 +141,32 @@ describe('deriveUmbrellaArtifacts', () => {
 		expect(artifacts.exports['./server']).toEqual({
 			types: './shims/server.d.ts',
 			import: './shims/server.js',
-			require: './shims/server.cjs',
+			default: './shims/server.js',
 		});
 		expect(Object.keys(artifacts.shimFiles).sort()).toEqual([
-			'shims/server.cjs',
 			'shims/server.d.ts',
 			'shims/server.js',
 		]);
 		expect(artifacts.shimFiles['shims/server.js']).not.toContain('default');
 		expect(artifacts.shimFiles['shims/server.js']).not.toContain('use client');
-		expect(artifacts.shimFiles['shims/server.cjs']).toContain(
-			"module.exports = require('@c15t/fixture/server');"
+		expect(artifacts.shimFiles['shims/server.js']).toContain(
+			"export * from '@c15t/fixture/server';"
 		);
+	});
+
+	it('rejects require conditions — the umbrella is ESM-only', () => {
+		expect(() =>
+			deriveUmbrellaArtifacts([
+				fixtureSource({
+					exports: {
+						'./server': {
+							import: './dist/server/index.js',
+							require: './dist/server/index.cjs',
+						},
+					},
+				}),
+			])
+		).toThrow(/Unsupported export condition "require"/);
 	});
 
 	it('forwards default exports only where the entry module has one', () => {
@@ -188,14 +202,12 @@ describe('deriveUmbrellaArtifacts', () => {
 					'./widget': {
 						types: './x.d.ts',
 						import: './dist/widget.js',
-						require: './dist/widget.cjs',
 					},
 				},
 			}),
 		]);
 
 		expect(artifacts.shimFiles['shims/widget.js']).toMatch(/^'use client';\n/);
-		expect(artifacts.shimFiles['shims/widget.cjs']).toMatch(/^'use client';\n/);
 		expect(artifacts.shimFiles['shims/widget.d.ts']).not.toContain(
 			'use client'
 		);
@@ -213,7 +225,7 @@ describe('deriveUmbrellaArtifacts', () => {
 					'./primitives/*': {
 						types: './dist-types/primitives/*.d.ts',
 						import: './dist/primitives/*.js',
-						require: './dist/primitives/*.cjs',
+						default: './dist/primitives/*.js',
 					},
 				},
 				wildcards: { './primitives/*': ['accordion', 'button'] },
@@ -223,13 +235,11 @@ describe('deriveUmbrellaArtifacts', () => {
 		expect(artifacts.exports['./react/primitives/*']).toEqual({
 			types: './shims/react/primitives/*.d.ts',
 			import: './shims/react/primitives/*.js',
-			require: './shims/react/primitives/*.cjs',
+			default: './shims/react/primitives/*.js',
 		});
 		expect(Object.keys(artifacts.shimFiles).sort()).toEqual([
-			'shims/react/primitives/accordion.cjs',
 			'shims/react/primitives/accordion.d.ts',
 			'shims/react/primitives/accordion.js',
-			'shims/react/primitives/button.cjs',
 			'shims/react/primitives/button.d.ts',
 			'shims/react/primitives/button.js',
 		]);
@@ -560,7 +570,7 @@ describe('committed umbrella package', () => {
 	) as {
 		exports: ExportsMap;
 		main: string;
-		module: string;
+		module?: string;
 		types: string;
 		sideEffects: unknown;
 	};
@@ -576,14 +586,14 @@ describe('committed umbrella package', () => {
 		expect(manifest.sideEffects).toEqual(artifacts.sideEffects);
 	});
 
-	it('points main, module, and types at the root shims', () => {
+	it('points main and types at the ESM root shims', () => {
 		const rootEntry = artifacts.exports['.'];
 		if (typeof rootEntry === 'string') {
 			throw new Error('umbrella root export must be conditional');
 		}
-		expect(manifest.main).toBe(rootEntry.require);
-		expect(manifest.module).toBe(rootEntry.import);
+		expect(manifest.main).toBe(rootEntry.import);
 		expect(manifest.types).toBe(rootEntry.types);
+		expect(manifest.module).toBeUndefined();
 	});
 
 	it('has exactly the derived shim files on disk', () => {
