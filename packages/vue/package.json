@@ -31,28 +31,34 @@
 	"exports": {
 		".": {
 			"types": "./dist/types.d.mts",
-			"import": "./dist/module.mjs"
+			"import": "./dist/module.mjs",
+			"default": "./dist/module.mjs"
 		},
 		"./vite": {
 			"types": "./dist/vite.d.mts",
-			"import": "./dist/vite.mjs"
+			"import": "./dist/vite.mjs",
+			"default": "./dist/vite.mjs"
 		},
 		"./vue-plugin": {
 			"types": "./dist/index.d.mts",
-			"import": "./dist/index.mjs"
+			"import": "./dist/index.mjs",
+			"default": "./dist/index.mjs"
 		},
 		"./consent-root": {
 			"types": "./dist/runtime/components/consent-root.d.vue.ts",
-			"import": "./dist/runtime/components/consent-root.vue"
+			"import": "./dist/runtime/components/consent-root.vue",
+			"default": "./dist/runtime/components/consent-root.vue"
 		},
 		"./consent-widget": {
 			"types": "./dist/runtime/components/consent-widget.d.vue.ts",
-			"import": "./dist/runtime/components/consent-widget.vue"
+			"import": "./dist/runtime/components/consent-widget.vue",
+			"default": "./dist/runtime/components/consent-widget.vue"
 		},
 		"./runtime/*": "./dist/runtime/*",
 		"./composables/*": "./dist/runtime/composables/*"
 	},
 	"main": "./dist/module.mjs",
+	"types": "./dist/types.d.mts",
 	"typesVersions": {
 		"*": {
 			".": [

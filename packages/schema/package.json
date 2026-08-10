@@ -27,26 +27,25 @@
 		".": {
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
+			"default": "./dist/index.js"
 		},
 		"./types": {
 			"types": "./dist-types/types.d.ts",
 			"import": "./dist/types.js",
-			"require": "./dist/types.cjs"
+			"default": "./dist/types.js"
 		},
 		"./config": {
 			"types": "./dist-types/config/index.d.ts",
 			"import": "./dist/config.js",
-			"require": "./dist/config.cjs"
+			"default": "./dist/config.js"
 		},
 		"./geo": {
 			"types": "./dist-types/shared/geo-headers.d.ts",
 			"import": "./dist/geo.js",
-			"require": "./dist/geo.cjs"
+			"default": "./dist/geo.js"
 		}
 	},
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
+	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",

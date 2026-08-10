@@ -30,26 +30,25 @@
 		".": {
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
+			"default": "./dist/index.js"
 		},
 		"./headless": {
 			"types": "./dist-types/headless.d.ts",
 			"import": "./dist/headless.js",
-			"require": "./dist/headless.cjs"
+			"default": "./dist/headless.js"
 		},
 		"./v3": {
 			"types": "./dist-types/v3/index.d.ts",
 			"import": "./dist/v3.js",
-			"require": "./dist/v3.cjs"
+			"default": "./dist/v3.js"
 		},
 		"./v3/headless": {
 			"types": "./dist-types/v3/headless.d.ts",
 			"import": "./dist/v3/headless.js",
-			"require": "./dist/v3/headless.cjs"
+			"default": "./dist/v3/headless.js"
 		}
 	},
-	"main": "dist/index.cjs",
-	"module": "dist/index.js",
+	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",

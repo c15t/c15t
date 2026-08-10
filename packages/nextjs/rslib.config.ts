@@ -33,14 +33,6 @@ export default defineConfig({
 				externals,
 			},
 		},
-		{
-			bundle: false,
-			dts: false,
-			format: 'cjs',
-			output: {
-				externals,
-			},
-		},
 	],
 	output: {
 		target: 'web',

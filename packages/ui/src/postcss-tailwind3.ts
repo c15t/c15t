@@ -71,3 +71,15 @@ const c15tTailwind3: PostcssTailwind3PluginCreator = Object.assign(
 
 export { c15tTailwind3 };
 export default c15tTailwind3;
+
+/**
+ * Pre-instantiated plugin for loaders that reach this ESM module through
+ * `require()` — Next.js `require()`s string plugin names from
+ * `postcss.config.*` and receives the module namespace, not the default
+ * export. Both Next's plugin wrapper and PostCSS itself unwrap a `postcss`
+ * property before giving up, so exporting the instantiated plugin under that
+ * name keeps `plugins: ['@c15t/ui/postcss-tailwind3']` working without a
+ * CommonJS build. The plugin takes no options, so a shared instance is
+ * equivalent to calling the creator.
+ */
+export const postcss: PostcssTailwind3Plugin = c15tTailwind3();

@@ -7,7 +7,6 @@
  * the v3 publish surface to per-component class-map modules plus plain CSS:
  *
  *   dist/styles/v3/<name>.js
- *   dist/styles/v3/<name>.cjs
  *   dist/styles/v3/<name>.css
  *   dist/styles/v3/<name>.d.ts
  */
@@ -103,15 +102,6 @@ for (const name of moduleNames) {
 		normalizeStyleModule(js.content, name)
 	);
 
-	const cjs = readExisting([
-		join(DIST_V3_DIR, `${name}.module.cjs`),
-		join(DIST_V3_DIR, `${name}.cjs`),
-	]);
-	writeFileSync(
-		join(DIST_V3_DIR, `${name}.cjs`),
-		normalizeStyleModule(cjs.content, name)
-	);
-
 	const declaration = readExisting([
 		join(TYPES_V3_DIR, `${name}.module.css.d.ts`),
 	]);
@@ -125,6 +115,7 @@ for (const name of moduleNames) {
 		join(DIST_V3_DIR, `${name}.module.css`),
 		join(DIST_V3_DIR, `${name}.module.js`),
 		join(DIST_V3_DIR, `${name}.module.cjs`),
+		join(DIST_V3_DIR, `${name}.cjs`),
 	]) {
 		if (existsSync(stalePath)) {
 			rmSync(stalePath);

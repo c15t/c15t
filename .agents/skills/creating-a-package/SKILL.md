@@ -16,16 +16,18 @@ Copy the shape of an existing package rather than inventing one. `packages/logge
 
 2. **package.json** — match the house shape:
    - `"name": "@c15t/<name>"`, same `version` as the linked group if it will join it, `"type": "module"`, `"sideEffects": false` where true, Apache-2.0 license, `repository.directory` set.
-   - Exports map pointing at build output:
+   - Exports map pointing at build output (ESM-only — no CJS build, no
+     `require` condition, no `module` field; `default` mirrors `import` and
+     must come last):
      ```json
-     "exports": { ".": { "types": "./dist-types/index.d.ts", "import": "./dist/index.js", "require": "./dist/index.cjs" } },
-     "main": "./dist/index.cjs", "module": "./dist/index.js", "types": "./dist-types/index.d.ts",
+     "exports": { ".": { "types": "./dist-types/index.d.ts", "import": "./dist/index.js", "default": "./dist/index.js" } },
+     "main": "./dist/index.js", "types": "./dist-types/index.d.ts",
      "files": ["dist", "dist-types"]
      ```
    - Standard scripts (copy from logger): `build` (rslib + `normalize-dist-types.mjs`), `dev` (rslib watch, `--no-dts --no-clean`), `check-types` (`tsc --noEmit`), `lint` (`bun biome lint ./src`), `fmt`, `test` (`vitest run`, add `--passWithNoTests` until tests exist). Core SDK packages additionally run `prepack` (`bun ../../scripts/verify-package-artifacts.ts`) — add it if the package ships to end users.
    - Workspace deps use `"workspace:*"`. Dev deps include `@c15t/typescript-config` and, if tested, `@c15t/vitest-config`.
 
-3. **rslib.config.ts**: ESM + CJS, `dts.distPath: './dist-types'` on the ESM lib only, `source.exclude` for test globs, `getRsdoctorPlugins()` from `../shared/rslib-utils`. If the package needs a runtime version string, add the `prebuild` genversion script like core (`src/version.ts` is generated — gitignore it).
+3. **rslib.config.ts**: a single ESM lib (v3 is ESM-only) with `dts.distPath: './dist-types'`, `source.exclude` for test globs, `getRsdoctorPlugins()` from `../shared/rslib-utils`. If the package needs a runtime version string, add the `prebuild` genversion script like core (`src/version.ts` is generated — gitignore it).
 
 4. **tsconfig.json**: extend `@c15t/typescript-config/base.json` (or `next.json`/`node.json`). Don't relax strictness.
 

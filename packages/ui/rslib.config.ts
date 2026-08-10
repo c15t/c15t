@@ -20,11 +20,6 @@ export default defineConfig({
 			},
 			format: 'esm',
 		},
-		{
-			bundle: false,
-			dts: false,
-			format: 'cjs',
-		},
 	],
 	output: {
 		target: 'web',

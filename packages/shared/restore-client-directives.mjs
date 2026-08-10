@@ -6,7 +6,7 @@
  * true React Server Component consumer importing package files directly
  * (client-only modules get treated as server code). This walks `src`,
  * finds modules that start with a use-client directive, and prepends it to
- * the corresponding `dist/**` `.js`/`.cjs` outputs.
+ * the corresponding `dist/**` `.js`/`.mjs` outputs.
  *
  * Usage: node ../shared/restore-client-directives.mjs [srcDir] [distDir...]
  */
@@ -39,7 +39,7 @@ for (const file of walk(srcDir)) {
 	if (!DIRECTIVE.test(source)) continue;
 	const rel = relative(srcDir, file).replace(/\.(tsx?|jsx?)$/, '');
 	for (const distDir of distDirs) {
-		for (const ext of ['.js', '.cjs', '.mjs']) {
+		for (const ext of ['.js', '.mjs']) {
 			const target = join(distDir, `${rel}${ext}`);
 			try {
 				const built = readFileSync(target, 'utf8');

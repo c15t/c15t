@@ -1,6 +1,8 @@
+import type { AcceptedPlugin } from 'postcss';
 import postcss from 'postcss';
 import { describe, expect, test } from 'vitest';
-import c15tTailwind3, { isC15tUiStylesheetPath } from '../postcss-tailwind3';
+import c15tTailwind3, * as pluginModule from '../postcss-tailwind3';
+import { isC15tUiStylesheetPath } from '../postcss-tailwind3';
 
 const layeredCss = `
 @layer theme, base, components, utilities;
@@ -60,6 +62,21 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 		);
 
 		expect(css.css.trim()).toBe('');
+	});
+
+	test('loads through require() of the ESM namespace', async () => {
+		// Next.js `require()`s string plugin names from postcss.config.* and
+		// receives the module namespace. PostCSS (and Next's wrapper) unwrap a
+		// `postcss` property, so the namespace itself must normalize into a
+		// working plugin without a CommonJS build.
+		const result = await postcss([
+			pluginModule as unknown as AcceptedPlugin,
+		]).process(layeredCss, {
+			from: '/app/node_modules/@c15t/ui/dist/styles/v3/button.css',
+		});
+
+		expect(result.css).toContain('.c15t-ui-button-a1b2c');
+		expect(result.css).not.toMatch(/@layer\b/);
 	});
 
 	test('matches realistic package paths only', () => {

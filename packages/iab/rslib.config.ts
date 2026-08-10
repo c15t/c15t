@@ -24,10 +24,6 @@ export default defineConfig({
 			},
 			format: 'esm',
 		},
-		{
-			dts: false,
-			format: 'cjs',
-		},
 	],
 	output: {
 		target: 'web',

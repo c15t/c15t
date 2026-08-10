@@ -28,21 +28,20 @@
 		".": {
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
+			"default": "./dist/index.js"
 		},
 		"./react": {
 			"types": "./dist-types/react.d.ts",
 			"import": "./dist/react.js",
-			"require": "./dist/react.cjs"
+			"default": "./dist/react.js"
 		},
 		"./tanstack": {
 			"types": "./dist-types/tanstack.d.ts",
 			"import": "./dist/tanstack.js",
-			"require": "./dist/tanstack.cjs"
+			"default": "./dist/tanstack.js"
 		}
 	},
-	"main": "dist/index.cjs",
-	"module": "dist/index.js",
+	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",

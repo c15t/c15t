@@ -37,88 +37,85 @@
 		"./postcss-tailwind3": {
 			"types": "./dist-types/postcss-tailwind3.d.ts",
 			"import": "./dist/postcss-tailwind3.js",
-			"require": "./dist/postcss-tailwind3.cjs"
+			"default": "./dist/postcss-tailwind3.js"
 		},
 		"./primitives": {
 			"types": "./dist-types/primitives/index.d.ts",
 			"import": "./dist/primitives/index.js",
-			"require": "./dist/primitives/index.cjs"
+			"default": "./dist/primitives/index.js"
 		},
 		"./primitives/data-state": {
 			"types": "./dist-types/primitives/data-state.d.ts",
 			"import": "./dist/primitives/data-state.js",
-			"require": "./dist/primitives/data-state.cjs"
+			"default": "./dist/primitives/data-state.js"
 		},
 		"./primitives/*": {
 			"types": "./dist-types/primitives/*/index.d.ts",
 			"import": "./dist/primitives/*/index.js",
-			"require": "./dist/primitives/*/index.cjs"
+			"default": "./dist/primitives/*/index.js"
 		},
 		"./theme": {
 			"types": "./dist-types/theme/index.d.ts",
 			"import": "./dist/theme/index.js",
-			"require": "./dist/theme/index.cjs"
+			"default": "./dist/theme/index.js"
 		},
 		"./utils": {
 			"types": "./dist-types/utils/index.d.ts",
 			"import": "./dist/utils/index.js",
-			"require": "./dist/utils/index.cjs"
+			"default": "./dist/utils/index.js"
 		},
 		"./styles/primitives": {
 			"types": "./dist-types/styles/primitives/index.d.ts",
 			"import": "./dist/styles/primitives/index.js",
-			"require": "./dist/styles/primitives/index.cjs"
+			"default": "./dist/styles/primitives/index.js"
 		},
 		"./styles/primitives/*": {
 			"types": "./dist-types/styles/primitives/*.d.ts",
 			"import": "./dist/styles/primitives/*.js",
-			"require": "./dist/styles/primitives/*.cjs"
+			"default": "./dist/styles/primitives/*.js"
 		},
 		"./styles/primitives/*.module.js": {
 			"types": "./src/styles/css-module.d.ts",
 			"import": "./dist/styles/primitives/*.module.js",
-			"require": "./dist/styles/primitives/*.module.cjs"
+			"default": "./dist/styles/primitives/*.module.js"
 		},
 		"./styles/primitives/*.module.css": {
 			"types": "./src/styles/css-module.d.ts",
 			"import": "./dist/styles/primitives/*.module.js",
-			"require": "./dist/styles/primitives/*.module.cjs"
+			"default": "./dist/styles/primitives/*.module.js"
 		},
 		"./utils/*": {
 			"types": "./dist-types/utils/*.d.ts",
 			"import": "./dist/utils/*.js",
-			"require": "./dist/utils/*.cjs"
+			"default": "./dist/utils/*.js"
 		},
 		"./styles/*.module.js": {
 			"types": "./src/styles/css-module.d.ts",
 			"import": "./dist/styles/*.module.js",
-			"require": "./dist/styles/*.module.cjs"
+			"default": "./dist/styles/*.module.js"
 		},
 		"./styles/*.module.css": "./dist/styles/*.module.css",
 		"./styles/*": "./dist/styles/*",
 		".": {
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
+			"default": "./dist/index.js"
 		},
 		"./styles/v3/*.css": "./dist/styles/v3/*.css",
 		"./styles/v3/*": {
 			"types": "./dist/styles/v3/*.d.ts",
 			"style": "./dist/styles/v3/*.css",
 			"import": "./dist/styles/v3/*.js",
-			"require": "./dist/styles/v3/*.cjs",
 			"default": "./dist/styles/v3/*.js"
 		},
 		"./styles/v3/*.module.css": {
 			"types": "./dist/styles/v3/*.d.ts",
 			"style": "./dist/styles/v3/*.css",
 			"import": "./dist/styles/v3/*.js",
-			"require": "./dist/styles/v3/*.cjs",
 			"default": "./dist/styles/v3/*.js"
 		}
 	},
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
+	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",
@@ -133,8 +130,8 @@
 		"types"
 	],
 	"scripts": {
-		"build": "rslib build && bun scripts/generate-postcss-tailwind3-cjs.ts && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts",
-		"dev": "sh -c 'rslib build --no-dts --no-clean && bun scripts/generate-postcss-tailwind3-cjs.ts && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts && rslib build --watch --no-dts --no-clean'",
+		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts",
+		"dev": "sh -c 'rslib build --no-dts --no-clean && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun biome format --write .",
 		"lint": "bun biome lint ./src",
 		"test": "vitest run"

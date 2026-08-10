@@ -58,47 +58,47 @@
 		"./headless": {
 			"types": "./dist-types/headless.d.ts",
 			"import": "./dist/headless.js",
-			"require": "./dist/headless.cjs"
+			"default": "./dist/headless.js"
 		},
 		"./components/consent-dialog-link": {
 			"types": "./dist-types/index.d.ts",
 			"import": "./client/components/consent-dialog-link.js",
-			"require": "./dist/index.cjs"
+			"default": "./client/components/consent-dialog-link.js"
 		},
 		"./components/integrations": {
 			"types": "./dist-types/components/integrations/index.d.ts",
 			"import": "./client/components/integrations.js",
-			"require": "./dist/components/integrations/index.cjs"
+			"default": "./client/components/integrations.js"
 		},
 		".": {
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
+			"default": "./dist/index.js"
 		},
 		"./v3": {
 			"types": "./dist-types/v3/index.d.ts",
 			"import": "./dist/v3/index.js",
-			"require": "./dist/v3/index.cjs"
+			"default": "./dist/v3/index.js"
 		},
 		"./v3/server": {
 			"types": "./dist-types/v3/server.d.ts",
 			"import": "./dist/v3/server.js",
-			"require": "./dist/v3/server.cjs"
+			"default": "./dist/v3/server.js"
 		},
 		"./v3/api": {
 			"types": "./dist-types/v3/api.d.ts",
 			"import": "./dist/v3/api.js",
-			"require": "./dist/v3/api.cjs"
+			"default": "./dist/v3/api.js"
 		},
 		"./v3/middleware": {
 			"types": "./dist-types/v3/middleware.d.ts",
 			"import": "./dist/v3/middleware.js",
-			"require": "./dist/v3/middleware.cjs"
+			"default": "./dist/v3/middleware.js"
 		},
 		"./v3/static": {
 			"types": "./dist-types/v3/static.d.ts",
 			"import": "./dist/v3/static.js",
-			"require": "./dist/v3/static.cjs"
+			"default": "./dist/v3/static.js"
 		},
 		"./v3/styles.css": "./dist/v3/styles.css",
 		"./v3/styles.tw3.css": "./dist/v3/styles.tw3.css",
@@ -107,21 +107,20 @@
 		"./v3/headless": {
 			"types": "./dist-types/v3/headless.d.ts",
 			"import": "./dist/v3/headless.js",
-			"require": "./dist/v3/headless.cjs"
+			"default": "./dist/v3/headless.js"
 		},
 		"./v3/components/consent-dialog-link": {
 			"types": "./dist-types/v3/index.d.ts",
 			"import": "./dist/v3/index.js",
-			"require": "./dist/v3/index.cjs"
+			"default": "./dist/v3/index.js"
 		},
 		"./v3/rsc": {
 			"types": "./dist-types/v3/rsc/index.d.ts",
 			"import": "./dist/v3/rsc/index.js",
-			"require": "./dist/v3/rsc/index.cjs"
+			"default": "./dist/v3/rsc/index.js"
 		}
 	},
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
+	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",
