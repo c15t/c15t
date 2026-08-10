@@ -1,6 +1,7 @@
 {
 	"name": "@c15t/svelte",
 	"version": "2.0.0-rc.4",
+	"private": true,
 	"description": "Developer-first CMP for Svelte: cookie banner, consent manager, preferences centre. GDPR ready with minimal setup and rich customization",
 	"keywords": [
 		"svelte",

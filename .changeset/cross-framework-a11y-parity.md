@@ -2,7 +2,6 @@
 "@c15t/ui": patch
 "@c15t/react": patch
 "@c15t/vue": patch
-"@c15t/svelte": patch
 ---
 
 Align accessibility behavior across React, Vue, and Svelte consent surfaces and enforce it in the cross-framework conformance suite.
