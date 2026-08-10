@@ -1,4 +1,4 @@
-import type { Theme } from 'c15t/svelte';
+import type { Theme } from '@c15t/svelte';
 
 export const minimalTheme: Theme = {
 	colors: {

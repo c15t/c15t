@@ -6,15 +6,15 @@
 		ConsentManagerProvider,
 		IABConsentBanner,
 		IABConsentDialog,
-	} from 'c15t/svelte';
+	} from '@c15t/svelte';
 	import { createDevTools, type DevToolsInstance } from '@c15t/dev-tools';
 	import { baseTranslations } from '@c15t/translations/all';
 	import { page } from '$app/state';
 	import { themePresetStore } from '$lib/consent-manager/theme-store.svelte';
 	import { onMount } from 'svelte';
 	import '../app.css';
-	import 'c15t/svelte/styles.css';
-	import 'c15t/svelte/iab/styles.css';
+	import '@c15t/svelte/styles.css';
+	import '@c15t/svelte/iab/styles.css';
 
 	let { children } = $props();
 	let devtools: DevToolsInstance | null = null;

@@ -141,12 +141,6 @@ export const UMBRELLA_SOURCES: UmbrellaSource[] = [
 		prefix: 'vue',
 		sourceRoot: { distPrefix: 'dist/', srcPrefix: 'src/' },
 	},
-	{
-		directory: 'svelte',
-		packageName: '@c15t/svelte',
-		prefix: 'svelte',
-		sourceRoot: { distPrefix: 'dist/', srcPrefix: 'src/lib/' },
-	},
 ];
 
 export type ConditionalExport = Record<string, string>;

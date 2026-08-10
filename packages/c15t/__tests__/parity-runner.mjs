@@ -23,7 +23,6 @@ const PREFIXES = [
 	{ packageName: '@c15t/react', prefix: 'react' },
 	{ packageName: '@c15t/nextjs', prefix: 'next' },
 	{ packageName: '@c15t/vue', prefix: 'vue' },
-	{ packageName: '@c15t/svelte', prefix: 'svelte' },
 ];
 
 function toScopedSpecifier(subpath) {

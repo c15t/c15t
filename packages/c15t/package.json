@@ -1,7 +1,7 @@
 {
 	"name": "c15t",
 	"version": "2.2.0-canary-20260731105620",
-	"description": "The c15t consent management platform — one install for every framework: headless consent engine, React components, Next.js integration, Vue/Nuxt module, and Svelte components.",
+	"description": "The c15t consent management platform — one install for every framework: headless consent engine, React components, Next.js integration, and Vue/Nuxt module.",
 	"keywords": [
 		"consent",
 		"privacy",
@@ -34,9 +34,7 @@
 		"nextjs",
 		"next-cookie-banner",
 		"vue",
-		"nuxt",
-		"svelte",
-		"sveltekit"
+		"nuxt"
 	],
 	"homepage": "https://c15t.com",
 	"bugs": {
@@ -427,24 +425,7 @@
 			"import": "./shims/vue/consent-widget.js"
 		},
 		"./vue/runtime/*": "./shims/vue/runtime/*",
-		"./vue/composables/*": "./shims/vue/composables/*",
-		"./svelte/styles.css": "./dist/svelte/styles.css",
-		"./svelte/iab/styles.css": "./dist/svelte/iab/styles.css",
-		"./svelte/headless": {
-			"types": "./shims/svelte/headless.d.ts",
-			"svelte": "./shims/svelte/headless.js",
-			"default": "./shims/svelte/headless.js"
-		},
-		"./svelte/server": {
-			"types": "./shims/svelte/server.d.ts",
-			"import": "./shims/svelte/server.js",
-			"default": "./shims/svelte/server.js"
-		},
-		"./svelte": {
-			"types": "./shims/svelte.d.ts",
-			"svelte": "./shims/svelte.js",
-			"default": "./shims/svelte.js"
-		}
+		"./vue/composables/*": "./shims/vue/composables/*"
 	},
 	"main": "./shims/index.cjs",
 	"module": "./shims/index.js",
@@ -470,7 +451,6 @@
 		"@c15t/core": "workspace:*",
 		"@c15t/nextjs": "workspace:*",
 		"@c15t/react": "workspace:*",
-		"@c15t/svelte": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"@c15t/vue": "workspace:*"
 	},

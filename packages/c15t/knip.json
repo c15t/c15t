@@ -7,7 +7,6 @@
 		"@c15t/core",
 		"@c15t/nextjs",
 		"@c15t/react",
-		"@c15t/svelte",
 		"@c15t/ui",
 		"@c15t/vue"
 	],

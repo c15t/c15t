@@ -11,9 +11,9 @@
  * the umbrella entry and the scoped entry and reports the namespace keys.
  *
  * Some scoped entries cannot load in plain Node at all — the v3 component
- * dists import raw `.css` files, the svelte dist uses extensionless relative
- * imports, and the vue runtime needs a Nuxt/Vite context (`#imports`,
- * `.vue`). Those are listed in the expected-failure sets below and asserted
+ * dists import raw `.css` files, and the vue runtime needs a Nuxt/Vite
+ * context (`#imports`, `.vue`). Those are listed in the expected-failure
+ * sets below and asserted
  * to fail **identically on both sides** instead of being skipped, so parity
  * is still checked: a missing or mistargeted shim fails with a different
  * error than the scoped entry does.
@@ -113,11 +113,6 @@ const EXPECTED_ESM_FAILURES = new Set<string>([
 	'./vue/vue-plugin',
 	'./vue/consent-root',
 	'./vue/consent-widget',
-	// The svelte dist uses extensionless relative imports, which only a
-	// bundler resolves.
-	'./svelte',
-	'./svelte/headless',
-	'./svelte/server',
 ]);
 
 const EXPECTED_CJS_FAILURES = new Set<string>(V3_CSS_IMPORTERS);
@@ -273,7 +268,6 @@ function rowsScopedSpecifier(subpath: string): string {
 		['react', '@c15t/react'],
 		['next', '@c15t/nextjs'],
 		['vue', '@c15t/vue'],
-		['svelte', '@c15t/svelte'],
 	];
 	for (const [prefix, packageName] of prefixes) {
 		if (segment === prefix) {
