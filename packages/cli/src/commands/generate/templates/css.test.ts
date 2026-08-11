@@ -178,6 +178,39 @@ describe('updateAppStylesheetImports', () => {
 		expect(content).toBe(
 			'@import "c15t/react/styles.css";\n:root { color: #111827; }\n'
 		);
+		expect(result.changes).toEqual([
+			'replaced @import "@c15t/react/styles.css"; with @import "c15t/react/styles.css";',
+		]);
+	});
+
+	it('reports a replacement when normalizing a scoped import across package names', async () => {
+		const { root } = await createProject({
+			'app/layout.tsx': [
+				"import './globals.css';",
+				'',
+				'export default function RootLayout({ children }: { children: React.ReactNode }) {',
+				'  return <html><body>{children}</body></html>;',
+				'}',
+			].join('\n'),
+			'app/globals.css':
+				'@import "@c15t/nextjs/styles.css";\n:root { color: #111827; }\n',
+		});
+
+		const result = await updateAppStylesheetImports({
+			projectRoot: root,
+			packageName: 'c15t/next',
+			tailwindVersion: null,
+			entrypointPath: 'app/layout.tsx',
+		});
+		const content = await readFile(join(root, 'app/globals.css'), 'utf-8');
+
+		expect(result.updated).toBe(true);
+		expect(content).toBe(
+			'@import "c15t/next/styles.css";\n:root { color: #111827; }\n'
+		);
+		expect(result.changes).toEqual([
+			'replaced @import "@c15t/nextjs/styles.css"; with @import "c15t/next/styles.css";',
+		]);
 	});
 
 	it('returns searched targets when no CSS entrypoint exists', async () => {
