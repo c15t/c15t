@@ -19,11 +19,13 @@ Copy the shape of an existing package rather than inventing one. `packages/logge
    - Exports map pointing at build output (ESM-only — no CJS build, no
      `require` condition, no `module` field; `default` mirrors `import` and
      must come last):
+
      ```json
      "exports": { ".": { "types": "./dist-types/index.d.ts", "import": "./dist/index.js", "default": "./dist/index.js" } },
      "main": "./dist/index.js", "types": "./dist-types/index.d.ts",
      "files": ["dist", "dist-types"]
      ```
+
    - Standard scripts (copy from logger): `build` (rslib + `normalize-dist-types.mjs`), `dev` (rslib watch, `--no-dts --no-clean`), `check-types` (`tsc --noEmit`), `lint` (`bun biome lint ./src`), `fmt`, `test` (`vitest run`, add `--passWithNoTests` until tests exist). Core SDK packages additionally run `prepack` (`bun ../../scripts/verify-package-artifacts.ts`) — add it if the package ships to end users.
    - Workspace deps use `"workspace:*"`. Dev deps include `@c15t/typescript-config` and, if tested, `@c15t/vitest-config`.
 
