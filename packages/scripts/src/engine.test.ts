@@ -1,4 +1,7 @@
-import { type ScriptDebugEvent, subscribeToScriptDebugEvents } from 'c15t';
+import {
+	type ScriptDebugEvent,
+	subscribeToScriptDebugEvents,
+} from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	createCallbackInfo,

@@ -1,6 +1,6 @@
 'use client';
 
-import type { ActiveUI, Model, TranslationConfig } from 'c15t';
+import type { ActiveUI, Model, TranslationConfig } from '@c15t/core';
 import { useCallback, useMemo } from 'react';
 import {
 	useActiveUI,

@@ -24,7 +24,9 @@ group: frameworks
   <Step>
     ### Install package
 
-    <PackageCommandTabs mode="install" command="@c15t/react" />
+    <PackageCommandTabs mode="install" command="c15t" />
+
+    The single `c15t` package includes every framework entry point. Prefer installing the scoped packages individually? See [Granular Installs](/docs/granular-installs).
   </Step>
 
   <Step>
@@ -33,7 +35,7 @@ group: frameworks
     Import the prebuilt component stylesheet in your app-level CSS entrypoint. This is required for styled components to render correctly.
 
     ```css title="src/index.css"
-    @import "@c15t/react/styles.css";
+    @import "c15t/react/styles.css";
     ```
 
     <import src="../../shared/react/styling/stylesheet-entrypoint.mdx#why-global-css" />
@@ -52,7 +54,7 @@ group: frameworks
     'use client';
 
     import { type ReactNode } from 'react';
-    import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/react';
+    import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from 'c15t/react';
 
     export default function ConsentManagerClient({ children }: { children: ReactNode }) {
       return (

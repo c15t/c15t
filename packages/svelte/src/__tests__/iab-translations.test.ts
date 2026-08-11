@@ -5,8 +5,8 @@
  * with deep merge fallback to defaults.
  */
 
-import type { TranslationConfig } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
+import type { TranslationConfig } from '@c15t/core';
+import { defaultTranslationConfig } from '@c15t/core';
 import { describe, expect, it } from 'vitest';
 import { getIABTranslations } from '../lib/iab-translations';
 

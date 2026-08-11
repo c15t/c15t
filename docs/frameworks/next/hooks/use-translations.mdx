@@ -7,7 +7,7 @@ group: frameworks
 `useTranslations()` returns the `Translations` object for the currently active language. Use it when building custom consent UI that needs translated text.
 
 ```tsx
-import { useTranslations } from '@c15t/nextjs';
+import { useTranslations } from 'c15t/next';
 
 function CustomBanner() {
   const translations = useTranslations();
@@ -30,7 +30,7 @@ function CustomBanner() {
 Translations update automatically when the language changes:
 
 ```tsx
-import { useConsentManager, useTranslations } from '@c15t/nextjs';
+import { useConsentManager, useTranslations } from 'c15t/next';
 
 function LocalizedConsent() {
   const { setLanguage } = useConsentManager();

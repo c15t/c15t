@@ -1,6 +1,7 @@
 # c15t × Nuxt example
 
-Minimal `@c15t/vue` integration: one module entry in `nuxt.config.ts`, one
+Minimal c15t Nuxt integration through the `c15t` umbrella package
+(`c15t/vue` ≡ `@c15t/vue`): one module entry in `nuxt.config.ts`, one
 `<ConsentRoot />` in `app.vue` — plus a self-hosted `@c15t/backend` mounted
 at `/api/self-host` (`server/api/self-host/[...all].ts`) so the whole demo,
 including the consent manifest, is served from a single origin.

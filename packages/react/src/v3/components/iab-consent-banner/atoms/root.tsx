@@ -35,7 +35,7 @@ interface IABConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	 * Which consent models this banner responds to.
 	 * @default ['iab']
 	 */
-	models?: import('c15t').Model[];
+	models?: import('@c15t/core').Model[];
 	/**
 	 * Override the UI source identifier sent with consent API calls.
 	 * @default 'iab_banner'
@@ -90,7 +90,7 @@ interface IABConsentBannerRootChildrenProps
 	 * Which consent models this banner responds to.
 	 * @default ['iab']
 	 */
-	models?: import('c15t').Model[];
+	models?: import('@c15t/core').Model[];
 }
 
 const IABConsentBannerRootChildren = forwardRef<

@@ -1,5 +1,5 @@
+import type { AllConsentNames, ConsentType } from '@c15t/core';
 import accordionStyles from '@c15t/ui/styles/v3/accordion';
-import type { AllConsentNames, ConsentType } from 'c15t';
 import {
 	type ComponentPropsWithoutRef,
 	createContext,

@@ -21,11 +21,6 @@ export default defineConfig({
 			bundle: true,
 			format: 'esm',
 		},
-		{
-			dts: false,
-			bundle: true,
-			format: 'cjs',
-		},
 	],
 	output: {
 		target: 'node',

@@ -1,8 +1,4 @@
 <script lang="ts">
-import { createIAB, type IABHandle } from '@c15t/iab/v3';
-import { buildDefaultOptInPolicy, policyDefaults } from '@c15t/schema/types';
-import { generateThemeCSS } from '@c15t/ui/theme';
-import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
 import {
 	type AllConsentNames,
 	type Callbacks,
@@ -10,7 +6,7 @@ import {
 	type I18nConfig,
 	type OfflinePolicyConfig,
 	type User,
-} from 'c15t';
+} from '@c15t/core';
 import {
 	type ConsentKernel,
 	type ConsentSnapshot,
@@ -25,15 +21,19 @@ import {
 	type KernelTransport,
 	type KernelUser,
 	type TranslationsResponse,
-} from 'c15t/v3';
-import { createIframeBlocker } from 'c15t/v3/modules/iframe-blocker';
-import { createNetworkBlocker } from 'c15t/v3/modules/network-blocker';
-import { createPersistence } from 'c15t/v3/modules/persistence';
-import { createScriptLoader } from 'c15t/v3/modules/script-loader';
+} from '@c15t/core/v3';
+import { createIframeBlocker } from '@c15t/core/v3/modules/iframe-blocker';
+import { createNetworkBlocker } from '@c15t/core/v3/modules/network-blocker';
+import { createPersistence } from '@c15t/core/v3/modules/persistence';
+import { createScriptLoader } from '@c15t/core/v3/modules/script-loader';
 import {
 	createWindowDebug,
 	resolveWindowDebugMode,
-} from 'c15t/v3/modules/window-debug';
+} from '@c15t/core/v3/modules/window-debug';
+import { createIAB, type IABHandle } from '@c15t/iab/v3';
+import { buildDefaultOptInPolicy, policyDefaults } from '@c15t/schema/types';
+import { generateThemeCSS } from '@c15t/ui/theme';
+import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
 import type { Snippet } from 'svelte';
 import { onDestroy, onMount, untrack } from 'svelte';
 import {

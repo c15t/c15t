@@ -27,7 +27,12 @@ const TAILWIND_V4_IMPORT_RE = /^\s*@import\s+['"]tailwindcss['"];\s*$/;
 const TAILWIND_COMPONENTS_RE = /^\s*@tailwind\s+components\s*;\s*$/;
 const TAILWIND_UTILITIES_RE = /^\s*@tailwind\s+utilities\s*;\s*$/;
 
-export type StyledPackageName = '@c15t/react' | '@c15t/nextjs' | '@c15t/ui';
+export type StyledPackageName =
+	| 'c15t/react'
+	| 'c15t/next'
+	| '@c15t/react'
+	| '@c15t/nextjs'
+	| '@c15t/ui';
 
 export interface EnsureGlobalCssStylesheetImportsOptions {
 	projectRoot: string;
@@ -71,22 +76,18 @@ function isNonModuleLocalCssImport(moduleSpecifier: string): boolean {
 function getManagedPackages(
 	packageName: StyledPackageName
 ): StyledPackageName[] {
-	if (packageName === '@c15t/react' || packageName === '@c15t/nextjs') {
-		return ['@c15t/react', '@c15t/nextjs'];
+	if (packageName === '@c15t/ui') {
+		return ['@c15t/ui'];
 	}
 
-	return ['@c15t/ui'];
+	// Umbrella (c15t/react, c15t/next) and scoped (@c15t/react, @c15t/nextjs)
+	// stylesheet imports are interchangeable — manage all variants so re-runs
+	// normalize an existing import to the requested package.
+	return ['c15t/react', 'c15t/next', '@c15t/react', '@c15t/nextjs'];
 }
 
-function getImportVariants(
-	packageName: StyledPackageName,
-	kind: StylesheetKind
-): string[] {
-	if (kind === 'base') {
-		return [`${packageName}/styles.css`, `${packageName}/styles.tw3.css`];
-	}
-
-	return [`${packageName}/iab/styles.css`, `${packageName}/iab/styles.tw3.css`];
+function getStylesheetKind(importPath: string): StylesheetKind {
+	return importPath.includes('/iab/') ? 'iab' : 'base';
 }
 
 function getDesiredImportPath(
@@ -121,13 +122,31 @@ function getDesiredImports(
 	return imports;
 }
 
-function getFrameworkImportRegex(packageNames: StyledPackageName[]): RegExp {
+function getFrameworkImportPattern(packageNames: StyledPackageName[]): string {
 	const escapedPackages = packageNames
 		.map((packageName) => packageName.replace('/', '\\/'))
 		.join('|');
 
-	return new RegExp(
-		`^\\s*@import\\s+['"](?:${escapedPackages})(?:\\/iab)?\\/styles(?:\\.tw3)?\\.css['"];\\s*$`
+	return `^\\s*@import\\s+['"]((?:${escapedPackages})(?:\\/iab)?\\/styles(?:\\.tw3)?\\.css)['"];\\s*$`;
+}
+
+function getFrameworkImportRegex(packageNames: StyledPackageName[]): RegExp {
+	return new RegExp(getFrameworkImportPattern(packageNames));
+}
+
+function getManagedImportPaths(
+	content: string,
+	managedPackages: StyledPackageName[]
+): string[] {
+	const importRegex = new RegExp(
+		getFrameworkImportPattern(managedPackages),
+		'gm'
+	);
+
+	return dedupePaths(
+		[...content.matchAll(importRegex)].flatMap((match) =>
+			match[1] ? [match[1]] : []
+		)
 	);
 }
 
@@ -247,23 +266,22 @@ function insertImportsIntoCssContent(
 
 function describeImportChange(
 	content: string,
-	packageName: StyledPackageName,
+	managedPackages: StyledPackageName[],
 	desiredImportPath: string
 ): string {
-	const kind: StylesheetKind = desiredImportPath.includes('/iab/')
-		? 'iab'
-		: 'base';
-	const variants = getImportVariants(packageName, kind);
-	const alternateVariant = variants.find(
-		(variant) => variant !== desiredImportPath && content.includes(variant)
-	);
+	const kind = getStylesheetKind(desiredImportPath);
+	const existingImportPaths = getManagedImportPaths(
+		content,
+		managedPackages
+	).filter((importPath) => getStylesheetKind(importPath) === kind);
 
-	if (alternateVariant) {
-		return `replaced @import "${alternateVariant}"; with @import "${desiredImportPath}";`;
+	if (existingImportPaths.includes(desiredImportPath)) {
+		return `normalized @import "${desiredImportPath}";`;
 	}
 
-	if (content.includes(desiredImportPath)) {
-		return `normalized @import "${desiredImportPath}";`;
+	const replacedImportPath = existingImportPaths[0];
+	if (replacedImportPath) {
+		return `replaced @import "${replacedImportPath}"; with @import "${desiredImportPath}";`;
 	}
 
 	return `added @import "${desiredImportPath}";`;
@@ -385,7 +403,7 @@ export async function ensureGlobalCssStylesheetImports(
 	}
 
 	const changes = desiredImports.map((importPath) =>
-		describeImportChange(content, options.packageName, importPath)
+		describeImportChange(content, managedPackages, importPath)
 	);
 
 	return {

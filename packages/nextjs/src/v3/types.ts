@@ -1,6 +1,6 @@
+import type { PrefetchOptions } from '@c15t/core';
 import type { ConsentManagerProviderProps } from '@c15t/react/v3';
 import type { FetchSSRDataOptionsBase } from '@c15t/react/v3/server';
-import type { PrefetchOptions } from 'c15t';
 
 export type InitialDataPromise = NonNullable<
 	ConsentManagerProviderProps['options']['store']

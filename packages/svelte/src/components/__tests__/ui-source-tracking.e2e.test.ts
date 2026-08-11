@@ -6,8 +6,8 @@
  * Mirrors: packages/react/src/components/__tests__/ui-source-tracking.e2e.test.tsx
  */
 
+import { clearConsentRuntimeCache } from '@c15t/core';
 import { fireEvent, render, waitFor } from '@testing-library/svelte';
-import { clearConsentRuntimeCache } from 'c15t';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import BannerDialogFixture from '../../__tests__/fixtures/banner-dialog-fixture.svelte';
 import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';

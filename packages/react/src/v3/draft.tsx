@@ -21,8 +21,8 @@
  * the kernel's new consents.
  */
 
-import type { AllConsentNames } from 'c15t';
-import type { ConsentState } from 'c15t/v3';
+import type { AllConsentNames } from '@c15t/core';
+import type { ConsentState } from '@c15t/core/v3';
 import {
 	createContext,
 	type ReactNode,

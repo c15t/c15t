@@ -17,7 +17,7 @@ X Pixel (formerly Twitter Pixel) is X's conversion tracking and audience buildin
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { xPixel } from '@c15t/scripts/x-pixel';
 
 const scripts = [xPixel({ pixelId: '123456789012345' })];
@@ -43,7 +43,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { xPixel } from '@c15t/scripts/x-pixel';
 
 const scripts = [xPixel({ pixelId: '123456789012345' })];
@@ -100,7 +100,7 @@ Guard event calls by checking consent state:
 
 ```tsx
 import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 import { xPixelEvent } from '@c15t/scripts/x-pixel';
 
 function useTrackPurchase() {

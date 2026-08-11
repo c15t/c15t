@@ -304,7 +304,7 @@ export function modeRequiresBackend(mode: StorageMode): boolean {
 export function isNextjsFramework(
 	framework: GenerateMachineContext['framework']
 ): boolean {
-	return framework?.pkg === '@c15t/nextjs';
+	return framework?.pkg === 'c15t/next';
 }
 
 /**

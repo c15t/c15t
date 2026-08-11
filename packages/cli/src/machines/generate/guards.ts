@@ -123,7 +123,7 @@ export function isNextjs({
 }: {
 	context: GenerateMachineContext;
 }): boolean {
-	return context.framework?.pkg === '@c15t/nextjs';
+	return context.framework?.pkg === 'c15t/next';
 }
 
 /**
@@ -134,7 +134,7 @@ export function isReact({
 }: {
 	context: GenerateMachineContext;
 }): boolean {
-	return context.framework?.pkg === '@c15t/react';
+	return context.framework?.pkg === 'c15t/react';
 }
 
 /**
@@ -270,8 +270,7 @@ export function shouldPromptSSR({
 	context: GenerateMachineContext;
 }): boolean {
 	return (
-		context.framework?.pkg === '@c15t/nextjs' &&
-		modeRequiresBackend({ context })
+		context.framework?.pkg === 'c15t/next' && modeRequiresBackend({ context })
 	);
 }
 
@@ -284,8 +283,8 @@ export function shouldPromptUIStyle({
 	context: GenerateMachineContext;
 }): boolean {
 	return (
-		context.framework?.pkg === '@c15t/nextjs' ||
-		context.framework?.pkg === '@c15t/react'
+		context.framework?.pkg === 'c15t/next' ||
+		context.framework?.pkg === 'c15t/react'
 	);
 }
 

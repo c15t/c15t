@@ -1,4 +1,4 @@
-import { defaultTranslationConfig } from 'c15t';
+import { defaultTranslationConfig } from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { useConsentManager } from '~/hooks/use-consent-manager';

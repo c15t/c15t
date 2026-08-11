@@ -35,16 +35,15 @@
 		".": {
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
+			"default": "./dist/index.js"
 		},
 		"./testing": {
 			"types": "./dist-types/testing.d.ts",
 			"import": "./dist/testing.js",
-			"require": "./dist/testing.cjs"
+			"default": "./dist/testing.js"
 		}
 	},
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
+	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",

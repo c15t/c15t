@@ -14,7 +14,7 @@ icon: promptwatch
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { promptwatch } from '@c15t/scripts/promptwatch';
 
 const scripts = [
@@ -44,7 +44,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { promptwatch } from '@c15t/scripts/promptwatch';
 
 const scripts = [

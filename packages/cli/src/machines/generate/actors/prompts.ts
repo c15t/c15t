@@ -553,7 +553,7 @@ export const backendOptionsActor = fromPromise<
 
 	// Next.js proxy prompt (only for Next.js projects)
 	let proxyNextjs = false;
-	if (cliContext.framework.pkg === '@c15t/nextjs') {
+	if (cliContext.framework.pkg === 'c15t/next') {
 		cliContext.logger.info(
 			'Learn more about Next.js Rewrites: https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites'
 		);
@@ -604,7 +604,7 @@ export const frontendOptionsActor = fromPromise<
 	let expandedTheme: ExpandedTheme | undefined;
 
 	// Next.js: SSR (only with backend + App Router) + UI style + theme
-	if (pkg === '@c15t/nextjs') {
+	if (pkg === 'c15t/next') {
 		// SSR only makes sense when there's a backend and App Router
 		if (hasBackend) {
 			const { existsSync } = await import('node:fs');
@@ -694,7 +694,7 @@ export const frontendOptionsActor = fromPromise<
 	}
 
 	// React: UI style + theme (no SSR)
-	if (pkg === '@c15t/react') {
+	if (pkg === 'c15t/react') {
 		cliContext.logger.info(
 			'Choose how you want your consent UI components generated.'
 		);
@@ -757,7 +757,7 @@ export const frontendOptionsActor = fromPromise<
 		expandedTheme = reactThemeResult as ExpandedTheme;
 	}
 
-	if (pkg === 'c15t' || pkg === '@c15t/react' || pkg === '@c15t/nextjs') {
+	if (pkg === 'c15t' || pkg === 'c15t/react' || pkg === 'c15t/next') {
 		enableDevTools = await getDevToolsOption({
 			context: cliContext,
 			onCancel: () => {

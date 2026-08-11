@@ -24,12 +24,12 @@ import {
 	configureConsentManager,
 	createConsentManagerStore,
 	type Script as V2Script,
-} from 'c15t';
-import { createConsentKernel } from 'c15t/v3';
+} from '@c15t/core';
+import { createConsentKernel } from '@c15t/core/v3';
 import {
 	createScriptLoader,
 	type Script as V3Script,
-} from 'c15t/v3/modules/script-loader';
+} from '@c15t/core/v3/modules/script-loader';
 import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();

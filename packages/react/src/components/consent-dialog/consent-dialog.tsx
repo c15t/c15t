@@ -105,7 +105,7 @@ export interface ConsentDialogProps {
 	 * Which consent models this dialog responds to.
 	 * @default ['opt-in', 'opt-out']
 	 */
-	models?: import('c15t').Model[];
+	models?: import('@c15t/core').Model[];
 
 	/**
 	 * Override the UI source identifier sent with consent API calls.

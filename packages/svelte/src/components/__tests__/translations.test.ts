@@ -4,9 +4,9 @@
  * Mirrors: packages/react/src/hooks/__tests__/use-translations.test.tsx
  */
 
+import type { Translations } from '@c15t/core';
+import { clearConsentRuntimeCache } from '@c15t/core';
 import { render, screen, waitFor } from '@testing-library/svelte';
-import type { Translations } from 'c15t';
-import { clearConsentRuntimeCache } from 'c15t';
 import { beforeEach, describe, expect, test } from 'vitest';
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
 

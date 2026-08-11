@@ -21,7 +21,7 @@ Pick the affected packages and a bump. Rules:
 
 - Any user-facing change to a published package needs a changeset; internal-only changes (tests, benchmarks, `internals/`, docs-site-only) do not.
 - These packages are **linked** and always version together — bumping one bumps all: `c15t`, `@c15t/backend`, `@c15t/cli`, `@c15t/dev-tools`, `@c15t/iab`, `@c15t/nextjs`, `@c15t/node-sdk`, `@c15t/react`, `@c15t/translations`. Choose the bump for the *most significant* change in the group.
-- `@c15t/scripts`, `@c15t/ui`, `@c15t/schema`, and `@c15t/logger` version independently. `@c15t/vue`, `@c15t/svelte`, and `@c15t/solid` are currently private and unversioned.
+- `@c15t/scripts`, `@c15t/ui`, `@c15t/schema`, `@c15t/logger`, and `@c15t/vue` version independently. `@c15t/svelte` and `@c15t/solid` are currently private and unversioned.
 - Write the changeset summary like a changelog entry (it becomes one): imperative, user-facing, mentions migration steps for breaking changes.
 
 ## Release channels

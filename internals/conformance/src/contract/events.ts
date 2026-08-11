@@ -6,7 +6,7 @@
  * `runEventContractConformance(driver)` suite asserts against this contract.
  */
 
-import type { ConsentStoreState } from 'c15t';
+import type { ConsentStoreState } from '@c15t/core';
 
 /** All public event names. Keep in sync with provider prop types across frameworks. */
 export const EVENT_NAMES = [

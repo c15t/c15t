@@ -14,7 +14,7 @@ The Databuddy script automatically respects consent preferences by toggling trac
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { databuddy } from '@c15t/scripts/databuddy';
 
 const scripts = [
@@ -56,7 +56,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { databuddy } from '@c15t/scripts/databuddy';
 
 const scripts = [

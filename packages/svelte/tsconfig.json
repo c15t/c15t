@@ -8,9 +8,9 @@
 			"@c15t/iab/*": ["../iab/src/*"],
 			"@c15t/schema": ["../schema/dist-types/index.d.ts"],
 			"@c15t/schema/*": ["../schema/dist-types/*"],
-			"c15t": ["../core/dist-types/index.d.ts"],
-			"c15t/v3": ["../core/src/v3/index.ts"],
-			"c15t/v3/modules/*": ["../core/src/v3/modules/*/index.ts"],
+			"@c15t/core": ["../core/dist-types/index.d.ts"],
+			"@c15t/core/v3": ["../core/src/v3/index.ts"],
+			"@c15t/core/v3/modules/*": ["../core/src/v3/modules/*/index.ts"],
 			"~/*": ["../core/src/*", "./src/lib/*"]
 		}
 	},

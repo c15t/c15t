@@ -20,7 +20,7 @@
  * banner should show (returning users get zero banner bytes, client or
  * server). Same data-testids and DOM shape as the client `ConsentBanner`.
  */
-import type { KernelConfig } from 'c15t/v3';
+import type { KernelConfig } from '@c15t/core/v3';
 import type { ReactNode } from 'react';
 import { RscBannerActions, RscBannerGate } from './islands';
 

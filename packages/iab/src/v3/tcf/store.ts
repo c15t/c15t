@@ -6,13 +6,13 @@ import type {
 	IABConfig,
 	IABManager,
 	IABState,
-} from 'c15t';
+} from '@c15t/core';
 import {
 	applyPolicyPurposeAllowlist,
 	generateSubjectId,
 	getEffectivePolicy,
 	saveConsentToStorage,
-} from 'c15t';
+} from '@c15t/core';
 import { CMP_ID, CMP_VERSION } from './cmp-defaults';
 import type { NonIABVendor } from './non-iab-vendor';
 

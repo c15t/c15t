@@ -31,21 +31,20 @@
 		".": {
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
+			"default": "./dist/index.js"
 		},
 		"./all": {
 			"types": "./dist-types/all.d.ts",
 			"import": "./dist/all.js",
-			"require": "./dist/all.cjs"
+			"default": "./dist/all.js"
 		},
 		"./en": {
 			"types": "./dist-types/translations/en.d.ts",
 			"import": "./dist/translations/en.js",
-			"require": "./dist/translations/en.cjs"
+			"default": "./dist/translations/en.js"
 		}
 	},
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
+	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",

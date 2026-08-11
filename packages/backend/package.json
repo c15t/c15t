@@ -37,36 +37,35 @@
 		".": {
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
+			"default": "./dist/index.js"
 		},
 		"./sql/pg": {
 			"types": "./dist-types/sql/pg.d.ts",
 			"import": "./dist/sql/pg.js",
-			"require": "./dist/sql/pg.cjs"
+			"default": "./dist/sql/pg.js"
 		},
 		"./sql/mysql": {
 			"types": "./dist-types/sql/mysql.d.ts",
 			"import": "./dist/sql/mysql.js",
-			"require": "./dist/sql/mysql.cjs"
+			"default": "./dist/sql/mysql.js"
 		},
 		"./sql/sqlite": {
 			"types": "./dist-types/sql/sqlite.d.ts",
 			"import": "./dist/sql/sqlite.js",
-			"require": "./dist/sql/sqlite.cjs"
+			"default": "./dist/sql/sqlite.js"
 		},
 		"./db/migrations/*": {
 			"types": "./dist-types/db/migrations/*.d.ts",
 			"import": "./dist/db/migrations/*.js",
-			"require": "./dist/db/migrations/*.cjs"
+			"default": "./dist/db/migrations/*.js"
 		},
 		"./cache": {
 			"types": "./dist-types/cache/index.d.ts",
 			"import": "./dist/cache/index.js",
-			"require": "./dist/cache/index.cjs"
+			"default": "./dist/cache/index.js"
 		}
 	},
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
+	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",

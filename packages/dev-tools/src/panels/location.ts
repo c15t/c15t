@@ -3,7 +3,7 @@
  * Displays and manages location/language overrides
  */
 
-import type { ConsentStoreState } from 'c15t';
+import type { ConsentStoreState } from '@c15t/core';
 import {
 	createButton,
 	createDisconnectedState,

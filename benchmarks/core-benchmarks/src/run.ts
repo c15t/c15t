@@ -20,7 +20,7 @@ import {
 	deleteConsentFromStorage,
 	getConsentFromStorage,
 	saveConsentToStorage,
-} from 'c15t';
+} from '@c15t/core';
 import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();

@@ -15,10 +15,10 @@ type PackageDocsConfig = {
 
 const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
-		name: 'c15t',
+		name: '@c15t/core',
 		outDir: 'packages/core',
 		summary:
-			'Core JavaScript consent management docs for c15t, including client modes, script loading, callbacks, and integrations.',
+			'Core JavaScript consent management docs for c15t, including client modes, script loading, callbacks, and integrations. These docs use umbrella imports (c15t); when installing @c15t/core directly, substitute @c15t/core for c15t.',
 		include: [
 			'frameworks/javascript/**/*.mdx',
 			'shared/**/*.mdx',
@@ -29,7 +29,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		name: '@c15t/react',
 		outDir: 'packages/react',
 		summary:
-			'React consent management docs for c15t, including consent UI, hooks, styling, script loading, and integrations.',
+			'React consent management docs for c15t, including consent UI, hooks, styling, script loading, and integrations. These docs use umbrella imports (c15t/react); when installing @c15t/react directly, substitute @c15t/react for c15t/react.',
 		include: [
 			'frameworks/react/**/*.mdx',
 			'shared/**/*.mdx',
@@ -40,7 +40,7 @@ const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		name: '@c15t/nextjs',
 		outDir: 'packages/nextjs',
 		summary:
-			'Next.js consent management docs for c15t, including App Router setup, consent UI, SSR behavior, script loading, and integrations.',
+			'Next.js consent management docs for c15t, including App Router setup, consent UI, SSR behavior, script loading, and integrations. These docs use umbrella imports (c15t/next); when installing @c15t/nextjs directly, substitute @c15t/nextjs for c15t/next.',
 		include: [
 			'frameworks/next/**/*.mdx',
 			'shared/**/*.mdx',

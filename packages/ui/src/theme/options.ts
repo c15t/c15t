@@ -12,7 +12,7 @@ import type {
 	StorageConfig,
 	TranslationConfig,
 	User,
-} from 'c15t';
+} from '@c15t/core';
 import type { UIOptions } from '../theme/types';
 
 /**

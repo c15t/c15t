@@ -4,7 +4,7 @@ import {
 	type Script,
 	type ScriptCallbackInfo,
 	type ScriptLifecycleCallback,
-} from 'c15t';
+} from '@c15t/core';
 import {
 	type ManifestStep,
 	type ResolvedManifest,

@@ -1,6 +1,6 @@
 ---
 "@c15t/backend": patch
-"c15t": patch
+"@c15t/core": patch
 ---
 
 Fix v3 manifest-mode saves and edge caching.

@@ -10,6 +10,7 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { resolveWorkspaceProtocol } from './workspace-protocol';
 
 type PackageJson = {
 	name?: string;
@@ -90,25 +91,6 @@ async function getWorkspacePackages(): Promise<WorkspacePackage[]> {
 	}
 
 	return workspacePackages;
-}
-
-function resolveWorkspaceProtocol(
-	value: string,
-	resolvedVersion: string
-): string {
-	if (value === 'workspace:*') {
-		return resolvedVersion;
-	}
-	if (value === 'workspace:^') {
-		return `^${resolvedVersion}`;
-	}
-	if (value === 'workspace:~') {
-		return `~${resolvedVersion}`;
-	}
-	if (value.startsWith('workspace:')) {
-		return value.replace('workspace:', '');
-	}
-	return value;
 }
 
 async function resolveAllWorkspaceDependencies() {

@@ -3,7 +3,7 @@
  * Quick actions for developers
  */
 
-import type { ConsentStoreState } from 'c15t';
+import type { ConsentStoreState } from '@c15t/core';
 import {
 	createButton,
 	createDisconnectedState,

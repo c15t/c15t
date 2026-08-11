@@ -23,7 +23,7 @@ sessions.
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { crisp } from '@c15t/scripts/crisp';
 
 const scripts = [crisp({ websiteId: 'crisp-123' })];
@@ -49,7 +49,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { crisp } from '@c15t/scripts/crisp';
 
 const scripts = [crisp({ websiteId: 'crisp-123' })];

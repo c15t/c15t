@@ -1,3 +1,4 @@
+import { c15tVersionHeaders } from '@c15t/core/v3';
 import type {
 	ConsentManifest,
 	InitOutput,
@@ -8,7 +9,6 @@ import {
 	extractConsentRequestInputs,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
-import { c15tVersionHeaders } from 'c15t/v3';
 import type { ConsentConfig } from '../config';
 import { DEFAULT_MANIFEST_ROUTE, DEFAULT_NUXT_INIT_ROUTE } from '../manifest';
 

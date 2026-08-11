@@ -4,9 +4,11 @@ import path from 'node:path';
 import type { CliLogger } from '~/utils/logger';
 
 /**
- * Supported package managers
+ * Supported c15t entry points. Every value resolves to the single `c15t`
+ * umbrella package on npm; the subpath selects the framework integration
+ * generated code imports from.
  */
-export type AvailablePackages = '@c15t/nextjs' | '@c15t/react' | 'c15t';
+export type AvailablePackages = 'c15t/next' | 'c15t/react' | 'c15t';
 
 /**
  * Framework detection result
@@ -53,12 +55,12 @@ export async function detectFramework(
 
 		let framework: string | null = null;
 		let frameworkVersion: string | null = null;
-		let pkg: AvailablePackages = hasReact ? '@c15t/react' : 'c15t';
+		let pkg: AvailablePackages = hasReact ? 'c15t/react' : 'c15t';
 
 		if ('next' in deps) {
 			framework = 'Next.js';
 			frameworkVersion = deps.next;
-			pkg = '@c15t/nextjs';
+			pkg = 'c15t/next';
 		} else if ('@remix-run/react' in deps) {
 			framework = 'Remix';
 			frameworkVersion = deps['@remix-run/react'];

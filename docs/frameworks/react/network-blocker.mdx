@@ -12,7 +12,7 @@ Add `networkBlocker` to your provider options:
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 
 export function ConsentManager({ children }: { children: ReactNode }) {
   return (
@@ -56,7 +56,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 Update the network blocker configuration at runtime:
 
 ```tsx
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function NetworkBlockerManager() {
   const { setNetworkBlocker } = useConsentManager();

@@ -28,7 +28,7 @@ This file is the canonical agent guide. `CLAUDE.md` imports it. Deeper task guid
 
 ## Toolchain
 
-Bun `1.3.11` is the package manager and script runner. Turborepo orchestrates tasks. Packages build with **rslib** (ESM + CJS into `dist/`, types into `dist-types/`). Tests run with **Vitest — not `bun test`** — including Playwright-backed browser tests. Lint/format is **Biome**. Versioning/publishing is **Changesets**. Lefthook installs a pre-commit hook (Biome format on staged files) on `bun install`.
+Bun `1.3.11` is the package manager and script runner. Turborepo orchestrates tasks. Packages build with **rslib** (ESM only into `dist/`, types into `dist-types/`). Tests run with **Vitest — not `bun test`** — including Playwright-backed browser tests. Lint/format is **Biome**. Versioning/publishing is **Changesets**. Lefthook installs a pre-commit hook (Biome format on staged files) on `bun install`.
 
 ## Commands
 

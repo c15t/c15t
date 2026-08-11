@@ -1,5 +1,7 @@
 'use client';
 
+import type { KernelConfig } from '@c15t/core/v3';
+import type { Script } from '@c15t/core/v3/modules/script-loader';
 /**
  * Client boundary for the v3 Next.js adapter.
  *
@@ -16,8 +18,6 @@ import {
 	ConsentProvider,
 	type ConsentProviderOptions,
 } from '@c15t/react/v3/provider';
-import type { KernelConfig } from 'c15t/v3';
-import type { Script } from 'c15t/v3/modules/script-loader';
 import type { ReactNode } from 'react';
 
 export interface ConsentBoundaryProps {

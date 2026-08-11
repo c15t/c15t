@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 
-import type { IABManager } from 'c15t';
+import type { IABManager } from '@c15t/core';
 import type { HeadlessIABBannerState } from './types';
 
 const MAX_BANNER_DISPLAY_ITEMS = 5;

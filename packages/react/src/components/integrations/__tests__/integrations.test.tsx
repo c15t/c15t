@@ -1,4 +1,4 @@
-import { type ConsentStoreState, defaultTranslationConfig } from 'c15t';
+import { type ConsentStoreState, defaultTranslationConfig } from '@c15t/core';
 import { createRef, type ReactNode, useRef, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';

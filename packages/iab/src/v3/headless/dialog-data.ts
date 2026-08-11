@@ -9,7 +9,7 @@
  * @packageDocumentation
  */
 
-import type { GlobalVendorList, NonIABVendor } from 'c15t/v3';
+import type { GlobalVendorList, NonIABVendor } from '@c15t/core/v3';
 import type {
 	HeadlessIABDialogData,
 	HeadlessIABProcessedFeature,

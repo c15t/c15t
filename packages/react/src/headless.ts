@@ -12,7 +12,7 @@ export {
 	policyPackPresets,
 	// Translation utilities
 	prepareTranslationConfig,
-} from 'c15t';
+} from '@c15t/core';
 export { useColorScheme } from './hooks/use-color-scheme';
 export {
 	type ConsentDialogTriggerVisibility,

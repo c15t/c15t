@@ -12,7 +12,7 @@
  * Output is stashed in .benchmarks/current/react-v3/render-counts.json so
  * it can feed the continuous-monitoring scoreboard.
  */
-import { defaultTranslationConfig } from 'c15t';
+import { defaultTranslationConfig } from '@c15t/core';
 import { Profiler, type ReactNode } from 'react';
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';

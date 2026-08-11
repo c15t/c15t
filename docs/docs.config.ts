@@ -70,7 +70,12 @@ const generateDocsConfig = () => {
 				pages: ['index'],
 				templates: {
 					componentFramework: {
-						pages: ['quickstart', 'optimization', '/ai-agents'],
+						pages: [
+							'quickstart',
+							'optimization',
+							'/granular-installs',
+							'/ai-agents',
+						],
 						children: [
 							{
 								title: 'Concepts',
@@ -157,7 +162,12 @@ const generateDocsConfig = () => {
 						],
 					},
 					javascript: {
-						pages: ['quickstart', 'optimization', '/ai-agents'],
+						pages: [
+							'quickstart',
+							'optimization',
+							'/granular-installs',
+							'/ai-agents',
+						],
 						children: [
 							{
 								title: 'Concepts',

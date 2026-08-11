@@ -1,7 +1,7 @@
 /**
  * Post-build script for @c15t/ui:
  * 1. Renames `*_module.css` files to `*.module.css` (rslib emits underscores)
- * 2. Fixes `_module.css` references in `.module.js` and `.module.cjs` files
+ * 2. Fixes `_module.css` references in `.module.js` files
  * 3. Generates aggregated CSS entrypoints:
  *    - :root custom property blocks stay unlayered
  *    - `styles.css` / `iab/styles.css` wrap component rules in `@layer components`
@@ -44,29 +44,17 @@ for (const dir of CSS_DIRS) {
 // node_modules.
 for (const dir of CSS_DIRS) {
 	for (const file of readdirSync(dir)) {
-		if (file.endsWith('.module.js') || file.endsWith('.module.cjs')) {
+		if (file.endsWith('.module.js')) {
 			const filePath = join(dir, file);
 			let content = readFileSync(filePath, 'utf-8');
 			// Fix underscore naming
 			if (content.includes('_module.css')) {
 				content = content.replace(/_module\.css/g, '.module.css');
 			}
-			// Strip bare CSS side-effect imports: import"./foo.module.css"; or require("./foo.module.css");
+			// Strip bare CSS side-effect imports: import"./foo.module.css";
 			content = content.replace(
 				/import\s*["'][^"']+\.module\.css["']\s*;?/g,
 				''
-			);
-			content = content.replace(
-				/require\(["'][^"']+\.module\.css["']\)\s*;?/g,
-				''
-			);
-			// rslib emits CJS CSS modules as:
-			// const external_x = require("./file.module.css"), local = {...}
-			// After stripping the require side effect, normalize the dangling
-			// declaration back to a valid const initializer list.
-			content = content.replace(
-				/const\s+external_[A-Za-z0-9_]+\s*=\s*,\s*/g,
-				'const '
 			);
 			writeFileSync(filePath, content);
 		}

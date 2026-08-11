@@ -22,7 +22,7 @@ Use your GTM container ID, which begins with `GTM-`.
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 
 const scripts = [googleTagManager({ id: 'GTM-XXXXXXX' })];
@@ -48,7 +48,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { googleTagManager } from '@c15t/scripts/google-tag-manager';
 
 const scripts = [googleTagManager({ id: 'GTM-XXXXXXX' })];

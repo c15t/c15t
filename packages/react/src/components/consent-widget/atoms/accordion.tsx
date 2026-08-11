@@ -1,5 +1,5 @@
+import type { AllConsentNames, ConsentType } from '@c15t/core';
 import styles from '@c15t/ui/styles/components/consent-widget.module.js';
-import type { AllConsentNames, ConsentType } from 'c15t';
 import {
 	type ComponentPropsWithoutRef,
 	createContext,

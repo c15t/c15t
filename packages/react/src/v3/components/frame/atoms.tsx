@@ -1,5 +1,5 @@
+import type { AllConsentNames } from '@c15t/core';
 import styles from '@c15t/ui/styles/v3/frame';
-import type { AllConsentNames } from 'c15t';
 import { forwardRef, type Ref } from 'react';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { Box, type BoxProps } from '../shared/primitives/box';

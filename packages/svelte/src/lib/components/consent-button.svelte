@@ -1,6 +1,6 @@
 <script lang="ts">
+import type { AllConsentNames } from '@c15t/core';
 import { buttonVariants } from '@c15t/ui/styles/primitives';
-import type { AllConsentNames } from 'c15t';
 import type { Snippet } from 'svelte';
 import type { HTMLButtonAttributes } from 'svelte/elements';
 import { getConsentContext, getThemeContext } from '../context.svelte';

@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Solutions for common issues with @c15t/react — provider errors, missing banners, consent persistence, and more.
+description: Solutions for common issues with c15t/react — provider errors, missing banners, consent persistence, and more.
 group: frameworks
 ---
 
@@ -46,13 +46,13 @@ See [Server-Side Utilities](/docs/frameworks/react/server-side) for full SSR set
 
 ```tsx
 // Components and hooks — main entry point
-import { ConsentManagerProvider, useConsentManager } from '@c15t/react';
+import { ConsentManagerProvider, useConsentManager } from 'c15t/react';
 
 // Server utilities — separate entry point
-import { fetchSSRData } from '@c15t/react/server';
+import { fetchSSRData } from 'c15t/react/server';
 
 // Headless (hooks only, no components)
-import { useConsentManager } from '@c15t/react/headless';
+import { useConsentManager } from 'c15t/react/headless';
 ```
 
 If you see type errors after updating, try:

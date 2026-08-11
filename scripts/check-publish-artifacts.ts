@@ -39,7 +39,8 @@ const distBlockedPathPatterns: Array<{ reason: string; pattern: RegExp }> = [
 ];
 
 const requiredPackedFilesByPackage: Record<string, string[]> = {
-	c15t: ['AGENTS.md', 'docs/README.md'],
+	c15t: ['AGENTS.md'],
+	'@c15t/core': ['AGENTS.md', 'docs/README.md'],
 	'@c15t/ui': [
 		'styles.css',
 		'styles.tw3.css',
@@ -139,14 +140,17 @@ function runPack(packageDir: string): PackResult {
 	const jsonPayload =
 		jsonStart >= 0 && jsonEnd >= jsonStart
 			? stdout.slice(jsonStart, jsonEnd + 2)
-			: stdout;
-	const parsed = JSON.parse(jsonPayload) as PackResult[];
-	if (!Array.isArray(parsed) || parsed.length === 0) {
-		throw new Error(`Unexpected npm pack output in ${packageDir}: ${stdout}`);
-	}
+			: stdout.slice(Math.max(stdout.indexOf('{'), 0));
+	const parsed = JSON.parse(jsonPayload) as
+		| PackResult[]
+		| Record<string, PackResult>;
 
-	const [firstPack] = parsed;
-	if (!firstPack) {
+	// npm ≤11 prints an array of pack results; npm 12 prints an object keyed
+	// by package name. Accept both.
+	const firstPack = Array.isArray(parsed)
+		? parsed[0]
+		: Object.values(parsed)[0];
+	if (!firstPack?.files) {
 		throw new Error(`Unexpected npm pack output in ${packageDir}: ${stdout}`);
 	}
 
@@ -156,6 +160,10 @@ function runPack(packageDir: string): PackResult {
 function getBlockedReason(packageName: string, path: string): string | null {
 	// Most accidental publish bloat in this repo comes from built output.
 	if (path.startsWith('dist/')) {
+		// v3 ships ESM-only: no package publishes CommonJS artifacts.
+		if (path.endsWith('.cjs')) {
+			return 'CommonJS artifact in ESM-only package';
+		}
 		if (path.endsWith('.d.ts.map')) {
 			return 'declaration source map in runtime dist';
 		}
@@ -166,7 +174,9 @@ function getBlockedReason(packageName: string, path: string): string | null {
 			) {
 				return null;
 			}
-			if (packageName === '@c15t/svelte') {
+			// svelte-package and nuxt-module-build ship declarations inside
+			// dist/ by design (no dist-types/ directory).
+			if (packageName === '@c15t/svelte' || packageName === '@c15t/vue') {
 				return null;
 			}
 			return 'declaration file in runtime dist';
@@ -279,7 +289,7 @@ function scanUiV3StyleArtifacts(
 	const issues: Array<{ path: string; size: number; reason: string }> = [];
 
 	for (const name of styleNames) {
-		for (const extension of ['css', 'js', 'cjs', 'd.ts']) {
+		for (const extension of ['css', 'js', 'd.ts']) {
 			const path = `dist/styles/v3/${name}.${extension}`;
 			if (!packedFilePaths.has(path)) {
 				issues.push({
@@ -295,6 +305,7 @@ function scanUiV3StyleArtifacts(
 			`dist/styles/v3/${name}.module.css`,
 			`dist/styles/v3/${name}.module.js`,
 			`dist/styles/v3/${name}.module.cjs`,
+			`dist/styles/v3/${name}.cjs`,
 		]) {
 			if (packedFilePaths.has(stalePath)) {
 				issues.push({
@@ -338,21 +349,6 @@ function scanUiV3StyleArtifacts(
 					path: jsPath,
 					size: content.length,
 					reason: 'v3 ESM class map must import its CSS side effect',
-				});
-			}
-		}
-
-		const cjsPath = `dist/styles/v3/${name}.cjs`;
-		if (packedFilePaths.has(cjsPath)) {
-			const filePath = join(packageDir, cjsPath);
-			const content = existsSync(filePath)
-				? readFileSync(filePath, 'utf8')
-				: '';
-			if (!content.includes(`./${name}.css`)) {
-				issues.push({
-					path: cjsPath,
-					size: content.length,
-					reason: 'v3 CJS class map must require its CSS side effect',
 				});
 			}
 		}

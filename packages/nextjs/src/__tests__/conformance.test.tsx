@@ -29,6 +29,13 @@ import {
 	type SuiteApi,
 	type TestDriver,
 } from '@c15t/conformance';
+import type { AllConsentNames } from '@c15t/core';
+import type {
+	KernelActiveUI,
+	KernelConfig,
+	ResolvedPolicy,
+	TranslationsResponse,
+} from '@c15t/core/v3';
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -36,13 +43,6 @@ import {
 	ConsentWidget,
 	useSnapshot,
 } from '@c15t/react/v3';
-import type { AllConsentNames } from 'c15t';
-import type {
-	KernelActiveUI,
-	KernelConfig,
-	ResolvedPolicy,
-	TranslationsResponse,
-} from 'c15t/v3';
 import { type ReactElement, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';

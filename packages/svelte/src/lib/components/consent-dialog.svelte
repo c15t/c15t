@@ -1,8 +1,8 @@
 <script lang="ts">
+import type { LegalLinks as LegalLinksType, Model } from '@c15t/core';
+import { defaultTranslationConfig } from '@c15t/core';
 import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
-import type { LegalLinks as LegalLinksType, Model } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
 import { getConsentContext, getThemeContext } from '../context.svelte';
 import { Dialog, Portal } from '../primitives';
 import { resolveComponentStyles } from '../utils';

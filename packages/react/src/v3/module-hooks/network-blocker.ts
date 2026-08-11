@@ -4,7 +4,7 @@ import {
 	type BlockedRequestInfo,
 	type NetworkBlockerHandle,
 	type NetworkBlockerRule,
-} from 'c15t/v3/modules/network-blocker';
+} from '@c15t/core/v3/modules/network-blocker';
 import { useEffect, useRef } from 'react';
 import { useRequiredKernel } from './shared';
 
@@ -62,7 +62,7 @@ export function useNetworkBlocker(
 
 	useEffect(() => {
 		let disposed = false;
-		void import('c15t/v3/modules/network-blocker').then(
+		void import('@c15t/core/v3/modules/network-blocker').then(
 			({ createNetworkBlocker }) => {
 				if (disposed) return;
 				const created = createNetworkBlocker({

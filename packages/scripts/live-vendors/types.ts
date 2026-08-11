@@ -1,4 +1,4 @@
-import type { Script } from 'c15t';
+import type { Script } from '@c15t/core';
 
 /**
  * Depth of a live vendor probe.

@@ -4,7 +4,7 @@
  * @packageDocumentation
  */
 
-import type { GlobalVendorList, NonIABVendor } from 'c15t/v3';
+import type { GlobalVendorList, NonIABVendor } from '@c15t/core/v3';
 
 export type HeadlessIABBannerAction = 'accept' | 'reject' | 'customize';
 export type HeadlessIABDialogAction = 'accept' | 'reject' | 'customize';

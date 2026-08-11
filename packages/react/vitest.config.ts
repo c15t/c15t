@@ -22,28 +22,28 @@ export default mergeConfig(
 				// Resolve core package to source so Vite can handle its dynamic
 				// imports natively. rslib emits webpack-style chunks that Vite's
 				// browser bundler cannot analyse.
-				'c15t/v3/modules/script-loader': resolve(
+				'@c15t/core/v3/modules/script-loader': resolve(
 					__dirname,
 					'../core/src/v3/modules/script-loader/index.ts'
 				),
-				'c15t/v3/modules/network-blocker': resolve(
+				'@c15t/core/v3/modules/network-blocker': resolve(
 					__dirname,
 					'../core/src/v3/modules/network-blocker/index.ts'
 				),
-				'c15t/v3/modules/iframe-blocker': resolve(
+				'@c15t/core/v3/modules/iframe-blocker': resolve(
 					__dirname,
 					'../core/src/v3/modules/iframe-blocker/index.ts'
 				),
-				'c15t/v3/modules/persistence': resolve(
+				'@c15t/core/v3/modules/persistence': resolve(
 					__dirname,
 					'../core/src/v3/modules/persistence/index.ts'
 				),
-				'c15t/v3/modules/window-debug': resolve(
+				'@c15t/core/v3/modules/window-debug': resolve(
 					__dirname,
 					'../core/src/v3/modules/window-debug/index.ts'
 				),
-				'c15t/v3': resolve(__dirname, '../core/src/v3/index.ts'),
-				c15t: resolve(__dirname, '../core/src/index.ts'),
+				'@c15t/core/v3': resolve(__dirname, '../core/src/v3/index.ts'),
+				'@c15t/core': resolve(__dirname, '../core/src/index.ts'),
 				'@c15t/schema/types': resolve(__dirname, '../schema/src/types.ts'),
 				'@c15t/schema/config': resolve(
 					__dirname,

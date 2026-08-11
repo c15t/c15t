@@ -51,7 +51,7 @@ export async function getBackendOptions({
 	useEnvFile = useEnvFileSelection as boolean;
 
 	// Prompt for Next.js proxy if using Next.js
-	if (context.framework.pkg === '@c15t/nextjs') {
+	if (context.framework.pkg === 'c15t/next') {
 		context.logger.info(
 			'Learn more about Next.js Rewrites: https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites'
 		);

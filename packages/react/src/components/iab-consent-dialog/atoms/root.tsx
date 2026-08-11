@@ -28,7 +28,7 @@ interface IABConsentDialogRootProps {
 	 * Which consent models this dialog responds to.
 	 * @default ['iab']
 	 */
-	models?: import('c15t').Model[];
+	models?: import('@c15t/core').Model[];
 	/**
 	 * Override the UI source identifier sent with consent API calls.
 	 * @default 'iab_dialog'

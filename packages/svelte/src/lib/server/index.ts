@@ -1,13 +1,13 @@
 import {
-	consentInputsToOverrides,
-	extractConsentRequestInputs,
-} from '@c15t/schema/types';
-import {
 	createHostedTransport,
 	type KernelConfig,
 	mergeInitResponseIntoKernelConfig,
-} from 'c15t/v3';
-import { readStoredConsentFromCookie } from 'c15t/v3/modules/persistence';
+} from '@c15t/core/v3';
+import { readStoredConsentFromCookie } from '@c15t/core/v3/modules/persistence';
+import {
+	consentInputsToOverrides,
+	extractConsentRequestInputs,
+} from '@c15t/schema/types';
 import { normalizeBackendURL } from './normalize-url';
 import type {
 	PrefetchInitialConsentOptions,
@@ -91,5 +91,5 @@ export async function prefetchInitialConsent(
 	}
 }
 
-export type { KernelConfig } from 'c15t/v3';
+export type { KernelConfig } from '@c15t/core/v3';
 export type { PrefetchInitialConsentOptions, ReadInitialConsentConfigOptions };

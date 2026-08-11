@@ -15,7 +15,7 @@ export default defineBuildConfig({
 		'vite',
 		'@c15t/schema',
 		'@c15t/ui',
-		'c15t',
+		'@c15t/core',
 		'@vueuse/core',
 		'reka-ui',
 		'defu',

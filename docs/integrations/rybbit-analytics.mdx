@@ -13,7 +13,7 @@ Rybbit Analytics loads through `@c15t/scripts` and configures tracking behavior 
   <Tab value="React">
     ```tsx
     import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/react';
+    import { ConsentManagerProvider } from 'c15t/react';
     import { rybbitAnalytics } from '@c15t/scripts/rybbit-analytics';
 
     const scripts = [rybbitAnalytics({ siteId: 'rybbit-123' })];
@@ -39,7 +39,7 @@ Rybbit Analytics loads through `@c15t/scripts` and configures tracking behavior 
     'use client';
 
     import { type ReactNode } from 'react';
-    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { ConsentManagerProvider } from 'c15t/next';
     import { rybbitAnalytics } from '@c15t/scripts/rybbit-analytics';
 
     const scripts = [rybbitAnalytics({ siteId: 'rybbit-123' })];
@@ -97,7 +97,7 @@ Guard event calls by checking consent state. From React:
 
 ```tsx
 import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 export default function SignupExample() {
   const { has } = useConsentManager();

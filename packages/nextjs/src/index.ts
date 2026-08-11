@@ -8,8 +8,8 @@
  * @see {@link ./middleware} for Next.js middleware integration
  */
 
+export { buildPrefetchScript, type PrefetchOptions } from '@c15t/core';
 export * from '@c15t/react';
-export { buildPrefetchScript, type PrefetchOptions } from 'c15t';
 export { C15tPrefetch } from './libs/browser-initial-data';
 export { fetchInitialData } from './libs/initial-data';
 export type {

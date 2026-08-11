@@ -13,7 +13,7 @@ Mixpanel helps you track product usage, funnels, and retention. The `mixpanelAna
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { mixpanelAnalytics } from '@c15t/scripts/mixpanel-analytics';
 
 const scripts = [
@@ -43,7 +43,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { mixpanelAnalytics } from '@c15t/scripts/mixpanel-analytics';
 
 const scripts = [

@@ -10,7 +10,7 @@ import {
 } from './scripts';
 
 interface GenerateConsentComponentOptions {
-	/** Package to import from: '@c15t/react' or '@c15t/nextjs' */
+	/** Entry point to import from: 'c15t/react' or 'c15t/next' */
 	importSource: string;
 	/** Pre-computed inner options text (mode, backendURL, etc.) */
 	optionsText: string;
@@ -28,7 +28,7 @@ interface GenerateConsentComponentOptions {
 	includeOverrides?: boolean;
 	/** Whether to add c15t DevTools component */
 	enableDevTools?: boolean;
-	/** When set, use ConsentManagerProps from this package for props typing (e.g. '@c15t/nextjs') */
+	/** When set, use ConsentManagerProps from this entry point for props typing (e.g. 'c15t/next') */
 	useFrameworkProps?: string;
 	/** When true, add theme import from './theme' and include in options */
 	includeTheme?: boolean;
@@ -50,20 +50,20 @@ interface GenerateConsentComponentOptions {
  * ```ts
  * // React
  * generateConsentComponent({
- *   importSource: '@c15t/react',
+ *   importSource: 'c15t/react',
  *   optionsText: "mode: 'offline',",
  * });
  *
  * // Next.js Pages
  * generateConsentComponent({
- *   importSource: '@c15t/nextjs',
+ *   importSource: 'c15t/next',
  *   optionsText: "mode: 'hosted',\n\t\t\t\tbackendURL: '/api/c15t',",
  *   initialDataProp: true,
  * });
  *
  * // Next.js App Dir client
  * generateConsentComponent({
- *   importSource: '@c15t/nextjs',
+ *   importSource: 'c15t/next',
  *   optionsText: "mode: 'hosted',\n\t\t\t\tbackendURL: '/api/c15t',",
  *   useClientDirective: true,
  *   defaultExport: true,
@@ -178,7 +178,7 @@ export function generateConsentComponent({
 	// Build pre-doc extras (e.g. client-only comment for Pages)
 	const preDocComment = initialDataProp
 		? `// For client-only apps (non-SSR), you can use:
-// import { ConsentManagerProvider } from '@c15t/nextjs/client';
+// import { ConsentManagerProvider } from 'c15t/next';
 
 `
 		: '';

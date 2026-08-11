@@ -1,4 +1,4 @@
-import type { ConsentState, Script, ScriptCallbackInfo } from 'c15t';
+import type { ConsentState, Script, ScriptCallbackInfo } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { type VendorManifest, vendorManifestContract } from '../../types';
 

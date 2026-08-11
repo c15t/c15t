@@ -53,7 +53,7 @@ jobs:
           bunx "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium
 
       - name: Build c15t core
-        run: bun turbo run build --filter=c15t
+        run: bun turbo run build --filter=@c15t/core
 
       - name: Run live vendor probes
         working-directory: packages/scripts

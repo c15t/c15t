@@ -54,157 +54,157 @@
 		"./primitives": {
 			"types": "./dist-types/primitives.d.ts",
 			"import": "./dist/primitives.js",
-			"require": "./dist/primitives.cjs"
+			"default": "./dist/primitives.js"
 		},
 		"./primitives/*": {
 			"types": "./dist-types/primitives/*.d.ts",
 			"import": "./dist/primitives/*.js",
-			"require": "./dist/primitives/*.cjs"
+			"default": "./dist/primitives/*.js"
 		},
 		"./server": {
 			"types": "./dist-types/server/index.d.ts",
 			"import": "./dist/server/index.js",
-			"require": "./dist/server/index.cjs"
+			"default": "./dist/server/index.js"
 		},
 		"./headless": {
 			"types": "./dist-types/headless.d.ts",
 			"import": "./dist/headless.js",
-			"require": "./dist/headless.cjs"
+			"default": "./dist/headless.js"
 		},
 		"./cookie-banner": {
 			"types": "./dist-types/components/consent-banner/index.d.ts",
 			"import": "./client/components/consent-banner.js",
-			"require": "./dist/components/consent-banner/index.cjs"
+			"default": "./client/components/consent-banner.js"
 		},
 		"./components/consent-banner": {
 			"types": "./dist-types/components/consent-banner/index.d.ts",
 			"import": "./client/components/consent-banner.js",
-			"require": "./dist/components/consent-banner/index.cjs"
+			"default": "./client/components/consent-banner.js"
 		},
 		"./components/consent-dialog": {
 			"types": "./dist-types/components/consent-dialog/index.d.ts",
 			"import": "./client/components/consent-dialog.js",
-			"require": "./dist/components/consent-dialog/index.cjs"
+			"default": "./client/components/consent-dialog.js"
 		},
 		"./components/consent-dialog-trigger": {
 			"types": "./dist-types/components/consent-dialog-trigger/index.d.ts",
 			"import": "./client/components/consent-dialog-trigger.js",
-			"require": "./dist/components/consent-dialog-trigger/index.cjs"
+			"default": "./client/components/consent-dialog-trigger.js"
 		},
 		"./components/consent-dialog-link": {
 			"types": "./dist-types/components/consent-dialog-link/index.d.ts",
 			"import": "./client/components/consent-dialog-link.js",
-			"require": "./dist/components/consent-dialog-link/index.cjs"
+			"default": "./client/components/consent-dialog-link.js"
 		},
 		"./components/consent-widget": {
 			"types": "./dist-types/components/consent-widget/index.d.ts",
 			"import": "./client/components/consent-widget.js",
-			"require": "./dist/components/consent-widget/index.cjs"
+			"default": "./client/components/consent-widget.js"
 		},
 		"./components/frame": {
 			"types": "./dist-types/components/frame/index.d.ts",
 			"import": "./client/components/frame.js",
-			"require": "./dist/components/frame/index.cjs"
+			"default": "./client/components/frame.js"
 		},
 		"./components/integrations": {
 			"types": "./dist-types/components/integrations/index.d.ts",
 			"import": "./client/components/integrations.js",
-			"require": "./dist/components/integrations/index.cjs"
+			"default": "./client/components/integrations.js"
 		},
 		"./iab": {
 			"types": "./dist-types/iab.d.ts",
 			"import": "./dist/iab.js",
-			"require": "./dist/iab.cjs"
+			"default": "./dist/iab.js"
 		},
 		"./hooks": {
 			"types": "./dist-types/hooks/index.d.ts",
 			"import": "./dist/hooks/index.js",
-			"require": "./dist/hooks/index.cjs"
+			"default": "./dist/hooks/index.js"
 		},
 		".": {
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
+			"default": "./dist/index.js"
 		},
 		"./v3": {
 			"types": "./dist-types/v3/index.d.ts",
 			"import": "./dist/v3/index.js",
-			"require": "./dist/v3/index.cjs"
+			"default": "./dist/v3/index.js"
 		},
 		"./v3/provider": {
 			"types": "./dist-types/v3/provider.d.ts",
 			"import": "./dist/v3/provider.js",
-			"require": "./dist/v3/provider.cjs"
+			"default": "./dist/v3/provider.js"
 		},
 		"./v3/hooks": {
 			"types": "./dist-types/v3/hooks.d.ts",
 			"import": "./dist/v3/hooks.js",
-			"require": "./dist/v3/hooks.cjs"
+			"default": "./dist/v3/hooks.js"
 		},
 		"./v3/draft": {
 			"types": "./dist-types/v3/draft.d.ts",
 			"import": "./dist/v3/draft.js",
-			"require": "./dist/v3/draft.cjs"
+			"default": "./dist/v3/draft.js"
 		},
 		"./v3/module-hooks": {
 			"types": "./dist-types/v3/module-hooks.d.ts",
 			"import": "./dist/v3/module-hooks.js",
-			"require": "./dist/v3/module-hooks.cjs"
+			"default": "./dist/v3/module-hooks.js"
 		},
 		"./v3/module-hooks/script-loader": {
 			"types": "./dist-types/v3/module-hooks/script-loader.d.ts",
 			"import": "./dist/v3/module-hooks/script-loader.js",
-			"require": "./dist/v3/module-hooks/script-loader.cjs"
+			"default": "./dist/v3/module-hooks/script-loader.js"
 		},
 		"./v3/module-hooks/persistence": {
 			"types": "./dist-types/v3/module-hooks/persistence.d.ts",
 			"import": "./dist/v3/module-hooks/persistence.js",
-			"require": "./dist/v3/module-hooks/persistence.cjs"
+			"default": "./dist/v3/module-hooks/persistence.js"
 		},
 		"./v3/module-hooks/network-blocker": {
 			"types": "./dist-types/v3/module-hooks/network-blocker.d.ts",
 			"import": "./dist/v3/module-hooks/network-blocker.js",
-			"require": "./dist/v3/module-hooks/network-blocker.cjs"
+			"default": "./dist/v3/module-hooks/network-blocker.js"
 		},
 		"./v3/module-hooks/iframe-blocker": {
 			"types": "./dist-types/v3/module-hooks/iframe-blocker.d.ts",
 			"import": "./dist/v3/module-hooks/iframe-blocker.js",
-			"require": "./dist/v3/module-hooks/iframe-blocker.cjs"
+			"default": "./dist/v3/module-hooks/iframe-blocker.js"
 		},
 		"./v3/consent-banner": {
 			"types": "./dist-types/v3/consent-banner.d.ts",
 			"import": "./dist/v3/consent-banner.js",
-			"require": "./dist/v3/consent-banner.cjs"
+			"default": "./dist/v3/consent-banner.js"
 		},
 		"./v3/consent-dialog": {
 			"types": "./dist-types/v3/consent-dialog.d.ts",
 			"import": "./dist/v3/consent-dialog.js",
-			"require": "./dist/v3/consent-dialog.cjs"
+			"default": "./dist/v3/consent-dialog.js"
 		},
 		"./v3/consent-widget": {
 			"types": "./dist-types/v3/consent-widget.d.ts",
 			"import": "./dist/v3/consent-widget.js",
-			"require": "./dist/v3/consent-widget.cjs"
+			"default": "./dist/v3/consent-widget.js"
 		},
 		"./v3/consent-dialog-link": {
 			"types": "./dist-types/v3/consent-dialog-link.d.ts",
 			"import": "./dist/v3/consent-dialog-link.js",
-			"require": "./dist/v3/consent-dialog-link.cjs"
+			"default": "./dist/v3/consent-dialog-link.js"
 		},
 		"./v3/consent-dialog-trigger": {
 			"types": "./dist-types/v3/consent-dialog-trigger.d.ts",
 			"import": "./dist/v3/consent-dialog-trigger.js",
-			"require": "./dist/v3/consent-dialog-trigger.cjs"
+			"default": "./dist/v3/consent-dialog-trigger.js"
 		},
 		"./v3/frame": {
 			"types": "./dist-types/v3/frame.d.ts",
 			"import": "./dist/v3/frame.js",
-			"require": "./dist/v3/frame.cjs"
+			"default": "./dist/v3/frame.js"
 		},
 		"./v3/iab": {
 			"types": "./dist-types/v3/iab.d.ts",
 			"import": "./dist/v3/iab.js",
-			"require": "./dist/v3/iab.cjs"
+			"default": "./dist/v3/iab.js"
 		},
 		"./v3/styles.css": "./dist/v3/styles.css",
 		"./v3/styles.tw3.css": "./dist/v3/styles.tw3.css",
@@ -213,76 +213,75 @@
 		"./v3/primitives": {
 			"types": "./dist-types/v3/primitives.d.ts",
 			"import": "./dist/v3/primitives.js",
-			"require": "./dist/v3/primitives.cjs"
+			"default": "./dist/v3/primitives.js"
 		},
 		"./v3/primitives/*": {
 			"types": "./dist-types/v3/primitives/*.d.ts",
 			"import": "./dist/v3/primitives/*.js",
-			"require": "./dist/v3/primitives/*.cjs"
+			"default": "./dist/v3/primitives/*.js"
 		},
 		"./v3/server": {
 			"types": "./dist-types/v3/server/index.d.ts",
 			"import": "./dist/v3/server/index.js",
-			"require": "./dist/v3/server/index.cjs"
+			"default": "./dist/v3/server/index.js"
 		},
 		"./v3/headless": {
 			"types": "./dist-types/v3/headless.d.ts",
 			"import": "./dist/v3/headless.js",
-			"require": "./dist/v3/headless.cjs"
+			"default": "./dist/v3/headless.js"
 		},
 		"./v3/components/consent-banner": {
 			"types": "./dist-types/v3/components/consent-banner/index.d.ts",
 			"import": "./dist/v3/components/consent-banner/index.js",
-			"require": "./dist/v3/components/consent-banner/index.cjs"
+			"default": "./dist/v3/components/consent-banner/index.js"
 		},
 		"./v3/components/consent-dialog": {
 			"types": "./dist-types/v3/components/consent-dialog/index.d.ts",
 			"import": "./dist/v3/components/consent-dialog/index.js",
-			"require": "./dist/v3/components/consent-dialog/index.cjs"
+			"default": "./dist/v3/components/consent-dialog/index.js"
 		},
 		"./v3/components/consent-dialog-trigger": {
 			"types": "./dist-types/v3/components/consent-dialog-trigger/index.d.ts",
 			"import": "./dist/v3/components/consent-dialog-trigger/index.js",
-			"require": "./dist/v3/components/consent-dialog-trigger/index.cjs"
+			"default": "./dist/v3/components/consent-dialog-trigger/index.js"
 		},
 		"./v3/components/consent-dialog-link": {
 			"types": "./dist-types/v3/components/consent-dialog-link/index.d.ts",
 			"import": "./dist/v3/components/consent-dialog-link/index.js",
-			"require": "./dist/v3/components/consent-dialog-link/index.cjs"
+			"default": "./dist/v3/components/consent-dialog-link/index.js"
 		},
 		"./v3/components/consent-widget": {
 			"types": "./dist-types/v3/components/consent-widget/index.d.ts",
 			"import": "./dist/v3/components/consent-widget/index.js",
-			"require": "./dist/v3/components/consent-widget/index.cjs"
+			"default": "./dist/v3/components/consent-widget/index.js"
 		},
 		"./v3/components/frame": {
 			"types": "./dist-types/v3/components/frame/index.d.ts",
 			"import": "./dist/v3/components/frame/index.js",
-			"require": "./dist/v3/components/frame/index.cjs"
+			"default": "./dist/v3/components/frame/index.js"
 		},
 		"./v3/context": {
 			"types": "./dist-types/v3/context/index.d.ts",
 			"import": "./dist/v3/context/index.js",
-			"require": "./dist/v3/context/index.cjs"
+			"default": "./dist/v3/context/index.js"
 		},
 		"./v3/types": {
 			"types": "./dist-types/v3/types/index.d.ts",
 			"import": "./dist/v3/types/index.js",
-			"require": "./dist/v3/types/index.cjs"
+			"default": "./dist/v3/types/index.js"
 		},
 		"./v3/utils": {
 			"types": "./dist-types/v3/utils/index.d.ts",
 			"import": "./dist/v3/utils/index.js",
-			"require": "./dist/v3/utils/index.cjs"
+			"default": "./dist/v3/utils/index.js"
 		},
 		"./v3/compat": {
 			"types": "./dist-types/v3/compat.d.ts",
 			"import": "./dist/v3/compat.js",
-			"require": "./dist/v3/compat.cjs"
+			"default": "./dist/v3/compat.js"
 		}
 	},
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
+	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",
@@ -317,12 +316,12 @@
 		"not op_mini all"
 	],
 	"dependencies": {
+		"@c15t/core": "workspace:*",
 		"@c15t/iab": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
 		"@c15t/ui": "workspace:*",
-		"@types/google.maps": "3.65.3",
-		"c15t": "workspace:*"
+		"@types/google.maps": "3.65.3"
 	},
 	"devDependencies": {
 		"@c15t/backend": "workspace:*",
@@ -337,6 +336,14 @@
 	"peerDependencies": {
 		"react": "^19.0.0 || ^19.0.0-rc || ^18.0.0 || ^17.0.0 || ^16.8.0",
 		"react-dom": "^19.0.0 || ^19.0.0-rc || ^18.0.0 || ^17.0.0 || ^16.8.0"
+	},
+	"peerDependenciesMeta": {
+		"react": {
+			"optional": true
+		},
+		"react-dom": {
+			"optional": true
+		}
 	},
 	"publishConfig": {
 		"access": "public"

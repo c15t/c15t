@@ -50,182 +50,182 @@
 		"./adobe-analytics": {
 			"types": "./dist-types/vendors/analytics/adobe-analytics.d.ts",
 			"import": "./dist/vendors/analytics/adobe-analytics.js",
-			"require": "./dist/vendors/analytics/adobe-analytics.cjs"
+			"default": "./dist/vendors/analytics/adobe-analytics.js"
 		},
 		"./ahrefs-analytics": {
 			"types": "./dist-types/vendors/analytics/ahrefs-analytics.d.ts",
 			"import": "./dist/vendors/analytics/ahrefs-analytics.js",
-			"require": "./dist/vendors/analytics/ahrefs-analytics.cjs"
+			"default": "./dist/vendors/analytics/ahrefs-analytics.js"
 		},
 		"./amplitude": {
 			"types": "./dist-types/vendors/analytics/amplitude.d.ts",
 			"import": "./dist/vendors/analytics/amplitude.js",
-			"require": "./dist/vendors/analytics/amplitude.cjs"
+			"default": "./dist/vendors/analytics/amplitude.js"
 		},
 		"./cloudflare-web-analytics": {
 			"types": "./dist-types/vendors/analytics/cloudflare-web-analytics.d.ts",
 			"import": "./dist/vendors/analytics/cloudflare-web-analytics.js",
-			"require": "./dist/vendors/analytics/cloudflare-web-analytics.cjs"
+			"default": "./dist/vendors/analytics/cloudflare-web-analytics.js"
 		},
 		"./clearbit": {
 			"types": "./dist-types/vendors/analytics/clearbit.d.ts",
 			"import": "./dist/vendors/analytics/clearbit.js",
-			"require": "./dist/vendors/analytics/clearbit.cjs"
+			"default": "./dist/vendors/analytics/clearbit.js"
 		},
 		"./microsoft-clarity": {
 			"types": "./dist-types/vendors/analytics/microsoft-clarity.d.ts",
 			"import": "./dist/vendors/analytics/microsoft-clarity.js",
-			"require": "./dist/vendors/analytics/microsoft-clarity.cjs"
+			"default": "./dist/vendors/analytics/microsoft-clarity.js"
 		},
 		"./databuddy": {
 			"types": "./dist-types/vendors/analytics/databuddy.d.ts",
 			"import": "./dist/vendors/analytics/databuddy.js",
-			"require": "./dist/vendors/analytics/databuddy.cjs"
+			"default": "./dist/vendors/analytics/databuddy.js"
 		},
 		"./fathom-analytics": {
 			"types": "./dist-types/vendors/analytics/fathom-analytics.d.ts",
 			"import": "./dist/vendors/analytics/fathom-analytics.js",
-			"require": "./dist/vendors/analytics/fathom-analytics.cjs"
+			"default": "./dist/vendors/analytics/fathom-analytics.js"
 		},
 		"./heap": {
 			"types": "./dist-types/vendors/analytics/heap.d.ts",
 			"import": "./dist/vendors/analytics/heap.js",
-			"require": "./dist/vendors/analytics/heap.cjs"
+			"default": "./dist/vendors/analytics/heap.js"
 		},
 		"./hotjar": {
 			"types": "./dist-types/vendors/analytics/hotjar.d.ts",
 			"import": "./dist/vendors/analytics/hotjar.js",
-			"require": "./dist/vendors/analytics/hotjar.cjs"
+			"default": "./dist/vendors/analytics/hotjar.js"
 		},
 		"./hightouch": {
 			"types": "./dist-types/vendors/analytics/hightouch.d.ts",
 			"import": "./dist/vendors/analytics/hightouch.js",
-			"require": "./dist/vendors/analytics/hightouch.cjs"
+			"default": "./dist/vendors/analytics/hightouch.js"
 		},
 		"./rudderstack": {
 			"types": "./dist-types/vendors/analytics/rudderstack.d.ts",
 			"import": "./dist/vendors/analytics/rudderstack.js",
-			"require": "./dist/vendors/analytics/rudderstack.cjs"
+			"default": "./dist/vendors/analytics/rudderstack.js"
 		},
 		"./logrocket": {
 			"types": "./dist-types/vendors/analytics/logrocket.d.ts",
 			"import": "./dist/vendors/analytics/logrocket.js",
-			"require": "./dist/vendors/analytics/logrocket.cjs"
+			"default": "./dist/vendors/analytics/logrocket.js"
 		},
 		"./google-tag": {
 			"types": "./dist-types/vendors/analytics/google-tag.d.ts",
 			"import": "./dist/vendors/analytics/google-tag.js",
-			"require": "./dist/vendors/analytics/google-tag.cjs"
+			"default": "./dist/vendors/analytics/google-tag.js"
 		},
 		"./matomo-analytics": {
 			"types": "./dist-types/vendors/analytics/matomo-analytics.d.ts",
 			"import": "./dist/vendors/analytics/matomo-analytics.js",
-			"require": "./dist/vendors/analytics/matomo-analytics.cjs"
+			"default": "./dist/vendors/analytics/matomo-analytics.js"
 		},
 		"./mixpanel-analytics": {
 			"types": "./dist-types/vendors/analytics/mixpanel-analytics.d.ts",
 			"import": "./dist/vendors/analytics/mixpanel-analytics.js",
-			"require": "./dist/vendors/analytics/mixpanel-analytics.cjs"
+			"default": "./dist/vendors/analytics/mixpanel-analytics.js"
 		},
 		"./pirsch": {
 			"types": "./dist-types/vendors/analytics/pirsch.d.ts",
 			"import": "./dist/vendors/analytics/pirsch.js",
-			"require": "./dist/vendors/analytics/pirsch.cjs"
+			"default": "./dist/vendors/analytics/pirsch.js"
 		},
 		"./plausible-analytics": {
 			"types": "./dist-types/vendors/analytics/plausible-analytics.d.ts",
 			"import": "./dist/vendors/analytics/plausible-analytics.js",
-			"require": "./dist/vendors/analytics/plausible-analytics.cjs"
+			"default": "./dist/vendors/analytics/plausible-analytics.js"
 		},
 		"./posthog": {
 			"types": "./dist-types/vendors/analytics/posthog.d.ts",
 			"import": "./dist/vendors/analytics/posthog.js",
-			"require": "./dist/vendors/analytics/posthog.cjs"
+			"default": "./dist/vendors/analytics/posthog.js"
 		},
 		"./promptwatch": {
 			"types": "./dist-types/vendors/analytics/promptwatch.d.ts",
 			"import": "./dist/vendors/analytics/promptwatch.js",
-			"require": "./dist/vendors/analytics/promptwatch.cjs"
+			"default": "./dist/vendors/analytics/promptwatch.js"
 		},
 		"./segment": {
 			"types": "./dist-types/vendors/analytics/segment.d.ts",
 			"import": "./dist/vendors/analytics/segment.js",
-			"require": "./dist/vendors/analytics/segment.cjs"
+			"default": "./dist/vendors/analytics/segment.js"
 		},
 		"./rybbit-analytics": {
 			"types": "./dist-types/vendors/analytics/rybbit-analytics.d.ts",
 			"import": "./dist/vendors/analytics/rybbit-analytics.js",
-			"require": "./dist/vendors/analytics/rybbit-analytics.cjs"
+			"default": "./dist/vendors/analytics/rybbit-analytics.js"
 		},
 		"./umami-analytics": {
 			"types": "./dist-types/vendors/analytics/umami-analytics.d.ts",
 			"import": "./dist/vendors/analytics/umami-analytics.js",
-			"require": "./dist/vendors/analytics/umami-analytics.cjs"
+			"default": "./dist/vendors/analytics/umami-analytics.js"
 		},
 		"./vercel-analytics": {
 			"types": "./dist-types/vendors/analytics/vercel-analytics.d.ts",
 			"import": "./dist/vendors/analytics/vercel-analytics.js",
-			"require": "./dist/vendors/analytics/vercel-analytics.cjs"
+			"default": "./dist/vendors/analytics/vercel-analytics.js"
 		},
 		"./crisp": {
 			"types": "./dist-types/vendors/functional/crisp.d.ts",
 			"import": "./dist/vendors/functional/crisp.js",
-			"require": "./dist/vendors/functional/crisp.cjs"
+			"default": "./dist/vendors/functional/crisp.js"
 		},
 		"./intercom": {
 			"types": "./dist-types/vendors/functional/intercom.d.ts",
 			"import": "./dist/vendors/functional/intercom.js",
-			"require": "./dist/vendors/functional/intercom.cjs"
+			"default": "./dist/vendors/functional/intercom.js"
 		},
 		"./google-tag-manager": {
 			"types": "./dist-types/vendors/tag-managers/google-tag-manager.d.ts",
 			"import": "./dist/vendors/tag-managers/google-tag-manager.js",
-			"require": "./dist/vendors/tag-managers/google-tag-manager.cjs"
+			"default": "./dist/vendors/tag-managers/google-tag-manager.js"
 		},
 		"./linkedin-insights": {
 			"types": "./dist-types/vendors/ads-and-pixels/linkedin-insights.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/linkedin-insights.js",
-			"require": "./dist/vendors/ads-and-pixels/linkedin-insights.cjs"
+			"default": "./dist/vendors/ads-and-pixels/linkedin-insights.js"
 		},
 		"./meta-pixel": {
 			"types": "./dist-types/vendors/ads-and-pixels/meta-pixel.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/meta-pixel.js",
-			"require": "./dist/vendors/ads-and-pixels/meta-pixel.cjs"
+			"default": "./dist/vendors/ads-and-pixels/meta-pixel.js"
 		},
 		"./reddit-pixel": {
 			"types": "./dist-types/vendors/ads-and-pixels/reddit-pixel.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/reddit-pixel.js",
-			"require": "./dist/vendors/ads-and-pixels/reddit-pixel.cjs"
+			"default": "./dist/vendors/ads-and-pixels/reddit-pixel.js"
 		},
 		"./microsoft-uet": {
 			"types": "./dist-types/vendors/ads-and-pixels/microsoft-uet.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/microsoft-uet.js",
-			"require": "./dist/vendors/ads-and-pixels/microsoft-uet.cjs"
+			"default": "./dist/vendors/ads-and-pixels/microsoft-uet.js"
 		},
 		"./snapchat-pixel": {
 			"types": "./dist-types/vendors/ads-and-pixels/snapchat-pixel.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/snapchat-pixel.js",
-			"require": "./dist/vendors/ads-and-pixels/snapchat-pixel.cjs"
+			"default": "./dist/vendors/ads-and-pixels/snapchat-pixel.js"
 		},
 		"./tiktok-pixel": {
 			"types": "./dist-types/vendors/ads-and-pixels/tiktok-pixel.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/tiktok-pixel.js",
-			"require": "./dist/vendors/ads-and-pixels/tiktok-pixel.cjs"
+			"default": "./dist/vendors/ads-and-pixels/tiktok-pixel.js"
 		},
 		"./x-pixel": {
 			"types": "./dist-types/vendors/ads-and-pixels/x-pixel.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/x-pixel.js",
-			"require": "./dist/vendors/ads-and-pixels/x-pixel.cjs"
+			"default": "./dist/vendors/ads-and-pixels/x-pixel.js"
 		},
 		"./registry": {
 			"types": "./dist-types/registry.d.ts",
 			"import": "./dist/registry.js",
-			"require": "./dist/registry.cjs"
+			"default": "./dist/registry.js"
 		},
 		"./*": {
 			"types": "./dist-types/*.d.ts",
 			"import": "./dist/*.js",
-			"require": "./dist/*.cjs"
+			"default": "./dist/*.js"
 		}
 	},
 	"files": [
@@ -251,9 +251,9 @@
 		"not op_mini all"
 	],
 	"devDependencies": {
+		"@c15t/core": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"c15t": "workspace:*",
 		"playwright": "1.58.2",
 		"typescript": "7.0.2"
 	},

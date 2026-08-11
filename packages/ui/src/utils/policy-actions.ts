@@ -4,7 +4,7 @@ export type {
 	PolicyUiActionGroup,
 	PolicyUiProfile,
 	PolicyUiSurfaceConfig,
-} from 'c15t';
+} from '@c15t/core';
 export {
 	flattenPolicyActionGroups,
 	hasPolicyHints,
@@ -15,4 +15,4 @@ export {
 	resolvePolicyPrimaryActions,
 	resolvePolicyUiProfile,
 	shouldFillPolicyActions,
-} from 'c15t';
+} from '@c15t/core';

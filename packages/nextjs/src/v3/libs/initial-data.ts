@@ -1,9 +1,9 @@
+import type { SSRInitialData } from '@c15t/core';
 import {
 	createSSRInitCacheKey,
 	fetchSSRData,
 	normalizeBackendURL,
 } from '@c15t/react/v3/server';
-import type { SSRInitialData } from 'c15t';
 import { unstable_cache } from 'next/cache';
 import { headers as nextHeaders } from 'next/headers';
 import type { FetchInitialDataOptions } from '~/v3/types';

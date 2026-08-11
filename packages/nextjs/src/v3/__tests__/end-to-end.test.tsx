@@ -9,8 +9,8 @@
  *    roundtrip completes.
  */
 
+import type { KernelConfig } from '@c15t/core/v3';
 import { useConsent, useSnapshot } from '@c15t/react/v3';
-import type { KernelConfig } from 'c15t/v3';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { ConsentBoundary } from '../boundary';

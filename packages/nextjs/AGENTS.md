@@ -1,6 +1,6 @@
 # @c15t/nextjs
 
-> Next.js consent management docs for c15t, including App Router setup, consent UI, SSR behavior, script loading, and integrations.
+> Next.js consent management docs for c15t, including App Router setup, consent UI, SSR behavior, script loading, and integrations. These docs use umbrella imports (c15t/next); when installing @c15t/nextjs directly, substitute @c15t/nextjs for c15t/next.
 
 These docs ship inside the package so coding agents can read them offline. Open the topic file you need from the list below — paths are relative to this file.
 
@@ -56,7 +56,7 @@ Install and configure c15t in JavaScript, React, and Next.js applications.
 - [Component Slots](./docs/frameworks/next/styling/slots.md): Target individual component parts with styles using the slot system - className strings or inline style objects.
 - [Tailwind CSS](./docs/frameworks/next/styling/tailwind.md): Use Tailwind CSS utility classes to style consent components via the slot system.
 - [Design Tokens](./docs/frameworks/next/styling/tokens.md): The six base token categories that control colors, typography, spacing, radius, shadows, and motion, plus optional dark-mode overrides.
-- [Troubleshooting](./docs/frameworks/next/troubleshooting.md): Solutions for common issues with @c15t/nextjs — provider errors, missing banners, consent persistence, and more.
+- [Troubleshooting](./docs/frameworks/next/troubleshooting.md): Solutions for common issues with c15t/next — provider errors, missing banners, consent persistence, and more.
 
 ## Integrations
 

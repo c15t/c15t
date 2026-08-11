@@ -4,6 +4,7 @@
  * Actions are side-effect functions executed during state transitions.
  */
 
+import { UMBRELLA_PACKAGE } from '~/constants';
 import type {
 	FileModification,
 	MachineError,
@@ -189,9 +190,10 @@ export function addDependencies({
 }: ActionArgs): Partial<GenerateMachineContext> {
 	const deps: string[] = [];
 
-	// Add framework package
+	// Every framework target installs the single c15t umbrella package;
+	// framework.pkg only selects the entry point generated code imports from.
 	if (context.framework?.pkg) {
-		deps.push(context.framework.pkg);
+		deps.push(UMBRELLA_PACKAGE);
 	}
 
 	// Add scripts package if selected

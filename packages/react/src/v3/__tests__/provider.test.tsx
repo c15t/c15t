@@ -1,4 +1,4 @@
-import type { InitOutput } from 'c15t';
+import type { InitOutput } from '@c15t/core';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';

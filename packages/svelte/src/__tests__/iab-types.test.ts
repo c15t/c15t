@@ -5,7 +5,7 @@
  * into UI-friendly processed format.
  */
 
-import type { GlobalVendorList } from 'c15t';
+import type { GlobalVendorList } from '@c15t/core';
 import { describe, expect, test } from 'vitest';
 import { type NonIABVendor, processGVLData } from '../lib/iab-types';
 

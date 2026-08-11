@@ -7,13 +7,13 @@ import {
 	type HasCondition,
 	type Model,
 	type TranslationConfig,
-} from 'c15t';
+} from '@c15t/core';
 import type {
 	ConsentState,
 	KernelActiveUI,
 	KernelIABState,
 	PolicyUiSurfaceConfig,
-} from 'c15t/v3';
+} from '@c15t/core/v3';
 import { useCallback, useMemo } from 'react';
 import { useConsentDraft } from '../draft';
 import {

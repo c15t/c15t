@@ -13,7 +13,7 @@ Fathom Analytics is a lightweight, cookieless analytics product configured entir
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { fathomAnalytics } from '@c15t/scripts/fathom-analytics';
 
 const scripts = [fathomAnalytics({ site: 'SITE123' })];
@@ -39,7 +39,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { fathomAnalytics } from '@c15t/scripts/fathom-analytics';
 
 const scripts = [fathomAnalytics({ site: 'SITE123' })];
@@ -98,7 +98,7 @@ c15t gates the Fathom script from loading until `measurement` consent is granted
 Guard event calls by checking consent state. From React:
 
 ```tsx
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function useTrackSignup() {
   const { has } = useConsentManager();

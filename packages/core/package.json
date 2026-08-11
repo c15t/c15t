@@ -1,5 +1,5 @@
 {
-	"name": "c15t",
+	"name": "@c15t/core",
 	"version": "2.2.0-canary-20260731105620",
 	"description": "Headless JavaScript consent management platform for cookie banners, privacy preferences, consent storage, and script gating.",
 	"keywords": [
@@ -46,56 +46,55 @@
 		".": {
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
+			"default": "./dist/index.js"
 		},
 		"./v3": {
 			"types": "./dist-types/v3/index.d.ts",
 			"import": "./dist/v3.js",
-			"require": "./dist/v3.cjs"
+			"default": "./dist/v3.js"
 		},
 		"./v3/consent-record": {
 			"types": "./dist-types/v3/consent-record/index.d.ts",
 			"import": "./dist/v3-consent-record.js",
-			"require": "./dist/v3-consent-record.cjs"
+			"default": "./dist/v3-consent-record.js"
 		},
 		"./v3/transports": {
 			"types": "./dist-types/v3/transports/index.d.ts",
 			"import": "./dist/v3-transports.js",
-			"require": "./dist/v3-transports.cjs"
+			"default": "./dist/v3-transports.js"
 		},
 		"./v3/libs/generate-subject-id": {
 			"types": "./dist-types/v3/libs/generate-subject-id.d.ts",
 			"import": "./dist/v3-generate-subject-id.js",
-			"require": "./dist/v3-generate-subject-id.cjs"
+			"default": "./dist/v3-generate-subject-id.js"
 		},
 		"./v3/modules/script-loader": {
 			"types": "./dist-types/v3/modules/script-loader/index.d.ts",
 			"import": "./dist/v3-script-loader.js",
-			"require": "./dist/v3-script-loader.cjs"
+			"default": "./dist/v3-script-loader.js"
 		},
 		"./v3/modules/network-blocker": {
 			"types": "./dist-types/v3/modules/network-blocker/index.d.ts",
 			"import": "./dist/v3-network-blocker.js",
-			"require": "./dist/v3-network-blocker.cjs"
+			"default": "./dist/v3-network-blocker.js"
 		},
 		"./v3/modules/iframe-blocker": {
 			"types": "./dist-types/v3/modules/iframe-blocker/index.d.ts",
 			"import": "./dist/v3-iframe-blocker.js",
-			"require": "./dist/v3-iframe-blocker.cjs"
+			"default": "./dist/v3-iframe-blocker.js"
 		},
 		"./v3/modules/persistence": {
 			"types": "./dist-types/v3/modules/persistence/index.d.ts",
 			"import": "./dist/v3-persistence.js",
-			"require": "./dist/v3-persistence.cjs"
+			"default": "./dist/v3-persistence.js"
 		},
 		"./v3/modules/window-debug": {
 			"types": "./dist-types/v3/modules/window-debug/index.d.ts",
 			"import": "./dist/v3-window-debug.js",
-			"require": "./dist/v3-window-debug.cjs"
+			"default": "./dist/v3-window-debug.js"
 		}
 	},
-	"main": "dist/index.cjs",
-	"module": "dist/index.js",
+	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
 	"files": [
 		"dist",
@@ -107,8 +106,8 @@
 	],
 	"scripts": {
 		"prebuild": "genversion --esm --semi src/version.ts",
-		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts c15t",
-		"build:docs": "bun ../../scripts/generate-package-docs.ts c15t",
+		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/core",
+		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/core",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"check-types:test": "tsc -p tsconfig.test.json",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",

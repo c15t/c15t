@@ -1,3 +1,4 @@
+import { c15tVersionHeaders } from '@c15t/core/v3';
 import type {
 	ConsentManifest,
 	ConsentManifestGVLReference,
@@ -5,7 +6,6 @@ import type {
 	InitOutput,
 } from '@c15t/schema/types';
 import { resolveBackendURL, resolveInitFromManifest } from '@c15t/schema/types';
-import { c15tVersionHeaders } from 'c15t/v3';
 import { extractConsentRequestInputs } from './headers';
 
 const DEFAULT_MANIFEST_REVALIDATE_SECONDS = 300;

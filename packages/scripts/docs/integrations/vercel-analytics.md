@@ -12,7 +12,7 @@ Vercel Analytics loads through `@c15t/scripts` using a declarative queue bootstr
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { vercelAnalytics } from '@c15t/scripts/vercel-analytics';
 
 const scripts = [vercelAnalytics()];
@@ -38,7 +38,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { vercelAnalytics } from '@c15t/scripts/vercel-analytics';
 
 const scripts = [vercelAnalytics()];
@@ -95,7 +95,7 @@ Guard event calls by checking consent state. From React:
 
 ```tsx
 import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function SignupExample() {
   const { has } = useConsentManager();

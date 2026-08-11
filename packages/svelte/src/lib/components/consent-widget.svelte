@@ -1,4 +1,6 @@
 <script lang="ts">
+import type { AllConsentNames } from '@c15t/core';
+import { defaultTranslationConfig } from '@c15t/core';
 import styles from '@c15t/ui/styles/components/consent-widget.module.js';
 import { switchVariants } from '@c15t/ui/styles/primitives';
 import {
@@ -11,8 +13,6 @@ import {
 	resolveTranslations,
 	shouldFillPolicyActions,
 } from '@c15t/ui/utils';
-import type { AllConsentNames } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
 import { getConsentContext, getThemeContext } from '../context.svelte';
 import { PreferenceItem, Switch } from '../primitives';
 import { resolveComponentStyles } from '../utils';

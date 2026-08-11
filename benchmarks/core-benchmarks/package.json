@@ -22,8 +22,8 @@
 	},
 	"dependencies": {
 		"@c15t/benchmarking": "workspace:*",
-		"@c15t/iab": "workspace:*",
-		"c15t": "workspace:*"
+		"@c15t/core": "workspace:*",
+		"@c15t/iab": "workspace:*"
 	},
 	"devDependencies": {
 		"typescript": "6.0.3"

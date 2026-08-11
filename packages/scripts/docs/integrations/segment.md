@@ -12,7 +12,7 @@ Segment lets you collect analytics events in one place and forward them to downs
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { segment } from '@c15t/scripts/segment';
 
 const scripts = [segment({ writeKey: 'abc123xyz456' })];
@@ -38,7 +38,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { segment } from '@c15t/scripts/segment';
 
 const scripts = [segment({ writeKey: 'abc123xyz456' })];
@@ -100,7 +100,7 @@ Guard event calls by checking consent state. From React:
 
 ```tsx
 import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function SignupExample() {
   const { has } = useConsentManager();

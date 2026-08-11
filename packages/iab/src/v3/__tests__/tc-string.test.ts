@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { createConsentKernel } from 'c15t/v3';
+import { createConsentKernel } from '@c15t/core/v3';
 import { describe, expect, test } from 'vitest';
 import { MINIMAL_TC_STRING } from '../../__tests__/tcf/fixtures/tc-strings';
 import {

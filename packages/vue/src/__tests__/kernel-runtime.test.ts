@@ -1,6 +1,6 @@
+import { readStoredConsentFromCookie } from '@c15t/core/v3/modules/persistence';
 import type { InitOutput } from '@c15t/schema/types';
 import { flushPromises, mount } from '@vue/test-utils';
-import { readStoredConsentFromCookie } from 'c15t/v3/modules/persistence';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createSSRApp, defineComponent } from 'vue';
 import { renderToString } from 'vue/server-renderer';

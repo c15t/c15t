@@ -12,7 +12,7 @@ the Microsoft Clarity loader change that silently broke bootstrap assumptions.
 The probes exercise the built `c15t` package, so build core first:
 
 ```sh
-bun turbo run build --filter=c15t
+bun turbo run build --filter=@c15t/core
 bunx playwright install --with-deps chromium
 ```
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { configureConsentManager, createConsentManagerStore } from 'c15t';
+import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
 import { useEffect, useState } from 'react';
 
 export default function CoreOnlyPage() {

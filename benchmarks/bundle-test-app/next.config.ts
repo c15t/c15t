@@ -14,7 +14,7 @@ const transpilePackages = [
 	'@c15t/benchmarking',
 	'@c15t/react',
 	'@c15t/nextjs',
-	'c15t',
+	'@c15t/core',
 ];
 
 const config = {

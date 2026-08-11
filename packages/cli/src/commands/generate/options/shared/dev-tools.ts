@@ -13,8 +13,8 @@ export async function getDevToolsOption({
 	onCancel,
 }: GetDevToolsOptionOptions): Promise<boolean> {
 	const isReactProject =
-		context.framework.pkg === '@c15t/react' ||
-		context.framework.pkg === '@c15t/nextjs';
+		context.framework.pkg === 'c15t/react' ||
+		context.framework.pkg === 'c15t/next';
 
 	context.logger.info(
 		'c15t DevTools helps you inspect consent state, scripts, and location overrides during development.'

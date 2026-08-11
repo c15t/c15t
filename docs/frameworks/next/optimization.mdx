@@ -18,7 +18,7 @@ Apply the optimizations in this order:
 | You want the simplest setup | Client-only init | No extra moving parts, but the banner appears later on cold loads |
 
 <Callout type="info">
-  `C15tPrefetch` is the only static-route prefetch step you need in `@c15t/nextjs`. Matching prefetched data is consumed automatically during first initialization.
+  `C15tPrefetch` is the only static-route prefetch step you need in `c15t/next`. Matching prefetched data is consumed automatically during first initialization.
 </Callout>
 
 <Callout type="info">
@@ -79,7 +79,7 @@ Use `fetchInitialData()` when the route is already dynamic, or when you are will
 Because it depends on `next/headers`, this opts the route into dynamic rendering.
 
 ```tsx title="app/layout.tsx"
-import { fetchInitialData } from '@c15t/nextjs';
+import { fetchInitialData } from 'c15t/next';
 import ConsentManager from '@/components/consent-manager';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -106,7 +106,7 @@ import {
   ConsentBanner,
   ConsentDialog,
   type InitialDataPromise,
-} from '@c15t/nextjs';
+} from 'c15t/next';
 
 export default function ConsentManager({
   children,
@@ -144,7 +144,7 @@ export default function ConsentManager({
 Use `C15tPrefetch` when the route needs to stay static but you still want the `/init` request to start before hydration. Matching prefetched data is consumed automatically by the runtime during first store initialization.
 
 ```tsx title="app/layout.tsx"
-import { C15tPrefetch } from '@c15t/nextjs';
+import { C15tPrefetch } from 'c15t/next';
 import { ConsentManager } from '@/components/consent-manager';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -171,7 +171,7 @@ import {
   ConsentManagerProvider,
   ConsentBanner,
   ConsentDialog,
-} from '@c15t/nextjs';
+} from 'c15t/next';
 
 export default function ConsentManagerClient({ children }: { children: React.ReactNode }) {
   return (

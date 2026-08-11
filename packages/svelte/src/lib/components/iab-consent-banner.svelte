@@ -1,7 +1,7 @@
 <script lang="ts">
+import type { Model } from '@c15t/core';
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { getTextDirection } from '@c15t/ui/utils';
-import type { Model } from 'c15t';
 import { focusTrap } from '../actions/focus-trap';
 import { portal } from '../actions/portal';
 import { scrollLock } from '../actions/scroll-lock';

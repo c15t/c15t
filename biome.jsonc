@@ -149,6 +149,16 @@
 	},
 	"overrides": [
 		{
+			// Generated umbrella re-export shims (including the .vue wrappers)
+			// are byte-compared against the generator's output by
+			// scripts/generate-umbrella-exports.test.ts, so the formatter must
+			// never rewrite them — regenerate instead of formatting.
+			"includes": ["packages/c15t/shims/**"],
+			"formatter": { "enabled": false },
+			"linter": { "enabled": false },
+			"assist": { "enabled": false }
+		},
+		{
 			"includes": ["**/*.svelte"],
 			"linter": {
 				"rules": {

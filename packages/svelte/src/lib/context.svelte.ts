@@ -1,4 +1,3 @@
-import type { Theme, UIOptions } from '@c15t/ui/theme';
 import {
 	type ActiveUI,
 	type AllConsentNames,
@@ -10,7 +9,7 @@ import {
 	type HasCondition,
 	type Model,
 	type TranslationConfig,
-} from 'c15t';
+} from '@c15t/core';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
@@ -18,7 +17,8 @@ import type {
 	KernelActiveUI,
 	KernelIABState,
 	PolicyUiSurfaceConfig,
-} from 'c15t/v3';
+} from '@c15t/core/v3';
+import type { Theme, UIOptions } from '@c15t/ui/theme';
 import { getContext, setContext } from 'svelte';
 import type { ConsentManagerOptions } from './types';
 

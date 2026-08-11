@@ -1,15 +1,15 @@
 'use client';
 
-import { generateThemeCSS } from '@c15t/ui/theme';
-import { deepMerge } from '@c15t/ui/utils';
 import {
 	clearConsentRuntimeCache as baseClearCache,
 	type Callbacks,
 	type ConsentStoreState,
 	defaultTranslationConfig,
 	getOrCreateConsentRuntime,
-} from 'c15t';
-import type { KernelBranding } from 'c15t/v3';
+} from '@c15t/core';
+import type { KernelBranding } from '@c15t/core/v3';
+import { generateThemeCSS } from '@c15t/ui/theme';
+import { deepMerge } from '@c15t/ui/utils';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 import { version } from '../../version';
 import {

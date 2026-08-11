@@ -8,7 +8,7 @@
  * @packageDocumentation
  */
 
-import type { IABManager } from 'c15t';
+import type { IABManager } from '@c15t/core';
 
 /**
  * Processed GVL data ready for rendering in a consent dialog.

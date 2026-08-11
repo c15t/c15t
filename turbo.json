@@ -22,6 +22,11 @@
 		"c15t#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": ["dist/**"]
+		},
+		"@c15t/core#build": {
+			"dependsOn": ["^build"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
 			"outputs": ["dist/**", "dist-types/**", "AGENTS.md", "docs/**"],
 			"env": ["WITH_RSDOCTOR"]
 		},
@@ -61,12 +66,12 @@
 		"@c15t/svelte#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": []
+			"outputs": ["dist/**"]
 		},
 		"@c15t/vue#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": []
+			"outputs": ["dist/**"]
 		},
 		"fmt": {
 			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc", "**/biome.json"],
@@ -88,8 +93,9 @@
 			"cache": false,
 			"persistent": true,
 			"interruptible": true,
+			"dependsOn": ["c15t#build"],
 			"with": [
-				"c15t#dev",
+				"@c15t/core#dev",
 				"@c15t/backend#dev",
 				"@c15t/iab#dev",
 				"@c15t/logger#dev",
@@ -101,12 +107,42 @@
 				"@c15t/ui#dev"
 			]
 		},
+		"@c15t/example-nuxt#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"dependsOn": ["c15t#build"],
+			"with": [
+				"@c15t/core#dev",
+				"@c15t/backend#dev",
+				"@c15t/logger#dev",
+				"@c15t/schema#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
+		},
+		"sveltekit-demo#dev": {
+			"cache": false,
+			"persistent": true,
+			"interruptible": true,
+			"dependsOn": ["c15t#build"],
+			"with": [
+				"@c15t/core#dev",
+				"@c15t/backend#dev",
+				"@c15t/iab#dev",
+				"@c15t/logger#dev",
+				"@c15t/schema#dev",
+				"@c15t/svelte#dev",
+				"@c15t/translations#dev",
+				"@c15t/ui#dev"
+			]
+		},
 		"@c15t/nextjs-browser-bench#dev": {
 			"cache": false,
 			"persistent": true,
 			"interruptible": true,
 			"with": [
-				"c15t#dev",
+				"@c15t/core#dev",
 				"@c15t/logger#dev",
 				"@c15t/nextjs#dev",
 				"@c15t/react#dev",
@@ -120,7 +156,7 @@
 			"persistent": true,
 			"interruptible": true,
 			"with": [
-				"c15t#dev",
+				"@c15t/core#dev",
 				"@c15t/logger#dev",
 				"@c15t/schema#dev",
 				"@c15t/translations#dev",
@@ -132,7 +168,7 @@
 			"persistent": true,
 			"interruptible": true,
 			"with": [
-				"c15t#dev",
+				"@c15t/core#dev",
 				"@c15t/logger#dev",
 				"@c15t/nextjs#dev",
 				"@c15t/react#dev",
@@ -146,7 +182,7 @@
 			"persistent": true,
 			"interruptible": true,
 			"with": [
-				"c15t#dev",
+				"@c15t/core#dev",
 				"@c15t/logger#dev",
 				"@c15t/nextjs#dev",
 				"@c15t/react#dev",
@@ -160,7 +196,7 @@
 			"persistent": true,
 			"interruptible": true,
 			"with": [
-				"c15t#dev",
+				"@c15t/core#dev",
 				"@c15t/logger#dev",
 				"@c15t/nextjs#dev",
 				"@c15t/react#dev",
@@ -174,7 +210,7 @@
 			"persistent": true,
 			"interruptible": true,
 			"with": [
-				"c15t#dev",
+				"@c15t/core#dev",
 				"@c15t/logger#dev",
 				"@c15t/nextjs#dev",
 				"@c15t/react#dev",
@@ -229,6 +265,10 @@
 			"dependsOn": ["build", "^build"],
 			"cache": false,
 			"outputs": [".benchmarks/**"]
+		},
+		"c15t#test": {
+			"dependsOn": ["build", "^build", "transit"],
+			"outputs": []
 		},
 		"@c15t/scripts#test": {
 			"dependsOn": ["build", "^build", "transit"],

@@ -1,5 +1,5 @@
-import type { Script as V2Script } from 'c15t';
-import type { Script as V3Script } from 'c15t/v3/modules/script-loader';
+import type { Script as V2Script } from '@c15t/core';
+import type { Script as V3Script } from '@c15t/core/v3/modules/script-loader';
 
 export type ScriptCountVersion = 'v2' | 'v3';
 

@@ -21,7 +21,7 @@ standard iframe embeds and keeps script readiness separate from iframe gating.
 **React**
 
 ```tsx
-import { YouTubeEmbed } from '@c15t/react';
+import { YouTubeEmbed } from 'c15t/react';
 
 export function ProductVideo() {
   return (
@@ -40,7 +40,7 @@ export function ProductVideo() {
 ```tsx
 'use client';
 
-import { YouTubeEmbed } from '@c15t/nextjs';
+import { YouTubeEmbed } from 'c15t/next';
 
 export function ProductVideo() {
   return (
@@ -139,7 +139,7 @@ wrapper, has no border, and inherits the wrapper radius by default.
 ## Customize the placeholder
 
 ```tsx
-import { Frame, YouTubeEmbed } from '@c15t/react';
+import { Frame, YouTubeEmbed } from 'c15t/react';
 
 <YouTubeEmbed
   consentCategory="marketing"

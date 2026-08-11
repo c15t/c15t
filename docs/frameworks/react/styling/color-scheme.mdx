@@ -12,7 +12,7 @@ Set the color scheme on the provider:
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 
 function ConsentManager({ children }: { children: ReactNode }) {
   return (
@@ -46,7 +46,7 @@ function ConsentManager({ children }: { children: ReactNode }) {
 For programmatic control over the color scheme:
 
 ```tsx
-import { useColorScheme } from '@c15t/react';
+import { useColorScheme } from 'c15t/react';
 
 function ThemeToggle() {
   // Pass the desired scheme - 'light', 'dark', 'system', or null (disable)

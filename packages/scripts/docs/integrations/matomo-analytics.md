@@ -12,7 +12,7 @@ Matomo gives you privacy-focused web analytics with self-hosted and cloud deploy
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { matomoAnalytics } from '@c15t/scripts/matomo-analytics';
 
 const scripts = [
@@ -43,7 +43,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { matomoAnalytics } from '@c15t/scripts/matomo-analytics';
 
 const scripts = [
@@ -123,7 +123,7 @@ From React:
 
 ```tsx
 import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function SignupExample() {
   const { has } = useConsentManager();

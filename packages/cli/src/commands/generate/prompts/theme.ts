@@ -113,7 +113,7 @@ export function getThemeCssImport(
 	theme: ThemeId,
 	framework?: 'react' | 'nextjs'
 ): string | null {
-	const pkg = framework === 'nextjs' ? '@c15t/nextjs' : '@c15t/react';
+	const pkg = framework === 'nextjs' ? 'c15t/next' : 'c15t/react';
 
 	switch (theme) {
 		case 'default':

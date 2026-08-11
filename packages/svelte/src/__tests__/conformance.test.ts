@@ -26,14 +26,14 @@ import {
 	type SuiteApi,
 	type TestDriver,
 } from '@c15t/conformance';
-import type { GlobalVendorList } from '@c15t/schema/types';
-import type { AllConsentNames } from 'c15t';
+import type { AllConsentNames } from '@c15t/core';
 import type {
 	ConsentKernel,
 	KernelActiveUI,
 	KernelConfig,
 	ResolvedPolicy,
-} from 'c15t/v3';
+} from '@c15t/core/v3';
+import type { GlobalVendorList } from '@c15t/schema/types';
 import { mount, unmount } from 'svelte';
 import { describe, expect, test } from 'vitest';
 import type { ConsentManagerOptions } from '../lib/types';

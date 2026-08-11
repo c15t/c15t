@@ -1,6 +1,6 @@
+import type { TranslationConfig } from '@c15t/core';
+import { defaultTranslationConfig } from '@c15t/core';
 import { resolveTranslations } from '@c15t/ui/utils';
-import type { TranslationConfig } from 'c15t';
-import { defaultTranslationConfig } from 'c15t';
 
 /**
  * IAB translations interface.

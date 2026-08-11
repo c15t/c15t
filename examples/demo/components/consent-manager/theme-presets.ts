@@ -1,4 +1,4 @@
-import type { Theme } from '@c15t/react';
+import type { Theme } from 'c15t/react';
 
 /**
  * Theme presets for the demo.

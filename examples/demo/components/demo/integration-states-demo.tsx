@@ -1,5 +1,6 @@
 'use client';
 
+import type { AllConsentNames } from 'c15t';
 import {
 	ConsentManagerProvider,
 	Frame,
@@ -7,9 +8,8 @@ import {
 	useConsentScript,
 	YouTubeEmbed,
 	type YouTubeEmbedProps,
-} from '@c15t/react';
-import { Button as C15tButton } from '@c15t/react/primitives';
-import type { AllConsentNames } from 'c15t';
+} from 'c15t/react';
+import { Button as C15tButton } from 'c15t/react/primitives';
 import { RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Button } from '../ui/button';

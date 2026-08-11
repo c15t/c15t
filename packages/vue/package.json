@@ -1,32 +1,64 @@
 {
 	"name": "@c15t/vue",
-	"private": true,
+	"version": "2.0.0-rc.4",
+	"description": "Developer-first CMP for Vue and Nuxt: cookie banner, consent manager, preference center composables. GDPR ready with minimal setup and rich customization",
+	"keywords": [
+		"vue",
+		"nuxt",
+		"consent",
+		"privacy",
+		"gdpr",
+		"ccpa",
+		"lgpd",
+		"headless",
+		"typescript",
+		"cookie-banner",
+		"consent-management-platform",
+		"cmp",
+		"consent-banner",
+		"user-consent",
+		"privacy-compliance",
+		"web-privacy"
+	],
+	"homepage": "https://c15t.com",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/c15t/c15t.git",
+		"directory": "packages/vue"
+	},
+	"license": "Apache-2.0",
 	"type": "module",
 	"exports": {
 		".": {
 			"types": "./dist/types.d.mts",
-			"import": "./dist/module.mjs"
+			"import": "./dist/module.mjs",
+			"default": "./dist/module.mjs"
 		},
 		"./vite": {
 			"types": "./dist/vite.d.mts",
-			"import": "./dist/vite.mjs"
+			"import": "./dist/vite.mjs",
+			"default": "./dist/vite.mjs"
 		},
 		"./vue-plugin": {
 			"types": "./dist/index.d.mts",
-			"import": "./dist/index.mjs"
+			"import": "./dist/index.mjs",
+			"default": "./dist/index.mjs"
 		},
 		"./consent-root": {
 			"types": "./dist/runtime/components/consent-root.d.vue.ts",
-			"import": "./dist/runtime/components/consent-root.vue"
+			"import": "./dist/runtime/components/consent-root.vue",
+			"default": "./dist/runtime/components/consent-root.vue"
 		},
 		"./consent-widget": {
 			"types": "./dist/runtime/components/consent-widget.d.vue.ts",
-			"import": "./dist/runtime/components/consent-widget.vue"
+			"import": "./dist/runtime/components/consent-widget.vue",
+			"default": "./dist/runtime/components/consent-widget.vue"
 		},
 		"./runtime/*": "./dist/runtime/*",
 		"./composables/*": "./dist/runtime/composables/*"
 	},
 	"main": "./dist/module.mjs",
+	"types": "./dist/types.d.mts",
 	"typesVersions": {
 		"*": {
 			".": [
@@ -41,7 +73,8 @@
 		}
 	},
 	"files": [
-		"dist"
+		"dist",
+		"schema"
 	],
 	"scripts": {
 		"build": "nuxt-module-build build",
@@ -55,18 +88,17 @@
 		"test": "vitest run"
 	},
 	"dependencies": {
+		"@c15t/core": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/ui": "workspace:*",
+		"@nuxt/kit": "^3.0.0 || ^4.0.0",
 		"@vueuse/core": "^14.3.0",
-		"c15t": "workspace:*",
 		"defu": "^6.1.4",
-		"ufo": "^1.6.1",
-		"vue": "^3.5.39"
+		"ufo": "^1.6.1"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"@nuxt/kit": "^4.5.1",
 		"@nuxt/module-builder": "^1.0.2",
 		"@vitejs/plugin-vue": "6.0.7",
 		"@vue/test-utils": "^2.4.6",
@@ -78,15 +110,23 @@
 		"typescript": "6.0.3",
 		"unbuild": "^3.6.1",
 		"vitest": "4.1.9",
+		"vue": "^3.5.39",
 		"vue-tsc": "^3.3.3"
 	},
 	"peerDependencies": {
-		"nuxt": "^3.0.0 || ^4.0.0"
+		"nuxt": "^3.0.0 || ^4.0.0",
+		"vue": "^3.5.39"
 	},
 	"peerDependenciesMeta": {
 		"nuxt": {
 			"optional": true
+		},
+		"vue": {
+			"optional": true
 		}
+	},
+	"publishConfig": {
+		"access": "public"
 	},
 	"nuxt": "./dist/module.mjs",
 	"schema": "./schema/nuxt.schema.d.ts"

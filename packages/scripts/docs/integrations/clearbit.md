@@ -13,7 +13,7 @@ icon: clearbit
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { clearbit } from '@c15t/scripts/clearbit';
 
 const scripts = [
@@ -43,7 +43,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { clearbit } from '@c15t/scripts/clearbit';
 
 const scripts = [

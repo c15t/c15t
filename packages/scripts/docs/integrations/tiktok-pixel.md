@@ -12,7 +12,7 @@ TikTok Pixel is TikTok's conversion tracking and audience targeting tool. It mea
 
 ```tsx
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import { tiktokPixel } from '@c15t/scripts/tiktok-pixel';
 
 const scripts = [tiktokPixel({ pixelId: '123456789012345' })];
@@ -38,7 +38,7 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 'use client';
 
 import { type ReactNode } from 'react';
-import { ConsentManagerProvider } from '@c15t/nextjs';
+import { ConsentManagerProvider } from 'c15t/next';
 import { tiktokPixel } from '@c15t/scripts/tiktok-pixel';
 
 const scripts = [tiktokPixel({ pixelId: '123456789012345' })];
@@ -85,7 +85,7 @@ This means `window.ttq` is only defined after the user has granted marketing con
 
 ```tsx
 import { useCallback } from 'react';
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function useTrackPurchase() {
   const { has } = useConsentManager();

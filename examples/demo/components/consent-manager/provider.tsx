@@ -6,8 +6,8 @@ import {
 	ConsentDialog,
 	ConsentDialogTrigger,
 	ConsentManagerProvider,
-} from '@c15t/react';
-import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab';
+} from 'c15t/react';
+import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';

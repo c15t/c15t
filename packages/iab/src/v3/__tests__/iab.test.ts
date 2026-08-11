@@ -9,8 +9,8 @@
  * - dispose cleans up the CMP API + kernel subscription.
  */
 
-import type { GlobalVendorList } from 'c15t/v3';
-import { createConsentKernel } from 'c15t/v3';
+import type { GlobalVendorList } from '@c15t/core/v3';
+import { createConsentKernel } from '@c15t/core/v3';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { createIAB } from '../index';
 import { setMockGVL } from '../tcf/fetch-gvl';

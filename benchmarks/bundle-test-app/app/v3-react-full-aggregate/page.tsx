@@ -2,6 +2,7 @@
 
 import '@c15t/react/styles.css';
 
+import type { AllConsentNames } from '@c15t/core';
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -13,7 +14,6 @@ import {
 	useHasConsented,
 	useSaveConsents,
 } from '@c15t/react/v3';
-import type { AllConsentNames } from 'c15t';
 
 const CATEGORIES: AllConsentNames[] = [
 	'necessary',
@@ -55,7 +55,10 @@ function TestComponent() {
 			<p>Has consented: {String(hasConsented)}</p>
 			<div>
 				{CATEGORIES.map((category) => (
-					<label key={category} style={{ display: 'block' }}>
+					<label
+						key={category}
+						style={{ display: 'block' }}
+					>
 						<input
 							checked={draft.values[category]}
 							disabled={category === 'necessary'}
@@ -67,7 +70,10 @@ function TestComponent() {
 				))}
 			</div>
 			<pre>{JSON.stringify(consents, null, 2)}</pre>
-			<button onClick={() => saveConsents('all')} type="button">
+			<button
+				onClick={() => saveConsents('all')}
+				type="button"
+			>
 				Accept All
 			</button>
 		</div>

@@ -12,14 +12,14 @@ If c15t components render partially unstyled or lose their theme tokens inside a
 
 **Cause:** Fumadocs preset imports can load after c15t and override the tokens and layer output that c15t components depend on.
 
-**Fix:** Keep `@c15t/nextjs/styles.css` at the end of the top-level `@import` block:
+**Fix:** Keep `c15t/next/styles.css` at the end of the top-level `@import` block:
 
 ```css title="app/globals.css"
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "fumadocs-ui/css/shadcn.css";
 @import "fumadocs-ui/css/preset.css";
-@import "@c15t/nextjs/styles.css";
+@import "c15t/next/styles.css";
 ```
 
 If you use other preset or docs-site stylesheets, apply the same rule: load them first, then import c15t last in the top-level import block.
@@ -30,7 +30,7 @@ Apply Tailwind classes via the theme's `slots` object:
 
 ```tsx
 import { type ReactNode } from 'react';
-import { type Theme, ConsentManagerProvider } from '@c15t/nextjs';
+import { type Theme, ConsentManagerProvider } from 'c15t/next';
 
 const theme = {
   slots: {

@@ -1,4 +1,4 @@
-import type { ConsentKernel } from 'c15t/v3';
+import type { ConsentKernel } from '@c15t/core/v3';
 import { createContext } from 'react';
 
 /**

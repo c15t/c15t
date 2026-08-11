@@ -19,7 +19,7 @@
  * invalidation correctly.
  */
 
-import type { AllConsentNames } from 'c15t';
+import type { AllConsentNames } from '@c15t/core';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
@@ -36,7 +36,7 @@ import type {
 	PolicyScopeMode,
 	PolicyUiSurfaceConfig,
 	ResolvedPolicy,
-} from 'c15t/v3';
+} from '@c15t/core/v3';
 import { useCallback, useContext, useSyncExternalStore } from 'react';
 import { KernelContext } from './context';
 

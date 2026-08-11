@@ -8,7 +8,7 @@ export type {
 	Overrides,
 	PolicyPackPresets,
 	Translations,
-} from 'c15t';
+} from '@c15t/core';
 
 export {
 	configureConsentManager,
@@ -17,7 +17,7 @@ export {
 	mergeTranslationConfigs,
 	policyPackPresets,
 	prepareTranslationConfig,
-} from 'c15t';
+} from '@c15t/core';
 export {
 	ConsentBanner,
 	type ConsentBannerProps,

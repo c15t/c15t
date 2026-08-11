@@ -20,13 +20,13 @@
  * (`createCMPApi`), stub installer (`initializeIABStub`).
  */
 
-import type { CMPApi } from 'c15t';
+import type { CMPApi } from '@c15t/core';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
 	GlobalVendorList,
 	NonIABVendor,
-} from 'c15t/v3';
+} from '@c15t/core/v3';
 import { createCMPApi } from './tcf/cmp-api';
 import { clearGVLCache, fetchGVL } from './tcf/fetch-gvl';
 import { getTCFCore } from './tcf/lazy-load';
@@ -390,8 +390,8 @@ export function createIAB(options: CreateIABOptions): IABHandle {
 	};
 }
 
-export type { CMPApi } from 'c15t';
-export type { GlobalVendorList, NonIABVendor } from 'c15t/v3';
+export type { CMPApi } from '@c15t/core';
+export type { GlobalVendorList, NonIABVendor } from '@c15t/core/v3';
 export {
 	type HeadlessIABBannerAction,
 	type HeadlessIABBannerState,

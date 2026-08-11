@@ -1,6 +1,6 @@
 'use client';
 
-import { ConsentManagerProvider } from '@c15t/react';
+import { ConsentManagerProvider } from 'c15t/react';
 import type { ReactNode } from 'react';
 
 /**

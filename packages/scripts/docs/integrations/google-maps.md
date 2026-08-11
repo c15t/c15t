@@ -24,7 +24,7 @@ script lifecycle and the visible map container.
 **React**
 
 ```tsx
-import { GoogleMap } from '@c15t/react';
+import { GoogleMap } from 'c15t/react';
 
 const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -51,7 +51,7 @@ export function StoreMap() {
 ```tsx
 'use client';
 
-import { GoogleMap } from '@c15t/nextjs';
+import { GoogleMap } from 'c15t/next';
 
 const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -155,7 +155,7 @@ Use the fallback props when you need integration-specific content and `onError`
 for reporting:
 
 ```tsx
-import { Frame, GoogleMap } from '@c15t/react';
+import { Frame, GoogleMap } from 'c15t/react';
 
 function reportMapError(error: Error) {
   // Send the error to your observability provider.
@@ -191,7 +191,7 @@ Increment `retryKey` to retry the same map after a loader, authentication, or
 constructor failure:
 
 ```tsx
-import { GoogleMap } from '@c15t/react';
+import { GoogleMap } from 'c15t/react';
 import { useState } from 'react';
 
 function RetryableMap({ apiKey }: { apiKey: string }) {

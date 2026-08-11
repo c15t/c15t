@@ -9,7 +9,7 @@ group: frameworks
 Read the current consent model from the hook:
 
 ```tsx
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function ConsentStatus() {
   const { model, policy } = useConsentManager();
@@ -30,7 +30,7 @@ function ConsentStatus() {
 Override the detected jurisdiction for testing:
 
 ```tsx
-import { useConsentManager } from '@c15t/react';
+import { useConsentManager } from 'c15t/react';
 
 function JurisdictionTester() {
   const { setOverrides } = useConsentManager();

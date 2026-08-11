@@ -1,7 +1,5 @@
 'use client';
 
-import { buildDefaultOptInPolicy, type InitOutput } from '@c15t/schema/types';
-import { deepMergeTranslations, type Translations } from '@c15t/translations';
 import type {
 	AllConsentNames,
 	Callbacks,
@@ -17,7 +15,7 @@ import type {
 	StoreOptions,
 	TranslationConfig,
 	User,
-} from 'c15t';
+} from '@c15t/core';
 import {
 	buildSubjectPostBody,
 	type ConsentKernel,
@@ -34,13 +32,15 @@ import {
 	type KernelUser,
 	mapInitOutputToInitResponse,
 	type TranslationsResponse,
-} from 'c15t/v3';
-import type { Script } from 'c15t/v3/modules/script-loader';
+} from '@c15t/core/v3';
+import type { Script } from '@c15t/core/v3/modules/script-loader';
 import {
 	createWindowDebug,
 	resolveWindowDebugMode,
 	type WindowDebugMode,
-} from 'c15t/v3/modules/window-debug';
+} from '@c15t/core/v3/modules/window-debug';
+import { buildDefaultOptInPolicy, type InitOutput } from '@c15t/schema/types';
+import { deepMergeTranslations, type Translations } from '@c15t/translations';
 import type { ReactNode } from 'react';
 import {
 	lazy,
@@ -758,7 +758,7 @@ function ScriptsMount({
 	useEffect(() => {
 		if (!kernel) return;
 		let disposed = false;
-		void import('c15t/v3/modules/script-loader').then(
+		void import('@c15t/core/v3/modules/script-loader').then(
 			({ createScriptLoader }) => {
 				if (disposed) return;
 				const created = createScriptLoader({
@@ -800,7 +800,7 @@ function NetworkBlockerMount({
 	useEffect(() => {
 		if (!kernel) return;
 		let disposed = false;
-		void import('c15t/v3/modules/network-blocker').then(
+		void import('@c15t/core/v3/modules/network-blocker').then(
 			({ createNetworkBlocker }) => {
 				if (disposed) return;
 				const latest = latestOptionsRef.current;

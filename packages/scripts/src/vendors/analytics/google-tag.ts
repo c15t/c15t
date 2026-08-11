@@ -1,4 +1,4 @@
-import type { AllConsentNames, Script } from 'c15t';
+import type { AllConsentNames, Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import {
 	runtimeDateValue,

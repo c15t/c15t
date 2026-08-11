@@ -1,4 +1,4 @@
-import type { Script, Translations } from 'c15t';
+import type { Script, Translations } from '@c15t/core';
 import type { BenchmarkFixtureDescriptor } from './schema';
 
 export interface CoreBenchmarkFixture extends BenchmarkFixtureDescriptor {

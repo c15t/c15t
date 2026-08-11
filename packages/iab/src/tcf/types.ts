@@ -17,4 +17,4 @@ export type {
 	IABManager,
 	IABModule,
 	IABState,
-} from 'c15t';
+} from '@c15t/core';

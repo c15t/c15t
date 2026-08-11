@@ -7,7 +7,7 @@ group: frameworks
 `useFocusTrap()` keeps keyboard focus within a container element while active. This is essential for accessibility - when a modal dialog is open, Tab and Shift+Tab should cycle through focusable elements inside the dialog, not escape to the page behind it.
 
 ```tsx
-import { useFocusTrap } from '@c15t/nextjs';
+import { useFocusTrap } from 'c15t/next';
 import { useRef } from 'react';
 
 function AccessibleModal({ isOpen }: { isOpen: boolean }) {

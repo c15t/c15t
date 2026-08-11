@@ -3,8 +3,8 @@
  * Hook for accessing and managing consent state.
  */
 
-import type { ConsentManagerInterface, ConsentStoreState } from 'c15t';
-import { has as evaluateHas } from 'c15t';
+import type { ConsentManagerInterface, ConsentStoreState } from '@c15t/core';
+import { has as evaluateHas } from '@c15t/core';
 import { useCallback, useContext, useRef } from 'react';
 import { ConsentStateContext } from '../context/consent-manager-context';
 

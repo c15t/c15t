@@ -1,4 +1,4 @@
-import type { AllConsentNames, HasCondition } from 'c15t';
+import type { AllConsentNames, HasCondition } from '@c15t/core';
 
 export const VENDOR_MANIFEST_KIND = 'c15t.vendor-manifest';
 export const VENDOR_MANIFEST_SCHEMA_VERSION = 1;

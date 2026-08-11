@@ -47,12 +47,12 @@ export type {
 	SavePayload,
 	SaveResult,
 	Unsubscribe,
-} from 'c15t/v3';
+} from '@c15t/core/v3';
 export {
 	createConsentKernel,
 	createHostedTransport,
 	createOfflineTransport,
-} from 'c15t/v3';
+} from '@c15t/core/v3';
 export { ConsentDialog, ConsentWidget } from './aggregate-components';
 export type {
 	ConsentBannerButton,

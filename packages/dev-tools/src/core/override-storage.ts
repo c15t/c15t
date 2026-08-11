@@ -1,4 +1,4 @@
-import type { ConsentStoreState } from 'c15t';
+import type { ConsentStoreState } from '@c15t/core';
 
 const DEVTOOLS_OVERRIDES_STORAGE_KEY = 'c15t-devtools-overrides';
 

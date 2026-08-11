@@ -1,4 +1,4 @@
-import type { TranslationConfig, Translations } from 'c15t';
+import type { TranslationConfig, Translations } from '@c15t/core';
 
 /**
  * Resolves translations based on the provided configuration and default language.

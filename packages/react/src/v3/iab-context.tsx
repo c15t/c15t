@@ -1,7 +1,11 @@
 'use client';
 
+import type {
+	GlobalVendorList,
+	KernelIABState,
+	NonIABVendor,
+} from '@c15t/core/v3';
 import { type CreateIABOptions, createIAB, type IABHandle } from '@c15t/iab/v3';
-import type { GlobalVendorList, KernelIABState, NonIABVendor } from 'c15t/v3';
 import {
 	createContext,
 	type ReactNode,

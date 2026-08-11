@@ -1,6 +1,6 @@
 'use client';
 
-import { GoogleMap, YouTubeEmbed } from '@c15t/react';
+import { GoogleMap, YouTubeEmbed } from 'c15t/react';
 import { cn } from '../lib/utils';
 
 const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
