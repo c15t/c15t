@@ -596,6 +596,17 @@ describe('committed umbrella package', () => {
 		expect(manifest.module).toBeUndefined();
 	});
 
+	it('serves the same ESM entry to default-condition resolvers', () => {
+		// The ESM-only manifest contract: the root entry carries a `default`
+		// condition so non-import resolvers still land on the ESM shim.
+		const rootEntry = manifest.exports['.'];
+		if (typeof rootEntry === 'string') {
+			throw new Error('umbrella root export must be conditional');
+		}
+		expect(rootEntry.default).toBeDefined();
+		expect(rootEntry.default).toBe(rootEntry.import);
+	});
+
 	it('has exactly the derived shim files on disk', () => {
 		const committed = listFiles(join(UMBRELLA_DIR, 'shims'), 'shims');
 		expect(committed.sort()).toEqual(Object.keys(artifacts.shimFiles).sort());
