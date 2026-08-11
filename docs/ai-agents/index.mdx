@@ -6,7 +6,7 @@ group: reference
 
 ## Bundled Docs
 
-Every supported scoped c15t package ships docs inside the installed package itself. Installing the `c15t` umbrella gives you `node_modules/c15t/AGENTS.md` as the index, plus the scoped packages' full doc bundles — the umbrella installs those packages for you.
+The scoped packages you integrate directly — `@c15t/core`, `@c15t/react`, `@c15t/nextjs`, `@c15t/scripts`, and `@c15t/cli` — ship docs inside the installed package itself. Installing the `c15t` umbrella gives you `node_modules/c15t/AGENTS.md` as the index, plus the scoped packages' full doc bundles — the umbrella installs those packages for you.
 
 ### Where to find them
 
@@ -14,9 +14,12 @@ Every supported scoped c15t package ships docs inside the installed package itse
 - `node_modules/@c15t/core/docs/README.md`
 - `node_modules/@c15t/react/docs/README.md`
 - `node_modules/@c15t/nextjs/docs/README.md`
-- `node_modules/@c15t/backend/docs/README.md`
+- `node_modules/@c15t/scripts/docs/README.md`
+- `node_modules/@c15t/cli/docs/README.md`
 
 Start with the package `README.md`, then follow its linked pages for the relevant workflow.
+
+Supporting packages such as `@c15t/backend`, `@c15t/iab`, `@c15t/node-sdk`, `@c15t/schema`, and `@c15t/translations` publish only their built output — for those, point your agent at [c15t.com/docs](https://c15t.com/docs) instead.
 
 These docs are version-matched to the exact c15t package version in your project, including generated reference content like prop and type tables.
 
