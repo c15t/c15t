@@ -202,12 +202,20 @@ describe('umbrella facade parity', () => {
 		}
 	});
 
+	// `it.each([])` generates zero tests and a green suite — pin non-empty
+	// row sets so a runner regression cannot fail open.
 	const esmRows = rows.filter((row) => row.esm);
+	it('probes at least one subpath as ESM', () => {
+		expect(esmRows.length).toBeGreaterThan(0);
+	});
 	it.each(esmRows)('$subpath (ESM) matches the scoped entry', (row) => {
 		assertParity(row.subpath, row.esm as LoadPair, EXPECTED_ESM_FAILURES);
 	});
 
 	const cjsRows = rows.filter((row) => row.cjs);
+	it('probes at least one subpath as CJS', () => {
+		expect(cjsRows.length).toBeGreaterThan(0);
+	});
 	it.each(cjsRows)('$subpath (CJS) matches the scoped entry', (row) => {
 		assertParity(row.subpath, row.cjs as LoadPair, EXPECTED_CJS_FAILURES);
 	});
@@ -256,6 +264,37 @@ describe('umbrella file subpaths', () => {
 					() => requireFromTest.resolve(specifier),
 					`${wildcard}: shim ${file} has no scoped counterpart (${specifier})`
 				).not.toThrow();
+
+				if (!file.endsWith('.js')) {
+					continue;
+				}
+				// The counterpart existing is not enough: a `.js` shim
+				// re-exporting the wrong (but real) scoped module would pass.
+				// Parse the specifiers the generator actually emitted, pin them
+				// to this shim's own subpath, and resolve them through the
+				// scoped package's exports map.
+				const shimSource = readFileSync(
+					join(PACKAGE_DIR, shimRoot, file),
+					'utf8'
+				);
+				const emittedSpecifiers = [
+					...shimSource.matchAll(/from '([^']+)'/g),
+				].flatMap((match) => (match[1] ? [match[1]] : []));
+				expect(
+					emittedSpecifiers.length,
+					`${wildcard}: shim ${file} emits no re-export`
+				).toBeGreaterThan(0);
+				for (const emittedSpecifier of emittedSpecifiers) {
+					expect(
+						emittedSpecifier,
+						`${wildcard}: shim ${file} re-exports the wrong scoped module`
+					).toBe(specifier);
+					const resolved = requireFromTest.resolve(emittedSpecifier);
+					expect(
+						existsSync(resolved),
+						`${wildcard}: shim ${file} re-export target does not resolve to a real file (${emittedSpecifier})`
+					).toBe(true);
+				}
 			}
 		}
 	});
