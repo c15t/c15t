@@ -335,13 +335,20 @@ describe('deriveUmbrellaArtifacts', () => {
 			"import Component from '@c15t/vue/runtime/components/consent-banner.vue';"
 		);
 		expect(wrapper).toContain('export default Component;');
-		expect(
-			artifacts.shimFiles[
-				'shims/vue/runtime/components/consent-banner.d.vue.ts'
-			]
-		).toContain(
-			"export { default } from '@c15t/vue/runtime/components/consent-banner.vue';"
-		);
+		for (const declarationSibling of [
+			'shims/vue/runtime/components/consent-banner.d.vue.ts',
+			'shims/vue/runtime/components/consent-banner.vue.d.ts',
+		]) {
+			const declaration = artifacts.shimFiles[declarationSibling];
+			// Named exports (SFC declarations carry types next to the
+			// component) and the default both forward.
+			expect(declaration).toContain(
+				"export * from '@c15t/vue/runtime/components/consent-banner.vue';"
+			);
+			expect(declaration).toContain(
+				"export { default } from '@c15t/vue/runtime/components/consent-banner.vue';"
+			);
+		}
 		expect(
 			artifacts.shimFiles['shims/vue/runtime/composables/consent.js']
 		).toContain(

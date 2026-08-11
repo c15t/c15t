@@ -329,8 +329,16 @@ function renderVueSfcShim(specifier: string): string {
 	return `<script>\n${GENERATED_BANNER}\nimport Component from '${specifier}';\nexport default Component;\n</script>\n`;
 }
 
+/**
+ * Renders the declaration sibling for a wrapped `.vue` SFC shim. Scoped SFC
+ * declarations export named types alongside the component (e.g.
+ * `IabProcessedPurpose` from `iab-purpose-item.vue`), so the shim forwards
+ * both: `export *` picks up the named exports through the scoped package's
+ * own `.d.vue.ts`/`.vue.d.ts` layout, and the explicit default re-export
+ * carries the component (`export *` never forwards `default`).
+ */
 function renderVueDeclarationShim(specifier: string): string {
-	return `${GENERATED_BANNER}\nexport { default } from '${specifier}';\n`;
+	return `${GENERATED_BANNER}\nexport * from '${specifier}';\nexport { default } from '${specifier}';\n`;
 }
 
 /**
