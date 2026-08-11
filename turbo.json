@@ -22,7 +22,7 @@
 		"c15t#build": {
 			"dependsOn": ["^build"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", "AGENTS.md", "docs/**"]
+			"outputs": ["dist/**"]
 		},
 		"@c15t/core#build": {
 			"dependsOn": ["^build"],

@@ -15,19 +15,6 @@ type PackageDocsConfig = {
 
 const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
-		name: 'c15t',
-		outDir: 'packages/c15t',
-		summary:
-			'Complete consent management docs for the c15t umbrella package — the headless consent engine, React consent UI, and the Next.js integration. These docs import from c15t, c15t/react, and c15t/next; every subpath mirrors its scoped package one-to-one.',
-		include: [
-			'frameworks/javascript/**/*.mdx',
-			'frameworks/react/**/*.mdx',
-			'frameworks/next/**/*.mdx',
-			'shared/**/*.mdx',
-			'integrations/**/*.mdx',
-		],
-	},
-	{
 		name: '@c15t/core',
 		outDir: 'packages/core',
 		summary:
