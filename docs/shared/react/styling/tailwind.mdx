@@ -51,6 +51,8 @@ group: reference
     plugins: ['@c15t/ui/postcss-tailwind3', 'tailwindcss', 'autoprefixer'],
   };
   ```
+
+  The string plugin form requires Node.js 20.19 or later — the plugin is an ES module, and frameworks such as Next.js load string plugins with `require()`, which only supports ES modules from that version on.
 </section>
 
 <section id="dark-mode-to-nostyle">

@@ -32,7 +32,7 @@ Headless JavaScript consent management platform for cookie banners, privacy pref
 ## Prerequisites
 
 - JavaScript or TypeScript project
-- Node.js 18.17.0 or later
+- Node.js 20.19 or later
 - npm, pnpm, or yarn package manager
 - A hosted [c15t instance](https://inth.com) (free sign-up), [self-hosted deployment](https://c15t.com/docs/self-host/quickstart), or offline mode for local-only storage
 

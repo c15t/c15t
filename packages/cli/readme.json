@@ -14,7 +14,7 @@
 		"Documentation Access: Quick access to project documentation"
 	],
 	"prerequisites": [
-		"Node.js 18.17.0 or later",
+		"Node.js 20.19 or later",
 		"npm, pnpm, or yarn package manager"
 	],
 	"usage": [

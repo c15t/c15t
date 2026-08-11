@@ -31,7 +31,7 @@ One install for the whole c15t consent management platform: the headless consent
 
 ## Prerequisites
 
-- Node.js 18.17.0 or later
+- Node.js 20.19 or later
 - A hosted [c15t instance](https://inth.com) (free sign-up), [self-hosted deployment](https://c15t.com/docs/self-host/quickstart), or offline mode for local-only storage
 
 ## Quick Start
