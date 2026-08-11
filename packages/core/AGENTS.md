@@ -1,6 +1,6 @@
 # @c15t/core
 
-> Core JavaScript consent management docs for c15t, including client modes, script loading, callbacks, and integrations. These docs use umbrella imports (c15t); when installing @c15t/core directly, substitute @c15t/core for c15t.
+> Core JavaScript consent management docs for c15t, including client modes, script loading, callbacks, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/core for root c15t imports, @c15t/react for c15t/react, and @c15t/nextjs for c15t/next.
 
 These docs ship inside the package so coding agents can read them offline. Open the topic file you need from the list below — paths are relative to this file.
 

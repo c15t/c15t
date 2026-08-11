@@ -1,6 +1,6 @@
 # @c15t/nextjs
 
-> Next.js consent management docs for c15t, including App Router setup, consent UI, SSR behavior, script loading, and integrations. These docs use umbrella imports (c15t/next); when installing @c15t/nextjs directly, substitute @c15t/nextjs for c15t/next.
+> Next.js consent management docs for c15t, including App Router setup, consent UI, SSR behavior, script loading, and integrations. These docs use umbrella imports; on a direct scoped install substitute @c15t/nextjs for c15t/next, @c15t/core for root c15t imports, and @c15t/react for c15t/react.
 
 These docs ship inside the package so coding agents can read them offline. Open the topic file you need from the list below — paths are relative to this file.
 
