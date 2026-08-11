@@ -31,7 +31,7 @@ IAB TCF 2.3 addon for c15t with TC String generation, GVL support, TCF APIs, and
 
 ## Prerequisites
 
-- Node.js 18.17.0 or later
+- Node.js 20.19 or later
 - c15t 2.x
 - Use [Inth](https://inth.com) for a hosted IAB TCF-certified CMP setup with a managed CMP ID, or register your own CMP with IAB Europe and configure your own CMP ID
 

@@ -1,5 +1,4 @@
-import { createSharedComposable } from '@vueuse/core';
-import { type Ref, ref } from 'vue';
+import { getCurrentScope, onScopeDispose, type Ref, ref } from 'vue';
 
 export type UseStateInit<T> = (() => T) | T;
 
@@ -11,18 +10,44 @@ function resolveInit<T>(init: UseStateInit<T>): T {
 	return init;
 }
 
-const useStateShared = createSharedComposable(() => {
-	const store = new Map<string, Ref<unknown>>();
+/**
+ * Keyed refs shared by every `useState` consumer. The store is torn down
+ * when the last consuming component scope is disposed, so a fresh app
+ * (or test) starts from clean state — the same lifecycle the previous
+ * `createSharedComposable`-based implementation had.
+ */
+let store: Map<string, Ref<unknown>> | null = null;
+let subscribers = 0;
 
-	return function useState<T>(key: string, init: UseStateInit<T>): Ref<T> {
-		if (!store.has(key)) {
-			store.set(key, ref(resolveInit(init)) as Ref<unknown>);
-		}
+function releaseStore() {
+	subscribers -= 1;
+	if (subscribers <= 0) {
+		subscribers = 0;
+		store = null;
+	}
+}
 
-		return store.get(key) as Ref<T>;
-	};
-});
-
+/**
+ * Plain-Vue stand-in for Nuxt's `useState`: a keyed ref shared across all
+ * consumers for the lifetime of the app.
+ *
+ * @param key - Unique key identifying the shared state
+ * @param init - Initial value, or a factory producing it
+ * @returns The shared ref for `key`
+ */
 export function useState<T>(key: string, init: UseStateInit<T>): Ref<T> {
-	return useStateShared()(key, init);
+	if (getCurrentScope()) {
+		subscribers += 1;
+		onScopeDispose(releaseStore);
+	}
+
+	if (!store) {
+		store = new Map();
+	}
+
+	if (!store.has(key)) {
+		store.set(key, ref(resolveInit(init)) as Ref<unknown>);
+	}
+
+	return store.get(key) as Ref<T>;
 }

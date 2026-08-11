@@ -6,14 +6,19 @@ group: reference
 
 ## Bundled Docs
 
-The scoped packages you integrate directly — `@c15t/core`, `@c15t/react`, `@c15t/nextjs`, `@c15t/scripts`, and `@c15t/cli` — ship docs inside the installed package itself. Installing the `c15t` umbrella gives you `node_modules/c15t/AGENTS.md` as the index, plus the scoped packages' full doc bundles — the umbrella installs those packages for you.
+The scoped packages you integrate directly — `@c15t/core`, `@c15t/react`, `@c15t/nextjs`, `@c15t/scripts`, and `@c15t/cli` — ship docs inside the installed package itself. Installing the `c15t` umbrella gives you `node_modules/c15t/AGENTS.md` as the index plus the doc bundles of the packages it installs for you: `@c15t/core`, `@c15t/react`, and `@c15t/nextjs`.
 
 ### Where to find them
+
+With the `c15t` umbrella installed:
 
 - `node_modules/c15t/AGENTS.md` — the umbrella's index into the scoped bundles below
 - `node_modules/@c15t/core/docs/README.md`
 - `node_modules/@c15t/react/docs/README.md`
 - `node_modules/@c15t/nextjs/docs/README.md`
+
+`@c15t/scripts` and `@c15t/cli` bundle their own docs when you install them directly:
+
 - `node_modules/@c15t/scripts/docs/README.md`
 - `node_modules/@c15t/cli/docs/README.md`
 

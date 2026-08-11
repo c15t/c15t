@@ -67,6 +67,30 @@ group: reference
   4. **Backend errors** — In `'c15t'` mode, check that the backend is saving consent successfully. Enable `debug: true` in provider options to see detailed logs.
 </section>
 
+<section id="esm-only">
+  ## `ERR_REQUIRE_ESM` After Upgrading to v3
+
+  **Symptom:** Importing a c15t package fails with `ERR_REQUIRE_ESM`, or a test runner reports `Cannot use import statement outside a module`.
+
+  **Cause:** c15t v3 is ESM-only. The packages no longer ship CommonJS builds, so anything that loads them with `require()` — older Node.js, a CommonJS test setup, a legacy bundler config — needs Node.js's `require(esm)` support.
+
+  **Fixes:**
+
+  1. **Upgrade Node.js to 20.19 or later** (or 22.12 or later) — from these versions `require()` of an ES module works natively, so tools that still `require()` c15t (such as Next.js loading the `@c15t/ui/postcss-tailwind3` string plugin) keep working.
+
+  2. **Consume the packages with `import`** — all supported bundlers (Next.js, Vite, webpack, Rspack) and modern Node.js resolve the ESM build natively.
+
+  3. **CommonJS test runners** — Vitest handles ESM dependencies out of the box. In Jest's default CommonJS mode, either run Jest with its ESM support enabled or let Jest transpile the c15t packages by excluding them from `transformIgnorePatterns`:
+
+  ```js title="jest.config.js"
+  module.exports = {
+    transformIgnorePatterns: ['node_modules/(?!(c15t|@c15t)/)'],
+  };
+  ```
+
+  4. **Stuck on older Node.js with `require()`?** Stay on c15t v2, which continues to ship CommonJS builds.
+</section>
+
 <section id="scripts-not-loading">
   ## Scripts Not Loading
 

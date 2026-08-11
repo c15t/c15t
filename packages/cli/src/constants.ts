@@ -134,6 +134,17 @@ export const PACKAGES = {
 /** The npm package installed for every frontend framework target. */
 export const UMBRELLA_PACKAGE = 'c15t';
 
+/**
+ * Scoped framework packages whose direct installation satisfies the umbrella
+ * requirement. Apps that granularly installed `@c15t/react` or `@c15t/nextjs`
+ * must keep that install style on setup reruns — adding the `c15t` umbrella on
+ * top would mix two installs of the same code, a version-skew hazard.
+ */
+export const SCOPED_FRAMEWORK_PACKAGES = [
+	'@c15t/react',
+	'@c15t/nextjs',
+] as const;
+
 export type AvailablePackage = (typeof PACKAGES)[keyof typeof PACKAGES];
 
 // --- Framework Detection Keys ---

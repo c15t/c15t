@@ -157,13 +157,18 @@ function runPack(packageDir: string): PackResult {
 	return firstPack;
 }
 
-function getBlockedReason(packageName: string, path: string): string | null {
+export function getBlockedReason(
+	packageName: string,
+	path: string
+): string | null {
+	// v3 ships ESM-only: no package publishes CommonJS artifacts anywhere in
+	// the tarball — dist/, shims/, or the package root.
+	if (path.endsWith('.cjs')) {
+		return 'CommonJS artifact in ESM-only package';
+	}
+
 	// Most accidental publish bloat in this repo comes from built output.
 	if (path.startsWith('dist/')) {
-		// v3 ships ESM-only: no package publishes CommonJS artifacts.
-		if (path.endsWith('.cjs')) {
-			return 'CommonJS artifact in ESM-only package';
-		}
 		if (path.endsWith('.d.ts.map')) {
 			return 'declaration source map in runtime dist';
 		}
@@ -373,77 +378,83 @@ function scanUiV3StyleArtifacts(
 	return issues;
 }
 
-const packageDirs = readdirSync(PACKAGES_DIR, { withFileTypes: true })
-	.filter((entry) => entry.isDirectory())
-	.map((entry) => join(PACKAGES_DIR, entry.name))
-	.filter((packageDir) => existsSync(join(packageDir, 'package.json')));
+function main(): void {
+	const packageDirs = readdirSync(PACKAGES_DIR, { withFileTypes: true })
+		.filter((entry) => entry.isDirectory())
+		.map((entry) => join(PACKAGES_DIR, entry.name))
+		.filter((packageDir) => existsSync(join(packageDir, 'package.json')));
 
-const offenders: Array<{
-	packageName: string;
-	version: string;
-	files: Array<{ path: string; size: number; reason: string }>;
-}> = [];
+	const offenders: Array<{
+		packageName: string;
+		version: string;
+		files: Array<{ path: string; size: number; reason: string }>;
+	}> = [];
 
-let checkedPackages = 0;
+	let checkedPackages = 0;
 
-for (const packageDir of packageDirs) {
-	const manifest = readManifest(packageDir);
-	if (manifest.private || !manifest.name) {
-		continue;
-	}
+	for (const packageDir of packageDirs) {
+		const manifest = readManifest(packageDir);
+		if (manifest.private || !manifest.name) {
+			continue;
+		}
 
-	const packed = runPack(packageDir);
-	checkedPackages += 1;
+		const packed = runPack(packageDir);
+		checkedPackages += 1;
 
-	const blockedFiles = packed.files
-		.map((file) => {
-			const reason = getBlockedReason(packed.name, file.path);
-			if (!reason) return null;
-			return { ...file, reason };
-		})
-		.filter((file) => file !== null);
+		const blockedFiles = packed.files
+			.map((file) => {
+				const reason = getBlockedReason(packed.name, file.path);
+				if (!reason) return null;
+				return { ...file, reason };
+			})
+			.filter((file) => file !== null);
 
-	const requiredFiles = requiredPackedFilesByPackage[packed.name] ?? [];
-	const packedFilePaths = new Set(packed.files.map((file) => file.path));
-	for (const path of requiredFiles) {
-		if (!packedFilePaths.has(path)) {
-			blockedFiles.push({
-				path,
-				size: 0,
-				reason: 'required published file missing',
+		const requiredFiles = requiredPackedFilesByPackage[packed.name] ?? [];
+		const packedFilePaths = new Set(packed.files.map((file) => file.path));
+		for (const path of requiredFiles) {
+			if (!packedFilePaths.has(path)) {
+				blockedFiles.push({
+					path,
+					size: 0,
+					reason: 'required published file missing',
+				});
+			}
+		}
+		blockedFiles.push(...scanPackedManifestTargets(manifest, packedFilePaths));
+		blockedFiles.push(
+			...scanStyleEntrypointsContent(packageDir, packed.name, packedFilePaths)
+		);
+		blockedFiles.push(
+			...scanUiV3StyleArtifacts(packageDir, packed.name, packedFilePaths)
+		);
+
+		if (blockedFiles.length > 0) {
+			offenders.push({
+				packageName: packed.name,
+				version: packed.version,
+				files: blockedFiles,
 			});
 		}
 	}
-	blockedFiles.push(...scanPackedManifestTargets(manifest, packedFilePaths));
-	blockedFiles.push(
-		...scanStyleEntrypointsContent(packageDir, packed.name, packedFilePaths)
-	);
-	blockedFiles.push(
-		...scanUiV3StyleArtifacts(packageDir, packed.name, packedFilePaths)
-	);
 
-	if (blockedFiles.length > 0) {
-		offenders.push({
-			packageName: packed.name,
-			version: packed.version,
-			files: blockedFiles,
-		});
+	if (offenders.length === 0) {
+		console.log(
+			`Publish artifact guard passed. Checked ${checkedPackages} packages.`
+		);
+		process.exit(0);
 	}
-}
 
-if (offenders.length === 0) {
-	console.log(
-		`Publish artifact guard passed. Checked ${checkedPackages} packages.`
-	);
-	process.exit(0);
-}
-
-console.error('Publish artifact guard failed.');
-for (const offender of offenders) {
-	console.error(`\n- ${offender.packageName}@${offender.version}`);
-	for (const file of offender.files) {
-		console.error(`  - ${file.path} (${file.size} bytes) [${file.reason}]`);
+	console.error('Publish artifact guard failed.');
+	for (const offender of offenders) {
+		console.error(`\n- ${offender.packageName}@${offender.version}`);
+		for (const file of offender.files) {
+			console.error(`  - ${file.path} (${file.size} bytes) [${file.reason}]`);
+		}
 	}
+
+	process.exit(1);
 }
 
-process.exit(1);
+if (import.meta.main) {
+	main();
+}

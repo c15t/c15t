@@ -7,6 +7,7 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { fromPromise } from 'xstate';
+import { SCOPED_FRAMEWORK_PACKAGES, UMBRELLA_PACKAGE } from '~/constants';
 import type { PackageManager } from '~/context/package-manager-detection';
 import type { CliContext } from '~/context/types';
 
@@ -153,10 +154,42 @@ export interface CheckDepsOutput {
 	missing: string[];
 }
 
-export const checkDependenciesActor = fromPromise<
-	CheckDepsOutput,
-	CheckDepsInput
->(async ({ input }) => {
+/**
+ * Check whether a requested dependency is satisfied by the app's manifest.
+ *
+ * The umbrella `c15t` requirement is also satisfied when the app already
+ * depends on a scoped framework package (`@c15t/react`, `@c15t/nextjs`) —
+ * rerunning setup in such an app must retain the scoped install style
+ * instead of layering the umbrella package on top of it.
+ *
+ * @param depName - Bare package name (version specifier stripped)
+ * @param allDeps - Merged dependencies and devDependencies from package.json
+ * @returns Whether the dependency does not need to be installed
+ */
+function isDependencySatisfied(
+	depName: string,
+	allDeps: Record<string, unknown>
+): boolean {
+	if (depName in allDeps) {
+		return true;
+	}
+
+	return (
+		depName === UMBRELLA_PACKAGE &&
+		SCOPED_FRAMEWORK_PACKAGES.some((scopedPackage) => scopedPackage in allDeps)
+	);
+}
+
+/**
+ * Split requested dependencies into installed and missing sets based on the
+ * project's package.json.
+ *
+ * @param input - Project root and the dependencies to check
+ * @returns Installed and missing dependency lists
+ */
+export async function checkInstalledDependencies(
+	input: CheckDepsInput
+): Promise<CheckDepsOutput> {
 	const { projectRoot, dependencies } = input;
 	const fs = await import('node:fs/promises');
 	const path = await import('node:path');
@@ -177,7 +210,7 @@ export const checkDependenciesActor = fromPromise<
 			// Handle scoped packages
 			const depName = dep.startsWith('@') ? dep : dep.split('@')[0];
 
-			if (depName && depName in allDeps) {
+			if (depName && isDependencySatisfied(depName, allDeps)) {
 				installed.push(dep);
 			} else {
 				missing.push(dep);
@@ -189,4 +222,9 @@ export const checkDependenciesActor = fromPromise<
 	}
 
 	return { installed, missing };
-});
+}
+
+export const checkDependenciesActor = fromPromise<
+	CheckDepsOutput,
+	CheckDepsInput
+>(({ input }) => checkInstalledDependencies(input));

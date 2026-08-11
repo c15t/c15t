@@ -9,7 +9,7 @@
 		"Ongoing development and refinement"
 	],
 	"prerequisites": [
-		"Node.js 18.17.0 or later",
+		"Node.js 20.19 or later",
 		"React 16.8.0 or later",
 		"Familiarity with experimental tooling"
 	],

@@ -37,7 +37,7 @@ Next.js cookie banner and consent management platform for App Router, Pages Rout
 
 - Next.js 13.5.4 or later
 - React 18 or later
-- Node.js 18.17.0 or later
+- Node.js 20.19 or later
 - A hosted [c15t instance](https://inth.com) (free sign-up), [self-hosted deployment](https://c15t.com/docs/self-host/quickstart), or offline mode for local-only storage
 
 ## Quick Start

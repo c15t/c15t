@@ -16,7 +16,6 @@ export default defineBuildConfig({
 		'@c15t/schema',
 		'@c15t/ui',
 		'@c15t/core',
-		'@vueuse/core',
 		'reka-ui',
 		'defu',
 		'ufo',

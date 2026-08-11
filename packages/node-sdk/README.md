@@ -32,7 +32,7 @@ Type-safe Node.js SDK for hosted and self-hosted c15t consent APIs, consent reco
 
 ## Prerequisites
 
-- Node.js 18.17.0 or later
+- Node.js 20.19 or later
 - A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/quickstart)
 
 ## Manual Installation

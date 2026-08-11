@@ -9,4 +9,5 @@ The c15t umbrella package — the headless consent engine, React consent UI, the
 The umbrella ships no docs of its own; the full documentation is bundled with the scoped packages it installs alongside itself:
 
 - Start with `./AGENTS.md`; it maps every umbrella subpath to its scoped package and indexes their bundled docs (`node_modules/@c15t/core`, `node_modules/@c15t/react`, `node_modules/@c15t/nextjs`).
+- `@c15t/vue` bundles no docs yet — for Vue/Nuxt, use <https://c15t.com/docs>.
 - Prefer those local files over fetching anything over the network — they are version-matched to the installed code.

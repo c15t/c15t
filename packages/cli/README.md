@@ -35,7 +35,7 @@ CLI for c15t setup. Scaffold React and Next.js cookie banners, choose hosted/sel
 
 ## Prerequisites
 
-- Node.js 18.17.0 or later
+- Node.js 20.19 or later
 - npm, pnpm, or yarn package manager
 
 ## Quick Start

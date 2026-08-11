@@ -1,4 +1,7 @@
-import type { ConsentConfig } from '../src/runtime/config';
+// Import from the built declarations: the published tarball ships `dist` and
+// `schema` only, so a `src` import would leave consumers' Nuxt schema type
+// generation resolving a missing file.
+import type { ConsentConfig } from '../dist/runtime/config';
 
 export interface NuxtCustomSchema {
 	appConfig?: {

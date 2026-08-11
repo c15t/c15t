@@ -30,7 +30,7 @@ A collection of developer tools and utilities for the c15t ecosystem, currently 
 
 ## Prerequisites
 
-- Node.js 18.17.0 or later
+- Node.js 20.19 or later
 - React 16.8.0 or later
 - Familiarity with experimental tooling
 

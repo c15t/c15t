@@ -365,7 +365,9 @@ export const generateMachine = setup({
 						addScripts: ({ event }) => event.output.addScripts,
 						selectedScripts: ({ event }) => event.output.selectedScripts ?? [],
 						dependenciesToAdd: ({ context, event }) => {
-							// Frontend targets always install the c15t umbrella package.
+							// Frontend targets install the c15t umbrella package. The
+							// dependency check treats an existing scoped install
+							// (@c15t/react, @c15t/nextjs) as already satisfying it.
 							const deps: string[] = [UMBRELLA_PACKAGE];
 							if (event.output.addScripts) {
 								deps.push('@c15t/scripts');
