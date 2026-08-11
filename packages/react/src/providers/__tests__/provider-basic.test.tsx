@@ -9,6 +9,20 @@ import { clearConsentRuntimeCache } from '../consent-manager-provider';
 const mockFetch = vi.fn();
 window.fetch = mockFetch;
 
+const DisabledStateProbe = () => {
+	const { activeUI, has, hasConsented } = useConsentManager();
+
+	return (
+		<output data-testid="disabled-state">
+			{JSON.stringify({
+				measurement: has('measurement'),
+				hasConsented: hasConsented(),
+				activeUI,
+			})}
+		</output>
+	);
+};
+
 describe('ConsentManagerProvider Basic Request Behavior', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
@@ -64,6 +78,33 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		expect(mockFetch).toHaveBeenCalledWith(
 			expect.stringContaining('/api/c15t/init'),
 			expect.any(Object)
+		);
+	});
+
+	it('should grant all consents without initializing when disabled', async () => {
+		const { getByTestId } = await render(
+			<ConsentManagerProvider
+				options={{
+					mode: 'hosted',
+					backendURL: '/api/c15t',
+					consentCategories: ['necessary', 'measurement', 'marketing'],
+					storageConfig: { storageKey: 'disabled-provider' },
+					enabled: false,
+				}}
+			>
+				<DisabledStateProbe />
+			</ConsentManagerProvider>
+		);
+
+		await vi.runAllTimersAsync();
+
+		expect(mockFetch).not.toHaveBeenCalled();
+		expect(getByTestId('disabled-state')).toHaveTextContent(
+			JSON.stringify({
+				measurement: true,
+				hasConsented: true,
+				activeUI: 'none',
+			})
 		);
 	});
 

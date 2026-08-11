@@ -82,6 +82,33 @@ describe('Consent Store', () => {
 			expect(state.consents.experience).toBe(false);
 		});
 
+		it('should grant all consents without initializing when disabled', async () => {
+			const store = createConsentManagerStore(mockManager, {
+				enabled: false,
+			});
+			const state = store.getState();
+
+			expect(state.consents).toEqual({
+				necessary: true,
+				marketing: true,
+				measurement: true,
+				functionality: true,
+				experience: true,
+			});
+			expect(state.selectedConsents).toEqual(state.consents);
+			expect(state.hasConsented()).toBe(true);
+			expect(state.activeUI).toBe('none');
+			expect(state.isLoadingConsentInfo).toBe(false);
+			expect(mockManager.init).not.toHaveBeenCalled();
+
+			await expect(state.initConsentManager()).resolves.toBeUndefined();
+			await expect(
+				state.setOverrides({ country: 'US' })
+			).resolves.toBeUndefined();
+			expect(store.getState().overrides).toEqual({ country: 'US' });
+			expect(mockManager.init).not.toHaveBeenCalled();
+		});
+
 		it('should set namespace correctly', () => {
 			const store = createConsentManagerStore(mockManager, {
 				namespace: 'customStore',

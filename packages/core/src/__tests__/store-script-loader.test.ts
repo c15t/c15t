@@ -177,6 +177,27 @@ describe('Store Script Loader Integration', () => {
 	}
 
 	describe('Script Management in Store', () => {
+		it('should load consent-gated scripts when disabled', () => {
+			const onBeforeLoad = vi.fn();
+			const store = createConsentManagerStore(mockConsentManager, {
+				enabled: false,
+				scripts: [
+					{
+						id: 'measurement-callback',
+						category: 'measurement',
+						callbackOnly: true,
+						onBeforeLoad,
+					},
+				],
+			});
+
+			expect(store.getState().has('measurement')).toBe(true);
+			expect(store.getState().isScriptLoaded('measurement-callback')).toBe(
+				true
+			);
+			expect(onBeforeLoad).toHaveBeenCalledOnce();
+		});
+
 		it('should add scripts to the store', () => {
 			const store = createTestStore();
 
