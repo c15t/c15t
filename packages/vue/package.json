@@ -92,7 +92,6 @@
 		"@c15t/schema": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"@nuxt/kit": "^3.0.0 || ^4.0.0",
-		"@vueuse/core": "^14.3.0",
 		"defu": "^6.1.4",
 		"ufo": "^1.6.1"
 	},
