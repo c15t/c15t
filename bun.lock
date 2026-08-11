@@ -894,6 +894,7 @@
         "@c15t/core": "workspace:*",
         "@c15t/schema": "workspace:*",
         "@c15t/ui": "workspace:*",
+        "@nuxt/kit": "^3.0.0 || ^4.0.0",
         "@vueuse/core": "^14.3.0",
         "defu": "^6.1.4",
         "ufo": "^1.6.1",
@@ -901,7 +902,6 @@
       "devDependencies": {
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
-        "@nuxt/kit": "^4.5.1",
         "@nuxt/module-builder": "^1.0.2",
         "@vitejs/plugin-vue": "6.0.7",
         "@vue/test-utils": "^2.4.6",
