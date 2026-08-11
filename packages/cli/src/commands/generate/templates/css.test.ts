@@ -213,6 +213,94 @@ describe('updateAppStylesheetImports', () => {
 		]);
 	});
 
+	it('leaves scoped stylesheet imports untouched when the app depends on the scoped package', async () => {
+		const cssContent =
+			'@import "@c15t/react/styles.css";\n:root { color: #111827; }\n';
+		const { root } = await createProject({
+			'package.json': JSON.stringify({
+				dependencies: { '@c15t/react': '^2.0.0' },
+			}),
+			'src/main.tsx': [
+				"import './index.css';",
+				'',
+				'export default function App() {',
+				'  return null;',
+				'}',
+			].join('\n'),
+			'src/index.css': cssContent,
+		});
+
+		const result = await updateAppStylesheetImports({
+			projectRoot: root,
+			packageName: 'c15t/react',
+			tailwindVersion: null,
+			entrypointPath: 'src/main.tsx',
+		});
+		const content = await readFile(join(root, 'src/index.css'), 'utf-8');
+
+		expect(result.updated).toBe(false);
+		expect(content).toBe(cssContent);
+	});
+
+	it('adds the scoped stylesheet when a scoped app is missing the import', async () => {
+		const { root } = await createProject({
+			'package.json': JSON.stringify({
+				dependencies: { '@c15t/nextjs': '^2.0.0' },
+			}),
+			'app/layout.tsx': [
+				"import './globals.css';",
+				'',
+				'export default function RootLayout({ children }: { children: React.ReactNode }) {',
+				'  return <html><body>{children}</body></html>;',
+				'}',
+			].join('\n'),
+			'app/globals.css': ':root { color: #111827; }\n',
+		});
+
+		const result = await updateAppStylesheetImports({
+			projectRoot: root,
+			packageName: 'c15t/next',
+			tailwindVersion: null,
+			entrypointPath: 'app/layout.tsx',
+		});
+		const content = await readFile(join(root, 'app/globals.css'), 'utf-8');
+
+		expect(result.updated).toBe(true);
+		expect(content).toBe(
+			'@import "@c15t/nextjs/styles.css";\n:root { color: #111827; }\n'
+		);
+	});
+
+	it('still normalizes scoped imports when the app depends on the umbrella package', async () => {
+		const { root } = await createProject({
+			'package.json': JSON.stringify({
+				dependencies: { c15t: '^3.0.0', '@c15t/react': '^2.0.0' },
+			}),
+			'src/main.tsx': [
+				"import './index.css';",
+				'',
+				'export default function App() {',
+				'  return null;',
+				'}',
+			].join('\n'),
+			'src/index.css':
+				'@import "@c15t/react/styles.css";\n:root { color: #111827; }\n',
+		});
+
+		const result = await updateAppStylesheetImports({
+			projectRoot: root,
+			packageName: 'c15t/react',
+			tailwindVersion: null,
+			entrypointPath: 'src/main.tsx',
+		});
+		const content = await readFile(join(root, 'src/index.css'), 'utf-8');
+
+		expect(result.updated).toBe(true);
+		expect(content).toBe(
+			'@import "c15t/react/styles.css";\n:root { color: #111827; }\n'
+		);
+	});
+
 	it('returns searched targets when no CSS entrypoint exists', async () => {
 		const { root } = await createProject({
 			'src/main.tsx': [
