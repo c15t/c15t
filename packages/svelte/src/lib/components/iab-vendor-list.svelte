@@ -1,7 +1,7 @@
 <script lang="ts">
+import type { GlobalVendorList } from '@c15t/core';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { switchVariants } from '@c15t/ui/styles/primitives';
-import type { GlobalVendorList } from '@c15t/core';
 import { untrack } from 'svelte';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import type { IABTranslations } from '../iab-translations';

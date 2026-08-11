@@ -1,8 +1,4 @@
 <script lang="ts">
-import { createIAB, type IABHandle } from '@c15t/iab/v3';
-import { buildDefaultOptInPolicy, policyDefaults } from '@c15t/schema/types';
-import { generateThemeCSS } from '@c15t/ui/theme';
-import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
 import {
 	type AllConsentNames,
 	type Callbacks,
@@ -34,6 +30,10 @@ import {
 	createWindowDebug,
 	resolveWindowDebugMode,
 } from '@c15t/core/v3/modules/window-debug';
+import { createIAB, type IABHandle } from '@c15t/iab/v3';
+import { buildDefaultOptInPolicy, policyDefaults } from '@c15t/schema/types';
+import { generateThemeCSS } from '@c15t/ui/theme';
+import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
 import type { Snippet } from 'svelte';
 import { onDestroy, onMount, untrack } from 'svelte';
 import {
