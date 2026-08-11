@@ -174,7 +174,7 @@ export const createConsentManagerStore = (
 		initialConsentCategories,
 		initialTranslationConfig: legacyInitialTranslationConfig,
 		initialI18nConfig,
-		enabled: _unusedEnabled,
+		enabled = true,
 		debug: _unusedDebug,
 		// The rest are valid StoreConfig properties
 		...storeConfigOptions
@@ -192,6 +192,43 @@ export const createConsentManagerStore = (
 
 	// Load initial state from localStorage if available
 	const storedConsent = getStoredConsent(options.storageConfig);
+	const getInitialConsentState = (): Partial<ConsentStoreState> => {
+		if (!enabled) {
+			const grantedConsents = consentTypes.reduce((acc, consent) => {
+				acc[consent.name] = true;
+				return acc;
+			}, {} as ConsentState);
+
+			return {
+				consents: grantedConsents,
+				selectedConsents: grantedConsents,
+				consentInfo: { time: Date.now() },
+				activeUI: 'none',
+				isLoadingConsentInfo: false,
+			};
+		}
+
+		if (storedConsent) {
+			return {
+				consents: storedConsent.consents,
+				selectedConsents: storedConsent.consents,
+				consentInfo: storedConsent.consentInfo,
+				user: storedConsent.consentInfo?.externalId
+					? {
+							id: storedConsent.consentInfo.externalId,
+							identityProvider: storedConsent.consentInfo.identityProvider,
+						}
+					: undefined,
+				activeUI: 'none',
+				isLoadingConsentInfo: false,
+			};
+		}
+
+		return {
+			activeUI: 'none',
+			isLoadingConsentInfo: true,
+		};
+	};
 	const consentChangeListeners = new Set<Callback<OnConsentChangedPayload>>();
 	const inFlightConsentSaves = new Map<string, Promise<void>>();
 	const inFlightPolicyConsents = new Map<string, Promise<PostSubjectOutput>>();
@@ -206,24 +243,7 @@ export const createConsentManagerStore = (
 		...(initialConsentCategories && {
 			consentCategories: initialConsentCategories,
 		}),
-		...(storedConsent
-			? {
-					consents: storedConsent.consents,
-					selectedConsents: storedConsent.consents,
-					consentInfo: storedConsent.consentInfo,
-					user: storedConsent.consentInfo?.externalId
-						? {
-								id: storedConsent.consentInfo.externalId,
-								identityProvider: storedConsent.consentInfo.identityProvider,
-							}
-						: undefined,
-					activeUI: 'none' as const,
-					isLoadingConsentInfo: false,
-				}
-			: {
-					activeUI: 'none' as const,
-					isLoadingConsentInfo: true,
-				}),
+		...getInitialConsentState(),
 		setActiveUI: (ui, options = {}) => {
 			if (ui === 'none' || ui === 'dialog') {
 				set({ activeUI: ui });
@@ -394,8 +414,12 @@ export const createConsentManagerStore = (
 		},
 		setLocationInfo: (location) => set({ locationInfo: location }),
 
-		initConsentManager: (): Promise<ConsentBannerResponse | undefined> =>
-			initConsentManager({
+		initConsentManager: (): Promise<ConsentBannerResponse | undefined> => {
+			if (!enabled) {
+				return Promise.resolve(undefined);
+			}
+
+			return initConsentManager({
 				manager,
 				ssrData: options.ssrData,
 				backendURL: internalOptions.__internal?.backendURL,
@@ -404,7 +428,8 @@ export const createConsentManagerStore = (
 				iabConfig: iab as IABConfig | undefined,
 				get,
 				set,
-			}),
+			});
+		},
 
 		getDisplayedConsents: () => {
 			const { consentCategories, consentTypes } = get();
@@ -638,6 +663,9 @@ export const createConsentManagerStore = (
 			overrides: ConsentStoreState['overrides']
 		): Promise<ConsentBannerResponse | undefined> => {
 			set({ overrides: { ...get().overrides, ...overrides } });
+			if (!enabled) {
+				return undefined;
+			}
 
 			return await initConsentManager({
 				manager,
@@ -702,7 +730,11 @@ export const createConsentManagerStore = (
 			store.getState().identifyUser(options.user);
 		}
 
-		store.getState().initConsentManager();
+		if (enabled) {
+			store.getState().initConsentManager();
+		} else {
+			store.getState().updateScripts();
+		}
 	}
 
 	return store;
