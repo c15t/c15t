@@ -110,12 +110,12 @@
 	"peerDependencies": {
 		"svelte": "^5.0.0"
 	},
-	"publishConfig": {
-		"access": "public"
-	},
 	"peerDependenciesMeta": {
 		"svelte": {
 			"optional": true
 		}
+	},
+	"publishConfig": {
+		"access": "public"
 	}
 }
