@@ -143,3 +143,36 @@ Features:
 - Wildcard subdomain matching with `*`
 - `localhost` is allowed in development
 - Preflight `OPTIONS` requests are handled automatically
+
+### Native WebViews (Capacitor, Cordova/Ionic)
+
+Entries without a scheme, or with `http(s)`, match either protocol. Native
+WebView shells serve the app from a custom scheme instead, so those origins must
+be listed in full:
+
+```ts
+c15tInstance({
+  trustedOrigins: [
+    'https://app.example.com', // your web app
+    'capacitor://localhost', // iOS (Capacitor default)
+    'http://localhost', // Android
+  ],
+  // ...
+});
+```
+
+An entry that names an app scheme is pinned to it: `capacitor://localhost` is a
+different origin from `https://localhost`, and it only matches that exact scheme
+and host — adding `capacitor://localhost` does not trust
+`capacitor://anything-else`.
+
+<Callout type="info">
+  iOS defaults to `capacitor://localhost`. Apps migrated from
+  `cordova-plugin-ionic-webview` use `ionic://localhost`, and a custom
+  [`iosScheme`](https://capacitorjs.com/docs/config#schema) produces
+  `yourscheme://localhost` — list whichever your app actually sends. A custom
+  `server.hostname` replaces the `localhost` half, giving
+  `capacitor://app.example.com`. Android serves from `http://` and needs no
+  special handling. When in doubt, read the `Origin` header off the failing
+  request rather than guessing.
+</Callout>

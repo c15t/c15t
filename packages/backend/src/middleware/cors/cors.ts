@@ -4,6 +4,7 @@
  * @packageDocumentation
  */
 
+import { getAppScheme, splitAppSchemeOrigin } from './app-scheme';
 import { matchesWildcard } from './matches-wildcard';
 
 /**
@@ -53,10 +54,23 @@ const SUPPORTED_HEADERS = [
 /**
  * Normalizes an origin string by removing protocol and www prefix
  *
+ * App-scheme origins (e.g. `capacitor://localhost`) keep their scheme, because
+ * the scheme is what distinguishes them from the same host served over
+ * `http(s)`. Prefixing them with `http://` — as the generic path below does for
+ * bare hosts — would parse the scheme itself as the hostname and collapse every
+ * `capacitor://*` origin onto the single host `capacitor`.
+ *
  * @param origin - The origin URL to normalize
- * @returns Normalized origin string without protocol and www prefix
+ * @returns Normalized origin string without protocol and www prefix, or
+ * `scheme://authority` for app-scheme origins
  */
 function normalizeOrigin(origin: string): string {
+	const appScheme = getAppScheme(origin);
+	if (appScheme) {
+		const split = splitAppSchemeOrigin(origin, appScheme);
+		return split ? `${split.scheme}//${split.authority}` : origin.toLowerCase();
+	}
+
 	try {
 		// Handle bare domains like 'localhost' or 'example.com'
 		if (
@@ -99,6 +113,10 @@ function expandWithWWW(origins: string[]): string[] {
 		}
 		const normalized = normalizeOrigin(origin);
 		expanded.add(normalized);
+		// App-scheme origins are native WebView hosts, never www-prefixed domains
+		if (getAppScheme(normalized)) {
+			continue;
+		}
 		// Add www version if not already present
 		if (!normalized.includes('www.')) {
 			expanded.add(`www.${normalized}`);

@@ -5,6 +5,7 @@
  */
 
 import type { Logger } from '@c15t/logger';
+import { getAppScheme } from './app-scheme';
 import { matchesWildcard } from './matches-wildcard';
 
 /** Regular expression to match www prefix in domain names */
@@ -22,6 +23,11 @@ const DEFAULT_PORTS: Record<string, string> = {
 };
 
 interface NormalizedTrustedDomain {
+	/**
+	 * Non-web scheme the entry is pinned to (e.g. `capacitor:`), or `undefined`
+	 * when the entry is protocol-agnostic.
+	 */
+	scheme?: string;
 	hostname: string;
 	port?: string;
 }
@@ -62,6 +68,9 @@ function normalizeTrustedDomain(
 		const parsed = new URL(hasProtocol ? trimmed : `https://${authority}`);
 
 		return {
+			// Pin the entry to its scheme only when it is an app scheme, so
+			// existing http/https/bare-host entries stay protocol-agnostic.
+			scheme: getAppScheme(trimmed),
 			hostname: parsed.hostname.toLowerCase(),
 			// Read the port from the raw input rather than `parsed.port`, which
 			// drops scheme-default ports such as `:443` on https.
@@ -125,6 +134,9 @@ export function isOriginTrusted(
 		// Parse the origin URL to get host components
 		const url = new URL(origin);
 		const originHostname = url.hostname.toLowerCase();
+		// `undefined` for ordinary web origins; `capacitor:` and friends for
+		// native WebView origins, which only ever match a same-scheme entry.
+		const originScheme = getAppScheme(origin);
 		// Resolve the scheme default (e.g. 443 for https) so a trusted entry
 		// like `example.com:443` still matches `https://example.com`.
 		const originPort = url.port || DEFAULT_PORTS[url.protocol] || undefined;
@@ -146,6 +158,16 @@ export function isOriginTrusted(
 			logger?.debug(
 				`Checking against stripped domain: ${normalizedDomain.hostname}`
 			);
+
+			// An entry that names an app scheme is pinned to it: `capacitor://localhost`
+			// and `https://localhost` are different origins. Entries without one stay
+			// protocol-agnostic, matching any scheme exactly as they always have.
+			if (normalizedDomain.scheme && normalizedDomain.scheme !== originScheme) {
+				logger?.debug(
+					`Scheme mismatch: ${originScheme ?? '<web>'} !== ${normalizedDomain.scheme}`
+				);
+				return false;
+			}
 
 			if (normalizedDomain.port && normalizedDomain.port !== originPort) {
 				logger?.debug(
