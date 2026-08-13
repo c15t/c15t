@@ -122,9 +122,11 @@ function expandWithWWW(origins: string[]): string[] {
 		if (getAppScheme(normalized)) {
 			continue;
 		}
-		// Wildcards already cover every subdomain, `www` included, and a
-		// `www.*.example.com` entry could never match anything.
-		if (normalized.startsWith('*.')) {
+		// Wildcards already cover every subdomain, `www` included. Any entry
+		// carrying a `*` is left verbatim: deriving an apex from one widens it,
+		// turning `www.*` into the allow-all `*` and `www.*.example.com` into
+		// `*.example.com`.
+		if (normalized.includes('*')) {
 			continue;
 		}
 		const apex = normalized.replace(WWW_REGEX, '');

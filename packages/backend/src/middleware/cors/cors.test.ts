@@ -97,6 +97,21 @@ describe('createCORSOptions (unit)', () => {
 			);
 		});
 
+		it('does not widen malformed wildcard entries', async () => {
+			// Deriving an apex by stripping `www.` would turn these into the
+			// allow-all `*` and the far broader `*.example.com` respectively.
+			const allowAll = createCORSOptions(['www.*']);
+			expect(await callOrigin(allowAll.origin, 'https://evil.com')).toBeNull();
+
+			const subdomains = createCORSOptions(['www.*.example.com']);
+			expect(
+				await callOrigin(subdomains.origin, 'https://evil.example.com')
+			).toBeNull();
+			expect(
+				await callOrigin(subdomains.origin, 'https://evil.com')
+			).toBeNull();
+		});
+
 		it('rejects similar domains that are not subdomains', async () => {
 			const config = createCORSOptions(['https://*.example.com']);
 
