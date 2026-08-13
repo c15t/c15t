@@ -187,11 +187,16 @@ export function isOriginTrusted(
 				return isMatch;
 			}
 
-			const normalizedOriginHostname = originHostname.replace(WWW_REGEX, '');
-			const normalizedTrustedHostname = normalizedDomain.hostname.replace(
-				WWW_REGEX,
-				''
-			);
+			// `www.` equivalence is a web-domain convention. App-scheme hosts are
+			// matched verbatim, so `capacitor://localhost` never trusts the distinct
+			// origin `capacitor://www.localhost`.
+			const stripWww = !normalizedDomain.scheme;
+			const normalizedOriginHostname = stripWww
+				? originHostname.replace(WWW_REGEX, '')
+				: originHostname;
+			const normalizedTrustedHostname = stripWww
+				? normalizedDomain.hostname.replace(WWW_REGEX, '')
+				: normalizedDomain.hostname;
 			const isMatch = normalizedOriginHostname === normalizedTrustedHostname;
 			logger?.debug(
 				`Exact match result: ${isMatch} ${normalizedOriginHostname} === ${normalizedTrustedHostname}`

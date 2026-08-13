@@ -44,6 +44,24 @@ describe('app-scheme trusted origins', () => {
 			).toBe(false);
 		});
 
+		it('matches app-scheme hosts verbatim, without www equivalence', () => {
+			expect(
+				isOriginTrusted('capacitor://www.localhost', ['capacitor://localhost'])
+			).toBe(false);
+			expect(
+				isOriginTrusted('capacitor://localhost', ['capacitor://www.localhost'])
+			).toBe(false);
+		});
+
+		it('keeps www equivalence for web entries', () => {
+			expect(isOriginTrusted('https://www.example.com', ['example.com'])).toBe(
+				true
+			);
+			expect(isOriginTrusted('https://example.com', ['www.example.com'])).toBe(
+				true
+			);
+		});
+
 		it('leaves entries without an app scheme protocol-agnostic', () => {
 			// Pre-existing behaviour: an entry that names no scheme matches any
 			// scheme on that host, app schemes included. Narrowing this would break
