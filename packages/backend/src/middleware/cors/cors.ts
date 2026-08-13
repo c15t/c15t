@@ -23,8 +23,8 @@ export interface CorsOptions {
 /** Regular expression to match www prefix in domain names */
 const WWW_REGEX = /^www\./;
 
-/** Regular expression to match protocol and www prefix in URLs */
-const PROTOCOL_WWW_REGEX = /^https?:\/\/(www\.)?/;
+/** Regular expression to match a protocol prefix in URLs */
+const PROTOCOL_REGEX = /^https?:\/\//;
 
 /**
  * Supported HTTP methods for CORS
@@ -89,17 +89,22 @@ function normalizeOrigin(origin: string): string {
 				? origin
 				: `http://${origin}`;
 		const url = new URL(originWithProtocol);
-		const hostname = url.hostname.replace(WWW_REGEX, '');
-		// Return without protocol to match both http and https
-		return `${hostname}${url.port ? `:${url.port}` : ''}`;
+		// Return without protocol to match both http and https. The `www.` prefix
+		// is preserved: stripping it here turned `www.example.com` into the apex
+		// `example.com`, which `*.example.com` deliberately excludes. Equivalence
+		// is applied to the trusted list instead, in `expandWithWWW`.
+		return `${url.hostname}${url.port ? `:${url.port}` : ''}`;
 	} catch {
-		// Fallback: remove www manually and protocol
-		return origin.replace(PROTOCOL_WWW_REGEX, '').replace(WWW_REGEX, '');
+		// Fallback: remove the protocol manually
+		return origin.replace(PROTOCOL_REGEX, '').toLowerCase();
 	}
 }
 
 /**
  * Expands a list of origins to include www variants
+ *
+ * Both forms are added regardless of which one was configured, so a
+ * `www.example.com` entry accepts the apex and vice versa.
  *
  * @param origins - Array of origin strings to expand
  * @returns Array of origins including www variants
@@ -117,10 +122,14 @@ function expandWithWWW(origins: string[]): string[] {
 		if (getAppScheme(normalized)) {
 			continue;
 		}
-		// Add www version if not already present
-		if (!normalized.includes('www.')) {
-			expanded.add(`www.${normalized}`);
+		// Wildcards already cover every subdomain, `www` included, and a
+		// `www.*.example.com` entry could never match anything.
+		if (normalized.startsWith('*.')) {
+			continue;
 		}
+		const apex = normalized.replace(WWW_REGEX, '');
+		expanded.add(apex);
+		expanded.add(`www.${apex}`);
 	}
 	return Array.from(expanded);
 }
