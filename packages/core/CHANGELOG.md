@@ -1,5 +1,11 @@
 # c15t
 
+## 2.2.0-canary-20260814121231
+
+### Patch Changes
+
+- c6927eb: Restore the `enabled: false` behavior so all client-side consents are granted, initialization requests are skipped, and consent-gated scripts load immediately.
+
 ## 2.2.0-canary-20260731105620
 
 ### Patch Changes
