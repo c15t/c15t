@@ -49,6 +49,11 @@ export type {
 	ResponseContext,
 } from './client/types';
 export { API_ENDPOINTS } from './client/types';
+export type {
+	ClearOnRevocationConfig,
+	ClearOnRevocationCookieTarget,
+	ClearOnRevocationTargets,
+} from './libs/clear-on-revocation';
 // Export cookie storage utilities
 export type { CookieOptions, StorageConfig } from './libs/cookie';
 export {

@@ -2,7 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand';
 import type { ConsentManagerInterface } from '../../client/client-interface';
 import type { ConsentStoreState } from '../../store/type';
+import { runClearOnRevocation } from '../clear-on-revocation';
 import { PENDING_CONSENT_SYNC_KEY, saveConsents } from '../save-consents';
+
+vi.mock('../clear-on-revocation', () => ({
+	runClearOnRevocation: vi.fn(),
+}));
+
+const runClearOnRevocationMock = vi.mocked(runClearOnRevocation);
 
 describe('saveConsents', () => {
 	let mockManager: ConsentManagerInterface;
@@ -2065,6 +2072,167 @@ describe('saveConsents', () => {
 			// API should NOT be called when reload is triggered
 			// (sync happens after reload)
 			expect(mockManager.setConsent).not.toHaveBeenCalled();
+		});
+
+		it('clears configured cookies/storage before reloading the page', async () => {
+			const callOrder: string[] = [];
+
+			runClearOnRevocationMock.mockImplementation(() => {
+				callOrder.push('runClearOnRevocation');
+			});
+			mockReload.mockImplementation(() => {
+				callOrder.push('reload');
+			});
+
+			mockGet = vi.fn().mockReturnValue({
+				callbacks: { onConsentSet: vi.fn() },
+				clearOnRevocation: { marketing: { cookies: ['_fbq'] } },
+				consentCategories: ['necessary', 'marketing'],
+				updateScripts: vi.fn().mockReturnValue({ loaded: [], unloaded: [] }),
+				updateIframeConsents: vi.fn(),
+				updateNetworkBlockerConsents: vi.fn(),
+				consents: {
+					necessary: true,
+					marketing: true, // Previously granted
+				},
+				selectedConsents: {
+					necessary: true,
+					marketing: false, // Now revoking
+				},
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: 'Necessary',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: 'Marketing',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				consentInfo: { time: Date.now(), subjectId: 'test-subject' },
+				reloadOnConsentRevoked: true,
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(runClearOnRevocationMock).toHaveBeenCalledWith(
+				{ marketing: { cookies: ['_fbq'] } },
+				['marketing']
+			);
+			expect(callOrder).toEqual(['runClearOnRevocation', 'reload']);
+		});
+	});
+
+	describe('clear on revocation', () => {
+		it('clears configured cookies/storage for categories revoked by this save', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				...mockGet(),
+				clearOnRevocation: { marketing: { cookies: ['_fbq'] } },
+				consentCategories: ['necessary', 'marketing'],
+				consents: { necessary: true, marketing: true },
+				selectedConsents: { necessary: true, marketing: false },
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: '',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: '',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				consentInfo: null,
+				reloadOnConsentRevoked: false,
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(runClearOnRevocationMock).toHaveBeenCalledWith(
+				{ marketing: { cookies: ['_fbq'] } },
+				['marketing']
+			);
+		});
+
+		it('does not include categories that remain allowed', async () => {
+			mockGet = vi.fn().mockReturnValue({
+				...mockGet(),
+				clearOnRevocation: {
+					necessary: { cookies: ['keep-me'] },
+					marketing: { cookies: ['_fbq'] },
+				},
+				consentCategories: ['necessary', 'marketing'],
+				consents: { necessary: true, marketing: false },
+				selectedConsents: { necessary: true, marketing: false },
+				consentTypes: [
+					{
+						name: 'necessary',
+						defaultValue: true,
+						description: '',
+						disabled: true,
+						display: true,
+						gdprType: 1,
+					},
+					{
+						name: 'marketing',
+						defaultValue: false,
+						description: '',
+						disabled: false,
+						display: true,
+						gdprType: 5,
+					},
+				],
+				consentInfo: null,
+				reloadOnConsentRevoked: false,
+			});
+
+			await saveConsents({
+				manager: mockManager,
+				type: 'custom',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(runClearOnRevocationMock).toHaveBeenCalledWith(
+				expect.anything(),
+				[]
+			);
+		});
+
+		it('passes an empty revoked-categories list when nothing was revoked', async () => {
+			await saveConsents({
+				manager: mockManager,
+				type: 'all',
+				get: mockGet,
+				set: mockSet,
+			});
+
+			expect(runClearOnRevocationMock).toHaveBeenCalledWith(undefined, []);
 		});
 	});
 });

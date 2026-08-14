@@ -11,6 +11,7 @@ import {
 import { resolveTranslationInput } from '@c15t/translations';
 import { createStore } from 'zustand/vanilla';
 import type { ConsentManagerInterface } from '../client/client-factory';
+import { createClearOnRevocationManager } from '../libs/clear-on-revocation/store';
 import type { StorageConfig } from '../libs/cookie';
 import {
 	deleteConsentFromStorage,
@@ -692,6 +693,7 @@ export const createConsentManagerStore = (
 		...createScriptManager(get, set),
 		...createIframeManager(get, set),
 		...createNetworkBlockerManager(get, set),
+		...createClearOnRevocationManager(get, set),
 	}));
 
 	// Initialize the iframe blocker after the store is created
@@ -705,7 +707,8 @@ export const createConsentManagerStore = (
 		store.getState().initializeNetworkBlocker();
 	}
 
-	// Add script categories to consentCategories
+	// Add script categories to consentCategories before sweeping so a
+	// script-only category isn't missed by the initial clearOnRevocation sweep
 	if (options.scripts && options.scripts.length > 0) {
 		store
 			.getState()
@@ -714,6 +717,11 @@ export const createConsentManagerStore = (
 					extractConsentNamesFromCondition(script.category)
 				)
 			);
+	}
+
+	// Sweep already-denied categories after the store is created
+	if (options.clearOnRevocation) {
+		store.getState().setClearOnRevocation(options.clearOnRevocation);
 	}
 
 	if (typeof window !== 'undefined') {

@@ -8,6 +8,7 @@ import type {
 	ConsentType,
 	OnConsentChangedPayload,
 } from '../types';
+import { runClearOnRevocation } from './clear-on-revocation';
 import { saveConsentToStorage } from './cookie';
 import { generateSubjectId } from './generate-subject-id';
 import {
@@ -159,6 +160,7 @@ export async function saveConsents({
 		consentInfo,
 		reloadOnConsentRevoked,
 		lastBannerFetchData,
+		clearOnRevocation,
 	} = get();
 
 	// Store previous consents for revocation detection
@@ -213,6 +215,20 @@ export async function saveConsents({
 		consentCategories,
 		consentTypes
 	);
+
+	// Clear configured cookies/storage for categories revoked by this save.
+	// Runs before the reload branch below, since that branch returns early
+	// and never reaches the updateScripts/updateNetworkBlockerConsents calls.
+	const revokedCategories =
+		previousConsentCategoryLists.allowedCategories.filter((category) =>
+			nextConsentCategoryLists.deniedCategories.includes(category)
+		);
+	try {
+		runClearOnRevocation(clearOnRevocation, revokedCategories);
+	} catch (error) {
+		console.error('clearOnRevocation failed:', error);
+	}
+
 	const consentChangedPayload: OnConsentChangedPayload | null = didChange
 		? {
 				preferences: effectiveConsents,

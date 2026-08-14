@@ -1,0 +1,65 @@
+---
+title: "Clear on Revocation"
+description: "Reference page for clearing cookies and storage on consent revocation."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by framework pages. */}
+
+<section id="intro">
+  Revoking consent stops new tracking, but it does not remove cookies or storage keys a script already wrote. `clearOnRevocation` lets you declare, per consent category, which first-party cookie names and Web Storage keys to delete whenever that category is not granted - both immediately after the user revokes consent and for categories that are already denied (for example, a returning visitor).
+</section>
+
+<section id="reference">
+  ## What Can Be Cleared
+
+  Only cookies and storage that are readable and writable from JavaScript can actually be removed:
+
+  - **First-party cookies set by a script** (e.g. a tag manager or pixel snippet) - these can be cleared.
+  - **`localStorage` and `sessionStorage` keys** - these can be cleared.
+  - **`HttpOnly` cookies set by a server response** - these are not visible to `document.cookie` and are silently left untouched. This is a browser security boundary, not a limitation of c15t - if a cookie must be revocable, set it from client-side script rather than a `Set-Cookie` response header.
+  - **Third-party cookies** (set by a different origin) - not accessible from your site at all, regardless of configuration.
+
+  ## Name Matching
+
+  Entries are matched exactly, or as a prefix when the entry ends in `*`. Use a wildcard for cookies/keys with a dynamic suffix, such as Google Analytics 4's per-property cookie name:
+
+  ```tsx
+  clearOnRevocation: {
+    marketing: {
+      cookies: ['_fbq', '_fbp'],
+    },
+    measurement: {
+      cookies: ['_ga', '_ga_*'], // matches _ga_ABCDEF1234
+      localStorage: ['ga_disable_*'],
+    },
+  }
+  ```
+
+  ## Cookies On A Non-Default Path
+
+  A browser only deletes a cookie when the delete write's `Domain` and `Path` match the ones it was set with. `clearOnRevocation` always retries deletion against the root domain automatically (covering tools like GA4's `cookie_domain: 'auto'`), but it has no way to discover a non-default `Path` - cookies are assumed to be on `/` unless told otherwise. For a cookie scoped to a sub-path, pass an object instead of a plain string:
+
+  ```tsx
+  clearOnRevocation: {
+    marketing: {
+      cookies: ['_fbq', { name: 'checkout_session', path: '/checkout' }],
+    },
+  }
+  ```
+
+  ## When Clearing Runs
+
+  Clearing runs continuously, not just on the moment of revocation:
+
+  - Immediately when a category flips from granted to denied.
+  - On initialization (and whenever the configuration is updated), for any category that is already denied - this catches cookies left over from before `clearOnRevocation` was configured, or from a returning visitor whose consent was already denied in a previous session.
+</section>
+
+<section id="api-reference">
+  ## API Reference
+
+  <AutoTypeTable path="./packages/core/src/libs/clear-on-revocation/types.ts" name="ClearOnRevocationTargets" />
+
+  <AutoTypeTable path="./packages/core/src/libs/clear-on-revocation/types.ts" name="ClearOnRevocationConfig" />
+</section>
