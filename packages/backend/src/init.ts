@@ -1,7 +1,7 @@
 import { validateMessages } from '~/handlers/init/translations';
 import type { C15TContext, C15TOptions } from '~/types';
 import { createRegistry } from './db/registry';
-import { DB } from './db/schema';
+import { buildNamingVariants, DB } from './db/schema';
 import { withTenantScope } from './db/tenant-scope';
 import { inspectPolicies } from './handlers/init/policy';
 import {
@@ -62,7 +62,14 @@ export const init = (options: C15TOptions): C15TContext => {
 	}
 
 	// Initialize core components
-	const db = options.tablePrefix ? DB.names.prefix(options.tablePrefix) : DB;
+	let db = DB;
+	const namingVariants = buildNamingVariants(options.naming);
+	if (namingVariants) {
+		db = db.names(namingVariants);
+	}
+	if (options.tablePrefix) {
+		db = db.names.prefix(options.tablePrefix);
+	}
 	const client = db.client(options.adapter);
 
 	const rawOrm = client.orm('2.0.0');

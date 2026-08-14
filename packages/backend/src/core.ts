@@ -364,6 +364,12 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 	};
 };
 
+export {
+	lowerCaseTables,
+	type NamingOptions,
+	snakeCaseTables,
+	type TableNaming,
+} from './db/schema';
 export { defineConfig } from './define-config';
 export type { PolicyValidationResult } from './handlers/init/policy';
 export { inspectPolicies } from './handlers/init/policy';
