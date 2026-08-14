@@ -93,8 +93,6 @@ Normalized benchmark state should include:
   Runs on performance-sensitive PRs and on pushes to `main` and `canary`.
 - `benchmark-comment.yml`
   Posts a sticky PR comment from regression artifacts.
-- `benchmark-nightly.yml`
-  Stores nightly raw benchmark artifacts for trend inspection.
 
 The current rollout is report-first. Hard failures can be enabled by setting the repository variable `C15T_BENCHMARK_ENFORCE=true`.
 

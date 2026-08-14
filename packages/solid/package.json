@@ -16,6 +16,6 @@
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"typescript": "7.0.1-rc",
-		"vitest": "4.1.9"
+		"vitest": "4.1.10"
 	}
 }
