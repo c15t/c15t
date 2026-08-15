@@ -128,7 +128,7 @@ Deno.serve({ port: 3001 }, c15t.handler);
 Export `c15t.handler` as the function default. Netlify calls it as `(request, context)`, and c15t uses `context.geo.country.code` plus `context.geo.subdivision.code`. Set `config.path` so the function serves your consent API.
 
 ```ts title="netlify/functions/c15t.ts"
-import { c15t } from './c15t';
+import { c15t } from '../../lib/c15t';
 
 export default c15t.handler;
 

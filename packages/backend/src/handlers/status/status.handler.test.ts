@@ -49,7 +49,7 @@ describe('statusHandler', () => {
 			}),
 			getJsonData: () => jsonData,
 			req: {
-				raw: { headers },
+				raw: { headers: ctx.headers },
 			},
 		};
 	};
