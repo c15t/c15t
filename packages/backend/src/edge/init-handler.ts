@@ -35,6 +35,9 @@ type C15TEdgeHandler = {
  * edge runtimes such as Vercel Middleware, Cloudflare Workers, Deno Deploy,
  * or Netlify Edge Functions.
  *
+ * @param options - Edge policy, translation, CORS, and snapshot options.
+ * @returns An edge-compatible request handler for the `/init` payload.
+ * @throws {Error} If translation or policy validation fails during setup.
  * @experimental This API is unstable in 2.0 and may change or be removed.
  *
  * @example

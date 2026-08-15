@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	expectTypeOf,
+	it,
+	vi,
+} from 'vitest';
 import { c15tInstance } from './core';
 import type { C15TOptions, C15TRequestContext } from './types';
 
@@ -56,18 +64,17 @@ describe('c15tInstance.handler request context', () => {
 		vi.clearAllMocks();
 	});
 
-	it('accepts runtime-specific second arguments', () => {
+	it('preserves runtime callback type compatibility', () => {
 		const instance = c15tInstance(createOptions());
-		const runtimeHandler: (
+		type RuntimeHandler = (
 			request: Request,
 			server: { stop: () => void }
-		) => Promise<Response> = instance.handler;
-		const requestArgs: Parameters<typeof instance.handler> = [
-			new Request('http://localhost/init'),
-		];
+		) => Promise<Response>;
 
-		expect(runtimeHandler).toBe(instance.handler);
-		expect(requestArgs).toHaveLength(1);
+		expectTypeOf(instance.handler).toMatchTypeOf<RuntimeHandler>();
+		expectTypeOf<Parameters<typeof instance.handler>>().toEqualTypeOf<
+			[Request]
+		>();
 	});
 
 	it('resolves Netlify context geo on GET /init without geo headers', async () => {

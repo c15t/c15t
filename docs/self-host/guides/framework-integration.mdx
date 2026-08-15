@@ -137,7 +137,7 @@ export const config = {
 };
 ```
 
-Serverless function requests also include `x-country` with a two-letter country code. That header is country only. California (CCPA) and Quebec (Law 25) still need the `context.geo` subdivision. Do not copy `x-nf-geo`; it is not a public API.
+Serverless function requests also include `x-country` with a two-letter country code. Treat this header as authoritative only when the request reaches your handler through Netlify; clients can supply it themselves on other deployments. The header is country only. California (CCPA) and Quebec (Law 25) still need the `context.geo` subdivision. Do not copy `x-nf-geo`; it is not a public API.
 
 ## CORS
 

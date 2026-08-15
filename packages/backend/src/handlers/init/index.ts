@@ -10,7 +10,7 @@ import { getTranslationsData } from './translations';
  *
  * @param headers - The headers to get the headers from.
  * @param geo - Request-scoped platform geolocation, if present.
- * @returns The headers or null if the headers are not present.
+ * @returns Normalized location and language values. Unavailable values are null.
  */
 export function getHeaders(
 	headers: Headers | undefined,

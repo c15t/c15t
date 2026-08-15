@@ -1,5 +1,13 @@
 import type { GlobalVendorList } from '@c15t/schema/types';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	expectTypeOf,
+	it,
+	vi,
+} from 'vitest';
 import { unstable_c15tEdgeInit } from './init-handler';
 import type { C15TEdgeOptions } from './types';
 
@@ -71,14 +79,15 @@ describe('unstable_c15tEdgeInit', () => {
 		vi.clearAllMocks();
 	});
 
-	it('accepts runtime-specific second arguments', () => {
+	it('preserves runtime callback type compatibility', () => {
 		const handler = unstable_c15tEdgeInit(baseOptions);
-		const runtimeHandler: (
+		type RuntimeHandler = (
 			request: Request,
 			context: { waitUntil: (promise: Promise<unknown>) => void }
-		) => Promise<Response> = handler;
+		) => Promise<Response>;
 
-		expect(runtimeHandler).toBe(handler);
+		expectTypeOf(handler).toMatchTypeOf<RuntimeHandler>();
+		expectTypeOf<Parameters<typeof handler>>().toEqualTypeOf<[Request]>();
 	});
 
 	it('works without a database adapter', async () => {

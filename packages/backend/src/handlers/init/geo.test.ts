@@ -327,7 +327,7 @@ const netlifyCalifornia = {
 const netlifyQuebec = {
 	geo: {
 		country: { code: 'CA' },
-		subdivision: { code: 'CA-QC' },
+		subdivision: { code: 'QC' },
 	},
 } satisfies C15TRequestContext;
 
@@ -347,11 +347,11 @@ describe('extractLocation', () => {
 		});
 	});
 
-	it('preserves a dash-separated Netlify subdivision', () => {
+	it('reads an unprefixed Netlify subdivision', () => {
 		const location = extractLocation(new Headers(), netlifyQuebec.geo);
 		expect(location).toEqual({
 			countryCode: 'CA',
-			regionCode: 'CA-QC',
+			regionCode: 'QC',
 		});
 		expect(checkJurisdiction(location.countryCode, location.regionCode)).toBe(
 			'QC_LAW25'
