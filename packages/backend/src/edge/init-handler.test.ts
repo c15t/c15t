@@ -71,6 +71,16 @@ describe('unstable_c15tEdgeInit', () => {
 		vi.clearAllMocks();
 	});
 
+	it('accepts runtime-specific second arguments', () => {
+		const handler = unstable_c15tEdgeInit(baseOptions);
+		const runtimeHandler: (
+			request: Request,
+			context: { waitUntil: (promise: Promise<unknown>) => void }
+		) => Promise<Response> = handler;
+
+		expect(runtimeHandler).toBe(handler);
+	});
+
 	it('works without a database adapter', async () => {
 		const handler = unstable_c15tEdgeInit(baseOptions);
 		const response = await handler(
@@ -217,5 +227,38 @@ describe('unstable_c15tEdgeInit', () => {
 		);
 
 		expect(response.headers.get('content-type')).toBe('application/json');
+	});
+
+	it('resolves Netlify context geo without geo headers', async () => {
+		const handler = unstable_c15tEdgeInit({
+			trustedOrigins: ['https://myapp.com'],
+			policyPacks: [
+				{
+					id: 'us_ca',
+					match: { regions: [{ country: 'US', region: 'CA' }] },
+					consent: { model: 'opt-out' },
+					ui: { mode: 'banner' },
+				},
+			],
+		});
+		const netlifyContext = {
+			geo: {
+				country: { code: 'US' },
+				subdivision: { code: 'CA' },
+			},
+		};
+		const response = await handler(
+			makeRequest('/', {
+				headers: { 'accept-language': 'en' },
+			}),
+			netlifyContext
+		);
+
+		expect(response.status).toBe(200);
+		const body = await response.json();
+		expect(body.location).toEqual({ countryCode: 'US', regionCode: 'CA' });
+		expect(body.jurisdiction).toBe('CCPA');
+		expect(body.policy?.id).toBe('us_ca');
+		expect(body.policy?.model).toBe('opt-out');
 	});
 });

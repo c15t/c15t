@@ -345,6 +345,40 @@ export interface BackgroundOptions {
 	run: (task: () => Promise<void>) => void;
 }
 
+/**
+ * Request-scoped geolocation codes consumed by c15t.
+ *
+ * The shape is a structural subset of platform context objects such as
+ * Netlify's `context.geo`. Only country and subdivision codes are read.
+ * Missing or null objects and codes fall back to request headers.
+ *
+ * @example
+ * ```ts
+ * const geo: C15TGeoLocation = {
+ *   country: { code: 'US' },
+ *   subdivision: { code: 'CA' },
+ * };
+ * ```
+ */
+export interface C15TGeoLocation {
+	country?: {
+		code?: string | null;
+	} | null;
+	subdivision?: {
+		code?: string | null;
+	} | null;
+}
+
+/**
+ * Optional second argument to c15t handlers.
+ *
+ * Netlify Serverless and Edge Functions pass a context object in this
+ * position. Other runtimes omit it and continue to use request headers.
+ */
+export interface C15TRequestContext {
+	geo?: C15TGeoLocation | null;
+}
+
 export interface C15TOptions {
 	/**
 	 * The database adapter to use.
@@ -532,6 +566,11 @@ export interface C15TContext
 	path?: string;
 	method?: string;
 	headers?: Headers;
+	/**
+	 * Request-scoped platform geolocation, copied from the optional handler
+	 * context. Never store this on the long-lived instance options.
+	 */
+	geo?: C15TGeoLocation | null;
 
 	// Authentication state
 	/**

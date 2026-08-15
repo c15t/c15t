@@ -152,4 +152,96 @@ describe('statusHandler', () => {
 		expect(result.client.region.countryCode).toBeNull();
 		expect(result.client.region.regionCode).toBeNull();
 	});
+
+	it('reports request-scoped geo in client.region when headers are absent', async () => {
+		const db = {
+			findFirst: vi.fn().mockResolvedValue({ id: 'sub_123' }),
+		};
+
+		const emptyHeaders = new Headers();
+		const ctx = {
+			db,
+			logger: mockLogger,
+			headers: emptyHeaders,
+			ipAddress: '1.2.3.4',
+			userAgent: 'Test Agent',
+			geo: {
+				country: { code: 'US' },
+				subdivision: { code: 'CA' },
+			},
+		};
+
+		let jsonData: unknown;
+		const mockCtx = {
+			get: (key: string) => {
+				if (key === 'c15tContext') {
+					return ctx;
+				}
+				return undefined;
+			},
+			json: vi.fn((data) => {
+				jsonData = data;
+				return data;
+			}),
+			req: {
+				raw: { headers: emptyHeaders },
+			},
+		};
+
+		// @ts-expect-error - simplified test context
+		await statusHandler(mockCtx);
+
+		const result = jsonData as {
+			client: {
+				region: {
+					countryCode: string | null;
+					regionCode: string | null;
+				};
+			};
+		};
+
+		expect(result.client.region.countryCode).toBe('US');
+		expect(result.client.region.regionCode).toBe('CA');
+	});
+
+	it('hides geo when geolocation is disabled', async () => {
+		const db = {
+			findFirst: vi.fn().mockResolvedValue({ id: 'sub_123' }),
+		};
+		const headers = new Headers({ 'cf-ipcountry': 'DE' });
+		const ctx = {
+			db,
+			logger: mockLogger,
+			headers,
+			disableGeoLocation: true,
+			geo: {
+				country: { code: 'US' },
+				subdivision: { code: 'CA' },
+			},
+		};
+		let jsonData: unknown;
+		const mockCtx = {
+			get: (key: string) => (key === 'c15tContext' ? ctx : undefined),
+			json: vi.fn((data) => {
+				jsonData = data;
+				return data;
+			}),
+		};
+
+		// @ts-expect-error - simplified test context
+		await statusHandler(mockCtx);
+
+		const result = jsonData as {
+			client: {
+				region: {
+					countryCode: string | null;
+					regionCode: string | null;
+				};
+			};
+		};
+		expect(result.client.region).toEqual({
+			countryCode: null,
+			regionCode: null,
+		});
+	});
 });

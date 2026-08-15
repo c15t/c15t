@@ -9,6 +9,7 @@ import type { ResolvedPolicy } from '@c15t/schema/types';
 import { createGVLResolver } from '~/cache/gvl-resolver';
 import type { C15TEdgeOptions } from '~/edge/types';
 import { createPolicySnapshotToken } from '~/handlers/policy/snapshot';
+import type { C15TGeoLocation } from '~/types';
 import { getMetrics } from '~/utils/metrics';
 import { getJurisdiction, getLocation } from './geo';
 import { resolvePolicyDecision } from './policy';
@@ -64,17 +65,23 @@ function resolveNoPolicyFallback(): ResolvedPolicy {
 /**
  * Resolves the full /init payload from a request and options.
  * Pure function — no Hono, no database dependency.
+ *
+ * @param request - The incoming request
+ * @param options - Init resolver options
+ * @param logger - Optional logger
+ * @param geo - Request-scoped platform geolocation, if the handler received it
  */
 export async function resolveInitPayload(
 	request: Request,
 	options: InitResolverOptions,
-	logger?: Logger
+	logger?: Logger,
+	geo?: C15TGeoLocation | null
 ): Promise<InitPayload> {
 	// Get accept-language header
 	const acceptLanguage = request.headers.get('accept-language') || 'en';
 
 	// Get location and jurisdiction
-	const location = await getLocation(request, options);
+	const location = await getLocation(request, options, geo);
 	const jurisdiction = getJurisdiction(location, options);
 	const hasExplicitPolicyPack = options.policyPacks !== undefined;
 	const isExplicitEmptyPolicyPack =

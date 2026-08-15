@@ -1,8 +1,18 @@
-import type { C15TOptions } from '~/types';
+import type { C15TGeoLocation, C15TOptions } from '~/types';
 import type { JurisdictionCode } from '~/types/api';
 
 /**
- * Normalizes a header value to a string or null.
+ * Country and subdivision codes resolved from headers and request context.
+ */
+export type ResolvedGeoLocation = {
+	countryCode: string | null;
+	regionCode: string | null;
+};
+
+/**
+ * Normalizes a header or context code to a string or null.
+ *
+ * @internal
  */
 function normalizeHeader(
 	value: string | string[] | null | undefined
@@ -14,20 +24,34 @@ function normalizeHeader(
 }
 
 /**
- * Gets geo-related headers from the request.
+ * Resolves country and region from request headers and optional platform geo.
+ *
+ * Country precedence: `x-c15t-country`, `geo.country.code`, `cf-ipcountry`,
+ * `x-vercel-ip-country`, `x-amz-cf-ipcountry`, `x-country`, `x-country-code`.
+ *
+ * Region precedence: `x-c15t-region`, `geo.subdivision.code`,
+ * `x-vercel-ip-country-region`, `x-region-code`.
+ *
+ * @internal
  */
-function getGeoHeaders(headers: Headers) {
+export function extractLocation(
+	headers: Headers | undefined,
+	geo?: C15TGeoLocation | null
+): ResolvedGeoLocation {
 	const countryCode =
-		normalizeHeader(headers.get('x-c15t-country')) ??
-		normalizeHeader(headers.get('cf-ipcountry')) ??
-		normalizeHeader(headers.get('x-vercel-ip-country')) ??
-		normalizeHeader(headers.get('x-amz-cf-ipcountry')) ??
-		normalizeHeader(headers.get('x-country-code'));
+		normalizeHeader(headers?.get('x-c15t-country')) ??
+		normalizeHeader(geo?.country?.code) ??
+		normalizeHeader(headers?.get('cf-ipcountry')) ??
+		normalizeHeader(headers?.get('x-vercel-ip-country')) ??
+		normalizeHeader(headers?.get('x-amz-cf-ipcountry')) ??
+		normalizeHeader(headers?.get('x-country')) ??
+		normalizeHeader(headers?.get('x-country-code'));
 
 	const regionCode =
-		normalizeHeader(headers.get('x-c15t-region')) ??
-		normalizeHeader(headers.get('x-vercel-ip-country-region')) ??
-		normalizeHeader(headers.get('x-region-code'));
+		normalizeHeader(headers?.get('x-c15t-region')) ??
+		normalizeHeader(geo?.subdivision?.code) ??
+		normalizeHeader(headers?.get('x-vercel-ip-country-region')) ??
+		normalizeHeader(headers?.get('x-region-code'));
 
 	return { countryCode, regionCode };
 }
@@ -158,22 +182,23 @@ export function checkJurisdiction(
 }
 
 /**
- * Gets the location from the request headers.
+ * Gets the location from the request headers and optional platform geo.
  *
  * @param request - The incoming request
  * @param options - The C15T options
+ * @param geo - Request-scoped platform geolocation, if the handler received it
  * @returns The location object with countryCode and regionCode
  */
 export async function getLocation(
 	request: Request,
-	options: Pick<C15TOptions, 'disableGeoLocation'>
-): Promise<{ countryCode: string | null; regionCode: string | null }> {
+	options: Pick<C15TOptions, 'disableGeoLocation'>,
+	geo?: C15TGeoLocation | null
+): Promise<ResolvedGeoLocation> {
 	if (options.disableGeoLocation) {
 		return { countryCode: null, regionCode: null };
 	}
 
-	const { countryCode, regionCode } = getGeoHeaders(request.headers);
-	return { countryCode, regionCode };
+	return extractLocation(request.headers, geo);
 }
 
 /**

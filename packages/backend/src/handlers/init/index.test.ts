@@ -55,6 +55,37 @@ describe('Init Handler Utilities', () => {
 			expect(result.regionCode).toBeNull();
 			expect(result.acceptLanguage).toBeNull();
 		});
+
+		it('extracts country from x-country', () => {
+			const headers = new Headers({ 'x-country': 'DE' });
+			const result = getHeaders(headers);
+			expect(result.countryCode).toBe('DE');
+			expect(result.regionCode).toBeNull();
+		});
+
+		it('extracts country and region from request-scoped geo', () => {
+			const result = getHeaders(new Headers(), {
+				country: { code: 'US' },
+				subdivision: { code: 'CA' },
+			});
+			expect(result.countryCode).toBe('US');
+			expect(result.regionCode).toBe('CA');
+		});
+
+		it('lets x-c15t headers override geo context', () => {
+			const headers = new Headers({
+				'x-c15t-country': 'DE',
+				'x-c15t-region': 'NW',
+				'accept-language': 'de',
+			});
+			const result = getHeaders(headers, {
+				country: { code: 'US' },
+				subdivision: { code: 'CA' },
+			});
+			expect(result.countryCode).toBe('DE');
+			expect(result.regionCode).toBe('NW');
+			expect(result.acceptLanguage).toBe('de');
+		});
 	});
 
 	describe('checkJurisdiction', () => {

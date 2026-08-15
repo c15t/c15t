@@ -4,7 +4,7 @@ description: Mount the c15t consent backend in any JavaScript framework or runti
 group: self-host
 ---
 
-The c15t backend exposes a single handler with the signature `(request: Request) => Promise<Response>`. This is the standard Fetch API, so it works with any runtime that supports it — Node.js, Bun, Deno, and Cloudflare Workers.
+The c15t backend exposes a single handler with the signature `(request: Request, requestContext?: C15TRequestContext) => Promise<Response>`. The second argument is optional, so existing one-argument callers keep working. Runtimes such as Netlify Functions pass a context object in that position; c15t reads `context.geo` for country and subdivision.
 
 ## Bun
 
@@ -122,6 +122,22 @@ import { c15t } from './c15t.ts';
 
 Deno.serve({ port: 3001 }, c15t.handler);
 ```
+
+## Netlify Functions
+
+Export `c15t.handler` as the function default. Netlify calls it as `(request, context)`, and c15t uses `context.geo.country.code` plus `context.geo.subdivision.code`. Set `config.path` so the function serves your consent API.
+
+```ts title="netlify/functions/c15t.ts"
+import { c15t } from './c15t';
+
+export default c15t.handler;
+
+export const config = {
+  path: '/api/c15t/*',
+};
+```
+
+Serverless function requests also include `x-country` with a two-letter country code. That header is country only. California (CCPA) and Quebec (Law 25) still need the `context.geo` subdivision. Do not copy `x-nf-geo`; it is not a public API.
 
 ## CORS
 

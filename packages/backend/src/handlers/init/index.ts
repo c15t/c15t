@@ -1,49 +1,23 @@
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
-import type { Branding } from '~/types';
+import type { Branding, C15TGeoLocation } from '~/types';
 import type { JurisdictionCode } from '~/types/api';
+import { extractLocation } from './geo';
 import { getTranslationsData } from './translations';
 
 /**
  * Gets the headers from the context.
  *
  * @param headers - The headers to get the headers from.
+ * @param geo - Request-scoped platform geolocation, if present.
  * @returns The headers or null if the headers are not present.
  */
-export function getHeaders(headers: Headers | undefined) {
-	if (!headers) {
-		return {
-			countryCode: null,
-			regionCode: null,
-			acceptLanguage: null,
-		};
-	}
-
-	// Add this conversion to ensure headers are always string or null
-	const normalizeHeader = (
-		value: string | string[] | null | undefined
-	): string | null => {
-		if (!value) {
-			return null;
-		}
-
-		return Array.isArray(value) ? (value[0] ?? null) : value;
-	};
-
-	const countryCode =
-		normalizeHeader(headers.get('x-c15t-country')) ??
-		normalizeHeader(headers.get('cf-ipcountry')) ??
-		normalizeHeader(headers.get('x-vercel-ip-country')) ??
-		normalizeHeader(headers.get('x-amz-cf-ipcountry')) ??
-		normalizeHeader(headers.get('x-country-code'));
-
-	const regionCode =
-		normalizeHeader(headers.get('x-c15t-region')) ??
-		normalizeHeader(headers.get('x-vercel-ip-country-region')) ??
-		normalizeHeader(headers.get('x-region-code'));
-
-	// Get preferred language from Accept-Language header
-	const acceptLanguage = normalizeHeader(headers.get('accept-language'));
+export function getHeaders(
+	headers: Headers | undefined,
+	geo?: C15TGeoLocation | null
+) {
+	const { countryCode, regionCode } = extractLocation(headers, geo);
+	const acceptLanguage = headers?.get('accept-language') || null;
 
 	return {
 		countryCode,

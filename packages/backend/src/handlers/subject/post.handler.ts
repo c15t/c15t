@@ -308,7 +308,7 @@ export const postSubjectHandler = async (c: Context) => {
 		const request = c.req.raw ?? new Request('https://c15t.local/subjects');
 		const acceptLanguage = request.headers.get('accept-language');
 		const requestLanguage = parseLanguageFromHeader(acceptLanguage);
-		const location = await getLocation(request, ctx);
+		const location = await getLocation(request, ctx, ctx.geo);
 		const resolvedJurisdiction = getJurisdiction(location, ctx);
 		const legalDocumentConsent = isLegalDocumentType(type);
 		const runtimeSnapshotVerification = legalDocumentConsent

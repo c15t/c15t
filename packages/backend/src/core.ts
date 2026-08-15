@@ -9,7 +9,12 @@ import { validateRequestAuth } from '~/middleware/auth';
 import { createCORSOptions } from '~/middleware/cors';
 import { createOpenAPIConfig } from '~/middleware/openapi';
 import { getIpAddress } from '~/middleware/process-ip';
-import type { C15TContext, C15TOptions } from '~/types';
+import type {
+	C15TContext,
+	C15TGeoLocation,
+	C15TOptions,
+	C15TRequestContext,
+} from '~/types';
 import { init } from './init';
 import { createConsentRoutes } from './routes/consent';
 // Import route handlers
@@ -36,9 +41,17 @@ export type Route = {
 };
 
 /**
+ * Hono environment: request-scoped geo binding plus the c15t context variable.
+ */
+type C15THonoEnv = {
+	Bindings: { c15tGeo?: C15TGeoLocation | null };
+	Variables: { c15tContext: C15TContext };
+};
+
+/**
  * Hono app type with c15t context
  */
-export type C15TApp = Hono<{ Variables: { c15tContext: C15TContext } }>;
+export type C15TApp = Hono<C15THonoEnv>;
 
 /**
  * Interface representing a configured c15t consent management instance.
@@ -53,6 +66,8 @@ export interface C15TInstance {
 	 * Processes incoming HTTP requests and routes them to appropriate handlers.
 	 *
 	 * @param request - The incoming web request
+	 * @param requestContext - Optional platform context. Netlify Functions pass
+	 *   this as the second handler argument; c15t reads `requestContext.geo`.
 	 * @returns A Promise containing the HTTP response
 	 *
 	 * @example
@@ -65,7 +80,11 @@ export interface C15TInstance {
 	 * }
 	 * ```
 	 */
-	handler: (request: Request) => Promise<Response>;
+	handler: {
+		(request: Request, runtimeContext: unknown): Promise<Response>;
+		(request: Request, requestContext: C15TRequestContext): Promise<Response>;
+		(request: Request): Promise<Response>;
+	};
 
 	/**
 	 * The configuration options used for this instance.
@@ -107,7 +126,7 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 	const logger = createLogger(options.logger);
 
 	// Create the Hono app
-	const app = new Hono<{ Variables: { c15tContext: C15TContext } }>();
+	const app = new Hono<C15THonoEnv>();
 
 	// Set up OpenAPI configuration
 	const openApiConfig = createOpenAPIConfig(options);
@@ -142,6 +161,7 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 			path: c.req.path,
 			method: c.req.method,
 			headers: request.headers,
+			geo: c.env?.c15tGeo,
 		};
 
 		c.set('c15tContext', enrichedContext);
@@ -297,7 +317,10 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 	});
 
 	// Create the handler function
-	const handler = async (request: Request): Promise<Response> => {
+	const handler = async (
+		request: Request,
+		requestContext?: unknown
+	): Promise<Response> => {
 		logger?.debug?.('Incoming request', {
 			method: request.method,
 			url: request.url,
@@ -321,7 +344,9 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 			}
 		}
 
-		return app.fetch(modifiedRequest);
+		return app.fetch(modifiedRequest, {
+			c15tGeo: (requestContext as C15TRequestContext | undefined)?.geo,
+		});
 	};
 
 	// Create docs UI helper
@@ -382,5 +407,10 @@ export {
 	policyMatchers,
 	UK_COUNTRY_CODES,
 } from './policies/matchers';
-export type { C15TContext, C15TOptions } from './types';
+export type {
+	C15TContext,
+	C15TGeoLocation,
+	C15TOptions,
+	C15TRequestContext,
+} from './types';
 export { version } from './version';
