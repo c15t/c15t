@@ -127,7 +127,7 @@
 		"@c15t/vitest-config": "workspace:*",
 		"@rslib/core": "0.23.2",
 		"typescript": "7.0.1-rc",
-		"vitest": "4.1.9"
+		"vitest": "4.1.10"
 	},
 	"publishConfig": {
 		"access": "public"

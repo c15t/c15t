@@ -227,6 +227,7 @@ describe('runtime', () => {
 		expect(createConsentManagerStoreMock).toHaveBeenCalledWith(
 			expect.anything(),
 			expect.objectContaining({
+				enabled: false,
 				iab,
 				storageConfig,
 				initialTranslationConfig: {

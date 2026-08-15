@@ -86,6 +86,32 @@ describe('createCORSOptions (unit)', () => {
 			);
 		});
 
+		it('allows www from wildcard-only configuration', async () => {
+			// `www` is a subdomain like any other. It previously failed alone
+			// because the origin was www-stripped to the apex before matching,
+			// and the apex is deliberately outside a `*.` wildcard.
+			const config = createCORSOptions(['https://*.example.com']);
+
+			expect(await callOrigin(config.origin, 'https://www.example.com')).toBe(
+				'https://www.example.com'
+			);
+		});
+
+		it('does not widen malformed wildcard entries', async () => {
+			// Deriving an apex by stripping `www.` would turn these into the
+			// allow-all `*` and the far broader `*.example.com` respectively.
+			const allowAll = createCORSOptions(['www.*']);
+			expect(await callOrigin(allowAll.origin, 'https://evil.com')).toBeNull();
+
+			const subdomains = createCORSOptions(['www.*.example.com']);
+			expect(
+				await callOrigin(subdomains.origin, 'https://evil.example.com')
+			).toBeNull();
+			expect(
+				await callOrigin(subdomains.origin, 'https://evil.com')
+			).toBeNull();
+		});
+
 		it('rejects similar domains that are not subdomains', async () => {
 			const config = createCORSOptions(['https://*.example.com']);
 
@@ -135,6 +161,19 @@ describe('createCORSOptions (unit)', () => {
 			const config = createCORSOptions(['http://www.c15t.com']);
 			expect(await callOrigin(config.origin, 'http://c15t.com')).toBe(
 				'http://c15t.com'
+			);
+		});
+
+		it('allows both variants when a schemeless www entry is trusted', async () => {
+			// A schemeless entry skips URL parsing, so `www.` used to survive
+			// normalization on the trusted side while being stripped from the
+			// origin — leaving the entry matching neither form.
+			const config = createCORSOptions(['www.c15t.com']);
+			expect(await callOrigin(config.origin, 'http://c15t.com')).toBe(
+				'http://c15t.com'
+			);
+			expect(await callOrigin(config.origin, 'http://www.c15t.com')).toBe(
+				'http://www.c15t.com'
 			);
 		});
 	});

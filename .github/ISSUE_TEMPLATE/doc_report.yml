@@ -1,6 +1,6 @@
 name: Documentation issue
 description: Report a problem with the c15t docs
-labels: ["documentation", "needs-triage"]
+labels: ["docs"]
 body:
   - type: input
     id: page

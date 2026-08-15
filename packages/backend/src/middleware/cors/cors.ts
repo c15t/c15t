@@ -4,6 +4,7 @@
  * @packageDocumentation
  */
 
+import { getAppScheme, splitAppSchemeOrigin } from './app-scheme';
 import { matchesWildcard } from './matches-wildcard';
 
 /**
@@ -22,8 +23,8 @@ export interface CorsOptions {
 /** Regular expression to match www prefix in domain names */
 const WWW_REGEX = /^www\./;
 
-/** Regular expression to match protocol and www prefix in URLs */
-const PROTOCOL_WWW_REGEX = /^https?:\/\/(www\.)?/;
+/** Regular expression to match a protocol prefix in URLs */
+const PROTOCOL_REGEX = /^https?:\/\//;
 
 /**
  * Supported HTTP methods for CORS
@@ -53,10 +54,23 @@ const SUPPORTED_HEADERS = [
 /**
  * Normalizes an origin string by removing protocol and www prefix
  *
+ * App-scheme origins (e.g. `capacitor://localhost`) keep their scheme, because
+ * the scheme is what distinguishes them from the same host served over
+ * `http(s)`. Prefixing them with `http://` — as the generic path below does for
+ * bare hosts — would parse the scheme itself as the hostname and collapse every
+ * `capacitor://*` origin onto the single host `capacitor`.
+ *
  * @param origin - The origin URL to normalize
- * @returns Normalized origin string without protocol and www prefix
+ * @returns Normalized origin string without protocol and www prefix, or
+ * `scheme://authority` for app-scheme origins
  */
 function normalizeOrigin(origin: string): string {
+	const appScheme = getAppScheme(origin);
+	if (appScheme) {
+		const split = splitAppSchemeOrigin(origin, appScheme);
+		return split ? `${split.scheme}//${split.authority}` : origin.toLowerCase();
+	}
+
 	try {
 		// Handle bare domains like 'localhost' or 'example.com'
 		if (
@@ -75,17 +89,22 @@ function normalizeOrigin(origin: string): string {
 				? origin
 				: `http://${origin}`;
 		const url = new URL(originWithProtocol);
-		const hostname = url.hostname.replace(WWW_REGEX, '');
-		// Return without protocol to match both http and https
-		return `${hostname}${url.port ? `:${url.port}` : ''}`;
+		// Return without protocol to match both http and https. The `www.` prefix
+		// is preserved: stripping it here turned `www.example.com` into the apex
+		// `example.com`, which `*.example.com` deliberately excludes. Equivalence
+		// is applied to the trusted list instead, in `expandWithWWW`.
+		return `${url.hostname}${url.port ? `:${url.port}` : ''}`;
 	} catch {
-		// Fallback: remove www manually and protocol
-		return origin.replace(PROTOCOL_WWW_REGEX, '').replace(WWW_REGEX, '');
+		// Fallback: remove the protocol manually
+		return origin.replace(PROTOCOL_REGEX, '').toLowerCase();
 	}
 }
 
 /**
  * Expands a list of origins to include www variants
+ *
+ * Both forms are added regardless of which one was configured, so a
+ * `www.example.com` entry accepts the apex and vice versa.
  *
  * @param origins - Array of origin strings to expand
  * @returns Array of origins including www variants
@@ -99,10 +118,20 @@ function expandWithWWW(origins: string[]): string[] {
 		}
 		const normalized = normalizeOrigin(origin);
 		expanded.add(normalized);
-		// Add www version if not already present
-		if (!normalized.includes('www.')) {
-			expanded.add(`www.${normalized}`);
+		// App-scheme origins are native WebView hosts, never www-prefixed domains
+		if (getAppScheme(normalized)) {
+			continue;
 		}
+		// Wildcards already cover every subdomain, `www` included. Any entry
+		// carrying a `*` is left verbatim: deriving an apex from one widens it,
+		// turning `www.*` into the allow-all `*` and `www.*.example.com` into
+		// `*.example.com`.
+		if (normalized.includes('*')) {
+			continue;
+		}
+		const apex = normalized.replace(WWW_REGEX, '');
+		expanded.add(apex);
+		expanded.add(`www.${apex}`);
 	}
 	return Array.from(expanded);
 }

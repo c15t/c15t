@@ -1,0 +1,164 @@
+# Source of truth for c15t GitHub labels.
+# Kind (one), where (one or more), and state (maintainer-applied).
+# Unlabeled means untriaged — there is no needs-triage label.
+# Compatible with crazy-max/ghaction-github-labeler (`from_name` renames).
+
+# --- Kind ---
+
+- name: bug
+  color: "d73a4a"
+  description: Something isn't working
+  from_name: "🐛 bug"
+
+- name: feature
+  color: "0e8a16"
+  description: New feature or enhancement
+  from_name: "✨ feature"
+
+- name: docs
+  color: "0075ca"
+  description: Documentation updates or improvements
+  from_name: "📚 docs"
+
+# --- Area (product surface, not package folder) ---
+# v3 is one kernel + thin adapters. Reporters name the framework they
+# installed; Nuxt lives in packages/vue; the umbrella is c15t/{react,next,vue}.
+
+- name: area:react
+  color: "fbca04"
+  description: React adapter, components, and hooks
+
+- name: area:next
+  color: "fbca04"
+  description: Next.js App/Pages Router, RSC, middleware
+
+- name: area:vue
+  color: "fbca04"
+  description: Vue plugin, Vite plugin, and composables
+
+- name: area:nuxt
+  color: "fbca04"
+  description: Nuxt module, nitro routes, and SSR
+
+- name: area:svelte
+  color: "fbca04"
+  description: Svelte and SvelteKit adapter
+
+- name: area:solid
+  color: "fbca04"
+  description: Solid adapter
+
+- name: area:tanstack
+  color: "fbca04"
+  description: TanStack Start or TanStack Router — not React Router
+
+- name: area:react-router
+  color: "fbca04"
+  description: React Router and Remix (remix-run/react-router)
+
+- name: area:astro
+  color: "fbca04"
+  description: Astro integration
+
+- name: area:react-native
+  color: "fbca04"
+  description: React Native / Expo adapter
+
+- name: area:mobile
+  color: "fbca04"
+  description: Native mobile foundations (Swift, Kotlin, ATT)
+
+- name: area:js
+  color: "fbca04"
+  description: Vanilla JavaScript / headless core usage
+
+- name: area:core
+  color: "c5def5"
+  description: Kernel, transports, consent record, modules
+
+- name: area:ui
+  color: "c5def5"
+  description: Shared CSS, theme, primitives
+  from_name: "🎨 Components"
+
+- name: area:cli
+  color: "c5def5"
+  description: "@c15t/cli scaffolding"
+  from_name: "🖥️ CLI"
+
+- name: area:backend
+  color: "c5def5"
+  description: Self-hosted consent API
+
+- name: area:scripts
+  color: "c5def5"
+  description: Vendor loaders (GTM, pixels, integrations)
+
+- name: area:iab
+  color: "c5def5"
+  description: IAB TCF
+
+- name: area:docs
+  color: "c5def5"
+  description: c15t.com docs or package-bundled docs
+
+- name: area:compliance
+  color: "c5def5"
+  description: Legal, ICO, TCF policy, or regulatory guidance
+
+# --- State ---
+
+- name: needs-repro
+  color: "fbca04"
+  description: Waiting on a minimal reproduction
+
+- name: needs-info
+  color: "fbca04"
+  description: Waiting on versions, environment, or clarification
+
+- name: needs-approval
+  color: "e4e669"
+  description: Feature or refactor needs maintainer approval before work starts
+
+- name: blocked
+  color: "b60205"
+  description: Blocked by other work or an upstream dependency
+  from_name: "🚫 blocked"
+
+- name: help wanted
+  color: "008672"
+  description: Community contributions welcome
+  from_name: "🤝🏻  help-welcome"
+
+- name: good first issue
+  color: "7057ff"
+  description: Good for newcomers
+  from_name: "✅ good-first-issue"
+
+- name: duplicate
+  color: "cfd3d7"
+  description: This issue or pull request already exists
+  from_name: "🔄 duplicate"
+
+- name: wontfix
+  color: "ffffff"
+  description: This will not be worked on
+  from_name: "❌ wontfix"
+
+- name: upstream
+  color: "e99695"
+  description: Belongs to a dependency or external tool
+
+# --- Automation ---
+
+- name: deploy:preview
+  color: "5319e7"
+  description: Publish preview packages to pkg.pr.new for this PR
+
+- name: dependencies
+  color: "0366d6"
+  description: Pull requests that update a dependency file
+
+- name: javascript
+  color: "168700"
+  description: Pull requests that update javascript code
