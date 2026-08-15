@@ -925,7 +925,7 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 		};
 
 		// @ts-expect-error - simplified test context
-		await expect(postSubjectHandler(mockCtx)).resolves.toBeDefined();
+		await postSubjectHandler(mockCtx);
 
 		expect(resolvePolicyDecision).toHaveBeenCalledWith(
 			expect.objectContaining({

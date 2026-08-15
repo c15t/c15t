@@ -1,5 +1,6 @@
 import { HTTPException } from 'hono/http-exception';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { C15TContext } from '~/types';
 import { statusHandler } from './status.handler';
 
 describe('statusHandler', () => {
@@ -10,7 +11,15 @@ describe('statusHandler', () => {
 		warn: vi.fn(),
 	};
 
-	const createMockContext = (db: unknown) => {
+	const createMockContext = (
+		db: unknown,
+		overrides: Partial<
+			Pick<
+				C15TContext,
+				'headers' | 'ipAddress' | 'userAgent' | 'geo' | 'disableGeoLocation'
+			>
+		> = {}
+	) => {
 		const headers = new Headers();
 		headers.set('cf-ipcountry', 'US');
 		headers.set('x-vercel-ip-country-region', 'CA');
@@ -22,6 +31,7 @@ describe('statusHandler', () => {
 			headers,
 			ipAddress: '192.168.1.100',
 			userAgent: 'Mozilla/5.0',
+			...overrides,
 		};
 
 		let jsonData: unknown;
@@ -158,40 +168,18 @@ describe('statusHandler', () => {
 			findFirst: vi.fn().mockResolvedValue({ id: 'sub_123' }),
 		};
 
-		const emptyHeaders = new Headers();
-		const ctx = {
-			db,
-			logger: mockLogger,
-			headers: emptyHeaders,
-			ipAddress: '1.2.3.4',
-			userAgent: 'Test Agent',
+		const mockCtx = createMockContext(db, {
+			headers: new Headers(),
 			geo: {
 				country: { code: 'US' },
 				subdivision: { code: 'CA' },
 			},
-		};
-
-		let jsonData: unknown;
-		const mockCtx = {
-			get: (key: string) => {
-				if (key === 'c15tContext') {
-					return ctx;
-				}
-				return undefined;
-			},
-			json: vi.fn((data) => {
-				jsonData = data;
-				return data;
-			}),
-			req: {
-				raw: { headers: emptyHeaders },
-			},
-		};
+		});
 
 		// @ts-expect-error - simplified test context
 		await statusHandler(mockCtx);
 
-		const result = jsonData as {
+		const result = mockCtx.getJsonData() as {
 			client: {
 				region: {
 					countryCode: string | null;
@@ -208,30 +196,19 @@ describe('statusHandler', () => {
 		const db = {
 			findFirst: vi.fn().mockResolvedValue({ id: 'sub_123' }),
 		};
-		const headers = new Headers({ 'cf-ipcountry': 'DE' });
-		const ctx = {
-			db,
-			logger: mockLogger,
-			headers,
+		const mockCtx = createMockContext(db, {
+			headers: new Headers({ 'cf-ipcountry': 'DE' }),
 			disableGeoLocation: true,
 			geo: {
 				country: { code: 'US' },
 				subdivision: { code: 'CA' },
 			},
-		};
-		let jsonData: unknown;
-		const mockCtx = {
-			get: (key: string) => (key === 'c15tContext' ? ctx : undefined),
-			json: vi.fn((data) => {
-				jsonData = data;
-				return data;
-			}),
-		};
+		});
 
 		// @ts-expect-error - simplified test context
 		await statusHandler(mockCtx);
 
-		const result = jsonData as {
+		const result = mockCtx.getJsonData() as {
 			client: {
 				region: {
 					countryCode: string | null;
