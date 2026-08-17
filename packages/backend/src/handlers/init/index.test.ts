@@ -32,6 +32,21 @@ describe('Init Handler Utilities', () => {
 			expect(result.countryCode).toBe('DE');
 		});
 
+		it('extracts country code from x-country header', () => {
+			const headers = new Headers({ 'x-country': 'DE' });
+			const result = getHeaders(headers);
+			expect(result.countryCode).toBe('DE');
+		});
+
+		it('prioritizes cf-ipcountry over x-country', () => {
+			const headers = new Headers({
+				'cf-ipcountry': 'DE',
+				'x-country': 'FR',
+			});
+			const result = getHeaders(headers);
+			expect(result.countryCode).toBe('DE');
+		});
+
 		it('extracts region code from headers', () => {
 			const headers = new Headers({
 				'cf-ipcountry': 'US',
