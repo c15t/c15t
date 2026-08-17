@@ -1,5 +1,13 @@
 # @c15t/ui
 
+## 2.2.1
+
+### Patch Changes
+
+- Updated dependencies
+  - c15t@2.2.1
+  - @c15t/translations@2.2.1
+
 ## 2.2.0
 
 ### Patch Changes
