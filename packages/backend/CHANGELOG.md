@@ -1,35 +1,28 @@
 # @c15t/backend
 
-## 2.2.0-canary-20260814121231
+## 2.2.1
 
 ### Patch Changes
 
-- 3e1229a: Fix `www` handling in CORS origin matching
+- Restore `enabled: false` so all client-side consents are granted, initialization requests are skipped, and consent-gated scripts load immediately.
 
-  Two `trustedOrigins` configurations now match origins they previously rejected:
+  Fix `www` handling in CORS origin matching. `*.example.com` now accepts `https://www.example.com`, and a schemeless `www.example.com` entry accepts both the apex and `www` forms.
 
-  - `*.example.com` accepts `https://www.example.com`. Every other subdomain already worked.
-  - A schemeless `www.example.com` entry accepts both `example.com` and `www.example.com`. It previously matched neither.
+  Support native WebView app schemes in `trustedOrigins` (`capacitor://localhost`, `ionic://localhost`, custom `iosScheme` values), matched on both scheme and host.
 
-  Wildcards still exclude the apex, unrelated hosts are unaffected, and entries written with a scheme are unchanged.
+  Declare `hono` as `^4.12.34` rather than an exact pin so you can take Hono security releases without waiting for a new `@c15t/backend`.
 
-- 339af24: Support native WebView app schemes in `trustedOrigins`
+- Updated dependencies
+  - @c15t/translations@2.2.1
 
-  Origins such as `capacitor://localhost` (the default iOS Capacitor origin), `ionic://localhost`, and custom `iosScheme` values can now be used as trusted origins, matched on both scheme and host:
+## 2.2.0
 
-  ```ts
-  trustedOrigins: [
-    "https://app.example.com", // your web app
-    "capacitor://localhost", // iOS
-    "http://localhost", // Android
-  ];
-  ```
+### Patch Changes
 
-  Entries with no scheme or an `http(s)`/`ws(s)` scheme are unchanged. An entry naming an app scheme is now pinned to it, which narrows two cases that were broken before: `capacitor://localhost` no longer trusts `capacitor://evil.com`, and no longer matches `https://localhost`. List every origin you serve.
-
-- 25ad1e0: Update `hono` from 4.12.27 to 4.12.34, picking up fixes for a ReDoS in the CORS middleware via `Access-Control-Request-Headers`, an SSR `memo()` cache that could retain output across requests, and the Proxy Helper retaining response headers listed in the `Connection` header.
-
-  `hono` is now declared as `^4.12.34` rather than an exact pin, so you can pick up Hono security releases without waiting for a new `@c15t/backend`.
+- Read the [c15t 2.2.0 changelog](https://c15t.com/changelog/2.2.0) for the complete release notes and upgrade context.
+- Updated dependencies
+  - @c15t/translations@2.2.0
+  - @c15t/schema@2.2.0
 
 ## 2.2.0-canary-20260804162155
 

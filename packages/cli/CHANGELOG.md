@@ -1,14 +1,29 @@
 # @c15t/cli
 
-## 2.2.0-canary-20260814121231
+## 2.2.1
 
 ### Patch Changes
 
-- Updated dependencies [3e1229a]
-- Updated dependencies [339af24]
-- Updated dependencies [25ad1e0]
-  - @c15t/backend@2.2.0-canary-20260814121231
-  - @c15t/scripts@2.2.0-canary-20260804162155
+- Restore `enabled: false` so all client-side consents are granted, initialization requests are skipped, and consent-gated scripts load immediately.
+
+  Fix `www` handling in CORS origin matching. `*.example.com` now accepts `https://www.example.com`, and a schemeless `www.example.com` entry accepts both the apex and `www` forms.
+
+  Support native WebView app schemes in `trustedOrigins` (`capacitor://localhost`, `ionic://localhost`, custom `iosScheme` values), matched on both scheme and host.
+
+  Declare `hono` as `^4.12.34` rather than an exact pin so you can take Hono security releases without waiting for a new `@c15t/backend`.
+
+- Updated dependencies
+  - @c15t/backend@2.2.1
+  - @c15t/scripts@2.2.0
+
+## 2.2.0
+
+### Patch Changes
+
+- Read the [c15t 2.2.0 changelog](https://c15t.com/changelog/2.2.0) for the complete release notes and upgrade context.
+- Updated dependencies
+  - @c15t/backend@2.2.0
+  - @c15t/scripts@2.2.0
 
 ## 2.2.0-canary-20260804162155
 
