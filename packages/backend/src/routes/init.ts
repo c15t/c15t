@@ -44,12 +44,7 @@ Use for geo-targeted consent banners and regional compliance.`,
 		}),
 		async (c) => {
 			const ctx = c.get('c15tContext');
-			const payload = await resolveInitPayload(
-				c.req.raw,
-				options,
-				ctx?.logger,
-				ctx?.geo
-			);
+			const payload = await resolveInitPayload(c.req.raw, options, ctx?.logger);
 			return c.json(payload);
 		}
 	);

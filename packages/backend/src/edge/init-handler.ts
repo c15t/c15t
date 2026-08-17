@@ -13,31 +13,17 @@ import {
 } from '~/handlers/init/resolve-init';
 import { validateMessages } from '~/handlers/init/translations';
 import { isOriginTrusted } from '~/middleware/cors/is-origin-trusted';
-import type { C15TRequestContext } from '~/types';
 import type { C15TEdgeOptions } from './types';
 
 export type { InitPayload };
 
-type C15TEdgeHandler = {
-	(request: Request, runtimeContext: unknown): Promise<Response>;
-	(request: Request, requestContext: C15TRequestContext): Promise<Response>;
-	(request: Request): Promise<Response>;
-};
-
 /**
  * Creates an edge-compatible /init handler.
  *
- * The returned function accepts a standard `Request` and an optional request
- * context. Netlify Edge Functions pass `context` as the second argument, which
- * supplies country and subdivision via `context.geo`.
- *
+ * The returned function accepts a standard `Request` and returns a `Response`.
  * It has no dependency on Hono or any database adapter, making it suitable for
- * edge runtimes such as Vercel Middleware, Cloudflare Workers, Deno Deploy,
- * or Netlify Edge Functions.
+ * edge runtimes such as Vercel Middleware, Cloudflare Workers, or Deno Deploy.
  *
- * @param options - Edge policy, translation, CORS, and snapshot options.
- * @returns An edge-compatible request handler for the `/init` payload.
- * @throws {Error} If translation or policy validation fails during setup.
  * @experimental This API is unstable in 2.0 and may change or be removed.
  *
  * @example
@@ -63,7 +49,7 @@ type C15TEdgeHandler = {
  */
 export function unstable_c15tEdgeInit(
 	options: C15TEdgeOptions
-): C15TEdgeHandler {
+): (request: Request) => Promise<Response> {
 	// Construction-time validation (same checks the full init performs)
 	const logger: Logger = createLogger(options.logger);
 
@@ -89,10 +75,7 @@ export function unstable_c15tEdgeInit(
 		});
 	}
 
-	return async (
-		request: Request,
-		requestContext?: unknown
-	): Promise<Response> => {
+	return async (request: Request): Promise<Response> => {
 		// Handle CORS preflight
 		if (request.method === 'OPTIONS') {
 			return new Response(null, {
@@ -102,12 +85,7 @@ export function unstable_c15tEdgeInit(
 		}
 
 		try {
-			const payload = await resolveInitPayload(
-				request,
-				options,
-				logger,
-				(requestContext as C15TRequestContext | undefined)?.geo
-			);
+			const payload = await resolveInitPayload(request, options, logger);
 			const headers = new Headers({
 				'content-type': 'application/json',
 			});

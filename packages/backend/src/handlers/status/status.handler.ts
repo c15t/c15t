@@ -19,12 +19,7 @@ import { getHeaders } from '../init';
 export const statusHandler = async (c: Context) => {
 	const ctx = c.get('c15tContext') as C15TContext;
 
-	const resolvedHeaders = getHeaders(ctx.headers, ctx.geo);
-	const countryCode = ctx.disableGeoLocation
-		? null
-		: resolvedHeaders.countryCode;
-	const regionCode = ctx.disableGeoLocation ? null : resolvedHeaders.regionCode;
-	const { acceptLanguage } = resolvedHeaders;
+	const { countryCode, regionCode, acceptLanguage } = getHeaders(ctx.headers);
 
 	const clientInfo = {
 		ip: ctx.ipAddress ?? null,

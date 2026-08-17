@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolvePolicyDecision } from '~/handlers/init/policy';
 import { verifyLegalDocumentSnapshotToken } from '~/handlers/legal-document/snapshot';
 import { verifyPolicySnapshotToken } from '~/handlers/policy/snapshot';
-import type { C15TGeoLocation } from '~/types';
 import { buildConsentId } from './consent-idempotency';
 import {
 	buildRuntimeDecisionDedupeKey,
@@ -104,7 +103,6 @@ function createMockContext(db: unknown, registry: unknown) {
 		},
 		legalDocumentSnapshot: undefined,
 		tenantId: undefined as string | undefined,
-		geo: undefined as C15TGeoLocation | null | undefined,
 	};
 
 	let jsonData: unknown;
@@ -901,37 +899,6 @@ describe('postSubjectHandler policy purpose enforcement', () => {
 		expect(resolvePolicyDecision).toHaveBeenCalledWith(
 			expect.objectContaining({
 				iabEnabled: false,
-			})
-		);
-	});
-
-	it('uses request-scoped geo for write-time policy fallback', async () => {
-		vi.mocked(resolvePolicyDecision).mockResolvedValue({
-			policy: {
-				id: 'us_ca',
-				model: 'opt-out',
-				consent: { categories: ['measurement'] },
-			},
-			matchedBy: 'region',
-			fingerprint: 'g'.repeat(64),
-		});
-
-		const db = createMockDb(null);
-		const registry = createMockRegistry();
-		const mockCtx = createMockContext(db, registry);
-		mockCtx._ctx.geo = {
-			country: { code: 'US' },
-			subdivision: { code: 'CA' },
-		};
-
-		// @ts-expect-error - simplified test context
-		await postSubjectHandler(mockCtx);
-
-		expect(resolvePolicyDecision).toHaveBeenCalledWith(
-			expect.objectContaining({
-				countryCode: 'US',
-				regionCode: 'CA',
-				jurisdiction: 'CCPA',
 			})
 		);
 	});

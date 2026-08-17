@@ -1,13 +1,5 @@
 import type { GlobalVendorList } from '@c15t/schema/types';
-import {
-	afterEach,
-	beforeEach,
-	describe,
-	expect,
-	expectTypeOf,
-	it,
-	vi,
-} from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { unstable_c15tEdgeInit } from './init-handler';
 import type { C15TEdgeOptions } from './types';
 
@@ -77,17 +69,6 @@ describe('unstable_c15tEdgeInit', () => {
 
 	afterEach(() => {
 		vi.clearAllMocks();
-	});
-
-	it('preserves runtime callback type compatibility', () => {
-		const handler = unstable_c15tEdgeInit(baseOptions);
-		type RuntimeHandler = (
-			request: Request,
-			context: { waitUntil: (promise: Promise<unknown>) => void }
-		) => Promise<Response>;
-
-		expectTypeOf(handler).toMatchTypeOf<RuntimeHandler>();
-		expectTypeOf<Parameters<typeof handler>>().toEqualTypeOf<[Request]>();
 	});
 
 	it('works without a database adapter', async () => {
@@ -236,38 +217,5 @@ describe('unstable_c15tEdgeInit', () => {
 		);
 
 		expect(response.headers.get('content-type')).toBe('application/json');
-	});
-
-	it('resolves Netlify context geo without geo headers', async () => {
-		const handler = unstable_c15tEdgeInit({
-			trustedOrigins: ['https://myapp.com'],
-			policyPacks: [
-				{
-					id: 'us_ca',
-					match: { regions: [{ country: 'US', region: 'CA' }] },
-					consent: { model: 'opt-out' },
-					ui: { mode: 'banner' },
-				},
-			],
-		});
-		const netlifyContext = {
-			geo: {
-				country: { code: 'US' },
-				subdivision: { code: 'CA' },
-			},
-		};
-		const response = await handler(
-			makeRequest('/', {
-				headers: { 'accept-language': 'en' },
-			}),
-			netlifyContext
-		);
-
-		expect(response.status).toBe(200);
-		const body = await response.json();
-		expect(body.location).toEqual({ countryCode: 'US', regionCode: 'CA' });
-		expect(body.jurisdiction).toBe('CCPA');
-		expect(body.policy?.id).toBe('us_ca');
-		expect(body.policy?.model).toBe('opt-out');
 	});
 });

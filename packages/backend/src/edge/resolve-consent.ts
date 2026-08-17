@@ -10,9 +10,8 @@
 
 import type { Logger } from '@c15t/logger';
 import type { ResolvedPolicy } from '@c15t/schema/types';
-import { checkJurisdiction, extractLocation } from '~/handlers/init/geo';
+import { checkJurisdiction } from '~/handlers/init/geo';
 import { resolvePolicySync } from '~/handlers/init/policy';
-import type { C15TGeoLocation } from '~/types';
 import type { C15TEdgeOptions } from './types';
 
 /**
@@ -22,10 +21,7 @@ import type { C15TEdgeOptions } from './types';
 export type C15TConsentResolverOptions = Pick<
 	C15TEdgeOptions,
 	'policyPacks' | 'disableGeoLocation'
-> & {
-	/** Request-scoped platform geolocation (for example Netlify `context.geo`). */
-	geo?: C15TGeoLocation | null;
-};
+>;
 
 /**
  * Default consent state for a single category.
@@ -55,6 +51,26 @@ export interface ResolvedConsent {
 	showBanner: boolean;
 	/** Whether the GPC (Global Privacy Control) signal is active. */
 	gpc: boolean;
+}
+
+function getLocationFromHeaders(headers: Headers): {
+	countryCode: string | null;
+	regionCode: string | null;
+} {
+	const countryCode =
+		headers.get('x-c15t-country') ??
+		headers.get('cf-ipcountry') ??
+		headers.get('x-vercel-ip-country') ??
+		headers.get('x-amz-cf-ipcountry') ??
+		headers.get('x-country') ??
+		headers.get('x-country-code');
+
+	const regionCode =
+		headers.get('x-c15t-region') ??
+		headers.get('x-vercel-ip-country-region') ??
+		headers.get('x-region-code');
+
+	return { countryCode, regionCode };
 }
 
 function resolveNoPolicyFallback(): ResolvedPolicy {
@@ -157,7 +173,7 @@ export function unstable_resolveConsent(
 ): ResolvedConsent {
 	const location = options.disableGeoLocation
 		? { countryCode: null, regionCode: null }
-		: extractLocation(request.headers, options.geo);
+		: getLocationFromHeaders(request.headers);
 	const jurisdiction = options.disableGeoLocation
 		? 'GDPR'
 		: checkJurisdiction(location.countryCode, location.regionCode);

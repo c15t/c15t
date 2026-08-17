@@ -1,4 +1,3 @@
-export type { C15TGeoLocation, C15TRequestContext } from '~/types';
 export type { InitPayload } from './init-handler';
 export { unstable_c15tEdgeInit } from './init-handler';
 export type {

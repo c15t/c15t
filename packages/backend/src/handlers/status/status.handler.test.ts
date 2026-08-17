@@ -1,6 +1,5 @@
 import { HTTPException } from 'hono/http-exception';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { C15TContext } from '~/types';
 import { statusHandler } from './status.handler';
 
 describe('statusHandler', () => {
@@ -11,15 +10,7 @@ describe('statusHandler', () => {
 		warn: vi.fn(),
 	};
 
-	const createMockContext = (
-		db: unknown,
-		overrides: Partial<
-			Pick<
-				C15TContext,
-				'headers' | 'ipAddress' | 'userAgent' | 'geo' | 'disableGeoLocation'
-			>
-		> = {}
-	) => {
+	const createMockContext = (db: unknown) => {
 		const headers = new Headers();
 		headers.set('cf-ipcountry', 'US');
 		headers.set('x-vercel-ip-country-region', 'CA');
@@ -31,7 +22,6 @@ describe('statusHandler', () => {
 			headers,
 			ipAddress: '192.168.1.100',
 			userAgent: 'Mozilla/5.0',
-			...overrides,
 		};
 
 		let jsonData: unknown;
@@ -49,7 +39,7 @@ describe('statusHandler', () => {
 			}),
 			getJsonData: () => jsonData,
 			req: {
-				raw: { headers: ctx.headers },
+				raw: { headers },
 			},
 		};
 	};
@@ -161,64 +151,5 @@ describe('statusHandler', () => {
 
 		expect(result.client.region.countryCode).toBeNull();
 		expect(result.client.region.regionCode).toBeNull();
-	});
-
-	it('reports request-scoped geo in client.region when headers are absent', async () => {
-		const db = {
-			findFirst: vi.fn().mockResolvedValue({ id: 'sub_123' }),
-		};
-
-		const mockCtx = createMockContext(db, {
-			headers: new Headers(),
-			geo: {
-				country: { code: 'US' },
-				subdivision: { code: 'CA' },
-			},
-		});
-
-		// @ts-expect-error - simplified test context
-		await statusHandler(mockCtx);
-
-		const result = mockCtx.getJsonData() as {
-			client: {
-				region: {
-					countryCode: string | null;
-					regionCode: string | null;
-				};
-			};
-		};
-
-		expect(result.client.region.countryCode).toBe('US');
-		expect(result.client.region.regionCode).toBe('CA');
-	});
-
-	it('hides geo when geolocation is disabled', async () => {
-		const db = {
-			findFirst: vi.fn().mockResolvedValue({ id: 'sub_123' }),
-		};
-		const mockCtx = createMockContext(db, {
-			headers: new Headers({ 'cf-ipcountry': 'DE' }),
-			disableGeoLocation: true,
-			geo: {
-				country: { code: 'US' },
-				subdivision: { code: 'CA' },
-			},
-		});
-
-		// @ts-expect-error - simplified test context
-		await statusHandler(mockCtx);
-
-		const result = mockCtx.getJsonData() as {
-			client: {
-				region: {
-					countryCode: string | null;
-					regionCode: string | null;
-				};
-			};
-		};
-		expect(result.client.region).toEqual({
-			countryCode: null,
-			regionCode: null,
-		});
 	});
 });

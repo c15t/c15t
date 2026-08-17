@@ -223,37 +223,4 @@ describe('unstable_resolveConsent', () => {
 			regionCode: 'CA',
 		});
 	});
-
-	it('resolves California policy from geo context without headers', () => {
-		const result = unstable_resolveConsent(makeRequest({}), {
-			policyPacks,
-			geo: {
-				country: { code: 'US' },
-				subdivision: { code: 'CA' },
-			},
-		});
-
-		expect(result).not.toBeInstanceOf(Promise);
-		expect(result.jurisdiction).toBe('CCPA');
-		expect(result.policyId).toBe('us_ca');
-		expect(result.location).toEqual({
-			countryCode: 'US',
-			regionCode: 'CA',
-		});
-		expect(result.model).toBe('opt-out');
-	});
-
-	it('reads x-country when no geo context is provided', () => {
-		const result = unstable_resolveConsent(makeRequest({ 'x-country': 'DE' }), {
-			policyPacks,
-		});
-
-		expect(result).not.toBeInstanceOf(Promise);
-		expect(result.jurisdiction).toBe('GDPR');
-		expect(result.location).toEqual({
-			countryCode: 'DE',
-			regionCode: null,
-		});
-		expect(result.policyId).toBe('eu_gdpr');
-	});
 });

@@ -4,7 +4,7 @@ description: Run consent policy resolution at the edge for faster initial banner
 group: self-host
 ---
 
-The `/init` endpoint determines consent policy from geo headers or request context, resolves translations, and optionally fetches the GVL. None of this requires a database. The `@c15t/backend/edge` export lets you run this logic in edge runtimes (Vercel Middleware, Cloudflare Workers, Deno Deploy, Netlify Edge Functions) so the consent banner resolves from the nearest PoP instead of round-tripping to your origin.
+The `/init` endpoint determines consent policy from geo headers, resolves translations, and optionally fetches the GVL. None of this requires a database. The `@c15t/backend/edge` export lets you run this logic in edge runtimes (Vercel Middleware, Cloudflare Workers, Deno Deploy) so the consent banner resolves from the nearest PoP instead of round-tripping to your origin.
 
 ```
 Standard:  Browser → Origin (single region)  → c15tInstance(/init)         → Response
@@ -59,7 +59,7 @@ export const consentConfig = {
 
 ### 2. Create edge middleware
 
-<Tabs groupId="runtime" items={['Vercel Middleware', 'Cloudflare Workers', 'Deno Deploy', 'Netlify Edge Functions']}>
+<Tabs groupId="runtime" items={['Vercel Middleware', 'Cloudflare Workers', 'Deno Deploy']}>
   <Tab value="Vercel Middleware">
     ```ts title="middleware.ts"
     import { unstable_c15tEdgeInit } from '@c15t/backend/edge';
@@ -116,21 +116,6 @@ export const consentConfig = {
     });
     ```
   </Tab>
-
-  <Tab value="Netlify Edge Functions">
-    ```ts title="netlify/edge-functions/c15t-init.ts"
-    import { unstable_c15tEdgeInit } from '@c15t/backend/edge';
-    import { consentConfig } from '../../lib/consent-config';
-
-    export default unstable_c15tEdgeInit(consentConfig);
-
-    export const config = {
-      path: '/api/c15t/init',
-    };
-    ```
-
-    Netlify Edge Functions do not add geo request headers. Exporting the handler directly lets Netlify pass `context` as the second argument so c15t can read `context.geo`.
-  </Tab>
 </Tabs>
 
 ### 3. Keep your origin handler unchanged
@@ -176,7 +161,7 @@ export const { GET, POST } = c15t;
 
 The edge handler:
 
-1. **Reads location** — from provider headers or from request context. Vercel sets `x-vercel-ip-country` and `x-vercel-ip-country-region`. Cloudflare sets `cf-ipcountry`. Netlify Functions set `x-country` (country only) and pass `context.geo` with country and subdivision. Netlify Edge Functions do not inject geo headers; they pass `context.geo` as the second handler argument.
+1. **Reads geo headers** — Vercel sets `x-vercel-ip-country` and `x-vercel-ip-country-region` automatically. Cloudflare sets `cf-ipcountry`. The handler checks all common provider headers.
 2. **Resolves jurisdiction** — Maps the country/region to a jurisdiction code (GDPR, CCPA, UK\_GDPR, etc.)
 3. **Matches a policy pack** — Finds the first matching policy for the visitor's location
 4. **Resolves translations** — Picks the right language from `Accept-Language` and your i18n config

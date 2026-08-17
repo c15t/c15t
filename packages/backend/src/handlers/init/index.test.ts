@@ -32,6 +32,21 @@ describe('Init Handler Utilities', () => {
 			expect(result.countryCode).toBe('DE');
 		});
 
+		it('extracts country code from x-country header', () => {
+			const headers = new Headers({ 'x-country': 'DE' });
+			const result = getHeaders(headers);
+			expect(result.countryCode).toBe('DE');
+		});
+
+		it('prioritizes cf-ipcountry over x-country', () => {
+			const headers = new Headers({
+				'cf-ipcountry': 'DE',
+				'x-country': 'FR',
+			});
+			const result = getHeaders(headers);
+			expect(result.countryCode).toBe('DE');
+		});
+
 		it('extracts region code from headers', () => {
 			const headers = new Headers({
 				'cf-ipcountry': 'US',
@@ -54,37 +69,6 @@ describe('Init Handler Utilities', () => {
 			expect(result.countryCode).toBeNull();
 			expect(result.regionCode).toBeNull();
 			expect(result.acceptLanguage).toBeNull();
-		});
-
-		it('extracts country from x-country', () => {
-			const headers = new Headers({ 'x-country': 'DE' });
-			const result = getHeaders(headers);
-			expect(result.countryCode).toBe('DE');
-			expect(result.regionCode).toBeNull();
-		});
-
-		it('extracts country and region from request-scoped geo', () => {
-			const result = getHeaders(new Headers(), {
-				country: { code: 'US' },
-				subdivision: { code: 'CA' },
-			});
-			expect(result.countryCode).toBe('US');
-			expect(result.regionCode).toBe('CA');
-		});
-
-		it('lets x-c15t headers override geo context', () => {
-			const headers = new Headers({
-				'x-c15t-country': 'DE',
-				'x-c15t-region': 'NW',
-				'accept-language': 'de',
-			});
-			const result = getHeaders(headers, {
-				country: { code: 'US' },
-				subdivision: { code: 'CA' },
-			});
-			expect(result.countryCode).toBe('DE');
-			expect(result.regionCode).toBe('NW');
-			expect(result.acceptLanguage).toBe('de');
 		});
 	});
 
