@@ -4,13 +4,7 @@
  * Compares rsdoctor JSON outputs and generates a markdown report.
  */
 
-import {
-	existsSync,
-	readdirSync,
-	readFileSync,
-	statSync,
-	writeFileSync,
-} from 'node:fs';
+import * as nodeFs from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -52,17 +46,44 @@ export interface PackageBundleData {
 	totalDiffPercent: number;
 }
 
+interface BundleDiffFileSystem {
+	existsSync: typeof nodeFs.existsSync;
+	readdirSync: typeof nodeFs.readdirSync;
+	readFileSync: typeof nodeFs.readFileSync;
+	statSync: typeof nodeFs.statSync;
+	writeFileSync: typeof nodeFs.writeFileSync;
+}
+
+const defaultFileSystem: BundleDiffFileSystem = {
+	existsSync: nodeFs.existsSync,
+	readdirSync: nodeFs.readdirSync,
+	readFileSync: nodeFs.readFileSync,
+	statSync: nodeFs.statSync,
+	writeFileSync: nodeFs.writeFileSync,
+};
+
+let fileSystem: BundleDiffFileSystem = defaultFileSystem;
+
+export function setBundleDiffFileSystemForTests(
+	nextFileSystem: BundleDiffFileSystem
+): () => void {
+	fileSystem = nextFileSystem;
+	return () => {
+		fileSystem = defaultFileSystem;
+	};
+}
+
 export function findRsdoctorDataFiles(dir: string): string[] {
 	const files: string[] = [];
-	if (!existsSync(dir)) {
+	if (!fileSystem.existsSync(dir)) {
 		return files;
 	}
 
 	function walk(currentDir: string) {
-		const entries = readdirSync(currentDir);
+		const entries = fileSystem.readdirSync(currentDir);
 		for (const entry of entries) {
 			const fullPath = join(currentDir, entry);
-			const stat = statSync(fullPath);
+			const stat = fileSystem.statSync(fullPath);
 			if (stat.isDirectory()) {
 				walk(fullPath);
 			} else if (entry === 'rsdoctor-data.json') {
@@ -77,7 +98,7 @@ export function findRsdoctorDataFiles(dir: string): string[] {
 
 export function extractBundleSizes(jsonPath: string): BundleStats[] {
 	try {
-		const content = readFileSync(jsonPath, 'utf-8');
+		const content = fileSystem.readFileSync(jsonPath, 'utf-8');
 		const data = JSON.parse(content);
 		const bundles: BundleStats[] = [];
 
@@ -341,11 +362,11 @@ function main() {
 	const packagesDir = join(ROOT_DIR, 'packages');
 	const packages: string[] = [];
 
-	if (existsSync(packagesDir)) {
-		const entries = readdirSync(packagesDir);
+	if (fileSystem.existsSync(packagesDir)) {
+		const entries = fileSystem.readdirSync(packagesDir);
 		for (const entry of entries) {
 			const fullPath = join(packagesDir, entry);
-			if (statSync(fullPath).isDirectory()) {
+			if (fileSystem.statSync(fullPath).isDirectory()) {
 				packages.push(join('packages', entry));
 			}
 		}
@@ -362,7 +383,7 @@ function main() {
 
 	// Generate report
 	const report = generateMarkdownReport(results);
-	writeFileSync(outputFile, report, 'utf-8');
+	fileSystem.writeFileSync(outputFile, report, 'utf-8');
 
 	console.log(`Bundle analysis complete. Report saved to ${outputFile}`);
 	console.log(`\n${report}`);

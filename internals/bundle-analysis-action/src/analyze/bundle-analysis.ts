@@ -2,14 +2,7 @@
  * @packageDocumentation
  * Bundle analysis logic for comparing rsdoctor outputs.
  */
-import {
-	existsSync,
-	promises as fs,
-	readdirSync,
-	readFileSync,
-	statSync,
-	writeFileSync,
-} from 'node:fs';
+import * as nodeFs from 'node:fs';
 import { basename, join } from 'node:path';
 
 export interface BundleStats {
@@ -56,14 +49,45 @@ interface WorkspacePackageNode {
 	dependencies: string[];
 }
 
+interface BundleAnalysisFileSystem {
+	existsSync: typeof nodeFs.existsSync;
+	readdir: typeof nodeFs.promises.readdir;
+	readdirSync: typeof nodeFs.readdirSync;
+	readFileSync: typeof nodeFs.readFileSync;
+	statSync: typeof nodeFs.statSync;
+	writeFileSync: typeof nodeFs.writeFileSync;
+}
+
+const defaultFileSystem: BundleAnalysisFileSystem = {
+	existsSync: nodeFs.existsSync,
+	readdir: nodeFs.promises.readdir,
+	readdirSync: nodeFs.readdirSync,
+	readFileSync: nodeFs.readFileSync,
+	statSync: nodeFs.statSync,
+	writeFileSync: nodeFs.writeFileSync,
+};
+
+let fileSystem: BundleAnalysisFileSystem = defaultFileSystem;
+
+export function setBundleAnalysisFileSystemForTests(
+	nextFileSystem: BundleAnalysisFileSystem
+): () => void {
+	fileSystem = nextFileSystem;
+	return () => {
+		fileSystem = defaultFileSystem;
+	};
+}
+
 async function findRsdoctorDataFiles(dir: string): Promise<string[]> {
 	const files: string[] = [];
-	if (!existsSync(dir)) {
+	if (!fileSystem.existsSync(dir)) {
 		return files;
 	}
 
 	async function walk(currentDir: string): Promise<void> {
-		const entries = await fs.readdir(currentDir, { withFileTypes: true });
+		const entries = await fileSystem.readdir(currentDir, {
+			withFileTypes: true,
+		});
 		const promises: Promise<void>[] = [];
 
 		for (const entry of entries) {
@@ -88,7 +112,7 @@ async function findRsdoctorDataFiles(dir: string): Promise<string[]> {
 
 export function extractBundleSizes(jsonPath: string): BundleStats[] {
 	try {
-		const content = readFileSync(jsonPath, 'utf-8');
+		const content = fileSystem.readFileSync(jsonPath, 'utf-8');
 		const data = JSON.parse(content);
 		const bundles: BundleStats[] = [];
 
@@ -358,22 +382,24 @@ function buildWorkspaceGraph(
 	const graph = new Map<string, WorkspacePackageNode>();
 	const packagesRoot = join(repoDir, packagesDir);
 
-	if (!existsSync(packagesRoot)) {
+	if (!fileSystem.existsSync(packagesRoot)) {
 		return graph;
 	}
 
-	const packageFolders = readdirSync(packagesRoot).filter((entry) =>
-		statSync(join(packagesRoot, entry)).isDirectory()
-	);
+	const packageFolders = fileSystem
+		.readdirSync(packagesRoot)
+		.filter((entry) =>
+			fileSystem.statSync(join(packagesRoot, entry)).isDirectory()
+		);
 
 	for (const folder of packageFolders) {
 		const manifestPath = join(packagesRoot, folder, 'package.json');
-		if (!existsSync(manifestPath)) {
+		if (!fileSystem.existsSync(manifestPath)) {
 			continue;
 		}
 
 		try {
-			const content = readFileSync(manifestPath, 'utf-8');
+			const content = fileSystem.readFileSync(manifestPath, 'utf-8');
 			const manifest = JSON.parse(content) as {
 				name?: string;
 				dependencies?: Record<string, string>;
@@ -677,11 +703,11 @@ export async function analyzeBundles(
 ): Promise<PackageBundleData[]> {
 	const packages: string[] = [];
 
-	if (existsSync(packagesDir)) {
-		const entries = readdirSync(packagesDir);
+	if (fileSystem.existsSync(packagesDir)) {
+		const entries = fileSystem.readdirSync(packagesDir);
 		for (const entry of entries) {
 			const fullPath = join(packagesDir, entry);
-			if (statSync(fullPath).isDirectory()) {
+			if (fileSystem.statSync(fullPath).isDirectory()) {
 				packages.push(join(packagesDir, entry));
 			}
 		}
@@ -708,7 +734,7 @@ export function writeReport(
 ): void {
 	try {
 		const report = generateMarkdownReport(packages, transitive);
-		writeFileSync(outputPath, report, 'utf-8');
+		fileSystem.writeFileSync(outputPath, report, 'utf-8');
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		const errorStack =

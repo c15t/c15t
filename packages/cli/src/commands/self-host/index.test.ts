@@ -1,19 +1,18 @@
-import * as prompts from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TelemetryEventName } from '~/utils/telemetry';
 
 import { selfHost } from './index';
-import { migrate } from './migrate';
 
-vi.mock('@clack/prompts', () => ({
+const prompts = {
 	select: vi.fn(),
 	isCancel: vi.fn((value: unknown) => value === Symbol.for('CANCEL')),
-}));
-
-vi.mock('./migrate', () => ({
-	migrate: vi.fn(async () => undefined),
-}));
+};
+const migrate = vi.fn(async () => undefined);
+const dependencies = {
+	...prompts,
+	migrate,
+};
 
 function createMockContext(commandArgs: string[] = []) {
 	return {
@@ -45,7 +44,7 @@ describe('selfHost command', () => {
 	it('runs migrate when migrate subcommand is provided', async () => {
 		const context = createMockContext(['migrate']);
 
-		await selfHost(context);
+		await selfHost(context, dependencies);
 
 		expect(migrate).toHaveBeenCalledWith(context);
 	});
@@ -53,7 +52,7 @@ describe('selfHost command', () => {
 	it('shows usage guidance for unknown subcommands', async () => {
 		const context = createMockContext(['unknown']);
 
-		await selfHost(context);
+		await selfHost(context, dependencies);
 
 		expect(context.logger.error).toHaveBeenCalledWith(
 			'Unknown self-host subcommand: unknown'
@@ -72,14 +71,10 @@ describe('selfHost command', () => {
 
 	it('exits self-host menu gracefully when Exit is selected', async () => {
 		const context = createMockContext();
-		(
-			prompts.select as unknown as ReturnType<typeof vi.fn>
-		).mockResolvedValueOnce('exit');
-		(
-			prompts.isCancel as unknown as ReturnType<typeof vi.fn>
-		).mockReturnValueOnce(false);
+		prompts.select.mockResolvedValueOnce('exit');
+		prompts.isCancel.mockReturnValueOnce(false);
 
-		await selfHost(context);
+		await selfHost(context, dependencies);
 
 		expect(context.error.handleCancel).not.toHaveBeenCalled();
 		expect(context.logger.outro).toHaveBeenCalledWith('Exited self-host menu.');
@@ -95,14 +90,10 @@ describe('selfHost command', () => {
 	it('uses cancellation handler when selection is cancelled', async () => {
 		const context = createMockContext();
 		const cancel = Symbol.for('CANCEL');
-		(
-			prompts.select as unknown as ReturnType<typeof vi.fn>
-		).mockResolvedValueOnce(cancel);
-		(
-			prompts.isCancel as unknown as ReturnType<typeof vi.fn>
-		).mockReturnValueOnce(true);
+		prompts.select.mockResolvedValueOnce(cancel);
+		prompts.isCancel.mockReturnValueOnce(true);
 
-		await selfHost(context);
+		await selfHost(context, dependencies);
 
 		expect(context.error.handleCancel).toHaveBeenCalledWith(
 			'Operation cancelled.',

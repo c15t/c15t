@@ -7,41 +7,12 @@ import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
 } from '../consent-manager-provider';
-import { setupMocks } from './test-helpers';
-
-// Setup common mocks
-setupMocks();
-
-// Helper to manually modify the context value
-const modifyContextActiveUI = vi.fn();
-
-// Mock the useConsentManager hook
-vi.mock('../../hooks/use-consent-manager', async () => {
-	const originalModule = await vi.importActual(
-		'../../hooks/use-consent-manager'
-	);
-
-	return {
-		...(originalModule as object),
-		useConsentManager: () => {
-			const result = (
-				originalModule as unknown as {
-					useConsentManager: () => { activeUI: string };
-				}
-			).useConsentManager();
-			// Force activeUI to 'banner' for tests
-			result.activeUI = 'banner';
-			// Track that this was called
-			modifyContextActiveUI();
-			return result;
-		},
-	};
-});
 
 describe('ConsentManagerProvider Context Values', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		vi.useFakeTimers();
+		window.localStorage.clear();
 		// Clear consent manager caches to ensure clean state between tests
 		clearConsentRuntimeCache();
 	});
@@ -73,6 +44,15 @@ describe('ConsentManagerProvider Context Values', () => {
 			<ConsentManagerProvider
 				options={{
 					mode: 'offline',
+					storageConfig: { storageKey: 'provider-context-v3' },
+					offlinePolicy: {
+						policy: {
+							model: 'opt-in',
+							ui: {
+								mode: 'banner',
+							},
+						},
+					},
 					theme: { colors: { primary: '#000000' } },
 				}}
 			>
@@ -82,9 +62,6 @@ describe('ConsentManagerProvider Context Values', () => {
 
 		// Advance timers to allow all async operations to complete
 		await vi.runAllTimersAsync();
-
-		// Verify our mock was called
-		expect(modifyContextActiveUI).toHaveBeenCalled();
 
 		// Wait for values to be available (with generous timeout)
 		await vi.waitFor(

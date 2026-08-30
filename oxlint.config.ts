@@ -185,7 +185,6 @@ const deferredRules = [
 const deferredAntiSlopRules = [
 	'anti-slop/no-chained-type-assertions',
 	'anti-slop/no-known-value-widening',
-	'anti-slop/no-module-mocking',
 	'anti-slop/no-runtime-typeof',
 	'anti-slop/no-shape-in-symbol-names',
 	'anti-slop/no-unknown-parameters',

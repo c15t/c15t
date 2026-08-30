@@ -6,13 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ConsentStoreState } from '../../../store/type';
 import type { ConsentState } from '../../../types';
-import { shouldBlockRequest } from '../core';
 import { createNetworkBlockerManager } from '../store';
 import type { NetworkBlockerConfig } from '../types';
 
-vi.mock('../core', () => ({
-	shouldBlockRequest: vi.fn(),
-}));
+const shouldBlockRequest = vi.fn();
+const networkDependencies = {
+	shouldBlockRequest,
+};
 
 const baseConsents: ConsentState = {
 	necessary: true,
@@ -91,10 +91,11 @@ describe('createNetworkBlockerManager', () => {
 
 		const manager = createNetworkBlockerManager(
 			getState as () => ConsentStoreState,
-			setState
+			setState,
+			networkDependencies
 		);
 
-		const shouldBlockRequestMock = vi.mocked(shouldBlockRequest);
+		const shouldBlockRequestMock = shouldBlockRequest;
 		shouldBlockRequestMock.mockReturnValue({
 			shouldBlock: true,
 			rule: config.rules[0],
@@ -176,10 +177,11 @@ describe('createNetworkBlockerManager', () => {
 
 		const manager = createNetworkBlockerManager(
 			getState as () => ConsentStoreState,
-			setState
+			setState,
+			networkDependencies
 		);
 
-		const shouldBlockRequestMock = vi.mocked(shouldBlockRequest);
+		const shouldBlockRequestMock = shouldBlockRequest;
 		shouldBlockRequestMock.mockReturnValue({
 			shouldBlock: true,
 			rule: config.rules[0],
@@ -244,10 +246,11 @@ describe('createNetworkBlockerManager', () => {
 
 		const manager = createNetworkBlockerManager(
 			getState as () => ConsentStoreState,
-			setState
+			setState,
+			networkDependencies
 		);
 
-		const shouldBlockRequestMock = vi.mocked(shouldBlockRequest);
+		const shouldBlockRequestMock = shouldBlockRequest;
 
 		// Block when marketing consent is false, allow when true
 		shouldBlockRequestMock.mockImplementation((_request, consents) => {
@@ -320,10 +323,11 @@ describe('createNetworkBlockerManager', () => {
 
 		const manager = createNetworkBlockerManager(
 			getState as () => ConsentStoreState,
-			setState
+			setState,
+			networkDependencies
 		);
 
-		const shouldBlockRequestMock = vi.mocked(shouldBlockRequest);
+		const shouldBlockRequestMock = shouldBlockRequest;
 
 		// Block when marketing consent is false, allow when true
 		shouldBlockRequestMock.mockImplementation((_request, consents) => {

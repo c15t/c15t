@@ -37,6 +37,24 @@ import {
 	extractConsentRequestInputs,
 } from './headers';
 
+type Awaitable<Value> = Promise<Value> | Value;
+
+interface NextRequestContext {
+	cookies: () => Awaitable<{ toString: () => string }>;
+	headers: () => Awaitable<Headers>;
+}
+
+const defaultNextRequestContext: NextRequestContext = {
+	async cookies() {
+		const nextHeaders = await import('next/headers');
+		return nextHeaders.cookies();
+	},
+	async headers() {
+		const nextHeaders = await import('next/headers');
+		return (await nextHeaders.headers()) as Headers;
+	},
+};
+
 export interface ReadInitialConsentConfigOptions {
 	/**
 	 * Cookie name holding persisted consent. Defaults to `c15t` — the
@@ -55,6 +73,13 @@ export interface ReadInitialConsentConfigOptions {
 	 * If provided, override the auto-detected language.
 	 */
 	language?: string;
+
+	/**
+	 * Request context adapter. Intended for tests and advanced framework
+	 * wrappers that provide Next-compatible request helpers.
+	 * @internal
+	 */
+	request?: NextRequestContext;
 }
 
 /**
@@ -78,7 +103,8 @@ export interface ReadInitialConsentConfigOptions {
 export async function readInitialConsentConfig(
 	options: ReadInitialConsentConfigOptions = {}
 ): Promise<KernelConfig> {
-	const headerStore = await headers();
+	const request = options.request ?? defaultNextRequestContext;
+	const headerStore = await request.headers();
 
 	// The persistence module writes the `c15t` cookie in the v2-compatible
 	// compact format — read it with the same shared parser the client uses,
@@ -190,8 +216,9 @@ export async function prefetchInitialConsent(
 	options: PrefetchInitialConsentOptions
 ): Promise<KernelConfig> {
 	const base = await readInitialConsentConfig(options);
-	const requestHeaders = await headers();
-	const requestCookies = await cookies();
+	const request = options.request ?? defaultNextRequestContext;
+	const requestHeaders = await request.headers();
+	const requestCookies = await request.cookies();
 
 	const absoluteBackend = resolveBackendURL(options.backendURL, requestHeaders);
 	if (!absoluteBackend) return base;

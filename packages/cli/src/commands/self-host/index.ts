@@ -16,10 +16,25 @@ const subcommands = [
 	},
 ];
 
+interface SelfHostDependencies {
+	isCancel: typeof p.isCancel;
+	migrate: typeof migrate;
+	select: typeof p.select;
+}
+
+const defaultSelfHostDependencies: SelfHostDependencies = {
+	isCancel: p.isCancel,
+	migrate,
+	select: p.select,
+};
+
 /**
  * Self-host command - parent command for self-hosting related functionality
  */
-export async function selfHost(context: CliContext) {
+export async function selfHost(
+	context: CliContext,
+	dependencies: SelfHostDependencies = defaultSelfHostDependencies
+) {
 	const { logger, telemetry, commandArgs, error } = context;
 	logger.debug('Starting self-host command...');
 
@@ -32,7 +47,7 @@ export async function selfHost(context: CliContext) {
 		// If subcommand is provided, execute it directly
 		switch (subcommand) {
 			case 'migrate':
-				await migrate(context);
+				await dependencies.migrate(context);
 				break;
 			default:
 				logger.error(`Unknown self-host subcommand: ${subcommand}`);
@@ -65,7 +80,7 @@ export async function selfHost(context: CliContext) {
 		hint: 'Close the CLI',
 	});
 
-	const selectedSubcommandName = await p.select({
+	const selectedSubcommandName = await dependencies.select({
 		message: formatLogMessage(
 			'info',
 			'Which self-host task would you like to run?'
@@ -73,7 +88,7 @@ export async function selfHost(context: CliContext) {
 		options: promptOptions,
 	});
 
-	if (p.isCancel(selectedSubcommandName)) {
+	if (dependencies.isCancel(selectedSubcommandName)) {
 		logger.debug('Self-host interactive selection cancelled.');
 		telemetry.trackEvent(TelemetryEventName.INTERACTIVE_MENU_EXITED, {
 			action: 'cancelled',
@@ -102,7 +117,7 @@ export async function selfHost(context: CliContext) {
 
 	if (selectedSubcommand) {
 		logger.debug(`User selected subcommand: ${selectedSubcommand.name}`);
-		await selectedSubcommand.action(context);
+		await dependencies.migrate(context);
 	} else {
 		logger.error(`Unknown subcommand: ${selectedSubcommandName}`);
 		telemetry.trackEvent(TelemetryEventName.SELF_HOST_COMPLETED, {

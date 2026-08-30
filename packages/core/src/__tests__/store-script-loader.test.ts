@@ -40,33 +40,6 @@ const mockConsentManager = {
 	setConsent: vi.fn().mockResolvedValue({ success: true }),
 };
 
-// Mock localStorage
-vi.mock('vitest-localstorage-mock', () => {
-	return {
-		localStorage: {
-			getItem: vi.fn(),
-			setItem: vi.fn(),
-			clear: vi.fn(),
-		},
-	};
-});
-
-// Mock the store's fetchConsentBannerInfo method
-vi.mock('../libs/fetch-consent-banner', () => ({
-	fetchConsentBannerInfo: vi.fn().mockResolvedValue({
-		jurisdiction: 'GDPR',
-		location: {
-			countryCode: 'DE',
-			regionCode: null,
-		},
-		translations: {
-			language: 'en',
-			translations: {},
-		},
-		branding: 'c15t',
-	}),
-}));
-
 describe('Store Script Loader Integration', () => {
 	// Setup mocks before each test
 	beforeEach(() => {

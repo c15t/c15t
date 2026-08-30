@@ -156,9 +156,12 @@ export const createConsentManagerStore = (
 	const internalOptions = options as StoreOptions & {
 		__internal?: {
 			backendURL?: string;
+			initConsentManager?: typeof initConsentManager;
 			requestCredentials?: RequestCredentials;
 		};
 	};
+	const initializeConsentManager =
+		internalOptions.__internal?.initConsentManager ?? initConsentManager;
 	const {
 		namespace = 'c15tStore',
 		// Extract options that shouldn't be spread directly into state
@@ -384,7 +387,7 @@ export const createConsentManagerStore = (
 		setLocationInfo: (location) => set({ locationInfo: location }),
 
 		initConsentManager: (): Promise<ConsentBannerResponse | undefined> =>
-			initConsentManager({
+			initializeConsentManager({
 				manager,
 				ssrData: options.ssrData,
 				backendURL: internalOptions.__internal?.backendURL,
@@ -642,7 +645,7 @@ export const createConsentManagerStore = (
 		): Promise<ConsentBannerResponse | undefined> => {
 			set({ overrides: { ...get().overrides, ...overrides } });
 
-			return await initConsentManager({
+			return await initializeConsentManager({
 				manager,
 				backendURL: internalOptions.__internal?.backendURL,
 				requestCredentials: internalOptions.__internal?.requestCredentials,

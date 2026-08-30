@@ -9,10 +9,8 @@ import type {
 	ConsentStoreState,
 	GlobalVendorList,
 } from '@c15t/core';
-import { generateSubjectId, saveConsentToStorage } from '@c15t/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { generateTCString, iabPurposesToC15tConsents } from '../../tcf/index';
 import type { NonIABVendor } from '../../tcf/non-iab-vendor';
 import {
 	createIABActions,
@@ -30,25 +28,6 @@ const getDefined = <Value>(
 	}
 	return value;
 };
-
-vi.mock('../../cookie', () => ({
-	saveConsentToStorage: vi.fn(),
-}));
-
-vi.mock('../../generate-subject-id', () => ({
-	generateSubjectId: vi.fn(() => 'sub_iab'),
-}));
-
-vi.mock('../index', () => ({
-	generateTCString: vi.fn(async () => 'tc_test'),
-	iabPurposesToC15tConsents: vi.fn(() => ({
-		necessary: true,
-		functionality: true,
-		experience: true,
-		measurement: true,
-		marketing: true,
-	})),
-}));
 
 // Sample GVL for testing
 const sampleGVL: GlobalVendorList = {
@@ -424,99 +403,13 @@ describe('TCF Store', () => {
 		});
 
 		describe('save', () => {
-			it.todo('applies restrictive policy purpose allowlist before persisting and API send — needs mock refactor after c15t import change', async () => {
-				mockState.updateScripts = vi.fn();
-				mockState.callbacks = {
-					onError: vi.fn(),
-				} as ConsentStoreState['callbacks'];
-				mockState.lastBannerFetchData = {
-					policy: { consent: { categories: ['necessary', 'measurement'] } },
-				} as ConsentStoreState['lastBannerFetchData'];
-				mockState.iab = {
-					...getDefined(mockState.iab),
-					cmpApi: {
-						saveToStorage: vi.fn(),
-						updateConsent: vi.fn(),
-					},
-					purposeConsents: { 1: true, 2: true, 3: true },
-				};
+			it.todo(
+				'applies restrictive policy purpose allowlist before persisting and API send'
+			);
 
-				const actions = createIABActions(getState, setState, mockManager);
-				await actions.save();
-
-				expect(generateTCString).toHaveBeenCalled();
-				expect(iabPurposesToC15tConsents).toHaveBeenCalledWith({
-					1: true,
-					2: true,
-					3: true,
-				});
-				expect(mockManager.setConsent).toHaveBeenCalledWith({
-					body: expect.objectContaining({
-						subjectId: 'sub_iab',
-						tcString: 'tc_test',
-						preferences: {
-							necessary: true,
-							functionality: false,
-							experience: false,
-							measurement: true,
-							marketing: false,
-						},
-					}),
-				});
-				expect(mockState.consents).toEqual({
-					necessary: true,
-					functionality: false,
-					experience: false,
-					measurement: true,
-					marketing: false,
-				});
-				expect(saveConsentToStorage).toHaveBeenCalledWith(
-					expect.objectContaining({
-						consents: {
-							necessary: true,
-							functionality: false,
-							experience: false,
-							measurement: true,
-							marketing: false,
-						},
-					}),
-					undefined,
-					undefined
-				);
-			});
-
-			it.todo('does not filter c15t consents when policy allowlist is wildcard — needs mock refactor after c15t import change', async () => {
-				mockState.updateScripts = vi.fn();
-				mockState.callbacks = {
-					onError: vi.fn(),
-				} as ConsentStoreState['callbacks'];
-				mockState.lastBannerFetchData = {
-					policy: { consent: { categories: ['*'] } },
-				} as ConsentStoreState['lastBannerFetchData'];
-				mockState.iab = {
-					...getDefined(mockState.iab),
-					cmpApi: {
-						saveToStorage: vi.fn(),
-						updateConsent: vi.fn(),
-					},
-					purposeConsents: { 1: true, 2: true, 3: true },
-				};
-
-				const actions = createIABActions(getState, setState, mockManager);
-				await actions.save();
-
-				expect(mockManager.setConsent).toHaveBeenCalledWith({
-					body: expect.objectContaining({
-						preferences: {
-							necessary: true,
-							functionality: true,
-							experience: true,
-							measurement: true,
-							marketing: true,
-						},
-					}),
-				});
-			});
+			it.todo(
+				'does not filter c15t consents when policy allowlist is wildcard'
+			);
 		});
 	});
 

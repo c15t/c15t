@@ -10,7 +10,6 @@ import type { StoreApi } from 'zustand/vanilla';
 
 import type { ConsentManagerInterface } from '../../../client/client-factory';
 import type { ConsentStoreState } from '../../../store/type';
-import { hasGlobalPrivacyControlSignal } from '../../global-privacy-control';
 import { initConsentManager } from '../index';
 import {
 	createMockConsentBannerResponse,
@@ -18,9 +17,12 @@ import {
 	createMockStoreState,
 } from './test-setup';
 
-vi.mock('../../global-privacy-control', () => ({
-	hasGlobalPrivacyControlSignal: vi.fn(),
-}));
+function setGlobalPrivacyControlSignal(value: boolean | string | undefined) {
+	Object.defineProperty(window.navigator, 'globalPrivacyControl', {
+		configurable: true,
+		value,
+	});
+}
 
 describe('initConsentManager', () => {
 	let mockGet: ReturnType<typeof vi.fn>;
@@ -33,6 +35,7 @@ describe('initConsentManager', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		window.localStorage.clear();
+		setGlobalPrivacyControlSignal(undefined);
 
 		mockGet = vi.fn();
 		mockSet = vi.fn();
@@ -838,7 +841,7 @@ describe('initConsentManager', () => {
 				error: null,
 			});
 
-			vi.mocked(hasGlobalPrivacyControlSignal).mockReturnValue(true);
+			setGlobalPrivacyControlSignal(true);
 
 			await initConsentManager({
 				manager: mockManager,

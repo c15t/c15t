@@ -31,29 +31,55 @@ import {
 import type { CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';
 
-export async function migrate(context: CliContext) {
+interface MigrateDependencies {
+	confirmApply: typeof confirmApply;
+	createMigrator: typeof createMigrator;
+	describePlan: typeof describePlan;
+	ensureBackendConfig: typeof ensureBackendConfig;
+	installDependencies: typeof installDependencies;
+	isUpToDate: typeof isUpToDate;
+	readDatabaseConfig: typeof readDatabaseConfig;
+}
+
+const defaultMigrateDependencies: MigrateDependencies = {
+	confirmApply,
+	createMigrator,
+	describePlan,
+	ensureBackendConfig,
+	installDependencies,
+	isUpToDate,
+	readDatabaseConfig,
+};
+
+export async function migrate(
+	context: CliContext,
+	dependencies: MigrateDependencies = defaultMigrateDependencies
+) {
 	const { logger, telemetry } = context;
 	telemetry.trackEvent(TelemetryEventName.MIGRATION_STARTED, {});
 
-	const configResult = await ensureBackendConfig(context);
+	const configResult = await dependencies.ensureBackendConfig(context);
 	if (!configResult?.path) {
 		logger.error('No backend config found.');
 		return;
 	}
 
 	if (configResult.dependencies.length > 0) {
-		await installDependencies({
+		await dependencies.installDependencies({
 			context,
 			dependenciesToAdd: configResult.dependencies,
 			autoInstall: true,
 		});
 	}
 
-	const database = await readDatabaseConfig(context, configResult.path);
+	const database = await dependencies.readDatabaseConfig(
+		context,
+		configResult.path
+	);
 
 	// Disposed at the end: it owns the connection pool, and a CLI process
 	// holding one open does not exit.
-	const migrator = createMigrator(database);
+	const migrator = dependencies.createMigrator(database);
 
 	try {
 		const planned = await migrator.plan();
@@ -69,17 +95,17 @@ export async function migrate(context: CliContext) {
 			return;
 		}
 
-		describePlan(context, planned);
+		dependencies.describePlan(context, planned);
 		telemetry.trackEvent(TelemetryEventName.MIGRATION_PLANNED, {
 			success: true,
 		});
 
-		if (isUpToDate(planned)) {
+		if (dependencies.isUpToDate(planned)) {
 			logger.success('Database is already up to date.');
 			return;
 		}
 
-		if (!(await confirmApply())) {
+		if (!(await dependencies.confirmApply())) {
 			logger.info('No changes made.');
 			telemetry.trackEvent(TelemetryEventName.MIGRATION_FAILED, {
 				execute: false,

@@ -10,13 +10,7 @@ import {
 	c15tDevtoolsPlugin,
 } from '../../tanstack';
 
-const { createDevToolsPanelMock } = vi.hoisted(() => ({
-	createDevToolsPanelMock: vi.fn(),
-}));
-
-vi.mock('../../core/devtools', () => ({
-	createDevToolsPanel: createDevToolsPanelMock,
-}));
+const createDevToolsPanelMock = vi.fn();
 
 describe('tanstack integration', () => {
 	let mountNode: HTMLDivElement;
@@ -77,6 +71,7 @@ describe('tanstack integration', () => {
 		await act(async () => {
 			root?.render(
 				React.createElement(C15tTanStackDevtoolsPanel, {
+					createPanel: createDevToolsPanelMock,
 					namespace: 'testStore',
 					'data-testid': 'panel-shell',
 				})
@@ -110,6 +105,7 @@ describe('tanstack integration', () => {
 
 	it('reuses the embedded panel after a remount', async () => {
 		const plugin = c15tDevtools({
+			createPanel: createDevToolsPanelMock,
 			namespace: 'testStore',
 		});
 

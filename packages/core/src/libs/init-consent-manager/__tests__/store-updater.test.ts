@@ -7,7 +7,6 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { hasGlobalPrivacyControlSignal } from '../../global-privacy-control';
 import { updateStore } from '../store-updater';
 import type { InitConsentManagerConfig } from '../types';
 import {
@@ -15,9 +14,12 @@ import {
 	createMockStoreState,
 } from './test-setup';
 
-vi.mock('../../global-privacy-control', () => ({
-	hasGlobalPrivacyControlSignal: vi.fn().mockReturnValue(false),
-}));
+function setGlobalPrivacyControlSignal(value: boolean | string | undefined) {
+	Object.defineProperty(window.navigator, 'globalPrivacyControl', {
+		configurable: true,
+		value,
+	});
+}
 
 describe('updateStore - cmpId merging', () => {
 	let mockGet: ReturnType<typeof vi.fn>;
@@ -177,7 +179,7 @@ describe('updateStore - GPC override', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		vi.mocked(hasGlobalPrivacyControlSignal).mockReturnValue(false);
+		setGlobalPrivacyControlSignal(undefined);
 	});
 
 	function setup(overrides?: { gpc?: boolean }, jurisdiction = 'CCPA') {
@@ -219,7 +221,7 @@ describe('updateStore - GPC override', () => {
 
 	it('should allow marketing/measurement when GPC override is false in opt-out jurisdiction', async () => {
 		// Even if browser has GPC active, the override should suppress it
-		vi.mocked(hasGlobalPrivacyControlSignal).mockReturnValue(true);
+		setGlobalPrivacyControlSignal(true);
 		const { data, config } = setup({ gpc: false }, 'CCPA');
 
 		await updateStore(data, config, true);
@@ -235,12 +237,11 @@ describe('updateStore - GPC override', () => {
 	});
 
 	it('should fall back to browser GPC signal when override is undefined', async () => {
-		vi.mocked(hasGlobalPrivacyControlSignal).mockReturnValue(true);
+		setGlobalPrivacyControlSignal(true);
 		const { data, config } = setup(undefined, 'CCPA');
 
 		await updateStore(data, config, true);
 
-		expect(hasGlobalPrivacyControlSignal).toHaveBeenCalled();
 		expect(mockSet).toHaveBeenCalledWith(
 			expect.objectContaining({
 				consents: expect.objectContaining({

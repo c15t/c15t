@@ -10,29 +10,21 @@ import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { createApp, toWebHandler } from 'h3';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import initRoute from '../runtime/server/init.get';
-import type * as RuntimeServerLocalFetchTypes from '../runtime/server/local-fetch';
 import {
 	clearManifestRouteCache,
 	fetchCachedManifest,
 	MANIFEST_DEDUPE_TTL_SECONDS,
 } from '../runtime/server/manifest-mode';
-import manifestRoute from '../runtime/server/manifest.get';
+import {
+	createInitRoute,
+	createManifestRoute,
+} from '../runtime/server/route-factories';
+import { createServerFetch } from '../runtime/server/server-fetch';
 
 const mocks = vi.hoisted(() => ({
 	useRuntimeConfig: vi.fn(),
 	localFetch: vi.fn(),
 	serverFetch: vi.fn(),
-}));
-
-vi.mock('nitropack/runtime', () => ({
-	useRuntimeConfig: mocks.useRuntimeConfig,
-	useNitroApp: () => ({ localFetch: mocks.localFetch }),
-	defineCachedEventHandler: (handler: unknown) => handler,
-}));
-
-vi.mock('../runtime/server/local-fetch', () => ({
-	serverFetch: mocks.serverFetch,
 }));
 
 const MANIFEST: ConsentManifest = {
@@ -96,8 +88,19 @@ function callRoute(path: string, handler: unknown) {
 	};
 }
 
-const callManifestRoute = callRoute('/api/c15t/manifest', manifestRoute);
-const callInitRoute = callRoute('/api/c15t/init', initRoute);
+const routeDependencies = {
+	defineCachedEventHandler: (handler: unknown) => handler,
+	fetch: mocks.serverFetch,
+	useRuntimeConfig: mocks.useRuntimeConfig,
+};
+const callManifestRoute = callRoute(
+	'/api/c15t/manifest',
+	createManifestRoute(routeDependencies)
+);
+const callInitRoute = callRoute(
+	'/api/c15t/init',
+	createInitRoute(routeDependencies)
+);
 
 beforeEach(() => {
 	clearManifestRouteCache();
@@ -268,9 +271,12 @@ describe('serverFetch', () => {
 	test("delegates to nitro's localFetch so relative backendURLs resolve", async () => {
 		// `globalThis.fetch` rejects relative URLs in Node; localFetch dispatches
 		// them in-process and hands absolute URLs to real fetch.
-		const { serverFetch } = await vi.importActual<
-			typeof RuntimeServerLocalFetchTypes
-		>('../runtime/server/local-fetch');
+		const serverFetch = createServerFetch(
+			() =>
+				({
+					localFetch: mocks.localFetch,
+				}) as never
+		);
 		mocks.localFetch.mockResolvedValue(new Response('ok'));
 
 		await serverFetch('/api/self-host/manifest', { method: 'GET' });

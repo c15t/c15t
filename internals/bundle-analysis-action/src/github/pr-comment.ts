@@ -37,6 +37,27 @@ export interface CommentOctokit {
 	};
 }
 
+interface ActionCore {
+	setFailed: typeof core.setFailed;
+	setOutput: typeof core.setOutput;
+}
+
+const defaultActionCore: ActionCore = {
+	setFailed: core.setFailed,
+	setOutput: core.setOutput,
+};
+
+let actionCore: ActionCore = defaultActionCore;
+
+export function setPrCommentActionCoreForTests(
+	nextCore: ActionCore
+): () => void {
+	actionCore = nextCore;
+	return () => {
+		actionCore = defaultActionCore;
+	};
+}
+
 function autoStart(header: string): string {
 	const key = (header || 'bundle-analysis').trim() || 'bundle-analysis';
 	return `<!-- c15t:${key}:START -->`;
@@ -105,7 +126,7 @@ export async function createComment(
 		return { id: data.id };
 	} catch (error) {
 		if (error instanceof Error) {
-			core.setFailed(`Failed to create comment: ${error.message}`);
+			actionCore.setFailed(`Failed to create comment: ${error.message}`);
 		}
 		return undefined;
 	}
@@ -127,7 +148,7 @@ export async function updateComment(
 		});
 	} catch (error) {
 		if (error instanceof Error) {
-			core.setFailed(`Failed to update comment: ${error.message}`);
+			actionCore.setFailed(`Failed to update comment: ${error.message}`);
 		}
 	}
 }
@@ -143,11 +164,11 @@ export async function ensureComment(
 
 	if (previous) {
 		await updateComment(octokit, repo, previous.id, body, header);
-		core.setOutput('updated_comment_id', previous.id);
+		actionCore.setOutput('updated_comment_id', previous.id);
 	} else {
 		const created = await createComment(octokit, repo, number, body, header);
 		if (created) {
-			core.setOutput('created_comment_id', created.id);
+			actionCore.setOutput('created_comment_id', created.id);
 		}
 	}
 }

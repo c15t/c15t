@@ -1,22 +1,17 @@
-import * as core from '@actions/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	createComment,
 	ensureComment,
 	findPreviousComment,
+	setPrCommentActionCoreForTests,
 	updateComment,
 } from '../github/pr-comment';
 
-// Mock @actions/core
-vi.mock('@actions/core', () => ({
-	default: {
-		setFailed: vi.fn(),
-		setOutput: vi.fn(),
-	},
+const actionCore = {
 	setFailed: vi.fn(),
 	setOutput: vi.fn(),
-}));
+};
 
 // Mock @actions/github
 const mockOctokit = {
@@ -32,6 +27,7 @@ const mockOctokit = {
 describe('pr-comment', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		setPrCommentActionCoreForTests(actionCore);
 	});
 
 	describe('findPreviousComment', () => {
@@ -165,7 +161,7 @@ describe('pr-comment', () => {
 			);
 
 			expect(result).toBeUndefined();
-			expect(core.setFailed).toHaveBeenCalledWith(
+			expect(actionCore.setFailed).toHaveBeenCalledWith(
 				'Failed to create comment: API Error'
 			);
 		});
@@ -224,7 +220,7 @@ describe('pr-comment', () => {
 				'bundle-analysis'
 			);
 
-			expect(core.setFailed).toHaveBeenCalledWith(
+			expect(actionCore.setFailed).toHaveBeenCalledWith(
 				'Failed to update comment: Update failed'
 			);
 		});
@@ -252,7 +248,10 @@ describe('pr-comment', () => {
 
 			expect(mockOctokit.rest.issues.updateComment).toHaveBeenCalled();
 			expect(mockOctokit.rest.issues.createComment).not.toHaveBeenCalled();
-			expect(core.setOutput).toHaveBeenCalledWith('updated_comment_id', 123);
+			expect(actionCore.setOutput).toHaveBeenCalledWith(
+				'updated_comment_id',
+				123
+			);
 		});
 
 		it('should create new comment when none exists', async () => {
@@ -273,7 +272,10 @@ describe('pr-comment', () => {
 
 			expect(mockOctokit.rest.issues.createComment).toHaveBeenCalled();
 			expect(mockOctokit.rest.issues.updateComment).not.toHaveBeenCalled();
-			expect(core.setOutput).toHaveBeenCalledWith('created_comment_id', 789);
+			expect(actionCore.setOutput).toHaveBeenCalledWith(
+				'created_comment_id',
+				789
+			);
 		});
 
 		it('should handle create failure gracefully', async () => {
@@ -290,7 +292,7 @@ describe('pr-comment', () => {
 				'bundle-analysis'
 			);
 
-			expect(core.setOutput).not.toHaveBeenCalledWith(
+			expect(actionCore.setOutput).not.toHaveBeenCalledWith(
 				'created_comment_id',
 				expect.anything()
 			);

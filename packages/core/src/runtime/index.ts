@@ -16,6 +16,20 @@ import type { AllConsentNames, TranslationConfig } from '../types';
 type ConsentManagerInstance = ReturnType<typeof configureConsentManager>;
 type ConsentStoreInstance = ReturnType<typeof createConsentManagerStore>;
 
+interface ConsentRuntimeDependencies {
+	configureConsentManager: typeof configureConsentManager;
+	createConsentManagerStore: typeof createConsentManagerStore;
+	getMatchingPrefetchedInitialData: typeof getMatchingPrefetchedInitialData;
+	clearClientRegistry: typeof clearClientRegistry;
+}
+
+const defaultConsentRuntimeDependencies: ConsentRuntimeDependencies = {
+	configureConsentManager,
+	createConsentManagerStore,
+	getMatchingPrefetchedInitialData,
+	clearClientRegistry,
+};
+
 const DEFAULT_BACKEND_URL = '/api/c15t';
 
 const managerCache = new Map<string, ConsentManagerInstance>();
@@ -116,7 +130,8 @@ function generateHeadersKey(
 
 export function getOrCreateConsentRuntime(
 	options: ConsentRuntimeOptions,
-	pkgInfo?: ConsentRuntimePkgInfo
+	pkgInfo?: ConsentRuntimePkgInfo,
+	dependencies: ConsentRuntimeDependencies = defaultConsentRuntimeDependencies
 ): ConsentRuntimeResult {
 	const optionBag = options as ConsentRuntimeOptions & {
 		headers?: Record<string, string>;
@@ -221,20 +236,20 @@ export function getOrCreateConsentRuntime(
 		};
 
 		if (mode === 'offline') {
-			consentManager = configureConsentManager({
+			consentManager = dependencies.configureConsentManager({
 				mode: 'offline',
 				store: normalizedStoreOptions,
 				storageConfig: resolvedStorageConfig,
 			});
 		} else if (mode === 'custom' && 'endpointHandlers' in options) {
-			consentManager = configureConsentManager({
+			consentManager = dependencies.configureConsentManager({
 				mode: 'custom',
 				endpointHandlers: options.endpointHandlers,
 				store: normalizedStoreOptions,
 				storageConfig: resolvedStorageConfig,
 			});
 		} else {
-			consentManager = configureConsentManager({
+			consentManager = dependencies.configureConsentManager({
 				mode: mode === 'c15t' ? 'c15t' : 'hosted',
 				backendURL: backendURL || DEFAULT_BACKEND_URL,
 				headers,
@@ -257,7 +272,7 @@ export function getOrCreateConsentRuntime(
 			normalizedMode === 'hosted' &&
 			typeof window !== 'undefined' &&
 			!explicitSSRData
-				? getMatchingPrefetchedInitialData({
+				? dependencies.getMatchingPrefetchedInitialData({
 						backendURL: resolvedBackendURL,
 						overrides: options.overrides,
 						credentials: 'include',
@@ -270,7 +285,7 @@ export function getOrCreateConsentRuntime(
 			meta.requestCredentials = 'include';
 		}
 
-		consentStore = createConsentManagerStore(consentManager, {
+		consentStore = dependencies.createConsentManagerStore(consentManager, {
 			config: {
 				...(userConfig ?? {}),
 				pkg: pkgInfo?.pkg || 'c15t',
@@ -315,8 +330,13 @@ export function getOrCreateConsentRuntime(
 	};
 }
 
-export function clearConsentRuntimeCache(): void {
+export function clearConsentRuntimeCache(
+	dependencies: Pick<
+		ConsentRuntimeDependencies,
+		'clearClientRegistry'
+	> = defaultConsentRuntimeDependencies
+): void {
 	managerCache.clear();
 	storeCache.clear();
-	clearClientRegistry();
+	dependencies.clearClientRegistry();
 }

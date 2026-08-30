@@ -6,6 +6,18 @@ import {
 	setupIframeObserver,
 } from './core';
 
+interface IframeManagerDependencies {
+	getIframeConsentCategories: typeof getIframeConsentCategories;
+	processAllIframes: typeof processAllIframes;
+	setupIframeObserver: typeof setupIframeObserver;
+}
+
+const defaultIframeManagerDependencies: IframeManagerDependencies = {
+	getIframeConsentCategories,
+	processAllIframes,
+	setupIframeObserver,
+};
+
 /**
  * Creates an iframe manager that integrates with the main consent store.
  *
@@ -23,7 +35,8 @@ import {
  */
 export function createIframeManager(
 	get: () => ConsentStoreState,
-	_set: (partial: Partial<ConsentStoreState>) => void
+	_set: (partial: Partial<ConsentStoreState>) => void,
+	dependencies: IframeManagerDependencies = defaultIframeManagerDependencies
 ) {
 	// Store MutationObserver in closure (DOM API, not serializable)
 	// Similar to how script loader manages DOM elements
@@ -67,7 +80,7 @@ export function createIframeManager(
 
 			// Helper to extract and register iframe categories
 			const discoverAndRegisterCategories = () => {
-				const iframeCategories = getIframeConsentCategories();
+				const iframeCategories = dependencies.getIframeConsentCategories();
 				if (iframeCategories.length > 0) {
 					get().updateConsentCategories(iframeCategories);
 				}
@@ -88,11 +101,11 @@ export function createIframeManager(
 			setTimeout(discoverAndRegisterCategories, 100);
 
 			// Process all existing iframes (pure function call)
-			processAllIframes(runtimeConsents);
+			dependencies.processAllIframes(runtimeConsents);
 
 			// Set up observer for dynamically added iframes
 			// Pass callback to discover categories when new iframes are added
-			observer = setupIframeObserver(
+			observer = dependencies.setupIframeObserver(
 				() => {
 					const nextState = get();
 					return applyPolicyScopeForRuntimeGating(
@@ -136,7 +149,7 @@ export function createIframeManager(
 				return;
 			}
 
-			processAllIframes(
+			dependencies.processAllIframes(
 				applyPolicyScopeForRuntimeGating(
 					consents,
 					state.policyCategories,

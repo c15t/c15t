@@ -6,22 +6,13 @@ import { clearConsentRuntimeCache, getOrCreateConsentRuntime } from '../index';
 const configureConsentManagerMock = vi.fn();
 const createConsentManagerStoreMock = vi.fn();
 const getMatchingPrefetchedInitialDataMock = vi.fn();
-
-vi.mock('../../client', () => ({
-	configureConsentManager: (options: unknown) =>
-		configureConsentManagerMock(options),
-	clearClientRegistry: vi.fn(),
-}));
-
-vi.mock('../../store', () => ({
-	createConsentManagerStore: (manager: unknown, options: unknown) =>
-		createConsentManagerStoreMock(manager, options),
-}));
-
-vi.mock('../../libs/prefetch/prefetch', () => ({
-	getMatchingPrefetchedInitialData: (options: unknown) =>
-		getMatchingPrefetchedInitialDataMock(options),
-}));
+const clearClientRegistryMock = vi.fn();
+const runtimeDependencies = {
+	configureConsentManager: configureConsentManagerMock,
+	createConsentManagerStore: createConsentManagerStoreMock,
+	getMatchingPrefetchedInitialData: getMatchingPrefetchedInitialDataMock,
+	clearClientRegistry: clearClientRegistryMock,
+};
 
 describe('runtime', () => {
 	let managerCount = 0;
@@ -31,7 +22,7 @@ describe('runtime', () => {
 		managerCount = 0;
 		storeCount = 0;
 		vi.clearAllMocks();
-		clearConsentRuntimeCache();
+		clearConsentRuntimeCache(runtimeDependencies);
 		getMatchingPrefetchedInitialDataMock.mockReset();
 
 		configureConsentManagerMock.mockImplementation(() => ({
@@ -62,7 +53,7 @@ describe('runtime', () => {
 		const pkgInfo = { pkg: '@c15t/react', version: '2.0.0' };
 
 		function storeOptionsFor(options: ConsentRuntimeOptions) {
-			getOrCreateConsentRuntime(options, pkgInfo);
+			getOrCreateConsentRuntime(options, pkgInfo, runtimeDependencies);
 
 			return createConsentManagerStoreMock.mock.calls[0]?.[1] as {
 				nonce?: string;
@@ -103,14 +94,16 @@ describe('runtime', () => {
 					mode: 'offline',
 					nonce: 'nonce-request-a',
 				} satisfies ConsentRuntimeOptions,
-				pkgInfo
+				pkgInfo,
+				runtimeDependencies
 			);
 			const second = getOrCreateConsentRuntime(
 				{
 					mode: 'offline',
 					nonce: 'nonce-request-b',
 				} satisfies ConsentRuntimeOptions,
-				pkgInfo
+				pkgInfo,
+				runtimeDependencies
 			);
 
 			// The nonce is deliberately not part of the cache key — see the runtime
@@ -136,8 +129,16 @@ describe('runtime', () => {
 		} satisfies ConsentRuntimeOptions;
 		const pkgInfo = { pkg: '@c15t/react', version: '2.0.0' };
 
-		const first = getOrCreateConsentRuntime(options, pkgInfo);
-		const second = getOrCreateConsentRuntime(options, pkgInfo);
+		const first = getOrCreateConsentRuntime(
+			options,
+			pkgInfo,
+			runtimeDependencies
+		);
+		const second = getOrCreateConsentRuntime(
+			options,
+			pkgInfo,
+			runtimeDependencies
+		);
 
 		expect(first.cacheKey).toBe(second.cacheKey);
 		expect(first.consentManager).toBe(second.consentManager);
@@ -152,9 +153,17 @@ describe('runtime', () => {
 		} satisfies ConsentRuntimeOptions;
 		const pkgInfo = { pkg: '@c15t/react', version: '2.0.0' };
 
-		const first = getOrCreateConsentRuntime(options, pkgInfo);
-		clearConsentRuntimeCache();
-		const second = getOrCreateConsentRuntime(options, pkgInfo);
+		const first = getOrCreateConsentRuntime(
+			options,
+			pkgInfo,
+			runtimeDependencies
+		);
+		clearConsentRuntimeCache(runtimeDependencies);
+		const second = getOrCreateConsentRuntime(
+			options,
+			pkgInfo,
+			runtimeDependencies
+		);
 
 		expect(first.consentManager).not.toBe(second.consentManager);
 		expect(first.consentStore).not.toBe(second.consentStore);
@@ -166,7 +175,11 @@ describe('runtime', () => {
 		const options = {} as ConsentRuntimeOptions;
 		const pkgInfo = { pkg: '@c15t/react', version: '2.0.0' };
 
-		const result = getOrCreateConsentRuntime(options, pkgInfo);
+		const result = getOrCreateConsentRuntime(
+			options,
+			pkgInfo,
+			runtimeDependencies
+		);
 
 		expect(result.cacheKey).toBe(
 			'hosted:default:none:default:default:default:default:default:enabled'
@@ -206,10 +219,14 @@ describe('runtime', () => {
 			storageConfig,
 		} as unknown as ConsentRuntimeOptions;
 
-		getOrCreateConsentRuntime(options, {
-			pkg: '@c15t/react',
-			version: '2.0.0',
-		});
+		getOrCreateConsentRuntime(
+			options,
+			{
+				pkg: '@c15t/react',
+				version: '2.0.0',
+			},
+			runtimeDependencies
+		);
 
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -255,10 +272,14 @@ describe('runtime', () => {
 			},
 		} as ConsentRuntimeOptions;
 
-		getOrCreateConsentRuntime(options, {
-			pkg: '@c15t/react',
-			version: '2.0.0',
-		});
+		getOrCreateConsentRuntime(
+			options,
+			{
+				pkg: '@c15t/react',
+				version: '2.0.0',
+			},
+			runtimeDependencies
+		);
 
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -287,10 +308,14 @@ describe('runtime', () => {
 			},
 		} as ConsentRuntimeOptions;
 
-		getOrCreateConsentRuntime(options, {
-			pkg: '@c15t/react',
-			version: '2.0.0',
-		});
+		getOrCreateConsentRuntime(
+			options,
+			{
+				pkg: '@c15t/react',
+				version: '2.0.0',
+			},
+			runtimeDependencies
+		);
 
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -325,10 +350,14 @@ describe('runtime', () => {
 			},
 		} as ConsentRuntimeOptions;
 
-		getOrCreateConsentRuntime(options, {
-			pkg: '@c15t/react',
-			version: '2.0.0',
-		});
+		getOrCreateConsentRuntime(
+			options,
+			{
+				pkg: '@c15t/react',
+				version: '2.0.0',
+			},
+			runtimeDependencies
+		);
 
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -360,10 +389,14 @@ describe('runtime', () => {
 			mode: 'c15t',
 		} as ConsentRuntimeOptions;
 
-		const result = getOrCreateConsentRuntime(options, {
-			pkg: '@c15t/react',
-			version: '2.0.0',
-		});
+		const result = getOrCreateConsentRuntime(
+			options,
+			{
+				pkg: '@c15t/react',
+				version: '2.0.0',
+			},
+			runtimeDependencies
+		);
 
 		expect(result.cacheKey).toBe(
 			'hosted:default:none:default:default:default:default:default:enabled'
@@ -396,7 +429,8 @@ describe('runtime', () => {
 			{
 				pkg: '@c15t/react',
 				version: '2.0.0',
-			}
+			},
+			runtimeDependencies
 		);
 
 		expect(getMatchingPrefetchedInitialDataMock).toHaveBeenCalledWith({
@@ -432,7 +466,8 @@ describe('runtime', () => {
 			{
 				pkg: '@c15t/react',
 				version: '2.0.0',
-			}
+			},
+			runtimeDependencies
 		);
 
 		expect(getMatchingPrefetchedInitialDataMock).not.toHaveBeenCalled();
@@ -457,13 +492,21 @@ describe('runtime', () => {
 		};
 
 		getMatchingPrefetchedInitialDataMock.mockReturnValueOnce(undefined);
-		const first = getOrCreateConsentRuntime(options, pkgInfo);
+		const first = getOrCreateConsentRuntime(
+			options,
+			pkgInfo,
+			runtimeDependencies
+		);
 
 		const laterPrefetchedData = Promise.resolve(undefined);
 		getMatchingPrefetchedInitialDataMock.mockReturnValueOnce(
 			laterPrefetchedData
 		);
-		const second = getOrCreateConsentRuntime(options, pkgInfo);
+		const second = getOrCreateConsentRuntime(
+			options,
+			pkgInfo,
+			runtimeDependencies
+		);
 
 		expect(first.consentStore).toBe(second.consentStore);
 		expect(getMatchingPrefetchedInitialDataMock).toHaveBeenCalledTimes(1);
@@ -479,10 +522,14 @@ describe('runtime', () => {
 			headers: { 'x-demo-scenario': 'custom-fr-iab' },
 		} as ConsentRuntimeOptions;
 
-		getOrCreateConsentRuntime(options, {
-			pkg: '@c15t/react',
-			version: '2.0.0',
-		});
+		getOrCreateConsentRuntime(
+			options,
+			{
+				pkg: '@c15t/react',
+				version: '2.0.0',
+			},
+			runtimeDependencies
+		);
 
 		expect(configureConsentManagerMock).toHaveBeenCalledWith(
 			expect.objectContaining({
@@ -502,13 +549,15 @@ describe('runtime', () => {
 
 		const first = getOrCreateConsentRuntime(
 			{ ...base, headers: { 'x-demo-scenario': 'a' } } as ConsentRuntimeOptions,
-			pkgInfo
+			pkgInfo,
+			runtimeDependencies
 		);
 		const second = getOrCreateConsentRuntime(
 			{ ...base, headers: { 'x-demo-scenario': 'b' } } as ConsentRuntimeOptions,
-			pkgInfo
+			pkgInfo,
+			runtimeDependencies
 		);
-		const third = getOrCreateConsentRuntime(base, pkgInfo);
+		const third = getOrCreateConsentRuntime(base, pkgInfo, runtimeDependencies);
 
 		expect(first.cacheKey).not.toBe(second.cacheKey);
 		expect(first.cacheKey).not.toBe(third.cacheKey);

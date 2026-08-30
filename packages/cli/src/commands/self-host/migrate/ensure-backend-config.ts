@@ -56,6 +56,16 @@ export const DIALECTS = {
 
 export type Dialect = keyof typeof DIALECTS;
 
+interface PromptDependencies {
+	select: typeof p.select;
+	isCancel: typeof p.isCancel;
+}
+
+const defaultPromptDependencies: PromptDependencies = {
+	select: p.select,
+	isCancel: p.isCancel,
+};
+
 export async function pathExists(filePath: string): Promise<boolean> {
 	try {
 		await fs.access(filePath);
@@ -96,8 +106,10 @@ export default defineConfig({
 `;
 }
 
-async function promptDialect(): Promise<Dialect> {
-	const selected = await p.select({
+async function promptDialect(
+	dependencies: PromptDependencies = defaultPromptDependencies
+): Promise<Dialect> {
+	const selected = await dependencies.select({
 		message: 'Which database?',
 		options: (Object.keys(DIALECTS) as Dialect[]).map((dialect) => ({
 			value: dialect,
@@ -105,7 +117,7 @@ async function promptDialect(): Promise<Dialect> {
 		})),
 	});
 
-	if (p.isCancel(selected)) {
+	if (dependencies.isCancel(selected)) {
 		throw new Cancelled('dialect_select');
 	}
 	return selected;
@@ -123,7 +135,8 @@ export interface EnsuredConfig {
  * @returns `null` when the operator cancels.
  */
 export async function ensureBackendConfig(
-	context: CliContext
+	context: CliContext,
+	dependencies: PromptDependencies = defaultPromptDependencies
 ): Promise<EnsuredConfig | null> {
 	const { cwd, logger } = context;
 	const targetPath = path.join(cwd, CONFIG_FILENAME);
@@ -136,7 +149,7 @@ export async function ensureBackendConfig(
 	}
 
 	try {
-		const dialect = await promptDialect();
+		const dialect = await promptDialect(dependencies);
 		await fs.writeFile(targetPath, buildConfig(dialect), 'utf8');
 		logger.success(`Created ${path.relative(cwd, targetPath)}`);
 

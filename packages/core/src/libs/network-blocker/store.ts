@@ -8,6 +8,14 @@ type GetState = () => ConsentStoreState;
 type XhrOpen = XMLHttpRequest['open'];
 type XhrSend = XMLHttpRequest['send'];
 
+interface NetworkBlockerDependencies {
+	shouldBlockRequest: typeof shouldBlockRequest;
+}
+
+const defaultNetworkBlockerDependencies: NetworkBlockerDependencies = {
+	shouldBlockRequest,
+};
+
 /**
  * Creates a network blocker manager that integrates with the main consent store.
  *
@@ -26,7 +34,11 @@ type XhrSend = XMLHttpRequest['send'];
  *
  * @internal
  */
-export function createNetworkBlockerManager(get: GetState, _set: SetState) {
+export function createNetworkBlockerManager(
+	get: GetState,
+	_set: SetState,
+	dependencies: NetworkBlockerDependencies = defaultNetworkBlockerDependencies
+) {
 	let originalFetch: typeof fetch | null = null;
 	let originalXhrOpen: XhrOpen | null = null;
 	let originalXhrSend: XhrSend | null = null;
@@ -118,7 +130,7 @@ export function createNetworkBlockerManager(get: GetState, _set: SetState) {
 
 			const consents = getBlockingConsents();
 
-			const { shouldBlock, rule } = shouldBlockRequest(
+			const { shouldBlock, rule } = dependencies.shouldBlockRequest(
 				{
 					url,
 					method,
@@ -215,7 +227,7 @@ export function createNetworkBlockerManager(get: GetState, _set: SetState) {
 				const url = internal.__c15tUrl || '';
 				const consents = getBlockingConsents();
 
-				const { shouldBlock, rule } = shouldBlockRequest(
+				const { shouldBlock, rule } = dependencies.shouldBlockRequest(
 					{
 						url,
 						method,

@@ -16,7 +16,6 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import * as prompts from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -26,12 +25,10 @@ import {
 } from './ensure-backend-config';
 import type { Dialect } from './ensure-backend-config';
 
-vi.mock('@clack/prompts', () => ({
+const prompts = {
 	select: vi.fn(),
-	confirm: vi.fn(),
-	text: vi.fn(),
 	isCancel: (value: unknown) => value === Symbol.for('CANCEL'),
-}));
+};
 
 const createMockContext = (cwd: string) => ({
 	cwd,
@@ -46,12 +43,10 @@ const readGenerated = (cwd: string) =>
 	fs.readFile(path.join(cwd, CONFIG_FILENAME), 'utf8');
 
 const selectResolves = (value: unknown) =>
-	(prompts.select as unknown as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
-		value
-	);
+	prompts.select.mockResolvedValueOnce(value);
 
 beforeEach(() => {
-	(prompts.select as unknown as ReturnType<typeof vi.fn>).mockReset();
+	prompts.select.mockReset();
 });
 
 afterEach(() => {
@@ -84,7 +79,10 @@ describe('ensureBackendConfig', () => {
 		const cwd = await makeTmpDir('c15t-pg');
 		selectResolves('postgres');
 
-		const result = await ensureBackendConfig(createMockContext(cwd) as never);
+		const result = await ensureBackendConfig(
+			createMockContext(cwd) as never,
+			prompts
+		);
 
 		expect(result?.path).toBe(path.join(cwd, CONFIG_FILENAME));
 		// Drivers are optional peers, so the chosen engine decides which one is
@@ -97,7 +95,10 @@ describe('ensureBackendConfig', () => {
 		const cwd = await makeTmpDir('c15t-sqlite');
 		selectResolves('sqlite');
 
-		const result = await ensureBackendConfig(createMockContext(cwd) as never);
+		const result = await ensureBackendConfig(
+			createMockContext(cwd) as never,
+			prompts
+		);
 
 		expect(result?.dependencies).toEqual(['@effect/sql-sqlite-node']);
 	});
@@ -107,7 +108,10 @@ describe('ensureBackendConfig', () => {
 		const existing = '// hand-written, do not clobber\n';
 		await fs.writeFile(path.join(cwd, CONFIG_FILENAME), existing, 'utf8');
 
-		const result = await ensureBackendConfig(createMockContext(cwd) as never);
+		const result = await ensureBackendConfig(
+			createMockContext(cwd) as never,
+			prompts
+		);
 
 		// Overwriting someone's configured backend would be the worst outcome of
 		// running a migration command.
@@ -121,7 +125,7 @@ describe('ensureBackendConfig', () => {
 		selectResolves(Symbol.for('CANCEL'));
 		const context = createMockContext(cwd);
 
-		const result = await ensureBackendConfig(context as never);
+		const result = await ensureBackendConfig(context as never, prompts);
 
 		expect(result).toBeNull();
 		expect(context.error.handleCancel).toHaveBeenCalled();

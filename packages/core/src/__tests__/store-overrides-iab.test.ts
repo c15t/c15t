@@ -2,12 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { IABConfig } from '../libs/iab-tcf/types';
-import { initConsentManager } from '../libs/init-consent-manager';
 import { createConsentManagerStore } from '../store';
-
-vi.mock('../libs/init-consent-manager', () => ({
-	initConsentManager: vi.fn().mockResolvedValue(undefined),
-}));
 
 // Mock DOM APIs needed by the store
 Object.defineProperty(global, 'document', {
@@ -43,8 +38,10 @@ const createMockConsentManager = (): ConsentManagerInterface => ({
 });
 
 describe('Store setOverrides IAB re-initialization', () => {
+	const initConsentManager = vi.fn().mockResolvedValue(undefined);
+
 	beforeEach(() => {
-		vi.mocked(initConsentManager).mockClear();
+		initConsentManager.mockClear();
 	});
 
 	it('forwards the IAB config so re-init refreshes the GVL', async () => {
@@ -63,7 +60,10 @@ describe('Store setOverrides IAB re-initialization', () => {
 
 		const store = createConsentManagerStore(createMockConsentManager(), {
 			iab: iabConfig,
-		});
+			__internal: {
+				initConsentManager,
+			},
+		} as Parameters<typeof createConsentManagerStore>[1]);
 
 		await store.getState().setOverrides({ language: 'fr' });
 

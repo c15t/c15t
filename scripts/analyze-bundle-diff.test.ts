@@ -1,4 +1,3 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import type { PathLike, PathOrFileDescriptor } from 'node:fs';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,21 +10,26 @@ import {
 	formatBytes,
 	generateMarkdownReport,
 	getSizeChangeEmoji,
+	setBundleDiffFileSystemForTests,
 } from './analyze-bundle-diff';
 import type { BundleStats, PackageBundleData } from './analyze-bundle-diff';
 
-// Mock fs module
-vi.mock('node:fs', () => ({
-	existsSync: vi.fn(),
-	readdirSync: vi.fn(),
-	readFileSync: vi.fn(),
-	statSync: vi.fn(),
-	writeFileSync: vi.fn(),
-}));
+const existsSync = vi.fn();
+const readdirSync = vi.fn();
+const readFileSync = vi.fn();
+const statSync = vi.fn();
+const writeFileSync = vi.fn();
 
 describe('analyze-bundle-diff', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		setBundleDiffFileSystemForTests({
+			existsSync,
+			readdirSync,
+			readFileSync,
+			statSync,
+			writeFileSync,
+		});
 	});
 
 	describe('getSizeChangeEmoji', () => {

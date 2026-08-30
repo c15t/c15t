@@ -1,13 +1,4 @@
-import {
-	existsSync,
-	promises as fs,
-	readdirSync,
-	readFileSync,
-	statSync,
-	writeFileSync,
-} from 'node:fs';
 import type { PathLike, PathOrFileDescriptor } from 'node:fs';
-import type * as NodeFsTypes from 'node:fs';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -19,6 +10,7 @@ import {
 	extractBundleSizes,
 	formatBytes,
 	generateMarkdownReport,
+	setBundleAnalysisFileSystemForTests,
 	writeReport,
 } from './bundle-analysis';
 import type {
@@ -26,25 +18,27 @@ import type {
 	PackageBundleData,
 	TransitiveBundleData,
 } from './bundle-analysis';
-// Mock fs module
-vi.mock('node:fs', async () => {
-	const actual = await vi.importActual<typeof NodeFsTypes>('node:fs');
-	return {
-		...actual,
-		existsSync: vi.fn(),
-		readdirSync: vi.fn(),
-		readFileSync: vi.fn(),
-		statSync: vi.fn(),
-		writeFileSync: vi.fn(),
-		promises: {
-			readdir: vi.fn(),
-		},
-	};
-});
+
+const existsSync = vi.fn();
+const readdirSync = vi.fn();
+const readFileSync = vi.fn();
+const statSync = vi.fn();
+const writeFileSync = vi.fn();
+const fs = {
+	readdir: vi.fn(),
+};
 
 describe('bundle-analysis', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		setBundleAnalysisFileSystemForTests({
+			existsSync,
+			readdir: fs.readdir,
+			readdirSync,
+			readFileSync,
+			statSync,
+			writeFileSync,
+		});
 	});
 
 	describe('extractBundleSizes', () => {

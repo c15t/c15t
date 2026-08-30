@@ -5,7 +5,7 @@
  */
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { prefetchInitialConsent } from '../server';
+import { prefetchInitialConsent as basePrefetchInitialConsent } from '../server';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 const cookieStore = new Map<string, string>();
@@ -14,6 +14,20 @@ const POLICY = {
 	id: 'gdpr',
 	model: 'opt-in',
 	ui: { mode: 'banner' },
+};
+
+const createCookieHeader = () =>
+	Array.from(cookieStore.entries())
+		.map(([key, value]) => `${key}=${value}`)
+		.join('; ');
+
+const createHeaders = () => {
+	const headers = new Headers(Array.from(headerStore.entries()));
+	const cookieHeader = createCookieHeader();
+	if (cookieHeader && !headers.has('cookie')) {
+		headers.set('cookie', cookieHeader);
+	}
+	return headers;
 };
 
 function createInitOutput(overrides: Record<string, unknown> = {}) {
@@ -26,23 +40,21 @@ function createInitOutput(overrides: Record<string, unknown> = {}) {
 	};
 }
 
-vi.mock('next/headers', () => ({
+const request = {
 	cookies: () =>
 		Promise.resolve({
 			get: (name: string) => {
 				const value = cookieStore.get(name);
 				return value === undefined ? undefined : { name, value };
 			},
-			toString: () =>
-				Array.from(cookieStore.entries())
-					.map(([k, v]) => `${k}=${v}`)
-					.join('; '),
+			toString: createCookieHeader,
 		}),
-	headers: () =>
-		Promise.resolve({
-			get: (name: string) => headerStore.get(name.toLowerCase()) ?? null,
-		}),
-}));
+	headers: () => Promise.resolve(createHeaders()),
+};
+
+const prefetchInitialConsent = (
+	options: Omit<Parameters<typeof basePrefetchInitialConsent>[0], 'request'>
+) => basePrefetchInitialConsent({ ...options, request });
 
 beforeEach(() => {
 	cookieStore.clear();

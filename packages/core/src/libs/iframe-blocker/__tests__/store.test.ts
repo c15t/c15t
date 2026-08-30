@@ -5,23 +5,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ConsentStoreState } from '../../../store/type';
-import {
-	getIframeConsentCategories,
-	processAllIframes,
-	setupIframeObserver,
-} from '../core';
 import { createIframeManager } from '../store';
 
-// Mock the pure functions from core
 const mockObserver = {
 	disconnect: vi.fn(),
 };
 
-vi.mock('../core', () => ({
-	getIframeConsentCategories: vi.fn(() => []),
-	processAllIframes: vi.fn(),
-	setupIframeObserver: vi.fn(() => mockObserver),
-}));
+const getIframeConsentCategories = vi.fn(() => []);
+const processAllIframes = vi.fn();
+const setupIframeObserver = vi.fn(() => mockObserver);
+const iframeDependencies = {
+	getIframeConsentCategories,
+	processAllIframes,
+	setupIframeObserver,
+};
 
 describe('createIframeManager', () => {
 	let mockGet: ReturnType<typeof vi.fn>;
@@ -31,7 +28,7 @@ describe('createIframeManager', () => {
 	beforeEach(() => {
 		mockGet = vi.fn();
 		mockSet = vi.fn();
-		manager = createIframeManager(mockGet, mockSet);
+		manager = createIframeManager(mockGet, mockSet, iframeDependencies);
 
 		// Clear all mocks
 		vi.clearAllMocks();

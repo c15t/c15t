@@ -34,6 +34,13 @@ import { createDevToolsPanel } from './core/devtools';
  */
 export interface C15tTanStackDevtoolsPanelProps extends HTMLAttributes<HTMLDivElement> {
 	/**
+	 * Panel factory. Primarily useful for tests and custom embedders.
+	 * @default createDevToolsPanel
+	 * @internal
+	 */
+	createPanel?: typeof createDevToolsPanel;
+
+	/**
 	 * Namespace for the c15tStore on window.
 	 * @default 'c15tStore'
 	 */
@@ -89,8 +96,19 @@ interface SharedEmbeddedPanelEntry {
 
 const sharedEmbeddedPanels = new Map<string, SharedEmbeddedPanelEntry>();
 
-function acquireEmbeddedPanel(namespace: string): SharedEmbeddedPanelEntry {
-	const existingPanel = sharedEmbeddedPanels.get(namespace);
+function getEmbeddedPanelKey(
+	namespace: string,
+	createPanel: typeof createDevToolsPanel
+): string {
+	return `${namespace}:${createPanel === createDevToolsPanel ? 'default' : 'custom'}`;
+}
+
+function acquireEmbeddedPanel(
+	namespace: string,
+	createPanel: typeof createDevToolsPanel
+): SharedEmbeddedPanelEntry {
+	const panelKey = getEmbeddedPanelKey(namespace, createPanel);
+	const existingPanel = sharedEmbeddedPanels.get(panelKey);
 
 	if (existingPanel) {
 		if (existingPanel.releaseTimeout) {
@@ -101,7 +119,7 @@ function acquireEmbeddedPanel(namespace: string): SharedEmbeddedPanelEntry {
 		return existingPanel;
 	}
 
-	const panel = createDevToolsPanel({
+	const panel = createPanel({
 		namespace,
 		mode: 'embedded',
 	});
@@ -110,12 +128,16 @@ function acquireEmbeddedPanel(namespace: string): SharedEmbeddedPanelEntry {
 		refCount: 1,
 		releaseTimeout: null,
 	};
-	sharedEmbeddedPanels.set(namespace, entry);
+	sharedEmbeddedPanels.set(panelKey, entry);
 	return entry;
 }
 
-function releaseEmbeddedPanel(namespace: string): void {
-	const entry = sharedEmbeddedPanels.get(namespace);
+function releaseEmbeddedPanel(
+	namespace: string,
+	createPanel: typeof createDevToolsPanel
+): void {
+	const panelKey = getEmbeddedPanelKey(namespace, createPanel);
+	const entry = sharedEmbeddedPanels.get(panelKey);
 
 	if (!entry) {
 		return;
@@ -128,14 +150,14 @@ function releaseEmbeddedPanel(namespace: string): void {
 	}
 
 	entry.releaseTimeout = setTimeout(() => {
-		const currentEntry = sharedEmbeddedPanels.get(namespace);
+		const currentEntry = sharedEmbeddedPanels.get(panelKey);
 
 		if (!currentEntry || currentEntry.refCount > 0) {
 			return;
 		}
 
 		currentEntry.panel.destroy();
-		sharedEmbeddedPanels.delete(namespace);
+		sharedEmbeddedPanels.delete(panelKey);
 	}, EMBEDDED_PANEL_RELEASE_DELAY_MS);
 }
 
@@ -143,6 +165,7 @@ function releaseEmbeddedPanel(namespace: string): void {
  * React panel component for embedding c15t DevTools inside TanStack Devtools.
  */
 export function C15tTanStackDevtoolsPanel({
+	createPanel = createDevToolsPanel,
 	namespace = 'c15tStore',
 	style,
 	...props
@@ -155,16 +178,16 @@ export function C15tTanStackDevtoolsPanel({
 			return;
 		}
 
-		const entry = acquireEmbeddedPanel(namespace);
+		const entry = acquireEmbeddedPanel(namespace, createPanel);
 		container.replaceChildren(entry.panel.element);
 
 		return () => {
 			if (entry.panel.element.parentElement === container) {
 				container.removeChild(entry.panel.element);
 			}
-			releaseEmbeddedPanel(namespace);
+			releaseEmbeddedPanel(namespace, createPanel);
 		};
-	}, [namespace]);
+	}, [namespace, createPanel]);
 
 	return React.createElement('div', {
 		...props,

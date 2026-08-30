@@ -1,29 +1,27 @@
 import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 
-import { beforeEach, describe, expect, test, vi } from 'vitest';
-
-// Mock the fs module
-vi.mock('node:fs/promises');
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
 describe('layout detection', () => {
-	beforeEach(() => {
-		vi.resetAllMocks();
+	let projectRoot: string;
+
+	beforeEach(async () => {
+		projectRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'layout-detect-'));
+	});
+
+	afterEach(async () => {
+		await fs.rm(projectRoot, { recursive: true, force: true });
 	});
 
 	describe('findLayoutFile', () => {
 		test('should find standard app/layout.tsx', async () => {
-			// Mock file system to have app/layout.tsx
-			vi.mocked(fs.access).mockImplementation(async (path) => {
-				if (String(path).endsWith('app/layout.tsx')) {
-					return undefined;
-				}
-				throw new Error('ENOENT');
-			});
-
-			vi.mocked(fs.readdir).mockResolvedValue([]);
+			await fs.mkdir(path.join(projectRoot, 'app'), { recursive: true });
+			await fs.writeFile(path.join(projectRoot, 'app/layout.tsx'), '');
 
 			const { findLayoutFile } = await import('../../detection/layout');
-			const result = await findLayoutFile('/mock/project');
+			const result = await findLayoutFile(projectRoot);
 
 			expect(result).not.toBeNull();
 			expect(result?.path).toBe('app/layout.tsx');
@@ -32,17 +30,13 @@ describe('layout detection', () => {
 		});
 
 		test('should find src/app/layout.tsx', async () => {
-			vi.mocked(fs.access).mockImplementation(async (path) => {
-				if (String(path).endsWith('src/app/layout.tsx')) {
-					return undefined;
-				}
-				throw new Error('ENOENT');
+			await fs.mkdir(path.join(projectRoot, 'src/app'), {
+				recursive: true,
 			});
-
-			vi.mocked(fs.readdir).mockResolvedValue([]);
+			await fs.writeFile(path.join(projectRoot, 'src/app/layout.tsx'), '');
 
 			const { findLayoutFile } = await import('../../detection/layout');
-			const result = await findLayoutFile('/mock/project');
+			const result = await findLayoutFile(projectRoot);
 
 			expect(result).not.toBeNull();
 			expect(result?.path).toBe('src/app/layout.tsx');
@@ -50,34 +44,13 @@ describe('layout detection', () => {
 		});
 
 		test('should find locale-based layout app/[locale]/layout.tsx', async () => {
-			vi.mocked(fs.access).mockImplementation(async (path) => {
-				const pathStr = String(path);
-				// Standard paths don't exist
-				if (
-					pathStr.endsWith('app/layout.tsx') ||
-					pathStr.endsWith('src/app/layout.tsx')
-				) {
-					throw new Error('ENOENT');
-				}
-				// But locale-based path exists
-				if (pathStr.includes('[locale]/layout.tsx')) {
-					return undefined;
-				}
-				throw new Error('ENOENT');
+			await fs.mkdir(path.join(projectRoot, 'app/[locale]'), {
+				recursive: true,
 			});
-
-			vi.mocked(fs.readdir).mockImplementation(async (path) => {
-				const pathStr = String(path);
-				if (pathStr.endsWith('/app')) {
-					return [
-						{ name: '[locale]', isDirectory: () => true },
-					] as unknown as Awaited<ReturnType<typeof fs.readdir>>;
-				}
-				return [];
-			});
+			await fs.writeFile(path.join(projectRoot, 'app/[locale]/layout.tsx'), '');
 
 			const { findLayoutFile } = await import('../../detection/layout');
-			const result = await findLayoutFile('/mock/project');
+			const result = await findLayoutFile(projectRoot);
 
 			expect(result).not.toBeNull();
 			expect(result?.hasLocaleSegment).toBe(true);
@@ -85,17 +58,11 @@ describe('layout detection', () => {
 		});
 
 		test('should find pages/_app.tsx for pages router', async () => {
-			vi.mocked(fs.access).mockImplementation(async (path) => {
-				if (String(path).endsWith('pages/_app.tsx')) {
-					return undefined;
-				}
-				throw new Error('ENOENT');
-			});
-
-			vi.mocked(fs.readdir).mockResolvedValue([]);
+			await fs.mkdir(path.join(projectRoot, 'pages'), { recursive: true });
+			await fs.writeFile(path.join(projectRoot, 'pages/_app.tsx'), '');
 
 			const { findLayoutFile } = await import('../../detection/layout');
-			const result = await findLayoutFile('/mock/project');
+			const result = await findLayoutFile(projectRoot);
 
 			expect(result).not.toBeNull();
 			expect(result?.path).toBe('pages/_app.tsx');
@@ -103,11 +70,8 @@ describe('layout detection', () => {
 		});
 
 		test('should return null when no layout found', async () => {
-			vi.mocked(fs.access).mockRejectedValue(new Error('ENOENT'));
-			vi.mocked(fs.readdir).mockResolvedValue([]);
-
 			const { findLayoutFile } = await import('../../detection/layout');
-			const result = await findLayoutFile('/mock/project');
+			const result = await findLayoutFile(projectRoot);
 
 			expect(result).toBeNull();
 		});

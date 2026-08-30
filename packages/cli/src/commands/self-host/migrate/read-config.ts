@@ -22,6 +22,14 @@ interface BackendConfig extends Record<string, unknown> {
 	database?: DatabaseOption;
 }
 
+interface ReadDatabaseConfigDependencies {
+	loadConfig: typeof loadConfig;
+}
+
+const defaultReadDatabaseConfigDependencies: ReadDatabaseConfigDependencies = {
+	loadConfig,
+};
+
 /**
  * Reads the config and returns its `database` option.
  *
@@ -29,7 +37,8 @@ interface BackendConfig extends Record<string, unknown> {
  */
 export async function readDatabaseConfig(
 	context: CliContext,
-	absoluteConfigPath: string
+	absoluteConfigPath: string,
+	dependencies: ReadDatabaseConfigDependencies = defaultReadDatabaseConfigDependencies
 ): Promise<DatabaseOption> {
 	const { logger } = context;
 	const resolvedPath = path.resolve(absoluteConfigPath);
@@ -43,7 +52,7 @@ export async function readDatabaseConfig(
 	}
 
 	try {
-		const { config } = await loadConfig<BackendConfig>({
+		const { config } = await dependencies.loadConfig<BackendConfig>({
 			configFile: absoluteConfigPath,
 			jitiOptions: {
 				extensions: [
