@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+
 import { createConsentKernel } from '../../../kernel';
 import {
 	buildReconcilePass,

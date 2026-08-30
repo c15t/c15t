@@ -5,6 +5,7 @@
  */
 
 import { UMBRELLA_PACKAGE } from '~/constants';
+
 import type {
 	FileModification,
 	MachineError,

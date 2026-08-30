@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import { runAffectedTests } from './run-affected-tests';
 
 function createSpawn(exitCode = 0) {

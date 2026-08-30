@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import bannerStyles from '@c15t/ui/styles/v3/consent-banner';
 import { computed } from 'vue';
+
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
+
 import ConsentLegalLinks from './consent-legal-links.vue';
 
 const props = defineProps<{

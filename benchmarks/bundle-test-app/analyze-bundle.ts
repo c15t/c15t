@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { gzipSync } from 'node:zlib';
+
 import {
 	artifactBudgets,
 	BENCHMARK_SCHEMA_VERSION,

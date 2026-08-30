@@ -4,6 +4,7 @@ import {
 } from '@c15t/conformance/play/preference-item';
 import { enTranslations } from '@c15t/translations';
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
+
 import PreferenceItemDemo from './PreferenceItemDemo.svelte';
 
 const { consentTypes } = enTranslations;

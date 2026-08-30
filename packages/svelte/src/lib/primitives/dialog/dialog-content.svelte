@@ -2,6 +2,7 @@
 	import { getDialogState, isDialogDismissKey } from '@c15t/ui/primitives';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
+
 	import { focusTrap } from '../../actions/focus-trap';
 	import { scrollLock } from '../../actions/scroll-lock';
 	import { getDialogRootContext } from './context';

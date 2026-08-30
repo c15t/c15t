@@ -8,6 +8,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
 import { createCMPApi } from '../../tcf/cmp-api';
 import type {
 	GlobalVendorList,

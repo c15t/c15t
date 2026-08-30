@@ -5,6 +5,7 @@
  */
 
 import * as p from '@clack/prompts';
+
 import type { CliCommand, CliFlag, ParsedArgs } from '../types';
 import { formatLogMessage } from './logger';
 

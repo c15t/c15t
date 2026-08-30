@@ -1,10 +1,12 @@
 'use client';
 
 import type { ReactNode } from 'react';
+
 import {
 	type HeadlessConsentDialogAction,
 	useHeadlessConsentUI,
 } from '~/v3/component-hooks/use-headless-consent-ui';
+
 import {
 	type PolicyActionRenderProps,
 	PolicyActionsRenderer,

@@ -27,6 +27,7 @@ import type {
 	GlobalVendorList,
 	NonIABVendor,
 } from '@c15t/core/v3';
+
 import { createCMPApi } from './tcf/cmp-api';
 import { clearGVLCache, fetchGVL } from './tcf/fetch-gvl';
 import { getTCFCore } from './tcf/lazy-load';

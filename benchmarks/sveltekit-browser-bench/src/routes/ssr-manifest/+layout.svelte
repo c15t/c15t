@@ -1,11 +1,12 @@
 <script lang="ts">
+	import BenchmarkProbe from '$lib/benchmark-probe.svelte';
+
+	import '@c15t/svelte/styles.css';
 	import {
 		ConsentBanner,
 		ConsentDialog,
 		ConsentManagerProvider,
 	} from '@c15t/svelte';
-	import '@c15t/svelte/styles.css';
-	import BenchmarkProbe from '$lib/benchmark-probe.svelte';
 
 	let { children, data } = $props();
 </script>

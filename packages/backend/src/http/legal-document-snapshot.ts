@@ -18,6 +18,7 @@
  */
 
 import { jwtVerify, SignJWT } from 'jose';
+
 import type { SnapshotVerification } from './policy-snapshot';
 
 const JWT_HEADER = { alg: 'HS256', typ: 'JWT' } as const;

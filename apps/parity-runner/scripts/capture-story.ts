@@ -3,7 +3,9 @@
  * Usage: bun scripts/capture-story.ts <baseUrl> <storyId> <outPrefix>
  */
 import { writeFileSync } from 'node:fs';
+
 import { chromium } from '@playwright/test';
+
 import { captureA11yTree } from '../src/diff-a11y';
 import { captureComputedStyleMap } from '../src/diff-computed-style';
 import { captureDomSnapshot } from '../src/diff-dom';

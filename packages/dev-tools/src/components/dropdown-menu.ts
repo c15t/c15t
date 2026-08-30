@@ -4,6 +4,7 @@
  */
 
 import { button, createSvgElement, div, span } from '../core/renderer';
+
 import panelStyles from '../styles/panel.module.css';
 
 // Icons - matches C15TIconOnly from @c15t/react

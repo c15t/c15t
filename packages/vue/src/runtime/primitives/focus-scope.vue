@@ -6,6 +6,7 @@
  * restores on release — same contract the consent surfaces used from Reka.
  */
 import { ref } from 'vue';
+
 import { useFocusTrap } from './use-focus-trap';
 
 const props = withDefaults(

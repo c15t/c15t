@@ -41,25 +41,25 @@
 
 <section
 	id="features"
-	class="py-20 px-4 sm:px-6 lg:px-8"
+	class="px-4 py-20 sm:px-6 lg:px-8"
 >
 	<div class="container mx-auto max-w-6xl">
-		<div class="text-center space-y-4 mb-16">
-			<h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-balance">
+		<div class="mb-16 space-y-4 text-center">
+			<h2 class="text-3xl font-bold text-balance sm:text-4xl lg:text-5xl">
 				Why choose PigeonPost?
 			</h2>
-			<p class="text-lg text-muted-foreground max-w-2xl mx-auto text-pretty">
+			<p class="text-muted-foreground mx-auto max-w-2xl text-lg text-pretty">
 				Revolutionary technology meets nature's most reliable courier system
 			</p>
 		</div>
 
-		<div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+		<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
 			{#each features as feature}
 				<div
-					class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 space-y-4 hover:shadow-lg transition-shadow"
+					class="border-border bg-card text-card-foreground space-y-4 rounded-xl border p-6 shadow-sm transition-shadow hover:shadow-lg"
 				>
 					<div
-						class="h-12 w-12 rounded-lg bg-accent/10 flex items-center justify-center"
+						class="bg-accent/10 flex h-12 w-12 items-center justify-center rounded-lg"
 					>
 						{@html feature.icon}
 					</div>

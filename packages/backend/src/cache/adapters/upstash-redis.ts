@@ -9,6 +9,7 @@
  */
 
 import type { Redis } from '@upstash/redis';
+
 import type { CacheAdapter } from '../types';
 import { GVL_TTL_MS } from '../types';
 

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+
 import {
 	diffA11yTrees,
 	normalizeA11ySnapshot,

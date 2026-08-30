@@ -16,6 +16,7 @@
  */
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+
 import type { DatabaseOption } from '@c15t/backend';
 
 /**

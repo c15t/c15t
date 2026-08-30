@@ -11,6 +11,7 @@ import type {
 	IABState,
 } from '@c15t/core';
 import { getConsentFromStorage } from '@c15t/core';
+
 import { version } from '../version';
 
 /** Store access methods needed by the IAB initializer. */

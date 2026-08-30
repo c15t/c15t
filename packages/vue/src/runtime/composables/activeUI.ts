@@ -1,4 +1,5 @@
 import { inject } from 'vue';
+
 import { symbolActiveUI } from '../utils/symbols';
 
 export function useConsentActiveUI() {

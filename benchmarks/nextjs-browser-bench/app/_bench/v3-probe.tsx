@@ -2,6 +2,7 @@
 
 import { useActiveUI, useSnapshot } from '@c15t/nextjs/v3';
 import { useEffect, useRef } from 'react';
+
 import {
 	getState,
 	hasRunningAnimations,

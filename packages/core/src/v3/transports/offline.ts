@@ -18,6 +18,7 @@ import type {
 	TranslationsResponse,
 } from '@c15t/schema/types';
 import { buildDefaultOptInPolicy, resolvePolicySync } from '@c15t/schema/types';
+
 import type {
 	InitContext,
 	InitResponse,

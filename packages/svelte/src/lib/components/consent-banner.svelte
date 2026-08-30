@@ -12,6 +12,7 @@
 		resolveTranslations,
 		shouldFillPolicyActions,
 	} from '@c15t/ui/utils';
+
 	import { focusTrap } from '../actions/focus-trap';
 	// Banner uses custom portal/focus-trap/scroll-lock actions (not Ark UI's built-in)
 	// because the banner is not an Ark Dialog - it's a simpler container that

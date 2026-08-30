@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { AllConsentNames, ConsentState } from '../../types';
 import { type HasCondition, has } from '../has';
 

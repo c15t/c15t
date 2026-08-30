@@ -9,12 +9,14 @@ import {
 	useEffect,
 	useState,
 } from 'react';
+
 import { useActiveUI } from '~/v3/hooks';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useTheme } from '~/v3/hooks/use-theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { cnExt as cn } from '~/v3/utils/cn';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { useIABTranslations } from '../use-iab-translations';
 
 interface IABConsentDialogCardProps extends HTMLAttributes<HTMLDivElement> {

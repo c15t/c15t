@@ -8,6 +8,7 @@
  */
 
 import { describeRoute } from 'hono-openapi';
+
 import type { RouteContext } from '../context';
 import { status } from '../status';
 

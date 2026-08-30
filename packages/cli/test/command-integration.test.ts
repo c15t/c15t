@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { generate } from '../src/commands/generate';
 
 // Create a simple mock context

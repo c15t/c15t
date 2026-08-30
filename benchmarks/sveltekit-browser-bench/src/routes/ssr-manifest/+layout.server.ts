@@ -1,4 +1,5 @@
 import { prefetchInitialConsent } from '@c15t/svelte/server';
+
 import type { LayoutServerLoad } from './$types';
 
 /**

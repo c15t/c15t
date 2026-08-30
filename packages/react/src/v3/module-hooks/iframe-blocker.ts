@@ -2,6 +2,7 @@
 
 import type { IframeBlockerHandle } from '@c15t/core/v3/modules/iframe-blocker';
 import { useEffect, useRef } from 'react';
+
 import { useRequiredKernel } from './shared';
 
 export interface UseIframeBlockerOptions {

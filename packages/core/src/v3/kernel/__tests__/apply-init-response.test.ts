@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { applyInitResponse } from '../apply-init-response';
 import { buildInitialSnapshot } from '../snapshot';
 

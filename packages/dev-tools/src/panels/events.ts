@@ -6,6 +6,7 @@
 import { createButton, createInput } from '../components/ui';
 import { clearElement, div, span } from '../core/renderer';
 import type { EventLogEntry } from '../core/state-manager';
+
 import componentStyles from '../styles/components.module.css';
 
 export interface EventsPanelOptions {

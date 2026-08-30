@@ -7,6 +7,7 @@
 import { clearConsentRuntimeCache } from '@c15t/core';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
 
 const mockFetch = vi.fn();

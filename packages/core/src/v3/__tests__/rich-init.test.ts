@@ -14,6 +14,7 @@
  */
 import type { PolicyDecision, ResolvedPolicy } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
+
 import {
 	createConsentKernel,
 	type KernelTransport,

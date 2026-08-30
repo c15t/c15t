@@ -10,6 +10,7 @@
  * - dispose disconnects observer + kernel subscription
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 import { createConsentKernel } from '../../../index';
 import { createIframeBlocker } from '../index';
 

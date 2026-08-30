@@ -5,6 +5,7 @@ import {
 	bannerToDialogFlow,
 } from '@c15t/conformance/play/consent-banner';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
+
 import ConsentBanner from '../../../packages/vue/src/runtime/components/consent-banner.vue';
 import ConsentManager from '../../../packages/vue/src/runtime/components/consent-manager.vue';
 import { useStorybookConsent } from './storybook-consent-fixtures';

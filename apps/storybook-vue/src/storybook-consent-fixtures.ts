@@ -1,6 +1,7 @@
 import type { InitOutput } from '@c15t/schema/types';
 import type { App } from 'vue';
 import { onUnmounted, provide } from 'vue';
+
 import { enTranslations } from '../../../packages/translations/src';
 import { consentConfigKey } from '../../../packages/vue/src/runtime/composables/config';
 import type { ConsentConfig } from '../../../packages/vue/src/runtime/config';

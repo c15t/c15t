@@ -9,6 +9,7 @@ import {
 	useConsentManager,
 } from '@c15t/react';
 import { useEffect } from 'react';
+
 import type {
 	CssLayerEnvironmentId,
 	CssLayerScenario,

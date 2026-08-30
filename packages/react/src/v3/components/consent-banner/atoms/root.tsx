@@ -10,6 +10,7 @@ import {
 	useEffect,
 	useState,
 } from 'react';
+
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import { LocalThemeContext } from '~/v3/context/theme-context';
 import {
@@ -23,6 +24,7 @@ import type { CSSPropertiesWithVars } from '~/v3/types/theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { defaultTranslationConfig } from '~/v3/utils/default-translation-config';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { Overlay } from './overlay';
 
 /**

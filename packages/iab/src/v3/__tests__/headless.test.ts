@@ -1,5 +1,6 @@
 import type { NonIABVendor } from '@c15t/core/v3';
 import { describe, expect, test } from 'vitest';
+
 import { completeGVL } from '../../__tests__/tcf/fixtures/gvl-sample';
 import { processGVLForDialog, resolveIABBannerSummary } from '../headless';
 

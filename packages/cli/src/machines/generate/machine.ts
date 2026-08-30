@@ -5,9 +5,11 @@
  */
 
 import { assign, setup } from 'xstate';
+
 import { type StorageMode, UMBRELLA_PACKAGE } from '~/constants';
 import type { CliContext } from '~/context/types';
 import { CliError } from '~/core/errors';
+
 import {
 	checkDependenciesActor,
 	dependencyInstallActor,

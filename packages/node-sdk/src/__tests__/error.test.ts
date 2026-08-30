@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import { C15TError, isC15TError } from '../error';
 
 describe('C15TError', () => {

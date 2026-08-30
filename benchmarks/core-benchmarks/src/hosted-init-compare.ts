@@ -14,12 +14,14 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+
 import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
 import {
 	createConsentKernel,
 	createHostedTransport,
 	type InitResponse,
 } from '@c15t/core/v3';
+
 import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();

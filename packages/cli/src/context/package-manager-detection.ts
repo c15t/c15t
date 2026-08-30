@@ -1,5 +1,6 @@
 import * as p from '@clack/prompts';
 import { detect } from 'package-manager-detector/detect';
+
 import type { CliLogger } from '~/utils/logger';
 
 export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';

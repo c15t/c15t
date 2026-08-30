@@ -13,6 +13,7 @@ import {
 } from 'c15t/react';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
+
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import {
@@ -328,7 +329,7 @@ function PolicyActionsDemoContent() {
 						>
 							Examples / Demo
 						</Badge>
-						<h1 className="font-semibold text-4xl tracking-tight">
+						<h1 className="text-4xl font-semibold tracking-tight">
 							PolicyActions compound DX playground
 						</h1>
 						<p className="max-w-2xl text-base text-slate-600 dark:text-slate-300">
@@ -500,7 +501,7 @@ function PolicyActionsDemoContent() {
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 font-mono text-emerald-200 text-xs leading-6">
+							<pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 font-mono text-xs leading-6 text-emerald-200">
 								{renderJson(bannerSnapshot)}
 							</pre>
 						</CardContent>
@@ -515,7 +516,7 @@ function PolicyActionsDemoContent() {
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 font-mono text-sky-200 text-xs leading-6">
+							<pre className="overflow-x-auto rounded-2xl bg-slate-950 p-4 font-mono text-xs leading-6 text-sky-200">
 								{renderJson(dialogSnapshot)}
 							</pre>
 						</CardContent>

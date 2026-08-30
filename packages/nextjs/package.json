@@ -3,53 +3,69 @@
 	"version": "2.2.0-canary-20260731105620",
 	"description": "Next.js cookie banner and consent management platform for App Router, Pages Router, SSR, IAB TCF, and Consent Mode.",
 	"keywords": [
-		"nextjs",
-		"next",
-		"next-cookie-banner",
-		"nextjs-consent",
-		"next-cmp",
-		"consent",
-		"privacy",
-		"gdpr",
+		"app-router",
 		"ccpa",
-		"lgpd",
-		"tcf",
-		"iab",
 		"cmp",
-		"react",
-		"headless",
-		"typescript",
+		"consent",
+		"consent-banner",
+		"consent-management",
+		"consent-management-platform",
+		"consent-mode-v2",
 		"cookie-banner",
 		"cookie-consent",
-		"consent-management-platform",
-		"consent-management",
-		"consent-banner",
-		"preference-center",
-		"app-router",
-		"pages-router",
-		"server-components",
-		"rsc",
-		"ssr",
-		"server-side-rendering",
-		"tracking-consent",
+		"gdpr",
 		"google-consent-mode",
-		"consent-mode-v2",
-		"nextjs-cmp"
+		"headless",
+		"iab",
+		"lgpd",
+		"next",
+		"next-cmp",
+		"next-cookie-banner",
+		"nextjs",
+		"nextjs-cmp",
+		"nextjs-consent",
+		"pages-router",
+		"preference-center",
+		"privacy",
+		"react",
+		"rsc",
+		"server-components",
+		"server-side-rendering",
+		"ssr",
+		"tcf",
+		"tracking-consent",
+		"typescript"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/next/quickstart",
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
+	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/nextjs"
 	},
-	"license": "Apache-2.0",
+	"files": [
+		"dist",
+		"dist-types",
+		"AGENTS.md",
+		"docs",
+		"client",
+		"styles.css",
+		"styles.tw3.css",
+		"iab",
+		"src/styles.css",
+		"src/styles.tw3.css",
+		"src/iab/styles.css",
+		"src/iab/styles.tw3.css"
+	],
+	"type": "module",
 	"sideEffects": [
 		"**/*.css"
 	],
-	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
 	"exports": {
 		"./styles.css": "./dist/styles.css",
 		"./styles.tw3.css": "./dist/styles.tw3.css",
@@ -120,30 +136,17 @@
 			"default": "./dist/v3/rsc/index.js"
 		}
 	},
-	"main": "./dist/index.js",
-	"types": "./dist-types/index.d.ts",
-	"files": [
-		"dist",
-		"dist-types",
-		"AGENTS.md",
-		"docs",
-		"client",
-		"styles.css",
-		"styles.tw3.css",
-		"iab",
-		"src/styles.css",
-		"src/styles.tw3.css",
-		"src/iab/styles.css",
-		"src/iab/styles.tw3.css"
-	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
-		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun ../../scripts/generate-package-docs.ts @c15t/nextjs && node ../shared/restore-client-directives.mjs src dist",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/nextjs",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && bun scripts/generate-distribution-css.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
+		"prebuild": "genversion --esm --semi src/version.ts",
 		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
 		"test": "bun prebuild && vitest run --passWithNoTests",
 		"test:watch": "bun prebuild && vitest --passWithNoTests"
@@ -176,8 +179,5 @@
 		"react-dom": {
 			"optional": true
 		}
-	},
-	"publishConfig": {
-		"access": "public"
 	}
 }

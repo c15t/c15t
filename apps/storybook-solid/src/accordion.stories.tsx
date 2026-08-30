@@ -9,6 +9,7 @@ import {
 } from '@c15t/solid';
 import { createSignal, For } from 'solid-js';
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
+
 import { enTranslations } from '../../../packages/translations/src';
 
 const { consentManagerDialog, consentTypes } = enTranslations;

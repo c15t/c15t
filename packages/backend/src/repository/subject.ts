@@ -34,6 +34,7 @@
 import { generateEntityId } from '@c15t/schema';
 import { Data, Effect } from 'effect';
 import { SqlClient, type SqlError, Statement } from 'effect/unstable/sql';
+
 import { insertOnce } from '../db/insert-once';
 import { tenantScope } from '../db/tenant';
 import { encodeRow, encoder, toDate, toDateOrNull } from '../db/values';

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { generateSubjectId, isValidSubjectId } from '../generate-subject-id';
 
 describe('generateSubjectId', () => {

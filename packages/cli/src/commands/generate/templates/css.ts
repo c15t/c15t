@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
 import { UMBRELLA_PACKAGE } from '~/constants';
+
 import {
 	type EnsureGlobalCssStylesheetImportsResult,
 	ensureGlobalCssStylesheetImports,

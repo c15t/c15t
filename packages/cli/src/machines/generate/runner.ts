@@ -5,9 +5,11 @@
  */
 
 import { createActor } from 'xstate';
+
 import type { StorageMode } from '~/constants';
 import type { CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';
+
 import {
 	clearSnapshot,
 	createPersistenceSubscriber,

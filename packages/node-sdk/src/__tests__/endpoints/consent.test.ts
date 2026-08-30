@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { CONSENT_CHECK_PATH, checkConsent } from '../../endpoints/consent';
 import type { FetcherContext } from '../../fetcher';
 

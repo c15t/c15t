@@ -8,6 +8,7 @@ import { useActiveUI, useSetActiveUI } from '@c15t/react/v3/hooks';
 import { ConsentProvider } from '@c15t/react/v3/provider';
 import buttonStyles from '@c15t/ui/styles/v3/button';
 import { useEffect } from 'react';
+
 import type { CssLayerEnvironmentId, CssLayerSurface } from './css-layer-types';
 
 export type { CssLayerSurface } from './css-layer-types';

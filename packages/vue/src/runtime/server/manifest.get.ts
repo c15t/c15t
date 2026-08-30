@@ -8,6 +8,7 @@ import {
 } from 'h3';
 import { useRuntimeConfig } from 'nitropack/runtime';
 import type { NitroRuntimeConfig } from 'nitropack/types';
+
 import type { ConsentConfig } from '../config';
 import { serverFetch } from './local-fetch';
 import { fetchCachedManifest } from './manifest-mode';

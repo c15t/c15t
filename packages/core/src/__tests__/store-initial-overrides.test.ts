@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import type { ConsentManagerInterface } from '../client/client-factory';
 import { createConsentManagerStore } from '../store';
 

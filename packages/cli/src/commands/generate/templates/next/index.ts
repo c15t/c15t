@@ -5,8 +5,10 @@
  */
 
 import path from 'node:path';
+
 import type { AvailablePackages } from '~/context/framework-detection';
 import { findLayoutFile } from '~/detection/layout';
+
 import type { ExpandedTheme, UIStyle } from '../../prompts';
 import { updateAppLayout } from './app/layout';
 import { updatePagesLayout } from './pages/layout';

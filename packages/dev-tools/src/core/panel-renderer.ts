@@ -4,6 +4,7 @@
  */
 
 import type { ConsentStoreState } from '@c15t/core';
+
 import { renderActionsPanel } from '../panels/actions';
 import { renderConsentsPanel } from '../panels/consents';
 import { renderEventsPanel } from '../panels/events';

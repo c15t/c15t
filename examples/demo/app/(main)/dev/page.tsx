@@ -33,13 +33,13 @@ const devPages = [
 
 export default function DevIndexPage() {
 	return (
-		<main className="min-h-screen bg-background">
+		<main className="bg-background min-h-screen">
 			<div className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-12 sm:px-6">
-				<header className="space-y-3 border-border/80 border-b pb-8">
+				<header className="border-border/80 space-y-3 border-b pb-8">
 					<p className="label-pixel text-muted-foreground">
 						c15t demo / development
 					</p>
-					<h1 className="font-semibold text-3xl tracking-[-0.04em]">
+					<h1 className="text-3xl font-semibold tracking-[-0.04em]">
 						Development pages
 					</h1>
 					<p className="text-muted-foreground text-sm leading-6">
@@ -53,10 +53,10 @@ export default function DevIndexPage() {
 						<li key={page.href}>
 							<Link
 								href={page.href}
-								className="block rounded-2xl border border-border/80 p-4 transition hover:border-foreground/40"
+								className="border-border/80 hover:border-foreground/40 block rounded-2xl border p-4 transition"
 							>
-								<span className="font-medium text-sm">{page.title}</span>
-								<span className="mt-1 block text-muted-foreground text-sm leading-6">
+								<span className="text-sm font-medium">{page.title}</span>
+								<span className="text-muted-foreground mt-1 block text-sm leading-6">
 									{page.description}
 								</span>
 							</Link>

@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { ConsentManagerProvider } from '@c15t/svelte';
 	import { clearConsentRuntimeCache } from '@c15t/core';
+	import { ConsentManagerProvider } from '@c15t/svelte';
 	import { untrack, type Snippet } from 'svelte';
+
 	import type { ConsentManagerOptions } from '../../../packages/svelte/src/lib/types';
 	import {
 		type ConsentRecord,

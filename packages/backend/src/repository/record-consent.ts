@@ -23,6 +23,7 @@
 import { generateEntityId } from '@c15t/schema';
 import { Effect } from 'effect';
 import { SqlClient, type SqlError } from 'effect/unstable/sql';
+
 import { currentTenantId, type Tenant } from '../db/tenant';
 import { encodeRow, encoder } from '../db/values';
 import {

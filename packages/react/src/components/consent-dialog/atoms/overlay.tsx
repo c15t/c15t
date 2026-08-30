@@ -12,6 +12,7 @@ import {
 	useEffect,
 	useState,
 } from 'react';
+
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';

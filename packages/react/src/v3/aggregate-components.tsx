@@ -7,6 +7,7 @@ import {
 	type ReactNode,
 	Suspense,
 } from 'react';
+
 import { registerDialogChunkWarmer } from './chunk-warming';
 import type {
 	ConsentDialogCompoundComponent,

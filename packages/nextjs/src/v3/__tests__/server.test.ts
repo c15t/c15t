@@ -8,6 +8,7 @@
 
 import type { KernelConfig } from '@c15t/core/v3';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+
 import { readInitialConsentConfig } from '../server';
 
 const cookieStore = new Map<string, string>();

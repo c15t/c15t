@@ -3,6 +3,7 @@ import {
 	getConsentAvailableCategories,
 } from '@c15t/core/v3/consent-record';
 import { computed } from 'vue';
+
 import { useConsentConfig } from './config';
 import { useConsentInit } from './init';
 import { useConsentKernel, useConsentKernelContext } from './kernel';

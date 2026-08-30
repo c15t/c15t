@@ -6,6 +6,7 @@ import {
 } from '@c15t/react/v3/server';
 import { unstable_cache } from 'next/cache';
 import { headers as nextHeaders } from 'next/headers';
+
 import type { FetchInitialDataOptions } from '~/v3/types';
 
 const DEFAULT_REVALIDATE_SECONDS = 1;

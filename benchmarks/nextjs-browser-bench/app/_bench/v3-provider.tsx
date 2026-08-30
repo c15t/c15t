@@ -11,6 +11,7 @@ import {
 	type InitialDataPromise,
 } from '@c15t/nextjs/v3';
 import { type ReactNode, useMemo } from 'react';
+
 import { getState, type NextjsBenchScenario } from './state';
 import { NextjsV3BenchmarkProbe } from './v3-probe';
 

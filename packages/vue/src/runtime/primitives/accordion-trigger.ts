@@ -16,6 +16,7 @@ import {
 	mergeProps,
 	type VNode,
 } from 'vue';
+
 import { accordionItemContextKey } from './keys';
 
 function firstElementVNode(nodes: VNode[] | undefined): VNode | null {

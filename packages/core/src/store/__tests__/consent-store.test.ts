@@ -6,6 +6,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { createConsentManagerStore } from '..';
 import { STORAGE_KEY_V2 } from '../initial-state';
 

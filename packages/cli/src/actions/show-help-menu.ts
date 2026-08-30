@@ -1,4 +1,5 @@
 import color from 'picocolors';
+
 import type { CliCommand, CliContext, CliFlag } from '~/context/types'; // Import both types
 
 /**

@@ -1,5 +1,6 @@
 import type { ConsentStoreState } from '@c15t/core';
 import { beforeEach, describe, expect, it } from 'vitest';
+
 import { renderPolicyPanel } from '../../panels/policy';
 
 function createBaseState(

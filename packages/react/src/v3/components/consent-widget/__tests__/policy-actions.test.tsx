@@ -3,6 +3,7 @@ import { defaultTranslationConfig } from '@c15t/core';
 import type { ComponentProps, ReactNode } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentWidget } from '~/v3/components/consent-widget';
 import { ConsentProvider } from '~/v3/provider';
 

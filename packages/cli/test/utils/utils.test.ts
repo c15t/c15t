@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { capitalizeFirstLetter } from '../../src/utils/capitalize-first-letter';
 
 describe('utility functions', () => {

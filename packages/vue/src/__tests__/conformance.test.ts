@@ -42,6 +42,7 @@ import {
 	shallowRef,
 } from 'vue';
 import { renderToString } from 'vue/server-renderer';
+
 import ConsentBanner from '../runtime/components/consent-banner.vue';
 import ConsentManager from '../runtime/components/consent-manager.vue';
 import ConsentWidget from '../runtime/components/consent-widget.vue';

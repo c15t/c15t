@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+
 import { baseTranslations as bundledTranslations } from './translations';
 import type { I18nConfig, TranslationConfig, Translations } from './types';
 import {

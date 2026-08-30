@@ -16,7 +16,9 @@ import type {
 	PolicyUiSurfaceConfig,
 	PostSubjectOutput,
 } from '@c15t/schema/types';
+
 import type { Model } from '~/libs/determine-model';
+
 import type { StorageConfig } from '../libs/cookie';
 import type { HasCondition } from '../libs/has';
 import type { IABConfig, IABManager } from '../libs/iab-tcf/types';

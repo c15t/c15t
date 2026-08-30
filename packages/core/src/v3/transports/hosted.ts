@@ -25,6 +25,7 @@ import {
 	CONSENT_REQUEST_HEADER_NAMES,
 	type InitOutput,
 } from '@c15t/schema/types';
+
 import type {
 	InitContext,
 	InitResponse,

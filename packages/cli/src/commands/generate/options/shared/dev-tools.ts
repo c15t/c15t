@@ -1,4 +1,5 @@
 import * as p from '@clack/prompts';
+
 import type { CliContext } from '~/context/types';
 
 interface GetDevToolsOptionOptions {

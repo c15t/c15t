@@ -5,9 +5,12 @@
  */
 
 import path from 'node:path';
+
 import { fromPromise } from 'xstate';
+
 import type { StorageMode } from '~/constants';
 import type { CliContext } from '~/context/types';
+
 import type { FileModification } from '../../types';
 import type { ExpandedTheme, UIStyle } from '../types';
 

@@ -1,4 +1,5 @@
 import pc from 'picocolors';
+
 import type { LogLevel } from '../core/types';
 
 /**

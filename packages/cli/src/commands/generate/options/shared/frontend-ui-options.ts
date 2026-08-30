@@ -4,6 +4,7 @@
  */
 
 import type { CliContext } from '~/context/types';
+
 import {
 	type ExpandedTheme,
 	promptForExpandedTheme,

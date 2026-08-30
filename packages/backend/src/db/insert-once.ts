@@ -42,6 +42,7 @@
 
 import { Effect } from 'effect';
 import { SqlClient, type SqlError } from 'effect/unstable/sql';
+
 import { encodeRow, encoder } from './values';
 
 /**

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, vi } from 'vitest';
+
 import type { ConsentState } from '../../../types/compliance';
 import { clearAllScripts } from '../core';
 

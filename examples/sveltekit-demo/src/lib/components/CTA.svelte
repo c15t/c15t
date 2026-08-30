@@ -1,21 +1,21 @@
-<section class="py-20 px-4 sm:px-6 lg:px-8">
+<section class="px-4 py-20 sm:px-6 lg:px-8">
 	<div class="container mx-auto max-w-4xl">
 		<div
-			class="bg-primary text-primary-foreground rounded-2xl p-12 text-center space-y-6"
+			class="bg-primary text-primary-foreground space-y-6 rounded-2xl p-12 text-center"
 		>
-			<h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-balance">
+			<h2 class="text-3xl font-bold text-balance sm:text-4xl lg:text-5xl">
 				Ready to revolutionize your deliveries?
 			</h2>
-			<p class="text-lg opacity-90 max-w-2xl mx-auto text-pretty">
+			<p class="mx-auto max-w-2xl text-lg text-pretty opacity-90">
 				Join thousands of London businesses already using PigeonPost for fast,
 				reliable, and eco-friendly delivery.
 			</p>
 			<div
-				class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
+				class="flex flex-col items-center justify-center gap-4 pt-4 sm:flex-row"
 			>
 				<a
 					href="#pricing"
-					class="inline-flex items-center justify-center rounded-md text-base font-medium h-11 px-8 bg-secondary text-secondary-foreground hover:bg-secondary/80"
+					class="bg-secondary text-secondary-foreground hover:bg-secondary/80 inline-flex h-11 items-center justify-center rounded-md px-8 text-base font-medium"
 				>
 					Start Free Trial
 					<svg
@@ -33,7 +33,7 @@
 				</a>
 				<a
 					href="#video-demo"
-					class="inline-flex items-center justify-center rounded-md text-base font-medium h-11 px-8 border border-primary-foreground bg-transparent text-primary-foreground hover:bg-primary-foreground hover:text-primary"
+					class="border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary inline-flex h-11 items-center justify-center rounded-md border bg-transparent px-8 text-base font-medium"
 				>
 					Schedule Demo
 				</a>

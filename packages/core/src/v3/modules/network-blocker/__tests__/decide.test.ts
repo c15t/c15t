@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { createConsentKernel } from '../../../kernel';
 import { evaluateBlock } from '../decide';
 import type { NetworkBlockerRule } from '../types';

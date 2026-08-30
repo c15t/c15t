@@ -1,5 +1,6 @@
 import { customizeFlow } from '@c15t/conformance/play/iab-consent-banner';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import {
 	IABConsentBanner,
 	IABConsentDialog,

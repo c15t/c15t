@@ -1,5 +1,6 @@
 import { expandedCategories } from '@c15t/conformance/play/consent-widget';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
+
 import ConsentWidget from '../../../packages/vue/src/runtime/components/consent-widget.vue';
 import { useStorybookConsent } from './storybook-consent-fixtures';
 

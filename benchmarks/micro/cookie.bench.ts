@@ -7,6 +7,7 @@ import {
 	saveConsentToStorage,
 	setCookie,
 } from '@c15t/core';
+
 import { bench, runMicroBenchmarkSuite } from './wrapper';
 
 // Mock localStorage for Node.js environment

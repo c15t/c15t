@@ -5,6 +5,7 @@ import type {
 	PolicyUiActionGroup,
 	PolicyUiMode,
 } from '@c15t/schema/types';
+
 import type { ConsentState } from '../consent/compliance';
 import {
 	type AllConsentNames,

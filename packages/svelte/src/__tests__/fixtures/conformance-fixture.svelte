@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ConsentKernel } from '@c15t/core/v3';
+
 	import ConsentBanner from '../../lib/components/consent-banner.svelte';
 	import ConsentDialog from '../../lib/components/consent-dialog.svelte';
 	import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';

@@ -1,5 +1,7 @@
 import * as p from '@clack/prompts';
+
 import { formatLogMessage } from '~/utils/logger';
+
 import type { CliCommand, CliFlag, ParsedArgs } from './types';
 // Define flags within the parser module
 export const globalFlags: CliFlag[] = [

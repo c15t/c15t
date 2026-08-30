@@ -1,4 +1,5 @@
 import { defaultTranslationConfig } from '@c15t/core';
+
 import { useTranslations } from '~/hooks/use-translations';
 
 /**

@@ -8,6 +8,7 @@ import {
 	type ScriptDebugEvent,
 	subscribeToScriptDebugEvents,
 } from '@c15t/core';
+
 import { createPanel, type PanelInstance } from '../components/panel';
 import { createTabs, type TabsInstance } from '../components/tabs';
 import {

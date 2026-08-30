@@ -1,4 +1,5 @@
 import { computed } from 'vue';
+
 import type { ConsentConfig } from '../config';
 import { useConsentConfig } from './config';
 

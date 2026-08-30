@@ -1,4 +1,5 @@
 import { beforeEach, expect, test } from 'bun:test';
+
 import {
 	canonicalizeStyleValue,
 	captureComputedStyle,

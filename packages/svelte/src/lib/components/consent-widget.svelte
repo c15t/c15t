@@ -13,6 +13,7 @@
 		resolveTranslations,
 		shouldFillPolicyActions,
 	} from '@c15t/ui/utils';
+
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { PreferenceItem, Switch } from '../primitives';
 	import { resolveComponentStyles } from '../utils';

@@ -6,7 +6,9 @@
 
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+
 import { fromPromise } from 'xstate';
+
 import { SCOPED_FRAMEWORK_PACKAGES, UMBRELLA_PACKAGE } from '~/constants';
 import type { PackageManager } from '~/context/package-manager-detection';
 import type { CliContext } from '~/context/types';

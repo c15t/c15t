@@ -7,6 +7,7 @@ import {
 	type InitialDataPromise,
 } from '@c15t/nextjs';
 import type { ReactNode } from 'react';
+
 import { NextjsBenchmarkProbe } from './probe';
 import { getState, type NextjsBenchScenario } from './state';
 

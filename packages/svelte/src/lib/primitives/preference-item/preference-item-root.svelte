@@ -8,6 +8,7 @@
 	import { preferenceItemVariants } from '@c15t/ui/styles/primitives';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
+
 	import { getThemeContext } from '../../context.svelte';
 	import { setPreferenceItemContext } from './context';
 

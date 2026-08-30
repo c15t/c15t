@@ -6,6 +6,7 @@
  * transports without changes to the kernel or adapter.
  */
 import { describe, expect, test } from 'vitest';
+
 import { createConsentKernel, createOfflineTransport } from '../index';
 
 describe('createOfflineTransport: basic behavior', () => {

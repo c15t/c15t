@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, expect, test, vi } from 'vitest';
+
 import { createConsentKernel } from '../../../kernel';
 import { installFetchPatch } from '../patch-fetch';
 import type { NetworkBlockerRule } from '../types';

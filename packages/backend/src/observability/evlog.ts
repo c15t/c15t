@@ -46,6 +46,7 @@
 import { type AuditableLogger, initLogger } from 'evlog';
 import { type EvlogHonoOptions, evlog } from 'evlog/hono';
 import type { MiddlewareHandler } from 'hono';
+
 import type { RequestLog } from './log';
 
 /**

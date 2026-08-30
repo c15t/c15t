@@ -2,10 +2,12 @@
 
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { forwardRef, type ReactNode } from 'react';
+
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { useSetActiveUI } from '~/v3/hooks';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { useIABTranslations } from '../use-iab-translations';
 
 interface IABConsentDialogHeaderProps {

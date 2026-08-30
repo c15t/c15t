@@ -4,6 +4,7 @@
  */
 
 import type { ConsentStoreState } from '@c15t/core';
+
 import {
 	createButton,
 	createDisconnectedState,
@@ -18,8 +19,9 @@ import {
 	select,
 	span,
 } from '../core/renderer';
-import componentStyles from '../styles/components.module.css';
 import { formatInitSource } from '../utils/init-source';
+
+import componentStyles from '../styles/components.module.css';
 
 interface OverridePayload {
 	country?: string;

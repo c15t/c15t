@@ -8,6 +8,7 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { type FC, type RefObject, useRef } from 'react';
+
 import { Box } from '~/components/shared/primitives/box';
 import { resolveConsentButtonStyle } from '~/components/shared/primitives/button';
 import { BrandingLink } from '~/components/shared/ui/branding';
@@ -17,6 +18,7 @@ import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useHeadlessIABConsentUI } from '~/hooks/use-headless-iab-consent-ui';
 import { useTheme } from '~/hooks/use-theme';
+
 import { useIABTranslations } from '../iab-consent-dialog/use-iab-translations';
 import { IABConsentBannerRoot } from './atoms/root';
 

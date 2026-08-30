@@ -5,6 +5,7 @@
  */
 
 import { Project, type SourceFile, SyntaxKind } from 'ts-morph';
+
 import { getFrameworkDirectory } from './directory';
 import {
 	addConsentManagerImport,

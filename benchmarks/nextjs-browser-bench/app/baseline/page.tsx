@@ -6,6 +6,7 @@
  * can be derived. Probe stub mirrors the real probe's settle semantics.
  */
 import { useEffect } from 'react';
+
 import { getState } from '../_bench/state';
 
 function BaselineProbe() {

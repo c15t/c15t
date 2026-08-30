@@ -2,12 +2,14 @@ import { type ConsentStoreState, defaultTranslationConfig } from '@c15t/core';
 import { createRef, type ReactNode, useRef, useState } from 'react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { useConsentScript } from '~/hooks/use-consent-script';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
+
 import { GoogleMap } from '../google-map';
 import { YouTubeEmbed, type YouTubeEmbedProps } from '../youtube-embed';
 

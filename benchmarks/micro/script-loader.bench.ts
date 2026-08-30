@@ -3,6 +3,7 @@ import {
 	createConsentManagerStore,
 	type Script,
 } from '@c15t/core';
+
 import { bench, runMicroBenchmarkSuite } from './wrapper';
 
 // Mock DOM for Node.js environment

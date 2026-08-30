@@ -9,6 +9,7 @@
 import brandingStyles from '@c15t/ui/styles/v3/branding';
 import styles from '@c15t/ui/styles/v3/consent-dialog';
 import { forwardRef, type ReactNode, type Ref } from 'react';
+
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { ConsentWidget } from '~/v3/components/consent-widget/consent-widget';
 import { Slot } from '~/v3/components/shared/libs/slot';

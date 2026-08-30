@@ -11,6 +11,7 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import { LocalThemeContext } from '~/v3/context/theme-context';
 import {
@@ -23,6 +24,7 @@ import { useTextDirection } from '~/v3/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/v3/types/theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { IABConsentBannerOverlay } from './overlay';
 
 interface IABConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {

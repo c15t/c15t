@@ -49,6 +49,7 @@
 
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+
 import * as Dialect from '../dialect';
 
 interface IndexSpec {

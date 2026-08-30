@@ -12,6 +12,7 @@ import { getIpAddress } from '@c15t/schema/geo';
 import { Effect } from 'effect';
 import { describeRoute } from 'hono-openapi';
 import * as v from 'valibot';
+
 import { setFields } from '../../observability/log';
 import { submit } from '../../repository/record-consent';
 import {

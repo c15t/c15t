@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+
 import { baseConfig } from '@c15t/vitest-config/base';
 import { defineConfig, mergeConfig } from 'vitest/config';
 

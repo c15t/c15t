@@ -22,6 +22,7 @@
  */
 import type { KernelConfig } from '@c15t/core/v3';
 import type { ReactNode } from 'react';
+
 import { RscBannerActions, RscBannerGate } from './islands';
 
 interface BannerCopy {

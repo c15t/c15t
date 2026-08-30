@@ -2,6 +2,7 @@ import { dialogFocusManagement } from '@c15t/conformance/play/consent-dialog';
 import { triggerOpensDialog } from '@c15t/conformance/play/consent-dialog-trigger';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useEffect, useState } from 'react';
+
 import {
 	ConsentDialog,
 	ConsentDialogTrigger,

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { HTMLAttributes } from 'svelte/elements';
+
 	import { getSwitchRootContext } from './context';
 
 	const root = getSwitchRootContext();

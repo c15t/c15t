@@ -1,13 +1,14 @@
 <script lang="ts">
 	import ThemeSwitcherButton from '$lib/consent-manager/ThemeSwitcherButton.svelte';
+
 	import I18nButton from './I18nButton.svelte';
 </script>
 
 <header
-	class="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border"
+	class="bg-background/80 border-border fixed top-0 right-0 left-0 z-50 border-b backdrop-blur-md"
 >
 	<div class="container mx-auto px-4 sm:px-6 lg:px-8">
-		<div class="flex items-center justify-between h-16">
+		<div class="flex h-16 items-center justify-between">
 			<div class="flex items-center gap-2">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
@@ -28,38 +29,38 @@
 				<span class="text-xl font-semibold">PigeonPost</span>
 			</div>
 
-			<nav class="hidden md:flex items-center gap-8">
+			<nav class="hidden items-center gap-8 md:flex">
 				<a
 					href="#features"
-					class="text-sm text-muted-foreground hover:text-foreground transition-colors"
+					class="text-muted-foreground hover:text-foreground text-sm transition-colors"
 					>Features</a
 				>
 				<a
 					href="#how-it-works"
-					class="text-sm text-muted-foreground hover:text-foreground transition-colors"
+					class="text-muted-foreground hover:text-foreground text-sm transition-colors"
 					>How It Works</a
 				>
 				<a
 					href="#pricing"
-					class="text-sm text-muted-foreground hover:text-foreground transition-colors"
+					class="text-muted-foreground hover:text-foreground text-sm transition-colors"
 					>Pricing</a
 				>
 				<a
 					href="#testimonials"
-					class="text-sm text-muted-foreground hover:text-foreground transition-colors"
+					class="text-muted-foreground hover:text-foreground text-sm transition-colors"
 					>Testimonials</a
 				>
 			</nav>
 
 			<div class="flex items-center gap-4">
 				<button
-					class="inline-flex items-center justify-center rounded-md text-sm font-medium h-8 px-3 hover:bg-accent hover:text-accent-foreground"
+					class="hover:bg-accent hover:text-accent-foreground inline-flex h-8 items-center justify-center rounded-md px-3 text-sm font-medium"
 				>
 					Log in
 				</button>
 				<a
 					href="#pricing"
-					class="inline-flex items-center justify-center rounded-md text-sm font-medium h-8 px-3 bg-primary text-primary-foreground hover:bg-primary/90"
+					class="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-8 items-center justify-center rounded-md px-3 text-sm font-medium"
 				>
 					Get Started
 				</a>

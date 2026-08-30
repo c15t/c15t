@@ -7,6 +7,7 @@
  * `../vendors`.
  */
 import { type ConsentState, loadScripts } from '@c15t/core';
+
 import type {
 	LiveProbeCheckResult,
 	LiveProbeLoadOutcome,

@@ -3,49 +3,55 @@
 	"version": "2.2.0-canary-20260727202135",
 	"description": "Consent-aware script integrations for Google Tag Manager, Google Consent Mode v2, GA4, Google Ads, Meta Pixel, and more.",
 	"keywords": [
-		"c15t",
-		"script-loader",
-		"consent",
-		"gdpr",
-		"ccpa",
-		"lgpd",
-		"gtm",
-		"google-tag-manager",
-		"google-tag",
-		"ga4",
-		"google-ads",
 		"adobe-analytics",
 		"amplitude",
-		"heap",
-		"hightouch",
-		"rudderstack",
-		"logrocket",
-		"meta-pixel",
-		"posthog",
-		"pirsch",
-		"clearbit",
-		"tiktok-pixel",
-		"linkedin-insights",
-		"microsoft-uet",
-		"x-pixel",
 		"analytics-consent",
+		"c15t",
+		"ccpa",
+		"clearbit",
+		"cmp",
+		"consent",
 		"consent-mode",
 		"consent-mode-v2",
+		"ga4",
+		"gdpr",
+		"google-ads",
+		"google-tag",
+		"google-tag-manager",
+		"gtm",
+		"heap",
+		"hightouch",
+		"lgpd",
+		"linkedin-insights",
+		"logrocket",
+		"meta-pixel",
+		"microsoft-uet",
+		"pirsch",
+		"posthog",
 		"privacy",
-		"cmp"
+		"rudderstack",
+		"script-loader",
+		"tiktok-pixel",
+		"x-pixel"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/javascript/script-loader",
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
+	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/scripts"
 	},
-	"license": "Apache-2.0",
-	"sideEffects": false,
+	"files": [
+		"dist",
+		"dist-types",
+		"AGENTS.md",
+		"docs"
+	],
 	"type": "module",
+	"sideEffects": false,
 	"exports": {
 		"./adobe-analytics": {
 			"types": "./dist-types/vendors/analytics/adobe-analytics.d.ts",
@@ -228,12 +234,9 @@
 			"default": "./dist/*.js"
 		}
 	},
-	"files": [
-		"dist",
-		"dist-types",
-		"AGENTS.md",
-		"docs"
-	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/scripts",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/scripts",
@@ -245,11 +248,6 @@
 		"test:live-vendors": "bun --tsconfig-override live-vendors/tsconfig.json live-vendors/runner.ts",
 		"test:watch": "vitest"
 	},
-	"browserslist": [
-		">0.2%",
-		"not dead",
-		"not op_mini all"
-	],
 	"devDependencies": {
 		"@c15t/core": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
@@ -257,7 +255,9 @@
 		"playwright": "1.58.2",
 		"typescript": "7.0.2"
 	},
-	"publishConfig": {
-		"access": "public"
-	}
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	]
 }

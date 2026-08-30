@@ -7,6 +7,7 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand/vanilla';
+
 import type { ConsentManagerInterface } from '../../../client/client-factory';
 import type { ConsentStoreState } from '../../../store/type';
 import { hasGlobalPrivacyControlSignal } from '../../global-privacy-control';

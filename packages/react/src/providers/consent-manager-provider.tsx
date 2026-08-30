@@ -9,6 +9,7 @@ import {
 import { generateThemeCSS } from '@c15t/ui/theme';
 import { deepMerge } from '@c15t/ui/utils';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
+
 import {
 	ConsentStateContext,
 	type ConsentStateContextValue,

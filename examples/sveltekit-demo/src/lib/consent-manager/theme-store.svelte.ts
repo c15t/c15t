@@ -1,4 +1,5 @@
 import { browser } from '$app/environment';
+
 import { type ThemePresetName, themePresets } from './theme-presets';
 
 function createThemePresetStore() {

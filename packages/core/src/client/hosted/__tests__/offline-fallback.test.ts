@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { fetchMock, mockLocalStorage } from '../../../../vitest.setup';
 import { setDebugEnabled } from '../../../libs/debug';
 import { STORAGE_KEY_V2 } from '../../../store/initial-state';

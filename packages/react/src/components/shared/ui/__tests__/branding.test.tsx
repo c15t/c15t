@@ -3,9 +3,11 @@ import { defaultTranslationConfig } from '@c15t/core';
 import type { ReactElement } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentDialogFooter } from '~/components/consent-dialog/atoms/card';
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { GlobalThemeContext } from '~/context/theme-context';
+
 import { BrandingCompactLogo, BrandingLink } from '../branding';
 
 function createMockState(

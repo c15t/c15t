@@ -2,6 +2,7 @@
 
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+
 import { useTheme } from '~/v3/hooks/use-theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';

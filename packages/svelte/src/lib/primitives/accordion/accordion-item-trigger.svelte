@@ -2,6 +2,7 @@
 	import { getDataDisabled, getOpenState } from '@c15t/ui/primitives';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
+
 	import { getAccordionItemContext, getAccordionRootContext } from './context';
 
 	const root = getAccordionRootContext();

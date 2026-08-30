@@ -9,6 +9,7 @@
 
 import { Effect } from 'effect';
 import { describeRoute } from 'hono-openapi';
+
 import {
 	LegalDocumentConflictError,
 	syncCurrent,

@@ -26,6 +26,7 @@
 
 import type { CSSProperties, HTMLAttributes, ReactElement } from 'react';
 import * as React from 'react';
+
 import { createDevToolsPanel } from './core/devtools';
 
 /**

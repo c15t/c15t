@@ -5,6 +5,7 @@ import {
 	useConsentManager,
 } from '@c15t/react/headless';
 import { useEffect } from 'react';
+
 import { getBenchState, markInteraction } from '../_bench/state';
 
 function HeadlessBenchmarkUI() {

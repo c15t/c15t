@@ -9,6 +9,7 @@ import {
 	generateThemeCSS as baseGenerateThemeCSS,
 	themeToVars as baseThemeToVars,
 } from '@c15t/ui/theme';
+
 import type { Theme } from '../types/theme/style-types';
 
 /**

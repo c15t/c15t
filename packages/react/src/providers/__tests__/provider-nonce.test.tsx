@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentManagerProvider } from '~/index';
+
 import { clearConsentRuntimeCache } from '../consent-manager-provider';
 
 /**

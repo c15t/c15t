@@ -4,6 +4,7 @@ import { ConsentBanner } from '@c15t/react/v3/consent-banner';
 import { useActiveUI } from '@c15t/react/v3/hooks';
 import { ConsentProvider } from '@c15t/react/v3/provider';
 import { useEffect, useRef } from 'react';
+
 import { getBenchState, observeBannerVisibility } from './state';
 
 const BENCHMARK_POLICY = {

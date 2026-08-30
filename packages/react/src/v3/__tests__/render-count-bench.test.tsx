@@ -16,11 +16,13 @@ import { defaultTranslationConfig } from '@c15t/core';
 import { Profiler, type ReactNode } from 'react';
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { useConsentManager } from '~/v3/hooks/use-consent-manager';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
 } from '~/v3/providers/consent-manager-provider';
+
 import { ConsentProvider, useConsent, useSetConsent } from '../index';
 
 type Category =

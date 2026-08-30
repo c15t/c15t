@@ -10,6 +10,7 @@ import {
 import { accordionVariants } from '@c15t/ui/styles/primitives';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import { ref } from 'vue';
+
 import { enTranslations } from '../../../packages/translations/src';
 
 const { consentManagerDialog, consentTypes } = enTranslations;

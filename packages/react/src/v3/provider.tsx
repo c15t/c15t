@@ -52,6 +52,7 @@ import {
 	useState,
 	useSyncExternalStore,
 } from 'react';
+
 import { KernelContext } from './context';
 import { useColorScheme } from './hooks/use-color-scheme';
 import type { IABProviderProps } from './iab-context';

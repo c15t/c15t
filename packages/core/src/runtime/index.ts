@@ -3,7 +3,9 @@ import {
 	normalizeI18nConfig,
 	resolveTranslationInput,
 } from '@c15t/translations';
+
 import { version } from '~/version';
+
 import {
 	type ConsentManagerOptions,
 	clearClientRegistry,

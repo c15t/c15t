@@ -2,10 +2,12 @@
 
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 import type { ReactNode } from 'react';
+
 import {
 	type HeadlessConsentBannerAction,
 	useHeadlessConsentUI,
 } from '~/hooks/use-headless-consent-ui';
+
 import {
 	type PolicyActionRenderProps,
 	PolicyActionsRenderer,

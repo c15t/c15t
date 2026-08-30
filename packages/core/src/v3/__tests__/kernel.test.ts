@@ -7,6 +7,7 @@
  * run against the v3 kernel here once the adapter rewrite lands.
  */
 import { describe, expect, test, vi } from 'vitest';
+
 import { createConsentKernel } from '../index';
 
 describe('v3 kernel: pure construction', () => {

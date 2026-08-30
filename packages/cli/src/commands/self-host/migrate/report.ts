@@ -12,6 +12,7 @@
 
 import type { MigrateReport } from '@c15t/backend';
 import * as p from '@clack/prompts';
+
 import type { CliContext } from '~/context/types';
 
 /** Prints what the migration found and intends to do. */

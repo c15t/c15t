@@ -10,6 +10,7 @@
  */
 
 import type { FC } from 'react';
+
 import {
 	IABConsentBannerButtonGroup,
 	IABConsentBannerFooterSpacer,

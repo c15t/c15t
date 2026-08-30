@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { createTabs } from '../../components/tabs';
+
 import tabStyles from '../../styles/tabs.module.css';
 
 function createRect(width: number, height = 32): DOMRect {

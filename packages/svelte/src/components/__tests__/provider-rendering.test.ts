@@ -7,6 +7,7 @@
 import { clearConsentRuntimeCache } from '@c15t/core';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test } from 'vitest';
+
 import BannerFixture from '../../__tests__/fixtures/banner-fixture.svelte';
 import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
 

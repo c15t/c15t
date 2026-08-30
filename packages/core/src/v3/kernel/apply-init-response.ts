@@ -11,6 +11,7 @@
  */
 import type { Translations } from '@c15t/translations';
 import { deepMergeTranslations } from '@c15t/translations';
+
 import { allConsentNames } from '../consent/consent-types';
 import { applyPolicyToConsents, deriveActiveUI, deriveModel } from '../policy';
 import type {

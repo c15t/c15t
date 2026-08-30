@@ -6,12 +6,14 @@
 
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { IABConsentBanner } from '~/v3/components/iab-consent-banner';
 import { IABConsentDialog } from '~/v3/components/iab-consent-dialog';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
 } from '~/v3/providers/consent-manager-provider';
+
 import {
 	clearConsentState,
 	defaultIABOptions,

@@ -25,6 +25,7 @@
 
 import { type Layer, ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
+
 import { type DatabaseOption, toLayer } from './db/connect';
 import { type MigrateOptions, type MigrateReport, migrate } from './db/migrate';
 

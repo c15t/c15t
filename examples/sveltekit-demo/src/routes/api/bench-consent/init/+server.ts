@@ -1,6 +1,6 @@
+import { BENCHMARK_POLICY } from '$lib/bench/policy';
 import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
-import { BENCHMARK_POLICY } from '$lib/bench/policy';
 
 const response = {
 	branding: 'c15t',

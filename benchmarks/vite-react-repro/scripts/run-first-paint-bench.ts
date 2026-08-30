@@ -5,6 +5,7 @@ import { createServer } from 'node:net';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
+
 import {
 	BENCHMARK_SCHEMA_VERSION,
 	type BenchmarkResult,

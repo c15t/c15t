@@ -3,6 +3,7 @@
 	import { buttonVariants } from '@c15t/ui/styles/primitives';
 	import type { Snippet } from 'svelte';
 	import type { HTMLButtonAttributes } from 'svelte/elements';
+
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { resolveComponentStyles } from '../utils';
 

@@ -1,4 +1,5 @@
 import { expect } from 'storybook/test';
+
 import { DOM_CONTRACT } from '../contract/dom-contract';
 
 /**

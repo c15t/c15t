@@ -1,5 +1,6 @@
 import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
+
 import { Project, type PropertyAssignment, SyntaxKind } from 'ts-morph';
 
 const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);

@@ -3,11 +3,13 @@
 import type { GlobalVendorList } from '@c15t/core';
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { type FC, useEffect, useState } from 'react';
+
 import * as PreferenceItem from '~/v3/components/shared/ui/preference-item';
 import * as Switch from '~/v3/components/shared/ui/switch';
 import { useTheme } from '~/v3/hooks/use-theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import type { ProcessedPurpose, ProcessedVendor, VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
 

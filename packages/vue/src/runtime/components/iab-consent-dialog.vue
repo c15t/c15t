@@ -7,6 +7,7 @@ import type {
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { computed, ref, Teleport, Transition, toValue, watch } from 'vue';
+
 import {
 	type ConsentIabSelection,
 	createDefaultIabSelection,
@@ -16,6 +17,7 @@ import {
 	useConsentIabSelection,
 	useConsentInit,
 } from '#c15t/composables';
+
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';

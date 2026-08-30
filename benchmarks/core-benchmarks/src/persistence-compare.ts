@@ -14,6 +14,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  *   - partial save (5 flips, one write)
  */
 import { join } from 'node:path';
+
 import {
 	configureConsentManager,
 	createConsentManagerStore,
@@ -21,6 +22,7 @@ import {
 } from '@c15t/core';
 import { createConsentKernel } from '@c15t/core/v3';
 import { createPersistence } from '@c15t/core/v3/modules/persistence';
+
 import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();

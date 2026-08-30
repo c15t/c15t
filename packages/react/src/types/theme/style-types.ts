@@ -5,6 +5,7 @@ import type {
 	ThemeValue as BaseThemeValue,
 } from '@c15t/ui/theme';
 import type { CSSProperties } from 'react';
+
 import type { AllThemeKeys } from './style-keys';
 
 export type {

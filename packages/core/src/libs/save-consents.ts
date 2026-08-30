@@ -1,6 +1,8 @@
 import { createMaterialPolicyFingerprint } from '@c15t/schema/types';
 import type { StoreApi } from 'zustand';
+
 import type { ConsentStoreState } from '~/store/type';
+
 import type { ConsentManagerInterface } from '../client/client-interface';
 import type {
 	ConsentInfo,

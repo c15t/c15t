@@ -4,6 +4,7 @@
  * client instances based on configuration options.
  */
 import { createDeterministicFingerprintSync } from '@c15t/schema/types';
+
 import type { StoreOptions } from '../store/type';
 import type { ConsentManagerInterface } from './client-interface';
 import { CustomClient, type EndpointHandlers } from './custom';

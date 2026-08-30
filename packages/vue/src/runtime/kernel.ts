@@ -37,6 +37,7 @@ import {
 	type InitOutput,
 } from '@c15t/schema/types';
 import { computed, type Ref, shallowRef } from 'vue';
+
 import type { ConsentConfig } from './config';
 import {
 	isClientManifestModeEnabled,

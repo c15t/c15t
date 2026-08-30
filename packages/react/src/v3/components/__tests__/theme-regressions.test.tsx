@@ -6,10 +6,11 @@ import iabBannerStyles from '@c15t/ui/styles/v3/iab-consent-banner';
 import switchStyles from '@c15t/ui/styles/v3/switch';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentBannerTitle } from '~/v3/components/consent-banner/components';
-import { ConsentDialogHeaderTitle } from '~/v3/components/consent-dialog/atoms/card';
 import { TriggerButton } from '~/v3/components/consent-dialog-trigger/atoms/button';
 import { TriggerContext } from '~/v3/components/consent-dialog-trigger/atoms/root';
+import { ConsentDialogHeaderTitle } from '~/v3/components/consent-dialog/atoms/card';
 import { ConsentWidgetAccordion } from '~/v3/components/consent-widget/atoms/accordion';
 import { IABConsentBannerFooter } from '~/v3/components/iab-consent-banner/atoms/footer';
 import { IABConsentBannerHeader } from '~/v3/components/iab-consent-banner/atoms/header';

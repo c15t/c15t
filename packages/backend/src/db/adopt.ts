@@ -43,6 +43,7 @@
 
 import { Effect } from 'effect';
 import { SqlClient, type SqlError } from 'effect/unstable/sql';
+
 import { classify, type Shape } from './classify';
 import * as Dialect from './dialect';
 import {

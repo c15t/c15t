@@ -1,4 +1,5 @@
 import type { ResolvedPolicy } from '~/api/init';
+
 import type {
 	PolicyUiActionGroup,
 	PolicyUiSurfaceConfig,

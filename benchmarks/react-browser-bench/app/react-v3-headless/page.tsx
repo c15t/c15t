@@ -9,6 +9,7 @@ import {
 	useSetActiveUI,
 } from '@c15t/react/v3';
 import { useEffect } from 'react';
+
 import { getBenchState, markInteraction } from '../_bench/state';
 
 const scenario = 'react-v3-headless' as const;

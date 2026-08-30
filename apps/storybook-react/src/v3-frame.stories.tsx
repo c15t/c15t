@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import { Frame } from '../../../packages/react/src/v3/index';
 import { StorybookV3ConsentProvider } from './storybook-v3-fixtures';
 

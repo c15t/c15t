@@ -2,6 +2,7 @@
 
 import { ConsentManagerProvider, useConsentManager } from '@c15t/react';
 import { useEffect, useMemo, useRef } from 'react';
+
 import {
 	createInitialBenchState,
 	listDomIds,

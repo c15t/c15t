@@ -14,6 +14,7 @@ import * as p from '@clack/prompts';
 import 'dotenv/config';
 import open from 'open';
 import color from 'picocolors';
+
 import { showHelpMenu } from './actions/show-help-menu';
 import { codemodsCommand } from './commands/codemods';
 import { generate } from './commands/generate';
@@ -21,10 +22,8 @@ import { projectsAction } from './commands/instances';
 import { selfHost } from './commands/self-host';
 import { installSkills } from './commands/skills';
 import { displayIntro } from './components/intro';
-
 // Import from new v2 modules
 import { URLS } from './constants';
-
 // Import context creator and types
 import { createCliContext } from './context/creator';
 import { globalFlags } from './context/parser';

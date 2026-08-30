@@ -1,10 +1,13 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import type * as p from '@clack/prompts';
 import color from 'picocolors';
+
 import type { AvailablePackages } from '~/context/framework-detection';
 import type { CliContext } from '~/context/types';
 import { formatLogMessage } from '~/utils/logger';
+
 import { formatSearchedCssPaths } from '../../../shared/stylesheets';
 import type { ExpandedTheme, UIStyle } from '../../prompts';
 import { generateClientConfigContent } from '../../templates/config';

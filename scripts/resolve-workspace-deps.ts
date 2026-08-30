@@ -10,6 +10,7 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import { resolveWorkspaceProtocol } from './workspace-protocol';
 
 type PackageJson = {

@@ -15,6 +15,7 @@ import type {
 	PolicyUiSurfaceConfig,
 } from '@c15t/core/v3';
 import { useCallback, useMemo } from 'react';
+
 import { useConsentDraft } from '../draft';
 import {
 	useActiveUI,

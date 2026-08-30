@@ -1,5 +1,6 @@
 {
 	"name": "@c15t/conformance",
+	"version": "0.0.1",
 	"private": true,
 	"type": "module",
 	"exports": {
@@ -30,6 +31,5 @@
 		"@c15t/typescript-config": "workspace:*",
 		"@happy-dom/global-registrator": "^20.0.0",
 		"typescript": "6.0.3"
-	},
-	"version": "0.0.1"
+	}
 }

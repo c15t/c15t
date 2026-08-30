@@ -9,6 +9,7 @@
 
 import { Effect } from 'effect';
 import { describeRoute } from 'hono-openapi';
+
 import { listByExternalId } from '../../repository/subject';
 import type { RouteContext } from '../context';
 import { BadRequestError } from '../errors';

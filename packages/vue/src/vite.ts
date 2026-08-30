@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import type { Plugin } from 'vite';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));

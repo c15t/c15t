@@ -8,8 +8,10 @@
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
 import { isValidElement, type ReactNode } from 'react';
+
 import { BrandingCompactLogo } from '~/components/shared/ui/branding';
 import { FingerprintIcon, SettingsIcon } from '~/components/shared/ui/logo';
+
 import type { TriggerIcon as TriggerIconType } from '../types';
 import { useTriggerContext } from './root';
 

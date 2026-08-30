@@ -1,5 +1,6 @@
 import type { ConsentState, Script, ScriptCallbackInfo } from '@c15t/core';
 import { afterEach, beforeEach, expect, vi } from 'vitest';
+
 import {
 	type BuiltInScriptIntegrationKey,
 	getBuiltInScriptIntegration,

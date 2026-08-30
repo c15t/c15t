@@ -7,6 +7,7 @@
  */
 
 import { assert, describe, it } from 'vitest';
+
 import { type CacheAdapter, gvlCacheKey, resolveGvl } from './gvl';
 
 /** Minimal document satisfying `globalVendorListSchema`. */

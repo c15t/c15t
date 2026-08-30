@@ -4,12 +4,14 @@
  */
 
 import type { ConsentStoreState } from '@c15t/core';
+
 import {
 	createButton,
 	createDisconnectedState,
 	createGrid,
 } from '../components/ui';
 import { clearElement, createSvgElement, div, span } from '../core/renderer';
+
 import componentStyles from '../styles/components.module.css';
 
 // Icons

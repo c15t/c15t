@@ -4,6 +4,7 @@
  * open/modal state and a close command to portal/overlay/content.
  */
 import { provide } from 'vue';
+
 import { dialogContextKey } from './keys';
 
 const props = withDefaults(

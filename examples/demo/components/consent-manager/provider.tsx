@@ -11,6 +11,7 @@ import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
+
 import { createDemoScripts } from '../../lib/demo-scripts';
 import { useThemePreset } from './theme-switcher';
 

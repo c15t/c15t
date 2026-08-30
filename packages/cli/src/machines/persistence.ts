@@ -5,6 +5,7 @@
  */
 
 import path from 'node:path';
+
 import type { AnyStateMachine, Snapshot, SnapshotFrom } from 'xstate';
 
 /** Default persistence file name */

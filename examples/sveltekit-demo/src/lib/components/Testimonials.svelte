@@ -29,22 +29,22 @@
 
 <section
 	id="testimonials"
-	class="py-20 px-4 sm:px-6 lg:px-8 bg-secondary/30"
+	class="bg-secondary/30 px-4 py-20 sm:px-6 lg:px-8"
 >
 	<div class="container mx-auto max-w-6xl">
-		<div class="text-center space-y-4 mb-16">
-			<h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-balance">
+		<div class="mb-16 space-y-4 text-center">
+			<h2 class="text-3xl font-bold text-balance sm:text-4xl lg:text-5xl">
 				Trusted by London's best
 			</h2>
-			<p class="text-lg text-muted-foreground max-w-2xl mx-auto text-pretty">
+			<p class="text-muted-foreground mx-auto max-w-2xl text-lg text-pretty">
 				See what our customers have to say about PigeonPost
 			</p>
 		</div>
 
-		<div class="grid md:grid-cols-3 gap-6">
+		<div class="grid gap-6 md:grid-cols-3">
 			{#each testimonials as testimonial}
 				<div
-					class="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-4"
+					class="bg-card text-card-foreground space-y-4 rounded-lg border p-6 shadow-sm"
 				>
 					<div class="flex gap-1">
 						{#each Array(testimonial.rating) as _}
@@ -67,9 +67,9 @@
 						{/each}
 					</div>
 					<p class="text-sm leading-relaxed">{testimonial.content}</p>
-					<div class="pt-4 border-t border-border">
+					<div class="border-border border-t pt-4">
 						<div class="font-semibold">{testimonial.name}</div>
-						<div class="text-sm text-muted-foreground">
+						<div class="text-muted-foreground text-sm">
 							{testimonial.role}, {testimonial.company}
 						</div>
 					</div>

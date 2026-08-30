@@ -24,6 +24,7 @@ import type { ConsentManifestConfig } from '@c15t/schema';
 import type { IpAddressConfig } from '@c15t/schema/geo';
 import { Effect, Layer, type ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
+
 import { type Tenant, layer as tenantLayer } from '../db/tenant';
 import type { ObservabilityOptions } from '../observability/evlog';
 import { toRequestLog } from '../observability/evlog';

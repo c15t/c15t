@@ -12,6 +12,7 @@ import {
 import { Button as C15tButton } from 'c15t/react/primitives';
 import { RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
@@ -118,7 +119,7 @@ function ErrorState() {
 			<div className="grid gap-6 lg:grid-cols-2">
 				<div className="space-y-3">
 					<div>
-						<h3 className="font-medium text-base">YouTube configuration</h3>
+						<h3 className="text-base font-medium">YouTube configuration</h3>
 						<p className="text-muted-foreground text-sm">
 							Missing both <code className="font-mono">videoId</code> and{' '}
 							<code className="font-mono">src</code>.
@@ -129,7 +130,7 @@ function ErrorState() {
 
 				<div className="space-y-3">
 					<div>
-						<h3 className="font-medium text-base">Google Maps configuration</h3>
+						<h3 className="text-base font-medium">Google Maps configuration</h3>
 						<p className="text-muted-foreground text-sm">
 							Empty browser API key; no Google request is made.
 						</p>
@@ -244,10 +245,10 @@ function RetryState() {
 
 			{result.status === 'error' && (
 				<details className="text-sm">
-					<summary className="-ml-2 inline-flex min-h-11 cursor-pointer items-center rounded-md px-2 text-muted-foreground hover:text-foreground">
+					<summary className="text-muted-foreground hover:text-foreground -ml-2 inline-flex min-h-11 cursor-pointer items-center rounded-md px-2">
 						Technical error
 					</summary>
-					<code className="block overflow-x-auto rounded-md bg-muted p-3 text-muted-foreground text-xs leading-5">
+					<code className="bg-muted text-muted-foreground block overflow-x-auto rounded-md p-3 text-xs leading-5">
 						{result.error?.message ?? 'The fixture script failed to load.'}
 					</code>
 				</details>
@@ -271,12 +272,12 @@ function StateIntroduction({
 		<div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 			<div className="max-w-2xl">
 				<div className="flex flex-wrap items-center gap-2">
-					<h2 className="font-semibold text-xl tracking-tight">{title}</h2>
-					<span className="rounded-full bg-muted px-2.5 py-1 font-mono text-muted-foreground text-xs">
+					<h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+					<span className="bg-muted text-muted-foreground rounded-full px-2.5 py-1 font-mono text-xs">
 						{status}
 					</span>
 				</div>
-				<p className="mt-2 text-muted-foreground text-sm leading-6">
+				<p className="text-muted-foreground mt-2 text-sm leading-6">
 					{description}
 				</p>
 			</div>
@@ -288,8 +289,8 @@ function StateIntroduction({
 function CheckList({ items }: { items: string[] }) {
 	return (
 		<div className="border-border/80 border-t pt-4">
-			<p className="font-medium text-sm">What to verify</p>
-			<ul className="mt-2 space-y-1 text-muted-foreground text-sm leading-6">
+			<p className="text-sm font-medium">What to verify</p>
+			<ul className="text-muted-foreground mt-2 space-y-1 text-sm leading-6">
 				{items.map((item) => (
 					<li
 						key={item}

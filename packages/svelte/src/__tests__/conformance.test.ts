@@ -36,6 +36,7 @@ import type {
 import type { GlobalVendorList } from '@c15t/schema/types';
 import { mount, unmount } from 'svelte';
 import { describe, expect, test } from 'vitest';
+
 import type { ConsentManagerOptions } from '../lib/types';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
 

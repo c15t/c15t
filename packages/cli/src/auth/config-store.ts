@@ -7,6 +7,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+
 import { PATHS } from '../constants';
 import type { AuthState, C15tConfig } from './types';
 

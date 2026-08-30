@@ -4,6 +4,7 @@
  */
 
 import type { ConsentStoreState } from '@c15t/core';
+
 import { createButton, createSection } from '../components/ui';
 import { div, span } from '../core/renderer';
 

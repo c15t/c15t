@@ -6,6 +6,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import { type AvailablePackage, FRAMEWORK_KEYS, PACKAGES } from '../constants';
 import type { CliLogger, FrameworkDetectionResult } from '../types';
 

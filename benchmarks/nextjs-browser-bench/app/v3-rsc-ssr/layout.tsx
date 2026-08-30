@@ -1,6 +1,7 @@
 import { RscConsentBanner } from '@c15t/nextjs/v3/rsc';
 import { prefetchInitialConsent } from '@c15t/nextjs/v3/server';
 import type { ReactNode } from 'react';
+
 import { NextjsV3ManifestBenchmarkProvider } from '../_bench/v3-provider';
 
 /**

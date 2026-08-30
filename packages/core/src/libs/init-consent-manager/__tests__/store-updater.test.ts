@@ -6,6 +6,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { hasGlobalPrivacyControlSignal } from '../../global-privacy-control';
 import { updateStore } from '../store-updater';
 import type { InitConsentManagerConfig } from '../types';

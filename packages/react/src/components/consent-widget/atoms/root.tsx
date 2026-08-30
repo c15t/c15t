@@ -8,6 +8,7 @@
 
 import styles from '@c15t/ui/styles/components/consent-widget.module.js';
 import type { FC, ReactNode } from 'react';
+
 import { Box } from '~/components/shared/primitives/box';
 import {
 	ConsentTrackingContext,

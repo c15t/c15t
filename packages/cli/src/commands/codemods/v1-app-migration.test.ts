@@ -1,7 +1,9 @@
 import { cp, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
 import { afterEach, describe, expect, it } from 'vitest';
+
 import { runActiveUiApiCodemod } from './active-ui-api';
 import { runComponentRenamesCodemod } from './component-renames';
 import { runGdprTypesToConsentCategoriesCodemod } from './gdpr-types-to-consent-categories';

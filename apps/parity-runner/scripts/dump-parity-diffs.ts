@@ -4,7 +4,9 @@
  * Usage: bunx tsx scripts/dump-parity-diffs.ts (storybooks must be running)
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
+
 import { chromium, request } from '@playwright/test';
+
 import { captureA11yTree } from '../src/diff-a11y';
 import { captureComputedStyleMap } from '../src/diff-computed-style';
 import { captureDomSnapshot } from '../src/diff-dom';

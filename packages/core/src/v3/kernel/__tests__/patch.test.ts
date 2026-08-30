@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { applyPatch } from '../patch';
 import { buildInitialSnapshot } from '../snapshot';
 

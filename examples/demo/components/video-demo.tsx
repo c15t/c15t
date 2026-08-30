@@ -1,6 +1,7 @@
 'use client';
 
 import { GoogleMap, YouTubeEmbed } from 'c15t/react';
+
 import { cn } from '../lib/utils';
 
 const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -27,7 +28,7 @@ export function VideoDemo({
 			zoom={12}
 		/>
 	) : (
-		<div className="flex h-80 items-center justify-center rounded-lg border border-border/80 bg-muted/20 px-6 text-center text-muted-foreground text-sm">
+		<div className="border-border/80 bg-muted/20 text-muted-foreground flex h-80 items-center justify-center rounded-lg border px-6 text-center text-sm">
 			Set NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to validate the Google Maps SDK
 			wrapper locally.
 		</div>
@@ -53,7 +54,7 @@ export function VideoDemo({
 			<div className={cn('grid', gridClassName)}>
 				<div className="space-y-3">
 					<div>
-						<h3 className="font-medium text-base">
+						<h3 className="text-base font-medium">
 							<code className="font-mono text-sm">category="measurement"</code>
 						</h3>
 						<p className="text-muted-foreground text-sm">
@@ -71,7 +72,7 @@ export function VideoDemo({
 
 				<div className="space-y-3">
 					<div>
-						<h3 className="font-medium text-base">
+						<h3 className="text-base font-medium">
 							<code className="font-mono text-sm">category="marketing"</code>
 						</h3>
 						<p className="text-muted-foreground text-sm">
@@ -89,7 +90,7 @@ export function VideoDemo({
 
 				<div className={cn('space-y-3', !inline && 'lg:col-span-2')}>
 					<div>
-						<h3 className="font-medium text-base">Google Maps SDK</h3>
+						<h3 className="text-base font-medium">Google Maps SDK</h3>
 						<p className="text-muted-foreground text-sm">
 							Loads one page-level Maps SDK after measurement consent.
 						</p>

@@ -1,4 +1,5 @@
 import { existsSync, realpathSync } from 'node:fs';
+
 import { defaultConsentConfig } from '@c15t/schema/config';
 import {
 	addComponent,
@@ -10,6 +11,7 @@ import {
 } from '@nuxt/kit';
 import type { NuxtModule } from '@nuxt/schema';
 import { defu } from 'defu';
+
 import type { ConsentConfig } from './runtime/config';
 import {
 	resolveManifestMode,

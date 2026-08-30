@@ -1,6 +1,7 @@
 import type { PolicyUiAction } from '@c15t/schema/types';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import { ref } from 'vue';
+
 import ConsentActions from '../../../packages/vue/src/runtime/components/consent-actions.vue';
 
 const labels: Record<PolicyUiAction, string> = {

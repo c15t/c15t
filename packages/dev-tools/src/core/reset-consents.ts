@@ -5,6 +5,7 @@
 
 import type { ConsentStoreState } from '@c15t/core';
 import type { StoreApi } from 'zustand/vanilla';
+
 import type { StateManager } from './state-manager';
 
 /**

@@ -1,5 +1,6 @@
 import type { AllConsentNames } from '@c15t/core';
 import { describe, expect, it } from 'vitest';
+
 import packageJson from '../package.json' with { type: 'json' };
 import { expectScriptMatchesIntegration } from './__tests__/helpers';
 import {

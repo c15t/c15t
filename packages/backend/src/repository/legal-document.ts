@@ -14,6 +14,7 @@
 import { hashSha256Hex } from '@c15t/schema';
 import { Data, Effect } from 'effect';
 import { SqlClient, type SqlError } from 'effect/unstable/sql';
+
 import { currentTenantId, type Tenant, tenantScope } from '../db/tenant';
 import { encodeRow, encoder, toBoolean, toDate } from '../db/values';
 

@@ -1,11 +1,12 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+
 	import {
 		createConsentKernel,
 		createHostedTransport,
 		type ConsentKernel,
 		type ConsentSnapshot,
 	} from '../../../../../packages/core/src/v3';
-	import { onMount } from 'svelte';
 	import { observeBannerVisibility, getBenchState } from './banner-state';
 	import BenchmarkBanner from './benchmark-banner.svelte';
 

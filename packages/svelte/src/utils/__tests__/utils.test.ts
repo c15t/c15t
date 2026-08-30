@@ -6,6 +6,7 @@
 
 import type { AllThemeKeys, Theme } from '@c15t/ui/theme';
 import { describe, expect, test } from 'vitest';
+
 import {
 	defaultTheme,
 	generateThemeCSS,

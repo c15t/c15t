@@ -1,4 +1,5 @@
 import { inject } from 'vue';
+
 import { symbolInit } from '../utils/symbols';
 
 export function useConsentInit() {

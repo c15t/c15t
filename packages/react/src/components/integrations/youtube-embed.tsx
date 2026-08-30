@@ -8,6 +8,7 @@ import {
 	type ReactNode,
 	useState,
 } from 'react';
+
 import { Frame, type FrameProps } from '../frame';
 import { IntegrationStatus } from './shared';
 

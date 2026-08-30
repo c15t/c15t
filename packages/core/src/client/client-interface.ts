@@ -16,6 +16,7 @@ import type {
 	PostSubjectInput,
 	PostSubjectOutput,
 } from '@c15t/schema/types';
+
 import type { FetchOptions, ResponseContext } from './types';
 
 export type {

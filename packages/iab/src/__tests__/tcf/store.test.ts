@@ -11,6 +11,7 @@ import type {
 } from '@c15t/core';
 import { generateSubjectId, saveConsentToStorage } from '@c15t/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { generateTCString, iabPurposesToC15tConsents } from '../../tcf/index';
 import type { NonIABVendor } from '../../tcf/non-iab-vendor';
 import {

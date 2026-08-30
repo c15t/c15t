@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { buildQueuePixelInstall } from './install-builders';
 
 describe('vendor install builders', () => {

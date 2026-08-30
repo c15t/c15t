@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import fsPromises from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+
 import {
 	createLogger,
 	type DrainContext,
@@ -14,6 +15,7 @@ import {
 	type DrainPipelineOptions,
 	type PipelineDrainFn,
 } from 'evlog/pipeline';
+
 import { ENV_VARS, PATHS, URLS } from '../constants';
 import type { CliLogger } from './logger';
 

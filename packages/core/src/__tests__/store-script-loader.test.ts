@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { Script } from '../libs/script-loader';
 import { updateScripts } from '../libs/script-loader/core';
 import { clearLoadedScripts } from '../libs/script-loader/utils';

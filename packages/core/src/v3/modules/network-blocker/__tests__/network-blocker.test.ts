@@ -12,6 +12,7 @@
  * - IAB-aware evaluation via shared has()
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 import { createConsentKernel } from '../../../index';
 import { createNetworkBlocker } from '../index';
 

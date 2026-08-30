@@ -6,7 +6,9 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import * as p from '@clack/prompts';
+
 import type { CliLogger, PackageManager, PackageManagerResult } from '../types';
 
 /**

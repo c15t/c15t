@@ -1,7 +1,9 @@
 import * as p from '@clack/prompts';
+
 import type { CliContext } from '~/context/types';
 import { formatLogMessage } from '~/utils/logger';
 import { TelemetryEventName } from '~/utils/telemetry';
+
 import { migrate } from './migrate';
 
 // Define self-host subcommands

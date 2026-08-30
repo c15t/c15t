@@ -1,10 +1,11 @@
+import type { Preview } from '@storybook/svelte-vite';
+
+import '../../../packages/svelte/src/styles.css';
+import '../../../packages/svelte/src/iab/styles.css';
 import {
 	defaultTheme,
 	generateThemeCSS,
 } from '../../../packages/ui/src/theme/utils';
-import '../../../packages/svelte/src/styles.css';
-import '../../../packages/svelte/src/iab/styles.css';
-import type { Preview } from '@storybook/svelte-vite';
 
 const storybookThemeStyleId = 'c15t-storybook-theme';
 const storybookCanvasStyleId = 'c15t-storybook-canvas';

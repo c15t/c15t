@@ -1,6 +1,7 @@
 'use client';
 
 import { forwardRef, type ReactNode, type Ref } from 'react';
+
 import { ConsentButton } from '~/components/shared/primitives/button';
 import type { ConsentButtonProps } from '~/components/shared/primitives/button.types';
 

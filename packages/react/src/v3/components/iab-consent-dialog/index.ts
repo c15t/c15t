@@ -10,6 +10,7 @@
  */
 
 import type { FC } from 'react';
+
 import { IABConsentDialogCard } from './atoms/card';
 import { IABConsentDialogContent } from './atoms/content';
 import { IABConsentDialogFooter } from './atoms/footer';

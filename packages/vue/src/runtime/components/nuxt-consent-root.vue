@@ -1,12 +1,14 @@
 <script lang="ts" setup>
+import { computed, onMounted, ref, watch } from 'vue';
+
+import { useHead } from '#imports';
+
 import {
 	useConsentActiveUI,
 	useConsentInit,
 	useConsentConfig,
 	useConsentKernel,
 } from '../composables';
-import { useHead } from '#imports';
-import { computed, onMounted, ref, watch } from 'vue';
 import ConsentBanner from './consent-banner.vue';
 import {
 	LazyConsentManager,

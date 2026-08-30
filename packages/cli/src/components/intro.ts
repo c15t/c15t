@@ -1,5 +1,6 @@
 import figlet from 'figlet';
 import color from 'picocolors';
+
 import type { CliContext } from '~/context/types';
 
 /**

@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
+
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { PackageBundleData } from './analyze/bundle-analysis';
 import {
 	analyzeBundles,

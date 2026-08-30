@@ -33,6 +33,7 @@ import {
 	useState,
 	useSyncExternalStore,
 } from 'react';
+
 import { KernelContext } from './context';
 
 export interface ConsentDraftHandle {

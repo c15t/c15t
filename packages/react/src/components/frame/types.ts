@@ -1,5 +1,6 @@
 import type { AllConsentNames } from '@c15t/core';
 import type { ComponentPropsWithRef, FC, ReactNode } from 'react';
+
 import type * as Atom from './atoms';
 
 export interface FrameProps extends ComponentPropsWithRef<'div'> {

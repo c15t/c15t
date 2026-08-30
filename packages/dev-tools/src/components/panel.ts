@@ -15,8 +15,6 @@ import {
 } from '../core/renderer';
 import type { DevToolsPosition, StateManager } from '../core/state-manager';
 import type { StoreConnector } from '../core/store-connector';
-import animationStyles from '../styles/animations.module.css';
-import panelStyles from '../styles/panel.module.css';
 import { formatInitSource } from '../utils/init-source';
 import {
 	detectPreferenceTrigger,
@@ -31,6 +29,9 @@ import {
 	EYE_ICON,
 	PREFERENCES_ICON,
 } from './dropdown-menu';
+
+import animationStyles from '../styles/animations.module.css';
+import panelStyles from '../styles/panel.module.css';
 
 // SVG Icons - matches C15TIconOnly from @c15t/react
 const LOGO_ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 446 445" aria-label="c15t">

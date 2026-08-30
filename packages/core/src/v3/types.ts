@@ -20,6 +20,7 @@ import type {
 	ResolvedPolicy,
 	TranslationsResponse,
 } from '@c15t/schema/types';
+
 import type { AllConsentNames } from './consent/consent-types';
 
 // Re-export schema types that v3 consumers need so they don't have to

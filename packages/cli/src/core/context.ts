@@ -7,8 +7,10 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import * as p from '@clack/prompts';
 import { loadConfig } from 'c12';
+
 import { detectFramework, detectProjectRoot } from '../detection/framework';
 import { detectPackageManager } from '../detection/package-manager';
 import type { CliContext, PackageInfo, ParsedArgs } from '../types';

@@ -10,6 +10,7 @@
 import { useConsent, useOverrides } from '@c15t/react/v3';
 import { describe, expect, test } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentBoundary } from '../boundary';
 
 describe('ConsentBoundary: config is honored', () => {

@@ -2,6 +2,7 @@ import { getRequestHeaders, setResponseHeader } from 'h3';
 import { defineCachedEventHandler, useRuntimeConfig } from 'nitropack/runtime';
 import type { NitroRuntimeConfig } from 'nitropack/types';
 import { joinURL } from 'ufo';
+
 import type { ConsentConfig } from '../config';
 import { serverFetch } from './local-fetch';
 import { fetchCachedManifest, resolveManifestInit } from './manifest-mode';

@@ -19,6 +19,7 @@
  */
 
 import { createMigrator } from '@c15t/backend';
+
 import { installDependencies } from '~/commands/generate/options/utils/dependencies';
 import { ensureBackendConfig } from '~/commands/self-host/migrate/ensure-backend-config';
 import { readDatabaseConfig } from '~/commands/self-host/migrate/read-config';

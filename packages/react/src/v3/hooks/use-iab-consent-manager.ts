@@ -2,6 +2,7 @@
 
 import type { ActiveUI, Model, TranslationConfig } from '@c15t/core';
 import { useCallback, useMemo } from 'react';
+
 import {
 	useActiveUI,
 	useModel,

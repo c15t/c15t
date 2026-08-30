@@ -5,6 +5,7 @@ import { useSaveConsents } from '@c15t/react/v3/hooks';
 import { useScriptLoader } from '@c15t/react/v3/module-hooks/script-loader';
 import { ConsentProvider } from '@c15t/react/v3/provider';
 import { useEffect, useMemo, useRef } from 'react';
+
 import {
 	createInitialBenchState,
 	listDomIds,

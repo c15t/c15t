@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, test } from 'vitest';
+
 import { portal } from '../../lib/actions/portal';
 
 describe('portal action', () => {

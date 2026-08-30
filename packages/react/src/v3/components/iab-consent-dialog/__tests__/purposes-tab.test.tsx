@@ -6,13 +6,15 @@
 
 import { iab } from '@c15t/iab';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
+import { userEvent } from 'vitest/browser';
+
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
 } from '~/v3/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
+
 import { IABConsentDialog } from '../iab-consent-dialog';
 
 // Mock localStorage

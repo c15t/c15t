@@ -1,6 +1,7 @@
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { afterEach, describe, expect, test, vi } from 'vitest';
+
 import type { ConsentConfig } from '../runtime/config';
 import {
 	createVueConsentKernelContext,

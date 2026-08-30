@@ -2,6 +2,7 @@
 
 import { useActiveUI } from '@c15t/react/v3';
 import { useEffect, useRef } from 'react';
+
 import {
 	getBenchState,
 	hasRunningAnimations,

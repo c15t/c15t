@@ -1,11 +1,11 @@
 <script lang="ts">
+	import ForceBannerShow from '$lib/components/ForceBannerShow.svelte';
+	import { minimalTheme, darkTheme } from '$lib/consent-manager/theme-presets';
 	import {
 		ConsentBanner,
 		ConsentManagerProvider,
 		type Theme,
 	} from '@c15t/svelte';
-	import ForceBannerShow from '$lib/components/ForceBannerShow.svelte';
-	import { minimalTheme, darkTheme } from '$lib/consent-manager/theme-presets';
 
 	type ButtonName = 'accept' | 'reject' | 'customize';
 	type LayoutConfig = (ButtonName | ButtonName[])[];
@@ -516,9 +516,9 @@
 	});
 </script>
 
-<div class="min-h-screen flex flex-col">
+<div class="flex min-h-screen flex-col">
 	<header class="p-8 text-center">
-		<h1 class="text-4xl font-bold mb-2 text-foreground">Theme Showcase</h1>
+		<h1 class="text-foreground mb-2 text-4xl font-bold">Theme Showcase</h1>
 		<p class="text-muted-foreground">
 			Demonstrating c15t's customizable theme engine
 		</p>
@@ -526,11 +526,11 @@
 
 	<div class="flex-1"></div>
 
-	<div class="fixed top-32 left-0 right-0 text-center pointer-events-none z-10">
-		<h2 class="text-2xl font-semibold text-foreground">
+	<div class="pointer-events-none fixed top-32 right-0 left-0 z-10 text-center">
+		<h2 class="text-foreground text-2xl font-semibold">
 			{currentThemeData.name}
 		</h2>
-		<p class="text-sm text-muted-foreground mt-1">
+		<p class="text-muted-foreground mt-1 text-sm">
 			{currentThemeData.description}
 		</p>
 	</div>
@@ -552,17 +552,17 @@
 	{/key}
 
 	<footer
-		class="fixed bottom-0 left-0 right-0 p-8 flex flex-col items-center gap-4 bg-gradient-to-t from-background to-transparent"
+		class="from-background fixed right-0 bottom-0 left-0 flex flex-col items-center gap-4 bg-gradient-to-t to-transparent p-8"
 	>
 		<div class="flex items-center gap-4">
 			<button
 				type="button"
 				onclick={goToPrevious}
-				class="p-2 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
+				class="bg-secondary hover:bg-secondary/80 rounded-full p-2 transition-colors"
 				aria-label="Previous theme"
 			>
 				<svg
-					class="w-5 h-5"
+					class="h-5 w-5"
 					fill="none"
 					stroke="currentColor"
 					viewBox="0 0 24 24"
@@ -579,7 +579,7 @@
 			<button
 				type="button"
 				onclick={() => (isPlaying = !isPlaying)}
-				class="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+				class="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-4 py-2 transition-colors"
 			>
 				{isPlaying ? 'Pause' : 'Play'}
 			</button>
@@ -587,11 +587,11 @@
 			<button
 				type="button"
 				onclick={goToNext}
-				class="p-2 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
+				class="bg-secondary hover:bg-secondary/80 rounded-full p-2 transition-colors"
 				aria-label="Next theme"
 			>
 				<svg
-					class="w-5 h-5"
+					class="h-5 w-5"
 					fill="none"
 					stroke="currentColor"
 					viewBox="0 0 24 24"
@@ -611,7 +611,7 @@
 				<button
 					type="button"
 					onclick={() => goToIndex(index)}
-					class="w-3 h-3 rounded-full transition-all {index === currentIndex
+					class="h-3 w-3 rounded-full transition-all {index === currentIndex
 						? 'bg-primary scale-125'
 						: 'bg-muted-foreground/30 hover:bg-muted-foreground/50'}"
 					aria-label="Go to {theme.name} theme"
@@ -619,7 +619,7 @@
 			{/each}
 		</div>
 
-		<div class="text-sm text-muted-foreground">
+		<div class="text-muted-foreground text-sm">
 			{currentIndex + 1} / {showcaseThemes.length}
 		</div>
 	</footer>

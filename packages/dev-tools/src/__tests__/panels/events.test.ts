@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { EventLogEntry } from '../../core/state-manager';
 import { renderEventsPanel } from '../../panels/events';
 

@@ -2,6 +2,7 @@
 	import { getTabPanelState } from '@c15t/ui/primitives';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
+
 	import { getTabsRootContext } from './context';
 
 	const root = getTabsRootContext();

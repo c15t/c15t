@@ -8,6 +8,7 @@
 
 import styles from '@c15t/ui/styles/v3/consent-dialog-trigger';
 import type { ReactNode } from 'react';
+
 import { useTheme } from '~/v3/hooks/use-theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';

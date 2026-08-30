@@ -11,6 +11,7 @@ import { PgliteClient } from '@effect/sql-pglite';
 import { assert, describe, it } from '@effect/vitest';
 import { Effect, Layer } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+
 import { up as baseline } from '../db/migrations/1-baseline';
 import { singleTenant } from '../db/tenant';
 import { assertSamePurposes, record } from './consent';

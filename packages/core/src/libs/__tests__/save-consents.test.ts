@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand';
+
 import type { ConsentManagerInterface } from '../../client/client-interface';
 import type { ConsentStoreState } from '../../store/type';
 import { PENDING_CONSENT_SYNC_KEY, saveConsents } from '../save-consents';

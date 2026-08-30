@@ -10,6 +10,7 @@
  * `bannerVisibleMs` here mean "app hydrated and painted" — the page floor.
  */
 import { useEffect } from 'react';
+
 import { getBenchState } from '../_bench/state';
 
 function BaselineProbe() {

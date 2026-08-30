@@ -4,6 +4,7 @@
 	import legalLinkStyles from '@c15t/ui/styles/primitives/legal-links.module.js';
 	import type { AllThemeKeys } from '@c15t/ui/theme';
 	import { resolveTranslations } from '@c15t/ui/utils';
+
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { resolveComponentStyles } from '../utils';
 

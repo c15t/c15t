@@ -9,6 +9,7 @@ import {
 	useCallback,
 	useContext,
 } from 'react';
+
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { Box, type BoxProps } from '~/v3/components/shared/primitives/box';

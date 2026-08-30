@@ -1,6 +1,7 @@
 'use client';
 
 import { ConsentDialogTrigger, useConsentManager } from '@c15t/react';
+
 import { BenchmarkProvider } from '../_bench/provider';
 
 function BenchmarkControls() {

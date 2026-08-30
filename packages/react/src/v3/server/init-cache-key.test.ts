@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { createSSRInitCacheKey } from './init-cache-key';
 
 describe('createSSRInitCacheKey', () => {

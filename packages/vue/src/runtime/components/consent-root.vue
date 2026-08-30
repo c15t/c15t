@@ -1,5 +1,12 @@
 <script lang="ts" setup>
 import { onMounted, watch } from 'vue';
+
+import {
+	useConsentActiveUI,
+	useConsentInit,
+	useConsentKernel,
+} from '../composables';
+import { useConsentConfig } from '../composables/config';
 import ConsentBanner from './consent-banner.vue';
 import {
 	LazyConsentManager,
@@ -8,12 +15,6 @@ import {
 	prefetchConsentManager,
 	prefetchIabConsentDialog,
 } from './lazy-surfaces';
-import { useConsentConfig } from '../composables/config';
-import {
-	useConsentActiveUI,
-	useConsentInit,
-	useConsentKernel,
-} from '../composables';
 
 const props = defineProps<{
 	region?: string;

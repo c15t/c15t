@@ -5,6 +5,7 @@ import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { type FC, type ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
@@ -12,6 +13,7 @@ import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useStyles } from '~/hooks/use-styles';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import { cnExt as cn } from '~/utils/cn';
+
 import { IABConsentDialogOverlay } from './overlay';
 
 interface IABConsentDialogRootProps {

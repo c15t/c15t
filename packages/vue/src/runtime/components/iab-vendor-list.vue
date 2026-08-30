@@ -2,7 +2,9 @@
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { computed, ref, toValue, watch } from 'vue';
+
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
+
 import ConsentSwitch from './consent-switch.vue';
 import type { IabProcessedPurpose, IabVendorId } from './iab-purpose-item.vue';
 

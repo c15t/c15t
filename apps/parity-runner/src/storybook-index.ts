@@ -4,6 +4,7 @@
  */
 
 import { request } from '@playwright/test';
+
 import type { StoryEntry } from './pair-stories';
 
 type RawStorybookIndex = {

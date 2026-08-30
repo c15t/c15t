@@ -1,5 +1,6 @@
 import type { LegalDocumentPolicyType } from '@c15t/schema/types';
 import { SignJWT } from 'jose';
+
 import {
 	DEMO_LEGAL_DOCUMENT_SNAPSHOT,
 	DEMO_LEGAL_DOCUMENT_SNAPSHOT_AUDIENCE,

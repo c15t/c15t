@@ -8,6 +8,7 @@ import {
 } from '@c15t/ui/utils';
 import type { SVGProps } from 'react';
 import { useContext, useMemo } from 'react';
+
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { useTheme } from '~/hooks/use-theme';
 import type {
@@ -18,6 +19,7 @@ import type {
 import { cnExt as cn } from '~/utils/cn';
 import { mergeStyles } from '~/utils/merge-styles';
 import { KernelContext } from '~/v3/context';
+
 import { C15TIconOnly, InthIconOnly, InthLogo } from './logo';
 
 export type ResolvedBranding = 'c15t' | 'inth' | 'none';

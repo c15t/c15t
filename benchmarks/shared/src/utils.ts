@@ -6,6 +6,7 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
+
 import type { BenchmarkEnvironment, MetricSampleSet } from './schema';
 
 export function percentile(values: number[], p: number): number {

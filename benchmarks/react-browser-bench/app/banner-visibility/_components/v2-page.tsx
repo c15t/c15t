@@ -6,6 +6,7 @@ import {
 	useConsentManager,
 } from '@c15t/react';
 import { useEffect, useRef } from 'react';
+
 import { getBenchState, observeBannerVisibility } from './state';
 
 const BENCHMARK_POLICY = {

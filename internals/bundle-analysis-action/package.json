@@ -3,18 +3,15 @@
 	"version": "0.1.0",
 	"private": true,
 	"description": "Analyze bundle size differences using rsdoctor and comment on PRs",
-	"author": "c15t",
 	"license": "Apache-2.0",
+	"author": "c15t",
 	"main": "dist/index.js",
-	"engines": {
-		"node": ">=18"
-	},
 	"scripts": {
 		"build": "ncc build src/main.ts -o dist -m",
 		"check-types": "tsc --noEmit",
-		"test": "vitest run",
 		"fmt": "bun oxfmt .",
-		"lint": "bun oxlint ./src"
+		"lint": "bun oxlint ./src",
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"@actions/core": "^3.0.1",
@@ -27,5 +24,8 @@
 		"tsx": "^4.23.0",
 		"typescript": "6.0.3",
 		"vitest": "^4.1.9"
+	},
+	"engines": {
+		"node": ">=18"
 	}
 }

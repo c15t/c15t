@@ -8,6 +8,7 @@
  *    otherwise falls back to category-based has.
  */
 import { describe, expect, test } from 'vitest';
+
 import { createConsentKernel } from '../../index';
 import type { ConsentSnapshot, KernelIABState } from '../../types';
 import { evaluateConsent, has, hasIABConsent } from '../has';

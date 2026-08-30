@@ -7,6 +7,7 @@
  */
 
 import type { CMPApi, CMPApiConfig, GlobalVendorList } from '@c15t/core';
+
 import { CMP_ID, CMP_VERSION } from './cmp-defaults';
 import { IAB_STORAGE_KEYS } from './constants';
 import type {

@@ -1,5 +1,6 @@
 import { buildPrefetchScript } from '@c15t/core';
 import Script from 'next/script';
+
 import type { C15tPrefetchProps } from '~/types';
 
 const DEFAULT_SCRIPT_ID = 'c15t-initial-data-prefetch';

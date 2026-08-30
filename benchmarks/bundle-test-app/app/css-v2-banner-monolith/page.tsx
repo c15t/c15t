@@ -1,7 +1,6 @@
 'use client';
 
 import '@c15t/react/styles.css';
-
 import { ConsentBanner, ConsentManagerProvider } from '@c15t/react';
 
 export default function CssV2BannerMonolithPage() {

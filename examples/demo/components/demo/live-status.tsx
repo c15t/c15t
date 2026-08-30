@@ -2,6 +2,7 @@
 
 import { useConsentManager } from 'c15t/react';
 import { useEffect, useState } from 'react';
+
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 
@@ -235,10 +236,10 @@ export function LiveStatus({ mode }: { mode: 'offline' | 'hosted' }) {
 			</div>
 
 			<details className="group">
-				<summary className="cursor-pointer select-none text-muted-foreground text-xs underline-offset-4 hover:text-foreground hover:underline">
+				<summary className="text-muted-foreground hover:text-foreground cursor-pointer text-xs underline-offset-4 select-none hover:underline">
 					Raw state (for developers)
 				</summary>
-				<pre className="mt-2 max-h-96 overflow-auto rounded-xl border border-border/80 bg-muted/20 p-3 font-mono text-[12px] text-foreground/90 leading-5">
+				<pre className="border-border/80 bg-muted/20 text-foreground/90 mt-2 max-h-96 overflow-auto rounded-xl border p-3 font-mono text-[12px] leading-5">
 					{JSON.stringify(rawState, null, 2)}
 				</pre>
 			</details>

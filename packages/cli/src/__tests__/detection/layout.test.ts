@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 // Mock the fs module

@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+
 import { describe, expect, test } from 'vitest';
 
 const COMPONENT_CSS_MODULES = [

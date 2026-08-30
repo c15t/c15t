@@ -1,5 +1,6 @@
 import { builtInScriptIntegrations } from '@c15t/scripts/registry';
 import { describe, expect, it } from 'vitest';
+
 import {
 	generateScriptsConfig,
 	generateScriptsImport,

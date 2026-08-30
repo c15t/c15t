@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { STATUS_PATH, status } from '../../endpoints/status';
 import type { FetcherContext } from '../../fetcher';
 

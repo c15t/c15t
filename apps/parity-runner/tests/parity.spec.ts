@@ -22,6 +22,7 @@
 
 import { diffComputedStyleMap } from '@c15t/conformance';
 import { expect, type Page, test } from '@playwright/test';
+
 import { captureA11yTree } from '../src/diff-a11y';
 import { captureComputedStyleMap } from '../src/diff-computed-style';
 import { captureDomSnapshot } from '../src/diff-dom';

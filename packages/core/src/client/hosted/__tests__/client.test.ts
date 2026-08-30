@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { fetchMock, mockLocalStorage } from '../../../../vitest.setup';
 import {
 	type ConsentManagerOptions,

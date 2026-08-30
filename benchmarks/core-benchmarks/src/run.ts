@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { join } from 'node:path';
+
 import { coreRuntimeBudgets } from '@c15t/benchmarking/budgets';
 import { coreFixtures } from '@c15t/benchmarking/fixtures';
 import {
@@ -21,6 +22,7 @@ import {
 	getConsentFromStorage,
 	saveConsentToStorage,
 } from '@c15t/core';
+
 import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();

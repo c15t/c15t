@@ -1,4 +1,5 @@
 import { afterEach, vi } from 'vitest';
+
 import {
 	clearAllScripts,
 	loadScripts,

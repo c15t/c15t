@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import {
+	type CONSENT_CATEGORY,
+	getConsentAvailableCategories,
+} from '@c15t/core/v3/consent-record';
 /**
  * Inline consent-management widget for settings and privacy pages.
  *
@@ -18,11 +22,8 @@ import {
 	switchVariants,
 } from '@c15t/ui/styles/primitives';
 import { getTextDirection } from '@c15t/ui/utils/dom';
-import {
-	type CONSENT_CATEGORY,
-	getConsentAvailableCategories,
-} from '@c15t/core/v3/consent-record';
 import { computed, ref, useId, watch } from 'vue';
+
 import {
 	useConsentActiveUI,
 	useConsentConfig,

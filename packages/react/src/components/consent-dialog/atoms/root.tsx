@@ -13,6 +13,7 @@ import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import {
 	LocalThemeContext,
@@ -27,6 +28,7 @@ import { useStyles } from '~/hooks/use-styles';
 import { useTheme } from '~/hooks/use-theme';
 import type { CSSPropertiesWithVars } from '~/types/theme';
 import { cnExt as cn } from '~/utils/cn';
+
 import { Overlay } from './overlay';
 
 /**

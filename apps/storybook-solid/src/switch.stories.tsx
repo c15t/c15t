@@ -2,6 +2,7 @@ import { controlledToggle, toggleOnOff } from '@c15t/conformance/play/switch';
 import { getSwitchState, switchVariants, toggleSwitchValue } from '@c15t/solid';
 import { createSignal } from 'solid-js';
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
+
 import { enTranslations } from '../../../packages/translations/src';
 
 const { consentTypes } = enTranslations;

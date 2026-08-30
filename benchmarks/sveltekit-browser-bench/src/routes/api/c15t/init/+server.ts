@@ -5,13 +5,14 @@
  * manifest fixture and return an InitOutput plus `resolvedOverrides`.
  */
 
+import { benchConsentManifestResponse } from '$lib/fixture';
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
 import { json } from '@sveltejs/kit';
-import { benchConsentManifestResponse } from '$lib/fixture';
+
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = ({ request }) => {

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+
 	import { setDialogRootContext } from './context';
 
 	const componentId = $props.id();

@@ -11,6 +11,7 @@
  */
 
 import { assert, describe, it } from '@effect/vitest';
+
 import {
 	createLegalDocumentSnapshotToken,
 	verifyLegalDocumentSnapshotToken,

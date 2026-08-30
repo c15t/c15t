@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { checkJurisdiction } from './jurisdiction';
 
 describe('checkJurisdiction', () => {

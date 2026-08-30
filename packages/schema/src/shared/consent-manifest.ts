@@ -1,4 +1,5 @@
 import type { Translations } from '@c15t/translations';
+
 import type { InitOutput, PolicyDecision, ResolvedPolicy } from '../api/init';
 import { brandingValues } from './constants';
 import {

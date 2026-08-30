@@ -1,10 +1,11 @@
+import type { Preview } from '@storybook/react-vite';
+
+import '../../../packages/react/src/styles.css';
+import '../../../packages/react/src/iab/styles.css';
 import {
 	defaultTheme,
 	generateThemeCSS,
 } from '../../../packages/ui/src/theme/utils';
-import '../../../packages/react/src/styles.css';
-import '../../../packages/react/src/iab/styles.css';
-import type { Preview } from '@storybook/react-vite';
 
 const storybookThemeStyleId = 'c15t-storybook-theme';
 const storybookCanvasStyleId = 'c15t-storybook-canvas';

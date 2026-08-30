@@ -5,6 +5,7 @@
 
 import { button, createSvgElement, div } from '../core/renderer';
 import type { DevToolsTab } from '../core/state-manager';
+
 import tabStyles from '../styles/tabs.module.css';
 
 // Tab icons

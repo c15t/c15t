@@ -18,6 +18,7 @@
  *   bun run --filter @c15t/scripts test:live-vendors -- --report ./report.json
  */
 import { type Browser, chromium, type Response } from 'playwright';
+
 import { getBuiltInScriptIntegrationByVendor } from '../src/registry';
 import { evaluateDeniedConsentProbe } from './denied-consent';
 import { failedPhases } from './report';

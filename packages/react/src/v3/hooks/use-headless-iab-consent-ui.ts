@@ -7,6 +7,7 @@ import {
 	resolveIABBannerSummary,
 } from '@c15t/iab/v3/headless';
 import { useCallback, useMemo } from 'react';
+
 import { useIABConsentManager } from './use-iab-consent-manager';
 
 export type {

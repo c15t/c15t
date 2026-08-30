@@ -10,6 +10,7 @@
  */
 
 import { vi } from 'vitest';
+
 import type {
 	GlobalVendorList,
 	GVLFeature,

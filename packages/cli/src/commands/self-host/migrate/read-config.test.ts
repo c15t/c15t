@@ -9,6 +9,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('c12', () => ({
@@ -18,6 +19,7 @@ vi.mock('c12', () => ({
 }));
 
 import { loadConfig } from 'c12';
+
 import { readDatabaseConfig } from './read-config';
 
 const NOT_FOUND_RE = /Backend config not found/;

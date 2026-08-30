@@ -2,6 +2,7 @@ import type { InitOutput, TranslationsResponse } from '@c15t/schema/types';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { describe, expect, test, vi } from 'vitest';
 import type { ComponentPublicInstance } from 'vue';
+
 import ConsentManager from '../runtime/components/consent-manager.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';

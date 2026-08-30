@@ -3,9 +3,11 @@
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+
 import * as Button from '~/components/shared/ui/button';
 import { useHeadlessIABConsentUI } from '~/hooks/use-headless-iab-consent-ui';
 import { useStyles } from '~/hooks/use-styles';
+
 import { useGVLData } from '../hooks/use-gvl-data';
 import { useIABTranslations } from '../use-iab-translations';
 

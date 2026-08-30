@@ -12,8 +12,10 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import type { DatabaseOption } from '@c15t/backend';
 import { loadConfig } from 'c12';
+
 import type { CliContext } from '~/context/types';
 
 interface BackendConfig extends Record<string, unknown> {

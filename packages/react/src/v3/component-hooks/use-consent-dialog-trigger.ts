@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
+
 import { useConsentManager } from './use-consent-manager';
 
 export type ConsentDialogTriggerVisibility =

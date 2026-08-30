@@ -1,6 +1,7 @@
 import type { Branding } from '@c15t/core';
 import styles from '@c15t/ui/styles/v3/branding';
 import type { SVGProps } from 'react';
+
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { useBranding } from '~/v3/hooks';
 import { useTheme } from '~/v3/hooks/use-theme';
@@ -8,6 +9,7 @@ import type { CSSPropertiesWithVars } from '~/v3/types/theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { cnExt as cn } from '~/v3/utils/cn';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { C15TIconOnly, InthIconOnly, InthLogo } from './logo';
 
 export type ResolvedBranding = 'c15t' | 'inth' | 'none';

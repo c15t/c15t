@@ -7,6 +7,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { createCMPApi } from '../../tcf/cmp-api';
 import { IAB_STORAGE_KEYS } from '../../tcf/constants';
 import type { GlobalVendorList } from '../../tcf/iab-tcf-types';

@@ -1,5 +1,7 @@
 import { webcrypto } from 'node:crypto';
+
 import { afterEach, describe, expect, it } from 'vitest';
+
 import { createMaterialPolicyFingerprint } from './policy-fingerprint';
 import {
 	createPolicyFingerprint,

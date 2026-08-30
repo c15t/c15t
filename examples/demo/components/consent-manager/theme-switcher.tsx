@@ -2,6 +2,7 @@
 
 import { Check, ChevronDown, Monitor, Moon, Palette, Sun } from 'lucide-react';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+
 import { cn } from '../../lib/utils';
 import { disableTransitionsTemporarily, useTheme } from '../theme-provider';
 import { Button } from '../ui/button';
@@ -60,14 +61,14 @@ export function ThemeSwitcherButton() {
 			<Button
 				size="sm"
 				variant="outline"
-				className="h-9 rounded-full border-border/80 px-3 text-foreground shadow-none"
+				className="border-border/80 text-foreground h-9 rounded-full px-3 shadow-none"
 				aria-expanded={open}
 				aria-label="Theme settings"
 				aria-haspopup="menu"
 				onClick={() => setOpen((prev) => !prev)}
 			>
 				<Palette className="size-4" />
-				<span className="font-medium text-sm">Theme</span>
+				<span className="text-sm font-medium">Theme</span>
 				<ChevronDown
 					className={cn('size-4 transition-transform', open && 'rotate-180')}
 				/>
@@ -82,8 +83,8 @@ function ThemeSwitcherPanel() {
 	const { theme: colorMode, setTheme: setColorMode } = useTheme();
 
 	return (
-		<div className="absolute top-full right-0 z-[60] mt-3 w-[20rem] rounded-[1.25rem] border border-border/80 bg-background p-3 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.28)]">
-			<div className="space-y-1 border-border/80 border-b px-1 pb-3">
+		<div className="border-border/80 bg-background absolute top-full right-0 z-[60] mt-3 w-[20rem] rounded-[1.25rem] border p-3 shadow-[0_18px_50px_-22px_rgba(15,23,42,0.28)]">
+			<div className="border-border/80 space-y-1 border-b px-1 pb-3">
 				<p className="label-pixel text-muted-foreground">Theme</p>
 				<p className="text-muted-foreground text-sm">
 					Keep the demo on the base UI or swap in a preset.
@@ -109,7 +110,7 @@ function ThemeSwitcherPanel() {
 							)}
 						>
 							<div className="flex min-w-0 flex-1 flex-col gap-1">
-								<span className="font-medium text-sm">{info.label}</span>
+								<span className="text-sm font-medium">{info.label}</span>
 								<span
 									className={cn(
 										'text-xs leading-5',
@@ -134,7 +135,7 @@ function ThemeSwitcherPanel() {
 				})}
 			</div>
 
-			<div className="mt-3 border-border/80 border-t px-1 pt-3">
+			<div className="border-border/80 mt-3 border-t px-1 pt-3">
 				<p className="label-pixel text-muted-foreground">Color mode</p>
 				<div className="mt-2 grid grid-cols-3 gap-2">
 					{colorModes.map((mode) => {
@@ -147,7 +148,7 @@ function ThemeSwitcherPanel() {
 								onClick={() => setColorMode(mode.value)}
 								aria-pressed={colorMode === mode.value}
 								className={cn(
-									'flex items-center justify-center gap-2 rounded-full border px-3 py-2 font-medium text-xs transition-colors',
+									'flex items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition-colors',
 									colorMode === mode.value
 										? 'border-foreground bg-foreground text-background'
 										: 'border-border/80 text-foreground hover:border-foreground/30'

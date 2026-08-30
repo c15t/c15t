@@ -6,8 +6,10 @@
 
 import * as p from '@clack/prompts';
 import color from 'picocolors';
+
 import type { PackageManagerResult } from '~/context/package-manager-detection';
 import type { CliContext } from '~/context/types';
+
 import { STORAGE_MODES, type StorageMode, URLS } from '../../constants';
 import { getModeInfo } from './prompts/mode-select';
 

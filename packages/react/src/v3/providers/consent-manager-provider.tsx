@@ -11,6 +11,7 @@ import type { KernelBranding } from '@c15t/core/v3';
 import { generateThemeCSS } from '@c15t/ui/theme';
 import { deepMerge } from '@c15t/ui/utils';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
+
 import { version } from '../../version';
 import {
 	ConsentStateContext,

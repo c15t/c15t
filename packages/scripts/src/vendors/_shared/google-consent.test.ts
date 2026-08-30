@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
 	GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
 	withOptionalConsentMapping,

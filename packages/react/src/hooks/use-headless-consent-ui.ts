@@ -15,6 +15,7 @@ import {
 	shouldFillPolicyActions,
 } from '@c15t/ui/utils';
 import { useCallback, useMemo } from 'react';
+
 import { useConsentManager } from './use-consent-manager';
 
 export type HeadlessConsentSurface = 'banner' | 'dialog';

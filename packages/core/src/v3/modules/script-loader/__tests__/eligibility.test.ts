@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { createConsentKernel } from '../../../kernel';
 import { buildReconcilePass, isEligible } from '../eligibility';
 import { normalizeScripts } from '../normalize';

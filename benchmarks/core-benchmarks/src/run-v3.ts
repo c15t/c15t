@@ -9,6 +9,7 @@
  * Attaches coreRuntimeV3Budgets + kernel-specific invariants.
  */
 import { join } from 'node:path';
+
 import {
 	BENCHMARK_SCHEMA_VERSION,
 	type BenchmarkResult,

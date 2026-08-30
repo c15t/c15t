@@ -3,8 +3,10 @@ import { defaultTranslationConfig } from '@c15t/core';
 import type { ComponentProps, ReactElement } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentDialogFooter } from '~/v3/components/consent-dialog/atoms/card';
 import { ConsentProvider } from '~/v3/provider';
+
 import { BrandingCompactLogo, BrandingLink } from '../branding';
 
 function createMockState(

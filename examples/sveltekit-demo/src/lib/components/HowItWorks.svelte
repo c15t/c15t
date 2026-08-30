@@ -29,24 +29,24 @@
 
 <section
 	id="how-it-works"
-	class="py-20 px-4 sm:px-6 lg:px-8 bg-secondary/30"
+	class="bg-secondary/30 px-4 py-20 sm:px-6 lg:px-8"
 >
 	<div class="container mx-auto max-w-6xl">
-		<div class="text-center space-y-4 mb-16">
-			<h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold text-balance">
+		<div class="mb-16 space-y-4 text-center">
+			<h2 class="text-3xl font-bold text-balance sm:text-4xl lg:text-5xl">
 				How it works
 			</h2>
-			<p class="text-lg text-muted-foreground max-w-2xl mx-auto text-pretty">
+			<p class="text-muted-foreground mx-auto max-w-2xl text-lg text-pretty">
 				Simple, efficient, and surprisingly fast
 			</p>
 		</div>
 
-		<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+		<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
 			{#each steps as step}
 				<div
-					class="rounded-lg border bg-card text-card-foreground shadow-sm p-6 space-y-4 relative"
+					class="bg-card text-card-foreground relative space-y-4 rounded-lg border p-6 shadow-sm"
 				>
-					<div class="text-6xl font-bold text-muted/20">{step.number}</div>
+					<div class="text-muted/20 text-6xl font-bold">{step.number}</div>
 					<h3 class="text-xl font-semibold">{step.title}</h3>
 					<p class="text-muted-foreground text-sm leading-relaxed">
 						{step.description}

@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+
 import type { AccordionRootProps } from '~/components/shared/ui/accordion';
 import { BrandingLink } from '~/components/shared/ui/branding';
 import { useTheme } from '~/hooks/use-theme';
+
 import {
 	ConsentWidgetAccordion,
 	ConsentWidgetAccordionItems,

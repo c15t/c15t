@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo } from 'react';
+
 import { useConsentManager } from './use-consent-manager';
 
 const MAX_BANNER_DISPLAY_ITEMS = 5;

@@ -1,5 +1,6 @@
 import { fetchInitialData } from '@c15t/nextjs';
 import type { ReactNode } from 'react';
+
 import { NextjsSSRProvider } from './provider';
 
 export default function NextjsSSRLayout({ children }: { children: ReactNode }) {

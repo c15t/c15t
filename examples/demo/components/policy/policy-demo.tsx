@@ -12,6 +12,7 @@ import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+
 import { createDemoScripts } from '../../lib/demo-scripts';
 import {
 	DEFAULT_DEMO_POLICY_EXAMPLE,
@@ -400,7 +401,7 @@ function JsonBlock({ label, value }: { label: string; value: unknown }) {
 	return (
 		<div className="space-y-2">
 			<p className="label-pixel text-muted-foreground">{label}</p>
-			<pre className="overflow-x-auto rounded-xl border border-border/80 bg-muted/20 p-3 font-mono text-[12px] text-foreground/90 leading-5">
+			<pre className="border-border/80 bg-muted/20 text-foreground/90 overflow-x-auto rounded-xl border p-3 font-mono text-[12px] leading-5">
 				{JSON.stringify(value ?? null, null, 2)}
 			</pre>
 		</div>
@@ -761,28 +762,28 @@ export function PolicyDemo() {
 	});
 
 	return (
-		<main className="min-h-screen bg-background">
+		<main className="bg-background min-h-screen">
 			<div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
-				<header className="flex flex-col gap-6 border-border/80 border-b pb-8 lg:flex-row lg:items-end lg:justify-between">
+				<header className="border-border/80 flex flex-col gap-6 border-b pb-8 lg:flex-row lg:items-end lg:justify-between">
 					<div className="max-w-2xl space-y-3">
 						<p className="label-pixel text-muted-foreground">
 							c15t / example demo
 						</p>
-						<h1 className="max-w-[14ch] text-balance font-semibold text-3xl tracking-[-0.04em] sm:text-4xl">
+						<h1 className="max-w-[14ch] text-3xl font-semibold tracking-[-0.04em] text-balance sm:text-4xl">
 							Policy-first consent flows.
 						</h1>
-						<p className="max-w-xl text-muted-foreground text-sm leading-6 sm:text-base">
+						<p className="text-muted-foreground max-w-xl text-sm leading-6 sm:text-base">
 							Switch geography, policy source, and language. This page resolves
 							the active policy, shows current consent state, and turns on IAB
 							TCF 2.3 when the selected policy requires it.
 						</p>
 					</div>
 
-					<div className="flex flex-wrap items-center gap-3 text-muted-foreground text-sm">
+					<div className="text-muted-foreground flex flex-wrap items-center gap-3 text-sm">
 						<nav className="flex flex-wrap gap-x-5 gap-y-2">
 							<Link
 								href="/policy-actions"
-								className="underline-offset-4 transition hover:text-foreground hover:underline"
+								className="hover:text-foreground underline-offset-4 transition hover:underline"
 							>
 								Policy actions
 							</Link>
@@ -790,7 +791,7 @@ export function PolicyDemo() {
 								href="https://c15t.com/docs"
 								target="_blank"
 								rel="noreferrer"
-								className="underline-offset-4 transition hover:text-foreground hover:underline"
+								className="hover:text-foreground underline-offset-4 transition hover:underline"
 							>
 								Docs
 							</a>
@@ -876,7 +877,7 @@ export function PolicyDemo() {
 										key={section.label}
 										className="space-y-3"
 									>
-										<p className="font-medium text-sm">{section.label}</p>
+										<p className="text-sm font-medium">{section.label}</p>
 										<div className="flex flex-wrap gap-2">
 											{section.presets.map((preset) => {
 												const isActive = preset.id === activePreset?.id;
@@ -930,7 +931,7 @@ export function PolicyDemo() {
 											}
 											placeholder="DE"
 											maxLength={2}
-											className="w-20 rounded-full border-border/80 font-mono shadow-none"
+											className="border-border/80 w-20 rounded-full font-mono shadow-none"
 										/>
 									</div>
 									<div className="space-y-1.5">
@@ -948,7 +949,7 @@ export function PolicyDemo() {
 											}
 											placeholder=""
 											maxLength={3}
-											className="w-20 rounded-full border-border/80 font-mono shadow-none"
+											className="border-border/80 w-20 rounded-full font-mono shadow-none"
 										/>
 									</div>
 								</div>
@@ -957,12 +958,12 @@ export function PolicyDemo() {
 							<VideoDemo inline />
 						</section>
 
-						<section className="space-y-6 border-border/80 border-t pt-8 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
+						<section className="border-border/80 space-y-6 border-t pt-8 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
 							<div className="space-y-2">
 								<p className="label-pixel text-muted-foreground">
 									Current scenario
 								</p>
-								<h2 className="font-semibold text-2xl tracking-tight">
+								<h2 className="text-2xl font-semibold tracking-tight">
 									{activePreset?.label ?? 'Custom override'}
 								</h2>
 								<p className="text-muted-foreground text-sm leading-6">

@@ -3,6 +3,7 @@ import { getSwitchState, toggleSwitchValue } from '@c15t/ui/primitives';
 import { switchVariants } from '@c15t/ui/styles/primitives';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 import { computed, ref } from 'vue';
+
 import { enTranslations } from '../../../packages/translations/src';
 
 const { consentTypes } = enTranslations;

@@ -1,9 +1,11 @@
 import { execFileSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import type { AcceptedPlugin } from 'postcss';
 import postcss from 'postcss';
 import { describe, expect, test } from 'vitest';
+
 import c15tTailwind3, * as pluginModule from '../postcss-tailwind3';
 import { isC15tUiStylesheetPath } from '../postcss-tailwind3';
 

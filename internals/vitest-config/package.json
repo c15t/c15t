@@ -1,6 +1,7 @@
 {
 	"name": "@c15t/vitest-config",
 	"version": "1.0.0",
+	"private": true,
 	"type": "module",
 	"exports": {
 		"./base": {
@@ -12,12 +13,11 @@
 			"import": "./src/ui-config.ts"
 		}
 	},
-	"private": true,
 	"scripts": {
 		"check-types": "tsc --noEmit",
 		"dev": "echo '@c15t/vitest-config has no watch task'",
-		"lint": "bun oxlint ./src",
-		"fmt": "bun oxfmt ."
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

@@ -14,7 +14,9 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import * as p from '@clack/prompts';
+
 import type { CliContext } from '~/context/types';
 
 class Cancelled extends Error {

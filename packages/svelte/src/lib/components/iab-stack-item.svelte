@@ -1,6 +1,7 @@
 <script lang="ts">
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 	import { switchVariants } from '@c15t/ui/styles/primitives';
+
 	import type { IABTranslations } from '../iab-translations';
 	import type { ProcessedStack, VendorId } from '../iab-types';
 	import { PreferenceItem, Switch } from '../primitives';

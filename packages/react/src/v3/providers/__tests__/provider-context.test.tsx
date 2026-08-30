@@ -1,6 +1,7 @@
 // consent-manager-provider.context.test.tsx - Test context values
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { useConsentManager } from '../../hooks/use-consent-manager';
 import {
 	ConsentManagerProvider,

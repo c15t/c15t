@@ -1,5 +1,6 @@
 import { linkOpensDialog } from '@c15t/conformance/play/consent-dialog-link';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import {
 	ConsentDialog,
 	ConsentDialogLink,

@@ -1,4 +1,5 @@
 import type { ConsentStoreState } from '@c15t/core';
+
 import type { DevToolsState, EventLogEntry } from './state-manager';
 import type { ConnectionDiagnostics } from './store-connector';
 

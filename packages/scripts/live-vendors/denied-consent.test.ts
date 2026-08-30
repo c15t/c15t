@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { evaluateDeniedConsentProbe } from './denied-consent';
 import type { DeniedConsentProbeConfig, LiveStorageSnapshot } from './types';
 

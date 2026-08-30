@@ -5,6 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { createCMPApi } from '../../tcf/cmp-api';
 import { clearGVLCache, fetchGVL } from '../../tcf/fetch-gvl';
 import type { GlobalVendorList } from '../../tcf/iab-tcf-types';

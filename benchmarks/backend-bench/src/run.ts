@@ -19,11 +19,13 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+
 import { up as baseline } from '@c15t/backend/db/migrations/1-baseline';
 import { up as hotPathIndexes } from '@c15t/backend/db/migrations/2-hot-path-indexes';
 import { PgliteClient } from '@effect/sql-pglite';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+
 import { type ArmResult, chunkedFanout, joined } from './arms';
 
 const SUBJECT_COUNTS = [1, 10, 100, 1000] as const;

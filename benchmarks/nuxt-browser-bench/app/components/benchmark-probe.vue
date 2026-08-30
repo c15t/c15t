@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUpdate, onMounted, watch } from 'vue';
+
 import {
 	useConsentActiveUI,
 	useConsentInit,

@@ -4,6 +4,7 @@
  */
 
 import path from 'node:path';
+
 import type { SourceFile } from 'ts-morph';
 
 /**

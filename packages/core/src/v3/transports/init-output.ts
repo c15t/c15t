@@ -1,4 +1,5 @@
 import type { InitOutput } from '@c15t/schema/types';
+
 import type {
 	ConsentState,
 	InitResponse,

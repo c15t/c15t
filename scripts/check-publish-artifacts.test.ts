@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { getBlockedReason } from './check-publish-artifacts';
 
 describe('getBlockedReason', () => {

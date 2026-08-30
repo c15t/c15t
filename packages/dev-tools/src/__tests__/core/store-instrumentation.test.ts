@@ -1,6 +1,7 @@
 import type { ConsentStoreState } from '@c15t/core';
 import { describe, expect, it, vi } from 'vitest';
 import type { StoreApi } from 'zustand/vanilla';
+
 import { registerStoreInstrumentation } from '../../core/store-instrumentation';
 
 function createMockStore(): StoreApi<ConsentStoreState> {

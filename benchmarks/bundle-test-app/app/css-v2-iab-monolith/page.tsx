@@ -2,7 +2,6 @@
 
 import '@c15t/react/styles.css';
 import '@c15t/react/iab/styles.css';
-
 import { ConsentManagerProvider } from '@c15t/react';
 import { IABConsentDialog } from '@c15t/react/iab';
 

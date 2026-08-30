@@ -1,5 +1,6 @@
-import { json } from '@sveltejs/kit';
 import { benchConsentManifestResponse } from '$lib/fixture';
+import { json } from '@sveltejs/kit';
+
 import type { RequestHandler } from './$types';
 
 const MANIFEST_ETAG = '"sveltekit-browser-bench-manifest"';

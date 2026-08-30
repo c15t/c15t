@@ -1,4 +1,5 @@
 import { computed, type Ref } from 'vue';
+
 import { useConsentKernelContext } from './kernel';
 
 export interface RequestRegion {

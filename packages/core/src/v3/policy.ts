@@ -9,6 +9,7 @@
  * neutral and there's no reason to duplicate the logic.
  */
 import type { PolicyScopeMode, ResolvedPolicy } from '@c15t/schema/types';
+
 import type { AllConsentNames } from './consent/consent-types';
 import { allConsentNames } from './consent/consent-types';
 import {

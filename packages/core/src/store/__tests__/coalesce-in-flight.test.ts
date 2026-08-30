@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+
 import { coalesceInFlight } from '../coalesce-in-flight';
 
 describe('coalesceInFlight', () => {

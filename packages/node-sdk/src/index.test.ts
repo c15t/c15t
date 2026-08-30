@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { gunzipSync } from 'node:zlib';
+
 import type { C15TOptions } from '@c15t/backend';
 import { c15tInstance } from '@c15t/backend';
 import {
@@ -11,6 +12,7 @@ import {
 	it,
 	vi,
 } from 'vitest';
+
 import { C15TClient, c15tClient } from './index';
 
 // An in-memory SQLite database, which is all these tests need: they exercise

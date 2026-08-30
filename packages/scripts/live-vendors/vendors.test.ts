@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { builtInScriptIntegrations } from '../src/registry';
 import type { LiveVendorProbeConfig } from './types';
 import { liveVendorProbeConfigs } from './vendors';

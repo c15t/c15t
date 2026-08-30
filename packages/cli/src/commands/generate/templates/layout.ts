@@ -6,13 +6,16 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import {
 	Project,
 	type ReturnStatement,
 	type SourceFile,
 	SyntaxKind,
 } from 'ts-morph';
+
 import type { AvailablePackages } from '~/context/framework-detection';
+
 import type { StorageMode } from '../../../constants';
 import type { ExpandedTheme, UIStyle } from '../prompts';
 import { updateNextLayout } from './next';

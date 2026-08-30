@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Frame } from '@c15t/svelte';
+
 	import StorybookConsentProvider from './StorybookConsentProvider.svelte';
 
 	let { granted = false }: { granted?: boolean } = $props();

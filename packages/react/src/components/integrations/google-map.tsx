@@ -11,12 +11,14 @@ import {
 	useRef,
 	useState,
 } from 'react';
+
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import {
 	ConsentScriptConflictError,
 	type ConsentScriptReadyControls,
 	useConsentScript,
 } from '~/hooks/use-consent-script';
+
 import { IntegrationPlaceholder, IntegrationStatus } from './shared';
 
 export type GoogleMapCoordinates = google.maps.LatLngLiteral;

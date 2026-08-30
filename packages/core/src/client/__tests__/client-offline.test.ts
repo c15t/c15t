@@ -1,6 +1,7 @@
 import { resolvePolicyDecision as resolveSharedPolicyDecision } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { fetchMock, mockLocalStorage } from '../../../vitest.setup';
 import { STORAGE_KEY_V2 } from '../../store/initial-state';
 import { configureConsentManager } from '../client-factory';

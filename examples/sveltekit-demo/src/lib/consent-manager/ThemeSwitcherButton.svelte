@@ -56,7 +56,7 @@
 	class="relative"
 >
 	<button
-		class="inline-flex items-center justify-center rounded-md text-sm font-medium h-8 w-8 border border-input bg-transparent hover:bg-accent hover:text-accent-foreground"
+		class="border-input hover:bg-accent hover:text-accent-foreground inline-flex h-8 w-8 items-center justify-center rounded-md border bg-transparent text-sm font-medium"
 		aria-expanded={open}
 		aria-label="Theme settings"
 		aria-haspopup="menu"
@@ -89,7 +89,7 @@
 		<div
 			class="absolute top-full right-0 z-[60] mt-2 flex w-56 flex-col gap-2 rounded-xl border border-zinc-200 bg-white/95 p-3 shadow-lg backdrop-blur-sm dark:border-zinc-700 dark:bg-zinc-900/95"
 		>
-			<span class="mb-1 font-medium text-xs text-zinc-500 dark:text-zinc-400"
+			<span class="mb-1 text-xs font-medium text-zinc-500 dark:text-zinc-400"
 				>Theme Preset</span
 			>
 			{#each Object.keys(themePresets) as presetKey}
@@ -105,7 +105,7 @@
 				>
 					<span class="text-lg">{info.icon}</span>
 					<div class="flex flex-col">
-						<span class="font-medium text-sm">{info.label}</span>
+						<span class="text-sm font-medium">{info.label}</span>
 						<span
 							class="text-xs {isActive
 								? 'text-zinc-400 dark:text-zinc-500'

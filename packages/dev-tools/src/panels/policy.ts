@@ -4,10 +4,12 @@
  */
 
 import type { ConsentStoreState } from '@c15t/core';
+
 import { createDisconnectedState, createSection } from '../components/ui';
 import { clearElement, div, span } from '../core/renderer';
-import componentStyles from '../styles/components.module.css';
 import { formatInitSource } from '../utils/init-source';
+
+import componentStyles from '../styles/components.module.css';
 
 export interface PolicyPanelOptions {
 	getState: () => ConsentStoreState | null;

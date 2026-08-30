@@ -6,6 +6,7 @@ import {
 	type NetworkBlockerRule,
 } from '@c15t/core/v3/modules/network-blocker';
 import { useEffect, useRef } from 'react';
+
 import { useRequiredKernel } from './shared';
 
 export interface UseNetworkBlockerOptions {

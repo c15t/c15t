@@ -10,6 +10,7 @@ import type { ReactNode } from 'react';
 import { Profiler, StrictMode, useRef } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import {
 	ConsentProvider,
 	useConsent,

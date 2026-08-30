@@ -3,6 +3,7 @@ import { defaultTranslationConfig } from '@c15t/core';
 import type { ComponentProps } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentBanner } from '~/v3/components/consent-banner';
 import { ConsentProvider } from '~/v3/provider';
 

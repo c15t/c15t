@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { buildDefaultOptInPolicy } from './consent-manifest';
 
 describe('buildDefaultOptInPolicy', () => {

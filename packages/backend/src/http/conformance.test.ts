@@ -15,6 +15,7 @@ import {
 import { Effect, ManagedRuntime } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import { afterEach, assert, beforeEach, describe, it } from 'vitest';
+
 import { ENGINES, resetDatabase } from '../__tests__/engines';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';

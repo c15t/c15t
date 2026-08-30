@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
+
 import type { ConsentSnapshot } from '../../types';
 import type { SnapshotPatch } from '../patch';
 import { applyPatch } from '../patch';

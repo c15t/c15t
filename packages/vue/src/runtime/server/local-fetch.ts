@@ -1,4 +1,5 @@
 import { useNitroApp } from 'nitropack/runtime';
+
 import type { ManifestFetch } from './manifest-mode';
 
 /**

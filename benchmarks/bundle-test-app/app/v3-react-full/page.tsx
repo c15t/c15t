@@ -1,7 +1,6 @@
 'use client';
 
 import '@c15t/react/styles.css';
-
 /**
  * /v3-react-full — interactive test harness for the v3 stack.
  *
@@ -16,7 +15,6 @@ import '@c15t/react/styles.css';
  * module reconciles DOM in <10 µs. Check the "Loaded scripts" panel
  * below for live confirmation.
  */
-
 import type { Script } from '@c15t/core/v3/modules/script-loader';
 import {
 	ConsentBanner,

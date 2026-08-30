@@ -10,6 +10,7 @@ import {
 } from '@c15t/scripts/registry';
 import * as p from '@clack/prompts';
 import { fromPromise } from 'xstate';
+
 import {
 	formatUserCode,
 	getAuthState,
@@ -34,6 +35,7 @@ import { color } from '~/core/logger';
 import type { Instance } from '~/types';
 import { createTaskSpinner } from '~/utils/spinner';
 import { validateInstanceName } from '~/utils/validation';
+
 import type { ExpandedTheme, UIStyle } from '../types';
 
 /**

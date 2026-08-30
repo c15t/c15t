@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { IABConfig } from '../libs/iab-tcf/types';
 import { initConsentManager } from '../libs/init-consent-manager';

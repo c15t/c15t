@@ -16,6 +16,7 @@
  */
 
 import { Glob } from 'bun';
+
 import { isCanonicalTestId } from '../contract/test-ids';
 
 export type TestIdViolation = {

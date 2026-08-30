@@ -31,6 +31,7 @@
 
 import { Effect } from 'effect';
 import { SqlClient, type SqlError } from 'effect/unstable/sql';
+
 import { type ApplyOptions, apply, LEDGER_TABLE, plan } from './adopt';
 import { classify, type Shape } from './classify';
 import type { UnsupportedDialectError } from './dialect';

@@ -2,6 +2,7 @@
 
 import type { ConsentKernel } from '@c15t/core/v3';
 import { useContext } from 'react';
+
 import { KernelContext } from '../context';
 
 export function useRequiredKernel(): ConsentKernel {

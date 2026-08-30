@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+
 import { ConsentDemo } from '../../../components/demo/consent-demo';
 
 /**

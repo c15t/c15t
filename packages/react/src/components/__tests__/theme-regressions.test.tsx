@@ -3,8 +3,9 @@ import { defaultTranslationConfig } from '@c15t/core';
 import { createRef } from 'react';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
-import { ConsentDialogOverlay } from '~/components/consent-dialog/atoms/overlay';
+
 import { ConsentDialogTriggerToolbar } from '~/components/consent-dialog-trigger';
+import { ConsentDialogOverlay } from '~/components/consent-dialog/atoms/overlay';
 import { ConsentWidgetAccordion } from '~/components/consent-widget/atoms/accordion';
 import { IABConsentBannerFooter } from '~/components/iab-consent-banner/atoms/footer';
 import { IABConsentBannerHeader } from '~/components/iab-consent-banner/atoms/header';

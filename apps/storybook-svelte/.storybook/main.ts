@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import type { StorybookConfig } from '@storybook/svelte-vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { mergeConfig } from 'vite';

@@ -6,6 +6,7 @@ import {
 	type ScriptLoaderHandle,
 } from '@c15t/core/v3/modules/script-loader';
 import { useEffect, useRef, useState } from 'react';
+
 import { useRequiredKernel } from './shared';
 
 export interface UseScriptLoaderOptions {

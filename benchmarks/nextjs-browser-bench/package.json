@@ -3,12 +3,12 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "next dev",
-		"build": "next build",
-		"start": "next start",
 		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/browser-runtime/nextjs bunx tsx scripts/run-bench.ts",
 		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/browser-runtime/nextjs bunx tsx scripts/run-bench.ts",
-		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/browser-runtime/nextjs bunx tsx scripts/run-bench.ts"
+		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/browser-runtime/nextjs bunx tsx scripts/run-bench.ts",
+		"build": "next build",
+		"dev": "next dev",
+		"start": "next start"
 	},
 	"dependencies": {
 		"@c15t/benchmarking": "workspace:*",

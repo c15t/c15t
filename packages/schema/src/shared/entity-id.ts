@@ -12,6 +12,7 @@
  */
 
 import baseX from 'base-x';
+
 import { hashSha256Hex } from './policy-fingerprint';
 
 /** Table name to id prefix. Prefixes are part of the id format. */

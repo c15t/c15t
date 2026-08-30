@@ -12,12 +12,14 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useStyles } from '~/hooks/use-styles';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
+
 import { IABConsentBannerOverlay } from './overlay';
 
 interface IABConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {

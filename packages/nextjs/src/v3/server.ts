@@ -31,6 +31,7 @@ import {
 import { readStoredConsentFromCookie } from '@c15t/core/v3/modules/persistence';
 import { type InitOutput, resolveBackendURL } from '@c15t/schema/types';
 import { cookies, headers } from 'next/headers';
+
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,

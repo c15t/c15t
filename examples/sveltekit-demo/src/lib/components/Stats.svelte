@@ -19,14 +19,14 @@
 	];
 </script>
 
-<section class="py-20 px-4 sm:px-6 lg:px-8 bg-secondary/30">
+<section class="bg-secondary/30 px-4 py-20 sm:px-6 lg:px-8">
 	<div class="container mx-auto max-w-6xl">
-		<div class="grid grid-cols-2 lg:grid-cols-4 gap-8">
+		<div class="grid grid-cols-2 gap-8 lg:grid-cols-4">
 			{#each stats as stat}
-				<div class="text-center space-y-2">
-					<div class="text-4xl lg:text-5xl font-bold">{stat.value}</div>
+				<div class="space-y-2 text-center">
+					<div class="text-4xl font-bold lg:text-5xl">{stat.value}</div>
 					<div class="text-sm font-medium">{stat.label}</div>
-					<div class="text-xs text-muted-foreground">{stat.sublabel}</div>
+					<div class="text-muted-foreground text-xs">{stat.sublabel}</div>
 				</div>
 			{/each}
 		</div>

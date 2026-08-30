@@ -1,4 +1,5 @@
 import { beforeEach, expect, test } from 'bun:test';
+
 import { domSnapshot, domSnapshotFor } from './dom-snapshot';
 
 function makeEl(html: string): Element {

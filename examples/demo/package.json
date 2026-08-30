@@ -3,12 +3,12 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
+		"build": "next build",
 		"dev": "PORTLESS_HTTPS=1 portless run --name example-demo next dev",
 		"dev:localhost": "next dev",
-		"build": "next build",
+		"fmt": "oxfmt .",
 		"start": "PORTLESS_HTTPS=1 portless run --name example-demo next start",
-		"start:localhost": "next start",
-		"fmt": "oxfmt ."
+		"start:localhost": "next start"
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",

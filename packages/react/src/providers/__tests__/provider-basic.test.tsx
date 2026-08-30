@@ -1,8 +1,10 @@
 import { defaultTranslationConfig } from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { ConsentManagerProvider } from '~/index';
+
 import { clearConsentRuntimeCache } from '../consent-manager-provider';
 
 // Mock fetch globally

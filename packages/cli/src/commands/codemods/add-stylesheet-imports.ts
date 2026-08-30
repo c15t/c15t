@@ -1,7 +1,9 @@
 import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
+
 import { Project } from 'ts-morph';
+
 import {
 	ensureGlobalCssStylesheetImports,
 	formatSearchedCssPaths,

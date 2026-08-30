@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
 	createComment,
 	ensureComment,

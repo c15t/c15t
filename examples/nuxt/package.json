@@ -3,17 +3,17 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
+		"build": "nuxt build",
+		"check-types": "nuxt typecheck",
 		"db:migrate": "bunx @c15t/cli self-host migrate",
 		"dev": "nuxt dev",
-		"build": "nuxt build",
-		"start": "node .output/server/index.mjs",
-		"check-types": "nuxt typecheck"
+		"start": "node .output/server/index.mjs"
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
-		"c15t": "workspace:*",
 		"@effect/sql-pglite": "4.0.0-beta.102",
 		"@electric-sql/pglite": "0.4.2",
+		"c15t": "workspace:*",
 		"nuxt": "^4.5.1",
 		"pg": "^8.20.0"
 	},

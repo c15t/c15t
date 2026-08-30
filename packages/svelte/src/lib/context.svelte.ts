@@ -20,6 +20,7 @@ import type {
 } from '@c15t/core/v3';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
 import { getContext, setContext } from 'svelte';
+
 import type { ConsentManagerOptions } from './types';
 
 const CONSENT_CONTEXT_KEY = Symbol('c15t-v3-consent');

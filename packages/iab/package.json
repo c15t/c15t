@@ -3,29 +3,35 @@
 	"version": "2.2.0-canary-20260731105620",
 	"description": "IAB TCF 2.3 addon for c15t with TC String generation, GVL support, and programmatic advertising consent.",
 	"keywords": [
-		"iab",
-		"tcf",
-		"consent",
-		"privacy",
-		"gdpr",
 		"cmp",
-		"iab-tcf-2.3",
-		"tc-string",
+		"consent",
+		"gdpr",
 		"global-vendor-list",
+		"iab",
+		"iab-tcf-2.3",
+		"privacy",
 		"programmatic-advertising",
+		"tc-string",
+		"tcf",
 		"transparency-consent-framework"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/react/iab/overview",
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
+	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/iab"
 	},
-	"license": "Apache-2.0",
+	"files": [
+		"dist",
+		"dist-types"
+	],
 	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist-types/index.d.ts",
@@ -48,19 +54,16 @@
 			"default": "./dist/v3/headless.js"
 		}
 	},
-	"main": "./dist/index.js",
-	"types": "./dist-types/index.d.ts",
-	"files": [
-		"dist",
-		"dist-types"
-	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
-		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
+		"prebuild": "genversion --esm --semi src/version.ts",
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},
@@ -74,8 +77,5 @@
 		"@c15t/vitest-config": "workspace:*",
 		"genversion": "3.2.0",
 		"typescript": "7.0.2"
-	},
-	"publishConfig": {
-		"access": "public"
 	}
 }

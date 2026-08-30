@@ -4,12 +4,12 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build",
-		"preview": "vite preview",
-		"check-types": "svelte-check --tsconfig ./tsconfig.json",
 		"bench:banner-visibility": "bun run ./scripts/run-banner-visibility-bench.ts",
-		"bench:script-count": "bun run ./scripts/run-script-count-bench.ts"
+		"bench:script-count": "bun run ./scripts/run-script-count-bench.ts",
+		"build": "vite build",
+		"check-types": "svelte-check --tsconfig ./tsconfig.json",
+		"dev": "vite dev",
+		"preview": "vite preview"
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import type { YouTubeEmbedProps } from '../youtube-embed';
 
 const videoIdProps = {

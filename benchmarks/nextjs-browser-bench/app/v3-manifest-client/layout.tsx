@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+
 import { NextjsV3ManifestClientBenchmarkProvider } from '../_bench/v3-provider';
 
 export default function V3ManifestClientLayout({

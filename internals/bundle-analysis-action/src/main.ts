@@ -3,8 +3,10 @@
  * Entry point for the bundle analysis GitHub Action.
  */
 import { readFileSync } from 'node:fs';
+
 import * as core from '@actions/core';
 import * as github from '@actions/github';
+
 import {
 	analyzeBundles,
 	analyzeTransitiveImpact,

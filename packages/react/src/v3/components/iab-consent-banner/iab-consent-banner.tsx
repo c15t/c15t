@@ -9,6 +9,7 @@
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
 import { type FC, type RefObject, useRef } from 'react';
+
 import { useHeadlessIABConsentUI } from '~/v3/component-hooks/use-headless-iab-consent-ui';
 import { Box } from '~/v3/components/shared/primitives/box';
 import { BrandingLink } from '~/v3/components/shared/ui/branding';
@@ -18,6 +19,7 @@ import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useIABConsentManager } from '~/v3/hooks/use-iab-consent-manager';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { useIABTranslations } from '../iab-consent-dialog/use-iab-translations';
 import { IABConsentBannerRoot } from './atoms/root';
 

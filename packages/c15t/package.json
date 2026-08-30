@@ -3,55 +3,64 @@
 	"version": "2.2.0-canary-20260731105620",
 	"description": "The c15t consent management platform — one install for every framework: headless consent engine, React components, Next.js integration, and Vue/Nuxt module.",
 	"keywords": [
-		"consent",
-		"privacy",
-		"gdpr",
 		"ccpa",
-		"lgpd",
-		"tcf",
-		"iab",
 		"cmp",
+		"consent",
+		"consent-banner",
 		"consent-management",
 		"consent-management-platform",
+		"consent-manager",
+		"consent-mode-v2",
 		"cookie-banner",
 		"cookie-consent",
 		"cookies",
-		"consent-banner",
-		"consent-manager",
-		"preference-center",
-		"headless",
-		"javascript",
-		"typescript",
-		"ssr",
-		"server-side-rendering",
-		"tracking-consent",
 		"eu-cookie-law",
+		"gdpr",
 		"google-consent-mode",
-		"consent-mode-v2",
-		"self-hosted-cmp",
+		"headless",
+		"iab",
+		"javascript",
+		"lgpd",
+		"next-cookie-banner",
+		"nextjs",
+		"nuxt",
+		"preference-center",
+		"privacy",
 		"react",
 		"react-cookie-banner",
-		"nextjs",
-		"next-cookie-banner",
-		"vue",
-		"nuxt"
+		"self-hosted-cmp",
+		"server-side-rendering",
+		"ssr",
+		"tcf",
+		"tracking-consent",
+		"typescript",
+		"vue"
 	],
 	"homepage": "https://c15t.com",
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
+	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/c15t"
 	},
-	"license": "Apache-2.0",
+	"files": [
+		"dist",
+		"shims",
+		"AGENTS.md",
+		"README.md",
+		"CHANGELOG.md"
+	],
+	"type": "module",
 	"sideEffects": [
 		"**/*.css",
 		"shims/vue.*",
 		"shims/vue/**"
 	],
-	"type": "module",
+	"main": "./shims/index.js",
+	"types": "./shims/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./shims/index.d.ts",
@@ -432,15 +441,9 @@
 		"./vue/runtime/*": "./shims/vue/runtime/*",
 		"./vue/composables/*": "./shims/vue/composables/*"
 	},
-	"main": "./shims/index.js",
-	"types": "./shims/index.d.ts",
-	"files": [
-		"dist",
-		"shims",
-		"AGENTS.md",
-		"README.md",
-		"CHANGELOG.md"
-	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"build": "bun scripts/copy-distribution-css.ts",
 		"fmt": "bun oxfmt .",
@@ -458,8 +461,5 @@
 	},
 	"devDependencies": {
 		"vitest": "4.1.9"
-	},
-	"publishConfig": {
-		"access": "public"
 	}
 }

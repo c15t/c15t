@@ -36,6 +36,7 @@
 	import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
 	import { onDestroy, onMount, untrack } from 'svelte';
+
 	import {
 		type ConsentDraftState,
 		type SvelteIABState,

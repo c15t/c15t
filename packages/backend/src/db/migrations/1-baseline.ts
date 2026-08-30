@@ -32,6 +32,7 @@
 
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+
 import * as Dialect from '../dialect';
 import { createTableSql, TABLES } from '../schema';
 

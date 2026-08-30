@@ -13,7 +13,6 @@
  * JS is otherwise byte-identical between builds.
  */
 import 'bench-css-entry';
-
 import { ReactV3BenchmarkProvider } from '../_bench/v3-provider';
 
 export default function ReactV3BannerCssPage() {

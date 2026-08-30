@@ -1,5 +1,6 @@
 import type { ConsentStoreState } from '@c15t/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { renderLocationPanel } from '../../panels/location';
 
 function createBaseState(

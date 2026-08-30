@@ -1,3 +1,4 @@
+import extras from './extras.module.css';
 /**
  * CSS-experiment shim: exposes the same style-map shape the v3
  * consent-banner components import from
@@ -11,7 +12,6 @@
  * so enter/exit map to empty strings.
  */
 import banner from '@c15t/ui/styles/v3/consent-banner.module.css';
-import extras from './extras.module.css';
 
 const styles: Record<string, string> = {
 	enter: '',

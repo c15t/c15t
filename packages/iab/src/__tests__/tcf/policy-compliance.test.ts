@@ -8,6 +8,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
+
 import type { GlobalVendorList, TCFConsentData } from '../../tcf/iab-tcf-types';
 import { decodeTCString, generateTCString } from '../../tcf/tc-string';
 import {

@@ -10,6 +10,7 @@
  * - dispose stops further writes
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 import { createConsentKernel } from '../../../index';
 import { deleteConsentFromStorage } from '../../../libs/cookie';
 import { createPersistence } from '../index';

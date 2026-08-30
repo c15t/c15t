@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+
 import { NextjsBenchmarkProvider } from '../_bench/provider';
 
 export default function ClientLayout({ children }: { children: ReactNode }) {

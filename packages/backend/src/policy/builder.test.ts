@@ -12,6 +12,7 @@
  */
 
 import { assert, describe, it } from '@effect/vitest';
+
 import { composePacks, policyBuilder } from './builder';
 
 describe('createPackWithDefault', () => {

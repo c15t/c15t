@@ -47,6 +47,7 @@ import { type ReactElement, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
+
 import { ConsentBoundary, type ConsentBoundaryProps } from '~/v3/boundary';
 
 type BoundaryOptions = NonNullable<ConsentBoundaryProps['options']>;

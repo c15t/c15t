@@ -7,6 +7,7 @@
  */
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
+
 import {
 	createConsentKernel,
 	createHostedTransport,

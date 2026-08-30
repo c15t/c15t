@@ -1,7 +1,9 @@
 import type { ConsentStoreState } from '@c15t/core';
 import { describe, expect, test, vi } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
+
 import { ConsentStateContext } from '~/v3/context/consent-manager-context';
+
 import { useConsentDialogTrigger } from '../use-consent-dialog-trigger';
 
 function createMockState(

@@ -13,6 +13,7 @@
 
 import { type GlobalVendorList, globalVendorListSchema } from '@c15t/schema';
 import * as v from 'valibot';
+
 import type { CacheAdapter } from '../cache/types';
 
 export type { CacheAdapter };

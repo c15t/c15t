@@ -1,10 +1,12 @@
 import type { AllConsentNames } from '@c15t/core';
 import { forwardRef, type MouseEvent, useCallback } from 'react';
+
 import { useSaveConsents, useSetActiveUI, useSetConsent } from '~/v3/hooks';
 import { useTheme } from '~/v3/hooks/use-theme';
 import type { CSSPropertiesWithVars, CSSVariables } from '~/v3/types/theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { getSlotProps, mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { Slot } from '../libs/slot';
 import * as Button from '../ui/button';
 import type { ButtonVariantsProps } from '../ui/button/button';

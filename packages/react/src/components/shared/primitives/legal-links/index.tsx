@@ -3,6 +3,7 @@ import { defaultTranslationConfig } from '@c15t/core';
 import styles from '@c15t/ui/styles/primitives/legal-links.module.js';
 import { resolveTranslations } from '@c15t/ui/utils';
 import { useContext, useMemo } from 'react';
+
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { useStyles } from '~/hooks/use-styles';
 import type { AllThemeKeys } from '~/types/theme/style-keys';

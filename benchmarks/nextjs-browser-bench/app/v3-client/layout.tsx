@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+
 import { NextjsV3ClientBenchmarkProvider } from '../_bench/v3-provider';
 
 export default function V3ClientLayout({ children }: { children: ReactNode }) {

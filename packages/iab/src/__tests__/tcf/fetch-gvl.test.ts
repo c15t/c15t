@@ -3,6 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { clearGVLCache, fetchGVL, getCachedGVL } from '../../tcf/fetch-gvl';
 import { setupFetchMock } from './test-setup';
 

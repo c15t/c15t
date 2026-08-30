@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import type { NetworkBlockerRule } from '../types';
 import {
 	hostnameMatchesRule,

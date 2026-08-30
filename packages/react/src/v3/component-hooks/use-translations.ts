@@ -2,6 +2,7 @@
 
 import type { Translations } from '@c15t/core';
 import { useMemo } from 'react';
+
 import { useTranslations as useKernelTranslations } from '../hooks';
 import { defaultTranslationConfig } from '../utils/default-translation-config';
 

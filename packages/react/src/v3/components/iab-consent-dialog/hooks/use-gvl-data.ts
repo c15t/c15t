@@ -5,6 +5,7 @@ import {
 	processGVLForDialog,
 } from '@c15t/iab/v3/headless';
 import { useMemo } from 'react';
+
 import { useIAB } from '~/v3/iab-context';
 
 /**

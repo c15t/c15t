@@ -1,7 +1,9 @@
 import type { ConsentComponentSlotKey } from '@c15t/schema/config';
 import type { ClassValue } from '@c15t/ui/utils';
+
 import type { ReactComponentSlots, ReactSlotProps } from '~/v3/types/slots';
 import type { CSSPropertiesWithVars } from '~/v3/types/theme';
+
 import { cnExt as cn } from './cn';
 
 type MergeSlotPropsInput = ReactSlotProps & {

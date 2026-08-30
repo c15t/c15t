@@ -6,8 +6,8 @@ import type {
 	VerifyConsentInput,
 	VerifyConsentOutput,
 } from '@c15t/core';
-
 import { beforeEach, type Mock, vi } from 'vitest';
+
 import { type ConsentManagerOptions, useConsentManager } from '~/v3/index';
 
 export type SetConsentRequestBody = PostConsentInput;

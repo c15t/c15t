@@ -5,6 +5,7 @@ import {
 	ConsentProvider,
 	type ConsentProviderOptions,
 } from '@c15t/react/v3/provider';
+
 import { getBenchState } from '../_bench/state';
 import { ReactV3BenchmarkProbe } from '../_bench/v3-probe';
 

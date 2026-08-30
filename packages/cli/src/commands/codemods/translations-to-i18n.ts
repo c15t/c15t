@@ -1,5 +1,6 @@
 import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
+
 import {
 	Node,
 	type ObjectLiteralExpression,

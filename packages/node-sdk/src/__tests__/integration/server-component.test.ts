@@ -6,6 +6,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { C15TClient, c15tClient } from '../../index';
 
 describe('Server Component Integration', () => {

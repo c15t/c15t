@@ -2,6 +2,7 @@
 
 import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
 import { useEffect, useRef, useState } from 'react';
+
 import { getBenchState } from '../_bench/state';
 
 export default function VanillaCorePage() {

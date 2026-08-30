@@ -1,4 +1,5 @@
 import { defineConfig } from '@rslib/core';
+
 import {
 	getRsdoctorPlugins,
 	standardExcludePatterns,

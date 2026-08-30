@@ -5,6 +5,7 @@ import {
 	type Translations,
 } from '@c15t/translations';
 import { baseTranslations } from '@c15t/translations/all';
+
 import { validatePolicyI18nConfig } from './policy-i18n-validation';
 import type { PolicyConfig } from './policy-runtime';
 

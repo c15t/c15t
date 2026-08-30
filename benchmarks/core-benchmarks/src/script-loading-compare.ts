@@ -20,6 +20,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  *   - 50 scripts (adversarial — do blockers scale linearly?)
  */
 import { join } from 'node:path';
+
 import {
 	configureConsentManager,
 	createConsentManagerStore,
@@ -30,6 +31,7 @@ import {
 	createScriptLoader,
 	type Script as V3Script,
 } from '@c15t/core/v3/modules/script-loader';
+
 import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();

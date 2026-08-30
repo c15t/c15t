@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+
 	import {
 		createConsentKernel,
 		createHostedTransport,
@@ -9,7 +11,6 @@
 		createScriptLoader,
 		type ScriptLoaderHandle,
 	} from '../../../../../packages/core/src/v3/modules/script-loader';
-	import { onMount } from 'svelte';
 	import {
 		createInitialBenchState,
 		listDomIds,

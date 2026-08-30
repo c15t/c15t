@@ -2,8 +2,10 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { type FC, useState } from 'react';
+
 import * as PreferenceItem from '~/components/shared/ui/preference-item';
 import * as Switch from '~/components/shared/ui/switch';
+
 import type { ProcessedPurpose, ProcessedVendor, VendorId } from '../types';
 import { useIABTranslations } from '../use-iab-translations';
 

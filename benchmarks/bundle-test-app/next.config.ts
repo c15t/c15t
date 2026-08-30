@@ -1,5 +1,6 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
 import bundleAnalyzer from '@next/bundle-analyzer';
 
 const projectDir = dirname(fileURLToPath(import.meta.url));

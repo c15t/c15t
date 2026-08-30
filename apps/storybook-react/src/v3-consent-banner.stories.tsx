@@ -1,5 +1,6 @@
 import { bannerToDialogFlow } from '@c15t/conformance/play/consent-banner';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import {
 	ConsentBanner,
 	ConsentDialog,

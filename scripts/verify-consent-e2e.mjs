@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import process from 'node:process';
 import { setTimeout as delay } from 'node:timers/promises';
+
 import { chromium } from 'playwright';
 
 const bannerSelector = '[data-testid="consent-banner-root"]';

@@ -14,6 +14,7 @@
 
 import { decodeJwt } from 'jose';
 import { assert, describe, it } from 'vitest';
+
 // From source: @c15t/backend does not emit handlers as build entries.
 import {
 	createPolicySnapshotToken,

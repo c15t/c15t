@@ -2,6 +2,7 @@
 	import type { ConsentStoreState } from 'c15t';
 	import { clearConsentRuntimeCache, getOrCreateConsentRuntime } from 'c15t';
 	import { onMount } from 'svelte';
+
 	import { observeBannerVisibility, getBenchState } from './banner-state';
 	import BenchmarkBanner from './benchmark-banner.svelte';
 

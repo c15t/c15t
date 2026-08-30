@@ -1,5 +1,6 @@
 import type { InitOutput } from '@c15t/schema/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import {
 	type Consent,
 	deriveActiveConsentUi,

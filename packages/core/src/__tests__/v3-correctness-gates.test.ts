@@ -11,6 +11,7 @@
  * .context/plans/critique-c15t-shadow-v3-kernel-first.md for full context.
  */
 import { afterEach, describe, expect, test, vi } from 'vitest';
+
 import type { ConsentManagerInterface } from '../client/client-factory';
 import {
 	clearConsentRuntimeCache,

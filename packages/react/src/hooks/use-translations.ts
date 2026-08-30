@@ -4,6 +4,7 @@ import type { Translations } from '@c15t/core';
 import { defaultTranslationConfig } from '@c15t/core';
 import { resolveTranslations } from '@c15t/ui/utils';
 import { useMemo } from 'react';
+
 import { useConsentManager } from './use-consent-manager';
 
 /**

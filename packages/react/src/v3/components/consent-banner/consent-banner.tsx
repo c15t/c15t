@@ -14,6 +14,7 @@ import {
 	shouldFillPolicyActions,
 } from '@c15t/ui/utils';
 import { type FC, Fragment, type ReactNode } from 'react';
+
 import { useHeadlessConsentUI } from '~/v3/component-hooks/use-headless-consent-ui';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { Box } from '~/v3/components/shared/primitives/box';
@@ -21,6 +22,7 @@ import type { InlineLegalLinksProps } from '~/v3/components/shared/primitives/le
 import { BrandingLink } from '~/v3/components/shared/ui/branding';
 import { usePolicyBanner } from '~/v3/hooks';
 import { useComponentConfig } from '~/v3/hooks/use-component-config';
+
 import { ConsentBannerRoot } from './atoms/root';
 import {
 	ConsentBannerAcceptButton,

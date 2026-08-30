@@ -10,6 +10,7 @@ import {
 	type TranslationConfig,
 	type Translations,
 } from '@c15t/translations';
+
 import { checkJurisdiction } from '../../libs/jurisdiction';
 import type { OfflinePolicyConfig } from '../../store/type';
 import { defaultTranslationConfig } from '../../translations';

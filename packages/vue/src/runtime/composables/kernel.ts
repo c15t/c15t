@@ -1,4 +1,5 @@
 import { inject } from 'vue';
+
 import {
 	symbolKernel,
 	symbolKernelContext,

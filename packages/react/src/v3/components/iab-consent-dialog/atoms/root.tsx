@@ -4,6 +4,7 @@ import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { type FC, type ReactNode, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
 import { LocalThemeContext } from '~/v3/context/theme-context';
 import { useSetActiveUI } from '~/v3/hooks';
@@ -13,6 +14,7 @@ import { useTextDirection } from '~/v3/hooks/use-text-direction';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { cnExt as cn } from '~/v3/utils/cn';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { IABConsentDialogOverlay } from './overlay';
 
 interface IABConsentDialogRootProps {

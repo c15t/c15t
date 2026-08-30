@@ -6,6 +6,7 @@
 
 import type { InitOutput } from '@c15t/schema/types';
 import { vi } from 'vitest';
+
 import type { ConsentManagerInterface } from '../../../client/client-factory';
 import type { ConsentStoreState } from '../../../store/type';
 import type { ConsentType } from '../../../types';

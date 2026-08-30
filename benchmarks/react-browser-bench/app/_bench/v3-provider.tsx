@@ -7,6 +7,7 @@ import {
 	type ConsentProviderOptions,
 } from '@c15t/react/v3';
 import type { ReactNode } from 'react';
+
 import { getBenchState, type ReactBenchScenario } from './state';
 import { ReactV3BenchmarkProbe } from './v3-probe';
 

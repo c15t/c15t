@@ -4,9 +4,9 @@
 	const consent = getConsentManager();
 </script>
 
-<footer class="border-t border-border py-12 px-4 sm:px-6 lg:px-8">
+<footer class="border-border border-t px-4 py-12 sm:px-6 lg:px-8">
 	<div class="container mx-auto max-w-6xl">
-		<div class="grid md:grid-cols-4 gap-8 mb-8">
+		<div class="mb-8 grid gap-8 md:grid-cols-4">
 			<div class="space-y-4">
 				<div class="flex items-center gap-2">
 					<svg
@@ -27,14 +27,14 @@
 					>
 					<span class="text-xl font-semibold">PigeonPost</span>
 				</div>
-				<p class="text-sm text-muted-foreground">
+				<p class="text-muted-foreground text-sm">
 					Revolutionary pigeon-powered courier service for modern London.
 				</p>
 			</div>
 
 			<div class="space-y-4">
 				<h3 class="font-semibold">Product</h3>
-				<ul class="space-y-2 text-sm text-muted-foreground">
+				<ul class="text-muted-foreground space-y-2 text-sm">
 					<li>
 						<a
 							href="#features"
@@ -64,7 +64,7 @@
 
 			<div class="space-y-4">
 				<h3 class="font-semibold">Company</h3>
-				<ul class="space-y-2 text-sm text-muted-foreground">
+				<ul class="text-muted-foreground space-y-2 text-sm">
 					<li>
 						<a
 							href="#about"
@@ -94,11 +94,11 @@
 
 			<div class="space-y-4">
 				<h3 class="font-semibold">Legal</h3>
-				<ul class="space-y-2 text-sm text-muted-foreground">
+				<ul class="text-muted-foreground space-y-2 text-sm">
 					<li>
 						<button
 							onclick={() => consent.setActiveUI('dialog')}
-							class="transition-colors hover:text-foreground cursor-pointer"
+							class="hover:text-foreground cursor-pointer transition-colors"
 						>
 							Your privacy settings
 						</button>
@@ -126,7 +126,7 @@
 		</div>
 
 		<div
-			class="pt-8 border-t border-border text-center text-sm text-muted-foreground"
+			class="border-border text-muted-foreground border-t pt-8 text-center text-sm"
 		>
 			<p>&copy; 2025 PigeonPost. All rights reserved.</p>
 		</div>

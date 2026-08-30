@@ -5,6 +5,7 @@ import {
 	prepareTranslationConfig,
 } from '@c15t/core';
 import { enTranslations } from '@c15t/translations';
+
 import { bench, runMicroBenchmarkSuite } from './wrapper';
 
 // Sample partial override (simulates user customization)

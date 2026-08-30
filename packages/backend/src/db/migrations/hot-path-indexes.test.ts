@@ -16,6 +16,7 @@ import { SqliteClient } from '@effect/sql-sqlite-node';
 import { assert, describe, it } from '@effect/vitest';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+
 import { up as baseline } from './1-baseline';
 import { up as hotPathIndexes, INDEXES } from './2-hot-path-indexes';
 

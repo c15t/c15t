@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { TelemetryEventName } from '~/utils/telemetry';
+
 import { createTelemetrySubscriber } from './telemetry-plugin';
 
 function createTelemetryMock() {

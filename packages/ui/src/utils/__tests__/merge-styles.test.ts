@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { mergeStyles } from '../merge-styles';
 
 describe('mergeStyles', () => {

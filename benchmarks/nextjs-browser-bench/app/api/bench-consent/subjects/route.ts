@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+
 import { recordBenchConsentFixtureExecution } from '../fixture';
 
 export async function POST(request: Request) {

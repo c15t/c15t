@@ -10,6 +10,7 @@
  */
 
 import type { FC } from 'react';
+
 import {
 	ConsentDialogTrigger,
 	type ConsentDialogTriggerProps,
@@ -17,6 +18,7 @@ import {
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';
+
 import { ConsentCustomizationCard } from './atoms/card';
 import { Root as ConsentDialogRoot } from './atoms/root';
 

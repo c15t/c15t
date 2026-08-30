@@ -10,6 +10,7 @@ import {
 } from '@c15t/schema/types';
 import { resolveTranslationInput } from '@c15t/translations';
 import { createStore } from 'zustand/vanilla';
+
 import type { ConsentManagerInterface } from '../client/client-factory';
 import type { StorageConfig } from '../libs/cookie';
 import {

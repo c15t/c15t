@@ -1,8 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ConsentInfo } from '../../../consent/consent-types';
-import { setDebugEnabled } from '../../../libs/debug';
-import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../../libs/storage-keys';
-import type { ConsentState } from '../../../types';
+
 import {
 	deleteConsentFromStorage,
 	deleteCookie,
@@ -12,6 +9,10 @@ import {
 	saveConsentToStorage,
 	setCookie,
 } from '..';
+import type { ConsentInfo } from '../../../consent/consent-types';
+import { setDebugEnabled } from '../../../libs/debug';
+import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../../libs/storage-keys';
+import type { ConsentState } from '../../../types';
 
 describe('Cookie Storage', () => {
 	beforeEach(() => {

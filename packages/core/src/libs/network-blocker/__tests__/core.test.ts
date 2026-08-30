@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import type { ConsentState } from '../../../types';
 import { shouldBlockRequest } from '../core';
 import type { NetworkBlockerConfig } from '../types';

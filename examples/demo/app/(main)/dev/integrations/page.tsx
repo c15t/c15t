@@ -1,18 +1,19 @@
 import Link from 'next/link';
+
 import { IntegrationStatesDemo } from '../../../../components/demo/integration-states-demo';
 
 export default function IntegrationStatesPage() {
 	return (
-		<main className="min-h-screen bg-background">
+		<main className="bg-background min-h-screen">
 			<div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-12 sm:px-6">
-				<header className="space-y-3 border-border/80 border-b pb-8">
+				<header className="border-border/80 space-y-3 border-b pb-8">
 					<p className="label-pixel text-muted-foreground">
 						c15t demo / integration states
 					</p>
-					<h1 className="font-semibold text-3xl tracking-[-0.04em]">
+					<h1 className="text-3xl font-semibold tracking-[-0.04em]">
 						Inspect loading, error, and retry
 					</h1>
-					<p className="max-w-3xl text-muted-foreground text-sm leading-6">
+					<p className="text-muted-foreground max-w-3xl text-sm leading-6">
 						Deterministic fixtures for states that are normally too brief or
 						environment-dependent to inspect. These exercise the real
 						integration components and script hook without contacting a broken

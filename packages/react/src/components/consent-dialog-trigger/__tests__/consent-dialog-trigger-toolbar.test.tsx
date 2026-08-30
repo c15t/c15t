@@ -3,10 +3,12 @@ import { defaultTranslationConfig } from '@c15t/core';
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { userEvent } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
+import { userEvent } from 'vitest/browser';
+
 import { ConsentStateContext } from '~/context/consent-manager-context';
 import { GlobalThemeContext } from '~/context/theme-context';
+
 import { ConsentDialogTrigger, ConsentDialogTriggerToolbar } from '../index';
 
 function createMockState(

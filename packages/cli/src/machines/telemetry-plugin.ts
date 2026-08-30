@@ -6,6 +6,7 @@
 
 import type { Telemetry } from '~/utils/telemetry';
 import { TelemetryEventName } from '~/utils/telemetry';
+
 import type { GenerateMachineContext } from './generate/types';
 import type { StateHistoryEntry } from './types';
 

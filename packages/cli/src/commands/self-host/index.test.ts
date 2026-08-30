@@ -10,7 +10,9 @@ vi.mock('./migrate', () => ({
 }));
 
 import * as prompts from '@clack/prompts';
+
 import { TelemetryEventName } from '~/utils/telemetry';
+
 import { selfHost } from './index';
 import { migrate } from './migrate';
 

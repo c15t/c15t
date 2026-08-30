@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { computed, ref } from 'vue';
+
 import { useConsentConfig } from '#c15t/composables';
+
 import ConsentSwitch from './consent-switch.vue';
 import type { IabProcessedPurpose, IabVendorId } from './iab-purpose-item.vue';
 import IabPurposeItem from './iab-purpose-item.vue';

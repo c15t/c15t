@@ -6,6 +6,7 @@
 
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+
 import type { CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';
 

@@ -9,6 +9,7 @@ import {
 import { IABConsentBanner, IABConsentDialog } from 'c15t/react/iab';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
+
 import { createDemoScripts } from '../../lib/demo-scripts';
 import {
 	DEFAULT_SCENARIO_ID,
@@ -212,7 +213,7 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 				};
 
 	return (
-		<main className="min-h-screen bg-background">
+		<main className="bg-background min-h-screen">
 			{themeMounted && preset === 'glass' && (
 				<>
 					<GlassBackdrop />
@@ -220,9 +221,9 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 				</>
 			)}
 			<div className="relative mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
-				<header className="flex flex-wrap items-center justify-between gap-4 border-border/80 border-b pb-6">
+				<header className="border-border/80 flex flex-wrap items-center justify-between gap-4 border-b pb-6">
 					<div className="space-y-1">
-						<h1 className="font-semibold text-xl tracking-tight">
+						<h1 className="text-xl font-semibold tracking-tight">
 							c15t demo{isSelfHost ? ' — self-hosted backend' : ''}
 						</h1>
 						<p className="text-muted-foreground text-sm">
@@ -231,12 +232,12 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 						</p>
 					</div>
 
-					<div className="flex flex-wrap items-center gap-3 text-muted-foreground text-sm">
+					<div className="text-muted-foreground flex flex-wrap items-center gap-3 text-sm">
 						<a
 							href="https://c15t.com/docs"
 							target="_blank"
 							rel="noreferrer"
-							className="underline-offset-4 transition hover:text-foreground hover:underline"
+							className="hover:text-foreground underline-offset-4 transition hover:underline"
 						>
 							Docs
 						</a>
@@ -322,7 +323,7 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 											}
 											placeholder="DE"
 											maxLength={2}
-											className="w-20 rounded-full border-border/80 font-mono shadow-none"
+											className="border-border/80 w-20 rounded-full font-mono shadow-none"
 										/>
 									</div>
 									<div className="space-y-1.5">
@@ -340,10 +341,10 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 											}
 											placeholder="CA"
 											maxLength={3}
-											className="w-20 rounded-full border-border/80 font-mono shadow-none"
+											className="border-border/80 w-20 rounded-full font-mono shadow-none"
 										/>
 									</div>
-									<p className="pb-2 text-muted-foreground text-xs">
+									<p className="text-muted-foreground pb-2 text-xs">
 										Pretend the visitor is somewhere else without changing the
 										scenario.
 									</p>
@@ -354,12 +355,12 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 						</section>
 
 						{/* Live status */}
-						<section className="space-y-6 border-border/80 border-t pt-8 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
+						<section className="border-border/80 space-y-6 border-t pt-8 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
 							<div className="space-y-2">
 								<p className="label-pixel text-muted-foreground">
 									Current scenario
 								</p>
-								<h2 className="font-semibold text-2xl tracking-tight">
+								<h2 className="text-2xl font-semibold tracking-tight">
 									{scenario.label}
 								</h2>
 								<p className="text-muted-foreground text-sm leading-6">
@@ -448,7 +449,7 @@ function ScenarioGroup({
 	return (
 		<div className="space-y-3">
 			<div>
-				<p className="font-medium text-sm">{title}</p>
+				<p className="text-sm font-medium">{title}</p>
 				<p className="text-muted-foreground text-xs">{description}</p>
 			</div>
 			<div className="flex flex-wrap gap-2">

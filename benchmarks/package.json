@@ -5,19 +5,19 @@
 	"scripts": {
 		"bench": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/*.bench.ts",
 		"bench:ci": "BENCH_OUTPUT_DIR=../.benchmarks/head/micro bun run micro/*.bench.ts",
-		"bench:nightly": "BENCH_OUTPUT_DIR=../.benchmarks/nightly/micro bun run micro/*.bench.ts",
-		"bench:store": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/store.bench.ts",
-		"bench:has": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/has-condition.bench.ts",
-		"bench:translations": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/translations.bench.ts",
 		"bench:cookie": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/cookie.bench.ts",
-		"bench:script-loader": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/script-loader.bench.ts"
+		"bench:has": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/has-condition.bench.ts",
+		"bench:nightly": "BENCH_OUTPUT_DIR=../.benchmarks/nightly/micro bun run micro/*.bench.ts",
+		"bench:script-loader": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/script-loader.bench.ts",
+		"bench:store": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/store.bench.ts",
+		"bench:translations": "BENCH_OUTPUT_DIR=../.benchmarks/current/micro bun run micro/translations.bench.ts"
 	},
 	"dependencies": {
 		"@c15t/benchmarking": "workspace:*",
 		"@c15t/core": "workspace:*",
-		"mitata": "^1.0.34",
 		"@c15t/react": "workspace:*",
-		"@c15t/translations": "workspace:*"
+		"@c15t/translations": "workspace:*",
+		"mitata": "^1.0.34"
 	},
 	"devDependencies": {
 		"typescript": "6.0.3"

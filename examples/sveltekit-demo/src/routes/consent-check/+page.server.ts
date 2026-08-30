@@ -1,4 +1,5 @@
 import { consentClient } from '$lib/c15t-client';
+
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url }) => {

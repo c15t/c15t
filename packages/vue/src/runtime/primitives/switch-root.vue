@@ -6,6 +6,7 @@
  * framework-agnostic helpers in @c15t/ui.
  */
 import { provide } from 'vue';
+
 import { switchCheckedKey } from './keys';
 
 const props = defineProps<{

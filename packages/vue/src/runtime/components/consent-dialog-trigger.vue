@@ -5,6 +5,7 @@ import type {
 } from '@c15t/schema/config';
 import triggerStyles from '@c15t/ui/styles/v3/consent-dialog-trigger';
 import { computed, ref, watch } from 'vue';
+
 import {
 	useConsent,
 	useConsentActiveUI,
@@ -12,6 +13,7 @@ import {
 	useConsentIabSelection,
 	useConsentInit,
 } from '#c15t/composables';
+
 import { useDraggable } from '../composables/use-draggable';
 import { useLocalStorageRef } from '../composables/use-local-storage-ref';
 import { useMounted } from '../composables/use-mounted';

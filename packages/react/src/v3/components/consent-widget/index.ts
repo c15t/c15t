@@ -11,6 +11,7 @@
  */
 
 import type { FC } from 'react';
+
 import {
 	Accordion,
 	AccordionArrow,

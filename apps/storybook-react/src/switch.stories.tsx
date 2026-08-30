@@ -2,6 +2,7 @@ import { controlledToggle, toggleOnOff } from '@c15t/conformance/play/switch';
 import { Switch } from '@c15t/react/primitives';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
+
 import { enTranslations } from '../../../packages/translations/src';
 
 const { consentTypes } = enTranslations;

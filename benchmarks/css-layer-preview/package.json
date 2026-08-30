@@ -3,10 +3,10 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "next dev --port 3120",
 		"build": "rm -rf .next && next build",
-		"start": "next start --port 3120",
-		"review": "node scripts/review.mjs"
+		"dev": "next dev --port 3120",
+		"review": "node scripts/review.mjs",
+		"start": "next start --port 3120"
 	},
 	"dependencies": {
 		"@c15t/benchmarking": "workspace:*",

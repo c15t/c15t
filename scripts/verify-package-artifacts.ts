@@ -2,6 +2,7 @@
 
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+
 import type { ManifestTarget } from './manifest-utils';
 import {
 	collectManifestTargets,

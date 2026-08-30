@@ -16,6 +16,7 @@
  *     can't easily assert in node)
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 import {
 	configureConsentManager,
 	createConsentManagerStore,

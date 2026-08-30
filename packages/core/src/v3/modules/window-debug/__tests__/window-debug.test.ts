@@ -2,6 +2,7 @@
  * Tests for c15t/v3/modules/window-debug.
  */
 import { afterEach, describe, expect, test, vi } from 'vitest';
+
 import { version } from '../../../../version';
 import { createWindowDebug, resolveWindowDebugMode } from '../index';
 

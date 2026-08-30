@@ -1,4 +1,5 @@
 import color from 'picocolors';
+
 import { TelemetryEventName } from '../utils/telemetry';
 import type { CliContext } from './types';
 

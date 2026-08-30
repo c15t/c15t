@@ -11,6 +11,7 @@
  */
 
 import type { FC } from 'react';
+
 import { Overlay } from './atoms/overlay';
 import { Root } from './atoms/root';
 import {

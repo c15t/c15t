@@ -1,16 +1,16 @@
 {
 	"name": "@c15t/backend-bench",
 	"private": true,
+	"description": "Head-to-head query benchmarks for the backend rewrite (RFC 0004 §7).",
 	"type": "module",
-	"description": "Head-to-head query benchmarks for the backend rewrite (RFC 0004 \u00a77).",
 	"scripts": {
-		"build": "echo 'backend benchmarks are source-only'",
 		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/backend-runtime bunx tsx src/run.ts",
 		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/backend-runtime bunx tsx src/run.ts",
+		"bench:write": "bunx tsx src/run-write.ts",
+		"build": "echo 'backend benchmarks are source-only'",
 		"check-types": "tsc --noEmit",
 		"fmt": "bun oxfmt .",
-		"lint": "bun oxlint ./src",
-		"bench:write": "bunx tsx src/run-write.ts"
+		"lint": "bun oxlint ./src"
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",

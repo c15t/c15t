@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+
 import { legalDocumentPolicyTypeSchema } from '~/domain/consent-policy';
 
 export const legalDocumentCurrentParamsSchema = v.object({

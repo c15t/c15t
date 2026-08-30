@@ -16,6 +16,7 @@ import {
 	useRef,
 	useState,
 } from 'react';
+
 import {
 	getScenarioScripts,
 	type ScriptLifecycleScenarioConfig,

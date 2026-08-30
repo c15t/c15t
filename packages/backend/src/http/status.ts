@@ -12,6 +12,7 @@
 import { getIpAddress, type IpAddressConfig } from '@c15t/schema/geo';
 import { Effect } from 'effect';
 import { SqlClient, type SqlError } from 'effect/unstable/sql';
+
 import { readInitSignals } from './init';
 
 export interface StatusResponse {

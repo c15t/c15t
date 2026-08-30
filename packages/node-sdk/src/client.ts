@@ -12,6 +12,7 @@ import type {
 	PostSubjectOutput,
 	StatusOutput,
 } from '@c15t/schema/types';
+
 import {
 	checkConsent,
 	createSubject,

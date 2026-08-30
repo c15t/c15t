@@ -10,6 +10,7 @@ import {
 	prepareTranslationConfig,
 	type TranslationInputConfig,
 } from '@c15t/translations';
+
 import type { ConsentStoreState } from '../../store/type';
 import { allConsentNames, type ConsentState } from '../../types';
 import type { GlobalVendorList } from '../../types/iab-tcf';

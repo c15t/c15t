@@ -1,4 +1,5 @@
 import { createElement } from 'react';
+
 import {
 	ConsentBanner,
 	ConsentDialog,

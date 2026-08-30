@@ -13,6 +13,7 @@ import type { ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
 import { Hono } from 'hono';
 import { openAPIRouteHandler } from 'hono-openapi';
+
 import {
 	gradeLevel,
 	middleware as observability,

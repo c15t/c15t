@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Model } from '@c15t/core';
+
 	import ConsentDialog from '../../lib/components/consent-dialog.svelte';
 	import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';
 	import type { ConsentManagerOptions } from '../../lib/types';

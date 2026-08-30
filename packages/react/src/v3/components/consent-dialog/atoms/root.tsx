@@ -12,6 +12,7 @@ import styles from '@c15t/ui/styles/v3/consent-dialog';
 import type { FC, HTMLAttributes, ReactNode, RefObject } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { useHeadlessConsentUI } from '~/v3/component-hooks/use-headless-consent-ui';
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
@@ -27,6 +28,7 @@ import type { CSSPropertiesWithVars } from '~/v3/types/theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { cnExt as cn } from '~/v3/utils/cn';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
+
 import { Overlay } from './overlay';
 
 /**

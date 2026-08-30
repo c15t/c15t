@@ -1,10 +1,12 @@
 import type { Translations } from '@c15t/core';
 import { beforeEach, describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
+
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
+
 import { useTranslations } from '../use-translations';
 
 describe('useTranslations', () => {

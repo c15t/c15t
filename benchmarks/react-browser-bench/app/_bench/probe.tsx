@@ -2,6 +2,7 @@
 
 import { useConsentManager } from '@c15t/react';
 import { useEffect, useRef } from 'react';
+
 import {
 	getBenchState,
 	hasRunningAnimations,

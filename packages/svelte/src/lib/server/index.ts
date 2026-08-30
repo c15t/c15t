@@ -8,6 +8,7 @@ import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
 } from '@c15t/schema/types';
+
 import { normalizeBackendURL } from './normalize-url';
 import type {
 	PrefetchInitialConsentOptions,

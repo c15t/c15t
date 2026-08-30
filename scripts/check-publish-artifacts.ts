@@ -2,6 +2,7 @@
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
 import type { PackageManifest } from './manifest-utils';
 import {
 	collectManifestTargets,

@@ -1,4 +1,5 @@
 import type { InitOutput } from '@c15t/schema/types';
+
 import { C15T_VERSION_HEADERS } from '../../client/headers';
 import type { SSRInitialData } from '../../store/type';
 import {

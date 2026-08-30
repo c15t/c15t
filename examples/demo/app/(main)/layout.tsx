@@ -10,6 +10,7 @@ import {
 } from 'geist/font/pixel';
 import { GeistSans } from 'geist/font/sans';
 import type React from 'react';
+
 import '../globals.css';
 import { ConsentManager } from '../../components/consent-manager/provider';
 import { ThemeProvider } from '../../components/theme-provider';

@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from 'vitest';
+
 import { createEventBus } from '../events';
 
 describe('createEventBus', () => {

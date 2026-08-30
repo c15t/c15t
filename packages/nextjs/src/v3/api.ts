@@ -6,6 +6,7 @@ import type {
 	InitOutput,
 } from '@c15t/schema/types';
 import { resolveBackendURL, resolveInitFromManifest } from '@c15t/schema/types';
+
 import { extractConsentRequestInputs } from './headers';
 
 const DEFAULT_MANIFEST_REVALIDATE_SECONDS = 300;

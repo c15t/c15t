@@ -1,4 +1,5 @@
 import type { InitOutput, JurisdictionCode } from '@c15t/schema/types';
+
 import type { AllConsentNames } from './consent-types';
 /**
  * @packageDocumentation

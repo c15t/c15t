@@ -8,6 +8,7 @@ import {
 	type MaybeRefOrGetter,
 	toValue,
 } from 'vue';
+
 import type { ConsentConfig } from '../config';
 
 export const consentConfigKey: InjectionKey<

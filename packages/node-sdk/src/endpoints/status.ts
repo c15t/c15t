@@ -1,4 +1,5 @@
 import type { StatusOutput } from '@c15t/schema/types';
+
 import type { FetcherContext } from '../fetcher';
 import { fetcher } from '../fetcher';
 import type { FetchOptions, ResponseContext } from '../types';

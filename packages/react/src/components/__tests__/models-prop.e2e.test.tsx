@@ -9,14 +9,15 @@
 
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentBanner } from '~/components/consent-banner';
 import { ConsentDialog } from '~/components/consent-dialog';
+import { IABConsentBanner } from '~/components/iab-consent-banner';
+import { IABConsentDialog } from '~/components/iab-consent-dialog';
 import {
 	clearConsentState,
 	defaultIABOptions,
 } from '~/components/iab/__tests__/e2e-setup';
-import { IABConsentBanner } from '~/components/iab-consent-banner';
-import { IABConsentDialog } from '~/components/iab-consent-dialog';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache,

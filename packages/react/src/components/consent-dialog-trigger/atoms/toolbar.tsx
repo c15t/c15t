@@ -10,8 +10,10 @@ import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js'
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { useMemo, useRef, useState } from 'react';
+
 import { useStyles } from '~/hooks/use-styles';
 import type { ClassNameStyle } from '~/types/theme';
+
 import type {
 	ConsentDialogTriggerToolbarAction,
 	ConsentDialogTriggerToolbarPreferences,

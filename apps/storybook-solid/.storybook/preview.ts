@@ -1,9 +1,10 @@
+import type { Preview } from 'storybook-solidjs-vite';
+
+import '../../../packages/ui/dist/styles.css';
 import {
 	defaultTheme,
 	generateThemeCSS,
 } from '../../../packages/ui/src/theme/utils';
-import '../../../packages/ui/dist/styles.css';
-import type { Preview } from 'storybook-solidjs-vite';
 
 const storybookThemeStyleId = 'c15t-storybook-theme';
 const storybookCanvasStyleId = 'c15t-storybook-canvas';

@@ -7,6 +7,7 @@
 import { clearConsentRuntimeCache } from '@c15t/core';
 import { render } from '@testing-library/svelte';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
 import ProviderOnlyFixture from '../../__tests__/fixtures/provider-only-fixture.svelte';
 import ConsentManagerProvider from '../../lib/components/consent-manager-provider.svelte';

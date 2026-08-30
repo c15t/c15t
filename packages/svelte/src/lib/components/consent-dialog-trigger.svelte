@@ -9,6 +9,7 @@
 		persistPosition as persistToStorage,
 	} from '@c15t/ui/utils';
 	import { onMount, untrack } from 'svelte';
+
 	import { portal } from '../actions/portal';
 	import { getConsentContext } from '../context.svelte';
 	import C15TIconOnly from './icons/c15-t-icon-only.svelte';

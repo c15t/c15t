@@ -4,6 +4,7 @@
 
 import * as p from '@clack/prompts';
 import open from 'open';
+
 import {
 	clearConfig,
 	formatUserCode,

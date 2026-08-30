@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import {
 	CLI_INFO,
 	LAYOUT_PATTERNS,

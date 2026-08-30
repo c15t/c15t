@@ -7,10 +7,12 @@ import type {
 	ScriptCallbackInfo,
 } from '@c15t/core';
 import { useContext, useEffect, useRef, useState } from 'react';
+
 import {
 	ConsentStateContext,
 	type ConsentStateContextValue,
 } from '~/context/consent-manager-context';
+
 import { useConsentManager } from './use-consent-manager';
 
 export type ConsentScriptStatus =

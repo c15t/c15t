@@ -4,29 +4,35 @@
 	"description": "Type-safe i18n translations for c15t consent UI — cookie banner, consent dialog, preference center.",
 	"keywords": [
 		"c15t",
-		"i18n",
-		"translations",
-		"localization",
-		"consent",
-		"privacy",
-		"gdpr",
 		"ccpa",
 		"cmp",
+		"consent",
 		"cookie-banner",
+		"gdpr",
+		"i18n",
+		"localization",
+		"privacy",
+		"translations",
 		"typescript"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/react/hooks/use-translations",
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
+	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/translations"
 	},
-	"license": "Apache-2.0",
-	"sideEffects": false,
+	"files": [
+		"dist",
+		"dist-types"
+	],
 	"type": "module",
+	"sideEffects": false,
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist-types/index.d.ts",
@@ -44,12 +50,9 @@
 			"default": "./dist/translations/en.js"
 		}
 	},
-	"main": "./dist/index.js",
-	"types": "./dist-types/index.d.ts",
-	"files": [
-		"dist",
-		"dist-types"
-	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
@@ -60,18 +63,15 @@
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},
-	"browserslist": [
-		">0.2%",
-		"not dead",
-		"not op_mini all"
-	],
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"lingo.dev": "^0.137.8",
 		"typescript": "7.0.2"
 	},
-	"publishConfig": {
-		"access": "public"
-	}
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	]
 }

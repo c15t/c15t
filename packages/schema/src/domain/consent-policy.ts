@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+
 import type { LegalDocumentPolicyType } from '../shared/legal-document-types';
 import { isLegalDocumentType } from '../shared/legal-document-types';
 

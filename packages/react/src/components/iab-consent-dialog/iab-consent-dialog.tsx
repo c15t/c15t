@@ -19,11 +19,12 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
-import { Branding } from '~/components/consent-dialog/atoms/card';
+
 import {
 	ConsentDialogTrigger,
 	type ConsentDialogTriggerProps,
 } from '~/components/consent-dialog-trigger';
+import { Branding } from '~/components/consent-dialog/atoms/card';
 import * as Button from '~/components/shared/ui/button';
 import * as Tabs from '~/components/shared/ui/tabs';
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
@@ -34,6 +35,7 @@ import { useHeadlessIABConsentUI } from '~/hooks/use-headless-iab-consent-ui';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import { useTranslations } from '~/hooks/use-translations';
+
 import { IABConsentDialogOverlay } from './atoms/overlay';
 import { PurposeItem } from './atoms/purpose-item';
 import { StackItem } from './atoms/stack-item';

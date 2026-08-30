@@ -1,5 +1,6 @@
 import type { JurisdictionCode } from '@c15t/schema/types';
 import type { Translations } from '@c15t/translations';
+
 import type { ConsentStoreState } from '../store/type';
 import type { AllConsentNames } from './consent-types';
 

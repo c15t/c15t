@@ -9,7 +9,9 @@
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+
 import { describe, expect, it } from 'vitest';
+
 import { c15tVue } from '../vite';
 
 const packageDir = dirname(dirname(dirname(fileURLToPath(import.meta.url))));

@@ -2,6 +2,7 @@
 
 import type { LegalLinks } from '@c15t/core';
 import { createContext, useContext } from 'react';
+
 import type { ReactComponentSlots } from '~/v3/types/slots';
 
 export interface V3UIConfigValue {

@@ -5,6 +5,7 @@
  */
 
 import { assert, describe, it } from '@effect/vitest';
+
 import { defineConfig } from './define-config';
 
 describe('defineConfig', () => {

@@ -9,6 +9,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, test } from 'vitest';
 import { computed, createSSRApp, ref } from 'vue';
 import { renderToString } from 'vue/server-renderer';
+
 import ConsentTag from '../runtime/components/consent-tag.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';

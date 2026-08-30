@@ -7,7 +7,9 @@ import {
 	type ReactNode,
 	useMemo,
 } from 'react';
+
 import * as Tabs from '~/components/shared/ui/tabs';
+
 import { useGVLData } from '../hooks/use-gvl-data';
 import { useIABTranslations } from '../use-iab-translations';
 

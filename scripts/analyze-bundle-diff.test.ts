@@ -6,7 +6,9 @@ import {
 	readFileSync,
 	statSync,
 } from 'node:fs';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import {
 	analyzePackage,
 	type BundleStats,

@@ -6,8 +6,11 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+
 import type { SourceFile } from 'ts-morph';
+
 import type { AvailablePackages } from '~/context/framework-detection';
+
 import { generateConsentComponent } from '../../shared/components';
 import { runLayoutUpdatePipeline } from '../../shared/layout-pipeline';
 import { generateOptionsText } from '../../shared/options';

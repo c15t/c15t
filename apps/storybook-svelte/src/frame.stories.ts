@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/svelte-vite';
+
 import FrameStory from './FrameStory.svelte';
 
 const meta = {

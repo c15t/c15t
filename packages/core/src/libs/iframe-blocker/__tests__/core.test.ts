@@ -3,6 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { ConsentState } from '../../../types';
 import { createIframeBlocker } from '../core';
 import './test-setup';

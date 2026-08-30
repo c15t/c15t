@@ -6,6 +6,7 @@
  */
 import { getDialogState, isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import { inject, onBeforeUnmount, onMounted, ref } from 'vue';
+
 import { dialogContextKey } from './keys';
 import { useFocusTrap } from './use-focus-trap';
 

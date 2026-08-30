@@ -7,6 +7,7 @@
  */
 
 import type { GlobalVendorList } from '@c15t/core';
+
 import type { TCFConsentData } from './iab-tcf-types';
 import { getTCFCore } from './lazy-load';
 

@@ -10,6 +10,7 @@
  */
 
 import type { FC, ReactNode } from 'react';
+
 import { TriggerButton, type TriggerButtonProps } from './atoms/button';
 import { TriggerIcon, type TriggerIconProps } from './atoms/icon';
 import {

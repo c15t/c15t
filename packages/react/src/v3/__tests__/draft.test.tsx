@@ -14,6 +14,7 @@
 import type { ReactNode } from 'react';
 import { describe, expect, test } from 'vitest';
 import { render } from 'vitest-browser-react';
+
 import { ConsentDraftProvider, useConsentDraft } from '../draft';
 import { useConsent, useSetConsent } from '../hooks';
 import { ConsentProvider } from '../provider';

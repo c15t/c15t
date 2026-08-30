@@ -3,6 +3,7 @@
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+
 import { useStyles } from '~/hooks/use-styles';
 
 interface IABConsentBannerHeaderProps extends HTMLAttributes<HTMLDivElement> {

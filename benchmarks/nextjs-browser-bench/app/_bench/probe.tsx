@@ -2,6 +2,7 @@
 
 import { useConsentManager } from '@c15t/nextjs';
 import { useEffect, useRef } from 'react';
+
 import {
 	getState,
 	hasRunningAnimations,

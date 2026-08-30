@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { ConsentStoreState } from '../../../store/type';
 import { clearAllScripts, loadScripts, updateScripts } from '../core';
 import { createScriptManager } from '../store';

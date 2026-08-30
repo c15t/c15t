@@ -14,7 +14,7 @@
 
 <button
 	onclick={cycleLanguage}
-	class="inline-flex items-center justify-center rounded-md text-sm font-medium h-8 w-8 border border-input bg-transparent hover:bg-accent hover:text-accent-foreground"
+	class="border-input hover:bg-accent hover:text-accent-foreground inline-flex h-8 w-8 items-center justify-center rounded-md border bg-transparent text-sm font-medium"
 	aria-label="Change language"
 >
 	<svg

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+
 import { extractConsentRequestInputs } from './headers';
 
 export interface C15tMiddlewareOptions {

@@ -5,6 +5,7 @@
  */
 
 import * as v from 'valibot';
+
 import { consentItemSchema } from './get';
 
 /**

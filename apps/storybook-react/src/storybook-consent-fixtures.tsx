@@ -1,4 +1,5 @@
 import { type ReactNode, useRef } from 'react';
+
 import { iab } from '../../../packages/iab/src/index';
 import { mockGVL } from '../../../packages/react/src/components/iab/__tests__/fixtures/mock-consent-state';
 import {

@@ -29,6 +29,7 @@
 import { assert, describe, it } from '@effect/vitest';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+
 import { ENGINES, resetDatabase } from '../__tests__/engines';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';

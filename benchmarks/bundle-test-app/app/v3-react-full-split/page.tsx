@@ -1,7 +1,6 @@
 'use client';
 
 import '@c15t/react/styles.css';
-
 import type { AllConsentNames } from '@c15t/core';
 import { ConsentBanner } from '@c15t/react/v3/consent-banner';
 import { ConsentDialog } from '@c15t/react/v3/consent-dialog';

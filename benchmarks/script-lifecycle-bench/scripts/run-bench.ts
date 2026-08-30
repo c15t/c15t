@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
+
 import {
 	BENCHMARK_SCHEMA_VERSION,
 	type BenchmarkResult,
@@ -15,6 +16,7 @@ import {
 	writeJson,
 } from '@c15t/benchmarking';
 import { chromium } from 'playwright';
+
 import {
 	allScenarioConfigs,
 	type ScriptLifecycleScenarioConfig,

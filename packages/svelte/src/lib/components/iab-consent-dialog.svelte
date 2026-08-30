@@ -2,6 +2,7 @@
 	import { defaultTranslationConfig, type Model } from '@c15t/core';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
+
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { getIABTranslations } from '../iab-translations';
 	import { processGVLData, type VendorId } from '../iab-types';

@@ -1,5 +1,6 @@
 import { prefetchInitialConsent } from '@c15t/nextjs/v3/server';
 import type { ReactNode } from 'react';
+
 import { NextjsV3ManifestBenchmarkProvider } from '../_bench/v3-provider';
 
 export default async function V3ManifestSSRLayout({

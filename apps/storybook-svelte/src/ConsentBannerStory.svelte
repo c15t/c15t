@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { ConsentBanner, ConsentDialog } from '@c15t/svelte';
-	import StorybookConsentProvider from './StorybookConsentProvider.svelte';
+
 	import { editableConsentOptions } from './storybook-consent-fixtures';
+	import StorybookConsentProvider from './StorybookConsentProvider.svelte';
 
 	let {
 		includeDialog = false,

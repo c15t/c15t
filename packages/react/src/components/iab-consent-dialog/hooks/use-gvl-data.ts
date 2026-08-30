@@ -1,7 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
+
 import { useConsentManager } from '~/hooks/use-consent-manager';
+
 import type {
 	ProcessedFeature,
 	ProcessedPurpose,

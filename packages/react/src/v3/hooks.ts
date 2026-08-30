@@ -38,6 +38,7 @@ import type {
 	ResolvedPolicy,
 } from '@c15t/core/v3';
 import { useCallback, useContext, useSyncExternalStore } from 'react';
+
 import { KernelContext } from './context';
 
 function useKernel(): ConsentKernel {

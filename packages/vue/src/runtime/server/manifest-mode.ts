@@ -9,6 +9,7 @@ import {
 	extractConsentRequestInputs,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
+
 import type { ConsentConfig } from '../config';
 import { DEFAULT_MANIFEST_ROUTE, DEFAULT_NUXT_INIT_ROUTE } from '../manifest';
 

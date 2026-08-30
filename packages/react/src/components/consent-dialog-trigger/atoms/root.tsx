@@ -15,8 +15,10 @@ import {
 	useState,
 } from 'react';
 import { createPortal } from 'react-dom';
+
 import { useConsentDialogTrigger } from '~/hooks/use-consent-dialog-trigger';
 import { useConsentManager } from '~/hooks/use-consent-manager';
+
 import type { CornerPosition, TriggerVisibility } from '../types';
 import { type UseDraggableReturn, useDraggable } from '../use-draggable';
 

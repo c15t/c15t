@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 
 describe('mergeSlotProps', () => {

@@ -23,6 +23,7 @@ import { assert, describe, it } from '@effect/vitest';
 import { Effect, type Layer, ManagedRuntime } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import type { DrainContext } from 'evlog';
+
 import { up as baseline } from '../db/migrations/1-baseline';
 import { createApp } from '../http/app';
 import type { AppOptions } from '../http/context';

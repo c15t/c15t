@@ -1,5 +1,6 @@
 import type { ConsentStoreState } from '@c15t/core';
 import type { StoreApi } from 'zustand/vanilla';
+
 import type { EventLogEntry } from './state-manager';
 
 type InstrumentationEvent = Omit<EventLogEntry, 'id' | 'timestamp'>;

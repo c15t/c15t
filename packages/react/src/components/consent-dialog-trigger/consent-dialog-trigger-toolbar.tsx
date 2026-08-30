@@ -8,6 +8,7 @@
  */
 
 import type { ReactNode } from 'react';
+
 import { TriggerRoot } from './atoms/root';
 import { TriggerToolbar } from './atoms/toolbar';
 import type {

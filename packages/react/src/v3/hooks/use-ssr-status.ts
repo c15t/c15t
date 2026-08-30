@@ -4,6 +4,7 @@
  */
 
 import { useContext } from 'react';
+
 import { ConsentStateContext } from '../context/consent-manager-context';
 
 /**

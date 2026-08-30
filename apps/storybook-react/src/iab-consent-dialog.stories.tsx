@@ -1,5 +1,6 @@
 import { tabAndExpansionFlow } from '@c15t/conformance/play/iab-consent-dialog';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import { IABConsentDialog } from '../../../packages/react/src/iab';
 import { StorybookIABProvider } from './storybook-consent-fixtures';
 

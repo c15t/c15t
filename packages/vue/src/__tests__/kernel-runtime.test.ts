@@ -4,6 +4,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createSSRApp, defineComponent } from 'vue';
 import { renderToString } from 'vue/server-renderer';
+
 import { c15tVue } from '../index';
 import ConsentRoot from '../runtime/components/consent-root.vue';
 import { consentConfigKey } from '../runtime/composables/config';

@@ -9,13 +9,14 @@ import type { ConsentManifest } from '@c15t/schema/types';
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { createApp, toWebHandler } from 'h3';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 import initRoute from '../runtime/server/init.get';
-import manifestRoute from '../runtime/server/manifest.get';
 import {
 	clearManifestRouteCache,
 	fetchCachedManifest,
 	MANIFEST_DEDUPE_TTL_SECONDS,
 } from '../runtime/server/manifest-mode';
+import manifestRoute from '../runtime/server/manifest.get';
 
 const mocks = vi.hoisted(() => ({
 	useRuntimeConfig: vi.fn(),

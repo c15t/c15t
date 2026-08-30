@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+
 import type { InlineLegalLinksProps } from '../shared/primitives/legal-links';
 
 export interface ConsentWidgetRootProps {

@@ -4,6 +4,7 @@ import {
 	saveFlow,
 } from '@c15t/conformance/play/consent-dialog';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+
 import {
 	ConsentBanner,
 	ConsentDialog,

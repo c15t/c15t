@@ -6,6 +6,7 @@ import type {
 } from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/v3/iab-consent-banner';
 import { computed, ref, Teleport, Transition, toValue } from 'vue';
+
 import {
 	useConsentActiveUI,
 	useConsentConfig,
@@ -13,6 +14,7 @@ import {
 	useConsentIabSelection,
 	useConsentInit,
 } from '#c15t/composables';
+
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './consent-actions.vue';

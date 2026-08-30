@@ -1,6 +1,7 @@
 'use client';
 
 import type { UIOptions } from '@c15t/ui/theme';
+
 import { useReducedMotion } from './use-reduced-motion';
 import { useTheme } from './use-theme';
 

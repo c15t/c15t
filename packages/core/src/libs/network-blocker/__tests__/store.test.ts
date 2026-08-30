@@ -3,6 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { ConsentStoreState } from '../../../store/type';
 import type { ConsentState } from '../../../types';
 import { shouldBlockRequest } from '../core';

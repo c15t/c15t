@@ -8,6 +8,7 @@
 
 import styles from '@c15t/ui/styles/v3/consent-manager';
 import type { FC, ReactNode } from 'react';
+
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { Box } from '~/v3/components/shared/primitives/box';
 import {

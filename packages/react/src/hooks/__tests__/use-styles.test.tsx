@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
+
 import { GlobalThemeContext } from '~/context/theme-context';
+
 import { useStyles } from '../use-styles';
 
 describe('useStyles', () => {

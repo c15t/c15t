@@ -5,6 +5,7 @@
  * mounted (`unmount-on-hide=false` semantics) so CSS state animations work.
  */
 import { provide, ref } from 'vue';
+
 import { accordionContextKey } from './keys';
 
 withDefaults(

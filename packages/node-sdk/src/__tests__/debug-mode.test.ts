@@ -3,6 +3,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { c15tClient } from '../index';
 
 describe('Debug Mode', () => {

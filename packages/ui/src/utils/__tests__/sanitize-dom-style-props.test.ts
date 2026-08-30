@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { sanitizeDOMStyleProps } from '../sanitize-dom-style-props';
 
 describe('sanitizeDOMStyleProps', () => {

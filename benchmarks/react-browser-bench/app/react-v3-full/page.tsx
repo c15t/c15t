@@ -1,6 +1,7 @@
 'use client';
 
 import { useSetActiveUI } from '@c15t/react/v3';
+
 import { ReactV3BenchmarkProvider } from '../_bench/v3-provider';
 
 function BenchmarkControls() {

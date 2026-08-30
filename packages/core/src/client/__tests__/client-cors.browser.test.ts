@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
 import { C15tClient } from '../hosted';
 import { API_ENDPOINTS } from '../types';
 

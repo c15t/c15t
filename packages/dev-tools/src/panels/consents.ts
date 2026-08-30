@@ -4,6 +4,7 @@
  */
 
 import type { ConsentStoreState } from '@c15t/core';
+
 import {
 	createButton,
 	createDisconnectedState,

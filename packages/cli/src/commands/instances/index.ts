@@ -3,6 +3,7 @@
  */
 
 import * as p from '@clack/prompts';
+
 import {
 	getControlPlaneBaseUrl,
 	getSelectedInstanceId,

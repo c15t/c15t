@@ -14,6 +14,7 @@
  * - dispose removes elements and disconnects subscription
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+
 import { createConsentKernel } from '../../../index';
 import { createScriptLoader, type Script } from '../index';
 

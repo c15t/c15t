@@ -19,6 +19,7 @@ import { SqliteClient } from '@effect/sql-sqlite-node';
 import { assert, describe, it } from '@effect/vitest';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+
 import { up } from './1-baseline';
 
 /** Tables the baseline creates, per the fixture. */

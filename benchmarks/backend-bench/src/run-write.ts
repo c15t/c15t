@@ -17,6 +17,7 @@ import { buildConsentManifestFromConfig } from '@c15t/schema';
 import { PgliteClient } from '@effect/sql-pglite';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+
 import { onConflict, readThenWrite, type WriteResult } from './write';
 
 const ITERATIONS = 200;

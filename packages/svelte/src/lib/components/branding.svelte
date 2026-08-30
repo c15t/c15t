@@ -2,6 +2,7 @@
 	import { defaultTranslationConfig } from '@c15t/core';
 	import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
 	import { resolveTranslations } from '@c15t/ui/utils';
+
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { resolveComponentStyles } from '../utils';
 	import C15TIconOnly from './icons/c15-t-icon-only.svelte';

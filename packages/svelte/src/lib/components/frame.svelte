@@ -6,6 +6,7 @@
 	import { resolveTranslations } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
 	import { onMount } from 'svelte';
+
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 
 	const btn = buttonVariants({

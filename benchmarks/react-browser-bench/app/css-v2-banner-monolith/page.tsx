@@ -1,12 +1,12 @@
 'use client';
 
 import '@c15t/react/styles.css';
-
 import {
 	ConsentBanner,
 	ConsentManagerProvider,
 	type ConsentManagerProviderProps,
 } from '@c15t/react';
+
 import { ReactBenchmarkProbe } from '../_bench/probe';
 import { getBenchState } from '../_bench/state';
 

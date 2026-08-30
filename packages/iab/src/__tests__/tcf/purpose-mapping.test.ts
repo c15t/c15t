@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+
 import {
 	C15T_TO_IAB_PURPOSE_MAP,
 	c15tConsentsToIabPurposes,

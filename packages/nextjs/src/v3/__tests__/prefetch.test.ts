@@ -4,6 +4,7 @@
  * it to the client `ConsentBoundary` for first-paint accurate rendering.
  */
 import { beforeEach, describe, expect, test, vi } from 'vitest';
+
 import { prefetchInitialConsent } from '../server';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 

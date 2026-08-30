@@ -18,6 +18,7 @@
 
 import type { CliCommand, CliContext } from '~/context/types';
 import { runGenerateMachine } from '~/machines/generate/runner';
+
 import { STORAGE_MODES, type StorageMode } from '../../constants';
 
 function normalizeModeArg(mode?: StorageMode): StorageMode | undefined {

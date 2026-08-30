@@ -3,6 +3,7 @@ import { DEFAULT_BANNER_POSITION } from '@c15t/schema/config';
 import type { PolicyUiAction } from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/v3/consent-banner';
 import { computed, ref, Teleport, Transition } from 'vue';
+
 import {
 	useConsentActiveUI,
 	useConsentConfig,

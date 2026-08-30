@@ -27,6 +27,7 @@
 import { assert, describe, it } from '@effect/vitest';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
+
 import { ENGINES, resetDatabase } from '../__tests__/engines';
 import { apply, plan } from './adopt';
 import { classify } from './classify';

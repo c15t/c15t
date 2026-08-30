@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+
 import { isTranslations, resolveTranslations } from '../translations';
 
 describe('isTranslations', () => {

@@ -1,9 +1,9 @@
 {
 	"name": "@c15t/migration-fixtures",
 	"version": "1.0.0",
-	"type": "module",
 	"private": true,
 	"description": "Ground-truth database shapes captured from published @c15t/backend releases, used to test the migrator.",
+	"type": "module",
 	"exports": {
 		".": {
 			"types": "./src/index.ts",
@@ -11,14 +11,14 @@
 		}
 	},
 	"scripts": {
-		"generate": "bun src/generate.ts",
 		"check-types": "tsc --noEmit",
-		"lint": "bun oxlint ./src",
-		"fmt": "bun oxfmt ."
+		"fmt": "bun oxfmt .",
+		"generate": "bun src/generate.ts",
+		"lint": "bun oxlint ./src"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
-		"typescript": "6.0.3",
-		"@types/node": "^24.10.1"
+		"@types/node": "^24.10.1",
+		"typescript": "6.0.3"
 	}
 }

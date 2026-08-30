@@ -16,6 +16,7 @@ import {
 } from '@c15t/schema/types';
 import { decodeJwt } from 'jose';
 import { assert, describe, it } from 'vitest';
+
 import { buildInitResponse, readInitSignals } from './init';
 import {
 	buildManifestResponse,
