@@ -35,7 +35,7 @@ describe('switch theme contract', () => {
 		expect(switchCss).toContain(
 			'background-color: var(--switch-background-color);'
 		);
-		expect(switchCss).toContain('.root[data-state="checked"] .track {');
+		expect(switchCss).toContain(".root[data-state='checked'] .track {");
 		expect(switchCss).toContain(
 			'background-color: var(--switch-background-color-checked);'
 		);
