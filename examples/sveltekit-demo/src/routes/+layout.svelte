@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { themePresetStore } from '$lib/consent-manager/theme-store.svelte';
-	import { createDevTools } from '@c15t/dev-tools';
-	import type { DevToolsInstance } from '@c15t/dev-tools';
 	import {
 		ConsentBanner,
 		ConsentDialog,
@@ -13,27 +11,13 @@
 		IABConsentDialog,
 	} from '@c15t/svelte';
 	import { baseTranslations } from '@c15t/translations/all';
-	import { onMount } from 'svelte';
 
 	import '../app.css';
 	import '@c15t/svelte/styles.css';
 	import '@c15t/svelte/iab/styles.css';
 
 	let { children } = $props();
-	let devtools: DevToolsInstance | null = null;
 	const isBenchRoute = $derived(page.url.pathname.startsWith('/bench'));
-
-	onMount(() => {
-		if (page.url.pathname.startsWith('/bench')) {
-			return;
-		}
-
-		devtools = createDevTools({ position: 'bottom-right' });
-		return () => {
-			devtools?.destroy();
-			devtools = null;
-		};
-	});
 
 	const activeTheme = $derived.by(() => {
 		if (!themePresetStore.mounted) {

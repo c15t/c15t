@@ -1,4 +1,3 @@
-import { DevTools } from '@c15t/dev-tools/react';
 import { Analytics } from '@vercel/analytics/next';
 import { GeistMono } from 'geist/font/mono';
 import {
@@ -39,9 +38,6 @@ const RootLayout = ({
 			>
 				<ConsentManager>
 					{children}
-					{/* Always on, including production — this demo exists to show
-						    what the consent manager is doing under the hood. */}
-					<DevTools position="bottom-right" />
 					<Analytics />
 				</ConsentManager>
 			</ThemeProvider>
