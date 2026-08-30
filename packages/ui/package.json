@@ -20,29 +20,15 @@
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
-	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t"
 	},
-	"files": [
-		"dist",
-		"dist-types",
-		"styles.css",
-		"styles.tw3.css",
-		"iab",
-		"src/primitives",
-		"src/styles",
-		"!src/styles/**/__tests__/**",
-		"!src/styles/**/*.test.ts",
-		"types"
-	],
-	"type": "module",
+	"license": "Apache-2.0",
 	"sideEffects": [
 		"**/*.css"
 	],
-	"main": "./dist/index.js",
-	"types": "./dist-types/index.d.ts",
+	"type": "module",
 	"exports": {
 		"./styles.css": "./dist/styles.css",
 		"./styles.tw3.css": "./dist/styles.tw3.css",
@@ -129,9 +115,20 @@
 			"default": "./dist/styles/v3/*.js"
 		}
 	},
-	"publishConfig": {
-		"access": "public"
-	},
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"files": [
+		"dist",
+		"dist-types",
+		"styles.css",
+		"styles.tw3.css",
+		"iab",
+		"src/primitives",
+		"src/styles",
+		"!src/styles/**/__tests__/**",
+		"!src/styles/**/*.test.ts",
+		"types"
+	],
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts && rslib build --watch --no-dts --no-clean'",
@@ -151,5 +148,8 @@
 		"typed-css-modules": "0.9.1",
 		"typescript": "7.0.2",
 		"vitest": "4.1.9"
+	},
+	"publishConfig": {
+		"access": "public"
 	}
 }

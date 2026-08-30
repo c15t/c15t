@@ -25,20 +25,14 @@
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
-	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/backend"
 	},
-	"files": [
-		"dist",
-		"dist-types"
-	],
-	"type": "module",
+	"license": "Apache-2.0",
 	"sideEffects": false,
-	"main": "./dist/index.js",
-	"types": "./dist-types/index.d.ts",
+	"type": "module",
 	"exports": {
 		".": {
 			"types": "./dist-types/index.d.ts",
@@ -71,16 +65,19 @@
 			"default": "./dist/cache/index.js"
 		}
 	},
-	"publishConfig": {
-		"access": "public"
-	},
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"files": [
+		"dist",
+		"dist-types"
+	],
 	"scripts": {
+		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
-		"prebuild": "genversion --esm --semi src/version.ts",
 		"test": "vitest run --passWithNoTests",
 		"test:watch": "vitest"
 	},
@@ -126,5 +123,8 @@
 		"@upstash/redis": {
 			"optional": true
 		}
+	},
+	"publishConfig": {
+		"access": "public"
 	}
 }

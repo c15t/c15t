@@ -22,38 +22,16 @@
 		"web-privacy"
 	],
 	"homepage": "https://c15t.com/docs/frameworks/svelte/quickstart",
-	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/svelte"
 	},
-	"files": [
-		"dist",
-		"styles.css",
-		"iab",
-		"!dist/**/__tests__/**",
-		"!dist/**/*.test.*",
-		"!dist/**/*.spec.*",
-		"docs"
-	],
-	"type": "module",
+	"license": "Apache-2.0",
 	"sideEffects": [
 		"**/*.css"
 	],
-	"main": "./dist/index.js",
-	"types": "./dist/index.d.ts",
-	"typesVersions": {
-		">4.0": {
-			"headless": [
-				"./dist/headless.d.ts"
-			],
-			"server": [
-				"./dist/server/index.d.ts"
-			]
-		}
-	},
-	"svelte": "./dist/index.js",
+	"type": "module",
 	"exports": {
 		"./styles.css": "./dist/styles.css",
 		"./iab/styles.css": "./dist/iab/styles.css",
@@ -73,10 +51,30 @@
 			"default": "./dist/index.js"
 		}
 	},
-	"publishConfig": {
-		"access": "public"
+	"main": "./dist/index.js",
+	"svelte": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"typesVersions": {
+		">4.0": {
+			"headless": [
+				"./dist/headless.d.ts"
+			],
+			"server": [
+				"./dist/server/index.d.ts"
+			]
+		}
 	},
+	"files": [
+		"dist",
+		"styles.css",
+		"iab",
+		"!dist/**/__tests__/**",
+		"!dist/**/*.test.*",
+		"!dist/**/*.spec.*",
+		"docs"
+	],
 	"scripts": {
+		"prebuild": "genversion --esm --semi src/lib/version.ts",
 		"build": "bun prebuild && svelte-package -o dist && bun run copy:dist:css && bun run clean:dist:test-artifacts",
 		"check-types": "bun prebuild && svelte-check --tsconfig ./tsconfig.json",
 		"clean:dist:test-artifacts": "bun --eval \"import { readdirSync, rmSync } from 'node:fs'; import { join } from 'node:path'; const walk = (dir) => { for (const entry of readdirSync(dir, { withFileTypes: true })) { const full = join(dir, entry.name); if (entry.isDirectory()) { if (entry.name === '__tests__') { rmSync(full, { recursive: true, force: true }); continue; } walk(full); continue; } if (/\\.(test|spec)\\.[cm]?[jt]sx?$/.test(entry.name)) { rmSync(full, { force: true }); } } }; walk('dist');\"",
@@ -84,7 +82,6 @@
 		"dev": "bun prebuild && svelte-package -o dist --watch",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
-		"prebuild": "genversion --esm --semi src/lib/version.ts",
 		"prepack": "bun run build",
 		"test": "vitest run",
 		"test:watch": "vitest"
@@ -117,5 +114,8 @@
 		"svelte": {
 			"optional": true
 		}
+	},
+	"publishConfig": {
+		"access": "public"
 	}
 }

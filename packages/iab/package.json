@@ -19,19 +19,13 @@
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
-	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/iab"
 	},
-	"files": [
-		"dist",
-		"dist-types"
-	],
+	"license": "Apache-2.0",
 	"type": "module",
-	"main": "./dist/index.js",
-	"types": "./dist-types/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist-types/index.d.ts",
@@ -54,16 +48,19 @@
 			"default": "./dist/v3/headless.js"
 		}
 	},
-	"publishConfig": {
-		"access": "public"
-	},
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"files": [
+		"dist",
+		"dist-types"
+	],
 	"scripts": {
+		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
-		"prebuild": "genversion --esm --semi src/version.ts",
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},
@@ -77,5 +74,8 @@
 		"@c15t/vitest-config": "workspace:*",
 		"genversion": "3.2.0",
 		"typescript": "7.0.2"
+	},
+	"publishConfig": {
+		"access": "public"
 	}
 }

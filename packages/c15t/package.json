@@ -40,27 +40,18 @@
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
-	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/c15t"
 	},
-	"files": [
-		"dist",
-		"shims",
-		"AGENTS.md",
-		"README.md",
-		"CHANGELOG.md"
-	],
-	"type": "module",
+	"license": "Apache-2.0",
 	"sideEffects": [
 		"**/*.css",
 		"shims/vue.*",
 		"shims/vue/**"
 	],
-	"main": "./shims/index.js",
-	"types": "./shims/index.d.ts",
+	"type": "module",
 	"exports": {
 		".": {
 			"types": "./shims/index.d.ts",
@@ -441,9 +432,15 @@
 		"./vue/runtime/*": "./shims/vue/runtime/*",
 		"./vue/composables/*": "./shims/vue/composables/*"
 	},
-	"publishConfig": {
-		"access": "public"
-	},
+	"main": "./shims/index.js",
+	"types": "./shims/index.d.ts",
+	"files": [
+		"dist",
+		"shims",
+		"AGENTS.md",
+		"README.md",
+		"CHANGELOG.md"
+	],
 	"scripts": {
 		"build": "bun scripts/copy-distribution-css.ts",
 		"fmt": "bun oxfmt .",
@@ -461,5 +458,8 @@
 	},
 	"devDependencies": {
 		"vitest": "4.1.9"
+	},
+	"publishConfig": {
+		"access": "public"
 	}
 }

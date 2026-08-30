@@ -38,20 +38,14 @@
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
-	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/scripts"
 	},
-	"files": [
-		"dist",
-		"dist-types",
-		"AGENTS.md",
-		"docs"
-	],
-	"type": "module",
+	"license": "Apache-2.0",
 	"sideEffects": false,
+	"type": "module",
 	"exports": {
 		"./adobe-analytics": {
 			"types": "./dist-types/vendors/analytics/adobe-analytics.d.ts",
@@ -234,9 +228,12 @@
 			"default": "./dist/*.js"
 		}
 	},
-	"publishConfig": {
-		"access": "public"
-	},
+	"files": [
+		"dist",
+		"dist-types",
+		"AGENTS.md",
+		"docs"
+	],
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/scripts",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/scripts",
@@ -248,6 +245,11 @@
 		"test:live-vendors": "bun --tsconfig-override live-vendors/tsconfig.json live-vendors/runner.ts",
 		"test:watch": "vitest"
 	},
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	],
 	"devDependencies": {
 		"@c15t/core": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
@@ -255,9 +257,7 @@
 		"playwright": "1.58.2",
 		"typescript": "7.0.2"
 	},
-	"browserslist": [
-		">0.2%",
-		"not dead",
-		"not op_mini all"
-	]
+	"publishConfig": {
+		"access": "public"
+	}
 }
