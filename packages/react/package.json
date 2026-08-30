@@ -36,31 +36,16 @@
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
-	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/react"
 	},
-	"files": [
-		"dist",
-		"dist-types",
-		"AGENTS.md",
-		"docs",
-		"client",
-		"styles.css",
-		"styles.tw3.css",
-		"iab",
-		"src/styles.tw3.css",
-		"src/iab/styles.tw3.css",
-		"!dist/mockServiceWorker.js"
-	],
-	"type": "module",
+	"license": "Apache-2.0",
 	"sideEffects": [
 		"**/*.css"
 	],
-	"main": "./dist/index.js",
-	"types": "./dist-types/index.d.ts",
+	"type": "module",
 	"exports": {
 		"./styles.css": "./dist/styles.css",
 		"./styles.tw3.css": "./dist/styles.tw3.css",
@@ -296,10 +281,23 @@
 			"default": "./dist/v3/compat.js"
 		}
 	},
-	"publishConfig": {
-		"access": "public"
-	},
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"files": [
+		"dist",
+		"dist-types",
+		"AGENTS.md",
+		"docs",
+		"client",
+		"styles.css",
+		"styles.tw3.css",
+		"iab",
+		"src/styles.tw3.css",
+		"src/iab/styles.tw3.css",
+		"!dist/mockServiceWorker.js"
+	],
 	"scripts": {
+		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-distribution-css.ts && bun run clean:dist:test-artifacts && bun ../../scripts/generate-package-docs.ts @c15t/react && node ../shared/restore-client-directives.mjs src dist",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/react",
 		"check-types": "bun prebuild && tsc --noEmit",
@@ -307,12 +305,16 @@
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && bun scripts/generate-distribution-css.ts && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
-		"prebuild": "genversion --esm --semi src/version.ts",
 		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
 		"test": "bun prebuild && bun run test:types && vitest run",
 		"test:types": "tsc --noEmit --project tsconfig.type-tests.json",
 		"test:watch": "bun prebuild && vitest"
 	},
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	],
 	"dependencies": {
 		"@c15t/core": "workspace:*",
 		"@c15t/iab": "workspace:*",
@@ -343,11 +345,9 @@
 			"optional": true
 		}
 	},
-	"browserslist": [
-		">0.2%",
-		"not dead",
-		"not op_mini all"
-	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"msw": {
 		"workerDirectory": [
 			"public"

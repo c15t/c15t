@@ -34,24 +34,14 @@
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
-	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/core"
 	},
-	"files": [
-		"dist",
-		"dist-types",
-		"AGENTS.md",
-		"docs",
-		"README.md",
-		"CHANGELOG.md"
-	],
-	"type": "module",
+	"license": "Apache-2.0",
 	"sideEffects": false,
-	"main": "./dist/index.js",
-	"types": "./dist-types/index.d.ts",
+	"type": "module",
 	"exports": {
 		".": {
 			"types": "./dist-types/index.d.ts",
@@ -104,10 +94,18 @@
 			"default": "./dist/v3-window-debug.js"
 		}
 	},
-	"publishConfig": {
-		"access": "public"
-	},
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"files": [
+		"dist",
+		"dist-types",
+		"AGENTS.md",
+		"docs",
+		"README.md",
+		"CHANGELOG.md"
+	],
 	"scripts": {
+		"prebuild": "genversion --esm --semi src/version.ts",
 		"build": "bun prebuild && rslib build && bun ../../scripts/normalize-dist-types.mjs && bun ../../scripts/generate-package-docs.ts @c15t/core",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/core",
 		"check-types": "bun prebuild && tsc --noEmit",
@@ -115,11 +113,15 @@
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"lint": "bun oxlint ./src",
-		"prebuild": "genversion --esm --semi src/version.ts",
 		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
 		"test": "bun prebuild && vitest run",
 		"test:watch": "bun prebuild && vitest"
 	},
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	],
 	"dependencies": {
 		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
@@ -132,9 +134,7 @@
 		"typescript": "7.0.2",
 		"vitest-localstorage-mock": "0.1.2"
 	},
-	"browserslist": [
-		">0.2%",
-		"not dead",
-		"not op_mini all"
-	]
+	"publishConfig": {
+		"access": "public"
+	}
 }

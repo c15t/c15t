@@ -21,32 +21,13 @@
 		"web-privacy"
 	],
 	"homepage": "https://c15t.com",
-	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/vue"
 	},
-	"files": [
-		"dist",
-		"schema"
-	],
+	"license": "Apache-2.0",
 	"type": "module",
-	"main": "./dist/module.mjs",
-	"types": "./dist/types.d.mts",
-	"typesVersions": {
-		"*": {
-			".": [
-				"./dist/types.d.mts"
-			],
-			"vite": [
-				"./dist/vite.d.mts"
-			],
-			"vue-plugin": [
-				"./dist/index.d.mts"
-			]
-		}
-	},
 	"exports": {
 		".": {
 			"types": "./dist/types.d.mts",
@@ -76,9 +57,25 @@
 		"./runtime/*": "./dist/runtime/*",
 		"./composables/*": "./dist/runtime/composables/*"
 	},
-	"publishConfig": {
-		"access": "public"
+	"main": "./dist/module.mjs",
+	"types": "./dist/types.d.mts",
+	"typesVersions": {
+		"*": {
+			".": [
+				"./dist/types.d.mts"
+			],
+			"vite": [
+				"./dist/vite.d.mts"
+			],
+			"vue-plugin": [
+				"./dist/index.d.mts"
+			]
+		}
 	},
+	"files": [
+		"dist",
+		"schema"
+	],
 	"scripts": {
 		"build": "nuxt-module-build build",
 		"check-types": "bun run check-types:nuxt && bun run check-types:vue",
@@ -126,6 +123,9 @@
 		"vue": {
 			"optional": true
 		}
+	},
+	"publishConfig": {
+		"access": "public"
 	},
 	"nuxt": "./dist/module.mjs",
 	"schema": "./schema/nuxt.schema.d.ts"

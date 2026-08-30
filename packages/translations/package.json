@@ -19,20 +19,14 @@
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
-	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t.git",
 		"directory": "packages/translations"
 	},
-	"files": [
-		"dist",
-		"dist-types"
-	],
-	"type": "module",
+	"license": "Apache-2.0",
 	"sideEffects": false,
-	"main": "./dist/index.js",
-	"types": "./dist-types/index.d.ts",
+	"type": "module",
 	"exports": {
 		".": {
 			"types": "./dist-types/index.d.ts",
@@ -50,9 +44,12 @@
 			"default": "./dist/translations/en.js"
 		}
 	},
-	"publishConfig": {
-		"access": "public"
-	},
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
+	"files": [
+		"dist",
+		"dist-types"
+	],
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
@@ -63,15 +60,18 @@
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	],
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"lingo.dev": "^0.137.8",
 		"typescript": "7.0.2"
 	},
-	"browserslist": [
-		">0.2%",
-		"not dead",
-		"not op_mini all"
-	]
+	"publishConfig": {
+		"access": "public"
+	}
 }
