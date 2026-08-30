@@ -11,13 +11,13 @@ import { createApp, toWebHandler } from 'h3';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import initRoute from '../runtime/server/init.get';
+import type * as RuntimeServerLocalFetchTypes from '../runtime/server/local-fetch';
 import {
 	clearManifestRouteCache,
 	fetchCachedManifest,
 	MANIFEST_DEDUPE_TTL_SECONDS,
 } from '../runtime/server/manifest-mode';
 import manifestRoute from '../runtime/server/manifest.get';
-
 const mocks = vi.hoisted(() => ({
 	useRuntimeConfig: vi.fn(),
 	localFetch: vi.fn(),
@@ -268,7 +268,7 @@ describe('serverFetch', () => {
 		// `globalThis.fetch` rejects relative URLs in Node; localFetch dispatches
 		// them in-process and hands absolute URLs to real fetch.
 		const { serverFetch } = await vi.importActual<
-			typeof import('../runtime/server/local-fetch')
+			typeof RuntimeServerLocalFetchTypes
 		>('../runtime/server/local-fetch');
 		mocks.localFetch.mockResolvedValue(new Response('ok'));
 

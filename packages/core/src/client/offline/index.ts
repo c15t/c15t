@@ -5,6 +5,7 @@
 
  */
 
+import type * as LibsCookieTypes from '../../libs/cookie';
 import type { TranslationConfig } from '../../types';
 import type {
 	ConsentManagerInterface,
@@ -19,7 +20,6 @@ import { init } from './init';
 import { setConsent } from './set-consent';
 import type { IABFallbackConfig, OfflineClientOptions } from './types';
 import { handleOfflineResponse } from './utils';
-
 /**
  * Offline implementation of the consent client interface.
  * Returns empty successful responses without making any HTTP requests.
@@ -28,13 +28,13 @@ import { handleOfflineResponse } from './utils';
  * v2.0: Subject-centric API. Use setConsent for all consent operations.
  */
 export class OfflineClient implements ConsentManagerInterface {
-	private readonly storageConfig?: import('../../libs/cookie').StorageConfig;
+	private readonly storageConfig?: LibsCookieTypes.StorageConfig;
 	private readonly initialTranslationConfig?: Partial<TranslationConfig>;
 	private readonly iabConfig?: IABFallbackConfig;
 	private readonly policyConfig?: OfflineClientOptions['policyConfig'];
 
 	constructor(
-		storageConfig?: import('../../libs/cookie').StorageConfig,
+		storageConfig?: LibsCookieTypes.StorageConfig,
 		initialTranslationConfig?: Partial<TranslationConfig>,
 		iabConfig?: IABFallbackConfig,
 		policyConfig?: OfflineClientOptions['policyConfig']

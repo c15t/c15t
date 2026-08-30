@@ -10,6 +10,16 @@ import { once } from 'node:events';
 import type { CliContext } from '~/context/types';
 import { TelemetryEventName } from '~/utils/telemetry';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 /**
  * Install c15t agent skills for AI coding assistants
  */
@@ -35,10 +45,14 @@ export async function installSkills(context: CliContext) {
 	logger.info(`Running: ${execCommand} skills add c15t/skills`);
 
 	try {
-		const child = spawn(cmd!, [...baseArgs, 'skills', 'add', 'c15t/skills'], {
-			cwd: context.projectRoot,
-			stdio: 'inherit',
-		});
+		const child = spawn(
+			getDefined(cmd),
+			[...baseArgs, 'skills', 'add', 'c15t/skills'],
+			{
+				cwd: context.projectRoot,
+				stdio: 'inherit',
+			}
+		);
 
 		const [exitCode] = await once(child, 'exit');
 

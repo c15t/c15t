@@ -6,12 +6,12 @@ import {
 	updateScripts,
 } from '../../core/src/libs/script-loader';
 
-export type GoogleTagDataState = {
+export interface GoogleTagDataState {
 	ics: {
 		usedDefault: boolean;
 		usedImplicit: boolean;
 	};
-};
+}
 
 type TikTokQueueMethodName =
 	| 'load'
@@ -76,18 +76,18 @@ export type TestWindow = Window &
 		_snaptr?: SnapchatQueueStub;
 		adobeDataLayer?: unknown[];
 		amplitude?: {
-			_q?: Array<{
+			_q?: {
 				name: string;
 				args: unknown[];
 				resolve: (value: unknown) => void;
-			}>;
+			}[];
 			_iq?: Record<string, unknown>;
 			invoked?: boolean;
 			Identify?: new () => {
-				_q?: Array<{
+				_q?: {
 					name: string;
 					args: unknown[];
-				}>;
+				}[];
 				set: (property: string, value: unknown) => unknown;
 			};
 			init?: (...args: unknown[]) => unknown;
@@ -118,10 +118,10 @@ export type TestWindow = Window &
 			identify?: (...args: unknown[]) => unknown;
 			track?: (...args: unknown[]) => unknown;
 		};
-		heapReadyCb?: Array<{
+		heapReadyCb?: {
 			name: string;
 			fn: () => void;
-		}>;
+		}[];
 		htevents?: unknown[] & Record<string, (...args: unknown[]) => void>;
 		hj?: ((...args: unknown[]) => void) & { q?: unknown[][] };
 		intercomSettings?: Record<string, unknown>;
@@ -277,7 +277,7 @@ function resetVendorGlobals() {
 		'va',
 		'vaq',
 	] as const) {
-		delete win[key];
+		Reflect.deleteProperty(win, key);
 	}
 }
 

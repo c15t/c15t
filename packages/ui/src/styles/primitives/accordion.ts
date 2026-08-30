@@ -39,19 +39,19 @@ export interface AccordionVariantsProps {
  * CSS variables for the layout of the accordion component.
  * @public
  */
-export type AccordionLayoutCSSVariables = {
+export interface AccordionLayoutCSSVariables {
 	'--accordion-padding': string;
 	'--accordion-radius': string;
 	'--accordion-duration': string;
 	'--accordion-ease': string;
 	'--accordion-icon-size': string;
-};
+}
 
 /**
  * CSS variables for the colors of the accordion component.
  * @public
  */
-export type AccordionColorCSSVariables = {
+export interface AccordionColorCSSVariables {
 	'--accordion-background-color': string;
 	'--accordion-background-hover': string;
 	'--accordion-border-color': string;
@@ -60,7 +60,7 @@ export type AccordionColorCSSVariables = {
 	'--accordion-arrow-color': string;
 	'--accordion-content-color': string;
 	'--accordion-focus-ring': string;
-};
+}
 
 /**
  * CSS variables for the root accordion component.
@@ -73,41 +73,41 @@ export type AccordionRootCSSVariables = AccordionLayoutCSSVariables &
  * CSS variables for the accordion item component.
  * @public
  */
-export type AccordionItemCSSVariables = {
+export interface AccordionItemCSSVariables {
 	'--accordion-background-color': string;
 	'--accordion-border-color': string;
 	'--accordion-radius': string;
-};
+}
 
 /**
  * CSS variables for the accordion trigger component.
  * @public
  */
-export type AccordionTriggerCSSVariables = {
+export interface AccordionTriggerCSSVariables {
 	'--accordion-text-color': string;
 	'--accordion-focus-ring': string;
 	'--accordion-radius': string;
 	'--accordion-padding': string;
-};
+}
 
 /**
  * CSS variables for the accordion icon component.
  * @public
  */
-export type AccordionIconCSSVariables = {
+export interface AccordionIconCSSVariables {
 	'--accordion-icon-size': string;
 	'--accordion-icon-color': string;
-};
+}
 
 /**
  * CSS variables for the accordion content component.
  * @public
  */
-export type AccordionContentCSSVariables = {
+export interface AccordionContentCSSVariables {
 	'--accordion-duration': string;
 	'--accordion-ease': string;
 	'--accordion-content-color': string;
-};
+}
 
 /**
  * All CSS variables used in the accordion component.

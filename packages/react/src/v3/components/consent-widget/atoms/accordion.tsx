@@ -12,11 +12,11 @@ import * as PreferenceItem from '~/v3/components/shared/ui/preference-item';
 import * as RadixSwitch from '~/v3/components/shared/ui/switch';
 import { useTheme } from '~/v3/hooks/use-theme';
 
-type ConsentWidgetAccordionContextValue = {
+interface ConsentWidgetAccordionContextValue {
 	noStyle?: boolean;
 	onToggleItem: (value: string, open: boolean) => void;
 	openValues: string[];
-};
+}
 
 const ConsentWidgetAccordionContext =
 	createContext<ConsentWidgetAccordionContextValue | null>(null);

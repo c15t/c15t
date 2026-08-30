@@ -54,7 +54,9 @@ export const HEAP_QUEUE_METHODS = [
 
 type JsonPrimitive = string | number | boolean | null;
 type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
-type JsonRecord = { [key: string]: JsonValue };
+interface JsonRecord {
+	[key: string]: JsonValue;
+}
 
 export interface HeapReadyCallback {
 	/** Heap method name captured by the pre-load snippet stub. */

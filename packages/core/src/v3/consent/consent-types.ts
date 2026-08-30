@@ -100,7 +100,7 @@ export type AllConsentNames =
  * @see {@link consentTypes} for the predefined consent configurations
  * @public
  */
-export type ConsentType = {
+export interface ConsentType {
 	/** Whether consent is granted by default */
 	defaultValue: boolean;
 
@@ -118,7 +118,7 @@ export type ConsentType = {
 
 	/** The consent category name */
 	name: AllConsentNames;
-};
+}
 
 /**
  * Predefined consent type configurations that comply with GDPR requirements.
@@ -245,7 +245,7 @@ export const allConsentNames = consentTypes.map(
 /**
  * Information about the consent granted
  */
-export type ConsentInfo = {
+export interface ConsentInfo {
 	/**
 	 * The epoch timestamp of when the consent was recorded
 	 * @example 1761911048
@@ -303,4 +303,4 @@ export type ConsentInfo = {
 	 * @example 'clerk', 'auth0', 'firebase'
 	 */
 	identityProvider?: string;
-};
+}

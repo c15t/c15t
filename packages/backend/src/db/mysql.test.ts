@@ -35,6 +35,16 @@ import { insertOnce } from './insert-once';
 import { up as baseline } from './migrations/1-baseline';
 import { up as indexes } from './migrations/2-hot-path-indexes';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 const mysql = ENGINES.find((engine) => engine.name === 'mysql');
 const suite = mysql ? describe : describe.skip;
 const Mysql = mysql?.layer ?? ENGINES[0]?.layer;
@@ -313,7 +323,7 @@ suite('insert-once only suppresses the duplicate', () => {
 					select count(*) as n from ${sql('subject')}
 				`;
 				assert.strictEqual(Number(rows[0]?.n), 0, 'wrote a truncated row');
-			}).pipe(Effect.provide(Mysql ?? ENGINES[0]?.layer ?? Mysql!)),
+			}).pipe(Effect.provide(Mysql ?? ENGINES[0]?.layer ?? getDefined(Mysql))),
 		{ timeout: 60_000 }
 	);
 
@@ -339,7 +349,7 @@ suite('insert-once only suppresses the duplicate', () => {
 				assert.isFalse(
 					yield* insertOnce({ into: 'subject', conflictOn: 'id', values: row })
 				);
-			}).pipe(Effect.provide(Mysql ?? ENGINES[0]?.layer ?? Mysql!)),
+			}).pipe(Effect.provide(Mysql ?? ENGINES[0]?.layer ?? getDefined(Mysql))),
 		{ timeout: 60_000 }
 	);
 });

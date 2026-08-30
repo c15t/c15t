@@ -77,9 +77,8 @@ export type DatabaseConfig =
  */
 export type DatabaseOption =
 	| DatabaseConfig
-	// oxlint-disable-next-line typescript/no-explicit-any -- a caller's layer may carry any
 	// error type; narrowing it would reject valid clients.
-	| Layer.Layer<SqlClient.SqlClient, any, never>;
+	| Layer.Layer<SqlClient.SqlClient, unknown, never>;
 
 const isConfig = (database: DatabaseOption): database is DatabaseConfig =>
 	'dialect' in database;
@@ -204,8 +203,7 @@ const fromConfig = (
 	// `ConfigError` — and unifying them here would buy nothing: a caller can do
 	// nothing useful with the distinction between "bad config" and "cannot
 	// connect" at layer-construction time.
-	// oxlint-disable-next-line typescript/no-explicit-any -- see above.
-): Layer.Layer<SqlClient.SqlClient, any> => {
+): Layer.Layer<SqlClient.SqlClient, unknown> => {
 	switch (config.dialect) {
 		case 'postgres':
 			return Layer.unwrap(
@@ -249,8 +247,7 @@ const fromConfig = (
  */
 export const toLayer = (
 	database: DatabaseOption
-	// oxlint-disable-next-line typescript/no-explicit-any -- mirrors `DatabaseOption`.
-): Layer.Layer<SqlClient.SqlClient, any> => {
+): Layer.Layer<SqlClient.SqlClient, unknown> => {
 	if (database === undefined || database === null) {
 		throw new MissingDatabaseError();
 	}

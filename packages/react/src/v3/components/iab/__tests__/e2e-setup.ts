@@ -14,28 +14,12 @@ import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
 
 import { mockGVL } from './fixtures/mock-consent-state';
 
-type DeferredPromise<Value> = {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-};
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
-};
-
-function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-}
+export type TcfApiTestFunction = (
+	command: string,
+	version: number,
+	callback: (...args: unknown[]) => void,
+	parameter?: unknown
+) => void;
 
 /**
  * Creates a mock localStorage with full implementation
@@ -48,7 +32,7 @@ export function createMockLocalStorage() {
 			store[key] = value;
 		},
 		removeItem: (key: string) => {
-			delete store[key];
+			Reflect.deleteProperty(store, key);
 		},
 		clear: () => {
 			store = {};
@@ -98,8 +82,8 @@ export async function waitForCMP(timeout = 5000): Promise<void> {
 			if (!(window as { __tcfapi?: unknown }).__tcfapi) {
 				throw new Error('CMP not ready');
 			}
-			return createDeferredPromise<void>((resolve, reject) => {
-				(window as { __tcfapi: Function }).__tcfapi(
+			return new Promise<void>((resolve, reject) => {
+				(window as { __tcfapi: TcfApiTestFunction }).__tcfapi(
 					'ping',
 					2,
 					(ping: { cmpLoaded?: boolean }) => {
@@ -124,8 +108,8 @@ export function tcfApiPromise<T>(
 	version = 2,
 	param?: unknown
 ): Promise<T> {
-	return createDeferredPromise((resolve, reject) => {
-		const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+	return new Promise((resolve, reject) => {
+		const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 		if (!tcfapi) {
 			reject(new Error('__tcfapi not available'));
 			return;
@@ -205,8 +189,8 @@ export function addCMPEventListener(): Promise<{
 	eventStatus: string;
 	tcString: string;
 }> {
-	return createDeferredPromise((resolve, reject) => {
-		const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+	return new Promise((resolve, reject) => {
+		const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 		if (!tcfapi) {
 			reject(new Error('__tcfapi not available'));
 			return;

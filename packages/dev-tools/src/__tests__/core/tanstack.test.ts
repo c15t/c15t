@@ -21,7 +21,7 @@ vi.mock('../../core/devtools', () => ({
 describe('tanstack integration', () => {
 	let mountNode: HTMLDivElement;
 	let root: Root | null;
-	let destroyCallbacks: Array<ReturnType<typeof vi.fn>>;
+	let destroyCallbacks: ReturnType<typeof vi.fn>[];
 
 	beforeEach(() => {
 		vi.useFakeTimers();

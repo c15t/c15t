@@ -21,19 +21,19 @@ export type BrandingSlotContext =
 	| 'iab-banner'
 	| 'iab-dialog';
 
-type BrandingProps = {
+interface BrandingProps {
 	hideBranding: boolean;
 	variant?: BrandingVariant;
 	slotContext?: BrandingSlotContext;
 	className?: string;
 	style?: CSSPropertiesWithVars;
 	'data-testid'?: string;
-};
+}
 
-type BrandingFullLogoProps = {
+interface BrandingFullLogoProps {
 	branding: Branding | string;
 	className?: string;
-};
+}
 
 type BrandingCompactLogoProps = SVGProps<SVGSVGElement> & {
 	branding: Branding | string;

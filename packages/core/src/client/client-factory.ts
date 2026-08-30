@@ -5,6 +5,7 @@
  */
 import { createDeterministicFingerprintSync } from '@c15t/schema/types';
 
+import type * as LibsCookieTypes from '../libs/cookie';
 import type { StoreOptions } from '../store/type';
 import type { ConsentManagerInterface } from './client-interface';
 import { CustomClient } from './custom';
@@ -12,7 +13,6 @@ import type { EndpointHandlers } from './custom';
 import { C15tClient } from './hosted';
 import { OfflineClient } from './offline';
 import type { RetryConfig } from './types';
-
 export type { ConsentManagerInterface } from './client-interface';
 export type { FetchOptions, ResponseContext, RetryConfig } from './types';
 
@@ -98,7 +98,7 @@ const clientRegistry = new Map<string, ConsentManagerInterface>();
  * @internal
  */
 function serializeStorageConfig(
-	storageConfig?: import('../libs/cookie').StorageConfig
+	storageConfig?: LibsCookieTypes.StorageConfig
 ): string {
 	if (!storageConfig) {
 		return '';
@@ -210,7 +210,7 @@ function getClientCacheKey(options: ConsentManagerOptions): string {
  * Configuration for Custom mode
  * Allows for complete control over endpoint handling
  */
-export type CustomClientOptions = {
+export interface CustomClientOptions {
 	/**
 	 * Operating mode - custom endpoint implementation
 	 */
@@ -231,7 +231,7 @@ export type CustomClientOptions = {
 	 * Backend URL is not used in custom mode
 	 */
 	backendURL?: never;
-};
+}
 
 export interface HostedClientOptions {
 	/**
@@ -263,7 +263,7 @@ export interface HostedClientOptions {
 	retryConfig?: RetryConfig;
 }
 
-export type OfflineClientOptions = {
+export interface OfflineClientOptions {
 	/**
 	 * Offline mode - disables all API requests
 	 */
@@ -283,7 +283,7 @@ export type OfflineClientOptions = {
 	 * Custom fetch implementation (not used in offline mode)
 	 */
 	customFetch?: never;
-};
+}
 
 /**
  * Union type of all possible client options
@@ -317,7 +317,7 @@ export type ConsentManagerOptions = {
 	 * });
 	 * ```
 	 */
-	storageConfig?: import('../libs/cookie').StorageConfig;
+	storageConfig?: LibsCookieTypes.StorageConfig;
 } & (CustomClientOptions | HostedClientOptions | OfflineClientOptions);
 
 /**

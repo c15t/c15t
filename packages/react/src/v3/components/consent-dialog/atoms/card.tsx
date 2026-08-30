@@ -1,4 +1,5 @@
-'use client';
+import type * as V3ComponentsSharedUiBrandingTypes from '~/v3/components/shared/ui/branding';
+('use client');
 
 /**
  * @packageDocumentation
@@ -227,13 +228,13 @@ const ConsentDialogFooter = forwardRef<
 	);
 });
 
-type BrandingProps = {
+interface BrandingProps {
 	hideBranding: boolean;
 	variant?: BrandingVariant;
-	slotContext?: import('~/v3/components/shared/ui/branding').BrandingSlotContext;
+	slotContext?: V3ComponentsSharedUiBrandingTypes.BrandingSlotContext;
 	className?: string;
 	'data-testid'?: string;
-};
+}
 
 export function Branding(props: BrandingProps) {
 	return <BrandingLink {...props} />;

@@ -1,4 +1,5 @@
-'use client';
+import type * as C15tCoreTypes from '@c15t/core';
+('use client');
 
 /**
  * @packageDocumentation
@@ -184,7 +185,7 @@ export interface ConsentBannerProps {
 	 * Which consent models this banner responds to.
 	 * @default ['opt-in']
 	 */
-	models?: import('@c15t/core').Model[];
+	models?: C15tCoreTypes.Model[];
 
 	/**
 	 * Override the UI source identifier sent with consent API calls.

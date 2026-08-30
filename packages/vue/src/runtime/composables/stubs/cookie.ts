@@ -1,11 +1,21 @@
 import { customRef } from 'vue';
 import type { Ref } from 'vue';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 export interface UseCookieOptions<T> {
 	default?: () => T;
 }
 
-export function useCookie<T extends Object | string | null>(
+export function useCookie<T extends object | string | null>(
 	name: string,
 	options: UseCookieOptions<T> = {}
 ): Ref<T> {
@@ -26,7 +36,9 @@ export function useCookie<T extends Object | string | null>(
 				const match = document.cookie.match(
 					new RegExp(`(?:^|; )${name}=([^;]*)`)
 				);
-				return match ? decode(decodeURIComponent(match[1]!)) : defaultValue;
+				return match
+					? decode(decodeURIComponent(getDefined(match[1])))
+					: defaultValue;
 			},
 			set(newValue) {
 				if (typeof document !== 'undefined') {

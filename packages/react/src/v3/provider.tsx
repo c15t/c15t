@@ -754,8 +754,8 @@ function ScriptsMount({
 }) {
 	const kernel = useContext(KernelContext);
 	const handleRef = useRef<{
-		dispose(): void;
-		updateScripts(scripts: Script[]): void;
+		dispose: () => void;
+		updateScripts: (scripts: Script[]) => void;
 	} | null>(null);
 	const latestScriptsRef = useRef(scripts);
 	const latestOptionsRef = useRef(options);
@@ -798,9 +798,9 @@ function NetworkBlockerMount({
 }) {
 	const kernel = useContext(KernelContext);
 	const handleRef = useRef<{
-		dispose(): void;
-		updateRules(rules: UseNetworkBlockerOptions['rules']): void;
-		setEnabled(enabled: boolean): void;
+		dispose: () => void;
+		updateRules: (rules: UseNetworkBlockerOptions['rules']) => void;
+		setEnabled: (enabled: boolean) => void;
 	} | null>(null);
 	const latestOptionsRef = useRef(options);
 	latestOptionsRef.current = options;

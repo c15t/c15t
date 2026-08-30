@@ -12,6 +12,16 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import DialogLinkFixture from '../../__tests__/fixtures/dialog-link-fixture.svelte';
 import type { ConsentManagerOptions } from '../../lib/types';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 const defaultOptions: ConsentManagerOptions = {
 	mode: 'offline',
 };
@@ -56,7 +66,9 @@ describe('ConsentDialogLink', () => {
 			expect(link).toBeInTheDocument();
 		});
 
-		const link = document.querySelector('[data-testid="consent-dialog-link"]')!;
+		const link = getDefined(
+			document.querySelector('[data-testid="consent-dialog-link"]')
+		);
 		await fireEvent.click(link);
 
 		await waitFor(() => {

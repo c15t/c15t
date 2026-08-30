@@ -17,6 +17,16 @@ import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
 
 import { IABConsentDialog } from '../iab-consent-dialog';
 
+const getDefined = <Value,>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 // Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
@@ -26,7 +36,7 @@ const localStorageMock = (() => {
 			store[key] = value;
 		},
 		removeItem: (key: string) => {
-			delete store[key];
+			Reflect.deleteProperty(store, key);
 		},
 		clear: () => {
 			store = {};
@@ -292,7 +302,7 @@ describe('Purposes Tab - Consent', () => {
 					)
 				).find((button) => button.textContent?.includes('Store and/or access'));
 				expect(el).toBeDefined();
-				return el!;
+				return getDefined(el);
 			},
 			{ timeout: 5000 }
 		);

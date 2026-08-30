@@ -146,7 +146,7 @@ export function createScriptManager(
 
 			// Create a new scriptIdMap without the removed script
 			const newScriptIdMap = { ...state.scriptIdMap };
-			delete newScriptIdMap[scriptId];
+			Reflect.deleteProperty(newScriptIdMap, scriptId);
 
 			// Remove from scripts array
 			setState({

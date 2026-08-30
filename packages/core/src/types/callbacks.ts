@@ -14,7 +14,7 @@ export type Callback<T = void> = (arg: T) => void;
 /**
  * Payload types for the callbacks
  */
-export type OnBannerFetchedPayload = {
+export interface OnBannerFetchedPayload {
 	jurisdiction: JurisdictionCode | { code: JurisdictionCode; message: string };
 	location: {
 		countryCode: string | null;
@@ -24,21 +24,21 @@ export type OnBannerFetchedPayload = {
 		language: string;
 		translations: Translations;
 	};
-};
-export type OnConsentSetPayload = {
+}
+export interface OnConsentSetPayload {
 	preferences: ConsentStoreState['consents'];
-};
-export type OnConsentChangedPayload = {
+}
+export interface OnConsentChangedPayload {
 	preferences: ConsentStoreState['consents'];
 	previousPreferences: ConsentStoreState['consents'];
 	allowedCategories: AllConsentNames[];
 	deniedCategories: AllConsentNames[];
 	previousAllowedCategories: AllConsentNames[];
 	previousDeniedCategories: AllConsentNames[];
-};
-export type OnErrorPayload = {
+}
+export interface OnErrorPayload {
 	error: string;
-};
+}
 
 /**
  * Defines the structure for callback functions that respond to consent-related events.

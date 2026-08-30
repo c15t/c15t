@@ -59,7 +59,7 @@ beforeEach(() => {
 					}
 				}),
 				removeAttribute: vi.fn((name: string) => {
-					delete attributes[name];
+					Reflect.deleteProperty(attributes, name);
 					// Update the src property when src attribute is removed
 					if (name === 'src') {
 						(element as unknown as { src: string }).src = '';

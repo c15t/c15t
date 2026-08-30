@@ -15,10 +15,10 @@ import { getConsentFromStorage } from '@c15t/core';
 import { version } from '../version';
 
 /** Store access methods needed by the IAB initializer. */
-type StoreAccess = {
+interface StoreAccess {
 	get: () => ConsentStoreState;
 	set: (partial: Partial<ConsentStoreState>) => void;
-};
+}
 
 /** Default CMP ID fallback (0 = no registered CMP). */
 const CMP_ID = 0;

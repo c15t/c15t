@@ -9,10 +9,10 @@ export interface LinkedInInsightsConversionEvent {
 	[key: string]: unknown;
 }
 
-type LinkedInInsightsFunction = {
+interface LinkedInInsightsFunction {
 	(command: 'track', event: LinkedInInsightsConversionEvent): void;
 	(command: string, ...args: unknown[]): void;
-};
+}
 
 // Extended Window interface to include LinkedIn Insight Tag specific properties.
 declare global {

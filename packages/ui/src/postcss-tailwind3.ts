@@ -1,30 +1,30 @@
 const C15T_UI_DIST_STYLES_PATH =
 	/(?:^|[\\/])(?:node_modules[\\/]@c15t[\\/]ui|packages[\\/]ui)[\\/]dist[\\/]styles[\\/](?:v3[\\/])?[^\\/]+\.css$/;
 
-type PostcssAtRule = {
+interface PostcssAtRule {
 	nodes?: unknown[];
-	remove(): void;
-	replaceWith(...nodes: unknown[]): void;
-};
+	remove: () => void;
+	replaceWith: (...nodes: unknown[]) => void;
+}
 
-type PostcssRoot = {
+interface PostcssRoot {
 	source?: {
 		input?: {
 			file?: string;
 		};
 	};
-	walkAtRules(name: string, callback: (rule: PostcssAtRule) => void): void;
-};
+	walkAtRules: (name: string, callback: (rule: PostcssAtRule) => void) => void;
+}
 
-export type PostcssTailwind3Plugin = {
+export interface PostcssTailwind3Plugin {
 	postcssPlugin: string;
-	Once(root: PostcssRoot): void;
-};
+	Once: (root: PostcssRoot) => void;
+}
 
-export type PostcssTailwind3PluginCreator = {
+export interface PostcssTailwind3PluginCreator {
 	(): PostcssTailwind3Plugin;
 	postcss: true;
-};
+}
 
 export function isC15tUiStylesheetPath(filePath: string): boolean {
 	return C15T_UI_DIST_STYLES_PATH.test(filePath);

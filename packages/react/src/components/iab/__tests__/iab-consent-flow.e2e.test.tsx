@@ -15,6 +15,7 @@ import {
 	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
 
+import type { TcfApiTestFunction } from './e2e-setup';
 import {
 	addCMPEventListener,
 	clearConsentState,
@@ -268,7 +269,7 @@ describe('IAB Consent Flow E2E Tests', () => {
 			let callCount = 0;
 			const events: string[] = [];
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { eventStatus: string }) => {
 					callCount++;

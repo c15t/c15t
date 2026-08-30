@@ -5,6 +5,7 @@
 
  */
 
+import type * as LibsCookieTypes from '../../libs/cookie';
 import type {
 	ConsentManagerInterface,
 	IdentifyUserRequestBody,
@@ -14,6 +15,7 @@ import type {
 	SetConsentResponse,
 } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
+import type * as TypesTypes from '../types';
 import { DEFAULT_RETRY_CONFIG } from './constants';
 import type { FetcherContext } from './fetcher';
 import { fetcher } from './fetcher';
@@ -27,7 +29,6 @@ import {
 } from './pending-submissions';
 import { setConsent } from './set-consent';
 import type { C15tInternalClientOptions } from './types';
-
 /**
  * c15t backend implementation of the consent client interface.
  * Makes HTTP requests to the c15t consent management backend.
@@ -46,7 +47,7 @@ export class C15tClient implements ConsentManagerInterface {
 	 * Storage configuration for offline fallback
 	 * @internal
 	 */
-	private readonly storageConfig?: import('../../libs/cookie').StorageConfig;
+	private readonly storageConfig?: LibsCookieTypes.StorageConfig;
 
 	/**
 	 * IAB configuration for offline/fallback mode
@@ -76,7 +77,7 @@ export class C15tClient implements ConsentManagerInterface {
 	 * Global retry configuration for fetch requests.
 	 * @internal
 	 */
-	private retryConfig: import('../types').RetryConfig;
+	private retryConfig: TypesTypes.RetryConfig;
 
 	/**
 	 * Fetcher context for API requests

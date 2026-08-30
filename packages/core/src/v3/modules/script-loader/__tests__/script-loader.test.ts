@@ -34,18 +34,21 @@ interface StubScriptElement {
 	nonce?: string;
 	fetchPriority?: string;
 	parentNode: StubParent | null;
-	listeners: Map<string, Array<(event: unknown) => void>>;
+	listeners: Map<string, ((event: unknown) => void)[]>;
 	attributes: Map<string, string>;
-	setAttribute(key: string, value: string): void;
-	addEventListener(event: string, handler: (event: unknown) => void): void;
-	removeEventListener(event: string, handler: (event: unknown) => void): void;
-	triggerEvent(event: string, payload?: unknown): void;
+	setAttribute: (key: string, value: string) => void;
+	addEventListener: (event: string, handler: (event: unknown) => void) => void;
+	removeEventListener: (
+		event: string,
+		handler: (event: unknown) => void
+	) => void;
+	triggerEvent: (event: string, payload?: unknown) => void;
 }
 
 interface StubParent {
 	children: StubScriptElement[];
-	appendChild(el: StubScriptElement): void;
-	removeChild(el: StubScriptElement): void;
+	appendChild: (el: StubScriptElement) => void;
+	removeChild: (el: StubScriptElement) => void;
 }
 
 function createStubElement(): StubScriptElement {

@@ -25,11 +25,11 @@ export interface PersistenceOptions {
 }
 
 export interface PersistenceHandle {
-	dispose(): void;
+	dispose: () => void;
 	/** Re-run hydration from storage. Returns whether any state was loaded. */
-	hydrate(): boolean;
+	hydrate: () => boolean;
 	/** Clear stored consent. Does NOT mutate the kernel. */
-	clear(): void;
+	clear: () => void;
 }
 
 /**

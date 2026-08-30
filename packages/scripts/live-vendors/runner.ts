@@ -85,9 +85,9 @@ const PAGE_HTML = `<!doctype html>
 	<body></body>
 </html>`;
 
-type ProbeWindow = {
+interface ProbeWindow {
 	__c15tLiveVendorProbe?: LiveVendorProbeHarness;
-};
+}
 
 interface CliOptions {
 	vendors?: string[];

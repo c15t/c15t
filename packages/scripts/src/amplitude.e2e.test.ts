@@ -19,11 +19,11 @@ import {
 	DEFAULT_AMPLITUDE_SCRIPT_URL,
 } from './vendors/analytics/amplitude';
 
-type QueueEntrySnapshot = {
+interface QueueEntrySnapshot {
 	name: string;
 	args: unknown[];
 	resolveType: string;
-};
+}
 
 function snapshotArg(arg: unknown): unknown {
 	if (typeof arg === 'object' && arg !== null) {

@@ -1,4 +1,5 @@
-'use client';
+import type * as C15tCoreTypes from '@c15t/core';
+('use client');
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
@@ -25,7 +26,7 @@ interface IABConsentBannerRootProps extends HTMLAttributes<HTMLDivElement> {
 	 * Which consent models this banner responds to.
 	 * @default ['iab']
 	 */
-	models?: import('@c15t/core').Model[];
+	models?: C15tCoreTypes.Model[];
 	/**
 	 * Override the UI source identifier sent with consent API calls.
 	 * @default 'iab_banner'
@@ -79,7 +80,7 @@ interface IABConsentBannerRootChildrenProps extends HTMLAttributes<HTMLDivElemen
 	 * Which consent models this banner responds to.
 	 * @default ['iab']
 	 */
-	models?: import('@c15t/core').Model[];
+	models?: C15tCoreTypes.Model[];
 }
 
 const IABConsentBannerRootChildren = forwardRef<

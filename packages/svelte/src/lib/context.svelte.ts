@@ -40,22 +40,25 @@ export interface SvelteIABState extends KernelIABState {
 	isLoadingGVL: boolean;
 	nonIABVendors: KernelIABState['customVendors'];
 	preferenceCenterTab: 'purposes' | 'vendors';
-	setPreferenceCenterTab(tab: 'purposes' | 'vendors'): void;
-	setVendorConsent(vendorId: string | number, value: boolean): void;
-	setVendorLegitimateInterest(vendorId: string | number, value: boolean): void;
-	setPurposeConsent(purposeId: number, value: boolean): void;
-	setPurposeLegitimateInterest(purposeId: number, value: boolean): void;
-	setSpecialFeatureOptIn(featureId: number, value: boolean): void;
-	acceptAll(): void;
-	rejectAll(): void;
-	save(): Promise<void>;
+	setPreferenceCenterTab: (tab: 'purposes' | 'vendors') => void;
+	setVendorConsent: (vendorId: string | number, value: boolean) => void;
+	setVendorLegitimateInterest: (
+		vendorId: string | number,
+		value: boolean
+	) => void;
+	setPurposeConsent: (purposeId: number, value: boolean) => void;
+	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
+	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
+	acceptAll: () => void;
+	rejectAll: () => void;
+	save: () => Promise<void>;
 }
 
 export interface ConsentDraftState {
 	readonly values: Partial<ConsentState>;
-	set(name: AllConsentNames, value: boolean): void;
-	reset(): void;
-	save(): Promise<void>;
+	set: (name: AllConsentNames, value: boolean) => void;
+	reset: () => void;
+	save: () => Promise<void>;
 }
 
 export interface ConsentCompatState extends Omit<
@@ -82,17 +85,17 @@ export interface ConsentCompatState extends Omit<
 	policyDialog: PolicyUiSurfaceConfig;
 	legalLinks: ConsentManagerOptions['legalLinks'];
 	translationConfig: TranslationConfig;
-	getDisplayedConsents(): ConsentType[];
-	has(condition: HasCondition<AllConsentNames>): boolean;
-	hasConsented(): boolean;
-	saveConsents(type: SaveType): Promise<void>;
-	setActiveUI(ui: ActiveUI, options?: { force?: boolean }): void;
-	setConsent(name: AllConsentNames, value: boolean): void;
-	setLanguage(code: string): void;
-	setSelectedConsent(name: AllConsentNames, value: boolean): void;
-	subscribeToConsentChanges(
+	getDisplayedConsents: () => ConsentType[];
+	has: (condition: HasCondition<AllConsentNames>) => boolean;
+	hasConsented: () => boolean;
+	saveConsents: (type: SaveType) => Promise<void>;
+	setActiveUI: (ui: ActiveUI, options?: { force?: boolean }) => void;
+	setConsent: (name: AllConsentNames, value: boolean) => void;
+	setLanguage: (code: string) => void;
+	setSelectedConsent: (name: AllConsentNames, value: boolean) => void;
+	subscribeToConsentChanges: (
 		listener: (state: ConsentState) => void
-	): () => void;
+	) => () => void;
 }
 
 export interface ConsentContextValue {
@@ -113,11 +116,11 @@ export interface ThemeContextValue {
 }
 
 export interface ConsentControllerOptions {
-	getSnapshot(): ConsentSnapshot;
-	getDraft(): ConsentDraftState;
-	getIAB(): SvelteIABState | null;
-	getConsentCategories(): AllConsentNames[];
-	getLegalLinks(): ConsentManagerOptions['legalLinks'];
+	getSnapshot: () => ConsentSnapshot;
+	getDraft: () => ConsentDraftState;
+	getIAB: () => SvelteIABState | null;
+	getConsentCategories: () => AllConsentNames[];
+	getLegalLinks: () => ConsentManagerOptions['legalLinks'];
 }
 
 function toTranslationConfig(snapshot: ConsentSnapshot): TranslationConfig {
@@ -284,7 +287,7 @@ function createCompatState(
 		setActiveUI(ui: ActiveUI) {
 			(
 				kernel.set as typeof kernel.set & {
-					activeUI(ui: KernelActiveUI): void;
+					activeUI: (ui: KernelActiveUI) => void;
 				}
 			).activeUI(ui as KernelActiveUI);
 		},

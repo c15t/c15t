@@ -123,7 +123,7 @@ type RequireAtLeastOne<T, Keys extends keyof T = keyof T> = Keys extends keyof T
  *
  * @experimental
  */
-type UnstableLegalDocumentConsentInputBase = {
+interface UnstableLegalDocumentConsentInputBase {
 	type: LegalDocumentPolicyType;
 	policyId?: string;
 	policyHash?: string;
@@ -135,7 +135,7 @@ type UnstableLegalDocumentConsentInputBase = {
 	uiSource?: string;
 	externalId?: string;
 	identityProvider?: string;
-};
+}
 
 export type UnstableLegalDocumentConsentInput =
 	UnstableLegalDocumentConsentInputBase &
@@ -187,7 +187,7 @@ export type UnstablePolicyConsentInput =
  * @see {@link https://c15t.com/docs/frameworks/javascript/policy-packs}
  * @see {@link https://c15t.com/docs/frameworks/react/concepts/policy-packs}
  */
-export type OfflinePolicyConfig = {
+export interface OfflinePolicyConfig {
 	/**
 	 * Backend-like i18n configuration for offline policy previews.
 	 *
@@ -250,7 +250,7 @@ export type OfflinePolicyConfig = {
 	 * Optional synthetic policy snapshot token.
 	 */
 	policySnapshotToken?: InitOutput['policySnapshotToken'];
-};
+}
 
 /**
  * SSR transport metadata for the `/init` request that produced {@link SSRInitialData}.

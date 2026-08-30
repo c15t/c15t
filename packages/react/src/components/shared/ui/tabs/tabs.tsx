@@ -27,7 +27,7 @@ import type {
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/hooks/use-theme';
 
-type TabsContextValue = {
+interface TabsContextValue {
 	baseId: string;
 	disabled?: boolean;
 	loop: boolean;
@@ -36,7 +36,7 @@ type TabsContextValue = {
 	orientation: TabsOrientation;
 	registerTrigger: (value: string, node: HTMLButtonElement | null) => void;
 	value?: string;
-};
+}
 
 const TabsContext = createContext<TabsContextValue | null>(null);
 

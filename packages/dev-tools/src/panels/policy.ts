@@ -158,7 +158,7 @@ export function renderPolicyPanel(
 interface SurfaceState {
 	allowedActions?: string[] | null;
 	primaryActions?: string[] | null;
-	layout?: Array<string | string[]> | null;
+	layout?: (string | string[])[] | null;
 	direction?: string | null;
 	uiProfile?: string | null;
 	scrollLock?: boolean | null;
@@ -306,7 +306,7 @@ function buildTraceEntries(
 		  }
 		| undefined,
 	policyId: string | undefined
-): Array<{ step: string; result: string }> {
+): { step: string; result: string }[] {
 	if (!decision) {
 		return [{ step: 'decision metadata', result: 'UNAVAILABLE' }];
 	}

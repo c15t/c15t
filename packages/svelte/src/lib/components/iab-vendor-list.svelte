@@ -158,7 +158,11 @@
 	type VendorPurposeEntry = ProcessedPurpose & {
 		usesLegitimateInterest: boolean;
 	};
-	type SimpleEntry = { id: number; name: string; description: string };
+	interface SimpleEntry {
+		id: number;
+		name: string;
+		description: string;
+	}
 
 	const vendorPurposesMap = $derived.by(() => {
 		const map = new SvelteMap<string, VendorPurposeEntry[]>();

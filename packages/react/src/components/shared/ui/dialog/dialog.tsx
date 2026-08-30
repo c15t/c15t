@@ -25,14 +25,14 @@ import { useControllableState } from '~/components/shared/libs/use-controllable-
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 
-type DialogContextValue = {
+interface DialogContextValue {
 	contentId: string;
 	descriptionId: string;
 	open: boolean;
 	restoreFocusRef: RefObject<HTMLElement | null>;
 	setOpen: (open: boolean) => void;
 	titleId: string;
-};
+}
 
 const DialogContext = createContext<DialogContextValue | null>(null);
 

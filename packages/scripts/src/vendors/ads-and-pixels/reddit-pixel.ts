@@ -99,7 +99,7 @@ export interface RedditPixelInitOptions {
 	partner_version?: string;
 
 	/** Source integration name reported to Reddit. */
-	integration?: 'reddit' | 'gtm' | (string & {});
+	integration?: 'reddit' | 'gtm' | (string & Record<never, never>);
 
 	/** Enable Reddit Pixel debug logging. */
 	debug?: boolean;
@@ -129,13 +129,13 @@ export interface RedditPixelEventMetadata {
 	customEventName?: string;
 	products?:
 		| string
-		| Array<{
+		| {
 				id?: string | number;
 				name?: string;
 				category?: string;
 				quantity?: number | string;
 				itemPrice?: number | string;
-		  }>;
+		  }[];
 	/**
 	 * Conversion ID used to deduplicate Pixel events against Conversions API
 	 * events.
@@ -146,17 +146,16 @@ export interface RedditPixelEventMetadata {
 	[key: string]: unknown;
 }
 
-type RedditPixelFunction = {
+interface RedditPixelFunction {
 	(command: 'init', pixelId: string, options?: RedditPixelInitOptions): void;
-	(command: 'enableFirstPartyCookies'): void;
-	(command: 'disableFirstPartyCookies'): void;
+	(command: 'enableFirstPartyCookies' | 'disableFirstPartyCookies'): void;
 	(
 		command: 'track',
-		eventName: RedditPixelEventName | (string & {}),
+		eventName: RedditPixelEventName | (string & Record<never, never>),
 		properties?: RedditPixelEventMetadata
 	): void;
 	(command: string, ...args: unknown[]): void;
-};
+}
 
 declare global {
 	interface Window {
@@ -337,7 +336,7 @@ function getRedditPixelInitOptions({
  * Pixel plus Conversions API deduplication.
  */
 export const redditPixelEvent = (
-	eventName: RedditPixelEventName | (string & {}),
+	eventName: RedditPixelEventName | (string & Record<never, never>),
 	metadata?: RedditPixelEventMetadata
 ) => {
 	if (typeof window === 'undefined' || typeof window.rdt !== 'function') {

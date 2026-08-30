@@ -41,7 +41,7 @@ const sqliteConfig = (): DatabaseConfig => ({
 	filename: join(mkdtempSync(join(tmpdir(), 'c15t-migrator-')), 'c15t.db'),
 });
 
-const CONFIGS: ReadonlyArray<readonly [string, () => DatabaseConfig]> = [
+const CONFIGS: readonly (readonly [string, () => DatabaseConfig])[] = [
 	['sqlite', sqliteConfig],
 	...(PG_URL
 		? ([

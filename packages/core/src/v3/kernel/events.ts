@@ -18,16 +18,16 @@ export interface EventBus {
 	 * in registration order and may not unsubscribe themselves during
 	 * dispatch (the change applies after the current dispatch completes).
 	 */
-	on<E extends KernelEvent['type']>(
+	on: <E extends KernelEvent['type']>(
 		type: E,
 		listener: Listener<Extract<KernelEvent, { type: E }>>
-	): Unsubscribe;
+	) => Unsubscribe;
 
 	/**
 	 * Dispatch an event to all listeners registered for its type.
 	 * No-op if no listeners are registered.
 	 */
-	emit(event: KernelEvent): void;
+	emit: (event: KernelEvent) => void;
 }
 
 /**

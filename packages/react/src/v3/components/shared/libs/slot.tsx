@@ -1,7 +1,7 @@
 import { cloneElement, forwardRef, isValidElement } from 'react';
 import type { ReactElement, ReactNode, Ref, RefCallback } from 'react';
 
-function composeRefs<T>(...refs: Array<Ref<T> | undefined>): RefCallback<T> {
+function composeRefs<T>(...refs: (Ref<T> | undefined)[]): RefCallback<T> {
 	return (node) => {
 		for (const ref of refs) {
 			if (typeof ref === 'function') {

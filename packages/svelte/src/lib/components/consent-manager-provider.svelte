@@ -77,12 +77,10 @@
 		overrides: ConsentManagerOptions
 	): ConsentManagerOptions {
 		const merged = { ...base };
-		for (const [key, value] of Object.entries(overrides) as Array<
-			[
-				keyof ConsentManagerOptions,
-				ConsentManagerOptions[keyof ConsentManagerOptions],
-			]
-		>) {
+		for (const [key, value] of Object.entries(overrides) as [
+			keyof ConsentManagerOptions,
+			ConsentManagerOptions[keyof ConsentManagerOptions],
+		][]) {
 			if (value !== undefined) {
 				merged[key] = value as never;
 			}
@@ -517,7 +515,7 @@
 	}
 
 	onMount(() => {
-		const disposers: Array<() => void> = [];
+		const disposers: (() => void)[] = [];
 		const enabled = getEnabled(options);
 		const persistenceOptions = normalizePersistenceOptions();
 

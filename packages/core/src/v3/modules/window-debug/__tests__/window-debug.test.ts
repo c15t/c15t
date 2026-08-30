@@ -95,7 +95,7 @@ describe('window-debug', () => {
 		});
 
 		try {
-			let handle: { dispose(): void } | undefined;
+			let handle: { dispose: () => void } | undefined;
 			expect(() => {
 				handle = createWindowDebug({ pkg: '@c15t/vue', mode: 'hosted' });
 			}).not.toThrow();

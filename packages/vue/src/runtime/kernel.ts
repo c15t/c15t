@@ -55,7 +55,7 @@ export interface VueConsentKernelContext {
 	init: Ref<InitOutput | undefined>;
 	activeUI: Ref<ConsentActiveUI>;
 	storedConsent: Ref<Consent>;
-	dispose(): void;
+	dispose: () => void;
 }
 
 /**
@@ -405,7 +405,7 @@ export function startVueConsentRuntime(
 	config: RuntimeConsentConfig,
 	options: { runInit?: boolean } = {}
 ): () => void {
-	const disposers: Array<() => void> = [];
+	const disposers: (() => void)[] = [];
 
 	if (typeof document !== 'undefined') {
 		const windowDebug = createWindowDebug({

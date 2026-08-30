@@ -678,7 +678,7 @@ describe('Store Script Loader Integration', () => {
 
 		function lastCreatedScriptElement() {
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const results = mockCreateElement.mock.results;
 

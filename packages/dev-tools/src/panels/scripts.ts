@@ -630,7 +630,7 @@ function createScriptActivityRow(event: EventLogEntry): HTMLElement {
 
 function groupScriptActivityEvents(
 	events: EventLogEntry[]
-): Array<[string, EventLogEntry[]]> {
+): [string, EventLogEntry[]][] {
 	const groups = new Map<string, EventLogEntry[]>();
 
 	for (const event of events) {

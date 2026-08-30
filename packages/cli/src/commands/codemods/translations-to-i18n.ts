@@ -3,7 +3,7 @@ import { extname, join } from 'node:path';
 
 import { Node, Project, SyntaxKind } from 'ts-morph';
 import type { ObjectLiteralExpression, PropertyAssignment } from 'ts-morph';
-
+import type * as TsMorphTypes from 'ts-morph';
 const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const IGNORED_DIRS = new Set([
 	'.git',
@@ -16,11 +16,11 @@ const IGNORED_DIRS = new Set([
 	'out',
 ]);
 
-type TranslationsToI18nResult = {
+interface TranslationsToI18nResult {
 	changed: boolean;
 	operations: number;
 	summaries: string[];
-};
+}
 
 export interface CodemodRunOptions {
 	/**
@@ -44,15 +44,15 @@ export interface CodemodRunResult {
 	/**
 	 * Per-file transformation summaries.
 	 */
-	changedFiles: Array<{
+	changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}>;
+	}[];
 	/**
 	 * Non-fatal per-file transform errors.
 	 */
-	errors: Array<{ filePath: string; error: string }>;
+	errors: { filePath: string; error: string }[];
 }
 
 function getPropertyName(property: PropertyAssignment): string {
@@ -193,7 +193,7 @@ function transformLegacyConfigObject(
 }
 
 function transformSourceFile(
-	sourceFile: import('ts-morph').SourceFile
+	sourceFile: TsMorphTypes.SourceFile
 ): TranslationsToI18nResult {
 	let operations = 0;
 	const summaries: string[] = [];
@@ -303,12 +303,12 @@ export async function runTranslationsToI18nCodemod(
 	});
 	const filePaths = await collectSourceFiles(options.projectRoot);
 
-	const changedFiles: Array<{
+	const changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}> = [];
-	const errors: Array<{ filePath: string; error: string }> = [];
+	}[] = [];
+	const errors: { filePath: string; error: string }[] = [];
 
 	for (const filePath of filePaths) {
 		try {

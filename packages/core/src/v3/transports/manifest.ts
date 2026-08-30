@@ -24,6 +24,16 @@ import { mapInitOutputToInitResponse } from './init-output';
 import { buildSubjectPostBody } from './subject-body';
 import { c15tVersionHeaders } from './version-header';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 export interface ManifestTransportOptions {
 	/**
 	 * URL for `GET /manifest`. Either `manifestURL` or `manifest` is required.
@@ -232,7 +242,7 @@ export function createManifestTransport(
 		}
 		if (!manifestPromise) {
 			manifestPromise = (async () => {
-				const response = await fetchImpl(options.manifestURL!, {
+				const response = await fetchImpl(getDefined(options.manifestURL), {
 					method: 'GET',
 					credentials,
 					headers: {

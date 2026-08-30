@@ -181,7 +181,7 @@ interface EmbeddedTabsInstance {
 	destroy: () => void;
 }
 
-const EMBEDDED_TABS: Array<{ id: DevToolsTab; label: string }> = [
+const EMBEDDED_TABS: { id: DevToolsTab; label: string }[] = [
 	{ id: 'location', label: 'Location' },
 	{ id: 'policy', label: 'Policy' },
 	{ id: 'consents', label: 'Consents' },

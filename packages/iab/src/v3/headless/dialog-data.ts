@@ -218,12 +218,12 @@ function groupPurposesIntoStacks(
 	const otherPurposeIds = new Set(otherPurposes.map((purpose) => purpose.id));
 	const gvlStacks = gvl.stacks || {};
 
-	const stackScores: Array<{
+	const stackScores: {
 		stackId: number;
 		stack: (typeof gvlStacks)[number];
 		coveredPurposeIds: number[];
 		score: number;
-	}> = [];
+	}[] = [];
 
 	for (const [stackIdStr, stack] of Object.entries(gvlStacks)) {
 		const coveredPurposeIds = stack.purposes.filter((purposeId) =>

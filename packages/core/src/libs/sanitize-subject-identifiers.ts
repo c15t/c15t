@@ -1,12 +1,12 @@
-type SubjectIdentifiers = {
+interface SubjectIdentifiers {
 	externalId?: unknown;
 	identityProvider?: unknown;
-};
+}
 
-type SanitizedSubjectIdentifiers = {
+interface SanitizedSubjectIdentifiers {
 	externalId?: string;
 	identityProvider?: string;
-};
+}
 
 function sanitizeIdentifier(value: unknown): string | undefined {
 	if (typeof value !== 'string') {

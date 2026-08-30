@@ -12,7 +12,7 @@ export const INTERCOM_API_BASES = {
 
 export type IntercomApiBase =
 	| (typeof INTERCOM_API_BASES)[keyof typeof INTERCOM_API_BASES]
-	| (string & {});
+	| (string & Record<never, never>);
 
 export type IntercomThemeMode = 'light' | 'dark' | 'system';
 

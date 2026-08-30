@@ -229,7 +229,7 @@ export interface TCFApi {
 		vendorIds?: number[]
 	): void;
 	(
-		command: 'getInAppTCData',
+		command: 'getInAppTCData' | 'addEventListener',
 		version: number,
 		callback: TCFApiCallback<TCData>
 	): void;
@@ -240,18 +240,13 @@ export interface TCFApi {
 		vendorListVersion?: number
 	): void;
 	(
-		command: 'addEventListener',
-		version: number,
-		callback: TCFApiCallback<TCData>
-	): void;
-	(
 		command: 'removeEventListener',
 		version: number,
 		callback: TCFApiCallback<boolean>,
 		listenerId: number
 	): void;
 	/** Queue for stub to store calls before CMP loads */
-	queue?: Array<Parameters<TCFApi>>;
+	queue?: Parameters<TCFApi>[];
 }
 declare global {
 	interface Window {

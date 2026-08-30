@@ -59,7 +59,7 @@ describe('resetAllConsents', () => {
 				mockLocalStorage[key] = value;
 			}),
 			removeItem: vi.fn((key: string) => {
-				delete mockLocalStorage[key];
+				Reflect.deleteProperty(mockLocalStorage, key);
 			}),
 			clear: vi.fn(() => {
 				mockLocalStorage = {};

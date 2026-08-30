@@ -18,7 +18,7 @@ describe('createStateManager', () => {
 				mockSessionStorage[key] = value;
 			}),
 			removeItem: vi.fn((key: string) => {
-				delete mockSessionStorage[key];
+				Reflect.deleteProperty(mockSessionStorage, key);
 			}),
 		});
 		vi.stubGlobal('localStorage', {
@@ -27,7 +27,7 @@ describe('createStateManager', () => {
 				mockLocalStorage[key] = value;
 			}),
 			removeItem: vi.fn((key: string) => {
-				delete mockLocalStorage[key];
+				Reflect.deleteProperty(mockLocalStorage, key);
 			}),
 		});
 

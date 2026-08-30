@@ -21,7 +21,7 @@ function makeInit(
 		fingerprint?: string;
 		expiryDays?: number;
 		gpc?: boolean;
-		categories?: Array<'*' | keyof Consent['categories']>;
+		categories?: ('*' | keyof Consent['categories'])[];
 		scopeMode?: 'strict' | 'permissive';
 	} = {}
 ): InitOutput {

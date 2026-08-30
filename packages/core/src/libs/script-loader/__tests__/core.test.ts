@@ -207,7 +207,7 @@ fbq('track', 'PageView');
 
 			// Get the last created script element
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const scriptElement = mockCreateElement.mock.results[0].value;
 
@@ -243,7 +243,7 @@ fbq('track', 'PageView');
 			);
 
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const scriptElement = mockCreateElement.mock.results[0].value;
 
@@ -266,7 +266,7 @@ fbq('track', 'PageView');
 			);
 
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const scriptElement = mockCreateElement.mock.results[0].value;
 
@@ -286,7 +286,7 @@ fbq('track', 'PageView');
 			);
 
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const scriptElement = mockCreateElement.mock.results[0].value;
 
@@ -313,7 +313,7 @@ fbq('track', 'PageView');
 
 			// Get the created script element
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const scriptElement = mockCreateElement.mock.results[0].value;
 
@@ -343,7 +343,7 @@ fbq('track', 'PageView');
 
 			// Get the created script element
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const scriptElement = mockCreateElement.mock.results[0].value;
 
@@ -375,7 +375,7 @@ fbq('track', 'PageView');
 
 			// Get the last created script element
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const scriptElement = mockCreateElement.mock.results[0].value;
 
@@ -749,7 +749,7 @@ fbq('track', 'PageView');
 
 			// Should have called remove for each unloaded script
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const scriptElements = mockCreateElement.mock.results;
 
@@ -838,7 +838,7 @@ fbq('track', 'PageView');
 
 			// Get the script element and verify remove was called
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const scriptElement = mockCreateElement.mock.results[0].value;
 			expect(scriptElement.remove).toHaveBeenCalled();
@@ -1134,7 +1134,7 @@ fbq('track', 'PageView');
 
 			// Get the created script element from the mock
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const scriptElement =
 				mockCreateElement.mock.results[
@@ -1238,7 +1238,7 @@ fbq('track', 'PageView');
 
 			// Get the created script element from the mock
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const scriptElement =
 				mockCreateElement.mock.results[
@@ -1337,7 +1337,7 @@ fbq('track', 'PageView');
 
 			// Get the created script element from the mock
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const scriptElement =
 				mockCreateElement.mock.results[
@@ -1441,7 +1441,7 @@ fbq('track', 'PageView');
 
 			// Get the created script element from the mock
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const scriptElement =
 				mockCreateElement.mock.results[
@@ -1503,7 +1503,7 @@ fbq('track', 'PageView');
 
 			// Get the created script element
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const firstScriptElement =
 				mockCreateElement.mock.results[
@@ -1571,7 +1571,7 @@ fbq('track', 'PageView');
 
 			// Get the created script element
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const originalScriptElement =
 				mockCreateElement.mock.results[

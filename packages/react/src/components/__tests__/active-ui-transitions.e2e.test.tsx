@@ -23,28 +23,15 @@ import {
 } from '~/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
 
-type DeferredPromise<Value> = {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
+const getDefined = <Value,>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
 };
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
-};
-
-function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-}
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -55,7 +42,7 @@ const localStorageMock = (() => {
 			store[key] = value.toString();
 		},
 		removeItem: (key: string) => {
-			delete store[key];
+			Reflect.deleteProperty(store, key);
 		},
 		clear: () => {
 			store = {};
@@ -134,7 +121,7 @@ describe('activeUI Transitions E2E Tests', () => {
 		const customizeButton = document.querySelector(
 			'[data-testid="consent-banner-customize-button"]'
 		);
-		await userEvent.click(customizeButton!);
+		await userEvent.click(getDefined(customizeButton));
 
 		// Dialog should open
 		await vi.waitFor(
@@ -175,7 +162,7 @@ describe('activeUI Transitions E2E Tests', () => {
 		const customizeButton = document.querySelector(
 			'[data-testid="consent-banner-customize-button"]'
 		);
-		await userEvent.click(customizeButton!);
+		await userEvent.click(getDefined(customizeButton));
 
 		// Wait for dialog
 		await vi.waitFor(
@@ -192,7 +179,7 @@ describe('activeUI Transitions E2E Tests', () => {
 		const saveButton = document.querySelector(
 			'[data-testid="consent-widget-footer-save-button"]'
 		);
-		await userEvent.click(saveButton!);
+		await userEvent.click(getDefined(saveButton));
 
 		// Both banner and dialog should be gone
 		await vi.waitFor(
@@ -234,7 +221,7 @@ describe('activeUI Transitions E2E Tests', () => {
 		);
 
 		// Wait long enough to confirm banner doesn't appear
-		await createDeferredPromise((resolve) => setTimeout(resolve, 500));
+		await new Promise((resolve) => setTimeout(resolve, 500));
 
 		const banner = document.querySelector(
 			'[data-testid="consent-banner-root"]'
@@ -266,7 +253,7 @@ describe('activeUI Transitions E2E Tests', () => {
 		const acceptButton = document.querySelector(
 			'[data-testid="consent-banner-accept-button"]'
 		);
-		await userEvent.click(acceptButton!);
+		await userEvent.click(getDefined(acceptButton));
 
 		// Banner should disappear
 		await vi.waitFor(
@@ -299,7 +286,7 @@ describe('activeUI Transitions E2E Tests', () => {
 		const trigger = document.querySelector(
 			'button[aria-label="Open privacy settings"]'
 		);
-		await userEvent.click(trigger!);
+		await userEvent.click(getDefined(trigger));
 
 		await vi.waitFor(
 			() => {
@@ -443,7 +430,7 @@ describe('activeUI Transitions E2E Tests', () => {
 		const customizeButton = document.querySelector(
 			'[data-testid="consent-banner-customize-button"]'
 		);
-		await userEvent.click(customizeButton!);
+		await userEvent.click(getDefined(customizeButton));
 
 		await vi.waitFor(
 			() => {
@@ -459,7 +446,7 @@ describe('activeUI Transitions E2E Tests', () => {
 		const saveButton = document.querySelector(
 			'[data-testid="consent-widget-footer-save-button"]'
 		);
-		await userEvent.click(saveButton!);
+		await userEvent.click(getDefined(saveButton));
 
 		await vi.waitFor(
 			() => {
@@ -486,7 +473,7 @@ describe('activeUI Transitions E2E Tests', () => {
 		const trigger = document.querySelector(
 			'button[aria-label="Open privacy settings"]'
 		);
-		await userEvent.click(trigger!);
+		await userEvent.click(getDefined(trigger));
 
 		await vi.waitFor(
 			() => {

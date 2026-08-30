@@ -5,11 +5,11 @@
 
 import type { ColorTokens, Theme, ThemeCSSVariables } from './types';
 
-type RGBColor = {
+interface RGBColor {
 	r: number;
 	g: number;
 	b: number;
-};
+}
 
 const DEFAULT_LIGHT_CONTRAST_COLOR = '#ffffff';
 const DEFAULT_DARK_CONTRAST_COLOR = '#000000';

@@ -14,6 +14,16 @@ import path from 'node:path';
 import { LAYOUT_PATTERNS, PAGES_APP_PATTERNS, REGEX } from '../constants';
 import type { CliLogger, LayoutDetectionResult } from '../types';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 /**
  * Simple glob matcher for our layout patterns
  */
@@ -171,7 +181,7 @@ export async function findLayoutFile(
 			return a.length - b.length;
 		});
 
-		const layoutPath = appLayoutMatches[0]!;
+		const layoutPath = getDefined(appLayoutMatches[0]);
 		const localeSegment = extractLocaleSegment(layoutPath);
 
 		logger?.debug(`Selected layout: ${layoutPath}`);
@@ -193,7 +203,7 @@ export async function findLayoutFile(
 	);
 
 	if (pagesLayoutMatches.length > 0) {
-		const layoutPath = pagesLayoutMatches[0]!;
+		const layoutPath = getDefined(pagesLayoutMatches[0]);
 
 		logger?.debug(`Selected pages layout: ${layoutPath}`);
 

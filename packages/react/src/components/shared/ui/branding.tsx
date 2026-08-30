@@ -31,19 +31,19 @@ export type BrandingThemeKey =
 	| 'iabConsentBannerTag'
 	| 'iabConsentDialogTag';
 
-type BrandingProps = {
+interface BrandingProps {
 	hideBranding: boolean;
 	variant?: BrandingVariant;
 	themeKey?: BrandingThemeKey;
 	className?: string;
 	style?: CSSPropertiesWithVars;
 	'data-testid'?: string;
-};
+}
 
-type BrandingFullLogoProps = {
+interface BrandingFullLogoProps {
 	branding: Branding | string;
 	className?: string;
-};
+}
 
 type BrandingCompactLogoProps = SVGProps<SVGSVGElement> & {
 	branding: Branding | string;

@@ -1,4 +1,5 @@
-'use client';
+import type * as C15tCoreTypes from '@c15t/core';
+('use client');
 
 /**
  * @packageDocumentation
@@ -51,7 +52,7 @@ export interface ConsentDialogRootProps extends HTMLAttributes<HTMLDialogElement
 	 * Which consent models this dialog responds to.
 	 * @default ['opt-in', 'opt-out']
 	 */
-	models?: import('@c15t/core').Model[];
+	models?: C15tCoreTypes.Model[];
 
 	/**
 	 * When true, the component will not apply any internal styles.

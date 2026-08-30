@@ -57,7 +57,6 @@ function createDeferredPromise<Value>(
 }
 
 beforeEach(() => {
-	// oxlint-disable-next-line typescript/no-explicit-any -- minimal stub
 	vi.stubGlobal(
 		'MutationObserver',
 		class StubObserver {
@@ -66,7 +65,7 @@ beforeEach(() => {
 			takeRecords() {
 				return [];
 			}
-		} as any
+		} as typeof MutationObserver
 	);
 	vi.stubGlobal('document', {
 		createElement: vi.fn(() => ({

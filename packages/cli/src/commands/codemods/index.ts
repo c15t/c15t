@@ -34,15 +34,15 @@ export interface CodemodDefinition {
 	versioning?: CodemodVersionMetadata;
 }
 
-type CodemodExecutionResult = {
+interface CodemodExecutionResult {
 	totalFiles: number;
-	changedFiles: Array<{
+	changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}>;
-	errors: Array<{ filePath: string; error: string }>;
-};
+	}[];
+	errors: { filePath: string; error: string }[];
+}
 
 function logCodemodResult(
 	context: CliContext,

@@ -28,21 +28,24 @@ export interface ReactIABState extends KernelIABState {
 	isLoadingGVL: boolean;
 	nonIABVendors: NonIABVendor[];
 	preferenceCenterTab: 'purposes' | 'vendors';
-	setPreferenceCenterTab(tab: 'purposes' | 'vendors'): void;
-	setVendorConsent(vendorId: string | number, value: boolean): void;
-	setVendorLegitimateInterest(vendorId: string | number, value: boolean): void;
-	setPurposeConsent(purposeId: number, value: boolean): void;
-	setPurposeLegitimateInterest(purposeId: number, value: boolean): void;
-	setSpecialFeatureOptIn(featureId: number, value: boolean): void;
-	acceptAll(): void;
-	rejectAll(): void;
-	save(): Promise<void>;
+	setPreferenceCenterTab: (tab: 'purposes' | 'vendors') => void;
+	setVendorConsent: (vendorId: string | number, value: boolean) => void;
+	setVendorLegitimateInterest: (
+		vendorId: string | number,
+		value: boolean
+	) => void;
+	setPurposeConsent: (purposeId: number, value: boolean) => void;
+	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
+	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
+	acceptAll: () => void;
+	rejectAll: () => void;
+	save: () => Promise<void>;
 }
 
 interface IABContextValue {
 	handle: IABHandle | null;
 	tab: 'purposes' | 'vendors';
-	setTab(tab: 'purposes' | 'vendors'): void;
+	setTab: (tab: 'purposes' | 'vendors') => void;
 }
 
 const IABContext = createContext<IABContextValue | null>(null);

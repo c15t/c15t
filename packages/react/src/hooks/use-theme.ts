@@ -3,6 +3,7 @@
 import { useContext, useMemo } from 'react';
 
 import { GlobalThemeContext, LocalThemeContext } from '~/context/theme-context';
+import type { ThemeContextValue } from '~/context/theme-context';
 
 /**
  * Hook to access the current theme context.
@@ -34,31 +35,33 @@ import { GlobalThemeContext, LocalThemeContext } from '~/context/theme-context';
 /**
  * Deep merges two objects recursively
  */
-function deepMerge<T extends Record<string, unknown>>(
-	target: T,
-	source?: Partial<T> | null
-): T {
+function isIndexableObject(value: unknown): value is Record<string, unknown> {
+	return value !== null && typeof value === 'object';
+}
+
+function deepMerge<T extends object>(target: T, source?: Partial<T> | null): T {
 	if (!source) {
 		return target;
 	}
 
 	const result = { ...target } as T;
 
-	for (const key in source) {
-		if (source[key] !== undefined) {
+	for (const key of Object.keys(source) as (keyof T)[]) {
+		const sourceValue = source[key];
+		if (sourceValue !== undefined) {
+			const targetValue = target[key];
 			if (
-				source[key] &&
-				typeof source[key] === 'object' &&
-				!Array.isArray(source[key]) &&
-				target[key] &&
-				typeof target[key] === 'object'
+				isIndexableObject(sourceValue) &&
+				!Array.isArray(sourceValue) &&
+				isIndexableObject(targetValue) &&
+				!Array.isArray(targetValue)
 			) {
 				result[key] = deepMerge(
-					target[key] as Record<string, unknown>,
-					source[key] as Record<string, unknown>
+					targetValue,
+					sourceValue as Partial<typeof targetValue>
 				) as T[Extract<keyof T, string>];
 			} else {
-				result[key] = source[key] as T[Extract<keyof T, string>];
+				result[key] = sourceValue as T[Extract<keyof T, string>];
 			}
 		}
 	}
@@ -66,7 +69,7 @@ function deepMerge<T extends Record<string, unknown>>(
 	return result;
 }
 
-export const useTheme = () => {
+export const useTheme = (): ThemeContextValue => {
 	const globalContext = useContext(GlobalThemeContext);
 	const localContext = useContext(LocalThemeContext);
 

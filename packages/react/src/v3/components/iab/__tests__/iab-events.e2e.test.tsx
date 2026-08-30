@@ -13,6 +13,7 @@ import { IABConsentDialog } from '~/v3/components/iab-consent-dialog';
 import { ConsentProvider } from '~/v3/provider';
 import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provider';
 
+import type { TcfApiTestFunction } from './e2e-setup';
 import {
 	addCMPEventListener,
 	clearConsentState,
@@ -22,29 +23,6 @@ import {
 	waitForElement,
 	waitForElementRemoved,
 } from './e2e-setup';
-
-type DeferredPromise<Value> = {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-};
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
-};
-
-function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-}
 
 describe('IAB Events E2E Tests', () => {
 	beforeEach(() => {
@@ -83,7 +61,7 @@ describe('IAB Events E2E Tests', () => {
 			await waitForCMP();
 
 			// Set up listener to capture events
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { eventStatus: string }) => {
 					events.push(data.eventStatus);
@@ -118,7 +96,7 @@ describe('IAB Events E2E Tests', () => {
 			await waitForCMP();
 
 			// Set up listener
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { eventStatus: string }) => {
 					events.push(data.eventStatus);
@@ -160,7 +138,7 @@ describe('IAB Events E2E Tests', () => {
 			await waitForCMP();
 
 			let called = false;
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, () => {
 					called = true;
@@ -217,7 +195,7 @@ describe('IAB Events E2E Tests', () => {
 			let callCount = 0;
 			let listenerId: number | undefined;
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { listenerId: number }) => {
 					callCount++;
@@ -250,7 +228,7 @@ describe('IAB Events E2E Tests', () => {
 			}
 
 			// Wait a bit
-			await createDeferredPromise((r) => setTimeout(r, 100));
+			await new Promise((r) => setTimeout(r, 100));
 
 			// Call count should still be 1 (removed listener doesn't receive)
 			expect(callCount).toBe(1);
@@ -271,7 +249,7 @@ describe('IAB Events E2E Tests', () => {
 			const listener2Events: string[] = [];
 			const listener3Events: string[] = [];
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { eventStatus: string }) => {
 					listener1Events.push(data.eventStatus);
@@ -319,7 +297,7 @@ describe('IAB Events E2E Tests', () => {
 
 			let receivedData: Record<string, unknown> | null = null;
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: Record<string, unknown>) => {
 					receivedData = data;

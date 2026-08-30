@@ -12,7 +12,7 @@
 	import ConsentWidget from './consent-widget.svelte';
 	import InlineLegalLinks from './inline-legal-links.svelte';
 
-	type ConsentDialogTriggerProps = {
+	interface ConsentDialogTriggerProps {
 		defaultPosition?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
 		persistPosition?: boolean;
 		showWhen?: 'always' | 'after-consent' | 'never';
@@ -20,7 +20,7 @@
 		ariaLabel?: string;
 		noStyle?: boolean;
 		class?: string;
-	};
+	}
 
 	const {
 		open: openProp,

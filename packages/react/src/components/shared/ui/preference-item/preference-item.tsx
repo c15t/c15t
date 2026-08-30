@@ -15,14 +15,14 @@ import type { HTMLAttributes, ReactNode } from 'react';
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/hooks/use-theme';
 
-type PreferenceItemContextValue = {
+interface PreferenceItemContextValue {
 	contentId: string;
 	disabled?: boolean;
 	noStyle?: boolean;
 	open: boolean;
 	setOpen: (open: boolean) => void;
 	triggerId: string;
-};
+}
 
 const PreferenceItemContext = createContext<PreferenceItemContextValue | null>(
 	null

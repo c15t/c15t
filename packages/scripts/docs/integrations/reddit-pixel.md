@@ -231,7 +231,7 @@ and [event deduplication](https://business.reddithelp.com/s/article/event-dedupl
 |dprc|string \|undefined|Data processing region code.|-|Optional|
 |partner|string \|undefined|Integration partner name.|-|Optional|
 |partner\_version|string \|undefined|Integration partner version.|-|Optional|
-|integration|"reddit" \|"gtm" \|(string & \{}) \|undefined|Source integration name reported to Reddit.|-|Optional|
+|integration|"reddit" \|"gtm" \|(string & Record\<never, never>) \|undefined|Source integration name reported to Reddit.|-|Optional|
 |debug|boolean \|undefined|Enable Reddit Pixel debug logging.|-|Optional|
 |useDecimalCurrencyValues|boolean \|undefined|Send monetary \`value\` metadata as \`valueDecimal\`.|true|Optional|
 

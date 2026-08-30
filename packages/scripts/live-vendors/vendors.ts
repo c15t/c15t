@@ -103,18 +103,18 @@ type AdobeAnalyticsWindow = Window & {
 
 type AmplitudeWindow = Window & {
 	amplitude?: {
-		_q?: Array<{
+		_q?: {
 			name: string;
 			args: unknown[];
 			resolve: (value: unknown) => void;
-		}>;
+		}[];
 		_iq?: Record<string, unknown>;
 		invoked?: boolean;
 		Identify?: new () => {
-			_q?: Array<{
+			_q?: {
 				name: string;
 				args: unknown[];
-			}>;
+			}[];
 			set: (property: string, value: unknown) => unknown;
 		};
 		init?: (...args: unknown[]) => unknown;
@@ -159,10 +159,10 @@ type HeapWindow = Window & {
 		track?: (...args: unknown[]) => unknown;
 		[key: string]: unknown;
 	};
-	heapReadyCb?: Array<{
+	heapReadyCb?: {
 		name: string;
 		fn: () => void;
-	}>;
+	}[];
 };
 
 type RudderStackWindow = Window & {

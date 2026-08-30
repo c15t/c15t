@@ -3,7 +3,7 @@ import { extname, join } from 'node:path';
 
 import { Node, Project, SyntaxKind } from 'ts-morph';
 import type { ObjectLiteralExpression, PropertyAssignment } from 'ts-morph';
-
+import type * as TsMorphTypes from 'ts-morph';
 const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const IGNORED_DIRS = new Set([
 	'.git',
@@ -20,11 +20,11 @@ const LEGACY_KEY = 'ignoreGeoLocation';
 const NEXT_KEY = 'overrides';
 const DEFAULT_COUNTRY_CODE = 'DE';
 
-type IgnoreGeoLocationResult = {
+interface IgnoreGeoLocationResult {
 	changed: boolean;
 	operations: number;
 	summaries: string[];
-};
+}
 
 export interface CodemodRunOptions {
 	/**
@@ -48,15 +48,15 @@ export interface CodemodRunResult {
 	/**
 	 * Per-file transformation summaries.
 	 */
-	changedFiles: Array<{
+	changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}>;
+	}[];
 	/**
 	 * Non-fatal per-file transform errors.
 	 */
-	errors: Array<{ filePath: string; error: string }>;
+	errors: { filePath: string; error: string }[];
 }
 
 function getPropertyName(property: PropertyAssignment): string {
@@ -110,7 +110,7 @@ function mergeCountryIntoOverridesExpression(
 }
 
 function transformSourceFile(
-	sourceFile: import('ts-morph').SourceFile
+	sourceFile: TsMorphTypes.SourceFile
 ): IgnoreGeoLocationResult {
 	let operations = 0;
 	const summaries: string[] = [];
@@ -262,12 +262,12 @@ export async function runIgnoreGeoLocationToOverridesCodemod(
 	});
 	const filePaths = await collectSourceFiles(options.projectRoot);
 
-	const changedFiles: Array<{
+	const changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}> = [];
-	const errors: Array<{ filePath: string; error: string }> = [];
+	}[] = [];
+	const errors: { filePath: string; error: string }[] = [];
 
 	for (const filePath of filePaths) {
 		try {

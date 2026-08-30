@@ -3,7 +3,7 @@ import { extname, join } from 'node:path';
 
 import { Node, Project, SyntaxKind } from 'ts-morph';
 import type { ObjectLiteralExpression, PropertyAssignment } from 'ts-morph';
-
+import type * as TsMorphTypes from 'ts-morph';
 const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const IGNORED_DIRS = new Set([
 	'.git',
@@ -16,11 +16,11 @@ const IGNORED_DIRS = new Set([
 	'out',
 ]);
 
-type CodemodResult = {
+interface CodemodResult {
 	changed: boolean;
 	operations: number;
 	summaries: string[];
-};
+}
 
 export interface CodemodRunOptions {
 	projectRoot: string;
@@ -29,12 +29,12 @@ export interface CodemodRunOptions {
 
 export interface CodemodRunResult {
 	totalFiles: number;
-	changedFiles: Array<{
+	changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}>;
-	errors: Array<{ filePath: string; error: string }>;
+	}[];
+	errors: { filePath: string; error: string }[];
 }
 
 function getPropertyName(property: PropertyAssignment): string {
@@ -65,7 +65,7 @@ const STARTER_POLICY_PACK =
 	'[\n\t\t\tpolicyPackPresets.europeOptIn(),\n\t\t\tpolicyPackPresets.californiaOptOut(),\n\t\t\tpolicyPackPresets.worldNoBanner(),\n\t\t]';
 
 function transformSourceFile(
-	sourceFile: import('ts-morph').SourceFile
+	sourceFile: TsMorphTypes.SourceFile
 ): CodemodResult {
 	let operations = 0;
 	const summaries: string[] = [];
@@ -218,12 +218,12 @@ export async function runOfflineAddPolicyPacksCodemod(
 	});
 	const filePaths = await collectSourceFiles(options.projectRoot);
 
-	const changedFiles: Array<{
+	const changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}> = [];
-	const errors: Array<{ filePath: string; error: string }> = [];
+	}[] = [];
+	const errors: { filePath: string; error: string }[] = [];
 
 	for (const filePath of filePaths) {
 		try {

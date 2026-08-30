@@ -166,7 +166,7 @@ export interface ResponseContext<T = unknown> {
 	 * const subject = (await client.getSubject('sub_123')).unwrap();
 	 * ```
 	 */
-	unwrap(): T;
+	unwrap: () => T;
 
 	/**
 	 * Unwraps the response data, returning a default value if the request failed.
@@ -179,7 +179,7 @@ export interface ResponseContext<T = unknown> {
 	 * const subject = (await client.getSubject('sub_123')).unwrapOr(defaultSubject);
 	 * ```
 	 */
-	unwrapOr(defaultValue: T): T;
+	unwrapOr: (defaultValue: T) => T;
 
 	/**
 	 * Unwraps the response data, throwing a custom error message if the request failed.
@@ -193,7 +193,7 @@ export interface ResponseContext<T = unknown> {
 	 * const subject = (await client.getSubject('sub_123')).expect('Subject not found');
 	 * ```
 	 */
-	expect(message: string): T;
+	expect: (message: string) => T;
 
 	/**
 	 * Maps the response data to a new value if successful.
@@ -206,7 +206,7 @@ export interface ResponseContext<T = unknown> {
 	 * const name = (await client.getSubject('sub_123')).map(s => s.name);
 	 * ```
 	 */
-	map<U>(fn: (data: T) => U): ResponseContext<U>;
+	map: <U>(fn: (data: T) => U) => ResponseContext<U>;
 }
 
 /**

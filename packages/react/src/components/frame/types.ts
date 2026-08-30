@@ -1,6 +1,8 @@
 import type { AllConsentNames } from '@c15t/core';
 import type { ComponentPropsWithRef, FC, ReactNode } from 'react';
 
+import type { Theme } from '~/types/theme';
+
 import type * as Atom from './atoms';
 
 export interface FrameProps extends ComponentPropsWithRef<'div'> {
@@ -33,7 +35,7 @@ export interface FrameProps extends ComponentPropsWithRef<'div'> {
 	 *
 	 * @default undefined
 	 */
-	theme?: any;
+	theme?: Theme;
 }
 
 export interface FrameCompoundComponent extends FC<FrameProps> {

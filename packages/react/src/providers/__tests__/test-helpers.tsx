@@ -6,12 +6,12 @@ import type {
 	VerifyConsentInput,
 	VerifyConsentOutput,
 } from '@c15t/core';
+import type * as C15tCoreTypes from '@c15t/core';
 import { beforeEach, vi } from 'vitest';
 import type { Mock } from 'vitest';
 
 import { useConsentManager } from '~/index';
 import type { ConsentManagerOptions } from '~/index';
-
 export type SetConsentRequestBody = PostConsentInput;
 export type SetConsentResponse = PostConsentOutput;
 export type ShowConsentBannerResponse = InitOutput;
@@ -34,8 +34,7 @@ const { mockFetch, mockConfigureConsentManager, fetchCallMap, runtimeCache } =
 // Mock c15t module at module level (hoisted by vitest)
 vi.mock('@c15t/core', async () => {
 	const originalModule = await vi.importActual('@c15t/core');
-	const { createConsentManagerStore } =
-		originalModule as typeof import('@c15t/core');
+	const { createConsentManagerStore } = originalModule as typeof C15tCoreTypes;
 
 	const createMockConsentManager = (options: ConsentManagerOptions) => {
 		// Call the mock for tracking

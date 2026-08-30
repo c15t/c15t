@@ -32,7 +32,7 @@ export type ElementAttributes = {
 /**
  * Event handlers that can be attached to an element
  */
-export type ElementEvents = {
+export interface ElementEvents {
 	onClick?: EventListener;
 	onMouseEnter?: EventListener;
 	onMouseLeave?: EventListener;
@@ -44,7 +44,7 @@ export type ElementEvents = {
 	onInput?: EventListener;
 	onAnimationEnd?: EventListener;
 	onTransitionEnd?: EventListener;
-};
+}
 
 /**
  * Options for creating an element

@@ -71,7 +71,7 @@ export interface ResolvedStack<T extends { id: number }> extends GVLStack {
  */
 export interface GroupedPurposes<T extends { id: number }> {
 	/** Stacks with their purposes */
-	stacks: Array<ResolvedStack<T>>;
+	stacks: ResolvedStack<T>[];
 
 	/** Purposes that are shown standalone (e.g., Purpose 1) */
 	standalonePurposes: T[];
@@ -141,7 +141,7 @@ export function groupPurposesIntoStacks<T extends { id: number }>(
 	}
 
 	// Build resolved stacks
-	const resolvedStacks: Array<ResolvedStack<T>> = [];
+	const resolvedStacks: ResolvedStack<T>[] = [];
 
 	for (const stack of Object.values(stacks)) {
 		const resolvedPurposes: T[] = [];

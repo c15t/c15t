@@ -16,13 +16,13 @@ import { GVL_TTL_MS } from '../types';
  * @public
  */
 export interface KVNamespace {
-	get(key: string, options?: { type?: 'text' | 'json' }): Promise<unknown>;
-	put(
+	get: (key: string, options?: { type?: 'text' | 'json' }) => Promise<unknown>;
+	put: (
 		key: string,
 		value: string,
 		options?: { expirationTtl?: number }
-	): Promise<void>;
-	delete(key: string): Promise<void>;
+	) => Promise<void>;
+	delete: (key: string) => Promise<void>;
 }
 
 /**

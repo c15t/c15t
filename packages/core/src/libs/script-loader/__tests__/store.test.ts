@@ -154,7 +154,7 @@ describe('Script Manager Store Integration', () => {
 			// Verify that the scriptIdMap was passed to the updateScripts function
 			// by checking that the scripts were loaded with the correct IDs
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 
 			// Only one script element should have been created (for the standard script)

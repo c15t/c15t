@@ -44,14 +44,14 @@ export const preferenceItemVariants = () => ({
 		[styles.trigger, options?.class].filter(Boolean).join(' '),
 });
 
-type PreferenceItemContextValue = {
+interface PreferenceItemContextValue {
 	contentId: string;
 	disabled?: boolean;
 	noStyle?: boolean;
 	open: boolean;
 	setOpen: (open: boolean) => void;
 	triggerId: string;
-};
+}
 
 const PreferenceItemContext = createContext<PreferenceItemContextValue | null>(
 	null

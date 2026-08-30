@@ -14,11 +14,11 @@ import type { AllThemeKeys, ThemeValue } from '~/types/theme';
 export type { SwitchSize, SwitchVariantsProps };
 export { switchVariants };
 
-export type SwitchStylesKeys = {
+export interface SwitchStylesKeys {
 	'switch.root': ThemeValue;
 	'switch.thumb': ThemeValue;
 	'switch.track': ThemeValue;
-};
+}
 
 export interface SwitchProps
 	extends

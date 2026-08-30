@@ -100,7 +100,7 @@ export function InlineLegalLinks({
 			>)
 		);
 	}, [consentState, kernel]);
-	const linkStyles = useStyles(themeKey as any, {
+	const linkStyles = useStyles(themeKey, {
 		baseClassName: styles.legalLink,
 	});
 

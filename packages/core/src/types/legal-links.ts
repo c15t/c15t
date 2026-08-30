@@ -1,6 +1,6 @@
 import type { LegalLinksTranslations } from '@c15t/translations';
 
-export type LegalLink = {
+export interface LegalLink {
 	/** The URL or path to the legal link */
 	href: string;
 
@@ -20,7 +20,7 @@ export type LegalLink = {
 	 * This value overrides the translation for this link.
 	 */
 	label?: string;
-};
+}
 
 export type LegalLinks = Partial<
 	Record<keyof LegalLinksTranslations, LegalLink>

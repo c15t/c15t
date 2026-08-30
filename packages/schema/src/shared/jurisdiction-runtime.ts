@@ -1,5 +1,15 @@
 import type { JurisdictionCode } from './policy-runtime';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 /**
  * Determines the applicable jurisdiction based on country and region codes.
  *
@@ -61,7 +71,7 @@ export function checkJurisdiction(
 		const normalizedRegionCode =
 			regionCode && typeof regionCode === 'string'
 				? (regionCode.includes('-')
-						? regionCode.split('-').pop()!
+						? getDefined(regionCode.split('-').pop())
 						: regionCode
 					).toUpperCase()
 				: null;

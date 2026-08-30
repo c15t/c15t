@@ -14,7 +14,7 @@ import type {
 } from './components/consent-widget';
 import { useActiveUI } from './hooks';
 
-type AnyComponent = ComponentType<any>;
+type AnyComponent = ComponentType<Record<string, unknown>>;
 
 function withSuspense(
 	Component: LazyExoticComponent<AnyComponent>
@@ -33,8 +33,9 @@ function lazyDialogExport(name: string) {
 	return withSuspense(
 		lazy(async () => {
 			const module = await import('./components/consent-dialog');
+			const exports = module as Record<string, unknown>;
 			return {
-				default: (module as Record<string, AnyComponent>)[name] as AnyComponent,
+				default: exports[name] as AnyComponent,
 			};
 		})
 	);
@@ -50,8 +51,9 @@ function lazyWidgetExport(name: string) {
 	return withSuspense(
 		lazy(async () => {
 			const module = await import('./components/consent-widget');
+			const exports = module as Record<string, unknown>;
 			return {
-				default: (module as Record<string, AnyComponent>)[name] as AnyComponent,
+				default: exports[name] as AnyComponent,
 			};
 		})
 	);

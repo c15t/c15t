@@ -270,12 +270,12 @@ export function processGVLData(
 	const gvlStacks = gvl.stacks || {};
 
 	// Score each stack by how many purposes it covers
-	const stackScores: Array<{
+	const stackScores: {
 		stackId: number;
 		stack: (typeof gvlStacks)[number];
 		coveredPurposeIds: number[];
 		score: number;
-	}> = [];
+	}[] = [];
 
 	for (const [stackIdStr, stack] of Object.entries(gvlStacks)) {
 		const coveredIds = stack.purposes.filter((pid) => otherPurposeIds.has(pid));
@@ -365,11 +365,11 @@ export function getIABBannerDisplayItems(
 
 	// Score stacks by coverage
 	const gvlStacks = gvl.stacks || {};
-	const stackScores: Array<{
+	const stackScores: {
 		name: string;
 		coveredPurposeIds: number[];
 		score: number;
-	}> = [];
+	}[] = [];
 
 	for (const [, stack] of Object.entries(gvlStacks)) {
 		const coveredIds = stack.purposes.filter((pid) => otherPurposeIds.has(pid));

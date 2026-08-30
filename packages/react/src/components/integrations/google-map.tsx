@@ -525,7 +525,7 @@ export const GoogleMap = forwardRef<HTMLDivElement, GoogleMapProps>(
 
 				return () => {
 					if (win[callbackName] === callback) {
-						delete win[callbackName];
+						Reflect.deleteProperty(win, callbackName);
 					}
 				};
 			},

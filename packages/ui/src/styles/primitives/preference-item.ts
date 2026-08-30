@@ -1,6 +1,6 @@
 import styles from './preference-item.module.css';
 
-export interface PreferenceItemVariantsProps {}
+export type PreferenceItemVariantsProps = Record<never, never>;
 
 export const preferenceItemVariants = () => {
 	return {

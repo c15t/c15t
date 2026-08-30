@@ -18,15 +18,15 @@ interface StubIframe {
 	tagName: 'IFRAME';
 	nodeType: 1;
 	attributes: Map<string, string>;
-	getAttribute(key: string): string | null;
-	setAttribute(key: string, value: string): void;
-	removeAttribute(key: string): void;
-	querySelectorAll(selector: string): StubIframe[];
+	getAttribute: (key: string) => string | null;
+	setAttribute: (key: string, value: string) => void;
+	removeAttribute: (key: string) => void;
+	querySelectorAll: (selector: string) => StubIframe[];
 }
 
 interface StubBody {
 	children: StubIframe[];
-	observers: Array<(mutations: unknown[]) => void>;
+	observers: ((mutations: unknown[]) => void)[];
 }
 
 function createStubIframe(
@@ -58,7 +58,7 @@ function createStubIframe(
 }
 
 let body: StubBody;
-let observerCallbacks: Array<(mutations: unknown[]) => void> = [];
+let observerCallbacks: ((mutations: unknown[]) => void)[] = [];
 
 function dispatchAdded(node: StubIframe): void {
 	const mutation = {
@@ -81,7 +81,6 @@ beforeEach(() => {
 		querySelectorAll: (_selector: string) => body.children,
 	};
 	vi.stubGlobal('document', doc);
-	// oxlint-disable-next-line typescript/no-explicit-any -- test stub
 	vi.stubGlobal(
 		'MutationObserver',
 		class StubObserver {
@@ -99,7 +98,7 @@ beforeEach(() => {
 			takeRecords() {
 				return [];
 			}
-		} as any
+		} as typeof MutationObserver
 	);
 });
 

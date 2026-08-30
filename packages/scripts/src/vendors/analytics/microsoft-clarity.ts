@@ -44,16 +44,15 @@ export type ClarityConsentValue =
 			>
 	  >;
 
-type ClarityFunction = {
+interface ClarityFunction {
 	(command: 'consent', value?: boolean): void;
 	(command: 'consentv2', value: ClarityConsentV2Payload): void;
-	(command: 'event', value: string): void;
+	(command: 'event' | 'upgrade', value: string): void;
 	(command: 'identify', id: string, session?: string, page?: string): unknown;
 	(command: 'set', key: string, value: string | string[]): void;
 	(command: 'start', options?: Record<string, unknown>): void;
-	(command: 'upgrade', reason: string): void;
 	(command: string, ...args: unknown[]): unknown;
-};
+}
 
 declare global {
 	interface Window {

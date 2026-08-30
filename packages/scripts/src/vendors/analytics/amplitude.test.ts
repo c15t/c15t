@@ -15,11 +15,11 @@ import {
 	DEFAULT_AMPLITUDE_SCRIPT_URL,
 } from './amplitude';
 
-type QueueEntrySnapshot = {
+interface QueueEntrySnapshot {
 	name: string;
 	args: unknown[];
 	resolveType: string;
-};
+}
 
 function snapshotAmplitudeQueue(): QueueEntrySnapshot[] {
 	const globalRef = getTestGlobal();

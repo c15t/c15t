@@ -228,12 +228,12 @@ export function useGVLData(): GVLData {
 		const gvlStacks = gvl.stacks || {};
 
 		// Score each stack by how many of our purposes it covers
-		const stackScores: Array<{
+		const stackScores: {
 			stackId: number;
 			stack: (typeof gvlStacks)[number];
 			coveredPurposeIds: number[];
 			score: number;
-		}> = [];
+		}[] = [];
 
 		for (const [stackIdStr, stack] of Object.entries(gvlStacks)) {
 			const stackId = Number(stackIdStr);

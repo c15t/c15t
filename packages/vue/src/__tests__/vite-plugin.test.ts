@@ -24,8 +24,8 @@ interface ResolvedPluginPaths {
 
 function resolvePluginPaths(factory: () => unknown): ResolvedPluginPaths {
 	const plugin = factory() as {
-		resolveId(id: string): string | undefined;
-		config(): { resolve: { alias: Record<string, string> } };
+		resolveId: (id: string) => string | undefined;
+		config: () => { resolve: { alias: Record<string, string> } };
 	};
 	const stubPath = plugin.resolveId('#imports');
 	const composablesPath = plugin.config().resolve.alias['#c15t/composables'];

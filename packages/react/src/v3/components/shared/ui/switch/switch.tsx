@@ -23,11 +23,11 @@ export const switchVariants = () => ({
 		[styles.track, options?.class].filter(Boolean).join(' '),
 });
 
-export type SwitchStylesKeys = {
+export interface SwitchStylesKeys {
 	'switch.root': ThemeValue;
 	'switch.thumb': ThemeValue;
 	'switch.track': ThemeValue;
-};
+}
 
 export interface SwitchProps
 	extends

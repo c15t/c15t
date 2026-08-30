@@ -13,7 +13,7 @@ export type CONSENT_CATEGORY = (typeof CONSENT_CATEGORIES)[number];
 export function getConsentAvailableCategories(
 	init: InitOutput | null | undefined,
 	configuredCategories: readonly CONSENT_CATEGORY[] = CONSENT_CATEGORIES
-): Array<CONSENT_CATEGORY> {
+): CONSENT_CATEGORY[] {
 	const knownCategories = new Set<CONSENT_CATEGORY>(CONSENT_CATEGORIES);
 	const baseSource =
 		configuredCategories.length > 0 ? configuredCategories : CONSENT_CATEGORIES;
@@ -69,7 +69,7 @@ export function interpretStoredConsent(
 	consent: Consent,
 	init: InitOutput,
 	gpc?: boolean
-): Array<CONSENT_CATEGORY> {
+): CONSENT_CATEGORY[] {
 	const granted = new Set<CONSENT_CATEGORY>(['necessary']);
 	for (const category of CONSENT_CATEGORIES) {
 		if (category === 'necessary') continue;

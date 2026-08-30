@@ -299,7 +299,7 @@ describe('Custom Client Browser Tests', () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'custom',
-			//@ts-expect-error
+			// @ts-expect-error Tests inject custom endpoint handlers.
 			endpointHandlers: handlers,
 		}) as CustomClient;
 
@@ -316,7 +316,7 @@ describe('Custom Client Browser Tests', () => {
 		// Configure the client
 		const client = configureConsentManager({
 			mode: 'custom',
-			//@ts-expect-error
+			// @ts-expect-error Tests inject custom endpoint handlers.
 			endpointHandlers: handlers,
 		}) as CustomClient;
 
@@ -350,7 +350,7 @@ describe('Custom Client Browser Tests', () => {
 	it('should register and use dynamic handlers', async () => {
 		// Configure the client
 		const client = new CustomClient({
-			//@ts-expect-error
+			// @ts-expect-error Tests inject custom endpoint handlers.
 			endpointHandlers: handlers,
 		});
 

@@ -16,6 +16,16 @@ import DialogFixture from '../../__tests__/fixtures/dialog-fixture.svelte';
 import WidgetFixture from '../../__tests__/fixtures/widget-fixture.svelte';
 import type { ConsentManagerOptions } from '../../lib/types';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 const defaultOptions: ConsentManagerOptions = {
 	mode: 'offline',
 };
@@ -45,15 +55,15 @@ describe('UI Source Tracking E2E Tests', () => {
 				expect(acceptButton).toBeInTheDocument();
 			});
 
-			const acceptButton = document.querySelector(
-				'[data-testid="consent-banner-accept-button"]'
-			)!;
+			const acceptButton = getDefined(
+				document.querySelector('[data-testid="consent-banner-accept-button"]')
+			);
 			await fireEvent.click(acceptButton);
 
 			await waitFor(() => {
 				const stored = window.localStorage.getItem('c15t');
 				expect(stored).toBeTruthy();
-				const consent = JSON.parse(stored!);
+				const consent = JSON.parse(getDefined(stored));
 				expect(consent.consents.necessary).toBe(true);
 			});
 		});
@@ -132,9 +142,11 @@ describe('UI Source Tracking E2E Tests', () => {
 			});
 
 			// Click customize to open dialog
-			const customizeButton = document.querySelector(
-				'[data-testid="consent-banner-customize-button"]'
-			)!;
+			const customizeButton = getDefined(
+				document.querySelector(
+					'[data-testid="consent-banner-customize-button"]'
+				)
+			);
 			await fireEvent.click(customizeButton);
 
 			// Wait for dialog
@@ -146,16 +158,18 @@ describe('UI Source Tracking E2E Tests', () => {
 			});
 
 			// Save from dialog
-			const saveButton = document.querySelector(
-				'[data-testid="consent-widget-footer-save-button"]'
-			)!;
+			const saveButton = getDefined(
+				document.querySelector(
+					'[data-testid="consent-widget-footer-save-button"]'
+				)
+			);
 			await fireEvent.click(saveButton);
 
 			// Verify consent was saved
 			await waitFor(() => {
 				const stored = window.localStorage.getItem('c15t');
 				expect(stored).toBeTruthy();
-				const consent = JSON.parse(stored!);
+				const consent = JSON.parse(getDefined(stored));
 				expect(consent.consents).toBeTruthy();
 			});
 		});

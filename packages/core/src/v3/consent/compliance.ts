@@ -57,14 +57,14 @@ export type ConsentState = Record<AllConsentNames, boolean>;
  *
  * @public
  */
-export type NamespaceProps = {
+export interface NamespaceProps {
 	/**
 	 * Global namespace for the consent manager store.
 	 *
 	 * @defaultValue "c15tStore"
 	 */
 	namespace?: string;
-};
+}
 
 /**
  * Represents location information for the user.
@@ -82,7 +82,7 @@ export type NamespaceProps = {
  *
  * @public
  */
-export type LocationInfo = {
+export interface LocationInfo {
 	/** ISO country code (e.g., 'US', 'GB', 'DE') */
 	countryCode: string | null;
 
@@ -91,7 +91,7 @@ export type LocationInfo = {
 
 	/** Jurisdiction code (e.g. 'GDPR') */
 	jurisdiction: JurisdictionCode | null;
-};
+}
 
 /**
  * Response from the consent banner API.

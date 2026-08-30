@@ -17,6 +17,16 @@ import type { ConsentManagerOptions } from '~/types/consent-manager';
 
 import { IABConsentDialog } from '../iab-consent-dialog';
 
+const getDefined = <Value,>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 // Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
@@ -26,7 +36,7 @@ const localStorageMock = (() => {
 			store[key] = String(value);
 		},
 		removeItem: (key: string) => {
-			delete store[key];
+			Reflect.deleteProperty(store, key);
 		},
 		clear: () => {
 			store = {};
@@ -306,7 +316,7 @@ describe('Vendors Tab - Per-Vendor Consent', () => {
 					button.textContent?.toLowerCase().includes('vendor')
 				);
 				expect(el).toBeDefined();
-				return el!;
+				return getDefined(el);
 			},
 			{ timeout: 5000 }
 		);
@@ -321,7 +331,7 @@ describe('Vendors Tab - Per-Vendor Consent', () => {
 					element.textContent?.includes('Exponential Interactive')
 				);
 				expect(el).toBeDefined();
-				return el!;
+				return getDefined(el);
 			},
 			{ timeout: 5000 }
 		);

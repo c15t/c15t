@@ -11,6 +11,16 @@ import { userEvent } from 'vitest/browser';
 
 import { useFocusTrap } from '../use-focus-trap';
 
+const getDefined = <Value,>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 describe('useFocusTrap', () => {
 	// Component that uses the focus trap hook
 	const TestComponent = ({
@@ -136,7 +146,7 @@ describe('useFocusTrap', () => {
 			const toggle = document.querySelector('[data-testid="toggle"]');
 
 			// Toggle on
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
 					expect(toggle?.textContent).toContain('enabled');
@@ -145,7 +155,7 @@ describe('useFocusTrap', () => {
 			);
 
 			// Toggle off
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
 					expect(toggle?.textContent).toContain('disabled');
@@ -201,7 +211,7 @@ describe('useFocusTrap', () => {
 			const toggle = document.querySelector('[data-testid="toggle"]');
 
 			// Enable trap
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
 					expect(toggle?.textContent).toContain('enabled');
@@ -210,7 +220,7 @@ describe('useFocusTrap', () => {
 			);
 
 			// Disable trap (should cleanup)
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
 					expect(toggle?.textContent).toContain('disabled');
@@ -219,7 +229,7 @@ describe('useFocusTrap', () => {
 			);
 
 			// Re-enable trap (should work without issues)
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
 					expect(toggle?.textContent).toContain('enabled');

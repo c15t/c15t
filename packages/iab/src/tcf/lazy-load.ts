@@ -1,3 +1,4 @@
+import type * as IabtechlabtcfCoreTypes from '@iabtechlabtcf/core';
 /**
  * Lazy Loading for @iabtechlabtcf/core
  *
@@ -10,7 +11,7 @@
 /**
  * The lazy-loaded TCF core module type.
  */
-export type TCFCoreModule = typeof import('@iabtechlabtcf/core');
+export type TCFCoreModule = typeof IabtechlabtcfCoreTypes;
 
 /** Cached module reference */
 let tcfCoreModule: TCFCoreModule | null = null;

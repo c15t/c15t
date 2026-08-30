@@ -40,7 +40,7 @@ describe('googleTagManager', () => {
 				consents: deniedConsentState,
 			});
 
-			const dataLayer = globalRef.dataLayer as Array<Record<string, unknown>>;
+			const dataLayer = globalRef.dataLayer as Record<string, unknown>[];
 			expect(dataLayer[1]?.['gtm.start']).toBe(1_777_777_777_777);
 		} finally {
 			nowSpy.mockRestore();

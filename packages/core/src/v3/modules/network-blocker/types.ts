@@ -24,11 +24,11 @@ export interface NetworkBlockerOptions extends Omit<
 }
 
 export interface NetworkBlockerHandle {
-	dispose(): void;
+	dispose: () => void;
 	/** Replace the rules list. Takes effect on the next intercepted request. */
-	updateRules(next: NetworkBlockerRule[]): void;
+	updateRules: (next: NetworkBlockerRule[]) => void;
 	/** Toggle enable/disable without tearing down the patches. */
-	setEnabled(enabled: boolean): void;
+	setEnabled: (enabled: boolean) => void;
 }
 
 /**

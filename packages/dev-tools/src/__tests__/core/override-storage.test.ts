@@ -20,7 +20,7 @@ describe('override-storage', () => {
 				mockLocalStorage[key] = value;
 			}),
 			removeItem: vi.fn((key: string) => {
-				delete mockLocalStorage[key];
+				Reflect.deleteProperty(mockLocalStorage, key);
 			}),
 		});
 	});

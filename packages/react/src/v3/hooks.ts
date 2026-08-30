@@ -245,7 +245,7 @@ export function useSetActiveUI(): (ui: KernelActiveUI) => void {
 	const kernel = useKernel();
 	return (
 		kernel.set as typeof kernel.set & {
-			activeUI(ui: KernelActiveUI): void;
+			activeUI: (ui: KernelActiveUI) => void;
 		}
 	).activeUI;
 }

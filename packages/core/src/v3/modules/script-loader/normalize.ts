@@ -49,9 +49,9 @@ export function normalizeScripts(scripts: Script[]): NormalizedScript[] {
 
 export interface ElementIdResolver {
 	/** Resolve the DOM `id` attribute for a script. */
-	resolve(script: Script): string;
+	resolve: (script: Script) => string;
 	/** Drop cached IDs (used during dispose). */
-	clear(): void;
+	clear: () => void;
 }
 
 /**

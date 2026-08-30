@@ -51,7 +51,7 @@ const ACCORDION_TRIGGER_NAME = 'AccordionTrigger';
 const ACCORDION_CONTENT_NAME = 'AccordionContent';
 const ACCORDION_HEADER_NAME = 'AccordionHeader';
 
-export type AccordionStylesKeys = {
+export interface AccordionStylesKeys {
 	'accordion.root'?: ThemeValue;
 	'accordion.item': ThemeValue;
 	'accordion.trigger': ThemeValue;
@@ -60,23 +60,23 @@ export type AccordionStylesKeys = {
 	'accordion.arrow.close': ThemeValue;
 	'accordion.content': ThemeValue;
 	'accordion.content-inner': ThemeValue;
-};
+}
 
-type AccordionContextValue = {
+interface AccordionContextValue {
 	collapsible?: boolean;
 	noStyle?: boolean;
 	onItemToggle: (value: string) => void;
 	type: AccordionType;
 	value: string | string[] | undefined;
-};
+}
 
-type AccordionItemContextValue = {
+interface AccordionItemContextValue {
 	contentId: string;
 	disabled?: boolean;
 	open: boolean;
 	triggerId: string;
 	value: string;
-};
+}
 
 const AccordionContext = createContext<AccordionContextValue | null>(null);
 const AccordionItemContext = createContext<AccordionItemContextValue | null>(
@@ -243,7 +243,7 @@ const AccordionItem = forwardRef<HTMLDivElement, AccordionItemProps>(
 
 AccordionItem.displayName = ACCORDION_ITEM_NAME;
 
-export interface AccordionHeaderProps extends HTMLAttributes<HTMLDivElement> {}
+export type AccordionHeaderProps = HTMLAttributes<HTMLDivElement>;
 
 const AccordionHeader = forwardRef<HTMLDivElement, AccordionHeaderProps>(
 	({ children, className, ...rest }, forwardedRef) => (

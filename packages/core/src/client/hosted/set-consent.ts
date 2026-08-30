@@ -1,4 +1,5 @@
 import { saveConsentToStorage } from '../../libs/cookie';
+import type * as LibsCookieTypes from '../../libs/cookie';
 import { getDebugLogger } from '../../libs/debug';
 import type {
 	SetConsentRequestBody,
@@ -9,14 +10,13 @@ import { API_ENDPOINTS } from '../types';
 import type { FetcherContext } from './fetcher';
 import { createResponseContext } from './fetcher';
 import { withFallback } from './with-fallback';
-
 /**
  * Provides offline mode fallback for setConsent API.
  * Simulates the behavior of OfflineClient when API requests fail.
  * @internal
  */
 export async function offlineFallbackForSetConsent(
-	storageConfig: import('../../libs/cookie').StorageConfig | undefined,
+	storageConfig: LibsCookieTypes.StorageConfig | undefined,
 	options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 ): Promise<ResponseContext<SetConsentResponse>> {
 	const pendingSubmissionsKey = 'c15t-pending-consent-submissions';
@@ -107,7 +107,7 @@ export async function offlineFallbackForSetConsent(
  */
 export async function setConsent(
 	context: FetcherContext,
-	storageConfig: import('../../libs/cookie').StorageConfig | undefined,
+	storageConfig: LibsCookieTypes.StorageConfig | undefined,
 	options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 ): Promise<ResponseContext<SetConsentResponse>> {
 	saveConsentToStorage(

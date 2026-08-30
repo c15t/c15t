@@ -15,7 +15,7 @@ import type { Theme } from '~/v3/types/theme';
  *
  * @public
  */
-export type ThemeContextValue = {
+export interface ThemeContextValue {
 	/**
 	 * Theme configuration object for styling components
 	 * @default undefined
@@ -55,7 +55,7 @@ export type ThemeContextValue = {
 	 * @default 'system'
 	 */
 	colorScheme?: 'light' | 'dark' | 'system';
-};
+}
 
 /**
  * Context for providing theme values to components.

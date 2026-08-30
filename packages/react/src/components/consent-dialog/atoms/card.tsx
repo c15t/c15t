@@ -1,4 +1,5 @@
-'use client';
+import type * as ComponentsSharedUiBrandingTypes from '~/components/shared/ui/branding';
+('use client');
 
 /**
  * @packageDocumentation
@@ -213,13 +214,13 @@ const ConsentDialogFooter = forwardRef<
 	}
 );
 
-type BrandingProps = {
+interface BrandingProps {
 	hideBranding: boolean;
 	variant?: BrandingVariant;
-	themeKey?: import('~/components/shared/ui/branding').BrandingThemeKey;
+	themeKey?: ComponentsSharedUiBrandingTypes.BrandingThemeKey;
 	className?: string;
 	'data-testid'?: string;
-};
+}
 
 export function Branding(props: BrandingProps) {
 	return <BrandingLink {...props} />;

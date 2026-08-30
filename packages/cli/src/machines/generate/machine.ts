@@ -37,6 +37,16 @@ import { guards } from './guards';
 import { createInitialContext } from './types';
 import type { GenerateMachineContext, GenerateMachineEvent } from './types';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 function normalizeSelectedMode(
 	mode: StorageMode | null | undefined
 ): GenerateMachineContext['selectedMode'] {
@@ -116,7 +126,9 @@ export const generateMachine = setup({
 		preflight: {
 			invoke: {
 				src: 'preflight',
-				input: ({ context }) => ({ cliContext: context.cliContext! }),
+				input: ({ context }) => ({
+					cliContext: getDefined(context.cliContext),
+				}),
 				onDone: [
 					{
 						guard: ({ event }) => event.output.passed,
@@ -246,7 +258,7 @@ export const generateMachine = setup({
 			invoke: {
 				src: 'hostedMode',
 				input: ({ context }) => ({
-					cliContext: context.cliContext!,
+					cliContext: getDefined(context.cliContext),
 					initialURL: context.backendURL ?? undefined,
 					preselectedProvider: context.hostedProvider,
 				}),
@@ -303,8 +315,8 @@ export const generateMachine = setup({
 			invoke: {
 				src: 'backendOptions',
 				input: ({ context }) => ({
-					cliContext: context.cliContext!,
-					backendURL: context.backendURL!,
+					cliContext: getDefined(context.cliContext),
+					backendURL: getDefined(context.backendURL),
 				}),
 				onDone: {
 					target: 'frontendOptions',
@@ -329,7 +341,7 @@ export const generateMachine = setup({
 			invoke: {
 				src: 'frontendOptions',
 				input: ({ context }) => ({
-					cliContext: context.cliContext!,
+					cliContext: getDefined(context.cliContext),
 					hasBackend: context.selectedMode === 'hosted',
 				}),
 				onDone: {
@@ -358,7 +370,9 @@ export const generateMachine = setup({
 		scriptsOptions: {
 			invoke: {
 				src: 'scriptsOption',
-				input: ({ context }) => ({ cliContext: context.cliContext! }),
+				input: ({ context }) => ({
+					cliContext: getDefined(context.cliContext),
+				}),
 				onDone: {
 					target: 'fileGeneration',
 					actions: assign({
@@ -395,8 +409,8 @@ export const generateMachine = setup({
 			invoke: {
 				src: 'fileGeneration',
 				input: ({ context }) => ({
-					cliContext: context.cliContext!,
-					mode: context.selectedMode!,
+					cliContext: getDefined(context.cliContext),
+					mode: getDefined(context.selectedMode),
 					backendURL: context.backendURL,
 					useEnvFile: context.useEnvFile,
 					proxyNextjs: context.proxyNextjs,
@@ -436,7 +450,7 @@ export const generateMachine = setup({
 			invoke: {
 				src: 'checkDependencies',
 				input: ({ context }) => ({
-					projectRoot: context.cliContext!.projectRoot,
+					projectRoot: getDefined(context.cliContext).projectRoot,
 					dependencies: context.dependenciesToAdd,
 				}),
 				onDone: {
@@ -500,7 +514,7 @@ export const generateMachine = setup({
 			invoke: {
 				src: 'dependencyInstall',
 				input: ({ context }) => ({
-					cliContext: context.cliContext!,
+					cliContext: getDefined(context.cliContext),
 					dependencies: context.dependenciesToAdd,
 				}),
 				onDone: {
@@ -569,7 +583,9 @@ export const generateMachine = setup({
 		skillsInstall: {
 			invoke: {
 				src: 'skillsInstall',
-				input: ({ context }) => ({ cliContext: context.cliContext! }),
+				input: ({ context }) => ({
+					cliContext: getDefined(context.cliContext),
+				}),
 				onDone: {
 					target: 'githubStar',
 					actions: assign({
@@ -586,7 +602,9 @@ export const generateMachine = setup({
 		githubStar: {
 			invoke: {
 				src: 'githubStar',
-				input: ({ context }) => ({ cliContext: context.cliContext! }),
+				input: ({ context }) => ({
+					cliContext: getDefined(context.cliContext),
+				}),
 				onDone: 'complete',
 				onError: 'complete',
 			},

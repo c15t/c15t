@@ -44,7 +44,7 @@ export interface PolicyBuilderInput {
 	 */
 	name?: string;
 	countries?: string[];
-	regions?: Array<{ country: string; region: string }>;
+	regions?: { country: string; region: string }[];
 	isDefault?: boolean;
 	model?: PolicyModel;
 	expiryDays?: number;

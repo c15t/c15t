@@ -86,7 +86,7 @@ describe('resolveTranslations', () => {
 		};
 		const result = resolveTranslations(
 			config,
-			mockDefaultTranslationConfig as any
+			mockDefaultTranslationConfig as unknown
 		);
 		expect(result).toEqual(config.translations.de);
 	});
@@ -105,7 +105,7 @@ describe('resolveTranslations', () => {
 		};
 		const result = resolveTranslations(
 			config,
-			mockDefaultTranslationConfig as any
+			mockDefaultTranslationConfig as unknown
 		);
 		expect(result).toEqual(config.translations.en);
 	});
@@ -117,7 +117,7 @@ describe('resolveTranslations', () => {
 		};
 		const result = resolveTranslations(
 			config,
-			mockDefaultTranslationConfig as any
+			mockDefaultTranslationConfig as unknown
 		);
 		expect(result).toEqual(mockDefaultTranslationConfig.translations.en);
 	});
@@ -135,13 +135,16 @@ describe('resolveTranslations', () => {
 		};
 		const result = resolveTranslations(
 			config,
-			mockDefaultTranslationConfig as any
+			mockDefaultTranslationConfig as unknown
 		);
 		expect(result).toEqual(config.translations.en);
 	});
 
 	test('handles empty config', () => {
-		const result = resolveTranslations({}, mockDefaultTranslationConfig as any);
+		const result = resolveTranslations(
+			{},
+			mockDefaultTranslationConfig as unknown
+		);
 		expect(result).toEqual(mockDefaultTranslationConfig.translations.en);
 	});
 
@@ -160,7 +163,7 @@ describe('resolveTranslations', () => {
 		};
 		const result = resolveTranslations(
 			config,
-			mockDefaultTranslationConfig as any
+			mockDefaultTranslationConfig as unknown
 		);
 		expect(result).toEqual(config.translations.en);
 	});

@@ -3,7 +3,7 @@ import { expect } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { ConsentManagerProvider } from '~/v3/providers/consent-manager-provider';
-import type { ThemeValue } from '~/v3/types/theme';
+import type { Theme, ThemeValue } from '~/v3/types/theme';
 
 type DeferredPromise<Value> = {
 	promise: Promise<Value>;
@@ -35,7 +35,7 @@ interface ComponentStyles {
 		styles: string | ThemeValue;
 	}[];
 	noStyle?: boolean;
-	theme?: any;
+	theme?: Theme;
 }
 
 /**

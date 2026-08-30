@@ -45,10 +45,7 @@ export interface UseNetworkBlockerOptions {
 	onRequestBlocked?: NetworkBlockerConfig['onRequestBlocked'];
 }
 
-export interface UsePersistenceOptions extends Omit<
-	PersistenceOptions,
-	'kernel'
-> {}
+export type UsePersistenceOptions = Omit<PersistenceOptions, 'kernel'>;
 
 export interface ConsentManagerOptions extends Pick<
 	UIOptions,

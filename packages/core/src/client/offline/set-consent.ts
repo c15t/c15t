@@ -1,11 +1,11 @@
 import { saveConsentToStorage } from '../../libs/cookie';
+import type * as LibsCookieTypes from '../../libs/cookie';
 import type {
 	SetConsentRequestBody,
 	SetConsentResponse,
 } from '../client-interface';
 import type { FetchOptions, ResponseContext } from '../types';
 import { handleOfflineResponse } from './utils';
-
 /**
  * Sets consent preferences for a subject.
  * In offline mode, saves to both localStorage and cookie to track that consent was set.
@@ -14,7 +14,7 @@ import { handleOfflineResponse } from './utils';
  * v2.0: The body must include a client-generated subjectId.
  */
 export async function setConsent(
-	storageConfig: import('../../libs/cookie').StorageConfig | undefined,
+	storageConfig: LibsCookieTypes.StorageConfig | undefined,
 	options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
 ): Promise<ResponseContext<SetConsentResponse>> {
 	// Get the client-generated subjectId from the request

@@ -1,4 +1,5 @@
-'use client';
+import type * as C15tCoreTypes from '@c15t/core';
+('use client');
 
 /**
  * @packageDocumentation
@@ -105,7 +106,7 @@ export interface IABConsentDialogProps {
 	 * Which consent models this dialog responds to.
 	 * @default ['iab']
 	 */
-	models?: import('@c15t/core').Model[];
+	models?: C15tCoreTypes.Model[];
 
 	/**
 	 * Override the UI source identifier sent with consent API calls.
@@ -370,12 +371,12 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 		const gvlStacks = gvl.stacks || {};
 
 		// Score each stack by how many of our purposes it covers
-		const stackScores: Array<{
+		const stackScores: {
 			stackId: number;
 			stack: (typeof gvlStacks)[number];
 			coveredPurposeIds: number[];
 			score: number;
-		}> = [];
+		}[] = [];
 
 		for (const [stackIdStr, stack] of Object.entries(gvlStacks)) {
 			const stackId = Number(stackIdStr);

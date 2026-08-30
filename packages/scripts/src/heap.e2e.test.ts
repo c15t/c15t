@@ -19,10 +19,10 @@ import {
 	heap,
 } from './vendors/analytics/heap';
 
-function snapshotHeapReadyQueue(win: TestWindow): Array<{
+function snapshotHeapReadyQueue(win: TestWindow): {
 	name: string;
 	fnType: string;
-}> {
+}[] {
 	return (win.heapReadyCb ?? []).map((entry) => ({
 		name: entry.name,
 		fnType: typeof entry.fn,
@@ -34,7 +34,7 @@ describe('heap contract', () => {
 
 	it('boots the heap.js callback queue contract before the loader appends', () => {
 		let methodTypes: Record<string, string> | undefined;
-		let queueSnapshot: Array<{ name: string; fnType: string }> | undefined;
+		let queueSnapshot: { name: string; fnType: string }[] | undefined;
 		let scriptSrc: string | undefined;
 		let envId: string | undefined;
 		let appid: string | undefined;

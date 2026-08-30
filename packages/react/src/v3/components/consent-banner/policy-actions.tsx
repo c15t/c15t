@@ -16,7 +16,8 @@ import {
 	ConsentBannerRejectButton,
 } from './components';
 
-export interface ConsentBannerPolicyActionRenderProps extends PolicyActionRenderProps<HeadlessConsentBannerAction> {}
+export type ConsentBannerPolicyActionRenderProps =
+	PolicyActionRenderProps<HeadlessConsentBannerAction>;
 
 export interface ConsentBannerPolicyActionsProps {
 	renderAction?: (

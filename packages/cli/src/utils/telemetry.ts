@@ -94,7 +94,9 @@ export type TelemetryEventName =
 	(typeof TelemetryEventName)[keyof typeof TelemetryEventName];
 
 type TelemetryPrimitive = string | number | boolean | null;
-type TelemetryObject = { [key: string]: TelemetryValue };
+interface TelemetryObject {
+	[key: string]: TelemetryValue;
+}
 type TelemetryValue = TelemetryPrimitive | TelemetryValue[] | TelemetryObject;
 type TelemetryProperties = Record<string, TelemetryValue | undefined>;
 

@@ -1,6 +1,7 @@
+import type * as LibsCookieTypes from '../../libs/cookie';
 import type { IABModule } from '../../libs/iab-tcf/types';
 import type { GlobalVendorList } from '../../types/iab-tcf';
-
+import type * as TypesTypes from '../types';
 /**
  * IAB configuration for offline/fallback mode GVL fetching.
  */
@@ -60,12 +61,12 @@ export interface C15tInternalClientOptions {
 	 * Can be overridden per request in `FetchOptions`.
 	 * @default { maxRetries: 3, initialDelayMs: 100, backoffFactor: 2, retryableStatusCodes: [500, 502, 503, 504] }
 	 */
-	retryConfig?: import('../types').RetryConfig;
+	retryConfig?: TypesTypes.RetryConfig;
 
 	/**
 	 * Storage configuration for offline fallback
 	 */
-	storageConfig?: import('../../libs/cookie').StorageConfig;
+	storageConfig?: LibsCookieTypes.StorageConfig;
 
 	/**
 	 * IAB configuration for offline/fallback mode.

@@ -1,6 +1,6 @@
 import styles from './collapsible.module.css';
 
-export interface CollapsibleVariantsProps {}
+export type CollapsibleVariantsProps = Record<never, never>;
 
 export const collapsibleVariants = () => {
 	return {

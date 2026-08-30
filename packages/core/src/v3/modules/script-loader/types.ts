@@ -65,11 +65,11 @@ export interface ScriptLoaderOptions {
 
 export interface ScriptLoaderHandle {
 	/** Tear down subscription and remove mounted elements. */
-	dispose(): void;
+	dispose: () => void;
 	/** Swap the script configuration. Reconciles DOM immediately. */
-	updateScripts(next: Script[]): void;
+	updateScripts: (next: Script[]) => void;
 	/** Current set of loaded script IDs. */
-	getLoadedScriptIds(): string[];
+	getLoadedScriptIds: () => string[];
 }
 
 /**

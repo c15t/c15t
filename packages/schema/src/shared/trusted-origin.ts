@@ -14,9 +14,9 @@
 
 /** Just enough of a logger to trace a decision, without a dependency. */
 export interface LoggerLike {
-	debug?(message: string, ...rest: unknown[]): void;
-	warn?(message: string, ...rest: unknown[]): void;
-	error?(message: string, ...rest: unknown[]): void;
+	debug?: (message: string, ...rest: unknown[]) => void;
+	warn?: (message: string, ...rest: unknown[]) => void;
+	error?: (message: string, ...rest: unknown[]) => void;
 }
 
 /**

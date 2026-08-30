@@ -180,7 +180,7 @@ export async function runGenerateMachine(
 	});
 
 	// Set up subscribers
-	const subscribers: Array<(snapshot: unknown) => void> = [];
+	const subscribers: ((snapshot: unknown) => void)[] = [];
 
 	// Telemetry subscriber
 	subscribers.push(
@@ -209,9 +209,10 @@ export async function runGenerateMachine(
 
 	// Combine and subscribe
 	const combinedSubscriber = combineSubscribers(
-		...(subscribers as Array<
-			(snapshot: { value: unknown; context?: unknown }) => void
-		>)
+		...(subscribers as ((snapshot: {
+			value: unknown;
+			context?: unknown;
+		}) => void)[])
 	);
 	actor.subscribe((snapshot) => combinedSubscriber(snapshot));
 

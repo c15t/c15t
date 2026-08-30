@@ -25,14 +25,14 @@ export const collapsibleVariants = () => ({
 		[styles.contentInner, options?.class].filter(Boolean).join(' '),
 });
 
-type CollapsibleContextValue = {
+interface CollapsibleContextValue {
 	contentId: string;
 	disabled?: boolean;
 	open: boolean;
 	setOpen: (open: boolean) => void;
 	triggerId: string;
 	noStyle?: boolean;
-};
+}
 
 const CollapsibleContext = createContext<CollapsibleContextValue | null>(null);
 

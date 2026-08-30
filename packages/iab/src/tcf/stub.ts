@@ -41,7 +41,7 @@ function createStubPingData(): PingData {
  * Queues all calls except 'ping' for processing when the real CMP loads.
  */
 function createStubApi(): TCFApi {
-	const queue: Array<Parameters<TCFApi>> = [];
+	const queue: Parameters<TCFApi>[] = [];
 
 	const stub = ((
 		command: string,
@@ -200,7 +200,7 @@ export function initializeIABStub(): void {
  *
  * @public
  */
-export function getStubQueue(): Array<Parameters<TCFApi>> {
+export function getStubQueue(): Parameters<TCFApi>[] {
 	if (typeof window === 'undefined' || !window.__tcfapi) {
 		return [];
 	}

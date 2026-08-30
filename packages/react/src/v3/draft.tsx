@@ -42,25 +42,25 @@ export interface ConsentDraftHandle {
 	/** Has the draft diverged from the kernel's current consents? */
 	isDirty: boolean;
 	/** Update a single category in the draft. Does not touch the kernel. */
-	set(category: AllConsentNames, value: boolean): void;
+	set: (category: AllConsentNames, value: boolean) => void;
 	/** Replace the whole draft with a partial update. */
-	update(patch: Partial<ConsentState>): void;
+	update: (patch: Partial<ConsentState>) => void;
 	/** Select every category (except stays as-is for necessary). */
-	acceptAll(): void;
+	acceptAll: () => void;
 	/** Flip every category to false except `necessary`. */
-	rejectAll(): void;
+	rejectAll: () => void;
 	/** Commit the draft through `kernel.commands.save(values)`. */
-	save(): Promise<void>;
+	save: () => Promise<void>;
 	/** Reseed the draft from the kernel's current consents. */
-	reset(): void;
+	reset: () => void;
 }
 
 interface DraftStore {
-	getSnapshot(): Readonly<ConsentState>;
-	subscribe(listener: () => void): () => void;
-	setCategory(category: AllConsentNames, value: boolean): void;
-	replace(patch: Partial<ConsentState>): void;
-	overwrite(next: ConsentState): void;
+	getSnapshot: () => Readonly<ConsentState>;
+	subscribe: (listener: () => void) => () => void;
+	setCategory: (category: AllConsentNames, value: boolean) => void;
+	replace: (patch: Partial<ConsentState>) => void;
+	overwrite: (next: ConsentState) => void;
 }
 
 function createDraftStore(initial: ConsentState): DraftStore {

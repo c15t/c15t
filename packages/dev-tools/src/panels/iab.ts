@@ -231,8 +231,8 @@ export function renderIabPanel(
 	});
 
 	// Separate IAB vendors (in GVL) from custom vendors
-	const iabVendors: Array<[string, boolean, string]> = [];
-	const customVendors: Array<[string, boolean, string]> = [];
+	const iabVendors: [string, boolean, string][] = [];
+	const customVendors: [string, boolean, string][] = [];
 
 	for (const [vendorId, consent] of vendorEntries) {
 		const vendorInfo = vendors[vendorId as unknown as number];

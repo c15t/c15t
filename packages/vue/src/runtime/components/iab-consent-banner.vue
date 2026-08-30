@@ -126,11 +126,11 @@ function resolveBannerSummary(
 	);
 	const otherPurposeIds = new Set(otherPurposes.map((purpose) => purpose.id));
 
-	const stackScores: Array<{
+	const stackScores: {
 		name: string;
 		coveredPurposeIds: number[];
 		score: number;
-	}> = [];
+	}[] = [];
 
 	for (const stack of Object.values(gvlData.stacks || {})) {
 		const coveredPurposeIds = stack.purposes.filter((purposeId) =>

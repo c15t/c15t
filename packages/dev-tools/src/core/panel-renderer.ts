@@ -41,17 +41,17 @@ export interface PanelRenderer {
 	/**
 	 * Renders the specified panel into the container
 	 */
-	renderPanel(container: HTMLElement, tab: DevToolsTab): void;
+	renderPanel: (container: HTMLElement, tab: DevToolsTab) => void;
 
 	/**
 	 * Gets the current store state
 	 */
-	getStoreState(): ConsentStoreState | null;
+	getStoreState: () => ConsentStoreState | null;
 
 	/**
 	 * Resets all consents
 	 */
-	resetConsents(): Promise<void>;
+	resetConsents: () => Promise<void>;
 }
 
 /**

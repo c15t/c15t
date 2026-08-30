@@ -1,21 +1,28 @@
 /**
  * Deep merges two objects recursively.
  */
-export function deepMerge<T extends Record<string, any>>(
+function isIndexableObject(value: unknown): value is Record<string, unknown> {
+	return value !== null && typeof value === 'object';
+}
+
+export function deepMerge<T extends Record<string, unknown>>(
 	target: T,
-	source: any
+	source: unknown
 ): T {
-	if (!source || typeof source !== 'object') return target;
-	const result: Record<string, any> = { ...target };
+	if (!isIndexableObject(source)) return target;
+	const result: Record<string, unknown> = { ...target };
 	for (const key in source) {
-		if (
-			source[key] &&
-			typeof source[key] === 'object' &&
-			!Array.isArray(source[key])
-		) {
-			result[key] = deepMerge(result[key] || {}, source[key]);
+		const sourceValue = source[key];
+		if (isIndexableObject(sourceValue) && !Array.isArray(sourceValue)) {
+			const targetValue = result[key];
+			result[key] = deepMerge(
+				isIndexableObject(targetValue) && !Array.isArray(targetValue)
+					? targetValue
+					: {},
+				sourceValue
+			);
 		} else {
-			result[key] = source[key];
+			result[key] = sourceValue;
 		}
 	}
 	return { ...target, ...result };

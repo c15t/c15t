@@ -270,7 +270,7 @@ export function createTelemetrySubscriber(config: TelemetryPluginConfig) {
 		// Track specific states
 		if (currentState === 'error' || currentState === 'preflightError') {
 			const ctx = snapshot.context as
-				| { errors?: Array<{ error: Error }> }
+				| { errors?: { error: Error }[] }
 				| undefined;
 			const errors = ctx?.errors;
 			const lastError = errors?.[errors.length - 1];
@@ -323,7 +323,7 @@ export function getStateHistory(
  * Creates a combined subscriber that handles both telemetry and custom callbacks
  */
 export function combineSubscribers(
-	...subscribers: Array<(snapshot: MachineSnapshot) => void>
+	...subscribers: ((snapshot: MachineSnapshot) => void)[]
 ) {
 	return (snapshot: MachineSnapshot) => {
 		for (const subscriber of subscribers) {

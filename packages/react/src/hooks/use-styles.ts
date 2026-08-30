@@ -2,7 +2,12 @@ import { resolveStyles } from '@c15t/ui/utils';
 import { useMemo } from 'react';
 
 import { useTheme } from '~/hooks/use-theme';
-import type { AllThemeKeys, ClassNameStyle, ThemeValue } from '~/types/theme';
+import type {
+	AllThemeKeys,
+	ClassNameStyle,
+	Theme,
+	ThemeValue,
+} from '~/types/theme';
 
 /**
  * Hook for retrieving and merging styles from theme context and component props.
@@ -26,7 +31,7 @@ import type { AllThemeKeys, ClassNameStyle, ThemeValue } from '~/types/theme';
 export function useStyles(
 	themeKey: AllThemeKeys,
 	componentStyle?: ThemeValue,
-	themeOverride?: any
+	themeOverride?: Theme
 ): ClassNameStyle {
 	const { noStyle: contextNoStyle, theme: contextTheme } = useTheme();
 
@@ -37,7 +42,7 @@ export function useStyles(
 		return resolveStyles(
 			themeKey,
 			theme,
-			componentStyle as any,
+			componentStyle,
 			contextNoStyle
 		) as ClassNameStyle;
 	}, [themeKey, theme, componentStyle, contextNoStyle]);

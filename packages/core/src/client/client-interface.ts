@@ -47,13 +47,13 @@ export type SetConsentResponse = PostSubjectOutput;
  * Uses `subjectId` as the canonical field for the PATCH path.
  * The legacy `id` alias is still accepted for backwards compatibility.
  */
-type IdentifyUserRequestBodyBase = {
+interface IdentifyUserRequestBodyBase {
 	/** External user ID to link to the subject */
 	externalId: string;
 
 	/** Identity provider name (optional) */
 	identityProvider?: string;
-};
+}
 
 type IdentifyUserRequestBodyWithSubjectId = IdentifyUserRequestBodyBase & {
 	/**
@@ -94,9 +94,9 @@ export interface ConsentManagerInterface {
 	 * @param options - Optional request configuration
 	 * @returns Response with information about whether to show the consent banner
 	 */
-	init(
+	init: (
 		options?: FetchOptions<InitResponse>
-	): Promise<ResponseContext<InitResponse>>;
+	) => Promise<ResponseContext<InitResponse>>;
 
 	/**
 	 * Sets consent preferences for a subject.
@@ -104,9 +104,9 @@ export interface ConsentManagerInterface {
 	 * @param options - Optional request configuration with consent data
 	 * @returns Response confirming consent preferences were set
 	 */
-	setConsent(
+	setConsent: (
 		options?: FetchOptions<SetConsentResponse, SetConsentRequestBody>
-	): Promise<ResponseContext<SetConsentResponse>>;
+	) => Promise<ResponseContext<SetConsentResponse>>;
 
 	/**
 	 * Links an external user ID to a subject (PATCH /subjects/:id).
@@ -114,9 +114,9 @@ export interface ConsentManagerInterface {
 	 * @param options - Request configuration with subjectId, externalId, and identityProvider
 	 * @returns Response confirming the subject was updated
 	 */
-	identifyUser(
+	identifyUser: (
 		options: FetchOptions<IdentifyUserResponse, IdentifyUserRequestBody>
-	): Promise<ResponseContext<IdentifyUserResponse>>;
+	) => Promise<ResponseContext<IdentifyUserResponse>>;
 
 	/**
 	 * Makes a custom API request to any endpoint.
@@ -125,10 +125,10 @@ export interface ConsentManagerInterface {
 	 * @param options - Optional request configuration
 	 * @returns Response from the custom endpoint
 	 */
-	$fetch<ResponseType, BodyType = unknown, QueryType = unknown>(
+	$fetch: <ResponseType, BodyType = unknown, QueryType = unknown>(
 		path: string,
 		options?: FetchOptions<ResponseType, BodyType, QueryType>
-	): Promise<ResponseContext<ResponseType>>;
+	) => Promise<ResponseContext<ResponseType>>;
 }
 
 /**

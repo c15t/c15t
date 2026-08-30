@@ -11,6 +11,16 @@ import { userEvent } from 'vitest/browser';
 
 import { useScrollLock } from '../use-scroll-lock';
 
+const getDefined = <Value,>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 describe('useScrollLock', () => {
 	// Component that uses the scroll lock hook
 	const TestComponent = ({ shouldLock = true }: { shouldLock?: boolean }) => {
@@ -91,7 +101,7 @@ describe('useScrollLock', () => {
 			const toggle = document.querySelector('[data-testid="toggle"]');
 
 			// Toggle on
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
 					expect(toggle?.textContent).toContain('locked');
@@ -100,7 +110,7 @@ describe('useScrollLock', () => {
 			);
 
 			// Toggle off
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
 					expect(toggle?.textContent).toContain('unlocked');
@@ -126,7 +136,7 @@ describe('useScrollLock', () => {
 			const toggle = document.querySelector('[data-testid="toggle"]');
 
 			// Enable lock
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
 					expect(toggle?.textContent).toContain('locked');
@@ -135,7 +145,7 @@ describe('useScrollLock', () => {
 			);
 
 			// Disable lock (should cleanup)
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
 					expect(toggle?.textContent).toContain('unlocked');
@@ -144,7 +154,7 @@ describe('useScrollLock', () => {
 			);
 
 			// Re-enable lock (should work without issues)
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 			await vi.waitFor(
 				() => {
 					expect(toggle?.textContent).toContain('locked');
@@ -187,7 +197,7 @@ describe('useScrollLock', () => {
 
 			// Remove one instance
 			const toggle = document.querySelector('[data-testid="toggle"]');
-			await userEvent.click(toggle!);
+			await userEvent.click(getDefined(toggle));
 
 			await vi.waitFor(
 				() => {

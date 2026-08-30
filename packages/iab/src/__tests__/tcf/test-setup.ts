@@ -354,9 +354,11 @@ export function createMockNonIABVendor(
 /**
  * Sets up a mock __tcfapi on window for testing.
  */
+type TcfApiListener = (...args: unknown[]) => void;
+
 export function setupTCFApiMock(): {
 	mockTcfApi: ReturnType<typeof vi.fn>;
-	getListeners: () => Map<number, Function>;
+	getListeners: () => Map<number, TcfApiListener>;
 	cleanup: () => void;
 } {
 	if (typeof window === 'undefined') {
@@ -367,7 +369,7 @@ export function setupTCFApiMock(): {
 		};
 	}
 
-	const listeners = new Map<number, Function>();
+	const listeners = new Map<number, TcfApiListener>();
 	let listenerIdCounter = 0;
 
 	const mockTcfApi = vi.fn((command, version, handler, parameter) => {

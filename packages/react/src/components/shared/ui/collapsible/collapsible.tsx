@@ -12,14 +12,14 @@ import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/hooks/use-theme';
 
-type CollapsibleContextValue = {
+interface CollapsibleContextValue {
 	contentId: string;
 	disabled?: boolean;
 	open: boolean;
 	setOpen: (open: boolean) => void;
 	triggerId: string;
 	noStyle?: boolean;
-};
+}
 
 const CollapsibleContext = createContext<CollapsibleContextValue | null>(null);
 

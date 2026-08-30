@@ -30,7 +30,7 @@ function useHasConsent() {
 	});
 }
 
-export type ConsentSaveInput = Array<CONSENT_CATEGORY> | 'all' | 'none';
+export type ConsentSaveInput = CONSENT_CATEGORY[] | 'all' | 'none';
 
 function useConsentSave() {
 	const config = useConsentConfig();

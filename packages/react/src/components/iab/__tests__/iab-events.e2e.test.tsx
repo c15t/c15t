@@ -15,6 +15,7 @@ import {
 	clearConsentRuntimeCache,
 } from '~/providers/consent-manager-provider';
 
+import type { TcfApiTestFunction } from './e2e-setup';
 import {
 	addCMPEventListener,
 	clearConsentState,
@@ -85,7 +86,7 @@ describe('IAB Events E2E Tests', () => {
 			await waitForCMP();
 
 			// Set up listener to capture events
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { eventStatus: string }) => {
 					events.push(data.eventStatus);
@@ -120,7 +121,7 @@ describe('IAB Events E2E Tests', () => {
 			await waitForCMP();
 
 			// Set up listener
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { eventStatus: string }) => {
 					events.push(data.eventStatus);
@@ -162,7 +163,7 @@ describe('IAB Events E2E Tests', () => {
 			await waitForCMP();
 
 			let called = false;
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, () => {
 					called = true;
@@ -219,7 +220,7 @@ describe('IAB Events E2E Tests', () => {
 			let callCount = 0;
 			let listenerId: number | undefined;
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { listenerId: number }) => {
 					callCount++;
@@ -273,7 +274,7 @@ describe('IAB Events E2E Tests', () => {
 			const listener2Events: string[] = [];
 			const listener3Events: string[] = [];
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: { eventStatus: string }) => {
 					listener1Events.push(data.eventStatus);
@@ -321,7 +322,7 @@ describe('IAB Events E2E Tests', () => {
 
 			let receivedData: Record<string, unknown> | null = null;
 
-			const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
+			const tcfapi = (window as { __tcfapi?: TcfApiTestFunction }).__tcfapi;
 			if (tcfapi) {
 				tcfapi('addEventListener', 2, (data: Record<string, unknown>) => {
 					receivedData = data;

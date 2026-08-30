@@ -74,36 +74,39 @@ export interface CreateIABOptions {
  */
 export interface IABHandle {
 	/** Tear down the CMP API + stub and disconnect kernel subscriptions. */
-	dispose(): void;
+	dispose: () => void;
 	/** The underlying CMP API instance (for advanced consumers). */
 	readonly cmpApi: CMPApi | null;
 	/** Set consent for a specific IAB vendor by ID. */
-	setVendorConsent(vendorId: string | number, value: boolean): void;
+	setVendorConsent: (vendorId: string | number, value: boolean) => void;
 	/** Set legitimate interest for a specific IAB vendor. */
-	setVendorLegitimateInterest(vendorId: string | number, value: boolean): void;
+	setVendorLegitimateInterest: (
+		vendorId: string | number,
+		value: boolean
+	) => void;
 	/** Set consent for a specific IAB purpose (1–11). */
-	setPurposeConsent(purposeId: number, value: boolean): void;
+	setPurposeConsent: (purposeId: number, value: boolean) => void;
 	/** Set legitimate interest for a specific IAB purpose. */
-	setPurposeLegitimateInterest(purposeId: number, value: boolean): void;
+	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
 	/** Opt in/out of a special feature (1 = geo, 2 = device ID). */
-	setSpecialFeatureOptIn(featureId: number, value: boolean): void;
+	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
 	/** Flip every vendor + purpose consent to true. */
-	acceptAll(): void;
+	acceptAll: () => void;
 	/** Flip every vendor + purpose consent to false. */
-	rejectAll(): void;
+	rejectAll: () => void;
 	/**
 	 * Encode the current state as a TCF 2.3 string and commit to the
 	 * kernel (via `set.iab({ tcString })`). Does NOT call
 	 * `kernel.commands.save()` — the caller decides whether to persist
 	 * or just emit the string.
 	 */
-	generateTCString(): Promise<string>;
+	generateTCString: () => Promise<string>;
 	/**
 	 * Generate the TC string, commit it to the kernel, and call
 	 * `kernel.commands.save()` — the full save flow including backend
 	 * round-trip (if a transport is configured).
 	 */
-	save(): Promise<void>;
+	save: () => Promise<void>;
 }
 
 /**

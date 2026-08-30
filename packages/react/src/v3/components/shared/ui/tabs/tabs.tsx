@@ -41,7 +41,7 @@ export const tabsVariants = () => ({
 		[styles.content, options?.class].filter(Boolean).join(' '),
 });
 
-type TabsContextValue = {
+interface TabsContextValue {
 	baseId: string;
 	disabled?: boolean;
 	loop: boolean;
@@ -50,7 +50,7 @@ type TabsContextValue = {
 	orientation: TabsOrientation;
 	registerTrigger: (value: string, node: HTMLButtonElement | null) => void;
 	value?: string;
-};
+}
 
 const TabsContext = createContext<TabsContextValue | null>(null);
 

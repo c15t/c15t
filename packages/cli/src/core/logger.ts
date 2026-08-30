@@ -179,9 +179,9 @@ export function createCliLogger(level: LogLevel = 'info'): CliLogger {
 // --- Spinner Utilities ---
 
 export interface Spinner {
-	start(message?: string): void;
-	stop(message?: string): void;
-	message(message: string): void;
+	start: (message?: string) => void;
+	stop: (message?: string) => void;
+	message: (message: string) => void;
 }
 
 /**

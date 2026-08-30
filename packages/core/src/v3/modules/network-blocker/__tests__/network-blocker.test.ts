@@ -18,11 +18,11 @@ import { createNetworkBlocker } from '../index';
 
 const originalFetch = globalThis.fetch;
 
-let fetchCalls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
+let fetchCalls: { input: RequestInfo | URL; init?: RequestInit }[] = [];
 
 class StubXMLHttpRequest {
 	onerror: ((e: unknown) => void) | null = null;
-	listeners = new Map<string, Array<(e: unknown) => void>>();
+	listeners = new Map<string, ((e: unknown) => void)[]>();
 	open(_method: string, _url: string) {}
 	send(_body?: unknown) {}
 	abort() {}

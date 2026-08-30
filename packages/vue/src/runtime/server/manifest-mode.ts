@@ -13,10 +13,10 @@ import {
 import type { ConsentConfig } from '../config';
 import { DEFAULT_MANIFEST_ROUTE, DEFAULT_NUXT_INIT_ROUTE } from '../manifest';
 
-export interface ManifestModeRuntimeConfig extends Pick<
+export type ManifestModeRuntimeConfig = Pick<
 	ConsentConfig,
 	'backendURL' | 'manifestURL' | 'initRoute' | 'manifestRoute'
-> {}
+>;
 
 /**
  * Just the call signature the manifest routes need.

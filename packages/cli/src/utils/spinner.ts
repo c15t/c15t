@@ -6,11 +6,11 @@ import * as p from '@clack/prompts';
 import color from 'picocolors';
 
 export interface TaskSpinner {
-	start(message?: string): void;
-	stop(message?: string): void;
-	message(message: string): void;
-	success(message: string): void;
-	error(message: string): void;
+	start: (message?: string) => void;
+	stop: (message?: string) => void;
+	message: (message: string) => void;
+	success: (message: string) => void;
+	error: (message: string) => void;
 }
 
 /**
@@ -93,8 +93,8 @@ export async function withTaskSpinner<T>(
  * Progress bar for multi-step operations
  */
 export interface ProgressBar {
-	update(current: number, message?: string): void;
-	complete(message?: string): void;
+	update: (current: number, message?: string) => void;
+	complete: (message?: string) => void;
 }
 
 /**
@@ -133,8 +133,8 @@ export function createProgressBar(total: number, label?: string): ProgressBar {
 export interface StepIndicator {
 	current: number;
 	total: number;
-	next(label: string): void;
-	complete(): void;
+	next: (label: string) => void;
+	complete: () => void;
 }
 
 /**
@@ -173,15 +173,15 @@ export function createStepIndicator(steps: string[]): StepIndicator {
  * Task group for running multiple tasks
  */
 export interface TaskGroup {
-	add(name: string, task: () => Promise<void>): void;
-	run(): Promise<{ success: string[]; failed: string[] }>;
+	add: (name: string, task: () => Promise<void>) => void;
+	run: () => Promise<{ success: string[]; failed: string[] }>;
 }
 
 /**
  * Create a task group
  */
 export function createTaskGroup(): TaskGroup {
-	const tasks: Array<{ name: string; task: () => Promise<void> }> = [];
+	const tasks: { name: string; task: () => Promise<void> }[] = [];
 
 	return {
 		add(name: string, task: () => Promise<void>): void {

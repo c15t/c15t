@@ -494,15 +494,15 @@ describe('scripts engine', () => {
 		);
 
 		const sdk = globalRef.vendorSdk as {
-			_q: Array<{
+			_q: {
 				name: string;
 				args: unknown[];
 				resolve: (value: unknown) => void;
-			}>;
+			}[];
 			track: (event: string) => Promise<unknown>;
 			Identify: new () => {
 				set: (key: string, value: unknown) => unknown;
-				_q: Array<{ name: string; args: unknown[] }>;
+				_q: { name: string; args: unknown[] }[];
 			};
 		};
 
@@ -569,10 +569,10 @@ describe('scripts engine', () => {
 		};
 		sdkStub.track('Signup', { plan: 'pro' });
 
-		const readyQueue = globalRef.vendorReadyCb as Array<{
+		const readyQueue = globalRef.vendorReadyCb as {
 			name: string;
 			fn: () => void;
-		}>;
+		}[];
 		globalRef.vendorSdk = {
 			track: (...args: unknown[]) => {
 				calls.push(args);

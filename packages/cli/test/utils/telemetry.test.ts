@@ -11,6 +11,16 @@ import {
 	TelemetryEventName,
 } from '../../src/utils/telemetry';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 function createMockLogger(): CliLogger {
 	return {
 		debug: vi.fn(),
@@ -122,10 +132,11 @@ describe('Telemetry', () => {
 		await flushTelemetry(telemetry);
 
 		expect(fetchMock).toHaveBeenCalledTimes(1);
-		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const payload = JSON.parse(String(requestInit?.body)) as Array<
-			Record<string, unknown>
-		>;
+		const [, requestInit] = getDefined(fetchMock.mock.calls[0]);
+		const payload = JSON.parse(String(requestInit?.body)) as Record<
+			string,
+			unknown
+		>[];
 
 		expect(payload).toHaveLength(1);
 		expect(payload[0]).toMatchObject({
@@ -148,11 +159,12 @@ describe('Telemetry', () => {
 
 		await flushTelemetry(telemetry);
 
-		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const payload = JSON.parse(String(requestInit?.body)) as Array<
-			Record<string, unknown>
-		>;
-		const event = payload[0]!;
+		const [, requestInit] = getDefined(fetchMock.mock.calls[0]);
+		const payload = JSON.parse(String(requestInit?.body)) as Record<
+			string,
+			unknown
+		>[];
+		const event = getDefined(payload[0]);
 
 		expect(event).toMatchObject({
 			event: TelemetryEventName.COMMAND_EXECUTED,
@@ -179,11 +191,12 @@ describe('Telemetry', () => {
 		telemetry.trackError(error, 'setup');
 		await flushTelemetry(telemetry);
 
-		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const payload = JSON.parse(String(requestInit?.body)) as Array<
-			Record<string, unknown>
-		>;
-		const event = payload[0]!;
+		const [, requestInit] = getDefined(fetchMock.mock.calls[0]);
+		const payload = JSON.parse(String(requestInit?.body)) as Record<
+			string,
+			unknown
+		>[];
+		const event = getDefined(payload[0]);
 
 		expect(event.event).toBe(TelemetryEventName.ERROR_OCCURRED);
 		expect(event.level).toBe('error');
@@ -208,11 +221,12 @@ describe('Telemetry', () => {
 
 		await flushTelemetry(telemetry);
 
-		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const payload = JSON.parse(String(requestInit?.body)) as Array<
-			Record<string, unknown>
-		>;
-		const event = payload[0]!;
+		const [, requestInit] = getDefined(fetchMock.mock.calls[0]);
+		const payload = JSON.parse(String(requestInit?.body)) as Record<
+			string,
+			unknown
+		>[];
+		const event = getDefined(payload[0]);
 
 		expect(event.token).toBe('[redacted]');
 		expect(event.nested).toEqual({ password: '[redacted]' });
@@ -231,9 +245,10 @@ describe('Telemetry', () => {
 		await flushTelemetry(telemetry);
 
 		const queuePath = path.join(storageDir, 'telemetry-queue.json');
-		const queued = JSON.parse(await fs.readFile(queuePath, 'utf-8')) as Array<
-			Record<string, unknown>
-		>;
+		const queued = JSON.parse(await fs.readFile(queuePath, 'utf-8')) as Record<
+			string,
+			unknown
+		>[];
 		expect(queued).toHaveLength(1);
 		expect(queued[0]?.event).toBe(TelemetryEventName.CLI_INVOKED);
 
@@ -268,10 +283,11 @@ describe('Telemetry', () => {
 		await flushTelemetry(telemetry);
 
 		expect(fetchMock).toHaveBeenCalledTimes(1);
-		const [, requestInit] = fetchMock.mock.calls[0]!;
-		const payload = JSON.parse(String(requestInit?.body)) as Array<
-			Record<string, unknown>
-		>;
+		const [, requestInit] = getDefined(fetchMock.mock.calls[0]);
+		const payload = JSON.parse(String(requestInit?.body)) as Record<
+			string,
+			unknown
+		>[];
 
 		expect(payload).toHaveLength(1);
 		expect(payload[0]?.stage).toBe('enabled');
@@ -301,11 +317,12 @@ describe('Telemetry', () => {
 		await flushTelemetry(axiomTelemetry);
 		await axiomTelemetry.shutdown();
 
-		const [, requestInit] = fetchMock.mock.calls[0]!;
+		const [, requestInit] = getDefined(fetchMock.mock.calls[0]);
 		const headers = requestInit?.headers as Record<string, string>;
-		const payload = JSON.parse(String(requestInit?.body)) as Array<
-			Record<string, unknown>
-		>;
+		const payload = JSON.parse(String(requestInit?.body)) as Record<
+			string,
+			unknown
+		>[];
 
 		expect(headers).toMatchObject({
 			'Content-Type': 'application/json',

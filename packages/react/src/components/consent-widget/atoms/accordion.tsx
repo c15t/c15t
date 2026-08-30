@@ -11,10 +11,10 @@ import * as RadixSwitch from '~/components/shared/ui/switch';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTranslations } from '~/hooks/use-translations';
 
-type ConsentWidgetAccordionContextValue = {
+interface ConsentWidgetAccordionContextValue {
 	onToggleItem: (value: string, open: boolean) => void;
 	openValues: string[];
-};
+}
 
 const ConsentWidgetAccordionContext =
 	createContext<ConsentWidgetAccordionContextValue | null>(null);

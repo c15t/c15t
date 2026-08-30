@@ -19,10 +19,10 @@ type HeapStub = unknown[] &
 		identify?: (identity: string) => void;
 	};
 
-function snapshotHeapReadyQueue(): Array<{
+function snapshotHeapReadyQueue(): {
 	name: string;
 	fnType: string;
-}> {
+}[] {
 	const globalRef = getTestGlobal() as typeof globalThis & {
 		heapReadyCb?: HeapReadyCallback[];
 	};

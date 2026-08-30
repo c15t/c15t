@@ -88,15 +88,15 @@ export interface SnapchatPixelEventProperties {
 	[key: string]: unknown;
 }
 
-type SnapchatPixelFunction = {
+interface SnapchatPixelFunction {
 	(
 		command: 'track',
-		eventName: SnapchatPixelEventName | (string & {}),
+		eventName: SnapchatPixelEventName | (string & Record<never, never>),
 		properties?: SnapchatPixelEventProperties
 	): void;
 	(command: 'init', pixelId: string, config?: Record<string, unknown>): void;
 	(command: string, ...args: unknown[]): void;
-};
+}
 
 declare global {
 	interface Window {
@@ -273,7 +273,7 @@ export function snapchatPixel({
  * ```
  */
 export const snapchatPixelEvent = (
-	eventName: SnapchatPixelEventName | (string & {}),
+	eventName: SnapchatPixelEventName | (string & Record<never, never>),
 	properties?: SnapchatPixelEventProperties
 ) => {
 	if (typeof window === 'undefined' || typeof window.snaptr !== 'function') {

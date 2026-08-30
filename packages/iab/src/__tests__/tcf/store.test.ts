@@ -21,6 +21,16 @@ import {
 } from '../../tcf/store';
 import type { IABConfig, IABState } from '../../tcf/types';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 vi.mock('../../cookie', () => ({
 	saveConsentToStorage: vi.fn(),
 }));
@@ -363,7 +373,7 @@ describe('TCF Store', () => {
 			});
 
 			it('should not fail when GVL is null', () => {
-				mockState.iab!.gvl = null;
+				getDefined(mockState.iab).gvl = null;
 				const actions = createIABActions(getState, setState, mockManager);
 
 				expect(() => actions.acceptAll()).not.toThrow();
@@ -396,7 +406,7 @@ describe('TCF Store', () => {
 			});
 
 			it('should not fail when GVL is null', () => {
-				mockState.iab!.gvl = null;
+				getDefined(mockState.iab).gvl = null;
 				const actions = createIABActions(getState, setState, mockManager);
 
 				expect(() => actions.rejectAll()).not.toThrow();
@@ -423,7 +433,7 @@ describe('TCF Store', () => {
 					policy: { consent: { categories: ['necessary', 'measurement'] } },
 				} as ConsentStoreState['lastBannerFetchData'];
 				mockState.iab = {
-					...mockState.iab!,
+					...getDefined(mockState.iab),
 					cmpApi: {
 						saveToStorage: vi.fn(),
 						updateConsent: vi.fn(),
@@ -484,7 +494,7 @@ describe('TCF Store', () => {
 					policy: { consent: { categories: ['*'] } },
 				} as ConsentStoreState['lastBannerFetchData'];
 				mockState.iab = {
-					...mockState.iab!,
+					...getDefined(mockState.iab),
 					cmpApi: {
 						saveToStorage: vi.fn(),
 						updateConsent: vi.fn(),

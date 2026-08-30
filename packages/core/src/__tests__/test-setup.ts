@@ -326,7 +326,7 @@ export function createMockManager() {
  * Creates a mock fetch function.
  */
 export function createMockFetch(
-	responses?: Array<{ status: number; data: unknown }>
+	responses?: { status: number; data: unknown }[]
 ) {
 	const responseQueue = [...(responses || [])];
 	let defaultResponse = { status: 200, data: {} };
@@ -346,7 +346,7 @@ export function createMockFetch(
  * Sets up fetch mock globally.
  */
 export function setupFetchMock(
-	responses?: Array<{ status: number; data: unknown }>
+	responses?: { status: number; data: unknown }[]
 ) {
 	const mockFetch = createMockFetch(responses);
 	const originalFetch = globalThis.fetch;

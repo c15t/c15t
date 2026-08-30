@@ -58,13 +58,13 @@ function resolveMatomoOrigin(
 	return undefined;
 }
 
-type MatomoManifestOptions = {
+interface MatomoManifestOptions {
 	enableConsentMode: boolean;
 	consentInitiallyGiven: boolean;
 	enableLinkTracking: boolean;
 	disableCookies: boolean;
 	trackPageView: boolean;
-};
+}
 
 interface MatomoGrantedHooks {
 	onBeforeLoadGranted: VendorManifest['onBeforeLoadGranted'];

@@ -19,12 +19,12 @@ export type ConsentLegalLinkKey =
 	| 'cookiePolicy'
 	| 'termsOfService';
 
-export type ConsentLegalLink = {
+export interface ConsentLegalLink {
 	href: string;
 	target?: '_blank' | '_self';
 	rel?: string;
 	label?: string;
-};
+}
 
 export type ConsentLegalLinks = Partial<
 	Record<ConsentLegalLinkKey, ConsentLegalLink>
@@ -55,7 +55,7 @@ export type ConsentCategory =
 	| 'measurement'
 	| 'marketing';
 
-export type ConsentComponentSlots<T = Record<string, unknown>> = {
+export interface ConsentComponentSlots<T = Record<string, unknown>> {
 	banner?: {
 		root?: T;
 		cardShell?: T;
@@ -195,7 +195,7 @@ export type ConsentComponentSlots<T = Record<string, unknown>> = {
 		rowHeader?: T;
 		rowContent?: T;
 	};
-};
+}
 
 type ConsentComponentSlotKeyMap = {
 	[Group in keyof ConsentComponentSlots]-?: {

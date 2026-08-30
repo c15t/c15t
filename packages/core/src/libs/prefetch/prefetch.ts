@@ -13,10 +13,10 @@ import type { PrefetchOptions } from './types';
 const WINDOW_PROMISES_KEY = '__c15tInitialDataPromises';
 
 type PrefetchPromise = Promise<SSRInitialData | undefined>;
-type PrefetchEntry = {
+interface PrefetchEntry {
 	promise: PrefetchPromise;
 	requestContext: NonNullable<SSRInitialData['metadata']>['requestContext'];
-};
+}
 
 type BrowserWindow = Window & {
 	[WINDOW_PROMISES_KEY]?: Record<string, PrefetchEntry>;

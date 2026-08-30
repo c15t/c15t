@@ -20,28 +20,15 @@ import {
 } from '~/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
 
-type DeferredPromise<Value> = {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
+const getDefined = <Value,>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
 };
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
-};
-
-function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-}
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -52,7 +39,7 @@ const localStorageMock = (() => {
 			store[key] = value.toString();
 		},
 		removeItem: (key: string) => {
-			delete store[key];
+			Reflect.deleteProperty(store, key);
 		},
 		clear: () => {
 			store = {};
@@ -122,7 +109,7 @@ describe('Consent Flow E2E Tests', () => {
 			const acceptButton = document.querySelector(
 				'[data-testid="consent-banner-accept-button"]'
 			);
-			await userEvent.click(acceptButton!);
+			await userEvent.click(getDefined(acceptButton));
 
 			await vi.waitFor(
 				() => {
@@ -155,7 +142,7 @@ describe('Consent Flow E2E Tests', () => {
 			const rejectButton = document.querySelector(
 				'[data-testid="consent-banner-reject-button"]'
 			);
-			await userEvent.click(rejectButton!);
+			await userEvent.click(getDefined(rejectButton));
 
 			await vi.waitFor(
 				() => {
@@ -190,13 +177,13 @@ describe('Consent Flow E2E Tests', () => {
 			const acceptButton = document.querySelector(
 				'[data-testid="consent-banner-accept-button"]'
 			);
-			await userEvent.click(acceptButton!);
+			await userEvent.click(getDefined(acceptButton));
 
 			await vi.waitFor(
 				() => {
 					const stored = window.localStorage.getItem('c15t');
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(stored!);
+					const consent = JSON.parse(getDefined(stored));
 					expect(consent.consents).toBeTruthy();
 					expect(consent.consents.necessary).toBe(true);
 				},
@@ -224,13 +211,13 @@ describe('Consent Flow E2E Tests', () => {
 			const rejectButton = document.querySelector(
 				'[data-testid="consent-banner-reject-button"]'
 			);
-			await userEvent.click(rejectButton!);
+			await userEvent.click(getDefined(rejectButton));
 
 			await vi.waitFor(
 				() => {
 					const stored = window.localStorage.getItem('c15t');
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(stored!);
+					const consent = JSON.parse(getDefined(stored));
 					expect(consent.consents.necessary).toBe(true);
 					expect(consent.consents.marketing).toBe(false);
 					expect(consent.consents.measurement).toBe(false);
@@ -265,7 +252,7 @@ describe('Consent Flow E2E Tests', () => {
 			);
 
 			// Wait a bit to ensure banner would have shown if it was going to
-			await createDeferredPromise((resolve) => setTimeout(resolve, 500));
+			await new Promise((resolve) => setTimeout(resolve, 500));
 
 			const banner = document.querySelector(
 				'[data-testid="consent-banner-root"]'
@@ -454,9 +441,11 @@ describe('Consent Flow E2E Tests', () => {
 			);
 
 			await userEvent.click(
-				document.querySelector(
-					'[data-testid="consent-banner-customize-button"]'
-				)!
+				getDefined(
+					document.querySelector(
+						'[data-testid="consent-banner-customize-button"]'
+					)
+				)
 			);
 
 			await vi.waitFor(
@@ -511,7 +500,7 @@ describe('Consent Flow E2E Tests', () => {
 			const customizeButton = document.querySelector(
 				'[data-testid="consent-banner-customize-button"]'
 			);
-			await userEvent.click(customizeButton!);
+			await userEvent.click(getDefined(customizeButton));
 
 			// Step 3: Dialog should open
 			await vi.waitFor(
@@ -536,14 +525,14 @@ describe('Consent Flow E2E Tests', () => {
 			const saveButton = document.querySelector(
 				'[data-testid="consent-widget-footer-save-button"]'
 			);
-			await userEvent.click(saveButton!);
+			await userEvent.click(getDefined(saveButton));
 
 			// Step 6: Verify consent was saved
 			await vi.waitFor(
 				() => {
 					const stored = window.localStorage.getItem('c15t');
 					expect(stored).toBeTruthy();
-					const consent = JSON.parse(stored!);
+					const consent = JSON.parse(getDefined(stored));
 					expect(consent.consents).toBeTruthy();
 				},
 				{ timeout: 3000 }

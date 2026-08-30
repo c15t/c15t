@@ -65,7 +65,7 @@ export interface PolicyUiSurfaceConfig {
 export interface PolicyConfig {
 	id: string;
 	match: {
-		regions?: Array<{ country: string; region: string }>;
+		regions?: { country: string; region: string }[];
 		countries?: string[];
 		isDefault?: boolean;
 		fallback?: boolean;
@@ -298,7 +298,7 @@ export const policyMatchers = {
 		};
 	},
 
-	regions(regions: Array<{ country: string; region: string }>): PolicyMatch {
+	regions(regions: { country: string; region: string }[]): PolicyMatch {
 		return {
 			regions: regions.map((region) => normalizeRegion(region)),
 		};
@@ -338,16 +338,16 @@ export const policyMatchers = {
 };
 
 type ResolvedPolicyUiSurface = NonNullable<ResolvedPolicy['ui']>['banner'];
-type IndexedPolicyMatch = {
+interface IndexedPolicyMatch {
 	policy: PolicyConfig;
 	matchedBy: PolicyMatchedBy;
-};
-type CompiledPolicyResolver = {
+}
+interface CompiledPolicyResolver {
 	regions: Map<string, PolicyConfig>;
 	countries: Map<string, PolicyConfig>;
 	defaultPolicy?: PolicyConfig;
 	fallbackPolicy?: PolicyConfig;
-};
+}
 
 const compiledPolicyResolverCache = new WeakMap<
 	PolicyConfig[],

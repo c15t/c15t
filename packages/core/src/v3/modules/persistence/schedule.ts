@@ -11,12 +11,12 @@
  */
 export interface WriteScheduler {
 	/** Request a write in a later macrotask. Idempotent within a tick. */
-	schedule(): void;
+	schedule: () => void;
 	/**
 	 * Run the write synchronously now. No-op when nothing is scheduled.
 	 * Useful for tests and for flushing on dispose.
 	 */
-	flush(): void;
+	flush: () => void;
 }
 
 /**

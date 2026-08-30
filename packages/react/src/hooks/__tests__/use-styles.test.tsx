@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 
 import { GlobalThemeContext } from '~/context/theme-context';
+import type { ThemeContextValue } from '~/context/theme-context';
 
 import { useStyles } from '../use-styles';
 
@@ -16,7 +17,7 @@ describe('useStyles', () => {
 				},
 			},
 		},
-	};
+	} satisfies ThemeContextValue;
 
 	test('returns component styles when no theme is provided', async () => {
 		const componentStyle = {
@@ -29,7 +30,7 @@ describe('useStyles', () => {
 			{
 				wrapper: ({ children }) => (
 					<GlobalThemeContext.Provider
-						value={{ noStyle: false, theme: { slots: {} } as any }}
+						value={{ noStyle: false, theme: { slots: {} } }}
 					>
 						{children}
 					</GlobalThemeContext.Provider>
@@ -51,7 +52,7 @@ describe('useStyles', () => {
 			() => useStyles('dialogCard', componentStyle),
 			{
 				wrapper: ({ children }) => (
-					<GlobalThemeContext.Provider value={mockTheme as any}>
+					<GlobalThemeContext.Provider value={mockTheme}>
 						{children}
 					</GlobalThemeContext.Provider>
 				),
@@ -73,7 +74,7 @@ describe('useStyles', () => {
 			() => useStyles('dialogCard', componentStyle),
 			{
 				wrapper: ({ children }) => (
-					<GlobalThemeContext.Provider value={mockTheme as any}>
+					<GlobalThemeContext.Provider value={mockTheme}>
 						{children}
 					</GlobalThemeContext.Provider>
 				),
@@ -110,7 +111,7 @@ describe('useStyles', () => {
 			() => useStyles('dialogCard', componentStyle),
 			{
 				wrapper: ({ children }) => (
-					<GlobalThemeContext.Provider value={mockNoStyleTheme as any}>
+					<GlobalThemeContext.Provider value={mockNoStyleTheme}>
 						{children}
 					</GlobalThemeContext.Provider>
 				),

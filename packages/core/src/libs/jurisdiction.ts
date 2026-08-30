@@ -1,5 +1,15 @@
 import type { JurisdictionCode } from '@c15t/schema/types';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 /**
  * Determines the jurisdiction code based on the provided country code.
  *
@@ -65,7 +75,7 @@ export function checkJurisdiction(
 		const normalizedRegionCode =
 			regionCode && typeof regionCode === 'string'
 				? (regionCode.includes('-')
-						? regionCode.split('-').pop()!
+						? getDefined(regionCode.split('-').pop())
 						: regionCode
 					).toUpperCase()
 				: null;
@@ -80,10 +90,10 @@ export function checkJurisdiction(
 		}
 
 		// Map jurisdiction sets to their respective codes
-		const jurisdictionMap: Array<{
+		const jurisdictionMap: {
 			sets: Set<string>[];
 			code: JurisdictionCode;
-		}> = [
+		}[] = [
 			{
 				sets: [jurisdictions.EU, jurisdictions.EEA, jurisdictions.UK],
 				code: 'GDPR',

@@ -91,25 +91,25 @@ export interface CodemodRunResult {
 	/**
 	 * Per-file transformation summaries.
 	 */
-	changedFiles: Array<{
+	changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}>;
+	}[];
 	/**
 	 * Non-fatal per-file transform errors.
 	 */
-	errors: Array<{ filePath: string; error: string }>;
+	errors: { filePath: string; error: string }[];
 }
 
 type Framework = 'react' | 'nextjs';
 
-type DetectionResult = {
+interface DetectionResult {
 	framework: Framework | null;
 	usesStyledUi: boolean;
 	usesIabUi: boolean;
 	headlessOnly: boolean;
-};
+}
 
 async function detectTailwindVersion(
 	projectRoot: string
@@ -347,12 +347,12 @@ export async function runAddStylesheetImportsCodemod(
 	});
 
 	const filePaths = await collectSourceFiles(options.projectRoot);
-	const changedFiles: Array<{
+	const changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}> = [];
-	const errors: Array<{ filePath: string; error: string }> = [];
+	}[] = [];
+	const errors: { filePath: string; error: string }[] = [];
 
 	// Phase 1: Detect imports across all source files
 	const detection = detectImports(project, filePaths);

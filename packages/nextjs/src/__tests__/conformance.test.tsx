@@ -392,10 +392,10 @@ async function waitForLazyComponent(
  * records the latest snapshot on every render and notifies suite
  * subscribers after each commit.
  */
-type SnapshotBridge = {
+interface SnapshotBridge {
 	snapshot: ConsentSnapshot | null;
 	listeners: Set<() => void>;
-};
+}
 
 function createBridge(): SnapshotBridge {
 	return { snapshot: null, listeners: new Set() };

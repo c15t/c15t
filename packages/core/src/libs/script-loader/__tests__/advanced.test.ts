@@ -344,7 +344,7 @@ describe('Script Loader Advanced Features', () => {
 
 			// Get the created script elements
 			const mockCreateElement = document.createElement as unknown as {
-				mock: { results: Array<{ value: HTMLScriptElement }> };
+				mock: { results: { value: HTMLScriptElement }[] };
 			};
 			const scriptElements = mockCreateElement.mock.results;
 

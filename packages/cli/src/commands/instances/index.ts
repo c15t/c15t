@@ -19,6 +19,16 @@ import type { Instance } from '../../types';
 import { createTaskSpinner } from '../../utils/spinner';
 import { validateInstanceName } from '../../utils/validation';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 function formatInstanceLabel(instance: Instance): string {
 	if (instance.organizationSlug) {
 		return `${instance.organizationSlug}/${instance.name}`;
@@ -142,7 +152,7 @@ async function selectAction(context: CliContext): Promise<void> {
 
 		// Check if instance ID/name was provided as argument
 		if (commandArgs.length > 0) {
-			const query = commandArgs[0]!;
+			const query = getDefined(commandArgs[0]);
 			const found = instances.find(
 				(i) =>
 					i.id === query || i.name === query || formatInstanceLabel(i) === query
@@ -176,7 +186,7 @@ async function selectAction(context: CliContext): Promise<void> {
 				return;
 			}
 
-			selectedInstance = instances.find((i) => i.id === result)!;
+			selectedInstance = getDefined(instances.find((i) => i.id === result));
 		}
 
 		await setSelectedInstanceId(selectedInstance.id);

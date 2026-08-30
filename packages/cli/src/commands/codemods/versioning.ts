@@ -1,20 +1,20 @@
 import { join } from 'node:path';
 
-type ParsedVersion = {
+interface ParsedVersion {
 	major: number;
 	minor: number;
 	patch: number;
 	preRelease: string[];
-};
+}
 
 type DependencyMap = Record<string, string>;
 
-type PackageJsonLike = {
+interface PackageJsonLike {
 	dependencies?: DependencyMap;
 	devDependencies?: DependencyMap;
 	peerDependencies?: DependencyMap;
 	optionalDependencies?: DependencyMap;
-};
+}
 
 const C15T_PACKAGE_PREFIX = '@c15t/';
 
@@ -232,7 +232,7 @@ export function isCodemodApplicableForVersion(
 export function detectInstalledC15tVersionFromPackageJson(
 	manifest: PackageJsonLike
 ): string | null {
-	const dependencyGroups: Array<DependencyMap | undefined> = [
+	const dependencyGroups: (DependencyMap | undefined)[] = [
 		manifest.dependencies,
 		manifest.devDependencies,
 		manifest.peerDependencies,

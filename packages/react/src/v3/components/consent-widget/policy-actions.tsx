@@ -17,7 +17,8 @@ import {
 	ConsentWidgetFooterSubGroup,
 } from './atoms/footer';
 
-export interface ConsentWidgetPolicyActionRenderProps extends PolicyActionRenderProps<HeadlessConsentDialogAction> {}
+export type ConsentWidgetPolicyActionRenderProps =
+	PolicyActionRenderProps<HeadlessConsentDialogAction>;
 
 export interface ConsentWidgetPolicyActionsProps {
 	renderAction?: (

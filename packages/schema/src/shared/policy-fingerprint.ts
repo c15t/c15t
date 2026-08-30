@@ -69,44 +69,58 @@ function sha256HexPureJs(input: string): string {
 	]);
 	const W = new Uint32Array(64);
 	const r = (v: number, s: number) => (v >>> s) | (v << (32 - s));
+	const word = (array: Uint32Array, index: number) => {
+		const value = array[index];
+		if (value === undefined) {
+			throw new RangeError(`SHA-256 word ${index} is out of bounds`);
+		}
+		return value;
+	};
 
 	for (let off = 0; off < padLen; off += 64) {
 		for (let i = 0; i < 16; i++) W[i] = view.getUint32(off + i * 4, false);
 		for (let i = 16; i < 64; i++) {
-			const s0 = r(W[i - 15]!, 7) ^ r(W[i - 15]!, 18) ^ (W[i - 15]! >>> 3);
-			const s1 = r(W[i - 2]!, 17) ^ r(W[i - 2]!, 19) ^ (W[i - 2]! >>> 10);
-			W[i] = (W[i - 16]! + s0 + W[i - 7]! + s1) >>> 0;
+			const w15 = word(W, i - 15);
+			const w2 = word(W, i - 2);
+			const s0 = r(w15, 7) ^ r(w15, 18) ^ (w15 >>> 3);
+			const s1 = r(w2, 17) ^ r(w2, 19) ^ (w2 >>> 10);
+			W[i] = (word(W, i - 16) + s0 + word(W, i - 7) + s1) >>> 0;
 		}
-		let [a, b, c, d, e, f, g, h] = H;
+		let a = word(H, 0);
+		let b = word(H, 1);
+		let c = word(H, 2);
+		let d = word(H, 3);
+		let e = word(H, 4);
+		let f = word(H, 5);
+		let g = word(H, 6);
+		let h = word(H, 7);
 		for (let i = 0; i < 64; i++) {
 			const t1 =
-				(h! +
-					(r(e!, 6) ^ r(e!, 11) ^ r(e!, 25)) +
-					((e! & f!) ^ (~e! & g!)) +
-					K[i]! +
-					W[i]!) >>>
+				(h +
+					(r(e, 6) ^ r(e, 11) ^ r(e, 25)) +
+					((e & f) ^ (~e & g)) +
+					word(K, i) +
+					word(W, i)) >>>
 				0;
 			const t2 =
-				((r(a!, 2) ^ r(a!, 13) ^ r(a!, 22)) +
-					((a! & b!) ^ (a! & c!) ^ (b! & c!))) >>>
-				0;
+				((r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) >>> 0;
 			h = g;
 			g = f;
 			f = e;
-			e = (d! + t1) >>> 0;
+			e = (d + t1) >>> 0;
 			d = c;
 			c = b;
 			b = a;
 			a = (t1 + t2) >>> 0;
 		}
-		H[0] = (H[0]! + a!) >>> 0;
-		H[1] = (H[1]! + b!) >>> 0;
-		H[2] = (H[2]! + c!) >>> 0;
-		H[3] = (H[3]! + d!) >>> 0;
-		H[4] = (H[4]! + e!) >>> 0;
-		H[5] = (H[5]! + f!) >>> 0;
-		H[6] = (H[6]! + g!) >>> 0;
-		H[7] = (H[7]! + h!) >>> 0;
+		H[0] = (word(H, 0) + a) >>> 0;
+		H[1] = (word(H, 1) + b) >>> 0;
+		H[2] = (word(H, 2) + c) >>> 0;
+		H[3] = (word(H, 3) + d) >>> 0;
+		H[4] = (word(H, 4) + e) >>> 0;
+		H[5] = (word(H, 5) + f) >>> 0;
+		H[6] = (word(H, 6) + g) >>> 0;
+		H[7] = (word(H, 7) + h) >>> 0;
 	}
 
 	return Array.from(H)

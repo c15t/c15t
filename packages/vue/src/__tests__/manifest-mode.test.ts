@@ -337,7 +337,7 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 				'accept-language': 'de',
 			},
 		}) satisfies InitOutput;
-		const subjectBodies: Array<Record<string, unknown>> = [];
+		const subjectBodies: Record<string, unknown>[] = [];
 		const fetchMock = vi.fn(
 			async (input: RequestInfo | URL, init?: RequestInit) => {
 				const url = String(input);

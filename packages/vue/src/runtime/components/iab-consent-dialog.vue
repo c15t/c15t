@@ -213,12 +213,12 @@ function processGvlData(gvl: GlobalVendorList, customVendors: NonIABVendor[]) {
 	);
 	const otherPurposeIds = new Set(otherPurposes.map((purpose) => purpose.id));
 
-	const stackScores: Array<{
+	const stackScores: {
 		stackId: number;
 		stack: GlobalVendorList['stacks'][string];
 		coveredPurposeIds: number[];
 		score: number;
-	}> = [];
+	}[] = [];
 
 	for (const [stackIdStr, stack] of Object.entries(gvl.stacks ?? {})) {
 		const coveredIds = stack.purposes.filter((purposeId) =>

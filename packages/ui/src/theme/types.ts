@@ -22,7 +22,7 @@ export type CSSPropertiesWithVars<
  * @typeParam VariableMap - A record of CSS variable names and their values for inline styles.
  * @public
  */
-export type ClassNameStyle<VariableMap = Record<string, string | number>> = {
+export interface ClassNameStyle<VariableMap = Record<string, string | number>> {
 	/** CSS properties to be applied inline to the component. */
 	style?: CSSPropertiesWithVars<VariableMap>;
 	/** CSS class names to be applied to the component. */
@@ -35,7 +35,7 @@ export type ClassNameStyle<VariableMap = Record<string, string | number>> = {
 	 * @internal
 	 */
 	baseClassName?: ClassValue;
-};
+}
 
 /**
  * Represents a style value that can be either a class name string or a {@link ClassNameStyle} object.
@@ -51,9 +51,9 @@ export type ThemeValue<VariableMap = Record<string, string | number>> =
  * Map of CSS variable names to their values.
  * @public
  */
-export type CSSVariables = {
+export interface CSSVariables {
 	[key: string]: string | number;
-};
+}
 
 // =============================================================================
 // THEME 2.0 TYPES

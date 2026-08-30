@@ -6,6 +6,7 @@
 
 import path from 'node:path';
 
+import type * as ClackPromptsTypes from '@clack/prompts';
 import { fromPromise } from 'xstate';
 
 import type { StorageMode } from '~/constants';
@@ -13,7 +14,6 @@ import type { CliContext } from '~/context/types';
 
 import type { FileModification } from '../../types';
 import type { ExpandedTheme, UIStyle } from '../types';
-
 /**
  * Input for the file generation actor
  */
@@ -195,9 +195,7 @@ export const fileGenerationActor = fromPromise<
 		const generateResult = await generateFiles({
 			context: cliContext,
 			mode,
-			spinner: spinnerMock as ReturnType<
-				typeof import('@clack/prompts').spinner
-			>,
+			spinner: spinnerMock as ReturnType<typeof ClackPromptsTypes.spinner>,
 			backendURL: backendURL ?? undefined,
 			useEnvFile,
 			proxyNextjs,

@@ -67,7 +67,7 @@ export type Dialect = 'postgres' | 'mysql' | 'sqlite';
 export class UnsupportedDialectError extends Data.TaggedError(
 	'UnsupportedDialectError'
 )<{
-	readonly supported: ReadonlyArray<Dialect>;
+	readonly supported: readonly Dialect[];
 }> {}
 
 /**

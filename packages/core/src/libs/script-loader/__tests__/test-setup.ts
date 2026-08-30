@@ -14,7 +14,7 @@ export const mockBody = {
 };
 
 // Registry to track created elements for proper getElementById mocking
-const createdElements: Map<string, HTMLElement> = new Map();
+const createdElements = new Map<string, HTMLElement>();
 
 // Factory function to create mock script elements for testing
 export function createMockScriptElement() {
@@ -73,7 +73,7 @@ export function setupDomMocks() {
 
 	// Mock document.getElementById by adding it to the document object
 	if (!document.getElementById) {
-		(document as any).getElementById = vi
+		(document as unknown).getElementById = vi
 			.fn()
 			.mockImplementation((id: string) => {
 				// Return the actual element from our registry, or null if not found

@@ -47,9 +47,8 @@ export type ThemeValue<VariableMap = Record<string, string | number>> =
  * Extends styling options with a reference to a global theme key.
  * @public
  */
-export interface ExtendThemeKeys<
-	VariableMap = Record<string, string | number>,
-> extends ClassNameStyle<VariableMap> {}
+export type ExtendThemeKeys<VariableMap = Record<string, string | number>> =
+	ClassNameStyle<VariableMap>;
 
 /**
  * Complete theme configuration for c15t consent components (v2).

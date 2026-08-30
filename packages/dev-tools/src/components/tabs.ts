@@ -91,8 +91,8 @@ export function createTabs(options: TabsOptions): TabsInstance {
 	let visibleTabIds: DevToolsTab[] = [];
 	let hiddenTabIds: DevToolsTab[] = [];
 
-	const tabButtons: Map<DevToolsTab, HTMLButtonElement> = new Map();
-	const overflowButtons: Map<DevToolsTab, HTMLButtonElement> = new Map();
+	const tabButtons = new Map<DevToolsTab, HTMLButtonElement>();
+	const overflowButtons = new Map<DevToolsTab, HTMLButtonElement>();
 
 	// Create tab list wrapper
 	const tabList = div({

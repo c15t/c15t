@@ -3,7 +3,7 @@ import { extname, join } from 'node:path';
 
 import { Node, Project, SyntaxKind } from 'ts-morph';
 import type { ObjectLiteralExpression, PropertyAssignment } from 'ts-morph';
-
+import type * as TsMorphTypes from 'ts-morph';
 const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const IGNORED_DIRS = new Set([
 	'.git',
@@ -22,11 +22,11 @@ const LEGACY_TYPE_NAME = 'TrackingBlockerConfig';
 const NEXT_TYPE_NAME = 'NetworkBlockerConfig';
 const C15T_PACKAGES = new Set(['c15t', '@c15t/react', '@c15t/nextjs']);
 
-type TrackingBlockerResult = {
+interface TrackingBlockerResult {
 	changed: boolean;
 	operations: number;
 	summaries: string[];
-};
+}
 
 export interface CodemodRunOptions {
 	/**
@@ -50,15 +50,15 @@ export interface CodemodRunResult {
 	/**
 	 * Per-file transformation summaries.
 	 */
-	changedFiles: Array<{
+	changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}>;
+	}[];
 	/**
 	 * Non-fatal per-file transform errors.
 	 */
-	errors: Array<{ filePath: string; error: string }>;
+	errors: { filePath: string; error: string }[];
 }
 
 function getPropertyName(property: PropertyAssignment): string {
@@ -96,7 +96,7 @@ function invertExpression(expressionText: string): string {
 }
 
 function getObjectPropertyKeyText(
-	property: import('ts-morph').ObjectLiteralElementLike
+	property: TsMorphTypes.ObjectLiteralElementLike
 ): string | undefined {
 	if (!Node.isPropertyAssignment(property)) {
 		return undefined;
@@ -115,7 +115,7 @@ function getObjectPropertyKeyText(
 }
 
 function buildRulesExpression(
-	domainConsentMapInitializer: import('ts-morph').Expression
+	domainConsentMapInitializer: TsMorphTypes.Expression
 ): string {
 	const domainMapObject = domainConsentMapInitializer.asKind(
 		SyntaxKind.ObjectLiteralExpression
@@ -165,7 +165,7 @@ function migrateTrackingBlockerObject(
 
 	const rulesExpression = domainConsentMapProperty?.getInitializer()
 		? buildRulesExpression(
-				domainConsentMapProperty.getInitializer() as import('ts-morph').Expression
+				domainConsentMapProperty.getInitializer() as TsMorphTypes.Expression
 			)
 		: '[]';
 
@@ -180,7 +180,7 @@ function migrateTrackingBlockerObject(
 }
 
 function getBindingPropertyName(
-	element: import('ts-morph').BindingElement
+	element: TsMorphTypes.BindingElement
 ): string | undefined {
 	const propertyNameNode = element.getPropertyNameNode();
 	if (propertyNameNode) {
@@ -201,7 +201,7 @@ function getBindingPropertyName(
 }
 
 function transformSourceFile(
-	sourceFile: import('ts-morph').SourceFile
+	sourceFile: TsMorphTypes.SourceFile
 ): TrackingBlockerResult {
 	let operations = 0;
 	const summaries: string[] = [];
@@ -414,12 +414,12 @@ export async function runTrackingBlockerToNetworkBlockerCodemod(
 	});
 	const filePaths = await collectSourceFiles(options.projectRoot);
 
-	const changedFiles: Array<{
+	const changedFiles: {
 		filePath: string;
 		operations: number;
 		summaries: string[];
-	}> = [];
-	const errors: Array<{ filePath: string; error: string }> = [];
+	}[] = [];
+	const errors: { filePath: string; error: string }[] = [];
 
 	for (const filePath of filePaths) {
 		try {

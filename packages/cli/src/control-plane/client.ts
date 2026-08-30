@@ -261,9 +261,12 @@ export class ControlPlaneClient {
 	 * Delete a hosted project.
 	 */
 	async deleteInstance(id: string): Promise<void> {
-		await this.request<void>(`/consent/instances/${encodeURIComponent(id)}`, {
-			method: 'DELETE',
-		});
+		await this.request<unknown>(
+			`/consent/instances/${encodeURIComponent(id)}`,
+			{
+				method: 'DELETE',
+			}
+		);
 	}
 }
 

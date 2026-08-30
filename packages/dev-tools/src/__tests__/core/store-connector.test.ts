@@ -66,7 +66,7 @@ describe('store-connector', () => {
 		const connector = createStoreConnector({
 			namespace: 'testStore',
 		});
-		const snapshots: Array<ReturnType<typeof connector.getDiagnostics>> = [];
+		const snapshots: ReturnType<typeof connector.getDiagnostics>[] = [];
 		const unsubscribe = connector.subscribeDiagnostics((diagnostics) => {
 			snapshots.push(diagnostics);
 		});
