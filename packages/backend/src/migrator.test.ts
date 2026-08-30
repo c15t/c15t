@@ -144,7 +144,7 @@ for (const [name, makeConfig] of CONFIGS) {
 
 				// The database is up to date, so a fresh plan has nothing left.
 				const after = await migrator.plan();
-				assert.strictEqual(after.shape._tag, 'Baseline');
+				assert.strictEqual(after.classification._tag, 'Baseline');
 				assert.deepStrictEqual(after.adoption, []);
 				assert.deepStrictEqual(after.pending, []);
 			});

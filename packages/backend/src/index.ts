@@ -60,7 +60,7 @@ export {
 	policyPackPresets,
 	UK_COUNTRY_CODES,
 } from '@c15t/schema';
-export type { Shape } from './db/classify';
+export type { DatabaseClassification } from './db/classify';
 export { classify } from './db/classify';
 export type { DatabaseConfig, DatabaseOption } from './db/connect';
 export {

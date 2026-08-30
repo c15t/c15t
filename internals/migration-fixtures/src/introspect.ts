@@ -45,8 +45,8 @@ export interface CapturedForeignKey {
 	readonly referencedColumns: readonly string[];
 }
 
-export interface CapturedShape {
-	readonly shape: string;
+export interface CapturedSchemaSnapshot {
+	readonly ['shape']: string;
 	readonly engine: string;
 	readonly versions: readonly string[];
 	readonly era: string;

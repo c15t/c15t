@@ -195,7 +195,7 @@ for (const engine of ENGINES) {
 				Effect.gen(function* () {
 					yield* resetDatabase;
 					const adoption = yield* plan;
-					assert.strictEqual(adoption.shape._tag, 'Empty');
+					assert.strictEqual(adoption.classification._tag, 'Empty');
 					assert.isUndefined(adoption.blocked);
 					assert.strictEqual(
 						adoption.steps.filter((step) => step.kind === 'create-table')
@@ -271,7 +271,7 @@ for (const engine of ENGINES) {
 		);
 
 		(classifiesUnmarkedLegacy(engine) ? it.effect : it.effect.skip)(
-			'emits no destructive statement for any shape it can encounter',
+			'emits no destructive statement for any database shape it can encounter',
 			() =>
 				Effect.gen(function* () {
 					yield* resetDatabase;
@@ -342,8 +342,8 @@ for (const engine of ENGINES) {
 					yield* resetDatabase;
 					yield* legacyish;
 					yield* apply(yield* plan);
-					const shape = yield* classify;
-					assert.strictEqual(shape._tag, 'Baseline');
+					const classification = yield* classify;
+					assert.strictEqual(classification._tag, 'Baseline');
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 60_000 }
 		);
@@ -359,7 +359,7 @@ for (const engine of ENGINES) {
 
 					// Re-planning against the now-adopted database should be a no-op.
 					const second = yield* plan;
-					assert.strictEqual(second.shape._tag, 'Baseline');
+					assert.strictEqual(second.classification._tag, 'Baseline');
 					yield* apply(second);
 					assert.deepStrictEqual(yield* columnsOf('consent'), first);
 				}).pipe(Effect.provide(engine.layer)),
@@ -498,7 +498,7 @@ for (const engine of ENGINES) {
 
 					const adoption = yield* plan;
 
-					assert.strictEqual(adoption.shape._tag, 'Unknown');
+					assert.strictEqual(adoption.classification._tag, 'Unknown');
 					assert.isDefined(adoption.blocked);
 					assert.deepStrictEqual(adoption.steps, [], 'must plan nothing');
 				}).pipe(Effect.provide(engine.layer)),
@@ -547,7 +547,7 @@ for (const engine of ENGINES) {
 
 					// Re-running adoption against our own output must be inert, or a
 					// retried deploy would churn the schema.
-					assert.strictEqual(adoption.shape._tag, 'Baseline');
+					assert.strictEqual(adoption.classification._tag, 'Baseline');
 					assert.deepStrictEqual(adoption.steps, []);
 					assert.isUndefined(adoption.blocked);
 				}).pipe(Effect.provide(engine.layer)),

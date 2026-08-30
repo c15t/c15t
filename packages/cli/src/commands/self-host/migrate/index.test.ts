@@ -38,7 +38,7 @@ const dependencies = {
 };
 
 const report = (over: Record<string, unknown> = {}) => ({
-	shape: { _tag: 'Empty' },
+	classification: { _tag: 'Empty' },
 	adoption: ['Create "subject"'],
 	pending: ['2-hot-path-indexes'],
 	retained: [],

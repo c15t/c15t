@@ -96,8 +96,8 @@ for (const engine of ENGINES) {
 			() =>
 				Effect.gen(function* () {
 					yield* resetDatabase;
-					const shape = yield* classify;
-					assert.strictEqual(shape._tag, 'Empty');
+					const classification = yield* classify;
+					assert.strictEqual(classification._tag, 'Empty');
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 60_000 }
 		);
@@ -111,10 +111,10 @@ for (const engine of ENGINES) {
 					// exactly, so before the ledger is stamped it is indistinguishable
 					// from an adopted 2.0.0 database. That is the whole point.
 					yield* baseline;
-					const shape = yield* classify;
-					assert.strictEqual(shape._tag, 'Fumadb200');
-					if (shape._tag === 'Fumadb200') {
-						assert.isFalse(shape.hasMarker);
+					const classification = yield* classify;
+					assert.strictEqual(classification._tag, 'Fumadb200');
+					if (classification._tag === 'Fumadb200') {
+						assert.isFalse(classification.hasMarker);
 					}
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 60_000 }
@@ -131,8 +131,8 @@ for (const engine of ENGINES) {
 					yield* sql.unsafe(
 						`create table ${q('c15t_migrations')} (${q('id')} integer primary key, ${q('name')} text)`
 					);
-					const shape = yield* classify;
-					assert.strictEqual(shape._tag, 'Baseline');
+					const classification = yield* classify;
+					assert.strictEqual(classification._tag, 'Baseline');
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 60_000 }
 		);
@@ -143,8 +143,8 @@ for (const engine of ENGINES) {
 				Effect.gen(function* () {
 					yield* resetDatabase;
 					yield* sevenTables('jsonb');
-					const shape = yield* classify;
-					assert.strictEqual(shape._tag, 'Legacy');
+					const classification = yield* classify;
+					assert.strictEqual(classification._tag, 'Legacy');
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 60_000 }
 		);
@@ -159,26 +159,26 @@ for (const engine of ENGINES) {
 					// never wrote a marker — but the schema is fumadb-shaped. Treating
 					// this as legacy would converge it destructively.
 					yield* sevenTables('json');
-					const shape = yield* classify;
-					assert.strictEqual(shape._tag, 'Fumadb100');
-					if (shape._tag === 'Fumadb100') {
-						assert.isFalse(shape.hasMarker);
+					const classification = yield* classify;
+					assert.strictEqual(classification._tag, 'Fumadb100');
+					if (classification._tag === 'Fumadb100') {
+						assert.isFalse(classification.hasMarker);
 					}
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 60_000 }
 		);
 
 		it.effect(
-			'trusts the marker over shape inference when one is present',
+			'trusts the marker over schema inference when one is present',
 			() =>
 				Effect.gen(function* () {
 					yield* resetDatabase;
 					yield* sevenTables('jsonb');
 					yield* withMarker('1.0.0');
-					const shape = yield* classify;
-					assert.strictEqual(shape._tag, 'Fumadb100');
-					if (shape._tag === 'Fumadb100') {
-						assert.isTrue(shape.hasMarker);
+					const classification = yield* classify;
+					assert.strictEqual(classification._tag, 'Fumadb100');
+					if (classification._tag === 'Fumadb100') {
+						assert.isTrue(classification.hasMarker);
 					}
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 60_000 }
@@ -191,10 +191,10 @@ for (const engine of ENGINES) {
 					yield* resetDatabase;
 					yield* sevenTables('json');
 					yield* withMarker('3.7.0');
-					const shape = yield* classify;
-					assert.strictEqual(shape._tag, 'Unknown');
-					if (shape._tag === 'Unknown') {
-						assert.include(shape.why, '3.7.0');
+					const classification = yield* classify;
+					assert.strictEqual(classification._tag, 'Unknown');
+					if (classification._tag === 'Unknown') {
+						assert.include(classification.why, '3.7.0');
 					}
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 60_000 }
@@ -216,16 +216,16 @@ for (const engine of ENGINES) {
 						);
 					}
 
-					const shape = yield* classify;
+					const classification = yield* classify;
 
 					// Reporting Empty here is the dangerous answer, not a harmless one:
 					// the migrator would create a parallel schema and leave every
 					// existing consent record orphaned while the deployment came up
 					// looking healthy.
-					assert.strictEqual(shape._tag, 'Unknown');
-					if (shape._tag === 'Unknown') {
-						assert.include(shape.why, 'acme_');
-						assert.include(shape.why, 'tablePrefix');
+					assert.strictEqual(classification._tag, 'Unknown');
+					if (classification._tag === 'Unknown') {
+						assert.include(classification.why, 'acme_');
+						assert.include(classification.why, 'tablePrefix');
 					}
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 60_000 }

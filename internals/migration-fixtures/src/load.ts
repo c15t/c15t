@@ -12,16 +12,16 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { EngineName } from './engines';
-import type { CapturedShape } from './introspect';
+import type { CapturedSchemaSnapshot } from './introspect';
 
 const FIXTURES_DIR = join(
 	dirname(dirname(fileURLToPath(import.meta.url))),
 	'fixtures'
 );
 
-/** Recorded reason a release cannot produce a shape on a given engine. */
-export interface UnsupportedShape {
-	readonly shape: string;
+/** Recorded reason a release cannot produce a fixture on a given engine. */
+export interface UnsupportedSchemaSnapshot {
+	readonly ['shape']: string;
 	readonly engine: string;
 	readonly versions: readonly string[];
 	readonly era: string;
@@ -32,30 +32,32 @@ export interface UnsupportedShape {
  * Loads one fixture.
  *
  * Returns `{ kind: 'unsupported' }` where the release provably cannot produce
- * that shape on that engine — currently the two fumadb shapes on MySQL, which
+ * that fixture on that engine — currently the two fumadb fixtures on MySQL, which
  * fumadb cannot migrate at all. Callers must handle that case rather than
  * treating a missing fixture as a failure; the absence is a finding.
  */
 export async function loadFixture(
-	shape: string,
+	fixture: string,
 	engine: EngineName
 ): Promise<
-	| { readonly kind: 'captured'; readonly fixture: CapturedShape }
-	| { readonly kind: 'unsupported'; readonly reason: UnsupportedShape }
+	| { readonly kind: 'captured'; readonly fixture: CapturedSchemaSnapshot }
+	| { readonly kind: 'unsupported'; readonly reason: UnsupportedSchemaSnapshot }
 > {
-	const base = join(FIXTURES_DIR, shape);
+	const base = join(FIXTURES_DIR, fixture);
 
-	const unsupported = await readJson<UnsupportedShape>(
+	const unsupported = await readJson<UnsupportedSchemaSnapshot>(
 		join(base, `${engine}.unsupported.json`)
 	);
 	if (unsupported) {
 		return { kind: 'unsupported', reason: unsupported };
 	}
 
-	const captured = await readJson<CapturedShape>(join(base, `${engine}.json`));
+	const captured = await readJson<CapturedSchemaSnapshot>(
+		join(base, `${engine}.json`)
+	);
 	if (!captured) {
 		throw new Error(
-			`No fixture for shape "${shape}" on engine "${engine}". ` +
+			`No fixture for database shape "${fixture}" on engine "${engine}". ` +
 				'Regenerate with: bun run --cwd internals/migration-fixtures generate'
 		);
 	}
@@ -63,7 +65,9 @@ export async function loadFixture(
 }
 
 /** Table names in a captured shape, excluding fumadb's own marker table. */
-export function domainTableNames(fixture: CapturedShape): readonly string[] {
+export function domainTableNames(
+	fixture: CapturedSchemaSnapshot
+): readonly string[] {
 	return fixture.tables
 		.map((table) => table.name)
 		.filter((name) => !/(^|_)c15t_settings$/.test(name))
@@ -72,14 +76,14 @@ export function domainTableNames(fixture: CapturedShape): readonly string[] {
 
 /** Column names for one table in a captured shape, sorted. */
 export function columnNames(
-	fixture: CapturedShape,
+	fixture: CapturedSchemaSnapshot,
 	table: string
 ): readonly string[] {
 	const found = fixture.tables.find((candidate) => candidate.name === table);
 	if (!found) {
 		const known = fixture.tables.map((candidate) => candidate.name).join(', ');
 		throw new Error(
-			`Fixture "${fixture.shape}/${fixture.engine}" has no table "${table}". Has: ${known}`
+			`Fixture "${fixture['shape']}/${fixture.engine}" has no table "${table}". Has: ${known}`
 		);
 	}
 	return found.columns.map((column) => column.name).sort();

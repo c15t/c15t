@@ -18,7 +18,7 @@ export type MigratorEra =
 	/** `migrator({ db, schema })` from `@c15t/backend/db/migrator`. */
 	| 'fumadb-root';
 
-export interface Shape {
+export interface DatabaseFixture {
 	/** Directory name under `fixtures/`. */
 	readonly name: string;
 	/**
@@ -54,7 +54,7 @@ export interface Shape {
 const FUMADB_MYSQL_FAILURE =
 	'fumadb migration fails on MySQL: "BLOB/TEXT column used in key specification without a key length". fumadb maps string columns to TEXT and indexes them; MySQL needs a prefix length. Trips on domain.name at schema 1.0.0 and runtimePolicyDecision.dedupeKey at 2.0.0. Reproduced on fumadb 0.2.2 and 0.3.0.';
 
-export const SHAPES: readonly Shape[] = [
+export const DATABASE_FIXTURES: readonly DatabaseFixture[] = [
 	{
 		name: 'legacy-fresh-1.0',
 		versions: ['1.0.0'],
@@ -93,11 +93,15 @@ export const SHAPES: readonly Shape[] = [
 	},
 ] as const;
 
-export function shapeByName(name: string): Shape {
-	const shape = SHAPES.find((candidate) => candidate.name === name);
-	if (!shape) {
-		const known = SHAPES.map((candidate) => candidate.name).join(', ');
-		throw new Error(`Unknown shape "${name}". Known shapes: ${known}`);
+export function fixtureByName(name: string): DatabaseFixture {
+	const fixture = DATABASE_FIXTURES.find(
+		(candidate) => candidate.name === name
+	);
+	if (!fixture) {
+		const known = DATABASE_FIXTURES.map((candidate) => candidate.name).join(
+			', '
+		);
+		throw new Error(`Unknown fixture "${name}". Known fixtures: ${known}`);
 	}
-	return shape;
+	return fixture;
 }

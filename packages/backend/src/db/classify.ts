@@ -1,5 +1,5 @@
 /**
- * Works out what shape a database is actually in, before anything migrates it.
+ * Classifies the physical shape of a database before anything migrates it.
  *
  * This is the step that decides whether an upgrade is correct or destructive,
  * so it is deliberately conservative: it reports `unknown` rather than
@@ -19,7 +19,7 @@
  *   the schema is fumadb-shaped.
  *
  * Treating "no marker" as "legacy" would run a legacy convergence against a
- * database already at 2.0.0. So classification falls back to shape, and the
+ * database already at 2.0.0. So classification falls back to schema shape, and the
  * committed fixtures make that a comparison rather than a heuristic.
  *
  * ## What distinguishes the shapes
@@ -37,8 +37,8 @@ import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import type { SqlError } from 'effect/unstable/sql';
 
-/** A database shape the migrator knows how to handle. */
-export type Shape =
+/** A database classification the migrator knows how to handle. */
+export type DatabaseClassification =
 	/** No c15t tables at all — a fresh install. */
 	| { readonly _tag: 'Empty' }
 	/** Pre-2.0 `pkgs/migrations` era. No marker, no ledger. */
@@ -82,7 +82,7 @@ interface Observed {
 	 * `consent`. Those tables are invisible to the exact-name match above, and
 	 * without this the database looks **empty** — so migrating it would create
 	 * a second, parallel schema and leave every existing consent record
-	 * orphaned. Verified before fixing: `shape=Empty`, nothing blocked, eight
+	 * orphaned. Verified before fixing: `classification=Empty`, nothing blocked, eight
 	 * tables to create alongside the five already holding data.
 	 */
 	readonly prefix: string | undefined;
@@ -208,7 +208,7 @@ const looksLikeFumadb = Effect.fn('classify.looksLikeFumadb')(function* () {
  * what `--dry-run` reports.
  */
 export const classify: Effect.Effect<
-	Shape,
+	DatabaseClassification,
 	SqlError.SqlError,
 	SqlClient.SqlClient
 > = Effect.gen(function* () {

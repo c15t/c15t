@@ -46,7 +46,7 @@ import { SqlClient } from 'effect/unstable/sql';
 import type { SqlError } from 'effect/unstable/sql';
 
 import { classify } from './classify';
-import type { Shape } from './classify';
+import type { DatabaseClassification } from './classify';
 import * as Dialect from './dialect';
 import { addColumnSql, createTableSql, TABLES } from './schema';
 import type { ForeignKeySpec, TableSpec } from './schema';
@@ -70,7 +70,7 @@ export interface OrphanReport {
 }
 
 export interface Plan {
-	readonly shape: Shape;
+	readonly classification: DatabaseClassification;
 	readonly steps: readonly AdoptionStep[];
 	/** Tables and columns present in the database but not in the spec. */
 	readonly retained: readonly string[];
@@ -211,7 +211,7 @@ const countUnmatchable = Effect.fn('adopt.countUnmatchable')(function* (
  */
 export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 	Effect.gen(function* () {
-		const shape = yield* classify;
+		const classification = yield* classify;
 		const dialect = yield* Dialect.current.pipe(
 			Effect.orElseSucceed(() => 'postgres' as const)
 		);
@@ -219,19 +219,19 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 		const quote = Dialect.escaperFor(dialect);
 		const existing = yield* observeExisting();
 
-		if (shape._tag === 'Unknown') {
+		if (classification._tag === 'Unknown') {
 			return {
-				shape,
+				classification,
 				steps: [],
 				retained: [],
 				orphans: [],
-				blocked: `Refusing to migrate an unrecognised database. ${shape.why}`,
+				blocked: `Refusing to migrate an unrecognised database. ${classification.why}`,
 			};
 		}
 
-		if (shape._tag === 'Baseline') {
+		if (classification._tag === 'Baseline') {
 			return {
-				shape,
+				classification,
 				steps: [],
 				retained: [],
 				orphans: [],
@@ -359,7 +359,7 @@ export const plan: Effect.Effect<Plan, SqlError.SqlError, SqlClient.SqlClient> =
 		}
 
 		return {
-			shape,
+			classification,
 			steps,
 			retained: retained.sort(),
 			orphans,

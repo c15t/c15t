@@ -186,7 +186,6 @@ const deferredAntiSlopRules = [
 	'anti-slop/no-chained-type-assertions',
 	'anti-slop/no-known-value-widening',
 	'anti-slop/no-runtime-typeof',
-	'anti-slop/no-shape-in-symbol-names',
 	'anti-slop/no-unknown-parameters',
 	'anti-slop/no-unknown-returns',
 	'anti-slop/no-unsafe-dictionary-type',

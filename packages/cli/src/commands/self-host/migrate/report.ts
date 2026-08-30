@@ -19,7 +19,7 @@ import type { CliContext } from '~/context/types';
 export function describePlan(context: CliContext, report: MigrateReport): void {
 	const { logger } = context;
 
-	logger.info(`Database shape: ${report.shape._tag}`);
+	logger.info(`Database classification: ${report.classification._tag}`);
 
 	if (report.adoption.length > 0) {
 		logger.message(

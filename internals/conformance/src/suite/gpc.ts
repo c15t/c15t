@@ -53,11 +53,11 @@ function createDeferredPromise<Value>(
 	return deferred.promise;
 }
 
-type ConsentShape = Record<string, boolean>;
+type ConsentSnapshot = Record<string, boolean>;
 
-function readConsents(driver: TestDriver): ConsentShape {
+function readConsents(driver: TestDriver): ConsentSnapshot {
 	const state = driver.getStore().getState() as {
-		consents?: ConsentShape;
+		consents?: ConsentSnapshot;
 	};
 	return state.consents ?? {};
 }
@@ -65,7 +65,7 @@ function readConsents(driver: TestDriver): ConsentShape {
 /** Wait until the driver's store reports the expected category values. */
 async function settleConsents(
 	driver: TestDriver,
-	expected: ConsentShape
+	expected: ConsentSnapshot
 ): Promise<void> {
 	await waitForCondition(() => {
 		const consents = readConsents(driver);
