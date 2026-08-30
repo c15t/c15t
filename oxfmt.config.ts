@@ -21,9 +21,17 @@ export default defineConfig({
 	semi: true,
 	singleAttributePerLine: true,
 	singleQuote: true,
-	sortImports: false,
-	sortPackageJson: false,
-	sortTailwindcss: false,
+	sortImports: {
+		ignoreCase: true,
+		newlinesBetween: true,
+		order: 'asc',
+	},
+	sortPackageJson: {
+		sortScripts: true,
+	},
+	sortTailwindcss: {
+		functions: ['clsx', 'cva', 'tw', 'twMerge', 'cn', 'twJoin', 'tv'],
+	},
 	svelte: true,
 	tabWidth: 2,
 	trailingComma: 'es5',
