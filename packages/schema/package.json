@@ -16,13 +16,19 @@
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
+	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/c15t/c15t"
 	},
-	"license": "Apache-2.0",
-	"sideEffects": false,
+	"files": [
+		"dist",
+		"dist-types"
+	],
 	"type": "module",
+	"sideEffects": false,
+	"main": "./dist/index.js",
+	"types": "./dist-types/index.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist-types/index.d.ts",
@@ -45,12 +51,9 @@
 			"default": "./dist/geo.js"
 		}
 	},
-	"main": "./dist/index.js",
-	"types": "./dist-types/index.d.ts",
-	"files": [
-		"dist",
-		"dist-types"
-	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"check-types": "tsc --noEmit",
@@ -60,11 +63,6 @@
 		"test": "vitest run --passWithNoTests",
 		"test:watch": "vitest"
 	},
-	"browserslist": [
-		">0.2%",
-		"not dead",
-		"not op_mini all"
-	],
 	"dependencies": {
 		"@c15t/translations": "workspace:*",
 		"base-x": "5.0.1",
@@ -75,7 +73,9 @@
 		"@c15t/vitest-config": "workspace:*",
 		"typescript": "7.0.2"
 	},
-	"publishConfig": {
-		"access": "public"
-	}
+	"browserslist": [
+		">0.2%",
+		"not dead",
+		"not op_mini all"
+	]
 }
