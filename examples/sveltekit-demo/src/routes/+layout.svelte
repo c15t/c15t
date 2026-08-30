@@ -10,6 +10,7 @@
 		IABConsentBanner,
 		IABConsentDialog,
 	} from '@c15t/svelte';
+	import { ConsentDevTools } from '@c15t/svelte/devtools';
 	import { baseTranslations } from '@c15t/translations/all';
 
 	import '../app.css';
@@ -116,5 +117,6 @@
 		<IABConsentDialog />
 		<ConsentDialogTrigger />
 		<ConsentDialog />
+		<ConsentDevTools position="bottom-right" />
 	</ConsentManagerProvider>
 {/if}

@@ -815,6 +815,7 @@
       "version": "2.0.0-rc.4",
       "dependencies": {
         "@c15t/core": "workspace:*",
+        "@c15t/dev-tools": "workspace:*",
         "@c15t/iab": "workspace:*",
         "@c15t/schema": "workspace:*",
         "@c15t/ui": "workspace:*",
@@ -873,6 +874,7 @@
       "version": "2.0.0-rc.4",
       "dependencies": {
         "@c15t/core": "workspace:*",
+        "@c15t/dev-tools": "workspace:*",
         "@c15t/schema": "workspace:*",
         "@c15t/translations": "workspace:*",
         "@c15t/ui": "workspace:*",

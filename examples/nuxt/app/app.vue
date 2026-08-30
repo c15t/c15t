@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { ConsentDevTools } from 'c15t/vue/devtools';
+
 /**
  * The only required integration: mount <ConsentRoot /> once.
  * Everything below it is demo chrome showing the consent state live.
@@ -7,17 +9,18 @@ const activeUI = useConsentActiveUI();
 const hasConsent = useHasConsent();
 const init = useConsentInit();
 
-const reopenBanner = function reopenBanner() {
+const reopenBanner = () => {
 	activeUI.value = 'banner';
 };
 
-const openPreferences = function openPreferences() {
+const openPreferences = () => {
 	activeUI.value = 'manager';
 };
 </script>
 
 <template>
 	<ConsentRoot />
+	<ConsentDevTools position="bottom-right" />
 
 	<main class="page">
 		<h1>c15t × Nuxt</h1>
