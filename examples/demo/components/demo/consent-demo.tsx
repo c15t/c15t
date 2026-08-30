@@ -168,9 +168,9 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 	const activeTheme = themeMounted ? presetTheme : undefined;
 	const demoTheme = useMemo(
 		() => ({
-			...(activeTheme ?? {}),
+			...activeTheme,
 			slots: {
-				...(activeTheme?.slots ?? {}),
+				...activeTheme?.slots,
 				iabConsentBanner: {
 					style: { pointerEvents: 'none' },
 				},

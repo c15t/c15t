@@ -1,8 +1,25 @@
 import { defineConfig } from 'oxlint';
 import antiSlop from 'ultracite/oxlint/anti-slop';
 import core from 'ultracite/oxlint/core';
+import next from 'ultracite/oxlint/next';
 import react from 'ultracite/oxlint/react';
 import vue from 'ultracite/oxlint/vue';
+
+const nextAppDirectories = [
+	'benchmarks/bundle-test-app',
+	'benchmarks/css-layer-preview',
+	'benchmarks/nextjs-browser-bench',
+	'benchmarks/no-tw-test',
+	'benchmarks/react-browser-bench',
+	'benchmarks/script-lifecycle-bench',
+	'benchmarks/tw3-test',
+	'benchmarks/tw4-test',
+	'examples/demo',
+] as const;
+
+const nextAppFiles = nextAppDirectories.map(
+	(directory) => `${directory}/**/*.{js,jsx,ts,tsx}`
+);
 
 // These rules reported existing violations during the migration. Every
 // Ultracite rule not listed here was clean and remains enabled as an error.
@@ -227,7 +244,19 @@ export default defineConfig({
 		'.tmp-bun/**',
 		'packages/c15t/shims/**',
 	],
+	overrides: [
+		{
+			files: nextAppFiles,
+			plugins: next.plugins,
+			rules: next.rules,
+		},
+	],
 	rules: Object.fromEntries(
 		[...deferredRules, ...deferredAntiSlopRules].map((rule) => [rule, 'off'])
 	),
+	settings: {
+		next: {
+			rootDir: [...nextAppDirectories],
+		},
+	},
 });

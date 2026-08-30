@@ -304,11 +304,9 @@ async function main() {
 					route.c15tAddition,
 				]),
 			],
-			budgetDefinitions: [
-				...bundleBudgets.filter(
-					(budget) => budget.metric === routeFixture(route).name
-				),
-			],
+			budgetDefinitions: bundleBudgets.filter(
+				(budget) => budget.metric === routeFixture(route).name
+			),
 			budgets: [],
 			notes: ['Route-level client bundle size benchmark.'],
 		}));
