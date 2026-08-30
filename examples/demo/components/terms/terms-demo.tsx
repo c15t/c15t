@@ -23,18 +23,18 @@ import {
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 
-type TermsPolicySummary = {
+interface TermsPolicySummary {
 	title: string;
 	version: string;
 	hash: string;
 	effectiveDate: string;
 	documentSnapshotToken?: string | null;
-};
+}
 
-type IdentityState = {
+interface IdentityState {
 	externalId: string;
 	identityProvider: string;
-};
+}
 
 type AcceptanceState = IdentityState & {
 	subjectId: string;

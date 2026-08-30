@@ -215,12 +215,12 @@ async function run() {
 	try {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
-		const results: Array<{
+		const results: {
 			version: Version;
 			count: number;
 			inPageDurationMs: Stats;
 			playwrightDurationMs: Stats;
-		}> = [];
+		}[] = [];
 
 		for (const count of counts) {
 			for (const version of ['v2', 'v3'] as const) {

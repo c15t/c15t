@@ -1,5 +1,15 @@
 import type { Script } from '@c15t/core';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 export type ScriptLifecycleScenarioName =
 	| 'grant-standard'
 	| 'revoke-standard'
@@ -214,7 +224,7 @@ export function getScenarioConfig(
 export function getScenarioScripts(
 	config: ScriptLifecycleScenarioConfig
 ): Script[] {
-	return config.scriptIds.map((id) => scriptFixtures[id]!);
+	return config.scriptIds.map((id) => getDefined(scriptFixtures[id]));
 }
 
 export const allScenarioConfigs = Object.values(scenarioConfigs);

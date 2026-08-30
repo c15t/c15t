@@ -2,19 +2,19 @@ import type { AxeResults, NodeResult, Result, RunOptions } from 'axe-core';
 import axe from 'axe-core';
 import { expect } from 'storybook/test';
 
-export type A11yViolation = {
+export interface A11yViolation {
 	id: string;
 	impact: Result['impact'];
 	help: string;
 	helpUrl: string;
-	nodes: ReadonlyArray<{
+	nodes: readonly {
 		target: readonly string[];
 		failureSummary?: string;
 		html: string;
-	}>;
-};
+	}[];
+}
 
-export type A11yConfig = {
+export interface A11yConfig {
 	/**
 	 * Rule IDs to ignore. Use sparingly — exclusions must have a justification
 	 * recorded in the test or a TODO comment.
@@ -24,7 +24,7 @@ export type A11yConfig = {
 	tags?: readonly string[];
 	/** Maximum allowed violations. Default 0. */
 	maxViolations?: number;
-};
+}
 
 const DEFAULT_TAGS = [
 	'wcag2a',

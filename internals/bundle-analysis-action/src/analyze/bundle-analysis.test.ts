@@ -7,6 +7,7 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import type { PathLike, PathOrFileDescriptor } from 'node:fs';
+import type * as NodeFsTypes from 'node:fs';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -25,10 +26,9 @@ import type {
 	PackageBundleData,
 	TransitiveBundleData,
 } from './bundle-analysis';
-
 // Mock fs module
 vi.mock('node:fs', async () => {
-	const actual = await vi.importActual<typeof import('node:fs')>('node:fs');
+	const actual = await vi.importActual<typeof NodeFsTypes>('node:fs');
 	return {
 		...actual,
 		existsSync: vi.fn(),

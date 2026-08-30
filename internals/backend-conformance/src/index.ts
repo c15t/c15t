@@ -33,29 +33,29 @@
  */
 
 export interface SeedFixture {
-	readonly subjects: ReadonlyArray<{
+	readonly subjects: readonly {
 		readonly id: string;
 		readonly externalId?: string | null;
 		readonly identityProvider?: string | null;
-	}>;
-	readonly domains: ReadonlyArray<{
+	}[];
+	readonly domains: readonly {
 		readonly id: string;
 		readonly name: string;
-	}>;
-	readonly policies: ReadonlyArray<{
+	}[];
+	readonly policies: readonly {
 		readonly id: string;
 		readonly version: string;
 		readonly type: string;
 		readonly effectiveDate: Date;
 		readonly isActive: boolean;
-	}>;
-	readonly consents: ReadonlyArray<{
+	}[];
+	readonly consents: readonly {
 		readonly id: string;
 		readonly subjectId: string;
 		readonly domainId: string;
 		readonly policyId: string | null;
 		readonly givenAt: Date;
-	}>;
+	}[];
 }
 
 /**

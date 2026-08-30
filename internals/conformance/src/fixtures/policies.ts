@@ -7,12 +7,12 @@
  * payloads.
  */
 
-export type PolicyFixture = {
+export interface PolicyFixture {
 	id: string;
 	label: Record<string, string>;
 	description: Record<string, string>;
 	required?: boolean;
-};
+}
 
 export const MINIMAL_POLICIES: readonly PolicyFixture[] = [
 	{

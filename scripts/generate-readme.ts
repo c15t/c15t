@@ -50,14 +50,14 @@ interface PackageReadmeConfig {
 	installation?: string[];
 	manualInstallation?: string[];
 	usage?: string[]; // items may include fenced code blocks as strings beginning with ```
-	commands?: Array<{
+	commands?: {
 		name: string;
 		description: string;
-	}>;
-	globalFlags?: Array<{
+	}[];
+	globalFlags?: {
 		flag: string;
 		description: string;
-	}>;
+	}[];
 	telemetry?: {
 		description: string;
 		details?: string[];

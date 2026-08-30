@@ -41,6 +41,16 @@ function createDeferredPromise<Value>(
 	return deferred.promise;
 }
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 interface RouteSize {
 	route: string;
 	jsGzip: number;
@@ -91,7 +101,7 @@ async function analyzeRouteSizes() {
 
 	async function getGzipSize(chunkPath: string): Promise<number> {
 		if (chunkSizes.has(chunkPath)) {
-			return chunkSizes.get(chunkPath)!;
+			return getDefined(chunkSizes.get(chunkPath));
 		}
 
 		try {
@@ -174,10 +184,10 @@ function runTarballSize(packageDir: string): {
 	}
 
 	try {
-		const parsed = JSON.parse(result.stdout) as Array<{
+		const parsed = JSON.parse(result.stdout) as {
 			filename?: string;
 			size?: number;
-		}>;
+		}[];
 		const artifact = parsed[0];
 		const notes: string[] = [];
 

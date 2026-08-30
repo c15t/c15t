@@ -35,19 +35,34 @@ export const benchThrottleProfiles: Record<
 };
 
 export interface BenchCdpSession {
-	send(method: string, params?: Record<string, unknown>): Promise<unknown>;
+	send: {
+		(method: 'Network.enable'): Promise<unknown>;
+		(
+			method: 'Emulation.setCPUThrottlingRate',
+			params: { rate: number }
+		): Promise<unknown>;
+		(
+			method: 'Network.emulateNetworkConditions',
+			params: {
+				offline: boolean;
+				latency: number;
+				downloadThroughput: number;
+				uploadThroughput: number;
+			}
+		): Promise<unknown>;
+	};
 }
 
 export interface BenchInitScriptPage {
 	// Playwright ≥1.61 resolves this to a Disposable (the handle that removes
 	// the script again); older versions resolved to void. The benchmarks never
 	// use the result, so accept either.
-	addInitScript(
+	addInitScript: (
 		script:
 			| string
 			| ((arg: BenchPerformanceObserverOptions) => void | Promise<void>),
 		arg?: BenchPerformanceObserverOptions
-	): Promise<unknown>;
+	) => Promise<unknown>;
 }
 
 export interface BenchPerformanceObserverOptions {

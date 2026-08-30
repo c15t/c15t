@@ -20,7 +20,7 @@ interface AccordionDemoProps {
 	type: AccordionType;
 	collapsible?: boolean;
 	defaultValue: string | string[];
-	items: Array<{ value: string; title: string; content: string }>;
+	items: { value: string; title: string; content: string }[];
 }
 
 function AccordionDemo(props: AccordionDemoProps) {

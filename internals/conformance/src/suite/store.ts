@@ -10,11 +10,11 @@ import type { TestDriver } from '../driver';
 import { conformanceTest } from './helpers';
 import type { SuiteApi } from './helpers';
 
-type StateShape = {
+interface StateShape {
 	consents: Record<string, boolean>;
 	selectedConsents: Record<string, boolean>;
 	activeUI: 'none' | 'banner' | 'dialog';
-};
+}
 
 function readState(driver: TestDriver): StateShape {
 	return driver.getStore().getState() as unknown as StateShape;

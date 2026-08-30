@@ -38,24 +38,24 @@ export type TestFn = (name: string, body: () => void | Promise<void>) => void;
 export type DescribeFn = (name: string, body: () => void) => void;
 
 export type ExpectFn = (value: unknown) => {
-	toBe(value: unknown): void;
-	toEqual(value: unknown): void;
-	toContain(value: unknown): void;
-	toHaveProperty(key: string): void;
-	toBeGreaterThan(value: number): void;
-	toBeGreaterThanOrEqual(value: number): void;
-	toBeDefined(): void;
+	toBe: (value: unknown) => void;
+	toEqual: (value: unknown) => void;
+	toContain: (value: unknown) => void;
+	toHaveProperty: (key: string) => void;
+	toBeGreaterThan: (value: number) => void;
+	toBeGreaterThanOrEqual: (value: number) => void;
+	toBeDefined: () => void;
 	not: {
-		toBeNull(): void;
-		toThrow(): void;
+		toBeNull: () => void;
+		toThrow: () => void;
 	};
 };
 
-export type SuiteApi = {
+export interface SuiteApi {
 	describe: DescribeFn;
 	test: TestFn;
 	expect: ExpectFn;
-};
+}
 
 /**
  * Register a conformance test. Runs the body; if the driver signals
@@ -80,10 +80,10 @@ export function conformanceTest(
 	});
 }
 
-export type SuiteContext = {
+export interface SuiteContext {
 	driver: TestDriver;
 	api: SuiteApi;
-};
+}
 
 /**
  * Query by test-id in the mounted root, falling back to the document body.

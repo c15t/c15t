@@ -23,7 +23,6 @@ const FULL_INIT_PAYLOAD: InitResponse = {
 	location: { countryCode: 'DE', regionCode: 'BE' },
 	translations: {
 		language: 'de',
-		// oxlint-disable-next-line typescript/no-explicit-any -- schema typing
 		translations: {
 			common: {
 				acceptAll: 'Alle akzeptieren',
@@ -35,7 +34,7 @@ const FULL_INIT_PAYLOAD: InitResponse = {
 				title: 'Wir verwenden Cookies',
 				description: 'Diese Website verwendet Cookies...',
 			},
-		} as any,
+		} as InitResponse['translations']['translations'],
 	},
 	branding: 'c15t',
 	policy: {
@@ -64,13 +63,11 @@ const FULL_INIT_PAYLOAD: InitResponse = {
 				scrollLock: true,
 			},
 		},
-		// oxlint-disable-next-line typescript/no-explicit-any -- schema type
-	} as any,
+	} as InitResponse['policy'],
 	policyDecision: {
 		matchedBy: 'region',
 		fingerprint: 'abc123',
-		// oxlint-disable-next-line typescript/no-explicit-any -- schema type
-	} as any,
+	} as InitResponse['policyDecision'],
 	policySnapshotToken: 'sig-abc123',
 };
 

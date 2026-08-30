@@ -3,7 +3,39 @@
  * Utilities for posting bundle analysis comments on pull requests.
  */
 import * as core from '@actions/core';
-import type { GitHub } from '@actions/github/lib/utils';
+
+interface RepoRef {
+	owner: string;
+	repo: string;
+}
+
+interface IssueComment {
+	id: number;
+	body?: string | null;
+}
+
+type RequestParams = Record<string, unknown>;
+
+export interface CommentOctokit {
+	rest: {
+		issues: {
+			listComments: (
+				params: RepoRef &
+					RequestParams & {
+						issue_number: number;
+						page?: number;
+						per_page?: number;
+					}
+			) => Promise<{ data: IssueComment[] }>;
+			createComment: (
+				params: RepoRef & RequestParams & { issue_number: number; body: string }
+			) => Promise<{ data: { id: number } }>;
+			updateComment: (
+				params: RepoRef & RequestParams & { comment_id: number; body: string }
+			) => Promise<unknown>;
+		};
+	};
+}
 
 function autoStart(header: string): string {
 	const key = (header || 'bundle-analysis').trim() || 'bundle-analysis';
@@ -20,8 +52,8 @@ function bodyWithHeader(body: string, header: string): string {
 }
 
 export async function findPreviousComment(
-	octokit: InstanceType<typeof GitHub>,
-	repo: { owner: string; repo: string },
+	octokit: CommentOctokit,
+	repo: RepoRef,
 	number: number,
 	header: string
 ): Promise<{ id: number; body: string } | undefined> {
@@ -57,8 +89,8 @@ export async function findPreviousComment(
 }
 
 export async function createComment(
-	octokit: InstanceType<typeof GitHub>,
-	repo: { owner: string; repo: string },
+	octokit: CommentOctokit,
+	repo: RepoRef,
 	number: number,
 	body: string,
 	header: string
@@ -80,8 +112,8 @@ export async function createComment(
 }
 
 export async function updateComment(
-	octokit: InstanceType<typeof GitHub>,
-	repo: { owner: string; repo: string },
+	octokit: CommentOctokit,
+	repo: RepoRef,
 	commentId: number,
 	body: string,
 	header: string
@@ -101,8 +133,8 @@ export async function updateComment(
 }
 
 export async function ensureComment(
-	octokit: InstanceType<typeof GitHub>,
-	repo: { owner: string; repo: string },
+	octokit: CommentOctokit,
+	repo: RepoRef,
 	number: number,
 	body: string,
 	header: string

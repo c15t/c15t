@@ -10,7 +10,7 @@
 
 import { TEST_IDS } from './test-ids';
 
-export type AriaRoleExpectation = {
+export interface AriaRoleExpectation {
 	testId: string;
 	/** Expected ARIA `role` (or implicit role via tag). */
 	role: string;
@@ -18,9 +18,9 @@ export type AriaRoleExpectation = {
 	requiredAttrs?: readonly string[];
 	/** Attributes asserted to have an exact value. */
 	exactAttrs?: Readonly<Record<string, string>>;
-};
+}
 
-export type FocusContract = {
+export interface FocusContract {
 	/** Test-id of the element that receives focus on open. */
 	initialFocusTestId: string;
 	/**
@@ -30,9 +30,9 @@ export type FocusContract = {
 	returnFocusTestId?: string;
 	/** Test-ids inside the focus trap, in tab order. */
 	tabOrderTestIds: readonly string[];
-};
+}
 
-export type ComponentContract = {
+export interface ComponentContract {
 	/** Component family key (stable across frameworks). */
 	key: string;
 	/** Test-id on the root element (queryable even when closed if portal'd). */
@@ -43,7 +43,7 @@ export type ComponentContract = {
 	focus?: FocusContract;
 	/** Elements that must be present in every locale (no conditional rendering). */
 	stableElements: readonly string[];
-};
+}
 
 export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 	consentBanner: {
@@ -190,6 +190,6 @@ export const DOM_CONTRACT: Readonly<Record<string, ComponentContract>> = {
 	},
 } as const;
 
-export const COMPONENT_KEYS = Object.keys(DOM_CONTRACT) as ReadonlyArray<
-	keyof typeof DOM_CONTRACT
->;
+export const COMPONENT_KEYS = Object.keys(
+	DOM_CONTRACT
+) as readonly (keyof typeof DOM_CONTRACT)[];

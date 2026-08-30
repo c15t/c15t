@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 import { resolveWorkspaceProtocol } from './workspace-protocol';
 
-type PackageJson = {
+interface PackageJson {
 	name?: string;
 	version?: string;
 	private?: boolean;
@@ -21,12 +21,12 @@ type PackageJson = {
 	devDependencies?: Record<string, string>;
 	peerDependencies?: Record<string, string>;
 	optionalDependencies?: Record<string, string>;
-};
+}
 
-type WorkspacePackage = {
+interface WorkspacePackage {
 	path: string;
 	manifest: PackageJson;
-};
+}
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const WORKSPACE_DIRS = ['packages', 'configs', 'internals'];

@@ -63,9 +63,7 @@ export async function loadFixture(
 }
 
 /** Table names in a captured shape, excluding fumadb's own marker table. */
-export function domainTableNames(
-	fixture: CapturedShape
-): ReadonlyArray<string> {
+export function domainTableNames(fixture: CapturedShape): readonly string[] {
 	return fixture.tables
 		.map((table) => table.name)
 		.filter((name) => !/(^|_)c15t_settings$/.test(name))
@@ -76,7 +74,7 @@ export function domainTableNames(
 export function columnNames(
 	fixture: CapturedShape,
 	table: string
-): ReadonlyArray<string> {
+): readonly string[] {
 	const found = fixture.tables.find((candidate) => candidate.name === table);
 	if (!found) {
 		const known = fixture.tables.map((candidate) => candidate.name).join(', ');

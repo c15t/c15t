@@ -1,6 +1,16 @@
 import { expect, userEvent, within } from 'storybook/test';
 import type { PlayFunction } from 'storybook/types';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 /**
  * Verifies tab switching: clicking a tab activates it and shows its panel.
  */
@@ -15,7 +25,7 @@ export const tabSwitching: PlayFunction = async ({ canvasElement }) => {
 	await expect(tabs[1]).toHaveAttribute('data-state', 'inactive');
 
 	// Click second tab
-	await userEvent.click(tabs[1]!);
+	await userEvent.click(getDefined(tabs[1]));
 	await expect(tabs[0]).toHaveAttribute('aria-selected', 'false');
 	await expect(tabs[0]).toHaveAttribute('data-state', 'inactive');
 	await expect(tabs[1]).toHaveAttribute('aria-selected', 'true');
@@ -34,7 +44,7 @@ export const keyboardNavigation: PlayFunction = async ({ canvasElement }) => {
 	const tabs = canvas.getAllByRole('tab');
 
 	// Focus first tab
-	await userEvent.click(tabs[0]!);
+	await userEvent.click(getDefined(tabs[0]));
 	await expect(tabs[0]).toHaveFocus();
 
 	// Arrow right → second tab
@@ -58,7 +68,7 @@ export const arrowLeftNavigation: PlayFunction = async ({ canvasElement }) => {
 	const tabs = canvas.getAllByRole('tab');
 
 	// Focus first tab
-	await userEvent.click(tabs[0]!);
+	await userEvent.click(getDefined(tabs[0]));
 	await expect(tabs[0]).toHaveFocus();
 
 	// Arrow left wraps → last tab
@@ -82,7 +92,7 @@ export const homeAndEndKeys: PlayFunction = async ({ canvasElement }) => {
 	const tabs = canvas.getAllByRole('tab');
 
 	// Focus first tab
-	await userEvent.click(tabs[0]!);
+	await userEvent.click(getDefined(tabs[0]));
 	await expect(tabs[0]).toHaveFocus();
 
 	// End → last tab
@@ -107,7 +117,7 @@ export const tabKeySkipsInactiveTabs: PlayFunction = async ({
 	const tabs = canvas.getAllByRole('tab');
 
 	// Focus first tab (which is selected)
-	await userEvent.click(tabs[0]!);
+	await userEvent.click(getDefined(tabs[0]));
 	await expect(tabs[0]).toHaveFocus();
 
 	// Tab should move focus to the tabpanel, NOT the next tab trigger

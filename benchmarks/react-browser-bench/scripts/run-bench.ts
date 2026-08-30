@@ -5,17 +5,19 @@ import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
+import type { readBenchNavigationTiming } from '@c15t/benchmarking/browser';
 import {
 	applyBenchThrottleProfile,
 	benchNavigationTimingExpression,
 	installBenchPerformanceObservers,
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
-	readBenchNavigationTiming,
 } from '@c15t/benchmarking/browser';
 import { browserBudgets } from '@c15t/benchmarking/budgets';
-import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
-import type { BenchmarkResult } from '@c15t/benchmarking/schema';
+import {
+	BENCHMARK_SCHEMA_VERSION,
+	type BenchmarkResult,
+} from '@c15t/benchmarking/schema';
 import {
 	getEnvironment,
 	median,
@@ -26,30 +28,7 @@ import {
 	writeJson,
 } from '@c15t/benchmarking/utils';
 import { chromium } from 'playwright';
-
-type DeferredPromise<Value> = {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-};
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
-};
-
-function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-}
-
+import type * as PlaywrightTypes from 'playwright';
 const HOST = '127.0.0.1';
 const PORT = 4311;
 const BASE_URL = `http://${HOST}:${PORT}`;
@@ -121,7 +100,7 @@ if (scenarioFilter && scenarios.length === 0) {
 }
 
 async function measureInteractionLatency(
-	page: import('playwright').Page,
+	page: PlaywrightTypes.Page,
 	scenario:
 		| (typeof allScenarios)[number]['name']
 		| 'repeat-visitor'
@@ -281,7 +260,7 @@ async function waitForServer() {
 }
 
 async function runCommand(args: string[], label: string) {
-	return await createDeferredPromise<void>((resolvePromise, rejectPromise) => {
+	return await new Promise<void>((resolvePromise, rejectPromise) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -318,8 +297,8 @@ async function ensureBuild() {
 }
 
 async function applyPageProfile(
-	context: import('playwright').BrowserContext,
-	page: import('playwright').Page
+	context: PlaywrightTypes.BrowserContext,
+	page: PlaywrightTypes.Page
 ) {
 	const session = await context.newCDPSession(page);
 	await applyBenchThrottleProfile(session, throttleProfile);
@@ -350,9 +329,7 @@ function resultFileName(scenario: string): string {
 	return `${resultScenarioName(scenario).replaceAll(':', '-')}.json`;
 }
 
-function nullableMedian(
-	values: Array<number | null | undefined>
-): number | null {
+function nullableMedian(values: (number | null | undefined)[]): number | null {
 	const numbers = values.filter(
 		(value): value is number =>
 			typeof value === 'number' && Number.isFinite(value)
@@ -361,7 +338,7 @@ function nullableMedian(
 }
 
 async function collectPageMetrics(
-	page: import('playwright').Page,
+	page: PlaywrightTypes.Page,
 	scenario: string,
 	bannerInFirstHtml: boolean
 ) {
@@ -733,9 +710,7 @@ async function run() {
 	}
 }
 
-try {
-	await run();
-} catch (error) {
+run().catch((error) => {
 	console.error(error);
 	process.exit(1);
-}
+});

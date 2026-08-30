@@ -19,11 +19,11 @@ if (typeof globalThis.localStorage === 'undefined') {
 			store[key] = value;
 		},
 		removeItem: (key: string) => {
-			delete store[key];
+			Reflect.deleteProperty(store, key);
 		},
 		clear: () => {
 			for (const key in store) {
-				delete store[key];
+				Reflect.deleteProperty(store, key);
 			}
 		},
 		key: (index: number) => Object.keys(store)[index] || null,

@@ -5,17 +5,20 @@ import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
+import type { readBenchNavigationTiming } from '@c15t/benchmarking/browser';
 import {
 	applyBenchThrottleProfile,
 	benchNavigationTimingExpression,
 	installBenchPerformanceObservers,
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
-	readBenchNavigationTiming,
 } from '@c15t/benchmarking/browser';
 import { browserBudgets } from '@c15t/benchmarking/budgets';
-import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
-import type { BenchmarkResult, MetricBudget } from '@c15t/benchmarking/schema';
+import {
+	BENCHMARK_SCHEMA_VERSION,
+	type BenchmarkResult,
+	type MetricBudget,
+} from '@c15t/benchmarking/schema';
 import {
 	getEnvironment,
 	median,
@@ -26,30 +29,7 @@ import {
 	writeJson,
 } from '@c15t/benchmarking/utils';
 import { chromium } from 'playwright';
-
-type DeferredPromise<Value> = {
-	promise: Promise<Value>;
-	resolve: (value: Value | PromiseLike<Value>) => void;
-	reject: (reason?: unknown) => void;
-};
-
-type PromiseWithResolversConstructor = PromiseConstructor & {
-	withResolvers<Value>(): DeferredPromise<Value>;
-};
-
-function createDeferredPromise<Value>(
-	run: (
-		resolve: DeferredPromise<Value>['resolve'],
-		reject: DeferredPromise<Value>['reject']
-	) => void
-): Promise<Value> {
-	const deferred = (
-		Promise as PromiseWithResolversConstructor
-	).withResolvers<Value>();
-	run(deferred.resolve, deferred.reject);
-	return deferred.promise;
-}
-
+import type * as PlaywrightTypes from 'playwright';
 type NuxtBenchScenario =
 	| 'baseline'
 	| 'baseline-client'
@@ -156,10 +136,10 @@ const allScenarios = [
 	{ name: 'client', path: '/client' },
 	{ name: 'client-manifest', path: '/client-manifest' },
 	{ name: 'repeat-visitor', path: '/repeat-visitor' },
-] as const satisfies ReadonlyArray<{
+] as const satisfies readonly {
 	name: NuxtBenchScenario;
 	path: string;
-}>;
+}[];
 
 const scenarios = scenarioFilter
 	? allScenarios.filter((scenario) => scenario.name === scenarioFilter)
@@ -172,7 +152,7 @@ if (scenarioFilter && scenarios.length === 0) {
 }
 
 async function measureInteractionLatency(
-	page: import('playwright').Page,
+	page: PlaywrightTypes.Page,
 	scenario: NuxtBenchScenario
 ) {
 	if (scenario === 'baseline' || scenario === 'baseline-client') {
@@ -231,7 +211,7 @@ async function waitForServer() {
 }
 
 async function runCommand(args: string[], label: string) {
-	return await createDeferredPromise<void>((resolvePromise, rejectPromise) => {
+	return await new Promise<void>((resolvePromise, rejectPromise) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -268,8 +248,8 @@ async function ensureBuild() {
 }
 
 async function applyPageProfile(
-	context: import('playwright').BrowserContext,
-	page: import('playwright').Page
+	context: PlaywrightTypes.BrowserContext,
+	page: PlaywrightTypes.Page
 ) {
 	const session = await context.newCDPSession(page);
 	await applyBenchThrottleProfile(session, throttleProfile);
@@ -280,7 +260,7 @@ async function applyPageProfile(
 }
 
 async function seedRepeatVisitorCookie(
-	context: import('playwright').BrowserContext
+	context: PlaywrightTypes.BrowserContext
 ) {
 	await context.addCookies([
 		{
@@ -308,9 +288,7 @@ function resultFileName(scenario: string): string {
 	return `${resultScenarioName(scenario).replaceAll(':', '-')}.json`;
 }
 
-function nullableMedian(
-	values: Array<number | null | undefined>
-): number | null {
+function nullableMedian(values: (number | null | undefined)[]): number | null {
 	const numbers = values.filter(
 		(value): value is number =>
 			typeof value === 'number' && Number.isFinite(value)
@@ -319,7 +297,7 @@ function nullableMedian(
 }
 
 async function collectScenarioMetrics(
-	page: import('playwright').Page,
+	page: PlaywrightTypes.Page,
 	scenario: NuxtBenchScenario,
 	path: string
 ) {
@@ -774,9 +752,7 @@ async function run() {
 	}
 }
 
-try {
-	await run();
-} catch (error) {
+run().catch((error) => {
 	console.error(error);
 	process.exit(1);
-}
+});

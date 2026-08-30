@@ -19,12 +19,12 @@ import { Glob } from 'bun';
 
 import { isCanonicalTestId } from '../contract/test-ids';
 
-export type TestIdViolation = {
+export interface TestIdViolation {
 	file: string;
 	line: number;
 	testId: string;
 	kind: 'literal' | 'dynamic';
-};
+}
 
 // Match data-testid as a JSX/Svelte attribute only. Leading `(?:^|\s)` excludes
 // selector contexts like `[data-testid="foo"]` inside querySelector strings.

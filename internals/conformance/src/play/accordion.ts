@@ -1,6 +1,16 @@
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 import type { PlayFunction } from 'storybook/types';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 function getAccordionItem(trigger: HTMLElement | null) {
 	return trigger?.closest('[data-slot="accordion-item"]');
 }
@@ -47,7 +57,7 @@ export const singleModeToggle: PlayFunction = async ({ canvasElement }) => {
 	});
 
 	// Click second trigger — it opens, first closes
-	await userEvent.click(triggers[1]!);
+	await userEvent.click(getDefined(triggers[1]));
 	await waitFor(() => {
 		expect(firstItem).toHaveAttribute('data-state', 'closed');
 		expect(firstContent).toHaveAttribute('data-state', 'closed');
@@ -56,7 +66,7 @@ export const singleModeToggle: PlayFunction = async ({ canvasElement }) => {
 	});
 
 	// Click second trigger again — it collapses (collapsible mode)
-	await userEvent.click(triggers[1]!);
+	await userEvent.click(getDefined(triggers[1]));
 	await waitFor(() => {
 		expect(secondItem).toHaveAttribute('data-state', 'closed');
 		expect(secondContent).toHaveAttribute('data-state', 'closed');
@@ -85,7 +95,7 @@ export const multipleModeToggle: PlayFunction = async ({ canvasElement }) => {
 	});
 
 	// Close first — second stays open
-	await userEvent.click(triggers[0]!);
+	await userEvent.click(getDefined(triggers[0]));
 	await waitFor(() => {
 		expect(firstItem).toHaveAttribute('data-state', 'closed');
 		expect(firstContent).toHaveAttribute('data-state', 'closed');

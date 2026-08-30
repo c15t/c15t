@@ -1,6 +1,16 @@
 import { expect, userEvent, within } from 'storybook/test';
 import type { PlayFunction } from 'storybook/types';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 /**
  * Verifies preference item expand/collapse via trigger button.
  */
@@ -34,7 +44,7 @@ export const switchIndependentOfTrigger: PlayFunction = async ({
 	const switchEl = canvas.getByRole('switch');
 	const buttons = canvas.getAllByRole('button');
 	// The trigger is the first button, switch is separate
-	const trigger = buttons[0]!;
+	const trigger = getDefined(buttons[0]);
 
 	// Toggle the switch — content state should not change
 	const contentBefore = canvasElement

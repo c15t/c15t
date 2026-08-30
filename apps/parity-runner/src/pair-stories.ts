@@ -8,21 +8,21 @@
  * `COMPONENTS - SVELTE/Button`, `COMPONENTS - VUE/Button`, etc.
  */
 
-export type StoryEntry = {
+export interface StoryEntry {
 	/** Full Storybook id (e.g. `components-react-button--primary`). */
 	id: string;
 	/** Human title (e.g. `COMPONENTS - REACT/Button`). */
 	title: string;
 	/** Story name (e.g. `Primary`). */
 	name: string;
-};
+}
 
-export type PairedStory = {
+export interface PairedStory {
 	/** Framework-neutral key (e.g. `Button/Primary`). */
 	key: string;
 	/** Story metadata per framework, keyed by framework code. */
 	entries: Readonly<Record<string, StoryEntry>>;
-};
+}
 
 const FRAMEWORK_SEGMENT = /^components\s*-\s*(react|svelte|vue|solid)\//i;
 

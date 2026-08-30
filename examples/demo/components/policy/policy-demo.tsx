@@ -33,24 +33,24 @@ import { VideoDemo } from '../video-demo';
 
 type DemoMode = 'offline' | 'hosted';
 
-type LocationPreset = {
+interface LocationPreset {
 	id: string;
 	label: string;
 	country: string;
 	region?: string;
 	description: string;
-};
+}
 
-type LocationPresetSection = {
+interface LocationPresetSection {
 	label: string;
 	description: string;
 	presets: LocationPreset[];
-};
+}
 
-type DemoLanguageOption = {
+interface DemoLanguageOption {
 	label: string;
 	value?: string;
-};
+}
 
 // ---------------------------------------------------------------------------
 // Location presets
@@ -743,9 +743,12 @@ export function PolicyDemo() {
 		[normalizedCountry, normalizedRegion]
 	);
 
-	const categories: Array<
-		'necessary' | 'functionality' | 'measurement' | 'marketing'
-	> = ['necessary', 'functionality', 'measurement', 'marketing'];
+	const categories: (
+		| 'necessary'
+		| 'functionality'
+		| 'measurement'
+		| 'marketing'
+	)[] = ['necessary', 'functionality', 'measurement', 'marketing'];
 	const iabConfig = iab({
 		customVendors: [
 			{

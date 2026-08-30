@@ -26,7 +26,7 @@ export type EventName = (typeof EVENT_NAMES)[number];
  * to invoke the callback with a payload matching the shape here. Drivers
  * produce a typed payload via ducktype against this map.
  */
-export type EventPayloads = {
+export interface EventPayloads {
 	onConsentChanged: {
 		consent: ConsentStoreState['consents'];
 		categories: readonly string[];
@@ -49,17 +49,17 @@ export type EventPayloads = {
 		code: string;
 		message: string;
 	};
-};
+}
 
 /**
  * Lifecycle ordering contract: each pair asserts that `before` fires before
  * `after` in any framework. Matched against the recorded event log in
  * `runEventContractConformance`.
  */
-export const EVENT_ORDERING: ReadonlyArray<{
+export const EVENT_ORDERING: readonly {
 	before: EventName;
 	after: EventName;
-}> = [
+}[] = [
 	{ before: 'onBannerFetched', after: 'onConsentChanged' },
 	{ before: 'onConsentChanged', after: 'onConsentSet' },
 ];

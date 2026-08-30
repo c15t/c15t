@@ -13,11 +13,11 @@ import type { ReactNode } from 'react';
 type ThemeMode = 'light' | 'dark' | 'system';
 type ResolvedTheme = 'light' | 'dark';
 
-type ThemeContextValue = {
+interface ThemeContextValue {
 	theme: ThemeMode;
 	resolvedTheme: ResolvedTheme;
 	setTheme: (theme: ThemeMode) => void;
-};
+}
 
 const STORAGE_KEY = 'c15t-example-demo-theme';
 const TRANSITION_STYLE_ID = 'c15t-disable-transitions';
@@ -96,11 +96,11 @@ function resolveThemeMode(
 	return theme === 'dark' ? 'dark' : 'light';
 }
 
-type ThemeProviderProps = {
+interface ThemeProviderProps {
 	children: ReactNode;
 	defaultTheme?: ThemeMode;
 	enableSystem?: boolean;
-};
+}
 
 export function ThemeProvider({
 	children,

@@ -6,12 +6,12 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-type PackageDocsConfig = {
+interface PackageDocsConfig {
 	name: string;
 	outDir: string;
 	summary: string;
 	include: string[];
-};
+}
 
 const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{

@@ -164,13 +164,13 @@ async function run() {
 	try {
 		await waitForServer();
 		const browser = await chromium.launch({ headless: true });
-		const results: Array<{
+		const results: {
 			version: Version;
 			bannerReadyMs: Stats;
 			bannerVisibleMs: Stats;
 			mountMs: Stats;
 			renderCount: Stats;
-		}> = [];
+		}[] = [];
 
 		for (const version of ['v2', 'v3'] as const) {
 			const readySamples: number[] = [];

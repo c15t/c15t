@@ -9,7 +9,7 @@
  * per framework, passes it through `normalizeA11ySnapshot`, then diffs.
  */
 
-export type RawA11yNode = {
+export interface RawA11yNode {
 	role?: string;
 	name?: string;
 	value?: string | number;
@@ -21,14 +21,14 @@ export type RawA11yNode = {
 	focused?: boolean;
 	level?: number;
 	children?: RawA11yNode[];
-};
+}
 
-export type NormalizedA11yNode = {
+export interface NormalizedA11yNode {
 	role: string;
 	name: string;
 	state: Record<string, boolean | 'mixed' | string | number>;
 	children: NormalizedA11yNode[];
-};
+}
 
 /**
  * Strip framework-specific noise (leading/trailing whitespace in names,

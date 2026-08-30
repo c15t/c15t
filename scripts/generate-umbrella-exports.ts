@@ -172,11 +172,11 @@ export interface SourcePackage {
 	/**
 	 * Analyzes the module behind a concrete (wildcard-substituted) subpath.
 	 */
-	analyzeEntry(subpath: string, entry: ConditionalExport): EntryModuleInfo;
+	analyzeEntry: (subpath: string, entry: ConditionalExport) => EntryModuleInfo;
 	/**
 	 * Enumerates the concrete names a wildcard subpath expands to.
 	 */
-	expandWildcard(subpath: string, entry: ConditionalExport): string[];
+	expandWildcard: (subpath: string, entry: ConditionalExport) => string[];
 	/**
 	 * Enumerates the concrete file names a raw string wildcard target expands
 	 * to. Unlike {@link expandWildcard}, `*` in a string export captures the
@@ -184,7 +184,7 @@ export interface SourcePackage {
 	 * built extensions (`components/consent-banner.vue`,
 	 * `composables/consent.js`).
 	 */
-	expandStringWildcard(subpath: string, target: string): string[];
+	expandStringWildcard: (subpath: string, target: string) => string[];
 }
 
 export interface CssCopy {

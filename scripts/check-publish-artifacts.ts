@@ -10,21 +10,21 @@ import {
 	wildcardToRegExp,
 } from './manifest-utils';
 
-type PackedFile = {
+interface PackedFile {
 	path: string;
 	size: number;
-};
+}
 
-type PackResult = {
+interface PackResult {
 	name: string;
 	version: string;
 	files: PackedFile[];
-};
+}
 
 const ROOT = process.cwd();
 const PACKAGES_DIR = join(ROOT, 'packages');
 
-const distBlockedPathPatterns: Array<{ reason: string; pattern: RegExp }> = [
+const distBlockedPathPatterns: { reason: string; pattern: RegExp }[] = [
 	{ reason: 'test folder', pattern: /(^|\/)__tests__(\/|$)/ },
 	{ reason: 'snapshot folder', pattern: /(^|\/)__snapshots__(\/|$)/ },
 	{ reason: 'screenshot folder', pattern: /(^|\/)__screenshots__(\/|$)/ },
@@ -101,7 +101,7 @@ const rootTw3ProxyContents: Record<string, string> = {
 function scanPackedManifestTargets(
 	manifest: PackageManifest,
 	packedFilePaths: Set<string>
-): Array<{ path: string; size: number; reason: string }> {
+): { path: string; size: number; reason: string }[] {
 	const packedFiles = [...packedFilePaths];
 
 	return collectManifestTargets(manifest)
@@ -229,12 +229,12 @@ function scanStyleEntrypointsContent(
 	packageDir: string,
 	packageName: string,
 	packedFilePaths: Set<string>
-): Array<{ path: string; size: number; reason: string }> {
+): { path: string; size: number; reason: string }[] {
 	if (!styleEntrypointPackages.has(packageName)) {
 		return [];
 	}
 
-	const issues: Array<{ path: string; size: number; reason: string }> = [];
+	const issues: { path: string; size: number; reason: string }[] = [];
 
 	for (const [path, expectedContent] of Object.entries(rootTw3ProxyContents)) {
 		if (!packedFilePaths.has(path)) {
@@ -282,7 +282,7 @@ function scanUiV3StyleArtifacts(
 	packageDir: string,
 	packageName: string,
 	packedFilePaths: Set<string>
-): Array<{ path: string; size: number; reason: string }> {
+): { path: string; size: number; reason: string }[] {
 	if (packageName !== '@c15t/ui') {
 		return [];
 	}
@@ -292,7 +292,7 @@ function scanUiV3StyleArtifacts(
 		.filter((file) => file.endsWith('.module.css'))
 		.map((file) => file.replace('.module.css', ''))
 		.sort();
-	const issues: Array<{ path: string; size: number; reason: string }> = [];
+	const issues: { path: string; size: number; reason: string }[] = [];
 
 	for (const name of styleNames) {
 		for (const extension of ['css', 'js', 'd.ts']) {
@@ -385,11 +385,11 @@ function main(): void {
 		.map((entry) => join(PACKAGES_DIR, entry.name))
 		.filter((packageDir) => existsSync(join(packageDir, 'package.json')));
 
-	const offenders: Array<{
+	const offenders: {
 		packageName: string;
 		version: string;
-		files: Array<{ path: string; size: number; reason: string }>;
-	}> = [];
+		files: { path: string; size: number; reason: string }[];
+	}[] = [];
 
 	let checkedPackages = 0;
 

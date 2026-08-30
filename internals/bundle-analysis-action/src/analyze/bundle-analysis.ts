@@ -28,13 +28,13 @@ export interface PackageBundleData {
 	diffs: {
 		added: BundleStats[];
 		removed: BundleStats[];
-		changed: Array<{
+		changed: {
 			name: string;
 			baseSize: number;
 			currentSize: number;
 			diff: number;
 			diffPercent: number;
-		}>;
+		}[];
 	};
 	totalBaseSize: number;
 	totalCurrentSize: number;
@@ -199,13 +199,13 @@ export function compareBundles(
 
 	const added: BundleStats[] = [];
 	const removed: BundleStats[] = [];
-	const changed: Array<{
+	const changed: {
 		name: string;
 		baseSize: number;
 		currentSize: number;
 		diff: number;
 		diffPercent: number;
-	}> = [];
+	}[] = [];
 
 	// Find added bundles
 	for (const [name, bundle] of currentMap) {

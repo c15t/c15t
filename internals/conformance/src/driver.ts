@@ -33,7 +33,7 @@ export type MountableComponent =
  * that hardcode an opt-in policy fixture extend it with these fields; stub
  * drivers throw `DriverNotImplementedError` so suites degrade to todo.
  */
-export type MountPolicyOptions = {
+export interface MountPolicyOptions {
 	/**
 	 * Consent model of the policy fixture. Defaults to the driver's existing
 	 * `'opt-in'` fixture.
@@ -45,9 +45,9 @@ export type MountPolicyOptions = {
 	 * opts in).
 	 */
 	respectGpc?: boolean;
-};
+}
 
-export type MountOptions = {
+export interface MountOptions {
 	component: MountableComponent;
 	/**
 	 * Controls how the provider receives its initial policy data.
@@ -85,9 +85,9 @@ export type MountOptions = {
 	initialState?: unknown;
 	/** Locale override, applied before first render. */
 	locale?: string;
-};
+}
 
-export type MountResult = {
+export interface MountResult {
 	/** Root element the component was rendered into. */
 	root: HTMLElement;
 	/**
@@ -97,17 +97,17 @@ export type MountResult = {
 	resolveInit?: () => Promise<void>;
 	/** Tear down the component, remove listeners, detach from DOM. */
 	unmount: () => void | Promise<void>;
-};
+}
 
 /**
  * Minimal store surface the suites rely on. Drivers proxy this to the
  * underlying Zustand store; we intentionally don't expose `setState` so
  * suites mutate only through user-facing actions.
  */
-export type DriverStore = {
-	getState(): Record<string, unknown>;
-	subscribe(listener: () => void): () => void;
-};
+export interface DriverStore {
+	getState: () => Record<string, unknown>;
+	subscribe: (listener: () => void) => () => void;
+}
 
 export interface TestDriver {
 	readonly framework: SupportedFramework;
@@ -116,17 +116,17 @@ export interface TestDriver {
 	 * Mount a component into a fresh DOM container. The driver owns the
 	 * container lifecycle and must clean up in `unmount`.
 	 */
-	mount(opts: MountOptions): Promise<MountResult>;
+	mount: (opts: MountOptions) => Promise<MountResult>;
 
 	/** Access the active consent store after `mount`. */
-	getStore(): DriverStore;
+	getStore: () => DriverStore;
 
 	/**
 	 * Server-render the component to HTML. Used by the SSR conformance suite.
 	 * If the framework binding has no SSR support yet, throw — the suite
 	 * will skip gracefully.
 	 */
-	serverRender(opts: MountOptions): Promise<string>;
+	serverRender: (opts: MountOptions) => Promise<string>;
 }
 
 /**

@@ -16,7 +16,7 @@ export interface ScriptCountBenchState {
 	scriptEvents: Record<string, number>;
 	initialReady: boolean;
 	complete: boolean;
-	recordScriptExecution(id: string): void;
+	recordScriptExecution: (id: string) => void;
 }
 
 declare global {

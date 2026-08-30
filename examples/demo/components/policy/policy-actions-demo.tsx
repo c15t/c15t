@@ -27,7 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 
 type DemoVariant = 'default' | 'stock' | 'custom';
 
-type Snapshot = {
+interface Snapshot {
 	isVisible: boolean;
 	allowedActions: string[];
 	orderedActions: string[];
@@ -36,7 +36,7 @@ type Snapshot = {
 	direction: string;
 	uiProfile?: string;
 	shouldFillActions: boolean;
-};
+}
 
 const locationPresets = [
 	{

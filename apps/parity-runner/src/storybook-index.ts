@@ -7,13 +7,13 @@ import { request } from '@playwright/test';
 
 import type { StoryEntry } from './pair-stories';
 
-type RawStorybookIndex = {
+interface RawStorybookIndex {
 	entries?: Record<
 		string,
 		{ id: string; title: string; name: string; type?: string }
 	>;
 	stories?: Record<string, { id: string; title: string; name: string }>;
-};
+}
 
 export async function loadStorybookIndex(
 	baseUrl: string

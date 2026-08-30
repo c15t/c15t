@@ -9,6 +9,16 @@ import { dirname, join } from 'node:path';
 
 import type { BenchmarkEnvironment, MetricSampleSet } from './schema';
 
+const getDefined = <Value>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 export function percentile(values: number[], p: number): number {
 	if (values.length === 0) {
 		return 0;
@@ -35,8 +45,8 @@ export function median(values: number[]): number {
 	const sorted = [...values].sort((a, b) => a - b);
 	const middle = Math.floor(sorted.length / 2);
 	return sorted.length % 2 === 0
-		? (sorted[middle - 1]! + sorted[middle]!) / 2
-		: sorted[middle]!;
+		? (getDefined(sorted[middle - 1]) + getDefined(sorted[middle])) / 2
+		: getDefined(sorted[middle]);
 }
 
 export function summarizeMetric(
@@ -57,7 +67,7 @@ export function summarizeMetric(
 export function summarizeNullableMetric(
 	name: string,
 	unit: MetricSampleSet['unit'],
-	samples: Array<number | null | undefined>
+	samples: (number | null | undefined)[]
 ): MetricSampleSet {
 	const values = samples.map((sample) =>
 		typeof sample === 'number' && Number.isFinite(sample) ? sample : null

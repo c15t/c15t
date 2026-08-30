@@ -18,7 +18,7 @@ import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import type { DatabaseOption } from '@c15t/backend';
-
+import type * as EffectSqlPgliteTypes from '@effect/sql-pglite';
 /**
  * Where PGlite keeps its data directory.
  *
@@ -38,11 +38,11 @@ export const LOCAL_DATA_DIR = resolve(process.cwd(), '.pgdata');
  */
 const EMBEDDED_POSTGRES_MODULE = '@effect/sql-pglite';
 
-export type ResolvedAdapter = {
+export interface ResolvedAdapter {
 	database: DatabaseOption;
 	/** `embedded` runs migrations on boot; a real Postgres must not. */
 	mode: 'postgres' | 'embedded';
-};
+}
 
 /**
  * The embedded case is why `database` accepts a layer as well as a config.
@@ -54,7 +54,7 @@ export type ResolvedAdapter = {
 async function createEmbeddedDatabase(): Promise<DatabaseOption> {
 	const { PgliteClient } = (await import(
 		/* @vite-ignore */ EMBEDDED_POSTGRES_MODULE
-	)) as typeof import('@effect/sql-pglite');
+	)) as typeof EffectSqlPgliteTypes;
 
 	// PGlite mkdirs the data directory itself but not its parent.
 	mkdirSync(LOCAL_DATA_DIR, { recursive: true });

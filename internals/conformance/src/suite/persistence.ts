@@ -28,10 +28,10 @@ import type { SuiteApi } from './helpers';
 const BANNER_ROOT = 'consent-banner-root';
 const ACCEPT_BUTTON = 'consent-banner-accept-button';
 
-type PersistedState = {
+interface PersistedState {
 	consents?: Record<string, boolean>;
 	hasConsented?: unknown;
-};
+}
 
 function readState(driver: TestDriver): PersistedState {
 	return driver.getStore().getState() as PersistedState;

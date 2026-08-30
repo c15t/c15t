@@ -49,7 +49,7 @@ describe('pr-comment', () => {
 			});
 
 			const result = await findPreviousComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				123,
 				'bundle-analysis'
@@ -67,7 +67,7 @@ describe('pr-comment', () => {
 			});
 
 			const result = await findPreviousComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				123,
 				'bundle-analysis'
@@ -94,7 +94,7 @@ describe('pr-comment', () => {
 				.mockResolvedValueOnce({ data: secondPage });
 
 			const result = await findPreviousComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				123,
 				'bundle-analysis'
@@ -118,7 +118,7 @@ describe('pr-comment', () => {
 			});
 
 			await findPreviousComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				123,
 				'bundle-analysis'
@@ -135,7 +135,7 @@ describe('pr-comment', () => {
 			});
 
 			const result = await createComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				456,
 				'Comment body',
@@ -157,7 +157,7 @@ describe('pr-comment', () => {
 			);
 
 			const result = await createComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				456,
 				'Comment body',
@@ -176,7 +176,7 @@ describe('pr-comment', () => {
 			});
 
 			await createComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				456,
 				'Comment body',
@@ -196,7 +196,7 @@ describe('pr-comment', () => {
 			mockOctokit.rest.issues.updateComment.mockResolvedValue({});
 
 			await updateComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				789,
 				'Updated body',
@@ -217,7 +217,7 @@ describe('pr-comment', () => {
 			);
 
 			await updateComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				789,
 				'Updated body',
@@ -243,7 +243,7 @@ describe('pr-comment', () => {
 			mockOctokit.rest.issues.updateComment.mockResolvedValue({});
 
 			await ensureComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				456,
 				'New body',
@@ -264,7 +264,7 @@ describe('pr-comment', () => {
 			});
 
 			await ensureComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				456,
 				'New body',
@@ -283,7 +283,7 @@ describe('pr-comment', () => {
 			mockOctokit.rest.issues.createComment.mockResolvedValue(undefined);
 
 			await ensureComment(
-				mockOctokit as any,
+				mockOctokit,
 				{ owner: 'test', repo: 'repo' },
 				456,
 				'New body',

@@ -3,6 +3,16 @@ import { tabsVariants } from '@c15t/solid';
 import { createSignal, For, Show } from 'solid-js';
 import type { Meta, StoryObj } from 'storybook-solidjs-vite';
 
+const getDefined = <Value,>(
+	value: Value,
+	message = 'Expected value to be defined'
+): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error(message);
+	}
+	return value;
+};
+
 interface Tab {
 	value: string;
 	label: string;
@@ -56,7 +66,7 @@ function TabsDemo(props: { tabs?: Tab[] }) {
 
 		if (nextIndex !== undefined) {
 			e.preventDefault();
-			const nextValue = tabValues[nextIndex]!;
+			const nextValue = getDefined(tabValues[nextIndex]);
 			setActive(nextValue);
 			const tabList = e.currentTarget as HTMLElement;
 			const nextTab = tabList.querySelector(
@@ -164,7 +174,7 @@ export const Controlled: Story = {
 
 			if (nextIndex !== undefined) {
 				e.preventDefault();
-				const nextValue = tabValues[nextIndex]!;
+				const nextValue = getDefined(tabValues[nextIndex]);
 				setValue(nextValue);
 				const tabList = e.currentTarget as HTMLElement;
 				const nextTab = tabList.querySelector(

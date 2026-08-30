@@ -42,7 +42,7 @@ export const chunkedFanout = Effect.fn('arm.chunkedFanout')(function* (
 	queries += 1;
 
 	const ids = subjects.map((row) => row.id);
-	const consents: Array<{ id: string; policyId: string | null }> = [];
+	const consents: { id: string; policyId: string | null }[] = [];
 
 	for (let index = 0; index < ids.length; index += SUBJECT_ID_BATCH_SIZE) {
 		const batch = ids.slice(index, index + SUBJECT_ID_BATCH_SIZE);

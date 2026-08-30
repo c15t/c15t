@@ -28,17 +28,17 @@ interface MockIframe {
 	tagName: 'IFRAME';
 	nodeType: 1;
 	attrs: Map<string, string>;
-	getAttribute(k: string): string | null;
-	setAttribute(k: string, v: string): void;
-	removeAttribute(k: string): void;
-	querySelectorAll(): MockIframe[];
+	getAttribute: (k: string) => string | null;
+	setAttribute: (k: string, v: string) => void;
+	removeAttribute: (k: string) => void;
+	querySelectorAll: () => MockIframe[];
 	get src(): string | null;
 	set src(v: string | null);
 }
 
 interface MockBody {
 	children: MockIframe[];
-	appendChild(child: MockIframe): void;
+	appendChild: (child: MockIframe) => void;
 }
 
 function createMockIframe(category: string, dataSrc?: string): MockIframe {

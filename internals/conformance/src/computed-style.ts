@@ -56,25 +56,25 @@ const DEFAULT_PROPS = [
 	'direction',
 ] as const;
 
-export type ComputedStyleSnapshot = {
+export interface ComputedStyleSnapshot {
 	readonly properties: Readonly<Record<string, string>>;
 	readonly customProperties: Readonly<Record<string, string>>;
-};
+}
 
-export type ComputedStyleDiff = {
+export interface ComputedStyleDiff {
 	path: string;
 	kind: 'property' | 'custom-property';
 	name: string;
 	a: string | undefined;
 	b: string | undefined;
-};
+}
 
-export type CaptureOptions = {
+export interface CaptureOptions {
 	/** CSS property names to capture. Defaults to DEFAULT_PROPS. */
 	properties?: readonly string[];
 	/** Whether to capture CSS custom properties (`--*`). Default: true. */
 	captureCustomProperties?: boolean;
-};
+}
 
 // ---------------------------------------------------------------------------
 // Value canonicalizers

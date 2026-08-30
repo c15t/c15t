@@ -15,7 +15,7 @@ import type {
 	CssLayerSurface,
 } from './css-layer-types';
 
-function cx(...values: Array<string | undefined>) {
+function cx(...values: (string | undefined)[]) {
 	return values.filter(Boolean).join(' ');
 }
 

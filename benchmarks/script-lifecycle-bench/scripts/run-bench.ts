@@ -43,6 +43,7 @@ function createDeferredPromise<Value>(
 	return deferred.promise;
 }
 
+import type * as PlaywrightTypes from 'playwright';
 const HOST = '127.0.0.1';
 const PORT = 4313;
 const BASE_URL = `http://${HOST}:${PORT}`;
@@ -219,7 +220,7 @@ function assertScenarioInvariants(
 }
 
 async function collectScenarioSample(
-	page: import('playwright').Page,
+	page: PlaywrightTypes.Page,
 	config: ScriptLifecycleScenarioConfig
 ) {
 	await page.goto(`/?scenario=${config.name}`);

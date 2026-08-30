@@ -74,19 +74,40 @@ describe('main', () => {
 		},
 	];
 
-	const mockOctokit = {
-		rest: {
-			issues: {
-				listComments: vi.fn(),
-				createComment: vi.fn(),
-				updateComment: vi.fn(),
-			},
-		},
+	const mockOctokitIssues = {
+		listComments: vi.fn(),
+		createComment: vi.fn(),
+		updateComment: vi.fn(),
 	};
+
+	const mockOctokit = {
+		auth: vi.fn(),
+		graphql: vi.fn(),
+		hook: Object.assign(vi.fn(), {
+			after: vi.fn(),
+			before: vi.fn(),
+			error: vi.fn(),
+			remove: vi.fn(),
+			wrap: vi.fn(),
+		}),
+		log: {
+			debug: vi.fn(),
+			error: vi.fn(),
+			info: vi.fn(),
+			warn: vi.fn(),
+		},
+		paginate: Object.assign(vi.fn(), {
+			iterator: vi.fn(),
+		}),
+		request: vi.fn(),
+		rest: {
+			issues: mockOctokitIssues,
+		},
+	} as unknown as ReturnType<typeof github.getOctokit>;
 
 	beforeEach(() => {
 		vi.clearAllMocks();
-		vi.mocked(github.getOctokit).mockReturnValue(mockOctokit as any);
+		vi.mocked(github.getOctokit).mockReturnValue(mockOctokit);
 	});
 
 	// Test the main logic by testing the individual functions
@@ -179,13 +200,7 @@ describe('main', () => {
 			if (skipCommentTrue) {
 				// Should not call ensureComment
 			} else if (prNumber) {
-				await ensureComment(
-					mockOctokit as any,
-					repo,
-					prNumber,
-					'report',
-					header
-				);
+				await ensureComment(mockOctokit, repo, prNumber, 'report', header);
 			}
 
 			expect(ensureComment).not.toHaveBeenCalled();
@@ -195,13 +210,7 @@ describe('main', () => {
 			const noPrNumber = undefined;
 
 			if (!skipComment && noPrNumber) {
-				await ensureComment(
-					mockOctokit as any,
-					repo,
-					noPrNumber,
-					'report',
-					header
-				);
+				await ensureComment(mockOctokit, repo, noPrNumber, 'report', header);
 			}
 
 			expect(ensureComment).not.toHaveBeenCalled();

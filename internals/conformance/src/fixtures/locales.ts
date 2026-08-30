@@ -7,7 +7,7 @@
  * - `de` — long compound words; verifies no layout overflow regressions
  */
 
-export type LocaleFixture = {
+export interface LocaleFixture {
 	code: string;
 	direction: 'ltr' | 'rtl';
 	translations: {
@@ -19,7 +19,7 @@ export type LocaleFixture = {
 			customize: string;
 		};
 	};
-};
+}
 
 export const LOCALE_FIXTURES: readonly LocaleFixture[] = [
 	{

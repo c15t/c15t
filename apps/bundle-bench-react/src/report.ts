@@ -12,7 +12,7 @@ import { gzipSync } from 'node:zlib';
 
 import { benchmarkConsentOptions } from './fixtures';
 
-type BundleResult = {
+interface BundleResult {
 	entry: string;
 	cssBytes: number;
 	cssGzipBytes: number;
@@ -20,7 +20,7 @@ type BundleResult = {
 	jsGzipBytes: number;
 	totalBytes: number;
 	totalGzipBytes: number;
-};
+}
 
 const BASELINE_REF = 'origin/2.0.0';
 const BASELINE_ENTRY = '2.0.0-consent-surfaces';

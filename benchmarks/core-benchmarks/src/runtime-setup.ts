@@ -45,11 +45,11 @@ export function ensureBenchmarkDom(): void {
 				store[key] = value;
 			},
 			removeItem: (key: string) => {
-				delete store[key];
+				Reflect.deleteProperty(store, key);
 			},
 			clear: () => {
 				for (const key of Object.keys(store)) {
-					delete store[key];
+					Reflect.deleteProperty(store, key);
 				}
 			},
 			key: (index: number) => Object.keys(store)[index] ?? null,

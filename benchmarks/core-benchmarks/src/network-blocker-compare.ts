@@ -16,10 +16,16 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  */
 import { join } from 'node:path';
 
-import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
+import {
+	configureConsentManager,
+	createConsentManagerStore,
+	type NetworkBlockerConfig as V2NetworkBlockerConfig,
+} from '@c15t/core';
 import { createConsentKernel } from '@c15t/core/v3';
-import { createNetworkBlocker } from '@c15t/core/v3/modules/network-blocker';
-import type { NetworkBlockerRule } from '@c15t/core/v3/modules/network-blocker';
+import {
+	createNetworkBlocker,
+	type NetworkBlockerRule,
+} from '@c15t/core/v3/modules/network-blocker';
 
 import { ensureBenchmarkDom } from './runtime-setup';
 
@@ -28,7 +34,7 @@ ensureBenchmarkDom();
 // Pretend browser: minimal XMLHttpRequest + window.fetch on window.
 class StubXHR {
 	onerror: ((e: unknown) => void) | null = null;
-	listeners = new Map<string, Array<(e: unknown) => void>>();
+	listeners = new Map<string, ((e: unknown) => void)[]>();
 	open(_m: string, _u: string) {}
 	send() {}
 	abort() {}
@@ -114,14 +120,14 @@ function pct(v2: number, v3: number): string {
 
 function runV2Fetch(): number[] {
 	const manager = configureConsentManager({ mode: 'offline' });
+	const networkBlocker = {
+		enabled: true,
+		rules: RULES,
+		logBlockedRequests: false,
+	} satisfies V2NetworkBlockerConfig;
 	createConsentManagerStore(manager, {
 		initialConsentCategories: ['necessary', 'functionality'],
-		// oxlint-disable-next-line typescript/no-explicit-any -- v2 config shape
-		networkBlocker: {
-			enabled: true,
-			rules: RULES,
-			logBlockedRequests: false,
-		} as any,
+		networkBlocker,
 	});
 	let i = 0;
 	return measureSync(ITERATIONS, () => {
@@ -131,14 +137,14 @@ function runV2Fetch(): number[] {
 
 function runV2XHR(): number[] {
 	const manager = configureConsentManager({ mode: 'offline' });
+	const networkBlocker = {
+		enabled: true,
+		rules: RULES,
+		logBlockedRequests: false,
+	} satisfies V2NetworkBlockerConfig;
 	createConsentManagerStore(manager, {
 		initialConsentCategories: ['necessary', 'functionality'],
-		// oxlint-disable-next-line typescript/no-explicit-any -- v2 config shape
-		networkBlocker: {
-			enabled: true,
-			rules: RULES,
-			logBlockedRequests: false,
-		} as any,
+		networkBlocker,
 	});
 	let i = 0;
 	return measureSync(ITERATIONS, () => {

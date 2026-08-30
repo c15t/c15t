@@ -121,7 +121,7 @@ const FIFTY: V2Script[] = Array.from({ length: 50 }, (_, i) => ({
 			: 'functionality') as 'marketing' | 'measurement' | 'functionality',
 }));
 
-const SCENARIOS: Array<{ name: string; scripts: V2Script[] }> = [
+const SCENARIOS: { name: string; scripts: V2Script[] }[] = [
 	{ name: '5-scripts', scripts: FIVE },
 	{ name: '15-scripts', scripts: FIFTEEN },
 	{ name: '50-scripts', scripts: FIFTY },
@@ -219,7 +219,7 @@ function runV3(scripts: V2Script[]): number[] {
 		leaks.push(loader);
 	});
 	// Clean up after the run so subsequent scenarios start fresh.
-	for (const loader of leaks as Array<{ dispose: () => void }>) {
+	for (const loader of leaks as { dispose: () => void }[]) {
 		loader.dispose();
 	}
 	return samples;
