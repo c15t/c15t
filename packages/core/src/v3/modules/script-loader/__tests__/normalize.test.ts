@@ -55,7 +55,7 @@ describe('normalizeScripts', () => {
 		const [out] = normalizeScripts([
 			{
 				...baseScript,
-				// biome-ignore lint/suspicious/noExplicitAny: HasCondition shape varies
+				// oxlint-disable-next-line typescript/no-explicit-any -- HasCondition shape varies
 				category: { type: 'AND', conditions: [] } as any,
 			},
 		]);

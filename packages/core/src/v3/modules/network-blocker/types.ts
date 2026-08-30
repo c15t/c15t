@@ -16,8 +16,10 @@ import type { ConsentKernel } from '../../types';
 
 export type { BlockedRequestInfo, NetworkBlockerConfig, NetworkBlockerRule };
 
-export interface NetworkBlockerOptions
-	extends Omit<NetworkBlockerConfig, 'initialConsents'> {
+export interface NetworkBlockerOptions extends Omit<
+	NetworkBlockerConfig,
+	'initialConsents'
+> {
 	kernel: ConsentKernel;
 }
 

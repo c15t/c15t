@@ -4,7 +4,7 @@ on:
   push:
     # `canary` is the default branch and PR target, so it needs the full suite
     # as the backstop for the affected-only checks that run on pull requests.
-    branches: ["main", "canary", "2.0.0"]
+    branches: ['main', 'canary', '2.0.0']
   pull_request:
     types: [opened, synchronize]
 
@@ -24,8 +24,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read # Needed for checkout
-      checks: write # Needed for reviewdog to post results
-      pull-requests: write # Needed for reviewdog github-pr-review reporter (optional)
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -58,12 +56,11 @@ jobs:
           TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
         run: bun turbo run check-types
 
-      - name: 🧹 Run Biome with Reviewdog
-        uses: mongolyy/reviewdog-action-biome@0b1d65ada95594f01240e84f09ba7b8723e5ff7d
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: github-pr-check # Report results as checks
-          level: warning               # Report errors
+      - name: 🧹 Lint
+        run: bun oxlint . --format=github
+
+      - name: 🎨 Check formatting
+        run: bun run fmt:check
 
   build:
     name: 🏗️ Build Packages
@@ -130,10 +127,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
+          --health-cmd "pg_isready -U postgres" --health-interval 10s --health-timeout 5s --health-retries 10
       mysql:
         image: mysql:8@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb
         env:
@@ -142,10 +136,7 @@ jobs:
         ports:
           - 3306:3306
         options: >-
-          --health-cmd "mysqladmin ping -uroot -pc15t --silent"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 15
+          --health-cmd "mysqladmin ping -uroot -pc15t --silent" --health-interval 10s --health-timeout 5s --health-retries 15
     steps:
       - name: ⬇️ Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -393,11 +384,7 @@ jobs:
     name: 🚀 Release
     needs: [lint_and_check, build, test]
     if: >-
-      github.event_name == 'push' &&
-      github.repository == 'c15t/c15t' &&
-      (github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/canary' ||
-      github.ref == 'refs/heads/2.0.0')
+      github.event_name == 'push' && github.repository == 'c15t/c15t' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/canary' || github.ref == 'refs/heads/2.0.0')
     permissions:
       contents: write
       id-token: write

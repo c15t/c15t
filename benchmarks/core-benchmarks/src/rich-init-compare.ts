@@ -24,7 +24,7 @@ const FULL_INIT_PAYLOAD: InitResponse = {
 	location: { countryCode: 'DE', regionCode: 'BE' },
 	translations: {
 		language: 'de',
-		// biome-ignore lint/suspicious/noExplicitAny: schema typing
+		// oxlint-disable-next-line typescript/no-explicit-any -- schema typing
 		translations: {
 			common: {
 				acceptAll: 'Alle akzeptieren',
@@ -65,12 +65,12 @@ const FULL_INIT_PAYLOAD: InitResponse = {
 				scrollLock: true,
 			},
 		},
-		// biome-ignore lint/suspicious/noExplicitAny: schema type
+		// oxlint-disable-next-line typescript/no-explicit-any -- schema type
 	} as any,
 	policyDecision: {
 		matchedBy: 'region',
 		fingerprint: 'abc123',
-		// biome-ignore lint/suspicious/noExplicitAny: schema type
+		// oxlint-disable-next-line typescript/no-explicit-any -- schema type
 	} as any,
 	policySnapshotToken: 'sig-abc123',
 };

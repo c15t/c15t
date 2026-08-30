@@ -689,7 +689,7 @@ export const createConsentManagerStore = (
 	}
 
 	if (typeof window !== 'undefined') {
-		// biome-ignore lint/suspicious/noExplicitAny: its okay
+		// oxlint-disable-next-line typescript/no-explicit-any -- its okay
 		(window as any)[namespace] = store;
 
 		// When the store is initialized, call the onConsentSet callback with the initial consent state

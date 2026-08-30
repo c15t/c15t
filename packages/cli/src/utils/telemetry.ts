@@ -788,9 +788,9 @@ export class Telemetry {
 	private isCi(): boolean {
 		return Boolean(
 			process.env.CI ||
-				process.env.GITHUB_ACTIONS ||
-				process.env.BUILDKITE ||
-				process.env.VERCEL
+			process.env.GITHUB_ACTIONS ||
+			process.env.BUILDKITE ||
+			process.env.VERCEL
 		);
 	}
 

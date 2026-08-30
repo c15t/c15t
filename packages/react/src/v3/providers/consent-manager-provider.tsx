@@ -323,7 +323,7 @@ export function ConsentManagerProvider({
 				{themeCSS ? (
 					<style
 						id="c15t-theme"
-						// biome-ignore lint/security/noDangerouslySetInnerHtml: It's safe to set innerHTML here
+						// oxlint-disable-next-line react/no-danger -- It's safe to set innerHTML here
 						dangerouslySetInnerHTML={{ __html: themeCSS }}
 					/>
 				) : null}

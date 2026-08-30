@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import switchStyles from '@c15t/ui/styles/v3/switch';
 import { useConsentConfig } from '#c15t/composables';
 import { SwitchRoot, SwitchThumb } from '../primitives';

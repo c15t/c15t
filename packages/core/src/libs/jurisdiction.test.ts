@@ -33,25 +33,27 @@ describe('checkJurisdiction', () => {
 			'SE',
 		];
 
-		it.each(
-			euCountries
-		)('should identify %s as GDPR jurisdiction', (countryCode) => {
-			const result = checkJurisdiction(countryCode);
+		it.each(euCountries)(
+			'should identify %s as GDPR jurisdiction',
+			(countryCode) => {
+				const result = checkJurisdiction(countryCode);
 
-			expect(result).toBe('GDPR');
-		});
+				expect(result).toBe('GDPR');
+			}
+		);
 	});
 
 	describe('GDPR jurisdiction (EEA countries)', () => {
 		const eeaCountries = ['IS', 'NO', 'LI'];
 
-		it.each(
-			eeaCountries
-		)('should identify %s as GDPR jurisdiction', (countryCode) => {
-			const result = checkJurisdiction(countryCode);
+		it.each(eeaCountries)(
+			'should identify %s as GDPR jurisdiction',
+			(countryCode) => {
+				const result = checkJurisdiction(countryCode);
 
-			expect(result).toBe('GDPR');
-		});
+				expect(result).toBe('GDPR');
+			}
+		);
 	});
 
 	describe('GDPR jurisdiction (UK)', () => {
@@ -72,13 +74,14 @@ describe('checkJurisdiction', () => {
 			{ country: 'KR', code: 'PIPA', message: '' },
 		] as const;
 
-		it.each(
-			jurisdictionCases
-		)('should identify $country as $code jurisdiction', ({ country, code }) => {
-			const result = checkJurisdiction(country);
+		it.each(jurisdictionCases)(
+			'should identify $country as $code jurisdiction',
+			({ country, code }) => {
+				const result = checkJurisdiction(country);
 
-			expect(result).toBe(code);
-		});
+				expect(result).toBe(code);
+			}
+		);
 	});
 
 	describe('Non-regulated countries', () => {
@@ -95,13 +98,14 @@ describe('checkJurisdiction', () => {
 			'PH', // Philippines
 		];
 
-		it.each(
-			nonRegulatedCountries
-		)('should identify %s as non-regulated (NONE jurisdiction)', (countryCode) => {
-			const result = checkJurisdiction(countryCode);
+		it.each(nonRegulatedCountries)(
+			'should identify %s as non-regulated (NONE jurisdiction)',
+			(countryCode) => {
+				const result = checkJurisdiction(countryCode);
 
-			expect(result).toBe('NONE');
-		});
+				expect(result).toBe('NONE');
+			}
+		);
 	});
 
 	describe('Edge cases', () => {

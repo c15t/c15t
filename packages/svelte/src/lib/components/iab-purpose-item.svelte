@@ -1,106 +1,108 @@
 <script lang="ts">
-import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
-import { switchVariants } from '@c15t/ui/styles/primitives';
-import type { IABTranslations } from '../iab-translations';
-import type { ProcessedPurpose, VendorId } from '../iab-types';
-import { PreferenceItem, Switch } from '../primitives';
-import ChevronRightIcon from './icons/chevron-right-icon.svelte';
-import GlobeIcon from './icons/globe-icon.svelte';
-import LegitimateInterestIcon from './icons/legitimate-interest-icon.svelte';
-import LockIcon from './icons/lock-icon.svelte';
+	import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
+	import { switchVariants } from '@c15t/ui/styles/primitives';
+	import type { IABTranslations } from '../iab-translations';
+	import type { ProcessedPurpose, VendorId } from '../iab-types';
+	import { PreferenceItem, Switch } from '../primitives';
+	import ChevronRightIcon from './icons/chevron-right-icon.svelte';
+	import GlobeIcon from './icons/globe-icon.svelte';
+	import LegitimateInterestIcon from './icons/legitimate-interest-icon.svelte';
+	import LockIcon from './icons/lock-icon.svelte';
 
-const sw = switchVariants();
-const swSmall = switchVariants({ size: 'small' });
+	const sw = switchVariants();
+	const swSmall = switchVariants({ size: 'small' });
 
-let {
-	purpose,
-	isEnabled,
-	onToggle,
-	vendorConsents,
-	onVendorToggle,
-	onVendorClick,
-	isLocked = false,
-	vendorLegitimateInterests = {},
-	onVendorLegitimateInterestToggle,
-	purposeLegitimateInterests = {},
-	onPurposeLegitimateInterestToggle,
-	noStyle = false,
-	iabT,
-}: {
-	purpose: ProcessedPurpose;
-	isEnabled: boolean;
-	onToggle: (value: boolean) => void;
-	vendorConsents: Record<string, boolean>;
-	onVendorToggle: (vendorId: VendorId, value: boolean) => void;
-	onVendorClick: (vendorId: VendorId) => void;
-	isLocked?: boolean;
-	vendorLegitimateInterests?: Record<string, boolean>;
-	onVendorLegitimateInterestToggle?: (
-		vendorId: VendorId,
-		value: boolean
-	) => void;
-	purposeLegitimateInterests?: Record<number, boolean>;
-	onPurposeLegitimateInterestToggle?: (
-		purposeId: number,
-		value: boolean
-	) => void;
-	noStyle?: boolean;
-	iabT: IABTranslations;
-} = $props();
+	let {
+		purpose,
+		isEnabled,
+		onToggle,
+		vendorConsents,
+		onVendorToggle,
+		onVendorClick,
+		isLocked = false,
+		vendorLegitimateInterests = {},
+		onVendorLegitimateInterestToggle,
+		purposeLegitimateInterests = {},
+		onPurposeLegitimateInterestToggle,
+		noStyle = false,
+		iabT,
+	}: {
+		purpose: ProcessedPurpose;
+		isEnabled: boolean;
+		onToggle: (value: boolean) => void;
+		vendorConsents: Record<string, boolean>;
+		onVendorToggle: (vendorId: VendorId, value: boolean) => void;
+		onVendorClick: (vendorId: VendorId) => void;
+		isLocked?: boolean;
+		vendorLegitimateInterests?: Record<string, boolean>;
+		onVendorLegitimateInterestToggle?: (
+			vendorId: VendorId,
+			value: boolean
+		) => void;
+		purposeLegitimateInterests?: Record<number, boolean>;
+		onPurposeLegitimateInterestToggle?: (
+			purposeId: number,
+			value: boolean
+		) => void;
+		noStyle?: boolean;
+		iabT: IABTranslations;
+	} = $props();
 
-let isExpanded = $state(false);
-let showExamples = $state(false);
-let showVendors = $state(false);
-let purposeChecked = $state(false);
+	let isExpanded = $state(false);
+	let showExamples = $state(false);
+	let showVendors = $state(false);
+	let purposeChecked = $state(false);
 
-const legIntVendors = $derived(
-	purpose.vendors.filter((v) => v.usesLegitimateInterest)
-);
-const consentVendors = $derived(
-	purpose.vendors.filter((v) => !v.usesLegitimateInterest)
-);
+	const legIntVendors = $derived(
+		purpose.vendors.filter((v) => v.usesLegitimateInterest)
+	);
+	const consentVendors = $derived(
+		purpose.vendors.filter((v) => !v.usesLegitimateInterest)
+	);
 
-function getVendorConsent(vendorId: VendorId): boolean {
-	return vendorConsents[String(vendorId)] ?? false;
-}
+	function getVendorConsent(vendorId: VendorId): boolean {
+		return vendorConsents[String(vendorId)] ?? false;
+	}
 
-function getVendorLegitimateInterest(vendorId: VendorId): boolean {
-	return vendorLegitimateInterests[String(vendorId)] ?? true;
-}
+	function getVendorLegitimateInterest(vendorId: VendorId): boolean {
+		return vendorLegitimateInterests[String(vendorId)] ?? true;
+	}
 
-// Check if purpose-level LI is allowed (not objected)
-const isPurposeLIAllowed = $derived(
-	purposeLegitimateInterests[purpose.id] ?? true
-);
+	// Check if purpose-level LI is allowed (not objected)
+	const isPurposeLIAllowed = $derived(
+		purposeLegitimateInterests[purpose.id] ?? true
+	);
 
-// Handler for purpose-level LI objection
-function handlePurposeLIObjection() {
-	const newValue = !isPurposeLIAllowed;
-	onPurposeLegitimateInterestToggle?.(purpose.id, newValue);
-	if (onVendorLegitimateInterestToggle) {
-		for (const vendor of legIntVendors) {
-			onVendorLegitimateInterestToggle(vendor.id, newValue);
+	// Handler for purpose-level LI objection
+	function handlePurposeLIObjection() {
+		const newValue = !isPurposeLIAllowed;
+		onPurposeLegitimateInterestToggle?.(purpose.id, newValue);
+		if (onVendorLegitimateInterestToggle) {
+			for (const vendor of legIntVendors) {
+				onVendorLegitimateInterestToggle(vendor.id, newValue);
+			}
 		}
 	}
-}
 
-// Separate IAB and custom vendors
-const iabConsentVendors = $derived(consentVendors.filter((v) => !v.isCustom));
-const customConsentVendors = $derived(consentVendors.filter((v) => v.isCustom));
-const iabLegIntVendors = $derived(legIntVendors.filter((v) => !v.isCustom));
-const customLegIntVendors = $derived(legIntVendors.filter((v) => v.isCustom));
+	// Separate IAB and custom vendors
+	const iabConsentVendors = $derived(consentVendors.filter((v) => !v.isCustom));
+	const customConsentVendors = $derived(
+		consentVendors.filter((v) => v.isCustom)
+	);
+	const iabLegIntVendors = $derived(legIntVendors.filter((v) => !v.isCustom));
+	const customLegIntVendors = $derived(legIntVendors.filter((v) => v.isCustom));
 
-$effect(() => {
-	purposeChecked = isEnabled;
-});
+	$effect(() => {
+		purposeChecked = isEnabled;
+	});
 
-// Handle purpose toggle - also toggles all consent-based vendors
-function handlePurposeToggle(value: boolean) {
-	onToggle(value);
-	for (const vendor of consentVendors) {
-		onVendorToggle(vendor.id, value);
+	// Handle purpose toggle - also toggles all consent-based vendors
+	function handlePurposeToggle(value: boolean) {
+		onToggle(value);
+		for (const vendor of consentVendors) {
+			onVendorToggle(vendor.id, value);
+		}
 	}
-}
 </script>
 
 <PreferenceItem.Root
@@ -124,7 +126,7 @@ function handlePurposeToggle(value: boolean) {
 				<PreferenceItem.Meta class={noStyle ? '' : styles.purposeMeta || ''}>
 					{iabT.preferenceCenter.purposeItem.partners.replace(
 						'{count}',
-						String(purpose.vendors.length),
+						String(purpose.vendors.length)
 					)}
 				</PreferenceItem.Meta>
 				{#if legIntVendors.length > 0}
@@ -136,7 +138,7 @@ function handlePurposeToggle(value: boolean) {
 						/>
 						{iabT.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
 							'{count}',
-							String(legIntVendors.length),
+							String(legIntVendors.length)
 						)}
 					</PreferenceItem.Auxiliary>
 				{/if}
@@ -175,7 +177,7 @@ function handlePurposeToggle(value: boolean) {
 						<span>
 							{iabT.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
 								'{count}',
-								String(legIntVendors.length),
+								String(legIntVendors.length)
 							)}
 						</span>
 					</div>
@@ -206,7 +208,7 @@ function handlePurposeToggle(value: boolean) {
 				/>
 				{iabT.preferenceCenter.purposeItem.vendorsUseLegitimateInterest.replace(
 					'{count}',
-					String(legIntVendors.length),
+					String(legIntVendors.length)
 				)}
 			</div>
 		{/if}
@@ -320,7 +322,9 @@ function handlePurposeToggle(value: boolean) {
 							{@const isLIAllowed = getVendorLegitimateInterest(vendor.id)}
 							{@const showLIControl = !!onVendorLegitimateInterestToggle}
 							<div
-								class={noStyle ? '' : `${styles.vendorRow || ''} ${styles.vendorRowLI || ''}`}
+								class={noStyle
+									? ''
+									: `${styles.vendorRow || ''} ${styles.vendorRowLI || ''}`}
 							>
 								<div class={noStyle ? '' : styles.vendorInfo || ''}>
 									<button
@@ -348,7 +352,11 @@ function handlePurposeToggle(value: boolean) {
 								{#if showLIControl}
 									<button
 										type="button"
-										onclick={() => onVendorLegitimateInterestToggle?.(vendor.id, !isLIAllowed)}
+										onclick={() =>
+											onVendorLegitimateInterestToggle?.(
+												vendor.id,
+												!isLIAllowed
+											)}
 										class={noStyle
 											? ''
 											: `${styles.objectButton || ''} ${!isLIAllowed ? styles.objectButtonActive || '' : ''}`}
@@ -381,8 +389,7 @@ function handlePurposeToggle(value: boolean) {
 									class={noStyle ? '' : styles.legitimateInterestIcon || ''}
 								/>
 								{iabT.preferenceCenter.vendorList.customVendorsHeading}
-								({customConsentVendors.length +
-									customLegIntVendors.length})
+								({customConsentVendors.length + customLegIntVendors.length})
 							</h5>
 							{#each customConsentVendors as vendor (vendor.id)}
 								{@const isConsented = getVendorConsent(vendor.id)}
@@ -416,7 +423,9 @@ function handlePurposeToggle(value: boolean) {
 								{@const isLIAllowed = getVendorLegitimateInterest(vendor.id)}
 								{@const showLIControl = !!onVendorLegitimateInterestToggle}
 								<div
-									class={noStyle ? '' : `${styles.vendorRow || ''} ${styles.vendorRowLI || ''}`}
+									class={noStyle
+										? ''
+										: `${styles.vendorRow || ''} ${styles.vendorRowLI || ''}`}
 								>
 									<div class={noStyle ? '' : styles.vendorInfo || ''}>
 										<button
@@ -434,7 +443,11 @@ function handlePurposeToggle(value: boolean) {
 									{#if showLIControl}
 										<button
 											type="button"
-											onclick={() => onVendorLegitimateInterestToggle?.(vendor.id, !isLIAllowed)}
+											onclick={() =>
+												onVendorLegitimateInterestToggle?.(
+													vendor.id,
+													!isLIAllowed
+												)}
 											class={noStyle
 												? ''
 												: `${styles.objectButton || ''} ${!isLIAllowed ? styles.objectButtonActive || '' : ''}`}

@@ -104,8 +104,10 @@ function orderItemsForCorner(
 		: [...customItems, preferencesItem];
 }
 
-export interface TriggerToolbarProps
-	extends Omit<ClassNameStyle, 'baseClassName'> {
+export interface TriggerToolbarProps extends Omit<
+	ClassNameStyle,
+	'baseClassName'
+> {
 	/** App-owned actions rendered alongside the preferences action. */
 	actions: readonly ConsentDialogTriggerToolbarAction[];
 

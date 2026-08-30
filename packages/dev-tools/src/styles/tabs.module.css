@@ -43,13 +43,13 @@
 	white-space: nowrap;
 	transition:
 		background-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		border-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		box-shadow var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .tab:hover {
@@ -107,11 +107,11 @@
 	cursor: pointer;
 	transition:
 		background-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		border-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .overflowButton:hover {
@@ -152,12 +152,12 @@
 	z-index: 10;
 	transition:
 		opacity var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
+			var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1)),
 		transform var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1));
+			var(--c15t-easing-out, cubic-bezier(0.215, 0.61, 0.355, 1));
 }
 
-.overflowMenu[data-state="open"] {
+.overflowMenu[data-state='open'] {
 	opacity: 1;
 	transform: translateY(0) scale(1);
 	pointer-events: auto;
@@ -182,9 +182,9 @@
 	white-space: nowrap;
 	transition:
 		background-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .overflowItem:hover {

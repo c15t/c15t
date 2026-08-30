@@ -54,7 +54,7 @@ describe('applyInitResponse', () => {
 					banner: { theme: 'dark' },
 					dialog: { theme: 'light' },
 				},
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 		expect(patch?.policyBanner).toEqual({ theme: 'dark' });
@@ -67,7 +67,7 @@ describe('applyInitResponse', () => {
 			policy: {
 				model: 'opt-in',
 				ui: { mode: 'banner' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 		expect(patch?.model).toBe('opt-in');
@@ -85,7 +85,7 @@ describe('applyInitResponse', () => {
 			policy: {
 				model: 'opt-in',
 				ui: { mode: 'banner' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 		expect(patch?.model).toBe('opt-in');
@@ -102,7 +102,7 @@ describe('applyInitResponse', () => {
 					scopeMode: 'strict',
 				},
 				ui: { mode: 'banner' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 		expect(patch?.policyCategories).toEqual(['necessary', 'marketing']);
@@ -120,7 +120,7 @@ describe('applyInitResponse', () => {
 					scopeMode: 'strict',
 				},
 				ui: { mode: 'banner' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 
@@ -143,7 +143,7 @@ describe('applyInitResponse', () => {
 					scopeMode: 'permissive',
 				},
 				ui: { mode: 'banner' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 
@@ -163,7 +163,7 @@ describe('applyInitResponse', () => {
 				id: 'placeholder',
 				model: 'opt-in',
 				ui: { mode: 'banner' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 			initialPolicyProvisional: true,
 		});
@@ -182,7 +182,7 @@ describe('applyInitResponse', () => {
 				id: 'placeholder',
 				model: 'opt-in',
 				ui: { mode: 'banner' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 			initialPolicyProvisional: true,
 		});
@@ -191,7 +191,7 @@ describe('applyInitResponse', () => {
 				id: 'resolved',
 				model: 'none',
 				ui: { mode: 'none' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 		expect(patch?.policyProvisional).toBe(false);
@@ -209,7 +209,7 @@ describe('applyInitResponse', () => {
 						title: 'We value your privacy',
 						description: 'Default description',
 					},
-					// biome-ignore lint/suspicious/noExplicitAny: minimal fixture
+					// oxlint-disable-next-line typescript/no-explicit-any -- minimal fixture
 				} as any,
 			},
 		});
@@ -218,12 +218,12 @@ describe('applyInitResponse', () => {
 				language: 'en',
 				translations: {
 					cookieBanner: { title: 'Custom title' },
-					// biome-ignore lint/suspicious/noExplicitAny: partial payload
+					// oxlint-disable-next-line typescript/no-explicit-any -- partial payload
 				} as any,
 			},
 		});
 
-		// biome-ignore lint/suspicious/noExplicitAny: fixture shape
+		// oxlint-disable-next-line typescript/no-explicit-any -- fixture shape
 		const merged = patch?.translations?.translations as any;
 		expect(merged.cookieBanner.title).toBe('Custom title');
 		// Omitted keys must keep their current values, not vanish.
@@ -237,7 +237,7 @@ describe('applyInitResponse', () => {
 				language: 'en',
 				translations: {
 					common: { securedBy: 'Secured by' },
-					// biome-ignore lint/suspicious/noExplicitAny: minimal fixture
+					// oxlint-disable-next-line typescript/no-explicit-any -- minimal fixture
 				} as any,
 			},
 		});
@@ -246,12 +246,12 @@ describe('applyInitResponse', () => {
 				language: 'de',
 				translations: {
 					cookieBanner: { title: 'Wir schätzen Ihre Privatsphäre' },
-					// biome-ignore lint/suspicious/noExplicitAny: partial payload
+					// oxlint-disable-next-line typescript/no-explicit-any -- partial payload
 				} as any,
 			},
 		});
 
-		// biome-ignore lint/suspicious/noExplicitAny: fixture shape
+		// oxlint-disable-next-line typescript/no-explicit-any -- fixture shape
 		const replaced = patch?.translations?.translations as any;
 		expect(patch?.translations?.language).toBe('de');
 		expect(replaced.common?.securedBy).toBeUndefined();

@@ -148,7 +148,7 @@ function generateRewriteDestination(
 ): { destination: string; isTemplateLiteral: boolean } {
 	if (useEnvFile) {
 		return {
-			// biome-ignore lint/suspicious/noTemplateCurlyInString: This will be transformed into a template literal later
+			// oxlint-disable-next-line no-template-curly-in-string -- This will be transformed into a template literal later
 			destination: '${process.env.NEXT_PUBLIC_C15T_URL}/:path*',
 			isTemplateLiteral: true,
 		};

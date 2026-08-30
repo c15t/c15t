@@ -1,4 +1,4 @@
-@import url("./animations/enter-exit.css");
+@import url('./animations/enter-exit.css');
 
 :root {
 	/* Typography */
@@ -71,17 +71,17 @@
 	.bannerEnterActive:not(:global(.headless)) {
 		transition:
 			opacity var(--consent-banner-animation-duration)
-			var(--consent-banner-animation-timing),
+				var(--consent-banner-animation-timing),
 			transform var(--consent-banner-animation-duration)
-			cubic-bezier(0.34, 1.56, 0.64, 1);
+				cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
 
 	.bannerLeaveActive:not(:global(.headless)) {
 		transition:
 			opacity var(--consent-banner-animation-duration)
-			var(--consent-banner-animation-timing),
+				var(--consent-banner-animation-timing),
 			transform var(--consent-banner-animation-duration)
-			var(--consent-banner-animation-timing);
+				var(--consent-banner-animation-timing);
 	}
 
 	.bannerEnterFrom:not(:global(.headless)),
@@ -102,9 +102,9 @@
 		transform: translateY(0);
 		transition:
 			opacity var(--consent-banner-animation-duration)
-			var(--consent-banner-animation-timing),
+				var(--consent-banner-animation-timing),
 			transform var(--consent-banner-animation-duration)
-			cubic-bezier(0.34, 1.56, 0.64, 1);
+				cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
 
 	.bannerHidden:not(:global(.headless)) {
@@ -112,9 +112,9 @@
 		transform: translateY(50px);
 		transition:
 			opacity var(--consent-banner-animation-duration)
-			var(--consent-banner-animation-timing),
+				var(--consent-banner-animation-timing),
 			transform var(--consent-banner-animation-duration)
-			var(--consent-banner-animation-timing);
+				var(--consent-banner-animation-timing);
 	}
 
 	@media (min-width: 640px) {
@@ -124,22 +124,22 @@
 		}
 	}
 
-	.root[data-position="bottom-left"]:not(:global(.headless)) {
+	.root[data-position='bottom-left']:not(:global(.headless)) {
 		left: 0;
 		bottom: 0;
 	}
 
-	.root[data-position="bottom-right"]:not(:global(.headless)) {
+	.root[data-position='bottom-right']:not(:global(.headless)) {
 		right: 0;
 		bottom: 0;
 	}
 
-	.root[data-position="top-left"]:not(:global(.headless)) {
+	.root[data-position='top-left']:not(:global(.headless)) {
 		left: 0;
 		top: 0;
 	}
 
-	.root[data-position="top-right"]:not(:global(.headless)) {
+	.root[data-position='top-right']:not(:global(.headless)) {
 		right: 0;
 		top: 0;
 	}
@@ -177,11 +177,11 @@
 	}
 
 	/* Animation states */
-	.card:not(:global(.headless))[data-state="open"] {
+	.card:not(:global(.headless))[data-state='open'] {
 		animation: var(--consent-banner-entry-animation);
 	}
 
-	.card:not(:global(.headless))[data-state="closed"] {
+	.card:not(:global(.headless))[data-state='closed'] {
 		animation: var(--consent-banner-exit-animation);
 	}
 
@@ -265,7 +265,7 @@
 		color: var(--consent-banner-description-color-dark);
 	}
 
-	.description[data-context="banner"]:not(:global(.headless)) {
+	.description[data-context='banner']:not(:global(.headless)) {
 		font-size: 0.875rem;
 		line-height: 1.25rem;
 		letter-spacing: -0.006em;
@@ -274,11 +274,11 @@
 	}
 
 	:global(.c15t-dark)
-		.description[data-context="banner"]:not(:global(.headless)) {
+		.description[data-context='banner']:not(:global(.headless)) {
 		color: var(--consent-banner-description-color-dark);
 	}
 
-	.description[data-context="dialog"]:not(:global(.headless)) {
+	.description[data-context='dialog']:not(:global(.headless)) {
 		color: var(--consent-dialog-muted-color);
 		font-size: var(--consent-dialog-description-font-size);
 		font-weight: var(--consent-dialog-description-font-weight);
@@ -286,16 +286,16 @@
 	}
 
 	:global(.c15t-dark)
-		.description[data-context="dialog"]:not(:global(.headless)) {
+		.description[data-context='dialog']:not(:global(.headless)) {
 		color: var(--consent-dialog-muted-color-dark);
 	}
 
-	.description[data-context="manager"]:not(:global(.headless)) {
+	.description[data-context='manager']:not(:global(.headless)) {
 		color: var(--consent-manager-text-muted-color);
 	}
 
 	:global(.c15t-dark)
-		.description[data-context="manager"]:not(:global(.headless)) {
+		.description[data-context='manager']:not(:global(.headless)) {
 		color: var(--consent-manager-text-muted-color-dark);
 	}
 
@@ -369,8 +369,8 @@
 		.bannerHidden,
 		.overlayVisible,
 		.overlayHidden:not(:global(.headless)),
-		.card:not(:global(.headless))[data-state="open"],
-		.card:not(:global(.headless))[data-state="closed"] {
+		.card:not(:global(.headless))[data-state='open'],
+		.card:not(:global(.headless))[data-state='closed'] {
 			transition: none;
 			animation: none;
 		}

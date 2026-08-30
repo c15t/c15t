@@ -1,9 +1,6 @@
 <script lang="ts">
 	import type { ConsentStoreState } from 'c15t';
-	import {
-		clearConsentRuntimeCache,
-		getOrCreateConsentRuntime,
-	} from 'c15t';
+	import { clearConsentRuntimeCache, getOrCreateConsentRuntime } from 'c15t';
 	import { onMount } from 'svelte';
 	import {
 		createInitialBenchState,
@@ -82,11 +79,16 @@
 	}
 </script>
 
-<main style="padding: 32px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+<main
+	style="padding: 32px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
+>
 	<h1 style="margin: 0 0 8px;">Svelte current API script benchmark</h1>
 	<p style="margin: 0 0 16px;">Scripts: {count}</p>
-	<button id="run-script-count" onclick={run} type="button">
+	<button
+		id="run-script-count"
+		onclick={run}
+		type="button"
+	>
 		Accept all
 	</button>
 </main>
-

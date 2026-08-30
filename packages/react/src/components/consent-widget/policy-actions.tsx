@@ -20,8 +20,7 @@ import {
 	ConsentWidgetFooterSubGroup,
 } from './atoms/footer';
 
-export interface ConsentWidgetPolicyActionRenderProps
-	extends PolicyActionRenderProps<HeadlessConsentDialogAction> {}
+export interface ConsentWidgetPolicyActionRenderProps extends PolicyActionRenderProps<HeadlessConsentDialogAction> {}
 
 export interface ConsentWidgetPolicyActionsProps {
 	renderAction?: (

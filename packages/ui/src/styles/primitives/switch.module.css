@@ -12,10 +12,7 @@
 		--switch-thumb-size: 0.75rem;
 		--switch-thumb-size-disabled: 0.625rem;
 		--switch-thumb-translate: calc(
-			var(--switch-width) -
-			var(--switch-thumb-size) -
-			2 *
-			var(--switch-padding)
+			var(--switch-width) - var(--switch-thumb-size) - 2 * var(--switch-padding)
 		);
 
 		/* Colors */
@@ -103,19 +100,19 @@
 		background-color: var(--switch-background-color-dark);
 	}
 
-	.root[data-state="checked"] .track {
+	.root[data-state='checked'] .track {
 		background-color: var(--switch-background-color-checked);
 	}
 
-	:global(.c15t-dark) .root[data-state="checked"] .track {
+	:global(.c15t-dark) .root[data-state='checked'] .track {
 		background-color: var(--switch-background-color-checked-dark);
 	}
 
-	.root[data-state="checked"]:hover .track {
+	.root[data-state='checked']:hover .track {
 		background-color: var(--switch-background-color-checked);
 	}
 
-	:global(.c15t-dark) .root[data-state="checked"]:hover .track {
+	:global(.c15t-dark) .root[data-state='checked']:hover .track {
 		background-color: var(--switch-background-color-checked-dark);
 	}
 
@@ -142,13 +139,13 @@
 		background-color: var(--switch-background-color-disabled-dark);
 	}
 
-	.root[data-state="checked"] .track-disabled {
+	.root[data-state='checked'] .track-disabled {
 		background-color: var(--switch-background-color-checked);
 		opacity: 0.4;
 		box-shadow: none;
 	}
 
-	:global(.c15t-dark) .root[data-state="checked"] .track-disabled {
+	:global(.c15t-dark) .root[data-state='checked'] .track-disabled {
 		background-color: var(--switch-background-color-checked-dark);
 	}
 
@@ -166,7 +163,7 @@
 
 	/* Thumb states */
 	.thumb::before {
-		content: "";
+		content: '';
 		position: absolute;
 		box-sizing: border-box;
 		inset-block: 0;
@@ -174,8 +171,7 @@
 		width: 100%;
 		border-radius: 9999px;
 		background-color: var(--switch-thumb-background-color);
-		mask:
-			radial-gradient(
+		mask: radial-gradient(
 				circle farthest-side at 50% 50%,
 				#0000 1.95px,
 				#000 2.05px 100%
@@ -188,7 +184,7 @@
 	}
 
 	.thumb::after {
-		content: "";
+		content: '';
 		position: absolute;
 		box-sizing: border-box;
 		inset-block: 0;
@@ -202,11 +198,11 @@
 		box-shadow: var(--switch-shadow-thumb-dark);
 	}
 
-	.root[data-state="checked"] .thumb {
+	.root[data-state='checked'] .thumb {
 		transform: translateX(var(--switch-thumb-translate));
 	}
 
-	.root[dir="rtl"][data-state="checked"] .thumb {
+	.root[dir='rtl'][data-state='checked'] .thumb {
 		transform: translateX(calc(-1 * var(--switch-thumb-translate)));
 	}
 
@@ -219,7 +215,7 @@
 		box-shadow: none;
 	}
 
-	.root[data-state="checked"] .thumb-disabled {
+	.root[data-state='checked'] .thumb-disabled {
 		transform: translateX(var(--switch-thumb-translate));
 	}
 
@@ -230,10 +226,7 @@
 		--switch-thumb-size: 0.625rem;
 		--switch-thumb-size-disabled: 0.5rem;
 		--switch-thumb-translate: calc(
-			var(--switch-width) -
-			var(--switch-thumb-size) -
-			2 *
-			var(--switch-padding)
+			var(--switch-width) - var(--switch-thumb-size) - 2 * var(--switch-padding)
 		);
 	}
 
@@ -274,7 +267,7 @@
 			background-color: var(--switch-background-color);
 		}
 
-		.root[data-state="checked"] .track:hover {
+		.root[data-state='checked'] .track:hover {
 			background-color: var(--switch-background-color-checked);
 		}
 	}

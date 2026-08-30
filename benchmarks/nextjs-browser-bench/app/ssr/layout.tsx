@@ -11,7 +11,10 @@ export default function SSRLayout({ children }: { children: ReactNode }) {
 	});
 
 	return (
-		<NextjsBenchmarkProvider scenario="ssr" ssrData={ssrData}>
+		<NextjsBenchmarkProvider
+			scenario="ssr"
+			ssrData={ssrData}
+		>
 			{children}
 		</NextjsBenchmarkProvider>
 	);

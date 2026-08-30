@@ -1,6 +1,6 @@
 name: Feature request
 description: Suggest a feature for c15t
-labels: ["enhancement", "needs-triage"]
+labels: ['enhancement', 'needs-triage']
 body:
   - type: textarea
     id: problem

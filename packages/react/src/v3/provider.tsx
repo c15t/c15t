@@ -75,16 +75,15 @@ type ProviderIABOptions =
 			Partial<Pick<IABConfig, 'enabled' | 'cmpId' | 'cmpVersion' | 'vendors'>>)
 	| false;
 
-export interface ConsentProviderOptions
-	extends Pick<
-		ConsentManagerOptions,
-		| 'colorScheme'
-		| 'disableAnimation'
-		| 'noStyle'
-		| 'scrollLock'
-		| 'theme'
-		| 'trapFocus'
-	> {
+export interface ConsentProviderOptions extends Pick<
+	ConsentManagerOptions,
+	| 'colorScheme'
+	| 'disableAnimation'
+	| 'noStyle'
+	| 'scrollLock'
+	| 'theme'
+	| 'trapFocus'
+> {
 	enabled?: boolean;
 	mode?: ProviderMode;
 	backendURL?: string;
@@ -882,7 +881,7 @@ function ThemeStyleMount({ theme }: { theme?: Theme }) {
 	return (
 		<style
 			id="c15t-theme"
-			// biome-ignore lint/security/noDangerouslySetInnerHtml: Generated CSS variables
+			// oxlint-disable-next-line react/no-danger -- Generated CSS variables
 			dangerouslySetInnerHTML={{ __html: themeCSS }}
 		/>
 	);

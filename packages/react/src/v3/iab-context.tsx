@@ -45,8 +45,10 @@ interface IABContextValue {
 
 const IABContext = createContext<IABContextValue | null>(null);
 
-export interface IABProviderProps
-	extends Omit<CreateIABOptions, 'kernel' | 'gvl'> {
+export interface IABProviderProps extends Omit<
+	CreateIABOptions,
+	'kernel' | 'gvl'
+> {
 	children: ReactNode;
 	gvl?: GlobalVendorList | null;
 }

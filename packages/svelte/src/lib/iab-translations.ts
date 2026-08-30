@@ -81,7 +81,7 @@ export interface IABTranslations {
 	};
 }
 
-// biome-ignore lint/style/noNonNullAssertion: enTranslations is guaranteed to exist in defaultTranslationConfig
+// oxlint-disable-next-line typescript/no-non-null-assertion -- enTranslations is guaranteed to exist in defaultTranslationConfig
 const DEFAULT_IAB_TRANSLATIONS = defaultTranslationConfig.translations.en!
 	.iab as IABTranslations;
 

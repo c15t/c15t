@@ -8,8 +8,10 @@ import {
 import { useEffect, useState } from 'react';
 import { useRequiredKernel } from './shared';
 
-export interface UsePersistenceOptions
-	extends Omit<PersistenceOptions, 'kernel'> {}
+export interface UsePersistenceOptions extends Omit<
+	PersistenceOptions,
+	'kernel'
+> {}
 
 export function usePersistence(
 	options: UsePersistenceOptions = {}

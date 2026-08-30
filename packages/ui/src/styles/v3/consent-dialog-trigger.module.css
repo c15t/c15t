@@ -87,19 +87,19 @@
 }
 
 /* Size variants */
-.trigger[data-size="sm"],
+.trigger[data-size='sm'],
 .sm {
 	width: var(--cdt-size-sm);
 	height: var(--cdt-size-sm);
 }
 
-.trigger[data-size="md"],
+.trigger[data-size='md'],
 .md {
 	width: var(--cdt-size-md);
 	height: var(--cdt-size-md);
 }
 
-.trigger[data-size="lg"],
+.trigger[data-size='lg'],
 .lg {
 	width: var(--cdt-size-lg);
 	height: var(--cdt-size-lg);
@@ -148,34 +148,34 @@
 	height: 16px;
 }
 
-.trigger:has(.text)[data-size="sm"],
+.trigger:has(.text)[data-size='sm'],
 .trigger:has(.text).sm {
 	padding: var(--c15t-space-xs, 6px) var(--c15t-space-sm, 10px);
 }
 
-.trigger:has(.text)[data-size="sm"] .icon,
+.trigger:has(.text)[data-size='sm'] .icon,
 .trigger:has(.text).sm .icon {
 	width: 14px;
 	height: 14px;
 }
 
-.trigger:has(.text)[data-size="sm"] .text,
+.trigger:has(.text)[data-size='sm'] .text,
 .trigger:has(.text).sm .text {
 	font-size: var(--c15t-font-size-xs, 12px);
 }
 
-.trigger:has(.text)[data-size="lg"],
+.trigger:has(.text)[data-size='lg'],
 .trigger:has(.text).lg {
 	padding: var(--c15t-space-md, 12px) var(--c15t-space-lg, 20px);
 }
 
-.trigger:has(.text)[data-size="lg"] .icon,
+.trigger:has(.text)[data-size='lg'] .icon,
 .trigger:has(.text).lg .icon {
 	width: 20px;
 	height: 20px;
 }
 
-.trigger:has(.text)[data-size="lg"] .text,
+.trigger:has(.text)[data-size='lg'] .text,
 .trigger:has(.text).lg .text {
 	font-size: var(--c15t-font-size-md, 16px);
 }

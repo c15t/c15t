@@ -86,7 +86,7 @@ function setupDom(iframeCount: number): MockBody {
 		createElement: () => createMockIframe('marketing'),
 		head: body,
 	};
-	// biome-ignore lint/suspicious/noExplicitAny: test env stub
+	// oxlint-disable-next-line typescript/no-explicit-any -- test env stub
 	(globalThis as any).document = doc;
 	return body;
 }

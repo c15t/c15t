@@ -1,8 +1,4 @@
-export {
-	type Branding,
-	brandingSchema,
-	brandingValues,
-} from './branding';
+export { type Branding, brandingSchema, brandingValues } from './branding';
 export {
 	buildConsentManifestFromConfig,
 	buildDefaultOptInPolicy,
@@ -76,10 +72,7 @@ export {
 	nonIABVendorConsentSchema,
 	nonIABVendorSchema,
 } from './non-iab-vendor';
-export {
-	type PolicyDefaults,
-	policyDefaults,
-} from './policy-defaults';
+export { type PolicyDefaults, policyDefaults } from './policy-defaults';
 export {
 	createDeterministicFingerprint,
 	createDeterministicFingerprintSync,

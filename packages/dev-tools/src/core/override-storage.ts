@@ -40,9 +40,9 @@ export function hasPersistedOverrides(
 ): boolean {
 	return Boolean(
 		overrides.country ||
-			overrides.region ||
-			overrides.language ||
-			overrides.gpc !== undefined
+		overrides.region ||
+		overrides.language ||
+		overrides.gpc !== undefined
 	);
 }
 

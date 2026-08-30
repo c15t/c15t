@@ -443,8 +443,8 @@
 	],
 	"scripts": {
 		"build": "bun scripts/copy-distribution-css.ts",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./scripts",
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./scripts",
 		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
 		"test": "vitest run",
 		"test:watch": "vitest"

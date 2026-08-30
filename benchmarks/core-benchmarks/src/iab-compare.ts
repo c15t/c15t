@@ -21,9 +21,9 @@ import { ensureBenchmarkDom } from './runtime-setup';
 
 ensureBenchmarkDom();
 // The IAB stub installs event listeners on window; give it one.
-// biome-ignore lint/suspicious/noExplicitAny: bench stub
+// oxlint-disable-next-line typescript/no-explicit-any -- bench stub
 (globalThis.window as any).addEventListener = () => {};
-// biome-ignore lint/suspicious/noExplicitAny: bench stub
+// oxlint-disable-next-line typescript/no-explicit-any -- bench stub
 (globalThis.window as any).removeEventListener = () => {};
 
 // Build a synthetic GVL with N vendors and the standard 11 purposes +

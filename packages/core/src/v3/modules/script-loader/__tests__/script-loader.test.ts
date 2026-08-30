@@ -161,7 +161,7 @@ describe('script-loader: basic load/unload on consent change', () => {
 					preselectedCategories: ['necessary', 'marketing'],
 					scopeMode: 'strict',
 				},
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 
@@ -187,7 +187,7 @@ describe('script-loader: basic load/unload on consent change', () => {
 					preselectedCategories: ['necessary'],
 					scopeMode: 'permissive',
 				},
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 

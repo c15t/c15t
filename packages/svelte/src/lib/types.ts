@@ -45,14 +45,15 @@ export interface UseNetworkBlockerOptions {
 	onRequestBlocked?: NetworkBlockerConfig['onRequestBlocked'];
 }
 
-export interface UsePersistenceOptions
-	extends Omit<PersistenceOptions, 'kernel'> {}
+export interface UsePersistenceOptions extends Omit<
+	PersistenceOptions,
+	'kernel'
+> {}
 
-export interface ConsentManagerOptions
-	extends Pick<
-		UIOptions,
-		'colorScheme' | 'disableAnimation' | 'noStyle' | 'scrollLock' | 'trapFocus'
-	> {
+export interface ConsentManagerOptions extends Pick<
+	UIOptions,
+	'colorScheme' | 'disableAnimation' | 'noStyle' | 'scrollLock' | 'trapFocus'
+> {
 	enabled?: boolean;
 	mode?: ProviderMode;
 	backendURL?: string;

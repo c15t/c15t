@@ -74,11 +74,11 @@
 			"outputs": ["dist/**"]
 		},
 		"fmt": {
-			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc", "**/biome.json"],
+			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/oxfmt.config.ts"],
 			"outputs": []
 		},
 		"lint": {
-			"inputs": ["$TURBO_DEFAULT$", "**/biome.jsonc", "**/biome.json"],
+			"inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/oxlint.config.ts"],
 			"dependsOn": ["transit"]
 		},
 		"check-types": {

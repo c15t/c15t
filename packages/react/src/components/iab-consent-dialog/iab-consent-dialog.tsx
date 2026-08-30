@@ -561,7 +561,7 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	}, [isOpen, iabState?.preferenceCenterTab]);
 
 	// Smooth height animation when switching tabs
-	// biome-ignore lint/correctness/useExhaustiveDependencies: activeTab is intentionally used as a trigger
+	// oxlint-disable-next-line react/exhaustive-deps -- activeTab is intentionally used as a trigger
 	useLayoutEffect(() => {
 		const content = contentRef.current;
 		if (!content || previousHeightRef.current === null) {

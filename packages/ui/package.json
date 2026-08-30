@@ -132,8 +132,8 @@
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && bun scripts/generate-css-entrypoints.ts && tcm src/styles/v3 -p \"*.module.css\" -o types/styles/v3 --camelCase && bun scripts/generate-v3-style-artifacts.ts && rslib build --watch --no-dts --no-clean'",
-		"fmt": "bun biome format --write .",
-		"lint": "bun biome lint ./src",
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src",
 		"test": "vitest run"
 	},
 	"dependencies": {

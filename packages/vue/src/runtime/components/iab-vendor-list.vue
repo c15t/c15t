@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { computed, ref, toValue, watch } from 'vue';
@@ -171,9 +168,11 @@ watch(
 				/>
 			</div>
 			<p :class="dialogStyles.vendorCount">
-				{{ (iabT?.preferenceCenter?.vendorList?.showingCount ?? '')
+				{{
+					(iabT?.preferenceCenter?.vendorList?.showingCount ?? '')
 						.replace('{filtered}', String(filteredCount))
-						.replace('{total}', String(totalCount)) }}
+						.replace('{total}', String(totalCount))
+				}}
 			</p>
 		</div>
 

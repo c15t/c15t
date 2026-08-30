@@ -34,8 +34,7 @@ import { Overlay } from './overlay';
  *
  * @public
  */
-export interface ConsentDialogRootProps
-	extends HTMLAttributes<HTMLDialogElement> {
+export interface ConsentDialogRootProps extends HTMLAttributes<HTMLDialogElement> {
 	/**
 	 * React children that will be rendered inside the dialog container.
 	 * Typically this includes `ConsentDialog.Card` and its sub-components.

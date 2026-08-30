@@ -49,7 +49,7 @@ function clearCookies() {
 	for (const cookie of document.cookie.split(';')) {
 		const key = cookie.split('=')[0]?.trim();
 		if (key) {
-			// biome-ignore lint/suspicious/noDocumentCookie: Test cleanup needs legacy cookie API.
+			// oxlint-disable-next-line unicorn/no-document-cookie -- Test cleanup needs legacy cookie API.
 			document.cookie = `${key}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
 		}
 	}

@@ -80,7 +80,7 @@ beforeEach(() => {
 		querySelectorAll: (_selector: string) => body.children,
 	};
 	vi.stubGlobal('document', doc);
-	// biome-ignore lint/suspicious/noExplicitAny: test stub
+	// oxlint-disable-next-line typescript/no-explicit-any -- test stub
 	vi.stubGlobal(
 		'MutationObserver',
 		class StubObserver {

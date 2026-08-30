@@ -19,10 +19,7 @@ jobs:
       id-token: write # Required for OIDC trusted publishing with npm (bypasses 2FA requirement)
 
     if: >-
-      github.repository == 'c15t/c15t' &&
-      (github.ref == 'refs/heads/main' ||
-      github.ref == 'refs/heads/canary' ||
-      github.ref == 'refs/heads/2.0.0')
+      github.repository == 'c15t/c15t' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/canary' || github.ref == 'refs/heads/2.0.0')
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -63,11 +60,11 @@ jobs:
         with:
           version: bun run version:canary
           publish: bun run release:canary
-          commit: "chore: publish canary snapshot"
-          title: "chore: publish canary snapshot"
+          commit: 'chore: publish canary snapshot'
+          title: 'chore: publish canary snapshot'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_PROVENANCE: "true"
+          NPM_CONFIG_PROVENANCE: 'true'
 
       # RC release: Publish pre-release versions from 2.0.0 branch
       - name: Publish RC pre-release
@@ -77,11 +74,11 @@ jobs:
         with:
           version: bun run version
           publish: bun run release:rc
-          commit: "chore: version rc packages"
-          title: "chore: version rc packages"
+          commit: 'chore: version rc packages'
+          title: 'chore: version rc packages'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_CONFIG_PROVENANCE: "true"
+          NPM_CONFIG_PROVENANCE: 'true'
 
       # Regular release: Create Release Pull Request or Publish to npm
       - name: Create Release Pull Request or Publish to npm
@@ -100,7 +97,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # npm publishes through GitHub OIDC trusted publishing. Do not inject
           # long-lived npm publish tokens into the release runner.
-          NPM_CONFIG_PROVENANCE: "true"
+          NPM_CONFIG_PROVENANCE: 'true'
 
       # Optional: Output the results for debugging or confirmation (only for regular releases)
       - name: Print changeset outputs

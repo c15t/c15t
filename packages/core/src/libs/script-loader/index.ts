@@ -14,10 +14,7 @@ export {
 	unloadScripts,
 	updateScripts,
 } from './core';
-export {
-	emitScriptDebugEvent,
-	subscribeToScriptDebugEvents,
-} from './debug';
+export { emitScriptDebugEvent, subscribeToScriptDebugEvents } from './debug';
 // Re-export store integration
 export { createScriptManager } from './store';
 // Re-export types

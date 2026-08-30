@@ -37,7 +37,10 @@ const meta = {
 					gap: '0.75rem',
 				}}
 			>
-				<Switch.Root aria-label="Enable analytics" {...args} />
+				<Switch.Root
+					aria-label="Enable analytics"
+					{...args}
+				/>
 				<span>{consentTypes.measurement.title}</span>
 			</label>
 		</div>
@@ -109,7 +112,10 @@ export const Sizes: Story = {
 					gap: '0.75rem',
 				}}
 			>
-				<Switch.Root aria-label="Enable essential cookies" defaultChecked />
+				<Switch.Root
+					aria-label="Enable essential cookies"
+					defaultChecked
+				/>
 				<span>{consentTypes.necessary.title}</span>
 			</label>
 			<label

@@ -220,9 +220,8 @@ export function createIABActions(
 			} = iab;
 
 			// Dynamically import TC String generation
-			const { generateTCString, iabPurposesToC15tConsents } = await import(
-				'./index'
-			);
+			const { generateTCString, iabPurposesToC15tConsents } =
+				await import('./index');
 
 			// Build vendorsDisclosed from all GVL vendors (all are disclosed in UI)
 			const vendorsDisclosed: Record<number, boolean> = {};

@@ -24,13 +24,21 @@ const { consentManagerDialog, consentTypes } = enTranslations;
 type StoryIconProps = React.HTMLAttributes<HTMLSpanElement>;
 
 const PlusIcon = ({ className, ...props }: StoryIconProps) => (
-	<span aria-hidden="true" className={className} {...props}>
+	<span
+		aria-hidden="true"
+		className={className}
+		{...props}
+	>
 		+
 	</span>
 );
 
 const MinusIcon = ({ className, ...props }: StoryIconProps) => (
-	<span aria-hidden="true" className={className} {...props}>
+	<span
+		aria-hidden="true"
+		className={className}
+		{...props}
+	>
 		-
 	</span>
 );
@@ -39,7 +47,11 @@ export const Single: Story = {
 	play: singleModeToggle,
 	render: () => (
 		<div style={{ display: 'grid', gap: '0.75rem', width: '28rem' }}>
-			<Accordion.Root type="single" collapsible defaultValue="purpose-1">
+			<Accordion.Root
+				type="single"
+				collapsible
+				defaultValue="purpose-1"
+			>
 				<Accordion.Item value="purpose-1">
 					<Accordion.Trigger>
 						<span>{consentTypes.necessary.title}</span>
@@ -73,7 +85,10 @@ export const Multiple: Story = {
 	play: multipleModeToggle,
 	render: () => (
 		<div style={{ display: 'grid', gap: '0.75rem', width: '28rem' }}>
-			<Accordion.Root type="multiple" defaultValue={['purpose-1', 'purpose-2']}>
+			<Accordion.Root
+				type="multiple"
+				defaultValue={['purpose-1', 'purpose-2']}
+			>
 				<Accordion.Item value="purpose-1">
 					<Accordion.Trigger>
 						<span>{consentTypes.marketing.title}</span>
@@ -114,7 +129,11 @@ export const WithIntroduction: Story = {
 					{consentManagerDialog.description}
 				</p>
 			</div>
-			<Accordion.Root type="single" collapsible defaultValue="purpose-1">
+			<Accordion.Root
+				type="single"
+				collapsible
+				defaultValue="purpose-1"
+			>
 				<Accordion.Item value="purpose-1">
 					<Accordion.Trigger>
 						<span>{consentTypes.necessary.title}</span>

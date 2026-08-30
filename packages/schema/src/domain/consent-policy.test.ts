@@ -11,13 +11,12 @@ import {
 } from './consent-policy';
 
 describe('legalDocumentPolicyTypeSchema', () => {
-	it.each([
-		'privacy_policy',
-		'dpa',
-		'terms_and_conditions',
-	])('accepts the base legal-document type %s', (type) => {
-		expect(v.is(legalDocumentPolicyTypeSchema, type)).toBe(true);
-	});
+	it.each(['privacy_policy', 'dpa', 'terms_and_conditions'])(
+		'accepts the base legal-document type %s',
+		(type) => {
+			expect(v.is(legalDocumentPolicyTypeSchema, type)).toBe(true);
+		}
+	);
 
 	it.each([
 		'terms_and_conditions_b2b',
@@ -42,15 +41,12 @@ describe('legalDocumentPolicyTypeSchema', () => {
 		expect(v.is(legalDocumentPolicyTypeSchema, type)).toBe(false);
 	});
 
-	it.each([
-		42,
-		null,
-		undefined,
-		{},
-		['privacy_policy'],
-	])('rejects the non-string value %j', (value) => {
-		expect(v.is(legalDocumentPolicyTypeSchema, value)).toBe(false);
-	});
+	it.each([42, null, undefined, {}, ['privacy_policy']])(
+		'rejects the non-string value %j',
+		(value) => {
+			expect(v.is(legalDocumentPolicyTypeSchema, value)).toBe(false);
+		}
+	);
 });
 
 const baseInput = {

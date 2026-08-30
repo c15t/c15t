@@ -31,8 +31,9 @@ export type CSSPropertiesWithVars<
  * Represents a style configuration that can include both inline styles and class names.
  * @public
  */
-export interface ClassNameStyle<VariableMap = Record<string, string | number>>
-	extends Omit<BaseClassNameStyle<VariableMap>, 'style'> {
+export interface ClassNameStyle<
+	VariableMap = Record<string, string | number>,
+> extends Omit<BaseClassNameStyle<VariableMap>, 'style'> {
 	/** CSS properties to be applied inline to the component. */
 	style?: CSSPropertiesWithVars<VariableMap>;
 }
@@ -49,8 +50,9 @@ export type ThemeValue<VariableMap = Record<string, string | number>> =
  * Extends styling options with a reference to a global theme key.
  * @public
  */
-export interface ExtendThemeKeys<VariableMap = Record<string, string | number>>
-	extends ClassNameStyle<VariableMap> {
+export interface ExtendThemeKeys<
+	VariableMap = Record<string, string | number>,
+> extends ClassNameStyle<VariableMap> {
 	/** Optional key to reference a specific part of the global theme. */
 	themeKey?: AllThemeKeys;
 }

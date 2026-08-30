@@ -15,7 +15,7 @@ const BASE_PAYLOAD = {
 		language: 'en',
 		translations: {},
 	},
-	// biome-ignore lint/suspicious/noExplicitAny: minimal rich-init fixture
+	// oxlint-disable-next-line typescript/no-explicit-any -- minimal rich-init fixture
 } as any;
 
 describe('mapInitOutputToInitResponse: consent inference', () => {
@@ -92,7 +92,7 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 	test("branding 'none' is filtered — KernelBranding has no 'none'", () => {
 		const merged = mergeInitResponseIntoKernelConfig(
 			{},
-			// biome-ignore lint/suspicious/noExplicitAny: backend can send 'none'
+			// oxlint-disable-next-line typescript/no-explicit-any -- backend can send 'none'
 			{ branding: 'none' as any }
 		);
 		expect(merged.initialBranding).toBeUndefined();
@@ -107,9 +107,9 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 			{},
 			{
 				subjectId: 'sub_9',
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 				policy: { id: 'p1', model: 'opt-in', ui: { mode: 'banner' } } as any,
-				// biome-ignore lint/suspicious/noExplicitAny: minimal fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal fixture
 				policyDecision: { policyId: 'p1' } as any,
 				policySnapshotToken: 'tok',
 			}
@@ -123,7 +123,7 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 	test('IAB folding: gvl null disables, fields accumulate', () => {
 		const withGvl = mergeInitResponseIntoKernelConfig(
 			{},
-			// biome-ignore lint/suspicious/noExplicitAny: minimal gvl fixture
+			// oxlint-disable-next-line typescript/no-explicit-any -- minimal gvl fixture
 			{ gvl: { vendors: {} } as any, cmpId: 28 }
 		);
 		expect(withGvl.initialIab?.enabled).toBe(true);
@@ -139,7 +139,7 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 				location: { countryCode: 'DE', regionCode: null },
 				translations: { language: 'de', translations: {} },
 				branding: 'c15t',
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 				policy: { id: 'p1', model: 'opt-in', ui: { mode: 'banner' } } as any,
 			},
 			{ 'sec-gpc': '1' }

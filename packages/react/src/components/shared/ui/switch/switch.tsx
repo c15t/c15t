@@ -23,7 +23,8 @@ export type SwitchStylesKeys = {
 };
 
 export interface SwitchProps
-	extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange' | 'size'>,
+	extends
+		Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onChange' | 'size'>,
 		SwitchVariantsProps {
 	checked?: boolean;
 	defaultChecked?: boolean;

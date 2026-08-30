@@ -55,12 +55,12 @@
 		box-shadow: inset 0 0 0 1px var(--accordion-border-color-dark);
 	}
 
-	.item:is(:hover, [data-state="open"]) {
+	.item:is(:hover, [data-state='open']) {
 		background-color: var(--accordion-background-hover);
 		box-shadow: inset 0 0 0 1px var(--accordion-border-color);
 	}
 
-	:global(.c15t-dark) .item:is(:hover, [data-state="open"]) {
+	:global(.c15t-dark) .item:is(:hover, [data-state='open']) {
 		background-color: var(--accordion-background-hover-dark);
 		box-shadow: inset 0 0 0 1px var(--accordion-border-color-dark);
 	}
@@ -117,7 +117,7 @@
 		touch-action: manipulation;
 	}
 
-	.triggerInner [data-slot="accordion-arrow"] {
+	.triggerInner [data-slot='accordion-arrow'] {
 		margin-inline-start: auto;
 	}
 
@@ -174,11 +174,11 @@
 		color: var(--accordion-icon-color-dark);
 	}
 
-	.item[data-state="open"] .arrowOpen {
+	.item[data-state='open'] .arrowOpen {
 		display: none;
 	}
 
-	.item[data-state="open"] .arrowClose {
+	.item[data-state='open'] .arrowClose {
 		display: block;
 	}
 
@@ -190,15 +190,15 @@
 			var(--accordion-ease);
 	}
 
-	.content[data-state="open"] {
+	.content[data-state='open'] {
 		grid-template-rows: 1fr;
 	}
 
-	.content[data-state="closed"] {
+	.content[data-state='closed'] {
 		pointer-events: none;
 	}
 
-	.content > [data-slot="accordion-content-viewport"] {
+	.content > [data-slot='accordion-content-viewport'] {
 		min-height: 0;
 		overflow: hidden;
 	}
@@ -217,7 +217,7 @@
 		will-change: opacity, transform;
 	}
 
-	.content[data-state="closed"] .contentInner {
+	.content[data-state='closed'] .contentInner {
 		opacity: 0;
 		transform: translateY(-0.125rem);
 	}

@@ -77,7 +77,7 @@ export type DatabaseConfig =
  */
 export type DatabaseOption =
 	| DatabaseConfig
-	// biome-ignore lint/suspicious/noExplicitAny: a caller's layer may carry any
+	// oxlint-disable-next-line typescript/no-explicit-any -- a caller's layer may carry any
 	// error type; narrowing it would reject valid clients.
 	| Layer.Layer<SqlClient.SqlClient, any, never>;
 
@@ -204,7 +204,7 @@ const fromConfig = (
 	// `ConfigError` — and unifying them here would buy nothing: a caller can do
 	// nothing useful with the distinction between "bad config" and "cannot
 	// connect" at layer-construction time.
-	// biome-ignore lint/suspicious/noExplicitAny: see above.
+	// oxlint-disable-next-line typescript/no-explicit-any -- see above.
 ): Layer.Layer<SqlClient.SqlClient, any> => {
 	switch (config.dialect) {
 		case 'postgres':
@@ -249,7 +249,7 @@ const fromConfig = (
  */
 export const toLayer = (
 	database: DatabaseOption
-	// biome-ignore lint/suspicious/noExplicitAny: mirrors `DatabaseOption`.
+	// oxlint-disable-next-line typescript/no-explicit-any -- mirrors `DatabaseOption`.
 ): Layer.Layer<SqlClient.SqlClient, any> => {
 	if (database === undefined || database === null) {
 		throw new MissingDatabaseError();

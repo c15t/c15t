@@ -72,7 +72,10 @@ export function CssLayerScenarioRenderer({
 								: 'css-layer-preview-stage-banner'
 						)}
 					>
-						<div className="css-layer-stage-grid" aria-hidden="true">
+						<div
+							className="css-layer-stage-grid"
+							aria-hidden="true"
+						>
 							<span />
 							<span />
 							<span />
@@ -133,7 +136,10 @@ export function CssLayerScenarioRenderer({
 									: 'css-layer-stage-banner'
 							)}
 						>
-							<div className="css-layer-stage-grid" aria-hidden="true">
+							<div
+								className="css-layer-stage-grid"
+								aria-hidden="true"
+							>
 								<span />
 								<span />
 								<span />

@@ -15,7 +15,10 @@ export function Baseline() {
 					<Switch.Thumb />
 				</span>
 			</Switch.Root>
-			<Accordion.Root type="single" collapsible>
+			<Accordion.Root
+				type="single"
+				collapsible
+			>
 				<Accordion.Item value="one">
 					<Accordion.Trigger>Accordion</Accordion.Trigger>
 					<Accordion.Content>Content</Accordion.Content>

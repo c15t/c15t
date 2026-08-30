@@ -104,8 +104,7 @@ ConsentDialogTriggerComponent.displayName = 'ConsentDialogTrigger';
 /**
  * Compound component interface for ConsentDialogTrigger.
  */
-export interface ConsentDialogTriggerCompound
-	extends FC<ConsentDialogTriggerProps> {
+export interface ConsentDialogTriggerCompound extends FC<ConsentDialogTriggerProps> {
 	/** Root component - provides context and handles portal rendering */
 	Root: typeof TriggerRoot;
 	/** Button component - the clickable element */

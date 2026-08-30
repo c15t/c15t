@@ -94,8 +94,10 @@ function DialogRoot({
 	);
 }
 
-export interface DialogTriggerProps
-	extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
+export interface DialogTriggerProps extends Omit<
+	ButtonHTMLAttributes<HTMLButtonElement>,
+	'type'
+> {
 	asChild?: boolean;
 }
 
@@ -276,8 +278,10 @@ const DialogDescription = forwardRef<
 
 DialogDescription.displayName = 'DialogDescription';
 
-export interface DialogCloseProps
-	extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
+export interface DialogCloseProps extends Omit<
+	ButtonHTMLAttributes<HTMLButtonElement>,
+	'type'
+> {
 	asChild?: boolean;
 	disabled?: boolean;
 }

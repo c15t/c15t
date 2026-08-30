@@ -1,57 +1,57 @@
-name: "Bundle Analysis"
-description: "Analyze bundle size differences using rsdoctor and comment on PRs"
-author: "c15t"
+name: 'Bundle Analysis'
+description: 'Analyze bundle size differences using rsdoctor and comment on PRs'
+author: 'c15t'
 
 inputs:
   base_dir:
-    description: "Directory containing base branch rsdoctor data"
-    default: ".bundle-base"
+    description: 'Directory containing base branch rsdoctor data'
+    default: '.bundle-base'
     required: false
   current_dir:
-    description: "Directory containing current branch rsdoctor data"
-    default: "."
+    description: 'Directory containing current branch rsdoctor data'
+    default: '.'
     required: false
   github_token:
-    description: "GitHub token for posting comments"
+    description: 'GitHub token for posting comments'
     required: true
   header:
-    description: "Header to identify the comment (for sticky comments)"
-    default: "bundle-analysis"
+    description: 'Header to identify the comment (for sticky comments)'
+    default: 'bundle-analysis'
     required: false
   pr_number:
-    description: "Pull request number (auto-detected if not provided)"
+    description: 'Pull request number (auto-detected if not provided)'
     required: false
   skip_comment:
-    description: "Skip posting comment if true"
-    default: "false"
+    description: 'Skip posting comment if true'
+    default: 'false'
     required: false
   packages_dir:
-    description: "Directory containing packages to analyze"
-    default: "packages"
+    description: 'Directory containing packages to analyze'
+    default: 'packages'
     required: false
   fail_on_increase:
-    description: "Fail the action if bundle size increases significantly"
-    default: "false"
+    description: 'Fail the action if bundle size increases significantly'
+    default: 'false'
     required: false
   threshold:
-    description: "Percentage threshold for significant bundle size increase"
-    default: "10"
+    description: 'Percentage threshold for significant bundle size increase'
+    default: '10'
     required: false
   transitive_roots:
-    description: "Comma-separated package names to report transitive workspace impact for"
-    default: "@c15t/core,@c15t/react"
+    description: 'Comma-separated package names to report transitive workspace impact for'
+    default: '@c15t/core,@c15t/react'
     required: false
 
 outputs:
   report_path:
-    description: "Path to the generated bundle diff report"
+    description: 'Path to the generated bundle diff report'
   has_changes:
-    description: "Whether bundle changes were detected"
+    description: 'Whether bundle changes were detected'
   total_diff_percent:
-    description: "Total bundle size change percentage"
+    description: 'Total bundle size change percentage'
 
 runs:
-  using: "composite"
+  using: 'composite'
   steps:
     - name: Run bundle analysis
       shell: bash

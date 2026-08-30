@@ -53,9 +53,9 @@
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/cli",
 		"check-types": "tsc --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
+		"fmt": "bun oxfmt .",
 		"knip": "knip",
-		"lint": "bun biome lint ./src",
+		"lint": "bun oxlint ./src",
 		"start": "node ./dist/index.mjs",
 		"test": "vitest run",
 		"test:watch": "vitest"

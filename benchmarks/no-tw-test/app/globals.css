@@ -1,18 +1,22 @@
-@import "@c15t/nextjs/styles.css";
-@import "@c15t/ui/styles/v3/button.css";
-@import "@c15t/ui/styles/v3/consent-actions.css";
-@import "@c15t/ui/styles/v3/consent-banner.css";
-@import "@c15t/ui/styles/v3/consent-dialog.css";
-@import "@c15t/ui/styles/v3/consent-manager.css";
-@import "@c15t/ui/styles/v3/legal-links.css";
-@import "@c15t/ui/styles/v3/accordion.css";
-@import "@c15t/ui/styles/v3/switch.css";
-@import "@c15t/ui/styles/v3/preference-item.css";
+@import '@c15t/nextjs/styles.css';
+@import '@c15t/ui/styles/v3/button.css';
+@import '@c15t/ui/styles/v3/consent-actions.css';
+@import '@c15t/ui/styles/v3/consent-banner.css';
+@import '@c15t/ui/styles/v3/consent-dialog.css';
+@import '@c15t/ui/styles/v3/consent-manager.css';
+@import '@c15t/ui/styles/v3/legal-links.css';
+@import '@c15t/ui/styles/v3/accordion.css';
+@import '@c15t/ui/styles/v3/switch.css';
+@import '@c15t/ui/styles/v3/preference-item.css';
 
 :root {
 	color-scheme: light;
 	font-family:
-		"Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
+		'Inter',
+		'Segoe UI',
+		system-ui,
+		-apple-system,
+		BlinkMacSystemFont,
 		sans-serif;
 }
 
@@ -39,7 +43,7 @@ a {
 
 code {
 	font-family:
-		"SFMono-Regular", ui-monospace, "Cascadia Code", Consolas, monospace;
+		'SFMono-Regular', ui-monospace, 'Cascadia Code', Consolas, monospace;
 }
 
 .css-layer-home,

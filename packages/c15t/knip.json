@@ -10,7 +10,7 @@
 		"@c15t/ui",
 		"@c15t/vue"
 	],
-	"ignoreBinaries": ["biome", "vitest"],
+	"ignoreBinaries": ["oxfmt", "oxlint", "vitest"],
 	"rules": {
 		"exports": "warn",
 		"types": "warn",

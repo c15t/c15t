@@ -93,7 +93,7 @@ export async function captureDomSnapshot(
 		(args: { sel: string; src: string }) => {
 			const target = document.querySelector(args.sel);
 			if (!target) throw new Error(`no element: ${args.sel}`);
-			// biome-ignore lint/security/noGlobalEval: trusted inline script
+			// oxlint-disable-next-line no-eval -- trusted inline script
 			const fn = new Function('target', args.src);
 			return fn(target) as string;
 		},

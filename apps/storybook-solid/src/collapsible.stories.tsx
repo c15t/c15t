@@ -46,7 +46,10 @@ function CollapsibleDemo(props: CollapsibleDemoProps) {
 				<span>{props.title}</span>
 				<span aria-hidden="true">+</span>
 			</button>
-			<div class={classes.content()} data-state={getOpenState(open())}>
+			<div
+				class={classes.content()}
+				data-state={getOpenState(open())}
+			>
 				<div class={classes.contentViewport()}>
 					<div class={classes.contentInner()}>
 						<p style={{ margin: '0' }}>{props.description}</p>

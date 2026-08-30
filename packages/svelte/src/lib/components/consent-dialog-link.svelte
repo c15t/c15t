@@ -1,17 +1,17 @@
 <script lang="ts">
-import type { Snippet } from 'svelte';
-import ConsentButton from './consent-button.svelte';
+	import type { Snippet } from 'svelte';
+	import ConsentButton from './consent-button.svelte';
 
-let {
-	children,
-	noStyle = true,
-	...restProps
-}: {
-	children: Snippet;
-	noStyle?: boolean;
-	'data-testid'?: string;
-	[key: string]: unknown;
-} = $props();
+	let {
+		children,
+		noStyle = true,
+		...restProps
+	}: {
+		children: Snippet;
+		noStyle?: boolean;
+		'data-testid'?: string;
+		[key: string]: unknown;
+	} = $props();
 </script>
 
 <ConsentButton

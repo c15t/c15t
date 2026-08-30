@@ -14,8 +14,7 @@ import type { AllThemeKeys, ExtendThemeKeys } from '~/types/theme';
  * @public
  */
 export interface BoxProps
-	extends Omit<HTMLAttributes<HTMLDivElement>, 'style'>,
-		ExtendThemeKeys {
+	extends Omit<HTMLAttributes<HTMLDivElement>, 'style'>, ExtendThemeKeys {
 	asChild?: boolean;
 }
 

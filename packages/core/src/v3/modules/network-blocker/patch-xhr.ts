@@ -39,12 +39,12 @@ export function installXhrPatch(deps: XhrPatchDeps): () => void {
 		url: string | URL,
 		...rest: unknown[]
 	) {
-		// biome-ignore lint/suspicious/noExplicitAny: internal symbol-keyed stash
+		// oxlint-disable-next-line typescript/no-explicit-any -- internal symbol-keyed stash
 		(this as any)[INTERNAL_METHOD] = normalizeMethod(method);
-		// biome-ignore lint/suspicious/noExplicitAny: internal symbol-keyed stash
+		// oxlint-disable-next-line typescript/no-explicit-any -- internal symbol-keyed stash
 		(this as any)[INTERNAL_URL] =
 			typeof url === 'string' ? url : url.toString();
-		// biome-ignore lint/suspicious/noExplicitAny: pass-through to native impl
+		// oxlint-disable-next-line typescript/no-explicit-any -- pass-through to native impl
 		return (originalOpen as any).call(this, method, url, ...rest);
 	} as typeof XMLHttpRequest.prototype.open;
 
@@ -55,9 +55,9 @@ export function installXhrPatch(deps: XhrPatchDeps): () => void {
 		if (!deps.isEnabled()) {
 			return originalSend.call(this, body as never);
 		}
-		// biome-ignore lint/suspicious/noExplicitAny: internal symbol-keyed stash
+		// oxlint-disable-next-line typescript/no-explicit-any -- internal symbol-keyed stash
 		const method: string = (this as any)[INTERNAL_METHOD] ?? 'GET';
-		// biome-ignore lint/suspicious/noExplicitAny: internal symbol-keyed stash
+		// oxlint-disable-next-line typescript/no-explicit-any -- internal symbol-keyed stash
 		const rawUrl: string = (this as any)[INTERNAL_URL] ?? '';
 		const url = parseUrl(rawUrl);
 		if (!url) return originalSend.call(this, body as never);
@@ -83,9 +83,9 @@ export function installXhrPatch(deps: XhrPatchDeps): () => void {
 			typeof ProgressEvent !== 'undefined'
 				? new ProgressEvent('error')
 				: ({ type: 'error' } as Event);
-		// biome-ignore lint/suspicious/noExplicitAny: spec-typed XHR
+		// oxlint-disable-next-line typescript/no-explicit-any -- spec-typed XHR
 		if (typeof (this as any).onerror === 'function') {
-			// biome-ignore lint/suspicious/noExplicitAny: spec-typed XHR
+			// oxlint-disable-next-line typescript/no-explicit-any -- spec-typed XHR
 			(this as any).onerror(event);
 		}
 		this.dispatchEvent(event);

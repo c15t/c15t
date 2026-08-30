@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import brandingStyles from '@c15t/ui/styles/v3/branding';
 import { computed, onMounted, ref } from 'vue';
 import { useConsentConfig, useConsentInit } from '#c15t/composables';
@@ -67,7 +64,11 @@ const testId = computed(() => {
 		target="_blank"
 		rel="noopener noreferrer"
 		:data-branding="resolvedBranding"
-		:data-variant="context === 'banner' || context === 'iab-banner' ? 'banner-tag' : 'dialog-tag'"
+		:data-variant="
+			context === 'banner' || context === 'iab-banner'
+				? 'banner-tag'
+				: 'dialog-tag'
+		"
 		:data-testid="testId"
 		:class="brandingStyles.brandingTag"
 		:data-context="context"

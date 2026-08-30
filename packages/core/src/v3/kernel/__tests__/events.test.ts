@@ -8,7 +8,7 @@ describe('createEventBus', () => {
 		bus.on('consent:set', listener);
 		bus.emit({
 			type: 'consent:set',
-			// biome-ignore lint/suspicious/noExplicitAny: stub snapshot
+			// oxlint-disable-next-line typescript/no-explicit-any -- stub snapshot
 			snapshot: {} as any,
 		});
 		expect(listener).toHaveBeenCalledOnce();

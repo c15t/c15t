@@ -152,9 +152,8 @@ export const fileGenerationActor = fromPromise<
 
 	// Import the existing generate-files utility
 	// We delegate to the existing implementation but track files
-	const { generateFiles } = await import(
-		'~/commands/generate/options/utils/generate-files'
-	);
+	const { generateFiles } =
+		await import('~/commands/generate/options/utils/generate-files');
 
 	// Create a spinner mock that doesn't do anything (we handle UI separately)
 	const spinnerMock = {

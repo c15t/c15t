@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 /**
  * The only required integration: mount <ConsentRoot /> once.
  * Everything below it is demo chrome showing the consent state live.
@@ -34,24 +31,38 @@ function openPreferences() {
 			<h2>Live consent state</h2>
 			<dl>
 				<dt>Active surface</dt>
-				<dd><code>{{ activeUI ?? 'none' }}</code></dd>
+				<dd>
+					<code>{{ activeUI ?? 'none' }}</code>
+				</dd>
 				<dt>Granted categories</dt>
-				<dd><code>{{ hasConsent.join(', ') || '—' }}</code></dd>
+				<dd>
+					<code>{{ hasConsent.join(', ') || '—' }}</code>
+				</dd>
 				<dt>Resolved location</dt>
 				<dd>
 					<code>
 						{{ init?.location?.countryCode ?? 'unknown' }}
-						{{ init?.location?.regionCode ? ` / ${init.location.regionCode}` : '' }}
+						{{
+							init?.location?.regionCode ? ` / ${init.location.regionCode}` : ''
+						}}
 					</code>
 				</dd>
 				<dt>Jurisdiction</dt>
-				<dd><code>{{ init?.jurisdiction ?? '—' }}</code></dd>
+				<dd>
+					<code>{{ init?.jurisdiction ?? '—' }}</code>
+				</dd>
 				<dt>Policy pack</dt>
-				<dd><code>{{ init?.policy?.id ?? '—' }}</code></dd>
+				<dd>
+					<code>{{ init?.policy?.id ?? '—' }}</code>
+				</dd>
 				<dt>Policy model</dt>
-				<dd><code>{{ init?.policy?.model ?? '—' }}</code></dd>
+				<dd>
+					<code>{{ init?.policy?.model ?? '—' }}</code>
+				</dd>
 				<dt>Consent surface</dt>
-				<dd><code>{{ init?.policy?.ui?.mode ?? '—' }}</code></dd>
+				<dd>
+					<code>{{ init?.policy?.ui?.mode ?? '—' }}</code>
+				</dd>
 			</dl>
 		</section>
 

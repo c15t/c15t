@@ -68,7 +68,11 @@ function TabsDemo(props: { tabs?: Tab[] }) {
 
 	return (
 		<div class={classes.root()}>
-			<div class={classes.list()} role="tablist" onKeyDown={handleKeyDown}>
+			<div
+				class={classes.list()}
+				role="tablist"
+				onKeyDown={handleKeyDown}
+			>
 				<For each={tabs()}>
 					{(tab) => (
 						<button
@@ -172,7 +176,11 @@ export const Controlled: Story = {
 
 		return (
 			<div class={classes.root()}>
-				<div class={classes.list()} role="tablist" onKeyDown={handleKeyDown}>
+				<div
+					class={classes.list()}
+					role="tablist"
+					onKeyDown={handleKeyDown}
+				>
 					<button
 						class={classes.trigger()}
 						role="tab"

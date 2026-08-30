@@ -29,16 +29,18 @@
 			snapshot = next;
 		});
 
-		void kernel.commands.init().then((result: { ok: boolean; error?: unknown }) => {
-			if (!result.ok) {
-				const state = getBenchState('v3');
-				if (!state) return;
-				state.errorCount += 1;
-				state.errors.push(
-					String(result.error ?? 'kernel.commands.init() failed')
-				);
-			}
-		});
+		void kernel.commands
+			.init()
+			.then((result: { ok: boolean; error?: unknown }) => {
+				if (!result.ok) {
+					const state = getBenchState('v3');
+					if (!state) return;
+					state.errorCount += 1;
+					state.errors.push(
+						String(result.error ?? 'kernel.commands.init() failed')
+					);
+				}
+			});
 
 		return () => {
 			unsubscribe();
@@ -58,7 +60,9 @@
 	});
 </script>
 
-<main style="padding: 32px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+<main
+	style="padding: 32px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
+>
 	<h1 style="margin: 0;">Svelte c15t/v3 banner benchmark</h1>
 </main>
 

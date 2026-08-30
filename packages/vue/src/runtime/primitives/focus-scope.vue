@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 /**
  * FocusScope (Reka-compatible surface, RFC 0003).
  * Renders a plain div; when `trapped`, Tab focus cycles within (always

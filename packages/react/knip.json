@@ -10,7 +10,7 @@
 		"./src/types/index.ts",
 		"./src/utils/index.ts"
 	],
-	"ignoreBinaries": ["biome", "rslib", "tsc", "vitest"],
+	"ignoreBinaries": ["oxfmt", "oxlint", "rslib", "tsc", "vitest"],
 	"ignore": [
 		"**/*.spec.{js,ts,tsx}",
 		"**/*.test.{js,ts,tsx}",

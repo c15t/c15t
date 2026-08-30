@@ -55,7 +55,7 @@ beforeEach(() => {
 	};
 	vi.stubGlobal('window', win);
 	vi.stubGlobal('fetch', win.fetch);
-	// biome-ignore lint/suspicious/noExplicitAny: test stub
+	// oxlint-disable-next-line typescript/no-explicit-any -- test stub
 	vi.stubGlobal('XMLHttpRequest', StubXMLHttpRequest as any);
 });
 

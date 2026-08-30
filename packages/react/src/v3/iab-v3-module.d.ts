@@ -6,10 +6,9 @@ declare module '@c15t/iab/v3' {
 		NonIABVendor,
 	} from '@c15t/core/v3';
 
-	export interface CreateIABOptions
-		extends Partial<
-			Pick<IABConfig, 'cmpId' | 'cmpVersion' | 'vendors' | 'enabled'>
-		> {
+	export interface CreateIABOptions extends Partial<
+		Pick<IABConfig, 'cmpId' | 'cmpVersion' | 'vendors' | 'enabled'>
+	> {
 		kernel: ConsentKernel;
 		gvl?: GlobalVendorList | null;
 		gvlURL?: string;

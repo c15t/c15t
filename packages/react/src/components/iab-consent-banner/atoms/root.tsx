@@ -76,8 +76,7 @@ const IABConsentBannerRoot: FC<IABConsentBannerRootProps> = ({
 	);
 };
 
-interface IABConsentBannerRootChildrenProps
-	extends HTMLAttributes<HTMLDivElement> {
+interface IABConsentBannerRootChildrenProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
 	noStyle?: boolean;
 	disableAnimation?: boolean;

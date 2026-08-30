@@ -10,7 +10,8 @@ export type ConsentButtonElement = ComponentRef<'button'>;
  * @public
  */
 export interface ConsentButtonProps
-	extends Omit<HTMLAttributes<HTMLButtonElement>, 'style'>,
+	extends
+		Omit<HTMLAttributes<HTMLButtonElement>, 'style'>,
 		ExtendThemeKeys<CSSVariables> {
 	/**
 	 * @remarks

@@ -28,5 +28,5 @@
 		"files": "warn"
 	},
 	"ignoreExportsUsedInFile": true,
-	"ignoreBinaries": ["turbo", "biome", "rslib"]
+	"ignoreBinaries": ["turbo", "oxfmt", "oxlint", "rslib"]
 }

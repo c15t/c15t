@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import type { PolicyUiAction } from '@c15t/schema/types';
 import accordionStyles from '@c15t/ui/styles/v3/accordion';
 import dialogStyles from '@c15t/ui/styles/v3/consent-dialog';
@@ -172,7 +169,7 @@ function onAction(action: PolicyUiAction) {
 	<DialogRoot
 		:open="activeUI === 'manager'"
 		:modal="config.trapFocus"
-		@update:open="(open) => activeUI = open ? 'manager' : null"
+		@update:open="(open) => (activeUI = open ? 'manager' : null)"
 	>
 		<DialogPortal>
 			<DialogOverlay
@@ -216,7 +213,9 @@ function onAction(action: PolicyUiAction) {
 								role="heading"
 								aria-level="2"
 							>
-								{{ init?.translations?.translations?.consentManagerDialog?.title }}
+								{{
+									init?.translations?.translations?.consentManagerDialog?.title
+								}}
 							</div>
 							<ConsentDescription context="dialog" />
 						</div>
@@ -262,7 +261,9 @@ function onAction(action: PolicyUiAction) {
 											>
 												<AccordionTrigger
 													as-child
-													v-bind="config.components?.['accordion-item']?.trigger"
+													v-bind="
+														config.components?.['accordion-item']?.trigger
+													"
 													:data-testid="`consent-widget-accordion-trigger-${category}`"
 												>
 													<div :class="accordionStyles.trigger">
@@ -325,13 +326,15 @@ function onAction(action: PolicyUiAction) {
 													v-bind="config.components?.accordion?.contentInner"
 													:class="accordionStyles.contentInner"
 												>
-													{{ (
+													{{
+														(
 															init?.translations?.translations
 																?.consentTypes as Record<
 																string,
 																{ description?: string }
 															>
-														)?.[category]?.description }}
+														)?.[category]?.description
+													}}
 												</div>
 											</div>
 										</AccordionContent>
@@ -343,17 +346,22 @@ function onAction(action: PolicyUiAction) {
 									:class="managerStyles.footer"
 								>
 									<ConsentActions
-										:action-groups="actionGroups.length ? actionGroups : [DEFAULT_ACTIONS]"
+										:action-groups="
+											actionGroups.length ? actionGroups : [DEFAULT_ACTIONS]
+										"
 										:direction="direction"
 										:ui-profile="surface?.uiProfile"
 										:primary-actions="primaryActions"
 										:fill="shouldFillActions"
 										:labels="labels"
 										:test-ids="actionTestIds"
-										:root-attrs="config.components?.manager?.actions as
-											object | undefined"
-										:group-attrs="config.components?.manager?.actionGroup as
-											object | undefined"
+										:root-attrs="
+											config.components?.manager?.actions as object | undefined
+										"
+										:group-attrs="
+											config.components?.manager?.actionGroup as
+												object | undefined
+										"
 										@action="onAction"
 									/>
 								</div>

@@ -1,6 +1,6 @@
 {
 	"recommendations": [
-		"biomejs.biome",
+		"oxc.oxc-vscode",
 		"bradlc.vscode-tailwindcss",
 		"ms-playwright.playwright",
 		"eamodio.gitlens"

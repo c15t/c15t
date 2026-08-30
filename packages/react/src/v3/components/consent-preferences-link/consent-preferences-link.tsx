@@ -10,8 +10,10 @@ import type { ConsentButtonProps } from '~/v3/components/shared/primitives/butto
  * @remarks
  * Renders an unstyled button by default so site styles can define the visual appearance.
  */
-export interface ConsentDialogLinkProps
-	extends Omit<ConsentButtonProps, 'children'> {
+export interface ConsentDialogLinkProps extends Omit<
+	ConsentButtonProps,
+	'children'
+> {
 	/**
 	 * Custom trigger content, for example "Your privacy settings" or "Manage preferences".
 	 */

@@ -271,7 +271,7 @@ function runV3ReconcileOnly(scripts: V2Script[]): number[] {
 		kernel.set.consent({ marketing: true });
 	});
 	// (loader is leaked, but we're in a short-lived script — fine for bench.)
-	// biome-ignore lint/correctness/noUnusedVariables: see comment above
+	// oxlint-disable-next-line no-unused-vars -- see comment above
 	loader;
 }
 

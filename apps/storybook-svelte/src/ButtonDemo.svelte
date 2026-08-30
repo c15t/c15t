@@ -16,4 +16,7 @@
 	const classes = buttonVariants({ variant, mode });
 </script>
 
-<button class={classes.root()} type="button">{label}</button>
+<button
+	class={classes.root()}
+	type="button">{label}</button
+>

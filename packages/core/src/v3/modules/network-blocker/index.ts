@@ -86,7 +86,7 @@ export function createNetworkBlocker(
 
 	function notifyBlocked(info: BlockedRequestInfo): void {
 		if (logBlocked) {
-			// biome-ignore lint/suspicious/noConsole: user-configurable warning
+			// oxlint-disable-next-line no-console -- user-configurable warning
 			console.warn(
 				`[c15t] blocked ${info.method} ${info.url}${
 					info.rule?.id ? ` (rule: ${info.rule.id})` : ''

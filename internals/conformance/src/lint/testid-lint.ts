@@ -107,17 +107,17 @@ async function main(): Promise<void> {
 	];
 	const violations = await runTestIdLint(roots);
 	if (violations.length === 0) {
-		// biome-ignore lint/suspicious/noConsole: CLI output
+		// oxlint-disable-next-line no-console -- CLI output
 		console.log('✓ testid-lint: all test-ids are canonical');
 		process.exit(0);
 	}
-	// biome-ignore lint/suspicious/noConsole: CLI output
+	// oxlint-disable-next-line no-console -- CLI output
 	console.error(`✗ testid-lint: ${violations.length} non-canonical test-id(s)`);
 	for (const v of violations) {
-		// biome-ignore lint/suspicious/noConsole: CLI output
+		// oxlint-disable-next-line no-console -- CLI output
 		console.error(`  ${v.file}:${v.line}  [${v.kind}]  ${v.testId}`);
 	}
-	// biome-ignore lint/suspicious/noConsole: CLI output
+	// oxlint-disable-next-line no-console -- CLI output
 	console.error(
 		'\nAdd the test-id to internals/conformance/src/contract/test-ids.ts (TEST_IDS or TEST_ID_PATTERNS)'
 	);

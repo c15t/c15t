@@ -28,7 +28,7 @@ describe('buildInitialConsents', () => {
 
 	test('drops non-boolean overrides silently', () => {
 		const result = buildInitialConsents({
-			// biome-ignore lint/suspicious/noExplicitAny: deliberately invalid input
+			// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
 			marketing: 'yes' as any,
 		});
 		expect(result.marketing).toBe(false);
@@ -36,7 +36,7 @@ describe('buildInitialConsents', () => {
 
 	test('drops unknown keys silently', () => {
 		const result = buildInitialConsents({
-			// biome-ignore lint/suspicious/noExplicitAny: deliberately invalid input
+			// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
 			analytics: true as any,
 		});
 		expect('analytics' in result).toBe(false);
@@ -118,7 +118,7 @@ describe('buildInitialSnapshot', () => {
 					categories: ['marketing'],
 					scopeMode: 'strict',
 				},
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 
@@ -148,7 +148,7 @@ describe('buildInitialSnapshot', () => {
 					],
 					scopeMode: 'strict',
 				},
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 
@@ -172,7 +172,7 @@ describe('buildInitialSnapshot', () => {
 					preselectedCategories: ['necessary'],
 					scopeMode: 'permissive',
 				},
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 
@@ -203,7 +203,7 @@ describe('buildInitialSnapshot', () => {
 					gpc: true,
 					scopeMode: 'strict',
 				},
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 
@@ -226,7 +226,7 @@ describe('buildInitialSnapshot', () => {
 					banner: { theme: 'dark' },
 					dialog: { theme: 'light' },
 				},
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 		expect(snap.policyBanner).toEqual({ theme: 'dark' });

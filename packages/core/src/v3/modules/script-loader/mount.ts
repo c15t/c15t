@@ -157,7 +157,7 @@ export function mountScript(
 	if (script.defer !== undefined) element.defer = script.defer;
 	if (script.nonce) element.nonce = script.nonce;
 	if (script.fetchPriority) {
-		// biome-ignore lint/suspicious/noExplicitAny: browser API not yet in lib.dom
+		// oxlint-disable-next-line typescript/no-explicit-any -- browser API not yet in lib.dom
 		(element as any).fetchPriority = script.fetchPriority;
 	}
 	if (script.attributes) {

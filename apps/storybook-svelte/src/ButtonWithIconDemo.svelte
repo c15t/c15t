@@ -16,7 +16,10 @@
 	const classes = buttonVariants({ variant, mode });
 </script>
 
-<button class={classes.root()} type="button">
+<button
+	class={classes.root()}
+	type="button"
+>
 	<span class={classes.icon()}>+</span>
 	{label}
 </button>

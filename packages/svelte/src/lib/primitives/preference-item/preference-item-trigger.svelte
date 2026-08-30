@@ -1,46 +1,46 @@
 <script lang="ts">
-import {
-	getDataDisabled,
-	getPreferenceItemState,
-	PREFERENCE_ITEM_SLOTS,
-} from '@c15t/ui/primitives';
-import { preferenceItemVariants } from '@c15t/ui/styles/primitives';
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { getPreferenceItemContext } from './context';
+	import {
+		getDataDisabled,
+		getPreferenceItemState,
+		PREFERENCE_ITEM_SLOTS,
+	} from '@c15t/ui/primitives';
+	import { preferenceItemVariants } from '@c15t/ui/styles/primitives';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
+	import { getPreferenceItemContext } from './context';
 
-const context = getPreferenceItemContext();
-const variants = preferenceItemVariants();
+	const context = getPreferenceItemContext();
+	const variants = preferenceItemVariants();
 
-const open = $derived(context.open);
-const disabled = $derived(context.disabled);
-const noStyle = $derived(context.noStyle);
-const triggerId = $derived(context.triggerId);
-const contentId = $derived(context.contentId);
-const className = $derived.by(() =>
-	noStyle ? localClassName : variants.trigger({ class: localClassName })
-);
-const dataState = $derived(getPreferenceItemState(open));
-const dataDisabled = $derived(getDataDisabled(disabled));
+	const open = $derived(context.open);
+	const disabled = $derived(context.disabled);
+	const noStyle = $derived(context.noStyle);
+	const triggerId = $derived(context.triggerId);
+	const contentId = $derived(context.contentId);
+	const className = $derived.by(() =>
+		noStyle ? localClassName : variants.trigger({ class: localClassName })
+	);
+	const dataState = $derived(getPreferenceItemState(open));
+	const dataDisabled = $derived(getDataDisabled(disabled));
 
-let {
-	children,
-	class: localClassName,
-	onclick,
-	type = 'button',
-	...restProps
-}: HTMLAttributes<HTMLButtonElement> & {
-	children?: Snippet;
-	class?: string;
-	type?: 'button' | 'submit' | 'reset';
-} = $props();
+	let {
+		children,
+		class: localClassName,
+		onclick,
+		type = 'button',
+		...restProps
+	}: HTMLAttributes<HTMLButtonElement> & {
+		children?: Snippet;
+		class?: string;
+		type?: 'button' | 'submit' | 'reset';
+	} = $props();
 
-function handleClick(
-	event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
-) {
-	context.toggle();
-	onclick?.(event);
-}
+	function handleClick(
+		event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement }
+	) {
+		context.toggle();
+		onclick?.(event);
+	}
 </script>
 
 <button

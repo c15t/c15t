@@ -11,8 +11,10 @@ import * as Tabs from '~/v3/components/shared/ui/tabs';
 import { useGVLData } from '../hooks/use-gvl-data';
 import { useIABTranslations } from '../use-iab-translations';
 
-interface IABConsentDialogTabsProps
-	extends Omit<HTMLAttributes<HTMLDivElement>, 'defaultValue' | 'onChange'> {
+interface IABConsentDialogTabsProps extends Omit<
+	HTMLAttributes<HTMLDivElement>,
+	'defaultValue' | 'onChange'
+> {
 	children?: ReactNode;
 	defaultTab?: 'purposes' | 'vendors';
 }
@@ -86,8 +88,7 @@ const IABConsentDialogTabs = forwardRef<
 
 IABConsentDialogTabs.displayName = 'IABConsentDialogTabs';
 
-interface IABConsentDialogTabButtonProps
-	extends HTMLAttributes<HTMLButtonElement> {
+interface IABConsentDialogTabButtonProps extends HTMLAttributes<HTMLButtonElement> {
 	children: ReactNode;
 	tab: 'purposes' | 'vendors';
 }

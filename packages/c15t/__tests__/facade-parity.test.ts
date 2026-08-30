@@ -212,23 +212,23 @@ describe('umbrella file subpaths', () => {
 			typeof entry[1] === 'string' && !entry[0].includes('*')
 	);
 
-	it.each(
-		fileSubpaths.map(([subpath]) => ({ subpath }))
-	)('$subpath resolves on both the umbrella and the scoped package', ({
-		subpath,
-	}) => {
-		const segment = subpath.slice(2);
-		const umbrellaPath = requireFromTest.resolve(`c15t/${segment}`);
-		expect(existsSync(umbrellaPath), `missing built file for ${subpath}`).toBe(
-			true
-		);
+	it.each(fileSubpaths.map(([subpath]) => ({ subpath })))(
+		'$subpath resolves on both the umbrella and the scoped package',
+		({ subpath }) => {
+			const segment = subpath.slice(2);
+			const umbrellaPath = requireFromTest.resolve(`c15t/${segment}`);
+			expect(
+				existsSync(umbrellaPath),
+				`missing built file for ${subpath}`
+			).toBe(true);
 
-		const scoped = rowsScopedSpecifier(subpath);
-		const scopedPath = requireFromTest.resolve(scoped);
-		expect(existsSync(scopedPath), `missing scoped file for ${subpath}`).toBe(
-			true
-		);
-	});
+			const scoped = rowsScopedSpecifier(subpath);
+			const scopedPath = requireFromTest.resolve(scoped);
+			expect(existsSync(scopedPath), `missing scoped file for ${subpath}`).toBe(
+				true
+			);
+		}
+	);
 
 	it('mirrors every vue wildcard shim onto a real scoped runtime file', () => {
 		for (const wildcard of ['./vue/runtime/*', './vue/composables/*']) {

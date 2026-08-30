@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import type {
 	GlobalVendorList,
 	NonIABVendor,
@@ -360,16 +357,18 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 									v-bind="config.components?.['iab-banner']?.purposeMore"
 									:class="bannerStyles.purposeMore"
 								>
-									{{ (iabT?.banner?.andMore ?? '').replace(
-										'{count}',
-										String(bannerSummary.remainingCount),
-									) }}
+									{{
+										(iabT?.banner?.andMore ?? '').replace(
+											'{count}',
+											String(bannerSummary.remainingCount)
+										)
+									}}
 								</li>
 							</ul>
 							<p
 								v-bind="
-										config.components?.['iab-banner']?.legitimateInterestNotice
-									"
+									config.components?.['iab-banner']?.legitimateInterestNotice
+								"
 								:class="bannerStyles.legitimateInterestNotice"
 							>
 								{{ iabT?.banner?.legitimateInterestNotice }}
@@ -387,10 +386,14 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 								:labels="labels"
 								:test-ids="IAB_BANNER_ACTION_TEST_IDS"
 								secondary-mode="stroke"
-								:root-attrs="config.components?.['iab-banner']?.actions as
-										object | undefined"
-								:group-attrs="config.components?.['iab-banner']?.actionGroup as
-										object | undefined"
+								:root-attrs="
+									config.components?.['iab-banner']?.actions as
+										object | undefined
+								"
+								:group-attrs="
+									config.components?.['iab-banner']?.actionGroup as
+										object | undefined
+								"
 								@action="onAction"
 							/>
 						</div>

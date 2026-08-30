@@ -30,8 +30,7 @@ import {
  * This interface extends the base IABConsentBanner component with additional sub-components
  * that can be used to compose the banner's structure.
  */
-export interface IABConsentBannerCompoundComponent
-	extends FC<IABConsentBannerProps> {
+export interface IABConsentBannerCompoundComponent extends FC<IABConsentBannerProps> {
 	Root: typeof IABConsentBannerRoot;
 	Card: typeof IABConsentBannerCard;
 	Header: typeof IABConsentBannerHeader;

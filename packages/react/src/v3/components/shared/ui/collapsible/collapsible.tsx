@@ -117,8 +117,10 @@ const CollapsibleRoot = forwardRef<HTMLDivElement, CollapsibleRootProps>(
 
 CollapsibleRoot.displayName = 'CollapsibleRoot';
 
-export interface CollapsibleTriggerProps
-	extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
+export interface CollapsibleTriggerProps extends Omit<
+	ButtonHTMLAttributes<HTMLButtonElement>,
+	'type'
+> {
 	noStyle?: boolean;
 }
 
@@ -168,8 +170,7 @@ const CollapsibleTrigger = forwardRef<
 
 CollapsibleTrigger.displayName = 'CollapsibleTrigger';
 
-export interface CollapsibleContentProps
-	extends HTMLAttributes<HTMLDivElement> {
+export interface CollapsibleContentProps extends HTMLAttributes<HTMLDivElement> {
 	innerClassName?: string;
 	noStyle?: boolean;
 }

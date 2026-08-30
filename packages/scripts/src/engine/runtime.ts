@@ -408,11 +408,9 @@ function executeStep(step: ManifestStep): void {
 				}
 			}
 
-			win[step.assignTo] = new (
-				Constructor as new (
-					...args: unknown[]
-				) => unknown
-			)(...args);
+			win[step.assignTo] = new (Constructor as new (
+				...args: unknown[]
+			) => unknown)(...args);
 			break;
 		}
 

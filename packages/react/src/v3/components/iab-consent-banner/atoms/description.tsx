@@ -3,8 +3,7 @@
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 
-interface IABConsentBannerDescriptionProps
-	extends HTMLAttributes<HTMLParagraphElement> {
+interface IABConsentBannerDescriptionProps extends HTMLAttributes<HTMLParagraphElement> {
 	children: ReactNode;
 }
 

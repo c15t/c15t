@@ -16,8 +16,8 @@
 	"scripts": {
 		"check-types": "tsc --noEmit",
 		"dev": "echo '@c15t/vitest-config has no watch task'",
-		"lint": "bun biome lint ./src",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write"
+		"lint": "bun oxlint ./src",
+		"fmt": "bun oxfmt ."
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

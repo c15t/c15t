@@ -1,4 +1,4 @@
-@import url("./animations/iab-consent-banner.css");
+@import url('./animations/iab-consent-banner.css');
 
 :root {
 	/* Typography */
@@ -79,9 +79,9 @@
 		transform: scale(1);
 		transition:
 			opacity var(--iab-consent-banner-animation-duration)
-			var(--iab-consent-banner-animation-timing),
+				var(--iab-consent-banner-animation-timing),
 			transform var(--iab-consent-banner-animation-duration)
-			cubic-bezier(0.34, 1.56, 0.64, 1);
+				cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
 
 	.bannerHidden {
@@ -89,9 +89,9 @@
 		transform: scale(0.95);
 		transition:
 			opacity var(--iab-consent-banner-animation-duration)
-			var(--iab-consent-banner-animation-timing),
+				var(--iab-consent-banner-animation-timing),
 			transform var(--iab-consent-banner-animation-duration)
-			var(--iab-consent-banner-animation-timing);
+				var(--iab-consent-banner-animation-timing);
 	}
 
 	@media (min-width: 640px) {
@@ -126,11 +126,11 @@
 	}
 
 	/* Animation states */
-	.card[data-state="open"] {
+	.card[data-state='open'] {
 		animation: var(--iab-consent-banner-entry-animation);
 	}
 
-	.card[data-state="closed"] {
+	.card[data-state='closed'] {
 		animation: var(--iab-consent-banner-exit-animation);
 	}
 
@@ -321,8 +321,8 @@
 			transition: none;
 		}
 
-		.card[data-state="open"],
-		.card[data-state="closed"] {
+		.card[data-state='open'],
+		.card[data-state='closed'] {
 			animation: none;
 		}
 	}

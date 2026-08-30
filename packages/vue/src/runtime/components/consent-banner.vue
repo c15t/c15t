@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import { DEFAULT_BANNER_POSITION } from '@c15t/schema/config';
 import type { PolicyUiAction } from '@c15t/schema/types';
 import bannerStyles from '@c15t/ui/styles/v3/consent-banner';
@@ -164,17 +161,21 @@ function onAction(action: PolicyUiAction) {
 							:class="bannerStyles.footer"
 						>
 							<ConsentActions
-								:action-groups="actionGroups.length ? actionGroups : [DEFAULT_ACTIONS]"
+								:action-groups="
+									actionGroups.length ? actionGroups : [DEFAULT_ACTIONS]
+								"
 								:direction="direction"
 								:ui-profile="surface?.uiProfile"
 								:primary-actions="primaryActions"
 								:fill="shouldFillActions"
 								:labels="labels"
 								:test-ids="actionTestIds"
-								:root-attrs="config.components?.banner?.actions as
-										object | undefined"
-								:group-attrs="config.components?.banner?.actionGroup as
-										object | undefined"
+								:root-attrs="
+									config.components?.banner?.actions as object | undefined
+								"
+								:group-attrs="
+									config.components?.banner?.actionGroup as object | undefined
+								"
 								@action="onAction"
 							/>
 						</div>

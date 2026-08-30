@@ -21,7 +21,10 @@ export function ScriptLifecyclePageShell({
 			<p>Ready: {ready ? 'yes' : 'no'}</p>
 			<div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
 				{allScenarioConfigs.map((scenario) => (
-					<Link key={scenario.name} href={`/?scenario=${scenario.name}`}>
+					<Link
+						key={scenario.name}
+						href={`/?scenario=${scenario.name}`}
+					>
 						{scenario.name}
 					</Link>
 				))}

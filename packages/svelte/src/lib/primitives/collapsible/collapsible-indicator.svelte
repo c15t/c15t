@@ -1,21 +1,21 @@
 <script lang="ts">
-import { getCollapsibleState } from '@c15t/ui/primitives';
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { getCollapsibleRootContext } from './context';
+	import { getCollapsibleState } from '@c15t/ui/primitives';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
+	import { getCollapsibleRootContext } from './context';
 
-const root = getCollapsibleRootContext();
+	const root = getCollapsibleRootContext();
 
-const dataState = $derived(getCollapsibleState(root.open));
+	const dataState = $derived(getCollapsibleState(root.open));
 
-let {
-	children,
-	class: className,
-	...restProps
-}: HTMLAttributes<HTMLSpanElement> & {
-	children?: Snippet;
-	class?: string;
-} = $props();
+	let {
+		children,
+		class: className,
+		...restProps
+	}: HTMLAttributes<HTMLSpanElement> & {
+		children?: Snippet;
+		class?: string;
+	} = $props();
 </script>
 
 <span

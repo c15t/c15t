@@ -182,9 +182,9 @@ ${notes}
 
 ${formatPhaseLines(result)}
 ${formatErrorList('Console errors', result.consoleErrors)}${formatErrorList(
-	'Page errors',
-	result.pageErrors
-)}
+		'Page errors',
+		result.pageErrors
+	)}
 ### Reproduce locally
 
 \`\`\`sh

@@ -1,144 +1,147 @@
 <script lang="ts">
-import type { AllConsentNames } from '@c15t/core';
-import { defaultTranslationConfig } from '@c15t/core';
-import styles from '@c15t/ui/styles/components/consent-widget.module.js';
-import { switchVariants } from '@c15t/ui/styles/primitives';
-import {
-	getTextDirection,
-	resolvePolicyActionGroups,
-	resolvePolicyAllowedActions,
-	resolvePolicyDirection,
-	resolvePolicyOrderedActions,
-	resolvePolicyPrimaryActions,
-	resolveTranslations,
-	shouldFillPolicyActions,
-} from '@c15t/ui/utils';
-import { getConsentContext, getThemeContext } from '../context.svelte';
-import { PreferenceItem, Switch } from '../primitives';
-import { resolveComponentStyles } from '../utils';
-import Branding from './branding.svelte';
-import ConsentButton from './consent-button.svelte';
-import PolicyActionsRenderer from './policy-actions-renderer.svelte';
+	import type { AllConsentNames } from '@c15t/core';
+	import { defaultTranslationConfig } from '@c15t/core';
+	import styles from '@c15t/ui/styles/components/consent-widget.module.js';
+	import { switchVariants } from '@c15t/ui/styles/primitives';
+	import {
+		getTextDirection,
+		resolvePolicyActionGroups,
+		resolvePolicyAllowedActions,
+		resolvePolicyDirection,
+		resolvePolicyOrderedActions,
+		resolvePolicyPrimaryActions,
+		resolveTranslations,
+		shouldFillPolicyActions,
+	} from '@c15t/ui/utils';
+	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { PreferenceItem, Switch } from '../primitives';
+	import { resolveComponentStyles } from '../utils';
+	import Branding from './branding.svelte';
+	import ConsentButton from './consent-button.svelte';
+	import PolicyActionsRenderer from './policy-actions-renderer.svelte';
 
-const sw = switchVariants({ size: 'small' });
+	const sw = switchVariants({ size: 'small' });
 
-let {
-	hideBranding = true,
-	noStyle: localNoStyle,
-	class: className,
-}: {
-	hideBranding?: boolean;
-	noStyle?: boolean;
-	class?: string;
-} = $props();
+	let {
+		hideBranding = true,
+		noStyle: localNoStyle,
+		class: className,
+	}: {
+		hideBranding?: boolean;
+		noStyle?: boolean;
+		class?: string;
+	} = $props();
 
-const consent = getConsentContext();
-const theme = getThemeContext();
+	const consent = getConsentContext();
+	const theme = getThemeContext();
 
-const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
+	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
 
-const translations = $derived(
-	resolveTranslations(consent.state.translationConfig, defaultTranslationConfig)
-);
-
-const textDirection = $derived(
-	getTextDirection(consent.state.translationConfig?.defaultLanguage)
-);
-
-const displayedConsents = $derived(
-	consent.state.consentTypes.filter((ct) =>
-		consent.state.consentCategories.includes(ct.name)
-	)
-);
-
-let openItems = $state<Record<string, boolean>>({});
-
-function toggleConsent(name: string, checked: boolean) {
-	consent.state.setSelectedConsent(name as AllConsentNames, checked);
-}
-
-function toggleOpenItem(name: string) {
-	const nextOpen = !(openItems[name] ?? false);
-	openItems = Object.fromEntries(
-		displayedConsents.map((consentType) => [
-			consentType.name,
-			nextOpen && consentType.name === name,
-		])
+	const translations = $derived(
+		resolveTranslations(
+			consent.state.translationConfig,
+			defaultTranslationConfig
+		)
 	);
-}
 
-function formatConsentName(name: AllConsentNames): string {
-	return (name as string)
-		.replace(/_/g, ' ')
-		.replace(/\b\w/g, (c: string) => c.toUpperCase());
-}
+	const textDirection = $derived(
+		getTextDirection(consent.state.translationConfig?.defaultLanguage)
+	);
 
-// Per-element theme key resolution
-const widgetRootStyle = $derived(
-	resolveComponentStyles(
-		'consentWidget',
-		theme.theme,
-		{ baseClassName: styles.widget, className },
-		noStyle
-	)
-);
+	const displayedConsents = $derived(
+		consent.state.consentTypes.filter((ct) =>
+			consent.state.consentCategories.includes(ct.name)
+		)
+	);
 
-const footerStyle = $derived(
-	resolveComponentStyles(
-		'consentWidgetFooter',
-		theme.theme,
-		{ baseClassName: styles.footer, noStyle },
-		noStyle
-	)
-);
+	let openItems = $state<Record<string, boolean>>({});
 
-const footerGroupStyle = $derived(
-	resolveComponentStyles(
-		'consentWidgetFooter',
-		theme.theme,
-		{ baseClassName: styles.footerSubGroup, noStyle },
-		noStyle
-	)
-);
+	function toggleConsent(name: string, checked: boolean) {
+		consent.state.setSelectedConsent(name as AllConsentNames, checked);
+	}
 
-const allowedActions = $derived(
-	resolvePolicyAllowedActions({
-		allowedActions: consent.state.policyDialog.allowedActions,
-	})
-);
+	function toggleOpenItem(name: string) {
+		const nextOpen = !(openItems[name] ?? false);
+		openItems = Object.fromEntries(
+			displayedConsents.map((consentType) => [
+				consentType.name,
+				nextOpen && consentType.name === name,
+			])
+		);
+	}
 
-const orderedActions = $derived(
-	resolvePolicyOrderedActions({
-		allowedActions,
-		layout: consent.state.policyDialog.layout,
-	})
-);
+	function formatConsentName(name: AllConsentNames): string {
+		return (name as string)
+			.replace(/_/g, ' ')
+			.replace(/\b\w/g, (c: string) => c.toUpperCase());
+	}
 
-const actionGroups = $derived(
-	resolvePolicyActionGroups({
-		allowedActions,
-		layout: consent.state.policyDialog.layout,
-	})
-);
+	// Per-element theme key resolution
+	const widgetRootStyle = $derived(
+		resolveComponentStyles(
+			'consentWidget',
+			theme.theme,
+			{ baseClassName: styles.widget, className },
+			noStyle
+		)
+	);
 
-const direction = $derived(
-	resolvePolicyDirection(consent.state.policyDialog.direction)
-);
+	const footerStyle = $derived(
+		resolveComponentStyles(
+			'consentWidgetFooter',
+			theme.theme,
+			{ baseClassName: styles.footer, noStyle },
+			noStyle
+		)
+	);
 
-const primaryActions = $derived(
-	resolvePolicyPrimaryActions({
-		orderedActions,
-		primaryActions: consent.state.policyDialog.primaryActions,
-	})
-);
+	const footerGroupStyle = $derived(
+		resolveComponentStyles(
+			'consentWidgetFooter',
+			theme.theme,
+			{ baseClassName: styles.footerSubGroup, noStyle },
+			noStyle
+		)
+	);
 
-const shouldFillActions = $derived(
-	shouldFillPolicyActions({
-		uiProfile: consent.state.policyDialog.uiProfile,
-		actionGroups,
-		direction,
-	})
-);
+	const allowedActions = $derived(
+		resolvePolicyAllowedActions({
+			allowedActions: consent.state.policyDialog.allowedActions,
+		})
+	);
+
+	const orderedActions = $derived(
+		resolvePolicyOrderedActions({
+			allowedActions,
+			layout: consent.state.policyDialog.layout,
+		})
+	);
+
+	const actionGroups = $derived(
+		resolvePolicyActionGroups({
+			allowedActions,
+			layout: consent.state.policyDialog.layout,
+		})
+	);
+
+	const direction = $derived(
+		resolvePolicyDirection(consent.state.policyDialog.direction)
+	);
+
+	const primaryActions = $derived(
+		resolvePolicyPrimaryActions({
+			orderedActions,
+			primaryActions: consent.state.policyDialog.primaryActions,
+		})
+	);
+
+	const shouldFillActions = $derived(
+		shouldFillPolicyActions({
+			uiProfile: consent.state.policyDialog.uiProfile,
+			actionGroups,
+			direction,
+		})
+	);
 </script>
 
 <div
@@ -250,7 +253,11 @@ const shouldFillActions = $derived(
 		footerTestId="consent-widget-footer"
 		footerSubGroupTestId="consent-widget-footer-sub-group"
 	>
-		{#snippet renderAction(action: string, isPrimary: boolean, actionClassName?: string)}
+		{#snippet renderAction(
+			action: string,
+			isPrimary: boolean,
+			actionClassName?: string
+		)}
 			{#if action === 'reject'}
 				<ConsentButton
 					action="reject-consent"

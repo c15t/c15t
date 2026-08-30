@@ -239,8 +239,8 @@
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/scripts",
 		"check-types": "tsc --noEmit && tsc -p live-vendors --noEmit",
 		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./src ./live-vendors",
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src ./live-vendors",
 		"test": "vitest run",
 		"test:live-vendors": "bun --tsconfig-override live-vendors/tsconfig.json live-vendors/runner.ts",
 		"test:watch": "vitest"

@@ -10,4 +10,3 @@
 {:else}
 	<BannerVisibilityV2 />
 {/if}
-

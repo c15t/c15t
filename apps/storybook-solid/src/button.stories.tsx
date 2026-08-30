@@ -10,7 +10,10 @@ function Demo() {
 	});
 
 	return (
-		<button class={classes.root()} type="button">
+		<button
+			class={classes.root()}
+			type="button"
+		>
 			Open preferences
 		</button>
 	);
@@ -41,7 +44,10 @@ export const WithIcon: Story = {
 		});
 
 		return (
-			<button class={classes.root()} type="button">
+			<button
+				class={classes.root()}
+				type="button"
+			>
 				<span class={classes.icon()}>+</span>
 				Open preferences
 			</button>
@@ -58,7 +64,10 @@ export const NeutralGhost: Story = {
 		});
 
 		return (
-			<button class={classes.root()} type="button">
+			<button
+				class={classes.root()}
+				type="button"
+			>
 				Secondary action
 			</button>
 		);
@@ -106,22 +115,40 @@ export const AllModes: Story = {
 					'grid-template-columns': 'repeat(2, minmax(0, max-content))',
 				}}
 			>
-				<button class={primaryFilled.root()} type="button">
+				<button
+					class={primaryFilled.root()}
+					type="button"
+				>
 					Primary filled
 				</button>
-				<button class={neutralFilled.root()} type="button">
+				<button
+					class={neutralFilled.root()}
+					type="button"
+				>
 					Neutral filled
 				</button>
-				<button class={primaryStroke.root()} type="button">
+				<button
+					class={primaryStroke.root()}
+					type="button"
+				>
 					Primary stroke
 				</button>
-				<button class={neutralStroke.root()} type="button">
+				<button
+					class={neutralStroke.root()}
+					type="button"
+				>
 					Neutral stroke
 				</button>
-				<button class={primaryLighter.root()} type="button">
+				<button
+					class={primaryLighter.root()}
+					type="button"
+				>
 					Primary lighter
 				</button>
-				<button class={neutralGhost.root()} type="button">
+				<button
+					class={neutralGhost.root()}
+					type="button"
+				>
 					Neutral ghost
 				</button>
 			</div>

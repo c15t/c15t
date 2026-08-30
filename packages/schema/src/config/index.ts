@@ -204,9 +204,9 @@ type ConsentComponentSlotKeyMap = {
 };
 
 export type ConsentComponentSlotKey = {
-	[Group in keyof ConsentComponentSlots &
-		string]-?: `${Group}.${keyof NonNullable<ConsentComponentSlots[Group]> &
-		string}`;
+	[
+		Group in keyof ConsentComponentSlots & string
+	]-?: `${Group}.${keyof NonNullable<ConsentComponentSlots[Group]> & string}`;
 }[keyof ConsentComponentSlots & string];
 
 export const CONSENT_COMPONENT_SLOT_KEY_MAP = {

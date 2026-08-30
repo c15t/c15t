@@ -14,7 +14,7 @@
 	);
 </script>
 
-<StorybookConsentProvider storedConsent={storedConsent}>
+<StorybookConsentProvider {storedConsent}>
 	<div style="width: 32rem;">
 		<Frame category="marketing">
 			<div

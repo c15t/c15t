@@ -44,12 +44,12 @@ afterEach(() => {
 });
 
 describe('hashSha256Hex', () => {
-	it.each(goldenVectors)('computes the expected sha256 for $label', async ({
-		input,
-		expected,
-	}) => {
-		await expect(hashSha256Hex(input)).resolves.toBe(expected);
-	});
+	it.each(goldenVectors)(
+		'computes the expected sha256 for $label',
+		async ({ input, expected }) => {
+			await expect(hashSha256Hex(input)).resolves.toBe(expected);
+		}
+	);
 
 	it('produces consistent hashes with crypto.subtle available', async () => {
 		Object.defineProperty(globalThis, 'crypto', {

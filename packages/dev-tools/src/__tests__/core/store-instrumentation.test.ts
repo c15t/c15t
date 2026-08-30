@@ -92,9 +92,8 @@ describe('store instrumentation', () => {
 			onEvent: (event) => events.push(event.type),
 		});
 
-		const wrappedConsentChanged = store.getState().callbacks.onConsentChanged as
-			| ((payload: unknown) => void)
-			| undefined;
+		const wrappedConsentChanged = store.getState().callbacks
+			.onConsentChanged as ((payload: unknown) => void) | undefined;
 		wrappedConsentChanged?.({
 			allowedCategories: ['necessary', 'measurement'],
 		});

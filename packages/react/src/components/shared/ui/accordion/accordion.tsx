@@ -245,8 +245,10 @@ const AccordionHeader = forwardRef<HTMLDivElement, AccordionHeaderProps>(
 
 AccordionHeader.displayName = ACCORDION_HEADER_NAME;
 
-export interface AccordionTriggerProps
-	extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
+export interface AccordionTriggerProps extends Omit<
+	ButtonHTMLAttributes<HTMLButtonElement>,
+	'type'
+> {
 	noStyle?: boolean;
 }
 

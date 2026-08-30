@@ -177,10 +177,7 @@ export {
 	Footer,
 	FooterSubGroup,
 } from './atoms/footer';
-export {
-	ConsentWidgetRoot,
-	Root,
-} from './atoms/root';
+export { ConsentWidgetRoot, Root } from './atoms/root';
 export {
 	type ConsentWidgetPolicyActionRenderProps,
 	ConsentWidgetPolicyActions,

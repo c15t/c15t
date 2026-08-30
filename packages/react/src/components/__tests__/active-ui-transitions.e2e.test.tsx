@@ -293,102 +293,107 @@ describe('activeUI Transitions E2E Tests', () => {
 		['horizontal', 'top-left', '{ArrowRight}', 0],
 		['vertical', 'bottom-right', '{ArrowDown}', -1],
 		['vertical', 'top-left', '{ArrowDown}', 0],
-	] as const)('trigger %s toolbar at %s runs custom actions and opens preferences', async (orientation, defaultPosition, navigationKey, preferencesIndex) => {
-		const openSupport = vi.fn();
+	] as const)(
+		'trigger %s toolbar at %s runs custom actions and opens preferences',
+		async (orientation, defaultPosition, navigationKey, preferencesIndex) => {
+			const openSupport = vi.fn();
 
-		render(
-			<ConsentManagerProvider options={defaultOptions}>
-				<ConsentBanner />
-				<ConsentDialog />
-				<ConsentDialogTriggerToolbar
-					showWhen="always"
-					ariaLabel="Site controls"
-					defaultPosition={defaultPosition}
-					orientation={orientation}
-					actions={[
-						{
-							id: 'theme',
-							label: 'Toggle color scheme',
-							icon: <span data-testid="theme-icon" />,
-							onSelect: vi.fn(),
-						},
-						{
-							id: 'support',
-							label: 'Open support chat',
-							icon: <span />,
-							onSelect: openSupport,
-						},
-					]}
-				/>
-			</ConsentManagerProvider>
-		);
+			render(
+				<ConsentManagerProvider options={defaultOptions}>
+					<ConsentBanner />
+					<ConsentDialog />
+					<ConsentDialogTriggerToolbar
+						showWhen="always"
+						ariaLabel="Site controls"
+						defaultPosition={defaultPosition}
+						orientation={orientation}
+						actions={[
+							{
+								id: 'theme',
+								label: 'Toggle color scheme',
+								icon: <span data-testid="theme-icon" />,
+								onSelect: vi.fn(),
+							},
+							{
+								id: 'support',
+								label: 'Open support chat',
+								icon: <span />,
+								onSelect: openSupport,
+							},
+						]}
+					/>
+				</ConsentManagerProvider>
+			);
 
-		await vi.waitFor(
-			() => {
-				expect(
-					document.querySelector('[data-testid="consent-banner-accept-button"]')
-				).toBeInTheDocument();
-			},
-			{ timeout: 3000 }
-		);
+			await vi.waitFor(
+				() => {
+					expect(
+						document.querySelector(
+							'[data-testid="consent-banner-accept-button"]'
+						)
+					).toBeInTheDocument();
+				},
+				{ timeout: 3000 }
+			);
 
-		await userEvent.click(
-			queryRequiredElement('[data-testid="consent-banner-accept-button"]')
-		);
+			await userEvent.click(
+				queryRequiredElement('[data-testid="consent-banner-accept-button"]')
+			);
 
-		await vi.waitFor(
-			() => {
-				expect(
-					document.querySelector(
-						`[role="toolbar"][aria-label="Site controls"][aria-orientation="${orientation}"]`
-					)
-				).toBeInTheDocument();
-			},
-			{ timeout: 3000 }
-		);
+			await vi.waitFor(
+				() => {
+					expect(
+						document.querySelector(
+							`[role="toolbar"][aria-label="Site controls"][aria-orientation="${orientation}"]`
+						)
+					).toBeInTheDocument();
+				},
+				{ timeout: 3000 }
+			);
 
-		const toolbarButtons = Array.from(
-			queryRequiredElement(
-				'[role="toolbar"][aria-label="Site controls"]'
-			).querySelectorAll('button')
-		);
-		expect(toolbarButtons.at(preferencesIndex)).toHaveAttribute(
-			'aria-label',
-			'Open privacy settings'
-		);
+			const toolbarButtons = Array.from(
+				queryRequiredElement(
+					'[role="toolbar"][aria-label="Site controls"]'
+				).querySelectorAll('button')
+			);
+			expect(toolbarButtons.at(preferencesIndex)).toHaveAttribute(
+				'aria-label',
+				'Open privacy settings'
+			);
 
-		expect(
-			document.querySelector('[data-testid="theme-icon"]')
-		).toBeInTheDocument();
-		const privacyButton = queryRequiredElement(
-			'button[aria-label="Open privacy settings"]'
-		);
-		const themeButton = queryRequiredElement(
-			'button[aria-label="Toggle color scheme"]'
-		);
-		privacyButton.focus();
-		await userEvent.keyboard(navigationKey);
-		expect(themeButton).toHaveFocus();
+			expect(
+				document.querySelector('[data-testid="theme-icon"]')
+			).toBeInTheDocument();
+			const privacyButton = queryRequiredElement(
+				'button[aria-label="Open privacy settings"]'
+			);
+			const themeButton = queryRequiredElement(
+				'button[aria-label="Toggle color scheme"]'
+			);
+			privacyButton.focus();
+			await userEvent.keyboard(navigationKey);
+			expect(themeButton).toHaveFocus();
 
-		await userEvent.click(
-			queryRequiredElement('button[aria-label="Open support chat"]')
-		);
-		expect(openSupport).toHaveBeenCalledOnce();
-		expect(
-			document.querySelector('[data-testid="consent-dialog-root"]')
-		).not.toBeInTheDocument();
+			await userEvent.click(
+				queryRequiredElement('button[aria-label="Open support chat"]')
+			);
+			expect(openSupport).toHaveBeenCalledOnce();
+			expect(
+				document.querySelector('[data-testid="consent-dialog-root"]')
+			).not.toBeInTheDocument();
 
-		await userEvent.click(privacyButton);
+			await userEvent.click(privacyButton);
 
-		await vi.waitFor(
-			() => {
-				expect(
-					document.querySelector('[data-testid="consent-dialog-root"]')
-				).toBeInTheDocument();
-			},
-			{ timeout: 3000 }
-		);
-	});
+			await vi.waitFor(
+				() => {
+					expect(
+						document.querySelector('[data-testid="consent-dialog-root"]')
+					).toBeInTheDocument();
+				},
+				{ timeout: 3000 }
+			);
+		}
+	);
 
 	test('full lifecycle: banner → customize → dialog → save → trigger → dialog', async () => {
 		render(

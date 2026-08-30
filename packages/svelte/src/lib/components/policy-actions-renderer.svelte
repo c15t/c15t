@@ -1,68 +1,68 @@
 <script lang="ts">
-import type { PolicyUiActionDirection } from '@c15t/core';
-import type { Snippet } from 'svelte';
+	import type { PolicyUiActionDirection } from '@c15t/core';
+	import type { Snippet } from 'svelte';
 
-let {
-	actionGroups = [],
-	primaryActions = [],
-	shouldFillActions = false,
-	direction = 'row',
-	footerClassName,
-	footerFillClassName,
-	footerColumnClassName,
-	footerSubGroupClassName,
-	footerSubGroupFillClassName,
-	footerSubGroupColumnClassName,
-	actionButtonFillClassName,
-	footerTestId,
-	footerSubGroupTestId,
-	renderAction,
-}: {
-	actionGroups?: string[][];
-	primaryActions?: string[];
-	shouldFillActions?: boolean;
-	direction?: PolicyUiActionDirection;
-	footerClassName?: string;
-	footerFillClassName?: string;
-	footerColumnClassName?: string;
-	footerSubGroupClassName?: string;
-	footerSubGroupFillClassName?: string;
-	footerSubGroupColumnClassName?: string;
-	actionButtonFillClassName?: string;
-	footerTestId?: string;
-	footerSubGroupTestId?: string;
-	renderAction?: Snippet<[string, boolean, string | undefined]>;
-} = $props();
-
-const isColumn = $derived(direction === 'column');
-const resolvedFooterClassName = $derived(
-	[
+	let {
+		actionGroups = [],
+		primaryActions = [],
+		shouldFillActions = false,
+		direction = 'row',
 		footerClassName,
-		shouldFillActions ? footerFillClassName : '',
-		isColumn ? footerColumnClassName : '',
-	]
-		.filter(Boolean)
-		.join(' ')
-);
-const resolvedFooterSubGroupClassName = $derived(
-	[
+		footerFillClassName,
+		footerColumnClassName,
 		footerSubGroupClassName,
-		shouldFillActions ? footerSubGroupFillClassName : '',
-		isColumn ? footerSubGroupColumnClassName : '',
-	]
-		.filter(Boolean)
-		.join(' ')
-);
-const actionClassName = $derived(
-	shouldFillActions ? actionButtonFillClassName : undefined
-);
-const keyedActionGroups = $derived(
-	actionGroups.map((group, groupIndex) => ({
-		group,
-		groupIndex,
-		key: group.join('-') + '-' + groupIndex,
-	}))
-);
+		footerSubGroupFillClassName,
+		footerSubGroupColumnClassName,
+		actionButtonFillClassName,
+		footerTestId,
+		footerSubGroupTestId,
+		renderAction,
+	}: {
+		actionGroups?: string[][];
+		primaryActions?: string[];
+		shouldFillActions?: boolean;
+		direction?: PolicyUiActionDirection;
+		footerClassName?: string;
+		footerFillClassName?: string;
+		footerColumnClassName?: string;
+		footerSubGroupClassName?: string;
+		footerSubGroupFillClassName?: string;
+		footerSubGroupColumnClassName?: string;
+		actionButtonFillClassName?: string;
+		footerTestId?: string;
+		footerSubGroupTestId?: string;
+		renderAction?: Snippet<[string, boolean, string | undefined]>;
+	} = $props();
+
+	const isColumn = $derived(direction === 'column');
+	const resolvedFooterClassName = $derived(
+		[
+			footerClassName,
+			shouldFillActions ? footerFillClassName : '',
+			isColumn ? footerColumnClassName : '',
+		]
+			.filter(Boolean)
+			.join(' ')
+	);
+	const resolvedFooterSubGroupClassName = $derived(
+		[
+			footerSubGroupClassName,
+			shouldFillActions ? footerSubGroupFillClassName : '',
+			isColumn ? footerSubGroupColumnClassName : '',
+		]
+			.filter(Boolean)
+			.join(' ')
+	);
+	const actionClassName = $derived(
+		shouldFillActions ? actionButtonFillClassName : undefined
+	);
+	const keyedActionGroups = $derived(
+		actionGroups.map((group, groupIndex) => ({
+			group,
+			groupIndex,
+			key: group.join('-') + '-' + groupIndex,
+		}))
+	);
 </script>
 
 <div

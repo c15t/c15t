@@ -16,15 +16,15 @@ import {
 } from '../composables';
 
 const props = defineProps<{
-	region?: string
-	country?: string
-	language?: string
-}>()
+	region?: string;
+	country?: string;
+	language?: string;
+}>();
 
-const activeUI = useConsentActiveUI()
-const init = useConsentInit()
-const config = useConsentConfig()
-const kernel = useConsentKernel()
+const activeUI = useConsentActiveUI();
+const init = useConsentInit();
+const config = useConsentConfig();
+const kernel = useConsentKernel();
 
 onMounted(() => {
 	for (const [key, value] of Object.entries(config.value.tokens ?? {})) {
@@ -44,7 +44,6 @@ watch(
 	},
 	{ immediate: true }
 );
-
 </script>
 
 <template>

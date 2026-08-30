@@ -29,8 +29,10 @@ import { cnExt as cn } from '~/utils/cn';
  * @public
  */
 
-export interface OverlayProps
-	extends Omit<HTMLAttributes<HTMLDivElement>, 'style'> {
+export interface OverlayProps extends Omit<
+	HTMLAttributes<HTMLDivElement>,
+	'style'
+> {
 	/**
 	 * Custom styles to override default overlay styling.
 	 *

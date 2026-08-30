@@ -9,10 +9,12 @@
 		overview: 'Overview',
 		vendors: 'Vendors',
 	};
-
 </script>
 
-<Tabs.Root bind:value={activeTab} class={classes.root()}>
+<Tabs.Root
+	bind:value={activeTab}
+	class={classes.root()}
+>
 	<Tabs.List class={classes.list()}>
 		{#each tabValues as tab}
 			<Tabs.Trigger

@@ -20,14 +20,14 @@ describe('mergeConsent', () => {
 
 	test('drops non-boolean values', () => {
 		const snap = buildInitialSnapshot({});
-		// biome-ignore lint/suspicious/noExplicitAny: deliberately invalid input
+		// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
 		const next = mergeConsent(snap.consents, { marketing: 'yes' as any });
 		expect(next).toBeNull();
 	});
 
 	test('drops unknown keys', () => {
 		const snap = buildInitialSnapshot({});
-		// biome-ignore lint/suspicious/noExplicitAny: deliberately invalid input
+		// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
 		const next = mergeConsent(snap.consents, { analytics: true as any });
 		expect(next).toBeNull();
 	});
@@ -112,7 +112,7 @@ describe('buildSetters', () => {
 			initialPolicy: {
 				model: 'iab',
 				ui: { mode: 'banner' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 		const setters = buildSetters({

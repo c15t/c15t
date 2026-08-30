@@ -55,16 +55,15 @@ export interface ConsentDraftState {
 	save(): Promise<void>;
 }
 
-export interface ConsentCompatState
-	extends Omit<
-		ConsentSnapshot,
-		| 'activeUI'
-		| 'branding'
-		| 'hasConsented'
-		| 'model'
-		| 'policyBanner'
-		| 'policyDialog'
-	> {
+export interface ConsentCompatState extends Omit<
+	ConsentSnapshot,
+	| 'activeUI'
+	| 'branding'
+	| 'hasConsented'
+	| 'model'
+	| 'policyBanner'
+	| 'policyDialog'
+> {
 	activeUI: ActiveUI;
 	branding: NonNullable<ConsentSnapshot['branding']>;
 	consents: Readonly<ConsentState>;

@@ -68,7 +68,7 @@ export async function generateTCString(
 	const { TCModel, TCString, GVL } = await getTCFCore();
 
 	// Create GVL instance
-	// biome-ignore lint/suspicious/noExplicitAny: GVL library types don't match our domain types
+	// oxlint-disable-next-line typescript/no-explicit-any -- GVL library types don't match our domain types
 	const gvl = new GVL(gvlData as any);
 
 	// Create TC Model

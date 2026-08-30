@@ -9,7 +9,10 @@ export function PrimitiveBench() {
 		<div>
 			<Button.Root>Button</Button.Root>
 			<Switch.Root aria-label="Analytics" />
-			<Accordion.Root type="single" collapsible>
+			<Accordion.Root
+				type="single"
+				collapsible
+			>
 				<Accordion.Item value="one">
 					<Accordion.Trigger>Accordion</Accordion.Trigger>
 					<Accordion.Content>Content</Accordion.Content>

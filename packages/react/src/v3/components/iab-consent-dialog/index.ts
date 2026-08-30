@@ -30,8 +30,7 @@ import {
  * This interface extends the base IABConsentDialog component with additional sub-components
  * that can be used to compose the consent dialog's structure.
  */
-export interface IABConsentDialogCompoundComponent
-	extends FC<IABConsentDialogProps> {
+export interface IABConsentDialogCompoundComponent extends FC<IABConsentDialogProps> {
 	Root: typeof IABConsentDialogRoot;
 	Card: typeof IABConsentDialogCard;
 	Header: typeof IABConsentDialogHeader;
@@ -110,10 +109,7 @@ export { IABConsentDialogOverlay } from './atoms/overlay';
 export { PurposeItem } from './atoms/purpose-item';
 export { IABConsentDialogRoot } from './atoms/root';
 export { StackItem } from './atoms/stack-item';
-export {
-	IABConsentDialogTabButton,
-	IABConsentDialogTabs,
-} from './atoms/tabs';
+export { IABConsentDialogTabButton, IABConsentDialogTabs } from './atoms/tabs';
 export { VendorList } from './atoms/vendor-list';
 // Export hooks
 export { type GVLData, useGVLData } from './hooks/use-gvl-data';

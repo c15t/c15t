@@ -78,9 +78,8 @@ export async function initializeIABMode(
 
 	try {
 		// Dynamically import IAB modules (lazy loading)
-		const { initializeIABStub, fetchGVL, createCMPApi } = await import(
-			'../tcf'
-		);
+		const { initializeIABStub, fetchGVL, createCMPApi } =
+			await import('../tcf');
 
 		// Initialize IAB stub immediately to start queuing __tcfapi calls
 		initializeIABStub();
@@ -218,9 +217,8 @@ async function restoreConsentFromTCString(
 	const { set } = storeAccess;
 
 	try {
-		const { decodeTCString, iabPurposesToC15tConsents } = await import(
-			'../tcf'
-		);
+		const { decodeTCString, iabPurposesToC15tConsents } =
+			await import('../tcf');
 		const decoded = await decodeTCString(tcString);
 		const storedConsent = getConsentFromStorage<{
 			iabCustomVendorConsents?: Record<string, boolean>;

@@ -33,7 +33,7 @@ const FrameComponent = forwardRef<HTMLDivElement, FrameProps>(
 		const isStrictPolicyBlocked =
 			policyScopeMode === 'strict' && isOutOfPolicyCategory;
 
-		// biome-ignore lint/correctness/useExhaustiveDependencies: we only want to update the consent categories when the component is mounted
+		// oxlint-disable-next-line react/exhaustive-deps -- we only want to update the consent categories when the component is mounted
 		useEffect(() => {
 			setIsMounted(true);
 			updateConsentCategories([...consentCategories, category]);

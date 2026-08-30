@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 /**
  * DialogContent (Reka-compatible surface, RFC 0003).
  * `role="dialog"` container with Escape-to-close and shared focus trap +

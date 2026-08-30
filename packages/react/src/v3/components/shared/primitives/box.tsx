@@ -16,8 +16,7 @@ import { getSlotProps, mergeSlotProps } from '~/v3/utils/merge-slot-props';
  * @public
  */
 export interface BoxProps
-	extends Omit<HTMLAttributes<HTMLDivElement>, 'style'>,
-		ExtendThemeKeys {
+	extends Omit<HTMLAttributes<HTMLDivElement>, 'style'>, ExtendThemeKeys {
 	asChild?: boolean;
 	slotKey?: ConsentComponentSlotKey;
 }

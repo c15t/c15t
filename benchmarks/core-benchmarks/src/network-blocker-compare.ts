@@ -42,18 +42,18 @@ class StubXHR {
 		return true;
 	}
 }
-// biome-ignore lint/suspicious/noExplicitAny: node global stub
+// oxlint-disable-next-line typescript/no-explicit-any -- node global stub
 (globalThis as any).XMLHttpRequest = StubXHR;
 // Ensure window.fetch exists and returns cheaply.
 const baseFetch = async () => new Response('ok', { status: 200 });
-// biome-ignore lint/suspicious/noExplicitAny: node stub
+// oxlint-disable-next-line typescript/no-explicit-any -- node stub
 (globalThis.window as any).fetch = baseFetch;
 // v2's blocker dispatches ProgressEvent on XHR errors; stub it.
 if (
 	typeof (globalThis as unknown as { ProgressEvent?: unknown })
 		.ProgressEvent === 'undefined'
 ) {
-	// biome-ignore lint/suspicious/noExplicitAny: minimal stub
+	// oxlint-disable-next-line typescript/no-explicit-any -- minimal stub
 	(globalThis as any).ProgressEvent = class {
 		type: string;
 		constructor(type: string) {
@@ -116,7 +116,7 @@ function runV2Fetch(): number[] {
 	const manager = configureConsentManager({ mode: 'offline' });
 	createConsentManagerStore(manager, {
 		initialConsentCategories: ['necessary', 'functionality'],
-		// biome-ignore lint/suspicious/noExplicitAny: v2 config shape
+		// oxlint-disable-next-line typescript/no-explicit-any -- v2 config shape
 		networkBlocker: {
 			enabled: true,
 			rules: RULES,
@@ -133,7 +133,7 @@ function runV2XHR(): number[] {
 	const manager = configureConsentManager({ mode: 'offline' });
 	createConsentManagerStore(manager, {
 		initialConsentCategories: ['necessary', 'functionality'],
-		// biome-ignore lint/suspicious/noExplicitAny: v2 config shape
+		// oxlint-disable-next-line typescript/no-explicit-any -- v2 config shape
 		networkBlocker: {
 			enabled: true,
 			rules: RULES,

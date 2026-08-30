@@ -1,251 +1,259 @@
 <script lang="ts">
-import type { LegalLinks as LegalLinksType, Model } from '@c15t/core';
-import { defaultTranslationConfig } from '@c15t/core';
-import styles from '@c15t/ui/styles/components/consent-banner.module.js';
-import {
-	getTextDirection,
-	resolvePolicyActionGroups,
-	resolvePolicyAllowedActions,
-	resolvePolicyDirection,
-	resolvePolicyOrderedActions,
-	resolvePolicyPrimaryActions,
-	resolveTranslations,
-	shouldFillPolicyActions,
-} from '@c15t/ui/utils';
-import { focusTrap } from '../actions/focus-trap';
-// Banner uses custom portal/focus-trap/scroll-lock actions (not Ark UI's built-in)
-// because the banner is not an Ark Dialog - it's a simpler container that
-// conditionally acts as a dialog. The ConsentDialog uses Ark's Dialog which
-// includes its own focus trap and scroll prevention. When transitioning from
-// banner to dialog, the banner unmounts (removing its focus trap) before
-// the dialog mounts (establishing Ark's focus trap), so they don't compete.
-import { portal } from '../actions/portal';
-import { scrollLock } from '../actions/scroll-lock';
-import { getConsentContext, getThemeContext } from '../context.svelte';
-import { useBannerVisibility } from '../use-banner-visibility.svelte';
-import { resolveComponentStyles } from '../utils';
-import Branding from './branding.svelte';
-import ConsentButton from './consent-button.svelte';
-import InlineLegalLinks from './inline-legal-links.svelte';
-import Overlay from './overlay.svelte';
-import PolicyActionsRenderer from './policy-actions-renderer.svelte';
+	import type { LegalLinks as LegalLinksType, Model } from '@c15t/core';
+	import { defaultTranslationConfig } from '@c15t/core';
+	import styles from '@c15t/ui/styles/components/consent-banner.module.js';
+	import {
+		getTextDirection,
+		resolvePolicyActionGroups,
+		resolvePolicyAllowedActions,
+		resolvePolicyDirection,
+		resolvePolicyOrderedActions,
+		resolvePolicyPrimaryActions,
+		resolveTranslations,
+		shouldFillPolicyActions,
+	} from '@c15t/ui/utils';
+	import { focusTrap } from '../actions/focus-trap';
+	// Banner uses custom portal/focus-trap/scroll-lock actions (not Ark UI's built-in)
+	// because the banner is not an Ark Dialog - it's a simpler container that
+	// conditionally acts as a dialog. The ConsentDialog uses Ark's Dialog which
+	// includes its own focus trap and scroll prevention. When transitioning from
+	// banner to dialog, the banner unmounts (removing its focus trap) before
+	// the dialog mounts (establishing Ark's focus trap), so they don't compete.
+	import { portal } from '../actions/portal';
+	import { scrollLock } from '../actions/scroll-lock';
+	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { useBannerVisibility } from '../use-banner-visibility.svelte';
+	import { resolveComponentStyles } from '../utils';
+	import Branding from './branding.svelte';
+	import ConsentButton from './consent-button.svelte';
+	import InlineLegalLinks from './inline-legal-links.svelte';
+	import Overlay from './overlay.svelte';
+	import PolicyActionsRenderer from './policy-actions-renderer.svelte';
 
-/**
- * Button identifiers for the consent banner layout.
- */
-type ConsentBannerButton = 'reject' | 'accept' | 'customize';
-type ConsentBannerLayout = (ConsentBannerButton | ConsentBannerButton[])[];
+	/**
+	 * Button identifiers for the consent banner layout.
+	 */
+	type ConsentBannerButton = 'reject' | 'accept' | 'customize';
+	type ConsentBannerLayout = (ConsentBannerButton | ConsentBannerButton[])[];
 
-const DEFAULT_LAYOUT: ConsentBannerLayout = [['reject', 'accept'], 'customize'];
+	const DEFAULT_LAYOUT: ConsentBannerLayout = [
+		['reject', 'accept'],
+		'customize',
+	];
 
-let {
-	noStyle: localNoStyle,
-	disableAnimation: localDisableAnimation,
-	scrollLock: localScrollLock,
-	trapFocus: localTrapFocus = true,
-	title,
-	description,
-	rejectButtonText,
-	customizeButtonText,
-	acceptButtonText,
-	hideBranding = false,
-	legalLinks,
-	layout = DEFAULT_LAYOUT,
-	primaryButton = 'customize',
-	models = ['opt-in'] as Model[],
-	class: className,
-}: {
-	noStyle?: boolean;
-	disableAnimation?: boolean;
-	scrollLock?: boolean;
-	trapFocus?: boolean;
-	title?: string;
-	description?: string;
-	rejectButtonText?: string;
-	customizeButtonText?: string;
-	acceptButtonText?: string;
-	hideBranding?: boolean;
-	legalLinks?: (keyof LegalLinksType)[] | null;
-	layout?: ConsentBannerLayout;
-	primaryButton?: ConsentBannerButton | ConsentBannerButton[];
-	models?: Model[];
-	class?: string;
-} = $props();
+	let {
+		noStyle: localNoStyle,
+		disableAnimation: localDisableAnimation,
+		scrollLock: localScrollLock,
+		trapFocus: localTrapFocus = true,
+		title,
+		description,
+		rejectButtonText,
+		customizeButtonText,
+		acceptButtonText,
+		hideBranding = false,
+		legalLinks,
+		layout = DEFAULT_LAYOUT,
+		primaryButton = 'customize',
+		models = ['opt-in'] as Model[],
+		class: className,
+	}: {
+		noStyle?: boolean;
+		disableAnimation?: boolean;
+		scrollLock?: boolean;
+		trapFocus?: boolean;
+		title?: string;
+		description?: string;
+		rejectButtonText?: string;
+		customizeButtonText?: string;
+		acceptButtonText?: string;
+		hideBranding?: boolean;
+		legalLinks?: (keyof LegalLinksType)[] | null;
+		layout?: ConsentBannerLayout;
+		primaryButton?: ConsentBannerButton | ConsentBannerButton[];
+		models?: Model[];
+		class?: string;
+	} = $props();
 
-const consent = getConsentContext();
-const theme = getThemeContext();
+	const consent = getConsentContext();
+	const theme = getThemeContext();
 
-const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
-const disableAnimation = $derived(
-	localDisableAnimation ?? theme.disableAnimation ?? false
-);
-const shouldTrapFocus = $derived(localTrapFocus ?? theme.trapFocus ?? true);
-const shouldScrollLock = $derived(localScrollLock ?? theme.scrollLock ?? false);
+	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
+	const disableAnimation = $derived(
+		localDisableAnimation ?? theme.disableAnimation ?? false
+	);
+	const shouldTrapFocus = $derived(localTrapFocus ?? theme.trapFocus ?? true);
+	const shouldScrollLock = $derived(
+		localScrollLock ?? theme.scrollLock ?? false
+	);
 
-// Translations
-const translations = $derived(
-	resolveTranslations(consent.state.translationConfig, defaultTranslationConfig)
-);
-const textDirection = $derived(
-	getTextDirection(consent.state.translationConfig?.defaultLanguage)
-);
+	// Translations
+	const translations = $derived(
+		resolveTranslations(
+			consent.state.translationConfig,
+			defaultTranslationConfig
+		)
+	);
+	const textDirection = $derived(
+		getTextDirection(consent.state.translationConfig?.defaultLanguage)
+	);
 
-// Visibility logic
-const shouldShowBanner = $derived(
-	consent.state.activeUI === 'banner' && models.includes(consent.state.model)
-);
+	// Visibility logic
+	const shouldShowBanner = $derived(
+		consent.state.activeUI === 'banner' && models.includes(consent.state.model)
+	);
 
-const visibility = useBannerVisibility(
-	() => shouldShowBanner,
-	() => disableAnimation
-);
+	const visibility = useBannerVisibility(
+		() => shouldShowBanner,
+		() => disableAnimation
+	);
 
-// Styling - per-element theme key resolution shared across framework adapters.
-const rootStyle = $derived(
-	resolveComponentStyles(
-		'consentBanner',
-		theme.theme,
-		{
-			baseClassName: [
-				styles.root,
-				textDirection === 'ltr' ? styles.bottomLeft : styles.bottomRight,
-			],
-			className,
-			noStyle,
-		},
+	// Styling - per-element theme key resolution shared across framework adapters.
+	const rootStyle = $derived(
+		resolveComponentStyles(
+			'consentBanner',
+			theme.theme,
+			{
+				baseClassName: [
+					styles.root,
+					textDirection === 'ltr' ? styles.bottomLeft : styles.bottomRight,
+				],
+				className,
+				noStyle,
+			},
+			noStyle
+		)
+	);
+
+	const cardStyle = $derived(
+		resolveComponentStyles(
+			'consentBannerCard',
+			theme.theme,
+			{ baseClassName: styles.card, noStyle },
+			noStyle
+		)
+	);
+
+	const headerStyle = $derived(
+		resolveComponentStyles(
+			'consentBannerHeader',
+			theme.theme,
+			{ baseClassName: styles.header, noStyle },
+			noStyle
+		)
+	);
+
+	const titleStyle = $derived(
+		resolveComponentStyles(
+			'consentBannerTitle',
+			theme.theme,
+			{ baseClassName: styles.title, noStyle },
+			noStyle
+		)
+	);
+
+	const descriptionStyle = $derived(
+		resolveComponentStyles(
+			'consentBannerDescription',
+			theme.theme,
+			{ baseClassName: styles.description, noStyle },
+			noStyle
+		)
+	);
+
+	const footerStyle = $derived(
+		resolveComponentStyles(
+			'consentBannerFooter',
+			theme.theme,
+			{ baseClassName: styles.footer, noStyle },
+			noStyle
+		)
+	);
+
+	const footerSubGroupStyle = $derived(
+		resolveComponentStyles(
+			'consentBannerFooterSubGroup',
+			theme.theme,
+			{ baseClassName: styles.footerSubGroup, noStyle },
+			noStyle
+		)
+	);
+
+	const finalClassName = $derived(
 		noStyle
-	)
-);
+			? rootStyle.className || ''
+			: `${rootStyle.className || ''} ${visibility.isVisible ? styles.bannerVisible : styles.bannerHidden}`
+	);
 
-const cardStyle = $derived(
-	resolveComponentStyles(
-		'consentBannerCard',
-		theme.theme,
-		{ baseClassName: styles.card, noStyle },
-		noStyle
-	)
-);
+	// Button helpers
+	const allowedActions = $derived(
+		resolvePolicyAllowedActions({
+			allowedActions: consent.state.policyBanner.allowedActions,
+		})
+	);
 
-const headerStyle = $derived(
-	resolveComponentStyles(
-		'consentBannerHeader',
-		theme.theme,
-		{ baseClassName: styles.header, noStyle },
-		noStyle
-	)
-);
+	const resolvedLayout = $derived(
+		layout ??
+			((consent.state.policyBanner.layout?.length ?? 0) > 0
+				? consent.state.policyBanner.layout
+				: DEFAULT_LAYOUT)
+	);
 
-const titleStyle = $derived(
-	resolveComponentStyles(
-		'consentBannerTitle',
-		theme.theme,
-		{ baseClassName: styles.title, noStyle },
-		noStyle
-	)
-);
+	const orderedActions = $derived(
+		resolvePolicyOrderedActions({
+			allowedActions,
+			layout: resolvedLayout,
+		})
+	);
 
-const descriptionStyle = $derived(
-	resolveComponentStyles(
-		'consentBannerDescription',
-		theme.theme,
-		{ baseClassName: styles.description, noStyle },
-		noStyle
-	)
-);
+	const actionGroups = $derived(
+		resolvePolicyActionGroups({
+			allowedActions,
+			layout: resolvedLayout,
+		})
+	);
 
-const footerStyle = $derived(
-	resolveComponentStyles(
-		'consentBannerFooter',
-		theme.theme,
-		{ baseClassName: styles.footer, noStyle },
-		noStyle
-	)
-);
+	const direction = $derived(
+		resolvePolicyDirection(consent.state.policyBanner.direction)
+	);
 
-const footerSubGroupStyle = $derived(
-	resolveComponentStyles(
-		'consentBannerFooterSubGroup',
-		theme.theme,
-		{ baseClassName: styles.footerSubGroup, noStyle },
-		noStyle
-	)
-);
+	const effectivePrimaryActions = $derived.by(() => {
+		if ((consent.state.policyBanner.primaryActions?.length ?? 0) > 0) {
+			return consent.state.policyBanner.primaryActions ?? [];
+		}
 
-const finalClassName = $derived(
-	noStyle
-		? rootStyle.className || ''
-		: `${rootStyle.className || ''} ${visibility.isVisible ? styles.bannerVisible : styles.bannerHidden}`
-);
+		return Array.isArray(primaryButton) ? primaryButton : [primaryButton];
+	});
 
-// Button helpers
-const allowedActions = $derived(
-	resolvePolicyAllowedActions({
-		allowedActions: consent.state.policyBanner.allowedActions,
-	})
-);
+	const primaryActions = $derived(
+		resolvePolicyPrimaryActions({
+			orderedActions,
+			primaryActions: effectivePrimaryActions,
+		})
+	);
 
-const resolvedLayout = $derived(
-	layout ??
-		((consent.state.policyBanner.layout?.length ?? 0) > 0
-			? consent.state.policyBanner.layout
-			: DEFAULT_LAYOUT)
-);
+	const shouldFillActions = $derived(
+		shouldFillPolicyActions({
+			uiProfile: consent.state.policyBanner.uiProfile,
+			actionGroups,
+			direction,
+		})
+	);
 
-const orderedActions = $derived(
-	resolvePolicyOrderedActions({
-		allowedActions,
-		layout: resolvedLayout,
-	})
-);
-
-const actionGroups = $derived(
-	resolvePolicyActionGroups({
-		allowedActions,
-		layout: resolvedLayout,
-	})
-);
-
-const direction = $derived(
-	resolvePolicyDirection(consent.state.policyBanner.direction)
-);
-
-const effectivePrimaryActions = $derived.by(() => {
-	if ((consent.state.policyBanner.primaryActions?.length ?? 0) > 0) {
-		return consent.state.policyBanner.primaryActions ?? [];
-	}
-
-	return Array.isArray(primaryButton) ? primaryButton : [primaryButton];
-});
-
-const primaryActions = $derived(
-	resolvePolicyPrimaryActions({
-		orderedActions,
-		primaryActions: effectivePrimaryActions,
-	})
-);
-
-const shouldFillActions = $derived(
-	shouldFillPolicyActions({
-		uiProfile: consent.state.policyBanner.uiProfile,
-		actionGroups,
-		direction,
-	})
-);
-
-// Resolved texts
-const resolvedTitle = $derived(title ?? translations.cookieBanner.title);
-const resolvedDescription = $derived(
-	description ?? translations.cookieBanner.description
-);
-const resolvedRejectText = $derived(
-	rejectButtonText ?? translations.common.rejectAll
-);
-const resolvedAcceptText = $derived(
-	acceptButtonText ?? translations.common.acceptAll
-);
-const resolvedCustomizeText = $derived(
-	customizeButtonText ?? translations.common.customize
-);
+	// Resolved texts
+	const resolvedTitle = $derived(title ?? translations.cookieBanner.title);
+	const resolvedDescription = $derived(
+		description ?? translations.cookieBanner.description
+	);
+	const resolvedRejectText = $derived(
+		rejectButtonText ?? translations.common.rejectAll
+	);
+	const resolvedAcceptText = $derived(
+		acceptButtonText ?? translations.common.acceptAll
+	);
+	const resolvedCustomizeText = $derived(
+		customizeButtonText ?? translations.common.customize
+	);
 </script>
 
 {#if visibility.isMounted && visibility.shouldRender}
@@ -310,14 +318,20 @@ const resolvedCustomizeText = $derived(
 						footerClassName={noStyle ? '' : footerStyle.className || ''}
 						footerFillClassName={styles.footerFill || ''}
 						footerColumnClassName={styles.footerColumn || ''}
-						footerSubGroupClassName={noStyle ? '' : footerSubGroupStyle.className || ''}
+						footerSubGroupClassName={noStyle
+							? ''
+							: footerSubGroupStyle.className || ''}
 						footerSubGroupFillClassName={styles.footerSubGroupFill || ''}
 						footerSubGroupColumnClassName={styles.footerSubGroupColumn || ''}
 						actionButtonFillClassName={styles.actionButtonFill || ''}
 						footerTestId="consent-banner-footer"
 						footerSubGroupTestId="consent-banner-footer-sub-group"
 					>
-						{#snippet renderAction(action: string, isPrimary: boolean, actionClassName?: string)}
+						{#snippet renderAction(
+							action: string,
+							isPrimary: boolean,
+							actionClassName?: string
+						)}
 							{#if action === 'reject'}
 								<ConsentButton
 									action="reject-consent"

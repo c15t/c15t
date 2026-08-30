@@ -202,8 +202,7 @@ const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
  *
  * @public
  */
-interface ConsentBannerRootChildrenProps
-	extends HTMLAttributes<HTMLDivElement> {
+interface ConsentBannerRootChildrenProps extends HTMLAttributes<HTMLDivElement> {
 	/**
 	 * @remarks
 	 * React elements to be rendered within the content section.

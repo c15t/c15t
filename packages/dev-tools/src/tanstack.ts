@@ -31,8 +31,7 @@ import { createDevToolsPanel } from './core/devtools';
 /**
  * Props for the embedded c15t panel used inside TanStack Devtools.
  */
-export interface C15tTanStackDevtoolsPanelProps
-	extends HTMLAttributes<HTMLDivElement> {
+export interface C15tTanStackDevtoolsPanelProps extends HTMLAttributes<HTMLDivElement> {
 	/**
 	 * Namespace for the c15tStore on window.
 	 * @default 'c15tStore'
@@ -53,8 +52,7 @@ export interface TanStackDevtoolsPlugin {
 /**
  * Options for the c15t TanStack Devtools plugin factory.
  */
-export interface C15tDevtoolsPluginOptions
-	extends C15tTanStackDevtoolsPanelProps {
+export interface C15tDevtoolsPluginOptions extends C15tTanStackDevtoolsPanelProps {
 	/**
 	 * Stable plugin identifier used by TanStack Devtools.
 	 * @default 'c15t'

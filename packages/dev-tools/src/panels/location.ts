@@ -409,9 +409,9 @@ function overridesEqual(a: OverridePayload, b: OverridePayload): boolean {
 function hasOverridesValue(overrides: OverridePayload): boolean {
 	return Boolean(
 		overrides.country ||
-			overrides.region ||
-			overrides.language ||
-			overrides.gpc !== undefined
+		overrides.region ||
+		overrides.language ||
+		overrides.gpc !== undefined
 	);
 }
 

@@ -38,5 +38,4 @@ export interface ConsentManifestNuxtConfig {
 }
 
 export interface ConsentConfig
-	extends BaseConsentConfig<HTMLAttributes>,
-		ConsentManifestNuxtConfig {}
+	extends BaseConsentConfig<HTMLAttributes>, ConsentManifestNuxtConfig {}

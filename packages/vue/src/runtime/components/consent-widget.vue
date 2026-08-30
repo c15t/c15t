@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 /**
  * Inline consent-management widget for settings and privacy pages.
  *
@@ -301,11 +298,19 @@ function onAction(action: PolicyUiAction) {
 							@click="toggleConsent(category)"
 						>
 							<span
-								:class="noStyle ? undefined : sw.track({ disabled: category === 'necessary' })"
+								:class="
+									noStyle
+										? undefined
+										: sw.track({ disabled: category === 'necessary' })
+								"
 								data-slot="switch-track"
 							>
 								<span
-									:class="noStyle ? undefined : sw.thumb({ disabled: category === 'necessary' })"
+									:class="
+										noStyle
+											? undefined
+											: sw.thumb({ disabled: category === 'necessary' })
+									"
 									data-slot="switch-thumb"
 								/>
 							</span>
@@ -316,7 +321,9 @@ function onAction(action: PolicyUiAction) {
 					:id="contentId(index)"
 					:aria-hidden="isOpen(category) ? 'false' : 'true'"
 					:aria-labelledby="triggerId(index)"
-					:class="pi.content({ class: noStyle ? undefined : styles.accordionContent })"
+					:class="
+						pi.content({ class: noStyle ? undefined : styles.accordionContent })
+					"
 					data-slot="preference-item-content"
 					:data-state="isOpen(category) ? 'open' : 'closed'"
 					:data-testid="`consent-widget-accordion-content-${category}`"

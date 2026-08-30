@@ -12,7 +12,7 @@ Copy the shape of an existing package rather than inventing one. `packages/logge
 
 ## Checklist
 
-1. **Directory**: `packages/<name>` (auto-included by the root `workspaces` globs). Kebab-case file names throughout — Biome errors otherwise.
+1. **Directory**: `packages/<name>` (auto-included by the root `workspaces` globs). Use kebab-case file names throughout.
 
 2. **package.json** — match the house shape:
    - `"name": "@c15t/<name>"`, same `version` as the linked group if it will join it, `"type": "module"`, `"sideEffects": false` where true, Apache-2.0 license, `repository.directory` set.
@@ -26,7 +26,7 @@ Copy the shape of an existing package rather than inventing one. `packages/logge
      "files": ["dist", "dist-types"]
      ```
 
-   - Standard scripts (copy from logger): `build` (rslib + `normalize-dist-types.mjs`), `dev` (rslib watch, `--no-dts --no-clean`), `check-types` (`tsc --noEmit`), `lint` (`bun biome lint ./src`), `fmt`, `test` (`vitest run`, add `--passWithNoTests` until tests exist). Core SDK packages additionally run `prepack` (`bun ../../scripts/verify-package-artifacts.ts`) — add it if the package ships to end users.
+   - Standard scripts (copy from logger): `build` (rslib + `normalize-dist-types.mjs`), `dev` (rslib watch, `--no-dts --no-clean`), `check-types` (`tsc --noEmit`), `lint` (`bun oxlint ./src`), `fmt` (`bun oxfmt .`), `test` (`vitest run`, add `--passWithNoTests` until tests exist). Core SDK packages additionally run `prepack` (`bun ../../scripts/verify-package-artifacts.ts`) — add it if the package ships to end users.
    - Workspace deps use `"workspace:*"`. Dev deps include `@c15t/typescript-config` and, if tested, `@c15t/vitest-config`.
 
 3. **rslib.config.ts**: a single ESM lib (v3 is ESM-only) with `dts.distPath: './dist-types'`, `source.exclude` for test globs, `getRsdoctorPlugins()` from `../shared/rslib-utils`. If the package needs a runtime version string, add the `prebuild` genversion script like core (`src/version.ts` is generated — gitignore it).

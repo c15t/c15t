@@ -61,7 +61,4 @@ export {
 	type SwitchVariantsProps,
 	switchVariants,
 } from './switch';
-export {
-	type TabsVariantsProps,
-	tabsVariants,
-} from './tabs';
+export { type TabsVariantsProps, tabsVariants } from './tabs';

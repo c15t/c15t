@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import { useConsentActiveUI } from '#c15t/composables';
 
 defineProps<{

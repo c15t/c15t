@@ -58,18 +58,20 @@
 			publishScriptBenchState(benchState, { activeUI });
 		});
 
-		void kernel.commands.init().then((result: { ok: boolean; error?: unknown }) => {
-			if (!benchState) return;
-			if (!result.ok) {
-				benchState.errors.push(
-					String(result.error ?? 'kernel.commands.init() failed')
-				);
-			}
-			publishScriptBenchState(benchState, {
-				activeUI: kernel?.getSnapshot().activeUI ?? activeUI,
-				initialReady: result.ok,
+		void kernel.commands
+			.init()
+			.then((result: { ok: boolean; error?: unknown }) => {
+				if (!benchState) return;
+				if (!result.ok) {
+					benchState.errors.push(
+						String(result.error ?? 'kernel.commands.init() failed')
+					);
+				}
+				publishScriptBenchState(benchState, {
+					activeUI: kernel?.getSnapshot().activeUI ?? activeUI,
+					initialReady: result.ok,
+				});
 			});
-		});
 
 		return () => {
 			unsubscribe();
@@ -91,10 +93,16 @@
 	}
 </script>
 
-<main style="padding: 32px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+<main
+	style="padding: 32px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
+>
 	<h1 style="margin: 0 0 8px;">Svelte c15t/v3 script benchmark</h1>
 	<p style="margin: 0 0 16px;">Scripts: {count}</p>
-	<button id="run-script-count" onclick={run} type="button">
+	<button
+		id="run-script-count"
+		onclick={run}
+		type="button"
+	>
 		Accept all
 	</button>
 </main>

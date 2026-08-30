@@ -68,11 +68,7 @@ export {
 	MissingDatabaseError,
 	toLayer,
 } from './db/connect';
-export type {
-	MigrateOptions,
-	MigrateReport,
-	Migration,
-} from './db/migrate';
+export type { MigrateOptions, MigrateReport, Migration } from './db/migrate';
 export { MIGRATIONS, migrate } from './db/migrate';
 export { defineConfig } from './define-config';
 export type { AppOptions } from './http/context';

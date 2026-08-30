@@ -28,7 +28,7 @@ import {
 // doesn't stub either. Extend once per file so all tests in this suite
 // can spin up both paths.
 beforeEach(() => {
-	// biome-ignore lint/suspicious/noExplicitAny: minimal stub
+	// oxlint-disable-next-line typescript/no-explicit-any -- minimal stub
 	vi.stubGlobal(
 		'MutationObserver',
 		class StubObserver {

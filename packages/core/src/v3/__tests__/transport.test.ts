@@ -370,7 +370,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 				id: 'placeholder',
 				model: 'opt-in',
 				ui: { mode: 'banner' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 			initialPolicyProvisional: true,
 		});
@@ -402,7 +402,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 				id: 'placeholder',
 				model: 'opt-in',
 				ui: { mode: 'banner' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 			initialPolicyProvisional: true,
 		});
@@ -426,7 +426,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 				id: 'placeholder',
 				model: 'opt-in',
 				ui: { mode: 'banner' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 		});
 		const server = kernel.getServerSnapshot();
@@ -452,7 +452,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 				id: 'placeholder',
 				model: 'opt-in',
 				ui: { mode: 'banner' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 			initialPolicyProvisional: true,
 		});

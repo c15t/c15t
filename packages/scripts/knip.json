@@ -7,7 +7,7 @@
 		"./live-vendors/manage-issues.ts",
 		"./live-vendors/harness/entry.ts"
 	],
-	"ignoreBinaries": ["biome", "rslib", "tsc", "vitest"],
+	"ignoreBinaries": ["oxfmt", "oxlint", "rslib", "tsc", "vitest"],
 	"ignore": [
 		"**/*.spec.{js,ts,tsx}",
 		"**/*.test.{js,ts,tsx}",

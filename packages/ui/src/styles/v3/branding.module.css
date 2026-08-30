@@ -189,8 +189,8 @@
 		color: var(--c15t-text-on-primary, #fff);
 	}
 
-	.brandingTag[data-context="banner"]:not(:global(.headless)),
-	.brandingTag[data-context="iab-banner"]:not(:global(.headless)) {
+	.brandingTag[data-context='banner']:not(:global(.headless)),
+	.brandingTag[data-context='iab-banner']:not(:global(.headless)) {
 		position: relative;
 		align-self: flex-end;
 		top: auto;
@@ -202,8 +202,8 @@
 		border-radius: 0.75rem 0.75rem 0 0;
 	}
 
-	.brandingTag[data-context="dialog"]:not(:global(.headless)),
-	.brandingTag[data-context="iab-dialog"]:not(:global(.headless)) {
+	.brandingTag[data-context='dialog']:not(:global(.headless)),
+	.brandingTag[data-context='iab-dialog']:not(:global(.headless)) {
 		right: var(--consent-dialog-card-padding-mobile);
 		bottom: 0;
 		transform: translateY(calc(100% + 1px));
@@ -211,7 +211,7 @@
 		border-radius: 0 0 0.75rem 0.75rem;
 	}
 
-	.brandingTag[data-context="manager"]:not(:global(.headless)) {
+	.brandingTag[data-context='manager']:not(:global(.headless)) {
 		position: static;
 		min-height: auto;
 		max-width: none;
@@ -233,17 +233,17 @@
 	}
 
 	:global(.c15t-dark)
-		.brandingTag[data-context="manager"]:not(:global(.headless)) {
+		.brandingTag[data-context='manager']:not(:global(.headless)) {
 		color: var(--consent-manager-link-text-color-dark);
 	}
 
-	.brandingTag[data-context="manager"]:not(:global(.headless)) svg {
+	.brandingTag[data-context='manager']:not(:global(.headless)) svg {
 		height: 1.2rem;
 	}
 
 	@media (min-width: 640px) {
-		.brandingTag[data-context="dialog"]:not(:global(.headless)),
-		.brandingTag[data-context="iab-dialog"]:not(:global(.headless)) {
+		.brandingTag[data-context='dialog']:not(:global(.headless)),
+		.brandingTag[data-context='iab-dialog']:not(:global(.headless)) {
 			right: var(--consent-dialog-card-padding);
 		}
 	}

@@ -254,31 +254,37 @@ describe('ConsentDialogTriggerToolbar', () => {
 		['horizontal', 'bottom-right', 'support', 'preferences'],
 		['vertical', 'top-left', 'preferences', 'support'],
 		['vertical', 'bottom-right', 'support', 'preferences'],
-	] as const)('orders the %s toolbar nearest the %s corner', async (orientation, defaultPosition, firstItem, lastItem) => {
-		renderWithConsentState(
-			<div dir="rtl">
-				<ConsentDialogTriggerToolbar
-					actions={[
-						{
-							id: 'support',
-							label: 'Open support chat',
-							icon: 'settings',
-							onSelect: vi.fn(),
-						},
-					]}
-					defaultPosition={defaultPosition}
-					orientation={orientation}
-				/>
-			</div>
-		);
-		const toolbar = await getToolbar();
-		const buttons = Array.from(toolbar.querySelectorAll('button'));
+	] as const)(
+		'orders the %s toolbar nearest the %s corner',
+		async (orientation, defaultPosition, firstItem, lastItem) => {
+			renderWithConsentState(
+				<div dir="rtl">
+					<ConsentDialogTriggerToolbar
+						actions={[
+							{
+								id: 'support',
+								label: 'Open support chat',
+								icon: 'settings',
+								onSelect: vi.fn(),
+							},
+						]}
+						defaultPosition={defaultPosition}
+						orientation={orientation}
+					/>
+				</div>
+			);
+			const toolbar = await getToolbar();
+			const buttons = Array.from(toolbar.querySelectorAll('button'));
 
-		expect(toolbar).toHaveAttribute('dir', 'ltr');
-		expect(toolbar).toHaveAttribute('data-corner', defaultPosition);
-		expect(buttons[0]).toHaveAttribute('data-c15t-trigger-item', firstItem);
-		expect(buttons.at(-1)).toHaveAttribute('data-c15t-trigger-item', lastItem);
-	});
+			expect(toolbar).toHaveAttribute('dir', 'ltr');
+			expect(toolbar).toHaveAttribute('data-corner', defaultPosition);
+			expect(buttons[0]).toHaveAttribute('data-c15t-trigger-item', firstItem);
+			expect(buttons.at(-1)).toHaveAttribute(
+				'data-c15t-trigger-item',
+				lastItem
+			);
+		}
+	);
 
 	test('supports roving focus, disabled actions, and toggle state', async () => {
 		const disabledSelect = vi.fn();

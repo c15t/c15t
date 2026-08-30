@@ -40,7 +40,12 @@
 
 			<div class="border-t pt-4">
 				<p class="text-sm text-gray-500 mb-2">Response Data</p>
-				<pre class="bg-gray-100 p-4 rounded overflow-auto text-sm">{JSON.stringify(data.result, null, 2)}</pre>
+				<pre
+					class="bg-gray-100 p-4 rounded overflow-auto text-sm">{JSON.stringify(
+						data.result,
+						null,
+						2
+					)}</pre>
 			</div>
 		</div>
 	{/if}

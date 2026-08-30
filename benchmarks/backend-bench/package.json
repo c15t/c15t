@@ -8,8 +8,8 @@
 		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/backend-runtime bunx tsx src/run.ts",
 		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/backend-runtime bunx tsx src/run.ts",
 		"check-types": "tsc --noEmit",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./src",
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src",
 		"bench:write": "bunx tsx src/run-write.ts"
 	},
 	"dependencies": {

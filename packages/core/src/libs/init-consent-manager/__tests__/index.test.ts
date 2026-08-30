@@ -54,7 +54,7 @@ describe('initConsentManager', () => {
 		it('should return undefined when window is undefined (SSR)', async () => {
 			const originalWindow = globalThis.window;
 			try {
-				// biome-ignore lint/suspicious/noExplicitAny: Testing environment setup
+				// oxlint-disable-next-line typescript/no-explicit-any -- Testing environment setup
 				(globalThis as any).window = undefined;
 
 				const result = await initConsentManager({
@@ -72,7 +72,7 @@ describe('initConsentManager', () => {
 
 		it('should return undefined when localStorage is not accessible', async () => {
 			const originalLocalStorage = window.localStorage;
-			// biome-ignore lint/suspicious/noExplicitAny: Testing localStorage access
+			// oxlint-disable-next-line typescript/no-explicit-any -- Testing localStorage access
 			(window as any).localStorage = {
 				setItem: vi.fn().mockImplementation(() => {
 					throw new Error('localStorage not available');

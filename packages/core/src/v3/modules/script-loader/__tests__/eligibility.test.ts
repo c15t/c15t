@@ -14,7 +14,7 @@ describe('buildReconcilePass', () => {
 			initialPolicy: {
 				model: 'iab',
 				ui: { mode: 'banner' },
-				// biome-ignore lint/suspicious/noExplicitAny: minimal policy fixture
+				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 			} as any,
 			initialIab: { enabled: true },
 		});

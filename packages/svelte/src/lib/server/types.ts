@@ -12,8 +12,7 @@ export interface ReadInitialConsentConfigOptions {
 	language?: string;
 }
 
-export interface PrefetchInitialConsentOptions
-	extends ReadInitialConsentConfigOptions {
+export interface PrefetchInitialConsentOptions extends ReadInitialConsentConfigOptions {
 	backendURL: string;
 	fetch?: typeof globalThis.fetch;
 	forwardHeaders?: string[];

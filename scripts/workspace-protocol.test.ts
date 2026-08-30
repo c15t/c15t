@@ -43,9 +43,12 @@ describe('c15t umbrella dependencies', () => {
 		'@c15t/nextjs',
 		'@c15t/vue',
 		'@c15t/ui',
-	])('depends on %s via workspace:* so publish pins the exact version', (dependency) => {
-		expect(manifest.dependencies?.[dependency]).toBe('workspace:*');
-	});
+	])(
+		'depends on %s via workspace:* so publish pins the exact version',
+		(dependency) => {
+			expect(manifest.dependencies?.[dependency]).toBe('workspace:*');
+		}
+	);
 
 	it('declares no peer dependencies of its own', () => {
 		expect(manifest.peerDependencies).toBeUndefined();

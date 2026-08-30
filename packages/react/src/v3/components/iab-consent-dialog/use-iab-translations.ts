@@ -77,7 +77,7 @@ interface IABTranslations {
 
 // Get the default IAB translations from the translations package
 // This is the single source of truth - no duplicated default strings
-// biome-ignore lint/style/noNonNullAssertion: enTranslations is guaranteed to exist in defaultTranslationConfig
+// oxlint-disable-next-line typescript/no-non-null-assertion -- enTranslations is guaranteed to exist in defaultTranslationConfig
 const DEFAULT_IAB_TRANSLATIONS = defaultTranslationConfig.translations.en!
 	.iab as IABTranslations;
 

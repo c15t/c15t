@@ -142,8 +142,8 @@
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/nextjs",
 		"check-types": "bun prebuild && tsc --noEmit",
 		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && bun scripts/generate-distribution-css.ts && rslib build --watch --no-dts --no-clean'",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write",
-		"lint": "bun biome lint ./src",
+		"fmt": "bun oxfmt .",
+		"lint": "bun oxlint ./src",
 		"prepack": "bun ../../scripts/verify-package-artifacts.ts",
 		"test": "bun prebuild && vitest run --passWithNoTests",
 		"test:watch": "bun prebuild && vitest --passWithNoTests"

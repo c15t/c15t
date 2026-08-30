@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import type {
 	ConsentDialogTriggerPosition,
 	ConsentDialogTriggerSize,

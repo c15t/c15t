@@ -18,9 +18,9 @@
 	cursor: pointer;
 	transition:
 		background-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		box-shadow var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .toggle:focus-visible {
@@ -118,13 +118,13 @@
 	cursor: pointer;
 	transition:
 		background-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		border-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		box-shadow var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .btn:hover {
@@ -202,9 +202,9 @@
 	line-height: var(--c15t-line-height-tight, 1.25);
 	transition:
 		border-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		box-shadow var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .input:focus {
@@ -243,9 +243,9 @@
 	cursor: pointer;
 	transition:
 		border-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		box-shadow var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .select:focus {
@@ -288,9 +288,9 @@
 	box-shadow: var(--c15t-shadow-sm, 0 1px 2px hsla(0, 0%, 0%, 0.05));
 	transition:
 		border-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1)),
 		background-color var(--c15t-duration-fast, 100ms)
-		var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
+			var(--c15t-easing, cubic-bezier(0.4, 0, 0.2, 1));
 }
 
 .gridCard:hover {
@@ -445,8 +445,8 @@
 	color: var(--c15t-text, hsl(0, 0%, 9%));
 	font-variant-numeric: tabular-nums;
 	font-family:
-		ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas,
-		"DejaVu Sans Mono", monospace;
+		ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas,
+		'DejaVu Sans Mono', monospace;
 }
 
 /* === Empty State === */

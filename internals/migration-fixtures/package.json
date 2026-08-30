@@ -13,8 +13,8 @@
 	"scripts": {
 		"generate": "bun src/generate.ts",
 		"check-types": "tsc --noEmit",
-		"lint": "bun biome lint ./src",
-		"fmt": "bun biome format --write . && bun biome check --formatter-enabled=false --linter-enabled=false --write"
+		"lint": "bun oxlint ./src",
+		"fmt": "bun oxfmt ."
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

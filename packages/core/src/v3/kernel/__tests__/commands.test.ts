@@ -85,7 +85,7 @@ describe('resolveSavePatch', () => {
 			activeUI: 'none' as const,
 			subjectId,
 		};
-		// biome-ignore lint/suspicious/noExplicitAny: hand-rolled finalized fixture
+		// oxlint-disable-next-line typescript/no-explicit-any -- hand-rolled finalized fixture
 		const { patch } = resolveSavePatch(finalized as any, subjectId, {
 			necessary: true,
 		});

@@ -1,24 +1,24 @@
 <script lang="ts">
-import { getOpenState } from '@c15t/ui/primitives';
-import type { Snippet } from 'svelte';
-import type { HTMLAttributes } from 'svelte/elements';
-import { getAccordionItemContext } from './context';
+	import { getOpenState } from '@c15t/ui/primitives';
+	import type { Snippet } from 'svelte';
+	import type { HTMLAttributes } from 'svelte/elements';
+	import { getAccordionItemContext } from './context';
 
-const item = getAccordionItemContext();
+	const item = getAccordionItemContext();
 
-const open = $derived(item.open);
-const triggerId = $derived(item.triggerId);
-const contentId = $derived(item.contentId);
-const dataState = $derived(getOpenState(open));
+	const open = $derived(item.open);
+	const triggerId = $derived(item.triggerId);
+	const contentId = $derived(item.contentId);
+	const dataState = $derived(getOpenState(open));
 
-let {
-	children,
-	class: className,
-	...restProps
-}: HTMLAttributes<HTMLElement> & {
-	children?: Snippet;
-	class?: string;
-} = $props();
+	let {
+		children,
+		class: className,
+		...restProps
+	}: HTMLAttributes<HTMLElement> & {
+		children?: Snippet;
+		class?: string;
+	} = $props();
 </script>
 
 <section

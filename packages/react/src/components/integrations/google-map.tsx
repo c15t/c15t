@@ -40,8 +40,10 @@ export type GoogleMapsLibrary =
 	| 'streetView'
 	| 'visualization';
 
-export interface GoogleMapProps
-	extends Omit<ComponentPropsWithRef<'div'>, 'children' | 'onError'> {
+export interface GoogleMapProps extends Omit<
+	ComponentPropsWithRef<'div'>,
+	'children' | 'onError'
+> {
 	/** Browser API key for the Google Maps JavaScript API. */
 	apiKey: string;
 

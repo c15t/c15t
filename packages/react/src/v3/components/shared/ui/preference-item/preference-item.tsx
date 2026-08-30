@@ -75,8 +75,7 @@ function usePreferenceItemContext() {
 }
 
 export interface PreferenceItemRootProps
-	extends HTMLAttributes<HTMLDivElement>,
-		PreferenceItemVariantsProps {
+	extends HTMLAttributes<HTMLDivElement>, PreferenceItemVariantsProps {
 	children: ReactNode;
 	defaultOpen?: boolean;
 	disabled?: boolean;
@@ -145,8 +144,10 @@ const PreferenceItemRoot = forwardRef<HTMLDivElement, PreferenceItemRootProps>(
 
 PreferenceItemRoot.displayName = 'PreferenceItemRoot';
 
-export interface PreferenceItemTriggerProps
-	extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
+export interface PreferenceItemTriggerProps extends Omit<
+	React.ButtonHTMLAttributes<HTMLButtonElement>,
+	'type'
+> {
 	noStyle?: boolean;
 	slotKey?: ConsentComponentSlotKey;
 }
@@ -206,8 +207,7 @@ const PreferenceItemTrigger = forwardRef<
 
 PreferenceItemTrigger.displayName = 'PreferenceItemTrigger';
 
-export interface PreferenceItemSlotProps
-	extends HTMLAttributes<HTMLDivElement> {
+export interface PreferenceItemSlotProps extends HTMLAttributes<HTMLDivElement> {
 	noStyle?: boolean;
 	slotKey?: ConsentComponentSlotKey;
 }
@@ -275,8 +275,7 @@ const PreferenceItemControl = createSlotComponent(
 	'control'
 );
 
-export interface PreferenceItemTitleProps
-	extends HTMLAttributes<HTMLHeadingElement> {
+export interface PreferenceItemTitleProps extends HTMLAttributes<HTMLHeadingElement> {
 	noStyle?: boolean;
 	slotKey?: ConsentComponentSlotKey;
 }
@@ -309,8 +308,7 @@ const PreferenceItemTitle = forwardRef<
 
 PreferenceItemTitle.displayName = 'PreferenceItemTitle';
 
-export interface PreferenceItemContentProps
-	extends HTMLAttributes<HTMLDivElement> {
+export interface PreferenceItemContentProps extends HTMLAttributes<HTMLDivElement> {
 	innerClassName?: string;
 	innerSlotKey?: ConsentComponentSlotKey;
 	noStyle?: boolean;

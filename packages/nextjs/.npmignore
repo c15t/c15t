@@ -7,5 +7,4 @@ node_modules/
 *.test.tsx
 *.config.ts
 *.config.js
-biome.json
 knip.json 

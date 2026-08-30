@@ -71,7 +71,10 @@ export const Playground: Story = {
 export const Checked: Story = {
 	render: () => (
 		<div style={{ display: 'grid', gap: '0.75rem' }}>
-			<SwitchDemo defaultChecked label={consentTypes.measurement.title} />
+			<SwitchDemo
+				defaultChecked
+				label={consentTypes.measurement.title}
+			/>
 		</div>
 	),
 };
@@ -117,7 +120,10 @@ export const Controlled: Story = {
 export const Disabled: Story = {
 	render: () => (
 		<div style={{ display: 'grid', gap: '0.75rem' }}>
-			<SwitchDemo disabled label={consentTypes.measurement.title} />
+			<SwitchDemo
+				disabled
+				label={consentTypes.measurement.title}
+			/>
 		</div>
 	),
 };
@@ -125,7 +131,10 @@ export const Disabled: Story = {
 export const Sizes: Story = {
 	render: () => (
 		<div style={{ display: 'grid', gap: '1rem' }}>
-			<SwitchDemo defaultChecked label={consentTypes.necessary.title} />
+			<SwitchDemo
+				defaultChecked
+				label={consentTypes.necessary.title}
+			/>
 			<SwitchDemo
 				defaultChecked
 				size="small"

@@ -50,9 +50,7 @@ type SnapchatQueueStub = ((...args: unknown[]) => void) & {
 export type TestWindow = Window &
 	typeof globalThis & {
 		TiktokAnalyticsObject?: string;
-		UET?: new (
-			options: Record<string, unknown>
-		) => {
+		UET?: new (options: Record<string, unknown>) => {
 			push: (...args: unknown[]) => void;
 		};
 		$crisp?: unknown[][];

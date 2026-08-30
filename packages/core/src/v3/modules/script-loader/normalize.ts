@@ -36,9 +36,9 @@ export function normalizeScripts(scripts: Script[]): NormalizedScript[] {
 		script,
 		hasIabMeta: Boolean(
 			script.vendorId !== undefined ||
-				(script.iabPurposes && script.iabPurposes.length > 0) ||
-				(script.iabLegIntPurposes && script.iabLegIntPurposes.length > 0) ||
-				(script.iabSpecialFeatures && script.iabSpecialFeatures.length > 0)
+			(script.iabPurposes && script.iabPurposes.length > 0) ||
+			(script.iabLegIntPurposes && script.iabLegIntPurposes.length > 0) ||
+			(script.iabSpecialFeatures && script.iabSpecialFeatures.length > 0)
 		),
 		simpleCategory:
 			typeof script.category === 'string'

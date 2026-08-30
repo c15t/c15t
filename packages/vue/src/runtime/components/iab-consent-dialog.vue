@@ -1,7 +1,4 @@
-<script
-	setup
-	lang="ts"
->
+<script setup lang="ts">
 import type {
 	GlobalVendorList,
 	NonIABVendor,
@@ -558,7 +555,9 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 										:class="dialogStyles.tabButton"
 										role="tab"
 										:aria-selected="activeTab === 'purposes'"
-										:data-state="activeTab === 'purposes' ? 'active' : 'inactive'"
+										:data-state="
+											activeTab === 'purposes' ? 'active' : 'inactive'
+										"
 										@click="handleTabChange('purposes')"
 									>
 										{{ iabT?.preferenceCenter?.tabs?.purposes }}
@@ -570,7 +569,9 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 										:class="dialogStyles.tabButton"
 										role="tab"
 										:aria-selected="activeTab === 'vendors'"
-										:data-state="activeTab === 'vendors' ? 'active' : 'inactive'"
+										:data-state="
+											activeTab === 'vendors' ? 'active' : 'inactive'
+										"
 										@click="handleTabChange('vendors')"
 									>
 										{{ iabT?.preferenceCenter?.tabs?.vendors }}
@@ -610,19 +611,25 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 											v-for="purpose in processed.standalonePurposes"
 											:key="purpose.id"
 											:purpose="purpose"
-											:is-enabled="draftIab.purposeConsents[purpose.id] ?? false"
+											:is-enabled="
+												draftIab.purposeConsents[purpose.id] ?? false
+											"
 											:vendor-consents="draftIab.vendorConsents"
-											:vendor-legitimate-interests="draftIab.vendorLegitimateInterests"
-											:purpose-legitimate-interests="draftIab.purposeLegitimateInterests"
+											:vendor-legitimate-interests="
+												draftIab.vendorLegitimateInterests
+											"
+											:purpose-legitimate-interests="
+												draftIab.purposeLegitimateInterests
+											"
 											@toggle="(value) => setPurposeConsent(purpose.id, value)"
 											@vendor-toggle="
-										(vendorId, value) => setVendorConsent(vendorId, value)
-									"
+												(vendorId, value) => setVendorConsent(vendorId, value)
+											"
 											@vendor-click="handleVendorClick"
 											@purpose-legitimate-interest-toggle="
-										(value) =>
-											setPurposeLegitimateInterest(purpose.id, value)
-									"
+												(value) =>
+													setPurposeLegitimateInterest(purpose.id, value)
+											"
 										/>
 
 										<IabStackItem
@@ -631,45 +638,54 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 											:stack="stack"
 											:consents="draftIab.purposeConsents"
 											:vendor-consents="draftIab.vendorConsents"
-											:vendor-legitimate-interests="draftIab.vendorLegitimateInterests"
-											:purpose-legitimate-interests="draftIab.purposeLegitimateInterests"
+											:vendor-legitimate-interests="
+												draftIab.vendorLegitimateInterests
+											"
+											:purpose-legitimate-interests="
+												draftIab.purposeLegitimateInterests
+											"
 											@toggle="
-										(purposeId, value) => setPurposeConsent(purposeId, value)
-									"
+												(purposeId, value) =>
+													setPurposeConsent(purposeId, value)
+											"
 											@vendor-toggle="
-										(vendorId, value) => setVendorConsent(vendorId, value)
-									"
+												(vendorId, value) => setVendorConsent(vendorId, value)
+											"
 											@vendor-click="handleVendorClick"
 											@purpose-legitimate-interest-toggle="
-										(purposeId, value) =>
-											setPurposeLegitimateInterest(purposeId, value)
-									"
+												(purposeId, value) =>
+													setPurposeLegitimateInterest(purposeId, value)
+											"
 										/>
 
 										<IabPurposeItem
 											v-for="feature in processed.specialFeatures"
 											:key="`feature-${feature.id}`"
 											:purpose="feature"
-											:is-enabled="draftIab.specialFeatureOptIns[feature.id] ?? false"
+											:is-enabled="
+												draftIab.specialFeatureOptIns[feature.id] ?? false
+											"
 											:vendor-consents="draftIab.vendorConsents"
-											:vendor-legitimate-interests="draftIab.vendorLegitimateInterests"
+											:vendor-legitimate-interests="
+												draftIab.vendorLegitimateInterests
+											"
 											@toggle="
-										(value) => setSpecialFeatureOptIn(feature.id, value)
-									"
+												(value) => setSpecialFeatureOptIn(feature.id, value)
+											"
 											@vendor-toggle="
-										(vendorId, value) => setVendorConsent(vendorId, value)
-									"
+												(vendorId, value) => setVendorConsent(vendorId, value)
+											"
 											@vendor-click="handleVendorClick"
 										/>
 
 										<div
 											v-if="
-										processed.specialPurposes.length > 0 ||
-										processed.features.length > 0
-									"
+												processed.specialPurposes.length > 0 ||
+												processed.features.length > 0
+											"
 											v-bind="
-													config.components?.['iab-dialog']?.specialPurposes
-												"
+												config.components?.['iab-dialog']?.specialPurposes
+											"
 											:class="dialogStyles.specialPurposesSection"
 										>
 											<div :class="dialogStyles.specialPurposesHeader">
@@ -678,8 +694,8 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 													:class="dialogStyles.purposeTrigger"
 													:aria-expanded="specialPurposesExpanded"
 													@click="
-												specialPurposesExpanded = !specialPurposesExpanded
-											"
+														specialPurposesExpanded = !specialPurposesExpanded
+													"
 												>
 													<svg
 														aria-hidden="true"
@@ -700,7 +716,9 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 													</svg>
 													<div :class="dialogStyles.purposeInfo">
 														<h3 :class="dialogStyles.specialPurposesTitle">
-															{{ iabT?.preferenceCenter?.specialPurposes?.title }}
+															{{
+																iabT?.preferenceCenter?.specialPurposes?.title
+															}}
 															<svg
 																aria-hidden="true"
 																:class="dialogStyles.lockIcon"
@@ -766,8 +784,9 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 													is-locked
 													:vendor-consents="draftIab.vendorConsents"
 													@vendor-toggle="
-												(vendorId, value) => setVendorConsent(vendorId, value)
-											"
+														(vendorId, value) =>
+															setVendorConsent(vendorId, value)
+													"
 													@vendor-click="handleVendorClick"
 												/>
 												<IabPurposeItem
@@ -778,8 +797,9 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 													is-locked
 													:vendor-consents="draftIab.vendorConsents"
 													@vendor-toggle="
-												(vendorId, value) => setVendorConsent(vendorId, value)
-											"
+														(vendorId, value) =>
+															setVendorConsent(vendorId, value)
+													"
 													@vendor-click="handleVendorClick"
 												/>
 											</div>
@@ -807,10 +827,12 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 											:vendor-consents="draftIab.vendorConsents"
 											:selected-vendor-id="selectedVendorId"
 											:custom-vendors="customVendors"
-											:vendor-legitimate-interests="draftIab.vendorLegitimateInterests"
+											:vendor-legitimate-interests="
+												draftIab.vendorLegitimateInterests
+											"
 											@vendor-toggle="
-										(vendorId, value) => setVendorConsent(vendorId, value)
-									"
+												(vendorId, value) => setVendorConsent(vendorId, value)
+											"
 											@clear-selection="selectedVendorId = null"
 										/>
 									</div>
@@ -828,10 +850,14 @@ useFocusTrap(card, () => shouldTrapFocus.value);
 								:labels="labels"
 								secondary-mode="stroke"
 								:disabled="isLoading"
-								:root-attrs="config.components?.['iab-dialog']?.actions as
-										object | undefined"
-								:group-attrs="config.components?.['iab-dialog']?.actionGroup as
-										object | undefined"
+								:root-attrs="
+									config.components?.['iab-dialog']?.actions as
+										object | undefined
+								"
+								:group-attrs="
+									config.components?.['iab-dialog']?.actionGroup as
+										object | undefined
+								"
 								@action="onAction"
 							/>
 						</div>

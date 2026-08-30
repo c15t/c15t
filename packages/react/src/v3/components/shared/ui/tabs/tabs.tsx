@@ -62,7 +62,8 @@ function useTabsContext() {
 }
 
 export interface TabsRootProps
-	extends Omit<HTMLAttributes<HTMLDivElement>, 'defaultValue' | 'onChange'>,
+	extends
+		Omit<HTMLAttributes<HTMLDivElement>, 'defaultValue' | 'onChange'>,
 		TabsVariantsProps {
 	children: ReactNode;
 	defaultValue?: string;
@@ -146,7 +147,8 @@ const TabsRoot = forwardRef<HTMLDivElement, TabsRootProps>(
 TabsRoot.displayName = 'TabsRoot';
 
 export interface TabsListProps
-	extends Omit<HTMLAttributes<HTMLDivElement>, 'defaultValue' | 'onChange'>,
+	extends
+		Omit<HTMLAttributes<HTMLDivElement>, 'defaultValue' | 'onChange'>,
 		TabsVariantsProps {
 	noStyle?: boolean;
 }

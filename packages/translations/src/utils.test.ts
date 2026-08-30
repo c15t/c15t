@@ -13,14 +13,15 @@ import {
 } from './utils';
 
 describe('bundled frame translations', () => {
-	it.each(
-		Object.entries(bundledTranslations)
-	)('%s defines loading and error copy', (_language, translations) => {
-		expect(translations.frame.loading).toEqual(expect.any(String));
-		expect(translations.frame.loading).not.toBe('');
-		expect(translations.frame.error).toEqual(expect.any(String));
-		expect(translations.frame.error).not.toBe('');
-	});
+	it.each(Object.entries(bundledTranslations))(
+		'%s defines loading and error copy',
+		(_language, translations) => {
+			expect(translations.frame.loading).toEqual(expect.any(String));
+			expect(translations.frame.loading).not.toBe('');
+			expect(translations.frame.error).toEqual(expect.any(String));
+			expect(translations.frame.error).not.toBe('');
+		}
+	);
 });
 
 describe('deepMergeTranslations', () => {

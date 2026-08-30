@@ -1,147 +1,149 @@
 <script lang="ts">
-import type { Model } from '@c15t/core';
-import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
-import { getTextDirection } from '@c15t/ui/utils';
-import { focusTrap } from '../actions/focus-trap';
-import { portal } from '../actions/portal';
-import { scrollLock } from '../actions/scroll-lock';
-import { getConsentContext, getThemeContext } from '../context.svelte';
-import { getIABTranslations } from '../iab-translations';
-import { getIABBannerDisplayItems } from '../iab-types';
-import { useBannerVisibility } from '../use-banner-visibility.svelte';
-import { resolveComponentStyles } from '../utils';
-import Branding from './branding.svelte';
-import Overlay from './overlay.svelte';
+	import type { Model } from '@c15t/core';
+	import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
+	import { getTextDirection } from '@c15t/ui/utils';
+	import { focusTrap } from '../actions/focus-trap';
+	import { portal } from '../actions/portal';
+	import { scrollLock } from '../actions/scroll-lock';
+	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { getIABTranslations } from '../iab-translations';
+	import { getIABBannerDisplayItems } from '../iab-types';
+	import { useBannerVisibility } from '../use-banner-visibility.svelte';
+	import { resolveComponentStyles } from '../utils';
+	import Branding from './branding.svelte';
+	import Overlay from './overlay.svelte';
 
-let {
-	noStyle: localNoStyle,
-	disableAnimation: localDisableAnimation,
-	scrollLock: localScrollLock,
-	trapFocus: localTrapFocus = true,
-	hideBranding = false,
-	primaryButton = 'customize' as 'reject' | 'accept' | 'customize',
-	models = ['iab'] as Model[],
-	class: className,
-}: {
-	noStyle?: boolean;
-	disableAnimation?: boolean;
-	scrollLock?: boolean;
-	trapFocus?: boolean;
-	hideBranding?: boolean;
-	primaryButton?: 'reject' | 'accept' | 'customize';
-	models?: Model[];
-	class?: string;
-} = $props();
+	let {
+		noStyle: localNoStyle,
+		disableAnimation: localDisableAnimation,
+		scrollLock: localScrollLock,
+		trapFocus: localTrapFocus = true,
+		hideBranding = false,
+		primaryButton = 'customize' as 'reject' | 'accept' | 'customize',
+		models = ['iab'] as Model[],
+		class: className,
+	}: {
+		noStyle?: boolean;
+		disableAnimation?: boolean;
+		scrollLock?: boolean;
+		trapFocus?: boolean;
+		hideBranding?: boolean;
+		primaryButton?: 'reject' | 'accept' | 'customize';
+		models?: Model[];
+		class?: string;
+	} = $props();
 
-const consent = getConsentContext();
-const theme = getThemeContext();
+	const consent = getConsentContext();
+	const theme = getThemeContext();
 
-const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
-const disableAnimation = $derived(
-	localDisableAnimation ?? theme.disableAnimation ?? false
-);
-const shouldTrapFocus = $derived(localTrapFocus ?? theme.trapFocus ?? true);
-const shouldScrollLock = $derived(localScrollLock ?? theme.scrollLock ?? false);
+	const noStyle = $derived(localNoStyle ?? theme.noStyle ?? false);
+	const disableAnimation = $derived(
+		localDisableAnimation ?? theme.disableAnimation ?? false
+	);
+	const shouldTrapFocus = $derived(localTrapFocus ?? theme.trapFocus ?? true);
+	const shouldScrollLock = $derived(
+		localScrollLock ?? theme.scrollLock ?? false
+	);
 
-// IAB state
-const iabState = $derived(consent.state.iab);
+	// IAB state
+	const iabState = $derived(consent.state.iab);
 
-// Translations
-const iabT = $derived(getIABTranslations(consent.state.translationConfig));
-const textDirection = $derived(
-	getTextDirection(consent.state.translationConfig?.defaultLanguage)
-);
+	// Translations
+	const iabT = $derived(getIABTranslations(consent.state.translationConfig));
+	const textDirection = $derived(
+		getTextDirection(consent.state.translationConfig?.defaultLanguage)
+	);
 
-// Visibility logic
-const shouldShowBanner = $derived(
-	consent.state.activeUI === 'banner' &&
-		models.includes(consent.state.model) &&
-		iabState?.config.enabled === true
-);
+	// Visibility logic
+	const shouldShowBanner = $derived(
+		consent.state.activeUI === 'banner' &&
+			models.includes(consent.state.model) &&
+			iabState?.config.enabled === true
+	);
 
-const visibility = useBannerVisibility(
-	() => shouldShowBanner,
-	() => disableAnimation
-);
+	const visibility = useBannerVisibility(
+		() => shouldShowBanner,
+		() => disableAnimation
+	);
 
-// Vendor count from GVL + custom vendors
-const vendorCount = $derived.by(() => {
-	if (!iabState?.gvl) return 0;
-	const gvlVendorCount = Object.keys(iabState.gvl.vendors).length;
-	const customVendorCount = iabState.nonIABVendors?.length ?? 0;
-	return gvlVendorCount + customVendorCount;
-});
+	// Vendor count from GVL + custom vendors
+	const vendorCount = $derived.by(() => {
+		if (!iabState?.gvl) return 0;
+		const gvlVendorCount = Object.keys(iabState.gvl.vendors).length;
+		const customVendorCount = iabState.nonIABVendors?.length ?? 0;
+		return gvlVendorCount + customVendorCount;
+	});
 
-// Display items: stacks + purposes + special features (max 5)
-const displayItems = $derived.by(() => {
-	if (!iabState?.gvl) {
-		return { displayed: [] as string[], remainingCount: 0, isReady: false };
+	// Display items: stacks + purposes + special features (max 5)
+	const displayItems = $derived.by(() => {
+		if (!iabState?.gvl) {
+			return { displayed: [] as string[], remainingCount: 0, isReady: false };
+		}
+		const result = getIABBannerDisplayItems(iabState.gvl);
+		return { ...result, isReady: true };
+	});
+
+	// Handlers
+	function handleAcceptAll() {
+		iabState?.acceptAll();
+		iabState?.save();
+		consent.state.setActiveUI('none');
 	}
-	const result = getIABBannerDisplayItems(iabState.gvl);
-	return { ...result, isReady: true };
-});
 
-// Handlers
-function handleAcceptAll() {
-	iabState?.acceptAll();
-	iabState?.save();
-	consent.state.setActiveUI('none');
-}
+	function handleRejectAll() {
+		iabState?.rejectAll();
+		iabState?.save();
+		consent.state.setActiveUI('none');
+	}
 
-function handleRejectAll() {
-	iabState?.rejectAll();
-	iabState?.save();
-	consent.state.setActiveUI('none');
-}
+	function handleCustomize() {
+		iabState?.setPreferenceCenterTab('purposes');
+		consent.state.setActiveUI('dialog');
+	}
 
-function handleCustomize() {
-	iabState?.setPreferenceCenterTab('purposes');
-	consent.state.setActiveUI('dialog');
-}
+	function handleViewVendors() {
+		iabState?.setPreferenceCenterTab('vendors');
+		consent.state.setActiveUI('dialog');
+	}
 
-function handleViewVendors() {
-	iabState?.setPreferenceCenterTab('vendors');
-	consent.state.setActiveUI('dialog');
-}
+	function isPrimary(button: 'reject' | 'accept' | 'customize'): boolean {
+		return button === primaryButton;
+	}
 
-function isPrimary(button: 'reject' | 'accept' | 'customize'): boolean {
-	return button === primaryButton;
-}
+	// Styling
+	const rootStyle = $derived(
+		resolveComponentStyles(
+			'iabConsentBanner',
+			theme.theme,
+			{
+				baseClassName: [
+					styles.root,
+					textDirection === 'ltr' ? styles.bottomLeft : styles.bottomRight,
+				],
+				className,
+				noStyle,
+			},
+			noStyle
+		)
+	);
 
-// Styling
-const rootStyle = $derived(
-	resolveComponentStyles(
-		'iabConsentBanner',
-		theme.theme,
-		{
-			baseClassName: [
-				styles.root,
-				textDirection === 'ltr' ? styles.bottomLeft : styles.bottomRight,
-			],
-			className,
-			noStyle,
-		},
+	const finalClassName = $derived(
 		noStyle
-	)
-);
+			? rootStyle.className || ''
+			: `${rootStyle.className || ''} ${visibility.isVisible ? styles.bannerVisible : styles.bannerHidden}`
+	);
 
-const finalClassName = $derived(
-	noStyle
-		? rootStyle.className || ''
-		: `${rootStyle.className || ''} ${visibility.isVisible ? styles.bannerVisible : styles.bannerHidden}`
-);
+	// Resolved texts
+	const descriptionText = $derived(
+		iabT.banner.description.replace('{partnerCount}', String(vendorCount))
+	);
+	const partnersLinkText = $derived(
+		iabT.banner.partnersLink.replace('{count}', String(vendorCount))
+	);
+	const scopeNotice = $derived(iabT.banner.scopeServiceSpecific);
 
-// Resolved texts
-const descriptionText = $derived(
-	iabT.banner.description.replace('{partnerCount}', String(vendorCount))
-);
-const partnersLinkText = $derived(
-	iabT.banner.partnersLink.replace('{count}', String(vendorCount))
-);
-const scopeNotice = $derived(iabT.banner.scopeServiceSpecific);
-
-// Split description around partners link
-const descriptionParts = $derived(descriptionText.split(partnersLinkText));
+	// Split description around partners link
+	const descriptionParts = $derived(descriptionText.split(partnersLinkText));
 </script>
 
 {#if visibility.isMounted && visibility.shouldRender && displayItems.isReady}
@@ -194,7 +196,10 @@ const descriptionParts = $derived(descriptionText.split(partnersLinkText));
 							{/each}
 							{#if displayItems.remainingCount > 0}
 								<li class={noStyle ? '' : styles.purposeMore}>
-									{iabT.banner.andMore.replace('{count}', String(displayItems.remainingCount))}
+									{iabT.banner.andMore.replace(
+										'{count}',
+										String(displayItems.remainingCount)
+									)}
 								</li>
 							{/if}
 						</ul>

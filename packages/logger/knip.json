@@ -1,7 +1,7 @@
 {
 	"$schema": "https://unpkg.com/knip@latest/schema.json",
 	"entry": ["./src/index.ts"],
-	"ignoreBinaries": ["biome", "rslib", "tsc", "vitest"],
+	"ignoreBinaries": ["oxfmt", "oxlint", "rslib", "tsc", "vitest"],
 	"ignore": [
 		"**/*.spec.{js,ts,tsx}",
 		"**/*.test.{js,ts,tsx}",

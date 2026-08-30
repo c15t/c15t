@@ -135,8 +135,7 @@ export type { KernelConfig } from '@c15t/core/v3';
 
 // -- Optional: server-side prefetch of the init roundtrip -------------------
 
-export interface PrefetchInitialConsentOptions
-	extends ReadInitialConsentConfigOptions {
+export interface PrefetchInitialConsentOptions extends ReadInitialConsentConfigOptions {
 	/**
 	 * Backend base URL. When provided, the helper will also call
 	 * `${backendURL}/init` server-side and fold the response into the

@@ -16,8 +16,10 @@ export type YouTubeEmbedParams = Record<
 	string | number | boolean | null | undefined
 >;
 
-interface YouTubeEmbedBaseProps
-	extends Omit<ComponentPropsWithRef<'iframe'>, 'children' | 'src' | 'title'> {
+interface YouTubeEmbedBaseProps extends Omit<
+	ComponentPropsWithRef<'iframe'>,
+	'children' | 'src' | 'title'
+> {
 	/**
 	 * Accessible title for the embedded player.
 	 */

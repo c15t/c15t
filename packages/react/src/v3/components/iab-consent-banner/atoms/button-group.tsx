@@ -3,8 +3,7 @@
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
 
-interface IABConsentBannerButtonGroupProps
-	extends HTMLAttributes<HTMLDivElement> {
+interface IABConsentBannerButtonGroupProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;
 }
 
