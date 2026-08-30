@@ -16,10 +16,8 @@ import { createPortal } from 'react-dom';
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { useHeadlessConsentUI } from '~/v3/component-hooks/use-headless-consent-ui';
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';
-import {
-	LocalThemeContext,
-	type ThemeContextValue,
-} from '~/v3/context/theme-context';
+import { LocalThemeContext } from '~/v3/context/theme-context';
+import type { ThemeContextValue } from '~/v3/context/theme-context';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';

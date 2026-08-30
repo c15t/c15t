@@ -1,5 +1,6 @@
 import { setupScrollLock } from '@c15t/ui/utils';
-import { type ComputedRef, onMounted, onUnmounted, watch } from 'vue';
+import { onMounted, onUnmounted, watch } from 'vue';
+import type { ComputedRef } from 'vue';
 
 export function useConsentScrollLock(shouldLock: ComputedRef<boolean>): void {
 	onMounted(() => {

@@ -11,9 +11,9 @@
 
 import {
 	buildConsentManifestFromConfig,
-	type ConsentManifestConfig,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
+import type { ConsentManifestConfig } from '@c15t/schema/types';
 import { decodeJwt } from 'jose';
 import { assert, describe, it } from 'vitest';
 

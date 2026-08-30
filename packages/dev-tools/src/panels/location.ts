@@ -11,14 +11,8 @@ import {
 	createGrid,
 	createSection,
 } from '../components/ui';
-import {
-	clearElement,
-	div,
-	input,
-	type SelectOption,
-	select,
-	span,
-} from '../core/renderer';
+import { clearElement, div, input, select, span } from '../core/renderer';
+import type { SelectOption } from '../core/renderer';
 import { formatInitSource } from '../utils/init-source';
 
 import componentStyles from '../styles/components.module.css';

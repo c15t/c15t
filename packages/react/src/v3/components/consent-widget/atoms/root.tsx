@@ -15,10 +15,8 @@ import {
 	ConsentTrackingContext,
 	useConsentTracking,
 } from '~/v3/context/consent-tracking-context';
-import {
-	LocalThemeContext,
-	type ThemeContextValue,
-} from '~/v3/context/theme-context';
+import { LocalThemeContext } from '~/v3/context/theme-context';
+import type { ThemeContextValue } from '~/v3/context/theme-context';
 import { useTextDirection } from '~/v3/hooks/use-text-direction';
 
 /**

@@ -12,6 +12,7 @@ import { createCMPApi } from '../../tcf/cmp-api';
 import type { GlobalVendorList, TCData } from '../../tcf/iab-tcf-types';
 import { destroyIABStub, initializeIABStub } from '../../tcf/stub';
 import type { CMPApi } from '../../tcf/types';
+import { createCallbackPromise, waitForTimeout } from './promise-helpers';
 import {
 	cleanupTCFApi,
 	createMockConsentEvent,
@@ -47,7 +48,7 @@ describe('Event System - IAB TCF 2.3', () => {
 
 	describe('Event Status Values', () => {
 		it('should emit "tcloaded" when TC String is available and UI not shown', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					expect(tcData?.eventStatus).toBe('tcloaded');
 					resolve();
@@ -58,7 +59,7 @@ describe('Event System - IAB TCF 2.3', () => {
 		it('should emit "cmpuishown" when UI is displayed', async () => {
 			let callCount = 0;
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					callCount++;
 					if (callCount === 1) {
@@ -79,7 +80,7 @@ describe('Event System - IAB TCF 2.3', () => {
 		it('should emit "useractioncomplete" when user confirms choices', async () => {
 			let callCount = 0;
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					callCount++;
 					if (callCount === 1) {
@@ -99,7 +100,7 @@ describe('Event System - IAB TCF 2.3', () => {
 		it('should invoke callback immediately on registration', async () => {
 			const startTime = Date.now();
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.(
 					'addEventListener',
 					2,
@@ -120,7 +121,7 @@ describe('Event System - IAB TCF 2.3', () => {
 			let callCount = 0;
 			const tcStrings: string[] = [];
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					callCount++;
 					if (tcData?.tcString) {
@@ -134,13 +135,13 @@ describe('Event System - IAB TCF 2.3', () => {
 
 			// Update consent multiple times
 			cmpApi.updateConsent('tc-string-1');
-			await new Promise((r) => setTimeout(r, 10));
+			await waitForTimeout(10);
 
 			cmpApi.updateConsent('tc-string-2');
-			await new Promise((r) => setTimeout(r, 10));
+			await waitForTimeout(10);
 
 			cmpApi.updateConsent('tc-string-3');
-			await new Promise((r) => setTimeout(r, 10));
+			await waitForTimeout(10);
 
 			// Should have been called 4 times: initial + 3 updates
 			expect(callCount).toBe(4);
@@ -150,7 +151,7 @@ describe('Event System - IAB TCF 2.3', () => {
 			let callCount = 0;
 			let listenerId: number | undefined;
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					callCount++;
 					listenerId = tcData?.listenerId;
@@ -159,7 +160,7 @@ describe('Event System - IAB TCF 2.3', () => {
 			});
 
 			// Remove listener
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.(
 					'removeEventListener',
 					2,
@@ -170,7 +171,7 @@ describe('Event System - IAB TCF 2.3', () => {
 
 			// Update consent
 			cmpApi.updateConsent('new-tc-string');
-			await new Promise((r) => setTimeout(r, 50));
+			await waitForTimeout(50);
 
 			// Should only have initial call
 			expect(callCount).toBe(1);
@@ -182,21 +183,21 @@ describe('Event System - IAB TCF 2.3', () => {
 			const listener3Calls: string[] = [];
 
 			// Add three listeners
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					listener1Calls.push(tcData?.eventStatus || '');
 					if (listener1Calls.length === 1) resolve();
 				});
 			});
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					listener2Calls.push(tcData?.eventStatus || '');
 					if (listener2Calls.length === 1) resolve();
 				});
 			});
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					listener3Calls.push(tcData?.eventStatus || '');
 					if (listener3Calls.length === 1) resolve();
@@ -205,7 +206,7 @@ describe('Event System - IAB TCF 2.3', () => {
 
 			// Update consent
 			cmpApi.updateConsent('shared-tc-string');
-			await new Promise((r) => setTimeout(r, 50));
+			await waitForTimeout(50);
 
 			// All listeners should have received 2 calls: initial + update
 			expect(listener1Calls.length).toBe(2);
@@ -222,7 +223,7 @@ describe('Event System - IAB TCF 2.3', () => {
 			const listenerIds: number[] = [];
 
 			for (let i = 0; i < 5; i++) {
-				await new Promise<void>((resolve) => {
+				await createCallbackPromise<void>((resolve) => {
 					window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 						if (tcData?.listenerId !== undefined) {
 							listenerIds.push(tcData.listenerId);
@@ -240,7 +241,7 @@ describe('Event System - IAB TCF 2.3', () => {
 
 	describe('Event Data Completeness', () => {
 		it('should include complete TCData in each event', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					expect(tcData).toBeDefined();
 
@@ -266,7 +267,7 @@ describe('Event System - IAB TCF 2.3', () => {
 		it('should match eventStatus to current state', async () => {
 			const statuses: string[] = [];
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					if (tcData?.eventStatus) {
 						statuses.push(tcData.eventStatus);
@@ -276,10 +277,10 @@ describe('Event System - IAB TCF 2.3', () => {
 			});
 
 			cmpApi.setDisplayStatus('visible');
-			await new Promise((r) => setTimeout(r, 20));
+			await waitForTimeout(20);
 
 			cmpApi.updateConsent('test-tc');
-			await new Promise((r) => setTimeout(r, 20));
+			await waitForTimeout(20);
 
 			expect(statuses).toContain('tcloaded');
 			expect(statuses).toContain('cmpuishown');
@@ -287,7 +288,7 @@ describe('Event System - IAB TCF 2.3', () => {
 		});
 
 		it('should include correct listenerId in each callback', async () => {
-			const listener1Id = await new Promise<number>((resolve) => {
+			const listener1Id = await createCallbackPromise<number>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					if (tcData?.listenerId !== undefined) {
 						resolve(tcData.listenerId);
@@ -295,7 +296,7 @@ describe('Event System - IAB TCF 2.3', () => {
 				});
 			});
 
-			const listener2Id = await new Promise<number>((resolve) => {
+			const listener2Id = await createCallbackPromise<number>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					if (tcData?.listenerId !== undefined) {
 						resolve(tcData.listenerId);
@@ -362,7 +363,7 @@ describe('Event System - IAB TCF 2.3', () => {
 		it('should handle rapid consent updates', async () => {
 			let callCount = 0;
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, () => {
 					callCount++;
 					if (callCount === 1) resolve();
@@ -374,7 +375,7 @@ describe('Event System - IAB TCF 2.3', () => {
 				cmpApi.updateConsent(`tc-string-${i}`);
 			}
 
-			await new Promise((r) => setTimeout(r, 100));
+			await waitForTimeout(100);
 
 			// Should have called for each update
 			expect(callCount).toBe(11); // 1 initial + 10 updates
@@ -384,7 +385,7 @@ describe('Event System - IAB TCF 2.3', () => {
 			let listenerId: number | undefined;
 			let callCount = 0;
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					callCount++;
 					listenerId = tcData?.listenerId;
@@ -400,20 +401,20 @@ describe('Event System - IAB TCF 2.3', () => {
 
 			// Trigger updates
 			cmpApi.updateConsent('tc-1');
-			await new Promise((r) => setTimeout(r, 20));
+			await waitForTimeout(20);
 
 			cmpApi.updateConsent('tc-2');
-			await new Promise((r) => setTimeout(r, 20));
+			await waitForTimeout(20);
 
 			cmpApi.updateConsent('tc-3');
-			await new Promise((r) => setTimeout(r, 20));
+			await waitForTimeout(20);
 
 			// Should have stopped after self-removal
 			expect(callCount).toBe(2);
 		});
 
 		it('should not crash when removing non-existent listener', async () => {
-			const result = await new Promise<boolean>((resolve) => {
+			const result = await createCallbackPromise<boolean>((resolve) => {
 				window.__tcfapi?.(
 					'removeEventListener',
 					2,

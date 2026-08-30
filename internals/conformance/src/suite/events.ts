@@ -8,7 +8,8 @@
 
 import { EVENT_NAMES, EVENT_ORDERING } from '../contract/events';
 import type { TestDriver } from '../driver';
-import { conformanceTest, type SuiteApi } from './helpers';
+import { conformanceTest } from './helpers';
+import type { SuiteApi } from './helpers';
 
 type Spy = ((...args: unknown[]) => void) & { calls: unknown[][] };
 

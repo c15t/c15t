@@ -46,15 +46,15 @@ function createStubApi(): TCFApi {
 	const stub = ((
 		command: string,
 		version: number,
-		callback: TCFApiCallback<unknown>,
+		handler: TCFApiCallback<unknown>,
 		parameter?: unknown
 	) => {
 		if (command === 'ping') {
 			// Ping can be handled immediately
-			(callback as TCFApiCallback<PingData>)(createStubPingData(), true);
+			(handler as TCFApiCallback<PingData>)(createStubPingData(), true);
 		} else {
 			// Queue all other commands
-			queue.push([command, version, callback, parameter] as Parameters<TCFApi>);
+			queue.push([command, version, handler, parameter] as Parameters<TCFApi>);
 		}
 	}) as TCFApi;
 
@@ -123,7 +123,7 @@ function handlePostMessage(event: MessageEvent): void {
 		window.__tcfapi as (
 			command: string,
 			version: number,
-			callback: TCFApiCallback<unknown>,
+			handler: TCFApiCallback<unknown>,
 			parameter?: unknown
 		) => void
 	)(

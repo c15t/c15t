@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { themePresetStore } from '$lib/consent-manager/theme-store.svelte';
-	import { createDevTools, type DevToolsInstance } from '@c15t/dev-tools';
+	import { createDevTools } from '@c15t/dev-tools';
+	import type { DevToolsInstance } from '@c15t/dev-tools';
 	import {
 		ConsentBanner,
 		ConsentDialog,

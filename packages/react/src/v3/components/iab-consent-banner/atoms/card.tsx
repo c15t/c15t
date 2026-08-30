@@ -1,12 +1,8 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
-import {
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
-	type RefObject,
-} from 'react';
+import { forwardRef } from 'react';
+import type { HTMLAttributes, ReactNode, RefObject } from 'react';
 
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';
 import { useTheme } from '~/v3/hooks/use-theme';

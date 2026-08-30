@@ -26,7 +26,8 @@ import { PgliteClient } from '@effect/sql-pglite';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 
-import { type ArmResult, chunkedFanout, joined } from './arms';
+import { chunkedFanout, joined } from './arms';
+import type { ArmResult } from './arms';
 
 const SUBJECT_COUNTS = [1, 10, 100, 1000] as const;
 const POLICY_TYPES = 5;

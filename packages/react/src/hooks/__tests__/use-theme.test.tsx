@@ -1,11 +1,8 @@
 import { describe, expect, test } from 'vitest';
 import { renderHook } from 'vitest-browser-react';
 
-import {
-	GlobalThemeContext,
-	LocalThemeContext,
-	type ThemeContextValue,
-} from '~/context/theme-context';
+import { GlobalThemeContext, LocalThemeContext } from '~/context/theme-context';
+import type { ThemeContextValue } from '~/context/theme-context';
 
 import { useTheme } from '../use-theme';
 

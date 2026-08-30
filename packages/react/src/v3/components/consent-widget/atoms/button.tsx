@@ -1,4 +1,5 @@
-import { forwardRef, type Ref } from 'react';
+import { forwardRef } from 'react';
+import type { Ref } from 'react';
 
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { ConsentButton } from '~/v3/components/shared/primitives/button';

@@ -1,16 +1,13 @@
 import {
-	type I18nConfig,
 	normalizeI18nConfig,
 	resolveTranslationInput,
 } from '@c15t/translations';
+import type { I18nConfig } from '@c15t/translations';
 
 import { version } from '~/version';
 
-import {
-	type ConsentManagerOptions,
-	clearClientRegistry,
-	configureConsentManager,
-} from '../client';
+import { clearClientRegistry, configureConsentManager } from '../client';
+import type { ConsentManagerOptions } from '../client';
 import { getMatchingPrefetchedInitialData } from '../libs/prefetch/prefetch';
 import { createConsentManagerStore } from '../store';
 import type { StoreOptions } from '../store/type';

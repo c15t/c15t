@@ -15,10 +15,8 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
-import {
-	LocalThemeContext,
-	type ThemeContextValue,
-} from '~/context/theme-context';
+import { LocalThemeContext } from '~/context/theme-context';
+import type { ThemeContextValue } from '~/context/theme-context';
 import { useTextDirection } from '~/hooks';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';

@@ -1,5 +1,5 @@
 /**
- * @c15t/iab/v3 — IAB TCF 2.3 module for the v3 kernel.
+ * `@c15t/iab/v3` — IAB TCF 2.3 module for the v3 kernel.
  *
  * Consumes the c15t/v3 kernel and provides CMP-compliant IAB TCF
  * functionality:
@@ -235,7 +235,8 @@ export function createIAB(options: CreateIABOptions): IABHandle {
 					}
 				})();
 
-	gvlPromise.then((gvl) => {
+	void (async () => {
+		const gvl = await gvlPromise;
 		if (disposed) return;
 		if (gvl === null) {
 			// Server / fetch says no-IAB. Mark disabled.
@@ -254,7 +255,7 @@ export function createIAB(options: CreateIABOptions): IABHandle {
 			// still correct, the rest of the module just can't respond
 			// to __tcfapi queries yet.
 		}
-	});
+	})();
 
 	// Keep the CMP API state in sync with snapshot changes. v2 calls
 	// `cmpApi.updateConsent(tcString)` on save — we mirror that here.

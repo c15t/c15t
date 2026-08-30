@@ -1,11 +1,8 @@
 <script lang="ts">
 	import ForceBannerShow from '$lib/components/ForceBannerShow.svelte';
 	import { minimalTheme, darkTheme } from '$lib/consent-manager/theme-presets';
-	import {
-		ConsentBanner,
-		ConsentManagerProvider,
-		type Theme,
-	} from '@c15t/svelte';
+	import { ConsentBanner, ConsentManagerProvider } from '@c15t/svelte';
+	import type { Theme } from '@c15t/svelte';
 
 	type ButtonName = 'accept' | 'reject' | 'customize';
 	type LayoutConfig = (ButtonName | ButtonName[])[];

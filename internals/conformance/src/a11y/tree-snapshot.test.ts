@@ -1,10 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import {
-	diffA11yTrees,
-	normalizeA11ySnapshot,
-	type RawA11yNode,
-} from './tree-snapshot';
+import { diffA11yTrees, normalizeA11ySnapshot } from './tree-snapshot';
+import type { RawA11yNode } from './tree-snapshot';
 
 test('normalizeA11ySnapshot collapses whitespace in names', () => {
 	const raw: RawA11yNode = {

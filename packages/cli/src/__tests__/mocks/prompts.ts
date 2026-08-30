@@ -2,7 +2,8 @@
  * Mock @clack/prompts for testing
  */
 
-import { type Mock, vi } from 'vitest';
+import { vi } from 'vitest';
+import type { Mock } from 'vitest';
 
 export interface MockPrompts {
 	select: Mock;

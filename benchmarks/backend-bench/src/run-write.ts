@@ -18,7 +18,8 @@ import { PgliteClient } from '@effect/sql-pglite';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 
-import { onConflict, readThenWrite, type WriteResult } from './write';
+import { onConflict, readThenWrite } from './write';
+import type { WriteResult } from './write';
 
 const ITERATIONS = 200;
 const WARMUP = 20;

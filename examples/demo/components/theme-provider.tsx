@@ -2,13 +2,13 @@
 
 import {
 	createContext,
-	type ReactNode,
 	useContext,
 	useEffect,
 	useLayoutEffect,
 	useMemo,
 	useState,
 } from 'react';
+import type { ReactNode } from 'react';
 
 type ThemeMode = 'light' | 'dark' | 'system';
 type ResolvedTheme = 'light' | 'dark';

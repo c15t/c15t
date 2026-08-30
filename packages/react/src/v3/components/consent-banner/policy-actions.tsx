@@ -2,16 +2,12 @@
 
 import type { ReactNode } from 'react';
 
-import {
-	type HeadlessConsentBannerAction,
-	useHeadlessConsentUI,
-} from '~/v3/component-hooks/use-headless-consent-ui';
+import { useHeadlessConsentUI } from '~/v3/component-hooks/use-headless-consent-ui';
+import type { HeadlessConsentBannerAction } from '~/v3/component-hooks/use-headless-consent-ui';
 
 import { warmDialogChunk } from '../../chunk-warming';
-import {
-	type PolicyActionRenderProps,
-	PolicyActionsRenderer,
-} from '../shared/policy-actions';
+import { PolicyActionsRenderer } from '../shared/policy-actions';
+import type { PolicyActionRenderProps } from '../shared/policy-actions';
 import {
 	ConsentBannerAcceptButton,
 	ConsentBannerCustomizeButton,

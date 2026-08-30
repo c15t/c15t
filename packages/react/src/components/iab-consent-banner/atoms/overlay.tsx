@@ -1,7 +1,8 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
-import { forwardRef, type HTMLAttributes, useEffect, useState } from 'react';
+import { forwardRef, useEffect, useState } from 'react';
+import type { HTMLAttributes } from 'react';
 
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useScrollLock } from '~/hooks/use-scroll-lock';

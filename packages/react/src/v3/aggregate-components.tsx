@@ -1,12 +1,7 @@
 'use client';
 
-import {
-	type ComponentType,
-	type LazyExoticComponent,
-	lazy,
-	type ReactNode,
-	Suspense,
-} from 'react';
+import { lazy, Suspense } from 'react';
+import type { ComponentType, LazyExoticComponent, ReactNode } from 'react';
 
 import { registerDialogChunkWarmer } from './chunk-warming';
 import type {

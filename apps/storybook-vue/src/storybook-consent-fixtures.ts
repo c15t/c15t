@@ -5,10 +5,8 @@ import { onUnmounted, provide } from 'vue';
 import { enTranslations } from '../../../packages/translations/src';
 import { consentConfigKey } from '../../../packages/vue/src/runtime/composables/config';
 import type { ConsentConfig } from '../../../packages/vue/src/runtime/config';
-import {
-	createVueConsentKernelContext,
-	type VueConsentKernelContext,
-} from '../../../packages/vue/src/runtime/kernel';
+import { createVueConsentKernelContext } from '../../../packages/vue/src/runtime/kernel';
+import type { VueConsentKernelContext } from '../../../packages/vue/src/runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,

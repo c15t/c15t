@@ -1,17 +1,12 @@
-import {
-	type ButtonMode,
-	type ButtonSize,
-	type ButtonVariant,
-	type ButtonVariantsProps,
-	buttonVariants,
+import { buttonVariants } from '@c15t/ui/styles/primitives/button';
+import type {
+	ButtonMode,
+	ButtonSize,
+	ButtonVariant,
+	ButtonVariantsProps,
 } from '@c15t/ui/styles/primitives/button';
-import {
-	type ButtonHTMLAttributes,
-	type ElementType,
-	forwardRef,
-	type ReactElement,
-	useId,
-} from 'react';
+import { forwardRef, useId } from 'react';
+import type { ButtonHTMLAttributes, ElementType, ReactElement } from 'react';
 
 import type { PolymorphicComponentProps } from '../../libs/polymorphic';
 import { recursiveCloneChildren } from '../../libs/recursive-clone-children';

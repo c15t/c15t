@@ -1,12 +1,8 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import {
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
-	useMemo,
-} from 'react';
+import { forwardRef, useMemo } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
 import * as Tabs from '~/v3/components/shared/ui/tabs';
 

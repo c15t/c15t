@@ -4,7 +4,8 @@
  * creating component files, adding imports, wrapping JSX, and saving.
  */
 
-import { Project, type SourceFile, SyntaxKind } from 'ts-morph';
+import { Project, SyntaxKind } from 'ts-morph';
+import type { SourceFile } from 'ts-morph';
 
 import { getFrameworkDirectory } from './directory';
 import {

@@ -18,6 +18,7 @@ import type {
 } from '../../tcf/iab-tcf-types';
 import { destroyIABStub, initializeIABStub } from '../../tcf/stub';
 import type { CMPApi } from '../../tcf/types';
+import { createCallbackPromise, waitForTimeout } from './promise-helpers';
 import { cleanupTCFApi, createMockGVL, setupStorageMock } from './test-setup';
 
 describe('CMP API Compliance - IAB TCF 2.3', () => {
@@ -48,7 +49,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 
 	describe('ping Command', () => {
 		it('should return all required PingReturn fields', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('ping', 2, (pingData: PingData | null, success) => {
 					expect(success).toBe(true);
 					expect(pingData).toBeDefined();
@@ -70,7 +71,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should return gdprApplies as boolean', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('ping', 2, (pingData: PingData | null) => {
 					expect(typeof pingData?.gdprApplies).toBe('boolean');
 					resolve();
@@ -79,7 +80,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should return cmpLoaded=true when CMP is ready', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('ping', 2, (pingData: PingData | null) => {
 					expect(pingData?.cmpLoaded).toBe(true);
 					resolve();
@@ -88,7 +89,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should return cmpStatus="loaded" when CMP is ready', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('ping', 2, (pingData: PingData | null) => {
 					expect(pingData?.cmpStatus).toBe('loaded');
 					resolve();
@@ -97,7 +98,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should return displayStatus as "visible" or "hidden"', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('ping', 2, (pingData: PingData | null) => {
 					expect(['visible', 'hidden', 'disabled']).toContain(
 						pingData?.displayStatus
@@ -108,7 +109,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should return apiVersion for TCF 2.x', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('ping', 2, (pingData: PingData | null) => {
 					// Implementation returns "2.3" - TCF spec suggests "2.2" for v2.x
 					expect(['2.2', '2.3']).toContain(pingData?.apiVersion);
@@ -118,7 +119,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should return configured cmpId', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('ping', 2, (pingData: PingData | null) => {
 					expect(pingData?.cmpId).toBe(160);
 					resolve();
@@ -127,7 +128,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should return configured cmpVersion', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('ping', 2, (pingData: PingData | null) => {
 					// cmpVersion may be returned as number or string
 					expect(Number(pingData?.cmpVersion)).toBe(1);
@@ -137,7 +138,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should return gvlVersion from loaded GVL', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('ping', 2, (pingData: PingData | null) => {
 					expect(pingData?.gvlVersion).toBe(mockGVL.vendorListVersion);
 					resolve();
@@ -146,7 +147,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should return tcfPolicyVersion from GVL', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('ping', 2, (pingData: PingData | null) => {
 					expect(pingData?.tcfPolicyVersion).toBe(mockGVL.tcfPolicyVersion);
 					resolve();
@@ -157,7 +158,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 
 	describe('addEventListener Command', () => {
 		it('should invoke callback immediately on registration', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.(
 					'addEventListener',
 					2,
@@ -173,7 +174,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		it('should assign unique listenerId to each listener', async () => {
 			const listenerIds: number[] = [];
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					if (tcData?.listenerId !== undefined) {
 						listenerIds.push(tcData.listenerId);
@@ -182,7 +183,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 				});
 			});
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					if (tcData?.listenerId !== undefined) {
 						listenerIds.push(tcData.listenerId);
@@ -191,7 +192,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 				});
 			});
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					if (tcData?.listenerId !== undefined) {
 						listenerIds.push(tcData.listenerId);
@@ -207,7 +208,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should return eventStatus="tcloaded" when TC String available', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					expect(tcData?.eventStatus).toBe('tcloaded');
 					resolve();
@@ -218,7 +219,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		it('should return eventStatus="cmpuishown" when UI is displayed', async () => {
 			let callCount = 0;
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					callCount++;
 					if (callCount === 1) {
@@ -235,7 +236,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		it('should return eventStatus="useractioncomplete" after user action', async () => {
 			let callCount = 0;
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					callCount++;
 					if (callCount === 1) {
@@ -254,14 +255,14 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		it('should remove listener by listenerId', async () => {
 			let listenerId: number | undefined;
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					listenerId = tcData?.listenerId;
 					resolve();
 				});
 			});
 
-			const removed = await new Promise<boolean>((resolve) => {
+			const removed = await createCallbackPromise<boolean>((resolve) => {
 				window.__tcfapi?.(
 					'removeEventListener',
 					2,
@@ -276,7 +277,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should return false for invalid listenerId', async () => {
-			const removed = await new Promise<boolean>((resolve) => {
+			const removed = await createCallbackPromise<boolean>((resolve) => {
 				window.__tcfapi?.(
 					'removeEventListener',
 					2,
@@ -294,7 +295,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 			let listenerId: number | undefined;
 			let callCount = 0;
 
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('addEventListener', 2, (tcData: TCData | null) => {
 					listenerId = tcData?.listenerId;
 					callCount++;
@@ -303,7 +304,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 			});
 
 			// Remove the listener
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.(
 					'removeEventListener',
 					2,
@@ -318,7 +319,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 			cmpApi.updateConsent('new-tc-string');
 
 			// Wait a bit
-			await new Promise((r) => setTimeout(r, 50));
+			await waitForTimeout(50);
 
 			// Call count should still be 1 (initial call only)
 			expect(callCount).toBe(1);
@@ -327,7 +328,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 
 	describe('getVendorList Command', () => {
 		it('should return complete GVL', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.(
 					'getVendorList',
 					2,
@@ -342,7 +343,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should return GVL with all required fields', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.(
 					'getVendorList',
 					2,
@@ -364,7 +365,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('GVL should contain all 11 purposes', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.(
 					'getVendorList',
 					2,
@@ -378,7 +379,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('GVL should contain special purposes 1-2', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.(
 					'getVendorList',
 					2,
@@ -395,7 +396,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('GVL should contain features 1-3', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.(
 					'getVendorList',
 					2,
@@ -409,7 +410,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('GVL should contain special features 1-2', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.(
 					'getVendorList',
 					2,
@@ -425,7 +426,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('GVL should contain stacks', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.(
 					'getVendorList',
 					2,
@@ -441,17 +442,21 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 
 	describe('getInAppTCData Command (Mobile Alias)', () => {
 		it('should return same data as getTCData', async () => {
-			const getTCDataResult = await new Promise<TCData | null>((resolve) => {
-				window.__tcfapi?.('getTCData', 2, (tcData: TCData | null) => {
-					resolve(tcData);
-				});
-			});
+			const getTCDataResult = await createCallbackPromise<TCData | null>(
+				(resolve) => {
+					window.__tcfapi?.('getTCData', 2, (tcData: TCData | null) => {
+						resolve(tcData);
+					});
+				}
+			);
 
-			const getInAppResult = await new Promise<TCData | null>((resolve) => {
-				window.__tcfapi?.('getInAppTCData', 2, (tcData: TCData | null) => {
-					resolve(tcData);
-				});
-			});
+			const getInAppResult = await createCallbackPromise<TCData | null>(
+				(resolve) => {
+					window.__tcfapi?.('getInAppTCData', 2, (tcData: TCData | null) => {
+						resolve(tcData);
+					});
+				}
+			);
 
 			// Both should return equivalent data
 			expect(getInAppResult?.gdprApplies).toBe(getTCDataResult?.gdprApplies);
@@ -462,7 +467,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 
 	describe('TCData Object Validation', () => {
 		it('should contain all required fields', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('getTCData', 2, (tcData: TCData | null, success) => {
 					expect(success).toBe(true);
 					expect(tcData).toBeDefined();
@@ -487,7 +492,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should contain purpose object with consents and legitimateInterests', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('getTCData', 2, (tcData: TCData | null) => {
 					expect(tcData?.purpose).toBeDefined();
 					expect(tcData?.purpose).toHaveProperty('consents');
@@ -500,7 +505,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should contain vendor object with required fields', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('getTCData', 2, (tcData: TCData | null) => {
 					expect(tcData?.vendor).toBeDefined();
 					expect(tcData?.vendor).toHaveProperty('consents');
@@ -511,7 +516,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should contain specialFeatureOptins', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('getTCData', 2, (tcData: TCData | null) => {
 					expect(tcData?.specialFeatureOptins).toBeDefined();
 					expect(typeof tcData?.specialFeatureOptins).toBe('object');
@@ -521,7 +526,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should contain publisher object with required fields', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('getTCData', 2, (tcData: TCData | null) => {
 					expect(tcData?.publisher).toBeDefined();
 					expect(tcData?.publisher).toHaveProperty('consents');
@@ -534,7 +539,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should return isServiceSpecific=true (global scope invalid)', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('getTCData', 2, (tcData: TCData | null) => {
 					// Per TCF spec: global scope is invalid since Sept 2021
 					expect(tcData?.isServiceSpecific).toBe(true);
@@ -544,7 +549,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 		});
 
 		it('should return valid publisherCC (2-letter country code)', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('getTCData', 2, (tcData: TCData | null) => {
 					expect(tcData?.publisherCC).toBeDefined();
 					expect(typeof tcData?.publisherCC).toBe('string');
@@ -557,7 +562,7 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 
 	describe('Unknown Commands', () => {
 		it('should return success=false for unknown commands', async () => {
-			await new Promise<void>((resolve) => {
+			await createCallbackPromise<void>((resolve) => {
 				window.__tcfapi?.('unknownCommand' as 'ping', 2, (data, success) => {
 					expect(success).toBe(false);
 					expect(data).toBeNull();
@@ -570,13 +575,13 @@ describe('CMP API Compliance - IAB TCF 2.3', () => {
 	describe('Version Parameter', () => {
 		it('should accept version 2 for all commands', async () => {
 			const results = await Promise.all([
-				new Promise<boolean>((resolve) => {
+				createCallbackPromise<boolean>((resolve) => {
 					window.__tcfapi?.('ping', 2, (_, success) => resolve(success));
 				}),
-				new Promise<boolean>((resolve) => {
+				createCallbackPromise<boolean>((resolve) => {
 					window.__tcfapi?.('getTCData', 2, (_, success) => resolve(success));
 				}),
-				new Promise<boolean>((resolve) => {
+				createCallbackPromise<boolean>((resolve) => {
 					window.__tcfapi?.('getVendorList', 2, (_, success) =>
 						resolve(success)
 					);

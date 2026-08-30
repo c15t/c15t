@@ -5,30 +5,22 @@ import {
 	createConsentManagerStore,
 	deleteConsentFromStorage,
 	generateSubjectId,
-	type Script,
 	saveConsentToStorage,
 } from '@c15t/core';
-import {
-	createContext,
-	type ReactNode,
-	useContext,
-	useEffect,
-	useRef,
-	useState,
-} from 'react';
+import type { Script } from '@c15t/core';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
-import {
-	getScenarioScripts,
-	type ScriptLifecycleScenarioConfig,
-} from './fixtures';
+import { getScenarioScripts } from './fixtures';
+import type { ScriptLifecycleScenarioConfig } from './fixtures';
 import {
 	getBenchState,
 	incrementCounter,
 	listDomPresence,
 	normalizeIds,
 	nowMs,
-	type ScriptBenchState,
 } from './state';
+import type { ScriptBenchState } from './state';
 
 type Store = ReturnType<typeof createConsentManagerStore>;
 type StoreState = ReturnType<Store['getState']>;

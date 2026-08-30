@@ -1,5 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, type FSWatcher, watch } from 'node:fs';
+import { existsSync, watch } from 'node:fs';
+import type { FSWatcher } from 'node:fs';
 import { join } from 'node:path';
 
 const packageRoot = join(import.meta.dirname, '..');

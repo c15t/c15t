@@ -1,12 +1,14 @@
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import styles from '@c15t/ui/styles/v3/consent-manager';
-import { forwardRef, type Ref } from 'react';
+import { forwardRef } from 'react';
+import type { Ref } from 'react';
 
 import { useTheme } from '~/v3/hooks/use-theme';
 import { useUIConfig } from '~/v3/ui-config-context';
 import { mergeSlotProps } from '~/v3/utils/merge-slot-props';
 
-import { Box, type BoxProps } from '../../shared/primitives/box';
+import { Box } from '../../shared/primitives/box';
+import type { BoxProps } from '../../shared/primitives/box';
 
 /**
  * Footer component for consent management actions.

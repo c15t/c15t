@@ -8,11 +8,8 @@ import {
 	indexMetrics,
 	toMarkdownComparison,
 } from './src/reporting';
-import {
-	BENCHMARK_SCHEMA_VERSION,
-	type BenchmarkComparisonResult,
-	type BenchmarkResult,
-} from './src/schema';
+import { BENCHMARK_SCHEMA_VERSION } from './src/schema';
+import type { BenchmarkComparisonResult, BenchmarkResult } from './src/schema';
 import { listJsonFiles, readJson, writeJson } from './src/utils';
 
 const baseDir = process.env.BENCHMARK_BASE_DIR ?? '.benchmarks/base';
@@ -152,7 +149,9 @@ async function main() {
 	}
 }
 
-main().catch((error) => {
+try {
+	await main();
+} catch (error) {
 	console.error(error);
 	process.exit(1);
-});
+}

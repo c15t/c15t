@@ -8,12 +8,33 @@ import type {
 } from '@c15t/core';
 import { useContext, useEffect, useRef, useState } from 'react';
 
-import {
-	ConsentStateContext,
-	type ConsentStateContextValue,
-} from '~/context/consent-manager-context';
+import { ConsentStateContext } from '~/context/consent-manager-context';
+import type { ConsentStateContextValue } from '~/context/consent-manager-context';
 
 import { useConsentManager } from './use-consent-manager';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 export type ConsentScriptStatus =
 	| 'idle'
@@ -246,7 +267,7 @@ function createRegistryEntry<TReady>({
 	let resolvePromise!: (value: TReady) => void;
 	let rejectPromise!: (error: Error) => void;
 
-	const promise = new Promise<TReady>((resolve, reject) => {
+	const promise = createDeferredPromise<TReady>((resolve, reject) => {
 		resolvePromise = resolve;
 		rejectPromise = reject;
 	});
@@ -622,22 +643,22 @@ export function useConsentScript<TReady = unknown>(
 		}
 
 		let active = true;
-		entry.promise.then(
-			(value) => {
+		void (async () => {
+			try {
+				const value = await entry.promise;
 				if (active) {
 					setReadyValue(value);
 					setIsReady(true);
 					setError(null);
 				}
-			},
-			(nextError) => {
+			} catch (nextError) {
 				if (active) {
 					setError(toError(nextError));
 					setReadyValue(null);
 					setIsReady(false);
 				}
 			}
-		);
+		})();
 
 		return () => {
 			active = false;

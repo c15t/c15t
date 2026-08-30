@@ -5,7 +5,8 @@
  */
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import { defineComponent, h, type Ref } from 'vue';
+import { defineComponent, h } from 'vue';
+import type { Ref } from 'vue';
 
 import { useState } from '../runtime/composables/stubs/state';
 

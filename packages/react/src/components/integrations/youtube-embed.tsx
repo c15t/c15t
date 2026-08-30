@@ -1,15 +1,11 @@
 'use client';
 
 import type { AllConsentNames } from '@c15t/core';
-import {
-	type ComponentPropsWithRef,
-	type CSSProperties,
-	forwardRef,
-	type ReactNode,
-	useState,
-} from 'react';
+import { forwardRef, useState } from 'react';
+import type { ComponentPropsWithRef, CSSProperties, ReactNode } from 'react';
 
-import { Frame, type FrameProps } from '../frame';
+import { Frame } from '../frame';
+import type { FrameProps } from '../frame';
 import { IntegrationStatus } from './shared';
 
 export type YouTubeEmbedParams = Record<

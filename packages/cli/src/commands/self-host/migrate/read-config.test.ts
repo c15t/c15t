@@ -10,17 +10,16 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
+import { loadConfig } from 'c12';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { readDatabaseConfig } from './read-config';
 
 vi.mock('c12', () => ({
 	loadConfig: vi.fn(async () => ({
 		config: { database: { dialect: 'postgres', url: 'postgres://x/y' } },
 	})),
 }));
-
-import { loadConfig } from 'c12';
-
-import { readDatabaseConfig } from './read-config';
 
 const NOT_FOUND_RE = /Backend config not found/;
 

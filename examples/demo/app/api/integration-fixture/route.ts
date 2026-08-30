@@ -1,3 +1,26 @@
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 const RETRY_SESSIONS_COOKIE = 'c15t_demo_retry_sessions';
 const MAX_RETRY_SESSIONS = 12;
 
@@ -46,7 +69,7 @@ export async function GET(request: Request) {
 			? Math.min(Math.max(requestedDelay, 0), 15_000)
 			: 0;
 
-		await new Promise((resolve) => setTimeout(resolve, delay));
+		await createDeferredPromise((resolve) => setTimeout(resolve, delay));
 
 		return new Response(
 			`<!doctype html>

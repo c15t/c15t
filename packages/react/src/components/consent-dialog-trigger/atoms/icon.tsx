@@ -7,7 +7,8 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
-import { isValidElement, type ReactNode } from 'react';
+import { isValidElement } from 'react';
+import type { ReactNode } from 'react';
 
 import { BrandingCompactLogo } from '~/components/shared/ui/branding';
 import { FingerprintIcon, SettingsIcon } from '~/components/shared/ui/logo';

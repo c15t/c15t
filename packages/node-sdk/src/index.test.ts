@@ -15,6 +15,29 @@ import {
 
 import { C15TClient, c15tClient } from './index';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 // An in-memory SQLite database, which is all these tests need: they exercise
 // the client against a real handler, not the storage layer. 3.0 replaced the
 // hand-rolled mock adapter this used to pass — there is no adapter interface
@@ -103,7 +126,7 @@ describe('C15T Node SDK', () => {
 			}
 		});
 
-		await new Promise<void>((resolve) => {
+		await createDeferredPromise<void>((resolve) => {
 			httpServer.listen(PORT, () => {
 				console.log(`Test server listening on port ${PORT}`);
 				resolve();
@@ -118,7 +141,7 @@ describe('C15T Node SDK', () => {
 	});
 
 	afterAll(async () => {
-		await new Promise<void>((resolve) => {
+		await createDeferredPromise<void>((resolve) => {
 			httpServer.close(() => resolve());
 		});
 		// The instance owns a connection pool; a process that leaves one open

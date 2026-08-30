@@ -11,10 +11,8 @@
 
 import type { FC } from 'react';
 
-import {
-	ConsentDialogTrigger,
-	type ConsentDialogTriggerProps,
-} from '~/components/consent-dialog-trigger';
+import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
+import type { ConsentDialogTriggerProps } from '~/components/consent-dialog-trigger';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { useComponentConfig } from '~/hooks/use-component-config';
 import { useConsentManager } from '~/hooks/use-consent-manager';

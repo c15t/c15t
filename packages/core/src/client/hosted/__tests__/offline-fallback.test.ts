@@ -321,8 +321,8 @@ describe('Hosted Client Offline Fallback Tests', () => {
 		const originalSetTimeout = global.setTimeout;
 		// Using proper type for setTimeout mock
 		// @ts-expect-error
-		global.setTimeout = vi.fn((cb: () => void): NodeJS.Timeout => {
-			cb();
+		global.setTimeout = vi.fn((timerHandler: () => void): NodeJS.Timeout => {
+			timerHandler();
 			return 0 as unknown as NodeJS.Timeout;
 		});
 

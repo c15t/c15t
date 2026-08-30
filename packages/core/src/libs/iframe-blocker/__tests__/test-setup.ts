@@ -1,5 +1,5 @@
 /**
- * @fileoverview Test setup for iframe blocker tests
+ * @file Test setup for iframe blocker tests
  */
 
 import { afterEach, beforeEach, vi } from 'vitest';

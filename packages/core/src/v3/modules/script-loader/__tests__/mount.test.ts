@@ -4,12 +4,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../../../kernel';
-import {
-	flushPendingMounts,
-	type MountDeps,
-	mountScript,
-	unmountScript,
-} from '../mount';
+import { flushPendingMounts, mountScript, unmountScript } from '../mount';
+import type { MountDeps } from '../mount';
 import { createElementIdResolver } from '../normalize';
 import type { PendingMount, Script } from '../types';
 

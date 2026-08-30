@@ -155,7 +155,9 @@ async function resolveAllWorkspaceDependencies() {
 	console.log(`\nResolved ${totalResolved} workspace: references.`);
 }
 
-resolveAllWorkspaceDependencies().catch((error) => {
+try {
+	await resolveAllWorkspaceDependencies();
+} catch (error) {
 	console.error('Failed to resolve workspace dependencies:', error);
 	process.exit(1);
-});
+}

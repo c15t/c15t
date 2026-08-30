@@ -2,6 +2,29 @@ import { C15TError } from './error';
 import { C15T_VERSION_HEADERS } from './headers';
 import type { FetchOptions, ResponseContext, RetryConfig } from './types';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 /**
  * Default retry configuration
  */
@@ -53,7 +76,7 @@ function debugLog(
  * Delay utility for retry backoff
  */
 const delay = (ms: number): Promise<void> =>
-	new Promise((resolve) => setTimeout(resolve, ms));
+	createDeferredPromise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Generates a UUID v4 for request identification

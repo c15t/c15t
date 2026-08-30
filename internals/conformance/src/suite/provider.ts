@@ -6,7 +6,8 @@
  */
 
 import type { TestDriver } from '../driver';
-import { conformanceTest, type SuiteApi } from './helpers';
+import { conformanceTest } from './helpers';
+import type { SuiteApi } from './helpers';
 
 const REQUIRED_STATE_KEYS = [
 	'consents',

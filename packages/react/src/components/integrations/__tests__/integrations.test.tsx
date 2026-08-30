@@ -1,5 +1,7 @@
-import { type ConsentStoreState, defaultTranslationConfig } from '@c15t/core';
-import { createRef, type ReactNode, useRef, useState } from 'react';
+import { defaultTranslationConfig } from '@c15t/core';
+import type { ConsentStoreState } from '@c15t/core';
+import { createRef, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
@@ -11,7 +13,31 @@ import {
 } from '~/providers/consent-manager-provider';
 
 import { GoogleMap } from '../google-map';
-import { YouTubeEmbed, type YouTubeEmbedProps } from '../youtube-embed';
+import { YouTubeEmbed } from '../youtube-embed';
+import type { YouTubeEmbedProps } from '../youtube-embed';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 async function waitFor(assertion: () => undefined | boolean, timeoutMs = 1000) {
 	const start = Date.now();
@@ -26,7 +52,7 @@ async function waitFor(assertion: () => undefined | boolean, timeoutMs = 1000) {
 		} catch (error) {
 			lastError = error;
 		}
-		await new Promise((resolve) => setTimeout(resolve, 20));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 20));
 	}
 
 	if (lastError) {
@@ -229,7 +255,7 @@ describe('renderable integrations', () => {
 			</Provider>
 		);
 
-		await new Promise((resolve) => requestAnimationFrame(resolve));
+		await createDeferredPromise((resolve) => requestAnimationFrame(resolve));
 
 		expect(container.querySelector('iframe')).toBeNull();
 		expect(container.textContent).toContain('Marketing');
@@ -363,7 +389,7 @@ describe('renderable integrations', () => {
 			</Provider>
 		);
 
-		await new Promise((resolve) => requestAnimationFrame(resolve));
+		await createDeferredPromise((resolve) => requestAnimationFrame(resolve));
 
 		expect(container.querySelector('iframe')).toBeNull();
 		expect(container.textContent).toContain(
@@ -404,7 +430,7 @@ describe('renderable integrations', () => {
 			</MockConsentProvider>
 		);
 
-		await new Promise((resolve) => requestAnimationFrame(resolve));
+		await createDeferredPromise((resolve) => requestAnimationFrame(resolve));
 
 		expect(setScripts).not.toHaveBeenCalled();
 		expect(removeScript).not.toHaveBeenCalled();
@@ -426,7 +452,7 @@ describe('renderable integrations', () => {
 			</MockConsentProvider>
 		);
 
-		await new Promise((resolve) => requestAnimationFrame(resolve));
+		await createDeferredPromise((resolve) => requestAnimationFrame(resolve));
 
 		expect(setScripts).not.toHaveBeenCalled();
 		expect(container.textContent).toContain(
@@ -485,7 +511,7 @@ describe('renderable integrations', () => {
 			</MockConsentProvider>
 		);
 
-		await new Promise((resolve) => requestAnimationFrame(resolve));
+		await createDeferredPromise((resolve) => requestAnimationFrame(resolve));
 
 		expect(setScripts).not.toHaveBeenCalled();
 		expect(container.textContent).toContain('requires an API key');
@@ -508,7 +534,7 @@ describe('renderable integrations', () => {
 			</MockConsentProvider>
 		);
 
-		await new Promise((resolve) => requestAnimationFrame(resolve));
+		await createDeferredPromise((resolve) => requestAnimationFrame(resolve));
 
 		expect(setScripts).not.toHaveBeenCalled();
 		expect(container.textContent).toContain('Consent required first');
@@ -570,7 +596,7 @@ describe('renderable integrations', () => {
 		await waitFor(() => {
 			expect(container.textContent).toContain('ready');
 		});
-		await new Promise((resolve) => setTimeout(resolve, 50));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 50));
 
 		expect(setScripts).toHaveBeenCalledTimes(1);
 		expect(onLoad).toHaveBeenCalledTimes(1);
@@ -910,11 +936,11 @@ describe('renderable integrations', () => {
 				(window as unknown as Record<string, unknown>).google = mapsApi;
 
 				if (callbackName) {
-					const callback = (window as unknown as Record<string, unknown>)[
+					const handler = (window as unknown as Record<string, unknown>)[
 						callbackName
 					];
-					if (typeof callback === 'function') {
-						callback();
+					if (typeof handler === 'function') {
+						handler();
 					}
 				}
 
@@ -1028,7 +1054,7 @@ describe('renderable integrations', () => {
 		await waitFor(() => {
 			expect(container.textContent).toContain('renders: 1');
 		});
-		await new Promise((resolve) => requestAnimationFrame(resolve));
+		await createDeferredPromise((resolve) => requestAnimationFrame(resolve));
 
 		expect(mapConstructor).toHaveBeenCalledTimes(1);
 		expect(mapInstance.setCenter).not.toHaveBeenCalled();
@@ -1079,11 +1105,11 @@ describe('renderable integrations', () => {
 				};
 
 				if (callbackName) {
-					const callback = (window as unknown as Record<string, unknown>)[
+					const handler = (window as unknown as Record<string, unknown>)[
 						callbackName
 					];
-					if (typeof callback === 'function') {
-						callback();
+					if (typeof handler === 'function') {
+						handler();
 					}
 				}
 
@@ -1200,11 +1226,11 @@ describe('renderable integrations', () => {
 				};
 
 				if (callbackName) {
-					const callback = (window as unknown as Record<string, unknown>)[
+					const handler = (window as unknown as Record<string, unknown>)[
 						callbackName
 					];
-					if (typeof callback === 'function') {
-						callback();
+					if (typeof handler === 'function') {
+						handler();
 					}
 				}
 			}, 0);

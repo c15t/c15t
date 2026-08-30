@@ -17,9 +17,9 @@
 
 import {
 	buildConsentManifestFromConfig,
-	type ConsentManifestConfig,
 	sliceConsentManifestLanguage,
 } from '@c15t/schema/types';
+import type { ConsentManifestConfig } from '@c15t/schema/types';
 
 /** Matches the shipped defaults in `routes/manifest.ts`. */
 export const DEFAULT_MANIFEST_S_MAXAGE = 300;

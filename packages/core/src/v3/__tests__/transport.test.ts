@@ -12,10 +12,31 @@ import {
 	createConsentKernel,
 	createHostedTransport,
 	createManifestTransport,
-	type InitResponse,
-	type KernelTransport,
-	type SaveResult,
 } from '../index';
+import type { InitResponse, KernelTransport, SaveResult } from '../index';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 const REALISTIC_INIT_OUTPUT = {
 	jurisdiction: 'GDPR',
@@ -360,7 +381,7 @@ describe('kernel transport: init applies response to snapshot', () => {
 		let resolveInit: (value: Record<string, never>) => void = () => {};
 		const transport: KernelTransport = {
 			init() {
-				return new Promise((resolve) => {
+				return createDeferredPromise((resolve) => {
 					resolveInit = resolve;
 				});
 			},

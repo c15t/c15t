@@ -22,6 +22,29 @@ import {
 	waitForElementRemoved,
 } from './e2e-setup';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 describe('IAB Preference Center E2E Tests', () => {
 	beforeEach(() => {
 		clearConsentState();
@@ -76,20 +99,19 @@ describe('IAB Preference Center E2E Tests', () => {
 		test('should display loading state while GVL loads', async () => {
 			// Create a delayed mock
 			const originalFetch = globalThis.fetch;
-			globalThis.fetch = vi.fn(
-				() =>
-					new Promise((resolve) =>
-						setTimeout(
-							() =>
-								resolve(
-									new Response(JSON.stringify({}), {
-										status: 200,
-										headers: { 'Content-Type': 'application/json' },
-									})
-								),
-							1000
-						)
+			globalThis.fetch = vi.fn(() =>
+				createDeferredPromise((resolve) =>
+					setTimeout(
+						() =>
+							resolve(
+								new Response(JSON.stringify({}), {
+									status: 200,
+									headers: { 'Content-Type': 'application/json' },
+								})
+							),
+						1000
 					)
+				)
 			) as typeof fetch;
 
 			render(

@@ -27,10 +27,8 @@ import {
 } from './atoms/card';
 import { Overlay } from './atoms/overlay';
 import { Root } from './atoms/root';
-import {
-	ConsentDialog as ConsentDialogComponent,
-	type ConsentDialogProps,
-} from './consent-dialog';
+import { ConsentDialog as ConsentDialogComponent } from './consent-dialog';
+import type { ConsentDialogProps } from './consent-dialog';
 
 export type { ConsentDialogProps };
 

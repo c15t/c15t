@@ -5,7 +5,8 @@
  */
 
 import styles from '@c15t/ui/styles/v3/consent-dialog';
-import { type FC, type PropsWithChildren, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { FC, PropsWithChildren } from 'react';
 
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { useTheme } from '~/v3/hooks/use-theme';

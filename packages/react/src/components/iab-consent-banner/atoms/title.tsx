@@ -1,7 +1,8 @@
 'use client';
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
-import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+import { forwardRef } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
 interface IABConsentBannerTitleProps extends HTMLAttributes<HTMLHeadingElement> {
 	children: ReactNode;

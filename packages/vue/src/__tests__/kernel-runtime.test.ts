@@ -12,9 +12,11 @@ import { useHasConsent } from '../runtime/composables/consent';
 import type { ConsentConfig } from '../runtime/config';
 import {
 	createVueConsentKernelContext,
-	type RuntimeConsentConfig,
 	startVueConsentRuntime,
-	type VueConsentKernelContext,
+} from '../runtime/kernel';
+import type {
+	RuntimeConsentConfig,
+	VueConsentKernelContext,
 } from '../runtime/kernel';
 import {
 	symbolActiveUI,

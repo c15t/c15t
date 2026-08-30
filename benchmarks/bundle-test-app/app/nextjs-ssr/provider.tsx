@@ -1,10 +1,7 @@
 'use client';
 
-import {
-	ConsentManagerProvider,
-	type InitialDataPromise,
-	useConsentManager,
-} from '@c15t/nextjs';
+import { ConsentManagerProvider, useConsentManager } from '@c15t/nextjs';
+import type { InitialDataPromise } from '@c15t/nextjs';
 
 export function NextjsSSRProvider({
 	children,

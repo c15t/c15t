@@ -14,12 +14,8 @@
 
 import { TEST_IDS } from '../contract/test-ids';
 import type { TestDriver } from '../driver';
-import {
-	conformanceTest,
-	queryByTestId,
-	type SuiteApi,
-	waitForCondition,
-} from './helpers';
+import { conformanceTest, queryByTestId, waitForCondition } from './helpers';
+import type { SuiteApi } from './helpers';
 
 function accessibleName(el: HTMLElement): string {
 	return (el.getAttribute('aria-label') ?? el.textContent ?? '').trim();

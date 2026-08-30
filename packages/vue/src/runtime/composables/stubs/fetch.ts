@@ -1,12 +1,6 @@
 import { joinURL, withQuery } from 'ufo';
-import {
-	computed,
-	type MaybeRefOrGetter,
-	type Ref,
-	ref,
-	toValue,
-	watch,
-} from 'vue';
+import { computed, ref, toValue, watch } from 'vue';
+import type { MaybeRefOrGetter, Ref } from 'vue';
 
 type QueryPrimitive = string | number | boolean | null | undefined;
 type QueryValue = QueryPrimitive | MaybeRefOrGetter<QueryPrimitive>;

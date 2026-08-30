@@ -1,5 +1,6 @@
 import { policyDefaults } from '@c15t/schema/types';
-import { enTranslations, type Translations } from '@c15t/translations';
+import { enTranslations } from '@c15t/translations';
+import type { Translations } from '@c15t/translations';
 
 import type { InitResponse } from '../client-interface';
 

@@ -1,5 +1,6 @@
 import type { AllConsentNames } from '@c15t/core';
-import { forwardRef, type MouseEvent, useCallback } from 'react';
+import { forwardRef, useCallback } from 'react';
+import type { MouseEvent } from 'react';
 
 import { useSaveConsents, useSetActiveUI, useSetConsent } from '~/v3/hooks';
 import { useTheme } from '~/v3/hooks/use-theme';

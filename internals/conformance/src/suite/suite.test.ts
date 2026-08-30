@@ -8,13 +8,10 @@
 
 import { describe, expect, test } from 'bun:test';
 
-import {
-	DriverNotImplementedError,
-	type MountOptions,
-	type MountResult,
-	type TestDriver,
-} from '../driver';
-import { runConformanceSuite, type SuiteApi } from './index';
+import { DriverNotImplementedError } from '../driver';
+import type { MountOptions, MountResult, TestDriver } from '../driver';
+import { runConformanceSuite } from './index';
+import type { SuiteApi } from './index';
 
 const driver: TestDriver = {
 	framework: 'vue',

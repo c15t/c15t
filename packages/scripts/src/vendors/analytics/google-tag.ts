@@ -1,11 +1,8 @@
 import type { AllConsentNames, Script } from '@c15t/core';
 
 import { resolveManifest } from '../../resolve';
-import {
-	runtimeDateValue,
-	type VendorManifest,
-	vendorManifestContract,
-} from '../../types';
+import { runtimeDateValue, vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import {
 	GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
 	withOptionalConsentMapping,

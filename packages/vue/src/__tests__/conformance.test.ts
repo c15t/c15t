@@ -10,19 +10,21 @@ import {
 	DriverNotImplementedError,
 	IAB_FIXTURE_CMP_ID,
 	MINIMAL_GVL,
-	type MountableComponent,
-	type MountOptions,
-	type MountResult,
 	runConformanceSuite,
-	type SuiteApi,
-	type TestDriver,
 } from '@c15t/conformance';
-import {
-	type ConsentKernel,
-	type ConsentSnapshot,
-	createConsentKernel,
-	type KernelConfig,
-	type KernelTransport,
+import type {
+	MountableComponent,
+	MountOptions,
+	MountResult,
+	SuiteApi,
+	TestDriver,
+} from '@c15t/conformance';
+import { createConsentKernel } from '@c15t/core/v3';
+import type {
+	ConsentKernel,
+	ConsentSnapshot,
+	KernelConfig,
+	KernelTransport,
 } from '@c15t/core/v3';
 import { createPersistence } from '@c15t/core/v3/modules/persistence';
 import type {
@@ -33,7 +35,6 @@ import type {
 import { flushPromises } from '@vue/test-utils';
 import { describe, expect, test, vi } from 'vitest';
 import {
-	type App,
 	computed,
 	createApp,
 	createSSRApp,
@@ -41,6 +42,7 @@ import {
 	h,
 	shallowRef,
 } from 'vue';
+import type { App } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 
 import ConsentBanner from '../runtime/components/consent-banner.vue';
@@ -50,10 +52,8 @@ import IabConsentBanner from '../runtime/components/iab-consent-banner.vue';
 import IabConsentDialog from '../runtime/components/iab-consent-dialog.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
-import {
-	createVueConsentKernelContext,
-	type VueConsentKernelContext,
-} from '../runtime/kernel';
+import { createVueConsentKernelContext } from '../runtime/kernel';
+import type { VueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -62,6 +62,29 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 type ProviderOptions = Partial<ConsentConfig> & {
 	callbacks?: Record<string, (...args: unknown[]) => void>;
@@ -486,7 +509,7 @@ function createContext(opts: MountOptions) {
 
 function createPendingInit() {
 	let resolve!: () => void;
-	const promise = new Promise<Record<string, never>>((settle) => {
+	const promise = createDeferredPromise<Record<string, never>>((settle) => {
 		resolve = () => settle({});
 	});
 	return { promise, resolve };
@@ -599,8 +622,8 @@ function projectStoreState(context: VueConsentKernelContext): StoreState {
 
 async function flushScheduler() {
 	await flushPromises();
-	await new Promise((resolve) => setTimeout(resolve, 0));
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
 }
 
 let lastContext: VueConsentKernelContext | null = null;

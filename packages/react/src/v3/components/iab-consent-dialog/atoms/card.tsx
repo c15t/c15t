@@ -1,14 +1,8 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import {
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
-	type RefObject,
-	useEffect,
-	useState,
-} from 'react';
+import { forwardRef, useEffect, useState } from 'react';
+import type { HTMLAttributes, ReactNode, RefObject } from 'react';
 
 import { useActiveUI } from '~/v3/hooks';
 import { useFocusTrap } from '~/v3/hooks/use-focus-trap';

@@ -1,12 +1,7 @@
 'use client';
 
-import {
-	type FC,
-	type ReactNode,
-	useLayoutEffect,
-	useRef,
-	useState,
-} from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import type { FC, ReactNode } from 'react';
 
 /**
  * Props for the AnimatedCollapse component.

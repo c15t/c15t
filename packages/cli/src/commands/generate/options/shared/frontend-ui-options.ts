@@ -5,12 +5,8 @@
 
 import type { CliContext } from '~/context/types';
 
-import {
-	type ExpandedTheme,
-	promptForExpandedTheme,
-	promptForUIStyle,
-	type UIStyle,
-} from '../../prompts';
+import { promptForExpandedTheme, promptForUIStyle } from '../../prompts';
+import type { ExpandedTheme, UIStyle } from '../../prompts';
 import { getDevToolsOption } from './dev-tools';
 import { getSSROption } from './ssr';
 

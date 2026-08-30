@@ -16,7 +16,15 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
+import * as prompts from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+	buildConfig,
+	CONFIG_FILENAME,
+	ensureBackendConfig,
+} from './ensure-backend-config';
+import type { Dialect } from './ensure-backend-config';
 
 vi.mock('@clack/prompts', () => ({
 	select: vi.fn(),
@@ -24,15 +32,6 @@ vi.mock('@clack/prompts', () => ({
 	text: vi.fn(),
 	isCancel: (value: unknown) => value === Symbol.for('CANCEL'),
 }));
-
-import * as prompts from '@clack/prompts';
-
-import {
-	buildConfig,
-	CONFIG_FILENAME,
-	type Dialect,
-	ensureBackendConfig,
-} from './ensure-backend-config';
 
 const createMockContext = (cwd: string) => ({
 	cwd,

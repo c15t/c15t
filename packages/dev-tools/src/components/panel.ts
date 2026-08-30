@@ -4,7 +4,8 @@
  * Supports unified mode with dropdown menu when PreferenceCenterTrigger is present
  */
 
-import { createDraggable, type DraggableInstance } from '../core/draggable';
+import { createDraggable } from '../core/draggable';
+import type { DraggableInstance } from '../core/draggable';
 import {
 	button,
 	clearElement,
@@ -25,10 +26,10 @@ import { version } from '../version';
 import {
 	createDropdownMenu,
 	DEVTOOLS_ICON,
-	type DropdownMenuInstance,
 	EYE_ICON,
 	PREFERENCES_ICON,
 } from './dropdown-menu';
+import type { DropdownMenuInstance } from './dropdown-menu';
 
 import animationStyles from '../styles/animations.module.css';
 import panelStyles from '../styles/panel.module.css';

@@ -28,6 +28,29 @@ import type {
 import { applyInitResponse } from './apply-init-response';
 import type { SnapshotPatch } from './patch';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 /**
  * Finalize a provisional policy when init cannot improve on it — the
  * transport has no `init`, or init failed. The placeholder becomes the
@@ -252,7 +275,7 @@ export function buildCommands(deps: CommandDeps) {
 				// from `advance()` above can paint first — starting the fetch in
 				// the click task contends with the banner-dismiss frame under
 				// CPU throttle. Mirrors v2's yielded background save.
-				await new Promise((resolve) => {
+				await createDeferredPromise((resolve) => {
 					setTimeout(resolve, 0);
 				});
 				const result = await transport.save(payload);

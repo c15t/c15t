@@ -1,8 +1,5 @@
-import {
-	createCliLogger,
-	type LogLevel,
-	validLogLevels,
-} from '../utils/logger';
+import { createCliLogger, validLogLevels } from '../utils/logger';
+import type { LogLevel } from '../utils/logger';
 import { createTelemetry, TelemetryEventName } from '../utils/telemetry';
 import { createErrorHandlers } from './error-handlers';
 import { createFileSystem } from './file-system';

@@ -2,10 +2,8 @@
 
 import Link from 'next/link';
 
-import {
-	allScenarioConfigs,
-	type ScriptLifecycleScenarioConfig,
-} from './fixtures';
+import { allScenarioConfigs } from './fixtures';
+import type { ScriptLifecycleScenarioConfig } from './fixtures';
 import { useScriptLifecycleBench } from './provider';
 
 export function ScriptLifecyclePageShell({

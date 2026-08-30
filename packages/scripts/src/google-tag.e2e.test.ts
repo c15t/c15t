@@ -10,9 +10,9 @@ import {
 	isArgumentsPayload,
 	loadScripts,
 	registerVendorContractCleanup,
-	type TestWindow,
 	toArgs,
 } from './e2e-test-utils';
+import type { TestWindow } from './e2e-test-utils';
 import { gtag } from './vendors/analytics/google-tag';
 
 describe('gtag contract', () => {

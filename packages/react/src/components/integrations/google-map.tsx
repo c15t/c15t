@@ -2,22 +2,21 @@
 
 import type { AllConsentNames, Script } from '@c15t/core';
 import {
-	type ComponentPropsWithRef,
 	forwardRef,
-	type ReactNode,
 	useCallback,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
 } from 'react';
+import type { ComponentPropsWithRef, ReactNode } from 'react';
 
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import {
 	ConsentScriptConflictError,
-	type ConsentScriptReadyControls,
 	useConsentScript,
 } from '~/hooks/use-consent-script';
+import type { ConsentScriptReadyControls } from '~/hooks/use-consent-script';
 
 import { IntegrationPlaceholder, IntegrationStatus } from './shared';
 

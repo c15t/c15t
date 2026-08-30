@@ -15,7 +15,8 @@ import { detectFramework, detectProjectRoot } from '../detection/framework';
 import { detectPackageManager } from '../detection/package-manager';
 import type { CliContext, PackageInfo, ParsedArgs } from '../types';
 import { CliError, createErrorHandlers } from './errors';
-import { createCliLogger, LOG_LEVELS, type LogLevel } from './logger';
+import { createCliLogger, LOG_LEVELS } from './logger';
+import type { LogLevel } from './logger';
 import { createTelemetry, TelemetryEventName } from './telemetry';
 
 // --- Context Options ---

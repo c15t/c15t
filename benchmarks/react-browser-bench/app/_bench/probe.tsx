@@ -8,8 +8,8 @@ import {
 	hasRunningAnimations,
 	isElementVisible,
 	nowMs,
-	type ReactBenchScenario,
 } from './state';
+import type { ReactBenchScenario } from './state';
 
 const BANNER_ELEMENT_TIMING_NAME = 'c15t-consent-banner';
 

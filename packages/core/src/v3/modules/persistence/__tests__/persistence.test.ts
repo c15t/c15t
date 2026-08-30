@@ -15,6 +15,29 @@ import { createConsentKernel } from '../../../index';
 import { deleteConsentFromStorage } from '../../../libs/cookie';
 import { createPersistence } from '../index';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 // localStorage + document.cookie are stubbed by packages/core/vitest.setup.ts
 // Let's just flush between tests.
 
@@ -30,7 +53,7 @@ afterEach(() => {
 });
 
 async function flushDebounce(): Promise<void> {
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
 }
 
 describe('persistence: hydration', () => {

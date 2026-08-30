@@ -65,16 +65,18 @@ export function createUpstashRedisAdapter(
 	// async; the client is a memoised promise the first call awaits.
 	let pending: Promise<Redis> | undefined;
 	const client = (): Promise<Redis> => {
-		pending ??= import('@upstash/redis').then(
-			(module) => new module.Redis({ url: options.url, token: options.token }),
-			() => {
+		pending ??= (async () => {
+			try {
+				const module = await import('@upstash/redis');
+				return new module.Redis({ url: options.url, token: options.token });
+			} catch {
 				throw new Error(
 					'createUpstashRedisAdapter requires the optional peer dependency ' +
 						'"@upstash/redis". Install it, or pass your own client to ' +
 						'createUpstashRedisAdapterFromClient.'
 				);
 			}
-		);
+		})();
 		return pending;
 	};
 

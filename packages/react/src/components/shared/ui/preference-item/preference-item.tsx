@@ -7,18 +7,10 @@ import {
 	PREFERENCE_ITEM_SLOTS,
 	togglePreferenceItemValue,
 } from '@c15t/ui/primitives/preference-item';
-import {
-	type PreferenceItemVariantsProps,
-	preferenceItemVariants,
-} from '@c15t/ui/styles/primitives/preference-item';
-import {
-	createContext,
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
-	useContext,
-	useId,
-} from 'react';
+import { preferenceItemVariants } from '@c15t/ui/styles/primitives/preference-item';
+import type { PreferenceItemVariantsProps } from '@c15t/ui/styles/primitives/preference-item';
+import { createContext, forwardRef, useContext, useId } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/hooks/use-theme';

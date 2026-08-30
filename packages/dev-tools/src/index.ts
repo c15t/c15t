@@ -1,5 +1,5 @@
 /**
- * @c15t/dev-tools
+ * `@c15t/dev-tools`
  *
  * Developer tools for debugging and inspecting c15t consent management state.
  *

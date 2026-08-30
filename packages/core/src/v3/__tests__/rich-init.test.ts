@@ -15,11 +15,8 @@
 import type { PolicyDecision, ResolvedPolicy } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
-import {
-	createConsentKernel,
-	type KernelTransport,
-	type SavePayload,
-} from '../index';
+import { createConsentKernel } from '../index';
+import type { KernelTransport, SavePayload } from '../index';
 
 // --- Fixture: a reasonable GDPR policy with all the fields we care about ---
 

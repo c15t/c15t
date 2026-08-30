@@ -22,10 +22,8 @@ import { StackItem } from './atoms/stack-item';
 import { IABConsentDialogTabButton, IABConsentDialogTabs } from './atoms/tabs';
 import { VendorList } from './atoms/vendor-list';
 import { useGVLData } from './hooks/use-gvl-data';
-import {
-	IABConsentDialog as IABConsentDialogComponent,
-	type IABConsentDialogProps,
-} from './iab-consent-dialog';
+import { IABConsentDialog as IABConsentDialogComponent } from './iab-consent-dialog';
+import type { IABConsentDialogProps } from './iab-consent-dialog';
 
 /**
  * This interface extends the base IABConsentDialog component with additional sub-components

@@ -17,7 +17,8 @@
  *   bun run --filter @c15t/scripts test:live-vendors -- --vendor microsoft-clarity
  *   bun run --filter @c15t/scripts test:live-vendors -- --report ./report.json
  */
-import { type Browser, chromium, type Response } from 'playwright';
+import { chromium } from 'playwright';
+import type { Browser, Response } from 'playwright';
 
 import { getBuiltInScriptIntegrationByVendor } from '../src/registry';
 import { evaluateDeniedConsentProbe } from './denied-consent';
@@ -32,6 +33,29 @@ import type {
 	LiveVendorResult,
 } from './types';
 import { liveVendorProbeConfigs } from './vendors';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 const MAX_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 2_000;
@@ -75,7 +99,7 @@ interface CliOptions {
  *
  * @param argv - Arguments after the script path (`--vendor id`, `--report path`).
  * @returns The parsed vendor filter and report path.
- * @throws `Error` when `--vendor`/`--report` is missing its value or an
+ * @throws {Error} when `--vendor`/`--report` is missing its value or an
  * unknown argument is passed.
  */
 function parseArgs(argv: string[]): CliOptions {
@@ -111,7 +135,7 @@ function parseArgs(argv: string[]): CliOptions {
  * Bundles the browser-side harness with `Bun.build`.
  *
  * @returns The bundled harness JavaScript served to the probe page.
- * @throws `Error` with the collected build logs when bundling fails.
+ * @throws {Error} with the collected build logs when bundling fails.
  */
 async function buildHarnessBundle(): Promise<string> {
 	const entrypoint = new URL('./harness/entry.ts', import.meta.url).pathname;
@@ -394,13 +418,17 @@ async function probeVendorAttempt(
 		}
 
 		const loaderResponsePromise = config.loaderUrlSubstring
-			? page
-					.waitForResponse(
-						(response) =>
-							response.url().includes(config.loaderUrlSubstring as string),
-						{ timeout: LOADER_TIMEOUT_MS }
-					)
-					.catch(() => undefined)
+			? (async () => {
+					try {
+						return await page.waitForResponse(
+							(response) =>
+								response.url().includes(config.loaderUrlSubstring as string),
+							{ timeout: LOADER_TIMEOUT_MS }
+						);
+					} catch {
+						return undefined;
+					}
+				})()
 			: Promise.resolve(undefined);
 
 		// Phase: bootstrap — granted consent; stub checks run synchronously
@@ -588,7 +616,9 @@ async function probeVendor(
 		if (attempt > 1) {
 			// Retries exist to absorb transient third-party failures; give the
 			// vendor endpoint a moment before hitting it again.
-			await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+			await createDeferredPromise((resolve) =>
+				setTimeout(resolve, RETRY_DELAY_MS)
+			);
 		}
 
 		try {
@@ -646,7 +676,7 @@ async function probeVendor(
  *
  * @param vendors - Vendor ids from the CLI, or `undefined` for all vendors.
  * @returns The matching probe configs, in filter order.
- * @throws `Error` listing the known vendors when an id has no probe config.
+ * @throws {Error} listing the known vendors when an id has no probe config.
  */
 function resolveConfigs(
 	vendors: string[] | undefined

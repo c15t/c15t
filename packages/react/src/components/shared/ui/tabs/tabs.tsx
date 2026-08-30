@@ -5,23 +5,23 @@ import {
 	getNextTabValue,
 	getTabPanelState,
 	getTabState,
-	type TabsOrientation,
 } from '@c15t/ui/primitives/tabs';
-import {
-	type TabsVariantsProps,
-	tabsVariants,
-} from '@c15t/ui/styles/primitives/tabs';
+import type { TabsOrientation } from '@c15t/ui/primitives/tabs';
+import { tabsVariants } from '@c15t/ui/styles/primitives/tabs';
+import type { TabsVariantsProps } from '@c15t/ui/styles/primitives/tabs';
 import {
 	createContext,
 	forwardRef,
-	type HTMLAttributes,
-	type KeyboardEvent,
-	type ReactNode,
-	type RefObject,
 	useContext,
 	useId,
 	useMemo,
 	useRef,
+} from 'react';
+import type {
+	HTMLAttributes,
+	KeyboardEvent,
+	ReactNode,
+	RefObject,
 } from 'react';
 
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';

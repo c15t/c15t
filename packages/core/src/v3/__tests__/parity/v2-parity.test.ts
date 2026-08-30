@@ -15,6 +15,11 @@
  *     would show as a broken TCF string, which the browser environment
  *     can't easily assert in node)
  */
+
+// v2 store construction probes the DOM via document.querySelectorAll
+// and installs a MutationObserver; the default core vitest.setup.ts
+// doesn't stub either. Extend once per file so all tests in this suite
+// can spin up both paths.
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
@@ -23,11 +28,34 @@ import {
 	deleteConsentFromStorage,
 	getConsentFromStorage,
 } from '../../../index';
+import type { ConsentState } from '../../consent/compliance';
+import { createConsentKernel, createOfflineTransport } from '../../index';
+import { createPersistence } from '../../modules/persistence';
+import { createScriptLoader } from '../../modules/script-loader';
 
-// v2 store construction probes the DOM via document.querySelectorAll
-// and installs a MutationObserver; the default core vitest.setup.ts
-// doesn't stub either. Extend once per file so all tests in this suite
-// can spin up both paths.
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 beforeEach(() => {
 	// oxlint-disable-next-line typescript/no-explicit-any -- minimal stub
 	vi.stubGlobal(
@@ -70,11 +98,6 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-import type { ConsentState } from '../../consent/compliance';
-import { createConsentKernel, createOfflineTransport } from '../../index';
-import { createPersistence } from '../../modules/persistence';
-import { createScriptLoader } from '../../modules/script-loader';
-
 beforeEach(() => {
 	localStorage.clear();
 	deleteConsentFromStorage();
@@ -86,7 +109,7 @@ afterEach(() => {
 });
 
 async function flushDebounce(): Promise<void> {
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
 }
 
 describe('parity: consent save & persist', () => {

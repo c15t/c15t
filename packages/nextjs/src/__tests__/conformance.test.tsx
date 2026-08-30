@@ -22,12 +22,14 @@
 
 import {
 	DriverNotImplementedError,
-	type MountableComponent,
-	type MountOptions,
-	type MountResult,
 	runConformanceSuite,
-	type SuiteApi,
-	type TestDriver,
+} from '@c15t/conformance';
+import type {
+	MountableComponent,
+	MountOptions,
+	MountResult,
+	SuiteApi,
+	TestDriver,
 } from '@c15t/conformance';
 import type { AllConsentNames } from '@c15t/core';
 import type {
@@ -39,16 +41,42 @@ import type {
 import {
 	ConsentBanner,
 	ConsentDialog,
-	type ConsentSnapshot,
 	ConsentWidget,
 	useSnapshot,
 } from '@c15t/react/v3';
-import { type ReactElement, useEffect } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import type { ConsentSnapshot } from '@c15t/react/v3';
+import { useEffect } from 'react';
+import type { ReactElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
 
-import { ConsentBoundary, type ConsentBoundaryProps } from '~/v3/boundary';
+import { ConsentBoundary } from '~/v3/boundary';
+import type { ConsentBoundaryProps } from '~/v3/boundary';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 type BoundaryOptions = NonNullable<ConsentBoundaryProps['options']>;
 
@@ -299,7 +327,7 @@ function buildBoundaryProps(opts: MountOptions): {
 
 function createPendingInit() {
 	let resolve!: () => void;
-	const promise = new Promise<Record<string, never>>((settle) => {
+	const promise = createDeferredPromise<Record<string, never>>((settle) => {
 		resolve = () => settle({});
 	});
 	return { promise, resolve };
@@ -329,8 +357,8 @@ function lifecycleTransportFor(opts: MountOptions) {
 }
 
 async function flushScheduler() {
-	await new Promise((resolve) => setTimeout(resolve, 0));
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
 }
 
 /**
@@ -353,7 +381,7 @@ async function waitForLazyComponent(
 	const deadline = Date.now() + 5000;
 	while (Date.now() < deadline) {
 		if (document.querySelector(selector)) return;
-		await new Promise((resolve) => setTimeout(resolve, 10));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
 	}
 }
 
@@ -479,7 +507,7 @@ const driver: TestDriver = {
 			: baseOptions;
 		const bridge = createBridge();
 		let resolveSettled: () => void = () => {};
-		const settled = new Promise<void>((resolve) => {
+		const settled = createDeferredPromise<void>((resolve) => {
 			resolveSettled = resolve;
 		});
 

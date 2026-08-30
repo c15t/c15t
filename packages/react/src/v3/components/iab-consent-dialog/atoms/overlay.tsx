@@ -1,7 +1,8 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import { forwardRef, type HTMLAttributes, useEffect, useState } from 'react';
+import { forwardRef, useEffect, useState } from 'react';
+import type { HTMLAttributes } from 'react';
 
 import { useScrollLock } from '~/v3/hooks/use-scroll-lock';
 import { useTheme } from '~/v3/hooks/use-theme';

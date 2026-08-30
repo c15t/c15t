@@ -11,12 +11,14 @@ import {
 	IAB_FIXTURE_CMP_ID,
 	IAB_FIXTURE_CMP_VERSION,
 	MINIMAL_GVL,
-	type MountableComponent,
-	type MountOptions,
-	type MountResult,
 	runConformanceSuite,
-	type SuiteApi,
-	type TestDriver,
+} from '@c15t/conformance';
+import type {
+	MountableComponent,
+	MountOptions,
+	MountResult,
+	SuiteApi,
+	TestDriver,
 } from '@c15t/conformance';
 import type { AllConsentNames } from '@c15t/core';
 import type {
@@ -27,8 +29,10 @@ import type {
 	TranslationsResponse,
 } from '@c15t/core/v3';
 import type { GlobalVendorList } from '@c15t/schema/types';
-import { type ReactElement, useContext, useEffect } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { useContext, useEffect } from 'react';
+import type { ReactElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
 
@@ -36,11 +40,31 @@ import { ConsentDialog } from '~/v3/components/consent-dialog';
 import { ConsentWidget } from '~/v3/components/consent-widget';
 import { KernelContext } from '~/v3/context';
 import { IABConsentBanner, IABConsentDialog } from '~/v3/iab';
-import {
-	ConsentBanner,
-	ConsentProvider,
-	type ConsentProviderOptions,
-} from '~/v3/index';
+import { ConsentBanner, ConsentProvider } from '~/v3/index';
+import type { ConsentProviderOptions } from '~/v3/index';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 type ProviderOptions = ConsentProviderOptions & {
 	i18n?: {
@@ -308,7 +332,7 @@ function buildProviderOptions(opts: MountOptions): ConsentProviderOptions {
 
 function createPendingInit() {
 	let resolve!: () => void;
-	const promise = new Promise<Record<string, never>>((settle) => {
+	const promise = createDeferredPromise<Record<string, never>>((settle) => {
 		resolve = () => settle({});
 	});
 	return { promise, resolve };
@@ -338,8 +362,8 @@ function lifecycleTransportFor(opts: MountOptions) {
 }
 
 async function flushScheduler() {
-	await new Promise((resolve) => setTimeout(resolve, 0));
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
 }
 
 function KernelCapture({
@@ -463,7 +487,7 @@ const driver: TestDriver = {
 		};
 		let mountedKernel: ConsentKernel | null = null;
 		let resolveSettled: () => void = () => {};
-		const settled = new Promise<void>((resolve) => {
+		const settled = createDeferredPromise<void>((resolve) => {
 			resolveSettled = resolve;
 		});
 

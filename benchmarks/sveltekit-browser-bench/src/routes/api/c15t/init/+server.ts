@@ -1,6 +1,6 @@
 /**
  * Manifest-resolved init endpoint — the SvelteKit analogue of the
- * @c15t/vue Nitro init handler (packages/vue/src/runtime/server/init.get.ts):
+ * `@c15t/vue` Nitro init handler (packages/vue/src/runtime/server/init.get.ts):
  * resolve the request's geo/language/GPC inputs against the static
  * manifest fixture and return an InitOutput plus `resolvedOverrides`.
  */

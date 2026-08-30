@@ -1,9 +1,5 @@
-import {
-	type CompleteTranslations,
-	deepMergeTranslations,
-	selectLanguage,
-	type Translations,
-} from '@c15t/translations';
+import { deepMergeTranslations, selectLanguage } from '@c15t/translations';
+import type { CompleteTranslations, Translations } from '@c15t/translations';
 import { baseTranslations } from '@c15t/translations/all';
 
 import { validatePolicyI18nConfig } from './policy-i18n-validation';

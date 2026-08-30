@@ -7,7 +7,8 @@ import color from 'picocolors';
 
 import type { CliContext } from '~/context/types';
 
-import { STORAGE_MODES, type StorageMode } from '../../../constants';
+import { STORAGE_MODES } from '../../../constants';
+import type { StorageMode } from '../../../constants';
 
 /**
  * Mode option definitions with user-friendly labels

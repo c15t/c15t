@@ -1,11 +1,8 @@
 import type { InitOutput } from '@c15t/schema/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-	type Consent,
-	deriveActiveConsentUi,
-	interpretStoredConsent,
-} from '../index';
+import { deriveActiveConsentUi, interpretStoredConsent } from '../index';
+import type { Consent } from '../index';
 
 const NOW = 1_800_000_000_000;
 

@@ -8,18 +8,18 @@
 
 import brandingStyles from '@c15t/ui/styles/v3/branding';
 import styles from '@c15t/ui/styles/v3/consent-dialog';
-import { forwardRef, type ReactNode, type Ref } from 'react';
+import { forwardRef } from 'react';
+import type { ReactNode, Ref } from 'react';
 
 import { useTranslations } from '~/v3/component-hooks/use-translations';
 import { ConsentWidget } from '~/v3/components/consent-widget/consent-widget';
 import { Slot } from '~/v3/components/shared/libs/slot';
-import { Box, type BoxProps } from '~/v3/components/shared/primitives/box';
+import { Box } from '~/v3/components/shared/primitives/box';
+import type { BoxProps } from '~/v3/components/shared/primitives/box';
 import type { InlineLegalLinksProps } from '~/v3/components/shared/primitives/legal-links';
 import { InlineLegalLinks } from '~/v3/components/shared/primitives/legal-links';
-import {
-	BrandingLink,
-	type BrandingVariant,
-} from '~/v3/components/shared/ui/branding';
+import { BrandingLink } from '~/v3/components/shared/ui/branding';
+import type { BrandingVariant } from '~/v3/components/shared/ui/branding';
 import { useTheme } from '~/v3/hooks/use-theme';
 import type { ClassNameStyle } from '~/v3/types/theme';
 import { useUIConfig } from '~/v3/ui-config-context';

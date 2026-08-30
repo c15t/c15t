@@ -34,7 +34,8 @@ import type { Layer } from 'effect';
 import { ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
 
-import { type DatabaseOption, toLayer } from './db/connect';
+import { toLayer } from './db/connect';
+import type { DatabaseOption } from './db/connect';
 import { createApp } from './http/app';
 import type { AppOptions } from './http/context';
 

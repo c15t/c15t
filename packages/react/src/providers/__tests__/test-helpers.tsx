@@ -6,9 +6,11 @@ import type {
 	VerifyConsentInput,
 	VerifyConsentOutput,
 } from '@c15t/core';
-import { beforeEach, type Mock, vi } from 'vitest';
+import { beforeEach, vi } from 'vitest';
+import type { Mock } from 'vitest';
 
-import { type ConsentManagerOptions, useConsentManager } from '~/index';
+import { useConsentManager } from '~/index';
+import type { ConsentManagerOptions } from '~/index';
 
 export type SetConsentRequestBody = PostConsentInput;
 export type SetConsentResponse = PostConsentOutput;

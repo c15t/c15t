@@ -7,20 +7,16 @@
  * @packageDocumentation
  */
 
-import {
-	createContext,
-	type ReactNode,
-	useContext,
-	useEffect,
-	useState,
-} from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useConsentDialogTrigger } from '~/v3/component-hooks/use-consent-dialog-trigger';
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 
 import type { CornerPosition, TriggerVisibility } from '../types';
-import { type UseDraggableReturn, useDraggable } from '../use-draggable';
+import { useDraggable } from '../use-draggable';
+import type { UseDraggableReturn } from '../use-draggable';
 
 /**
  * Context value for the ConsentDialogTrigger compound component.

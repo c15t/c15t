@@ -1,26 +1,28 @@
 <script lang="ts">
-	import {
-		type AllConsentNames,
-		type Callbacks,
-		defaultTranslationConfig,
-		type I18nConfig,
-		type OfflinePolicyConfig,
-		type User,
+	import { defaultTranslationConfig } from '@c15t/core';
+	import type {
+		AllConsentNames,
+		Callbacks,
+		I18nConfig,
+		OfflinePolicyConfig,
+		User,
 	} from '@c15t/core';
 	import {
-		type ConsentKernel,
-		type ConsentSnapshot,
-		type ConsentState,
 		createConsentKernel,
 		createHostedTransport,
 		createOfflineTransport,
-		type KernelConfig,
-		type KernelEvent,
-		type KernelOverrides,
-		type KernelTranslations,
-		type KernelTransport,
-		type KernelUser,
-		type TranslationsResponse,
+	} from '@c15t/core/v3';
+	import type {
+		ConsentKernel,
+		ConsentSnapshot,
+		ConsentState,
+		KernelConfig,
+		KernelEvent,
+		KernelOverrides,
+		KernelTranslations,
+		KernelTransport,
+		KernelUser,
+		TranslationsResponse,
 	} from '@c15t/core/v3';
 	import { createIframeBlocker } from '@c15t/core/v3/modules/iframe-blocker';
 	import { createNetworkBlocker } from '@c15t/core/v3/modules/network-blocker';
@@ -30,19 +32,16 @@
 		createWindowDebug,
 		resolveWindowDebugMode,
 	} from '@c15t/core/v3/modules/window-debug';
-	import { createIAB, type IABHandle } from '@c15t/iab/v3';
+	import { createIAB } from '@c15t/iab/v3';
+	import type { IABHandle } from '@c15t/iab/v3';
 	import { buildDefaultOptInPolicy, policyDefaults } from '@c15t/schema/types';
 	import { generateThemeCSS } from '@c15t/ui/theme';
 	import { deepMerge, setupColorScheme } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
 	import { onDestroy, onMount, untrack } from 'svelte';
 
-	import {
-		type ConsentDraftState,
-		type SvelteIABState,
-		setConsentContext,
-		setThemeContext,
-	} from '../context.svelte';
+	import { setConsentContext, setThemeContext } from '../context.svelte';
+	import type { ConsentDraftState, SvelteIABState } from '../context.svelte';
 	import type {
 		ConsentManagerOptions,
 		ProviderIABOptions,
@@ -552,11 +551,12 @@
 		}
 
 		if (enabled) {
-			void kernel.commands.init().then(() => {
+			void (async () => {
+				await kernel.commands.init();
 				if (kernel.getSnapshot().hasConsented) {
 					kernel.set.activeUI('none');
 				}
-			});
+			})();
 		}
 
 		if (enabled && options.scripts && options.scripts.length > 0) {
@@ -621,11 +621,12 @@
 			return;
 		}
 		if (getEnabled(options)) {
-			void kernel.commands.init().then(() => {
+			void (async () => {
+				await kernel.commands.init();
 				if (kernel.getSnapshot().hasConsented) {
 					kernel.set.activeUI('none');
 				}
-			});
+			})();
 		}
 	});
 

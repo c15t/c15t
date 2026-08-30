@@ -11,7 +11,8 @@
 
 import type { Translations } from '@c15t/translations';
 import { baseTranslations } from '@c15t/translations/all';
-import { type PolicyConfig, policyPackPresets } from 'c15t';
+import { policyPackPresets } from 'c15t';
+import type { PolicyConfig } from 'c15t';
 
 export const DEMO_POLICY_SNAPSHOT_KEY =
 	process.env.C15T_POLICY_SNAPSHOT_KEY ?? 'demo-policy-snapshot-key';

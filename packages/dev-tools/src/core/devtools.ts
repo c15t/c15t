@@ -3,14 +3,13 @@
  * Orchestrates all components and state
  */
 
-import {
-	type ConsentStoreState,
-	type ScriptDebugEvent,
-	subscribeToScriptDebugEvents,
-} from '@c15t/core';
+import { subscribeToScriptDebugEvents } from '@c15t/core';
+import type { ConsentStoreState, ScriptDebugEvent } from '@c15t/core';
 
-import { createPanel, type PanelInstance } from '../components/panel';
-import { createTabs, type TabsInstance } from '../components/tabs';
+import { createPanel } from '../components/panel';
+import type { PanelInstance } from '../components/panel';
+import { createTabs } from '../components/tabs';
+import type { TabsInstance } from '../components/tabs';
 import {
 	createDebugBundle,
 	downloadDebugBundle,
@@ -19,16 +18,13 @@ import {
 import {
 	clearPersistedOverrides,
 	loadPersistedOverrides,
-	type PersistedDevToolsOverrides,
 	persistOverrides,
 } from './override-storage';
+import type { PersistedDevToolsOverrides } from './override-storage';
 import { createPanelRenderer } from './panel-renderer';
 import { button, clearElement, div } from './renderer';
-import {
-	createStateManager,
-	type DevToolsPosition,
-	type DevToolsTab,
-} from './state-manager';
+import { createStateManager } from './state-manager';
+import type { DevToolsPosition, DevToolsTab } from './state-manager';
 import { createStoreConnector } from './store-connector';
 import { registerStoreInstrumentation } from './store-instrumentation';
 
@@ -443,15 +439,14 @@ export function createDevTools(
 				);
 
 				if (!persistedOverridesEqual(persistedOverrides, currentOverrides)) {
-					void store
-						.getState()
-						.setOverrides({
-							country: persistedOverrides.country,
-							region: persistedOverrides.region,
-							language: persistedOverrides.language,
-							gpc: persistedOverrides.gpc,
-						})
-						.then(() => {
+					void (async () => {
+						try {
+							await store.getState().setOverrides({
+								country: persistedOverrides.country,
+								region: persistedOverrides.region,
+								language: persistedOverrides.language,
+								gpc: persistedOverrides.gpc,
+							});
 							stateManager.addEvent({
 								type: 'info',
 								message: 'Applied persisted devtools overrides',
@@ -462,13 +457,13 @@ export function createDevTools(
 									gpc: persistedOverrides.gpc,
 								},
 							});
-						})
-						.catch(() => {
+						} catch {
 							stateManager.addEvent({
 								type: 'error',
 								message: 'Failed to apply persisted devtools overrides',
 							});
-						});
+						}
+					})();
 				}
 			}
 		},

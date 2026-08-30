@@ -1,4 +1,5 @@
-import { getCurrentScope, onScopeDispose, type Ref, ref } from 'vue';
+import { getCurrentScope, onScopeDispose, ref } from 'vue';
+import type { Ref } from 'vue';
 
 export interface UseWindowSizeReturn {
 	/** Viewport width in pixels. */

@@ -1,7 +1,8 @@
 import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
-import { Project, type PropertyAssignment, SyntaxKind } from 'ts-morph';
+import { Project, SyntaxKind } from 'ts-morph';
+import type { PropertyAssignment } from 'ts-morph';
 
 const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const IGNORED_DIRS = new Set([
@@ -154,7 +155,7 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
  * @param options Codemod execution options.
  * @returns Summary with changed files and non-fatal per-file errors.
  *
- * @throws Propagates unexpected setup failures such as directory traversal errors.
+ * @throws {Error} Propagates unexpected setup failures such as directory traversal errors.
  */
 export async function runC15tModeToHostedCodemod(
 	options: CodemodRunOptions

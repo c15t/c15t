@@ -4,15 +4,19 @@ import { createManifestTransport } from '@c15t/core/v3';
 import {
 	ConsentBanner,
 	ConsentBoundary,
-	type ConsentBoundaryProps,
 	ConsentDialog,
 	ConsentProvider,
-	type ConsentProviderOptions,
-	type InitialDataPromise,
 } from '@c15t/nextjs/v3';
-import { type ReactNode, useMemo } from 'react';
+import type {
+	ConsentBoundaryProps,
+	ConsentProviderOptions,
+	InitialDataPromise,
+} from '@c15t/nextjs/v3';
+import { useMemo } from 'react';
+import type { ReactNode } from 'react';
 
-import { getState, type NextjsBenchScenario } from './state';
+import { getState } from './state';
+import type { NextjsBenchScenario } from './state';
 import { NextjsV3BenchmarkProbe } from './v3-probe';
 
 const consentCategories = [

@@ -4,17 +4,10 @@ import fsPromises from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import {
-	createLogger,
-	type DrainContext,
-	initLogger,
-	type WideEvent,
-} from 'evlog';
-import {
-	createDrainPipeline,
-	type DrainPipelineOptions,
-	type PipelineDrainFn,
-} from 'evlog/pipeline';
+import { createLogger, initLogger } from 'evlog';
+import type { DrainContext, WideEvent } from 'evlog';
+import { createDrainPipeline } from 'evlog/pipeline';
+import type { DrainPipelineOptions, PipelineDrainFn } from 'evlog/pipeline';
 
 import { ENV_VARS, PATHS, URLS } from '../constants';
 import type { CliLogger } from './logger';
@@ -441,7 +434,9 @@ export class Telemetry {
 		events: DrainContext[],
 		error?: Error
 	): Promise<void> {
-		this.queueWritePromise = this.queueWritePromise.then(async () => {
+		const previousWrite = this.queueWritePromise;
+		this.queueWritePromise = (async () => {
+			await previousWrite;
 			try {
 				const existing = await this.readQueuedEvents();
 				const next = [...existing, ...events.map((item) => item.event)].slice(
@@ -463,7 +458,7 @@ export class Telemetry {
 					);
 				}
 			}
-		});
+		})();
 
 		await this.queueWritePromise;
 	}

@@ -12,7 +12,6 @@ import { join } from 'node:path';
 
 import {
 	BENCHMARK_SCHEMA_VERSION,
-	type BenchmarkResult,
 	coreFixtures,
 	coreRuntimeV3Budgets,
 	getEnvironment,
@@ -21,6 +20,7 @@ import {
 	summarizeMetric,
 	writeJson,
 } from '@c15t/benchmarking';
+import type { BenchmarkResult } from '@c15t/benchmarking';
 import { createConsentKernel } from '@c15t/core/v3';
 
 function measureSync(iterations: number, fn: () => void): number[] {

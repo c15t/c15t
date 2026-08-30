@@ -184,7 +184,9 @@ Examples:
 	process.exit(0);
 }
 
-clearCache(options).catch((error) => {
+try {
+	await clearCache(options);
+} catch (error) {
 	console.error('❌ Error clearing cache:', error);
 	process.exit(1);
-});
+}

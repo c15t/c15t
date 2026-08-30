@@ -9,13 +9,8 @@
  * trigger semantics onto it, mirroring Reka's asChild behavior for the
  * exact usage the components need (nothing more).
  */
-import {
-	cloneVNode,
-	defineComponent,
-	inject,
-	mergeProps,
-	type VNode,
-} from 'vue';
+import { cloneVNode, defineComponent, inject, mergeProps } from 'vue';
+import type { VNode } from 'vue';
 
 import { accordionItemContextKey } from './keys';
 

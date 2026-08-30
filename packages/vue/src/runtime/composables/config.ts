@@ -1,13 +1,7 @@
 import { defaultConsentConfig } from '@c15t/schema/config';
 import { defu } from 'defu';
-import {
-	type ComputedRef,
-	computed,
-	type InjectionKey,
-	inject,
-	type MaybeRefOrGetter,
-	toValue,
-} from 'vue';
+import { computed, inject, toValue } from 'vue';
+import type { ComputedRef, InjectionKey, MaybeRefOrGetter } from 'vue';
 
 import type { ConsentConfig } from '../config';
 

@@ -78,10 +78,10 @@ describe('useColorScheme', () => {
 		await renderHook(() => useColorScheme('system'));
 
 		const calls = addEventListenerSpy.mock.calls;
-		const callback = calls[0]?.[1];
-		if (!callback) throw new Error('Callback not found');
+		const handler = calls[0]?.[1];
+		if (!handler) throw new Error('Callback not found');
 
-		(callback as (e: MediaQueryListEvent) => void)({
+		(handler as (e: MediaQueryListEvent) => void)({
 			matches: true,
 		} as MediaQueryListEvent);
 

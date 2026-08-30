@@ -6,12 +6,8 @@ import { useScriptLoader } from '@c15t/react/v3/module-hooks/script-loader';
 import { ConsentProvider } from '@c15t/react/v3/provider';
 import { useEffect, useMemo, useRef } from 'react';
 
-import {
-	createInitialBenchState,
-	listDomIds,
-	makeV3Scripts,
-	type ScriptCountBenchState,
-} from './fixtures';
+import { createInitialBenchState, listDomIds, makeV3Scripts } from './fixtures';
+import type { ScriptCountBenchState } from './fixtures';
 
 function publish(
 	state: ScriptCountBenchState,

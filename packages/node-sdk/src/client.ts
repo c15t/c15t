@@ -22,12 +22,8 @@ import {
 	patchSubject,
 	status,
 } from './endpoints';
-import {
-	DEFAULT_RETRY_CONFIG,
-	DEFAULT_TIMEOUT_MS,
-	type FetcherContext,
-	fetcher,
-} from './fetcher';
+import { DEFAULT_RETRY_CONFIG, DEFAULT_TIMEOUT_MS, fetcher } from './fetcher';
+import type { FetcherContext } from './fetcher';
 import type {
 	C15TClientOptions,
 	FetchOptions,

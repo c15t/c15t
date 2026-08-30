@@ -14,10 +14,8 @@ import {
 	matchesStoredRequestContext,
 } from '../request-context';
 import { sanitizeSubjectIdentifiers } from '../sanitize-subject-identifiers';
-import {
-	PENDING_CONSENT_SYNC_KEY,
-	type PendingConsentSync,
-} from '../save-consents';
+import { PENDING_CONSENT_SYNC_KEY } from '../save-consents';
+import type { PendingConsentSync } from '../save-consents';
 import { updateStore } from './store-updater';
 import type { ConsentBannerResponse, InitConsentManagerConfig } from './types';
 import { checkLocalStorageAccess } from './utils';
@@ -363,23 +361,23 @@ function processPendingConsentSync(
 			});
 
 		// Fire API call (non-blocking)
-		manager
-			.setConsent({
-				body: {
-					type: 'cookie_banner',
-					domain: data.domain,
-					preferences: data.preferences,
-					subjectId: data.subjectId,
-					jurisdiction: data.jurisdiction,
-					jurisdictionModel: data.jurisdictionModel ?? undefined,
-					givenAt: data.givenAt,
-					uiSource: data.uiSource ?? 'api',
-					policySnapshotToken: data.policySnapshotToken,
-					...(externalSubjectId ? { externalSubjectId } : {}),
-					...(identityProvider ? { identityProvider } : {}),
-				},
-			})
-			.then((result) => {
+		void (async () => {
+			try {
+				const result = await manager.setConsent({
+					body: {
+						type: 'cookie_banner',
+						domain: data.domain,
+						preferences: data.preferences,
+						subjectId: data.subjectId,
+						jurisdiction: data.jurisdiction,
+						jurisdictionModel: data.jurisdictionModel ?? undefined,
+						givenAt: data.givenAt,
+						uiSource: data.uiSource ?? 'api',
+						policySnapshotToken: data.policySnapshotToken,
+						...(externalSubjectId ? { externalSubjectId } : {}),
+						...(identityProvider ? { identityProvider } : {}),
+					},
+				});
 				if (!result.ok) {
 					const errorMsg =
 						result.error?.message ?? 'Failed to sync consent after reload';
@@ -388,8 +386,7 @@ function processPendingConsentSync(
 						console.error('Failed to sync consent after reload:', errorMsg);
 					}
 				}
-			})
-			.catch((err) => {
+			} catch (err) {
 				const errorMsg =
 					err instanceof Error
 						? err.message
@@ -398,7 +395,8 @@ function processPendingConsentSync(
 				if (!callbacks.onError) {
 					console.error('Failed to sync consent after reload:', err);
 				}
-			});
+			}
+		})();
 	} catch {
 		// localStorage might be unavailable or data might be corrupted
 		// Silently ignore - consent is already persisted locally

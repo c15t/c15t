@@ -21,16 +21,11 @@ import { mkdirSync, writeFileSync } from 'node:fs';
  */
 import { join } from 'node:path';
 
-import {
-	configureConsentManager,
-	createConsentManagerStore,
-	type Script as V2Script,
-} from '@c15t/core';
+import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
+import type { Script as V2Script } from '@c15t/core';
 import { createConsentKernel } from '@c15t/core/v3';
-import {
-	createScriptLoader,
-	type Script as V3Script,
-} from '@c15t/core/v3/modules/script-loader';
+import { createScriptLoader } from '@c15t/core/v3/modules/script-loader';
+import type { Script as V3Script } from '@c15t/core/v3/modules/script-loader';
 
 import { ensureBenchmarkDom } from './runtime-setup';
 

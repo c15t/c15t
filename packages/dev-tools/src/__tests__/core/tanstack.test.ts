@@ -1,7 +1,14 @@
 import * as React from 'react';
 import { act } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import {
+	C15tTanStackDevtoolsPanel,
+	c15tDevtools,
+	c15tDevtoolsPlugin,
+} from '../../tanstack';
 
 const { createDevToolsPanelMock } = vi.hoisted(() => ({
 	createDevToolsPanelMock: vi.fn(),
@@ -10,12 +17,6 @@ const { createDevToolsPanelMock } = vi.hoisted(() => ({
 vi.mock('../../core/devtools', () => ({
 	createDevToolsPanel: createDevToolsPanelMock,
 }));
-
-import {
-	C15tTanStackDevtoolsPanel,
-	c15tDevtools,
-	c15tDevtoolsPlugin,
-} from '../../tanstack';
 
 describe('tanstack integration', () => {
 	let mountNode: HTMLDivElement;

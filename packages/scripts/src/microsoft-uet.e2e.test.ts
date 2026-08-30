@@ -9,8 +9,8 @@ import {
 	installHeadProbe,
 	loadScripts,
 	registerVendorContractCleanup,
-	type TestWindow,
 } from './e2e-test-utils';
+import type { TestWindow } from './e2e-test-utils';
 import { microsoftUet } from './vendors/ads-and-pixels/microsoft-uet';
 
 describe('microsoftUet contract', () => {

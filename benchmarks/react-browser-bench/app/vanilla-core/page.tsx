@@ -23,19 +23,17 @@ export default function VanillaCorePage() {
 			state.mountCount += 1;
 		}
 
-		void store
-			.getState()
-			.initConsentManager()
-			.then(() => {
-				const current = store.getState();
-				setActiveUI(current.activeUI);
-				const bench = getBenchState('vanilla-core');
-				if (bench) {
-					bench.activeUI = current.activeUI;
-					bench.bannerReadyMs = performance.now();
-					bench.bannerVisibleMs = performance.now();
-				}
-			});
+		void (async () => {
+			await store.getState().initConsentManager();
+			const current = store.getState();
+			setActiveUI(current.activeUI);
+			const bench = getBenchState('vanilla-core');
+			if (bench) {
+				bench.activeUI = current.activeUI;
+				bench.bannerReadyMs = performance.now();
+				bench.bannerVisibleMs = performance.now();
+			}
+		})();
 	}, []);
 
 	return (

@@ -5,10 +5,10 @@ import type {
 	KernelIABState,
 	NonIABVendor,
 } from '@c15t/core/v3';
-import { type CreateIABOptions, createIAB, type IABHandle } from '@c15t/iab/v3';
+import { createIAB } from '@c15t/iab/v3';
+import type { CreateIABOptions, IABHandle } from '@c15t/iab/v3';
 import {
 	createContext,
-	type ReactNode,
 	useContext,
 	useEffect,
 	useMemo,
@@ -16,6 +16,7 @@ import {
 	useState,
 	useSyncExternalStore,
 } from 'react';
+import type { ReactNode } from 'react';
 
 import { KernelContext } from './context';
 

@@ -4,10 +4,8 @@
  * This module provides the main store creation and management functionality.
  */
 
-import {
-	isLegalDocumentType,
-	type PostSubjectOutput,
-} from '@c15t/schema/types';
+import { isLegalDocumentType } from '@c15t/schema/types';
+import type { PostSubjectOutput } from '@c15t/schema/types';
 import { resolveTranslationInput } from '@c15t/translations';
 import { createStore } from 'zustand/vanilla';
 
@@ -20,11 +18,8 @@ import {
 } from '../libs/cookie';
 import { setDebugEnabled } from '../libs/debug';
 import { generateSubjectId } from '../libs/generate-subject-id';
-import {
-	extractConsentNamesFromCondition,
-	type HasCondition,
-	has,
-} from '../libs/has';
+import { extractConsentNamesFromCondition, has } from '../libs/has';
+import type { HasCondition } from '../libs/has';
 import type { IABConfig } from '../libs/iab-tcf/types';
 import { createIframeManager } from '../libs/iframe-blocker/store';
 import { initConsentManager } from '../libs/init-consent-manager';
@@ -44,11 +39,8 @@ import type {
 } from '../types';
 import type { Callbacks } from '../types/callbacks';
 import type { ConsentBannerResponse, ConsentState } from '../types/compliance';
-import {
-	type AllConsentNames,
-	type ConsentInfo,
-	consentTypes,
-} from '../types/consent-types';
+import { consentTypes } from '../types/consent-types';
+import type { AllConsentNames, ConsentInfo } from '../types/consent-types';
 import { coalesceInFlight } from './coalesce-in-flight';
 import { initialState } from './initial-state';
 import type {
@@ -336,21 +328,17 @@ export const createConsentManagerStore = (
 					consentCategories: Array.from(new Set(types)),
 				};
 			}),
-		setCallback: (name, callback) => {
+		setCallback: (name, handler) => {
 			const currentState = get();
 
 			// Update the callback in state
 			set((state) => ({
-				callbacks: { ...state.callbacks, [name]: callback },
+				callbacks: { ...state.callbacks, [name]: handler },
 			}));
 
 			// Call the onConsentSet callback with the initial consent state
-			if (
-				name === 'onConsentSet' &&
-				callback &&
-				typeof callback === 'function'
-			) {
-				(callback as Callbacks['onConsentSet'])?.({
+			if (name === 'onConsentSet' && handler && typeof handler === 'function') {
+				(handler as Callbacks['onConsentSet'])?.({
 					preferences: currentState.consents,
 				});
 			}
@@ -360,15 +348,15 @@ export const createConsentManagerStore = (
 				name === 'onBannerFetched' &&
 				currentState.hasFetchedBanner &&
 				currentState.lastBannerFetchData &&
-				callback &&
-				typeof callback === 'function'
+				handler &&
+				typeof handler === 'function'
 			) {
 				const { lastBannerFetchData } = currentState;
 
 				const jurisdictionCode = lastBannerFetchData.jurisdiction ?? 'NONE';
 
 				// Type assertion to ensure callback is the correct type
-				(callback as Callbacks['onBannerFetched'])?.({
+				(handler as Callbacks['onBannerFetched'])?.({
 					// Derived visibility: show banner when jurisdiction is not NONE
 					jurisdiction: {
 						code: jurisdictionCode,

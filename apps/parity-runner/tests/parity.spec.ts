@@ -21,12 +21,14 @@
  */
 
 import { diffComputedStyleMap } from '@c15t/conformance';
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 import { captureA11yTree } from '../src/diff-a11y';
 import { captureComputedStyleMap } from '../src/diff-computed-style';
 import { captureDomSnapshot } from '../src/diff-dom';
-import { type PairedStory, pairStories } from '../src/pair-stories';
+import { pairStories } from '../src/pair-stories';
+import type { PairedStory } from '../src/pair-stories';
 import { loadStorybookIndex } from '../src/storybook-index';
 
 const FRAMEWORK_URLS: Record<string, string> = {

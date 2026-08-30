@@ -1,7 +1,5 @@
-import {
-	getScenarioConfig,
-	type ScriptLifecycleScenarioConfig,
-} from './_bench/fixtures';
+import { getScenarioConfig } from './_bench/fixtures';
+import type { ScriptLifecycleScenarioConfig } from './_bench/fixtures';
 import { ScriptLifecyclePageShell } from './_bench/page-shell';
 import { ScriptLifecycleProvider } from './_bench/provider';
 

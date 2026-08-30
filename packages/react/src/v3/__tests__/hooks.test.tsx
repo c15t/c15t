@@ -23,6 +23,29 @@ import {
 	useSetOverrides,
 } from '../index';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 function withProvider(options = {}) {
 	const Wrapper = ({ children }: { children: ReactNode }) => (
 		<ConsentProvider options={{ persistence: false, ...options }}>
@@ -230,14 +253,14 @@ describe('v3 react: zero unrelated re-renders', () => {
 		);
 
 		// Wait for initial mount to settle.
-		await new Promise((r) => setTimeout(r, 10));
+		await createDeferredPromise((r) => setTimeout(r, 10));
 		const marketingAfterMount = marketingRenders.length;
 		const measurementAfterMount = measurementRenders.length;
 
 		await document
 			.querySelector<HTMLButtonElement>('[data-testid="toggle"]')
 			?.click();
-		await new Promise((r) => setTimeout(r, 10));
+		await createDeferredPromise((r) => setTimeout(r, 10));
 
 		// Marketing hook's returned value changed → exactly one more commit.
 		expect(marketingRenders.length).toBeGreaterThan(marketingAfterMount);
@@ -278,7 +301,7 @@ describe('v3 react: zero unrelated re-renders', () => {
 			</Wrapper>
 		);
 
-		await new Promise((r) => setTimeout(r, 10));
+		await createDeferredPromise((r) => setTimeout(r, 10));
 		const afterMount = renders.length;
 
 		// necessary is already true; this should be a no-op at the kernel
@@ -286,7 +309,7 @@ describe('v3 react: zero unrelated re-renders', () => {
 		await document
 			.querySelector<HTMLButtonElement>('[data-testid="noop"]')
 			?.click();
-		await new Promise((r) => setTimeout(r, 10));
+		await createDeferredPromise((r) => setTimeout(r, 10));
 
 		expect(renders.length).toBe(afterMount);
 	});

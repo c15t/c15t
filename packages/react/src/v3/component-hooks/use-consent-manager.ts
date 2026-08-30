@@ -1,12 +1,12 @@
 'use client';
 
-import {
-	type ActiveUI,
-	type AllConsentNames,
-	type ConsentType,
-	type HasCondition,
-	type Model,
-	type TranslationConfig,
+import type {
+	ActiveUI,
+	AllConsentNames,
+	ConsentType,
+	HasCondition,
+	Model,
+	TranslationConfig,
 } from '@c15t/core';
 import type {
 	ConsentState,

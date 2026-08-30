@@ -7,7 +7,6 @@ import { InlineLegalLinks } from '../components/shared/primitives/legal-links';
 import { useTheme } from '../hooks/use-theme';
 import {
 	ConsentProvider,
-	type ConsentProviderOptions,
 	useConsent,
 	useOverrides,
 	usePolicy,
@@ -17,7 +16,31 @@ import {
 	useTranslations,
 	useUser,
 } from '../index';
+import type { ConsentProviderOptions } from '../index';
 import { useUIConfig } from '../ui-config-context';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 const STORAGE_KEY = 'c15t-provider-test';
 
@@ -412,7 +435,7 @@ describe('v3 ConsentProvider options API', () => {
 		);
 
 		await expect.element(getByTestId('probe')).toHaveTextContent('true|none');
-		await new Promise((resolve) => setTimeout(resolve, 10));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
 		expect(fetchSpy).not.toHaveBeenCalled();
 		expect(
 			document.head.querySelector(

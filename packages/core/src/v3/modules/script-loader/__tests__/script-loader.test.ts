@@ -16,7 +16,8 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../../../index';
-import { createScriptLoader, type Script } from '../index';
+import { createScriptLoader } from '../index';
+import type { Script } from '../index';
 
 // ---------------------------------------------------------------
 // Minimal DOM stubs. The v3 kernel has zero browser-globals usage;

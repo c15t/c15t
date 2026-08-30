@@ -7,8 +7,8 @@ import {
 	ConsentDialog,
 	ConsentDialogTrigger,
 	ConsentDialogTriggerToolbar,
-	type TriggerOrientation,
 } from '../../../packages/react/src/index';
+import type { TriggerOrientation } from '../../../packages/react/src/index';
 import {
 	editableConsentOptions,
 	editableStoredConsent,

@@ -7,7 +7,8 @@
 
 import type { TestDriver } from '../driver';
 import { EMPTY_POLICIES, MINIMAL_POLICIES } from '../fixtures/policies';
-import { conformanceTest, type SuiteApi } from './helpers';
+import { conformanceTest } from './helpers';
+import type { SuiteApi } from './helpers';
 
 function countSwitches(root: HTMLElement): number {
 	return root.querySelectorAll('[role="switch"]').length;

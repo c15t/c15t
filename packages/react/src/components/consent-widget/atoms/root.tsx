@@ -14,10 +14,8 @@ import {
 	ConsentTrackingContext,
 	useConsentTracking,
 } from '~/context/consent-tracking-context';
-import {
-	LocalThemeContext,
-	type ThemeContextValue,
-} from '~/context/theme-context';
+import { LocalThemeContext } from '~/context/theme-context';
+import type { ThemeContextValue } from '~/context/theme-context';
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useTextDirection } from '~/hooks/use-text-direction';
 

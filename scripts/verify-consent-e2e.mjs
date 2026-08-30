@@ -5,6 +5,12 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 import { chromium } from 'playwright';
 
+function createDeferredPromise(run) {
+	const deferred = Promise.withResolvers();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 const bannerSelector = '[data-testid="consent-banner-root"]';
 const acceptSelector = '[data-testid="consent-banner-accept-button"]';
 
@@ -91,7 +97,9 @@ async function runCommand(command, args, options = {}) {
 	const output = [];
 	child.stdout.on('data', (chunk) => output.push(chunk.toString()));
 	child.stderr.on('data', (chunk) => output.push(chunk.toString()));
-	const code = await new Promise((resolve) => child.once('exit', resolve));
+	const code = await createDeferredPromise((resolve) =>
+		child.once('exit', resolve)
+	);
 	if (code !== 0) {
 		throw new Error(
 			`${command} ${args.join(' ')} failed with exit ${code}\n${output.join('')}`
@@ -130,7 +138,7 @@ async function stopServer(server) {
 		return;
 	}
 	server.kill('SIGTERM');
-	await new Promise((resolve) => server.once('exit', resolve));
+	await createDeferredPromise((resolve) => server.once('exit', resolve));
 }
 
 async function startServer(app) {
@@ -527,7 +535,9 @@ async function main() {
 	);
 }
 
-main().catch((error) => {
+try {
+	await main();
+} catch (error) {
 	console.error(error);
 	process.exitCode = 1;
-});
+}

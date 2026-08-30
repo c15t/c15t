@@ -7,12 +7,8 @@ import {
 	grantedMeasurementConsentState,
 	setupScriptHelperTest,
 } from '../../__tests__/helpers';
-import {
-	DEFAULT_HEAP_CONFIG_BASE_URL,
-	HEAP_QUEUE_METHODS,
-	type HeapReadyCallback,
-	heap,
-} from './heap';
+import { DEFAULT_HEAP_CONFIG_BASE_URL, HEAP_QUEUE_METHODS, heap } from './heap';
+import type { HeapReadyCallback } from './heap';
 
 type HeapStub = unknown[] &
 	Record<string, unknown> & {

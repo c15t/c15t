@@ -1,7 +1,8 @@
 'use client';
 
 import type { ConsentComponentSlotKey } from '@c15t/schema/config';
-import { forwardRef, type HTMLAttributes } from 'react';
+import { forwardRef } from 'react';
+import type { HTMLAttributes } from 'react';
 
 import { Slot } from '~/v3/components/shared/libs/slot';
 import { useTheme } from '~/v3/hooks/use-theme';

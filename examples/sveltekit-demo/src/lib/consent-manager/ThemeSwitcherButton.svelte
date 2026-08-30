@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { themePresets, type ThemePresetName } from './theme-presets';
+	import { themePresets } from './theme-presets';
+	import type { ThemePresetName } from './theme-presets';
 	import { themePresetStore } from './theme-store.svelte';
 
 	let open = $state(false);

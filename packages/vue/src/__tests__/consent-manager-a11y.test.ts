@@ -1,15 +1,14 @@
 import type { InitOutput, TranslationsResponse } from '@c15t/schema/types';
-import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
+import type { VueWrapper } from '@vue/test-utils';
 import { describe, expect, test, vi } from 'vitest';
 import type { ComponentPublicInstance } from 'vue';
 
 import ConsentManager from '../runtime/components/consent-manager.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
-import {
-	createVueConsentKernelContext,
-	type VueConsentKernelContext,
-} from '../runtime/kernel';
+import { createVueConsentKernelContext } from '../runtime/kernel';
+import type { VueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -18,6 +17,29 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 const translations: TranslationsResponse = {
 	common: {
@@ -142,7 +164,7 @@ async function renderManager() {
 		},
 	});
 	await flushPromises();
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
 
 	return { context, wrapper };
 }

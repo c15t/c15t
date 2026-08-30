@@ -18,7 +18,8 @@ import {
 	gradeLevel,
 	middleware as observability,
 } from '../observability/evlog';
-import { type AppOptions, makeRun, type RouteContext } from './context';
+import { makeRun } from './context';
+import type { AppOptions, RouteContext } from './context';
 import { register as registerConsent } from './routes/consent';
 import { register as registerInit } from './routes/init';
 import { register as registerLegalDocument } from './routes/legal-document';
@@ -44,7 +45,7 @@ export function createApp(
 		app.use('*', gradeLevel);
 	}
 
-	app.use('*', async (c, next) => {
+	app.use('*', async (c, runNext) => {
 		const origin = c.req.header('Origin');
 		const allowed =
 			origin !== undefined &&
@@ -74,7 +75,7 @@ export function createApp(
 			return c.body(null, 204);
 		}
 
-		await next();
+		await runNext();
 	});
 
 	/**

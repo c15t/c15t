@@ -1,8 +1,5 @@
-import {
-	configureConsentManager,
-	createConsentManagerStore,
-	type Script,
-} from '@c15t/core';
+import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
+import type { Script } from '@c15t/core';
 
 import { bench, runMicroBenchmarkSuite } from './wrapper';
 

@@ -1,4 +1,10 @@
+import * as prompts from '@clack/prompts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { TelemetryEventName } from '~/utils/telemetry';
+
+import { selfHost } from './index';
+import { migrate } from './migrate';
 
 vi.mock('@clack/prompts', () => ({
 	select: vi.fn(),
@@ -8,13 +14,6 @@ vi.mock('@clack/prompts', () => ({
 vi.mock('./migrate', () => ({
 	migrate: vi.fn(async () => undefined),
 }));
-
-import * as prompts from '@clack/prompts';
-
-import { TelemetryEventName } from '~/utils/telemetry';
-
-import { selfHost } from './index';
-import { migrate } from './migrate';
 
 function createMockContext(commandArgs: string[] = []) {
 	return {

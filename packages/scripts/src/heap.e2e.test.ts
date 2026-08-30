@@ -10,9 +10,9 @@ import {
 	installHeadProbe,
 	loadScripts,
 	registerVendorContractCleanup,
-	type TestWindow,
 	updateScripts,
 } from './e2e-test-utils';
+import type { TestWindow } from './e2e-test-utils';
 import {
 	DEFAULT_HEAP_CONFIG_BASE_URL,
 	HEAP_QUEUE_METHODS,

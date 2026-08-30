@@ -83,15 +83,17 @@ export interface DecisionInput {
  * deduplicate rather than every decision being written a second time after the
  * upgrade.
  */
-export const scopedDedupeKey = (
+export const scopedDedupeKey = async (
 	tenantId: string | undefined,
 	dedupeKey: string
-): Promise<string> =>
-	tenantId === undefined
-		? Promise.resolve(dedupeKey)
-		: hashSha256Hex(JSON.stringify([tenantId, dedupeKey])).then(
-				(digest) => `t_${digest}`
-			);
+): Promise<string> => {
+	if (tenantId === undefined) {
+		return dedupeKey;
+	}
+
+	const digest = await hashSha256Hex(JSON.stringify([tenantId, dedupeKey]));
+	return `t_${digest}`;
+};
 
 const json = (value: unknown) =>
 	value === undefined || value === null ? null : JSON.stringify(value);

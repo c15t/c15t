@@ -1,25 +1,18 @@
-import {
-	existsSync,
-	type PathLike,
-	type PathOrFileDescriptor,
-	readdirSync,
-	readFileSync,
-	statSync,
-} from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import type { PathLike, PathOrFileDescriptor } from 'node:fs';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	analyzePackage,
-	type BundleStats,
 	compareBundles,
 	extractBundleSizes,
 	findRsdoctorDataFiles,
 	formatBytes,
 	generateMarkdownReport,
 	getSizeChangeEmoji,
-	type PackageBundleData,
 } from './analyze-bundle-diff';
+import type { BundleStats, PackageBundleData } from './analyze-bundle-diff';
 
 // Mock fs module
 vi.mock('node:fs', () => ({

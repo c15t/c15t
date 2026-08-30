@@ -10,6 +10,29 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createConsentManagerStore } from '..';
 import { STORAGE_KEY_V2 } from '../initial-state';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock Setup
 // ─────────────────────────────────────────────────────────────────────────────
@@ -266,7 +289,7 @@ describe('Consent Store', () => {
 			store.getState().setConsent('marketing', true);
 
 			// Allow async operations to complete
-			await new Promise((resolve) => setTimeout(resolve, 100));
+			await createDeferredPromise((resolve) => setTimeout(resolve, 100));
 
 			expect(store.getState().selectedConsents.marketing).toBe(true);
 		});
@@ -655,7 +678,7 @@ describe('Consent Store', () => {
 
 			store.getState().setCallback('onConsentChanged', mockOnConsentChanged);
 			store.getState().setConsent('marketing', true);
-			await new Promise((resolve) => setTimeout(resolve, 100));
+			await createDeferredPromise((resolve) => setTimeout(resolve, 100));
 
 			expect(mockOnConsentChanged).toHaveBeenCalledTimes(1);
 			expect(mockOnConsentChanged).toHaveBeenCalledWith({
@@ -693,7 +716,7 @@ describe('Consent Store', () => {
 			const unsubscribe = store.getState().subscribeToConsentChanges(listener);
 
 			store.getState().setConsent('marketing', true);
-			await new Promise((resolve) => setTimeout(resolve, 100));
+			await createDeferredPromise((resolve) => setTimeout(resolve, 100));
 
 			expect(listener).toHaveBeenCalledTimes(1);
 			expect(listener).toHaveBeenCalledWith({
@@ -713,7 +736,7 @@ describe('Consent Store', () => {
 
 			unsubscribe();
 			store.getState().setConsent('functionality', true);
-			await new Promise((resolve) => setTimeout(resolve, 100));
+			await createDeferredPromise((resolve) => setTimeout(resolve, 100));
 
 			expect(listener).toHaveBeenCalledTimes(1);
 		});
@@ -739,7 +762,7 @@ describe('Consent Store', () => {
 			store.getState().subscribeToConsentChanges(secondListener);
 
 			store.getState().setConsent('marketing', true);
-			await new Promise((resolve) => setTimeout(resolve, 100));
+			await createDeferredPromise((resolve) => setTimeout(resolve, 100));
 
 			expect(firstListener).toHaveBeenCalledTimes(1);
 			expect(secondListener).toHaveBeenCalledTimes(1);

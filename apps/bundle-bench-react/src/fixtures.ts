@@ -1,7 +1,5 @@
-import {
-	type ConsentManagerOptions,
-	defaultTranslationConfig,
-} from '../../../packages/react/src/index';
+import { defaultTranslationConfig } from '../../../packages/react/src/index';
+import type { ConsentManagerOptions } from '../../../packages/react/src/index';
 
 export const benchmarkConsentOptions: ConsentManagerOptions = {
 	mode: 'offline',

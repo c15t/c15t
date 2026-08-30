@@ -1,4 +1,5 @@
-import { type Ref, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
+import type { Ref } from 'vue';
 
 /**
  * A ref persisted to `localStorage` as JSON.

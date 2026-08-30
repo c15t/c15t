@@ -2,8 +2,31 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { createWriteScheduler } from '../schedule';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 function flushScheduledWrite(): Promise<void> {
-	return new Promise((resolve) => setTimeout(resolve, 0));
+	return createDeferredPromise((resolve) => setTimeout(resolve, 0));
 }
 
 describe('createWriteScheduler', () => {

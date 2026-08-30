@@ -9,6 +9,8 @@
  */
 
 // GVL types are defined in @c15t/schema — re-export for internal consumers
+import type { GlobalVendorList } from '@c15t/schema/types';
+
 export type {
 	GlobalVendorList,
 	GVLDataCategory,
@@ -20,8 +22,6 @@ export type {
 	GVLVendor,
 	GVLVendorUrl,
 } from '@c15t/schema/types';
-
-import type { GlobalVendorList } from '@c15t/schema/types';
 
 /**
  * TCF consent data structure for generating TC Strings.

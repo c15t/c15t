@@ -4,12 +4,13 @@ import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentManagerProvider,
-	type ConsentManagerProviderProps,
 } from '@c15t/react';
+import type { ConsentManagerProviderProps } from '@c15t/react';
 import type { ReactNode } from 'react';
 
 import { ReactBenchmarkProbe } from './probe';
-import { getBenchState, type ReactBenchScenario } from './state';
+import { getBenchState } from './state';
+import type { ReactBenchScenario } from './state';
 
 export function BenchmarkProvider({
 	children,

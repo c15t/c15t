@@ -1,12 +1,11 @@
-import {
-	type CallExpression,
-	type Expression,
-	type MethodDeclaration,
-	Node,
-	type ObjectLiteralExpression,
-	Project,
-	type PropertyAssignment,
-	type SourceFile,
+import { Node, Project } from 'ts-morph';
+import type {
+	CallExpression,
+	Expression,
+	MethodDeclaration,
+	ObjectLiteralExpression,
+	PropertyAssignment,
+	SourceFile,
 } from 'ts-morph';
 
 interface UpdateNextConfigOptions {

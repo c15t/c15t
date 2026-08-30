@@ -9,11 +9,13 @@
 
 import {
 	DriverNotImplementedError,
-	type MountOptions,
-	type MountResult,
 	runConformanceSuite,
-	type SuiteApi,
-	type TestDriver,
+} from '@c15t/conformance';
+import type {
+	MountOptions,
+	MountResult,
+	SuiteApi,
+	TestDriver,
 } from '@c15t/conformance';
 import { describe, expect, test } from 'vitest';
 

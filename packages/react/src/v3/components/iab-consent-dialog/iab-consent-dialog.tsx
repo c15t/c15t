@@ -10,23 +10,19 @@ import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import {
-	type ComponentPropsWithoutRef,
-	type FC,
-	type RefObject,
 	useCallback,
 	useEffect,
 	useLayoutEffect,
 	useRef,
 	useState,
 } from 'react';
+import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
 import { createPortal } from 'react-dom';
 
 import { useHeadlessIABConsentUI } from '~/v3/component-hooks/use-headless-iab-consent-ui';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
-import {
-	ConsentDialogTrigger,
-	type ConsentDialogTriggerProps,
-} from '~/v3/components/consent-dialog-trigger';
+import { ConsentDialogTrigger } from '~/v3/components/consent-dialog-trigger';
+import type { ConsentDialogTriggerProps } from '~/v3/components/consent-dialog-trigger';
 import { Branding } from '~/v3/components/consent-dialog/atoms/card';
 import * as Button from '~/v3/components/shared/ui/button';
 import * as Tabs from '~/v3/components/shared/ui/tabs';

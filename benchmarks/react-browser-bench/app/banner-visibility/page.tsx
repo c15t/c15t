@@ -1,7 +1,5 @@
-import {
-	type BannerVisibilityVersion,
-	normalizeVersion,
-} from './_components/state';
+import { normalizeVersion } from './_components/state';
+import type { BannerVisibilityVersion } from './_components/state';
 import { V2BannerVisibilityPage } from './_components/v2-page';
 import { V3BannerVisibilityPage } from './_components/v3-page';
 

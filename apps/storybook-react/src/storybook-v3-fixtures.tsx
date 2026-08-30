@@ -1,11 +1,10 @@
-import { type ReactNode, useRef } from 'react';
+import { useRef } from 'react';
+import type { ReactNode } from 'react';
 
 import { iab } from '../../../packages/iab/src/index';
 import { mockGVL } from '../../../packages/react/src/components/iab/__tests__/fixtures/mock-consent-state';
-import {
-	ConsentProvider,
-	type ConsentProviderOptions,
-} from '../../../packages/react/src/v3/index';
+import { ConsentProvider } from '../../../packages/react/src/v3/index';
+import type { ConsentProviderOptions } from '../../../packages/react/src/v3/index';
 import {
 	ConsentManagerProvider,
 	clearConsentRuntimeCache as clearV3ConsentRuntimeCache,

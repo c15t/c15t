@@ -25,11 +25,11 @@ import {
 	RejectButton,
 	Title,
 } from './components';
-import {
-	type ConsentBannerButton,
-	ConsentBanner as ConsentBannerComponent,
-	type ConsentBannerLayout,
-	type ConsentBannerProps,
+import { ConsentBanner as ConsentBannerComponent } from './consent-banner';
+import type {
+	ConsentBannerButton,
+	ConsentBannerLayout,
+	ConsentBannerProps,
 } from './consent-banner';
 import { PolicyActions } from './policy-actions';
 

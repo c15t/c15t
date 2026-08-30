@@ -1,16 +1,10 @@
 import type { AllConsentNames, ConsentType } from '@c15t/core';
 import styles from '@c15t/ui/styles/components/consent-widget.module.js';
-import {
-	type ComponentPropsWithoutRef,
-	createContext,
-	forwardRef,
-	type ReactNode,
-	type Ref,
-	useCallback,
-	useContext,
-} from 'react';
+import { createContext, forwardRef, useCallback, useContext } from 'react';
+import type { ComponentPropsWithoutRef, ReactNode, Ref } from 'react';
 
-import { Box, type BoxProps } from '~/components/shared/primitives/box';
+import { Box } from '~/components/shared/primitives/box';
+import type { BoxProps } from '~/components/shared/primitives/box';
 import { LucideIcon } from '~/components/shared/ui/icon';
 import * as PreferenceItem from '~/components/shared/ui/preference-item';
 import * as RadixSwitch from '~/components/shared/ui/switch';

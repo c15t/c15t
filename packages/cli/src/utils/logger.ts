@@ -1,4 +1,5 @@
-import { createLogger, type Logger } from '@c15t/logger';
+import { createLogger } from '@c15t/logger';
+import type { Logger } from '@c15t/logger';
 import * as p from '@clack/prompts';
 import color from 'picocolors';
 

@@ -12,16 +12,15 @@ import {
 } from './policy-fingerprint';
 import {
 	createResolvedPolicyFromConfig,
-	type JurisdictionCode,
-	type PolicyConfig,
-	type PolicyMatchedBy,
 	validatePolicies,
 } from './policy-runtime';
-import {
-	getTranslationsData,
-	type I18nOptions,
-	type LoggerLike,
-} from './translations-runtime';
+import type {
+	JurisdictionCode,
+	PolicyConfig,
+	PolicyMatchedBy,
+} from './policy-runtime';
+import { getTranslationsData } from './translations-runtime';
+import type { I18nOptions, LoggerLike } from './translations-runtime';
 
 export type ConsentManifestBranding = (typeof brandingValues)[number];
 

@@ -9,6 +9,29 @@ import {
 
 import { useTranslations } from '../use-translations';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 describe('useTranslations', () => {
 	beforeEach(() => {
 		// Clear consent manager caches to ensure clean state between tests
@@ -29,7 +52,7 @@ describe('useTranslations', () => {
 			),
 		});
 
-		await new Promise((resolve) => setTimeout(resolve, 10));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
 
 		expect(result.current.cookieBanner.title).toBe('We value your privacy');
 		expect(result.current.cookieBanner.description).toBe(
@@ -86,7 +109,7 @@ describe('useTranslations', () => {
 			),
 		});
 
-		await new Promise((resolve) => setTimeout(resolve, 10));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
 
 		expect(result.current.cookieBanner.title).toBe('German Title');
 		expect(result.current.cookieBanner.description).toBe('German Description');
@@ -128,7 +151,7 @@ describe('useTranslations', () => {
 			),
 		});
 
-		await new Promise((resolve) => setTimeout(resolve, 10));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
 
 		// Custom translations should override defaults
 		expect(result.current.cookieBanner.title).toBe('Custom Cookie Settings');
@@ -159,7 +182,7 @@ describe('useTranslations', () => {
 			),
 		});
 
-		await new Promise((resolve) => setTimeout(resolve, 10));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
 
 		// Should fall back to English translations
 		expect(result.current.cookieBanner.title).toBe('We value your privacy');
@@ -214,7 +237,7 @@ describe('useTranslations', () => {
 			),
 		});
 
-		await new Promise((resolve) => setTimeout(resolve, 20));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 20));
 
 		expect(result.current.common.acceptAll).toBe('Custom English Accept All');
 		expect(result.current.common.rejectAll).toBe('Custom English Reject All');
@@ -260,7 +283,7 @@ describe('useTranslations', () => {
 			),
 		});
 
-		await new Promise((resolve) => setTimeout(resolve, 10));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
 
 		expect(result.current.cookieBanner.title).toBe('Neuer Titel');
 		expect(result.current.common.acceptAll).toBe('Alles');
@@ -303,7 +326,7 @@ describe('useTranslations', () => {
 				),
 			});
 
-			await new Promise((resolve) => setTimeout(resolve, 10));
+			await createDeferredPromise((resolve) => setTimeout(resolve, 10));
 
 			expect(result.current.cookieBanner.title).toBe('Nouveau Titre');
 		}

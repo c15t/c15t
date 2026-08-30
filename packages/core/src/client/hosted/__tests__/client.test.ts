@@ -1,10 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { fetchMock, mockLocalStorage } from '../../../../vitest.setup';
-import {
-	type ConsentManagerOptions,
-	configureConsentManager,
-} from '../../client-factory';
+import { configureConsentManager } from '../../client-factory';
+import type { ConsentManagerOptions } from '../../client-factory';
 import { API_ENDPOINTS } from '../../types';
 
 describe('c15t Client Tests', () => {

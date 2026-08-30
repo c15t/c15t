@@ -3,6 +3,29 @@ import color from 'picocolors';
 
 import type { CliContext } from '~/context/types';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 /**
  * Displays the CLI introduction sequence, including
  * welcome message, figlet art, version, and docs link.
@@ -23,7 +46,7 @@ export async function displayIntro(
 	// Generate and display Figlet text (async)
 	let figletText = 'c15t'; // Default
 	try {
-		figletText = await new Promise((resolve) => {
+		figletText = await createDeferredPromise((resolve) => {
 			figlet.text(
 				'c15t',
 				{

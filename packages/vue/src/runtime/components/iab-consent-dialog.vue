@@ -9,7 +9,6 @@ import dialogStyles from '@c15t/ui/styles/v3/iab-consent-dialog';
 import { computed, ref, Teleport, Transition, toValue, watch } from 'vue';
 
 import {
-	type ConsentIabSelection,
 	createDefaultIabSelection,
 	useConsentActiveUI,
 	useConsentConfig,
@@ -17,6 +16,7 @@ import {
 	useConsentIabSelection,
 	useConsentInit,
 } from '#c15t/composables';
+import type { ConsentIabSelection } from '#c15t/composables';
 
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useFocusTrap } from '../primitives/use-focus-trap';

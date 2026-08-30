@@ -1,5 +1,6 @@
 import { setupFocusTrap } from '@c15t/ui/utils';
-import { onBeforeUnmount, type Ref, watch } from 'vue';
+import { onBeforeUnmount, watch } from 'vue';
+import type { Ref } from 'vue';
 
 export function useFocusTrap(
 	container: Ref<HTMLElement | null>,

@@ -13,6 +13,10 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ensureBackendConfig } from './ensure-backend-config';
+import { migrate } from './index';
+import { readDatabaseConfig } from './read-config';
+
 const plan = vi.fn();
 const apply = vi.fn();
 const dispose = vi.fn(async () => undefined);
@@ -39,10 +43,6 @@ vi.mock('./report', () => ({
 		report.adoption.length === 0 && report.pending.length === 0,
 	confirmApply: () => confirmApply(),
 }));
-
-import { ensureBackendConfig } from './ensure-backend-config';
-import { migrate } from './index';
-import { readDatabaseConfig } from './read-config';
 
 const report = (over: Record<string, unknown> = {}) => ({
 	shape: { _tag: 'Empty' },

@@ -13,10 +13,10 @@ import { runReactOptionsToTopLevelCodemod } from './react-options-to-top-level';
 import { runTrackingBlockerToNetworkBlockerCodemod } from './tracking-blocker-to-network-blocker';
 import { runTranslationsToI18nCodemod } from './translations-to-i18n';
 import {
-	type CodemodVersionMetadata,
 	detectInstalledC15tVersion,
 	isCodemodApplicableForVersion,
 } from './versioning';
+import type { CodemodVersionMetadata } from './versioning';
 
 /**
  * Describes a runnable codemod exposed in the interactive codemods menu.

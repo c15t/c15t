@@ -1,7 +1,8 @@
 'use client';
 
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
-import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+import { forwardRef } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
 interface IABConsentBannerButtonGroupProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;

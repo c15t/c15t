@@ -12,7 +12,11 @@ export const PREFERENCE_ITEM_SLOTS = {
 	trigger: 'preference-item-trigger',
 } as const;
 
-/** @internal Animation implementation detail — not part of the public slot API. */
+/**
+ * Animation implementation detail — not part of the public slot API.
+ *
+ * @internal
+ */
 export const PREFERENCE_ITEM_INTERNAL_SLOTS = {
 	contentInner: 'preference-item-content-inner',
 	contentViewport: 'preference-item-content-viewport',

@@ -7,7 +7,8 @@ import {
 	resolvePolicyPrimaryActions,
 	shouldFillPolicyActions,
 } from '@c15t/ui/utils';
-import { computed, type MaybeRefOrGetter, toValue } from 'vue';
+import { computed, toValue } from 'vue';
+import type { MaybeRefOrGetter } from 'vue';
 
 export function useConsentPolicyActions(
 	surfaceUi: MaybeRefOrGetter<PolicyUiSurfaceConfig | undefined>

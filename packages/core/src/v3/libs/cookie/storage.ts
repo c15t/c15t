@@ -8,7 +8,8 @@
  */
 
 import type { ConsentState } from '../../consent/compliance';
-import { allConsentNames, type ConsentInfo } from '../../consent/consent-types';
+import { allConsentNames } from '../../consent/consent-types';
+import type { ConsentInfo } from '../../consent/consent-types';
 import { getDebugLogger } from '../debug';
 import { sanitizeSubjectIdentifiers } from '../sanitize-subject-identifiers';
 import { STORAGE_KEY, STORAGE_KEY_V2 } from '../storage-keys';

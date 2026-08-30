@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { defaultTranslationConfig, type Model } from '@c15t/core';
+	import { defaultTranslationConfig } from '@c15t/core';
+	import type { Model } from '@c15t/core';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { getIABTranslations } from '../iab-translations';
-	import { processGVLData, type VendorId } from '../iab-types';
+	import { processGVLData } from '../iab-types';
+	import type { VendorId } from '../iab-types';
 	import { Collapsible, Dialog, Portal, Tabs } from '../primitives';
 	import Branding from './branding.svelte';
 	import IABPurposeItem from './iab-purpose-item.svelte';

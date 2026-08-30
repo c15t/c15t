@@ -1,11 +1,8 @@
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import { getSwitchState, toggleSwitchValue } from '@c15t/ui/primitives/switch';
 import styles from '@c15t/ui/styles/v3/switch';
-import {
-	type ButtonHTMLAttributes,
-	forwardRef,
-	type KeyboardEvent,
-} from 'react';
+import { forwardRef } from 'react';
+import type { ButtonHTMLAttributes, KeyboardEvent } from 'react';
 
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/v3/hooks/use-theme';

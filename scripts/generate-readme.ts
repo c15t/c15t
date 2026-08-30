@@ -437,7 +437,9 @@ async function generateReadmes() {
 	}
 }
 
-generateReadmes().catch((err) => {
-	console.error('Fatal error generating READMEs:', err);
+try {
+	await generateReadmes();
+} catch (error) {
+	console.error('Fatal error generating READMEs:', error);
 	process.exit(1);
-});
+}

@@ -1,5 +1,5 @@
 /**
- * @fileoverview Tests for the network blocker store integration
+ * @file Tests for the network blocker store integration
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

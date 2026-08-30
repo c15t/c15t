@@ -250,15 +250,17 @@ export function createPanelRenderer(
 						if (!iab) {
 							return;
 						}
-						void iab
-							.save()
-							.then(() => logEvent('iab', 'IAB preferences saved'))
-							.catch((error: unknown) => {
+						void (async () => {
+							try {
+								await iab.save();
+								logEvent('iab', 'IAB preferences saved');
+							} catch (error) {
 								logEvent(
 									'error',
 									`Failed to save IAB preferences: ${String(error)}`
 								);
-							});
+							}
+						})();
 					},
 					onReset: resetConsents,
 				});
@@ -305,18 +307,19 @@ export function createPanelRenderer(
 							if (onCopyState) {
 								const result = onCopyState(state);
 								if (result instanceof Promise) {
-									void result
-										.then((ok) => {
+									void (async () => {
+										try {
+											const ok = await result;
 											logEvent(
 												ok ? 'info' : 'error',
 												ok
 													? 'State copied to clipboard'
 													: 'Failed to copy state'
 											);
-										})
-										.catch(() => {
+										} catch {
 											logEvent('error', 'Failed to copy state');
-										});
+										}
+									})();
 								} else {
 									logEvent(
 										result ? 'info' : 'error',
@@ -326,14 +329,16 @@ export function createPanelRenderer(
 									);
 								}
 							} else {
-								void navigator.clipboard
-									.writeText(JSON.stringify(state, null, 2))
-									.then(() => {
+								void (async () => {
+									try {
+										await navigator.clipboard.writeText(
+											JSON.stringify(state, null, 2)
+										);
 										logEvent('info', 'State copied to clipboard');
-									})
-									.catch(() => {
+									} catch {
 										logEvent('error', 'Failed to copy state');
-									});
+									}
+								})();
 							}
 						}
 					},

@@ -1,11 +1,6 @@
-import { default as styles } from '@c15t/ui/styles/v3/button';
-import {
-	type ButtonHTMLAttributes,
-	type ElementType,
-	forwardRef,
-	type ReactElement,
-	useId,
-} from 'react';
+import styles from '@c15t/ui/styles/v3/button';
+import { forwardRef, useId } from 'react';
+import type { ButtonHTMLAttributes, ElementType, ReactElement } from 'react';
 
 import type { PolymorphicComponentProps } from '../../libs/polymorphic';
 import { recursiveCloneChildren } from '../../libs/recursive-clone-children';

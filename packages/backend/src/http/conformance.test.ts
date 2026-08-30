@@ -7,11 +7,8 @@
  * would change what the shipped backend is held to as well.
  */
 
-import {
-	type Backend,
-	CASES,
-	type SeedFixture,
-} from '@c15t/backend-conformance';
+import { CASES } from '@c15t/backend-conformance';
+import type { Backend, SeedFixture } from '@c15t/backend-conformance';
 import { Effect, ManagedRuntime } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import { afterEach, assert, beforeEach, describe, it } from 'vitest';

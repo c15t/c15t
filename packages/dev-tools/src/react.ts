@@ -24,11 +24,8 @@
 
 import { useEffect, useRef } from 'react';
 
-import {
-	createDevTools,
-	type DevToolsInstance,
-	type DevToolsOptions,
-} from './core/devtools';
+import { createDevTools } from './core/devtools';
+import type { DevToolsInstance, DevToolsOptions } from './core/devtools';
 
 /**
  * Props for the C15TDevTools component

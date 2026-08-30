@@ -13,9 +13,11 @@
 
 import { hashSha256Hex } from '@c15t/schema';
 import { Data, Effect } from 'effect';
-import { SqlClient, type SqlError } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/unstable/sql';
+import type { SqlError } from 'effect/unstable/sql';
 
-import { currentTenantId, type Tenant, tenantScope } from '../db/tenant';
+import { currentTenantId, tenantScope } from '../db/tenant';
+import type { Tenant } from '../db/tenant';
 import { encodeRow, encoder, toBoolean, toDate } from '../db/values';
 
 export interface LegalDocumentRelease {
@@ -55,14 +57,16 @@ export class LegalDocumentConflictError extends Data.TaggedError(
  * inputs joined the same way — so re-syncing the same release through either
  * backend resolves to the same row rather than creating a second one.
  */
-export const buildLegalDocumentPolicyId = (input: {
+export const buildLegalDocumentPolicyId = async (input: {
 	tenantId?: string;
 	type: string;
 	hash: string;
-}): Promise<string> =>
-	hashSha256Hex(
+}): Promise<string> => {
+	const digest = await hashSha256Hex(
 		[input.tenantId ?? 'default', input.type, input.hash].join('|')
-	).then((digest) => `pol_${digest}`);
+	);
+	return `pol_${digest}`;
+};
 
 /**
  * Marks a release as the current one for its type.

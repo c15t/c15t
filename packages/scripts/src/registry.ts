@@ -460,7 +460,7 @@ export type BuiltInScriptIntegrationSubpath =
  *
  * @param key - Stable integration key.
  * @returns The matching built-in integration entry.
- * @throws `Error("Unknown built-in script integration: <key>")` when the key is
+ * @throws {Error}("Unknown built-in script integration: <key>")` when the key is
  * not present. Catch this when accepting untrusted or user-provided keys.
  *
  * @example

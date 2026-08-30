@@ -11,14 +11,14 @@
 
 import type { FC, ReactNode } from 'react';
 
-import { TriggerButton, type TriggerButtonProps } from './atoms/button';
-import { TriggerIcon, type TriggerIconProps } from './atoms/icon';
-import {
-	TriggerRoot,
-	type TriggerRootProps,
-	useTriggerContext,
-} from './atoms/root';
-import { TriggerText, type TriggerTextProps } from './atoms/text';
+import { TriggerButton } from './atoms/button';
+import type { TriggerButtonProps } from './atoms/button';
+import { TriggerIcon } from './atoms/icon';
+import type { TriggerIconProps } from './atoms/icon';
+import { TriggerRoot, useTriggerContext } from './atoms/root';
+import type { TriggerRootProps } from './atoms/root';
+import { TriggerText } from './atoms/text';
+import type { TriggerTextProps } from './atoms/text';
 import type { ConsentDialogTriggerProps } from './types';
 
 /**

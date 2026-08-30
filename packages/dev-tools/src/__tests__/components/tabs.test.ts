@@ -4,6 +4,29 @@ import { createTabs } from '../../components/tabs';
 
 import tabStyles from '../../styles/tabs.module.css';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 function createRect(width: number, height = 32): DOMRect {
 	return {
 		x: 0,
@@ -66,7 +89,7 @@ describe('tabs component', () => {
 			disabledTabs: [],
 		});
 		document.body.appendChild(tabs.element);
-		await new Promise<void>((resolve) => {
+		await createDeferredPromise<void>((resolve) => {
 			requestAnimationFrame(() => resolve());
 		});
 
@@ -93,7 +116,7 @@ describe('tabs component', () => {
 			disabledTabs: [],
 		});
 		document.body.appendChild(tabs.element);
-		await new Promise<void>((resolve) => {
+		await createDeferredPromise<void>((resolve) => {
 			requestAnimationFrame(() => resolve());
 		});
 
@@ -121,7 +144,7 @@ describe('tabs component', () => {
 			disabledTabs: ['iab'],
 		});
 		document.body.appendChild(tabs.element);
-		await new Promise<void>((resolve) => {
+		await createDeferredPromise<void>((resolve) => {
 			requestAnimationFrame(() => resolve());
 		});
 
@@ -143,7 +166,7 @@ describe('tabs component', () => {
 			disabledTabs: [],
 		});
 		document.body.appendChild(tabs.element);
-		await new Promise<void>((resolve) => {
+		await createDeferredPromise<void>((resolve) => {
 			requestAnimationFrame(() => resolve());
 		});
 

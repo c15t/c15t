@@ -21,14 +21,11 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import {
-	connectionSource,
-	ENGINES,
-	type Engine,
-	engineByName,
-} from './engines';
+import { connectionSource, ENGINES, engineByName } from './engines';
+import type { Engine } from './engines';
 import { introspectSource } from './introspect';
-import { SHAPES, type Shape, shapeByName } from './shapes';
+import { SHAPES, shapeByName } from './shapes';
+import type { Shape } from './shapes';
 
 const FIXTURES_DIR = join(
 	dirname(dirname(fileURLToPath(import.meta.url))),

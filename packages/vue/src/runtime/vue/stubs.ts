@@ -6,7 +6,6 @@
  * stub signature).
  */
 
-export * from '../composables';
 export * from '../composables/stubs/cookie';
 export * from '../composables/stubs/fetch';
 export * from '../composables/stubs/requestHeaders';

@@ -1,7 +1,8 @@
 import type { Script } from '@c15t/core';
 
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 const DEFAULT_RUDDERSTACK_SCRIPT_URL =

@@ -22,6 +22,29 @@ import { ConsentProvider } from '~/v3/provider';
 import { clearConsentRuntimeCache } from '~/v3/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/v3/types/consent-manager';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 // Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
@@ -115,7 +138,7 @@ describe('models Prop E2E Tests', () => {
 			);
 
 			// Wait long enough to confirm it doesn't appear
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await createDeferredPromise((resolve) => setTimeout(resolve, 1000));
 
 			const banner = document.querySelector(
 				'[data-testid="iab-consent-banner-card"]'
@@ -148,7 +171,7 @@ describe('models Prop E2E Tests', () => {
 				</ConsentProvider>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await createDeferredPromise((resolve) => setTimeout(resolve, 1000));
 
 			const dialog = document.querySelector(
 				'[data-testid="iab-consent-dialog-root"]'
@@ -184,7 +207,7 @@ describe('models Prop E2E Tests', () => {
 				</ConsentProvider>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await createDeferredPromise((resolve) => setTimeout(resolve, 1000));
 
 			const banner = document.querySelector(
 				'[data-testid="consent-banner-root"]'
@@ -219,7 +242,7 @@ describe('models Prop E2E Tests', () => {
 				</ConsentProvider>
 			);
 
-			await new Promise((resolve) => setTimeout(resolve, 1000));
+			await createDeferredPromise((resolve) => setTimeout(resolve, 1000));
 
 			const banner = document.querySelector(
 				'[data-testid="consent-banner-root"]'

@@ -3,7 +3,8 @@
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
-import { type FC, type ReactNode, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { FC, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';

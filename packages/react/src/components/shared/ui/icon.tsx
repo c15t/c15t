@@ -1,10 +1,5 @@
-import {
-	type ElementType,
-	forwardRef,
-	type JSX,
-	type Ref,
-	type SVGProps,
-} from 'react';
+import { forwardRef } from 'react';
+import type { ElementType, JSX, Ref, SVGProps } from 'react';
 
 const Icon = (
 	props: SVGProps<SVGSVGElement>,

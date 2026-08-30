@@ -243,7 +243,11 @@ export function createPersistenceSubscriber(
 		// Skip final states
 		if (skipStates.includes(stateValue)) {
 			// Clear persisted state on completion
-			clearSnapshot(persistPath).catch(() => {});
+			void (async () => {
+				try {
+					await clearSnapshot(persistPath);
+				} catch {}
+			})();
 			return;
 		}
 
@@ -253,12 +257,16 @@ export function createPersistenceSubscriber(
 		}
 
 		// Save the snapshot
-		saveSnapshot(
-			snapshot as unknown as SnapshotFrom<AnyStateMachine>,
-			machineId,
-			persistPath
-		).catch((error) => {
-			console.error('Failed to persist state:', error);
-		});
+		void (async () => {
+			try {
+				await saveSnapshot(
+					snapshot as unknown as SnapshotFrom<AnyStateMachine>,
+					machineId,
+					persistPath
+				);
+			} catch (error) {
+				console.error('Failed to persist state:', error);
+			}
+		})();
 	};
 }

@@ -1,11 +1,5 @@
-import {
-	Children,
-	type ComponentType,
-	cloneElement,
-	isValidElement,
-	type ReactElement,
-	type ReactNode,
-} from 'react';
+import { Children, cloneElement, isValidElement } from 'react';
+import type { ComponentType, ReactElement, ReactNode } from 'react';
 
 /**
  * Recursively clones React children, adding additional props to components with matched display names.

@@ -1,7 +1,8 @@
 import type { Script } from '@c15t/core';
 
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 
 export interface LinkedInInsightsConversionEvent {
 	conversion_id: string | number;

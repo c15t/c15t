@@ -1,5 +1,5 @@
 /**
- * @c15t/react/v3 — kernel-consuming React adapter (experimental).
+ * `@c15t/react/v3` — kernel-consuming React adapter (experimental).
  *
  * Unstable. API may change before v3.0 stable.
  *

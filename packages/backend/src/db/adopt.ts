@@ -42,17 +42,14 @@
  */
 
 import { Effect } from 'effect';
-import { SqlClient, type SqlError } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/unstable/sql';
+import type { SqlError } from 'effect/unstable/sql';
 
-import { classify, type Shape } from './classify';
+import { classify } from './classify';
+import type { Shape } from './classify';
 import * as Dialect from './dialect';
-import {
-	addColumnSql,
-	createTableSql,
-	type ForeignKeySpec,
-	TABLES,
-	type TableSpec,
-} from './schema';
+import { addColumnSql, createTableSql, TABLES } from './schema';
+import type { ForeignKeySpec, TableSpec } from './schema';
 import { encodeRow, encoder } from './values';
 
 /** Name of the ledger this package owns, distinct from fumadb's marker. */

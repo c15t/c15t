@@ -205,10 +205,10 @@ function getErrorMessage(error: unknown): string {
 function invokeScriptCallback(
 	script: Script,
 	callbackName: 'onBeforeLoad' | 'onLoad' | 'onConsentChange' | 'onError',
-	callback: ((info: ScriptCallbackInfo) => void) | undefined,
+	handler: ((info: ScriptCallbackInfo) => void) | undefined,
 	info: ScriptCallbackInfo
 ): void {
-	if (!callback) {
+	if (!handler) {
 		return;
 	}
 
@@ -223,7 +223,7 @@ function invokeScriptCallback(
 	);
 
 	try {
-		callback(info);
+		handler(info);
 		emitLifecycleEvent(
 			script,
 			'callback_complete',

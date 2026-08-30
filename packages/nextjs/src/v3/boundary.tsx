@@ -14,10 +14,8 @@ import type {
 	UsePersistenceOptions,
 	UseScriptLoaderOptions,
 } from '@c15t/react/v3/module-hooks';
-import {
-	ConsentProvider,
-	type ConsentProviderOptions,
-} from '@c15t/react/v3/provider';
+import { ConsentProvider } from '@c15t/react/v3/provider';
+import type { ConsentProviderOptions } from '@c15t/react/v3/provider';
 import type { ReactNode } from 'react';
 
 export interface ConsentBoundaryProps {

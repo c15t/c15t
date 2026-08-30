@@ -1,7 +1,8 @@
 'use client';
 
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
-import { forwardRef, type HTMLAttributes } from 'react';
+import { forwardRef } from 'react';
+import type { HTMLAttributes } from 'react';
 
 import { Slot } from '~/components/shared/libs/slot';
 import { useStyles } from '~/hooks/use-styles';

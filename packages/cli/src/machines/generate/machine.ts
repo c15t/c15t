@@ -6,7 +6,8 @@
 
 import { assign, setup } from 'xstate';
 
-import { type StorageMode, UMBRELLA_PACKAGE } from '~/constants';
+import { UMBRELLA_PACKAGE } from '~/constants';
+import type { StorageMode } from '~/constants';
 import type { CliContext } from '~/context/types';
 import { CliError } from '~/core/errors';
 
@@ -33,11 +34,8 @@ import {
 	skillsInstallActor,
 } from './actors/prompts';
 import { guards } from './guards';
-import {
-	createInitialContext,
-	type GenerateMachineContext,
-	type GenerateMachineEvent,
-} from './types';
+import { createInitialContext } from './types';
+import type { GenerateMachineContext, GenerateMachineEvent } from './types';
 
 function normalizeSelectedMode(
 	mode: StorageMode | null | undefined

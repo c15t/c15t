@@ -19,6 +19,29 @@ import {
 	setupTestHooks,
 } from './test-setup';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 describe('Script Loader Core', () => {
 	// Setup test hooks
 	setupTestHooks();
@@ -570,7 +593,7 @@ fbq('track', 'PageView');
 			loadScripts([textScript], sampleConsents);
 
 			// Wait for the setTimeout to execute
-			await new Promise((resolve) => setTimeout(resolve, 10));
+			await createDeferredPromise((resolve) => setTimeout(resolve, 10));
 
 			// onLoad should be called for text-based scripts
 			expect(onLoadMock).toHaveBeenCalledWith(

@@ -26,6 +26,29 @@ import type { MachineExecutionResult } from '../types';
 import { generateMachine } from './machine';
 import type { GenerateMachineContext } from './types';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 function getSetupTrigger(
 	modeArg: StorageMode | undefined,
 	resumed: boolean
@@ -209,7 +232,7 @@ export async function runGenerateMachine(
 	}
 
 	// Wait for completion
-	return new Promise((resolve) => {
+	return createDeferredPromise((resolve) => {
 		actor.subscribe({
 			complete: () => {
 				const finalSnapshot = actor.getSnapshot();
@@ -218,7 +241,11 @@ export async function runGenerateMachine(
 				const duration = Date.now() - startTime;
 
 				// Clear persisted state on completion
-				clearSnapshot(persistPath).catch(() => {});
+				void (async () => {
+					try {
+						await clearSnapshot(persistPath);
+					} catch {}
+				})();
 
 				// Only the explicit "complete" state is a successful outcome.
 				// Other terminal states (for example "exited") represent cancel/error exits.

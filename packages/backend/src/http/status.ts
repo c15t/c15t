@@ -9,9 +9,11 @@
  * a failed check, and the same single cheap query to verify connectivity.
  */
 
-import { getIpAddress, type IpAddressConfig } from '@c15t/schema/geo';
+import { getIpAddress } from '@c15t/schema/geo';
+import type { IpAddressConfig } from '@c15t/schema/geo';
 import { Effect } from 'effect';
-import { SqlClient, type SqlError } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/unstable/sql';
+import type { SqlError } from 'effect/unstable/sql';
 
 import { readInitSignals } from './init';
 

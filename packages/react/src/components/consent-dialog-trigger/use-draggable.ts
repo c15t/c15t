@@ -9,13 +9,12 @@
  */
 
 import {
-	type CornerPosition,
 	calculateCornerFromDrag,
 	createInitialDragState,
-	type DragState,
 	getPersistedPosition,
 	persistPosition as persistToStorage,
 } from '@c15t/ui/utils/trigger-utils';
+import type { CornerPosition, DragState } from '@c15t/ui/utils/trigger-utils';
 import { useCallback, useRef, useState } from 'react';
 
 /**

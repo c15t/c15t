@@ -4,6 +4,12 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 import { chromium } from 'playwright';
 
+function createDeferredPromise(run) {
+	const deferred = Promise.withResolvers();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 /**
  * The v3 Tailwind override contract:
  *
@@ -102,7 +108,7 @@ async function stopServer(server) {
 	}
 
 	server.kill('SIGTERM');
-	await new Promise((resolve) => server.once('exit', resolve));
+	await createDeferredPromise((resolve) => server.once('exit', resolve));
 }
 
 function assertEqual(actual, expected, message) {
@@ -312,7 +318,9 @@ async function main() {
 	}
 }
 
-main().catch((error) => {
+try {
+	await main();
+} catch (error) {
 	console.error(error);
 	process.exitCode = 1;
-});
+}

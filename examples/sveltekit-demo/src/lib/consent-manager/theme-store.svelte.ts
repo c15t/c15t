@@ -1,6 +1,7 @@
 import { browser } from '$app/environment';
 
-import { type ThemePresetName, themePresets } from './theme-presets';
+import { themePresets } from './theme-presets';
+import type { ThemePresetName } from './theme-presets';
 
 function createThemePresetStore() {
 	let preset = $state<ThemePresetName>('none');

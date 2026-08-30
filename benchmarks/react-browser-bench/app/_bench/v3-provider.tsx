@@ -1,14 +1,11 @@
 'use client';
 
-import {
-	ConsentBanner,
-	ConsentDialog,
-	ConsentProvider,
-	type ConsentProviderOptions,
-} from '@c15t/react/v3';
+import { ConsentBanner, ConsentDialog, ConsentProvider } from '@c15t/react/v3';
+import type { ConsentProviderOptions } from '@c15t/react/v3';
 import type { ReactNode } from 'react';
 
-import { getBenchState, type ReactBenchScenario } from './state';
+import { getBenchState } from './state';
+import type { ReactBenchScenario } from './state';
 import { ReactV3BenchmarkProbe } from './v3-probe';
 
 const consentCategories = [

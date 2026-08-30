@@ -9,14 +9,8 @@ import {
 	togglePreferenceItemValue,
 } from '@c15t/ui/primitives/preference-item';
 import styles from '@c15t/ui/styles/v3/preference-item';
-import {
-	createContext,
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
-	useContext,
-	useId,
-} from 'react';
+import { createContext, forwardRef, useContext, useId } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/v3/hooks/use-theme';

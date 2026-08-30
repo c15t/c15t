@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import {
-	type CONSENT_CATEGORY,
-	getConsentAvailableCategories,
-} from '@c15t/core/v3/consent-record';
+import { getConsentAvailableCategories } from '@c15t/core/v3/consent-record';
+import type { CONSENT_CATEGORY } from '@c15t/core/v3/consent-record';
 /**
  * Inline consent-management widget for settings and privacy pages.
  *

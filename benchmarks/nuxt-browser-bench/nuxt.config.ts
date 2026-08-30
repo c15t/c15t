@@ -70,7 +70,7 @@ export default defineNuxtConfig({
 				/**
 				 * Static consent mount per build (see app/consent-mount.vue).
 				 * Baseline builds get an empty stub so they never reference
-				 * @c15t/vue; full builds get a static `<ConsentRoot />` —
+				 * `@c15t/vue`; full builds get a static `<ConsentRoot />` —
 				 * dynamic-by-name global resolution costs +82ms banner-visible
 				 * on client-manifest (mobile + 200ms).
 				 */

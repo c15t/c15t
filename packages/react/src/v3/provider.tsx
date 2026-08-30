@@ -18,29 +18,33 @@ import type {
 } from '@c15t/core';
 import {
 	buildSubjectPostBody,
-	type ConsentKernel,
-	type ConsentSnapshot,
 	createConsentKernel,
 	createHostedTransport,
 	createOfflineTransport,
-	type InitResponse,
-	type KernelConfig,
-	type KernelEvent,
-	type KernelOverrides,
-	type KernelTranslations,
-	type KernelTransport,
-	type KernelUser,
 	mapInitOutputToInitResponse,
-	type TranslationsResponse,
+} from '@c15t/core/v3';
+import type {
+	ConsentKernel,
+	ConsentSnapshot,
+	InitResponse,
+	KernelConfig,
+	KernelEvent,
+	KernelOverrides,
+	KernelTranslations,
+	KernelTransport,
+	KernelUser,
+	TranslationsResponse,
 } from '@c15t/core/v3';
 import type { Script } from '@c15t/core/v3/modules/script-loader';
 import {
 	createWindowDebug,
 	resolveWindowDebugMode,
-	type WindowDebugMode,
 } from '@c15t/core/v3/modules/window-debug';
-import { buildDefaultOptInPolicy, type InitOutput } from '@c15t/schema/types';
-import { deepMergeTranslations, type Translations } from '@c15t/translations';
+import type { WindowDebugMode } from '@c15t/core/v3/modules/window-debug';
+import { buildDefaultOptInPolicy } from '@c15t/schema/types';
+import type { InitOutput } from '@c15t/schema/types';
+import { deepMergeTranslations } from '@c15t/translations';
+import type { Translations } from '@c15t/translations';
 import type { ReactNode } from 'react';
 import {
 	lazy,
@@ -138,7 +142,11 @@ export interface ConsentProviderOptions extends Pick<
 	 * compatibility and bridged through a minimal custom transport.
 	 */
 	endpointHandlers?: CustomClientOptions['endpointHandlers'];
-	/** @internal Adapter package name reported by `window.c15t`. */
+	/**
+	 * Adapter package name reported by `window.c15t`.
+	 *
+	 * @internal
+	 */
 	__debugPkg?: string;
 }
 
@@ -758,17 +766,17 @@ function ScriptsMount({
 	useEffect(() => {
 		if (!kernel) return;
 		let disposed = false;
-		void import('@c15t/core/v3/modules/script-loader').then(
-			({ createScriptLoader }) => {
-				if (disposed) return;
-				const created = createScriptLoader({
-					kernel,
-					scripts: latestScriptsRef.current,
-					onDebug: latestOptionsRef.current?.onDebug,
-				});
-				handleRef.current = created;
-			}
-		);
+		void (async () => {
+			const { createScriptLoader } =
+				await import('@c15t/core/v3/modules/script-loader');
+			if (disposed) return;
+			const created = createScriptLoader({
+				kernel,
+				scripts: latestScriptsRef.current,
+				onDebug: latestOptionsRef.current?.onDebug,
+			});
+			handleRef.current = created;
+		})();
 		return () => {
 			disposed = true;
 			handleRef.current?.dispose();
@@ -800,20 +808,20 @@ function NetworkBlockerMount({
 	useEffect(() => {
 		if (!kernel) return;
 		let disposed = false;
-		void import('@c15t/core/v3/modules/network-blocker').then(
-			({ createNetworkBlocker }) => {
-				if (disposed) return;
-				const latest = latestOptionsRef.current;
-				const created = createNetworkBlocker({
-					kernel,
-					rules: latest.rules,
-					enabled: latest.enabled,
-					logBlockedRequests: latest.logBlockedRequests,
-					onRequestBlocked: latest.onRequestBlocked,
-				});
-				handleRef.current = created;
-			}
-		);
+		void (async () => {
+			const { createNetworkBlocker } =
+				await import('@c15t/core/v3/modules/network-blocker');
+			if (disposed) return;
+			const latest = latestOptionsRef.current;
+			const created = createNetworkBlocker({
+				kernel,
+				rules: latest.rules,
+				enabled: latest.enabled,
+				logBlockedRequests: latest.logBlockedRequests,
+				onRequestBlocked: latest.onRequestBlocked,
+			});
+			handleRef.current = created;
+		})();
 		return () => {
 			disposed = true;
 			handleRef.current?.dispose();
@@ -866,11 +874,12 @@ function ThemeStyleMount({ theme }: { theme?: Theme }) {
 		}
 
 		let disposed = false;
-		void import('@c15t/ui/theme').then(({ generateThemeCSS }) => {
+		void (async () => {
+			const { generateThemeCSS } = await import('@c15t/ui/theme');
 			if (!disposed) {
 				setThemeCSS(generateThemeCSS(theme as never));
 			}
-		});
+		})();
 
 		return () => {
 			disposed = true;

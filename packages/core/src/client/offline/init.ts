@@ -7,9 +7,8 @@ import {
 	deepMergeTranslations,
 	enTranslations,
 	selectLanguage,
-	type TranslationConfig,
-	type Translations,
 } from '@c15t/translations';
+import type { TranslationConfig, Translations } from '@c15t/translations';
 
 import { checkJurisdiction } from '../../libs/jurisdiction';
 import type { OfflinePolicyConfig } from '../../store/type';

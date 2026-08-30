@@ -3,10 +3,8 @@ import { join } from 'node:path';
 
 import { coreRuntimeBudgets } from '@c15t/benchmarking/budgets';
 import { coreFixtures } from '@c15t/benchmarking/fixtures';
-import {
-	BENCHMARK_SCHEMA_VERSION,
-	type BenchmarkResult,
-} from '@c15t/benchmarking/schema';
+import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
+import type { BenchmarkResult } from '@c15t/benchmarking/schema';
 import {
 	getEnvironment,
 	safeBaseSha,
@@ -15,13 +13,13 @@ import {
 	writeJson,
 } from '@c15t/benchmarking/utils';
 import {
-	type ConsentState,
 	configureConsentManager,
 	createConsentManagerStore,
 	deleteConsentFromStorage,
 	getConsentFromStorage,
 	saveConsentToStorage,
 } from '@c15t/core';
+import type { ConsentState } from '@c15t/core';
 
 import { ensureBenchmarkDom } from './runtime-setup';
 

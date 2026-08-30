@@ -12,6 +12,29 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import FullFlowFixture from '../../__tests__/fixtures/full-flow-fixture.svelte';
 import type { ConsentManagerOptions } from '../../lib/types';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 const defaultOptions: ConsentManagerOptions = {
 	mode: 'offline',
 };
@@ -57,7 +80,7 @@ describe('ConsentDialogTrigger', () => {
 		});
 
 		// Trigger should NOT appear even after consent
-		await new Promise((resolve) => setTimeout(resolve, 300));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 300));
 		const trigger = document.querySelector(
 			'button[aria-label="Open privacy settings"]'
 		);

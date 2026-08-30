@@ -1,9 +1,9 @@
 'use client';
 
-import {
-	createPersistence,
-	type PersistenceHandle,
-	type PersistenceOptions,
+import { createPersistence } from '@c15t/core/v3/modules/persistence';
+import type {
+	PersistenceHandle,
+	PersistenceOptions,
 } from '@c15t/core/v3/modules/persistence';
 import { useEffect, useState } from 'react';
 

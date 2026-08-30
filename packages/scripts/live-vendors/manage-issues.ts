@@ -11,11 +11,8 @@
  *   GITHUB_TOKEN=... GITHUB_REPOSITORY=owner/repo \
  *     bun live-vendors/manage-issues.ts --report live-vendors-report.json
  */
-import {
-	type ExistingMonitorIssue,
-	MONITOR_ISSUE_TITLE_PREFIX,
-	planMonitorIssueActions,
-} from './report';
+import { MONITOR_ISSUE_TITLE_PREFIX, planMonitorIssueActions } from './report';
+import type { ExistingMonitorIssue } from './report';
 import type { LiveVendorReport } from './types';
 
 const GITHUB_REQUEST_TIMEOUT_MS = 30_000;
@@ -32,7 +29,7 @@ interface GitHubIssue {
  *
  * @param argv - Arguments after the script path.
  * @returns The report path, defaulting to `live-vendors-report.json`.
- * @throws `Error` when `--report` is passed without a value.
+ * @throws {Error} when `--report` is passed without a value.
  */
 function parseReportPath(argv: string[]): string {
 	const index = argv.indexOf('--report');
@@ -53,7 +50,7 @@ function parseReportPath(argv: string[]): string {
  *
  * @param name - Environment variable name.
  * @returns The non-empty value.
- * @throws `Error` naming the variable when it is unset or empty.
+ * @throws {Error} naming the variable when it is unset or empty.
  */
 function requireEnv(name: string): string {
 	const value = Bun.env[name];
@@ -73,7 +70,7 @@ function requireEnv(name: string): string {
  * @param path - REST path beginning with `/`.
  * @param body - Optional JSON payload.
  * @returns The parsed JSON response.
- * @throws `Error` with the status and response text on non-2xx responses,
+ * @throws {Error} with the status and response text on non-2xx responses,
  * or an abort error when the request exceeds 30s.
  */
 async function githubRequest<T>(
@@ -114,7 +111,7 @@ async function githubRequest<T>(
  * Lists open monitor issues (deduped by title prefix), including bodies so
  * failure signatures can be compared.
  *
- * @throws `Error` when a GitHub API page request fails.
+ * @throws {Error} when a GitHub API page request fails.
  */
 async function listOpenMonitorIssues(
 	token: string,

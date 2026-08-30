@@ -2,7 +2,8 @@
 
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+import { forwardRef } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
 import { useHeadlessIABConsentUI } from '~/v3/component-hooks/use-headless-iab-consent-ui';
 import * as Button from '~/v3/components/shared/ui/button';

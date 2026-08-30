@@ -1,4 +1,5 @@
-import { onMounted, type Ref, ref } from 'vue';
+import { onMounted, ref } from 'vue';
+import type { Ref } from 'vue';
 
 /**
  * Track whether the consuming component has mounted.

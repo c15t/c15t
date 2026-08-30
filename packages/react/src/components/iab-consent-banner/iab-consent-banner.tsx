@@ -7,7 +7,8 @@
  */
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
-import { type FC, type RefObject, useRef } from 'react';
+import { useRef } from 'react';
+import type { FC, RefObject } from 'react';
 
 import { Box } from '~/components/shared/primitives/box';
 import { resolveConsentButtonStyle } from '~/components/shared/primitives/button';

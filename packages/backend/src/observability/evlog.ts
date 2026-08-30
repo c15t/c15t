@@ -43,8 +43,10 @@
  * compliance incident rather than an untidy log. Turning it off is deliberate.
  */
 
-import { type AuditableLogger, initLogger } from 'evlog';
-import { type EvlogHonoOptions, evlog } from 'evlog/hono';
+import { initLogger } from 'evlog';
+import type { AuditableLogger } from 'evlog';
+import { evlog } from 'evlog/hono';
+import type { EvlogHonoOptions } from 'evlog/hono';
 import type { MiddlewareHandler } from 'hono';
 
 import type { RequestLog } from './log';
@@ -174,8 +176,8 @@ export function resolveOptions(
  * Without this every event is `info`, including 500s, because Hono answers a
  * thrown handler error with a response rather than propagating it.
  */
-export const gradeLevel: MiddlewareHandler = async (c, next) => {
-	await next();
+export const gradeLevel: MiddlewareHandler = async (c, runNext) => {
+	await runNext();
 
 	const log: AuditableLogger | undefined = c.get('log');
 	if (log === undefined) {

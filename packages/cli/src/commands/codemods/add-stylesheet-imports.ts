@@ -334,7 +334,7 @@ function removeFrameworkStylesheetImports(
  * });
  * ```
  *
- * @throws Propagates unexpected setup failures such as directory traversal errors.
+ * @throws {Error} Propagates unexpected setup failures such as directory traversal errors.
  */
 export async function runAddStylesheetImportsCodemod(
 	options: CodemodRunOptions

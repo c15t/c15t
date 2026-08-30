@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 
 import {
 	BENCHMARK_SCHEMA_VERSION,
-	type BenchmarkResult,
 	getEnvironment,
 	safeBaseSha,
 	safeCommitSha,
@@ -15,12 +14,34 @@ import {
 	summarizeMetric,
 	writeJson,
 } from '@c15t/benchmarking';
+import type { BenchmarkResult } from '@c15t/benchmarking';
 import { chromium } from 'playwright';
 
-import {
-	allScenarioConfigs,
-	type ScriptLifecycleScenarioConfig,
-} from '../app/_bench/fixtures';
+import { allScenarioConfigs } from '../app/_bench/fixtures';
+import type { ScriptLifecycleScenarioConfig } from '../app/_bench/fixtures';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 const HOST = '127.0.0.1';
 const PORT = 4313;
@@ -65,7 +86,7 @@ async function waitForServer() {
 }
 
 async function runCommand(args: string[], label: string) {
-	return await new Promise<void>((resolvePromise, rejectPromise) => {
+	return await createDeferredPromise<void>((resolvePromise, rejectPromise) => {
 		const command = spawn('bun', args, {
 			cwd: appDir,
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -391,7 +412,9 @@ async function run() {
 	}
 }
 
-run().catch((error) => {
+try {
+	await run();
+} catch (error) {
 	console.error(error);
 	process.exit(1);
-});
+}

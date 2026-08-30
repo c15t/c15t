@@ -10,11 +10,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { configureConsentManager, createConsentManagerStore } from '@c15t/core';
-import {
-	createConsentKernel,
-	type InitResponse,
-	type KernelTransport,
-} from '@c15t/core/v3';
+import { createConsentKernel } from '@c15t/core/v3';
+import type { InitResponse, KernelTransport } from '@c15t/core/v3';
 
 import { ensureBenchmarkDom } from './runtime-setup';
 

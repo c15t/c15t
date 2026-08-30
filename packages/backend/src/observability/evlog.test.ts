@@ -20,7 +20,8 @@
 
 import { PgliteClient } from '@effect/sql-pglite';
 import { assert, describe, it } from '@effect/vitest';
-import { Effect, type Layer, ManagedRuntime } from 'effect';
+import { Effect, ManagedRuntime } from 'effect';
+import type { Layer } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import type { DrainContext } from 'evlog';
 

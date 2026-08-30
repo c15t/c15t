@@ -1,8 +1,8 @@
 import {
 	CssLayerScenarioRenderer,
-	type CssLayerSurface,
 	getCssLayerScenario,
 } from '@c15t/benchmarking';
+import type { CssLayerSurface } from '@c15t/benchmarking';
 import { notFound } from 'next/navigation';
 
 const VALID_SURFACES = new Set<CssLayerSurface>(['banner', 'dialog']);

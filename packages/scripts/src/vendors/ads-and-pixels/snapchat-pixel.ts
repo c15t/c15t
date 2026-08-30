@@ -1,7 +1,8 @@
 import type { Script } from '@c15t/core';
 
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import { buildQueuePixelInstall } from '../_shared/install-builders';
 import { resolveScriptUrl } from '../_shared/script-url';
 
@@ -193,7 +194,7 @@ export interface SnapchatPixelOptions {
  * @returns A resolved c15t `Script` configuration that defines the Snapchat
  *   queue stub, runs `init` (and optionally `PAGE_VIEW`), and then loads the
  *   Snapchat SDK script URL.
- * @throws `resolveManifest` may throw when required placeholders cannot be
+ * @throws {Error} `resolveManifest` may throw when required placeholders cannot be
  *   resolved (for example, when `pixelId` is missing/empty) or when provided
  *   manifest values are invalid for interpolation.
  *

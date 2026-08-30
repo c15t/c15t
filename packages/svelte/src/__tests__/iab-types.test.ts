@@ -8,7 +8,8 @@
 import type { GlobalVendorList } from '@c15t/core';
 import { describe, expect, test } from 'vitest';
 
-import { type NonIABVendor, processGVLData } from '../lib/iab-types';
+import { processGVLData } from '../lib/iab-types';
+import type { NonIABVendor } from '../lib/iab-types';
 
 // Helper to create a minimal GVL fixture
 function createGVL(

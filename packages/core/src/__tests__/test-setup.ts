@@ -14,6 +14,29 @@ import { vi } from 'vitest';
 import type { ConsentInfo, ConsentState } from '../types';
 import type { AllConsentNames } from '../types/consent-types';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // LocalStorage Mock Factory
 // ─────────────────────────────────────────────────────────────────────────────
@@ -361,7 +384,7 @@ export const testConsentNames: AllConsentNames[] = [
  * Waits for all pending promises to resolve.
  */
 export async function flushPromises(): Promise<void> {
-	await new Promise((resolve) => setTimeout(resolve, 0));
+	await createDeferredPromise((resolve) => setTimeout(resolve, 0));
 }
 
 /**
@@ -376,6 +399,6 @@ export async function waitFor(
 		if (Date.now() - start > timeout) {
 			throw new Error('Timeout waiting for condition');
 		}
-		await new Promise((resolve) => setTimeout(resolve, 10));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 10));
 	}
 }

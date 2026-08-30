@@ -7,7 +7,8 @@
  */
 
 import type { TestDriver } from '../driver';
-import { conformanceTest, type SuiteApi } from './helpers';
+import { conformanceTest } from './helpers';
+import type { SuiteApi } from './helpers';
 
 const BANNER_ROOT = '[data-testid="consent-banner-root"]';
 

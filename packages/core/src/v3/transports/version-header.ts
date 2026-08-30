@@ -11,7 +11,7 @@
  * header is safe and version-gated manifest serving stays possible.
  *
  * CORS note: the backend allowlists this header (`SUPPORTED_HEADERS` in
- * @c15t/backend cors middleware). On cross-origin hosted mode this turns
+ * `@c15t/backend` cors middleware). On cross-origin hosted mode this turns
  * the otherwise-simple `/init` GET into a preflighted request — one extra
  * OPTIONS roundtrip per origin per `maxAge` window (600s). Same-origin and
  * manifest modes are unaffected.

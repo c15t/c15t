@@ -1,7 +1,5 @@
-import {
-	type CssLayerSurface,
-	CssLayerV3ScenarioRenderer,
-} from '@c15t/benchmarking/css-layer-v3-runtime';
+import { CssLayerV3ScenarioRenderer } from '@c15t/benchmarking/css-layer-v3-runtime';
+import type { CssLayerSurface } from '@c15t/benchmarking/css-layer-v3-runtime';
 import { notFound } from 'next/navigation';
 
 type V3Surface = CssLayerSurface | 'widget';

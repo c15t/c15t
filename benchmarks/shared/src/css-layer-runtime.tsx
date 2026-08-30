@@ -2,12 +2,11 @@
 
 import {
 	ConsentBanner,
-	type ConsentBannerProps,
 	ConsentDialog,
-	type ConsentDialogProps,
 	ConsentManagerProvider,
 	useConsentManager,
 } from '@c15t/react';
+import type { ConsentBannerProps, ConsentDialogProps } from '@c15t/react';
 import { useEffect } from 'react';
 
 import type {

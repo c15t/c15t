@@ -43,7 +43,8 @@ import { SqliteClient } from '@effect/sql-sqlite-node';
 import { Effect, Layer, Redacted } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 
-import { singleTenant, type Tenant, layer as tenantLayer } from '../db/tenant';
+import { singleTenant, layer as tenantLayer } from '../db/tenant';
+import type { Tenant } from '../db/tenant';
 
 const MYSQL_URL = process.env.C15T_TEST_MYSQL_URL;
 const PG_URL = process.env.C15T_TEST_PG_URL;

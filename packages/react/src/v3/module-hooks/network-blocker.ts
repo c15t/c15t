@@ -1,9 +1,9 @@
 'use client';
 
-import {
-	type BlockedRequestInfo,
-	type NetworkBlockerHandle,
-	type NetworkBlockerRule,
+import type {
+	BlockedRequestInfo,
+	NetworkBlockerHandle,
+	NetworkBlockerRule,
 } from '@c15t/core/v3/modules/network-blocker';
 import { useEffect, useRef } from 'react';
 
@@ -63,19 +63,19 @@ export function useNetworkBlocker(
 
 	useEffect(() => {
 		let disposed = false;
-		void import('@c15t/core/v3/modules/network-blocker').then(
-			({ createNetworkBlocker }) => {
-				if (disposed) return;
-				const created = createNetworkBlocker({
-					kernel,
-					rules: latestRulesRef.current,
-					enabled: latestEnabledRef.current,
-					logBlockedRequests: options.logBlockedRequests,
-					onRequestBlocked: options.onRequestBlocked,
-				});
-				handleRef.current = created;
-			}
-		);
+		void (async () => {
+			const { createNetworkBlocker } =
+				await import('@c15t/core/v3/modules/network-blocker');
+			if (disposed) return;
+			const created = createNetworkBlocker({
+				kernel,
+				rules: latestRulesRef.current,
+				enabled: latestEnabledRef.current,
+				logBlockedRequests: options.logBlockedRequests,
+				onRequestBlocked: options.onRequestBlocked,
+			});
+			handleRef.current = created;
+		})();
 
 		return () => {
 			disposed = true;

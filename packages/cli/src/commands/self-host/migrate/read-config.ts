@@ -25,7 +25,7 @@ interface BackendConfig extends Record<string, unknown> {
 /**
  * Reads the config and returns its `database` option.
  *
- * @throws when the file is missing, unreadable, or has no `database`.
+ * @throws {Error} when the file is missing, unreadable, or has no `database`.
  */
 export async function readDatabaseConfig(
 	context: CliContext,

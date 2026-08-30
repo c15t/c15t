@@ -1,6 +1,7 @@
 'use client';
 
-import { type ComponentType, Fragment, type ReactNode } from 'react';
+import { Fragment } from 'react';
+import type { ComponentType, ReactNode } from 'react';
 
 import type { HeadlessConsentSurfaceState } from '~/hooks/use-headless-consent-ui';
 import type { CSSPropertiesWithVars, CSSVariables } from '~/types/theme';

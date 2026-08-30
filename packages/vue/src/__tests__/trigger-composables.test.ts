@@ -7,10 +7,10 @@ import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick, ref } from 'vue';
 
-import {
-	type UseDraggableOptions,
-	type UseDraggableReturn,
-	useDraggable,
+import { useDraggable } from '../runtime/composables/use-draggable';
+import type {
+	UseDraggableOptions,
+	UseDraggableReturn,
 } from '../runtime/composables/use-draggable';
 import { useLocalStorageRef } from '../runtime/composables/use-local-storage-ref';
 

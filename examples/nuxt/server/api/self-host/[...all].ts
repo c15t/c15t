@@ -12,7 +12,8 @@
 import { c15tInstance, createMigrator, policyPackPresets } from '@c15t/backend';
 import { toWebRequest } from 'h3';
 
-import { createAdapter, type ResolvedAdapter } from '../../../lib/adapter';
+import { createAdapter } from '../../../lib/adapter';
+import type { ResolvedAdapter } from '../../../lib/adapter';
 
 /**
  * Origins allowed to call this backend cross-origin.
@@ -93,13 +94,17 @@ let instancePromise: ReturnType<typeof createInstance> | undefined;
 
 function getInstance() {
 	if (!instancePromise) {
-		instancePromise = createInstance().catch((error) => {
-			// Drop the memo so a transient failure (database asleep, credentials
-			// since corrected) doesn't poison every later request for the
-			// lifetime of the process.
-			instancePromise = undefined;
-			throw error;
-		});
+		instancePromise = (async () => {
+			try {
+				return await createInstance();
+			} catch (error) {
+				// Drop the memo so a transient failure (database asleep, credentials
+				// since corrected) doesn't poison every later request for the
+				// lifetime of the process.
+				instancePromise = undefined;
+				throw error;
+			}
+		})();
 	}
 	return instancePromise;
 }

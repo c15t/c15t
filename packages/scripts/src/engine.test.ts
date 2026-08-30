@@ -1,7 +1,5 @@
-import {
-	type ScriptDebugEvent,
-	subscribeToScriptDebugEvents,
-} from '@c15t/core';
+import { subscribeToScriptDebugEvents } from '@c15t/core';
+import type { ScriptDebugEvent } from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -16,9 +14,9 @@ import { resolveManifest } from './resolve';
 import {
 	VENDOR_MANIFEST_KIND,
 	VENDOR_MANIFEST_SCHEMA_VERSION,
-	type VendorManifest,
 	vendorManifestContract,
 } from './types';
+import type { VendorManifest } from './types';
 
 type TestGlobal = typeof globalThis & Record<string, unknown>;
 

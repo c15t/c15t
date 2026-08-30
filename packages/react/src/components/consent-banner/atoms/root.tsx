@@ -2,15 +2,8 @@
 
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
-import {
-	type CSSProperties,
-	type FC,
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
-	useEffect,
-	useState,
-} from 'react';
+import { forwardRef, useEffect, useState } from 'react';
+import type { CSSProperties, FC, HTMLAttributes, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';

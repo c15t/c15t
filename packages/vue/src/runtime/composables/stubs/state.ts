@@ -1,4 +1,5 @@
-import { getCurrentScope, onScopeDispose, type Ref, ref } from 'vue';
+import { getCurrentScope, onScopeDispose, ref } from 'vue';
+import type { Ref } from 'vue';
 
 export type UseStateInit<T> = (() => T) | T;
 

@@ -1,7 +1,8 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-dialog';
-import { forwardRef, type HTMLAttributes, type ReactNode } from 'react';
+import { forwardRef } from 'react';
+import type { HTMLAttributes, ReactNode } from 'react';
 
 interface IABConsentDialogContentProps extends HTMLAttributes<HTMLDivElement> {
 	children: ReactNode;

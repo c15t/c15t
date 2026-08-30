@@ -21,10 +21,8 @@
  * backwards-compatible way means adding optional fields; the kernel
  * ignores unknown fields.
  */
-import {
-	CONSENT_REQUEST_HEADER_NAMES,
-	type InitOutput,
-} from '@c15t/schema/types';
+import { CONSENT_REQUEST_HEADER_NAMES } from '@c15t/schema/types';
+import type { InitOutput } from '@c15t/schema/types';
 
 import type {
 	InitContext,

@@ -8,8 +8,8 @@
 		listDomIds,
 		makeScripts,
 		publishScriptBenchState,
-		type ScriptCountBenchState,
 	} from './script-count-state';
+	import type { ScriptCountBenchState } from './script-count-state';
 
 	let { count }: { count: number } = $props();
 

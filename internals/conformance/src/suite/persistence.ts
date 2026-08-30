@@ -21,9 +21,9 @@ import {
 	clearBrowserConsentStorage,
 	conformanceTest,
 	queryByTestId,
-	type SuiteApi,
 	waitForCondition,
 } from './helpers';
+import type { SuiteApi } from './helpers';
 
 const BANNER_ROOT = 'consent-banner-root';
 const ACCEPT_BUTTON = 'consent-banner-accept-button';

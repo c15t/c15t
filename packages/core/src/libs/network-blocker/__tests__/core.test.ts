@@ -1,5 +1,5 @@
 /**
- * @fileoverview Tests for the network blocker core logic
+ * @file Tests for the network blocker core logic
  */
 
 import { describe, expect, it } from 'vitest';

@@ -15,8 +15,8 @@ function createMockStore(): StoreApi<ConsentStoreState> {
 			onBeforeConsentRevocationReload: undefined,
 		},
 		networkBlocker: undefined,
-		setCallback: (name: string, callback: unknown) => {
-			(state.callbacks as Record<string, unknown>)[name] = callback;
+		setCallback: (name: string, handler: unknown) => {
+			(state.callbacks as Record<string, unknown>)[name] = handler;
 		},
 		setNetworkBlocker: (networkBlocker: unknown) => {
 			state.networkBlocker =

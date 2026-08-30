@@ -1,10 +1,10 @@
 'use client';
 
-import {
-	type HeadlessIABBannerAction,
-	type HeadlessIABDialogAction,
-	type HeadlessIABPreferenceTab,
-	resolveIABBannerSummary,
+import { resolveIABBannerSummary } from '@c15t/iab/v3/headless';
+import type {
+	HeadlessIABBannerAction,
+	HeadlessIABDialogAction,
+	HeadlessIABPreferenceTab,
 } from '@c15t/iab/v3/headless';
 import { useCallback, useMemo } from 'react';
 

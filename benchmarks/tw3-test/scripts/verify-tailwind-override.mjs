@@ -4,6 +4,12 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 import { chromium } from 'playwright';
 
+function createDeferredPromise(run) {
+	const deferred = Promise.withResolvers();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 const PORT = 3111;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const TITLE_SELECTOR = 'text=We value your privacy';
@@ -89,11 +95,13 @@ async function main() {
 		}
 	} finally {
 		server.kill('SIGTERM');
-		await new Promise((resolve) => server.once('exit', resolve));
+		await createDeferredPromise((resolve) => server.once('exit', resolve));
 	}
 }
 
-main().catch((error) => {
+try {
+	await main();
+} catch (error) {
 	console.error(error);
 	process.exitCode = 1;
-});
+}

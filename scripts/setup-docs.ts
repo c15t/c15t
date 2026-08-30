@@ -1,5 +1,12 @@
 #!/usr/bin/env tsx
 
+import { execSync } from 'node:child_process';
+import { cpSync, existsSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { exit } from 'node:process';
+import { fileURLToPath } from 'node:url';
+
 const log = console.log;
 const error = console.error;
 
@@ -57,13 +64,6 @@ const error = console.error;
  * CONSENT_GIT_TOKEN=xxx tsx scripts/setup-docs.ts --vercel --branch=canary
  * ```
  */
-
-import { execSync } from 'node:child_process';
-import { cpSync, existsSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { exit } from 'node:process';
-import { fileURLToPath } from 'node:url';
 
 /**
  * Type definitions for unified fetch process
@@ -421,7 +421,9 @@ function executeCommand(
  * @see {@link https://git-scm.com/docs/git-clone | Git Clone Documentation}
  * @see {@link https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository | GitHub Repository Cloning}
  *
- * @internal This function handles sensitive authentication tokens
+ * This function handles sensitive authentication tokens
+ *
+ * @internal
  */
 function cloneDocumentationRepository(
 	authenticationToken: GitHubToken,

@@ -111,16 +111,21 @@ function getPromiseMap(
 }
 
 function createPrefetchEntry(config: PrefetchConfig): PrefetchEntry {
-	const promise = fetch(config.url, {
-		method: 'GET',
-		credentials: config.credentials,
-		headers: config.headers,
-	})
-		.then((response) =>
-			response.ok ? (response.json() as Promise<InitOutput>) : undefined
-		)
-		.then((init) => toInitialData(config, init))
-		.catch(() => undefined);
+	const promise = (async () => {
+		try {
+			const response = await fetch(config.url, {
+				method: 'GET',
+				credentials: config.credentials,
+				headers: config.headers,
+			});
+			const init = response.ok
+				? ((await response.json()) as InitOutput)
+				: undefined;
+			return toInitialData(config, init);
+		} catch {
+			return undefined;
+		}
+	})();
 
 	return {
 		promise,

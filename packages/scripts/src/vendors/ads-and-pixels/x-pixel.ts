@@ -1,7 +1,8 @@
 import type { Script } from '@c15t/core';
 
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 
 export interface XPixelContent {
 	/**
@@ -187,7 +188,7 @@ export function xPixel({ pixelId, scriptSrc }: XPixelOptions): Script {
  * @example 'tw-xxxx-xxxx'
  * @param metadata - Optional metadata to track
  *
- * @usage
+ * @example
  * ```ts
  * xPixelEvent('tw-xxxx-xxxx', {
  *   value: 200.00,

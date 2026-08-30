@@ -21,16 +21,14 @@
 import { getRegionFromHeaders, headersToRecord } from '@c15t/schema/geo';
 import {
 	buildConsentManifestFromConfig,
-	type ConsentManifestConfig,
-	type InitOutput,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
+import type { ConsentManifestConfig, InitOutput } from '@c15t/schema/types';
 
-import { type GvlOptions, resolveGvl } from './gvl';
-import {
-	createPolicySnapshotToken,
-	type PolicySnapshotOptions,
-} from './policy-snapshot';
+import { resolveGvl } from './gvl';
+import type { GvlOptions } from './gvl';
+import { createPolicySnapshotToken } from './policy-snapshot';
+import type { PolicySnapshotOptions } from './policy-snapshot';
 
 export interface InitRequestSignals {
 	readonly country: string | null;

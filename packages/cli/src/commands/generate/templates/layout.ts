@@ -7,12 +7,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import {
-	Project,
-	type ReturnStatement,
-	type SourceFile,
-	SyntaxKind,
-} from 'ts-morph';
+import { Project, SyntaxKind } from 'ts-morph';
+import type { ReturnStatement, SourceFile } from 'ts-morph';
 
 import type { AvailablePackages } from '~/context/framework-detection';
 

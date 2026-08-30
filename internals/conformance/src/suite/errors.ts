@@ -6,8 +6,10 @@
  * - Empty policy list → widget still renders a root element.
  */
 
-import { DriverNotImplementedError, type TestDriver } from '../driver';
-import { conformanceTest, type SuiteApi } from './helpers';
+import { DriverNotImplementedError } from '../driver';
+import type { TestDriver } from '../driver';
+import { conformanceTest } from './helpers';
+import type { SuiteApi } from './helpers';
 
 export function runErrorConformance(driver: TestDriver, api: SuiteApi): void {
 	api.describe(`[${driver.framework}] errors`, () => {

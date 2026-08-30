@@ -6,15 +6,8 @@ import {
 } from '@c15t/ui/primitives/collapsible';
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import { collapsibleVariants } from '@c15t/ui/styles/primitives/collapsible';
-import {
-	type ButtonHTMLAttributes,
-	createContext,
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
-	useContext,
-	useId,
-} from 'react';
+import { createContext, forwardRef, useContext, useId } from 'react';
+import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 
 import { useControllableState } from '~/components/shared/libs/use-controllable-state';
 import { useTheme } from '~/hooks/use-theme';

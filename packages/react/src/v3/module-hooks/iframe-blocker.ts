@@ -33,17 +33,17 @@ export function useIframeBlocker(
 
 	useEffect(() => {
 		let disposed = false;
-		void import('@c15t/core/v3/modules/iframe-blocker').then(
-			({ createIframeBlocker }) => {
-				if (disposed) return;
-				const created = createIframeBlocker({
-					kernel,
-					disableAutomaticBlocking:
-						latestOptionsRef.current.disableAutomaticBlocking,
-				});
-				handleRef.current = created;
-			}
-		);
+		void (async () => {
+			const { createIframeBlocker } =
+				await import('@c15t/core/v3/modules/iframe-blocker');
+			if (disposed) return;
+			const created = createIframeBlocker({
+				kernel,
+				disableAutomaticBlocking:
+					latestOptionsRef.current.disableAutomaticBlocking,
+			});
+			handleRef.current = created;
+		})();
 
 		return () => {
 			disposed = true;

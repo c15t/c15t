@@ -1,5 +1,5 @@
 /**
- * @c15t/nextjs/v3 — Next.js App Router adapter (experimental).
+ * `@c15t/nextjs/v3` — Next.js App Router adapter (experimental).
  *
  * Unstable. API may change before v3.0 stable.
  *

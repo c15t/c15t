@@ -8,7 +8,8 @@ import {
 	setupScriptHelperTest,
 	toArgumentsArray,
 } from '../../__tests__/helpers';
-import { type ClarityConsentV2Payload, clarity } from './microsoft-clarity';
+import { clarity } from './microsoft-clarity';
+import type { ClarityConsentV2Payload } from './microsoft-clarity';
 
 const consentv2Call = (payload: ClarityConsentV2Payload) =>
 	toArgumentsArray(['consentv2', payload]);

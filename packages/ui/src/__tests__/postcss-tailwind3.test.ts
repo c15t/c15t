@@ -6,8 +6,8 @@ import type { AcceptedPlugin } from 'postcss';
 import postcss from 'postcss';
 import { describe, expect, test } from 'vitest';
 
-import c15tTailwind3, * as pluginModule from '../postcss-tailwind3';
-import { isC15tUiStylesheetPath } from '../postcss-tailwind3';
+import tailwind3Plugin, { isC15tUiStylesheetPath } from '../postcss-tailwind3';
+import * as pluginModule from '../postcss-tailwind3';
 
 const TEST_DIR = dirname(fileURLToPath(import.meta.url));
 
@@ -32,7 +32,7 @@ const layeredCss = `
 `;
 
 async function processCss(from: string) {
-	const result = await postcss([c15tTailwind3]).process(layeredCss, { from });
+	const result = await postcss([tailwind3Plugin]).process(layeredCss, { from });
 	return result.css;
 }
 
@@ -63,7 +63,7 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 	});
 
 	test('removes bare @layer order statements for scoped c15t files', async () => {
-		const css = await postcss([c15tTailwind3]).process(
+		const css = await postcss([tailwind3Plugin]).process(
 			'@layer theme, base, components, utilities;',
 			{ from: '/app/node_modules/@c15t/ui/dist/styles/v3/button.css' }
 		);

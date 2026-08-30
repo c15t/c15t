@@ -8,7 +8,8 @@
 
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
-import { type FC, type RefObject, useRef } from 'react';
+import { useRef } from 'react';
+import type { FC, RefObject } from 'react';
 
 import { useHeadlessIABConsentUI } from '~/v3/component-hooks/use-headless-iab-consent-ui';
 import { Box } from '~/v3/components/shared/primitives/box';

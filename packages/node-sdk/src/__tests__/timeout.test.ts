@@ -6,6 +6,29 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { C15TClient, c15tClient } from '../index';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 describe('Timeout Configuration', () => {
 	let originalFetch: typeof globalThis.fetch;
 
@@ -33,7 +56,7 @@ describe('Timeout Configuration', () => {
 			const mockFetch = vi
 				.fn()
 				.mockImplementation((url: string, options: RequestInit) => {
-					return new Promise((resolve, reject) => {
+					return createDeferredPromise((resolve, reject) => {
 						// Simulate slow response
 						const timeoutId = setTimeout(() => {
 							resolve(
@@ -94,7 +117,7 @@ describe('Timeout Configuration', () => {
 			const mockFetch = vi
 				.fn()
 				.mockImplementation((url: string, options: RequestInit) => {
-					return new Promise((resolve, reject) => {
+					return createDeferredPromise((resolve, reject) => {
 						const timeoutId = setTimeout(() => {
 							resolve(
 								new Response(JSON.stringify({ id: 'sub_123' }), {
@@ -133,7 +156,7 @@ describe('Timeout Configuration', () => {
 			const mockFetch = vi
 				.fn()
 				.mockImplementation((url: string, options: RequestInit) => {
-					return new Promise((resolve, reject) => {
+					return createDeferredPromise((resolve, reject) => {
 						const timeoutId = setTimeout(() => {
 							resolve(
 								new Response(JSON.stringify({ id: 'sub_123' }), {
@@ -172,7 +195,7 @@ describe('Timeout Configuration', () => {
 			const mockFetch = vi
 				.fn()
 				.mockImplementation((url: string, options: RequestInit) => {
-					return new Promise((resolve, reject) => {
+					return createDeferredPromise((resolve, reject) => {
 						const timeoutId = setTimeout(() => {
 							resolve(
 								new Response(JSON.stringify({}), {
@@ -209,7 +232,7 @@ describe('Timeout Configuration', () => {
 			const mockFetch = vi
 				.fn()
 				.mockImplementation((url: string, options: RequestInit) => {
-					return new Promise((resolve, reject) => {
+					return createDeferredPromise((resolve, reject) => {
 						const timeoutId = setTimeout(() => {
 							resolve(
 								new Response(JSON.stringify({}), {

@@ -5,7 +5,10 @@ import dynamic from 'next/dynamic';
 import { useState } from 'react';
 
 const LazyIABConsentDialog = dynamic(
-	() => import('@c15t/react/v3/iab').then((mod) => mod.IABConsentDialog),
+	async () => {
+		const mod = await import('@c15t/react/v3/iab');
+		return mod.IABConsentDialog;
+	},
 	{ ssr: false }
 );
 

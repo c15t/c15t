@@ -7,12 +7,10 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-banner.module.js';
-import {
-	type PolicyUiAction,
-	type PolicyUiActionDirection,
-	shouldFillPolicyActions,
-} from '@c15t/ui/utils';
-import { type FC, Fragment, type ReactNode } from 'react';
+import { shouldFillPolicyActions } from '@c15t/ui/utils';
+import type { PolicyUiAction, PolicyUiActionDirection } from '@c15t/ui/utils';
+import { Fragment } from 'react';
+import type { FC, ReactNode } from 'react';
 
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { BrandingLink } from '~/components/shared/ui/branding';

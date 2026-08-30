@@ -6,7 +6,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { cn } from '../../lib/utils';
 import { disableTransitionsTemporarily, useTheme } from '../theme-provider';
 import { Button } from '../ui/button';
-import { type ThemePresetName, themePresets } from './theme-presets';
+import { themePresets } from './theme-presets';
+import type { ThemePresetName } from './theme-presets';
 
 // Shared module-level store so all useThemePreset() consumers stay in sync
 let _preset: ThemePresetName = 'none';

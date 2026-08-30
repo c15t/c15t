@@ -171,7 +171,7 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 	/**
 	 * Handles the 'ping' command.
 	 */
-	function handlePing(callback: TCFApiCallback<PingData>): void {
+	function handlePing(handler: TCFApiCallback<PingData>): void {
 		const pingData: PingData = {
 			gdprApplies,
 			cmpLoaded: cmpStatus === 'loaded',
@@ -185,72 +185,72 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 			tcfPolicyVersion: gvl.tcfPolicyVersion,
 		};
 
-		callback(pingData, true);
+		handler(pingData, true);
 	}
 
 	/**
 	 * Handles the 'getTCData' command.
 	 */
 	async function handleGetTCData(
-		callback: TCFApiCallback<TCData>,
+		handler: TCFApiCallback<TCData>,
 		_vendorIds?: number[]
 	): Promise<void> {
 		const tcData = await buildTCData();
-		callback(tcData, true);
+		handler(tcData, true);
 	}
 
 	/**
 	 * Handles the 'getInAppTCData' command (alias for getTCData).
 	 */
 	async function handleGetInAppTCData(
-		callback: TCFApiCallback<TCData>
+		handler: TCFApiCallback<TCData>
 	): Promise<void> {
-		return handleGetTCData(callback);
+		return handleGetTCData(handler);
 	}
 
 	/**
 	 * Handles the 'getVendorList' command.
 	 */
 	function handleGetVendorList(
-		callback: TCFApiCallback<GlobalVendorList>,
+		handler: TCFApiCallback<GlobalVendorList>,
 		_vendorListVersion?: number
 	): void {
-		callback(gvl, true);
+		handler(gvl, true);
 	}
 
 	/**
 	 * Handles the 'addEventListener' command.
 	 */
 	async function handleAddEventListener(
-		callback: TCFApiCallback<TCData>
+		handler: TCFApiCallback<TCData>
 	): Promise<void> {
 		const listenerId = nextListenerId++;
-		eventListeners.set(listenerId, callback);
+		eventListeners.set(listenerId, handler);
 
 		// Immediately call with current state
 		const tcData = await buildTCData('tcloaded', listenerId);
-		callback(tcData, true);
+		handler(tcData, true);
 	}
 
 	/**
 	 * Handles the 'removeEventListener' command.
 	 */
 	function handleRemoveEventListener(
-		callback: TCFApiCallback<boolean>,
+		handler: TCFApiCallback<boolean>,
 		listenerId: number
 	): void {
 		const existed = eventListeners.has(listenerId);
 		eventListeners.delete(listenerId);
-		callback(existed, true);
+		handler(existed, true);
 	}
 
 	/**
 	 * Notifies all event listeners of a state change.
 	 */
 	async function notifyEventListeners(eventStatus: EventStatus): Promise<void> {
-		for (const [listenerId, callback] of eventListeners) {
+		for (const [listenerId, listener] of eventListeners) {
 			const tcData = await buildTCData(eventStatus, listenerId);
-			callback(tcData, true);
+			listener(tcData, true);
 		}
 	}
 
@@ -266,39 +266,39 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 		window.__tcfapi = ((
 			command: string,
 			version: number,
-			callback: TCFApiCallback<unknown>,
+			handler: TCFApiCallback<unknown>,
 			parameter?: unknown
 		) => {
 			switch (command) {
 				case 'ping':
-					handlePing(callback as TCFApiCallback<PingData>);
+					handlePing(handler as TCFApiCallback<PingData>);
 					break;
 				case 'getTCData':
 					handleGetTCData(
-						callback as TCFApiCallback<TCData>,
+						handler as TCFApiCallback<TCData>,
 						parameter as number[] | undefined
 					);
 					break;
 				case 'getInAppTCData':
-					handleGetInAppTCData(callback as TCFApiCallback<TCData>);
+					handleGetInAppTCData(handler as TCFApiCallback<TCData>);
 					break;
 				case 'getVendorList':
 					handleGetVendorList(
-						callback as TCFApiCallback<GlobalVendorList>,
+						handler as TCFApiCallback<GlobalVendorList>,
 						parameter as number | undefined
 					);
 					break;
 				case 'addEventListener':
-					handleAddEventListener(callback as TCFApiCallback<TCData>);
+					handleAddEventListener(handler as TCFApiCallback<TCData>);
 					break;
 				case 'removeEventListener':
 					handleRemoveEventListener(
-						callback as TCFApiCallback<boolean>,
+						handler as TCFApiCallback<boolean>,
 						parameter as number
 					);
 					break;
 				default:
-					callback(null, false);
+					return handler(null, false);
 			}
 		}) as typeof window.__tcfapi;
 

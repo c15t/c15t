@@ -13,7 +13,8 @@
  * it can feed the continuous-monitoring scoreboard.
  */
 import { defaultTranslationConfig } from '@c15t/core';
-import { Profiler, type ReactNode } from 'react';
+import { Profiler } from 'react';
+import type { ReactNode } from 'react';
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
@@ -24,6 +25,29 @@ import {
 } from '~/v3/providers/consent-manager-provider';
 
 import { ConsentProvider, useConsent, useSetConsent } from '../index';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 type Category =
 	| 'necessary'
@@ -64,7 +88,7 @@ afterAll(() => {
 	clearConsentRuntimeCache();
 });
 
-const settle = () => new Promise((r) => setTimeout(r, 20));
+const settle = () => createDeferredPromise((r) => setTimeout(r, 20));
 
 interface Run {
 	mountRenders: number;

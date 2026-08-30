@@ -1,28 +1,29 @@
 import {
 	existsSync,
 	promises as fs,
-	type PathLike,
-	type PathOrFileDescriptor,
 	readdirSync,
 	readFileSync,
 	statSync,
 	writeFileSync,
 } from 'node:fs';
+import type { PathLike, PathOrFileDescriptor } from 'node:fs';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	analyzeBundles,
 	analyzeTransitiveImpact,
-	type BundleStats,
 	calculateTotalDiffPercent,
 	compareBundles,
 	extractBundleSizes,
 	formatBytes,
 	generateMarkdownReport,
-	type PackageBundleData,
-	type TransitiveBundleData,
 	writeReport,
+} from './bundle-analysis';
+import type {
+	BundleStats,
+	PackageBundleData,
+	TransitiveBundleData,
 } from './bundle-analysis';
 
 // Mock fs module

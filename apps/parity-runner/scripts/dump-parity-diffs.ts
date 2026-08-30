@@ -10,7 +10,8 @@ import { chromium, request } from '@playwright/test';
 import { captureA11yTree } from '../src/diff-a11y';
 import { captureComputedStyleMap } from '../src/diff-computed-style';
 import { captureDomSnapshot } from '../src/diff-dom';
-import { frameworkOf, pairStories, type StoryEntry } from '../src/pair-stories';
+import { frameworkOf, pairStories } from '../src/pair-stories';
+import type { StoryEntry } from '../src/pair-stories';
 
 const URLS: Record<string, string> = {
 	react: 'http://127.0.0.1:6006',

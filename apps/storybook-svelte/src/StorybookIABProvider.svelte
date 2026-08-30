@@ -1,16 +1,17 @@
 <script lang="ts">
 	import { clearConsentRuntimeCache } from '@c15t/core';
 	import { ConsentManagerProvider } from '@c15t/svelte';
-	import { untrack, type Snippet } from 'svelte';
+	import { untrack } from 'svelte';
+	import type { Snippet } from 'svelte';
 
 	import type { ConsentManagerOptions } from '../../../packages/svelte/src/lib/types';
 	import {
-		type ConsentRecord,
 		defaultIABOptions,
 		resetStorybookConsentState,
 		seedStoredConsent,
 		seedTCString,
 	} from './storybook-consent-fixtures';
+	import type { ConsentRecord } from './storybook-consent-fixtures';
 
 	const props = $props<{
 		children: Snippet;

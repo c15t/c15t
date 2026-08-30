@@ -18,9 +18,9 @@ import {
 	getNuxtInitFetchTarget,
 	INIT_HEADER_NAMES,
 	pickAllowedInitHeaders,
-	type RuntimeConsentConfig,
 	startVueConsentRuntime,
 } from './kernel';
+import type { RuntimeConsentConfig } from './kernel';
 import { resolveManifestMode } from './manifest';
 import {
 	symbolActiveUI,

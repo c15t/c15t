@@ -3,10 +3,9 @@ import {
 	ConsentManagerProvider,
 	ConsentManagerWidget,
 	CookieBanner,
-	type CookieBannerProps,
-	type TrackingBlockerConfig,
 	useConsentManager,
 } from '@c15t/react';
+import type { CookieBannerProps, TrackingBlockerConfig } from '@c15t/react';
 
 const trackingBlockerConfig: TrackingBlockerConfig = {
 	disableAutomaticBlocking: true,

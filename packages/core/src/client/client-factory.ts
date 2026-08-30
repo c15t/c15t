@@ -7,7 +7,8 @@ import { createDeterministicFingerprintSync } from '@c15t/schema/types';
 
 import type { StoreOptions } from '../store/type';
 import type { ConsentManagerInterface } from './client-interface';
-import { CustomClient, type EndpointHandlers } from './custom';
+import { CustomClient } from './custom';
+import type { EndpointHandlers } from './custom';
 import { C15tClient } from './hosted';
 import { OfflineClient } from './offline';
 import type { RetryConfig } from './types';

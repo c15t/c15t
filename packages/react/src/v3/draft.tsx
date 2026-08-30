@@ -25,7 +25,6 @@ import type { AllConsentNames } from '@c15t/core';
 import type { ConsentState } from '@c15t/core/v3';
 import {
 	createContext,
-	type ReactNode,
 	useCallback,
 	useContext,
 	useEffect,
@@ -33,6 +32,7 @@ import {
 	useState,
 	useSyncExternalStore,
 } from 'react';
+import type { ReactNode } from 'react';
 
 import { KernelContext } from './context';
 

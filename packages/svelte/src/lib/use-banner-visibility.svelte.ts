@@ -51,14 +51,15 @@ export function useBannerVisibility(
 				return;
 			}
 			let cancelled = false;
-			void tick().then(() => {
+			void (async () => {
+				await tick();
 				if (cancelled) return;
 				// Force layout so the browser observes `bannerHidden` before we
 				// flip to `bannerVisible`. Without this, a fresh mount can
 				// compute the final style first and skip the entry transition.
 				void bannerEl?.offsetHeight;
 				isVisible = true;
-			});
+			})();
 			return () => {
 				cancelled = true;
 			};

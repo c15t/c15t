@@ -1,7 +1,8 @@
 import type { Script } from '@c15t/core';
 
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 import { booleanDataAttribute } from '../_shared/attributes';
 import { joinUrlPath } from '../_shared/script-url';
 

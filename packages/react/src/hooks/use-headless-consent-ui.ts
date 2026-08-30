@@ -2,17 +2,19 @@
 
 import {
 	hasPolicyHints,
-	type PolicyUiAction,
-	type PolicyUiActionDirection,
-	type PolicyUiActionGroup,
-	type PolicyUiProfile,
-	type PolicyUiSurfaceConfig,
 	resolvePolicyActionGroups,
 	resolvePolicyAllowedActions,
 	resolvePolicyDirection,
 	resolvePolicyOrderedActions,
 	resolvePolicyPrimaryActions,
 	shouldFillPolicyActions,
+} from '@c15t/ui/utils';
+import type {
+	PolicyUiAction,
+	PolicyUiActionDirection,
+	PolicyUiActionGroup,
+	PolicyUiProfile,
+	PolicyUiSurfaceConfig,
 } from '@c15t/ui/utils';
 import { useCallback, useMemo } from 'react';
 

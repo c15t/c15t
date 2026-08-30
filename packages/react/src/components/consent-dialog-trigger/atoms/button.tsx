@@ -7,7 +7,8 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
-import { forwardRef, type MouseEvent, type ReactNode } from 'react';
+import { forwardRef } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 
 import type { CornerPosition, TriggerSize } from '../types';
 import { useTriggerContext } from './root';

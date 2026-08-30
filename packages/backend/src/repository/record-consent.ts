@@ -22,16 +22,16 @@
 
 import { generateEntityId } from '@c15t/schema';
 import { Effect } from 'effect';
-import { SqlClient, type SqlError } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/unstable/sql';
+import type { SqlError } from 'effect/unstable/sql';
 
-import { currentTenantId, type Tenant } from '../db/tenant';
+import { currentTenantId } from '../db/tenant';
+import type { Tenant } from '../db/tenant';
 import { encodeRow, encoder } from '../db/values';
-import {
-	ConsentPurposeConflictError,
-	type ConsentSubmission,
-	record,
-} from './consent';
-import { type DecisionInput, recordDecision } from './runtime-policy-decision';
+import { ConsentPurposeConflictError, record } from './consent';
+import type { ConsentSubmission } from './consent';
+import { recordDecision } from './runtime-policy-decision';
+import type { DecisionInput } from './runtime-policy-decision';
 import { findOrCreate, SubjectTenantConflictError } from './subject';
 
 export interface ConsentSubmissionRequest {

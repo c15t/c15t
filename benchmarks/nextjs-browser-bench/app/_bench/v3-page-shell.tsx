@@ -3,7 +3,7 @@
 import { useSetActiveUI } from '@c15t/nextjs/v3';
 import Link from 'next/link';
 
-import { type NextjsBenchScenario } from './state';
+import type { NextjsBenchScenario } from './state';
 
 export function V3BenchmarkPageShell({
 	scenario,

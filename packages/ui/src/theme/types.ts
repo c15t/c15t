@@ -29,7 +29,11 @@ export type ClassNameStyle<VariableMap = Record<string, string | number>> = {
 	className?: string;
 	/** If true, the component will not apply its default internal styles. */
 	noStyle?: boolean;
-	/** @internal Used to pass default class names to the component. */
+	/**
+	 * Used to pass default class names to the component.
+	 *
+	 * @internal
+	 */
 	baseClassName?: ClassValue;
 };
 

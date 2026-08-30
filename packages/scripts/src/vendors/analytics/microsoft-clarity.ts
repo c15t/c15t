@@ -1,7 +1,8 @@
 import type { ConsentState, Script, ScriptCallbackInfo } from '@c15t/core';
 
 import { resolveManifest } from '../../resolve';
-import { type VendorManifest, vendorManifestContract } from '../../types';
+import { vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
 
 /**
  * Microsoft Clarity Consent V2 storage state.

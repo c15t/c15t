@@ -16,20 +16,23 @@
 
 import {
 	DriverNotImplementedError,
-	type MountableComponent,
-	type MountOptions,
-	type MountResult,
 	runConformanceSuite,
-	type SuiteApi,
-	type TestDriver,
+} from '@c15t/conformance';
+import type {
+	MountableComponent,
+	MountOptions,
+	MountResult,
+	SuiteApi,
+	TestDriver,
 } from '@c15t/conformance';
 import {
-	type ConsentManagerOptions,
 	clearConsentRuntimeCache,
 	getOrCreateConsentRuntime,
 } from '@c15t/core';
+import type { ConsentManagerOptions } from '@c15t/core';
 import type { ReactElement } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, test } from 'vitest';
 
@@ -38,6 +41,29 @@ import { ConsentDialog } from '~/components/consent-dialog';
 import { ConsentWidget } from '~/components/consent-widget';
 import { ConsentManagerProvider } from '~/providers/consent-manager-provider';
 import { version } from '~/version';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 function renderFor(component: MountableComponent): ReactElement {
 	switch (component) {
@@ -192,7 +218,7 @@ const driver: TestDriver = {
 			</ConsentManagerProvider>
 		);
 		// Flush scheduled effects (subscription, hydration transition).
-		await new Promise((r) => setTimeout(r, 0));
+		await createDeferredPromise((r) => setTimeout(r, 0));
 
 		// Force the surface visible so the banner/dialog actually mounts in
 		// offline mode (default activeUI is 'none'). Widgets render regardless.
@@ -209,13 +235,13 @@ const driver: TestDriver = {
 				consentStore.getState().setActiveUI('dialog');
 			}
 		}
-		await new Promise((r) => setTimeout(r, 0));
+		await createDeferredPromise((r) => setTimeout(r, 0));
 
 		return {
 			root: container,
 			unmount: async () => {
 				root.unmount();
-				await new Promise((r) => setTimeout(r, 0));
+				await createDeferredPromise((r) => setTimeout(r, 0));
 				container.remove();
 				removeSeededConsent();
 				restoreGpc?.();

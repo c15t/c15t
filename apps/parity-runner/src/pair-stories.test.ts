@@ -1,11 +1,7 @@
 import { expect, test } from 'bun:test';
 
-import {
-	frameworkOf,
-	pairStories,
-	type StoryEntry,
-	storyKey,
-} from './pair-stories';
+import { frameworkOf, pairStories, storyKey } from './pair-stories';
+import type { StoryEntry } from './pair-stories';
 
 test('frameworkOf extracts framework from title', () => {
 	expect(frameworkOf('COMPONENTS - REACT/Button')).toBe('react');

@@ -1,7 +1,9 @@
 import styles from '@c15t/ui/styles/components/consent-widget.module.js';
-import { forwardRef, type Ref } from 'react';
+import { forwardRef } from 'react';
+import type { Ref } from 'react';
 
-import { Box, type BoxProps } from '../../shared/primitives/box';
+import { Box } from '../../shared/primitives/box';
+import type { BoxProps } from '../../shared/primitives/box';
 
 /**
  * Footer component for consent management actions.

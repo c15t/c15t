@@ -14,6 +14,29 @@ import type { ConsentManagerOptions } from '~/types/consent-manager';
 
 import { mockGVL } from './fixtures/mock-consent-state';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 /**
  * Creates a mock localStorage with full implementation
  */
@@ -75,7 +98,7 @@ export async function waitForCMP(timeout = 5000): Promise<void> {
 			if (!(window as { __tcfapi?: unknown }).__tcfapi) {
 				throw new Error('CMP not ready');
 			}
-			return new Promise<void>((resolve, reject) => {
+			return createDeferredPromise<void>((resolve, reject) => {
 				(window as { __tcfapi: Function }).__tcfapi(
 					'ping',
 					2,
@@ -101,7 +124,7 @@ export function tcfApiPromise<T>(
 	version = 2,
 	param?: unknown
 ): Promise<T> {
-	return new Promise((resolve, reject) => {
+	return createDeferredPromise((resolve, reject) => {
 		const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
 		if (!tcfapi) {
 			reject(new Error('__tcfapi not available'));
@@ -182,7 +205,7 @@ export function addCMPEventListener(): Promise<{
 	eventStatus: string;
 	tcString: string;
 }> {
-	return new Promise((resolve, reject) => {
+	return createDeferredPromise((resolve, reject) => {
 		const tcfapi = (window as { __tcfapi?: Function }).__tcfapi;
 		if (!tcfapi) {
 			reject(new Error('__tcfapi not available'));
@@ -327,7 +350,7 @@ export async function waitForStoredValue(
 		if (value !== null) {
 			return value;
 		}
-		await new Promise((resolve) => setTimeout(resolve, 50));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 50));
 	}
 	throw new Error(
 		`Timed out after ${timeout}ms waiting for localStorage key "${key}"`

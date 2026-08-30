@@ -1,5 +1,6 @@
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
-import { computed, type Ref } from 'vue';
+import { computed } from 'vue';
+import type { Ref } from 'vue';
 
 import { useState } from '#imports';
 

@@ -7,8 +7,8 @@ import {
 	GoogleMap,
 	useConsentScript,
 	YouTubeEmbed,
-	type YouTubeEmbedProps,
 } from 'c15t/react';
+import type { YouTubeEmbedProps } from 'c15t/react';
 import { Button as C15tButton } from 'c15t/react/primitives';
 import { RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';

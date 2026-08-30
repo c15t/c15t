@@ -9,7 +9,8 @@
 
 import { domSnapshot } from '../dom-snapshot';
 import type { TestDriver } from '../driver';
-import { conformanceTest, type SuiteApi } from './helpers';
+import { conformanceTest } from './helpers';
+import type { SuiteApi } from './helpers';
 
 function parseHtml(html: string): Element | null {
 	const template = document.createElement('template');

@@ -7,7 +7,31 @@
 
 import { TEST_IDS } from '../contract/test-ids';
 import type { MountResult, TestDriver } from '../driver';
-import { conformanceTest, type SuiteApi } from './helpers';
+import { conformanceTest } from './helpers';
+import type { SuiteApi } from './helpers';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 const FOCUSABLE_SELECTOR = [
 	'a[href]:not([disabled]):not([tabindex="-1"])',
@@ -76,7 +100,7 @@ function keydown(
 }
 
 async function wait(ms = 20): Promise<void> {
-	await new Promise((resolve) => setTimeout(resolve, ms));
+	await createDeferredPromise((resolve) => setTimeout(resolve, ms));
 }
 
 async function waitForElement(

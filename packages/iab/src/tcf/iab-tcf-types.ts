@@ -9,6 +9,8 @@
  */
 
 // GVL types come through c15t core (which re-exports from @c15t/schema)
+import type { GlobalVendorList } from '@c15t/core';
+
 export type { GlobalVendorList } from '@c15t/core';
 // GVL sub-types imported from @c15t/schema for IAB-specific usage
 // These are not re-exported by c15t core, so we re-export from schema directly
@@ -22,8 +24,6 @@ export type {
 	GVLVendor,
 	GVLVendorUrl,
 } from '@c15t/schema/types';
-
-import type { GlobalVendorList } from '@c15t/core';
 
 /**
  * TCF consent data structure for generating TC Strings.

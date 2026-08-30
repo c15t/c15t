@@ -40,13 +40,13 @@ export function prefetchSurfaceAfterLoad(load: () => Promise<unknown>): void {
 	const schedule = () => {
 		const idle =
 			'requestIdleCallback' in window
-				? (cb: () => void) =>
+				? (handler: () => void) =>
 						(
 							window as Window & {
-								requestIdleCallback: (cb: () => void) => void;
+								requestIdleCallback: (handler: () => void) => void;
 							}
-						).requestIdleCallback(cb)
-				: (cb: () => void) => setTimeout(cb, 1500);
+						).requestIdleCallback(handler)
+				: (handler: () => void) => setTimeout(handler, 1500);
 		idle(() => {
 			void load();
 		});

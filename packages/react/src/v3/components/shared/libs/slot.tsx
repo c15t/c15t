@@ -1,12 +1,5 @@
-import {
-	cloneElement,
-	forwardRef,
-	isValidElement,
-	type ReactElement,
-	type ReactNode,
-	type Ref,
-	type RefCallback,
-} from 'react';
+import { cloneElement, forwardRef, isValidElement } from 'react';
+import type { ReactElement, ReactNode, Ref, RefCallback } from 'react';
 
 function composeRefs<T>(...refs: Array<Ref<T> | undefined>): RefCallback<T> {
 	return (node) => {

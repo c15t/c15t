@@ -33,12 +33,8 @@
 import type { ConsentSnapshot } from '../../types';
 import { createDebugEmitter } from './debug';
 import { buildReconcilePass, isEligible } from './eligibility';
-import {
-	flushPendingMounts,
-	type MountDeps,
-	mountScript,
-	unmountScript,
-} from './mount';
+import { flushPendingMounts, mountScript, unmountScript } from './mount';
+import type { MountDeps } from './mount';
 import { createElementIdResolver, normalizeScripts } from './normalize';
 import type {
 	NormalizedScript,

@@ -33,7 +33,8 @@
 
 import { generateEntityId } from '@c15t/schema';
 import { Data, Effect } from 'effect';
-import { SqlClient, type SqlError, Statement } from 'effect/unstable/sql';
+import { SqlClient, Statement } from 'effect/unstable/sql';
+import type { SqlError } from 'effect/unstable/sql';
 
 import { insertOnce } from '../db/insert-once';
 import { tenantScope } from '../db/tenant';

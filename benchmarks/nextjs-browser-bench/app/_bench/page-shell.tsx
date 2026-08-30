@@ -3,7 +3,7 @@
 import { useConsentManager } from '@c15t/nextjs';
 import Link from 'next/link';
 
-import { type NextjsBenchScenario } from './state';
+import type { NextjsBenchScenario } from './state';
 
 export function BenchmarkPageShell({
 	scenario,

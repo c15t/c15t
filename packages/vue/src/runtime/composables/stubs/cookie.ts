@@ -1,4 +1,5 @@
-import { customRef, type Ref } from 'vue';
+import { customRef } from 'vue';
+import type { Ref } from 'vue';
 
 export interface UseCookieOptions<T> {
 	default?: () => T;

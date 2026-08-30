@@ -13,6 +13,7 @@ import {
 import { ConsentWidgetRoot } from './atoms/root';
 import { ConsentWidgetPolicyActions } from './policy-actions';
 import type { ConsentWidgetProps } from './types';
+
 export const ConsentWidget = ({
 	hideBranding,
 	noStyle: localNoStyle,

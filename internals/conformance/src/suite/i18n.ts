@@ -9,7 +9,8 @@
 
 import type { TestDriver } from '../driver';
 import { LOCALE_FIXTURES } from '../fixtures/locales';
-import { conformanceTest, type SuiteApi } from './helpers';
+import { conformanceTest } from './helpers';
+import type { SuiteApi } from './helpers';
 
 function findDirRoot(root: HTMLElement): HTMLElement | null {
 	if (root.getAttribute('dir')) return root;

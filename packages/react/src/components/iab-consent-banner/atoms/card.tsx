@@ -2,12 +2,8 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-banner.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
-import {
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
-	type RefObject,
-} from 'react';
+import { forwardRef } from 'react';
+import type { HTMLAttributes, ReactNode, RefObject } from 'react';
 
 import { useFocusTrap } from '~/hooks/use-focus-trap';
 import { useStyles } from '~/hooks/use-styles';

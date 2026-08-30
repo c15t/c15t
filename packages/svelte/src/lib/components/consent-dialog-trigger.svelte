@@ -1,13 +1,12 @@
 <script lang="ts">
 	import styles from '@c15t/ui/styles/components/consent-dialog-trigger.module.js';
 	import {
-		type CornerPosition,
 		calculateCornerFromDrag,
 		createInitialDragState,
-		type DragState,
 		getPersistedPosition,
 		persistPosition as persistToStorage,
 	} from '@c15t/ui/utils';
+	import type { CornerPosition, DragState } from '@c15t/ui/utils';
 	import { onMount, untrack } from 'svelte';
 
 	import { portal } from '../actions/portal';

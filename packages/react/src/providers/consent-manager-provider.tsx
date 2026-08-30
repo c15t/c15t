@@ -2,18 +2,15 @@
 
 import {
 	clearConsentRuntimeCache as baseClearCache,
-	type Callbacks,
-	type ConsentStoreState,
 	getOrCreateConsentRuntime,
 } from '@c15t/core';
+import type { Callbacks, ConsentStoreState } from '@c15t/core';
 import { generateThemeCSS } from '@c15t/ui/theme';
 import { deepMerge } from '@c15t/ui/utils';
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react';
 
-import {
-	ConsentStateContext,
-	type ConsentStateContextValue,
-} from '../context/consent-manager-context';
+import { ConsentStateContext } from '../context/consent-manager-context';
+import type { ConsentStateContextValue } from '../context/consent-manager-context';
 import { GlobalThemeContext } from '../context/theme-context';
 import { useColorScheme } from '../hooks/use-color-scheme';
 import type { ConsentManagerProviderProps } from '../types/consent-manager';

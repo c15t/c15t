@@ -26,9 +26,11 @@
  * only the identity tuple can find them.
  */
 
-import { buildConsentId, type ConsentSubmissionIdentity } from '@c15t/schema';
+import { buildConsentId } from '@c15t/schema';
+import type { ConsentSubmissionIdentity } from '@c15t/schema';
 import { Data, Effect } from 'effect';
-import { SqlClient, type SqlError } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/unstable/sql';
+import type { SqlError } from 'effect/unstable/sql';
 
 import { insertOnce } from '../db/insert-once';
 import { encoder } from '../db/values';
@@ -132,8 +134,10 @@ const sameIds = (a: readonly string[], b: readonly string[]): boolean =>
  * its purposes were recorded when the stored record says otherwise.
  */
 /**
- * @internal Exported for the tests that cover the lost-race branch, which no
+ * Exported for the tests that cover the lost-race branch, which no
  * engine in the matrix can be made to interleave on demand.
+ *
+ * @internal
  */
 export const assertSamePurposes = Effect.fn('consent.assertSamePurposes')(
 	function* (storedRaw: unknown, submitted: readonly string[]) {

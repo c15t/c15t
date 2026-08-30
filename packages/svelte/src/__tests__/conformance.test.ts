@@ -19,12 +19,14 @@ import {
 	IAB_FIXTURE_CMP_ID,
 	IAB_FIXTURE_CMP_VERSION,
 	MINIMAL_GVL,
-	type MountableComponent,
-	type MountOptions,
-	type MountResult,
 	runConformanceSuite,
-	type SuiteApi,
-	type TestDriver,
+} from '@c15t/conformance';
+import type {
+	MountableComponent,
+	MountOptions,
+	MountResult,
+	SuiteApi,
+	TestDriver,
 } from '@c15t/conformance';
 import type { AllConsentNames } from '@c15t/core';
 import type {
@@ -39,6 +41,29 @@ import { describe, expect, test } from 'vitest';
 
 import type { ConsentManagerOptions } from '../lib/types';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 type ProviderOptions = ConsentManagerOptions;
 
@@ -223,7 +248,7 @@ const driver: TestDriver = {
 			},
 		});
 
-		await new Promise((r) => setTimeout(r, 0));
+		await createDeferredPromise((r) => setTimeout(r, 0));
 
 		if (!mountedKernel) {
 			throw new Error('Svelte driver: mount completed without kernel');

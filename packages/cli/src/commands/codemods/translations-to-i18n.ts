@@ -1,13 +1,8 @@
 import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
-import {
-	Node,
-	type ObjectLiteralExpression,
-	Project,
-	type PropertyAssignment,
-	SyntaxKind,
-} from 'ts-morph';
+import { Node, Project, SyntaxKind } from 'ts-morph';
+import type { ObjectLiteralExpression, PropertyAssignment } from 'ts-morph';
 
 const SUPPORTED_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 const IGNORED_DIRS = new Set([
@@ -295,7 +290,7 @@ async function collectSourceFiles(rootDir: string): Promise<string[]> {
  * });
  * ```
  *
- * @throws Propagates unexpected setup failures such as directory traversal errors.
+ * @throws {Error} Propagates unexpected setup failures such as directory traversal errors.
  */
 export async function runTranslationsToI18nCodemod(
 	options: CodemodRunOptions

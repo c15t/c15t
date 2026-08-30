@@ -10,8 +10,8 @@ import {
 	installHeadProbe,
 	loadScripts,
 	registerVendorContractCleanup,
-	type TestWindow,
 } from './e2e-test-utils';
+import type { TestWindow } from './e2e-test-utils';
 import { databuddy } from './vendors/analytics/databuddy';
 
 describe('databuddy contract', () => {

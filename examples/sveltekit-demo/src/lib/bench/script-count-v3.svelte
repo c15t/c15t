@@ -4,20 +4,20 @@
 	import {
 		createConsentKernel,
 		createHostedTransport,
-		type ConsentKernel,
-		type ConsentSnapshot,
 	} from '../../../../../packages/core/src/v3';
-	import {
-		createScriptLoader,
-		type ScriptLoaderHandle,
-	} from '../../../../../packages/core/src/v3/modules/script-loader';
+	import type {
+		ConsentKernel,
+		ConsentSnapshot,
+	} from '../../../../../packages/core/src/v3';
+	import { createScriptLoader } from '../../../../../packages/core/src/v3/modules/script-loader';
+	import type { ScriptLoaderHandle } from '../../../../../packages/core/src/v3/modules/script-loader';
 	import {
 		createInitialBenchState,
 		listDomIds,
 		makeV3Scripts,
 		publishScriptBenchState,
-		type ScriptCountBenchState,
 	} from './script-count-state';
+	import type { ScriptCountBenchState } from './script-count-state';
 
 	let { count }: { count: number } = $props();
 
@@ -59,20 +59,19 @@
 			publishScriptBenchState(benchState, { activeUI });
 		});
 
-		void kernel.commands
-			.init()
-			.then((result: { ok: boolean; error?: unknown }) => {
-				if (!benchState) return;
-				if (!result.ok) {
-					benchState.errors.push(
-						String(result.error ?? 'kernel.commands.init() failed')
-					);
-				}
-				publishScriptBenchState(benchState, {
-					activeUI: kernel?.getSnapshot().activeUI ?? activeUI,
-					initialReady: result.ok,
-				});
+		void (async () => {
+			const result = await kernel.commands.init();
+			if (!benchState) return;
+			if (!result.ok) {
+				benchState.errors.push(
+					String(result.error ?? 'kernel.commands.init() failed')
+				);
+			}
+			publishScriptBenchState(benchState, {
+				activeUI: kernel?.getSnapshot().activeUI ?? activeUI,
+				initialReady: result.ok,
 			});
+		})();
 
 		return () => {
 			unsubscribe();

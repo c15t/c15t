@@ -8,12 +8,10 @@
 
 import actionStyles from '@c15t/ui/styles/v3/consent-actions';
 import styles from '@c15t/ui/styles/v3/consent-banner';
-import {
-	type PolicyUiAction,
-	type PolicyUiActionDirection,
-	shouldFillPolicyActions,
-} from '@c15t/ui/utils';
-import { type FC, Fragment, type ReactNode } from 'react';
+import { shouldFillPolicyActions } from '@c15t/ui/utils';
+import type { PolicyUiAction, PolicyUiActionDirection } from '@c15t/ui/utils';
+import { Fragment } from 'react';
+import type { FC, ReactNode } from 'react';
 
 import { useHeadlessConsentUI } from '~/v3/component-hooks/use-headless-consent-ui';
 import { useTranslations } from '~/v3/component-hooks/use-translations';

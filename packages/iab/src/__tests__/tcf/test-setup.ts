@@ -370,10 +370,10 @@ export function setupTCFApiMock(): {
 	const listeners = new Map<number, Function>();
 	let listenerIdCounter = 0;
 
-	const mockTcfApi = vi.fn((command, version, callback, parameter) => {
+	const mockTcfApi = vi.fn((command, version, handler, parameter) => {
 		switch (command) {
 			case 'ping':
-				callback(
+				return handler(
 					{
 						gdprApplies: true,
 						cmpLoaded: false,
@@ -387,21 +387,18 @@ export function setupTCFApiMock(): {
 					},
 					true
 				);
-				break;
 			case 'addEventListener': {
 				const listenerId = listenerIdCounter++;
-				listeners.set(listenerId, callback);
-				callback({ listenerId }, true);
-				break;
+				listeners.set(listenerId, handler);
+				return handler({ listenerId }, true);
 			}
 			case 'removeEventListener': {
 				const existed = listeners.has(parameter as number);
 				listeners.delete(parameter as number);
-				callback(existed, true);
-				break;
+				return handler(existed, true);
 			}
 			default:
-				callback(null, false);
+				return handler(null, false);
 		}
 	}) as unknown as TCFApi;
 

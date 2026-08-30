@@ -9,7 +9,8 @@
 
 import type { ConsentState } from '../..';
 import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../store/initial-state';
-import { allConsentNames, type ConsentInfo } from '../../types/consent-types';
+import { allConsentNames } from '../../types/consent-types';
+import type { ConsentInfo } from '../../types/consent-types';
 import { getDebugLogger } from '../debug';
 import { sanitizeSubjectIdentifiers } from '../sanitize-subject-identifiers';
 import { deleteCookie, getCookie, setCookie } from './operations';

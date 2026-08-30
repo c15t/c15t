@@ -1,17 +1,36 @@
-import {
-	type ConsentState,
-	emitScriptDebugEvent,
-	type Script,
-	type ScriptCallbackInfo,
-	type ScriptLifecycleCallback,
+import { emitScriptDebugEvent } from '@c15t/core';
+import type {
+	ConsentState,
+	Script,
+	ScriptCallbackInfo,
+	ScriptLifecycleCallback,
 } from '@c15t/core';
 
-import {
-	type ManifestStep,
-	type ResolvedManifest,
-	RUNTIME_VALUE_KIND,
-	type RuntimeValue,
-} from '../types';
+import { RUNTIME_VALUE_KIND } from '../types';
+import type { ManifestStep, ResolvedManifest, RuntimeValue } from '../types';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 type ManifestLifecycleCallback = Exclude<ScriptLifecycleCallback, 'onError'>;
 
@@ -284,7 +303,7 @@ function executeStep(step: ManifestStep): void {
 						step.queueFormat === 'wrappedMethodCall' ||
 						step.queueFormat === 'voidMethodCall'
 					) {
-						const promise = new Promise<unknown>((resolve) => {
+						const promise = createDeferredPromise<unknown>((resolve) => {
 							queueTarget.push({
 								name: methodName,
 								args,

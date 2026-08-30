@@ -9,8 +9,6 @@
 import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import {
-	type FC,
-	type RefObject,
 	useCallback,
 	useEffect,
 	useLayoutEffect,
@@ -18,12 +16,11 @@ import {
 	useRef,
 	useState,
 } from 'react';
+import type { FC, RefObject } from 'react';
 import { createPortal } from 'react-dom';
 
-import {
-	ConsentDialogTrigger,
-	type ConsentDialogTriggerProps,
-} from '~/components/consent-dialog-trigger';
+import { ConsentDialogTrigger } from '~/components/consent-dialog-trigger';
+import type { ConsentDialogTriggerProps } from '~/components/consent-dialog-trigger';
 import { Branding } from '~/components/consent-dialog/atoms/card';
 import * as Button from '~/components/shared/ui/button';
 import * as Tabs from '~/components/shared/ui/tabs';

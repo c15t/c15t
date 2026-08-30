@@ -11,7 +11,8 @@
  * deployments never need it.
  */
 
-import { type GlobalVendorList, globalVendorListSchema } from '@c15t/schema';
+import { globalVendorListSchema } from '@c15t/schema';
+import type { GlobalVendorList } from '@c15t/schema';
 import * as v from 'valibot';
 
 import type { CacheAdapter } from '../cache/types';

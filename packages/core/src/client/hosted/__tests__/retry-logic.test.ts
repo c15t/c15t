@@ -1,10 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { fetchMock, mockLocalStorage } from '../../../../vitest.setup';
-import {
-	type ConsentManagerOptions,
-	configureConsentManager,
-} from '../../client-factory';
+import { configureConsentManager } from '../../client-factory';
+import type { ConsentManagerOptions } from '../../client-factory';
 import { C15tClient } from '../index';
 
 describe('Hosted Client Retry Logic Tests', () => {
@@ -24,9 +22,9 @@ describe('Hosted Client Retry Logic Tests', () => {
 		global.setTimeout = vi
 			.fn()
 			.mockImplementation(
-				(callback: (...args: unknown[]) => void, delay: number) => {
+				(timerHandler: (...args: unknown[]) => void, delay: number) => {
 					timestamps.push(delay);
-					callback();
+					timerHandler();
 					return 1;
 				}
 			) as unknown as typeof setTimeout;
@@ -214,9 +212,9 @@ describe('Hosted Client Retry Logic Tests', () => {
 		// Mock setTimeout to execute callbacks immediately for faster tests
 		const originalSetTimeout = global.setTimeout;
 		// Using proper type for setTimeout mock
-		global.setTimeout = vi.fn().mockImplementation((callback) => {
-			if (typeof callback === 'function') {
-				callback();
+		global.setTimeout = vi.fn().mockImplementation((timerHandler) => {
+			if (typeof timerHandler === 'function') {
+				timerHandler();
 			}
 			return 1; // Return a valid timeout ID
 		}) as unknown as typeof setTimeout;

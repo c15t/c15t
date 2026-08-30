@@ -27,7 +27,31 @@
  */
 
 import type { TestDriver } from '../driver';
-import { conformanceTest, type SuiteApi, waitForCondition } from './helpers';
+import { conformanceTest, waitForCondition } from './helpers';
+import type { SuiteApi } from './helpers';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 type ConsentShape = Record<string, boolean>;
 
@@ -162,7 +186,7 @@ export function runGpcConformance(driver: TestDriver, api: SuiteApi): void {
 					// The stored decision is correct at mount time — the risk is a
 					// late init/policy fold flipping it. Give the runtime a moment
 					// to finish settling before asserting the decision survived.
-					await new Promise((resolve) => setTimeout(resolve, 50));
+					await createDeferredPromise((resolve) => setTimeout(resolve, 50));
 					const consents = readConsents(driver);
 					api.expect(consents.marketing).toBe(true);
 					api.expect(consents.measurement).toBe(true);

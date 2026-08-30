@@ -6,13 +6,12 @@
 
 import type { JurisdictionCode } from '@c15t/schema/types';
 import { createMaterialPolicyFingerprint } from '@c15t/schema/types';
-import {
-	prepareTranslationConfig,
-	type TranslationInputConfig,
-} from '@c15t/translations';
+import { prepareTranslationConfig } from '@c15t/translations';
+import type { TranslationInputConfig } from '@c15t/translations';
 
 import type { ConsentStoreState } from '../../store/type';
-import { allConsentNames, type ConsentState } from '../../types';
+import { allConsentNames } from '../../types';
+import type { ConsentState } from '../../types';
 import type { GlobalVendorList } from '../../types/iab-tcf';
 import { deleteConsentFromStorage, saveConsentToStorage } from '../cookie';
 import { determineModel } from '../determine-model';
@@ -480,11 +479,17 @@ export async function updateStore(
 		// Non-blocking initialization - errors are handled within initializeIABMode
 		const iabModule = config.iabConfig?._module;
 		if (iabModule) {
-			iabModule
-				.initializeIABMode(mergedConfig, { set, get }, prefetchedGVL)
-				.catch((err) => {
+			void (async () => {
+				try {
+					await iabModule.initializeIABMode(
+						mergedConfig,
+						{ set, get },
+						prefetchedGVL
+					);
+				} catch (err) {
 					console.error('Failed to initialize IAB mode in updateStore:', err);
-				});
+				}
+			})();
 		}
 	}
 }

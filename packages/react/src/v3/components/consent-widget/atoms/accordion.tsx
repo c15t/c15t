@@ -1,18 +1,12 @@
 import type { AllConsentNames, ConsentType } from '@c15t/core';
 import accordionStyles from '@c15t/ui/styles/v3/accordion';
-import {
-	type ComponentPropsWithoutRef,
-	createContext,
-	forwardRef,
-	type ReactNode,
-	type Ref,
-	useCallback,
-	useContext,
-} from 'react';
+import { createContext, forwardRef, useCallback, useContext } from 'react';
+import type { ComponentPropsWithoutRef, ReactNode, Ref } from 'react';
 
 import { useConsentManager } from '~/v3/component-hooks/use-consent-manager';
 import { useTranslations } from '~/v3/component-hooks/use-translations';
-import { Box, type BoxProps } from '~/v3/components/shared/primitives/box';
+import { Box } from '~/v3/components/shared/primitives/box';
+import type { BoxProps } from '~/v3/components/shared/primitives/box';
 import { LucideIcon } from '~/v3/components/shared/ui/icon';
 import * as PreferenceItem from '~/v3/components/shared/ui/preference-item';
 import * as RadixSwitch from '~/v3/components/shared/ui/switch';

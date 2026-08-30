@@ -23,11 +23,14 @@
  * ```
  */
 
-import { type Layer, ManagedRuntime } from 'effect';
+import { ManagedRuntime } from 'effect';
+import type { Layer } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
 
-import { type DatabaseOption, toLayer } from './db/connect';
-import { type MigrateOptions, type MigrateReport, migrate } from './db/migrate';
+import { toLayer } from './db/connect';
+import type { DatabaseOption } from './db/connect';
+import { migrate } from './db/migrate';
+import type { MigrateOptions, MigrateReport } from './db/migrate';
 
 export interface Migrator {
 	/**

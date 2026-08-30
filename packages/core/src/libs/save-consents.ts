@@ -20,6 +20,29 @@ import {
 } from './policy';
 import { sanitizeSubjectIdentifiers } from './sanitize-subject-identifiers';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 /**
  * Storage key for pending consent sync after page reload.
  * When consent is revoked and page reloads, the API sync happens on the fresh page.
@@ -329,7 +352,7 @@ export async function saveConsents({
 	}
 
 	// Yield to the next task so the UI can paint before running heavier work
-	await new Promise<void>((resolve) => setTimeout(resolve, 0));
+	await createDeferredPromise<void>((resolve) => setTimeout(resolve, 0));
 
 	// Run after yielding to avoid blocking the click INP
 	updateIframeConsents();

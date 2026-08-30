@@ -4,7 +4,8 @@
  */
 
 import { defaultTranslationConfig } from '../translations';
-import { type ConsentState, consentTypes } from '../types';
+import { consentTypes } from '../types';
+import type { ConsentState } from '../types';
 import { version } from '../version';
 import type { ActiveUI, StoreRuntimeState } from './type';
 

@@ -2,14 +2,8 @@
 
 import styles from '@c15t/ui/styles/components/iab-consent-dialog.module.js';
 import { sanitizeDOMStyleProps } from '@c15t/ui/utils';
-import {
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
-	type RefObject,
-	useEffect,
-	useState,
-} from 'react';
+import { forwardRef, useEffect, useState } from 'react';
+import type { HTMLAttributes, ReactNode, RefObject } from 'react';
 
 import { useConsentManager } from '~/hooks/use-consent-manager';
 import { useFocusTrap } from '~/hooks/use-focus-trap';

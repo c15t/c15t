@@ -22,10 +22,8 @@ import { IABConsentBannerHeader } from './atoms/header';
 import { IABConsentBannerOverlay } from './atoms/overlay';
 import { IABConsentBannerRoot } from './atoms/root';
 import { IABConsentBannerTitle } from './atoms/title';
-import {
-	IABConsentBanner as IABConsentBannerComponent,
-	type IABConsentBannerProps,
-} from './iab-consent-banner';
+import { IABConsentBanner as IABConsentBannerComponent } from './iab-consent-banner';
+import type { IABConsentBannerProps } from './iab-consent-banner';
 
 /**
  * This interface extends the base IABConsentBanner component with additional sub-components

@@ -3,10 +3,10 @@ import { join } from 'node:path';
 
 import { UMBRELLA_PACKAGE } from '~/constants';
 
-import {
-	type EnsureGlobalCssStylesheetImportsResult,
-	ensureGlobalCssStylesheetImports,
-	type StyledPackageName,
+import { ensureGlobalCssStylesheetImports } from '../../shared/stylesheets';
+import type {
+	EnsureGlobalCssStylesheetImportsResult,
+	StyledPackageName,
 } from '../../shared/stylesheets';
 
 export interface UpdateAppStylesheetImportsOptions {

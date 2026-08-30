@@ -9,7 +9,6 @@ import { gzipSync } from 'node:zlib';
 import {
 	artifactBudgets,
 	BENCHMARK_SCHEMA_VERSION,
-	type BenchmarkResult,
 	bundleBudgets,
 	getEnvironment,
 	safeBaseSha,
@@ -17,6 +16,30 @@ import {
 	summarizeMetric,
 	writeJson,
 } from '@c15t/benchmarking';
+import type { BenchmarkResult } from '@c15t/benchmarking';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 interface RouteSize {
 	route: string;
@@ -218,11 +241,12 @@ async function stopServer(
 	logs: string
 ): Promise<void> {
 	const waitForExit = () =>
-		new Promise<{ code: number | null; signal: NodeJS.Signals | null }>(
-			(resolve) => {
-				server.once('exit', (code, signal) => resolve({ code, signal }));
-			}
-		);
+		createDeferredPromise<{
+			code: number | null;
+			signal: NodeJS.Signals | null;
+		}>((resolve) => {
+			server.once('exit', (code, signal) => resolve({ code, signal }));
+		});
 
 	let result =
 		server.exitCode !== null || server.signalCode !== null
@@ -378,7 +402,9 @@ async function main() {
 	}
 }
 
-main().catch((error) => {
+try {
+	await main();
+} catch (error) {
 	console.error(error);
 	process.exit(1);
-});
+}

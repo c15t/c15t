@@ -1,7 +1,31 @@
 #!/usr/bin/env bun
-import { type ChildProcess, spawn } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -137,7 +161,7 @@ function prefixOutput(name: string, stream: NodeJS.ReadableStream) {
 }
 
 function runJob(job: BenchJob, children: Set<ChildProcess>) {
-	return new Promise<void>((resolvePromise, rejectPromise) => {
+	return createDeferredPromise<void>((resolvePromise, rejectPromise) => {
 		const child = spawn('bun', job.args, {
 			cwd: job.cwd,
 			env: job.env,
@@ -246,7 +270,9 @@ async function run() {
 	}
 }
 
-run().catch((error) => {
+try {
+	await run();
+} catch (error) {
 	console.error(error);
 	process.exit(1);
-});
+}

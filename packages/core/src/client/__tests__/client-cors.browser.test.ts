@@ -361,8 +361,8 @@ describe('CORS functionality', () => {
 		const originalSetTimeout = global.setTimeout;
 		global.setTimeout = vi
 			.fn()
-			.mockImplementation((callback: (...args: unknown[]) => void) => {
-				callback();
+			.mockImplementation((timerHandler: (...args: unknown[]) => void) => {
+				timerHandler();
 				return 1;
 			}) as unknown as typeof setTimeout;
 

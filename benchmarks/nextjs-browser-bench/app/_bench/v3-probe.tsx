@@ -3,12 +3,8 @@
 import { useActiveUI, useSnapshot } from '@c15t/nextjs/v3';
 import { useEffect, useRef } from 'react';
 
-import {
-	getState,
-	hasRunningAnimations,
-	isElementVisible,
-	type NextjsBenchScenario,
-} from './state';
+import { getState, hasRunningAnimations, isElementVisible } from './state';
+import type { NextjsBenchScenario } from './state';
 
 const BANNER_ELEMENT_TIMING_NAME = 'c15t-consent-banner';
 

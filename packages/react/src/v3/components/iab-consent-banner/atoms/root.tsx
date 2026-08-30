@@ -1,15 +1,8 @@
 'use client';
 
 import styles from '@c15t/ui/styles/v3/iab-consent-banner';
-import {
-	type CSSProperties,
-	type FC,
-	forwardRef,
-	type HTMLAttributes,
-	type ReactNode,
-	useEffect,
-	useState,
-} from 'react';
+import { forwardRef, useEffect, useState } from 'react';
+import type { CSSProperties, FC, HTMLAttributes, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 import { ConsentTrackingContext } from '~/v3/context/consent-tracking-context';

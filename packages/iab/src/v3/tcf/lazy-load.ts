@@ -49,19 +49,20 @@ export async function getTCFCore(): Promise<TCFCoreModule> {
 	}
 
 	// Start loading
-	loadingPromise = import('@iabtechlabtcf/core')
-		.then((module) => {
+	loadingPromise = (async () => {
+		try {
+			const module = await import('@iabtechlabtcf/core');
 			tcfCoreModule = module;
 			loadingPromise = null;
 			return module;
-		})
-		.catch((error) => {
+		} catch (error) {
 			loadingPromise = null;
 			throw new Error(
 				`Failed to load @iabtechlabtcf/core: ${error instanceof Error ? error.message : 'Unknown error'}. ` +
 					'Make sure it is installed as a dependency.'
 			);
-		});
+		}
+	})();
 
 	return loadingPromise;
 }

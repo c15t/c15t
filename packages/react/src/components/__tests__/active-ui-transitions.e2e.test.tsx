@@ -23,6 +23,29 @@ import {
 } from '~/providers/consent-manager-provider';
 import type { ConsentManagerOptions } from '~/types/consent-manager';
 
+type DeferredPromise<Value> = {
+	promise: Promise<Value>;
+	resolve: (value: Value | PromiseLike<Value>) => void;
+	reject: (reason?: unknown) => void;
+};
+
+type PromiseWithResolversConstructor = PromiseConstructor & {
+	withResolvers<Value>(): DeferredPromise<Value>;
+};
+
+function createDeferredPromise<Value>(
+	run: (
+		resolve: DeferredPromise<Value>['resolve'],
+		reject: DeferredPromise<Value>['reject']
+	) => void
+): Promise<Value> {
+	const deferred = (
+		Promise as PromiseWithResolversConstructor
+	).withResolvers<Value>();
+	run(deferred.resolve, deferred.reject);
+	return deferred.promise;
+}
+
 // Mock localStorage
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
@@ -211,7 +234,7 @@ describe('activeUI Transitions E2E Tests', () => {
 		);
 
 		// Wait long enough to confirm banner doesn't appear
-		await new Promise((resolve) => setTimeout(resolve, 500));
+		await createDeferredPromise((resolve) => setTimeout(resolve, 500));
 
 		const banner = document.querySelector(
 			'[data-testid="consent-banner-root"]'

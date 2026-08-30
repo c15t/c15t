@@ -1,8 +1,8 @@
 import {
 	createHostedTransport,
-	type KernelConfig,
 	mergeInitResponseIntoKernelConfig,
 } from '@c15t/core/v3';
+import type { KernelConfig } from '@c15t/core/v3';
 import { readStoredConsentFromCookie } from '@c15t/core/v3/modules/persistence';
 import {
 	consentInputsToOverrides,

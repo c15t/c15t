@@ -1,12 +1,5 @@
-import {
-	type ComputedRef,
-	computed,
-	getCurrentScope,
-	onScopeDispose,
-	type Ref,
-	ref,
-	watch,
-} from 'vue';
+import { computed, getCurrentScope, onScopeDispose, ref, watch } from 'vue';
+import type { ComputedRef, Ref } from 'vue';
 
 export interface DraggablePosition {
 	x: number;

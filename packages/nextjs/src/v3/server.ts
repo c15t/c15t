@@ -1,5 +1,5 @@
 /**
- * @c15t/nextjs/v3/server — server-only helpers.
+ * `@c15t/nextjs/v3/server` — server-only helpers.
  *
  * Reads the incoming Next.js request (cookies + headers via next/headers)
  * and produces a JSON-serializable `KernelConfig`. The Server Component
@@ -23,13 +23,13 @@
 
 import {
 	createManifestTransport,
-	type KernelConfig,
-	type KernelOverrides,
 	mergeInitOutputIntoKernelConfig,
 	mergeInitResponseIntoKernelConfig,
 } from '@c15t/core/v3';
+import type { KernelConfig, KernelOverrides } from '@c15t/core/v3';
 import { readStoredConsentFromCookie } from '@c15t/core/v3/modules/persistence';
-import { type InitOutput, resolveBackendURL } from '@c15t/schema/types';
+import { resolveBackendURL } from '@c15t/schema/types';
+import type { InitOutput } from '@c15t/schema/types';
 import { cookies, headers } from 'next/headers';
 
 import {

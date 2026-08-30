@@ -7,16 +7,16 @@
  */
 
 import styles from '@c15t/ui/styles/components/consent-dialog.module.js';
-import { forwardRef, type ReactNode, type Ref } from 'react';
+import { forwardRef } from 'react';
+import type { ReactNode, Ref } from 'react';
 
 import { ConsentWidget } from '~/components/consent-widget/consent-widget';
-import { Box, type BoxProps } from '~/components/shared/primitives/box';
+import { Box } from '~/components/shared/primitives/box';
+import type { BoxProps } from '~/components/shared/primitives/box';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { InlineLegalLinks } from '~/components/shared/primitives/legal-links';
-import {
-	BrandingLink,
-	type BrandingVariant,
-} from '~/components/shared/ui/branding';
+import { BrandingLink } from '~/components/shared/ui/branding';
+import type { BrandingVariant } from '~/components/shared/ui/branding';
 import { useTranslations } from '~/hooks/use-translations';
 import type { ClassNameStyle } from '~/types/theme';
 import { cnExt as cn } from '~/utils/cn';

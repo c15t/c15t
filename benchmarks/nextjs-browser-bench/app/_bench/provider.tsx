@@ -4,12 +4,13 @@ import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentManagerProvider,
-	type InitialDataPromise,
 } from '@c15t/nextjs';
+import type { InitialDataPromise } from '@c15t/nextjs';
 import type { ReactNode } from 'react';
 
 import { NextjsBenchmarkProbe } from './probe';
-import { getState, type NextjsBenchScenario } from './state';
+import { getState } from './state';
+import type { NextjsBenchScenario } from './state';
 
 export function NextjsBenchmarkProvider({
 	children,

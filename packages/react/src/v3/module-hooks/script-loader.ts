@@ -1,9 +1,9 @@
 'use client';
 
-import {
-	type Script,
-	type ScriptLoaderDebugEvent,
-	type ScriptLoaderHandle,
+import type {
+	Script,
+	ScriptLoaderDebugEvent,
+	ScriptLoaderHandle,
 } from '@c15t/core/v3/modules/script-loader';
 import { useEffect, useRef, useState } from 'react';
 
@@ -50,17 +50,17 @@ export function useScriptLoader(
 
 	useEffect(() => {
 		let disposed = false;
-		void import('@c15t/core/v3/modules/script-loader').then(
-			({ createScriptLoader }) => {
-				if (disposed) return;
-				const created = createScriptLoader({
-					kernel,
-					scripts: latestScriptsRef.current,
-					onDebug: latestOptionsRef.current.onDebug,
-				});
-				handleRef.current = created;
-			}
-		);
+		void (async () => {
+			const { createScriptLoader } =
+				await import('@c15t/core/v3/modules/script-loader');
+			if (disposed) return;
+			const created = createScriptLoader({
+				kernel,
+				scripts: latestScriptsRef.current,
+				onDebug: latestOptionsRef.current.onDebug,
+			});
+			handleRef.current = created;
+		})();
 
 		return () => {
 			disposed = true;

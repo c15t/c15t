@@ -1,5 +1,5 @@
 /**
- * @c15t/conformance — Shared interaction tests for cross-framework verification.
+ * `@c15t/conformance` — Shared interaction tests for cross-framework verification.
  *
  * Play functions are framework-agnostic: they interact with the DOM via
  * `userEvent`, `within`, `expect`, and standard ARIA roles / data-testid attributes.

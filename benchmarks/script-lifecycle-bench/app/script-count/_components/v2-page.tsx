@@ -3,12 +3,8 @@
 import { ConsentManagerProvider, useConsentManager } from '@c15t/react';
 import { useEffect, useMemo, useRef } from 'react';
 
-import {
-	createInitialBenchState,
-	listDomIds,
-	makeScripts,
-	type ScriptCountBenchState,
-} from './fixtures';
+import { createInitialBenchState, listDomIds, makeScripts } from './fixtures';
+import type { ScriptCountBenchState } from './fixtures';
 
 function publish(
 	state: ScriptCountBenchState,

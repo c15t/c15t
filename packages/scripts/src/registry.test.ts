@@ -5,12 +5,12 @@ import packageJson from '../package.json' with { type: 'json' };
 import { expectScriptMatchesIntegration } from './__tests__/helpers';
 import {
 	BUILT_IN_INTEGRATION_CATEGORIES,
-	type BuiltInScriptIntegrationKey,
 	builtInScriptIntegrations,
 	getBuiltInScriptIntegration,
 	getBuiltInScriptIntegrationBySubpath,
 	getBuiltInScriptIntegrationByVendor,
 } from './registry';
+import type { BuiltInScriptIntegrationKey } from './registry';
 import {
 	linkedinInsights,
 	linkedinInsightsManifest,

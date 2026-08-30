@@ -65,8 +65,8 @@ function dispatchAdded(node: StubIframe): void {
 		type: 'childList',
 		addedNodes: [node],
 	};
-	for (const cb of observerCallbacks) {
-		cb([mutation]);
+	for (const observerHandler of observerCallbacks) {
+		observerHandler([mutation]);
 	}
 }
 
@@ -85,15 +85,15 @@ beforeEach(() => {
 	vi.stubGlobal(
 		'MutationObserver',
 		class StubObserver {
-			callback: (mutations: unknown[]) => void;
-			constructor(cb: (mutations: unknown[]) => void) {
-				this.callback = cb;
-				observerCallbacks.push(cb);
+			handler: (mutations: unknown[]) => void;
+			constructor(handler: (mutations: unknown[]) => void) {
+				this.handler = handler;
+				observerCallbacks.push(handler);
 			}
 			observe() {}
 			disconnect() {
 				observerCallbacks = observerCallbacks.filter(
-					(c) => c !== this.callback
+					(handler) => handler !== this.handler
 				);
 			}
 			takeRecords() {

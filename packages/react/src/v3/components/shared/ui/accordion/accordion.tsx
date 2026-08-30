@@ -1,22 +1,14 @@
 'use client';
 
 import {
-	type AccordionType,
 	isAccordionItemOpen,
 	toggleAccordionValue,
 } from '@c15t/ui/primitives/accordion';
+import type { AccordionType } from '@c15t/ui/primitives/accordion';
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import styles from '@c15t/ui/styles/v3/accordion';
-import {
-	type ButtonHTMLAttributes,
-	createContext,
-	type ElementType,
-	forwardRef,
-	type HTMLAttributes,
-	useContext,
-	useId,
-	useMemo,
-} from 'react';
+import { createContext, forwardRef, useContext, useId, useMemo } from 'react';
+import type { ButtonHTMLAttributes, ElementType, HTMLAttributes } from 'react';
 
 import type { PolymorphicComponentProps } from '~/v3/components/shared/libs/polymorphic';
 import { useControllableState } from '~/v3/components/shared/libs/use-controllable-state';

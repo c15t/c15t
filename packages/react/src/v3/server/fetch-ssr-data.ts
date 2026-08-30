@@ -31,7 +31,7 @@ function buildRequestContext(options: {
  * All async work (header resolution) should be done before calling this.
  * GVL is now included in the init response when server has it configured.
  */
-function performInitFetch(
+async function performInitFetch(
 	normalizedURL: string,
 	relevantHeaders: Record<string, string>,
 	requestContext: NonNullable<SSRInitialData['metadata']>['requestContext'],
@@ -39,38 +39,27 @@ function performInitFetch(
 ): Promise<SSRFetchResult> {
 	const startTime = getNowMs();
 
-	return fetch(`${normalizedURL}/init`, {
-		method: 'GET',
-		cache: 'no-store',
-		headers: relevantHeaders,
-	})
-		.then((response) => {
-			const requestDurationMs = Math.max(0, Math.round(getNowMs() - startTime));
-			const cache = inspectCacheHeaders(response.headers);
-			const metadata: SSRInitialData['metadata'] = {
-				requestContext,
-				requestDurationMs,
-				cache,
-			};
+	try {
+		const response = await fetch(`${normalizedURL}/init`, {
+			method: 'GET',
+			cache: 'no-store',
+			headers: relevantHeaders,
+		});
+		const requestDurationMs = Math.max(0, Math.round(getNowMs() - startTime));
+		const cache = inspectCacheHeaders(response.headers);
+		const metadata: SSRInitialData['metadata'] = {
+			requestContext,
+			requestDurationMs,
+			cache,
+		};
 
-			if (response.ok) {
-				return response.json().then((init) => ({
-					init: init as InitOutput,
-					metadata,
-				}));
-			}
+		if (response.ok) {
+			const init = await response.json();
+			const result: SSRFetchResult = {
+				init: init as InitOutput,
+				metadata,
+			};
 			if (debug) {
-				console.log(
-					`[c15t/server] SSR fetch failed with status: ${response.status}`
-				);
-				if (cache.detail) {
-					console.log(`[c15t/server] SSR cache status: ${cache.detail}`);
-				}
-			}
-			return { metadata };
-		})
-		.then((result: SSRFetchResult) => {
-			if (debug && result.init) {
 				console.log(
 					`[c15t/server] SSR fetch succeeded in ${result.metadata?.requestDurationMs ?? 0}ms`
 				);
@@ -81,15 +70,23 @@ function performInitFetch(
 				}
 			}
 			return result;
-		})
-		.catch((error) => {
-			if (debug) {
-				const message =
-					error instanceof Error ? error.message : 'Unknown error';
-				console.log(`[c15t/server] SSR fetch error: ${message}`);
+		}
+		if (debug) {
+			console.log(
+				`[c15t/server] SSR fetch failed with status: ${response.status}`
+			);
+			if (cache.detail) {
+				console.log(`[c15t/server] SSR cache status: ${cache.detail}`);
 			}
-			return {};
-		});
+		}
+		return { metadata };
+	} catch (error) {
+		if (debug) {
+			const message = error instanceof Error ? error.message : 'Unknown error';
+			console.log(`[c15t/server] SSR fetch error: ${message}`);
+		}
+		return {};
+	}
 }
 
 function getNowMs(): number {

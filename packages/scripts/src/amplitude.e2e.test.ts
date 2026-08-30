@@ -10,9 +10,9 @@ import {
 	installHeadProbe,
 	loadScripts,
 	registerVendorContractCleanup,
-	type TestWindow,
 	updateScripts,
 } from './e2e-test-utils';
+import type { TestWindow } from './e2e-test-utils';
 import {
 	AMPLITUDE_QUEUE_METHODS,
 	amplitude,

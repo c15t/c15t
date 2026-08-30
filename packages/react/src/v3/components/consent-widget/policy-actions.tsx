@@ -2,15 +2,11 @@
 
 import type { ReactNode } from 'react';
 
-import {
-	type HeadlessConsentDialogAction,
-	useHeadlessConsentUI,
-} from '~/v3/component-hooks/use-headless-consent-ui';
+import { useHeadlessConsentUI } from '~/v3/component-hooks/use-headless-consent-ui';
+import type { HeadlessConsentDialogAction } from '~/v3/component-hooks/use-headless-consent-ui';
 
-import {
-	type PolicyActionRenderProps,
-	PolicyActionsRenderer,
-} from '../shared/policy-actions';
+import { PolicyActionsRenderer } from '../shared/policy-actions';
+import type { PolicyActionRenderProps } from '../shared/policy-actions';
 import {
 	ConsentWidgetAcceptAllButton,
 	ConsentWidgetRejectButton,

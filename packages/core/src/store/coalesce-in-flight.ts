@@ -19,11 +19,17 @@ export function coalesceInFlight<Result>(
 		return existingRequest;
 	}
 
-	const request = createRequest().finally(() => {
-		if (requests.get(key) === request) {
-			requests.delete(key);
+	const requestRef: { current?: Promise<Result> } = {};
+	const request = (async () => {
+		try {
+			return await createRequest();
+		} finally {
+			if (requests.get(key) === requestRef.current) {
+				requests.delete(key);
+			}
 		}
-	});
+	})();
+	requestRef.current = request;
 
 	requests.set(key, request);
 	return request;

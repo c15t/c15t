@@ -1,8 +1,5 @@
-import {
-	normalizeCount,
-	normalizeVersion,
-	type ScriptCountVersion,
-} from './_components/fixtures';
+import { normalizeCount, normalizeVersion } from './_components/fixtures';
+import type { ScriptCountVersion } from './_components/fixtures';
 import { V2ScriptCountPage } from './_components/v2-page';
 import { V3ScriptCountPage } from './_components/v3-page';
 

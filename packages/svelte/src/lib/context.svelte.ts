@@ -1,14 +1,16 @@
 import {
-	type ActiveUI,
-	type AllConsentNames,
 	allConsentNames,
-	type ConsentType,
 	consentTypes as defaultConsentTypes,
 	defaultTranslationConfig,
 	has as evaluateHas,
-	type HasCondition,
-	type Model,
-	type TranslationConfig,
+} from '@c15t/core';
+import type {
+	ActiveUI,
+	AllConsentNames,
+	ConsentType,
+	HasCondition,
+	Model,
+	TranslationConfig,
 } from '@c15t/core';
 import type {
 	ConsentKernel,

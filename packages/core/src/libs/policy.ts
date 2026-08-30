@@ -7,7 +7,8 @@ import type {
 } from '@c15t/schema/types';
 
 import type { ConsentState } from '../types/compliance';
-import { type AllConsentNames, allConsentNames } from '../types/consent-types';
+import { allConsentNames } from '../types/consent-types';
+import type { AllConsentNames } from '../types/consent-types';
 
 type ResolvedPolicy = InitOutput['policy'];
 

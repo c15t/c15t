@@ -2,12 +2,12 @@
 
 import {
 	ConsentProvider,
-	type ConsentProviderOptions,
 	useActiveUI,
 	useConsent,
 	useSaveConsents,
 	useSetActiveUI,
 } from '@c15t/react/v3';
+import type { ConsentProviderOptions } from '@c15t/react/v3';
 import { useEffect } from 'react';
 
 import { getBenchState, markInteraction } from '../_bench/state';
