@@ -229,16 +229,18 @@ function buildPolicy(
 		| { activeUI?: 'none' | 'banner' | 'dialog' }
 		| undefined;
 	const mode = state?.activeUI ?? activeUIForComponent(opts.component);
+	const consent: ResolvedPolicy['consent'] = {
+		categories: consentCategoriesFor(options),
+		scopeMode: 'permissive',
+	};
+	if (opts.policy?.respectGpc !== undefined) {
+		consent.gpc = opts.policy.respectGpc;
+	}
+
 	return {
 		id: 'react_v3_conformance_policy',
 		model: opts.policy?.model ?? 'opt-in',
-		consent: {
-			categories: consentCategoriesFor(options),
-			scopeMode: 'permissive',
-			...(opts.policy?.respectGpc === undefined
-				? {}
-				: { gpc: opts.policy.respectGpc }),
-		},
+		consent,
 		ui: {
 			mode,
 			banner: {
@@ -329,18 +331,22 @@ function buildProviderOptions(opts: MountOptions): ConsentProviderOptions {
 				}
 			: basePrefetch;
 
-	return {
+	const options: ProviderOptions = {
 		...provided,
 		mode: 'offline',
 		persistence: opts.persistence ?? false,
 		disableAnimation: true,
 		trapFocus: false,
 		consentCategories: consentCategoriesFor(provided),
-		// GPC uses the provider's public `overrides` input — the same channel
-		// a real app (or the nextjs server plumbing) delivers the signal on.
-		...(opts.gpc === undefined ? {} : { overrides: { gpc: opts.gpc } }),
 		prefetch,
 	};
+	// GPC uses the provider's public `overrides` input — the same channel
+	// a real app (or the nextjs server plumbing) delivers the signal on.
+	if (opts.gpc !== undefined) {
+		options.overrides = { gpc: opts.gpc };
+	}
+
+	return options;
 }
 
 function createPendingInit() {
@@ -494,10 +500,10 @@ const driver: TestDriver = {
 	framework: 'react',
 	async mount(opts: MountOptions): Promise<MountResult> {
 		const lifecycle = lifecycleTransportFor(opts);
-		const options = {
-			...buildProviderOptions(opts),
-			...(lifecycle.transport ? { transport: lifecycle.transport } : {}),
-		};
+		const options = buildProviderOptions(opts);
+		if (lifecycle.transport) {
+			options.transport = lifecycle.transport;
+		}
 		let mountedKernel: ConsentKernel | null = null;
 		let resolveSettled: () => void = () => {};
 		const settled = createVoidDeferredPromise((resolve) => {

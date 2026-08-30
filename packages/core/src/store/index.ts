@@ -5,7 +5,7 @@
  */
 
 import { isLegalDocumentType } from '@c15t/schema/types';
-import type { PostSubjectOutput } from '@c15t/schema/types';
+import type { PostSubjectInput, PostSubjectOutput } from '@c15t/schema/types';
 import { resolveTranslationInput } from '@c15t/translations';
 import { createStore } from 'zustand/vanilla';
 
@@ -548,19 +548,29 @@ export const createConsentManagerStore = (
 
 				const givenAt = input.givenAt ?? Date.now();
 
+				const consentBody: PostSubjectInput = {
+					type: input.type,
+					subjectId,
+					domain,
+					givenAt,
+					uiSource: input.uiSource ?? 'api',
+					...legalDocumentFields,
+				};
+				if (input.metadata) {
+					consentBody.metadata = input.metadata;
+				}
+				if (input.preferences) {
+					consentBody.preferences = input.preferences;
+				}
+				if (externalId) {
+					consentBody.externalSubjectId = externalId;
+				}
+				if (identityProvider) {
+					consentBody.identityProvider = identityProvider;
+				}
+
 				const response = await manager.setConsent({
-					body: {
-						type: input.type,
-						subjectId,
-						domain,
-						givenAt,
-						uiSource: input.uiSource ?? 'api',
-						...legalDocumentFields,
-						...(input.metadata ? { metadata: input.metadata } : {}),
-						...(input.preferences ? { preferences: input.preferences } : {}),
-						...(externalId ? { externalSubjectId: externalId } : {}),
-						...(identityProvider ? { identityProvider } : {}),
-					},
+					body: consentBody,
 				});
 
 				if (!response.ok || !response.data) {
@@ -590,25 +600,29 @@ export const createConsentManagerStore = (
 
 				const latestState = get();
 				const latestInfo = latestState.consentInfo;
-				const nextConsentInfo = {
+				const nextConsentInfo: ConsentInfo = {
 					...latestInfo,
 					time: consent.givenAt.getTime(),
 					subjectId,
-					...(externalId ? { externalId } : {}),
-					...(identityProvider ? { identityProvider } : {}),
 				};
+				if (externalId) {
+					nextConsentInfo.externalId = externalId;
+				}
+				if (identityProvider) {
+					nextConsentInfo.identityProvider = identityProvider;
+				}
 
-				set({
+				const statePatch: Partial<ConsentStoreState> = {
 					consentInfo: nextConsentInfo,
-					...(externalId
-						? {
-								user: {
-									id: externalId,
-									identityProvider,
-								},
-							}
-						: {}),
-				});
+				};
+				if (externalId) {
+					statePatch.user = {
+						id: externalId,
+						identityProvider,
+					};
+				}
+
+				set(statePatch);
 
 				saveConsentToStorage(
 					{

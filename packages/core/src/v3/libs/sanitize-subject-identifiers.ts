@@ -37,9 +37,14 @@ export function sanitizeSubjectIdentifiers(
 ): SanitizedSubjectIdentifiers {
 	const externalId = sanitizeIdentifier(identifiers.externalId);
 	const identityProvider = sanitizeIdentifier(identifiers.identityProvider);
+	const sanitized: SanitizedSubjectIdentifiers = {};
 
-	return {
-		...(externalId ? { externalId } : {}),
-		...(identityProvider ? { identityProvider } : {}),
-	};
+	if (externalId) {
+		sanitized.externalId = externalId;
+	}
+	if (identityProvider) {
+		sanitized.identityProvider = identityProvider;
+	}
+
+	return sanitized;
 }

@@ -90,7 +90,7 @@ function renderFor(component: MountableComponent): ReactElement {
  * the real lifecycle instead of the driver's forced `setActiveUI`.
  */
 function buildOfflinePolicy(opts: MountOptions) {
-	return {
+	const offlinePolicy = {
 		policy: {
 			id: 'react_v2_conformance_policy',
 			model: opts.policy?.model ?? 'opt-in',
@@ -103,15 +103,17 @@ function buildOfflinePolicy(opts: MountOptions) {
 					'marketing',
 				],
 				scopeMode: 'permissive',
-				...(opts.policy?.respectGpc === undefined
-					? {}
-					: { gpc: opts.policy.respectGpc }),
 			},
 			ui: {
 				mode: 'banner',
 			},
 		},
 	} as NonNullable<ConsentManagerOptions['offlinePolicy']>;
+	if (opts.policy?.respectGpc !== undefined) {
+		offlinePolicy.policy.consent.gpc = opts.policy.respectGpc;
+	}
+
+	return offlinePolicy;
 }
 
 function usesPolicyLifecycle(opts: MountOptions): boolean {
@@ -127,25 +129,25 @@ function buildProviderOptions(opts: MountOptions): ConsentManagerOptions {
 	}
 	const provided = (opts.providerOptions ??
 		{}) as Partial<ConsentManagerOptions>;
-	return {
+	const options = {
 		mode: 'offline',
-		...(usesPolicyLifecycle(opts)
-			? {
-					offlinePolicy: buildOfflinePolicy(opts),
-					// v2 defaults `consentCategories` to `['necessary']`; real apps
-					// configure the categories they use, and `saveConsents('all')`
-					// only grants configured categories.
-					consentCategories: [
-						'necessary',
-						'functionality',
-						'experience',
-						'measurement',
-						'marketing',
-					] as ConsentManagerOptions['consentCategories'],
-				}
-			: {}),
-		...provided,
 	} as ConsentManagerOptions;
+	if (usesPolicyLifecycle(opts)) {
+		options.offlinePolicy = buildOfflinePolicy(opts);
+		// v2 defaults `consentCategories` to `['necessary']`; real apps
+		// configure the categories they use, and `saveConsents('all')`
+		// only grants configured categories.
+		options.consentCategories = [
+			'necessary',
+			'functionality',
+			'experience',
+			'measurement',
+			'marketing',
+		] as ConsentManagerOptions['consentCategories'];
+	}
+	Object.assign(options, provided);
+
+	return options;
 }
 
 /**

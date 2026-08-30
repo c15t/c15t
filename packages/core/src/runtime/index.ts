@@ -264,6 +264,11 @@ export function getOrCreateConsentRuntime(
 					})
 				: undefined;
 		const resolvedSSRData = explicitSSRData ?? autoPrefetchedSSRData;
+		const meta = { ...(userConfig?.meta ?? {}) };
+		if (normalizedMode === 'hosted') {
+			meta.backendURL = resolvedBackendURL;
+			meta.requestCredentials = 'include';
+		}
 
 		consentStore = createConsentManagerStore(consentManager, {
 			config: {
@@ -271,15 +276,7 @@ export function getOrCreateConsentRuntime(
 				pkg: pkgInfo?.pkg || 'c15t',
 				version: pkgInfo?.version || version,
 				mode: normalizedMode,
-				meta: {
-					...(userConfig?.meta ?? {}),
-					...(normalizedMode === 'hosted'
-						? {
-								backendURL: resolvedBackendURL,
-								requestCredentials: 'include',
-							}
-						: {}),
-				},
+				meta,
 			},
 			...cleanStoreOptionOverrides,
 			...storeWithoutTranslationInputs,

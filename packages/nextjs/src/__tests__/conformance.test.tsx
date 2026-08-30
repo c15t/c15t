@@ -243,16 +243,18 @@ function buildPolicy(
 		| { activeUI?: 'none' | 'banner' | 'dialog' }
 		| undefined;
 	const mode = state?.activeUI ?? activeUIForComponent(opts.component);
+	const consent: ResolvedPolicy['consent'] = {
+		categories: consentCategoriesFor(options),
+		scopeMode: 'permissive',
+	};
+	if (opts.policy?.respectGpc !== undefined) {
+		consent.gpc = opts.policy.respectGpc;
+	}
+
 	return {
 		id: 'nextjs_conformance_policy',
 		model: opts.policy?.model ?? 'opt-in',
-		consent: {
-			categories: consentCategoriesFor(options),
-			scopeMode: 'permissive',
-			...(opts.policy?.respectGpc === undefined
-				? {}
-				: { gpc: opts.policy.respectGpc }),
-		},
+		consent,
 		ui: {
 			mode,
 			banner: {
@@ -293,17 +295,15 @@ function buildBoundaryProps(opts: MountOptions): {
 		initialHasConsented:
 			state?.hasConsented ?? provided.prefetch?.initialHasConsented,
 		initialTranslations: resolveTranslations(provided, opts.locale),
-		// GPC arrives in the serializable server config — exactly the field
-		// the nextjs server plumbing derives from the `sec-gpc` header.
-		...(opts.gpc === undefined
-			? {}
-			: {
-					initialOverrides: {
-						...(provided.prefetch?.initialOverrides ?? {}),
-						gpc: opts.gpc,
-					},
-				}),
 	};
+	// GPC arrives in the serializable server config — exactly the field
+	// the nextjs server plumbing derives from the `sec-gpc` header.
+	if (opts.gpc !== undefined) {
+		basePrefetch.initialOverrides = {
+			...(provided.prefetch?.initialOverrides ?? {}),
+			gpc: opts.gpc,
+		};
+	}
 	const config: KernelConfig =
 		initMode === 'authoritative'
 			? {

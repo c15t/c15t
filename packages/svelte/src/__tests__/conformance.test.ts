@@ -114,18 +114,20 @@ function buildPolicy(
 		| { activeUI?: 'none' | 'banner' | 'dialog' }
 		| undefined;
 	const mode = state?.activeUI ?? activeUIForComponent(opts.component);
+	const consent: ResolvedPolicy['consent'] = {
+		categories: consentCategoriesFor(options),
+		scopeMode: 'permissive',
+	};
+	if (opts.policy?.respectGpc !== undefined) {
+		consent.gpc = opts.policy.respectGpc;
+	}
+
 	return {
 		id: 'svelte_conformance_policy',
 		model: isIabComponent(opts.component)
 			? 'iab'
 			: (opts.policy?.model ?? 'opt-in'),
-		consent: {
-			categories: consentCategoriesFor(options),
-			scopeMode: 'permissive',
-			...(opts.policy?.respectGpc === undefined
-				? {}
-				: { gpc: opts.policy.respectGpc }),
-		},
+		consent,
 		ui: {
 			mode,
 			banner: {
@@ -181,31 +183,33 @@ function buildProviderOptions(opts: MountOptions): ProviderOptions {
 		initialPolicySnapshotToken: 'svelte_conformance_token',
 	};
 
-	return {
+	const options = {
 		...provided,
 		mode: provided.mode ?? 'offline',
 		persistence: opts.persistence ?? provided.persistence ?? false,
 		disableAnimation: provided.disableAnimation ?? true,
 		trapFocus: provided.trapFocus ?? false,
 		consentCategories: consentCategoriesFor(provided),
-		// GPC flows through the public `overrides` option — the same input an
-		// embedding app uses — which the provider merges into the kernel's
-		// `initialOverrides` (consent-manager-provider.svelte).
-		...(opts.gpc === undefined ? {} : { overrides: { gpc: opts.gpc } }),
-		// Real IAB wiring: the provider normalizes this into `createIAB`,
-		// which seeds the kernel's IAB slice (enabled + GVL + CMP id).
-		...(isIabComponent(opts.component)
-			? {
-					iab: {
-						enabled: true,
-						cmpId: IAB_FIXTURE_CMP_ID,
-						cmpVersion: IAB_FIXTURE_CMP_VERSION,
-						gvl: MINIMAL_GVL as unknown as GlobalVendorList,
-					},
-				}
-			: {}),
 		prefetch,
 	} as ProviderOptions;
+	// GPC flows through the public `overrides` option — the same input an
+	// embedding app uses — which the provider merges into the kernel's
+	// `initialOverrides` (consent-manager-provider.svelte).
+	if (opts.gpc !== undefined) {
+		options.overrides = { gpc: opts.gpc };
+	}
+	// Real IAB wiring: the provider normalizes this into `createIAB`,
+	// which seeds the kernel's IAB slice (enabled + GVL + CMP id).
+	if (isIabComponent(opts.component)) {
+		options.iab = {
+			enabled: true,
+			cmpId: IAB_FIXTURE_CMP_ID,
+			cmpVersion: IAB_FIXTURE_CMP_VERSION,
+			gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+		};
+	}
+
+	return options;
 }
 
 function activeUIForStore(activeUI: KernelActiveUI): StoreState['activeUI'] {

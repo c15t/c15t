@@ -184,7 +184,6 @@ const deferredRules = [
 // Three anti-slop rules are already clean and stay enabled through the preset.
 const deferredAntiSlopRules = [
 	'anti-slop/no-chained-type-assertions',
-	'anti-slop/no-conditional-empty-object-spread',
 	'anti-slop/no-known-value-widening',
 	'anti-slop/no-module-mocking',
 	'anti-slop/no-runtime-typeof',

@@ -735,13 +735,16 @@ export function PolicyDemo() {
 		navigate(preset.id, demoMode, preset.country, preset.region ?? '');
 	};
 
-	const overrides = useMemo(
-		() => ({
-			...(normalizedCountry ? { country: normalizedCountry } : {}),
-			...(normalizedRegion ? { region: normalizedRegion } : {}),
-		}),
-		[normalizedCountry, normalizedRegion]
-	);
+	const overrides = useMemo(() => {
+		const nextOverrides: { country?: string; region?: string } = {};
+		if (normalizedCountry) {
+			nextOverrides.country = normalizedCountry;
+		}
+		if (normalizedRegion) {
+			nextOverrides.region = normalizedRegion;
+		}
+		return nextOverrides;
+	}, [normalizedCountry, normalizedRegion]);
 
 	const categories: (
 		| 'necessary'

@@ -265,12 +265,12 @@ export function resolveTranslationInput(
 		return undefined;
 	}
 
-	return toTranslationConfig(
-		normalizeI18nConfig({
-			...(legacyConfig ?? {}),
-			...(i18nConfig ? { i18n: i18nConfig } : {}),
-		})
-	);
+	const config: TranslationInputConfig = { ...(legacyConfig ?? {}) };
+	if (i18nConfig) {
+		config.i18n = i18nConfig;
+	}
+
+	return toTranslationConfig(normalizeI18nConfig(config));
 }
 
 /**

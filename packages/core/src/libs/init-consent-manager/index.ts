@@ -7,6 +7,7 @@
  * @packageDocumentation
  */
 
+import type { SetConsentRequestBody } from '../../client/client-interface';
 import type { ResponseContext } from '../../client/types';
 import type { InitDataSource, SSRInitialData } from '../../store/type';
 import {
@@ -360,23 +361,29 @@ function processPendingConsentSync(
 				identityProvider: data.identityProvider,
 			});
 
+		const consentBody: SetConsentRequestBody = {
+			type: 'cookie_banner',
+			domain: data.domain,
+			preferences: data.preferences,
+			subjectId: data.subjectId,
+			jurisdiction: data.jurisdiction,
+			jurisdictionModel: data.jurisdictionModel ?? undefined,
+			givenAt: data.givenAt,
+			uiSource: data.uiSource ?? 'api',
+			policySnapshotToken: data.policySnapshotToken,
+		};
+		if (externalSubjectId) {
+			consentBody.externalSubjectId = externalSubjectId;
+		}
+		if (identityProvider) {
+			consentBody.identityProvider = identityProvider;
+		}
+
 		// Fire API call (non-blocking)
 		void (async () => {
 			try {
 				const result = await manager.setConsent({
-					body: {
-						type: 'cookie_banner',
-						domain: data.domain,
-						preferences: data.preferences,
-						subjectId: data.subjectId,
-						jurisdiction: data.jurisdiction,
-						jurisdictionModel: data.jurisdictionModel ?? undefined,
-						givenAt: data.givenAt,
-						uiSource: data.uiSource ?? 'api',
-						policySnapshotToken: data.policySnapshotToken,
-						...(externalSubjectId ? { externalSubjectId } : {}),
-						...(identityProvider ? { identityProvider } : {}),
-					},
+					body: consentBody,
 				});
 				if (!result.ok) {
 					const errorMsg =

@@ -174,10 +174,13 @@ export async function runGenerateMachine(
 	}
 
 	// Create the actor
-	const actor = createActor(generateMachine, {
+	const actorOptions = {
 		input: { cliContext, modeArg },
-		...(snapshot ? { snapshot: snapshot as never } : {}),
-	});
+	};
+	if (snapshot) {
+		Object.assign(actorOptions, { snapshot });
+	}
+	const actor = createActor(generateMachine, actorOptions);
 
 	// Set up subscribers
 	const subscribers: ((snapshot: unknown) => void)[] = [];

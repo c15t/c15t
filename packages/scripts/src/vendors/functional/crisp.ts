@@ -92,15 +92,18 @@ function createCrispManifest(options: CrispOptions): VendorManifest {
 	];
 
 	if (options.locale !== undefined || options.sessionMerge !== undefined) {
+		const value: { locale?: string; session_merge?: string } = {};
+		if (options.locale !== undefined) {
+			value.locale = '{{locale}}';
+		}
+		if (options.sessionMerge !== undefined) {
+			value.session_merge = '{{sessionMerge}}';
+		}
+
 		install.push({
 			type: 'setGlobal',
 			name: 'CRISP_RUNTIME_CONFIG',
-			value: {
-				...(options.locale !== undefined ? { locale: '{{locale}}' } : {}),
-				...(options.sessionMerge !== undefined
-					? { session_merge: '{{sessionMerge}}' }
-					: {}),
-			},
+			value,
 			ifUndefined: false,
 		});
 	}

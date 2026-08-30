@@ -100,16 +100,16 @@ export async function processPendingConsentSubmissions(
 						externalId: submission.externalSubjectId,
 						identityProvider: submission.identityProvider,
 					});
-				const sanitizedSubmission: SetConsentRequestBody = {
-					...submission,
-					...(externalSubjectId ? { externalSubjectId } : {}),
-					...(identityProvider ? { identityProvider } : {}),
-				};
+				const sanitizedSubmission: SetConsentRequestBody = { ...submission };
 
-				if (!externalSubjectId) {
+				if (externalSubjectId) {
+					sanitizedSubmission.externalSubjectId = externalSubjectId;
+				} else {
 					delete sanitizedSubmission.externalSubjectId;
 				}
-				if (!identityProvider) {
+				if (identityProvider) {
+					sanitizedSubmission.identityProvider = identityProvider;
+				} else {
 					delete sanitizedSubmission.identityProvider;
 				}
 

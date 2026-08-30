@@ -379,12 +379,18 @@ export class Telemetry {
 		const writeKey = process.env[ENV_VARS.TELEMETRY_WRITE_KEY];
 		const orgId = process.env[ENV_VARS.TELEMETRY_ORG_ID];
 
-		return {
+		const headers: Record<string, string> = {
 			'Content-Type': 'application/json',
-			...(writeKey ? { Authorization: `Bearer ${writeKey}` } : {}),
-			...(orgId ? { 'X-Axiom-Org-Id': orgId } : {}),
-			...overrides,
 		};
+		if (writeKey) {
+			headers.Authorization = `Bearer ${writeKey}`;
+		}
+		if (orgId) {
+			headers['X-Axiom-Org-Id'] = orgId;
+		}
+		Object.assign(headers, overrides);
+
+		return headers;
 	}
 
 	private async flushAll(): Promise<void> {

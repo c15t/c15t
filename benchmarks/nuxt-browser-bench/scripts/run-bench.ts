@@ -514,19 +514,21 @@ function isManifestScenario(scenario: string): boolean {
 async function run() {
 	await ensureBuild();
 
+	const env = {
+		...process.env,
+		C15T_BENCH_INIT_LATENCY_MS: `${initLatencyMs}`,
+		HOST,
+		PORT: `${PORT}`,
+		NITRO_HOST: HOST,
+		NITRO_PORT: `${PORT}`,
+	};
+	if (coldManifestMode) {
+		env.C15T_BENCH_COLD_MANIFEST_TOKEN = String(Date.now());
+	}
+
 	const server = spawn('node', ['.output/server/index.mjs'], {
 		cwd: appDir,
-		env: {
-			...process.env,
-			C15T_BENCH_INIT_LATENCY_MS: `${initLatencyMs}`,
-			...(coldManifestMode
-				? { C15T_BENCH_COLD_MANIFEST_TOKEN: String(Date.now()) }
-				: {}),
-			HOST,
-			PORT: `${PORT}`,
-			NITRO_HOST: HOST,
-			NITRO_PORT: `${PORT}`,
-		},
+		env,
 		stdio: ['ignore', 'pipe', 'pipe'],
 	});
 

@@ -224,6 +224,13 @@ function buildInitOutput(
 		options.consentCategories?.length === 0
 			? [...DEFAULT_CONSENT_CATEGORIES]
 			: [...(options.consentCategories ?? DEFAULT_CONSENT_CATEGORIES)];
+	const consent: NonNullable<NonNullable<InitOutput['policy']>['consent']> = {
+		categories: consentCategories,
+		scopeMode: 'permissive',
+	};
+	if (opts.policy?.respectGpc !== undefined) {
+		consent.gpc = opts.policy.respectGpc;
+	}
 
 	return {
 		jurisdiction: 'GDPR',
@@ -236,13 +243,7 @@ function buildInitOutput(
 		policy: {
 			id: 'vue_conformance_policy',
 			model: policyModelFor(opts),
-			consent: {
-				categories: consentCategories,
-				scopeMode: 'permissive',
-				...(opts.policy?.respectGpc === undefined
-					? {}
-					: { gpc: opts.policy.respectGpc }),
-			},
+			consent,
 			ui: {
 				mode: 'banner',
 				banner: {
@@ -283,18 +284,18 @@ function buildKernelConfig(
 		initialConsents: state?.consents,
 		initialHasConsented: state?.hasConsented,
 		initialTranslations: resolveTranslations(options, opts.locale),
-		...(opts.gpc === undefined ? {} : { initialOverrides: { gpc: opts.gpc } }),
-		...(isIabComponent(opts.component)
-			? {
-					initialIab: {
-						enabled: true,
-						gvl: MINIMAL_GVL as unknown as GlobalVendorList,
-						cmpId: IAB_FIXTURE_CMP_ID,
-					},
-				}
-			: {}),
 		transport,
 	};
+	if (opts.gpc !== undefined) {
+		base.initialOverrides = { gpc: opts.gpc };
+	}
+	if (isIabComponent(opts.component)) {
+		base.initialIab = {
+			enabled: true,
+			gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+			cmpId: IAB_FIXTURE_CMP_ID,
+		};
+	}
 	if (initMode === 'authoritative') {
 		return {
 			...base,

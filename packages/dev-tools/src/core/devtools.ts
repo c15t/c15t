@@ -711,22 +711,26 @@ export function createDevToolsPanel(options: {
 		},
 	});
 
+	const containerStyle: Partial<CSSStyleDeclaration> = {
+		display: 'flex',
+		flexDirection: 'column',
+		height: '100%',
+		boxSizing: 'border-box',
+		gap: '0.75rem',
+		padding: '0.75rem',
+		fontFamily: 'inherit',
+		fontSize: 'var(--c15t-devtools-font-size-sm)',
+		color: isEmbedded ? 'var(--c15t-text, #eef2ff)' : 'inherit',
+		backgroundColor: 'transparent',
+		colorScheme: isEmbedded ? 'dark' : undefined,
+	};
+	if (isEmbedded) {
+		Object.assign(containerStyle, EMBEDDED_THEME_VARIABLES);
+	}
+
 	// Create container
 	const container = div({
-		style: {
-			display: 'flex',
-			flexDirection: 'column',
-			height: '100%',
-			boxSizing: 'border-box',
-			gap: '0.75rem',
-			padding: '0.75rem',
-			fontFamily: 'inherit',
-			fontSize: 'var(--c15t-devtools-font-size-sm)',
-			color: isEmbedded ? 'var(--c15t-text, #eef2ff)' : 'inherit',
-			backgroundColor: 'transparent',
-			colorScheme: isEmbedded ? 'dark' : undefined,
-			...(isEmbedded ? EMBEDDED_THEME_VARIABLES : {}),
-		},
+		style: containerStyle,
 	});
 
 	// Create content area (before tabs so we can pass render function)

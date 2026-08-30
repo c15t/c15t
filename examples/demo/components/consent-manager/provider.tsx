@@ -37,10 +37,15 @@ function resolveGeoOverrides(
 		return undefined;
 	}
 
-	return {
-		...(queryCountry ? { country: queryCountry.toUpperCase() } : {}),
-		...(queryRegion ? { region: queryRegion.toUpperCase() } : {}),
-	};
+	const overrides: { country?: string; region?: string } = {};
+	if (queryCountry) {
+		overrides.country = queryCountry.toUpperCase();
+	}
+	if (queryRegion) {
+		overrides.region = queryRegion.toUpperCase();
+	}
+
+	return overrides;
 }
 
 /**

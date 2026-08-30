@@ -480,18 +480,20 @@ function isManifestScenario(scenario: string): boolean {
 async function run() {
 	await ensureBuild();
 
+	const env: NodeJS.ProcessEnv = {
+		...process.env,
+		C15T_BENCH_INIT_LATENCY_MS: `${initLatencyMs}`,
+	};
+	if (coldManifestMode) {
+		env.C15T_BENCH_COLD_MANIFEST_TOKEN = String(Date.now());
+	}
+
 	const server = spawn(
 		'bun',
 		['run', 'start', '--', '-H', HOST, '-p', `${PORT}`],
 		{
 			cwd: appDir,
-			env: {
-				...process.env,
-				C15T_BENCH_INIT_LATENCY_MS: `${initLatencyMs}`,
-				...(coldManifestMode
-					? { C15T_BENCH_COLD_MANIFEST_TOKEN: String(Date.now()) }
-					: {}),
-			},
+			env,
 			stdio: ['ignore', 'pipe', 'pipe'],
 		}
 	);

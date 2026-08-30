@@ -493,10 +493,15 @@ for (const engine of ENGINES) {
 		const put = (body: unknown, auth = true) =>
 			app.request('/legal-documents/privacy_policy/current', {
 				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-					...(auth ? { Authorization: `Bearer ${API_KEY}` } : {}),
-				},
+				headers: (() => {
+					const headers: Record<string, string> = {
+						'Content-Type': 'application/json',
+					};
+					if (auth) {
+						headers.Authorization = `Bearer ${API_KEY}`;
+					}
+					return headers;
+				})(),
 				body: JSON.stringify(body),
 			});
 

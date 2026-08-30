@@ -181,13 +181,14 @@ export function createMockClient(overrides: MockClientOverrides = {}) {
 		checkConsent: (query: unknown) => Promise.resolve(checkConsent(query)),
 		createSubject: (input: unknown) => Promise.resolve(createSubject(input)),
 		getSubject: (id: string) => Promise.resolve(getSubject(id)),
-		patchSubject: (id: string, input: unknown) =>
-			Promise.resolve(
-				patchSubject({
-					id,
-					...(typeof input === 'object' && input !== null ? input : {}),
-				})
-			),
+		patchSubject: (id: string, input: unknown) => {
+			const patchInput = { id };
+			if (typeof input === 'object' && input !== null) {
+				Object.assign(patchInput, input);
+			}
+
+			return Promise.resolve(patchSubject(patchInput));
+		},
 		listSubjects: (query?: unknown) => Promise.resolve(listSubjects(query)),
 
 		// Namespaced methods
@@ -197,13 +198,14 @@ export function createMockClient(overrides: MockClientOverrides = {}) {
 		subjects: {
 			create: (input: unknown) => Promise.resolve(createSubject(input)),
 			get: (id: string) => Promise.resolve(getSubject(id)),
-			patch: (id: string, input: unknown) =>
-				Promise.resolve(
-					patchSubject({
-						id,
-						...(typeof input === 'object' && input !== null ? input : {}),
-					})
-				),
+			patch: (id: string, input: unknown) => {
+				const patchInput = { id };
+				if (typeof input === 'object' && input !== null) {
+					Object.assign(patchInput, input);
+				}
+
+				return Promise.resolve(patchSubject(patchInput));
+			},
 			list: (query?: unknown) => Promise.resolve(listSubjects(query)),
 		},
 		meta: {

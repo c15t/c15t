@@ -216,12 +216,13 @@ function getManifestInputs(
 	headers: Record<string, string>
 ) {
 	if (isClientManifestModeEnabled(config)) {
-		const inputs = extractConsentRequestInputs({
-			...headers,
-			...(getBrowserLanguage()
-				? { 'accept-language': getBrowserLanguage() }
-				: {}),
-		});
+		const contextualHeaders = { ...headers };
+		const browserLanguage = getBrowserLanguage();
+		if (browserLanguage) {
+			contextualHeaders['accept-language'] = browserLanguage;
+		}
+
+		const inputs = extractConsentRequestInputs(contextualHeaders);
 		return {
 			country: null,
 			region: null,
@@ -253,21 +254,21 @@ function createVueHostedTransport(
 
 	return {
 		async init(ctx) {
-			const contextualHeaders = pickAllowedInitHeaders({
-				...headers,
-				...(ctx.overrides.language
-					? { 'accept-language': ctx.overrides.language }
-					: {}),
-				...(ctx.overrides.gpc === undefined
-					? {}
-					: { 'sec-gpc': ctx.overrides.gpc ? '1' : '0' }),
-				...(ctx.overrides.country
-					? { 'x-c15t-country': ctx.overrides.country }
-					: {}),
-				...(ctx.overrides.region
-					? { 'x-c15t-region': ctx.overrides.region }
-					: {}),
-			});
+			const initHeaders = { ...headers };
+			if (ctx.overrides.language) {
+				initHeaders['accept-language'] = ctx.overrides.language;
+			}
+			if (ctx.overrides.gpc !== undefined) {
+				initHeaders['sec-gpc'] = ctx.overrides.gpc ? '1' : '0';
+			}
+			if (ctx.overrides.country) {
+				initHeaders['x-c15t-country'] = ctx.overrides.country;
+			}
+			if (ctx.overrides.region) {
+				initHeaders['x-c15t-region'] = ctx.overrides.region;
+			}
+
+			const contextualHeaders = pickAllowedInitHeaders(initHeaders);
 			return (
 				createHostedTransport({
 					backendURL,
@@ -389,10 +390,14 @@ async function refreshClientGeo(
 		if (!(country || region)) {
 			return;
 		}
-		context.kernel.set.overrides({
-			...(country ? { country } : {}),
-			...(region ? { region } : {}),
-		});
+		const overrides: { country?: string; region?: string } = {};
+		if (country) {
+			overrides.country = country;
+		}
+		if (region) {
+			overrides.region = region;
+		}
+		context.kernel.set.overrides(overrides);
 		await context.kernel.commands.init();
 	} catch {
 		// Keep the strict unknown-geo manifest result when the optional geo

@@ -208,12 +208,17 @@ export function middleware(
 
 	const rates = ratesFor(level);
 	if (rates !== undefined || options?.service !== undefined) {
-		initLogger({
-			...(options?.service === undefined
-				? {}
-				: { env: { service: options.service } }),
-			...(rates === undefined ? {} : { sampling: { rates } }),
-		});
+		const loggerOptions: {
+			env?: { service: string };
+			sampling?: { rates: ReturnType<typeof ratesFor> };
+		} = {};
+		if (options?.service !== undefined) {
+			loggerOptions.env = { service: options.service };
+		}
+		if (rates !== undefined) {
+			loggerOptions.sampling = { rates };
+		}
+		initLogger(loggerOptions);
 	}
 
 	return evlog(resolveOptions(options ?? {}));

@@ -57,11 +57,16 @@ function europePolicy(mode: EuropePolicyMode): PolicyConfig {
 			policyMatchers.iab(),
 			policyMatchers.fallback()
 		),
-		consent: {
-			model: mode,
-			expiryDays: 365,
-			...(isIab ? { categories: ['*'] } : {}),
-		},
+		consent: (() => {
+			const consent: PolicyConfig['consent'] = {
+				model: mode,
+				expiryDays: 365,
+			};
+			if (isIab) {
+				consent.categories = ['*'];
+			}
+			return consent;
+		})(),
 		proof: {
 			storeIp: true,
 			storeUserAgent: true,

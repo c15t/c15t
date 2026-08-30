@@ -3,7 +3,10 @@ import type { StoreApi } from 'zustand';
 
 import type { ConsentStoreState } from '~/store/type';
 
-import type { ConsentManagerInterface } from '../client/client-interface';
+import type {
+	ConsentManagerInterface,
+	SetConsentRequestBody,
+} from '../client/client-interface';
 import type {
 	ConsentInfo,
 	ConsentState,
@@ -289,9 +292,13 @@ export async function saveConsents({
 		time: givenAt,
 		subjectId,
 		materialPolicyFingerprint,
-		...(externalId ? { externalId } : {}),
-		...(identityProvider ? { identityProvider } : {}),
 	};
+	if (externalId) {
+		nextConsentInfo.externalId = externalId;
+	}
+	if (identityProvider) {
+		nextConsentInfo.identityProvider = identityProvider;
+	}
 
 	// Check if we need to reload the page due to consent revocation
 	const needsReload = shouldReloadOnConsentChange(
@@ -334,9 +341,13 @@ export async function saveConsents({
 			domain: window.location.hostname,
 			uiSource: options?.uiSource ?? 'api',
 			policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
-			...(externalId ? { externalId } : {}),
-			...(identityProvider ? { identityProvider } : {}),
 		};
+		if (externalId) {
+			pendingSync.externalId = externalId;
+		}
+		if (identityProvider) {
+			pendingSync.identityProvider = identityProvider;
+		}
 
 		try {
 			localStorage.setItem(
@@ -380,21 +391,27 @@ export async function saveConsents({
 	}
 
 	// Send consent to API in the background - the UI is already updated
+	const consentBody: SetConsentRequestBody = {
+		type: 'cookie_banner' as const,
+		domain: typeof window !== 'undefined' ? window.location.hostname : '',
+		preferences: requestPreferences,
+		subjectId,
+		jurisdiction: locationInfo?.jurisdiction ?? undefined,
+		jurisdictionModel: model ?? undefined,
+		givenAt,
+		uiSource: options?.uiSource ?? 'api',
+		consentAction: type,
+		policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
+	};
+	if (externalId) {
+		consentBody.externalSubjectId = externalId;
+	}
+	if (identityProvider) {
+		consentBody.identityProvider = identityProvider;
+	}
+
 	const consent = await manager.setConsent({
-		body: {
-			type: 'cookie_banner',
-			domain: typeof window !== 'undefined' ? window.location.hostname : '',
-			preferences: requestPreferences,
-			subjectId,
-			jurisdiction: locationInfo?.jurisdiction ?? undefined,
-			jurisdictionModel: model ?? undefined,
-			givenAt,
-			uiSource: options?.uiSource ?? 'api',
-			consentAction: type,
-			policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
-			...(externalId ? { externalSubjectId: externalId } : {}),
-			...(identityProvider ? { identityProvider } : {}),
-		},
+		body: consentBody,
 	});
 
 	// Handle error case if the API request fails

@@ -149,13 +149,16 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 		[]
 	);
 
-	const overrides = useMemo(
-		() => ({
-			...(params.country ? { country: params.country } : {}),
-			...(params.region ? { region: params.region } : {}),
-		}),
-		[params.country, params.region]
-	);
+	const overrides = useMemo(() => {
+		const nextOverrides: { country?: string; region?: string } = {};
+		if (params.country) {
+			nextOverrides.country = params.country;
+		}
+		if (params.region) {
+			nextOverrides.region = params.region;
+		}
+		return nextOverrides;
+	}, [params.country, params.region]);
 
 	// Remount the provider whenever the simulated environment changes so the
 	// consent manager re-initializes from scratch.
@@ -192,14 +195,21 @@ export function ConsentDemo({ backend = 'hosted' }: ConsentDemoProps) {
 
 	const providerOptions =
 		params.mode === 'hosted'
-			? {
-					mode: 'c15t' as const,
-					backendURL: isSelfHost ? '/api/self-host' : HOSTED_BACKEND_URL,
-					...(isSelfHost
-						? { headers: { [DEMO_SCENARIO_HEADER]: params.scenarioId } }
-						: {}),
-					...sharedOptions,
-				}
+			? (() => {
+					const hostedOptions = {
+						mode: 'c15t' as const,
+						backendURL: isSelfHost ? '/api/self-host' : HOSTED_BACKEND_URL,
+					};
+					if (isSelfHost) {
+						Object.assign(hostedOptions, {
+							headers: { [DEMO_SCENARIO_HEADER]: params.scenarioId },
+						});
+					}
+					return {
+						...hostedOptions,
+						...sharedOptions,
+					};
+				})()
 			: {
 					mode: 'offline' as const,
 					offlinePolicy: {

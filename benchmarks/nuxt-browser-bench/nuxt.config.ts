@@ -16,28 +16,9 @@ function getBenchManifestURL() {
  * page's own floor. Two-build pattern, same as the CSS experiment.
  */
 const baselineBuild = process.env.C15T_BENCH_BASELINE === '1';
-
-export default defineNuxtConfig({
+const config = {
 	compatibilityDate: '2026-07-04',
 	modules: baselineBuild ? [] : ['@c15t/vue'],
-	...(baselineBuild
-		? {}
-		: {
-				c15t: {
-					backendURL: '/api/bench-consent',
-					manifest: true,
-					manifestURL: getBenchManifestURL(),
-					consentCategories: [
-						'necessary',
-						'functionality',
-						'experience',
-						'measurement',
-						'marketing',
-					],
-					disableAnimation: true,
-					trapFocus: false,
-				},
-			}),
 	runtimeConfig: {
 		public: {
 			c15t: {
@@ -46,19 +27,6 @@ export default defineNuxtConfig({
 			benchBaseline: baselineBuild,
 		},
 	},
-	...(baselineBuild
-		? {
-				ignore: [
-					'app/pages/ssr.vue',
-					'app/pages/ssr-manifest.vue',
-					'app/pages/client.vue',
-					'app/pages/client-manifest.vue',
-					'app/pages/repeat-visitor.vue',
-					'app/components/**',
-					'app/plugins/**',
-				],
-			}
-		: {}),
 	routeRules: {
 		'/client': { ssr: false },
 		'/client-manifest': { ssr: false },
@@ -88,4 +56,37 @@ export default defineNuxtConfig({
 	typescript: {
 		strict: true,
 	},
-});
+};
+
+if (baselineBuild) {
+	Object.assign(config, {
+		ignore: [
+			'app/pages/ssr.vue',
+			'app/pages/ssr-manifest.vue',
+			'app/pages/client.vue',
+			'app/pages/client-manifest.vue',
+			'app/pages/repeat-visitor.vue',
+			'app/components/**',
+			'app/plugins/**',
+		],
+	});
+} else {
+	Object.assign(config, {
+		c15t: {
+			backendURL: '/api/bench-consent',
+			manifest: true,
+			manifestURL: getBenchManifestURL(),
+			consentCategories: [
+				'necessary',
+				'functionality',
+				'experience',
+				'measurement',
+				'marketing',
+			],
+			disableAnimation: true,
+			trapFocus: false,
+		},
+	});
+}
+
+export default defineNuxtConfig(config);
