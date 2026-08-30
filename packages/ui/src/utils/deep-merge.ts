@@ -6,7 +6,7 @@ export function deepMerge<T extends Record<string, any>>(
 	source: any
 ): T {
 	if (!source || typeof source !== 'object') return target;
-	const result = { ...target } as any;
+	const result: Record<string, any> = { ...target };
 	for (const key in source) {
 		if (
 			source[key] &&
@@ -18,5 +18,5 @@ export function deepMerge<T extends Record<string, any>>(
 			result[key] = source[key];
 		}
 	}
-	return result as T;
+	return { ...target, ...result };
 }

@@ -212,7 +212,6 @@ const deferredAntiSlopRules = [
 	'anti-slop/no-unknown-parameters',
 	'anti-slop/no-unknown-returns',
 	'anti-slop/no-unsafe-dictionary-type',
-	'anti-slop/no-widen-then-assert',
 	'anti-slop/require-safety-comment-for-type-assertion',
 ] as const;
 
