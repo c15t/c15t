@@ -1,4 +1,5 @@
 import { defineConfig } from 'oxlint';
+import antiSlop from 'ultracite/oxlint/anti-slop';
 import core from 'ultracite/oxlint/core';
 import react from 'ultracite/oxlint/react';
 import vue from 'ultracite/oxlint/vue';
@@ -196,10 +197,28 @@ const deferredRules = [
 	'unicorn/require-module-specifiers',
 	'unicorn/switch-case-braces',
 	'unicorn/text-encoding-identifier-case',
+	'vue/next-tick-style',
+] as const;
+
+// The remaining anti-slop rules need focused code or architecture changes.
+// Three anti-slop rules are already clean and stay enabled through the preset.
+const deferredAntiSlopRules = [
+	'anti-slop/no-chained-type-assertions',
+	'anti-slop/no-conditional-empty-object-spread',
+	'anti-slop/no-known-value-widening',
+	'anti-slop/no-module-mocking',
+	'anti-slop/no-object-parameters',
+	'anti-slop/no-runtime-typeof',
+	'anti-slop/no-shape-in-symbol-names',
+	'anti-slop/no-unknown-parameters',
+	'anti-slop/no-unknown-returns',
+	'anti-slop/no-unsafe-dictionary-type',
+	'anti-slop/no-widen-then-assert',
+	'anti-slop/require-safety-comment-for-type-assertion',
 ] as const;
 
 export default defineConfig({
-	extends: [core, react, vue],
+	extends: [core, react, vue, antiSlop],
 	ignorePatterns: [
 		...core.ignorePatterns,
 		'.agents/**',
@@ -210,5 +229,7 @@ export default defineConfig({
 		'.tmp-bun/**',
 		'packages/c15t/shims/**',
 	],
-	rules: Object.fromEntries(deferredRules.map((rule) => [rule, 'off'])),
+	rules: Object.fromEntries(
+		[...deferredRules, ...deferredAntiSlopRules].map((rule) => [rule, 'off'])
+	),
 });
