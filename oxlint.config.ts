@@ -35,16 +35,6 @@ const deferredRules = [
 	'func-names',
 	'func-style',
 	'guard-for-in',
-	'import/consistent-type-specifier-style',
-	'import/first',
-	'import/newline-after-import',
-	'import/no-cycle',
-	'import/no-duplicates',
-	'import/no-named-as-default',
-	'import/no-named-default',
-	'jsdoc/check-tag-names',
-	'jsdoc/empty-tags',
-	'jsdoc/require-throws-type',
 	'jsx-a11y/heading-has-content',
 	'jsx-a11y/interactive-supports-focus',
 	'jsx-a11y/no-noninteractive-element-interactions',
@@ -82,7 +72,6 @@ const deferredRules = [
 	'no-useless-return',
 	'no-void',
 	'no-warning-comments',
-	'node/callback-return',
 	'object-shorthand',
 	'operator-assignment',
 	'oxc/branches-sharing-code',
@@ -96,12 +85,6 @@ const deferredRules = [
 	'prefer-rest-params',
 	'prefer-template',
 	'preserve-caught-error',
-	'promise/avoid-new',
-	'promise/no-callback-in-promise',
-	'promise/param-names',
-	'promise/prefer-await-to-callbacks',
-	'promise/prefer-await-to-then',
-	'promise/prefer-catch',
 	'react/button-has-type',
 	'react/capitalized-calls',
 	'react/display-name',
@@ -214,7 +197,6 @@ const deferredRules = [
 	'unicorn/require-module-specifiers',
 	'unicorn/switch-case-braces',
 	'unicorn/text-encoding-identifier-case',
-	'vue/next-tick-style',
 ] as const;
 
 // The remaining anti-slop rules need focused code or architecture changes.
@@ -251,9 +233,24 @@ export default defineConfig({
 			rules: next.rules,
 		},
 	],
-	rules: Object.fromEntries(
-		[...deferredRules, ...deferredAntiSlopRules].map((rule) => [rule, 'off'])
-	),
+	rules: {
+		...Object.fromEntries(
+			[...deferredRules, ...deferredAntiSlopRules].map((rule) => [rule, 'off'])
+		),
+		'jsdoc/check-tag-names': [
+			'error',
+			{
+				definedTags: [
+					'defaultValue',
+					'experimental',
+					'packageDocumentation',
+					'remarks',
+					'typeParam',
+					'vitest-environment',
+				],
+			},
+		],
+	},
 	settings: {
 		next: {
 			rootDir: [...nextAppDirectories],
