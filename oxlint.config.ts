@@ -207,7 +207,6 @@ const deferredAntiSlopRules = [
 	'anti-slop/no-conditional-empty-object-spread',
 	'anti-slop/no-known-value-widening',
 	'anti-slop/no-module-mocking',
-	'anti-slop/no-object-parameters',
 	'anti-slop/no-runtime-typeof',
 	'anti-slop/no-shape-in-symbol-names',
 	'anti-slop/no-unknown-parameters',

@@ -6,7 +6,11 @@ import { checkInstalledDependencies } from './dependencies';
 
 const tempDirs: string[] = [];
 
-async function createProject(manifest: object): Promise<string> {
+interface ProjectManifest {
+	dependencies?: Record<string, string>;
+}
+
+async function createProject(manifest: ProjectManifest): Promise<string> {
 	const root = await mkdtemp(join(tmpdir(), 'c15t-check-deps-'));
 	tempDirs.push(root);
 	await writeFile(
